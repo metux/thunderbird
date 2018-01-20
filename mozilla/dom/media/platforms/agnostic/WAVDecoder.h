@@ -8,7 +8,6 @@
 #define WaveDecoder_h_
 
 #include "PlatformDecoderModule.h"
-#include "mp4_demuxer/ByteReader.h"
 
 namespace mozilla {
 
@@ -21,20 +20,19 @@ public:
   static bool IsWave(const nsACString& aMimeType);
 
   RefPtr<InitPromise> Init() override;
-  void Input(MediaRawData* aSample) override;
-  void Flush() override;
-  void Drain() override;
-  void Shutdown() override;
-  const char* GetDescriptionName() const override
+  RefPtr<DecodePromise> Decode(MediaRawData* aSample) override;
+  RefPtr<DecodePromise> Drain() override;
+  RefPtr<FlushPromise> Flush() override;
+  RefPtr<ShutdownPromise> Shutdown() override;
+  nsCString GetDescriptionName() const override
   {
-    return "wave audio decoder";
+    return NS_LITERAL_CSTRING("wave audio decoder");
   }
 
 private:
-  MediaResult DoDecode(MediaRawData* aSample);
-
+  RefPtr<DecodePromise> ProcessDecode(MediaRawData* aSample);
   const AudioInfo& mInfo;
-  MediaDataDecoderCallback* mCallback;
+  const RefPtr<TaskQueue> mTaskQueue;
 };
 
 } // namespace mozilla

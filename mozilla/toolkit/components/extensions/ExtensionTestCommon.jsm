@@ -21,8 +21,6 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "AddonManager",
                                   "resource://gre/modules/AddonManager.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
-                                  "resource://gre/modules/AppConstants.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Extension",
                                   "resource://gre/modules/Extension.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ExtensionParent",
@@ -132,12 +130,15 @@ class MockExtension {
   }
 
   cleanupGeneratedFile() {
-    flushJarCache(this.file);
-    return OS.File.remove(this.file.path);
+    return this._extensionPromise.then(extension => {
+      return extension.broadcast("Extension:FlushJarCache", {path: this.file.path});
+    }).then(() => {
+      return OS.File.remove(this.file.path);
+    });
   }
 }
 
-class ExtensionTestCommon {
+this.ExtensionTestCommon = class ExtensionTestCommon {
   /**
    * This code is designed to make it easy to test a WebExtension
    * without creating a bunch of files. Everything is contained in a
@@ -217,6 +218,7 @@ class ExtensionTestCommon {
                   em:type="2"
                   em:version="${manifest.version}"
                   em:description=""
+                  em:multiprocessCompatible="true"
                   em:hasEmbeddedWebExtension="true"
                   em:bootstrap="true">
 
@@ -226,6 +228,13 @@ class ExtensionTestCommon {
                           em:id="{ec8030f7-c20a-464f-9b0e-13a3a9e97384}"
                           em:minVersion="51.0a1"
                           em:maxVersion="*"/>
+                  </em:targetApplication>
+                  <em:targetApplication>
+                    <Description>
+                      <em:id>toolkit@mozilla.org</em:id>
+                      <em:minVersion>0</em:minVersion>
+                      <em:maxVersion>*</em:maxVersion>
+                    </Description>
                   </em:targetApplication>
               </Description>
           </RDF>
@@ -280,7 +289,7 @@ class ExtensionTestCommon {
     for (let filename in files) {
       let script = files[filename];
       if (typeof(script) == "function") {
-        script = "(" + script.toString() + ")()";
+        script = this.serializeScript(script);
       } else if (instanceOf(script, "Object") || instanceOf(script, "Array")) {
         script = JSON.stringify(script);
       }
@@ -302,6 +311,40 @@ class ExtensionTestCommon {
   }
 
   /**
+   * Properly serialize a function into eval-able code string.
+   *
+   * @param {function} script
+   * @returns {string}
+   */
+  static serializeFunction(script) {
+    // Serialization of object methods doesn't include `function` anymore.
+    const method = /^(async )?(\w+)\(/;
+
+    let code = script.toString();
+    let match = code.match(method);
+    if (match && match[2] !== "function") {
+      code = code.replace(method, "$1function $2(");
+    }
+    return code;
+  }
+
+  /**
+   * Properly serialize a script into eval-able code string.
+   *
+   * @param {string|function|Array} script
+   * @returns {string}
+   */
+  static serializeScript(script) {
+    if (Array.isArray(script)) {
+      return Array.from(script, this.serializeScript, this).join(";");
+    }
+    if (typeof script !== "function") {
+      return script;
+    }
+    return `(${this.serializeFunction(script)})();`;
+  }
+
+  /**
    * Generates a new extension using |Extension.generateXPI|, and initializes a
    * new |Extension| instance which will execute it.
    *
@@ -311,11 +354,11 @@ class ExtensionTestCommon {
   static generate(data) {
     let file = this.generateXPI(data);
 
-    flushJarCache(file);
+    flushJarCache(file.path);
     Services.ppmm.broadcastAsyncMessage("Extension:FlushJarCache", {path: file.path});
 
     let fileURI = Services.io.newFileURI(file);
-    let jarURI = Services.io.newURI("jar:" + fileURI.spec + "!/", null, null);
+    let jarURI = Services.io.newURI("jar:" + fileURI.spec + "!/");
 
     // This may be "temporary" or "permanent".
     if (data.useAddonManager) {
@@ -340,4 +383,4 @@ class ExtensionTestCommon {
       cleanupFile: file,
     });
   }
-}
+};

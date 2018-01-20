@@ -323,7 +323,7 @@ function SetDocumentTitle(title)
 {
 
   try {
-    GetCurrentEditor().setDocumentTitle(title);
+    GetCurrentEditorElement().contentDocument.title = title;
 
     // Update window title (doesn't work if called from a dialog)
     if ("UpdateWindowTitle" in window)
@@ -331,19 +331,10 @@ function SetDocumentTitle(title)
   } catch (e) {}
 }
 
-var gAtomService;
-function GetAtomService()
-{
-  gAtomService = Components.classes["@mozilla.org/atom-service;1"].getService(Components.interfaces.nsIAtomService);
-}
-
 function EditorGetTextProperty(property, attribute, value, firstHas, anyHas, allHas)
 {
   try {
-    if (!gAtomService) GetAtomService();
-    var propAtom = gAtomService.getAtom(property);
-
-    return GetCurrentEditor().getInlinePropertyWithAttrValue(propAtom,
+    return GetCurrentEditor().getInlinePropertyWithAttrValue(property,
                                 attribute, value, firstHas, anyHas, allHas);
   }
   catch(e) {}
@@ -352,10 +343,7 @@ function EditorGetTextProperty(property, attribute, value, firstHas, anyHas, all
 function EditorSetTextProperty(property, attribute, value)
 {
   try {
-    if (!gAtomService) GetAtomService();
-    var propAtom = gAtomService.getAtom(property);
-
-    GetCurrentEditor().setInlineProperty(propAtom, attribute, value);
+    GetCurrentEditor().setInlineProperty(property, attribute, value);
     if ("gContentWindow" in window)
       window.gContentWindow.focus();
   }
@@ -365,10 +353,7 @@ function EditorSetTextProperty(property, attribute, value)
 function EditorRemoveTextProperty(property, attribute)
 {
   try {
-    if (!gAtomService) GetAtomService();
-    var propAtom = gAtomService.getAtom(property);
-
-    GetCurrentEditor().removeInlineProperty(propAtom, attribute);
+    GetCurrentEditor().removeInlineProperty(property, attribute);
     if ("gContentWindow" in window)
       window.gContentWindow.focus();
   }
@@ -411,7 +396,7 @@ function GetFileProtocolHandler()
 function GetStringPref(name)
 {
   try {
-    return Services.prefs.getComplexValue(name, Components.interfaces.nsISupportsString).data;
+    return Services.prefs.getStringPref(name);
   } catch (e) {}
   return "";
 }
@@ -419,10 +404,7 @@ function GetStringPref(name)
 function SetStringPref(aPrefName, aPrefValue)
 {
   try {
-    let str = Components.classes["@mozilla.org/supports-string;1"]
-                        .createInstance(Components.interfaces.nsISupportsString);
-    str.data = aPrefValue;
-    Services.prefs.setComplexValue(aPrefName, Components.interfaces.nsISupportsString, str);
+    Services.prefs.setStringPref(aPrefName, aPrefValue);
   }
   catch(e) {}
 }
@@ -437,7 +419,7 @@ function SetFilePickerDirectory(filePicker, fileType)
       gFilePickerDirectory = filePicker.displayDirectory;
 
       let location = Services.prefs.getComplexValue("editor.lastFileLocation."+fileType,
-                                                    Components.interfaces.nsILocalFile);
+                                                    Components.interfaces.nsIFile);
       if (location)
         filePicker.displayDirectory = location;
     }
@@ -453,10 +435,10 @@ function SaveFilePickerDirectory(filePicker, fileType)
     try {
       var fileDir;
       if (filePicker.file.parent)
-        fileDir = filePicker.file.parent.QueryInterface(Components.interfaces.nsILocalFile);
+        fileDir = filePicker.file.parent.QueryInterface(Components.interfaces.nsIFile);
 
         Services.prefs.setComplexValue("editor.lastFileLocation." + fileType,
-                                       Components.interfaces.nsILocalFile, fileDir);
+                                       Components.interfaces.nsIFile, fileDir);
 
         Services.prefs.savePrefFile(null);
     } catch (e) {}
@@ -538,14 +520,13 @@ function MakeRelativeUrl(url)
 
   // Get just the file path part of the urls
   // XXX Should we use GetCurrentEditor().documentCharacterSet for 2nd param ?
-  let docPath = Services.io.newURI(docUrl, GetCurrentEditor().documentCharacterSet, null).path;
-  let urlPath = Services.io.newURI(inputUrl, GetCurrentEditor().documentCharacterSet, null).path;
+  let docPath = Services.io.newURI(docUrl, GetCurrentEditor().documentCharacterSet).pathQueryRef;
+  let urlPath = Services.io.newURI(inputUrl, GetCurrentEditor().documentCharacterSet).pathQueryRef;
 
   // We only return "urlPath", so we can convert the entire docPath for
   // case-insensitive comparisons.
   var doCaseInsensitive = (docScheme == "file" &&
                            AppConstants.platform == "win");
-
   if (doCaseInsensitive)
     docPath = docPath.toLowerCase();
 
@@ -652,7 +633,7 @@ function MakeAbsoluteUrl(url)
 
   // Make a URI object to use its "resolve" method
   let absoluteUrl = resultUrl;
-  let docUri = Services.io.newURI(docUrl, GetCurrentEditor().documentCharacterSet, null);
+  let docUri = Services.io.newURI(docUrl, GetCurrentEditor().documentCharacterSet);
 
   try {
     absoluteUrl = docUri.resolve(resultUrl);
@@ -718,7 +699,7 @@ function GetHost(urlspec)
 
   var host = "";
   try {
-    host = Services.io.newURI(urlspec, null, null).host;
+    host = Services.io.newURI(urlspec).host;
    } catch (e) {}
 
   return host;
@@ -731,7 +712,7 @@ function GetUsername(urlspec)
 
   var username = "";
   try {
-    username = Services.io.newURI(urlspec, null, null).username;
+    username = Services.io.newURI(urlspec).username;
   } catch (e) {}
 
   return username;
@@ -745,7 +726,7 @@ function GetFilename(urlspec)
   var filename;
 
   try {
-    let uri = Services.io.newURI(urlspec, null, null);
+    let uri = Services.io.newURI(urlspec);
     if (uri)
     {
       let url = uri.QueryInterface(Components.interfaces.nsIURL);
@@ -776,7 +757,7 @@ function StripUsernamePassword(urlspec, usernameObj, passwordObj)
   if (atIndex > 0)
   {
     try {
-      let uri = Services.io.newURI(urlspec, null, null);
+      let uri = Services.io.newURI(urlspec);
       let username = uri.username;
       let password = uri.password;
 
@@ -809,7 +790,7 @@ function StripPassword(urlspec, passwordObj)
   if (atIndex > 0)
   {
     try {
-      let password = Services.io.newURI(urlspec, null, null).password;
+      let password = Services.io.newURI(urlspec).password;
 
       if (passwordObj && password)
         passwordObj.value = password;
@@ -853,7 +834,7 @@ function InsertUsernameIntoUrl(urlspec, username)
     return urlspec;
 
   try {
-    let URI = Services.io.newURI(urlspec, GetCurrentEditor().documentCharacterSet, null);
+    let URI = Services.io.newURI(urlspec, GetCurrentEditor().documentCharacterSet);
     URI.username = username;
     return URI.spec;
   } catch (e) {}
@@ -971,6 +952,8 @@ function shortenImageData(aImageData, aDialogField) {
       aDialogField.addEventListener("copy", onCopyOrCutShortened);
       aDialogField.addEventListener("cut", onCopyOrCutShortened);
       aDialogField.fullDataURI = aImageData;
+      aDialogField.removeAttribute("tooltiptext");
+      aDialogField.setAttribute("tooltip", "shortenedDataURI");
       return nonDataPart + dataPart.substring(0, 5) + "…" +
                            dataPart.substring(dataPart.length - 30);
     });

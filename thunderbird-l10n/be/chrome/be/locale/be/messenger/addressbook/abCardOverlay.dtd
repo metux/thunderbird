@@ -133,3 +133,6 @@
 <!ENTITY PhotoURL.placeholder "Устаўце ці набярыце сеціўны адрас здымка">
 <!ENTITY UpdatePhoto.label "Абнавіць">
 <!ENTITY UpdatePhoto.accesskey "н">
+
+<!ENTITY AIM2.accesskey                 "M">
+<!ENTITY MSN2.accesskey                 "N">

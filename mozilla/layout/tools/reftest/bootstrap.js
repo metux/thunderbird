@@ -13,8 +13,6 @@ var WindowListener = {
 
     win = win.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
     win.addEventListener("load", function listener() {
-      win.removeEventListener("load", listener, false);
-
       // Load into any existing windows.
       let windows = Services.wm.getEnumerator("navigator:browser");
       while (windows.hasMoreElements()) {
@@ -23,21 +21,15 @@ var WindowListener = {
       }
 
       Cu.import("chrome://reftest/content/reftest.jsm");
-      win.addEventListener("pageshow", function listener() {
-        win.removeEventListener("pageshow", listener);
+      win.addEventListener("pageshow", function() {
         // Add setTimeout here because windows.innerWidth/Height are not set yet.
         win.setTimeout(function() {OnRefTestLoad(win);}, 0);
-      });
-    }, false);
+      }, {once: true});
+    }, {once: true});
   }
 };
 
 function startup(data, reason) {
-  // b2g is bootstrapped by b2g_start_script.js
-  if (Services.appinfo.widgetToolkit == "gonk") {
-    return;
-  }
-
   if (Services.appinfo.OS == "Android") {
     Cm.addBootstrappedManifestLocation(data.installPath);
     Services.wm.addListener(WindowListener);
@@ -47,7 +39,7 @@ function startup(data, reason) {
   let orig = Services.wm.getMostRecentWindow("navigator:browser");
 
   let ios = Cc["@mozilla.org/network/io-service;1"]
-            .getService(Ci.nsIIOService2);
+              .getService(Ci.nsIIOService);
   ios.manageOfflineStatus = false;
   ios.offline = false;
 
@@ -66,10 +58,6 @@ function startup(data, reason) {
 }
 
 function shutdown(data, reason) {
-  if (Services.appinfo.widgetToolkit == "gonk") {
-    return;
-  }
-
   if (Services.appinfo.OS == "Android") {
     Services.wm.removeListener(WindowListener);
     Cm.removedBootstrappedManifestLocation(data.installPath);

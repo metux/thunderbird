@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -15,11 +16,11 @@
 
 class nsIFrame;
 class nsSVGLength2;
-class nsSVGPathGeometryFrame;
 class nsSVGViewBox;
 
 namespace mozilla {
 class SVGAnimatedPreserveAspectRatio;
+class SVGGeometryFrame;
 class nsSVGAnimatedTransformList;
 } // namespace mozilla
 
@@ -27,12 +28,12 @@ class nsSVGAnimatedTransformList;
  * Patterns can refer to other patterns. We create an nsSVGPaintingProperty
  * with property type nsGkAtoms::href to track the referenced pattern.
  */
-class nsSVGPatternFrame : public nsSVGPaintServerFrame
+class nsSVGPatternFrame final : public nsSVGPaintServerFrame
 {
   typedef mozilla::gfx::SourceSurface SourceSurface;
 
 public:
-  NS_DECL_FRAMEARENA_HELPERS
+  NS_DECL_FRAMEARENA_HELPERS(nsSVGPatternFrame)
 
   friend nsIFrame* NS_NewSVGPatternFrame(nsIPresShell* aPresShell,
                                          nsStyleContext* aContext);
@@ -46,7 +47,8 @@ public:
                           const gfxMatrix& aContextMatrix,
                           nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                           float aOpacity,
-                          const gfxRect *aOverrideBounds) override;
+                          imgDrawingParams& aImgParams,
+                          const gfxRect* aOverrideBounds) override;
 
 public:
   typedef mozilla::SVGAnimatedPreserveAspectRatio SVGAnimatedPreserveAspectRatio;
@@ -56,7 +58,7 @@ public:
 
   // nsIFrame interface:
   virtual nsresult AttributeChanged(int32_t         aNameSpaceID,
-                                    nsIAtom*        aAttribute,
+                                    nsAtom*        aAttribute,
                                     int32_t         aModType) override;
 
 #ifdef DEBUG
@@ -64,13 +66,6 @@ public:
                     nsContainerFrame* aParent,
                     nsIFrame*         aPrevInFlow) override;
 #endif
-
-  /**
-   * Get the "type" of the frame
-   *
-   * @see nsGkAtoms::svgPatternFrame
-   */
-  virtual nsIAtom* GetType() const override;
 
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const override
@@ -81,9 +76,7 @@ public:
 
 protected:
   // Internal methods for handling referenced patterns
-  class AutoPatternReferencer;
   nsSVGPatternFrame* GetReferencedPattern();
-  nsSVGPatternFrame* GetReferencedPatternIfNotInUse();
 
   // Accessors to lookup pattern attributes
   uint16_t GetEnumValue(uint32_t aIndex, nsIContent *aDefault);
@@ -115,7 +108,8 @@ protected:
                nsIFrame *aSource,
                nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                float aGraphicOpacity,
-               const gfxRect *aOverrideBounds);
+               const gfxRect *aOverrideBounds,
+               imgDrawingParams& aImgParams);
 
   /**
    * A <pattern> element may reference another <pattern> element using
@@ -142,8 +136,8 @@ private:
   // this is a *temporary* reference to the frame of the element currently
   // referencing our pattern.  This must be temporary because different
   // referencing frames will all reference this one frame
-  nsSVGPathGeometryFrame           *mSource;
-  nsAutoPtr<gfxMatrix>              mCTM;
+  mozilla::SVGGeometryFrame* mSource;
+  nsAutoPtr<gfxMatrix> mCTM;
 
 protected:
   // This flag is used to detect loops in xlink:href processing

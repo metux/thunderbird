@@ -14,7 +14,7 @@
 <!ENTITY aboutNetworking.autoRefresh           "Azbevaat ent emgefreek pep 3 eilenn">
 <!ENTITY aboutNetworking.hostname              "Anv ostiz">
 <!ENTITY aboutNetworking.port                  "Porzh">
-<!ENTITY aboutNetworking.spdy                  "SPDY">
+<!ENTITY aboutNetworking.http2                 "HTTP/2">
 <!ENTITY aboutNetworking.ssl                   "SSL">
 <!ENTITY aboutNetworking.active                "Oberiant">
 <!ENTITY aboutNetworking.idle                  "Dioberiant">
@@ -41,3 +41,30 @@
 <!ENTITY aboutNetworking.dnsLookupButton       "Diskoulmañ">
 <!ENTITY aboutNetworking.dnsDomain             "Domani">
 <!ENTITY aboutNetworking.dnsLookupTableColumn  "IPoù">
+<!ENTITY aboutNetworking.rcwn                  "Stadegoù RCWN">
+<!ENTITY aboutNetworking.rcwnStatus            "Satud RCWN">
+<!ENTITY aboutNetworking.rcwnCacheWonCount     "Konter berzhioù ar c'hrubuilh">
+<!ENTITY aboutNetworking.rcwnNetWonCount       "Konter berzhioù web">
+
+
+
+
+
+
+
+
+
+
+
+
+<!ENTITY aboutNetworking.totalNetworkRequests  "Total network request count">
+<!ENTITY aboutNetworking.rcwnOperation         "Cache Operation">
+<!ENTITY aboutNetworking.rcwnPerfOpen          "Open">
+<!ENTITY aboutNetworking.rcwnPerfRead          "Read">
+<!ENTITY aboutNetworking.rcwnPerfWrite         "Write">
+<!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Entry Open">
+<!ENTITY aboutNetworking.rcwnAvgShort          "Short Average">
+<!ENTITY aboutNetworking.rcwnAvgLong           "Long Average">
+<!ENTITY aboutNetworking.rcwnStddevLong        "Long Standard Deviation">
+<!ENTITY aboutNetworking.rcwnCacheSlow         "Cache slow count">
+<!ENTITY aboutNetworking.rcwnCacheNotSlow      "Cache not slow count">

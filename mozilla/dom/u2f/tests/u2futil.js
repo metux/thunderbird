@@ -1,17 +1,19 @@
-// Used by local_addTest() / local_completeTest()
-var _countCompletions = 0;
-var _expectedCompletions = 0;
+function promiseU2FRegister(aAppId, aChallenges, aExcludedKeys, aFunc) {
+  return new Promise(function(resolve, reject) {
+      u2f.register(aAppId, aChallenges, aExcludedKeys, function(res) {
+        aFunc(res);
+        resolve(res);
+      });
+  });
+}
 
-function handleEventMessage(event) {
-  if ("test" in event.data) {
-    let summary = event.data.test + ": " + event.data.msg;
-    log(event.data.status + ": " + summary);
-    ok(event.data.status, summary);
-  } else if ("done" in event.data) {
-    SimpleTest.finish();
-  } else {
-    ok(false, "Unexpected message in the test harness: " + event.data)
-  }
+function promiseU2FSign(aAppId, aChallenge, aAllowedKeys, aFunc) {
+  return new Promise(function(resolve, reject) {
+      u2f.sign(aAppId, aChallenge, aAllowedKeys, function(res) {
+        aFunc(res);
+        resolve(res);
+      });
+  });
 }
 
 function log(msg) {
@@ -20,57 +22,6 @@ function log(msg) {
   if (logBox) {
     logBox.textContent += "\n" + msg;
   }
-}
-
-function local_is(value, expected, message) {
-  if (value === expected) {
-    local_ok(true, message);
-  } else {
-    local_ok(false, message + " unexpectedly: " + value + " !== " + expected);
-  }
-}
-
-function local_isnot(value, expected, message) {
-  if (value !== expected) {
-    local_ok(true, message);
-  } else {
-    local_ok(false, message + " unexpectedly: " + value + " === " + expected);
-  }
-}
-
-function local_ok(expression, message) {
-  let body = {"test": this.location.pathname, "status":expression, "msg": message}
-  parent.postMessage(body, "http://mochi.test:8888");
-}
-
-function local_doesThrow(fn, name) {
-  let gotException = false;
-  try {
-    fn();
-  } catch (ex) { gotException = true; }
-  local_ok(gotException, name);
-};
-
-function local_expectThisManyTests(count) {
-  if (_expectedCompletions > 0) {
-    local_ok(false, "Error: local_expectThisManyTests should only be called once.");
-  }
-  _expectedCompletions = count;
-}
-
-function local_completeTest() {
-  _countCompletions += 1
-  if (_countCompletions == _expectedCompletions) {
-    log("All tests completed.")
-    local_finished();
-  }
-  if (_countCompletions > _expectedCompletions) {
-    local_ok(false, "Error: local_completeTest called more than local_addTest.");
-  }
-}
-
-function local_finished() {
-  parent.postMessage({"done":true}, "http://mochi.test:8888");
 }
 
 function string2buffer(str) {
@@ -106,7 +57,7 @@ function bytesToBase64UrlSafe(buf) {
 }
 
 function base64ToBytesUrlSafe(str) {
-  if (str.length % 4 == 1) {
+  if (!str || str.length % 4 == 1) {
     throw "Improper b64 string";
   }
 
@@ -125,6 +76,27 @@ function hexEncode(buf) {
 
 function hexDecode(str) {
   return new Uint8Array(str.match(/../g).map(x => parseInt(x, 16)));
+}
+
+function decodeU2FRegistration(aRegData) {
+  if (aRegData[0] != 0x05) {
+    return Promise.reject("Sentinal byte != 0x05");
+  }
+
+  let keyHandleLength = aRegData[66];
+  let u2fRegObj = {
+    publicKeyBytes: aRegData.slice(1, 66),
+    keyHandleBytes: aRegData.slice(67, 67 + keyHandleLength),
+    attestationBytes: aRegData.slice(67 + keyHandleLength)
+  }
+
+  u2fRegObj.keyHandle = bytesToBase64UrlSafe(u2fRegObj.keyHandleBytes);
+
+  return importPublicKey(u2fRegObj.publicKeyBytes)
+  .then(function(keyObj) {
+    u2fRegObj.publicKey = keyObj;
+    return u2fRegObj;
+  });
 }
 
 function importPublicKey(keyBytes) {
@@ -194,6 +166,8 @@ function verifySignature(key, data, derSig) {
   // all depends on what lib generated the signature.
   let R = sanitizeSigArray(sigR);
   let S = sanitizeSigArray(sigS);
+
+  console.log("Verifying these bytes: " + bytesToBase64UrlSafe(data));
 
   let sigData = new Uint8Array(R.length + S.length);
   sigData.set(R);

@@ -132,7 +132,7 @@ function hiddenDataCheck(bytes, uri, path)
   var ios = Cc["@mozilla.org/network/io-service;1"]
               .getService(Ci.nsIIOService);
 
-  var top = ios.newURI(uri, null, null);
+  var top = ios.newURI(uri);
 
   // N.B. No ERROR_IF_SEE_THIS.txt^ file!
   var dirEntries = [{name: "file.txt", isDirectory: false},
@@ -152,7 +152,7 @@ function hiddenDataCheck(bytes, uri, path)
     do_check_eq(link.textContent, f.name + sep);
 
     uri = ios.newURI(link.getAttribute("href"), null, top);
-    do_check_eq(decodeURIComponent(uri.path), path + f.name + sep);
+    do_check_eq(decodeURIComponent(uri.pathQueryRef), path + f.name + sep);
   }
 }
 
@@ -216,7 +216,7 @@ function dataCheck(bytes, uri, path, dirEntries)
   var ios = Cc["@mozilla.org/network/io-service;1"]
               .getService(Ci.nsIIOService);
 
-  var dirURI = ios.newURI(uri, null, null);
+  var dirURI = ios.newURI(uri);
 
   for (var i = 0; i < items.length; i++)
   {
@@ -232,7 +232,7 @@ function dataCheck(bytes, uri, path, dirEntries)
     do_check_eq(link.textContent, f.name + sep);
 
     uri = ios.newURI(link.getAttribute("href"), null, top);
-    do_check_eq(decodeURIComponent(uri.path), path + f.name + sep);
+    do_check_eq(decodeURIComponent(uri.pathQueryRef), path + f.name + sep);
   }
 }
 

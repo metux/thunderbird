@@ -21,6 +21,11 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Fersiwn">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.featuresTitle "Nodweddion &brandShortName;">
+<!ENTITY aboutSupport.featureName "Enw">
+<!ENTITY aboutSupport.featureVersion "Fersiwn">
+<!ENTITY aboutSupport.featureId "ID">
+
 <!ENTITY aboutSupport.experimentsTitle "Nodweddion Arbrofol">
 <!ENTITY aboutSupport.experimentName "Enw">
 <!ENTITY aboutSupport.experimentId "ID">
@@ -61,6 +66,11 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Ffenestri Amlbroses">
 
+<!ENTITY aboutSupport.appBasicsProcessCount "Prosesau Cynnwys Gwe">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Allwedd Google">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla Location Service Key">
+
 <!ENTITY aboutSupport.appBasicsSafeMode "Modd Diogel">
 
 <!ENTITY aboutSupport.showDir.label "Agor Cyfeiriadur">
@@ -96,6 +106,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "Hygyrchedd">
 <!ENTITY aboutSupport.a11yActivated "Gweithredu">
 <!ENTITY aboutSupport.a11yForceDisabled "Atal Hygyrchedd">
+<!ENTITY aboutSupport.a11yHandlerUsed "Defnyddiwyd Trinydd Mynediadwy">
+<!ENTITY aboutSupport.a11yInstantiator "Enghreifftiad Hygyrchedd">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Fersiynau Llyfrgell">
 
@@ -106,6 +118,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Copïo data bras i'r clipfwrdd">
 
 <!ENTITY aboutSupport.sandboxTitle "Blwch tywod">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Galwadau System wedi eu Gwrthod">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "Eiliad yn Ôl">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Math o Brosesu">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Syscall">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Ymresymiadau">
 
 <!ENTITY aboutSupport.safeModeTitle "Defnyddiwch y Modd Diogel">
 <!ENTITY aboutSupport.restartInSafeMode.label "Ailgychwyn gydag Ychwanegion wedi eu Hanalluogi…">
@@ -118,3 +138,26 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Cofnod Penderfynnu">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Nodweddion Crash Guard wedi ei Analluogi">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Dulliau Datrys">
+
+<!ENTITY aboutSupport.mediaTitle "Cyfrwng">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Dyfeisiau Allbwn">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Dyfeisiau Mewnbwn">
+<!ENTITY aboutSupport.mediaDeviceName "Enw">
+<!ENTITY aboutSupport.mediaDeviceGroup "Grŵp">
+<!ENTITY aboutSupport.mediaDeviceVendor "Gwerthwr">
+<!ENTITY aboutSupport.mediaDeviceState "Cyflwr">
+<!ENTITY aboutSupport.mediaDevicePreferred "Amgen">
+<!ENTITY aboutSupport.mediaDeviceFormat "Fformat">
+<!ENTITY aboutSupport.mediaDeviceChannels "Sianeli">
+<!ENTITY aboutSupport.mediaDeviceRate "Cyfradd">
+<!ENTITY aboutSupport.mediaDeviceLatency "Cuddni">
+
+<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
+<!ENTITY aboutSupport.intlAppTitle "Application Settings">
+<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
+<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
+<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
+<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
+<!ENTITY aboutSupport.intlOSTitle "Operating System">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">

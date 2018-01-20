@@ -120,9 +120,9 @@ protected:
   void ProcessSelectionChanged(SelData* aSelData);
 
 private:
+  // Currently focused control.
   int32_t mCaretOffset;
   HyperTextAccessible* mAccWithCaret;
-  // Currently focused controls.
   nsWeakPtr mCurrCtrlNormalSel;
   nsWeakPtr mCurrCtrlSpellSel;
 };

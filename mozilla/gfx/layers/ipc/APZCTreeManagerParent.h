@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=99: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -30,7 +30,7 @@ public:
    */
   void ChildAdopted(RefPtr<APZCTreeManager> aAPZCTreeManager);
 
-  bool
+  mozilla::ipc::IPCResult
   RecvReceiveMultiTouchInputEvent(
           const MultiTouchInput& aEvent,
           nsEventStatus* aOutStatus,
@@ -38,7 +38,7 @@ public:
           ScrollableLayerGuid* aOutTargetGuid,
           uint64_t* aOutInputBlockId) override;
 
-  bool
+  mozilla::ipc::IPCResult
   RecvReceiveMouseInputEvent(
           const MouseInput& aEvent,
           nsEventStatus* aOutStatus,
@@ -46,7 +46,7 @@ public:
           ScrollableLayerGuid* aOutTargetGuid,
           uint64_t* aOutInputBlockId) override;
 
-  bool
+  mozilla::ipc::IPCResult
   RecvReceivePanGestureInputEvent(
           const PanGestureInput& aEvent,
           nsEventStatus* aOutStatus,
@@ -54,7 +54,7 @@ public:
           ScrollableLayerGuid* aOutTargetGuid,
           uint64_t* aOutInputBlockId) override;
 
-  bool
+  mozilla::ipc::IPCResult
   RecvReceivePinchGestureInputEvent(
           const PinchGestureInput& aEvent,
           nsEventStatus* aOutStatus,
@@ -62,7 +62,7 @@ public:
           ScrollableLayerGuid* aOutTargetGuid,
           uint64_t* aOutInputBlockId) override;
 
-  bool
+  mozilla::ipc::IPCResult
   RecvReceiveTapGestureInputEvent(
           const TapGestureInput& aEvent,
           nsEventStatus* aOutStatus,
@@ -70,7 +70,7 @@ public:
           ScrollableLayerGuid* aOutTargetGuid,
           uint64_t* aOutInputBlockId) override;
 
-  bool
+  mozilla::ipc::IPCResult
   RecvReceiveScrollWheelInputEvent(
           const ScrollWheelInput& aEvent,
           nsEventStatus* aOutStatus,
@@ -78,64 +78,78 @@ public:
           ScrollableLayerGuid* aOutTargetGuid,
           uint64_t* aOutInputBlockId) override;
 
-  bool
+  mozilla::ipc::IPCResult
+  RecvReceiveKeyboardInputEvent(
+          const KeyboardInput& aEvent,
+          nsEventStatus* aOutStatus,
+          KeyboardInput* aOutEvent,
+          ScrollableLayerGuid* aOutTargetGuid,
+          uint64_t* aOutInputBlockId) override;
+
+  mozilla::ipc::IPCResult
+  RecvSetKeyboardMap(const KeyboardMap& aKeyboardMap) override;
+
+  mozilla::ipc::IPCResult
   RecvZoomToRect(
           const ScrollableLayerGuid& aGuid,
           const CSSRect& aRect,
           const uint32_t& aFlags) override;
 
-  bool
+  mozilla::ipc::IPCResult
   RecvContentReceivedInputBlock(
           const uint64_t& aInputBlockId,
           const bool& aPreventDefault) override;
 
-  bool
+  mozilla::ipc::IPCResult
   RecvSetTargetAPZC(
           const uint64_t& aInputBlockId,
           nsTArray<ScrollableLayerGuid>&& aTargets) override;
 
-  bool
+  mozilla::ipc::IPCResult
   RecvUpdateZoomConstraints(
           const ScrollableLayerGuid& aGuid,
           const MaybeZoomConstraints& aConstraints) override;
 
-  bool
-  RecvCancelAnimation(const ScrollableLayerGuid& aGuid) override;
-
-  bool
-  RecvAdjustScrollForSurfaceShift(const ScreenPoint& aShift) override;
-
-  bool
+  mozilla::ipc::IPCResult
   RecvSetDPI(const float& aDpiValue) override;
 
-  bool
+  mozilla::ipc::IPCResult
   RecvSetAllowedTouchBehavior(
           const uint64_t& aInputBlockId,
           nsTArray<TouchBehaviorFlags>&& aValues) override;
 
-  bool
+  mozilla::ipc::IPCResult
   RecvStartScrollbarDrag(
           const ScrollableLayerGuid& aGuid,
           const AsyncDragMetrics& aDragMetrics) override;
 
-  bool
+  mozilla::ipc::IPCResult
+  RecvStartAutoscroll(
+          const ScrollableLayerGuid& aGuid,
+          const ScreenPoint& aAnchorLocation) override;
+
+  mozilla::ipc::IPCResult
+  RecvStopAutoscroll(const ScrollableLayerGuid& aGuid) override;
+
+  mozilla::ipc::IPCResult
   RecvSetLongTapEnabled(const bool& aTapGestureEnabled) override;
 
-  bool
+  mozilla::ipc::IPCResult
   RecvProcessTouchVelocity(
           const uint32_t& aTimestampMs,
           const float& aSpeedY) override;
 
-  bool
+  mozilla::ipc::IPCResult
   RecvUpdateWheelTransaction(
           const LayoutDeviceIntPoint& aRefPoint,
           const EventMessage& aEventMessage) override;
 
-  bool
-  RecvTransformEventRefPoint(
+  mozilla::ipc::IPCResult
+  RecvProcessUnhandledEvent(
           const LayoutDeviceIntPoint& aRefPoint,
           LayoutDeviceIntPoint* aOutRefPoint,
-          ScrollableLayerGuid* aOutTargetGuid) override;
+          ScrollableLayerGuid*  aOutTargetGuid,
+          uint64_t*             aOutFocusSequenceNumber) override;
 
   void
   ActorDestroy(ActorDestroyReason aWhy) override { }

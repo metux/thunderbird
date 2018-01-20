@@ -89,8 +89,6 @@ AssertMainProcess()
   MOZ_ASSERT(GeckoProcessType_Default == XRE_GetProcessType());
 }
 
-#if !defined(MOZ_WIDGET_GONK)
-
 bool
 WindowIsActive(nsPIDOMWindowInner* aWindow)
 {
@@ -99,8 +97,6 @@ WindowIsActive(nsPIDOMWindowInner* aWindow)
 
   return !document->Hidden();
 }
-
-#endif // !defined(MOZ_WIDGET_GONK)
 
 StaticAutoPtr<WindowIdentifier::IDArrayType> gLastIDToVibrate;
 
@@ -123,7 +119,6 @@ Vibrate(const nsTArray<uint32_t>& pattern, const WindowIdentifier &id)
 {
   AssertMainThread();
 
-#if !defined(MOZ_WIDGET_GONK)
   // Only active windows may start vibrations.  If |id| hasn't gone
   // through the IPC layer -- that is, if our caller is the outside
   // world, not hal_proxy -- check whether the window is active.  If
@@ -134,7 +129,6 @@ Vibrate(const nsTArray<uint32_t>& pattern, const WindowIdentifier &id)
     HAL_LOG("Vibrate: Window is inactive, dropping vibrate.");
     return;
   }
-#endif // !defined(MOZ_WIDGET_GONK)
 
   if (!InSandbox()) {
     if (!gLastIDToVibrate) {
@@ -264,7 +258,7 @@ public:
 protected:
   virtual void GetCurrentInformationInternal(InfoType*) = 0;
 
-  virtual void OnNotificationsDisabled() {
+  void OnNotificationsDisabled() override {
     mHasValidCache = false;
   }
 
@@ -276,15 +270,15 @@ private:
 class BatteryObserversManager : public CachingObserversManager<BatteryInformation>
 {
 protected:
-  void EnableNotifications() {
+  void EnableNotifications() override {
     PROXY_IF_SANDBOXED(EnableBatteryNotifications());
   }
 
-  void DisableNotifications() {
+  void DisableNotifications() override {
     PROXY_IF_SANDBOXED(DisableBatteryNotifications());
   }
 
-  void GetCurrentInformationInternal(BatteryInformation* aInfo) {
+  void GetCurrentInformationInternal(BatteryInformation* aInfo) override {
     PROXY_IF_SANDBOXED(GetCurrentBatteryInformation(aInfo));
   }
 };
@@ -300,15 +294,15 @@ BatteryObservers()
 class NetworkObserversManager : public CachingObserversManager<NetworkInformation>
 {
 protected:
-  void EnableNotifications() {
+  void EnableNotifications() override {
     PROXY_IF_SANDBOXED(EnableNetworkNotifications());
   }
 
-  void DisableNotifications() {
+  void DisableNotifications() override {
     PROXY_IF_SANDBOXED(DisableNetworkNotifications());
   }
 
-  void GetCurrentInformationInternal(NetworkInformation* aInfo) {
+  void GetCurrentInformationInternal(NetworkInformation* aInfo) override {
     PROXY_IF_SANDBOXED(GetCurrentNetworkInformation(aInfo));
   }
 };
@@ -324,11 +318,11 @@ NetworkObservers()
 class WakeLockObserversManager : public ObserversManager<WakeLockInformation>
 {
 protected:
-  void EnableNotifications() {
+  void EnableNotifications() override {
     PROXY_IF_SANDBOXED(EnableWakeLockNotifications());
   }
 
-  void DisableNotifications() {
+  void DisableNotifications() override {
     PROXY_IF_SANDBOXED(DisableWakeLockNotifications());
   }
 };
@@ -344,15 +338,15 @@ WakeLockObservers()
 class ScreenConfigurationObserversManager : public CachingObserversManager<ScreenConfiguration>
 {
 protected:
-  void EnableNotifications() {
+  void EnableNotifications() override {
     PROXY_IF_SANDBOXED(EnableScreenConfigurationNotifications());
   }
 
-  void DisableNotifications() {
+  void DisableNotifications() override {
     PROXY_IF_SANDBOXED(DisableScreenConfigurationNotifications());
   }
 
-  void GetCurrentInformationInternal(ScreenConfiguration* aInfo) {
+  void GetCurrentInformationInternal(ScreenConfiguration* aInfo) override {
     PROXY_IF_SANDBOXED(GetCurrentScreenConfiguration(aInfo));
   }
 };
@@ -394,66 +388,14 @@ NotifyBatteryChange(const BatteryInformation& aInfo)
   BatteryObservers().BroadcastCachedInformation();
 }
 
-bool GetScreenEnabled()
-{
-  AssertMainThread();
-  RETURN_PROXY_IF_SANDBOXED(GetScreenEnabled(), false);
-}
-
-void SetScreenEnabled(bool aEnabled)
-{
-  AssertMainThread();
-  PROXY_IF_SANDBOXED(SetScreenEnabled(aEnabled));
-}
-
-bool GetKeyLightEnabled()
-{
-  AssertMainThread();
-  RETURN_PROXY_IF_SANDBOXED(GetKeyLightEnabled(), false);
-}
-
-void SetKeyLightEnabled(bool aEnabled)
-{
-  AssertMainThread();
-  PROXY_IF_SANDBOXED(SetKeyLightEnabled(aEnabled));
-}
-
-bool GetCpuSleepAllowed()
-{
-  // Generally for interfaces that are accessible by normal web content
-  // we should cache the result and be notified on state changes, like
-  // what the battery API does. But since this is only used by
-  // privileged interface, the synchronous getter is OK here.
-  AssertMainThread();
-  RETURN_PROXY_IF_SANDBOXED(GetCpuSleepAllowed(), true);
-}
-
-void SetCpuSleepAllowed(bool aAllowed)
-{
-  AssertMainThread();
-  PROXY_IF_SANDBOXED(SetCpuSleepAllowed(aAllowed));
-}
-
-double GetScreenBrightness()
-{
-  AssertMainThread();
-  RETURN_PROXY_IF_SANDBOXED(GetScreenBrightness(), 0);
-}
-
-void SetScreenBrightness(double aBrightness)
-{
-  AssertMainThread();
-  PROXY_IF_SANDBOXED(SetScreenBrightness(clamped(aBrightness, 0.0, 1.0)));
-}
-
 class SystemClockChangeObserversManager : public ObserversManager<int64_t>
 {
 protected:
-  void EnableNotifications() {
+  void EnableNotifications() override {
     PROXY_IF_SANDBOXED(EnableSystemClockChangeNotifications());
   }
 
-  void DisableNotifications() {
+  void DisableNotifications() override {
     PROXY_IF_SANDBOXED(DisableSystemClockChangeNotifications());
   }
 };
@@ -489,11 +431,11 @@ NotifySystemClockChange(const int64_t& aClockDeltaMS)
 class SystemTimezoneChangeObserversManager : public ObserversManager<SystemTimezoneChangeInformation>
 {
 protected:
-  void EnableNotifications() {
+  void EnableNotifications() override {
     PROXY_IF_SANDBOXED(EnableSystemTimezoneChangeNotifications());
   }
 
-  void DisableNotifications() {
+  void DisableNotifications() override {
     PROXY_IF_SANDBOXED(DisableSystemTimezoneChangeNotifications());
   }
 };
@@ -531,27 +473,6 @@ AdjustSystemClock(int64_t aDeltaMilliseconds)
 {
   AssertMainThread();
   PROXY_IF_SANDBOXED(AdjustSystemClock(aDeltaMilliseconds));
-}
-
-void
-SetTimezone(const nsCString& aTimezoneSpec)
-{
-  AssertMainThread();
-  PROXY_IF_SANDBOXED(SetTimezone(aTimezoneSpec));
-}
-
-int32_t
-GetTimezoneOffset()
-{
-  AssertMainThread();
-  RETURN_PROXY_IF_SANDBOXED(GetTimezoneOffset(), 0);
-}
-
-nsCString
-GetTimezone()
-{
-  AssertMainThread();
-  RETURN_PROXY_IF_SANDBOXED(GetTimezone(), nsCString(""));
 }
 
 void
@@ -650,27 +571,6 @@ NotifyNetworkChange(const NetworkInformation& aInfo)
 {
   NetworkObservers().CacheInformation(aInfo);
   NetworkObservers().BroadcastCachedInformation();
-}
-
-void Reboot()
-{
-  AssertMainProcess();
-  AssertMainThread();
-  PROXY_IF_SANDBOXED(Reboot());
-}
-
-void PowerOff()
-{
-  AssertMainProcess();
-  AssertMainThread();
-  PROXY_IF_SANDBOXED(PowerOff());
-}
-
-void StartForceQuitWatchdog(ShutdownMode aMode, int32_t aTimeoutSecs)
-{
-  AssertMainProcess();
-  AssertMainThread();
-  PROXY_IF_SANDBOXED(StartForceQuitWatchdog(aMode, aTimeoutSecs));
 }
 
 void
@@ -772,18 +672,6 @@ DisableSwitchNotifications(SwitchDevice aDevice) {
   PROXY_IF_SANDBOXED(DisableSwitchNotifications(aDevice));
 }
 
-SwitchState GetCurrentSwitchState(SwitchDevice aDevice)
-{
-  AssertMainThread();
-  RETURN_PROXY_IF_SANDBOXED(GetCurrentSwitchState(aDevice), SWITCH_STATE_UNKNOWN);
-}
-
-void NotifySwitchStateFromInputDevice(SwitchDevice aDevice, SwitchState aState)
-{
-  AssertMainThread();
-  PROXY_IF_SANDBOXED(NotifySwitchStateFromInputDevice(aDevice, aState));
-}
-
 typedef mozilla::ObserverList<SwitchEvent> SwitchObserverList;
 
 static SwitchObserverList *sSwitchObserverLists = nullptr;
@@ -850,49 +738,18 @@ NotifySwitchChange(const SwitchEvent& aEvent)
   observer.Broadcast(aEvent);
 }
 
-static AlarmObserver* sAlarmObserver;
-
 bool
-RegisterTheOneAlarmObserver(AlarmObserver* aObserver)
+SetProcessPrioritySupported()
 {
-  MOZ_ASSERT(!InSandbox());
-  MOZ_ASSERT(!sAlarmObserver);
-
-  sAlarmObserver = aObserver;
-  RETURN_PROXY_IF_SANDBOXED(EnableAlarm(), false);
+  RETURN_PROXY_IF_SANDBOXED(SetProcessPrioritySupported(), false);
 }
 
 void
-UnregisterTheOneAlarmObserver()
-{
-  if (sAlarmObserver) {
-    sAlarmObserver = nullptr;
-    PROXY_IF_SANDBOXED(DisableAlarm());
-  }
-}
-
-void
-NotifyAlarmFired()
-{
-  if (sAlarmObserver) {
-    sAlarmObserver->Notify(void_t());
-  }
-}
-
-bool
-SetAlarm(int32_t aSeconds, int32_t aNanoseconds)
-{
-  // It's pointless to program an alarm nothing is going to observe ...
-  MOZ_ASSERT(sAlarmObserver);
-  RETURN_PROXY_IF_SANDBOXED(SetAlarm(aSeconds, aNanoseconds), false);
-}
-
-void
-SetProcessPriority(int aPid, ProcessPriority aPriority, uint32_t aLRU)
+SetProcessPriority(int aPid, ProcessPriority aPriority)
 {
   // n.b. The sandboxed implementation crashes; SetProcessPriority works only
   // from the main process.
-  PROXY_IF_SANDBOXED(SetProcessPriority(aPid, aPriority, aLRU));
+  PROXY_IF_SANDBOXED(SetProcessPriority(aPid, aPriority));
 }
 
 void
@@ -947,12 +804,6 @@ ThreadPriorityToString(ThreadPriority aPriority)
   }
 }
 
-void FactoryReset(mozilla::dom::FactoryResetReason& aReason)
-{
-  AssertMainThread();
-  PROXY_IF_SANDBOXED(FactoryReset(aReason));
-}
-
 void
 StartDiskSpaceWatcher()
 {
@@ -967,36 +818,6 @@ StopDiskSpaceWatcher()
   AssertMainProcess();
   AssertMainThread();
   PROXY_IF_SANDBOXED(StopDiskSpaceWatcher());
-}
-
-uint32_t
-GetTotalSystemMemory()
-{
-  return hal_impl::GetTotalSystemMemory();
-}
-
-bool IsHeadphoneEventFromInputDev()
-{
-  AssertMainThread();
-  RETURN_PROXY_IF_SANDBOXED(IsHeadphoneEventFromInputDev(), false);
-}
-
-nsresult StartSystemService(const char* aSvcName, const char* aArgs)
-{
-  AssertMainThread();
-  RETURN_PROXY_IF_SANDBOXED(StartSystemService(aSvcName, aArgs), NS_ERROR_FAILURE);
-}
-
-void StopSystemService(const char* aSvcName)
-{
-  AssertMainThread();
-  PROXY_IF_SANDBOXED(StopSystemService(aSvcName));
-}
-
-bool SystemServiceIsRunning(const char* aSvcName)
-{
-  AssertMainThread();
-  RETURN_PROXY_IF_SANDBOXED(SystemServiceIsRunning(aSvcName), false);
 }
 
 } // namespace hal

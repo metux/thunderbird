@@ -33,6 +33,10 @@
 # include <unistd.h>
 #endif
 
+#ifdef MOZ_VALGRIND
+# include <valgrind/valgrind.h>
+#endif
+
 using namespace js;
 using namespace js::jit;
 
@@ -156,13 +160,8 @@ RegisterExecutableMemory(void* p, size_t bytes, size_t pageSize)
     // XXX NB: The profiler believes this function is only called from the main
     // thread. If that ever becomes untrue, the profiler must be updated
     // immediately.
-    AcquireStackWalkWorkaroundLock();
-
-    bool success = RtlAddFunctionTable(&r->runtimeFunction, 1, reinterpret_cast<DWORD64>(p));
-
-    ReleaseStackWalkWorkaroundLock();
-
-    return success;
+    AutoSuppressStackWalking suppress;
+    return RtlAddFunctionTable(&r->runtimeFunction, 1, reinterpret_cast<DWORD64>(p));
 }
 
 static void
@@ -173,11 +172,8 @@ UnregisterExecutableMemory(void* p, size_t bytes, size_t pageSize)
     // XXX NB: The profiler believes this function is only called from the main
     // thread. If that ever becomes untrue, the profiler must be updated
     // immediately.
-    AcquireStackWalkWorkaroundLock();
-
+    AutoSuppressStackWalking suppress;
     RtlDeleteFunctionTable(&r->runtimeFunction);
-
-    ReleaseStackWalkWorkaroundLock();
 }
 # endif
 
@@ -213,7 +209,10 @@ ReserveProcessExecutableMemory(size_t bytes)
         }
 
         p = (uint8_t*)p + pageSize;
+        bytes -= pageSize;
     }
+
+    RegisterJitCodeRegion((uint8_t*)p, bytes);
 # endif
 
     return p;
@@ -223,6 +222,8 @@ static void
 DeallocateProcessExecutableMemory(void* addr, size_t bytes)
 {
 # ifdef HAVE_64BIT_BUILD
+    UnregisterJitCodeRegion((uint8_t*)addr, bytes);
+
     if (sJitExceptionHandler) {
         size_t pageSize = gc::SystemPageSize();
         addr = (uint8_t*)addr - pageSize;
@@ -305,6 +306,22 @@ DeallocateProcessExecutableMemory(void* addr, size_t bytes)
 static unsigned
 ProtectionSettingToFlags(ProtectionSetting protection)
 {
+#ifdef MOZ_VALGRIND
+    // If we're configured for Valgrind and running on it, use a slacker
+    // scheme that doesn't change execute permissions, since doing so causes
+    // Valgrind a lot of extra overhead re-JITting code that loses and later
+    // regains execute permission.  See bug 1338179.
+    if (RUNNING_ON_VALGRIND) {
+      switch (protection) {
+        case ProtectionSetting::Protected:  return PROT_NONE;
+        case ProtectionSetting::Writable:   return PROT_READ | PROT_WRITE | PROT_EXEC;
+        case ProtectionSetting::Executable: return PROT_READ | PROT_EXEC;
+      }
+      MOZ_CRASH();
+    }
+    // If we get here, we're configured for Valgrind but not running on
+    // it, so use the standard scheme.
+#endif
     switch (protection) {
       case ProtectionSetting::Protected:  return PROT_NONE;
       case ProtectionSetting::Writable:   return PROT_READ | PROT_WRITE;
@@ -384,14 +401,6 @@ class PageBitSet
     }
 #endif
 };
-
-// Limit on the number of bytes of executable memory to prevent JIT spraying
-// attacks.
-#if JS_BITS_PER_WORD == 32
-static const size_t MaxCodeBytesPerProcess = 128 * 1024 * 1024;
-#else
-static const size_t MaxCodeBytesPerProcess = 1 * 1024 * 1024 * 1024;
-#endif
 
 // Per-process executable memory allocator. It reserves a block of memory of
 // MaxCodeBytesPerProcess bytes, then allocates/deallocates pages from that.
@@ -610,11 +619,18 @@ js::jit::ReleaseProcessExecutableMemory()
     execMemory.release();
 }
 
+size_t
+js::jit::LikelyAvailableExecutableMemory()
+{
+    // Round down available memory to the closest MB.
+    return MaxCodeBytesPerProcess - AlignBytes(execMemory.bytesAllocated(), 0x100000U);
+}
+
 bool
 js::jit::CanLikelyAllocateMoreExecutableMemory()
 {
-    // Use a 16 MB buffer.
-    static const size_t BufferSize = 16 * 1024 * 1024;
+    // Use a 8 MB buffer.
+    static const size_t BufferSize = 8 * 1024 * 1024;
 
     MOZ_ASSERT(execMemory.bytesAllocated() <= MaxCodeBytesPerProcess);
 

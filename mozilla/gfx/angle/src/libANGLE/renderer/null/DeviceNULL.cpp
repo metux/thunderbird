@@ -25,24 +25,21 @@ DeviceNULL::~DeviceNULL()
 egl::Error DeviceNULL::getDevice(void **outValue)
 {
     UNIMPLEMENTED();
-    return egl::Error(EGL_BAD_ACCESS);
+    return egl::EglBadAccess();
 }
 
 EGLint DeviceNULL::getType()
 {
-    UNIMPLEMENTED();
-    return EGLint();
+    return 0;
 }
 
 void DeviceNULL::generateExtensions(egl::DeviceExtensions *outExtensions) const
 {
-    UNIMPLEMENTED();
 }
 
 bool DeviceNULL::deviceExternallySourced()
 {
-    UNIMPLEMENTED();
-    return bool();
+    return false;
 }
 
 }  // namespace rx

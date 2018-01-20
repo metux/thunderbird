@@ -14,7 +14,7 @@
 <!ENTITY aboutNetworking.autoRefresh           "Berritu automatikoki 3 segundoro">
 <!ENTITY aboutNetworking.hostname              "Ostalari-izena">
 <!ENTITY aboutNetworking.port                  "Ataka">
-<!ENTITY aboutNetworking.spdy                  "SPDY">
+<!ENTITY aboutNetworking.http2                 "HTTP/2">
 <!ENTITY aboutNetworking.ssl                   "SSL">
 <!ENTITY aboutNetworking.active                "Aktibo">
 <!ENTITY aboutNetworking.idle                  "Inaktibo">
@@ -41,3 +41,18 @@
 <!ENTITY aboutNetworking.dnsLookupButton       "Ebatzi">
 <!ENTITY aboutNetworking.dnsDomain             "Domeinua">
 <!ENTITY aboutNetworking.dnsLookupTableColumn  "IPak">
+<!ENTITY aboutNetworking.rcwn                  "RCWN estatistikak">
+<!ENTITY aboutNetworking.rcwnStatus            "RCWN egoera">
+<!ENTITY aboutNetworking.rcwnCacheWonCount     "Cachearen irabazi kopurua">
+<!ENTITY aboutNetworking.rcwnNetWonCount       "Sarearen irabazi kopurua">
+<!ENTITY aboutNetworking.totalNetworkRequests  "Sareko eskaera kopurua guztira">
+<!ENTITY aboutNetworking.rcwnOperation         "Cache eragiketa">
+<!ENTITY aboutNetworking.rcwnPerfOpen          "Ireki">
+<!ENTITY aboutNetworking.rcwnPerfRead          "Irakurri">
+<!ENTITY aboutNetworking.rcwnPerfWrite         "Idatzi">
+<!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Sarrera irekita">
+<!ENTITY aboutNetworking.rcwnAvgShort          "Batez besteko laburra">
+<!ENTITY aboutNetworking.rcwnAvgLong           "Batez besteko luzea">
+<!ENTITY aboutNetworking.rcwnStddevLong        "Desbideratze estandar luzea">
+<!ENTITY aboutNetworking.rcwnCacheSlow         "Cache motel kopurua">
+<!ENTITY aboutNetworking.rcwnCacheNotSlow      "Cache ez motel kopurua">

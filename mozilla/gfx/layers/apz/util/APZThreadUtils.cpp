@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,9 +7,6 @@
 #include "mozilla/layers/APZThreadUtils.h"
 
 #include "mozilla/layers/Compositor.h"
-#ifdef MOZ_WIDGET_ANDROID
-#include "AndroidBridge.h"
-#endif
 
 namespace mozilla {
 namespace layers {
@@ -57,15 +55,6 @@ APZThreadUtils::RunOnControllerThread(already_AddRefed<Runnable> aTask)
 {
   RefPtr<Runnable> task = aTask;
 
-#ifdef MOZ_WIDGET_ANDROID
-  // This is needed while nsWindow::ConfigureAPZControllerThread is not propper
-  // implemented.
-  if (AndroidBridge::IsJavaUiThread()) {
-    task->Run();
-  } else {
-    AndroidBridge::Bridge()->PostTaskToUiThread(task.forget(), 0);
-  }
-#else
   if (!sControllerThread) {
     // Could happen on startup
     NS_WARNING("Dropping task posted to controller thread");
@@ -77,20 +66,15 @@ APZThreadUtils::RunOnControllerThread(already_AddRefed<Runnable> aTask)
   } else {
     sControllerThread->PostTask(task.forget());
   }
-#endif
 }
 
 /*static*/ bool
 APZThreadUtils::IsControllerThread()
 {
-#ifdef MOZ_WIDGET_ANDROID
-  return AndroidBridge::IsJavaUiThread();
-#else
   return sControllerThread == MessageLoop::current();
-#endif
 }
 
-NS_IMPL_ISUPPORTS(GenericTimerCallbackBase, nsITimerCallback)
+NS_IMPL_ISUPPORTS(GenericNamedTimerCallbackBase, nsITimerCallback, nsINamed)
 
 } // namespace layers
 } // namespace mozilla

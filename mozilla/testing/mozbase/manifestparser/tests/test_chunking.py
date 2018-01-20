@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
+
 from itertools import chain
 from unittest import TestCase
 import os
 import random
+
+import mozunit
 
 from manifestparser.filters import (
     chunk_by_dir,
@@ -300,3 +304,7 @@ class ChunkByRuntime(TestCase):
             'c/e': 1,
         }
         self.run_all_combos(dirs)
+
+
+if __name__ == '__main__':
+    mozunit.main()

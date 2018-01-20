@@ -781,8 +781,8 @@ public:
                           gfxSparseBitSet& aCharacterMap);
 
     static nsresult
-    ReadCMAPTableFormat12(const uint8_t *aBuf, uint32_t aLength, 
-                          gfxSparseBitSet& aCharacterMap);
+    ReadCMAPTableFormat12or13(const uint8_t *aBuf, uint32_t aLength, 
+                              gfxSparseBitSet& aCharacterMap);
 
     static nsresult 
     ReadCMAPTableFormat4(const uint8_t *aBuf, uint32_t aLength, 
@@ -794,14 +794,12 @@ public:
 
     static uint32_t
     FindPreferredSubtable(const uint8_t *aBuf, uint32_t aBufLength,
-                          uint32_t *aTableOffset, uint32_t *aUVSTableOffset,
-                          bool *aSymbolEncoding);
+                          uint32_t *aTableOffset, uint32_t *aUVSTableOffset);
 
     static nsresult
     ReadCMAP(const uint8_t *aBuf, uint32_t aBufLength,
              gfxSparseBitSet& aCharacterMap,
-             uint32_t& aUVSOffset,
-             bool& aUnicodeFont, bool& aSymbolFont);
+             uint32_t& aUVSOffset);
 
     static uint32_t
     MapCharToGlyphFormat4(const uint8_t *aBuf, char16_t aCh);
@@ -810,7 +808,7 @@ public:
     MapCharToGlyphFormat10(const uint8_t *aBuf, uint32_t aCh);
 
     static uint32_t
-    MapCharToGlyphFormat12(const uint8_t *aBuf, uint32_t aCh);
+    MapCharToGlyphFormat12or13(const uint8_t *aBuf, uint32_t aCh);
 
     static uint16_t
     MapUVSToGlyphFormat14(const uint8_t *aBuf, uint32_t aCh, uint32_t aVS);
@@ -905,8 +903,12 @@ public:
         return (ch == 0x200D);
     }
 
+    // We treat Combining Grapheme Joiner (U+034F) together with the join
+    // controls (ZWJ, ZWNJ) here, because (like them) it is an invisible
+    // char that will be handled by the shaper even if not explicitly
+    // supported by the font. (See bug 1408366.)
     static inline bool IsJoinControl(uint32_t ch) {
-        return (ch == 0x200C || ch == 0x200D);
+        return (ch == 0x200C || ch == 0x200D || ch == 0x034f);
     }
 
     enum {

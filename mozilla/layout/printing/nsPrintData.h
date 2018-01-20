@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,6 +8,7 @@
 #define nsPrintData_h___
 
 #include "mozilla/Attributes.h"
+#include "mozilla/UniquePtr.h"
 
 // Interfaces
 #include "nsDeviceContext.h"
@@ -56,17 +58,19 @@ public:
 
   ePrintDataType               mType;            // the type of data this is (Printing or Print Preview)
   RefPtr<nsDeviceContext>   mPrintDC;
-  FILE                        *mDebugFilePtr;    // a file where information can go to when printing
 
-  nsPrintObject *                mPrintObject;
-  nsPrintObject *                mSelectedPO;
+  mozilla::UniquePtr<nsPrintObject> mPrintObject;
 
   nsCOMArray<nsIWebProgressListener> mPrintProgressListeners;
   nsCOMPtr<nsIPrintProgressParams> mPrintProgressParams;
 
   nsCOMPtr<nsPIDOMWindowOuter> mCurrentFocusWin; // cache a pointer to the currently focused window
 
+  // Array of non-owning pointers to all the nsPrintObjects owned by this
+  // nsPrintData. This includes this->mPrintObject, as well as all of its
+  // mKids (and their mKids, etc.)
   nsTArray<nsPrintObject*>    mPrintDocList;
+
   bool                        mIsIFrameSelected;
   bool                        mIsParentAFrameSet;
   bool                        mOnStartSent;
@@ -83,7 +87,7 @@ public:
   nsCOMPtr<nsIPrintSettings>  mPrintSettings;
   nsPrintPreviewListener*     mPPEventListeners;
 
-  char16_t*            mBrandName; //  needed as a substitute name for a document
+  nsString                    mBrandName; //  needed as a substitute name for a document
 
 private:
   nsPrintData() = delete;

@@ -8,6 +8,7 @@
 #define mozilla_dom_KeyframeEffect_h
 
 #include "nsWrapperCache.h"
+#include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/KeyframeEffectReadOnly.h"
 #include "mozilla/AnimationTarget.h" // For (Non)OwningAnimationTarget
 #include "mozilla/Maybe.h"
@@ -68,12 +69,17 @@ public:
   // we are in the middle of updating style. If we need to use this when
   // updating style, we should pass the nsStyleContext into this method and use
   // that to update the properties rather than calling
-  // GetStyleContextForElement.
+  // GetStyleContext.
   void SetTarget(const Nullable<ElementOrCSSPseudoElement>& aTarget);
 
-  void SetSpacing(JSContext* aCx, const nsAString& aSpacing, ErrorResult& aRv);
+  IterationCompositeOperation IterationComposite(CallerType aCallerType)
+  {
+    return KeyframeEffectReadOnly::IterationComposite();
+  }
   void SetIterationComposite(
-    const IterationCompositeOperation& aIterationComposite);
+    const IterationCompositeOperation& aIterationComposite,
+    CallerType aCallerType);
+  void SetComposite(const CompositeOperation& aComposite);
 };
 
 } // namespace dom

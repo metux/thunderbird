@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* eslint-env mozilla/chrome-worker */
+
 /**
  * A worker dedicated for the I/O component of PageThumbs storage.
  *
@@ -87,7 +89,7 @@ var Agent = {
       let skip = new Set(skipFiles);
 
       let entries = [];
-      for (let entry in iter) {
+      for (let entry of iter) {
         if (!entry.isDir && !entry.isSymLink && !skip.has(entry.name)) {
           entries.push(entry);
         }
@@ -106,7 +108,7 @@ var Agent = {
     }
     let iter = new OS.File.DirectoryIterator(pathFrom);
     if (iter.exists()) {
-      for (let entry in iter) {
+      for (let entry of iter) {
         if (entry.isDir || entry.isSymLink) {
           continue;
         }
@@ -151,7 +153,7 @@ var Agent = {
   wipe: function Agent_wipe(path) {
     let iterator = new File.DirectoryIterator(path);
     try {
-      for (let entry in iterator) {
+      for (let entry of iterator) {
         try {
           File.remove(entry.path);
         } catch (ex) {
@@ -173,4 +175,3 @@ var Agent = {
     return File.exists(path);
   },
 };
-

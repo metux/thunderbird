@@ -1,15 +1,20 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>easing tests</title>
+<title>AnimationEffectTiming.easing</title>
 <link rel="help" href="https://w3c.github.io/web-animations/#dom-animationeffecttiming-easing">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
-<script src="../../resources/effect-easing-tests.js"></script>
+<script src="../../resources/easing-tests.js"></script>
 <body>
 <div id="log"></div>
 <script>
 'use strict';
+
+test(function(t) {
+  var anim = createDiv(t).animate(null);
+  assert_equals(anim.effect.timing.easing, 'linear');
+}, 'Has the default value \'linear\'');
 
 function assert_progress(animation, currentTime, easingFunction) {
   animation.currentTime = currentTime;
@@ -21,7 +26,7 @@ function assert_progress(animation, currentTime, easingFunction) {
                        easingFunction(portion) + ' at ' + currentTime + 'ms');
 }
 
-gEffectEasingTests.forEach(function(options) {
+gEasingTests.forEach(function(options) {
   test(function(t) {
     var target = createDiv(t);
     var anim = target.animate([ { opacity: 0 }, { opacity: 1 } ],
@@ -40,15 +45,23 @@ gEffectEasingTests.forEach(function(options) {
   }, options.desc);
 });
 
-gInvalidEasingTests.forEach(function(options) {
+gInvalidEasings.forEach(function(invalidEasing) {
   test(function(t) {
     var div = createDiv(t);
     var anim = div.animate({ opacity: [ 0, 1 ] }, 100 * MS_PER_SEC);
     assert_throws({ name: 'TypeError' },
                   function() {
-                    anim.effect.timing.easing = options.easing;
+                    anim.effect.timing.easing = invalidEasing;
                   });
-  }, 'Invalid effect easing value test: \'' + options.easing + '\'');
+  }, 'Throws on invalid easing: \'' + invalidEasing + '\'');
+});
+
+gRoundtripEasings.forEach(easing => {
+  test(function(t) {
+    const anim = createDiv(t).animate(null);
+    anim.effect.timing.easing = easing;
+    assert_equals(anim.effect.timing.easing, easing);
+  }, `Canonical easing '${easing}' is returned as set`);
 });
 
 test(function(t) {
@@ -77,7 +90,7 @@ test(function(t) {
   anim.effect.timing.easing = 'steps(2, end)';
   assert_equals(anim.effect.getComputedTiming().progress, 1,
                 'easing replace to steps(2, end) again at after phase');
-}, 'Change the easing while the animation is running');
+}, 'Allows the easing to be changed while the animation is in progress');
 
 </script>
 </body>

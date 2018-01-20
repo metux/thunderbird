@@ -53,13 +53,16 @@ class MIRGenerator
         return alloc().ensureBallast();
     }
     const JitRuntime* jitRuntime() const {
-        return GetJitContext()->runtime->jitRuntime();
+        return runtime->jitRuntime();
     }
     const CompileInfo& info() const {
         return *info_;
     }
     const OptimizationInfo& optimizationInfo() const {
         return *optimizationInfo_;
+    }
+    bool hasProfilingScripts() const {
+        return runtime && runtime->profilingScripts();
     }
 
     template <typename T>
@@ -72,16 +75,26 @@ class MIRGenerator
 
     // Set an error state and prints a message. Returns false so errors can be
     // propagated up.
-    bool abort(const char* message, ...) MOZ_FORMAT_PRINTF(2, 3); // always returns false
-    bool abortFmt(const char* message, va_list ap); // always returns false
+    mozilla::GenericErrorResult<AbortReason> abort(AbortReason r);
+    mozilla::GenericErrorResult<AbortReason>
+    abort(AbortReason r, const char* message, ...) MOZ_FORMAT_PRINTF(3, 4);
 
-    bool errored() const {
-        return error_;
+    mozilla::GenericErrorResult<AbortReason>
+    abortFmt(AbortReason r, const char* message, va_list ap) MOZ_FORMAT_PRINTF(3, 0);
+
+    // Collect the evaluation result of phases after IonBuilder, such that
+    // off-thread compilation can report what error got encountered.
+    void setOffThreadStatus(AbortReasonOr<Ok> result) {
+        MOZ_ASSERT(offThreadStatus_.isOk());
+        offThreadStatus_ = result;
+    }
+    AbortReasonOr<Ok> getOffThreadStatus() const {
+        return offThreadStatus_;
     }
 
     MOZ_MUST_USE bool instrumentedProfiling() {
         if (!instrumentedProfilingIsCached_) {
-            instrumentedProfiling_ = GetJitContext()->runtime->spsProfiler().enabled();
+            instrumentedProfiling_ = runtime->geckoProfiler().enabled();
             instrumentedProfilingIsCached_ = true;
         }
         return instrumentedProfiling_;
@@ -92,7 +105,8 @@ class MIRGenerator
     }
 
     bool isOptimizationTrackingEnabled() {
-        return isProfilerInstrumentationEnabled() && !info().isAnalysis();
+        return isProfilerInstrumentationEnabled() && !info().isAnalysis() &&
+               !JitOptions.disableOptimizationTracking;
     }
 
     bool safeForMinorGC() const {
@@ -102,28 +116,12 @@ class MIRGenerator
         safeForMinorGC_ = false;
     }
 
-    // Whether the main thread is trying to cancel this build.
+    // Whether the active thread is trying to cancel this build.
     bool shouldCancel(const char* why) {
-        maybePause();
         return cancelBuild_;
     }
     void cancel() {
         cancelBuild_ = true;
-    }
-
-    void maybePause() {
-        if (pauseBuild_ && *pauseBuild_)
-            PauseCurrentHelperThread();
-    }
-    void setPauseFlag(mozilla::Atomic<bool, mozilla::Relaxed>* pauseBuild) {
-        pauseBuild_ = pauseBuild;
-    }
-
-    void disable() {
-        abortReason_ = AbortReason_Disable;
-    }
-    AbortReason abortReason() {
-        return abortReason_;
     }
 
     bool compilingWasm() const {
@@ -142,12 +140,21 @@ class MIRGenerator
     uint32_t minWasmHeapLength() const {
         return minWasmHeapLength_;
     }
-    void setPerformsCall() {
-        performsCall_ = true;
+
+    void setNeedsOverrecursedCheck() {
+        needsOverrecursedCheck_ = true;
     }
-    bool performsCall() const {
-        return performsCall_;
+    bool needsOverrecursedCheck() const {
+        return needsOverrecursedCheck_;
     }
+
+    void setNeedsStaticStackAlignment() {
+        needsStaticStackAlignment_ = true;
+    }
+    bool needsStaticStackAlignment() const {
+        return needsOverrecursedCheck_;
+    }
+
     // Traverses the graph to find if there's any SIMD instruction. Costful but
     // the value is cached, so don't worry about calling it several times.
     bool usesSimd();
@@ -158,7 +165,7 @@ class MIRGenerator
 
     typedef Vector<ObjectGroup*, 0, JitAllocPolicy> ObjectGroupVector;
 
-    // When abortReason() == AbortReason_PreliminaryObjects, all groups with
+    // When aborting with AbortReason::PreliminaryObjects, all groups with
     // preliminary objects which haven't been analyzed yet.
     const ObjectGroupVector& abortedPreliminaryGroups() const {
         return abortedPreliminaryGroups_;
@@ -166,21 +173,20 @@ class MIRGenerator
 
   public:
     CompileCompartment* compartment;
+    CompileRuntime* runtime;
 
   protected:
     const CompileInfo* info_;
     const OptimizationInfo* optimizationInfo_;
     TempAllocator* alloc_;
     MIRGraph* graph_;
-    AbortReason abortReason_;
-    bool shouldForceAbort_; // Force AbortReason_Disable
+    AbortReasonOr<Ok> offThreadStatus_;
     ObjectGroupVector abortedPreliminaryGroups_;
-    bool error_;
-    mozilla::Atomic<bool, mozilla::Relaxed>* pauseBuild_;
     mozilla::Atomic<bool, mozilla::Relaxed> cancelBuild_;
 
     uint32_t wasmMaxStackArgBytes_;
-    bool performsCall_;
+    bool needsOverrecursedCheck_;
+    bool needsStaticStackAlignment_;
     bool usesSimd_;
     bool cachedUsesSimd_;
 
@@ -196,13 +202,6 @@ class MIRGenerator
     void addAbortedPreliminaryGroup(ObjectGroup* group);
 
     uint32_t minWasmHeapLength_;
-
-    void setForceAbort() {
-        shouldForceAbort_ = true;
-    }
-    bool shouldForceAbort() {
-        return shouldForceAbort_;
-    }
 
 #if defined(JS_ION_PERF)
     WasmPerfSpewer wasmPerfSpewer_;

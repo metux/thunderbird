@@ -16,46 +16,46 @@
 
 #define BECKY_MESSAGES_URL "chrome://messenger/locale/beckyImportMsgs.properties"
 
-nsIStringBundle *nsBeckyStringBundle::mBundle = nullptr;
+nsCOMPtr<nsIStringBundle> nsBeckyStringBundle::mBundle = nullptr;
 
-nsIStringBundle *
+void
 nsBeckyStringBundle::GetStringBundle(void)
 {
   if (mBundle)
-    return mBundle;
+    return;
 
   nsresult rv;
   nsCOMPtr<nsIStringBundleService> bundleService = do_GetService(NS_STRINGBUNDLE_CONTRACTID, &rv);
   if (NS_SUCCEEDED(rv) && bundleService)
-    rv = bundleService->CreateBundle(BECKY_MESSAGES_URL, &mBundle);
-
-  return mBundle;
+    rv = bundleService->CreateBundle(BECKY_MESSAGES_URL, getter_AddRefs(mBundle));
 }
 
 void
 nsBeckyStringBundle::EnsureStringBundle(void)
 {
   if (!mBundle)
-    (void) GetStringBundle();
+    GetStringBundle();
 }
 
 char16_t *
-nsBeckyStringBundle::GetStringByName(const char16_t *aName)
+nsBeckyStringBundle::GetStringByName(const char *aName)
 {
   EnsureStringBundle();
 
-  char16_t *string = nullptr;
-  if (mBundle)
-    mBundle->GetStringFromName(aName, &string);
+  if (mBundle) {
+    nsAutoString string;
+    mBundle->GetStringFromName(aName, string);
+    return ToNewUnicode(string);
+  }
 
-  return string;
+  return nullptr;
 }
 
 nsresult
-nsBeckyStringBundle::FormatStringFromName(const char16_t *name,
+nsBeckyStringBundle::FormatStringFromName(const char *name,
                                           const char16_t **params,
                                           uint32_t length,
-                                          char16_t **_retval)
+                                          nsAString& _retval)
 {
   EnsureStringBundle();
 
@@ -68,7 +68,5 @@ nsBeckyStringBundle::FormatStringFromName(const char16_t *name,
 void
 nsBeckyStringBundle::Cleanup(void)
 {
-  if (mBundle)
-    mBundle->Release();
   mBundle = nullptr;
 }

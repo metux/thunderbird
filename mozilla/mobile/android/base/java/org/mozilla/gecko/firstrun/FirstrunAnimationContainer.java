@@ -18,13 +18,17 @@ import org.mozilla.gecko.R;
 import org.mozilla.gecko.Telemetry;
 import org.mozilla.gecko.TelemetryContract;
 import org.mozilla.gecko.Experiments;
+import org.mozilla.gecko.preferences.GeckoPreferences;
 
 /**
  * A container for the pager and the entire first run experience.
  * This is used for animation purposes.
  */
 public class FirstrunAnimationContainer extends LinearLayout {
-    public static final String PREF_FIRSTRUN_ENABLED = "startpane_enabled";
+    // See bug 1330714. Need NON_PREF_PREFIX to set from distribution.
+    public static final String PREF_FIRSTRUN_ENABLED_OLD = "startpane_enabled";
+    // After 57, the pref name will be changed. Thus all user since 57 will check this new pref.
+    public static final String PREF_FIRSTRUN_ENABLED = GeckoPreferences.NON_PREF_PREFIX + "startpane_enabled_after_57";
 
     public static interface OnFinishListener {
         public void onFinish();
@@ -62,10 +66,6 @@ public class FirstrunAnimationContainer extends LinearLayout {
             onFinishListener.onFinish();
         }
         animateHide();
-
-        // Stop all versions of firstrun A/B sessions.
-        Telemetry.stopUISession(TelemetryContract.Session.EXPERIMENT, Experiments.ONBOARDING3_B);
-        Telemetry.stopUISession(TelemetryContract.Session.EXPERIMENT, Experiments.ONBOARDING3_C);
     }
 
     private void animateHide() {

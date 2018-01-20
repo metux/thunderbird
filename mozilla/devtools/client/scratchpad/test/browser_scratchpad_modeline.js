@@ -14,11 +14,10 @@ function test() {
   waitForExplicitFinish();
 
   Services.prefs.setBoolPref(DEVTOOLS_CHROME_ENABLED, false);
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
-    gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
+  gBrowser.selectedBrowser.addEventListener("load", function () {
     openScratchpad(runTests);
-  }, true);
+  }, {capture: true, once: true});
 
   content.location = "data:text/html,<p>test file open and save in Scratchpad";
 }
@@ -57,7 +56,7 @@ function runTests() {
     ok(Components.isSuccessCode(aStatus), "File was saved successfully");
 
     gFile = aFile;
-    gScratchpad.importFromFile(gFile.QueryInterface(Ci.nsILocalFile), true, fileImported);
+    gScratchpad.importFromFile(gFile.QueryInterface(Ci.nsIFile), true, fileImported);
   });
 }
 
@@ -71,7 +70,7 @@ function fileImported(status, content) {
   // Set the pref and try again.
   Services.prefs.setBoolPref(DEVTOOLS_CHROME_ENABLED, true);
 
-  gScratchpad.importFromFile(gFile.QueryInterface(Ci.nsILocalFile), true, function (status, content) {
+  gScratchpad.importFromFile(gFile.QueryInterface(Ci.nsIFile), true, function (status, content) {
     ok(Components.isSuccessCode(status), "File was imported successfully");
     is(gScratchpad.executionContext, gScratchpadWindow.SCRATCHPAD_CONTEXT_BROWSER);
 

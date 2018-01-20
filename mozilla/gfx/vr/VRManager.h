@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -22,7 +23,6 @@ namespace gfx {
 class VRLayerParent;
 class VRManagerParent;
 class VRDisplayHost;
-class VRControllerManager;
 
 class VRManager
 {
@@ -38,38 +38,38 @@ public:
   void NotifyVsync(const TimeStamp& aVsyncTimestamp);
   void NotifyVRVsync(const uint32_t& aDisplayID);
   void RefreshVRDisplays(bool aMustDispatch = false);
-  void ScanForDevices();
-  template<class T> void NotifyGamepadChange(const T& aInfo);
+  void RefreshVRControllers();
+  void ScanForControllers();
+  void RemoveControllers();
+  template<class T> void NotifyGamepadChange(uint32_t aIndex, const T& aInfo);
   RefPtr<gfx::VRDisplayHost> GetDisplay(const uint32_t& aDisplayID);
   void GetVRDisplayInfo(nsTArray<VRDisplayInfo>& aDisplayInfo);
-
-  void SubmitFrame(VRLayerParent* aLayer, layers::PTextureParent* aTexture,
-                   const gfx::Rect& aLeftEyeRect,
-                   const gfx::Rect& aRightEyeRect);
   RefPtr<gfx::VRControllerHost> GetController(const uint32_t& aControllerID);
   void GetVRControllerInfo(nsTArray<VRControllerInfo>& aControllerInfo);
+  void CreateVRTestSystem();
+  void VibrateHaptic(uint32_t aControllerIdx, uint32_t aHapticIndex,
+                     double aIntensity, double aDuration, uint32_t aPromiseID);
+  void StopVibrateHaptic(uint32_t aControllerIdx);
+  void NotifyVibrateHapticCompleted(uint32_t aPromiseID);
+  void DispatchSubmitFrameResult(uint32_t aDisplayID, const VRSubmitFrameResultInfo& aResult);
 
 protected:
   VRManager();
   ~VRManager();
 
 private:
-  RefPtr<layers::TextureHost> mLastFrame;
 
   void Init();
   void Destroy();
+  void Shutdown();
 
   void DispatchVRDisplayInfoUpdate();
-  void RefreshVRControllers();
 
   typedef nsTHashtable<nsRefPtrHashKey<VRManagerParent>> VRManagerParentSet;
   VRManagerParentSet mVRManagerParents;
 
-  typedef nsTArray<RefPtr<VRDisplayManager>> VRDisplayManagerArray;
-  VRDisplayManagerArray mManagers;
-
-  typedef nsTArray<RefPtr<VRControllerManager>> VRControllerManagerArray;
-  VRControllerManagerArray mControllerManagers;
+  typedef nsTArray<RefPtr<VRSystemManager>> VRSystemManagerArray;
+  VRSystemManagerArray mManagers;
 
   typedef nsRefPtrHashtable<nsUint32HashKey, gfx::VRDisplayHost> VRDisplayHostHashMap;
   VRDisplayHostHashMap mVRDisplays;
@@ -80,6 +80,8 @@ private:
   Atomic<bool> mInitialized;
 
   TimeStamp mLastRefreshTime;
+  TimeStamp mLastActiveTime;
+  bool mVRTestSystemCreated;
 };
 
 } // namespace gfx

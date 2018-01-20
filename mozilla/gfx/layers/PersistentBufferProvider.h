@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -66,6 +67,8 @@ public:
 
   virtual bool SetForwarder(ShadowLayerForwarder* aFwd) { return true; }
 
+  virtual void ClearCachedResources() {}
+
   /**
    * Return true if this provider preserves the drawing state (clips, transforms,
    * etc.) across frames. In practice this means users of the provider can skip
@@ -97,6 +100,12 @@ public:
   virtual void ReturnSnapshot(already_AddRefed<gfx::SourceSurface> aSnapshot) override;
 
   virtual bool PreservesDrawingState() const override { return true; }
+
+  virtual void OnShutdown() override { Destroy(); }
+
+protected:
+  void Destroy();
+
 private:
   ~PersistentBufferProviderBasic();
 
@@ -137,6 +146,8 @@ public:
 
   virtual bool SetForwarder(ShadowLayerForwarder* aFwd) override;
 
+  virtual void ClearCachedResources() override;
+
   virtual bool PreservesDrawingState() const override { return false; }
 protected:
   PersistentBufferProviderShared(gfx::IntSize aSize, gfx::SurfaceFormat aFormat,
@@ -145,7 +156,7 @@ protected:
 
   ~PersistentBufferProviderShared();
 
-  TextureClient* GetTexture(Maybe<uint32_t> aIndex);
+  TextureClient* GetTexture(const Maybe<uint32_t>& aIndex);
   bool CheckIndex(uint32_t aIndex) { return aIndex < mTextures.length(); }
 
   void Destroy();

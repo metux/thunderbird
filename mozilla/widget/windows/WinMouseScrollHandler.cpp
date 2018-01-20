@@ -20,7 +20,6 @@
 #include "mozilla/MiscEvents.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/WindowsVersion.h"
 
 #include <psapi.h>
 
@@ -446,6 +445,14 @@ MouseScrollHandler::ProcessNativeMouseWheelMessage(nsWindowBase* aWidget,
     }
 
     MOZ_ASSERT(destWindow, "destWindow must not be NULL");
+
+    // Some odd touchpad utils sets focus to window under the mouse cursor.
+    // this emulates the odd behavior for debug.
+    if (mUserPrefs.ShouldEmulateToMakeWindowUnderCursorForeground() &&
+        (aMessage == WM_MOUSEWHEEL || aMessage == WM_MOUSEHWHEEL) &&
+        ::GetForegroundWindow() != destWindow->GetWindowHandle()) {
+      ::SetForegroundWindow(destWindow->GetWindowHandle());
+    }
 
     // If the found window is our plugin window, it means that the message
     // has been handled by the plugin but not consumed.  We should handle the
@@ -992,10 +999,7 @@ MouseScrollHandler::SystemSettings::InitScrollChars()
                                      &mScrollChars, 0)) {
     MOZ_LOG(gMouseScrollLog, LogLevel::Info,
       ("MouseScroll::SystemSettings::InitScrollChars(): ::SystemParametersInfo("
-       "SPI_GETWHEELSCROLLCHARS) failed, %s",
-       IsVistaOrLater() ?
-         "this is unexpected on Vista or later" :
-         "but on XP or earlier, this is not a problem"));
+       "SPI_GETWHEELSCROLLCHARS) failed, this is unexpected on Vista or later"));
     // XXX Should we use DefaultScrollChars()?
     mScrollChars = 1;
   }
@@ -1081,7 +1085,7 @@ bool
 MouseScrollHandler::SystemSettings::IsOverridingSystemScrollSpeedAllowed()
 {
   return mScrollLines == DefaultScrollLines() &&
-         (!IsVistaOrLater() || mScrollChars == DefaultScrollChars());
+         mScrollChars == DefaultScrollChars();
 }
 
 /******************************************************************************
@@ -1096,7 +1100,7 @@ MouseScrollHandler::UserPrefs::UserPrefs() :
   // We need to reset mouse wheel transaction when all of mousewheel related
   // prefs are changed.
   DebugOnly<nsresult> rv =
-    Preferences::RegisterCallback(OnChange, "mousewheel.", this);
+    Preferences::RegisterPrefixCallback(OnChange, "mousewheel.", this);
   MOZ_ASSERT(NS_SUCCEEDED(rv),
     "Failed to register callback for mousewheel.");
 }
@@ -1104,7 +1108,7 @@ MouseScrollHandler::UserPrefs::UserPrefs() :
 MouseScrollHandler::UserPrefs::~UserPrefs()
 {
   DebugOnly<nsresult> rv =
-    Preferences::UnregisterCallback(OnChange, "mousewheel.", this);
+    Preferences::UnregisterPrefixCallback(OnChange, "mousewheel.", this);
   MOZ_ASSERT(NS_SUCCEEDED(rv),
     "Failed to unregister callback for mousewheel.");
 }
@@ -1125,6 +1129,9 @@ MouseScrollHandler::UserPrefs::Init()
   mForceEnableSystemSettingCache =
     Preferences::GetBool("mousewheel.system_settings_cache.force_enabled",
                          false);
+  mEmulateToMakeWindowUnderCursorForeground =
+    Preferences::GetBool("mousewheel.debug.make_window_under_cursor_foreground",
+                         false);
   mOverriddenVerticalScrollAmount =
     Preferences::GetInt("mousewheel.windows.vertical_amount_override", -1);
   mOverriddenHorizontalScrollAmount =
@@ -1138,12 +1145,14 @@ MouseScrollHandler::UserPrefs::Init()
        "mScrollMessageHandledAsWheelMessage=%s, "
        "mEnableSystemSettingCache=%s, "
        "mForceEnableSystemSettingCache=%s, "
+       "mEmulateToMakeWindowUnderCursorForeground=%s, "
        "mOverriddenVerticalScrollAmount=%d, "
        "mOverriddenHorizontalScrollAmount=%d, "
        "mMouseScrollTransactionTimeout=%d",
      GetBoolName(mScrollMessageHandledAsWheelMessage),
      GetBoolName(mEnableSystemSettingCache),
      GetBoolName(mForceEnableSystemSettingCache),
+     GetBoolName(mEmulateToMakeWindowUnderCursorForeground),
      mOverriddenVerticalScrollAmount, mOverriddenHorizontalScrollAmount,
      mMouseScrollTransactionTimeout));
 }

@@ -32,7 +32,6 @@
 #include "nsIDocShellTreeOwner.h"
 #include "nsIThreadRetargetableStreamListener.h"
 
-#include "nsXPIDLString.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
 #include "nsReadableUtils.h"
@@ -48,6 +47,7 @@
 
 #include "nsDocLoader.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Preferences.h"
 #include "nsContentUtils.h"
 
@@ -236,15 +236,33 @@ NS_IMETHODIMP nsDocumentOpenInfo::OnStartRequest(nsIRequest *request, nsISupport
       return NS_BINDING_ABORTED;
     }
 
+    static bool sLargeAllocationTestingAllHttpLoads = false;
     static bool sLargeAllocationHeaderEnabled = false;
     static bool sCachedLargeAllocationPref = false;
     if (!sCachedLargeAllocationPref) {
       sCachedLargeAllocationPref = true;
       mozilla::Preferences::AddBoolVarCache(&sLargeAllocationHeaderEnabled,
                                             "dom.largeAllocationHeader.enabled");
+      mozilla::Preferences::AddBoolVarCache(&sLargeAllocationTestingAllHttpLoads,
+                                            "dom.largeAllocation.testing.allHttpLoads");
     }
 
     if (sLargeAllocationHeaderEnabled) {
+      if (sLargeAllocationTestingAllHttpLoads) {
+        nsCOMPtr<nsIURI> uri;
+        rv = httpChannel->GetURI(getter_AddRefs(uri));
+        if (NS_SUCCEEDED(rv) && uri) {
+          bool httpScheme = false;
+          bool httpsScheme = false;
+          uri->SchemeIs("http", &httpScheme);
+          uri->SchemeIs("https", &httpsScheme);
+          if ((httpScheme || httpsScheme) &&
+              nsContentUtils::AttemptLargeAllocationLoad(httpChannel)) {
+            return NS_BINDING_ABORTED;
+          }
+        }
+      }
+
       // If we have a Large-Allocation header, let's check if we should perform a process switch.
       nsAutoCString largeAllocationHeader;
       rv = httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("Large-Allocation"), largeAllocationHeader);
@@ -265,7 +283,7 @@ NS_IMETHODIMP nsDocumentOpenInfo::OnStartRequest(nsIRequest *request, nsISupport
   if (NS_FAILED(rv)) return rv;
 
   if (NS_FAILED(status)) {
-    LOG_ERROR(("  Request failed, status: 0x%08X", rv));
+    LOG_ERROR(("  Request failed, status: 0x%08" PRIX32, static_cast<uint32_t>(rv)));
   
     //
     // The transaction has already reported an error - so it will be torn
@@ -276,7 +294,8 @@ NS_IMETHODIMP nsDocumentOpenInfo::OnStartRequest(nsIRequest *request, nsISupport
 
   rv = DispatchContent(request, aCtxt);
 
-  LOG(("  After dispatch, m_targetStreamListener: 0x%p, rv: 0x%08X", m_targetStreamListener.get(), rv));
+  LOG(("  After dispatch, m_targetStreamListener: 0x%p, rv: 0x%08" PRIX32,
+       m_targetStreamListener.get(), static_cast<uint32_t>(rv)));
 
   NS_ASSERTION(NS_SUCCEEDED(rv) || !m_targetStreamListener,
                "Must not have an m_targetStreamListener with a failure return!");
@@ -286,7 +305,7 @@ NS_IMETHODIMP nsDocumentOpenInfo::OnStartRequest(nsIRequest *request, nsISupport
   if (m_targetStreamListener)
     rv = m_targetStreamListener->OnStartRequest(request, aCtxt);
 
-  LOG(("  OnStartRequest returning: 0x%08X", rv));
+  LOG(("  OnStartRequest returning: 0x%08" PRIX32, static_cast<uint32_t>(rv)));
   
   return rv;
 }
@@ -301,9 +320,9 @@ nsDocumentOpenInfo::CheckListenerChain()
   if (retargetableListener) {
     rv = retargetableListener->CheckListenerChain();
   }
-  LOG(("[0x%p] nsDocumentOpenInfo::CheckListenerChain %s listener %p rv %x",
+  LOG(("[0x%p] nsDocumentOpenInfo::CheckListenerChain %s listener %p rv %" PRIx32,
        this, (NS_SUCCEEDED(rv) ? "success" : "failure"),
-       (nsIStreamListener*)m_targetStreamListener, rv));
+       (nsIStreamListener*)m_targetStreamListener, static_cast<uint32_t>(rv)));
   return rv;
 }
 
@@ -383,27 +402,11 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest *request, nsISupports * 
   uint32_t disposition;
   rv = aChannel->GetContentDisposition(&disposition);
 
-  bool allowContentDispositionToForceExternalHandling = true;
-
-#ifdef MOZ_B2G
-
-  // On B2G, OMA content files should never be handled by an external handler
-  // (even if the server specifies Content-Disposition: attachment) because the
-  // data should never be stored on an unencrypted form.
-  allowContentDispositionToForceExternalHandling =
-    !mContentType.LowerCaseEqualsASCII("application/vnd.oma.drm.message");
-
-#endif
-
-  if (NS_SUCCEEDED(rv) && (disposition == nsIChannel::DISPOSITION_ATTACHMENT) &&
-      allowContentDispositionToForceExternalHandling) {
+  if (NS_SUCCEEDED(rv) && disposition == nsIChannel::DISPOSITION_ATTACHMENT) {
     forceExternalHandling = true;
   }
 
   LOG(("  forceExternalHandling: %s", forceExternalHandling ? "yes" : "no"));
-
-  // The type or data the contentListener wants.
-  nsXPIDLCString desiredContentType;
 
   if (!forceExternalHandling)
   {
@@ -449,7 +452,7 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest *request, nsISupports * 
       nsCOMPtr<nsICategoryManager> catman =
         do_GetService(NS_CATEGORYMANAGER_CONTRACTID);
       if (catman) {
-        nsXPIDLCString contractidString;
+        nsCString contractidString;
         rv = catman->GetCategoryEntry(NS_CONTENT_LISTENER_CATEGORYMANAGER_ENTRY,
                                       mContentType.get(),
                                       getter_Copies(contractidString));
@@ -457,9 +460,9 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest *request, nsISupports * 
           LOG(("  Listener contractid for '%s' is '%s'",
                mContentType.get(), contractidString.get()));
 
-          listener = do_CreateInstance(contractidString);
+          listener = do_CreateInstance(contractidString.get());
           LOG(("  Listener from category manager: 0x%p", listener.get()));
-          
+
           if (listener && TryContentListener(listener, aChannel)) {
             LOG(("  Listener from category manager likes this type"));
             return NS_OK;
@@ -537,8 +540,8 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest *request, nsISupports * 
   nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(request));
   if (httpChannel) {
     bool requestSucceeded;
-    httpChannel->GetRequestSucceeded(&requestSucceeded);
-    if (!requestSucceeded) {
+    rv = httpChannel->GetRequestSucceeded(&requestSucceeded);
+    if (NS_FAILED(rv) || !requestSucceeded) {
       // returning error from OnStartRequest will cancel the channel
       return NS_ERROR_FILE_NOT_FOUND;
     }
@@ -680,7 +683,7 @@ nsDocumentOpenInfo::TryContentListener(nsIURIContentListener* aListener,
   NS_PRECONDITION(aChannel, "Must have a channel");
   
   bool listenerWantsContent = false;
-  nsXPIDLCString typeToUse;
+  nsCString typeToUse;
   
   if (mFlags & nsIURILoader::IS_CONTENT_PREFERRED) {
     aListener->IsPreferred(mContentType.get(),
@@ -834,7 +837,7 @@ NS_IMETHODIMP nsURILoader::OpenURI(nsIChannel *channel,
     // the preferred protocol handler. 
 
     // But for now, I'm going to let necko do the work for us....
-    rv = channel->AsyncOpen(loader, nullptr);
+    rv = channel->AsyncOpen2(loader);
 
     // no content from this load - that's OK.
     if (rv == NS_ERROR_NO_CONTENT) {

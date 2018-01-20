@@ -42,7 +42,7 @@ interface AnonymousContent {
    * Set the value of an attribute of an element inside this custom anonymous
    * content.
    */
-  [Throws]
+  [NeedsSubjectPrincipal, Throws]
   void setAttributeForElement(DOMString elementId,
                               DOMString attributeName,
                               DOMString value);
@@ -77,4 +77,12 @@ interface AnonymousContent {
   [Throws]
   void setCutoutRectsForElement(DOMString elementId,
                                 sequence<DOMRect> rects);
+
+  /**
+   * Get the computed value of a property on an element inside this custom
+   * anonymous content.
+   */
+  [Throws]
+  DOMString? getComputedStylePropertyValue(DOMString elementId,
+                                           DOMString propertyName);
 };

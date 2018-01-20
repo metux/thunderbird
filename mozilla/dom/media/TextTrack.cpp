@@ -13,6 +13,7 @@
 #include "mozilla/dom/TextTrackRegion.h"
 #include "mozilla/dom/HTMLMediaElement.h"
 #include "mozilla/dom/HTMLTrackElement.h"
+#include "nsGlobalWindow.h"
 
 namespace mozilla {
 namespace dom {
@@ -26,7 +27,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(TextTrack,
 
 NS_IMPL_ADDREF_INHERITED(TextTrack, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(TextTrack, DOMEventTargetHelper)
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(TextTrack)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(TextTrack)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 TextTrack::TextTrack(nsPIDOMWindowInner* aOwnerWindow,
@@ -204,7 +205,7 @@ TextTrack::UpdateActiveCueList()
   // Remove all the cues from the active cue list whose end times now occur
   // earlier then the current playback time.
   for (uint32_t i = mActiveCueList->Length(); i > 0; i--) {
-    if ((*mActiveCueList)[i - 1]->EndTime() < playbackTime) {
+    if ((*mActiveCueList)[i - 1]->EndTime() <= playbackTime) {
       mActiveCueList->RemoveCueAt(i - 1);
     }
   }
@@ -214,7 +215,7 @@ TextTrack::UpdateActiveCueList()
   // a valid start time as the cue list is sorted.
   for (; mCuePos < mCueList->Length() &&
          (*mCueList)[mCuePos]->StartTime() <= playbackTime; mCuePos++) {
-    if ((*mCueList)[mCuePos]->EndTime() >= playbackTime) {
+    if ((*mCueList)[mCuePos]->EndTime() > playbackTime) {
       mActiveCueList->AddCue(*(*mCueList)[mCuePos]);
     }
   }
@@ -263,6 +264,7 @@ TextTrack::SetReadyState(TextTrackReadyState aState)
   if (mediaElement && (mReadyState == TextTrackReadyState::Loaded||
       mReadyState == TextTrackReadyState::FailedToLoad)) {
     mediaElement->RemoveTextTrack(this, true);
+    mediaElement->UpdateReadyState();
   }
 }
 
@@ -329,12 +331,33 @@ TextTrack::GetLanguage(nsAString& aLanguage) const
 void
 TextTrack::DispatchAsyncTrustedEvent(const nsString& aEventName)
 {
+  nsPIDOMWindowInner* win = GetOwner();
+  if (!win) {
+    return;
+  }
   RefPtr<TextTrack> self = this;
-  NS_DispatchToMainThread(
-    NS_NewRunnableFunction([self, aEventName]() {
-      self->DispatchTrustedEvent(aEventName);
-    })
-  );
+  nsGlobalWindowInner::Cast(win)->Dispatch(
+    TaskCategory::Other,
+    NS_NewRunnableFunction(
+      "dom::TextTrack::DispatchAsyncTrustedEvent",
+      [self, aEventName]() { self->DispatchTrustedEvent(aEventName); }));
+}
+
+bool
+TextTrack::IsLoaded()
+{
+  if (mMode == TextTrackMode::Disabled) {
+    return true;
+  }
+  // If the TrackElement's src is null, we can not block the
+  // MediaElement.
+  if (mTrackElement) {
+    nsAutoString src;
+    if (!(mTrackElement->GetAttr(kNameSpaceID_None, nsGkAtoms::src, src))) {
+      return true;
+    }
+  }
+  return (mReadyState >= Loaded);
 }
 
 } // namespace dom

@@ -37,8 +37,7 @@ public:
 class LayersIPCChannel : public LayersIPCActor
                        , public mozilla::ipc::IShmemAllocator {
 public:
-  NS_IMETHOD_(MozExternalRefCountType) AddRef(void) = 0;
-  NS_IMETHOD_(MozExternalRefCountType) Release(void) = 0;
+  NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
 
   virtual bool IsSameProcess() const = 0;
 
@@ -51,6 +50,8 @@ public:
   virtual FixedSizeSmallShmemSectionAllocator* GetTileLockAllocator() { return nullptr; }
 
   virtual void CancelWaitForRecycle(uint64_t aTextureId) = 0;
+
+  virtual wr::MaybeExternalImageId GetNextExternalImageId() { return Nothing(); }
 
 protected:
   virtual ~LayersIPCChannel() {}
@@ -70,7 +71,9 @@ public:
     const SurfaceDescriptor& aSharedData,
     LayersBackend aLayersBackend,
     TextureFlags aFlags,
-    uint64_t aSerial) = 0;
+    uint64_t aSerial,
+    wr::MaybeExternalImageId& aExternalImageId,
+    nsIEventTarget* aTarget = nullptr) = 0;
 };
 
 } // namespace layers

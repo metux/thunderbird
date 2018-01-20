@@ -12,12 +12,12 @@
 #include "nsIFile.h"
 #include "nsISimpleEnumerator.h"
 #include "mozilla/Unused.h"
-#include "mozilla/dom/File.h"
+#include "mozilla/dom/FileBlobImpl.h"
 #include "mozilla/dom/FileSystemSecurity.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/TabParent.h"
-#include "mozilla/dom/ipc/BlobParent.h"
+#include "mozilla/dom/IPCBlobUtils.h"
 
 using mozilla::Unused;
 using namespace mozilla::dom;
@@ -44,21 +44,17 @@ FilePickerParent::~FilePickerParent()
 {
 }
 
-// Before sending a blob to the child, we need to get its size and modification
-// date. Otherwise it will be sent as a "mystery blob" by
-// GetOrCreateActorForBlob, which will cause problems for the child
-// process. This runnable stat()s the file off the main thread.
-//
 // We run code in three places:
 // 1. The main thread calls Dispatch() to start the runnable.
 // 2. The stream transport thread stat()s the file in Run() and then dispatches
 // the same runnable on the main thread.
 // 3. The main thread sends the results over IPC.
-FilePickerParent::IORunnable::IORunnable(FilePickerParent *aFPParent,
+FilePickerParent::IORunnable::IORunnable(FilePickerParent* aFPParent,
                                          nsTArray<nsCOMPtr<nsIFile>>& aFiles,
                                          bool aIsDirectory)
- : mFilePickerParent(aFPParent)
- , mIsDirectory(aIsDirectory)
+  : mozilla::Runnable("dom::FilePickerParent::IORunnable")
+  , mFilePickerParent(aFPParent)
+  , mIsDirectory(aIsDirectory)
 {
   mFiles.SwapElements(aFiles);
   MOZ_ASSERT_IF(aIsDirectory, mFiles.Length() == 1);
@@ -106,7 +102,7 @@ FilePickerParent::IORunnable::Run()
       continue;
     }
 
-    RefPtr<BlobImpl> blobImpl = new BlobImplFile(mFiles[i]);
+    RefPtr<BlobImpl> blobImpl = new FileBlobImpl(mFiles[i]);
 
     ErrorResult error;
     blobImpl->GetSize(error);
@@ -169,18 +165,23 @@ FilePickerParent::SendFilesOrDirectories(const nsTArray<BlobImplOrString>& aData
     return;
   }
 
-  InfallibleTArray<PBlobParent*> blobs;
+  InfallibleTArray<IPCBlob> ipcBlobs;
 
   for (unsigned i = 0; i < aData.Length(); i++) {
+    IPCBlob ipcBlob;
+
     MOZ_ASSERT(aData[i].mType == BlobImplOrString::eBlobImpl);
-    BlobParent* blobParent = parent->GetOrCreateActorForBlobImpl(aData[i].mBlobImpl);
-    if (blobParent) {
-      blobs.AppendElement(blobParent);
+    nsresult rv = IPCBlobUtils::Serialize(aData[i].mBlobImpl, parent, ipcBlob);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      break;
     }
+
+    ipcBlobs.AppendElement(ipcBlob);
   }
 
   InputBlobs inblobs;
-  inblobs.blobsParent().SwapElements(blobs);
+  inblobs.blobs().SwapElements(ipcBlobs);
+
   Unused << Send__delete__(this, inblobs, mResult);
 }
 
@@ -252,7 +253,7 @@ FilePickerParent::CreateFilePicker()
   return NS_SUCCEEDED(mFilePicker->Init(window, mTitle, mMode));
 }
 
-bool
+mozilla::ipc::IPCResult
 FilePickerParent::RecvOpen(const int16_t& aSelectedType,
                            const bool& aAddToRecentDocs,
                            const nsString& aDefaultFile,
@@ -260,11 +261,12 @@ FilePickerParent::RecvOpen(const int16_t& aSelectedType,
                            InfallibleTArray<nsString>&& aFilters,
                            InfallibleTArray<nsString>&& aFilterNames,
                            const nsString& aDisplayDirectory,
+                           const nsString& aDisplaySpecialDirectory,
                            const nsString& aOkButtonLabel)
 {
   if (!CreateFilePicker()) {
     Unused << Send__delete__(this, void_t(), nsIFilePicker::returnCancel);
-    return true;
+    return IPC_OK();
   }
 
   mFilePicker->SetAddToRecentDocs(aAddToRecentDocs);
@@ -284,12 +286,14 @@ FilePickerParent::RecvOpen(const int16_t& aSelectedType,
       localFile->InitWithPath(aDisplayDirectory);
       mFilePicker->SetDisplayDirectory(localFile);
     }
+  } else if (!aDisplaySpecialDirectory.IsEmpty()) {
+    mFilePicker->SetDisplaySpecialDirectory(aDisplaySpecialDirectory);
   }
 
   mCallback = new FilePickerShownCallback(this);
 
   mFilePicker->Open(mCallback);
-  return true;
+  return IPC_OK();
 }
 
 void

@@ -7,38 +7,39 @@
  * Verifies that truncated response bodies still have the correct reported size.
  */
 
-function test() {
-  let { L10N } = require("devtools/client/netmonitor/l10n");
-  const { RESPONSE_BODY_LIMIT } = require("devtools/shared/webconsole/network-monitor");
+add_task(function* () {
+  let { RESPONSE_BODY_LIMIT } = require("devtools/shared/webconsole/network-monitor");
+  let URL = EXAMPLE_URL + "sjs_truncate-test-server.sjs?limit=" + RESPONSE_BODY_LIMIT;
+  let { monitor, tab } = yield initNetMonitor(URL);
 
-  const URL = EXAMPLE_URL + "sjs_truncate-test-server.sjs?limit=" + RESPONSE_BODY_LIMIT;
+  info("Starting test... ");
 
-  // Another slow test on Linux debug.
-  requestLongerTimeout(2);
+  let { L10N } = require("devtools/client/netmonitor/src/utils/l10n");
 
-  initNetMonitor(URL).then(({ tab, monitor }) => {
-    info("Starting test... ");
+  let { document } = monitor.panelWin;
 
-    let { NetMonitorView } = monitor.panelWin;
-    let { RequestsMenu } = NetMonitorView;
+  let wait = waitForNetworkEvents(monitor, 1);
+  tab.linkedBrowser.reload();
+  yield wait;
 
-    RequestsMenu.lazyUpdate = false;
+  // Response content will be updated asynchronously, we should make sure data is updated
+  // on DOM before asserting.
+  yield waitUntil(() => document.querySelector(".request-list-item"));
+  let item = document.querySelectorAll(".request-list-item")[0];
+  yield waitUntil(() => item.querySelector(".requests-list-type").title);
 
-    waitForNetworkEvents(monitor, 1)
-      .then(() => teardown(monitor))
-      .then(finish);
+  let type = item.querySelector(".requests-list-type").textContent;
+  let fullMimeType = item.querySelector(".requests-list-type").title;
+  let transferred = item.querySelector(".requests-list-transferred").textContent;
+  let size = item.querySelector(".requests-list-size").textContent;
 
-    monitor.panelWin.once(monitor.panelWin.EVENTS.RECEIVED_RESPONSE_CONTENT, () => {
-      let requestItem = RequestsMenu.getItemAtIndex(0);
+  is(type, "plain", "Type should be rendered correctly.");
+  is(fullMimeType, "text/plain; charset=utf-8",
+    "Mimetype should be rendered correctly.");
+  is(transferred, L10N.getFormatStrWithNumbers("networkMenu.sizeMB", 2),
+    "Transferred size should be rendered correctly.");
+  is(size, L10N.getFormatStrWithNumbers("networkMenu.sizeMB", 2),
+    "Size should be rendered correctly.");
 
-      verifyRequestItemTarget(RequestsMenu, requestItem, "GET", URL, {
-        type: "plain",
-        fullMimeType: "text/plain; charset=utf-8",
-        transferred: L10N.getFormatStrWithNumbers("networkMenu.sizeMB", 2),
-        size: L10N.getFormatStrWithNumbers("networkMenu.sizeMB", 2),
-      });
-    });
-
-    tab.linkedBrowser.reload();
-  });
-}
+  return teardown(monitor);
+});

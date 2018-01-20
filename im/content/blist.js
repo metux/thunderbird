@@ -612,8 +612,12 @@ var buddyList = {
     fp.init(window, bundle.getString("userIconFilePickerTitle"),
             nsIFilePicker.modeOpen);
     fp.appendFilters(nsIFilePicker.filterImages);
-    if (fp.show() == nsIFilePicker.returnOK)
+    fp.open(rv => {
+      if (rv != nsIFilePicker.returnOK || !fp.file) {
+        return;
+      }
       Services.core.globalUserStatus.setUserIcon(fp.file);
+    });
   },
 
   webcamSuccessCallback: function bl_webcamSuccessCallback(aStream) {
@@ -680,7 +684,7 @@ var buddyList = {
         document.getElementById("changeUserIconPanel").hidePopup();
         writeFile.then(function() {
           let userIconFile = Cc["@mozilla.org/file/local;1"]
-                             .createInstance(Ci.nsILocalFile);
+                             .createInstance(Ci.nsIFile);
           userIconFile.initWithPath(newName);
           Services.core.globalUserStatus.setUserIcon(userIconFile);
           userIconFile.remove(newName);

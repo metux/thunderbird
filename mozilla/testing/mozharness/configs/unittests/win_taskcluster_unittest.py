@@ -25,6 +25,7 @@ config = {
     "installer_path": INSTALLER_PATH,
     "binary_path": BINARY_PATH,
     "xpcshell_name": XPCSHELL_NAME,
+    "virtualenv_modules": ['pypiwin32'],
     "virtualenv_path": 'venv',
     "virtualenv_python_dll": os.path.join(os.path.dirname(sys.executable), "python27.dll"),
 
@@ -98,6 +99,7 @@ config = {
                 "--log-errorsummary=%(error_summary_file)s",
                 "--screenshot-on-fail",
                 "--cleanup-crashes",
+                "--marionette-startup-timeout=180",
             ],
             "run_filename": "runtests.py",
             "testsdir": "mochitest"
@@ -129,6 +131,7 @@ config = {
                 "--log-raw=%(raw_log_file)s",
                 "--log-errorsummary=%(error_summary_file)s",
                 "--cleanup-crashes",
+                "--marionette-startup-timeout=180",
             ],
             "run_filename": "runreftest.py",
             "testsdir": "reftest"
@@ -173,13 +176,11 @@ config = {
         "browser-chrome-chunked": ["--flavor=browser", "--chunk-by-runtime"],
         "browser-chrome-addons": ["--flavor=browser", "--chunk-by-runtime", "--tag=addons"],
         "browser-chrome-screenshots": ["--flavor=browser", "--subsuite=screenshots"],
+        "browser-chrome-instrumentation": ["--flavor=browser"],
         "mochitest-gl": ["--subsuite=webgl"],
         "mochitest-devtools-chrome": ["--flavor=browser", "--subsuite=devtools"],
         "mochitest-devtools-chrome-chunked": ["--flavor=browser", "--subsuite=devtools", "--chunk-by-runtime"],
         "mochitest-metro-chrome": ["--flavor=browser", "--metro-immersive"],
-        "jetpack-package": ["--flavor=jetpack-package"],
-        "jetpack-package-clipboard": ["--flavor=jetpack-package", "--subsuite=clipboard"],
-        "jetpack-addon": ["--flavor=jetpack-addon"],
         "a11y": ["--flavor=a11y"],
     },
     # local reftest suites
@@ -203,9 +204,13 @@ config = {
         },
         "reftest-no-accel": {
             "options": ["--suite=reftest",
-                        "--setpref=gfx.direct2d.disabled=true",
                         "--setpref=layers.acceleration.disabled=true"],
             "tests": ["tests/reftest/tests/layout/reftests/reftest.list"]
+        },
+        "reftest-stylo": {
+            "options": ["--suite=reftest",
+                        "--setpref=reftest.compareStyloToGecko=true"],
+            "tests": ["tests/reftest/tests/layout/reftests/reftest.list"],
         },
     },
     "all_xpcshell_suites": {
@@ -228,7 +233,8 @@ config = {
         "gtest": []
     },
     "all_jittest_suites": {
-        "jittest": []
+        "jittest": [],
+        "jittest-chunked": [],
     },
     "all_mozbase_suites": {
         "mozbase": []
@@ -252,10 +258,20 @@ config = {
                 os.path.join(os.getcwd(),
                     'mozharness', 'external_tools', 'machine-configuration.json')
             ],
-            'architectures': ['32bit'],
+            'architectures': ['32bit', '64bit'],
             'halt_on_failure': True,
             'enabled': ADJUST_MOUSE_AND_SCREEN
-        }
+        },
+        {
+            'name': 'hide win 10 taskbar',
+            'cmd': [
+                'powershell', '-command',
+                '"&{$p=\'HKCU:SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3\';$v=(Get-ItemProperty -Path $p).Settings;$v[8]=3;&Set-ItemProperty -Path $p -Name Settings -Value $v;&Stop-Process -ProcessName explorer}"'
+            ],
+            'architectures': ['32bit', '64bit'],
+            'halt_on_failure': True,
+            'enabled': os.environ.get('ProgramFiles(x86)', False)
+        },
     ],
     "vcs_output_timeout": 1000,
     "minidump_save_path": "%(abs_work_dir)s/../minidumps",

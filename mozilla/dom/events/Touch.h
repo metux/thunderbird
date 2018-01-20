@@ -10,6 +10,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/MouseEvents.h"
+#include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/TouchBinding.h"
 #include "nsWrapperCache.h"
 #include "Units.h"
@@ -67,16 +68,16 @@ public:
   // WebIDL
   int32_t Identifier() const { return mIdentifier; }
   EventTarget* GetTarget() const;
-  int32_t ScreenX() const { return mScreenPoint.x; }
-  int32_t ScreenY() const { return mScreenPoint.y; }
+  int32_t ScreenX(CallerType aCallerType) const;
+  int32_t ScreenY(CallerType aCallerType) const;
   int32_t ClientX() const { return mClientPoint.x; }
   int32_t ClientY() const { return mClientPoint.y; }
   int32_t PageX() const { return mPagePoint.x; }
   int32_t PageY() const { return mPagePoint.y; }
-  int32_t RadiusX() const { return mRadius.x; }
-  int32_t RadiusY() const { return mRadius.y; }
-  float RotationAngle() const { return mRotationAngle; }
-  float Force() const { return mForce; }
+  int32_t RadiusX(CallerType aCallerType) const;
+  int32_t RadiusY(CallerType aCallerType) const;
+  float RotationAngle(CallerType aCallerType) const;
+  float Force(CallerType aCallerType) const;
 
   nsCOMPtr<EventTarget> mTarget;
   LayoutDeviceIntPoint mRefPoint;

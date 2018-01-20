@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -11,11 +12,10 @@
 #include "nsDateTimeControlFrame.h"
 
 #include "nsContentUtils.h"
-#include "nsFormControlFrame.h"
+#include "nsCheckboxRadioFrame.h"
 #include "nsGkAtoms.h"
 #include "nsContentUtils.h"
 #include "nsContentCreatorFunctions.h"
-#include "nsContentList.h"
 #include "mozilla/dom/HTMLInputElement.h"
 #include "nsNodeInfoManager.h"
 #include "nsIDateTimeInputArea.h"
@@ -43,24 +43,34 @@ NS_QUERYFRAME_HEAD(nsDateTimeControlFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 
 nsDateTimeControlFrame::nsDateTimeControlFrame(nsStyleContext* aContext)
-  : nsContainerFrame(aContext)
+  : nsContainerFrame(aContext, kClassID)
 {
 }
 
 void
-nsDateTimeControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
+nsDateTimeControlFrame::DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData)
 {
-  nsContentUtils::DestroyAnonymousContent(&mInputAreaContent);
-  nsContainerFrame::DestroyFrom(aDestructRoot);
+  aPostDestroyData.AddAnonymousContent(mInputAreaContent.forget());
+  nsContainerFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
 }
 
 void
-nsDateTimeControlFrame::UpdateInputBoxValue()
+nsDateTimeControlFrame::OnValueChanged()
 {
   nsCOMPtr<nsIDateTimeInputArea> inputAreaContent =
     do_QueryInterface(mInputAreaContent);
   if (inputAreaContent) {
     inputAreaContent->NotifyInputElementValueChanged();
+  }
+}
+
+void
+nsDateTimeControlFrame::OnMinMaxStepAttrChanged()
+{
+  nsCOMPtr<nsIDateTimeInputArea> inputAreaContent =
+    do_QueryInterface(mInputAreaContent);
+  if (inputAreaContent) {
+    inputAreaContent->NotifyMinMaxStepAttrChanged();
   }
 }
 
@@ -125,8 +135,22 @@ nsDateTimeControlFrame::HandleBlurEvent()
   }
 }
 
+bool
+nsDateTimeControlFrame::HasBadInput()
+{
+  nsCOMPtr<nsIDateTimeInputArea> inputAreaContent =
+    do_QueryInterface(mInputAreaContent);
+
+  bool result = false;
+  if (inputAreaContent) {
+    inputAreaContent->HasBadInput(&result);
+  }
+
+  return result;
+}
+
 nscoord
-nsDateTimeControlFrame::GetMinISize(nsRenderingContext* aRenderingContext)
+nsDateTimeControlFrame::GetMinISize(gfxContext* aRenderingContext)
 {
   nscoord result;
   DISPLAY_MIN_WIDTH(this, result);
@@ -144,7 +168,7 @@ nsDateTimeControlFrame::GetMinISize(nsRenderingContext* aRenderingContext)
 }
 
 nscoord
-nsDateTimeControlFrame::GetPrefISize(nsRenderingContext* aRenderingContext)
+nsDateTimeControlFrame::GetPrefISize(gfxContext* aRenderingContext)
 {
   nscoord result;
   DISPLAY_PREF_WIDTH(this, result);
@@ -171,6 +195,7 @@ nsDateTimeControlFrame::Reflow(nsPresContext* aPresContext,
 
   DO_GLOBAL_REFLOW_COUNT("nsDateTimeControlFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowInput, aDesiredSize, aStatus);
+  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
   NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
                  ("enter nsDateTimeControlFrame::Reflow: availSize=%d,%d",
                   aReflowInput.AvailableWidth(),
@@ -235,7 +260,7 @@ nsDateTimeControlFrame::Reflow(nsPresContext* aPresContext,
     ReflowChild(inputAreaFrame, aPresContext, childDesiredSize,
                 childReflowOuput, myWM, childOffset, dummyContainerSize, 0,
                 childStatus);
-    MOZ_ASSERT(NS_FRAME_IS_FULLY_COMPLETE(childStatus),
+    MOZ_ASSERT(childStatus.IsFullyComplete(),
                "We gave our child unconstrained available block-size, "
                "so it should be complete");
 
@@ -293,8 +318,6 @@ nsDateTimeControlFrame::Reflow(nsPresContext* aPresContext,
 
   FinishAndStoreOverflow(&aDesiredSize);
 
-  aStatus = NS_FRAME_COMPLETE;
-
   NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
                  ("exit nsDateTimeControlFrame::Reflow: size=%d,%d",
                   aDesiredSize.Width(), aDesiredSize.Height()));
@@ -316,21 +339,25 @@ nsDateTimeControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
   NS_TrustedNewXULElement(getter_AddRefs(mInputAreaContent), nodeInfo.forget());
   aElements.AppendElement(mInputAreaContent);
 
-  // Propogate our tabindex.
-  nsAutoString tabIndexStr;
-  if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::tabindex, tabIndexStr)) {
-    mInputAreaContent->SetAttr(kNameSpaceID_None, nsGkAtoms::tabindex,
-                               tabIndexStr, false);
-  }
+  nsCOMPtr<nsIDateTimeInputArea> inputAreaContent =
+    do_QueryInterface(mInputAreaContent);
+  if (inputAreaContent) {
+    // Propogate our tabindex.
+    nsAutoString tabIndexStr;
+    if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::tabindex, tabIndexStr)) {
+      inputAreaContent->SetEditAttribute(NS_LITERAL_STRING("tabindex"),
+                                         tabIndexStr);
+    }
 
-  // Propagate our readonly state.
-  nsAutoString readonly;
-  if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::readonly, readonly)) {
-    mInputAreaContent->SetAttr(kNameSpaceID_None, nsGkAtoms::readonly, readonly,
-                               false);
-  }
+    // Propagate our readonly state.
+    nsAutoString readonly;
+    if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::readonly, readonly)) {
+      inputAreaContent->SetEditAttribute(NS_LITERAL_STRING("readonly"),
+                                         readonly);
+    }
 
-  SyncDisabledState();
+    SyncDisabledState();
+  }
 
   return NS_OK;
 }
@@ -347,18 +374,25 @@ nsDateTimeControlFrame::AppendAnonymousContentTo(nsTArray<nsIContent*>& aElement
 void
 nsDateTimeControlFrame::SyncDisabledState()
 {
+  NS_ASSERTION(mInputAreaContent, "The input area content must exist!");
+  nsCOMPtr<nsIDateTimeInputArea> inputAreaContent =
+    do_QueryInterface(mInputAreaContent);
+  if (!inputAreaContent) {
+    return;
+  }
+
   EventStates eventStates = mContent->AsElement()->State();
   if (eventStates.HasState(NS_EVENT_STATE_DISABLED)) {
-    mInputAreaContent->SetAttr(kNameSpaceID_None, nsGkAtoms::disabled,
-                               EmptyString(), true);
+    inputAreaContent->SetEditAttribute(NS_LITERAL_STRING("disabled"),
+                                       EmptyString());
   } else {
-    mInputAreaContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::disabled, true);
+    inputAreaContent->RemoveEditAttribute(NS_LITERAL_STRING("disabled"));
   }
 }
 
 nsresult
 nsDateTimeControlFrame::AttributeChanged(int32_t aNameSpaceID,
-                                         nsIAtom* aAttribute,
+                                         nsAtom* aAttribute,
                                          int32_t aModType)
 {
   NS_ASSERTION(mInputAreaContent, "The input area content must exist!");
@@ -369,26 +403,35 @@ nsDateTimeControlFrame::AttributeChanged(int32_t aNameSpaceID,
         aAttribute == nsGkAtoms::readonly ||
         aAttribute == nsGkAtoms::tabindex) {
       MOZ_ASSERT(mContent->IsHTMLElement(nsGkAtoms::input), "bad cast");
-      auto contentAsInputElem = static_cast<dom::HTMLInputElement*>(mContent);
+      auto contentAsInputElem = static_cast<dom::HTMLInputElement*>(GetContent());
       // If script changed the <input>'s type before setting these attributes
       // then we don't need to do anything since we are going to be reframed.
-      if (contentAsInputElem->GetType() == NS_FORM_INPUT_TIME) {
+      if (contentAsInputElem->ControlType() == NS_FORM_INPUT_TIME ||
+          contentAsInputElem->ControlType() == NS_FORM_INPUT_DATE) {
+        nsCOMPtr<nsIDateTimeInputArea> inputAreaContent =
+          do_QueryInterface(mInputAreaContent);
         if (aAttribute == nsGkAtoms::value) {
-          nsCOMPtr<nsIDateTimeInputArea> inputAreaContent =
-            do_QueryInterface(mInputAreaContent);
           if (inputAreaContent) {
-            nsContentUtils::AddScriptRunner(NewRunnableMethod(inputAreaContent,
+            nsContentUtils::AddScriptRunner(NewRunnableMethod(
+              "nsIDateTimeInputArea::NotifyInputElementValueChanged",
+              inputAreaContent,
               &nsIDateTimeInputArea::NotifyInputElementValueChanged));
           }
         } else {
           if (aModType == nsIDOMMutationEvent::REMOVAL) {
-            mInputAreaContent->UnsetAttr(aNameSpaceID, aAttribute, true);
+            if (inputAreaContent) {
+              nsAtomString name(aAttribute);
+              inputAreaContent->RemoveEditAttribute(name);
+            }
           } else {
             MOZ_ASSERT(aModType == nsIDOMMutationEvent::ADDITION ||
                        aModType == nsIDOMMutationEvent::MODIFICATION);
-            nsAutoString value;
-            mContent->GetAttr(aNameSpaceID, aAttribute, value);
-            mInputAreaContent->SetAttr(aNameSpaceID, aAttribute, value, true);
+            if (inputAreaContent) {
+              nsAtomString name(aAttribute);
+              nsAutoString value;
+              mContent->GetAttr(aNameSpaceID, aAttribute, value);
+              inputAreaContent->SetEditAttribute(name, value);
+            }
           }
         }
       }
@@ -405,10 +448,4 @@ nsDateTimeControlFrame::ContentStatesChanged(EventStates aStates)
   if (aStates.HasState(NS_EVENT_STATE_DISABLED)) {
     nsContentUtils::AddScriptRunner(new SyncDisabledStateEvent(this));
   }
-}
-
-nsIAtom*
-nsDateTimeControlFrame::GetType() const
-{
-  return nsGkAtoms::dateTimeControlFrame;
 }

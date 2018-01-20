@@ -31,21 +31,10 @@ namespace dom {
  * that add and remove fake gamepads, avoiding the platform-specific backends.
  */
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(GamepadServiceTest)
+NS_IMPL_CYCLE_COLLECTION_INHERITED(GamepadServiceTest, DOMEventTargetHelper,
+                                   mWindow)
 
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(GamepadServiceTest,
-                                                  DOMEventTargetHelper)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWindow)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
-
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(GamepadServiceTest,
-                                                DOMEventTargetHelper)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mWindow)
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(GamepadServiceTest)
-  NS_INTERFACE_MAP_ENTRY(nsIIPCBackgroundChildCreateCallback)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(GamepadServiceTest)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 NS_IMPL_ADDREF_INHERITED(GamepadServiceTest, DOMEventTargetHelper)
@@ -84,49 +73,46 @@ void
 GamepadServiceTest::InitPBackgroundActor()
 {
   MOZ_ASSERT(!mChild);
-  PBackgroundChild *actor = BackgroundChild::GetForCurrentThread();
-  //Try to get the PBackground Child actor
-  if (actor) {
-    ActorCreated(actor);
-  } else {
-    Unused << BackgroundChild::GetOrCreateForCurrentThread(this);
+
+  PBackgroundChild* actor = BackgroundChild::GetOrCreateForCurrentThread();
+  if (NS_WARN_IF(!actor)) {
+    MOZ_CRASH("Failed to create a PBackgroundChild actor!");
+  }
+
+  mChild = new GamepadTestChannelChild();
+  PGamepadTestChannelChild* initedChild =
+    actor->SendPGamepadTestChannelConstructor(mChild);
+  if (NS_WARN_IF(!initedChild)) {
+    MOZ_CRASH("Failed to create a PBackgroundChild actor!");
   }
 }
 
 void
 GamepadServiceTest::DestroyPBackgroundActor()
 {
-  if (mChild) {
-    // If mChild exists, which means that IPDL channel
-    // has been created, our pending operations should
-    // be empty.
-    MOZ_ASSERT(mPendingOperations.IsEmpty());
-    mChild->SendShutdownChannel();
-    mChild = nullptr;
-  } else {
-    // If the IPDL channel has not been created and we
-    // want to destroy it now, just cancel all pending
-    // operations.
-    mPendingOperations.Clear();
-  }
+  mChild->SendShutdownChannel();
+  mChild = nullptr;
 }
 
 already_AddRefed<Promise>
 GamepadServiceTest::AddGamepad(const nsAString& aID,
-                               uint32_t aMapping,
+                               GamepadMappingType aMapping,
+                               GamepadHand aHand,
                                uint32_t aNumButtons,
                                uint32_t aNumAxes,
+                               uint32_t aNumHaptics,
                                ErrorResult& aRv)
 {
   if (mShuttingDown) {
     return nullptr;
   }
 
-  GamepadAdded a(nsString(aID), 0,
-                 aMapping,
-                 GamepadServiceType::Standard,
-                 aNumButtons, aNumAxes);
-  GamepadChangeEvent e(a);
+  // Only VR controllers has displayID, we give 0 to the general gamepads.
+  GamepadAdded a(nsString(aID),
+                 aMapping, aHand, 0,
+                 aNumButtons, aNumAxes, aNumHaptics);
+  GamepadChangeEventBody body(a);
+  GamepadChangeEvent e(0, GamepadServiceType::Standard, body);
   nsCOMPtr<nsIGlobalObject> go = do_QueryInterface(mWindow);
 
   RefPtr<Promise> p = Promise::Create(go, aRv);
@@ -135,13 +121,10 @@ GamepadServiceTest::AddGamepad(const nsAString& aID,
   }
 
   uint32_t id = ++mEventNumber;
-  if (mChild) {
-    mChild->AddPromise(id, p);
-    mChild->SendGamepadTestEvent(id, e);
-  } else {
-    PendingOperation op(id, e, p);
-    mPendingOperations.AppendElement(op);
-  }
+
+  mChild->AddPromise(id, p);
+  mChild->SendGamepadTestEvent(id, e);
+
   return p.forget();
 }
 
@@ -152,61 +135,49 @@ GamepadServiceTest::RemoveGamepad(uint32_t aIndex)
     return;
   }
 
-  GamepadRemoved a(aIndex, GamepadServiceType::Standard);
-  GamepadChangeEvent e(a);
+  GamepadRemoved a;
+  GamepadChangeEventBody body(a);
+  GamepadChangeEvent e(aIndex, GamepadServiceType::Standard, body);
 
   uint32_t id = ++mEventNumber;
-  if (mChild) {
-    mChild->SendGamepadTestEvent(id, e);
-  } else {
-    PendingOperation op(id, e);
-    mPendingOperations.AppendElement(op);
-  }
+  mChild->SendGamepadTestEvent(id, e);
 }
 
 void
 GamepadServiceTest::NewButtonEvent(uint32_t aIndex,
                                    uint32_t aButton,
+                                   bool aTouched,
                                    bool aPressed)
 {
   if (mShuttingDown) {
     return;
   }
 
-  GamepadButtonInformation a(aIndex, GamepadServiceType::Standard,
-                             aButton, aPressed, aPressed ? 1.0 : 0);
-  GamepadChangeEvent e(a);
+  GamepadButtonInformation a(aButton, aPressed ? 1.0 : 0, aPressed, aTouched);
+  GamepadChangeEventBody body(a);
+  GamepadChangeEvent e(aIndex, GamepadServiceType::Standard, body);
 
   uint32_t id = ++mEventNumber;
-  if (mChild) {
-    mChild->SendGamepadTestEvent(id, e);
-  } else {
-    PendingOperation op(id, e);
-    mPendingOperations.AppendElement(op);
-  }
+  mChild->SendGamepadTestEvent(id, e);
 }
 
 void
 GamepadServiceTest::NewButtonValueEvent(uint32_t aIndex,
                                         uint32_t aButton,
                                         bool aPressed,
+                                        bool aTouched,
                                         double aValue)
 {
   if (mShuttingDown) {
     return;
   }
 
-  GamepadButtonInformation a(aIndex, GamepadServiceType::Standard,
-                             aButton, aPressed, aValue);
-  GamepadChangeEvent e(a);
+  GamepadButtonInformation a(aButton, aValue, aPressed, aTouched);
+  GamepadChangeEventBody body(a);
+  GamepadChangeEvent e(aIndex, GamepadServiceType::Standard, body);
 
   uint32_t id = ++mEventNumber;
-  if (mChild) {
-    mChild->SendGamepadTestEvent(id, e);
-  } else {
-    PendingOperation op(id, e);
-    mPendingOperations.AppendElement(op);
-  }
+  mChild->SendGamepadTestEvent(id, e);
 }
 
 void
@@ -218,59 +189,90 @@ GamepadServiceTest::NewAxisMoveEvent(uint32_t aIndex,
     return;
   }
 
-  GamepadAxisInformation a(aIndex, GamepadServiceType::Standard,
-                           aAxis, aValue);
-  GamepadChangeEvent e(a);
+  GamepadAxisInformation a(aAxis, aValue);
+  GamepadChangeEventBody body(a);
+  GamepadChangeEvent e(aIndex, GamepadServiceType::Standard, body);
 
   uint32_t id = ++mEventNumber;
-  if (mChild) {
-    mChild->SendGamepadTestEvent(id, e);
-  } else {
-    PendingOperation op(id, e);
-    mPendingOperations.AppendElement(op);
-  }
+  mChild->SendGamepadTestEvent(id, e);
 }
 
 void
-GamepadServiceTest::FlushPendingOperations()
+GamepadServiceTest::NewPoseMove(uint32_t aIndex,
+                                const Nullable<Float32Array>& aOrient,
+                                const Nullable<Float32Array>& aPos,
+                                const Nullable<Float32Array>& aAngVelocity,
+                                const Nullable<Float32Array>& aAngAcceleration,
+                                const Nullable<Float32Array>& aLinVelocity,
+                                const Nullable<Float32Array>& aLinAcceleration)
 {
-  for (uint32_t i=0; i < mPendingOperations.Length(); ++i) {
-    PendingOperation op = mPendingOperations[i];
-    if (op.mPromise) {
-      mChild->AddPromise(op.mID, op.mPromise);
-    }
-    mChild->SendGamepadTestEvent(op.mID, op.mEvent);
-  }
-  mPendingOperations.Clear();
-}
-
-void
-GamepadServiceTest::ActorCreated(PBackgroundChild* aActor)
-{
-  MOZ_ASSERT(aActor);
-  // If we are shutting down, we don't need to create the
-  // IPDL child/parent pair anymore.
   if (mShuttingDown) {
-    // mPendingOperations should be cleared in
-    // DestroyPBackgroundActor()
-    MOZ_ASSERT(mPendingOperations.IsEmpty());
     return;
   }
 
-  mChild = new GamepadTestChannelChild();
-  PGamepadTestChannelChild* initedChild =
-    aActor->SendPGamepadTestChannelConstructor(mChild);
-  if (NS_WARN_IF(!initedChild)) {
-    ActorFailed();
-    return;
+  GamepadPoseState poseState;
+  poseState.flags = GamepadCapabilityFlags::Cap_Orientation |
+                    GamepadCapabilityFlags::Cap_Position |
+                    GamepadCapabilityFlags::Cap_AngularAcceleration |
+                    GamepadCapabilityFlags::Cap_LinearAcceleration;
+  if (!aOrient.IsNull()) {
+    const Float32Array& value = aOrient.Value();
+    value.ComputeLengthAndData();
+    MOZ_ASSERT(value.Length() == 4);
+    poseState.orientation[0] = value.Data()[0];
+    poseState.orientation[1] = value.Data()[1];
+    poseState.orientation[2] = value.Data()[2];
+    poseState.orientation[3] = value.Data()[3];
+    poseState.isOrientationValid = true;
   }
-  FlushPendingOperations();
-}
+  if (!aPos.IsNull()) {
+    const Float32Array& value = aPos.Value();
+    value.ComputeLengthAndData();
+    MOZ_ASSERT(value.Length() == 3);
+    poseState.position[0] = value.Data()[0];
+    poseState.position[1] = value.Data()[1];
+    poseState.position[2] = value.Data()[2];
+    poseState.isPositionValid = true;
+  }
+  if (!aAngVelocity.IsNull()) {
+    const Float32Array& value = aAngVelocity.Value();
+    value.ComputeLengthAndData();
+    MOZ_ASSERT(value.Length() == 3);
+    poseState.angularVelocity[0] = value.Data()[0];
+    poseState.angularVelocity[1] = value.Data()[1];
+    poseState.angularVelocity[2] = value.Data()[2];
+  }
+  if (!aAngAcceleration.IsNull()) {
+    const Float32Array& value = aAngAcceleration.Value();
+    value.ComputeLengthAndData();
+    MOZ_ASSERT(value.Length() == 3);
+    poseState.angularAcceleration[0] = value.Data()[0];
+    poseState.angularAcceleration[1] = value.Data()[1];
+    poseState.angularAcceleration[2] = value.Data()[2];
+  }
+  if (!aLinVelocity.IsNull()) {
+    const Float32Array& value = aLinVelocity.Value();
+    value.ComputeLengthAndData();
+    MOZ_ASSERT(value.Length() == 3);
+    poseState.linearVelocity[0] = value.Data()[0];
+    poseState.linearVelocity[1] = value.Data()[1];
+    poseState.linearVelocity[2] = value.Data()[2];
+  }
+  if (!aLinAcceleration.IsNull()) {
+    const Float32Array& value = aLinAcceleration.Value();
+    value.ComputeLengthAndData();
+    MOZ_ASSERT(value.Length() == 3);
+    poseState.linearAcceleration[0] = value.Data()[0];
+    poseState.linearAcceleration[1] = value.Data()[1];
+    poseState.linearAcceleration[2] = value.Data()[2];
+  }
 
-void
-GamepadServiceTest::ActorFailed()
-{
-  MOZ_CRASH("Failed to create background child actor!");
+  GamepadPoseInformation a(poseState);
+  GamepadChangeEventBody body(a);
+  GamepadChangeEvent e(aIndex, GamepadServiceType::Standard, body);
+
+  uint32_t id = ++mEventNumber;
+  mChild->SendGamepadTestEvent(id, e);
 }
 
 JSObject*

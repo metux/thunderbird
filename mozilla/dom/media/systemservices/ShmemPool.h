@@ -48,8 +48,8 @@ public:
     return mInitialized;
   }
 
-  char* GetBytes() {
-    return mShmem.get<char>();
+  uint8_t * GetBytes() {
+    return mShmem.get<uint8_t>();
   }
 
   mozilla::ipc::Shmem& Get() {
@@ -132,7 +132,7 @@ public:
     size_t poolUse = mShmemPool.Length() - mPoolFree;
     if (poolUse > mMaxPoolUse) {
       mMaxPoolUse = poolUse;
-      LOG(("Maximum ShmemPool use increased: %d buffers", mMaxPoolUse));
+      LOG(("Maximum ShmemPool use increased: %zu buffers", mMaxPoolUse));
     }
 #endif
     return Move(res);

@@ -80,7 +80,7 @@ void
 NotificationController::Shutdown()
 {
   if (mObservingState != eNotObservingRefresh &&
-      mPresShell->RemoveRefreshObserver(this, Flush_Display)) {
+      mPresShell->RemoveRefreshObserver(this, FlushType::Display)) {
     mObservingState = eNotObservingRefresh;
   }
 
@@ -271,6 +271,8 @@ NotificationController::DropMutationEvent(AccTreeMutationEvent* aEvent)
   } else if (aEvent->GetEventType() == nsIAccessibleEvent::EVENT_SHOW) {
     aEvent->GetAccessible()->SetShowEventTarget(false);
   } else {
+    aEvent->GetAccessible()->SetHideEventTarget(false);
+
     AccHideEvent* hideEvent = downcast_accEvent(aEvent);
     MOZ_ASSERT(hideEvent);
 
@@ -444,7 +446,7 @@ NotificationController::ScheduleProcessing()
   // If notification flush isn't planed yet start notification flush
   // asynchronously (after style and layout).
   if (mObservingState == eNotObservingRefresh) {
-    if (mPresShell->AddRefreshObserver(this, Flush_Display))
+    if (mPresShell->AddRefreshObserver(this, FlushType::Display))
       mObservingState = eRefreshObserving;
   }
 }
@@ -590,8 +592,7 @@ NotificationController::ProcessMutationEvents()
 void
 NotificationController::WillRefresh(mozilla::TimeStamp aTime)
 {
-  PROFILER_LABEL_FUNC(js::ProfileEntry::Category::OTHER);
-  Telemetry::AutoTimer<Telemetry::A11Y_UPDATE_TIME> updateTimer;
+  AUTO_PROFILER_LABEL("NotificationController::WillRefresh", OTHER);
 
   // If the document accessible that notification collector was created for is
   // now shut down, don't process notifications anymore.
@@ -600,9 +601,13 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
   if (!mDocument)
     return;
 
+  // Wait until an update, we have started, or an interruptible reflow is
+  // finished.
   if (mObservingState == eRefreshProcessing ||
-      mObservingState == eRefreshProcessingForUpdate)
+      mObservingState == eRefreshProcessingForUpdate ||
+      mPresShell->IsReflowInterrupted()) {
     return;
+  }
 
   // Any generic notifications should be queued if we're processing content
   // insertions or generic notifications.
@@ -657,8 +662,10 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
       continue;
     }
 
+  #ifdef A11Y_LOG
     nsIContent* containerElm = containerNode->IsElement() ?
       containerNode->AsElement() : nullptr;
+  #endif
 
     nsIFrame::RenderedText text = textFrame->GetRenderedText(0,
         UINT32_MAX, nsIFrame::TextOffsetType::OFFSETS_IN_CONTENT_TEXT,
@@ -676,7 +683,7 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
         }
   #endif
 
-        mDocument->ContentRemoved(containerElm, textNode);
+        mDocument->ContentRemoved(textAcc);
         continue;
       }
 
@@ -730,13 +737,20 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
   }
   mContentInsertions.Clear();
 
-  // Bind hanging child documents.
+  // Bind hanging child documents unless we are using IPC and the
+  // document has no IPC actor.  If we fail to bind the child doc then
+  // shut it down.
   uint32_t hangingDocCnt = mHangingChildDocuments.Length();
   nsTArray<RefPtr<DocAccessible>> newChildDocs;
   for (uint32_t idx = 0; idx < hangingDocCnt; idx++) {
     DocAccessible* childDoc = mHangingChildDocuments[idx];
     if (childDoc->IsDefunct())
       continue;
+
+    if (IPCAccessibilityActive() && !mDocument->IPCDoc()) {
+      childDoc->Shutdown();
+      continue;
+    }
 
     nsIContent* ownerContent = mDocument->DocumentNode()->
       FindContentForSubDocument(childDoc->DocumentNode());
@@ -756,7 +770,12 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
     }
   }
 
+  // Clear the hanging documents list, even if we didn't bind them.
   mHangingChildDocuments.Clear();
+  MOZ_ASSERT(mDocument, "Illicit document shutdown");
+  if (!mDocument) {
+    return;
+  }
 
   // If the document is ready and all its subdocuments are completely loaded
   // then process the document load.
@@ -792,13 +811,10 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
   // modification are done.
   mDocument->ProcessInvalidationList();
 
-  // We cannot rely on DOM tree to keep aria-owns relations updated. Make
-  // a validation to remove dead links.
-  mDocument->ValidateARIAOwned();
-
   // Process relocation list.
   for (uint32_t idx = 0; idx < mRelocations.Length(); idx++) {
-    if (mRelocations[idx]->IsInDocument()) {
+    // owner should be in a document and have na associated DOM node (docs sometimes don't)
+    if (mRelocations[idx]->IsInDocument() && mRelocations[idx]->HasOwnContent()) {
       mDocument->DoARIAOwnsRelocation(mRelocations[idx]);
     }
   }
@@ -855,26 +871,25 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
 
       Accessible* parent = childDoc->Parent();
       DocAccessibleChild* parentIPCDoc = mDocument->IPCDoc();
+      MOZ_DIAGNOSTIC_ASSERT(parentIPCDoc);
       uint64_t id = reinterpret_cast<uintptr_t>(parent->UniqueID());
-      MOZ_ASSERT(id);
+      MOZ_DIAGNOSTIC_ASSERT(id);
       DocAccessibleChild* ipcDoc = childDoc->IPCDoc();
       if (ipcDoc) {
         parentIPCDoc->SendBindChildDoc(ipcDoc, id);
         continue;
       }
 
-      ipcDoc = new DocAccessibleChild(childDoc);
+      ipcDoc = new DocAccessibleChild(childDoc, parentIPCDoc->Manager());
       childDoc->SetIPCDoc(ipcDoc);
 
 #if defined(XP_WIN)
-      MOZ_ASSERT(parentIPCDoc);
       parentIPCDoc->ConstructChildDocInParentProcess(ipcDoc, id,
                                                      AccessibleWrap::GetChildIDFor(childDoc));
 #else
       nsCOMPtr<nsITabChild> tabChild =
         do_GetInterface(mDocument->DocumentNode()->GetDocShell());
       if (tabChild) {
-        MOZ_ASSERT(parentIPCDoc);
         static_cast<TabChild*>(tabChild.get())->
           SendPDocAccessibleConstructor(ipcDoc, parentIPCDoc, id, 0, 0);
       }
@@ -892,7 +907,7 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
       mEvents.IsEmpty() && mTextHash.Count() == 0 &&
       mHangingChildDocuments.IsEmpty() &&
       mDocument->HasLoadState(DocAccessible::eCompletelyLoaded) &&
-      mPresShell->RemoveRefreshObserver(this, Flush_Display)) {
+      mPresShell->RemoveRefreshObserver(this, FlushType::Display)) {
     mObservingState = eNotObservingRefresh;
   }
 }

@@ -27,7 +27,7 @@ function LoadEngineList() {
   menulist.removeAllItems();
 
   var engines = Services.search.getVisibleEngines();
-  for (engine of engines) {
+  for (let engine of engines) {
     let name = engine.name;
     let menuitem = menulist.appendItem(name, name);
     menuitem.setAttribute("class", "menuitem-iconic");

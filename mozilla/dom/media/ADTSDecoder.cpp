@@ -5,29 +5,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ADTSDecoder.h"
-#include "ADTSDemuxer.h"
-#include "MediaDecoderStateMachine.h"
-#include "MediaFormatReader.h"
+#include "MediaContainerType.h"
 #include "PDMFactory.h"
 
 namespace mozilla {
-
-MediaDecoder*
-ADTSDecoder::Clone(MediaDecoderOwner* aOwner)
-{
-  if (!IsEnabled())
-    return nullptr;
-
-  return new ADTSDecoder(aOwner);
-}
-
-MediaDecoderStateMachine*
-ADTSDecoder::CreateStateMachine()
-{
-  RefPtr<MediaDecoderReader> reader =
-      new MediaFormatReader(this, new ADTSDemuxer(GetResource()));
-  return new MediaDecoderStateMachine(this, reader);
-}
 
 /* static */ bool
 ADTSDecoder::IsEnabled()
@@ -38,12 +19,13 @@ ADTSDecoder::IsEnabled()
 }
 
 /* static */ bool
-ADTSDecoder::CanHandleMediaType(const nsACString& aType,
-                                const nsAString& aCodecs)
+ADTSDecoder::IsSupportedType(const MediaContainerType& aContainerType)
 {
-  if (aType.EqualsASCII("audio/aac") || aType.EqualsASCII("audio/aacp") ||
-      aType.EqualsASCII("audio/x-aac")) {
-    return IsEnabled() && (aCodecs.IsEmpty() || aCodecs.EqualsASCII("aac"));
+  if (aContainerType.Type() == MEDIAMIMETYPE("audio/aac") ||
+      aContainerType.Type() == MEDIAMIMETYPE("audio/aacp") ||
+      aContainerType.Type() == MEDIAMIMETYPE("audio/x-aac")) {
+    return IsEnabled() && (aContainerType.ExtendedType().Codecs().IsEmpty() ||
+                           aContainerType.ExtendedType().Codecs() == "aac");
   }
 
   return false;

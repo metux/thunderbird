@@ -6,7 +6,7 @@
  * Tests iteratorUtils with items pulled from content into chrome.
  */
 
-var MODULE_NAME = 'test-cloudfile-attachment-item';
+var MODULE_NAME = 'test-iteratorUtils';
 
 var RELATIVE_ROOT = '../shared-modules';
 var MODULE_REQUIRES = ['folder-display-helpers',
@@ -78,6 +78,6 @@ function test_toArray_custom_content_iterator() {
 
   assert_equals(kExpected.length, iterArray.length);
 
-  for (let [i, val] in Iterator(kExpected))
+  for (let [i, val] of kExpected.entries())
     assert_equals(val, iterArray[i]);
 }

@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import, print_function
+
 import os
 import shutil
 import tarfile
 import tempfile
 import unittest
 import zipfile
+
+import mozunit
 
 import mozfile
 
@@ -21,7 +25,7 @@ class TestExtract(unittest.TestCase):
             path = os.path.join(directory, *f)
             exists = os.path.exists(path)
             if not exists:
-                print "%s does not exist" % (os.path.join(f))
+                print("%s does not exist" % (os.path.join(f)))
             self.assertTrue(exists)
             if exists:
                 contents = file(path).read().strip()
@@ -152,3 +156,7 @@ class TestExtract(unittest.TestCase):
             shutil.rmtree(tempdir)
         archive.close()
         return filename
+
+
+if __name__ == '__main__':
+    mozunit.main()

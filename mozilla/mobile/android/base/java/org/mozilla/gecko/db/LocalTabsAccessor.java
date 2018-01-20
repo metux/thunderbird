@@ -64,49 +64,14 @@ public class LocalTabsAccessor implements TabsAccessor {
 
     private static final Pattern FILTERED_URL_PATTERN = Pattern.compile("^(about|chrome|wyciwyg|file):");
 
-    private final Uri clientsRecencyUriWithProfile;
+    private final Uri clientsNoStaleSortedUriWithProfile;
     private final Uri tabsUriWithProfile;
     private final Uri clientsUriWithProfile;
 
     public LocalTabsAccessor(String profileName) {
         tabsUriWithProfile = DBUtils.appendProfileWithDefault(profileName, BrowserContract.Tabs.CONTENT_URI);
         clientsUriWithProfile = DBUtils.appendProfileWithDefault(profileName, BrowserContract.Clients.CONTENT_URI);
-        clientsRecencyUriWithProfile = DBUtils.appendProfileWithDefault(profileName, BrowserContract.Clients.CONTENT_RECENCY_URI);
-    }
-
-    /**
-     * Extracts a List of just RemoteClients from a cursor.
-     * The supplied cursor should be grouped by guid and sorted by most recently used.
-     */
-    @Override
-    public List<RemoteClient> getClientsWithoutTabsByRecencyFromCursor(Cursor cursor) {
-        final ArrayList<RemoteClient> clients = new ArrayList<>(cursor.getCount());
-
-        final int originalPosition = cursor.getPosition();
-        try {
-            if (!cursor.moveToFirst()) {
-                return clients;
-            }
-
-            final int clientGuidIndex = cursor.getColumnIndex(BrowserContract.Clients.GUID);
-            final int clientNameIndex = cursor.getColumnIndex(BrowserContract.Clients.NAME);
-            final int clientLastModifiedIndex = cursor.getColumnIndex(BrowserContract.Clients.LAST_MODIFIED);
-            final int clientDeviceTypeIndex = cursor.getColumnIndex(BrowserContract.Clients.DEVICE_TYPE);
-
-            while (!cursor.isAfterLast()) {
-                final String clientGuid = cursor.getString(clientGuidIndex);
-                final String clientName = cursor.getString(clientNameIndex);
-                final String deviceType = cursor.getString(clientDeviceTypeIndex);
-                final long lastModified = cursor.getLong(clientLastModifiedIndex);
-
-                clients.add(new RemoteClient(clientGuid, clientName, lastModified, deviceType));
-
-                cursor.moveToNext();
-            }
-        } finally {
-            cursor.moveToPosition(originalPosition);
-        }
-        return clients;
+        clientsNoStaleSortedUriWithProfile = DBUtils.appendProfileWithDefault(profileName, BrowserContract.Clients.CONTENT_NO_STALE_SORTED_URI);
     }
 
     /**
@@ -168,8 +133,8 @@ public class LocalTabsAccessor implements TabsAccessor {
     }
 
     @Override
-    public Cursor getRemoteClientsByRecencyCursor(Context context) {
-        final Uri uri = clientsRecencyUriWithProfile;
+    public Cursor getRemoteClientsNoStaleSorted(Context context) {
+        final Uri uri = clientsNoStaleSortedUriWithProfile;
         return context.getContentResolver().query(uri, CLIENTS_PROJECTION_COLUMNS,
                 REMOTE_CLIENTS_SELECTION, null, null);
     }

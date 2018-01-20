@@ -11,6 +11,7 @@
 
 #include "nsCharSeparatedTokenizer.h"
 #include "nsContentUtils.h"
+#include "nsIHttpHeaderVisitor.h"
 #include "nsNetUtil.h"
 #include "nsReadableUtils.h"
 
@@ -21,12 +22,14 @@ InternalHeaders::InternalHeaders(const nsTArray<Entry>&& aHeaders,
                                  HeadersGuardEnum aGuard)
   : mGuard(aGuard)
   , mList(aHeaders)
+  , mListDirty(true)
 {
 }
 
 InternalHeaders::InternalHeaders(const nsTArray<HeadersEntry>& aHeadersEntryList,
                                  HeadersGuardEnum aGuard)
   : mGuard(aGuard)
+  , mListDirty(true)
 {
   for (const HeadersEntry& headersEntry : aHeadersEntryList) {
     mList.AppendElement(Entry(headersEntry.name(), headersEntry.value()));
@@ -51,12 +54,16 @@ InternalHeaders::Append(const nsACString& aName, const nsACString& aValue,
 {
   nsAutoCString lowerName;
   ToLowerCase(aName, lowerName);
+  nsAutoCString trimValue;
+  NS_TrimHTTPWhitespace(aValue, trimValue);
 
-  if (IsInvalidMutableHeader(lowerName, aValue, aRv)) {
+  if (IsInvalidMutableHeader(lowerName, trimValue, aRv)) {
     return;
   }
 
-  mList.AppendElement(Entry(lowerName, aValue));
+  SetListDirty();
+
+  mList.AppendElement(Entry(lowerName, trimValue));
 }
 
 void
@@ -68,6 +75,8 @@ InternalHeaders::Delete(const nsACString& aName, ErrorResult& aRv)
   if (IsInvalidMutableHeader(lowerName, aRv)) {
     return;
   }
+
+  SetListDirty();
 
   // remove in reverse order to minimize copying
   for (int32_t i = mList.Length() - 1; i >= 0; --i) {
@@ -87,7 +96,7 @@ InternalHeaders::Get(const nsACString& aName, nsACString& aValue, ErrorResult& a
     return;
   }
 
-  const char* delimiter = ",";
+  const char* delimiter = ", ";
   bool firstValueFound = false;
 
   for (uint32_t i = 0; i < mList.Length(); ++i) {
@@ -150,10 +159,14 @@ InternalHeaders::Set(const nsACString& aName, const nsACString& aValue, ErrorRes
 {
   nsAutoCString lowerName;
   ToLowerCase(aName, lowerName);
+  nsAutoCString trimValue;
+  NS_TrimHTTPWhitespace(aValue, trimValue);
 
-  if (IsInvalidMutableHeader(lowerName, aValue, aRv)) {
+  if (IsInvalidMutableHeader(lowerName, trimValue, aRv)) {
     return;
   }
+
+  SetListDirty();
 
   int32_t firstIndex = INT32_MAX;
 
@@ -168,15 +181,16 @@ InternalHeaders::Set(const nsACString& aName, const nsACString& aValue, ErrorRes
   if (firstIndex < INT32_MAX) {
     Entry* entry = mList.InsertElementAt(firstIndex);
     entry->mName = lowerName;
-    entry->mValue = aValue;
+    entry->mValue = trimValue;
   } else {
-    mList.AppendElement(Entry(lowerName, aValue));
+    mList.AppendElement(Entry(lowerName, trimValue));
   }
 }
 
 void
 InternalHeaders::Clear()
 {
+  SetListDirty();
   mList.Clear();
 }
 
@@ -305,12 +319,58 @@ InternalHeaders::Fill(const Sequence<Sequence<nsCString>>& aInit, ErrorResult& a
 }
 
 void
-InternalHeaders::Fill(const MozMap<nsCString>& aInit, ErrorResult& aRv)
+InternalHeaders::Fill(const Record<nsCString, nsCString>& aInit, ErrorResult& aRv)
 {
-  nsTArray<nsString> keys;
-  aInit.GetKeys(keys);
-  for (uint32_t i = 0; i < keys.Length() && !aRv.Failed(); ++i) {
-    Append(NS_ConvertUTF16toUTF8(keys[i]), aInit.Get(keys[i]), aRv);
+  for (auto& entry : aInit.Entries()) {
+    Append(entry.mKey, entry.mValue, aRv);
+    if (aRv.Failed()) {
+      return;
+    }
+  }
+}
+
+namespace {
+
+class FillHeaders final : public nsIHttpHeaderVisitor
+{
+  RefPtr<InternalHeaders> mInternalHeaders;
+
+  ~FillHeaders() = default;
+
+public:
+  NS_DECL_ISUPPORTS
+
+  explicit FillHeaders(InternalHeaders* aInternalHeaders)
+    : mInternalHeaders(aInternalHeaders)
+  {
+    MOZ_DIAGNOSTIC_ASSERT(mInternalHeaders);
+  }
+
+  NS_IMETHOD
+  VisitHeader(const nsACString& aHeader, const nsACString& aValue) override
+  {
+    IgnoredErrorResult result;
+    mInternalHeaders->Append(aHeader, aValue, result);
+    return NS_OK;
+  }
+};
+
+NS_IMPL_ISUPPORTS(FillHeaders, nsIHttpHeaderVisitor)
+
+} // namespace
+
+void
+InternalHeaders::FillResponseHeaders(nsIRequest* aRequest)
+{
+  nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aRequest);
+  if (!httpChannel) {
+    return;
+  }
+
+  RefPtr<FillHeaders> visitor = new FillHeaders(this);
+  nsresult rv = httpChannel->VisitResponseHeaders(visitor);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("failed to fill headers");
   }
 }
 
@@ -417,6 +477,55 @@ InternalHeaders::GetUnsafeHeaders(nsTArray<nsCString>& aNames) const
       aNames.AppendElement(header.mName);
     }
   }
+}
+
+void
+InternalHeaders::MaybeSortList()
+{
+  class Comparator {
+  public:
+    bool Equals(const Entry& aA, const Entry& aB) const
+    {
+       return aA.mName == aB.mName;
+    }
+
+    bool LessThan(const Entry& aA, const Entry& aB) const
+    {
+      return aA.mName < aB.mName;
+    }
+  };
+
+  if (!mListDirty) {
+    return;
+  }
+
+  mListDirty = false;
+
+  Comparator comparator;
+
+  mSortedList.Clear();
+  for (const Entry& entry : mList) {
+    bool found = false;
+    for (Entry& sortedEntry : mSortedList) {
+      if (sortedEntry.mName == entry.mName) {
+        sortedEntry.mValue += ", ";
+        sortedEntry.mValue += entry.mValue;
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      mSortedList.InsertElementSorted(entry, comparator);
+    }
+  }
+}
+
+void
+InternalHeaders::SetListDirty()
+{
+  mSortedList.Clear();
+  mListDirty = true;
 }
 
 } // namespace dom

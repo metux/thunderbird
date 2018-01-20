@@ -50,7 +50,7 @@
 <!ENTITY rights.webservices-term6 "&vendorShortName; можа абнаўляць гэтыя ўмовы пагаднення час ад часу, калі гэта будзе неабходна. Гэтыя ўмовы не могуць быць зменены або скасованы без пісьмовага дазволу &vendorShortName;.">
 <!ENTITY rights.webservices-term7 "These terms are governed by the laws of the state of California, U.S.A., excluding its conflict of law provisions. If any portion of these terms is held to be invalid or unenforceable, the remaining portions will remain in full force and effect. In the event of a conflict between a translated version of these terms and the English language version, the English language version shall control.">
 
-
-<!-- point 5 -->
+<!ENTITY rights.title "About Your Rights">
 <!ENTITY rights.intro-point5 "In order to play back certain types of video content, &brandShortName; downloads certain content decryption modules from third parties.">
+
 <!ENTITY rights2.safebrowsing-term3 "Uncheck the option to &quot;&enableSafeBrowsing.label;&quot;">

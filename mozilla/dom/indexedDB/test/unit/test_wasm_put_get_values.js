@@ -5,7 +5,7 @@
 
 var testGenerator = testSteps();
 
-function testSteps()
+function* testSteps()
 {
   const name =
     this.window ? window.location.pathname : "test_wasm_put_get_values.js";
@@ -16,10 +16,10 @@ function testSteps()
 
   if (!isWasmSupported()) {
     finishTest();
-    yield undefined;
+    return;
   }
 
-  getWasmBinary('(module (func (nop)))');
+  getWasmBinary("(module (func (nop)))");
   let binary = yield undefined;
   wasmData.value = getWasmModule(binary);
 
@@ -79,5 +79,4 @@ function testSteps()
   yield undefined;
 
   finishTest();
-  yield undefined;
 }

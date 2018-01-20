@@ -61,8 +61,11 @@ class nsInputStreamTeeWriteEvent : public Runnable
 {
 public:
   // aTee's lock is held across construction of this object
-  nsInputStreamTeeWriteEvent(const char* aBuf, uint32_t aCount,
-                             nsIOutputStream* aSink, nsInputStreamTee* aTee)
+  nsInputStreamTeeWriteEvent(const char* aBuf,
+                             uint32_t aCount,
+                             nsIOutputStream* aSink,
+                             nsInputStreamTee* aTee)
+    : mozilla::Runnable("nsInputStreamTeeWriteEvent")
   {
     // copy the buffer - will be free'd by dtor
     mBuf = (char*)malloc(aCount);
@@ -102,8 +105,8 @@ public:
       uint32_t bytesWritten = 0;
       rv = mSink->Write(mBuf + totalBytesWritten, mCount, &bytesWritten);
       if (NS_FAILED(rv)) {
-        LOG(("nsInputStreamTeeWriteEvent::Run[%p] error %x in writing",
-             this, rv));
+        LOG(("nsInputStreamTeeWriteEvent::Run[%p] error %" PRIx32 " in writing",
+             this, static_cast<uint32_t>(rv)));
         mTee->InvalidateSink();
         break;
       }

@@ -10,3 +10,5 @@
 <!ENTITY  type.header               "ধরন">
 <!ENTITY  state.header              "অবস্থা">
 
+
+<!ENTITY  history2.intro            "The following updates have been installed">

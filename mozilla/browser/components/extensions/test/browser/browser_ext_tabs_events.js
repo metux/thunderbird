@@ -2,33 +2,48 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
-add_task(function* testTabEvents() {
+add_task(async function testTabEvents() {
   async function background() {
     let events = [];
+    let eventPromise;
+    let checkEvents = () => {
+      if (eventPromise && events.length >= eventPromise.names.length) {
+        eventPromise.resolve();
+      }
+    };
+
     browser.tabs.onCreated.addListener(tab => {
       events.push({type: "onCreated", tab});
+      checkEvents();
     });
 
     browser.tabs.onAttached.addListener((tabId, info) => {
       events.push(Object.assign({type: "onAttached", tabId}, info));
+      checkEvents();
     });
 
     browser.tabs.onDetached.addListener((tabId, info) => {
       events.push(Object.assign({type: "onDetached", tabId}, info));
+      checkEvents();
     });
 
     browser.tabs.onRemoved.addListener((tabId, info) => {
       events.push(Object.assign({type: "onRemoved", tabId}, info));
+      checkEvents();
     });
 
     browser.tabs.onMoved.addListener((tabId, info) => {
       events.push(Object.assign({type: "onMoved", tabId}, info));
+      checkEvents();
     });
 
     async function expectEvents(names) {
       browser.test.log(`Expecting events: ${names.join(", ")}`);
 
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise(resolve => {
+        eventPromise = {names, resolve};
+        checkEvents();
+      });
 
       browser.test.assertEq(names.length, events.length, "Got expected number of events");
       for (let [i, name] of names.entries()) {
@@ -150,12 +165,12 @@ add_task(function* testTabEvents() {
     background,
   });
 
-  yield extension.startup();
-  yield extension.awaitFinish("tabs-events");
-  yield extension.unload();
+  await extension.startup();
+  await extension.awaitFinish("tabs-events");
+  await extension.unload();
 });
 
-add_task(function* testTabEventsSize() {
+add_task(async function testTabEventsSize() {
   function background() {
     function sendSizeMessages(tab, type) {
       browser.test.sendMessage(`${type}-dims`, {width: tab.width, height: tab.height});
@@ -205,34 +220,36 @@ add_task(function* testTabEventsSize() {
     is(dims.height, gBrowser.selectedBrowser.clientHeight, `tab from ${type} reports expected height`);
   }
 
-  yield Promise.all([extension.startup(), extension.awaitMessage("ready")]);
+  await Promise.all([extension.startup(), extension.awaitMessage("ready")]);
 
   for (let resolution of [2, 1]) {
     SpecialPowers.setCharPref(RESOLUTION_PREF, String(resolution));
     is(window.devicePixelRatio, resolution, "window has the required resolution");
 
     extension.sendMessage("create-tab");
-    let tabId = yield extension.awaitMessage("created-tab-id");
+    let tabId = await extension.awaitMessage("created-tab-id");
 
-    checkDimensions(yield extension.awaitMessage("create-dims"), "create");
-    checkDimensions(yield extension.awaitMessage("on-created-dims"), "onCreated");
-    checkDimensions(yield extension.awaitMessage("on-updated-dims"), "onUpdated");
+    checkDimensions(await extension.awaitMessage("create-dims"), "create");
+    checkDimensions(await extension.awaitMessage("on-created-dims"), "onCreated");
+    checkDimensions(await extension.awaitMessage("on-updated-dims"), "onUpdated");
 
     extension.sendMessage("update-tab", tabId);
 
-    checkDimensions(yield extension.awaitMessage("update-dims"), "update");
-    checkDimensions(yield extension.awaitMessage("on-updated-dims"), "onUpdated");
+    checkDimensions(await extension.awaitMessage("update-dims"), "update");
+    checkDimensions(await extension.awaitMessage("on-updated-dims"), "onUpdated");
 
     extension.sendMessage("remove-tab", tabId);
-    yield extension.awaitMessage("tab-removed");
+    await extension.awaitMessage("tab-removed");
   }
 
-  yield extension.unload();
+  await extension.unload();
   SpecialPowers.clearUserPref(RESOLUTION_PREF);
 });
 
-add_task(function* testTabRemovalEvent() {
+add_task(async function testTabRemovalEvent() {
   async function background() {
+    let events = [];
+
     function awaitLoad(tabId) {
       return new Promise(resolve => {
         browser.tabs.onUpdated.addListener(function listener(tabId_, changed, tab) {
@@ -245,12 +262,13 @@ add_task(function* testTabRemovalEvent() {
     }
 
     chrome.tabs.onRemoved.addListener((tabId, info) => {
+      browser.test.assertEq(0, events.length, "No events recorded before onRemoved.");
+      events.push("onRemoved");
       browser.test.log("Make sure the removed tab is not available in the tabs.query callback.");
       chrome.tabs.query({}, tabs => {
         for (let tab of tabs) {
           browser.test.assertTrue(tab.id != tabId, "Tab query should not include removed tabId");
         }
-        browser.test.notifyPass("tabs-events");
       });
     });
 
@@ -258,6 +276,13 @@ add_task(function* testTabRemovalEvent() {
       let url = "http://example.com/browser/browser/components/extensions/test/browser/context.html";
       let tab = await browser.tabs.create({url: url});
       await awaitLoad(tab.id);
+
+      chrome.tabs.onActivated.addListener(info => {
+        browser.test.assertEq(1, events.length, "One event recorded before onActivated.");
+        events.push("onActivated");
+        browser.test.assertEq("onRemoved", events[0], "onRemoved fired before onActivated.");
+        browser.test.notifyPass("tabs-events");
+      });
 
       await browser.tabs.remove(tab.id);
     } catch (e) {
@@ -274,7 +299,7 @@ add_task(function* testTabRemovalEvent() {
     background,
   });
 
-  yield extension.startup();
-  yield extension.awaitFinish("tabs-events");
-  yield extension.unload();
+  await extension.startup();
+  await extension.awaitFinish("tabs-events");
+  await extension.unload();
 });

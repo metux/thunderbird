@@ -14,7 +14,6 @@
 #define nsImageLoadingContent_h__
 
 #include "imgINotificationObserver.h"
-#include "imgIOnloadBlocker.h"
 #include "mozilla/CORSMode.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/TimeStamp.h"
@@ -41,8 +40,7 @@ class AsyncEventDispatcher;
 #undef LoadImage
 #endif
 
-class nsImageLoadingContent : public nsIImageLoadingContent,
-                              public imgIOnloadBlocker
+class nsImageLoadingContent : public nsIImageLoadingContent
 {
   template <typename T> using Maybe = mozilla::Maybe<T>;
   using Nothing = mozilla::Nothing;
@@ -56,7 +54,6 @@ public:
 
   NS_DECL_IMGINOTIFICATIONOBSERVER
   NS_DECL_NSIIMAGELOADINGCONTENT
-  NS_DECL_IMGIONLOADBLOCKER
 
   // Web IDL binding methods.
   // Note that the XPCOM SetLoadingEnabled, AddObserver, RemoveObserver,
@@ -103,9 +100,12 @@ protected:
    * @param aNotify If true, nsIDocumentObserver state change notifications
    *                will be sent as needed.
    * @param aImageLoadType The ImageLoadType for this request
+   * @param aTriggeringPrincipal Optional parameter specifying the triggering
+   *        principal to use for the image load
    */
   nsresult LoadImage(const nsAString& aNewURI, bool aForce,
-                     bool aNotify, ImageLoadType aImageLoadType);
+                     bool aNotify, ImageLoadType aImageLoadType,
+                     nsIPrincipal* aTriggeringPrincipal = nullptr);
 
   /**
    * ImageState is called by subclasses that are computing their content state.
@@ -135,11 +135,23 @@ protected:
    *        This is purely a performance optimization.
    * @param aLoadFlags Optional parameter specifying load flags to use for
    *        the image load
+   * @param aTriggeringPrincipal Optional parameter specifying the triggering
+   *        principal to use for the image load
    */
   nsresult LoadImage(nsIURI* aNewURI, bool aForce, bool aNotify,
                      ImageLoadType aImageLoadType, bool aLoadStart = true,
                      nsIDocument* aDocument = nullptr,
-                     nsLoadFlags aLoadFlags = nsIRequest::LOAD_NORMAL);
+                     nsLoadFlags aLoadFlags = nsIRequest::LOAD_NORMAL,
+                     nsIPrincipal* aTriggeringPrincipal = nullptr);
+
+  nsresult LoadImage(nsIURI* aNewURI, bool aForce, bool aNotify,
+                     ImageLoadType aImageLoadType,
+                     nsIPrincipal* aTriggeringPrincipal)
+  {
+    return LoadImage(aNewURI, aForce, aNotify, aImageLoadType,
+                     true, nullptr, nsIRequest::LOAD_NORMAL,
+                     aTriggeringPrincipal);
+  }
 
   /**
    * helpers to get the document for this content (from the nodeinfo
@@ -219,9 +231,13 @@ protected:
 
   void AsyncEventRunning(mozilla::AsyncEventDispatcher* aEvent);
 
+  // Get ourselves as an nsIContent*.  Not const because some of the callers
+  // want a non-const nsIContent.
+  virtual nsIContent* AsContent() = 0;
+
 private:
   /**
-   * Struct used to manage the image observers.
+   * Struct used to manage the native image observers.
    */
   struct ImageObserver {
     explicit ImageObserver(imgINotificationObserver* aObserver);
@@ -229,6 +245,26 @@ private:
 
     nsCOMPtr<imgINotificationObserver> mObserver;
     ImageObserver* mNext;
+  };
+
+  /**
+   * Struct used to manage the scripted/XPCOM image observers.
+   */
+  class ScriptedImageObserver final {
+  public:
+    NS_INLINE_DECL_REFCOUNTING(ScriptedImageObserver)
+
+    ScriptedImageObserver(imgINotificationObserver* aObserver,
+                          RefPtr<imgRequestProxy>&& aCurrentRequest,
+                          RefPtr<imgRequestProxy>&& aPendingRequest);
+    bool CancelRequests();
+
+    nsCOMPtr<imgINotificationObserver> mObserver;
+    RefPtr<imgRequestProxy> mCurrentRequest;
+    RefPtr<imgRequestProxy> mPendingRequest;
+
+  private:
+    ~ScriptedImageObserver();
   };
 
   /**
@@ -303,17 +339,10 @@ protected:
    RefPtr<imgRequestProxy>& PrepareNextRequest(ImageLoadType aImageLoadType);
 
   /**
-   * Called when we would normally call PrepareNextRequest(), but the request was
-   * blocked.
-   */
-  void SetBlockedRequest(nsIURI* aURI, int16_t aContentDecision);
-
-  /**
    * Returns a COMPtr reference to the current/pending image requests, cleaning
    * up and canceling anything that was there before. Note that if you just want
    * to get rid of one of the requests, you should call
-   * Clear*Request(NS_BINDING_ABORTED) instead, since it passes a more appropriate
-   * aReason than Prepare*Request() does (NS_ERROR_IMAGE_SRC_CHANGED).
+   * Clear*Request(NS_BINDING_ABORTED) instead.
    *
    * @param aImageLoadType The ImageLoadType for this request
    */
@@ -364,6 +393,11 @@ protected:
    *
    * No-op if aImage is null.
    *
+   * @param aFrame If called from FrameCreated the frame passed to FrameCreated.
+   *               This is our frame, but at the time of the FrameCreated call
+   *               our primary frame pointer hasn't been set yet, so this is
+   *               only way to get our frame.
+   *
    * @param aNonvisibleAction A requested action if the frame has become
    *                          nonvisible. If Nothing(), no action is
    *                          requested. If DISCARD_IMAGES is specified, the
@@ -371,7 +405,7 @@ protected:
    *                          associated with to discard their surfaces if
    *                          possible.
    */
-  void TrackImage(imgIRequest* aImage);
+  void TrackImage(imgIRequest* aImage, nsIFrame* aFrame = nullptr);
   void UntrackImage(imgIRequest* aImage,
                     const Maybe<OnNonvisible>& aNonvisibleAction = Nothing());
 
@@ -384,8 +418,6 @@ protected:
   enum {
     // Set if the request needs ResetAnimation called on it.
     REQUEST_NEEDS_ANIMATION_RESET = 0x00000001U,
-    // Set if the request is blocking onload.
-    REQUEST_BLOCKS_ONLOAD = 0x00000002U,
     // Set if the request is currently tracked with the document.
     REQUEST_IS_TRACKED = 0x00000004U,
     // Set if this is an imageset request, such as from <img srcset> or
@@ -401,6 +433,24 @@ protected:
 
 private:
   /**
+   * Clones the given "current" or "pending" request for each scripted observer.
+   */
+  void CloneScriptedRequests(imgRequestProxy* aRequest);
+
+  /**
+   * Cancels and nulls-out the "current" or "pending" requests if they exist
+   * for each scripted observer.
+   */
+  void ClearScriptedRequests(int32_t aRequestType, nsresult aReason);
+
+  /**
+   * Moves the "pending" request into the "current" request for each scripted
+   * observer. If there is an existing "current" request, it will cancel it
+   * first.
+   */
+  void MakePendingScriptedRequestsCurrent();
+
+  /**
    * Typically we will have only one observer (our frame in the screen
    * prescontext), so we want to only make space for one and to
    * heap-allocate anything past that (saves memory and malloc churn
@@ -409,6 +459,13 @@ private:
    * to it.
    */
   ImageObserver mObserverList;
+
+  /**
+   * Typically we will have no scripted observers, as this is only used by
+   * chrome, legacy extensions, and some mochitests. An empty array reserves
+   * minimal memory.
+   */
+  nsTArray<RefPtr<ScriptedImageObserver>> mScriptedObservers;
 
   /**
    * When mIsImageStateForced is true, this holds the ImageState that we'll
@@ -446,6 +503,13 @@ protected:
    */
   bool mNewRequestsWillNeedAnimationReset : 1;
 
+  /**
+   * Flag to indicate whether the channel should be mark as urgent-start.
+   * It should be set in *Element and passed to nsContentUtils::LoadImage.
+   * True if we want to set nsIClassOfService::UrgentStart to the channel to
+   * get the response ASAP for better user responsiveness.
+   */
+  bool mUseUrgentStartForChannel;
 private:
   /* The number of nested AutoStateChangers currently tracking our state. */
   uint8_t mStateChangerDepth;
@@ -455,8 +519,16 @@ private:
   bool mCurrentRequestRegistered;
   bool mPendingRequestRegistered;
 
-  // True when FrameCreate has been called but FrameDestroy has not.
-  bool mFrameCreateCalled;
+  // TODO:
+  // Bug 1353685: Should ServiceWorker call SetBlockedRequest?
+  //
+  // This member is used in SetBlockedRequest, if it's true, then this call is
+  // triggered from LoadImage.
+  // If this is false, it means this call is from other places like
+  // ServiceWorker, then we will ignore call to SetBlockedRequest for now.
+  //
+  // Also we use this variable to check if some evil code is reentering LoadImage.
+  bool mIsStartingImageLoad;
 };
 
 #endif // nsImageLoadingContent_h__

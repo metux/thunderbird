@@ -6,7 +6,7 @@
 
 #include "nsLDAPInternal.h"
 #include "nsIServiceManager.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIComponentManager.h"
 #include "nsIDNSRecord.h"
 #include "nsLDAPConnection.h"
@@ -152,8 +152,9 @@ nsLDAPConnection::Init(nsILDAPURL *aUrl, const nsACString &aBindName,
   if (spacePos != kNotFound)
     mDNSHost.SetLength(spacePos);
 
-  rv = pDNSService->AsyncResolve(mDNSHost, 0, this, curThread,
-                                 getter_AddRefs(mDNSRequest));
+  mozilla::OriginAttributes attrs;
+  rv = pDNSService->AsyncResolveNative(mDNSHost, 0, this, curThread, attrs,
+                                       getter_AddRefs(mDNSRequest));
 
   if (NS_FAILED(rv)) {
     switch (rv) {
@@ -381,7 +382,8 @@ class nsOnLDAPMessageRunnable : public Runnable
 {
 public:
   nsOnLDAPMessageRunnable(nsLDAPMessage *aMsg, bool aClear)
-    : m_msg(aMsg)
+    : Runnable("nsOnLDAPMessageRunnable")
+    , m_msg(aMsg)
     , m_clear(aClear)
   {}
   NS_DECL_NSIRUNNABLE
@@ -610,7 +612,7 @@ nsLDAPConnectionRunnable::nsLDAPConnectionRunnable(int32_t aOperationID,
 nsLDAPConnectionRunnable::~nsLDAPConnectionRunnable()
 {
   if (mConnection) {
-    NS_ReleaseOnMainThread(mConnection.forget());
+    NS_ReleaseOnMainThreadSystemGroup("nsLDAPConnectionRunnable::mConnection", mConnection.forget());
   }
 }
 

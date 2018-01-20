@@ -265,8 +265,7 @@ NS_IMETHODIMP nsLDAPService::DeleteServer(const char16_t *aKey)
     // "deleted", so that we can add in a new one with the same ID.
     // This is bug #77669.
     //
-    mServers.Get(nsDependentString(aKey), &entry);
-    if (entry) {
+    if (mServers.Get(nsDependentString(aKey), &entry) && entry) {
         if (entry->GetLeases() > 0) {
             return NS_ERROR_FAILURE;
         }
@@ -568,7 +567,7 @@ nsLDAPService::OnLDAPMessage(nsILDAPMessage *aMessage)
         // log the message
         //
         rv = consoleSvc->LogStringMessage(
-            NS_LITERAL_STRING("LDAP: WARNING: nsLDAPService::OnLDAPMessage(): Unexpected LDAP message received").get());
+            u"LDAP: WARNING: nsLDAPService::OnLDAPMessage(): Unexpected LDAP message received");
         NS_ASSERTION(NS_SUCCEEDED(rv), "nsLDAPService::OnLDAPMessage(): "
                      "consoleSvc->LogStringMessage() failed");
         break;
@@ -891,7 +890,7 @@ NS_IMETHODIMP nsLDAPService::ParseDn(const char *aDn,
             ldap_value_free(rdnComponents);
             return NS_ERROR_UNEXPECTED;
         }
-        if (!(attrNameArray[index] = (char*)NS_Alloc(len + 1))) {
+        if (!(attrNameArray[index] = (char*)moz_xmalloc(len + 1))) {
             NS_ERROR("nsLDAPService::ParseDn: out of memory ");
             ldap_value_free(dnComponents);
             ldap_value_free(rdnComponents);

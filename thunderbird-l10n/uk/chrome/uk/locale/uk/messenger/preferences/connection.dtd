@@ -38,3 +38,12 @@
 <!ENTITY  noproxyExplain.label          "Зразок: .mozilla.org, .net.nz, 192.168.1.0/24">
 <!ENTITY  shareproxy.label              "Використовувати цей проксі-сервер для всіх протоколів">
 <!ENTITY  shareproxy.accesskey          "с">
+
+<!ENTITY  window.width                  "49em">
+<!ENTITY  window.macWidth               "44em">
+
+<!ENTITY  autologinproxy.label          "Do not prompt for authentication if password is saved">
+<!ENTITY  autologinproxy.accesskey      "i">
+<!ENTITY  autologinproxy.tooltip        "This option silently authenticates you to proxies when you have saved credentials for them. You will be prompted if authentication fails.">
+<!ENTITY  socksRemoteDNS.label          "Proxy DNS when using SOCKS v5">
+<!ENTITY  socksRemoteDNS.accesskey      "d">

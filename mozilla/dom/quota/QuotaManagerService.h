@@ -8,6 +8,8 @@
 #define mozilla_dom_quota_QuotaManagerService_h
 
 #include "mozilla/dom/ipc/IdType.h"
+#include "mozilla/dom/battery/Types.h"
+#include "mozilla/Observer.h"
 #include "nsAutoPtr.h"
 #include "nsIObserver.h"
 #include "nsIQuotaManagerService.h"
@@ -22,6 +24,10 @@ class PBackgroundChild;
 
 } // namespace ipc
 
+namespace hal {
+class BatteryInformation;
+}
+
 namespace dom {
 namespace quota {
 
@@ -31,6 +37,7 @@ class QuotaManager;
 class QuotaManagerService final
   : public nsIQuotaManagerService
   , public nsIObserver
+  , public BatteryObserver
 {
   typedef mozilla::ipc::PBackgroundChild PBackgroundChild;
 
@@ -41,8 +48,6 @@ class QuotaManagerService final
   class IdleMaintenanceInfo;
 
   nsCOMPtr<nsIEventTarget> mBackgroundThread;
-
-  nsTArray<nsAutoPtr<PendingRequestInfo>> mPendingRequests;
 
   QuotaChild* mBackgroundActor;
 
@@ -58,8 +63,8 @@ public:
   static QuotaManagerService*
   Get();
 
-  // Returns an owning reference! No one should call this but the factory.
-  static QuotaManagerService*
+  // No one should call this but the factory.
+  static already_AddRefed<QuotaManagerService>
   FactoryCreate();
 
   void
@@ -104,6 +109,10 @@ private:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIQUOTAMANAGERSERVICE
   NS_DECL_NSIOBSERVER
+
+  // BatteryObserver override
+  void
+  Notify(const hal::BatteryInformation& aBatteryInfo) override;
 };
 
 } // namespace quota

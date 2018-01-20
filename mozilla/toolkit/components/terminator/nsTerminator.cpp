@@ -32,6 +32,8 @@
 #if defined(MOZ_CRASHREPORTER)
 #include "nsExceptionHandler.h"
 #endif
+#include "GeckoProfiler.h"
+#include "nsThreadUtils.h"
 
 #if defined(XP_WIN)
 #include <windows.h>
@@ -124,7 +126,7 @@ struct Options {
 void
 RunWatchdog(void* arg)
 {
-  PR_SetCurrentThreadName("Shutdown Hang Terminator");
+  NS_SetCurrentThreadName("Shutdown Hang Terminator");
 
   // Let's copy and deallocate options, that's one less leak to worry
   // about.
@@ -155,6 +157,9 @@ RunWatchdog(void* arg)
     }
 
     // Shutdown is apparently dead. Crash the process.
+#if defined(MOZ_CRASHREPORTER)
+    CrashReporter::SetMinidumpAnalysisAllThreads();
+#endif
     MOZ_CRASH("Shutdown too long, probably frozen, causing a crash.");
   }
 }
@@ -173,10 +178,9 @@ RunWatchdog(void* arg)
 class PR_CloseDelete
 {
 public:
-  constexpr PR_CloseDelete() {}
+  constexpr PR_CloseDelete() = default;
 
-  PR_CloseDelete(const PR_CloseDelete& aOther)
-  {}
+  PR_CloseDelete(const PR_CloseDelete& aOther) = default;
 
   void operator()(PRFileDesc* aPtr) const
   {
@@ -215,7 +219,8 @@ PRMonitor* gWriteReady = nullptr;
 
 void RunWriter(void* arg)
 {
-  PR_SetCurrentThreadName("Shutdown Statistics Writer");
+  AUTO_PROFILER_REGISTER_THREAD("Shutdown Statistics Writer");
+  NS_SetCurrentThreadName("Shutdown Statistics Writer");
 
   MOZ_LSAN_INTENTIONALLY_LEAK_OBJECT(arg);
   // Shutdown will generally complete before we have a chance to
@@ -223,7 +228,8 @@ void RunWriter(void* arg)
 
   // Setup destinationPath and tmpFilePath
 
-  nsCString destinationPath(static_cast<char*>(arg));
+  nsCString destinationPath;
+  destinationPath.Adopt(static_cast<char*>(arg));
   nsAutoCString tmpFilePath;
   tmpFilePath.Append(destinationPath);
   tmpFilePath.AppendLiteral(".tmp");
@@ -342,8 +348,8 @@ nsTerminator::SelfInit()
     return NS_ERROR_UNEXPECTED;
   }
 
-  for (size_t i = 0; i < ArrayLength(sShutdownSteps); ++i) {
-    DebugOnly<nsresult> rv = os->AddObserver(this, sShutdownSteps[i].mTopic, false);
+  for (auto& shutdownStep : sShutdownSteps) {
+    DebugOnly<nsresult> rv = os->AddObserver(this, shutdownStep.mTopic, false);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "AddObserver failed");
   }
 
@@ -356,12 +362,12 @@ nsTerminator::Start()
 {
   MOZ_ASSERT(!mInitialized);
   StartWatchdog();
-#if !defined(DEBUG)
-  // Only allow nsTerminator to write on non-debug builds so we don't get leak warnings on
-  // shutdown for intentional leaks (see bug 1242084). This will be enabled again by bug
-  // 1255484 when 1255478 lands.
+#if !defined(NS_FREE_PERMANENT_DATA)
+  // Only allow nsTerminator to write on non-leak-checked builds so we don't
+  // get leak warnings on shutdown for intentional leaks (see bug 1242084).
+  // This will be enabled again by bug 1255484 when 1255478 lands.
   StartWriter();
-#endif // !defined(DEBUG)
+#endif // !defined(NS_FREE_PERMANENT_DATA)
   mInitialized = true;
 }
 
@@ -450,12 +456,12 @@ nsTerminator::Observe(nsISupports *, const char *aTopic, const char16_t *)
   }
 
   UpdateHeartbeat(aTopic);
-#if !defined(DEBUG)
-  // Only allow nsTerminator to write on non-debug builds so we don't get leak warnings on
+#if !defined(NS_FREE_PERMANENT_DATA)
+  // Only allow nsTerminator to write on non-leak checked builds so we don't get leak warnings on
   // shutdown for intentional leaks (see bug 1242084). This will be enabled again by bug
   // 1255484 when 1255478 lands.
   UpdateTelemetry();
-#endif // !defined(DEBUG)
+#endif // !defined(NS_FREE_PERMANENT_DATA)
   UpdateCrashReport(aTopic);
 
   // Perform a little cleanup
@@ -507,18 +513,18 @@ nsTerminator::UpdateTelemetry()
   UniquePtr<nsCString> telemetryData(new nsCString());
   telemetryData->AppendLiteral("{");
   size_t fields = 0;
-  for (size_t i = 0; i < ArrayLength(sShutdownSteps); ++i) {
-    if (sShutdownSteps[i].mTicks < 0) {
+  for (auto& shutdownStep : sShutdownSteps) {
+    if (shutdownStep.mTicks < 0) {
       // Ignore this field.
       continue;
     }
     if (fields++ > 0) {
-      telemetryData->Append(", ");
+      telemetryData->AppendLiteral(", ");
     }
-    telemetryData->AppendLiteral("\"");
-    telemetryData->Append(sShutdownSteps[i].mTopic);
-    telemetryData->AppendLiteral("\": ");
-    telemetryData->AppendInt(sShutdownSteps[i].mTicks);
+    telemetryData->AppendLiteral(R"(")");
+    telemetryData->Append(shutdownStep.mTopic);
+    telemetryData->AppendLiteral(R"(": )");
+    telemetryData->AppendInt(shutdownStep.mTicks);
   }
   telemetryData->AppendLiteral("}");
 
@@ -547,7 +553,7 @@ nsTerminator::UpdateCrashReport(const char* aTopic)
 
   Unused << CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("ShutdownProgress"),
                                                report);
-#endif // defined(MOZ_CRASH_REPORTER)
+#endif // defined(MOZ_CRASHREPORTER)
 }
 
 

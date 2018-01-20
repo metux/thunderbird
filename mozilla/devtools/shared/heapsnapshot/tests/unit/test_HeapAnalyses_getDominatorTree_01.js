@@ -1,11 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
 // Test the HeapAnalyses{Client,Worker} "getDominatorTree" request.
-
-function run_test() {
-  run_next_test();
-}
 
 const breakdown = {
   by: "coarseType",
@@ -47,7 +44,8 @@ add_task(function* () {
           "each node should have a retained size");
 
     ok(node.children === undefined || Array.isArray(node.children),
-       "each node either has a list of children, or undefined meaning no children loaded");
+       "each node either has a list of children, "
+       + "or undefined meaning no children loaded");
     equal(typeof node.moreChildrenAvailable, "boolean",
           "each node should indicate if there are more children available or not");
 

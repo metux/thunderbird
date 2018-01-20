@@ -114,8 +114,7 @@ DecoderFactory::CreateDecoder(DecoderType aType,
                               const IntSize& aIntrinsicSize,
                               const IntSize& aOutputSize,
                               DecoderFlags aDecoderFlags,
-                              SurfaceFlags aSurfaceFlags,
-                              int aSampleSize)
+                              SurfaceFlags aSurfaceFlags)
 {
   if (aType == DecoderType::UNKNOWN) {
     return nullptr;
@@ -133,7 +132,6 @@ DecoderFactory::CreateDecoder(DecoderType aType,
   decoder->SetOutputSize(aOutputSize);
   decoder->SetDecoderFlags(aDecoderFlags | DecoderFlags::FIRST_FRAME_ONLY);
   decoder->SetSurfaceFlags(aSurfaceFlags);
-  decoder->SetSampleSize(aSampleSize);
 
   if (NS_FAILED(decoder->Init())) {
     return nullptr;
@@ -143,10 +141,11 @@ DecoderFactory::CreateDecoder(DecoderType aType,
   // make this decoder's output available in the surface cache.
   SurfaceKey surfaceKey =
     RasterSurfaceKey(aOutputSize, aSurfaceFlags, PlaybackType::eStatic);
-  NotNull<RefPtr<DecodedSurfaceProvider>> provider =
-    WrapNotNull(new DecodedSurfaceProvider(aImage,
-                                           surfaceKey,
-                                           WrapNotNull(decoder)));
+  auto provider = MakeNotNull<RefPtr<DecodedSurfaceProvider>>(
+    aImage, surfaceKey, WrapNotNull(decoder));
+  if (aDecoderFlags & DecoderFlags::CANNOT_SUBSTITUTE) {
+    provider->Availability().SetCannotSubstitute();
+  }
 
   // Attempt to insert the surface provider into the surface cache right away so
   // we won't trigger any more decoders with the same parameters.
@@ -193,10 +192,8 @@ DecoderFactory::CreateAnimationDecoder(DecoderType aType,
   // and make this decoder's output available in the surface cache.
   SurfaceKey surfaceKey =
     RasterSurfaceKey(aIntrinsicSize, aSurfaceFlags, PlaybackType::eAnimated);
-  NotNull<RefPtr<AnimationSurfaceProvider>> provider =
-    WrapNotNull(new AnimationSurfaceProvider(aImage,
-                                             surfaceKey,
-                                             WrapNotNull(decoder)));
+  auto provider = MakeNotNull<RefPtr<AnimationSurfaceProvider>>(
+    aImage, surfaceKey, WrapNotNull(decoder));
 
   // Attempt to insert the surface provider into the surface cache right away so
   // we won't trigger any more decoders with the same parameters.
@@ -212,8 +209,7 @@ DecoderFactory::CreateAnimationDecoder(DecoderType aType,
 /* static */ already_AddRefed<IDecodingTask>
 DecoderFactory::CreateMetadataDecoder(DecoderType aType,
                                       NotNull<RasterImage*> aImage,
-                                      NotNull<SourceBuffer*> aSourceBuffer,
-                                      int aSampleSize)
+                                      NotNull<SourceBuffer*> aSourceBuffer)
 {
   if (aType == DecoderType::UNKNOWN) {
     return nullptr;
@@ -226,7 +222,6 @@ DecoderFactory::CreateMetadataDecoder(DecoderType aType,
   // Initialize the decoder.
   decoder->SetMetadataDecode(true);
   decoder->SetIterator(aSourceBuffer->Iterator());
-  decoder->SetSampleSize(aSampleSize);
 
   if (NS_FAILED(decoder->Init())) {
     return nullptr;
@@ -238,8 +233,10 @@ DecoderFactory::CreateMetadataDecoder(DecoderType aType,
 
 /* static */ already_AddRefed<Decoder>
 DecoderFactory::CreateDecoderForICOResource(DecoderType aType,
-                                            NotNull<SourceBuffer*> aSourceBuffer,
+                                            SourceBufferIterator&& aIterator,
                                             NotNull<nsICODecoder*> aICODecoder,
+                                            bool aIsMetadataDecode,
+                                            const Maybe<IntSize>& aExpectedSize,
                                             const Maybe<uint32_t>& aDataOffset
                                               /* = Nothing() */)
 {
@@ -264,12 +261,17 @@ DecoderFactory::CreateDecoderForICOResource(DecoderType aType,
   MOZ_ASSERT(decoder);
 
   // Initialize the decoder, copying settings from @aICODecoder.
-  MOZ_ASSERT(!aICODecoder->IsMetadataDecode());
-  decoder->SetMetadataDecode(aICODecoder->IsMetadataDecode());
-  decoder->SetIterator(aSourceBuffer->Iterator());
-  decoder->SetOutputSize(aICODecoder->OutputSize());
+  decoder->SetMetadataDecode(aIsMetadataDecode);
+  decoder->SetIterator(Forward<SourceBufferIterator>(aIterator));
+  if (!aIsMetadataDecode) {
+    decoder->SetOutputSize(aICODecoder->OutputSize());
+  }
+  if (aExpectedSize) {
+    decoder->SetExpectedSize(*aExpectedSize);
+  }
   decoder->SetDecoderFlags(aICODecoder->GetDecoderFlags());
   decoder->SetSurfaceFlags(aICODecoder->GetSurfaceFlags());
+  decoder->SetFinalizeFrames(false);
 
   if (NS_FAILED(decoder->Init())) {
     return nullptr;

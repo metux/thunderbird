@@ -86,3 +86,11 @@
 <!ENTITY insecureUnencrypted.description "Seoltar do ríomhphost agus fíordheimhniú gan criptiúchán, agus d'fhéadfadh daoine eile d'fhocal faire agus do theachtaireacht a léamh go furasta. Ligfidh  &brandShortName; leat do chuid ríomhphoist a fháil, ach ba cheart duit iarraidh ar do sholáthraí ríomhphoist an freastalaí a chumrú le ceangal slán.">
 <!ENTITY insecureSelfSigned.description  "Úsáideann an freastalaí teastas nach féidir muinín a bheith againn as, agus mar sin ní féidir bheith cinnte nach bhfuil an trácht idir &brandShortName; agus do fhreastalaí á hidircheapadh. Ligfidh  &brandShortName; leat do chuid ríomhphoist a fháil, ach ba cheart duit iarraidh ar do sholáthraí ríomhphoist an freastalaí a chumrú le teastas iontaofa.">
 <!ENTITY secureServer.description        "Comhghairdeas! Is freastalaí slán é seo.">
+
+<!ENTITY autoconfigWizard2.title         "Set Up an Existing Email Account">
+<!ENTITY email2.placeholder              "you@example.com">
+<!ENTITY email.text                      "Your existing email address">
+<!ENTITY open-provisioner.label          "Get a new email address…">
+<!ENTITY open-provisioner.accesskey      "g">
+
+

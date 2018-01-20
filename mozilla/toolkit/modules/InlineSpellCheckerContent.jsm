@@ -7,9 +7,10 @@
 
 var { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
-var { SpellCheckHelper } = Cu.import("resource://gre/modules/InlineSpellChecker.jsm");
+var { InlineSpellChecker, SpellCheckHelper } =
+  Cu.import("resource://gre/modules/InlineSpellChecker.jsm", {});
 
-this.EXPORTED_SYMBOLS = [ "InlineSpellCheckerContent" ]
+this.EXPORTED_SYMBOLS = [ "InlineSpellCheckerContent" ];
 
 var InlineSpellCheckerContent = {
   _spellChecker: null,
@@ -21,7 +22,7 @@ var InlineSpellCheckerContent = {
     let spellChecker;
     if (!(editFlags & (SpellCheckHelper.TEXTAREA | SpellCheckHelper.INPUT))) {
       // Get the editor off the window.
-      let win = event.target.ownerDocument.defaultView;
+      let win = event.target.ownerGlobal;
       let editingSession = win.QueryInterface(Ci.nsIInterfaceRequestor)
                               .getInterface(Ci.nsIWebNavigation)
                               .QueryInterface(Ci.nsIInterfaceRequestor)
@@ -34,7 +35,7 @@ var InlineSpellCheckerContent = {
         new InlineSpellChecker(event.target.QueryInterface(Ci.nsIDOMNSEditableElement).editor);
     }
 
-    this._spellChecker.initFromEvent(event.rangeParent, event.rangeOffset)
+    this._spellChecker.initFromEvent(event.rangeParent, event.rangeOffset);
 
     this._addMessageListeners();
 
@@ -68,7 +69,7 @@ var InlineSpellCheckerContent = {
              misspelling: spellChecker.mMisspelling,
              spellSuggestions: this._generateSpellSuggestions(),
              currentDictionary: spellChecker.mInlineSpellChecker.spellChecker.GetCurrentDictionary(),
-             dictionaryList: dictionaryList };
+             dictionaryList };
   },
 
   uninitContextMenu() {

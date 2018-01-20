@@ -40,5 +40,13 @@
 <!ENTITY cmd.close.commandKey        "w">
 <!ENTITY button.close.label          "Zarrar">
 
-<!ENTITY button.updateFeed.accesskey "U">
+<!ENTITY biffStart.label             "Check for new articles every ">
+<!ENTITY biffStart.accesskey         "k">
+<!ENTITY biffMinutes.label           "minutes">
+<!ENTITY biffMinutes.accesskey       "n">
+<!ENTITY biffDays.label              "days">
+<!ENTITY biffDays.accesskey          "d">
+<!ENTITY recommendedUnits.label      "Publisher recommends:">
+
 <!ENTITY button.updateFeed.label     "Update">
+<!ENTITY button.updateFeed.accesskey "U">

@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/Promise.jsm");
-
 function run_test() {
     do_calendar_startup(run_next_test);
 }
@@ -36,7 +34,7 @@ add_task(function* test_deleted_items() {
     // error.
     yield check_delmgr_call(() => delmgr.flush());
 
-    let memory = calmgr.createCalendar("memory", Services.io.newURI("moz-storage-calendar://", null, null));
+    let memory = calmgr.createCalendar("memory", Services.io.newURI("moz-storage-calendar://"));
     calmgr.registerCalendar(memory);
 
     let item = cal.createEvent();

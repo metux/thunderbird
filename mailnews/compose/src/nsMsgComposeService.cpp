@@ -85,7 +85,7 @@
 #define DOMAIN_DELIMITER                           ','
 
 #ifdef MSGCOMP_TRACE_PERFORMANCE
-static PRLogModuleInfo *MsgComposeLogModule = nullptr;
+static mozilla::LazyLogModule MsgComposeLogModule("msgcompose");
 
 static uint32_t GetMessageSizeFromURI(const char * originalMsgURI)
 {
@@ -109,9 +109,6 @@ nsMsgComposeService::nsMsgComposeService()
 // Defaulting the value of mLogComposePerformance to FALSE to prevent logging.
   mLogComposePerformance = false;
 #ifdef MSGCOMP_TRACE_PERFORMANCE
-  if (!MsgComposeLogModule)
-      MsgComposeLogModule = PR_NewLogModule("msgcompose");
-
   mStartTime = PR_IntervalNow();
   mPreviousTime = mStartTime;
 #endif
@@ -285,7 +282,7 @@ nsMsgComposeService::GetOrigWindowSelection(MSG_ComposeType type, nsIMsgWindow *
   bool requireMultipleWords = true;
   nsAutoCString charsOnlyIf;
   prefs->GetBoolPref(PREF_MAILNEWS_REPLY_QUOTING_SELECTION_MULTI_WORD, &requireMultipleWords);
-  prefs->GetCharPref(PREF_MAILNEWS_REPLY_QUOTING_SELECTION_ONLY_IF, getter_Copies(charsOnlyIf));
+  prefs->GetCharPref(PREF_MAILNEWS_REPLY_QUOTING_SELECTION_ONLY_IF, charsOnlyIf);
   if (sel && (requireMultipleWords || !charsOnlyIf.IsEmpty()))
   {
     nsAutoString selPlain;
@@ -387,14 +384,20 @@ nsMsgComposeService::OpenComposeWindow(const char *msgComposeWindowURL, nsIMsgDB
   /* Actually, the only way to implement forward inline is to simulate a template message.
      Maybe one day when we will have more time we can change that
   */
-  if (type == nsIMsgCompType::ForwardInline || type == nsIMsgCompType::Draft || type == nsIMsgCompType::Template
-    || type == nsIMsgCompType::ReplyWithTemplate || type == nsIMsgCompType::Redirect)
+  if (type == nsIMsgCompType::ForwardInline || type == nsIMsgCompType::Draft ||
+      type == nsIMsgCompType::Template || type == nsIMsgCompType::ReplyWithTemplate ||
+      type == nsIMsgCompType::Redirect || type == nsIMsgCompType::EditAsNew)
   {
     nsAutoCString uriToOpen(originalMsgURI);
     uriToOpen += (uriToOpen.FindChar('?') == kNotFound) ? '?' : '&';
-    uriToOpen.Append("fetchCompleteMessage=true");
+    uriToOpen.AppendLiteral("fetchCompleteMessage=true");
+
+    // The compose type that gets transmitted to a compose window open in mime
+    // is communicated using url query parameters here.
     if (type == nsIMsgCompType::Redirect)
-      uriToOpen.Append("&redirect=true");
+      uriToOpen.AppendLiteral("&redirect=true");
+    else if (type == nsIMsgCompType::EditAsNew)
+      uriToOpen.AppendLiteral("&editasnew=true");
 
     return LoadDraftOrTemplate(uriToOpen, type == nsIMsgCompType::ForwardInline || type == nsIMsgCompType::Draft ?
                                nsMimeOutput::nsMimeMessageDraftOrTemplate : nsMimeOutput::nsMimeMessageEditorTemplate,
@@ -484,8 +487,7 @@ NS_IMETHODIMP nsMsgComposeService::GetParamsForMailto(nsIURI * aURI, nsIMsgCompo
   nsresult rv = NS_OK;
   if (aURI)
   {
-    nsCOMPtr<nsIMailtoUrl> aMailtoUrl;
-    rv = aURI->QueryInterface(NS_GET_IID(nsIMailtoUrl), getter_AddRefs(aMailtoUrl));
+    nsCOMPtr<nsIMailtoUrl> aMailtoUrl = do_QueryInterface(aURI, &rv);
     if (NS_SUCCEEDED(rv))
     {
        MSG_ComposeFormat requestedComposeFormat = nsIMsgCompFormat::Default;
@@ -517,12 +519,9 @@ NS_IMETHODIMP nsMsgComposeService::GetParamsForMailto(nsIURI * aURI, nsIMsgCompo
       {
         if (composeHTMLFormat)
         {
-          char *escaped = MsgEscapeHTML(bodyPart.get());
-          if (!escaped)
-            return NS_ERROR_OUT_OF_MEMORY;
-
-          CopyUTF8toUTF16(nsDependentCString(escaped), sanitizedBody);
-          free(escaped);
+          nsCString escaped;
+          nsAppendEscapedHTML(bodyPart, escaped);
+          CopyUTF8toUTF16(escaped, sanitizedBody);
         }
         else
           CopyUTF8toUTF16(bodyPart, rawBody);
@@ -738,9 +737,9 @@ NS_IMETHODIMP nsMsgTemplateReplyHelper::OnStopRunningUrl(nsIURI *aUrl, nsresult 
   subject.Append(templateSubject);
   if (!replySubject.IsEmpty())
   {
-    subject.Append(NS_LITERAL_STRING(" (was: "));
+    subject.AppendLiteral(u" (was: ");
     subject.Append(replySubject);
-    subject.Append(NS_LITERAL_STRING(")"));
+    subject.Append(u')');
   }
 
   compFields->SetSubject(subject);
@@ -900,8 +899,8 @@ NS_IMETHODIMP nsMsgComposeService::ReplyWithTemplate(nsIMsgDBHdr *aMsgHdr, const
     nsAutoCString identityEmail;
     anIdentity->GetEmail(identityEmail);
 
-    if (recipients.Find(identityEmail, CaseInsensitiveCompare) != kNotFound ||
-        ccList.Find(identityEmail, CaseInsensitiveCompare) != kNotFound)
+    if (recipients.Find(identityEmail, /* ignoreCase = */ true) != kNotFound ||
+        ccList.Find(identityEmail, /* ignoreCase = */ true) != kNotFound)
     {
       identity = anIdentity;
       break;
@@ -1013,7 +1012,7 @@ nsMsgComposeService::ForwardMessage(const nsAString &forwardTo,
 
   nsAutoCString uriToOpen(msgUri);
   uriToOpen += (uriToOpen.FindChar('?') == kNotFound) ? '?' : '&';
-  uriToOpen.Append("fetchCompleteMessage=true");
+  uriToOpen.AppendLiteral("fetchCompleteMessage=true");
 
   // get the MsgIdentity for the above key using AccountManager
   nsCOMPtr<nsIMsgAccountManager> accountManager =
@@ -1121,14 +1120,14 @@ nsresult nsMsgComposeService::AddGlobalHtmlDomains()
   if (htmlDomainListCurrentVersion <= htmlDomainListDefaultVersion) {
     // Get list of global domains need to be added
     nsCString globalHtmlDomainList;
-    rv = prefBranch->GetCharPref(HTMLDOMAINUPDATE_DOMAINLIST_PREF_NAME, getter_Copies(globalHtmlDomainList));
+    rv = prefBranch->GetCharPref(HTMLDOMAINUPDATE_DOMAINLIST_PREF_NAME, globalHtmlDomainList);
 
     if (NS_SUCCEEDED(rv) && !globalHtmlDomainList.IsEmpty()) {
       nsTArray<nsCString> domainArray;
 
       // Get user's current HTML domain set for send format
       nsCString currentHtmlDomainList;
-      rv = prefBranch->GetCharPref(USER_CURRENT_HTMLDOMAINLIST_PREF_NAME, getter_Copies(currentHtmlDomainList));
+      rv = prefBranch->GetCharPref(USER_CURRENT_HTMLDOMAINLIST_PREF_NAME, currentHtmlDomainList);
       NS_ENSURE_SUCCESS(rv,rv);
 
       nsAutoCString newHtmlDomainList(currentHtmlDomainList);
@@ -1137,7 +1136,7 @@ nsresult nsMsgComposeService::AddGlobalHtmlDomains()
 
       // Get user's current Plaintext domain set for send format
       nsCString currentPlaintextDomainList;
-      rv = prefBranch->GetCharPref(USER_CURRENT_PLAINTEXTDOMAINLIST_PREF_NAME, getter_Copies(currentPlaintextDomainList));
+      rv = prefBranch->GetCharPref(USER_CURRENT_PLAINTEXTDOMAINLIST_PREF_NAME, currentPlaintextDomainList);
       NS_ENSURE_SUCCESS(rv,rv);
 
       // Get the current plaintext domain list into new list var
@@ -1167,7 +1166,7 @@ nsresult nsMsgComposeService::AddGlobalHtmlDomains()
       }
 
       // Set user's html domain pref with the updated list
-      rv = prefBranch->SetCharPref(USER_CURRENT_HTMLDOMAINLIST_PREF_NAME, newHtmlDomainList.get());
+      rv = prefBranch->SetCharPref(USER_CURRENT_HTMLDOMAINLIST_PREF_NAME, newHtmlDomainList);
       NS_ENSURE_SUCCESS(rv,rv);
 
       // Increase the version to avoid running the update code unless needed (based on default version)
@@ -1319,7 +1318,7 @@ nsMsgComposeService::RunMessageThroughMimeDraft(
   {
     // We loaded a .eml file from a file: url. Construct equivalent mailbox url.
     mailboxUri.Replace(0, 5, NS_LITERAL_CSTRING("mailbox:"));
-    mailboxUri.Append(NS_LITERAL_CSTRING("&number=0"));
+    mailboxUri.AppendLiteral("&number=0");
     // Need this to prevent nsMsgCompose::TagEmbeddedObjects from setting
     // inline images as moz-do-not-send.
     mimeConverter->SetOriginalMsgURI(mailboxUri.get());
@@ -1359,11 +1358,11 @@ nsMsgComposeService::RunMessageThroughMimeDraft(
 
   nsCOMPtr<nsIChannel> channel;
   rv = NS_NewInputStreamChannel(getter_AddRefs(channel),
-                     url,
-                     nullptr,
-                     nullPrincipal,
-                     nsILoadInfo::SEC_NORMAL,
-                     nsIContentPolicy::TYPE_OTHER);
+                                url,
+                                nullptr,
+                                nullPrincipal,
+                                nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                                nsIContentPolicy::TYPE_OTHER);
   NS_ASSERTION(NS_SUCCEEDED(rv), "NS_NewChannel failed.");
   if (NS_FAILED(rv))
     return rv;

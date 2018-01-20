@@ -4,12 +4,11 @@
 
 "use strict";
 
+/* exported ProductAddonChecker */
+
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 const LOCAL_EME_SOURCES = [{
-  "id": "gmp-eme-adobe",
-  "src": "chrome://global/content/gmp-sources/eme-adobe.json"
-}, {
   "id": "gmp-gmpopenh264",
   "src": "chrome://global/content/gmp-sources/openh264.json"
 }, {
@@ -23,7 +22,6 @@ Cu.importGlobalProperties(["XMLHttpRequest"]);
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/CertUtils.jsm");
 /* globals checkCert, BadCertHandler*/
@@ -47,8 +45,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "ServiceRequest",
 // the addon update XML file.
 var CreateXHR = function() {
   return Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].
-  createInstance(Ci.nsISupports);
-}
+    createInstance(Ci.nsISupports);
+};
 
 var logger = Log.repository.getLogger("addons.productaddons");
 
@@ -61,10 +59,6 @@ var logger = Log.repository.getLogger("addons.productaddons");
  * that we fail cleanly in such case.
  */
 const TIMEOUT_DELAY_MS = 20000;
-// Chunk size for the incremental downloader
-const DOWNLOAD_CHUNK_BYTES_SIZE = 300000;
-// Incremental downloader interval
-const DOWNLOAD_INTERVAL  = 0;
 // How much of a file to read into memory at a time for hashing
 const HASH_CHUNK_SIZE = 8192;
 
@@ -80,8 +74,7 @@ function getRequestStatus(request) {
   let status = null;
   try {
     status = request.status;
-  }
-  catch (e) {
+  } catch (e) {
   }
 
   if (status != null) {
@@ -137,7 +130,7 @@ function downloadXML(url, allowNonBuiltIn = false, allowedCerts = null) {
     let fail = (event) => {
       let request = event.target;
       let status = getRequestStatus(request);
-      let message = "Failed downloading XML, status: " + status +  ", reason: " + event.type;
+      let message = "Failed downloading XML, status: " + status + ", reason: " + event.type;
       logger.warn(message);
       let ex = new Error(message);
       ex.status = status;
@@ -160,10 +153,10 @@ function downloadXML(url, allowNonBuiltIn = false, allowedCerts = null) {
       resolve(request.responseXML);
     };
 
-    request.addEventListener("error", fail, false);
-    request.addEventListener("abort", fail, false);
-    request.addEventListener("timeout", fail, false);
-    request.addEventListener("load", success, false);
+    request.addEventListener("error", fail);
+    request.addEventListener("abort", fail);
+    request.addEventListener("timeout", fail);
+    request.addEventListener("load", success);
 
     logger.info("sending request to: " + url);
     request.send(null);
@@ -239,7 +232,7 @@ function parseXML(document) {
  */
 function downloadLocalConfig() {
 
-  if (!GMPPrefs.get(GMPPrefs.KEY_UPDATE_ENABLED, true)) {
+  if (!GMPPrefs.getBool(GMPPrefs.KEY_UPDATE_ENABLED, true)) {
     logger.info("Updates are disabled via media.gmp-manager.updateEnabled");
     return Promise.resolve({usedFallback: true, gmpAddons: []});
   }
@@ -307,20 +300,20 @@ function downloadFile(url) {
         reject(Components.Exception("File download failed", xhr.status));
         return;
       }
-      Task.spawn(function* () {
-        let f = yield OS.File.openUnique(OS.Path.join(OS.Constants.Path.tmpDir, "tmpaddon"));
+      (async function() {
+        let f = await OS.File.openUnique(OS.Path.join(OS.Constants.Path.tmpDir, "tmpaddon"));
         let path = f.path;
         logger.info(`Downloaded file will be saved to ${path}`);
-        yield f.file.close();
-        yield OS.File.writeAtomic(path, new Uint8Array(xhr.response));
+        await f.file.close();
+        await OS.File.writeAtomic(path, new Uint8Array(xhr.response));
         return path;
-      }).then(resolve, reject);
+      })().then(resolve, reject);
     };
 
     let fail = (event) => {
       let request = event.target;
       let status = getRequestStatus(request);
-      let message = "Failed downloading via XHR, status: " + status +  ", reason: " + event.type;
+      let message = "Failed downloading via XHR, status: " + status + ", reason: " + event.type;
       logger.warn(message);
       let ex = new Error(message);
       ex.status = status;
@@ -369,8 +362,8 @@ function binaryToHex(input) {
  * @return a promise that resolves to hash of the file or rejects with a JS
  *         exception in case of error.
  */
-var computeHash = Task.async(function*(hashFunction, path) {
-  let file = yield OS.File.open(path, { existing: true, read: true });
+var computeHash = async function(hashFunction, path) {
+  let file = await OS.File.open(path, { existing: true, read: true });
   try {
     let hasher = Cc["@mozilla.org/security/hash;1"].
                  createInstance(Ci.nsICryptoHash);
@@ -378,16 +371,15 @@ var computeHash = Task.async(function*(hashFunction, path) {
 
     let bytes;
     do {
-      bytes = yield file.read(HASH_CHUNK_SIZE);
+      bytes = await file.read(HASH_CHUNK_SIZE);
       hasher.update(bytes, bytes.length);
     } while (bytes.length == HASH_CHUNK_SIZE);
 
     return binaryToHex(hasher.finish(false));
+  } finally {
+    await file.close();
   }
-  finally {
-    yield file.close();
-  }
-});
+};
 
 /**
  * Verifies that a downloaded file matches what was expected.
@@ -400,9 +392,9 @@ var computeHash = Task.async(function*(hashFunction, path) {
  * @return a promise that resolves if the file matched or rejects with a JS
  *         exception in case of error.
  */
-var verifyFile = Task.async(function*(properties, path) {
+var verifyFile = async function(properties, path) {
   if (properties.size !== undefined) {
-    let stat = yield OS.File.stat(path);
+    let stat = await OS.File.stat(path);
     if (stat.size != properties.size) {
       throw new Error("Downloaded file was " + stat.size + " bytes but expected " + properties.size + " bytes.");
     }
@@ -410,12 +402,12 @@ var verifyFile = Task.async(function*(properties, path) {
 
   if (properties.hashFunction !== undefined) {
     let expectedDigest = properties.hashValue.toLowerCase();
-    let digest = yield computeHash(properties.hashFunction, path);
+    let digest = await computeHash(properties.hashFunction, path);
     if (digest != expectedDigest) {
-      throw new Error("Hash was `" + digest + "` but expected `" + expectedDigest +  "`.");
+      throw new Error("Hash was `" + digest + "` but expected `" + expectedDigest + "`.");
     }
   }
-});
+};
 
 const ProductAddonChecker = {
   /**
@@ -433,8 +425,8 @@ const ProductAddonChecker = {
    *         and whether the local fallback was used, or rejects with a JS
    *         exception in case of error.
    */
-  getProductAddonList: function(url, allowNonBuiltIn = false, allowedCerts = null) {
-    if (!GMPPrefs.get(GMPPrefs.KEY_UPDATE_ENABLED, true)) {
+  getProductAddonList(url, allowNonBuiltIn = false, allowedCerts = null) {
+    if (!GMPPrefs.getBool(GMPPrefs.KEY_UPDATE_ENABLED, true)) {
       logger.info("Updates are disabled via media.gmp-manager.updateEnabled");
       return Promise.resolve({usedFallback: true, gmpAddons: []});
     }
@@ -453,15 +445,14 @@ const ProductAddonChecker = {
    * @return a promise that resolves to the temporary file downloaded or rejects
    *         with a JS exception in case of error.
    */
-  downloadAddon: Task.async(function*(addon) {
-    let path = yield downloadFile(addon.URL);
+  async downloadAddon(addon) {
+    let path = await downloadFile(addon.URL);
     try {
-      yield verifyFile(addon, path);
+      await verifyFile(addon, path);
       return path;
-    }
-    catch (e) {
-      yield OS.File.remove(path);
+    } catch (e) {
+      await OS.File.remove(path);
       throw e;
     }
-  })
-}
+  }
+};

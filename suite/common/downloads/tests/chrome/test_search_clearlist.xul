@@ -86,7 +86,7 @@ function test()
   sites.push(searchTerm);
 
   try {
-    for each (let site in sites) {
+    for (let site of sites) {
       stmt.bindByIndex(0, filePath);
       stmt.bindByIndex(1, "http://" + site + "/file");
       stmt.bindByIndex(2, dm.DOWNLOAD_FINISHED);
@@ -103,9 +103,7 @@ function test()
   }
 
   // Close the UI if necessary
-  var wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-                     .getService(Components.interfaces.nsIWindowMediator);
-  var win = wm.getMostRecentWindow("Download:Manager");
+  var win = Services.wm.getMostRecentWindow("Download:Manager");
   if (win) win.close();
 
   var obs = Components.classes["@mozilla.org/observer-service;1"]

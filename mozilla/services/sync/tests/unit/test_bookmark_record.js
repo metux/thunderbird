@@ -15,11 +15,10 @@ function prepareBookmarkItem(collection, id) {
   return b;
 }
 
-function run_test() {
-  ensureLegacyIdentityManager();
-  Service.identity.username = "john@example.com";
-  Service.identity.syncKey = "abcdeabcdeabcdeabcdeabcdea";
-  generateNewKeys(Service.collectionKeys);
+add_task(async function test_bookmark_record() {
+  await configureIdentity();
+
+  await generateNewKeys(Service.collectionKeys);
   let keyBundle = Service.identity.syncKeyBundle;
 
   let log = Log.repository.getLogger("Test");
@@ -27,7 +26,6 @@ function run_test() {
 
   log.info("Creating a record");
 
-  let u = "http://localhost:8080/storage/bookmarks/foo";
   let placesItem = new PlacesItem("bookmarks", "foo", "bookmark");
   let bookmarkItem = prepareBookmarkItem("bookmarks", "foo");
 
@@ -35,14 +33,14 @@ function run_test() {
   do_check_eq(placesItem.getTypeObject(placesItem.type), Bookmark);
   do_check_eq(bookmarkItem.getTypeObject(bookmarkItem.type), Bookmark);
 
-  bookmarkItem.encrypt(keyBundle);
+  await bookmarkItem.encrypt(keyBundle);
   log.info("Ciphertext is " + bookmarkItem.ciphertext);
   do_check_true(bookmarkItem.ciphertext != null);
 
   log.info("Decrypting the record");
 
-  let payload = bookmarkItem.decrypt(keyBundle);
+  let payload = await bookmarkItem.decrypt(keyBundle);
   do_check_eq(payload.stuff, "my payload here");
   do_check_eq(bookmarkItem.getTypeObject(bookmarkItem.type), Bookmark);
   do_check_neq(payload, bookmarkItem.payload); // wrap.data.payload is the encrypted one
-}
+});

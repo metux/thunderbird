@@ -3,14 +3,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
-#include <dlfcn.h>
-#include <signal.h>
-#include <errno.h>
 
 #include "mozilla/Types.h"
 
+#include <dlfcn.h>
+#include <signal.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/inotify.h>
 
 // Signal number used to enable seccomp on each thread.
 extern int gSeccompTsyncBroadcastSignum;
@@ -34,7 +35,7 @@ static int HandleSigset(int (*aRealFunc)(int, const sigset_t*, sigset_t*),
   }
 
   // Avoid unnecessary work
-  if (aSet == NULL || aHow == SIG_UNBLOCK) {
+  if (aSet == nullptr || aHow == SIG_UNBLOCK) {
     return aRealFunc(aHow, aSet, aOldSet);
   }
 
@@ -69,4 +70,17 @@ pthread_sigmask(int how, const sigset_t* set, sigset_t* oldset)
     dlsym(RTLD_NEXT, "pthread_sigmask");
 
   return HandleSigset(sRealFunc, how, set, oldset, false);
+}
+
+extern "C" MOZ_EXPORT int
+inotify_init(void)
+{
+  return inotify_init1(0);
+}
+
+extern "C" MOZ_EXPORT int
+inotify_init1(int flags)
+{
+  errno = ENOSYS;
+  return -1;
 }

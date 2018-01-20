@@ -10,10 +10,16 @@ USE_LIBS += ['mozglue']
 SOURCES += ['nsMain.cpp']
 LOCAL_INCLUDES += [
     '!/build',
-    '/mozilla/toolkit/xre',
-    '/mozilla/xpcom/base',
-    '/mozilla/xpcom/build',
+    '/%s/toolkit/xre' % CONFIG['mozreltopsrcdir'],
+    '/%s/xpcom/base' % CONFIG['mozreltopsrcdir'],
+    '/%s/xpcom/build' % CONFIG['mozreltopsrcdir'],
 ]
+
+if CONFIG['LIBFUZZER']:
+    USE_LIBS += [ 'fuzzer' ]
+    LOCAL_INCLUDES += [
+        '/%s/tools/fuzzing/libfuzzer' % CONFIG['mozreltopsrcdir'],
+    ]
 
 if CONFIG['OS_ARCH'] == 'WINNT':
     RCINCLUDE = 'splash.rc'
@@ -22,8 +28,8 @@ if CONFIG['OS_ARCH'] == 'WINNT':
 if CONFIG['MOZ_SANDBOX'] and CONFIG['OS_ARCH'] == 'WINNT':
     # For sandbox includes and the include dependencies those have
     LOCAL_INCLUDES += [
-        '/mozilla/security/sandbox/chromium',
-        '/mozilla/security/sandbox/chromium-shim',
+        '/%s/security/sandbox/chromium' % CONFIG['mozreltopsrcdir'],
+        '/%s/security/sandbox/chromium-shim' % CONFIG['mozreltopsrcdir'],
     ]
 
     USE_LIBS += [
@@ -62,7 +68,13 @@ DEFINES['APP_VERSION'] = CONFIG['MOZ_APP_VERSION']
 if CONFIG['MOZILLA_OFFICIAL']:
     DEFINES['MOZILLA_OFFICIAL'] = True
 
-DISABLE_STL_WRAPPING = True
+if CONFIG['MOZ_GPSD']:
+    DEFINES['MOZ_GPSD'] = True
+
+if CONFIG['MOZ_LINUX_32_SSE2_STARTUP_ERROR']:
+    DEFINES['MOZ_LINUX_32_SSE2_STARTUP_ERROR'] = True
+
+DisableStlWrapping()
 
 JS_PREFERENCE_PP_FILES += [
     'profile/all-instantbird.js',

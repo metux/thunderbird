@@ -21,6 +21,7 @@ import android.util.TypedValue;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.icons.IconRequest;
 import org.mozilla.gecko.icons.IconResponse;
+import org.mozilla.gecko.util.StringUtils;
 
 /**
  * This loader will generate an icon in case no icon could be loaded. In order to do so this needs
@@ -30,28 +31,16 @@ public class IconGenerator implements IconLoader {
     // Mozilla's Visual Design Colour Palette
     // http://firefoxux.github.io/StyleGuide/#/visualDesign/colours
     private static final int[] COLORS = {
-            0xFFc33c32,
-            0xFFf25820,
-            0xFFff9216,
-            0xFFffcb00,
-            0xFF57bd35,
-            0xFF01bdad,
-            0xFF0996f8,
-            0xFF02538b,
-            0xFF1f386e,
-            0xFF7a2f7a,
-            0xFFea385e,
+            0xFF9A4C00,
+            0xFFAB008D,
+            0xFF4C009C,
+            0xFF002E9C,
+            0xFF009EC2,
+            0xFF009D02,
+            0xFF51AB00,
+            0xFF36385A,
     };
 
-    // List of common prefixes of host names. Those prefixes will be striped before a prepresentative
-    // character for an URL is determined.
-    private static final String[] COMMON_PREFIXES = {
-            "www.",
-            "m.",
-            "mobile.",
-    };
-
-    private static final int TEXT_SIZE_DP = 12;
     @Override
     public IconResponse load(IconRequest request) {
         if (request.getIconCount() > 1) {
@@ -60,15 +49,22 @@ public class IconGenerator implements IconLoader {
             return null;
         }
 
-        return generate(request.getContext(), request.getPageUrl());
+        return generate(request.getContext(), request.getPageUrl(), request.getTargetSize(), request.getTextSize());
+    }
+
+    public static IconResponse generate(Context context, String pageURL) {
+        return generate(context, pageURL, 0, 0);
     }
 
     /**
      * Generate default favicon for the given page URL.
      */
-    @VisibleForTesting static IconResponse generate(Context context, String pageURL) {
+    public static IconResponse generate(final Context context, final String pageURL,
+                                        int widthAndHeight, float textSize) {
         final Resources resources = context.getResources();
-        final int widthAndHeight = resources.getDimensionPixelSize(R.dimen.favicon_bg);
+        if (widthAndHeight == 0) {
+            widthAndHeight = resources.getDimensionPixelSize(R.dimen.favicon_bg);
+        }
         final int roundedCorners = resources.getDimensionPixelOffset(R.dimen.favicon_corner_radius);
 
         final Bitmap favicon = Bitmap.createBitmap(widthAndHeight, widthAndHeight, Bitmap.Config.ARGB_8888);
@@ -85,7 +81,13 @@ public class IconGenerator implements IconLoader {
 
         final String character = getRepresentativeCharacter(pageURL);
 
-        final float textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, TEXT_SIZE_DP, context.getResources().getDisplayMetrics());
+        if (textSize == 0) {
+            // The text size is calculated dynamically based on the target icon size (1/8th). For an icon
+            // size of 112dp we'd use a text size of 14dp (112 / 8).
+            textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,
+                                                 widthAndHeight / 8,
+                                                 resources.getDisplayMetrics());
+        }
 
         paint.setTextAlign(Paint.Align.CENTER);
         paint.setTextSize(textSize);
@@ -156,12 +158,8 @@ public class IconGenerator implements IconLoader {
             return "?";
         }
 
-        // Strip common prefixes that we do not want to use to determine the representative character
-        for (String prefix : COMMON_PREFIXES) {
-            if (snippet.startsWith(prefix)) {
-                snippet = snippet.substring(prefix.length());
-            }
-        }
+        // Strip common prefixes that we do not want to use to determine the representative characterS
+        snippet = StringUtils.stripCommonSubdomains(snippet);
 
         return snippet;
     }

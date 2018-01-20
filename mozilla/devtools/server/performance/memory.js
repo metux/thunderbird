@@ -6,15 +6,14 @@
 
 const { Cc, Ci, Cu } = require("chrome");
 const { reportException } = require("devtools/shared/DevToolsUtils");
-const { Class } = require("sdk/core/heritage");
 const { expectState } = require("devtools/server/actors/common");
-loader.lazyRequireGetter(this, "events", "sdk/event/core");
-loader.lazyRequireGetter(this, "EventTarget", "sdk/event/target", true);
+
+loader.lazyRequireGetter(this, "EventEmitter", "devtools/shared/event-emitter");
 loader.lazyRequireGetter(this, "DeferredTask",
   "resource://gre/modules/DeferredTask.jsm", true);
 loader.lazyRequireGetter(this, "StackFrameCache",
   "devtools/server/actors/utils/stack", true);
-loader.lazyRequireGetter(this, "ThreadSafeChromeUtils");
+loader.lazyRequireGetter(this, "ChromeUtils");
 loader.lazyRequireGetter(this, "HeapSnapshotFileUtils",
   "devtools/shared/heapsnapshot/HeapSnapshotFileUtils");
 loader.lazyRequireGetter(this, "ChromeActor", "devtools/server/actors/chrome",
@@ -32,29 +31,26 @@ loader.lazyRequireGetter(this, "ChildProcessActor",
  * send information over RDP, and TimelineActor for using more light-weight
  * utilities like GC events and measuring memory consumption.
  */
-var Memory = exports.Memory = Class({
-  extends: EventTarget,
+function Memory(parent, frameCache = new StackFrameCache()) {
+  EventEmitter.decorate(this);
 
-  /**
-   * Requires a root actor and a StackFrameCache.
-   */
-  initialize: function (parent, frameCache = new StackFrameCache()) {
-    this.parent = parent;
-    this._mgr = Cc["@mozilla.org/memory-reporter-manager;1"]
-                  .getService(Ci.nsIMemoryReporterManager);
-    this.state = "detached";
-    this._dbg = null;
-    this._frameCache = frameCache;
+  this.parent = parent;
+  this._mgr = Cc["@mozilla.org/memory-reporter-manager;1"]
+                .getService(Ci.nsIMemoryReporterManager);
+  this.state = "detached";
+  this._dbg = null;
+  this._frameCache = frameCache;
 
-    this._onGarbageCollection = this._onGarbageCollection.bind(this);
-    this._emitAllocations = this._emitAllocations.bind(this);
-    this._onWindowReady = this._onWindowReady.bind(this);
+  this._onGarbageCollection = this._onGarbageCollection.bind(this);
+  this._emitAllocations = this._emitAllocations.bind(this);
+  this._onWindowReady = this._onWindowReady.bind(this);
 
-    events.on(this.parent, "window-ready", this._onWindowReady);
-  },
+  EventEmitter.on(this.parent, "window-ready", this._onWindowReady);
+}
 
+Memory.prototype = {
   destroy: function () {
-    events.off(this.parent, "window-ready", this._onWindowReady);
+    EventEmitter.off(this.parent, "window-ready", this._onWindowReady);
 
     this._mgr = null;
     if (this.state === "attached") {
@@ -148,12 +144,14 @@ var Memory = exports.Memory = Class({
     // If we are observing the whole process, then scope the snapshot
     // accordingly. Otherwise, use the debugger's debuggees.
     if (!boundaries) {
-      boundaries = this.parent instanceof ChromeActor || this.parent instanceof ChildProcessActor
-        ? { runtime: true }
-        : { debugger: this.dbg };
+      if (this.parent instanceof ChromeActor ||
+          this.parent instanceof ChildProcessActor) {
+        boundaries = { runtime: true };
+      } else {
+        boundaries = { debugger: this.dbg };
+      }
     }
-    const path = ThreadSafeChromeUtils.saveHeapSnapshot(boundaries);
-    return HeapSnapshotFileUtils.getSnapshotIdFromPath(path);
+    return ChromeUtils.saveHeapSnapshotGetId(boundaries);
   }, "saveHeapSnapshot"),
 
   /**
@@ -168,16 +166,16 @@ var Memory = exports.Memory = Class({
    * Start recording allocation sites.
    *
    * @param {number} options.probability
-   *                 The probability we sample any given allocation when recording allocations.
-   *                 Must be between 0 and 1 -- defaults to 1.
+   *                 The probability we sample any given allocation when recording
+   *                 allocations. Must be between 0 and 1 -- defaults to 1.
    * @param {number} options.maxLogLength
    *                 The maximum number of allocation events to keep in the
    *                 log. If new allocs occur while at capacity, oldest
    *                 allocations are lost. Must fit in a 32 bit signed integer.
    * @param {number} options.drainAllocationsTimeout
-   *                 A number in milliseconds of how often, at least, an `allocation` event
-   *                 gets emitted (and drained), and also emits and drains on every GC event,
-   *                 resetting the timer.
+   *                 A number in milliseconds of how often, at least, an `allocation`
+   *                 event gets emitted (and drained), and also emits and drains on every
+   *                 GC event, resetting the timer.
    */
   startRecordingAllocations: expectState("attached", function (options = {}) {
     if (this.isRecordingAllocations()) {
@@ -190,13 +188,14 @@ var Memory = exports.Memory = Class({
       ? options.probability
       : 1.0;
 
-    this.drainAllocationsTimeoutTimer = typeof options.drainAllocationsTimeout === "number" ? options.drainAllocationsTimeout : null;
+    this.drainAllocationsTimeoutTimer = options.drainAllocationsTimeout;
 
     if (this.drainAllocationsTimeoutTimer != null) {
       if (this._poller) {
         this._poller.disarm();
       }
-      this._poller = new DeferredTask(this._emitAllocations, this.drainAllocationsTimeoutTimer);
+      this._poller = new DeferredTask(this._emitAllocations,
+                                      this.drainAllocationsTimeoutTimer, 0);
       this._poller.arm();
     }
 
@@ -262,7 +261,8 @@ var Memory = exports.Memory = Class({
    *                  line: <line number for this frame>,
    *                  column: <column number for this frame>,
    *                  source: <filename string for this frame>,
-   *                  functionDisplayName: <this frame's inferred function name function or null>,
+   *                  functionDisplayName:
+   *                    <this frame's inferred function name function or null>,
    *                  parent: <index into "frames">
    *                },
    *                ...
@@ -369,7 +369,8 @@ var Memory = exports.Memory = Class({
 
     try {
       this._mgr.sizeOfTab(this.parent.window, jsObjectsSize, jsStringsSize, jsOtherSize,
-                          domSize, styleSize, otherSize, totalSize, jsMilliseconds, nonJSMilliseconds);
+                          domSize, styleSize, otherSize, totalSize, jsMilliseconds,
+                          nonJSMilliseconds);
       result.total = totalSize.value;
       result.domSize = domSize.value;
       result.styleSize = styleSize.value;
@@ -394,7 +395,7 @@ var Memory = exports.Memory = Class({
    * Handler for GC events on the Debugger.Memory instance.
    */
   _onGarbageCollection: function (data) {
-    events.emit(this, "garbage-collection", data);
+    this.emit("garbage-collection", data);
 
     // If `drainAllocationsTimeout` set, fire an allocations event with the drained log,
     // which will restart the timer.
@@ -404,14 +405,14 @@ var Memory = exports.Memory = Class({
     }
   },
 
-
   /**
-   * Called on `drainAllocationsTimeoutTimer` interval if and only if set during `startRecordingAllocations`,
-   * or on a garbage collection event if drainAllocationsTimeout was set.
+   * Called on `drainAllocationsTimeoutTimer` interval if and only if set
+   * during `startRecordingAllocations`, or on a garbage collection event if
+   * drainAllocationsTimeout was set.
    * Drains allocation log and emits as an event and restarts the timer.
    */
   _emitAllocations: function () {
-    events.emit(this, "allocations", this.getAllocations());
+    this.emit("allocations", this.getAllocations());
     this._poller.arm();
   },
 
@@ -419,7 +420,9 @@ var Memory = exports.Memory = Class({
    * Accesses the docshell to return the current process time.
    */
   _getCurrentTime: function () {
-    return (this.parent.isRootActor ? this.parent.docShell : this.parent.originalDocShell).now();
+    return (this.parent.isRootActor ? this.parent.docShell :
+                                      this.parent.originalDocShell).now();
   },
+};
 
-});
+exports.Memory = Memory;

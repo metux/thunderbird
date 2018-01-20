@@ -21,7 +21,7 @@
 <!ENTITY playSoundMac.accesskey           "d">
 <!ENTITY showAnimatedAlert.label          "Uyarı göster">
 <!ENTITY showAnimatedAlert.accesskey      "U">
-
+<!ENTITY notificationAlertSettings2.label "Uyarılar ve varsayılan ses Sistem Tercihleri'ndeki Bildirim bölümünden kapatılabilir.">
 <!ENTITY customizeMailAlert.label         "Özelleştir…">
 <!ENTITY customizeMailAlert.accesskey     "z">
 
@@ -38,5 +38,3 @@
 <!ENTITY browse.accesskey                 "G">
 
 <!ENTITY defaultSearchEngine.label        "Varsayılan Arama Motoru">
-
-<!ENTITY notificationAlertSettings2.label "Alerts and the default sound can be disabled on the Notification pane of System Preferences.">

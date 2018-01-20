@@ -2,9 +2,21 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<!ENTITY propertiesMenu.label               "Свойства">
+<!ENTITY propertiesMenu.accesskey           "в">
+<!ENTITY propertiesCmd.key                  "i">
+<!ENTITY abPropertiesMenu.label             "Свойства на адресника">
+<!ENTITY abPropertiesMenu.accesskey         "в">
+<!ENTITY contactPropertiesMenu.label        "Свойства на контакта">
+<!ENTITY contactPropertiesMenu.accesskey    "в">
+<!ENTITY mailingListPropertiesMenu.label    "Свойства на пощенския списък">
+<!ENTITY mailingListPropertiesMenu.accesskey "в">
 
+<!ENTITY abContextMenuButton.tooltip        "Контекстно меню на адресника">
 <!ENTITY addressbookPicker.label            "Адресник:">
 <!ENTITY addressbookPicker.accesskey        "к">
+<!ENTITY searchContacts.label               "Търсене в контактите:">
+<!ENTITY searchContacts.accesskey           "т">
 <!ENTITY SearchNameOrEmail.label            "Име или адрес">
 
 <!ENTITY addtoToFieldMenu.label             "Добавяне към поле До">
@@ -15,32 +27,23 @@
 <!ENTITY addtoBccFieldMenu.accesskey        "С">
 <!ENTITY deleteAddrBookCard.label           "Изтриване">
 <!ENTITY deleteAddrBookCard.accesskey       "т">
+<!ENTITY propertiesContext.label            "Свойства">
+<!ENTITY propertiesContext.accesskey        "в">
+<!ENTITY abPropertiesContext.label          "Свойства">
+<!ENTITY abPropertiesContext.accesskey      "в">
+<!ENTITY editContactContext.label           "Редактиране на контакт">
+<!ENTITY editContactContext.accesskey       "р">
+<!ENTITY editMailingListContext.label       "Редактиране на списък">
+<!ENTITY editMailingListContext.accesskey   "р">
 
-<!ENTITY toButton.label                     "Добави към До:">
+<!ENTITY newContactAbContext.label          "Нова визитка">
+<!ENTITY newContactAbContext.accesskey      "в">
+<!ENTITY newListAbContext.label             "Нов списък">
+<!ENTITY newListAbContext.accesskey         "с">
+
+<!ENTITY toButton.label                     "Добавяне към До:">
 <!ENTITY toButton.accesskey                 "Д">
 <!ENTITY ccButton.label                     "Добавяне към Bcc:">
 <!ENTITY ccButton.accesskey                 "б">
-<!ENTITY bccButton.label                    "Добави към Bcc:">
+<!ENTITY bccButton.label                    "Добавяне към Bcc:">
 <!ENTITY bccButton.accesskey                "б">
-
-<!ENTITY abPropertiesContext.accesskey      "i">
-<!ENTITY abPropertiesContext.label          "Properties">
-<!ENTITY abPropertiesMenu.accesskey         "i">
-<!ENTITY abPropertiesMenu.label             "Address Book Properties">
-<!ENTITY contactPropertiesMenu.accesskey    "i">
-<!ENTITY contactPropertiesMenu.label        "Contact Properties">
-<!ENTITY editContactContext.accesskey       "E">
-<!ENTITY editContactContext.label           "Edit Contact">
-<!ENTITY editMailingListContext.accesskey   "E">
-<!ENTITY editMailingListContext.label       "Edit List">
-<!ENTITY mailingListPropertiesMenu.accesskey "i">
-<!ENTITY mailingListPropertiesMenu.label    "Mailing List Properties">
-<!ENTITY propertiesCmd.key                  "i">
-<!ENTITY propertiesContext.accesskey        "i">
-<!ENTITY propertiesContext.label            "Properties">
-<!ENTITY propertiesMenu.accesskey           "i">
-
-
-<!ENTITY propertiesMenu.label               "Properties">
-<!ENTITY searchContacts.accesskey           "n">
-<!ENTITY searchContacts.label               "Search Contacts:">

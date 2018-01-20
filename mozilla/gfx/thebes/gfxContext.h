@@ -24,6 +24,9 @@ namespace mozilla {
 namespace gfx {
 struct RectCornerRadii;
 } // namespace gfx
+namespace layout {
+class TextDrawTarget;
+} // namespace layout
 } // namespace mozilla
 
 class ClipExporter;
@@ -78,6 +81,11 @@ public:
         CreatePreservingTransformOrNull(mozilla::gfx::DrawTarget* aTarget);
 
     mozilla::gfx::DrawTarget *GetDrawTarget() { return mDT; }
+
+    /**
+     * Returns the DrawTarget if it's actually a TextDrawTarget.
+     */
+    mozilla::layout::TextDrawTarget* GetTextDrawer();
 
     /**
      ** State
@@ -164,12 +172,14 @@ public:
     /**
      * Replaces the current transformation matrix with matrix.
      */
-    void SetMatrix(const gfxMatrix& matrix);
+    void SetMatrix(const mozilla::gfx::Matrix& matrix);
+    void SetMatrixDouble(const gfxMatrix& matrix);
 
     /**
      * Returns the current transformation matrix.
      */
-    gfxMatrix CurrentMatrix() const;
+    mozilla::gfx::Matrix CurrentMatrix() const;
+    gfxMatrix CurrentMatrixDouble() const;
 
     /**
      * Converts a point from device to user coordinates using the inverse
@@ -274,13 +284,6 @@ public:
     void SetPattern(gfxPattern *pattern);
 
     /**
-     * Set the color that text drawn on top of transparent pixels should be
-     * anti-aliased into.
-     */
-    void SetFontSmoothingBackgroundColor(const mozilla::gfx::Color& aColor);
-    mozilla::gfx::Color GetFontSmoothingBackgroundColor();
-
-    /**
      * Get the source pattern (solid color, normal pattern, surface, etc)
      */
     already_AddRefed<gfxPattern> GetPattern();
@@ -377,16 +380,16 @@ public:
 
     void PopClip();
 
-    /**
-     * This will return the current bounds of the clip region in user
-     * space.
-     */
-    gfxRect GetClipExtents();
+    enum ClipExtentsSpace {
+        eUserSpace = 0,
+        eDeviceSpace = 1,
+    };
 
     /**
-     * Whether the current clip is not a simple rectangle.
+     * According to aSpace, this function will return the current bounds of
+     * the clip region in user space or device space.
      */
-    bool HasComplexClip() const;
+    gfxRect GetClipExtents(ClipExtentsSpace aSpace = eUserSpace) const;
 
     /**
      * Returns true if the given rectangle is fully contained in the current clip.
@@ -478,6 +481,9 @@ private:
       , aaMode(mozilla::gfx::AntialiasMode::SUBPIXEL)
       , patternTransformChanged(false)
       , mBlendOpacity(0.0f)
+#ifdef DEBUG
+      , mContentChanged(false)
+#endif
     {}
 
     mozilla::gfx::CompositionOp op;
@@ -509,6 +515,8 @@ private:
     Matrix mBlendMaskTransform;
 #ifdef DEBUG
     bool mWasPushedForBlendBack;
+    // Whether the content of this AzureState changed after construction.
+    bool mContentChanged;
 #endif
   };
 
@@ -517,13 +525,11 @@ private:
   // This ensures mPathBuilder contains a valid PathBuilder (in user space!)
   void EnsurePathBuilder();
   void FillAzure(const Pattern& aPattern, mozilla::gfx::Float aOpacity);
-  void PushClipsToDT(mozilla::gfx::DrawTarget *aDT);
   CompositionOp GetOp();
   void ChangeTransform(const mozilla::gfx::Matrix &aNewMatrix, bool aUpdatePatternTransform = true);
-  Rect GetAzureDeviceSpaceClipBounds();
+  Rect GetAzureDeviceSpaceClipBounds() const;
   Matrix GetDeviceTransform() const;
   Matrix GetDTTransform() const;
-  void PushNewDT(gfxContentType content);
 
   bool mPathIsRect;
   bool mTransformChanged;
@@ -624,7 +630,7 @@ public:
       }
     }
 
-    const gfxMatrix& Matrix()
+    const mozilla::gfx::Matrix& Matrix()
     {
       MOZ_ASSERT(mContext, "mMatrix doesn't contain a useful matrix");
       return mMatrix;
@@ -634,7 +640,7 @@ public:
 
 private:
     gfxContext *mContext;
-    gfxMatrix   mMatrix;
+    mozilla::gfx::Matrix mMatrix;
 };
 
 

@@ -21,7 +21,6 @@
 
 
 
-<!ENTITY okButton.accesskey       "O">
-
-<!ENTITY okButton.title           "OK">
 <!ENTITY panePrivacy.title        "Privacy">
+<!ENTITY okButton.title           "OK">
+<!ENTITY okButton.accesskey       "O">

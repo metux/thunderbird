@@ -6,7 +6,6 @@
 
 #include "mozilla/dom/cache/PrincipalVerifier.h"
 
-#include "mozilla/AppProcessChecker.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/cache/ManagerId.h"
 #include "mozilla/ipc/BackgroundParent.h"
@@ -66,13 +65,14 @@ PrincipalVerifier::RemoveListener(Listener* aListener)
 PrincipalVerifier::PrincipalVerifier(Listener* aListener,
                                      PBackgroundParent* aActor,
                                      const PrincipalInfo& aPrincipalInfo)
-  : mActor(BackgroundParent::GetContentParent(aActor))
+  : Runnable("dom::cache::PrincipalVerifier")
+  , mActor(BackgroundParent::GetContentParent(aActor))
   , mPrincipalInfo(aPrincipalInfo)
-  , mInitiatingThread(NS_GetCurrentThread())
+  , mInitiatingEventTarget(GetCurrentThreadSerialEventTarget())
   , mResult(NS_OK)
 {
   AssertIsOnBackgroundThread();
-  MOZ_DIAGNOSTIC_ASSERT(mInitiatingThread);
+  MOZ_DIAGNOSTIC_ASSERT(mInitiatingEventTarget);
   MOZ_DIAGNOSTIC_ASSERT(aListener);
 
   mListenerList.AppendElement(aListener);
@@ -124,10 +124,8 @@ PrincipalVerifier::VerifyOnMainThread()
     return;
   }
 
-  // We disallow null principal and unknown app IDs on the client side, but
-  // double-check here.
-  if (NS_WARN_IF(principal->GetIsNullPrincipal() ||
-                 principal->GetUnknownAppId())) {
+  // We disallow null principal on the client side, but double-check here.
+  if (NS_WARN_IF(principal->GetIsNullPrincipal())) {
     DispatchToInitiatingThread(NS_ERROR_FAILURE);
     return;
   }
@@ -145,11 +143,6 @@ PrincipalVerifier::VerifyOnMainThread()
     return;
   }
 
-  // Verify that a child process claims to own the app for this principal
-  if (NS_WARN_IF(actor && !AssertAppPrincipal(actor, principal))) {
-    DispatchToInitiatingThread(NS_ERROR_FAILURE);
-    return;
-  }
   actor = nullptr;
 
 #ifdef DEBUG
@@ -211,7 +204,7 @@ PrincipalVerifier::DispatchToInitiatingThread(nsresult aRv)
   // This will result in a new CacheStorage object delaying operations until
   // shutdown completes and the browser goes away.  This is as graceful as
   // we can get here.
-  nsresult rv = mInitiatingThread->Dispatch(this, nsIThread::DISPATCH_NORMAL);
+  nsresult rv = mInitiatingEventTarget->Dispatch(this, nsIThread::DISPATCH_NORMAL);
   if (NS_FAILED(rv)) {
     NS_WARNING("Cache unable to complete principal verification due to shutdown.");
   }

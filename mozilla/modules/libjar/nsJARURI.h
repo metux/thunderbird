@@ -41,7 +41,6 @@ class nsJARURI final : public nsIJARURI,
 public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSIURI
-    NS_DECL_NSIURIWITHQUERY
     NS_DECL_NSIURL
     NS_DECL_NSIJARURI
     NS_DECL_NSISERIALIZABLE
@@ -53,7 +52,7 @@ public:
 
     // nsJARURI
     nsJARURI();
-   
+
     nsresult Init(const char *charsetHint);
     nsresult FormatSpec(const nsACString &entryPath, nsACString &result,
                         bool aIncludeScheme = true);

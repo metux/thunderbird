@@ -62,7 +62,8 @@ var loadListener = function(evt) {
   editor.setSpellcheckUserOverride(true);
   var inlineSpellChecker = editor.getInlineSpellChecker(true);
 
-  SpecialPowers.Cu.import("resource://gre/modules/AsyncSpellCheckTestHelper.jsm")
+  SpecialPowers.Cu.import(
+    "resource://testing-common/AsyncSpellCheckTestHelper.jsm")
   .onSpellCheck(elem, function () {
     var spellchecker = inlineSpellChecker.spellChecker;
     try {
@@ -85,7 +86,7 @@ var loadListener = function(evt) {
       content.src = 'http://mochi.test:8888/tests/editor/composer/test/bug717433_subframe.html?firstload=false';
     } else {
       is(currentDictonary, expected, expected + " expected");
-      content.removeEventListener('load', loadListener, false);
+      content.removeEventListener('load', loadListener);
 
       // Remove the fake en-GB dictionary again, since it's otherwise picked up by later tests.
       script.sendSyncMessage("destroy");
@@ -97,7 +98,7 @@ var loadListener = function(evt) {
   });
 }
 
-content.addEventListener('load', loadListener, false);
+content.addEventListener('load', loadListener);
 
 content.src = 'http://mochi.test:8888/tests/editor/composer/test/bug717433_subframe.html?firstload=true';
 

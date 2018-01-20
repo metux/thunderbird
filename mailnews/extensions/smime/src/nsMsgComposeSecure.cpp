@@ -190,23 +190,22 @@ nsresult nsMsgComposeSecure::GetSMIMEBundleString(const char16_t *name,
 
   NS_ENSURE_TRUE(InitializeSMIMEBundle(), NS_ERROR_FAILURE);
 
-  return mSMIMEBundle->GetStringFromName(name, getter_Copies(outString));
+  return mSMIMEBundle->GetStringFromName(NS_ConvertUTF16toUTF8(name).get(), outString);
 }
 
 nsresult
 nsMsgComposeSecure::
-SMIMEBundleFormatStringFromName(const char16_t *name,
+SMIMEBundleFormatStringFromName(const char *name,
                                 const char16_t **params,
                                 uint32_t numParams,
-                                char16_t **outString)
+                                nsAString& outString)
 {
   NS_ENSURE_ARG_POINTER(name);
 
   if (!InitializeSMIMEBundle())
     return NS_ERROR_FAILURE;
 
-  return mSMIMEBundle->FormatStringFromName(name, params,
-                                            numParams, outString);
+  return mSMIMEBundle->FormatStringFromName(name, params, numParams, outString);
 }
 
 bool nsMsgComposeSecure::InitializeSMIMEBundle()
@@ -243,7 +242,7 @@ void nsMsgComposeSecure::SetError(nsIMsgSendReport *sendReport, const char16_t *
   }
 }
 
-void nsMsgComposeSecure::SetErrorWithParam(nsIMsgSendReport *sendReport, const char16_t *bundle_string, const char *param)
+void nsMsgComposeSecure::SetErrorWithParam(nsIMsgSendReport *sendReport, const char *bundle_string, const char *param)
 {
   if (!sendReport || !bundle_string || !param)
     return;
@@ -263,7 +262,7 @@ void nsMsgComposeSecure::SetErrorWithParam(nsIMsgSendReport *sendReport, const c
   res = SMIMEBundleFormatStringFromName(bundle_string,
                                         params,
                                         1,
-                                        getter_Copies(errorString));
+                                        errorString);
 
   if (NS_SUCCEEDED(res) && !errorString.IsEmpty())
   {
@@ -559,8 +558,8 @@ nsresult nsMsgComposeSecure::MimeInitEncryption(bool aSign, nsIMsgSendReport *se
   if (!sMIMEBundle)
     return NS_ERROR_FAILURE;
 
-  sMIMEBundle->GetStringFromName(u"mime_smimeEncryptedContentDesc",
-                                 getter_Copies(mime_smime_enc_content_desc));
+  sMIMEBundle->GetStringFromName("mime_smimeEncryptedContentDesc",
+                                 mime_smime_enc_content_desc);
   NS_ConvertUTF16toUTF8 enc_content_desc_utf8(mime_smime_enc_content_desc);
 
   nsCOMPtr<nsIMimeConverter> mimeConverter =
@@ -675,8 +674,8 @@ nsresult nsMsgComposeSecure::MimeFinishMultipartSigned (bool aOuter, nsIMsgSendR
   if (!sMIMEBundle)
     return NS_ERROR_FAILURE;
 
-  sMIMEBundle->GetStringFromName(u"mime_smimeSignatureContentDesc",
-                                 getter_Copies(mime_smime_sig_content_desc));
+  sMIMEBundle->GetStringFromName("mime_smimeSignatureContentDesc",
+                                 mime_smime_sig_content_desc);
 
   NS_ConvertUTF16toUTF8 sig_content_desc_utf8(mime_smime_sig_content_desc);
 
@@ -886,11 +885,6 @@ nsresult nsMsgComposeSecure::MimeCryptoHackCerts(const char *aRecipients,
    - "signing_cert_dbkey"/"encryption_cert_dbkey": a Base64 encoded blob
      specifying an nsIX509Cert dbKey (represents serial number
      and issuer DN, which is considered to be unique for X.509 certificates)
-
-   When retrieving the prefs, we try (in this order):
-   1) *_cert_dbkey, if available
-   2) *_cert_name (for maintaining backwards compatibility with preference
-      attributes written by earlier versions)
   */
 
   RefPtr<SharedCertVerifier> certVerifier(GetDefaultCertVerifier());
@@ -898,9 +892,9 @@ nsresult nsMsgComposeSecure::MimeCryptoHackCerts(const char *aRecipients,
 
   UniqueCERTCertList builtChain;
   if (!mEncryptionCertDBKey.IsEmpty()) {
-    certdb->FindCertByDBKey(mEncryptionCertDBKey.get(),
-                            getter_AddRefs(mSelfEncryptionCert));
-    if (mSelfEncryptionCert &&
+    res = certdb->FindCertByDBKey(mEncryptionCertDBKey,
+                                  getter_AddRefs(mSelfEncryptionCert));
+    if (NS_SUCCEEDED(res) && mSelfEncryptionCert &&
         (certVerifier->VerifyCert(mSelfEncryptionCert->GetCert(),
                                   certificateUsageEmailRecipient,
                                   mozilla::pkix::Now(),
@@ -913,16 +907,12 @@ nsresult nsMsgComposeSecure::MimeCryptoHackCerts(const char *aRecipients,
                                    mEncryptionCertDBKey);
     }
   }
-  if (!mSelfEncryptionCert) {
-    certdb->FindEmailEncryptionCert(mEncryptionCertName,
-                                    getter_AddRefs(mSelfEncryptionCert));
-  }
 
   // same procedure for the signing cert
   if (!mSigningCertDBKey.IsEmpty()) {
-    certdb->FindCertByDBKey(mSigningCertDBKey.get(),
-                            getter_AddRefs(mSelfSigningCert));
-    if (mSelfSigningCert &&
+    res = certdb->FindCertByDBKey(mSigningCertDBKey,
+                                  getter_AddRefs(mSelfSigningCert));
+    if (NS_SUCCEEDED(res) && mSelfSigningCert &&
         (certVerifier->VerifyCert(mSelfSigningCert->GetCert(),
                                   certificateUsageEmailSigner,
                                   mozilla::pkix::Now(),
@@ -933,10 +923,6 @@ nsresult nsMsgComposeSecure::MimeCryptoHackCerts(const char *aRecipients,
       mSigningCertDBKey.Truncate();
       aIdentity->SetCharAttribute("signing_cert_dbkey", mSigningCertDBKey);
     }
-  }
-  if (!mSelfSigningCert) {
-    certdb->FindEmailSigningCert(mSigningCertName,
-                                 getter_AddRefs(mSelfSigningCert));
   }
 
   // must have both the signing and encryption certs to sign
@@ -977,13 +963,13 @@ nsresult nsMsgComposeSecure::MimeCryptoHackCerts(const char *aRecipients,
       nsCString mailbox_lowercase;
       ToLowerCase(mailboxes[i], mailbox_lowercase);
       nsCOMPtr<nsIX509Cert> cert;
-      res = certdb->FindCertByEmailAddress(mailbox_lowercase.get(),
+      res = certdb->FindCertByEmailAddress(mailbox_lowercase,
                                            getter_AddRefs(cert));
       if (NS_FAILED(res)) {
         // Failure to find a valid encryption cert is fatal.
         // Here I assume that mailbox is ascii rather than utf8.
         SetErrorWithParam(sendReport,
-                          u"MissingRecipientEncryptionCert",
+                          "MissingRecipientEncryptionCert",
                           mailboxes[i].get());
 
         return res;
@@ -1002,11 +988,11 @@ nsresult nsMsgComposeSecure::MimeCryptoHackCerts(const char *aRecipients,
         already_added_self_cert = true;
       }
 
-      mCerts->AppendElement(cert, false);
+      mCerts->AppendElement(cert);
     }
 
     if (!already_added_self_cert) {
-      mCerts->AppendElement(mSelfEncryptionCert, false);
+      mCerts->AppendElement(mSelfEncryptionCert);
     }
   }
   return res;

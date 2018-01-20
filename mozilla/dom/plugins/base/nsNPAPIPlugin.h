@@ -56,8 +56,6 @@ public:
   void PluginCrashed(const nsAString& pluginDumpID,
                      const nsAString& browserDumpID);
 
-  static bool RunPluginOOP(const nsPluginTag *aPluginTag);
-
   nsresult Shutdown();
 
   static nsresult RetainStream(NPStream *pstream, nsISupports **aRetainedPeer);
@@ -219,12 +217,6 @@ _pushpopupsenabledstate(NPP npp, NPBool enabled);
 void
 _poppopupsenabledstate(NPP npp);
 
-typedef void(*PluginThreadCallback)(void *);
-
-void
-_pluginthreadasynccall(NPP instance, PluginThreadCallback func,
-                       void *userData);
-
 NPError
 _getvalueforurl(NPP instance, NPNURLVariable variable, const char *url,
                 char **value, uint32_t *len);
@@ -232,12 +224,6 @@ _getvalueforurl(NPP instance, NPNURLVariable variable, const char *url,
 NPError
 _setvalueforurl(NPP instance, NPNURLVariable variable, const char *url,
                 const char *value, uint32_t len);
-
-NPError
-_getauthenticationinfo(NPP instance, const char *protocol, const char *host,
-                       int32_t port, const char *scheme, const char *realm,
-                       char **username, uint32_t *ulen, char **password,
-                       uint32_t *plen);
 
 typedef void(*PluginTimerFunc)(NPP npp, uint32_t timerID);
 
@@ -276,15 +262,6 @@ _posturlnotify(NPP npp, const char* relativeURL, const char *target,
 NPError
 _posturl(NPP npp, const char* relativeURL, const char *target, uint32_t len,
             const char *buf, NPBool file);
-
-NPError
-_newstream(NPP npp, NPMIMEType type, const char* window, NPStream** pstream);
-
-int32_t
-_write(NPP npp, NPStream *pstream, int32_t len, void *buffer);
-
-NPError
-_destroystream(NPP npp, NPStream *pstream, NPError reason);
 
 void
 _status(NPP npp, const char *message);
@@ -341,22 +318,6 @@ PeekException();
 
 void
 PopException();
-
-void
-OnPluginDestroy(NPP instance);
-
-void
-OnShutdown();
-
-/**
- * within a lexical scope, locks and unlocks the mutex used to
- * serialize modifications to plugin async callback state.
- */
-struct MOZ_STACK_CLASS AsyncCallbackAutoLock
-{
-  AsyncCallbackAutoLock();
-  ~AsyncCallbackAutoLock();
-};
 
 class NPPStack
 {

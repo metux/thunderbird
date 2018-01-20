@@ -8,7 +8,7 @@
 #include "nsIDocument.h"
 #include "mozilla/Sprintf.h"
 #include "nsGlobalWindow.h"
-#include "ScriptSettings.h"
+#include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventListenerManager.h"
@@ -43,34 +43,34 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(DOMEventTargetHelper)
     NS_IMPL_CYCLE_COLLECTION_DESCRIBE(DOMEventTargetHelper, tmp->mRefCnt.get())
   }
 
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mListenerManager)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMEventTargetHelper)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mListenerManager)
+  tmp->MaybeDontKeepAlive();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(DOMEventTargetHelper)
-  if (tmp->IsBlack() || tmp->IsCertainlyAliveForCC()) {
+  bool hasLiveWrapper = tmp->HasKnownLiveWrapper();
+  if (hasLiveWrapper || tmp->IsCertainlyAliveForCC()) {
     if (tmp->mListenerManager) {
       tmp->mListenerManager->MarkForCC();
     }
-    if (!tmp->IsBlack() && tmp->PreservingWrapper()) {
-      // This marks the wrapper black.
-      tmp->GetWrapper();
+    if (!hasLiveWrapper && tmp->PreservingWrapper()) {
+      tmp->MarkWrapperLive();
     }
     return true;
   }
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(DOMEventTargetHelper)
-  return tmp->IsBlackAndDoesNotNeedTracing(tmp);
+  return tmp->HasKnownLiveWrapperAndDoesNotNeedTracing(tmp);
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(DOMEventTargetHelper)
-  return tmp->IsBlack();
+  return tmp->HasKnownLiveWrapper();
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DOMEventTargetHelper)
@@ -90,7 +90,7 @@ NS_IMPL_DOMTARGET_DEFAULTS(DOMEventTargetHelper)
 DOMEventTargetHelper::~DOMEventTargetHelper()
 {
   if (nsPIDOMWindowInner* owner = GetOwner()) {
-    nsGlobalWindow::Cast(owner)->RemoveEventTargetObject(this);
+    nsGlobalWindowInner::Cast(owner)->RemoveEventTargetObject(this);
   }
   if (mListenerManager) {
     mListenerManager->Disconnect();
@@ -111,7 +111,7 @@ DOMEventTargetHelper::BindToOwner(nsIGlobalObject* aOwner)
   nsCOMPtr<nsIGlobalObject> parentObject = do_QueryReferent(mParentObject);
   if (parentObject) {
     if (mOwnerWindow) {
-      nsGlobalWindow::Cast(mOwnerWindow)->RemoveEventTargetObject(this);
+      nsGlobalWindowInner::Cast(mOwnerWindow)->RemoveEventTargetObject(this);
       mOwnerWindow = nullptr;
     }
     mParentObject = nullptr;
@@ -124,7 +124,7 @@ DOMEventTargetHelper::BindToOwner(nsIGlobalObject* aOwner)
     mOwnerWindow = nsCOMPtr<nsPIDOMWindowInner>(do_QueryInterface(aOwner)).get();
     if (mOwnerWindow) {
       mHasOrHasHadOwnerWindow = true;
-      nsGlobalWindow::Cast(mOwnerWindow)->AddEventTargetObject(this);
+      nsGlobalWindowInner::Cast(mOwnerWindow)->AddEventTargetObject(this);
     }
   }
 }
@@ -133,7 +133,7 @@ void
 DOMEventTargetHelper::BindToOwner(DOMEventTargetHelper* aOther)
 {
   if (mOwnerWindow) {
-    nsGlobalWindow::Cast(mOwnerWindow)->RemoveEventTargetObject(this);
+    nsGlobalWindowInner::Cast(mOwnerWindow)->RemoveEventTargetObject(this);
     mOwnerWindow = nullptr;
     mParentObject = nullptr;
     mHasOrHasHadOwnerWindow = false;
@@ -147,7 +147,7 @@ DOMEventTargetHelper::BindToOwner(DOMEventTargetHelper* aOther)
       mOwnerWindow = nsCOMPtr<nsPIDOMWindowInner>(do_QueryInterface(aOther->GetParentObject())).get();
       if (mOwnerWindow) {
         mHasOrHasHadOwnerWindow = true;
-        nsGlobalWindow::Cast(mOwnerWindow)->AddEventTargetObject(this);
+        nsGlobalWindowInner::Cast(mOwnerWindow)->AddEventTargetObject(this);
       }
     }
   }
@@ -163,6 +163,8 @@ DOMEventTargetHelper::DisconnectFromOwner()
     mListenerManager->Disconnect();
     mListenerManager = nullptr;
   }
+
+  MaybeDontKeepAlive();
 }
 
 nsPIDOMWindowInner*
@@ -302,34 +304,7 @@ DOMEventTargetHelper::DispatchTrustedEvent(nsIDOMEvent* event)
 }
 
 nsresult
-DOMEventTargetHelper::SetEventHandler(nsIAtom* aType,
-                                      JSContext* aCx,
-                                      const JS::Value& aValue)
-{
-  RefPtr<EventHandlerNonNull> handler;
-  JS::Rooted<JSObject*> callable(aCx);
-  if (aValue.isObject() && JS::IsCallable(callable = &aValue.toObject())) {
-    handler = new EventHandlerNonNull(aCx, callable, dom::GetIncumbentGlobal());
-  }
-  SetEventHandler(aType, EmptyString(), handler);
-  return NS_OK;
-}
-
-void
-DOMEventTargetHelper::GetEventHandler(nsIAtom* aType,
-                                      JSContext* aCx,
-                                      JS::Value* aValue)
-{
-  EventHandlerNonNull* handler = GetEventHandler(aType, EmptyString());
-  if (handler) {
-    *aValue = JS::ObjectValue(*handler->Callable());
-  } else {
-    *aValue = JS::NullValue();
-  }
-}
-
-nsresult
-DOMEventTargetHelper::PreHandleEvent(EventChainPreVisitor& aVisitor)
+DOMEventTargetHelper::GetEventTargetParent(EventChainPreVisitor& aVisitor)
 {
   aVisitor.mCanHandle = true;
   aVisitor.mParentTarget = nullptr;
@@ -340,16 +315,6 @@ nsresult
 DOMEventTargetHelper::PostHandleEvent(EventChainPostVisitor& aVisitor)
 {
   return NS_OK;
-}
-
-nsresult
-DOMEventTargetHelper::DispatchDOMEvent(WidgetEvent* aEvent,
-                                       nsIDOMEvent* aDOMEvent,
-                                       nsPresContext* aPresContext,
-                                       nsEventStatus* aEventStatus)
-{
-  return EventDispatcher::DispatchDOMEvent(this, aEvent, aDOMEvent,
-                                           aPresContext, aEventStatus);
 }
 
 EventListenerManager*
@@ -376,7 +341,7 @@ DOMEventTargetHelper::GetContextForEventHandlers(nsresult* aRv)
     return nullptr;
   }
   nsPIDOMWindowInner* owner = GetOwner();
-  return owner ? nsGlobalWindow::Cast(owner)->GetContextInternal()
+  return owner ? nsGlobalWindowInner::Cast(owner)->GetContextInternal()
                : nullptr;
 }
 
@@ -385,7 +350,7 @@ DOMEventTargetHelper::WantsUntrusted(bool* aRetVal)
 {
   nsresult rv = CheckInnerWindowCorrectness();
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   nsCOMPtr<nsIDocument> doc = GetDocumentIfCurrent();
   // We can let listeners on workers to always handle all the events.
   *aRetVal = (doc && !nsContentUtils::IsChromeDoc(doc)) || !NS_IsMainThread();
@@ -393,17 +358,107 @@ DOMEventTargetHelper::WantsUntrusted(bool* aRetVal)
 }
 
 void
-DOMEventTargetHelper::EventListenerAdded(nsIAtom* aType)
+DOMEventTargetHelper::EventListenerAdded(nsAtom* aType)
 {
-  ErrorResult rv;
+  IgnoredErrorResult rv;
   EventListenerWasAdded(Substring(nsDependentAtomString(aType), 2), rv);
+  MaybeUpdateKeepAlive();
 }
 
 void
-DOMEventTargetHelper::EventListenerRemoved(nsIAtom* aType)
+DOMEventTargetHelper::EventListenerAdded(const nsAString& aType)
 {
-  ErrorResult rv;
+  IgnoredErrorResult rv;
+  EventListenerWasAdded(aType, rv);
+  MaybeUpdateKeepAlive();
+}
+
+void
+DOMEventTargetHelper::EventListenerRemoved(nsAtom* aType)
+{
+  IgnoredErrorResult rv;
   EventListenerWasRemoved(Substring(nsDependentAtomString(aType), 2), rv);
+  MaybeUpdateKeepAlive();
+}
+
+void
+DOMEventTargetHelper::EventListenerRemoved(const nsAString& aType)
+{
+  IgnoredErrorResult rv;
+  EventListenerWasRemoved(aType, rv);
+  MaybeUpdateKeepAlive();
+}
+
+void
+DOMEventTargetHelper::KeepAliveIfHasListenersFor(const nsAString& aType)
+{
+  mKeepingAliveTypes.mStrings.AppendElement(aType);
+  MaybeUpdateKeepAlive();
+}
+
+void
+DOMEventTargetHelper::KeepAliveIfHasListenersFor(nsAtom* aType)
+{
+  mKeepingAliveTypes.mAtoms.AppendElement(aType);
+  MaybeUpdateKeepAlive();
+}
+
+void
+DOMEventTargetHelper::IgnoreKeepAliveIfHasListenersFor(const nsAString& aType)
+{
+  mKeepingAliveTypes.mStrings.RemoveElement(aType);
+  MaybeUpdateKeepAlive();
+}
+
+void
+DOMEventTargetHelper::IgnoreKeepAliveIfHasListenersFor(nsAtom* aType)
+{
+  mKeepingAliveTypes.mAtoms.RemoveElement(aType);
+  MaybeUpdateKeepAlive();
+}
+
+void
+DOMEventTargetHelper::MaybeUpdateKeepAlive()
+{
+  bool shouldBeKeptAlive = false;
+
+  if (!mKeepingAliveTypes.mAtoms.IsEmpty()) {
+    for (uint32_t i = 0; i < mKeepingAliveTypes.mAtoms.Length(); ++i) {
+      if (HasListenersFor(mKeepingAliveTypes.mAtoms[i])) {
+        shouldBeKeptAlive = true;
+        break;
+      }
+    }
+  }
+
+  if (!shouldBeKeptAlive && !mKeepingAliveTypes.mStrings.IsEmpty()) {
+    for (uint32_t i = 0; i < mKeepingAliveTypes.mStrings.Length(); ++i) {
+      if (HasListenersFor(mKeepingAliveTypes.mStrings[i])) {
+        shouldBeKeptAlive = true;
+        break;
+      }
+    }
+  }
+
+  if (shouldBeKeptAlive == mIsKeptAlive) {
+    return;
+  }
+
+  mIsKeptAlive = shouldBeKeptAlive;
+  if (mIsKeptAlive) {
+    AddRef();
+  } else {
+    Release();
+  }
+}
+
+void
+DOMEventTargetHelper::MaybeDontKeepAlive()
+{
+  if (mIsKeptAlive) {
+    mIsKeptAlive = false;
+    Release();
+  }
 }
 
 } // namespace mozilla

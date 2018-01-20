@@ -5,7 +5,7 @@
 
 /* import-globals-from ../includes.js */
 
-const { debounce } = require("sdk/lang/functional");
+const { debounce } = require("devtools/shared/debounce");
 const flags = require("devtools/shared/flags");
 
 // Globals for d3 stuff
@@ -50,7 +50,7 @@ var ContextView = {
     this._onEvent = this._onEvent.bind(this);
 
     this.draw = debounce(this.draw.bind(this), GRAPH_DEBOUNCE_TIMER);
-    $("#graph-target").addEventListener("click", this._onGraphClick, false);
+    $("#graph-target").addEventListener("click", this._onGraphClick);
 
     window.on(EVENTS.THEME_CHANGE, this._onThemeChange);
     window.on(EVENTS.START_CONTEXT, this._onStartContext);
@@ -66,7 +66,7 @@ var ContextView = {
     if (this._zoomBinding) {
       this._zoomBinding.on("zoom", null);
     }
-    $("#graph-target").removeEventListener("click", this._onGraphClick, false);
+    $("#graph-target").removeEventListener("click", this._onGraphClick);
 
     window.off(EVENTS.THEME_CHANGE, this._onThemeChange);
     window.off(EVENTS.START_CONTEXT, this._onStartContext);

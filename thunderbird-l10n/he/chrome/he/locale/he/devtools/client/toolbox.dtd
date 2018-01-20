@@ -10,19 +10,6 @@
 <!ENTITY toggleToolboxF12.keycode          "VK_F12">
 <!ENTITY toggleToolboxF12.keytext          "F12">
 
-<!ENTITY toolboxCloseButton.tooltip    "סגירת כלי הפיתוח">
-
-<!-- LOCALIZATION NOTE (toolboxFramesButton): This is the label for
-  -  the iframes menu list that appears only when the document has some.
-  -  It allows you to switch the context of the whole toolbox. -->
-<!ENTITY toolboxFramesTooltip          "בחירת iframe כמסמך יעד נוכחי">
-
-<!-- LOCALIZATION NOTE (toolboxNoAutoHideButton): This is the label for
-  -  the button to force the popups/panels to stay visible on blur.
-  -  This is only visible in the browser toolbox as it is meant for
-  -  addon developers and Firefox contributors. -->
-<!ENTITY toolboxNoAutoHideTooltip      "נטרול הסתרה אוטומטית של חלונות קופצים">
-
 <!-- LOCALIZATION NOTE (browserToolboxErrorMessage): This is the label
   -  shown next to error details when the Browser Toolbox is unable to open. -->
 <!ENTITY browserToolboxErrorMessage          "שגיאה בפתיחת ערכת הכלים של הדפדפן:">
@@ -39,10 +26,13 @@
   -  for the checkbox option to show user agent styles in the Inspector
   -  panel. -->
 <!ENTITY options.showUserAgentStyles.label "הצגת סגנונות דפדפן">
+<!ENTITY options.showUserAgentStyles.tooltip "הפעלת אפשרות זו תציג את סגנונות בררת המחדל שנטענים על ידי הדפדפן.">
 
 <!-- LOCALIZATION NOTE (options.collapseAttrs.label): This is the label
   -  for the checkbox option to enable collapse attributes in the Inspector
   -  panel. -->
+<!ENTITY options.collapseAttrs.label "חיתוך רכיבי DOM">
+<!ENTITY options.collapseAttrs.tooltip "קיצור תכונות ארוכות במפקח">
 
 <!-- LOCALIZATION NOTE (options.defaultColorUnit.label): This is the label for a
   -  dropdown list that controls the default color unit used in the inspector.
@@ -52,9 +42,11 @@
 <!-- LOCALIZATION NOTE (options.defaultColorUnit.accesskey): This is the access
   -  key for a dropdown list that controls the default color unit used in the
   -  inspector. This is visible in the options panel. -->
+<!ENTITY options.defaultColorUnit.accesskey "י">
 
 <!-- LOCALIZATION NOTE (options.defaultColorUnit.authored): This is used in the
   -  'Default color unit' dropdown list and is visible in the options panel. -->
+<!ENTITY options.defaultColorUnit.authored "כפי שהוגדר מראש">
 
 <!-- LOCALIZATION NOTE (options.defaultColorUnit.hex): This is used in the
   -  'Default color unit' dropdown list and is visible in the options panel. -->
@@ -62,9 +54,11 @@
 
 <!-- LOCALIZATION NOTE (options.defaultColorUnit.hsl): This is used in the
   -  'Default color unit' dropdown list and is visible in the options panel. -->
+<!ENTITY options.defaultColorUnit.hsl "HSL(A)">
 
 <!-- LOCALIZATION NOTE (options.defaultColorUnit.rgb): This is used in the
   -  'Default color unit' dropdown list and is visible in the options panel. -->
+<!ENTITY options.defaultColorUnit.rgb "RGB(A)">
 
 <!-- LOCALIZATION NOTE (options.defaultColorUnit.name): This is used in
   -  the 'Default color unit' dropdown list and is visible in the options panel.
@@ -85,10 +79,6 @@
   -  boolean preference in about:config, in the options panel. -->
 <!ENTITY options.enableRemote.label3    "הפעלת מנפה שגיאות מרוחק">
 <!ENTITY options.enableRemote.tooltip2  "הפעלת אפשרות זו תאפשר לכלי המפתחים לנפות שגיאות במערכת מרוחקת כגון Firefox OS">
-
-<!-- LOCALIZATION NOTE (options.enableWorkers.label): This is the label for the
-  -  checkbox that toggles worker debugging, i.e. devtools.debugger.workers
-  -  boolean preference in about:config, in the options panel. -->
 
 <!-- LOCALIZATION NOTE (options.disableJavaScript.label,
   -  options.disableJavaScript.tooltip): This is the options panel label and
@@ -134,6 +124,7 @@
 <!-- LOCALIZATION NOTE (options.usedeveditiontheme.*) Options under the
   -  toolbox for enabling and disabling the Developer Edition browser theme. -->
 <!ENTITY options.usedeveditiontheme.label   "שימוש בערכת הנושא של Developer Edition">
+<!ENTITY options.usedeveditiontheme.tooltip "ניטרול או הפעלת ערכת הנושא של גרסת המפתחים.">
 
 <!-- LOCALIZATION NOTE (options.webconsole.label): This is the label for the
   -  heading of the group of Web Console preferences in the options panel. -->
@@ -149,34 +140,34 @@
 <!ENTITY options.debugger.label            "מנפה שגיאות">
 
 <!-- LOCALIZATION NOTE (options.sourceMap.label): This is the
-   - label for the checkbox that toggles source maps in the Debugger -->
+   - label for the checkbox that toggles source maps in all tools -->
+<!ENTITY options.sourceMaps.label      "הפעלת מפות מקור">
+<!ENTITY options.sourceMaps.tooltip1   "אם אפשרות זו תופעל המקורות ימופו בכלים.">
 
 <!-- LOCALIZATION NOTE (options.styleeditor.label): This is the label for the
   -  heading of the group of Style Editor preferences in the options
   -  panel. -->
 <!ENTITY options.styleeditor.label            "עורך סגנון">
 
-<!-- LOCALIZATION NOTE (options.stylesheetSourceMaps.label): This is the
-   - label for the checkbox that toggles showing original sources in the Style Editor -->
-<!ENTITY options.stylesheetSourceMaps.label      "הצגת מקור">
-<!ENTITY options.stylesheetSourceMaps.tooltip    "הצגת קובצי המקור (למשל קובצי Sass) בעורך הסגנון ובמפקח">
-
 <!-- LOCALIZATION NOTE (options.stylesheetAutocompletion.label): This is the
    - label for the checkbox that toggles autocompletion of css in the Style Editor -->
 <!ENTITY options.stylesheetAutocompletion.label      "השלמה אוטומטית של CSS">
 <!ENTITY options.stylesheetAutocompletion.tooltip    "השלמה אוטומטית של מאפייני CSS, ערכים ובוררים בעורך הסגנון תוך כדי הקלדה">
 
-<!-- LOCALIZATION NOTE (options.commonprefs): This is the label for the heading
-      of all preferences that affect both the Web Console and the Network
-      Monitor -->
-<!ENTITY options.commonPrefs.label           "העדפות כלליות">
+<!-- LOCALIZATION NOTE (options.screenshot.label): This is the label for the
+   -  heading of the group of Screenshot preferences in the options
+   -  panel. -->
+<!ENTITY options.screenshot.label            "התנהגות צילום המסך">
 
-<!-- LOCALIZATION NOTE (options.enablePersistentLogs.label): This is the
-  -  label for the checkbox that toggles persistent logs in the Web Console and
-  -  network monitor,  i.e. devtools.webconsole.persistlog a boolean preference in
-  -  about:config, in the options panel. -->
-<!ENTITY options.enablePersistentLogs.label    "לאפשר רישום קבוע">
-<!ENTITY options.enablePersistentLogs.tooltip  "אפשרות זו תגרום למסוף הרשת ולצג הרשת לא למחוק את הפלט בכל פעם שהדפדפן עובר לדף חדש">
+<!-- LOCALIZATION NOTE (options.screenshot.clipboard.label): This is the
+   - label for the checkbox that toggles screenshot to clipboard feature. -->
+<!ENTITY options.screenshot.clipboard.label      "צילום מסך ללוח גזירים">
+<!ENTITY options.screenshot.clipboard.tooltip    "שמירת צילום המסך ישירות ללוח הגזירים">
+
+<!-- LOCALIZATION NOTE (options.screenshot.audio.label): This is the
+   - label for the checkbox that toggles the camera shutter audio for screenshot tool -->
+<!ENTITY options.screenshot.audio.label      "השמעת צליל צמצם המצלמה">
+<!ENTITY options.screenshot.audio.tooltip    "הפעלת צליל המצלמה בעת צילום המסך">
 
 <!-- LOCALIZATION NOTE (options.showPlatformData.label): This is the
   -  label for the checkbox that toggles the display of the platform data in the,
@@ -199,54 +190,13 @@
 <!ENTITY options.sourceeditor.tabsize.accesskey         "ג">
 <!ENTITY options.sourceeditor.keybinding.label          "קיצורי מקשים">
 <!ENTITY options.sourceeditor.keybinding.accesskey      "ק">
-<!ENTITY options.sourceeditor.keybinding.default.label  "ברירת מחדל">
+<!ENTITY options.sourceeditor.keybinding.default.label  "בררת מחדל">
 
-
-<!-- LOCALIZATION NOTE (options.collapseAttrs.label): This is the label
-  -  for the checkbox option to enable collapse attributes in the Inspector
-  -  panel. -->
-<!ENTITY options.collapseAttrs.label "Truncate DOM attributes">
-<!ENTITY options.collapseAttrs.tooltip "Truncate long attributes in the inspector">
-
-<!-- LOCALIZATION NOTE (options.defaultColorUnit.accesskey): This is the access
-  -  key for a dropdown list that controls the default color unit used in the
-  -  inspector. This is visible in the options panel. -->
-<!ENTITY options.defaultColorUnit.accesskey "U">
-
-<!-- LOCALIZATION NOTE (options.defaultColorUnit.authored): This is used in the
-  -  'Default color unit' dropdown list and is visible in the options panel. -->
-<!ENTITY options.defaultColorUnit.authored "As Authored">
-
-<!-- LOCALIZATION NOTE (options.defaultColorUnit.hsl): This is used in the
-  -  'Default color unit' dropdown list and is visible in the options panel. -->
-<!ENTITY options.defaultColorUnit.hsl "HSL(A)">
-
-<!-- LOCALIZATION NOTE (options.defaultColorUnit.rgb): This is used in the
-  -  'Default color unit' dropdown list and is visible in the options panel. -->
-<!ENTITY options.defaultColorUnit.rgb "RGB(A)">
-<!ENTITY options.disableHTTPCache.tooltip   "Turning this option on will disable the HTTP cache for all tabs that have the toolbox open. Service Workers are not affected by this option.">
-
-<!-- LOCALIZATION NOTE (options.enableChrome.label4): This is the label for the
-  -  checkbox that toggles chrome debugging, i.e. devtools.chrome.enabled
-  -  boolean preference in about:config, in the options panel. -->
 <!ENTITY options.enableChrome.label5    "Enable browser chrome and add-on debugging toolboxes">
 <!ENTITY options.enableChrome.tooltip3  "Turning this option on will allow you to use various developer tools in browser context (via Tools > Web Developer > Browser Toolbox) and debug add-ons from the Add-ons Manager">
 
-<!-- LOCALIZATION NOTE (options.enableServiceWorkersHTTP.label,
-  -  options.enableServiceWorkersHTTP.tooltip): This is the options panel label and
-  -  tooltip for the checkbox that toggles the service workers testing features on or off. This option enables service workers over HTTP. -->
+<!ENTITY options.disableHTTPCache.tooltip   "Turning this option on will disable the HTTP cache for all tabs that have the toolbox open. Service Workers are not affected by this option.">
+
 <!ENTITY options.enableServiceWorkersHTTP.label     "Enable Service Workers over HTTP (when toolbox is open)">
 <!ENTITY options.enableServiceWorkersHTTP.tooltip   "Turning this option on will enable the service workers over HTTP for all tabs that have the toolbox open.">
 
-<!-- LOCALIZATION NOTE (options.enableWorkers.label): This is the label for the
-  -  checkbox that toggles worker debugging, i.e. devtools.debugger.workers
-  -  boolean preference in about:config, in the options panel. -->
-<!ENTITY options.enableWorkers.label    "Enable worker debugging (in development)">
-<!ENTITY options.enableWorkers.tooltip  "Turning this option on will allow the developer tools to debug workers">
-<!ENTITY options.showUserAgentStyles.tooltip "Turning this on will show default styles that are loaded by the browser.">
-
-<!-- LOCALIZATION NOTE (options.sourceMap.label): This is the
-   - label for the checkbox that toggles source maps in the Debugger -->
-<!ENTITY options.sourceMaps.label      "Enable Source Maps">
-<!ENTITY options.sourceMaps.tooltip    "If you enable this option sources will be mapped in the Debugger and Console.">
-<!ENTITY options.usedeveditiontheme.tooltip "Toggles the Developer Edition browser theme.">

@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* exported initialize, destroy, Promise */
+
 "use strict";
 
-const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
+const { utils: Cu } = Components;
 const BrowserLoaderModule = {};
 Cu.import("resource://devtools/client/shared/browser-loader.js", BrowserLoaderModule);
 const { require } = BrowserLoaderModule.BrowserLoader({
@@ -18,21 +20,24 @@ const { Provider } = require("devtools/client/shared/vendor/react-redux");
 const App = createFactory(require("devtools/client/memory/app"));
 const Store = require("devtools/client/memory/store");
 const { assert } = require("devtools/shared/DevToolsUtils");
+const Promise = require("Promise");
 
 /**
- * The current target, toolbox, MemoryFront, and HeapAnalysesClient, set by this tool's host.
+ * The current target, toolbox, MemoryFront, and HeapAnalysesClient,
+ * set by this tool's host.
  */
-var gToolbox, gTarget, gFront, gHeapAnalysesClient;
+var gToolbox, gFront, gHeapAnalysesClient;
 
 /**
  * Variables set by `initialize()`
  */
-var gStore, gRoot, gApp, gProvider, unsubscribe, isHighlighted, telemetry;
+var gStore, gRoot, gApp, gProvider, unsubscribe, isHighlighted;
 
 var initialize = Task.async(function* () {
   gRoot = document.querySelector("#app");
   gStore = Store();
-  gApp = createElement(App, { toolbox: gToolbox, front: gFront, heapWorker: gHeapAnalysesClient });
+  gApp = createElement(App,
+    { toolbox: gToolbox, front: gFront, heapWorker: gHeapAnalysesClient });
   gProvider = createElement(Provider, { store: gStore }, gApp);
   ReactDOM.render(gProvider, gRoot);
   unsubscribe = gStore.subscribe(onStateChange);
@@ -44,7 +49,7 @@ var destroy = Task.async(function* () {
 
   unsubscribe();
 
-  gStore, gRoot, gApp, gProvider, unsubscribe, isHighlighted;
+  gStore = gRoot = gApp = gProvider = unsubscribe = isHighlighted = null;
 });
 
 /**

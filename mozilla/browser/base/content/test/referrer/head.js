@@ -1,7 +1,5 @@
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-  "resource://gre/modules/Promise.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "BrowserTestUtils",
   "resource://testing-common/BrowserTestUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ContentTask",
@@ -12,8 +10,6 @@ const REFERRER_POLICYSERVER_URL =
   "test1.example.com" + REFERRER_URL_BASE + "file_referrer_policyserver.sjs";
 const REFERRER_POLICYSERVER_URL_ATTRIBUTE =
   "test1.example.com" + REFERRER_URL_BASE + "file_referrer_policyserver_attr.sjs";
-
-SpecialPowers.pushPrefEnv({"set": [['network.http.enablePerElementReferrer', true]]});
 
 var gTestWindow = null;
 var rounds = 0;
@@ -82,6 +78,23 @@ function getReferrerTest(aTestNumber) {
 }
 
 /**
+ * Returns shimmed test object for a given test number.
+ *
+ * @param aTestNumber The test number - 0, 1, 2, ...
+ * @return The test object with result hard-coded to "",
+ *          or undefined if the number is out of range.
+ */
+function getRemovedReferrerTest(aTestNumber) {
+  let testCase = _referrerTests[aTestNumber];
+  if (testCase) {
+    // We want all the referrer tests to fail!
+    testCase.result = "";
+  }
+
+  return testCase;
+}
+
+/**
  * Returns a brief summary of the test, for logging.
  * @param aTestNumber The test number - 0, 1, 2...
  * @return The test description.
@@ -129,7 +142,7 @@ function delayedStartupFinished(aWindow) {
         Services.obs.removeObserver(observer, aTopic);
         resolve();
       }
-    }, "browser-delayed-startup-finished", false);
+    }, "browser-delayed-startup-finished");
   });
 }
 

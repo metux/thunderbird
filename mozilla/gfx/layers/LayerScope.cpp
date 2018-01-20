@@ -8,7 +8,6 @@
 #include "LayerScope.h"
 
 #include "nsAppRunner.h"
-#include "Composer2D.h"
 #include "Effects.h"
 #include "mozilla/EndianUtils.h"
 #include "mozilla/MathAlgorithms.h"
@@ -345,9 +344,10 @@ private:
     class CreateServerSocketRunnable : public Runnable
     {
     public:
-        explicit CreateServerSocketRunnable(LayerScopeManager *aLayerScopeManager)
-            : mLayerScopeManager(aLayerScopeManager)
-        {
+      explicit CreateServerSocketRunnable(LayerScopeManager* aLayerScopeManager)
+        : Runnable("layers::LayerScopeManager::CreateServerSocketRunnable")
+        , mLayerScopeManager(aLayerScopeManager)
+      {
         }
         NS_IMETHOD Run() override {
             mLayerScopeManager->mWebSocketManager =
@@ -376,8 +376,8 @@ static void DumpRect(T* aPacketRect, const Rect& aRect)
 {
     aPacketRect->set_x(aRect.x);
     aPacketRect->set_y(aRect.y);
-    aPacketRect->set_w(aRect.width);
-    aPacketRect->set_h(aRect.height);
+    aPacketRect->set_w(aRect.Width());
+    aPacketRect->set_h(aRect.Height());
 }
 
 static void DumpFilter(TexturePacket* aTexturePacket,
@@ -503,15 +503,16 @@ private:
         tp->set_ismask(mIsMask);
 
         if (aImage) {
+            DataSourceSurface::ScopedMap map(aImage, DataSourceSurface::READ);
             tp->set_width(aImage->GetSize().width);
             tp->set_height(aImage->GetSize().height);
-            tp->set_stride(aImage->Stride());
+            tp->set_stride(map.GetStride());
 
-            mDatasize = aImage->GetSize().height * aImage->Stride();
+            mDatasize = aImage->GetSize().height * map.GetStride();
 
             auto compresseddata = MakeUnique<char[]>(LZ4::maxCompressedSize(mDatasize));
             if (compresseddata) {
-                int ndatasize = LZ4::compress((char*)aImage->GetData(),
+                int ndatasize = LZ4::compress((char*)map.GetData(),
                                               mDatasize,
                                               compresseddata.get());
                 if (ndatasize > 0) {
@@ -520,11 +521,11 @@ private:
                     tp->set_data(compresseddata.get(), mDatasize);
                 } else {
                     NS_WARNING("Compress data failed");
-                    tp->set_data(aImage->GetData(), mDatasize);
+                    tp->set_data(map.GetData(), mDatasize);
                 }
             } else {
                 NS_WARNING("Couldn't new compressed data.");
-                tp->set_data(aImage->GetData(), mDatasize);
+                tp->set_data(map.GetData(), mDatasize);
             }
         } else {
             tp->set_width(0);
@@ -628,7 +629,7 @@ public:
                     size_t aRects,
                     const gfx::Rect* aLayerRects,
                     const gfx::Rect* aTextureRects,
-                    const std::list<GLuint> aTexIDs,
+                    const std::list<GLuint>& aTexIDs,
                     void* aLayerRef)
         : DebugGLData(Packet::DRAW),
           mOffsetX(aOffsetX),
@@ -788,7 +789,7 @@ public:
 protected:
     virtual ~DebugDataSender() {}
     void RemoveData() {
-        MOZ_ASSERT(NS_GetCurrentThread() == mThread);
+        MOZ_ASSERT(mThread->SerialEventTarget()->IsOnCurrentThread());
         if (mList.isEmpty())
             return;
 
@@ -919,7 +920,8 @@ SenderHelper::SendLayer(LayerComposite* aLayer,
         case Layer::TYPE_PAINTED: {
             // Get CompositableHost and Compositor
             CompositableHost* compHost = aLayer->GetCompositableHost();
-            Compositor* comp = compHost->GetCompositor();
+            TextureSourceProvider* provider = compHost->GetTextureSourceProvider();
+            Compositor* comp = provider->AsCompositor();
             // Send EffectChain only for CompositorOGL
             if (LayersBackend::LAYERS_OPENGL == comp->GetBackendType()) {
                 CompositorOGL* compOGL = comp->AsCompositorOGL();
@@ -1159,7 +1161,7 @@ LayerScopeWebSocketManager::SocketHandler::OpenStream(nsISocketTransport* aTrans
                                 0,
                                 getter_AddRefs(debugInputStream));
     mInputStream = do_QueryInterface(debugInputStream);
-    mInputStream->AsyncWait(this, 0, 0, NS_GetCurrentThread());
+    mInputStream->AsyncWait(this, 0, 0, GetCurrentThreadEventTarget());
 }
 
 bool
@@ -1234,7 +1236,7 @@ LayerScopeWebSocketManager::SocketHandler::OnInputStreamReady(nsIAsyncInputStrea
         if (WebSocketHandshake(protocolString)) {
             mState = HandshakeSuccess;
             mConnected = true;
-            mInputStream->AsyncWait(this, 0, 0, NS_GetCurrentThread());
+            mInputStream->AsyncWait(this, 0, 0, GetCurrentThreadEventTarget());
         } else {
             mState = HandshakeFailed;
         }
@@ -1364,7 +1366,7 @@ LayerScopeWebSocketManager::SocketHandler::HandleSocketMessage(nsIAsyncInputStre
         // TODO: combine packets if we have to read more than once
 
         if (rv == NS_BASE_STREAM_WOULD_BLOCK) {
-            mInputStream->AsyncWait(this, 0, 0, NS_GetCurrentThread());
+            mInputStream->AsyncWait(this, 0, 0, GetCurrentThreadEventTarget());
             return NS_OK;
         }
 
@@ -1569,7 +1571,7 @@ LayerScopeWebSocketManager::SocketHandler::CloseConnection()
 LayerScopeWebSocketManager::LayerScopeWebSocketManager()
     : mHandlerMutex("LayerScopeWebSocketManager::mHandlerMutex")
 {
-    NS_NewThread(getter_AddRefs(mDebugSenderThread));
+    NS_NewNamedThread("LayerScope", getter_AddRefs(mDebugSenderThread));
 
     mServerSocket = do_CreateInstance(NS_SERVERSOCKET_CONTRACTID);
     int port = gfxPrefs::LayerScopePort();

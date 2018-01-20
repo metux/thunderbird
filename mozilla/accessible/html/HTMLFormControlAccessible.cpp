@@ -15,13 +15,13 @@
 
 #include "nsContentList.h"
 #include "mozilla/dom/HTMLInputElement.h"
-#include "nsIDOMNSEditableElement.h"
-#include "nsIDOMHTMLTextAreaElement.h"
+#include "mozilla/dom/HTMLTextAreaElement.h"
 #include "nsIEditor.h"
 #include "nsIFormControl.h"
 #include "nsIPersistentProperties2.h"
 #include "nsISelectionController.h"
 #include "nsIServiceManager.h"
+#include "nsITextControlElement.h"
 #include "nsITextControlFrame.h"
 #include "nsNameSpaceManager.h"
 #include "mozilla/dom/ScriptSettings.h"
@@ -29,6 +29,7 @@
 #include "mozilla/EventStates.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/TextEditor.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -89,7 +90,7 @@ HTMLCheckboxAccessible::NativeState()
 
   if (input->Checked())
     return state | states::CHECKED;
- 
+
   return state;
 }
 
@@ -344,15 +345,18 @@ HTMLTextFieldAccessible::Value(nsString& aValue)
   if (NativeState() & states::PROTECTED)    // Don't return password text!
     return;
 
-  nsCOMPtr<nsIDOMHTMLTextAreaElement> textArea(do_QueryInterface(mContent));
+  HTMLTextAreaElement* textArea = HTMLTextAreaElement::FromContent(mContent);
   if (textArea) {
     textArea->GetValue(aValue);
     return;
   }
 
   HTMLInputElement* input = HTMLInputElement::FromContent(mContent);
-  if (input)
-    input->GetValue(aValue);
+  if (input) {
+    // Pass NonSystem as the caller type, to be safe.  We don't expect to have a
+    // file input here.
+    input->GetValue(aValue, CallerType::NonSystem);
+  }
 }
 
 void
@@ -456,22 +460,16 @@ HTMLTextFieldAccessible::DoAction(uint8_t aIndex)
   return true;
 }
 
-already_AddRefed<nsIEditor>
+already_AddRefed<TextEditor>
 HTMLTextFieldAccessible::GetEditor() const
 {
-  nsCOMPtr<nsIDOMNSEditableElement> editableElt(do_QueryInterface(mContent));
-  if (!editableElt)
+  nsCOMPtr<nsITextControlElement> textControlElement =
+    do_QueryInterface(mContent);
+  if (!textControlElement) {
     return nullptr;
-
-  // nsGenericHTMLElement::GetEditor has a security check.
-  // Make sure we're not restricted by the permissions of
-  // whatever script is currently running.
-  mozilla::dom::AutoNoJSAPI nojsapi;
-
-  nsCOMPtr<nsIEditor> editor;
-  editableElt->GetEditor(getter_AddRefs(editor));
-
-  return editor.forget();
+  }
+  RefPtr<TextEditor> textEditor = textControlElement->GetTextEditor();
+  return textEditor.forget();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -557,7 +555,10 @@ HTMLSpinnerAccessible::Value(nsString& aValue)
   if (!aValue.IsEmpty())
     return;
 
-  HTMLInputElement::FromContent(mContent)->GetValue(aValue);
+  // Pass NonSystem as the caller type, to be safe.  We don't expect to have a
+  // file input here.
+  HTMLInputElement::FromContent(mContent)->GetValue(aValue,
+                                                    CallerType::NonSystem);
 }
 
 double
@@ -633,7 +634,10 @@ HTMLRangeAccessible::Value(nsString& aValue)
   if (!aValue.IsEmpty())
     return;
 
-  HTMLInputElement::FromContent(mContent)->GetValue(aValue);
+  // Pass NonSystem as the caller type, to be safe.  We don't expect to have a
+  // file input here.
+  HTMLInputElement::FromContent(mContent)->GetValue(aValue,
+                                                    CallerType::NonSystem);
 }
 
 double

@@ -11,6 +11,7 @@
 <!-- General Settings -->
 <!ENTITY enableGlodaSearch.label       "Разрешаване на глобално търсене и индексиране">
 <!ENTITY enableGlodaSearch.accesskey   "Р">
+<!ENTITY dateTimeFormatting.label      "Формат на датата и часа">
 <!ENTITY allowHWAccel.label            "Използване на хардуерно ускоряване, когато е налично">
 <!ENTITY allowHWAccel.accesskey        "х">
 <!ENTITY storeType.label               "Вид на съхранение на писмата за нови регистрации:">
@@ -52,14 +53,26 @@
 <!ENTITY crashReporterLearnMore.label    "Научете повече">
 
 <!-- Update -->
-<!ENTITY updateApp.label                 "Обновявания на &brandShortName;:">
+<!-- LOCALIZATION NOTE (updateApp.label):
+  Strings from aboutDialog.dtd are displayed in this section of the preferences.
+  Please check for possible accesskey conflicts.
+-->
+<!ENTITY updateApp2.label                "Обновявания на &brandShortName;">
+<!-- LOCALIZATION NOTE (updateApp.version.*): updateApp.version.pre is
+  followed by a version number, keep the trailing space or replace it with
+  a different character as needed. updateApp.version.post is displayed after
+  the version number, and is empty on purpose for English. You can use it
+  if required by your language.
+ -->
+<!ENTITY updateApp.version.pre           "Версия ">
+<!ENTITY updateApp.version.post          "">
 <!ENTITY updateAuto.label                "Автоматично инсталиране на обновявания (препоръчва се: подобрява безопасността)">
 <!ENTITY updateAuto.accesskey            "А">
 <!ENTITY updateCheck.label               "Проверка за обновявания, но пита преди да ги инсталира">
 <!ENTITY updateCheck.accesskey           "П">
 <!ENTITY updateManual.label              "Никога не проверява за обновявания (не се препоръчва: риск по безопасността)">
 <!ENTITY updateManual.accesskey          "Н">
-<!ENTITY updateHistory.label             "Показване на историята на обновяванията">
+<!ENTITY updateHistory.label             "История на обновяванията">
 <!ENTITY updateHistory.accesskey         "о">
 
 <!ENTITY useService.label                "Използване на фонова услуга за инсталиране на обновявания">
@@ -89,6 +102,8 @@
 <!ENTITY useCacheBefore.label            "Използване не повече от">
 <!ENTITY useCacheBefore.accesskey        "п">
 <!ENTITY useCacheAfter.label             "МБ за кеш">
+<!ENTITY overrideSmartCacheSize.label    "Незачитане на автоматичното управление на кеша">
+<!ENTITY overrideSmartCacheSize.accesskey "Н">
 <!ENTITY clearCacheNow.label             "Изчистване">
 <!ENTITY clearCacheNow.accesskey         "ч">
 

@@ -103,11 +103,10 @@ function* getWidgetAndMessage(result) {
 }
 
 function reloadPage() {
-  let def = promise.defer();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
+  let def = defer();
+  gBrowser.selectedBrowser.addEventListener("load", function () {
     def.resolve();
-  }, true);
+  }, {capture: true, once: true});
   content.location.reload();
   return def.promise;
 }

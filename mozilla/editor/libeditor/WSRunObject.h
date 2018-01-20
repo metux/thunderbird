@@ -12,6 +12,7 @@
 #include "nscore.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/Text.h"
+#include "mozilla/EditorDOMPoint.h" // for EditorDOMPoint
 
 class nsIDOMNode;
 
@@ -19,7 +20,6 @@ namespace mozilla {
 
 class HTMLEditor;
 class HTMLEditRules;
-struct EditorDOMPoint;
 
 // class WSRunObject represents the entire whitespace situation
 // around a given point.  It collects up a list of nodes that contain
@@ -219,13 +219,31 @@ public:
                                              int32_t* aInOutOffset,
                                              nsIEditor::EDirection aSelect);
 
-  // InsertText inserts a string at {aInOutParent,aInOutOffset} and makes any
-  // needed adjustments to ws around that point.  Example of fixup:
-  // trailingws before {aInOutParent,aInOutOffset} needs to be removed.
-  nsresult InsertText(const nsAString& aStringToInsert,
-                      nsCOMPtr<nsINode>* aInOutNode,
-                      int32_t* aInOutOffset,
-                      nsIDocument* aDoc);
+  /**
+   * InsertTextImpl() inserts aStringToInsert to aPointToInsert and makes any
+   * needed adjustments to white spaces around that point. E.g., trailing white
+   * spaces before aPointToInsert needs to be removed.
+   * This calls EditorBase::InsertTextImpl() after adjusting white spaces.
+   * So, please refer the method's explanation to know what this method exactly
+   * does.
+   *
+   * @param aDocument       The document of this editor.
+   * @param aStringToInsert The string to insert.
+   * @param aPointToInser   The point to insert aStringToInsert.
+   *                        Must be valid DOM point.
+   * @param aPointAfterInsertedString
+   *                        The point after inserted aStringToInsert.
+   *                        So, when this method actually inserts string,
+   *                        this is set to a point in the text node.
+   *                        Otherwise, this may be set to aPointToInsert.
+   * @return                When this succeeds to insert the string or
+   *                        does nothing during composition, returns NS_OK.
+   *                        Otherwise, an error code.
+   */
+  nsresult InsertText(nsIDocument& aDocument,
+                      const nsAString& aStringToInsert,
+                      const EditorRawDOMPoint& aPointToInsert,
+                      EditorRawDOMPoint* aPointAfterInsertedString = nullptr);
 
   // DeleteWSBackward deletes a single visible piece of ws before the ws
   // point (the point to create the wsRunObject, passed to its constructor).
@@ -308,11 +326,6 @@ protected:
     {}
   };
 
-  enum AreaRestriction
-  {
-    eAnywhere, eOutsideUserSelectAll
-  };
-
   /**
    * Return the node which we will handle white-space under. This is the
    * closest block within the DOM subtree we're editing, or if none is
@@ -326,20 +339,20 @@ protected:
   void MakeSingleWSRun(WSType aType);
   nsIContent* GetPreviousWSNodeInner(nsINode* aStartNode,
                                      nsINode* aBlockParent);
-  nsIContent* GetPreviousWSNode(EditorDOMPoint aPoint, nsINode* aBlockParent);
+  nsIContent* GetPreviousWSNode(const EditorDOMPoint& aPoint,
+                                nsINode* aBlockParent);
   nsIContent* GetNextWSNodeInner(nsINode* aStartNode, nsINode* aBlockParent);
-  nsIContent* GetNextWSNode(EditorDOMPoint aPoint, nsINode* aBlockParent);
+  nsIContent* GetNextWSNode(const EditorDOMPoint& aPoint,
+                            nsINode* aBlockParent);
   nsresult PrepareToDeleteRangePriv(WSRunObject* aEndObject);
   nsresult PrepareToSplitAcrossBlocksPriv();
   nsresult DeleteChars(nsINode* aStartNode, int32_t aStartOffset,
-                       nsINode* aEndNode, int32_t aEndOffset,
-                       AreaRestriction aAR = eAnywhere);
+                       nsINode* aEndNode, int32_t aEndOffset);
   WSPoint GetCharAfter(nsINode* aNode, int32_t aOffset);
   WSPoint GetCharBefore(nsINode* aNode, int32_t aOffset);
   WSPoint GetCharAfter(const WSPoint& aPoint);
   WSPoint GetCharBefore(const WSPoint& aPoint);
-  nsresult ConvertToNBSP(WSPoint aPoint,
-                         AreaRestriction aAR = eAnywhere);
+  nsresult ConvertToNBSP(WSPoint aPoint);
   void GetAsciiWSBounds(int16_t aDir, nsINode* aNode, int32_t aOffset,
                         dom::Text** outStartNode, int32_t* outStartOffset,
                         dom::Text** outEndNode, int32_t* outEndOffset);

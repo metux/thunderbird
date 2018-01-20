@@ -22,12 +22,9 @@
 #include "wasm/WasmJS.h"
 
 namespace js {
-
-class WasmActivation;
-
 namespace wasm {
 
-class Code;
+class CodeSegment;
 typedef Vector<Instance*, 0, SystemAllocPolicy> InstanceVector;
 
 // wasm::Compartment lives in JSCompartment and contains the wasm-related
@@ -38,28 +35,10 @@ typedef Vector<Instance*, 0, SystemAllocPolicy> InstanceVector;
 class Compartment
 {
     InstanceVector instances_;
-    volatile bool  mutatingInstances_;
-    size_t         activationCount_;
-    bool           profilingEnabled_;
-
-    friend class js::WasmActivation;
-
-    struct AutoMutateInstances {
-        Compartment &c;
-        explicit AutoMutateInstances(Compartment& c) : c(c) {
-            MOZ_ASSERT(!c.mutatingInstances_);
-            c.mutatingInstances_ = true;
-        }
-        ~AutoMutateInstances() {
-            MOZ_ASSERT(c.mutatingInstances_);
-            c.mutatingInstances_ = false;
-        }
-    };
 
   public:
     explicit Compartment(Zone* zone);
     ~Compartment();
-    void trace(JSTracer* trc);
 
     // Before a WasmInstanceObject can be considered fully constructed and
     // valid, it must be registered with the Compartment. If this method fails,
@@ -77,24 +56,9 @@ class Compartment
 
     const InstanceVector& instances() const { return instances_; }
 
-    // This methods returns the wasm::Code containing the given pc, if any
-    // exists in the compartment.
+    // Ensure all Instances in this JSCompartment have profiling labels created.
 
-    Code* lookupCode(const void* pc) const;
-
-    // Currently, there is one Code per Instance so it is also possible to
-    // lookup a Instance given a pc. However, the goal is to share one Code
-    // between multiple Instances at which point in time this method will be
-    // removed.
-
-    Instance* lookupInstanceDeprecated(const void* pc) const;
-
-    // To ensure profiling is enabled (so that wasm frames are not lost in
-    // profiling callstacks), ensureProfilingState must be called before calling
-    // the first wasm function in a compartment.
-
-    bool ensureProfilingState(JSContext* cx);
-    bool profilingEnabled() const;
+    void ensureProfilingLabels(bool profilingEnabled);
 
     // about:memory reporting
 

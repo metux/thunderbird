@@ -22,25 +22,26 @@ RenderbufferNULL::~RenderbufferNULL()
 {
 }
 
-gl::Error RenderbufferNULL::setStorage(GLenum internalformat, size_t width, size_t height)
+gl::Error RenderbufferNULL::setStorage(const gl::Context *context,
+                                       GLenum internalformat,
+                                       size_t width,
+                                       size_t height)
 {
-    UNIMPLEMENTED();
-    return gl::Error(GL_INVALID_OPERATION);
+    return gl::NoError();
 }
 
-gl::Error RenderbufferNULL::setStorageMultisample(size_t samples,
+gl::Error RenderbufferNULL::setStorageMultisample(const gl::Context *context,
+                                                  size_t samples,
                                                   GLenum internalformat,
                                                   size_t width,
                                                   size_t height)
 {
-    UNIMPLEMENTED();
-    return gl::Error(GL_INVALID_OPERATION);
+    return gl::NoError();
 }
 
-gl::Error RenderbufferNULL::setStorageEGLImageTarget(egl::Image *image)
+gl::Error RenderbufferNULL::setStorageEGLImageTarget(const gl::Context *context, egl::Image *image)
 {
-    UNIMPLEMENTED();
-    return gl::Error(GL_INVALID_OPERATION);
+    return gl::NoError();
 }
 
 }  // namespace rx

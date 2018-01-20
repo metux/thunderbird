@@ -9,6 +9,7 @@
 
 #include "mozilla/Types.h"
 #include "nsXULAppAPI.h"
+#include <vector>
 
 // This defines the entry points for a content process to start
 // sandboxing itself.  See also SandboxInfo.h for what parts of
@@ -21,10 +22,13 @@ MOZ_EXPORT void SandboxEarlyInit(GeckoProcessType aType);
 
 #ifdef MOZ_CONTENT_SANDBOX
 // Call only if SandboxInfo::CanSandboxContent() returns true.
-// (No-op if MOZ_DISABLE_CONTENT_SANDBOX is set.)
+// (No-op if the sandbox is disabled.)
 // aBrokerFd is the filesystem broker client file descriptor,
 // or -1 to allow direct filesystem access.
-MOZ_EXPORT bool SetContentProcessSandbox(int aBrokerFd);
+// isFileProcess determines whether we allow system wide file reads.
+MOZ_EXPORT bool SetContentProcessSandbox(int aBrokerFd,
+                                         bool aFileProcess,
+                                         std::vector<int>& aSyscallWhitelist);
 #endif
 
 #ifdef MOZ_GMP_SANDBOX

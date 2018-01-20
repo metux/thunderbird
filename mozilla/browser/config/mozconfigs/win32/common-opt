@@ -1,10 +1,11 @@
 # This file is sourced by the nightly, beta, and release mozconfigs.
 
+. "$topsrcdir/build/mozconfig.stylo"
+
 . "$topsrcdir/browser/config/mozconfigs/common"
 
 ac_add_options --enable-update-channel=${MOZ_UPDATE_CHANNEL}
 ac_add_options --enable-jemalloc
-ac_add_options --enable-require-all-d3dc-versions
 
 if [ -f /c/builds/gapi.data ]; then
   _gapi_keyfile=c:/builds/gapi.data

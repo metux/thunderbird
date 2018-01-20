@@ -5,7 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "XMLHttpRequestString.h"
-#include "mozilla/Mutex.h"
 #include "nsISupportsImpl.h"
 #include "mozilla/dom/DOMString.h"
 
@@ -66,6 +65,9 @@ public:
   {
     MutexAutoLock lock(mMutex);
     MOZ_ASSERT(aLength <= mData.Length());
+
+    // XXX: Bug 1408793 suggests encapsulating the following sequence within
+    //      DOMString.
     nsStringBuffer* buf = nsStringBuffer::FromString(mData);
     if (buf) {
       // We have to use SetEphemeralStringBuffer, because once we release our

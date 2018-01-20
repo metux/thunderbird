@@ -37,7 +37,8 @@ private:
     {
         // our reference to mSink could be the last, so be sure to release
         // it on the target thread.  otherwise, we could get into trouble.
-        NS_ProxyRelease(mTarget, dont_AddRef(mSink));
+        NS_ProxyRelease(
+          "nsTransportEventSinkProxy::mSink", mTarget, dont_AddRef(mSink));
     }
 
 public:
@@ -55,7 +56,8 @@ public:
                            nsresult status,
                            int64_t progress,
                            int64_t progressMax)
-        : mProxy(proxy)
+        : Runnable("nsTransportStatusEvent")
+        , mProxy(proxy)
         , mTransport(transport)
         , mStatus(status)
         , mProgress(progress)

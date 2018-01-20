@@ -6,55 +6,81 @@
 #define RemoteDataDecoder_h_
 
 #include "AndroidDecoderModule.h"
-
 #include "FennecJNIWrappers.h"
-
 #include "SurfaceTexture.h"
 #include "TimeUnits.h"
-#include "mozilla/Monitor.h"
 #include "mozilla/Maybe.h"
-
-#include <deque>
+#include "mozilla/Monitor.h"
 
 namespace mozilla {
 
-class RemoteDataDecoder : public MediaDataDecoder {
+class RemoteDataDecoder : public MediaDataDecoder
+{
 public:
-  static MediaDataDecoder* CreateAudioDecoder(const AudioInfo& aConfig,
-                                              java::sdk::MediaFormat::Param aFormat,
-                                              MediaDataDecoderCallback* aCallback);
+  static already_AddRefed<MediaDataDecoder>
+  CreateAudioDecoder(const CreateDecoderParams& aParams,
+                     const nsString& aDrmStubId,
+                     CDMProxy* aProxy);
 
-  static MediaDataDecoder* CreateVideoDecoder(const VideoInfo& aConfig,
-                                              java::sdk::MediaFormat::Param aFormat,
-                                              MediaDataDecoderCallback* aCallback,
-                                              layers::ImageContainer* aImageContainer);
+  static already_AddRefed<MediaDataDecoder>
+  CreateVideoDecoder(const CreateDecoderParams& aParams,
+                     const nsString& aDrmStubId,
+                     CDMProxy* aProxy);
 
-  virtual ~RemoteDataDecoder() {}
-
-  void Flush() override;
-  void Drain() override;
-  void Shutdown() override;
-  void Input(MediaRawData* aSample) override;
-  const char* GetDescriptionName() const override
+  RefPtr<DecodePromise> Decode(MediaRawData* aSample) override;
+  RefPtr<DecodePromise> Drain() override;
+  RefPtr<FlushPromise> Flush() override;
+  RefPtr<ShutdownPromise> Shutdown() override;
+  nsCString GetDescriptionName() const override
   {
-    return "android remote decoder";
+    return NS_LITERAL_CSTRING("android decoder (remote)");
   }
 
 protected:
+  virtual ~RemoteDataDecoder() { }
   RemoteDataDecoder(MediaData::Type aType,
                     const nsACString& aMimeType,
                     java::sdk::MediaFormat::Param aFormat,
-                    MediaDataDecoderCallback* aCallback);
+                    const nsString& aDrmStubId, TaskQueue* aTaskQueue);
+
+  // Methods only called on mTaskQueue.
+  RefPtr<ShutdownPromise> ProcessShutdown();
+  void UpdateInputStatus(int64_t aTimestamp, bool aProcessed);
+  void UpdateOutputStatus(RefPtr<MediaData>&& aSample);
+  void ReturnDecodedData();
+  void DrainComplete();
+  void Error(const MediaResult& aError);
+  void AssertOnTaskQueue()
+  {
+    MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
+  }
+
+  // Whether the sample will be used.
+  virtual bool IsUsefulData(const RefPtr<MediaData>& aSample) { return true; }
 
   MediaData::Type mType;
 
   nsAutoCString mMimeType;
   java::sdk::MediaFormat::GlobalRef mFormat;
 
-  MediaDataDecoderCallback* mCallback;
-
   java::CodecProxy::GlobalRef mJavaDecoder;
   java::CodecProxy::NativeCallbacks::GlobalRef mJavaCallbacks;
+  nsString mDrmStubId;
+
+  RefPtr<TaskQueue> mTaskQueue;
+  // Only ever accessed on mTaskqueue.
+  bool mShutdown = false;
+  MozPromiseHolder<DecodePromise> mDecodePromise;
+  MozPromiseHolder<DecodePromise> mDrainPromise;
+  enum class DrainStatus
+  {
+    DRAINED,
+    DRAINABLE,
+    DRAINING,
+  };
+  DrainStatus mDrainStatus = DrainStatus::DRAINED;
+  DecodedData mDecodedData;
+  size_t mNumPendingInputs;
 };
 
 } // namespace mozilla

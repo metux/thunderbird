@@ -1,7 +1,8 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-* This Source Code Form is subject to the terms of the Mozilla Public
-* License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "X11BasicCompositor.h"
 #include "gfxPlatform.h"
@@ -83,9 +84,8 @@ X11DataTextureSourceBasic::GetSize() const
   if (!mBufferDrawTarget) {
     NS_WARNING("Trying to query the size of an uninitialized TextureSource");
     return IntSize(0, 0);
-  } else {
-    return mBufferDrawTarget->GetSize();
   }
+  return mBufferDrawTarget->GetSize();
 }
 
 gfx::SurfaceFormat
@@ -94,9 +94,8 @@ X11DataTextureSourceBasic::GetFormat() const
   if (!mBufferDrawTarget) {
     NS_WARNING("Trying to query the format of an uninitialized TextureSource");
     return gfx::SurfaceFormat::UNKNOWN;
-  } else {
-    return mBufferDrawTarget->GetFormat();
   }
+  return mBufferDrawTarget->GetFormat();
 }
 
 SourceSurface*
@@ -106,9 +105,8 @@ X11DataTextureSourceBasic::GetSurface(DrawTarget* aTarget)
   if (mBufferDrawTarget) {
     surface = mBufferDrawTarget->Snapshot();
     return surface.get();
-  } else {
-    return nullptr;
   }
+  return nullptr;
 }
 
 void

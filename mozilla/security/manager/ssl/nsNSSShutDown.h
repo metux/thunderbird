@@ -57,6 +57,12 @@ class nsNSSShutDownPreventionLock
 public:
   nsNSSShutDownPreventionLock();
   ~nsNSSShutDownPreventionLock();
+private:
+  // Keeps track of whether or not we actually managed to enter the NSS activity
+  // state. This is important because if we're attempting to shut down and we
+  // can't enter the NSS activity state, we need to not attempt to leave it when
+  // our destructor runs.
+  bool mEnteredActivityState;
 };
 
 // Singleton, used by nsNSSComponent to track the list of PSM objects,
@@ -64,8 +70,6 @@ public:
 class nsNSSShutDownList
 {
 public:
-  static void shutdown();
-
   // track instances that support early cleanup
   static void remember(nsNSSShutDownObject *o);
   static void forget(nsNSSShutDownObject *o);
@@ -75,15 +79,18 @@ public:
   static void remember(nsOnPK11LogoutCancelObject *o);
   static void forget(nsOnPK11LogoutCancelObject *o);
 
-  // Do the "early cleanup", if possible.
-  static nsresult evaporateAllNSSResources();
+  // Release all tracked NSS resources and prevent nsNSSShutDownObjects from
+  // using NSS functions.
+  static nsresult evaporateAllNSSResourcesAndShutDown();
 
   // PSM has been asked to log out of a token.
   // Notify all registered instances that want to react to that event.
   static nsresult doPK11Logout();
 
   // Signal entering/leaving a scope where shutting down NSS is prohibited.
-  static void enterActivityState();
+  // enteredActivityState will be set to true if we actually managed to enter
+  // the NSS activity state.
+  static void enterActivityState(/*out*/ bool& enteredActivityState);
   static void leaveActivityState();
 
 private:
@@ -228,7 +235,7 @@ public:
     }
   }
 
-  bool isAlreadyShutDown() const { return mAlreadyShutDown; }
+  bool isAlreadyShutDown() const;
 
 protected:
   virtual void virtualDestroyNSSReference() = 0;

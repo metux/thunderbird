@@ -12,8 +12,7 @@ const Strings = Services.strings.createBundle("chrome://devtools/locale/webide.p
 
 const UNRESTRICTED_HELP_URL = "https://developer.mozilla.org/docs/Tools/WebIDE/Running_and_debugging_apps#Unrestricted_app_debugging_%28including_certified_apps_main_process_etc.%29";
 
-window.addEventListener("load", function onLoad() {
-  window.removeEventListener("load", onLoad);
+window.addEventListener("load", function () {
   document.querySelector("#close").onclick = CloseUI;
   document.querySelector("#devtools-check button").onclick = EnableCertApps;
   document.querySelector("#adb-check button").onclick = RootADB;
@@ -23,12 +22,11 @@ window.addEventListener("load", function onLoad() {
   AppManager.on("app-manager-update", OnAppManagerUpdate);
   BuildUI();
   CheckLockState();
-}, true);
+}, {capture: true, once: true});
 
-window.addEventListener("unload", function onUnload() {
-  window.removeEventListener("unload", onUnload);
+window.addEventListener("unload", function () {
   AppManager.off("app-manager-update", OnAppManagerUpdate);
-});
+}, {once: true});
 
 function CloseUI() {
   window.parent.UI.openProject();
@@ -104,7 +102,7 @@ function CheckLockState() {
             adbCheckResult.textContent = sNo;
             adbRootAction.removeAttribute("hidden");
           }
-        }, e => console.error(e));
+        }, console.error);
       } else {
         adbCheckResult.textContent = sUnknown;
       }
@@ -122,7 +120,7 @@ function CheckLockState() {
         } else {
           devtoolsCheckResult.textContent = sYes;
         }
-      }, e => console.error(e));
+      }, console.error);
     } catch (e) {
       // Exception. pref actor is only accessible if forbird-certified-apps is false
       devtoolsCheckResult.textContent = sNo;
@@ -149,5 +147,5 @@ function EnableCertApps() {
 
 function RootADB() {
   let device = AppManager.selectedRuntime.device;
-  device.summonRoot().then(CheckLockState, (e) => console.error(e));
+  device.summonRoot().then(CheckLockState, console.error);
 }

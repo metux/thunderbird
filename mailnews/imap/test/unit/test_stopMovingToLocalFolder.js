@@ -46,8 +46,7 @@ function* setup_messages() {
 
   let messageGenerator = new MessageGenerator();
   let messageString = messageGenerator.makeMessage().toMessageString();
-  let dataUri = Services.io.newURI("data:text/plain;base64," + btoa(messageString),
-                                   null, null);
+  let dataUri = Services.io.newURI("data:text/plain;base64," + btoa(messageString));
   let imapMsg = new imapMessage(dataUri.spec, IMAPPump.mailbox.uidnext++, []);
   IMAPPump.mailbox.addMessage(imapMsg);
 
@@ -58,7 +57,7 @@ function* setup_messages() {
 function* move_messages() {
   let messages = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
   let msg = IMAPPump.inbox.msgDatabase.GetMsgHdrForKey(IMAPPump.mailbox.uidnext - 1);
-  messages.appendElement(msg, false);
+  messages.appendElement(msg);
   MailServices.copy.CopyMessages(IMAPPump.inbox, messages, localAccountUtils.inboxFolder,
                                  true, asyncCopyListener, null, false);
   yield false;

@@ -29,9 +29,9 @@ class AnalyserNodeEngine final : public AudioNodeEngine
   class TransferBuffer final : public Runnable
   {
   public:
-    TransferBuffer(AudioNodeStream* aStream,
-                   const AudioChunk& aChunk)
-      : mStream(aStream)
+    TransferBuffer(AudioNodeStream* aStream, const AudioChunk& aChunk)
+      : Runnable("dom::AnalyserNodeEngine::TransferBuffer")
+      , mStream(aStream)
       , mChunk(aChunk)
     {
     }
@@ -85,7 +85,7 @@ public:
 
     RefPtr<TransferBuffer> transfer =
       new TransferBuffer(aStream, aInput.AsAudioChunk());
-    NS_DispatchToMainThread(transfer);
+    mAbstractMainThread->Dispatch(transfer.forget());
   }
 
   virtual bool IsActive() const override
@@ -100,6 +100,45 @@ public:
 
   uint32_t mChunksToProcess = 0;
 };
+
+/* static */ already_AddRefed<AnalyserNode>
+AnalyserNode::Create(AudioContext& aAudioContext,
+                     const AnalyserOptions& aOptions,
+                     ErrorResult& aRv)
+{
+  if (aAudioContext.CheckClosed(aRv)) {
+    return nullptr;
+  }
+
+  RefPtr<AnalyserNode> analyserNode = new AnalyserNode(&aAudioContext);
+
+  analyserNode->Initialize(aOptions, aRv);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+
+  analyserNode->SetFftSize(aOptions.mFftSize, aRv);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+
+  analyserNode->SetMinDecibels(aOptions.mMinDecibels, aRv);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+
+  analyserNode->SetMaxDecibels(aOptions.mMaxDecibels, aRv);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+
+  analyserNode->SetSmoothingTimeConstant(aOptions.mSmoothingTimeConstant, aRv);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+
+  return analyserNode.forget();
+}
 
 AnalyserNode::AnalyserNode(AudioContext* aContext)
   : AudioNode(aContext,
@@ -206,7 +245,9 @@ AnalyserNode::GetFloatFrequencyData(const Float32Array& aArray)
   size_t length = std::min(size_t(aArray.Length()), mOutputBuffer.Length());
 
   for (size_t i = 0; i < length; ++i) {
-    buffer[i] = WebAudioUtils::ConvertLinearToDecibels(mOutputBuffer[i], mMinDecibels);
+    buffer[i] =
+      WebAudioUtils::ConvertLinearToDecibels(mOutputBuffer[i],
+                                             -std::numeric_limits<float>::infinity());
   }
 }
 

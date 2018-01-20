@@ -17,7 +17,7 @@
 
 #import "webrtc/modules/video_capture/mac/avfoundation/video_capture_avfoundation_objc.h"
 
-#include "webrtc/system_wrappers/interface/trace.h"
+#include "webrtc/system_wrappers/include/trace.h"
 
 using namespace webrtc;
 using namespace videocapturemodule;
@@ -144,10 +144,15 @@ using namespace videocapturemodule;
 
     _captureVideoDataOutput.videoSettings = newSettings;
 
-    if ([_captureDevice lockForConfiguration:NULL] == YES) {
-      _captureDevice.activeFormat = bestFormat;
-      _captureDevice.activeVideoMinFrameDuration = bestFrameRateRange.minFrameDuration;
-      [_captureDevice unlockForConfiguration];
+    AVCaptureConnection* captureConnection =
+      [_captureVideoDataOutput connectionWithMediaType:AVMediaTypeVideo];
+
+    if ([captureConnection isVideoMinFrameDurationSupported]) {
+      [captureConnection setVideoMinFrameDuration:bestFrameRateRange.minFrameDuration];
+    }
+
+    if ([captureConnection isVideoMaxFrameDurationSupported]) {
+      [captureConnection setVideoMaxFrameDuration:bestFrameRateRange.minFrameDuration];
     }
   }
 }

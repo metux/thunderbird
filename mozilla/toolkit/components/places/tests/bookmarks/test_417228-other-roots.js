@@ -20,7 +20,9 @@ this.push(myTest);
 */
 
 tests.push({
-  excludeItemsFromRestore: [],
+  // Initialise something to avoid undefined property warnings in validate.
+  _litterTitle: "",
+
   populate: function populate() {
     // check initial size
     var rootNode = PlacesUtils.getFolderContents(PlacesUtils.placesRootId,
@@ -59,7 +61,6 @@ tests.push({
                                          "excluded",
                                          PlacesUtils.bookmarks.DEFAULT_INDEX);
     do_check_eq(rootNode.childCount, 7);
-    this.excludeItemsFromRestore.push(excludedFolderId);
 
     // add a test bookmark to it
     PlacesUtils.bookmarks.insertBookmark(excludedFolderId, this._testURI,
@@ -121,11 +122,7 @@ tests.push({
   }
 });
 
-function run_test() {
-  run_next_test();
-}
-
-add_task(function* () {
+add_task(async function() {
   // make json file
   let jsonFile = OS.Path.join(OS.Constants.Path.profileDir, "bookmarks.json");
 
@@ -134,19 +131,16 @@ add_task(function* () {
     aTest.populate();
     // sanity
     aTest.validate();
-
-    if (aTest.excludedItemsFromRestore)
-      excludedItemsFromRestore = excludedItems.concat(aTest.excludedItemsFromRestore);
   });
 
-  yield BookmarkJSONUtils.exportToFile(jsonFile);
+  await BookmarkJSONUtils.exportToFile(jsonFile);
 
   tests.forEach(function(aTest) {
     aTest.inbetween();
   });
 
   // restore json file
-  yield BookmarkJSONUtils.importFromFile(jsonFile, true);
+  await BookmarkJSONUtils.importFromFile(jsonFile, true);
 
   // validate
   tests.forEach(function(aTest) {
@@ -154,5 +148,5 @@ add_task(function* () {
   });
 
   // clean up
-  yield OS.File.remove(jsonFile);
+  await OS.File.remove(jsonFile);
 });

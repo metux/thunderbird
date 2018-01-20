@@ -102,7 +102,7 @@ function init_profile() {
   dump(ps.getBoolPref("browser.cache.offline.enable"));
   ps.setBoolPref("browser.cache.offline.enable", true);
   ps.setComplexValue("browser.cache.offline.parent_directory",
-		     Ci.nsILocalFile, do_get_profile());
+		     Ci.nsIFile, do_get_profile());
 }
 
 function init_http_server() {
@@ -155,7 +155,7 @@ function watch_update(update, stateChangeHandler, cacheAvailHandler) {
     updateStateChanged: stateChangeHandler,
     applicationCacheAvailable: cacheAvailHandler
   };
-  update.addObserver(observer, false);
+  update.addObserver(observer);
 
   return update;
 }
@@ -167,8 +167,8 @@ function start_and_watch_app_cache(manifestURL,
                                  cacheAvailHandler) {
   let ioService = Cc["@mozilla.org/network/io-service;1"].
     getService(Ci.nsIIOService);
-  let update = do_app_cache(ioService.newURI(manifestURL, null, null),
-                            ioService.newURI(pageURL, null, null),
+  let update = do_app_cache(ioService.newURI(manifestURL),
+                            ioService.newURI(pageURL),
                             pinned);
   watch_update(update, stateChangeHandler, cacheAvailHandler);
   return update;

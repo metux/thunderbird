@@ -97,6 +97,5 @@
 <!ENTITY author.label "Author">
 <!ENTITY hdrOpenConversationButton1.label "Conversation">
 <!ENTITY hdrOpenConversationButton1.tooltip "Show conversation of this message">
-<!ENTITY otherActionsButton.tooltip "More actions">
-
 <!ENTITY otherActionsButton2.label "More">
+<!ENTITY otherActionsButton.tooltip "More actions">

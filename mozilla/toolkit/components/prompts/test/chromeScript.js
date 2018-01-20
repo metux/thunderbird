@@ -1,3 +1,5 @@
+/* eslint-env mozilla/frame-script */
+
 const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/Timer.jsm");
@@ -58,7 +60,7 @@ function handlePrompt(action, isTabModal, isSelect) {
     promptState = getPromptState(ui);
     dismissPrompt(ui, action);
   }
-  sendAsyncMessage("promptHandled", { promptState: promptState });
+  sendAsyncMessage("promptHandled", { promptState });
   return true;
 }
 
@@ -108,9 +110,7 @@ function getPromptState(ui) {
   state.defButton1 = isDefaultButton(ui.button1);
   state.defButton2 = isDefaultButton(ui.button2);
 
-  let fm = Cc["@mozilla.org/focus-manager;1"].
-           getService(Ci.nsIFocusManager);
-  let e = fm.focusedElement;
+  let e = Services.focus.focusedElement;
 
   if (e == null) {
     state.focused = null;
@@ -200,10 +200,8 @@ function dismissPrompt(ui, action) {
 function getDialogDoc() {
   // Trudge through all the open windows, until we find the one
   // that has either commonDialog.xul or selectDialog.xul loaded.
-  var wm = Cc["@mozilla.org/appshell/window-mediator;1"].
-           getService(Ci.nsIWindowMediator);
-  // var enumerator = wm.getEnumerator("navigator:browser");
-  var enumerator = wm.getXULWindowEnumerator(null);
+  // var enumerator = Services.wm.getEnumerator("navigator:browser");
+  var enumerator = Services.wm.getXULWindowEnumerator(null);
 
   while (enumerator.hasMoreElements()) {
     var win = enumerator.getNext();
@@ -228,9 +226,7 @@ function getDialogDoc() {
 
         // We're expecting the dialog to be focused. If it's not yet, try later.
         // (In particular, this is needed on Linux to reliably check focused elements.)
-        let fm = Cc["@mozilla.org/focus-manager;1"].
-                 getService(Ci.nsIFocusManager);
-        if (fm.focusedWindow != childDoc.defaultView)
+        if (Services.focus.focusedWindow != childDoc.defaultView)
           continue;
 
         return childDoc;

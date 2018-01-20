@@ -26,3 +26,5 @@
 <!ENTITY backgroundImage.label  "Taustakuva:">
 <!ENTITY backgroundImage.accessKey  "s">
 <!ENTITY backgroundImage.tooltip  "Käytä kuvaa verkkosivusi taustana">
+
+<!ENTITY backgroundImage.shortenedDataURI "Shortened data URI (copy will place the full URI onto the clipboard)">

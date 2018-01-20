@@ -28,12 +28,12 @@
 // becoming cumbersome, so we will likely use a malloc.h wrapper of some sort
 // and allow the use of the functions without a _impl suffix.
 #define MALLOC_DECL(name, return_type, ...) \
-  extern "C" MOZ_MEMORY_API return_type name ## _impl(__VA_ARGS__);
+  MOZ_MEMORY_API return_type name ## _impl(__VA_ARGS__);
 #define MALLOC_FUNCS MALLOC_FUNCS_MALLOC
 #include "malloc_decls.h"
 
-extern "C" MOZ_MEMORY_API char *strdup_impl(const char *);
-extern "C" MOZ_MEMORY_API char *strndup_impl(const char *, size_t);
+MOZ_MEMORY_API char *strdup_impl(const char *);
+MOZ_MEMORY_API char *strndup_impl(const char *, size_t);
 
 #else
 // When jemalloc is disabled, or when building the static runtime variant,
@@ -66,6 +66,7 @@ extern "C" MOZ_MEMORY_API char *strndup_impl(const char *, size_t);
 
 #include <sys/types.h>
 
+#include "mozilla/Assertions.h"
 #include "mozilla/mozalloc.h"
 #include "mozilla/mozalloc_oom.h"  // for mozalloc_handle_oom
 
@@ -214,8 +215,30 @@ moz_malloc_usable_size(void *ptr)
 #endif
 }
 
-size_t moz_malloc_size_of(const void *ptr)
+size_t
+moz_malloc_size_of(const void *ptr)
 {
     return moz_malloc_usable_size((void *)ptr);
+}
+
+#if defined(MOZ_MEMORY)
+#include "mozjemalloc_types.h"
+// mozmemory.h declares jemalloc_ptr_info(), but including that header in this
+// file is complicated. So we just redeclare it here instead, and include
+// mozjemalloc_types.h for jemalloc_ptr_info_t.
+MOZ_JEMALLOC_API void jemalloc_ptr_info(const void* ptr,
+                                        jemalloc_ptr_info_t* info);
+#endif
+
+size_t
+moz_malloc_enclosing_size_of(const void *ptr)
+{
+#if defined(MOZ_MEMORY)
+    jemalloc_ptr_info_t info;
+    jemalloc_ptr_info(ptr, &info);
+    return jemalloc_ptr_is_live(&info) ? info.size : 0;
+#else
+    return 0;
+#endif
 }
 #endif

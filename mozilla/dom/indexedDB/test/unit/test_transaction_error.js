@@ -5,7 +5,7 @@
 
 var testGenerator = testSteps();
 
-function testSteps() {
+function* testSteps() {
   const dbName = this.window ?
                  window.location.pathname :
                  "test_transaction_error";
@@ -88,22 +88,6 @@ function testSteps() {
 
   info("Adding duplicate entry without preventDefault()");
 
-  if ("SimpleTest" in this) {
-    SimpleTest.expectUncaughtException();
-  } else if ("DedicatedWorkerGlobalScope" in self &&
-             self instanceof DedicatedWorkerGlobalScope) {
-    let oldErrorFunction = self.onerror;
-    self.onerror = function(message, file, line) {
-      self.onerror = oldErrorFunction;
-      oldErrorFunction = null;
-
-      is(message,
-        "ConstraintError",
-        "Got expected ConstraintError on DedicatedWorkerGlobalScope");
-      return true;
-    };
-  }
-
   request = objectStore.add(data, dataKey);
   request.onsuccess = unexpectedSuccessHandler;
   request.onerror = grabEventAndContinueHandler;
@@ -132,5 +116,4 @@ function testSteps() {
      "Transaction has correct error");
 
   finishTest();
-  yield undefined;
 }

@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* eslint-env mozilla/frame-script */
+
 var { utils: Cu, interfaces: Ci, classes: Cc } = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "BrowserUtils",
-  "resource://gre/modules/BrowserUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DeferredTask",
   "resource://gre/modules/DeferredTask.jsm");
 
@@ -328,8 +328,10 @@ var ViewSourceContent = {
     let shEntrySource = pageDescriptor.QueryInterface(Ci.nsISHEntry);
     let shEntry = Cc["@mozilla.org/browser/session-history-entry;1"]
                     .createInstance(Ci.nsISHEntry);
-    shEntry.setURI(BrowserUtils.makeURI(viewSrcURL, null, null));
+    shEntry.setURI(Services.io.newURI(viewSrcURL));
     shEntry.setTitle(viewSrcURL);
+    let systemPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
+    shEntry.triggeringPrincipal = systemPrincipal;
     shEntry.loadType = Ci.nsIDocShellLoadInfo.loadHistory;
     shEntry.cacheKey = shEntrySource.cacheKey;
     docShell.QueryInterface(Ci.nsIWebNavigation)
@@ -378,21 +380,9 @@ var ViewSourceContent = {
     if (/^about:blocked/.test(errorDoc.documentURI)) {
       // The event came from a button on a malware/phishing block page
 
-      if (target == errorDoc.getElementById("getMeOutButton")) {
+      if (target == errorDoc.getElementById("goBackButton")) {
         // Instead of loading some safe page, just close the window
         sendAsyncMessage("ViewSource:Close");
-      } else if (target == errorDoc.getElementById("reportButton")) {
-        // This is the "Why is this site blocked" button. We redirect
-        // to the generic page describing phishing/malware protection.
-        let URL = Services.urlFormatter.formatURLPref("app.support.baseURL");
-        sendAsyncMessage("ViewSource:OpenURL", { URL })
-      } else if (target == errorDoc.getElementById("ignoreWarningButton")) {
-        // Allow users to override and continue through to the site
-        docShell.QueryInterface(Ci.nsIWebNavigation)
-                .loadURIWithOptions(content.location.href,
-                                    Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CLASSIFIER,
-                                    null, Ci.nsIHttpChannel.REFERRER_POLICY_DEFAULT,
-                                    null, null, null);
       }
     }
   },
@@ -447,15 +437,6 @@ var ViewSourceContent = {
   },
 
   onContextMenu(event) {
-    let addonInfo = {};
-    let subject = {
-      event: event,
-      addonInfo: addonInfo,
-    };
-
-    subject.wrappedJSObject = subject;
-    Services.obs.notifyObservers(subject, "content-contextmenu", null);
-
     let node = event.target;
 
     let result = {
@@ -542,8 +523,7 @@ var ViewSourceContent = {
       if (offset < node.data.length) {
         // The same text node spans across the "\n", just focus where we were.
         selection.extend(node, offset);
-      }
-      else {
+      } else {
         // There is another tag just after the "\n", hook there. We need
         // to focus a safe point because there are edgy cases such as
         // <span>...\n</span><span>...</span> vs.
@@ -766,18 +746,17 @@ var ViewSourceContent = {
    * @param drawSelection true to highlight the selection
    * @param baseURI base URI of the original document
    */
-  viewSourceWithSelection(uri, drawSelection, baseURI)
-  {
+  viewSourceWithSelection(uri, drawSelection, baseURI) {
     this.needsDrawSelection = drawSelection;
 
     // all our content is held by the data:URI and URIs are internally stored as utf-8 (see nsIURI.idl)
     let loadFlags = Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
-    let referrerPolicy = Ci.nsIHttpChannel.REFERRER_POLICY_DEFAULT;
+    let referrerPolicy = Ci.nsIHttpChannel.REFERRER_POLICY_UNSET;
     let webNav = docShell.QueryInterface(Ci.nsIWebNavigation);
     webNav.loadURIWithOptions(uri, loadFlags,
-                              null, referrerPolicy,  // referrer
-                              null, null,  // postData, headers
-                              Services.io.newURI(baseURI, null, null));
+                              null, referrerPolicy, // referrer
+                              null, null, // postData, headers
+                              Services.io.newURI(baseURI));
   },
 
   /**
@@ -876,8 +855,7 @@ var ViewSourceContent = {
                                  Ci.nsISelectionController.SELECTION_NORMAL,
                                  Ci.nsISelectionController.SELECTION_ANCHOR_REGION,
                                  true);
-    }
-    catch (e) { }
+    } catch (e) { }
 
     // restore the current find state
     findService.matchCase     = matchCase;
@@ -949,7 +927,7 @@ var ViewSourceContent = {
       if (itemSpec.accesskey) {
         let accesskeyName = `context_${itemSpec.id}_accesskey`;
         item.setAttribute("accesskey",
-                          this.bundle.GetStringFromName(accesskeyName))
+                          this.bundle.GetStringFromName(accesskeyName));
       }
       menu.appendChild(item);
     });

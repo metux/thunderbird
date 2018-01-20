@@ -17,13 +17,12 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
  
-  expect = '({ ' +
-    'get in () { return this.for; }, ' + 
-    'set in (value) { this.for = value; } ' + 
+  expect = '({' +
+    'get in() { return this.for; }, ' +
+    'set in(value) { this.for = value; }' +
     '})';
   try
   {
@@ -40,6 +39,4 @@ function test()
   }
 
   compareSource(expect, actual, summary);
-
-  exitFunc ('test');
 }

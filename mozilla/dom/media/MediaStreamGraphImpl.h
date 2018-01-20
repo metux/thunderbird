@@ -8,23 +8,26 @@
 
 #include "MediaStreamGraph.h"
 
-#include "nsDataHashtable.h"
-
-#include "nsITimer.h"
-#include "mozilla/Monitor.h"
-#include "mozilla/TimeStamp.h"
-#include "nsIMemoryReporter.h"
-#include "nsIThread.h"
-#include "nsIRunnable.h"
-#include "nsIAsyncShutdown.h"
+#include "AudioMixer.h"
+#include "GraphDriver.h"
 #include "Latency.h"
+#include "mozilla/Monitor.h"
 #include "mozilla/Services.h"
+#include "mozilla/TimeStamp.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WeakPtr.h"
-#include "GraphDriver.h"
-#include "AudioMixer.h"
+#include "nsDataHashtable.h"
+#include "nsIMemoryReporter.h"
+#include "nsINamed.h"
+#include "nsIRunnable.h"
+#include "nsIThread.h"
+#include "nsITimer.h"
 
 namespace mozilla {
+
+namespace media {
+class ShutdownTicket;
+}
 
 template <typename T>
 class LinkedList;
@@ -93,18 +96,20 @@ public:
  * file. It's not in the anonymous namespace because MediaStream needs to
  * be able to friend it.
  *
- * There can be multiple MediaStreamGraph per process: one per AudioChannel.
+ * There can be multiple MediaStreamGraph per process: one per document.
  * Additionaly, each OfflineAudioContext object creates its own MediaStreamGraph
  * object too.
  */
 class MediaStreamGraphImpl : public MediaStreamGraph,
                              public nsIMemoryReporter,
-                             public nsITimerCallback
+                             public nsITimerCallback,
+                             public nsINamed
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIMEMORYREPORTER
   NS_DECL_NSITIMERCALLBACK
+  NS_DECL_NSINAMED
 
   /**
    * Use aGraphDriverRequested with SYSTEM_THREAD_DRIVER or AUDIO_THREAD_DRIVER
@@ -116,7 +121,7 @@ public:
    */
   explicit MediaStreamGraphImpl(GraphDriverType aGraphDriverRequested,
                                 TrackRate aSampleRate,
-                                dom::AudioChannel aChannel);
+                                AbstractThread* aWindow);
 
   /**
    * Unregisters memory reporting and deletes this instance. This should be
@@ -149,40 +154,11 @@ public:
    */
   void AppendMessage(UniquePtr<ControlMessage> aMessage);
 
-  // Shutdown helpers.
-
-  static already_AddRefed<nsIAsyncShutdownClient>
-  GetShutdownBarrier()
-  {
-    nsCOMPtr<nsIAsyncShutdownService> svc = services::GetAsyncShutdown();
-    MOZ_RELEASE_ASSERT(svc);
-
-    nsCOMPtr<nsIAsyncShutdownClient> barrier;
-    nsresult rv = svc->GetProfileBeforeChange(getter_AddRefs(barrier));
-    if (!barrier) {
-      // We are probably in a content process. We need to do cleanup at
-      // XPCOM shutdown in leakchecking builds.
-      rv = svc->GetXpcomWillShutdown(getter_AddRefs(barrier));
-    }
-    MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv));
-    MOZ_RELEASE_ASSERT(barrier);
-    return barrier.forget();
-  }
-
-  class ShutdownTicket final
-  {
-  public:
-    explicit ShutdownTicket(nsIAsyncShutdownBlocker* aBlocker) : mBlocker(aBlocker) {}
-    NS_INLINE_DECL_REFCOUNTING(ShutdownTicket)
-  private:
-    ~ShutdownTicket()
-    {
-      nsCOMPtr<nsIAsyncShutdownClient> barrier = GetShutdownBarrier();
-      barrier->RemoveBlocker(mBlocker);
-    }
-
-    nsCOMPtr<nsIAsyncShutdownBlocker> mBlocker;
-  };
+  /**
+   * Dispatches a runnable from any thread to the correct main thread for this
+   * MediaStreamGraph.
+   */
+  void Dispatch(already_AddRefed<nsIRunnable>&& aRunnable);
 
   /**
    * Make this MediaStreamGraph enter forced-shutdown state. This state
@@ -190,7 +166,7 @@ public:
    * and other state controlled by the media graph thread.
    * This is called during application shutdown.
    */
-  void ForceShutDown(ShutdownTicket* aShutdownTicket);
+  void ForceShutDown(media::ShutdownTicket* aShutdownTicket);
 
   /**
    * Called before the thread runs.
@@ -220,6 +196,14 @@ public:
    * Returns true if this MediaStreamGraph should keep running
    */
   bool OneIteration(GraphTime aStateEnd);
+
+  /**
+   * Called from the driver, when the graph thread is about to stop, to tell
+   * the main thread to attempt to begin cleanup.  The main thread may either
+   * shutdown or revive the graph depending on whether it receives new
+   * messages.
+   */
+  void SignalMainThreadCleanup();
 
   bool Running() const
   {
@@ -444,8 +428,10 @@ public:
     mStreamOrderDirty = true;
   }
 
-  // Always stereo for now.
-  uint32_t AudioChannelCount() const { return 2; }
+  uint32_t AudioChannelCount() const
+  {
+    return mOutputChannels;
+  }
 
   double MediaTimeToSeconds(GraphTime aTime) const
   {
@@ -478,13 +464,12 @@ public:
    */
   GraphDriver* CurrentDriver() const
   {
-    AssertOnGraphThreadOrNotRunning();
+#ifdef DEBUG
+    if (!OnGraphThreadOrNotRunning()) {
+      mMonitor.AssertCurrentThreadOwns();
+    }
+#endif
     return mDriver;
-  }
-
-  bool RemoveMixerCallback(MixerCallbackReceiver* aReceiver)
-  {
-    return mMixer.RemoveCallback(aReceiver);
   }
 
   /**
@@ -497,7 +482,9 @@ public:
    */
   void SetCurrentDriver(GraphDriver* aDriver)
   {
-    AssertOnGraphThreadOrNotRunning();
+#ifdef DEBUG
+    mMonitor.AssertCurrentThreadOwns();
+#endif
     mDriver = aDriver;
   }
 
@@ -741,7 +728,9 @@ public:
     LIFECYCLE_WAITING_FOR_STREAM_DESTRUCTION
   };
   /**
-   * Modified only on the main thread in mMonitor.
+   * Modified only in mMonitor.  Transitions to
+   * LIFECYCLE_WAITING_FOR_MAIN_THREAD_CLEANUP occur on the graph thread at
+   * the end of an iteration.  All other transitions occur on the main thread.
    */
   LifecycleState mLifecycleState;
   /**
@@ -757,7 +746,7 @@ public:
   /**
    * Drop this reference during shutdown to unblock shutdown.
    **/
-  RefPtr<ShutdownTicket> mForceShutdownTicket;
+  RefPtr<media::ShutdownTicket> mForceShutdownTicket;
 
   /**
    * True when we have posted an event to the main thread to run
@@ -805,11 +794,10 @@ public:
    */
   RefPtr<AsyncLatencyLogger> mLatencyLog;
   AudioMixer mMixer;
+  const RefPtr<AbstractThread> mAbstractMainThread;
 #ifdef MOZ_WEBRTC
   RefPtr<AudioOutputObserver> mFarendObserverRef;
 #endif
-
-  dom::AudioChannel AudioChannel() const { return mAudioChannel; }
 
   // used to limit graph shutdown time
   nsCOMPtr<nsITimer> mShutdownTimer;
@@ -838,14 +826,17 @@ private:
    */
   nsTArray<WindowAndStream> mWindowCaptureStreams;
 
+  /**
+   * Number of channels on output.
+   */
+  const uint32_t mOutputChannels;
+
 #ifdef DEBUG
   /**
    * Used to assert when AppendMessage() runs ControlMessages synchronously.
    */
   bool mCanRunMessagesSynchronously;
 #endif
-
-  dom::AudioChannel mAudioChannel;
 };
 
 } // namespace mozilla

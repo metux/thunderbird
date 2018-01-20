@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -208,13 +209,6 @@ class nsCSSScanner {
   void SetErrorReporter(mozilla::css::ErrorReporter* aReporter) {
     mReporter = aReporter;
   }
-  // Set whether or not we are processing SVG
-  void SetSVGMode(bool aSVGMode) {
-    mSVGMode = aSVGMode;
-  }
-  bool IsSVGMode() const {
-    return mSVGMode;
-  }
 
   // Reset or check whether a BAD_URL or BAD_STRING token has been seen.
   void ClearSeenBadToken() { mSeenBadToken = false; }
@@ -238,6 +232,12 @@ class nsCSSScanner {
 
   uint32_t GetTokenEndOffset() const
   { return mOffset; }
+
+  const nsAString& GetSourceMapURL() const
+  { return mSourceMapURL; }
+
+  const nsAString& GetSourceURL() const
+  { return mSourceURL; }
 
   // Get the text of the line containing the first character of
   // the most recently processed token.
@@ -334,6 +334,7 @@ protected:
   void AdvanceLine();
 
   void SkipWhitespace();
+  bool CheckCommentDirective(const nsAString& aDirective);
   void SkipComment();
 
   bool GatherEscape(nsString& aOutput, bool aInString);
@@ -365,11 +366,12 @@ protected:
 
   mozilla::css::ErrorReporter *mReporter;
 
-  // True if we are in SVG mode; false in "normal" CSS
-  bool mSVGMode;
   bool mRecording;
   bool mSeenBadToken;
   bool mSeenVariableReference;
+
+  nsString mSourceMapURL;
+  nsString mSourceURL;
 };
 
 // Token for the grid-template-areas micro-syntax

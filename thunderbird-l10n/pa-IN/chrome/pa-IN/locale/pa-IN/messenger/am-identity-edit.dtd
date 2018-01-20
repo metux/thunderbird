@@ -6,8 +6,7 @@
 <!ENTITY copiesFoldersTab.label "ਕਾਪੀ ਤੇ ਫੋਲਡਰ">
 <!ENTITY addressingTab.label    "ਲਿਖਣ ਤੇ ਐਡਰੈੱਸ">
 
-<!ENTITY identityAlias.accesskey "b">
-<!ENTITY identityAlias.label     "Identity Label:">
-<!ENTITY privateData.label       "Private Data">
-
 <!ENTITY publicData.label        "Public Data">
+<!ENTITY privateData.label       "Private Data">
+<!ENTITY identityAlias.label     "Identity Label:">
+<!ENTITY identityAlias.accesskey "b">

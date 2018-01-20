@@ -4,6 +4,7 @@
       "amazondotcom", "aol-web-search", "bing", "twitter", "wikipedia", "yahoo"
     ]
   },
+  "regionOverrides": {},
   "locales": {
     "en-US": {
       "default": {
@@ -187,6 +188,13 @@
         ]
       }
     },
+    "kk": {
+      "default": {
+        "visibleDefaultEngines": [
+          "amazondotcom", "aol-web-search", "bing", "twitter", "wikipedia", "yahoo"
+        ]
+      }
+    },
     "ko": {
       "default": {
         "visibleDefaultEngines": [
@@ -198,6 +206,13 @@
       "default": {
         "visibleDefaultEngines": [
           "amazondotcom", "bing", "google", "twitter", "wikipedia-lt"
+        ]
+      }
+    },
+    "ms": {
+      "default": {
+        "visibleDefaultEngines": [
+          "amazondotcom", "bing", "google", "twitter", "wikipedia", "yahoo"
         ]
       }
     },

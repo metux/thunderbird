@@ -78,11 +78,22 @@ SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info, PRUintn len)
             /* Get these fromm |ss->sec| because that is accurate
              * even with TLS 1.3 disaggregated cipher suites. */
             inf.keaType = ss->sec.keaType;
-            inf.keaGroup = ss->sec.keaGroup ? ss->sec.keaGroup->name : ssl_grp_none;
+            inf.originalKeaGroup = ss->sec.originalKeaGroup
+                                       ? ss->sec.originalKeaGroup->name
+                                       : ssl_grp_none;
+            inf.keaGroup = ss->sec.keaGroup
+                               ? ss->sec.keaGroup->name
+                               : ssl_grp_none;
             inf.keaKeyBits = ss->sec.keaKeyBits;
             inf.authType = ss->sec.authType;
             inf.authKeyBits = ss->sec.authKeyBits;
             inf.signatureScheme = ss->sec.signatureScheme;
+            /* If this is a resumed session, signatureScheme isn't set in ss->sec.
+             * Use the signature scheme from the previous handshake. */
+            if (inf.signatureScheme == ssl_sig_none && sid->sigScheme) {
+                inf.signatureScheme = sid->sigScheme;
+            }
+            inf.resumed = ss->statelessResume || ss->ssl3.hs.isResuming;
         }
         if (sid) {
             unsigned int sidLen;
@@ -140,6 +151,20 @@ SSL_GetPreliminaryChannelInfo(PRFileDesc *fd,
     inf.valuesSet = ss->ssl3.hs.preliminaryInfo;
     inf.protocolVersion = ss->version;
     inf.cipherSuite = ss->ssl3.hs.cipher_suite;
+    inf.canSendEarlyData = !ss->sec.isServer &&
+                           (ss->ssl3.hs.zeroRttState == ssl_0rtt_sent ||
+                            ss->ssl3.hs.zeroRttState == ssl_0rtt_accepted);
+    /* We shouldn't be able to send early data if the handshake is done. */
+    PORT_Assert(!ss->firstHsDone || !inf.canSendEarlyData);
+
+    if (ss->sec.ci.sid &&
+        (ss->ssl3.hs.zeroRttState == ssl_0rtt_sent ||
+         ss->ssl3.hs.zeroRttState == ssl_0rtt_accepted)) {
+        inf.maxEarlyDataSize =
+            ss->sec.ci.sid->u.ssl3.locked.sessionTicket.max_early_data_size;
+    } else {
+        inf.maxEarlyDataSize = 0;
+    }
 
     memcpy(info, &inf, inf.length);
     return SECSuccess;
@@ -218,6 +243,9 @@ SSL_GetPreliminaryChannelInfo(PRFileDesc *fd,
 #define F_NFIPS_STD 0, 0, 0, 0
 #define F_NFIPS_NSTD 0, 0, 1, 0 /* i.e., trash */
 #define F_EXPORT 0, 1, 0, 0     /* i.e., trash */
+
+// RFC 5705
+#define MAX_CONTEXT_LEN PR_UINT16_MAX - 1
 
 static const SSLCipherSuiteInfo suiteInfo[] = {
     /* <------ Cipher suite --------------------> <auth> <KEA>  <bulk cipher> <MAC> <FIPS> */
@@ -425,6 +453,11 @@ SSL_ExportKeyingMaterial(PRFileDesc *fd,
                               out, outLen);
     }
 
+    if (hasContext && contextLen > MAX_CONTEXT_LEN) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
     /* construct PRF arguments */
     valLen = SSL3_RANDOM_LENGTH * 2;
     if (hasContext) {
@@ -435,9 +468,9 @@ SSL_ExportKeyingMaterial(PRFileDesc *fd,
         return SECFailure;
     }
     i = 0;
-    PORT_Memcpy(val + i, &ss->ssl3.hs.client_random.rand, SSL3_RANDOM_LENGTH);
+    PORT_Memcpy(val + i, ss->ssl3.hs.client_random, SSL3_RANDOM_LENGTH);
     i += SSL3_RANDOM_LENGTH;
-    PORT_Memcpy(val + i, &ss->ssl3.hs.server_random.rand, SSL3_RANDOM_LENGTH);
+    PORT_Memcpy(val + i, ss->ssl3.hs.server_random, SSL3_RANDOM_LENGTH);
     i += SSL3_RANDOM_LENGTH;
     if (hasContext) {
         val[i++] = contextLen >> 8;
@@ -455,9 +488,8 @@ SSL_ExportKeyingMaterial(PRFileDesc *fd,
         PORT_SetError(SSL_ERROR_HANDSHAKE_NOT_COMPLETED);
         rv = SECFailure;
     } else {
-        HASH_HashType ht = ssl3_GetTls12HashType(ss);
-        rv = ssl3_TLSPRFWithMasterSecret(ss->ssl3.cwSpec, label, labelLen, val,
-                                         valLen, out, outLen, ht);
+        rv = ssl3_TLSPRFWithMasterSecret(ss, ss->ssl3.cwSpec, label, labelLen,
+                                         val, valLen, out, outLen);
     }
     ssl_ReleaseSpecReadLock(ss);
 

@@ -14,7 +14,7 @@
 #include "nsMimeTypes.h"
 #include "nsICharsetConverterManager.h"
 #include "prprf.h"
-#include "nsMsgQuote.h" 
+#include "nsMsgQuote.h"
 #include "nsMsgCompUtils.h"
 #include "nsIMsgMessageService.h"
 #include "nsMsgUtils.h"
@@ -24,7 +24,7 @@
 #include "nsMsgCompose.h"
 #include "nsMsgMailNewsUrl.h"
 #include "mozilla/Services.h"
-#include "nsIScriptSecurityManager.h"
+#include "nsContentUtils.h"
 
 NS_IMPL_ISUPPORTS(nsMsgQuoteListener, nsIMsgQuoteListener,
   nsIMimeStreamConverterListener)
@@ -49,8 +49,7 @@ NS_IMETHODIMP nsMsgQuoteListener::GetMsgQuote(nsIMsgQuote ** aMsgQuote)
   if (aMsgQuote)
   {
     nsCOMPtr<nsIMsgQuote> msgQuote = do_QueryReferent(mMsgQuote);
-    *aMsgQuote = msgQuote;
-    NS_IF_ADDREF(*aMsgQuote);
+    msgQuote.forget(aMsgQuote);
   }
   else
     rv = NS_ERROR_NULL_POINTER;
@@ -91,8 +90,7 @@ NS_IMETHODIMP nsMsgQuote::GetStreamListener(nsIMsgQuotingOutputStreamListener **
   nsresult rv = NS_OK;
   if (aStreamListener)
   {
-    *aStreamListener = mStreamListener;
-    NS_IF_ADDREF(*aStreamListener);
+    NS_IF_ADDREF(*aStreamListener = mStreamListener);
   }
   else
     rv = NS_ERROR_NULL_POINTER;
@@ -146,11 +144,11 @@ nsMsgQuote::QuoteMessage(const char *msgURI, bool quoteHeaders,
     queryPart.Append('&');
 
   if (headersOnly) /* We don't need to quote the message body but we still need to extract the headers */
-    queryPart.Append("header=only");
+    queryPart.AppendLiteral("header=only");
   else if (quoteHeaders)
-    queryPart.Append("header=quote");
+    queryPart.AppendLiteral("header=quote");
   else
-    queryPart.Append("header=quotebody");
+    queryPart.AppendLiteral("header=quotebody");
   rv = mailNewsUrl->SetQuery(queryPart);
   NS_ENSURE_SUCCESS(rv,rv);
 
@@ -173,29 +171,21 @@ nsMsgQuote::QuoteMessage(const char *msgURI, bool quoteHeaders,
   NS_IF_RELEASE(supports);
 
   // now we want to create a necko channel for this url and we want to open it
-  nsCOMPtr<nsIScriptSecurityManager> secMan(
-      do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv));
-  NS_ENSURE_SUCCESS(rv,rv);
-
-  nsCOMPtr<nsIPrincipal> systemPrincipal;
-  rv = secMan->GetSystemPrincipal(getter_AddRefs(systemPrincipal));
-  NS_ENSURE_SUCCESS(rv,rv);
-
   mQuoteChannel = nullptr;
   nsCOMPtr<nsIIOService> netService = mozilla::services::GetIOService();
   NS_ENSURE_TRUE(netService, NS_ERROR_UNEXPECTED);
   rv = netService->NewChannelFromURI2(aURL,
                                       nullptr,
-                                      systemPrincipal,
+                                      nsContentUtils::GetSystemPrincipal(),
                                       nullptr,
-                                      nsILoadInfo::SEC_NORMAL,
+                                      nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                       nsIContentPolicy::TYPE_OTHER,
                                       getter_AddRefs(mQuoteChannel));
 
   if (NS_FAILED(rv)) return rv;
   nsCOMPtr<nsISupports> ctxt = do_QueryInterface(aURL);
 
-  nsCOMPtr<nsIStreamConverterService> streamConverterService = 
+  nsCOMPtr<nsIStreamConverterService> streamConverterService =
            do_GetService("@mozilla.org/streamConverters;1", &rv);
   NS_ENSURE_SUCCESS(rv,rv);
 
@@ -207,7 +197,7 @@ nsMsgQuote::QuoteMessage(const char *msgURI, bool quoteHeaders,
                                                 getter_AddRefs(convertedListener));
   if (NS_FAILED(rv)) return rv;
 
-  //  now try to open the channel passing in our display consumer as the listener 
+  //  now try to open the channel passing in our display consumer as the listener
   rv = mQuoteChannel->AsyncOpen(convertedListener, ctxt);
   return rv;
 }
@@ -217,8 +207,7 @@ nsMsgQuote::GetQuoteListener(nsIMimeStreamConverterListener** aQuoteListener)
 {
     if (!aQuoteListener || !mQuoteListener)
         return NS_ERROR_NULL_POINTER;
-    *aQuoteListener = mQuoteListener;
-    NS_ADDREF(*aQuoteListener);
+    NS_ADDREF(*aQuoteListener = mQuoteListener);
     return NS_OK;
 }
 
@@ -227,7 +216,6 @@ nsMsgQuote::GetQuoteChannel(nsIChannel** aQuoteChannel)
 {
     if (!aQuoteChannel || !mQuoteChannel)
         return NS_ERROR_NULL_POINTER;
-    *aQuoteChannel = mQuoteChannel;
-    NS_ADDREF(*aQuoteChannel);
+    NS_ADDREF(*aQuoteChannel = mQuoteChannel);
     return NS_OK;
 }

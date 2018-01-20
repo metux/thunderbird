@@ -24,7 +24,7 @@ function respondWithSHA1OCSP(request, response) {
   response.setStatusLine(request.httpVersion, 200, "OK");
   response.setHeader("Content-Type", "application/ocsp-response");
 
-  let args = [ ["good-delegated", "default-ee", "delegatedSHA1Signer" ] ];
+  let args = [ ["good-delegated", "default-ee", "delegatedSHA1Signer", 0 ] ];
   let responses = generateOCSPResponses(args, "ocsp_certs");
   response.write(responses[0]);
 }
@@ -36,8 +36,8 @@ function respondWithError(request, response) {
   response.bodyOutputStream.write(body, body.length);
 }
 
-function generateGoodOCSPResponse() {
-  let args = [ ["good", "default-ee", "unused" ] ];
+function generateGoodOCSPResponse(thisUpdateSkew) {
+  let args = [ ["good", "default-ee", "unused", thisUpdateSkew ] ];
   let responses = generateOCSPResponses(args, "ocsp_certs");
   return responses[0];
 }
@@ -68,7 +68,6 @@ function run_test() {
 
   let ocspResponder = new HttpServer();
   ocspResponder.registerPrefixHandler("/", function(request, response) {
-
     do_print("gFetchCount: " + gFetchCount);
     let responseFunction = gResponsePattern[gFetchCount];
     Assert.notEqual(undefined, responseFunction);
@@ -113,7 +112,7 @@ function add_tests() {
     Services.prefs.clearUserPref("security.pki.cert_short_lifetime_in_days");
     run_next_test();
   });
-  //---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
 
   // Reset state
   add_test(function() { clearOCSPCache(); run_next_test(); });
@@ -149,13 +148,7 @@ function add_tests() {
   // response will be seen as "not newer" and it won't replace the existing
   // entry.
   add_test(function() {
-    let duration = 1200;
-    do_print("Sleeping for " + duration + "ms");
-    let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-    timer.initWithCallback(run_next_test, duration, Ci.nsITimer.TYPE_ONE_SHOT);
-  });
-  add_test(function() {
-    gGoodOCSPResponse = generateGoodOCSPResponse();
+    gGoodOCSPResponse = generateGoodOCSPResponse(1200);
     run_next_test();
   });
   add_ocsp_test("ocsp-stapling-none.example.com", PRErrorCodeSuccess,
@@ -172,7 +165,7 @@ function add_tests() {
                 " attempted");
 
 
-  //---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
 
   // Reset state
   add_test(function() { clearOCSPCache(); run_next_test(); });
@@ -195,7 +188,7 @@ function add_tests() {
                 "Stapled Revoked response -> a fetch should not have been" +
                 " attempted");
 
-  //---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
 
   // Ensure OCSP responses from signers with SHA1 certificates are OK. This
   // is included in the OCSP caching tests since there were OCSP cache-related
@@ -216,7 +209,7 @@ function add_tests() {
     run_next_test();
   });
 
-  //---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
 
   // Reset state
   add_test(function() { clearOCSPCache(); run_next_test(); });
@@ -233,7 +226,7 @@ function add_tests() {
     // We use a dummy proxy filter to catch all channels, even those that do not
     // generate an "http-on-modify-request" notification.
     let proxyFilter = {
-      applyFilter: function (aProxyService, aChannel, aProxy) {
+      applyFilter(aProxyService, aChannel, aProxy) {
         // We have the channel; provide it to the callback.
         if (aChannel.originalURI.spec == "http://localhost:8888/") {
           gObservedCnt++;
@@ -292,7 +285,32 @@ function add_tests() {
     run_next_test();
   });
 
-  //---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+
+  // Reset state
+  add_test(function() { clearOCSPCache(); run_next_test(); });
+
+  // Test that the OCSP cache is not isolated by userContextId.
+
+  // A good OCSP response will be cached.
+  add_ocsp_test("ocsp-stapling-none.example.com", PRErrorCodeSuccess,
+                [respondWithGoodOCSP],
+                "No stapled response (userContextId = 1) -> a fetch " +
+                "should have been attempted", { userContextId: 1 });
+
+  // The cache will prevent a fetch from happening.
+  add_ocsp_test("ocsp-stapling-none.example.com", PRErrorCodeSuccess, [],
+                "Noted OCSP server failure (userContextId = 1) -> a " +
+                "fetch should not have been attempted",
+                { userContextId: 1 });
+
+  // Fetching is prevented even if in a different userContextId.
+  add_ocsp_test("ocsp-stapling-none.example.com", PRErrorCodeSuccess, [],
+                "Noted OCSP server failure (userContextId = 2) -> a " +
+                "fetch should not have been attempted",
+                { userContextId: 2 });
+
+  // ---------------------------------------------------------------------------
 
   // Reset state
   add_test(function() { clearOCSPCache(); run_next_test(); });

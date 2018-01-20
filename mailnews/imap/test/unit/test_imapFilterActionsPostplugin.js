@@ -40,9 +40,6 @@ var gMessageInBody = "an HTML message";
 // various object references
 var gDbService = Components.classes["@mozilla.org/msgDatabase/msgDBService;1"]
                              .getService(Components.interfaces.nsIMsgDBService);
-var kDeleteOrMoveMsgCompleted = Cc["@mozilla.org/atom-service;1"]
-                                    .getService(Ci.nsIAtomService)
-                                    .getAtom("DeleteOrMoveMsgCompleted");
 
 // Definition of tests. The test function name is the filter action
 // being tested, with "Body" appended to tests that use delayed
@@ -182,7 +179,7 @@ var gTestArray =
 
 function run_test() {
   Services.prefs.setBoolPref("mail.server.default.autosync_offline_stores", false);
-  gTestArray.forEach(add_task);
+  gTestArray.forEach(x => add_task(x));
   run_next_test();
 }
 
@@ -265,7 +262,7 @@ function endTest()
 // nsIFolderListener implementation
 var FolderListener = {
   OnItemEvent: function OnItemEvent(aEventFolder, aEvent) {
-    dump("received folder event " + aEvent.toString() +
+    dump("received folder event " + aEvent +
          " folder " + aEventFolder.name +
          "\n");
   }

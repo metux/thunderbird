@@ -9,20 +9,21 @@
 
 namespace mozilla {
 
+#ifdef DEBUG
+
 extern LazyLogModule gMediaStreamGraphLog;
 #define STREAM_LOG(type, msg) MOZ_LOG(gMediaStreamGraphLog, type, msg)
 
-#ifdef DEBUG
 void
 StreamTracks::DumpTrackInfo() const
 {
-  STREAM_LOG(LogLevel::Info, ("DumpTracks: mTracksKnownTime %lld", mTracksKnownTime));
+  STREAM_LOG(LogLevel::Info, ("DumpTracks: mTracksKnownTime %" PRId64, mTracksKnownTime));
   for (uint32_t i = 0; i < mTracks.Length(); ++i) {
     Track* track = mTracks[i];
     if (track->IsEnded()) {
       STREAM_LOG(LogLevel::Info, ("Track[%d] %d: ended", i, track->GetID()));
     } else {
-      STREAM_LOG(LogLevel::Info, ("Track[%d] %d: %lld", i, track->GetID(),
+      STREAM_LOG(LogLevel::Info, ("Track[%d] %d: %" PRId64 "", i, track->GetID(),
                                  track->GetEnd()));
     }
   }

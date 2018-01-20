@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 sw=2 et tw=78: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,23 +8,22 @@
 #define nsIFrameInlines_h___
 
 #include "nsContainerFrame.h"
+#include "nsPlaceholderFrame.h"
 #include "nsStyleStructInlines.h"
 #include "nsCSSAnonBoxes.h"
+#include "nsFrameManager.h"
 
 bool
 nsIFrame::IsFlexItem() const
 {
-  return GetParent() &&
-    GetParent()->GetType() == nsGkAtoms::flexContainerFrame &&
-    !(GetStateBits() & NS_FRAME_OUT_OF_FLOW);
+  return GetParent() && GetParent()->IsFlexContainerFrame() &&
+         !(GetStateBits() & NS_FRAME_OUT_OF_FLOW);
 }
 
 bool
 nsIFrame::IsFlexOrGridContainer() const
 {
-  nsIAtom* t = GetType();
-  return t == nsGkAtoms::flexContainerFrame ||
-         t == nsGkAtoms::gridContainerFrame;
+  return IsFlexContainerFrame() || IsGridContainerFrame();
 }
 
 bool
@@ -67,9 +66,10 @@ nsIFrame::IsRelativelyPositioned() const
 }
 
 bool
-nsIFrame::IsAbsolutelyPositioned() const
+nsIFrame::IsAbsolutelyPositioned(const nsStyleDisplay* aStyleDisplay) const
 {
-  return StyleDisplay()->IsAbsolutelyPositioned(this);
+  const nsStyleDisplay* disp = StyleDisplayWithOptionalParam(aStyleDisplay);
+  return disp->IsAbsolutelyPositioned(this);
 }
 
 bool
@@ -158,6 +158,26 @@ nsIFrame::BaselineBOffset(mozilla::WritingMode aWM,
   }
   // XXX AlignmentContext::eTable should use content box?
   return SynthesizeBaselineBOffsetFromBorderBox(aWM, aBaselineGroup);
+}
+
+void
+nsIFrame::PropagateRootElementWritingMode(mozilla::WritingMode aRootElemWM)
+{
+  MOZ_ASSERT(IsCanvasFrame());
+  for (auto f = this; f; f = f->GetParent()) {
+    f->mWritingMode = aRootElemWM;
+  }
+}
+
+nsContainerFrame*
+nsIFrame::GetInFlowParent()
+{
+  if (GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
+    nsIFrame* ph = FirstContinuation()->GetProperty(nsIFrame::PlaceholderFrameProperty());
+    return ph->GetParent();
+  }
+
+  return GetParent();
 }
 
 #endif

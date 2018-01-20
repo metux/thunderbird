@@ -4,14 +4,8 @@
 #if !defined(INCLUDED_CAL_UTILS_H)
 #define INCLUDED_CAL_UTILS_H
 
-#if defined(MOZILLA_INTERNAL_API)
 #include "nsCRT.h"
 #include "nsString.h"
-#else
-#include "nsMemory.h"
-#include "nsCRTGlue.h"
-#include "nsStringAPI.h"
-#endif
 
 #include "nsAutoPtr.h"
 #include "nsIStringEnumerator.h"
@@ -22,7 +16,6 @@
 #include "nsIConsoleService.h"
 #include "nsServiceManagerUtils.h"
 #include "nsIClassInfoImpl.h"
-#include "nsIProgrammingLanguage.h"
 #include "nsCOMPtr.h"
 
 #include "calBaseCID.h"
@@ -58,7 +51,7 @@ inline nsCOMPtr<calITimezoneService> getTimezoneService() {
 
     tzs = do_GetService(CAL_TIMEZONESERVICE_CONTRACTID, &rv);
     if (NS_FAILED(rv)) {
-        NS_RUNTIMEABORT("Could not load timezone service, brace yourself and prepare for crash");
+        MOZ_CRASH("Could not load timezone service, brace yourself and prepare for crash");
     }
     return tzs;
 }
@@ -107,7 +100,7 @@ inline nsCOMPtr<calITimezone> UTC() {
 
     rv = getTimezoneService()->GetUTC(getter_AddRefs(tz));
     if (NS_FAILED(rv)) {
-        NS_RUNTIMEABORT("Could not load UTC timezone, brace yourself and prepare for crash");
+        MOZ_CRASH("Could not load UTC timezone, brace yourself and prepare for crash");
     }
 
     return tz;
@@ -122,7 +115,7 @@ inline nsCOMPtr<calITimezone> floating() {
 
     rv = getTimezoneService()->GetFloating(getter_AddRefs(tz));
     if (NS_FAILED(rv)) {
-        NS_RUNTIMEABORT("Could not load floating timezone, brace yourself and prepare for crash");
+        MOZ_CRASH("Could not load floating timezone, brace yourself and prepare for crash");
     }
 
     return tz;

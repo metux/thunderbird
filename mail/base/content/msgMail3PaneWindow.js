@@ -1,4 +1,4 @@
-/** ***** BEGIN LICENSE BLOCK *****
+/**
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -17,6 +17,8 @@ Components.utils.import("resource:///modules/sessionStoreManager.js");
 Components.utils.import("resource:///modules/summaryFrameManager.js");
 Components.utils.import("resource:///modules/MailUtils.js");
 Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
+Components.utils.import("resource://gre/modules/Color.jsm");
 
 /* This is where functions related to the 3 pane window are kept */
 
@@ -66,7 +68,7 @@ var folderListener = {
 
     OnItemIntPropertyChanged: function(item, property, oldValue, newValue) {
       if (item == gFolderDisplay.displayedFolder) {
-        if(property.toString() == "TotalMessages" || property.toString() == "TotalUnreadMessages") {
+        if(property == "TotalMessages" || property == "TotalUnreadMessages") {
           UpdateStatusMessageCounts(gFolderDisplay.displayedFolder);
         }
       }
@@ -78,8 +80,7 @@ var folderListener = {
     OnItemPropertyFlagChanged: function(item, property, oldFlag, newFlag) { },
 
     OnItemEvent: function(folder, event) {
-      var eventType = event.toString();
-      if (eventType == "ImapHdrDownloaded") {
+      if (event == "ImapHdrDownloaded") {
         if (folder) {
           var imapFolder = folder.QueryInterface(Components.interfaces.nsIMsgImapMailFolder);
           if (imapFolder) {
@@ -101,75 +102,11 @@ var folderListener = {
           }
         }
       }
-      else if (eventType == "JunkStatusChanged") {
+      else if (event == "JunkStatusChanged") {
         HandleJunkStatusChanged(folder);
       }
     }
 }
-
-/*
- * Listen for Lightweight Theme styling changes and update the theme accordingly.
- */
-var LightweightThemeListener = {
-  _modifiedStyles: [],
-
-  init: function () {
-    XPCOMUtils.defineLazyGetter(this, "styleSheet", function() {
-      for (let i = document.styleSheets.length - 1; i >= 0; i--) {
-        let sheet = document.styleSheets[i];
-        if (sheet.href == "chrome://messenger/skin/messengerLWTheme.css")
-          return sheet;
-      }
-    });
-
-    Services.obs.addObserver(this, "lightweight-theme-styling-update", false);
-    Services.obs.addObserver(this, "lightweight-theme-optimized", false);
-    if (document.documentElement.hasAttribute("lwtheme"))
-      this.updateStyleSheet(document.documentElement.style.backgroundImage);
-  },
-
-  uninit: function () {
-    Services.obs.removeObserver(this, "lightweight-theme-styling-update");
-    Services.obs.removeObserver(this, "lightweight-theme-optimized");
-  },
-
-  /**
-   * Append the headerImage to the background-image property of all rulesets in
-   * messengerLWTheme.css.
-   *
-   * @param headerImage - a string containing a CSS image for the lightweight
-   * theme header.
-   */
-  updateStyleSheet: function(headerImage) {
-    if (!this.styleSheet)
-      return;
-    for (let i = 0; i < this.styleSheet.cssRules.length; i++) {
-      let rule = this.styleSheet.cssRules[i];
-      if (!rule.style.backgroundImage)
-        continue;
-
-      if (!this._modifiedStyles[i])
-        this._modifiedStyles[i] = { backgroundImage: rule.style.backgroundImage };
-
-      rule.style.backgroundImage = this._modifiedStyles[i].backgroundImage + ", " + headerImage;
-    }
-  },
-
-  // nsIObserver
-  observe: function (aSubject, aTopic, aData) {
-    if ((aTopic != "lightweight-theme-styling-update" && aTopic != "lightweight-theme-optimized") ||
-          !this.styleSheet)
-      return;
-
-    if (aTopic == "lightweight-theme-optimized" && aSubject != window)
-      return;
-
-    let themeData = JSON.parse(aData);
-    if (!themeData)
-      return;
-    this.updateStyleSheet("url(" + themeData.headerURL + ")");
-  },
-};
 
 function ServerContainsFolder(server, folder)
 {
@@ -388,20 +325,7 @@ function AutoConfigWizard(okCallback)
     return;
   }
 
-  if (Services.prefs.getBoolPref("mail.provider.enabled")) {
-    Services.obs.addObserver({
-      observe: function(aSubject, aTopic, aData) {
-        if (aTopic == "mail-tabs-session-restored" && aSubject === window) {
-          // We're done here, unregister this observer.
-          Services.obs.removeObserver(this, "mail-tabs-session-restored");
-          NewMailAccountProvisioner(msgWindow, { okCallback: null });
-        }
-      }
-    }, "mail-tabs-session-restored", false);
-    okCallback();
-  }
-  else
-    NewMailAccount(msgWindow, okCallback);
+  NewMailAccount(msgWindow, okCallback);
 }
 
 /**
@@ -412,38 +336,23 @@ function OnLoadMessenger()
   migrateMailnews();
   // Rig up our TabsInTitlebar early so that we can catch any resize events.
   TabsInTitlebar.init();
-  // Listen for Lightweight Theme styling changes and update the theme accordingly.
-  LightweightThemeListener.init();
   // update the pane config before we exit onload otherwise the user may see a flicker if we poke the document
   // in delayedOnLoadMessenger...
   UpdateMailPaneConfig(false);
   document.loadBindingDocument('chrome://global/content/bindings/textbox.xml');
 
-#ifdef XP_WIN
-  // On Win8 set an attribute when the window frame color is too dark for black text.
-  if (window.matchMedia("(-moz-os-version: windows-win8)").matches &&
-      window.matchMedia("(-moz-windows-default-theme)").matches) {
-    let windows8WindowFrameColor = Cu.import("resource:///modules/Windows8WindowFrameColor.jsm", {}).Windows8WindowFrameColor;
-    let windowFrameColor = windows8WindowFrameColor.get();
-
-    // Formula from W3C's WCAG 2.0 spec's color ratio and relative luminance,
-    // section 1.3.4, http://www.w3.org/TR/WCAG20/ .
-    windowFrameColor = windowFrameColor.map((color) => {
-      if (color <= 10) {
-        return color / 255 / 12.92;
+  if (AppConstants.platform == "win") {
+    // On Win8 set an attribute when the window frame color is too dark for black text.
+    if (window.matchMedia("(-moz-os-version: windows-win8)").matches &&
+        window.matchMedia("(-moz-windows-default-theme)").matches) {
+      let windowFrameColor = new Color(...Cu.import("resource:///modules/Windows8WindowFrameColor.jsm", {})
+                                            .Windows8WindowFrameColor.get());
+      // Default to black for foreground text.
+      if (!windowFrameColor.isContrastRatioAcceptable(new Color(0, 0, 0))) {
+        document.documentElement.setAttribute("darkwindowframe", "true");
       }
-      return Math.pow(((color / 255) + 0.055) / 1.055, 2.4);
-    });
-    let backgroundLuminance = windowFrameColor[0] * 0.2126 +
-                              windowFrameColor[1] * 0.7152 +
-                              windowFrameColor[2] * 0.0722;
-    let foregroundLuminance = 0; // Default to black for foreground text.
-    let contrastRatio = (backgroundLuminance + 0.05) / (foregroundLuminance + 0.05);
-    if (contrastRatio < 3) {
-      document.documentElement.setAttribute("darkwindowframe", "true");
     }
   }
-#endif
 
   ToolbarIconColor.init();
 
@@ -538,7 +447,6 @@ function LoadPostAccountWizard()
   messenger.setWindow(window, msgWindow);
 
   InitPanes();
-  MigrateAttachmentDownloadStore();
   MigrateJunkMailSettings();
   MigrateFolderViews();
   MigrateOpenMessageBehavior();
@@ -719,8 +627,6 @@ function OnUnloadMessenger()
 
   ToolbarIconColor.uninit();
 
-  LightweightThemeListener.uninit();
-
   let tabmail = document.getElementById("tabmail");
   tabmail._teardown();
 
@@ -763,10 +669,8 @@ function getWindowStateForSessionPersistence()
  *
  * @return true if the restoration was successful, false otherwise.
  */
-function atStartupRestoreTabs(aDontRestoreFirstTab) {
-
-  let state = sessionStoreManager.loadingWindow(window);
-
+async function atStartupRestoreTabs(aDontRestoreFirstTab) {
+  let state = await sessionStoreManager.loadingWindow(window);
   if (state) {
     let tabsState = state.tabs;
     let tabmail = document.getElementById("tabmail");
@@ -775,6 +679,7 @@ function atStartupRestoreTabs(aDontRestoreFirstTab) {
 
   // it's now safe to load extra Tabs.
   setTimeout(loadExtraTabs, 0);
+  sessionStoreManager._restored = true;
   Services.obs.notifyObservers(window, "mail-tabs-session-restored", null);
   return state ? true : false;
 }
@@ -1040,7 +945,7 @@ function GetMessagePaneWrapper()
 function GetMessagePaneFrame()
 {
   // We must use the message pane element directly here, as other tabs can
-  // have browser elements as well (which could be set to content-primary,
+  // have browser elements as well (which could be set to content primary,
   // which would confuse things with a window.content return).
   return document.getElementById("messagepane").contentWindow;
 }
@@ -1348,24 +1253,6 @@ function MigrateFolderViews()
   }
 }
 
-// Thunderbird has been storing old attachment download meta data in downloads.rdf
-// even though there was no way to show or clean up this data. Now that we are using
-// the new download manager in toolkit, we don't want to present this old data.
-// To migrate to the new download manager, remove downloads.rdf.
-function MigrateAttachmentDownloadStore()
-{
-  var attachmentStoreVersion = Services.prefs.getIntPref("mail.attachment.store.version");
-  if (!attachmentStoreVersion)
-  {
-    var downloadsFile = Services.dirsvc.get("DLoads", Components.interfaces.nsIFile);
-    if (downloadsFile && downloadsFile.exists())
-      downloadsFile.remove(false);
-
-    // bump the version so we don't bother doing this again.
-    Services.prefs.setIntPref("mail.attachment.store.version", 1);
-  }
-}
-
 // Do a one-time migration of the old mailnews.reuse_message_window pref to the
 // newer mail.openMessageBehavior. This does the migration only if the old pref
 // is defined.
@@ -1481,14 +1368,14 @@ messageFlavorDataProvider.prototype = {
                                   fileUriPrimitive, dataSize);
 
     let fileUriStr = fileUriPrimitive.value.QueryInterface(Components.interfaces.nsISupportsString);
-    let fileUri = Services.io.newURI(fileUriStr.data, null, null);
+    let fileUri = Services.io.newURI(fileUriStr.data);
     let fileUrl = fileUri.QueryInterface(Components.interfaces.nsIURL);
     let fileName = fileUrl.fileName;
 
     let destDirPrimitive = {};
     aTransferable.getTransferData("application/x-moz-file-promise-dir",
                                   destDirPrimitive, dataSize);
-    let destDirectory = destDirPrimitive.value.QueryInterface(Components.interfaces.nsILocalFile);
+    let destDirectory = destDirPrimitive.value.QueryInterface(Components.interfaces.nsIFile);
     let file = destDirectory.clone();
     file.append(fileName);
 
@@ -1537,7 +1424,7 @@ function ThreadPaneOnDragOver(aEvent) {
     return;
 
   let dt = aEvent.dataTransfer;
-  if (Array.indexOf(dt.mozTypesAt(0), "application/x-moz-file") != -1) {
+  if (Array.from(dt.mozTypesAt(0)).includes("application/x-moz-file")) {
     let extFile = dt.mozGetDataAt("application/x-moz-file", 0)
                     .QueryInterface(Components.interfaces.nsIFile);
     if (extFile.isFile()) {
@@ -1759,76 +1646,86 @@ function InitPageMenu(menuPopup, event) {
 }
 
 var TabsInTitlebar = {
-  init: function () {
-#ifdef CAN_DRAW_IN_TITLEBAR
-    // Don't trust the initial value of the sizemode attribute; wait for the
-    // resize event.
-    this._readPref();
-    Services.prefs.addObserver(this._drawInTitlePref, this, false);
-    Services.prefs.addObserver(this._autoHidePref, this, false);
+  init() {
+    if (AppConstants.CAN_DRAW_IN_TITLEBAR) {
+      // Don't trust the initial value of the sizemode attribute; wait for the
+      // resize event.
+      this._readPref();
+      Services.prefs.addObserver(this._drawInTitlePref, this, false);
+      Services.prefs.addObserver(this._autoHidePref, this, false);
 
-    this.allowedBy("sizemode", false);
-    window.addEventListener("resize", function (event) {
-      if (event.target != window)
-        return;
-      TabsInTitlebar.allowedBy("sizemode", true);
-    }, false);
+      this.allowedBy("sizemode", false);
+      window.addEventListener("resize", function (event) {
+        if (event.target != window)
+          return;
+        TabsInTitlebar.allowedBy("sizemode", true);
+      }, false);
 
-    // We need to update the appearance of the titlebar when the menu changes
-    // from the active to the inactive state. We can't, however, rely on
-    // DOMMenuBarInactive, because the menu fires this event and then removes
-    // the inactive attribute after an event-loop spin.
-    //
-    // Because updating the appearance involves sampling the heights and
-    // margins of various elements, it's important that the layout be more or
-    // less settled before updating the titlebar. So instead of listening to
-    // DOMMenuBarActive and DOMMenuBarInactive, we use a MutationObserver to
-    // watch the "invalid" attribute directly.
-    let menu = document.getElementById("mail-toolbar-menubar2");
-    this._menuObserver = new MutationObserver(this._onMenuMutate);
-    this._menuObserver.observe(menu, {attributes: true});
-
-    let sizeMode = document.getElementById("messengerWindow");
-    this._sizeModeObserver = new MutationObserver(this._onSizeModeMutate);
-    this._sizeModeObserver.observe(sizeMode, {attributes: true});
-
-    this._initialized = true;
-#endif
-  },
-
-  allowedBy: function (condition, allow) {
-#ifdef CAN_DRAW_IN_TITLEBAR
-    if (allow) {
-      if (condition in this._disallowed) {
-        delete this._disallowed[condition];
-        this._update(true);
+      // Always disable on unsupported GTK versions.
+      if (AppConstants.MOZ_WIDGET_TOOLKIT == "gtk3") {
+        this.allowedBy("gtk", window.matchMedia("(-moz-gtk-csd-available)"));
       }
-    } else {
-      if (!(condition in this._disallowed)) {
-        this._disallowed[condition] = null;
-        this._update(true);
+
+      // We need to update the appearance of the titlebar when the menu changes
+      // from the active to the inactive state. We can't, however, rely on
+      // DOMMenuBarInactive, because the menu fires this event and then removes
+      // the inactive attribute after an event-loop spin.
+      //
+      // Because updating the appearance involves sampling the heights and
+      // margins of various elements, it's important that the layout be more or
+      // less settled before updating the titlebar. So instead of listening to
+      // DOMMenuBarActive and DOMMenuBarInactive, we use a MutationObserver to
+      // watch the "invalid" attribute directly.
+      let menu = document.getElementById("mail-toolbar-menubar2");
+      this._menuObserver = new MutationObserver(this._onMenuMutate);
+      this._menuObserver.observe(menu, {attributes: true});
+
+      let sizeMode = document.getElementById("messengerWindow");
+      this._sizeModeObserver = new MutationObserver(this._onSizeModeMutate);
+      this._sizeModeObserver.observe(sizeMode, {attributes: true});
+
+      this._initialized = true;
+      if (this._updateOnInit) {
+        // We don't need to call this with 'true', even if original calls
+        // (before init()) did, because this will be the first call and so
+        // we will update anyway.
+        this._update();
       }
     }
-#endif
+  },
+
+  allowedBy(condition, allow) {
+    if (AppConstants.CAN_DRAW_IN_TITLEBAR) {
+      if (allow) {
+        if (condition in this._disallowed) {
+          delete this._disallowed[condition];
+          this._update(true);
+        }
+      } else {
+        if (!(condition in this._disallowed)) {
+          this._disallowed[condition] = null;
+          this._update(true);
+        }
+      }
+    }
   },
 
   updateAppearance: function updateAppearance(aForce) {
-#ifdef CAN_DRAW_IN_TITLEBAR
-    this._update(aForce);
-#endif
+    if (AppConstants.CAN_DRAW_IN_TITLEBAR) {
+      this._update(aForce);
+    }
   },
 
   get enabled() {
     return document.documentElement.getAttribute("tabsintitlebar") == "true";
   },
 
-#ifdef CAN_DRAW_IN_TITLEBAR
-  observe: function (subject, topic, data) {
+  observe(subject, topic, data) {
     if (topic == "nsPref:changed")
       this._readPref();
   },
 
-  _onMenuMutate: function (aMutations) {
+  _onMenuMutate(aMutations) {
     for (let mutation of aMutations) {
       if (mutation.attributeName == "inactive" ||
           mutation.attributeName == "autohide") {
@@ -1838,7 +1735,7 @@ var TabsInTitlebar = {
     }
   },
 
-  _onSizeModeMutate: function (aMutations) {
+  _onSizeModeMutate(aMutations) {
     for (let mutation of aMutations) {
       if (mutation.attributeName == "sizemode") {
         TabsInTitlebar._update(true);
@@ -1848,27 +1745,33 @@ var TabsInTitlebar = {
   },
 
   _initialized: false,
+  _updateOnInit: false,
   _disallowed: {},
   _drawInTitlePref: "mail.tabs.drawInTitlebar",
   _autoHidePref: "mail.tabs.autoHide",
   _lastSizeMode: null,
 
-  _readPref: function () {
+  _readPref() {
     // check is only true when drawInTitlebar=true and autoHide=false
     let check = Services.prefs.getBoolPref(this._drawInTitlePref) &&
                 !Services.prefs.getBoolPref(this._autoHidePref);
     this.allowedBy("pref", check);
   },
 
-  _update: function (aForce=false) {
-    function $(id) { return document.getElementById(id); }
-    function rect(ele) { return ele.getBoundingClientRect(); }
-    function verticalMargins(cstyle) { return parseFloat(cstyle.marginBottom) + parseFloat(cstyle.marginTop); }
+  _update(aForce=false) {
+    let $ = id => document.getElementById(id);
+    let rect = ele => ele.getBoundingClientRect();
+    let verticalMargins = cstyle => parseFloat(cstyle.marginBottom) + parseFloat(cstyle.marginTop);
 
-    if (!this._initialized || window.fullScreen)
+    if (window.fullScreen)
       return;
 
-    let allowed = true;
+    // In some edgecases it is possible for this to fire before we've initialized.
+    // Don't run now, but don't forget to run it when we do initialize.
+    if (!this._initialized) {
+      this._updateOnInit = true;
+      return;
+    }
 
     if (!aForce) {
       // _update is called on resize events, because the window is not ready
@@ -1879,13 +1782,18 @@ var TabsInTitlebar = {
       if (this._lastSizeMode == sizemode) {
         return;
       }
+      let oldSizeMode = this._lastSizeMode;
       this._lastSizeMode = sizemode;
+      // Don't update right now if we are leaving fullscreen, since the UI is
+      // still changing in the consequent "fullscreen" event. Code there will
+      // call this function again when everything is ready.
+      // See browser-fullScreen.js: FullScreen.toggle and bug 1173768.
+      if (oldSizeMode == "fullscreen") {
+        return;
+      }
     }
 
-    for (let something in this._disallowed) {
-      allowed = false;
-      break;
-    }
+    let allowed = (Object.keys(this._disallowed)).length == 0;
 
     let titlebar = $("titlebar");
     let titlebarContent = $("titlebar-content");
@@ -1897,36 +1805,48 @@ var TabsInTitlebar = {
       document.documentElement.setAttribute("tabsintitlebar", "true");
       updateTitlebarDisplay();
 
+      // Reset the custom titlebar height if the menubar is shown,
+      // because we will want to calculate its original height.
+      if (AppConstants.isPlatformAndVersionAtLeast("win", "10.0") &&
+          (menubar.getAttribute("inactive") != "true" ||
+          menubar.getAttribute("autohide") != "true")) {
+        $("titlebar-buttonbox").style.removeProperty("height");
+      }
+
       // Try to avoid reflows in this code by calculating dimensions first and
       // then later set the properties affecting layout together in a batch.
 
-      // Get the full height of the tabs toolbar:
-      let tabsToolbar = $("tabs-toolbar");
-      let fullTabsHeight = rect(tabsToolbar).height;
-      let gNavToolbox = $("navigation-toolbox");
+      // Get the height of the tabs toolbar:
+      let fullTabsHeight = rect($("tabs-toolbar")).height;
+
       // Buttons first:
       let captionButtonsBoxWidth = rect($("titlebar-buttonbox")).width;
 
-#ifdef XP_MACOSX
-      let secondaryButtonWidth = rect($("titlebar-fullscreen-button")).width;
-#endif
-
-      // Get the height and margins separately for the menubar
-      let menuHeight = rect(menubar).height;
-      let menuStyles = window.getComputedStyle(menubar);
-      let fullMenuHeight = verticalMargins(menuStyles) + menuHeight;
-      let tabsStyles = window.getComputedStyle(tabsToolbar);
-      fullTabsHeight += verticalMargins(tabsStyles);
-
-      // If the #tabmail overlaps the tabbar using negative margins, we need to
-      // take those into account so we don't overlap it
-      let tabmailMarginTop = parseFloat(window.getComputedStyle($("tabmail")).marginTop);
-      tabmailMarginTop = Math.min(tabmailMarginTop, 0);
+      let secondaryButtonsWidth, menuHeight, fullMenuHeight, menuStyles;
+      if (AppConstants.platform == "macosx") {
+        secondaryButtonsWidth = rect($("titlebar-fullscreen-button")).width;
+        // No need to look up the menubar stuff on OS X:
+        menuHeight = 0;
+        fullMenuHeight = 0;
+      } else {
+        // Otherwise, get the height and margins separately for the menubar
+        menuHeight = rect(menubar).height;
+        menuStyles = window.getComputedStyle(menubar);
+        fullMenuHeight = verticalMargins(menuStyles) + menuHeight;
+      }
 
       // And get the height of what's in the titlebar:
       let titlebarContentHeight = rect(titlebarContent).height;
 
       // Begin setting CSS properties which will cause a reflow
+
+      // On Windows 10, adjust the window controls to span the entire
+      // tab strip height if we're not showing a menu bar.
+      if (AppConstants.isPlatformAndVersionAtLeast("win", "10.0") &&
+          !menuHeight) {
+        titlebarContentHeight = fullTabsHeight;
+        $("titlebar-buttonbox").style.height = titlebarContentHeight + "px";
+      }
 
       // If the menubar is around (menuHeight is non-zero), try to adjust
       // its full height (i.e. including margins) to match the titlebar,
@@ -1962,47 +1882,29 @@ var TabsInTitlebar = {
       let tabAndMenuHeight = fullTabsHeight + fullMenuHeight;
 
       if (tabAndMenuHeight > titlebarContentHeight) {
-        // We need to increase the titlebar content's outer height
-        // (ie including margins) to match the tab and menu height:
+        // We need to increase the titlebar content's outer height (ie including
+        // margins) to match the tab and menu height:
         let extraMargin = tabAndMenuHeight - titlebarContentHeight;
-        // We need to reduce the height by the amount of navbar overlap
-        // (this value is 0 or negative):
-        extraMargin += tabmailMarginTop;
-        // On non-OSX, we can just use bottom margin:
-#ifndef XP_MACOSX
-        titlebarContent.style.marginBottom = extraMargin + "px";
-#endif
+        if (AppConstants.platform != "macosx") {
+          titlebarContent.style.marginBottom = extraMargin + "px";
+        }
         titlebarContentHeight += extraMargin;
       } else {
         titlebarContent.style.removeProperty("margin-bottom");
       }
 
-      // Then we bring up the titlebar by the same amount, but we add any
-      // negative margin:
-      titlebar.style.marginBottom = "-" + titlebarContentHeight + "px";
+      // Then add a negative margin to the titlebar, so that the following elements
+      // will overlap it by the greater of the titlebar height or the tabstrip+menu.
+      let maxTitlebarOrTabsHeight = Math.max(titlebarContentHeight, tabAndMenuHeight);
+      titlebar.style.marginBottom = "-" + maxTitlebarOrTabsHeight + "px";
 
       // Finally, size the placeholders:
-#ifdef XP_MACOSX
-      this._sizePlaceholder("fullscreen-button", secondaryButtonWidth);
-#endif
+      if (AppConstants.platform == "macosx") {
+        this._sizePlaceholder("fullscreen-button", secondaryButtonsWidth);
+      }
 
       this._sizePlaceholder("caption-buttons", captionButtonsBoxWidth);
 
-      if (!this._draghandles) {
-        this._draghandles = {};
-        let tmp = {};
-        Components.utils.import("resource://gre/modules/WindowDraggingUtils.jsm", tmp);
-
-        let mouseDownCheck = function () {
-          return !this._dragBindingAlive && TabsInTitlebar.enabled;
-        };
-
-        this._draghandles.tabsToolbar = new tmp.WindowDraggingElement(tabsToolbar);
-        this._draghandles.tabsToolbar.mouseDownCheck = mouseDownCheck;
-
-        this._draghandles.navToolbox = new tmp.WindowDraggingElement(gNavToolbox);
-        this._draghandles.navToolbox.mouseDownCheck = mouseDownCheck;
-      }
     } else {
       document.documentElement.removeAttribute("tabsintitlebar");
       updateTitlebarDisplay();
@@ -2017,59 +1919,39 @@ var TabsInTitlebar = {
     ToolbarIconColor.inferFromText();
   },
 
-  _sizePlaceholder: function (type, width) {
-    Array.forEach(document.querySelectorAll(".titlebar-placeholder[type='"+ type +"']"),
-                  function (node) { node.width = width; });
+  _sizePlaceholder(type, width) {
+    Array.forEach(document.querySelectorAll(".titlebar-placeholder[type='" + type + "']"),
+                  function(node) { node.width = width; });
   },
-#endif
 
-  uninit: function () {
-#ifdef CAN_DRAW_IN_TITLEBAR
-    this._initialized = false;
-    Services.prefs.removeObserver(this._drawInTitlePref, this);
-    Services.prefs.removeObserver(this._autoHidePref, this);
-    this._menuObserver.disconnect();
-#endif
+  uninit() {
+    if (AppConstants.CAN_DRAW_IN_TITLEBAR) {
+      this._initialized = false;
+      Services.prefs.removeObserver(this._drawInTitlePref, this);
+      Services.prefs.removeObserver(this._autoHidePref, this);
+      this._menuObserver.disconnect();
+    }
   }
 };
 
-#ifdef CAN_DRAW_IN_TITLEBAR
-function updateTitlebarDisplay() {
-
-#ifdef XP_MACOSX
-    // OS X and the other platforms differ enough to necessitate this kind of
-    // special-casing. Like the other platforms where we CAN_DRAW_IN_TITLEBAR,
-    // we draw in the OS X titlebar when putting the tabs up there. However, OS X
-    // also draws in the titlebar when a lightweight theme is applied, regardless
-    // of whether or not the tabs are drawn in the titlebar.
-    if (TabsInTitlebar.enabled) {
-      document.documentElement.setAttribute("chromemargin-nonlwtheme", "0,2,2,2");
-      document.documentElement.setAttribute("chromemargin", "0,2,2,2");
-      document.documentElement.setAttribute("tabsintitlebar", "true");
-    } else {
-      // We set chromemargin-nonlwtheme to "" instead of removing it as a way of
-      // making sure that LightweightThemeConsumer doesn't take it upon itself to
-      // detect this value again if and when we do a lwtheme state change.
-      document.documentElement.setAttribute("chromemargin-nonlwtheme", "");
-      let hasLWTheme = document.documentElement.hasAttribute("lwtheme");
-      if (hasLWTheme) {
-        document.documentElement.setAttribute("chromemargin", "0,2,2,2");
+if (AppConstants.CAN_DRAW_IN_TITLEBAR) {
+  function updateTitlebarDisplay() {
+    if (AppConstants.platform == "macosx") {
+      if (TabsInTitlebar.enabled) {
+        document.documentElement.setAttribute("chromemargin", "0,-1,-1,-1");
+        document.documentElement.removeAttribute("drawtitle");
       } else {
         document.documentElement.removeAttribute("chromemargin");
+        document.documentElement.setAttribute("drawtitle", "true");
       }
+    } else if (TabsInTitlebar.enabled) {
+      // not OS X
+      document.documentElement.setAttribute("chromemargin", "0,2,2,2");
+    } else {
+      document.documentElement.removeAttribute("chromemargin");
     }
-
-#else
-  document.getElementById("titlebar").hidden = !TabsInTitlebar.enabled;
-
-  if (TabsInTitlebar.enabled)
-    document.documentElement.setAttribute("chromemargin", "0,2,2,2");
-  else
-    document.documentElement.removeAttribute("chromemargin");
-
-#endif
+  }
 }
-#endif
 
 /* Draw */
 function onTitlebarMaxClick() {

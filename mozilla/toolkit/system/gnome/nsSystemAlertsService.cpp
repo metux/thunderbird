@@ -18,11 +18,10 @@ NS_INTERFACE_MAP_BEGIN(nsSystemAlertsService)
 NS_INTERFACE_MAP_END_THREADSAFE
 
 nsSystemAlertsService::nsSystemAlertsService()
-{
-}
+= default;
 
 nsSystemAlertsService::~nsSystemAlertsService()
-{}
+= default;
 
 nsresult
 nsSystemAlertsService::Init()
@@ -30,7 +29,7 @@ nsSystemAlertsService::Init()
   return NS_OK;
 }
 
-NS_IMETHODIMP nsSystemAlertsService::ShowAlertNotification(const nsAString & aImageUrl, const nsAString & aAlertTitle, 
+NS_IMETHODIMP nsSystemAlertsService::ShowAlertNotification(const nsAString & aImageUrl, const nsAString & aAlertTitle,
                                                            const nsAString & aAlertText, bool aAlertTextClickable,
                                                            const nsAString & aAlertCookie,
                                                            nsIObserver * aAlertListener,

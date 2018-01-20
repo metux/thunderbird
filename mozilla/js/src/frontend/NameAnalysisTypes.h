@@ -36,7 +36,7 @@ class EnvironmentCoordinate
         MOZ_ASSERT(JOF_OPTYPE(JSOp(*pc)) == JOF_ENVCOORD);
     }
 
-    EnvironmentCoordinate() {}
+    EnvironmentCoordinate() = default;
 
     void setHops(uint32_t hops) {
         MOZ_ASSERT(hops < ENVCOORD_HOPS_LIMIT);
@@ -76,9 +76,12 @@ enum class DeclarationKind : uint8_t
     ForOfVar,
     Let,
     Const,
+    Class, // Handled as same as `let` after parsing.
     Import,
     BodyLevelFunction,
+    ModuleBodyLevelFunction,
     LexicalFunction,
+    SloppyLexicalFunction,
     VarForAnnexBLexicalFunction,
     SimpleCatchParameter,
     CatchParameter
@@ -95,12 +98,15 @@ DeclarationKindToBindingKind(DeclarationKind kind)
 
       case DeclarationKind::Var:
       case DeclarationKind::BodyLevelFunction:
+      case DeclarationKind::ModuleBodyLevelFunction:
       case DeclarationKind::VarForAnnexBLexicalFunction:
       case DeclarationKind::ForOfVar:
         return BindingKind::Var;
 
       case DeclarationKind::Let:
+      case DeclarationKind::Class:
       case DeclarationKind::LexicalFunction:
+      case DeclarationKind::SloppyLexicalFunction:
       case DeclarationKind::SimpleCatchParameter:
       case DeclarationKind::CatchParameter:
         return BindingKind::Let;
@@ -124,6 +130,7 @@ DeclarationKindIsLexical(DeclarationKind kind)
 // Used in Parser to track declared names.
 class DeclaredNameInfo
 {
+    uint32_t pos_;
     DeclarationKind kind_;
 
     // If the declared name is a binding, whether the binding is closed
@@ -132,8 +139,9 @@ class DeclaredNameInfo
     bool closedOver_;
 
   public:
-    explicit DeclaredNameInfo(DeclarationKind kind)
-      : kind_(kind),
+    explicit DeclaredNameInfo(DeclarationKind kind, uint32_t pos)
+      : pos_(pos),
+        kind_(kind),
         closedOver_(false)
     { }
 
@@ -142,6 +150,12 @@ class DeclaredNameInfo
 
     DeclarationKind kind() const {
         return kind_;
+    }
+
+    static const uint32_t npos = uint32_t(-1);
+
+    uint32_t pos() const {
+        return pos_;
     }
 
     void alterKind(DeclarationKind kind) {

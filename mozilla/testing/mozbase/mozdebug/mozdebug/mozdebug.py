@@ -4,6 +4,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import, print_function
+
 import os
 import mozinfo
 from collections import namedtuple
@@ -150,7 +152,7 @@ def get_debugger_info(debugger, debuggerArgs=None, debuggerInteractive=False):
                 debuggerPath = debugger
 
     if not debuggerPath:
-        print 'Error: Could not find debugger %s.' % debugger
+        print('Error: Could not find debugger %s.' % debugger)
         return None
 
     debuggerName = os.path.basename(debuggerPath).lower()
@@ -276,7 +278,7 @@ def get_default_valgrind_args():
              ('--trace-children-skip='
               + '/usr/bin/hg,/bin/rm,*/bin/certutil,*/bin/pk12util,'
               + '*/bin/ssltunnel,*/bin/uname,*/bin/which,*/bin/ps,'
-              + '*/bin/grep,*/bin/java'),
+              + '*/bin/grep,*/bin/java,*/bin/lsb_release'),
              ]
             + get_default_valgrind_tool_specific_args())
 
@@ -286,6 +288,6 @@ def get_default_valgrind_args():
 
 def get_default_valgrind_tool_specific_args():
     return ['--partial-loads-ok=yes',
-            '--leak-check=full',
+            '--leak-check=summary',
             '--show-possibly-lost=no',
             ]

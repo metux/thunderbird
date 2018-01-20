@@ -1,5 +1,4 @@
 Components.utils.import("resource://gre/modules/FileUtils.jsm");
-Components.utils.import("resource://gre/modules/Task.jsm");
 
 var gMimeSvc = Cc["@mozilla.org/mime;1"].getService(Ci.nsIMIMEService);
 var gHandlerSvc = Cc["@mozilla.org/uriloader/handler-service;1"].getService(Ci.nsIHandlerService);
@@ -36,7 +35,7 @@ function createMockedObjects(createHandlerApp) {
   if (createHandlerApp) {
     let mockedHandlerApp = createMockedHandlerApp();
     internalMockedMIME.description = mockedHandlerApp.detailedDescription;
-    internalMockedMIME.possibleApplicationHandlers.appendElement(mockedHandlerApp, false);
+    internalMockedMIME.possibleApplicationHandlers.appendElement(mockedHandlerApp);
     internalMockedMIME.preferredApplicationHandler = mockedHandlerApp;
   }
 
@@ -57,7 +56,7 @@ function createMockedObjects(createHandlerApp) {
   // Mock the launcher:
   let mockedLauncher = {
     MIMEInfo: mockedMIME,
-    source: Services.io.newURI("http://www.mozilla.org/", null, null),
+    source: Services.io.newURI("http://www.mozilla.org/"),
     suggestedFileName: "test_download_dialog.abc",
     targetFileIsExecutable: false,
     saveToDisk() {},
@@ -83,7 +82,7 @@ function createMockedObjects(createHandlerApp) {
   return mockedLauncher;
 }
 
-function* openHelperAppDialog(launcher) {
+async function openHelperAppDialog(launcher) {
   let helperAppDialog = Cc["@mozilla.org/helperapplauncherdialog;1"].
                         createInstance(Ci.nsIHelperAppLauncherDialog);
 
@@ -94,9 +93,9 @@ function* openHelperAppDialog(launcher) {
     ok(false, "Trying to show unknownContentType.xul failed with exception: " + ex);
     Cu.reportError(ex);
   }
-  let dlg = yield helperAppDialogShownPromise;
+  let dlg = await helperAppDialogShownPromise;
 
-  yield BrowserTestUtils.waitForEvent(dlg, "load", false);
+  await BrowserTestUtils.waitForEvent(dlg, "load", false);
 
   is(dlg.location.href, "chrome://mozapps/content/downloads/unknownContentType.xul",
      "Got correct dialog");

@@ -53,6 +53,17 @@ class BaseAssemblerX64 : public BaseAssembler
         }
     }
 
+    void addq_i32r(int32_t imm, RegisterID dst)
+    {
+        // 32-bit immediate always, for patching.
+        spew("addq       $0x%04x, %s", imm, GPReg64Name(dst));
+        if (dst == rax)
+            m_formatter.oneByteOp64(OP_ADD_EAXIv);
+        else
+            m_formatter.oneByteOp64(OP_GROUP1_EvIz, dst, GROUP1_OP_ADD);
+        m_formatter.immediate32(imm);
+    }
+
     void addq_im(int32_t imm, int32_t offset, RegisterID base)
     {
         spew("addq       $%d, " MEM_ob, imm, ADDR_ob(offset, base));
@@ -610,7 +621,7 @@ class BaseAssemblerX64 : public BaseAssembler
 
     void leaq_mr(int32_t offset, RegisterID base, RegisterID index, int scale, RegisterID dst)
     {
-        spew("leaq       " MEM_obs ", %s", ADDR_obs(offset, base, index, scale), GPReg64Name(dst)),
+        spew("leaq       " MEM_obs ", %s", ADDR_obs(offset, base, index, scale), GPReg64Name(dst));
         m_formatter.oneByteOp64(OP_LEA, offset, base, index, scale, dst);
     }
 
@@ -653,6 +664,11 @@ class BaseAssemblerX64 : public BaseAssembler
         m_formatter.immediate64(imm);
     }
 
+    void movsbq_rr(RegisterID src, RegisterID dst)
+    {
+        spew("movsbq     %s, %s", GPReg32Name(src), GPReg64Name(dst));
+        m_formatter.twoByteOp64(OP2_MOVSX_GvEb, src, dst);
+    }
     void movsbq_mr(int32_t offset, RegisterID base, RegisterID dst)
     {
         spew("movsbq     " MEM_ob ", %s", ADDR_ob(offset, base), GPReg64Name(dst));
@@ -664,6 +680,11 @@ class BaseAssemblerX64 : public BaseAssembler
         m_formatter.twoByteOp64(OP2_MOVSX_GvEb, offset, base, index, scale, dst);
     }
 
+    void movswq_rr(RegisterID src, RegisterID dst)
+    {
+        spew("movswq     %s, %s", GPReg32Name(src), GPReg64Name(dst));
+        m_formatter.twoByteOp64(OP2_MOVSX_GvEw, src, dst);
+    }
     void movswq_mr(int32_t offset, RegisterID base, RegisterID dst)
     {
         spew("movswq     " MEM_ob ", %s", ADDR_ob(offset, base), GPReg64Name(dst));

@@ -11,6 +11,7 @@
 
 <!ENTITY enableGlodaSearch.label       "Activează căutarea globală și indexarea">
 <!ENTITY enableGlodaSearch.accesskey   "i">
+
 <!ENTITY allowHWAccel.label            "Folosește accelerarea hardware când este disponibilă">
 <!ENTITY allowHWAccel.accesskey        "h">
 <!ENTITY storeType.label               "Tipul de stocare al mesajelor pentru conturile noi:">
@@ -51,16 +52,25 @@
 <!ENTITY enableCrashReporter.accesskey   "c">
 <!ENTITY crashReporterLearnMore.label    "Află mai multe">
 <!-- Update -->
-
-<!ENTITY updateApp.label                 "actualizări &brandShortName;:">
+<!-- LOCALIZATION NOTE (updateApp.label):
+  Strings from aboutDialog.dtd are displayed in this section of the preferences.
+  Please check for possible accesskey conflicts.
+-->
+<!-- LOCALIZATION NOTE (updateApp.version.*): updateApp.version.pre is
+  followed by a version number, keep the trailing space or replace it with
+  a different character as needed. updateApp.version.post is displayed after
+  the version number, and is empty on purpose for English. You can use it
+  if required by your language.
+ -->
+<!ENTITY updateApp.version.post          "">
 <!ENTITY updateAuto.label                "Instalează actualizări automat (recomandat: securitate sporită)">
 <!ENTITY updateAuto.accesskey            "a">
 <!ENTITY updateCheck.label               "Caută actualizări, dar lasă-mă pe mine să decid dacă să le instalez">
 <!ENTITY updateCheck.accesskey           "C">
 <!ENTITY updateManual.label              "Nu căuta niciodată actualizări (nerecomandat: risc de securitate)">
 <!ENTITY updateManual.accesskey          "N">
-<!ENTITY updateHistory.label             "Arată istoricul actualizărilor">
-<!ENTITY updateHistory.accesskey         "t">
+<!ENTITY updateHistory.label             "Afișează istoricul actualizărilor">
+<!ENTITY updateHistory.accesskey         "p">
 
 <!ENTITY useService.label                "Folosește serviciul care rulează în fundal pentru a instala actualizări">
 <!ENTITY useService.accesskey            "s">
@@ -89,6 +99,8 @@
 <!ENTITY useCacheBefore.label            "Utilizează până la">
 <!ENTITY useCacheBefore.accesskey        "U">
 <!ENTITY useCacheAfter.label             "MB de spațiu pentru cache">
+
+
 <!ENTITY clearCacheNow.label             "Șterge acum">
 <!ENTITY clearCacheNow.accesskey         "c">
 <!-- Certificates -->
@@ -105,3 +117,9 @@
 <!ENTITY manageCertificates.accesskey "M">
 <!ENTITY viewSecurityDevices.label "Dispozitive de securitate">
 <!ENTITY viewSecurityDevices.accesskey "u">
+
+<!ENTITY dateTimeFormatting.label      "Date and Time Formatting">
+<!ENTITY updateApp2.label                "&brandShortName; Updates">
+<!ENTITY updateApp.version.pre           "Version ">
+<!ENTITY overrideSmartCacheSize.label    "Override automatic cache management">
+<!ENTITY overrideSmartCacheSize.accesskey "v">

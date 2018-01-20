@@ -11,12 +11,14 @@
 <!ENTITY  noupdatesautodisabled.intro     "Não há atualizações disponíveis. Por favor verifique mais tarde ou ative a procura automática de atualizações do &brandShortName;.">
 
 <!ENTITY  manualUpdate.title              "Não é possível atualizar">
-<!ENTITY  manualUpdate.desc               "Está disponível uma atualização de segurança e estabilidade, mas você não tem as permissões necessárias para a instalar. Contacte o administrador de sistemas ou tente novamente a partir de uma conta que tenha permissões de instalação neste computador.">
-<!ENTITY  manualUpdate.space.desc         "Está disponível um atualização de segurança e estabilidade, mas você não tem espaço disponível para a instalar.">
+<!ENTITY  manualUpdate.desc               "Está disponível uma atualização de segurança e estabilidade recomendada, mas você não tem as permissões necessárias para a instalar. Por favor contacte o seu administrador de sistema, ou tente novamente a partir de uma conta que tenha permissões para instalar software neste computador.">
+<!ENTITY  manualUpdate.space.desc         "Está disponível um atualização de segurança e estabilidade, mas você não tem espaço suficiente para a instalar.">
 <!ENTITY  manualUpdateGetMsg.label        "Pode sempre obter a última versão do &brandShortName; em:">
 
 <!ENTITY  unsupported.title               "Sistema não suportado">
-<!ENTITY  unsupported.label               "O &brandShortName; está desatualizado, mas o seu sistema operativo não é compatível com a versão mais recente. Atualize o seu sistema e tente novamente. Este aviso não voltará a ser mostrado, mas pode obter">
+<!ENTITY  unsupported.label               "O seu &brandShortName; está desatualizado, mas a versão mais recente não é
+                                           suportada no seu sistema. Por favor atualize o seu sistema e tente novamente.
+                                           Não irá voltar a ver este aviso novamente, mas pode obter">
 <!ENTITY  unsupportedLink.label           "mais informações.">
 
 <!ENTITY  clickHere.label                 "Saber mais informações sobre esta atualização">

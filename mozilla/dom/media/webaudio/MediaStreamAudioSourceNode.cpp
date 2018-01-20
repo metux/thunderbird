@@ -11,6 +11,8 @@
 #include "AudioStreamTrack.h"
 #include "nsIDocument.h"
 #include "mozilla/CORSMode.h"
+#include "nsContentUtils.h"
+#include "nsIScriptError.h"
 
 namespace mozilla {
 namespace dom {
@@ -28,7 +30,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(MediaStreamAudioSourceNode, Au
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mInputTrack)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(MediaStreamAudioSourceNode)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(MediaStreamAudioSourceNode)
 NS_INTERFACE_MAP_END_INHERITING(AudioNode)
 
 NS_IMPL_ADDREF_INHERITED(MediaStreamAudioSourceNode, AudioNode)
@@ -43,13 +45,23 @@ MediaStreamAudioSourceNode::MediaStreamAudioSourceNode(AudioContext* aContext)
 }
 
 /* static */ already_AddRefed<MediaStreamAudioSourceNode>
-MediaStreamAudioSourceNode::Create(AudioContext* aContext,
-                                   DOMMediaStream* aStream, ErrorResult& aRv)
+MediaStreamAudioSourceNode::Create(AudioContext& aAudioContext,
+                                   const MediaStreamAudioSourceOptions& aOptions,
+                                   ErrorResult& aRv)
 {
-  RefPtr<MediaStreamAudioSourceNode> node =
-    new MediaStreamAudioSourceNode(aContext);
+  if (aAudioContext.IsOffline()) {
+    aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+    return nullptr;
+  }
 
-  node->Init(aStream, aRv);
+  if (aAudioContext.CheckClosed(aRv)) {
+    return nullptr;
+  }
+
+  RefPtr<MediaStreamAudioSourceNode> node =
+    new MediaStreamAudioSourceNode(&aAudioContext);
+
+  node->Init(aOptions.mMediaStream, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }

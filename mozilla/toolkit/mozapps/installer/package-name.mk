@@ -31,15 +31,7 @@ MOZ_PKG_PLATFORM := win32
 endif
 endif
 ifeq ($(OS_ARCH),Darwin)
-ifdef UNIVERSAL_BINARY
 MOZ_PKG_PLATFORM := mac
-else
-ifeq ($(TARGET_CPU),x86_64)
-MOZ_PKG_PLATFORM := mac64
-else
-MOZ_PKG_PLATFORM := mac
-endif
-endif
 endif
 ifeq ($(TARGET_OS),linux-gnu)
 MOZ_PKG_PLATFORM := linux-$(TARGET_CPU)
@@ -50,7 +42,7 @@ ifdef MOZ_PKG_SPECIAL
 MOZ_PKG_PLATFORM := $(MOZ_PKG_PLATFORM)-$(MOZ_PKG_SPECIAL)
 endif
 
-MOZ_PKG_DIR = $(MOZ_APP_NAME)
+MOZ_PKG_DIR ?= $(MOZ_APP_NAME)
 
 ifndef MOZ_PKG_PRETTYNAMES # standard package names
 
@@ -75,14 +67,19 @@ PKG_UPDATE_PATH = update/
 COMPLETE_MAR = $(PKG_UPDATE_PATH)$(PKG_UPDATE_BASENAME).complete.mar
 # PARTIAL_MAR needs to be processed by $(wildcard) before you use it.
 PARTIAL_MAR = $(PKG_UPDATE_PATH)$(PKG_UPDATE_BASENAME).partial.*.mar
+ifdef MOZ_SIMPLE_PACKAGE_NAME
+PKG_LANGPACK_BASENAME = $(MOZ_SIMPLE_PACKAGE_NAME).langpack
+PKG_LANGPACK_PATH =
+else
 PKG_LANGPACK_BASENAME = $(MOZ_PKG_APPNAME)-$(MOZ_PKG_VERSION).$(AB_CD).langpack
 PKG_LANGPACK_PATH = $(MOZ_PKG_PLATFORM)/xpi/
+endif
 LANGPACK = $(PKG_LANGPACK_PATH)$(PKG_LANGPACK_BASENAME).xpi
 PKG_SRCPACK_BASENAME = $(MOZ_PKG_APPNAME)-$(MOZ_PKG_VERSION).source
 PKG_BUNDLE_BASENAME = $(MOZ_PKG_APPNAME)-$(MOZ_PKG_VERSION)
 PKG_SRCPACK_PATH =
 
-else # "pretty" release package names
+else # "pretty" release package names; this is used by Thunderbird
 
 ifndef MOZ_PKG_APPNAME
 MOZ_PKG_APPNAME = $(MOZ_APP_DISPLAYNAME)
@@ -129,6 +126,9 @@ endif # MOZ_PKG_PRETTYNAMES
 SYMBOL_FULL_ARCHIVE_BASENAME = $(PKG_BASENAME).crashreporter-symbols-full
 SYMBOL_ARCHIVE_BASENAME = $(PKG_BASENAME).crashreporter-symbols
 
+# Generated file package naming
+GENERATED_SOURCE_FILE_PACKAGE = $(PKG_BASENAME).generated-files.tar.gz
+
 # Code coverage package naming
 CODE_COVERAGE_ARCHIVE_BASENAME = $(PKG_BASENAME).code-coverage-gcno
 
@@ -141,8 +141,9 @@ CPP_TEST_PACKAGE = $(PKG_BASENAME).cppunittest.tests.zip
 XPC_TEST_PACKAGE = $(PKG_BASENAME).xpcshell.tests.zip
 MOCHITEST_PACKAGE = $(PKG_BASENAME).mochitest.tests.zip
 REFTEST_PACKAGE = $(PKG_BASENAME).reftest.tests.zip
-WP_TEST_PACKAGE = $(PKG_BASENAME).web-platform.tests.zip
+WP_TEST_PACKAGE = $(PKG_BASENAME).web-platform.tests.tar.gz
 TALOS_PACKAGE = $(PKG_BASENAME).talos.tests.zip
+AWSY_PACKAGE = $(PKG_BASENAME).awsy.tests.zip
 GTEST_PACKAGE = $(PKG_BASENAME).gtest.tests.zip
 
 ifneq (,$(wildcard $(DIST)/bin/application.ini))
@@ -164,5 +165,8 @@ else
 JSSHELL_NAME = jsshell-$(MOZ_PKG_PLATFORM).zip
 endif
 PKG_JSSHELL = $(DIST)/$(JSSHELL_NAME)
+
+# Stylo binding files
+STYLO_BINDINGS_PACKAGE = $(PKG_BASENAME).stylo-bindings.zip
 
 endif # PACKAGE_NAME_MK_INCLUDED

@@ -23,7 +23,7 @@
   <binding id="attachmentlist-base" extends="chrome://global/content/bindings/listbox.xml#listbox-base">
     <implementation>
       <constructor><![CDATA[
-        let children = Array.slice(this._childNodes);
+        let children = Array.from(this._childNodes);
 
         children.filter(aChild => aChild.getAttribute("selected") == "true")
                 .forEach(this.selectedItems.append, this.selectedItems);
@@ -538,7 +538,7 @@
     <content>
       <xul:description
                  onclick="if (event.button != 2)
-                            openUILink(event.target.textContent, event);"
+                            openUILink(encodeURI(event.target.textContent), event);"
                  class="headerValue text-link headerValueUrl"
                  anonid="headerValue" flex="1" readonly="true"
                  role="textbox" aria-readonly="true" context="copyUrlPopup"/>

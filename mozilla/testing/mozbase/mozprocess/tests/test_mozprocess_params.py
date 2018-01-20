@@ -4,7 +4,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import, print_function
+
 import unittest
+
+import mozunit
+
 from mozprocess import processhandler
 
 
@@ -77,8 +82,5 @@ class ParamTests(unittest.TestCase):
         self.assertFalse(err)
 
 
-def main():
-    unittest.main()
-
 if __name__ == '__main__':
-    main()
+    mozunit.main()

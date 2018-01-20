@@ -12,10 +12,6 @@
 #include "js/TypeDecls.h"
 #include "js/Utility.h"
 
-namespace js {
-class ExclusiveContext;
-} // namespace js
-
 class JSFlatString;
 
 namespace JS {
@@ -222,11 +218,11 @@ class ConstTwoByteChars : public mozilla::Range<const char16_t>
  * This method cannot trigger GC.
  */
 extern Latin1CharsZ
-LossyTwoByteCharsToNewLatin1CharsZ(js::ExclusiveContext* cx,
+LossyTwoByteCharsToNewLatin1CharsZ(JSContext* cx,
                                    const mozilla::Range<const char16_t> tbchars);
 
 inline Latin1CharsZ
-LossyTwoByteCharsToNewLatin1CharsZ(js::ExclusiveContext* cx, const char16_t* begin, size_t length)
+LossyTwoByteCharsToNewLatin1CharsZ(JSContext* cx, const char16_t* begin, size_t length)
 {
     const mozilla::Range<const char16_t> tbchars(begin, length);
     return JS::LossyTwoByteCharsToNewLatin1CharsZ(cx, tbchars);
@@ -234,7 +230,7 @@ LossyTwoByteCharsToNewLatin1CharsZ(js::ExclusiveContext* cx, const char16_t* beg
 
 template <typename CharT>
 extern UTF8CharsZ
-CharsToNewUTF8CharsZ(js::ExclusiveContext* maybeCx, const mozilla::Range<CharT> chars);
+CharsToNewUTF8CharsZ(JSContext* maybeCx, const mozilla::Range<CharT> chars);
 
 JS_PUBLIC_API(uint32_t)
 Utf8ToOneUcs4Char(const uint8_t* utf8Buffer, int utf8Length);
@@ -329,6 +325,13 @@ LossyUTF8CharsToNewLatin1CharsZ(JSContext* cx, const UTF8Chars utf8, size_t* out
  */
 extern JS_PUBLIC_API(bool)
 StringIsASCII(const char* s);
+
+/*
+ * Returns true if the given length-delimited string is a valid UTF-8 string,
+ * false otherwise.
+ */
+extern JS_PUBLIC_API(bool)
+StringIsUTF8(const uint8_t* s, uint32_t length);
 
 } // namespace JS
 

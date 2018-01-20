@@ -1,12 +1,15 @@
-function* runTestOnPrivacyPrefPane(testFunc) {
+// This file gets imported into the same scope as head.js.
+/* import-globals-from head.js */
+
+async function runTestOnPrivacyPrefPane(testFunc) {
   info("runTestOnPrivacyPrefPane entered");
-  let tab = yield BrowserTestUtils.openNewForegroundTab(gBrowser, "about:preferences", true, true);
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:preferences", true, true);
   let browser = tab.linkedBrowser;
   info("loaded about:preferences");
   browser.contentWindow.gotoPref("panePrivacy");
   info("viewing privacy pane, executing testFunc");
   testFunc(browser.contentWindow);
-  yield BrowserTestUtils.removeTab(tab);
+  await BrowserTestUtils.removeTab(tab);
 }
 
 function controlChanged(element) {
@@ -220,7 +223,7 @@ function test_dependent_prefs(win) {
         control.getAttribute("id") + " should " + (checked ? "not " : "") + "be checked");
     });
 
-    is(thirdPartyCookieMenu.value == "always" || thirdPartyCookieMenu.value == "visited", checked, "third-party cookies should "  + (checked ? "not " : "") + "be limited");
+    is(thirdPartyCookieMenu.value == "always" || thirdPartyCookieMenu.value == "visited", checked, "third-party cookies should " + (checked ? "not " : "") + "be limited");
   }
 
   // controls should be checked in remember mode

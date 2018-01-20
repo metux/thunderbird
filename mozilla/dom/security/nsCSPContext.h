@@ -26,6 +26,7 @@
   { 0xbf, 0xe0, 0x27, 0xce, 0xb9, 0x23, 0xd9, 0xac } }
 
 class nsINetworkInterceptController;
+class nsIEventTarget;
 struct ConsoleMsgQueueElem;
 
 class nsCSPContext : public nsIContentSecurityPolicy
@@ -48,7 +49,7 @@ class nsCSPContext : public nsIContentSecurityPolicy
      */
     void flushConsoleMessages();
 
-    void logToConsole(const char16_t* aName,
+    void logToConsole(const char* aName,
                       const char16_t** aParams,
                       uint32_t aParamsLength,
                       const nsAString& aSourceName,
@@ -121,6 +122,7 @@ class nsCSPContext : public nsIContentSecurityPolicy
     // the windowID becomes available. see flushConsoleMessages()
     nsTArray<ConsoleMsgQueueElem>              mConsoleMsgQueue;
     bool                                       mQueueUpMessages;
+    nsCOMPtr<nsIEventTarget>                   mEventTarget;
 };
 
 // Class that listens to violation report transmission and logs errors.

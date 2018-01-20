@@ -197,7 +197,7 @@ function EditCardOKButton()
   {
     // Update the addressLists item for this card
     let foundItem = foundDirectories.pop();
-    foundItem.directory.addressLists.replaceElementAt(gEditCard.card, foundItem.cardIndex, false);
+    foundItem.directory.addressLists.replaceElementAt(gEditCard.card, foundItem.cardIndex);
   }
 
   NotifySaveListeners(directory);
@@ -1020,7 +1020,7 @@ var gFilePhotoHandler =
     var photoURI = aCard.getProperty("PhotoURI", "");
     try
     {
-      var file = Services.io.newURI(photoURI, null, null)
+      var file = Services.io.newURI(photoURI)
                             .QueryInterface(Components.interfaces.nsIFileURL)
                             .file;
     } catch (e) {}

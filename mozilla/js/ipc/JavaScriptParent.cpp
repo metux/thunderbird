@@ -9,6 +9,7 @@
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "nsJSUtils.h"
+#include "nsIScriptError.h"
 #include "jsfriendapi.h"
 #include "jswrapper.h"
 #include "js/Proxy.h"
@@ -72,9 +73,11 @@ ForbidCPOWsInCompatibleAddon(const nsACString& aAddonId)
         return false;
     }
 
-    nsCString allow;
+    nsAutoCString allow;
     allow.Assign(',');
-    allow.Append(Preferences::GetCString("dom.ipc.cpows.allow-cpows-in-compat-addons"));
+    nsAutoCString pref;
+    Preferences::GetCString("dom.ipc.cpows.allow-cpows-in-compat-addons", pref);
+    allow.Append(pref);
     allow.Append(',');
 
     nsCString searchString(",");
@@ -102,7 +105,7 @@ JavaScriptParent::allowMessage(JSContext* cx)
 
     bool warn = !isSafe;
     nsIGlobalObject* global = dom::GetIncumbentGlobal();
-    JSObject* jsGlobal = global ? global->GetGlobalJSObject() : nullptr;
+    JS::Rooted<JSObject*> jsGlobal(cx, global ? global->GetGlobalJSObject() : nullptr);
     if (jsGlobal) {
         JSAutoCompartment ac(cx, jsGlobal);
         JSAddonId* addonId = JS::AddonIdOfObject(jsGlobal);
@@ -165,7 +168,7 @@ JavaScriptParent::trace(JSTracer* trc)
 JSObject*
 JavaScriptParent::scopeForTargetObjects()
 {
-    // CPWOWs from the child need to point into the parent's unprivileged junk
+    // CPOWs from the child need to point into the parent's unprivileged junk
     // scope so that a compromised child cannot compromise the parent. In
     // practice, this means that a child process can only (a) hold parent
     // objects alive and (b) invoke them if they are callable.

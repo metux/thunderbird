@@ -165,10 +165,8 @@ function onSearch()
 
     var searchUri = currentAbURI + "?(";
 
-    var count = gSearchSession.searchTerms.Count();
-
-    for (var i=0; i<count; i++) {
-      var searchTerm = gSearchSession.searchTerms.GetElementAt(i).QueryInterface(nsIMsgSearchTerm);
+    for (let i = 0; i < gSearchSession.searchTerms.length; i++) {
+      let searchTerm = gSearchSession.searchTerms.queryElementAt(i, nsIMsgSearchTerm);
 
       // get the "and" / "or" value from the first term
       if (i == 0) {

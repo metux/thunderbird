@@ -16,7 +16,7 @@
 #include "nsContentCreatorFunctions.h"
 #include "nsContentUtils.h"
 #include "nsGkAtoms.h"
-#include "mozilla/dom/EncodingUtils.h"
+#include "mozilla/Encoding.h"
 #include "nsTextNode.h"
 #include "nsNameSpaceManager.h"
 
@@ -41,15 +41,15 @@ txMozillaTextOutput::~txMozillaTextOutput()
 }
 
 nsresult
-txMozillaTextOutput::attribute(nsIAtom* aPrefix, nsIAtom* aLocalName,
-                               nsIAtom* aLowercaseLocalName,
+txMozillaTextOutput::attribute(nsAtom* aPrefix, nsAtom* aLocalName,
+                               nsAtom* aLowercaseLocalName,
                                int32_t aNsID, const nsString& aValue)
 {
     return NS_OK;
 }
 
 nsresult
-txMozillaTextOutput::attribute(nsIAtom* aPrefix, const nsSubstring& aName,
+txMozillaTextOutput::attribute(nsAtom* aPrefix, const nsAString& aName,
                                const int32_t aNsID,
                                const nsString& aValue)
 {
@@ -57,7 +57,7 @@ txMozillaTextOutput::attribute(nsIAtom* aPrefix, const nsSubstring& aName,
 }
 
 nsresult
-txMozillaTextOutput::characters(const nsSubstring& aData, bool aDOE)
+txMozillaTextOutput::characters(const nsAString& aData, bool aDOE)
 {
     mText.Append(aData);
 
@@ -76,14 +76,19 @@ txMozillaTextOutput::endDocument(nsresult aResult)
     NS_ENSURE_TRUE(mDocument && mTextParent, NS_ERROR_FAILURE);
 
     RefPtr<nsTextNode> text = new nsTextNode(mDocument->NodeInfoManager());
-    
+
     text->SetText(mText, false);
     nsresult rv = mTextParent->AppendChildTo(text, true);
     NS_ENSURE_SUCCESS(rv, rv);
 
     // This should really be handled by nsIDocument::EndLoad
-    MOZ_ASSERT(mDocument->GetReadyStateEnum() ==
-               nsIDocument::READYSTATE_LOADING, "Bad readyState");
+    if (mObserver) {
+        MOZ_ASSERT(mDocument->GetReadyStateEnum() ==
+                   nsIDocument::READYSTATE_LOADING, "Bad readyState");
+    } else {
+        MOZ_ASSERT(mDocument->GetReadyStateEnum() ==
+                   nsIDocument::READYSTATE_INTERACTIVE, "Bad readyState");
+    }
     mDocument->SetReadyStateInternal(nsIDocument::READYSTATE_INTERACTIVE);
 
     if (NS_SUCCEEDED(aResult)) {
@@ -149,21 +154,21 @@ txMozillaTextOutput::createResultDocument(nsIDOMDocument* aSourceDocument,
     nsIScriptGlobalObject* sgo =
       source->GetScriptHandlingObject(hasHadScriptObject);
     NS_ENSURE_STATE(sgo || !hasHadScriptObject);
-    mDocument->SetScriptHandlingObject(sgo);
 
     NS_ASSERTION(mDocument, "Need document");
 
     // Reset and set up document
     URIUtils::ResetWithSource(mDocument, aSourceDocument);
+    // Only do this after resetting the document to ensure we have the
+    // correct principal.
+    mDocument->SetScriptHandlingObject(sgo);
 
     // Set the charset
     if (!mOutputFormat.mEncoding.IsEmpty()) {
-        nsAutoCString canonicalCharset;
-
-        if (EncodingUtils::FindEncodingForLabel(mOutputFormat.mEncoding,
-                                                canonicalCharset)) {
+        const Encoding* encoding = Encoding::ForLabel(mOutputFormat.mEncoding);
+        if (encoding) {
             mDocument->SetDocumentCharacterSetSource(kCharsetFromOtherComponent);
-            mDocument->SetDocumentCharacterSet(canonicalCharset);
+            mDocument->SetDocumentCharacterSet(WrapNotNull(encoding));
         }
     }
 
@@ -228,14 +233,14 @@ txMozillaTextOutput::createResultDocument(nsIDOMDocument* aSourceDocument,
 }
 
 nsresult
-txMozillaTextOutput::startElement(nsIAtom* aPrefix, nsIAtom* aLocalName,
-                                  nsIAtom* aLowercaseLocalName, int32_t aNsID)
+txMozillaTextOutput::startElement(nsAtom* aPrefix, nsAtom* aLocalName,
+                                  nsAtom* aLowercaseLocalName, int32_t aNsID)
 {
     return NS_OK;
 }
 
 nsresult
-txMozillaTextOutput::startElement(nsIAtom* aPrefix, const nsSubstring& aName,
+txMozillaTextOutput::startElement(nsAtom* aPrefix, const nsAString& aName,
                                   const int32_t aNsID)
 {
     return NS_OK;
@@ -247,7 +252,7 @@ void txMozillaTextOutput::getOutputDocument(nsIDOMDocument** aDocument)
 }
 
 nsresult
-txMozillaTextOutput::createXHTMLElement(nsIAtom* aName,
+txMozillaTextOutput::createXHTMLElement(nsAtom* aName,
                                         nsIContent** aResult)
 {
     nsCOMPtr<Element> element = mDocument->CreateHTMLElement(aName);

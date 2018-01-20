@@ -10,9 +10,9 @@
 //
 
 #include "ANGLEPerfTest.h"
+#include "common/vector_utils.h"
 #include "random_utils.h"
 #include "shader_utils.h"
-#include "Vector.h"
 
 using namespace angle;
 
@@ -134,7 +134,7 @@ void DynamicPromotionPerfTest::initializeBenchmark()
 
     glVertexAttribPointer(positionLocation, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
     glVertexAttribPointer(colorLocation, 3, GL_FLOAT, GL_FALSE, 0,
-                          reinterpret_cast<const GLvoid *>(positionArraySize));
+                          reinterpret_cast<const void *>(positionArraySize));
 
     glEnableVertexAttribArray(positionLocation);
     glEnableVertexAttribArray(colorLocation);

@@ -12,19 +12,9 @@ const SW_TIMEOUT = 2000;
 requestLongerTimeout(2);
 
 add_task(function* () {
-  yield SpecialPowers.pushPrefEnv({
-    "set": [
-      // Accept workers from mochitest's http.
-      ["dom.serviceWorkers.enabled", true],
-      ["dom.serviceWorkers.openWindow.enabled", true],
-      ["dom.serviceWorkers.testing.enabled", true],
-      // Reduce the timeout to expose issues when service worker
-      // freezing is broken
-      ["dom.serviceWorkers.idle_timeout", SW_TIMEOUT],
-      ["dom.serviceWorkers.idle_extended_timeout", SW_TIMEOUT],
-      ["dom.ipc.processCount", 1],
-    ]
-  });
+  yield enableServiceWorkerDebugging();
+  yield pushPref("dom.serviceWorkers.idle_timeout", SW_TIMEOUT);
+  yield pushPref("dom.serviceWorkers.idle_extended_timeout", SW_TIMEOUT);
 
   let { tab, document } = yield openAboutDebugging("workers");
 
@@ -46,12 +36,12 @@ add_task(function* () {
 
   let targetElement = name.parentNode.parentNode;
   let status = targetElement.querySelector(".target-status");
-  is(status.textContent, "Registering", "Service worker is currently registering");
 
-  yield waitForMutation(serviceWorkersElement, { childList: true, subtree: true });
-  is(status.textContent, "Running", "Service worker is currently running");
-
-  yield waitForMutation(serviceWorkersElement, { attributes: true, subtree: true });
+  // We should ideally check that the service worker registration goes through the
+  // "registering" and "running" steps, but it is difficult to workaround race conditions
+  // for a test running on a wide variety of platforms. Due to intermittent failures, we
+  // simply check that the registration transitions to "stopped".
+  yield waitUntil(() => status.textContent == "Stopped", 100);
   is(status.textContent, "Stopped", "Service worker is currently stopped");
 
   try {

@@ -27,3 +27,6 @@
 <!ENTITY junkSettings.label           "Junk-Filter-Einstellungen">
 <!ENTITY offlineLink.label            "Offline-Einstellungen bearbeiten">
 
+
+<!ENTITY setupNewAcct.label           "Set up an account:">
+

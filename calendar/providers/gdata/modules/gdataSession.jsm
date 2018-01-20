@@ -2,24 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gdata-provider/modules/shim/Loader.jsm").shimIt(this);
 Components.utils.import("resource://gdata-provider/modules/OAuth2.jsm");
 Components.utils.import("resource://gdata-provider/modules/gdataUtils.jsm");
 Components.utils.import("resource://gdata-provider/modules/gdataLogging.jsm");
 Components.utils.import("resource://gdata-provider/modules/gdataRequest.jsm");
 
-CuImport("resource://gre/modules/XPCOMUtils.jsm", this);
-CuImport("resource://gre/modules/Preferences.jsm", this);
-CuImport("resource://gre/modules/Services.jsm", this);
-CuImport("resource://gre/modules/Promise.jsm", this);
-CuImport("resource://gre/modules/PromiseUtils.jsm", this);
-CuImport("resource://gre/modules/Task.jsm", this);
-CuImport("resource://gre/modules/Timer.jsm", this);
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/Preferences.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/PromiseUtils.jsm");
+Components.utils.import("resource://gre/modules/Timer.jsm");
 
-CuImport("resource:///modules/iteratorUtils.jsm", this);
+Components.utils.import("resource:///modules/iteratorUtils.jsm");
 
-CuImport("resource://calendar/modules/calUtils.jsm", this);
-CuImport("resource://calendar/modules/calProviderUtils.jsm", this);
+Components.utils.import("resource://calendar/modules/calUtils.jsm");
+Components.utils.import("resource://calendar/modules/calProviderUtils.jsm");
 
 var cIFBI = Components.interfaces.calIFreeBusyInterval;
 var nIPM = Components.interfaces.nsIPermissionManager;
@@ -50,9 +47,9 @@ var calGoogleSessionManager = {
         }
 
         if (uri.schemeIs("googleapi")) {
-            let [fullUser, path] = uri.path.substr(2).split("/", 2);
+            let [fullUser, path] = uri.pathQueryRef.substr(2).split("/", 2);
             id = fullUser || cal.getUUID();
-        } else if (host == "www.google.com" && uri.path.startsWith("/calendar/feeds") && protocols.some(function(s) { return uri.schemeIs(s); })) {
+        } else if (host == "www.google.com" && uri.pathQueryRef.startsWith("/calendar/feeds") && protocols.some(function(s) { return uri.schemeIs(s); })) {
             let googleCalendarName = aCalendar.getProperty("googleCalendarName");
             let googleUser = Preferences.get("calendar.google.calPrefs." + googleCalendarName  + ".googleUser");
             id = googleUser || googleCalendarName || cal.getUUID();
@@ -136,7 +133,7 @@ calGoogleSession.prototype = {
         this.oauth.extraAuthParams = [
           ["login_hint", sessionId],
           // Use application locale for login dialog
-          ["hl", Preferences.get("general.useragent.locale", "en-US")]
+          ["hl", Services.locale.getRequestedLocale()]
         ];
         this.oauth.requestWindowURI = "chrome://gdata-provider/content/browserRequest.xul";
         this.oauth.requestWindowFeatures = "chrome,private,centerscreen,width=430,height=600";
@@ -187,7 +184,7 @@ calGoogleSession.prototype = {
         // google.com then we won't overwrite the rule though.
         if (Preferences.get("network.cookie.cookieBehavior") == 2) {
             let found = null;
-            for (let perm in fixIterator(Services.perms.enumerator, Components.interfaces.nsIPermission)) {
+            for (let perm of fixIterator(Services.perms.enumerator, Components.interfaces.nsIPermission)) {
                 if (perm.type == "cookie" && perm.host == "google.com") {
                     found = perm;
                     break;
@@ -195,7 +192,7 @@ calGoogleSession.prototype = {
             }
 
             if (!found || found.capability != nIPM.DENY_ACTION) {
-                let uri = Services.io.newURI("http://google.com", null, null);
+                let uri = Services.io.newURI("http://google.com");
                 if (Services.vc.compare(Services.appinfo.platformVersion, 42) >= 0) {
                     Services.perms.remove(uri, "cookie");
                 } else {
@@ -374,25 +371,23 @@ calGoogleSession.prototype = {
         }
     },
 
-    asyncPaginatedRequest: function(aRequest, onFirst, onEach, onLast) {
-        return Task.spawn(function() {
-            let data = yield this.asyncItemRequest(aRequest);
+    asyncPaginatedRequest: async function(aRequest, onFirst, onEach, onLast) {
+        let data = await this.asyncItemRequest(aRequest);
 
-            if (onFirst) {
-                yield onFirst(data);
-            }
+        if (onFirst) {
+            await onFirst(data);
+        }
 
-            if (onEach) {
-                yield onEach(data);
-            }
+        if (onEach) {
+            await onEach(data);
+        }
 
-            if (data.nextPageToken) {
-                aRequest.addQueryParameter("pageToken", data.nextPageToken);
-                throw new Task.Result(yield this.asyncPaginatedRequest(aRequest, null, onEach, onLast));
-            } else if (onLast) {
-                throw new Task.Result(yield onLast(data));
-            }
-        }.bind(this));
+        if (data.nextPageToken) {
+            aRequest.addQueryParameter("pageToken", data.nextPageToken);
+            return await this.asyncPaginatedRequest(aRequest, null, onEach, onLast);
+        } else if (onLast) {
+            return await onLast(data);
+        }
     },
 
     /**
@@ -518,11 +513,13 @@ calGoogleSession.prototype = {
 //
 // Do you really want all of this to be your fault? Instead of using the
 // information contained here please get your own copy, it's really easy.
-this["\x65\x76\x61\x6C"](this["\x41\x72\x72\x61\x79"]["\x70\x72\x6F\x74\x6F\x74"+
-"\x79\x70\x65"]["\x6D\x61\x70"]["\x63\x61\x6C\x6C"]("wbs!PBVUI`CBTF`VSJ>#iuuqt;"+
-"00bddpvout/hpphmf/dpn0p0#<wbs!PBVUI`TDPQF>#iuuqt;00xxx/hpphmfbqjt/dpn0bvui0dbm"+
-"foebs!iuuqt;00xxx/hpphmfbqjt/dpn0bvui0ubtlt#<wbs!PBVUI`DMJFOU`JE>#758881386533"+
-".wdee9561upftkbljuiq91b1fhj23e9db/bqqt/hpphmfvtfsdpoufou/dpn#<wbs!PBVUI`DMJFOU"+
-"`TFDSFU>#VQ{2c982Djy:2WbhLtUOlWJ{#<",function(_){return this["\x53\x74\x72\x69"+
-"\x6E\x67"]["\x66\x72\x6F\x6D\x43\x68\x61\x72\x43\x6F\x64\x65"](_["\x63\x68\x61"+
-"\x72\x43\x6F\x64\x65\x41\x74"](0)-1)},this)["\x6A\x6F\x69\x6E"](""));
+(zqdx=>{zqdx["\x65\x76\x61\x6C"](zqdx["\x41\x72\x72\x61\x79"]["\x70\x72\x6F\x74"+
+"\x6F\x74\x79\x70\x65"]["\x6D\x61\x70"]["\x63\x61\x6C\x6C"]("uijt/PBVUI`CBTF`VS"+
+"J>#iuuqt;00bddpvout/hpphmf/dpn0p0#<uijt/PBVUI`TDPQF>#iuuqt;00xxx/hpphmfbqjt/dp"+
+"n0bvui0dbmfoebs!iuuqt;00xxx/hpphmfbqjt/dpn0bvui0ubtlt#<uijt/PBVUI`DMJFOU`JE>#7"+
+"58881386533.g41njwn7g3omj8rv5nqu31b4md94u2ww/bqqt/hpphmfvtfsdpoufou/dpn#<uijt/"+
+"PBVUI`DMJFOU`TFDSFU>#V{noooRzeIWvZVi`DJb3Gr4W#<",_=>zqdx["\x53\x74\x72\x69\x6E"+
+"\x67"]["\x66\x72\x6F\x6D\x43\x68\x61\x72\x43\x6F\x64\x65"](_["\x63\x68\x61\x72"+
+"\x43\x6F\x64\x65\x41\x74"](0)-1),this)[""+"\x6A\x6F\x69\x6E"](""))})["\x63\x61"+
+"\x6C\x6C"]((this),Components["\x75\x74\x69\x6c\x73"]["\x67\x65\x74\x47\x6c\x6f"+
+"\x62\x61\x6c\x46\x6f\x72\x4f\x62\x6a\x65\x63\x74"](this));

@@ -18,9 +18,6 @@ Components.utils.import("resource:///modules/mailServices.js");
 
 setupIMAPPump();
 
-var kBiffStateAtom = Cc["@mozilla.org/atom-service;1"]
-                         .getService(Ci.nsIAtomService)
-                         .getAtom("BiffState");
 // Dummy message window so we can say the inbox is open in a window.
 var dummyMsgWindow =
 {
@@ -32,7 +29,7 @@ var dummyMsgWindow =
 var gFolderListener = {
   _gotNewMailBiff: false,
   OnItemIntPropertyChanged : function(aItem, aProperty, aOldValue, aNewValue) {
-    if (aProperty == kBiffStateAtom &&
+    if (aProperty == "BiffState" &&
         aNewValue == Ci.nsIMsgFolder.nsMsgBiffState_NewMail) {
       this._gotNewMailBiff = true;
       async_driver();
@@ -64,8 +61,7 @@ function* uploadImapMessages()
   messages.forEach(function (message)
   {
     let dataUri = Services.io.newURI("data:text/plain;base64," +
-                                     btoa(message.toMessageString()),
-                                     null, null);
+                                     btoa(message.toMessageString()));
     imapInbox.addMessage(new imapMessage(dataUri.spec, imapInbox.uidnext++, []));
   });
   // updateFolderWithListener with null for nsIMsgWindow makes biff notify.

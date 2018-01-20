@@ -594,6 +594,7 @@ class AstFunc : public AstNode
     AstValTypeVector vars_;
     AstNameVector localNames_;
     AstExprVector body_;
+    uint32_t endOffset_; // if applicable, offset in the binary format file
 
   public:
     AstFunc(AstName name, AstRef sig, AstValTypeVector&& vars,
@@ -602,13 +603,16 @@ class AstFunc : public AstNode
         sig_(sig),
         vars_(Move(vars)),
         localNames_(Move(locals)),
-        body_(Move(body))
+        body_(Move(body)),
+        endOffset_(AstNodeUnknownOffset)
     {}
     AstRef& sig() { return sig_; }
     const AstValTypeVector& vars() const { return vars_; }
     const AstNameVector& locals() const { return localNames_; }
     const AstExprVector& body() const { return body_; }
     AstName name() const { return name_; }
+    uint32_t endOffset() const { return endOffset_; }
+    void setEndOffset(uint32_t offset) { endOffset_ = offset; }
 };
 
 class AstGlobal : public AstNode
@@ -623,7 +627,7 @@ class AstGlobal : public AstNode
     {}
 
     explicit AstGlobal(AstName name, ValType type, bool isMutable,
-                       Maybe<AstExpr*> init = Maybe<AstExpr*>())
+                       const Maybe<AstExpr*>& init = Maybe<AstExpr*>())
       : name_(name), isMutable_(isMutable), type_(type), init_(init)
     {}
 
@@ -652,10 +656,11 @@ class AstImport : public AstNode
     AstImport(AstName name, AstName module, AstName field, AstRef funcSig)
       : name_(name), module_(module), field_(field), kind_(DefinitionKind::Function), funcSig_(funcSig)
     {}
-    AstImport(AstName name, AstName module, AstName field, DefinitionKind kind, Limits limits)
+    AstImport(AstName name, AstName module, AstName field, DefinitionKind kind,
+              const Limits& limits)
       : name_(name), module_(module), field_(field), kind_(kind), limits_(limits)
     {}
-    AstImport(AstName name, AstName module, AstName field, AstGlobal global)
+    AstImport(AstName name, AstName module, AstName field, const AstGlobal& global)
       : name_(name), module_(module), field_(field), kind_(DefinitionKind::Global), global_(global)
     {}
 
@@ -749,7 +754,7 @@ struct AstResizable
     Limits limits;
     bool imported;
 
-    AstResizable(Limits limits, bool imported, AstName name = AstName())
+    AstResizable(const Limits& limits, bool imported, AstName name = AstName())
       : name(name),
         limits(limits),
         imported(imported)
@@ -783,6 +788,8 @@ class AstModule : public AstNode
     AstElemSegmentVector elemSegments_;
     AstGlobalVector      globals_;
 
+    size_t numGlobalImports_;
+
   public:
     explicit AstModule(LifoAlloc& lifo)
       : lifo_(lifo),
@@ -796,12 +803,13 @@ class AstModule : public AstNode
         funcs_(lifo),
         dataSegments_(lifo),
         elemSegments_(lifo),
-        globals_(lifo)
+        globals_(lifo),
+        numGlobalImports_(0)
     {}
     bool init() {
         return sigMap_.init();
     }
-    bool addMemory(AstName name, Limits memory) {
+    bool addMemory(AstName name, const Limits& memory) {
         return memories_.append(AstResizable(memory, false, name));
     }
     bool hasMemory() const {
@@ -810,7 +818,7 @@ class AstModule : public AstNode
     const AstResizableVector& memories() const {
         return memories_;
     }
-    bool addTable(AstName name, Limits table) {
+    bool addTable(AstName name, const Limits& table) {
         return tables_.append(AstResizable(table, false, name));
     }
     bool hasTable() const {
@@ -886,9 +894,9 @@ class AstModule : public AstNode
                 return false;
             break;
           case DefinitionKind::Global:
+            numGlobalImports_++;
             break;
         }
-
         return imports_.append(imp);
     }
     const ImportVector& imports() const {
@@ -911,6 +919,9 @@ class AstModule : public AstNode
     }
     const AstGlobalVector& globals() const {
         return globals_;
+    }
+    size_t numGlobalImports() const {
+        return numGlobalImports_;
     }
 };
 

@@ -48,7 +48,7 @@ add_task(function* () {
   info("Open the eyedropper from the colorpicker tooltip");
   yield openEyedropper(view, swatch);
 
-  let tooltip = view.tooltips.colorPicker.tooltip;
+  let tooltip = view.tooltips.getTooltip("colorPicker").tooltip;
   ok(!tooltip.isVisible(), "color picker tooltip is closed after opening eyedropper");
 
   info("Test that pressing escape dismisses the eyedropper");
@@ -101,23 +101,11 @@ function* testSelect(view, swatch, inspector, testActor) {
   let color = swatch.style.backgroundColor;
   is(color, EXPECTED_COLOR, "swatch changed colors");
 
+  ok(!swatch.eyedropperOpen, "swatch eye dropper is closed");
+  ok(!swatch.activeSwatch, "no active swatch");
+
   is((yield getComputedStyleProperty("div", null, "background-color")),
      EXPECTED_COLOR,
      "div's color set to body color after dropper");
 }
 
-function* openEyedropper(view, swatch) {
-  let tooltip = view.tooltips.colorPicker.tooltip;
-
-  info("Click on the swatch");
-  let onColorPickerReady = view.tooltips.colorPicker.once("ready");
-  swatch.click();
-  yield onColorPickerReady;
-
-  let dropperButton = tooltip.doc.querySelector("#eyedropper-button");
-
-  info("Click on the eyedropper icon");
-  let onOpened = tooltip.once("eyedropper-opened");
-  dropperButton.click();
-  yield onOpened;
-}

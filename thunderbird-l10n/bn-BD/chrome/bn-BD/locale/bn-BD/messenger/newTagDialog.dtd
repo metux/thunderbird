@@ -3,7 +3,4 @@
 <!ENTITY name.label              "ট্যাগের নাম (T):">
 <!ENTITY name.accesskey          "T">
 
-
-
-<!-- New Tag Dialog -->
 <!ENTITY newTagDialog1.title     "New Tag">

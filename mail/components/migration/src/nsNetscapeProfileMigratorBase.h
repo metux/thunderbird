@@ -8,7 +8,7 @@
 
 #include "nsIFile.h"
 #include "nsIStringBundle.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsTArray.h"
 #include "nsIObserverService.h"
 #include "nsITimer.h"
@@ -92,8 +92,8 @@ protected:
 
   nsresult CopyFile(const nsAString& aSourceFileName, const nsAString& aTargetFileName);
 
-  nsresult GetSignonFileName(bool aReplace, char** aFileName);
-  nsresult LocateSignonsFile(char** aResult);
+  nsresult GetSignonFileName(bool aReplace, nsACString& aFileName);
+  nsresult LocateSignonsFile(nsACString& aResult);
 
   nsCOMPtr<nsIFile> mSourceProfile;
   nsCOMPtr<nsIFile> mTargetProfile;

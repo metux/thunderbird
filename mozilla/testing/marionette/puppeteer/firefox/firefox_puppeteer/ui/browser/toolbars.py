@@ -248,7 +248,7 @@ class LocationBar(UIBaseLib):
 
         :returns: Reference to the reload button.
         """
-        return self.marionette.find_element(By.ID, 'urlbar-reload-button')
+        return self.marionette.find_element(By.ID, 'reload-button')
 
     def reload_url(self, trigger='button', force=False):
         """Reload the currently open page.
@@ -274,7 +274,7 @@ class LocationBar(UIBaseLib):
 
         :returns: Reference to the stop button.
         """
-        return self.marionette.find_element(By.ID, 'urlbar-stop-button')
+        return self.marionette.find_element(By.ID, 'stop-button')
 
     @property
     def urlbar(self):
@@ -527,7 +527,7 @@ class IdentityPopupMainView(IdentityPopupView):
 
         :returns: Reference to the identity-popup content host.
         """
-        return self.element.find_element(By.CLASS_NAME, 'identity-popup-headline host')
+        return self.element.find_element(By.CLASS_NAME, 'identity-popup-host')
 
     @property
     def insecure_connection_label(self):
@@ -588,7 +588,7 @@ class IdentityPopupSecurityView(IdentityPopupView):
 
         :returns: Reference to the identity-popup content host.
         """
-        return self.element.find_element(By.CLASS_NAME, 'identity-popup-headline host')
+        return self.element.find_element(By.CLASS_NAME, 'identity-popup-host')
 
     @property
     def insecure_connection_label(self):

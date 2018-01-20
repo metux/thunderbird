@@ -5,7 +5,7 @@
 "use strict";
 
 const Services = require("Services");
-const EventEmitter = require("devtools/shared/event-emitter");
+const EventEmitter = require("devtools/shared/old-event-emitter");
 const isOSX = Services.appinfo.OS === "Darwin";
 const {KeyCodes} = require("devtools/client/shared/keycodes");
 
@@ -248,4 +248,5 @@ KeyShortcuts.prototype = {
     this.eventEmitter.off(key, listener);
   },
 };
-exports.KeyShortcuts = KeyShortcuts;
+
+module.exports = KeyShortcuts;

@@ -17,9 +17,9 @@
 <!ENTITY paneAdvanced.title       "מתקדם">
 
 
-<!ENTITY okButton.accesskey       "O">
-
-<!ENTITY okButton.title           "OK">
-<!ENTITY paneAccount.title        "Accounts">
 <!ENTITY paneChat.title           "Chat">
 <!ENTITY panePrivacy.title        "Privacy">
+<!ENTITY paneAccount.title        "Accounts">
+
+<!ENTITY okButton.title           "OK">
+<!ENTITY okButton.accesskey       "O">

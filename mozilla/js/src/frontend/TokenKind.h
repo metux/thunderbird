@@ -81,9 +81,12 @@
     \
     macro(REGEXP,       "regular expression literal") \
     macro(TRUE,         "boolean literal 'true'") \
+    range(RESERVED_WORD_LITERAL_FIRST, TRUE) \
     macro(FALSE,        "boolean literal 'false'") \
     macro(NULL,         "null literal") \
+    range(RESERVED_WORD_LITERAL_LAST, NULL) \
     macro(THIS,         "keyword 'this'") \
+    range(KEYWORD_FIRST, THIS) \
     macro(FUNCTION,     "keyword 'function'") \
     macro(IF,           "keyword 'if'") \
     macro(ELSE,         "keyword 'else'") \
@@ -106,16 +109,43 @@
     macro(FINALLY,      "keyword 'finally'") \
     macro(THROW,        "keyword 'throw'") \
     macro(DEBUGGER,     "keyword 'debugger'") \
-    macro(YIELD,        "keyword 'yield'") \
-    macro(AWAIT,        "keyword 'await'") \
     macro(EXPORT,       "keyword 'export'") \
     macro(IMPORT,       "keyword 'import'") \
     macro(CLASS,        "keyword 'class'") \
     macro(EXTENDS,      "keyword 'extends'") \
     macro(SUPER,        "keyword 'super'") \
-    macro(RESERVED,     "reserved keyword") \
-    /* reserved keywords in strict mode */ \
-    macro(STRICT_RESERVED, "reserved keyword") \
+    range(KEYWORD_LAST, SUPER) \
+    \
+    /* contextual keywords */ \
+    macro(AS,           "'as'") \
+    range(CONTEXTUAL_KEYWORD_FIRST, AS) \
+    macro(ASYNC,        "'async'") \
+    macro(AWAIT,        "'await'") \
+    macro(EACH,         "'each'") \
+    macro(FROM,         "'from'") \
+    macro(GET,          "'get'") \
+    macro(LET,          "'let'") \
+    macro(OF,           "'of'") \
+    macro(SET,          "'set'") \
+    macro(STATIC,       "'static'") \
+    macro(TARGET,       "'target'") \
+    macro(YIELD,        "'yield'") \
+    range(CONTEXTUAL_KEYWORD_LAST, YIELD) \
+    \
+    /* future reserved words */ \
+    macro(ENUM,         "reserved word 'enum'") \
+    range(FUTURE_RESERVED_KEYWORD_FIRST, ENUM) \
+    range(FUTURE_RESERVED_KEYWORD_LAST, ENUM) \
+    \
+    /* reserved words in strict mode */ \
+    macro(IMPLEMENTS,   "reserved word 'implements'") \
+    range(STRICT_RESERVED_KEYWORD_FIRST, IMPLEMENTS) \
+    macro(INTERFACE,    "reserved word 'interface'") \
+    macro(PACKAGE,      "reserved word 'package'") \
+    macro(PRIVATE,      "reserved word 'private'") \
+    macro(PROTECTED,    "reserved word 'protected'") \
+    macro(PUBLIC,       "reserved word 'public'") \
+    range(STRICT_RESERVED_KEYWORD_LAST, PUBLIC) \
     \
     /* \
      * The following token types occupy contiguous ranges to enable easy \
@@ -125,8 +155,9 @@
      * Binary operators tokens, TOK_OR thru TOK_POW. These must be in the same \
      * order as F(OR) and friends in FOR_EACH_PARSE_NODE_KIND in ParseNode.h. \
      */ \
+    macro(PIPELINE,     "'|>'") \
+    range(BINOP_FIRST,  PIPELINE) \
     macro(OR,           "'||'")   /* logical or */ \
-    range(BINOP_FIRST, OR) \
     macro(AND,          "'&&'")   /* logical and */ \
     macro(BITOR,        "'|'")    /* bitwise-or */ \
     macro(BITXOR,       "'^'")    /* bitwise-xor */ \
@@ -149,7 +180,9 @@
     range(RELOP_LAST, GE) \
     \
     macro(INSTANCEOF,   "keyword 'instanceof'") \
+    range(KEYWORD_BINOP_FIRST, INSTANCEOF) \
     macro(IN,           "keyword 'in'") \
+    range(KEYWORD_BINOP_LAST, IN) \
     \
     /* Shift ops, per TokenKindIsShift. */ \
     macro(LSH,          "'<<'") \
@@ -164,11 +197,13 @@
     macro(DIV,          "'/'") \
     macro(MOD,          "'%'") \
     macro(POW,          "'**'") \
-    range(BINOP_LAST, POW) \
+    range(BINOP_LAST,   POW) \
     \
     /* Unary operation tokens. */ \
     macro(TYPEOF,       "keyword 'typeof'") \
+    range(KEYWORD_UNOP_FIRST, TYPEOF) \
     macro(VOID,         "keyword 'void'") \
+    range(KEYWORD_UNOP_LAST, VOID) \
     macro(NOT,          "'!'") \
     macro(BITNOT,       "'~'") \
     \
@@ -237,6 +272,61 @@ inline bool
 TokenKindIsAssignment(TokenKind tt)
 {
     return TOK_ASSIGNMENT_START <= tt && tt <= TOK_ASSIGNMENT_LAST;
+}
+
+inline MOZ_MUST_USE bool
+TokenKindIsKeyword(TokenKind tt)
+{
+    return (TOK_KEYWORD_FIRST <= tt && tt <= TOK_KEYWORD_LAST) ||
+           (TOK_KEYWORD_BINOP_FIRST <= tt && tt <= TOK_KEYWORD_BINOP_LAST) ||
+           (TOK_KEYWORD_UNOP_FIRST <= tt && tt <= TOK_KEYWORD_UNOP_LAST);
+}
+
+inline MOZ_MUST_USE bool
+TokenKindIsContextualKeyword(TokenKind tt)
+{
+    return TOK_CONTEXTUAL_KEYWORD_FIRST <= tt && tt <= TOK_CONTEXTUAL_KEYWORD_LAST;
+}
+
+inline MOZ_MUST_USE bool
+TokenKindIsFutureReservedWord(TokenKind tt)
+{
+    return TOK_FUTURE_RESERVED_KEYWORD_FIRST <= tt && tt <= TOK_FUTURE_RESERVED_KEYWORD_LAST;
+}
+
+inline MOZ_MUST_USE bool
+TokenKindIsStrictReservedWord(TokenKind tt)
+{
+    return TOK_STRICT_RESERVED_KEYWORD_FIRST <= tt && tt <= TOK_STRICT_RESERVED_KEYWORD_LAST;
+}
+
+inline MOZ_MUST_USE bool
+TokenKindIsReservedWordLiteral(TokenKind tt)
+{
+    return TOK_RESERVED_WORD_LITERAL_FIRST <= tt && tt <= TOK_RESERVED_WORD_LITERAL_LAST;
+}
+
+inline MOZ_MUST_USE bool
+TokenKindIsReservedWord(TokenKind tt)
+{
+    return TokenKindIsKeyword(tt) ||
+           TokenKindIsFutureReservedWord(tt) ||
+           TokenKindIsReservedWordLiteral(tt);
+}
+
+inline MOZ_MUST_USE bool
+TokenKindIsPossibleIdentifier(TokenKind tt)
+{
+    return tt == TOK_NAME ||
+           TokenKindIsContextualKeyword(tt) ||
+           TokenKindIsStrictReservedWord(tt);
+}
+
+inline MOZ_MUST_USE bool
+TokenKindIsPossibleIdentifierName(TokenKind tt)
+{
+    return TokenKindIsPossibleIdentifier(tt) ||
+           TokenKindIsReservedWord(tt);
 }
 
 } // namespace frontend

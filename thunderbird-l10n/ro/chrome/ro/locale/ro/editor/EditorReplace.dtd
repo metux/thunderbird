@@ -9,8 +9,8 @@
 <!ENTITY findField.accesskey "a">
 <!ENTITY replaceField.label "Înlocuiește cu:">
 <!ENTITY replaceField.accesskey "n">
-<!ENTITY caseSensitiveCheckbox.label "Ține cont de majuscule">
-<!ENTITY caseSensitiveCheckbox.accesskey "c">
+
+
 <!ENTITY wrapCheckbox.label "Împrejur">
 <!ENTITY wrapCheckbox.accesskey "p">
 <!ENTITY backwardsCheckbox.label "Caută înapoi">
@@ -23,4 +23,10 @@
 <!ENTITY replaceAndFindButton.accesskey "g">
 <!ENTITY replaceAllButton.label "Înlocuiește toate">
 <!ENTITY replaceAllButton.accesskey "t">
-<!ENTITY closeButton.label "Închide">
+
+
+
+<!ENTITY caseSensitiveCheckbox.label "Match exact case">
+<!ENTITY caseSensitiveCheckbox.accesskey "M">
+<!ENTITY closeButton.label "Close">
+<!ENTITY closeButton.accesskey "C">

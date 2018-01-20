@@ -14,7 +14,7 @@
 <!ENTITY aboutNetworking.autoRefresh           "Auto-oppdater kvart 3. sekund">
 <!ENTITY aboutNetworking.hostname              "Vertsnamn">
 <!ENTITY aboutNetworking.port                  "Port">
-<!ENTITY aboutNetworking.spdy                  "SPDY">
+<!ENTITY aboutNetworking.http2                 "HTTP/2">
 <!ENTITY aboutNetworking.ssl                   "SSL">
 <!ENTITY aboutNetworking.active                "Aktiv">
 <!ENTITY aboutNetworking.idle                  "Uverksam">
@@ -41,3 +41,18 @@
 <!ENTITY aboutNetworking.dnsLookupButton       "Slå opp">
 <!ENTITY aboutNetworking.dnsDomain             "Domene">
 <!ENTITY aboutNetworking.dnsLookupTableColumn  "IP-ar">
+<!ENTITY aboutNetworking.rcwn                  "RCWN-statistikk">
+<!ENTITY aboutNetworking.rcwnStatus            "RCWN-status">
+<!ENTITY aboutNetworking.rcwnCacheWonCount     "Tal på cache won">
+<!ENTITY aboutNetworking.rcwnNetWonCount       "Tal på net won">
+<!ENTITY aboutNetworking.totalNetworkRequests  "Totalt tal på nettverkførespurnadar">
+<!ENTITY aboutNetworking.rcwnOperation         "Cache-operasjon">
+<!ENTITY aboutNetworking.rcwnPerfOpen          "Open">
+<!ENTITY aboutNetworking.rcwnPerfRead          "Les">
+<!ENTITY aboutNetworking.rcwnPerfWrite         "Skriv">
+<!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Open oppføring">
+<!ENTITY aboutNetworking.rcwnAvgShort          "Kort gjennomsnitt">
+<!ENTITY aboutNetworking.rcwnAvgLong           "Langt gjennomsnitt">
+<!ENTITY aboutNetworking.rcwnStddevLong        "Langt standardavvik">
+<!ENTITY aboutNetworking.rcwnCacheSlow         "Tal på langsam cache">
+<!ENTITY aboutNetworking.rcwnCacheNotSlow      "Tal på ikkje-langsam cache">

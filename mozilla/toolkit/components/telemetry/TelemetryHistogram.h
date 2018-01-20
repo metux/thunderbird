@@ -7,6 +7,7 @@
 #define TelemetryHistogram_h__
 
 #include "mozilla/TelemetryHistogramEnums.h"
+#include "mozilla/TelemetryProcessEnums.h"
 
 #include "mozilla/TelemetryComms.h"
 #include "nsXULAppAPI.h"
@@ -17,9 +18,6 @@
 // For the public interface to Telemetry functionality, see Telemetry.h.
 
 namespace TelemetryHistogram {
-
-void CreateStatisticsRecorder();
-void DestroyStatisticsRecorder();
 
 void InitializeGlobalState(bool canRecordBase, bool canRecordExtended);
 void DeInitializeGlobalState();
@@ -33,22 +31,22 @@ bool CanRecordExtended();
 void SetCanRecordExtended(bool b);
 
 void InitHistogramRecordingEnabled();
-void SetHistogramRecordingEnabled(mozilla::Telemetry::ID aID, bool aEnabled);
+void SetHistogramRecordingEnabled(mozilla::Telemetry::HistogramID aID, bool aEnabled);
 
 nsresult SetHistogramRecordingEnabled(const nsACString &id, bool aEnabled);
 
-void Accumulate(mozilla::Telemetry::ID aHistogram, uint32_t aSample);
-void Accumulate(mozilla::Telemetry::ID aID, const nsCString& aKey,
+void Accumulate(mozilla::Telemetry::HistogramID aHistogram, uint32_t aSample);
+void Accumulate(mozilla::Telemetry::HistogramID aID, const nsCString& aKey,
                                             uint32_t aSample);
 void Accumulate(const char* name, uint32_t sample);
 void Accumulate(const char* name, const nsCString& key, uint32_t sample);
 
-void AccumulateCategorical(mozilla::Telemetry::ID aId, const nsCString& aLabel);
+void AccumulateCategorical(mozilla::Telemetry::HistogramID aId, const nsCString& aLabel);
 
-void AccumulateChild(GeckoProcessType aProcessType,
-                     const nsTArray<mozilla::Telemetry::Accumulation>& aAccumulations);
-void AccumulateChildKeyed(GeckoProcessType aProcessType,
-                          const nsTArray<mozilla::Telemetry::KeyedAccumulation>& aAccumulations);
+void AccumulateChild(mozilla::Telemetry::ProcessID aProcessType,
+                     const nsTArray<mozilla::Telemetry::HistogramAccumulation>& aAccumulations);
+void AccumulateChildKeyed(mozilla::Telemetry::ProcessID aProcessType,
+                          const nsTArray<mozilla::Telemetry::KeyedHistogramAccumulation>& aAccumulations);
 
 nsresult
 GetHistogramById(const nsACString &name, JSContext *cx,
@@ -59,37 +57,15 @@ GetKeyedHistogramById(const nsACString &name, JSContext *cx,
                       JS::MutableHandle<JS::Value> ret);
 
 const char*
-GetHistogramName(mozilla::Telemetry::ID id);
+GetHistogramName(mozilla::Telemetry::HistogramID id);
 
 nsresult
-CreateHistogramSnapshots(JSContext *cx, JS::MutableHandle<JS::Value> ret,
-                         bool subsession, bool clearSubsession);
+CreateHistogramSnapshots(JSContext* aCx, JS::MutableHandleValue aResult, unsigned int aDataset,
+                         bool aSubsession, bool aClearSubsession);
 
 nsresult
-RegisteredHistograms(uint32_t aDataset, uint32_t *aCount,
-                     char*** aHistograms);
-
-nsresult
-RegisteredKeyedHistograms(uint32_t aDataset, uint32_t *aCount,
-                          char*** aHistograms);
-
-nsresult
-GetKeyedHistogramSnapshots(JSContext *cx, JS::MutableHandle<JS::Value> ret);
-
-nsresult
-RegisterAddonHistogram(const nsACString &id, const nsACString &name,
-                       uint32_t histogramType, uint32_t min, uint32_t max,
-                       uint32_t bucketCount, uint8_t optArgCount);
-
-nsresult
-GetAddonHistogram(const nsACString &id, const nsACString &name,
-                  JSContext *cx, JS::MutableHandle<JS::Value> ret);
-
-nsresult
-UnregisterAddonHistograms(const nsACString &id);
-
-nsresult
-GetAddonHistogramSnapshots(JSContext *cx, JS::MutableHandle<JS::Value> ret);
+GetKeyedHistogramSnapshots(JSContext *aCx, JS::MutableHandleValue aResult, unsigned int aDataset,
+                           bool aSubsession, bool aClearSubsession);
 
 size_t
 GetMapShallowSizesOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf);
@@ -97,8 +73,6 @@ GetMapShallowSizesOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf);
 size_t
 GetHistogramSizesofIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
 
-void
-IPCTimerFired(nsITimer* aTimer, void* aClosure);
 } // namespace TelemetryHistogram
 
 #endif // TelemetryHistogram_h__

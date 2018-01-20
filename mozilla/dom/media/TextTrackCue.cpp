@@ -23,7 +23,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(TextTrackCue,
 
 NS_IMPL_ADDREF_INHERITED(TextTrackCue, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(TextTrackCue, DOMEventTargetHelper)
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(TextTrackCue)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(TextTrackCue)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 StaticRefPtr<nsIWebVTTParserWrapper> TextTrackCue::sParserWrapper;
@@ -54,9 +54,11 @@ TextTrackCue::TextTrackCue(nsPIDOMWindowInner* aOwnerWindow,
   , mText(aText)
   , mStartTime(aStartTime)
   , mEndTime(aEndTime)
+  , mPosition(0.0)
+  , mLine(0.0)
   , mReset(false, "TextTrackCue::mReset")
   , mHaveStartedWatcher(false)
-  , mWatchManager(this, AbstractThread::MainThread())
+  , mWatchManager(this, GetOwnerGlobal()->AbstractMainThreadFor(TaskCategory::Other))
 {
   SetDefaultCueSettings();
   MOZ_ASSERT(aOwnerWindow);
@@ -76,9 +78,11 @@ TextTrackCue::TextTrackCue(nsPIDOMWindowInner* aOwnerWindow,
   , mStartTime(aStartTime)
   , mEndTime(aEndTime)
   , mTrackElement(aTrackElement)
+  , mPosition(0.0)
+  , mLine(0.0)
   , mReset(false, "TextTrackCue::mReset")
   , mHaveStartedWatcher(false)
-  , mWatchManager(this, AbstractThread::MainThread())
+  , mWatchManager(this, GetOwnerGlobal()->AbstractMainThreadFor(TaskCategory::Other))
 {
   SetDefaultCueSettings();
   MOZ_ASSERT(aOwnerWindow);
@@ -133,17 +137,13 @@ TextTrackCue::GetCueAsHTML()
     return mDocument->CreateDocumentFragment();
   }
 
-  nsCOMPtr<nsIDOMHTMLElement> div;
+  nsCOMPtr<nsIDOMDocumentFragment> frag;
   sParserWrapper->ConvertCueToDOMTree(window, this,
-                                      getter_AddRefs(div));
-  if (!div) {
+                                      getter_AddRefs(frag));
+  if (!frag) {
     return mDocument->CreateDocumentFragment();
   }
-  RefPtr<DocumentFragment> docFrag = mDocument->CreateDocumentFragment();
-  nsCOMPtr<nsIDOMNode> throwAway;
-  docFrag->AppendChild(div, getter_AddRefs(throwAway));
-
-  return docFrag.forget();
+  return frag.forget().downcast<DocumentFragment>();
 }
 
 void

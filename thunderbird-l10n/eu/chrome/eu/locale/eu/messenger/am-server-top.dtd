@@ -91,7 +91,7 @@
 
 <!ENTITY maildirStore.label "Mezu bakoitzeko fitxategi bat (maildir)">
 
-<!ENTITY mboxStore2.label "File per folder (mbox)">
-<!ENTITY serverDefaultCharset2.label "Default Text Encoding:">
-<!ENTITY useIdleNotifications.accesskey "w">
 <!ENTITY useIdleNotifications.label "Allow immediate server notifications when new messages arrive">
+<!ENTITY useIdleNotifications.accesskey "w">
+<!ENTITY serverDefaultCharset2.label "Default Text Encoding:">
+<!ENTITY mboxStore2.label "File per folder (mbox)">

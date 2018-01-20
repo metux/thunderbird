@@ -31,3 +31,5 @@
 <!ENTITY replaceAllButton.accesskey "ה">
 <!ENTITY closeButton.label "סגירה">
 
+
+<!ENTITY closeButton.accesskey "C">

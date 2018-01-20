@@ -19,11 +19,12 @@
 #ifndef wasm_types_h
 #define wasm_types_h
 
+#include "mozilla/Alignment.h"
+#include "mozilla/Atomics.h"
 #include "mozilla/EnumeratedArray.h"
 #include "mozilla/HashFunctions.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Move.h"
-#include "mozilla/RefCounted.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/Unused.h"
 
@@ -31,6 +32,7 @@
 
 #include "ds/LifoAlloc.h"
 #include "jit/IonTypes.h"
+#include "js/RefCounted.h"
 #include "js/UniquePtr.h"
 #include "js/Utility.h"
 #include "js/Vector.h"
@@ -40,7 +42,11 @@
 namespace js {
 
 class PropertyName;
-namespace jit { struct BaselineScript; }
+class WasmFunctionCallObject;
+namespace jit {
+    struct BaselineScript;
+    enum class RoundingMode;
+}
 
 // This is a widespread header, so lets keep out the core wasm impl types.
 
@@ -68,6 +74,7 @@ typedef MutableHandle<WasmTableObject*> MutableHandleWasmTableObject;
 
 namespace wasm {
 
+using mozilla::Atomic;
 using mozilla::DebugOnly;
 using mozilla::EnumeratedArray;
 using mozilla::Maybe;
@@ -77,12 +84,14 @@ using mozilla::Nothing;
 using mozilla::PodZero;
 using mozilla::PodCopy;
 using mozilla::PodEqual;
-using mozilla::RefCounted;
 using mozilla::Some;
 using mozilla::Unused;
 
 typedef Vector<uint32_t, 0, SystemAllocPolicy> Uint32Vector;
 typedef Vector<uint8_t, 0, SystemAllocPolicy> Bytes;
+typedef UniquePtr<Bytes> UniqueBytes;
+typedef UniquePtr<const Bytes> UniqueConstBytes;
+typedef Vector<char, 0, SystemAllocPolicy> UTF8Bytes;
 
 typedef int8_t I8x16[16];
 typedef int16_t I16x8[8];
@@ -90,7 +99,9 @@ typedef int32_t I32x4[4];
 typedef float F32x4[4];
 
 class Code;
-class CodeRange;
+class DebugState;
+class GeneratedSourceMap;
+class GlobalSegment;
 class Memory;
 class Module;
 class Instance;
@@ -135,7 +146,7 @@ typedef Vector<Type, 0, SystemAllocPolicy> VectorName;
 // about:memory stats.
 
 template <class T>
-struct ShareableBase : RefCounted<T>
+struct ShareableBase : AtomicRefCounted<T>
 {
     using SeenSet = HashSet<const T*, DefaultHasher<const T*>, SystemAllocPolicy>;
 
@@ -151,6 +162,29 @@ struct ShareableBase : RefCounted<T>
 };
 
 // ValType utilities
+
+static inline unsigned
+SizeOf(ValType vt)
+{
+    switch (vt) {
+      case ValType::I32:
+      case ValType::F32:
+        return 4;
+      case ValType::I64:
+      case ValType::F64:
+        return 8;
+      case ValType::I8x16:
+      case ValType::I16x8:
+      case ValType::I32x4:
+      case ValType::F32x4:
+      case ValType::B8x16:
+      case ValType::B16x8:
+      case ValType::B32x4:
+        return 16;
+      default:
+        MOZ_CRASH("Invalid ValType");
+    }
+}
 
 static inline bool
 IsSimdType(ValType vt)
@@ -337,40 +371,68 @@ ToCString(ValType type)
     return ToCString(ToExprType(type));
 }
 
-// Because WebAssembly allows one to define the payload of a NaN value,
-// including the signal/quiet bit (highest order bit of payload), another
-// represenation of floating-point values is required: on some platforms (x86
-// without SSE2), passing a floating-point argument to a function call may use
-// the x87 stack, which has the side-effect of clearing the signal/quiet bit.
-// Because the signal/quiet bit must be preserved (by spec), we use the raw
-// punned integer representation of floating points instead, in function calls.
+// Code can be compiled either with the Baseline compiler or the Ion compiler,
+// and tier-variant data are tagged with the Tier value.
 //
-// When we leave the WebAssembly sandbox back to JS, NaNs are canonicalized, so
-// this isn't observable from JS.
+// A tier value is used to request tier-variant aspects of code, metadata, or
+// linkdata.  The tiers are normally explicit (Baseline and Ion); implicit tiers
+// can be obtained through accessors on Code objects (eg, stableTier).
 
-template<class T>
-class Raw
+enum class Tier
 {
-    typedef typename mozilla::FloatingPoint<T>::Bits Bits;
-    Bits value_;
-
-  public:
-    Raw() : value_(0) {}
-
-    explicit Raw(T value)
-      : value_(mozilla::BitwiseCast<Bits>(value))
-    {}
-
-    template<class U> MOZ_IMPLICIT Raw(U) = delete;
-
-    static Raw fromBits(Bits bits) { Raw r; r.value_ = bits; return r; }
-
-    Bits bits() const { return value_; }
-    T fp() const { return mozilla::BitwiseCast<T>(value_); }
+    Baseline,
+    Debug = Baseline,
+    Ion,
+    Serialized = Ion
 };
 
-using RawF64 = Raw<double>;
-using RawF32 = Raw<float>;
+// The CompileMode controls how compilation of a module is performed (notably,
+// how many times we compile it).
+
+enum class CompileMode
+{
+    Once,
+    Tier1,
+    Tier2
+};
+
+// Typed enum for whether debugging is enabled.
+
+enum class DebugEnabled
+{
+    False,
+    True
+};
+
+// Iterator over tiers present in a tiered data structure.
+
+class Tiers
+{
+    Tier t_[2];
+    uint32_t n_;
+
+  public:
+    explicit Tiers() {
+        n_ = 0;
+    }
+    explicit Tiers(Tier t) {
+        t_[0] = t;
+        n_ = 1;
+    }
+    explicit Tiers(Tier t, Tier u) {
+        MOZ_ASSERT(t != u);
+        t_[0] = t;
+        t_[1] = u;
+        n_ = 2;
+    }
+
+    Tier* begin() {
+        return t_;
+    }
+    Tier* end() {
+        return t_ + n_;
+    }
+};
 
 // The Val class represents a single WebAssembly value of a given value type,
 // mostly for the purpose of numeric literals and initializers. A Val does not
@@ -385,8 +447,8 @@ class Val
     union U {
         uint32_t i32_;
         uint64_t i64_;
-        RawF32 f32_;
-        RawF64 f64_;
+        float f32_;
+        double f64_;
         I8x16 i8x16_;
         I16x8 i16x8_;
         I32x4 i32x4_;
@@ -400,10 +462,8 @@ class Val
     explicit Val(uint32_t i32) : type_(ValType::I32) { u.i32_ = i32; }
     explicit Val(uint64_t i64) : type_(ValType::I64) { u.i64_ = i64; }
 
-    explicit Val(RawF32 f32) : type_(ValType::F32) { u.f32_ = f32; }
-    explicit Val(RawF64 f64) : type_(ValType::F64) { u.f64_ = f64; }
-    MOZ_IMPLICIT Val(float) = delete;
-    MOZ_IMPLICIT Val(double) = delete;
+    explicit Val(float f32) : type_(ValType::F32) { u.f32_ = f32; }
+    explicit Val(double f64) : type_(ValType::F64) { u.f64_ = f64; }
 
     explicit Val(const I8x16& i8x16, ValType type = ValType::I8x16) : type_(type) {
         MOZ_ASSERT(type_ == ValType::I8x16 || type_ == ValType::B8x16);
@@ -426,8 +486,8 @@ class Val
 
     uint32_t i32() const { MOZ_ASSERT(type_ == ValType::I32); return u.i32_; }
     uint64_t i64() const { MOZ_ASSERT(type_ == ValType::I64); return u.i64_; }
-    RawF32 f32() const { MOZ_ASSERT(type_ == ValType::F32); return u.f32_; }
-    RawF64 f64() const { MOZ_ASSERT(type_ == ValType::F64); return u.f64_; }
+    const float& f32() const { MOZ_ASSERT(type_ == ValType::F32); return u.f32_; }
+    const double& f64() const { MOZ_ASSERT(type_ == ValType::F64); return u.f64_; }
 
     const I8x16& i8x16() const {
         MOZ_ASSERT(type_ == ValType::I8x16 || type_ == ValType::B8x16);
@@ -585,6 +645,39 @@ struct Import
 
 typedef Vector<Import, 0, SystemAllocPolicy> ImportVector;
 
+// Export describes the export of a definition in a Module to a field in the
+// export object. For functions, Export stores an index into the
+// FuncExportVector in Metadata. For memory and table exports, there is
+// at most one (default) memory/table so no index is needed. Note: a single
+// definition can be exported by multiple Exports in the ExportVector.
+//
+// ExportVector is built incrementally by ModuleGenerator and then stored
+// immutably by Module.
+
+class Export
+{
+    CacheableChars fieldName_;
+    struct CacheablePod {
+        DefinitionKind kind_;
+        uint32_t index_;
+    } pod;
+
+  public:
+    Export() = default;
+    explicit Export(UniqueChars fieldName, uint32_t index, DefinitionKind kind);
+    explicit Export(UniqueChars fieldName, DefinitionKind kind);
+
+    const char* fieldName() const { return fieldName_.get(); }
+
+    DefinitionKind kind() const { return pod.kind_; }
+    uint32_t funcIndex() const;
+    uint32_t globalIndex() const;
+
+    WASM_DECLARE_SERIALIZABLE(Export)
+};
+
+typedef Vector<Export, 0, SystemAllocPolicy> ExportVector;
+
 // A GlobalDesc describes a single global variable. Currently, asm.js and wasm
 // exposes mutable and immutable private globals, but can't import nor export
 // mutable globals.
@@ -673,6 +766,59 @@ class GlobalDesc
 
 typedef Vector<GlobalDesc, 0, SystemAllocPolicy> GlobalDescVector;
 
+// ElemSegment represents an element segment in the module where each element
+// describes both its function index and its code range.
+//
+// The codeRangeIndices are laid out in a nondeterminstic order as a result of
+// parallel compilation.
+
+struct ElemSegment
+{
+    uint32_t tableIndex;
+    InitExpr offset;
+    Uint32Vector elemFuncIndices;
+    Uint32Vector elemCodeRangeIndices1_;
+    mutable Uint32Vector elemCodeRangeIndices2_;
+
+    ElemSegment() = default;
+    ElemSegment(uint32_t tableIndex, InitExpr offset, Uint32Vector&& elemFuncIndices)
+      : tableIndex(tableIndex), offset(offset), elemFuncIndices(Move(elemFuncIndices))
+    {}
+
+    Uint32Vector& elemCodeRangeIndices(Tier t) {
+        switch (t) {
+          case Tier::Baseline:
+            return elemCodeRangeIndices1_;
+          case Tier::Ion:
+            return elemCodeRangeIndices2_;
+          default:
+            MOZ_CRASH("No such tier");
+        }
+    }
+
+    const Uint32Vector& elemCodeRangeIndices(Tier t) const {
+        switch (t) {
+          case Tier::Baseline:
+            return elemCodeRangeIndices1_;
+          case Tier::Ion:
+            return elemCodeRangeIndices2_;
+          default:
+            MOZ_CRASH("No such tier");
+        }
+    }
+
+    void setTier2(Uint32Vector&& elemCodeRangeIndices) const {
+        MOZ_ASSERT(elemCodeRangeIndices2_.length() == 0);
+        elemCodeRangeIndices2_ = Move(elemCodeRangeIndices);
+    }
+
+    WASM_DECLARE_SERIALIZABLE(ElemSegment)
+};
+
+// The ElemSegmentVector is laid out in a deterministic order.
+
+typedef Vector<ElemSegment, 0, SystemAllocPolicy> ElemSegmentVector;
+
 // DataSegment describes the offset of a data segment in the bytecode that is
 // to be copied at a given offset into linear memory upon instantiation.
 
@@ -731,7 +877,8 @@ struct SigWithId : Sig
     SigIdDesc id;
 
     SigWithId() = default;
-    explicit SigWithId(Sig&& sig, SigIdDesc id) : Sig(Move(sig)), id(id) {}
+    explicit SigWithId(Sig&& sig) : Sig(Move(sig)), id() {}
+    SigWithId(Sig&& sig, SigIdDesc id) : Sig(Move(sig)), id(id) {}
     void operator=(Sig&& rhs) { Sig::operator=(Move(rhs)); }
 
     WASM_DECLARE_SERIALIZABLE(SigWithId)
@@ -739,85 +886,6 @@ struct SigWithId : Sig
 
 typedef Vector<SigWithId, 0, SystemAllocPolicy> SigWithIdVector;
 typedef Vector<const SigWithId*, 0, SystemAllocPolicy> SigWithIdPtrVector;
-
-// The (,Profiling,Func)Offsets classes are used to record the offsets of
-// different key points in a CodeRange during compilation.
-
-struct Offsets
-{
-    explicit Offsets(uint32_t begin = 0, uint32_t end = 0)
-      : begin(begin), end(end)
-    {}
-
-    // These define a [begin, end) contiguous range of instructions compiled
-    // into a CodeRange.
-    uint32_t begin;
-    uint32_t end;
-
-    void offsetBy(uint32_t offset) {
-        begin += offset;
-        end += offset;
-    }
-};
-
-struct ProfilingOffsets : Offsets
-{
-    MOZ_IMPLICIT ProfilingOffsets(uint32_t profilingReturn = 0)
-      : Offsets(), profilingReturn(profilingReturn)
-    {}
-
-    // For CodeRanges with ProfilingOffsets, 'begin' is the offset of the
-    // profiling entry.
-    uint32_t profilingEntry() const { return begin; }
-
-    // The profiling return is the offset of the return instruction, which
-    // precedes the 'end' by a variable number of instructions due to
-    // out-of-line codegen.
-    uint32_t profilingReturn;
-
-    void offsetBy(uint32_t offset) {
-        Offsets::offsetBy(offset);
-        profilingReturn += offset;
-    }
-};
-
-struct FuncOffsets : ProfilingOffsets
-{
-    MOZ_IMPLICIT FuncOffsets()
-      : ProfilingOffsets(),
-        tableEntry(0),
-        tableProfilingJump(0),
-        nonProfilingEntry(0),
-        profilingJump(0),
-        profilingEpilogue(0)
-    {}
-
-    // Function CodeRanges have a table entry which takes an extra signature
-    // argument which is checked against the callee's signature before falling
-    // through to the normal prologue. When profiling is enabled, a nop on the
-    // fallthrough is patched to instead jump to the profiling epilogue.
-    uint32_t tableEntry;
-    uint32_t tableProfilingJump;
-
-    // Function CodeRanges have an additional non-profiling entry that comes
-    // after the profiling entry and a non-profiling epilogue that comes before
-    // the profiling epilogue.
-    uint32_t nonProfilingEntry;
-
-    // When profiling is enabled, the 'nop' at offset 'profilingJump' is
-    // overwritten to be a jump to 'profilingEpilogue'.
-    uint32_t profilingJump;
-    uint32_t profilingEpilogue;
-
-    void offsetBy(uint32_t offset) {
-        ProfilingOffsets::offsetBy(offset);
-        tableEntry += offset;
-        tableProfilingJump += offset;
-        nonProfilingEntry += offset;
-        profilingJump += offset;
-        profilingEpilogue += offset;
-    }
-};
 
 // A wasm::Trap represents a wasm-defined trap that can occur during execution
 // which triggers a WebAssembly.RuntimeError. Generated code may jump to a Trap
@@ -853,16 +921,263 @@ enum class Trap
     Limit
 };
 
-// A wrapper around the bytecode offset of a wasm instruction within a whole
-// module. Trap offsets should refer to the first byte of the instruction that
-// triggered the trap and should ultimately derive from OpIter::trapOffset.
+// The (,Callable,Func)Offsets classes are used to record the offsets of
+// different key points in a CodeRange during compilation.
 
-struct TrapOffset
+struct Offsets
 {
+    explicit Offsets(uint32_t begin = 0, uint32_t end = 0)
+      : begin(begin), end(end)
+    {}
+
+    // These define a [begin, end) contiguous range of instructions compiled
+    // into a CodeRange.
+    uint32_t begin;
+    uint32_t end;
+};
+
+struct CallableOffsets : Offsets
+{
+    MOZ_IMPLICIT CallableOffsets(uint32_t ret = 0)
+      : Offsets(), ret(ret)
+    {}
+
+    // The offset of the return instruction precedes 'end' by a variable number
+    // of instructions due to out-of-line codegen.
+    uint32_t ret;
+};
+
+struct JitExitOffsets : CallableOffsets
+{
+    MOZ_IMPLICIT JitExitOffsets()
+      : CallableOffsets(), untrustedFPStart(0), untrustedFPEnd(0)
+    {}
+
+    // There are a few instructions in the Jit exit where FP may be trash
+    // (because it may have been clobbered by the JS Jit), known as the
+    // untrusted FP zone.
+    uint32_t untrustedFPStart;
+    uint32_t untrustedFPEnd;
+};
+
+struct FuncOffsets : CallableOffsets
+{
+    MOZ_IMPLICIT FuncOffsets()
+      : CallableOffsets(),
+        normalEntry(0),
+        tierEntry(0)
+    {}
+
+    // Function CodeRanges have a table entry which takes an extra signature
+    // argument which is checked against the callee's signature before falling
+    // through to the normal prologue. The table entry is thus at the beginning
+    // of the CodeRange and the normal entry is at some offset after the table
+    // entry.
+    uint32_t normalEntry;
+
+    // The tierEntry is the point within a function to which the patching code
+    // within a Tier-1 function jumps.  It could be the instruction following
+    // the jump in the Tier-1 function, or the point following the standard
+    // prologue within a Tier-2 function.
+    uint32_t tierEntry;
+};
+
+typedef Vector<FuncOffsets, 0, SystemAllocPolicy> FuncOffsetsVector;
+
+// A CodeRange describes a single contiguous range of code within a wasm
+// module's code segment. A CodeRange describes what the code does and, for
+// function bodies, the name and source coordinates of the function.
+
+class CodeRange
+{
+  public:
+    enum Kind {
+        Function,          // function definition
+        InterpEntry,       // calls into wasm from C++
+        ImportJitExit,     // fast-path calling from wasm into JIT code
+        ImportInterpExit,  // slow-path calling from wasm into C++ interp
+        BuiltinThunk,      // fast-path calling from wasm into a C++ native
+        TrapExit,          // calls C++ to report and jumps to throw stub
+        DebugTrap,         // calls C++ to handle debug event
+        FarJumpIsland,     // inserted to connect otherwise out-of-range insns
+        OutOfBoundsExit,   // stub jumped to by non-standard asm.js SIMD/Atomics
+        UnalignedExit,     // stub jumped to by non-standard ARM unaligned trap
+        Interrupt,         // stub executes asynchronously to interrupt wasm
+        Throw              // special stack-unwinding stub jumped to by other stubs
+    };
+
+  private:
+    // All fields are treated as cacheable POD:
+    uint32_t begin_;
+    uint32_t ret_;
+    uint32_t end_;
+    union {
+        struct {
+            uint32_t funcIndex_;
+            union {
+                struct {
+                    uint32_t lineOrBytecode_;
+                    uint8_t beginToNormalEntry_;
+                    uint8_t beginToTierEntry_;
+                } func;
+                struct {
+                    uint16_t beginToUntrustedFPStart_;
+                    uint16_t beginToUntrustedFPEnd_;
+                } jitExit;
+            };
+        };
+        Trap trap_;
+    } u;
+    Kind kind_ : 8;
+
+  public:
+    CodeRange() = default;
+    CodeRange(Kind kind, Offsets offsets);
+    CodeRange(Kind kind, uint32_t funcIndex, Offsets offsets);
+    CodeRange(Kind kind, CallableOffsets offsets);
+    CodeRange(Kind kind, uint32_t funcIndex, CallableOffsets);
+    CodeRange(uint32_t funcIndex, JitExitOffsets offsets);
+    CodeRange(Trap trap, CallableOffsets offsets);
+    CodeRange(uint32_t funcIndex, uint32_t lineOrBytecode, FuncOffsets offsets);
+
+    void offsetBy(uint32_t offset) {
+        begin_ += offset;
+        end_ += offset;
+        if (hasReturn())
+            ret_ += offset;
+    }
+
+    // All CodeRanges have a begin and end.
+
+    uint32_t begin() const {
+        return begin_;
+    }
+    uint32_t end() const {
+        return end_;
+    }
+
+    // Other fields are only available for certain CodeRange::Kinds.
+
+    Kind kind() const {
+        return kind_;
+    }
+
+    bool isFunction() const {
+        return kind() == Function;
+    }
+    bool isImportExit() const {
+        return kind() == ImportJitExit || kind() == ImportInterpExit || kind() == BuiltinThunk;
+    }
+    bool isImportJitExit() const {
+        return kind() == ImportJitExit;
+    }
+    bool isTrapExit() const {
+        return kind() == TrapExit;
+    }
+    bool isDebugTrap() const {
+        return kind() == DebugTrap;
+    }
+    bool isThunk() const {
+        return kind() == FarJumpIsland;
+    }
+
+    // Function, import exits and trap exits have standard callable prologues
+    // and epilogues. Asynchronous frame iteration needs to know the offset of
+    // the return instruction to calculate the frame pointer.
+
+    bool hasReturn() const {
+        return isFunction() || isImportExit() || isTrapExit() || isDebugTrap();
+    }
+    uint32_t ret() const {
+        MOZ_ASSERT(hasReturn());
+        return ret_;
+    }
+
+    // Functions, export stubs and import stubs all have an associated function
+    // index.
+
+    bool hasFuncIndex() const {
+        return isFunction() || isImportExit() || kind() == InterpEntry;
+    }
+    uint32_t funcIndex() const {
+        MOZ_ASSERT(hasFuncIndex());
+        return u.funcIndex_;
+    }
+
+    // TrapExit CodeRanges have a Trap field.
+
+    Trap trap() const {
+        MOZ_ASSERT(isTrapExit());
+        return u.trap_;
+    }
+
+    // Function CodeRanges have two entry points: one for normal calls (with a
+    // known signature) and one for table calls (which involves dynamic
+    // signature checking).
+
+    uint32_t funcTableEntry() const {
+        MOZ_ASSERT(isFunction());
+        return begin_;
+    }
+    uint32_t funcNormalEntry() const {
+        MOZ_ASSERT(isFunction());
+        return begin_ + u.func.beginToNormalEntry_;
+    }
+    uint32_t funcTierEntry() const {
+        MOZ_ASSERT(isFunction());
+        return begin_ + u.func.beginToTierEntry_;
+    }
+    uint32_t funcLineOrBytecode() const {
+        MOZ_ASSERT(isFunction());
+        return u.func.lineOrBytecode_;
+    }
+
+    // ImportJitExit have a particular range where the value of FP can't be
+    // trusted for profiling and thus must be ignored.
+
+    uint32_t jitExitUntrustedFPStart() const {
+        MOZ_ASSERT(isImportJitExit());
+        return begin_ + u.jitExit.beginToUntrustedFPStart_;
+    }
+    uint32_t jitExitUntrustedFPEnd() const {
+        MOZ_ASSERT(isImportJitExit());
+        return begin_ + u.jitExit.beginToUntrustedFPEnd_;
+    }
+
+    // A sorted array of CodeRanges can be looked up via BinarySearch and
+    // OffsetInCode.
+
+    struct OffsetInCode {
+        size_t offset;
+        explicit OffsetInCode(size_t offset) : offset(offset) {}
+        bool operator==(const CodeRange& rhs) const {
+            return offset >= rhs.begin() && offset < rhs.end();
+        }
+        bool operator<(const CodeRange& rhs) const {
+            return offset < rhs.begin();
+        }
+    };
+};
+
+WASM_DECLARE_POD_VECTOR(CodeRange, CodeRangeVector)
+
+extern const CodeRange*
+LookupInSorted(const CodeRangeVector& codeRanges, CodeRange::OffsetInCode target);
+
+// A wrapper around the bytecode offset of a wasm instruction within a whole
+// module, used for trap offsets or call offsets. These offsets should refer to
+// the first byte of the instruction that triggered the trap / did the call and
+// should ultimately derive from OpIter::bytecodeOffset.
+
+struct BytecodeOffset
+{
+    static const uint32_t INVALID = -1;
     uint32_t bytecodeOffset;
 
-    TrapOffset() = default;
-    explicit TrapOffset(uint32_t bytecodeOffset) : bytecodeOffset(bytecodeOffset) {}
+    BytecodeOffset() : bytecodeOffset(INVALID) {}
+    explicit BytecodeOffset(uint32_t bytecodeOffset) : bytecodeOffset(bytecodeOffset) {}
+
+    bool isValid() const { return bytecodeOffset != INVALID; }
 };
 
 // While the frame-pointer chain allows the stack to be unwound without
@@ -873,14 +1188,17 @@ struct TrapOffset
 
 class CallSiteDesc
 {
-    uint32_t lineOrBytecode_ : 30;
-    uint32_t kind_ : 2;
+    uint32_t lineOrBytecode_ : 29;
+    uint32_t kind_ : 3;
   public:
     enum Kind {
-        Func,      // pc-relative call to a specific function
-        Dynamic,   // dynamic callee called via register
-        Symbolic,  // call to a single symbolic callee
-        TrapExit   // call to a trap exit
+        Func,       // pc-relative call to a specific function
+        Dynamic,    // dynamic callee called via register
+        Symbolic,   // call to a single symbolic callee
+        TrapExit,   // call to a trap exit
+        EnterFrame, // call to a enter frame handler
+        LeaveFrame, // call to a leave frame handler
+        Breakpoint  // call to instruction breakpoint
     };
     CallSiteDesc() {}
     explicit CallSiteDesc(Kind kind)
@@ -901,64 +1219,75 @@ class CallSiteDesc
 class CallSite : public CallSiteDesc
 {
     uint32_t returnAddressOffset_;
-    uint32_t stackDepth_;
 
   public:
     CallSite() {}
 
-    CallSite(CallSiteDesc desc, uint32_t returnAddressOffset, uint32_t stackDepth)
+    CallSite(CallSiteDesc desc, uint32_t returnAddressOffset)
       : CallSiteDesc(desc),
-        returnAddressOffset_(returnAddressOffset),
-        stackDepth_(stackDepth)
+        returnAddressOffset_(returnAddressOffset)
     { }
 
-    void setReturnAddressOffset(uint32_t r) { returnAddressOffset_ = r; }
-    void offsetReturnAddressBy(int32_t o) { returnAddressOffset_ += o; }
+    void offsetBy(int32_t delta) { returnAddressOffset_ += delta; }
     uint32_t returnAddressOffset() const { return returnAddressOffset_; }
-
-    // The stackDepth measures the amount of stack space pushed since the
-    // function was called. In particular, this includes the pushed return
-    // address on all archs (whether or not the call instruction pushes the
-    // return address (x86/x64) or the prologue does (ARM/MIPS)).
-    uint32_t stackDepth() const { return stackDepth_; }
 };
 
 WASM_DECLARE_POD_VECTOR(CallSite, CallSiteVector)
 
-class CallSiteAndTarget : public CallSite
+// A CallSiteTarget describes the callee of a CallSite, either a function or a
+// trap exit. Although checked in debug builds, a CallSiteTarget doesn't
+// officially know whether it targets a function or trap, relying on the Kind of
+// the CallSite to discriminate.
+
+class CallSiteTarget
 {
-    uint32_t index_;
+    uint32_t packed_;
+#ifdef DEBUG
+    enum Kind { None, FuncIndex, TrapExit } kind_;
+#endif
 
   public:
-    explicit CallSiteAndTarget(CallSite cs)
-      : CallSite(cs)
-    {
-        MOZ_ASSERT(cs.kind() != Func);
-    }
-    CallSiteAndTarget(CallSite cs, uint32_t funcIndex)
-      : CallSite(cs), index_(funcIndex)
-    {
-        MOZ_ASSERT(cs.kind() == Func);
-    }
-    CallSiteAndTarget(CallSite cs, Trap trap)
-      : CallSite(cs),
-        index_(uint32_t(trap))
-    {
-        MOZ_ASSERT(cs.kind() == TrapExit);
+    explicit CallSiteTarget()
+      : packed_(UINT32_MAX)
+#ifdef DEBUG
+      , kind_(None)
+#endif
+    {}
+
+    explicit CallSiteTarget(uint32_t funcIndex)
+      : packed_(funcIndex)
+#ifdef DEBUG
+      , kind_(FuncIndex)
+#endif
+    {}
+
+    explicit CallSiteTarget(Trap trap)
+      : packed_(uint32_t(trap))
+#ifdef DEBUG
+      , kind_(TrapExit)
+#endif
+    {}
+
+    uint32_t funcIndex() const {
+        MOZ_ASSERT(kind_ == FuncIndex);
+        return packed_;
     }
 
-    uint32_t funcIndex() const { MOZ_ASSERT(kind() == Func); return index_; }
-    Trap trap() const { MOZ_ASSERT(kind() == TrapExit); return Trap(index_); }
+    Trap trap() const {
+        MOZ_ASSERT(kind_ == TrapExit);
+        MOZ_ASSERT(packed_ < uint32_t(Trap::Limit));
+        return Trap(packed_);
+    }
 };
 
-typedef Vector<CallSiteAndTarget, 0, SystemAllocPolicy> CallSiteAndTargetVector;
+typedef Vector<CallSiteTarget, 0, SystemAllocPolicy> CallSiteTargetVector;
 
-// A wasm::SymbolicAddress represents a pointer to a well-known function or
-// object that is embedded in wasm code. Since wasm code is serialized and
-// later deserialized into a different address space, symbolic addresses must be
-// used for *all* pointers into the address space. The MacroAssembler records a
-// list of all SymbolicAddresses and the offsets of their use in the code for
-// later patching during static linking.
+// A wasm::SymbolicAddress represents a pointer to a well-known function that is
+// embedded in wasm code. Since wasm code is serialized and later deserialized
+// into a different address space, symbolic addresses must be used for *all*
+// pointers into the address space. The MacroAssembler records a list of all
+// SymbolicAddresses and the offsets of their use in the code for later patching
+// during static linking.
 
 enum class SymbolicAddress
 {
@@ -993,10 +1322,9 @@ enum class SymbolicAddress
     LogD,
     PowD,
     ATan2D,
-    Context,
-    InterruptUint32,
-    ReportOverRecursed,
     HandleExecutionInterrupt,
+    HandleDebugTrap,
+    HandleThrow,
     ReportTrap,
     ReportOutOfBounds,
     ReportUnalignedAccess,
@@ -1012,15 +1340,17 @@ enum class SymbolicAddress
     UModI64,
     TruncateDoubleToInt64,
     TruncateDoubleToUint64,
-    Uint64ToFloatingPoint,
-    Int64ToFloatingPoint,
+    Uint64ToFloat32,
+    Uint64ToDouble,
+    Int64ToFloat32,
+    Int64ToDouble,
     GrowMemory,
     CurrentMemory,
     Limit
 };
 
-void*
-AddressOf(SymbolicAddress imm, ExclusiveContext* cx);
+bool
+IsRoundingFunction(SymbolicAddress callee, jit::RoundingMode* mode);
 
 // Assumptions captures ambient state that must be the same when compiling and
 // deserializing a module for the compiled code to be valid. If it's not, then
@@ -1036,7 +1366,7 @@ struct Assumptions
     // If Assumptions is constructed without arguments, initBuildIdFromContext()
     // must be called to complete initialization.
     Assumptions();
-    bool initBuildIdFromContext(ExclusiveContext* cx);
+    bool initBuildIdFromContext(JSContext* cx);
 
     bool clone(const Assumptions& other);
 
@@ -1045,7 +1375,7 @@ struct Assumptions
 
     size_t serializedSize() const;
     uint8_t* serialize(uint8_t* cursor) const;
-    const uint8_t* deserialize(const uint8_t* cursor, size_t limit);
+    const uint8_t* deserialize(const uint8_t* cursor, size_t remain);
     size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 };
 
@@ -1063,6 +1393,11 @@ struct Limits
 {
     uint32_t initial;
     Maybe<uint32_t> maximum;
+
+    Limits() = default;
+    explicit Limits(uint32_t initial, const Maybe<uint32_t>& maximum = Nothing())
+      : initial(initial), maximum(maximum)
+    {}
 };
 
 // TableDesc describes a table as well as the offset of the table's base pointer
@@ -1083,7 +1418,7 @@ struct TableDesc
     Limits limits;
 
     TableDesc() = default;
-    TableDesc(TableKind kind, Limits limits)
+    TableDesc(TableKind kind, const Limits& limits)
      : kind(kind),
        external(false),
        globalDataOffset(UINT32_MAX),
@@ -1116,23 +1451,34 @@ struct ExportArg
 
 struct TlsData
 {
-    // Pointer to the JSContext that contains this TLS data.
-    JSContext* cx;
+    // Pointer to the base of the default memory (or null if there is none).
+    uint8_t* memoryBase;
+
+#ifndef WASM_HUGE_MEMORY
+    // Bounds check limit of memory, in bytes (or zero if there is no memory).
+    uint32_t boundsCheckLimit;
+#endif
 
     // Pointer to the Instance that contains this TLS data.
     Instance* instance;
 
-    // Pointer to the global data for this Instance.
-    uint8_t* globalData;
+    // Shortcut to instance->zone->group->addressOfOwnerContext
+    JSContext** addressOfContext;
 
-    // Pointer to the base of the default memory (or null if there is none).
-    uint8_t* memoryBase;
+    // Pointer that should be freed (due to padding before the TlsData).
+    void* allocatedBase;
 
-    // Stack limit for the current thread. This limit is checked against the
-    // stack pointer in the prologue of functions that allocate stack space. See
-    // `CodeGenerator::generateWasm`.
-    void* stackLimit;
+    // When compiling with tiering, the jumpTable has one entry for each
+    // baseline-compiled function.
+    void** jumpTable;
+
+    // The globalArea must be the last field.  Globals for the module start here
+    // and are inline in this structure.  16-byte alignment is required for SIMD
+    // data.
+    MOZ_ALIGNED_DECL(char globalArea, 16);
 };
+
+static_assert(offsetof(TlsData, globalArea) % 16 == 0, "aligned");
 
 typedef int32_t (*ExportFuncPtr)(ExportArg* args, TlsData* tls);
 
@@ -1223,7 +1569,8 @@ class CalleeDesc
     };
 
   private:
-    Which which_;
+    // which_ shall be initialized in the static constructors
+    MOZ_INIT_OUTSIDE_CTOR Which which_;
     union U {
         U() {}
         uint32_t funcIndex_;
@@ -1232,6 +1579,7 @@ class CalleeDesc
         } import;
         struct {
             uint32_t globalDataOffset_;
+            uint32_t minLength_;
             bool external_;
             SigIdDesc sigId_;
         } table;
@@ -1256,6 +1604,7 @@ class CalleeDesc
         CalleeDesc c;
         c.which_ = WasmTable;
         c.u.table.globalDataOffset_ = desc.globalDataOffset;
+        c.u.table.minLength_ = desc.limits.initial;
         c.u.table.external_ = desc.external;
         c.u.table.sigId_ = sigId;
         return c;
@@ -1308,6 +1657,10 @@ class CalleeDesc
         MOZ_ASSERT(which_ == WasmTable);
         return u.table.sigId_;
     }
+    uint32_t wasmTableMinLength() const {
+        MOZ_ASSERT(which_ == WasmTable);
+        return u.table.minLength_;
+    }
     SymbolicAddress builtin() const {
         MOZ_ASSERT(which_ == Builtin || which_ == BuiltinInstanceMethod);
         return u.builtin_;
@@ -1337,12 +1690,7 @@ static const unsigned PageSize = 64 * 1024;
 
 static const unsigned MaxMemoryAccessSize = sizeof(Val);
 
-#ifdef JS_CODEGEN_X64
-
-// All other code should use WASM_HUGE_MEMORY instead of JS_CODEGEN_X64 so that
-// it is easy to use the huge-mapping optimization for other 64-bit platforms in
-// the future.
-# define WASM_HUGE_MEMORY
+#ifdef WASM_HUGE_MEMORY
 
 // On WASM_HUGE_MEMORY platforms, every asm.js or WebAssembly memory
 // unconditionally allocates a huge region of virtual memory of size
@@ -1387,32 +1735,6 @@ ComputeMappedSize(uint32_t maxSize);
 
 #endif // WASM_HUGE_MEMORY
 
-// Metadata for bounds check instructions that are patched at runtime with the
-// appropriate bounds check limit. On WASM_HUGE_MEMORY platforms for wasm (and
-// SIMD/Atomic) bounds checks, no BoundsCheck is created: the signal handler
-// catches everything. On !WASM_HUGE_MEMORY, a BoundsCheck is created for each
-// memory access (except when statically eliminated by optimizations) so that
-// the length can be patched in as an immediate. This requires that the bounds
-// check limit IsValidBoundsCheckImmediate.
-
-class BoundsCheck
-{
-  public:
-    BoundsCheck() = default;
-
-    explicit BoundsCheck(uint32_t cmpOffset)
-      : cmpOffset_(cmpOffset)
-    { }
-
-    uint8_t* patchAt(uint8_t* code) const { return code + cmpOffset_; }
-    void offsetBy(uint32_t offset) { cmpOffset_ += offset; }
-
-  private:
-    uint32_t cmpOffset_;
-};
-
-WASM_DECLARE_POD_VECTOR(BoundsCheck, BoundsCheckVector)
-
 // Metadata for memory accesses. On WASM_HUGE_MEMORY platforms, only
 // (non-SIMD/Atomic) asm.js loads and stores create a MemoryAccess so that the
 // signal handler can implement the semantically-correct wraparound logic; the
@@ -1453,56 +1775,144 @@ class MemoryAccess
 
 WASM_DECLARE_POD_VECTOR(MemoryAccess, MemoryAccessVector)
 
-// Metadata for the offset of an instruction to patch with the base address of
-// memory. In practice, this is only used for x86 where the offset points to the
-// *end* of the instruction (which is a non-fixed offset from the beginning of
-// the instruction). As part of the move away from code patching, this should be
-// removed.
+// wasm::Frame represents the bytes pushed by the call instruction and the fixed
+// prologue generated by wasm::GenerateCallablePrologue.
+//
+// Across all architectures it is assumed that, before the call instruction, the
+// stack pointer is WasmStackAlignment-aligned. Thus after the prologue, and
+// before the function has made its stack reservation, the stack alignment is
+// sizeof(Frame) % WasmStackAlignment.
+//
+// During MacroAssembler code generation, the bytes pushed after the wasm::Frame
+// are counted by masm.framePushed. Thus, the stack alignment at any point in
+// time is (sizeof(wasm::Frame) + masm.framePushed) % WasmStackAlignment.
 
-struct MemoryPatch
+struct Frame
 {
-    uint32_t offset;
+    // The caller's Frame*. See GenerateCallableEpilogue for why this must be
+    // the first field of wasm::Frame (in a downward-growing stack).
+    Frame* callerFP;
 
-    MemoryPatch() = default;
-    explicit MemoryPatch(uint32_t offset) : offset(offset) {}
+    // The saved value of WasmTlsReg on entry to the function. This is
+    // effectively the callee's instance.
+    TlsData* tls;
 
-    void offsetBy(uint32_t delta) {
-        offset += delta;
-    }
+    // The return address pushed by the call (in the case of ARM/MIPS the return
+    // address is pushed by the first instruction of the prologue).
+    void* returnAddress;
+
+    // Helper functions:
+
+    Instance* instance() const { return tls->instance; }
 };
 
-WASM_DECLARE_POD_VECTOR(MemoryPatch, MemoryPatchVector)
+// A DebugFrame is a Frame with additional fields that are added after the
+// normal function prologue by the baseline compiler. If a Module is compiled
+// with debugging enabled, then all its code creates DebugFrames on the stack
+// instead of just Frames. These extra fields are used by the Debugger API.
 
-// Constants:
+class DebugFrame
+{
+    // The results field left uninitialized and only used during the baseline
+    // compiler's return sequence to allow the debugger to inspect and modify
+    // the return value of a frame being debugged.
+    union
+    {
+        int32_t resultI32_;
+        int64_t resultI64_;
+        float resultF32_;
+        double resultF64_;
+    };
 
-static const unsigned NaN64GlobalDataOffset       = 0;
-static const unsigned NaN32GlobalDataOffset       = NaN64GlobalDataOffset + sizeof(double);
-static const unsigned InitialGlobalDataBytes      = NaN32GlobalDataOffset + sizeof(float);
+    // The returnValue() method returns a HandleValue pointing to this field.
+    js::Value cachedReturnJSValue_;
 
-static const unsigned MaxSigs                     =        4 * 1024;
-static const unsigned MaxFuncs                    =      512 * 1024;
-static const unsigned MaxGlobals                  =        4 * 1024;
-static const unsigned MaxLocals                   =       64 * 1024;
-static const unsigned MaxImports                  =       64 * 1024;
-static const unsigned MaxExports                  =       64 * 1024;
-static const unsigned MaxTables                   =        4 * 1024;
-static const unsigned MaxTableElems               =     1024 * 1024;
-static const unsigned MaxDataSegments             =       64 * 1024;
-static const unsigned MaxElemSegments             =       64 * 1024;
-static const unsigned MaxArgsPerFunc              =        4 * 1024;
-static const unsigned MaxBrTableElems             = 4 * 1024 * 1024;
+    // The function index of this frame. Technically, this could be derived
+    // given a PC into this frame (which could lookup the CodeRange which has
+    // the function index), but this isn't always readily available.
+    uint32_t funcIndex_;
 
-// To be able to assign function indices during compilation while the number of
-// imports is still unknown, asm.js sets a maximum number of imports so it can
-// immediately start handing out function indices starting at the maximum + 1.
-// this means that there is a "hole" between the last import and the first
-// definition, but that's fine.
+    // Flags whose meaning are described below.
+    union
+    {
+        struct
+        {
+            bool observing_ : 1;
+            bool isDebuggee_ : 1;
+            bool prevUpToDate_ : 1;
+            bool hasCachedSavedFrame_ : 1;
+            bool hasCachedReturnJSValue_ : 1;
+        };
+        void* flagsWord_;
+    };
 
-static const unsigned AsmJSMaxImports             = 4 * 1024;
-static const unsigned AsmJSFirstDefFuncIndex      = AsmJSMaxImports + 1;
+    // Avoid -Wunused-private-field warnings.
+  protected:
+#if JS_BITS_PER_WORD == 32
+    uint32_t padding_;  // See alignmentStaticAsserts().
+#endif
 
-static_assert(AsmJSMaxImports <= MaxImports, "conservative");
-static_assert(AsmJSFirstDefFuncIndex < MaxFuncs, "conservative");
+  private:
+    // The Frame goes at the end since the stack grows down.
+    Frame frame_;
+
+  public:
+    Frame& frame() { return frame_; }
+    uint32_t funcIndex() const { return funcIndex_; }
+    Instance* instance() const { return frame_.instance(); }
+    GlobalObject* global() const;
+    JSObject* environmentChain() const;
+    bool getLocal(uint32_t localIndex, MutableHandleValue vp);
+
+    // The return value must be written from the unboxed representation in the
+    // results union into cachedReturnJSValue_ by updateReturnJSValue() before
+    // returnValue() can return a Handle to it.
+
+    void updateReturnJSValue();
+    HandleValue returnValue() const;
+    void clearReturnJSValue();
+
+    // Once the debugger observes a frame, it must be notified via
+    // onLeaveFrame() before the frame is popped. Calling observe() ensures the
+    // leave frame traps are enabled. Both methods are idempotent so the caller
+    // doesn't have to worry about calling them more than once.
+
+    void observe(JSContext* cx);
+    void leave(JSContext* cx);
+
+    // The 'isDebugge' bit is initialized to false and set by the WebAssembly
+    // runtime right before a frame is exposed to the debugger, as required by
+    // the Debugger API. The bit is then used for Debugger-internal purposes
+    // afterwards.
+
+    bool isDebuggee() const { return isDebuggee_; }
+    void setIsDebuggee() { isDebuggee_ = true; }
+    void unsetIsDebuggee() { isDebuggee_ = false; }
+
+    // These are opaque boolean flags used by the debugger to implement
+    // AbstractFramePtr. They are initialized to false and not otherwise read or
+    // written by wasm code or runtime.
+
+    bool prevUpToDate() const { return prevUpToDate_; }
+    void setPrevUpToDate() { prevUpToDate_ = true; }
+    void unsetPrevUpToDate() { prevUpToDate_ = false; }
+
+    bool hasCachedSavedFrame() const { return hasCachedSavedFrame_; }
+    void setHasCachedSavedFrame() { hasCachedSavedFrame_ = true; }
+
+    // DebugFrame is accessed directly by JIT code.
+
+    static constexpr size_t offsetOfResults() { return offsetof(DebugFrame, resultI32_); }
+    static constexpr size_t offsetOfFlagsWord() { return offsetof(DebugFrame, flagsWord_); }
+    static constexpr size_t offsetOfFuncIndex() { return offsetof(DebugFrame, funcIndex_); }
+    static constexpr size_t offsetOfFrame() { return offsetof(DebugFrame, frame_); }
+
+    // DebugFrames are aligned to 8-byte aligned, allowing them to be placed in
+    // an AbstractFramePtr.
+
+    static const unsigned Alignment = 8;
+    static void alignmentStaticAsserts();
+};
 
 } // namespace wasm
 } // namespace js

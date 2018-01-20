@@ -24,6 +24,7 @@ namespace dom {
 class PerformanceEntry;
 class PerformanceNavigation;
 class PerformanceObserver;
+class PerformanceService;
 class PerformanceTiming;
 
 namespace workers {
@@ -38,15 +39,12 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(Performance,
                                            DOMEventTargetHelper)
 
-  static bool IsEnabled(JSContext* aCx, JSObject* aGlobal);
-
   static bool IsObserverEnabled(JSContext* aCx, JSObject* aGlobal);
 
   static already_AddRefed<Performance>
   CreateForMainThread(nsPIDOMWindowInner* aWindow,
                       nsDOMNavigationTiming* aDOMTiming,
-                      nsITimedChannel* aChannel,
-                      Performance* aParentPerformance);
+                      nsITimedChannel* aChannel);
 
   static already_AddRefed<Performance>
   CreateForWorker(workers::WorkerPrivate* aWorkerPrivate);
@@ -54,21 +52,23 @@ public:
   JSObject* WrapObject(JSContext *cx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
-  void GetEntries(nsTArray<RefPtr<PerformanceEntry>>& aRetval);
+  virtual void GetEntries(nsTArray<RefPtr<PerformanceEntry>>& aRetval);
 
-  void GetEntriesByType(const nsAString& aEntryType,
-                        nsTArray<RefPtr<PerformanceEntry>>& aRetval);
+  virtual void GetEntriesByType(const nsAString& aEntryType,
+                                nsTArray<RefPtr<PerformanceEntry>>& aRetval);
 
-  void GetEntriesByName(const nsAString& aName,
-                        const Optional<nsAString>& aEntryType,
-                        nsTArray<RefPtr<PerformanceEntry>>& aRetval);
+  virtual void GetEntriesByName(const nsAString& aName,
+                                const Optional<nsAString>& aEntryType,
+                                nsTArray<RefPtr<PerformanceEntry>>& aRetval);
 
   virtual void AddEntry(nsIHttpChannel* channel,
                         nsITimedChannel* timedChannel) = 0;
 
   void ClearResourceTimings();
 
-  virtual DOMHighResTimeStamp Now() const = 0;
+  DOMHighResTimeStamp Now() const;
+
+  DOMHighResTimeStamp TimeOrigin();
 
   void Mark(const nsAString& aName, ErrorResult& aRv);
 
@@ -101,7 +101,10 @@ public:
 
   virtual nsITimedChannel* GetChannel() const = 0;
 
-  virtual Performance* GetParentPerformance() const = 0;
+  void MemoryPressure();
+
+  size_t SizeOfUserEntries(mozilla::MallocSizeOf aMallocSizeOf) const;
+  size_t SizeOfResourceEntries(mozilla::MallocSizeOf aMallocSizeOf) const;
 
 protected:
   Performance();
@@ -118,18 +121,22 @@ protected:
   DOMHighResTimeStamp ResolveTimestampFromName(const nsAString& aName,
                                                ErrorResult& aRv);
 
-  virtual nsISupports* GetAsISupports() = 0;
-
   virtual void DispatchBufferFullEvent() = 0;
 
   virtual TimeStamp CreationTimeStamp() const = 0;
 
   virtual DOMHighResTimeStamp CreationTime() const = 0;
 
-  virtual bool IsPerformanceTimingAttribute(const nsAString& aName) = 0;
+  virtual bool IsPerformanceTimingAttribute(const nsAString& aName)
+  {
+    return false;
+  }
 
   virtual DOMHighResTimeStamp
-  GetPerformanceTimingFromString(const nsAString& aTimingName) = 0;
+  GetPerformanceTimingFromString(const nsAString& aTimingName)
+  {
+    return 0;
+  }
 
   bool IsResourceEntryLimitReached() const
   {
@@ -147,13 +154,18 @@ protected:
 
   nsTObserverArray<PerformanceObserver*> mObservers;
 
-private:
-  nsTArray<RefPtr<PerformanceEntry>> mUserEntries;
-  nsTArray<RefPtr<PerformanceEntry>> mResourceEntries;
+protected:
+  static const uint64_t kDefaultResourceTimingBufferSize = 150;
+
+  // When kDefaultResourceTimingBufferSize is increased or removed, these should
+  // be changed to use SegmentedVector
+  AutoTArray<RefPtr<PerformanceEntry>, kDefaultResourceTimingBufferSize> mUserEntries;
+  AutoTArray<RefPtr<PerformanceEntry>, kDefaultResourceTimingBufferSize> mResourceEntries;
 
   uint64_t mResourceTimingBufferSize;
-  static const uint64_t kDefaultResourceTimingBufferSize = 150;
   bool mPendingNotificationObserversTask;
+
+  RefPtr<PerformanceService> mPerformanceService;
 };
 
 } // namespace dom

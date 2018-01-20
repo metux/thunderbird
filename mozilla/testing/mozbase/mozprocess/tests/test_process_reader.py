@@ -1,6 +1,11 @@
+from __future__ import absolute_import
+
 import unittest
 import subprocess
 import sys
+
+import mozunit
+
 from mozprocess.processhandler import ProcessReader, StoreOutput
 
 
@@ -97,5 +102,6 @@ class TestProcessReader(unittest.TestCase):
         self.assertEqual(sorted(self.out.output), sorted(['1', '2', 'hello world']))
         self.assertEqual(self.err.output, [])
 
+
 if __name__ == '__main__':
-    unittest.main()
+    mozunit.main()

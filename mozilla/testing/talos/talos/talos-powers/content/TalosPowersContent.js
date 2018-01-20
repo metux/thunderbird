@@ -30,7 +30,7 @@ var TalosPowersParent;
           removeEventListener("TalosPowersContentFocused", focused);
           callback();
         });
-      };
+      }
       document.dispatchEvent(new CustomEvent("TalosPowersContentFocus", {
         bubbles: true,
       }));
@@ -62,14 +62,13 @@ var TalosPowersParent;
     replyId: 1,
 
     // dispatch an event to the framescript and register the result/callback event
-    exec: function(commandName, arg, callback, opt_custom_window) {
+    exec(commandName, arg, callback, opt_custom_window) {
       let win = opt_custom_window || window;
       let replyEvent = "TalosPowers:ParentExec:ReplyEvent:" + this.replyId++;
       if (callback) {
-        win.addEventListener(replyEvent, function rvhandler(e) {
-          win.removeEventListener(replyEvent, rvhandler);
+        win.addEventListener(replyEvent, function(e) {
           callback(e.detail);
-        });
+        }, {once: true});
       }
       win.dispatchEvent(
         new win.CustomEvent("TalosPowers:ParentExec:QueryEvent", {

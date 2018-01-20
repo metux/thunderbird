@@ -1,11 +1,12 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+"use strict";
+
 // Test that changing the currently selected snapshot to a snapshot that does
 // not have a dominator tree will automatically compute and fetch one for it.
 
 let {
-  snapshotState: states,
   dominatorTreeState,
   viewState,
   treeMapState,
@@ -17,10 +18,6 @@ let {
 
 let { changeView } = require("devtools/client/memory/actions/view");
 
-function run_test() {
-  run_next_test();
-}
-
 add_task(function* () {
   let front = new StubbedMemoryFront();
   let heapWorker = new HeapAnalysesClient();
@@ -30,8 +27,8 @@ add_task(function* () {
 
   dispatch(takeSnapshotAndCensus(front, heapWorker));
   dispatch(takeSnapshotAndCensus(front, heapWorker));
-  yield waitUntilCensusState(store, s => s.treeMap, [treeMapState.SAVED,
-                                                    treeMapState.SAVED]);
+  yield waitUntilCensusState(store, s => s.treeMap,
+                             [treeMapState.SAVED, treeMapState.SAVED]);
 
   ok(getState().snapshots[1].selected, "The second snapshot is selected");
 

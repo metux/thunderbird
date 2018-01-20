@@ -10,8 +10,7 @@
 #define OK 0
 
 // Error codes that are no longer used should not be used again unless they
-// aren't used in client code (e.g. nsUpdateService.js, updates.js,
-// UpdatePrompt.js, etc.).
+// aren't used in client code (e.g. nsUpdateService.js, updates.js, etc.).
 
 #define MAR_ERROR_EMPTY_ACTION_LIST 1
 #define LOADSOURCE_ERROR_WRONG_SIZE 2
@@ -58,11 +57,11 @@
 #define WRITE_ERROR_ACCESS_DENIED 35
 // #define WRITE_ERROR_SHARING_VIOLATION 36 // Replaced with errors 46-48
 #define WRITE_ERROR_CALLBACK_APP 37
-#define UNEXPECTED_BZIP_ERROR 39
+#define UNEXPECTED_XZ_ERROR 39
 #define UNEXPECTED_MAR_ERROR 40
 #define UNEXPECTED_BSPATCH_ERROR 41
 #define UNEXPECTED_FILE_OPERATION_ERROR 42
-#define FILESYSTEM_MOUNT_READWRITE_ERROR 43
+// #define FILESYSTEM_MOUNT_READWRITE_ERROR 43 // Removed support for gonk
 #define DELETE_ERROR_EXPECTED_DIR 46
 #define DELETE_ERROR_EXPECTED_FILE 47
 #define RENAME_ERROR_EXPECTED_FILE 48

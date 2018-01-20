@@ -19,7 +19,8 @@
 <!ENTITY feedsSectionHdr.label        "Feed">
 <!ENTITY subscribeFeeds.label         "Quản lí phần đăng kí">
 
-
 <!ENTITY chat.label                   "Chat">
 <!ENTITY movemail.label               "Movemail">
-<!ENTITY newAcct.label                "Create a new account:">
+
+<!ENTITY setupNewAcct.label           "Set up an account:">
+

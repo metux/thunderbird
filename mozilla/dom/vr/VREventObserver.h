@@ -7,7 +7,10 @@
 #ifndef mozilla_dom_VREventObserver_h
 #define mozilla_dom_VREventObserver_h
 
-class nsGlobalWindow;
+#include "mozilla/dom/VRDisplayEventBinding.h"
+#include "nsISupportsImpl.h" // for NS_INLINE_DECL_REFCOUNTING
+
+class nsGlobalWindowInner;
 
 namespace mozilla {
 namespace dom {
@@ -15,16 +18,29 @@ namespace dom {
 class VREventObserver final
 {
 public:
-  ~VREventObserver();
-  explicit VREventObserver(nsGlobalWindow* aGlobalWindow);
+  NS_INLINE_DECL_REFCOUNTING(VREventObserver)
+  explicit VREventObserver(nsGlobalWindowInner* aGlobalWindow);
 
-  void NotifyVRDisplayConnect();
-  void NotifyVRDisplayDisconnect();
-  void NotifyVRDisplayPresentChange();
+  void NotifyVRDisplayMounted(uint32_t aDisplayID);
+  void NotifyVRDisplayUnmounted(uint32_t aDisplayID);
+  void NotifyVRDisplayNavigation(uint32_t aDisplayID);
+  void NotifyVRDisplayRequested(uint32_t aDisplayID);
+  void NotifyVRDisplayConnect(uint32_t aDisplayID);
+  void NotifyVRDisplayDisconnect(uint32_t aDisplayID);
+  void NotifyVRDisplayPresentChange(uint32_t aDisplayID);
+
+  void DisconnectFromOwner();
+  void UpdateSpentTimeIn2DTelemetry(bool aUpdate);
 
 private:
-  // Weak pointer, instance is owned by mWindow.
-  nsGlobalWindow* MOZ_NON_OWNING_REF mWindow;
+  ~VREventObserver();
+
+  RefPtr<nsGlobalWindowInner> mWindow;
+  // For WebVR telemetry for tracking users who view content
+  // in the 2D view.
+  TimeStamp mSpendTimeIn2DView;
+  bool mIs2DView;
+  bool mHasReset;
 };
 
 } // namespace dom

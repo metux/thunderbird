@@ -34,7 +34,7 @@
 <!ENTITY configEditDesc.label          "Configuraziun avanzada">
 <!ENTITY configEdit.label              "Editur da configuraziuns…">
 <!ENTITY configEdit.accesskey          "C">
-<!ENTITY returnReceiptsInfo.label      "Reglar co tractar confermas da retschavida (MDN)">
+<!ENTITY returnReceiptsInfo.label      "Reglar co &brandShortName; duai tractar confermas da retschavida">
 <!ENTITY showReturnReceipts.label      "Confermas da retschavida…">
 <!ENTITY showReturnReceipts.accesskey  "R">
 
@@ -52,7 +52,16 @@
 <!ENTITY crashReporterLearnMore.label    "Ulteriuras infurmaziuns">
 
 <!-- Update -->
-<!ENTITY updateApp.label                 "Actualisaziuns da &brandShortName;:">
+<!-- LOCALIZATION NOTE (updateApp.label):
+  Strings from aboutDialog.dtd are displayed in this section of the preferences.
+  Please check for possible accesskey conflicts.
+-->
+<!-- LOCALIZATION NOTE (updateApp.version.*): updateApp.version.pre is
+  followed by a version number, keep the trailing space or replace it with
+  a different character as needed. updateApp.version.post is displayed after
+  the version number, and is empty on purpose for English. You can use it
+  if required by your language.
+ -->
 <!ENTITY updateAuto.label                "Installar automaticamain actualisaziuns (recumandà, pli segir)">
 <!ENTITY updateAuto.accesskey            "I">
 <!ENTITY updateCheck.label               "Tschertgar actualisaziuns, dentant dumandar sch'ellas duain vegnir installadas">
@@ -105,3 +114,10 @@
 <!ENTITY manageCertificates.accesskey "m">
 <!ENTITY viewSecurityDevices.label "Moduls da criptadi">
 <!ENTITY viewSecurityDevices.accesskey "c">
+
+<!ENTITY dateTimeFormatting.label      "Date and Time Formatting">
+<!ENTITY updateApp2.label                "&brandShortName; Updates">
+<!ENTITY updateApp.version.pre           "Version ">
+<!ENTITY updateApp.version.post          "">
+<!ENTITY overrideSmartCacheSize.label    "Override automatic cache management">
+<!ENTITY overrideSmartCacheSize.accesskey "v">

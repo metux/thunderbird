@@ -34,3 +34,6 @@
 <!ENTITY smtpName.label "Выходны паслугач (SMTP):">
 <!ENTITY smtpName.accesskey "В">
 <!ENTITY smtpDefaultServer.label "Ужываць змоўчны паслугач">
+
+<!ENTITY smtpServerEdit.label "Edit SMTP server…">
+<!ENTITY smtpServerEdit.accesskey "P">

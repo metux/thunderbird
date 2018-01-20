@@ -51,8 +51,6 @@
 <!ENTITY getAllNewMsgCmdPopupMenu.accesskey "T">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.label "Conto actual">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.accesskey "C">
-<!ENTITY getNextNMsgCmd.label "Retschaiver ils proxims 500 messadis da novitads">
-<!ENTITY getNextNMsgCmd.accesskey "t">
 <!ENTITY sendUnsentCmd.label "Trametter ils messadis betg tramess">
 <!ENTITY sendUnsentCmd.accesskey "d">
 <!ENTITY subscribeCmd.label "Abunar…">
@@ -291,7 +289,7 @@
 <!ENTITY nextMenu.accesskey "x">
 <!ENTITY nextMsgCmd.label "Messadi">
 <!ENTITY nextMsgCmd.accesskey "M">
-<!ENTITY nextMsgCmd.key "s">
+<!ENTITY nextMsgCmd.key "f">
 <!ENTITY nextUnreadMsgCmd.label "Messadi nunlegì">
 <!ENTITY nextUnreadMsgCmd.accesskey "U">
 <!ENTITY nextUnreadMsgCmd.key "n">
@@ -362,9 +360,10 @@
 <!ENTITY forwardAsAttachmentCmd.accesskey "A">
 <!ENTITY editAsNewMsgCmd.label "Modifitgar sco nov messadi">
 <!ENTITY editAsNewMsgCmd.accesskey "E">
-<!ENTITY editAsNewMsgCmd.key "r">
+<!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Modifitgar il sboz dal messadi">
 <!ENTITY editDraftMsgCmd.accesskey "s">
+<!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Crear in filter or dal messadi…">
 <!ENTITY createFilter.accesskey "a">
 <!ENTITY moveMsgToMenu.label "Spustar a">
@@ -417,7 +416,7 @@
 <!ENTITY markAllReadCmd.key "c">
 <!ENTITY markStarredCmd.label "staila">
 <!ENTITY markStarredCmd.accesskey "t">
-<!ENTITY markStarredCmd.key "K">
+<!ENTITY markStarredCmd.key "S">
 <!ENTITY markAsJunkCmd.label "Sco nungiavischà">
 <!ENTITY markAsJunkCmd.accesskey "n">
 <!ENTITY markAsJunkCmd.key "j">
@@ -453,7 +452,7 @@
 <!ENTITY messengerCmd.accesskey "g">
 <!ENTITY addressBookCmd.label "Cudeschet d'adressas">
 <!ENTITY addressBookCmd.accesskey "C">
-<!ENTITY addressBookCmd.key "L">
+<!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "Supplements">
 <!ENTITY addons.accesskey "S">
 <!ENTITY activitymanager.label "Activitads">
@@ -494,16 +493,29 @@
 <!ENTITY accountManagerCmdUnix2.accesskey "c">
 
 <!-- Developer Tools Submenu -->
+<!ENTITY devtoolsMenu.label "Utensils per sviluppaders">
+<!ENTITY devtoolsMenu.accesskey "p">
+<!ENTITY devToolboxCmd.label "Chascha d'utensils per sviluppaders">
+<!ENTITY devToolboxCmd.accesskey "t">
+<!ENTITY devToolboxCmd.commandkey "i">
+<!ENTITY addonDebugCmd.label "Debugader per supplements">
+<!ENTITY addonDebugCmd.accesskey "m">
+<!ENTITY tabsDebugCmd.label "Debugader per il rom da cuntegn">
+<!ENTITY tabsDebugCmd.accesskey "c">
 <!ENTITY errorConsoleCmd.label "Consola d'errurs">
 <!ENTITY errorConsoleCmd.accesskey "E">
 <!ENTITY errorConsoleCmd.commandkey "j">
+<!ENTITY scratchpadCmd.label "Bloc da notizias">
+<!ENTITY scratchpadCmd.accesskey "B">
 
 <!--LOCALIZATION NOTE (scratchpadCmd.keycode):
     This should be a key code constant as per
     https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode#Constants_for_keyCode_value
     (but without the DOM_ prefix) -->
+<!ENTITY scratchpadCmd.keycode "VK_F4">
 <!--LOCALIZATION NOTE (scratchpadCmd.keytext):
     This should be the text printed on the key defined in the previous string. -->
+<!ENTITY scratchpadCmd.keytext "F4">
 
 <!-- Mail Toolbar -->
 <!ENTITY getMsgButton1.label "Retschaiver messadis">
@@ -719,10 +731,10 @@
 <!-- Thread Pane Context Menu -->
 <!ENTITY contextOpenNewWindow.label "Avrir il messadi en ina nova fanestra">
 <!ENTITY contextOpenNewWindow.accesskey "f">
-<!-- The key potentially conflicts with cutCmd.accessKey which is defined in
-     textcontext.dtd from toolkit. Right now, both menu items can't be visible
-     at the same time, but should someone enable copy/paste of message, this key
-     would probably need to be changed. -->
+<!-- The contextOpenNewTab.accesskey ("T") potentially conflicts with
+     cutCmd.accessKey which is defined in textcontext.dtd from toolkit. Right
+     now, both menu items can't be visible at the same time, but should someone
+     enable copy/paste of message, this key would probably need to be changed. -->
 <!ENTITY contextOpenNewTab.label "Avrir il messadi en in nov tab">
 <!ENTITY contextOpenNewTab.accesskey "t">
 <!ENTITY contextOpenConversation.label "Avrir il messadi sco conversaziun">
@@ -936,26 +948,15 @@
 <!-- Mac OS X Dock Icon pop-up menu -->
 <!ENTITY dockOptions.label              "Opziuns da l'icona da l'applicaziun…">
 
-<!ENTITY addonDebugCmd.accesskey "A">
-<!ENTITY addonDebugCmd.label "Add-on Debugger">
-<!ENTITY devToolboxCmd.accesskey "T">
-<!ENTITY devToolboxCmd.commandkey "i">
-<!ENTITY devToolboxCmd.label "Developer Toolbox">
-<!ENTITY devtoolsMenu.accesskey "e">
-
-<!-- Developer Tools Submenu -->
-<!ENTITY devtoolsMenu.label "Developer Tools">
+<!ENTITY getNextNMsgCmd2.label "Get Next News Messages">
+<!ENTITY getNextNMsgCmd2.accesskey "t">
 <!ENTITY folderPaneBar.accesskey "F">
-<!ENTITY scratchpadCmd.accesskey "S">
-
-<!--LOCALIZATION NOTE (scratchpadCmd.keycode):
-    This should be a key code constant as per
-    https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode#Constants_for_keyCode_value
-    (but without the DOM_ prefix) -->
-<!ENTITY scratchpadCmd.keycode "VK_F4">
-<!--LOCALIZATION NOTE (scratchpadCmd.keytext):
-    This should be the text printed on the key defined in the previous string. -->
-<!ENTITY scratchpadCmd.keytext "F4">
-<!ENTITY scratchpadCmd.label "Scratchpad">
-<!ENTITY tabsDebugCmd.accesskey "C">
-<!ENTITY tabsDebugCmd.label "Content Frame Debugger">
+<!ENTITY goChatCmd2.key "H">
+<!ENTITY newMsgFromTemplateCmd.label "New Message from Template">
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN">
+<!ENTITY folderContextPauseAllUpdates.label "Pause All Updates">
+<!ENTITY folderContextPauseUpdates.label "Pause Updates">
+<!ENTITY folderContextPauseUpdates.accesskey "U">
+<!ENTITY contextNewMsgFromTemplate.label "New Message from Template">
+<!ENTITY writeNewMessageDock.label      "Write New Message">
+<!ENTITY openAddressBookDock.label      "Open Address Book">

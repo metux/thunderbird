@@ -101,6 +101,11 @@ XPathExpression::EvaluateWithContext(nsINode& aContextNode,
         return nullptr;
     }
 
+    if (aType > XPathResultBinding::FIRST_ORDERED_NODE_TYPE) {
+        aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+        return nullptr;
+    }
+
     if (!nsContentUtils::LegacyIsCallerNativeCode() &&
         !nsContentUtils::CanCallerAccess(&aContextNode))
     {
@@ -199,17 +204,19 @@ XPathExpression::EvaluateWithContext(nsINode& aContextNode,
 
 nsresult
 EvalContextImpl::getVariable(int32_t aNamespace,
-                             nsIAtom* aLName,
+                             nsAtom* aLName,
                              txAExprResult*& aResult)
 {
     aResult = 0;
     return NS_ERROR_INVALID_ARG;
 }
 
-bool
-EvalContextImpl::isStripSpaceAllowed(const txXPathNode& aNode)
+nsresult
+EvalContextImpl::isStripSpaceAllowed(const txXPathNode& aNode, bool& aAllowed)
 {
-    return false;
+    aAllowed = false;
+
+    return NS_OK;
 }
 
 void*

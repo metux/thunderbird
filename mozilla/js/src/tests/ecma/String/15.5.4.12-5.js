@@ -26,8 +26,6 @@
 */
 
 var SECTION = "15.5.4.12-1";
-var VERSION = "ECMA_1";
-startTest();
 var TITLE   = "String.prototype.toUpperCase()";
 
 writeHeaderToLog( SECTION + " "+ TITLE);
@@ -35,14 +33,17 @@ writeHeaderToLog( SECTION + " "+ TITLE);
 // Armenian
 // Range: U+0530 to U+058F
 for ( var i = 0x0530; i <= 0x058F; i++ ) {
+  // U+0587 (ARMENIAN SMALL LIGATURE ECH YIWN) has special upper casing.
+  if (i == 0x0587) continue;
+
   var U = new Unicode( i );
 /*
-  new TestCase(   SECTION,
+  new TestCase(
   "var s = new String( String.fromCharCode("+i+") ); s.toUpperCase()",
   String.fromCharCode(U.upper),
   eval("var s = new String( String.fromCharCode("+i+") ); s.toUpperCase()") );
 */
-  new TestCase(   SECTION,
+  new TestCase(
 		  "var s = new String( String.fromCharCode("+i+") ); s.toUpperCase().charCodeAt(0)",
 		  U.upper,
 		  eval("var s = new String( String.fromCharCode(i) ); s.toUpperCase().charCodeAt(0)") );

@@ -1,63 +1,54 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const NS_APP_USER_SEARCH_DIR  = "UsrSrchPlugns";
-
-const kTestEngineShortName = "engine";
+const kTestEngineShortName = "test-search-engine";
 const kWhiteListPrefName = "reset.whitelist";
 
-function run_test() {
-  // Copy an engine to [profile]/searchplugin/
-  let dir = Services.dirsvc.get(NS_APP_USER_SEARCH_DIR, Ci.nsIFile);
-  if (!dir.exists())
-    dir.create(dir.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
-  do_get_file("data/engine.xml").copyTo(dir, kTestEngineShortName + ".xml");
-
-  let file = dir.clone();
-  file.append(kTestEngineShortName + ".xml");
-  do_check_true(file.exists());
-
-  do_check_false(Services.search.isInitialized);
-
+add_task(async function run_test() {
   Services.prefs.getDefaultBranch(BROWSER_SEARCH_PREF)
           .setBoolPref("reset.enabled", true);
 
-  run_next_test();
-}
+  await asyncInit();
+  await promiseAfterCache();
 
-function* removeLoadPathHash() {
+  // Install kTestEngineName and wait for it to reach the disk.
+  await installTestEngine();
+  await promiseAfterCache();
+
+  // Simulate an engine found in the profile directory and imported
+  // by a previous version of Firefox.
+  await removeLoadPathHash();
+});
+
+async function removeLoadPathHash() {
   // Remove the loadPathHash and re-initialize the search service.
-  let cache = yield promiseCacheData();
+  let cache = await promiseCacheData();
   for (let engine of cache.engines) {
     if (engine._shortName == kTestEngineShortName) {
-      delete engine._metaData["loadPathHash"];
+      delete engine._metaData.loadPathHash;
       break;
     }
   }
-  yield promiseSaveCacheData(cache);
-  yield asyncReInit();
+  await promiseSaveCacheData(cache);
+  await asyncReInit();
 }
 
-add_task(function* test_no_prompt_when_valid_loadPathHash() {
-  yield asyncInit();
-
+add_task(async function test_no_prompt_when_valid_loadPathHash() {
   // test the engine is loaded ok.
   let engine = Services.search.getEngineByName(kTestEngineName);
   do_check_neq(engine, null);
 
-  yield promiseAfterCache();
-
   // The test engine has been found in the profile directory and imported,
   // so it shouldn't have a loadPathHash.
-  let metadata = yield promiseEngineMetadata();
+  let metadata = await promiseEngineMetadata();
   do_check_true(kTestEngineShortName in metadata);
   do_check_false("loadPathHash" in metadata[kTestEngineShortName]);
 
   // After making it the currentEngine with the search service API,
   // the test engine should have a valid loadPathHash.
   Services.search.currentEngine = engine;
-  yield promiseAfterCache();
-  metadata = yield promiseEngineMetadata();
+  await promiseAfterCache();
+  metadata = await promiseEngineMetadata();
   do_check_true("loadPathHash" in metadata[kTestEngineShortName]);
   let loadPathHash = metadata[kTestEngineShortName].loadPathHash;
   do_check_eq(typeof loadPathHash, "string");
@@ -70,8 +61,26 @@ add_task(function* test_no_prompt_when_valid_loadPathHash() {
               "http://www.google.com/search?q=foo&ie=utf-8&oe=utf-8&aq=t");
 });
 
-add_task(function* test_promptURLs() {
-  yield removeLoadPathHash();
+add_task(async function test_pending() {
+  let checkWithPrefValue = (value, expectPrompt = false) => {
+    Services.prefs.setCharPref(BROWSER_SEARCH_PREF + "reset.status", value);
+    let submission =
+      Services.search.currentEngine.getSubmission("foo", null, "searchbar");
+    do_check_eq(submission.uri.spec,
+                expectPrompt ? "about:searchreset?data=foo&purpose=searchbar" :
+                  "http://www.google.com/search?q=foo&ie=utf-8&oe=utf-8&aq=t");
+  };
+
+  // Should show the reset prompt only if the reset status is 'pending'.
+  checkWithPrefValue("pending", true);
+  checkWithPrefValue("accepted");
+  checkWithPrefValue("declined");
+  checkWithPrefValue("customized");
+  checkWithPrefValue("");
+});
+
+add_task(async function test_promptURLs() {
+  await removeLoadPathHash();
 
   // The default should still be the test engine.
   let currentEngine = Services.search.currentEngine;
@@ -93,16 +102,16 @@ add_task(function* test_promptURLs() {
               "http://www.google.com/search?q=foo&ie=utf-8&oe=utf-8&aq=t");
 
   // And the loadPathHash should be back.
-  yield promiseAfterCache();
-  let metadata = yield promiseEngineMetadata();
+  await promiseAfterCache();
+  let metadata = await promiseEngineMetadata();
   do_check_true("loadPathHash" in metadata[kTestEngineShortName]);
   let loadPathHash = metadata[kTestEngineShortName].loadPathHash;
   do_check_eq(typeof loadPathHash, "string");
   do_check_eq(loadPathHash.length, 44);
 });
 
-add_task(function* test_whitelist() {
-  yield removeLoadPathHash();
+add_task(async function test_whitelist() {
+  await removeLoadPathHash();
 
   // The default should still be the test engine.
   let currentEngine = Services.search.currentEngine;
@@ -128,8 +137,8 @@ add_task(function* test_whitelist() {
 
   // The loadPathHash should not be back after the prompt was skipped due to the
   // whitelist.
-  yield asyncReInit();
-  let metadata = yield promiseEngineMetadata();
+  await asyncReInit();
+  let metadata = await promiseEngineMetadata();
   do_check_false("loadPathHash" in metadata[kTestEngineShortName]);
 
   branch.setCharPref(kWhiteListPrefName, initialWhiteList);

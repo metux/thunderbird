@@ -34,15 +34,30 @@ var kSizesToVerify = ["variableSize", "fixedSize"];
  * whatever's provided in aFonts and aNonDefaultFonts.
  */
 function makeVerifier(aFonts) {
+  function getFont(aFontType, aEncoding) {
+    var font = Services.prefs.getCharPref("font.name." + aFontType + "." + aEncoding);
+    if (font)
+      return font;
+
+    // Get the default.
+    var enumerator = Components.classes["@mozilla.org/gfx/fontenumerator;1"]
+                               .createInstance(Components.interfaces.nsIFontEnumerator);
+    var fonts = enumerator.EnumerateFonts(aEncoding, aFontType, {});
+    var defaultFont = null;
+    if (fonts.length > 0)
+      defaultFont = enumerator.getDefaultFont(aEncoding, aFontType);
+    return defaultFont;
+  }
+
   function verifier(aEncoding, aNonDefaultFonts) {
     if (!aNonDefaultFonts)
       aNonDefaultFonts = {};
 
     let expectedFonts = {};
-    for (let [, key] in Iterator(kNamesToVerify))
+    for (let key of kNamesToVerify)
       expectedFonts[key] = (key in aNonDefaultFonts ? aNonDefaultFonts[key] :
                             aFonts[key]);
-    for (let [, key] in Iterator(kSizesToVerify)) {
+    for (let key of kSizesToVerify) {
       let nonDefaultKey = key + (aFonts.migrated ? "" : "Non") + "Migrated";
       expectedFonts[key] = (nonDefaultKey in aNonDefaultFonts ?
                             aNonDefaultFonts[nonDefaultKey] :
@@ -51,12 +66,9 @@ function makeVerifier(aFonts) {
 
     // A distinct lack of magic here, so that failing stuff is generally easier
     // to comment out and debug.
-    do_check_eq(Services.prefs.getCharPref("font.name.serif." + aEncoding),
-                expectedFonts.serif);
-    do_check_eq(Services.prefs.getCharPref("font.name.sans-serif." + aEncoding),
-                expectedFonts.sans);
-    do_check_eq(Services.prefs.getCharPref("font.name.monospace." + aEncoding),
-                expectedFonts.monospace);
+    do_check_eq(getFont("serif", aEncoding), expectedFonts.serif);
+    do_check_eq(getFont("sans-serif", aEncoding), expectedFonts.sans);
+    do_check_eq(getFont("monospace", aEncoding), expectedFonts.monospace);
     do_check_eq(Services.prefs.getIntPref("font.size.variable." + aEncoding),
                 expectedFonts.variableSize);
     do_check_eq(Services.prefs.getIntPref("font.size.fixed." + aEncoding),
@@ -131,8 +143,8 @@ var kPrefBranchesToClear = [
  */
 function reset_font_prefs(aDontResetVersion) {
   // kPrefBranchesToClear x kEncodingsToClear
-  for (let [, prefBranch] in Iterator(kPrefBranchesToClear)) {
-    for (let [, encoding] in Iterator(kEncodingsToClear)) {
+  for (let prefBranch of kPrefBranchesToClear) {
+    for (let encoding of kEncodingsToClear) {
       let pref = prefBranch + encoding;
       if (Services.prefs.prefHasUserValue(pref))
         Services.prefs.clearUserPref(pref);
@@ -344,16 +356,16 @@ var otherTests = [
 function run_test() {
   reset_font_prefs();
 
-  for (let [, [version, verifier]] in Iterator(kWindowsVersions)) {
+  for (let [version, verifier] of Object.values(kWindowsVersions)) {
     set_windows_version(version);
 
-    for (let [, test] in Iterator(testsForEveryVersion)) {
+    for (let test of testsForEveryVersion) {
       test(verifier);
       reset_font_prefs();
     }
   }
 
-  for (let [, test] in Iterator(otherTests)) {
+  for (let test of otherTests) {
     test();
     reset_font_prefs();
   }

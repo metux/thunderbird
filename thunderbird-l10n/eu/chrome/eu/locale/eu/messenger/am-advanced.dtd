@@ -26,5 +26,4 @@
 <!ENTITY connectionSecurity.label "Konexioaren segurtasuna: ">
 <!ENTITY authMethod.label   "Autentifikazio-metodoa: ">
 
-
 <!ENTITY serverDetails.label "Details of selected server:">

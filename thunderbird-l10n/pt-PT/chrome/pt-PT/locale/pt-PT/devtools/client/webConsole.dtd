@@ -6,20 +6,15 @@
   - You want to make that choice consistent across the developer tools.
   - A good criteria is the language in which you'd find the best
   - documentation on web development on the web. -->
-
-
 <!ENTITY window.title "Consola web">
-<!ENTITY browserConsole.title "Consola do navegador">
 <!-- LOCALIZATION NOTE (openURL.label): You can see this string in the Web
    - Console context menu. -->
-
 <!ENTITY openURL.label     "Abrir URL em novo separador">
 <!ENTITY openURL.accesskey "s">
 <!-- LOCALIZATION NOTE (btnPageNet.label): This string is used for the menu
   -  button that allows users to toggle the network logging output.
   -  This string and the following strings toggle various kinds of output
   -  filters. -->
-
 <!ENTITY btnPageNet.label   "Rede">
 <!ENTITY btnPageNet.tooltip "Registar acesso à rede">
 <!ENTITY btnPageNet.accesskey "e">
@@ -47,7 +42,7 @@
 <!ENTITY btnPageLogging.tooltip "Registar mensagens enviadas para objeto window.console">
 <!ENTITY btnPageLogging.accesskey3 "g">
 <!ENTITY btnConsoleErrors       "Erros">
-<!ENTITY btnConsoleInfo         "Info">
+<!ENTITY btnConsoleInfo         "Informação">
 <!ENTITY btnConsoleWarnings     "Avisos">
 <!ENTITY btnConsoleLog          "Registo">
 <!ENTITY btnConsoleXhr          "XHR">
@@ -60,19 +55,19 @@
 <!ENTITY btnServerLogging.tooltip     "Registar mensagens recebidas de um servidor web">
 <!ENTITY btnServerLogging.accesskey   "S">
 <!ENTITY btnServerErrors              "Erros">
-<!ENTITY btnServerInfo                "Info">
+<!ENTITY btnServerInfo                "Informação">
 <!ENTITY btnServerWarnings            "Avisos">
 <!ENTITY btnServerLog                 "Registo">
 <!-- LOCALIZATION NODE (btnConsoleSharedWorkers) the term "Shared Workers"
   -  should not be translated. -->
 
-<!ENTITY btnConsoleSharedWorkers "Workers partilhados">
+<!ENTITY btnConsoleSharedWorkers "Shared Workers">
 <!-- LOCALIZATION NODE (btnConsoleServiceWorkers) the term "Service Workers"
   -  should not be translated. -->
 <!ENTITY btnConsoleServiceWorkers "Service Workers">
 <!-- LOCALIZATION NODE (btnConsoleWindowlessWorkers) the term "Workers"
   -  should not be translated. -->
-<!ENTITY btnConsoleWindowlessWorkers "Extra ou Workers do Chrome">
+<!ENTITY btnConsoleWindowlessWorkers "Extra ou Workers Chrome">
 
 <!ENTITY filterOutput.placeholder "Filtrar saída">
 <!ENTITY btnClear.label        "Limpar">

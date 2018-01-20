@@ -10,7 +10,6 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "nsAutoPtr.h"
-#include "nsIIPCBackgroundChildCreateCallback.h"
 #include "nsTArray.h"
 
 #ifdef XP_WIN
@@ -22,9 +21,9 @@ class nsIGlobalObject;
 namespace mozilla {
 namespace dom {
 
+class ClonedMessageData;
 class MessagePortChild;
 class MessagePortIdentifier;
-class MessagePortMessage;
 class PostMessageRunnable;
 class SharedMessagePortMessage;
 
@@ -33,13 +32,11 @@ class WorkerHolder;
 } // namespace workers
 
 class MessagePort final : public DOMEventTargetHelper
-                        , public nsIIPCBackgroundChildCreateCallback
                         , public nsIObserver
 {
   friend class PostMessageRunnable;
 
 public:
-  NS_DECL_NSIIPCBACKGROUNDCHILDCREATECALLBACK
   NS_DECL_NSIOBSERVER
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(MessagePort,
@@ -63,7 +60,7 @@ public:
 
   void
   PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
-              const Optional<Sequence<JS::Value>>& aTransferable,
+              const Sequence<JSObject*>& aTransferable,
               ErrorResult& aRv);
 
   void Start();
@@ -73,6 +70,8 @@ public:
   EventHandlerNonNull* GetOnmessage();
 
   void SetOnmessage(EventHandlerNonNull* aCallback);
+
+  IMPL_EVENT_HANDLER(messageerror)
 
   // Non WebIDL methods
 
@@ -84,8 +83,8 @@ public:
 
   // These methods are useful for MessagePortChild
 
-  void Entangled(nsTArray<MessagePortMessage>& aMessages);
-  void MessagesReceived(nsTArray<MessagePortMessage>& aMessages);
+  void Entangled(nsTArray<ClonedMessageData>& aMessages);
+  void MessagesReceived(nsTArray<ClonedMessageData>& aMessages);
   void StopSendingDataConfirmed();
   void Closed();
 
@@ -142,10 +141,12 @@ private:
                   uint32_t aSequenceID, bool mNeutered, State aState,
                   ErrorResult& aRv);
 
-  void ConnectToPBackground();
+  bool ConnectToPBackground();
 
   // Dispatch events from the Message Queue using a nsRunnable.
   void Dispatch();
+
+  void DispatchError();
 
   void StartDisentangling();
   void Disentangle();

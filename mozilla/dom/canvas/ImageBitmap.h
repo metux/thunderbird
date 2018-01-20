@@ -13,6 +13,7 @@
 #include "mozilla/gfx/Rect.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/UniquePtr.h"
+#include "gfxTypes.h" // for gfxAlphaType
 #include "nsCycleCollectionParticipant.h"
 
 struct JSContext;
@@ -52,7 +53,7 @@ class File;
 class HTMLCanvasElement;
 class HTMLImageElement;
 class HTMLVideoElement;
-enum class ImageBitmapFormat : uint32_t;
+enum class ImageBitmapFormat : uint8_t;
 class ImageData;
 class ImageUtils;
 template<typename T> class MapDataIntoBufferSource;
@@ -63,7 +64,7 @@ struct ImageBitmapCloneData final
 {
   RefPtr<gfx::DataSourceSurface> mSurface;
   gfx::IntRect mPictureRect;
-  bool mIsPremultipliedAlpha;
+  gfxAlphaType mAlphaType;
   bool mIsCroppingAreaOutSideOfSourceImage;
 };
 
@@ -152,7 +153,10 @@ public:
                        ImageBitmap* aImageBitmap);
 
   // Mozilla Extensions
-  static bool ExtensionsEnabled(JSContext* aCx, JSObject* aObj);
+  // aObj is an optional argument that isn't used by ExtensionsEnabled() and
+  // only exists because the bindings layer insists on passing it to us.  All
+  // other consumers of this function should only call it passing one argument.
+  static bool ExtensionsEnabled(JSContext* aCx, JSObject* aObj = nullptr);
 
   friend CreateImageBitmapFromBlob;
   friend CreateImageBitmapFromBlobTask;
@@ -174,6 +178,8 @@ public:
               ImageBitmapFormat aFormat,
               const ArrayBufferViewOrArrayBuffer& aBuffer,
               int32_t aOffset, ErrorResult& aRv);
+
+  size_t GetAllocatedSize() const;
 
 protected:
 
@@ -197,7 +203,7 @@ protected:
    * CreateInternal(from ImageData) method.
    */
   ImageBitmap(nsIGlobalObject* aGlobal, layers::Image* aData,
-              bool aIsPremultipliedAlpha = true);
+              gfxAlphaType aAlphaType = gfxAlphaType::Premult);
 
   virtual ~ImageBitmap();
 
@@ -269,7 +275,7 @@ protected:
    */
   gfx::IntRect mPictureRect;
 
-  const bool mIsPremultipliedAlpha;
+  const gfxAlphaType mAlphaType;
 
   /*
    * Set mIsCroppingAreaOutSideOfSourceImage if image bitmap was cropped to the
@@ -280,6 +286,10 @@ protected:
    */
   bool mIsCroppingAreaOutSideOfSourceImage;
 
+  /*
+   * Whether this object allocated allocated and owns the image data.
+   */
+  bool mAllocatedImageData;
 };
 
 } // namespace dom

@@ -2,23 +2,15 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY biffStart.label                "Uusi uudiseid kontrollitakse iga">
-<!ENTITY biffStart.accesskey            "u">
-<!ENTITY biffEnd.label                  "minuti järel">
+<!ENTITY loginAtStartup.label          "Käivitumisel kontrollitakse uusi uudiseid">
+<!ENTITY loginAtStartup.accesskey      "K">
+<!ENTITY biffAll.label                 "Uuendused lubatakse kõigil uudistevoogudel">
+<!ENTITY biffAll.accesskey             "e">
 
-<!ENTITY loginAtStartup.label           "Käivitumisel kontrollitakse uusi uudiseid">
-<!ENTITY loginAtStartup.accesskey       "K">
+<!ENTITY newFeedSettings.label         "Uute uudistevoogude vaikimisi sätted">
 
-<!ENTITY useQuickMode.label             "Vaikimisi tõmmatakse uudise kokkuvõte, mitte terve veebileht">
-<!ENTITY useQuickMode.accesskey         "V">
+<!ENTITY manageSubscriptions.label     "Halda tellimusi...">
+<!ENTITY manageSubscriptions.accesskey "H">
 
-<!ENTITY manageSubscriptions.label      "Halda tellimusi...">
-<!ENTITY manageSubscriptions.accesskey  "H">
-
-<!ENTITY feedWindowTitle.label          "Uudistevoogude konto loomise nõustaja">
-
-<!-- entities from defaults/isp/rss.rdf -->
-<!ENTITY feeds.accountName              "Blogid ja uudistevood">
-<!ENTITY feeds.wizardShortName          "Uudistevood">
-<!ENTITY feeds.wizardLongName           "Blogid ja uudistevood">
-<!ENTITY feeds.wizardLongName.accesskey "B">
+<!ENTITY feedWindowTitle.label         "Uudistevoogude konto loomise nõustaja">
+<!ENTITY feeds.accountName             "Blogid ja uudistevood">

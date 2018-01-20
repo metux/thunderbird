@@ -34,6 +34,12 @@ var ProcessHangMonitor = {
   },
 
   /**
+   * Should only be set to true once the quit-application-granted notification
+   * has been fired.
+   */
+  _shuttingDown: false,
+
+  /**
    * Collection of hang reports that haven't expired or been dismissed
    * by the user. These are nsIHangReports.
    */
@@ -49,10 +55,11 @@ var ProcessHangMonitor = {
   /**
    * Initialize hang reporting. Called once in the parent process.
    */
-  init: function() {
-    Services.obs.addObserver(this, "process-hang-report", false);
-    Services.obs.addObserver(this, "clear-hang-report", false);
-    Services.obs.addObserver(this, "xpcom-shutdown", false);
+  init() {
+    Services.obs.addObserver(this, "process-hang-report");
+    Services.obs.addObserver(this, "clear-hang-report");
+    Services.obs.addObserver(this, "quit-application-granted");
+    Services.obs.addObserver(this, "xpcom-shutdown");
     Services.ww.registerNotification(this);
   },
 
@@ -60,15 +67,23 @@ var ProcessHangMonitor = {
    * Terminate JavaScript associated with the hang being reported for
    * the selected browser in |win|.
    */
-  terminateScript: function(win) {
+  terminateScript(win) {
     this.handleUserInput(win, report => report.terminateScript());
+  },
+
+  /**
+   * Terminate Sandbox globals associated with the hang being reported
+   * for the selected browser in |win|.
+   */
+  terminateGlobal(win) {
+    this.handleUserInput(win, report => report.terminateGlobal());
   },
 
   /**
    * Start devtools debugger for JavaScript associated with the hang
    * being reported for the selected browser in |win|.
    */
-  debugScript: function(win) {
+  debugScript(win) {
     this.handleUserInput(win, report => {
       function callback() {
         report.endStartingDebugger();
@@ -87,7 +102,7 @@ var ProcessHangMonitor = {
    * for the selected browser in |win|. Will attempt to generate a combined
    * crash report for all processes.
    */
-  terminatePlugin: function(win) {
+  terminatePlugin(win) {
     this.handleUserInput(win, report => report.terminatePlugin());
   },
 
@@ -95,7 +110,7 @@ var ProcessHangMonitor = {
    * Dismiss the browser notification and invoke an appropriate action based on
    * the hang type.
    */
-  stopIt: function (win) {
+  stopIt(win) {
     let report = this.findActiveReport(win.gBrowser.selectedBrowser);
     if (!report) {
       return;
@@ -112,10 +127,48 @@ var ProcessHangMonitor = {
   },
 
   /**
+   * Stop all scripts from running in the Sandbox global attached to
+   * this window.
+   */
+  stopGlobal(win) {
+    let report = this.findActiveReport(win.gBrowser.selectedBrowser);
+    if (!report) {
+      return;
+    }
+
+    switch (report.hangType) {
+      case report.SLOW_SCRIPT:
+        this.terminateGlobal(win);
+        break;
+    }
+  },
+
+  /**
+   * Terminate whatever is causing this report, be it an add-on, page script,
+   * or plug-in. This is done without updating any report notifications.
+   */
+  stopHang(report) {
+    switch (report.hangType) {
+      case report.SLOW_SCRIPT: {
+        if (report.addonId) {
+          report.terminateGlobal();
+        } else {
+          report.terminateScript();
+        }
+        break;
+      }
+      case report.PLUGIN_HANG: {
+        report.terminatePlugin();
+        break;
+      }
+    }
+  },
+
+  /**
    * Dismiss the notification, clear the report from the active list and set up
    * a new timer to track a wait period during which we won't notify.
    */
-  waitLonger: function(win) {
+  waitLonger(win) {
     let report = this.findActiveReport(win.gBrowser.selectedBrowser);
     if (!report) {
       return;
@@ -155,7 +208,7 @@ var ProcessHangMonitor = {
    * |win|, invoke |func| on that report and stop notifying the user
    * about it.
    */
-  handleUserInput: function(win, func) {
+  handleUserInput(win, func) {
     let report = this.findActiveReport(win.gBrowser.selectedBrowser);
     if (!report) {
       return null;
@@ -165,24 +218,33 @@ var ProcessHangMonitor = {
     return func(report);
   },
 
-  observe: function(subject, topic, data) {
+  observe(subject, topic, data) {
     switch (topic) {
-      case "xpcom-shutdown":
+      case "xpcom-shutdown": {
         Services.obs.removeObserver(this, "xpcom-shutdown");
         Services.obs.removeObserver(this, "process-hang-report");
         Services.obs.removeObserver(this, "clear-hang-report");
+        Services.obs.removeObserver(this, "quit-application-granted");
         Services.ww.unregisterNotification(this);
         break;
+      }
 
-      case "process-hang-report":
+      case "quit-application-granted": {
+        this.onQuitApplicationGranted();
+        break;
+      }
+
+      case "process-hang-report": {
         this.reportHang(subject.QueryInterface(Ci.nsIHangReport));
         break;
+      }
 
-      case "clear-hang-report":
+      case "clear-hang-report": {
         this.clearHang(subject.QueryInterface(Ci.nsIHangReport));
         break;
+      }
 
-      case "domwindowopened":
+      case "domwindowopened": {
         // Install event listeners on the new window in case one of
         // its tabs is already hung.
         let win = subject.QueryInterface(Ci.nsIDOMWindow);
@@ -192,14 +254,88 @@ var ProcessHangMonitor = {
         };
         win.addEventListener("load", listener, true);
         break;
+      }
+
+      case "domwindowclosed": {
+        let win = subject.QueryInterface(Ci.nsIDOMWindow);
+        this.onWindowClosed(win);
+        break;
+      }
+    }
+  },
+
+  /**
+   * Called early on in the shutdown sequence. We take this opportunity to
+   * take any pre-existing hang reports, and terminate them. We also put
+   * ourselves in a state so that if any more hang reports show up while
+   * we're shutting down, we terminate them immediately.
+   */
+  onQuitApplicationGranted() {
+    this._shuttingDown = true;
+    this.stopAllHangs();
+    this.updateWindows();
+  },
+
+  onWindowClosed(win) {
+    let maybeStopHang = (report) => {
+      if (report.hangType == report.SLOW_SCRIPT) {
+        let hungBrowserWindow = null;
+        try {
+          hungBrowserWindow = report.scriptBrowser.ownerGlobal;
+        } catch (e) {
+          // Ignore failures to get the script browser - we'll be
+          // conservative, and assume that if we cannot access the
+          // window that belongs to this report that we should stop
+          // the hang.
+        }
+        if (!hungBrowserWindow || hungBrowserWindow == win) {
+          this.stopHang(report);
+          return true;
+        }
+      } else if (report.hangType == report.PLUGIN_HANG) {
+        // If any window has closed during a plug-in hang, we'll
+        // do the conservative thing and terminate the plug-in.
+        this.stopHang(report);
+        return true;
+      }
+      return false;
+    }
+
+    // If there are any script hangs for browsers that are in this window
+    // that is closing, we can stop them now.
+    for (let report of this._activeReports) {
+      if (maybeStopHang(report)) {
+        this._activeReports.delete(report);
+      }
+    }
+
+    for (let [pausedReport, ] of this._pausedReports) {
+      if (maybeStopHang(pausedReport)) {
+        this.removePausedReport(pausedReport);
+      }
+    }
+
+    this.updateWindows();
+  },
+
+  stopAllHangs() {
+    for (let report of this._activeReports) {
+      this.stopHang(report);
+    }
+
+    this._activeReports = new Set();
+
+    for (let [pausedReport, ] of this._pausedReports) {
+      this.stopHang(pausedReport);
+      this.removePausedReport(pausedReport);
     }
   },
 
   /**
    * Find a active hang report for the given <browser> element.
    */
-  findActiveReport: function(browser) {
-    let frameLoader = browser.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader;
+  findActiveReport(browser) {
+    let frameLoader = browser.frameLoader;
     for (let report of this._activeReports) {
       if (report.isReportForBrowser(frameLoader)) {
         return report;
@@ -211,8 +347,8 @@ var ProcessHangMonitor = {
   /**
    * Find a paused hang report for the given <browser> element.
    */
-  findPausedReport: function(browser) {
-    let frameLoader = browser.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader;
+  findPausedReport(browser) {
+    let frameLoader = browser.frameLoader;
     for (let [report, ] of this._pausedReports) {
       if (report.isReportForBrowser(frameLoader)) {
         return report;
@@ -225,7 +361,7 @@ var ProcessHangMonitor = {
    * Remove an active hang report from the active list and cancel the timer
    * associated with it.
    */
-  removeActiveReport: function(report) {
+  removeActiveReport(report) {
     this._activeReports.delete(report);
     this.updateWindows();
   },
@@ -234,7 +370,7 @@ var ProcessHangMonitor = {
    * Remove a paused hang report from the paused list and cancel the timer
    * associated with it.
    */
-  removePausedReport: function(report) {
+  removePausedReport(report) {
     let timer = this._pausedReports.get(report);
     if (timer) {
       timer.cancel();
@@ -248,8 +384,17 @@ var ProcessHangMonitor = {
    * each window to watch for events that would cause a different hang
    * report to be displayed.
    */
-  updateWindows: function() {
+  updateWindows() {
     let e = Services.wm.getEnumerator("navigator:browser");
+
+    // If it turns out we have no windows (this can happen on macOS),
+    // we have no opportunity to ask the user whether or not they want
+    // to stop the hang or wait, so we'll opt for stopping the hang.
+    if (!e.hasMoreElements()) {
+      this.stopAllHangs();
+      return;
+    }
+
     while (e.hasMoreElements()) {
       let win = e.getNext();
 
@@ -267,7 +412,7 @@ var ProcessHangMonitor = {
   /**
    * If there is a hang report for the current tab in |win|, display it.
    */
-  updateWindow: function(win) {
+  updateWindow(win) {
     let report = this.findActiveReport(win.gBrowser.selectedBrowser);
 
     if (report) {
@@ -280,7 +425,7 @@ var ProcessHangMonitor = {
   /**
    * Show the notification for a hang.
    */
-  showNotification: function(win, report) {
+  showNotification(win, report) {
     let nb = win.document.getElementById("high-priority-global-notificationbox");
     let notification = nb.getNotificationWithValue("process-hang");
     if (notification) {
@@ -292,30 +437,63 @@ var ProcessHangMonitor = {
     let buttons = [{
         label: bundle.getString("processHang.button_stop.label"),
         accessKey: bundle.getString("processHang.button_stop.accessKey"),
-        callback: function() {
+        callback() {
           ProcessHangMonitor.stopIt(win);
         }
       },
       {
         label: bundle.getString("processHang.button_wait.label"),
         accessKey: bundle.getString("processHang.button_wait.accessKey"),
-        callback: function() {
+        callback() {
           ProcessHangMonitor.waitLonger(win);
         }
       }];
+
+    let message = bundle.getString("processHang.label");
+    if (report.addonId) {
+      let aps = Cc["@mozilla.org/addons/policy-service;1"].getService(Ci.nsIAddonPolicyService);
+
+      let doc = win.document;
+      let brandBundle = doc.getElementById("bundle_brand");
+
+      let addonName = aps.getExtensionName(report.addonId);
+
+      let label = bundle.getFormattedString("processHang.add-on.label",
+                                            [addonName, brandBundle.getString("brandShortName")]);
+
+      let linkText = bundle.getString("processHang.add-on.learn-more.text");
+      let linkURL = "https://support.mozilla.org/kb/warning-unresponsive-script#w_other-causes";
+
+      let link = doc.createElement("label");
+      link.setAttribute("class", "text-link");
+      link.setAttribute("role", "link");
+      link.setAttribute("onclick", `openUILinkIn(${JSON.stringify(linkURL)}, "tab")`);
+      link.setAttribute("value", linkText);
+
+      message = doc.createDocumentFragment();
+      message.appendChild(doc.createTextNode(label + " "));
+      message.appendChild(link);
+
+      buttons.unshift({
+        label: bundle.getString("processHang.button_stop_sandbox.label"),
+        accessKey: bundle.getString("processHang.button_stop_sandbox.accessKey"),
+        callback() {
+          ProcessHangMonitor.stopGlobal(win);
+        }
+      });
+    }
 
     if (AppConstants.MOZ_DEV_EDITION && report.hangType == report.SLOW_SCRIPT) {
       buttons.push({
         label: bundle.getString("processHang.button_debug.label"),
         accessKey: bundle.getString("processHang.button_debug.accessKey"),
-        callback: function() {
+        callback() {
           ProcessHangMonitor.debugScript(win);
         }
       });
     }
 
-    nb.appendNotification(bundle.getString("processHang.label"),
-                          "process-hang",
+    nb.appendNotification(message, "process-hang",
                           "chrome://browser/content/aboutRobots-icon.png",
                           nb.PRIORITY_WARNING_HIGH, buttons);
   },
@@ -323,7 +501,7 @@ var ProcessHangMonitor = {
   /**
    * Ensure that no hang notifications are visible in |win|.
    */
-  hideNotification: function(win) {
+  hideNotification(win) {
     let nb = win.document.getElementById("high-priority-global-notificationbox");
     let notification = nb.getNotificationWithValue("process-hang");
     if (notification) {
@@ -335,17 +513,17 @@ var ProcessHangMonitor = {
    * Install event handlers on |win| to watch for events that would
    * cause a different hang report to be displayed.
    */
-  trackWindow: function(win) {
+  trackWindow(win) {
     win.gBrowser.tabContainer.addEventListener("TabSelect", this, true);
     win.gBrowser.tabContainer.addEventListener("TabRemotenessChange", this, true);
   },
 
-  untrackWindow: function(win) {
+  untrackWindow(win) {
     win.gBrowser.tabContainer.removeEventListener("TabSelect", this, true);
     win.gBrowser.tabContainer.removeEventListener("TabRemotenessChange", this, true);
   },
 
-  handleEvent: function(event) {
+  handleEvent(event) {
     let win = event.target.ownerGlobal;
 
     // If a new tab is selected or if a tab changes remoteness, then
@@ -360,7 +538,12 @@ var ProcessHangMonitor = {
    * Handle a potentially new hang report. If it hasn't been seen
    * before, show a notification for it in all open XUL windows.
    */
-  reportHang: function(report) {
+  reportHang(report) {
+    if (this._shuttingDown) {
+      this.stopHang(report);
+      return;
+    }
+
     // If this hang was already reported reset the timer for it.
     if (this._activeReports.has(report)) {
       // if this report is in active but doesn't have a notification associated
@@ -389,7 +572,7 @@ var ProcessHangMonitor = {
     this.updateWindows();
   },
 
-  clearHang: function(report) {
+  clearHang(report) {
     this.removeActiveReport(report);
     this.removePausedReport(report);
     report.userCanceled();

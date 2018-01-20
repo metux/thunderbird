@@ -16,3 +16,9 @@
 <!ENTITY feeds.wizardShortName "Жывільнікі">
 <!ENTITY feeds.wizardLongName "Жывільнікі дзённікаў і навінаў">
 <!ENTITY feeds.wizardLongName.accesskey "Ж">
+
+<!ENTITY biffAll.label                 "Enable updates for all feeds">
+<!ENTITY biffAll.accesskey             "E">
+
+<!ENTITY newFeedSettings.label         "Default Settings for New Feeds">
+

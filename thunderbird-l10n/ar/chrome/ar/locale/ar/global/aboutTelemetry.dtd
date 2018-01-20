@@ -2,114 +2,54 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<!ENTITY aboutTelemetry.pingDataSource "مصدر بيانات الطرْق:">
+<!ENTITY aboutTelemetry.showCurrentPingData "بيانات الطرْق الحالية">
+<!ENTITY aboutTelemetry.showArchivedPingData "بيانات الطرْق المحفوظة">
+<!ENTITY aboutTelemetry.showSubsessionData "اعرض بيانات الإرسال">
+<!ENTITY aboutTelemetry.choosePing "اختر الطرْق:">
+<!ENTITY aboutTelemetry.archivePingType "نوع الطرْق">
+<!ENTITY aboutTelemetry.archivePingHeader "طرْق">
+<!ENTITY aboutTelemetry.optionGroupToday "اليوم">
+<!ENTITY aboutTelemetry.optionGroupYesterday "أمس">
+<!ENTITY aboutTelemetry.optionGroupOlder "أقدم">
+<!ENTITY aboutTelemetry.payloadChoiceHeader "  الحمولة">
+<!-- LOCALIZATION NOTE(aboutTelemetry.previousPing, aboutTelemetry.nextPing):
+	These strings are displayed when selecting Archived pings, and they’re
+	used to move to the next or previous ping. -->
+<!ENTITY aboutTelemetry.previousPing "&gt;&gt;">
+<!ENTITY aboutTelemetry.nextPing "&lt;&lt;">
+
 <!ENTITY aboutTelemetry.pageTitle "البيانات المُؤقتة">
+<!ENTITY aboutTelemetry.moreInformations "هل تبحث عن معلومات إضافية؟">
 
-<!ENTITY aboutTelemetry.changeDataChoices "  غيّر">
+<!ENTITY aboutTelemetry.showInFirefoxJsonViewer "
+افتح في عارض JSON
+">
 
-<!ENTITY aboutTelemetry.uploadEnabled "  رفع بيانات FHR <span>مفعّل</span>.">
-
-<!ENTITY aboutTelemetry.uploadDisabled "  رفع بيانات FHR <span>معطّل</span>.">
-
-<!ENTITY aboutTelemetry.extendedRecordingEnabled "  تسجيل القياس عن بعد الموسع <span>مفعل</span>.">
-
-<!ENTITY aboutTelemetry.extendedRecordingDisabled "  تسجيل القياس عن بعد الموسع <span>معطل</span>.">
-
-<!ENTITY aboutTelemetry.pingDataSource "اختبار مصدر البيانات">
-
-
-
-
-
+<!ENTITY aboutTelemetry.homeSection "البداية">
+<!ENTITY aboutTelemetry.generalDataSection "  بيانات عامة">
+<!ENTITY aboutTelemetry.environmentDataSection "  بيانات البيئة">
+<!ENTITY aboutTelemetry.sessionInfoSection "  معلومات الجلسة">
+<!ENTITY aboutTelemetry.scalarsSection "  الكميات القياسية">
+<!ENTITY aboutTelemetry.keyedScalarsSection "  الكميات القياسية المفتاحية">
+<!ENTITY aboutTelemetry.histogramsSection "  رسوم بيانية">
+<!ENTITY aboutTelemetry.keyedHistogramsSection "  رسوم بيانية مفتاحية">
+<!ENTITY aboutTelemetry.eventsSection "  الأحداث">
+<!ENTITY aboutTelemetry.simpleMeasurementsSection "  قياسات بسيطة">
+<!ENTITY aboutTelemetry.telemetryLogSection "  سجل تليمتري">
+<!ENTITY aboutTelemetry.slowSqlSection "  استعلامات SQL بطيئة">
+<!ENTITY aboutTelemetry.chromeHangsSection "  تعليقات المتصفح">
+<!ENTITY aboutTelemetry.addonDetailsSection "  تفاصيل الإضافة">
+<!ENTITY aboutTelemetry.capturedStacksSection "  المكدسات المُلتقطة">
+<!ENTITY aboutTelemetry.lateWritesSection "  كتابات متأخرّة">
+<!ENTITY aboutTelemetry.rawPayloadSection "الحمولة الخام">
 <!ENTITY aboutTelemetry.raw "JSON خام">
 
-
-<!ENTITY aboutTelemetry.choosePing "اختر الاختبار">
-
-<!ENTITY aboutTelemetry.showNewerPing "&lt;&lt; أحدث اختبار">
-
-<!ENTITY aboutTelemetry.showOlderPing "الاختبار الأقدم &gt;&gt;">
-
-
-<!ENTITY aboutTelemetry.archiveWeekHeader "أسبوع">
-
-<!ENTITY aboutTelemetry.archivePingHeader "طرْق">
-
-<!ENTITY aboutTelemetry.generalDataSection "  بيانات عامة">
-
-<!ENTITY aboutTelemetry.environmentDataSection "  بيانات البيئة">
-
-<!ENTITY aboutTelemetry.telemetryLogSection "  سجل تليمتري">
-
-<!ENTITY aboutTelemetry.slowSqlSection "  استعلامات SQL بطيئة">
-
-<!ENTITY aboutTelemetry.chromeHangsSection "  تعليقات المتصفح">
-
-<!ENTITY aboutTelemetry.threadHangStatsSection "  تعليقات الخيوط">
-
-
-
-<!ENTITY aboutTelemetry.histogramsSection "  رسوم بيانية">
-
-<!ENTITY aboutTelemetry.keyedHistogramsSection "  رسوم بيانية مفتاحية">
-
-<!ENTITY aboutTelemetry.simpleMeasurementsSection "  قياسات بسيطة">
-
-<!ENTITY aboutTelemetry.addonDetailsSection "  تفاصيل الإضافة">
-
-<!ENTITY aboutTelemetry.lateWritesSection "  كتابات متأخرّة">
-
-<!ENTITY aboutTelemetry.sessionInfoSection "  معلومات الجلسة">
-
-<!ENTITY aboutTelemetry.addonHistogramsSection "  رسومات بيانية جمعتها الإضافات">
-
-<!ENTITY aboutTelemetry.toggle "  انقر لتبديل القسم">
-
-<!ENTITY aboutTelemetry.emptySection "  (لم تُجمع أي بيانات)">
-
 <!ENTITY aboutTelemetry.fullSqlWarning "  ملاحظة: تنقيح SQL البطيء مُفعّل. قد تظهر نصوص SQL كاملة أدناه، لكن لن تُرسل إلى تليمتري.">
+<!ENTITY aboutTelemetry.fetchStackSymbols "  اجلب أسماء الدوال للمكدّسات">
+<!ENTITY aboutTelemetry.hideStackSymbols "  اعرض بيانات المكدس الخام">
 
-<!ENTITY aboutTelemetry.fetchSymbols "  اجلب أسماء الدوال من مكدّس التعليق">
+<!ENTITY aboutTelemetry.firefoxDataDoc "The <a>Firefox Data Documentation</a> contains guides about how to work with our data tools.">
+<!ENTITY aboutTelemetry.telemetryClientDoc "The <a>Firefox Telemetry client documentation</a> includes definitions for concepts, API documentation and data references.">
+<!ENTITY aboutTelemetry.telemetryDashboard "The <a>Telemetry dashboards</a> allow you to visualize the data Mozilla receives via Telemetry.">
 
-<!ENTITY aboutTelemetry.hideSymbols "  أظهر البيانات الخام من التعليق">
-
-<!ENTITY aboutTelemetry.filterText "  مرشح (نصوص أو /regexp/)">
-
-<!ENTITY aboutTelemetry.payloadChoiceHeader "  الحمولة">
-
-
-
-<!ENTITY aboutTelemetry.keyedScalarsSection "
-  Keyed Scalars
-">
-
-<!ENTITY aboutTelemetry.pingDataDisplay "
-Ping data display:
-">
-
-<!ENTITY aboutTelemetry.rawPayload "
-  Raw Payload
-">
-
-<!ENTITY aboutTelemetry.rawPingData "
-Raw ping data…
-">
-
-<!ENTITY aboutTelemetry.scalarsSection "
-  Scalars
-">
-
-<!ENTITY aboutTelemetry.showArchivedPingData "
-Archived ping data
-">
-
-<!ENTITY aboutTelemetry.showCurrentPingData "
-Current ping data
-">
-
-<!ENTITY aboutTelemetry.showSubsessionData "
-Show subsession data
-">
-
-<!ENTITY aboutTelemetry.structured "
-Structured
-">

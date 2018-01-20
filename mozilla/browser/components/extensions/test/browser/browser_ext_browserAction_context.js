@@ -2,7 +2,7 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
-function* runTests(options) {
+async function runTests(options) {
   async function background(getTests) {
     async function checkDetails(expecting, tabId) {
       let title = await browser.browserAction.getTitle({tabId});
@@ -124,7 +124,9 @@ function* runTests(options) {
   }
 
   let awaitFinish = new Promise(resolve => {
-    extension.onMessage("nextTest", (expecting, testsRemaining) => {
+    extension.onMessage("nextTest", async (expecting, testsRemaining) => {
+      await promiseAnimationFrame();
+
       checkDetails(expecting);
 
       if (testsRemaining) {
@@ -135,15 +137,15 @@ function* runTests(options) {
     });
   });
 
-  yield extension.startup();
+  await extension.startup();
 
-  yield awaitFinish;
+  await awaitFinish;
 
-  yield extension.unload();
+  await extension.unload();
 }
 
-add_task(function* testTabSwitchContext() {
-  yield runTests({
+add_task(async function testTabSwitchContext() {
+  await runTests({
     manifest: {
       "browser_action": {
         "default_icon": "default.png",
@@ -175,7 +177,7 @@ add_task(function* testTabSwitchContext() {
       "2.png": imageBuffer,
     },
 
-    getTests(tabs, expectDefaults) {
+    getTests: function(tabs, expectDefaults) {
       const DEFAULT_BADGE_COLOR = [0xd9, 0, 0, 255];
 
       let details = [
@@ -212,6 +214,12 @@ add_task(function* testTabSwitchContext() {
          "title": "Default Title 2",
          "badge": "d2",
          "badgeBackgroundColor": [0, 0xff, 0, 0xff]},
+        {"icon": browser.runtime.getURL("default-2.png"),
+         "popup": browser.runtime.getURL("default-2.html"),
+         "title": "Default Title 2",
+         "badge": "d2",
+         "badgeBackgroundColor": [0, 0xff, 0, 0xff],
+         "disabled": false},
       ];
 
       return [
@@ -249,20 +257,6 @@ add_task(function* testTabSwitchContext() {
           await expectDefaults(details[0]);
           expect(details[2]);
         },
-        expect => {
-          browser.test.log("Navigate to a new page. Expect no changes.");
-
-          // TODO: This listener should not be necessary, but the |tabs.update|
-          // callback currently fires too early in e10s windows.
-          browser.tabs.onUpdated.addListener(function listener(tabId, changed) {
-            if (tabId == tabs[1] && changed.url) {
-              browser.tabs.onUpdated.removeListener(listener);
-              expect(details[2]);
-            }
-          });
-
-          browser.tabs.update(tabs[1], {url: "about:blank?1"});
-        },
         async expect => {
           browser.test.log("Switch back to the first tab. Expect previously set properties.");
           await browser.tabs.update(tabs[0], {active: true});
@@ -294,6 +288,18 @@ add_task(function* testTabSwitchContext() {
           await expectDefaults(details[3]);
           expect(details[2]);
         },
+        expect => {
+          browser.test.log("Navigate to a new page. Expect defaults.");
+
+          browser.tabs.onUpdated.addListener(function listener(tabId, changed) {
+            if (tabId == tabs[1] && changed.url) {
+              browser.tabs.onUpdated.removeListener(listener);
+              expect(details[6]);
+            }
+          });
+
+          browser.tabs.update(tabs[1], {url: "about:blank?1"});
+        },
         async expect => {
           browser.test.log("Delete tab, switch back to tab 1. Expect previous results again.");
           await browser.tabs.remove(tabs[1]);
@@ -315,8 +321,8 @@ add_task(function* testTabSwitchContext() {
   });
 });
 
-add_task(function* testDefaultTitle() {
-  yield runTests({
+add_task(async function testDefaultTitle() {
+  await runTests({
     manifest: {
       "name": "Foo Extension",
 
@@ -331,7 +337,7 @@ add_task(function* testDefaultTitle() {
       "icon.png": imageBuffer,
     },
 
-    getTests(tabs, expectDefaults) {
+    getTests: function(tabs, expectDefaults) {
       const DEFAULT_BADGE_COLOR = [0xd9, 0, 0, 255];
 
       let details = [
@@ -392,7 +398,60 @@ add_task(function* testDefaultTitle() {
           await expectDefaults(details[3]);
           expect(details[3]);
         },
+        async expect => {
+          browser.test.assertRejects(
+            browser.browserAction.setPopup({popup: "about:addons"}),
+            /Access denied for URL about:addons/,
+            "unable to set popup to about:addons");
+
+          await expectDefaults(details[3]);
+          expect(details[3]);
+        },
       ];
     },
   });
+});
+
+add_task(async function testBadgeColorPersistence() {
+  const extension = ExtensionTestUtils.loadExtension({
+    background() {
+      browser.test.onMessage.addListener((msg, arg) => {
+        browser.browserAction[msg](arg);
+      });
+    },
+    manifest: {
+      browser_action: {},
+    },
+  });
+  await extension.startup();
+
+  function getBadgeForWindow(win) {
+    const widget = getBrowserActionWidget(extension).forWindow(win).node;
+    return document.getAnonymousElementByAttribute(widget, "class", "toolbarbutton-badge");
+  }
+
+  let badge = getBadgeForWindow(window);
+  const badgeChanged = new Promise((resolve) => {
+    const observer = new MutationObserver(() => resolve());
+    observer.observe(badge, {attributes: true, attributeFilter: ["style"]});
+  });
+
+  extension.sendMessage("setBadgeText", {text: "hi"});
+  extension.sendMessage("setBadgeBackgroundColor", {color: [0, 255, 0, 255]});
+
+  await badgeChanged;
+
+  is(badge.value, "hi", "badge text is set in first window");
+  is(badge.style.backgroundColor, "rgb(0, 255, 0)", "badge color is set in first window");
+
+  let windowOpenedPromise = BrowserTestUtils.waitForNewWindow();
+  let win = OpenBrowserWindow();
+  await windowOpenedPromise;
+
+  badge = getBadgeForWindow(win);
+  is(badge.value, "hi", "badge text is set in new window");
+  is(badge.style.backgroundColor, "rgb(0, 255, 0)", "badge color is set in new window");
+
+  await BrowserTestUtils.closeWindow(win);
+  await extension.unload();
 });

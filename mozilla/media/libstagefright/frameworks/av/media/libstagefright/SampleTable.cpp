@@ -28,6 +28,8 @@
 #include <media/stagefright/DataSource.h>
 #include <media/stagefright/Utils.h>
 
+
+#include <cinttypes>
 #include <stdint.h>
 
 namespace stagefright {
@@ -562,8 +564,8 @@ SampleTable::setSampleAuxiliaryInformationSizeParams(
     }
 
     if (data_offset != data_end) {
-        ALOGW("wrong saiz data size, expected %lu, actual %lu",
-              data_size, data_offset - (data_end - data_size));
+        ALOGW("wrong saiz data size, expected %zu, actual %" PRIu64,
+              data_size, uint64_t(data_offset - (data_end - data_size)));
         // Continue, assume extra data is not important.
         // Parser will skip past the box end.
     }
@@ -632,8 +634,8 @@ SampleTable::setSampleAuxiliaryInformationOffsetParams(
     }
 
     if (data_offset != data_end) {
-        ALOGW("wrong saio data size, expected %lu, actual %lu",
-              data_size, data_offset - (data_end - data_size));
+        ALOGW("wrong saio data size, expected %zu, actual %" PRIu64,
+              data_size, uint64_t(data_offset - (data_end - data_size)));
         // Continue, assume extra data is not important.
         // Parser will skip past the box end.
     }

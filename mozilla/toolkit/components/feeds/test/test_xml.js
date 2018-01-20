@@ -32,12 +32,13 @@ function FeedListener(testcase) {
 }
 
 FeedListener.prototype = {
-  handleResult: function(result) {
+  handleResult(result) {
     var feed = result.doc;
     try {
       do_print("Testing feed " + this.testcase.file.path);
       Assert.ok(isIID(feed, Ci.nsIFeed), "Has feed interface");
 
+      // eslint-disable-next-line no-eval
       if (!eval(this.testcase.expect)) {
         Assert.ok(false, "expect failed for " + this.testcase.desc);
       } else {
@@ -49,14 +50,14 @@ FeedListener.prototype = {
 
     run_next_test();
   }
-}
+};
 
 function createTest(data) {
   return function() {
     var uri;
 
     if (data.base == null) {
-      uri = NetUtil.newURI('http://example.org/' + data.path);
+      uri = NetUtil.newURI("http://example.org/" + data.path);
     } else {
       uri = data.base;
     }
@@ -77,7 +78,7 @@ function createTest(data) {
     } finally {
       stream.close();
     }
-  }
+  };
 }
 
 function run_test() {

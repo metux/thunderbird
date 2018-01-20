@@ -34,7 +34,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(PerformanceObserver)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCallback)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPerformance)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mOwner)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(PerformanceObserver)
 
@@ -114,12 +113,13 @@ PerformanceObserver::Notify()
   RefPtr<PerformanceObserverEntryList> list =
     new PerformanceObserverEntryList(this, mQueuedEntries);
 
+  mQueuedEntries.Clear();
+
   ErrorResult rv;
   mCallback->Call(this, *list, *this, rv);
   if (NS_WARN_IF(rv.Failed())) {
     rv.SuppressException();
   }
-  mQueuedEntries.Clear();
 }
 
 void
@@ -170,6 +170,17 @@ PerformanceObserver::Observe(const PerformanceObserverInit& aOptions,
   mEntryTypes.SwapElements(validEntryTypes);
 
   mPerformance->AddObserver(this);
+
+  if (aOptions.mBuffered) {
+    for (auto entryType : mEntryTypes) {
+      nsTArray<RefPtr<PerformanceEntry>> existingEntries;
+      mPerformance->GetEntriesByType(entryType, existingEntries);
+      if (!existingEntries.IsEmpty()) {
+        mQueuedEntries.AppendElements(existingEntries);
+      }
+    }
+  }
+
   mConnected = true;
 }
 

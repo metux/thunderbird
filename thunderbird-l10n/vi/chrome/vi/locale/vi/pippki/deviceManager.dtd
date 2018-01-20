@@ -68,7 +68,10 @@
 
 <!ENTITY loaddevice.title                       "Nạp thiết bị PKCS#11">
 
-<!-- LOCALIZATION NOTE (devmgr.style2): This is CSS style for Device Manager
-     window size. Don't translate "width" nor "height". Adjust the numbers
-     to make window contents fit. -->
 <!ENTITY devmgr.style2                          "width: 67em; height: 32em;">
+
+<!ENTITY loaddevice.modname2                    "Module Name">
+<!ENTITY loaddevice.modname2.accesskey          "M">
+<!ENTITY loaddevice.filename2                   "Module filename">
+<!ENTITY loaddevice.filename2.accesskey         "f">
+<!ENTITY loaddevice.title2                      "Load PKCS#11 Device Driver">

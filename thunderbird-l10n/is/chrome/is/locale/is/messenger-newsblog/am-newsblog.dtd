@@ -20,3 +20,9 @@
 <!ENTITY feeds.wizardShortName "Straumar">
 <!ENTITY feeds.wizardLongName "Blogg og fréttastraumar">
 <!ENTITY feeds.wizardLongName.accesskey "F">
+
+<!ENTITY biffAll.label                 "Enable updates for all feeds">
+<!ENTITY biffAll.accesskey             "E">
+
+<!ENTITY newFeedSettings.label         "Default Settings for New Feeds">
+

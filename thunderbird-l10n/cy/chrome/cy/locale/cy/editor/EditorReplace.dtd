@@ -24,3 +24,4 @@
 <!ENTITY replaceAllButton.label "Newid Popeth">
 <!ENTITY replaceAllButton.accesskey "N">
 <!ENTITY closeButton.label "Cau">
+<!ENTITY closeButton.accesskey "C">

@@ -5,7 +5,7 @@
 
 var testGenerator = testSteps();
 
-function testSteps()
+function* testSteps()
 {
   const name = this.window ? window.location.pathname : "Splendid Test";
   const storeName_ToBeDeleted = "test store to be deleted";
@@ -52,7 +52,7 @@ function testSteps()
   request.onerror = expectedErrorHandler("AbortError");
   txn.abort();
   try {
-    objectStore.get('foo');
+    objectStore.get("foo");
     ok(false, "TransactionInactiveError shall be thrown if the transaction is inactive.");
   } catch (e) {
     ok(e instanceof DOMException, "got a database exception");
@@ -62,7 +62,7 @@ function testSteps()
   yield undefined;
 
   try {
-    objectStore.get('foo');
+    objectStore.get("foo");
     ok(false, "TransactionInactiveError shall be thrown if the transaction is inactive.");
   } catch (e) {
     ok(e instanceof DOMException, "got a database exception");
@@ -70,5 +70,4 @@ function testSteps()
   }
 
   finishTest();
-  yield undefined;
 }

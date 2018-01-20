@@ -7,7 +7,6 @@
 #include "mozilla/EndianUtils.h"
 #include "mozilla/UniquePtrExtensions.h"
 #include "nsBMPEncoder.h"
-#include "prprf.h"
 #include "nsString.h"
 #include "nsStreamUtils.h"
 #include "nsTArray.h"
@@ -484,7 +483,8 @@ nsBMPEncoder::NotifyListener()
        mNotifyThreshold || mFinished)) {
     nsCOMPtr<nsIInputStreamCallback> callback;
     if (mCallbackTarget) {
-      callback = NS_NewInputStreamReadyEvent(mCallback, mCallbackTarget);
+      callback = NS_NewInputStreamReadyEvent("nsBMPEncoder::NotifyListener",
+                                             mCallback, mCallbackTarget);
     } else {
       callback = mCallback;
     }

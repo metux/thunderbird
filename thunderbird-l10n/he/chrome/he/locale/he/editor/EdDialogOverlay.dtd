@@ -23,3 +23,6 @@
 <!ENTITY LinkURLEditField.label "הכנס מיקום דף אינטרנט, קובץ מקומי, או בחר עוגן או כותרת מן הרשימה המופיעה:">
 <!ENTITY LinkURLEditField.accessKey "מ">
 
+
+<!ENTITY LinkURLEditField2.label "Enter a web page location, a local file, or select a Named Anchor or Heading from the field's context menu:">
+<!ENTITY LinkURLEditField2.accessKey "w">

@@ -23,8 +23,8 @@
 #ifndef nsHtml5ArrayCopy_h
 #define nsHtml5ArrayCopy_h
 
+#include "nsStringFwd.h"
 
-class nsString;
 class nsHtml5StackNode;
 class nsHtml5AttributeName;
 
@@ -51,10 +51,11 @@ class nsHtml5ArrayCopy {
       memcpy(target, source, size_t(length) * sizeof(int32_t));
     }
 
-    static inline void
-    arraycopy(nsString** source, nsString** target, int32_t length)
+    static inline void arraycopy(nsHtml5String* source,
+                                 nsHtml5String* target,
+                                 int32_t length)
     {
-      memcpy(target, source, size_t(length) * sizeof(nsString*));
+      memcpy(target, source, size_t(length) * sizeof(nsHtml5String));
     }
 
     static inline void

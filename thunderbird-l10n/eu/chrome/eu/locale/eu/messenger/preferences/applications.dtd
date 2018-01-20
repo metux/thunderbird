@@ -19,8 +19,8 @@
 <!ENTITY alwaysAsk.accesskey          "B">
 <!ENTITY chooseFolderWin.label        "Arakatu…">
 <!ENTITY chooseFolderWin.accesskey    "A">
-<!ENTITY chooseFolderMac.label        "Hautatu…">
-<!ENTITY chooseFolderMac.accesskey    "H">
+<!ENTITY chooseFolderMac.label        "Aukeratu…">
+<!ENTITY chooseFolderMac.accesskey    "A">
 
 <!ENTITY attachments.incoming.label   "Sarrerakoa">
 <!ENTITY attachments.outgoing.label   "Irteerakoa">
@@ -36,6 +36,5 @@
 <!ENTITY enableCloudFileAccountOffer.label "Eskaini partekatzea hau baino handiagoak diren fitxategientzat:">
 <!ENTITY enableCloudFileAccountOffer.mb "MB">
 
-<!ENTITY addCloudFileAccount1.accesskey   "A">
-
 <!ENTITY addCloudFileAccount1.label       "Add…">
+<!ENTITY addCloudFileAccount1.accesskey   "A">

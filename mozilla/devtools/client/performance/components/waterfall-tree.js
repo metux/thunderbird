@@ -4,11 +4,11 @@
 "use strict";
 
 const { createClass, createFactory, PropTypes } = require("devtools/client/shared/vendor/react");
-const Tree = createFactory(require("devtools/client/shared/components/tree"));
+const Tree = createFactory(require("devtools/client/shared/components/Tree"));
 const WaterfallTreeRow = createFactory(require("./waterfall-tree-row"));
 
-// px - keep in sync with var(--waterfall-tree-row-height) in performance.css
-const WATERFALL_TREE_ROW_HEIGHT = 15;
+// Keep in sync with var(--waterfall-tree-row-height) in performance.css
+const WATERFALL_TREE_ROW_HEIGHT = 15; // px
 
 /**
  * Checks if a given marker is in the specified time range.

@@ -12,7 +12,7 @@ var Services = require("Services");
 var {gDevTools} = require("devtools/client/framework/devtools");
 var {TargetFactory} = require("devtools/client/framework/target");
 var {Toolbox} = require("devtools/client/framework/toolbox");
-var {DebuggerClient} = require("devtools/shared/client/main");
+var {DebuggerClient} = require("devtools/shared/client/debugger-client");
 var {Task} = require("devtools/shared/task");
 var {LocalizationHelper} = require("devtools/shared/l10n");
 var L10N = new LocalizationHelper("devtools/client/locales/connection-screen.properties");
@@ -24,8 +24,7 @@ var gConnectionTimeout;
  * Once DOM is ready, we prefil the host/port inputs with
  * pref-stored values.
  */
-window.addEventListener("DOMContentLoaded", function onDOMReady() {
-  window.removeEventListener("DOMContentLoaded", onDOMReady, true);
+window.addEventListener("DOMContentLoaded", function () {
   let host = Services.prefs.getCharPref("devtools.debugger.remote-host");
   let port = Services.prefs.getIntPref("devtools.debugger.remote-port");
 
@@ -45,7 +44,7 @@ window.addEventListener("DOMContentLoaded", function onDOMReady() {
       showError("unexpected");
     });
   });
-}, true);
+}, {capture: true, once: true});
 
 /**
  * Called when the "connect" button is clicked.
@@ -80,12 +79,20 @@ var submit = Task.async(function* () {
 var onConnectionReady = Task.async(function* ([aType, aTraits]) {
   clearTimeout(gConnectionTimeout);
 
-  let response = yield gClient.listAddons();
+  let addons = [];
+  try {
+    let response = yield gClient.listAddons();
+    if (!response.error && response.addons.length > 0) {
+      addons = response.addons;
+    }
+  } catch(e) {
+    // listAddons throws if the runtime doesn't support addons
+  }
 
   let parent = document.getElementById("addonActors");
-  if (!response.error && response.addons.length > 0) {
+  if (addons.length > 0) {
     // Add one entry for each add-on.
-    for (let addon of response.addons) {
+    for (let addon of addons) {
       if (!addon.debuggable) {
         continue;
       }
@@ -98,7 +105,7 @@ var onConnectionReady = Task.async(function* ([aType, aTraits]) {
     parent.remove();
   }
 
-  response = yield gClient.listTabs();
+  let response = yield gClient.listTabs();
 
   parent = document.getElementById("tabActors");
 
@@ -157,8 +164,9 @@ var onConnectionReady = Task.async(function* ([aType, aTraits]) {
  */
 function buildAddonLink(addon, parent) {
   let a = document.createElement("a");
-  a.onclick = function () {
-    openToolbox(addon, true, "jsdebugger", false);
+  a.onclick = async function () {
+    const isTabActor = addon.isWebExtension;
+    openToolbox(addon, true, "webconsole", isTabActor);
   };
 
   a.textContent = addon.name;

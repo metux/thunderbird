@@ -33,7 +33,7 @@ CompositionTransaction::CompositionTransaction(
   , mReplaceLength(aReplaceLength)
   , mRanges(aTextRangeArray)
   , mStringToInsert(aStringToInsert)
-  , mEditorBase(aEditorBase)
+  , mEditorBase(&aEditorBase)
   , mRangeUpdater(aRangeUpdater)
   , mFixed(false)
 {
@@ -45,6 +45,7 @@ CompositionTransaction::~CompositionTransaction()
 }
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(CompositionTransaction, EditTransactionBase,
+                                   mEditorBase,
                                    mTextNode)
 // mRangeList can't lead to cycles
 
@@ -60,9 +61,13 @@ NS_IMPL_RELEASE_INHERITED(CompositionTransaction, EditTransactionBase)
 NS_IMETHODIMP
 CompositionTransaction::DoTransaction()
 {
+  if (NS_WARN_IF(!mEditorBase)) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
   // Fail before making any changes if there's no selection controller
   nsCOMPtr<nsISelectionController> selCon;
-  mEditorBase.GetSelectionController(getter_AddRefs(selCon));
+  mEditorBase->GetSelectionController(getter_AddRefs(selCon));
   NS_ENSURE_TRUE(selCon, NS_ERROR_NOT_INITIALIZED);
 
   // Advance caret: This requires the presentation shell to get the selection.
@@ -108,9 +113,13 @@ CompositionTransaction::DoTransaction()
 NS_IMETHODIMP
 CompositionTransaction::UndoTransaction()
 {
+  if (NS_WARN_IF(!mEditorBase)) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
   // Get the selection first so we'll fail before making any changes if we
   // can't get it
-  RefPtr<Selection> selection = mEditorBase.GetSelection();
+  RefPtr<Selection> selection = mEditorBase->GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NOT_INITIALIZED);
 
   nsresult rv = mTextNode->DeleteData(mOffset, mStringToInsert.Length());
@@ -171,7 +180,10 @@ CompositionTransaction::GetTxnDescription(nsAString& aString)
 nsresult
 CompositionTransaction::SetSelectionForRanges()
 {
-  return SetIMESelection(mEditorBase, mTextNode, mOffset,
+  if (NS_WARN_IF(!mEditorBase)) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+  return SetIMESelection(*mEditorBase, mTextNode, mOffset,
                          mStringToInsert.Length(), mRanges);
 }
 
@@ -186,8 +198,7 @@ CompositionTransaction::SetIMESelection(EditorBase& aEditorBase,
   RefPtr<Selection> selection = aEditorBase.GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NOT_INITIALIZED);
 
-  nsresult rv = selection->StartBatchChanges();
-  NS_ENSURE_SUCCESS(rv, rv);
+  SelectionBatcher selectionBatcher(selection);
 
   // First, remove all selections of IME composition.
   static const RawSelectionType kIMESelections[] = {
@@ -201,6 +212,7 @@ CompositionTransaction::SetIMESelection(EditorBase& aEditorBase,
   aEditorBase.GetSelectionController(getter_AddRefs(selCon));
   NS_ENSURE_TRUE(selCon, NS_ERROR_NOT_INITIALIZED);
 
+  nsresult rv = NS_OK;
   for (uint32_t i = 0; i < ArrayLength(kIMESelections); ++i) {
     nsCOMPtr<nsISelection> selectionOfIME;
     if (NS_FAILED(selCon->GetSelection(kIMESelections[i],
@@ -275,10 +287,9 @@ CompositionTransaction::SetIMESelection(EditorBase& aEditorBase,
     }
 
     // Set the range of the clause to selection.
-    nsCOMPtr<nsISelection> selectionOfIME;
-    rv = selCon->GetSelection(ToRawSelectionType(textRange.mRangeType),
-                              getter_AddRefs(selectionOfIME));
-    if (NS_FAILED(rv)) {
+    RefPtr<Selection> selectionOfIME =
+      selCon->GetDOMSelection(ToRawSelectionType(textRange.mRangeType));
+    if (!selectionOfIME) {
       NS_WARNING("Failed to get IME selection");
       break;
     }
@@ -290,14 +301,8 @@ CompositionTransaction::SetIMESelection(EditorBase& aEditorBase,
     }
 
     // Set the style of the clause.
-    nsCOMPtr<nsISelectionPrivate> selectionOfIMEPriv =
-                                    do_QueryInterface(selectionOfIME);
-    if (!selectionOfIMEPriv) {
-      NS_WARNING("Failed to get nsISelectionPrivate interface from selection");
-      continue; // Since this is additional feature, we can continue this job.
-    }
-    rv = selectionOfIMEPriv->SetTextRangeStyle(clauseRange,
-                                               textRange.mRangeStyle);
+    rv = selectionOfIME->SetTextRangeStyle(clauseRange,
+                                           textRange.mRangeStyle);
     if (NS_FAILED(rv)) {
       NS_WARNING("Failed to set selection style");
       break; // but this is unexpected...
@@ -322,9 +327,6 @@ CompositionTransaction::SetIMESelection(EditorBase& aEditorBase,
       aEditorBase.HideCaret(true);
     }
   }
-
-  rv = selection->EndBatchChangesInternal();
-  NS_ASSERTION(NS_SUCCEEDED(rv), "Failed to end batch changes");
 
   return rv;
 }

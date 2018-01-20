@@ -31,8 +31,7 @@
 <!ENTITY manageDevices.label "Moduls da criptadi">
 <!ENTITY manageDevices.accesskey "c">
 
-<!ENTITY certPicker.detailsLabel "Details of selected certificate:">
-<!ENTITY certPicker.info  "Certificate:">
-
 <!-- Strings for the cert picker dialog -->
-<!ENTITY certPicker.title "Select Certificate">
+<!ENTITY certPicker.title "Tscherner in certificat">
+<!ENTITY certPicker.info  "Certificat:">
+<!ENTITY certPicker.detailsLabel "Detagls dal certificat tschernì:">

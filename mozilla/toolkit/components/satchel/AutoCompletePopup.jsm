@@ -4,11 +4,9 @@
 
 "use strict";
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
+const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
-this.EXPORTED_SYMBOLS = [ "AutoCompletePopup" ];
+this.EXPORTED_SYMBOLS = ["AutoCompletePopup"];
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -19,8 +17,10 @@ Cu.import("resource://gre/modules/Services.jsm");
 // richlistbox popup work.
 var AutoCompleteResultView = {
   // nsISupports
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAutoCompleteController,
-                                         Ci.nsIAutoCompleteInput]),
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsIAutoCompleteController,
+    Ci.nsIAutoCompleteInput,
+  ]),
 
   // Private variables
   results: [],
@@ -54,11 +54,11 @@ var AutoCompleteResultView = {
     return this.results[index].image;
   },
 
-  handleEnter: function(aIsPopupSelection) {
+  handleEnter(aIsPopupSelection) {
     AutoCompletePopup.handleEnter(aIsPopupSelection);
   },
 
-  stopSearch: function() {},
+  stopSearch() {},
 
   searchString: "",
 
@@ -76,11 +76,11 @@ var AutoCompleteResultView = {
   },
 
   // Internal JS-only API
-  clearResults: function() {
+  clearResults() {
     this.results = [];
   },
 
-  setResults: function(results) {
+  setResults(results) {
     this.results = results;
   },
 };
@@ -97,19 +97,19 @@ this.AutoCompletePopup = {
     "FormAutoComplete:Invalidate",
   ],
 
-  init: function() {
+  init() {
     for (let msg of this.MESSAGES) {
       Services.mm.addMessageListener(msg, this);
     }
   },
 
-  uninit: function() {
+  uninit() {
     for (let msg of this.MESSAGES) {
       Services.mm.removeMessageListener(msg, this);
     }
   },
 
-  handleEvent: function(evt) {
+  handleEvent(evt) {
     switch (evt.type) {
       case "popupshowing": {
         this.sendMessageToBrowser("FormAutoComplete:PopupOpened");
@@ -136,7 +136,7 @@ this.AutoCompletePopup = {
   // this function is also called directly by the login manager, which
   // uses a single message to fill in the autocomplete results. See
   // "RemoteLogins:autoCompleteLogins".
-  showPopupWithResults: function({ browser, rect, dir, results }) {
+  showPopupWithResults({ browser, rect, dir, results }) {
     if (!results.length || this.openedPopup) {
       // We shouldn't ever be showing an empty popup, and if we
       // already have a popup open, the old one needs to close before
@@ -144,17 +144,19 @@ this.AutoCompletePopup = {
       return;
     }
 
-    let window = browser.ownerDocument.defaultView;
-    let tabbrowser = window.gBrowser;
-    if (Services.focus.activeWindow != window ||
-        tabbrowser.selectedBrowser != browser) {
+    let window = browser.ownerGlobal;
+    // Also check window top in case this is a sidebar.
+    if (Services.focus.activeWindow !== window.top) {
       // We were sent a message from a window or tab that went into the
       // background, so we'll ignore it for now.
       return;
     }
 
+    let firstResultStyle = results[0].style;
     this.weakBrowser = Cu.getWeakReference(browser);
     this.openedPopup = browser.autoCompletePopup;
+    // the layout varies according to different result type
+    this.openedPopup.setAttribute("firstresultstyle", firstResultStyle);
     this.openedPopup.hidden = false;
     // don't allow the popup to become overly narrow
     this.openedPopup.setAttribute("width", Math.max(100, rect.width));
@@ -167,6 +169,12 @@ this.AutoCompletePopup = {
     if (results.length) {
       // Reset fields that were set from the last time the search popup was open
       this.openedPopup.mInput = AutoCompleteResultView;
+      // Temporarily increase the maxRows as we don't want to show
+      // the scrollbar in form autofill popup.
+      if (firstResultStyle == "autofill-profile") {
+        this.openedPopup._normalMaxRows = this.openedPopup.maxRows;
+        this.openedPopup.mInput.maxRows = 100;
+      }
       this.openedPopup.showCommentColumn = false;
       this.openedPopup.showImageColumn = false;
       this.openedPopup.addEventListener("popuphidden", this);
@@ -206,7 +214,7 @@ this.AutoCompletePopup = {
     Services.logins.removeLogin(login);
   },
 
-  receiveMessage: function(message) {
+  receiveMessage(message) {
     if (!message.target.autoCompletePopup) {
       // Returning false to pacify ESLint, but this return value is
       // ignored by the messaging infrastructure.
@@ -240,8 +248,12 @@ this.AutoCompletePopup = {
 
       case "FormAutoComplete:MaybeOpenPopup": {
         let { results, rect, dir } = message.data;
-        this.showPopupWithResults({ browser: message.target, rect, dir,
-                                    results });
+        this.showPopupWithResults({
+          browser: message.target,
+          rect,
+          dir,
+          results,
+        });
         break;
       }
 
@@ -276,6 +288,7 @@ this.AutoCompletePopup = {
    * The real controller's handleEnter is called directly in the content process
    * for other methods of completing a selection (e.g. using the tab or enter
    * keys) since the field with focus is in that process.
+   * @param {boolean} aIsPopupSelection
    */
   handleEnter(aIsPopupSelection) {
     if (this.openedPopup) {
@@ -296,22 +309,23 @@ this.AutoCompletePopup = {
    *        The optional data to send with the message.
    */
   sendMessageToBrowser(msgName, data) {
-    let browser = this.weakBrowser ? this.weakBrowser.get()
-                                   : null;
+    let browser = this.weakBrowser ?
+      this.weakBrowser.get() :
+      null;
     if (browser) {
       browser.messageManager.sendAsyncMessage(msgName, data);
     }
   },
 
-  stopSearch: function() {},
+  stopSearch() {},
 
   /**
    * Sends a message to the browser requesting that the input
    * that the AutoCompletePopup is open for be focused.
    */
-  requestFocus: function() {
+  requestFocus() {
     if (this.openedPopup) {
       this.sendMessageToBrowser("FormAutoComplete:Focus");
     }
   },
-}
+};

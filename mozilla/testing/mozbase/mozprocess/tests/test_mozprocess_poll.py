@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
+
 import os
 import signal
-import unittest
+
+import mozunit
 
 from mozprocess import processhandler
 
@@ -103,4 +106,4 @@ class ProcTestPoll(proctest.ProcTest):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    mozunit.main()

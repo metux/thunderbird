@@ -37,3 +37,5 @@
 <!ENTITY smtpDefaultServer.label "ডিফল্ট সার্ভার ব্যবহার">
 
 <!ENTITY replyTo.placeholder "Recipients will reply to this other address">
+<!ENTITY smtpServerEdit.label "Edit SMTP server…">
+<!ENTITY smtpServerEdit.accesskey "P">

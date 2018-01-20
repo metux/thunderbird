@@ -34,20 +34,20 @@ this.TokenServerClientError = function TokenServerClientError(message) {
   // Without explicitly setting .stack, all stacks from these errors will point
   // to the "new Error()" call a few lines down, which isn't helpful.
   this.stack = Error().stack;
-}
+};
 TokenServerClientError.prototype = new Error();
 TokenServerClientError.prototype.constructor = TokenServerClientError;
 TokenServerClientError.prototype._toStringFields = function() {
   return {message: this.message};
-}
+};
 TokenServerClientError.prototype.toString = function() {
   return this.name + "(" + JSON.stringify(this._toStringFields()) + ")";
-}
+};
 TokenServerClientError.prototype.toJSON = function() {
   let result = this._toStringFields();
-  result["name"] = this.name;
+  result.name = this.name;
   return result;
-}
+};
 
 /**
  * Represents a TokenServerClient error that occurred in the network layer.
@@ -60,13 +60,13 @@ this.TokenServerClientNetworkError =
   this.name = "TokenServerClientNetworkError";
   this.error = error;
   this.stack = Error().stack;
-}
+};
 TokenServerClientNetworkError.prototype = new TokenServerClientError();
 TokenServerClientNetworkError.prototype.constructor =
   TokenServerClientNetworkError;
 TokenServerClientNetworkError.prototype._toStringFields = function() {
   return {error: this.error};
-}
+};
 
 /**
  * Represents a TokenServerClient error that occurred on the server.
@@ -99,13 +99,13 @@ TokenServerClientNetworkError.prototype._toStringFields = function() {
  *        (string) Error message.
  */
 this.TokenServerClientServerError =
- function TokenServerClientServerError(message, cause="general") {
+ function TokenServerClientServerError(message, cause = "general") {
   this.now = new Date().toISOString(); // may be useful to diagnose time-skew issues.
   this.name = "TokenServerClientServerError";
   this.message = message || "Server error.";
   this.cause = cause;
   this.stack = Error().stack;
-}
+};
 TokenServerClientServerError.prototype = new TokenServerClientError();
 TokenServerClientServerError.prototype.constructor =
   TokenServerClientServerError;
@@ -149,12 +149,9 @@ TokenServerClientServerError.prototype._toStringFields = function() {
  */
 this.TokenServerClient = function TokenServerClient() {
   this._log = Log.repository.getLogger("Common.TokenServerClient");
-  let level = "Debug";
-  try {
-    level = Services.prefs.getCharPref(PREF_LOG_LEVEL);
-  } catch (ex) {}
+  let level = Services.prefs.getCharPref(PREF_LOG_LEVEL, "Debug");
   this._log.level = Log.Level[level];
-}
+};
 TokenServerClient.prototype = {
   /**
    * Logger instance.
@@ -244,7 +241,7 @@ TokenServerClient.prototype = {
    *         (bool) Whether to send acceptance to service conditions.
    */
   getTokenFromBrowserIDAssertion:
-    function getTokenFromBrowserIDAssertion(url, assertion, cb, addHeaders={}) {
+    function getTokenFromBrowserIDAssertion(url, assertion, cb, addHeaders = {}) {
     if (!url) {
       throw new TokenServerClientError("url argument is not valid.");
     }
@@ -368,14 +365,12 @@ TokenServerClient.prototype = {
         // invalid-generation.
         error.message = "Authentication failed.";
         error.cause = result.status;
-      }
-
-      // 403 should represent a "condition acceptance needed" response.
-      //
-      // The extra validation of "urls" is important. We don't want to signal
-      // conditions required unless we are absolutely sure that is what the
-      // server is asking for.
-      else if (response.status == 403) {
+      } else if (response.status == 403) {
+        // 403 should represent a "condition acceptance needed" response.
+        //
+        // The extra validation of "urls" is important. We don't want to signal
+        // conditions required unless we are absolutely sure that is what the
+        // server is asking for.
         if (!("urls" in result)) {
           this._log.warn("403 response without proper fields!");
           this._log.warn("Response body: " + response.body);
@@ -436,7 +431,7 @@ TokenServerClient.prototype = {
   observerPrefix: null,
 
   // Given an optional header value, notify that a backoff has been requested.
-  _maybeNotifyBackoff: function (response, headerName) {
+  _maybeNotifyBackoff(response, headerName) {
     if (!this.observerPrefix) {
       return;
     }
@@ -456,7 +451,7 @@ TokenServerClient.prototype = {
   },
 
   // override points for testing.
-  newRESTRequest: function(url) {
+  newRESTRequest(url) {
     return new RESTRequest(url);
   }
 };

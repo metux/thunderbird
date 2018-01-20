@@ -4,22 +4,28 @@
 "use strict";
 
 /**
- * Test if the summary text displayed in the network requests menu footer
- * is correct.
+ * Test if the summary text displayed in the network requests menu footer is correct.
  */
 
 add_task(function* () {
+  const {
+    getFormattedSize,
+    getFormattedTime
+  } = require("devtools/client/netmonitor/src/utils/format-utils");
+
   requestLongerTimeout(2);
-  let { L10N } = require("devtools/client/netmonitor/l10n");
-  let { PluralForm } = require("devtools/shared/plural-form");
 
   let { tab, monitor } = yield initNetMonitor(FILTERING_URL);
   info("Starting test... ");
 
-  let { $, NetMonitorView } = monitor.panelWin;
-  let { RequestsMenu } = NetMonitorView;
+  let { document, store, windowRequire } = monitor.panelWin;
+  let Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
+  let { getDisplayedRequestsSummary } =
+    windowRequire("devtools/client/netmonitor/src/selectors/index");
+  let { L10N } = windowRequire("devtools/client/netmonitor/src/utils/l10n");
+  let { PluralForm } = windowRequire("devtools/shared/plural-form");
 
-  RequestsMenu.lazyUpdate = false;
+  store.dispatch(Actions.batchEnable(false));
   testStatus();
 
   for (let i = 0; i < 2; i++) {
@@ -32,9 +38,9 @@ add_task(function* () {
 
     testStatus();
 
-    let buttons = ["html", "css", "js", "xhr", "fonts", "images", "media", "flash"];
+    let buttons = ["html", "css", "js", "xhr", "fonts", "images", "media"];
     for (let button of buttons) {
-      let buttonEl = $(`#requests-menu-filter-${button}-button`);
+      let buttonEl = document.querySelector(`.requests-list-filter-${button}-button`);
       EventUtils.sendMouseEvent({ type: "click" }, buttonEl);
       testStatus();
     }
@@ -43,33 +49,42 @@ add_task(function* () {
   yield teardown(monitor);
 
   function testStatus() {
-    let summary = $("#requests-menu-network-summary-button");
-    let value = summary.getAttribute("label");
-    info("Current summary: " + value);
+    let state = store.getState();
+    let totalRequestsCount = state.requests.requests.size;
+    let requestsSummary = getDisplayedRequestsSummary(state);
+    info(`Current requests: ${requestsSummary.count} of ${totalRequestsCount}.`);
 
-    let visibleItems = RequestsMenu.visibleItems;
-    let visibleRequestsCount = visibleItems.length;
-    let totalRequestsCount = RequestsMenu.itemCount;
-    info("Current requests: " + visibleRequestsCount + " of " + totalRequestsCount + ".");
+    let valueCount = document.querySelector(".requests-list-network-summary-count")
+                        .textContent;
+    info("Current summary count: " + valueCount);
+    let expectedCount = PluralForm.get(requestsSummary.count,
+      L10N.getFormatStrWithNumbers("networkMenu.summary.requestsCount",
+        requestsSummary.count));
 
-    if (!totalRequestsCount || !visibleRequestsCount) {
-      is(value, L10N.getStr("networkMenu.empty"),
+    if (!totalRequestsCount || !requestsSummary.count) {
+      is(valueCount, L10N.getStr("networkMenu.summary.requestsCountEmpty"),
         "The current summary text is incorrect, expected an 'empty' label.");
       return;
     }
 
-    let totalBytes = RequestsMenu._getTotalBytesOfRequests(visibleItems);
-    let totalMillis =
-      RequestsMenu._getNewestRequest(visibleItems).attachment.endedMillis -
-      RequestsMenu._getOldestRequest(visibleItems).attachment.startedMillis;
+    let valueTransfer = document.querySelector(".requests-list-network-summary-transfer")
+                        .textContent;
+    info("Current summary transfer: " + valueTransfer);
+    let expectedTransfer = L10N.getFormatStrWithNumbers("networkMenu.summary.transferred",
+      getFormattedSize(requestsSummary.contentSize),
+      getFormattedSize(requestsSummary.transferredSize));
 
-    info("Computed total bytes: " + totalBytes);
-    info("Computed total millis: " + totalMillis);
+    let valueFinish = document.querySelector(".requests-list-network-summary-finish")
+                        .textContent;
+    info("Current summary finish: " + valueFinish);
+    let expectedFinish = L10N.getFormatStrWithNumbers("networkMenu.summary.finish",
+      getFormattedTime(requestsSummary.millis));
 
-    is(value, PluralForm.get(visibleRequestsCount, L10N.getStr("networkMenu.summary"))
-      .replace("#1", visibleRequestsCount)
-      .replace("#2", L10N.numberWithDecimals((totalBytes || 0) / 1024, 2))
-      .replace("#3", L10N.numberWithDecimals((totalMillis || 0) / 1000, 2))
-    , "The current summary text is incorrect.");
+    info(`Computed total bytes: ${requestsSummary.bytes}`);
+    info(`Computed total millis: ${requestsSummary.millis}`);
+
+    is(valueCount, expectedCount, "The current summary count is correct.");
+    is(valueTransfer, expectedTransfer, "The current summary transfer is correct.");
+    is(valueFinish, expectedFinish, "The current summary finish is correct.");
   }
 });

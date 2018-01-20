@@ -137,9 +137,9 @@ function filterEditorOnLoad()
         }
 
         // copy the search terms
-        for (let i = 0; i < copiedFilter.searchTerms.Count(); i++)
+        for (let i = 0; i < copiedFilter.searchTerms.length; i++)
         {
-          var searchTerm = copiedFilter.searchTerms.QueryElementAt(i,
+          let searchTerm = copiedFilter.searchTerms.queryElementAt(i,
             Components.interfaces.nsIMsgSearchTerm);
 
           var newTerm = newFilter.createTerm();
@@ -232,14 +232,12 @@ var gFolderListener = {
 
   OnItemEvent: function(folder, event)
   {
-    var eventType = event.toString();
-
-    if (eventType == "FolderCreateCompleted")
+    if (event == "FolderCreateCompleted")
     {
       gActionTargetElement.selectFolder(folder);
       SetBusyCursor(window, false);
     }
-    else if (eventType == "FolderCreateFailed")
+    else if (event == "FolderCreateFailed")
       SetBusyCursor(window, false);
   }
 }

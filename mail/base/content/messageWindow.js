@@ -1,4 +1,4 @@
-/** ***** BEGIN LICENSE BLOCK *****
+/**
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -248,6 +248,10 @@ StandaloneMessageDisplayWidget.prototype = {
   },
 
   onSelectedMessagesChanged: function () {
+    // When switching folders, we won't have any selection for a while.
+    if (!this.folderDisplay.view.dbView)
+      return true;
+
     // If the message we're displaying is deleted, we won't have any selection
     // for a while, but we'll soon select a new message. So don't test the
     // selection count -- instead see if there are any messages in the db view
@@ -891,6 +895,7 @@ var MessageWindowController =
       case "cmd_forwardAttachment":
       case "cmd_editAsNew":
       case "cmd_editDraftMsg":
+      case "cmd_newMsgFromTemplate":
       case "cmd_getNextNMessages":
       case "cmd_find":
       case "cmd_findAgain":
@@ -965,6 +970,7 @@ var MessageWindowController =
       case "button_replylist":
         return gFolderDisplay.selectedMessage && IsReplyListEnabled();
       case "cmd_newMessage":
+        return CanComposeMessages();
       case "cmd_replySender":
       case "cmd_replyGroup":
       case "button_followup":
@@ -974,6 +980,7 @@ var MessageWindowController =
       case "cmd_forwardAttachment":
       case "cmd_editAsNew":
       case "cmd_editDraftMsg":
+      case "cmd_newMsgFromTemplate":
       case "cmd_print":
       case "cmd_printpreview":
       case "button_print":
@@ -1144,6 +1151,9 @@ var MessageWindowController =
         break;
       case "cmd_editDraftMsg":
         MsgEditDraftMessage(null);
+        break;
+      case "cmd_newMsgFromTemplate":
+        MsgNewMessageFromTemplate(null);
         break;
       case "cmd_moveToFolderAgain":
         var folder = MailUtils.getFolderForURI(

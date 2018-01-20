@@ -17,5 +17,5 @@
 
 
 
-<!ENTITY identityAlias.accesskey "b">
 <!ENTITY identityAlias.label     "Identity Label:">
+<!ENTITY identityAlias.accesskey "b">

@@ -26,12 +26,11 @@ var WindowListener = {
   onOpenWindow: function (win) {
     win = win.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
 
-    win.addEventListener("load", function listener() {
-      win.removeEventListener("load", listener, false);
+    win.addEventListener("load", function() {
       if (win.document.documentElement.getAttribute("windowtype") == "navigator:browser") {
         WindowListener.setupWindow(win);
       }
-    }, false);
+    }, {once: true});
   }
 }
 
@@ -51,15 +50,7 @@ function loadMochitest(e) {
   WindowListener.setupWindow(win);
   Services.wm.addListener(WindowListener);
 
-  let overlay;
-  if (flavor == "jetpack-addon") {
-    overlay = "chrome://mochikit/content/jetpack-addon-overlay.xul";
-  } else if (flavor == "jetpack-package") {
-    overlay = "chrome://mochikit/content/jetpack-package-overlay.xul";
-  } else {
-    overlay = "chrome://mochikit/content/browser-test-overlay.xul";
-  }
-
+  let overlay = "chrome://mochikit/content/browser-test-overlay.xul";
   win.document.loadOverlay(overlay, null);
 }
 

@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -9,7 +10,6 @@
 #include <stddef.h>                     // for size_t
 #include <stdint.h>                     // for uint32_t, uint64_t
 #include "CompositableTransactionParent.h"
-#include "ImageContainerParent.h"
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT_HELPER2
 #include "mozilla/Attributes.h"         // for override
 #include "mozilla/ipc/ProtocolUtils.h"
@@ -32,10 +32,10 @@ class Shmem;
 
 namespace layers {
 
+struct ImageCompositeNotificationInfo;
+
 /**
- * ImageBridgeParent is the manager Protocol of ImageContainerParent.
- * It's purpose is mainly to setup the IPDL connection. Most of the
- * interesting stuff is in ImageContainerParent.
+ * ImageBridgeParent is the manager Protocol of async Compositables.
  */
 class ImageBridgeParent final : public PImageBridgeParent,
                                 public CompositableParentManager,
@@ -44,7 +44,6 @@ class ImageBridgeParent final : public PImageBridgeParent,
 public:
   typedef InfallibleTArray<CompositableOperation> EditArray;
   typedef InfallibleTArray<OpDestroy> OpDestroyArray;
-  typedef InfallibleTArray<EditReply> EditReplyArray;
 
 protected:
   ImageBridgeParent(MessageLoop* aLoop, ProcessId aChildProcessId);
@@ -60,6 +59,7 @@ public:
   static ImageBridgeParent* CreateSameProcess();
   static bool CreateForGPUProcess(Endpoint<PImageBridgeParent>&& aEndpoint);
   static bool CreateForContent(Endpoint<PImageBridgeParent>&& aEndpoint);
+  static void Shutdown();
 
   virtual ShmemAllocator* AsShmemAllocator() override { return this; }
 
@@ -76,31 +76,28 @@ public:
   }
 
   // PImageBridge
-  virtual bool RecvImageBridgeThreadId(const PlatformThreadId& aThreadId) override;
-  virtual bool RecvUpdate(EditArray&& aEdits, OpDestroyArray&& aToDestroy,
-                          const uint64_t& aFwdTransactionId,
-                          EditReplyArray* aReply) override;
-  virtual bool RecvUpdateNoSwap(EditArray&& aEdits, OpDestroyArray&& aToDestroy,
-                                const uint64_t& aFwdTransactionId) override;
-
-  PCompositableParent* AllocPCompositableParent(const TextureInfo& aInfo,
-                                                PImageContainerParent* aImageContainer,
-                                                uint64_t*) override;
-  bool DeallocPCompositableParent(PCompositableParent* aActor) override;
+  virtual mozilla::ipc::IPCResult RecvImageBridgeThreadId(const PlatformThreadId& aThreadId) override;
+  virtual mozilla::ipc::IPCResult RecvInitReadLocks(ReadLockArray&& aReadLocks) override;
+  virtual mozilla::ipc::IPCResult RecvUpdate(EditArray&& aEdits, OpDestroyArray&& aToDestroy,
+                                          const uint64_t& aFwdTransactionId) override;
 
   virtual PTextureParent* AllocPTextureParent(const SurfaceDescriptor& aSharedData,
                                               const LayersBackend& aLayersBackend,
                                               const TextureFlags& aFlags,
-                                              const uint64_t& aSerial) override;
+                                              const uint64_t& aSerial,
+                                              const wr::MaybeExternalImageId& aExternalImageId) override;
   virtual bool DeallocPTextureParent(PTextureParent* actor) override;
+
+  virtual mozilla::ipc::IPCResult RecvNewCompositable(const CompositableHandle& aHandle,
+                                                      const TextureInfo& aInfo,
+                                                      const LayersBackend& aLayersBackend) override;
+  virtual mozilla::ipc::IPCResult RecvReleaseCompositable(const CompositableHandle& aHandle) override;
 
   PMediaSystemResourceManagerParent* AllocPMediaSystemResourceManagerParent() override;
   bool DeallocPMediaSystemResourceManagerParent(PMediaSystemResourceManagerParent* aActor) override;
-  virtual PImageContainerParent* AllocPImageContainerParent() override;
-  virtual bool DeallocPImageContainerParent(PImageContainerParent* actor) override;
 
   // Shutdown step 1
-  virtual bool RecvWillClose() override;
+  virtual mozilla::ipc::IPCResult RecvWillClose() override;
 
   MessageLoop* GetMessageLoop() const { return mMessageLoop; }
 
@@ -118,20 +115,20 @@ public:
 
   virtual bool IsSameProcess() const override;
 
-  static RefPtr<ImageBridgeParent> GetInstance(ProcessId aId);
+  static already_AddRefed<ImageBridgeParent> GetInstance(ProcessId aId);
 
-  static bool NotifyImageComposites(nsTArray<ImageCompositeNotification>& aNotifications);
+  static bool NotifyImageComposites(nsTArray<ImageCompositeNotificationInfo>& aNotifications);
 
   virtual bool UsesImageBridge() const override { return true; }
 
   virtual bool IPCOpen() const override { return !mClosed; }
 
 protected:
-  void OnChannelConnected(int32_t pid) override;
-
   void Bind(Endpoint<PImageBridgeParent>&& aEndpoint);
 
 private:
+  static void ShutdownInternal();
+
   void DeferredDestroy();
   MessageLoop* mMessageLoop;
   // This keeps us alive until ActorDestroy(), at which point we do a
@@ -144,7 +141,8 @@ private:
   /**
    * Map of all living ImageBridgeParent instances
    */
-  static std::map<base::ProcessId, ImageBridgeParent*> sImageBridges;
+  typedef std::map<base::ProcessId, ImageBridgeParent*> ImageBridgeMap;
+  static ImageBridgeMap sImageBridges;
 
   RefPtr<CompositorThreadHolder> mCompositorThreadHolder;
 };

@@ -15,10 +15,6 @@ Content-Transfer-Encoding: 7bit
 <p>
     Line 2
 </p>
-    <pre>
-pre line 1
-pre line 2
-    </pre>
     <pre class="moz-signature" cols="72">-- 
       Signature block
     </pre>

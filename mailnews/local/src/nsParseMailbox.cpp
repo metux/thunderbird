@@ -294,8 +294,8 @@ void nsMsgMailboxParser::UpdateStatusText (const char* stringName)
       return;
     nsString finalString;
     const char16_t * stringArray[] = { m_folderName.get() };
-    rv = bundle->FormatStringFromName(NS_ConvertASCIItoUTF16(stringName).get(),
-                                      stringArray, 1, getter_Copies(finalString));
+    rv = bundle->FormatStringFromName(stringName,
+                                      stringArray, 1, finalString);
     m_statusFeedback->ShowStatusString(finalString);
   }
 }
@@ -529,16 +529,16 @@ nsParseMailMessageState::nsParseMailMessageState()
   nsCOMPtr<nsIPrefBranch> pPrefBranch(do_GetService(NS_PREFSERVICE_CONTRACTID));
   if (pPrefBranch)
   {
-     pPrefBranch->GetCharPref("mailnews.customDBHeaders",  getter_Copies(customDBHeaders));
+     pPrefBranch->GetCharPref("mailnews.customDBHeaders", customDBHeaders);
      ToLowerCase(customDBHeaders);
      if (customDBHeaders.Find("content-base") == -1)
-      customDBHeaders.Insert(NS_LITERAL_CSTRING("content-base "), 0);
+      customDBHeaders.InsertLiteral("content-base ", 0);
      ParseString(customDBHeaders, ' ', m_customDBHeaders);
 
      // now add customHeaders
      nsCString customHeadersString; // shown in search UI
      nsTArray<nsCString> customHeadersArray;
-     pPrefBranch->GetCharPref("mailnews.customHeaders", getter_Copies(customHeadersString));
+     pPrefBranch->GetCharPref("mailnews.customHeaders", customHeadersString);
      ToLowerCase(customHeadersString);
      customHeadersString.StripWhitespace();
      ParseString(customHeadersString, ':', customHeadersArray);
@@ -937,6 +937,12 @@ nsresult nsParseMailMessageState::ParseHeaders ()
 {
   char *buf = m_headers.GetBuffer();
   uint32_t buf_length = m_headers.GetBufferPos();
+  if (buf_length == 0)
+  {
+    // No header of an expected type is present. Consider this a successful
+    // parse so email still shows on summary and can be accessed and deleted.
+    return NS_OK;
+  }
   char *buf_end = buf + buf_length;
   if (!(buf_length > 1 && (buf[buf_length - 1] == '\r' ||
         buf[buf_length - 1] == '\n')))
@@ -1052,11 +1058,7 @@ nsresult nsParseMailMessageState::ParseHeaders ()
     }
     if (!header && m_customDBHeaders.Length())
     {
-#ifdef MOZILLA_INTERNAL_API
       nsDependentCSubstring headerStr(buf, end);
-#else
-      nsDependentCSubstring headerStr(buf, end - buf);
-#endif
 
       ToLowerCase(headerStr);
       size_t customHeaderIndex = m_customDBHeaders.IndexOf(headerStr);
@@ -1383,8 +1385,10 @@ nsresult nsParseMailMessageState::FinalizeHeaders()
     /* Take off <> around message ID. */
     if (id)
     {
-      if (id->length > 0 && id->value[0] == '<')
-        id->length--, id->value++;
+      if (id->length > 0 && id->value[0] == '<') {
+        id->length--;
+        id->value++;
+      }
 
       NS_WARNING_ASSERTION(id->length > 0, "id->length failure in FinalizeHeaders().");
 
@@ -1626,7 +1630,7 @@ nsresult nsParseMailMessageState::FinalizeHeaders()
           for (uint32_t i = 0; i < newKeywordArray.Length(); i++)
           {
             if (i)
-              newKeywords.Append(" ");
+              newKeywords.Append(' ');
             newKeywords.Append(newKeywordArray[i]);
           }
           m_newMsgHdr->SetStringProperty("keywords", newKeywords.get());
@@ -2002,9 +2006,8 @@ NS_IMETHODIMP nsParseNewMailState::ApplyFilterHit(nsIMsgFilter *filter, nsIMsgWi
   bool msgIsNew = true;
   for (uint32_t actionIndex = 0; actionIndex < numActions && *applyMore; actionIndex++)
   {
-    nsCOMPtr<nsIMsgRuleAction> filterAction;
-    rv = filterActionList->QueryElementAt(actionIndex, NS_GET_IID(nsIMsgRuleAction),
-                                                       getter_AddRefs(filterAction));
+    nsCOMPtr<nsIMsgRuleAction> filterAction =
+      do_QueryElementAt(filterActionList, actionIndex, &rv);
     if (NS_FAILED(rv) || !filterAction)
       continue;
 
@@ -2103,7 +2106,7 @@ NS_IMETHODIMP nsParseNewMailState::ApplyFilterHit(nsIMsgFilter *filter, nsIMsgWi
           if (!actionTargetFolderUri.IsEmpty() && !actionTargetFolderUri.Equals(uri))
           {
             nsCOMPtr<nsIMutableArray> messageArray(do_CreateInstance(NS_ARRAY_CONTRACTID));
-            messageArray->AppendElement(msgHdr, false);
+            messageArray->AppendElement(msgHdr);
 
             nsCOMPtr<nsIMsgFolder> dstFolder;
             nsCOMPtr<nsIMsgCopyService> copyService;
@@ -2151,7 +2154,7 @@ NS_IMETHODIMP nsParseNewMailState::ApplyFilterHit(nsIMsgFilter *filter, nsIMsgWi
       case nsMsgFilterAction::MarkFlagged:
         {
           nsCOMPtr<nsIMutableArray> messageArray(do_CreateInstance(NS_ARRAY_CONTRACTID));
-          messageArray->AppendElement(msgHdr, false);
+          messageArray->AppendElement(msgHdr);
           m_downloadFolder->MarkMessagesFlagged(messageArray, true);
         }
         break;
@@ -2165,7 +2168,7 @@ NS_IMETHODIMP nsParseNewMailState::ApplyFilterHit(nsIMsgFilter *filter, nsIMsgWi
         nsCString keyword;
         filterAction->GetStrValue(keyword);
         nsCOMPtr<nsIMutableArray> messageArray(do_CreateInstance(NS_ARRAY_CONTRACTID));
-        messageArray->AppendElement(msgHdr, false);
+        messageArray->AppendElement(msgHdr);
         m_downloadFolder->AddKeywordsToMessages(messageArray, keyword);
         break;
       }
@@ -2219,7 +2222,7 @@ NS_IMETHODIMP nsParseNewMailState::ApplyFilterHit(nsIMsgFilter *filter, nsIMsgWi
           {
             nsCOMPtr<nsIMutableArray> messages = do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
             NS_ENSURE_SUCCESS(rv, rv);
-            messages->AppendElement(msgHdr, false);
+            messages->AppendElement(msgHdr);
             // This action ignores the deleteMailLeftOnServer preference
             localFolder->MarkMsgsOnPop3Server(messages, POP3_FORCE_DEL);
 
@@ -2244,7 +2247,7 @@ NS_IMETHODIMP nsParseNewMailState::ApplyFilterHit(nsIMsgFilter *filter, nsIMsgWi
           {
             nsCOMPtr<nsIMutableArray> messages = do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
             NS_ENSURE_SUCCESS(rv, rv);
-            messages->AppendElement(msgHdr, false);
+            messages->AppendElement(msgHdr);
             localFolder->MarkMsgsOnPop3Server(messages, POP3_FETCH_BODY);
             // Don't add this header to the DB, we're going to replace it
             // with the full message.
@@ -2277,7 +2280,7 @@ NS_IMETHODIMP nsParseNewMailState::ApplyFilterHit(nsIMsgFilter *filter, nsIMsgWi
             do_CreateInstance(NS_ARRAY_CONTRACTID, &rv));
         NS_ENSURE_TRUE(messageArray, rv);
         if (NS_SUCCEEDED(rv))
-          rv = messageArray->AppendElement(msgHdr, false);
+          rv = messageArray->AppendElement(msgHdr);
 
 
         if (NS_SUCCEEDED(rv))
@@ -2374,7 +2377,7 @@ nsresult nsParseNewMailState::ApplyForwardAndReplyFilter(nsIMsgWindow *msgWindow
 void nsParseNewMailState::MarkFilteredMessageRead(nsIMsgDBHdr *msgHdr)
 {
   nsCOMPtr<nsIMutableArray> messageArray(do_CreateInstance(NS_ARRAY_CONTRACTID));
-  messageArray->AppendElement(msgHdr, false);
+  messageArray->AppendElement(msgHdr);
   m_downloadFolder->MarkMessagesRead(messageArray, true);
 }
 
@@ -2392,7 +2395,7 @@ void nsParseNewMailState::MarkFilteredMessageUnread(nsIMsgDBHdr *msgHdr)
     msgHdr->OrFlags(nsMsgMessageFlags::New, &newFlags);
   }
   nsCOMPtr<nsIMutableArray> messageArray(do_CreateInstance(NS_ARRAY_CONTRACTID));
-  messageArray->AppendElement(msgHdr, false);
+  messageArray->AppendElement(msgHdr);
   m_downloadFolder->MarkMessagesRead(messageArray, false);
 }
 
@@ -2625,7 +2628,8 @@ nsresult nsParseNewMailState::MoveIncorporatedMessage(nsIMsgDBHdr *mailHdr,
     if (NS_SUCCEEDED(rv)) {
       notifier->NotifyItemEvent(folder,
                                 NS_LITERAL_CSTRING("UnincorporatedMessageMoved"),
-                                newHdr);
+                                newHdr,
+                                EmptyCString());
     } else {
       NS_WARNING("Can't get folder for message that was moved.");
     }

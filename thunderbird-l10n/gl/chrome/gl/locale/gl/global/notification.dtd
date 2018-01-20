@@ -8,5 +8,7 @@
 
 <!ENTITY checkForUpdates "Buscar actualización…">
 
-
 <!ENTITY learnMore "Learn more…">
+
+<!ENTITY defaultButton.label "OK!">
+<!ENTITY defaultButton.accesskey "O">

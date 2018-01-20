@@ -6,7 +6,7 @@
 #define MOCK_MEDIA_DECODER_OWNER_H_
 
 #include "MediaDecoderOwner.h"
-#include "nsAutoPtr.h"
+#include "mozilla/AbstractThread.h"
 
 namespace mozilla
 {
@@ -14,14 +14,11 @@ namespace mozilla
 class MockMediaDecoderOwner : public MediaDecoderOwner
 {
 public:
-  nsresult DispatchAsyncEvent(const nsAString& aName) override
-  {
-    return NS_OK;
-  }
+  void DispatchAsyncEvent(const nsAString& aName) override {}
   void FireTimeUpdate(bool aPeriodic) override {}
   bool GetPaused() override { return false; }
   void MetadataLoaded(const MediaInfo* aInfo,
-                      nsAutoPtr<const MetadataTags> aTags) override
+                      UniquePtr<const MetadataTags> aTags) override
   {
   }
   void NetworkError() override {}
@@ -36,18 +33,21 @@ public:
   void FirstFrameLoaded() override {}
   void DispatchEncrypted(const nsTArray<uint8_t>& aInitData,
                          const nsAString& aInitDataType) override {}
-  bool IsActive() const override { return true; }
-  bool IsHidden() const override { return false; }
   void DownloadSuspended() override {}
   void DownloadResumed(bool aForceNetworkLoading) override {}
   void NotifySuspendedByCache(bool aIsSuspended) override {}
   void NotifyDecoderPrincipalChanged() override {}
-  VideoFrameContainer* GetVideoFrameContainer() override
-  {
-    return nullptr;
-  }
   void SetAudibleState(bool aAudible) override {}
   void NotifyXPCOMShutdown() override {}
+  AbstractThread* AbstractMainThread() const override
+  {
+    // Non-DocGroup version for Mock.
+    return AbstractThread::MainThread();
+  }
+  void ConstructMediaTracks(const MediaInfo* aInfo) {}
+  void RemoveMediaTracks() {}
+  void AsyncResolveSeekDOMPromiseIfExists() override {}
+  void AsyncRejectSeekDOMPromiseIfExists() override {}
 };
 }
 

@@ -139,7 +139,7 @@ CopyURIs(const InfallibleTArray<URIParams>& aDomains, nsIDomainSet* aSet)
 }
 
 void
-DomainPolicy::ApplyClone(DomainPolicyClone* aClone)
+DomainPolicy::ApplyClone(const DomainPolicyClone* aClone)
 {
     CopyURIs(aClone->blacklist(), mBlacklist);
     CopyURIs(aClone->whitelist(), mWhitelist);
@@ -155,7 +155,7 @@ GetCanonicalClone(nsIURI* aURI)
     NS_ENSURE_SUCCESS(rv, nullptr);
     rv = clone->SetUserPass(EmptyCString());
     NS_ENSURE_SUCCESS(rv, nullptr);
-    rv = clone->SetPath(EmptyCString());
+    rv = clone->SetPathQueryRef(EmptyCString());
     NS_ENSURE_SUCCESS(rv, nullptr);
     return clone.forget();
 }

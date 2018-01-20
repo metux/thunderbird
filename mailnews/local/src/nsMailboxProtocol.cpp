@@ -18,11 +18,10 @@
 #include "nsMsgMessageFlags.h"
 #include "prtime.h"
 #include "mozilla/Logging.h"
+#include "mozilla/SlicedInputStream.h"
 #include "prerror.h"
 #include "prprf.h"
 #include "nspr.h"
-
-PRLogModuleInfo *MAILBOX;
 #include "nsIFileStreams.h"
 #include "nsIStreamTransportService.h"
 #include "nsIStreamConverterService.h"
@@ -33,8 +32,13 @@ PRLogModuleInfo *MAILBOX;
 #include "nsIMimeHeaders.h"
 #include "nsIMsgPluggableStore.h"
 #include "nsISeekableStream.h"
+#include "nsStreamUtils.h"
 
 #include "nsIMsgMdnGenerator.h"
+
+using namespace mozilla;
+
+static LazyLogModule MAILBOX("MAILBOX");
 
 /* the output_buffer_size must be larger than the largest possible line
  * 2000 seems good for news
@@ -51,10 +55,6 @@ nsMailboxProtocol::nsMailboxProtocol(nsIURI * aURI)
     : nsMsgProtocol(aURI)
 {
   m_lineStreamBuffer =nullptr;
-
-  // initialize the pr log if it hasn't been initialiezed already
-  if (!MAILBOX)
-    MAILBOX = PR_NewLogModule("MAILBOX");
 }
 
 nsMailboxProtocol::~nsMailboxProtocol()
@@ -63,7 +63,7 @@ nsMailboxProtocol::~nsMailboxProtocol()
   delete m_lineStreamBuffer;
 }
 
-nsresult nsMailboxProtocol::OpenMultipleMsgTransport(uint64_t offset, int32_t size)
+nsresult nsMailboxProtocol::OpenMultipleMsgTransport(uint64_t offset, int64_t size)
 {
   nsresult rv;
 
@@ -71,9 +71,26 @@ nsresult nsMailboxProtocol::OpenMultipleMsgTransport(uint64_t offset, int32_t si
       do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  nsCOMPtr<nsIInputStream> clonedStream;
+  nsCOMPtr<nsIInputStream> replacementStream;
+  rv = NS_CloneInputStream(m_multipleMsgMoveCopyStream,
+                           getter_AddRefs(clonedStream),
+                           getter_AddRefs(replacementStream));
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (replacementStream) {
+    // If m_multipleMsgMoveCopyStream is not cloneable, NS_CloneInputStream
+    // will clone it using a pipe. In order to keep the copy alive and working,
+    // we have to replace the original stream with the replacement.
+    m_multipleMsgMoveCopyStream = replacementStream.forget();
+  }
   // XXX 64-bit
-  rv = serv->CreateInputTransport(m_multipleMsgMoveCopyStream, int64_t(offset),
-                                  int64_t(size), false,
+  // This can be called with size == -1 which means "read as much as we can".
+  // We pass this on as UINT64_MAX, which is in fact uint64_t(-1).
+  RefPtr<SlicedInputStream> slicedStream =
+    new SlicedInputStream(clonedStream.forget(), offset,
+                          size == -1 ? UINT64_MAX : uint64_t(size));
+  // Always close the sliced stream when done, we still have the original.
+  rv = serv->CreateInputTransport(slicedStream, true,
                                   getter_AddRefs(m_transport));
 
   return rv;
@@ -85,7 +102,7 @@ nsresult nsMailboxProtocol::Initialize(nsIURI * aURL)
   nsresult rv = NS_OK;
   if (aURL)
   {
-    rv = aURL->QueryInterface(NS_GET_IID(nsIMailboxUrl), (void **) getter_AddRefs(m_runningUrl));
+    m_runningUrl = do_QueryInterface(aURL, &rv);
     if (NS_SUCCEEDED(rv) && m_runningUrl)
     {
       nsCOMPtr <nsIMsgWindow> window;
@@ -118,11 +135,11 @@ nsresult nsMailboxProtocol::Initialize(nsIURI * aURL)
         // we need to specify a byte range to read in so we read in JUST the message we want.
         rv = SetupMessageExtraction();
         if (NS_FAILED(rv)) return rv;
-        uint32_t aMsgSize = 0;
-        rv = m_runningUrl->GetMessageSize(&aMsgSize);
+        uint32_t msgSize = 0;
+        rv = m_runningUrl->GetMessageSize(&msgSize);
         NS_ASSERTION(NS_SUCCEEDED(rv), "oops....i messed something up");
-        SetContentLength(aMsgSize);
-        mailnewsUrl->SetMaxProgress(aMsgSize);
+        SetContentLength(msgSize);
+        mailnewsUrl->SetMaxProgress(msgSize);
 
         if (RunningMultipleMsgUrl())
         {
@@ -155,21 +172,38 @@ nsresult nsMailboxProtocol::Initialize(nsIURI * aURL)
               nsCOMPtr<nsIStreamTransportService> sts =
                   do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID, &rv);
               if (NS_FAILED(rv)) return rv;
-              m_readCount = aMsgSize;
+              m_readCount = msgSize;
               // Save the stream for reuse, but only for multiple URLs.
-              if (reusable && RunningMultipleMsgUrl())
+              if (reusable && RunningMultipleMsgUrl()) {
+                nsCOMPtr<nsIInputStream> clonedStream;
+                nsCOMPtr<nsIInputStream> replacementStream;
+                rv = NS_CloneInputStream(stream,
+                                         getter_AddRefs(clonedStream),
+                                         getter_AddRefs(replacementStream));
+                NS_ENSURE_SUCCESS(rv, rv);
+                if (replacementStream) {
+                  // If stream is not cloneable, NS_CloneInputStream
+                  // will clone it using a pipe. In order to keep the copy alive and working,
+                  // we have to replace the original stream with the replacement.
+                  stream = replacementStream.forget();
+                }
+                // Keep the original and use the clone for the next operation.
                 m_multipleMsgMoveCopyStream = stream;
-              else
+                stream = clonedStream;
+              } else {
                 reusable = false;
-              rv = sts->CreateInputTransport(stream, offset,
-                                             int64_t(aMsgSize), !reusable,
+              }
+              RefPtr<SlicedInputStream> slicedStream =
+                new SlicedInputStream(stream.forget(), offset, uint64_t(msgSize));
+              // Always close the sliced stream when done, we still have the original.
+              rv = sts->CreateInputTransport(slicedStream, true,
                                              getter_AddRefs(m_transport));
 
               m_socketIsOpen = false;
             }
           }
           if (!folder) // must be a .eml file
-            rv = OpenFileSocket(aURL, 0, aMsgSize);
+            rv = OpenFileSocket(aURL, 0, int64_t(msgSize));
         }
         NS_ASSERTION(NS_SUCCEEDED(rv), "oops....i messed something up");
       }
@@ -316,8 +350,9 @@ NS_IMETHODIMP nsMailboxProtocol::OnStopRequest(nsIRequest *request, nsISupports 
                     if (NS_SUCCEEDED(rv))
                     {
                       m_readCount = msgSize;
-                      rv = sts->CreateInputTransport(stream, msgOffset,
-                                                     int64_t(msgSize), true,
+                      RefPtr<SlicedInputStream> slicedStream =
+                        new SlicedInputStream(stream.forget(), msgOffset, uint64_t(msgSize));
+                      rv = sts->CreateInputTransport(slicedStream, true,
                                                      getter_AddRefs(m_transport));
                     }
                   }
@@ -367,7 +402,7 @@ NS_IMETHODIMP nsMailboxProtocol::OnStopRequest(nsIRequest *request, nsISupports 
   // this solution is not very good so we should look at something better, but don't remove this
   // line before talking to me (mscott) and mailnews QA....
 
-  MOZ_LOG(MAILBOX, mozilla::LogLevel::Info, ("Mailbox Done\n"));
+  MOZ_LOG(MAILBOX, LogLevel::Info, ("Mailbox Done\n"));
 
   // when on stop binding is called, we as the protocol are done...let's close down the connection
   // releasing all of our interfaces. It's important to remember that this on stop binding call

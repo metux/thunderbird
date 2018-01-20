@@ -1,3 +1,4 @@
+// |reftest| slow
 /* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,7 +17,6 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
@@ -43,6 +43,4 @@ function test()
   delete __proto__.x;
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

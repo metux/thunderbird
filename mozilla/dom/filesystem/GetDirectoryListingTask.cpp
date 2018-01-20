@@ -8,14 +8,13 @@
 
 #include "HTMLSplitOnSpacesTokenizer.h"
 #include "js/Value.h"
-#include "mozilla/dom/File.h"
+#include "mozilla/dom/FileBlobImpl.h"
 #include "mozilla/dom/FileSystemBase.h"
 #include "mozilla/dom/FileSystemUtils.h"
+#include "mozilla/dom/IPCBlobUtils.h"
 #include "mozilla/dom/PFileSystemParams.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/UnionTypes.h"
-#include "mozilla/dom/ipc/BlobChild.h"
-#include "mozilla/dom/ipc/BlobParent.h"
 #include "nsIFile.h"
 #include "nsISimpleEnumerator.h"
 #include "nsStringGlue.h"
@@ -38,18 +37,18 @@ GetDirectoryListingTaskChild::Create(FileSystemBase* aFileSystem,
   MOZ_ASSERT(aDirectory);
   aFileSystem->AssertIsOnOwningThread();
 
-  RefPtr<GetDirectoryListingTaskChild> task =
-    new GetDirectoryListingTaskChild(aFileSystem, aDirectory, aTargetPath,
-                                     aFilters);
-
-  // aTargetPath can be null. In this case SetError will be called.
-
   nsCOMPtr<nsIGlobalObject> globalObject =
     do_QueryInterface(aFileSystem->GetParentObject());
   if (NS_WARN_IF(!globalObject)) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
   }
+
+  RefPtr<GetDirectoryListingTaskChild> task =
+    new GetDirectoryListingTaskChild(globalObject, aFileSystem, aDirectory,
+                                     aTargetPath, aFilters);
+
+  // aTargetPath can be null. In this case SetError will be called.
 
   task->mPromise = Promise::Create(globalObject, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
@@ -59,11 +58,12 @@ GetDirectoryListingTaskChild::Create(FileSystemBase* aFileSystem,
   return task.forget();
 }
 
-GetDirectoryListingTaskChild::GetDirectoryListingTaskChild(FileSystemBase* aFileSystem,
+GetDirectoryListingTaskChild::GetDirectoryListingTaskChild(nsIGlobalObject* aGlobalObject,
+                                                           FileSystemBase* aFileSystem,
                                                            Directory* aDirectory,
                                                            nsIFile* aTargetPath,
                                                            const nsAString& aFilters)
-  : FileSystemTaskChildBase(aFileSystem)
+  : FileSystemTaskChildBase(aGlobalObject, aFileSystem)
   , mDirectory(aDirectory)
   , mTargetPath(aTargetPath)
   , mFilters(aFilters)
@@ -130,8 +130,7 @@ GetDirectoryListingTaskChild::SetSuccessRequestResult(const FileSystemResponseVa
       const FileSystemDirectoryListingResponseFile& d =
         data.get_FileSystemDirectoryListingResponseFile();
 
-      RefPtr<BlobImpl> blobImpl =
-        static_cast<BlobChild*>(d.blobChild())->GetBlobImpl();
+      RefPtr<BlobImpl> blobImpl = IPCBlobUtils::Deserialize(d.blob());
       MOZ_ASSERT(blobImpl);
 
       RefPtr<File> file = File::Create(mFileSystem->GetParentObject(), blobImpl);
@@ -221,8 +220,6 @@ GetDirectoryListingTaskParent::GetSuccessRequestResult(ErrorResult& aRv) const
 {
   AssertIsOnBackgroundThread();
 
-  InfallibleTArray<PBlobParent*> blobs;
-
   nsTArray<FileSystemDirectoryListingResponseData> inputs;
 
   for (unsigned i = 0; i < mTargetData.Length(); i++) {
@@ -231,11 +228,11 @@ GetDirectoryListingTaskParent::GetSuccessRequestResult(ErrorResult& aRv) const
       nsresult rv = NS_NewLocalFile(mTargetData[i].mPath, true,
                                     getter_AddRefs(path));
       if (NS_WARN_IF(NS_FAILED(rv))) {
-        return FileSystemErrorResponse(rv);
+        continue;
       }
 
       FileSystemDirectoryListingResponseFile fileData;
-      RefPtr<BlobImpl> blobImpl = new BlobImplFile(path);
+      RefPtr<BlobImpl> blobImpl = new FileBlobImpl(path);
 
       nsAutoString filePath;
       filePath.Assign(mDOMPath);
@@ -250,8 +247,14 @@ GetDirectoryListingTaskParent::GetSuccessRequestResult(ErrorResult& aRv) const
       filePath.Append(name);
       blobImpl->SetDOMPath(filePath);
 
-      fileData.blobParent() =
-        BlobParent::GetOrCreate(mRequestParent->Manager(), blobImpl);
+      IPCBlob ipcBlob;
+      rv =
+        IPCBlobUtils::Serialize(blobImpl, mRequestParent->Manager(), ipcBlob);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        continue;
+      }
+
+      fileData.blob() = ipcBlob;
       inputs.AppendElement(fileData);
     } else {
       MOZ_ASSERT(mTargetData[i].mType == FileOrDirectoryPath::eDirectoryPath);

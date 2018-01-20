@@ -4,6 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files('**'):
+    BUG_COMPONENT = ('Toolkit', 'Build Config')
+
 if CONFIG['MOZ_BUILD_APP'] == 'mobile/android':
   DEFINES['MOZ_FENNEC'] = True
 
@@ -11,3 +14,12 @@ if 'gtk' in CONFIG['MOZ_WIDGET_TOOLKIT']:
   DEFINES['MOZ_GTK'] = True
 
 JAR_MANIFESTS += ['jar.mn']
+
+GENERATED_FILES = [
+    'multilocale.json',
+]
+multilocale = GENERATED_FILES['multilocale.json']
+multilocale.script = 'gen_multilocale.py'
+FINAL_TARGET_FILES.res += [
+    '!multilocale.json',
+]

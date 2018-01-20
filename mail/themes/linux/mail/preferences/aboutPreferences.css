@@ -4,12 +4,18 @@
 
 @import url("chrome://messenger/skin/shared/in-content/aboutPreferences.css");
 
-checkbox {
-  -moz-binding: url("chrome://global/content/bindings/checkbox.xml#checkbox") !important;
+html *,
+page *,
+window * {
+  font-size: 1.11rem;
 }
 
-radio {
-  -moz-binding: url("chrome://global/content/bindings/radio.xml#radio") !important;
+caption label:not(.dialogTitle) {
+  font-size: 1.27rem;
+}
+
+checkbox {
+  -moz-binding: url("chrome://global/content/bindings/checkbox.xml#checkbox") !important;
 }
 
 spinbuttons {

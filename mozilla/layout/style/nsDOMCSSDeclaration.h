@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -11,8 +12,10 @@
 #include "nsICSSDeclaration.h"
 
 #include "mozilla/Attributes.h"
+#include "mozilla/URLExtraData.h"
 #include "nsIURI.h"
 #include "nsCOMPtr.h"
+#include "nsCompatibility.h"
 
 class nsIPrincipal;
 class nsIDocument;
@@ -84,7 +87,7 @@ public:
   CSS_PROP(name_, id_, method_, flags_, pref_, X, X, X, X, X)
 #include "nsCSSPropList.h"
 
-#define CSS_PROP_ALIAS(aliasname_, propid_, aliasmethod_, pref_)  \
+#define CSS_PROP_ALIAS(aliasname_, aliasid_, propid_, aliasmethod_, pref_)  \
   CSS_PROP(X, propid_, aliasmethod_, X, pref_, X, X, X, X, X)
 #include "nsCSSPropAliasList.h"
 #undef CSS_PROP_ALIAS
@@ -146,15 +149,41 @@ protected:
                                          "performance overhead (see bug 649163)") mCSSLoader;
   };
 
+  // Information neded to parse a declaration for Servo side.
+  struct MOZ_STACK_CLASS ServoCSSParsingEnvironment
+  {
+    mozilla::URLExtraData* mUrlExtraData;
+    nsCompatibility mCompatMode;
+    mozilla::css::Loader* mLoader;
+
+    ServoCSSParsingEnvironment(mozilla::URLExtraData* aUrlData,
+                               nsCompatibility aCompatMode,
+                               mozilla::css::Loader* aLoader)
+      : mUrlExtraData(aUrlData)
+      , mCompatMode(aCompatMode)
+      , mLoader(aLoader)
+    {}
+  };
+
   // On failure, mPrincipal should be set to null in aCSSParseEnv.
   // If mPrincipal is null, the other members may not be set to
   // anything meaningful.
   virtual void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv) = 0;
 
+  // mUrlExtraData returns URL data for parsing url values in
+  // CSS. Returns nullptr on failure. If mUrlExtraData is nullptr,
+  // mCompatMode may not be set to anything meaningful.
+  virtual ServoCSSParsingEnvironment GetServoCSSParsingEnvironment() const = 0;
+
   // An implementation for GetCSSParsingEnvironment for callers wrapping
   // an css::Rule.
   static void GetCSSParsingEnvironmentForRule(mozilla::css::Rule* aRule,
                                               CSSParsingEnvironment& aCSSParseEnv);
+
+  // An implementation for GetServoCSSParsingEnvironment for callers wrapping
+  // an css::Rule.
+  static ServoCSSParsingEnvironment
+    GetServoCSSParsingEnvironmentForRule(const mozilla::css::Rule* aRule);
 
   nsresult ParsePropertyValue(const nsCSSPropertyID aPropID,
                               const nsAString& aPropValue,
@@ -169,6 +198,10 @@ protected:
 
 protected:
   virtual ~nsDOMCSSDeclaration();
+
+private:
+  template<typename GeckoFunc, typename ServoFunc>
+  inline nsresult ModifyDeclaration(GeckoFunc aGeckoFunc, ServoFunc aServoFunc);
 };
 
 #endif // nsDOMCSSDeclaration_h___

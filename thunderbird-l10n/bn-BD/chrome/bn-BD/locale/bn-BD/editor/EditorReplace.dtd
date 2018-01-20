@@ -58,3 +58,5 @@
 <!ENTITY replaceAllButton.label "সব প্রতিস্থাপন (A)">
 <!ENTITY replaceAllButton.accesskey "A">
 <!ENTITY closeButton.label "বন্ধ করুন">
+
+<!ENTITY closeButton.accesskey "C">

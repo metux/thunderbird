@@ -29,6 +29,11 @@ XPCOMUtils.defineLazyGetter(this, "PageMenuParent", function() {
   return new tmp.PageMenuParent();
 });
 
+XPCOMUtils.defineLazyModuleGetter(this, "DevToolsShim",
+  "chrome://devtools-shim/content/DevToolsShim.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "findCssSelector",
+  "resource://gre/modules/css-selector.js");
+
 function nsContextMenu(aXulMenu, aIsShift, aEvent) {
   this.shouldDisplay = true;
   this.initMenu(aXulMenu, aIsShift, aEvent);
@@ -220,8 +225,9 @@ nsContextMenu.prototype = {
     this.showItem("context-viewsource", showView);
     this.showItem("context-viewinfo", showView);
 
-    var showInspect = "gDevTools" in window &&
-                      Services.prefs.getBoolPref("devtools.inspector.enabled");
+    var showInspect = DevToolsShim.isInstalled() &&
+                      "gDevTools" in window &&
+                      Services.prefs.getBoolPref("devtools.inspector.enabled", false);
     this.showItem("inspect-separator", showInspect);
     this.showItem("context-inspect", showInspect);
 
@@ -283,7 +289,7 @@ nsContextMenu.prototype = {
 
     // Block image depends on whether an image was clicked on.
     if (this.onImage) {
-      var uri = Services.io.newURI(this.mediaURL, null, null);
+      var uri = Services.io.newURI(this.mediaURL);
       if (uri instanceof Components.interfaces.nsIURL && uri.host) {
         var serverLabel = uri.host;
         // Limit length to max 15 characters.
@@ -447,10 +453,13 @@ nsContextMenu.prototype = {
                   onMedia && !this.target.paused && !this.target.ended);
     this.showItem("context-media-mute", onMedia && !this.target.muted);
     this.showItem("context-media-unmute", onMedia && this.target.muted);
-    this.showItem("context-media-playbackrate", onMedia);
+    this.showItem("context-media-playbackrate",
+                  onMedia && this.target.duration != Number.POSITIVE_INFINITY);
+    this.showItem("context-media-loop", onMedia);
     this.showItem("context-media-showcontrols", onMedia && !this.target.controls);
     this.showItem("context-media-hidecontrols", onMedia && this.target.controls);
-    this.showItem("context-video-fullscreen", this.onVideo);
+    this.showItem("context-video-fullscreen", this.onVideo &&
+                  !this.target.ownerDocument.fullscreenElement);
 
     var statsShowing = this.onVideo && this.target.mozMediaStatisticsShowing;
     this.showItem("context-video-showstats",
@@ -462,8 +471,10 @@ nsContextMenu.prototype = {
     if (onMedia) {
       this.setItemAttr("context-media-playbackrate-050", "checked", this.target.playbackRate == 0.5);
       this.setItemAttr("context-media-playbackrate-100", "checked", this.target.playbackRate == 1.0);
+      this.setItemAttr("context-media-playbackrate-125", "checked", this.target.playbackRate == 1.25);
       this.setItemAttr("context-media-playbackrate-150", "checked", this.target.playbackRate == 1.5);
       this.setItemAttr("context-media-playbackrate-200", "checked", this.target.playbackRate == 2.0);
+      this.setItemAttr("context-media-loop", "checked", this.target.loop);
       var hasError = this.target.error != null ||
                      this.target.networkState == this.target.NETWORK_NO_SOURCE;
       this.setItemAttr("context-media-play", "disabled", hasError);
@@ -484,28 +495,33 @@ nsContextMenu.prototype = {
     this.showItem("context-media-sep-commands", onMedia);
   },
 
+  /**
+   * Retrieve the array of CSS selectors corresponding to the provided node. The first item
+   * of the array is the selector of the node in its owner document. Additional items are
+   * used if the node is inside a frame, each representing the CSS selector for finding the
+   * frame element in its parent document.
+   *
+   * This format is expected by DevTools in order to handle the Inspect Node context menu
+   * item.
+   *
+   * @param  {Node}
+   *         The node for which the CSS selectors should be computed
+   * @return {Array} array of css selectors (strings).
+   */
+  getNodeSelectors: function(node) {
+    let selectors = [];
+    while (node) {
+      selectors.push(findCssSelector(node));
+      node = node.ownerGlobal.frameElement;
+    }
+
+    return selectors;
+  },
+
   inspectNode: function() {
-    let tmp = {};
-    Components.utils.import("resource://devtools/shared/Loader.jsm", tmp);
     let gBrowser = this.browser.ownerDocument.defaultView.gBrowser;
-    let tt = tmp.devtools.TargetFactory.forTab(gBrowser.selectedTab);
-    return gDevTools.showToolbox(tt, "inspector").then(toolbox => {
-      let inspector = toolbox.getCurrentPanel();
-      // new-node-front tells us when the node has been selected, whether the
-      // browser is remote or not.
-      let onNewNode = inspector.selection.once("new-node-front");
-
-      this.browser.messageManager.sendAsyncMessage("debug:inspect", {}, {node: this.target});
-      inspector.walker.findInspectingNode().then(nodeFront => {
-        inspector.selection.setNodeFront(nodeFront, "browser-context-menu");
-      });
-
-      return onNewNode.then(() => {
-        // Now that the node has been selected, wait until the inspector is
-        // fully updated.
-        return inspector.once("inspector-updated");
-      });
-    });
+    return DevToolsShim.inspectNode(gBrowser.selectedTab,
+                                    this.getNodeSelectors(this.target));
   },
 
   // Set various context menu attributes based on the state of the world.
@@ -832,7 +848,7 @@ nsContextMenu.prototype = {
 
   // Block/Unblock image from loading in the future.
   toggleImageBlocking: function(aBlock) {
-  const uri = Services.io.newURI(this.mediaURL, null, null);
+  const uri = Services.io.newURI(this.mediaURL);
   if (aBlock)
     Services.perms.add(uri, "image", Services.perms.DENY_ACTION);
   else
@@ -1088,7 +1104,7 @@ nsContextMenu.prototype = {
     var channel = ios.newChannel2(linkURL, null, null, null,
                                   Services.scriptSecurityManager.getSystemPrincipal(),
                                   null,
-                                  Components.interfaces.nsILoadInfo.SEC_NORMAL,
+                                  Components.interfaces.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                   Components.interfaces.nsIContentPolicy.TYPE_OTHER);
     channel.notificationCallbacks = new Callbacks();
 
@@ -1116,7 +1132,7 @@ nsContextMenu.prototype = {
     var timer = setTimeout(timerCallback, timeToWait);
 
     // kick off the channel with our proxy object as the listener
-    channel.asyncOpen(new SaveAsListener(), null);
+    channel.asyncOpen2(new SaveAsListener());
   },
 
   // Save URL of clicked-on image, video, or audio.
@@ -1482,6 +1498,9 @@ nsContextMenu.prototype = {
         break;
       case "pause":
         media.pause();
+        break;
+      case "loop":
+        media.loop = !media.loop;
         break;
       case "mute":
         media.muted = true;

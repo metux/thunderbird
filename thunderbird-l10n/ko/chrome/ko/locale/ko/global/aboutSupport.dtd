@@ -25,6 +25,11 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "버전">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.featuresTitle "&brandShortName; 주요 기능">
+<!ENTITY aboutSupport.featureName "이름">
+<!ENTITY aboutSupport.featureVersion "버전">
+<!ENTITY aboutSupport.featureId "ID">
+
 <!ENTITY aboutSupport.experimentsTitle "실험적인 기능">
 <!ENTITY aboutSupport.experimentName "이름">
 <!ENTITY aboutSupport.experimentId "ID">
@@ -65,6 +70,11 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "다중프로세스 윈도우">
 
+<!ENTITY aboutSupport.appBasicsProcessCount "웹 콘텐츠 프로세스">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Google 키">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla 위치 서비스 키">
+
 <!ENTITY aboutSupport.appBasicsSafeMode "안전 모드">
 
 <!ENTITY aboutSupport.showDir.label "디렉토리 열기">
@@ -100,6 +110,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "접근성">
 <!ENTITY aboutSupport.a11yActivated "활성화">
 <!ENTITY aboutSupport.a11yForceDisabled "접근성 끄기">
+<!ENTITY aboutSupport.a11yHandlerUsed "접근 가능한 핸들러 사용됨">
+<!ENTITY aboutSupport.a11yInstantiator "접근성 기능 사용 앱">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "라이브러리 버전">
 
@@ -110,6 +122,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "클립보드로 원본 복사하기">
 
 <!ENTITY aboutSupport.sandboxTitle "샌드박스">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "거절된 시스템 콜">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "초 전">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "프로세스 타입">
+<!ENTITY aboutSupport.sandboxSyscallNumber "시스템 콜">
+<!ENTITY aboutSupport.sandboxSyscallArgs "인자">
 
 <!ENTITY aboutSupport.safeModeTitle "안전 모드">
 <!ENTITY aboutSupport.restartInSafeMode.label "부가 기능 없이 재시작…">
@@ -122,3 +142,26 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "의사결정 로그">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "크래시 보호 비활성화 기능">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "회피방법">
+
+<!ENTITY aboutSupport.mediaTitle "미디어">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "출력 기기">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "입력 기기">
+<!ENTITY aboutSupport.mediaDeviceName "이름">
+<!ENTITY aboutSupport.mediaDeviceGroup "그룹">
+<!ENTITY aboutSupport.mediaDeviceVendor "벤더">
+<!ENTITY aboutSupport.mediaDeviceState "주">
+<!ENTITY aboutSupport.mediaDevicePreferred "선호">
+<!ENTITY aboutSupport.mediaDeviceFormat "형식">
+<!ENTITY aboutSupport.mediaDeviceChannels "채널">
+<!ENTITY aboutSupport.mediaDeviceRate "비율">
+<!ENTITY aboutSupport.mediaDeviceLatency "지연">
+
+<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
+<!ENTITY aboutSupport.intlAppTitle "Application Settings">
+<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
+<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
+<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
+<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
+<!ENTITY aboutSupport.intlOSTitle "Operating System">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">

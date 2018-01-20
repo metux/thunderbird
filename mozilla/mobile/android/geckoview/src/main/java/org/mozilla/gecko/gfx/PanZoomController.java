@@ -5,34 +5,24 @@
 
 package org.mozilla.gecko.gfx;
 
-import org.mozilla.gecko.GeckoAppShell;
-import org.mozilla.gecko.EventDispatcher;
-
 import android.graphics.PointF;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 
 public interface PanZoomController {
-    // Threshold for sending touch move events to content
-    public static final float CLICK_THRESHOLD = 1 / 50f * GeckoAppShell.getDpi();
-
     static class Factory {
-        static PanZoomController create(PanZoomTarget target, View view, EventDispatcher dispatcher) {
-            return new NativePanZoomController(target, view);
+        static PanZoomController create(View view) {
+            return new NativePanZoomController(view);
         }
     }
 
     public void destroy();
-    public void attach();
 
     public boolean onTouchEvent(MotionEvent event);
     public boolean onMotionEvent(MotionEvent event);
-    public void onMotionEventVelocity(final long aEventTime, final float aSpeedY);
 
     public void setOverscrollHandler(final Overscroll controller);
 
     public void setIsLongpressEnabled(boolean isLongpressEnabled);
-
-    public ImmutableViewportMetrics adjustScrollForSurfaceShift(ImmutableViewportMetrics aMetrics, PointF aShift);
 }

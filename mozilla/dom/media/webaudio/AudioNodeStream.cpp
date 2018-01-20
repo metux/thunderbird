@@ -13,6 +13,7 @@
 #include "AudioParamTimeline.h"
 #include "AudioContext.h"
 #include "nsMathUtils.h"
+#include "AlignmentUtils.h"
 
 using namespace mozilla::dom;
 
@@ -30,15 +31,15 @@ namespace mozilla {
 AudioNodeStream::AudioNodeStream(AudioNodeEngine* aEngine,
                                  Flags aFlags,
                                  TrackRate aSampleRate)
-  : ProcessedMediaStream(),
-    mEngine(aEngine),
-    mSampleRate(aSampleRate),
-    mFlags(aFlags),
-    mNumberOfInputChannels(2),
-    mIsActive(aEngine->IsActive()),
-    mMarkAsFinishedAfterThisBlock(false),
-    mAudioParamStream(false),
-    mPassThrough(false)
+  : ProcessedMediaStream()
+  , mEngine(aEngine)
+  , mSampleRate(aSampleRate)
+  , mFlags(aFlags)
+  , mNumberOfInputChannels(2)
+  , mIsActive(aEngine->IsActive())
+  , mMarkAsFinishedAfterThisBlock(false)
+  , mAudioParamStream(false)
+  , mPassThrough(false)
 {
   MOZ_ASSERT(NS_IsMainThread());
   mSuspendedCount = !(mIsActive || mFlags & EXTERNAL_OUTPUT);
@@ -144,7 +145,9 @@ AudioNodeStream::SetStreamTimeParameter(uint32_t aIndex, AudioContext* aContext,
           SetStreamTimeParameterImpl(mIndex, mRelativeToStream, mStreamTime);
     }
     double mStreamTime;
-    MediaStream* mRelativeToStream;
+    MediaStream* MOZ_UNSAFE_REF("ControlMessages are processed in order.  This \
+destination stream is not yet destroyed.  Its (future) destroy message will be \
+processed after this message.") mRelativeToStream;
     uint32_t mIndex;
   };
 
@@ -251,24 +254,23 @@ AudioNodeStream::SetThreeDPointParameter(uint32_t aIndex, const ThreeDPoint& aVa
 }
 
 void
-AudioNodeStream::SetBuffer(already_AddRefed<ThreadSharedFloatArrayBufferList>&& aBuffer)
+AudioNodeStream::SetBuffer(AudioChunk&& aBuffer)
 {
   class Message final : public ControlMessage
   {
   public:
-    Message(AudioNodeStream* aStream,
-            already_AddRefed<ThreadSharedFloatArrayBufferList>& aBuffer)
+    Message(AudioNodeStream* aStream, AudioChunk&& aBuffer)
       : ControlMessage(aStream), mBuffer(aBuffer)
     {}
     void Run() override
     {
       static_cast<AudioNodeStream*>(mStream)->Engine()->
-          SetBuffer(mBuffer.forget());
+        SetBuffer(Move(mBuffer));
     }
-    RefPtr<ThreadSharedFloatArrayBufferList> mBuffer;
+    AudioChunk mBuffer;
   };
 
-  GraphImpl()->AppendMessage(MakeUnique<Message>(this, aBuffer));
+  GraphImpl()->AppendMessage(MakeUnique<Message>(this, Move(aBuffer)));
 }
 
 void
@@ -350,11 +352,6 @@ AudioNodeStream::SetChannelMixingParametersImpl(uint32_t aNumberOfChannels,
                                                 ChannelCountMode aChannelCountMode,
                                                 ChannelInterpretation aChannelInterpretation)
 {
-  // Make sure that we're not clobbering any significant bits by fitting these
-  // values in 16 bits.
-  MOZ_ASSERT(int(aChannelCountMode) < INT16_MAX);
-  MOZ_ASSERT(int(aChannelInterpretation) < INT16_MAX);
-
   mNumberOfInputChannels = aNumberOfChannels;
   mChannelCountMode = aChannelCountMode;
   mChannelInterpretation = aChannelInterpretation;
@@ -636,19 +633,28 @@ AudioNodeStream::AdvanceOutputSegment()
 
   AudioSegment* segment = track->Get<AudioSegment>();
 
-  if (!mLastChunks[0].IsNull()) {
-    segment->AppendAndConsumeChunk(mLastChunks[0].AsMutableChunk());
-  } else {
-    segment->AppendNullData(mLastChunks[0].GetDuration());
-  }
+  AudioChunk copyChunk = *mLastChunks[0].AsMutableChunk();
+  AudioSegment tmpSegment;
+  tmpSegment.AppendAndConsumeChunk(&copyChunk);
 
   for (uint32_t j = 0; j < mListeners.Length(); ++j) {
     MediaStreamListener* l = mListeners[j];
-    AudioChunk copyChunk = mLastChunks[0].AsAudioChunk();
-    AudioSegment tmpSegment;
-    tmpSegment.AppendAndConsumeChunk(&copyChunk);
+    // Notify MediaStreamListeners.
     l->NotifyQueuedTrackChanges(Graph(), AUDIO_TRACK,
                                 segment->GetDuration(), TrackEventCommand::TRACK_EVENT_NONE, tmpSegment);
+  }
+  for (TrackBound<MediaStreamTrackListener>& b : mTrackListeners) {
+    // Notify MediaStreamTrackListeners.
+    if (b.mTrackID != AUDIO_TRACK) {
+      continue;
+    }
+    b.mListener->NotifyQueuedChanges(Graph(), segment->GetDuration(), tmpSegment);
+  }
+
+  if (mLastChunks[0].IsNull()) {
+    segment->AppendNullData(tmpSegment.GetDuration());
+  } else {
+    segment->AppendFrom(&tmpSegment);
   }
 }
 
@@ -664,6 +670,13 @@ AudioNodeStream::FinishOutput()
     l->NotifyQueuedTrackChanges(Graph(), AUDIO_TRACK,
                                 track->GetSegment()->GetDuration(),
                                 TrackEventCommand::TRACK_EVENT_ENDED, emptySegment);
+  }
+  for (TrackBound<MediaStreamTrackListener>& b : mTrackListeners) {
+    // Notify MediaStreamTrackListeners.
+    if (b.mTrackID != AUDIO_TRACK) {
+      continue;
+    }
+    b.mListener->NotifyEnded();
   }
 }
 

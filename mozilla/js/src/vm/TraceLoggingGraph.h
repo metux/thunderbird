@@ -7,6 +7,8 @@
 #ifndef TraceLoggingGraph_h
 #define TraceLoggingGraph_h
 
+#include "mozilla/MemoryReporting.h"
+
 #include "js/TypeDecls.h"
 #include "vm/MutexIDs.h"
 #include "vm/TraceLoggingTypes.h"
@@ -61,6 +63,7 @@
 
 namespace js {
 void DestroyTraceLoggerGraphState();
+size_t SizeOfTraceLogGraphState(mozilla::MallocSizeOf mallocSizeOf);
 } // namespace js
 
 class TraceLoggerGraphState
@@ -94,6 +97,11 @@ class TraceLoggerGraphState
 
     uint32_t nextLoggerId();
     uint32_t pid() { return pid_; }
+
+    size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
+    size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
+        return mallocSizeOf(this) + sizeOfExcludingThis(mallocSizeOf);
+    }
 };
 
 class TraceLoggerGraph
@@ -216,12 +224,15 @@ class TraceLoggerGraph
         return 100 * 1024 * 1024 / sizeof(TreeEntry);
     }
 
+    uint32_t nextTextId() { return nextTextId_; }
+
+    size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
+    size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
+
   private:
     bool failed = false;
     bool enabled = false;
-#ifdef DEBUG
-    uint32_t nextTextId = 0;
-#endif
+    uint32_t nextTextId_ = 0;
 
     FILE* dictFile = nullptr;
     FILE* treeFile = nullptr;

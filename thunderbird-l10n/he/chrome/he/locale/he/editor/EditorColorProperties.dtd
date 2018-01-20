@@ -39,3 +39,5 @@
 <!ENTITY backgroundImage.accessKey "ת">
 <!ENTITY backgroundImage.tooltip "השתמש בקובץ תמונה כרקע לדף שלך">
 
+
+<!ENTITY backgroundImage.shortenedDataURI "Shortened data URI (copy will place the full URI onto the clipboard)">

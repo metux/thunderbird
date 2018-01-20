@@ -7,9 +7,12 @@
 #ifndef mozilla_MediaUtils_h
 #define mozilla_MediaUtils_h
 
-#include "nsThreadUtils.h"
-#include "nsIAsyncShutdown.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/UniquePtr.h"
+#include "nsCOMPtr.h"
+#include "nsIAsyncShutdown.h"
+#include "nsISupportsImpl.h"
+#include "nsThreadUtils.h"
 
 namespace mozilla {
 namespace media {
@@ -173,7 +176,7 @@ private:
  *     RefPtr<Bar> bar = new Bar();
  *     NS_DispatchToMainThread(media::NewRunnableFrom([bar]() mutable {
  *       // use bar
- *     });
+ *     }));
  *   }
  *
  * Capture is by-copy by default, so the nsRefPtr 'bar' is safely copied for
@@ -186,7 +189,12 @@ template<typename OnRunType>
 class LambdaRunnable : public Runnable
 {
 public:
-  explicit LambdaRunnable(OnRunType&& aOnRun) : mOnRun(Move(aOnRun)) {}
+  explicit LambdaRunnable(OnRunType&& aOnRun)
+    : Runnable("media::LambdaRunnable")
+    , mOnRun(Move(aOnRun))
+  {
+  }
+
 private:
   NS_IMETHODIMP
   Run() override
@@ -319,11 +327,28 @@ private:
  * a constructor. Please add below (UniquePtr covers a lot of ground though).
  */
 
-template<typename T>
-class Refcountable : public T
+class RefcountableBase
 {
 public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Refcountable<T>)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RefcountableBase)
+protected:
+  virtual ~RefcountableBase() {}
+};
+
+template<typename T>
+class Refcountable : public T, public RefcountableBase
+{
+public:
+  NS_METHOD_(MozExternalRefCountType) AddRef()
+  {
+    return RefcountableBase::AddRef();
+  }
+
+  NS_METHOD_(MozExternalRefCountType) Release()
+  {
+    return RefcountableBase::Release();
+  }
+
 private:
   ~Refcountable<T>() {}
 };
@@ -338,8 +363,11 @@ private:
   ~Refcountable<UniquePtr<T>>() {}
 };
 
-/* media::ShutdownBlocker - Async shutdown helper.
+/* Async shutdown helpers
  */
+
+already_AddRefed<nsIAsyncShutdownClient>
+GetShutdownBarrier();
 
 class ShutdownBlocker : public nsIAsyncShutdownBlocker
 {
@@ -365,6 +393,21 @@ protected:
   virtual ~ShutdownBlocker() {}
 private:
   const nsString mName;
+};
+
+class ShutdownTicket final
+{
+public:
+  explicit ShutdownTicket(nsIAsyncShutdownBlocker* aBlocker) : mBlocker(aBlocker) {}
+  NS_INLINE_DECL_REFCOUNTING(ShutdownTicket)
+private:
+  ~ShutdownTicket()
+  {
+    nsCOMPtr<nsIAsyncShutdownClient> barrier = GetShutdownBarrier();
+    barrier->RemoveBlocker(mBlocker);
+  }
+
+  nsCOMPtr<nsIAsyncShutdownBlocker> mBlocker;
 };
 
 } // namespace media

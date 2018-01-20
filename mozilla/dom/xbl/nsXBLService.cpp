@@ -16,7 +16,7 @@
 #include "nsIDOMElement.h"
 #include "nsIURL.h"
 #include "nsIChannel.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "plstr.h"
 #include "nsIContent.h"
 #include "nsIDocument.h"
@@ -53,6 +53,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/ServoStyleSet.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/Element.h"
 
@@ -115,45 +116,19 @@ public:
     if (!doc)
       return;
 
-    // Destroy the frames for mBoundElement.
-    nsIContent* destroyedFramesFor = nullptr;
-    nsIPresShell* shell = doc->GetShell();
-    if (shell) {
-      shell->DestroyFramesFor(mBoundElement, &destroyedFramesFor);
-    }
-    MOZ_ASSERT(!mBoundElement->GetPrimaryFrame());
-
     // Get the binding.
     bool ready = false;
     nsXBLService::GetInstance()->BindingReady(mBoundElement, mBindingURI, &ready);
     if (!ready)
       return;
 
-    // If |mBoundElement| is (in addition to having binding |mBinding|)
-    // also a descendant of another element with binding |mBinding|,
-    // then we might have just constructed it due to the
-    // notification of its parent.  (We can know about both if the
-    // binding loads were triggered from the DOM rather than frame
-    // construction.)  So we have to check both whether the element
-    // has a primary frame and whether it's in the frame manager maps
-    // before sending a ContentInserted notification, or bad things
-    // will happen.
-    MOZ_ASSERT(shell == doc->GetShell());
-    if (shell) {
-      nsIFrame* childFrame = mBoundElement->GetPrimaryFrame();
-      if (!childFrame) {
-        // Check to see if it's in the undisplayed content map...
-        nsFrameManager* fm = shell->FrameManager();
-        nsStyleContext* sc = fm->GetUndisplayedContent(mBoundElement);
-        if (!sc) {
-          // or in the display:contents map.
-          sc = fm->GetDisplayContentsStyleFor(mBoundElement);
-        }
-        if (!sc) {
-          shell->CreateFramesFor(destroyedFramesFor);
-        }
-      }
+    // Destroy the frames for mBoundElement. Do this after getting the binding,
+    // since if the binding fetch fails then we don't want to destroy the
+    // frames.
+    if (nsIPresShell* shell = doc->GetShell()) {
+      shell->DestroyFramesForAndRestyle(mBoundElement->AsElement());
     }
+    MOZ_ASSERT(!mBoundElement->GetPrimaryFrame());
   }
 
   nsXBLBindingRequest(nsIURI* aURI, nsIContent* aBoundElement)
@@ -318,7 +293,7 @@ nsXBLStreamListener::HandleEvent(nsIDOMEvent* aEvent)
       nsXBLBindingRequest* req = mBindingRequests.ElementAt(0);
       nsIDocument* document = req->mBoundElement->GetUncomposedDoc();
       if (document)
-        document->FlushPendingNotifications(Flush_ContentAndNotify);
+        document->FlushPendingNotifications(FlushType::ContentAndNotify);
     }
 
     // Remove ourselves from the set of pending docs.
@@ -406,6 +381,31 @@ nsXBLService::IsChromeOrResourceURI(nsIURI* aURI)
   return false;
 }
 
+// RAII class to invoke StyleNewChildren for Elements in Servo-backed documents
+// on destruction.
+class MOZ_STACK_CLASS AutoStyleNewChildren
+{
+public:
+  explicit AutoStyleNewChildren(Element* aElement) : mElement(aElement) { MOZ_ASSERT(mElement); }
+  ~AutoStyleNewChildren()
+  {
+    nsIPresShell* presShell = mElement->OwnerDoc()->GetShell();
+    if (!presShell || !presShell->DidInitialize()) {
+      return;
+    }
+
+    if (ServoStyleSet* servoSet = presShell->StyleSet()->GetAsServo()) {
+      // Check MayTraverseFrom to handle programatic XBL consumers.
+      // See bug 1370793.
+      if (servoSet->MayTraverseFrom(mElement)) {
+        servoSet->StyleNewlyBoundElement(mElement);
+      }
+    }
+  }
+
+private:
+  Element* mElement;
+};
 
 // This function loads a particular XBL file and installs all of the bindings
 // onto the element.
@@ -434,6 +434,22 @@ nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL,
     // Block an attempt to load a binding that has special wrapper
     // automation needs.
     return NS_OK;
+  }
+
+  // There are various places in this function where we shuffle content around
+  // the subtree and rebind things to and from insertion points. Once all that's
+  // done, we want to invoke StyleNewChildren to style any unstyled children
+  // that we may have after bindings have been removed and applied. This includes
+  // anonymous content created in this function, explicit children for which we
+  // defer styling until after XBL bindings are applied, and elements whose existing
+  // style was invalidated by a call to SetXBLInsertionParent.
+  //
+  // However, we skip this styling if aContent is not in the document, since we
+  // should keep such elements unstyled.  (There are some odd cases where we do
+  // apply bindings to elements not in the document.)
+  Maybe<AutoStyleNewChildren> styleNewChildren;
+  if (aContent->IsInComposedDoc()) {
+    styleNewChildren.emplace(aContent->AsElement());
   }
 
   nsXBLBinding *binding = aContent->GetXBLBinding();
@@ -743,7 +759,7 @@ nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
   }
 
   // Our prototype binding must have all its resources loaded.
-  bool ready = protoBinding->LoadResources();
+  bool ready = protoBinding->LoadResources(aBoundElement);
   if (!ready) {
     // Add our bound element to the protos list of elts that should
     // be notified when the stylesheets and scripts finish loading.
@@ -904,9 +920,16 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
   bool useXULCache = cache && cache->IsEnabled();
 
   if (!info && useXULCache) {
+    // Assume Gecko style backend for the XBL document without a bound
+    // document. The only case is loading platformHTMLBindings.xml which
+    // doesn't have any style sheets or style attributes.
+    StyleBackendType styleBackend
+      = aBoundDocument ? aBoundDocument->GetStyleBackendType()
+                       : StyleBackendType::Gecko;
+
     // This cache crosses the entire product, so that any XBL bindings that are
     // part of chrome will be reused across all XUL documents.
-    info = cache->GetXBLDocumentInfo(documentURI);
+    info = cache->GetXBLDocumentInfo(documentURI, styleBackend);
   }
 
   bool useStartupCache = useXULCache && IsChromeOrResourceURI(documentURI);
@@ -914,7 +937,8 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
   if (!info) {
     // Next, look in the startup cache
     if (!info && useStartupCache) {
-      rv = nsXBLDocumentInfo::ReadPrototypeBindings(documentURI, getter_AddRefs(info));
+      rv = nsXBLDocumentInfo::ReadPrototypeBindings(documentURI, getter_AddRefs(info),
+                                                    aBoundDocument);
       if (NS_SUCCEEDED(rv)) {
         cache->PutXBLDocumentInfo(info);
       }
@@ -969,6 +993,12 @@ nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
     bindingManager->PutXBLDocumentInfo(info);
   }
 
+  MOZ_ASSERT(!aBoundDocument || !info ||
+             aBoundDocument->GetStyleBackendType() ==
+               info->GetDocument()->GetStyleBackendType(),
+             "Style backend type mismatched between the bound document and "
+             "the XBL document loaded.");
+
   info.forget(aResult);
 
   return NS_OK;
@@ -999,6 +1029,11 @@ nsXBLService::FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoun
   nsCOMPtr<nsIDocument> doc;
   rv = NS_NewXMLDocument(getter_AddRefs(doc));
   NS_ENSURE_SUCCESS(rv, rv);
+
+  // Set the style backend type before loading the XBL document. Assume
+  // gecko if there's no bound document.
+  doc->SetStyleBackendType(aBoundDocument ? aBoundDocument->GetStyleBackendType()
+                                          : StyleBackendType::Gecko);
 
   nsCOMPtr<nsIXMLContentSink> xblSink;
   rv = NS_NewXBLContentSink(getter_AddRefs(xblSink), doc, aDocumentURI, nullptr);
@@ -1081,7 +1116,8 @@ nsXBLService::FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoun
   rv = channel->Open2(getter_AddRefs(in));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = nsSyncLoadService::PushSyncStreamToListener(in, listener, channel);
+  rv = nsSyncLoadService::PushSyncStreamToListener(in.forget(), listener,
+                                                   channel);
   NS_ENSURE_SUCCESS(rv, rv);
 
   doc.swap(*aResult);

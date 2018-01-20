@@ -20,11 +20,16 @@
 #include "nsIDOMElement.h"
 #include "nsIDOMNode.h"
 #include "nsIDOMWindow.h"
+#include "nsITabChild.h"
 #include "nsIContent.h"
+#include "nsIImageLoadingContent.h"
 #include "nsILoadContext.h"
 #include "nsCOMArray.h"
 #include "nsContentUtils.h"
 #include "mozilla/dom/nsMixedContentBlocker.h"
+#include "nsIContentSecurityPolicy.h"
+#include "mozilla/dom/TabGroup.h"
+#include "mozilla/TaskCategory.h"
 
 using mozilla::LogLevel;
 
@@ -42,7 +47,8 @@ NS_NewContentPolicy(nsIContentPolicy **aResult)
 
 nsContentPolicy::nsContentPolicy()
     : mPolicies(NS_CONTENTPOLICY_CATEGORY)
-    , mSimplePolicies(NS_SIMPLECONTENTPOLICY_CATEGORY)
+    , mMixedContentBlocker(do_GetService(NS_MIXEDCONTENTBLOCKER_CONTRACTID))
+    , mCSPService(do_GetService(CSPSERVICE_CONTRACTID))
 {
 }
 
@@ -70,7 +76,6 @@ nsContentPolicy::~nsContentPolicy()
 
 inline nsresult
 nsContentPolicy::CheckPolicy(CPMethod          policyMethod,
-                             SCPMethod         simplePolicyMethod,
                              nsContentPolicyType contentType,
                              nsIURI           *contentLocation,
                              nsIURI           *requestingLocation,
@@ -89,8 +94,9 @@ nsContentPolicy::CheckPolicy(CPMethod          policyMethod,
     {
         nsCOMPtr<nsIDOMNode> node(do_QueryInterface(requestingContext));
         nsCOMPtr<nsIDOMWindow> window(do_QueryInterface(requestingContext));
-        NS_ASSERTION(!requestingContext || node || window,
-                     "Context should be a DOM node or a DOM window!");
+        nsCOMPtr<nsITabChild> tabChild(do_QueryInterface(requestingContext));
+        NS_ASSERTION(!requestingContext || node || window || tabChild,
+                     "Context should be a DOM node, DOM window or a tabChild!");
     }
 #endif
 
@@ -116,25 +122,34 @@ nsContentPolicy::CheckPolicy(CPMethod          policyMethod,
     nsContentPolicyType externalType =
         nsContentUtils::InternalContentPolicyTypeToExternal(contentType);
 
-    nsCOMPtr<nsIContentPolicy> mixedContentBlocker =
-        do_GetService(NS_MIXEDCONTENTBLOCKER_CONTRACTID);
-
-    nsCOMPtr<nsIContentPolicy> cspService =
-      do_GetService(CSPSERVICE_CONTRACTID);
-
-    /* 
+    /*
      * Enumerate mPolicies and ask each of them, taking the logical AND of
      * their permissions.
      */
     nsresult rv;
-    nsCOMArray<nsIContentPolicy> entries;
-    mPolicies.GetEntries(entries);
+    const nsCOMArray<nsIContentPolicy>& entries = mPolicies.GetCachedEntries();
+
+    nsCOMPtr<nsPIDOMWindowOuter> window;
+    if (nsCOMPtr<nsINode> node = do_QueryInterface(requestingContext)) {
+        window = node->OwnerDoc()->GetWindow();
+    } else {
+        window = do_QueryInterface(requestingContext);
+    }
+
+    if (requestPrincipal) {
+        nsCOMPtr<nsIContentSecurityPolicy> csp;
+        requestPrincipal->GetCsp(getter_AddRefs(csp));
+        if (csp && window) {
+            csp->EnsureEventTarget(window->EventTargetFor(mozilla::TaskCategory::Other));
+        }
+    }
+
     int32_t count = entries.Count();
     for (int32_t i = 0; i < count; i++) {
         /* check the appropriate policy */
         // Send internal content policy type to CSP and mixed content blocker
         nsContentPolicyType type = externalType;
-        if (mixedContentBlocker == entries[i] || cspService == entries[i]) {
+        if (mMixedContentBlocker == entries[i] || mCSPService == entries[i]) {
           type = contentType;
         }
         rv = (entries[i]->*policyMethod)(type, contentLocation,
@@ -143,54 +158,16 @@ nsContentPolicy::CheckPolicy(CPMethod          policyMethod,
                                          decision);
 
         if (NS_SUCCEEDED(rv) && NS_CP_REJECTED(*decision)) {
-            /* policy says no, no point continuing to check */
-            return NS_OK;
-        }
-    }
-
-    nsCOMPtr<nsIDOMElement> topFrameElement;
-    bool isTopLevel = true;
-    nsCOMPtr<nsPIDOMWindowOuter> window;
-    if (nsCOMPtr<nsINode> node = do_QueryInterface(requestingContext)) {
-        window = node->OwnerDoc()->GetWindow();
-    } else {
-        window = do_QueryInterface(requestingContext);
-    }
-
-    if (window) {
-        nsCOMPtr<nsIDocShell> docShell = window->GetDocShell();
-        nsCOMPtr<nsILoadContext> loadContext = do_QueryInterface(docShell);
-        if (loadContext) {
-          loadContext->GetTopFrameElement(getter_AddRefs(topFrameElement));
-        }
-
-        MOZ_ASSERT(window->IsOuterWindow());
-
-        if (topFrameElement) {
-            nsCOMPtr<nsPIDOMWindowOuter> topWindow = window->GetScriptableTop();
-            isTopLevel = topWindow == window;
-        } else {
-            // If we don't have a top frame element, then requestingContext is
-            // part of the top-level XUL document. Presumably it's the <browser>
-            // element that content is being loaded into, so we call it the
-            // topFrameElement.
-            topFrameElement = do_QueryInterface(requestingContext);
-            isTopLevel = true;
-        }
-    }
-
-    nsCOMArray<nsISimpleContentPolicy> simpleEntries;
-    mSimplePolicies.GetEntries(simpleEntries);
-    count = simpleEntries.Count();
-    for (int32_t i = 0; i < count; i++) {
-        /* check the appropriate policy */
-        rv = (simpleEntries[i]->*simplePolicyMethod)(externalType, contentLocation,
-                                                     requestingLocation,
-                                                     topFrameElement, isTopLevel,
-                                                     mimeType, extra, requestPrincipal,
-                                                     decision);
-
-        if (NS_SUCCEEDED(rv) && NS_CP_REJECTED(*decision)) {
+            // If we are blocking an image, we have to let the
+            // ImageLoadingContent know that we blocked the load.
+            if (externalType == nsIContentPolicy::TYPE_IMAGE ||
+                externalType == nsIContentPolicy::TYPE_IMAGESET) {
+              nsCOMPtr<nsIImageLoadingContent> img =
+                do_QueryInterface(requestingContext);
+              if (img) {
+                img->SetBlockedRequest(*decision);
+              }
+            }
             /* policy says no, no point continuing to check */
             return NS_OK;
         }
@@ -237,7 +214,6 @@ nsContentPolicy::ShouldLoad(uint32_t          contentType,
     // ShouldProcess does not need a content location, but we do
     NS_PRECONDITION(contentLocation, "Must provide request location");
     nsresult rv = CheckPolicy(&nsIContentPolicy::ShouldLoad,
-                              &nsISimpleContentPolicy::ShouldLoad,
                               contentType,
                               contentLocation, requestingLocation,
                               requestingContext, mimeType, extra,
@@ -258,7 +234,6 @@ nsContentPolicy::ShouldProcess(uint32_t          contentType,
                                int16_t          *decision)
 {
     nsresult rv = CheckPolicy(&nsIContentPolicy::ShouldProcess,
-                              &nsISimpleContentPolicy::ShouldProcess,
                               contentType,
                               contentLocation, requestingLocation,
                               requestingContext, mimeType, extra,

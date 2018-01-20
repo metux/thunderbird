@@ -33,31 +33,22 @@ var kDefaultSig = "This is my signature.\n\nCheck out my website sometime!";
 var kFiles = ['./data/testFile1', './data/testFile2'];
 var kLines = ["This is a line of text", "and here's another!"];
 
-var ah, cfh, gFolder, gOldHtmlPref, gOldSigPref;
+var gInbox, gOldHtmlPref, gOldSigPref;
 
 function setupModule(module) {
-  let fdh = collector.getModule('folder-display-helpers');
-  fdh.installInto(module);
-  collector.getModule('window-helpers').installInto(module);
+  for (let lib of MODULE_REQUIRES) {
+    collector.getModule(lib).installInto(module);
+  }
 
   // For replies and forwards, we'll work off a message in the Inbox folder
   // of the fake "tinderbox" account.
   let server = MailServices.accounts.FindServer("tinderbox", FAKE_SERVER_HOSTNAME,
                                                 "pop3");
-  gFolder = server.rootFolder.getChildNamed("Inbox");
-  fdh.add_message_to_folder(gFolder, create_message());
+  gInbox = get_special_folder(Ci.nsMsgFolderFlags.Inbox, false, server);
+  add_message_to_folder(gInbox, create_message());
 
-  collector.getModule('compose-helpers').installInto(module);
-
-  ah = collector.getModule('attachment-helpers');
-  ah.installInto(module);
-  ah.gMockFilePickReg.register();
-
-  cfh = collector.getModule('cloudfile-helpers');
-  cfh.installInto(module);
-  cfh.gMockCloudfileManager.register();
-
-  collector.getModule('dom-helpers').installInto(module);
+  gMockFilePickReg.register();
+  gMockCloudfileManager.register();
 
   // These tests assume that we default to writing mail in HTML.  We'll
   // save the current preference, force defaulting to HTML, and restore the
@@ -73,8 +64,8 @@ function setupModule(module) {
 }
 
 function teardownModule(module) {
-  cfh.gMockCloudfileManager.unregister();
-  ah.gMockFilePickReg.unregister();
+  gMockCloudfileManager.unregister();
+  gMockFilePickReg.unregister();
   Services.prefs.setCharPref(kDefaultSigKey, gOldSigPref);
   Services.prefs.setBoolPref(kHtmlPrefKey, gOldHtmlPref);
   Services.prefs.clearUserPref("mail.compose.default_to_paragraph");
@@ -115,7 +106,7 @@ function wait_for_attachment_urls(aController, aNumUrls) {
 
 /**
  * Helper function that sets up the mock file picker for a series of files,
- * spawns a reply window for the first message in the gFolder, optionally
+ * spawns a reply window for the first message in the gInbox, optionally
  * types some strings into the compose window, and then attaches some
  * Filelinks.
  *
@@ -132,7 +123,7 @@ function prepare_some_attachments_and_reply(aText, aFiles) {
   let provider = new MockCloudfileAccount();
   provider.init("someKey");
 
-  be_in_folder(gFolder);
+  be_in_folder(gInbox);
   let msg = select_click_row(0);
   assert_selected_and_displayed(mc, msg);
 
@@ -146,7 +137,7 @@ function prepare_some_attachments_and_reply(aText, aFiles) {
 
 /**
  * Helper function that sets up the mock file picker for a series of files,
- * spawns an inline forward compose window for the first message in the gFolder,
+ * spawns an inline forward compose window for the first message in the gInbox,
  * optionally types some strings into the compose window, and then attaches
  * some Filelinks.
  *
@@ -163,7 +154,7 @@ function prepare_some_attachments_and_forward(aText, aFiles) {
   let provider = new MockCloudfileAccount();
   provider.init("someKey");
 
-  be_in_folder(gFolder);
+  be_in_folder(gInbox);
   let msg = select_click_row(0);
   assert_selected_and_displayed(mc, msg);
 

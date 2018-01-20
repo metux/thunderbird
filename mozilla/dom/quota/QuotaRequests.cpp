@@ -17,9 +17,6 @@ RequestBase::RequestBase()
   : mResultCode(NS_OK)
   , mHaveResultOrErrorCode(false)
 {
-#ifdef DEBUG
-  mOwningThread = PR_GetCurrentThread();
-#endif
   AssertIsOnOwningThread();
 }
 
@@ -28,9 +25,6 @@ RequestBase::RequestBase(nsIPrincipal* aPrincipal)
   , mResultCode(NS_OK)
   , mHaveResultOrErrorCode(false)
 {
-#ifdef DEBUG
-  mOwningThread = PR_GetCurrentThread();
-#endif
   AssertIsOnOwningThread();
 }
 
@@ -39,8 +33,7 @@ RequestBase::RequestBase(nsIPrincipal* aPrincipal)
 void
 RequestBase::AssertIsOnOwningThread() const
 {
-  MOZ_ASSERT(mOwningThread);
-  MOZ_ASSERT(PR_GetCurrentThread() == mOwningThread);
+  NS_ASSERT_OWNINGTHREAD(RequestBase);
 }
 
 #endif // DEBUG
@@ -147,7 +140,7 @@ UsageRequest::SetResult(nsIVariant* aResult)
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(UsageRequest, RequestBase, mCallback)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(UsageRequest)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(UsageRequest)
   NS_INTERFACE_MAP_ENTRY(nsIQuotaUsageRequest)
 NS_INTERFACE_MAP_END_INHERITING(RequestBase)
 
@@ -227,6 +220,7 @@ Request::Request(nsIPrincipal* aPrincipal)
   : RequestBase(aPrincipal)
 {
   AssertIsOnOwningThread();
+  MOZ_ASSERT(aPrincipal);
 }
 
 Request::~Request()
@@ -235,19 +229,36 @@ Request::~Request()
 }
 
 void
-Request::SetResult()
+Request::SetResult(nsIVariant* aResult)
 {
   AssertIsOnOwningThread();
+  MOZ_ASSERT(aResult);
   MOZ_ASSERT(!mHaveResultOrErrorCode);
+
+  mResult = aResult;
 
   mHaveResultOrErrorCode = true;
 
   FireCallback();
 }
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED(Request, RequestBase, mCallback)
+NS_IMETHODIMP
+Request::GetResult(nsIVariant** aResult)
+{
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(aResult);
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(Request)
+  if (!mHaveResultOrErrorCode) {
+    return NS_ERROR_FAILURE;
+  }
+
+  NS_IF_ADDREF(*aResult = mResult);
+  return NS_OK;
+}
+
+NS_IMPL_CYCLE_COLLECTION_INHERITED(Request, RequestBase, mCallback, mResult)
+
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Request)
   NS_INTERFACE_MAP_ENTRY(nsIQuotaRequest)
 NS_INTERFACE_MAP_END_INHERITING(RequestBase)
 

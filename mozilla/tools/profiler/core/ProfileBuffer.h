@@ -6,40 +6,80 @@
 #ifndef MOZ_PROFILE_BUFFER_H
 #define MOZ_PROFILE_BUFFER_H
 
-#include "ProfileEntry.h"
 #include "platform.h"
+#include "ProfileBufferEntry.h"
+#include "ProfilerMarker.h"
 #include "ProfileJSONWriter.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/RefCounted.h"
 
-class ProfileBuffer : public mozilla::RefCounted<ProfileBuffer> {
+class ProfileBuffer final
+{
 public:
-  MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(ProfileBuffer)
-
   explicit ProfileBuffer(int aEntrySize);
 
-  virtual ~ProfileBuffer();
+  ~ProfileBuffer();
 
-  void addTag(const ProfileEntry& aTag);
-  void StreamSamplesToJSON(SpliceableJSONWriter& aWriter, int aThreadId, double aSinceTime,
-                           JSContext* cx, UniqueStacks& aUniqueStacks);
-  void StreamMarkersToJSON(SpliceableJSONWriter& aWriter, int aThreadId, double aSinceTime,
-                           UniqueStacks& aUniqueStacks);
-  void DuplicateLastSample(int aThreadId);
+  // LastSample is used to record the buffer location of the most recent
+  // sample for each thread. It is used for periodic samples stored in the
+  // global ProfileBuffer, but *not* for synchronous samples.
+  struct LastSample {
+    LastSample()
+      : mGeneration(0)
+      , mPos(-1)
+    {}
 
-  void addStoredMarker(ProfilerMarker* aStoredMarker);
+    // The profiler-buffer generation number at which the sample was created.
+    uint32_t mGeneration;
+    // And its position in the buffer, or -1 meaning "invalid".
+    int mPos;
+  };
+
+  // Add |aEntry| to the buffer, ignoring what kind of entry it is.
+  void AddEntry(const ProfileBufferEntry& aEntry);
+
+  // Add to the buffer a sample start (ThreadId) entry for aThreadId. Also,
+  // record the resulting generation and index in |aLS| if it's non-null.
+  void AddThreadIdEntry(int aThreadId, LastSample* aLS = nullptr);
+
+  void CollectCodeLocation(
+    const char* aLabel, const char* aStr, int aLineNumber,
+    const mozilla::Maybe<js::ProfileEntry::Category>& aCategory);
+
+  // Maximum size of a frameKey string that we'll handle.
+  static const size_t kMaxFrameKeyLength = 512;
+
+  void StreamSamplesToJSON(SpliceableJSONWriter& aWriter, int aThreadId,
+                           double aSinceTime, double* aOutFirstSampleTime,
+                           JSContext* cx,
+                           UniqueStacks& aUniqueStacks) const;
+  void StreamMarkersToJSON(SpliceableJSONWriter& aWriter, int aThreadId,
+                           const mozilla::TimeStamp& aProcessStartTime,
+                           double aSinceTime,
+                           UniqueStacks& aUniqueStacks) const;
+  void StreamPausedRangesToJSON(SpliceableJSONWriter& aWriter,
+                                double aSinceTime) const;
+
+  // Find (via |aLS|) the most recent sample for the thread denoted by
+  // |aThreadId| and clone it, patching in |aProcessStartTime| as appropriate.
+  bool DuplicateLastSample(int aThreadId,
+                           const mozilla::TimeStamp& aProcessStartTime,
+                           LastSample& aLS);
+
+  void AddStoredMarker(ProfilerMarker* aStoredMarker);
 
   // The following two methods are not signal safe! They delete markers.
-  void deleteExpiredStoredMarkers();
-  void reset();
+  void DeleteExpiredStoredMarkers();
+  void Reset();
 
-protected:
-  char* processDynamicTag(int readPos, int* tagsConsumed, char* tagBuff);
-  int FindLastSampleOfThread(int aThreadId);
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+
+private:
+  int FindLastSampleOfThread(int aThreadId, const LastSample& aLS) const;
 
 public:
   // Circular buffer 'Keep One Slot Open' implementation for simplicity
-  mozilla::UniquePtr<ProfileEntry[]> mEntries;
+  mozilla::UniquePtr<ProfileBufferEntry[]> mEntries;
 
   // Points to the next entry we will write to, which is also the one at which
   // we need to stop reading.
@@ -56,6 +96,31 @@ public:
 
   // Markers that marker entries in the buffer might refer to.
   ProfilerMarkerLinkedList mStoredMarkers;
+};
+
+/**
+ * Helper type used to implement ProfilerStackCollector. This type is used as
+ * the collector for MergeStacks by ProfileBuffer. It holds a reference to the
+ * buffer, as well as additional feature flags which are needed to control the
+ * data collection strategy
+ */
+class ProfileBufferCollector final : public ProfilerStackCollector
+{
+public:
+  ProfileBufferCollector(ProfileBuffer& aBuf, uint32_t aFeatures)
+    : mBuf(aBuf)
+    , mFeatures(aFeatures)
+  {}
+
+  virtual mozilla::Maybe<uint32_t> Generation() override;
+  virtual void CollectNativeLeafAddr(void* aAddr) override;
+  virtual void CollectJitReturnAddr(void* aAddr) override;
+  virtual void CollectWasmFrame(const char* aLabel) override;
+  virtual void CollectPseudoEntry(const js::ProfileEntry& aEntry) override;
+
+private:
+  ProfileBuffer& mBuf;
+  uint32_t mFeatures;
 };
 
 #endif

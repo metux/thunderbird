@@ -3,17 +3,13 @@
 
 Cu.import("resource://services-common/utils.js");
 
-function run_test() {
-  run_next_test();
-}
-
 add_test(function test_required_args() {
   try {
     CommonUtils.namedTimer(function callback() {
       do_throw("Shouldn't fire.");
     }, 0);
     do_throw("Should have thrown!");
-  } catch(ex) {
+  } catch (ex) {
     run_next_test();
   }
 });

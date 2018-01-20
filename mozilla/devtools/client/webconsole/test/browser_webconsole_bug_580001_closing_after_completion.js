@@ -19,20 +19,20 @@ add_task(function* () {
 });
 
 function testClosingAfterCompletion(hud, browser) {
-  let deferred = promise.defer();
+  let deferred = defer();
 
   let errorWhileClosing = false;
   function errorListener() {
     errorWhileClosing = true;
   }
 
-  browser.addEventListener("error", errorListener, false);
+  browser.addEventListener("error", errorListener);
 
   // Focus the jsterm and perform the keycombo to close the WebConsole.
   hud.jsterm.focus();
 
   gDevTools.once("toolbox-destroyed", function () {
-    browser.removeEventListener("error", errorListener, false);
+    browser.removeEventListener("error", errorListener);
     is(errorWhileClosing, false, "no error while closing the WebConsole");
     deferred.resolve();
   });

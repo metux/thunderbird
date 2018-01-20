@@ -72,8 +72,9 @@
 <!ENTITY closeMsgOnMoveOrDelete.label     "Itxi mezu-leihoa/fitxa lekuz aldatzean edo ezabatzean">
 <!ENTITY closeMsgOnMoveOrDelete.accesskey "I">
 
-<!ENTITY editTagButton1.accesskey  "E">
-<!ENTITY editTagButton1.label      "Edit…">
 <!ENTITY itemAdvanced.label               "Advanced">
-<!ENTITY newTagButton.accesskey    "N">
+
 <!ENTITY newTagButton.label        "New…">
+<!ENTITY newTagButton.accesskey    "N">
+<!ENTITY editTagButton1.label      "Edit…">
+<!ENTITY editTagButton1.accesskey  "E">

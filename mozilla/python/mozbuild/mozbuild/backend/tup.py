@@ -5,24 +5,37 @@
 from __future__ import absolute_import, unicode_literals
 
 import os
+import sys
 
 import mozpack.path as mozpath
 from mozbuild.base import MozbuildObject
 from mozbuild.backend.base import PartialBackend, HybridBackend
 from mozbuild.backend.recursivemake import RecursiveMakeBackend
 from mozbuild.shellutil import quote as shell_quote
+from mozbuild.util import OrderedDefaultDict
+
+from mozpack.files import (
+    FileFinder,
+)
 
 from .common import CommonBackend
 from ..frontend.data import (
+    ChromeManifestEntry,
     ContextDerived,
     Defines,
+    FinalTargetFiles,
     FinalTargetPreprocessedFiles,
     GeneratedFile,
     HostDefines,
-    ObjdirPreprocessedFiles,
+    JARManifest,
+    ObjdirFiles,
 )
 from ..util import (
     FileAvoidWrite,
+)
+from ..frontend.context import (
+    AbsolutePath,
+    ObjDirPath,
 )
 
 
@@ -80,6 +93,19 @@ class BackendTupfile(object):
             'extra_outputs': ' | ' + ' '.join(extra_outputs) if extra_outputs else '',
         })
 
+    def symlink_rule(self, source, output=None, output_group=None):
+        outputs = [output] if output else [mozpath.basename(source)]
+        if output_group:
+            outputs.append(output_group)
+
+        # The !tup_ln macro does a symlink or file copy (depending on the
+        # platform) without shelling out to a subprocess.
+        self.rule(
+            cmd=['!tup_ln'],
+            inputs=[source],
+            outputs=outputs,
+        )
+
     def export_shell(self):
         if not self.shell_exported:
             # These are used by mach/mixin/process.py to determine the current
@@ -105,6 +131,19 @@ class TupOnly(CommonBackend, PartialBackend):
 
         self._backend_files = {}
         self._cmd = MozbuildObject.from_environment()
+        self._manifest_entries = OrderedDefaultDict(set)
+        self._compile_env_gen_files = (
+            '*.c',
+            '*.cpp',
+            '*.h',
+            '*.inc',
+            '*.py',
+            '*.rs',
+        )
+
+        # This is a 'group' dependency - All rules that list this as an output
+        # will be built before any rules that list this as an input.
+        self._installed_files = '$(MOZ_OBJ_ROOT)/<installed-files>'
 
     def _get_backend_file(self, relativedir):
         objdir = mozpath.join(self.environment.topobjdir, relativedir)
@@ -133,11 +172,8 @@ class TupOnly(CommonBackend, PartialBackend):
             return False
 
         consumed = CommonBackend.consume_object(self, obj)
-
-        # Even if CommonBackend acknowledged the object, we still need to let
-        # the RecursiveMake backend also handle these objects.
         if consumed:
-            return False
+            return True
 
         backend_file = self._get_backend_file_for(obj)
 
@@ -147,9 +183,13 @@ class TupOnly(CommonBackend, PartialBackend):
                 'buildid.h',
                 'source-repo.h',
             )
-            if any(f in skip_files for f in obj.outputs):
-                # Let the RecursiveMake backend handle these.
-                return False
+
+            if self.environment.is_artifact_build:
+                skip_files = skip_files + self._compile_env_gen_files
+
+            for f in obj.outputs:
+                if any(mozpath.match(f, p) for p in skip_files):
+                    return False
 
             if 'application.ini.h' in obj.outputs:
                 # application.ini.h is a special case since we need to process
@@ -159,19 +199,36 @@ class TupOnly(CommonBackend, PartialBackend):
                 backend_file.delayed_generated_files.append(obj)
             else:
                 self._process_generated_file(backend_file, obj)
+        elif (isinstance(obj, ChromeManifestEntry) and
+              obj.install_target.startswith('dist/bin')):
+            top_level = mozpath.join(obj.install_target, 'chrome.manifest')
+            if obj.path != top_level:
+                entry = 'manifest %s' % mozpath.relpath(obj.path,
+                                                        obj.install_target)
+                self._manifest_entries[top_level].add(entry)
+            self._manifest_entries[obj.path].add(str(obj.entry))
         elif isinstance(obj, Defines):
             self._process_defines(backend_file, obj)
         elif isinstance(obj, HostDefines):
             self._process_defines(backend_file, obj, host=True)
+        elif isinstance(obj, FinalTargetFiles):
+            self._process_final_target_files(obj)
         elif isinstance(obj, FinalTargetPreprocessedFiles):
             self._process_final_target_pp_files(obj, backend_file)
-        elif isinstance(obj, ObjdirPreprocessedFiles):
-            self._process_final_target_pp_files(obj, backend_file)
+        elif isinstance(obj, JARManifest):
+            self._consume_jar_manifest(obj)
 
         return True
 
     def consume_finished(self):
         CommonBackend.consume_finished(self)
+
+        # The approach here is similar to fastermake.py, but we
+        # simply write out the resulting files here.
+        for target, entries in self._manifest_entries.iteritems():
+            with self._write_file(mozpath.join(self.environment.topobjdir,
+                                               target)) as fh:
+                fh.write(''.join('%s\n' % e for e in sorted(entries)))
 
         for objdir, backend_file in sorted(self._backend_files.items()):
             for obj in backend_file.delayed_generated_files:
@@ -180,13 +237,18 @@ class TupOnly(CommonBackend, PartialBackend):
                 pass
 
         with self._write_file(mozpath.join(self.environment.topobjdir, 'Tuprules.tup')) as fh:
-            acdefines = [name for name in self.environment.defines
-                if not name in self.environment.non_global_defines]
-            acdefines_flags = ' '.join(['-D%s=%s' % (name,
-                shell_quote(self.environment.defines[name]))
-                for name in sorted(acdefines)])
+            acdefines_flags = ' '.join(['-D%s=%s' % (name, shell_quote(value))
+                for (name, value) in sorted(self.environment.acdefines.iteritems())])
             # TODO: AB_CD only exists in Makefiles at the moment.
             acdefines_flags += ' -DAB_CD=en-US'
+
+            # TODO: BOOKMARKS_INCLUDE_DIR is used by bookmarks.html.in, and is
+            # only defined in browser/locales/Makefile.in
+            acdefines_flags += ' -DBOOKMARKS_INCLUDE_DIR=%s/browser/locales/en-US/profile' % self.environment.topsrcdir
+
+            # Use BUILD_FASTER to avoid CXXFLAGS/CPPFLAGS in
+            # toolkit/content/buildconfig.html
+            acdefines_flags += ' -DBUILD_FASTER=1'
 
             fh.write('MOZ_OBJ_ROOT = $(TUP_CWD)\n')
             fh.write('DIST = $(MOZ_OBJ_ROOT)/dist\n')
@@ -223,6 +285,7 @@ class TupOnly(CommonBackend, PartialBackend):
             ])
             full_inputs = [f.full_path for f in obj.inputs]
             cmd.extend(full_inputs)
+            cmd.extend(shell_quote(f) for f in obj.flags)
 
             outputs = []
             outputs.extend(obj.outputs)
@@ -243,6 +306,70 @@ class TupOnly(CommonBackend, PartialBackend):
             else:
                 backend_file.defines = defines
 
+    def _process_final_target_files(self, obj):
+        target = obj.install_target
+        if not isinstance(obj, ObjdirFiles):
+            path = mozpath.basedir(target, (
+                'dist/bin',
+                'dist/xpi-stage',
+                '_tests',
+                'dist/include',
+                'dist/branding',
+                'dist/sdk',
+            ))
+            if not path:
+                raise Exception("Cannot install to " + target)
+
+        if target.startswith('_tests'):
+            # TODO: TEST_HARNESS_FILES present a few challenges for the tup
+            # backend (bug 1372381).
+            return
+
+        for path, files in obj.files.walk():
+            backend_file = self._get_backend_file(mozpath.join(target, path))
+            for f in files:
+                if not isinstance(f, ObjDirPath):
+                    if '*' in f:
+                        if f.startswith('/') or isinstance(f, AbsolutePath):
+                            basepath, wild = os.path.split(f.full_path)
+                            if '*' in basepath:
+                                raise Exception("Wildcards are only supported in the filename part of "
+                                                "srcdir-relative or absolute paths.")
+
+                            # TODO: This is only needed for Windows, so we can
+                            # skip this for now.
+                            pass
+                        else:
+                            def _prefix(s):
+                                for p in mozpath.split(s):
+                                    if '*' not in p:
+                                        yield p + '/'
+                            prefix = ''.join(_prefix(f.full_path))
+                            self.backend_input_files.add(prefix)
+                            finder = FileFinder(prefix)
+                            for p, _ in finder.find(f.full_path[len(prefix):]):
+                                backend_file.symlink_rule(mozpath.join(prefix, p),
+                                                          output=mozpath.join(f.target_basename, p),
+                                                          output_group=self._installed_files)
+                    else:
+                        backend_file.symlink_rule(f.full_path, output=f.target_basename, output_group=self._installed_files)
+                else:
+                    if (self.environment.is_artifact_build and
+                        any(mozpath.match(f.target_basename, p) for p in self._compile_env_gen_files)):
+                        # If we have an artifact build we never would have generated this file,
+                        # so do not attempt to install it.
+                        continue
+
+                    # We're not generating files in these directories yet, so
+                    # don't attempt to install files generated from them.
+                    if f.context.relobjdir not in ('layout/style/test',
+                                                   'toolkit/library'):
+                        output = mozpath.join('$(MOZ_OBJ_ROOT)', target, path,
+                                              f.target_basename)
+                        gen_backend_file = self._get_backend_file(f.context.relobjdir)
+                        gen_backend_file.symlink_rule(f.full_path, output=output,
+                                                      output_group=self._installed_files)
+
     def _process_final_target_pp_files(self, obj, backend_file):
         for i, (path, files) in enumerate(obj.files.walk()):
             for f in files:
@@ -250,6 +377,13 @@ class TupOnly(CommonBackend, PartialBackend):
                                  destdir=mozpath.join(self.environment.topobjdir, obj.install_target, path))
 
     def _handle_idl_manager(self, manager):
+        if self.environment.is_artifact_build:
+            return
+
+        dist_idl_backend_file = self._get_backend_file('dist/idl')
+        for idl in manager.idls.values():
+            dist_idl_backend_file.symlink_rule(idl['source'], output_group=self._installed_files)
+
         backend_file = self._get_backend_file('xpcom/xpidl')
         backend_file.export_shell()
 
@@ -275,16 +409,28 @@ class TupOnly(CommonBackend, PartialBackend):
                 inputs=[
                     '$(MOZ_OBJ_ROOT)/xpcom/idl-parser/xpidl/xpidllex.py',
                     '$(MOZ_OBJ_ROOT)/xpcom/idl-parser/xpidl/xpidlyacc.py',
+                    self._installed_files,
                 ],
                 display='XPIDL %s' % module,
                 cmd=cmd,
                 outputs=outputs,
             )
 
+        for manifest, entries in manager.interface_manifests.items():
+            for xpt in entries:
+                self._manifest_entries[manifest].add('interfaces %s' % xpt)
+
+        for m in manager.chrome_manifests:
+            self._manifest_entries[m].add('manifest components/interfaces.manifest')
+
     def _preprocess(self, backend_file, input_file, destdir=None):
+        # .css files use '%' as the preprocessor marker, which must be scaped as
+        # '%%' in the Tupfile.
+        marker = '%%' if input_file.endswith('.css') else '#'
+
         cmd = self._py_action('preprocessor')
-        cmd.extend(backend_file.defines)
-        cmd.extend(['$(ACDEFINES)', '%f', '-o', '%o'])
+        cmd.extend([shell_quote(d) for d in backend_file.defines])
+        cmd.extend(['$(ACDEFINES)', '%f', '-o', '%o', '--marker=%s' % marker])
 
         base_input = mozpath.basename(input_file)
         if base_input.endswith('.in'):
@@ -300,9 +446,53 @@ class TupOnly(CommonBackend, PartialBackend):
 
     def _handle_ipdl_sources(self, ipdl_dir, sorted_ipdl_sources,
                              unified_ipdl_cppsrcs_mapping):
-        # TODO: This isn't implemented yet in the tup backend, but it is called
-        # by the CommonBackend.
-        pass
+        # Preferably we wouldn't have to import ipdl, but we need to parse the
+        # ast in order to determine the namespaces since they are used in the
+        # header output paths.
+        sys.path.append(mozpath.join(self.environment.topsrcdir, 'ipc', 'ipdl'))
+        import ipdl
+
+        backend_file = self._get_backend_file('ipc/ipdl')
+        outheaderdir = '_ipdlheaders'
+        cmd = [
+            '$(PYTHON_PATH)',
+            '$(PLY_INCLUDE)',
+            '%s/ipdl.py' % backend_file.srcdir,
+            '--sync-msg-list=%s/sync-messages.ini' % backend_file.srcdir,
+            '--msg-metadata=%s/message-metadata.ini' % backend_file.srcdir,
+            '--outheaders-dir=%s' % outheaderdir,
+            '--outcpp-dir=.',
+        ]
+        ipdldirs = sorted(set(mozpath.dirname(p) for p in sorted_ipdl_sources))
+        cmd.extend(['-I%s' % d for d in ipdldirs])
+        cmd.extend(sorted_ipdl_sources)
+
+        outputs = ['IPCMessageTypeName.cpp', mozpath.join(outheaderdir, 'IPCMessageStart.h'), 'ipdl_lextab.py', 'ipdl_yacctab.py']
+
+        for filename in sorted_ipdl_sources:
+            filepath, ext = os.path.splitext(filename)
+            dirname, basename = os.path.split(filepath)
+            dirname = mozpath.relpath(dirname, self.environment.topsrcdir)
+
+            extensions = ['']
+            if ext == '.ipdl':
+                extensions.extend(['Child', 'Parent'])
+
+            with open(filename) as f:
+                ast = ipdl.parse(f.read(), filename, includedirs=ipdldirs)
+                self.backend_input_files.add(filename)
+            headerdir = os.path.join(outheaderdir, *([ns.name for ns in ast.namespaces]))
+
+            for extension in extensions:
+                outputs.append("%s%s.cpp" % (basename, extension))
+                outputs.append(mozpath.join(headerdir, '%s%s.h' % (basename, extension)))
+
+        backend_file.rule(
+            display='IPDL code generation',
+            cmd=cmd,
+            outputs=outputs,
+            check_unchanged=True,
+        )
 
     def _handle_webidl_build(self, bindings_dir, unified_source_mapping,
                              webidls, expected_build_output_files,

@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "fr": {
+      "chrome_resources": {
+        "necko": "chrome/fr/locale/fr/necko/", 
+        "global": "chrome/fr/locale/fr/global/", 
+        "messenger-region": "chrome/fr/locale/fr/messenger-region/", 
+        "chat": "chrome/fr/locale/fr/chat/", 
+        "devtools": "chrome/fr/locale/fr/devtools/client/", 
+        "pipnss": "chrome/fr/locale/fr/pipnss/", 
+        "messenger-smime": "chrome/fr/locale/fr/messenger-smime/", 
+        "messenger-newsblog": "chrome/fr/locale/fr/messenger-newsblog/", 
+        "devtools-shim": "chrome/fr/locale/fr/devtools/shim/", 
+        "alerts": "chrome/fr/locale/fr/alerts/", 
+        "messenger": "chrome/fr/locale/fr/messenger/", 
+        "editor": "chrome/fr/locale/fr/editor/", 
+        "branding": "chrome/fr/locale/fr/branding/", 
+        "mozldap": "chrome/fr/locale/fr/mozldap/", 
+        "autoconfig": "chrome/fr/locale/fr/autoconfig/", 
+        "devtools-shared": "chrome/fr/locale/fr/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/fr/locale/fr/global-platform/win/", 
+          "android": "chrome/fr/locale/fr/global-platform/unix/", 
+          "macosx": "chrome/fr/locale/fr/global-platform/mac/", 
+          "linux": "chrome/fr/locale/fr/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/fr/locale/fr/mozapps/", 
+        "pluginproblem": "chrome/fr/locale/fr/pluginproblem/", 
+        "communicator": "chrome/fr/locale/fr/communicator/", 
+        "messenger-mapi": "chrome/fr/locale/fr/messenger-mapi/", 
+        "places": "chrome/fr/locale/fr/places/", 
+        "passwordmgr": "chrome/fr/locale/fr/passwordmgr/", 
+        "pippki": "chrome/fr/locale/fr/pippki/"
+      }, 
+      "version": "20171104105247"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-fr@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "fr", 
+  "version": "58.0", 
+  "name": "Français Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozfr.org (contributors: Frédéric Chateaux, Théo Chevalier, Cédric Corazza, Philippe Dessante, Benoît Leseul, Jean-Bernard Marcon)", 
+  "description": "Language pack for Thunderbird for fr"
+}

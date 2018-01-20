@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 from collections import (
     defaultdict,
     namedtuple,
@@ -42,6 +44,16 @@ class StatusHandler(object):
                 self.unexpected_statuses[status] += 1
             else:
                 self.expected_statuses[status] += 1
+
+        if action == "assertion_count":
+            if data["count"] < data["min_expected"]:
+                self.unexpected_statuses["PASS"] += 1
+            elif data["count"] > data["max_expected"]:
+                self.unexpected_statuses["FAIL"] += 1
+            elif data["count"]:
+                self.expected_statuses["FAIL"] += 1
+            else:
+                self.expected_statuses["PASS"] += 1
 
     def summarize(self):
         return RunSummary(

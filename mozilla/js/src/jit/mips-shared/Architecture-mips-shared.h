@@ -12,6 +12,8 @@
 #include <limits.h>
 #include <stdint.h>
 
+#include "jit/shared/Architecture-shared.h"
+
 #include "js/Utility.h"
 
 // gcc appears to use _mips_hard_float to denote
@@ -180,6 +182,7 @@ class Registers
         (1 << Registers::s5) |
         (1 << Registers::s6) |
         (1 << Registers::s7) |
+        (1 << Registers::fp) |
         (1 << Registers::ra);
 
     static const SetType WrapperMask =
@@ -196,7 +199,6 @@ class Registers
         (1 << Registers::k1) |
         (1 << Registers::gp) |
         (1 << Registers::sp) |
-        (1 << Registers::fp) |
         (1 << Registers::ra);
 
     // Registers that can be allocated without being saved, generally.
@@ -312,11 +314,13 @@ namespace mips_private {
     extern uint32_t Flags;
     extern bool hasFPU;
     extern bool isLoongson;
+    extern bool hasR2;
 }
 
 inline uint32_t GetMIPSFlags() { return mips_private::Flags; }
 inline bool hasFPU() { return mips_private::hasFPU; }
 inline bool isLoongson() { return mips_private::isLoongson; }
+inline bool hasR2() { return mips_private::hasR2; }
 
 // MIPS doesn't have double registers that can NOT be treated as float32.
 inline bool

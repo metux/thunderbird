@@ -12,7 +12,7 @@
 #include "mozilla/a11y/AccTypes.h"
 #include "mozilla/a11y/Role.h"
 
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsIContent.h"
 
 class nsINode;
@@ -34,7 +34,15 @@ enum EValueRule
    * Value interface is implemented, supports value, min and max from
    * aria-valuenow, aria-valuemin and aria-valuemax.
    */
-  eHasValueMinMax
+  eHasValueMinMax,
+
+  /**
+   * Value interface is implemented, but only if the element is focusable.
+   * For instance, in ARIA 1.1 the ability for authors to create adjustable
+   * splitters was provided by supporting the value interface on separators
+   * that are focusable. Non-focusable separators expose no value information.
+   */
+  eHasValueMinMaxIfFocusable
 };
 
 
@@ -132,7 +140,7 @@ struct nsRoleMapEntry
   /**
    * Return true if matches to the given ARIA role.
    */
-  bool Is(nsIAtom* aARIARole) const
+  bool Is(nsAtom* aARIARole) const
     { return *roleAtom == aARIARole; }
 
   /**
@@ -148,7 +156,7 @@ struct nsRoleMapEntry
     { return nsDependentAtomString(*roleAtom); }
 
   // ARIA role: string representation such as "button"
-  nsIAtom** roleAtom;
+  nsStaticAtom** roleAtom;
 
   // Role mapping rule: maps to enum Role
   mozilla::a11y::role role;
@@ -266,7 +274,7 @@ uint64_t UniversalStatesFor(mozilla::dom::Element* aElement);
  * @return       A bitflag representing the attribute characteristics
  *               (see above for possible bit masks, prefixed "ATTR_")
  */
-uint8_t AttrCharacteristicsFor(nsIAtom* aAtom);
+uint8_t AttrCharacteristicsFor(nsAtom* aAtom);
 
 /**
  * Return true if the element has defined aria-hidden.

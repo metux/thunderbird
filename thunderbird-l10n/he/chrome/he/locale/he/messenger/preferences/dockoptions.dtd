@@ -6,12 +6,13 @@
 
 <!ENTITY bounceSystemDockIcon.label            "הנפשת סמל היישום כשהודעה חדשה מגיעה">
 
+<!ENTITY window.macWidth                       "35em">
+
 <!ENTITY bounceSystemDockIcon.accesskey        "i">
-<!ENTITY directNotificationSettings.label      "You can disable the badge on the Notification pane of System Preferences.">
+<!ENTITY newMessagesCountDock.label            "Count of new messages">
+<!ENTITY newMessagesCountDock.accesskey        "n">
+<!ENTITY showAllUnreadMessagesCount.label      "Count of unread messages">
+<!ENTITY showAllUnreadMessagesCount.accesskey  "u">
 <!ENTITY dockIconBadge.label                   "App icon badge">
 <!ENTITY dockIconShow.label                    "Badge app icon with:">
-<!ENTITY newMessagesCountDock.accesskey        "n">
-<!ENTITY newMessagesCountDock.label            "Count of new messages">
-<!ENTITY showAllUnreadMessagesCount.accesskey  "u">
-<!ENTITY showAllUnreadMessagesCount.label      "Count of unread messages">
-<!ENTITY window.macWidth                       "35em">
+<!ENTITY directNotificationSettings.label      "You can disable the badge on the Notification pane of System Preferences.">

@@ -36,5 +36,10 @@ interface nsIQuotaUsageRequest : nsIQuotaRequestBase
 [scriptable, uuid(22890e3e-ff25-4372-9684-d901060e2f6c)]
 interface nsIQuotaRequest : nsIQuotaRequestBase
 {
+  // The result can contain one of these types:
+  //   void
+  //   bool
+  [must_use] readonly attribute nsIVariant result;
+
   attribute nsIQuotaCallback callback;
 };

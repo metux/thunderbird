@@ -11,16 +11,18 @@ const TEST_URI = "data:text/html;charset=utf-8,<p>Web Console test for " +
 let created = false;
 let destroyed = false;
 
-add_task(function* () {
+add_task(async function() {
   setupObserver();
-  yield openNewTabAndConsole(TEST_URI);
-  yield waitFor(() => created);
+  await openNewTabAndConsole(TEST_URI);
+  await waitFor(() => created);
 
-  yield closeTabAndToolbox(gBrowser.selectedTab);
-  yield waitFor(() => destroyed);
+  await closeTabAndToolbox(gBrowser.selectedTab);
+  await waitFor(() => destroyed);
 });
 
 function setupObserver() {
+  const { XPCOMUtils } = Cu.import("resource://gre/modules/XPCOMUtils.jsm", {});
+
   const observer = {
     QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
 
@@ -34,7 +36,8 @@ function setupObserver() {
           created = true;
           break;
         case "web-console-destroyed":
-          ok(!HUDService.getHudReferenceById(subject.data), "We do not have a hud reference");
+          ok(!HUDService.getHudReferenceById(subject.data),
+            "We do not have a hud reference");
           Services.obs.removeObserver(observer, "web-console-destroyed");
           destroyed = true;
           break;
@@ -42,6 +45,6 @@ function setupObserver() {
     },
   };
 
-  Services.obs.addObserver(observer, "web-console-created", false);
-  Services.obs.addObserver(observer, "web-console-destroyed", false);
+  Services.obs.addObserver(observer, "web-console-created");
+  Services.obs.addObserver(observer, "web-console-destroyed");
 }

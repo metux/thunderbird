@@ -37,11 +37,11 @@
 <!ENTITY netOffline.title "وضع بدون اتصال">
 <!ENTITY netOffline.longDesc2 "<p>المتصفح يعمل في وضع اللا اتصال ولا يستطيع تحميل العنصر المطلوب.</p><ul><li>هل الحاسوب متصل بشبكة نشِطة؟</li><li>اضغط على ”حاول مجددًا“ للتبديل إلى وضع الاتصال وإعادة تحميل الصفحة.</li></ul>">
 
-<!ENTITY contentEncodingError.title "ترميز محتوى خاطئ">
+<!ENTITY contentEncodingError.title "خطأ في ترميز المحتوى">
 <!ENTITY contentEncodingError.longDesc "<p>الصفحة التي تحاول فتحها لا يمكن عرضها لأنها تستخدم صيغة ضغط غير سليمة أو غير مدعومة.</p><ul><li>الرجاء الاتصال أصحاب الموقع لإخبارهم بهذه المشكلة. </li></ul>">
 
 <!ENTITY unsafeContentType.title "نوع ملف غير آمن">
-<!ENTITY unsafeContentType.longDesc "<ul> <li>من فضلك اتصل بمالكي الموقع لإعلامهم بهذه المشكلة.</li> </ul>">
+<!ENTITY unsafeContentType.longDesc "<ul> <li>من فضلك اتصل بمالكي الموقع لإعلامهم بهذه المشكلة.</li> </ul>">
 
 <!ENTITY netReset.title "قُوطِع الاتصال">
 <!ENTITY netReset.longDesc "<p>قُطعت وصلة الشبكة أثناء بدأ الاتصال. أعد المحاولة رجاءً.</p>">
@@ -59,7 +59,7 @@
 <!ENTITY proxyResolveFailure.longDesc "<p>ضُبِط المتصفح ليستخدم خادوما وسيطا، لكن تعذّر العثور على الوسيط.</p><ul><li>هل إعدادات الوسيط سليمة؟ تأكد من الإعدادات وأعد المحاولة.</li><li>هل يتصل الحاسوب بشبكة تعمل؟</li><li>أمازلت تواجه مشاكل؟ راجع مدير الشبكة أو مزود الخدمة للمساعدة</li></ul>">
 
 <!ENTITY redirectLoop.title "حلقة إعادة توجيه">
-<!ENTITY redirectLoop.longDesc "<p>توقف المتصفح عن محاولة جلب العنصر المطلوب. يعيد الموقع توجيه الطلب بصورة لن تتم أبدا.</p><ul><li>هل عطّلت أو منعت الكعكات من هذا الموقع؟</li><li><em>ملاحظة</em>: إذا كان قبول كعكات هذا الموقع لا يحل مشكلتك، فهذه على الأرجح مشكلة في إعدادات الخادوم وليس حاسوبك.</li></ul>">
+<!ENTITY redirectLoop.longDesc "<p>توقف المتصفح عن محاولة جلب العنصر المطلوب. يعيد الموقع توجيه الطلب بصورة لن تتم أبدا.</p><ul><li>هل عطّلت أو حجبتَ الكعكات من هذا الموقع؟</li><li><em>ملاحظة</em>: إذا كان قبول كعكات هذا الموقع لا يحل مشكلتك، فهذه على الأرجح مشكلة في إعدادات الخادوم وليس حاسوبك.</li></ul>">
 
 <!ENTITY unknownSocketType.title "استجابة غير صحيحة">
 <!ENTITY unknownSocketType.longDesc "<p>استجاب الموقع لطلب الشبكة بطرقة غير متوقعة ولا يستطيع التصفح الاستمرار.</p>">
@@ -76,7 +76,7 @@
 <!ENTITY cspBlocked.title "حجبتها سياسة أمن المحتوى">
 <!ENTITY cspBlocked.longDesc "<p>منع المتصفح هذه الصفحة من التحميل بهذه الطريقة لأنها تملك سياسة أمن للمحتوى لا تسمح بذلك.</p>">
 
-<!ENTITY corruptedContentErrorv2.title "خطأ: محتوى فاسد">
+<!ENTITY corruptedContentErrorv2.title "خطأ محتوى فاسد">
 <!ENTITY corruptedContentErrorv2.longDesc "<p>تعذر عرض الصفحة التي تريد مشاهدتها بسبب خطأ أثناء نقل البيانات.</p><ul><li>الرجاء التواصل مع مالك الموقع لإبلاغه بهذه المشكلة.</li></ul>">
 
 <!ENTITY remoteXUL.title "XUL بعيد">

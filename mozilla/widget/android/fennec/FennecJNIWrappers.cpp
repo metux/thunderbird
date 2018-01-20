@@ -4,8 +4,10 @@
 // corresponding Java methods and rerun the build. Manually updating this file
 // will cause your build to fail.
 
+#ifndef MOZ_PREPROCESSOR
 #include "FennecJNIWrappers.h"
 #include "mozilla/jni/Accessors.h"
+#endif
 
 namespace mozilla {
 namespace java {
@@ -21,6 +23,20 @@ constexpr char ANRReporter::ReleaseNativeStack_t::signature[];
 
 constexpr char ANRReporter::RequestNativeStack_t::name[];
 constexpr char ANRReporter::RequestNativeStack_t::signature[];
+
+const char BrowserLocaleManager::name[] =
+        "org/mozilla/gecko/BrowserLocaleManager";
+
+constexpr char BrowserLocaleManager::GetLocale_t::name[];
+constexpr char BrowserLocaleManager::GetLocale_t::signature[];
+
+auto BrowserLocaleManager::GetLocale() -> mozilla::jni::String::LocalRef
+{
+    return mozilla::jni::Method<GetLocale_t>::Call(BrowserLocaleManager::Context(), nullptr);
+}
+
+constexpr char BrowserLocaleManager::RefreshLocales_t::name[];
+constexpr char BrowserLocaleManager::RefreshLocales_t::signature[];
 
 const char DownloadsIntegration::name[] =
         "org/mozilla/gecko/DownloadsIntegration";
@@ -39,6 +55,28 @@ constexpr char DownloadsIntegration::ScanMedia_t::signature[];
 auto DownloadsIntegration::ScanMedia(mozilla::jni::String::Param a0, mozilla::jni::String::Param a1) -> void
 {
     return mozilla::jni::Method<ScanMedia_t>::Call(DownloadsIntegration::Context(), nullptr, a0, a1);
+}
+
+const char GeckoApp::name[] =
+        "org/mozilla/gecko/GeckoApp";
+
+constexpr char GeckoApp::LaunchOrBringToFront_t::name[];
+constexpr char GeckoApp::LaunchOrBringToFront_t::signature[];
+
+auto GeckoApp::LaunchOrBringToFront() -> void
+{
+    return mozilla::jni::Method<LaunchOrBringToFront_t>::Call(GeckoApp::Context(), nullptr);
+}
+
+const char GeckoApplication::name[] =
+        "org/mozilla/gecko/GeckoApplication";
+
+constexpr char GeckoApplication::CreateShortcut_t::name[];
+constexpr char GeckoApplication::CreateShortcut_t::signature[];
+
+auto GeckoApplication::CreateShortcut(mozilla::jni::String::Param a0, mozilla::jni::String::Param a1) -> void
+{
+    return mozilla::jni::Method<CreateShortcut_t>::Call(GeckoApplication::Context(), nullptr, a0, a1);
 }
 
 const char GeckoJavaSampler::name[] =
@@ -103,6 +141,33 @@ auto GeckoJavaSampler::Unpause() -> void
     return mozilla::jni::Method<Unpause_t>::Call(GeckoJavaSampler::Context(), nullptr);
 }
 
+const char GlobalHistory::name[] =
+        "org/mozilla/gecko/GlobalHistory";
+
+constexpr char GlobalHistory::CheckURIVisited_t::name[];
+constexpr char GlobalHistory::CheckURIVisited_t::signature[];
+
+auto GlobalHistory::CheckURIVisited(mozilla::jni::String::Param a0) -> void
+{
+    return mozilla::jni::Method<CheckURIVisited_t>::Call(GlobalHistory::Context(), nullptr, a0);
+}
+
+constexpr char GlobalHistory::MarkURIVisited_t::name[];
+constexpr char GlobalHistory::MarkURIVisited_t::signature[];
+
+auto GlobalHistory::MarkURIVisited(mozilla::jni::String::Param a0) -> void
+{
+    return mozilla::jni::Method<MarkURIVisited_t>::Call(GlobalHistory::Context(), nullptr, a0);
+}
+
+constexpr char GlobalHistory::SetURITitle_t::name[];
+constexpr char GlobalHistory::SetURITitle_t::signature[];
+
+auto GlobalHistory::SetURITitle(mozilla::jni::String::Param a0, mozilla::jni::String::Param a1) -> void
+{
+    return mozilla::jni::Method<SetURITitle_t>::Call(GlobalHistory::Context(), nullptr, a0, a1);
+}
+
 const char MemoryMonitor::name[] =
         "org/mozilla/gecko/MemoryMonitor";
 
@@ -120,15 +185,6 @@ constexpr char PresentationMediaPlayerManager::InvalidateAndScheduleComposite_t:
 
 constexpr char PresentationMediaPlayerManager::RemovePresentationSurface_t::name[];
 constexpr char PresentationMediaPlayerManager::RemovePresentationSurface_t::signature[];
-
-const char ScreenManagerHelper::name[] =
-        "org/mozilla/gecko/ScreenManagerHelper";
-
-constexpr char ScreenManagerHelper::AddDisplay_t::name[];
-constexpr char ScreenManagerHelper::AddDisplay_t::signature[];
-
-constexpr char ScreenManagerHelper::RemoveDisplay_t::name[];
-constexpr char ScreenManagerHelper::RemoveDisplay_t::signature[];
 
 const char Telemetry::name[] =
         "org/mozilla/gecko/Telemetry";
@@ -162,12 +218,6 @@ auto ThumbnailHelper::NotifyThumbnail(mozilla::jni::ByteBuffer::Param a0, mozill
 constexpr char ThumbnailHelper::RequestThumbnail_t::name[];
 constexpr char ThumbnailHelper::RequestThumbnail_t::signature[];
 
-const char ZoomedView::name[] =
-        "org/mozilla/gecko/ZoomedView";
-
-constexpr char ZoomedView::RequestZoomedViewData_t::name[];
-constexpr char ZoomedView::RequestZoomedViewData_t::signature[];
-
 const char AudioFocusAgent::name[] =
         "org/mozilla/gecko/media/AudioFocusAgent";
 
@@ -185,239 +235,6 @@ constexpr char AudioFocusAgent::NotifyStoppedPlaying_t::signature[];
 auto AudioFocusAgent::NotifyStoppedPlaying() -> void
 {
     return mozilla::jni::Method<NotifyStoppedPlaying_t>::Call(AudioFocusAgent::Context(), nullptr);
-}
-
-const char CodecProxy::name[] =
-        "org/mozilla/gecko/media/CodecProxy";
-
-constexpr char CodecProxy::Create_t::name[];
-constexpr char CodecProxy::Create_t::signature[];
-
-auto CodecProxy::Create(mozilla::jni::Object::Param a0, mozilla::jni::Object::Param a1, mozilla::jni::Object::Param a2) -> CodecProxy::LocalRef
-{
-    return mozilla::jni::Method<Create_t>::Call(CodecProxy::Context(), nullptr, a0, a1, a2);
-}
-
-constexpr char CodecProxy::Flush_t::name[];
-constexpr char CodecProxy::Flush_t::signature[];
-
-auto CodecProxy::Flush() const -> bool
-{
-    return mozilla::jni::Method<Flush_t>::Call(CodecProxy::mCtx, nullptr);
-}
-
-constexpr char CodecProxy::Input_t::name[];
-constexpr char CodecProxy::Input_t::signature[];
-
-auto CodecProxy::Input(mozilla::jni::ByteBuffer::Param a0, mozilla::jni::Object::Param a1, mozilla::jni::Object::Param a2) const -> bool
-{
-    return mozilla::jni::Method<Input_t>::Call(CodecProxy::mCtx, nullptr, a0, a1, a2);
-}
-
-constexpr char CodecProxy::Release_t::name[];
-constexpr char CodecProxy::Release_t::signature[];
-
-auto CodecProxy::Release() const -> bool
-{
-    return mozilla::jni::Method<Release_t>::Call(CodecProxy::mCtx, nullptr);
-}
-
-const char CodecProxy::NativeCallbacks::name[] =
-        "org/mozilla/gecko/media/CodecProxy$NativeCallbacks";
-
-constexpr char CodecProxy::NativeCallbacks::New_t::name[];
-constexpr char CodecProxy::NativeCallbacks::New_t::signature[];
-
-auto CodecProxy::NativeCallbacks::New() -> NativeCallbacks::LocalRef
-{
-    return mozilla::jni::Constructor<New_t>::Call(NativeCallbacks::Context(), nullptr);
-}
-
-constexpr char CodecProxy::NativeCallbacks::DisposeNative_t::name[];
-constexpr char CodecProxy::NativeCallbacks::DisposeNative_t::signature[];
-
-constexpr char CodecProxy::NativeCallbacks::OnError_t::name[];
-constexpr char CodecProxy::NativeCallbacks::OnError_t::signature[];
-
-constexpr char CodecProxy::NativeCallbacks::OnInputExhausted_t::name[];
-constexpr char CodecProxy::NativeCallbacks::OnInputExhausted_t::signature[];
-
-constexpr char CodecProxy::NativeCallbacks::OnOutput_t::name[];
-constexpr char CodecProxy::NativeCallbacks::OnOutput_t::signature[];
-
-constexpr char CodecProxy::NativeCallbacks::OnOutputFormatChanged_t::name[];
-constexpr char CodecProxy::NativeCallbacks::OnOutputFormatChanged_t::signature[];
-
-const char MediaDrmProxy::name[] =
-        "org/mozilla/gecko/media/MediaDrmProxy";
-
-constexpr char MediaDrmProxy::CanDecode_t::name[];
-constexpr char MediaDrmProxy::CanDecode_t::signature[];
-
-auto MediaDrmProxy::CanDecode(mozilla::jni::String::Param a0) -> bool
-{
-    return mozilla::jni::Method<CanDecode_t>::Call(MediaDrmProxy::Context(), nullptr, a0);
-}
-
-constexpr char MediaDrmProxy::IsCryptoSchemeSupported_t::name[];
-constexpr char MediaDrmProxy::IsCryptoSchemeSupported_t::signature[];
-
-auto MediaDrmProxy::IsCryptoSchemeSupported(mozilla::jni::String::Param a0, mozilla::jni::String::Param a1) -> bool
-{
-    return mozilla::jni::Method<IsCryptoSchemeSupported_t>::Call(MediaDrmProxy::Context(), nullptr, a0, a1);
-}
-
-constexpr char MediaDrmProxy::CloseSession_t::name[];
-constexpr char MediaDrmProxy::CloseSession_t::signature[];
-
-auto MediaDrmProxy::CloseSession(int32_t a0, mozilla::jni::String::Param a1) const -> void
-{
-    return mozilla::jni::Method<CloseSession_t>::Call(MediaDrmProxy::mCtx, nullptr, a0, a1);
-}
-
-constexpr char MediaDrmProxy::Create_t::name[];
-constexpr char MediaDrmProxy::Create_t::signature[];
-
-auto MediaDrmProxy::Create(mozilla::jni::String::Param a0, mozilla::jni::Object::Param a1, bool a2) -> MediaDrmProxy::LocalRef
-{
-    return mozilla::jni::Method<Create_t>::Call(MediaDrmProxy::Context(), nullptr, a0, a1, a2);
-}
-
-constexpr char MediaDrmProxy::CreateSession_t::name[];
-constexpr char MediaDrmProxy::CreateSession_t::signature[];
-
-auto MediaDrmProxy::CreateSession(int32_t a0, int32_t a1, mozilla::jni::String::Param a2, mozilla::jni::ByteArray::Param a3) const -> void
-{
-    return mozilla::jni::Method<CreateSession_t>::Call(MediaDrmProxy::mCtx, nullptr, a0, a1, a2, a3);
-}
-
-constexpr char MediaDrmProxy::Destroy_t::name[];
-constexpr char MediaDrmProxy::Destroy_t::signature[];
-
-auto MediaDrmProxy::Destroy() const -> void
-{
-    return mozilla::jni::Method<Destroy_t>::Call(MediaDrmProxy::mCtx, nullptr);
-}
-
-constexpr char MediaDrmProxy::IsSchemeSupported_t::name[];
-constexpr char MediaDrmProxy::IsSchemeSupported_t::signature[];
-
-auto MediaDrmProxy::IsSchemeSupported(mozilla::jni::String::Param a0) -> bool
-{
-    return mozilla::jni::Method<IsSchemeSupported_t>::Call(MediaDrmProxy::Context(), nullptr, a0);
-}
-
-constexpr char MediaDrmProxy::UpdateSession_t::name[];
-constexpr char MediaDrmProxy::UpdateSession_t::signature[];
-
-auto MediaDrmProxy::UpdateSession(int32_t a0, mozilla::jni::String::Param a1, mozilla::jni::ByteArray::Param a2) const -> void
-{
-    return mozilla::jni::Method<UpdateSession_t>::Call(MediaDrmProxy::mCtx, nullptr, a0, a1, a2);
-}
-
-const char16_t MediaDrmProxy::AAC[] = u"audio/mp4a-latm";
-
-const char16_t MediaDrmProxy::AVC[] = u"video/avc";
-
-const char16_t MediaDrmProxy::OPUS[] = u"audio/opus";
-
-const char16_t MediaDrmProxy::VORBIS[] = u"audio/vorbis";
-
-const char16_t MediaDrmProxy::VP8[] = u"video/x-vnd.on2.vp8";
-
-const char16_t MediaDrmProxy::VP9[] = u"video/x-vnd.on2.vp9";
-
-const char MediaDrmProxy::NativeMediaDrmProxyCallbacks::name[] =
-        "org/mozilla/gecko/media/MediaDrmProxy$NativeMediaDrmProxyCallbacks";
-
-constexpr char MediaDrmProxy::NativeMediaDrmProxyCallbacks::New_t::name[];
-constexpr char MediaDrmProxy::NativeMediaDrmProxyCallbacks::New_t::signature[];
-
-auto MediaDrmProxy::NativeMediaDrmProxyCallbacks::New() -> NativeMediaDrmProxyCallbacks::LocalRef
-{
-    return mozilla::jni::Constructor<New_t>::Call(NativeMediaDrmProxyCallbacks::Context(), nullptr);
-}
-
-constexpr char MediaDrmProxy::NativeMediaDrmProxyCallbacks::OnRejectPromise_t::name[];
-constexpr char MediaDrmProxy::NativeMediaDrmProxyCallbacks::OnRejectPromise_t::signature[];
-
-constexpr char MediaDrmProxy::NativeMediaDrmProxyCallbacks::OnSessionBatchedKeyChanged_t::name[];
-constexpr char MediaDrmProxy::NativeMediaDrmProxyCallbacks::OnSessionBatchedKeyChanged_t::signature[];
-
-constexpr char MediaDrmProxy::NativeMediaDrmProxyCallbacks::OnSessionClosed_t::name[];
-constexpr char MediaDrmProxy::NativeMediaDrmProxyCallbacks::OnSessionClosed_t::signature[];
-
-constexpr char MediaDrmProxy::NativeMediaDrmProxyCallbacks::OnSessionCreated_t::name[];
-constexpr char MediaDrmProxy::NativeMediaDrmProxyCallbacks::OnSessionCreated_t::signature[];
-
-constexpr char MediaDrmProxy::NativeMediaDrmProxyCallbacks::OnSessionError_t::name[];
-constexpr char MediaDrmProxy::NativeMediaDrmProxyCallbacks::OnSessionError_t::signature[];
-
-constexpr char MediaDrmProxy::NativeMediaDrmProxyCallbacks::OnSessionMessage_t::name[];
-constexpr char MediaDrmProxy::NativeMediaDrmProxyCallbacks::OnSessionMessage_t::signature[];
-
-constexpr char MediaDrmProxy::NativeMediaDrmProxyCallbacks::OnSessionUpdated_t::name[];
-constexpr char MediaDrmProxy::NativeMediaDrmProxyCallbacks::OnSessionUpdated_t::signature[];
-
-const char Sample::name[] =
-        "org/mozilla/gecko/media/Sample";
-
-constexpr char Sample::WriteToByteBuffer_t::name[];
-constexpr char Sample::WriteToByteBuffer_t::signature[];
-
-auto Sample::WriteToByteBuffer(mozilla::jni::ByteBuffer::Param a0) const -> void
-{
-    return mozilla::jni::Method<WriteToByteBuffer_t>::Call(Sample::mCtx, nullptr, a0);
-}
-
-constexpr char Sample::Info_t::name[];
-constexpr char Sample::Info_t::signature[];
-
-auto Sample::Info() const -> mozilla::jni::Object::LocalRef
-{
-    return mozilla::jni::Field<Info_t>::Get(Sample::mCtx, nullptr);
-}
-
-auto Sample::Info(mozilla::jni::Object::Param a0) const -> void
-{
-    return mozilla::jni::Field<Info_t>::Set(Sample::mCtx, nullptr, a0);
-}
-
-const char SessionKeyInfo::name[] =
-        "org/mozilla/gecko/media/SessionKeyInfo";
-
-constexpr char SessionKeyInfo::New_t::name[];
-constexpr char SessionKeyInfo::New_t::signature[];
-
-auto SessionKeyInfo::New(mozilla::jni::ByteArray::Param a0, int32_t a1) -> SessionKeyInfo::LocalRef
-{
-    return mozilla::jni::Constructor<New_t>::Call(SessionKeyInfo::Context(), nullptr, a0, a1);
-}
-
-constexpr char SessionKeyInfo::KeyId_t::name[];
-constexpr char SessionKeyInfo::KeyId_t::signature[];
-
-auto SessionKeyInfo::KeyId() const -> mozilla::jni::ByteArray::LocalRef
-{
-    return mozilla::jni::Field<KeyId_t>::Get(SessionKeyInfo::mCtx, nullptr);
-}
-
-auto SessionKeyInfo::KeyId(mozilla::jni::ByteArray::Param a0) const -> void
-{
-    return mozilla::jni::Field<KeyId_t>::Set(SessionKeyInfo::mCtx, nullptr, a0);
-}
-
-constexpr char SessionKeyInfo::Status_t::name[];
-constexpr char SessionKeyInfo::Status_t::signature[];
-
-auto SessionKeyInfo::Status() const -> int32_t
-{
-    return mozilla::jni::Field<Status_t>::Get(SessionKeyInfo::mCtx, nullptr);
-}
-
-auto SessionKeyInfo::Status(int32_t a0) const -> void
-{
-    return mozilla::jni::Field<Status_t>::Set(SessionKeyInfo::mCtx, nullptr, a0);
 }
 
 const char Restrictions::name[] =

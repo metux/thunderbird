@@ -22,7 +22,7 @@
 
 <!ENTITY incoming.label                  "Hartzeko:">
 <!ENTITY outgoing.label                  "Irteerakoa:">
-<!ENTITY username.label                  "Erabiltzaile izena:">
+<!ENTITY username.label                  "Erabiltzaile-izena:">
 <!ENTITY hostname.label                  "Zerbitzariaren ostalari-izena">
 <!ENTITY port.label                      "Ataka">
 <!ENTITY ssl.label                       "SSL">
@@ -86,3 +86,11 @@
 <!ENTITY insecureUnencrypted.description "Zure mezu elektronikoa eta autentifikazioa zifratu gabe bidaltzen dira, beraz zure pasahitza (eta mezua) beste norbaitek erraz irakur lezake. &brandShortName;(e)k posta eskuratuko du, baina posta-hornitzailearekin jarri beharko zinateke harremanetan zerbitzaria konexio seguru bidez konfiguratzeko.">
 <!ENTITY insecureSelfSigned.description  "Zerbitzariak fida ezin gaitezkeen ziurtagiria erabiltzen du, beraz ezin dugu ziur egon zure inor zerbitzariaren eta &brandShortName;(e)n arteko trafikoa atzematen dabilenik. &brandShortName;(e)k zure posta eskuratuko du, baina zure posta-hornitzaileak fidatzeko moduko ziurtagiria erabiltzea lortu behar zenuke.">
 <!ENTITY secureServer.description        "Zorionak! Zerbitzari segurua da hau.">
+
+<!ENTITY autoconfigWizard2.title         "Set Up an Existing Email Account">
+<!ENTITY email2.placeholder              "you@example.com">
+<!ENTITY email.text                      "Your existing email address">
+<!ENTITY open-provisioner.label          "Get a new email address…">
+<!ENTITY open-provisioner.accesskey      "g">
+
+

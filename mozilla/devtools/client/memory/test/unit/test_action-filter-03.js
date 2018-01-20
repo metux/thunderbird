@@ -1,6 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+"use strict";
+
 // Test that changing filter state in the middle of taking a snapshot results in
 // the properly fitered census.
 
@@ -8,10 +10,6 @@ let { snapshotState: states, censusState, viewState } = require("devtools/client
 let { setFilterString, setFilterStringAndRefresh } = require("devtools/client/memory/actions/filter");
 let { takeSnapshotAndCensus } = require("devtools/client/memory/actions/snapshot");
 let { changeView } = require("devtools/client/memory/actions/view");
-
-function run_test() {
-  run_next_test();
-}
 
 add_task(function* () {
   let front = new StubbedMemoryFront();

@@ -5,6 +5,7 @@
 
 #include "CompositorWidgetChild.h"
 #include "mozilla/Unused.h"
+#include "gfxPlatform.h"
 
 namespace mozilla {
 namespace widget {
@@ -15,24 +16,25 @@ CompositorWidgetChild::CompositorWidgetChild(RefPtr<CompositorVsyncDispatcher> a
   , mVsyncObserver(aVsyncObserver)
 {
   MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(!gfxPlatform::IsHeadless());
 }
 
 CompositorWidgetChild::~CompositorWidgetChild()
 {
 }
 
-bool
+mozilla::ipc::IPCResult
 CompositorWidgetChild::RecvObserveVsync()
 {
   mVsyncDispatcher->SetCompositorVsyncObserver(mVsyncObserver);
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 CompositorWidgetChild::RecvUnobserveVsync()
 {
   mVsyncDispatcher->SetCompositorVsyncObserver(nullptr);
-  return true;
+  return IPC_OK();
 }
 
 void

@@ -7,6 +7,12 @@
 const { Ci, Cc } = require("chrome");
 const nodeFilterConstants = require("devtools/shared/dom-node-filter-constants");
 
+const SHEET_TYPE = {
+  "agent": "AGENT_SHEET",
+  "user": "USER_SHEET",
+  "author": "AUTHOR_SHEET"
+};
+
 loader.lazyRequireGetter(this, "setIgnoreLayoutChanges", "devtools/server/actors/reflow", true);
 exports.setIgnoreLayoutChanges = (...args) =>
   this.setIgnoreLayoutChanges(...args);
@@ -37,12 +43,12 @@ function getTopWindow(win) {
                     .getInterface(Ci.nsIWebNavigation)
                     .QueryInterface(Ci.nsIDocShell);
 
-  if (!docShell.isMozBrowserOrApp) {
+  if (!docShell.isMozBrowser) {
     return win.top;
   }
 
   let topDocShell =
-    docShell.getSameTypeRootTreeItemIgnoreBrowserAndAppBoundaries();
+    docShell.getSameTypeRootTreeItemIgnoreBrowserBoundaries();
 
   return topDocShell
           ? topDocShell.contentViewer.DOMDocument.defaultView
@@ -98,12 +104,12 @@ function getParentWindow(win) {
                  .getInterface(Ci.nsIWebNavigation)
                  .QueryInterface(Ci.nsIDocShell);
 
-  if (!docShell.isMozBrowserOrApp) {
+  if (!docShell.isMozBrowser) {
     return win.parent;
   }
 
   let parentDocShell =
-    docShell.getSameTypeParentIgnoreBrowserAndAppBoundaries();
+    docShell.getSameTypeParentIgnoreBrowserBoundaries();
 
   return parentDocShell
           ? parentDocShell.contentViewer.DOMDocument.defaultView
@@ -203,6 +209,10 @@ function getAdjustedQuads(boundaryWindow, node, region) {
 
   let [xOffset, yOffset] = getFrameOffsets(boundaryWindow, node);
   let scale = getCurrentZoom(node);
+  let { scrollX, scrollY } = boundaryWindow;
+
+  xOffset += scrollX * scale;
+  yOffset += scrollY * scale;
 
   let adjustedQuads = [];
   for (let quad of quads) {
@@ -320,7 +330,7 @@ function getNodeBounds(boundaryWindow, node) {
   if (!node) {
     return null;
   }
-
+  let { scrollX, scrollY } = boundaryWindow;
   let scale = getCurrentZoom(node);
 
   // Find out the offset of the node in its current frame
@@ -347,11 +357,8 @@ function getNodeBounds(boundaryWindow, node) {
 
   // And add the potential frame offset if the node is nested
   let [xOffset, yOffset] = getFrameOffsets(boundaryWindow, node);
-  xOffset += offsetLeft;
-  yOffset += offsetTop;
-
-  xOffset *= scale;
-  yOffset *= scale;
+  xOffset += (offsetLeft + scrollX) * scale;
+  yOffset += (offsetTop + scrollY) * scale;
 
   // Get the width and height
   let width = node.offsetWidth * scale;
@@ -361,7 +368,13 @@ function getNodeBounds(boundaryWindow, node) {
     p1: {x: xOffset, y: yOffset},
     p2: {x: xOffset + width, y: yOffset},
     p3: {x: xOffset + width, y: yOffset + height},
-    p4: {x: xOffset, y: yOffset + height}
+    p4: {x: xOffset, y: yOffset + height},
+    top: yOffset,
+    right: xOffset + width,
+    bottom: yOffset + height,
+    left: xOffset,
+    width,
+    height
   };
 }
 exports.getNodeBounds = getNodeBounds;
@@ -409,7 +422,7 @@ function safelyGetContentWindow(frame) {
  *         of the content document.
  */
 function getFrameContentOffset(frame) {
-  let style = safelyGetContentWindow(frame).getComputedStyle(frame, null);
+  let style = safelyGetContentWindow(frame).getComputedStyle(frame);
 
   // In some cases, the computed style is null
   if (!style) {
@@ -440,7 +453,7 @@ function getFrameContentOffset(frame) {
 function getElementFromPoint(document, x, y) {
   let node = document.elementFromPoint(x, y);
   if (node && node.contentDocument) {
-    if (node instanceof Ci.nsIDOMHTMLIFrameElement) {
+    if (ChromeUtils.getClassName(node) === "HTMLIFrameElement") {
       let rect = node.getBoundingClientRect();
 
       // Gap between the frame and its content window.
@@ -454,8 +467,8 @@ function getElementFromPoint(document, x, y) {
         return node;
       }
     }
-    if (node instanceof Ci.nsIDOMHTMLIFrameElement ||
-        node instanceof Ci.nsIDOMHTMLFrameElement) {
+    if (ChromeUtils.getClassName(node) === "HTMLIFrameElement" ||
+        ChromeUtils.getClassName(node) === "HTMLFrameElement") {
       let subnode = getElementFromPoint(node.contentDocument, x, y);
       if (subnode) {
         node = subnode;
@@ -629,6 +642,70 @@ function getCurrentZoom(node) {
 exports.getCurrentZoom = getCurrentZoom;
 
 /**
+ * Get the display pixel ratio for a given window.
+ * The `devicePixelRatio` property is affected by the zoom (see bug 809788), so we have to
+ * divide by the zoom value in order to get just the display density, expressed as pixel
+ * ratio (the physical display pixel compares to a pixel on a “normal” density screen).
+ *
+ * @param {DOMNode|DOMWindow}
+ *        The node for which the zoom factor should be calculated, or its
+ *        owner window.
+ * @return {Number}
+ */
+function getDisplayPixelRatio(node) {
+  let win = getWindowFor(node);
+  return win.devicePixelRatio / utilsFor(win).fullZoom;
+}
+exports.getDisplayPixelRatio = getDisplayPixelRatio;
+
+/**
+ * Returns the window's dimensions for the `window` given.
+ *
+ * @return {Object} An object with `width` and `height` properties, representing the
+ * number of pixels for the document's size.
+ */
+function getWindowDimensions(window) {
+  // First we'll try without flushing layout, because it's way faster.
+  let windowUtils = utilsFor(window);
+  let { width, height } = windowUtils.getRootBounds();
+
+  if (!width || !height) {
+    // We need a flush after all :'(
+    width = window.innerWidth + window.scrollMaxX - window.scrollMinX;
+    height = window.innerHeight + window.scrollMaxY - window.scrollMinY;
+
+    let scrollbarHeight = {};
+    let scrollbarWidth = {};
+    windowUtils.getScrollbarSize(false, scrollbarWidth, scrollbarHeight);
+    width -= scrollbarWidth.value;
+    height -= scrollbarHeight.value;
+  }
+
+  return { width, height };
+}
+exports.getWindowDimensions = getWindowDimensions;
+
+/**
+ * Returns the viewport's dimensions for the `window` given.
+ *
+ * @return {Object} An object with `width` and `height` properties, representing the
+ * number of pixels for the viewport's size.
+ */
+function getViewportDimensions(window) {
+  let windowUtils = utilsFor(window);
+
+  let scrollbarHeight = {};
+  let scrollbarWidth = {};
+  windowUtils.getScrollbarSize(false, scrollbarWidth, scrollbarHeight);
+
+  let width = window.innerWidth - scrollbarWidth.value;
+  let height = window.innerHeight - scrollbarHeight.value;
+
+  return { width, height };
+}
+exports.getViewportDimensions = getViewportDimensions;
+
+/**
  * Return the default view for a given node, where node can be:
  * - a DOM node
  * - the document node
@@ -647,3 +724,49 @@ function getWindowFor(node) {
   }
   return null;
 }
+
+/**
+ * Synchronously loads a style sheet from `uri` and adds it to the list of
+ * additional style sheets of the document.
+ * The sheets added takes effect immediately, and only on the document of the
+ * `window` given.
+ *
+ * @param {DOMWindow} window
+ * @param {String} url
+ * @param {String} [type="agent"]
+ */
+function loadSheet(window, url, type = "agent") {
+  if (!(type in SHEET_TYPE)) {
+    type = "agent";
+  }
+
+  let windowUtils = utilsFor(window);
+  try {
+    windowUtils.loadSheetUsingURIString(url, windowUtils[SHEET_TYPE[type]]);
+  } catch (e) {
+    // The method fails if the url is already loaded.
+  }
+}
+exports.loadSheet = loadSheet;
+
+/**
+ * Remove the document style sheet at `sheetURI` from the list of additional
+ * style sheets of the document. The removal takes effect immediately.
+ *
+ * @param {DOMWindow} window
+ * @param {String} url
+ * @param {String} [type="agent"]
+ */
+function removeSheet(window, url, type = "agent") {
+  if (!(type in SHEET_TYPE)) {
+    type = "agent";
+  }
+
+  let windowUtils = utilsFor(window);
+  try {
+    windowUtils.removeSheetUsingURIString(url, windowUtils[SHEET_TYPE[type]]);
+  } catch (e) {
+    // The method fails if the url is already removed.
+  }
+}
+exports.removeSheet = removeSheet;

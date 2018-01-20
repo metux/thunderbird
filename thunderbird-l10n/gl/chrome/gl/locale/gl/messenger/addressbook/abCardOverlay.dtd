@@ -160,5 +160,8 @@ a visualización do contido incorporado nas mensaxes HTML deste contacto.">
 <!ENTITY UpdatePhoto.label              "Actualizar">
 <!ENTITY UpdatePhoto.accesskey          "A">
 
-<!ENTITY IRC.accesskey                  "R">
+<!ENTITY AIM2.accesskey                 "M">
+<!ENTITY MSN2.accesskey                 "N">
 <!ENTITY IRC.label                      "IRC Nick:">
+<!ENTITY IRC.accesskey                  "R">
+

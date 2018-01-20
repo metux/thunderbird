@@ -11,6 +11,7 @@
 
 <!ENTITY enableGlodaSearch.label       "Omogući globalno pretraživanje i indeksiranje">
 <!ENTITY enableGlodaSearch.accesskey   "e">
+<!ENTITY dateTimeFormatting.label      "Oblikovanje datuma i vremena">
 <!ENTITY allowHWAccel.label            "Koristi hardversku akceleraciju kad je moguće">
 <!ENTITY allowHWAccel.accesskey        "h">
 <!ENTITY storeType.label               "Tip pohrane poruka za nove račune:">
@@ -51,8 +52,20 @@
 <!ENTITY enableCrashReporter.accesskey   "z">
 <!ENTITY crashReporterLearnMore.label    "Saznajte više">
 <!-- Update -->
+<!-- LOCALIZATION NOTE (updateApp.label):
+  Strings from aboutDialog.dtd are displayed in this section of the preferences.
+  Please check for possible accesskey conflicts.
+-->
 
-<!ENTITY updateApp.label                 "&brandShortName; dopune:">
+<!ENTITY updateApp2.label                "&brandShortName; ažuriranja">
+<!-- LOCALIZATION NOTE (updateApp.version.*): updateApp.version.pre is
+  followed by a version number, keep the trailing space or replace it with
+  a different character as needed. updateApp.version.post is displayed after
+  the version number, and is empty on purpose for English. You can use it
+  if required by your language.
+ -->
+<!ENTITY updateApp.version.pre           "Inačica ">
+<!ENTITY updateApp.version.post          "">
 <!ENTITY updateAuto.label                "Automatski instaliraj dopune (preporučeno: poboljšana sigurnost)">
 <!ENTITY updateAuto.accesskey            "A">
 <!ENTITY updateCheck.label               "Provjeri dostupnost dopuna, ali mi ponudi želim li ih instalirati">
@@ -89,6 +102,8 @@
 <!ENTITY useCacheBefore.label            "Koristi do">
 <!ENTITY useCacheBefore.accesskey        "K">
 <!ENTITY useCacheAfter.label             "MB prostora za priručnu memoriju">
+<!ENTITY overrideSmartCacheSize.label    "Premosti automatsko upravljanje priručnom memorijom">
+<!ENTITY overrideSmartCacheSize.accesskey "v">
 <!ENTITY clearCacheNow.label             "Očisti sada">
 <!ENTITY clearCacheNow.accesskey         "O">
 <!-- Certificates -->

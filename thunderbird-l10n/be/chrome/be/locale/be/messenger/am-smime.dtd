@@ -30,10 +30,8 @@
 <!ENTITY manageDevices.label "Збудовы бяспекі">
 <!ENTITY manageDevices.accesskey "б">
 
-<!ENTITY certPicker.detailsLabel "Details of selected certificate:">
-<!ENTITY certPicker.info  "Certificate:">
-
-<!-- Strings for the cert picker dialog -->
-<!ENTITY certPicker.title "Select Certificate">
-<!ENTITY manageCerts2.accesskey "M">
 <!ENTITY manageCerts2.label "Manage Certificates">
+<!ENTITY manageCerts2.accesskey "M">
+<!ENTITY certPicker.title "Select Certificate">
+<!ENTITY certPicker.info  "Certificate:">
+<!ENTITY certPicker.detailsLabel "Details of selected certificate:">

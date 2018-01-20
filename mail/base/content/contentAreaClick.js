@@ -1,4 +1,4 @@
-/** ***** BEGIN LICENSE BLOCK *****
+/**
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -174,7 +174,7 @@ function openLinkExternally(url)
 {
   let uri = url;
   if (!(uri instanceof Components.interfaces.nsIURI))
-    uri = Services.io.newURI(url, null, null);
+    uri = Services.io.newURI(url);
 
   // This can fail if there is a problem with the places database.
   try {
@@ -191,7 +191,7 @@ function openLinkExternally(url)
 
   Components.classes["@mozilla.org/uriloader/external-protocol-service;1"]
             .getService(Components.interfaces.nsIExternalProtocolService)
-            .loadUrl(uri);
+            .loadURI(uri);
 }
 
 /**

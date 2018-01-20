@@ -1025,7 +1025,7 @@ var PlacesUIUtils = {
         // if fileName is empty, use path to distinguish labels
         title = host + (fileName ?
                         (host ? "/" + this.ellipsis + "/" : "") + fileName :
-                        uri.path);
+                        uri.pathQueryRef);
       }
       catch (e) {
         // Use (no title) for non-standard URIs (data:, javascript:, ...)
@@ -1300,7 +1300,7 @@ var PlacesUIUtils = {
     else {
       // If the left pane has already been built, use the name->id map
       // cached in PlacesUIUtils.
-      for (let [name, id] in Iterator(this.leftPaneQueries)) {
+      for (let [name, id] of Object.entries(this.leftPaneQueries)) {
         if (aItemId == id)
           queryName = name;
       }

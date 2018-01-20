@@ -1,147 +1,111 @@
 /* Any copyright is dedicated to the Public Domain.
- * http://creativecommons.org/publicdomain/zero/1.0/ */
+   http://creativecommons.org/publicdomain/zero/1.0/ */
 
-Cu.import("resource://services-sync/constants.js");
-Cu.import("resource://services-sync/engines/history.js");
-Cu.import("resource://services-sync/engines.js");
-Cu.import("resource://services-sync/identity.js");
-Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/service.js");
-Cu.import("resource://services-sync/util.js");
+Cu.import("resource://services-sync/engines/history.js");
 Cu.import("resource://testing-common/services/sync/utils.js");
 
-Service.engineManager.clear();
-
-add_test(function test_setup() {
-  PlacesTestUtils.clearHistory().then(run_next_test);
+add_task(async function setup() {
+  initTestLogging("Trace");
 });
 
-add_test(function test_processIncoming_mobile_history_batched() {
-  _("SyncEngine._processIncoming works on history engine.");
+add_task(async function test_history_download_limit() {
+  let engine = new HistoryEngine(Service);
+  await engine.initialize();
 
-  let FAKE_DOWNLOAD_LIMIT = 100;
+  let server = await serverForFoo(engine);
+  await SyncTestingInfrastructure(server);
 
-  Svc.Prefs.set("client.type", "mobile");
-  Service.engineManager.register(HistoryEngine);
+  let lastSync = Date.now() / 1000;
 
-  // A collection that logs each GET
-  let collection = new ServerCollection();
-  collection.get_log = [];
-  collection._get = collection.get;
-  collection.get = function (options) {
-    this.get_log.push(options);
-    return this._get(options);
-  };
-
-  let server = sync_httpd_setup({
-    "/1.1/foo/storage/history": collection.handler()
-  });
-
-  new SyncTestingInfrastructure(server);
-
-  // Let's create some 234 server side history records. They're all at least
-  // 10 minutes old.
-  let visitType = Ci.nsINavHistoryService.TRANSITION_LINK;
-  for (var i = 0; i < 234; i++) {
-    let id = 'record-no' + ("00" + i).slice(-3);
-    let modified = Date.now()/1000 - 60*(i+10);
-    let payload = encryptPayload({
-      id: id,
-      histUri: "http://foo/bar?" + id,
-        title: id,
-        sortindex: i,
-        visits: [{date: (modified - 5) * 1000000, type: visitType}],
-        deleted: false});
-
-    let wbo = new ServerWBO(id, payload);
-    wbo.modified = modified;
+  let collection = server.user("foo").collection("history");
+  for (let i = 0; i < 15; i++) {
+    let id = "place" + i.toString(10).padStart(7, "0");
+    let wbo = new ServerWBO(id, encryptPayload({
+      id,
+      histUri: "http://example.com/" + i,
+      title: "Page " + i,
+      visits: [{
+        date: Date.now() * 1000,
+        type: PlacesUtils.history.TRANSITIONS.TYPED,
+      }, {
+        date: Date.now() * 1000,
+        type: PlacesUtils.history.TRANSITIONS.LINK,
+      }],
+    }), lastSync + 1 + i);
+    wbo.sortindex = 15 - i;
     collection.insertWBO(wbo);
   }
 
-  let engine = Service.engineManager.get("history");
-  let meta_global = Service.recordManager.set(engine.metaURL,
-                                              new WBORecord(engine.metaURL));
-  meta_global.payload.engines = {history: {version: engine.version,
-                                           syncID: engine.syncID}};
+  // We have 15 records on the server since the last sync, but our download
+  // limit is 5 records at a time. We should eventually fetch all 15.
+  engine.lastSync = lastSync;
+  engine.downloadBatchSize = 4;
+  engine.downloadLimit = 5;
 
-  try {
+  // Don't actually fetch any backlogged records, so that we can inspect
+  // the backlog between syncs.
+  engine.guidFetchBatchSize = 0;
 
-    _("On a mobile client, we get new records from the server in batches of 50.");
-    engine._syncStartup();
+  let ping = await sync_engine_and_validate_telem(engine, false);
+  deepEqual(ping.engines[0].incoming, { applied: 5 });
 
-    // Fake a lower limit.
-    engine.downloadLimit = FAKE_DOWNLOAD_LIMIT;
-    _("Last modified: " + engine.lastModified);
-    _("Processing...");
-    engine._processIncoming();
+  let backlogAfterFirstSync = engine.toFetch.slice(0);
+  deepEqual(backlogAfterFirstSync, ["place0000000", "place0000001",
+    "place0000002", "place0000003", "place0000004", "place0000005",
+    "place0000006", "place0000007", "place0000008", "place0000009"]);
 
-    _("Last modified: " + engine.lastModified);
-    engine._syncFinish();
+  // We should have fast-forwarded the last sync time.
+  equal(engine.lastSync, lastSync + 15);
 
-    // Back to the normal limit.
-    _("Running again. Should fetch none, because of lastModified");
-    engine.downloadLimit = MAX_HISTORY_DOWNLOAD;
-    _("Processing...");
-    engine._processIncoming();
+  engine.lastModified = collection.modified;
+  ping = await sync_engine_and_validate_telem(engine, false);
+  ok(!ping.engines[0].incoming);
 
-    _("Last modified: " + engine.lastModified);
-    _("Running again. Expecting to pull everything");
+  // After the second sync, our backlog still contains the same GUIDs: we
+  // weren't able to make progress on fetching them, since our
+  // `guidFetchBatchSize` is 0.
+  let backlogAfterSecondSync = engine.toFetch.slice(0);
+  deepEqual(backlogAfterFirstSync, backlogAfterSecondSync);
 
-    engine.lastModified = undefined;
-    engine.lastSync     = 0;
-    _("Processing...");
-    engine._processIncoming();
+  // Now add a newer record to the server.
+  let newWBO = new ServerWBO("placeAAAAAAA", encryptPayload({
+    id: "placeAAAAAAA",
+    histUri: "http://example.com/a",
+    title: "New Page A",
+    visits: [{
+      date: Date.now() * 1000,
+      type: PlacesUtils.history.TRANSITIONS.TYPED,
+    }],
+  }), lastSync + 20);
+  newWBO.sortindex = -1;
+  collection.insertWBO(newWBO);
 
-    _("Last modified: " + engine.lastModified);
+  engine.lastModified = collection.modified;
+  ping = await sync_engine_and_validate_telem(engine, false);
+  deepEqual(ping.engines[0].incoming, { applied: 1 });
 
-    // Verify that the right number of GET requests with the right
-    // kind of parameters were made.
-    do_check_eq(collection.get_log.length,
-        // First try:
-        1 +    // First 50...
-        1 +    // 1 GUID fetch...
-               // 1 fetch...
-        Math.ceil((FAKE_DOWNLOAD_LIMIT - 50) / MOBILE_BATCH_SIZE) +
-        // Second try: none
-        // Third try:
-        1 +    // First 50...
-        1 +    // 1 GUID fetch...
-               // 4 fetch...
-        Math.ceil((234 - 50) / MOBILE_BATCH_SIZE));
+  // Our backlog should remain the same.
+  let backlogAfterThirdSync = engine.toFetch.slice(0);
+  deepEqual(backlogAfterSecondSync, backlogAfterThirdSync);
 
-    // Check the structure of each HTTP request.
-    do_check_eq(collection.get_log[0].full, 1);
-    do_check_eq(collection.get_log[0].limit, MOBILE_BATCH_SIZE);
-    do_check_eq(collection.get_log[1].full, undefined);
-    do_check_eq(collection.get_log[1].sort, "index");
-    do_check_eq(collection.get_log[1].limit, FAKE_DOWNLOAD_LIMIT);
-    do_check_eq(collection.get_log[2].full, 1);
-    do_check_eq(collection.get_log[3].full, 1);
-    do_check_eq(collection.get_log[3].limit, MOBILE_BATCH_SIZE);
-    do_check_eq(collection.get_log[4].full, undefined);
-    do_check_eq(collection.get_log[4].sort, "index");
-    do_check_eq(collection.get_log[4].limit, MAX_HISTORY_DOWNLOAD);
-    for (let i = 0; i <= Math.floor((234 - 50) / MOBILE_BATCH_SIZE); i++) {
-      let j = i + 5;
-      do_check_eq(collection.get_log[j].full, 1);
-      do_check_eq(collection.get_log[j].limit, undefined);
-      if (i < Math.floor((234 - 50) / MOBILE_BATCH_SIZE))
-        do_check_eq(collection.get_log[j].ids.length, MOBILE_BATCH_SIZE);
-      else
-        do_check_eq(collection.get_log[j].ids.length, 234 % MOBILE_BATCH_SIZE);
-    }
+  equal(engine.lastSync, lastSync + 20);
 
-  } finally {
-    PlacesTestUtils.clearHistory().then(() => {
-      server.stop(do_test_finished);
-      Svc.Prefs.resetBranch("");
-      Service.recordManager.clearCache();
-    });
-  }
+  // Bump the fetch batch size to let the backlog make progress. We should
+  // make 3 requests to fetch 5 backlogged GUIDs.
+  engine.guidFetchBatchSize = 2;
+
+  engine.lastModified = collection.modified;
+  ping = await sync_engine_and_validate_telem(engine, false);
+  deepEqual(ping.engines[0].incoming, { applied: 5 });
+
+  deepEqual(engine.toFetch, ["place0000005", "place0000006", "place0000007",
+    "place0000008", "place0000009"]);
+
+  // Sync again to clear out the backlog.
+  engine.lastModified = collection.modified;
+  ping = await sync_engine_and_validate_telem(engine, false);
+  deepEqual(ping.engines[0].incoming, { applied: 5 });
+
+  deepEqual(engine.toFetch, []);
 });
-
-function run_test() {
-  generateNewKeys(Service.collectionKeys);
-
-  run_next_test();
-}

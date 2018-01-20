@@ -26,8 +26,7 @@
 #include <linux/videodev2.h>
 #endif
 
-#include "webrtc/system_wrappers/interface/ref_count.h"
-#include "webrtc/system_wrappers/interface/trace.h"
+#include "webrtc/system_wrappers/include/trace.h"
 
 #ifdef WEBRTC_LINUX
 #define EVENT_SIZE  ( sizeof (struct inotify_event) )
@@ -39,43 +38,63 @@ namespace webrtc
 namespace videocapturemodule
 {
 VideoCaptureModule::DeviceInfo*
-VideoCaptureImpl::CreateDeviceInfo(const int32_t id)
+VideoCaptureImpl::CreateDeviceInfo()
 {
-    videocapturemodule::DeviceInfoLinux *deviceInfo =
-                    new videocapturemodule::DeviceInfoLinux(id);
-    if (!deviceInfo)
-    {
-        deviceInfo = NULL;
-    }
-
-    return deviceInfo;
+    return new videocapturemodule::DeviceInfoLinux();
 }
 
 #ifdef WEBRTC_LINUX
-void DeviceInfoLinux::HandleEvent(inotify_event* event)
+void DeviceInfoLinux::HandleEvent(inotify_event* event, int fd)
 {
-    switch (event->mask) {
-        case IN_CREATE:
+    if (event->mask & IN_CREATE) {
+        if (fd == _fd_v4l || fd == _fd_snd) {
             DeviceChange();
-            break;
-        case IN_DELETE:
-            DeviceChange();
-            break;
-        default:
-            char* cur_event_filename = NULL;
-            int cur_event_wd = event->wd;
-            if (event->len) {
-                cur_event_filename = event->name;
+        } else if ((event->mask & IN_ISDIR) && (fd == _fd_dev)) {
+            if (_wd_v4l < 0) {
+                // Sometimes inotify_add_watch failed if we call it immediately after receiving this event
+                // Adding 5ms delay to let file system settle down
+                usleep(5*1000);
+                _wd_v4l = inotify_add_watch(_fd_v4l, "/dev/v4l/by-path/", IN_CREATE | IN_DELETE | IN_DELETE_SELF);
+                if (_wd_v4l >= 0) {
+                    DeviceChange();
+                }
             }
+            if (_wd_snd < 0) {
+                usleep(5*1000);
+                _wd_snd = inotify_add_watch(_fd_snd, "/dev/snd/by-path/", IN_CREATE | IN_DELETE | IN_DELETE_SELF);
+                if (_wd_snd >= 0) {
+                    DeviceChange();
+                }
+            }
+        }
+    } else if (event->mask & IN_DELETE) {
+        if (fd == _fd_v4l || fd == _fd_snd) {
+            DeviceChange();
+        }
+    } else if (event->mask & IN_DELETE_SELF) {
+        if (fd == _fd_v4l) {
+            inotify_rm_watch(_fd_v4l, _wd_v4l);
+            _wd_v4l = -1;
+        } else if (fd == _fd_snd) {
+            inotify_rm_watch(_fd_snd, _wd_snd);
+            _wd_snd = -1;
+        } else {
+            assert(false);
+        }
+    } else {
+        char* cur_event_filename = NULL;
+        int cur_event_wd = event->wd;
+        if (event->len) {
+            cur_event_filename = event->name;
+        }
 
-            WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoCapture, _id,
-                "UNKNOWN EVENT OCCURRED for file \"%s\" on WD #%i\n",
-                cur_event_filename, cur_event_wd);
-            break;
+        WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoCapture, 0,
+            "UNKNOWN EVENT OCCURRED for file \"%s\" on WD #%i\n",
+            cur_event_filename, cur_event_wd);
     }
 }
 
-int DeviceInfoLinux::EventCheck()
+int DeviceInfoLinux::EventCheck(int fd)
 {
     struct timeval timeout;
     fd_set rfds;
@@ -84,16 +103,16 @@ int DeviceInfoLinux::EventCheck()
     timeout.tv_usec = 100000;
 
     FD_ZERO(&rfds);
-    FD_SET(_fd, &rfds);
+    FD_SET(fd, &rfds);
 
-    return select(_fd+1, &rfds, NULL, NULL, &timeout);
+    return select(fd+1, &rfds, NULL, NULL, &timeout);
 }
 
-int DeviceInfoLinux::HandleEvents()
+int DeviceInfoLinux::HandleEvents(int fd)
 {
     char buffer[BUF_LEN];
 
-    ssize_t r = read(_fd, buffer, BUF_LEN);
+    ssize_t r = read(fd, buffer, BUF_LEN);
 
     if (r <= 0) {
         return r;
@@ -113,7 +132,7 @@ int DeviceInfoLinux::HandleEvents()
 
         memcpy(event, pevent, eventSize);
 
-        HandleEvent((inotify_event*)(event));
+        HandleEvent((inotify_event*)(event), fd);
 
         buffer_i += eventSize;
         count++;
@@ -125,8 +144,18 @@ int DeviceInfoLinux::HandleEvents()
 int DeviceInfoLinux::ProcessInotifyEvents()
 {
     while (0 == _isShutdown.Value()) {
-        if (EventCheck() > 0) {
-            if (HandleEvents() < 0) {
+        if (EventCheck(_fd_dev) > 0) {
+            if (HandleEvents(_fd_dev) < 0) {
+                break;
+            }
+        }
+        if (EventCheck(_fd_v4l) > 0) {
+            if (HandleEvents(_fd_v4l) < 0) {
+                break;
+            }
+        }
+        if (EventCheck(_fd_snd) > 0) {
+            if (HandleEvents(_fd_snd) < 0) {
                 break;
             }
         }
@@ -141,21 +170,30 @@ bool DeviceInfoLinux::InotifyEventThread(void* obj)
 
 bool DeviceInfoLinux::InotifyProcess()
 {
-    _fd = inotify_init();
-    if (_fd >= 0) {
-        _wd_v4l = inotify_add_watch(_fd, "/dev/v4l/by-path/", IN_CREATE | IN_DELETE);
-        _wd_snd = inotify_add_watch(_fd, "/dev/snd/by-path/", IN_CREATE | IN_DELETE);
+    _fd_v4l = inotify_init();
+    _fd_snd = inotify_init();
+    _fd_dev = inotify_init();
+    if (_fd_v4l >= 0 && _fd_snd >= 0 && _fd_dev >= 0) {
+        _wd_v4l = inotify_add_watch(_fd_v4l, "/dev/v4l/by-path/", IN_CREATE | IN_DELETE | IN_DELETE_SELF);
+        _wd_snd = inotify_add_watch(_fd_snd, "/dev/snd/by-path/", IN_CREATE | IN_DELETE | IN_DELETE_SELF);
+        _wd_dev = inotify_add_watch(_fd_dev, "/dev/", IN_CREATE);
         ProcessInotifyEvents();
 
         if (_wd_v4l >= 0) {
-          inotify_rm_watch(_fd, _wd_v4l);
+          inotify_rm_watch(_fd_v4l, _wd_v4l);
         }
 
         if (_wd_snd >= 0) {
-          inotify_rm_watch(_fd, _wd_snd);
+          inotify_rm_watch(_fd_snd, _wd_snd);
         }
 
-        close(_fd);
+        if (_wd_dev >= 0) {
+          inotify_rm_watch(_fd_dev, _wd_dev);
+        }
+
+        close(_fd_v4l);
+        close(_fd_snd);
+        close(_fd_dev);
         return true;
     } else {
         return false;
@@ -163,20 +201,20 @@ bool DeviceInfoLinux::InotifyProcess()
 }
 #endif
 
-DeviceInfoLinux::DeviceInfoLinux(const int32_t id)
-    : DeviceInfoImpl(id)
+DeviceInfoLinux::DeviceInfoLinux()
+    : DeviceInfoImpl()
 #ifdef WEBRTC_LINUX
+    , _inotifyEventThread(new rtc::PlatformThread(
+                            InotifyEventThread, this, "InotifyEventThread"))
     , _isShutdown(0)
 #endif
 {
 #ifdef WEBRTC_LINUX
-    _inotifyEventThread = ThreadWrapper::CreateThread(
-        InotifyEventThread, this, "InotifyEventThread");
 
     if (_inotifyEventThread)
     {
         _inotifyEventThread->Start();
-        _inotifyEventThread->SetPriority(kHighPriority);
+        _inotifyEventThread->SetPriority(rtc::kHighPriority);
     }
 #endif
 }
@@ -193,14 +231,15 @@ DeviceInfoLinux::~DeviceInfoLinux()
 
     if (_inotifyEventThread) {
         _inotifyEventThread->Stop();
-        _inotifyEventThread.reset();
+        _inotifyEventThread = nullptr;
     }
 #endif
 }
 
 uint32_t DeviceInfoLinux::NumberOfDevices()
 {
-    WEBRTC_TRACE(webrtc::kTraceApiCall, webrtc::kTraceVideoCapture, _id, "%s", __FUNCTION__);
+    WEBRTC_TRACE(webrtc::kTraceApiCall,
+                 webrtc::kTraceVideoCapture, 0, "%s", __FUNCTION__);
 
     uint32_t count = 0;
     char device[20];
@@ -228,9 +267,10 @@ int32_t DeviceInfoLinux::GetDeviceName(
                                          uint32_t deviceUniqueIdUTF8Length,
                                          char* /*productUniqueIdUTF8*/,
                                          uint32_t /*productUniqueIdUTF8Length*/,
-                                         pid_t* pid)
+                                         pid_t* /*pid*/)
 {
-    WEBRTC_TRACE(webrtc::kTraceApiCall, webrtc::kTraceVideoCapture, _id, "%s", __FUNCTION__);
+    WEBRTC_TRACE(webrtc::kTraceApiCall,
+                 webrtc::kTraceVideoCapture, 0, "%s", __FUNCTION__);
 
     // Travel through /dev/video [0-63]
     uint32_t count = 0;
@@ -261,7 +301,7 @@ int32_t DeviceInfoLinux::GetDeviceName(
     struct v4l2_capability cap;
     if (ioctl(fd, VIDIOC_QUERYCAP, &cap) < 0)
     {
-        WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoCapture, _id,
+        WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoCapture, 0,
                    "error in querying the device capability for device %s. errno = %d",
                    device, errno);
         close(fd);
@@ -280,7 +320,8 @@ int32_t DeviceInfoLinux::GetDeviceName(
     }
     else
     {
-        WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoCapture, _id, "buffer passed is too small");
+        WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoCapture, 0,
+                     "buffer passed is too small");
         return -1;
     }
 
@@ -295,7 +336,7 @@ int32_t DeviceInfoLinux::GetDeviceName(
         }
         else
         {
-            WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoCapture, _id,
+            WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoCapture, 0,
                        "buffer passed is too small");
             return -1;
         }
@@ -304,7 +345,7 @@ int32_t DeviceInfoLinux::GetDeviceName(
         if (snprintf(deviceUniqueIdUTF8, deviceUniqueIdUTF8Length, "fake_%u", device_index) >=
             (int) deviceUniqueIdUTF8Length)
         {
-            WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoCapture, _id,
+            WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoCapture, 0,
                        "buffer passed is too small");
             return -1;
         }
@@ -325,10 +366,11 @@ int32_t DeviceInfoLinux::CreateCapabilityMap(
                             (int32_t) strlen((char*) deviceUniqueIdUTF8);
     if (deviceUniqueIdUTF8Length > kVideoCaptureUniqueNameLength)
     {
-        WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoCapture, _id, "Device name too long");
+        WEBRTC_TRACE(webrtc::kTraceError,
+                     webrtc::kTraceVideoCapture, 0, "Device name too long");
         return -1;
     }
-    WEBRTC_TRACE(webrtc::kTraceInfo, webrtc::kTraceVideoCapture, _id,
+    WEBRTC_TRACE(webrtc::kTraceInfo, webrtc::kTraceVideoCapture, 0,
                "CreateCapabilityMap called for device %s", deviceUniqueIdUTF8);
 
     /* detect /dev/video [0-63] entries */
@@ -369,7 +411,8 @@ int32_t DeviceInfoLinux::CreateCapabilityMap(
     }
     if (!found)
     {
-        WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoCapture, _id, "no matching device found");
+        WEBRTC_TRACE(webrtc::kTraceError,
+                     webrtc::kTraceVideoCapture, 0, "no matching device found");
         return -1;
     }
 
@@ -388,7 +431,7 @@ int32_t DeviceInfoLinux::CreateCapabilityMap(
 
     WEBRTC_TRACE(webrtc::kTraceInfo,
                  webrtc::kTraceVideoCapture,
-                 _id,
+                 0,
                  "CreateCapabilityMap %u",
                  static_cast<unsigned int>(_captureCapabilities.size()));
 
@@ -455,7 +498,7 @@ int32_t DeviceInfoLinux::FillCapabilities(int fd)
 
     WEBRTC_TRACE(webrtc::kTraceInfo,
                  webrtc::kTraceVideoCapture,
-                 _id,
+                 0,
                  "CreateCapabilityMap %u",
                  static_cast<unsigned int>(_captureCapabilities.size()));
     return _captureCapabilities.size();

@@ -1,12 +1,12 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef MOZILLA_GFX_COMPOSITOROGL_H
 #define MOZILLA_GFX_COMPOSITOROGL_H
 
-#include "ContextStateTracker.h"
 #include "gfx2DGlue.h"
 #include "GLContextTypes.h"             // for GLContext, etc
 #include "GLDefs.h"                     // for GLuint, LOCAL_GL_TEXTURE_2D, etc
@@ -106,46 +106,6 @@ protected:
   RefPtr<gl::GLContext> mGL;
 };
 
-/**
- * Reuse gl textures from a pool of textures that haven't yet been
- * used during the current frame.
- * All the textures that are not used at the end of a frame are
- * deleted.
- * This strategy seems to work well with gralloc textures because destroying
- * unused textures which are bound to gralloc buffers let drivers know that it
- * can unlock the gralloc buffers.
- */
-class PerFrameTexturePoolOGL : public CompositorTexturePoolOGL
-{
-public:
-  explicit PerFrameTexturePoolOGL(gl::GLContext* aGL)
-  : mTextureTarget(0) // zero is never a valid texture target
-  , mGL(aGL)
-  {}
-
-  virtual ~PerFrameTexturePoolOGL()
-  {
-    DestroyTextures();
-  }
-
-  virtual void Clear() override
-  {
-    DestroyTextures();
-  }
-
-  virtual GLuint GetTexture(GLenum aTarget, GLenum aUnit) override;
-
-  virtual void EndFrame() override;
-
-protected:
-  void DestroyTextures();
-
-  GLenum mTextureTarget;
-  RefPtr<gl::GLContext> mGL;
-  nsTArray<GLuint> mCreatedTextures;
-  nsTArray<GLuint> mUnusedTextures;
-};
-
 // If you want to make this class not final, first remove calls to virtual
 // methods (Destroy) that are made in the destructor.
 class CompositorOGL final : public Compositor
@@ -181,6 +141,7 @@ public:
       TextureFactoryIdentifier(LayersBackend::LAYERS_OPENGL,
                                XRE_GetProcessType(),
                                GetMaxTextureSize(),
+                               false,
                                mFBOTextureTarget == LOCAL_GL_TEXTURE_2D,
                                SupportsPartialTextureUpdate());
     return result;
@@ -204,15 +165,17 @@ public:
                         const gfx::Matrix4x4& aTransform,
                         const gfx::Rect& aVisibleRect) override;
 
-  virtual void DrawTriangle(const gfx::TexturedTriangle& aTriangle,
-                            const gfx::IntRect& aClipRect,
-                            const EffectChain& aEffectChain,
-                            gfx::Float aOpacity,
-                            const gfx::Matrix4x4& aTransform,
-                            const gfx::Rect& aVisibleRect) override;
+  virtual void DrawTriangles(const nsTArray<gfx::TexturedTriangle>& aTriangles,
+                             const gfx::Rect& aRect,
+                             const gfx::IntRect& aClipRect,
+                             const EffectChain& aEffectChain,
+                             gfx::Float aOpacity,
+                             const gfx::Matrix4x4& aTransform,
+                             const gfx::Rect& aVisibleRect) override;
+
+  virtual bool SupportsLayerGeometry() const override;
 
   virtual void EndFrame() override;
-  virtual void EndFrameForExternalComposition(const gfx::Matrix& aTransform) override;
 
   virtual bool SupportsPartialTextureUpdate() override;
 
@@ -249,20 +212,9 @@ public:
   virtual void Pause() override;
   virtual bool Resume() override;
 
-  virtual bool HasImageHostOverlays() override
-  {
-    return false;
-  }
-
-  virtual void AddImageHostOverlay(ImageHostOverlay* aOverlay) override
-  {
-  }
-
-  virtual void RemoveImageHostOverlay(ImageHostOverlay* aOverlay) override
-  {
-  }
-
   GLContext* gl() const { return mGLContext; }
+  GLContext* GetGLContext() const override { return mGLContext; }
+
   /**
    * Clear the program state. This must be called
    * before operating on the GLContext directly. */
@@ -276,9 +228,7 @@ public:
 
   /**
    * The compositor provides with temporary textures for use with direct
-   * textruing like gralloc texture.
-   * Doing so lets us use gralloc the way it has been designed to be used
-   * (see https://wiki.mozilla.org/Platform/GFX/Gralloc)
+   * textruing.
    */
   GLuint GetTemporaryTexture(GLenum aTarget, GLenum aUnit);
 
@@ -301,8 +251,9 @@ public:
 private:
   template<typename Geometry>
   void DrawGeometry(const Geometry& aGeometry,
+                    const gfx::Rect& aRect,
                     const gfx::IntRect& aClipRect,
-                    const EffectChain &aEffectChain,
+                    const EffectChain& aEffectChain,
                     gfx::Float aOpacity,
                     const gfx::Matrix4x4& aTransform,
                     const gfx::Rect& aVisibleRect);
@@ -387,7 +338,7 @@ private:
   }
 
   void ApplyPrimitiveConfig(ShaderConfigOGL& aConfig,
-                            const gfx::TexturedTriangle&)
+                            const nsTArray<gfx::TexturedTriangle>&)
   {
     aConfig.SetDynamicGeometry(true);
   }
@@ -433,14 +384,10 @@ private:
   }
 
   void BindAndDrawGeometry(ShaderProgramOGL* aProgram,
-                           const gfx::Rect& aRect,
-                           const gfx::Rect& aTextureRect =
-                             gfx::Rect(0.0f, 0.0f, 1.0f, 1.0f));
+                           const gfx::Rect& aRect);
 
   void BindAndDrawGeometry(ShaderProgramOGL* aProgram,
-                           const gfx::TexturedTriangle& aTriangle,
-                           const gfx::Rect& aTextureRect =
-                             gfx::Rect(0.0f, 0.0f, 1.0f, 1.0f));
+                           const nsTArray<gfx::TexturedTriangle>& aTriangles);
 
   void BindAndDrawGeometryWithTextureRect(ShaderProgramOGL *aProg,
                                           const gfx::Rect& aRect,
@@ -448,9 +395,9 @@ private:
                                           TextureSource *aTexture);
 
   void BindAndDrawGeometryWithTextureRect(ShaderProgramOGL *aProg,
-                                         const gfx::TexturedTriangle& aTriangle,
-                                         const gfx::Rect& aTexCoordRect,
-                                         TextureSource *aTexture);
+                                          const nsTArray<gfx::TexturedTriangle>& aTriangles,
+                                          const gfx::Rect& aTexCoordRect,
+                                          TextureSource *aTexture);
 
   void InitializeVAO(const GLuint aAttribIndex, const GLint aComponents,
                      const GLsizei aStride, const size_t aOffset);
@@ -482,8 +429,6 @@ private:
   GLint FlipY(GLint y) const { return mViewportSize.height - y; }
 
   RefPtr<CompositorTexturePoolOGL> mTexturePool;
-
-  ContextStateTrackerOGL mContextStateTracker;
 
   bool mDestroyed;
 

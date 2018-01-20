@@ -6,8 +6,22 @@
 #include "PrintTarget.h"
 
 #include "cairo.h"
+#ifdef CAIRO_HAS_QUARTZ_SURFACE
+#include "cairo-quartz.h"
+#endif
+#ifdef CAIRO_HAS_WIN32_SURFACE
+#include "cairo-win32.h"
+#endif
 #include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/HelpersCairo.h"
 #include "mozilla/gfx/Logging.h"
+#include "nsReadableUtils.h"
+#include "nsString.h"
+#include "nsUTF8Utils.h"
+
+// IPP spec disallow the job-name which is over 255 characters.
+// RFC: https://tools.ietf.org/html/rfc2911#section-4.1.2
+#define IPP_JOB_NAME_LIMIT_LENGTH 255
 
 namespace mozilla {
 namespace gfx {
@@ -18,6 +32,7 @@ PrintTarget::PrintTarget(cairo_surface_t* aCairoSurface, const IntSize& aSize)
   , mIsFinished(false)
 #ifdef DEBUG
   , mHasActivePage(false)
+  , mRecorder(nullptr)
 #endif
 
 {
@@ -74,7 +89,7 @@ PrintTarget::MakeDrawTarget(const IntSize& aSize,
   }
 
   if (aRecorder) {
-    dt = CreateRecordingDrawTarget(aRecorder, dt);
+    dt = CreateWrapAndRecordDrawTarget(aRecorder, dt);
     if (!dt || !dt->IsValid()) {
       return nullptr;
     }
@@ -87,41 +102,100 @@ already_AddRefed<DrawTarget>
 PrintTarget::GetReferenceDrawTarget(DrawEventRecorder* aRecorder)
 {
   if (!mRefDT) {
-    IntSize size(1, 1);
+    const IntSize size(1, 1);
 
-    cairo_surface_t* surface =
-      cairo_surface_create_similar(mCairoSurface,
-                                   cairo_surface_get_content(mCairoSurface),
-                                   size.width, size.height);
+    cairo_surface_t* similar;
+    switch (cairo_surface_get_type(mCairoSurface)) {
+#ifdef CAIRO_HAS_WIN32_SURFACE
+    case CAIRO_SURFACE_TYPE_WIN32:
+      similar = cairo_win32_surface_create_with_dib(
+        CairoContentToCairoFormat(cairo_surface_get_content(mCairoSurface)),
+        size.width, size.height);
+      break;
+#endif
+#ifdef CAIRO_HAS_QUARTZ_SURFACE
+    case CAIRO_SURFACE_TYPE_QUARTZ:
+      similar = cairo_quartz_surface_create_cg_layer(
+                  mCairoSurface, cairo_surface_get_content(mCairoSurface),
+                  size.width, size.height);
+      break;
+#endif
+    default:
+      similar = cairo_surface_create_similar(
+                  mCairoSurface, cairo_surface_get_content(mCairoSurface),
+                  size.width, size.height);
+      break;
+    }
 
-    if (cairo_surface_status(surface)) {
+    if (cairo_surface_status(similar)) {
       return nullptr;
     }
 
     RefPtr<DrawTarget> dt =
-      Factory::CreateDrawTargetForCairoSurface(surface, size);
+      Factory::CreateDrawTargetForCairoSurface(similar, size);
 
     // The DT addrefs the surface, so we need drop our own reference to it:
-    cairo_surface_destroy(surface);
+    cairo_surface_destroy(similar);
 
     if (!dt || !dt->IsValid()) {
       return nullptr;
     }
+    mRefDT = dt.forget();
+  }
 
-    if (aRecorder) {
-      dt = CreateRecordingDrawTarget(aRecorder, dt);
+  if (aRecorder) {
+    if (!mRecordingRefDT) {
+      RefPtr<DrawTarget> dt = CreateWrapAndRecordDrawTarget(aRecorder, mRefDT);
       if (!dt || !dt->IsValid()) {
         return nullptr;
       }
+      mRecordingRefDT = dt.forget();
+#ifdef DEBUG
+      mRecorder = aRecorder;
+#endif
     }
+#ifdef DEBUG
+    else {
+      MOZ_ASSERT(aRecorder == mRecorder,
+                 "Caching mRecordingRefDT assumes the aRecorder is an invariant");
+    }
+#endif
 
-    mRefDT = dt.forget();
+    return do_AddRef(mRecordingRefDT);
   }
+
   return do_AddRef(mRefDT);
 }
 
-already_AddRefed<DrawTarget>
-PrintTarget::CreateRecordingDrawTarget(DrawEventRecorder* aRecorder,
+/* static */
+void
+PrintTarget::AdjustPrintJobNameForIPP(const nsAString& aJobName,
+                                      nsCString& aAdjustedJobName)
+{
+  CopyUTF16toUTF8(aJobName, aAdjustedJobName);
+
+  if (aAdjustedJobName.Length() > IPP_JOB_NAME_LIMIT_LENGTH) {
+    uint32_t length =
+      RewindToPriorUTF8Codepoint(aAdjustedJobName.get(),
+                                 (IPP_JOB_NAME_LIMIT_LENGTH - 3U));
+    aAdjustedJobName.SetLength(length);
+    aAdjustedJobName.AppendLiteral("...");
+  }
+}
+
+/* static */
+void
+PrintTarget::AdjustPrintJobNameForIPP(const nsAString& aJobName,
+                                      nsString& aAdjustedJobName)
+{
+  nsAutoCString jobName;
+  AdjustPrintJobNameForIPP(aJobName, jobName);
+
+  CopyUTF8toUTF16(jobName, aAdjustedJobName);
+}
+
+/* static */ already_AddRefed<DrawTarget>
+PrintTarget::CreateWrapAndRecordDrawTarget(DrawEventRecorder* aRecorder,
                                        DrawTarget* aDrawTarget)
 {
   MOZ_ASSERT(aRecorder);
@@ -131,7 +205,7 @@ PrintTarget::CreateRecordingDrawTarget(DrawEventRecorder* aRecorder,
 
   if (aRecorder) {
     // It doesn't really matter what we pass as the DrawTarget here.
-    dt = gfx::Factory::CreateRecordingDrawTarget(aRecorder, aDrawTarget);
+    dt = gfx::Factory::CreateWrapAndRecordDrawTarget(aRecorder, aDrawTarget);
   }
 
   if (!dt || !dt->IsValid()) {

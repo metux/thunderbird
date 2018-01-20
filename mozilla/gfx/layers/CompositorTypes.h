@@ -1,7 +1,8 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-* This Source Code Form is subject to the terms of the Mozilla Public
-* License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef MOZILLA_LAYERS_COMPOSITORTYPES_H
 #define MOZILLA_LAYERS_COMPOSITORTYPES_H
@@ -69,10 +70,12 @@ enum class TextureFlags : uint32_t {
   // This flag is only used in the parent process.
   INVALID_COMPOSITOR = 1 << 12,
   // The texture was created by converting from YCBCR to RGB
-  RGB_FROM_YCBCR = 1 << 13,
+  RGB_FROM_YCBCR     = 1 << 13,
+  // The texture is used for snapshot.
+  SNAPSHOT           = 1 << 14,
 
   // OR union of all valid bits
-  ALL_BITS           = (1 << 14) - 1,
+  ALL_BITS           = (1 << 15) - 1,
   // the default flags
   DEFAULT = NO_FLAGS
 };
@@ -168,14 +171,17 @@ struct TextureFactoryIdentifier
   LayersBackend mParentBackend;
   GeckoProcessType mParentProcessType;
   int32_t mMaxTextureSize;
+  bool mCompositorUseANGLE;
   bool mSupportsTextureBlitting;
   bool mSupportsPartialUploads;
   bool mSupportsComponentAlpha;
+  bool mUsingAdvancedLayers;
   SyncHandle mSyncHandle;
 
   explicit TextureFactoryIdentifier(LayersBackend aLayersBackend = LayersBackend::LAYERS_NONE,
                                     GeckoProcessType aParentProcessType = GeckoProcessType_Default,
                                     int32_t aMaxTextureSize = 4096,
+                                    bool aCompositorUseANGLE = false,
                                     bool aSupportsTextureBlitting = false,
                                     bool aSupportsPartialUploads = false,
                                     bool aSupportsComponentAlpha = true,
@@ -183,11 +189,25 @@ struct TextureFactoryIdentifier
     : mParentBackend(aLayersBackend)
     , mParentProcessType(aParentProcessType)
     , mMaxTextureSize(aMaxTextureSize)
+    , mCompositorUseANGLE(aCompositorUseANGLE)
     , mSupportsTextureBlitting(aSupportsTextureBlitting)
     , mSupportsPartialUploads(aSupportsPartialUploads)
     , mSupportsComponentAlpha(aSupportsComponentAlpha)
+    , mUsingAdvancedLayers(false)
     , mSyncHandle(aSyncHandle)
   {}
+
+  bool operator==(const TextureFactoryIdentifier& aOther) const {
+    return
+      mParentBackend == aOther.mParentBackend &&
+      mParentProcessType == aOther.mParentProcessType &&
+      mMaxTextureSize == aOther.mMaxTextureSize &&
+      mCompositorUseANGLE == aOther.mCompositorUseANGLE &&
+      mSupportsTextureBlitting == aOther.mSupportsTextureBlitting &&
+      mSupportsPartialUploads == aOther.mSupportsPartialUploads &&
+      mSupportsComponentAlpha == aOther.mSupportsComponentAlpha &&
+      mSyncHandle == aOther.mSyncHandle;
+  }
 };
 
 /**
@@ -229,9 +249,15 @@ enum class OpenMode : uint8_t {
   OPEN_NONE        = 0,
   OPEN_READ        = 0x1,
   OPEN_WRITE       = 0x2,
+  // This is only used in conjunction with OMTP to indicate that the DrawTarget
+  // that is being borrowed will be painted asynchronously, and so will outlive
+  // the write lock.
+  OPEN_ASYNC_WRITE = 0x04,
+
   OPEN_READ_WRITE  = OPEN_READ|OPEN_WRITE,
+  OPEN_READ_ASYNC_WRITE  = OPEN_READ|OPEN_WRITE|OPEN_ASYNC_WRITE,
   OPEN_READ_ONLY   = OPEN_READ,
-  OPEN_WRITE_ONLY  = OPEN_WRITE
+  OPEN_WRITE_ONLY  = OPEN_WRITE,
 };
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(OpenMode)
 

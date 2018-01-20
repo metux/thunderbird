@@ -22,7 +22,7 @@ namespace quota {
 QuotaChild::QuotaChild(QuotaManagerService* aService)
   : mService(aService)
 #ifdef DEBUG
-  , mOwningThread(NS_GetCurrentThread())
+  , mOwningThread(GetCurrentThreadEventTarget())
 #endif
 {
   AssertIsOnOwningThread();
@@ -207,7 +207,7 @@ QuotaUsageRequestChild::ActorDestroy(ActorDestroyReason aWhy)
   }
 }
 
-bool
+mozilla::ipc::IPCResult
 QuotaUsageRequestChild::Recv__delete__(const UsageRequestResponse& aResponse)
 {
   AssertIsOnOwningThread();
@@ -230,7 +230,7 @@ QuotaUsageRequestChild::Recv__delete__(const UsageRequestResponse& aResponse)
       MOZ_CRASH("Unknown response type!");
   }
 
-  return true;
+  return IPC_OK();
 }
 
 /*******************************************************************************
@@ -279,7 +279,22 @@ QuotaRequestChild::HandleResponse()
   AssertIsOnOwningThread();
   MOZ_ASSERT(mRequest);
 
-  mRequest->SetResult();
+  RefPtr<nsVariant> variant = new nsVariant();
+  variant->SetAsVoid();
+
+  mRequest->SetResult(variant);
+}
+
+void
+QuotaRequestChild::HandleResponse(bool aResponse)
+{
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(mRequest);
+
+  RefPtr<nsVariant> variant = new nsVariant();
+  variant->SetAsBool(aResponse);
+
+  mRequest->SetResult(variant);
 }
 
 void
@@ -288,7 +303,7 @@ QuotaRequestChild::ActorDestroy(ActorDestroyReason aWhy)
   AssertIsOnOwningThread();
 }
 
-bool
+mozilla::ipc::IPCResult
 QuotaRequestChild::Recv__delete__(const RequestResponse& aResponse)
 {
   AssertIsOnOwningThread();
@@ -299,18 +314,28 @@ QuotaRequestChild::Recv__delete__(const RequestResponse& aResponse)
       HandleResponse(aResponse.get_nsresult());
       break;
 
+    case RequestResponse::TInitResponse:
     case RequestResponse::TClearOriginResponse:
-    case RequestResponse::TClearOriginsResponse:
+    case RequestResponse::TClearDataResponse:
     case RequestResponse::TClearAllResponse:
     case RequestResponse::TResetAllResponse:
+    case RequestResponse::TPersistResponse:
       HandleResponse();
+      break;
+
+    case RequestResponse::TInitOriginResponse:
+      HandleResponse(aResponse.get_InitOriginResponse().created());
+      break;
+
+    case RequestResponse::TPersistedResponse:
+      HandleResponse(aResponse.get_PersistedResponse().persisted());
       break;
 
     default:
       MOZ_CRASH("Unknown response type!");
   }
 
-  return true;
+  return IPC_OK();
 }
 
 } // namespace quota

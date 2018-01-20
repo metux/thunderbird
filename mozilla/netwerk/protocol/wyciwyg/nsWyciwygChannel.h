@@ -79,7 +79,7 @@ protected:
     nsCString                           mCharset;
     int64_t                             mContentLength;
     uint32_t                            mLoadFlags;
-    mozilla::NeckoOriginAttributes      mOriginAttributes;
+    mozilla::OriginAttributes           mOriginAttributes;
     nsCOMPtr<nsIURI>                    mURI;
     nsCOMPtr<nsIURI>                    mOriginalURI;
     nsCOMPtr<nsISupports>               mOwner;
@@ -92,8 +92,8 @@ protected:
 
     // reuse as much of this channel implementation as we can
     nsCOMPtr<nsIInputStreamPump>        mPump;
-    
-    // Cache related stuff    
+
+    // Cache related stuff
     nsCOMPtr<nsICacheEntry>             mCacheEntry;
     nsCOMPtr<nsIOutputStream>           mCacheOutputStream;
     nsCOMPtr<nsIInputStream>            mCacheInputStream;

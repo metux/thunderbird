@@ -1,11 +1,12 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+"use strict";
+
 // Test that we maintain focus of the selected dominator tree node across
 // changing breakdowns for labeling them.
 
 let {
-  snapshotState: states,
   dominatorTreeState,
   labelDisplays,
   viewState,
@@ -20,10 +21,6 @@ const {
 const {
   setLabelDisplayAndRefresh,
 } = require("devtools/client/memory/actions/label-display");
-
-function run_test() {
-  run_next_test();
-}
 
 add_task(function* () {
   let front = new StubbedMemoryFront();

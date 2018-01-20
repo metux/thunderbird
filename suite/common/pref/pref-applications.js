@@ -67,7 +67,7 @@ const PREF_HIDE_PLUGINS_WITHOUT_EXTENSIONS =
  * - the URL of the currently selected web service used to read feeds
  *
  * browser.feeds.handlers.application
- * - nsILocalFile, stores the current client-side feed reading app if one has
+ * - nsIFile, stores the current client-side feed reading app if one has
  *   been chosen
  */
 const PREF_FEED_SELECTED_APP    = "browser.feeds.handlers.application";
@@ -220,7 +220,7 @@ HandlerInfoWrapper.prototype = {
         return;
     } catch (e) {
     }
-    this.possibleApplicationHandlers.appendElement(aNewHandler, false);
+    this.possibleApplicationHandlers.appendElement(aNewHandler);
   },
 
   removePossibleApplicationHandler: function(aHandler) {
@@ -542,7 +542,7 @@ FeedHandlerInfo.prototype = {
         return this._inner.indexOf(element, startIndex);
       },
 
-      appendElement: function(aHandlerApp, aWeak) {
+      appendElement: function(aHandlerApp) {
         this._inner.push(aHandlerApp);
       },
 
@@ -567,14 +567,14 @@ FeedHandlerInfo.prototype = {
       let preferredApp = getLocalHandlerApp(preferredAppFile);
       let defaultApp = this._defaultApplicationHandler;
       if (!defaultApp || !defaultApp.equals(preferredApp))
-        this._possibleApplicationHandlers.appendElement(preferredApp, false);
+        this._possibleApplicationHandlers.appendElement(preferredApp);
     }
 
     if (converterSvc) {
       // Add the registered web handlers.  There can be any number of these.
       var webHandlers = converterSvc.getContentHandlers(this.type, {});
-      for each (let webHandler in webHandlers)
-        this._possibleApplicationHandlers.appendElement(webHandler, false);
+      for (let webHandler of webHandlers)
+        this._possibleApplicationHandlers.appendElement(webHandler);
     }
 
     return this._possibleApplicationHandlers;
@@ -718,7 +718,7 @@ FeedHandlerInfo.prototype = {
   // the only thing we need to store is the removal of possible handlers
   // XXX Should we hold off on making the changes until this method gets called?
   store: function() {
-    for each (let app in this._possibleApplicationHandlers._removed) {
+    for (let app of this._possibleApplicationHandlers._removed) {
       if (app instanceof nsILocalHandlerApp) {
         let pref = document.getElementById(PREF_FEED_SELECTED_APP);
         var preferredAppFile = pref.value;
@@ -1104,7 +1104,7 @@ var gApplicationsPane = {
     if (this._filter.value)
       visibleTypes = visibleTypes.filter(this._matchesFilter, this);
 
-    for each (let visibleType in visibleTypes) {
+    for (let visibleType of visibleTypes) {
       let item = document.createElement("listitem");
       item.setAttribute("allowevents", "true");
       item.setAttribute("type", visibleType.type);
@@ -1244,7 +1244,7 @@ var gApplicationsPane = {
 
   _isValidHandlerExecutable: function(aExecutable) {
     var file = Services.dirsvc.get("XREExeF",
-                                   Components.interfaces.nsILocalFile);
+                                   Components.interfaces.nsIFile);
     return aExecutable &&
            aExecutable.exists() &&
            aExecutable.isExecutable() &&
@@ -1717,7 +1717,7 @@ var gApplicationsPane = {
   },
 
   _getIconURLForWebApp: function(aWebAppURITemplate) {
-    var uri = Services.io.newURI(aWebAppURITemplate, null, null);
+    var uri = Services.io.newURI(aWebAppURITemplate);
 
     // Unfortunately we need to use favicon.ico here, but we don't know
     // about any other possibility to retrieve an icon for the web app/site

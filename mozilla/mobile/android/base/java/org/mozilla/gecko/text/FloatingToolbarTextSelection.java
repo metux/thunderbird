@@ -12,50 +12,44 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.ActionMode;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import org.mozilla.gecko.EventDispatcher;
-import org.mozilla.gecko.GeckoApp;
-import org.mozilla.gecko.GeckoAppShell;
+import org.mozilla.gecko.GeckoView;
 import org.mozilla.gecko.Telemetry;
 import org.mozilla.gecko.TelemetryContract;
-import org.mozilla.gecko.gfx.LayerView;
-import org.mozilla.gecko.util.GeckoEventListener;
+import org.mozilla.gecko.util.ActivityUtils;
+import org.mozilla.gecko.util.BundleEventListener;
+import org.mozilla.gecko.util.EventCallback;
+import org.mozilla.gecko.util.GeckoBundle;
 import org.mozilla.gecko.util.ThreadUtils;
 
 import java.util.List;
-
-import ch.boye.httpclientandroidlib.util.TextUtils;
 
 /**
  * Floating toolbar for text selection actions. Only on Android 6+.
  */
 @TargetApi(Build.VERSION_CODES.M)
-public class FloatingToolbarTextSelection implements TextSelection, GeckoEventListener {
+public class FloatingToolbarTextSelection implements TextSelection, BundleEventListener {
     private static final String LOGTAG = "GeckoFloatTextSelection";
 
     // This is an additional offset we add to the height of the selection. This will avoid that the
     // floating toolbar overlays the bottom handle(s).
     private static final int HANDLES_OFFSET_DP = 20;
 
-    private final Activity activity;
-    private final LayerView layerView;
+    /* package */ final GeckoView geckoView;
     private final int[] locationInWindow;
     private final float handlesOffset;
 
     private ActionMode actionMode;
     private FloatingActionModeCallback actionModeCallback;
-    private String selectionID;
+    private int selectionID;
     /* package-private */ Rect contentRect;
 
-    public FloatingToolbarTextSelection(Activity activity, LayerView layerView) {
-        this.activity = activity;
-        this.layerView = layerView;
+    public FloatingToolbarTextSelection(final GeckoView geckoView) {
+        this.geckoView = geckoView;
         this.locationInWindow = new int[2];
 
         this.handlesOffset = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,
-                HANDLES_OFFSET_DP, activity.getResources().getDisplayMetrics());
+                HANDLES_OFFSET_DP, geckoView.getContext().getResources().getDisplayMetrics());
     }
 
     @Override
@@ -69,19 +63,13 @@ public class FloatingToolbarTextSelection implements TextSelection, GeckoEventLi
     }
 
     private void endTextSelection() {
-        if (TextUtils.isEmpty(selectionID)) {
+        if (selectionID == 0) {
             return;
         }
 
-        final JSONObject args = new JSONObject();
-        try {
-            args.put("selectionID", selectionID);
-        } catch (JSONException e) {
-            Log.e(LOGTAG, "Error building JSON arguments for TextSelection:End", e);
-            return;
-        }
-
-        GeckoAppShell.notifyObservers("TextSelection:End", args.toString());
+        final GeckoBundle data = new GeckoBundle(1);
+        data.putInt("selectionID", selectionID);
+        geckoView.getEventDispatcher().dispatch("TextSelection:End", data);
     }
 
     @Override
@@ -95,42 +83,33 @@ public class FloatingToolbarTextSelection implements TextSelection, GeckoEventLi
     }
 
     private void registerForEvents() {
-        GeckoApp.getEventDispatcher().registerGeckoThreadListener(this,
+        geckoView.getEventDispatcher().registerUiThreadListener(this,
                 "TextSelection:ActionbarInit",
                 "TextSelection:ActionbarStatus",
                 "TextSelection:ActionbarUninit",
-                "TextSelection:Update",
                 "TextSelection:Visibility");
     }
 
     private void unregisterFromEvents() {
-        GeckoApp.getEventDispatcher().unregisterGeckoThreadListener(this,
+        geckoView.getEventDispatcher().unregisterUiThreadListener(this,
                 "TextSelection:ActionbarInit",
                 "TextSelection:ActionbarStatus",
                 "TextSelection:ActionbarUninit",
-                "TextSelection:Update",
                 "TextSelection:Visibility");
     }
 
-    @Override
-    public void handleMessage(final String event, final JSONObject message) {
-        ThreadUtils.postToUiThread(new Runnable() {
-            @Override
-            public void run() {
-                handleOnMainThread(event, message);
-            }
-        });
-    }
-
-    private void handleOnMainThread(final String event, final JSONObject message) {
+    @Override // BundleEventListener
+    public void handleMessage(final String event, final GeckoBundle message,
+                              final EventCallback callback) {
         if ("TextSelection:ActionbarInit".equals(event)) {
             Telemetry.sendUIEvent(TelemetryContract.Event.SHOW,
                 TelemetryContract.Method.CONTENT, "text_selection");
 
-            selectionID = message.optString("selectionID");
+            selectionID = message.getInt("selectionID");
+
         } else if ("TextSelection:ActionbarStatus".equals(event)) {
             // Ensure async updates from SearchService for example are valid.
-            if (selectionID != message.optString("selectionID")) {
+            if (selectionID != message.getInt("selectionID")) {
                 return;
             }
 
@@ -141,10 +120,10 @@ public class FloatingToolbarTextSelection implements TextSelection, GeckoEventLi
             } else {
                 startActionMode(TextAction.fromEventMessage(message));
             }
+
         } else if ("TextSelection:ActionbarUninit".equals(event)) {
             finishActionMode();
-        } else if ("TextSelection:Update".equals(event)) {
-            startActionMode(TextAction.fromEventMessage(message));
+
         } else if ("TextSelection:Visibility".equals(event)) {
             finishActionMode();
         }
@@ -157,6 +136,11 @@ public class FloatingToolbarTextSelection implements TextSelection, GeckoEventLi
             return;
         }
 
+        final Activity activity =
+                ActivityUtils.getActivityFromContext(geckoView.getContext());
+        if (activity == null) {
+            return;
+        }
         actionModeCallback = new FloatingActionModeCallback(this, actions);
         actionMode = activity.startActionMode(actionModeCallback, ActionMode.TYPE_FLOATING);
     }
@@ -183,24 +167,21 @@ public class FloatingToolbarTextSelection implements TextSelection, GeckoEventLi
         return contentRect.left != contentRect.right || contentRect.top != contentRect.bottom;
     }
 
-    private void updateRect(JSONObject message) {
-        try {
-            final double x = message.getDouble("x");
-            final double y = (int) message.getDouble("y");
-            final double width = (int) message.getDouble("width");
-            final double height = (int) message.getDouble("height");
+    private void updateRect(final GeckoBundle message) {
+        final double x = message.getDouble("x");
+        final double y = (int) message.getDouble("y");
+        final double width = (int) message.getDouble("width");
+        final double height = (int) message.getDouble("height");
 
-            final float zoomFactor = layerView.getZoomFactor();
-            layerView.getLocationInWindow(locationInWindow);
+        final float toolbarOffset = geckoView.getCurrentToolbarHeight();
+        final float zoomFactor = geckoView.getZoomFactor();
+        geckoView.getLocationInWindow(locationInWindow);
 
-            contentRect = new Rect(
-                    (int) (x * zoomFactor + locationInWindow[0]),
-                    (int) (y * zoomFactor + locationInWindow[1]),
-                    (int) ((x + width) * zoomFactor + locationInWindow[0]),
-                    (int) ((y + height) * zoomFactor + locationInWindow[1] +
-                           (height > 0 ? handlesOffset : 0)));
-        } catch (JSONException e) {
-            Log.w(LOGTAG, "Could not calculate content rect", e);
-        }
+        contentRect = new Rect(
+                (int) (x * zoomFactor + locationInWindow[0]),
+                (int) (y * zoomFactor + locationInWindow[1] + toolbarOffset),
+                (int) ((x + width) * zoomFactor + locationInWindow[0]),
+                (int) ((y + height) * zoomFactor + locationInWindow[1] +
+                       (height > 0 ? handlesOffset : 0)));
     }
 }

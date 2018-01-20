@@ -16,7 +16,7 @@
 namespace mozilla {
 namespace dom {
 
-class AudioDestinationTrackSource :
+class AudioDestinationTrackSource final :
   public MediaStreamTrackSource
 {
 public:
@@ -50,7 +50,7 @@ public:
   }
 
 private:
-  virtual ~AudioDestinationTrackSource() {}
+  ~AudioDestinationTrackSource() = default;
 
   RefPtr<MediaStreamAudioDestinationNode> mNode;
 };
@@ -59,7 +59,7 @@ NS_IMPL_ADDREF_INHERITED(AudioDestinationTrackSource,
                          MediaStreamTrackSource)
 NS_IMPL_RELEASE_INHERITED(AudioDestinationTrackSource,
                           MediaStreamTrackSource)
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(AudioDestinationTrackSource)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(AudioDestinationTrackSource)
 NS_INTERFACE_MAP_END_INHERITING(MediaStreamTrackSource)
 NS_IMPL_CYCLE_COLLECTION_INHERITED(AudioDestinationTrackSource,
                                    MediaStreamTrackSource,
@@ -67,7 +67,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(AudioDestinationTrackSource,
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(MediaStreamAudioDestinationNode, AudioNode, mDOMStream)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(MediaStreamAudioDestinationNode)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(MediaStreamAudioDestinationNode)
 NS_INTERFACE_MAP_END_INHERITING(AudioNode)
 
 NS_IMPL_ADDREF_INHERITED(MediaStreamAudioDestinationNode, AudioNode)
@@ -102,8 +102,29 @@ MediaStreamAudioDestinationNode::MediaStreamAudioDestinationNode(AudioContext* a
   mPort = outputStream->AllocateInputPort(mStream, AudioNodeStream::AUDIO_TRACK);
 }
 
-MediaStreamAudioDestinationNode::~MediaStreamAudioDestinationNode()
+/* static */ already_AddRefed<MediaStreamAudioDestinationNode>
+MediaStreamAudioDestinationNode::Create(AudioContext& aAudioContext,
+                                        const AudioNodeOptions& aOptions,
+                                        ErrorResult& aRv)
 {
+  if (aAudioContext.IsOffline()) {
+    aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+    return nullptr;
+  }
+
+  if (aAudioContext.CheckClosed(aRv)) {
+    return nullptr;
+  }
+
+  RefPtr<MediaStreamAudioDestinationNode> audioNode =
+    new MediaStreamAudioDestinationNode(&aAudioContext);
+
+  audioNode->Initialize(aOptions, aRv);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+
+  return audioNode.forget();
 }
 
 size_t

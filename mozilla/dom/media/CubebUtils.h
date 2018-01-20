@@ -8,7 +8,7 @@
 #define CubebUtils_h_
 
 #include "cubeb/cubeb.h"
-#include "mozilla/dom/AudioChannelBinding.h"
+#include "mozilla/dom/AudioDeviceInfo.h"
 #include "mozilla/Maybe.h"
 
 namespace mozilla {
@@ -30,6 +30,14 @@ uint32_t MaxNumberOfChannels();
 // Get the sample rate the hardware/mixer runs at. Thread safe.
 uint32_t PreferredSampleRate();
 
+// Get the bit mask of the connected audio device's preferred layout.
+uint32_t PreferredChannelMap(uint32_t aChannels);
+
+enum Side {
+  Input,
+  Output
+};
+
 void PrefChanged(const char* aPref, void* aClosure);
 double GetVolumeScale();
 bool GetFirstStream();
@@ -40,11 +48,11 @@ void ReportCubebBackendUsed();
 uint32_t GetCubebPlaybackLatencyInMilliseconds();
 Maybe<uint32_t> GetCubebMSGLatencyInFrames();
 bool CubebLatencyPrefSet();
-#if defined(__ANDROID__) && defined(MOZ_B2G)
-cubeb_stream_type ConvertChannelToCubebType(dom::AudioChannel aChannel);
-#endif
+cubeb_channel_layout ConvertChannelMapToCubebLayout(uint32_t aChannelMap);
 void GetCurrentBackend(nsAString& aBackend);
-
+void GetPreferredChannelLayout(nsAString& aLayout);
+void GetDeviceCollection(nsTArray<RefPtr<AudioDeviceInfo>>& aDeviceInfos,
+                         Side aSide);
 } // namespace CubebUtils
 } // namespace mozilla
 

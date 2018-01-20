@@ -1,15 +1,14 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set sw=2 ts=8 et tw=80 : */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "InputBlockState.h"
 #include "AsyncPanZoomController.h"         // for AsyncPanZoomController
-#include "AsyncScrollBase.h"                // for kScrollSeriesTimeoutMs
+#include "ScrollAnimationPhysics.h"         // for kScrollSeriesTimeoutMs
 #include "gfxPrefs.h"                       // for gfxPrefs
 #include "mozilla/MouseEvents.h"
-#include "mozilla/SizePrintfMacros.h"       // for PRIuSIZE
 #include "mozilla/Telemetry.h"              // for Telemetry
 #include "mozilla/layers/APZCTreeManager.h" // for AllowedTouchBehavior
 #include "OverscrollHandoffState.h"
@@ -153,6 +152,12 @@ InputBlockState::IsDownchainOfScrolledApzc(AsyncPanZoomController* aApzc) const
   return IsDownchainOf(mScrolledApzc, aApzc);
 }
 
+void
+InputBlockState::DispatchEvent(const InputData& aEvent) const
+{
+  GetTargetApzc()->HandleInputEvent(aEvent, mTransformToApzc);
+}
+
 CancelableBlockState::CancelableBlockState(const RefPtr<AsyncPanZoomController>& aTargetApzc,
                                            bool aTargetConfirmed)
   : InputBlockState(aTargetApzc, aTargetConfirmed)
@@ -226,12 +231,6 @@ CancelableBlockState::IsReadyForHandling() const
 }
 
 void
-CancelableBlockState::DispatchEvent(const InputData& aEvent) const
-{
-  GetTargetApzc()->HandleInputEvent(aEvent, mTransformToApzc);
-}
-
-void
 CancelableBlockState::RecordContentResponseTime()
 {
   if (!mContentResponseTimer) {
@@ -272,6 +271,12 @@ DragBlockState::MarkMouseUpReceived()
 }
 
 void
+DragBlockState::SetInitialThumbPos(CSSCoord aThumbPos)
+{
+  mInitialThumbPos = aThumbPos;
+}
+
+void
 DragBlockState::SetDragMetrics(const AsyncDragMetrics& aDragMetrics)
 {
   mDragMetrics = aDragMetrics;
@@ -285,7 +290,7 @@ DragBlockState::DispatchEvent(const InputData& aEvent) const
     return;
   }
 
-  GetTargetApzc()->HandleDragEvent(mouseInput, mDragMetrics);
+  GetTargetApzc()->HandleDragEvent(mouseInput, mDragMetrics, mInitialThumbPos);
 }
 
 bool
@@ -654,7 +659,7 @@ TouchBlockState::SetAllowedTouchBehaviors(const nsTArray<TouchBehaviorFlags>& aB
   if (mAllowedTouchBehaviorSet) {
     return false;
   }
-  TBS_LOG("%p got allowed touch behaviours for %" PRIuSIZE " points\n", this, aBehaviors.Length());
+  TBS_LOG("%p got allowed touch behaviours for %zu points\n", this, aBehaviors.Length());
   mAllowedTouchBehaviors.AppendElements(aBehaviors);
   mAllowedTouchBehaviorSet = true;
   return true;
@@ -862,6 +867,11 @@ uint32_t
 TouchBlockState::GetActiveTouchCount() const
 {
   return mTouchCounter.GetActiveTouchCount();
+}
+
+KeyboardBlockState::KeyboardBlockState(const RefPtr<AsyncPanZoomController>& aTargetApzc)
+  : InputBlockState(aTargetApzc, true)
+{
 }
 
 } // namespace layers

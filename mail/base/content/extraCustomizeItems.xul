@@ -37,7 +37,6 @@
                  autocompletesearch="gloda"
                  autocompletepopup="PopupGlodaAutocomplete"
                  autocompletesearchparam="global"
-                 enablehistory="false"
                  timeout="200"
                  maxlength="192"
                  placeholder=""
@@ -52,9 +51,7 @@
                clear the box, if people want to clear it that way...
                -->
           <hbox>
-            <image class="gloda-search-icon"
-                   onclick="document.getElementById('searchInput').doSearch();"
-                   />
+            <image class="gloda-search-icon"/>
           </hbox>
         </textbox>
     </toolbaritem>

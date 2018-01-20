@@ -9,7 +9,7 @@
 #include "nsIMailboxUrl.h"
 #include "nsMailboxUrl.h"
 
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsLocalUtils.h"
 #include "nsIMsgDatabase.h"
 #include "nsMsgDBCID.h"
@@ -94,8 +94,7 @@ nsresult nsMailboxUrl::GetMailboxCopyHandler(nsIStreamListener ** aMailboxCopyHa
 
   if (aMailboxCopyHandler)
   {
-    *aMailboxCopyHandler = m_mailboxCopyHandler;
-    NS_IF_ADDREF(*aMailboxCopyHandler);
+    NS_IF_ADDREF(*aMailboxCopyHandler = m_mailboxCopyHandler);
   }
 
   return  NS_OK;
@@ -411,7 +410,7 @@ nsresult nsMailboxUrl::ParseUrl()
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  GetPath(m_file);
+  GetPathQueryRef(m_file);
   return NS_OK;
 }
 
@@ -491,7 +490,7 @@ NS_IMETHODIMP nsMailboxUrl::GetFolderCharset(char ** aCharacterSet)
   NS_ENSURE_ARG_POINTER(aCharacterSet);
   nsCOMPtr<nsIMsgFolder> folder;
   nsresult rv = GetFolder(getter_AddRefs(folder));
-  
+
   // In cases where a file is not associated with a folder, for
   // example standalone .eml files, failure is normal.
   if (NS_FAILED(rv))

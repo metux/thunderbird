@@ -372,10 +372,21 @@ nr_stun_remove_duplicate_addrs(nr_local_addr addrs[], int remove_loopback, int r
     nr_local_addr *tmp = 0;
     int i;
     int n;
+    int contains_regular_ipv6 = 0;
 
     tmp = RMALLOC(*count * sizeof(*tmp));
     if (!tmp)
         ABORT(R_NO_MEMORY);
+
+    for (i = 0; i < *count; ++i) {
+        if (nr_transport_addr_is_teredo(&addrs[i].addr)) {
+            addrs[i].interface.type |= NR_INTERFACE_TYPE_TEREDO;
+        }
+        else if (addrs[i].addr.ip_version == NR_IPV6 &&
+                 !nr_transport_addr_is_mac_based(&addrs[i].addr)) {
+            contains_regular_ipv6 = 1;
+        }
+    }
 
     n = 0;
     for (i = 0; i < *count; ++i) {
@@ -386,9 +397,16 @@ nr_stun_remove_duplicate_addrs(nr_local_addr addrs[], int remove_loopback, int r
             /* skip addrs[i], it's a loopback */
         }
         else if (remove_link_local &&
-                 addrs[i].addr.ip_version == NR_IPV6 &&
                  nr_transport_addr_is_link_local(&addrs[i].addr)) {
             /* skip addrs[i], it's a link-local address */
+        }
+        else if (contains_regular_ipv6 &&
+                 nr_transport_addr_is_mac_based(&addrs[i].addr)) {
+            /* skip addrs[i], it's MAC based */
+        }
+        else if (contains_regular_ipv6 &&
+                 nr_transport_addr_is_teredo(&addrs[i].addr)) {
+            /* skip addrs[i], it's a Teredo address */
         }
         else {
             /* otherwise, copy it to the temporary array */
@@ -416,9 +434,9 @@ nr_stun_remove_duplicate_addrs(nr_local_addr addrs[], int remove_loopback, int r
 #ifndef USE_PLATFORM_NR_STUN_GET_ADDRS
 
 int
-nr_stun_get_addrs(nr_local_addr addrs[], int maxaddrs, int drop_loopback, int drop_link_local, int *count)
+nr_stun_get_addrs(nr_local_addr addrs[], int maxaddrs, int *count)
 {
-    int r,_status=0;
+    int _status=0;
     int i;
     char typestr[100];
 
@@ -428,16 +446,12 @@ nr_stun_get_addrs(nr_local_addr addrs[], int maxaddrs, int drop_loopback, int dr
     _status = stun_getifaddrs(addrs, maxaddrs, count);
 #endif
 
-    if ((r=nr_stun_remove_duplicate_addrs(addrs, drop_loopback, drop_link_local, count)))
-      ABORT(r);
-
     for (i = 0; i < *count; ++i) {
       nr_local_addr_fmt_info_string(addrs+i,typestr,sizeof(typestr));
       r_log(NR_LOG_STUN, LOG_DEBUG, "Address %d: %s on %s, type: %s\n",
             i,addrs[i].addr.as_string,addrs[i].addr.ifname,typestr);
     }
 
-abort:
     return _status;
 }
 

@@ -29,7 +29,7 @@ function getBestIdentity(identities, optionalHint, useDefault = false)
     let hints = optionalHint.toLowerCase().split(",");
 
     for (let i = 0 ; i < hints.length; i++) {
-      for (let identity in fixIterator(identities,
+      for (let identity of fixIterator(identities,
                                        Components.interfaces.nsIMsgIdentity)) {
         if (!identity.email)
           continue;
@@ -87,7 +87,7 @@ function getIdentityForHeader(hdr, type)
     deliveredTos.reverse();
 
     for (let i = 0; i < deliveredTos.length; i++) {
-      for (let identity in fixIterator(accountManager.allIdentities,
+      for (let identity of fixIterator(accountManager.allIdentities,
                                        Components.interfaces.nsIMsgIdentity)) {
         if (!identity.email)
           continue;
@@ -122,7 +122,8 @@ function getIdentityForHeader(hdr, type)
   let hintForIdentity = "";
   if (type == Components.interfaces.nsIMsgCompType.ReplyToList)
     hintForIdentity = findDeliveredToIdentityEmail();
-  else if (type == Components.interfaces.nsIMsgCompType.Template)
+  else if (type == Components.interfaces.nsIMsgCompType.Template ||
+           type == Components.interfaces.nsIMsgCompType.EditAsNew)
     hintForIdentity = hdr.author;
   else
     hintForIdentity = hdr.recipients + "," + hdr.ccList + "," +
@@ -328,11 +329,12 @@ function NewMessageToSelectedAddresses(type, format, identity) {
     params.identity = identity;
     var composeFields = Components.classes["@mozilla.org/messengercompose/composefields;1"].createInstance(Components.interfaces.nsIMsgCompFields);
     if (composeFields) {
-      var addressList = "";
-      for (var i = 0; i < addresses.Count(); i++) {
-        addressList = addressList + (i > 0 ? ",":"") + addresses.QueryElementAt(i,Components.interfaces.nsISupportsString).data;
+      let addressList = [];
+      const nsISupportsString = Components.interfaces.nsISupportsString;
+      for (let i = 0; i < addresses.length; i++) {
+        addressList.push(addresses.queryElementAt(i, nsISupportsString).data);
       }
-      composeFields.to = addressList;
+      composeFields.to = addressList.join(",");
       params.composeFields = composeFields;
       MailServices.compose.OpenComposeWindowWithParams(null, params);
     }

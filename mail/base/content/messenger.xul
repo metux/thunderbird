@@ -9,7 +9,6 @@
 <?xml-stylesheet href="chrome://gloda/content/glodacomplete.css" type="text/css"?>
 <?xml-stylesheet href="chrome://messenger/content/tabmail.css" type="text/css"?>
 <?xml-stylesheet href="chrome://messenger/skin/tabmail.css" type="text/css"?>
-<?xml-stylesheet href="chrome://messenger/skin/messengerLWTheme.css" type="text/css"?>
 
 <?xul-overlay href="chrome://communicator/content/utilityOverlay.xul"?>
 <?xul-overlay href="chrome://messenger/content/msgHdrViewOverlay.xul"?>
@@ -56,8 +55,7 @@
         windowtype="mail:3pane"
         macanimationtype="document"
         lightweightthemes="true"
-        fullscreenbutton="true"
-        lightweightthemesfooter="status-bar">
+        fullscreenbutton="true">
 
 <stringbundleset id="stringbundleset">
   <stringbundle id="bundle_brand" src="chrome://branding/locale/brand.properties"/>
@@ -270,9 +268,10 @@
                iconsize="small" defaulticonsize="small" lockiconsize="true"
                defaultset=""/>
 
-      <toolbarbutton class="tabs-alltabs-button"
+      <toolbarbutton class="toolbarbutton-1 tabs-alltabs-button"
                      id="alltabs-button"
                      type="menu"
+                     hidden="true"
                      tooltiptext="&listAllTabs.label;">
         <menupopup class="tabs-alltabs-popup"
                    id="alltabs-popup" position="after_end"
@@ -338,6 +337,7 @@
                     disableKeyNavigation="true"
                     ondragstart="gFolderTreeView._onDragStart(event);"
                     ondragover="gFolderTreeView._onDragOver(event);"
+                    ondrop="gFolderTreeView._onDragDrop(event);"
                     ondblclick="gFolderTreeView.onDoubleClick(event);"
                     onselect="FolderPaneSelectionChange();">
                 <treecols id="folderPaneCols">
@@ -537,8 +537,8 @@
                         <browser id="messagepane" context="mailContext"
                                  autofind="false" minheight="1" flex="1"
                                  name="messagepane" tooltip="aHTMLTooltip"
-                                 disablehistory="true" type="content-primary"
-                                 src="about:blank"
+                                 disablehistory="true" type="content"
+                                 primary="true" src="about:blank"
                                  onresize="return messagePaneOnResize(event);"
                                  disablesecurity="true"
                                  onclick="return contentAreaClick(event);"/>
@@ -569,20 +569,11 @@
   </panel>
 
   <notificationbox id="mail-notification-box" notificationside="bottom"/>
+  <statuspanel id="statusbar-display" label=""/>
   <statusbar id="status-bar" class="chromeclass-status">
     <statusbarpanel id="unreadMessageCount"/>
     <statusbarpanel id="totalMessageCount"/>
   </statusbar>
-
-  <svg:svg height="0">
-<svg:clipPath id="tab-curve-clip-path-start" clipPathUnits="objectBoundingBox">
-  <svg:path d="m 1,0.0625 0.05,0 0,0.938 -1,0 0,-0.028 C 0.32082458,0.95840561 0.4353096,0.81970962 0.48499998,0.5625 0.51819998,0.3905 0.535,0.0659 1,0.0625 z"/>
-</svg:clipPath>
-
-<svg:clipPath id="tab-curve-clip-path-end" clipPathUnits="objectBoundingBox">
-  <svg:path d="m 0,0.0625 -0.05,0 0,0.938 1,0 0,-0.028 C 0.67917542,0.95840561 0.56569036,0.81970962 0.51599998,0.5625 0.48279998,0.3905 0.465,0.0659 0,0.0625 z"/>
-</svg:clipPath>
-  </svg:svg>
 
 </window>
 

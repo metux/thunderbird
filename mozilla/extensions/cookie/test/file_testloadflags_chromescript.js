@@ -20,7 +20,7 @@ function obs() {
 
   this.os = Cc["@mozilla.org/observer-service;1"]
               .getService(Ci.nsIObserverService);
-  this.os.addObserver(this, "http-on-modify-request", false);
+  this.os.addObserver(this, "http-on-modify-request");
 }
 
 obs.prototype = {
@@ -78,7 +78,7 @@ function getCookieCount(cs) {
 
 addMessageListener("init", ({ domain }) => {
   let cs = Cc["@mozilla.org/cookiemanager;1"]
-             .getService(Ci.nsICookieManager2);
+             .getService(Ci.nsICookieManager);
 
   info("we are going to remove these cookies");
 
@@ -106,7 +106,7 @@ addMessageListener("shutdown", () => {
   gObs.remove();
 
   let cs = Cc["@mozilla.org/cookiemanager;1"]
-             .getService(Ci.nsICookieManager2);
+             .getService(Ci.nsICookieManager);
   cs.removeAll();
   sendAsyncMessage("shutdown:return");
 });

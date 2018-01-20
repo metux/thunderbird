@@ -24,12 +24,12 @@
 
 "use strict";
 
-var {classes: Cc, interfaces: Ci, utils: Cu} = Components; /*global Components */
+var {classes: Cc, interfaces: Ci, utils: Cu} = Components; /* global Components */
 
-Cu.import("resource://gre/modules/Accounts.jsm"); /*global Accounts */
-Cu.import("resource://gre/modules/PromiseUtils.jsm"); /*global PromiseUtils */
-Cu.import("resource://gre/modules/Services.jsm"); /*global Services */
-Cu.import("resource://gre/modules/XPCOMUtils.jsm"); /*global XPCOMUtils */
+Cu.import("resource://gre/modules/Accounts.jsm"); /* global Accounts */
+Cu.import("resource://gre/modules/PromiseUtils.jsm"); /* global PromiseUtils */
+Cu.import("resource://gre/modules/Services.jsm"); /* global Services */
+Cu.import("resource://gre/modules/XPCOMUtils.jsm"); /* global XPCOMUtils */
 
 const ACTION_URL_PARAM = "action";
 
@@ -47,14 +47,14 @@ function show(id) {
   let allTop = document.querySelectorAll(".toplevel");
   for (let elt of allTop) {
     if (elt.getAttribute("id") == id) {
-      elt.style.display = 'block';
+      elt.style.display = "block";
     } else {
-      elt.style.display = 'none';
+      elt.style.display = "none";
     }
   }
-  if (id == 'spinner') {
-    document.getElementById('remote').style.display = 'block';
-    document.getElementById('remote').style.opacity = 0;
+  if (id == "spinner") {
+    document.getElementById("remote").style.display = "block";
+    document.getElementById("remote").style.opacity = 0;
   }
 }
 
@@ -65,39 +65,40 @@ var loadedDeferred = null;
 // We have a new load starting.  Replace the existing promise with a new one,
 // and queue up the transition to remote content.
 function deferTransitionToRemoteAfterLoaded() {
-  log.d('Waiting for LOADED message.');
+  log.d("Waiting for LOADED message.");
 
   loadedDeferred = PromiseUtils.defer();
   loadedDeferred.promise.then(() => {
-    log.d('Got LOADED message!');
+    log.d("Got LOADED message!");
     document.getElementById("remote").style.opacity = 0;
     show("remote");
     document.getElementById("remote").style.opacity = 1;
   })
   .catch((e) => {
-    log.w('Did not get LOADED message: ' + e.toString());
+    log.w("Did not get LOADED message: " + e.toString());
   });
 }
 
 function handleLoadedMessage(message) {
   loadedDeferred.resolve();
-};
+}
 
 var wrapper = {
   iframe: null,
 
   url: null,
 
-  init: function (url) {
+  init: function(url) {
     this.url = url;
     deferTransitionToRemoteAfterLoaded();
 
     let iframe = document.getElementById("remote");
     this.iframe = iframe;
-    this.iframe.QueryInterface(Ci.nsIFrameLoaderOwner);
     let docShell = this.iframe.frameLoader.docShell;
     docShell.QueryInterface(Ci.nsIWebProgress);
-    docShell.addProgressListener(this.iframeListener, Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
+    docShell.addProgressListener(this.iframeListener,
+                                 Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT |
+                                 Ci.nsIWebProgress.NOTIFY_LOCATION);
 
     // Set the iframe's location with loadURI/LOAD_FLAGS_BYPASS_HISTORY to
     // avoid having a new history entry being added.
@@ -105,7 +106,7 @@ var wrapper = {
     webNav.loadURI(url, Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_HISTORY, null, null, null);
   },
 
-  retry: function () {
+  retry: function() {
     deferTransitionToRemoteAfterLoaded();
 
     let webNav = this.iframe.frameLoader.docShell.QueryInterface(Ci.nsIWebNavigation);
@@ -155,10 +156,6 @@ var wrapper = {
         show("networkError");
       }
     },
-
-    onProgressChange: function() {},
-    onStatusChange: function() {},
-    onSecurityChange: function() {},
   },
 };
 
@@ -184,8 +181,8 @@ function getURLForAction(action, urlParams) {
   // The only service managed by Fennec, to date, is Firefox Sync.
   const SERVICE = "sync";
   urlParams = urlParams || new URLSearchParams("");
-  urlParams.set('service', SERVICE);
-  urlParams.set('context', CONTEXT);
+  urlParams.set("service", SERVICE);
+  urlParams.set("context", CONTEXT);
   // Ideally we'd just merge urlParams with new URL(url).searchParams, but our
   // URLSearchParams implementation doesn't support iteration (bug 1085284).
   let urlParamStr = urlParams.toString();
@@ -298,15 +295,14 @@ function init() {
   });
 }
 
-document.addEventListener("DOMContentLoaded", function onload() {
-  document.removeEventListener("DOMContentLoaded", onload, true);
+document.addEventListener("DOMContentLoaded", function() {
   init();
-  var buttonRetry = document.getElementById('buttonRetry');
-  buttonRetry.addEventListener('click', retry);
+  var buttonRetry = document.getElementById("buttonRetry");
+  buttonRetry.addEventListener("click", retry);
 
-  var buttonOpenPrefs = document.getElementById('buttonOpenPrefs');
-  buttonOpenPrefs.addEventListener('click', openPrefs);
-}, true);
+  var buttonOpenPrefs = document.getElementById("buttonOpenPrefs");
+  buttonOpenPrefs.addEventListener("click", openPrefs);
+}, {capture: true, once: true});
 
 // This window is contained in a XUL <browser> element.  Return the
 // messageManager of that <browser> element, or null.
@@ -334,7 +330,7 @@ var mm = getBrowserMessageManager();
 if (mm) {
   mm.addMessageListener(COMMAND_LOADED, handleLoadedMessage);
 } else {
-  log.e('No messageManager, not listening for LOADED message!');
+  log.e("No messageManager, not listening for LOADED message!");
 }
 
 window.addEventListener("unload", function(event) {
@@ -346,6 +342,6 @@ window.addEventListener("unload", function(event) {
   } catch (e) {
     // This could fail if the page is being torn down, the tab is being
     // destroyed, etc.
-    log.w('Not removing listener for LOADED message: ' + e.toString());
+    log.w("Not removing listener for LOADED message: " + e.toString());
   }
 });

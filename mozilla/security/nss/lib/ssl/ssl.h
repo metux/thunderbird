@@ -228,13 +228,20 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
  * on the server to read that data. Calls to
  * SSL_GetPreliminaryChannelInfo() and SSL_GetNextProto()
  * can be made used during this period to learn about the channel
- * parameters [TODO(ekr@rtfm.com): This hasn't landed yet].
+ * parameters.
  *
  * The transition between the 0-RTT and 1-RTT modes is marked by the
- * handshake callback.
+ * handshake callback.  However, it is possible to force the completion
+ * of the handshake (and cause the handshake callback to be called)
+ * prior to reading all 0-RTT data using SSL_ForceHandshake().  To
+ * ensure that all early data is read before the handshake callback, any
+ * time that SSL_ForceHandshake() returns a PR_WOULD_BLOCK_ERROR, use
+ * PR_Read() to read all available data.  If PR_Read() is called
+ * multiple times, this will result in the handshake completing, but the
+ * handshake callback will occur after early data has all been read.
  *
  * WARNING: 0-RTT data has different anti-replay and PFS properties than
- * the rest of the TLS data. See [draft-ietf-tls-tls13; Section 6.2.3]
+ * the rest of the TLS data. See [draft-ietf-tls-tls13; Section 8]
  * for more details.
  */
 #define SSL_ENABLE_0RTT_DATA 33
@@ -394,7 +401,7 @@ SSL_IMPORT SECStatus SSL_SignaturePrefGet(
 ** can be set or retrieved using SSL_SignatureSchemePrefSet or
 ** SSL_SignatureSchemePrefGet.
 */
-SSL_IMPORT unsigned int SSL_SignatureMaxCount();
+SSL_IMPORT unsigned int SSL_SignatureMaxCount(void);
 
 /*
 ** Define custom priorities for EC and FF groups used in DH key exchange and EC
@@ -820,6 +827,25 @@ SSL_IMPORT PRFileDesc *SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd);
 SSL_IMPORT SECStatus SSL_SetPKCS11PinArg(PRFileDesc *fd, void *a);
 
 /*
+** These are callbacks for dealing with SSL alerts.
+ */
+
+typedef PRUint8 SSLAlertLevel;
+typedef PRUint8 SSLAlertDescription;
+
+typedef struct {
+    SSLAlertLevel level;
+    SSLAlertDescription description;
+} SSLAlert;
+
+typedef void(PR_CALLBACK *SSLAlertCallback)(const PRFileDesc *fd, void *arg,
+                                            const SSLAlert *alert);
+
+SSL_IMPORT SECStatus SSL_AlertReceivedCallback(PRFileDesc *fd, SSLAlertCallback cb,
+                                               void *arg);
+SSL_IMPORT SECStatus SSL_AlertSentCallback(PRFileDesc *fd, SSLAlertCallback cb,
+                                           void *arg);
+/*
 ** This is a callback for dealing with server certs that are not authenticated
 ** by the client.  The client app can decide that it actually likes the
 ** cert by some external means and restart the connection.
@@ -913,6 +939,22 @@ SSL_IMPORT SECStatus
 SSL_ConfigSecureServerWithCertChain(PRFileDesc *fd, CERTCertificate *cert,
                                     const CERTCertificateList *certChainOpt,
                                     SECKEYPrivateKey *key, SSLKEAType kea);
+
+/*
+** SSL_SetSessionTicketKeyPair configures an asymmetric key pair for use in
+** wrapping session ticket keys, used by the server.  This function currently
+** only accepts an RSA public/private key pair.
+**
+** Prior to the existence of this function, NSS used an RSA private key
+** associated with a configured certificate to perform session ticket
+** encryption.  If this function isn't used, the keys provided with a configured
+** RSA certificate are used for wrapping session ticket keys.
+**
+** NOTE: This key is used for all self-encryption but is named for
+** session tickets for historical reasons.
+*/
+SSL_IMPORT SECStatus
+SSL_SetSessionTicketKeyPair(SECKEYPublicKey *pubKey, SECKEYPrivateKey *privKey);
 
 /*
 ** Configure a secure server's session-id cache. Define the maximum number
@@ -1339,6 +1381,13 @@ extern const char *NSSSSL_GetVersion(void);
  */
 SSL_IMPORT SECStatus SSL_AuthCertificateComplete(PRFileDesc *fd,
                                                  PRErrorCode error);
+
+/*
+ * This is used to access experimental APIs.  Don't call this directly.  This is
+ * used to enable the experimental APIs that are defined in "sslexp.h".
+ */
+SSL_IMPORT void *SSL_GetExperimentalAPI(const char *name);
+
 SEC_END_PROTOS
 
 #endif /* __ssl_h_ */

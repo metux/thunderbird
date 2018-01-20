@@ -25,12 +25,17 @@
 <!ENTITY devmgr.button.fips.accesskey           "F">
 
 <!ENTITY loaddevice.info                        "Introdu informații despre modulul pe care dorești să îl adaugi.">
-<!ENTITY loaddevice.modname                     "Nume modul:">
-<!ENTITY loaddevice.modname.accesskey           "N">
+
+
 <!ENTITY loaddevice.modname.default             "Modul PKCS#11 nou">
-<!ENTITY loaddevice.filename                    "Nume fișier modul:">
-<!ENTITY loaddevice.filename.accesskey          "N">
+
+
 <!ENTITY loaddevice.browse                      "Răsfoiește…">
 <!ENTITY loaddevice.browse.accesskey            "R">
 
-<!ENTITY loaddevice.title                       "Încarcă dispozitiv PKCS#11">
+
+<!ENTITY loaddevice.modname2                    "Module Name">
+<!ENTITY loaddevice.modname2.accesskey          "M">
+<!ENTITY loaddevice.filename2                   "Module filename">
+<!ENTITY loaddevice.filename2.accesskey         "f">
+<!ENTITY loaddevice.title2                      "Load PKCS#11 Device Driver">

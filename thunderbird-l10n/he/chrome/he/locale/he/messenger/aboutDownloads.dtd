@@ -13,13 +13,13 @@
 <!ENTITY cmd.open.label                            "פתיחה">
 <!ENTITY cmd.searchDownloads.label                 "חיפוש…">
 
-<!ENTITY cmd.clearList.accesskey                   "C">
-<!ENTITY cmd.clearList.label                       "Clear List">
-<!ENTITY cmd.clearList.tooltip                     "Remove all entries from the list of saved files, except ongoing downloads.">
-<!ENTITY cmd.open.accesskey                        "O">
-<!ENTITY cmd.removeFromHistory.accesskey           "e">
-<!ENTITY cmd.removeFromHistory.label               "Remove From History">
-<!ENTITY cmd.searchDownloads.key                   "F">
 <!ENTITY cmd.show.accesskey                        "F">
-<!ENTITY cmd.showMac.accesskey                     "F">
 <!ENTITY cmd.showMac.label                         "Show In Finder">
+<!ENTITY cmd.showMac.accesskey                     "F">
+<!ENTITY cmd.open.accesskey                        "O">
+<!ENTITY cmd.removeFromHistory.label               "Remove From History">
+<!ENTITY cmd.removeFromHistory.accesskey           "e">
+<!ENTITY cmd.clearList.label                       "Clear List">
+<!ENTITY cmd.clearList.accesskey                   "C">
+<!ENTITY cmd.clearList.tooltip                     "Remove all entries from the list of saved files, except ongoing downloads.">
+<!ENTITY cmd.searchDownloads.key                   "F">

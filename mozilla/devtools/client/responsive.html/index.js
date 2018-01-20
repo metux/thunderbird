@@ -15,7 +15,7 @@ const { require } = BrowserLoader({
 });
 const { Task } = require("devtools/shared/task");
 const Telemetry = require("devtools/client/shared/telemetry");
-const { loadSheet } = require("sdk/stylesheet/utils");
+const { loadAgentSheet } = require("./utils/css");
 
 const { createFactory, createElement } =
   require("devtools/client/shared/vendor/react");
@@ -42,9 +42,10 @@ let bootstrap = {
   init: Task.async(function* () {
     // Load a special UA stylesheet to reset certain styles such as dropdown
     // lists.
-    loadSheet(window,
-              "resource://devtools/client/responsive.html/responsive-ua.css",
-              "agent");
+    loadAgentSheet(
+      window,
+      "resource://devtools/client/responsive.html/responsive-ua.css"
+    );
     this.telemetry.toolOpened("responsive");
     let store = this.store = Store();
     let provider = createElement(Provider, { store }, App());
@@ -82,10 +83,9 @@ message.wait(window, "init").then(() => bootstrap.init());
 // startup work that shouldn't block initial load
 message.wait(window, "post-init").then(() => bootstrap.dispatch(loadDevices()));
 
-window.addEventListener("unload", function onUnload() {
-  window.removeEventListener("unload", onUnload);
+window.addEventListener("unload", function () {
   bootstrap.destroy();
-});
+}, {once: true});
 
 // Allows quick testing of actions from the console
 window.dispatch = action => bootstrap.dispatch(action);
@@ -99,6 +99,9 @@ Object.defineProperty(window, "store", {
 // Dispatch a `changeDisplayPixelRatio` action when the browser's pixel ratio is changing.
 // This is usually triggered when the user changes the monitor resolution, or when the
 // browser's window is dragged to a different display with a different pixel ratio.
+// TODO: It would be better to move this watching into the actor, so that it can be
+// better synchronized with any overrides that might be applied.  Also, reading a single
+// value like this makes less sense with multiple viewports.
 function onDPRChange() {
   let dpr = window.devicePixelRatio;
   let mql = window.matchMedia(`(resolution: ${dpr}dppx)`);

@@ -14,29 +14,20 @@ var MODULE_REQUIRES = ['folder-display-helpers',
                        'cloudfile-helpers',
                        'attachment-helpers']
 
-var elib = {};
-Cu.import('resource://mozmill/modules/elementslib.js', elib);
-
 var kAttachmentItemContextID = "msgComposeAttachmentItemContext";
 
-var ah, cfh;
-
 function setupModule(module) {
-  collector.getModule('folder-display-helpers').installInto(module);
-  collector.getModule('compose-helpers').installInto(module);
+  for (let lib of MODULE_REQUIRES) {
+    collector.getModule(lib).installInto(module);
+  }
 
-  ah = collector.getModule('attachment-helpers');
-  ah.installInto(module);
-  ah.gMockFilePickReg.register();
-
-  cfh = collector.getModule('cloudfile-helpers');
-  cfh.installInto(module);
-  cfh.gMockCloudfileManager.register();
+  gMockFilePickReg.register();
+  gMockCloudfileManager.register();
 }
 
 function teardownModule(module) {
-  cfh.gMockCloudfileManager.unregister();
-  ah.gMockFilePickReg.unregister();
+  gMockCloudfileManager.unregister();
+  gMockFilePickReg.unregister();
 }
 
 /**
@@ -48,7 +39,7 @@ function test_upload_cancel_repeat() {
   const kFile = "./data/testFile1";
 
   // Prepare the mock file picker to return our test file.
-  let file = cfh.getFile(kFile, __file__);
+  let file = getFile(kFile, __file__);
   gMockFilePicker.returnFiles = [file];
 
   let provider = new MockCloudfileAccount();
@@ -95,7 +86,7 @@ function test_upload_multiple_and_cancel() {
                   "./data/testFile3"];
 
   // Prepare the mock file picker to return our test file.
-  let files = cfh.collectFiles(kFiles, __file__);
+  let files = collectFiles(kFiles, __file__);
   gMockFilePicker.returnFiles = files;
 
   let provider = new MockCloudfileAccount();
@@ -124,7 +115,7 @@ function test_upload_multiple_and_cancel() {
  *                  started.
  * @param aListener the nsIRequestObserver passed to aProvider's uploadFile
  *                  function.
- * @param aTargetFile the nsILocalFile to cancel the upload for.
+ * @param aTargetFile the nsIFile to cancel the upload for.
  */
 function assert_can_cancel_upload(aController, aProvider, aListener,
                                   aTargetFile) {
@@ -165,10 +156,10 @@ function assert_can_cancel_upload(aController, aProvider, aListener,
 
 /**
  * A helper function to find the attachment bucket index for a particular
- * nsILocalFile. Returns null if no attachmentitem is found.
+ * nsIFile. Returns null if no attachmentitem is found.
  *
  * @param aController the compose window controller to use.
- * @param aFile the nsILocalFile to search for.
+ * @param aFile the nsIFile to search for.
  */
 function get_attachmentitem_index_for_file(aController, aFile) {
   // Get the fileUrl from the file.

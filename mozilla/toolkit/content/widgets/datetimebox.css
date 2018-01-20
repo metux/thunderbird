@@ -8,26 +8,40 @@
 .datetime-input-box-wrapper {
   -moz-appearance: none;
   display: inline-flex;
+  flex: 1;
   cursor: default;
   background-color: inherit;
   color: inherit;
+  min-width: 0;
+  justify-content: space-between;
 }
 
-.datetime-input {
-  -moz-appearance: none;
+.datetime-input-edit-wrapper {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.datetime-edit-field {
+  display: inline;
+  cursor: default;
+  -moz-user-select: none;
   text-align: center;
-  padding: 0;
+  padding: 1px 3px;
   border: 0;
   margin: 0;
   ime-mode: disabled;
+  font: inherit;
+  outline: none;
 }
 
-.datetime-separator {
-  margin: 0 !important;
+.datetime-edit-field:not([disabled="true"]):focus {
+  background-color: Highlight;
+  color: HighlightText;
+  outline: none;
 }
 
-.datetime-input[readonly],
-.datetime-input[disabled] {
+.datetime-edit-field[disabled="true"],
+.datetime-edit-field[readonly="true"]  {
   color: GrayText;
   -moz-user-select: none;
 }
@@ -41,5 +55,5 @@
   height: 12px;
   width: 12px;
   align-self: center;
-  justify-content: flex-end;
+  flex: none;
 }

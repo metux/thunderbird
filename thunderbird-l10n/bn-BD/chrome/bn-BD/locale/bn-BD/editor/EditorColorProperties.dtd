@@ -59,3 +59,5 @@
 <!ENTITY backgroundImage.label "পটভূমির ছবি (m):">
 <!ENTITY backgroundImage.accessKey "m">
 <!ENTITY backgroundImage.tooltip "আপনার পৃষ্ঠার জন্য একটি ছবির ফাইলকে পটভূমি হিসেবে ব্যবহার করা হবে">
+
+<!ENTITY backgroundImage.shortenedDataURI "Shortened data URI (copy will place the full URI onto the clipboard)">

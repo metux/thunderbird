@@ -7,7 +7,6 @@
 function run_test() {
   do_print("Setting up test");
 
-  updateAppInfo();
   useHttpServer();
 
   do_print("Test starting");
@@ -39,9 +38,9 @@ function addEngineWithParams(engine) {
 }
 
 // Main test.
-add_task(function* test_hasEngineWithURL() {
+add_task(async function test_hasEngineWithURL() {
   // Avoid deprecated synchronous initialization.
-  yield asyncInit();
+  await asyncInit();
 
   // Setup various Engine definitions for method tests.
   let UNSORTED_ENGINE = {
@@ -84,7 +83,7 @@ add_task(function* test_hasEngineWithURL() {
   SORTED_ENGINE_METHOD_CHANGE.method = "PoST";
 
   let SORTED_ENGINE_FORMURL_CHANGE = getEngineClone(SORTED_ENGINE);
-  SORTED_ENGINE_FORMURL_CHANGE.formURL = "http://www.ahighrpowr.com/"
+  SORTED_ENGINE_FORMURL_CHANGE.formURL = "http://www.ahighrpowr.com/";
 
   let SORTED_ENGINE_QUERYPARM_CHANGE = getEngineClone(SORTED_ENGINE);
   SORTED_ENGINE_QUERYPARM_CHANGE.queryParams = [];

@@ -8,7 +8,7 @@
 // central list of constants makes it easy to see all possible action names at
 // a glance.  Please add a comment with each new action type.
 
-const { createEnum } = require("../utils/enum");
+const { createEnum } = require("devtools/client/shared/enum");
 
 createEnum([
 
@@ -53,8 +53,11 @@ createEnum([
   // Indicates that the device list has been loaded successfully
   "LOAD_DEVICE_LIST_END",
 
-  // Remove the viewport's device assocation.
+  // Remove a device.
   "REMOVE_DEVICE",
+
+  // Remove the viewport's device assocation.
+  "REMOVE_DEVICE_ASSOCIATION",
 
   // Resize the viewport.
   "RESIZE_VIEWPORT",
@@ -71,7 +74,7 @@ createEnum([
   // Update the device display state in the device selector.
   "UPDATE_DEVICE_DISPLAYED",
 
-  // Update the device modal open state.
-  "UPDATE_DEVICE_MODAL_OPEN",
+  // Update the device modal state.
+  "UPDATE_DEVICE_MODAL",
 
 ], module.exports);

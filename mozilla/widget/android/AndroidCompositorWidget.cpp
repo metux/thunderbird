@@ -10,53 +10,28 @@
 namespace mozilla {
 namespace widget {
 
-void
-AndroidCompositorWidget::SetFirstPaintViewport(const LayerIntPoint& aOffset,
-                                               const CSSToLayerScale& aZoom,
-                                               const CSSRect& aCssPageRect)
+EGLNativeWindowType
+AndroidCompositorWidget::GetEGLNativeWindow()
 {
-    auto layerClient = static_cast<nsWindow*>(RealWidget())->GetLayerClient();
-    if (!layerClient) {
-        return;
-    }
+  return (EGLNativeWindowType)mWidget->GetNativeData(NS_JAVA_SURFACE);
+}
 
-    layerClient->SetFirstPaintViewport(
-            float(aOffset.x), float(aOffset.y), aZoom.scale, aCssPageRect.x,
-            aCssPageRect.y, aCssPageRect.XMost(), aCssPageRect.YMost());
+EGLNativeWindowType
+AndroidCompositorWidget::GetPresentationEGLSurface()
+{
+  return (EGLNativeWindowType)mWidget->GetNativeData(NS_PRESENTATION_SURFACE);
 }
 
 void
-AndroidCompositorWidget::SyncFrameMetrics(const ParentLayerPoint& aScrollOffset,
-                                          const CSSToParentLayerScale& aZoom,
-                                          const CSSRect& aCssPageRect,
-                                          const CSSRect& aDisplayPort,
-                                          const CSSToLayerScale& aPaintedResolution,
-                                          bool aLayersUpdated,
-                                          int32_t aPaintSyncId,
-                                          ScreenMargin& aFixedLayerMargins)
+AndroidCompositorWidget::SetPresentationEGLSurface(EGLSurface aVal)
 {
-    auto layerClient = static_cast<nsWindow*>(RealWidget())->GetLayerClient();
-    if (!layerClient) {
-        return;
-    }
+  mWidget->SetNativeData(NS_PRESENTATION_SURFACE, (uintptr_t)aVal);
+}
 
-    // convert the displayport rect from document-relative CSS pixels to
-    // document-relative device pixels
-    LayerIntRect dp = gfx::RoundedToInt(aDisplayPort * aPaintedResolution);
-
-    java::ViewTransform::LocalRef viewTransform = layerClient->SyncFrameMetrics(
-            aScrollOffset.x, aScrollOffset.y, aZoom.scale,
-            aCssPageRect.x, aCssPageRect.y,
-            aCssPageRect.XMost(), aCssPageRect.YMost(),
-            dp.x, dp.y, dp.width, dp.height,
-            aPaintedResolution.scale, aLayersUpdated, aPaintSyncId);
-
-    MOZ_ASSERT(viewTransform, "No view transform object!");
-
-    aFixedLayerMargins.top = viewTransform->FixedLayerMarginTop();
-    aFixedLayerMargins.right = viewTransform->FixedLayerMarginRight();
-    aFixedLayerMargins.bottom = viewTransform->FixedLayerMarginBottom();
-    aFixedLayerMargins.left = viewTransform->FixedLayerMarginLeft();
+ANativeWindow*
+AndroidCompositorWidget::GetPresentationANativeWindow()
+{
+  return (ANativeWindow*)mWidget->GetNativeData(NS_PRESENTATION_WINDOW);
 }
 
 } // namespace widget

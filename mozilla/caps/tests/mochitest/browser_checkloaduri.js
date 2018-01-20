@@ -238,8 +238,8 @@ function testURL(source, target, canLoad, canLoadWithoutInherit, canCreate, flag
      (inheritDisallowed ? " without" : " with") + " principal inheritance.");
 }
 
-add_task(function* () {
-  yield kAboutPagesRegistered;
+add_task(async function() {
+  await kAboutPagesRegistered;
   let baseFlags = ssm.STANDARD | ssm.DONT_REPORT_ERRORS;
   for (let [sourceString, targetsAndExpectations] of URLs) {
     let source;
@@ -256,14 +256,18 @@ add_task(function* () {
   }
 
   // Now test blob URIs, which we need to do in-content.
-  yield BrowserTestUtils.withNewTab("http://www.example.com/", function* (browser) {
-    yield ContentTask.spawn(
+  await BrowserTestUtils.withNewTab("http://www.example.com/", async function(browser) {
+    await ContentTask.spawn(
       browser,
       testURL.toString(),
-      function* (testURLFn) {
+      async function(testURLFn) {
+        // eslint-disable-next-line no-shadow , no-eval
         let testURL = eval("(" + testURLFn + ")");
+        // eslint-disable-next-line no-shadow
         let ssm = Services.scriptSecurityManager;
+        // eslint-disable-next-line no-shadow
         let baseFlags = ssm.STANDARD | ssm.DONT_REPORT_ERRORS;
+        // eslint-disable-next-line no-unused-vars
         let makeURI = Cu.import("resource://gre/modules/BrowserUtils.jsm", {}).BrowserUtils.makeURI;
         let b = new content.Blob(["I am a blob"]);
         let contentBlobURI = content.URL.createObjectURL(b);

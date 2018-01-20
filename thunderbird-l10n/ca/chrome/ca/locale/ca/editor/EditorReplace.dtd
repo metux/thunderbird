@@ -10,7 +10,7 @@
 <!ENTITY replaceField.label "Reemplaça amb:">
 <!ENTITY replaceField.accesskey "m">
 <!ENTITY caseSensitiveCheckbox.label "Distingeix entre majúscules i minúscules">
-<!ENTITY caseSensitiveCheckbox.accesskey "c">
+<!ENTITY caseSensitiveCheckbox.accesskey "m">
 <!ENTITY wrapCheckbox.label "Cerca a tot el text">
 <!ENTITY wrapCheckbox.accesskey "C">
 <!ENTITY backwardsCheckbox.label "Cerca cap enrere">
@@ -24,3 +24,4 @@
 <!ENTITY replaceAllButton.label "Reemplaça-ho tot">
 <!ENTITY replaceAllButton.accesskey "t">
 <!ENTITY closeButton.label "Tanca">
+<!ENTITY closeButton.accesskey "T">

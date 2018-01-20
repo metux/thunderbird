@@ -22,3 +22,5 @@
 <!ENTITY replaceAllButton.label "Замяніць усе">
 <!ENTITY replaceAllButton.accesskey "У">
 <!ENTITY closeButton.label "Зачыніць">
+
+<!ENTITY closeButton.accesskey "C">

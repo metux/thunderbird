@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set shiftwidth=2 tabstop=8 autoindent cindent expandtab: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,10 +12,10 @@
 #ifndef nsRefreshDriver_h_
 #define nsRefreshDriver_h_
 
+#include "mozilla/FlushType.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Vector.h"
 #include "mozilla/WeakPtr.h"
-#include "mozFlushType.h"
 #include "nsTObserverArray.h"
 #include "nsTArray.h"
 #include "nsTHashtable.h"
@@ -33,9 +33,11 @@ class nsIDocument;
 class imgIRequest;
 class nsIDOMEvent;
 class nsINode;
+class nsIRunnable;
 
 namespace mozilla {
 class RefreshDriverTimer;
+class Runnable;
 namespace layout {
 class VsyncChild;
 } // namespace layout
@@ -54,8 +56,7 @@ public:
   //
   // The refresh driver does NOT hold references to refresh observers
   // except while it is notifying them.
-  NS_IMETHOD_(MozExternalRefCountType) AddRef(void) = 0;
-  NS_IMETHOD_(MozExternalRefCountType) Release(void) = 0;
+  NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
 
   virtual void WillRefresh(mozilla::TimeStamp aTime) = 0;
 };
@@ -113,7 +114,7 @@ public:
    *     doesn't require current position data or isn't currently
    *     painting, and, correspondingly, which get notified when there
    *     is a flush during such suppression
-   * and it must be either Flush_Style, Flush_Layout, or Flush_Display.
+   * and it must be FlushType::Style, FlushType::Layout, or FlushType::Display.
    *
    * The refresh driver does NOT own a reference to these observers;
    * they must remove themselves before they are destroyed.
@@ -121,9 +122,12 @@ public:
    * The observer will be called even if there is no other activity.
    */
   bool AddRefreshObserver(nsARefreshObserver *aObserver,
-                          mozFlushType aFlushType);
+                          mozilla::FlushType aFlushType);
   bool RemoveRefreshObserver(nsARefreshObserver *aObserver,
-                             mozFlushType aFlushType);
+                             mozilla::FlushType aFlushType);
+
+  void PostScrollEvent(mozilla::Runnable* aScrollEvent);
+  void DispatchScrollEvents();
 
   /**
    * Add an observer that will be called after each refresh. The caller
@@ -160,9 +164,11 @@ public:
     // a stack is expensive. This is still useful if (1) you're trying to remove
     // all flushes for a particial frame or (2) the costly flush is triggered
     // near the call site where the first observer is triggered.
+#ifdef MOZ_GECKO_PROFILER
     if (!mStyleCause) {
       mStyleCause = profiler_get_backtrace();
     }
+#endif
     bool appended = mStyleFlushObservers.AppendElement(aShell) != nullptr;
     EnsureTimerStarted();
 
@@ -174,6 +180,7 @@ public:
   bool AddLayoutFlushObserver(nsIPresShell* aShell) {
     NS_ASSERTION(!IsLayoutFlushObserver(aShell),
                  "Double-adding layout flush observer");
+#ifdef MOZ_GECKO_PROFILER
     // We only get the cause for the first observer each frame because capturing
     // a stack is expensive. This is still useful if (1) you're trying to remove
     // all flushes for a particial frame or (2) the costly flush is triggered
@@ -181,6 +188,7 @@ public:
     if (!mReflowCause) {
       mReflowCause = profiler_get_backtrace();
     }
+#endif
     bool appended = mLayoutFlushObservers.AppendElement(aShell) != nullptr;
     EnsureTimerStarted();
     return appended;
@@ -191,15 +199,16 @@ public:
   bool IsLayoutFlushObserver(nsIPresShell* aShell) {
     return mLayoutFlushObservers.Contains(aShell);
   }
-  bool AddPresShellToInvalidateIfHidden(nsIPresShell* aShell) {
-    NS_ASSERTION(!mPresShellsToInvalidateIfHidden.Contains(aShell),
-                 "Double-adding style flush observer");
-    bool appended = mPresShellsToInvalidateIfHidden.AppendElement(aShell) != nullptr;
+
+  /**
+   * "Early Runner" runnables will be called as the first step when refresh
+   * driver tick is triggered. Runners shouldn't keep other objects alive,
+   * since it isn't guaranteed they will ever get called.
+   */
+  void AddEarlyRunner(nsIRunnable* aRunnable)
+  {
+    mEarlyRunners.AppendElement(aRunnable);
     EnsureTimerStarted();
-    return appended;
-  }
-  void RemovePresShellToInvalidateIfHidden(nsIPresShell* aShell) {
-    mPresShellsToInvalidateIfHidden.RemoveElement(aShell);
   }
 
   /**
@@ -211,6 +220,9 @@ public:
   }
   bool ViewManagerFlushIsPending() {
     return mViewManagerFlushIsPending;
+  }
+  bool HasScheduleFlush() {
+    return mHasScheduleFlush;
   }
 
   /**
@@ -288,7 +300,7 @@ public:
    * Check whether the given observer is an observer for the given flush type
    */
   bool IsRefreshObserver(nsARefreshObserver *aObserver,
-                         mozFlushType aFlushType);
+                         mozilla::FlushType aFlushType);
 #endif
 
   /**
@@ -316,10 +328,12 @@ public:
   static bool GetJankLevels(mozilla::Vector<uint64_t>& aJank);
 
   // mozilla::layers::TransactionIdAllocator
-  uint64_t GetTransactionId() override;
+  uint64_t GetTransactionId(bool aThrottle) override;
   uint64_t LastTransactionId() const override;
   void NotifyTransactionCompleted(uint64_t aTransactionId) override;
   void RevokeTransactionId(uint64_t aTransactionId) override;
+  void ClearPendingTransactions() override;
+  void ResetInitialTransactionId(uint64_t aTransactionId) override;
   mozilla::TimeStamp GetTransactionStart() override;
 
   bool IsWaitingForPaint(mozilla::TimeStamp aTime);
@@ -333,37 +347,24 @@ public:
    * Compute the time when the currently active refresh driver timer
    * will start its next tick.
    *
-   * Returns 'Nothing' if the refresh driver timer hasn't been
-   * initialized or if we can't tell when the next tick will happen.
+   * Expects a non-null default value that is the upper bound of the
+   * expected deadline. If the next expected deadline is later than
+   * the default value, the default value is returned.
    *
-   * Returns Some(TimeStamp()), i.e. the null time, if the next tick is late.
-   *
-   * Otherwise returns Some(TimeStamp(t)), where t is the time of the next tick.
-   *
-   * Using these three types of return values it is possible to
-   * estimate three different things about the idleness of the
-   * currently active group of refresh drivers. This information is
-   * used by nsThread to schedule lower priority "idle tasks".
-   *
-   * The 'Nothing' return value indicates to nsThread that the
-   * currently active refresh drivers will be idle for a time
-   * significantly longer than the current refresh rate and that it is
-   * free to schedule longer periods for executing idle tasks. This is the
-   * expected result when we aren't animating.
-
-   * Returning the null time indicates to nsThread that we are very
-   * busy and that it should definitely not schedule idle tasks at
-   * all. This is the expected result when we are animating, but
-   * aren't able to keep up with the animation and hence need to skip
-   * paints. Since catching up to missed paints will happen as soon as
-   * possible, this is the expected result if any of the refresh
-   * drivers attached to the current refresh driver misses a paint.
-   *
-   * Returning Some(TimeStamp(t)) indicates to nsThread that we will
-   * be idle until. This is usually the case when we're animating
-   * without skipping paints.
+   * If we're animating and we have skipped paints a time in the past
+   * is returned.
    */
-  static mozilla::Maybe<mozilla::TimeStamp> GetIdleDeadlineHint();
+  static mozilla::TimeStamp GetIdleDeadlineHint(mozilla::TimeStamp aDefault);
+
+  /**
+   * It returns the expected timestamp of the next tick or nothing if the next
+   * tick is missed.
+   */
+  static mozilla::Maybe<mozilla::TimeStamp> GetNextTickHint();
+
+  static void DispatchIdleRunnableAfterTick(nsIRunnable* aRunnable,
+                                            uint32_t aDelay);
+  static void CancelIdleRunnable(nsIRunnable* aRunnable);
 
   bool SkippedPaints() const
   {
@@ -372,6 +373,7 @@ public:
 
 private:
   typedef nsTObserverArray<nsARefreshObserver*> ObserverArray;
+  typedef nsTArray<RefPtr<mozilla::Runnable>> ScrollEventArray;
   typedef nsTHashtable<nsISupportsHashKey> RequestTable;
   struct ImageStartData {
     ImageStartData()
@@ -399,7 +401,7 @@ private:
 
   uint32_t ObserverCount() const;
   uint32_t ImageRequestCount() const;
-  ObserverArray& ArrayFor(mozFlushType aFlushType);
+  ObserverArray& ArrayFor(mozilla::FlushType aFlushType);
   // Trigger a refresh immediately, if haven't been disconnected or frozen.
   void DoRefresh();
 
@@ -408,7 +410,6 @@ private:
   static double GetThrottledTimerInterval();
 
   static mozilla::TimeDuration GetMinRecomputeVisibilityInterval();
-  static mozilla::TimeDuration GetMinNotifyIntersectionObserversInterval();
 
   bool HaveFrameRequestCallbacks() const {
     return mFrameRequestCallbackDocs.Length() != 0;
@@ -419,8 +420,10 @@ private:
   mozilla::RefreshDriverTimer* ChooseTimer() const;
   mozilla::RefreshDriverTimer* mActiveTimer;
 
-  ProfilerBacktrace* mReflowCause;
-  ProfilerBacktrace* mStyleCause;
+#ifdef MOZ_GECKO_PROFILER
+  UniqueProfilerBacktrace mReflowCause;
+  UniqueProfilerBacktrace mStyleCause;
+#endif
 
   // nsPresContext passed in constructor and unset in Disconnect.
   mozilla::WeakPtr<nsPresContext> mPresContext;
@@ -444,13 +447,15 @@ private:
   // flush since the last time we did it.
   const mozilla::TimeDuration mMinRecomputeVisibilityInterval;
 
-  const mozilla::TimeDuration mMinNotifyIntersectionObserversInterval;
-
   bool mThrottled;
   bool mNeedToRecomputeVisibility;
   bool mTestControllingRefreshes;
   bool mViewManagerFlushIsPending;
-  bool mRequestedHighPrecision;
+
+  // True if the view manager needs a flush. Layers-free mode uses this value
+  // to know when to notify invalidation.
+  bool mHasScheduleFlush;
+
   bool mInRefresh;
 
   // True if the refresh driver is suspended waiting for transaction
@@ -476,12 +481,13 @@ private:
   mozilla::TimeStamp mTickStart;
   mozilla::TimeStamp mNextThrottledFrameRequestTick;
   mozilla::TimeStamp mNextRecomputeVisibilityTick;
-  mozilla::TimeStamp mNextNotifyIntersectionObserversTick;
 
   // separate arrays for each flush type we support
-  ObserverArray mObservers[3];
+  ObserverArray mObservers[4];
   RequestTable mRequests;
   ImageStartTable mStartTable;
+  AutoTArray<nsCOMPtr<nsIRunnable>, 16> mEarlyRunners;
+  ScrollEventArray mScrollEvents;
 
   struct PendingEvent {
     nsCOMPtr<nsINode> mTarget;
@@ -490,7 +496,6 @@ private:
 
   AutoTArray<nsIPresShell*, 16> mStyleFlushObservers;
   AutoTArray<nsIPresShell*, 16> mLayoutFlushObservers;
-  AutoTArray<nsIPresShell*, 16> mPresShellsToInvalidateIfHidden;
   // nsTArray on purpose, because we want to be able to swap.
   nsTArray<nsIDocument*> mFrameRequestCallbackDocs;
   nsTArray<nsIDocument*> mThrottledFrameRequestCallbackDocs;
@@ -501,10 +506,6 @@ private:
                              mozilla::TimeStamp aDesired);
 
   friend class mozilla::RefreshDriverTimer;
-
-  // turn on or turn off high precision based on various factors
-  void ConfigureHighPrecision();
-  void SetHighPrecisionTimersEnabled(bool aEnable);
 
   static void Shutdown();
 

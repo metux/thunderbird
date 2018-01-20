@@ -5,6 +5,7 @@
 import ConfigParser
 import os
 import re
+import sys
 
 import mozinfo
 
@@ -163,7 +164,6 @@ class SoftwareUpdate(BaseLib):
     PREF_APP_DISTRIBUTION_VERSION = 'distribution.version'
     PREF_APP_UPDATE_CHANNEL = 'app.update.channel'
     PREF_APP_UPDATE_URL = 'app.update.url'
-    PREF_APP_UPDATE_URL_OVERRIDE = 'app.update.url.override'
     PREF_DISABLED_ADDONS = 'extensions.disabledAddons'
 
     def __init__(self, marionette):
@@ -216,7 +216,7 @@ class SoftwareUpdate(BaseLib):
 
         :returns: A dictionary of build information
         """
-        update_url = self.get_update_url(True)
+        update_url = self.get_formatted_update_url(True)
 
         return {
             'buildid': self.app_info.appBuildID,
@@ -330,6 +330,22 @@ class SoftwareUpdate(BaseLib):
         writer.set_channel(channel)
 
     @property
+    def update_url(self):
+        """Return the update URL used for update checks."""
+        return self.marionette.get_pref(self.PREF_APP_UPDATE_URL,
+                                        default_branch=True)
+
+    @update_url.setter
+    def update_url(self, url):
+        """Set the update URL to be used for update checks.
+
+        :param url: New update URL to use
+
+        """
+        self.marionette.set_pref(self.PREF_APP_UPDATE_URL, url,
+                                 default_branch=True)
+
+    @property
     def update_type(self):
         """Returns the type of the active update."""
         return self.active_update.type
@@ -344,32 +360,34 @@ class SoftwareUpdate(BaseLib):
 
         :param update_url: URL to the update snippet
         """
-        snippet = None
+        import urllib2
         try:
-            import urllib2
             response = urllib2.urlopen(update_url)
-            snippet = response.read()
-        except Exception:
-            pass
+            return response.read()
+        except urllib2.URLError:
+            exc, val, tb = sys.exc_info()
+            raise Exception, "Failed to retrieve update snippet '{}': {}".format(
+                update_url, val), tb
 
-        return snippet
-
-    def get_update_url(self, force=False):
-        """Retrieve the AUS update URL the update snippet is retrieved from.
+    def get_formatted_update_url(self, force=False):
+        """Retrieve the formatted AUS update URL the update snippet is retrieved from.
 
         :param force: Boolean flag to force an update check
 
         :returns: The URL of the update snippet
         """
-        url = self.marionette.get_pref(self.PREF_APP_UPDATE_URL_OVERRIDE)
-        if not url:
-            url = self.marionette.get_pref(self.PREF_APP_UPDATE_URL)
-
-        # Format the URL by replacing placeholders
-        url = self.marionette.execute_script("""
-          Components.utils.import("resource://gre/modules/UpdateUtils.jsm")
-          return UpdateUtils.formatUpdateURL(arguments[0]);
-        """, script_args=[url])
+        url = self.marionette.execute_async_script("""
+          Components.utils.import("resource://gre/modules/UpdateUtils.jsm");
+          let res = UpdateUtils.formatUpdateURL(arguments[0]);
+          // Format the URL by replacing placeholders
+          // In 56 we switched the method to be async.
+          // For now, support both approaches.
+          if (res.then) {
+            res.then(marionetteScriptFinished);
+          } else {
+            marionetteScriptFinished(res);
+          }
+        """, script_args=[self.update_url])
 
         if force:
             if '?' in url:

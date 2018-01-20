@@ -23,8 +23,6 @@
  *       - TempAllocPolicy: Adds automatic error reporting to the provided
  *         JSContext when allocations fail.
  *
- *       - RuntimeAllocPolicy: Forwards to the JSRuntime MallocProvider.
- *
  *       - ZoneAllocPolicy: Forwards to the Zone MallocProvider.
  *
  *   - MallocProvider. A mixin base class that handles automatically updating
@@ -34,8 +32,7 @@
  *
  *       - gc::Zone:  Automatically triggers zone GC.
  *       - JSRuntime: Automatically triggers full GC.
- *       - ThreadsafeContext > ExclusiveContext > JSContext:
- *                    Dispatches directly to the runtime.
+ *       - JSContext: Dispatches directly to the runtime.
  */
 
 #ifndef vm_MallocProvider_h

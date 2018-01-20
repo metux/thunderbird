@@ -10,15 +10,13 @@ function test() {
   let newWin, tabA, tabB;
 
   // test normal close
-  tabA = gBrowser.addTab(testPage);
+  tabA = BrowserTestUtils.addTab(gBrowser, testPage);
   gBrowser.tabContainer.addEventListener("TabClose", function(firstTabCloseEvent) {
-    gBrowser.tabContainer.removeEventListener("TabClose", arguments.callee, true);
     ok(!firstTabCloseEvent.detail.adoptedBy, "This was a normal tab close");
 
     // test tab close by moving
-    tabB = gBrowser.addTab(testPage);
+    tabB = BrowserTestUtils.addTab(gBrowser, testPage);
     gBrowser.tabContainer.addEventListener("TabClose", function(secondTabCloseEvent) {
-      gBrowser.tabContainer.removeEventListener("TabClose", arguments.callee, true);
       executeSoon(function() {
         ok(secondTabCloseEvent.detail.adoptedBy, "This was a tab closed by moving");
 
@@ -26,9 +24,9 @@ function test() {
         newWin.close();
         executeSoon(finish);
       });
-    }, true);
+    }, {capture: true, once: true});
     newWin = gBrowser.replaceTabWithWindow(tabB);
-  }, true);
+  }, {capture: true, once: true});
   gBrowser.removeTab(tabA);
 }
 

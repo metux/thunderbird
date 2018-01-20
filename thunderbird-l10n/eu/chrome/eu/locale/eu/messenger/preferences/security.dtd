@@ -45,9 +45,9 @@
 
 
 
-<!ENTITY antiVirus.accesskey  "A">
+<!ENTITY itemAntiVirus.label     "Antivirus">
 
-<!-- Anti Virus -->
 <!ENTITY antiVirus.intro      "&brandShortName; can make it easy for antivirus software to analyze incoming mail messages for viruses before they are stored locally.">
 <!ENTITY antiVirus.label      "Allow antivirus clients to quarantine individual incoming messages">
-<!ENTITY itemAntiVirus.label     "Antivirus">
+<!ENTITY antiVirus.accesskey  "A">
+

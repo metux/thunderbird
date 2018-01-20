@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 Components.utils.import("resource:///modules/editorUtilities.jsm");
+Components.utils.import("resource://services-common/async.js");
 Components.utils.import("resource://gre/modules/AppConstants.jsm");
 
 /* Main Composer window UI control */
@@ -504,7 +505,7 @@ function DocumentHasBeenSaved()
   return true;
 }
 
-function CheckAndSaveDocument(command, allowDontSave)
+async function CheckAndSaveDocument(command, allowDontSave)
 {
   var document;
   try {
@@ -590,7 +591,7 @@ function CheckAndSaveDocument(command, allowDontSave)
     }
 
     // Save to local disk
-    return SaveDocument(false, false, editor.contentsMIMEType);
+    return await SaveDocument(false, false, editor.contentsMIMEType);
   }
 
   if (result == 2) // "Don't Save"
@@ -2324,8 +2325,7 @@ function EditorSetDefaultPrefsAndDoctype()
     let authorFound = domdoc.querySelector('meta[name="author"]');
     try
     {
-      prefAuthorString = Services.prefs.getComplexValue("editor.author",
-                                                        Components.interfaces.nsISupportsString).data;
+      prefAuthorString = Services.prefs.getStringPref("editor.author");
     }
     catch (ex) {}
     if (prefAuthorString && prefAuthorString != 0 && !authorFound && headelement)
@@ -3168,7 +3168,7 @@ function FillInHTMLTooltipEditor(tooltip)
     }
   } else {
     for (node = document.tooltipNode; node; node = node.parentNode) {
-      if (node instanceof Components.interfaces.nsIDOMHTMLImageElement ||
+      if (ChromeUtils.getClassName(node) === "HTMLImageElement" ||
           node instanceof Components.interfaces.nsIDOMHTMLInputElement)
         tooltipText = node.getAttribute("src");
       else if (node instanceof Components.interfaces.nsIDOMHTMLAnchorElement)

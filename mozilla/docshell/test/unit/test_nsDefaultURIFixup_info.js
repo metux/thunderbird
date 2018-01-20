@@ -182,12 +182,10 @@ var testcases = [ {
   }, {
     input: "[::1]:8000",
     fixedURI: "http://[::1]:8000/",
-    alternateURI: "http://[::1]:8000/",
     protocolChange: true,
   }, {
     input: "[::1]:8000/",
     fixedURI: "http://[::1]:8000/",
-    alternateURI: "http://[::1]:8000/",
     protocolChange: true,
   }, {
     input: "[[::1]]/",
@@ -200,11 +198,13 @@ var testcases = [ {
     protocolChange: true,
   }, {
     input: "[64:ff9b::8.8.8.8]",
-    fixedURI: "http://[64:ff9b::8.8.8.8]/",
+    fixedURI: "http://[64:ff9b::808:808]/",
+    alternateURI: "http://[64:ff9b::808:808]/",
     protocolChange: true
   }, {
     input: "[64:ff9b::8.8.8.8]/~moz",
-    fixedURI: "http://[64:ff9b::8.8.8.8]/~moz",
+    fixedURI: "http://[64:ff9b::808:808]/~moz",
+    alternateURI: "http://[64:ff9b::808:808]/~moz",
     protocolChange: true
   }, {
     input: "[::1][::1]",
@@ -213,7 +213,6 @@ var testcases = [ {
   }, {
     input: "[::1][100",
     fixedURI: null,
-    alternateURI: null,
     keywordLookup: true,
     protocolChange: true
   }, {
@@ -338,8 +337,8 @@ var testcases = [ {
     inWhitelist: true,
   }, {
     input: "café.local",
-    fixedURI: "http://café.local/",
-    alternateURI: "http://www.café.local/",
+    fixedURI: "http://xn--caf-dma.local/",
+    alternateURI: "http://www.xn--caf-dma.local/",
     protocolChange: true
   }, {
     input: "47.6182,-122.830",
@@ -426,8 +425,6 @@ var testcases = [ {
     protocolChange: true,
   }, {
     input: "?'.com",
-    fixedURI: "http:///?%27.com",
-    alternateURI: "http://www..com/?%27.com",
     keywordLookup: true,
     protocolChange: true,
   }, {
@@ -436,14 +433,10 @@ var testcases = [ {
     protocolChange: true
   }, {
     input: "?mozilla",
-    fixedURI: "http:///?mozilla",
-    alternateURI: "http://www..com/?mozilla",
     keywordLookup: true,
     protocolChange: true,
   }, {
     input: "??mozilla",
-    fixedURI: "http:///??mozilla",
-    alternateURI: "http://www..com/??mozilla",
     keywordLookup: true,
     protocolChange: true,
   }, {
@@ -475,7 +468,27 @@ var testcases = [ {
     keywordLookup: true,
     protocolChange: true,
     affectedByDNSForSingleHosts: true,
-  }];
+  }, {
+    input: "localhost",
+    fixedURI: "http://localhost/",
+    keywordLookup: true,
+    protocolChange: true,
+    affectedByDNSForSingleHosts: true,
+  }, {
+    input: "localhost:8080",
+    fixedURI: "http://localhost:8080/",
+    protocolChange: true,
+  }, {
+    input: "plonk:8080",
+    fixedURI: "http://plonk:8080/",
+    protocolChange: true,
+  }, {
+    input: "\u10E0\u10D4\u10D2\u10D8\u10E1\u10E2\u10E0\u10D0\u10EA\u10D8\u10D0.\u10D2\u10D4",
+    fixedURI: "http://xn--lodaehvb5cdik4g.xn--node/",
+    alternateURI: "http://www.xn--lodaehvb5cdik4g.xn--node/",
+    protocolChange: true,
+  },
+];
 
 if (Services.appinfo.OS.toLowerCase().startsWith("win")) {
   testcases.push({

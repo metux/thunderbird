@@ -10,7 +10,7 @@
 #include "nsISimpleEnumerator.h"
 #include "nsIDirectoryEnumerator.h"
 #include "nsIMutableArray.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsAbBaseCID.h"
 #include "nsIAbManager.h"
 #include "nsIImportService.h"
@@ -29,10 +29,7 @@ nsresult
 nsBeckyAddressBooks::Create(nsIImportAddressBooks **aImport)
 {
   NS_ENSURE_ARG_POINTER(aImport);
-
-  *aImport = new nsBeckyAddressBooks();
-
-  NS_ADDREF(*aImport);
+  NS_ADDREF(*aImport = new nsBeckyAddressBooks());
   return NS_OK;
 }
 
@@ -61,7 +58,7 @@ nsBeckyAddressBooks::GetAutoFind(char16_t **aDescription,
   NS_ENSURE_ARG_POINTER(_retval);
 
   *aDescription =
-    nsBeckyStringBundle::GetStringByName(u"BeckyImportDescription");
+    nsBeckyStringBundle::GetStringByName("BeckyImportDescription");
   *_retval = false;
 
   return NS_OK;
@@ -240,7 +237,7 @@ nsBeckyAddressBooks::AppendAddressBookDescriptor(nsIFile *aEntry,
   aEntry->GetLeafName(name);
   descriptor->SetPreferredName(name);
 
-  return aCollected->AppendElement(descriptor, false);
+  return aCollected->AppendElement(descriptor);
 }
 
 nsresult
@@ -354,7 +351,7 @@ nsBeckyAddressBooks::ImportAddressBook(nsIImportABDescriptor *aSource,
   if (!error.IsEmpty())
     *aErrorLog = ToNewUnicode(error);
   else
-    *aSuccessLog = nsBeckyStringBundle::GetStringByName(u"BeckyImportAddressSuccess");
+    *aSuccessLog = nsBeckyStringBundle::GetStringByName("BeckyImportAddressSuccess");
 
   return rv;
 }

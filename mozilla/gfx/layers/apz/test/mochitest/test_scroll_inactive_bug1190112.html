@@ -485,7 +485,7 @@ p {
 
 </p>
 </div>
-<script clss="testbody" type="text/javascript;version=1.7">
+<script clss="testbody" type="text/javascript">
 function ScrollTops() {
   this.outerScrollTop = document.getElementById('iframe-body').scrollTop;
   this.innerScrollTop = document.getElementById('subframe').scrollTop;
@@ -527,7 +527,6 @@ function doInnerScrollAgain(subframe, oldpos) {
   });
 }
 
-SimpleTest.testInChaosMode();
 SimpleTest.waitForExplicitFinish();
 
 pushPrefs([['general.smoothScroll', false],

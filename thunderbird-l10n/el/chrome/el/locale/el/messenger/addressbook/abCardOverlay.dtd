@@ -31,14 +31,14 @@
 <!ENTITY PhoneticField2.label           "Φωνητικό:">
 <!ENTITY DisplayName.label              "Εμφάνιση:">
 <!ENTITY DisplayName.accesskey          "ν">
-<!ENTITY preferDisplayName.label        "Να εμφανίζεται πάντα το όνομα πάνω απο τη κεφαλίδα μηνύματος">
+<!ENTITY preferDisplayName.label        "Να εμφανίζεται πάντα το όνομα πάνω απο την κεφαλίδα μηνύματος">
 <!ENTITY preferDisplayName.accesskey    "φ">
-<!ENTITY NickName.label                 "Προσωνύμιο:">
+<!ENTITY NickName.label                 "Ψευδώνυμο:">
 <!ENTITY NickName.accesskey             "μ">
 
-<!ENTITY PrimaryEmail.label             "Email:">
+<!ENTITY PrimaryEmail.label             "E-mail:">
 <!ENTITY PrimaryEmail.accesskey         "E">
-<!ENTITY SecondEmail.label              "Πρόσθετο Email:">
+<!ENTITY SecondEmail.label              "Επιπρόσθετο e-mail:">
 <!ENTITY SecondEmail.accesskey          "τ">
 <!ENTITY PreferMailFormat.label         "Προτιμάει να λαμβάνει μηνύματα σε μορφή:">
 <!ENTITY PreferMailFormat.accesskey     "φ">
@@ -58,7 +58,7 @@
 <!ENTITY CellularNumber.label           "Κινητό:">
 <!ENTITY CellularNumber.accesskey       "Κ">
 
-<!ENTITY Home.tab                       "Ιδιωτικό">
+<!ENTITY Home.tab                       "Προσωπικά">
 <!ENTITY Home.accesskey                 "δ">
 <!ENTITY HomeAddress.label              "Διεύθυνση:">
 <!ENTITY HomeAddress.accesskey          "θ">
@@ -123,7 +123,7 @@
 <!ENTITY Gtalk.label                    "Google Talk:">
 <!ENTITY Gtalk.accesskey                "G">
 <!ENTITY AIM.label                      "AIM:">
-<!ENTITY AIM.accesskey                  "r">
+<!ENTITY AIM2.accesskey                 "Μ">
 <!ENTITY Yahoo.label                    "Yahoo!:">
 <!ENTITY Yahoo.accesskey                "Y">
 <!ENTITY Skype.label                    "Skype:">
@@ -131,7 +131,7 @@
 <!ENTITY QQ.label                       "QQ:">
 <!ENTITY QQ.accesskey                   "Q">
 <!ENTITY MSN.label                      "MSN:">
-<!ENTITY MSN.accesskey                  "M">
+<!ENTITY MSN2.accesskey                 "Ν">
 <!ENTITY ICQ.label                      "ICQ:">
 <!ENTITY ICQ.accesskey                  "I">
 <!ENTITY XMPP.label                     "Αναγνωριστικό Jabber:">
@@ -145,12 +145,12 @@
 <!ENTITY GenericPhoto.label             "Γενική φωτογραφία">
 <!ENTITY GenericPhoto.accesskey         "Γ">
 <!ENTITY DefaultPhoto.label             "Προεπιλογή">
-<!ENTITY PhotoFile.label                "Σε αυτόν το υπολογιστή">
+<!ENTITY PhotoFile.label                "Σε αυτό τον υπολογιστή">
 <!ENTITY PhotoFile.accesskey            "τ">
 <!ENTITY BrowsePhoto.label              "Εξερεύνηση">
 <!ENTITY BrowsePhoto.accesskey          "ρ">
-<!ENTITY PhotoURL.label                 "Στον ιστό">
+<!ENTITY PhotoURL.label                 "Στο διαδίκτυο">
 <!ENTITY PhotoURL.accesskey             "σ">
-<!ENTITY PhotoURL.placeholder           "Επικολλήστε ή πληκτρολογήστε την διαδικτυαλή διεύθυνση της φωτογραφίας">
+<!ENTITY PhotoURL.placeholder           "Επικολλήστε ή εισάγετε τη διαδικτυακή διεύθυνση μιας φωτογραφίας">
 <!ENTITY UpdatePhoto.label              "Ενημέρωση">
 <!ENTITY UpdatePhoto.accesskey          "ν">

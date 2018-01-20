@@ -10,11 +10,11 @@
 
 namespace mozilla {
 namespace a11y {
-class ProxyAccessible;
+class DocAccessibleParent;
 
 /**
  * Used for <browser>, <frame>, <iframe>, <page> or editor> elements.
- * 
+ *
  * In these variable names, "outer" relates to the OuterDocAccessible as
  * opposed to the DocAccessibleWrap which is "inner". The outer node is
  * a something like tags listed above, whereas the inner node corresponds to
@@ -28,7 +28,7 @@ public:
 
   NS_DECL_ISUPPORTS_INHERITED
 
-  ProxyAccessible* RemoteChildDoc() const;
+  DocAccessibleParent* RemoteChildDoc() const;
 
   // Accessible
   virtual void Shutdown() override;

@@ -167,3 +167,6 @@ content in HTML messages from this contact.">
 <!ENTITY Age.placeholder "වයස">
 <!ENTITY Year.placeholder "වසර">
 <!ENTITY preferDisplayName.label "සෑමවිටම ලිපි ශිර්ෂයට වඩා නම ප්‍රමුඛ කර සළකන්න">
+
+<!ENTITY AIM2.accesskey                 "M">
+<!ENTITY MSN2.accesskey                 "N">

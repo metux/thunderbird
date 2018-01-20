@@ -62,58 +62,58 @@ function getDataChecker(aExpectedMethod, aExpectedData, aExpectedMimeType = null
     aResponse.setStatusLine(null, 200, "OK");
     aResponse.setHeader("Content-Type", "application/json");
     aResponse.write("Success!");
-  }
+  };
 }
 
 add_test(function test_successCallback() {
   do_test_pending();
   let options = {
-    onLoad: function(aResponse) {
+    onLoad(aResponse) {
       do_check_eq(aResponse, "Success!");
       do_test_finished();
       run_next_test();
     },
-    onError: function(e) {
+    onError(e) {
       do_check_true(false);
       do_test_finished();
       run_next_test();
     }
-  }
+  };
   httpRequest(kSuccessUrl, options);
 });
 
 add_test(function test_errorCallback() {
   do_test_pending();
   let options = {
-    onSuccess: function(aResponse) {
+    onSuccess(aResponse) {
       do_check_true(false);
       do_test_finished();
       run_next_test();
     },
-    onError: function(e, aResponse) {
+    onError(e, aResponse) {
       do_check_eq(e, "404 - Not Found");
       do_test_finished();
       run_next_test();
     }
-  }
+  };
   httpRequest(kBaseUrl + "/failure", options);
 });
 
 add_test(function test_PostData() {
   do_test_pending();
   let options = {
-    onLoad: function(aResponse) {
+    onLoad(aResponse) {
       do_check_eq(aResponse, "Success!");
       do_test_finished();
       run_next_test();
     },
-    onError: function(e) {
+    onError(e) {
       do_check_true(false);
       do_test_finished();
       run_next_test();
     },
     postData: kPostDataSent
-  }
+  };
   httpRequest(kPostUrl, options);
 });
 
@@ -121,36 +121,36 @@ add_test(function test_PutData() {
   do_test_pending();
   let options = {
     method: "PUT",
-    onLoad: function(aResponse) {
+    onLoad(aResponse) {
       do_check_eq(aResponse, "Success!");
       do_test_finished();
       run_next_test();
     },
-    onError: function(e) {
+    onError(e) {
       do_check_true(false);
       do_test_finished();
       run_next_test();
     },
     postData: kPutDataSent
-  }
+  };
   httpRequest(kPutUrl, options);
 });
 
 add_test(function test_GetData() {
   do_test_pending();
   let options = {
-    onLoad: function(aResponse) {
+    onLoad(aResponse) {
       do_check_eq(aResponse, "Success!");
       do_test_finished();
       run_next_test();
     },
-    onError: function(e) {
+    onError(e) {
       do_check_true(false);
       do_test_finished();
       run_next_test();
     },
     postData: null
-  }
+  };
   httpRequest(kGetUrl, options);
 });
 
@@ -175,20 +175,20 @@ add_test(function test_CustomContentTypeOnPost() {
 
   // Preparing the request parameters.
   let options = {
-    onLoad: function(aResponse) {
+    onLoad(aResponse) {
       do_check_eq(aResponse, "Success!");
       do_test_finished();
       run_next_test();
     },
-    onError: function(e) {
+    onError(e) {
       do_check_true(false);
       do_test_finished();
       run_next_test();
     },
     postData: kJsonPostData,
     // Setting a custom Content-Type header.
-    headers: [['Content-Type', "application/json"]]
-  }
+    headers: [["Content-Type", "application/json"]]
+  };
 
   // Firing the request.
   httpRequest(kJsonPostUrl, options);
@@ -202,9 +202,9 @@ add_test(function test_OverrideMimeType() {
   do_test_pending();
 
   // Preparing the request parameters.
-  const kMimeType = 'text/xml; charset=UTF-8';
+  const kMimeType = "text/xml; charset=UTF-8";
   let options = {
-    onLoad: function(aResponse, xhr) {
+    onLoad(aResponse, xhr) {
       do_check_eq(aResponse, "Success!");
 
       // Set the expected MIME-type.
@@ -217,7 +217,7 @@ add_test(function test_OverrideMimeType() {
       do_test_finished();
       run_next_test();
     },
-    onError: function(e) {
+    onError(e) {
       do_check_true(false);
       do_test_finished();
       run_next_test();

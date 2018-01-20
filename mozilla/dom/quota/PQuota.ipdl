@@ -17,6 +17,16 @@ namespace mozilla {
 namespace dom {
 namespace quota {
 
+struct InitParams
+{
+};
+
+struct InitOriginParams
+{
+  PrincipalInfo principalInfo;
+  PersistenceType persistenceType;
+};
+
 struct AllUsageParams
 {
   bool getAll;
@@ -42,7 +52,7 @@ struct ClearOriginParams
   bool clearAll;
 };
 
-struct ClearOriginsParams
+struct ClearDataParams
 {
   nsString pattern;
 };
@@ -55,12 +65,26 @@ struct ResetAllParams
 {
 };
 
+struct PersistedParams
+{
+  PrincipalInfo principalInfo;
+};
+
+struct PersistParams
+{
+  PrincipalInfo principalInfo;
+};
+
 union RequestParams
 {
+  InitParams;
+  InitOriginParams;
   ClearOriginParams;
-  ClearOriginsParams;
+  ClearDataParams;
   ClearAllParams;
   ResetAllParams;
+  PersistedParams;
+  PersistParams;
 };
 
 protocol PQuota

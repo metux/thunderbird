@@ -1,20 +1,7 @@
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * This Original Code has been modified by IBM Corporation.
- * Modifications made by IBM described herein are
- * Copyright (c) International Business Machines
- * Corporation, 2000
- *
- * Modifications to Mozilla code or documentation
- * identified per MPL Section 3.3
- *
- * Date         Modified by     Description of modification
- * 03/27/2000   IBM Corp.       Added PR_CALLBACK for Optlink
- *                               use in OS2
- */
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /*
   This file provides the implementation for the sort service manager.
@@ -32,7 +19,7 @@
 #include "nsQuickSort.h"
 #include "nsWhitespaceTokenizer.h"
 #include "nsXULSortService.h"
-#include "nsIDOMXULElement.h"
+#include "nsXULElement.h"
 #include "nsIXULTemplateBuilder.h"
 #include "nsTemplateMatch.h"
 #include "nsICollation.h"
@@ -57,7 +44,7 @@ XULSortServiceImpl::SetSortHints(nsIContent *aNode, nsSortState* aSortState)
 
   // for trees, also set the sort info on the currently sorted column
   if (aNode->NodeInfo()->Equals(nsGkAtoms::tree, kNameSpaceID_XUL)) {
-    if (aSortState->sortKeys.Count() >= 1) {
+    if (aSortState->sortKeys.Length() >= 1) {
       nsAutoString sortkey;
       aSortState->sortKeys[0]->ToString(sortkey);
       SetSortColumnHints(aNode, sortkey, direction);
@@ -107,10 +94,9 @@ XULSortServiceImpl::GetItemsToSort(nsIContent *aContainer,
 {
   // if there is a template attached to the sort node, use the builder to get
   // the items to be sorted
-  nsCOMPtr<nsIDOMXULElement> element = do_QueryInterface(aContainer);
+  RefPtr<nsXULElement> element = nsXULElement::FromContent(aContainer);
   if (element) {
-    nsCOMPtr<nsIXULTemplateBuilder> builder;
-    element->GetBuilder(getter_AddRefs(builder));
+    nsCOMPtr<nsIXULTemplateBuilder> builder = element->GetBuilder();
 
     if (builder) {
       nsresult rv = builder->GetQueryProcessor(getter_AddRefs(aSortState->processor));
@@ -120,7 +106,7 @@ XULSortServiceImpl::GetItemsToSort(nsIContent *aContainer,
       return GetTemplateItemsToSort(aContainer, builder, aSortState, aSortItems);
     }
   }
-  
+
   // if there is no template builder, just get the children. For trees,
   // get the treechildren element as use that as the parent
   nsCOMPtr<nsIContent> treechildren;
@@ -131,10 +117,10 @@ XULSortServiceImpl::GetItemsToSort(nsIContent *aContainer,
                                       getter_AddRefs(treechildren));
     if (!treechildren)
       return NS_OK;
-  
+
     aContainer = treechildren;
   }
-  
+
   for (nsIContent* child = aContainer->GetFirstChild();
        child;
        child = child->GetNextSibling()) {
@@ -158,7 +144,7 @@ XULSortServiceImpl::GetTemplateItemsToSort(nsIContent* aContainer,
   for (nsIContent* child = aContainer->GetFirstChild();
        child;
        child = child->GetNextSibling()) {
-  
+
     nsCOMPtr<nsIDOMElement> childnode = do_QueryInterface(child);
 
     nsCOMPtr<nsIXULTemplateResult> result;
@@ -189,7 +175,7 @@ testSortCallback(const void *data1, const void *data2, void *privateData)
   contentSortInfo *left = (contentSortInfo *)data1;
   contentSortInfo *right = (contentSortInfo *)data2;
   nsSortState* sortState = (nsSortState *)privateData;
-      
+
   int32_t sortOrder = 0;
 
   if (sortState->direction == nsSortState_natural && sortState->processor) {
@@ -198,7 +184,7 @@ testSortCallback(const void *data1, const void *data2, void *privateData)
                                          nullptr, sortState->sortHints, &sortOrder);
   }
   else {
-    int32_t length = sortState->sortKeys.Count();
+    int32_t length = sortState->sortKeys.Length();
     for (int32_t t = 0; t < length; t++) {
       // for templates, use the query processor to do sorting
       if (sortState->processor) {
@@ -302,12 +288,12 @@ XULSortServiceImpl::SortContainer(nsIContent *aContainer, nsSortState* aSortStat
       if (!child->AttrValueIs(kNameSpaceID_None, nsGkAtoms::container,
                               nsGkAtoms::_true, eCaseMatters))
         continue;
-        
+
       for (nsIContent* grandchild = child->GetFirstChild();
            grandchild;
            grandchild = grandchild->GetNextSibling()) {
         mozilla::dom::NodeInfo *ni = grandchild->NodeInfo();
-        nsIAtom *localName = ni->NameAtom();
+        nsAtom *localName = ni->NameAtom();
         if (ni->NamespaceID() == kNameSpaceID_XUL &&
             (localName == nsGkAtoms::treechildren ||
              localName == nsGkAtoms::menupopup)) {
@@ -316,7 +302,7 @@ XULSortServiceImpl::SortContainer(nsIContent *aContainer, nsSortState* aSortStat
       }
     }
   }
-  
+
   return NS_OK;
 }
 
@@ -361,14 +347,14 @@ XULSortServiceImpl::InitializeSortState(nsIContent* aRootElement,
     nsAutoString sortResource, sortResource2;
     aRootElement->GetAttr(kNameSpaceID_None, nsGkAtoms::sortResource, sortResource);
     if (!sortResource.IsEmpty()) {
-      nsCOMPtr<nsIAtom> sortkeyatom = NS_Atomize(sortResource);
-      aSortState->sortKeys.AppendObject(sortkeyatom);
+      RefPtr<nsAtom> sortkeyatom = NS_Atomize(sortResource);
+      aSortState->sortKeys.AppendElement(sortkeyatom);
       sort.Append(sortResource);
 
       aRootElement->GetAttr(kNameSpaceID_None, nsGkAtoms::sortResource2, sortResource2);
       if (!sortResource2.IsEmpty()) {
-        nsCOMPtr<nsIAtom> sortkeyatom2 = NS_Atomize(sortResource2);
-        aSortState->sortKeys.AppendObject(sortkeyatom2);
+        RefPtr<nsAtom> sortkeyatom2 = NS_Atomize(sortResource2);
+        aSortState->sortKeys.AppendElement(sortkeyatom2);
         sort.Append(' ');
         sort.Append(sortResource2);
       }
@@ -377,9 +363,9 @@ XULSortServiceImpl::InitializeSortState(nsIContent* aRootElement,
   else {
     nsWhitespaceTokenizer tokenizer(sort);
     while (tokenizer.hasMoreTokens()) {
-      nsCOMPtr<nsIAtom> keyatom = NS_Atomize(tokenizer.nextToken());
+      RefPtr<nsAtom> keyatom = NS_Atomize(tokenizer.nextToken());
       NS_ENSURE_TRUE(keyatom, NS_ERROR_OUT_OF_MEMORY);
-      aSortState->sortKeys.AppendObject(keyatom);
+      aSortState->sortKeys.AppendElement(keyatom);
     }
   }
 
@@ -415,7 +401,7 @@ XULSortServiceImpl::InitializeSortState(nsIContent* aRootElement,
   aRootElement->GetAttr(kNameSpaceID_None, nsGkAtoms::sort, existingsort);
   nsAutoString existingsortDirection;
   aRootElement->GetAttr(kNameSpaceID_None, nsGkAtoms::sortDirection, existingsortDirection);
-          
+
   // if just switching direction, set the invertSort flag
   if (sort.Equals(existingsort)) {
     if (aSortState->direction == nsSortState_descending) {
@@ -489,11 +475,11 @@ XULSortServiceImpl::Sort(nsIDOMNode* aNode,
   nsresult rv = InitializeSortState(sortNode, sortNode,
                                     aSortKey, aSortHints, &sortState);
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   // store sort info in attributes on content
   SetSortHints(sortNode, &sortState);
   rv = SortContainer(sortNode, &sortState);
-  
+
   sortState.processor = nullptr; // don't hang on to this reference
   return rv;
 }

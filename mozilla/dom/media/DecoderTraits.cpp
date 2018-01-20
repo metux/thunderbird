@@ -5,9 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "DecoderTraits.h"
-#include "MediaContentType.h"
-#include "MediaDecoder.h"
-#include "nsCharSeparatedTokenizer.h"
+#include "MediaContainerType.h"
 #include "nsMimeTypes.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
@@ -18,14 +16,8 @@
 #include "WebMDecoder.h"
 #include "WebMDemuxer.h"
 
-#ifdef MOZ_ANDROID_OMX
-#include "AndroidMediaDecoder.h"
-#include "AndroidMediaReader.h"
-#include "AndroidMediaPluginHost.h"
-#endif
-#ifdef MOZ_DIRECTSHOW
-#include "DirectShowDecoder.h"
-#include "DirectShowReader.h"
+#ifdef MOZ_ANDROID_HLS_SUPPORT
+#include "HLSDecoder.h"
 #endif
 #ifdef MOZ_FMP4
 #include "MP4Decoder.h"
@@ -51,306 +43,160 @@
 namespace mozilla
 {
 
-template <class String>
-static bool
-CodecListContains(char const *const * aCodecs, const String& aCodec)
+/* static */ bool
+DecoderTraits::IsHttpLiveStreamingType(const MediaContainerType& aType)
 {
-  for (int32_t i = 0; aCodecs[i]; ++i) {
-    if (aCodec.EqualsASCII(aCodecs[i]))
-      return true;
-  }
-  return false;
-}
-
-static bool
-IsOggSupportedType(const nsACString& aType,
-                   const nsAString& aCodecs = EmptyString())
-{
-  return OggDecoder::CanHandleMediaType(aType, aCodecs);
-}
-
-static bool
-IsOggTypeAndEnabled(const nsACString& aType)
-{
-  return IsOggSupportedType(aType);
-}
-
-static bool
-IsWebMSupportedType(const nsACString& aType,
-                    const nsAString& aCodecs = EmptyString())
-{
-  return WebMDecoder::CanHandleMediaType(aType, aCodecs);
+  const auto& mimeType = aType.Type();
+  return // For m3u8.
+         // https://tools.ietf.org/html/draft-pantos-http-live-streaming-19#section-10
+    mimeType == MEDIAMIMETYPE("application/vnd.apple.mpegurl") ||
+    // Some sites serve these as the informal m3u type.
+    mimeType == MEDIAMIMETYPE("application/x-mpegurl") ||
+    mimeType == MEDIAMIMETYPE("audio/mpegurl") ||
+    mimeType == MEDIAMIMETYPE("audio/x-mpegurl");
 }
 
 /* static */ bool
-DecoderTraits::IsWebMTypeAndEnabled(const nsACString& aType)
-{
-  return IsWebMSupportedType(aType);
-}
-
-/* static */ bool
-DecoderTraits::IsWebMAudioType(const nsACString& aType)
-{
-  return aType.EqualsASCII("audio/webm");
-}
-
-static char const *const gHttpLiveStreamingTypes[] = {
-  // For m3u8.
-  // https://tools.ietf.org/html/draft-pantos-http-live-streaming-19#section-10
-  "application/vnd.apple.mpegurl",
-  // Some sites serve these as the informal m3u type.
-  "application/x-mpegurl",
-  "audio/x-mpegurl",
-  nullptr
-};
-
-static bool
-IsHttpLiveStreamingType(const nsACString& aType)
-{
-  return CodecListContains(gHttpLiveStreamingTypes, aType);
-}
-
-#ifdef MOZ_ANDROID_OMX
-static bool
-IsAndroidMediaType(const nsACString& aType)
-{
-  if (!MediaDecoder::IsAndroidMediaPluginEnabled()) {
-    return false;
-  }
-
-  static const char* supportedTypes[] = {
-    "audio/mpeg", "audio/mp4", "video/mp4", "video/x-m4v", nullptr
-  };
-  return CodecListContains(supportedTypes, aType);
-}
-#endif
-
-#ifdef MOZ_DIRECTSHOW
-static bool
-IsDirectShowSupportedType(const nsACString& aType)
-{
-  return DirectShowDecoder::GetSupportedCodecs(aType, nullptr);
-}
-#endif
-
-#ifdef MOZ_FMP4
-static bool
-IsMP4SupportedType(const MediaContentType& aParsedType,
-                   DecoderDoctorDiagnostics* aDiagnostics)
-{
-  return MP4Decoder::CanHandleMediaType(aParsedType, aDiagnostics);
-}
-static bool
-IsMP4SupportedType(const nsACString& aType,
-                   DecoderDoctorDiagnostics* aDiagnostics)
-{
-  MediaContentType contentType{aType};
-  return IsMP4SupportedType(contentType, aDiagnostics);
-}
-#endif
-
-/* static */ bool
-DecoderTraits::IsMP4TypeAndEnabled(const nsACString& aType,
-                                   DecoderDoctorDiagnostics* aDiagnostics)
+DecoderTraits::IsMP4SupportedType(const MediaContainerType& aType,
+                                  DecoderDoctorDiagnostics* aDiagnostics)
 {
 #ifdef MOZ_FMP4
-  return IsMP4SupportedType(aType, aDiagnostics);
+  return MP4Decoder::IsSupportedType(aType, aDiagnostics);
 #else
   return false;
 #endif
 }
 
-static bool
-IsMP3SupportedType(const nsACString& aType,
-                   const nsAString& aCodecs = EmptyString())
-{
-  return MP3Decoder::CanHandleMediaType(aType, aCodecs);
-}
-
-static bool
-IsAACSupportedType(const nsACString& aType,
-                   const nsAString& aCodecs = EmptyString())
-{
-  return ADTSDecoder::CanHandleMediaType(aType, aCodecs);
-}
-
-static bool
-IsWaveSupportedType(const nsACString& aType,
-                    const nsAString& aCodecs = EmptyString())
-{
-  return WaveDecoder::CanHandleMediaType(aType, aCodecs);
-}
-
-static bool
-IsFlacSupportedType(const nsACString& aType,
-                   const nsAString& aCodecs = EmptyString())
-{
-  return FlacDecoder::CanHandleMediaType(aType, aCodecs);
-}
-
 static
 CanPlayStatus
-CanHandleCodecsType(const MediaContentType& aType,
+CanHandleCodecsType(const MediaContainerType& aType,
                     DecoderDoctorDiagnostics* aDiagnostics)
 {
-  MOZ_ASSERT(aType.IsValid());
   // We should have been given a codecs string, though it may be empty.
-  MOZ_ASSERT(aType.HaveCodecs());
+  MOZ_ASSERT(aType.ExtendedType().HaveCodecs());
 
-  char const* const* codecList = nullptr;
-  if (IsOggTypeAndEnabled(aType.GetMIMEType())) {
-    if (IsOggSupportedType(aType.GetMIMEType(), aType.GetCodecs())) {
-      return CANPLAY_YES;
-    } else {
-      // We can only reach this position if a particular codec was requested,
-      // ogg is supported and working: the codec must be invalid.
-      return CANPLAY_NO;
-    }
-  }
-  if (IsWaveSupportedType(aType.GetMIMEType())) {
-    if (IsWaveSupportedType(aType.GetMIMEType(), aType.GetCodecs())) {
-      return CANPLAY_YES;
-    } else {
-      // We can only reach this position if a particular codec was requested,
-      // ogg is supported and working: the codec must be invalid.
-      return CANPLAY_NO;
-    }
-  }
-#if !defined(MOZ_OMX_WEBM_DECODER)
-  if (DecoderTraits::IsWebMTypeAndEnabled(aType.GetMIMEType())) {
-    if (IsWebMSupportedType(aType.GetMIMEType(), aType.GetCodecs())) {
-      return CANPLAY_YES;
-    } else {
-      // We can only reach this position if a particular codec was requested,
-      // webm is supported and working: the codec must be invalid.
-      return CANPLAY_NO;
-    }
-  }
-#endif
-#ifdef MOZ_FMP4
-  if (DecoderTraits::IsMP4TypeAndEnabled(aType.GetMIMEType(), aDiagnostics)) {
-    if (IsMP4SupportedType(aType, aDiagnostics)) {
-      return CANPLAY_YES;
-    } else {
-      // We can only reach this position if a particular codec was requested,
-      // fmp4 is supported and working: the codec must be invalid.
-      return CANPLAY_NO;
-    }
-  }
-#endif
-  if (IsMP3SupportedType(aType.GetMIMEType(), aType.GetCodecs())) {
-    return CANPLAY_YES;
-  }
-  if (IsAACSupportedType(aType.GetMIMEType(), aType.GetCodecs())) {
-    return CANPLAY_YES;
-  }
-  if (IsFlacSupportedType(aType.GetMIMEType(), aType.GetCodecs())) {
-    return CANPLAY_YES;
-  }
-#ifdef MOZ_DIRECTSHOW
-  DirectShowDecoder::GetSupportedCodecs(aType.GetMIMEType(), &codecList);
-#endif
-#ifdef MOZ_ANDROID_OMX
-  if (MediaDecoder::IsAndroidMediaPluginEnabled()) {
-    EnsureAndroidMediaPluginHost()->FindDecoder(aType.GetMIMEType(), &codecList);
-  }
-#endif
-  if (!codecList) {
-    return CANPLAY_MAYBE;
-  }
+  // Container type with the MIME type, no codecs.
+  const MediaContainerType mimeType(aType.Type());
 
-  // See http://www.rfc-editor.org/rfc/rfc4281.txt for the description
-  // of the 'codecs' parameter
-  nsCharSeparatedTokenizer tokenizer(aType.GetCodecs(), ',');
-  bool expectMoreTokens = false;
-  while (tokenizer.hasMoreTokens()) {
-    const nsSubstring& token = tokenizer.nextToken();
-
-    if (!CodecListContains(codecList, token)) {
-      // Totally unsupported codec
-      return CANPLAY_NO;
+  if (OggDecoder::IsSupportedType(mimeType)) {
+    if (OggDecoder::IsSupportedType(aType)) {
+      return CANPLAY_YES;
     }
-    expectMoreTokens = tokenizer.separatorAfterCurrentToken();
-  }
-  if (expectMoreTokens) {
-    // Last codec name was empty
+    // We can only reach this position if a particular codec was requested,
+    // ogg is supported and working: the codec must be invalid.
     return CANPLAY_NO;
   }
+  if (WaveDecoder::IsSupportedType(MediaContainerType(mimeType))) {
+    if (WaveDecoder::IsSupportedType(aType)) {
+      return CANPLAY_YES;
+    }
+    // We can only reach this position if a particular codec was requested,
+    // ogg is supported and working: the codec must be invalid.
+    return CANPLAY_NO;
+  }
+  if (WebMDecoder::IsSupportedType(mimeType)) {
+    if (WebMDecoder::IsSupportedType(aType)) {
+      return CANPLAY_YES;
+    }
+    // We can only reach this position if a particular codec was requested,
+    // webm is supported and working: the codec must be invalid.
+    return CANPLAY_NO;
+  }
+#ifdef MOZ_FMP4
+  if (MP4Decoder::IsSupportedType(mimeType,
+                                  /* DecoderDoctorDiagnostics* */ nullptr)) {
+    if (MP4Decoder::IsSupportedType(aType, aDiagnostics)) {
+      return CANPLAY_YES;
+    }
+    // We can only reach this position if a particular codec was requested,
+    // fmp4 is supported and working: the codec must be invalid.
+    return CANPLAY_NO;
+  }
+#endif
+  if (MP3Decoder::IsSupportedType(aType)) {
+    return CANPLAY_YES;
+  }
+  if (ADTSDecoder::IsSupportedType(aType)) {
+    return CANPLAY_YES;
+  }
+  if (FlacDecoder::IsSupportedType(aType)) {
+    return CANPLAY_YES;
+  }
 
-  return CANPLAY_YES;
+  return CANPLAY_MAYBE;
 }
 
 static
 CanPlayStatus
-CanHandleMediaType(const MediaContentType& aType,
+CanHandleMediaType(const MediaContainerType& aType,
                    DecoderDoctorDiagnostics* aDiagnostics)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (IsHttpLiveStreamingType(aType.GetMIMEType())) {
+#ifdef MOZ_ANDROID_HLS_SUPPORT
+  if (HLSDecoder::IsSupportedType(aType)) {
+    return CANPLAY_MAYBE;
+  }
+#endif
+
+  if (DecoderTraits::IsHttpLiveStreamingType(aType)) {
     Telemetry::Accumulate(Telemetry::MEDIA_HLS_CANPLAY_REQUESTED, true);
   }
 
-  if (aType.HaveCodecs()) {
+  if (aType.ExtendedType().HaveCodecs()) {
     CanPlayStatus result = CanHandleCodecsType(aType, aDiagnostics);
     if (result == CANPLAY_NO || result == CANPLAY_YES) {
       return result;
     }
   }
-  if (IsOggTypeAndEnabled(aType.GetMIMEType())) {
+
+  // Container type with just the MIME type/subtype, no codecs.
+  const MediaContainerType mimeType(aType.Type());
+
+  if (OggDecoder::IsSupportedType(mimeType)) {
     return CANPLAY_MAYBE;
   }
-  if (IsWaveSupportedType(aType.GetMIMEType())) {
+  if (WaveDecoder::IsSupportedType(mimeType)) {
     return CANPLAY_MAYBE;
   }
-  if (DecoderTraits::IsMP4TypeAndEnabled(aType.GetMIMEType(), aDiagnostics)) {
-    return CANPLAY_MAYBE;
-  }
-#if !defined(MOZ_OMX_WEBM_DECODER)
-  if (DecoderTraits::IsWebMTypeAndEnabled(aType.GetMIMEType())) {
-    return CANPLAY_MAYBE;
-  }
-#endif
-  if (IsMP3SupportedType(aType.GetMIMEType())) {
-    return CANPLAY_MAYBE;
-  }
-  if (IsAACSupportedType(aType.GetMIMEType())) {
-    return CANPLAY_MAYBE;
-  }
-  if (IsFlacSupportedType(aType.GetMIMEType())) {
-    return CANPLAY_MAYBE;
-  }
-#ifdef MOZ_DIRECTSHOW
-  if (DirectShowDecoder::GetSupportedCodecs(aType.GetMIMEType(), nullptr)) {
+#ifdef MOZ_FMP4
+  if (MP4Decoder::IsSupportedType(mimeType, aDiagnostics)) {
     return CANPLAY_MAYBE;
   }
 #endif
-#ifdef MOZ_ANDROID_OMX
-  if (MediaDecoder::IsAndroidMediaPluginEnabled() &&
-      EnsureAndroidMediaPluginHost()->FindDecoder(aType.GetMIMEType(), nullptr)) {
+  if (WebMDecoder::IsSupportedType(mimeType)) {
     return CANPLAY_MAYBE;
   }
-#endif
+  if (MP3Decoder::IsSupportedType(mimeType)) {
+    return CANPLAY_MAYBE;
+  }
+  if (ADTSDecoder::IsSupportedType(mimeType)) {
+    return CANPLAY_MAYBE;
+  }
+  if (FlacDecoder::IsSupportedType(mimeType)) {
+    return CANPLAY_MAYBE;
+  }
   return CANPLAY_NO;
 }
 
 /* static */
 CanPlayStatus
-DecoderTraits::CanHandleContentType(const MediaContentType& aContentType,
-                                    DecoderDoctorDiagnostics* aDiagnostics)
+DecoderTraits::CanHandleContainerType(const MediaContainerType& aContainerType,
+                                      DecoderDoctorDiagnostics* aDiagnostics)
 {
-  if (!aContentType.IsValid()) {
-    return CANPLAY_NO;
-  }
-
-  return CanHandleMediaType(aContentType, aDiagnostics);
+  return CanHandleMediaType(aContainerType, aDiagnostics);
 }
 
 /* static */
 bool DecoderTraits::ShouldHandleMediaType(const char* aMIMEType,
                                           DecoderDoctorDiagnostics* aDiagnostics)
 {
-  if (IsWaveSupportedType(nsDependentCString(aMIMEType))) {
+  Maybe<MediaContainerType> containerType = MakeMediaContainerType(aMIMEType);
+  if (!containerType) {
+    return false;
+  }
+
+  if (WaveDecoder::IsSupportedType(*containerType)) {
     // We should not return true for Wave types, since there are some
     // Wave codecs actually in use in the wild that we don't support, and
     // we should allow those to be handled by plugins or helper apps.
@@ -362,142 +208,79 @@ bool DecoderTraits::ShouldHandleMediaType(const char* aMIMEType,
   // If an external plugin which can handle quicktime video is available
   // (and not disabled), prefer it over native playback as there several
   // codecs found in the wild that we do not handle.
-  if (nsDependentCString(aMIMEType).EqualsASCII("video/quicktime")) {
+  if (containerType->Type() == MEDIAMIMETYPE("video/quicktime")) {
     RefPtr<nsPluginHost> pluginHost = nsPluginHost::GetInst();
     if (pluginHost &&
-        pluginHost->HavePluginForType(nsDependentCString(aMIMEType))) {
+        pluginHost->HavePluginForType(containerType->Type().AsString())) {
       return false;
     }
   }
 
-  MediaContentType parsed{nsDependentCString(aMIMEType)};
-  return CanHandleMediaType(parsed, aDiagnostics)
-         != CANPLAY_NO;
-}
-
-// Instantiates but does not initialize decoder.
-static
-already_AddRefed<MediaDecoder>
-InstantiateDecoder(const nsACString& aType,
-                   MediaDecoderOwner* aOwner,
-                   DecoderDoctorDiagnostics* aDiagnostics)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  RefPtr<MediaDecoder> decoder;
-
-#ifdef MOZ_FMP4
-  if (IsMP4SupportedType(aType, aDiagnostics)) {
-    decoder = new MP4Decoder(aOwner);
-    return decoder.forget();
-  }
-#endif
-  if (IsMP3SupportedType(aType)) {
-    decoder = new MP3Decoder(aOwner);
-    return decoder.forget();
-  }
-  if (IsAACSupportedType(aType)) {
-    decoder = new ADTSDecoder(aOwner);
-    return decoder.forget();
-  }
-  if (IsOggSupportedType(aType)) {
-    decoder = new OggDecoder(aOwner);
-    return decoder.forget();
-  }
-  if (IsWaveSupportedType(aType)) {
-    decoder = new WaveDecoder(aOwner);
-    return decoder.forget();
-  }
-  if (IsFlacSupportedType(aType)) {
-    decoder = new FlacDecoder(aOwner);
-    return decoder.forget();
-  }
-#ifdef MOZ_ANDROID_OMX
-  if (MediaDecoder::IsAndroidMediaPluginEnabled() &&
-      EnsureAndroidMediaPluginHost()->FindDecoder(aType, nullptr)) {
-    decoder = new AndroidMediaDecoder(aOwner, aType);
-    return decoder.forget();
-  }
-#endif
-
-  if (IsWebMSupportedType(aType)) {
-    decoder = new WebMDecoder(aOwner);
-    return decoder.forget();
-  }
-
-#ifdef MOZ_DIRECTSHOW
-  // Note: DirectShow should come before WMF, so that we prefer DirectShow's
-  // MP3 support over WMF's.
-  if (IsDirectShowSupportedType(aType)) {
-    decoder = new DirectShowDecoder(aOwner);
-    return decoder.forget();
-  }
-#endif
-
-  if (IsHttpLiveStreamingType(aType)) {
-    // We don't have an HLS decoder.
-    Telemetry::Accumulate(Telemetry::MEDIA_HLS_DECODER_SUCCESS, false);
-  }
-
-  return nullptr;
+  return CanHandleMediaType(*containerType, aDiagnostics) != CANPLAY_NO;
 }
 
 /* static */
-already_AddRefed<MediaDecoder>
-DecoderTraits::CreateDecoder(const nsACString& aType,
-                             MediaDecoderOwner* aOwner,
-                             DecoderDoctorDiagnostics* aDiagnostics)
+MediaFormatReader*
+DecoderTraits::CreateReader(const MediaContainerType& aType,
+                            MediaFormatReaderInit& aInit)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  return InstantiateDecoder(aType, aOwner, aDiagnostics);
-}
+  MediaFormatReader* decoderReader = nullptr;
+  MediaResource* resource = aInit.mResource;
 
-/* static */
-MediaDecoderReader* DecoderTraits::CreateReader(const nsACString& aType, AbstractMediaDecoder* aDecoder)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MediaDecoderReader* decoderReader = nullptr;
-
-  if (!aDecoder) {
-    return decoderReader;
-  }
 #ifdef MOZ_FMP4
-  if (IsMP4SupportedType(aType, /* DecoderDoctorDiagnostics* */ nullptr)) {
-    decoderReader = new MediaFormatReader(aDecoder, new MP4Demuxer(aDecoder->GetResource()));
+  if (MP4Decoder::IsSupportedType(aType,
+                                  /* DecoderDoctorDiagnostics* */ nullptr)) {
+    decoderReader = new MediaFormatReader(aInit, new MP4Demuxer(resource));
   } else
 #endif
-  if (IsMP3SupportedType(aType)) {
-    decoderReader = new MediaFormatReader(aDecoder, new mp3::MP3Demuxer(aDecoder->GetResource()));
+  if (MP3Decoder::IsSupportedType(aType)) {
+    decoderReader = new MediaFormatReader(aInit, new MP3Demuxer(resource));
   } else
-  if (IsAACSupportedType(aType)) {
-    decoderReader = new MediaFormatReader(aDecoder, new ADTSDemuxer(aDecoder->GetResource()));
+  if (ADTSDecoder::IsSupportedType(aType)) {
+    decoderReader = new MediaFormatReader(aInit, new ADTSDemuxer(resource));
   } else
-  if (IsWaveSupportedType(aType)) {
-    decoderReader = new MediaFormatReader(aDecoder, new WAVDemuxer(aDecoder->GetResource()));
+  if (WaveDecoder::IsSupportedType(aType)) {
+    decoderReader = new MediaFormatReader(aInit, new WAVDemuxer(resource));
   } else
-  if (IsFlacSupportedType(aType)) {
-    decoderReader = new MediaFormatReader(aDecoder, new FlacDemuxer(aDecoder->GetResource()));
+  if (FlacDecoder::IsSupportedType(aType)) {
+    decoderReader = new MediaFormatReader(aInit, new FlacDemuxer(resource));
   } else
-  if (IsOggSupportedType(aType)) {
-    decoderReader = new MediaFormatReader(aDecoder, new OggDemuxer(aDecoder->GetResource()));
+  if (OggDecoder::IsSupportedType(aType)) {
+    RefPtr<OggDemuxer> demuxer = new OggDemuxer(resource);
+    decoderReader = new MediaFormatReader(aInit, demuxer);
+    demuxer->SetChainingEvents(&decoderReader->TimedMetadataProducer(),
+                               &decoderReader->MediaNotSeekableProducer());
   } else
-#ifdef MOZ_ANDROID_OMX
-  if (MediaDecoder::IsAndroidMediaPluginEnabled() &&
-      EnsureAndroidMediaPluginHost()->FindDecoder(aType, nullptr)) {
-    decoderReader = new AndroidMediaReader(aDecoder, aType);
-  } else
-#endif
-  if (IsWebMSupportedType(aType)) {
-    decoderReader =
-      new MediaFormatReader(aDecoder, new WebMDemuxer(aDecoder->GetResource()));
-  } else
-#ifdef MOZ_DIRECTSHOW
-  if (IsDirectShowSupportedType(aType)) {
-    decoderReader = new DirectShowReader(aDecoder);
-  } else
-#endif
-  if (false) {} // dummy if to take care of the dangling else
+  if (WebMDecoder::IsSupportedType(aType)) {
+    decoderReader = new MediaFormatReader(aInit, new WebMDemuxer(resource));
+  }
 
   return decoderReader;
+}
+
+/* static */
+bool
+DecoderTraits::IsSupportedType(const MediaContainerType& aType)
+{
+  typedef bool (*IsSupportedFunction)(const MediaContainerType& aType);
+  static const IsSupportedFunction funcs[] = {
+    &ADTSDecoder::IsSupportedType,
+    &FlacDecoder::IsSupportedType,
+    &MP3Decoder::IsSupportedType,
+#ifdef MOZ_FMP4
+    &MP4Decoder::IsSupportedTypeWithoutDiagnostics,
+#endif
+    &OggDecoder::IsSupportedType,
+    &WaveDecoder::IsSupportedType,
+    &WebMDecoder::IsSupportedType,
+  };
+  for (IsSupportedFunction func : funcs) {
+    if (func(aType)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /* static */
@@ -506,25 +289,27 @@ bool DecoderTraits::IsSupportedInVideoDocument(const nsACString& aType)
   // Forbid playing media in video documents if the user has opted
   // not to, using either the legacy WMF specific pref, or the newer
   // catch-all pref.
-  if (!Preferences::GetBool("media.windows-media-foundation.play-stand-alone", true) ||
+  if (!Preferences::GetBool("media.wmf.play-stand-alone", true) ||
       !Preferences::GetBool("media.play-stand-alone", true)) {
     return false;
   }
 
+  Maybe<MediaContainerType> type = MakeMediaContainerType(aType);
+  if (!type) {
+    return false;
+  }
+
   return
-    IsOggSupportedType(aType) ||
-    IsWebMSupportedType(aType) ||
-#ifdef MOZ_ANDROID_OMX
-    (MediaDecoder::IsAndroidMediaPluginEnabled() && IsAndroidMediaType(aType)) ||
-#endif
+    OggDecoder::IsSupportedType(*type) ||
+    WebMDecoder::IsSupportedType(*type) ||
 #ifdef MOZ_FMP4
-    IsMP4SupportedType(aType, /* DecoderDoctorDiagnostics* */ nullptr) ||
+    MP4Decoder::IsSupportedType(*type, /* DecoderDoctorDiagnostics* */ nullptr) ||
 #endif
-    IsMP3SupportedType(aType) ||
-    IsAACSupportedType(aType) ||
-    IsFlacSupportedType(aType) ||
-#ifdef MOZ_DIRECTSHOW
-    IsDirectShowSupportedType(aType) ||
+    MP3Decoder::IsSupportedType(*type) ||
+    ADTSDecoder::IsSupportedType(*type) ||
+    FlacDecoder::IsSupportedType(*type) ||
+#ifdef MOZ_ANDROID_HLS_SUPPORT
+    HLSDecoder::IsSupportedType(*type) ||
 #endif
     false;
 }

@@ -1,24 +1,22 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 "use strict";
 
 const { assert, reportException } = require("devtools/shared/DevToolsUtils");
 const { actions, diffingState, viewState } = require("../constants");
-const telemetry = require("../telemetry");
 const {
   getSnapshot,
   censusIsUpToDate,
   snapshotIsDiffable,
   findSelectedSnapshot,
 } = require("../utils");
-// This is a circular dependency, so do not destructure the needed properties.
-const snapshotActions = require("./snapshot");
 
 /**
  * Toggle diffing mode on or off.
  */
-const toggleDiffing = exports.toggleDiffing = function () {
+exports.toggleDiffing = function () {
   return function (dispatch, getState) {
     dispatch({
       type: actions.CHANGE_VIEW,
@@ -113,8 +111,6 @@ const takeCensusDiff = exports.takeCensusDiff = function (heapWorker, first, sec
       filter,
       display,
     });
-
-    telemetry.countDiff({ filter, display });
   };
 };
 
@@ -155,7 +151,7 @@ const refreshDiffing = exports.refreshDiffing = function (heapWorker) {
  * @param {HeapAnalysesClient} heapWorker
  * @param {snapshotModel} snapshot
  */
-const selectSnapshotForDiffingAndRefresh = exports.selectSnapshotForDiffingAndRefresh = function (heapWorker, snapshot) {
+exports.selectSnapshotForDiffingAndRefresh = function (heapWorker, snapshot) {
   return function* (dispatch, getState) {
     assert(getState().diffing,
            "If we are selecting for diffing, we must be in diffing mode");
@@ -169,7 +165,7 @@ const selectSnapshotForDiffingAndRefresh = exports.selectSnapshotForDiffingAndRe
  *
  * @param {CensusTreeNode} node
  */
-const expandDiffingCensusNode = exports.expandDiffingCensusNode = function (node) {
+exports.expandDiffingCensusNode = function (node) {
   return {
     type: actions.EXPAND_DIFFING_CENSUS_NODE,
     node,
@@ -181,7 +177,7 @@ const expandDiffingCensusNode = exports.expandDiffingCensusNode = function (node
  *
  * @param {CensusTreeNode} node
  */
-const collapseDiffingCensusNode = exports.collapseDiffingCensusNode = function (node) {
+exports.collapseDiffingCensusNode = function (node) {
   return {
     type: actions.COLLAPSE_DIFFING_CENSUS_NODE,
     node,
@@ -193,7 +189,7 @@ const collapseDiffingCensusNode = exports.collapseDiffingCensusNode = function (
  *
  * @param {DominatorTreeNode} node
  */
-const focusDiffingCensusNode = exports.focusDiffingCensusNode = function (node) {
+exports.focusDiffingCensusNode = function (node) {
   return {
     type: actions.FOCUS_DIFFING_CENSUS_NODE,
     node,

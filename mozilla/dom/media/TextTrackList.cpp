@@ -4,9 +4,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/TextTrackList.h"
+
+#include "mozilla/DebugOnly.h"
 #include "mozilla/dom/TextTrackListBinding.h"
 #include "mozilla/dom/TrackEvent.h"
 #include "nsThreadUtils.h"
+#include "nsGlobalWindow.h"
 #include "mozilla/dom/TextTrackCue.h"
 #include "mozilla/dom/TextTrackManager.h"
 
@@ -20,7 +23,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(TextTrackList,
 
 NS_IMPL_ADDREF_INHERITED(TextTrackList, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(TextTrackList, DOMEventTargetHelper)
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(TextTrackList)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(TextTrackList)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 TextTrackList::TextTrackList(nsPIDOMWindowInner* aOwnerWindow)
@@ -42,9 +45,12 @@ TextTrackList::~TextTrackList()
 void
 TextTrackList::GetShowingCues(nsTArray<RefPtr<TextTrackCue> >& aCues)
 {
+  // Only Subtitles and Captions can show on the screen.
   nsTArray< RefPtr<TextTrackCue> > cues;
   for (uint32_t i = 0; i < Length(); i++) {
-    if (mTextTracks[i]->Mode() == TextTrackMode::Showing) {
+    if (mTextTracks[i]->Mode() == TextTrackMode::Showing &&
+        (mTextTracks[i]->Kind() == TextTrackKind::Subtitles ||
+         mTextTracks[i]->Kind() == TextTrackKind::Captions)) {
       mTextTracks[i]->GetActiveCueArray(cues);
       aCues.AppendElements(cues);
     }
@@ -135,7 +141,8 @@ class TrackEventRunner : public Runnable
 {
 public:
   TrackEventRunner(TextTrackList* aList, nsIDOMEvent* aEvent)
-    : mList(aList)
+    : Runnable("dom::TrackEventRunner")
+    , mList(aList)
     , mEvent(aEvent)
   {}
 
@@ -174,6 +181,11 @@ TextTrackList::CreateAndDispatchChangeEvent()
 {
   MOZ_ASSERT(NS_IsMainThread());
   if (!mPendingTextTrackChange) {
+    nsPIDOMWindowInner* win = GetOwner();
+    if (!win) {
+      return;
+    }
+
     mPendingTextTrackChange = true;
     RefPtr<Event> event = NS_NewDOMEvent(this, nullptr, nullptr);
 
@@ -181,7 +193,7 @@ TextTrackList::CreateAndDispatchChangeEvent()
     event->SetTrusted(true);
 
     nsCOMPtr<nsIRunnable> eventRunner = new ChangeEventRunner(this, event);
-    NS_DispatchToMainThread(eventRunner);
+    nsGlobalWindowInner::Cast(win)->Dispatch(TaskCategory::Other, eventRunner.forget());
   }
 }
 
@@ -189,9 +201,9 @@ void
 TextTrackList::CreateAndDispatchTrackEventRunner(TextTrack* aTrack,
                                                  const nsAString& aEventName)
 {
-  nsCOMPtr<nsIThread> thread;
-  nsresult rv = NS_GetMainThread(getter_AddRefs(thread));
-  if (NS_FAILED(rv)) {
+  DebugOnly<nsresult> rv;
+  nsCOMPtr<nsIEventTarget> target = GetMainThreadEventTarget();
+  if (!target) {
     // If we are not able to get the main-thread object we are shutting down.
     return;
   }
@@ -202,7 +214,7 @@ TextTrackList::CreateAndDispatchTrackEventRunner(TextTrack* aTrack,
     TrackEvent::Constructor(this, aEventName, eventInit);
 
   // Dispatch the TrackEvent asynchronously.
-  rv = thread->Dispatch(do_AddRef(new TrackEventRunner(this, event)),
+  rv = target->Dispatch(do_AddRef(new TrackEventRunner(this, event)),
                         NS_DISPATCH_NORMAL);
 
   // If we are shutting down this can file but it's still ok.
@@ -230,6 +242,24 @@ TextTrackList::SetCuesInactive()
   for (uint32_t i = 0; i < Length(); i++) {
     mTextTracks[i]->SetCuesInactive();
   }
+}
+
+
+bool TextTrackList::AreTextTracksLoaded()
+{
+  // Return false if any texttrack is not loaded.
+  for (uint32_t i = 0; i < Length(); i++) {
+    if (!mTextTracks[i]->IsLoaded()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+nsTArray<RefPtr<TextTrack>>&
+TextTrackList::GetTextTrackArray()
+{
+  return mTextTracks;
 }
 
 } // namespace dom

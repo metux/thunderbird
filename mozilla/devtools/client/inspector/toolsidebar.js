@@ -6,7 +6,7 @@
 
 "use strict";
 
-var EventEmitter = require("devtools/shared/event-emitter");
+var EventEmitter = require("devtools/shared/old-event-emitter");
 var Telemetry = require("devtools/client/shared/telemetry");
 var { Task } = require("devtools/shared/task");
 
@@ -73,10 +73,10 @@ ToolSidebar.prototype = {
 
   render: function () {
     let Tabbar = this.React.createFactory(this.browserRequire(
-      "devtools/client/shared/components/tabs/tabbar"));
+      "devtools/client/shared/components/tabs/TabBar"));
 
     let sidebar = Tabbar({
-      toolbox: this._toolPanel._toolbox,
+      menuDocument: this._toolPanel._toolbox.doc,
       showAllTabsMenu: true,
       onSelect: this.handleSelectionChange.bind(this),
     });
@@ -87,13 +87,14 @@ ToolSidebar.prototype = {
   /**
    * Register a side-panel tab.
    *
-   * @param {string} tab uniq id
-   * @param {string} title tab title
+   * @param {String} tab uniq id
+   * @param {String} title tab title
    * @param {React.Component} panel component. See `InspectorPanelTab` as an example.
-   * @param {boolean} selected true if the panel should be selected
+   * @param {Boolean} selected true if the panel should be selected
+   * @param {Number} index the position where the tab should be inserted
    */
-  addTab: function (id, title, panel, selected) {
-    this._tabbar.addTab(id, title, selected, panel);
+  addTab: function (id, title, panel, selected, index) {
+    this._tabbar.addTab(id, title, selected, panel, null, index);
     this.emit("new-tab-registered", id);
   },
 
@@ -101,11 +102,12 @@ ToolSidebar.prototype = {
    * Helper API for adding side-panels that use existing DOM nodes
    * (defined within inspector.xhtml) as the content.
    *
-   * @param {string} tab uniq id
-   * @param {string} title tab title
-   * @param {boolean} selected true if the panel should be selected
+   * @param {String} tab uniq id
+   * @param {String} title tab title
+   * @param {Boolean} selected true if the panel should be selected
+   * @param {Number} index the position where the tab should be inserted
    */
-  addExistingTab: function (id, title, selected) {
+  addExistingTab: function (id, title, selected, index) {
     let panel = this.InspectorTabPanel({
       id: id,
       idPrefix: this.TABPANEL_ID_PREFIX,
@@ -113,7 +115,7 @@ ToolSidebar.prototype = {
       title: title,
     });
 
-    this.addTab(id, title, panel, selected);
+    this.addTab(id, title, panel, selected, index);
   },
 
   /**
@@ -121,12 +123,13 @@ ToolSidebar.prototype = {
    * (defined within inspector.xhtml) as the content.
    * The document must have a title, which will be used as the name of the tab.
    *
-   * @param {string} tab uniq id
-   * @param {string} title tab title
-   * @param {string} url
-   * @param {boolean} selected true if the panel should be selected
+   * @param {String} tab uniq id
+   * @param {String} title tab title
+   * @param {String} url
+   * @param {Boolean} selected true if the panel should be selected
+   * @param {Number} index the position where the tab should be inserted
    */
-  addFrameTab: function (id, title, url, selected) {
+  addFrameTab: function (id, title, url, selected, index) {
     let panel = this.InspectorTabPanel({
       id: id,
       idPrefix: this.TABPANEL_ID_PREFIX,
@@ -136,7 +139,7 @@ ToolSidebar.prototype = {
       onMount: this.onSidePanelMounted.bind(this),
     });
 
-    this.addTab(id, title, panel, selected);
+    this.addTab(id, title, panel, selected, index);
   },
 
   onSidePanelMounted: function (content, props) {
@@ -224,20 +227,34 @@ ToolSidebar.prototype = {
 
     let previousTool = this._currentTool;
     if (previousTool) {
-      if (this._telemetry) {
-        this._telemetry.toolClosed(previousTool);
-      }
       this.emit(previousTool + "-unselected");
     }
 
     this._currentTool = id;
 
-    if (this._telemetry) {
-      this._telemetry.toolOpened(this._currentTool);
-    }
-
+    this.updateTelemetryOnChange(id, previousTool);
     this.emit(this._currentTool + "-selected");
     this.emit("select", this._currentTool);
+  },
+
+  /**
+   * Log toolClosed and toolOpened events on telemetry.
+   *
+   * @param  {String} currentToolId
+   *         id of the tool being selected.
+   * @param  {String} previousToolId
+   *         id of the previously selected tool.
+   */
+  updateTelemetryOnChange: function (currentToolId, previousToolId) {
+    if (currentToolId === previousToolId || !this._telemetry) {
+      // Skip telemetry if the tool id did not change or telemetry is unavailable.
+      return;
+    }
+
+    if (previousToolId) {
+      this._telemetry.toolClosed(previousToolId);
+    }
+    this._telemetry.toolOpened(currentToolId);
   },
 
   /**
@@ -249,14 +266,9 @@ ToolSidebar.prototype = {
   show: function (id) {
     this._tabbox.removeAttribute("hidden");
 
-    // If an id is given, select the corresponding sidebar tab and record the
-    // tool opened.
+    // If an id is given, select the corresponding sidebar tab.
     if (id) {
-      this._currentTool = id;
-
-      if (this._telemetry) {
-        this._telemetry.toolOpened(this._currentTool);
-      }
+      this.select(id);
     }
 
     this.emit("show");

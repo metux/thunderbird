@@ -8,12 +8,9 @@ package org.mozilla.gecko.tests;
 import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
+import org.mozilla.gecko.util.GeckoBundle;
 
 import android.util.Log;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
 
 public class testAccessibleCarets extends JavascriptTest {
     private static final String LOGTAG = "testAccessibleCarets";
@@ -42,16 +39,6 @@ public class testAccessibleCarets extends JavascriptTest {
         super.tearDown();
     }
 
-    @Override
-    public void testJavascript() throws Exception {
-        // This feature is currently only available in Nightly.
-        if (!AppConstants.NIGHTLY_BUILD) {
-            mAsserter.dumpLog(LOGTAG + " is disabled on non-Nightly builds: returning");
-            return;
-        }
-        super.testJavascript();
-    }
-
     /**
      * Observes tab change events to broadcast to the test script.
      */
@@ -60,15 +47,10 @@ public class testAccessibleCarets extends JavascriptTest {
         public void onTabChanged(Tab tab, Tabs.TabEvents msg, String data) {
             switch (msg) {
                 case STOP:
-                    final JSONObject args = new JSONObject();
-                    try {
-                        args.put("tabId", tab.getId());
-                        args.put("event", msg.toString());
-                    } catch (JSONException e) {
-                        Log.e(LOGTAG, "Error building JSON arguments for " + TAB_CHANGE_EVENT, e);
-                        return;
-                    }
-                    mActions.sendGeckoEvent(TAB_CHANGE_EVENT, args.toString());
+                    final GeckoBundle args = new GeckoBundle(2);
+                    args.putInt("tabId", tab.getId());
+                    args.putString("event", msg.toString());
+                    mActions.sendGlobalEvent(TAB_CHANGE_EVENT, args);
                     break;
             }
         }

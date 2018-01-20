@@ -35,7 +35,7 @@ var FeedCache =
   {
     try
     {
-      let normalizedUrl = Services.io.newURI(aUrl, null, null);
+      let normalizedUrl = Services.io.newURI(aUrl);
       normalizedUrl.host = normalizedUrl.host.toLowerCase();
       return normalizedUrl.spec
     }
@@ -46,13 +46,25 @@ var FeedCache =
   }
 };
 
-function Feed(aResource, aRSSServer)
+/**
+ * A Feed object. If aFolder is the account root folder, a new subfolder
+ * for the feed url is created otherwise the url will be subscribed to the
+ * existing aFolder, upon successful download() completion.
+ *
+ * @param  string aFeedUrl        - feed url.
+ * @param  nsIMsgFolder aFolder   - folder containing or to contain the feed
+ *                                  subscription.
+ */
+function Feed(aFeedUrl, aFolder)
 {
-  this.resource = aResource.QueryInterface(Ci.nsIRDFResource);
-  this.server = aRSSServer;
+  this.resource = FeedUtils.rdf.GetResource(aFeedUrl)
+                               .QueryInterface(Ci.nsIRDFResource);
+  this.server = aFolder.server;
+  if (!aFolder.isServer)
+    this.mFolder = aFolder;
 }
 
-Feed.prototype = 
+Feed.prototype =
 {
   description: null,
   author: null,
@@ -60,8 +72,9 @@ Feed.prototype =
   server: null,
   downloadCallback: null,
   resource: null,
-  items: new Array(),
+  itemsToStore: [],
   itemsStored: 0,
+  fileSize: 0,
   mFolder: null,
   mInvalidFeed: false,
   mFeedType: null,
@@ -142,8 +155,7 @@ Feed.prototype =
       }
     }
 
-    this.request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].
-                   createInstance(Ci.nsIXMLHttpRequest);
+    this.request = new XMLHttpRequest();
     // Must set onProgress before calling open.
     this.request.onprogress = this.onProgress;
     this.request.open("GET", this.url, true);
@@ -163,10 +175,20 @@ Feed.prototype =
     this.request.setRequestHeader("Accept", FeedUtils.REQUEST_ACCEPT);
     this.request.timeout = FeedUtils.REQUEST_TIMEOUT;
     this.request.onload = this.onDownloaded;
+    this.request.onreadystatechange = this.onReadyStateChange;
     this.request.onerror = this.onDownloadError;
     this.request.ontimeout = this.onDownloadError;
     FeedCache.putFeed(this);
     this.request.send(null);
+  },
+
+  onReadyStateChange: function(aEvent)
+  {
+    // Once a server responds with data, reset the timeout to allow potentially
+    // large files to complete the download.
+    let request = aEvent.target;
+    if (request.timeout && request.readyState == request.LOADING)
+      request.timeout = 0;
   },
 
   onDownloaded: function(aEvent)
@@ -180,7 +202,8 @@ Feed.prototype =
       return;
     }
 
-    FeedUtils.log.debug("Feed.onDownloaded: got a download - " + url);
+    FeedUtils.log.debug("Feed.onDownloaded: got a download, fileSize:url - " +
+                        aEvent.loaded + " : " + url);
     let feed = FeedCache.getFeed(url);
     if (!feed)
       throw new Error("Feed.onDownloaded: error - couldn't retrieve feed " +
@@ -196,11 +219,13 @@ Feed.prototype =
     feed.mLastModified = (lastModifiedHeader && feed.parseItems) ?
                            lastModifiedHeader : null;
 
+    feed.fileSize = aEvent.loaded;
+
     // The download callback is called asynchronously when parse() is done.
     feed.parse();
   },
-  
-  onProgress: function(aEvent) 
+
+  onProgress: function(aEvent)
   {
     let request = aEvent.target;
     let url = request.channel.originalURI.spec;
@@ -216,10 +241,12 @@ Feed.prototype =
     let request = aEvent.target;
     let url = request.channel.originalURI.spec;
     let feed = FeedCache.getFeed(url);
-    if (feed.downloadCallback) 
+    if (feed.downloadCallback)
     {
       // Generic network or 'not found' error initially.
       let error = FeedUtils.kNewsBlogRequestFailure;
+      // Certain errors should disable the feed.
+      let disable = false;
 
       if (request.status == 304) {
         // If the http status code is 304, the feed has not been modified
@@ -238,9 +265,12 @@ Feed.prototype =
         if (request.status == 401 || request.status == 403)
           // Unauthorized or Forbidden.
           error = FeedUtils.kNewsBlogNoAuthError;
+
+        if (request.status != 0 || error == FeedUtils.kNewsBlogBadCertError)
+          disable = true;
       }
 
-      feed.downloadCallback.downloaded(feed, error);
+      feed.downloadCallback.downloaded(feed, error, disable);
     }
 
     FeedCache.removeFeed(url);
@@ -253,7 +283,7 @@ Feed.prototype =
 
     aFeed.mInvalidFeed = true;
     if (aFeed.downloadCallback)
-      aFeed.downloadCallback.downloaded(aFeed, FeedUtils.kNewsBlogInvalidFeed);
+      aFeed.downloadCallback.downloaded(aFeed, FeedUtils.kNewsBlogInvalidFeed, true);
 
     FeedCache.removeFeed(aFeed.url);
   },
@@ -269,6 +299,25 @@ Feed.prototype =
       aFeed.downloadCallback.downloaded(aFeed, FeedUtils.kNewsBlogCancel);
 
     FeedCache.removeFeed(aOldUrl);
+  },
+
+  // nsIUrlListener methods for getDatabaseWithReparse().
+  OnStartRunningUrl: function(aUrl) { },
+  OnStopRunningUrl: function(aUrl, aExitCode)
+  {
+    if (Components.isSuccessCode(aExitCode))
+    {
+      FeedUtils.log.debug("Feed.OnStopRunningUrl: rebuilt msgDatabase for " +
+                          this.folder.name + " - " + this.folder.filePath.path);
+    }
+    else
+    {
+      FeedUtils.log.error("Feed.OnStopRunningUrl: rebuild msgDatabase failed, " +
+                          "error " + aExitCode + ", for " +
+                          this.folder.name + " - " + this.folder.filePath.path);
+    }
+    // Continue.
+    this.storeNextItem();
   },
 
   get url()
@@ -350,7 +399,7 @@ Feed.prototype =
   {
     let ds = FeedUtils.getSubscriptionsDS(this.server);
     aNewQuickMode = FeedUtils.rdf.GetLiteral(aNewQuickMode);
-    let old_quickMode = ds.GetTarget(this.resource, 
+    let old_quickMode = ds.GetTarget(this.resource,
                                      FeedUtils.FZ_QUICKMODE,
                                      true);
     if (old_quickMode)
@@ -365,16 +414,19 @@ Feed.prototype =
   {
     let ds = FeedUtils.getSubscriptionsDS(this.server);
     let options = ds.GetTarget(this.resource, FeedUtils.FZ_OPTIONS, true);
-    if (options)
-      return JSON.parse(options.QueryInterface(Ci.nsIRDFLiteral).Value);
+    options = options ? JSON.parse(options.QueryInterface(Ci.nsIRDFLiteral).Value) :
+                        null;
+    if (options && options.version == FeedUtils._optionsDefault.version)
+      return options;
 
-    return null;
+    let newOptions = FeedUtils.newOptions(options);
+    this.options = newOptions;
+    return newOptions;
   },
 
   set options (aOptions)
   {
-    let newOptions = aOptions ? FeedUtils.newOptions(aOptions) :
-                                FeedUtils._optionsDefault;
+    let newOptions = aOptions ? aOptions : FeedUtils.optionsTemplate;
     let ds = FeedUtils.getSubscriptionsDS(this.server);
     newOptions = FeedUtils.rdf.GetLiteral(JSON.stringify(newOptions));
     let oldOptions = ds.GetTarget(this.resource, FeedUtils.FZ_OPTIONS, true);
@@ -382,15 +434,6 @@ Feed.prototype =
       ds.Change(this.resource, FeedUtils.FZ_OPTIONS, oldOptions, newOptions);
     else
       ds.Assert(this.resource, FeedUtils.FZ_OPTIONS, newOptions, true);
-  },
-
-  categoryPrefs: function ()
-  {
-    let categoryPrefsAcct = FeedUtils.getOptionsAcct(this.server).category;
-    if (!this.options)
-      return categoryPrefsAcct;
-
-    return this.options.category;
   },
 
   get link ()
@@ -431,9 +474,19 @@ Feed.prototype =
       return;
     }
 
-    // storeNextItem() will iterate through the parsed items, storing each one.
     this.itemsToStoreIndex = 0;
     this.itemsStored = 0;
+
+    // At this point, if we have items to potentially store and an existing
+    // folder, ensure the folder's msgDatabase is openable for new message
+    // processing. If not, reparse with an async nsIUrlListener |this| to
+    // continue once the reparse is complete.
+    if (this.itemsToStore.length > 0 && this.folder &&
+        !FeedUtils.isMsgDatabaseOpenable(this.folder, true, this))
+      return;
+
+    // We have an msgDatabase; storeNextItem() will iterate through the parsed
+    // items, storing each one.
     this.storeNextItem();
   },
 
@@ -526,12 +579,13 @@ Feed.prototype =
       return;
     }
 
-    if (!this.itemsToStore || !this.itemsToStore.length)
+    if (this.itemsToStore.length == 0)
     {
       let code = FeedUtils.kNewsBlogSuccess;
       this.createFolder();
       if (!this.folder)
         code = FeedUtils.kNewsBlogFileError;
+
       this.cleanupParsingState(this, code);
       return;
     }
@@ -603,9 +657,8 @@ Feed.prototype =
     // Force the xml http request to go away.  This helps reduce some nasty
     // assertions on shut down.
     this.request = null;
-    this.itemsToStore = "";
+    this.itemsToStore = [];
     this.itemsToStoreIndex = 0;
-    this.itemsStored = 0;
     this.storeItemsTimer = null;
 
     if (aFeed.downloadCallback)

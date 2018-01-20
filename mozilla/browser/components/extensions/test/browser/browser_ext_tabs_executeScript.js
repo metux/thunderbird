@@ -2,7 +2,10 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
-add_task(function* testExecuteScript() {
+XPCOMUtils.defineLazyPreferenceGetter(this, "useRemoteWebExtensions",
+                                      "extensions.webextensions.remote", false);
+
+add_task(async function testExecuteScript() {
   let {MessageChannel} = Cu.import("resource://gre/modules/MessageChannel.jsm", {});
 
   function countMM(messageManagerMap) {
@@ -34,7 +37,7 @@ add_task(function* testExecuteScript() {
 
   const BASE = "http://mochi.test:8888/browser/browser/components/extensions/test/browser/";
   const URL = BASE + "file_iframe_document.html";
-  let tab = yield BrowserTestUtils.openNewForegroundTab(gBrowser, URL, true);
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, URL, true);
 
   async function background() {
     try {
@@ -88,6 +91,20 @@ add_task(function* testExecuteScript() {
 
         browser.tabs.executeScript({
           code: "location.href;",
+          allFrames: true,
+          matchAboutBlank: true,
+        }).then(result => {
+          browser.test.assertTrue(Array.isArray(result), "Result is an array");
+
+          browser.test.assertEq(3, result.length, "Result has correct length");
+
+          browser.test.assertTrue(/\/file_iframe_document\.html$/.test(result[0]), "First result is correct");
+          browser.test.assertEq("http://mochi.test:8888/", result[1], "Second result is correct");
+          browser.test.assertEq("about:blank", result[2], "Thirds result is correct");
+        }),
+
+        browser.tabs.executeScript({
+          code: "location.href;",
           runAt: "document_end",
         }).then(result => {
           browser.test.assertEq(1, result.length, "Expected callback result");
@@ -101,7 +118,8 @@ add_task(function* testExecuteScript() {
         }).then(result => {
           browser.test.fail("Expected error when returning non-structured-clonable object");
         }, error => {
-          browser.test.assertEq("Script returned non-structured-clonable data",
+          browser.test.assertEq("<anonymous code>", error.fileName, "Got expected fileName");
+          browser.test.assertEq("Script '<anonymous code>' result is non-structured-clonable data",
                                 error.message, "Got expected error");
         }),
 
@@ -110,8 +128,19 @@ add_task(function* testExecuteScript() {
         }).then(result => {
           browser.test.fail("Expected error when returning non-structured-clonable object");
         }, error => {
-          browser.test.assertEq("Script returned non-structured-clonable data",
+          browser.test.assertEq("<anonymous code>", error.fileName, "Got expected fileName");
+          browser.test.assertEq("Script '<anonymous code>' result is non-structured-clonable data",
                                 error.message, "Got expected error");
+        }),
+
+        browser.tabs.executeScript({
+          file: "script3.js",
+        }).then(result => {
+          browser.test.fail("Expected error when returning non-structured-clonable object");
+        }, error => {
+          const expected = /Script '.*script3.js' result is non-structured-clonable data/;
+          browser.test.assertTrue(expected.test(error.message), "Got expected error");
+          browser.test.assertTrue(error.fileName.endsWith("script3.js"), "Got expected fileName");
         }),
 
         browser.tabs.executeScript({
@@ -120,11 +149,7 @@ add_task(function* testExecuteScript() {
         }).then(result => {
           browser.test.fail("Expected error when specifying invalid frame ID");
         }, error => {
-          let details = {
-            frame_id: Number.MAX_SAFE_INTEGER,
-            matchesHost: ["http://mochi.test/", "http://example.com/"],
-          };
-          browser.test.assertEq(`No window matching ${JSON.stringify(details)}`,
+          browser.test.assertEq(`Frame not found, or missing host permission`,
                                 error.message, "Got expected error");
         }),
 
@@ -134,10 +159,7 @@ add_task(function* testExecuteScript() {
           }).then(result => {
             browser.test.fail("Expected error when trying to execute on invalid domain");
           }, error => {
-            let details = {
-              matchesHost: ["http://mochi.test/", "http://example.com/"],
-            };
-            browser.test.assertEq(`No window matching ${JSON.stringify(details)}`,
+            browser.test.assertEq("Missing host permission for the tab",
                                   error.message, "Got expected error");
           });
 
@@ -187,6 +209,12 @@ add_task(function* testExecuteScript() {
           await browser.tabs.remove(tab.id);
         }),
 
+        browser.tabs.create({url: "about:blank"}).then(async tab => {
+          const result = await browser.tabs.executeScript(tab.id, {code: "location.href", matchAboutBlank: true});
+          browser.test.assertEq("about:blank", result[0], "Script executed correctly in new tab");
+          await browser.tabs.remove(tab.id);
+        }),
+
         new Promise(resolve => {
           browser.runtime.onMessage.addListener(message => {
             browser.test.assertEq("script ran", message, "Expected runtime message");
@@ -215,20 +243,24 @@ add_task(function* testExecuteScript() {
       },
 
       "script2.js": "27",
+
+      "script3.js": "window",
     },
   });
 
-  yield extension.startup();
+  await extension.startup();
 
-  yield extension.awaitFinish("executeScript");
+  await extension.awaitFinish("executeScript");
 
-  yield extension.unload();
+  await extension.unload();
 
-  yield BrowserTestUtils.removeTab(tab);
+  await BrowserTestUtils.removeTab(tab);
 
   // Make sure that we're not holding on to references to closed message
   // managers.
   is(countMM(MessageChannel.messageManagers), messageManagersSize, "Message manager count");
-  is(countMM(MessageChannel.responseManagers), responseManagersSize, "Response manager count");
+  if (!useRemoteWebExtensions) {
+    is(countMM(MessageChannel.responseManagers), responseManagersSize, "Response manager count");
+  }
   is(MessageChannel.pendingResponses.size, 0, "Pending response count");
 });

@@ -12,6 +12,7 @@
 #include "nsMemory.h"
 
 #include "mozilla/CondVar.h"
+#include "mozilla/RecursiveMutex.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/Mutex.h"
 
@@ -24,6 +25,17 @@
 #include "gtest/gtest.h"
 
 using namespace mozilla;
+
+// The code in this file is also used by
+// storage/test/gtest/test_deadlock_detector.cpp. The following two macros are
+// used to provide the necessary differentiation between this file and that
+// file.
+#ifndef MUTEX
+#define MUTEX mozilla::Mutex
+#endif
+#ifndef TESTNAME
+#define TESTNAME(name) XPCOM##name
+#endif
 
 static PRThread*
 spawn(void (*run)(void*), void* arg)
@@ -44,16 +56,16 @@ extern unsigned int _gdb_sleep_duration;
  * Simple test fixture that makes sure the gdb sleep setup in the
  * ah crap handler is bypassed during the death tests.
  */
-class DeadlockDetectorTest : public ::testing::Test
+class TESTNAME(DeadlockDetectorTest) : public ::testing::Test
 {
 protected:
   void SetUp() final {
-    mOldSleepDuration = _gdb_sleep_duration;
-    _gdb_sleep_duration = 0;
+    mOldSleepDuration = ::_gdb_sleep_duration;
+    ::_gdb_sleep_duration = 0;
   }
 
   void TearDown() final {
-    _gdb_sleep_duration = mOldSleepDuration;
+    ::_gdb_sleep_duration = mOldSleepDuration;
   }
 
 private:
@@ -80,13 +92,13 @@ Sanity_Child()
 {
     DisableCrashReporter();
 
-    mozilla::Mutex m1("dd.sanity.m1");
+    MUTEX m1("dd.sanity.m1");
     m1.Lock();
     m1.Lock();
     return 0;                  // not reached
 }
 
-TEST_F(DeadlockDetectorTest, SanityDeathTest)
+TEST_F(TESTNAME(DeadlockDetectorTest), TESTNAME(SanityDeathTest))
 {
     const char* const regex =
         "###!!! ERROR: Potential deadlock detected.*"
@@ -104,15 +116,15 @@ Sanity2_Child()
 {
     DisableCrashReporter();
 
-    mozilla::Mutex m1("dd.sanity2.m1");
-    mozilla::Mutex m2("dd.sanity2.m2");
+    MUTEX m1("dd.sanity2.m1");
+    MUTEX m2("dd.sanity2.m2");
     m1.Lock();
     m2.Lock();
     m1.Lock();
     return 0;                  // not reached
 }
 
-TEST_F(DeadlockDetectorTest, Sanity2DeathTest)
+TEST_F(TESTNAME(DeadlockDetectorTest), TESTNAME(Sanity2DeathTest))
 {
     const char* const regex =
         "###!!! ERROR: Potential deadlock detected.*"
@@ -125,15 +137,17 @@ TEST_F(DeadlockDetectorTest, Sanity2DeathTest)
     ASSERT_DEATH_IF_SUPPORTED(Sanity2_Child(), regex);
 }
 
+#if 0
+// Temporarily disabled, see bug 1370644.
 int
 Sanity3_Child()
 {
     DisableCrashReporter();
 
-    mozilla::Mutex m1("dd.sanity3.m1");
-    mozilla::Mutex m2("dd.sanity3.m2");
-    mozilla::Mutex m3("dd.sanity3.m3");
-    mozilla::Mutex m4("dd.sanity3.m4");
+    MUTEX m1("dd.sanity3.m1");
+    MUTEX m2("dd.sanity3.m2");
+    MUTEX m3("dd.sanity3.m3");
+    MUTEX m4("dd.sanity3.m4");
 
     m1.Lock();
     m2.Lock();
@@ -149,7 +163,7 @@ Sanity3_Child()
     return 0;
 }
 
-TEST_F(DeadlockDetectorTest, Sanity3DeathTest)
+TEST_F(TESTNAME(DeadlockDetectorTest), TESTNAME(Sanity3DeathTest))
 {
     const char* const regex =
         "###!!! ERROR: Potential deadlock detected.*"
@@ -162,6 +176,7 @@ TEST_F(DeadlockDetectorTest, Sanity3DeathTest)
 
     ASSERT_DEATH_IF_SUPPORTED(Sanity3_Child(), regex);
 }
+#endif
 
 int
 Sanity4_Child()
@@ -169,14 +184,14 @@ Sanity4_Child()
     DisableCrashReporter();
 
     mozilla::ReentrantMonitor m1("dd.sanity4.m1");
-    mozilla::Mutex m2("dd.sanity4.m2");
+    MUTEX m2("dd.sanity4.m2");
     m1.Enter();
     m2.Lock();
     m1.Enter();
     return 0;
 }
 
-TEST_F(DeadlockDetectorTest, Sanity4DeathTest)
+TEST_F(TESTNAME(DeadlockDetectorTest), TESTNAME(Sanity4DeathTest))
 {
     const char* const regex =
         "Re-entering ReentrantMonitor after acquiring other resources.*"
@@ -186,6 +201,31 @@ TEST_F(DeadlockDetectorTest, Sanity4DeathTest)
         "=== Cycle completed at.*--- ReentrantMonitor : dd.sanity4.m1.*"
         "###!!! ASSERTION: Potential deadlock detected.*";
     ASSERT_DEATH_IF_SUPPORTED(Sanity4_Child(), regex);
+}
+
+int
+Sanity5_Child()
+{
+    DisableCrashReporter();
+
+    mozilla::RecursiveMutex m1("dd.sanity4.m1");
+    MUTEX m2("dd.sanity4.m2");
+    m1.Lock();
+    m2.Lock();
+    m1.Lock();
+    return 0;
+}
+
+TEST_F(TESTNAME(DeadlockDetectorTest), TESTNAME(Sanity5DeathTest))
+{
+    const char* const regex =
+        "Re-entering RecursiveMutex after acquiring other resources.*"
+        "###!!! ERROR: Potential deadlock detected.*"
+        "=== Cyclical dependency starts at.*--- RecursiveMutex : dd.sanity4.m1.*"
+        "--- Next dependency:.*--- Mutex : dd.sanity4.m2.*"
+        "=== Cycle completed at.*--- RecursiveMutex : dd.sanity4.m1.*"
+        "###!!! ASSERTION: Potential deadlock detected.*";
+    ASSERT_DEATH_IF_SUPPORTED(Sanity5_Child(), regex);
 }
 
 //-----------------------------------------------------------------------------
@@ -200,7 +240,7 @@ struct ThreadState
    * Locks to use during the test. This is just a reference and is owned by
    * the main test thread.
    */
-  const nsTArray<mozilla::Mutex*>& locks;
+  const nsTArray<MUTEX*>& locks;
 
   /**
    * Integer argument used to identify each thread.
@@ -208,13 +248,15 @@ struct ThreadState
   int id;
 };
 
+#if 0
+// Temporarily disabled, see bug 1370644.
 static void
 TwoThreads_thread(void* arg)
 {
     ThreadState* state = static_cast<ThreadState*>(arg);
 
-    mozilla::Mutex* ttM1 = state->locks[0];
-    mozilla::Mutex* ttM2 = state->locks[1];
+    MUTEX* ttM1 = state->locks[0];
+    MUTEX* ttM2 = state->locks[1];
 
     if (state->id) {
         ttM1->Lock();
@@ -235,9 +277,9 @@ TwoThreads_Child()
 {
     DisableCrashReporter();
 
-    nsTArray<mozilla::Mutex*> locks = {
-      new mozilla::Mutex("dd.twothreads.m1"),
-      new mozilla::Mutex("dd.twothreads.m2")
+    nsTArray<MUTEX*> locks = {
+      new MUTEX("dd.twothreads.m1"),
+      new MUTEX("dd.twothreads.m2")
     };
 
     ThreadState state_1 {locks, 0};
@@ -255,7 +297,7 @@ TwoThreads_Child()
     return 0;
 }
 
-TEST_F(DeadlockDetectorTest, TwoThreadsDeathTest)
+TEST_F(TESTNAME(DeadlockDetectorTest), TESTNAME(TwoThreadsDeathTest))
 {
     const char* const regex =
         "###!!! ERROR: Potential deadlock detected.*"
@@ -266,6 +308,7 @@ TEST_F(DeadlockDetectorTest, TwoThreadsDeathTest)
 
     ASSERT_DEATH_IF_SUPPORTED(TwoThreads_Child(), regex);
 }
+#endif
 
 static void
 ContentionNoDeadlock_thread(void* arg)
@@ -293,7 +336,7 @@ ContentionNoDeadlock_Child()
     const size_t kMutexCount = 4;
 
     PRThread* threads[3];
-    nsTArray<mozilla::Mutex*> locks;
+    nsTArray<MUTEX*> locks;
     ThreadState states[] = {
       { locks, 0 },
       { locks, 1 },
@@ -301,7 +344,7 @@ ContentionNoDeadlock_Child()
     };
 
     for (uint32_t i = 0; i < kMutexCount; ++i)
-        locks.AppendElement(new mozilla::Mutex("dd.cnd.ms"));
+        locks.AppendElement(new MUTEX("dd.cnd.ms"));
 
     for (int32_t i = 0; i < (int32_t) ArrayLength(threads); ++i)
         threads[i] = spawn(ContentionNoDeadlock_thread, states + i);
@@ -315,7 +358,7 @@ ContentionNoDeadlock_Child()
     return 0;
 }
 
-TEST_F(DeadlockDetectorTest, ContentionNoDeadlock)
+TEST_F(TESTNAME(DeadlockDetectorTest), TESTNAME(ContentionNoDeadlock))
 {
   // Just check that this test runs to completion.
   ASSERT_EQ(ContentionNoDeadlock_Child(), 0);

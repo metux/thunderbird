@@ -6,16 +6,15 @@ const XULNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/osfile.jsm");
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
 Components.utils.import("resource://gre/modules/LoginManagerParent.jsm");
 Components.utils.import("resource:///modules/Sanitizer.jsm");
 Components.utils.import("resource:///modules/mailnewsMigrator.js");
+Components.utils.import("resource:///modules/extensionSupport.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "UserAgentOverrides",
-                                  "resource://gre/modules/UserAgentOverrides.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
                                   "resource://gre/modules/FileUtils.jsm");
@@ -35,14 +34,46 @@ XPCOMUtils.defineLazyModuleGetter(this, "BookmarkHTMLUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "BookmarkJSONUtils",
                                   "resource://gre/modules/BookmarkJSONUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-                                  "resource://gre/modules/Task.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "DebuggerServer", () => {
   var tmp = {};
   Components.utils.import("resource://devtools/shared/Loader.jsm", tmp);
   return tmp.require("devtools/server/main").DebuggerServer;
 });
+
+const global = this;
+
+const listeners = {
+  mm: {
+    // PLEASE KEEP THIS LIST IN SYNC WITH THE MOBILE LISTENERS IN nsBrowserGlue.js
+    "RemoteLogins:findLogins": ["LoginManagerParent"],
+    "RemoteLogins:findRecipes": ["LoginManagerParent"],
+    "RemoteLogins:onFormSubmit": ["LoginManagerParent"],
+    "RemoteLogins:autoCompleteLogins": ["LoginManagerParent"],
+    "RemoteLogins:removeLogin": ["LoginManagerParent"],
+    "RemoteLogins:insecureLoginFormPresent": ["LoginManagerParent"],
+    // PLEASE KEEP THIS LIST IN SYNC WITH THE MOBILE LISTENERS IN nsBrowserGlue.js
+  },
+
+  receiveMessage(modules, data) {
+    let val;
+    for (let module of modules[data.name]) {
+      try {
+        val = global[module].receiveMessage(data) || val;
+      } catch (e) {
+        Components.utils.reportError(e);
+      }
+    }
+    return val;
+  },
+
+  init() {
+    let receiveMessageMM = this.receiveMessage.bind(this, this.mm);
+    for (let message of Object.keys(this.mm)) {
+      Services.mm.addMessageListener(message, receiveMessageMM);
+    }
+  }
+};
 
 // We try to backup bookmarks at idle times, to avoid doing that at shutdown.
 // Number of idle seconds before trying to backup bookmarks.  15 minutes.
@@ -56,6 +87,41 @@ const DEBUGGER_REMOTE_ENABLED = "devtools.debugger.remote-enabled";
 const DEBUGGER_REMOTE_PORT = "devtools.debugger.remote-port";
 const DEBUGGER_FORCE_LOCAL = "devtools.debugger.force-local";
 const DEBUGGER_WIFI_VISIBLE = "devtools.remote.wifi.visible";
+const DOWNLOAD_MANAGER_URL = "chrome://communicator/content/downloads/downloadmanager.xul";
+const PROGRESS_DIALOG_URL = "chrome://communicator/content/downloads/progressDialog.xul";
+const PREF_FOCUS_WHEN_STARTING = "browser.download.manager.focusWhenStarting";
+const PREF_FLASH_COUNT = "browser.download.manager.flashCount";
+const PREF_DM_BEHAVIOR = "browser.download.manager.behavior";
+
+var gDownloadManager;
+var gDownloadsLoaded;
+var gTaskbarProgress;
+var gWinTaskbar;
+var gDownloadsSummary;
+
+function onSummaryChanged()
+{
+  if (!gTaskbarProgress)
+    return;
+
+  const nsITaskbarProgress = Components.interfaces.nsITaskbarProgress;
+  var currentBytes = gDownloadsSummary.progressCurrentBytes;
+  var totalBytes = gDownloadsSummary.progressTotalBytes;
+  var state = gDownloadsSummary.allHaveStopped ?
+                currentBytes ? nsITaskbarProgress.STATE_PAUSED :
+                               nsITaskbarProgress.STATE_NO_PROGRESS :
+                currentBytes < totalBytes ? nsITaskbarProgress.STATE_NORMAL :
+                             nsITaskbarProgress.STATE_INDETERMINATE;
+  switch (state) {
+    case nsITaskbarProgress.STATE_NO_PROGRESS:
+    case nsITaskbarProgress.STATE_INDETERMINATE:
+      gTaskbarProgress.setProgressState(state, 0, 0);
+      break;
+    default:
+      gTaskbarProgress.setProgressState(state, currentBytes, totalBytes);
+      break;
+  }
+}
 
 // Constructor
 
@@ -65,6 +131,7 @@ function SuiteGlue() {
                                      "nsIIdleService");
 
   this._init();
+  extensionDefaults(); // extensionSupport.jsm
 }
 
 SuiteGlue.prototype = {
@@ -89,14 +156,14 @@ SuiteGlue.prototype = {
       case "error":
         var scriptError = Components.classes["@mozilla.org/scripterror;1"]
                                     .createInstance(nsIScriptError);
-        scriptError.initWithWindowID(Array.slice(aEvent.arguments),
+        scriptError.initWithWindowID(Array.from(aEvent.arguments),
                                      aEvent.filename, "", aEvent.lineNumber, 0,
                                      flg, "content javascript", aEvent.innerID);
         Services.console.logMessage(scriptError);
         break;
       case "log":
       case "info":
-        Services.console.logStringMessage(Array.slice(aEvent.arguments));
+        Services.console.logStringMessage(Array.from(aEvent.arguments));
         break;
     }
   },
@@ -163,11 +230,34 @@ SuiteGlue.prototype = {
         this._promptForMasterPassword();
         this._checkForNewAddons();
         Services.search.init();
-        LoginManagerParent.init();
+        listeners.init();
         Components.classes["@mozilla.org/globalmessagemanager;1"]
                   .getService(Components.interfaces.nsIMessageListenerManager)
                   .loadFrameScript("chrome://navigator/content/content.js", true);
         Components.utils.import("resource://gre/modules/NotificationDB.jsm");
+        Components.utils.import("resource://gre/modules/Downloads.jsm");
+        Components.utils.import("resource://gre/modules/DownloadIntegration.jsm");
+        DownloadIntegration.shouldPersistDownload = function() { return true; }
+        Downloads.getList(Downloads.ALL).then(list => list.addView(this))
+                                        .then(() => gDownloadsLoaded = true);
+
+        if ("@mozilla.org/widget/macdocksupport;1" in Components.classes)
+          gTaskbarProgress = Components.classes["@mozilla.org/widget/macdocksupport;1"]
+                                       .getService(Components.interfaces.nsITaskbarProgress);
+        else if ("@mozilla.org/windows-taskbar;1" in Components.classes) {
+          gWinTaskbar = Components.classes["@mozilla.org/windows-taskbar;1"]
+                                  .getService(Components.interfaces.nsIWinTaskbar);
+          if (!gWinTaskbar.available) {
+            gWinTaskbar = null;
+            break;
+          }
+        } else {
+          break;
+        }
+        Downloads.getSummary(Downloads.PUBLIC).then(list => {
+          gDownloadsSummary = list;
+          list.addView(this);
+        });
         break;
       case "sessionstore-windows-restored":
         this._onBrowserStartup(subject);
@@ -299,11 +389,8 @@ SuiteGlue.prototype = {
         case "javascript":
           break;
         default:
-          var str = Components.classes["@mozilla.org/supports-string;1"]
-                              .createInstance(Components.interfaces.nsISupportsString);
-          str.data = aLocation.spec;
-          Services.prefs.setComplexValue("browser.history.last_page_visited",
-                                         Components.interfaces.nsISupportsString, str);
+          Services.prefs.setStringPref("browser.history.last_page_visited",
+                                       aLocation.spec);
           break;
       }
     }
@@ -366,8 +453,6 @@ SuiteGlue.prototype = {
       Services.prefs.savePrefFile(null);
     }
 
-    this._setUpUserAgentOverrides();
-
     var timer = Components.classes["@mozilla.org/timer;1"]
                           .createInstance(Components.interfaces.nsITimer);
     timer.init(this, 3000, timer.TYPE_ONE_SHOT);
@@ -396,7 +481,7 @@ SuiteGlue.prototype = {
       // Migrate remote content exceptions for email addresses which are
       // encoded as chrome URIs.
       let permissionsDB =
-        Services.dirsvc.get("ProfD", Components.interfaces.nsILocalFile);
+        Services.dirsvc.get("ProfD", Components.interfaces.nsIFile);
       permissionsDB.append("permissions.sqlite");
       let db = Services.storage.openDatabase(permissionsDB);
 
@@ -459,7 +544,7 @@ SuiteGlue.prototype = {
   _copyDefaultProfileFiles: function()
   {
     // Copy default chrome example files if they do not exist in the current profile.
-    var profileDir = Services.dirsvc.get("ProfD", Components.interfaces.nsILocalFile);
+    var profileDir = Services.dirsvc.get("ProfD", Components.interfaces.nsIFile);
     profileDir.append("chrome");
 
     // The chrome directory in the current/new profile already exists so no copying.
@@ -510,26 +595,6 @@ SuiteGlue.prototype = {
         }
       }
     }
-  },
-
-  _setUpUserAgentOverrides: function ()
-  {
-    UserAgentOverrides.init();
-
-    function addMoodleOverride(aHttpChannel, aOriginalUA)
-    {
-      var cookies;
-      try {
-        cookies = aHttpChannel.getRequestHeader("Cookie");
-      } catch (e) { /* no cookie sent */ }
-
-      if (cookies && cookies.includes("MoodleSession"))
-        return aOriginalUA.replace(/Gecko\/[^ ]*/, "Gecko/20100101");
-      return null;
-    }
-
-    if (Services.prefs.getBoolPref("general.useragent.complexOverride.moodle"))
-      UserAgentOverrides.addComplexOverride(addMoodleOverride);
   },
 
   // Browser startup complete. All initial windows have opened.
@@ -589,7 +654,6 @@ SuiteGlue.prototype = {
    */
   _onProfileShutdown: function()
   {
-    UserAgentOverrides.uninit()
   },
 
   _promptForMasterPassword: function()
@@ -625,11 +689,11 @@ SuiteGlue.prototype = {
                            .createInstance(Components.interfaces.nsIMutableArray);
     let str = Components.classes["@mozilla.org/supports-string;1"]
                         .createInstance(Components.interfaces.nsISupportsString);
-    args.appendElement(str, false);
+    args.appendElement(str);
     str = Components.classes["@mozilla.org/supports-string;1"]
                     .createInstance(Components.interfaces.nsISupportsString);
     str.data = Services.prefs.getCharPref(PREF_EM_NEW_ADDONS_LIST);
-    args.appendElement(str, false);
+    args.appendElement(str);
     const EMURL = "chrome://mozapps/content/extensions/extensions.xul";
     // This window is the "first" to open.
     // 'alwaysRaised' makes sure it stays in the foreground (though unfocused)
@@ -756,7 +820,7 @@ SuiteGlue.prototype = {
       try {
         var url = Services.prefs.getComplexValue("browser.download.finished_sound_url",
                                                  Components.interfaces.nsISupportsString);
-        this._sound.play(Services.io.newURI(url.data, null, null));
+        this._sound.play(Services.io.newURI(url.data));
       } catch (e) {
         this._sound.beep();
       }
@@ -885,11 +949,11 @@ SuiteGlue.prototype = {
    *   Set to true by safe-mode dialog to indicate we must restore default
    *   bookmarks.
    */
-  _initPlaces: Task.async(function(aInitialMigrationPerformed) {
+  async _initPlaces(aInitialMigrationPerformed) {
     // We must instantiate the history service since it will tell us if we
     // need to import or restore bookmarks due to first-run, corruption or
     // forced migration (due to a major schema change).
-    var bookmarksBackupFile = yield PlacesBackups.getMostRecentBackup();
+    var bookmarksBackupFile = await PlacesBackups.getMostRecentBackup();
 
     // If the database is corrupt or has been newly created we should
     // import bookmarks. Same if we don't have any JSON backups, which
@@ -928,7 +992,7 @@ SuiteGlue.prototype = {
       // Get latest JSON backup.
       if (bookmarksBackupFile) {
         // Restore from JSON backup.
-        yield BookmarkJSONUtils.importFromFile(bookmarksBackupFile, true);
+        await BookmarkJSONUtils.importFromFile(bookmarksBackupFile, true);
         importBookmarks = false;
       }
       else if (dbStatus == PlacesUtils.history.DATABASE_STATUS_OK) {
@@ -937,7 +1001,7 @@ SuiteGlue.prototype = {
       else {
         // We have created a new database but we don't have any backup available.
         importBookmarks = true;
-        var bookmarksHTMLFile = Services.dirsvc.get("BMarks", Components.interfaces.nsILocalFile);
+        var bookmarksHTMLFile = Services.dirsvc.get("BMarks", Components.interfaces.nsIFile);
         if (bookmarksHTMLFile.exists()) {
           // If bookmarks.html is available in current profile import it...
           importBookmarksHTML = true;
@@ -975,11 +1039,11 @@ SuiteGlue.prototype = {
       var bookmarksURI = null;
       if (restoreDefaultBookmarks) {
         // User wants to restore bookmarks.html file from default profile folder.
-        bookmarksURI = Services.io.newURI("resource:///defaults/profile/bookmarks.html", null, null);
+        bookmarksURI = Services.io.newURI("resource:///defaults/profile/bookmarks.html");
       }
       else {
         // Get bookmarks.html file location.
-        var bookmarksFile = Services.dirsvc.get("BMarks", Components.interfaces.nsILocalFile);
+        var bookmarksFile = Services.dirsvc.get("BMarks", Components.interfaces.nsIFile);
         if (bookmarksFile.exists())
           bookmarksURI = Services.io.newFileURI(bookmarksFile);
       }
@@ -1019,7 +1083,7 @@ SuiteGlue.prototype = {
       this._idleService.addIdleObserver(this, BOOKMARKS_BACKUP_IDLE_TIME);
       this._isIdleObserver = true;
     }
-  }),
+  },
 
   /**
    * Places shut-down tasks
@@ -1046,7 +1110,7 @@ SuiteGlue.prototype = {
         // potential hangs (bug 518683).  The asynchronous shutdown operations
         // will then be handled by a shutdown service (bug 435058).
         var shutdownComplete = false;
-        BookmarkHTMLUtils.exportToFile(Services.dirsvc.get("BMarks", Components.interfaces.nsILocalFile)).then(
+        BookmarkHTMLUtils.exportToFile(Services.dirsvc.get("BMarks", Components.interfaces.nsIFile)).then(
           function onSuccess() {
             shutdownComplete = true;
           },
@@ -1140,13 +1204,13 @@ SuiteGlue.prototype = {
 
     try {
       Services.prefs.setComplexValue("browser.download.lastDir",
-                                     Components.interfaces.nsILocalFile,
+                                     Components.interfaces.nsIFile,
                                      Services.prefs.getComplexValue("browser.download.dir",
-                                                                    Components.interfaces.nsILocalFile));
+                                                                    Components.interfaces.nsIFile));
     } catch (ex) {
       // Ensure that even if we don't end up migrating to a lastDir that we
       // don't attempt another update. This will throw when QI'ed to
-      // nsILocalFile, but it does fallback gracefully.
+      // nsIFile, but it does fallback gracefully.
       Services.prefs.setCharPref("browser.download.lastDir", "");
     }
 
@@ -1211,9 +1275,86 @@ SuiteGlue.prototype = {
     this.dbgStart();
   },
 
+  // Download view
+  onDownloadAdded: function(aDownload, aNewest)
+  {
+    aDownload.displayName =
+                 aDownload.target.path ? OS.Path.basename(aDownload.target.path)
+                                       : aDownload.source.url;
+    this.onDownloadChanged(aDownload);
+    if (!gDownloadsLoaded)
+      return;
+
+    var behavior = aDownload.source.isPrivate ? 1 :
+                     Services.prefs.getIntPref(PREF_DM_BEHAVIOR);
+    switch (behavior) {
+      case 0:
+        this.showDownloadManager(aDownload);
+        break;
+      case 1:
+        Services.ww.openWindow(null, PROGRESS_DIALOG_URL, null,
+                               "chrome,titlebar,centerscreen,minimizable=yes,dialog=no",
+                               { wrappedJSObject: aDownload });
+        break;
+    }
+
+    return; // No UI for behavior >= 2
+  },
+
+  onDownloadChanged: function(aDownload) {
+    const nsIDownloadManager = Components.interfaces.nsIDownloadManager;
+    aDownload.state =
+                !aDownload.stopped ? nsIDownloadManager.DOWNLOAD_DOWNLOADING :
+                aDownload.succeeded ? nsIDownloadManager.DOWNLOAD_FINISHED :
+                aDownload.error ?  aDownload.error.becauseBlocked ?
+                  nsIDownloadManager.DOWNLOAD_BLOCKED_POLICY :
+                  nsIDownloadManager.DOWNLOAD_FAILED :
+                !aDownload.canceled ? nsIDownloadManager.DOWNLOAD_NOTSTARTED :
+                aDownload.hasPartialData ? nsIDownloadManager.DOWNLOAD_PAUSED :
+                                           nsIDownloadManager.DOWNLOAD_CANCELED;
+    if (gDownloadsLoaded && (aDownload.succeeded || !aDownload.stopped))
+      aDownload.endTime = Date.now();
+  },
+
+  // Download summary
+  onSummaryChanged: onSummaryChanged,
+
   // ------------------------------
   // public nsISuiteGlue members
   // ------------------------------
+
+  showDownloadManager: function(aDownload)
+  {
+    if (!gDownloadManager) {
+      gDownloadManager = Services.ww.openWindow(null, DOWNLOAD_MANAGER_URL,
+                                                null, "all,dialog=no",
+                                                { wrappedJSObject: aDownload });
+      gDownloadManager.addEventListener("load", function() {
+        gDownloadManager.addEventListener("unload", function() {
+          gDownloadManager = null;
+          if (gWinTaskbar)
+            gTaskbarProgress = null;
+        });
+        if (gWinTaskbar) {
+          var docShell = gDownloadManager.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                                         .getInterface(Components.interfaces.nsIWebNavigation)
+                                         .QueryInterface(Components.interfaces.nsIDocShell);
+          gTaskbarProgress = gWinTaskbar.getTaskbarProgress(docShell);
+          onSummaryChanged();
+        }
+      });
+    } else if (!aDownload ||
+               Services.prefs.getBoolPref(PREF_FOCUS_WHEN_STARTING)) {
+        gDownloadManager.focus();
+    } else {
+      // This preference may not be set, so defaulting to two.
+      var flashCount = 2;
+      try {
+        flashCount = Services.prefs.getIntPref(PREF_FLASH_COUNT);
+      } catch (e) { }
+      gDownloadManager.getAttentionWithCycleCount(flashCount);
+    }
+  },
 
   sanitize: function(aParentWindow)
   {

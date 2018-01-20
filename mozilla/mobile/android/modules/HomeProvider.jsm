@@ -76,7 +76,7 @@ const SQL = {
 
   addColumnBackgroundUrl:
     "ALTER TABLE items ADD COLUMN background_url TEXT",
-}
+};
 
 /**
  * Technically this function checks to see if the user is on a local network,
@@ -108,10 +108,7 @@ var gSyncCallbacks = {};
  */
 function syncTimerCallback(timer) {
   for (let datasetId in gSyncCallbacks) {
-    let lastSyncTime = 0;
-    try {
-      lastSyncTime = Services.prefs.getIntPref(getLastSyncPrefName(datasetId));
-    } catch(e) { }
+    let lastSyncTime = Services.prefs.getIntPref(getLastSyncPrefName(datasetId), 0);
 
     let now = getNowInSeconds();
     let { interval: interval, callback: callback } = gSyncCallbacks[datasetId];
@@ -213,7 +210,7 @@ var gDatabaseEnsured = false;
  * Creates the database schema.
  */
 function createDatabase(db) {
-  return Task.spawn(function create_database_task() {
+  return Task.spawn(function* create_database_task() {
     yield db.execute(SQL.createItemsTable);
   });
 }
@@ -222,7 +219,7 @@ function createDatabase(db) {
  * Migrates the database schema to a new version.
  */
 function upgradeDatabase(db, oldVersion, newVersion) {
-  return Task.spawn(function upgrade_database_task() {
+  return Task.spawn(function* upgrade_database_task() {
     switch (oldVersion) {
       case 1:
         // Migration from v1 to latest:
@@ -251,10 +248,10 @@ function upgradeDatabase(db, oldVersion, newVersion) {
  * @resolves Handle on an opened SQLite database.
  */
 function getDatabaseConnection() {
-  return Task.spawn(function get_database_connection_task() {
+  return Task.spawn(function* get_database_connection_task() {
     let db = yield Sqlite.openConnection({ path: DB_PATH });
     if (gDatabaseEnsured) {
-      throw new Task.Result(db);
+      return db;
     }
 
     try {
@@ -270,14 +267,14 @@ function getDatabaseConnection() {
       }
 
       yield db.setSchemaVersion(SCHEMA_VERSION);
-    } catch(e) {
+    } catch (e) {
       // Close the DB connection before passing the exception to the consumer.
       yield db.close();
       throw e;
     }
 
     gDatabaseEnsured = true;
-    throw new Task.Result(db);
+    return db;
   });
 }
 
@@ -289,13 +286,13 @@ function getDatabaseConnection() {
  */
 function validateItem(datasetId, item) {
   if (!item.url) {
-    throw new ValidationError('HomeStorage: All rows must have an URL: datasetId = ' +
+    throw new ValidationError("HomeStorage: All rows must have an URL: datasetId = " +
                               datasetId);
   }
 
   if (!item.image_url && !item.title && !item.description) {
-    throw new ValidationError('HomeStorage: All rows must have at least an image URL, ' +
-                              'or a title or a description: datasetId = ' + datasetId);
+    throw new ValidationError("HomeStorage: All rows must have at least an image URL, " +
+                              "or a title or a description: datasetId = " + datasetId);
   }
 }
 
@@ -315,7 +312,7 @@ function refreshDataset(datasetId) {
   timer.initWithCallback(function(timer) {
     delete gRefreshTimers[datasetId];
 
-    Messaging.sendRequest({
+    EventDispatcher.instance.sendRequest({
       type: "HomePanels:RefreshDataset",
       datasetId: datasetId
     });
@@ -350,10 +347,10 @@ HomeStorage.prototype = {
         ": you cannot save more than " + MAX_SAVE_COUNT + " items at once";
     }
 
-    return Task.spawn(function save_task() {
+    return Task.spawn(function* save_task() {
       let db = yield getDatabaseConnection();
       try {
-        yield db.executeTransaction(function save_transaction() {
+        yield db.executeTransaction(function* save_transaction() {
           if (options && options.replace) {
             yield db.executeCached(SQL.deleteFromDataset, { dataset_id: this.datasetId });
           }
@@ -392,7 +389,7 @@ HomeStorage.prototype = {
    * @resolves When the operation has completed.
    */
   deleteAll: function() {
-    return Task.spawn(function delete_all_task() {
+    return Task.spawn(function* delete_all_task() {
       let db = yield getDatabaseConnection();
       try {
         let params = { dataset_id: this.datasetId };

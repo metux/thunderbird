@@ -20,6 +20,9 @@
 <!ENTITY installAddonFromFile.accesskey       "S">
 <!ENTITY toolsMenu.tooltip                    "Ifecka i yizegrar imaṛṛa">
 
+<!ENTITY getThemes.description                "Nadi akken ad tsagneḍ iminig-inek?">
+<!ENTITY getThemes.learnMore                  "Fren seg agimen n isental">
+
 <!ENTITY cmd.back.tooltip                     "Uγal s yiwen n usebter">
 <!ENTITY cmd.forward.tooltip                  "Aẓ s yiwen usebter">
 
@@ -27,8 +30,8 @@
 <!ENTITY showAllExtensions.button.label       "Sken akk iseɣzaf">
 <!ENTITY debugAddons.label                    "Izegrar n tseɣtit">
 <!ENTITY debugAddons.accesskey                "I">
-<!-- global warnings -->
 
+<!-- global warnings -->
 <!ENTITY warning.safemode.label                    "Armad n izegrar yekkes-it uskar aɣalsan.">
 <!ENTITY warning.checkcompatibility.label          "Asenqedn umṣada n izegrar ur yermid ara. Yezmer ad tesɛuḍ izegrar ur yemṣadan ara.">
 <!ENTITY warning.checkcompatibility.enable.label   "Rmed">
@@ -36,14 +39,14 @@
 <!ENTITY warning.updatesecurity.label              "Asenqed n ileqman n tɣellist n izegrar ur yermid ara. Yezmer ad tesɛuḍ yir izegrar.">
 <!ENTITY warning.updatesecurity.enable.label       "Rmed">
 <!ENTITY warning.updatesecurity.enable.tooltip     "Rmed asenqed n ileqman n tɣellist i yezgrar isemmadanen">
-<!-- categories / views -->
 
+<!-- categories / views -->
 <!ENTITY view.search.label                    "Nadi">
 <!ENTITY view.discover.label                  "Awi-d izegrar">
 <!ENTITY view.recentUpdates.label             "Ileqman n melmi kan">
 <!ENTITY view.availableUpdates.label          "Ileqman yellan">
-<!-- addon updates -->
 
+<!-- addon updates -->
 <!ENTITY updates.checkForUpdates.label        "Nadi ileqman">
 <!ENTITY updates.checkForUpdates.accesskey    "N">
 <!ENTITY updates.viewUpdates.label            "Sken ileqman n melmi kan">
@@ -71,13 +74,13 @@
 <!ENTITY updates.manualUpdatesFound.label     "Sken ileqman yellan">
 <!ENTITY updates.updateSelected.label         "Sebded ileqman">
 <!ENTITY updates.updateSelected.tooltip       "Sebded ileqman yellan di tebdart-agi">
-<!-- addon actions -->
 
+<!-- addon actions -->
 <!ENTITY cmd.showDetails.label                "Sken ugar n telɣut">
 <!ENTITY cmd.showDetails.accesskey            "S">
 <!ENTITY cmd.findUpdates.label                "Nadi ileqman">
 <!ENTITY cmd.findUpdates.accesskey            "N">
-<!ENTITY cmd.preferencesWin.label             "Iɣewwaṛen">
+<!ENTITY cmd.preferencesWin.label             "Iγewwaṛen">
 <!ENTITY cmd.preferencesWin.accesskey         "I">
 <!ENTITY cmd.preferencesUnix.label            "Ismenyifen">
 <!ENTITY cmd.preferencesUnix.accesskey        "I">
@@ -103,7 +106,7 @@
 <!ENTITY cmd.installAddon.accesskey           "S">
 <!ENTITY cmd.uninstallAddon.label             "Kkes">
 <!ENTITY cmd.uninstallAddon.accesskey         "K">
-<!ENTITY cmd.showPreferencesWin.label         "Iɣewwaṛen">
+<!ENTITY cmd.showPreferencesWin.label         "Iγewwaṛen">
 <!ENTITY cmd.showPreferencesWin.tooltip       "Snifel iɣewwaṛen n uzegrir-agi">
 <!ENTITY cmd.showPreferencesUnix.label        "Ismenyifen">
 <!ENTITY cmd.showPreferencesUnix.tooltip      "Snifel ismenyaf n uzegrir-agi">
@@ -115,15 +118,16 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "Sken iwenniten n lqem-agi">
 <!ENTITY cmd.hideReleaseNotes.label           "Ffer iwenniten n lqem">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Ffer iwenniten n lqem-agi">
+<!ENTITY cmd.findReplacement.label            "Af adig">
+
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
      Displayed in the center of the Get Add-ons view, see bug 601143 for mockups. -->
-
 <!ENTITY discover.title                       "D acu i d-izegrar?">
-<!ENTITY discover.description2                "Izegrar d isnasen ak yeǧǧen ad tsagneḍ &brandShortName; s  tmahilin neɣ iɣunab isemmadanen. Fares tagwnitt s ugalis adisan, qaṛeɛ tagnawt neɣ snifel arwes n &brandShortName; akken tebɣiḍ. ">
-<!ENTITY discover.footer                      "Ticki tuqqna yinek ɣer Internet termed, agalis-agi ad k-d-isken kra n izegrar ifazen d wid yettwassnen aṭas.">
-<!-- detail view -->
+<!ENTITY discover.description2                "Izegrar d isnasen a k-yeǧǧen ad tsagneḍ &brandShortName; s  tmahilin neɣ iɣunab isemmadanen. Faṛes tagnitt s ugalis adisan, qaṛeɛ tagnawt neɣ snifel arwes n &brandShortName; akken tebɣiḍ. ">
+<!ENTITY discover.footer                      "Ticki tuqqna-inek ɣer Internet termed, agalis-a ad k-d-isken kra n izegrar ifazen d wid yettwassnen aṭas.">
 
+<!-- detail view -->
 <!ENTITY detail.version.label                 "Lqem">
 <!ENTITY detail.lastupdated.label             "Aleqqem aneggaru">
 <!ENTITY detail.creator.label                 "Aneflay">
@@ -146,23 +150,23 @@
 <!ENTITY detail.checkForUpdates.label         "Senqed ma llan ileqman imaynuten">
 <!ENTITY detail.checkForUpdates.accesskey     "S">
 <!ENTITY detail.checkForUpdates.tooltip       "senqed ileqman n uzegrir-agi">
-<!ENTITY detail.showPreferencesWin.label      "Iɣewwaṛen">
+<!ENTITY detail.showPreferencesWin.label      "Iγewwaṛen">
 <!ENTITY detail.showPreferencesWin.accesskey  "w">
 <!ENTITY detail.showPreferencesWin.tooltip    "Snifel iɣewwaṛen n uzegrir-agi">
 <!ENTITY detail.showPreferencesUnix.label     "Ismenyifen">
 <!ENTITY detail.showPreferencesUnix.accesskey "I">
 <!ENTITY detail.showPreferencesUnix.tooltip   "Snifel ismenyaf n uzegrir-agi">
+
+
 <!-- ratings -->
-
-
 <!ENTITY rating2.label                        "Adakaḍ">
-<!-- download/install progress -->
 
+<!-- download/install progress -->
 <!ENTITY progress.pause.tooltip               "Serǧu">
 <!ENTITY progress.cancel.tooltip              "Sefsex">
+
+
 <!-- list sorting -->
-
-
 <!ENTITY sort.name.label                      "Isem">
 <!ENTITY sort.name.tooltip                    "Smizzwer s yisem">
 <!ENTITY sort.dateUpdated.label               "Aleqqem aneggaru">
@@ -182,6 +186,10 @@
 <!ENTITY addon.details.label                  "Ugar">
 <!ENTITY addon.details.tooltip                "Sken aglam leqqayen ɣef uzegrir-agi">
 <!ENTITY addon.unknownDate                    "Arussin">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "LEGACY">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -215,12 +223,12 @@
 <!ENTITY eula.accept                          "Qbel u sebded…">
 
 <!ENTITY settings.path.button.label           "ɛiwed nadi ...">
+
 <!-- LOCALIZATION NOTE (experiment.info.label): The strings related to
      experiments are present on the "Experiments" tab of the add-ons manager.
      This tab won't be displayed unless an Experiment add-on is installed.
      Install https://people.mozilla.org/~gszorc/dummy-experiment-addon.xpi
      to cause this tab to appear. -->
-
 <!ENTITY experiment.info.label "D-acu-t wa?Tilisɣelt tezmer ad tessebded, daɣen ad tessenker tirmitin si sya ɣeṛ da.">
 <!ENTITY experiment.info.learnmore "Issin ugar">
 <!ENTITY experiment.info.learnmore.accesskey "L">
@@ -246,3 +254,9 @@
 
 <!ENTITY pluginDeprecation.description "Tettut kra? Kra nizegrar ur ttwasefranken ara tura di &brandShortName;.">
 <!ENTITY pluginDeprecation.learnMore "Issin ugar">
+
+<!ENTITY legacyWarning.description "Tettut kra? Kra n izegrar ur ttwasefraken ara tura di &brandShortName;.">
+<!ENTITY legacyWarning.showLegacy "Sken akk iseɣzaf iqburen">
+<!ENTITY legacyExtensions.title "Iseγzaf iqburen">
+<!ENTITY legacyExtensions.description "Iseγzaf-agi ur sεin ara ilugan n &brandShortName; imiranen γef aya ittwasensen.">
+<!ENTITY legacyExtensions.learnMore "Issin ugar ɣef usnifel ɣer izegrar">

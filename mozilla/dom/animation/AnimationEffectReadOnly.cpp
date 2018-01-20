@@ -6,6 +6,8 @@
 
 #include "mozilla/dom/AnimationEffectReadOnly.h"
 #include "mozilla/dom/AnimationEffectReadOnlyBinding.h"
+
+#include "mozilla/dom/Animation.h"
 #include "mozilla/AnimationUtils.h"
 #include "mozilla/FloatingPoint.h"
 
@@ -23,7 +25,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(AnimationEffectReadOnly)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDocument, mTiming, mAnimation)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(AnimationEffectReadOnly)
@@ -81,6 +82,9 @@ AnimationEffectReadOnly::SetSpecifiedTiming(const TimingParams& aTiming)
   mTiming->SetTimingParams(aTiming);
   if (mAnimation) {
     mAnimation->NotifyEffectTimingUpdated();
+    if (AsKeyframeEffect()) {
+      AsKeyframeEffect()->RequestRestyle(EffectCompositor::RestyleType::Layer);
+    }
   }
   // For keyframe effects, NotifyEffectTimingUpdated above will eventually cause
   // KeyframeEffectReadOnly::NotifyAnimationTimingUpdated to be called so it can
@@ -93,32 +97,32 @@ AnimationEffectReadOnly::GetComputedTimingAt(
     const TimingParams& aTiming,
     double aPlaybackRate)
 {
-  const StickyTimeDuration zeroDuration;
+  static const StickyTimeDuration zeroDuration;
 
   // Always return the same object to benefit from return-value optimization.
   ComputedTiming result;
 
-  if (aTiming.mDuration) {
-    MOZ_ASSERT(aTiming.mDuration.ref() >= zeroDuration,
+  if (aTiming.Duration()) {
+    MOZ_ASSERT(aTiming.Duration().ref() >= zeroDuration,
                "Iteration duration should be positive");
-    result.mDuration = aTiming.mDuration.ref();
+    result.mDuration = aTiming.Duration().ref();
   }
 
-  MOZ_ASSERT(aTiming.mIterations >= 0.0 && !IsNaN(aTiming.mIterations),
+  MOZ_ASSERT(aTiming.Iterations() >= 0.0 && !IsNaN(aTiming.Iterations()),
              "mIterations should be nonnegative & finite, as ensured by "
              "ValidateIterations or CSSParser");
-  result.mIterations = aTiming.mIterations;
+  result.mIterations = aTiming.Iterations();
 
-  MOZ_ASSERT(aTiming.mIterationStart >= 0.0,
+  MOZ_ASSERT(aTiming.IterationStart() >= 0.0,
              "mIterationStart should be nonnegative, as ensured by "
              "ValidateIterationStart");
-  result.mIterationStart = aTiming.mIterationStart;
+  result.mIterationStart = aTiming.IterationStart();
 
   result.mActiveDuration = aTiming.ActiveDuration();
   result.mEndTime = aTiming.EndTime();
-  result.mFill = aTiming.mFill == dom::FillMode::Auto ?
+  result.mFill = aTiming.Fill() == dom::FillMode::Auto ?
                  dom::FillMode::None :
-                 aTiming.mFill;
+                 aTiming.Fill();
 
   // The default constructor for ComputedTiming sets all other members to
   // values consistent with an animation that has not been sampled.
@@ -127,16 +131,12 @@ AnimationEffectReadOnly::GetComputedTimingAt(
   }
   const TimeDuration& localTime = aLocalTime.Value();
 
-  // Calculate the time within the active interval.
-  // https://w3c.github.io/web-animations/#active-time
-  StickyTimeDuration activeTime;
-
   StickyTimeDuration beforeActiveBoundary =
-    std::max(std::min(StickyTimeDuration(aTiming.mDelay), result.mEndTime),
+    std::max(std::min(StickyTimeDuration(aTiming.Delay()), result.mEndTime),
              zeroDuration);
 
   StickyTimeDuration activeAfterBoundary =
-    std::max(std::min(StickyTimeDuration(aTiming.mDelay +
+    std::max(std::min(StickyTimeDuration(aTiming.Delay() +
                                          result.mActiveDuration),
                       result.mEndTime),
              zeroDuration);
@@ -148,8 +148,8 @@ AnimationEffectReadOnly::GetComputedTimingAt(
       // The animation isn't active or filling at this time.
       return result;
     }
-    activeTime =
-      std::max(std::min(StickyTimeDuration(localTime - aTiming.mDelay),
+    result.mActiveTime =
+      std::max(std::min(StickyTimeDuration(localTime - aTiming.Delay()),
                         result.mActiveDuration),
                zeroDuration);
   } else if (localTime < beforeActiveBoundary ||
@@ -159,24 +159,25 @@ AnimationEffectReadOnly::GetComputedTimingAt(
       // The animation isn't active or filling at this time.
       return result;
     }
-    activeTime = std::max(StickyTimeDuration(localTime - aTiming.mDelay),
-                          zeroDuration);
+    result.mActiveTime
+      = std::max(StickyTimeDuration(localTime - aTiming.Delay()),
+                 zeroDuration);
   } else {
-    MOZ_ASSERT(result.mActiveDuration != zeroDuration,
+    MOZ_ASSERT(result.mActiveDuration,
                "How can we be in the middle of a zero-duration interval?");
     result.mPhase = ComputedTiming::AnimationPhase::Active;
-    activeTime = localTime - aTiming.mDelay;
+    result.mActiveTime = localTime - aTiming.Delay();
   }
 
   // Convert active time to a multiple of iterations.
   // https://w3c.github.io/web-animations/#overall-progress
   double overallProgress;
-  if (result.mDuration == zeroDuration) {
+  if (!result.mDuration) {
     overallProgress = result.mPhase == ComputedTiming::AnimationPhase::Before
                       ? 0.0
                       : result.mIterations;
   } else {
-    overallProgress = activeTime / result.mDuration;
+    overallProgress = result.mActiveTime / result.mDuration;
   }
 
   // Factor in iteration start offset.
@@ -187,8 +188,9 @@ AnimationEffectReadOnly::GetComputedTimingAt(
   // Determine the 0-based index of the current iteration.
   // https://w3c.github.io/web-animations/#current-iteration
   result.mCurrentIteration =
-    IsInfinite(result.mIterations) &&
-      result.mPhase == ComputedTiming::AnimationPhase::After
+    (result.mIterations >= UINT64_MAX
+     && result.mPhase == ComputedTiming::AnimationPhase::After)
+    || overallProgress >= UINT64_MAX
     ? UINT64_MAX // In GetComputedTimingDictionary(),
                  // we will convert this into Infinity
     : static_cast<uint64_t>(overallProgress);
@@ -200,19 +202,18 @@ AnimationEffectReadOnly::GetComputedTimingAt(
                     ? fmod(overallProgress, 1.0)
                     : fmod(result.mIterationStart, 1.0);
 
-  // When we finish exactly at the end of an iteration we need to report
-  // the end of the final iteration and not the start of the next iteration.
-  // We *don't* want to do this when we have a zero-iteration animation or
-  // when the animation has been effectively made into a zero-duration animation
-  // using a negative end-delay, however.
-  if (result.mPhase == ComputedTiming::AnimationPhase::After &&
-      progress == 0.0 &&
-      result.mIterations != 0.0 &&
-      (activeTime != zeroDuration || result.mDuration == zeroDuration)) {
-    // The only way we can be in the after phase with a progress of zero and
-    // a current iteration of zero, is if we have a zero iteration count or
-    // were clipped using a negative end delay--both of which we should have
-    // detected above.
+  // When we are at the end of the active interval and the end of an iteration
+  // we need to report the end of the final iteration and not the start of the
+  // next iteration. We *don't* want to do this, however, when we have
+  // a zero-iteration animation.
+  if (progress == 0.0 &&
+      (result.mPhase == ComputedTiming::AnimationPhase::After ||
+       result.mPhase == ComputedTiming::AnimationPhase::Active) &&
+      result.mActiveTime == result.mActiveDuration &&
+      result.mIterations != 0.0) {
+    // The only way we can reach the end of the active interval and have
+    // a progress of zero and a current iteration of zero, is if we have a zero
+    // iteration count -- something we should have detected above.
     MOZ_ASSERT(result.mCurrentIteration != 0,
                "Should not have zero current iteration");
     progress = 1.0;
@@ -223,7 +224,7 @@ AnimationEffectReadOnly::GetComputedTimingAt(
 
   // Factor in the direction.
   bool thisIterationReverse = false;
-  switch (aTiming.mDirection) {
+  switch (aTiming.Direction()) {
     case PlaybackDirection::Normal:
       thisIterationReverse = false;
       break;
@@ -237,7 +238,7 @@ AnimationEffectReadOnly::GetComputedTimingAt(
       thisIterationReverse = (result.mCurrentIteration & 1) == 0;
       break;
     default:
-      MOZ_ASSERT(true, "Unknown PlaybackDirection type");
+      MOZ_ASSERT_UNREACHABLE("Unknown PlaybackDirection type");
   }
   if (thisIterationReverse) {
     progress = 1.0 - progress;
@@ -253,8 +254,8 @@ AnimationEffectReadOnly::GetComputedTimingAt(
   }
 
   // Apply the easing.
-  if (aTiming.mFunction) {
-    progress = aTiming.mFunction->GetValue(progress, result.mBeforeFlag);
+  if (aTiming.TimingFunction()) {
+    progress = aTiming.TimingFunction()->GetValue(progress, result.mBeforeFlag);
   }
 
   MOZ_ASSERT(IsFinite(progress), "Progress value should be finite");
@@ -279,14 +280,14 @@ GetComputedTimingDictionary(const ComputedTiming& aComputedTiming,
                             ComputedTimingProperties& aRetVal)
 {
   // AnimationEffectTimingProperties
-  aRetVal.mDelay = aTiming.mDelay.ToMilliseconds();
-  aRetVal.mEndDelay = aTiming.mEndDelay.ToMilliseconds();
+  aRetVal.mDelay = aTiming.Delay().ToMilliseconds();
+  aRetVal.mEndDelay = aTiming.EndDelay().ToMilliseconds();
   aRetVal.mFill = aComputedTiming.mFill;
   aRetVal.mIterations = aComputedTiming.mIterations;
   aRetVal.mIterationStart = aComputedTiming.mIterationStart;
   aRetVal.mDuration.SetAsUnrestrictedDouble() =
     aComputedTiming.mDuration.ToMilliseconds();
-  aRetVal.mDirection = aTiming.mDirection;
+  aRetVal.mDirection = aTiming.Direction();
 
   // ComputedTimingProperties
   aRetVal.mActiveDuration = aComputedTiming.mActiveDuration.ToMilliseconds();

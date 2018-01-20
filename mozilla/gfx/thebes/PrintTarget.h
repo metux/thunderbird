@@ -9,6 +9,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/gfx/2D.h"
 #include "nsISupportsImpl.h"
+#include "nsStringFwd.h"
 
 namespace mozilla {
 namespace gfx {
@@ -30,7 +31,9 @@ public:
 
   /// Must be matched 1:1 by an EndPrinting/AbortPrinting call.
   virtual nsresult BeginPrinting(const nsAString& aTitle,
-                                 const nsAString& aPrintToFileName) {
+                                 const nsAString& aPrintToFileName,
+                                 int32_t aStartPage,
+                                 int32_t aEndPage) {
     return NS_OK;
   }
   virtual nsresult EndPrinting() {
@@ -133,6 +136,11 @@ public:
    */
   virtual already_AddRefed<DrawTarget> GetReferenceDrawTarget(DrawEventRecorder* aRecorder);
 
+  static void AdjustPrintJobNameForIPP(const nsAString& aJobName,
+                                       nsCString& aAdjustedJobName);
+  static void AdjustPrintJobNameForIPP(const nsAString& aJobName,
+                                       nsString& aAdjustedJobName);
+
 protected:
 
   // Only created via subclass's constructors
@@ -141,16 +149,25 @@ protected:
   // Protected because we're refcounted
   virtual ~PrintTarget();
 
-  already_AddRefed<DrawTarget>
-  CreateRecordingDrawTarget(DrawEventRecorder* aRecorder,
-                            DrawTarget* aDrawTarget);
+  static already_AddRefed<DrawTarget>
+  CreateWrapAndRecordDrawTarget(DrawEventRecorder* aRecorder,
+                                DrawTarget* aDrawTarget);
 
   cairo_surface_t* mCairoSurface;
   RefPtr<DrawTarget> mRefDT; // reference DT
+
+  // Early on during printing we expect to be called without a recorder in
+  // order to gather metrics for reflow.  However, in a content process, once
+  // we go on to paint we then expect to be called with a recorder.  Hence why
+  // we have this separate recording reference DrawTarget (which wraps mRefDT).
+  RefPtr<DrawTarget> mRecordingRefDT;
+
   IntSize mSize;
   bool mIsFinished;
 #ifdef DEBUG
   bool mHasActivePage;
+  // owned by mRecordingRefDT, so kept alive for our entire lifetime if set:
+  DrawEventRecorder* mRecorder;
 #endif
 };
 

@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,6 +10,8 @@
 #include "nsIContentViewer.h"
 #include "nsIServiceManager.h"
 #include "nsPrintEngine.h"
+
+using namespace mozilla;
 
 NS_IMPL_ISUPPORTS_INHERITED(nsPagePrintTimer, mozilla::Runnable, nsITimerCallback)
 
@@ -24,45 +27,35 @@ nsPagePrintTimer::~nsPagePrintTimer()
   }
 }
 
-nsresult 
+nsresult
 nsPagePrintTimer::StartTimer(bool aUseDelay)
 {
-  nsresult result;
-  mTimer = do_CreateInstance("@mozilla.org/timer;1", &result);
-  if (NS_FAILED(result)) {
-    NS_WARNING("unable to start the timer");
-  } else {
-    uint32_t delay = 0;
-    if (aUseDelay) {
-      if (mFiringCount < 10) {
-        // Longer delay for the few first pages.
-        delay = mDelay + ((10 - mFiringCount) * 100);
-      } else {
-        delay = mDelay;
-      }
+  uint32_t delay = 0;
+  if (aUseDelay) {
+    if (mFiringCount < 10) {
+      // Longer delay for the few first pages.
+      delay = mDelay + ((10 - mFiringCount) * 100);
+    } else {
+      delay = mDelay;
     }
-    mTimer->InitWithCallback(this, delay, nsITimer::TYPE_ONE_SHOT);
   }
-  return result;
+  return NS_NewTimerWithCallback(getter_AddRefs(mTimer),
+                                 this, delay, nsITimer::TYPE_ONE_SHOT,
+                                 mDocument->EventTargetFor(TaskCategory::Other));
 }
 
 nsresult
 nsPagePrintTimer::StartWatchDogTimer()
 {
-  nsresult result;
   if (mWatchDogTimer) {
     mWatchDogTimer->Cancel();
   }
-  mWatchDogTimer = do_CreateInstance("@mozilla.org/timer;1", &result);
-  if (NS_FAILED(result)) {
-    NS_WARNING("unable to start the timer");
-  } else {
-    // Instead of just doing one timer for a long period do multiple so we
-    // can check if the user cancelled the printing.
-    mWatchDogTimer->InitWithCallback(this, WATCH_DOG_INTERVAL,
-                                     nsITimer::TYPE_ONE_SHOT);
-  }
-  return result;
+  // Instead of just doing one timer for a long period do multiple so we
+  // can check if the user cancelled the printing.
+  return NS_NewTimerWithCallback(getter_AddRefs(mWatchDogTimer),
+                                 this, WATCH_DOG_INTERVAL,
+                                 nsITimer::TYPE_ONE_SHOT,
+                                 mDocument->EventTargetFor(TaskCategory::Other));
 }
 
 void
@@ -76,7 +69,7 @@ nsPagePrintTimer::StopWatchDogTimer()
 
 //nsRunnable
 NS_IMETHODIMP
-nsPagePrintTimer::Run() 
+nsPagePrintTimer::Run()
 {
   bool initNewTimer = true;
   // Check to see if we are done
@@ -98,7 +91,7 @@ nsPagePrintTimer::Run()
   // Note that the Stop() destroys this after the print job finishes
   // (The PrintEngine stops holding a reference when DonePrintingPages
   // returns true.)
-  Stop(); 
+  Stop();
   if (initNewTimer) {
     ++mFiringCount;
     nsresult result = StartTimer(inRange);
@@ -158,7 +151,8 @@ nsPagePrintTimer::Notify(nsITimer *timer)
 
     if (donePrePrint && !mWaitingForRemotePrint) {
       StopWatchDogTimer();
-      NS_DispatchToMainThread(this);
+      // Pass nullptr here since name already was set in constructor.
+      mDocument->Dispatch(TaskCategory::Other, do_AddRef(this));
     } else {
       // Start the watch dog if we're waiting for preprint to ensure that if any
       // mozPrintCallbacks take to long we error out.
@@ -173,11 +167,9 @@ nsPagePrintTimer::Notify(nsITimer *timer)
 void
 nsPagePrintTimer::WaitForRemotePrint()
 {
-  nsresult result;
-  mWaitingForRemotePrint = do_CreateInstance("@mozilla.org/timer;1", &result);
-  if (NS_FAILED(result)) {
+  mWaitingForRemotePrint = NS_NewTimer();
+  if (!mWaitingForRemotePrint) {
     NS_WARNING("Failed to wait for remote print, we might time-out.");
-    mWaitingForRemotePrint = nullptr;
   }
 }
 
@@ -188,11 +180,13 @@ nsPagePrintTimer::RemotePrintFinished()
     return;
   }
 
+  mWaitingForRemotePrint->SetTarget(
+    mDocument->EventTargetFor(mozilla::TaskCategory::Other));
   mozilla::Unused <<
     mWaitingForRemotePrint->InitWithCallback(this, 0, nsITimer::TYPE_ONE_SHOT);
 }
 
-nsresult 
+nsresult
 nsPagePrintTimer::Start(nsPrintObject* aPO)
 {
   mPrintObj = aPO;
@@ -201,7 +195,7 @@ nsPagePrintTimer::Start(nsPrintObject* aPO)
 }
 
 
-void  
+void
 nsPagePrintTimer::Stop()
 {
   if (mTimer) {

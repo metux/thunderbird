@@ -157,7 +157,7 @@ BEGIN_TEST(test_ubiNodeJSObjectConstructorName)
     UniqueTwoByteChars ctorName;
     CHECK(JS::ubi::Node(&val.toObject()).jsObjectConstructorName(cx, ctorName));
     CHECK(ctorName);
-    CHECK(js_strcmp(ctorName.get(), u"Ctor") == 0);
+    CHECK(EqualChars(ctorName.get(), u"Ctor", js_strlen(u"Ctor") + 1));
 
     return true;
 }
@@ -646,7 +646,7 @@ BEGIN_TEST(test_JS_ubi_Node_scriptFilename)
     CHECK(obj->is<JSFunction>());
     JS::RootedFunction func(cx, &obj->as<JSFunction>());
 
-    JS::RootedScript script(cx, func->getOrCreateScript(cx));
+    JS::RootedScript script(cx, JSFunction::getOrCreateScript(cx, func));
     CHECK(script);
     CHECK(script->filename());
 

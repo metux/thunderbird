@@ -423,25 +423,24 @@
 <!ENTITY newToolbarCmd.label "New">
 <!ENTITY pasteAsQuotationCmd.key "o">
 
-
-<!-- Editor toolbar -->
-<!ENTITY absoluteFontSizeToolbarCmd.tooltip "Set font size">
-<!ENTITY decrementFontSize.key "&lt;">
-<!ENTITY decrementFontSize.key2 ","> <!-- < is above this key on many keyboards -->
 <!ENTITY findBarCmd.label "Find…">
 <!ENTITY findReplaceCmd.label "Find and Replace…">
-<!ENTITY formatRemoveNamedAnchors2.key "R">
-<!ENTITY incrementFontSize.key "&gt;">
-<!ENTITY incrementFontSize.key2 "."> <!-- > is above this key on many keyboards -->
-
+<!ENTITY insertLinkCmd2.label "Link…">
 <!ENTITY insertLinkCmd2.accesskey "L">
 <!ENTITY insertLinkCmd2.key "K">
-<!ENTITY insertLinkCmd2.label "Link…">
-<!ENTITY insertMathCmd.accesskey "M">
 <!ENTITY insertMathCmd.label "Math…">
-<!ENTITY size-extraLargeCmd.accesskey "x">
-<!ENTITY size-extraLargeCmd.label "Extra Large">
-<!ENTITY size-hugeCmd.accesskey "H">
-<!ENTITY size-hugeCmd.label "Huge">
-<!ENTITY size-tinyCmd.accesskey "T">
+<!ENTITY insertMathCmd.accesskey "M">
+<!ENTITY decrementFontSize.key "&lt;">
+<!ENTITY decrementFontSize.key2 ","> 
+<!ENTITY incrementFontSize.key "&gt;">
+<!ENTITY incrementFontSize.key2 "."> 
 <!ENTITY size-tinyCmd.label "Tiny">
+<!ENTITY size-tinyCmd.accesskey "T">
+<!ENTITY size-extraLargeCmd.label "Extra Large">
+<!ENTITY size-extraLargeCmd.accesskey "x">
+<!ENTITY size-hugeCmd.label "Huge">
+<!ENTITY size-hugeCmd.accesskey "H">
+
+<!ENTITY formatRemoveNamedAnchors2.key "R">
+
+<!ENTITY absoluteFontSizeToolbarCmd.tooltip "Set font size">

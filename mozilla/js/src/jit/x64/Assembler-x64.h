@@ -16,22 +16,22 @@
 namespace js {
 namespace jit {
 
-static constexpr Register rax = { X86Encoding::rax };
-static constexpr Register rbx = { X86Encoding::rbx };
-static constexpr Register rcx = { X86Encoding::rcx };
-static constexpr Register rdx = { X86Encoding::rdx };
-static constexpr Register rsi = { X86Encoding::rsi };
-static constexpr Register rdi = { X86Encoding::rdi };
-static constexpr Register rbp = { X86Encoding::rbp };
-static constexpr Register r8  = { X86Encoding::r8  };
-static constexpr Register r9  = { X86Encoding::r9  };
-static constexpr Register r10 = { X86Encoding::r10 };
-static constexpr Register r11 = { X86Encoding::r11 };
-static constexpr Register r12 = { X86Encoding::r12 };
-static constexpr Register r13 = { X86Encoding::r13 };
-static constexpr Register r14 = { X86Encoding::r14 };
-static constexpr Register r15 = { X86Encoding::r15 };
-static constexpr Register rsp = { X86Encoding::rsp };
+static constexpr Register rax { X86Encoding::rax };
+static constexpr Register rbx { X86Encoding::rbx };
+static constexpr Register rcx { X86Encoding::rcx };
+static constexpr Register rdx { X86Encoding::rdx };
+static constexpr Register rsi { X86Encoding::rsi };
+static constexpr Register rdi { X86Encoding::rdi };
+static constexpr Register rbp { X86Encoding::rbp };
+static constexpr Register r8  { X86Encoding::r8  };
+static constexpr Register r9  { X86Encoding::r9  };
+static constexpr Register r10 { X86Encoding::r10 };
+static constexpr Register r11 { X86Encoding::r11 };
+static constexpr Register r12 { X86Encoding::r12 };
+static constexpr Register r13 { X86Encoding::r13 };
+static constexpr Register r14 { X86Encoding::r14 };
+static constexpr Register r15 { X86Encoding::r15 };
+static constexpr Register rsp { X86Encoding::rsp };
 
 static constexpr FloatRegister xmm0 = FloatRegister(X86Encoding::xmm0, FloatRegisters::Double);
 static constexpr FloatRegister xmm1 = FloatRegister(X86Encoding::xmm1, FloatRegisters::Double);
@@ -60,7 +60,7 @@ static constexpr Register edi = rdi;
 static constexpr Register ebp = rbp;
 static constexpr Register esp = rsp;
 
-static constexpr Register InvalidReg = { X86Encoding::invalid_reg };
+static constexpr Register InvalidReg { X86Encoding::invalid_reg };
 static constexpr FloatRegister InvalidFloatReg = FloatRegister();
 
 static constexpr Register StackPointer = rsp;
@@ -92,7 +92,6 @@ static constexpr FloatRegister ScratchDoubleReg = FloatRegister(X86Encoding::xmm
 static constexpr FloatRegister ScratchSimd128Reg = xmm15;
 
 // Avoid rbp, which is the FramePointer, which is unavailable in some modes.
-static constexpr Register ArgumentsRectifierReg = r8;
 static constexpr Register CallTempReg0 = rax;
 static constexpr Register CallTempReg1 = rdi;
 static constexpr Register CallTempReg2 = rbx;
@@ -157,6 +156,7 @@ static constexpr Register WasmIonExitRegE1 = rdi;
 // Registers used in the GenerateFFIIonExit Disable Activation block.
 static constexpr Register WasmIonExitRegReturnData = ecx;
 static constexpr Register WasmIonExitRegReturnType = ecx;
+static constexpr Register WasmIonExitTlsReg = r14;
 static constexpr Register WasmIonExitRegD0 = rax;
 static constexpr Register WasmIonExitRegD1 = rdi;
 static constexpr Register WasmIonExitRegD2 = rbx;
@@ -189,15 +189,22 @@ class ABIArgGenerator
     uint32_t stackBytesConsumedSoFar() const { return stackOffset_; }
 };
 
+// These registers may be volatile or nonvolatile.
 // Avoid r11, which is the MacroAssembler's ScratchReg.
 static constexpr Register ABINonArgReg0 = rax;
 static constexpr Register ABINonArgReg1 = rbx;
 static constexpr Register ABINonArgReg2 = r10;
 
+// These registers may be volatile or nonvolatile.
 // Note: these three registers are all guaranteed to be different
 static constexpr Register ABINonArgReturnReg0 = r10;
 static constexpr Register ABINonArgReturnReg1 = r12;
 static constexpr Register ABINonVolatileReg = r13;
+
+// This register is guaranteed to be clobberable during the prologue and
+// epilogue of an ABI call which must preserve both ABI argument, return
+// and non-volatile registers.
+static constexpr Register ABINonArgReturnVolatileReg = r10;
 
 // TLS pointer argument register for WebAssembly functions. This must not alias
 // any other register used for passing function arguments or return values.
@@ -316,7 +323,7 @@ class Assembler : public AssemblerX86Shared
 
     // Copy the assembly code to the given buffer, and perform any pending
     // relocations relying on the target address.
-    void executableCopy(uint8_t* buffer);
+    void executableCopy(uint8_t* buffer, bool flushICache = true);
 
     // Actual assembly emitting functions.
 
@@ -358,6 +365,12 @@ class Assembler : public AssemblerX86Shared
     }
     CodeOffset movWithPatch(ImmPtr imm, Register dest) {
         return movWithPatch(ImmWord(uintptr_t(imm.value)), dest);
+    }
+
+    // This is for patching during code generation, not after.
+    void patchAddq(CodeOffset offset, int32_t n) {
+        unsigned char* code = masm.data();
+        X86Encoding::SetInt32(code + offset.offset(), n);
     }
 
     // Load an ImmWord value into a register. Note that this instruction will
@@ -471,6 +484,9 @@ class Assembler : public AssemblerX86Shared
 
     void movsbq(const Operand& src, Register dest) {
         switch (src.kind()) {
+          case Operand::REG:
+            masm.movsbq_rr(src.reg(), dest.encoding());
+            break;
           case Operand::MEM_REG_DISP:
             masm.movsbq_mr(src.disp(), src.base(), dest.encoding());
             break;
@@ -490,6 +506,9 @@ class Assembler : public AssemblerX86Shared
 
     void movswq(const Operand& src, Register dest) {
         switch (src.kind()) {
+          case Operand::REG:
+            masm.movswq_rr(src.reg(), dest.encoding());
+            break;
           case Operand::MEM_REG_DISP:
             masm.movswq_mr(src.disp(), src.base(), dest.encoding());
             break;
@@ -553,6 +572,10 @@ class Assembler : public AssemblerX86Shared
 
     void addq(Imm32 imm, Register dest) {
         masm.addq_ir(imm.value, dest.encoding());
+    }
+    CodeOffset addqWithPatch(Imm32 imm, Register dest) {
+        masm.addq_i32r(imm.value, dest.encoding());
+        return CodeOffset(masm.currentOffset());
     }
     void addq(Imm32 imm, const Operand& dest) {
         switch (dest.kind()) {
@@ -860,6 +883,9 @@ class Assembler : public AssemblerX86Shared
           case Operand::MEM_REG_DISP:
             masm.cmpq_im(rhs.value, lhs.disp(), lhs.base());
             break;
+          case Operand::MEM_SCALE:
+            masm.cmpq_im(rhs.value, lhs.disp(), lhs.base(), lhs.index(), lhs.scale());
+            break;
           case Operand::MEM_ADDRESS32:
             masm.cmpq_im(rhs.value, lhs.address());
             break;
@@ -976,7 +1002,7 @@ PatchJump(CodeLocationJump jump, CodeLocationLabel label, ReprotectCode reprotec
 }
 
 static inline void
-PatchBackedge(CodeLocationJump& jump_, CodeLocationLabel label, JitRuntime::BackedgeTarget target)
+PatchBackedge(CodeLocationJump& jump_, CodeLocationLabel label, JitZoneGroup::BackedgeTarget target)
 {
     PatchJump(jump_, label);
 }

@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -69,7 +69,7 @@ PresentationReceiver::Init()
 
 void PresentationReceiver::Shutdown()
 {
-  PRES_DEBUG("receiver shutdown:windowId[%d]\n", mWindowId);
+  PRES_DEBUG("receiver shutdown:windowId[%" PRId64 "]\n", mWindowId);
 
   // Unregister listener for incoming sessions.
   nsCOMPtr<nsIPresentationService> service =
@@ -93,7 +93,7 @@ NS_IMETHODIMP
 PresentationReceiver::NotifySessionConnect(uint64_t aWindowId,
                                            const nsAString& aSessionId)
 {
-  PRES_DEBUG("receiver session connect:id[%s], windowId[%x]\n",
+  PRES_DEBUG("receiver session connect:id[%s], windowId[%" PRIx64 "]\n",
              NS_ConvertUTF16toUTF8(aSessionId).get(), aWindowId);
 
   if (NS_WARN_IF(!mOwner)) {
@@ -135,10 +135,9 @@ PresentationReceiver::GetConnectionList(ErrorResult& aRv)
     }
 
     RefPtr<PresentationReceiver> self = this;
-    nsresult rv =
-      NS_DispatchToMainThread(NS_NewRunnableFunction([self] () -> void {
-        self->CreateConnectionList();
-      }));
+    nsresult rv = NS_DispatchToMainThread(NS_NewRunnableFunction(
+      "dom::PresentationReceiver::GetConnectionList",
+      [self]() -> void { self->CreateConnectionList(); }));
     if (NS_FAILED(rv)) {
       aRv.Throw(rv);
       return nullptr;
@@ -146,6 +145,9 @@ PresentationReceiver::GetConnectionList(ErrorResult& aRv)
   }
 
   RefPtr<Promise> promise = mGetConnectionListPromise;
+  if (nsContentUtils::ShouldResistFingerprinting()) {
+    promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
+  }
   return promise.forget();
 }
 

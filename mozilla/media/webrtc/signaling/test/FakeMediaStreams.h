@@ -63,13 +63,16 @@ public:
     OFFLINE_THREAD_DRIVER
   };
   static MediaStreamGraph* GetInstance(GraphDriverType aDriverType,
-                                       uint32_t aType) {
+                                       uint32_t aType,
+                                       nsPIDOMWindowInner* aWindow) {
+    // We don't care about the AudioChannel type nor the window here.
     if (gGraph) {
       return gGraph;
     }
     gGraph = new MediaStreamGraph();
     return gGraph;
   }
+  uint32_t GraphRate() { return 16000; }
 };
 }
 
@@ -105,17 +108,6 @@ public:
                                        mozilla::TrackID aInputTrackID) {}
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Fake_MediaStreamListener)
-};
-
-class Fake_DirectMediaStreamListener : public Fake_MediaStreamListener
-{
-protected:
-  virtual ~Fake_DirectMediaStreamListener() {}
-
-public:
-  virtual void NotifyRealtimeData(mozilla::MediaStreamGraph* graph, mozilla::TrackID tid,
-                                  mozilla::StreamTime offset,
-                                  const mozilla::MediaSegment& media) = 0;
 };
 
 class Fake_MediaStreamTrackListener
@@ -185,8 +177,6 @@ class Fake_MediaStream {
 
  public:
   Fake_MediaStream () : mListeners(), mTrackListeners(), mMutex("Fake MediaStream") {}
-
-  static uint32_t GraphRate() { return 16000; }
 
   void AddListener(Fake_MediaStreamListener *aListener) {
     mozilla::MutexAutoLock lock(mMutex);
@@ -409,13 +399,21 @@ public:
   std::string GetId() const { return mID; }
   void AssignId(const std::string& id) { mID = id; }
   mozilla::MediaStreamGraphImpl* GraphImpl() { return nullptr; }
+  Fake_MediaStreamTrack* AsVideoStreamTrack()
+  {
+    return mIsVideo ? this : nullptr;
+  }
+  Fake_MediaStreamTrack* AsAudioStreamTrack()
+  {
+    return mIsVideo ? nullptr : this;
+  }
   const Fake_MediaStreamTrack* AsVideoStreamTrack() const
   {
-    return mIsVideo? this : nullptr;
+    return mIsVideo ? this : nullptr;
   }
   const Fake_MediaStreamTrack* AsAudioStreamTrack() const
   {
-    return mIsVideo? nullptr : this;
+    return mIsVideo ? nullptr : this;
   }
   uint32_t typeSize () const
   {
@@ -429,13 +427,17 @@ public:
   void RemoveListener(Fake_MediaStreamTrackListener *aListener);
   void AddDirectListener(Fake_DirectMediaStreamTrackListener *aListener)
   {
-    AddListener(aListener);
     aListener->NotifyDirectListenerInstalled(
       Fake_DirectMediaStreamTrackListener::InstallationResult::STREAM_NOT_SUPPORTED);
   }
-  void RemoveDirectListener(Fake_DirectMediaStreamTrackListener *aListener)
+  void RemoveDirectListener(Fake_DirectMediaStreamTrackListener *aListener) {}
+  void AddVideoOutput(Fake_MediaStreamVideoSink *aOutput)
   {
-    RemoveListener(aListener);
+    AddDirectListener(aOutput);
+  }
+  void RemoveVideoOutput(Fake_MediaStreamVideoSink *aOutput)
+  {
+    RemoveDirectListener(aOutput);
   }
 
   class PrincipalChangeObserver
@@ -640,7 +642,6 @@ namespace mozilla {
 typedef Fake_MediaStream MediaStream;
 typedef Fake_SourceMediaStream SourceMediaStream;
 typedef Fake_MediaStreamListener MediaStreamListener;
-typedef Fake_DirectMediaStreamListener DirectMediaStreamListener;
 typedef Fake_MediaStreamTrackListener MediaStreamTrackListener;
 typedef Fake_DirectMediaStreamTrackListener DirectMediaStreamTrackListener;
 typedef Fake_DOMMediaStream DOMMediaStream;
@@ -650,6 +651,7 @@ typedef Fake_MediaStreamVideoSink MediaStreamVideoSink;
 namespace dom {
 typedef Fake_MediaStreamTrack MediaStreamTrack;
 typedef Fake_MediaStreamTrackSource MediaStreamTrackSource;
+typedef Fake_MediaStreamTrack VideoStreamTrack;
 }
 }
 

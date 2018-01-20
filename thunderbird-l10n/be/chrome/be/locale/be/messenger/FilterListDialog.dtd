@@ -37,5 +37,5 @@
 <!ENTITY closeCmd.key "W">
 <!ENTITY searchBox.emptyText "Пошук сітаў па назве…">
 
-<!ENTITY newButton.popupCopy.accesskey "C">
 <!ENTITY newButton.popupCopy.label "Copy…">
+<!ENTITY newButton.popupCopy.accesskey "C">

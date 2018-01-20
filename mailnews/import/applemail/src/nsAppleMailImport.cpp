@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIImportService.h"
@@ -23,8 +23,6 @@
 #include "nsAppleMailImport.h"
 #include "nsIOutputStream.h"
 
-PRLogModuleInfo *APPLEMAILLOGMODULE = nullptr;
-
 // some hard-coded strings
 #define DEFAULT_MAIL_FOLDER "~/Library/Mail/"
 #define POP_MBOX_SUFFIX ".mbox"
@@ -38,10 +36,6 @@ PRLogModuleInfo *APPLEMAILLOGMODULE = nullptr;
 
 nsAppleMailImportModule::nsAppleMailImportModule()
 {
-  // Init logging module.
-  if (!APPLEMAILLOGMODULE)
-    APPLEMAILLOGMODULE = PR_NewLogModule("APPLEMAILIMPORTLOG");
-
   IMPORT_LOG0("nsAppleMailImportModule Created");
 
   nsCOMPtr<nsIStringBundleService> bundleService =
@@ -62,14 +56,26 @@ NS_IMPL_ISUPPORTS(nsAppleMailImportModule, nsIImportModule)
 
 NS_IMETHODIMP nsAppleMailImportModule::GetName(char16_t **aName)
 {
-  return mBundle ?
-    mBundle->GetStringFromName(u"ApplemailImportName", aName) : NS_ERROR_FAILURE;
+  if (!mBundle) {
+    return NS_ERROR_FAILURE;
+  }
+  nsAutoString name;
+  nsresult rv = mBundle->GetStringFromName("ApplemailImportName", name);
+  NS_ENSURE_SUCCESS(rv, rv);
+  *aName = ToNewUnicode(name);
+  return rv;
 }
 
 NS_IMETHODIMP nsAppleMailImportModule::GetDescription(char16_t **aName)
 {
-  return mBundle ?
-    mBundle->GetStringFromName(u"ApplemailImportDescription", aName) : NS_ERROR_FAILURE;
+  if (!mBundle) {
+    return NS_ERROR_FAILURE;
+  }
+  nsAutoString name;
+  nsresult rv = mBundle->GetStringFromName("ApplemailImportDescription", name);
+  NS_ENSURE_SUCCESS(rv, rv);
+  *aName = ToNewUnicode(name);
+  return rv;
 }
 
 NS_IMETHODIMP nsAppleMailImportModule::GetSupports(char **aSupports)
@@ -102,7 +108,7 @@ NS_IMETHODIMP nsAppleMailImportModule::GetImportInterface(const char *aImportTyp
         rv = impSvc->CreateNewGenericMail(getter_AddRefs(generic));
         if (NS_SUCCEEDED(rv)) {
           nsAutoString name;
-          rv = mBundle->GetStringFromName(u"ApplemailImportName", getter_Copies(name));
+          rv = mBundle->GetStringFromName("ApplemailImportName", name);
           NS_ENSURE_SUCCESS(rv, rv);
 
           nsCOMPtr<nsISupportsString> nameString(do_CreateInstance(NS_SUPPORTS_STRING_CONTRACTID, &rv));
@@ -282,7 +288,7 @@ void nsAppleMailImportMail::FindAccountMailDirs(nsIFile *aRoot, nsIMutableArray 
         mailboxDescFile->InitWithFile(currentEntry);
 
         // add this mailbox descriptor to the list
-        aMailboxDescs->AppendElement(desc, false);
+        aMailboxDescs->AppendElement(desc);
 
         // now add all the children mailboxes
         mCurDepth++;
@@ -359,7 +365,7 @@ nsresult nsAppleMailImportMail::AddMboxDir(nsIFile *aFolder, nsIMutableArray *aM
       mailboxDescFile->InitWithFile(aFolder);
 
     // add this mailbox descriptor to the list
-    aMailboxDescs->AppendElement(desc, false);
+    aMailboxDescs->AppendElement(desc);
   }
 
   return NS_OK;
@@ -593,7 +599,7 @@ void nsAppleMailImportMail::ReportStatus(const char16_t* aErrorName, nsString &a
   // get (and format, if needed) the error string from the bundle
   nsAutoString outString;
   const char16_t *fmt = { aName.get() };
-  nsresult rv = mBundle->FormatStringFromName(aErrorName, &fmt, 1, getter_Copies(outString));
+  nsresult rv = mBundle->FormatStringFromName(NS_ConvertUTF16toUTF8(aErrorName).get(), &fmt, 1, outString);
   // write it out the stream
   if (NS_SUCCEEDED(rv)) {
     aStream.Append(outString);

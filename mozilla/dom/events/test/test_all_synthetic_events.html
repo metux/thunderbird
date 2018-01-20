@@ -38,10 +38,6 @@ const kEventConstructors = {
                                              },
   AudioProcessingEvent:                      { create: null, // Cannot create untrusted event from JS.
                                              },
-  BeforeAfterKeyboardEvent:                  { create: function (aName, aProps) {
-                                                         return new BeforeAfterKeyboardEvent(aName, aProps);
-                                                       },
-                                             },
   BeforeUnloadEvent:                         { create: function (aName, aProps) {
                                                          var e = document.createEvent("beforeunloadevent");
                                                          e.initEvent(aName, aProps.bubbles, aProps.cancelable);
@@ -72,13 +68,6 @@ const kEventConstructors = {
                                                          return new ClipboardEvent(aName, aProps);
                                                        },
                                              },
-  CommandEvent:                              { create: function (aName, aProps) {
-                                                         var e = document.createEvent("commandevent");
-                                                         e.initCommandEvent(aName, aProps.bubbles, aProps.cancelable,
-                                                                            aProps.command);
-                                                         return e;
-                                                       },
-                                             },
   CompositionEvent:                          { create: function (aName, aProps) {
                                                          var e = document.createEvent("compositionevent");
                                                          e.initCompositionEvent(aName, aProps.bubbles, aProps.cancelable,
@@ -92,12 +81,6 @@ const kEventConstructors = {
                                              },
   DataErrorEvent:                            { create: function (aName, aProps) {
                                                           return new DataErrorEvent(aName, aProps);
-                                                       },
-                                             },
-  DataContainerEvent:                        { create: function (aName, aProps) {
-                                                         var e = document.createEvent("datacontainerevent");
-                                                         e.initEvent(aName, aProps.bubbles, aProps.cancelable);
-                                                         return e;
                                                        },
                                              },
   DeviceLightEvent:                          { create: function (aName, aProps) {
@@ -198,6 +181,15 @@ const kEventConstructors = {
                                                          });
                                                        },
                                              },
+  MediaQueryListEvent:                       { create: function (aName, aProps) {
+                                                         return new MediaQueryListEvent(aName, aProps);
+                                                       },
+                                             },
+  MediaRecorderErrorEvent:                   { create: function (aName, aProps) {
+                                                         aProps.error = new DOMException();
+                                                         return new MediaRecorderErrorEvent(aName, aProps);
+                                                       },
+                                             },
   MediaStreamEvent:                          { create: function (aName, aProps) {
                                                          return new MediaStreamEvent(aName, aProps);
                                                        },
@@ -255,32 +247,12 @@ const kEventConstructors = {
                                                           return new MozOtaStatusEvent(aName, aProps);
                                                        },
                                              },
-  MozSettingsEvent:                          { create: function (aName, aProps) {
-                                                         return new MozSettingsEvent(aName, aProps);
-                                                       },
-                                             },
-  MozSettingsTransactionEvent:               { create: function (aName, aProps) {
-                                                         return new MozSettingsTransactionEvent(aName, aProps);
-                                                       },
-                                             },
   MozSmsEvent:                               { create: function (aName, aProps) {
                                                          return new MozSmsEvent(aName, aProps);
                                                        },
                                              },
   MozStkCommandEvent:                        { create: function (aName, aProps) {
                                                           return new MozStkCommandEvent(aName, aProps);
-                                                       },
-                                             },
-  MozWifiConnectionInfoEvent:                { create: function (aName, aProps) {
-                                                         return new MozWifiConnectionInfoEvent(aName, aProps);
-                                                       },
-                                             },
-  MozWifiStatusChangeEvent:                  { create: function (aName, aProps) {
-                                                          return new MozWifiStatusChangeEvent(aName, aProps);
-                                                       },
-                                             },
-  MozWifiStationInfoEvent:                   { create: function (aName, aProps) {
-                                                          return new MozWifiStationInfoEvent(aName, aProps);
                                                        },
                                              },
   MutationEvent:                             { create: function (aName, aProps) {
@@ -291,13 +263,14 @@ const kEventConstructors = {
                                                          return e;
                                                        },
                                              },
-  NotifyPaintEvent:                          { create: function (aName, aProps) {
-                                                         var e = document.createEvent("notifypaintevent");
-                                                         e.initEvent(aName, aProps.bubbles, aProps.cancelable);
-                                                         return e;
-                                                       },
-                                             },
-  OfflineAudioCompletionEvent:               { create: null, // Cannot create untrusted event from JS.
+  OfflineAudioCompletionEvent:               { create: "AudioContext" in self
+                                                        ? function (aName, aProps) {
+                                                            var ac = new AudioContext();
+                                                            var ab = new AudioBuffer({ length: 42, sampleRate: ac.sampleRate });
+                                                            aProps.renderedBuffer = ab;
+                                                            return new OfflineAudioCompletionEvent(aName, aProps);
+                                                          }
+                                                        : null,
                                              },
   PageTransitionEvent:                       { create: function (aName, aProps) {
                                                          return new PageTransitionEvent(aName, aProps);
@@ -317,10 +290,6 @@ const kEventConstructors = {
                                              },
   ProgressEvent:                             { create: function (aName, aProps) {
                                                          return new ProgressEvent(aName, aProps);
-                                                       },
-                                             },
-  RecordErrorEvent:                          { create: function (aName, aProps) {
-                                                         return new RecordErrorEvent(aName, aProps);
                                                        },
                                              },
   RTCDataChannelEvent:                       { create: function (aName, aProps) {
@@ -344,26 +313,6 @@ const kEventConstructors = {
                                                                                aProps.view, aProps.details,
                                                                                aProps.x || 0.0, aProps.y || 0.0,
                                                                                aProps.width || 0.0, aProps.height || 0.0);
-                                                         return e;
-                                                       },
-                                             },
-  ServiceWorkerMessageEvent:                 { create: function (aName, aProps) {
-                                                         var e = new ServiceWorkerMessageEvent("serviceworkermessageevent", { bubbles: aProps.bubbles,
-                                                             cancelable: aProps.cancelable, data: aProps.data, origin: aProps.origin,
-                                                             lastEventId: aProps.lastEventId, source: aProps.source });
-                                                         return e;
-                                                       },
-                                             },
-  SimpleGestureEvent:                        { create: function (aName, aProps) {
-                                                         var e = document.createEvent("simplegestureevent");
-                                                         e.initSimpleGestureEvent(aName, aProps.bubbles, aProps.cancelable,
-                                                                                  aProps.view, aProps.detail,
-                                                                                  aProps.screenX, aProps.screenY,
-                                                                                  aProps.clientX, aProps.clientY,
-                                                                                  aProps.ctrlKey, aProps.altKey, aProps.shiftKey, aProps.metaKey,
-                                                                                  aProps.button, aProps.relatedTarget,
-                                                                                  aProps.allowedDirections, aProps.direction, aProps.delta || 0.0,
-                                                                                  aProps.clickCount);
                                                          return e;
                                                        },
                                              },
@@ -404,13 +353,6 @@ const kEventConstructors = {
                                                          return new StyleSheetChangeEvent(aName, aProps);
                                                        },
                                                chromeOnly: true,
-                                             },
-  SVGZoomEvent:                              { create: function (aName, aProps) {
-                                                         var e = document.createEvent("svgzoomevent");
-                                                         e.initUIEvent(aName, aProps.bubbles, aProps.cancelable,
-                                                                       aProps.view, aProps.detail);
-                                                         return e;
-                                                       },
                                              },
   TCPSocketErrorEvent:                       { create: function(aName, aProps) {
                                                          return new TCPSocketErrorEvent(aName, aProps);
@@ -458,6 +400,12 @@ const kEventConstructors = {
   USSDReceivedEvent:                         { create: function (aName, aProps) {
                                                           return new USSDReceivedEvent(aName, aProps);
                                                        },
+                                             },
+  VRDisplayEvent:                            { create: null,
+                                               // Required argument expects a VRDisplay that can not
+                                               // be created from Javascript without physical VR hardware
+                                               // connected.  When Bug 1229480 lands, this test can be
+                                               // updated to use the puppet VR device.
                                              },
   WheelEvent:                                { create: function (aName, aProps) {
                                                          return new WheelEvent(aName, aProps);

@@ -67,9 +67,9 @@
     _(NewArray)                     \
     _(NewArrayCopyOnWrite)          \
     _(NewArrayDynamicLength)        \
+    _(NewIterator)                  \
     _(NewTypedArray)                \
     _(NewTypedArrayDynamicLength)   \
-    _(ArraySplice)                  \
     _(NewObject)                    \
     _(NewTypedObject)               \
     _(NewNamedLambdaObject)         \
@@ -80,7 +80,6 @@
     _(InitElem)                     \
     _(InitElemGetterSetter)         \
     _(MutateProto)                  \
-    _(InitProp)                     \
     _(InitPropGetterSetter)         \
     _(CheckOverRecursed)            \
     _(DefVar)                       \
@@ -113,7 +112,8 @@
     _(BitOpV)                       \
     _(ShiftI)                       \
     _(ShiftI64)                     \
-    _(SignExtend)                   \
+    _(SignExtendInt32)              \
+    _(SignExtendInt64)              \
     _(UrshD)                        \
     _(Return)                       \
     _(Throw)                        \
@@ -169,6 +169,7 @@
     _(Hypot)                        \
     _(PowI)                         \
     _(PowD)                         \
+    _(PowV)                         \
     _(PowHalfD)                     \
     _(Random)                       \
     _(MathFunctionD)                \
@@ -197,6 +198,7 @@
     _(CharCodeAt)                   \
     _(FromCharCode)                 \
     _(FromCodePoint)                \
+    _(StringConvertCase)            \
     _(SinCos)                       \
     _(StringSplit)                  \
     _(Int32ToDouble)                \
@@ -216,6 +218,7 @@
     _(IntToString)                  \
     _(DoubleToString)               \
     _(ValueToString)                \
+    _(ValueToObject)                \
     _(ValueToObjectOrNull)          \
     _(Int32x4ToFloat32x4)           \
     _(Float32x4ToInt32x4)           \
@@ -239,9 +242,11 @@
     _(BinarySharedStub)             \
     _(UnarySharedStub)              \
     _(NullarySharedStub)            \
+    _(ClassConstructor)             \
     _(Lambda)                       \
     _(LambdaArrow)                  \
     _(LambdaForSingleton)           \
+    _(SetFunName)                   \
     _(KeepAliveObject)              \
     _(Slots)                        \
     _(Elements)                     \
@@ -268,10 +273,6 @@
     _(PostWriteElementBarrierV)     \
     _(InitializedLength)            \
     _(SetInitializedLength)         \
-    _(UnboxedArrayLength)           \
-    _(UnboxedArrayInitializedLength) \
-    _(IncrementUnboxedArrayInitializedLength) \
-    _(SetUnboxedArrayInitializedLength) \
     _(BoundsCheck)                  \
     _(BoundsCheckRange)             \
     _(BoundsCheckLower)             \
@@ -281,6 +282,7 @@
     _(LoadUnboxedScalar)            \
     _(LoadUnboxedPointerV)          \
     _(LoadUnboxedPointerT)          \
+    _(LoadElementFromStateV)        \
     _(UnboxObjectOrNull)            \
     _(StoreElementV)                \
     _(StoreElementT)                \
@@ -317,6 +319,11 @@
     _(StoreFixedSlotV)              \
     _(StoreFixedSlotT)              \
     _(FunctionEnvironment)          \
+    _(NewLexicalEnvironmentObject)  \
+    _(CopyLexicalEnvironmentObject) \
+    _(HomeObject)                   \
+    _(HomeObjectSuperBase)          \
+    _(GetPropSuperCacheV)           \
     _(GetPropertyCacheV)            \
     _(GetPropertyCacheT)            \
     _(GetPropertyPolymorphicV)      \
@@ -335,9 +342,7 @@
     _(SetPropertyCache)             \
     _(SetPropertyPolymorphicV)      \
     _(SetPropertyPolymorphicT)      \
-    _(CallIteratorStartV)           \
-    _(CallIteratorStartO)           \
-    _(IteratorStartO)               \
+    _(GetIteratorCache)             \
     _(IteratorMore)                 \
     _(IsNoIterAndBranch)            \
     _(IteratorEnd)                  \
@@ -360,6 +365,8 @@
     _(Rest)                         \
     _(TypeOfV)                      \
     _(ToAsync)                      \
+    _(ToAsyncGen)                   \
+    _(ToAsyncIter)                  \
     _(ToIdV)                        \
     _(Floor)                        \
     _(FloorF)                       \
@@ -367,8 +374,11 @@
     _(CeilF)                        \
     _(Round)                        \
     _(RoundF)                       \
-    _(In)                           \
+    _(NearbyInt)                    \
+    _(NearbyIntF)                   \
+    _(InCache)                      \
     _(InArray)                      \
+    _(HasOwnCache)                  \
     _(InstanceOfO)                  \
     _(InstanceOfV)                  \
     _(CallInstanceOf)               \
@@ -380,11 +390,16 @@
     _(GetDOMMemberT)                \
     _(SetDOMProperty)               \
     _(CallDOMNative)                \
-    _(IsCallable)                   \
+    _(IsCallableO)                  \
+    _(IsCallableV)                  \
     _(IsConstructor)                \
+    _(IsArrayO)                     \
+    _(IsArrayV)                     \
+    _(IsTypedArray)                 \
     _(IsObject)                     \
     _(IsObjectAndBranch)            \
     _(HasClass)                     \
+    _(ObjectClassToString)          \
     _(RecompileCheck)               \
     _(MemoryBarrier)                \
     _(AssertRangeI)                 \
@@ -401,8 +416,12 @@
     _(ArrowNewTarget)               \
     _(CheckReturn)                  \
     _(CheckIsObj)                   \
+    _(CheckIsCallable)              \
     _(CheckObjCoercible)            \
     _(DebugCheckSelfHosted)         \
+    _(FinishBoundFunctionInit)      \
+    _(IsPackedArray)                \
+    _(GetPrototypeOf)               \
     _(AsmJSLoadHeap)                \
     _(AsmJSStoreHeap)               \
     _(AsmJSCompareExchangeHeap)     \
@@ -417,6 +436,7 @@
     _(WasmSelect)                   \
     _(WasmSelectI64)                \
     _(WasmBoundsCheck)              \
+    _(WasmLoadTls)                  \
     _(WasmAddOffset)                \
     _(WasmLoad)                     \
     _(WasmLoadI64)                  \

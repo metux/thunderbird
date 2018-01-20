@@ -3,9 +3,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* import-globals-from ../../base/content/utilityOverlay.js */
+
 var gConnectionsDialog = {
-  beforeAccept: function ()
-  {
+  beforeAccept() {
     var proxyTypePref = document.getElementById("network.proxy.type");
     if (proxyTypePref.value == 2) {
       this.doAutoconfigURLFixup();
@@ -52,14 +53,12 @@ var gConnectionsDialog = {
     return true;
   },
 
-  checkForSystemProxy: function ()
-  {
+  checkForSystemProxy() {
     if ("@mozilla.org/system-proxy-settings;1" in Components.classes)
       document.getElementById("systemPref").removeAttribute("hidden");
   },
 
-  proxyTypeChanged: function ()
-  {
+  proxyTypeChanged() {
     var proxyTypePref = document.getElementById("network.proxy.type");
 
     // Update http
@@ -84,8 +83,7 @@ var gConnectionsDialog = {
     this.updateReloadButton();
   },
 
-  updateDNSPref: function ()
-  {
+  updateDNSPref() {
     var socksVersionPref = document.getElementById("network.proxy.socks_version");
     var socksDNSPref = document.getElementById("network.proxy.socks_remote_dns");
     var proxyTypePref = document.getElementById("network.proxy.type");
@@ -94,8 +92,7 @@ var gConnectionsDialog = {
     return undefined;
   },
 
-  updateReloadButton: function ()
-  {
+  updateReloadButton() {
     // Disable the "Reload PAC" button if the selected proxy type is not PAC or
     // if the current value of the PAC textbox does not match the value stored
     // in prefs.  Likewise, disable the reload button if PAC is not configured
@@ -104,11 +101,8 @@ var gConnectionsDialog = {
     var typedURL = document.getElementById("networkProxyAutoconfigURL").value;
     var proxyTypeCur = document.getElementById("network.proxy.type").value;
 
-    var prefs =
-        Components.classes["@mozilla.org/preferences-service;1"].
-        getService(Components.interfaces.nsIPrefBranch);
-    var pacURL = prefs.getCharPref("network.proxy.autoconfig_url");
-    var proxyType = prefs.getIntPref("network.proxy.type");
+    var pacURL = Services.prefs.getCharPref("network.proxy.autoconfig_url");
+    var proxyType = Services.prefs.getIntPref("network.proxy.type");
 
     var disableReloadPref =
         document.getElementById("pref.advanced.proxies.disable_button.reload");
@@ -116,14 +110,12 @@ var gConnectionsDialog = {
         (proxyTypeCur != 2 || proxyType != 2 || typedURL != pacURL);
   },
 
-  readProxyType: function ()
-  {
+  readProxyType() {
     this.proxyTypeChanged();
     return undefined;
   },
 
-  updateProtocolPrefs: function ()
-  {
+  updateProtocolPrefs() {
     var proxyTypePref = document.getElementById("network.proxy.type");
     var shareProxiesPref = document.getElementById("network.proxy.share_proxy_settings");
     var proxyPrefs = ["ssl", "ftp", "socks"];
@@ -156,8 +148,7 @@ var gConnectionsDialog = {
     return undefined;
   },
 
-  readProxyProtocolPref: function (aProtocol, aIsPort)
-  {
+  readProxyProtocolPref(aProtocol, aIsPort) {
     var shareProxiesPref = document.getElementById("network.proxy.share_proxy_settings");
     if (shareProxiesPref.value) {
       var pref = document.getElementById("network.proxy.http" + (aIsPort ? "_port" : ""));
@@ -168,43 +159,37 @@ var gConnectionsDialog = {
     return backupPref.hasUserValue ? backupPref.value : undefined;
   },
 
-  reloadPAC: function ()
-  {
+  reloadPAC() {
     Components.classes["@mozilla.org/network/protocol-proxy-service;1"].
         getService().reloadPAC();
   },
 
-  doAutoconfigURLFixup: function ()
-  {
+  doAutoconfigURLFixup() {
     var autoURL = document.getElementById("networkProxyAutoconfigURL");
     var autoURLPref = document.getElementById("network.proxy.autoconfig_url");
-    var URIFixup = Components.classes["@mozilla.org/docshell/urifixup;1"]
-                             .getService(Components.interfaces.nsIURIFixup);
     try {
-      autoURLPref.value = autoURL.value = URIFixup.createFixupURI(autoURL.value, 0).spec;
+      autoURLPref.value = autoURL.value =
+        Services.uriFixup.createFixupURI(autoURL.value, 0).spec;
     } catch (ex) {}
   },
 
-  sanitizeNoProxiesPref: function()
-  {
+  sanitizeNoProxiesPref() {
     var noProxiesPref = document.getElementById("network.proxy.no_proxies_on");
     // replace substrings of ; and \n with commas if they're neither immediately
     // preceded nor followed by a valid separator character
-    noProxiesPref.value = noProxiesPref.value.replace(/([^, \n;])[;\n]+(?![,\n;])/g, '$1,');
+    noProxiesPref.value = noProxiesPref.value.replace(/([^, \n;])[;\n]+(?![,\n;])/g, "$1,");
     // replace any remaining ; and \n since some may follow commas, etc.
-    noProxiesPref.value = noProxiesPref.value.replace(/[;\n]/g, '');
+    noProxiesPref.value = noProxiesPref.value.replace(/[;\n]/g, "");
   },
 
-  readHTTPProxyServer: function ()
-  {
+  readHTTPProxyServer() {
     var shareProxiesPref = document.getElementById("network.proxy.share_proxy_settings");
     if (shareProxiesPref.value)
       this.updateProtocolPrefs();
     return undefined;
   },
 
-  readHTTPProxyPort: function ()
-  {
+  readHTTPProxyPort() {
     var shareProxiesPref = document.getElementById("network.proxy.share_proxy_settings");
     if (shareProxiesPref.value)
       this.updateProtocolPrefs();

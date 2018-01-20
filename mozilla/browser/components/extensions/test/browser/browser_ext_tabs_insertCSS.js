@@ -2,18 +2,18 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
-add_task(function* testExecuteScript() {
+add_task(async function testExecuteScript() {
   let {MessageChannel} = Cu.import("resource://gre/modules/MessageChannel.jsm", {});
 
   let messageManagersSize = MessageChannel.messageManagers.size;
   let responseManagersSize = MessageChannel.responseManagers.size;
 
-  let tab = yield BrowserTestUtils.openNewForegroundTab(gBrowser, "http://mochi.test:8888/", true);
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, "http://mochi.test:8888/", true);
 
   async function background() {
     let tasks = [
       {
-        background: "transparent",
+        background: "rgba(0, 0, 0, 0)",
         foreground: "rgb(0, 113, 4)",
         promise: () => {
           return browser.tabs.insertCSS({
@@ -28,6 +28,33 @@ add_task(function* testExecuteScript() {
           return browser.tabs.insertCSS({
             code: "* { background: rgb(42, 42, 42) }",
           });
+        },
+      },
+      {
+        background: "rgb(42, 42, 42)",
+        foreground: "rgb(0, 113, 4)",
+        promise: () => {
+          return browser.tabs.insertCSS({
+            code: "* { background: rgb(100, 100, 100) !important }",
+            cssOrigin: "author",
+          }).then(r => browser.tabs.insertCSS({
+            code: "* { background: rgb(42, 42, 42) !important }",
+            cssOrigin: "author",
+          }));
+        },
+      },
+      {
+        background: "rgb(100, 100, 100)",
+        foreground: "rgb(0, 113, 4)",
+        promise: () => {
+          // User has higher importance
+          return browser.tabs.insertCSS({
+            code: "* { background: rgb(100, 100, 100) !important }",
+            cssOrigin: "user",
+          }).then(r => browser.tabs.insertCSS({
+            code: "* { background: rgb(42, 42, 42) !important }",
+            cssOrigin: "author",
+          }));
         },
       },
     ];
@@ -70,13 +97,13 @@ add_task(function* testExecuteScript() {
     },
   });
 
-  yield extension.startup();
+  await extension.startup();
 
-  yield extension.awaitFinish("insertCSS");
+  await extension.awaitFinish("insertCSS");
 
-  yield extension.unload();
+  await extension.unload();
 
-  yield BrowserTestUtils.removeTab(tab);
+  await BrowserTestUtils.removeTab(tab);
 
   // Make sure that we're not holding on to references to closed message
   // managers.

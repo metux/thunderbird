@@ -28,6 +28,11 @@ const dataId           = 11;
 // User-defined section names
 const nameName         = "name";
 
+// Name section name types
+const nameTypeModule   = 0;
+const nameTypeFunction = 1;
+const nameTypeLocal    = 2;
+
 // Type codes
 const I32Code          = 0x7f;
 const I64Code          = 0x7e;
@@ -71,6 +76,7 @@ const I32ConstCode     = 0x41;
 const I64ConstCode     = 0x42;
 const F32ConstCode     = 0x43;
 const F64ConstCode     = 0x44;
+const I32AddCode       = 0x6a;
 const I32DivSCode      = 0x6d;
 const I32DivUCode      = 0x6e;
 const I32RemSCode      = 0x6f;
@@ -83,6 +89,11 @@ const I64TruncSF32Code = 0xae;
 const I64TruncUF32Code = 0xaf;
 const I64TruncSF64Code = 0xb0;
 const I64TruncUF64Code = 0xb1;
+
+const FirstInvalidOpcode = wasmThreadsSupported() ? 0xc5 : 0xc0;
+const LastInvalidOpcode = 0xfd;
+const AtomicPrefix = 0xfe;
+const MozPrefix = 0xff;
 
 // DefinitionKind
 const FunctionCode     = 0x00;

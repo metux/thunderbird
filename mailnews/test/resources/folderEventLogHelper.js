@@ -49,7 +49,7 @@ var _folderEventLogHelper_msgFolderListener = {
       aJunkProcessed ? "junk processed" : "did not junk process",
       aTraitProcessed ? "trait processed" : "did not trait process"
     ];
-    for (let msgHdr in fixIterator(aMsgs, Components.interfaces.nsIMsgDBHdr)) {
+    for (let msgHdr of fixIterator(aMsgs, Components.interfaces.nsIMsgDBHdr)) {
       args.push(msgHdr);
     }
     mark_action("msgEvent", "msgsClassified", args);
@@ -57,7 +57,7 @@ var _folderEventLogHelper_msgFolderListener = {
 
   msgsDeleted: function felh_msgsDeleted(aMsgs) {
     let args = [];
-    for (let msgHdr in fixIterator(aMsgs, Components.interfaces.nsIMsgDBHdr)) {
+    for (let msgHdr of fixIterator(aMsgs, Components.interfaces.nsIMsgDBHdr)) {
       args.push(msgHdr);
     }
     mark_action("msgEvent", "msgsDeleted", args);
@@ -67,14 +67,14 @@ var _folderEventLogHelper_msgFolderListener = {
                                                              aDestFolder,
                                                              aDestMsgs) {
     let args = [aMove ? "moved" : "copied"];
-    for (let msgHdr in fixIterator(aSrcMsgs, Components.interfaces.nsIMsgDBHdr)) {
+    for (let msgHdr of fixIterator(aSrcMsgs, Components.interfaces.nsIMsgDBHdr)) {
       args.push(msgHdr);
     }
     args.push("to");
     args.push(aDestFolder);
     if (aDestMsgs) {
       args.push("dest headers:");
-      for (let msgHdr in fixIterator(aDestMsgs, Components.interfaces.nsIMsgDBHdr)) {
+      for (let msgHdr of fixIterator(aDestMsgs, Components.interfaces.nsIMsgDBHdr)) {
         args.push(msgHdr);
       }
     }
@@ -106,8 +106,8 @@ var _folderEventLogHelper_msgFolderListener = {
     mark_action("msgEvent", "folderRenamed", [aOrigFolder, "to", aNewFolder]);
   },
 
-  itemEvent: function felh_itemEvent(aItem, aEvent, aData) {
-    mark_action("msgEvent", "itemEvent", [aItem, aEvent, aData]);
+  itemEvent: function felh_itemEvent(aItem, aEvent, aData, aString) {
+    mark_action("msgEvent", "itemEvent", [aItem, aEvent, aData, aString]);
   }
 };
 
@@ -140,7 +140,7 @@ var _folderEventLogHelper_folderListener = {
       aMsgHdr, aProperty, aOldValue, aNewValue) {
     mark_action("msgEvent", "OnItemPropertyFlagChanged",
                 ["Header", aMsgHdr,
-                 "had property " + aProperty.toString() + " have the " +
+                 "had property " + aProperty + " have the " +
                  "following bits change: " +
                  _explode_flags(aOldValue ^ aNewValue,
                                 Components.interfaces.nsMsgMessageFlags)]);
@@ -152,7 +152,7 @@ var _folderEventLogHelper_folderListener = {
    */
   OnItemEvent: function felh_OnItemEvent(aFolder, aEvent) {
     mark_action("msgEvent", "OnItemEvent",
-                [aFolder, aEvent.toString()]);
+                [aFolder, aEvent]);
   },
 };
 

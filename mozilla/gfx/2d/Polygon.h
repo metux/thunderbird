@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -17,15 +18,164 @@
 namespace mozilla {
 namespace gfx {
 
-// Polygon3DTyped stores the points of a convex planar polygon.
+/**
+ * Calculates the w = 0 intersection point for the edge defined by
+ * |aFirst| and |aSecond|.
+ */
 template<class Units>
-class Polygon3DTyped {
+Point4DTyped<Units>
+CalculateEdgeIntersect(const Point4DTyped<Units>& aFirst,
+                       const Point4DTyped<Units>& aSecond)
+{
+  static const float w = 0.00001f;
+  const float t = (w - aFirst.w) / (aSecond.w - aFirst.w);
+  return aFirst + (aSecond - aFirst) * t;
+}
+
+/**
+ * Clips the polygon defined by |aPoints| so that there are no points with
+ * w <= 0.
+ */
+template<class Units>
+nsTArray<Point4DTyped<Units>>
+ClipPointsAtInfinity(const nsTArray<Point4DTyped<Units>>& aPoints)
+{
+  nsTArray<Point4DTyped<Units>> outPoints(aPoints.Length());
+
+  const size_t pointCount = aPoints.Length();
+  for (size_t i = 0; i < pointCount; ++i) {
+    const Point4DTyped<Units>& first = aPoints[i];
+    const Point4DTyped<Units>& second = aPoints[(i + 1) % pointCount];
+
+    if (!first.w || !second.w) {
+      // Skip edges at infinity.
+      continue;
+    }
+
+    if (first.w > 0.0f) {
+      outPoints.AppendElement(first);
+    }
+
+    if ((first.w <= 0.0f) ^ (second.w <= 0.0f)) {
+      outPoints.AppendElement(CalculateEdgeIntersect(first, second));
+    }
+  }
+
+  return outPoints;
+}
+
+/**
+ * Calculates the distances between the points in |aPoints| and the plane
+ * defined by |aPlaneNormal| and |aPlanePoint|.
+ */
+template<class Units>
+nsTArray<float>
+CalculatePointPlaneDistances(const nsTArray<Point4DTyped<Units>>& aPoints,
+                             const Point4DTyped<Units>& aPlaneNormal,
+                             const Point4DTyped<Units>& aPlanePoint,
+                             size_t& aPos, size_t& aNeg)
+{
+  // Point classification might produce incorrect results due to numerical
+  // inaccuracies. Using an epsilon value makes the splitting plane "thicker".
+  const float epsilon = 0.05f;
+
+  aPos = aNeg = 0;
+  nsTArray<float> distances(aPoints.Length());
+
+  for (const Point4DTyped<Units>& point : aPoints) {
+    float dot = (point - aPlanePoint).DotProduct(aPlaneNormal);
+
+    if (dot > epsilon) {
+      aPos++;
+    } else if (dot < -epsilon) {
+      aNeg++;
+    } else {
+      // The point is within the thick plane.
+      dot = 0.0f;
+    }
+
+    distances.AppendElement(dot);
+  }
+
+  return distances;
+}
+
+/**
+ * Clips the polygon defined by |aPoints|. The clipping uses previously
+ * calculated plane to point distances and the plane normal |aNormal|.
+ * The result of clipping is stored in |aBackPoints| and |aFrontPoints|.
+ */
+template<class Units>
+void
+ClipPointsWithPlane(const nsTArray<Point4DTyped<Units>>& aPoints,
+                    const Point4DTyped<Units>& aNormal,
+                    const nsTArray<float>& aDots,
+                    nsTArray<Point4DTyped<Units>>& aBackPoints,
+                    nsTArray<Point4DTyped<Units>>& aFrontPoints)
+{
+  static const auto Sign = [](const float& f) {
+    if (f > 0.0f) return 1;
+    if (f < 0.0f) return -1;
+    return 0;
+  };
+
+  const size_t pointCount = aPoints.Length();
+  for (size_t i = 0; i < pointCount; ++i) {
+    size_t j = (i + 1) % pointCount;
+
+    const Point4DTyped<Units>& a = aPoints[i];
+    const Point4DTyped<Units>& b = aPoints[j];
+    const float dotA = aDots[i];
+    const float dotB = aDots[j];
+
+    // The point is in front of or on the plane.
+    if (dotA >= 0) {
+      aFrontPoints.AppendElement(a);
+    }
+
+    // The point is behind or on the plane.
+    if (dotA <= 0) {
+      aBackPoints.AppendElement(a);
+    }
+
+    // If the sign of the dot products changes between two consecutive
+    // vertices, then the plane intersects with the polygon edge.
+    // The case where the polygon edge is within the plane is handled above.
+    if (Sign(dotA) && Sign(dotB) && Sign(dotA) != Sign(dotB)) {
+      // Calculate the line segment and plane intersection point.
+      const Point4DTyped<Units> ab = b - a;
+      const float dotAB = ab.DotProduct(aNormal);
+      const float t = -dotA / dotAB;
+      const Point4DTyped<Units> p = a + (ab * t);
+
+      // Add the intersection point to both polygons.
+      aBackPoints.AppendElement(p);
+      aFrontPoints.AppendElement(p);
+    }
+  }
+}
+
+/**
+ * PolygonTyped stores the points of a convex planar polygon.
+ */
+template<class Units>
+class PolygonTyped {
+  typedef Point3DTyped<Units> Point3DType;
+  typedef Point4DTyped<Units> Point4DType;
+
 public:
-  Polygon3DTyped() {}
+  PolygonTyped() {}
 
-  explicit Polygon3DTyped(const std::initializer_list<Point3DTyped<Units>>& aPoints,
-                          Point3DTyped<Units> aNormal =
-                            Point3DTyped<Units>(0.0f, 0.0f, 1.0f))
+  explicit PolygonTyped(const nsTArray<Point4DType>& aPoints,
+                        const Point4DType& aNormal = DefaultNormal())
+    : mNormal(aNormal), mPoints(aPoints) {}
+
+  explicit PolygonTyped(nsTArray<Point4DType>&& aPoints,
+                        const Point4DType& aNormal = DefaultNormal())
+    : mNormal(aNormal), mPoints(Move(aPoints)) {}
+
+  explicit PolygonTyped(const std::initializer_list<Point4DType>& aPoints,
+                        const Point4DType& aNormal = DefaultNormal())
     : mNormal(aNormal), mPoints(aPoints)
   {
 #ifdef DEBUG
@@ -33,33 +183,20 @@ public:
 #endif
   }
 
-  explicit Polygon3DTyped(nsTArray<Point3DTyped<Units>>&& aPoints,
-                          Point3DTyped<Units> aNormal =
-                            Point3DTyped<Units>(0.0f, 0.0f, 1.0f))
-    : mNormal(aNormal), mPoints(Move(aPoints))
-  {
-#ifdef DEBUG
-    EnsurePlanarPolygon();
-#endif
-  }
-
-  explicit Polygon3DTyped(const nsTArray<Point3DTyped<Units>>& aPoints,
-                          Point3DTyped<Units> aNormal =
-                            Point3DTyped<Units>(0.0f, 0.0f, 1.0f))
-    : mNormal(aNormal), mPoints(aPoints)
-  {
-#ifdef DEBUG
-    EnsurePlanarPolygon();
-#endif
-  }
-
+  /**
+   * Returns the smallest 2D rectangle that can fully cover the polygon.
+   */
   RectTyped<Units> BoundingBox() const
   {
+    if (mPoints.IsEmpty()) {
+      return RectTyped<Units>();
+    }
+
     float minX, maxX, minY, maxY;
     minX = maxX = mPoints[0].x;
     minY = maxY = mPoints[0].y;
 
-    for (const Point3DTyped<Units>& point : mPoints) {
+    for (const Point4DType& point : mPoints) {
       minX = std::min(point.x, minX);
       maxX = std::max(point.x, maxX);
 
@@ -70,135 +207,115 @@ public:
     return RectTyped<Units>(minX, minY, maxX - minX, maxY - minY);
   }
 
-  nsTArray<float>
-  CalculateDotProducts(const Polygon3DTyped<Units>& aPlane,
-                       size_t& aPos, size_t& aNeg) const
+  /**
+   * Clips the polygon against the given 2D rectangle.
+   */
+  PolygonTyped<Units> ClipPolygon(const RectTyped<Units>& aRect) const
   {
-    // Point classification might produce incorrect results due to numerical
-    // inaccuracies. Using an epsilon value makes the splitting plane "thicker".
-    const float epsilon = 0.05f;
-
-    MOZ_ASSERT(!aPlane.GetPoints().IsEmpty());
-    const Point3DTyped<Units>& planeNormal = aPlane.GetNormal();
-    const Point3DTyped<Units>& planePoint = aPlane[0];
-
-    aPos = aNeg = 0;
-    nsTArray<float> dotProducts;
-    for (const Point3DTyped<Units>& point : mPoints) {
-      float dot = (point - planePoint).DotProduct(planeNormal);
-
-      if (dot > epsilon) {
-        aPos++;
-      } else if (dot < -epsilon) {
-        aNeg++;
-      } else {
-        // The point is within the thick plane.
-        dot = 0.0f;
-      }
-
-      dotProducts.AppendElement(dot);
+    if (aRect.IsEmpty()) {
+      return PolygonTyped<Units>();
     }
 
-    return dotProducts;
+    return ClipPolygon(FromRect(aRect));
   }
 
-  // Clips the polygon against the given 2D rectangle.
-  Polygon3DTyped<Units> ClipPolygon(const RectTyped<Units>& aRect) const
+  /**
+   * Clips this polygon against |aPolygon| in 2D and returns a new polygon.
+   */
+  PolygonTyped<Units> ClipPolygon(const PolygonTyped<Units>& aPolygon) const
   {
-    Polygon3DTyped<Units> polygon(mPoints, mNormal);
+    const nsTArray<Point4DType>& points = aPolygon.GetPoints();
 
-    // Left edge
-    ClipPolygonWithEdge(polygon, aRect.BottomLeft(), aRect.TopLeft());
+    if (mPoints.IsEmpty() || points.IsEmpty()) {
+      return PolygonTyped<Units>();
+    }
 
-    // Bottom edge
-    ClipPolygonWithEdge(polygon, aRect.BottomRight(), aRect.BottomLeft());
+    nsTArray<Point4DType> clippedPoints(mPoints);
 
-    // Right edge
-    ClipPolygonWithEdge(polygon, aRect.TopRight(), aRect.BottomRight());
+    size_t pos, neg;
+    nsTArray<Point4DType> backPoints(4), frontPoints(4);
 
-    // Top edge
-    ClipPolygonWithEdge(polygon, aRect.TopLeft(), aRect.TopRight());
+    // Iterate over all the edges of the clipping polygon |aPolygon| and clip
+    // this polygon against the edges.
+    const size_t pointCount = points.Length();
+    for (size_t i = 0; i < pointCount; ++i) {
+      const Point4DType p1 = points[(i + 1) % pointCount];
+      const Point4DType p2 = points[i];
 
-    return polygon;
+      // Calculate the normal for the edge defined by |p1| and |p2|.
+      const Point4DType normal(p2.y - p1.y, p1.x - p2.x, 0.0f, 0.0f);
+
+      // Calculate the distances between the points of the polygon and the
+      // plane defined by |aPolygon|.
+      const nsTArray<float> distances =
+        CalculatePointPlaneDistances(clippedPoints, normal, p1, pos, neg);
+
+      backPoints.ClearAndRetainStorage();
+      frontPoints.ClearAndRetainStorage();
+
+      // Clip the polygon points using the previously calculated distances.
+      ClipPointsWithPlane(clippedPoints, normal, distances,
+                          backPoints, frontPoints);
+
+      // Only use the points behind the clipping plane.
+      clippedPoints = Move(backPoints);
+
+      if (clippedPoints.Length() < 3) {
+        // The clipping created a polygon with no area.
+        return PolygonTyped<Units>();
+      }
+    }
+
+    return PolygonTyped<Units>(Move(clippedPoints), mNormal);
   }
 
-  const Point3DTyped<Units>& GetNormal() const
+  /**
+   * Returns a new polygon containing the bounds of the given 2D rectangle.
+   */
+  static PolygonTyped<Units> FromRect(const RectTyped<Units>& aRect)
+  {
+    nsTArray<Point4DType> points {
+      Point4DType(aRect.x, aRect.y, 0.0f, 1.0f),
+      Point4DType(aRect.x, aRect.YMost(), 0.0f, 1.0f),
+      Point4DType(aRect.XMost(), aRect.YMost(), 0.0f, 1.0f),
+      Point4DType(aRect.XMost(), aRect.y, 0.0f, 1.0f)
+    };
+
+    return PolygonTyped<Units>(Move(points));
+  }
+
+  const Point4DType& GetNormal() const
   {
     return mNormal;
   }
 
-  const nsTArray<Point3DTyped<Units>>& GetPoints() const
+  const nsTArray<Point4DType>& GetPoints() const
   {
     return mPoints;
   }
 
-  const Point3DTyped<Units>& operator[](size_t aIndex) const
+  bool IsEmpty() const
   {
-    MOZ_ASSERT(mPoints.Length() > aIndex);
-    return mPoints[aIndex];
+    // If the polygon has less than three points, it has no visible area.
+    return mPoints.Length() < 3;
   }
 
-  void SplitPolygon(const Polygon3DTyped<Units>& aSplittingPlane,
-                    const nsTArray<float>& aDots,
-                    nsTArray<Point3DTyped<Units>>& aBackPoints,
-                    nsTArray<Point3DTyped<Units>>& aFrontPoints) const
-  {
-    static const auto Sign = [](const float& f) {
-      if (f > 0.0f) return 1;
-      if (f < 0.0f) return -1;
-      return 0;
-    };
-
-    const Point3DTyped<Units>& normal = aSplittingPlane.GetNormal();
-    const size_t pointCount = mPoints.Length();
-
-    for (size_t i = 0; i < pointCount; ++i) {
-      size_t j = (i + 1) % pointCount;
-
-      const Point3DTyped<Units>& a = mPoints[i];
-      const Point3DTyped<Units>& b = mPoints[j];
-      const float dotA = aDots[i];
-      const float dotB = aDots[j];
-
-      // The point is in front of or on the plane.
-      if (dotA >= 0) {
-        aFrontPoints.AppendElement(a);
-      }
-
-      // The point is behind or on the plane.
-      if (dotA <= 0) {
-        aBackPoints.AppendElement(a);
-      }
-
-      // If the sign of the dot products changes between two consecutive
-      // vertices, then the plane intersects with the polygon edge.
-      // The case where the polygon edge is within the plane is handled above.
-      if (Sign(dotA) && Sign(dotB) && Sign(dotA) != Sign(dotB)) {
-        // Calculate the line segment and plane intersection point.
-        const Point3DTyped<Units> ab = b - a;
-        const float dotAB = ab.DotProduct(normal);
-        const float t = -dotA / dotAB;
-        const Point3DTyped<Units> p = a + (ab * t);
-
-        // Add the intersection point to both polygons.
-        aBackPoints.AppendElement(p);
-        aFrontPoints.AppendElement(p);
-      }
-    }
-  }
-
+  /**
+   * Returns a list of triangles covering the polygon.
+   */
   nsTArray<TriangleTyped<Units>> ToTriangles() const
   {
     nsTArray<TriangleTyped<Units>> triangles;
 
-    if (mPoints.Length() < 3) {
+    if (IsEmpty()) {
       return triangles;
     }
 
+    // This fan triangulation method only works for convex polygons.
     for (size_t i = 1; i < mPoints.Length() - 1; ++i) {
       TriangleTyped<Units> triangle(Point(mPoints[0].x, mPoints[0].y),
                                     Point(mPoints[i].x, mPoints[i].y),
-                                    Point(mPoints[i+1].x, mPoints[i+1].y));
+                                    Point(mPoints[i + 1].x, mPoints[i + 1].y));
       triangles.AppendElement(Move(triangle));
     }
 
@@ -207,36 +324,28 @@ public:
 
   void TransformToLayerSpace(const Matrix4x4Typed<Units, Units>& aTransform)
   {
-    TransformPoints(aTransform);
-    mNormal = Point3DTyped<Units>(0.0f, 0.0f, 1.0f);
+    TransformPoints(aTransform, true);
+    mNormal = DefaultNormal();
   }
 
   void TransformToScreenSpace(const Matrix4x4Typed<Units, Units>& aTransform)
   {
-    TransformPoints(aTransform);
+    MOZ_ASSERT(!aTransform.IsSingular());
+
+    TransformPoints(aTransform, false);
+
+    // Perspective projection transformation might produce points with w <= 0,
+    // so we need to clip these points.
+    mPoints = ClipPointsAtInfinity(mPoints);
 
     // Normal vectors should be transformed using inverse transpose.
     mNormal = aTransform.Inverse().Transpose().TransformPoint(mNormal);
   }
 
 private:
-  void ClipPolygonWithEdge(Polygon3DTyped<Units>& aPolygon,
-                           const PointTyped<Units>& aFirst,
-                           const PointTyped<Units>& aSecond) const
+  static Point4DType DefaultNormal()
   {
-    const Point3DTyped<Units> a(aFirst.x, aFirst.y, 0.0f);
-    const Point3DTyped<Units> b(aSecond.x, aSecond.y, 0.0f);
-    const Point3DTyped<Units> normal(b.y - a.y, a.x - b.x, 0.0f);
-    Polygon3DTyped<Units> plane({a, b}, normal);
-
-    size_t pos, neg;
-    nsTArray<float> dots = aPolygon.CalculateDotProducts(plane, pos, neg);
-
-    nsTArray<Point3DTyped<Units>> backPoints, frontPoints;
-    aPolygon.SplitPolygon(plane, dots, backPoints, frontPoints);
-
-    // Only use the points that are behind the clipping plane.
-    aPolygon = Polygon3DTyped<Units>(Move(backPoints), aPolygon.GetNormal());
+    return Point4DType(0.0f, 0.0f, 1.0f, 0.0f);
   }
 
 #ifdef DEBUG
@@ -251,11 +360,14 @@ private:
     // The resulting normal vector will point towards the viewer when the
     // polygon has a counter-clockwise winding order from the perspective
     // of the viewer.
-    Point3DTyped<Units> normal;
+    Point3DType normal;
+    const Point3DType p0 = mPoints[0].As3DPoint();
 
     for (size_t i = 1; i < mPoints.Length() - 1; ++i) {
-      normal +=
-        (mPoints[i] - mPoints[0]).CrossProduct(mPoints[i + 1] - mPoints[0]);
+      const Point3DType p1 = mPoints[i].As3DPoint();
+      const Point3DType p2 = mPoints[i + 1].As3DPoint();
+
+      normal += (p1 - p0).CrossProduct(p2 - p0);
     }
 
     // Ensure that at least one component is greater than zero.
@@ -263,6 +375,7 @@ private:
     bool hasNonZeroComponent = std::abs(normal.x) > 0.0f ||
                                std::abs(normal.y) > 0.0f ||
                                std::abs(normal.z) > 0.0f;
+
     MOZ_ASSERT(hasNonZeroComponent);
 
     normal.Normalize();
@@ -270,24 +383,32 @@ private:
     // Ensure that the polygon is planar.
     // http://mathworld.wolfram.com/Point-PlaneDistance.html
     const float epsilon = 0.01f;
-    for (const Point3DTyped<Units>& point : mPoints) {
-      float d = normal.DotProduct(point - mPoints[0]);
+    for (const Point4DType& point : mPoints) {
+      const Point3DType p1 = point.As3DPoint();
+      const float d = normal.DotProduct(p1 - p0);
+
       MOZ_ASSERT(std::abs(d) < epsilon);
     }
   }
 #endif
-  void TransformPoints(const Matrix4x4Typed<Units, Units>& aTransform)
+
+  void TransformPoints(const Matrix4x4Typed<Units, Units>& aTransform,
+                       const bool aDivideByW)
   {
-    for (Point3DTyped<Units>& point : mPoints) {
+    for (Point4DType& point : mPoints) {
       point = aTransform.TransformPoint(point);
+
+      if (aDivideByW && point.w > 0.0f) {
+          point = point / point.w;
+      }
     }
   }
 
-  Point3DTyped<Units> mNormal;
-  nsTArray<Point3DTyped<Units>> mPoints;
+  Point4DType mNormal;
+  nsTArray<Point4DType> mPoints;
 };
 
-typedef Polygon3DTyped<UnknownUnits> Polygon3D;
+typedef PolygonTyped<UnknownUnits> Polygon;
 
 } // namespace gfx
 } // namespace mozilla

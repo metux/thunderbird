@@ -247,6 +247,8 @@ public:
   SignedStatusRunnable(const nsMainThreadPtrHandle<nsIMsgSMIMEHeaderSink> &aSink, int32_t aNestingLevel,
                        int32_t aSignatureStatus, nsIX509Cert *aSignerCert);
   NS_DECL_NSIRUNNABLE
+  nsresult mResult;
+
 protected:
   nsMainThreadPtrHandle<nsIMsgSMIMEHeaderSink> m_sink;
   int32_t m_nestingLevel;
@@ -258,6 +260,7 @@ SignedStatusRunnable::SignedStatusRunnable(const nsMainThreadPtrHandle<nsIMsgSMI
                                            int32_t aNestingLevel,
                                            int32_t aSignatureStatus,
                                            nsIX509Cert *aSignerCert) :
+  mozilla::Runnable("SignedStatusRunnable"),
   m_sink(aSink), m_nestingLevel(aNestingLevel),
   m_signatureStatus(aSignatureStatus), m_signerCert(aSignerCert)
 {
@@ -265,7 +268,8 @@ SignedStatusRunnable::SignedStatusRunnable(const nsMainThreadPtrHandle<nsIMsgSMI
 
 NS_IMETHODIMP SignedStatusRunnable::Run()
 {
-  return m_sink->SignedStatus(m_nestingLevel, m_signatureStatus, m_signerCert);
+  mResult = m_sink->SignedStatus(m_nestingLevel, m_signatureStatus, m_signerCert);
+  return NS_OK;
 }
 
 
@@ -276,7 +280,9 @@ nsresult ProxySignedStatus(const nsMainThreadPtrHandle<nsIMsgSMIMEHeaderSink> &a
 {
   RefPtr<SignedStatusRunnable> signedStatus =
     new SignedStatusRunnable(aSink, aNestingLevel, aSignatureStatus, aSignerCert);
-  return NS_DispatchToMainThread(signedStatus, NS_DISPATCH_SYNC);
+  nsresult rv = NS_DispatchToMainThread(signedStatus, NS_DISPATCH_SYNC);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return signedStatus->mResult;
 }
 
 NS_IMPL_ISUPPORTS(nsSMimeVerificationListener, nsISMimeVerificationListener)
@@ -285,7 +291,7 @@ nsSMimeVerificationListener::nsSMimeVerificationListener(const char *aFromAddr, 
                                                          const char *aSenderAddr, const char *aSenderName,
                                                          nsIMsgSMIMEHeaderSink *aHeaderSink, int32_t aMimeNestingLevel)
 {
-  mHeaderSink = new nsMainThreadPtrHolder<nsIMsgSMIMEHeaderSink>(aHeaderSink);
+  mHeaderSink = new nsMainThreadPtrHolder<nsIMsgSMIMEHeaderSink>("nsSMimeVerificationListener::mHeaderSink", aHeaderSink);
   mSinkIsNull = !aHeaderSink;
   mMimeNestingLevel = aMimeNestingLevel;
 

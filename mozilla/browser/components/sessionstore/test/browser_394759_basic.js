@@ -29,7 +29,7 @@ function test() {
 
     // Mark the window with some unique data to be restored later on.
     ss.setWindowValue(newWin, uniqueKey, uniqueValue);
-    let [txt, chk] = newWin.content.document.querySelectorAll("#txt, #chk");
+    let [txt] = newWin.content.document.querySelectorAll("#txt");
     txt.value = uniqueText;
 
     let browser = newWin.gBrowser.selectedBrowser;
@@ -42,7 +42,7 @@ function test() {
 
         // Verify that non JSON serialized data is the same as JSON serialized data.
         is(JSON.stringify(data), ss.getClosedWindowData(),
-           "Non-serialized data is the same as serialized data")
+           "Non-serialized data is the same as serialized data");
 
         ok(data[0].title == TEST_URL && JSON.stringify(data[0]).indexOf(uniqueText) > -1,
            "The closed window data was stored correctly");
@@ -50,7 +50,7 @@ function test() {
         // Reopen the closed window and ensure its integrity.
         let newWin2 = ss.undoCloseWindow(0);
 
-        ok(newWin2 instanceof ChromeWindow,
+        ok(newWin2.isChromeWindow,
            "undoCloseWindow actually returned a window");
         is(ss.getClosedWindowCount(), 0,
            "The reopened window was removed from Recently Closed Windows");
@@ -73,7 +73,8 @@ function test() {
           is(newWin2.gBrowser.currentURI.spec, TEST_URL,
              "The window correctly restored the URL");
 
-          let [txt, chk] = newWin2.content.document.querySelectorAll("#txt, #chk");
+          let chk;
+          [txt, chk] = newWin2.content.document.querySelectorAll("#txt, #chk");
           ok(txt.value == uniqueText && chk.checked,
              "The window correctly restored the form");
           is(ss.getWindowValue(newWin2, uniqueKey), uniqueValue,

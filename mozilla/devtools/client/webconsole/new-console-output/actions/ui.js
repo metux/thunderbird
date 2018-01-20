@@ -11,17 +11,57 @@ const Services = require("Services");
 
 const {
   FILTER_BAR_TOGGLE,
+  INITIALIZE,
+  PERSIST_TOGGLE,
   PREFS,
+  SELECT_NETWORK_MESSAGE_TAB,
+  TIMESTAMPS_TOGGLE,
 } = require("devtools/client/webconsole/new-console-output/constants");
 
 function filterBarToggle(show) {
   return (dispatch, getState) => {
     dispatch({
-      type: FILTER_BAR_TOGGLE
+      type: FILTER_BAR_TOGGLE,
     });
     const uiState = getAllUi(getState());
     Services.prefs.setBoolPref(PREFS.UI.FILTER_BAR, uiState.get("filterBarVisible"));
   };
 }
 
-exports.filterBarToggle = filterBarToggle;
+function persistToggle(show) {
+  return (dispatch, getState) => {
+    dispatch({
+      type: PERSIST_TOGGLE,
+    });
+    const uiState = getAllUi(getState());
+    Services.prefs.setBoolPref(PREFS.UI.PERSIST, uiState.get("persistLogs"));
+  };
+}
+
+function timestampsToggle(visible) {
+  return {
+    type: TIMESTAMPS_TOGGLE,
+    visible,
+  };
+}
+
+function selectNetworkMessageTab(id) {
+  return {
+    type: SELECT_NETWORK_MESSAGE_TAB,
+    id,
+  };
+}
+
+function initialize() {
+  return {
+    type: INITIALIZE
+  };
+}
+
+module.exports = {
+  filterBarToggle,
+  initialize,
+  persistToggle,
+  selectNetworkMessageTab,
+  timestampsToggle,
+};

@@ -44,7 +44,7 @@ UIEvent::UIEvent(EventTarget* aOwner,
     mEventIsInternal = true;
     mEvent->mTime = PR_Now();
   }
-  
+
   // Fill mDetail and mView according to the mEvent (widget-generated
   // event) we've got
   switch(mEvent->mClass) {
@@ -100,7 +100,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(UIEvent, Event,
 NS_IMPL_ADDREF_INHERITED(UIEvent, Event)
 NS_IMPL_RELEASE_INHERITED(UIEvent, Event)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(UIEvent)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(UIEvent)
   NS_INTERFACE_MAP_ENTRY(nsIDOMUIEvent)
 NS_INTERFACE_MAP_END_INHERITING(Event)
 
@@ -115,18 +115,18 @@ DevPixelsToCSSPixels(const LayoutDeviceIntPoint& aPoint,
 nsIntPoint
 UIEvent::GetMovementPoint()
 {
+  if (mEvent->mFlags.mIsPositionless) {
+    return nsIntPoint(0, 0);
+  }
+
   if (mPrivateDataDuplicated || mEventIsInternal) {
     return mMovementPoint;
   }
 
-  if (!mEvent ||
-      (mEvent->mClass != eMouseEventClass &&
-       mEvent->mClass != eMouseScrollEventClass &&
-       mEvent->mClass != eWheelEventClass &&
-       mEvent->mClass != eDragEventClass &&
-       mEvent->mClass != ePointerEventClass &&
-       mEvent->mClass != eSimpleGestureEventClass) ||
-       !mEvent->AsGUIEvent()->mWidget) {
+  if (!mEvent || !mEvent->AsGUIEvent()->mWidget ||
+      (mEvent->mMessage != eMouseMove && mEvent->mMessage != ePointerMove)) {
+    // Pointer Lock spec defines that movementX/Y must be zero for all mouse
+    // events except mousemove.
     return nsIntPoint(0, 0);
   }
 
@@ -155,7 +155,7 @@ void
 UIEvent::InitUIEvent(const nsAString& typeArg,
                      bool canBubbleArg,
                      bool cancelableArg,
-                     nsGlobalWindow* viewArg,
+                     nsGlobalWindowInner* viewArg,
                      int32_t detailArg)
 {
   auto* view = viewArg ? viewArg->AsInner() : nullptr;
@@ -191,6 +191,10 @@ UIEvent::GetPageX(int32_t* aPageX)
 int32_t
 UIEvent::PageX() const
 {
+  if (mEvent->mFlags.mIsPositionless) {
+    return 0;
+  }
+
   if (mPrivateDataDuplicated) {
     return mPagePoint.x;
   }
@@ -210,6 +214,10 @@ UIEvent::GetPageY(int32_t* aPageY)
 int32_t
 UIEvent::PageY() const
 {
+  if (mEvent->mFlags.mIsPositionless) {
+    return 0;
+  }
+
   if (mPrivateDataDuplicated) {
     return mPagePoint.y;
   }
@@ -232,7 +240,11 @@ UIEvent::GetRangeParent()
   nsIFrame* targetFrame = nullptr;
 
   if (mPresContext) {
-    targetFrame = mPresContext->EventStateManager()->GetEventTarget();
+    nsCOMPtr<nsIPresShell> shell = mPresContext->GetPresShell();
+    if (shell) {
+      shell->FlushPendingNotifications(FlushType::Layout);
+      targetFrame = mPresContext->EventStateManager()->GetEventTarget();
+    }
   }
 
   if (targetFrame) {
@@ -278,6 +290,13 @@ UIEvent::RangeOffset() const
     return 0;
   }
 
+  nsCOMPtr<nsIPresShell> shell = mPresContext->GetPresShell();
+  if (!shell) {
+    return 0;
+  }
+
+  shell->FlushPendingNotifications(FlushType::Layout);
+
   nsIFrame* targetFrame = mPresContext->EventStateManager()->GetEventTarget();
   if (!targetFrame) {
     return 0;
@@ -291,6 +310,10 @@ UIEvent::RangeOffset() const
 nsIntPoint
 UIEvent::GetLayerPoint() const
 {
+  if (mEvent->mFlags.mIsPositionless) {
+    return nsIntPoint(0, 0);
+  }
+
   if (!mEvent ||
       (mEvent->mClass != eMouseEventClass &&
        mEvent->mClass != eMouseScrollEventClass &&
@@ -327,20 +350,6 @@ UIEvent::GetLayerY(int32_t* aLayerY)
   NS_ENSURE_ARG_POINTER(aLayerY);
   *aLayerY = GetLayerPoint().y;
   return NS_OK;
-}
-
-NS_IMETHODIMP
-UIEvent::GetIsChar(bool* aIsChar)
-{
-  *aIsChar = IsChar();
-  return NS_OK;
-}
-
-bool
-UIEvent::IsChar() const
-{
-  WidgetKeyboardEvent* keyEvent = mEvent->AsKeyboardEvent();
-  return keyEvent ? keyEvent->mIsChar : false;
 }
 
 mozilla::dom::Event*
@@ -505,7 +514,7 @@ using namespace mozilla::dom;
 already_AddRefed<UIEvent>
 NS_NewDOMUIEvent(EventTarget* aOwner,
                  nsPresContext* aPresContext,
-                 WidgetGUIEvent* aEvent) 
+                 WidgetGUIEvent* aEvent)
 {
   RefPtr<UIEvent> it = new UIEvent(aOwner, aPresContext, aEvent);
   return it.forget();

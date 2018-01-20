@@ -47,11 +47,12 @@ const {require, loader} = Cu.import("resource://devtools/shared/Loader.jsm", {})
 
 const Editor = require("devtools/client/sourceeditor/editor");
 const TargetFactory = require("devtools/client/framework/target").TargetFactory;
-const EventEmitter = require("devtools/shared/event-emitter");
+const EventEmitter = require("devtools/shared/old-event-emitter");
 const {DevToolsWorker} = require("devtools/shared/worker/worker");
 const DevToolsUtils = require("devtools/shared/DevToolsUtils");
 const flags = require("devtools/shared/flags");
 const promise = require("promise");
+const defer = require("devtools/shared/defer");
 const Services = require("Services");
 const {gDevTools} = require("devtools/client/framework/devtools");
 const {Heritage} = require("devtools/client/shared/widgets/view-helpers");
@@ -62,6 +63,10 @@ const {ScratchpadManager} = require("resource://devtools/client/scratchpad/scrat
 const {addDebuggerToGlobal} = require("resource://gre/modules/jsdebugger.jsm");
 const {OS} = require("resource://gre/modules/osfile.jsm");
 const {Reflect} = require("resource://gre/modules/reflect.jsm");
+
+// Use privileged promise in panel documents to prevent having them to freeze
+// during toolbox destruction. See bug 1402779.
+const Promise = require("Promise");
 
 XPCOMUtils.defineConstant(this, "SCRATCHPAD_CONTEXT_CONTENT", SCRATCHPAD_CONTEXT_CONTENT);
 XPCOMUtils.defineConstant(this, "SCRATCHPAD_CONTEXT_BROWSER", SCRATCHPAD_CONTEXT_BROWSER);
@@ -78,10 +83,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "VariablesViewController",
 
 loader.lazyRequireGetter(this, "DebuggerServer", "devtools/server/main", true);
 
-loader.lazyRequireGetter(this, "DebuggerClient", "devtools/shared/client/main", true);
-loader.lazyRequireGetter(this, "EnvironmentClient", "devtools/shared/client/main", true);
-loader.lazyRequireGetter(this, "ObjectClient", "devtools/shared/client/main", true);
-loader.lazyRequireGetter(this, "HUDService", "devtools/client/webconsole/hudservice");
+loader.lazyRequireGetter(this, "DebuggerClient", "devtools/shared/client/debugger-client", true);
+loader.lazyRequireGetter(this, "EnvironmentClient", "devtools/shared/client/environment-client");
+loader.lazyRequireGetter(this, "ObjectClient", "devtools/shared/client/object-client");
+loader.lazyRequireGetter(this, "HUDService", "devtools/client/webconsole/hudservice", true);
 
 XPCOMUtils.defineLazyGetter(this, "REMOTE_TIMEOUT", () =>
   Services.prefs.getIntPref("devtools.debugger.remote-timeout"));
@@ -506,7 +511,7 @@ var Scratchpad = {
     let evalOptions = { url: this.uniqueName };
 
     return connection.then(({ debuggerClient, webConsoleClient }) => {
-      let deferred = promise.defer();
+      let deferred = defer();
 
       webConsoleClient.evaluateJSAsync(aString, aResponse => {
         this.debuggerClient = debuggerClient;
@@ -549,7 +554,7 @@ var Scratchpad = {
    */
   run: function SP_run()
   {
-    let deferred = promise.defer();
+    let deferred = defer();
     let reject = aReason => deferred.reject(aReason);
 
     this.execute().then(([aString, aError, aResult]) => {
@@ -576,7 +581,7 @@ var Scratchpad = {
    */
   inspect: function SP_inspect()
   {
-    let deferred = promise.defer();
+    let deferred = defer();
     let reject = aReason => deferred.reject(aReason);
 
     this.execute().then(([aString, aError, aResult]) => {
@@ -604,7 +609,7 @@ var Scratchpad = {
    */
   reloadAndRun: function SP_reloadAndRun()
   {
-    let deferred = promise.defer();
+    let deferred = defer();
 
     if (this.executionContext !== SCRATCHPAD_CONTEXT_CONTENT) {
       console.error(this.strings.
@@ -632,7 +637,7 @@ var Scratchpad = {
    */
   display: function SP_display()
   {
-    let deferred = promise.defer();
+    let deferred = defer();
     let reject = aReason => deferred.reject(aReason);
 
     this.execute().then(([aString, aError, aResult]) => {
@@ -695,7 +700,7 @@ var Scratchpad = {
       source: uglyText
     }).then(data => {
       this.editor.setText(data.code);
-    }).then(null, error => {
+    }).catch(error => {
       this.writeAsErrorComment({ exception: error });
       throw error;
     });
@@ -875,7 +880,7 @@ var Scratchpad = {
    */
   _writePrimitiveAsComment: function SP__writePrimitiveAsComment(aValue)
   {
-    let deferred = promise.defer();
+    let deferred = defer();
 
     if (aValue.type == "longString") {
       let client = this.webConsoleClient;
@@ -934,7 +939,7 @@ var Scratchpad = {
    */
   writeAsErrorComment: function SP_writeAsErrorComment(aError)
   {
-    let deferred = promise.defer();
+    let deferred = defer();
 
     if (VariablesView.isPrimitive({ value: aError.exception })) {
       let error = aError.exception;
@@ -1055,7 +1060,7 @@ var Scratchpad = {
   /**
    * Export the textbox content to a file.
    *
-   * @param nsILocalFile aFile
+   * @param nsIFile aFile
    *        The file where you want to save the textbox content.
    * @param boolean aNoConfirmation
    *        If the file already exists, ask for confirmation?
@@ -1141,7 +1146,7 @@ var Scratchpad = {
   /**
    * Read the content of a file and put it into the textbox.
    *
-   * @param nsILocalFile aFile
+   * @param nsIFile aFile
    *        The file you want to save the textbox content into.
    * @param boolean aSilentError
    *        True if you do not want to display an error when file load fails,
@@ -1234,7 +1239,7 @@ var Scratchpad = {
             file = aFile;
           } else {
             file = Components.classes["@mozilla.org/file/local;1"].
-                   createInstance(Components.interfaces.nsILocalFile);
+                   createInstance(Components.interfaces.nsIFile);
             let filePath = this.getRecentFiles()[aIndex];
             file.initWithPath(filePath);
           }
@@ -1288,8 +1293,7 @@ var Scratchpad = {
     // Unicode strings.
 
     if (branch.prefHasUserValue("recentFilePaths")) {
-      let data = branch.getComplexValue("recentFilePaths",
-        Ci.nsISupportsString).data;
+      let data = branch.getStringPref("recentFilePaths");
       filePaths = JSON.parse(data);
     }
 
@@ -1299,8 +1303,8 @@ var Scratchpad = {
   /**
    * Save a recent file in a JSON parsable string.
    *
-   * @param nsILocalFile aFile
-   *        The nsILocalFile we want to save as a recent file.
+   * @param nsIFile aFile
+   *        The nsIFile we want to save as a recent file.
    */
   setRecentFile: function SP_setRecentFile(aFile)
   {
@@ -1336,16 +1340,8 @@ var Scratchpad = {
 
     filePaths.push(aFile.path);
 
-    // WARNING: Do not use setCharPref here, it doesn't play nicely with
-    // Unicode strings.
-
-    let str = Cc["@mozilla.org/supports-string;1"]
-      .createInstance(Ci.nsISupportsString);
-    str.data = JSON.stringify(filePaths);
-
-    let branch = Services.prefs.getBranch("devtools.scratchpad.");
-    branch.setComplexValue("recentFilePaths",
-      Ci.nsISupportsString, str);
+    Services.prefs.getBranch("devtools.scratchpad.")
+            .setStringPref("recentFilePaths", JSON.stringify(filePaths));
   },
 
   /**
@@ -1367,7 +1363,7 @@ var Scratchpad = {
 
     recentFilesMenu.setAttribute("disabled", true);
     while (recentFilesPopup.hasChildNodes()) {
-      recentFilesPopup.removeChild(recentFilesPopup.firstChild);
+      recentFilesPopup.firstChild.remove();
     }
 
     if (filePaths.length > 0) {
@@ -1412,16 +1408,8 @@ var Scratchpad = {
     let filePaths = this.getRecentFiles();
     filePaths.splice(aIndex, aLength);
 
-    // WARNING: Do not use setCharPref here, it doesn't play nicely with
-    // Unicode strings.
-
-    let str = Cc["@mozilla.org/supports-string;1"]
-      .createInstance(Ci.nsISupportsString);
-    str.data = JSON.stringify(filePaths);
-
-    let branch = Services.prefs.getBranch("devtools.scratchpad.");
-    branch.setComplexValue("recentFilePaths",
-      Ci.nsISupportsString, str);
+    Services.prefs.getBranch("devtools.scratchpad.")
+            .setStringPref("recentFilePaths", JSON.stringify(filePaths));
   },
 
   /**
@@ -1471,7 +1459,7 @@ var Scratchpad = {
       return this.saveFileAs(aCallback);
     }
 
-    let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
+    let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
     file.initWithPath(this.filename);
 
     this.exportToFile(file, true, false, aStatus => {
@@ -1526,7 +1514,7 @@ var Scratchpad = {
    */
   revertFile: function SP_revertFile(aCallback)
   {
-    let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
+    let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
     file.initWithPath(this.filename);
 
     if (!file.exists()) {
@@ -1752,10 +1740,18 @@ var Scratchpad = {
       this.populateRecentFilesMenu();
       PreferenceObserver.init();
       CloseObserver.init();
-    }).then(null, (err) => console.error(err));
+    }).catch(console.error);
     this._setupCommandListeners();
     this._updateViewMenuItems();
     this._setupPopupShowingListeners();
+
+    // Change the accesskey for the help menu as it can be specific on Windows
+    // some localizations of Windows (ex:french, german) use "?"
+    //  for the help button in the menubar but Gnome does not.
+    if (Services.appinfo.OS == "WINNT") {
+      let helpMenu = document.getElementById("sp-help-menu");
+      helpMenu.setAttribute("accesskey", helpMenu.getAttribute("accesskeywindows"));
+    }
   },
 
   /**
@@ -2120,7 +2116,7 @@ ScratchpadTab.prototype = {
       return this._connector;
     }
 
-    let deferred = promise.defer();
+    let deferred = defer();
     this._connector = deferred.promise;
 
     let connectTimer = setTimeout(() => {
@@ -2271,7 +2267,7 @@ ScratchpadSidebar.prototype = {
   {
     this.show();
 
-    let deferred = promise.defer();
+    let deferred = defer();
 
     let onTabReady = () => {
       if (this.variablesView) {
@@ -2408,7 +2404,7 @@ var PreferenceObserver = {
     }
 
     this.branch = Services.prefs.getBranch("devtools.scratchpad.");
-    this.branch.addObserver("", this, false);
+    this.branch.addObserver("", this);
     this._initialized = true;
   },
 
@@ -2444,7 +2440,7 @@ var PreferenceObserver = {
 var CloseObserver = {
   init: function CO_init()
   {
-    Services.obs.addObserver(this, "browser-lastwindow-close-requested", false);
+    Services.obs.addObserver(this, "browser-lastwindow-close-requested");
   },
 
   observe: function CO_observe(aSubject)
@@ -2466,8 +2462,7 @@ var CloseObserver = {
     }
 
     this._uninited = true;
-    Services.obs.removeObserver(this, "browser-lastwindow-close-requested",
-                                false);
+    Services.obs.removeObserver(this, "browser-lastwindow-close-requested");
   },
 };
 

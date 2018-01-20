@@ -23,7 +23,7 @@
 namespace mozilla {
 
 namespace Telemetry {
-  enum ID : uint32_t;
+  enum HistogramID : uint32_t;
 } // namespace Telemetry
 
 namespace image {
@@ -56,7 +56,7 @@ struct DecoderFinalStatus final
 
 struct DecoderTelemetry final
 {
-  DecoderTelemetry(Maybe<Telemetry::ID> aSpeedHistogram,
+  DecoderTelemetry(const Maybe<Telemetry::HistogramID>& aSpeedHistogram,
                    size_t aBytesDecoded,
                    uint32_t aChunkCount,
                    TimeDuration aDecodeTime)
@@ -77,7 +77,7 @@ struct DecoderTelemetry final
 
   /// The per-image-format telemetry ID for recording our decoder's speed, or
   /// Nothing() if we don't record speed telemetry for this kind of decoder.
-  const Maybe<Telemetry::ID> mSpeedHistogram;
+  const Maybe<Telemetry::HistogramID> mSpeedHistogram;
 
   /// The number of bytes of input our decoder processed.
   const size_t mBytesDecoded;
@@ -216,12 +216,21 @@ public:
   Maybe<gfx::IntSize> ExplicitOutputSize() const;
 
   /**
-   * Set the requested sample size for this decoder. Used to implement the
-   * -moz-sample-size media fragment.
-   *
-   *  XXX(seth): Support for -moz-sample-size will be removed in bug 1120056.
+   * Sets the expected image size of this decoder. Decoding will fail if this
+   * does not match.
    */
-  virtual void SetSampleSize(int aSampleSize) { }
+  void SetExpectedSize(const gfx::IntSize& aSize)
+  {
+    mExpectedSize.emplace(aSize);
+  }
+
+  /**
+   * Is the image size what was expected, if specified?
+   */
+  bool IsExpectedSize() const
+  {
+    return mExpectedSize.isNothing() || *mExpectedSize == Size();
+  }
 
   /**
    * Set an iterator to the SourceBuffer which will feed data to this decoder.
@@ -270,6 +279,10 @@ public:
   bool HasError() const { return mError; }
   bool ShouldReportError() const { return mShouldReportError; }
 
+  // Finalize frames
+  void SetFinalizeFrames(bool aFinalize) { mFinalizeFrames = aFinalize; }
+  bool GetFinalizeFrames() const { return mFinalizeFrames; }
+
   /// Did we finish decoding enough that calling Decode() again would be useless?
   bool GetDecodeDone() const
   {
@@ -279,6 +292,12 @@ public:
 
   /// Are we in the middle of a frame right now? Used for assertions only.
   bool InFrame() const { return mInFrame; }
+
+  /// Is the image valid if embedded inside an ICO.
+  virtual bool IsValidICOResource() const
+  {
+    return false;
+  }
 
   enum DecodeStyle {
       PROGRESSIVE, // produce intermediate frames representing the partial
@@ -407,7 +426,7 @@ protected:
    * speed, or Nothing() if we don't record speed telemetry for this kind of
    * decoder.
    */
-  virtual Maybe<Telemetry::ID> SpeedHistogram() const { return Nothing(); }
+  virtual Maybe<Telemetry::HistogramID> SpeedHistogram() const { return Nothing(); }
 
 
   /*
@@ -531,6 +550,7 @@ private:
   ImageMetadata mImageMetadata;
   gfx::IntRect mInvalidRect; // Tracks an invalidation region in the current frame.
   Maybe<gfx::IntSize> mOutputSize;  // The size of our output surface.
+  Maybe<gfx::IntSize> mExpectedSize; // The expected size of the image.
   Progress mProgress;
 
   uint32_t mFrameCount; // Number of frames, including anything in-progress
@@ -554,6 +574,7 @@ private:
   bool mDecodeDone : 1;
   bool mError : 1;
   bool mShouldReportError : 1;
+  bool mFinalizeFrames : 1;
 };
 
 } // namespace image

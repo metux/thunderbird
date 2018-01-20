@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsIContent.h"
 #include "nsString.h"
 #include "nsJSUtils.h"
@@ -36,7 +36,7 @@ nsXBLProtoImplField::nsXBLProtoImplField(const char16_t* aName, const char16_t* 
 {
   MOZ_COUNT_CTOR(nsXBLProtoImplField);
   mName = NS_strdup(aName);  // XXXbz make more sense to use a stringbuffer?
-  
+
   mJSAttributes = JSPROP_ENUMERATE;
   if (aReadOnly) {
     nsAutoString readOnly; readOnly.Assign(aReadOnly);
@@ -68,7 +68,7 @@ nsXBLProtoImplField::~nsXBLProtoImplField()
   NS_CONTENT_DELETE_LIST_MEMBER(nsXBLProtoImplField, this, mNext);
 }
 
-void 
+void
 nsXBLProtoImplField::AppendFieldText(const nsAString& aText)
 {
   if (mFieldText) {
@@ -361,10 +361,10 @@ nsXBLProtoImplField::InstallAccessors(JSContext* aCx,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  if (!::JS_DefinePropertyById(aCx, aTargetClassObject, id, JS::UndefinedHandleValue,
-                               AccessorAttributes(),
+  if (!::JS_DefinePropertyById(aCx, aTargetClassObject, id,
                                JS_DATA_TO_FUNC_PTR(JSNative, get.get()),
-                               JS_DATA_TO_FUNC_PTR(JSNative, set.get()))) {
+                               JS_DATA_TO_FUNC_PTR(JSNative, set.get()),
+                               AccessorAttributes())) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
@@ -434,15 +434,20 @@ nsXBLProtoImplField::InstallField(JS::Handle<JSObject*> aBoundNode,
   JS::Rooted<JS::Value> result(cx);
   JS::CompileOptions options(cx);
   options.setFileAndLine(uriSpec.get(), mLineNumber)
-         .setVersion(JSVERSION_LATEST);
-  nsJSUtils::EvaluateOptions evalOptions(cx);
-  if (!nsJSUtils::GetScopeChainForElement(cx, boundElement,
-                                          evalOptions.scopeChain)) {
+         .setVersion(JSVERSION_DEFAULT);
+  JS::AutoObjectVector scopeChain(cx);
+  if (!nsJSUtils::GetScopeChainForElement(cx, boundElement, scopeChain)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
-  rv = nsJSUtils::EvaluateString(cx, nsDependentString(mFieldText,
-                                                       mFieldTextLength),
-                                 scopeObject, options, evalOptions, &result);
+  rv = NS_OK;
+  {
+    nsJSUtils::ExecutionContext exec(cx, scopeObject);
+    exec.SetScopeChain(scopeChain);
+    exec.CompileAndExec(options, nsDependentString(mFieldText,
+                                                   mFieldTextLength));
+    rv = exec.ExtractReturnValue(&result);
+  }
+
   if (NS_FAILED(rv)) {
     return rv;
   }

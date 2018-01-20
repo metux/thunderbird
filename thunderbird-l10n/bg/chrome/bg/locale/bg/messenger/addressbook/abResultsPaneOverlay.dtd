@@ -18,8 +18,8 @@
 <!ENTITY SecondEmail.accesskey                 "Д">
 <!ENTITY Department.label                      "Отдел">
 <!ENTITY Department.accesskey                  "т">
-<!ENTITY JobTitle.label                        "Заглавие">
-<!ENTITY JobTitle.accesskey                    "З">
+<!ENTITY JobTitle.label                        "Длъжност">
+<!ENTITY JobTitle.accesskey                    "д">
 <!ENTITY CellularNumber.label                  "Мобилен телефон">
 <!ENTITY CellularNumber.accesskey              "М">
 <!ENTITY PagerNumber.label                     "Пейджър">
@@ -30,7 +30,7 @@
 <!ENTITY HomePhone.accesskey                   "ш">
 <!ENTITY WorkPhone.label                       "Служебен телефон">
 <!ENTITY WorkPhone.accesskey                   "ж">
-<!ENTITY ChatName.label                        "Име на разговор">
+<!ENTITY ChatName.label                        "Име за разговор">
 <!ENTITY ChatName.accesskey                    "И">
 <!ENTITY sortAscending.label                   "Възходящ">
 <!ENTITY sortAscending.accesskey               "ъ">

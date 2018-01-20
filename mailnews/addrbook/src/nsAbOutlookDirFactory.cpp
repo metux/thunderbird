@@ -14,12 +14,9 @@
 #include "nsAbBaseCID.h"
 #include "mozilla/Logging.h"
 
-#ifdef PR_LOGGING
-static PRLogModuleInfo* gAbOutlookDirFactoryLog
-    = PR_NewLogModule("nsAbOutlookDirFactoryLog");
-#endif
+static mozilla::LazyLogModule gAbOutlookDirFactoryLog("nsAbOutlookDirFactoryLog");
 
-#define PRINTF(args) MOZ_LOG(nsAbOutlookDirFactoryLog, mozilla::LogLevel::Debug, args)
+#define PRINTF(args) MOZ_LOG(gAbOutlookDirFactoryLog, mozilla::LogLevel::Debug, args)
 
 
 NS_IMPL_ISUPPORTS(nsAbOutlookDirFactory, nsIAbDirFactory)
@@ -74,7 +71,7 @@ nsAbOutlookDirFactory::GetDirectories(const nsAString &aDirName,
 	nsCOMPtr<nsIAbDirectory> directory;
 	rv = abManager->GetDirectory(uri, getter_AddRefs(directory));
     NS_ENSURE_SUCCESS(rv, rv);
-    directories->AppendElement(directory, false);
+    directories->AppendElement(directory);
   }
   return NS_NewArrayEnumerator(aDirectories, directories);
 }

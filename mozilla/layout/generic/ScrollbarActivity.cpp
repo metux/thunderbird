@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -308,7 +309,7 @@ ScrollbarActivity::RegisterWithRefreshDriver()
 {
   nsRefreshDriver* refreshDriver = GetRefreshDriver();
   if (refreshDriver) {
-    refreshDriver->AddRefreshObserver(this, Flush_Style);
+    refreshDriver->AddRefreshObserver(this, FlushType::Style);
   }
 }
 
@@ -317,12 +318,12 @@ ScrollbarActivity::UnregisterFromRefreshDriver()
 {
   nsRefreshDriver* refreshDriver = GetRefreshDriver();
   if (refreshDriver) {
-    refreshDriver->RemoveRefreshObserver(this, Flush_Style);
+    refreshDriver->RemoveRefreshObserver(this, FlushType::Style);
   }
 }
 
 static void
-SetBooleanAttribute(nsIContent* aContent, nsIAtom* aAttribute, bool aValue)
+SetBooleanAttribute(nsIContent* aContent, nsAtom* aAttribute, bool aValue)
 {
   if (aContent) {
     if (aValue) {
@@ -374,7 +375,7 @@ ScrollbarActivity::UpdateOpacity(TimeStamp aTime)
   double opacity = 1.0 - std::max(0.0, std::min(1.0, progress));
 
   // 'this' may be getting destroyed during SetOpacityOnElement calls.
-  nsWeakFrame weakFrame((do_QueryFrame(mScrollableFrame)));
+  AutoWeakFrame weakFrame((do_QueryFrame(mScrollableFrame)));
   SetOpacityOnElement(GetHorizontalScrollbar(), opacity);
   if (!weakFrame.IsAlive()) {
     return false;
@@ -408,7 +409,7 @@ ScrollbarActivity::SetIsFading(bool aNewFading)
   if (!mIsFading) {
     mFadeBeginTime = TimeStamp();
     // 'this' may be getting destroyed during UnsetOpacityOnElement calls.
-    nsWeakFrame weakFrame((do_QueryFrame(mScrollableFrame)));
+    AutoWeakFrame weakFrame((do_QueryFrame(mScrollableFrame)));
     UnsetOpacityOnElement(GetHorizontalScrollbar());
     if (!weakFrame.IsAlive()) {
       return false;
@@ -428,7 +429,7 @@ ScrollbarActivity::StartFadeBeginTimer()
     return;
   }
   if (!mFadeBeginTimer) {
-    mFadeBeginTimer = do_CreateInstance("@mozilla.org/timer;1");
+    mFadeBeginTimer = NS_NewTimer();
   }
   mFadeBeginTimer->InitWithNamedFuncCallback(
     FadeBeginTimerFired, this, mScrollbarFadeBeginDelay,

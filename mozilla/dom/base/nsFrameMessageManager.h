@@ -13,7 +13,7 @@
 #include "nsAutoPtr.h"
 #include "nsCOMArray.h"
 #include "nsTArray.h"
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsTArray.h"
 #include "nsIPrincipal.h"
@@ -43,6 +43,10 @@ class ClonedMessageData;
 class MessageManagerReporter;
 
 namespace ipc {
+
+// Note: we round the time we spend to the nearest millisecond. So a min value
+// of 1 ms actually captures from 500us and above.
+static const uint32_t kMinTelemetrySyncMessageManagerLatencyMs = 1;
 
 enum MessageManagerFlags {
   MM_CHILD = 0,
@@ -83,35 +87,19 @@ public:
     return NS_OK;
   }
 
-  virtual bool CheckPermission(const nsAString& aPermission)
-  {
-    return false;
-  }
-
-  virtual bool CheckManifestURL(const nsAString& aManifestURL)
-  {
-    return false;
-  }
-
-  virtual bool CheckAppHasPermission(const nsAString& aPermission)
-  {
-    return false;
-  }
-
-  virtual bool CheckAppHasStatus(unsigned short aStatus)
-  {
-    return false;
-  }
-
-  virtual bool KillChild()
-  {
-    // By default, does nothing.
-    return false;
-  }
-
   virtual nsIMessageSender* GetProcessMessageManager() const
   {
     return nullptr;
+  }
+
+  virtual nsresult DoGetRemoteType(nsAString& aRemoteType) const
+  {
+    aRemoteType.Truncate();
+    nsIMessageSender* parent = GetProcessMessageManager();
+    if (parent) {
+      return parent->GetRemoteType(aRemoteType);
+    }
+    return NS_OK;
   }
 
 protected:
@@ -165,8 +153,7 @@ private:
 class nsFrameMessageManager final : public nsIContentFrameMessageManager,
                                     public nsIMessageBroadcaster,
                                     public nsIFrameScriptLoader,
-                                    public nsIGlobalProcessScriptLoader,
-                                    public nsIProcessChecker
+                                    public nsIGlobalProcessScriptLoader
 {
   friend class mozilla::dom::MessageManagerReporter;
   typedef mozilla::dom::ipc::StructuredCloneData StructuredCloneData;
@@ -191,7 +178,6 @@ public:
   NS_DECL_NSIFRAMESCRIPTLOADER
   NS_DECL_NSIPROCESSSCRIPTLOADER
   NS_DECL_NSIGLOBALPROCESSSCRIPTLOADER
-  NS_DECL_NSIPROCESSCHECKER
 
   static nsFrameMessageManager*
   NewProcessMessageManager(bool aIsRemote);
@@ -355,7 +341,6 @@ public:
 private:
   nsSameProcessAsyncMessageBase(const nsSameProcessAsyncMessageBase&);
 
-  JS::RootingContext* mRootingCx;
   nsString mMessage;
   StructuredCloneData mData;
   JS::PersistentRooted<JSObject*> mCpows;
@@ -389,10 +374,9 @@ class nsMessageManagerScriptExecutor
 public:
   static void PurgeCache();
   static void Shutdown();
-  already_AddRefed<nsIXPConnectJSObjectHolder> GetGlobal()
+  JSObject* GetGlobal()
   {
-    nsCOMPtr<nsIXPConnectJSObjectHolder> ref = mGlobal;
-    return ref.forget();
+    return mGlobal;
   }
 
   void MarkScopesForCC();
@@ -411,7 +395,8 @@ protected:
                                     bool aRunInGlobalScope);
   bool InitChildGlobalInternal(nsISupports* aScope, const nsACString& aID);
   void Trace(const TraceCallbacks& aCallbacks, void* aClosure);
-  nsCOMPtr<nsIXPConnectJSObjectHolder> mGlobal;
+  void Unlink();
+  JS::TenuredHeap<JSObject*> mGlobal;
   nsCOMPtr<nsIPrincipal> mPrincipal;
   AutoTArray<JS::Heap<JSObject*>, 2> mAnonymousGlobalScopes;
 

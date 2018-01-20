@@ -22,8 +22,8 @@ function check_results_callback(aSequence) {
   let maxResults = aSequence[1];
   let sortingMode = aSequence[2];
   print("\nTESTING: includeHidden(" + includeHidden + ")," +
-                  " maxResults("    + maxResults    + ")," +
-                  " sortingMode("   + sortingMode   + ").");
+                  " maxResults(" + maxResults + ")," +
+                  " sortingMode(" + sortingMode + ").");
 
   function isHidden(aVisit) {
     return aVisit.transType == Ci.nsINavHistoryService.TRANSITION_FRAMED_LINK ||
@@ -31,14 +31,14 @@ function check_results_callback(aSequence) {
   }
 
   // Build expectedData array.
-  let expectedData = visits.filter(function (aVisit, aIndex, aArray) {
+  let expectedData = visits.filter(function(aVisit, aIndex, aArray) {
     // Embed visits never appear in results.
     if (aVisit.transType == Ci.nsINavHistoryService.TRANSITION_EMBED)
       return false;
 
     if (!includeHidden && isHidden(aVisit)) {
       // If the page has any non-hidden visit, then it's visible.
-      if (visits.filter(function (refVisit) {
+      if (visits.filter(function(refVisit) {
         return refVisit.uri == aVisit.uri && !isHidden(refVisit);
           }).length == 0)
         return false;
@@ -49,7 +49,7 @@ function check_results_callback(aSequence) {
 
   // Remove duplicates, since queries are RESULTS_AS_URI (unique pages).
   let seen = [];
-  expectedData = expectedData.filter(function (aData) {
+  expectedData = expectedData.filter(function(aData) {
     if (seen.includes(aData.uri)) {
       return false;
     }
@@ -128,8 +128,7 @@ function check_results_callback(aSequence) {
  *         computed
  * @return the total number of sequences in the product
  */
-function cartProd(aSequences, aCallback)
-{
+function cartProd(aSequences, aCallback) {
   if (aSequences.length === 0)
     return 0;
 
@@ -170,16 +169,10 @@ function cartProd(aSequences, aCallback)
         // All element pointers are past the ends of their sequences.
         if (seqPtr < 0)
           done = true;
-      }
-      else break;
+      } else break;
     }
   }
   return numProds;
-}
-
-function run_test()
-{
-  run_next_test();
 }
 
 /**
@@ -187,9 +180,8 @@ function run_test()
  * We will generate visit-chains like:
  *   visit -> redirect_temp -> redirect_perm
  */
-add_task(function* test_add_visits_to_database()
-{
-  yield PlacesUtils.bookmarks.eraseEverything();
+add_task(async function test_add_visits_to_database() {
+  await PlacesUtils.bookmarks.eraseEverything();
 
   // We don't really bother on this, but we need a time to add visits.
   let timeInMicroseconds = Date.now() * 1000;
@@ -208,7 +200,7 @@ add_task(function* test_add_visits_to_database()
     // calculated excluding download transitions, but the query includes
     // downloads.
     // TODO: Bug 488966 could fix this behavior.
-    //Ci.nsINavHistoryService.TRANSITION_DOWNLOAD,
+    // Ci.nsINavHistoryService.TRANSITION_DOWNLOAD,
   ];
 
   function newTimeInMicroseconds() {
@@ -284,13 +276,12 @@ add_task(function* test_add_visits_to_database()
     isInQuery: false });
 
   // Put visits in the database.
-  yield task_populateDB(visits);
+  await task_populateDB(visits);
 });
 
-add_task(function* test_redirects()
-{
+add_task(async function test_redirects() {
   // Frecency and hidden are updated asynchronously, wait for them.
-  yield PlacesTestUtils.promiseAsyncUpdates();
+  await PlacesTestUtils.promiseAsyncUpdates();
 
   // This array will be used by cartProd to generate a matrix of all possible
   // combinations.
@@ -305,7 +296,7 @@ add_task(function* test_redirects()
   cartProd([includeHidden_options, maxResults_options, sorting_options],
            check_results_callback);
 
-  yield PlacesUtils.bookmarks.eraseEverything();
+  await PlacesUtils.bookmarks.eraseEverything();
 
-  yield PlacesTestUtils.clearHistory();
+  await PlacesTestUtils.clearHistory();
 });

@@ -24,7 +24,7 @@
 #include "nsISafeOutputStream.h"
 #include "nsPop3Protocol.h"
 #include "MailNewsTypes.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIPrompt.h"
 #include "nsIMsgIncomingServer.h"
 #include "nsIMsgPluggableStore.h"
@@ -39,6 +39,7 @@
 #include "nsISSLSocketControl.h"
 #include "nsILineInputStream.h"
 #include "nsIInterfaceRequestor.h"
+#include "nsICancelable.h"
 #include "nsMsgMessageFlags.h"
 #include "nsMsgBaseCID.h"
 #include "nsIProxyInfo.h"
@@ -49,8 +50,8 @@
 
 using namespace mozilla;
 
-PRLogModuleInfo *POP3LOGMODULE = nullptr;
-#define POP3LOG(str) "%s: [this=%p] " str, POP3LOGMODULE->name, this
+static mozilla::LazyLogModule POP3LOGMODULE("POP3");
+#define POP3LOG(str) "[this=%p] " str, this
 
 static int
 net_pop3_remove_messages_marked_delete(PLHashEntry* he,
@@ -441,6 +442,7 @@ NS_IMPL_RELEASE_INHERITED(nsPop3Protocol, nsMsgProtocol)
 NS_INTERFACE_MAP_BEGIN(nsPop3Protocol)
   NS_INTERFACE_MAP_ENTRY(nsIPop3Protocol)
   NS_INTERFACE_MAP_ENTRY(nsIMsgAsyncPromptListener)
+  NS_INTERFACE_MAP_ENTRY(nsIProtocolProxyCallback)
 NS_INTERFACE_MAP_END_INHERITING(nsMsgProtocol)
 
 // nsPop3Protocol class implementation
@@ -458,10 +460,6 @@ nsPop3Protocol::nsPop3Protocol(nsIURI* aURL)
 
 nsresult nsPop3Protocol::Initialize(nsIURI * aURL)
 {
-  nsresult rv = NS_OK;
-  if (!POP3LOGMODULE)
-    POP3LOGMODULE = PR_NewLogModule("POP3");
-
   MOZ_LOG(POP3LOGMODULE, LogLevel::Debug, (POP3LOG("Initialize()")));
 
   m_pop3ConData = (Pop3ConData *)PR_NEWZAP(Pop3ConData);
@@ -481,94 +479,120 @@ nsresult nsPop3Protocol::Initialize(nsIURI * aURL)
   m_currentAuthMethod = POP3_AUTH_MECH_UNDEFINED;
   m_needToRerunUrl = false;
 
-  if (aURL)
-  {
-    // extract out message feedback if there is any.
-    nsCOMPtr<nsIMsgMailNewsUrl> mailnewsUrl = do_QueryInterface(aURL);
-    if (mailnewsUrl)
-    {
-      nsCOMPtr<nsIMsgIncomingServer> server;
-      mailnewsUrl->GetServer(getter_AddRefs(server));
-      NS_ENSURE_TRUE(server, NS_MSG_INVALID_OR_MISSING_SERVER);
-
-      rv = server->GetSocketType(&m_socketType);
-      NS_ENSURE_SUCCESS(rv,rv);
-
-      int32_t authMethod = 0;
-      rv = server->GetAuthMethod(&authMethod);
-      NS_ENSURE_SUCCESS(rv,rv);
-      InitPrefAuthMethods(authMethod);
-
-      m_pop3Server = do_QueryInterface(server);
-      if (m_pop3Server)
-        m_pop3Server->GetPop3CapabilityFlags(&m_pop3ConData->capability_flags);
-    }
-
-    m_url = do_QueryInterface(aURL);
-
-    // When we are making a secure connection, we need to make sure that we
-    // pass an interface requestor down to the socket transport so that PSM can
-    // retrieve a nsIPrompt instance if needed.
-    nsCOMPtr<nsIInterfaceRequestor> ir;
-    if (m_socketType != nsMsgSocketType::plain)
-    {
-      nsCOMPtr<nsIMsgWindow> msgwin;
-      mailnewsUrl->GetMsgWindow(getter_AddRefs(msgwin));
-      if (!msgwin)
-        GetTopmostMsgWindow(getter_AddRefs(msgwin));
-      if (msgwin)
-      {
-        nsCOMPtr<nsIDocShell> docshell;
-        msgwin->GetRootDocShell(getter_AddRefs(docshell));
-        ir = do_QueryInterface(docshell);
-        nsCOMPtr<nsIInterfaceRequestor> notificationCallbacks;
-        msgwin->GetNotificationCallbacks(getter_AddRefs(notificationCallbacks));
-        if (notificationCallbacks)
-        {
-          nsCOMPtr<nsIInterfaceRequestor> aggregrateIR;
-          MsgNewInterfaceRequestorAggregation(notificationCallbacks, ir, getter_AddRefs(aggregrateIR));
-          ir = aggregrateIR;
-        }
-      }
-    }
-
-    int32_t port = 0;
-    nsCString hostName;
-    aURL->GetPort(&port);
-    nsCOMPtr<nsIMsgIncomingServer> server = do_QueryInterface(m_pop3Server);
-    if (server)
-      server->GetRealHostName(hostName);
-
-    nsCOMPtr<nsIProxyInfo> proxyInfo;
-    rv = MsgExamineForProxy(this, getter_AddRefs(proxyInfo));
-    if (NS_FAILED(rv)) proxyInfo = nullptr;
-
-    const char *connectionType = nullptr;
-    if (m_socketType == nsMsgSocketType::SSL)
-      connectionType = "ssl";
-    else if (m_socketType == nsMsgSocketType::trySTARTTLS ||
-          m_socketType == nsMsgSocketType::alwaysSTARTTLS)
-        connectionType = "starttls";
-
-    rv = OpenNetworkSocketWithInfo(hostName.get(), port, connectionType, proxyInfo, ir);
-    if (NS_FAILED(rv) && m_socketType == nsMsgSocketType::trySTARTTLS)
-    {
-      m_socketType = nsMsgSocketType::plain;
-      rv = OpenNetworkSocketWithInfo(hostName.get(), port, nullptr, proxyInfo, ir);
-    }
-
-    if(NS_FAILED(rv))
-      return rv;
-  } // if we got a url...
+  m_url = do_QueryInterface(aURL);
 
   m_lineStreamBuffer = new nsMsgLineStreamBuffer(OUTPUT_BUFFER_SIZE, true);
-  if(!m_lineStreamBuffer)
-    return NS_ERROR_OUT_OF_MEMORY;
 
   nsCOMPtr<nsIStringBundleService> bundleService =
     mozilla::services::GetStringBundleService();
   NS_ENSURE_TRUE(bundleService, NS_ERROR_UNEXPECTED);
   return bundleService->CreateBundle("chrome://messenger/locale/localMsgs.properties", getter_AddRefs(mLocalBundle));
+}
+
+// nsIProtocolProxyCallback
+NS_IMETHODIMP
+nsPop3Protocol::OnProxyAvailable(nsICancelable *aRequest, nsIChannel *aChannel,
+                                 nsIProxyInfo *aProxyInfo, nsresult aStatus)
+{
+  // If we're called with NS_BINDING_ABORTED, we came here via Cancel().
+  // Otherwise, no checking of 'aStatus' here, see
+  // nsHttpChannel::OnProxyAvailable(). Status is non-fatal and we just kick on.
+  if (aStatus == NS_BINDING_ABORTED)
+    return NS_ERROR_FAILURE;
+
+  nsresult rv = InitializeInternal(aProxyInfo);
+  if (NS_FAILED(rv)) {
+    Cancel(rv);
+    return rv;
+  }
+
+  rv = LoadUrlInternal(m_url);
+  if (NS_FAILED(rv)) {
+    Cancel(rv);
+  }
+
+  return rv;
+}
+
+nsresult nsPop3Protocol::InitializeInternal(nsIProxyInfo* aProxyInfo)
+{
+  nsresult rv;
+
+  m_proxyRequest = nullptr;
+
+  NS_ENSURE_TRUE(m_url, NS_ERROR_NOT_INITIALIZED);
+
+  // extract out message feedback if there is any.
+  nsCOMPtr<nsIMsgMailNewsUrl> mailnewsUrl = do_QueryInterface(m_url);
+  if (mailnewsUrl)
+  {
+    nsCOMPtr<nsIMsgIncomingServer> server;
+    mailnewsUrl->GetServer(getter_AddRefs(server));
+    NS_ENSURE_TRUE(server, NS_MSG_INVALID_OR_MISSING_SERVER);
+
+    rv = server->GetSocketType(&m_socketType);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    int32_t authMethod = 0;
+    rv = server->GetAuthMethod(&authMethod);
+    NS_ENSURE_SUCCESS(rv, rv);
+    InitPrefAuthMethods(authMethod);
+
+    m_pop3Server = do_QueryInterface(server);
+    if (m_pop3Server)
+      m_pop3Server->GetPop3CapabilityFlags(&m_pop3ConData->capability_flags);
+  }
+
+  // When we are making a secure connection, we need to make sure that we
+  // pass an interface requestor down to the socket transport so that PSM can
+  // retrieve a nsIPrompt instance if needed.
+  nsCOMPtr<nsIInterfaceRequestor> ir;
+  if (m_socketType != nsMsgSocketType::plain)
+  {
+    nsCOMPtr<nsIMsgWindow> msgwin;
+    if (mailnewsUrl)
+      mailnewsUrl->GetMsgWindow(getter_AddRefs(msgwin));
+    if (!msgwin)
+      GetTopmostMsgWindow(getter_AddRefs(msgwin));
+    if (msgwin)
+    {
+      nsCOMPtr<nsIDocShell> docshell;
+      msgwin->GetRootDocShell(getter_AddRefs(docshell));
+      ir = do_QueryInterface(docshell);
+      nsCOMPtr<nsIInterfaceRequestor> notificationCallbacks;
+      msgwin->GetNotificationCallbacks(getter_AddRefs(notificationCallbacks));
+      if (notificationCallbacks)
+      {
+        nsCOMPtr<nsIInterfaceRequestor> aggregrateIR;
+        MsgNewInterfaceRequestorAggregation(notificationCallbacks, ir, getter_AddRefs(aggregrateIR));
+        ir = aggregrateIR;
+      }
+    }
+  }
+
+  int32_t port = 0;
+  m_url->GetPort(&port);
+
+  nsCOMPtr<nsIMsgIncomingServer> server = do_QueryInterface(m_pop3Server);
+  nsAutoCString hostName;
+  if (server)
+    server->GetRealHostName(hostName);
+
+  const char *connectionType = nullptr;
+  if (m_socketType == nsMsgSocketType::SSL)
+    connectionType = "ssl";
+  else if (m_socketType == nsMsgSocketType::trySTARTTLS ||
+    m_socketType == nsMsgSocketType::alwaysSTARTTLS)
+    connectionType = "starttls";
+
+  rv = OpenNetworkSocketWithInfo(hostName.get(), port, connectionType, aProxyInfo, ir);
+  if (NS_FAILED(rv) && m_socketType == nsMsgSocketType::trySTARTTLS)
+  {
+    m_socketType = nsMsgSocketType::plain;
+    rv = OpenNetworkSocketWithInfo(hostName.get(), port, nullptr, aProxyInfo, ir);
+  }
+
+  return rv;
 }
 
 nsPop3Protocol::~nsPop3Protocol()
@@ -631,16 +655,15 @@ nsresult nsPop3Protocol::FormatCounterString(const nsString &stringName,
     count2String.get()
   };
 
-  return mLocalBundle->FormatStringFromName(stringName.get(),
+  return mLocalBundle->FormatStringFromName(NS_ConvertUTF16toUTF8(stringName).get(),
                                             formatStrings, 2,
-                                            getter_Copies(resultString));
+                                            resultString);
 }
 
-void nsPop3Protocol::UpdateStatus(const char16_t *aStatusName)
+void nsPop3Protocol::UpdateStatus(const char *aStatusName)
 {
   nsString statusMessage;
-  mLocalBundle->GetStringFromName(aStatusName,
-                                  getter_Copies(statusMessage));
+  mLocalBundle->GetStringFromName(aStatusName, statusMessage);
   UpdateStatusWithString(statusMessage.get());
 }
 
@@ -754,7 +777,7 @@ NS_IMETHODIMP nsPop3Protocol::OnPromptStart(bool *aResult)
   nsCOMPtr<nsIMsgIncomingServer> server = do_QueryInterface(m_pop3Server, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsAutoCString passwordResult;
+  nsAutoString passwordResult;
 
   // pass the failed password into the password prompt so that
   // it will be pre-filled, in case it failed because of a
@@ -774,11 +797,14 @@ NS_IMETHODIMP nsPop3Protocol::OnPromptStart(bool *aResult)
   nsCString hostName;
   server->GetRealHostName(hostName);
 
+  nsString accountName;
+  server->GetPrettyName(accountName);
+
   nsString passwordPrompt;
   NS_ConvertUTF8toUTF16 userNameUTF16(userName);
   NS_ConvertUTF8toUTF16 hostNameUTF16(hostName);
   const char16_t* passwordParams[] = { userNameUTF16.get(),
-                                        hostNameUTF16.get() };
+                                       hostNameUTF16.get() };
 
   // if the last prompt got us a bad password then show a special dialog
   if (TestFlag(POP3_PASSWORD_FAILED))
@@ -791,7 +817,7 @@ NS_IMETHODIMP nsPop3Protocol::OnPromptStart(bool *aResult)
               (POP3LOG("POP: ask user what to do (after password failed): new password, retry or cancel")));
 
       int32_t buttonPressed = 0;
-      if (NS_SUCCEEDED(MsgPromptLoginFailed(msgWindow, hostName,
+      if (NS_SUCCEEDED(MsgPromptLoginFailed(msgWindow, hostName, userName, accountName,
                                             &buttonPressed)))
       {
         if (buttonPressed == 1) // Cancel button
@@ -847,7 +873,7 @@ NS_IMETHODIMP nsPop3Protocol::OnPromptStart(bool *aResult)
           if (m_needToRerunUrl)
             return RerunUrl();
 
-          // It is a bit strange that we're going onto the next state that 
+          // It is a bit strange that we're going onto the next state that
           // would essentially send the password. However in resetting the
           // auth methods above, we're setting up SendUsername, SendPassword
           // and friends to abort and return to the POP3_SEND_CAPA state.
@@ -861,20 +887,20 @@ NS_IMETHODIMP nsPop3Protocol::OnPromptStart(bool *aResult)
       }
     }
     mLocalBundle->FormatStringFromName(
-      u"pop3PreviouslyEnteredPasswordIsInvalidPrompt",
-      passwordParams, 2, getter_Copies(passwordPrompt));
+      "pop3PreviouslyEnteredPasswordIsInvalidPrompt",
+      passwordParams, 2, passwordPrompt);
   }
   else
     // Otherwise this is the first time we've asked about the server's
     // password so show a first time prompt.
     mLocalBundle->FormatStringFromName(
-      u"pop3EnterPasswordPrompt",
-      passwordParams, 2, getter_Copies(passwordPrompt));
+      "pop3EnterPasswordPrompt",
+      passwordParams, 2, passwordPrompt);
 
   nsString passwordTitle;
   mLocalBundle->GetStringFromName(
-    u"pop3EnterPasswordPromptTitle",
-    getter_Copies(passwordTitle));
+    "pop3EnterPasswordPromptTitle",
+    passwordTitle);
 
   // Now go and get the password.
   if (!passwordPrompt.IsEmpty() && !passwordTitle.IsEmpty())
@@ -989,15 +1015,28 @@ void nsPop3Protocol::Abort()
       m_nsIPop3Sink->IncorporateAbort(m_pop3ConData->only_uidl != nullptr);
       m_pop3ConData->msg_closure = nullptr;
   }
-  // need this to close the stream on the inbox.
-  m_nsIPop3Sink->AbortMailDelivery(this);
+  // Need this to close the stream on the inbox. It's possible that
+  // we abort before the POP3 sink was set.
+  if (m_nsIPop3Sink)
+    m_nsIPop3Sink->AbortMailDelivery(this);
   MOZ_LOG(POP3LOGMODULE, LogLevel::Debug,
           (POP3LOG("Clearing running protocol in nsPop3Protocol::Abort()")));
-  m_pop3Server->SetRunningProtocol(nullptr);
+  if (m_pop3Server)
+    m_pop3Server->SetRunningProtocol(nullptr);
 }
 
 NS_IMETHODIMP nsPop3Protocol::Cancel(nsresult status)  // handle stop button
 {
+  if (m_proxyRequest)
+  {
+    m_proxyRequest->Cancel(NS_BINDING_ABORTED);
+
+    // Note that nsMsgProtocol::Cancel() also calls
+    // nsProtocolProxyService::Cancel(), so no need to call it twice
+    // (although it self-protects against multiple calls).
+    m_proxyRequest = nullptr;
+  }
+
   Abort();
   return nsMsgProtocol::Cancel(NS_BINDING_ABORTED);
 }
@@ -1009,10 +1048,25 @@ nsresult nsPop3Protocol::LoadUrl(nsIURI* aURL, nsISupports * /* aConsumer */)
 
   nsresult rv = Initialize(aURL);
   NS_ENSURE_SUCCESS(rv, rv);
+
   if (aURL)
-    m_url = do_QueryInterface(aURL);
-  else
-    return NS_ERROR_FAILURE;
+  {
+    rv = MsgExamineForProxyAsync(this, this, getter_AddRefs(m_proxyRequest));
+    if (NS_FAILED(rv))
+    {
+      rv = InitializeInternal(nullptr);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = LoadUrlInternal(m_url);
+    }
+  }
+
+  return rv;
+}
+
+nsresult nsPop3Protocol::LoadUrlInternal(nsIURI* aURL)
+{
+  nsresult rv;
 
   nsCOMPtr<nsIURL> url = do_QueryInterface(aURL, &rv);
   if (NS_FAILED(rv)) return rv;
@@ -1275,8 +1329,8 @@ nsPop3Protocol::Error(const char* err_code,
     const char16_t *titleParams[] = { accountName.get() };
     nsString dialogTitle;
     mLocalBundle->FormatStringFromName(
-      u"pop3ErrorDialogTitle",
-      titleParams, 1, getter_Copies(dialogTitle));
+      "pop3ErrorDialogTitle",
+      titleParams, 1, dialogTitle);
     nsCOMPtr<nsIMsgMailNewsUrl> mailnewsUrl = do_QueryInterface(m_url, &rv);
     // we handle "pop3TmpDownloadError" earlier...
     if (strcmp(err_code, "pop3TmpDownloadError") && NS_SUCCEEDED(rv))
@@ -1292,11 +1346,10 @@ nsPop3Protocol::Error(const char* err_code,
               nsString alertString;
               // Format the alert string if parameter list isn't empty
               if (params)
-                mLocalBundle->FormatStringFromName(NS_ConvertASCIItoUTF16(err_code).get(),
-                                                   params, length, getter_Copies(alertString));
+                mLocalBundle->FormatStringFromName(err_code,
+                                                   params, length, alertString);
               else
-                mLocalBundle->GetStringFromName(NS_ConvertASCIItoUTF16(err_code).get(),
-                                                getter_Copies(alertString));
+                mLocalBundle->GetStringFromName(err_code, alertString);
               if (m_pop3ConData->command_succeeded)  //not a server error message
                 dialog->Alert(dialogTitle.get(), alertString.get());
               else
@@ -1313,14 +1366,14 @@ nsPop3Protocol::Error(const char* err_code,
                   CopyASCIItoUTF16(hostName, hostStr);
                   const char16_t *params[] = { hostStr.get() };
                   mLocalBundle->FormatStringFromName(
-                    u"pop3ServerSaid",
-                    params, 1, getter_Copies(serverSaidPrefix));
+                    "pop3ServerSaid",
+                    params, 1, serverSaidPrefix);
                 }
 
                 nsAutoString message(alertString);
-                message.AppendLiteral(" ");
+                message.Append(' ');
                 message.Append(serverSaidPrefix);
-                message.AppendLiteral(" ");
+                message.Append(' ');
                 message.Append(NS_ConvertASCIItoUTF16(m_commandResponse));
                 dialog->Alert(dialogTitle.get(), message.get());
               }
@@ -1355,7 +1408,7 @@ int32_t nsPop3Protocol::Pop3SendData(const char * dataBuffer, bool aSuppressLogg
   }
 
   m_pop3ConData->next_state = POP3_ERROR_DONE;
-  MOZ_LOG(POP3LOGMODULE, LogLevel::Info, (POP3LOG("Pop3SendData failed: %lx"), result));
+  MOZ_LOG(POP3LOGMODULE, LogLevel::Info, (POP3LOG("Pop3SendData failed: %" PRIx32), static_cast<uint32_t>(result)));
   return -1;
 }
 
@@ -1525,22 +1578,22 @@ int32_t nsPop3Protocol::CapaResponse(nsIInputStream* inputStream,
         nsAutoCString responseLine;
         responseLine.Assign(line + 5);
 
-        if (responseLine.Find("PLAIN", CaseInsensitiveCompare) >= 0)
+        if (responseLine.Find("PLAIN", /* ignoreCase = */ true) >= 0)
             SetCapFlag(POP3_HAS_AUTH_PLAIN);
 
-        if (responseLine.Find("LOGIN", CaseInsensitiveCompare) >= 0)
+        if (responseLine.Find("LOGIN", /* ignoreCase = */ true) >= 0)
             SetCapFlag(POP3_HAS_AUTH_LOGIN);
 
-        if (responseLine.Find("GSSAPI", CaseInsensitiveCompare) >= 0)
+        if (responseLine.Find("GSSAPI", /* ignoreCase = */ true) >= 0)
             SetCapFlag(POP3_HAS_AUTH_GSSAPI);
 
-        if (responseLine.Find("CRAM-MD5", CaseInsensitiveCompare) >= 0)
+        if (responseLine.Find("CRAM-MD5", /* ignoreCase = */ true) >= 0)
           SetCapFlag(POP3_HAS_AUTH_CRAM_MD5);
 
-        if (responseLine.Find("NTLM", CaseInsensitiveCompare) >= 0)
+        if (responseLine.Find("NTLM", /* ignoreCase = */ true) >= 0)
           SetCapFlag(POP3_HAS_AUTH_NTLM);
 
-        if (responseLine.Find("MSN", CaseInsensitiveCompare) >= 0)
+        if (responseLine.Find("MSN", /* ignoreCase = */ true) >= 0)
           SetCapFlag(POP3_HAS_AUTH_NTLM|POP3_HAS_AUTH_MSN);
 
         m_pop3Server->SetPop3CapabilityFlags(m_pop3ConData->capability_flags);
@@ -2093,7 +2146,7 @@ int32_t nsPop3Protocol::SendUsername()
     nsAutoCString cmd;
 
     if (m_currentAuthMethod == POP3_HAS_AUTH_NTLM)
-        (void) DoNtlmStep1(m_username.get(), m_passwordResult.get(), cmd);
+        (void) DoNtlmStep1(m_username, m_passwordResult, cmd);
     else if (m_currentAuthMethod == POP3_HAS_AUTH_CRAM_MD5)
         cmd = "AUTH CRAM-MD5";
     else if (m_currentAuthMethod == POP3_HAS_AUTH_PLAIN)
@@ -2161,7 +2214,8 @@ int32_t nsPop3Protocol::SendPassword()
 
     if (decodedChallenge)
       rv = MSGCramMD5(decodedChallenge, strlen(decodedChallenge),
-                      m_passwordResult.get(), m_passwordResult.Length(), digest);
+                      NS_ConvertUTF16toUTF8(m_passwordResult).get(),
+                      m_passwordResult.Length(), digest);
     else
       rv = NS_ERROR_NULL_POINTER;
 
@@ -2193,7 +2247,8 @@ int32_t nsPop3Protocol::SendPassword()
     unsigned char digest[DIGEST_LENGTH];
 
     rv = MSGApopMD5(m_ApopTimestamp.get(), m_ApopTimestamp.Length(),
-                    m_passwordResult.get(), m_passwordResult.Length(), digest);
+                    NS_ConvertUTF16toUTF8(m_passwordResult).get(),  // Or ASCII?
+                    m_passwordResult.Length(), digest);
 
     if (NS_SUCCEEDED(rv))
     {
@@ -2239,8 +2294,9 @@ int32_t nsPop3Protocol::SendPassword()
     PR_snprintf(&plain_string[1], 510, "%s", m_username.get());
     len += m_username.Length();
     len++; /* second <NUL> char */
-    PR_snprintf(&plain_string[len], 511-len, "%s", m_passwordResult.get());
-    len += m_passwordResult.Length();
+    NS_ConvertUTF16toUTF8 uniPassword(m_passwordResult);
+    PR_snprintf(&plain_string[len], 511-len, "%s", uniPassword.get());
+    len += uniPassword.Length();
 
     char *base64Str = PL_Base64Encode(plain_string, len, nullptr);
     cmd = base64Str;
@@ -2249,9 +2305,9 @@ int32_t nsPop3Protocol::SendPassword()
   else if (m_currentAuthMethod == POP3_HAS_AUTH_LOGIN)
   {
     MOZ_LOG(POP3LOGMODULE, LogLevel::Debug, (POP3LOG("LOGIN password")));
-    char * base64Str =
-        PL_Base64Encode(m_passwordResult.get(), m_passwordResult.Length(),
-                        nullptr);
+    NS_LossyConvertUTF16toASCII asciiPassword(m_passwordResult);
+    char * base64Str = PL_Base64Encode(asciiPassword.get(),
+                                       asciiPassword.Length(), nullptr);
     cmd = base64Str;
     PR_Free(base64Str);
   }
@@ -2259,7 +2315,7 @@ int32_t nsPop3Protocol::SendPassword()
   {
     MOZ_LOG(POP3LOGMODULE, LogLevel::Debug, (POP3LOG("PASS password")));
     cmd = "PASS ";
-    cmd += m_passwordResult;
+    cmd += NS_LossyConvertUTF16toASCII(m_passwordResult);
   }
   else
   {
@@ -2353,7 +2409,7 @@ nsPop3Protocol::GetStat()
   /* We're just checking for new mail, and we're not playing any games that
      involve keeping messages on the server.  Therefore, we now know enough
      to finish up.  If we had no messages, that would have been handled
-     above; therefore, we know we have some new messages. 
+     above; therefore, we know we have some new messages.
   */
   if (m_pop3ConData->only_check_for_new_mail && !m_pop3ConData->leave_on_server)
   {
@@ -2571,7 +2627,7 @@ int32_t nsPop3Protocol::HandleNoUidListAvailable()
   NS_ENSURE_SUCCESS(rv, -1);
   NS_ConvertASCIItoUTF16 hostNameUnicode(hostName);
   const char16_t *params[] = { hostNameUnicode.get() };
-  return Error("pop3ServerDoesNotSupportUidlEtc", params, 1);  
+  return Error("pop3ServerDoesNotSupportUidlEtc", params, 1);
 }
 
 
@@ -3462,17 +3518,17 @@ nsPop3Protocol::TopResponse(nsIInputStream* inputStream, uint32_t length)
 
     nsString statusTemplate;
     mLocalBundle->GetStringFromName(
-      u"pop3ServerDoesNotSupportTopCommand",
-      getter_Copies(statusTemplate));
+      "pop3ServerDoesNotSupportTopCommand",
+      statusTemplate);
     if (!statusTemplate.IsEmpty())
     {
       nsAutoCString hostName;
-      char16_t * statusString = nullptr;
+      nsString statusString;
       m_url->GetHost(hostName);
 
-      statusString = nsTextFormatter::smprintf(statusTemplate.get(), hostName.get());
-      UpdateStatusWithString(statusString);
-      nsTextFormatter::smprintf_free(statusString);
+      nsTextFormatter::ssprintf(statusString, statusTemplate.get(),
+                                hostName.get());
+      UpdateStatusWithString(statusString.get());
     }
 
     if (m_prefAuthMethods != POP3_HAS_AUTH_USER &&
@@ -3840,7 +3896,7 @@ nsresult nsPop3Protocol::ProcessProtocolState(nsIURI * url, nsIInputStream * aIn
       break;
 
     case POP3_AUTH_GSSAPI_FIRST:
-      UpdateStatus(u"hostContact");
+      UpdateStatus("hostContact");
       status = AuthGSSAPIResponse(true);
       break;
 
@@ -3858,7 +3914,7 @@ nsresult nsPop3Protocol::ProcessProtocolState(nsIURI * url, nsIInputStream * aIn
       break;
 
     case POP3_FINISH_OBTAIN_PASSWORD_BEFORE_USERNAME:
-      UpdateStatus(u"hostContact");
+      UpdateStatus("hostContact");
       status = SendUsername();
       break;
 
@@ -3966,7 +4022,7 @@ nsresult nsPop3Protocol::ProcessProtocolState(nsIURI * url, nsIInputStream * aIn
 
           if (m_totalDownloadSize <= 0)
           {
-            UpdateStatus(u"noNewMessages");
+            UpdateStatus("noNewMessages");
             /* There are no new messages.  */
           }
           else

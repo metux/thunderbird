@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,6 +13,7 @@ ScrollableLayerGuid InputAPZContext::sGuid;
 uint64_t InputAPZContext::sBlockId = 0;
 nsEventStatus InputAPZContext::sApzResponse = nsEventStatus_eIgnore;
 bool InputAPZContext::sRoutedToChildProcess = false;
+bool InputAPZContext::sPendingLayerization = false;
 
 /*static*/ ScrollableLayerGuid
 InputAPZContext::GetTargetLayerGuid()
@@ -37,6 +39,12 @@ InputAPZContext::SetRoutedToChildProcess()
   sRoutedToChildProcess = true;
 }
 
+/*static*/ void
+InputAPZContext::SetPendingLayerization()
+{
+  sPendingLayerization = true;
+}
+
 InputAPZContext::InputAPZContext(const ScrollableLayerGuid& aGuid,
                                  const uint64_t& aBlockId,
                                  const nsEventStatus& aApzResponse)
@@ -44,11 +52,13 @@ InputAPZContext::InputAPZContext(const ScrollableLayerGuid& aGuid,
   , mOldBlockId(sBlockId)
   , mOldApzResponse(sApzResponse)
   , mOldRoutedToChildProcess(sRoutedToChildProcess)
+  , mOldPendingLayerization(sPendingLayerization)
 {
   sGuid = aGuid;
   sBlockId = aBlockId;
   sApzResponse = aApzResponse;
   sRoutedToChildProcess = false;
+  sPendingLayerization = false;
 }
 
 InputAPZContext::~InputAPZContext()
@@ -57,12 +67,19 @@ InputAPZContext::~InputAPZContext()
   sBlockId = mOldBlockId;
   sApzResponse = mOldApzResponse;
   sRoutedToChildProcess = mOldRoutedToChildProcess;
+  sPendingLayerization = mOldPendingLayerization;
 }
 
-bool
+/*static*/ bool
 InputAPZContext::WasRoutedToChildProcess()
 {
   return sRoutedToChildProcess;
+}
+
+/*static*/ bool
+InputAPZContext::HavePendingLayerization()
+{
+  return sPendingLayerization;
 }
 
 } // namespace layers

@@ -97,13 +97,16 @@ body {
 }
 
 /******************************************************************************/
-/* Search box */
-.devtools-searchbox {
-  float: right;
+/* Refresh button */
+#dom-refresh-button::before {
+  background-image: url("chrome://devtools/skin/images/reload.svg");
 }
 
-.devtools-searchbox:dir(rtl) {
-  float: left;
+/******************************************************************************/
+/* Search box */
+.devtools-searchbox {
+  margin-inline-start: auto; /* Align to the right */
+  flex: none; /* Don't flex */
 }
 
 /******************************************************************************/

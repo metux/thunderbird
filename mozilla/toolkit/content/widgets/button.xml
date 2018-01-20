@@ -29,9 +29,9 @@
             this.boxObject.openMenu(val);
           } else if (val) {
             // Fall back to just setting the attribute
-            this.setAttribute('open', 'true');
+            this.setAttribute("open", "true");
           } else {
-            this.removeAttribute('open');
+            this.removeAttribute("open");
           }
           return val;
         ]]></setter>
@@ -82,7 +82,7 @@
         <body>
         <![CDATA[
           // if the node isn't visible, don't descend into it.
-          var cs = node.ownerDocument.defaultView.getComputedStyle(node, null);
+          var cs = node.ownerGlobal.getComputedStyle(node);
           if (cs.visibility != "visible" || cs.display == "none") {
             return NodeFilter.FILTER_REJECT;
           }
@@ -159,10 +159,10 @@
         } else {
           if (event.keyCode == KeyEvent.DOM_VK_UP ||
               (event.keyCode == KeyEvent.DOM_VK_LEFT &&
-                document.defaultView.getComputedStyle(this.parentNode, "")
+                document.defaultView.getComputedStyle(this.parentNode)
                         .direction == "ltr") ||
               (event.keyCode == KeyEvent.DOM_VK_RIGHT &&
-                document.defaultView.getComputedStyle(this.parentNode, "")
+                document.defaultView.getComputedStyle(this.parentNode)
                         .direction == "rtl")) {
             event.preventDefault();
             window.document.commandDispatcher.rewindFocus();
@@ -171,10 +171,10 @@
 
           if (event.keyCode == KeyEvent.DOM_VK_DOWN ||
               (event.keyCode == KeyEvent.DOM_VK_RIGHT &&
-                document.defaultView.getComputedStyle(this.parentNode, "")
+                document.defaultView.getComputedStyle(this.parentNode)
                         .direction == "ltr") ||
               (event.keyCode == KeyEvent.DOM_VK_LEFT &&
-                document.defaultView.getComputedStyle(this.parentNode, "")
+                document.defaultView.getComputedStyle(this.parentNode)
                         .direction == "rtl")) {
             event.preventDefault();
             window.document.commandDispatcher.advanceFocus();
@@ -198,7 +198,7 @@
         // Search for accesskey in the list of buttons for this doc and each subdoc
         // Get the buttons for the main document and all sub-frames
         for (var frameCount = -1; frameCount < window.top.frames.length; frameCount++) {
-          var doc = (frameCount == -1)? window.top.document:
+          var doc = (frameCount == -1) ? window.top.document :
             window.top.frames[frameCount].document
           if (this.fireAccessKeyButton(doc.documentElement, charPressedLower))
             return;
@@ -225,10 +225,9 @@
       <children includes="observes|template|menupopup|panel|tooltip"/>
       <xul:hbox class="box-inherit button-box" xbl:inherits="align,dir,pack,orient"
                 align="center" pack="center" flex="1" anonid="button-box">
-        <children>
-          <xul:image class="button-icon" xbl:inherits="src=image"/>
-          <xul:label class="button-text" xbl:inherits="value=label,accesskey,crop"/>
-        </children>
+        <xul:image class="button-icon" xbl:inherits="src=image"/>
+        <xul:label class="button-text" xbl:inherits="value=label,accesskey,crop,highlightable"/>
+        <xul:label class="button-highlightable-text" xbl:inherits="xbl:text=label,accesskey,crop,highlightable"/>
       </xul:hbox>
     </content>
   </binding>
@@ -239,14 +238,12 @@
       <children includes="observes|template|menupopup|panel|tooltip"/>
       <xul:hbox class="box-inherit button-box" xbl:inherits="align,dir,pack,orient"
                 align="center" pack="center" flex="1">
-        <children>
-          <xul:hbox class="box-inherit" xbl:inherits="align,dir,pack,orient"
-                    align="center" pack="center" flex="1">
-            <xul:image class="button-icon" xbl:inherits="src=image"/>
-            <xul:label class="button-text" xbl:inherits="value=label,accesskey,crop"/>
-          </xul:hbox>
-          <xul:dropmarker class="button-menu-dropmarker" xbl:inherits="open,disabled,label"/>
-        </children>
+        <xul:hbox class="box-inherit" xbl:inherits="align,dir,pack,orient"
+                  align="center" pack="center" flex="1">
+          <xul:image class="button-icon" xbl:inherits="src=image"/>
+          <xul:label class="button-text" xbl:inherits="value=label,accesskey,crop"/>
+        </xul:hbox>
+        <xul:dropmarker class="button-menu-dropmarker" xbl:inherits="open,disabled,label"/>
       </xul:hbox>
     </content>
 
@@ -301,8 +298,7 @@
           if (!v && this.buttondown) {
             this.buttondown = false;
             this._pendingActive = true;
-          }
-          else if (this._pendingActive) {
+          } else if (this._pendingActive) {
             this.buttondown = true;
             this._pendingActive = false;
           }

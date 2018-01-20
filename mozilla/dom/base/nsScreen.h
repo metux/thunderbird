@@ -62,7 +62,7 @@ public:
     }
 
     aRv = GetRect(rect);
-    return rect.width;
+    return rect.Width();
   }
 
   int32_t GetHeight(ErrorResult& aRv)
@@ -77,7 +77,7 @@ public:
     }
 
     aRv = GetRect(rect);
-    return rect.height;
+    return rect.Height();
   }
 
   int32_t GetPixelDepth(ErrorResult& aRv);
@@ -104,18 +104,19 @@ public:
   {
     nsRect rect;
     aRv = GetAvailRect(rect);
-    return rect.width;
+    return rect.Width();
   }
 
   int32_t GetAvailHeight(ErrorResult& aRv)
   {
     nsRect rect;
     aRv = GetAvailRect(rect);
-    return rect.height;
+    return rect.Height();
   }
 
   // Deprecated
-  void GetMozOrientation(nsString& aOrientation) const;
+  void GetMozOrientation(nsString& aOrientation,
+                         mozilla::dom::CallerType aCallerType) const;
 
   IMPL_EVENT_HANDLER(mozorientationchange)
 

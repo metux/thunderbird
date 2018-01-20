@@ -8,7 +8,7 @@ package org.mozilla.gecko.home;
 import org.mozilla.gecko.activitystream.ActivityStream;
 import org.mozilla.gecko.home.HomeConfig.PanelConfig;
 import org.mozilla.gecko.home.HomeConfig.PanelType;
-import org.mozilla.gecko.home.activitystream.ActivityStreamHomeFragment;
+import org.mozilla.gecko.activitystream.homepanel.ActivityStreamHomeFragment;
 
 import android.content.Context;
 import android.os.Bundle;
@@ -200,7 +200,7 @@ public class HomeAdapter extends FragmentStatePagerAdapter {
 
             // Override top_sites with ActivityStream panel when enabled
             // PanelType.toString() returns the panel id
-            if (type.toString() == "top_sites" &&
+            if ("top_sites".equals(type.toString()) &&
                 ActivityStream.isEnabled(context) &&
                 ActivityStream.isHomePanel()) {
                 return ActivityStreamHomeFragment.class.getName();

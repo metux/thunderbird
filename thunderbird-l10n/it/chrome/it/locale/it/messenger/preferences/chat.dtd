@@ -29,3 +29,22 @@
 <!ENTITY customsound.accesskey "U">
 <!ENTITY browse.label "Sfoglia…">
 <!ENTITY browse.accesskey "f">
+
+<!ENTITY  generalTab.label            "General">
+
+<!ENTITY messageStyleTab.title             "Message Styles">
+<!ENTITY messageStylePreview.label         "Preview:">
+<!ENTITY messageStyleTheme.label           "Theme:">
+<!ENTITY messageStyleTheme.accesskey       "T">
+<!ENTITY messageStyleThunderbirdTheme.label "Thunderbird">
+<!ENTITY messageStyleBubblesTheme.label    "Bubbles">
+<!ENTITY messageStyleDarkTheme.label       "Dark">
+<!ENTITY messageStylePaperSheetsTheme.label "Paper Sheets">
+<!ENTITY messageStyleSimpleTheme.label     "Simple">
+<!ENTITY messageStyleDefaultTheme.label    "Default">
+<!ENTITY messageStyleVariant.label         "Variant:">
+<!ENTITY messageStyleVariant.accesskey     "V">
+<!ENTITY messageStyleShowHeader.label      "Show Header">
+<!ENTITY messageStyleShowHeader.accesskey  "H">
+<!ENTITY messageStyleNoPreview.title       "No preview available">
+<!ENTITY messageStyleNoPreview.description "This theme is not valid or is currently unavailable (disabled addon, safe-mode, …).">

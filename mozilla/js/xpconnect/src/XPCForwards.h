@@ -13,6 +13,7 @@
 
 class nsXPConnect;
 class XPCJSContext;
+class XPCJSRuntime;
 class XPCContext;
 class XPCCallContext;
 
@@ -28,11 +29,8 @@ class XPCNativeSet;
 class XPCWrappedNative;
 class XPCWrappedNativeProto;
 class XPCWrappedNativeTearOff;
-class XPCNativeScriptableInfo;
-class XPCNativeScriptableCreateInfo;
 
 class XPCTraceableVariant;
-class XPCJSObjectHolder;
 
 class JSObject2WrappedJSMap;
 class Native2WrappedNativeMap;

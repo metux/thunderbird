@@ -37,18 +37,13 @@ HTMLOptGroupElement::~HTMLOptGroupElement()
 }
 
 
-NS_IMPL_ISUPPORTS_INHERITED(HTMLOptGroupElement, nsGenericHTMLElement,
-                            nsIDOMHTMLOptGroupElement)
+NS_IMPL_ISUPPORTS_INHERITED0(HTMLOptGroupElement, nsGenericHTMLElement)
 
 NS_IMPL_ELEMENT_CLONE(HTMLOptGroupElement)
 
 
-NS_IMPL_BOOL_ATTR(HTMLOptGroupElement, Disabled, disabled)
-NS_IMPL_STRING_ATTR(HTMLOptGroupElement, Label, label)
-
-
 nsresult
-HTMLOptGroupElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
+HTMLOptGroupElement::GetEventTargetParent(EventChainPreVisitor& aVisitor)
 {
   aVisitor.mCanHandle = false;
   // Do not process any DOM events if the element is disabled
@@ -66,7 +61,7 @@ HTMLOptGroupElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
     }
   }
 
-  return nsGenericHTMLElement::PreHandleEvent(aVisitor);
+  return nsGenericHTMLElement::GetEventTargetParent(aVisitor);
 }
 
 Element*
@@ -101,39 +96,40 @@ HTMLOptGroupElement::RemoveChildAt(uint32_t aIndex, bool aNotify)
 }
 
 nsresult
-HTMLOptGroupElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                  const nsAttrValue* aValue, bool aNotify)
+HTMLOptGroupElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                  const nsAttrValue* aValue,
+                                  const nsAttrValue* aOldValue,
+                                  nsIPrincipal* aSubjectPrincipal,
+                                  bool aNotify)
 {
   if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::disabled) {
-    // All our children <option> have their :disabled state depending on our
-    // disabled attribute. We should make sure their state is updated.
-    for (nsIContent* child = nsINode::GetFirstChild(); child;
-         child = child->GetNextSibling()) {
-      if (child->IsHTMLElement(nsGkAtoms::option)) {
-        // No need to call |IsElement()| because it's an HTML element.
-        child->AsElement()->UpdateState(true);
+
+    EventStates disabledStates;
+    if (aValue) {
+      disabledStates |= NS_EVENT_STATE_DISABLED;
+    } else {
+      disabledStates |= NS_EVENT_STATE_ENABLED;
+    }
+
+    EventStates oldDisabledStates = State() & DISABLED_STATES;
+    EventStates changedStates = disabledStates ^ oldDisabledStates;
+
+    if (!changedStates.IsEmpty()) {
+      ToggleStates(changedStates, aNotify);
+
+      // All our children <option> have their :disabled state depending on our
+      // disabled attribute. We should make sure their state is updated.
+      for (nsIContent* child = nsINode::GetFirstChild(); child;
+           child = child->GetNextSibling()) {
+        if (auto optElement = HTMLOptionElement::FromContent(child)) {
+          optElement->OptGroupDisabledChanged(true);
+        }
       }
     }
   }
 
   return nsGenericHTMLElement::AfterSetAttr(aNameSpaceID, aName, aValue,
-                                            aNotify);
-}
-
-EventStates
-HTMLOptGroupElement::IntrinsicState() const
-{
-  EventStates state = nsGenericHTMLElement::IntrinsicState();
-
-  if (HasAttr(kNameSpaceID_None, nsGkAtoms::disabled)) {
-    state |= NS_EVENT_STATE_DISABLED;
-    state &= ~NS_EVENT_STATE_ENABLED;
-  } else {
-    state &= ~NS_EVENT_STATE_DISABLED;
-    state |= NS_EVENT_STATE_ENABLED;
-  }
-
-  return state;
+                                            aOldValue, aSubjectPrincipal, aNotify);
 }
 
 JSObject*

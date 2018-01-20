@@ -6,19 +6,16 @@
 #if !defined(WaveDecoder_h_)
 #define WaveDecoder_h_
 
-#include "MediaDecoder.h"
-
 namespace mozilla {
 
-class WaveDecoder : public MediaDecoder {
-public:
-  // MediaDecoder interface.
-  explicit WaveDecoder(MediaDecoderOwner* aOwner) : MediaDecoder(aOwner) {}
-  MediaDecoder* Clone(MediaDecoderOwner* aOwner) override;
-  MediaDecoderStateMachine* CreateStateMachine() override;
+class MediaContainerType;
 
-  static bool CanHandleMediaType(const nsACString& aType,
-                                 const nsAString& aCodecs);
+class WaveDecoder
+{
+public:
+  // Returns true if the Wave backend is pref'ed on, and we're running on a
+  // platform that is likely to have decoders for the format.
+  static bool IsSupportedType(const MediaContainerType& aContainerType);
 };
 
 } // namespace mozilla

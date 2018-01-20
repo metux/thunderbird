@@ -199,8 +199,7 @@ var FolderNotificationHelper = {
 
   OnItemEvent: function FolderNotificationHelper_OnItemEvent(
       aFolder, aEvent) {
-    let eventType = aEvent.toString();
-    if (eventType == "FolderLoaded") {
+    if (aEvent == "FolderLoaded") {
       let folderURI = aFolder.URI;
       let widgets = this._pendingFolderUriToViewWrapperLists[folderURI];
       if (widgets) {
@@ -222,28 +221,26 @@ var FolderNotificationHelper = {
         delete this._pendingFolderUriToViewWrapperLists[folderURI];
       }
     }
-    else if (eventType == "AboutToCompact") {
+    else if (aEvent == "AboutToCompact") {
       this._notifyHelper(aFolder, "_aboutToCompactFolder");
     }
-    else if (eventType == "CompactCompleted") {
+    else if (aEvent == "CompactCompleted") {
       this._notifyHelper(aFolder, "_compactedFolder");
     }
-    else if (eventType == "DeleteOrMoveMsgCompleted") {
+    else if (aEvent == "DeleteOrMoveMsgCompleted") {
       this._notifyHelper(aFolder, "_deleteCompleted");
     }
-    else if (eventType == "DeleteOrMoveMsgFailed") {
+    else if (aEvent == "DeleteOrMoveMsgFailed") {
       this._notifyHelper(aFolder, "_deleteFailed");
     }
-    else if (eventType == "RenameCompleted") {
+    else if (aEvent == "RenameCompleted") {
       this._notifyHelper(aFolder, "_renameCompleted");
     }
-
   },
 
   OnItemIntPropertyChanged: function(aFolder, aProperty, aOldValue, aNewValue) {
-    let propertyString = aProperty.toString();
-    if ((propertyString == "TotalMessages") ||
-        (propertyString == "TotalUnreadMessages"))
+    if ((aProperty == "TotalMessages") ||
+        (aProperty == "TotalUnreadMessages"))
       this._notifyHelper(aFolder, "_messageCountsChanged");
   },
 
@@ -1387,7 +1384,7 @@ DBViewWrapper.prototype = {
     this.dbView = this._createView();
     // if the synthetic view defines columns, add those for it
     if (this.isSynthetic) {
-      for (let [, customCol] in Iterator(this._syntheticView.customColumns)) {
+      for (let customCol of this._syntheticView.customColumns) {
         customCol.bindToView(this.dbView);
         this.dbView.addColumnHandler(customCol.id, customCol);
       }

@@ -188,8 +188,8 @@ WebGLRenderbuffer::RenderbufferStorage(const char* funcName, uint32_t samples,
         return;
     }
 
-    if (width > mContext->mImplMaxRenderbufferSize ||
-        height > mContext->mImplMaxRenderbufferSize)
+    if (width > mContext->mGLMaxRenderbufferSize ||
+        height > mContext->mGLMaxRenderbufferSize)
     {
         mContext->ErrorInvalidValue("%s: Width or height exceeds maximum renderbuffer"
                                     " size.",
@@ -218,13 +218,15 @@ WebGLRenderbuffer::RenderbufferStorage(const char* funcName, uint32_t samples,
         return;
     }
 
+    mContext->OnDataAllocCall();
+
     mSamples = samples;
     mFormat = usage;
     mWidth = width;
     mHeight = height;
     mImageDataStatus = WebGLImageDataStatus::UninitializedImageData;
 
-    InvalidateStatusOfAttachedFBs();
+    InvalidateStatusOfAttachedFBs(funcName);
 }
 
 void

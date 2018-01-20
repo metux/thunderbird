@@ -23,14 +23,6 @@ namespace net {
 
 CacheObserver* CacheObserver::sSelf = nullptr;
 
-static uint32_t const kDefaultUseNewCache = 1; // Use the new cache by default
-uint32_t CacheObserver::sUseNewCache = kDefaultUseNewCache;
-
-static bool sUseNewCacheTemp = false; // Temp trigger to not lose early adopters
-
-static int32_t const kAutoDeleteCacheVersion = -1; // Auto-delete off by default
-static int32_t sAutoDeleteCacheVersion = kAutoDeleteCacheVersion;
-
 static int32_t const kDefaultHalfLifeExperiment = -1; // Disabled
 int32_t CacheObserver::sHalfLifeExperiment = kDefaultHalfLifeExperiment;
 
@@ -150,14 +142,6 @@ CacheObserver::Shutdown()
 void
 CacheObserver::AttachToPreferences()
 {
-  sAutoDeleteCacheVersion = mozilla::Preferences::GetInt(
-    "browser.cache.auto_delete_cache_version", kAutoDeleteCacheVersion);
-
-  mozilla::Preferences::AddUintVarCache(
-    &sUseNewCache, "browser.cache.use_new_backend", kDefaultUseNewCache);
-  mozilla::Preferences::AddBoolVarCache(
-    &sUseNewCacheTemp, "browser.cache.use_new_backend_temp", false);
-
   mozilla::Preferences::AddBoolVarCache(
     &sUseDiskCache, "browser.cache.disk.enable", kDefaultUseDiskCache);
   mozilla::Preferences::AddBoolVarCache(
@@ -293,25 +277,6 @@ uint32_t CacheObserver::MemoryCacheCapacity()
 }
 
 // static
-bool CacheObserver::UseNewCache()
-{
-  uint32_t useNewCache = sUseNewCache;
-
-  if (sUseNewCacheTemp)
-    useNewCache = 1;
-
-  switch (useNewCache) {
-    case 0: // use the old cache backend
-      return false;
-
-    case 1: // use the new cache backend
-      return true;
-  }
-
-  return true;
-}
-
-// static
 void
 CacheObserver::SetDiskCacheCapacity(uint32_t aCapacity)
 {
@@ -325,7 +290,9 @@ CacheObserver::SetDiskCacheCapacity(uint32_t aCapacity)
     sSelf->StoreDiskCacheCapacity();
   } else {
     nsCOMPtr<nsIRunnable> event =
-      NewRunnableMethod(sSelf, &CacheObserver::StoreDiskCacheCapacity);
+      NewRunnableMethod("net::CacheObserver::StoreDiskCacheCapacity",
+                        sSelf,
+                        &CacheObserver::StoreDiskCacheCapacity);
     NS_DispatchToMainThread(event);
   }
 }
@@ -351,7 +318,9 @@ CacheObserver::SetCacheFSReported()
     sSelf->StoreCacheFSReported();
   } else {
     nsCOMPtr<nsIRunnable> event =
-      NewRunnableMethod(sSelf, &CacheObserver::StoreCacheFSReported);
+      NewRunnableMethod("net::CacheObserver::StoreCacheFSReported",
+                        sSelf,
+                        &CacheObserver::StoreCacheFSReported);
     NS_DispatchToMainThread(event);
   }
 }
@@ -377,7 +346,9 @@ CacheObserver::SetHashStatsReported()
     sSelf->StoreHashStatsReported();
   } else {
     nsCOMPtr<nsIRunnable> event =
-      NewRunnableMethod(sSelf, &CacheObserver::StoreHashStatsReported);
+      NewRunnableMethod("net::CacheObserver::StoreHashStatsReported",
+                        sSelf,
+                        &CacheObserver::StoreHashStatsReported);
     NS_DispatchToMainThread(event);
   }
 }
@@ -410,7 +381,7 @@ namespace CacheStorageEvictHelper {
 
 nsresult ClearStorage(bool const aPrivate,
                       bool const aAnonymous,
-                      NeckoOriginAttributes &aOa)
+                      OriginAttributes &aOa)
 {
   nsresult rv;
 
@@ -436,7 +407,7 @@ nsresult ClearStorage(bool const aPrivate,
   return NS_OK;
 }
 
-nsresult Run(NeckoOriginAttributes &aOa)
+nsresult Run(OriginAttributes &aOa)
 {
   nsresult rv;
 
@@ -522,8 +493,7 @@ CacheObserver::Observe(nsISupports* aSubject,
   }
 
   if (!strcmp(aTopic, "browser-delayed-startup-finished")) {
-    uint32_t activeVersion = UseNewCache() ? 1 : 0;
-    CacheStorageService::CleaupCacheDirectories(sAutoDeleteCacheVersion, activeVersion);
+    CacheStorageService::CleaupCacheDirectories();
     return NS_OK;
   }
 
@@ -553,9 +523,9 @@ CacheObserver::Observe(nsISupports* aSubject,
   }
 
   if (!strcmp(aTopic, "clear-origin-attributes-data")) {
-    NeckoOriginAttributes oa;
+    OriginAttributes oa;
     if (!oa.Init(nsDependentString(aData))) {
-      NS_ERROR("Could not parse NeckoOriginAttributes JSON in clear-origin-attributes-data notification");
+      NS_ERROR("Could not parse OriginAttributes JSON in clear-origin-attributes-data notification");
       return NS_OK;
     }
 

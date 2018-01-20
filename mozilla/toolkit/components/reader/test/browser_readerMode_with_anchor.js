@@ -6,16 +6,38 @@
 
 const TEST_PATH = getRootDirectory(gTestPath).replace("chrome://mochitests/content", "http://example.com");
 
-add_task(function* () {
-  yield BrowserTestUtils.withNewTab(TEST_PATH + "readerModeArticle.html#foo", function* (browser) {
+add_task(async function() {
+  await BrowserTestUtils.withNewTab(TEST_PATH + "readerModeArticle.html#foo", async function(browser) {
     let pageShownPromise = BrowserTestUtils.waitForContentEvent(browser, "AboutReaderContentReady");
     let readerButton = document.getElementById("reader-mode-button");
     readerButton.click();
-    yield pageShownPromise;
-    yield ContentTask.spawn(browser, null, function* () {
-      // Check if offset != 0
-      ok(content.document.getElementById("foo") !== null, "foo element should be in document");
-      ok(content.pageYOffset != 0, "pageYOffset should be > 0");
+    await pageShownPromise;
+    await ContentTask.spawn(browser, null, async function() {
+      let foo = content.document.getElementById("foo");
+      ok(foo, "foo element should be in document");
+      let {scrollTop} = content.document.documentElement;
+      let {offsetTop} = foo;
+      Assert.lessOrEqual(Math.abs(scrollTop - offsetTop), 1,
+        `scrollTop (${scrollTop}) should be within 1 CSS pixel of offsetTop (${offsetTop})`);
+    });
+  });
+});
+
+add_task(async function() {
+  await BrowserTestUtils.withNewTab(TEST_PATH + "readerModeArticle.html", async function(browser) {
+    let pageShownPromise = BrowserTestUtils.waitForContentEvent(browser, "AboutReaderContentReady");
+    let readerButton = document.getElementById("reader-mode-button");
+    readerButton.click();
+    await pageShownPromise;
+    is(content.document.documentElement.scrollTop, 0, "scrollTop should be 0");
+    await BrowserTestUtils.synthesizeMouseAtCenter("#foo-anchor", {}, browser);
+    await ContentTask.spawn(browser, null, async function() {
+      let foo = content.document.getElementById("foo");
+      ok(foo, "foo element should be in document");
+      let {scrollTop} = content.document.documentElement;
+      let {offsetTop} = foo;
+      Assert.lessOrEqual(Math.abs(scrollTop - offsetTop), 1,
+        `scrollTop (${scrollTop}) should be within 1 CSS pixel of offsetTop (${offsetTop})`);
     });
   });
 });

@@ -24,6 +24,7 @@
 #endif
 #endif
 
+#include "nsStringFwd.h"
 #include "nsXULAppAPI.h"
 
 // This directory service key is a lot like NS_APP_LOCALSTORE_50_FILE,
@@ -38,14 +39,11 @@ class nsIFile;
 class nsIProfileLock;
 class nsIProfileUnlocker;
 class nsIFactory;
-class nsString;
 
 extern nsXREDirProvider* gDirServiceProvider;
 
-// NOTE: gAppData will be null in embedded contexts. The "size" parameter
-// will be the size of the original structure passed to XRE_main, but the
-// structure will have all of the members available.
-extern const nsXREAppData* gAppData;
+// NOTE: gAppData will be null in embedded contexts.
+extern const mozilla::XREAppData* gAppData;
 extern bool gSafeMode;
 
 extern int    gArgc;
@@ -120,6 +118,9 @@ namespace mozilla {
 namespace startup {
 extern GeckoProcessType sChildProcessType;
 } // namespace startup
+
+const char* PlatformBuildID();
+
 } // namespace mozilla
 
 /**
@@ -127,12 +128,5 @@ extern GeckoProcessType sChildProcessType;
  * and the JIT debugger on Windows, and install unix signal handlers.
  */
 void SetupErrorHandling(const char* progname);
-
-/**
- * A numeric value indicating whether multiprocess might be blocked.
- * Possible values can be found at nsAppRunner.cpp. A value of 0
- * represents not blocking.
- */
-uint32_t MultiprocessBlockPolicy();
 
 #endif // nsAppRunner_h__

@@ -18,7 +18,7 @@
                         onpaste="compareSynthetic(event, 'paste')">Spot</div>
 
 <pre id="test">
-<script class="testbody" type="text/javascript;version=1.7">
+<script class="testbody" type="text/javascript">
 
 var content = document.getElementById("content");
 var contentInput = document.getElementById("content-input");
@@ -56,6 +56,7 @@ var testFunctions = [
   test_input_copypaste_dataTransfer_multiple,
   test_input_copy_button_dataTransfer,
   test_eventspref_disabled,
+  test_input_cut_disallowed_types_dataTransfer,
   test_image_dataTransfer,
   ];
 
@@ -658,24 +659,52 @@ function checkCachedDataTransfer(cd, eventtype)
   setClipboardText("Some Clipboard Text");
 
   var oldtext = cd.getData("text/plain");
-  ok(oldtext != "Some Clipboard Text", "clipboard get using " + testprefix);
+  ok(!oldtext, "clipboard get using " + testprefix);
 
-  var exh = false;
-  try { cd.mozSetDataAt("text/plain", "Test Cache Data", 0); } catch (ex) { exh = true; }
-  ok(eventtype == "paste" ? exh : !exh, "exception occured setting " + testprefix);
-
-  var newtext = (eventtype == "paste") ? cd.getData("text/plain") :
-                                         cd.mozGetDataAt("text/plain", 0);
-  is(newtext, (eventtype == "paste") ? oldtext : "Test Cache Data",
-     " clipboardData not changed using " + testprefix);
+  try {
+    cd.mozSetDataAt("text/plain", "Test Cache Data", 0);
+  } catch (ex) {}
+  ok(!cd.getData("text/plain"), "clipboard set using " + testprefix);
 
   is(getClipboardText(), "Some Clipboard Text", "clipboard not changed using " + testprefix);
 
-  var exh = false;
-  try { cd.mozClearDataAt("text/plain", 0); } catch (ex) { exh = true; }
-  ok(eventtype == "paste" ? exh : !exh, "exception occured clearing " + testprefix);
+  try {
+    cd.mozClearDataAt("text/plain", 0);
+  } catch (ex) {}
+  ok(!cd.getData("text/plain"), "clipboard clear using " + testprefix);
 
   is(getClipboardText(), "Some Clipboard Text", "clipboard not changed using " + testprefix);
+}
+
+function test_input_cut_disallowed_types_dataTransfer() {
+  selectContentInput();
+  let oncutExecuted = false;
+  contentInput.oncut = function(event) {
+    // Setting an arbitrary type should be OK
+    try {
+      event.clipboardData.setData("apple/cider", "Anything your heart desires");
+      ok(true, "We should have successfully executed the setData call");
+    } catch(e) {
+      ok(false, "We should not have gotten an exception for trying to set that data");
+    }
+
+    // Unless that type happens to be application/x-moz-custom-clipdata
+    try {
+      event.clipboardData.setData("application/x-moz-custom-clipdata", "Anything your heart desires");
+      ok(false, "We should not have successfully executed the setData call");
+    } catch(e) {
+      is(e.name, "NotSupportedError",
+         "We should have gotten an NotSupportedError exception for trying to set that data");
+    }
+    oncutExecuted = true;
+  };
+
+  try {
+    synthesizeKey("x", {accelKey: 1});
+    ok(oncutExecuted, "The oncut handler should have been executed");
+  } finally {
+    contentInput.oncut = null;
+  }
 }
 
 // Try copying an image to the clipboard and make sure that it looks correct when pasting it.
@@ -717,7 +746,13 @@ function test_image_dataTransfer() {
   }
 }
 
-SimpleTest.waitForFocus(doTests);
+SimpleTest.waitForFocus(() => {
+  SpecialPowers.pushPrefEnv({
+    // NOTE: These tests operate under the assumption that the protected mode of
+    // DataTransfer is enabled.
+    "set": [["dom.events.dataTransfer.protected.enabled", true]]
+  }, doTests);
+});
 
 </script>
 </pre>

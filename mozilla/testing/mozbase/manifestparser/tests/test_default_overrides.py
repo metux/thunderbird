@@ -4,8 +4,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 import os
 import unittest
+
+import mozunit
+
 from manifestparser import ManifestParser
 from manifestparser import combine_fields
 
@@ -111,5 +116,6 @@ class TestSubsuiteDefaults(unittest.TestCase):
             self.assertEqual(expected_subsuites[value['name']],
                              value['subsuite'])
 
+
 if __name__ == '__main__':
-    unittest.main()
+    mozunit.main()

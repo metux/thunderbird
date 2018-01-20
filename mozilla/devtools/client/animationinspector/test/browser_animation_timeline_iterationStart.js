@@ -10,8 +10,8 @@ add_task(function* () {
   yield addTab(URL_ROOT + "doc_script_animation.html");
   let {panel} = yield openAnimationInspector();
   let timelineComponent = panel.animationsTimelineComponent;
-  let timeBlockComponents = timelineComponent.timeBlocks;
-  let detailsComponents = timelineComponent.details;
+  let timeBlockComponents = getAnimationTimeBlocks(panel);
+  let detailsComponent = timelineComponent.details;
 
   for (let i = 0; i < timeBlockComponents.length; i++) {
     info(`Expand time block ${i} so its keyframes are visible`);
@@ -26,7 +26,7 @@ add_task(function* () {
     // Get the first set of keyframes (there's only one animated property
     // anyway), and the first frame element from there, we're only interested in
     // its offset.
-    let keyframeComponent = detailsComponents[i].keyframeComponents[0];
+    let keyframeComponent = detailsComponent.keyframeComponents[0];
     let frameEl = keyframeComponent.keyframesEl.querySelector(".frame");
     checkKeyframeOffset(containerEl, frameEl, state);
   }
@@ -48,24 +48,46 @@ function checkAnimationTooltip(el, {iterationStart, duration}) {
   ok(title.match(regex), "The tooltip shows the expected iteration start");
 }
 
-function checkProgressAtStartingTime(el, { iterationStart }) {
+function checkProgressAtStartingTime(el, { delay, iterationStart }) {
   info("Check the progress of starting time");
-  const pathEl = el.querySelector(".iteration-path");
-  const pathSegList = pathEl.pathSegList;
-  const pathSeg = pathSegList.getItem(1);
-  const progress = pathSeg.y;
-  is(progress, iterationStart % 1,
-     `The progress at starting point should be ${ iterationStart % 1 }`);
+  const groupEls = el.querySelectorAll("svg g");
+  groupEls.forEach(groupEl => {
+    const pathEl = groupEl.querySelector(".iteration-path");
+    const pathSegList = pathEl.pathSegList;
+    const pathSeg = pathSegList.getItem(1);
+    const progress = pathSeg.y;
+    is(progress, iterationStart % 1,
+       `The progress at starting point should be ${ iterationStart % 1 }`);
+
+    if (delay) {
+      const delayPathEl = groupEl.querySelector(".delay-path");
+      const delayPathSegList = delayPathEl.pathSegList;
+      const delayStartingPathSeg = delayPathSegList.getItem(1);
+      const delayEndingPathSeg =
+        delayPathSegList.getItem(delayPathSegList.numberOfItems - 2);
+      const startingX = 0;
+      const endingX = delay;
+      is(delayStartingPathSeg.x, startingX,
+         `The x of starting point should be ${ startingX }`);
+      is(delayStartingPathSeg.y, progress,
+         "The y of starting point should be same to starting point of iteration-path "
+         + progress);
+      is(delayEndingPathSeg.x, endingX,
+         `The x of ending point should be ${ endingX }`);
+      is(delayStartingPathSeg.y, progress,
+         "The y of ending point should be same to starting point of iteration-path "
+         + progress);
+    }
+  });
 }
 
 function checkKeyframeOffset(timeBlockEl, frameEl, {iterationStart}) {
   info("Check that the first keyframe is offset correctly");
 
-  let start = getIterationStartFromLeft(frameEl);
-  is(start, iterationStart % 1, "The frame offset for iteration start");
+  let start = getKeyframeOffset(frameEl);
+  is(start, 0, "The frame offset for iteration start");
 }
 
-function getIterationStartFromLeft(el) {
-  let left = 100 - parseFloat(/(\d+)%/.exec(el.style.left)[1]);
-  return left / 100;
+function getKeyframeOffset(el) {
+  return parseFloat(/(\d+)%/.exec(el.style.left)[1]);
 }

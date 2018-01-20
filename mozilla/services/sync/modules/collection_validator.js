@@ -5,9 +5,11 @@
 "use strict";
 
 const Cu = Components.utils;
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-Cu.import("resource://services-sync/record.js");
-Cu.import("resource://services-sync/main.js");
+XPCOMUtils.defineLazyModuleGetter(this, "Async",
+                                  "resource://services-common/async.js");
+
 
 this.EXPORTED_SYMBOLS = ["CollectionValidator", "CollectionProblemData"];
 
@@ -54,6 +56,12 @@ class CollectionValidator {
     this.name = name;
     this.props = props;
     this.idProp = idProp;
+
+    // This property deals with the fact that form history records are never
+    // deleted from the server. The FormValidator subclass needs to ignore the
+    // client missing records, and it uses this property to achieve it -
+    // (Bug 1354016).
+    this.ignoresMissingClients = false;
   }
 
   // Should a custom ProblemData type be needed, return it here.
@@ -61,25 +69,36 @@ class CollectionValidator {
     return new CollectionProblemData();
   }
 
-  getServerItems(engine) {
+  async getServerItems(engine) {
     let collection = engine.itemSource();
     let collectionKey = engine.service.collectionKeys.keyForCollection(engine.name);
     collection.full = true;
-    let items = [];
-    collection.recordHandler = function(item) {
-      item.decrypt(collectionKey);
-      items.push(item.cleartext);
-    };
-    let resp = collection.getBatched();
-    if (!resp.success) {
-      throw resp;
+    let result = await collection.getBatched();
+    if (!result.response.success) {
+      throw result.response;
     }
-    return items;
+    let maybeYield = Async.jankYielder();
+    let cleartexts = [];
+    for (let record of result.records) {
+      await maybeYield();
+      await record.decrypt(collectionKey);
+      cleartexts.push(record.cleartext);
+    }
+    return cleartexts;
   }
 
   // Should return a promise that resolves to an array of client items.
   getClientItems() {
     return Promise.reject("Must implement");
+  }
+
+  /**
+   * Can we guarantee validation will fail with a reason that isn't actually a
+   * problem? For example, if we know there are pending changes left over from
+   * the last sync, this should resolve to false. By default resolves to true.
+   */
+  async canValidate() {
+    return true;
   }
 
   // Turn the client item into something that can be compared with the server item,
@@ -90,7 +109,7 @@ class CollectionValidator {
 
   // Turn the server item into something that can be easily compared with the client
   // items.
-  normalizeServerItem(item) {
+  async normalizeServerItem(item) {
     return item;
   }
 
@@ -125,15 +144,24 @@ class CollectionValidator {
   //   clientRecords: Normalized client records
   //   records: Normalized server records,
   //   deletedRecords: Array of ids that were marked as deleted by the server.
-  compareClientWithServer(clientItems, serverItems) {
-    clientItems = clientItems.map(item => this.normalizeClientItem(item));
-    serverItems = serverItems.map(item => this.normalizeServerItem(item));
+  async compareClientWithServer(clientItems, serverItems) {
+    let maybeYield = Async.jankYielder();
+    const clientRecords = [];
+    for (let item of clientItems) {
+      await maybeYield();
+      clientRecords.push(this.normalizeClientItem(item));
+    }
+    const serverRecords = [];
+    for (let item of serverItems) {
+      await maybeYield();
+      serverRecords.push((await this.normalizeServerItem(item)));
+    }
     let problems = this.emptyProblemData();
     let seenServer = new Map();
     let serverDeleted = new Set();
     let allRecords = new Map();
 
-    for (let record of serverItems) {
+    for (let record of serverRecords) {
       let id = record[this.idProp];
       if (!id) {
         ++problems.missingIDs;
@@ -153,9 +181,8 @@ class CollectionValidator {
       }
     }
 
-    let recordPairs = [];
     let seenClient = new Map();
-    for (let record of clientItems) {
+    for (let record of clientRecords) {
       let id = record[this.idProp];
       record.shouldSync = this.syncedByClient(record);
       seenClient.set(id, record);
@@ -163,7 +190,7 @@ class CollectionValidator {
       if (combined) {
         combined.client = record;
       } else {
-        allRecords.set(id,  { client: record, server: null });
+        allRecords.set(id, { client: record, server: null });
       }
     }
 
@@ -171,7 +198,7 @@ class CollectionValidator {
       if (!client && !server) {
         throw new Error("Impossible: no client or server record for " + id);
       } else if (server && !client) {
-        if (server.understood) {
+        if (!this.ignoresMissingClients && server.understood) {
           problems.clientMissing.push(id);
         }
       } else if (client && !server) {
@@ -193,8 +220,8 @@ class CollectionValidator {
     }
     return {
       problemData: problems,
-      clientRecords: clientItems,
-      records: serverItems,
+      clientRecords,
+      records: serverRecords,
       deletedRecords: [...serverDeleted]
     };
   }

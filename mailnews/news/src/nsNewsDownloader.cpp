@@ -191,14 +191,14 @@ bool nsNewsDownloader::GetNextHdrToRetrieve()
     firstStr.AppendInt(m_numwrote);
     nsAutoString totalStr;
     totalStr.AppendInt(int(m_keysToDownload.Length()));
-    nsString prettiestName;
+    nsString prettyName;
     nsString statusString;
 
-    m_folder->GetPrettiestName(prettiestName);
+    m_folder->GetPrettyName(prettyName);
 
-    const char16_t *formatStrings[3] = { firstStr.get(), totalStr.get(), prettiestName.get() };
-    rv = bundle->FormatStringFromName(u"downloadingArticlesForOffline",
-                                      formatStrings, 3, getter_Copies(statusString));
+    const char16_t *formatStrings[3] = { firstStr.get(), totalStr.get(), prettyName.get() };
+    rv = bundle->FormatStringFromName("downloadingArticlesForOffline",
+                                      formatStrings, 3, statusString);
     NS_ENSURE_SUCCESS(rv, false);
     ShowProgress(statusString.get(), percent);
     return true;
@@ -334,13 +334,11 @@ nsMsgDownloadAllNewsgroups::nsMsgDownloadAllNewsgroups(nsIMsgWindow *window, nsI
   m_window = window;
   m_listener = listener;
   m_downloaderForGroup = new DownloadMatchingNewsArticlesToNewsDB(window, nullptr, nullptr, this);
-  NS_IF_ADDREF(m_downloaderForGroup);
   m_downloadedHdrsForCurGroup = false;
 }
 
 nsMsgDownloadAllNewsgroups::~nsMsgDownloadAllNewsgroups()
 {
-  NS_IF_RELEASE(m_downloaderForGroup);
 }
 
 NS_IMETHODIMP nsMsgDownloadAllNewsgroups::OnStartRunningUrl(nsIURI* url)

@@ -1,14 +1,12 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+"use strict";
+
 // Test clearSnapshots preserves snapshots with state != READ or ERROR
 
 let { takeSnapshotAndCensus, clearSnapshots, takeSnapshot } = require("devtools/client/memory/actions/snapshot");
 let { snapshotState: states, treeMapState, actions } = require("devtools/client/memory/constants");
-
-function run_test() {
-  run_next_test();
-}
 
 add_task(function* () {
   let front = new StubbedMemoryFront();

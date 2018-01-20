@@ -1,16 +1,15 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
 // Test that the HeapAnalyses{Client,Worker} can get a HeapSnapshot's
 // creation time.
 
 function waitForThirtyMilliseconds() {
   const start = Date.now();
-  while (Date.now() - start < 30) ;
-}
-
-function run_test() {
-  run_next_test();
+  while (Date.now() - start < 30) {
+    // do nothing
+  }
 }
 
 const BREAKDOWN = {

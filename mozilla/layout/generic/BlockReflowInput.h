@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,6 +23,8 @@ namespace mozilla {
 // block frame uses along with ReflowInput. Like ReflowInput, this
 // is read-only data that is passed down from a parent frame to its children.
 class BlockReflowInput {
+  using BandInfoType = nsFloatManager::BandInfoType;
+  using ShapeType = nsFloatManager::ShapeType;
 
   // Block reflow input flags.
   struct Flags {
@@ -100,6 +103,9 @@ class BlockReflowInput {
 
     // Set when the pref layout.float-fragments-inside-column.enabled is true.
     bool mFloatFragmentsInsideColumnEnabled : 1;
+
+    // Set when we need text-overflow processing.
+    bool mCanHaveTextOverflow : 1;
   };
 
 public:
@@ -121,10 +127,14 @@ public:
    */
   nsFlowAreaRect GetFloatAvailableSpace() const
     { return GetFloatAvailableSpace(mBCoord); }
+  nsFlowAreaRect GetFloatAvailableSpaceForPlacingFloat(nscoord aBCoord) const
+    { return GetFloatAvailableSpaceWithState(
+        aBCoord, ShapeType::Margin, nullptr); }
   nsFlowAreaRect GetFloatAvailableSpace(nscoord aBCoord) const
-    { return GetFloatAvailableSpaceWithState(aBCoord, nullptr); }
+    { return GetFloatAvailableSpaceWithState(
+        aBCoord, ShapeType::ShapeOutside, nullptr); }
   nsFlowAreaRect
-    GetFloatAvailableSpaceWithState(nscoord aBCoord,
+    GetFloatAvailableSpaceWithState(nscoord aBCoord, ShapeType aShapeType,
                                     nsFloatManager::SavedState *aState) const;
   nsFlowAreaRect
     GetFloatAvailableSpaceForBSize(nscoord aBCoord, nscoord aBSize,
@@ -152,6 +162,13 @@ public:
   nscoord ClearFloats(nscoord aBCoord, mozilla::StyleClear aBreakType,
                       nsIFrame *aReplacedBlock = nullptr,
                       uint32_t aFlags = 0);
+
+  nsFloatManager* FloatManager() const {
+    MOZ_ASSERT(mReflowInput.mFloatManager,
+               "Float manager should be valid during the lifetime of "
+               "BlockReflowInput!");
+    return mReflowInput.mFloatManager;
+  }
 
   // Advances to the next band, i.e., the next horizontal stripe in
   // which there is a different set of floats.
@@ -191,9 +208,10 @@ public:
   }
 
   /**
-   * Retrieve the block-direction size "consumed" by any previous-in-flows.
+   * Retrieve the block-axis content size "consumed" by any prev-in-flows.
+   * @note the value is cached so subsequent calls will return the same value
    */
-  nscoord GetConsumedBSize();
+  nscoord ConsumedBSize();
 
   // Reconstruct the previous block-end margin that goes before |aLine|.
   void ReconstructMarginBefore(nsLineList::iterator aLine);
@@ -232,8 +250,6 @@ public:
   nsPresContext* mPresContext;
 
   const ReflowInput& mReflowInput;
-
-  nsFloatManager* mFloatManager;
 
   // The coordinates within the float manager where the block is being
   // placed <b>after</b> taking into account the blocks border and

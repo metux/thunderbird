@@ -8,6 +8,7 @@
 #include "PLDHashTable.h"
 #include "nsExpirationTracker.h"
 #include "nsClassHashtable.h"
+#include "mozilla/SystemGroup.h"
 #include "mozilla/Telemetry.h"
 #include "gfxGradientCache.h"
 #include <time.h>
@@ -32,6 +33,8 @@ struct GradientCacheKey : public PLDHashEntryHdr {
   explicit GradientCacheKey(const GradientCacheKey* aOther)
     : mStops(aOther->mStops), mExtend(aOther->mExtend), mBackendType(aOther->mBackendType)
   { }
+
+  GradientCacheKey(GradientCacheKey&& aOther) = default;
 
   union FloatUint32
   {
@@ -85,15 +88,12 @@ struct GradientCacheKey : public PLDHashEntryHdr {
  * to the cache entry to be able to be tracked by the nsExpirationTracker.
  * */
 struct GradientCacheData {
-  GradientCacheData(GradientStops* aStops, const GradientCacheKey& aKey)
+  GradientCacheData(GradientStops* aStops, GradientCacheKey&& aKey)
     : mStops(aStops),
-      mKey(aKey)
+      mKey(Move(aKey))
   {}
 
-  GradientCacheData(const GradientCacheData& aOther)
-    : mStops(aOther.mStops),
-      mKey(aOther.mKey)
-  { }
+  GradientCacheData(GradientCacheData&& aOther) = default;
 
   nsExpirationState *GetExpirationState() {
     return &mExpirationState;
@@ -123,7 +123,8 @@ class GradientCache final : public nsExpirationTracker<GradientCacheData,4>
   public:
     GradientCache()
       : nsExpirationTracker<GradientCacheData,4>(MAX_GENERATION_MS,
-                                                 "GradientCache")
+                                                 "GradientCache",
+                                                 SystemGroup::EventTargetFor(TaskCategory::Other))
     {
       srand(time(nullptr));
       mTimerPeriod = rand() % MAX_GENERATION_MS + 1;

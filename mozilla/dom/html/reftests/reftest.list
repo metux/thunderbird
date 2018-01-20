@@ -27,6 +27,7 @@ include toblob-todataurl/reftest.list
 == 610935.html 610935-ref.html
 == 649134-1.html 649134-ref.html
 skip-if(Android) == 649134-2.html 649134-2-ref.html
+== 741776-1.vtt 741776-1-ref.html
 
 == bug448564-1_malformed.html bug448564-1_well-formed.html
 == bug448564-1_malformed.html bug448564-1_ideal.html
@@ -61,4 +62,11 @@ pref(permissions.default.image,1) HTTP == bug1196784-with-srcset.html bug1196784
 pref(permissions.default.image,2) HTTP == bug1196784-with-srcset.html bug1196784-no-srcset.html
 
 # Test video with rotation information can be rotated.
-== bug1228601-video-rotation-90.html bug1228601-video-rotated-ref.html
+fails-if(webrender) == bug1228601-video-rotation-90.html bug1228601-video-rotated-ref.html
+
+# Test that dynamically setting body margin attributes updates style appropriately
+== body-topmargin-dynamic.html body-topmargin-ref.html
+
+# Test that dynamically removing a nonmargin mapped attribute does not
+# destroy margins inherited from the frame.
+== body-frame-margin-remove-other-pres-hint.html body-frame-margin-remove-other-pres-hint-ref.html

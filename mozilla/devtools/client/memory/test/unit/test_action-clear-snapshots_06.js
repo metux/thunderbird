@@ -10,7 +10,6 @@ const {
   clearSnapshots
 } = require("devtools/client/memory/actions/snapshot");
 const {
-  snapshotState: states,
   actions,
   treeMapState
 } = require("devtools/client/memory/constants");
@@ -18,10 +17,6 @@ const {
   toggleDiffing,
   selectSnapshotForDiffingAndRefresh
 } = require("devtools/client/memory/actions/diffing");
-
-function run_test() {
-  run_next_test();
-}
 
 add_task(function* () {
   let front = new StubbedMemoryFront();

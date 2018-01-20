@@ -64,6 +64,7 @@ Decoder::Decoder(RasterImage* aImage)
   , mDecodeDone(false)
   , mError(false)
   , mShouldReportError(false)
+  , mFinalizeFrames(true)
 { }
 
 Decoder::~Decoder()
@@ -77,7 +78,7 @@ Decoder::~Decoder()
   if (mImage && !NS_IsMainThread()) {
     // Dispatch mImage to main thread to prevent it from being destructed by the
     // decode thread.
-    NS_ReleaseOnMainThread(mImage.forget());
+    NS_ReleaseOnMainThreadSystemGroup(mImage.forget());
   }
 }
 
@@ -123,7 +124,7 @@ Decoder::Decode(IResumable* aOnResume /* = nullptr */)
 
   LexerResult lexerResult(TerminalState::FAILURE);
   {
-    PROFILER_LABEL("ImageDecoder", "Decode", js::ProfileEntry::Category::GRAPHICS);
+    AUTO_PROFILER_LABEL("Decoder::Decode", GRAPHICS);
     AutoRecordDecoderTelemetry telemetry(this);
 
     lexerResult =  DoDecode(*mIterator, aOnResume);
@@ -326,15 +327,16 @@ Decoder::AllocateFrameInternal(uint32_t aFrameNum,
   }
 
   if (aOutputSize.width <= 0 || aOutputSize.height <= 0 ||
-      aFrameRect.width <= 0 || aFrameRect.height <= 0) {
+      aFrameRect.Width() <= 0 || aFrameRect.Height() <= 0) {
     NS_WARNING("Trying to add frame with zero or negative size");
     return RawAccessFrameRef();
   }
 
-  NotNull<RefPtr<imgFrame>> frame = WrapNotNull(new imgFrame());
+  auto frame = MakeNotNull<RefPtr<imgFrame>>();
   bool nonPremult = bool(mSurfaceFlags & SurfaceFlags::NO_PREMULTIPLY_ALPHA);
   if (NS_FAILED(frame->InitForDecoder(aOutputSize, aFrameRect, aFormat,
-                                      aPaletteDepth, nonPremult))) {
+                                      aPaletteDepth, nonPremult,
+                                      aFrameNum > 0))) {
     NS_WARNING("imgFrame::Init should succeed");
     return RawAccessFrameRef();
   }
@@ -380,7 +382,12 @@ Decoder::AllocateFrameInternal(uint32_t aFrameNum,
 nsresult Decoder::InitInternal() { return NS_OK; }
 nsresult Decoder::BeforeFinishInternal() { return NS_OK; }
 nsresult Decoder::FinishInternal() { return NS_OK; }
-nsresult Decoder::FinishWithErrorInternal() { return NS_OK; }
+
+nsresult Decoder::FinishWithErrorInternal()
+{
+  MOZ_ASSERT(!mInFrame);
+  return NS_OK;
+}
 
 /*
  * Progress Notifications
@@ -397,6 +404,14 @@ Decoder::PostSize(int32_t aWidth,
 
   // Set our intrinsic size.
   mImageMetadata.SetSize(aWidth, aHeight, aOrientation);
+
+  // Verify it is the expected size, if given. Note that this is only used by
+  // the ICO decoder for embedded image types, so only its subdecoders are
+  // required to handle failures in PostSize.
+  if (!IsExpectedSize()) {
+    PostError();
+    return;
+  }
 
   // Set our output size if it's not already set.
   if (!mOutputSize) {
@@ -450,7 +465,7 @@ Decoder::PostFrameStop(Opacity aFrameOpacity
   mFinishedNewFrame = true;
 
   mCurrentFrame->Finish(aFrameOpacity, aDisposalMethod, aTimeout,
-                        aBlendMethod, aBlendRect);
+                        aBlendMethod, aBlendRect, mFinalizeFrames);
 
   mProgress |= FLAG_FRAME_COMPLETE;
 

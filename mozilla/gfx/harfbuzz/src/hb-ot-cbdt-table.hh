@@ -216,7 +216,7 @@ struct IndexSubtableRecord
 
   USHORT firstGlyphIndex;
   USHORT lastGlyphIndex;
-  OffsetTo<IndexSubtable, ULONG> offsetToSubtable;
+  LOffsetTo<IndexSubtable> offsetToSubtable;
 
   DEFINE_SIZE_STATIC(8);
 };
@@ -245,7 +245,7 @@ struct IndexSubtableArray
         return &indexSubtablesZ[i];
       }
     }
-    return NULL;
+    return nullptr;
   }
 
   protected:
@@ -275,7 +275,7 @@ struct BitmapSizeTable
   }
 
   protected:
-  OffsetTo<IndexSubtableArray, ULONG> indexSubtableArrayOffset;
+  LOffsetTo<IndexSubtableArray> indexSubtableArrayOffset;
   ULONG indexTablesSize;
   ULONG numberOfIndexSubtables;
   ULONG colorRef;
@@ -344,12 +344,12 @@ struct CBLC
       }
     }
 
-    return NULL;
+    return nullptr;
   }
 
   protected:
-  FixedVersion<>version;
-  ArrayOf<BitmapSizeTable, ULONG> sizeTables;
+  FixedVersion<>		version;
+  LArrayOf<BitmapSizeTable>	sizeTables;
 
   public:
   DEFINE_SIZE_ARRAY(8, sizeTables);

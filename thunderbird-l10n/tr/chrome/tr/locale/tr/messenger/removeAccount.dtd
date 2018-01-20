@@ -2,34 +2,21 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<!ENTITY dialogTitle                  "Remove Account and Data">
-<!ENTITY progressFailure              "Removal failed.">
-<!ENTITY progressPending              "Removing selected data…">
-<!ENTITY progressSuccess              "Removal succeeded.">
-<!ENTITY removeAccount.accesskey      "a">
-<!ENTITY removeAccount.desc           "Removes only &brandShortName;'s knowledge of this account. Does not affect the account itself on the server.">
-<!ENTITY removeAccount.label          "Remove account information">
-<!ENTITY removeButton.accesskey       "R">
-<!ENTITY removeButton.label           "Remove">
-<!ENTITY removeData.accesskey         "d">
-<!ENTITY removeData.label             "Remove message data">
-<!ENTITY removeDataLocalAccount.desc  "Removes all messages, folders and filters associated with this account from your local disk. This does not affect some messages which may still be kept on the server. Do not choose this if you plan to archive the local data or re-use it in &brandShortName; later.">
-<!ENTITY removeDataServerAccount.desc "Removes all messages, folders and filters associated with this account from your local disk. Your messages and folders are still kept on the server.">
-<!ENTITY showData.accesskey           "S">
-<!ENTITY showData.label               "Show data location">
+<!ENTITY dialogTitle                  "Hesabı ve Verileri Sil">
+<!ENTITY removeButton.label           "Sil">
+<!ENTITY removeButton.accesskey       "S">
+<!ENTITY removeAccount.label          "Hesap bilgilerini sil">
+<!ENTITY removeAccount.accesskey      "b">
+<!ENTITY removeAccount.desc           "Yalnızca &brandShortName; yazılımındaki bu hesaba dair bilgileri siler. Sunucudaki asıl hesap bilgileriniz etkilenmez.">
+<!ENTITY removeData.label             "Mesaj verilerini sil">
+<!ENTITY removeData.accesskey         "M">
+<!ENTITY removeDataChat.label         "Yazışma verilerini sil">
+<!ENTITY removeDataChat.accesskey     "a">
+<!ENTITY removeDataLocalAccount.desc  "Bu hesapla ilişkili tüm iletileri, klasörleri ve filtreleri yerel diskinizden kaldırır. Hâlâ sunucuda duran iletileriniz varsa bu işlem onları etkilemez. Yerel verileri arşivlemek veya ileride &brandShortName; yazılımında yeniden kullanmak istiyorsanız bu seçeneği seçmeyin.">
+<!ENTITY removeDataServerAccount.desc "Bu hesapla ilişkili tüm iletileri, klasörleri ve filtreleri yerel diskinizden kaldırır. İletileriniz ve klasörleriniz sunucuda tutulmaya devam eder.">
+<!ENTITY removeDataChatAccount.desc   "Bu hesapla ilişkili tüm yazışma kayıtlarını yerel diskinizden siler.">
+<!ENTITY showData.label               "Veri konumunu göster">
+<!ENTITY showData.accesskey           "k">
+<!ENTITY progressPending              "Seçilen veriler siliniyor…">
+<!ENTITY progressSuccess              "Silme başarıyla tamamlandı.">
+<!ENTITY progressFailure              "Silme başarısız oldu.">

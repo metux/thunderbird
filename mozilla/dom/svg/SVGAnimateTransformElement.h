@@ -31,11 +31,12 @@ protected:
 
 public:
   // nsIDOMNode specializations
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const override;
+  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+                         bool aPreallocateChildren) const override;
 
   // Element specializations
   bool ParseAttribute(int32_t aNamespaceID,
-                        nsIAtom* aAttribute,
+                        nsAtom* aAttribute,
                         const nsAString& aValue,
                         nsAttrValue& aResult) override;
 

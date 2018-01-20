@@ -7,6 +7,7 @@ var {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 var gChatPane = {
   init: function ()
   {
+    previewObserver.load();
     this.updateDisabledState();
   },
 
@@ -32,7 +33,7 @@ var gChatPane = {
 
   convertURLToLocalFile: function(aFileURL)
   {
-    // convert the file url into a nsILocalFile
+    // convert the file url into a nsIFile
     if (aFileURL)
     {
       return Services.io.getProtocolHandler("file")
@@ -68,7 +69,7 @@ var gChatPane = {
       else
         sound.playEventSound(Ci.nsISound.EVENT_NEW_MAIL_RECEIVED);
     } else {
-      sound.play(Services.io.newURI(soundLocation, null, null));
+      sound.play(Services.io.newURI(soundLocation));
     }
   },
 
@@ -98,14 +99,16 @@ var gChatPane = {
     else
       fp.appendFilter(soundFilesText, "*.wav");
 
-    let ret = fp.show();
-    if (ret == nsIFilePicker.returnOK)
-    {
-      // convert the nsILocalFile into a nsIFile url
+    fp.open(rv => {
+      if (rv != nsIFilePicker.returnOK) {
+        return;
+      }
+
+      // convert the nsIFile into a nsIFile url
       document.getElementById("mail.chat.play_sound.url").value = fp.fileURL.spec;
       this.readSoundLocation(); // XXX We shouldn't have to be doing this by hand
       this.updatePlaySound();
-    }
+    });
   },
 
   updatePlaySound: function()
@@ -115,7 +118,7 @@ var gChatPane = {
     let soundTypeEl = document.getElementById("chatSoundType");
     let chatSoundUrlLocation = document.getElementById("chatSoundUrlLocation").value;
     soundTypeEl.disabled = soundsDisabled;
-    document.getElementById("browseForChatSound").disabled =
+    document.getElementById("chatSoundUrlLocation").disabled =
       soundsDisabled || (soundTypeEl.value != 1);
     document.getElementById("playChatSound").disabled =
       soundsDisabled || (!chatSoundUrlLocation && soundTypeEl.value != 0);

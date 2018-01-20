@@ -16,10 +16,8 @@
 #include "nsNetUtil.h"
 #include "nsIOutputStream.h"
 #include "nsClassHashtable.h"
-
-#if DEBUG
+#include "nsDataHashtable.h"
 #include "plbase64.h"
-#endif
 
 namespace mozilla {
 namespace safebrowsing {
@@ -37,21 +35,25 @@ struct SafebrowsingHash
   typedef SafebrowsingHash<S, Comparator> self_type;
   uint8_t buf[S];
 
-  nsresult FromPlaintext(const nsACString& aPlainText, nsICryptoHash* aHash) {
+  nsresult FromPlaintext(const nsACString& aPlainText) {
     // From the protocol doc:
     // Each entry in the chunk is composed
     // of the SHA 256 hash of a suffix/prefix expression.
-
-    nsresult rv = aHash->Init(nsICryptoHash::SHA256);
+    nsresult rv;
+    nsCOMPtr<nsICryptoHash> hash =
+      do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = aHash->Update
+    rv = hash->Init(nsICryptoHash::SHA256);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = hash->Update
       (reinterpret_cast<const uint8_t*>(aPlainText.BeginReading()),
        aPlainText.Length());
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsAutoCString hashed;
-    rv = aHash->Finish(false, hashed);
+    rv = hash->Finish(false, hashed);
     NS_ENSURE_SUCCESS(rv, rv);
 
     NS_ASSERTION(hashed.Length() >= sHashSize,
@@ -84,14 +86,16 @@ struct SafebrowsingHash
     return Comparator::Compare(buf, aOther.buf) < 0;
   }
 
-#ifdef DEBUG
   void ToString(nsACString& aStr) const {
     uint32_t len = ((sHashSize + 2) / 3) * 4;
+
+    // Capacity should be one greater than length, because PL_Base64Encode
+    // will not be null-terminated, while nsCString requires it.
     aStr.SetCapacity(len + 1);
     PL_Base64Encode((char*)buf, sHashSize, aStr.BeginWriting());
     aStr.BeginWriting()[len] = '\0';
+    aStr.SetLength(len);
   }
-#endif
 
   void ToHexString(nsACString& aStr) const {
     static const char* const lut = "0123456789ABCDEF";
@@ -262,6 +266,7 @@ typedef FallibleTArray<AddPrefix>   AddPrefixArray;
 typedef FallibleTArray<AddComplete> AddCompleteArray;
 typedef FallibleTArray<SubPrefix>   SubPrefixArray;
 typedef FallibleTArray<SubComplete> SubCompleteArray;
+typedef FallibleTArray<Prefix>      MissPrefixArray;
 
 /**
  * Compares chunks by their add chunk, then their prefix.
@@ -315,6 +320,55 @@ WriteTArray(nsIOutputStream* aStream, nsTArray_Impl<T, Alloc>& aArray)
 }
 
 typedef nsClassHashtable<nsUint32HashKey, nsCString> PrefixStringMap;
+
+typedef nsDataHashtable<nsCStringHashKey, int64_t> TableFreshnessMap;
+
+typedef nsCStringHashKey FullHashString;
+
+typedef nsDataHashtable<FullHashString, int64_t> FullHashExpiryCache;
+
+struct CachedFullHashResponse {
+  int64_t negativeCacheExpirySec;
+
+  // Map contains all matches found in Fullhash response, this field might be empty.
+  FullHashExpiryCache fullHashes;
+
+  CachedFullHashResponse& operator=(const CachedFullHashResponse& aOther) {
+    negativeCacheExpirySec = aOther.negativeCacheExpirySec;
+
+    fullHashes.Clear();
+    for (auto iter = aOther.fullHashes.ConstIter(); !iter.Done(); iter.Next()) {
+      fullHashes.Put(iter.Key(), iter.Data());
+    }
+
+    return *this;
+  }
+
+  bool operator==(const CachedFullHashResponse& aOther) const {
+    if (negativeCacheExpirySec != aOther.negativeCacheExpirySec ||
+        fullHashes.Count() != aOther.fullHashes.Count()) {
+      return false;
+    }
+    for (auto iter = fullHashes.ConstIter(); !iter.Done(); iter.Next()) {
+      if (iter.Data() != aOther.fullHashes.Get(iter.Key())) {
+        return false;
+      }
+    }
+    return true;
+  }
+};
+
+typedef nsClassHashtable<nsUint32HashKey, CachedFullHashResponse> FullHashResponseMap;
+
+template<class T>
+void
+CopyClassHashTable(const T& aSource, T& aDestination)
+{
+  for (auto iter = aSource.ConstIter(); !iter.Done(); iter.Next()) {
+    auto value = aDestination.LookupOrAdd(iter.Key());
+    *value = *(iter.Data());
+  }
+}
 
 } // namespace safebrowsing
 } // namespace mozilla

@@ -8,6 +8,7 @@
 #include "gtest/gtest.h"
 #include "Helpers.h"
 #include "mozilla/ReentrantMonitor.h"
+#include "mozilla/Printf.h"
 #include "nsCOMPtr.h"
 #include "nsCRT.h"
 #include "nsIAsyncInputStream.h"
@@ -24,7 +25,6 @@
 #include "nsStreamUtils.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
-#include "prprf.h"
 #include "prinrval.h"
 
 using namespace mozilla;
@@ -107,24 +107,23 @@ TestPipe(nsIInputStream* in, nsIOutputStream* out)
     nsresult rv;
 
     nsCOMPtr<nsIThread> thread;
-    rv = NS_NewThread(getter_AddRefs(thread), receiver);
+    rv = NS_NewNamedThread("TestPipe", getter_AddRefs(thread), receiver);
     if (NS_FAILED(rv)) return rv;
 
     uint32_t total = 0;
     PRIntervalTime start = PR_IntervalNow();
     for (uint32_t i = 0; i < ITERATIONS; i++) {
         uint32_t writeCount;
-        char *buf = PR_smprintf("%d %s", i, kTestPattern);
-        uint32_t len = strlen(buf);
-        rv = WriteAll(out, buf, len, &writeCount);
+        SmprintfPointer buf = mozilla::Smprintf("%d %s", i, kTestPattern);
+        uint32_t len = strlen(buf.get());
+        rv = WriteAll(out, buf.get(), len, &writeCount);
         if (gTrace) {
             printf("wrote: ");
             for (uint32_t j = 0; j < writeCount; j++) {
-                putc(buf[j], stdout);
+              putc(buf.get()[j], stdout);
             }
             printf("\n");
         }
-        PR_smprintf_free(buf);
         if (NS_FAILED(rv)) return rv;
         total += writeCount;
     }
@@ -225,24 +224,24 @@ TestShortWrites(nsIInputStream* in, nsIOutputStream* out)
     nsresult rv;
 
     nsCOMPtr<nsIThread> thread;
-    rv = NS_NewThread(getter_AddRefs(thread), receiver);
+    rv = NS_NewNamedThread("TestShortWrites", getter_AddRefs(thread),
+                           receiver);
     if (NS_FAILED(rv)) return rv;
 
     uint32_t total = 0;
     for (uint32_t i = 0; i < ITERATIONS; i++) {
         uint32_t writeCount;
-        char* buf = PR_smprintf("%d %s", i, kTestPattern);
-        uint32_t len = strlen(buf);
+        SmprintfPointer buf = mozilla::Smprintf("%d %s", i, kTestPattern);
+        uint32_t len = strlen(buf.get());
         len = len * rand() / RAND_MAX;
         len = std::min(1u, len);
-        rv = WriteAll(out, buf, len, &writeCount);
+        rv = WriteAll(out, buf.get(), len, &writeCount);
         if (NS_FAILED(rv)) return rv;
         EXPECT_EQ(writeCount, len);
         total += writeCount;
 
         if (gTrace)
-            printf("wrote %d bytes: %s\n", writeCount, buf);
-        PR_smprintf_free(buf);
+          printf("wrote %d bytes: %s\n", writeCount, buf.get());
         //printf("calling Flush\n");
         out->Flush();
         //printf("calling WaitForReceipt\n");
@@ -330,32 +329,31 @@ TEST(Pipes, ChainedPipes)
     if (pump == nullptr) return;
 
     nsCOMPtr<nsIThread> thread;
-    rv = NS_NewThread(getter_AddRefs(thread), pump);
+    rv = NS_NewNamedThread("ChainedPipePump", getter_AddRefs(thread), pump);
     if (NS_FAILED(rv)) return;
 
     RefPtr<nsReceiver> receiver = new nsReceiver(in2);
     if (receiver == nullptr) return;
 
     nsCOMPtr<nsIThread> receiverThread;
-    rv = NS_NewThread(getter_AddRefs(receiverThread), receiver);
+    rv = NS_NewNamedThread("ChainedPipeRecv", getter_AddRefs(receiverThread),
+                           receiver);
     if (NS_FAILED(rv)) return;
 
     uint32_t total = 0;
     for (uint32_t i = 0; i < ITERATIONS; i++) {
         uint32_t writeCount;
-        char* buf = PR_smprintf("%d %s", i, kTestPattern);
-        uint32_t len = strlen(buf);
+        SmprintfPointer buf = mozilla::Smprintf("%d %s", i, kTestPattern);
+        uint32_t len = strlen(buf.get());
         len = len * rand() / RAND_MAX;
         len = std::max(1u, len);
-        rv = WriteAll(out1, buf, len, &writeCount);
+        rv = WriteAll(out1, buf.get(), len, &writeCount);
         if (NS_FAILED(rv)) return;
         EXPECT_EQ(writeCount, len);
         total += writeCount;
 
         if (gTrace)
-            printf("wrote %d bytes: %s\n", writeCount, buf);
-
-        PR_smprintf_free(buf);
+            printf("wrote %d bytes: %s\n", writeCount, buf.get());
     }
     if (gTrace) {
         printf("wrote total of %d bytes\n", total);

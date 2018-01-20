@@ -270,8 +270,7 @@ private:
 - (void)drawUsingOpenGL
 {
     ALOG("drawUsingOpenGL");
-  PROFILER_LABEL("ChildView", "drawUsingOpenGL",
-    js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("ChildView::drawUsingOpenGL", GRAPHICS);
 
   if (!mGeckoChild->IsVisible())
     return;
@@ -326,8 +325,7 @@ private:
     [self drawUsingOpenGL];
     return;
   }
-  PROFILER_LABEL("ChildView", "drawRect",
-    js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("ChildView::drawRect", GRAPHICS);
 
   // The CGContext that drawRect supplies us with comes with a transform that
   // scales one user space unit to one Cocoa point, which can consist of
@@ -543,7 +541,7 @@ nsWindow::Destroy()
     return NS_OK;
 }
 
-NS_IMETHODIMP
+nsresult
 nsWindow::ConfigureChildren(const nsTArray<nsIWidget::Configuration>& config)
 {
     for (uint32_t i = 0; i < config.Length(); ++i) {
@@ -558,7 +556,7 @@ nsWindow::ConfigureChildren(const nsTArray<nsIWidget::Configuration>& config)
     return NS_OK;
 }
 
-NS_IMETHODIMP
+void
 nsWindow::Show(bool aState)
 {
   if (aState != mVisible) {
@@ -570,14 +568,13 @@ nsWindow::Show(bool aState)
       }
       mVisible = aState;
   }
-  return NS_OK;
 }
 
-NS_IMETHODIMP
+void
 nsWindow::Move(double aX, double aY)
 {
   if (!mNativeView || (mBounds.x == aX && mBounds.y == aY))
-    return NS_OK;
+    return;
 
   //XXX: handle this
   // The point we have is in Gecko coordinates (origin top-left). Convert
@@ -591,10 +588,9 @@ nsWindow::Move(double aX, double aY)
     [mNativeView setNeedsDisplay];
 
   ReportMoveEvent();
-  return NS_OK;
 }
 
-NS_IMETHODIMP
+void
 nsWindow::Resize(double aX, double aY,
                  double aWidth, double aHeight,
                  bool aRepaint)
@@ -602,7 +598,7 @@ nsWindow::Resize(double aX, double aY,
     BOOL isMoving = (mBounds.x != aX || mBounds.y != aY);
     BOOL isResizing = (mBounds.width != aWidth || mBounds.height != aHeight);
     if (!mNativeView || (!isMoving && !isResizing))
-        return NS_OK;
+        return;
 
     if (isMoving) {
         mBounds.x = aX;
@@ -623,14 +619,13 @@ nsWindow::Resize(double aX, double aY,
 
     if (isResizing)
         ReportSizeEvent();
-
-    return NS_OK;
 }
 
-NS_IMETHODIMP nsWindow::Resize(double aWidth, double aHeight, bool aRepaint)
+void
+nsWindow::Resize(double aWidth, double aHeight, bool aRepaint)
 {
     if (!mNativeView || (mBounds.width == aWidth && mBounds.height == aHeight))
-        return NS_OK;
+        return;
 
     mBounds.width  = aWidth;
     mBounds.height = aHeight;
@@ -641,8 +636,6 @@ NS_IMETHODIMP nsWindow::Resize(double aWidth, double aHeight, bool aRepaint)
         [mNativeView setNeedsDisplay];
 
     ReportSizeEvent();
-
-    return NS_OK;
 }
 
 void
@@ -660,11 +653,11 @@ nsWindow::SetSizeMode(nsSizeMode aMode)
     ReportSizeModeEvent(aMode);
 }
 
-NS_IMETHODIMP
+void
 nsWindow::Invalidate(const LayoutDeviceIntRect& aRect)
 {
   if (!mNativeView || !mVisible)
-    return NS_OK;
+    return;
 
   MOZ_RELEASE_ASSERT(GetLayerManager()->GetBackendType() != LayersBackend::LAYERS_CLIENT,
                      "Shouldn't need to invalidate with accelerated OMTC layers!");
@@ -672,11 +665,9 @@ nsWindow::Invalidate(const LayoutDeviceIntRect& aRect)
 
   [mNativeView setNeedsLayout];
   [mNativeView setNeedsDisplayInRect:DevPixelsToUIKitPoints(mBounds, BackingScaleFactor())];
-
-  return NS_OK;
 }
 
-NS_IMETHODIMP
+nsresult
 nsWindow::SetFocus(bool aRaise)
 {
   [[mNativeView window] makeKeyWindow];
@@ -764,7 +755,7 @@ LayoutDeviceIntPoint nsWindow::WidgetToScreenOffset()
     return offset;
 }
 
-NS_IMETHODIMP
+nsresult
 nsWindow::DispatchEvent(mozilla::WidgetGUIEvent* aEvent,
                         nsEventStatus& aStatus)
 {
@@ -777,7 +768,7 @@ nsWindow::DispatchEvent(mozilla::WidgetGUIEvent* aEvent,
   return NS_OK;
 }
 
-NS_IMETHODIMP_(void)
+void
 nsWindow::SetInputContext(const InputContext& aContext,
                           const InputContextAction& aAction)
 {
@@ -785,7 +776,7 @@ nsWindow::SetInputContext(const InputContext& aContext,
     mInputContext = aContext;
 }
 
-NS_IMETHODIMP_(mozilla::widget::InputContext)
+mozilla::widget::InputContext
 nsWindow::GetInputContext()
 {
     return mInputContext;

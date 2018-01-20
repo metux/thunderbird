@@ -27,7 +27,7 @@ GLColor Convert565(const R5G6B5 &rgb565)
 R5G6B5 Convert565(const GLColor &glColor)
 {
     const Vector4 &vecColor = glColor.toNormalizedVector();
-    gl::ColorF colorf(vecColor.x, vecColor.y, vecColor.z, vecColor.w);
+    gl::ColorF colorf(vecColor.x(), vecColor.y(), vecColor.z(), vecColor.w());
     R5G6B5 rgb565;
     R5G6B5::writeColor(&rgb565, &colorf);
     return rgb565;
@@ -50,9 +50,8 @@ class SixteenBppTextureTest : public ANGLETest
     {
         ANGLETest::SetUp();
 
-        const std::string vertexShaderSource = SHADER_SOURCE
-        (
-            precision highp float;
+        const std::string vertexShaderSource =
+            R"(precision highp float;
             attribute vec4 position;
             varying vec2 texcoord;
 
@@ -60,20 +59,17 @@ class SixteenBppTextureTest : public ANGLETest
             {
                 gl_Position = vec4(position.xy, 0.0, 1.0);
                 texcoord = (position.xy * 0.5) + 0.5;
-            }
-        );
+            })";
 
-        const std::string fragmentShaderSource2D = SHADER_SOURCE
-        (
-            precision highp float;
+        const std::string fragmentShaderSource2D =
+            R"(precision highp float;
             uniform sampler2D tex;
             varying vec2 texcoord;
 
             void main()
             {
                 gl_FragColor = texture2D(tex, texcoord);
-            }
-        );
+            })";
 
         m2DProgram = CompileProgram(vertexShaderSource, fragmentShaderSource2D);
         mTexture2DUniformLocation = glGetUniformLocation(m2DProgram, "tex");
@@ -305,15 +301,13 @@ TEST_P(SixteenBppTextureTest, RGBA4444Validation)
 // Test uploading RGBA8 data to RGBA4 textures.
 TEST_P(SixteenBppTextureTestES3, RGBA4UploadRGBA8)
 {
-    std::vector<GLColor> fourColors;
-    fourColors.push_back(GLColor::red);
-    fourColors.push_back(GLColor::green);
-    fourColors.push_back(GLColor::blue);
-    fourColors.push_back(GLColor::yellow);
+    const std::array<GLColor, 4> kFourColors = {
+        {GLColor::red, GLColor::green, GLColor::blue, GLColor::yellow}};
 
     GLTexture tex;
     glBindTexture(GL_TEXTURE_2D, tex.get());
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA4, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, fourColors.data());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA4, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                 kFourColors.data());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     ASSERT_GL_NO_ERROR();
@@ -417,7 +411,7 @@ TEST_P(SixteenBppTextureTestES3, RGBA4FramebufferReadback)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA4, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex.get(), 0);
 
-    glClearColor(rawColor.x, rawColor.y, rawColor.z, rawColor.w);
+    glClearColor(rawColor.x(), rawColor.y(), rawColor.z(), rawColor.w());
     glClear(GL_COLOR_BUFFER_BIT);
 
     ASSERT_GL_NO_ERROR();

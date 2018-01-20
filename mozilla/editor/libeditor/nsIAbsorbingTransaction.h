@@ -19,10 +19,11 @@ Transaction interface to outside world
     0x11d2, \
     {0x93, 0x2e, 0x00, 0x80, 0x5f, 0x8a, 0xdd, 0x32} }
 
-class nsIAtom;
+class nsAtom;
 
 namespace mozilla {
 class EditorBase;
+class PlaceholderTransaction;
 class SelectionState;
 } // namespace mozilla
 
@@ -35,12 +36,9 @@ public:
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IABSORBINGTRANSACTION_IID)
 
-  NS_IMETHOD Init(nsIAtom* aName, mozilla::SelectionState* aSelState,
-                  mozilla::EditorBase* aEditorBase) = 0;
-
   NS_IMETHOD EndPlaceHolderBatch()=0;
 
-  NS_IMETHOD GetTxnName(nsIAtom **aName)=0;
+  NS_IMETHOD GetTxnName(nsAtom **aName)=0;
 
   NS_IMETHOD StartSelectionEquals(mozilla::SelectionState* aSelState,
                                   bool* aResult) = 0;
@@ -48,6 +46,9 @@ public:
   NS_IMETHOD ForwardEndBatchTo(nsIAbsorbingTransaction *aForwardingAddress)=0;
 
   NS_IMETHOD Commit()=0;
+
+  NS_IMETHOD_(mozilla::PlaceholderTransaction*)
+    AsPlaceholderTransaction() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIAbsorbingTransaction,

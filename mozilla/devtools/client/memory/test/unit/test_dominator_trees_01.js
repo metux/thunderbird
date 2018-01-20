@@ -1,10 +1,11 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+"use strict";
+
 // Test that we can compute and fetch the dominator tree for a snapshot.
 
 let {
-  snapshotState: states,
   dominatorTreeState,
   treeMapState,
 } = require("devtools/client/memory/constants");
@@ -12,10 +13,6 @@ let {
   takeSnapshotAndCensus,
   computeAndFetchDominatorTree,
 } = require("devtools/client/memory/actions/snapshot");
-
-function run_test() {
-  run_next_test();
-}
 
 add_task(function* () {
   let front = new StubbedMemoryFront();

@@ -23,26 +23,16 @@
 #include "msgCore.h"
 #include <algorithm>
 
-#ifndef MOZILLA_INTERNAL_API
-#include "nsMsgI18N.h"
-#define NS_CopyNativeToUnicode(source, dest) \
-        nsMsgI18NConvertToUnicode(nsMsgI18NFileSystemCharset(), source, dest)
-#endif
-
 #define kWhitespace    " \t\b\r\n"
 
 nsTextAddress::nsTextAddress()
 {
-    m_database = nullptr;
-    m_fieldMap = nullptr;
-    m_LFCount = 0;
-    m_CRCount = 0;
+  m_LFCount = 0;
+  m_CRCount = 0;
 }
 
 nsTextAddress::~nsTextAddress()
 {
-    NS_IF_RELEASE(m_database);
-    NS_IF_RELEASE(m_fieldMap);
 }
 
 nsresult nsTextAddress::GetUnicharLineStreamForFile(nsIFile *aFile,
@@ -70,12 +60,8 @@ nsresult nsTextAddress::GetUnicharLineStreamForFile(nsIFile *aFile,
 nsresult nsTextAddress::ImportAddresses(bool *pAbort, const char16_t *pName, nsIFile *pSrc, nsIAddrDatabase *pDb, nsIImportFieldMap *fieldMap, nsString& errors, uint32_t *pProgress)
 {
   // Open the source file for reading, read each line and process it!
-  NS_IF_RELEASE(m_database);
-  NS_IF_RELEASE(m_fieldMap);
   m_database = pDb;
   m_fieldMap = fieldMap;
-  NS_ADDREF(m_fieldMap);
-  NS_ADDREF(m_database);
 
   nsCOMPtr<nsIInputStream> inputStream;
   nsresult rv = NS_NewLocalFileInputStream(getter_AddRefs(inputStream), pSrc);

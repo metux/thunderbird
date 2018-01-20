@@ -18,733 +18,50 @@
 
 #include "wasm/WasmCompile.h"
 
-#include "mozilla/CheckedInt.h"
+#include "mozilla/Maybe.h"
+#include "mozilla/Unused.h"
 
 #include "jsprf.h"
 
-#include "wasm/WasmBinaryFormat.h"
+#include "jit/ProcessExecutableMemory.h"
+#include "wasm/WasmBaselineCompile.h"
 #include "wasm/WasmBinaryIterator.h"
 #include "wasm/WasmGenerator.h"
 #include "wasm/WasmSignalHandlers.h"
+#include "wasm/WasmValidate.h"
 
 using namespace js;
 using namespace js::jit;
 using namespace js::wasm;
 
-using mozilla::CheckedInt;
-using mozilla::IsNaN;
-
-namespace {
-
-struct ValidatingPolicy : OpIterPolicy
-{
-    // Validation is what we're all about here.
-    static const bool Validate = true;
-};
-
-typedef OpIter<ValidatingPolicy> ValidatingOpIter;
-
-class FunctionDecoder
-{
-    const ModuleGenerator& mg_;
-    const ValTypeVector& locals_;
-    ValidatingOpIter iter_;
-
-  public:
-    FunctionDecoder(const ModuleGenerator& mg, const ValTypeVector& locals, Decoder& d)
-      : mg_(mg), locals_(locals), iter_(d)
-    {}
-    const ModuleGenerator& mg() const { return mg_; }
-    ValidatingOpIter& iter() { return iter_; }
-    const ValTypeVector& locals() const { return locals_; }
-
-    bool checkHasMemory() {
-        if (!mg().usesMemory())
-            return iter().fail("can't touch memory without memory");
-        return true;
-    }
-};
-
-} // end anonymous namespace
-
+template <class DecoderT>
 static bool
-DecodeCallArgs(FunctionDecoder& f, const Sig& sig)
-{
-    const ValTypeVector& args = sig.args();
-    uint32_t numArgs = args.length();
-    for (size_t i = 0; i < numArgs; ++i) {
-        ValType argType = args[i];
-        if (!f.iter().readCallArg(argType, numArgs, i, nullptr))
-            return false;
-    }
-
-    return f.iter().readCallArgsEnd(numArgs);
-}
-
-static bool
-DecodeCallReturn(FunctionDecoder& f, const Sig& sig)
-{
-    return f.iter().readCallReturn(sig.ret());
-}
-
-static bool
-DecodeCall(FunctionDecoder& f)
-{
-    uint32_t funcIndex;
-    if (!f.iter().readCall(&funcIndex))
-        return false;
-
-    if (funcIndex >= f.mg().numFuncs())
-        return f.iter().fail("callee index out of range");
-
-    if (!f.iter().inReachableCode())
-        return true;
-
-    const Sig* sig = &f.mg().funcSig(funcIndex);
-
-    return DecodeCallArgs(f, *sig) &&
-           DecodeCallReturn(f, *sig);
-}
-
-static bool
-DecodeCallIndirect(FunctionDecoder& f)
-{
-    if (!f.mg().numTables())
-        return f.iter().fail("can't call_indirect without a table");
-
-    uint32_t sigIndex;
-    if (!f.iter().readCallIndirect(&sigIndex, nullptr))
-        return false;
-
-    if (sigIndex >= f.mg().numSigs())
-        return f.iter().fail("signature index out of range");
-
-    if (!f.iter().inReachableCode())
-        return true;
-
-    const Sig& sig = f.mg().sig(sigIndex);
-    if (!DecodeCallArgs(f, sig))
-        return false;
-
-    return DecodeCallReturn(f, sig);
-}
-
-static bool
-DecodeBrTable(FunctionDecoder& f)
-{
-    uint32_t tableLength;
-    ExprType type = ExprType::Limit;
-    if (!f.iter().readBrTable(&tableLength, &type, nullptr, nullptr))
-        return false;
-
-    uint32_t depth;
-    for (size_t i = 0, e = tableLength; i < e; ++i) {
-        if (!f.iter().readBrTableEntry(&type, nullptr, &depth))
-            return false;
-    }
-
-    // Read the default label.
-    return f.iter().readBrTableDefault(&type, nullptr, &depth);
-}
-
-static bool
-DecodeFunctionBodyExprs(FunctionDecoder& f)
-{
-#define CHECK(c) if (!(c)) return false; break
-
-    while (true) {
-        uint16_t op;
-        if (!f.iter().readOp(&op))
-            return false;
-
-        switch (op) {
-          case uint16_t(Op::End):
-            if (!f.iter().readEnd(nullptr, nullptr, nullptr))
-                return false;
-            if (f.iter().controlStackEmpty())
-                return true;
-            break;
-          case uint16_t(Op::Nop):
-            CHECK(f.iter().readNop());
-          case uint16_t(Op::Drop):
-            CHECK(f.iter().readDrop());
-          case uint16_t(Op::Call):
-            CHECK(DecodeCall(f));
-          case uint16_t(Op::CallIndirect):
-            CHECK(DecodeCallIndirect(f));
-          case uint16_t(Op::I32Const):
-            CHECK(f.iter().readI32Const(nullptr));
-          case uint16_t(Op::I64Const):
-            CHECK(f.iter().readI64Const(nullptr));
-          case uint16_t(Op::F32Const):
-            CHECK(f.iter().readF32Const(nullptr));
-          case uint16_t(Op::F64Const):
-            CHECK(f.iter().readF64Const(nullptr));
-          case uint16_t(Op::GetLocal):
-            CHECK(f.iter().readGetLocal(f.locals(), nullptr));
-          case uint16_t(Op::SetLocal):
-            CHECK(f.iter().readSetLocal(f.locals(), nullptr, nullptr));
-          case uint16_t(Op::TeeLocal):
-            CHECK(f.iter().readTeeLocal(f.locals(), nullptr, nullptr));
-          case uint16_t(Op::GetGlobal):
-            CHECK(f.iter().readGetGlobal(f.mg().globals(), nullptr));
-          case uint16_t(Op::SetGlobal):
-            CHECK(f.iter().readSetGlobal(f.mg().globals(), nullptr, nullptr));
-          case uint16_t(Op::Select):
-            CHECK(f.iter().readSelect(nullptr, nullptr, nullptr, nullptr));
-          case uint16_t(Op::Block):
-            CHECK(f.iter().readBlock());
-          case uint16_t(Op::Loop):
-            CHECK(f.iter().readLoop());
-          case uint16_t(Op::If):
-            CHECK(f.iter().readIf(nullptr));
-          case uint16_t(Op::Else):
-            CHECK(f.iter().readElse(nullptr, nullptr));
-          case uint16_t(Op::I32Clz):
-          case uint16_t(Op::I32Ctz):
-          case uint16_t(Op::I32Popcnt):
-            CHECK(f.iter().readUnary(ValType::I32, nullptr));
-          case uint16_t(Op::I64Clz):
-          case uint16_t(Op::I64Ctz):
-          case uint16_t(Op::I64Popcnt):
-            CHECK(f.iter().readUnary(ValType::I64, nullptr));
-          case uint16_t(Op::F32Abs):
-          case uint16_t(Op::F32Neg):
-          case uint16_t(Op::F32Ceil):
-          case uint16_t(Op::F32Floor):
-          case uint16_t(Op::F32Sqrt):
-          case uint16_t(Op::F32Trunc):
-          case uint16_t(Op::F32Nearest):
-            CHECK(f.iter().readUnary(ValType::F32, nullptr));
-          case uint16_t(Op::F64Abs):
-          case uint16_t(Op::F64Neg):
-          case uint16_t(Op::F64Ceil):
-          case uint16_t(Op::F64Floor):
-          case uint16_t(Op::F64Sqrt):
-          case uint16_t(Op::F64Trunc):
-          case uint16_t(Op::F64Nearest):
-            CHECK(f.iter().readUnary(ValType::F64, nullptr));
-          case uint16_t(Op::I32Add):
-          case uint16_t(Op::I32Sub):
-          case uint16_t(Op::I32Mul):
-          case uint16_t(Op::I32DivS):
-          case uint16_t(Op::I32DivU):
-          case uint16_t(Op::I32RemS):
-          case uint16_t(Op::I32RemU):
-          case uint16_t(Op::I32And):
-          case uint16_t(Op::I32Or):
-          case uint16_t(Op::I32Xor):
-          case uint16_t(Op::I32Shl):
-          case uint16_t(Op::I32ShrS):
-          case uint16_t(Op::I32ShrU):
-          case uint16_t(Op::I32Rotl):
-          case uint16_t(Op::I32Rotr):
-            CHECK(f.iter().readBinary(ValType::I32, nullptr, nullptr));
-          case uint16_t(Op::I64Add):
-          case uint16_t(Op::I64Sub):
-          case uint16_t(Op::I64Mul):
-          case uint16_t(Op::I64DivS):
-          case uint16_t(Op::I64DivU):
-          case uint16_t(Op::I64RemS):
-          case uint16_t(Op::I64RemU):
-          case uint16_t(Op::I64And):
-          case uint16_t(Op::I64Or):
-          case uint16_t(Op::I64Xor):
-          case uint16_t(Op::I64Shl):
-          case uint16_t(Op::I64ShrS):
-          case uint16_t(Op::I64ShrU):
-          case uint16_t(Op::I64Rotl):
-          case uint16_t(Op::I64Rotr):
-            CHECK(f.iter().readBinary(ValType::I64, nullptr, nullptr));
-          case uint16_t(Op::F32Add):
-          case uint16_t(Op::F32Sub):
-          case uint16_t(Op::F32Mul):
-          case uint16_t(Op::F32Div):
-          case uint16_t(Op::F32Min):
-          case uint16_t(Op::F32Max):
-          case uint16_t(Op::F32CopySign):
-            CHECK(f.iter().readBinary(ValType::F32, nullptr, nullptr));
-          case uint16_t(Op::F64Add):
-          case uint16_t(Op::F64Sub):
-          case uint16_t(Op::F64Mul):
-          case uint16_t(Op::F64Div):
-          case uint16_t(Op::F64Min):
-          case uint16_t(Op::F64Max):
-          case uint16_t(Op::F64CopySign):
-            CHECK(f.iter().readBinary(ValType::F64, nullptr, nullptr));
-          case uint16_t(Op::I32Eq):
-          case uint16_t(Op::I32Ne):
-          case uint16_t(Op::I32LtS):
-          case uint16_t(Op::I32LtU):
-          case uint16_t(Op::I32LeS):
-          case uint16_t(Op::I32LeU):
-          case uint16_t(Op::I32GtS):
-          case uint16_t(Op::I32GtU):
-          case uint16_t(Op::I32GeS):
-          case uint16_t(Op::I32GeU):
-            CHECK(f.iter().readComparison(ValType::I32, nullptr, nullptr));
-          case uint16_t(Op::I64Eq):
-          case uint16_t(Op::I64Ne):
-          case uint16_t(Op::I64LtS):
-          case uint16_t(Op::I64LtU):
-          case uint16_t(Op::I64LeS):
-          case uint16_t(Op::I64LeU):
-          case uint16_t(Op::I64GtS):
-          case uint16_t(Op::I64GtU):
-          case uint16_t(Op::I64GeS):
-          case uint16_t(Op::I64GeU):
-            CHECK(f.iter().readComparison(ValType::I64, nullptr, nullptr));
-          case uint16_t(Op::F32Eq):
-          case uint16_t(Op::F32Ne):
-          case uint16_t(Op::F32Lt):
-          case uint16_t(Op::F32Le):
-          case uint16_t(Op::F32Gt):
-          case uint16_t(Op::F32Ge):
-            CHECK(f.iter().readComparison(ValType::F32, nullptr, nullptr));
-          case uint16_t(Op::F64Eq):
-          case uint16_t(Op::F64Ne):
-          case uint16_t(Op::F64Lt):
-          case uint16_t(Op::F64Le):
-          case uint16_t(Op::F64Gt):
-          case uint16_t(Op::F64Ge):
-            CHECK(f.iter().readComparison(ValType::F64, nullptr, nullptr));
-          case uint16_t(Op::I32Eqz):
-            CHECK(f.iter().readConversion(ValType::I32, ValType::I32, nullptr));
-          case uint16_t(Op::I64Eqz):
-          case uint16_t(Op::I32WrapI64):
-            CHECK(f.iter().readConversion(ValType::I64, ValType::I32, nullptr));
-          case uint16_t(Op::I32TruncSF32):
-          case uint16_t(Op::I32TruncUF32):
-          case uint16_t(Op::I32ReinterpretF32):
-            CHECK(f.iter().readConversion(ValType::F32, ValType::I32, nullptr));
-          case uint16_t(Op::I32TruncSF64):
-          case uint16_t(Op::I32TruncUF64):
-            CHECK(f.iter().readConversion(ValType::F64, ValType::I32, nullptr));
-          case uint16_t(Op::I64ExtendSI32):
-          case uint16_t(Op::I64ExtendUI32):
-            CHECK(f.iter().readConversion(ValType::I32, ValType::I64, nullptr));
-          case uint16_t(Op::I64TruncSF32):
-          case uint16_t(Op::I64TruncUF32):
-            CHECK(f.iter().readConversion(ValType::F32, ValType::I64, nullptr));
-          case uint16_t(Op::I64TruncSF64):
-          case uint16_t(Op::I64TruncUF64):
-          case uint16_t(Op::I64ReinterpretF64):
-            CHECK(f.iter().readConversion(ValType::F64, ValType::I64, nullptr));
-          case uint16_t(Op::F32ConvertSI32):
-          case uint16_t(Op::F32ConvertUI32):
-          case uint16_t(Op::F32ReinterpretI32):
-            CHECK(f.iter().readConversion(ValType::I32, ValType::F32, nullptr));
-          case uint16_t(Op::F32ConvertSI64):
-          case uint16_t(Op::F32ConvertUI64):
-            CHECK(f.iter().readConversion(ValType::I64, ValType::F32, nullptr));
-          case uint16_t(Op::F32DemoteF64):
-            CHECK(f.iter().readConversion(ValType::F64, ValType::F32, nullptr));
-          case uint16_t(Op::F64ConvertSI32):
-          case uint16_t(Op::F64ConvertUI32):
-            CHECK(f.iter().readConversion(ValType::I32, ValType::F64, nullptr));
-          case uint16_t(Op::F64ConvertSI64):
-          case uint16_t(Op::F64ConvertUI64):
-          case uint16_t(Op::F64ReinterpretI64):
-            CHECK(f.iter().readConversion(ValType::I64, ValType::F64, nullptr));
-          case uint16_t(Op::F64PromoteF32):
-            CHECK(f.iter().readConversion(ValType::F32, ValType::F64, nullptr));
-          case uint16_t(Op::I32Load8S):
-          case uint16_t(Op::I32Load8U):
-            CHECK(f.checkHasMemory() && f.iter().readLoad(ValType::I32, 1, nullptr));
-          case uint16_t(Op::I32Load16S):
-          case uint16_t(Op::I32Load16U):
-            CHECK(f.checkHasMemory() && f.iter().readLoad(ValType::I32, 2, nullptr));
-          case uint16_t(Op::I32Load):
-            CHECK(f.checkHasMemory() && f.iter().readLoad(ValType::I32, 4, nullptr));
-          case uint16_t(Op::I64Load8S):
-          case uint16_t(Op::I64Load8U):
-            CHECK(f.checkHasMemory() && f.iter().readLoad(ValType::I64, 1, nullptr));
-          case uint16_t(Op::I64Load16S):
-          case uint16_t(Op::I64Load16U):
-            CHECK(f.checkHasMemory() && f.iter().readLoad(ValType::I64, 2, nullptr));
-          case uint16_t(Op::I64Load32S):
-          case uint16_t(Op::I64Load32U):
-            CHECK(f.checkHasMemory() && f.iter().readLoad(ValType::I64, 4, nullptr));
-          case uint16_t(Op::I64Load):
-            CHECK(f.checkHasMemory() && f.iter().readLoad(ValType::I64, 8, nullptr));
-          case uint16_t(Op::F32Load):
-            CHECK(f.checkHasMemory() && f.iter().readLoad(ValType::F32, 4, nullptr));
-          case uint16_t(Op::F64Load):
-            CHECK(f.checkHasMemory() && f.iter().readLoad(ValType::F64, 8, nullptr));
-          case uint16_t(Op::I32Store8):
-            CHECK(f.checkHasMemory() && f.iter().readStore(ValType::I32, 1, nullptr, nullptr));
-          case uint16_t(Op::I32Store16):
-            CHECK(f.checkHasMemory() && f.iter().readStore(ValType::I32, 2, nullptr, nullptr));
-          case uint16_t(Op::I32Store):
-            CHECK(f.checkHasMemory() && f.iter().readStore(ValType::I32, 4, nullptr, nullptr));
-          case uint16_t(Op::I64Store8):
-            CHECK(f.checkHasMemory() && f.iter().readStore(ValType::I64, 1, nullptr, nullptr));
-          case uint16_t(Op::I64Store16):
-            CHECK(f.checkHasMemory() && f.iter().readStore(ValType::I64, 2, nullptr, nullptr));
-          case uint16_t(Op::I64Store32):
-            CHECK(f.checkHasMemory() && f.iter().readStore(ValType::I64, 4, nullptr, nullptr));
-          case uint16_t(Op::I64Store):
-            CHECK(f.checkHasMemory() && f.iter().readStore(ValType::I64, 8, nullptr, nullptr));
-          case uint16_t(Op::F32Store):
-            CHECK(f.checkHasMemory() && f.iter().readStore(ValType::F32, 4, nullptr, nullptr));
-          case uint16_t(Op::F64Store):
-            CHECK(f.checkHasMemory() && f.iter().readStore(ValType::F64, 8, nullptr, nullptr));
-          case uint16_t(Op::GrowMemory):
-            CHECK(f.checkHasMemory() && f.iter().readGrowMemory(nullptr));
-          case uint16_t(Op::CurrentMemory):
-            CHECK(f.checkHasMemory() && f.iter().readCurrentMemory());
-          case uint16_t(Op::Br):
-            CHECK(f.iter().readBr(nullptr, nullptr, nullptr));
-          case uint16_t(Op::BrIf):
-            CHECK(f.iter().readBrIf(nullptr, nullptr, nullptr, nullptr));
-          case uint16_t(Op::BrTable):
-            CHECK(DecodeBrTable(f));
-          case uint16_t(Op::Return):
-            CHECK(f.iter().readReturn(nullptr));
-          case uint16_t(Op::Unreachable):
-            CHECK(f.iter().readUnreachable());
-          default:
-            return f.iter().unrecognizedOpcode(op);
-        }
-    }
-
-    MOZ_CRASH("unreachable");
-
-#undef CHECK
-}
-
-static bool
-DecodeImportSection(Decoder& d, ModuleGeneratorData* init, ImportVector* imports)
-{
-    Maybe<Limits> memory;
-    Uint32Vector funcSigIndices;
-    if (!DecodeImportSection(d, init->sigs, &funcSigIndices, &init->globals, &init->tables, &memory,
-                             imports))
-        return false;
-
-    for (uint32_t sigIndex : funcSigIndices) {
-        if (!init->funcSigs.append(&init->sigs[sigIndex]))
-            return false;
-    }
-
-    // The global data offsets will be filled in by ModuleGenerator::init.
-    if (!init->funcImportGlobalDataOffsets.resize(init->funcSigs.length()))
-        return false;
-
-    if (memory) {
-        init->memoryUsage = MemoryUsage::Unshared;
-        init->minMemoryLength = memory->initial;
-        init->maxMemoryLength = memory->maximum;
-    }
-
-    return true;
-}
-
-static bool
-DecodeFunctionSection(Decoder& d, ModuleGeneratorData* init)
-{
-    Uint32Vector funcSigIndexes;
-    if (!DecodeFunctionSection(d, init->sigs, init->funcSigs.length(), &funcSigIndexes))
-        return false;
-
-    if (!init->funcSigs.reserve(init->funcSigs.length() + funcSigIndexes.length()))
-        return false;
-
-    for (uint32_t sigIndex : funcSigIndexes)
-        init->funcSigs.infallibleAppend(&init->sigs[sigIndex]);
-
-    return true;
-}
-
-static bool
-DecodeTableSection(Decoder& d, ModuleGeneratorData* init)
-{
-    uint32_t sectionStart, sectionSize;
-    if (!d.startSection(SectionId::Table, &sectionStart, &sectionSize, "table"))
-        return false;
-    if (sectionStart == Decoder::NotStarted)
-        return true;
-
-    uint32_t numTables;
-    if (!d.readVarU32(&numTables))
-        return d.fail("failed to read number of tables");
-
-    if (numTables != 1)
-        return d.fail("the number of tables must be exactly one");
-
-    if (!DecodeTableLimits(d, &init->tables))
-        return false;
-
-    if (!d.finishSection(sectionStart, sectionSize, "table"))
-        return false;
-
-    return true;
-}
-
-static bool
-DecodeMemorySection(Decoder& d, ModuleGeneratorData* init)
-{
-    bool present;
-    Limits memory;
-    if (!DecodeMemorySection(d, UsesMemory(init->memoryUsage), &memory, &present))
-        return false;
-
-    if (present) {
-        init->memoryUsage = MemoryUsage::Unshared;
-        init->minMemoryLength = memory.initial;
-        init->maxMemoryLength = memory.maximum;
-    }
-
-    return true;
-}
-
-static bool
-DecodeGlobalSection(Decoder& d, ModuleGeneratorData* init)
-{
-    uint32_t sectionStart, sectionSize;
-    if (!d.startSection(SectionId::Global, &sectionStart, &sectionSize, "global"))
-        return false;
-    if (sectionStart == Decoder::NotStarted)
-        return true;
-
-    uint32_t numDefs;
-    if (!d.readVarU32(&numDefs))
-        return d.fail("expected number of globals");
-
-    CheckedInt<uint32_t> numGlobals = init->globals.length();
-    numGlobals += numDefs;
-    if (!numGlobals.isValid() || numGlobals.value() > MaxGlobals)
-        return d.fail("too many globals");
-
-    for (uint32_t i = 0; i < numDefs; i++) {
-        ValType type;
-        bool isMutable;
-        if (!DecodeGlobalType(d, &type, &isMutable))
-            return false;
-
-        InitExpr initializer;
-        if (!DecodeInitializerExpression(d, init->globals, type, &initializer))
-            return false;
-
-        if (!init->globals.append(GlobalDesc(initializer, isMutable)))
-            return false;
-    }
-
-    if (!d.finishSection(sectionStart, sectionSize, "global"))
-        return false;
-
-    return true;
-}
-
-typedef HashSet<const char*, CStringHasher, SystemAllocPolicy> CStringSet;
-
-static UniqueChars
-DecodeExportName(Decoder& d, CStringSet* dupSet)
-{
-    UniqueChars exportName = DecodeName(d);
-    if (!exportName) {
-        d.fail("expected valid export name");
-        return nullptr;
-    }
-
-    CStringSet::AddPtr p = dupSet->lookupForAdd(exportName.get());
-    if (p) {
-        d.fail("duplicate export");
-        return nullptr;
-    }
-
-    if (!dupSet->add(p, exportName.get()))
-        return nullptr;
-
-    return Move(exportName);
-}
-
-static bool
-DecodeExport(Decoder& d, ModuleGenerator& mg, CStringSet* dupSet)
-{
-    UniqueChars fieldName = DecodeExportName(d, dupSet);
-    if (!fieldName)
-        return false;
-
-    uint32_t exportKind;
-    if (!d.readVarU32(&exportKind))
-        return d.fail("failed to read export kind");
-
-    switch (DefinitionKind(exportKind)) {
-      case DefinitionKind::Function: {
-        uint32_t funcIndex;
-        if (!d.readVarU32(&funcIndex))
-            return d.fail("expected export internal index");
-
-        if (funcIndex >= mg.numFuncs())
-            return d.fail("exported function index out of bounds");
-
-        return mg.addFuncExport(Move(fieldName), funcIndex);
-      }
-      case DefinitionKind::Table: {
-        uint32_t tableIndex;
-        if (!d.readVarU32(&tableIndex))
-            return d.fail("expected table index");
-
-        if (tableIndex >= mg.tables().length())
-            return d.fail("exported table index out of bounds");
-
-        return mg.addTableExport(Move(fieldName));
-      }
-      case DefinitionKind::Memory: {
-        uint32_t memoryIndex;
-        if (!d.readVarU32(&memoryIndex))
-            return d.fail("expected memory index");
-
-        if (memoryIndex > 0 || !mg.usesMemory())
-            return d.fail("exported memory index out of bounds");
-
-        return mg.addMemoryExport(Move(fieldName));
-      }
-      case DefinitionKind::Global: {
-        uint32_t globalIndex;
-        if (!d.readVarU32(&globalIndex))
-            return d.fail("expected global index");
-
-        if (globalIndex >= mg.globals().length())
-            return d.fail("exported global index out of bounds");
-
-        const GlobalDesc& global = mg.globals()[globalIndex];
-        if (!GlobalIsJSCompatible(d, global.type(), global.isMutable()))
-            return false;
-
-        return mg.addGlobalExport(Move(fieldName), globalIndex);
-      }
-      default:
-        return d.fail("unexpected export kind");
-    }
-
-    MOZ_CRASH("unreachable");
-}
-
-static bool
-DecodeExportSection(Decoder& d, ModuleGenerator& mg)
-{
-    uint32_t sectionStart, sectionSize;
-    if (!d.startSection(SectionId::Export, &sectionStart, &sectionSize, "export"))
-        return false;
-    if (sectionStart == Decoder::NotStarted)
-        return true;
-
-    CStringSet dupSet;
-    if (!dupSet.init())
-        return false;
-
-    uint32_t numExports;
-    if (!d.readVarU32(&numExports))
-        return d.fail("failed to read number of exports");
-
-    if (numExports > MaxExports)
-        return d.fail("too many exports");
-
-    for (uint32_t i = 0; i < numExports; i++) {
-        if (!DecodeExport(d, mg, &dupSet))
-            return false;
-    }
-
-    if (!d.finishSection(sectionStart, sectionSize, "export"))
-        return false;
-
-    return true;
-}
-
-static bool
-DecodeFunctionBody(Decoder& d, ModuleGenerator& mg, uint32_t funcIndex)
+DecodeFunctionBody(DecoderT& d, ModuleGenerator& mg, uint32_t funcIndex)
 {
     uint32_t bodySize;
     if (!d.readVarU32(&bodySize))
         return d.fail("expected number of function body bytes");
 
-    if (d.bytesRemain() < bodySize)
-        return d.fail("function body length too big");
+    if (bodySize > MaxFunctionBytes)
+        return d.fail("function body too big");
 
-    const uint8_t* bodyBegin = d.currentPosition();
     const size_t offsetInModule = d.currentOffset();
 
-    FunctionGenerator fg;
-    if (!mg.startFuncDef(offsetInModule, &fg))
-        return false;
+    // Skip over the function body; it will be validated by the compilation thread.
+    const uint8_t* bodyBegin;
+    if (!d.readBytes(bodySize, &bodyBegin))
+        return d.fail("function body length too big");
 
-    ValTypeVector locals;
-    const Sig& sig = mg.funcSig(funcIndex);
-    if (!locals.appendAll(sig.args()))
-        return false;
-
-    if (!DecodeLocalEntries(d, ModuleKind::Wasm, &locals))
-        return false;
-
-    FunctionDecoder f(mg, locals, d);
-
-    if (!f.iter().readFunctionStart(sig.ret()))
-        return false;
-
-    if (!DecodeFunctionBodyExprs(f))
-        return false;
-
-    if (!f.iter().readFunctionEnd())
-        return false;
-
-    if (d.currentPosition() != bodyBegin + bodySize)
-        return d.fail("function body length mismatch");
-
-    if (!fg.bytes().resize(bodySize))
-        return false;
-
-    memcpy(fg.bytes().begin(), bodyBegin, bodySize);
-
-    return mg.finishFuncDef(funcIndex, &fg);
+    return mg.compileFuncDef(funcIndex, offsetInModule, bodyBegin, bodyBegin + bodySize);
 }
 
+template <class DecoderT>
 static bool
-DecodeStartSection(Decoder& d, ModuleGenerator& mg)
+DecodeCodeSection(const ModuleEnvironment& env, DecoderT& d, ModuleGenerator& mg)
 {
-    uint32_t sectionStart, sectionSize;
-    if (!d.startSection(SectionId::Start, &sectionStart, &sectionSize, "start"))
-        return false;
-    if (sectionStart == Decoder::NotStarted)
-        return true;
-
-    uint32_t funcIndex;
-    if (!d.readVarU32(&funcIndex))
-        return d.fail("failed to read start func index");
-
-    if (funcIndex >= mg.numFuncs())
-        return d.fail("unknown start function");
-
-    const Sig& sig = mg.funcSig(funcIndex);
-    if (!IsVoid(sig.ret()))
-        return d.fail("start function must not return anything");
-
-    if (sig.args().length())
-        return d.fail("start function must be nullary");
-
-    if (!mg.setStartFunction(funcIndex))
-        return false;
-
-    if (!d.finishSection(sectionStart, sectionSize, "start"))
-        return false;
-
-    return true;
-}
-
-static bool
-DecodeCodeSection(Decoder& d, ModuleGenerator& mg)
-{
-    if (!mg.startFuncDefs())
-        return false;
-
-    uint32_t sectionStart, sectionSize;
-    if (!d.startSection(SectionId::Code, &sectionStart, &sectionSize, "code"))
-        return false;
-
-    if (sectionStart == Decoder::NotStarted) {
-        if (mg.numFuncDefs() != 0)
-            return d.fail("expected function bodies");
+    if (!env.codeSection) {
+        if (env.numFuncDefs() != 0)
+            return d.fail("expected code section");
 
         return mg.finishFuncDefs();
     }
@@ -753,215 +70,548 @@ DecodeCodeSection(Decoder& d, ModuleGenerator& mg)
     if (!d.readVarU32(&numFuncDefs))
         return d.fail("expected function body count");
 
-    if (numFuncDefs != mg.numFuncDefs())
+    if (numFuncDefs != env.numFuncDefs())
         return d.fail("function body count does not match function signature count");
 
     for (uint32_t funcDefIndex = 0; funcDefIndex < numFuncDefs; funcDefIndex++) {
-        if (!DecodeFunctionBody(d, mg, mg.numFuncImports() + funcDefIndex))
+        if (!DecodeFunctionBody(d, mg, env.numFuncImports() + funcDefIndex))
             return false;
     }
 
-    if (!d.finishSection(sectionStart, sectionSize, "code"))
+    if (!d.finishSection(*env.codeSection, "code"))
         return false;
 
     return mg.finishFuncDefs();
 }
 
-static bool
-DecodeElemSection(Decoder& d, ModuleGenerator& mg)
+bool
+CompileArgs::initFromContext(JSContext* cx, ScriptedCaller&& scriptedCaller)
 {
-    uint32_t sectionStart, sectionSize;
-    if (!d.startSection(SectionId::Elem, &sectionStart, &sectionSize, "elem"))
-        return false;
-    if (sectionStart == Decoder::NotStarted)
-        return true;
+    baselineEnabled = cx->options().wasmBaseline();
+    ionEnabled = cx->options().wasmIon();
+    testTiering = cx->options().testWasmAwaitTier2();
 
-    uint32_t numSegments;
-    if (!d.readVarU32(&numSegments))
-        return d.fail("failed to read number of elem segments");
+    // Debug information such as source view or debug traps will require
+    // additional memory and permanently stay in baseline code, so we try to
+    // only enable it when a developer actually cares: when the debugger tab
+    // is open.
+    debugEnabled = cx->compartment()->debuggerObservesAsmJS();
 
-    if (numSegments > MaxElemSegments)
-        return d.fail("too many elem segments");
+    this->scriptedCaller = Move(scriptedCaller);
+    return assumptions.initBuildIdFromContext(cx);
+}
 
-    for (uint32_t i = 0; i < numSegments; i++) {
-        uint32_t tableIndex;
-        if (!d.readVarU32(&tableIndex))
-            return d.fail("expected table index");
+// Classify the current system as one of a set of recognizable classes.  This
+// really needs to get our tier-1 systems right.
+//
+// TODO: We don't yet have a good measure of how fast a system is.  We
+// distinguish between mobile and desktop because these are very different kinds
+// of systems, but we could further distinguish between low / medium / high end
+// within those major classes.  If we do so, then constants below would be
+// provided for each (class, architecture, system-tier) combination, not just
+// (class, architecture) as now.
+//
+// CPU clock speed is not by itself a good predictor of system performance, as
+// there are high-performance systems with slow clocks (recent Intel) and
+// low-performance systems with fast clocks (older AMD).  We can also use
+// physical memory, core configuration, OS details, CPU class and family, and
+// CPU manufacturer to disambiguate.
 
-        MOZ_ASSERT(mg.tables().length() <= 1);
-        if (tableIndex >= mg.tables().length())
-            return d.fail("table index out of range");
+enum class SystemClass
+{
+    DesktopX86,
+    DesktopX64,
+    DesktopUnknown32,
+    DesktopUnknown64,
+    MobileX86,
+    MobileArm32,
+    MobileArm64,
+    MobileUnknown32,
+    MobileUnknown64
+};
 
-        InitExpr offset;
-        if (!DecodeInitializerExpression(d, mg.globals(), ValType::I32, &offset))
-            return false;
+static SystemClass
+ClassifySystem()
+{
+    bool isDesktop;
 
-        uint32_t numElems;
-        if (!d.readVarU32(&numElems))
-            return d.fail("expected segment size");
+#if defined(ANDROID) || defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64)
+    isDesktop = false;
+#else
+    isDesktop = true;
+#endif
 
-        Uint32Vector elemFuncIndices;
-        if (!elemFuncIndices.resize(numElems))
-            return false;
-
-        for (uint32_t i = 0; i < numElems; i++) {
-            if (!d.readVarU32(&elemFuncIndices[i]))
-                return d.fail("failed to read element function index");
-            if (elemFuncIndices[i] >= mg.numFuncs())
-                return d.fail("table element out of range");
-        }
-
-        if (!mg.addElemSegment(offset, Move(elemFuncIndices)))
-            return false;
+    if (isDesktop) {
+#if defined(JS_CODEGEN_X64)
+        return SystemClass::DesktopX64;
+#elif defined(JS_CODEGEN_X86)
+        return SystemClass::DesktopX86;
+#elif defined(JS_64BIT)
+        return SystemClass::DesktopUnknown64;
+#else
+        return SystemClass::DesktopUnknown32;
+#endif
+    } else {
+#if defined(JS_CODEGEN_X86)
+        return SystemClass::MobileX86;
+#elif defined(JS_CODEGEN_ARM)
+        return SystemClass::MobileArm32;
+#elif defined(JS_CODEGEN_ARM64)
+        return SystemClass::MobileArm64;
+#elif defined(JS_64BIT)
+        return SystemClass::MobileUnknown64;
+#else
+        return SystemClass::MobileUnknown32;
+#endif
     }
+}
 
-    if (!d.finishSection(sectionStart, sectionSize, "elem"))
+// Code sizes in machine code bytes per bytecode byte, again empirical except
+// where marked as "Guess".
+
+static const double x64Tox86Inflation = 1.25;
+
+static const double x64IonBytesPerBytecode = 2.45;
+static const double x86IonBytesPerBytecode = x64IonBytesPerBytecode * x64Tox86Inflation;
+static const double arm32IonBytesPerBytecode = 3.3;
+static const double arm64IonBytesPerBytecode = 3.0; // Guess
+
+static const double x64BaselineBytesPerBytecode = x64IonBytesPerBytecode * 1.43;
+static const double x86BaselineBytesPerBytecode = x64BaselineBytesPerBytecode * x64Tox86Inflation;
+static const double arm32BaselineBytesPerBytecode = arm32IonBytesPerBytecode * 1.39;
+static const double arm64BaselineBytesPerBytecode = arm64IonBytesPerBytecode * 1.39; // Guess
+
+static double
+IonBytesPerBytecode(SystemClass cls)
+{
+    switch (cls) {
+      case SystemClass::DesktopX86:
+      case SystemClass::MobileX86:
+      case SystemClass::DesktopUnknown32:
+        return x86IonBytesPerBytecode;
+      case SystemClass::DesktopX64:
+      case SystemClass::DesktopUnknown64:
+        return x64IonBytesPerBytecode;
+      case SystemClass::MobileArm32:
+      case SystemClass::MobileUnknown32:
+        return arm32IonBytesPerBytecode;
+      case SystemClass::MobileArm64:
+      case SystemClass::MobileUnknown64:
+        return arm64IonBytesPerBytecode;
+      default:
+        MOZ_CRASH();
+    }
+}
+
+static double
+BaselineBytesPerBytecode(SystemClass cls)
+{
+    switch (cls) {
+      case SystemClass::DesktopX86:
+      case SystemClass::MobileX86:
+      case SystemClass::DesktopUnknown32:
+        return x86BaselineBytesPerBytecode;
+      case SystemClass::DesktopX64:
+      case SystemClass::DesktopUnknown64:
+        return x64BaselineBytesPerBytecode;
+      case SystemClass::MobileArm32:
+      case SystemClass::MobileUnknown32:
+        return arm32BaselineBytesPerBytecode;
+      case SystemClass::MobileArm64:
+      case SystemClass::MobileUnknown64:
+        return arm64BaselineBytesPerBytecode;
+      default:
+        MOZ_CRASH();
+    }
+}
+
+double
+wasm::EstimateCompiledCodeSize(Tier tier, size_t bytecodeSize)
+{
+    SystemClass cls = ClassifySystem();
+    switch (tier) {
+      case Tier::Baseline:
+        return double(bytecodeSize) * BaselineBytesPerBytecode(cls);
+      case Tier::Ion:
+        return double(bytecodeSize) * IonBytesPerBytecode(cls);
+    }
+    MOZ_CRASH("bad tier");
+}
+
+// If parallel Ion compilation is going to take longer than this, we should tier.
+
+static const double tierCutoffMs = 250;
+
+// Compilation rate values are empirical except when noted, the reference
+// systems are:
+//
+// Late-2013 MacBook Pro (2.6GHz quad hyperthreaded Haswell)
+// Late-2015 Nexus 5X (1.4GHz quad Cortex-A53 + 1.8GHz dual Cortex-A57)
+
+static const double x64BytecodesPerMs = 2100;
+static const double x86BytecodesPerMs = 1500;
+static const double arm32BytecodesPerMs = 450;
+static const double arm64BytecodesPerMs = 650; // Guess
+
+// Tiering cutoff values: if code section sizes are below these values (when
+// divided by the effective number of cores) we do not tier, because we guess
+// that parallel Ion compilation will be fast enough.
+
+static const double x64DesktopTierCutoff = x64BytecodesPerMs * tierCutoffMs;
+static const double x86DesktopTierCutoff = x86BytecodesPerMs * tierCutoffMs;
+static const double x86MobileTierCutoff = x86DesktopTierCutoff / 2; // Guess
+static const double arm32MobileTierCutoff = arm32BytecodesPerMs * tierCutoffMs;
+static const double arm64MobileTierCutoff = arm64BytecodesPerMs * tierCutoffMs;
+
+static double
+CodesizeCutoff(SystemClass cls, uint32_t codeSize)
+{
+    switch (cls) {
+      case SystemClass::DesktopX86:
+      case SystemClass::DesktopUnknown32:
+        return x86DesktopTierCutoff;
+      case SystemClass::DesktopX64:
+      case SystemClass::DesktopUnknown64:
+        return x64DesktopTierCutoff;
+      case SystemClass::MobileX86:
+        return x86MobileTierCutoff;
+      case SystemClass::MobileArm32:
+      case SystemClass::MobileUnknown32:
+        return arm32MobileTierCutoff;
+      case SystemClass::MobileArm64:
+      case SystemClass::MobileUnknown64:
+        return arm64MobileTierCutoff;
+      default:
+        MOZ_CRASH();
+    }
+}
+
+// As the number of cores grows the effectiveness of each core dwindles (on the
+// systems we care about for SpiderMonkey).
+//
+// The data are empirical, computed from the observed compilation time of the
+// Tanks demo code on a variable number of cores.
+//
+// The heuristic may fail on NUMA systems where the core count is high but the
+// performance increase is nil or negative once the program moves beyond one
+// socket.  However, few browser users have such systems.
+
+static double
+EffectiveCores(SystemClass cls, uint32_t cores)
+{
+    if (cores <= 3)
+        return pow(cores, 0.9);
+    return pow(cores, 0.75);
+}
+
+#ifndef JS_64BIT
+// Don't tier if tiering will fill code memory to more to more than this
+// fraction.
+
+static const double spaceCutoffPct = 0.9;
+#endif
+
+// Figure out whether we should use tiered compilation or not.
+static bool
+TieringBeneficial(uint32_t codeSize)
+{
+    if (!CanUseExtraThreads())
         return false;
+
+    uint32_t cpuCount = HelperThreadState().cpuCount;
+    MOZ_ASSERT(cpuCount > 0);
+
+    // It's mostly sensible not to background compile when there's only one
+    // hardware thread as we want foreground computation to have access to that.
+    // However, if wasm background compilation helper threads can be given lower
+    // priority then background compilation on single-core systems still makes
+    // some kind of sense.  That said, this is a non-issue: as of September 2017
+    // 1-core was down to 3.5% of our population and falling.
+
+    if (cpuCount == 1)
+        return false;
+
+    MOZ_ASSERT(HelperThreadState().threadCount >= cpuCount);
+
+    // Compute the max number of threads available to do actual background
+    // compilation work.
+
+    uint32_t workers = HelperThreadState().maxWasmCompilationThreads();
+
+    // The number of cores we will use is bounded both by the CPU count and the
+    // worker count.
+
+    uint32_t cores = Min(cpuCount, workers);
+
+    SystemClass cls = ClassifySystem();
+
+    // Ion compilation on available cores must take long enough to be worth the
+    // bother.
+
+    double cutoffSize = CodesizeCutoff(cls, codeSize);
+    double effectiveCores = EffectiveCores(cls, cores);
+
+    if ((codeSize / effectiveCores) < cutoffSize)
+        return false;
+
+    // Do not implement a size cutoff for 64-bit systems since the code size
+    // budget for 64 bit is so large that it will hardly ever be an issue.
+    // (Also the cutoff percentage might be different on 64-bit.)
+
+#ifndef JS_64BIT
+    // If the amount of executable code for baseline compilation jeopardizes the
+    // availability of executable memory for ion code then do not tier, for now.
+    //
+    // TODO: For now we consider this module in isolation.  We should really
+    // worry about what else is going on in this process and might be filling up
+    // the code memory.  It's like we need some kind of code memory reservation
+    // system or JIT compilation for large modules.
+
+    double ionRatio = IonBytesPerBytecode(cls);
+    double baselineRatio = BaselineBytesPerBytecode(cls);
+    double needMemory = codeSize * (ionRatio + baselineRatio);
+    double availMemory = LikelyAvailableExecutableMemory();
+    double cutoff = spaceCutoffPct * MaxCodeBytesPerProcess;
+
+    // If the sum of baseline and ion code makes us exceeds some set percentage
+    // of the executable memory then disable tiering.
+
+    if ((MaxCodeBytesPerProcess - availMemory) + needMemory > cutoff)
+        return false;
+#endif
 
     return true;
 }
 
 static void
-MaybeDecodeNameSectionBody(Decoder& d, ModuleGenerator& mg)
+InitialCompileFlags(const CompileArgs& args, Decoder& d, CompileMode* mode, Tier* tier,
+                    DebugEnabled* debug)
 {
-    // For simplicity, ignore all failures, even OOM. Failure will simply result
-    // in the names section not being included for this module.
+    uint32_t codeSectionSize = 0;
 
-    uint32_t numFuncNames;
-    if (!d.readVarU32(&numFuncNames))
-        return;
+    SectionRange range;
+    if (StartsCodeSection(d.begin(), d.end(), &range))
+        codeSectionSize = range.size;
 
-    if (numFuncNames > MaxFuncs)
-        return;
+    bool baselineEnabled = BaselineCanCompile() && (args.baselineEnabled || args.testTiering);
+    bool debugEnabled = BaselineCanCompile() && args.debugEnabled;
+    bool ionEnabled = args.ionEnabled || !baselineEnabled || args.testTiering;
 
-    NameInBytecodeVector funcNames;
-    if (!funcNames.resize(numFuncNames))
-        return;
-
-    for (uint32_t i = 0; i < numFuncNames; i++) {
-        uint32_t numBytes;
-        if (!d.readVarU32(&numBytes))
-            return;
-
-        NameInBytecode name;
-        name.offset = d.currentOffset();
-        name.length = numBytes;
-        funcNames[i] = name;
-
-        if (!d.readBytes(numBytes))
-            return;
-
-        // Skip local names for a function.
-        uint32_t numLocals;
-        if (!d.readVarU32(&numLocals))
-            return;
-        for (uint32_t j = 0; j < numLocals; j++) {
-            uint32_t numBytes;
-            if (!d.readVarU32(&numBytes))
-                return;
-            if (!d.readBytes(numBytes))
-                return;
-        }
+    if (baselineEnabled && ionEnabled && !debugEnabled &&
+        (TieringBeneficial(codeSectionSize) || args.testTiering))
+    {
+        *mode = CompileMode::Tier1;
+        *tier = Tier::Baseline;
+    } else {
+        *mode = CompileMode::Once;
+        *tier = debugEnabled || !ionEnabled ? Tier::Baseline : Tier::Ion;
     }
 
-    mg.setFuncNames(Move(funcNames));
-}
-
-static bool
-DecodeDataSection(Decoder& d, ModuleGenerator& mg)
-{
-    DataSegmentVector dataSegments;
-    if (!DecodeDataSection(d, mg.usesMemory(), mg.minMemoryLength(), mg.globals(), &dataSegments))
-        return false;
-
-    mg.setDataSegments(Move(dataSegments));
-    return true;
-}
-
-static bool
-DecodeNameSection(Decoder& d, ModuleGenerator& mg)
-{
-    uint32_t sectionStart, sectionSize;
-    if (!d.startUserDefinedSection(NameSectionName, &sectionStart, &sectionSize))
-        return false;
-    if (sectionStart == Decoder::NotStarted)
-        return true;
-
-    // Once started, user-defined sections do not report validation errors.
-
-    MaybeDecodeNameSectionBody(d, mg);
-
-    d.finishUserDefinedSection(sectionStart, sectionSize);
-    return true;
-}
-
-bool
-CompileArgs::initFromContext(ExclusiveContext* cx, ScriptedCaller&& scriptedCaller)
-{
-    alwaysBaseline = cx->options().wasmAlwaysBaseline();
-    this->scriptedCaller = Move(scriptedCaller);
-    return assumptions.initBuildIdFromContext(cx);
+    *debug = debugEnabled ? DebugEnabled::True : DebugEnabled::False;
 }
 
 SharedModule
-wasm::Compile(const ShareableBytes& bytecode, const CompileArgs& args, UniqueChars* error)
+wasm::CompileBuffer(const CompileArgs& args, const ShareableBytes& bytecode, UniqueChars* error)
 {
     MOZ_RELEASE_ASSERT(wasm::HaveSignalHandlers());
 
-    Decoder d(bytecode.begin(), bytecode.end(), error);
+    Decoder d(bytecode.bytes, 0, error);
 
-    auto init = js::MakeUnique<ModuleGeneratorData>();
-    if (!init)
+    CompileMode mode;
+    Tier tier;
+    DebugEnabled debug;
+    InitialCompileFlags(args, d, &mode, &tier, &debug);
+
+    ModuleEnvironment env(mode, tier, debug);
+    if (!DecodeModuleEnvironment(d, &env))
         return nullptr;
 
-    if (!DecodePreamble(d))
+    ModuleGenerator mg(args, &env, nullptr, error);
+    if (!mg.init())
         return nullptr;
 
-    if (!DecodeTypeSection(d, &init->sigs))
+    if (!DecodeCodeSection(env, d, mg))
         return nullptr;
 
-    ImportVector imports;
-    if (!::DecodeImportSection(d, init.get(), &imports))
+    if (!DecodeModuleTail(d, &env))
         return nullptr;
 
-    if (!::DecodeFunctionSection(d, init.get()))
+    return mg.finishModule(bytecode);
+}
+
+bool
+wasm::CompileTier2(const CompileArgs& args, Module& module, Atomic<bool>* cancelled)
+{
+    MOZ_RELEASE_ASSERT(wasm::HaveSignalHandlers());
+
+    UniqueChars error;
+    Decoder d(module.bytecode().bytes, 0, &error);
+
+    ModuleEnvironment env(CompileMode::Tier2, Tier::Ion, DebugEnabled::False);
+    if (!DecodeModuleEnvironment(d, &env))
+        return false;
+
+    ModuleGenerator mg(args, &env, cancelled, &error);
+    if (!mg.init())
+        return false;
+
+    if (!DecodeCodeSection(env, d, mg))
+        return false;
+
+    if (!DecodeModuleTail(d, &env))
+        return false;
+
+    return mg.finishTier2(module);
+}
+
+class StreamingDecoder
+{
+    Decoder d_;
+    const ExclusiveStreamEnd& streamEnd_;
+    const Atomic<bool>& cancelled_;
+
+  public:
+    StreamingDecoder(const ModuleEnvironment& env, const Bytes& begin,
+                     const ExclusiveStreamEnd& streamEnd, const Atomic<bool>& cancelled,
+                     UniqueChars* error)
+      : d_(begin, env.codeSection->start, error),
+        streamEnd_(streamEnd),
+        cancelled_(cancelled)
+    {}
+
+    bool fail(const char* msg) {
+        return d_.fail(msg);
+    }
+
+    bool done() const {
+        return d_.done();
+    }
+
+    size_t currentOffset() const {
+        return d_.currentOffset();
+    }
+
+    bool waitForBytes(size_t numBytes) {
+        numBytes = Min(numBytes, d_.bytesRemain());
+        const uint8_t* requiredEnd = d_.currentPosition() + numBytes;
+        auto streamEnd = streamEnd_.lock();
+        while (streamEnd < requiredEnd) {
+            if (cancelled_)
+                return false;
+            streamEnd.wait();
+        }
+        return true;
+    }
+
+    bool readVarU32(uint32_t* u32) {
+        return waitForBytes(MaxVarU32DecodedBytes) &&
+               d_.readVarU32(u32);
+    }
+
+    bool readBytes(size_t size, const uint8_t** begin) {
+        return waitForBytes(size) &&
+               d_.readBytes(size, begin);
+    }
+
+    bool finishSection(const SectionRange& range, const char* name) {
+        return d_.finishSection(range, name);
+    }
+};
+
+static SharedBytes
+CreateBytecode(const Bytes& env, const Bytes& code, const Bytes& tail, UniqueChars* error)
+{
+    size_t size = env.length() + code.length() + tail.length();
+    if (size > MaxModuleBytes) {
+        *error = DuplicateString("module too big");
+        return nullptr;
+    }
+
+    MutableBytes bytecode = js_new<ShareableBytes>();
+    if (!bytecode || !bytecode->bytes.resize(size))
         return nullptr;
 
-    if (!DecodeTableSection(d, init.get()))
+    uint8_t* p = bytecode->bytes.begin();
+
+    memcpy(p, env.begin(), env.length());
+    p += env.length();
+
+    memcpy(p, code.begin(), code.length());
+    p += code.length();
+
+    memcpy(p, tail.begin(), tail.length());
+    p += tail.length();
+
+    MOZ_ASSERT(p == bytecode->end());
+
+    return bytecode;
+}
+
+SharedModule
+wasm::CompileStreaming(const CompileArgs& args,
+                       const Bytes& envBytes,
+                       const Bytes& codeBytes,
+                       const ExclusiveStreamEnd& codeStreamEnd,
+                       const ExclusiveTailBytesPtr& tailBytesPtr,
+                       const Atomic<bool>& cancelled,
+                       UniqueChars* error)
+{
+    MOZ_ASSERT(wasm::HaveSignalHandlers());
+
+    Maybe<ModuleEnvironment> env;
+
+    {
+        Decoder d(envBytes, 0, error);
+
+        CompileMode mode;
+        Tier tier;
+        DebugEnabled debug;
+        InitialCompileFlags(args, d, &mode, &tier, &debug);
+
+        env.emplace(mode, tier, debug);
+        if (!DecodeModuleEnvironment(d, env.ptr()))
+            return nullptr;
+
+        MOZ_ASSERT(d.done());
+    }
+
+    ModuleGenerator mg(args, env.ptr(), &cancelled, error);
+    if (!mg.init())
         return nullptr;
 
-    if (!::DecodeMemorySection(d, init.get()))
+    {
+        MOZ_ASSERT(env->codeSection->size == codeBytes.length());
+        StreamingDecoder d(*env, codeBytes, codeStreamEnd, cancelled, error);
+
+        if (!DecodeCodeSection(*env, d, mg))
+            return nullptr;
+
+        MOZ_ASSERT(d.done());
+    }
+
+    {
+        auto tailBytesPtrGuard = tailBytesPtr.lock();
+        while (!tailBytesPtrGuard) {
+            if (cancelled)
+                return nullptr;
+            tailBytesPtrGuard.wait();
+        }
+    }
+
+    const Bytes& tailBytes = *tailBytesPtr.lock();
+
+    {
+        Decoder d(tailBytes, env->codeSection->end(), error);
+
+        if (!DecodeModuleTail(d, env.ptr()))
+            return nullptr;
+
+        MOZ_ASSERT(d.done());
+    }
+
+    SharedBytes bytecode = CreateBytecode(envBytes, codeBytes, tailBytes, error);
+    if (!bytecode)
         return nullptr;
 
-    if (!DecodeGlobalSection(d, init.get()))
-        return nullptr;
-
-    ModuleGenerator mg(Move(imports));
-    if (!mg.init(Move(init), args))
-        return nullptr;
-
-    if (!DecodeExportSection(d, mg))
-        return nullptr;
-
-    if (!DecodeStartSection(d, mg))
-        return nullptr;
-
-    if (!DecodeElemSection(d, mg))
-        return nullptr;
-
-    if (!DecodeCodeSection(d, mg))
-        return nullptr;
-
-    if (!::DecodeDataSection(d, mg))
-        return nullptr;
-
-    if (!DecodeNameSection(d, mg))
-        return nullptr;
-
-    if (!DecodeUnknownSections(d))
-        return nullptr;
-
-    MOZ_ASSERT(!*error, "unreported error in decoding");
-
-    return mg.finish(bytecode);
+    return mg.finishModule(*bytecode);
 }

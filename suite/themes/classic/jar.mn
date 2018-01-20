@@ -27,6 +27,7 @@ classic.jar:
   skin/classic/communicator/bookmarks/bookmarksToolbar.css              (mac/communicator/bookmarks/bookmarksToolbar.css)
   skin/classic/communicator/bookmarks/bookmarksToolbar.png              (mac/communicator/bookmarks/bookmarksToolbar.png)
   skin/classic/communicator/bookmarks/editBookmarkOverlay.css           (mac/communicator/bookmarks/editBookmarkOverlay.css)
+  skin/classic/communicator/bookmarks/filters.svg                       (mac/communicator/bookmarks/filters.svg)
   skin/classic/communicator/bookmarks/livemark-folder.png               (mac/communicator/bookmarks/livemark-folder.png)
   skin/classic/communicator/bookmarks/query.png                         (mac/communicator/bookmarks/query.png)
   skin/classic/communicator/bookmarks/toolbarDropMarker.png             (mac/communicator/bookmarks/toolbarDropMarker.png)
@@ -44,6 +45,7 @@ classic.jar:
   skin/classic/communicator/search/searchbar-search.png                 (mac/communicator/search/searchbar-search.png)
   skin/classic/communicator/sidebar/sidebar.css                         (mac/communicator/sidebar/sidebar.css)
   skin/classic/communicator/sync/syncSetup.css                          (mac/communicator/sync/syncSetup.css)
+  skin/classic/communicator/icons/autocomplete-dropmarker.png           (mac/communicator/icons/autocomplete-dropmarker.png)
   skin/classic/communicator/icons/communicatoricons.png                 (mac/communicator/icons/communicatoricons.png)
   skin/classic/communicator/icons/communicatoricons-small.png           (mac/communicator/icons/communicatoricons-small.png)
   skin/classic/communicator/icons/feedIcon16-disabled.png               (mac/communicator/icons/feedIcon16-disabled.png)
@@ -76,11 +78,10 @@ classic.jar:
   skin/classic/communicator/bookmarks/livemark-folder.png               (communicator/bookmarks/livemark-folder.png)
   skin/classic/communicator/bookmarks/query.png                         (communicator/bookmarks/query.png)
   skin/classic/communicator/bookmarks/toolbarDropMarker.png             (communicator/bookmarks/toolbarDropMarker.png)
-* skin/classic/communicator/console/console.css                         (communicator/console/console.css)
+  skin/classic/communicator/console/console.css                         (communicator/console/console.css)
   skin/classic/communicator/console/console-error-caret.gif             (communicator/console/console-error-caret.gif)
   skin/classic/communicator/console/console-error-dash.gif              (communicator/console/console-error-dash.gif)
   skin/classic/communicator/console/console-toolbar.png                 (communicator/console/console-toolbar.png)
-  skin/classic/communicator/console/console-toolbar-XP.png              (communicator/console/console-toolbar-XP.png)
   skin/classic/communicator/console/itemSelected.png                    (communicator/console/itemSelected.png)
   skin/classic/communicator/directory/directory.css                     (communicator/directory/directory.css)
   skin/classic/communicator/directory/file.gif                          (communicator/directory/file.gif)
@@ -105,6 +106,7 @@ classic.jar:
   skin/classic/communicator/icons/question-48.png                       (communicator/icons/question-48.png)
   skin/classic/communicator/icons/warning-24.png                        (communicator/icons/warning-24.png)
 #endif
+  skin/classic/communicator/about.css                                   (communicator/about.css)
   skin/classic/communicator/aboutSupport.css                            (communicator/aboutSupport.css)
   skin/classic/communicator/brand.css                                   (communicator/brand.css)
   skin/classic/communicator/blockedSite.css                             (communicator/blockedSite.css)
@@ -120,7 +122,7 @@ classic.jar:
   skin/classic/communicator/bookmarks/bookmark.png                      (communicator/bookmarks/bookmark.png)
   skin/classic/communicator/bookmarks/bookmark-item-dis.png             (communicator/bookmarks/bookmark-item-dis.png)
   skin/classic/communicator/bookmarks/bookmark-item-updated.png         (communicator/bookmarks/bookmark-item-updated.png)
-  skin/classic/communicator/bookmarks/bookmark-item.png                 (communicator/bookmarks/bookmark-item.png)
+  skin/classic/communicator/bookmarks/bookmark-item.svg                 (communicator/bookmarks/bookmark-item.svg)
   skin/classic/communicator/bookmarks/unsortedBookmarks.png             (communicator/bookmarks/unsortedBookmarks.png)
   skin/classic/communicator/brand/throbber-anim.png                     (communicator/brand/throbber-anim.png)
   skin/classic/communicator/brand/throbber-single.png                   (communicator/brand/throbber-single.png)
@@ -445,6 +447,7 @@ classic.jar:
   skin/classic/navigator/pageInfo.css                                   (mac/navigator/pageInfo.css)
   skin/classic/navigator/tabbrowser.css                                 (mac/navigator/tabbrowser.css)
   skin/classic/navigator/webDeveloper.css                               (mac/navigator/webDeveloper.css)
+  skin/classic/navigator/icons/close.png                                (mac/navigator/icons/close.png)
   skin/classic/navigator/icons/identity.png                             (mac/navigator/icons/identity.png)
   skin/classic/navigator/icons/navigatoricons.png                       (mac/navigator/icons/navigatoricons.png)
   skin/classic/navigator/icons/navigatoricons-small.png                 (mac/navigator/icons/navigatoricons-small.png)
@@ -492,11 +495,8 @@ classic.jar:
   skin/classic/navigator/icons/tab-drag-indicator.gif                   (navigator/icons/tab-drag-indicator.gif)
   skin/classic/navigator/icons/tab-new.gif                              (navigator/icons/tab-new.gif)
 [extensions/{972ce4c6-7e08-4474-a285-3208198ce6fd}] chrome.jar:
+% override chrome://global/skin/about.css                         chrome://communicator/skin/about.css
 % override chrome://global/skin/aboutSupport.css                  chrome://communicator/skin/aboutSupport.css
 % override chrome://global/skin/config.css                        chrome://communicator/skin/config.css
 % override chrome://global/skin/in-content/info-pages.css         chrome://communicator/skin/communicator.css
-% override chrome://mozapps/skin/places/defaultFavicon.png        chrome://communicator/skin/bookmarks/bookmark-item.png
-
-#ifdef XP_WIN
-% override chrome://communicator/skin/console/console-toolbar.png   chrome://communicator/skin/console/console-toolbar-XP.png      osversion<6
-#endif
+% override chrome://mozapps/skin/places/defaultFavicon.svg        chrome://communicator/skin/bookmarks/bookmark-item.svg

@@ -58,3 +58,5 @@
 <!ENTITY replaceAllButton.label "அனைத்தையும் மாற்றுக">
 <!ENTITY replaceAllButton.accesskey "">
 <!ENTITY closeButton.label "மூடு">
+
+<!ENTITY closeButton.accesskey "C">

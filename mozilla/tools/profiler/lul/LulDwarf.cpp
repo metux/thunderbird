@@ -292,11 +292,11 @@ class CallFrameInfo::Rule {
  public:
   virtual ~Rule() { }
 
-  // Tell HANDLER that, at ADDRESS in the program, REGISTER can be
-  // recovered using this rule. If REGISTER is kCFARegister, then this rule
+  // Tell HANDLER that, at ADDRESS in the program, REG can be
+  // recovered using this rule. If REG is kCFARegister, then this rule
   // describes how to compute the canonical frame address. Return what the
   // HANDLER member function returned.
-  virtual bool Handle(Handler *handler, uint64 address, int register) const = 0;
+  virtual bool Handle(Handler *handler, uint64 address, int reg) const = 0;
 
   // Equality on rules. We use these to decide which rules we need
   // to report after a DW_CFA_restore_state instruction.
@@ -601,7 +601,7 @@ bool CallFrameInfo::RuleMap::HandleTransitionTo(
       if (*old_it->second != *new_it->second &&
           !new_it->second->Handle(handler, address, new_it->first))
         return false;
-      new_it++, old_it++;
+      new_it++; old_it++;
     }
   }
   // Finish off entries from this RuleMap with no counterparts in new_rules.
@@ -1856,6 +1856,21 @@ unsigned int DwarfCFIToModule::RegisterNames::ARM() {
   return 13 * 8;
 }
 
+unsigned int DwarfCFIToModule::RegisterNames::MIPS() {
+  /*
+   8 "$zero", "$at",  "$v0",  "$v1",  "$a0",   "$a1",  "$a2",  "$a3",
+   8 "$t0",   "$t1",  "$t2",  "$t3",  "$t4",   "$t5",  "$t6",  "$t7",
+   8 "$s0",   "$s1",  "$s2",  "$s3",  "$s4",   "$s5",  "$s6",  "$s7",
+   8 "$t8",   "$t9",  "$k0",  "$k1",  "$gp",   "$sp",  "$fp",  "$ra",
+   9 "$lo",   "$hi",  "$pc",  "$f0",  "$f1",   "$f2",  "$f3",  "$f4",  "$f5",
+   8 "$f6",   "$f7",  "$f8",  "$f9",  "$f10",  "$f11", "$f12", "$f13",
+   7 "$f14",  "$f15", "$f16", "$f17", "$f18",  "$f19", "$f20",
+   7 "$f21",  "$f22", "$f23", "$f24", "$f25",  "$f26", "$f27",
+   6 "$f28",  "$f29", "$f30", "$f31", "$fcsr", "$fir"
+  */
+  return 8 + 8 + 8 + 8 + 9 + 8 + 7 + 7 + 6;
+}
+
 // See prototype for comments.
 int32_t parseDwarfExpr(Summariser* summ, const ByteReader* reader,
                        string expr, bool debug,
@@ -1870,7 +1885,7 @@ int32_t parseDwarfExpr(Summariser* summ, const ByteReader* reader,
                    (int)(end1 - cursor));
     summ->Log(buf);
   }
-  
+
   // Add a marker for the start of this expression.  In it, indicate
   // whether or not the CFA should be pushed onto the stack prior to
   // evaluation.
@@ -1885,7 +1900,7 @@ int32_t parseDwarfExpr(Summariser* summ, const ByteReader* reader,
 
     const char* nm   = nullptr;
     PfxExprOp   pxop = PX_End;
-    
+
     switch (opc) {
 
       case DW_OP_lit0 ... DW_OP_lit31: {
@@ -1932,7 +1947,7 @@ int32_t parseDwarfExpr(Summariser* summ, const ByteReader* reader,
         (void) summ->AddPfxInstr(PfxInstr(PX_SImm32, s32));
         break;
       }
-      
+
       case DW_OP_deref: nm = "deref"; pxop = PX_Deref;  goto no_operands;
       case DW_OP_and:   nm = "and";   pxop = PX_And;    goto no_operands;
       case DW_OP_plus:  nm = "plus";  pxop = PX_Add;    goto no_operands;
@@ -1958,9 +1973,9 @@ int32_t parseDwarfExpr(Summariser* summ, const ByteReader* reader,
     } // switch (opc)
 
   } // while (cursor < end1)
-  
+
   MOZ_ASSERT(cursor >= end1);
-  
+
   if (cursor > end1) {
     // We overran the Dwarf expression.  Give up.
     goto fail;
@@ -1983,7 +1998,7 @@ int32_t parseDwarfExpr(Summariser* summ, const ByteReader* reader,
     summ->Log("LUL.DW  >>\n");
   }
   return start_ix;
-      
+
  fail:
   if (debug) {
     summ->Log("LUL.DW   conversion of dwarf expression failed\n");
@@ -2002,7 +2017,7 @@ bool DwarfCFIToModule::Entry(size_t offset, uint64 address, uint64 length,
                    address, length);
     summ_->Log(buf);
   }
-  
+
   summ_->Entry(address, length);
 
   // If dwarf2reader::CallFrameInfo can handle this version and

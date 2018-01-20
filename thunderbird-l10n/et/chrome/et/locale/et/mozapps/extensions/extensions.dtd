@@ -20,6 +20,9 @@
 <!ENTITY installAddonFromFile.accesskey       "P">
 <!ENTITY toolsMenu.tooltip                    "Tööriistad kõigile lisadele">
 
+<!ENTITY getThemes.description                "Kas soovid oma brauseri kodusemaks muuta?">
+<!ENTITY getThemes.learnMore                  "Vali tuhandete teemade seast.">
+
 <!ENTITY cmd.back.tooltip                     "Mine üks leht tagasi">
 <!ENTITY cmd.forward.tooltip                  "Mine üks leht edasi">
 
@@ -115,6 +118,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "Vaata selle uuenduse väljalasketeadet">
 <!ENTITY cmd.hideReleaseNotes.label           "Peida väljalasketeade">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Peida selle uuenduse väljalasketeade">
+<!ENTITY cmd.findReplacement.label            "Leia asendus">
 
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
@@ -185,6 +189,10 @@
 <!ENTITY addon.details.label                  "Veel">
 <!ENTITY addon.details.tooltip                "Kuva veel infot selle lisa kohta">
 <!ENTITY addon.unknownDate                    "pole teada">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "AEGUV">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -249,3 +257,9 @@
 
 <!ENTITY pluginDeprecation.description "Tunned millestki puudust? Mõned pluginad ei ole enam &brandShortName;i poolt toetatud.">
 <!ENTITY pluginDeprecation.learnMore "Rohkem teavet.">
+
+<!ENTITY legacyWarning.description "Tunned millestki puudust? Mõned laiendused pole enam &brandShortName;i poolt toetatud.">
+<!ENTITY legacyWarning.showLegacy "Kuva aegunud laiendusi">
+<!ENTITY legacyExtensions.title "Aegunud laiendused">
+<!ENTITY legacyExtensions.description "Need laiendused ei vasta tänapäevastele &brandShortName;i standarditele ja need keelati.">
+<!ENTITY legacyExtensions.learnMore "Vaata rohkem teavet lisadega toimunud muudatuste kohta">

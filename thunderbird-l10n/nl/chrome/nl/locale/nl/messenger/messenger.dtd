@@ -51,8 +51,8 @@
 <!ENTITY getAllNewMsgCmdPopupMenu.accesskey "A">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.label "Huidige account">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.accesskey "H">
-<!ENTITY getNextNMsgCmd.label "Volgende 500 nieuwsberichten ophalen">
-<!ENTITY getNextNMsgCmd.accesskey "d">
+<!ENTITY getNextNMsgCmd2.label "Volgende nieuwsberichten ophalen">
+<!ENTITY getNextNMsgCmd2.accesskey "h">
 <!ENTITY sendUnsentCmd.label "Niet-verzonden berichten verzenden">
 <!ENTITY sendUnsentCmd.accesskey "z">
 <!ENTITY subscribeCmd.label "Abonneren…">
@@ -60,12 +60,12 @@
 <!ENTITY deleteFolder.label "Map verwijderen">
 <!ENTITY deleteFolder.accesskey "r">
 <!ENTITY renameFolder.label "Mapnaam wijzigen…">
-<!ENTITY renameFolder.accesskey "w">
+<!ENTITY renameFolder.accesskey "M">
 <!ENTITY renameFolder.key "VK_F2">
 <!ENTITY compactFolders.label "Mappen comprimeren">
 <!ENTITY compactFolders.accesskey "c">
 <!ENTITY emptyTrashCmd.label "Prullenbak leegmaken">
-<!ENTITY emptyTrashCmd.accesskey "P">
+<!ENTITY emptyTrashCmd.accesskey "b">
 <!ENTITY offlineMenu.label "Offline">
 <!ENTITY offlineMenu.accesskey "f">
 <!ENTITY offlineGoOfflineCmd.label "Offline werken">
@@ -93,7 +93,7 @@
 <!ENTITY undeleteMsgCmd.accesskey "V">
 <!ENTITY deleteMsgsCmd.label "Geselecteerde berichten verwijderen">
 <!ENTITY deleteMsgsCmd.accesskey "w">
-<!ENTITY undeleteMsgsCmd.label "Verwijderen geselecteerde berichten ongedaan maken">
+<!ENTITY undeleteMsgsCmd.label "Verwijderen van geselecteerde berichten ongedaan maken">
 <!ENTITY undeleteMsgsCmd.accesskey "V">
 <!ENTITY deleteFolderCmd.label "Map verwijderen">
 <!ENTITY deleteFolderCmd.accesskey "M">
@@ -274,7 +274,7 @@
 <!ENTITY findCmd.accesskey "I">
 <!ENTITY findCmd.key "f">
 <!ENTITY findAgainCmd.label "Opnieuw zoeken">
-<!ENTITY findAgainCmd.accesskey "O">
+<!ENTITY findAgainCmd.accesskey "w">
 <!ENTITY findAgainCmd.key "g">
 <!ENTITY findAgainCmd.key2 "VK_F3">
 <!ENTITY findPrevCmd.key "g">
@@ -366,6 +366,8 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Conceptbericht bewerken">
 <!ENTITY editDraftMsgCmd.accesskey "b">
+<!ENTITY newMsgFromTemplateCmd.label "Nieuw bericht op basis van sjabloon">
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Filter maken op basis van bericht…">
 <!ENTITY createFilter.accesskey "F">
 <!ENTITY moveMsgToMenu.label "Verplaatsen naar">
@@ -453,10 +455,10 @@
 <!ENTITY messengerCmd.label "E-mail &amp; nieuwsgroepen">
 <!ENTITY messengerCmd.accesskey "E">
 <!ENTITY addressBookCmd.label "Adresboek">
-<!ENTITY addressBookCmd.accesskey "A">
+<!ENTITY addressBookCmd.accesskey "b">
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "Add-ons">
-<!ENTITY addons.accesskey "d">
+<!ENTITY addons.accesskey "A">
 <!ENTITY activitymanager.label "Activiteitenbeheerder">
 <!ENTITY activitymanager.accesskey "e">
 <!ENTITY imAccountsStatus.label "Chatstatus">
@@ -471,7 +473,7 @@
 <!ENTITY savedFiles.accesskey "n">
 <!ENTITY savedFiles.key "j">
 <!ENTITY filtersCmd2.label "Berichtenfilters">
-<!ENTITY filtersCmd2.accesskey "B">
+<!ENTITY filtersCmd2.accesskey "f">
 <!ENTITY filtersApply.label "Filters toepassen op map">
 <!ENTITY filtersApply.accesskey "t">
 <!ENTITY filtersApplyToSelection.label "Filters toepassen op geselecteerde berichten">
@@ -634,6 +636,9 @@
 <!-- Folder Pane Context Menu -->
 <!ENTITY folderContextGetMessages.label "Berichten ophalen">
 <!ENTITY folderContextGetMessages.accesskey "B">
+<!ENTITY folderContextPauseAllUpdates.label "Alle updates pauzeren">
+<!ENTITY folderContextPauseUpdates.label "Updates pauzeren">
+<!ENTITY folderContextPauseUpdates.accesskey "U">
 <!ENTITY folderContextOpenInNewWindow.label "Openen in nieuw venster">
 <!ENTITY folderContextOpenInNewWindow.accesskey "O">
 <!ENTITY folderContextOpenNewTab.label "Openen in nieuw tabblad">
@@ -731,12 +736,13 @@
 <!ENTITY attachmentColumn2.tooltip "Sorteren op bijlagen">
 
 <!-- Thread Pane Context Menu -->
+<!ENTITY contextNewMsgFromTemplate.label "Nieuw bericht op basis van sjabloon">
 <!ENTITY contextOpenNewWindow.label "Bericht openen in nieuw venster">
 <!ENTITY contextOpenNewWindow.accesskey "u">
-<!-- The key potentially conflicts with cutCmd.accessKey which is defined in
-     textcontext.dtd from toolkit. Right now, both menu items can't be visible
-     at the same time, but should someone enable copy/paste of message, this key
-     would probably need to be changed. -->
+<!-- The contextOpenNewTab.accesskey ("T") potentially conflicts with
+     cutCmd.accessKey which is defined in textcontext.dtd from toolkit. Right
+     now, both menu items can't be visible at the same time, but should someone
+     enable copy/paste of message, this key would probably need to be changed. -->
 <!ENTITY contextOpenNewTab.label "Bericht openen in nieuw tabblad">
 <!ENTITY contextOpenNewTab.accesskey "t">
 <!ENTITY contextOpenConversation.label "Bericht openen in conversatie">
@@ -777,9 +783,9 @@
 <!ENTITY contextKillSubthreadMenu.label "Subconversatie negeren">
 <!ENTITY contextKillSubthreadMenu.accesskey "b">
 <!ENTITY contextWatchThreadMenu.label "Conversatie volgen">
-<!--LOCALIZATION NOTE (contextWatchThreadMenu.accesskey):
-   In the en-US locale we ran out of access keys, so there is an empty access key for
-   Watch Thread. Localizers can pick a suitable key
+<!-- LOCALIZATION NOTE (contextWatchThreadMenu.accesskey):
+     In the en-US locale we ran out of access keys, so there is an empty access key for
+     Watch Thread. Localizers can pick a suitable key
   -->
 <!ENTITY contextWatchThreadMenu.accesskey "C">
 <!ENTITY contextSaveAs.label "Opslaan als…">
@@ -798,16 +804,16 @@
 <!-- LOCALIZATION NOTE (columnPicker.applyTo.label):
      This option in the thread pane column picker pops up a sub-menu containing
      the "columnPicker.applyToFolder.label" and
-     "columnPicker.applyToFolderAndChildren.label" options.  This item indicates
+     "columnPicker.applyToFolderAndChildren.label" options. This item indicates
      a desire to apply the currently displayed set of columns to some other
-     folder(s).  The sub-menu items indicate whether we want to apply it to just
+     folder(s). The sub-menu items indicate whether we want to apply it to just
      a folder or also its children.
   -->
 <!ENTITY columnPicker.applyTo.label "Kolommen toepassen op…">
 <!-- LOCALIZATION NOTE (columnPicker.applyToFolder.label):
      This option in the thread pane column picker is found on a sub-menu beneath
      the "columnPicker.applyTo.label" alongside
-     "columnPicker.applyToFolderAndChildren.label".  It indicates a desire to
+     "columnPicker.applyToFolderAndChildren.label". It indicates a desire to
      apply the currently display thread pane column settings to a single folder
      that the user selects using the same widget as the move to/copy to
      mechanism (via a series of popups).
@@ -816,21 +822,21 @@
 <!-- LOCALIZATION NOTE (columnPicker.applyToFolderAndChildren.label):
      This option in the thread pane column picker is found on a sub-menu beneath
      the "columnPicker.applyTo.label" alongside
-     "columnPicker.applyToFolder.label".  It indicates a desire to
+     "columnPicker.applyToFolder.label". It indicates a desire to
      apply the currently display thread pane column settings to a folder and all
-     of its descendents.  The user selects the folder using the same widget as the
+     of its descendents. The user selects the folder using the same widget as the
      move to/copy to mechanism (via a series of popups).
   -->
 <!ENTITY columnPicker.applyToFolderAndChildren.label "Map en submappen…">
 <!-- LOCALIZATION NOTE (columnPicker.thisFolder.label):
      This is used in the folder selection widget for the
      "columnPicker.applyToFolder.label" and
-     "columnPicker.applyToFolderAndChildren.label" menu options.  Whenever
+     "columnPicker.applyToFolderAndChildren.label" menu options. Whenever
      a folder has children, it results in a menu popup; the first menu item
      in that popup is given this label to indicate that that folder should be
-     selected.  For example, if folder "A" has two children, "B" and "C", then
+     selected. For example, if folder "A" has two children, "B" and "C", then
      when the user hovers over "A", a new popup menu will be displayed whose
-     items are "This folder", "B", and "C".  This is the equivalent of the
+     items are "This folder", "B", and "C". This is the equivalent of the
      "File here" option for the move to/copy to widge.t
   -->
 <!ENTITY columnPicker.thisFolder.label "Deze map">
@@ -853,24 +859,24 @@
   -->
 <!ENTITY quickSearchCmd.key "k">
 <!-- LOCALIZATION NOTE (search.label.base1):
-     This is the base of the empty text for the global search box.  We replace
+     This is the base of the empty text for the global search box. We replace
      #1 with the contents of the appropriate search.keyLabel.* value for the
      platform.
      The goal is to convey to the user that typing in the box will allow them
      to search for messages globally and that there is a hotkey they can press
-     to get to the box faster.  If the global indexer is disabled, the search
+     to get to the box faster. If the global indexer is disabled, the search
      box will be collapsed and the user will never see this message.
   -->
 <!ENTITY search.label.base1 "Zoeken #1">
 <!-- LOCALIZATION NOTE (search.keyLabel.nonmac):
      The description of the key-binding to get into the global search box on
-     windows and linux (which use the control key).  We use the key defined in
+     windows and linux (which use the control key). We use the key defined in
      the quickSearchCmd.key entity defined above, the letter should match it.
   -->
 <!ENTITY search.keyLabel.nonmac "&lt;Ctrl+K&gt;">
 <!-- LOCALIZATION NOTE (search.keyLabel.mac):
      The description of the key-binding to get into the global search box on mac
-     systems.  We use the key defined in the quickSearchCmd.key entity defined
+     systems. We use the key defined in the quickSearchCmd.key entity defined
      above, the letter should match it.
   -->
 <!ENTITY search.keyLabel.mac "&lt;&#x2318;K&gt;">
@@ -928,7 +934,7 @@
 <!-- Statusbar -->
 <!ENTITY statusText.label "Gereed">
 
-<!--  Mac OS X Window Menu -->
+<!-- Mac OS X Window Menu -->
 <!ENTITY minimizeWindow.label "Minimaliseren">
 <!ENTITY minimizeWindow.key "m">
 <!ENTITY bringAllToFront.label "Alles naar voren brengen">
@@ -949,3 +955,7 @@
 
 <!-- Mac OS X Dock Icon pop-up menu -->
 <!ENTITY dockOptions.label              "Programmasymboolopties…">
+<!ENTITY writeNewMessageDock.label      "Nieuw bericht opstellen">
+<!ENTITY openAddressBookDock.label      "Adresboek openen">
+
+<!ENTITY goChatCmd2.key "H">

@@ -69,7 +69,8 @@ public:
 
 protected:
   SyncRunnableBase()
-    : mResult(NS_ERROR_UNEXPECTED)
+    : mozilla::Runnable("SyncRunnableBase")
+    , mResult(NS_ERROR_UNEXPECTED)
     , mMonitor("SyncRunnableBase")
   { }
 
@@ -439,7 +440,7 @@ NS_SYNCRUNNABLEMETHOD2(ImapServerSink, FEAlert, const nsAString &, nsIMsgMailNew
 NS_SYNCRUNNABLEMETHOD2(ImapServerSink, FEAlertWithName, const char*, nsIMsgMailNewsUrl *)
 NS_SYNCRUNNABLEMETHOD2(ImapServerSink, FEAlertFromServer, const nsACString &, nsIMsgMailNewsUrl *)
 NS_SYNCRUNNABLEMETHOD0(ImapServerSink, CommitNamespaces)
-NS_SYNCRUNNABLEMETHOD3(ImapServerSink, AsyncGetPassword, nsIImapProtocol *, bool, nsACString &)
+NS_SYNCRUNNABLEMETHOD3(ImapServerSink, AsyncGetPassword, nsIImapProtocol *, bool, nsAString &)
 NS_SYNCRUNNABLEATTRIBUTE(ImapServerSink, UserAuthenticated, bool)
 NS_SYNCRUNNABLEMETHOD3(ImapServerSink, SetMailServerUrls, const nsACString &, const nsACString &, const nsACString &)
 NS_SYNCRUNNABLEMETHOD1(ImapServerSink, GetArbitraryHeaders, nsACString &)
@@ -450,7 +451,7 @@ NS_SYNCRUNNABLEMETHOD1(ImapServerSink, GetLoginUsername, nsACString &)
 NS_SYNCRUNNABLEMETHOD1(ImapServerSink, UpdateTrySTARTTLSPref, bool)
 NS_SYNCRUNNABLEMETHOD1(ImapServerSink, GetOriginalUsername, nsACString &)
 NS_SYNCRUNNABLEMETHOD1(ImapServerSink, GetServerKey, nsACString &)
-NS_SYNCRUNNABLEMETHOD1(ImapServerSink, GetServerPassword, nsACString &)
+NS_SYNCRUNNABLEMETHOD1(ImapServerSink, GetServerPassword, nsAString &)
 NS_SYNCRUNNABLEMETHOD1(ImapServerSink, RemoveServerConnection, nsIImapProtocol *)
 NS_SYNCRUNNABLEMETHOD1(ImapServerSink, GetServerShuttingDown, bool *)
 NS_SYNCRUNNABLEMETHOD1(ImapServerSink, ResetServerConnection, const nsACString &)
@@ -473,7 +474,7 @@ OAuth2ThreadHelper::~OAuth2ThreadHelper()
 {
   if (mOAuth2Support)
   {
-    NS_ReleaseOnMainThread(mOAuth2Support.forget());
+    NS_ReleaseOnMainThreadSystemGroup("OAuth2ThreadHelper::mOAuth2Support", mOAuth2Support.forget());
   }
 }
 
@@ -502,7 +503,7 @@ bool OAuth2ThreadHelper::SupportsOAuth2()
   else
   {
     nsCOMPtr<nsIRunnable> runInit =
-      NewRunnableMethod(this, &OAuth2ThreadHelper::Init);
+      NewRunnableMethod("OAuth2ThreadHelper::SupportsOAuth2", this, &OAuth2ThreadHelper::Init);
     NS_DispatchToMainThread(runInit);
     mMonitor.Wait();
   }
@@ -525,7 +526,7 @@ void OAuth2ThreadHelper::GetXOAuth2String(nsACString &base64Str)
     return;
 
   nsCOMPtr<nsIRunnable> runInit =
-    NewRunnableMethod(this, &OAuth2ThreadHelper::Connect);
+    NewRunnableMethod("OAuth2ThreadHelper::GetXOAuth2String", this, &OAuth2ThreadHelper::Connect);
   NS_DispatchToMainThread(runInit);
   mMonitor.Wait();
 

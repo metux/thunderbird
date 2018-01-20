@@ -61,7 +61,6 @@ TryToStartImageLoadOnValue(const nsCSSValue& aValue, nsIDocument* aDocument,
   MOZ_ASSERT(aDocument);
 
   if (aValue.GetUnit() == eCSSUnit_URL) {
-#ifdef MOZ_ENABLE_MASK_AS_SHORTHAND
     // The 'mask-image' property accepts local reference URIs.
     // For example,
     //   mask-image: url(#mask_id); // refer to a SVG mask element, whose id is
@@ -94,7 +93,7 @@ TryToStartImageLoadOnValue(const nsCSSValue& aValue, nsIDocument* aDocument,
         }
       }
     }
-#endif
+
     aValue.StartImageLoad(aDocument);
     if (aForTokenStream && aContext) {
       CSSVariableImageTable::Add(aContext, aProperty,
@@ -241,7 +240,7 @@ EnsurePhysicalProperty(nsCSSPropertyID& aProperty, nsRuleData* aRuleData)
     // We handle block axis logical properties separately to save a bit of
     // work that the WritingMode constructor does that is unnecessary
     // unless we have an inline axis property.
-    mozilla::css::Side side;
+    mozilla::Side side;
     if (isBlock) {
       uint8_t wm = aRuleData->mStyleContext->StyleVisibility()->mWritingMode;
       side = WritingMode::PhysicalSideForBlockAxis(wm, edge);
@@ -252,8 +251,8 @@ EnsurePhysicalProperty(nsCSSPropertyID& aProperty, nsRuleData* aRuleData)
 
     // We rely on the physical side constant values matching the order of
     // the physical properties in the logical group array.
-    static_assert(NS_SIDE_TOP == 0 && NS_SIDE_RIGHT == 1 &&
-                  NS_SIDE_BOTTOM == 2 && NS_SIDE_LEFT == 3,
+    static_assert(eSideTop == 0 && eSideRight == 1 &&
+                  eSideBottom == 2 && eSideLeft == 3,
                   "unexpected side constant values");
     index = side;
   }

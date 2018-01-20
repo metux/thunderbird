@@ -36,6 +36,7 @@ add_task(function *() {
   var logins = Services.logins.findLogins(count, kServerUrl, null, kServerUrl);
 
   do_check_eq(count.value, 2);
+  do_check_eq(logins.length, 2);
 
   // These will either be one way around or the other.
   if (logins[0].username == kUser1) {
@@ -48,18 +49,27 @@ add_task(function *() {
   // Test - Remove a login via the incoming server
   incomingServer1.forgetPassword();
 
- logins = Services.logins.findLogins(count, kServerUrl, null, kServerUrl);
+  logins = Services.logins.findLogins(count, kServerUrl, null, kServerUrl);
 
   // should be one login left for kUser2
   do_check_eq(count.value, 1);
   do_check_eq(logins[0].username, kUser2);
 
-  // Test - Remove the other login via the incoming server
-  incomingServer2.forgetPassword();
+  // Bug 561056 - Expand username to also contain domain (i.e. full email).
+  incomingServer2.realUsername = kUser2 + "@local.host";
 
   logins = Services.logins.findLogins(count, kServerUrl, null, kServerUrl);
 
-  // should be one login left for kUser2
+  // There should still be the one login left for kUser2
+  do_check_eq(count.value, 1);
+  do_check_eq(logins[0].username, kUser2);
+
+  // Change username to another one.
+  incomingServer2.realUsername = "testpop";
+
+  logins = Services.logins.findLogins(count, kServerUrl, null, kServerUrl);
+
+  // There should be no login left.
   do_check_eq(count.value, 0);
   do_check_eq(logins.length, 0);
 });

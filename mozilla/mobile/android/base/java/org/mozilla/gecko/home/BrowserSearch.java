@@ -16,13 +16,8 @@ import java.util.List;
 import java.util.Locale;
 
 import android.content.SharedPreferences;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import org.mozilla.gecko.EventDispatcher;
-import org.mozilla.gecko.GeckoApp;
-import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoSharedPrefs;
 import org.mozilla.gecko.PrefsHelper;
 import org.mozilla.gecko.R;
@@ -39,13 +34,21 @@ import org.mozilla.gecko.home.HomePager.OnUrlOpenListener;
 import org.mozilla.gecko.home.SearchLoader.SearchCursorLoader;
 import org.mozilla.gecko.preferences.GeckoPreferences;
 import org.mozilla.gecko.toolbar.AutocompleteHandler;
-import org.mozilla.gecko.util.GeckoEventListener;
+import org.mozilla.gecko.util.BundleEventListener;
+import org.mozilla.gecko.util.EventCallback;
+import org.mozilla.gecko.util.GeckoBundle;
 import org.mozilla.gecko.util.StringUtils;
 import org.mozilla.gecko.util.ThreadUtils;
 
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.graphics.Typeface;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
+import android.text.style.StyleSpan;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.database.Cursor;
 import android.net.Uri;
@@ -78,8 +81,9 @@ import android.widget.TextView;
  * Fragment that displays frecency search results in a ListView.
  */
 public class BrowserSearch extends HomeFragment
-                           implements GeckoEventListener,
-                                      SearchEngineBar.OnSearchBarClickListener {
+                           implements BundleEventListener,
+                                      SearchEngineBar.OnSearchBarClickListener,
+                                      Tabs.OnTabsChangedListener {
 
     @RobocopTarget
     public interface SuggestClientFactory {
@@ -182,9 +186,6 @@ public class BrowserSearch extends HomeFragment
     // On edit suggestion listener
     private OnEditSuggestionListener mEditSuggestionListener;
 
-    // Whether the suggestions will fade in when shown
-    private boolean mAnimateSuggestions;
-
     // Opt-in prompt view for search suggestions
     private View mSuggestionsOptInPrompt;
 
@@ -265,7 +266,7 @@ public class BrowserSearch extends HomeFragment
                 getLoaderManager().destroyLoader(LOADER_ID_SUGGESTION);
             }
 
-            GeckoAppShell.notifyObservers("SearchEngines:GetVisible", null);
+            EventDispatcher.getInstance().dispatch("SearchEngines:GetVisible", null);
         }
         super.onHiddenChanged(hidden);
     }
@@ -279,7 +280,7 @@ public class BrowserSearch extends HomeFragment
 
         // Fetch engines if we need to.
         if (mSearchEngines.isEmpty() || !Locale.getDefault().equals(mLastLocale)) {
-            GeckoAppShell.notifyObservers("SearchEngines:GetVisible", null);
+            EventDispatcher.getInstance().dispatch("SearchEngines:GetVisible", null);
         } else {
             updateSearchEngineBar();
         }
@@ -309,8 +310,9 @@ public class BrowserSearch extends HomeFragment
     public void onDestroyView() {
         super.onDestroyView();
 
-        GeckoApp.getEventDispatcher().unregisterGeckoThreadListener(this,
+        EventDispatcher.getInstance().unregisterUiThreadListener(this,
             "SearchEngines:Data");
+        Tabs.unregisterOnTabsChangedListener(this);
 
         mSearchEngineBar.setAdapter(null);
         mSearchEngineBar = null;
@@ -375,7 +377,8 @@ public class BrowserSearch extends HomeFragment
                 info.url = cursor.getString(cursor.getColumnIndexOrThrow(BrowserContract.Combined.URL));
                 info.title = cursor.getString(cursor.getColumnIndexOrThrow(BrowserContract.Combined.TITLE));
 
-                int bookmarkId = cursor.getInt(cursor.getColumnIndexOrThrow(BrowserContract.Combined.BOOKMARK_ID));
+                final int bookmarkColumn = cursor.getColumnIndexOrThrow(BrowserContract.Combined.BOOKMARK_ID);
+                int bookmarkId = cursor.isNull(bookmarkColumn) ? -1 : cursor.getInt(bookmarkColumn);
                 info.bookmarkId = bookmarkId;
 
                 int historyId = cursor.getInt(cursor.getColumnIndexOrThrow(BrowserContract.Combined.HISTORY_ID));
@@ -408,9 +411,14 @@ public class BrowserSearch extends HomeFragment
             }
         });
 
+        final Tab tab = Tabs.getInstance().getSelectedTab();
+        final boolean isPrivate = (tab != null && tab.isPrivate());
+        mList.setPrivateMode(isPrivate);
+
         registerForContextMenu(mList);
-        GeckoApp.getEventDispatcher().registerGeckoThreadListener(this,
+        EventDispatcher.getInstance().registerUiThreadListener(this,
             "SearchEngines:Data");
+        Tabs.registerOnTabsChangedListener(this);
 
         mSearchEngineBar.setOnSearchBarClickListener(this);
     }
@@ -445,7 +453,7 @@ public class BrowserSearch extends HomeFragment
             // Position for Top Sites grid items, but will always be -1 since this is only for BrowserSearch result
             final int position = -1;
 
-            new RemoveItemByUrlTask(context, info.url, info.itemType, position).execute();
+            new RemoveItemTask(getActivity(), info, position).execute();
             return true;
         }
 
@@ -469,15 +477,22 @@ public class BrowserSearch extends HomeFragment
         loadIfVisible();
     }
 
-    @Override
-    public void handleMessage(String event, final JSONObject message) {
+    @Override // BundleEventListener
+    public void handleMessage(final String event, final GeckoBundle message,
+                              final EventCallback callback) {
         if (event.equals("SearchEngines:Data")) {
-            ThreadUtils.postToUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    setSearchEngines(message);
-                }
-            });
+            setSearchEngines(message);
+        }
+    }
+
+    @Override
+    public void onTabChanged(Tab tab, Tabs.TabEvents msg, String data) {
+        if (tab == null) {
+            return;
+        }
+
+        if (msg == Tabs.TabEvents.SELECTED) {
+            mList.setPrivateMode(tab.isPrivate());
         }
     }
 
@@ -503,7 +518,9 @@ public class BrowserSearch extends HomeFragment
         }
 
         // Prefetch auto-completed domain since it's a likely target
-        GeckoAppShell.notifyObservers("Session:Prefetch", "http://" + autocompletion);
+        final GeckoBundle data = new GeckoBundle(1);
+        data.putString("url", "http://" + autocompletion);
+        EventDispatcher.getInstance().dispatch("Session:Prefetch", data);
 
         mAutocompleteHandler.onAutocomplete(autocompletion);
         mAutocompleteHandler = null;
@@ -556,7 +573,8 @@ public class BrowserSearch extends HomeFragment
             domains = new LinkedHashSet<String>(500);
             BufferedReader buf = null;
             try {
-                buf = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.topdomains)));
+                buf = new BufferedReader(new InputStreamReader(
+                        getResources().openRawResource(R.raw.topdomains), StringUtils.UTF_8));
                 String res = null;
 
                 do {
@@ -580,7 +598,7 @@ public class BrowserSearch extends HomeFragment
 
     private String searchDomains(String search) {
         for (String domain : getDomains()) {
-            if (domain.startsWith(search)) {
+            if (StringUtils.caseInsensitiveStartsWith(domain, search)) {
                 return domain;
             }
         }
@@ -602,12 +620,14 @@ public class BrowserSearch extends HomeFragment
 
             if (searchCount == 0) {
                 // Prefetch the first item in the list since it's weighted the highest
-                GeckoAppShell.notifyObservers("Session:Prefetch", url);
+                final GeckoBundle data = new GeckoBundle(1);
+                data.putString("url", url);
+                EventDispatcher.getInstance().dispatch("Session:Prefetch", data);
             }
 
             // Does the completion match against the whole URL? This will match
             // about: pages, as well as user input including "http://...".
-            if (url.startsWith(searchTerm)) {
+            if (StringUtils.caseInsensitiveStartsWith(url, searchTerm)) {
                 return uriSubstringUpToMatchedPath(url, 0,
                         (searchLength > HTTPS_PREFIX_LENGTH) ? searchLength : HTTPS_PREFIX_LENGTH);
             }
@@ -620,12 +640,12 @@ public class BrowserSearch extends HomeFragment
                 continue;
             }
 
-            if (host.startsWith(searchTerm)) {
+            if (StringUtils.caseInsensitiveStartsWith(host, searchTerm)) {
                 return host + "/";
             }
 
             final String strippedHost = StringUtils.stripCommonSubdomains(host);
-            if (strippedHost.startsWith(searchTerm)) {
+            if (StringUtils.caseInsensitiveStartsWith(strippedHost, searchTerm)) {
                 return strippedHost + "/";
             }
 
@@ -646,7 +666,7 @@ public class BrowserSearch extends HomeFragment
             // We already matched the non-stripped host, so now we're
             // substring-searching in the part of the URL without the common
             // subdomains.
-            if (url.startsWith(searchTerm, hostOffset)) {
+            if (StringUtils.caseInsensitiveStartsWith(url, searchTerm, hostOffset)) {
                 // Great! Return including the rest of the path segment.
                 return uriSubstringUpToMatchedPath(url, hostOffset, hostOffset + searchLength);
             }
@@ -672,16 +692,22 @@ public class BrowserSearch extends HomeFragment
         }
 
         // Suggestions from search engine
-        if (mSearchEngineSuggestionLoaderCallbacks == null) {
-            mSearchEngineSuggestionLoaderCallbacks = new SearchEngineSuggestionLoaderCallbacks();
+        if (mSuggestionsEnabled) {
+            if (mSearchEngineSuggestionLoaderCallbacks == null) {
+                mSearchEngineSuggestionLoaderCallbacks = new SearchEngineSuggestionLoaderCallbacks();
+            }
+            getLoaderManager().restartLoader(LOADER_ID_SUGGESTION, null, mSearchEngineSuggestionLoaderCallbacks);
         }
-        getLoaderManager().restartLoader(LOADER_ID_SUGGESTION, null, mSearchEngineSuggestionLoaderCallbacks);
 
         // Saved suggestions
-        if (mSearchHistorySuggestionLoaderCallback == null) {
-            mSearchHistorySuggestionLoaderCallback = new SearchHistorySuggestionLoaderCallbacks();
+        if (mSavedSearchesEnabled) {
+            if (mSearchHistorySuggestionLoaderCallback == null) {
+                mSearchHistorySuggestionLoaderCallback = new SearchHistorySuggestionLoaderCallbacks();
+            }
+            getLoaderManager().restartLoader(LOADER_ID_SAVED_SUGGESTION, null, mSearchHistorySuggestionLoaderCallback);
+        } else {
+            mSearchHistorySuggestions.clear();
         }
-        getLoaderManager().restartLoader(LOADER_ID_SAVED_SUGGESTION, null, mSearchHistorySuggestionLoaderCallback);
     }
 
     private void setSuggestions(ArrayList<String> suggestions) {
@@ -719,7 +745,7 @@ public class BrowserSearch extends HomeFragment
         return false;
     }
 
-    private void setSearchEngines(JSONObject data) {
+    private void setSearchEngines(final GeckoBundle data) {
         ThreadUtils.assertOnUiThread();
 
         // This method is called via a Runnable posted from the Gecko thread, so
@@ -729,59 +755,55 @@ public class BrowserSearch extends HomeFragment
             return;
         }
 
-        try {
-            final JSONObject suggest = data.getJSONObject("suggest");
-            final String suggestEngine = suggest.optString("engine", null);
-            final String suggestTemplate = suggest.optString("template", null);
-            final boolean suggestionsPrompted = suggest.getBoolean("prompted");
-            final JSONArray engines = data.getJSONArray("searchEngines");
+        final GeckoBundle suggest = data.getBundle("suggest");
+        final String suggestEngine = suggest.getString("engine");
+        final String suggestTemplate = suggest.getString("template");
+        final boolean suggestionsPrompted = suggest.getBoolean("prompted");
+        final GeckoBundle[] engines = data.getBundleArray("searchEngines");
 
-            mSuggestionsEnabled = suggest.getBoolean("enabled");
+        mSuggestionsEnabled = suggest.getBoolean("enabled");
 
-            ArrayList<SearchEngine> searchEngines = new ArrayList<SearchEngine>();
-            for (int i = 0; i < engines.length(); i++) {
-                final JSONObject engineJSON = engines.getJSONObject(i);
-                final SearchEngine engine = new SearchEngine((Context) getActivity(), engineJSON);
+        ArrayList<SearchEngine> searchEngines = new ArrayList<SearchEngine>();
+        for (int i = 0; i < engines.length; i++) {
+            final GeckoBundle engineBundle = engines[i];
+            final SearchEngine engine = new SearchEngine((Context) getActivity(), engineBundle);
 
-                if (engine.name.equals(suggestEngine) && suggestTemplate != null) {
-                    // Suggest engine should be at the front of the list.
-                    // We're baking in an assumption here that the suggest engine
-                    // is also the default engine.
-                    searchEngines.add(0, engine);
+            if (engine.name.equals(suggestEngine) && suggestTemplate != null) {
+                // Suggest engine should be at the front of the list.
+                // We're baking in an assumption here that the suggest engine
+                // is also the default engine.
+                searchEngines.add(0, engine);
 
-                    ensureSuggestClientIsSet(suggestTemplate);
-                } else {
-                    searchEngines.add(engine);
-                }
-            }
-
-            // checking if the new searchEngine is different from mSearchEngine, will have to re-layout if yes
-            boolean change = shouldUpdateSearchEngine(searchEngines);
-
-            if (mAdapter != null && change) {
-                mSearchEngines = Collections.unmodifiableList(searchEngines);
-                mLastLocale = Locale.getDefault();
-                updateSearchEngineBar();
-
-                mAdapter.notifyDataSetChanged();
-            }
-
-            final Tab tab = Tabs.getInstance().getSelectedTab();
-            final boolean isPrivate = (tab != null && tab.isPrivate());
-
-            // Show suggestions opt-in prompt only if suggestions are not enabled yet,
-            // user hasn't been prompted and we're not on a private browsing tab.
-            // The prompt might have been inflated already when this view was previously called.
-            // Remove the opt-in prompt if it has been inflated in the view and dealt with by the user,
-            // or if we're on a private browsing tab
-            if (!mSuggestionsEnabled && !suggestionsPrompted && !isPrivate) {
-                showSuggestionsOptIn();
+                ensureSuggestClientIsSet(suggestTemplate);
             } else {
-                removeSuggestionsOptIn();
+                searchEngines.add(engine);
             }
+        }
 
-        } catch (JSONException e) {
-            Log.e(LOGTAG, "Error getting search engine JSON", e);
+        // checking if the new searchEngine is different from mSearchEngine, will have to
+        // re-layout if yes
+        boolean change = shouldUpdateSearchEngine(searchEngines);
+
+        if (mAdapter != null && change) {
+            mSearchEngines = Collections.unmodifiableList(searchEngines);
+            mLastLocale = Locale.getDefault();
+            updateSearchEngineBar();
+
+            mAdapter.notifyDataSetChanged();
+        }
+
+        final Tab tab = Tabs.getInstance().getSelectedTab();
+        final boolean isPrivate = (tab != null && tab.isPrivate());
+
+        // Show suggestions opt-in prompt only if suggestions are not enabled yet,
+        // user hasn't been prompted and we're not on a private browsing tab.
+        // The prompt might have been inflated already when this view was previously called.
+        // Remove the opt-in prompt if it has been inflated in the view and dealt with by the user,
+        // or if we're on a private browsing tab
+        if (!mSuggestionsEnabled && !suggestionsPrompted && !isPrivate) {
+            showSuggestionsOptIn();
+        } else {
+            removeSuggestionsOptIn();
         }
 
         filterSuggestions();
@@ -882,14 +904,14 @@ public class BrowserSearch extends HomeFragment
             @Override
             public void run() {
                 SuggestClient client = mSuggestClient;
-                if (client != null) {
+                if (client != null && enabled) {
                     client.query(mSearchTerm);
                 }
             }
         });
 
         PrefsHelper.setPref("browser.search.suggest.prompted", true);
-        PrefsHelper.setPref("browser.search.suggest.enabled", enabled);
+        PrefsHelper.setPref(GeckoPreferences.PREFS_SEARCH_SUGGESTIONS_ENABLED, enabled);
 
         Telemetry.sendUIEvent(TelemetryContract.Event.ACTION, TelemetryContract.Method.BUTTON, (enabled ? "suggestions_optin_yes" : "suggestions_optin_no"));
 
@@ -933,8 +955,7 @@ public class BrowserSearch extends HomeFragment
 
                         // Show search suggestions and update them
                         if (enabled) {
-                            mSuggestionsEnabled = enabled;
-                            mAnimateSuggestions = true;
+                            mSuggestionsEnabled = true;
                             mAdapter.notifyDataSetChanged();
                             filterSuggestions();
                         }
@@ -1156,6 +1177,9 @@ public class BrowserSearch extends HomeFragment
         public void bindView(View view, Context context, int position) {
             final int type = getItemViewType(position);
 
+            final Tab tab = Tabs.getInstance().getSelectedTab();
+            final boolean isPrivate = (tab != null && tab.isPrivate());
+
             if (type == ROW_SEARCH || type == ROW_SUGGEST) {
                 final SearchEngineRow row = (SearchEngineRow) view;
                 row.setOnUrlOpenListener(mUrlOpenListener);
@@ -1164,23 +1188,53 @@ public class BrowserSearch extends HomeFragment
                 row.setSearchTerm(mSearchTerm);
 
                 final SearchEngine engine = mSearchEngines.get(position);
-                final boolean haveSuggestions = (engine.hasSuggestions() || !mSearchHistorySuggestions.isEmpty());
-                final boolean animate = (mAnimateSuggestions && haveSuggestions);
-                row.updateSuggestions(mSuggestionsEnabled, engine, mSearchHistorySuggestions, animate);
-                if (animate) {
-                    // Only animate suggestions the first time they are shown
-                    mAnimateSuggestions = false;
-                }
+                row.updateSuggestions(mSuggestionsEnabled, engine, mSearchHistorySuggestions);
+                row.setPrivateMode(isPrivate);
             } else {
                 // Account for the search engines
                 position -= getPrimaryEngineCount();
 
                 final Cursor c = getCursor(position);
                 final TwoLinePageRow row = (TwoLinePageRow) view;
+
+                // Highlight all substrings in title field if they matches the search term.
+                row.setTitleFormatter(mTwoLinePageRowTitleFormatter);
+
                 row.updateFromCursor(c);
+                row.setPrivateMode(isPrivate);
             }
         }
     }
+
+    private TwoLinePageRow.TitleFormatter mTwoLinePageRowTitleFormatter = new TwoLinePageRow.TitleFormatter() {
+        @Override
+        public CharSequence format(@NonNull CharSequence title) {
+            // Don't try to search for an empty string - String.indexOf will return 0, which would result
+            // in us iterating with lastIndexOfMatch = 0, which eventually results in an OOM.
+            if (TextUtils.isEmpty(mSearchTerm)) {
+                return title;
+            }
+
+            // Find matching substrings in title field in TwoLinePageRow, ignoring cases.
+            final String titleInLowerCase = title.toString().toLowerCase();
+            final String pattern = mSearchTerm.toLowerCase();
+            final int patternLength = pattern.length();
+
+            final SpannableStringBuilder sb = new SpannableStringBuilder(title);
+
+            int indexOfMatch = 0;
+            int lastIndexOfMatch = 0;
+            while (indexOfMatch != -1) {
+                indexOfMatch = titleInLowerCase.indexOf(pattern, lastIndexOfMatch);
+                lastIndexOfMatch = indexOfMatch + patternLength;
+                if (indexOfMatch != -1) {
+                    final StyleSpan boldSpan = new StyleSpan(Typeface.BOLD);
+                    sb.setSpan(boldSpan, indexOfMatch, lastIndexOfMatch, Spannable.SPAN_INCLUSIVE_INCLUSIVE);
+                }
+            }
+            return sb;
+        }
+    };
 
     private class CursorLoaderCallbacks implements LoaderCallbacks<Cursor> {
         @Override
@@ -1301,6 +1355,10 @@ public class BrowserSearch extends HomeFragment
 
         public HomeSearchListView(Context context, AttributeSet attrs, int defStyle) {
             super(context, attrs, defStyle);
+
+            final Tab tab = Tabs.getInstance().getSelectedTab();
+            final boolean isPrivate = (tab != null && tab.isPrivate());
+            setSelector(isPrivate);
         }
 
         @Override
@@ -1311,6 +1369,20 @@ public class BrowserSearch extends HomeFragment
             }
 
             return super.onTouchEvent(event);
+        }
+
+        @Override
+        public void setPrivateMode(boolean isPrivate) {
+            final boolean modeChanged = isPrivateMode() != isPrivate;
+            if (modeChanged) {
+                setSelector(isPrivate);
+            }
+
+            super.setPrivateMode(isPrivate);
+        }
+
+        private void setSelector(boolean isPrivate) {
+            setSelector(isPrivate ? R.drawable.search_list_selector_private : R.drawable.search_list_selector);
         }
     }
 }

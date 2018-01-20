@@ -4,8 +4,8 @@
 
 <!ENTITY loadError.label "Sayfa yükleme hatası">
 <!ENTITY retry.label "Yeniden dene">
-<!-- Specific error messages -->
 
+<!-- Specific error messages -->
 
 <!ENTITY connectionFailure.title "Bağlanma girişimi başarısız">
 <!ENTITY connectionFailure.longDesc "<p>Açmak istediğiniz site geçerli görünmesine rağmen tarayıcı bu siteyle bağlantı kuramadı.</p><ul><li>Site geçici olarak kapalı olabilir. Daha sonra yeniden deneyin.</li><li>Diğer siteler de mi açılmıyor? Öyleyse bilgisayarınızın ağ bağlantısın kontrol edin.</li><li>Bilgisayarınız veya ağınız bir güvenlik duvarıyla veya vekil sunucuyla korunuyorsa hatalı ayarlar internete erişmenizi engelleyebilir.</li></ul>">
@@ -41,7 +41,11 @@
 <!ENTITY contentEncodingError.longDesc "<p>Bakmak istediğiniz sayfa gösterilemiyor çünkü sayfada geçersiz veya desteklenmeyen bir sıkıştırma biçimi kullanıyor.</p><ul><li>Site sahipleriyle iletişim kurup onları bu sorundan haberdar edin.</li></ul>">
 
 <!ENTITY unsafeContentType.title "Güvensiz dosya türü">
-<!ENTITY unsafeContentType.longDesc "<ul> <li>Lütfen site sahipleriyle iletişim kurup onları bu sorundan haberdar edin.</li> </ul>">
+<!ENTITY unsafeContentType.longDesc "
+<ul>
+  <li>Site sahipleriyle iletişim kurarak bu sorunu onlara bildirmeyi düşünebilirsiniz.</li>
+</ul>
+">
 
 <!ENTITY netReset.title "Bağlantı kesildi">
 <!ENTITY netReset.longDesc "<p>Bağlantı sırasında ağ iletişimi kesintiye uğradı. Lütfen yeniden deneyin.</p>">
@@ -64,11 +68,14 @@
 <!ENTITY unknownSocketType.title "Hatalı yanıt">
 <!ENTITY unknownSocketType.longDesc "<p>Site bağlantı isteğine hiç beklenmeyen bir biçimde karşılık verdi ve tarayıcı bu girişimi daha fazla sürdürmeyecek.</p>">
 
-<!ENTITY nssFailure2.title "Güvenli bağlantı girişimi başarısız">
+<!ENTITY nssFailure2.title "Güvenli bağlantı kurulamadı">
 <!ENTITY nssFailure2.longDesc2 "<p>Görüntülemeye çalıştığınız sayfa gösterilemiyor çünkü alınan verilerin gerçekliği doğrulanamadı.</p><ul><li>Bu sorunu bildirmek için lütfen site sahipleriyle iletişime geçin.</li></ul>">
 
-<!ENTITY nssBadCert.title "Güvenli bağlantı girişimi başarısız">
-<!ENTITY nssBadCert.longDesc2 "<ul> <li>Sunucunun yapılandırmasıyla ilgili bir sorun olabilir veya birisi sunucuyu taklit etmeye çalışıyor olabilir.</li> <li>Daha önce bu sunucuya sorunsuz bağlandıysanız sorun geçici olabilir ve daha sonra yeniden bağlanmayı deneyebilirsiniz.</li> </ul>">
+<!ENTITY nssBadCert.title "Güvenli bağlantı kurulamadı">
+<!ENTITY nssBadCert.longDesc2 "<ul>
+<li>Sunucunun yapılandırmasıyla ilgili bir sorun olabilir veya birisi sunucuyu taklit etmeye çalışıyor olabilir.</li>
+<li>Daha önce bu sunucuya sorunsuz bağlandıysanız sorun geçici olabilir ve daha sonra yeniden bağlanmayı deneyebilirsiniz.</li>
+</ul>">
 
 <!ENTITY securityOverride.linkText "Veya ayrıcalık ekleyebilirsiniz…">
 <!ENTITY securityOverride.warningContent "<p>Tamamen güvenmediğiniz bir internet bağlantısı kullanıyorsanız veya bu sunucuyla ilgili uyarılar almaya alışık değilseniz ayrıcalık tanımamalısınız.</p> <p>Yine de ayrıcalık tanımayı istiyorsanız bunu gelişmiş şifreleme ayarlarınızdan yapabilirsiniz.</p>">
@@ -77,7 +84,7 @@
 <!ENTITY cspBlocked.longDesc "<p>Tarayıcı bu sayfanın yüklenmesini engelledi; çünkü sayfa, yüklenmesine izin vermeyen bir içerik güvenliği ilkesine sahip.</p>">
 
 <!ENTITY corruptedContentErrorv2.title "Hasarlı İçerik Hatası">
-<!ENTITY corruptedContentErrorv2.longDesc "<p>Bakmak istediğiniz sayfa gösterilemiyor, çünkü dosya aktarımı sırasında bir hata saptandı.</p><ul><li>Site sahipleriyle iletişim kurup onları bu sorundan haberdar edin.</li></ul>">
+<!ENTITY corruptedContentErrorv2.longDesc "<p>Veri aktarımında bir hata tespit edildiği için bakmak istediğiniz sayfa gösterilemiyor.</p><ul><li>Site sahipleriyle iletişim kurup bu sorunu onlara bildirmeyi düşünebilirsiniz.</li></ul>">
 
 <!ENTITY remoteXUL.title "Uzak XUL">
 <!ENTITY remoteXUL.longDesc "<p><ul><li>Lütfen site sahipleriyle iletişim kurup onları bu sorundan haberdar edin.</li></ul></p>">

@@ -6,7 +6,7 @@
 
 #include "nscore.h"
 #include "prthread.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsMsgUtils.h"
 #include "nsUnicharUtils.h"
 #include "nsCOMPtr.h"
@@ -39,6 +39,8 @@
 #include "nsMsgUtils.h"
 
 #include "nsAutoPtr.h"
+#include "nsIThread.h"
+#include "nsThreadUtils.h"
 
 #include "nsMsgMessageFlags.h"
 #include "nsMsgLocalFolderHdrs.h"
@@ -47,11 +49,6 @@
 
 static NS_DEFINE_CID(kMsgSendCID, NS_MSGSEND_CID);
 static NS_DEFINE_CID(kMsgCompFieldsCID, NS_MSGCOMPFIELDS_CID);
-
-// We need to do some calculations to set these numbers to something reasonable!
-// Unless of course, CreateAndSendMessage will NEVER EVER leave us in the lurch
-#define kHungCount 100000
-#define kHungAbortCount 1000
 
 #ifdef IMPORT_DEBUG
 static const char *p_test_headers =
@@ -119,7 +116,6 @@ class OutlookSendListener : public nsIMsgSendListener
 public:
   OutlookSendListener() {
     m_done = false;
-    m_location = nullptr;
   }
 
   // nsISupports interface
@@ -149,27 +145,21 @@ public:
   NS_IMETHOD OnGetDraftFolderURI(const char *aFolderURI) {return NS_OK;}
 
   static nsresult CreateSendListener(nsIMsgSendListener **ppListener);
-  void Reset() { m_done = false; NS_IF_RELEASE(m_location);}
+  void Reset() { m_done = false; m_location = nullptr; }
 
 public:
-  virtual ~OutlookSendListener() { NS_IF_RELEASE(m_location); }
+  virtual ~OutlookSendListener() {}
 
   bool m_done;
-  nsIFile * m_location;
+  nsCOMPtr<nsIFile> m_location;
 };
 
 NS_IMPL_ISUPPORTS(OutlookSendListener, nsIMsgSendListener)
 
 nsresult OutlookSendListener::CreateSendListener(nsIMsgSendListener **ppListener)
 {
-  NS_PRECONDITION(ppListener != nullptr, "null ptr");
   NS_ENSURE_ARG_POINTER(ppListener);
-
-  *ppListener = new OutlookSendListener();
-  if (! *ppListener)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  NS_ADDREF(*ppListener);
+  NS_ADDREF(*ppListener = new OutlookSendListener());
   return NS_OK;
 }
 
@@ -178,27 +168,13 @@ nsresult OutlookSendListener::CreateSendListener(nsIMsgSendListener **ppListener
 /////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////
 
-#define hackBeginA "begin"
-#define hackBeginW u"begin"
-#define hackEndA "\015\012end"
-#define hackEndW u"\015\012end"
-#define hackCRLFA "crlf"
-#define hackCRLFW u"crlf"
-#define hackAmpersandA "amp"
-#define hackAmpersandW u"amp"
-
 nsOutlookCompose::nsOutlookCompose()
 {
-  m_pListener = nullptr;
-  m_pMsgFields = nullptr;
-
   m_optimizationBuffer = new char[FILE_IO_BUFFER_SIZE];
 }
 
 nsOutlookCompose::~nsOutlookCompose()
 {
-  NS_IF_RELEASE(m_pListener);
-  NS_IF_RELEASE(m_pMsgFields);
   if (m_pIdentity) {
     nsresult rv = m_pIdentity->ClearAllValues();
     NS_ASSERTION(NS_SUCCEEDED(rv),"failed to clear values");
@@ -208,7 +184,7 @@ nsOutlookCompose::~nsOutlookCompose()
   delete[] m_optimizationBuffer;
 }
 
-nsIMsgIdentity * nsOutlookCompose::m_pIdentity = nullptr;
+nsCOMPtr<nsIMsgIdentity> nsOutlookCompose::m_pIdentity = nullptr;
 
 nsresult nsOutlookCompose::CreateIdentity(void)
 {
@@ -219,7 +195,7 @@ nsresult nsOutlookCompose::CreateIdentity(void)
   nsCOMPtr<nsIMsgAccountManager> accMgr =
     do_GetService(NS_MSGACCOUNTMANAGER_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = accMgr->CreateIdentity(&m_pIdentity);
+  rv = accMgr->CreateIdentity(getter_AddRefs(m_pIdentity));
   nsString name;
   name.AssignLiteral("Import Identity");
   if (m_pIdentity) {
@@ -231,19 +207,19 @@ nsresult nsOutlookCompose::CreateIdentity(void)
 
 void nsOutlookCompose::ReleaseIdentity()
 {
-  NS_IF_RELEASE(m_pIdentity);
+  m_pIdentity = nullptr;
 }
 
 nsresult nsOutlookCompose::CreateComponents(void)
 {
   nsresult rv = NS_OK;
 
-  NS_IF_RELEASE(m_pMsgFields);
-  if (!m_pListener && NS_SUCCEEDED(rv))
-    rv = OutlookSendListener::CreateSendListener(&m_pListener);
+  m_pMsgFields = nullptr;
+  if (!m_pListener)
+    rv = OutlookSendListener::CreateSendListener(getter_AddRefs(m_pListener));
 
   if (NS_SUCCEEDED(rv)) {
-      rv = CallCreateInstance(kMsgCompFieldsCID, &m_pMsgFields);
+      m_pMsgFields = do_CreateInstance(kMsgCompFieldsCID, &rv);
     if (NS_SUCCEEDED(rv) && m_pMsgFields) {
       // IMPORT_LOG0("nsOutlookCompose - CreateComponents succeeded\n");
       m_pMsgFields->SetForcePlainText(false);
@@ -288,12 +264,7 @@ nsresult nsOutlookCompose::ComposeTheMessage(nsMsgDeliverMode mode, CMapiMessage
   msg.GetAttachments(getter_AddRefs(pAttach));
 
   nsString bodyW;
-  // Bug 593907
-  if (GenerateHackSequence(msg.GetBody(), msg.GetBodyLen()))
-    HackBody(msg.GetBody(), msg.GetBodyLen(), bodyW);
-  else
-    bodyW = msg.GetBody();
-  // End Bug 593907
+  bodyW = msg.GetBody();
 
   nsCOMPtr<nsIMutableArray> embeddedObjects;
 
@@ -310,7 +281,7 @@ nsresult nsOutlookCompose::ComposeTheMessage(nsMsgDeliverMode mode, CMapiMessage
         nsCOMPtr<nsIMsgEmbeddedImageData> imageData =
           new nsImportEmbeddedImageData(uri, nsDependentCString(cid),
                                      nsDependentCString(name));
-        embeddedObjects->AppendElement(imageData, false);
+        embeddedObjects->AppendElement(imageData);
       }
     }
   }
@@ -321,6 +292,7 @@ nsresult nsOutlookCompose::ComposeTheMessage(nsMsgDeliverMode mode, CMapiMessage
   nsCOMPtr<nsIImportService> impService(do_GetService(NS_IMPORTSERVICE_CONTRACTID, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
+  // nsIImportService::CreateRFC822Message creates a runnable and dispatches to the main thread.
   rv = impService->CreateRFC822Message(
                         m_pIdentity,                  // dummy identity
                         m_pMsgFields,                 // message fields
@@ -331,28 +303,15 @@ nsresult nsOutlookCompose::ComposeTheMessage(nsMsgDeliverMode mode, CMapiMessage
                         embeddedObjects,
                         m_pListener);                 // listener
 
-  OutlookSendListener *pListen = (OutlookSendListener *)m_pListener;
+  OutlookSendListener *pListen = static_cast<OutlookSendListener *>(m_pListener.get());
   if (NS_FAILED(rv)) {
     IMPORT_LOG1("*** Error, CreateAndSendMessage FAILED: 0x%lx\n", rv);
   }
   else {
-    // wait for the listener to get done!
-    int32_t abortCnt = 0;
-    int32_t cnt = 0;
-    int32_t sleepCnt = 1;
-    while (!pListen->m_done && (abortCnt < kHungAbortCount)) {
-      PR_Sleep(sleepCnt);
-      cnt++;
-      if (cnt > kHungCount) {
-        abortCnt++;
-        sleepCnt *= 2;
-        cnt = 0;
-      }
-    }
-
-    if (abortCnt >= kHungAbortCount) {
-      IMPORT_LOG0("**** Create and send message hung\n");
-      rv = NS_ERROR_FAILURE;
+    // Wait for the listener to get done.
+    nsCOMPtr<nsIThread> thread(do_GetCurrentThread());
+    while (!pListen->m_done) {
+      NS_ProcessPendingEvents(thread);
     }
   }
 
@@ -420,18 +379,6 @@ nsresult nsOutlookCompose::CopyComposedMessage(nsIFile *pSrc,
   UpdateHeaders(*origMsg.GetHeaders(), newHeadersStr.get());
   rv = origMsg.GetHeaders()->ToStream(pDst);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  // Bug 593907
-  if (!m_hackedPostfix.IsEmpty()) {
-    nsCString hackedPartEnd;
-    LossyCopyUTF16toASCII(m_hackedPostfix, hackedPartEnd);
-    hackedPartEnd.Insert(hackEndA, 0);
-    nsCString body;
-    rv = f.ToString(body, hackedPartEnd.get(), hackedPartEnd.Length());
-    UnhackBody(body);
-    EscapeFromSpaceLine(pDst, const_cast<char*>(body.get()), body.get()+body.Length());
-  }
-  // End Bug 593907
 
   // I use the terminating sequence here to avoid a possible situation when a "From " line
   // gets split over two sequential reads and thus will not be escaped.
@@ -532,109 +479,6 @@ void nsOutlookCompose::UpdateHeaders(CMapiMessageHeaders& oldHeaders, const CMap
   UpdateHeader(oldHeaders, newHeaders, CMapiMessageHeaders::hdrCc, false);
 }
 
-// Bug 593907
-// This is just a workaround of the deficiency of the nsMsgComposeAndSend::EnsureLineBreaks().
-// The import from Outlook will stay OK (I hope), but other messages may still suffer.
-// However, I cannot deny the possibility that the (possible) recode of the body
-// may interfere with this hack. A possible scenario is if a multi-byte character will either
-// contain 0x0D 0x0A sequence, or end with 0x0D, after which MAC-style standalone LF will go.
-// I hope that this possibility is insignificant (eg, utf-8 doesn't contain such sequences).
-// This hack will slow down the import, but as the import is one-time procedure, I hope that
-// the user will agree to wait a little longer to get better results.
-
-// The process of composing the message differs depending on whether the editor is present or not.
-// If the editor is absent, the "attachment1_body" parameter of CreateAndSendMessage() is taken as is,
-// while in the presence o the editor, the body that is taken from it is further processed in the
-// nsMsgComposeAndSend::GetBodyFromEditor(). Specifically, the TXTToHTML::ScanHTML() first calls
-// UnescapeStr() to properly handle a limited number of HTML character entities (namely &amp; &lt; &gt; &quot;)
-// and then calls ScanTXT() where escapes all ampersands and quotes again. As the UnescapeStr() works so
-// selectively (i.e. handling only a subset of valid entities), the so often seen "&nbsp;" becomes "&amp;nbsp;"
-// in the resulting body, which leads to text "&nbsp;" interspersed all over the imported mail. The same
-// applies to html &#XXXX; (where XXXX is unicode codepoint).
-// See also Bug 503690, where the same issue in Eudora import is reported.
-// By the way, the root of the Bug 359303 lies in the same place - the nsMsgComposeAndSend::GetBodyFromEditor()
-// changes the 0xA0 codes to 0x20 when it converts the body to plain text.
-// We scan the body here to find all the & and convert them to the safe character sequense to revert later.
-
-void nsOutlookCompose::HackBody(const wchar_t* orig, size_t origLen, nsString& hack)
-{
-#ifdef MOZILLA_INTERNAL_API
-  hack.SetCapacity(static_cast<size_t>(origLen*1.4));
-#endif
-  hack.Assign(hackBeginW);
-  hack.Append(m_hackedPostfix);
-
-  while (*orig) {
-    if (*orig == L'&') {
-      hack.Append(hackAmpersandW);
-      hack.Append(m_hackedPostfix);
-    } else if ((*orig == L'\x0D') && (*(orig+1) == L'\x0A')) {
-      hack.Append(hackCRLFW);
-      hack.Append(m_hackedPostfix);
-      ++orig;
-    } else
-      hack.Append(*orig);
-    ++orig;
-  }
-
-  hack.Append(hackEndW);
-  hack.Append(m_hackedPostfix);
-}
-
-void nsOutlookCompose::UnhackBody(nsCString& txt)
-{
-  nsCString hackedPostfixA;
-  LossyCopyUTF16toASCII(m_hackedPostfix, hackedPostfixA);
-
-  nsCString hackedString(hackBeginA);
-  hackedString.Append(hackedPostfixA);
-  int32_t begin = txt.Find(hackedString);
-  if (begin == kNotFound)
-    return;
-  txt.Cut(begin, hackedString.Length());
-
-  hackedString.Assign(hackEndA);
-  hackedString.Append(hackedPostfixA);
-  int32_t end = MsgFind(txt, hackedString, false, begin);
-  if (end == kNotFound)
-    return; // ?
-  txt.Cut(end, hackedString.Length());
-
-  nsCString range;
-  range.Assign(Substring(txt, begin, end - begin));
-  // 1. Remove all CRLFs from the selected range
-  MsgReplaceSubstring(range, MSG_LINEBREAK, "");
-  // 2. Restore the original CRLFs
-  hackedString.Assign(hackCRLFA);
-  hackedString.Append(hackedPostfixA);
-  MsgReplaceSubstring(range, hackedString.get(), MSG_LINEBREAK);
-
-  // 3. Restore the original ampersands
-  hackedString.Assign(hackAmpersandA);
-  hackedString.Append(hackedPostfixA);
-  MsgReplaceSubstring(range, hackedString.get(), "&");
-
-  txt.Replace(begin, end - begin, range);
-}
-
-bool nsOutlookCompose::GenerateHackSequence(const wchar_t* body, size_t origLen)
-{
-  nsDependentString nsBody(body, origLen);
-  const wchar_t* hack_base = L"hacked";
-  int i = 0;
-  do {
-    if (++i == 0) { // Cycle complete :) - could not generate an unique string
-      m_hackedPostfix.Truncate();
-      return false;
-    }
-    m_hackedPostfix.Assign(hack_base);
-    m_hackedPostfix.AppendInt(i);
-  } while (nsBody.Find(m_hackedPostfix) != kNotFound);
-
-  return true;
-}
-// End Bug 593907
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 CCompositionFile::CCompositionFile(nsIFile* aFile, void* fifoBuffer,
@@ -722,11 +566,9 @@ nsresult CCompositionFile::ToDest(_OutFn dest, const char* term, int termSize)
 {
   CTermGuard guard(term, termSize);
 
-#ifdef MOZILLA_INTERNAL_API
   // We already know the required string size, so reduce future reallocations
   if (!guard.IsChecking() && !m_convertCRs)
     dest.SetCapacity(m_fileSize - m_fileReadPos);
-#endif
 
   bool wasCR = false;
   char c = 0;
@@ -779,9 +621,7 @@ nsresult CCompositionFile::ToDest(_OutFn dest, const char* term, int termSize)
 class dest_nsCString {
 public:
   dest_nsCString(nsCString& str) : m_str(str) { m_str.Truncate(); }
-#ifdef MOZILLA_INTERNAL_API
   void SetCapacity(int32_t sz) { m_str.SetCapacity(sz); }
-#endif
   nsresult Append(const char* buf, uint32_t count) {
     m_str.Append(buf, count); return NS_OK; }
 private:
@@ -791,9 +631,7 @@ private:
 class dest_Stream {
 public:
   dest_Stream(nsIOutputStream *dest) : m_stream(dest) {}
-#ifdef MOZILLA_INTERNAL_API
   void SetCapacity(int32_t) { /*do nothing*/ }
-#endif
   // const_cast here is due to the poor design of the EscapeFromSpaceLine()
   // that requires a non-constant pointer while doesn't modify its data
   nsresult Append(const char* buf, uint32_t count) {

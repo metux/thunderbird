@@ -21,6 +21,11 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Wersija">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.featuresTitle "Funkcije &brandShortName;">
+<!ENTITY aboutSupport.featureName "Mjeno">
+<!ENTITY aboutSupport.featureVersion "Wersija">
+<!ENTITY aboutSupport.featureId "ID">
+
 <!ENTITY aboutSupport.experimentsTitle "Eksperimentelne funkcije">
 <!ENTITY aboutSupport.experimentName "Mjeno">
 <!ENTITY aboutSupport.experimentId "ID">
@@ -61,6 +66,11 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Multiprocesowe wokna">
 
+<!ENTITY aboutSupport.appBasicsProcessCount "Webwobsahowe procesy">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Kluč Google">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Kluč słužby postajenja stejnišća Mozilla">
+
 <!ENTITY aboutSupport.appBasicsSafeMode "Wěsty modus">
 
 <!ENTITY aboutSupport.showDir.label "Zapis wočinić">
@@ -86,7 +96,7 @@ variant of aboutSupport.showDir.label. -->
 
 <!ENTITY aboutSupport.graphicsTitle "Grafika">
 
-<!ENTITY aboutSupport.placeDatabaseTitle "Datowa banka Places">
+<!ENTITY aboutSupport.placeDatabaseTitle "Datowa banka historije a zapołožkow">
 <!ENTITY aboutSupport.placeDatabaseIntegrity "Integrita">
 <!ENTITY aboutSupport.placeDatabaseVerifyIntegrity "Integritu přepruwować">
 
@@ -96,6 +106,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "Bjezbarjernosć">
 <!ENTITY aboutSupport.a11yActivated "Aktiwizowany">
 <!ENTITY aboutSupport.a11yForceDisabled "Bjezbarjernosći zadźěwać">
+<!ENTITY aboutSupport.a11yHandlerUsed "Přistupny handler wužity">
+<!ENTITY aboutSupport.a11yInstantiator "Instancowak bjezbarjernosće">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Bibliotekowe wersije">
 
@@ -106,6 +118,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Hrube daty do mjezyskłada kopěrować">
 
 <!ENTITY aboutSupport.sandboxTitle "Pěskowy kašćik">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Wotpokazane systemowe wołanja">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "Před sekundami">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Procesowy typ">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Syscall">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Argumenty">
 
 <!ENTITY aboutSupport.safeModeTitle "Wěsty modus spytać">
 <!ENTITY aboutSupport.restartInSafeMode.label "Ze znjemóžnjenymi přidatkami znowa startować…">
@@ -118,3 +138,26 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Rozsudowy protokol">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Funkcije, kotrež su so wot spadoweho stražnika znjemóžnili">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Nuzowe rozrisanja">
+
+<!ENTITY aboutSupport.mediaTitle "Medije">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Wudawanske graty">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Zapodawanske graty">
+<!ENTITY aboutSupport.mediaDeviceName "Mjeno">
+<!ENTITY aboutSupport.mediaDeviceGroup "Skupina">
+<!ENTITY aboutSupport.mediaDeviceVendor "Předawar">
+<!ENTITY aboutSupport.mediaDeviceState "Status">
+<!ENTITY aboutSupport.mediaDevicePreferred "Preferowany">
+<!ENTITY aboutSupport.mediaDeviceFormat "Format">
+<!ENTITY aboutSupport.mediaDeviceChannels "Kanale">
+<!ENTITY aboutSupport.mediaDeviceRate "Rata">
+<!ENTITY aboutSupport.mediaDeviceLatency "Latenca">
+
+<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
+<!ENTITY aboutSupport.intlAppTitle "Application Settings">
+<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
+<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
+<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
+<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
+<!ENTITY aboutSupport.intlOSTitle "Operating System">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">

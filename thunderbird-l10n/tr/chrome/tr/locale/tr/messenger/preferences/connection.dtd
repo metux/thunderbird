@@ -3,6 +3,8 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY  connectionsDialog.title       "Bağlantı Ayarları">
+<!ENTITY  window.width                  "49em">
+<!ENTITY  window.macWidth               "44em">
 
 <!ENTITY  proxyTitle.label              "İnternete Erişmek İçin Vekil Sunucuları Yapılandırın">
 <!ENTITY  noProxyTypeRadio.label        "Vekil sunucu kullanma">
@@ -38,3 +40,8 @@
 <!ENTITY  noproxyExplain.label          "Örnek: .mozilla.org, .net.tr, 192.168.1.0/24">
 <!ENTITY  shareproxy.label              "Bu vekil sunucuyu bütün protokollerde kullan">
 <!ENTITY  shareproxy.accesskey          "v">
+<!ENTITY  autologinproxy.label          "Parola kayıtlıysa kimlik doğrulama isteme">
+<!ENTITY  autologinproxy.accesskey      "i">
+<!ENTITY  autologinproxy.tooltip        "Bu seçenek, hesap bilgilerini kaydettiğiniz vekil sunucularda sessizce oturum açar. Kimlik doğrulama başarısız olursa bilgileriniz sorulur.">
+<!ENTITY  socksRemoteDNS.label          "SOCKS v5 kullanırken vekil sunucu DNS’i">
+<!ENTITY  socksRemoteDNS.accesskey      "d">

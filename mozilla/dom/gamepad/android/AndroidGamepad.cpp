@@ -29,7 +29,8 @@ public:
     if (aAdded) {
       const int svc_id = service->AddGamepad(
           "android", GamepadMappingType::Standard,
-          kStandardGamepadButtons, kStandardGamepadAxes);
+          GamepadHand::_empty, kStandardGamepadButtons,
+          kStandardGamepadAxes, 0); // TODO: Bug 680289, implement gamepad haptics for Android
       java::AndroidGamepadManager::OnGamepadAdded(aID, svc_id);
 
     } else {
@@ -64,7 +65,9 @@ public:
     MOZ_ASSERT(valid.Length() == values.Length());
 
     for (size_t i = 0; i < values.Length(); i++) {
-      service->NewAxisMoveEvent(aID, i, values[i]);
+      if (valid[i]) {
+        service->NewAxisMoveEvent(aID, i, values[i]);
+      }
     }
   }
 };
@@ -72,12 +75,14 @@ public:
 void StartGamepadMonitoring()
 {
   AndroidGamepadManager::Init();
-  java::AndroidGamepadManager::Start();
+  java::AndroidGamepadManager::Start(
+      java::GeckoAppShell::GetApplicationContext());
 }
 
 void StopGamepadMonitoring()
 {
-  java::AndroidGamepadManager::Stop();
+  java::AndroidGamepadManager::Stop(
+      java::GeckoAppShell::GetApplicationContext());
 }
 
 } // namespace dom

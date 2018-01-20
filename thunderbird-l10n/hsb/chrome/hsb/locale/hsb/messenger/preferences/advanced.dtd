@@ -11,6 +11,7 @@
 
 <!ENTITY enableGlodaSearch.label       "Globalne pytanje a indeksowanje zmóžnić">
 <!ENTITY enableGlodaSearch.accesskey   "G">
+<!ENTITY dateTimeFormatting.label      "Formatowanje datuma a časa">
 <!ENTITY allowHWAccel.label            "Hardwarowe pospěšenje wužiwać, jeli je k dispoziciji">
 <!ENTITY allowHWAccel.accesskey        "H">
 <!ENTITY storeType.label               "Sładowanski typ powěsćow za nowe konta:">
@@ -51,8 +52,20 @@
 <!ENTITY enableCrashReporter.accesskey   "R">
 <!ENTITY crashReporterLearnMore.label    "Dalše informacije">
 <!-- Update -->
+<!-- LOCALIZATION NOTE (updateApp.label):
+  Strings from aboutDialog.dtd are displayed in this section of the preferences.
+  Please check for possible accesskey conflicts.
+-->
 
-<!ENTITY updateApp.label                 "Aktualizacije &brandShortName;:">
+<!ENTITY updateApp2.label                "Aktualizacije &brandShortName;">
+<!-- LOCALIZATION NOTE (updateApp.version.*): updateApp.version.pre is
+  followed by a version number, keep the trailing space or replace it with
+  a different character as needed. updateApp.version.post is displayed after
+  the version number, and is empty on purpose for English. You can use it
+  if required by your language.
+ -->
+<!ENTITY updateApp.version.pre           "Wersija ">
+<!ENTITY updateApp.version.post          "">
 <!ENTITY updateAuto.label                "Aktualizacije awtomatisce instalować (poruča so: polěpšena wěstota)">
 <!ENTITY updateAuto.accesskey            "A">
 <!ENTITY updateCheck.label               "Aktualizacije pytać, ale rozsud mi přewostajić, hač maja so instalować">
@@ -89,6 +102,8 @@
 <!ENTITY useCacheBefore.label            "Hač k">
 <!ENTITY useCacheBefore.accesskey        "H">
 <!ENTITY useCacheAfter.label             "MB tačeloweho ruma za pufrowak wužiwać">
+<!ENTITY overrideSmartCacheSize.label    "Awtomatiske rjadowanje pufrowaka přepisać">
+<!ENTITY overrideSmartCacheSize.accesskey "m">
 <!ENTITY clearCacheNow.label             "Nětko wuprózdnić">
 <!ENTITY clearCacheNow.accesskey         "u">
 <!-- Certificates -->

@@ -84,7 +84,7 @@ WebGLContext::ActiveTexture(GLenum texture)
         return;
 
     if (texture < LOCAL_GL_TEXTURE0 ||
-        texture >= LOCAL_GL_TEXTURE0 + uint32_t(mGLMaxTextureUnits))
+        texture >= LOCAL_GL_TEXTURE0 + mGLMaxTextureUnits)
     {
         return ErrorInvalidEnum(
             "ActiveTexture: texture unit %d out of range. "
@@ -215,14 +215,67 @@ void WebGLContext::BlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha)
     gl->fBlendEquationSeparate(modeRGB, modeAlpha);
 }
 
+static bool
+ValidateBlendFuncEnum(WebGLContext* webgl, GLenum factor, const char* funcName, const char* varName)
+{
+    switch (factor) {
+    case LOCAL_GL_ZERO:
+    case LOCAL_GL_ONE:
+    case LOCAL_GL_SRC_COLOR:
+    case LOCAL_GL_ONE_MINUS_SRC_COLOR:
+    case LOCAL_GL_DST_COLOR:
+    case LOCAL_GL_ONE_MINUS_DST_COLOR:
+    case LOCAL_GL_SRC_ALPHA:
+    case LOCAL_GL_ONE_MINUS_SRC_ALPHA:
+    case LOCAL_GL_DST_ALPHA:
+    case LOCAL_GL_ONE_MINUS_DST_ALPHA:
+    case LOCAL_GL_CONSTANT_COLOR:
+    case LOCAL_GL_ONE_MINUS_CONSTANT_COLOR:
+    case LOCAL_GL_CONSTANT_ALPHA:
+    case LOCAL_GL_ONE_MINUS_CONSTANT_ALPHA:
+    case LOCAL_GL_SRC_ALPHA_SATURATE:
+        return true;
+
+    default:
+        const nsPrintfCString err("%s: %s", funcName, varName);
+        webgl->ErrorInvalidEnumInfo(err.get(), factor);
+        return false;
+    }
+}
+
+static bool
+ValidateBlendFuncEnums(WebGLContext* webgl, GLenum srcRGB, GLenum srcAlpha,
+                       GLenum dstRGB, GLenum dstAlpha, const char* funcName)
+{
+    if (!webgl->IsWebGL2()) {
+       if (dstRGB == LOCAL_GL_SRC_ALPHA_SATURATE || dstAlpha == LOCAL_GL_SRC_ALPHA_SATURATE) {
+          const nsPrintfCString err("%s: LOCAL_GL_SRC_ALPHA_SATURATE as a destination"
+                                    " blend function is disallowed in WebGL 1 (dstRGB ="
+                                    " 0x%04x, dstAlpha = 0x%04x).",
+                                    funcName, dstRGB, dstAlpha);
+          webgl->ErrorInvalidEnum("%s", err.get());
+          return false;
+       }
+    }
+
+    if (!ValidateBlendFuncEnum(webgl, srcRGB, funcName, "srcRGB") ||
+        !ValidateBlendFuncEnum(webgl, srcAlpha, funcName, "srcAlpha") ||
+        !ValidateBlendFuncEnum(webgl, dstRGB, funcName, "dstRGB") ||
+        !ValidateBlendFuncEnum(webgl, dstAlpha, funcName, "dstAlpha"))
+    {
+       return false;
+    }
+
+    return true;
+}
+
 void WebGLContext::BlendFunc(GLenum sfactor, GLenum dfactor)
 {
     if (IsContextLost())
         return;
 
-    if (!ValidateBlendFuncSrcEnum(sfactor, "blendFunc: sfactor") ||
-        !ValidateBlendFuncDstEnum(dfactor, "blendFunc: dfactor"))
-        return;
+    if (!ValidateBlendFuncEnums(this, sfactor, sfactor, dfactor, dfactor, "blendFunc"))
+       return;
 
     if (!ValidateBlendFuncEnumsCompatibility(sfactor, dfactor, "blendFuncSeparate: srcRGB and dstRGB"))
         return;
@@ -238,11 +291,8 @@ WebGLContext::BlendFuncSeparate(GLenum srcRGB, GLenum dstRGB,
     if (IsContextLost())
         return;
 
-    if (!ValidateBlendFuncSrcEnum(srcRGB, "blendFuncSeparate: srcRGB") ||
-        !ValidateBlendFuncSrcEnum(srcAlpha, "blendFuncSeparate: srcAlpha") ||
-        !ValidateBlendFuncDstEnum(dstRGB, "blendFuncSeparate: dstRGB") ||
-        !ValidateBlendFuncDstEnum(dstAlpha, "blendFuncSeparate: dstAlpha"))
-        return;
+    if (!ValidateBlendFuncEnums(this, srcRGB, srcAlpha, dstRGB, dstAlpha, "blendFuncSeparate"))
+       return;
 
     // note that we only check compatibity for the RGB enums, no need to for the Alpha enums, see
     // "Section 6.8 forgetting to mention alpha factors?" thread on the public_webgl mailing list
@@ -348,16 +398,17 @@ WebGLContext::DeleteFramebuffer(WebGLFramebuffer* fbuf)
 void
 WebGLContext::DeleteRenderbuffer(WebGLRenderbuffer* rbuf)
 {
-    if (!ValidateDeleteObject("deleteRenderbuffer", rbuf))
+    const char funcName[] = "deleteRenderbuffer";
+    if (!ValidateDeleteObject(funcName, rbuf))
         return;
 
     if (mBoundDrawFramebuffer)
-        mBoundDrawFramebuffer->DetachRenderbuffer(rbuf);
+        mBoundDrawFramebuffer->DetachRenderbuffer(funcName, rbuf);
 
     if (mBoundReadFramebuffer)
-        mBoundReadFramebuffer->DetachRenderbuffer(rbuf);
+        mBoundReadFramebuffer->DetachRenderbuffer(funcName, rbuf);
 
-    rbuf->InvalidateStatusOfAttachedFBs();
+    rbuf->InvalidateStatusOfAttachedFBs(funcName);
 
     if (mBoundRenderbuffer == rbuf)
         BindRenderbuffer(LOCAL_GL_RENDERBUFFER, nullptr);
@@ -368,17 +419,18 @@ WebGLContext::DeleteRenderbuffer(WebGLRenderbuffer* rbuf)
 void
 WebGLContext::DeleteTexture(WebGLTexture* tex)
 {
-    if (!ValidateDeleteObject("deleteTexture", tex))
+    const char funcName[] = "deleteTexture";
+    if (!ValidateDeleteObject(funcName, tex))
         return;
 
     if (mBoundDrawFramebuffer)
-        mBoundDrawFramebuffer->DetachTexture(tex);
+        mBoundDrawFramebuffer->DetachTexture(funcName, tex);
 
     if (mBoundReadFramebuffer)
-        mBoundReadFramebuffer->DetachTexture(tex);
+        mBoundReadFramebuffer->DetachTexture(funcName, tex);
 
     GLuint activeTexture = mActiveTexture;
-    for (int32_t i = 0; i < mGLMaxTextureUnits; i++) {
+    for (uint32_t i = 0; i < mGLMaxTextureUnits; i++) {
         if (mBound2DTextures[i] == tex ||
             mBoundCubeMapTextures[i] == tex ||
             mBound3DTextures[i] == tex ||
@@ -861,7 +913,7 @@ WebGLContext::GetError()
     if (IsContextLost()) {
         if (mEmitContextLostErrorOnce) {
             mEmitContextLostErrorOnce = false;
-            return LOCAL_GL_CONTEXT_LOST;
+            return LOCAL_GL_CONTEXT_LOST_WEBGL;
         }
         // Don't return yet, since WEBGL_lose_contexts contradicts the
         // original spec, and allows error generation while lost.
@@ -1126,6 +1178,13 @@ WebGLContext::PixelStorei(GLenum pname, GLint param)
             return;
         }
 
+    case UNPACK_REQUIRE_FASTPATH:
+        if (IsExtensionEnabled(WebGLExtensionID::MOZ_debug)) {
+            mPixelStore_RequireFastPath = bool(param);
+            return;
+        }
+        break;
+
     case LOCAL_GL_PACK_ALIGNMENT:
     case LOCAL_GL_UNPACK_ALIGNMENT:
         switch (param) {
@@ -1241,17 +1300,18 @@ GetJSScalarFromGLType(GLenum type, js::Scalar::Type* const out_scalarType)
 }
 
 bool
-WebGLContext::ReadPixels_SharedPrecheck(ErrorResult* const out_error)
+WebGLContext::ReadPixels_SharedPrecheck(CallerType aCallerType,
+                                        ErrorResult& out_error)
 {
     if (IsContextLost())
         return false;
 
     if (mCanvasElement &&
         mCanvasElement->IsWriteOnly() &&
-        !nsContentUtils::IsCallerChrome())
+        aCallerType != CallerType::System)
     {
         GenerateWarning("readPixels: Not allowed");
-        out_error->Throw(NS_ERROR_DOM_SECURITY_ERR);
+        out_error.Throw(NS_ERROR_DOM_SECURITY_ERR);
         return false;
     }
 
@@ -1304,10 +1364,11 @@ WebGLContext::ValidatePackSize(const char* funcName, uint32_t width, uint32_t he
 void
 WebGLContext::ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format,
                          GLenum type, const dom::ArrayBufferView& dstView,
-                         GLuint dstElemOffset, ErrorResult& out_error)
+                         GLuint dstElemOffset, CallerType aCallerType,
+                         ErrorResult& out_error)
 {
     const char funcName[] = "readPixels";
-    if (!ReadPixels_SharedPrecheck(&out_error))
+    if (!ReadPixels_SharedPrecheck(aCallerType, out_error))
         return;
 
     if (mBoundPixelPackBuffer) {
@@ -1343,10 +1404,11 @@ WebGLContext::ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum
 
 void
 WebGLContext::ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format,
-                         GLenum type, WebGLsizeiptr offset, ErrorResult& out_error)
+                         GLenum type, WebGLsizeiptr offset,
+                         CallerType aCallerType, ErrorResult& out_error)
 {
     const char funcName[] = "readPixels";
-    if (!ReadPixels_SharedPrecheck(&out_error))
+    if (!ReadPixels_SharedPrecheck(aCallerType, out_error))
         return;
 
     const auto& buffer = ValidateBufferSelection(funcName, LOCAL_GL_PIXEL_PACK_BUFFER);
@@ -2038,9 +2100,21 @@ WebGLContext::UniformNfv(const char* funcName, uint8_t N, WebGLUniformLocation* 
     (gl->*func)(loc->mLoc, numElementsToUpload, elemBytes);
 }
 
+static inline void
+MatrixAxBToRowMajor(const uint8_t width, const uint8_t height,
+                    const float* __restrict srcColMajor,
+                    float* __restrict dstRowMajor)
+{
+    for (uint8_t x = 0; x < width; ++x) {
+        for (uint8_t y = 0; y < height; ++y) {
+            dstRowMajor[y * width + x] = srcColMajor[x * height + y];
+        }
+    }
+}
+
 void
 WebGLContext::UniformMatrixAxBfv(const char* funcName, uint8_t A, uint8_t B,
-                                 WebGLUniformLocation* loc, bool transpose,
+                                 WebGLUniformLocation* loc, const bool transpose,
                                  const Float32Arr& arr, GLuint elemOffset,
                                  GLuint elemCountOverride)
 {
@@ -2052,13 +2126,48 @@ WebGLContext::UniformMatrixAxBfv(const char* funcName, uint8_t A, uint8_t B,
     }
     const auto elemBytes = arr.elemBytes + elemOffset;
 
-    uint32_t numElementsToUpload;
+    uint32_t numMatsToUpload;
     if (!ValidateUniformMatrixArraySetter(loc, A, B, LOCAL_GL_FLOAT, elemCount,
-                                          transpose, funcName, &numElementsToUpload))
+                                          transpose, funcName, &numMatsToUpload))
     {
         return;
     }
     MOZ_ASSERT(!loc->mInfo->mSamplerTexList, "Should not be a sampler.");
+
+    ////
+
+    bool uploadTranspose = transpose;
+    const float* uploadBytes = elemBytes;
+
+    UniqueBuffer temp;
+    if (!transpose && gl->WorkAroundDriverBugs() && gl->IsANGLE() &&
+        gl->IsAtLeast(gl::ContextProfile::OpenGLES, 300))
+    {
+        // ANGLE is really slow at non-GL-transposed matrices.
+        const size_t kElemsPerMat = A * B;
+
+        temp = malloc(numMatsToUpload * kElemsPerMat * sizeof(float));
+        if (!temp) {
+            ErrorOutOfMemory("%s: Failed to alloc temporary buffer for transposition.",
+                             funcName);
+            return;
+        }
+
+        auto srcItr = (const float*)elemBytes;
+        auto dstItr = (float*)temp.get();
+        const auto srcEnd = srcItr + numMatsToUpload * kElemsPerMat;
+
+        while (srcItr != srcEnd) {
+            MatrixAxBToRowMajor(A, B, srcItr, dstItr);
+            srcItr += kElemsPerMat;
+            dstItr += kElemsPerMat;
+        }
+
+        uploadBytes = (const float*)temp.get();
+        uploadTranspose = true;
+    }
+
+    ////
 
     static const decltype(&gl::GLContext::fUniformMatrix2fv) kFuncList[] = {
         &gl::GLContext::fUniformMatrix2fv,
@@ -2076,7 +2185,7 @@ WebGLContext::UniformMatrixAxBfv(const char* funcName, uint8_t A, uint8_t B,
     const auto func = kFuncList[3*(A-2) + (B-2)];
 
     MakeContextCurrent();
-    (gl->*func)(loc->mLoc, numElementsToUpload, transpose, elemBytes);
+    (gl->*func)(loc->mLoc, numMatsToUpload, uploadTranspose, uploadBytes);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2148,8 +2257,8 @@ WebGLContext::Viewport(GLint x, GLint y, GLsizei width, GLsizei height)
     if (width < 0 || height < 0)
         return ErrorInvalidValue("viewport: negative size");
 
-    width = std::min(width, (GLsizei)mImplMaxViewportDims[0]);
-    height = std::min(height, (GLsizei)mImplMaxViewportDims[1]);
+    width = std::min(width, (GLsizei)mGLMaxViewportDims[0]);
+    height = std::min(height, (GLsizei)mGLMaxViewportDims[1]);
 
     MakeContextCurrent();
     gl->fViewport(x, y, width, height);

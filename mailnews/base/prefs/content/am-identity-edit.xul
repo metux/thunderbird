@@ -32,6 +32,8 @@
           src="chrome://messenger/content/am-prefs.js"/>
   <script type="application/javascript"
           src="chrome://messenger/content/am-identity-edit.js"/>
+  <script type="application/javascript"
+          src="chrome://messenger/content/amUtils.js"/>
 
   <broadcaster id="broadcaster_attachSignature"/>
 
@@ -115,10 +117,10 @@
         <groupbox>
           <caption label="&privateData.label;"/>
 
+          <label value="&smtpName.label;"
+                 control="identity.smtpServerKey"
+                 accesskey="&smtpName.accesskey;"/>
           <hbox align="center">
-            <label value="&smtpName.label;"
-                   control="identity.smtpServerKey"
-                   accesskey="&smtpName.accesskey;"/>
             <menulist id="identity.smtpServerKey" flex="1">
               <menupopup id="smtpPopup">
                 <menuitem value=""
@@ -128,6 +130,11 @@
                 <!-- list will be inserted here -->
               </menupopup>
             </menulist>
+
+            <button id="editSmtp"
+                    label="&smtpServerEdit.label;"
+                    accesskey="&smtpServerEdit.accesskey;"
+                    oncommand="editCurrentSMTP();"/>
           </hbox>
 
           <separator class="thin"/>

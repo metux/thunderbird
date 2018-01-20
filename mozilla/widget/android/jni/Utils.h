@@ -3,6 +3,8 @@
 
 #include <jni.h>
 
+#include "nsIRunnable.h"
+
 #include "mozilla/UniquePtr.h"
 
 #if defined(DEBUG) || !defined(RELEASE_OR_BETA)
@@ -10,7 +12,7 @@
 #endif
 
 #ifdef MOZ_CHECK_JNI
-#include <pthread.h>
+#include <unistd.h>
 #include "mozilla/Assertions.h"
 #include "APKOpen.h"
 #include "MainThreadUtils.h"
@@ -50,17 +52,31 @@ enum class DispatchTarget
     // wrapped in a function object and is passed thru UsesNativeCallProxy.
     // Method must return void.
     PROXY,
-    // Call is dispatched asynchronously on the Gecko thread. Method must
-    // return void.
+    // Call is dispatched asynchronously on the Gecko thread to the XPCOM
+    // (nsThread) event queue. Method must return void.
     GECKO,
+    // Call is dispatched asynchronously on the Gecko thread to the widget
+    // (nsAppShell) event queue. In most cases, events in the widget event
+    // queue (aka native event queue) are favored over events in the XPCOM
+    // event queue. Method must return void.
+    GECKO_PRIORITY,
 };
 
 
+extern JavaVM* sJavaVM;
 extern JNIEnv* sGeckoThreadEnv;
 
 inline bool IsAvailable()
 {
     return !!sGeckoThreadEnv;
+}
+
+inline JavaVM* GetVM()
+{
+#ifdef MOZ_CHECK_JNI
+    MOZ_ASSERT(sJavaVM);
+#endif
+    return sJavaVM;
 }
 
 inline JNIEnv* GetGeckoThreadEnv()
@@ -82,8 +98,7 @@ JNIEnv* GetEnvForThread();
         if ((thread) == mozilla::jni::CallingThread::GECKO) { \
             MOZ_RELEASE_ASSERT(::NS_IsMainThread()); \
         } else if ((thread) == mozilla::jni::CallingThread::UI) { \
-            const bool isOnUiThread = ::pthread_equal(::pthread_self(), \
-                                                      ::getJavaUiThread()); \
+            const bool isOnUiThread = (GetUIThreadId() == ::gettid()); \
             MOZ_RELEASE_ASSERT(isOnUiThread); \
         } \
     } while (0)
@@ -127,19 +142,17 @@ void SetNativeHandle(JNIEnv* env, jobject instance, uintptr_t handle);
 
 jclass GetClassRef(JNIEnv* aEnv, const char* aClassName);
 
-struct AbstractCall
-{
-    virtual ~AbstractCall() {}
-    virtual void operator()() = 0;
-};
-
-void DispatchToGeckoThread(UniquePtr<AbstractCall>&& aCall);
+void DispatchToGeckoPriorityQueue(already_AddRefed<nsIRunnable> aCall);
 
 /**
  * Returns whether Gecko is running in a Fennec environment, as determined by
  * the presence of the GeckoApp class.
  */
 bool IsFennec();
+
+int GetAPIVersion();
+
+pid_t GetUIThreadId();
 
 } // jni
 } // mozilla

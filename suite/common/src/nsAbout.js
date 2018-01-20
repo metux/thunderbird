@@ -24,6 +24,8 @@ About.prototype = {
   feedsURI: "chrome://communicator/content/feeds/subscribe.xhtml",
   lifeFlags: SCRIPT | UNTRUSTED | HIDE,
   lifeURI: "chrome://communicator/content/aboutLife.xhtml",
+  newserrorFlags: SCRIPT | HIDE,
+  newserrorURI: "chrome://messenger/content/newsError.xhtml",
   privatebrowsingFlags: SCRIPT,
   privatebrowsingURI: "chrome://communicator/content/aboutPrivateBrowsing.xul",
   rightsFlags: SCRIPT | UNTRUSTED,
@@ -37,7 +39,7 @@ About.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsIAboutModule]),
 
   getModule: function(aURI) {
-    return aURI.path.replace(/-|\W.*$/g, "").toLowerCase();
+    return aURI.pathQueryRef.replace(/-|\W.*$/g, "").toLowerCase();
   },
 
   getURIFlags: function(aURI) {
@@ -46,13 +48,13 @@ About.prototype = {
 
   newChannel: function(aURI, aLoadInfo) {
     var module = this.getModule(aURI);
-    var newURI = Services.io.newURI(this[module + "URI"], null, null);
+    var newURI = Services.io.newURI(this[module + "URI"]);
     var channel = aLoadInfo ?
                   Services.io.newChannelFromURIWithLoadInfo(newURI, aLoadInfo) :
                   Services.io.newChannelFromURI2(newURI, null,
                                                  Services.scriptSecurityManager.getSystemPrincipal(),
                                                  null,
-                                                 Components.interfaces.nsILoadInfo.SEC_NORMAL,
+                                                 Components.interfaces.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                                  Components.interfaces.nsIContentPolicy.TYPE_OTHER);
     channel.originalURI = aURI;
     if (this[module + "Flags"] & UNTRUSTED)

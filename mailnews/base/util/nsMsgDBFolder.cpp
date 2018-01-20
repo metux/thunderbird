@@ -27,8 +27,6 @@
 #include "nsIPrompt.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
-#include "nsILocale.h"
-#include "nsILocaleService.h"
 #include "nsCollationCID.h"
 #include "nsAbBaseCID.h"
 #include "nsIAbCard.h"
@@ -71,6 +69,9 @@
 #include "mozilla/Services.h"
 #include "nsMimeTypes.h"
 #include "nsIMsgFilter.h"
+#include "nsIConsoleService.h"
+#include "nsIScriptError.h"
+#include "mozilla/intl/LocaleService.h"
 
 static PRTime gtimeOfLastPurgeCheck;    //variable to know when to check for purge_threshhold
 
@@ -87,28 +88,61 @@ static NS_DEFINE_CID(kRDFServiceCID, NS_RDFSERVICE_CID);
 
 nsICollation * nsMsgDBFolder::gCollationKeyGenerator = nullptr;
 
-char16_t *nsMsgDBFolder::kLocalizedInboxName;
-char16_t *nsMsgDBFolder::kLocalizedTrashName;
-char16_t *nsMsgDBFolder::kLocalizedSentName;
-char16_t *nsMsgDBFolder::kLocalizedDraftsName;
-char16_t *nsMsgDBFolder::kLocalizedTemplatesName;
-char16_t *nsMsgDBFolder::kLocalizedUnsentName;
-char16_t *nsMsgDBFolder::kLocalizedJunkName;
-char16_t *nsMsgDBFolder::kLocalizedArchivesName;
+nsString nsMsgDBFolder::kLocalizedInboxName;
+nsString nsMsgDBFolder::kLocalizedTrashName;
+nsString nsMsgDBFolder::kLocalizedSentName;
+nsString nsMsgDBFolder::kLocalizedDraftsName;
+nsString nsMsgDBFolder::kLocalizedTemplatesName;
+nsString nsMsgDBFolder::kLocalizedUnsentName;
+nsString nsMsgDBFolder::kLocalizedJunkName;
+nsString nsMsgDBFolder::kLocalizedArchivesName;
 
-char16_t *nsMsgDBFolder::kLocalizedBrandShortName;
+nsString nsMsgDBFolder::kLocalizedBrandShortName;
 
 nsrefcnt nsMsgDBFolder::mInstanceCount=0;
 
-NS_IMPL_ISUPPORTS_INHERITED(nsMsgDBFolder, nsRDFResource, 
+// We define strings for folder properties and events.
+// Properties:
+NS_NAMED_LITERAL_CSTRING(kBiffState, "BiffState");
+NS_NAMED_LITERAL_CSTRING(kCanFileMessages, "CanFileMessages");
+NS_NAMED_LITERAL_CSTRING(kDefaultServer, "DefaultServer");
+NS_NAMED_LITERAL_CSTRING(kFlagged, "Flagged");
+NS_NAMED_LITERAL_CSTRING(kFolderFlag, "FolderFlag");
+NS_NAMED_LITERAL_CSTRING(kFolderSize, "FolderSize");
+NS_NAMED_LITERAL_CSTRING(kInVFEditSearchScope, "inVFEditSearchScope");
+NS_NAMED_LITERAL_CSTRING(kIsDeferred, "isDeferred");
+NS_NAMED_LITERAL_CSTRING(kIsSecure, "isSecure");
+NS_NAMED_LITERAL_CSTRING(kJunkStatusChanged, "JunkStatusChanged");
+NS_NAMED_LITERAL_CSTRING(kKeywords, "Keywords");
+NS_NAMED_LITERAL_CSTRING(kMRMTimeChanged, "MRMTimeChanged");
+NS_NAMED_LITERAL_CSTRING(kMsgLoaded, "msgLoaded");
+NS_NAMED_LITERAL_CSTRING(kName, "Name");
+NS_NAMED_LITERAL_CSTRING(kNewMailReceived, "NewMailReceived");
+NS_NAMED_LITERAL_CSTRING(kNewMessages, "NewMessages");
+NS_NAMED_LITERAL_CSTRING(kOpen, "open");
+NS_NAMED_LITERAL_CSTRING(kSortOrder, "SortOrder");
+NS_NAMED_LITERAL_CSTRING(kStatus, "Status");
+NS_NAMED_LITERAL_CSTRING(kSynchronize, "Synchronize");
+NS_NAMED_LITERAL_CSTRING(kTotalMessages, "TotalMessages");
+NS_NAMED_LITERAL_CSTRING(kTotalUnreadMessages, "TotalUnreadMessages");
+
+// Events:
+NS_NAMED_LITERAL_CSTRING(kAboutToCompact, "AboutToCompact");
+NS_NAMED_LITERAL_CSTRING(kCompactCompleted, "CompactCompleted");
+NS_NAMED_LITERAL_CSTRING(kDeleteOrMoveMsgCompleted, "DeleteOrMoveMsgCompleted");
+NS_NAMED_LITERAL_CSTRING(kDeleteOrMoveMsgFailed, "DeleteOrMoveMsgFailed");
+NS_NAMED_LITERAL_CSTRING(kFiltersApplied, "FiltersApplied");
+NS_NAMED_LITERAL_CSTRING(kFolderCreateCompleted, "FolderCreateCompleted");
+NS_NAMED_LITERAL_CSTRING(kFolderCreateFailed, "FolderCreateFailed");
+NS_NAMED_LITERAL_CSTRING(kFolderLoaded, "FolderLoaded");
+NS_NAMED_LITERAL_CSTRING(kNumNewBiffMessages, "NumNewBiffMessages");
+NS_NAMED_LITERAL_CSTRING(kRenameCompleted, "RenameCompleted");
+
+NS_IMPL_ISUPPORTS_INHERITED(nsMsgDBFolder, nsRDFResource,
                              nsISupportsWeakReference, nsIMsgFolder,
                              nsIDBChangeListener, nsIUrlListener,
                              nsIJunkMailClassificationListener,
                              nsIMsgTraitClassificationListener)
-
-#define MSGDBFOLDER_ATOM(name_, value_) nsIAtom* nsMsgDBFolder::name_ = nullptr;
-#include "nsMsgDBFolderAtomList.h"
-#undef MSGDBFOLDER_ATOM
 
 nsMsgDBFolder::nsMsgDBFolder(void)
 : mAddListener(true),
@@ -132,9 +166,6 @@ nsMsgDBFolder::nsMsgDBFolder(void)
   mInVFEditSearchScope (false)
 {
   if (mInstanceCount++ <=0) {
-#define MSGDBFOLDER_ATOM(name_, value_) name_ = MsgNewAtom(value_).take();
-#include "nsMsgDBFolderAtomList.h"
-#undef MSGDBFOLDER_ATOM
     initializeStrings();
     createCollationKeyGenerator();
     gtimeOfLastPurgeCheck = 0;
@@ -157,19 +188,6 @@ nsMsgDBFolder::~nsMsgDBFolder(void)
 
   if (--mInstanceCount == 0) {
     NS_IF_RELEASE(gCollationKeyGenerator);
-    NS_Free(kLocalizedInboxName);
-    NS_Free(kLocalizedTrashName);
-    NS_Free(kLocalizedSentName);
-    NS_Free(kLocalizedDraftsName);
-    NS_Free(kLocalizedTemplatesName);
-    NS_Free(kLocalizedUnsentName);
-    NS_Free(kLocalizedJunkName);
-    NS_Free(kLocalizedArchivesName);
-    NS_Free(kLocalizedBrandShortName);
-
-#define MSGDBFOLDER_ATOM(name_, value_) NS_RELEASE(name_);
-#include "nsMsgDBFolderAtomList.h"
-#undef MSGDBFOLDER_ATOM
   }
   //shutdown but don't shutdown children.
   Shutdown(false);
@@ -349,7 +367,7 @@ NS_IMETHODIMP nsMsgDBFolder::RemoveBackupMsgDatabase()
   }
 
   return backupDBFile->Remove(false);
-}  
+}
 
 NS_IMETHODIMP nsMsgDBFolder::StartFolderLoading(void)
 {
@@ -469,7 +487,7 @@ NS_IMETHODIMP nsMsgDBFolder::SetHasNewMessages(bool curNewMessages)
       SetMRUTime();
     bool oldNewMessages = mNewMessages;
     mNewMessages = curNewMessages;
-    NotifyBoolPropertyChanged(kNewMessagesAtom, oldNewMessages, curNewMessages);
+    NotifyBoolPropertyChanged(kNewMessages, oldNewMessages, curNewMessages);
   }
 
   return NS_OK;
@@ -549,7 +567,7 @@ NS_IMETHODIMP nsMsgDBFolder::ClearNewMessages()
     {
       m_saveNewMsgs.Clear();
       m_saveNewMsgs.AppendElements(newMessageKeys, numNewKeys);
-      NS_Free(newMessageKeys);
+      free(newMessageKeys);
     }
     mDatabase->ClearNewList(true);
   }
@@ -698,14 +716,14 @@ nsresult nsMsgDBFolder::SendFlagNotifications(nsIMsgDBHdr *item, uint32_t oldFla
   if((changedFlags & nsMsgMessageFlags::Read)  && (changedFlags & nsMsgMessageFlags::New))
   {
     //..so..if the msg is read in the folder and the folder has new msgs clear the account level and status bar biffs.
-    rv = NotifyPropertyFlagChanged(item, kStatusAtom, oldFlags, newFlags);
+    rv = NotifyPropertyFlagChanged(item, kStatus, oldFlags, newFlags);
     rv = SetBiffState(nsMsgBiffState_NoMail);
   }
   else if(changedFlags & (nsMsgMessageFlags::Read | nsMsgMessageFlags::Replied | nsMsgMessageFlags::Forwarded
     | nsMsgMessageFlags::IMAPDeleted | nsMsgMessageFlags::New | nsMsgMessageFlags::Offline))
-    rv = NotifyPropertyFlagChanged(item, kStatusAtom, oldFlags, newFlags);
+    rv = NotifyPropertyFlagChanged(item, kStatus, oldFlags, newFlags);
   else if((changedFlags & nsMsgMessageFlags::Marked))
-    rv = NotifyPropertyFlagChanged(item, kFlaggedAtom, oldFlags, newFlags);
+    rv = NotifyPropertyFlagChanged(item, kFlagged, oldFlags, newFlags);
   return rv;
 }
 
@@ -906,10 +924,10 @@ nsresult nsMsgDBFolder::CreateFileForDB(const nsAString& userLeafName, nsIFile *
     dbPath->GetLeafName(proposedDBName);
   }
   // now, take the ".msf" off
-  proposedDBName.SetLength(proposedDBName.Length() - NS_LITERAL_CSTRING(SUMMARY_SUFFIX).Length());
+  proposedDBName.SetLength(proposedDBName.Length() - SUMMARY_SUFFIX_LENGTH);
   dbPath->SetLeafName(proposedDBName);
 
-  dbPath.swap(*dbFile);
+  dbPath.forget(dbFile);
   return NS_OK;
 }
 
@@ -944,7 +962,7 @@ nsMsgDBFolder::SetMsgDatabase(nsIMsgDatabase *aMsgDatabase)
         m_newMsgs.Clear();
         m_newMsgs.AppendElements(newMessageKeys, numNewKeys);
       }
-      NS_Free(newMessageKeys);
+      free(newMessageKeys);
     }
   }
   mDatabase = aMsgDatabase;
@@ -992,12 +1010,12 @@ nsMsgDBFolder::OnReadChanged(nsIDBChangeListener * aInstigator)
 NS_IMETHODIMP
 nsMsgDBFolder::OnJunkScoreChanged(nsIDBChangeListener * aInstigator)
 {
-  NotifyFolderEvent(mJunkStatusChangedAtom);
+  NotifyFolderEvent(kJunkStatusChanged);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsMsgDBFolder::OnHdrPropertyChanged(nsIMsgDBHdr *aHdrToChange, bool aPreChange, uint32_t *aStatus, 
+nsMsgDBFolder::OnHdrPropertyChanged(nsIMsgDBHdr *aHdrToChange, bool aPreChange, uint32_t *aStatus,
                                    nsIDBChangeListener *aInstigator)
 {
   /* do nothing.  if you care about this, override it.*/
@@ -1325,7 +1343,7 @@ nsresult nsMsgDBFolder::GetFolderCacheKey(nsIFile **aFile, bool createDBIfMissin
       }
     }
   }
-  NS_IF_ADDREF(*aFile = dbPath);
+  dbPath.forget(aFile);
   return rv;
 }
 
@@ -1466,11 +1484,11 @@ nsMsgDBFolder::MarkAllMessagesRead(nsIMsgWindow *aMsgWindow)
 
   if (NS_SUCCEEDED(rv))
   {
-    EnableNotifications(allMessageCountNotifications, false, true /*dbBatching*/);
+    EnableNotifications(allMessageCountNotifications, false);
     nsMsgKey *thoseMarked;
     uint32_t numMarked;
     rv = mDatabase->MarkAllRead(&numMarked, &thoseMarked);
-    EnableNotifications(allMessageCountNotifications, true, true /*dbBatching*/);
+    EnableNotifications(allMessageCountNotifications, true);
     NS_ENSURE_SUCCESS(rv, rv);
 
     // Setup a undo-state
@@ -1511,7 +1529,7 @@ nsMsgDBFolder::OnStopRunningUrl(nsIURI *aUrl, nsresult aExitCode)
   {
     bool updatingFolder = false;
     if (NS_SUCCEEDED(mailUrl->GetUpdatingFolder(&updatingFolder)) && updatingFolder)
-      NotifyFolderEvent(mFolderLoadedAtom);
+      NotifyFolderEvent(kFolderLoaded);
 
     // be sure to remove ourselves as a url listener
     mailUrl->UnRegisterListener(this);
@@ -1563,9 +1581,9 @@ nsMsgDBFolder::GetRetentionSettings(nsIMsgRetentionSettings **settings)
           if (useServerRetention.EqualsLiteral("1") != useServerDefaults)
           {
             if (useServerDefaults)
-              useServerRetention.AssignLiteral("1");
+              useServerRetention.Assign('1');
             else
-              useServerRetention.AssignLiteral("0");
+              useServerRetention.Assign('0');
             SetStringProperty(kUseServerRetentionProp, useServerRetention);
           }
         }
@@ -1592,12 +1610,12 @@ NS_IMETHODIMP nsMsgDBFolder::SetRetentionSettings(nsIMsgRetentionSettings *setti
   settings->GetUseServerDefaults(&useServerDefaults);
   if (useServerDefaults)
   {
-    useServerRetention.AssignLiteral("1");
+    useServerRetention.Assign('1');
     m_retentionSettings = nullptr;
   }
   else
   {
-    useServerRetention.AssignLiteral("0");
+    useServerRetention.Assign('0');
     m_retentionSettings = settings;
   }
   SetStringProperty(kUseServerRetentionProp, useServerRetention);
@@ -1762,11 +1780,11 @@ nsresult nsMsgDBFolder::EndNewOfflineMessage()
 #ifdef _DEBUG
        nsAutoCString message("Offline message too small: messageSize=");
        message.AppendInt(messageSize);
-       message.Append(" curStorePos=");
+       message.AppendLiteral(" curStorePos=");
        message.AppendInt(curStorePos);
-       message.Append(" numOfflineMsgLines=");
+       message.AppendLiteral(" numOfflineMsgLines=");
        message.AppendInt(m_numOfflineMsgLines);
-       message.Append(" bytesAdded=");
+       message.AppendLiteral(" bytesAdded=");
        message.AppendInt(m_bytesAddedToLocalMsg);
        NS_ERROR(message.get());
 #endif
@@ -1800,7 +1818,8 @@ class AutoCompactEvent : public mozilla::Runnable
 {
 public:
   AutoCompactEvent(nsIMsgWindow *aMsgWindow, nsMsgDBFolder *aFolder)
-    : mMsgWindow(aMsgWindow), mFolder(aFolder)
+    : mozilla::Runnable("AutoCompactEvent")
+    , mMsgWindow(aMsgWindow), mFolder(aFolder)
   {}
 
   NS_IMETHOD Run()
@@ -1873,7 +1892,7 @@ nsresult nsMsgDBFolder::HandleAutoCompactEvent(nsIMsgWindow *aWindow)
                 folder->GetExpungedBytes(&expungedBytes);
               if (expungedBytes > 0 )
               {
-                offlineFolderArray->AppendElement(folder, false);
+                offlineFolderArray->AppendElement(folder);
                 offlineExpungedBytes += expungedBytes;
               }
             }
@@ -1887,7 +1906,7 @@ nsresult nsMsgDBFolder::HandleAutoCompactEvent(nsIMsgWindow *aWindow)
               folder->GetExpungedBytes(&expungedBytes);
               if (expungedBytes > 0 )
               {
-                folderArray->AppendElement(folder, false);
+                folderArray->AppendElement(folder);
                 localExpungedBytes += expungedBytes;
               }
             }
@@ -1920,16 +1939,16 @@ nsresult nsMsgDBFolder::HandleAutoCompactEvent(nsIMsgWindow *aWindow)
           nsAutoString compactSize;
           FormatFileSize(totalExpungedBytes, true, compactSize);
           const char16_t* params[] = { compactSize.get() };
-          rv = bundle->GetStringFromName(u"autoCompactAllFoldersTitle", getter_Copies(dialogTitle));
+          rv = bundle->GetStringFromName("autoCompactAllFoldersTitle", dialogTitle);
           NS_ENSURE_SUCCESS(rv, rv);
-          rv = bundle->FormatStringFromName(u"autoCompactAllFoldersText",
-                                            params, 1, getter_Copies(confirmString));
+          rv = bundle->FormatStringFromName("autoCompactAllFoldersText",
+                                            params, 1, confirmString);
           NS_ENSURE_SUCCESS(rv, rv);
-          rv = bundle->GetStringFromName(u"autoCompactAlwaysAskCheckbox",
-                                         getter_Copies(checkboxText));
+          rv = bundle->GetStringFromName("autoCompactAlwaysAskCheckbox",
+                                         checkboxText);
           NS_ENSURE_SUCCESS(rv, rv);
-          rv = bundle->GetStringFromName(u"compactNowButton",
-                                         getter_Copies(buttonCompactNowText));
+          rv = bundle->GetStringFromName("compactNowButton",
+                                         buttonCompactNowText);
           NS_ENSURE_SUCCESS(rv, rv);
           bool alwaysAsk = true; // "Always ask..." - checked by default.
           int32_t buttonPressed = 0;
@@ -1957,8 +1976,7 @@ nsresult nsMsgDBFolder::HandleAutoCompactEvent(nsIMsgWindow *aWindow)
 
         if (okToCompact)
         {
-          nsCOMPtr <nsIAtom> aboutToCompactAtom = MsgGetAtom("AboutToCompact");
-          NotifyFolderEvent(aboutToCompactAtom);
+          NotifyFolderEvent(kAboutToCompact);
 
          if (localExpungedBytes > 0)
          {
@@ -2205,7 +2223,7 @@ nsMsgDBFolder::GetForcePropertyEmpty(const char *aPropertyName, bool *_retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
   nsAutoCString nameEmpty(aPropertyName);
-  nameEmpty.Append(NS_LITERAL_CSTRING(".empty"));
+  nameEmpty.AppendLiteral(".empty");
   nsCString value;
   GetStringProperty(nameEmpty.get(), value);
   *_retval = value.EqualsLiteral("true");
@@ -2216,7 +2234,7 @@ NS_IMETHODIMP
 nsMsgDBFolder::SetForcePropertyEmpty(const char *aPropertyName, bool aValue)
 {
  nsAutoCString nameEmpty(aPropertyName);
- nameEmpty.Append(NS_LITERAL_CSTRING(".empty"));
+ nameEmpty.AppendLiteral(".empty");
  return SetStringProperty(nameEmpty.get(),
    aValue ? NS_LITERAL_CSTRING("true") : NS_LITERAL_CSTRING(""));
 }
@@ -2280,8 +2298,8 @@ nsMsgDBFolder::SpamFilterClassifyMessage(const char *aURI, nsIMsgWindow *aMsgWin
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = aJunkMailPlugin->ClassifyTraitsInMessage(aURI, count, proIndices, antiIndices, this, aMsgWindow, this);
-  NS_Free(proIndices);
-  NS_Free(antiIndices);
+  free(proIndices);
+  free(antiIndices);
   return rv;
 }
 
@@ -2301,8 +2319,8 @@ nsMsgDBFolder::SpamFilterClassifyMessages(const char **aURIArray, uint32_t aURIC
 
   rv = aJunkMailPlugin->ClassifyTraitsInMessages(aURICount, aURIArray, count,
       proIndices, antiIndices, this, aMsgWindow, this);
-  NS_Free(proIndices);
-  NS_Free(antiIndices);
+  free(proIndices);
+  free(antiIndices);
   return rv;
 }
 
@@ -2360,7 +2378,7 @@ nsMsgDBFolder::OnMessageClassified(const char *aMsgURI,
       rv = mDatabase->GetMsgHdrForKey(msgKey, getter_AddRefs(msgHdr));
       if (!NS_SUCCEEDED(rv))
         continue;
-      classifiedMsgHdrs->AppendElement(msgHdr, false);
+      classifiedMsgHdrs->AppendElement(msgHdr);
     }
 
     // only generate the notification if there are some classified messages
@@ -2441,7 +2459,7 @@ nsMsgDBFolder::OnMessageTraitsClassified(const char *aMsgURI,
 {
   if (!aMsgURI) // This signifies end of batch
     return NS_OK; // We are not handling batching
-  
+
   nsresult rv;
   nsCOMPtr <nsIMsgDBHdr> msgHdr;
   rv = GetMsgDBHdrFromURI(aMsgURI, getter_AddRefs(msgHdr));
@@ -2468,7 +2486,7 @@ nsMsgDBFolder::OnMessageTraitsClassified(const char *aMsgURI,
       continue; // junk is processed by the junk listener
     nsAutoCString traitId;
     rv = traitService->GetId(aTraits[i], traitId);
-    traitId.Insert(NS_LITERAL_CSTRING("bayespercent/"), 0);
+    traitId.InsertLiteral("bayespercent/", 0);
     nsAutoCString strPercent;
     strPercent.AppendInt(aPercents[i]);
     mDatabase->SetStringPropertyByHdr(msgHdr, traitId.get(), strPercent.get());
@@ -2602,8 +2620,8 @@ nsMsgDBFolder::CallFilterPlugins(nsIMsgWindow *aMsgWindow, bool *aFiltersRun)
         break;
       }
     }
-    NS_Free(proIndices);
-    NS_Free(antiIndices);
+    free(proIndices);
+    free(antiIndices);
   }
 
   // Do we need to apply message filters?
@@ -2656,7 +2674,7 @@ nsMsgDBFolder::CallFilterPlugins(nsIMsgWindow *aMsgWindow, bool *aFiltersRun)
   if (numNewKeys)
     newMessageKeys.AppendElements(newKeys, numNewKeys);
 
-  NS_Free(newKeys);
+  free(newKeys);
 
   // build up list of keys to classify
   nsTArray<nsMsgKey> classifyMsgKeys;
@@ -2735,7 +2753,7 @@ nsMsgDBFolder::CallFilterPlugins(nsIMsgWindow *aMsgWindow, bool *aFiltersRun)
         // Lazily create the array.
         if (!mPostBayesMessagesToFilter)
           mPostBayesMessagesToFilter = do_CreateInstance(NS_ARRAY_CONTRACTID);
-        mPostBayesMessagesToFilter->AppendElement(msgHdr, false);
+        mPostBayesMessagesToFilter->AppendElement(msgHdr);
       }
     }
   }
@@ -2924,28 +2942,19 @@ nsMsgDBFolder::initializeStrings()
                                    getter_AddRefs(bundle));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  bundle->GetStringFromName(u"inboxFolderName",
-                            &kLocalizedInboxName);
-  bundle->GetStringFromName(u"trashFolderName",
-                            &kLocalizedTrashName);
-  bundle->GetStringFromName(u"sentFolderName",
-                            &kLocalizedSentName);
-  bundle->GetStringFromName(u"draftsFolderName",
-                            &kLocalizedDraftsName);
-  bundle->GetStringFromName(u"templatesFolderName",
-                            &kLocalizedTemplatesName);
-  bundle->GetStringFromName(u"junkFolderName",
-                            &kLocalizedJunkName);
-  bundle->GetStringFromName(u"outboxFolderName",
-                            &kLocalizedUnsentName);
-  bundle->GetStringFromName(u"archivesFolderName",
-                            &kLocalizedArchivesName);
+  bundle->GetStringFromName("inboxFolderName", kLocalizedInboxName);
+  bundle->GetStringFromName("trashFolderName", kLocalizedTrashName);
+  bundle->GetStringFromName("sentFolderName", kLocalizedSentName);
+  bundle->GetStringFromName("draftsFolderName", kLocalizedDraftsName);
+  bundle->GetStringFromName("templatesFolderName", kLocalizedTemplatesName);
+  bundle->GetStringFromName("junkFolderName", kLocalizedJunkName);
+  bundle->GetStringFromName("outboxFolderName", kLocalizedUnsentName);
+  bundle->GetStringFromName("archivesFolderName", kLocalizedArchivesName);
 
   nsCOMPtr<nsIStringBundle> brandBundle;
   rv = bundleService->CreateBundle("chrome://branding/locale/brand.properties", getter_AddRefs(bundle));
   NS_ENSURE_SUCCESS(rv, rv);
-  bundle->GetStringFromName(u"brandShortName",
-                            &kLocalizedBrandShortName);
+  bundle->GetStringFromName("brandShortName", kLocalizedBrandShortName);
   return NS_OK;
 }
 
@@ -2954,18 +2963,10 @@ nsMsgDBFolder::createCollationKeyGenerator()
 {
   nsresult rv = NS_OK;
 
-  nsCOMPtr<nsILocaleService> localeSvc = do_GetService(NS_LOCALESERVICE_CONTRACTID,&rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsILocale> locale;
-  rv = localeSvc->GetApplicationLocale(getter_AddRefs(locale));
-  NS_ENSURE_SUCCESS(rv, rv);
-
   nsCOMPtr <nsICollationFactory> factory = do_CreateInstance(NS_COLLATIONFACTORY_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = factory->CreateCollation(locale, &gCollationKeyGenerator);
-  return NS_OK;
+  return factory->CreateCollation(&gCollationKeyGenerator);
 }
 
 NS_IMETHODIMP
@@ -3027,7 +3028,7 @@ nsMsgDBFolder::FindSubFolder(const nsACString& aEscapedSubFolderName, nsIMsgFold
   if (NS_FAILED(rv))
     return rv;
 
-  folder.swap(*aFolder);
+  folder.forget(aFolder);
   return NS_OK;
 }
 
@@ -3085,7 +3086,7 @@ NS_IMETHODIMP nsMsgDBFolder::GetParent(nsIMsgFolder **aParent)
 {
   NS_ENSURE_ARG_POINTER(aParent);
   nsCOMPtr<nsIMsgFolder> parent = do_QueryReferent(mParent);
-  parent.swap(*aParent);
+  parent.forget(aParent);
   return NS_OK;
 }
 
@@ -3122,7 +3123,7 @@ NS_IMETHODIMP nsMsgDBFolder::GetServer(nsIMsgIncomingServer ** aServer)
     rv = parseURI(true);
     server = do_QueryReferent(mServer);
   }
-  server.swap(*aServer);
+  server.forget(aServer);
   return *aServer ? NS_OK : NS_ERROR_FAILURE;
 }
 
@@ -3141,7 +3142,7 @@ nsMsgDBFolder::parseURI(bool needServer)
   if (!mIsServerIsValid)
   {
     nsAutoCString path;
-    rv = url->GetPath(path);
+    rv = url->GetPathQueryRef(path);
     if (NS_SUCCEEDED(rv))
       mIsServer = path.EqualsLiteral("/");
     mIsServerIsValid = true;
@@ -3405,27 +3406,46 @@ NS_IMETHODIMP nsMsgDBFolder::GetPrettyName(nsAString& name)
   return GetName(name);
 }
 
+static bool
+nonEnglishApp()
+{
+  nsAutoCString locale;
+  mozilla::intl::LocaleService::GetInstance()->GetAppLocaleAsLangTag(locale);
+
+  return !(locale.EqualsLiteral("en") ||
+           StringBeginsWith(locale, NS_LITERAL_CSTRING("en-")));
+}
+
+static bool
+hasTrashName(const nsAString& name)
+{
+  // Microsoft calls the folder "Deleted". If the application is non-English,
+  // we want to use the localised name instead.
+  return name.LowerCaseEqualsLiteral("trash") ||
+         (name.LowerCaseEqualsLiteral("deleted") && nonEnglishApp());
+}
+
 NS_IMETHODIMP nsMsgDBFolder::SetPrettyName(const nsAString& name)
 {
   nsresult rv;
 
   //Set pretty name only if special flag is set and if it the default folder name
   if (mFlags & nsMsgFolderFlags::Inbox && name.LowerCaseEqualsLiteral("inbox"))
-    rv = SetName(nsDependentString(kLocalizedInboxName));
+    rv = SetName(kLocalizedInboxName);
   else if (mFlags & nsMsgFolderFlags::SentMail && name.LowerCaseEqualsLiteral("sent"))
-    rv = SetName(nsDependentString(kLocalizedSentName));
+    rv = SetName(kLocalizedSentName);
   else if (mFlags & nsMsgFolderFlags::Drafts && name.LowerCaseEqualsLiteral("drafts"))
-    rv = SetName(nsDependentString(kLocalizedDraftsName));
+    rv = SetName(kLocalizedDraftsName);
   else if (mFlags & nsMsgFolderFlags::Templates && name.LowerCaseEqualsLiteral("templates"))
-    rv = SetName(nsDependentString(kLocalizedTemplatesName));
-  else if (mFlags & nsMsgFolderFlags::Trash && name.LowerCaseEqualsLiteral("trash"))
-    rv = SetName(nsDependentString(kLocalizedTrashName));
+    rv = SetName(kLocalizedTemplatesName);
+  else if (mFlags & nsMsgFolderFlags::Trash && hasTrashName(name))
+    rv = SetName(kLocalizedTrashName);
   else if (mFlags & nsMsgFolderFlags::Queue && name.LowerCaseEqualsLiteral("unsent messages"))
-    rv = SetName(nsDependentString(kLocalizedUnsentName));
+    rv = SetName(kLocalizedUnsentName);
   else if (mFlags & nsMsgFolderFlags::Junk && name.LowerCaseEqualsLiteral("junk"))
-    rv = SetName(nsDependentString(kLocalizedJunkName));
+    rv = SetName(kLocalizedJunkName);
   else if (mFlags & nsMsgFolderFlags::Archive && name.LowerCaseEqualsLiteral("archives"))
-    rv = SetName(nsDependentString(kLocalizedArchivesName));
+    rv = SetName(kLocalizedArchivesName);
   else
     rv = SetName(name);
   return rv;
@@ -3460,7 +3480,7 @@ NS_IMETHODIMP nsMsgDBFolder::SetName(const nsAString& name)
   {
     mName = name;
     // old/new value doesn't matter here
-    NotifyUnicharPropertyChanged(kNameAtom, name, name);
+    NotifyUnicharPropertyChanged(kName, name, name);
   }
   return NS_OK;
 }
@@ -3525,8 +3545,7 @@ NS_IMETHODIMP nsMsgDBFolder::GetChildWithURI(const nsACString& uri, bool deep, b
                                                    : uri.Equals(folderURI));
       if (equal)
       {
-        *child = folder;
-        NS_ADDREF(*child);
+        folder.forget(child);
         return NS_OK;
       }
       if (deep)
@@ -3545,6 +3564,23 @@ NS_IMETHODIMP nsMsgDBFolder::GetChildWithURI(const nsACString& uri, bool deep, b
 
 NS_IMETHODIMP nsMsgDBFolder::GetPrettiestName(nsAString& name)
 {
+  if (NS_IsMainThread()) {
+    nsCOMPtr<nsIConsoleService> cs = do_GetService(NS_CONSOLESERVICE_CONTRACTID);
+
+    if (cs) {
+      nsCString msg(__FUNCTION__);
+      msg.AppendLiteral(" is deprecated and will be removed soon.");
+
+      nsCOMPtr<nsIScriptError> e = do_CreateInstance(NS_SCRIPTERROR_CONTRACTID);
+      if (e && NS_SUCCEEDED(e->Init(NS_ConvertUTF8toUTF16(msg), EmptyString(),
+                                    EmptyString(), 0, 0,
+                                    nsIScriptError::warningFlag, "mailnews"))) {
+        cs->LogMessage(e);
+      }
+    }
+  }
+  NS_WARNING("You are trying to use the deprecated attribute 'prettiestName'.");
+
   if (NS_SUCCEEDED(GetPrettyName(name)))
     return NS_OK;
   return GetName(name);
@@ -3772,7 +3808,7 @@ NS_IMETHODIMP nsMsgDBFolder::AddSubfolder(const nsAString& name,
   if (folder)
     mSubFolders.AppendObject(folder);
 
-  folder.swap(*child);
+  folder.forget(child);
   // at this point we must be ok and we don't want to return failure in case
   // GetIsServer failed.
   return NS_OK;
@@ -3845,8 +3881,8 @@ nsMsgDBFolder::ConfirmAutoFolderRename(nsIMsgWindow *msgWindow,
   };
 
   nsString confirmString;
-  rv = bundle->FormatStringFromName(u"confirmDuplicateFolderRename",
-                                    formatStrings, 3, getter_Copies(confirmString));
+  rv = bundle->FormatStringFromName("confirmDuplicateFolderRename",
+                                    formatStrings, 3, confirmString);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return false;
   }
@@ -3895,7 +3931,7 @@ nsresult nsMsgDBFolder::CreateDirectoryForFolder(nsIFile **resultFile)
     int32_t idx = leafName.RFindChar('.');
     if (idx != -1)
       ext = Substring(leafName, idx);
-    if (!ext.EqualsLiteral(FOLDER_SUFFIX))
+    if (!ext.EqualsLiteral(FOLDER_SUFFIX8))  // No overload for char16_t available.
       pathIsDirectory = false;
   }
 
@@ -3920,7 +3956,7 @@ nsresult nsMsgDBFolder::CreateDirectoryForFolder(nsIFile **resultFile)
     }
   }
   if (NS_SUCCEEDED(rv))
-    path.swap(*resultFile);
+    path.forget(resultFile);
   return rv;
 }
 
@@ -3950,7 +3986,7 @@ nsresult nsMsgDBFolder::CreateBackupDirectory(nsIFile **resultFile)
                       path->Create(nsIFile::DIRECTORY_TYPE, 0700);
   }
   if (NS_SUCCEEDED(rv))
-    path.swap(*resultFile);
+    path.forget(resultFile);
   return rv;
 }
 
@@ -3987,14 +4023,13 @@ nsresult nsMsgDBFolder::GetBackupSummaryFile(nsIFile **aBackupFile, const nsACSt
   rv = GetSummaryFileLocation(backupDBDummyFolder, getter_AddRefs(backupDBFile));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  backupDBFile.swap(*aBackupFile);
+  backupDBFile.forget(aBackupFile);
   return NS_OK;
 }
 
 NS_IMETHODIMP nsMsgDBFolder::Rename(const nsAString& aNewName, nsIMsgWindow *msgWindow)
 {
   nsCOMPtr<nsIFile> oldPathFile;
-  nsCOMPtr<nsIAtom> folderRenameAtom;
   nsresult rv = GetFilePath(getter_AddRefs(oldPathFile));
   if (NS_FAILED(rv))
     return rv;
@@ -4057,7 +4092,7 @@ NS_IMETHODIMP nsMsgDBFolder::Rename(const nsAString& aNewName, nsIMsgWindow *msg
   if (NS_SUCCEEDED(rv) && count > 0)
   {
     // rename "*.sbd" directory
-    newNameDirStr.AppendLiteral(".sbd");
+    newNameDirStr.AppendLiteral(FOLDER_SUFFIX);
     dirFile->MoveTo(nullptr, newNameDirStr);
   }
 
@@ -4084,8 +4119,7 @@ NS_IMETHODIMP nsMsgDBFolder::Rename(const nsAString& aNewName, nsIMsgWindow *msg
         parentFolder->PropagateDelete(this, false, msgWindow);
         parentFolder->NotifyItemAdded(newFolder);
       }
-      folderRenameAtom = MsgGetAtom("RenameCompleted");
-      newFolder->NotifyFolderEvent(folderRenameAtom);
+      newFolder->NotifyFolderEvent(kRenameCompleted);
     }
   }
   return rv;
@@ -4161,7 +4195,7 @@ NS_IMETHODIMP nsMsgDBFolder::UpdateSummaryTotals(bool force)
   int32_t oldTotalMessages = mNumTotalMessages + mNumPendingTotalMessages;
   //We need to read this info from the database
   nsresult rv = ReadDBFolderInfo(force);
-  
+
   if (NS_SUCCEEDED(rv))
   {
     int32_t newUnreadMessages = mNumUnreadMessages + mNumPendingUnreadMessages;
@@ -4169,10 +4203,10 @@ NS_IMETHODIMP nsMsgDBFolder::UpdateSummaryTotals(bool force)
 
     //Need to notify listeners that total count changed.
     if(oldTotalMessages != newTotalMessages)
-      NotifyIntPropertyChanged(kTotalMessagesAtom, oldTotalMessages, newTotalMessages);
+      NotifyIntPropertyChanged(kTotalMessages, oldTotalMessages, newTotalMessages);
 
     if(oldUnreadMessages != newUnreadMessages)
-      NotifyIntPropertyChanged(kTotalUnreadMessagesAtom, oldUnreadMessages, newUnreadMessages);
+      NotifyIntPropertyChanged(kTotalUnreadMessages, oldUnreadMessages, newUnreadMessages);
 
     FlushToFolderCache();
   }
@@ -4274,7 +4308,7 @@ NS_IMETHODIMP nsMsgDBFolder::ChangeNumPendingUnread(int32_t delta)
       nsresult rv = GetDBFolderInfoAndDB(getter_AddRefs(folderInfo), getter_AddRefs(db));
       if (NS_SUCCEEDED(rv) && folderInfo)
         folderInfo->SetImapUnreadPendingMessages(mNumPendingUnreadMessages);
-      NotifyIntPropertyChanged(kTotalUnreadMessagesAtom, oldUnreadMessages, newUnreadMessages);
+      NotifyIntPropertyChanged(kTotalUnreadMessages, oldUnreadMessages, newUnreadMessages);
     }
   }
   return NS_OK;
@@ -4293,7 +4327,7 @@ NS_IMETHODIMP nsMsgDBFolder::ChangeNumPendingTotalMessages(int32_t delta)
     nsresult rv = GetDBFolderInfoAndDB(getter_AddRefs(folderInfo), getter_AddRefs(db));
     if (NS_SUCCEEDED(rv) && folderInfo)
       folderInfo->SetImapTotalPendingMessages(mNumPendingTotalMessages);
-    NotifyIntPropertyChanged(kTotalMessagesAtom, oldTotalMessages, newTotalMessages);
+    NotifyIntPropertyChanged(kTotalMessages, oldTotalMessages, newTotalMessages);
   }
   return NS_OK;
 }
@@ -4373,19 +4407,19 @@ NS_IMETHODIMP nsMsgDBFolder::OnFlagChange(uint32_t flag)
       db->Commit(nsMsgDBCommitType::kLargeCommit);
 
     if (mFlags & flag)
-      NotifyIntPropertyChanged(mFolderFlagAtom, mFlags & ~flag, mFlags);
+      NotifyIntPropertyChanged(kFolderFlag, mFlags & ~flag, mFlags);
     else
-      NotifyIntPropertyChanged(mFolderFlagAtom, mFlags | flag, mFlags);
+      NotifyIntPropertyChanged(kFolderFlag, mFlags | flag, mFlags);
 
     if (flag & nsMsgFolderFlags::Offline)
     {
       bool newValue = mFlags & nsMsgFolderFlags::Offline;
-      rv = NotifyBoolPropertyChanged(kSynchronizeAtom, !newValue, !!newValue);
+      rv = NotifyBoolPropertyChanged(kSynchronize, !newValue, !!newValue);
     }
     else if (flag & nsMsgFolderFlags::Elided)
     {
       bool newValue = mFlags & nsMsgFolderFlags::Elided;
-      rv = NotifyBoolPropertyChanged(kOpenAtom, !!newValue, !newValue);
+      rv = NotifyBoolPropertyChanged(kOpen, !!newValue, !newValue);
     }
   }
   return rv;
@@ -4430,7 +4464,7 @@ NS_IMETHODIMP nsMsgDBFolder::GetFoldersWithFlags(uint32_t aFlags, nsIArray** aRe
   NS_ENSURE_SUCCESS(rv, rv);
 
   ListFoldersWithFlags(aFlags, array);
-  NS_ADDREF(*aResult = array);
+  array.forget(aResult);
   return NS_OK;
 }
 
@@ -4438,7 +4472,7 @@ NS_IMETHODIMP nsMsgDBFolder::ListFoldersWithFlags(uint32_t aFlags, nsIMutableArr
 {
   NS_ENSURE_ARG_POINTER(aFolders);
   if ((mFlags & aFlags) == aFlags)
-    aFolders->AppendElement(static_cast<nsRDFResource*>(this), false);
+    aFolders->AppendElement(static_cast<nsRDFResource*>(this));
 
   nsCOMPtr<nsISimpleEnumerator> dummy;
   GetSubFolders(getter_AddRefs(dummy)); // initialize mSubFolders
@@ -4541,7 +4575,7 @@ NS_IMETHODIMP nsMsgDBFolder::GetSizeOnDisk(int64_t *size)
 
 NS_IMETHODIMP nsMsgDBFolder::SetSizeOnDisk(int64_t aSizeOnDisk)
 {
-  NotifyIntPropertyChanged(kFolderSizeAtom, mFolderSize, aSizeOnDisk);
+  NotifyIntPropertyChanged(kFolderSize, mFolderSize, aSizeOnDisk);
   mFolderSize = aSizeOnDisk;
   return NS_OK;
 }
@@ -4598,14 +4632,14 @@ NS_IMETHODIMP nsMsgDBFolder::SetBiffState(uint32_t aBiffState)
     if (server)
       server->SetBiffState(aBiffState);
 
-    NotifyIntPropertyChanged(kBiffStateAtom, oldBiffState, aBiffState);
+    NotifyIntPropertyChanged(kBiffState, oldBiffState, aBiffState);
   }
   else if (aBiffState == oldBiffState && aBiffState == nsMsgBiffState_NewMail)
   {
     // The folder has been updated, so update the MRUTime
     SetMRUTime();
     // biff is already set, but notify that there is additional new mail for the folder
-    NotifyIntPropertyChanged(kNewMailReceivedAtom, 0, mNumNewBiffMessages);
+    NotifyIntPropertyChanged(kNewMailReceived, 0, mNumNewBiffMessages);
   }
   else if (aBiffState == nsMsgBiffState_NoMail)
   {
@@ -4625,7 +4659,7 @@ NS_IMETHODIMP nsMsgDBFolder::GetNumNewMessages(bool deep, int32_t *aNumNewMessag
   int32_t numNewMessages = (!deep || ! (mFlags & nsMsgFolderFlags::Virtual))
     ? mNumNewBiffMessages : 0;
   if (deep)
-  { 
+  {
     int32_t count = mSubFolders.Count();
     for (int32_t i = 0; i < count; i++)
     {
@@ -4650,7 +4684,7 @@ NS_IMETHODIMP nsMsgDBFolder::SetNumNewMessages(int32_t aNumNewMessages)
     oldNumMessagesStr.AppendInt(oldNumMessages);
     nsAutoCString newNumMessagesStr;
     newNumMessagesStr.AppendInt(aNumNewMessages);
-    NotifyPropertyChanged(kNumNewBiffMessagesAtom, oldNumMessagesStr, newNumMessagesStr);
+    NotifyPropertyChanged(kNumNewBiffMessages, oldNumMessagesStr, newNumMessagesStr);
   }
   return NS_OK;
 }
@@ -4684,7 +4718,7 @@ nsMsgDBFolder::GetFilePath(nsIFile * *aFile)
   if (!mPath)
     parseURI(true);
   rv = file->InitWithFile(mPath);
-  file.swap(*aFile);
+  file.forget(aFile);
   return NS_OK;
 }
 
@@ -4707,7 +4741,7 @@ NS_IMETHODIMP nsMsgDBFolder::GetSummaryFile(nsIFile **aSummaryFile)
   rv = newSummaryLocation->GetLeafName(fileName);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  fileName.Append(NS_LITERAL_STRING(SUMMARY_SUFFIX));
+  fileName.AppendLiteral(SUMMARY_SUFFIX);
   rv = newSummaryLocation->SetLeafName(fileName);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -4899,7 +4933,7 @@ NS_IMETHODIMP nsMsgDBFolder::CopyDataDone()
 }
 
 NS_IMETHODIMP
-nsMsgDBFolder::NotifyPropertyChanged(nsIAtom *aProperty,
+nsMsgDBFolder::NotifyPropertyChanged(const nsACString &aProperty,
                                      const nsACString& aOldValue,
                                      const nsACString& aNewValue)
 {
@@ -4920,7 +4954,7 @@ nsMsgDBFolder::NotifyPropertyChanged(nsIAtom *aProperty,
 }
 
 NS_IMETHODIMP
-nsMsgDBFolder::NotifyUnicharPropertyChanged(nsIAtom *aProperty,
+nsMsgDBFolder::NotifyUnicharPropertyChanged(const nsACString &aProperty,
                                           const nsAString& aOldValue,
                                           const nsAString& aNewValue)
 {
@@ -4942,13 +4976,13 @@ nsMsgDBFolder::NotifyUnicharPropertyChanged(nsIAtom *aProperty,
 }
 
 NS_IMETHODIMP
-nsMsgDBFolder::NotifyIntPropertyChanged(nsIAtom *aProperty, int64_t aOldValue,
+nsMsgDBFolder::NotifyIntPropertyChanged(const nsACString &aProperty, int64_t aOldValue,
                                         int64_t aNewValue)
 {
   // Don't send off count notifications if they are turned off.
   if (!mNotifyCountChanges &&
-      ((aProperty == kTotalMessagesAtom) ||
-       (aProperty == kTotalUnreadMessagesAtom)))
+      (aProperty.Equals(kTotalMessages)  ||
+       aProperty.Equals(kTotalUnreadMessages)))
     return NS_OK;
 
   NS_OBSERVER_ARRAY_NOTIFY_OBSERVERS(mListeners, nsIFolderListener,
@@ -4965,7 +4999,7 @@ nsMsgDBFolder::NotifyIntPropertyChanged(nsIAtom *aProperty, int64_t aOldValue,
 }
 
 NS_IMETHODIMP
-nsMsgDBFolder::NotifyBoolPropertyChanged(nsIAtom* aProperty,
+nsMsgDBFolder::NotifyBoolPropertyChanged(const nsACString &aProperty,
                                          bool aOldValue, bool aNewValue)
 {
   NS_OBSERVER_ARRAY_NOTIFY_OBSERVERS(mListeners, nsIFolderListener,
@@ -4982,7 +5016,7 @@ nsMsgDBFolder::NotifyBoolPropertyChanged(nsIAtom* aProperty,
 }
 
 NS_IMETHODIMP
-nsMsgDBFolder::NotifyPropertyFlagChanged(nsIMsgDBHdr *aItem, nsIAtom *aProperty,
+nsMsgDBFolder::NotifyPropertyFlagChanged(nsIMsgDBHdr *aItem, const nsACString &aProperty,
                                          uint32_t aOldValue, uint32_t aNewValue)
 {
   NS_OBSERVER_ARRAY_NOTIFY_OBSERVERS(mListeners, nsIFolderListener,
@@ -5031,7 +5065,7 @@ nsresult nsMsgDBFolder::NotifyItemRemoved(nsISupports *aItem)
   return folderListenerManager->OnItemRemoved(this, aItem);
 }
 
-nsresult nsMsgDBFolder::NotifyFolderEvent(nsIAtom* aEvent)
+nsresult nsMsgDBFolder::NotifyFolderEvent(const nsACString &aEvent)
 {
   NS_OBSERVER_ARRAY_NOTIFY_OBSERVERS(mListeners, nsIFolderListener,
                                      OnItemEvent,
@@ -5083,27 +5117,15 @@ nsMsgDBFolder::SetEditableFilterList(nsIMsgFilterList *aFilterList)
 }
 
 /* void enableNotifications (in long notificationType, in boolean enable); */
-NS_IMETHODIMP nsMsgDBFolder::EnableNotifications(int32_t notificationType, bool enable, bool dbBatching)
+NS_IMETHODIMP nsMsgDBFolder::EnableNotifications(int32_t notificationType, bool enable)
 {
   if (notificationType == nsIMsgFolder::allMessageCountNotifications)
   {
     mNotifyCountChanges = enable;
-    // start and stop db batching here. This is under the theory
-    // that any time we want to enable and disable notifications,
-    // we're probably doing something that should be batched.
-    nsCOMPtr <nsIMsgDatabase> database;
-
-    if (dbBatching)  //only if we do dbBatching we need to get db
-      GetMsgDatabase(getter_AddRefs(database));
-
     if (enable)
     {
-      if (database)
-        database->EndBatch();
       UpdateSummaryTotals(true);
     }
-    else if (database)
-      return database->StartBatch();
     return NS_OK;
   }
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -5142,7 +5164,7 @@ NS_IMETHODIMP nsMsgDBFolder::ListDescendants(nsIMutableArray *aDescendants)
   for (uint32_t i = 0; i < count; i++)
   {
     nsCOMPtr<nsIMsgFolder> child(mSubFolders[i]);
-    aDescendants->AppendElement(child, false);
+    aDescendants->AppendElement(child);
     child->ListDescendants(aDescendants);  // recurse
   }
   return NS_OK;
@@ -5194,7 +5216,7 @@ nsMsgDBFolder::GetBaseStringBundle(nsIStringBundle **aBundle)
   nsCOMPtr<nsIStringBundle> bundle;
   bundleService->CreateBundle("chrome://messenger/locale/messenger.properties",
                                  getter_AddRefs(bundle));
-  bundle.swap(*aBundle);
+  bundle.forget(aBundle);
   return NS_OK;
 }
 
@@ -5205,7 +5227,7 @@ nsMsgDBFolder::GetStringFromBundle(const char *msgName, nsString& aResult)
   nsCOMPtr <nsIStringBundle> bundle;
   rv = GetBaseStringBundle(getter_AddRefs(bundle));
   if (NS_SUCCEEDED(rv) && bundle)
-    rv = bundle->GetStringFromName(NS_ConvertASCIItoUTF16(msgName).get(), getter_Copies(aResult));
+    rv = bundle->GetStringFromName(msgName, aResult);
   return rv;
 }
 
@@ -5238,12 +5260,12 @@ nsMsgDBFolder::GetStringWithFolderNameFromBundle(const char * msgName, nsAString
     const char16_t *formatStrings[] =
     {
       folderName.get(),
-      kLocalizedBrandShortName
+      kLocalizedBrandShortName.get()
     };
 
     nsString resultStr;
-    rv = bundle->FormatStringFromName(NS_ConvertASCIItoUTF16(msgName).get(),
-                                      formatStrings, 2, getter_Copies(resultStr));
+    rv = bundle->FormatStringFromName(msgName,
+                                      formatStrings, 2, resultStr);
     if (NS_SUCCEEDED(rv))
       aResult.Assign(resultStr);
   }
@@ -5397,7 +5419,7 @@ nsresult
 nsMsgDBFolder::CreateCollationKey(const nsString &aSource,  uint8_t **aKey, uint32_t *aLength)
 {
   NS_ENSURE_TRUE(gCollationKeyGenerator, NS_ERROR_NULL_POINTER);
-  return gCollationKeyGenerator->AllocateRawSortKey(nsICollation::kCollationCaseInSensitive, aSource, 
+  return gCollationKeyGenerator->AllocateRawSortKey(nsICollation::kCollationCaseInSensitive, aSource,
                                                     aKey, aLength);
 }
 
@@ -5428,7 +5450,7 @@ NS_IMETHODIMP nsMsgDBFolder::SetInVFEditSearchScope (bool aInVFEditSearchScope, 
 {
   bool oldInVFEditSearchScope = mInVFEditSearchScope;
   mInVFEditSearchScope = aInVFEditSearchScope;
-  NotifyBoolPropertyChanged(kInVFEditSearchScopeAtom, oldInVFEditSearchScope, mInVFEditSearchScope);
+  NotifyBoolPropertyChanged(kInVFEditSearchScope, oldInVFEditSearchScope, mInVFEditSearchScope);
   return NS_OK;
 }
 
@@ -5495,7 +5517,7 @@ NS_IMETHODIMP nsMsgDBFolder::GetMsgTextFromStream(nsIInputStream *stream, const 
       if (curLine.IsEmpty())
         break;
       msgHeaders.Append(curLine);
-      msgHeaders.Append(NS_LITERAL_CSTRING("\r\n"));
+      msgHeaders.AppendLiteral("\r\n");
       bytesRead += curLine.Length();
       if (bytesRead > bytesToRead)
         break;
@@ -5517,7 +5539,7 @@ NS_IMETHODIMP nsMsgDBFolder::GetMsgTextFromStream(nsIInputStream *stream, const 
     // this is in violation of the RFC for multipart/digest, though
     // Also, if we've just passed an end boundary, we're going to ignore this.
     if (!justPassedEndBoundary && contentTypeHdr.IsEmpty())
-      contentType.Assign(NS_LITERAL_STRING("text/plain"));
+      contentType.AssignLiteral(u"text/plain");
     else
       mimeHdrParam->GetParameter(contentTypeHdr, nullptr, EmptyCString(), false, nullptr, contentType);
 
@@ -5574,7 +5596,7 @@ NS_IMETHODIMP nsMsgDBFolder::GetMsgTextFromStream(nsIInputStream *stream, const 
     {
       boundary.Assign(boundaryStack.ElementAt(count - 1));
       endBoundary.Assign(boundary);
-      endBoundary.Append(NS_LITERAL_CSTRING("--"));
+      endBoundary.AppendLiteral("--");
     }
     while (more)
     {
@@ -5606,7 +5628,7 @@ NS_IMETHODIMP nsMsgDBFolder::GetMsgTextFromStream(nsIInputStream *stream, const 
       {
         msgText.Append(curLine);
         if (!isBase64)
-          msgText.Append(NS_LITERAL_CSTRING("\r\n"));
+          msgText.AppendLiteral("\r\n");
       }
 
       bytesRead += curLine.Length();
@@ -5677,9 +5699,7 @@ void nsMsgDBFolder::decodeMsgSnippet(const nsACString& aEncodingType, bool aIsCo
   }
   else if (MsgLowerCaseEqualsLiteral(aEncodingType, ENCODING_QUOTED_PRINTABLE))
   {
-    // giant hack - decode in place, and truncate string.
-    MsgStripQuotedPrintable((unsigned char *) aMsgSnippet.get());
-    aMsgSnippet.SetLength(strlen(aMsgSnippet.get()));
+    MsgStripQuotedPrintable(aMsgSnippet);
   }
 }
 
@@ -5754,7 +5774,7 @@ nsresult nsMsgDBFolder::GetMsgPreviewTextFromStream(nsIMsgDBHdr *msgHdr, nsIInpu
   msgHdr->GetCharset(getter_Copies(charset));
   nsAutoCString contentType;
   nsresult rv = GetMsgTextFromStream(stream, charset, 4096, 255, true, true, contentType, msgBody);
-  // replaces all tabs and line returns with a space, 
+  // replaces all tabs and line returns with a space,
   // then trims off leading and trailing white space
   MsgCompressWhitespace(msgBody);
   msgHdr->SetStringProperty("preview", msgBody.get());
@@ -5773,8 +5793,7 @@ void nsMsgDBFolder::UpdateTimestamps(bool allowUndo)
       if (!isArchive)
       {
         SetMRMTime();
-        nsCOMPtr<nsIAtom> MRMTimeChangedAtom = MsgGetAtom("MRMTimeChanged");
-        NotifyFolderEvent(MRMTimeChangedAtom);
+        NotifyFolderEvent(kMRMTimeChanged);
       }
     }
   }
@@ -5834,7 +5853,7 @@ NS_IMETHODIMP nsMsgDBFolder::AddKeywordsToMessages(nsIArray *aMessages, const ns
       // in the case of filters running on incoming pop3 mail with quarantining
       // turned on, the message key is wrong.
       mDatabase->SetStringPropertyByHdr(message, "keywords", keywords.get());
-      
+
       if (addCount)
         NotifyPropertyFlagChanged(message, kKeywords, 0, addCount);
     }
@@ -5919,7 +5938,7 @@ NS_IMETHODIMP nsMsgDBFolder::GetProcessingFlags(nsMsgKey aKey, uint32_t *aFlags)
     if (mProcessingFlag[i].keys && mProcessingFlag[i].keys->IsMember(aKey))
       *aFlags |= mProcessingFlag[i].bit;
   return NS_OK;
-}  
+}
 
 NS_IMETHODIMP nsMsgDBFolder::OrProcessingFlags(nsMsgKey aKey, uint32_t mask)
 {
@@ -5927,7 +5946,7 @@ NS_IMETHODIMP nsMsgDBFolder::OrProcessingFlags(nsMsgKey aKey, uint32_t mask)
     if (mProcessingFlag[i].bit & mask && mProcessingFlag[i].keys)
       mProcessingFlag[i].keys->Add(aKey);
   return NS_OK;
-}  
+}
 
 NS_IMETHODIMP nsMsgDBFolder::AndProcessingFlags(nsMsgKey aKey, uint32_t mask)
 {
@@ -5974,7 +5993,7 @@ nsresult nsMsgDBFolder::MessagesInKeyOrder(nsTArray<nsMsgKey> &aKeyArray,
       rv = db->GetMsgHdrForKey(aKeyArray[i], getter_AddRefs(msgHdr));
       NS_ENSURE_SUCCESS(rv,rv);
       if (msgHdr)
-        messages->AppendElement(msgHdr, false);
+        messages->AppendElement(msgHdr);
     }
   }
   return rv;

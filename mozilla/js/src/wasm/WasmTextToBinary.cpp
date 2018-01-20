@@ -31,8 +31,8 @@
 #include "js/CharacterEncoding.h"
 #include "js/HashTable.h"
 #include "wasm/WasmAST.h"
-#include "wasm/WasmBinaryFormat.h"
 #include "wasm/WasmTypes.h"
+#include "wasm/WasmValidate.h"
 
 using namespace js;
 using namespace js::wasm;
@@ -373,7 +373,9 @@ IsWasmLetter(char16_t c)
 static bool
 IsNameAfterDollar(char16_t c)
 {
-    return IsWasmLetter(c) || IsWasmDigit(c) || c == '_' || c == '$' || c == '-' || c == '.';
+    return IsWasmLetter(c) ||
+           IsWasmDigit(c) ||
+           c == '_' || c == '$' || c == '-' || c == '.' || c == '>';
 }
 
 static bool
@@ -554,11 +556,11 @@ class WasmTokenStream
     {}
     void generateError(WasmToken token, UniqueChars* error) {
         unsigned column = token.begin() - lineStart_ + 1;
-        error->reset(JS_smprintf("parsing wasm text at %u:%u", line_, column));
+        *error = JS_smprintf("parsing wasm text at %u:%u", line_, column);
     }
     void generateError(WasmToken token, const char* msg, UniqueChars* error) {
         unsigned column = token.begin() - lineStart_ + 1;
-        error->reset(JS_smprintf("parsing wasm text at %u:%u: %s", line_, column, msg));
+        *error = JS_smprintf("parsing wasm text at %u:%u: %s", line_, column, msg);
     }
     WasmToken peek() {
         if (!lookaheadDepth_) {
@@ -602,12 +604,6 @@ class WasmTokenStream
         WasmToken token;
         if (getIf(WasmToken::Name, &token))
             return token.name();
-        return AstName();
-    }
-    AstName getIfText() {
-        WasmToken token;
-        if (getIf(WasmToken::Text, &token))
-            return token.text();
         return AstName();
     }
     bool getIfRef(AstRef* ref) {
@@ -1127,6 +1123,12 @@ WasmTokenStream::next()
                     return WasmToken(WasmToken::UnaryOpcode, Op::I32Eqz, begin, cur_);
                 if (consume(u"eq"))
                     return WasmToken(WasmToken::ComparisonOpcode, Op::I32Eq, begin, cur_);
+#ifdef ENABLE_WASM_THREAD_OPS
+                if (consume(u"extend8_s"))
+                    return WasmToken(WasmToken::ConversionOpcode, Op::I32Extend8S, begin, cur_);
+                if (consume(u"extend16_s"))
+                    return WasmToken(WasmToken::ConversionOpcode, Op::I32Extend16S, begin, cur_);
+#endif
                 break;
               case 'g':
                 if (consume(u"ge_s"))
@@ -1271,6 +1273,14 @@ WasmTokenStream::next()
                 if (consume(u"extend_u/i32"))
                     return WasmToken(WasmToken::ConversionOpcode, Op::I64ExtendUI32,
                                      begin, cur_);
+#ifdef ENABLE_WASM_THREAD_OPS
+                if (consume(u"extend8_s"))
+                    return WasmToken(WasmToken::ConversionOpcode, Op::I64Extend8S, begin, cur_);
+                if (consume(u"extend16_s"))
+                    return WasmToken(WasmToken::ConversionOpcode, Op::I64Extend16S, begin, cur_);
+                if (consume(u"extend32_s"))
+                    return WasmToken(WasmToken::ConversionOpcode, Op::I64Extend32S, begin, cur_);
+#endif
                 break;
               case 'g':
                 if (consume(u"ge_s"))
@@ -1481,10 +1491,6 @@ struct WasmParseContext
         dtoaState(NewDtoaState())
     {}
 
-    bool fail(const char* message) {
-        error->reset(js_strdup(message));
-        return false;
-    }
     ~WasmParseContext() {
         DestroyDtoaState(dtoaState);
     }
@@ -1562,6 +1568,28 @@ ParseBlockSignature(WasmParseContext& c, ExprType* type)
     return true;
 }
 
+static bool
+MaybeMatchName(WasmParseContext& c, const AstName& name)
+{
+    WasmToken tok;
+    if (c.ts.getIf(WasmToken::Name, &tok)) {
+        AstName otherName = tok.name();
+        if (otherName.empty())
+            return true;
+
+        if (name.empty()) {
+            c.ts.generateError(tok, "end name without a start name", c.error);
+            return false;
+        }
+
+        if (otherName != name) {
+            c.ts.generateError(tok, "start/end names don't match", c.error);
+            return false;
+        }
+    }
+    return true;
+}
+
 static AstBlock*
 ParseBlock(WasmParseContext& c, Op op, bool inParens)
 {
@@ -1590,9 +1618,13 @@ ParseBlock(WasmParseContext& c, Op op, bool inParens)
     if (!inParens) {
         if (!c.ts.match(WasmToken::End, c.error))
             return nullptr;
+        if (!MaybeMatchName(c, name))
+            return nullptr;
     }
 
     AstBlock* result = new(c.lifo) AstBlock(op, type, name, Move(exprs));
+    if (!result)
+        return nullptr;
 
     if (op == Op::Loop && !otherName.empty()) {
         if (!exprs.append(result))
@@ -1754,7 +1786,10 @@ ParseNaNLiteral(WasmParseContext& c, WasmToken token, const char16_t* cur, bool 
     }
 
     value = (isNegated ? Traits::kSignBit : 0) | Traits::kExponentBits | value;
-    return new (c.lifo) AstConst(Val(Raw<Float>::fromBits(value)));
+
+    Float flt;
+    BitwiseCast(value, &flt);
+    return new (c.lifo) AstConst(Val(flt));
 
   error:
     c.ts.generateError(token, c.error);
@@ -1906,7 +1941,7 @@ ParseFloatLiteral(WasmParseContext& c, WasmToken token)
     }
 
     if (token.kind() != WasmToken::Float)
-        return new (c.lifo) AstConst(Val(Raw<Float>(result)));
+        return new (c.lifo) AstConst(Val(Float(result)));
 
     const char16_t* begin = token.begin();
     const char16_t* end = token.end();
@@ -1957,7 +1992,7 @@ ParseFloatLiteral(WasmParseContext& c, WasmToken token)
     if (isNegated)
         result = -result;
 
-    return new (c.lifo) AstConst(Val(Raw<Float>(result)));
+    return new (c.lifo) AstConst(Val(Float(result)));
 }
 
 static AstConst*
@@ -2196,6 +2231,8 @@ ParseIf(WasmParseContext& c, bool inParens)
     AstExprVector elseExprs(c.lifo);
     if (!inParens || c.ts.getIf(WasmToken::OpenParen)) {
         if (c.ts.getIf(WasmToken::Else)) {
+            if (!MaybeMatchName(c, name))
+                return nullptr;
             if (!ParseExprList(c, &elseExprs, inParens))
                 return nullptr;
         } else if (inParens) {
@@ -2208,6 +2245,8 @@ ParseIf(WasmParseContext& c, bool inParens)
                 return nullptr;
         } else {
             if (!c.ts.match(WasmToken::End, c.error))
+                return nullptr;
+            if (!MaybeMatchName(c, name))
                 return nullptr;
         }
     }
@@ -2621,7 +2660,7 @@ ParseFunc(WasmParseContext& c, AstModule* module)
 
         if (c.ts.getIf(WasmToken::Export)) {
             AstRef ref = funcName.empty()
-                         ? AstRef(module->funcImportNames().length() + module->funcs().length())
+                         ? AstRef(module->numFuncImports() + module->funcs().length())
                          : AstRef(funcName);
             if (!ParseInlineExport(c, DefinitionKind::Function, module, ref))
                 return false;
@@ -2765,8 +2804,7 @@ ParseLimits(WasmParseContext& c, Limits* limits)
     if (c.ts.getIf(WasmToken::Index, &token))
         maximum.emplace(token.index());
 
-    Limits r = { initial.index(), maximum };
-    *limits = r;
+    *limits = Limits(initial.index(), maximum);
     return true;
 }
 
@@ -2833,8 +2871,7 @@ ParseMemory(WasmParseContext& c, WasmToken token, AstModule* module)
                 return false;
         }
 
-        Limits memory = { uint32_t(pages), Some(uint32_t(pages)) };
-        if (!module->addMemory(name, memory))
+        if (!module->addMemory(name, Limits(pages, Some(pages))))
             return false;
 
         if (!c.ts.match(WasmToken::CloseParen, c.error))
@@ -3126,8 +3163,7 @@ ParseTable(WasmParseContext& c, WasmToken token, AstModule* module)
     if (numElements != elems.length())
         return false;
 
-    Limits r = { numElements, Some(numElements) };
-    if (!module->addTable(name, r))
+    if (!module->addTable(name, Limits(numElements, Some(numElements))))
         return false;
 
     auto* zero = new(c.lifo) AstConst(Val(uint32_t(0)));
@@ -3191,7 +3227,8 @@ ParseGlobal(WasmParseContext& c, AstModule* module)
         }
 
         if (c.ts.getIf(WasmToken::Export)) {
-            AstRef ref = name.empty() ? AstRef(module->globals().length()) : AstRef(name);
+            size_t refIndex = module->numGlobalImports() + module->globals().length();
+            AstRef ref = name.empty() ? AstRef(refIndex) : AstRef(name);
             if (!ParseInlineExport(c, DefinitionKind::Global, module, ref))
                 return false;
             if (!c.ts.match(WasmToken::CloseParen, c.error))
@@ -3356,14 +3393,6 @@ class Resolver
         }
         return true;
     }
-    bool resolveName(AstNameMap& map, AstName name, size_t* index) {
-        AstNameMap::Ptr p = map.lookup(name);
-        if (p) {
-            *index = p->value();
-            return true;
-        }
-        return false;
-    }
     bool resolveRef(AstNameMap& map, AstRef& ref) {
         AstNameMap::Ptr p = map.lookup(ref.name());
         if (p) {
@@ -3375,7 +3404,7 @@ class Resolver
     bool failResolveLabel(const char* kind, AstName name) {
         TwoByteChars chars(name.begin(), name.length());
         UniqueChars utf8Chars(CharsToNewUTF8CharsZ(nullptr, chars).c_str());
-        error_->reset(JS_smprintf("%s label '%s' not found", kind, utf8Chars.get()));
+        *error_ = JS_smprintf("%s label '%s' not found", kind, utf8Chars.get());
         return false;
     }
 
@@ -3412,7 +3441,6 @@ class Resolver
 
     REGISTER(Sig, sigMap_)
     REGISTER(Func, funcMap_)
-    REGISTER(Import, importMap_)
     REGISTER(Var, varMap_)
     REGISTER(Global, globalMap_)
     REGISTER(Table, tableMap_)
@@ -3438,7 +3466,6 @@ class Resolver
 
     RESOLVE(sigMap_, Signature)
     RESOLVE(funcMap_, Function)
-    RESOLVE(importMap_, Import)
     RESOLVE(varMap_, Local)
     RESOLVE(globalMap_, Global)
     RESOLVE(tableMap_, Table)
@@ -3459,7 +3486,7 @@ class Resolver
     }
 
     bool fail(const char* message) {
-        error_->reset(JS_smprintf("%s", message));
+        *error_ = JS_smprintf("%s", message);
         return false;
     }
 };

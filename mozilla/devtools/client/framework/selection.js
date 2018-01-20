@@ -7,7 +7,7 @@
 "use strict";
 
 const nodeConstants = require("devtools/shared/dom-node-constants");
-var EventEmitter = require("devtools/shared/event-emitter");
+var EventEmitter = require("devtools/shared/old-event-emitter");
 
 /**
  * API
@@ -57,6 +57,7 @@ function Selection(walker) {
   EventEmitter.decorate(this);
 
   this._onMutations = this._onMutations.bind(this);
+  this.setNodeFront = this.setNodeFront.bind(this);
   this.setWalker(walker);
 }
 

@@ -63,7 +63,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(XPathResult)
     NS_IMPL_CYCLE_COLLECTION_UNLINK(mDocument)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(XPathResult)
-    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mParent)
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDocument)
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mResultNodes)
@@ -102,7 +101,7 @@ XPathResult::IterateNext(ErrorResult& aRv)
     }
 
     if (mDocument) {
-        mDocument->FlushPendingNotifications(Flush_Content);
+        mDocument->FlushPendingNotifications(FlushType::Content);
     }
 
     if (mInvalidIteratorState) {
@@ -119,8 +118,7 @@ XPathResult::NodeWillBeDestroyed(const nsINode* aNode)
     nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
     // Set to null to avoid unregistring unnecessarily
     mDocument = nullptr;
-    Invalidate(aNode->IsNodeOfType(nsINode::eCONTENT) ?
-               static_cast<const nsIContent*>(aNode) : nullptr);
+    Invalidate(aNode->IsContent() ? aNode->AsContent() : nullptr);
 }
 
 void
@@ -135,7 +133,7 @@ void
 XPathResult::AttributeChanged(nsIDocument* aDocument,
                               Element* aElement,
                               int32_t aNameSpaceID,
-                              nsIAtom* aAttribute,
+                              nsAtom* aAttribute,
                               int32_t aModType,
                               const nsAttrValue* aOldValue)
 {
@@ -145,8 +143,7 @@ XPathResult::AttributeChanged(nsIDocument* aDocument,
 void
 XPathResult::ContentAppended(nsIDocument* aDocument,
                              nsIContent* aContainer,
-                             nsIContent* aFirstNewContent,
-                             int32_t aNewIndexInContainer)
+                             nsIContent* aFirstNewContent)
 {
     Invalidate(aContainer);
 }
@@ -154,8 +151,7 @@ XPathResult::ContentAppended(nsIDocument* aDocument,
 void
 XPathResult::ContentInserted(nsIDocument* aDocument,
                              nsIContent* aContainer,
-                             nsIContent* aChild,
-                             int32_t aIndexInContainer)
+                             nsIContent* aChild)
 {
     Invalidate(aContainer);
 }
@@ -164,7 +160,6 @@ void
 XPathResult::ContentRemoved(nsIDocument* aDocument,
                             nsIContent* aContainer,
                             nsIContent* aChild,
-                            int32_t aIndexInContainer,
                             nsIContent* aPreviousSibling)
 {
     Invalidate(aContainer);
@@ -192,7 +187,7 @@ XPathResult::SetExprResult(txAExprResult* aExprResult, uint16_t aResultType,
         mDocument->RemoveMutationObserver(this);
         mDocument = nullptr;
     }
- 
+
     mResultNodes.Clear();
 
     // XXX This will keep the recycler alive, should we clear it?
@@ -261,10 +256,9 @@ XPathResult::Invalidate(const nsIContent* aChangeRoot)
         // the changes are happening in a different anonymous trees, no
         // invalidation should happen.
         nsIContent* ctxBindingParent = nullptr;
-        if (contextNode->IsNodeOfType(nsINode::eCONTENT)) {
+        if (contextNode->IsContent()) {
             ctxBindingParent =
-                static_cast<nsIContent*>(contextNode.get())
-                    ->GetBindingParent();
+              contextNode->AsContent()->GetBindingParent();
         } else if (contextNode->IsNodeOfType(nsINode::eATTRIBUTE)) {
             Element* parent =
               static_cast<Attr*>(contextNode.get())->GetElement();

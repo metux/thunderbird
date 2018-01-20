@@ -8,7 +8,7 @@ function test() {
   Harness.setup();
 
   var cm = Components.classes["@mozilla.org/cookiemanager;1"]
-                     .getService(Components.interfaces.nsICookieManager2);
+                     .getService(Components.interfaces.nsICookieManager);
   cm.add("example.com", "/browser/" + RELATIVE_DIR, "xpinstall", "true", false,
          false, true, (Date.now() / 1000) + 60, {});
 
@@ -20,7 +20,7 @@ function test() {
   var triggers = encodeURIComponent(JSON.stringify({
     "Cookie check": TESTROOT + "cookieRedirect.sjs?" + TESTROOT + "amosigned.xpi"
   }));
-  gBrowser.selectedTab = gBrowser.addTab();
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
   gBrowser.loadURI(TESTROOT + "installtrigger.html?" + triggers);
 }
 
@@ -32,7 +32,7 @@ function finish_test(count) {
   is(count, 1, "1 Add-on should have been successfully installed");
 
   var cm = Components.classes["@mozilla.org/cookiemanager;1"]
-                     .getService(Components.interfaces.nsICookieManager2);
+                     .getService(Components.interfaces.nsICookieManager);
   cm.remove("example.com", "xpinstall", "/browser/" + RELATIVE_DIR, false, {});
 
   Services.prefs.clearUserPref("network.cookie.cookieBehavior");

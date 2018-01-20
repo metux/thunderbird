@@ -31,8 +31,6 @@
 #include "nsMsgI18N.h"
 #include "nsNetUtil.h"
 
-static NS_DEFINE_IID(kISupportsIID,      NS_ISUPPORTS_IID);
-
 /* ------------ Address book stuff ----------------- */
 typedef struct {
   int32_t    mozField;
@@ -160,14 +158,13 @@ nsresult nsOutlookMail::GetMailFolders(nsIArray **pArray)
   }
 
   // Create the mailbox descriptors for the list of folders
-  nsIImportMailboxDescriptor *  pID;
-  nsISupports *          pInterface;
+  nsCOMPtr<nsIImportMailboxDescriptor> pID;
   nsString            name;
   nsString            uniName;
 
   for (i = 0; i < m_folderList.GetSize(); i++) {
     pFolder = m_folderList.GetItem(i);
-    rv = impSvc->CreateNewMailboxDescriptor(&pID);
+    rv = impSvc->CreateNewMailboxDescriptor(getter_AddRefs(pID));
     if (NS_SUCCEEDED(rv)) {
       pID->SetDepth(pFolder->GetDepth());
       pID->SetIdentifier(i);
@@ -176,10 +173,8 @@ nsresult nsOutlookMail::GetMailFolders(nsIArray **pArray)
       pID->SetDisplayName(name.get());
 
       pID->SetSize(1000);
-      rv = pID->QueryInterface(kISupportsIID, (void **) &pInterface);
-      array->AppendElement(pInterface, false);
-      pInterface->Release();
-      pID->Release();
+      nsCOMPtr<nsISupports> pInterface(do_QueryInterface(pID));
+      array->AppendElement(pInterface);
     }
   }
   array.forget(pArray);
@@ -189,7 +184,7 @@ nsresult nsOutlookMail::GetMailFolders(nsIArray **pArray)
 bool nsOutlookMail::IsAddressBookNameUnique(nsString& name, nsString& list)
 {
   nsString    usedName;
-  usedName.AppendLiteral("[");
+  usedName.Append('[');
   usedName.Append(name);
   usedName.AppendLiteral("],");
 
@@ -210,7 +205,7 @@ void nsOutlookMail::MakeAddressBookNameUnique(nsString& name, nsString& list)
   }
 
   name = newName;
-  list.AppendLiteral("[");
+  list.Append('[');
   list.Append(name);
   list.AppendLiteral("],");
 }
@@ -263,25 +258,22 @@ nsresult nsOutlookMail::GetAddressBooks(nsIArray **pArray)
   }
 
   // Create the mailbox descriptors for the list of folders
-  nsIImportABDescriptor *      pID;
-  nsISupports *          pInterface;
+  nsCOMPtr<nsIImportABDescriptor> pID;
   nsString            name;
   nsString            list;
 
   for (i = 0; i < m_addressList.GetSize(); i++) {
     pFolder = m_addressList.GetItem(i);
     if (!pFolder->IsStore()) {
-      rv = impSvc->CreateNewABDescriptor(&pID);
+      rv = impSvc->CreateNewABDescriptor(getter_AddRefs(pID));
       if (NS_SUCCEEDED(rv)) {
         pID->SetIdentifier(i);
         pFolder->GetDisplayName(name);
         MakeAddressBookNameUnique(name, list);
         pID->SetPreferredName(name);
         pID->SetSize(100);
-        rv = pID->QueryInterface(kISupportsIID, (void **) &pInterface);
-        array->AppendElement(pInterface, false);
-        pInterface->Release();
-        pID->Release();
+        nsCOMPtr<nsISupports> pInterface(do_QueryInterface(pID));
+        array->AppendElement(pInterface);
       }
     }
   }
@@ -340,35 +332,50 @@ void nsOutlookMail::OpenMessageStore(CMapiFolder *pNextFolder)
 //   - Encapsulate the MAPI message interface
 //   - Gather the information required to (re)compose the message
 
-nsresult nsOutlookMail::ImportMailbox(uint32_t *pDoneSoFar, bool *pAbort,
-                                      int32_t index, const char16_t *pName,
-                                      nsIMsgFolder *dstFolder,
-                                      int32_t *pMsgCount)
+ImportMailboxRunnable::ImportMailboxRunnable(uint32_t *pDoneSoFar, bool *pAbort,
+                                             int32_t index, const char16_t *pName,
+                                             nsIMsgFolder *dstFolder,
+                                             int32_t *pMsgCount,
+                                             nsOutlookMail *aCaller) :
+  mozilla::Runnable("ImportMailboxRunnable"),
+  mDoneSoFar(pDoneSoFar),
+  mAbort(pAbort),
+  mResult(NS_OK),
+  mIndex(index),
+  mName(pName),
+  mDstFolder(dstFolder),
+  mMsgCount(pMsgCount),
+  mCaller(aCaller)
 {
-  if ((index < 0) || (index >= m_folderList.GetSize())) {
+}
+NS_IMETHODIMP ImportMailboxRunnable::Run()
+{
+  if ((mIndex < 0) || (mIndex >= mCaller->m_folderList.GetSize())) {
     IMPORT_LOG0("*** Bad mailbox identifier, unable to import\n");
-    *pAbort = true;
-    return NS_ERROR_FAILURE;
+    *mAbort = true;
+    mResult = NS_ERROR_FAILURE;
+    return NS_OK;  // Sync runnable must return OK.
   }
 
   int32_t    dummyMsgCount = 0;
-  if (pMsgCount)
-    *pMsgCount = 0;
+  if (mMsgCount)
+    *mMsgCount = 0;
   else
-    pMsgCount = &dummyMsgCount;
+    mMsgCount = &dummyMsgCount;
 
-  CMapiFolder *pFolder = m_folderList.GetItem(index);
-  OpenMessageStore(pFolder);
-  if (!m_lpMdb) {
-    IMPORT_LOG1("*** Unable to obtain mapi message store for mailbox: %S\n", pName);
-    return NS_ERROR_FAILURE;
+  CMapiFolder *pFolder = mCaller->m_folderList.GetItem(mIndex);
+  mCaller->OpenMessageStore(pFolder);
+  if (!mCaller->m_lpMdb) {
+    IMPORT_LOG1("*** Unable to obtain mapi message store for mailbox: %S\n", mName);
+    mResult = NS_ERROR_FAILURE;
+    return NS_OK;  // Sync runnable must return OK.
   }
 
   if (pFolder->IsStore())
     return NS_OK;
 
   // now what?
-  CMapiFolderContents    contents(m_lpMdb, pFolder->GetCBEntryID(), pFolder->GetEntryID());
+  CMapiFolderContents    contents(mCaller->m_lpMdb, pFolder->GetCBEntryID(), pFolder->GetEntryID());
 
   BOOL    done = FALSE;
   ULONG    cbEid;
@@ -380,43 +387,46 @@ nsresult nsOutlookMail::ImportMailbox(uint32_t *pDoneSoFar, bool *pAbort,
 
   nsCOMPtr<nsIOutputStream> outputStream;
   nsCOMPtr<nsIMsgPluggableStore> msgStore;
-  nsresult rv = dstFolder->GetMsgStore(getter_AddRefs(msgStore));
+  nsresult rv = mDstFolder->GetMsgStore(getter_AddRefs(msgStore));
   NS_ENSURE_SUCCESS(rv, rv);
 
   while (!done) {
     if (!contents.GetNext(&cbEid, &lpEid, &oType, &done)) {
-      IMPORT_LOG1("*** Error iterating mailbox: %S\n", pName);
-      return NS_ERROR_FAILURE;
+      IMPORT_LOG1("*** Error iterating mailbox: %S\n", mName);
+      mResult = NS_ERROR_FAILURE;
+      return NS_OK;  // Sync runnable must return OK.
     }
 
     nsCOMPtr<nsIMsgDBHdr> msgHdr;
     bool reusable;
 
-    rv = msgStore->GetNewMsgOutputStream(dstFolder, getter_AddRefs(msgHdr), &reusable,
+    rv = msgStore->GetNewMsgOutputStream(mDstFolder, getter_AddRefs(msgHdr), &reusable,
                                          getter_AddRefs(outputStream));
     if (NS_FAILED(rv)) {
-      IMPORT_LOG1("*** Error getting nsIOutputStream of mailbox: %S\n", pName);
-      return rv;
+      IMPORT_LOG1("*** Error getting nsIOutputStream of mailbox: %S\n", mName);
+      mResult = rv;
+      return NS_OK;  // Sync runnable must return OK.
     }
     totalCount = contents.GetCount();
-    doneCalc = *pMsgCount;
+    doneCalc = *mMsgCount;
     doneCalc /= totalCount;
     doneCalc *= 1000;
-    if (pDoneSoFar) {
-      *pDoneSoFar = (uint32_t) doneCalc;
-      if (*pDoneSoFar > 1000)
-        *pDoneSoFar = 1000;
+    if (mDoneSoFar) {
+      *mDoneSoFar = (uint32_t) doneCalc;
+      if (*mDoneSoFar > 1000)
+        *mDoneSoFar = 1000;
     }
 
     if (!done && (oType == MAPI_MESSAGE)) {
-      if (!m_mapi.OpenMdbEntry(m_lpMdb, cbEid, lpEid, (LPUNKNOWN *) &lpMsg)) {
-        IMPORT_LOG1("*** Error opening messages in mailbox: %S\n", pName);
-        return NS_ERROR_FAILURE;
+      if (!mCaller->m_mapi.OpenMdbEntry(mCaller->m_lpMdb, cbEid, lpEid, (LPUNKNOWN *) &lpMsg)) {
+        IMPORT_LOG1("*** Error opening messages in mailbox: %S\n", mName);
+        mResult = NS_ERROR_FAILURE;
+        return NS_OK;  // Sync runnable must return OK.
       }
 
       // See if it's a drafts folder. Outlook doesn't allow drafts
       // folder to be configured so it's ok to hard code it here.
-      nsAutoString folderName(pName);
+      nsAutoString folderName(mName);
       nsMsgDeliverMode mode = nsIMsgSend::nsMsgDeliverNow;
       mode = nsIMsgSend::nsMsgSaveAsDraft;
       if (folderName.LowerCaseEqualsLiteral("drafts"))
@@ -424,11 +434,11 @@ nsresult nsOutlookMail::ImportMailbox(uint32_t *pDoneSoFar, bool *pAbort,
 
       rv = ImportMessage(lpMsg, outputStream, mode);
       if (NS_SUCCEEDED(rv)){ // No errors & really imported
-         (*pMsgCount)++;
+         (*mMsgCount)++;
         msgStore->FinishNewMessage(outputStream, msgHdr);
       }
       else {
-        IMPORT_LOG1( "*** Error reading message from mailbox: %S\n", pName);
+        IMPORT_LOG1( "*** Error reading message from mailbox: %S\n", mName);
         msgStore->DiscardNewMessage(outputStream, msgHdr);
       }
       if (!reusable)
@@ -441,7 +451,29 @@ nsresult nsOutlookMail::ImportMailbox(uint32_t *pDoneSoFar, bool *pAbort,
   return NS_OK;
 }
 
-nsresult nsOutlookMail::ImportMessage(LPMESSAGE lpMsg, nsIOutputStream *pDest, nsMsgDeliverMode mode)
+nsresult ProxyImportMailbox(uint32_t *pDoneSoFar, bool *pAbort,
+                            int32_t index, const char16_t *pName,
+                            nsIMsgFolder *dstFolder,
+                            int32_t *pMsgCount,
+                            nsOutlookMail *aCaller)
+{
+  RefPtr<ImportMailboxRunnable> importMailbox =
+    new ImportMailboxRunnable(pDoneSoFar, pAbort, index, pName, dstFolder, pMsgCount, aCaller);
+  nsresult rv = NS_DispatchToMainThread(importMailbox, NS_DISPATCH_SYNC);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return importMailbox->mResult;
+}
+
+nsresult nsOutlookMail::ImportMailbox(uint32_t *pDoneSoFar, bool *pAbort,
+                                      int32_t index, const char16_t *pName,
+                                      nsIMsgFolder *dstFolder,
+                                      int32_t *pMsgCount)
+{
+  return ProxyImportMailbox(pDoneSoFar, pAbort, index, pName, dstFolder, pMsgCount, this);
+}
+
+nsresult ImportMailboxRunnable::ImportMessage(LPMESSAGE lpMsg, nsIOutputStream *pDest, nsMsgDeliverMode mode)
 {
   CMapiMessage  msg(lpMsg);
   // If we wanted to skip messages that were downloaded in header only mode, we
@@ -466,7 +498,7 @@ nsresult nsOutlookMail::ImportMessage(LPMESSAGE lpMsg, nsIOutputStream *pDest, n
   nsresult rv = compose.ProcessMessage(mode, msg, pDest);
 
   // Just for YUCKS, let's try an extra endline
-  WriteData(pDest, "\x0D\x0A", 2);
+  nsOutlookMail::WriteData(pDest, "\x0D\x0A", 2);
 
   return rv;
 }

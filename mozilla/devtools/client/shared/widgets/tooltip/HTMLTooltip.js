@@ -6,7 +6,7 @@
 
 "use strict";
 
-const EventEmitter = require("devtools/shared/event-emitter");
+const EventEmitter = require("devtools/shared/old-event-emitter");
 const {TooltipToggle} = require("devtools/client/shared/widgets/tooltip/TooltipToggle");
 const {listenOnce} = require("devtools/shared/async-utils");
 const {Task} = require("devtools/shared/task");
@@ -174,6 +174,15 @@ function (anchorRect, viewportRect, width, type, offset, isRtl) {
  * is always the element's ownerDocument).
  */
 const getRelativeRect = function (node, relativeTo) {
+  // getBoxQuads is a non-standard WebAPI which will not work on non-firefox
+  // browser when running launchpad on Chrome.
+  if (!node.getBoxQuads) {
+    let {top, left, width, height} = node.getBoundingClientRect();
+    let right = left + width;
+    let bottom = top + height;
+    return {top, right, bottom, left, width, height};
+  }
+
   // Width and Height can be taken from the rect.
   let {width, height} = node.getBoundingClientRect();
 
@@ -204,15 +213,12 @@ const getRelativeRect = function (node, relativeTo) {
  *        - {Boolean} useXulWrapper
  *          Defaults to false. If the tooltip is hosted in a XUL document, use a XUL panel
  *          in order to use all the screen viewport available.
- *        - {String} stylesheet
- *          Style sheet URL to apply to the tooltip content.
  */
 function HTMLTooltip(toolboxDoc, {
     type = "normal",
     autofocus = false,
     consumeOutsideClicks = true,
     useXulWrapper = false,
-    stylesheet = "",
   } = {}) {
   EventEmitter.decorate(this);
 
@@ -237,9 +243,6 @@ function HTMLTooltip(toolboxDoc, {
 
   this.container = this._createContainer();
 
-  if (stylesheet) {
-    this._applyStylesheet(stylesheet);
-  }
   if (this.useXulWrapper) {
     // When using a XUL panel as the wrapper, the actual markup for the tooltip is as
     // follows :
@@ -483,6 +486,7 @@ HTMLTooltip.prototype = {
     if (this.xulPanelWrapper) {
       this.xulPanelWrapper.remove();
     }
+    this._toggle.destroy();
   },
 
   _createContainer: function () {
@@ -496,6 +500,7 @@ HTMLTooltip.prototype = {
     if (this.type === TYPE.ARROW) {
       html += '<div class="tooltip-arrow"></div>';
     }
+    // eslint-disable-next-line no-unsanitized/property
     container.innerHTML = html;
     return container;
   },
@@ -623,16 +628,4 @@ HTMLTooltip.prototype = {
     top += this.doc.defaultView.mozInnerScreenY;
     return {top, right: left + width, bottom: top + height, left, width, height};
   },
-
-  /**
-   * Apply a scoped stylesheet to the container so that this css file only
-   * applies to it.
-   */
-  _applyStylesheet: function (url) {
-    let style = this.doc.createElementNS(XHTML_NS, "style");
-    style.setAttribute("scoped", "true");
-    url = url.replace(/"/g, "\\\"");
-    style.textContent = `@import url("${url}");`;
-    this.container.appendChild(style);
-  }
 };

@@ -1,11 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-function run_test() {
-  run_next_test()
-}
-
-add_task(function* test_observers() {
+add_task(async function test_observers() {
   do_load_manifest("nsDummyObserver.manifest");
 
   let dummyCreated = false;
@@ -14,11 +10,16 @@ add_task(function* test_observers() {
   Services.obs.addObserver(function created() {
     Services.obs.removeObserver(created, "dummy-observer-created");
     dummyCreated = true;
-  }, "dummy-observer-created", false);
+  }, "dummy-observer-created");
   Services.obs.addObserver(function added() {
     Services.obs.removeObserver(added, "dummy-observer-item-added");
     dummyReceivedOnItemAdded = true;
-  }, "dummy-observer-item-added", false);
+  }, "dummy-observer-item-added");
+
+  // This causes various Async API helpers to be initialised before the main
+  // part of the test runs - the helpers add their own listeners, which we don't
+  // want to count within the test (e.g. gKeywordsCachePromise & GuidHelper).
+  await PlacesUtils.promiseItemId(PlacesUtils.bookmarks.unfiledGuid);
 
   let initialObservers = PlacesUtils.bookmarks.getObservers();
 
@@ -44,14 +45,15 @@ add_task(function* test_observers() {
         Assert.ok(dummyReceivedOnItemAdded);
         resolve();
       }
-    }, false);
+    });
   });
 
   // Add a bookmark
-  PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
-                                       uri("http://typed.mozilla.org"),
-                                       PlacesUtils.bookmarks.DEFAULT_INDEX,
-                                       "bookmark");
+  await PlacesUtils.bookmarks.insert({
+    parentGuid: PlacesUtils.bookmarks.unfiledGuid,
+    title: "bookmark",
+    url: "http://typed.mozilla.org",
+  });
 
-  yield notificationsPromised;
+  await notificationsPromised;
 });

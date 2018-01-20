@@ -11,43 +11,43 @@
 <!ENTITY  sizeProportional.accesskey              "V">
 <!ENTITY  sizeMonospace.accesskey                 "e">
 
-<!ENTITY  proportional.label                      "Sorazmerna pisava:">
+<!ENTITY  proportional.label                      "Večširinska pisava:">
 <!ENTITY  proportional.accesskey                  "S">
 
 <!ENTITY  serif.label                             "Serif:">
 <!ENTITY  serif.accesskey                         "r">
 <!ENTITY  sans-serif.label                        "Sans-serif:">
 <!ENTITY  sans-serif.accesskey                    "a">
-<!ENTITY  monospace.label                         "Pisava s stalno širino:">
+<!ENTITY  monospace.label                         "Enoširinska pisava:">
 <!ENTITY  monospace.accesskey                     "v">
 
 <!-- LOCALIZATION NOTE (font.langGroup.latin) :
      Translate "Latin" as the name of Latin (Roman) script, not as the name of the Latin language. -->
-<!ENTITY  font.langGroup.latin                    "latinica">
-<!ENTITY  font.langGroup.japanese                 "Japonščino">
-<!ENTITY  font.langGroup.trad-chinese             "Tradicionalno kitajščino (Tajvan)">
-<!ENTITY  font.langGroup.simpl-chinese            "Poenostavljeno kitajščino">
-<!ENTITY  font.langGroup.trad-chinese-hk          "Tradicionalno kitajščino (Hong Kong)">
-<!ENTITY  font.langGroup.korean                   "Korejščino">
-<!ENTITY  font.langGroup.cyrillic                 "Cirilico">
-<!ENTITY  font.langGroup.el                       "Grščino">
-<!ENTITY  font.langGroup.other                    "Drugi sistemi pisanja">
-<!ENTITY  font.langGroup.thai                     "Tajščino">
-<!ENTITY  font.langGroup.hebrew                   "Hebrejščino">
-<!ENTITY  font.langGroup.arabic                   "Arabščino">
-<!ENTITY  font.langGroup.devanagari               "Devanagarščičino">
-<!ENTITY  font.langGroup.tamil                    "Tamilščino">
-<!ENTITY  font.langGroup.armenian                 "Armenščino">
-<!ENTITY  font.langGroup.bengali                  "Bengalščino">
-<!ENTITY  font.langGroup.canadian                 "Poenoteno zlogovno pisavo kanadskih staroselcev">
-<!ENTITY  font.langGroup.ethiopic                 "Etiopščino">
-<!ENTITY  font.langGroup.georgian                 "Gruzinščino">
-<!ENTITY  font.langGroup.gujarati                 "Gudžaratski jezik">
-<!ENTITY  font.langGroup.gurmukhi                 "Gurmuki">
-<!ENTITY  font.langGroup.khmer                    "Kamboščino">
-<!ENTITY  font.langGroup.malayalam                "Malajalamščino">
-<!ENTITY  font.langGroup.math                     "Matematika">
-<!ENTITY  font.langGroup.odia                     "Odia">
+<!ENTITY  font.langGroup.latin                    "latinico">
+<!ENTITY  font.langGroup.japanese                 "japonsko">
+<!ENTITY  font.langGroup.trad-chinese             "tradicionalno kitajsko (Tajvan)">
+<!ENTITY  font.langGroup.simpl-chinese            "poenostavljeno kitajsko">
+<!ENTITY  font.langGroup.trad-chinese-hk          "tradicionalno kitajsko (Hong Kong)">
+<!ENTITY  font.langGroup.korean                   "korejsko">
+<!ENTITY  font.langGroup.cyrillic                 "cirilico">
+<!ENTITY  font.langGroup.el                       "grško">
+<!ENTITY  font.langGroup.other                    "druge sisteme pisanja">
+<!ENTITY  font.langGroup.thai                     "tajsko">
+<!ENTITY  font.langGroup.hebrew                   "hebrejsko">
+<!ENTITY  font.langGroup.arabic                   "arabsko">
+<!ENTITY  font.langGroup.devanagari               "devanagarščico">
+<!ENTITY  font.langGroup.tamil                    "tamilsko">
+<!ENTITY  font.langGroup.armenian                 "armensko">
+<!ENTITY  font.langGroup.bengali                  "bengalsko">
+<!ENTITY  font.langGroup.canadian                 "poenoteno zlogovno pisavo kanadskih staroselcev">
+<!ENTITY  font.langGroup.ethiopic                 "etiopsko">
+<!ENTITY  font.langGroup.georgian                 "gruzijsko">
+<!ENTITY  font.langGroup.gujarati                 "gudžaratsko">
+<!ENTITY  font.langGroup.gurmukhi                 "gurmuki">
+<!ENTITY  font.langGroup.khmer                    "kmersko">
+<!ENTITY  font.langGroup.malayalam                "malajalamsko">
+<!ENTITY  font.langGroup.math                     "matematiko">
+<!ENTITY  font.langGroup.odia                     "odijsko">
 <!ENTITY  font.langGroup.telugu                   "telugu">
 <!ENTITY  font.langGroup.kannada                  "kanadsko">
 <!ENTITY  font.langGroup.sinhala                  "singalsko">
@@ -63,7 +63,7 @@
 
 <!-- fonts in message -->
 <!ENTITY  fontControl.label                       "Nadzor pisav">
-<!ENTITY  useFixedWidthForPlainText.label         "Za sporočila v golem besedilu uporabi pisavo s stalno širino">
+<!ENTITY  useFixedWidthForPlainText.label         "Za sporočila v golem besedilu uporabi enoširinsko pisavo">
 <!ENTITY  fixedWidth.accesskey                    "Z">
 <!ENTITY  useDocumentFonts.label                  "Dovoli, da sporočila uporabljajo druge pisave">
 <!ENTITY  useDocumentFonts.accesskey              "D">

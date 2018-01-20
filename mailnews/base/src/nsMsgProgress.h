@@ -11,20 +11,20 @@
 #include "nsCOMArray.h"
 #include "nsIDOMWindow.h"
 #include "nsIMsgStatusFeedback.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIMsgWindow.h"
 #include "nsIProgressEventSink.h"
 #include "nsIStringBundle.h"
 #include "nsWeakReference.h"
 
-class nsMsgProgress : public nsIMsgProgress, 
-                      public nsIMsgStatusFeedback, 
+class nsMsgProgress : public nsIMsgProgress,
+                      public nsIMsgStatusFeedback,
                       public nsIProgressEventSink,
                       public nsSupportsWeakReference
 {
-public: 
+public:
   nsMsgProgress();
-  
+
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIMSGPROGRESS
   NS_DECL_NSIWEBPROGRESSLISTENER
@@ -34,7 +34,7 @@ public:
 private:
   virtual ~nsMsgProgress();
   nsresult ReleaseListeners(void);
-  
+
   bool                               m_closeProgress;
   bool                               m_processCanceled;
   nsString                           m_pendingStatus;

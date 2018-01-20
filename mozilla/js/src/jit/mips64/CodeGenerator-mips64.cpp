@@ -247,7 +247,7 @@ CodeGeneratorMIPS64::visitCompareB(LCompareB* lir)
 
     // Load boxed boolean in ScratchRegister.
     if (rhs->isConstant())
-        masm.moveValue(rhs->toConstant()->toJSValue(), ScratchRegister);
+        masm.moveValue(rhs->toConstant()->toJSValue(), ValueOperand(ScratchRegister));
     else
         masm.boxValue(JSVAL_TYPE_BOOLEAN, ToRegister(rhs), ScratchRegister);
 
@@ -266,7 +266,7 @@ CodeGeneratorMIPS64::visitCompareBAndBranch(LCompareBAndBranch* lir)
 
     // Load boxed boolean in ScratchRegister.
     if (rhs->isConstant())
-        masm.moveValue(rhs->toConstant()->toJSValue(), ScratchRegister);
+        masm.moveValue(rhs->toConstant()->toJSValue(), ValueOperand(ScratchRegister));
     else
         masm.boxValue(JSVAL_TYPE_BOOLEAN, ToRegister(rhs), ScratchRegister);
 
@@ -449,10 +449,10 @@ CodeGeneratorMIPS64::emitWasmLoadI64(T* lir)
 
     masm.memoryBarrier(mir->access().barrierBefore());
 
-    if (mir->access().isUnaligned()) {
+    if (IsUnaligned(mir->access())) {
         Register temp = ToRegister(lir->getTemp(1));
 
-        masm.ma_load_unaligned(ToOutRegister64(lir).reg, BaseIndex(HeapReg, ptr, TimesOne),
+        masm.ma_load_unaligned(mir->access(), ToOutRegister64(lir).reg, BaseIndex(HeapReg, ptr, TimesOne),
                                temp, static_cast<LoadStoreSize>(8 * byteSize),
                                isSigned ? SignExtend : ZeroExtend);
         return;
@@ -460,6 +460,7 @@ CodeGeneratorMIPS64::emitWasmLoadI64(T* lir)
 
     masm.ma_load(ToOutRegister64(lir).reg, BaseIndex(HeapReg, ptr, TimesOne),
                  static_cast<LoadStoreSize>(8 * byteSize), isSigned ? SignExtend : ZeroExtend);
+    masm.append(mir->access(), masm.size() - 4, masm.framePushed());
 
     masm.memoryBarrier(mir->access().barrierAfter());
 }
@@ -514,16 +515,17 @@ CodeGeneratorMIPS64::emitWasmStoreI64(T* lir)
 
     masm.memoryBarrier(mir->access().barrierBefore());
 
-    if (mir->access().isUnaligned()) {
+    if (IsUnaligned(mir->access())) {
         Register temp = ToRegister(lir->getTemp(1));
 
-        masm.ma_store_unaligned(ToRegister64(lir->value()).reg, BaseIndex(HeapReg, ptr, TimesOne),
+        masm.ma_store_unaligned(mir->access(), ToRegister64(lir->value()).reg, BaseIndex(HeapReg, ptr, TimesOne),
                                 temp, static_cast<LoadStoreSize>(8 * byteSize),
                                 isSigned ? SignExtend : ZeroExtend);
         return;
     }
     masm.ma_store(ToRegister64(lir->value()).reg, BaseIndex(HeapReg, ptr, TimesOne),
                   static_cast<LoadStoreSize>(8 * byteSize), isSigned ? SignExtend : ZeroExtend);
+    masm.append(mir->access(), masm.size() - 4, masm.framePushed());
 
     masm.memoryBarrier(mir->access().barrierAfter());
 }
@@ -538,24 +540,6 @@ void
 CodeGeneratorMIPS64::visitWasmUnalignedStoreI64(LWasmUnalignedStoreI64* lir)
 {
     emitWasmStoreI64(lir);
-}
-
-void
-CodeGeneratorMIPS64::visitWasmLoadGlobalVarI64(LWasmLoadGlobalVarI64* ins)
-{
-    const MWasmLoadGlobalVar* mir = ins->mir();
-    unsigned addr = mir->globalDataOffset() - WasmGlobalRegBias;
-    MOZ_ASSERT(mir->type() == MIRType::Int64);
-    masm.load64(Address(GlobalReg, addr), ToOutRegister64(ins));
-}
-
-void
-CodeGeneratorMIPS64::visitWasmStoreGlobalVarI64(LWasmStoreGlobalVarI64* ins)
-{
-    const MWasmStoreGlobalVar* mir = ins->mir();
-    unsigned addr = mir->globalDataOffset() - WasmGlobalRegBias;
-    MOZ_ASSERT(mir->value()->type() == MIRType::Int64);
-    masm.store64(ToRegister64(ins->value()), Address(GlobalReg, addr));
 }
 
 void
@@ -624,6 +608,24 @@ CodeGeneratorMIPS64::visitWrapInt64ToInt32(LWrapInt64ToInt32* lir)
 }
 
 void
+CodeGeneratorMIPS64::visitSignExtendInt64(LSignExtendInt64* lir)
+{
+    Register64 input = ToRegister64(lir->getInt64Operand(0));
+    Register64 output = ToOutRegister64(lir);
+    switch (lir->mode()) {
+      case MSignExtendInt64::Byte:
+        masm.move8SignExtend(input.reg, output.reg);
+        break;
+      case MSignExtendInt64::Half:
+        masm.move16SignExtend(input.reg, output.reg);
+        break;
+      case MSignExtendInt64::Word:
+        masm.ma_sll(output.reg, input.reg, Imm32(0));
+        break;
+    }
+}
+
+void
 CodeGeneratorMIPS64::visitClzI64(LClzI64* lir)
 {
     Register64 input = ToRegister64(lir->getInt64Operand(0));
@@ -682,7 +684,8 @@ CodeGeneratorMIPS64::visitWasmTruncateToInt64(LWasmTruncateToInt64* lir)
         // Check that the result is in the uint64_t range.
         masm.moveFromDouble(ScratchDoubleReg, output);
         masm.as_cfc1(ScratchRegister, Assembler::FCSR);
-        masm.as_ext(ScratchRegister, ScratchRegister, 16, 1);
+        // extract invalid operation flag (bit 6) from FCSR
+        masm.ma_ext(ScratchRegister, ScratchRegister, 6, 1);
         masm.ma_dsrl(SecondScratchReg, output, Imm32(63));
         masm.ma_or(SecondScratchReg, ScratchRegister);
         masm.ma_b(SecondScratchReg, Imm32(0), ool->entry(), Assembler::NotEqual);
@@ -702,7 +705,7 @@ CodeGeneratorMIPS64::visitWasmTruncateToInt64(LWasmTruncateToInt64* lir)
         // Check that the result is in the uint64_t range.
         masm.moveFromDouble(ScratchDoubleReg, output);
         masm.as_cfc1(ScratchRegister, Assembler::FCSR);
-        masm.as_ext(ScratchRegister, ScratchRegister, 16, 1);
+        masm.ma_ext(ScratchRegister, ScratchRegister, 6, 1);
         masm.ma_dsrl(SecondScratchReg, output, Imm32(63));
         masm.ma_or(SecondScratchReg, ScratchRegister);
         masm.ma_b(SecondScratchReg, Imm32(0), ool->entry(), Assembler::NotEqual);
@@ -723,7 +726,7 @@ CodeGeneratorMIPS64::visitWasmTruncateToInt64(LWasmTruncateToInt64* lir)
 
     // Check that the result is in the int64_t range.
     masm.as_cfc1(output, Assembler::FCSR);
-    masm.as_ext(output, output, 16, 1);
+    masm.ma_ext(output, output, 6, 1);
     masm.ma_b(output, Imm32(0), ool->entry(), Assembler::NotEqual);
 
     masm.bind(ool->rejoin());

@@ -43,3 +43,5 @@
 <!ENTITY replaceAllButton.label "ਸਭ ਬਦਲੋ">
 <!ENTITY replaceAllButton.accesskey "A">
 <!ENTITY closeButton.label "ਬੰਦ ਕਰੋ">
+
+<!ENTITY closeButton.accesskey "C">

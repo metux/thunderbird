@@ -10,10 +10,8 @@
 <!ENTITY clearAllReports.label      "සියළු වාර්තා ඉවත් කරන්න">
 
 
-
-
 <!ENTITY crashReports.title         "Crash Reports">
-<!ENTITY crashesSubmitted.label     "Submitted Crash Reports">
 <!ENTITY crashesUnsubmitted.label   "Unsubmitted Crash Reports">
+<!ENTITY crashesSubmitted.label     "Submitted Crash Reports">
 <!ENTITY dateCrashed.heading        "Date Crashed">
 <!ENTITY dateSubmitted.heading      "Date Submitted">

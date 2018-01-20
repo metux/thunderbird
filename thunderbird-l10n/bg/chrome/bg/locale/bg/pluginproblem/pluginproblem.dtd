@@ -3,9 +3,10 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!-- LOCALIZATION NOTE (tapToPlayPlugin): Mobile (used for touch interfaces) only has one type of plugin possible. -->
+<!ENTITY pluginActivationWarning                             "Този сайт използва приставка, която може да забавя &brandShortName;.">
 <!ENTITY tapToPlayPlugin                                     "Натиснете тук за активиране на приставка.">
 <!ENTITY clickToActivatePlugin                               "Активиране на приставка.">
-<!ENTITY checkForUpdates                                     "Проверка за обновления…">
+<!ENTITY checkForUpdates                                     "Проверка за обновяване…">
 <!ENTITY blockedPlugin.label                                 "Приставката беше блокирана от съображения за сигурност.">
 <!ENTITY hidePluginBtn.label                                 "Скриване на приставка">
 <!ENTITY managePlugins                                       "Управление на приставки…">
@@ -29,3 +30,4 @@
 <!ENTITY plugin.file                                         "Файл">
 <!ENTITY plugin.mimeTypes                                    "MIME типове">
 <!ENTITY plugin.flashProtectedMode.label                     "Включване на защитен режим за Adobe Flash">
+<!ENTITY plugin.enableBlocklists.label                       "Блокиране на опасно и натрапчиво съдържание на Flash">

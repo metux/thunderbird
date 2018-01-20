@@ -54,7 +54,7 @@ TEST(CloneInputStream, NonCloneableInput_NoFallback)
   // now.  If this changes in the future, then we need a different stream
   // type in this test.
   nsCOMPtr<nsIInputStream> stream;
-  rv = NS_NewBufferedInputStream(getter_AddRefs(stream), base, 4096);
+  rv = NS_NewBufferedInputStream(getter_AddRefs(stream), base.forget(), 4096);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
 
   nsCOMPtr<nsICloneableInputStream> cloneable = do_QueryInterface(stream);
@@ -82,7 +82,7 @@ TEST(CloneInputStream, NonCloneableInput_Fallback)
   // now.  If this changes in the future, then we need a different stream
   // type in this test.
   nsCOMPtr<nsIInputStream> stream;
-  rv = NS_NewBufferedInputStream(getter_AddRefs(stream), base, 4096);
+  rv = NS_NewBufferedInputStream(getter_AddRefs(stream), base.forget(), 4096);
   ASSERT_TRUE(NS_SUCCEEDED(rv));
 
   nsCOMPtr<nsICloneableInputStream> cloneable = do_QueryInterface(stream);
@@ -116,8 +116,10 @@ TEST(CloneInputStream, NonCloneableInput_Fallback)
 
 TEST(CloneInputStream, CloneMultiplexStream)
 {
-  nsCOMPtr<nsIMultiplexInputStream> stream =
+  nsCOMPtr<nsIMultiplexInputStream> multiplexStream =
     do_CreateInstance("@mozilla.org/io/multiplex-input-stream;1");
+  ASSERT_TRUE(multiplexStream);
+  nsCOMPtr<nsIInputStream> stream(do_QueryInterface(multiplexStream));
   ASSERT_TRUE(stream);
 
   nsTArray<char> inputData;
@@ -129,7 +131,7 @@ TEST(CloneInputStream, CloneMultiplexStream)
     nsresult rv = NS_NewCStringInputStream(getter_AddRefs(base), inputString);
     ASSERT_TRUE(NS_SUCCEEDED(rv));
 
-    rv = stream->AppendStream(base);
+    rv = multiplexStream->AppendStream(base);
     ASSERT_TRUE(NS_SUCCEEDED(rv));
   }
 
@@ -156,8 +158,10 @@ TEST(CloneInputStream, CloneMultiplexStream)
 
 TEST(CloneInputStream, CloneMultiplexStreamPartial)
 {
-  nsCOMPtr<nsIMultiplexInputStream> stream =
+  nsCOMPtr<nsIMultiplexInputStream> multiplexStream =
     do_CreateInstance("@mozilla.org/io/multiplex-input-stream;1");
+  ASSERT_TRUE(multiplexStream);
+  nsCOMPtr<nsIInputStream> stream(do_QueryInterface(multiplexStream));
   ASSERT_TRUE(stream);
 
   nsTArray<char> inputData;
@@ -169,7 +173,7 @@ TEST(CloneInputStream, CloneMultiplexStreamPartial)
     nsresult rv = NS_NewCStringInputStream(getter_AddRefs(base), inputString);
     ASSERT_TRUE(NS_SUCCEEDED(rv));
 
-    rv = stream->AppendStream(base);
+    rv = multiplexStream->AppendStream(base);
     ASSERT_TRUE(NS_SUCCEEDED(rv));
   }
 

@@ -6,11 +6,6 @@
 <!ENTITY toggleToolbox.key "I">
 <!ENTITY toggleToolboxF12.keycode "VK_F12">
 <!ENTITY toggleToolboxF12.keytext "F12">
-<!ENTITY toolboxCloseButton.tooltip "Zamknij narzędzia dla programistów">
-
-<!ENTITY toolboxFramesTooltip "Wskaż element iframe jako cel narzędzi">
-
-<!ENTITY toolboxNoAutoHideTooltip "Wyłącz automatyczne ukrywanie wyskakujących okien">
 
 <!ENTITY browserToolboxErrorMessage "Błąd otwierania narzędzi przeglądarki:">
 
@@ -24,10 +19,6 @@
 <!ENTITY options.selectDevToolsTheme.label2 "Motyw">
 <!ENTITY options.usedeveditiontheme.label "Motyw Firefox Developer Edition">
 <!ENTITY options.usedeveditiontheme.tooltip "Przełącza motyw Firefox Developer Edition przeglądarki">
-
-<!ENTITY options.commonPrefs.label "Ogólne">
-<!ENTITY options.enablePersistentLogs.label "Trwałe dzienniki">
-<!ENTITY options.enablePersistentLogs.tooltip "Po włączeniu tej opcji konsola www oraz monitor sieci nie będą czyścić wyjścia po przejściu do kolejnej strony">
 
 <!ENTITY options.context.inspector "Inspektor">
 <!ENTITY options.showUserAgentStyles.label "Wyświetlanie stylów przeglądarki">
@@ -51,13 +42,17 @@
 <!ENTITY options.debugger.label "Debuger">
 
 <!ENTITY options.sourceMaps.label "Mapy źródeł">
-<!ENTITY options.sourceMaps.tooltip "Po włączeniu tej funkcji, źródła będą mapowane w debugerze i konsoli">
+<!ENTITY options.sourceMaps.tooltip1 "Po włączeniu tej funkcji, źródła będą mapowane w narzędziach">
 
 <!ENTITY options.styleeditor.label "Edytor stylów">
-<!ENTITY options.stylesheetSourceMaps.label "Oryginalne źródła">
-<!ENTITY options.stylesheetSourceMaps.tooltip "Pokazuj oryginalne źródła (np. pliki Saas) w edytorze stylów i inspektorze">
 <!ENTITY options.stylesheetAutocompletion.label "Automatyczne uzupełnianie CSS">
 <!ENTITY options.stylesheetAutocompletion.tooltip "Podczas pisania uzupełniaj automatycznie wartości, własności i selektory CSS w edytorze stylów">
+
+<!ENTITY options.screenshot.label "Zapisywanie obrazu strony">
+<!ENTITY options.screenshot.clipboard.label "Zachowywanie w schowku">
+<!ENTITY options.screenshot.clipboard.tooltip "Zachowywanie bezpośrednio w schowku zrobionych zrzutów stron">
+<!ENTITY options.screenshot.audio.label "Odgłos migawki">
+<!ENTITY options.screenshot.audio.tooltip "Odtwarzanie dźwięku podczas robienia zrzutu">
 
 <!ENTITY options.showPlatformData.label "Informacje platformy Gecko">
 <!ENTITY options.showPlatformData.tooltip "Po włączeniu tej opcji Profiler JavaScript będzie raportował symbole platformy Gecko">
@@ -80,8 +75,6 @@
 <!ENTITY options.enableChrome.tooltip3 "Włączenie tej opcji pozwoli na używanie wielu narzędzi dla programistów w kontekście przeglądarki (poprzez Narzędzia > Dla twórców witryn > Narzędzia przeglądarki) i debugowanie dodatków z menedżera dodatków">
 <!ENTITY options.enableRemote.label3 "Debugowanie zdalne">
 <!ENTITY options.enableRemote.tooltip2 "Włączenie tej opcji pozwoli na debugowanie zdalnych instancji, takich jak Firefox OS, z poziomu narzędzi dla programistów">
-<!ENTITY options.enableWorkers.label "Debugowanie wątków (eksperymentalne)">
-<!ENTITY options.enableWorkers.tooltip "Włączenie tej opcji pozwoli narzędziom przeglądarki na debugowanie wątków">
 <!ENTITY options.disableJavaScript.label "Wyłącz JavaScript *">
 <!ENTITY options.disableJavaScript.tooltip "Wyłącza JavaScript w bieżącej karcie. Jeśli karta lub narzędzia zostaną zamknięte, ustawienie zostanie zapomniane.">
 <!ENTITY options.disableHTTPCache.label "Wyłącz pamięć podręczną HTTP (gdy otworzone są narzędzia)">

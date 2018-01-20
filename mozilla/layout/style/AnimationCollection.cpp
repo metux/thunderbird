@@ -6,8 +6,8 @@
 
 #include "mozilla/AnimationCollection.h"
 
-#include "mozilla/RestyleManagerHandle.h"
-#include "mozilla/RestyleManagerHandleInlines.h"
+#include "mozilla/RestyleManager.h"
+#include "mozilla/RestyleManagerInlines.h"
 #include "nsAnimationManager.h" // For dom::CSSAnimation
 #include "nsPresContext.h"
 #include "nsTransitionManager.h" // For dom::CSSTransition
@@ -17,7 +17,7 @@ namespace mozilla {
 template <class AnimationType>
 /* static */ void
 AnimationCollection<AnimationType>::PropertyDtor(void* aObject,
-                                                 nsIAtom* aPropertyName,
+                                                 nsAtom* aPropertyName,
                                                  void* aPropertyValue,
                                                  void* aData)
 {
@@ -40,7 +40,7 @@ AnimationCollection<AnimationType>::PropertyDtor(void* aObject,
 template <class AnimationType>
 /* static */ AnimationCollection<AnimationType>*
 AnimationCollection<AnimationType>::GetAnimationCollection(
-  dom::Element *aElement,
+  const dom::Element *aElement,
   CSSPseudoElementType aPseudoType)
 {
   if (!aElement->MayHaveAnimations()) {
@@ -48,7 +48,7 @@ AnimationCollection<AnimationType>::GetAnimationCollection(
     return nullptr;
   }
 
-  nsIAtom* propName = GetPropertyAtomForPseudoType(aPseudoType);
+  nsAtom* propName = GetPropertyAtomForPseudoType(aPseudoType);
   if (!propName) {
     return nullptr;
   }
@@ -87,7 +87,7 @@ AnimationCollection<AnimationType>::GetOrCreateAnimationCollection(
   MOZ_ASSERT(aCreatedCollection);
   *aCreatedCollection = false;
 
-  nsIAtom* propName = GetPropertyAtomForPseudoType(aPseudoType);
+  nsAtom* propName = GetPropertyAtomForPseudoType(aPseudoType);
   MOZ_ASSERT(propName, "Should only try to create animations for one of the"
              " recognized pseudo types");
 
@@ -138,20 +138,15 @@ void
 AnimationCollection<AnimationType>::UpdateCheckGeneration(
   nsPresContext* aPresContext)
 {
-  if (aPresContext->RestyleManager()->IsServo()) {
-    // stylo: ServoRestyleManager does not support animations yet.
-    return;
-  }
-  mCheckGeneration =
-    aPresContext->RestyleManager()->AsGecko()->GetAnimationGeneration();
+  mCheckGeneration = aPresContext->RestyleManager()->GetAnimationGeneration();
 }
 
 template<class AnimationType>
-/*static*/ nsIAtom*
+/*static*/ nsAtom*
 AnimationCollection<AnimationType>::GetPropertyAtomForPseudoType(
   CSSPseudoElementType aPseudoType)
 {
-  nsIAtom* propName = nullptr;
+  nsAtom* propName = nullptr;
 
   if (aPseudoType == CSSPseudoElementType::NotPseudo) {
     propName = TraitsType::ElementPropertyAtom();

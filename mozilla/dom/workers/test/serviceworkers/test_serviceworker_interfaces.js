@@ -25,7 +25,10 @@ var ecmaGlobals =
   [
     "Array",
     "ArrayBuffer",
+    {name: "Atomics", disabled: true},
     "Boolean",
+    {name: "ByteLengthQueuingStrategy", optional: true},
+    {name: "CountQueuingStrategy", optional: true},
     "DataView",
     "Date",
     "Error",
@@ -38,8 +41,7 @@ var ecmaGlobals =
     "Int32Array",
     "Int8Array",
     "InternalError",
-    {name: "Intl", android: false},
-    "Iterator",
+    "Intl",
     "JSON",
     "Map",
     "Math",
@@ -49,14 +51,13 @@ var ecmaGlobals =
     "Promise",
     "Proxy",
     "RangeError",
+    {name: "ReadableStream", optional: true},
     "ReferenceError",
     "Reflect",
     "RegExp",
     "Set",
-    {name: "SharedArrayBuffer", release: false},
+    {name: "SharedArrayBuffer", disabled: true},
     {name: "SIMD", nightly: true},
-    {name: "Atomics", release: false},
-    "StopIteration",
     "String",
     "Symbol",
     "SyntaxError",
@@ -69,6 +70,7 @@ var ecmaGlobals =
     "URIError",
     "WeakMap",
     "WeakSet",
+    {name: "WebAssembly", optional: true}
   ];
 // IMPORTANT: Do not change the list above without review from
 //            a JavaScript Engine peer!
@@ -76,6 +78,10 @@ var ecmaGlobals =
 // IMPORTANT: Do not change the list below without review from a DOM peer!
 var interfaceNamesInGlobalScope =
   [
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "AbortController",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "AbortSignal",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "Blob",
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -88,6 +94,8 @@ var interfaceNamesInGlobalScope =
     "Client",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "Clients",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "CloseEvent",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "Crypto",
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -105,6 +113,8 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "DOMStringList",
 // IMPORTANT: Do not change this list without review from a DOM peer!
+    "ErrorEvent",
+// IMPORTANT: Do not change this list without review from a DOM peer!
     "Event",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "EventTarget",
@@ -116,6 +126,8 @@ var interfaceNamesInGlobalScope =
     "FetchEvent",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "File",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "FileList",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "FileReader",
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -159,10 +171,11 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "MessagePort",
 // IMPORTANT: Do not change this list without review from a DOM peer!
+    { name: "NetworkInformation", android: true },
+// IMPORTANT: Do not change this list without review from a DOM peer!
     "Notification",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "NotificationEvent",
-// IMPORTANT: Do not change this list without review from a DOM peer!
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "Performance",
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -172,9 +185,21 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "PerformanceMeasure",
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    { name: "PerformanceObserver", nightly: true },
+    "PerformanceObserver",
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    { name: "PerformanceObserverEntryList", nightly: true },
+    "PerformanceObserverEntryList",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "ProgressEvent",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "PushEvent",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "PushManager",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "PushMessageData",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "PushSubscription",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "PushSubscriptionOptions",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "Request",
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -186,7 +211,7 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "ServiceWorkerRegistration",
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    {name: "StorageManager", nightly: true},
+    {name: "StorageManager", android: false},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "SubtleCrypto",
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -231,8 +256,11 @@ function createInterfaceMap(version, userAgent) {
             (entry.nonReleaseAndroid === !(isAndroid && !isRelease) && isAndroid) ||
             (entry.desktop === !isDesktop) ||
             (entry.android === !isAndroid && !entry.nonReleaseAndroid && !entry.nightlyAndroid) ||
-            (entry.release === !isRelease)) {
+            (entry.release === !isRelease) ||
+            entry.disabled) {
           interfaceMap[entry.name] = false;
+        } else if (entry.optional) {
+          interfaceMap[entry.name] = "optional";
         } else {
           interfaceMap[entry.name] = true;
         }
@@ -253,17 +281,21 @@ function runTest(version, userAgent) {
     if (!/^[A-Z]/.test(name)) {
       continue;
     }
-    ok(interfaceMap[name],
+    ok(interfaceMap[name] === "optional" || interfaceMap[name],
        "If this is failing: DANGER, are you sure you want to expose the new interface " + name +
        " to all webpages as a property on the service worker? Do not make a change to this file without a " +
        " review from a DOM peer for that specific change!!! (or a JS peer for changes to ecmaGlobals)");
     delete interfaceMap[name];
   }
   for (var name of Object.keys(interfaceMap)) {
-    ok(name in self === interfaceMap[name],
-       name + " should " + (interfaceMap[name] ? "" : " NOT") + " be defined on the global scope");
-    if (!interfaceMap[name]) {
+    if (interfaceMap[name] === "optional") {
       delete interfaceMap[name];
+    } else {
+      ok(name in self === interfaceMap[name],
+         name + " should " + (interfaceMap[name] ? "" : " NOT") + " be defined on the global scope");
+      if (!interfaceMap[name]) {
+        delete interfaceMap[name];
+      }
     }
   }
   is(Object.keys(interfaceMap).length, 0,

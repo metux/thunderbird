@@ -115,9 +115,48 @@ private:
   AutoTArray<Modifiers, 5> mModifiers;
 };
 
-struct DeadKeyEntry;
-class DeadKeyTable;
+struct DeadKeyEntry
+{
+  char16_t BaseChar;
+  char16_t CompositeChar;
+};
 
+
+class DeadKeyTable
+{
+  friend class KeyboardLayout;
+
+  uint16_t mEntries;
+  // KeyboardLayout::AddDeadKeyTable() will allocate as many entries as
+  // required.  It is the only way to create new DeadKeyTable instances.
+  DeadKeyEntry mTable[1];
+
+  void Init(const DeadKeyEntry* aDeadKeyArray, uint32_t aEntries)
+  {
+    mEntries = aEntries;
+    memcpy(mTable, aDeadKeyArray, aEntries * sizeof(DeadKeyEntry));
+  }
+
+  static uint32_t SizeInBytes(uint32_t aEntries)
+  {
+    return offsetof(DeadKeyTable, mTable) + aEntries * sizeof(DeadKeyEntry);
+  }
+
+public:
+  uint32_t Entries() const
+  {
+    return mEntries;
+  }
+
+  bool IsEqual(const DeadKeyEntry* aDeadKeyArray, uint32_t aEntries) const
+  {
+    return (mEntries == aEntries &&
+            !memcmp(mTable, aDeadKeyArray,
+                    aEntries * sizeof(DeadKeyEntry)));
+  }
+
+  char16_t GetCompositeChar(char16_t aBaseChar) const;
+};
 
 class VirtualKey
 {
@@ -203,7 +242,11 @@ public:
   const DeadKeyTable* MatchingDeadKeyTable(const DeadKeyEntry* aDeadKeyArray,
                                            uint32_t aEntries) const;
   inline char16_t GetCompositeChar(ShiftState aShiftState,
-                                    char16_t aBaseChar) const;
+                                    char16_t aBaseChar) const
+  {
+    return mShiftStates[aShiftState].DeadKey.Table->GetCompositeChar(aBaseChar);
+  }
+
   char16_t GetCompositeChar(const ModifierKeyState& aModKeyState,
                             char16_t aBaseChar) const
   {
@@ -455,7 +498,7 @@ private:
 
   UINT GetScanCodeWithExtendedFlag() const;
 
-  // The result is one of nsIDOMKeyEvent::DOM_KEY_LOCATION_*.
+  // The result is one of eKeyLocation*.
   uint32_t GetKeyLocation() const;
 
   /**
@@ -562,11 +605,6 @@ private:
    *          hwnd may be different window.
    */
   bool GetFollowingCharMessage(MSG& aCharMsg);
-
-  /**
-   * Whether the key event can compute virtual keycode from the scancode value.
-   */
-  bool CanComputeVirtualKeyCodeFromScanCode() const;
 
   /**
    * Wraps MapVirtualKeyEx() with MAPVK_VSC_TO_VK.
@@ -676,6 +714,8 @@ private:
 
   static const MSG sEmptyMSG;
 
+  static MSG sLastKeyMSG;
+
   static bool IsEmptyMSG(const MSG& aMSG)
   {
     return !memcmp(&aMSG, &sEmptyMSG, sizeof(MSG));
@@ -685,6 +725,13 @@ private:
   {
     return mLastInstance && !IsEmptyMSG(mLastInstance->mRemovingMsg);
   }
+
+public:
+  /**
+   * Returns last key MSG.  If no key MSG has been received yet, the result
+   * is empty MSG (i.e., .message is WM_NULL).
+   */
+  static const MSG& LastKeyMSG() { return sLastKeyMSG; }
 };
 
 class KeyboardLayout

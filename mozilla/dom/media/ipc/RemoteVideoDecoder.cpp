@@ -21,13 +21,10 @@ using namespace ipc;
 using namespace layers;
 using namespace gfx;
 
-RemoteVideoDecoder::RemoteVideoDecoder(MediaDataDecoderCallback* aCallback)
+RemoteVideoDecoder::RemoteVideoDecoder()
   : mActor(new VideoDecoderChild())
+  , mDescription("RemoteVideoDecoder")
 {
-#ifdef DEBUG
-  mCallback = aCallback;
-#endif
-  MOZ_ASSERT(mCallback->OnReaderTaskQueue());
 }
 
 RemoteVideoDecoder::~RemoteVideoDecoder()
@@ -37,94 +34,106 @@ RemoteVideoDecoder::~RemoteVideoDecoder()
   // task queue for the VideoDecoderChild thread to keep
   // it alive until we send the delete message.
   RefPtr<VideoDecoderChild> actor = mActor;
-  VideoDecoderManagerChild::GetManagerThread()->Dispatch(NS_NewRunnableFunction([actor]() {
-    MOZ_ASSERT(actor);
-    actor->DestroyIPDL();
-  }), NS_DISPATCH_NORMAL);
+
+  RefPtr<Runnable> task = NS_NewRunnableFunction(
+    "dom::RemoteVideoDecoder::~RemoteVideoDecoder", [actor]() {
+      MOZ_ASSERT(actor);
+      actor->DestroyIPDL();
+    });
+
+  // Drop out references to the actor so that the last ref
+  // always gets released on the manager thread.
+  actor = nullptr;
+  mActor = nullptr;
+
+  VideoDecoderManagerChild::GetManagerThread()->Dispatch(task.forget(),
+                                                         NS_DISPATCH_NORMAL);
 }
 
 RefPtr<MediaDataDecoder::InitPromise>
 RemoteVideoDecoder::Init()
 {
-  MOZ_ASSERT(mCallback->OnReaderTaskQueue());
+  RefPtr<RemoteVideoDecoder> self = this;
   return InvokeAsync(VideoDecoderManagerChild::GetManagerAbstractThread(),
-                     this, __func__, &RemoteVideoDecoder::InitInternal);
+                     __func__,
+                     [self]() { return self->mActor->Init(); })
+    ->Then(VideoDecoderManagerChild::GetManagerAbstractThread(),
+           __func__,
+           [self, this](TrackType aTrack) {
+             mDescription =
+               mActor->GetDescriptionName() + NS_LITERAL_CSTRING(" (remote)");
+             mIsHardwareAccelerated =
+               mActor->IsHardwareAccelerated(mHardwareAcceleratedReason);
+             mConversion = mActor->NeedsConversion();
+             return InitPromise::CreateAndResolve(aTrack, __func__);
+           },
+           [self](const MediaResult& aError) {
+             return InitPromise::CreateAndReject(aError, __func__);
+           });
 }
 
-RefPtr<MediaDataDecoder::InitPromise>
-RemoteVideoDecoder::InitInternal()
+RefPtr<MediaDataDecoder::DecodePromise>
+RemoteVideoDecoder::Decode(MediaRawData* aSample)
 {
-  MOZ_ASSERT(mActor);
-  MOZ_ASSERT(NS_GetCurrentThread() == VideoDecoderManagerChild::GetManagerThread());
-  return mActor->Init();
-}
-
-void
-RemoteVideoDecoder::Input(MediaRawData* aSample)
-{
-  MOZ_ASSERT(mCallback->OnReaderTaskQueue());
   RefPtr<RemoteVideoDecoder> self = this;
   RefPtr<MediaRawData> sample = aSample;
-  VideoDecoderManagerChild::GetManagerThread()->Dispatch(NS_NewRunnableFunction([self, sample]() {
-    MOZ_ASSERT(self->mActor);
-    self->mActor->Input(sample);
-  }), NS_DISPATCH_NORMAL);
+  return InvokeAsync(VideoDecoderManagerChild::GetManagerAbstractThread(),
+                     __func__,
+                     [self, sample]() { return self->mActor->Decode(sample); });
 }
 
-void
+RefPtr<MediaDataDecoder::FlushPromise>
 RemoteVideoDecoder::Flush()
 {
-  MOZ_ASSERT(mCallback->OnReaderTaskQueue());
   RefPtr<RemoteVideoDecoder> self = this;
-  VideoDecoderManagerChild::GetManagerThread()->Dispatch(NS_NewRunnableFunction([self]() {
-    MOZ_ASSERT(self->mActor);
-    self->mActor->Flush();
-  }), NS_DISPATCH_NORMAL);
+  return InvokeAsync(VideoDecoderManagerChild::GetManagerAbstractThread(),
+                     __func__, [self]() { return self->mActor->Flush(); });
 }
 
-void
+RefPtr<MediaDataDecoder::DecodePromise>
 RemoteVideoDecoder::Drain()
 {
-  MOZ_ASSERT(mCallback->OnReaderTaskQueue());
   RefPtr<RemoteVideoDecoder> self = this;
-  VideoDecoderManagerChild::GetManagerThread()->Dispatch(NS_NewRunnableFunction([self]() {
-    MOZ_ASSERT(self->mActor);
-    self->mActor->Drain();
-  }), NS_DISPATCH_NORMAL);
+  return InvokeAsync(VideoDecoderManagerChild::GetManagerAbstractThread(),
+                     __func__, [self]() { return self->mActor->Drain(); });
 }
 
-void
+RefPtr<ShutdownPromise>
 RemoteVideoDecoder::Shutdown()
 {
-  MOZ_ASSERT(mCallback->OnReaderTaskQueue());
-  SynchronousTask task("Shutdown");
   RefPtr<RemoteVideoDecoder> self = this;
-  VideoDecoderManagerChild::GetManagerThread()->Dispatch(NS_NewRunnableFunction([&]() {
-    AutoCompleteTask complete(&task);
-    MOZ_ASSERT(self->mActor);
-    self->mActor->Shutdown();
-  }), NS_DISPATCH_NORMAL);
-  task.Wait();
+  return InvokeAsync(VideoDecoderManagerChild::GetManagerAbstractThread(),
+                     __func__, [self]() {
+                       self->mActor->Shutdown();
+                       return ShutdownPromise::CreateAndResolve(true, __func__);
+                     });
 }
 
 bool
 RemoteVideoDecoder::IsHardwareAccelerated(nsACString& aFailureReason) const
 {
-  MOZ_ASSERT(mCallback->OnReaderTaskQueue());
-  return mActor->IsHardwareAccelerated(aFailureReason);
+  aFailureReason = mHardwareAcceleratedReason;
+  return mIsHardwareAccelerated;
 }
 
 void
 RemoteVideoDecoder::SetSeekThreshold(const media::TimeUnit& aTime)
 {
-  MOZ_ASSERT(mCallback->OnReaderTaskQueue());
   RefPtr<RemoteVideoDecoder> self = this;
   media::TimeUnit time = aTime;
-  VideoDecoderManagerChild::GetManagerThread()->Dispatch(NS_NewRunnableFunction([=]() {
-    MOZ_ASSERT(self->mActor);
-    self->mActor->SetSeekThreshold(time);
-  }), NS_DISPATCH_NORMAL);
+  VideoDecoderManagerChild::GetManagerThread()->Dispatch(
+    NS_NewRunnableFunction("dom::RemoteVideoDecoder::SetSeekThreshold",
+                           [=]() {
+                             MOZ_ASSERT(self->mActor);
+                             self->mActor->SetSeekThreshold(time);
+                           }),
+    NS_DISPATCH_NORMAL);
+}
 
+MediaDataDecoder::ConversionRequired
+RemoteVideoDecoder::NeedsConversion() const
+{
+  return mConversion;
 }
 
 nsresult
@@ -143,10 +152,19 @@ RemoteDecoderModule::SupportsMimeType(const nsACString& aMimeType,
   return mWrapped->SupportsMimeType(aMimeType, aDiagnostics);
 }
 
-PlatformDecoderModule::ConversionRequired
-RemoteDecoderModule::DecoderNeedsConversion(const TrackInfo& aConfig) const
+bool
+RemoteDecoderModule::Supports(const TrackInfo& aTrackInfo,
+                              DecoderDoctorDiagnostics* aDiagnostics) const
 {
-  return mWrapped->DecoderNeedsConversion(aConfig);
+  return mWrapped->Supports(aTrackInfo, aDiagnostics);
+}
+
+static inline bool
+IsRemoteAcceleratedCompositor(KnowsCompositor* aKnows)
+{
+  TextureFactoryIdentifier ident = aKnows->GetTextureFactoryIdentifier();
+  return ident.mParentBackend != LayersBackend::LAYERS_BASIC &&
+         ident.mParentProcessType == GeckoProcessType_GPU;
 }
 
 already_AddRefed<MediaDataDecoder>
@@ -154,22 +172,42 @@ RemoteDecoderModule::CreateVideoDecoder(const CreateDecoderParams& aParams)
 {
   if (!MediaPrefs::PDMUseGPUDecoder() ||
       !aParams.mKnowsCompositor ||
-      aParams.mKnowsCompositor->GetTextureFactoryIdentifier().mParentProcessType != GeckoProcessType_GPU) {
+      !IsRemoteAcceleratedCompositor(aParams.mKnowsCompositor))
+  {
     return mWrapped->CreateVideoDecoder(aParams);
   }
 
-  MediaDataDecoderCallback* callback = aParams.mCallback;
-  MOZ_ASSERT(callback->OnReaderTaskQueue());
-  RefPtr<RemoteVideoDecoder> object = new RemoteVideoDecoder(callback);
+  RefPtr<RemoteVideoDecoder> object = new RemoteVideoDecoder();
 
-  VideoInfo info = aParams.VideoConfig();
+  SynchronousTask task("InitIPDL");
+  MediaResult result(NS_OK);
+  VideoDecoderManagerChild::GetManagerThread()->Dispatch(
+    NS_NewRunnableFunction(
+      "dom::RemoteDecoderModule::CreateVideoDecoder",
+      [&]() {
+        AutoCompleteTask complete(&task);
+        result = object->mActor->InitIPDL(
+          aParams.VideoConfig(),
+          aParams.mRate.mValue,
+          aParams.mKnowsCompositor->GetTextureFactoryIdentifier());
+      }),
+    NS_DISPATCH_NORMAL);
+  task.Wait();
 
-  TextureFactoryIdentifier ident = aParams.mKnowsCompositor->GetTextureFactoryIdentifier();
-  VideoDecoderManagerChild::GetManagerThread()->Dispatch(NS_NewRunnableFunction([=]() {
-    object->mActor->InitIPDL(callback, info, ident);
-  }), NS_DISPATCH_NORMAL);
+  if (NS_FAILED(result)) {
+    if (aParams.mError) {
+      *aParams.mError = result;
+    }
+    return nullptr;
+  }
 
   return object.forget();
+}
+
+nsCString
+RemoteVideoDecoder::GetDescriptionName() const
+{
+  return mDescription;
 }
 
 } // namespace dom

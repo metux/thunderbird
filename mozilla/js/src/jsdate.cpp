@@ -18,6 +18,7 @@
 #include "jsdate.h"
 
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/Atomics.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/Sprintf.h"
 
@@ -48,16 +49,21 @@
 
 using namespace js;
 
+using mozilla::Atomic;
 using mozilla::ArrayLength;
 using mozilla::IsFinite;
 using mozilla::IsNaN;
 using mozilla::NumbersAreIdentical;
+using mozilla::ReleaseAcquire;
 
 using JS::AutoCheckCannotGC;
 using JS::ClippedTime;
 using JS::GenericNaN;
 using JS::TimeClip;
 using JS::ToInteger;
+
+// When this value is non-zero, we'll round the time by this resolution.
+static Atomic<uint32_t, ReleaseAcquire> sResolutionUsec;
 
 /*
  * The JS 'Date' object is patterned after the Java 'Date' object.
@@ -354,7 +360,19 @@ MakeDate(double day, double time)
 JS_PUBLIC_API(double)
 JS::MakeDate(double year, unsigned month, unsigned day)
 {
+    MOZ_ASSERT(month <= 11);
+    MOZ_ASSERT(day >= 1 && day <= 31);
+
     return ::MakeDate(MakeDay(year, month, day), 0);
+}
+
+JS_PUBLIC_API(double)
+JS::MakeDate(double year, unsigned month, unsigned day, double time)
+{
+    MOZ_ASSERT(month <= 11);
+    MOZ_ASSERT(day >= 1 && day <= 31);
+
+    return ::MakeDate(MakeDay(year, month, day), time);
 }
 
 JS_PUBLIC_API(double)
@@ -387,6 +405,12 @@ JS::DayWithinYear(double time, double year)
     return ::DayWithinYear(time, year);
 }
 
+JS_PUBLIC_API(void)
+JS::SetTimeResolutionUsec(uint32_t resolution)
+{
+    sResolutionUsec = resolution;
+}
+
 /*
  * Find a year for which any given date will fall on the same weekday.
  *
@@ -405,17 +429,33 @@ EquivalentYearForDST(int year)
      *
      * yearStartingWith[1][i] is an example leap year where
      * Jan 1 appears on Sunday (i == 0), Monday (i == 1), etc.
+     *
+     * Keep two different mappings, one for past years (< 1970), and a
+     * different one for future years (> 2037).
      */
-    static const int yearStartingWith[2][7] = {
+    static const int pastYearStartingWith[2][7] = {
         {1978, 1973, 1974, 1975, 1981, 1971, 1977},
         {1984, 1996, 1980, 1992, 1976, 1988, 1972}
+    };
+    static const int futureYearStartingWith[2][7] = {
+        {2034, 2035, 2030, 2031, 2037, 2027, 2033},
+        {2012, 2024, 2036, 2020, 2032, 2016, 2028}
     };
 
     int day = int(DayFromYear(year) + 4) % 7;
     if (day < 0)
         day += 7;
 
+    const auto& yearStartingWith = year < 1970 ? pastYearStartingWith : futureYearStartingWith;
     return yearStartingWith[IsLeapYear(year)][day];
+}
+
+// Return true if |t| is representable as a 32-bit time_t variable, that means
+// the year is in [1970, 2038).
+static bool
+IsRepresentableAsTime32(double t)
+{
+    return 0.0 <= t && t < 2145916800000.0;
 }
 
 /* ES5 15.9.1.8. */
@@ -429,7 +469,7 @@ DaylightSavingTA(double t)
      * If earlier than 1970 or after 2038, potentially beyond the ken of
      * many OSes, map it to an equivalent year before asking.
      */
-    if (t < 0.0 || t > 2145916800000.0) {
+    if (!IsRepresentableAsTime32(t)) {
         int year = EquivalentYearForDST(int(YearFromTime(t)));
         double day = MakeDay(year, MonthFromTime(t), DateFromTime(t));
         t = MakeDate(day, TimeWithinDay(t));
@@ -459,7 +499,14 @@ LocalTime(double t)
 static double
 UTC(double t)
 {
-    return t - AdjustTime(t - DateTimeInfo::localTZA());
+    // Following the ES2017 specification creates undesirable results at DST
+    // transitions. For example when transitioning from PST to PDT,
+    // |new Date(2016,2,13,2,0,0).toTimeString()| returns the string value
+    // "01:00:00 GMT-0800 (PST)" instead of "03:00:00 GMT-0700 (PDT)". Follow
+    // V8 and subtract one hour before computing the offset.
+    // Spec bug: https://bugs.ecmascript.org/show_bug.cgi?id=4007
+
+    return t - AdjustTime(t - DateTimeInfo::localTZA() - msPerHour);
 }
 
 /* ES5 15.9.1.10. */
@@ -574,23 +621,29 @@ RegionMatches(const char* s1, int s1off, const CharT* s2, int s2off, int count)
     return count == 0;
 }
 
-/* ES6 20.3.3.4. */
+// ES2017 draft rev (TODO: Add git hash when PR 642 is merged.)
+// 20.3.3.4
+// Date.UTC(year [, month [, date [, hours [, minutes [, seconds [, ms]]]]]])
 static bool
 date_UTC(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    // Steps 1-2.
+    // Step 1.
     double y;
     if (!ToNumber(cx, args.get(0), &y))
         return false;
 
-    // Steps 3-4.
+    // Step 2.
     double m;
-    if (!ToNumber(cx, args.get(1), &m))
-        return false;
+    if (args.length() >= 2) {
+        if (!ToNumber(cx, args[1], &m))
+            return false;
+    } else {
+        m = 0;
+    }
 
-    // Steps 5-6.
+    // Step 3.
     double dt;
     if (args.length() >= 3) {
         if (!ToNumber(cx, args[2], &dt))
@@ -599,7 +652,7 @@ date_UTC(JSContext* cx, unsigned argc, Value* vp)
         dt = 1;
     }
 
-    // Steps 7-8.
+    // Step 4.
     double h;
     if (args.length() >= 4) {
         if (!ToNumber(cx, args[3], &h))
@@ -608,7 +661,7 @@ date_UTC(JSContext* cx, unsigned argc, Value* vp)
         h = 0;
     }
 
-    // Steps 9-10.
+    // Step 5.
     double min;
     if (args.length() >= 5) {
         if (!ToNumber(cx, args[4], &min))
@@ -617,7 +670,7 @@ date_UTC(JSContext* cx, unsigned argc, Value* vp)
         min = 0;
     }
 
-    // Steps 11-12.
+    // Step 6.
     double s;
     if (args.length() >= 6) {
         if (!ToNumber(cx, args[5], &s))
@@ -626,7 +679,7 @@ date_UTC(JSContext* cx, unsigned argc, Value* vp)
         s = 0;
     }
 
-    // Steps 13-14.
+    // Step 7.
     double milli;
     if (args.length() >= 7) {
         if (!ToNumber(cx, args[6], &milli))
@@ -635,7 +688,7 @@ date_UTC(JSContext* cx, unsigned argc, Value* vp)
         milli = 0;
     }
 
-    // Step 15.
+    // Step 8.
     double yr = y;
     if (!IsNaN(y)) {
         double yint = ToInteger(y);
@@ -643,7 +696,7 @@ date_UTC(JSContext* cx, unsigned argc, Value* vp)
             yr = 1900 + yint;
     }
 
-    // Step 16.
+    // Step 9.
     ClippedTime time = TimeClip(MakeDate(MakeDay(yr, m, dt), MakeTime(h, min, s, milli)));
     args.rval().set(TimeValue(time));
     return true;
@@ -742,27 +795,38 @@ DaysInMonth(int year, int month)
 }
 
 /*
- * Parse a string in one of the date-time formats given by the W3C
- * "NOTE-datetime" specification. These formats make up a restricted
- * profile of the ISO 8601 format. Quoted here:
+ * Parse a string according to the formats specified in section 20.3.1.16
+ * of the ECMAScript standard. These formats are based upon a simplification
+ * of the ISO 8601 Extended Format. As per the spec omitted month and day
+ * values are defaulted to '01', omitted HH:mm:ss values are defaulted to '00'
+ * and an omitted sss field is defaulted to '000'.
  *
- *   Any combination of the date formats with the time formats is
- *   allowed, and also either the date or the time can be missing.
+ * For cross compatibility we allow the following extensions.
  *
- *   The specification is silent on the meaning when fields are
- *   ommitted so the interpretations are a guess, but hopefully a
- *   reasonable one. We default the month to January, the day to the
- *   1st, and hours minutes and seconds all to 0. If the date is
- *   missing entirely then we assume 1970-01-01 so that the time can
- *   be aded to a date later. If the time is missing then we assume
- *   00:00 UTC.  If the time is present but the time zone field is
- *   missing then we use local time.
+ * These are:
  *
- * For the sake of cross compatibility with other implementations we
- * make a few exceptions to the standard: months, days, hours, minutes
- * and seconds may be either one or two digits long, and the 'T' from
- * the time part may be replaced with a space. Given that, a date time
- * like "1999-1-1 1:1:1" will parse successfully.
+ *   Standalone time part:
+ *     Any of the time formats below can be parsed without a date part.
+ *     E.g. "T19:00:00Z" will parse successfully. The date part will then
+ *     default to 1970-01-01.
+ *
+ *   'T' from the time part may be replaced with a space character:
+ *     "1970-01-01 12:00:00Z" will parse successfully. Note that only a single
+ *     space is permitted and this is not permitted in the standalone
+ *     version above.
+ *
+ *   One or more decimal digits for milliseconds:
+ *     The specification requires exactly three decimal digits for
+ *     the fractional part but we allow for one or more digits.
+ *
+ *   Time zone specifier without ':':
+ *     We allow the time zone to be specified without a ':' character.
+ *     E.g. "T19:00:00+0700" is equivalent to "T19:00:00+07:00".
+ *
+ *   One or two digits for months, days, hours, minutes and seconds:
+ *     The specification requires exactly two decimal digits for the fields
+ *     above. We allow for one or two decimal digits. I.e. "1970-1-1" is
+ *     equivalent to "1970-01-01".
  *
  * Date part:
  *
@@ -794,7 +858,7 @@ DaysInMonth(int year, int month)
  *   hh   = one or two digits of hour (00 through 23) (am/pm NOT allowed)
  *   mm   = one or two digits of minute (00 through 59)
  *   ss   = one or two digits of second (00 through 59)
- *   s    = one or more digits representing a decimal fraction of a second
+ *   sss  = one or more digits representing a decimal fraction of a second
  *   TZD  = time zone designator (Z or +hh:mm or -hh:mm or missing for local)
  */
 template <typename CharT>
@@ -1232,7 +1296,11 @@ date_parse(JSContext* cx, unsigned argc, Value* vp)
 static ClippedTime
 NowAsMillis()
 {
-    return TimeClip(static_cast<double>(PRMJ_Now()) / PRMJ_USEC_PER_MSEC);
+    double now = PRMJ_Now();
+    if (sResolutionUsec) {
+        now = floor(now / sResolutionUsec) * sResolutionUsec;
+    }
+    return TimeClip(now / PRMJ_USEC_PER_MSEC);
 }
 
 bool
@@ -2550,7 +2618,7 @@ date_toJSON(JSContext* cx, unsigned argc, Value* vp)
 
 /* Interface to PRMJTime date struct. */
 static PRMJTime
-ToPRMJTime(double localTime)
+ToPRMJTime(double localTime, double utcTime)
 {
     double year = YearFromTime(localTime);
 
@@ -2564,11 +2632,21 @@ ToPRMJTime(double localTime)
     prtm.tm_wday = int8_t(WeekDay(localTime));
     prtm.tm_year = year;
     prtm.tm_yday = int16_t(DayWithinYear(localTime, year));
-
-    // XXX: DaylightSavingTA expects utc-time argument.
-    prtm.tm_isdst = (DaylightSavingTA(localTime) != 0);
+    prtm.tm_isdst = (DaylightSavingTA(utcTime) != 0);
 
     return prtm;
+}
+
+static size_t
+FormatTime(char* buf, int buflen, const char* fmt, double utcTime, double localTime)
+{
+    PRMJTime prtm = ToPRMJTime(localTime, utcTime);
+    int eqivalentYear = IsRepresentableAsTime32(utcTime)
+                        ? prtm.tm_year
+                        : EquivalentYearForDST(prtm.tm_year);
+    int offsetInSeconds = (int) floor((localTime - utcTime) / msPerSecond);
+
+    return PRMJ_FormatTime(buf, buflen, fmt, &prtm, eqivalentYear, offsetInSeconds);
 }
 
 enum class FormatSpec {
@@ -2613,20 +2691,19 @@ FormatDate(JSContext* cx, double utcTime, FormatSpec format, MutableHandleValue 
              */
 
             /* get a time zone string from the OS to include as a comment. */
-            PRMJTime prtm = ToPRMJTime(utcTime);
-            size_t tzlen = PRMJ_FormatTime(tzbuf, sizeof tzbuf, "(%Z)", &prtm);
+            size_t tzlen = FormatTime(tzbuf, sizeof tzbuf, "(%Z)", utcTime, localTime);
             if (tzlen != 0) {
                 /*
                  * Decide whether to use the resulting time zone string.
                  *
-                 * Reject it if it contains any non-ASCII, non-alphanumeric
+                 * Reject it if it contains any non-ASCII or non-printable
                  * characters.  It's then likely in some other character
                  * encoding, and we probably won't display it correctly.
                  */
                 usetz = true;
                 for (size_t i = 0; i < tzlen; i++) {
                     char16_t c = tzbuf[i];
-                    if (c > 127 || !(isalnum(c) || c == ' ' || c == '(' || c == ')' || c == '.')) {
+                    if (c > 127 || !isprint(c)) {
                         usetz = false;
                         break;
                     }
@@ -2683,6 +2760,7 @@ FormatDate(JSContext* cx, double utcTime, FormatSpec format, MutableHandleValue 
     return true;
 }
 
+#if !EXPOSE_INTL_API
 static bool
 ToLocaleFormatHelper(JSContext* cx, HandleObject obj, const char* format, MutableHandleValue rval)
 {
@@ -2693,10 +2771,9 @@ ToLocaleFormatHelper(JSContext* cx, HandleObject obj, const char* format, Mutabl
         strcpy(buf, js_NaN_date_str);
     } else {
         double localTime = LocalTime(utcTime);
-        PRMJTime prtm = ToPRMJTime(localTime);
 
         /* Let PRMJTime format it. */
-        size_t result_len = PRMJ_FormatTime(buf, sizeof buf, format, &prtm);
+        size_t result_len = FormatTime(buf, sizeof buf, format, utcTime, localTime);
 
         /* If it failed, default to toString. */
         if (result_len == 0)
@@ -2728,7 +2805,7 @@ ToLocaleFormatHelper(JSContext* cx, HandleObject obj, const char* format, Mutabl
     return true;
 }
 
-#if !EXPOSE_INTL_API
+
 /* ES5 15.9.5.5. */
 MOZ_ALWAYS_INLINE bool
 date_toLocaleString_impl(JSContext* cx, const CallArgs& args)
@@ -2799,45 +2876,6 @@ date_toLocaleTimeString(JSContext* cx, unsigned argc, Value* vp)
 }
 #endif /* !EXPOSE_INTL_API */
 
-MOZ_ALWAYS_INLINE bool
-date_toLocaleFormat_impl(JSContext* cx, const CallArgs& args)
-{
-    Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
-
-    if (args.length() == 0) {
-        /*
-         * Use '%#c' for windows, because '%c' is backward-compatible and non-y2k
-         * with msvc; '%#c' requests that a full year be used in the result string.
-         */
-        static const char format[] =
-#if defined(_WIN32) && !defined(__MWERKS__)
-                                       "%#c"
-#else
-                                       "%c"
-#endif
-                                       ;
-
-        return ToLocaleFormatHelper(cx, dateObj, format, args.rval());
-    }
-
-    RootedString fmt(cx, ToString<CanGC>(cx, args[0]));
-    if (!fmt)
-        return false;
-
-    JSAutoByteString fmtbytes(cx, fmt);
-    if (!fmtbytes)
-        return false;
-
-    return ToLocaleFormatHelper(cx, dateObj, fmtbytes.ptr(), args.rval());
-}
-
-static bool
-date_toLocaleFormat(JSContext* cx, unsigned argc, Value* vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    return CallNonGenericMethod<IsDate, date_toLocaleFormat_impl>(cx, args);
-}
-
 /* ES5 15.9.5.4. */
 MOZ_ALWAYS_INLINE bool
 date_toTimeString_impl(JSContext* cx, const CallArgs& args)
@@ -2895,47 +2933,20 @@ date_toSource(JSContext* cx, unsigned argc, Value* vp)
 }
 #endif
 
-MOZ_ALWAYS_INLINE bool
-IsObject(HandleValue v)
-{
-    return v.isObject();
-}
-
 // ES6 20.3.4.41.
 MOZ_ALWAYS_INLINE bool
 date_toString_impl(JSContext* cx, const CallArgs& args)
 {
-    // Step 1.
-    RootedObject obj(cx, &args.thisv().toObject());
-
-    // Step 2.
-    ESClass cls;
-    if (!GetBuiltinClass(cx, obj, &cls))
-        return false;
-
-    double tv;
-    if (cls != ESClass::Date) {
-        // Step 2.
-        tv = GenericNaN();
-    } else {
-        // Step 3.
-        RootedValue unboxed(cx);
-        if (!Unbox(cx, obj, &unboxed))
-            return false;
-
-        tv = unboxed.toNumber();
-    }
-
-    // Step 4.
-    return FormatDate(cx, tv, FormatSpec::DateTime, args.rval());
+    // Steps 1-2.
+    return FormatDate(cx, args.thisv().toObject().as<DateObject>().UTCTime().toNumber(),
+                      FormatSpec::DateTime, args.rval());
 }
 
 bool
 date_toString(JSContext* cx, unsigned argc, Value* vp)
 {
-    // Step 1.
     CallArgs args = CallArgsFromVp(argc, vp);
-    return CallNonGenericMethod<IsObject, date_toString_impl>(cx, args);
+    return CallNonGenericMethod<IsDate, date_toString_impl>(cx, args);
 }
 
 MOZ_ALWAYS_INLINE bool
@@ -2969,7 +2980,7 @@ date_toPrimitive(JSContext* cx, unsigned argc, Value* vp)
     JSType hint;
     if (!GetFirstArgumentAsTypeHint(cx, args, &hint))
         return false;
-    if (hint == JSTYPE_VOID)
+    if (hint == JSTYPE_UNDEFINED)
         hint = JSTYPE_STRING;
 
     args.rval().set(args.thisv());
@@ -3021,7 +3032,6 @@ static const JSFunctionSpec date_methods[] = {
     JS_FN("setMilliseconds",     date_setMilliseconds,    1,0),
     JS_FN("setUTCMilliseconds",  date_setUTCMilliseconds, 1,0),
     JS_FN("toUTCString",         date_toGMTString,        0,0),
-    JS_FN("toLocaleFormat",      date_toLocaleFormat,     0,0),
 #if EXPOSE_INTL_API
     JS_SELF_HOSTED_FN(js_toLocaleString_str, "Date_toLocaleString", 0,0),
     JS_SELF_HOSTED_FN("toLocaleDateString", "Date_toLocaleDateString", 0,0),
@@ -3050,8 +3060,7 @@ NewDateObject(JSContext* cx, const CallArgs& args, ClippedTime t)
     MOZ_ASSERT(args.isConstructing());
 
     RootedObject proto(cx);
-    RootedObject newTarget(cx, &args.newTarget().toObject());
-    if (!GetPrototypeFromConstructor(cx, newTarget, &proto))
+    if (!GetPrototypeFromBuiltinConstructor(cx, args, &proto))
         return false;
 
     JSObject* obj = NewDateObjectMsec(cx, t, proto);
@@ -3225,7 +3234,7 @@ js::DateConstructor(JSContext* cx, unsigned argc, Value* vp)
 static JSObject*
 CreateDatePrototype(JSContext* cx, JSProtoKey key)
 {
-    return cx->global()->createBlankPrototype(cx, &DateObject::protoClass_);
+    return GlobalObject::createBlankPrototype(cx, cx->global(), &DateObject::protoClass_);
 }
 
 static bool
@@ -3239,8 +3248,8 @@ FinishDateClassInit(JSContext* cx, HandleObject ctor, HandleObject proto)
     RootedId toUTCStringId(cx, NameToId(cx->names().toUTCString));
     RootedId toGMTStringId(cx, NameToId(cx->names().toGMTString));
     return NativeGetProperty(cx, proto.as<NativeObject>(), toUTCStringId, &toUTCStringFun) &&
-           NativeDefineProperty(cx, proto.as<NativeObject>(), toGMTStringId, toUTCStringFun,
-                                nullptr, nullptr, 0);
+           NativeDefineDataProperty(cx, proto.as<NativeObject>(), toGMTStringId, toUTCStringFun,
+                                    0);
 }
 
 static const ClassSpec DateObjectClassSpec = {
@@ -3261,22 +3270,11 @@ const Class DateObject::class_ = {
     &DateObjectClassSpec
 };
 
-static const ClassSpec DateObjectProtoClassSpec = {
-    DELEGATED_CLASSSPEC(DateObject::class_.spec),
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    ClassSpec::IsDelegated
-};
-
 const Class DateObject::protoClass_ = {
     js_Object_str,
     JSCLASS_HAS_CACHED_PROTO(JSProto_Date),
     JS_NULL_CLASS_OPS,
-    &DateObjectProtoClassSpec
+    &DateObjectClassSpec
 };
 
 JSObject*

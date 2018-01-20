@@ -64,10 +64,10 @@ var shutdown = Task.async(function* () {
 
 // This is what makes the sidebar widget able to load/unload the panel.
 function setPanel(panel) {
-  return startup(panel).catch(e => console.error(e));
+  return startup(panel).catch(console.error);
 }
 function destroy() {
-  return shutdown().catch(e => console.error(e));
+  return shutdown().catch(console.error);
 }
 
 /**
@@ -85,7 +85,7 @@ var getServerTraits = Task.async(function* (target) {
     { name: "hasSetCurrentTime", actor: "animationplayer",
       method: "setCurrentTime" },
     { name: "hasMutationEvents", actor: "animations",
-     method: "stopAnimationPlayerUpdates" },
+      method: "stopAnimationPlayerUpdates" },
     { name: "hasSetPlaybackRate", actor: "animationplayer",
       method: "setPlaybackRate" },
     { name: "hasSetPlaybackRates", actor: "animations",
@@ -100,6 +100,8 @@ var getServerTraits = Task.async(function* (target) {
       method: "getProperties" },
     { name: "hasSetWalkerActor", actor: "animations",
       method: "setWalkerActor" },
+    { name: "hasGetAnimationTypes", actor: "animationplayer",
+      method: "getAnimationTypes" },
   ];
 
   let traits = {};
@@ -226,11 +228,15 @@ var AnimationsController = {
   }),
 
   onNewNodeFront: Task.async(function* () {
-    // Ignore if the panel isn't visible or the node selection hasn't changed.
-    if (!this.isPanelVisible() ||
-        this.nodeFront === gInspector.selection.nodeFront) {
+    // Ignore if the panel isn't visible.
+    // Or the node selection hasn't changed and no animation mutations event occurs during
+    // hidden.
+    if (!this.isPanelVisible() || (this.nodeFront === gInspector.selection.nodeFront &&
+                                   !this.mutationsDetectedWhileHidden)) {
       return;
     }
+
+    this.mutationsDetectedWhileHidden = false;
 
     this.nodeFront = gInspector.selection.nodeFront;
     let done = gInspector.updating("animationscontroller");
@@ -259,7 +265,7 @@ var AnimationsController = {
 
     return this.animationsFront.toggleAll()
       .then(() => this.emit(this.ALL_ANIMATIONS_TOGGLED_EVENT, this))
-      .catch(e => console.error(e));
+      .catch(console.error);
   },
 
   /**
@@ -359,8 +365,14 @@ var AnimationsController = {
       }
     }
 
-    // Let the UI know the list has been updated.
-    this.emit(this.PLAYERS_UPDATED_EVENT, this.animationPlayers);
+    if (this.isPanelVisible()) {
+      // Let the UI know the list has been updated.
+      this.emit(this.PLAYERS_UPDATED_EVENT, this.animationPlayers);
+    } else {
+      // Avoid updating the UI while the panel is hidden.
+      // This avoids unnecessary work.
+      this.mutationsDetectedWhileHidden = true;
+    }
   },
 
   /**

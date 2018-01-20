@@ -13,6 +13,7 @@
 #define TO_INT32(x) ((x) | 0)
 #define TO_UINT32(x) ((x) >>> 0)
 #define IS_UINT32(x) ((x) >>> 0 === (x))
+#define MAX_UINT32 0xffffffff
 #define MAX_NUMERIC_INDEX 0x1fffffffffffff // == Math.pow(2, 53) - 1
 
 // Unforgeable version of Function.prototype.apply.
@@ -49,6 +50,16 @@
 #define ATTR_NONCONFIGURABLE    0x10
 #define ATTR_NONWRITABLE        0x20
 
+// Property descriptor kind, must be different from the descriptor attributes.
+#define DATA_DESCRIPTOR_KIND     0x100
+#define ACCESSOR_DESCRIPTOR_KIND 0x200
+
+// Property descriptor array indices.
+#define PROP_DESC_ATTRS_AND_KIND_INDEX 0
+#define PROP_DESC_VALUE_INDEX 1
+#define PROP_DESC_GETTER_INDEX 1
+#define PROP_DESC_SETTER_INDEX 2
+
 // The extended slot in which the self-hosted name for self-hosted builtins is
 // stored.
 #define LAZY_FUNCTION_NAME_SLOT 0
@@ -62,17 +73,12 @@
 // to be resolved eagerly.
 #define BOUND_FUN_LENGTH_SLOT 1
 
-// Stores the private WeakMap slot used for WeakSets
-#define WEAKSET_MAP_SLOT 0
-
 #define ITERATOR_SLOT_TARGET 0
 // Used for collection iterators.
 #define ITERATOR_SLOT_RANGE 1
 // Used for list, i.e. Array and String, iterators.
 #define ITERATOR_SLOT_NEXT_INDEX 1
 #define ITERATOR_SLOT_ITEM_KIND 2
-// Used for ListIterator.
-#define ITERATOR_SLOT_NEXT_METHOD 2
 
 #define ITEM_KIND_KEY 0
 #define ITEM_KIND_VALUE 1
@@ -85,6 +91,7 @@
 #define JSITER_SYMBOLSONLY 0x40 /* exclude string property keys */
 
 
+#define REGEXP_SOURCE_SLOT 1
 #define REGEXP_FLAGS_SLOT 2
 
 #define REGEXP_IGNORECASE_FLAG  0x01
@@ -93,11 +100,47 @@
 #define REGEXP_STICKY_FLAG      0x08
 #define REGEXP_UNICODE_FLAG     0x10
 
-#define MODULE_OBJECT_ENVIRONMENT_SLOT 2
+#define MODULE_OBJECT_ENVIRONMENT_SLOT        2
+#define MODULE_OBJECT_STATUS_SLOT             4
+#define MODULE_OBJECT_ERROR_SLOT              5
+#define MODULE_OBJECT_DFS_INDEX_SLOT          16
+#define MODULE_OBJECT_DFS_ANCESTOR_INDEX_SLOT 17
 
-#define MODULE_STATE_FAILED       0
-#define MODULE_STATE_PARSED       1
-#define MODULE_STATE_INSTANTIATED 2
-#define MODULE_STATE_EVALUATED    3
+#define MODULE_STATUS_ERRORED        0
+#define MODULE_STATUS_UNINSTANTIATED 1
+#define MODULE_STATUS_INSTANTIATING  2
+#define MODULE_STATUS_INSTANTIATED   3
+#define MODULE_STATUS_EVALUATING     4
+#define MODULE_STATUS_EVALUATED      5
+
+#define STRING_GENERICS_CHAR_AT               0
+#define STRING_GENERICS_CHAR_CODE_AT          1
+#define STRING_GENERICS_CONCAT                2
+#define STRING_GENERICS_ENDS_WITH             3
+#define STRING_GENERICS_INCLUDES              4
+#define STRING_GENERICS_INDEX_OF              5
+#define STRING_GENERICS_LAST_INDEX_OF         6
+#define STRING_GENERICS_LOCALE_COMPARE        7
+#define STRING_GENERICS_MATCH                 8
+#define STRING_GENERICS_NORMALIZE             9
+#define STRING_GENERICS_REPLACE               10
+#define STRING_GENERICS_SEARCH                11
+#define STRING_GENERICS_SLICE                 12
+#define STRING_GENERICS_SPLIT                 13
+#define STRING_GENERICS_STARTS_WITH           14
+#define STRING_GENERICS_SUBSTR                15
+#define STRING_GENERICS_SUBSTRING             16
+#define STRING_GENERICS_TO_LOWER_CASE         17
+#define STRING_GENERICS_TO_LOCALE_LOWER_CASE  18
+#define STRING_GENERICS_TO_LOCALE_UPPER_CASE  19
+#define STRING_GENERICS_TO_UPPER_CASE         20
+#define STRING_GENERICS_TRIM                  21
+#define STRING_GENERICS_TRIM_LEFT             22
+#define STRING_GENERICS_TRIM_RIGHT            23
+#define STRING_GENERICS_METHODS_LIMIT         24
+
+#define INTL_INTERNALS_OBJECT_SLOT 0
+
+#define NOT_OBJECT_KIND_DESCRIPTOR 0
 
 #endif

@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>Animatable.animate tests</title>
+<title>Animatable.animate</title>
 <link rel="help" href="https://w3c.github.io/web-animations/#dom-animatable-animate">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
+<script src="../../resources/easing-tests.js"></script>
 <script src="../../resources/keyframe-utils.js"></script>
+<script src="../../resources/keyframe-tests.js"></script>
 <body>
 <div id="log"></div>
 <iframe width="10" height="10" id="iframe"></iframe>
@@ -71,15 +73,16 @@ test(function(t) {
    + ' whose AnimationEffectTiming object is created in the relevant realm'
    + ' of the target element');
 
-gPropertyIndexedKeyframesTests.forEach(function(subtest) {
+gEmptyKeyframeListTests.forEach(function(subTest) {
   test(function(t) {
     var div = createDiv(t);
-    var anim = div.animate(subtest.input, 2000);
-    assert_frame_lists_equal(anim.effect.getKeyframes(), subtest.output);
-  }, 'Element.animate() accepts ' + subtest.desc);
+    var anim = div.animate(subTest, 2000);
+    assert_not_equals(anim, null);
+  }, 'Element.animate() accepts empty keyframe lists ' +
+     `(input: ${JSON.stringify(subTest)})`);
 });
 
-gKeyframeSequenceTests.forEach(function(subtest) {
+gKeyframesTests.forEach(function(subtest) {
   test(function(t) {
     var div = createDiv(t);
     var anim = div.animate(subtest.input, 2000);
@@ -90,10 +93,19 @@ gKeyframeSequenceTests.forEach(function(subtest) {
 gInvalidKeyframesTests.forEach(function(subtest) {
   test(function(t) {
     var div = createDiv(t);
-    assert_throws(subtest.expected, function() {
+    assert_throws(new TypeError, function() {
       div.animate(subtest.input, 2000);
     });
   }, 'Element.animate() does not accept ' + subtest.desc);
+});
+
+gInvalidEasings.forEach(invalidEasing => {
+  test(function(t) {
+    var div = createDiv(t);
+    assert_throws(new TypeError, () => {
+      div.animate({ easing: invalidEasing }, 2000);
+    });
+  }, `Element.animate() does not accept invalid easing: '${invalidEasing}'`);
 });
 
 test(function(t) {

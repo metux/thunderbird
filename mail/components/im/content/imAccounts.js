@@ -239,14 +239,11 @@ var gAccountManager = {
     let account = this.accountList.selectedItem.account;
     let text = account.getDebugMessages().map(function(dbgMsg) {
       let m = dbgMsg.message;
-      const dateServ = Cc["@mozilla.org/intl/scriptabledateformat;1"]
-                         .getService(Ci.nsIScriptableDateFormat);
       let time = new Date(m.timeStamp);
-      time = dateServ.FormatDateTime("", dateServ.dateFormatShort,
-                                     dateServ.timeFormatSeconds,
-                                     time.getFullYear(), time.getMonth() + 1,
-                                     time.getDate(), time.getHours(),
-                                     time.getMinutes(), time.getSeconds());
+      const dateTimeFormatter = Services.intl.createDateTimeFormat(undefined, {
+        dateStyle: "short", timeStyle: "long"
+      });
+      time = dateTimeFormatter.format(time);
       let level = dbgMsg.logLevel;
       if (!level)
         return "(" + m.errorMessage + ")";
@@ -296,7 +293,7 @@ var gAccountManager = {
     let server = null;
     let imAccountId = this.accountList.selectedItem.account.numericId;
     let mgr = MailServices.accounts;
-    for (let account in fixIterator(mgr.accounts, Ci.nsIMsgAccount)) {
+    for (let account of fixIterator(mgr.accounts, Ci.nsIMsgAccount)) {
       let incomingServer = account.incomingServer;
       if (!incomingServer || incomingServer.type != "im")
         continue;

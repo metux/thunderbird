@@ -51,8 +51,8 @@
 <!ENTITY getAllNewMsgCmdPopupMenu.accesskey "A">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.label "Aktuelles Konto">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.accesskey "k">
-<!ENTITY getNextNMsgCmd.label "Nächste 500 News-Beiträge abrufen">
-<!ENTITY getNextNMsgCmd.accesskey "t">
+<!ENTITY getNextNMsgCmd2.label "Nächste News-Beiträge abrufen">
+<!ENTITY getNextNMsgCmd2.accesskey "t">
 <!ENTITY sendUnsentCmd.label "Nachrichten aus Postausgang senden">
 <!ENTITY sendUnsentCmd.accesskey "P">
 <!ENTITY subscribeCmd.label "Abonnieren…">
@@ -634,6 +634,9 @@
 <!-- Folder Pane Context Menu -->
 <!ENTITY folderContextGetMessages.label "Nachrichten abrufen">
 <!ENTITY folderContextGetMessages.accesskey "c">
+<!ENTITY folderContextPauseAllUpdates.label "Alle Aktualisierungen anhalten">
+<!ENTITY folderContextPauseUpdates.label "Aktualisierungen anhalten">
+<!ENTITY folderContextPauseUpdates.accesskey "g">
 <!ENTITY folderContextOpenInNewWindow.label "In neuem Fenster öffnen">
 <!ENTITY folderContextOpenInNewWindow.accesskey "ö">
 <!ENTITY folderContextOpenNewTab.label "In neuem Tab öffnen">
@@ -949,3 +952,10 @@
 
 <!-- Mac OS X Dock Icon pop-up menu -->
 <!ENTITY dockOptions.label              "Dock-Symbol-Einstellungen…">
+<!ENTITY writeNewMessageDock.label      "Neue Nachricht verfassen">
+<!ENTITY openAddressBookDock.label      "Adressbuch öffnen">
+
+<!ENTITY goChatCmd2.key "H">
+<!ENTITY newMsgFromTemplateCmd.label "New Message from Template">
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN">
+<!ENTITY contextNewMsgFromTemplate.label "New Message from Template">

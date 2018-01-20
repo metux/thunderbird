@@ -14,6 +14,10 @@
 <!ENTITY aboutSupport.extensionEnabled "Activada">
 <!ENTITY aboutSupport.extensionVersion "Versión">
 <!ENTITY aboutSupport.extensionId "ID">
+<!ENTITY aboutSupport.featuresTitle "Características de &brandShortName;">
+<!ENTITY aboutSupport.featureName "Nombre">
+<!ENTITY aboutSupport.featureVersion "Versión">
+<!ENTITY aboutSupport.featureId "ID">
 <!ENTITY aboutSupport.experimentsTitle "Características experimentales">
 <!ENTITY aboutSupport.experimentName "Nombre">
 <!ENTITY aboutSupport.experimentId "ID">
@@ -40,6 +44,9 @@
 <!ENTITY aboutSupport.appBasicsServiceWorkers "Service Workers registrados">
 <!ENTITY aboutSupport.appBasicsProfiles "Perfiles">
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Ventanas multiproceso">
+<!ENTITY aboutSupport.appBasicsProcessCount "Procesos de contenido web">
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Clave de Google">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Clave del servicio de ubicación de Mozilla">
 <!ENTITY aboutSupport.appBasicsSafeMode "Modo seguro">
 <!ENTITY aboutSupport.showDir.label "Abrir directorio">
 <!ENTITY aboutSupport.showMac.label "Mostrar en Finder">
@@ -61,12 +68,22 @@
 <!ENTITY aboutSupport.a11yTitle "Accesibilidad">
 <!ENTITY aboutSupport.a11yActivated "Activado">
 <!ENTITY aboutSupport.a11yForceDisabled "Impedir accesibilidad">
+<!ENTITY aboutSupport.a11yHandlerUsed "Manejador accesible usado">
+<!ENTITY aboutSupport.a11yInstantiator "Instanciador de accesibilidad">
 <!ENTITY aboutSupport.libraryVersionsTitle "Versiones de bibliotecas">
 <!ENTITY aboutSupport.installationHistoryTitle "Historial de instalaciones">
 <!ENTITY aboutSupport.updateHistoryTitle "Historial de actualizaciones">
 <!ENTITY aboutSupport.copyTextToClipboard.label "Copiar el texto al portapapeles">
-<!ENTITY aboutSupport.copyRawDataToClipboard.label "Copiar datos en crudo al portapapeles">
+<!ENTITY aboutSupport.copyRawDataToClipboard.label "Copiar datos sin procesar al portapapeles">
 <!ENTITY aboutSupport.sandboxTitle "Entorno de pruebas">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Llamadas de sistema rechazadas">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "Hace segundos">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Tipo de proceso">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Syscall">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Argumentos">
 <!ENTITY aboutSupport.safeModeTitle "Probar modo seguro">
 <!ENTITY aboutSupport.restartInSafeMode.label "Reiniciar con complementos desactivados…">
 <!ENTITY aboutSupport.graphicsFeaturesTitle "Características">
@@ -77,3 +94,25 @@
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Registro de decisiones">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Características desactivadas de Crash Guard">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Alternativas">
+<!ENTITY aboutSupport.mediaTitle "Medios">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Dispositivos de salida">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Dispositivos de entrada">
+<!ENTITY aboutSupport.mediaDeviceName "Nombre">
+<!ENTITY aboutSupport.mediaDeviceGroup "Grupo">
+<!ENTITY aboutSupport.mediaDeviceVendor "Fabricante">
+<!ENTITY aboutSupport.mediaDeviceState "Estado">
+<!ENTITY aboutSupport.mediaDevicePreferred "Preferido">
+<!ENTITY aboutSupport.mediaDeviceFormat "Formato">
+<!ENTITY aboutSupport.mediaDeviceChannels "Canales">
+<!ENTITY aboutSupport.mediaDeviceRate "Tasa">
+<!ENTITY aboutSupport.mediaDeviceLatency "Latencia">
+
+<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
+<!ENTITY aboutSupport.intlAppTitle "Application Settings">
+<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
+<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
+<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
+<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
+<!ENTITY aboutSupport.intlOSTitle "Operating System">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">

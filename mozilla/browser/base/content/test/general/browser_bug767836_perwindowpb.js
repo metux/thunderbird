@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
-/* globals waitForExplicitFinish, executeSoon, finish, whenNewWindowLoaded, ok */
-/* globals is */
-/* exported test */
 
 function test() {
   // initialization
@@ -29,7 +26,7 @@ function test() {
 
       // Check the new tab opened while in normal/private mode
       is(aWindow.gBrowser.selectedBrowser.currentURI.spec, newTabURL,
-        "URL of NewTab should be " + newTabURL + " in " + mode +  " mode");
+        "URL of NewTab should be " + newTabURL + " in " + mode + " mode");
       // Set the custom newtab url
       aboutNewTabService.newTabURL = testURL;
       is(aboutNewTabService.newTabURL, testURL, "Custom newtab url is set");
@@ -78,13 +75,13 @@ function openNewTab(aWindow, aCallback) {
   aWindow.BrowserOpenTab();
 
   let browser = aWindow.gBrowser.selectedBrowser;
+  // eslint-disable-next-line mozilla/no-cpows-in-tests
   if (browser.contentDocument.readyState === "complete") {
     executeSoon(aCallback);
     return;
   }
 
-  browser.addEventListener("load", function onLoad() {
-    browser.removeEventListener("load", onLoad, true);
+  browser.addEventListener("load", function() {
     executeSoon(aCallback);
-  }, true);
+  }, {capture: true, once: true});
 }

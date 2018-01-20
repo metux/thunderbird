@@ -57,9 +57,13 @@
 #include "TSFTextStore.h"
 #endif // #ifdef NS_ENABLE_TSF
 
+#include <shlobj.h>
 #include <shlwapi.h>
 
 mozilla::LazyLogModule gWindowsLog("Widget");
+
+#define LOG_E(...) MOZ_LOG(gWindowsLog, LogLevel::Error, (__VA_ARGS__))
+#define LOG_D(...) MOZ_LOG(gWindowsLog, LogLevel::Debug, (__VA_ARGS__))
 
 using namespace mozilla::gfx;
 
@@ -417,28 +421,6 @@ NS_IMPL_ISUPPORTS(AsyncDeleteAllFaviconsFromDisk, nsIRunnable)
 const char FaviconHelper::kJumpListCacheDir[] = "jumpListCache";
 const char FaviconHelper::kShortcutCacheDir[] = "shortcutCache";
 
-// apis available on vista and up.
-WinUtils::SHCreateItemFromParsingNamePtr WinUtils::sCreateItemFromParsingName = nullptr;
-WinUtils::SHGetKnownFolderPathPtr WinUtils::sGetKnownFolderPath = nullptr;
-
-// We just leak these DLL HMODULEs. There's no point in calling FreeLibrary
-// on them during shutdown anyway.
-static const wchar_t kShellLibraryName[] =  L"shell32.dll";
-static HMODULE sShellDll = nullptr;
-static const wchar_t kDwmLibraryName[] = L"dwmapi.dll";
-static HMODULE sDwmDll = nullptr;
-
-WinUtils::DwmExtendFrameIntoClientAreaProc WinUtils::dwmExtendFrameIntoClientAreaPtr = nullptr;
-WinUtils::DwmIsCompositionEnabledProc WinUtils::dwmIsCompositionEnabledPtr = nullptr;
-WinUtils::DwmSetIconicThumbnailProc WinUtils::dwmSetIconicThumbnailPtr = nullptr;
-WinUtils::DwmSetIconicLivePreviewBitmapProc WinUtils::dwmSetIconicLivePreviewBitmapPtr = nullptr;
-WinUtils::DwmGetWindowAttributeProc WinUtils::dwmGetWindowAttributePtr = nullptr;
-WinUtils::DwmSetWindowAttributeProc WinUtils::dwmSetWindowAttributePtr = nullptr;
-WinUtils::DwmInvalidateIconicBitmapsProc WinUtils::dwmInvalidateIconicBitmapsPtr = nullptr;
-WinUtils::DwmDefWindowProcProc WinUtils::dwmDwmDefWindowProcPtr = nullptr;
-WinUtils::DwmGetCompositionTimingInfoProc WinUtils::dwmGetCompositionTimingInfoPtr = nullptr;
-WinUtils::DwmFlushProc WinUtils::dwmFlushProcPtr = nullptr;
-
 // Prefix for path used by NT calls.
 const wchar_t kNTPrefix[] = L"\\??\\";
 const size_t kNTPrefixLen = ArrayLength(kNTPrefix) - 1;
@@ -462,30 +444,22 @@ static NtTestAlertPtr sNtTestAlert = nullptr;
 void
 WinUtils::Initialize()
 {
-  if (!sDwmDll && IsVistaOrLater()) {
-    sDwmDll = ::LoadLibraryW(kDwmLibraryName);
-
-    if (sDwmDll) {
-      dwmExtendFrameIntoClientAreaPtr = (DwmExtendFrameIntoClientAreaProc)::GetProcAddress(sDwmDll, "DwmExtendFrameIntoClientArea");
-      dwmIsCompositionEnabledPtr = (DwmIsCompositionEnabledProc)::GetProcAddress(sDwmDll, "DwmIsCompositionEnabled");
-      dwmSetIconicThumbnailPtr = (DwmSetIconicThumbnailProc)::GetProcAddress(sDwmDll, "DwmSetIconicThumbnail");
-      dwmSetIconicLivePreviewBitmapPtr = (DwmSetIconicLivePreviewBitmapProc)::GetProcAddress(sDwmDll, "DwmSetIconicLivePreviewBitmap");
-      dwmGetWindowAttributePtr = (DwmGetWindowAttributeProc)::GetProcAddress(sDwmDll, "DwmGetWindowAttribute");
-      dwmSetWindowAttributePtr = (DwmSetWindowAttributeProc)::GetProcAddress(sDwmDll, "DwmSetWindowAttribute");
-      dwmInvalidateIconicBitmapsPtr = (DwmInvalidateIconicBitmapsProc)::GetProcAddress(sDwmDll, "DwmInvalidateIconicBitmaps");
-      dwmDwmDefWindowProcPtr = (DwmDefWindowProcProc)::GetProcAddress(sDwmDll, "DwmDefWindowProc");
-      dwmGetCompositionTimingInfoPtr = (DwmGetCompositionTimingInfoProc)::GetProcAddress(sDwmDll, "DwmGetCompositionTimingInfo");
-      dwmFlushProcPtr = (DwmFlushProc)::GetProcAddress(sDwmDll, "DwmFlush");
-    }
-  }
-
   if (IsWin10OrLater()) {
     HMODULE user32Dll = ::GetModuleHandleW(L"user32");
     if (user32Dll) {
-      sEnableNonClientDpiScaling = (EnableNonClientDpiScalingProc)
-        ::GetProcAddress(user32Dll, "EnableNonClientDpiScaling");
-      sSetThreadDpiAwarenessContext = (SetThreadDpiAwarenessContextProc)
-        ::GetProcAddress(user32Dll, "SetThreadDpiAwarenessContext");
+      auto getThreadDpiAwarenessContext = (decltype(GetThreadDpiAwarenessContext)*)
+        ::GetProcAddress(user32Dll, "GetThreadDpiAwarenessContext");
+      auto areDpiAwarenessContextsEqual = (decltype(AreDpiAwarenessContextsEqual)*)
+        ::GetProcAddress(user32Dll, "AreDpiAwarenessContextsEqual");
+      if (getThreadDpiAwarenessContext && areDpiAwarenessContextsEqual &&
+          areDpiAwarenessContextsEqual(getThreadDpiAwarenessContext(),
+                                       DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)) {
+        // Only per-monitor v1 requires these workarounds.
+        sEnableNonClientDpiScaling = (EnableNonClientDpiScalingProc)
+          ::GetProcAddress(user32Dll, "EnableNonClientDpiScaling");
+        sSetThreadDpiAwarenessContext = (SetThreadDpiAwarenessContextProc)
+          ::GetProcAddress(user32Dll, "SetThreadDpiAwarenessContext");
+      }
     }
   }
 
@@ -578,30 +552,34 @@ WinUtils::Log(const char *fmt, ...)
 }
 
 // static
-double
-WinUtils::SystemScaleFactor()
+float
+WinUtils::SystemDPI()
 {
   // The result of GetDeviceCaps won't change dynamically, as it predates
   // per-monitor DPI and support for on-the-fly resolution changes.
   // Therefore, we only need to look it up once.
-  static double systemScale = 0;
-  if (systemScale == 0) {
+  static float dpi = 0;
+  if (dpi <= 0) {
     HDC screenDC = GetDC(nullptr);
-    systemScale = GetDeviceCaps(screenDC, LOGPIXELSY) / 96.0;
+    dpi = GetDeviceCaps(screenDC, LOGPIXELSY);
     ReleaseDC(nullptr, screenDC);
-
-    if (systemScale == 0) {
-      // Bug 1012487 - This can occur when the Screen DC is used off the
-      // main thread on windows. For now just assume a 100% DPI for this
-      // drawing call.
-      // XXX - fixme!
-      return 1.0;
-    }
   }
-  return systemScale;
+
+  // Bug 1012487 - dpi can be 0 when the Screen DC is used off the
+  // main thread on windows. For now just assume a 100% DPI for this
+  // drawing call.
+  // XXX - fixme!
+  return dpi > 0 ? dpi : 96;
 }
 
-#ifndef WM_DPICHANGED
+// static
+double
+WinUtils::SystemScaleFactor()
+{
+  return SystemDPI() / 96.0;
+}
+
+#if WINVER < 0x603
 typedef enum {
   MDT_EFFECTIVE_DPI = 0,
   MDT_ANGULAR_DPI = 1,
@@ -628,16 +606,14 @@ GETPROCESSDPIAWARENESSPROC sGetProcessDpiAwareness;
 static bool
 SlowIsPerMonitorDPIAware()
 {
-  if (IsVistaOrLater()) {
-    // Intentionally leak the handle.
-    HMODULE shcore =
-      LoadLibraryEx(L"shcore", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
-    if (shcore) {
-      sGetDpiForMonitor =
-        (GETDPIFORMONITORPROC) GetProcAddress(shcore, "GetDpiForMonitor");
-      sGetProcessDpiAwareness =
-        (GETPROCESSDPIAWARENESSPROC) GetProcAddress(shcore, "GetProcessDpiAwareness");
-    }
+  // Intentionally leak the handle.
+  HMODULE shcore =
+    LoadLibraryEx(L"shcore", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+  if (shcore) {
+    sGetDpiForMonitor =
+      (GETDPIFORMONITORPROC) GetProcAddress(shcore, "GetDpiForMonitor");
+    sGetProcessDpiAwareness =
+      (GETPROCESSDPIAWARENESSPROC) GetProcAddress(shcore, "GetProcessDpiAwareness");
   }
   PROCESS_DPI_AWARENESS dpiAwareness;
   return sGetDpiForMonitor && sGetProcessDpiAwareness &&
@@ -653,17 +629,25 @@ WinUtils::IsPerMonitorDPIAware()
 }
 
 /* static */
-double
-WinUtils::LogToPhysFactor(HMONITOR aMonitor)
+float
+WinUtils::MonitorDPI(HMONITOR aMonitor)
 {
   if (IsPerMonitorDPIAware()) {
     UINT dpiX, dpiY = 96;
     sGetDpiForMonitor(aMonitor ? aMonitor : GetPrimaryMonitor(),
                       MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
-    return dpiY / 96.0;
+    return dpiY;
   }
 
-  return SystemScaleFactor();
+  // We're not per-monitor aware, use system DPI instead.
+  return SystemDPI();
+}
+
+/* static */
+double
+WinUtils::LogToPhysFactor(HMONITOR aMonitor)
+{
+  return MonitorDPI(aMonitor) / 96.0;
 }
 
 /* static */
@@ -704,13 +688,16 @@ WinUtils::MonitorFromRect(const gfx::Rect& rect)
 #define STATUS_SUCCESS ((NTSTATUS)0x00000000L)
 #endif
 
-static Atomic<bool> sAPCPending;
-
 /* static */
-void
-WinUtils::SetAPCPending()
+a11y::Accessible*
+WinUtils::GetRootAccessibleForHWND(HWND aHwnd)
 {
-  sAPCPending = true;
+  nsWindow* window = GetNSWindowPtr(aHwnd);
+  if (!window) {
+    return nullptr;
+  }
+
+  return window->GetAccessible();
 }
 #endif // ACCESSIBILITY
 
@@ -719,11 +706,6 @@ bool
 WinUtils::PeekMessage(LPMSG aMsg, HWND aWnd, UINT aFirstMessage,
                       UINT aLastMessage, UINT aOption)
 {
-#ifdef ACCESSIBILITY
-  if (NS_IsMainThread() && sAPCPending.exchange(false)) {
-    while (sNtTestAlert() != STATUS_SUCCESS) ;
-  }
-#endif
 #ifdef NS_ENABLE_TSF
   RefPtr<ITfMessagePump> msgPump = TSFTextStore::GetMessagePump();
   if (msgPump) {
@@ -760,7 +742,7 @@ static DWORD
 GetWaitFlags()
 {
   DWORD result = MWMO_INPUTAVAILABLE;
-  if (IsVistaOrLater() && XRE_IsContentProcess()) {
+  if (XRE_IsContentProcess()) {
     result |= MWMO_ALERTABLE;
   }
   return result;
@@ -795,10 +777,6 @@ WinUtils::WaitForMessage(DWORD aTimeoutMs)
 #if defined(ACCESSIBILITY)
     if (result == WAIT_IO_COMPLETION) {
       if (NS_IsMainThread()) {
-        if (sAPCPending.exchange(false)) {
-          // Clear out any pending APCs
-          while (sNtTestAlert() != STATUS_SUCCESS) ;
-        }
         // We executed an APC that would have woken up the hang monitor. Since
         // there are no more APCs pending and we are now going to sleep again,
         // we should notify the hang monitor.
@@ -1140,7 +1118,8 @@ WinUtils::GetIsMouseFromTouch(EventMessage aEventMessage)
   const uint32_t MOZ_T_I_SIGNATURE = TABLET_INK_TOUCH | TABLET_INK_SIGNATURE;
   const uint32_t MOZ_T_I_CHECK_TCH = TABLET_INK_TOUCH | TABLET_INK_CHECK;
   return ((aEventMessage == eMouseMove || aEventMessage == eMouseDown ||
-           aEventMessage == eMouseUp || aEventMessage == eMouseDoubleClick) &&
+           aEventMessage == eMouseUp || aEventMessage == eMouseAuxClick ||
+           aEventMessage == eMouseDoubleClick) &&
          (GetMessageExtraInfo() & MOZ_T_I_SIGNATURE) == MOZ_T_I_CHECK_TCH);
 }
 
@@ -1154,56 +1133,6 @@ WinUtils::InitMSG(UINT aMessage, WPARAM wParam, LPARAM lParam, HWND aWnd)
   msg.lParam  = lParam;
   msg.hwnd    = aWnd;
   return msg;
-}
-
-/* static */
-HRESULT
-WinUtils::SHCreateItemFromParsingName(PCWSTR pszPath, IBindCtx *pbc,
-                                      REFIID riid, void **ppv)
-{
-  if (sCreateItemFromParsingName) {
-    return sCreateItemFromParsingName(pszPath, pbc, riid, ppv);
-  }
-
-  if (!sShellDll) {
-    sShellDll = ::LoadLibraryW(kShellLibraryName);
-    if (!sShellDll) {
-      return false;
-    }
-  }
-
-  sCreateItemFromParsingName = (SHCreateItemFromParsingNamePtr)
-    GetProcAddress(sShellDll, "SHCreateItemFromParsingName");
-  if (!sCreateItemFromParsingName)
-    return E_FAIL;
-
-  return sCreateItemFromParsingName(pszPath, pbc, riid, ppv);
-}
-
-/* static */
-HRESULT 
-WinUtils::SHGetKnownFolderPath(REFKNOWNFOLDERID rfid,
-                               DWORD dwFlags,
-                               HANDLE hToken,
-                               PWSTR *ppszPath)
-{
-  if (sGetKnownFolderPath) {
-    return sGetKnownFolderPath(rfid, dwFlags, hToken, ppszPath);
-  }
-
-  if (!sShellDll) {
-    sShellDll = ::LoadLibraryW(kShellLibraryName);
-    if (!sShellDll) {
-      return false;
-    }
-  }
-
-  sGetKnownFolderPath = (SHGetKnownFolderPathPtr)
-    GetProcAddress(sShellDll, "SHGetKnownFolderPath");
-  if (!sGetKnownFolderPath)
-    return E_FAIL;
-
-  return sGetKnownFolderPath(rfid, dwFlags, hToken, ppszPath);
 }
 
 static BOOL
@@ -1318,7 +1247,8 @@ NS_IMETHODIMP
 AsyncFaviconDataReady::OnComplete(nsIURI *aFaviconURI,
                                   uint32_t aDataLen,
                                   const uint8_t *aData, 
-                                  const nsACString &aMimeType)
+                                  const nsACString &aMimeType,
+                                  uint16_t aWidth)
 {
   if (!aDataLen || !aData) {
     if (mURLShortcut) {
@@ -1347,8 +1277,7 @@ AsyncFaviconDataReady::OnComplete(nsIURI *aFaviconURI,
   // Decode the image from the format it was returned to us in (probably PNG)
   nsCOMPtr<imgIContainer> container;
   nsCOMPtr<imgITools> imgtool = do_CreateInstance("@mozilla.org/image/tools;1");
-  rv = imgtool->DecodeImageData(stream, aMimeType,
-                                getter_AddRefs(container));
+  rv = imgtool->DecodeImage(stream, aMimeType, getter_AddRefs(container));
   NS_ENSURE_SUCCESS(rv, rv);
 
   RefPtr<SourceSurface> surface =
@@ -1540,20 +1469,24 @@ AsyncDeleteAllFaviconsFromDisk::
   // We can't call FaviconHelper::GetICOCacheSecondsTimeout() on non-main
   // threads, as it reads a pref, so cache its value here.
   mIcoNoDeleteSeconds = FaviconHelper::GetICOCacheSecondsTimeout() + 600;
+
+  // Prepare the profile directory cache on the main thread, to ensure we wont
+  // do this on non-main threads.
+  Unused << NS_GetSpecialDirectory("ProfLDS",
+    getter_AddRefs(mJumpListCacheDir));
 }
 
 NS_IMETHODIMP AsyncDeleteAllFaviconsFromDisk::Run()
 {
+  if (!mJumpListCacheDir) {
+    return NS_ERROR_FAILURE;
+  }
   // Construct the path of our jump list cache
-  nsCOMPtr<nsIFile> jumpListCacheDir;
-  nsresult rv = NS_GetSpecialDirectory("ProfLDS", 
-    getter_AddRefs(jumpListCacheDir));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = jumpListCacheDir->AppendNative(
+  nsresult rv = mJumpListCacheDir->AppendNative(
       nsDependentCString(FaviconHelper::kJumpListCacheDir));
   NS_ENSURE_SUCCESS(rv, rv);
   nsCOMPtr<nsISimpleEnumerator> entries;
-  rv = jumpListCacheDir->GetDirectoryEntries(getter_AddRefs(entries));
+  rv = mJumpListCacheDir->GetDirectoryEntries(getter_AddRefs(entries));
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Loop through each directory entry and remove all ICO files found
@@ -1746,7 +1679,7 @@ nsresult
                                                aIOThread, 
                                                aURLShortcut);
 
-  favIconSvc->GetFaviconDataForPage(aFaviconPageURI, callback);
+  favIconSvc->GetFaviconDataForPage(aFaviconPageURI, callback, 0);
 #endif
   return NS_OK;
 }
@@ -1878,25 +1811,17 @@ WinUtils::IsTouchDeviceSupportPresent()
 uint32_t
 WinUtils::GetMaxTouchPoints()
 {
-  if (IsWin7OrLater() && IsTouchDeviceSupportPresent()) {
+  if (IsTouchDeviceSupportPresent()) {
     return GetSystemMetrics(SM_MAXIMUMTOUCHES);
   }
   return 0;
 }
 
-typedef DWORD (WINAPI * GetFinalPathNameByHandlePtr)(HANDLE hFile,
-                                                    LPTSTR lpszFilePath,
-                                                    DWORD cchFilePath,
-                                                    DWORD dwFlags);
-
 /* static */
 bool
 WinUtils::ResolveJunctionPointsAndSymLinks(std::wstring& aPath)
 {
-  // Users folder was introduced with Vista.
-  if (!IsVistaOrLater()) {
-    return true;
-  }
+  LOG_D("ResolveJunctionPointsAndSymLinks: Resolving path: %S", aPath.c_str());
 
   wchar_t path[MAX_PATH] = { 0 };
 
@@ -1910,25 +1835,15 @@ WinUtils::ResolveJunctionPointsAndSymLinks(std::wstring& aPath)
                   nullptr));
 
   if (handle == INVALID_HANDLE_VALUE) {
+    LOG_E("Failed to open file handle to resolve path. GetLastError=%d",
+          GetLastError());
     return false;
   }
 
-  // GetFinalPathNameByHandleW is a Vista and later API. Since ESR builds with
-  // XP support still, we need to load the function manually.
-  GetFinalPathNameByHandlePtr getFinalPathNameFnPtr = nullptr;
-  HMODULE kernel32Dll = ::GetModuleHandleW(L"Kernel32");
-  if (kernel32Dll) {
-    getFinalPathNameFnPtr = (GetFinalPathNameByHandlePtr)
-      ::GetProcAddress(kernel32Dll, "GetFinalPathNameByHandleW");
-  }
-
-  if (!getFinalPathNameFnPtr) {
-    return false;
-  }
-
-  DWORD pathLen = getFinalPathNameFnPtr(
+  DWORD pathLen = GetFinalPathNameByHandleW(
     handle, path, MAX_PATH, FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
   if (pathLen == 0 || pathLen >= MAX_PATH) {
+    LOG_E("GetFinalPathNameByHandleW failed. GetLastError=%d", GetLastError());
     return false;
   }
   aPath = path;
@@ -1940,6 +1855,32 @@ WinUtils::ResolveJunctionPointsAndSymLinks(std::wstring& aPath)
     aPath.erase(2, 6);
   } else if (aPath.compare(0, 4, L"\\\\?\\") == 0) {
     aPath.erase(0, 4);
+  }
+
+  LOG_D("ResolveJunctionPointsAndSymLinks: Resolved path to: %S", aPath.c_str());
+  return true;
+}
+
+/* static */
+bool
+WinUtils::ResolveJunctionPointsAndSymLinks(nsIFile* aPath)
+{
+  MOZ_ASSERT(aPath);
+
+  nsAutoString filePath;
+  nsresult rv = aPath->GetPath(filePath);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return false;
+  }
+
+  std::wstring resolvedPath(filePath.get());
+  if (!ResolveJunctionPointsAndSymLinks(resolvedPath)) {
+    return false;
+  }
+
+  rv = aPath->InitWithPath(nsDependentString(resolvedPath.c_str()));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return false;
   }
 
   return true;
@@ -2025,21 +1966,19 @@ WinUtils::GetAppInitDLLs(nsAString& aOutput)
   }
   nsAutoRegKey key(hkey);
   LONG status;
-  if (IsVistaOrLater()) {
-    const wchar_t kLoadAppInitDLLs[] = L"LoadAppInit_DLLs";
-    DWORD loadAppInitDLLs = 0;
-    DWORD loadAppInitDLLsLen = sizeof(loadAppInitDLLs);
-    status = RegQueryValueExW(hkey, kLoadAppInitDLLs, nullptr,
-                              nullptr, (LPBYTE)&loadAppInitDLLs,
-                              &loadAppInitDLLsLen);
-    if (status != ERROR_SUCCESS) {
-      return false;
-    }
-    if (!loadAppInitDLLs) {
-      // If loadAppInitDLLs is zero then AppInit_DLLs is disabled.
-      // In this case we'll return true along with an empty output string.
-      return true;
-    }
+  const wchar_t kLoadAppInitDLLs[] = L"LoadAppInit_DLLs";
+  DWORD loadAppInitDLLs = 0;
+  DWORD loadAppInitDLLsLen = sizeof(loadAppInitDLLs);
+  status = RegQueryValueExW(hkey, kLoadAppInitDLLs, nullptr,
+                            nullptr, (LPBYTE)&loadAppInitDLLs,
+                            &loadAppInitDLLsLen);
+  if (status != ERROR_SUCCESS) {
+    return false;
+  }
+  if (!loadAppInitDLLs) {
+    // If loadAppInitDLLs is zero then AppInit_DLLs is disabled.
+    // In this case we'll return true along with an empty output string.
+    return true;
   }
   DWORD numBytes = 0;
   const wchar_t kAppInitDLLs[] = L"AppInit_DLLs";

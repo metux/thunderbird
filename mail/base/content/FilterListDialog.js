@@ -614,7 +614,7 @@ function runSelectedFilters()
   let filterList = MailServices.filters.getTempFilterList(folder);
   let folders = Components.classes["@mozilla.org/array;1"]
                           .createInstance(Components.interfaces.nsIMutableArray);
-  folders.appendElement(folder, false);
+  folders.appendElement(folder);
 
   // make sure the tmp filter list uses the real filter list log stream
   filterList.logStream = gCurrentFilterList.logStream;
@@ -849,7 +849,7 @@ function getServerThatCanHaveFilters()
     // If it cannot, check all accounts to find a server
     // that can have filters.
     let allServers = MailServices.accounts.allServers;
-    for (let currentServer in fixIterator(allServers,
+    for (let currentServer of fixIterator(allServers,
                                           Components.interfaces.nsIMsgIncomingServer))
     {
       if (currentServer.canHaveFilters)

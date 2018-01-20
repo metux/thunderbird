@@ -14,7 +14,7 @@
 <!ENTITY aboutNetworking.autoRefresh           "Kužde 3 sekundy aktualizěrowaś">
 <!ENTITY aboutNetworking.hostname              "Hostmě">
 <!ENTITY aboutNetworking.port                  "Port">
-<!ENTITY aboutNetworking.spdy                  "SPDY">
+<!ENTITY aboutNetworking.http2                 "HTTP/2">
 <!ENTITY aboutNetworking.ssl                   "SSL">
 <!ENTITY aboutNetworking.active                "Aktiwny">
 <!ENTITY aboutNetworking.idle                  "Prozny chód">
@@ -41,3 +41,18 @@
 <!ENTITY aboutNetworking.dnsLookupButton       "Rozeznaś">
 <!ENTITY aboutNetworking.dnsDomain             "Domena">
 <!ENTITY aboutNetworking.dnsLookupTableColumn  "IP">
+<!ENTITY aboutNetworking.rcwn                  "Statistika RCWN">
+<!ENTITY aboutNetworking.rcwnStatus            "Status RCWN">
+<!ENTITY aboutNetworking.rcwnCacheWonCount     "Licba wužywanjow cacha">
+<!ENTITY aboutNetworking.rcwnNetWonCount       "Licba wužywanjow seśi">
+<!ENTITY aboutNetworking.totalNetworkRequests  "Licba seśowych napšašowanjow dogromady">
+<!ENTITY aboutNetworking.rcwnOperation         "Operacija cache">
+<!ENTITY aboutNetworking.rcwnPerfOpen          "Wócyniś">
+<!ENTITY aboutNetworking.rcwnPerfRead          "Cytaś">
+<!ENTITY aboutNetworking.rcwnPerfWrite         "Pisaś">
+<!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Zapisk wócynjony">
+<!ENTITY aboutNetworking.rcwnAvgShort          "Krotki pśerězk">
+<!ENTITY aboutNetworking.rcwnAvgLong           "Dłujki pśerězk">
+<!ENTITY aboutNetworking.rcwnStddevLong        "Dłujke standardne wótchylenje">
+<!ENTITY aboutNetworking.rcwnCacheSlow         "Pomałe licenje pufrowaś">
+<!ENTITY aboutNetworking.rcwnCacheNotSlow      "Pomałe licenje njepufrowaś">

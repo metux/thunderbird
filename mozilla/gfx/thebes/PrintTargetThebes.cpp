@@ -47,7 +47,7 @@ PrintTargetThebes::MakeDrawTarget(const IntSize& aSize,
   }
 
   if (aRecorder) {
-    dt = CreateRecordingDrawTarget(aRecorder, dt);
+    dt = CreateWrapAndRecordDrawTarget(aRecorder, dt);
     if (!dt || !dt->IsValid()) {
       return nullptr;
     }
@@ -65,20 +65,38 @@ PrintTargetThebes::GetReferenceDrawTarget(DrawEventRecorder* aRecorder)
     if (!dt || !dt->IsValid()) {
       return nullptr;
     }
-    if (aRecorder) {
-      dt = CreateRecordingDrawTarget(aRecorder, dt);
+    mRefDT = dt->CreateSimilarDrawTarget(IntSize(1,1), dt->GetFormat());
+  }
+
+  if (aRecorder) {
+    if (!mRecordingRefDT) {
+      RefPtr<DrawTarget> dt = CreateWrapAndRecordDrawTarget(aRecorder, mRefDT);
       if (!dt || !dt->IsValid()) {
         return nullptr;
       }
+      mRecordingRefDT = dt.forget();
+#ifdef DEBUG
+      mRecorder = aRecorder;
+#endif
     }
-    mRefDT = dt->CreateSimilarDrawTarget(IntSize(1,1), dt->GetFormat());
+#ifdef DEBUG
+    else {
+      MOZ_ASSERT(aRecorder == mRecorder,
+                 "Caching mRecordingRefDT assumes the aRecorder is an invariant");
+    }
+#endif
+
+    return do_AddRef(mRecordingRefDT);
   }
+
   return do_AddRef(mRefDT);
 }
 
 nsresult
 PrintTargetThebes::BeginPrinting(const nsAString& aTitle,
-                                 const nsAString& aPrintToFileName)
+                                 const nsAString& aPrintToFileName,
+                                 int32_t aStartPage,
+                                 int32_t aEndPage)
 {
   return mGfxSurface->BeginPrinting(aTitle, aPrintToFileName);
 }

@@ -8,6 +8,7 @@
 #define mozilla_dom_workers_serviceworkerupdatejob_h
 
 #include "ServiceWorkerJob.h"
+#include "ServiceWorkerRegistration.h"
 
 namespace mozilla {
 namespace dom {
@@ -27,7 +28,8 @@ public:
   ServiceWorkerUpdateJob(nsIPrincipal* aPrincipal,
                          const nsACString& aScope,
                          const nsACString& aScriptSpec,
-                         nsILoadGroup* aLoadGroup);
+                         nsILoadGroup* aLoadGroup,
+                         ServiceWorkerUpdateViaCache aUpdateViaCache);
 
   already_AddRefed<ServiceWorkerRegistrationInfo>
   GetRegistration() const;
@@ -38,7 +40,8 @@ protected:
                          nsIPrincipal* aPrincipal,
                          const nsACString& aScope,
                          const nsACString& aScriptSpec,
-                         nsILoadGroup* aLoadGroup);
+                         nsILoadGroup* aLoadGroup,
+                         ServiceWorkerUpdateViaCache aUpdateViaCache);
 
   virtual ~ServiceWorkerUpdateJob();
 
@@ -68,6 +71,9 @@ protected:
   void
   Update();
 
+  ServiceWorkerUpdateViaCache
+  GetUpdateViaCache() const;
+
 private:
   class CompareCallback;
   class ContinueUpdateRunnable;
@@ -79,7 +85,8 @@ private:
   ComparisonResult(nsresult aStatus,
                    bool aInCacheAndEqual,
                    const nsAString& aNewCacheName,
-                   const nsACString& aMaxScope);
+                   const nsACString& aMaxScope,
+                   nsLoadFlags aLoadFlags);
 
   // Utility method called after evaluating the worker script.
   void
@@ -94,6 +101,8 @@ private:
   ContinueAfterInstallEvent(bool aInstallEventSuccess);
 
   nsCOMPtr<nsILoadGroup> mLoadGroup;
+  ServiceWorkerUpdateViaCache mUpdateViaCache;
+
   RefPtr<ServiceWorkerRegistrationInfo> mRegistration;
 };
 

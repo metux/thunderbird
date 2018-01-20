@@ -4,77 +4,118 @@
 
 "use strict";
 
-var gSubDialog = {
+/**
+ * SubDialog constructor creates a new subdialog from a template and appends
+ * it to the parentElement.
+ * @param {DOMNode} template: The template is copied to create a new dialog.
+ * @param {DOMNode} parentElement: New dialog is appended onto parentElement.
+ * @param {String}  id: A unique identifier for the dialog.
+ */
+function SubDialog({template, parentElement, id}) {
+  this._id = id;
+
+  this._overlay = template.cloneNode(true);
+  this._frame = this._overlay.querySelector(".dialogFrame");
+  this._box = this._overlay.querySelector(".dialogBox");
+  this._closeButton = this._overlay.querySelector(".dialogClose");
+  this._titleElement = this._overlay.querySelector(".dialogTitle");
+
+  this._overlay.id = `dialogOverlay-${id}`;
+  this._frame.setAttribute("name", `dialogFrame-${id}`);
+  this._frameCreated = new Promise(resolve => {
+    this._frame.addEventListener("load", resolve, {once: true});
+  });
+
+  parentElement.appendChild(this._overlay);
+  this._overlay.hidden = false;
+}
+
+SubDialog.prototype = {
   _closingCallback: null,
   _closingEvent: null,
   _isClosing: false,
   _frame: null,
+  _frameCreated: null,
   _overlay: null,
   _box: null,
-  _injectedStyleSheets: ["chrome://mozapps/content/preferences/preferences.css",
-                         "chrome://messenger/skin/preferences/preferences.css",
-                         "chrome://global/skin/in-content/common.css",
-                         "chrome://messenger/skin/preferences/aboutPreferences.css",
-                         "chrome://messenger/skin/preferences/dialog.css"],
+  _openedURL: null,
+  _injectedStyleSheets: [
+    "chrome://messenger/skin/preferences/preferences.css",
+    "chrome://global/skin/in-content/common.css",
+    "chrome://messenger/skin/preferences/aboutPreferences.css",
+    "chrome://messenger/skin/preferences/dialog.css"],
 
   // Store the original instantApply pref for restoring after closing the dialog
   _instantApplyOrig: Services.prefs.getBoolPref("browser.preferences.instantApply"),
   _resizeObserver: null,
+  _template: null,
+  _id: null,
+  _titleElement: null,
+  _closeButton: null,
 
-  init: function() {
-    this._frame = document.getElementById("dialogFrame");
-    this._overlay = document.getElementById("dialogOverlay");
-    this._box = document.getElementById("dialogBox");
-    this._closeButton = document.getElementById("dialogClose");
-  },
-
-  updateTitle: function(aEvent) {
-    if (aEvent.target != gSubDialog._frame.contentDocument)
+  updateTitle(aEvent) {
+    if (aEvent.target != this._frame.contentDocument)
       return;
-    document.getElementById("dialogTitle").textContent = gSubDialog._frame.contentDocument.title;
+    this._titleElement.textContent = this._frame.contentDocument.title;
   },
 
-  injectXMLStylesheet: function(aStylesheetURL) {
+  injectXMLStylesheet(aStylesheetURL) {
     let contentStylesheet = this._frame.contentDocument.createProcessingInstruction(
-      'xml-stylesheet',
+      "xml-stylesheet",
       'href="' + aStylesheetURL + '" type="text/css"'
     );
     this._frame.contentDocument.insertBefore(contentStylesheet,
                                              this._frame.contentDocument.documentElement);
   },
 
-  open: function(aURL, aFeatures = null, aParams = null, aClosingCallback = null) {
+  async open(aURL, aFeatures = null, aParams = null, aClosingCallback = null) {
+    // Wait until frame is ready to prevent browser crash in tests
+    await this._frameCreated;
+    // If we're open on some (other) URL or we're closing, open when closing has finished.
+    if (this._openedURL || this._isClosing) {
+      if (!this._isClosing) {
+        this.close();
+      }
+      let args = Array.from(arguments);
+      this._closingPromise.then(() => {
+        this.open.apply(this, args);
+      });
+      return;
+    }
     this._addDialogEventListeners();
 
     Services.prefs.setBoolPref("browser.preferences.instantApply", true);
-    let features = (!!aFeatures ? aFeatures + "," : "") + "resizable,dialog=no,centerscreen";
-    let dialog = window.openDialog(aURL, "dialogFrame", features, aParams);
+    let features = (aFeatures ? aFeatures + "," : "") + "resizable,dialog=no,centerscreen";
+    let dialog = window.openDialog(aURL, `dialogFrame-${this._id}`, features, aParams);
     if (aClosingCallback) {
       this._closingCallback = aClosingCallback.bind(dialog);
     }
 
     this._closingEvent = null;
     this._isClosing = false;
+    this._openedURL = aURL;
 
     features = features.replace(/,/g, "&");
     let featureParams = new URLSearchParams(features.toLowerCase());
     this._box.setAttribute("resizable", featureParams.has("resizable") &&
                                         featureParams.get("resizable") != "no" &&
                                         featureParams.get("resizable") != "0");
-    return dialog;
   },
 
-  close: function(aEvent = null) {
+  close(aEvent = null) {
     if (this._isClosing) {
       return;
     }
     this._isClosing = true;
+    this._closingPromise = new Promise(resolve => {
+      this._resolveClosePromise = resolve;
+    });
 
     if (this._closingCallback) {
       try {
         this._closingCallback.call(null, aEvent);
       } catch (ex) {
-        Cu.reportError(ex);
+        Components.utils.reportError(ex);
       }
       this._closingCallback = null;
     }
@@ -91,17 +132,39 @@ var gSubDialog = {
     this._box.style.removeProperty("min-height");
     this._box.style.removeProperty("min-width");
 
+    this._overlay.dispatchEvent(new CustomEvent("dialogclose", {
+      bubbles: true,
+      detail: { dialog: this },
+    }));
+
     setTimeout(() => {
       // Unload the dialog after the event listeners run so that the load of about:blank isn't
       // cancelled by the ESC <key>.
+      let onBlankLoad = e => {
+        if (this._frame.contentWindow.location.href == "about:blank") {
+          this._frame.removeEventListener("load", onBlankLoad);
+          // We're now officially done closing, so update the state to reflect that.
+          this._openedURL = null;
+          this._isClosing = false;
+          this._resolveClosePromise();
+        }
+      };
+      this._frame.addEventListener("load", onBlankLoad);
       this._frame.loadURI("about:blank");
     }, 0);
   },
 
-  handleEvent: function(aEvent) {
+  handleEvent(aEvent) {
     switch (aEvent.type) {
+      case "click":
+        // Close the dialog if the user clicked the overlay background, just
+        // like when the user presses the ESC key (case "command" below).
+        if (aEvent.target === this._overlay) {
+          this._frame.contentWindow.close();
+        }
+        break;
       case "command":
-        this.close(aEvent);
+        this._frame.contentWindow.close();
         break;
       case "dialogclosing":
         this._onDialogClosing(aEvent);
@@ -129,37 +192,53 @@ var gSubDialog = {
 
   /* Private methods */
 
-  _onUnload: function(aEvent) {
-    if (aEvent.target.location.href != "about:blank") {
-      this.close(this._closingEvent);
+  _onUnload(aEvent) {
+    if (aEvent.target.location.href == this._openedURL) {
+      this._frame.contentWindow.close();
     }
   },
 
-  _onContentLoaded: function(aEvent) {
-    if (aEvent.target != this._frame || aEvent.target.contentWindow.location == "about:blank")
+  _onContentLoaded(aEvent) {
+    if (aEvent.target != this._frame || aEvent.target.contentWindow.location == "about:blank") {
       return;
+    }
 
     for (let styleSheetURL of this._injectedStyleSheets) {
       this.injectXMLStylesheet(styleSheetURL);
     }
 
-    this._frame.contentWindow.addEventListener("dialogclosing", this, {once: true});
+    // Provide the ability for the dialog to know that it is being loaded "in-content".
+    this._frame.contentDocument.documentElement.setAttribute("subdialog", "true");
+
+    this._frame.contentWindow.addEventListener("dialogclosing", this);
+
+    let oldResizeBy = this._frame.contentWindow.resizeBy;
+    this._frame.contentWindow.resizeBy = (resizeByWidth, resizeByHeight) => {
+      // Only handle resizeByHeight currently.
+      let frameHeight = this._frame.clientHeight;
+      let boxMinHeight = parseFloat(getComputedStyle(this._box).minHeight, 10);
+
+      this._frame.style.height = (frameHeight + resizeByHeight) + "px";
+      this._box.style.minHeight = (boxMinHeight + resizeByHeight) + "px";
+
+      oldResizeBy.call(this._frame.contentWindow, resizeByWidth, resizeByHeight);
+    };
 
     // Make window.close calls work like dialog closing.
     let oldClose = this._frame.contentWindow.close;
-    this._frame.contentWindow.close = function() {
-      var closingEvent = gSubDialog._closingEvent;
+    this._frame.contentWindow.close = () => {
+      var closingEvent = this._closingEvent;
       if (!closingEvent) {
         closingEvent = new CustomEvent("dialogclosing", {
           bubbles: true,
           detail: { button: null },
         });
 
-        gSubDialog._frame.contentWindow.dispatchEvent(closingEvent);
+        this._frame.contentWindow.dispatchEvent(closingEvent);
       }
 
-      gSubDialog.close(closingEvent);
-      oldClose.call(gSubDialog._frame.contentWindow);
+      this.close(closingEvent);
+      oldClose.call(this._frame.contentWindow);
     };
 
     // XXX: Hack to make focus during the dialog's load functions work. Make the element visible
@@ -169,9 +248,10 @@ var gSubDialog = {
     this._overlay.style.opacity = "0.01";
   },
 
-  _onLoad: function(aEvent) {
-    if (aEvent.target.contentWindow.location == "about:blank")
+  _onLoad(aEvent) {
+    if (aEvent.target.contentWindow.location == "about:blank") {
       return;
+    }
 
     // Do this on load to wait for the CSS to load and apply before calculating the size.
     let docEl = this._frame.contentDocument.documentElement;
@@ -219,7 +299,8 @@ var gSubDialog = {
     } else if (frameHeight.endsWith("px")) {
       comparisonFrameHeight = parseFloat(frameHeight, 10);
     } else {
-      Cu.reportError("This dialog (" + this._frame.contentWindow.location.href + ") " +
+      Components.utils.reportError(
+                     "This dialog (" + this._frame.contentWindow.location.href + ") " +
                      "set a height in non-px-non-em units ('" + frameHeight + "'), " +
                      "which is likely to lead to bad sizing in in-content preferences. " +
                      "Please consider changing this.");
@@ -230,7 +311,7 @@ var gSubDialog = {
       // If the height is bigger than that of the window, we should let the contents scroll:
       frameHeight = maxHeight + "px";
       frameMinHeight = maxHeight + "px";
-      let containers = this._frame.contentDocument.querySelectorAll('.largeDialogContainer');
+      let containers = this._frame.contentDocument.querySelectorAll(".largeDialogContainer");
       for (let container of containers) {
         container.classList.add("doScroll");
       }
@@ -241,17 +322,23 @@ var gSubDialog = {
                                 (boxVerticalBorder + groupBoxTitleHeight + boxVerticalPadding) +
                                 "px + " + frameMinHeight + ")";
 
+    this._overlay.dispatchEvent(new CustomEvent("dialogopen", {
+      bubbles: true,
+      detail: { dialog: this },
+    }));
     this._overlay.style.visibility = "visible";
     this._overlay.style.opacity = ""; // XXX: focus hack continued from _onContentLoaded
 
-    this._resizeObserver = new MutationObserver(this._onResize);
-    this._resizeObserver.observe(this._box, {attributes: true});
+    if (this._box.getAttribute("resizable") == "true") {
+      this._resizeObserver = new MutationObserver(this._onResize);
+      this._resizeObserver.observe(this._box, {attributes: true});
+    }
 
     this._trapFocus();
   },
 
-  _onResize: function(mutations) {
-    let frame = gSubDialog._frame;
+  _onResize(mutations) {
+    let frame = this._frame;
     // The width and height styles are needed for the initial
     // layout of the frame, but afterward they need to be removed
     // or their presence will restrict the contents of the <browser>
@@ -261,8 +348,9 @@ var gSubDialog = {
 
     let docEl = frame.contentDocument.documentElement;
     let persistedAttributes = docEl.getAttribute("persist");
-    if (!persistedAttributes.contains("width") &&
-        !persistedAttributes.contains("height")) {
+    if (!persistedAttributes ||
+        (!persistedAttributes.includes("width") &&
+         !persistedAttributes.includes("height"))) {
       return;
     }
 
@@ -275,11 +363,12 @@ var gSubDialog = {
     }
   },
 
-  _onDialogClosing: function(aEvent) {
+  _onDialogClosing(aEvent) {
+    this._frame.contentWindow.removeEventListener("dialogclosing", this);
     this._closingEvent = aEvent;
   },
 
-  _onKeyDown: function(aEvent) {
+  _onKeyDown(aEvent) {
     if (aEvent.currentTarget == window && aEvent.keyCode == aEvent.DOM_VK_ESCAPE &&
         !aEvent.defaultPrevented) {
       this.close(aEvent);
@@ -292,13 +381,13 @@ var gSubDialog = {
 
     let fm = Services.focus;
 
-    function isLastFocusableElement(el) {
-      //XXXgijs unfortunately there is no way to get the last focusable element without asking
+    let isLastFocusableElement = el => {
+      // XXXgijs unfortunately there is no way to get the last focusable element without asking
       // the focus manager to move focus to it.
-      let rv = el == fm.moveFocus(gSubDialog._frame.contentWindow, null, fm.MOVEFOCUS_LAST, 0);
+      let rv = el == fm.moveFocus(this._frame.contentWindow, null, fm.MOVEFOCUS_LAST, 0);
       fm.setFocus(el, 0);
       return rv;
-    }
+    };
 
     let forward = !aEvent.shiftKey;
     // check if focus is leaving the frame (incl. the close button):
@@ -306,7 +395,7 @@ var gSubDialog = {
         (isLastFocusableElement(aEvent.originalTarget) && forward)) {
       aEvent.preventDefault();
       aEvent.stopImmediatePropagation();
-      let parentWin = this._getBrowser().ownerDocument.defaultView;
+      let parentWin = this._getBrowser().ownerGlobal;
       if (forward) {
         fm.moveFocus(parentWin, null, fm.MOVEFOCUS_FIRST, fm.FLAG_BYKEY);
       } else {
@@ -317,7 +406,7 @@ var gSubDialog = {
     }
   },
 
-  _onParentWinFocus: function(aEvent) {
+  _onParentWinFocus(aEvent) {
     // Explicitly check for the focus target of |window| to avoid triggering this when the window
     // is refocused
     if (aEvent.target != this._closeButton && aEvent.target != window) {
@@ -325,7 +414,7 @@ var gSubDialog = {
     }
   },
 
-  _addDialogEventListeners: function() {
+  _addDialogEventListeners() {
     // Make the close button work.
     this._closeButton.addEventListener("command", this);
 
@@ -341,13 +430,16 @@ var gSubDialog = {
     this._frame.addEventListener("load", this);
 
     chromeBrowser.addEventListener("unload", this, true);
+
     // Ensure we get <esc> keypresses even if nothing in the subdialog is focusable
     // (happens on OS X when only text inputs and lists are focusable, and
     //  the subdialog only has checkboxes/radiobuttons/buttons)
     window.addEventListener("keydown", this, true);
+
+    this._overlay.addEventListener("click", this, true);
   },
 
-  _removeDialogEventListeners: function() {
+  _removeDialogEventListeners() {
     let chromeBrowser = this._getBrowser();
     chromeBrowser.removeEventListener("DOMTitleChanged", this, true);
     chromeBrowser.removeEventListener("unload", this, true);
@@ -358,6 +450,9 @@ var gSubDialog = {
     this._frame.removeEventListener("load", this);
     this._frame.contentWindow.removeEventListener("dialogclosing", this);
     window.removeEventListener("keydown", this, true);
+
+    this._overlay.removeEventListener("click", this, true);
+
     if (this._resizeObserver) {
       this._resizeObserver.disconnect();
       this._resizeObserver = null;
@@ -365,7 +460,7 @@ var gSubDialog = {
     this._untrapFocus();
   },
 
-  _trapFocus: function() {
+  _trapFocus() {
     let fm = Services.focus;
     fm.moveFocus(this._frame.contentWindow, null, fm.MOVEFOCUS_FIRST, 0);
     this._frame.contentDocument.addEventListener("keydown", this, true);
@@ -374,16 +469,117 @@ var gSubDialog = {
     window.addEventListener("focus", this, true);
   },
 
-  _untrapFocus: function() {
+  _untrapFocus() {
     this._frame.contentDocument.removeEventListener("keydown", this, true);
     this._closeButton.removeEventListener("keydown", this);
     window.removeEventListener("focus", this);
   },
 
-  _getBrowser: function() {
+  _getBrowser() {
     return window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
                  .getInterface(Components.interfaces.nsIWebNavigation)
                  .QueryInterface(Components.interfaces.nsIDocShell)
                  .chromeEventHandler;
+  },
+};
+
+var gSubDialog = {
+  /**
+   * New dialogs are stacked on top of the existing ones, and they are pushed
+   * to the end of the _dialogs array.
+   * @type {Array}
+   */
+  _dialogs: [],
+  _dialogStack: null,
+  _dialogTemplate: null,
+  _nextDialogID: 0,
+  _preloadDialog: null,
+  get _topDialog() {
+    return this._dialogs.length > 0 ? this._dialogs[this._dialogs.length - 1] : undefined;
+  },
+
+  init() {
+    this._dialogStack = document.getElementById("dialogStack");
+    this._dialogTemplate = document.getElementById("dialogTemplate");
+    this._preloadDialog = new SubDialog({template: this._dialogTemplate,
+                                         parentElement: this._dialogStack,
+                                         id: this._nextDialogID++});
+  },
+
+  open(aURL, aFeatures = null, aParams = null, aClosingCallback = null) {
+    // If we're already open/opening on this URL, do nothing.
+    if (this._topDialog && this._topDialog._openedURL == aURL) {
+      return;
+    }
+
+    this._preloadDialog.open(aURL, aFeatures, aParams, aClosingCallback);
+    this._dialogs.push(this._preloadDialog);
+    this._preloadDialog = new SubDialog({template: this._dialogTemplate,
+                                         parentElement: this._dialogStack,
+                                         id: this._nextDialogID++});
+
+    if (this._dialogs.length == 1) {
+      this._dialogStack.hidden = false;
+      this._ensureStackEventListeners();
+    }
+  },
+
+  close() {
+    this._topDialog.close();
+  },
+
+  handleEvent(aEvent) {
+    switch (aEvent.type) {
+      case "dialogopen": {
+        this._onDialogOpen();
+        break;
+      }
+      case "dialogclose": {
+        this._onDialogClose(aEvent.detail.dialog);
+        break;
+      }
+    }
+  },
+
+  _onDialogOpen() {
+    let lowerDialog = this._dialogs.length > 1 ? this._dialogs[this._dialogs.length - 2] : undefined;
+    if (lowerDialog) {
+      lowerDialog._overlay.removeAttribute("topmost");
+      lowerDialog._removeDialogEventListeners();
+    }
+  },
+
+  _onDialogClose(dialog) {
+    let fm = Services.focus;
+    if (this._topDialog == dialog) {
+      // XXX: When a top-most dialog is closed, we reuse the closed dialog and
+      //      remove the preloadDialog. This is a temporary solution before we
+      //      rewrite all the test cases in Bug 1359023.
+      this._preloadDialog._overlay.remove();
+      this._preloadDialog = this._dialogs.pop();
+    } else {
+      dialog._overlay.remove();
+      this._dialogs.splice(this._dialogs.indexOf(dialog), 1);
+    }
+
+    if (this._topDialog) {
+      fm.moveFocus(this._topDialog._frame.contentWindow, null, fm.MOVEFOCUS_FIRST, fm.FLAG_BYKEY);
+      this._topDialog._overlay.setAttribute("topmost", true);
+      this._topDialog._addDialogEventListeners();
+    } else {
+      fm.moveFocus(window, null, fm.MOVEFOCUS_ROOT, fm.FLAG_BYKEY);
+      this._dialogStack.hidden = true;
+      this._removeStackEventListeners();
+    }
+  },
+
+  _ensureStackEventListeners() {
+    this._dialogStack.addEventListener("dialogopen", this);
+    this._dialogStack.addEventListener("dialogclose", this);
+  },
+
+  _removeStackEventListeners() {
+    this._dialogStack.removeEventListener("dialogopen", this);
+    this._dialogStack.removeEventListener("dialogclose", this);
   },
 };

@@ -97,19 +97,29 @@ imconv[attention] {
   color: blue;
 }
 
-.conv-hbox {
-  -moz-box-align: center;
-}
-
 /* From instantbird/themes/blist.css */
 .contactStatusText,
 .convStatusText {
   color: GrayText;
 }
 
+.convUnreadCount,
 .contactDisplayName,
 .convDisplayName {
   margin-inline-end: 0;
+}
+
+.convUnreadCount {
+  margin-inline-start: 0.5ch;
+}
+
+.convUnreadTargetedCount {
+  color: hsl(0, 100%, 27%);
+  background-color: hsl(0, 100%, 87%);
+  padding: 0 7px;
+  border-radius: 50px;
+  margin: 1px 3px;
+  margin-inline-start: 1ch;
 }
 
 imcontact[aliasing] .contactDisplayName {
@@ -145,20 +155,13 @@ imcontact[aliasing] .contactDisplayName {
 }
 
 .closeConversationButton {
-  margin-inline-end: 0;
+  margin-inline-end: 2px;
   -moz-stack-sizing: ignore;
-%ifdef XP_WIN
-  list-style-image: url("chrome://global/skin/icons/close-XPVista7.png");
-%else
-  list-style-image: url("chrome://global/skin/icons/close.png");
-%endif
-  -moz-image-region: rect(0, 16px, 16px, 0);
 }
-.closeConversationButton:hover {
-  -moz-image-region: rect(0, 32px, 16px, 16px);
-}
-.closeConversationButton:hover:active {
-  -moz-image-region: rect(0, 48px, 16px, 32px);
+
+.closeConversationButton > .button-image-icon {
+  width: 16px;
+  height: 16px;
 }
 
 
@@ -240,7 +243,6 @@ imcontact[aliasing] .contactDisplayName {
   border: none;
 }
 
-
 .statusTypeIcon[typing] {
   list-style-image: url('chrome://chat/skin/typing-16.png');
 }
@@ -248,7 +250,6 @@ imcontact[aliasing] .contactDisplayName {
 .statusTypeIcon[typed] {
   list-style-image: url('chrome://chat/skin/typed-16.png');
 }
-
 
 .statusMessage {
   margin: 0 0 !important;
@@ -342,7 +343,6 @@ imcontact[aliasing] .contactDisplayName {
   border-right: solid 1px GrayText;
 }
 %endif
-
 
 /* Animation copied from the find bar in Firefox - http://dxr.mozilla.org/mozilla-central/source/toolkit/themes/linux/global/findBar.css#7 */
 .conv-status-container {
@@ -475,7 +475,7 @@ grippy {
   margin: 0 0;
 }
 
-.conv-nicklist > .listitem-iconic > .listcell-iconic > .listcell-label {
+.conv-nicklist > .listitem-iconic .listcell-label {
   font-weight: bold;
   padding-inline-start: 1px;
 %ifdef XP_MACOSX
@@ -483,7 +483,7 @@ grippy {
 %endif
 }
 
-.conv-nicklist > .listitem-iconic > .listcell-iconic > .listcell-icon {
+.conv-nicklist > .listitem-iconic .listcell-icon {
   min-width: 16px;
   margin: 0 2px;
 }
@@ -531,20 +531,20 @@ grippy {
 }
 %endif
 
-.listitem-iconic[inactive] > .listcell-iconic > .listcell-icon {
+.listitem-iconic[inactive] .listcell-icon {
   opacity: 0.45;
 }
 
-.listitem-iconic[inactive][selected] > .listcell-iconic > .listcell-icon {
+.listitem-iconic[inactive][selected] .listcell-icon {
   opacity: 0.7;
 }
 
-.listitem-iconic[inactive] > .listcell-iconic > .listcell-label {
+.listitem-iconic[inactive] .listcell-label {
   color: GrayText !important;
   font-weight: normal;
 }
 
-.listitem-iconic[inactive][selected] > .listcell-iconic > .listcell-label {
+.listitem-iconic[inactive][selected] .listcell-label {
 %ifdef MACOSX
   color: -moz-DialogText !important;
 %else
@@ -552,10 +552,9 @@ grippy {
 %endif
 }
 
-.conv-nicklist:focus > .listitem-iconic[inactive][selected] > .listcell-iconic > .listcell-label {
+.conv-nicklist:focus > .listitem-iconic[inactive][selected] .listcell-label {
   color: HighlightText !important;
 }
-
 
 /* from instantbird/themes/blist.css */
 %ifdef XP_WIN
@@ -595,6 +594,10 @@ imgroup[closed] .twisty {
 %endif
 %endif
 
+.prplBuddyIcon {
+  margin: 2px 0;
+}
+
 #searchResultConv > .prplBuddyIcon > .protoIcon {
 %ifdef XP_MACOSX
   list-style-image: url("chrome://global/skin/icons/search-textbox.png");
@@ -612,6 +615,12 @@ imgroup[closed] .twisty {
 
 #statusTypeIcon {
   min-width: 40px;
+}
+
+#statusTypeIcon > .toolbarbutton-icon {
+  /* Required for hidpi */
+  width: 16px;
+  padding: 0;
 }
 
 /* show the status icon also in text mode */
@@ -642,4 +651,23 @@ toolbar[mode="text"] #statusTypeIcon > .toolbarbutton-icon {
   padding-inline-end: 4px;
   border-color: ThreeDShadow;
   background-color: -moz-field;
+}
+
+.tabmail-tab[type="chat"],
+.alltabs-item[type="chat"] {
+  list-style-image: url("chrome://messenger/skin/icons/chat.svg");
+  -moz-context-properties: fill;
+  fill: currentColor;
+}
+
+#button-add-buddy {
+  list-style-image: url("chrome://messenger/skin/icons/addcontact.svg");
+}
+
+#button-join-chat {
+  list-style-image: url("chrome://messenger/skin/icons/join.svg");
+}
+
+#button-chat-accounts {
+  list-style-image: url("chrome://messenger/skin/icons/accounts.svg");
 }

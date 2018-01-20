@@ -9,7 +9,9 @@
 
 #include <initializer_list>
 
-class nsXPIDLString;
+#include "mozilla/Maybe.h"
+#include "nsStringFwd.h"
+#include "nsTArray.h"
 
 namespace mozilla {
 
@@ -17,12 +19,13 @@ namespace mozilla {
 struct AnimationPerformanceWarning
 {
   enum class Type : uint8_t {
-    ContentTooSmall,
     ContentTooLarge,
+    ContentTooLargeArea,
     TransformBackfaceVisibilityHidden,
     TransformPreserve3D,
     TransformSVG,
     TransformWithGeometricProperties,
+    TransformWithSyncGeometricAnimations,
     TransformFrameInactive,
     OpacityFrameInactive,
     HasRenderingObserver,
@@ -58,10 +61,10 @@ struct AnimationPerformanceWarning
   // Optional parameters that may be used for localization.
   Maybe<nsTArray<int32_t>> mParams;
 
-  bool ToLocalizedString(nsXPIDLString& aLocalizedString) const;
+  bool ToLocalizedString(nsAString& aLocalizedString) const;
   template<uint32_t N>
   nsresult ToLocalizedStringWithIntParams(
-    const char* aKey, nsXPIDLString& aLocalizedString) const;
+    const char* aKey, nsAString& aLocalizedString) const;
 
   bool operator==(const AnimationPerformanceWarning& aOther) const
   {

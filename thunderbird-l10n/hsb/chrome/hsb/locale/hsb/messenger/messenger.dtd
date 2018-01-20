@@ -51,8 +51,8 @@
 <!ENTITY getAllNewMsgCmdPopupMenu.accesskey "W">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.label "Aktualne konto">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.accesskey "A">
-<!ENTITY getNextNMsgCmd.label "Přichodnych 500 nowych powěsćowy wobstarać">
-<!ENTITY getNextNMsgCmd.accesskey "5">
+<!ENTITY getNextNMsgCmd2.label "Přichodne powěsće wobstarać">
+<!ENTITY getNextNMsgCmd2.accesskey "b">
 <!ENTITY sendUnsentCmd.label "Njepósłane powěsće pósłać">
 <!ENTITY sendUnsentCmd.accesskey "n">
 <!ENTITY subscribeCmd.label "Abonować…">
@@ -366,6 +366,9 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Naćisk powěsće wobdźěłać">
 <!ENTITY editDraftMsgCmd.accesskey "N">
+<!ENTITY newMsgFromTemplateCmd.label "Nowa powěsć z předłohi">
+<!-- do not change "VK_RETURN" -->
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN">
 <!ENTITY createFilter.label "Z powěsće filter wutworić…">
 <!ENTITY createFilter.accesskey "f">
 <!ENTITY moveMsgToMenu.label "Přesunyć do">
@@ -634,6 +637,9 @@
 
 <!ENTITY folderContextGetMessages.label "Powěsće wobstarać">
 <!ENTITY folderContextGetMessages.accesskey "P">
+<!ENTITY folderContextPauseAllUpdates.label "Wšě aktualizacije zastajić">
+<!ENTITY folderContextPauseUpdates.label "Aktualizacije zastajić">
+<!ENTITY folderContextPauseUpdates.accesskey "A">
 <!ENTITY folderContextOpenInNewWindow.label "W nowym woknje wočinić">
 <!ENTITY folderContextOpenInNewWindow.accesskey "o">
 <!ENTITY folderContextOpenNewTab.label "W nowym rajtarku wočinić">
@@ -731,12 +737,13 @@
 <!ENTITY attachmentColumn2.tooltip "Po přiwěškach sortěrować">
 <!-- Thread Pane Context Menu -->
 
+<!ENTITY contextNewMsgFromTemplate.label "Nowa powěsć z předłohi">
 <!ENTITY contextOpenNewWindow.label "Powěsć w nowym woknje wočinić">
 <!ENTITY contextOpenNewWindow.accesskey "P">
-<!-- The key potentially conflicts with cutCmd.accessKey which is defined in
-     textcontext.dtd from toolkit. Right now, both menu items can't be visible
-     at the same time, but should someone enable copy/paste of message, this key
-     would probably need to be changed. -->
+<!-- The contextOpenNewTab.accesskey ("T") potentially conflicts with
+     cutCmd.accessKey which is defined in textcontext.dtd from toolkit. Right
+     now, both menu items can't be visible at the same time, but should someone
+     enable copy/paste of message, this key would probably need to be changed. -->
 <!ENTITY contextOpenNewTab.label "Powěsć na nowym rajtarku wočinić">
 <!ENTITY contextOpenNewTab.accesskey "r">
 <!ENTITY contextOpenConversation.label "Powěsć w konwersaciji wočinić">
@@ -949,3 +956,7 @@
 <!-- Mac OS X Dock Icon pop-up menu -->
 
 <!ENTITY dockOptions.label              "Nastajenja nałoženskich symbolow…">
+<!ENTITY writeNewMessageDock.label      "Nowu powěsć pisać">
+<!ENTITY openAddressBookDock.label      "Adresnik wočinić">
+
+<!ENTITY goChatCmd2.key "H">

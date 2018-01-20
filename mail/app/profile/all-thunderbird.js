@@ -95,8 +95,8 @@ pref("app.update.auto", true);
 pref("app.update.silent", false);
 
 // If set to true, the Update Service will apply updates in the background
-// when it finishes downloading them.
-pref("app.update.staging.enabled", true);
+// when it finishes downloading them. Disabled in bug 1397862.
+pref("app.update.staging.enabled", false);
 
 // Update service URL:
 pref("app.update.url", "https://aus5.mozilla.org/update/6/%PRODUCT%/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%SYSTEM_CAPABILITIES%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
@@ -131,6 +131,13 @@ pref("app.support.baseURL", "https://support.live.mozillamessaging.com/%LOCALE%/
 // Show error messages in error console.
 pref("javascript.options.showInConsole", true);
 
+// Workaround for bug 1401528.
+// If true, reuse the same global for (almost) everything loaded by the component
+// loader (JS components, JSMs, etc). This saves memory, but makes it possible
+// for the scripts to interfere with each other.  A restart is required for this
+// to take effect.
+pref("jsloader.shareGlobal", false);
+
 // Controls enabling of the extension system logging (can reduce performance)
 pref("extensions.logging.enabled", false);
 
@@ -153,6 +160,17 @@ pref("extensions.hotfix.certs.2.sha1Fingerprint", "39:E7:2B:7A:5B:CF:37:78:F9:5D
 // constants in AddonManager.jsm for values to use here
 pref("extensions.autoDisableScopes", 15);
 
+// Enable add-ons installed and owned by the application, like the default theme.
+pref("extensions.startupScanScopes", 4);
+
+// Add-on content security policies.
+pref("extensions.webextensions.base-content-security-policy", "script-src 'self' https://* moz-extension: blob: filesystem: 'unsafe-eval' 'unsafe-inline'; object-src 'self' https://* moz-extension: blob: filesystem:;");
+pref("extensions.webextensions.default-content-security-policy", "script-src 'self'; object-src 'self';");
+
+
+// Allow "legacy" XUL/XPCOM extensions.
+pref("extensions.legacy.enabled", true);
+
 // Preferences for AMO integration
 pref("extensions.getAddons.cache.enabled", true);
 pref("extensions.getAddons.maxResults", 15);
@@ -163,6 +181,7 @@ pref("extensions.getAddons.recommended.url", "https://services.addons.mozilla.or
 pref("extensions.getAddons.search.browseURL", "https://addons.mozilla.org/%LOCALE%/%APP%/search?q=%TERMS%");
 pref("extensions.getAddons.search.url", "https://services.addons.mozilla.org/%LOCALE%/%APP%/api/%API_VERSION%/search/%TERMS%/all/%MAX_RESULTS%/%OS%/%VERSION%/%COMPATIBILITY_MODE%?src=thunderbird");
 pref("extensions.webservice.discoverURL", "https://services.addons.mozilla.org/%LOCALE%/%APP%/discovery/pane/%VERSION%/%OS%");
+pref("extensions.getAddons.themes.browseURL", "https://addons.mozilla.org/%LOCALE%/thunderbird/themes/?src=thunderbird");
 
 // Blocklist preferences
 pref("extensions.blocklist.enabled", true);
@@ -191,8 +210,9 @@ pref("services.kinto.update_enabled", false);
 pref("services.kinto.update_enabled", true);
 #endif
 
-// Enables some extra Extension System Logging (can reduce performance)
-pref("extensions.logging.enabled", false);
+// 1 = allow "Man In The Middle" (local proxy, web filter, etc.) for certificate
+//     pinning checks.
+pref("security.cert_pinning.enforcement_level", 1);
 
 // Symmetric (can be overridden by individual extensions) update preferences.
 // e.g.
@@ -209,11 +229,15 @@ pref("extensions.update.background.url", "https://versioncheck-bg.addons.mozilla
 pref("extensions.update.interval", 86400);  // Check for updates to Extensions and
                                             // Themes every day
 
-pref("extensions.dss.enabled", false);          // Dynamic Skin Switching
 pref("extensions.dss.switchPending", false);    // Non-dynamic switch pending after next
 
 pref("extensions.{972ce4c6-7e08-4474-a285-3208198ce6fd}.name", "chrome://messenger/locale/messenger.properties");
 pref("extensions.{972ce4c6-7e08-4474-a285-3208198ce6fd}.description", "chrome://messenger/locale/messenger.properties");
+
+pref("extensions.webextensions.themes.icons.buttons", "getmsg,newmsg,address,reply,replyall,replylist,forwarding,delete,junk,print,stop,file,nextUnread,prevUnread,mark,tag,back,forward,compact,archive,chat,nextMsg,prevMsg,QFB,conversation,app_menu,newcard,newlist,editcard,newim,send,spelling,attach,security,save,quote,cut,copy,paste,buddy,join_chat,chat_accounts,calendar,tasks,synchronize,newevent,newtask,editevent,today,find,category,complete,priority,saveandclose,attendees,privacy,status,freebusy,timezones");
+#ifndef RELEASE_OR_BETA
+pref("extensions.webextensions.themes.enabled", true);
+#endif
 
 pref("lightweightThemes.update.enabled", true);
 
@@ -350,13 +374,9 @@ pref("offline.send.unsent_messages",            0);
 // 2 Never synchronize the offline store when going offline
 pref("offline.download.download_messages",  0);
 
-#ifdef UNIX_BUT_NOT_MAC
-pref("offline.autoDetect", false);
-#else
-// Windows and Mac can automatically move the user offline or online based on
+// All platforms can automatically move the user offline or online based on
 // the network connection.
 pref("offline.autoDetect", true);
-#endif
 
 // Expose only select protocol handlers. All others should go
 // through the external protocol handler route.
@@ -412,7 +432,6 @@ pref("browser.xul.error_pages.enabled", true);
 pref("browser.xul.error_pages.expert_bad_cert", false);
 
 // Attachment download manager settings
-pref("mail.attachment.store.version", 0);
 pref("browser.download.useDownloadDir", false);
 pref("browser.download.folderList", 0);
 pref("browser.download.manager.showAlertOnComplete", false);
@@ -433,7 +452,7 @@ pref("spellchecker.dictionaries.download.url", "https://addons.mozilla.org/%LOCA
 
 // profile.force.migration can be used to bypass the migration wizard, forcing migration from a particular
 // mail application without any user intervention. Possible values are:
-// seamonkey (mozilla suite), oexpress, outlook.
+// seamonkey (mozilla suite) and outlook.
 pref("profile.force.migration", "");
 
 // prefs to control the mail alert notification
@@ -539,6 +558,9 @@ pref("mail.compose.big_attachments.threshold_kb", 5120);
 // True if the user should be notified that links will be inserted into
 // their message when the upload is completed
 pref("mail.compose.big_attachments.insert_notification", true);
+
+// While false, display information about editing sending identity in compose.
+pref("mail.compose.warned_about_customize_from", false);
 
 // Instrumentation is currently unfinished, do not enable it.
 // Set this to false to prevent instrumentation from happening, e.g., user
@@ -656,6 +678,9 @@ pref("browser.link.open_newwindow", 3);
 pref("browser.link.open_newwindow.restriction", 0);
 
 pref("browser.tabs.loadDivertedInBackground", false);
+
+// No e10s in Thunderbird for now.
+pref("browser.tabs.remote.autostart", false);
 
 // Browser icon prefs
 pref("browser.chrome.site_icons", true);
@@ -860,3 +885,12 @@ pref("mail.save_msg_filename_underscores_for_space", false);
 
 // calendar promotion status
 pref("mail.calendar-integration.opt-out", false);
+
+#ifdef MOZ_CONTENT_SANDBOX
+// This controls the strength of the Windows content process sandbox for testing
+// purposes. This will require a restart.
+// On windows these levels are:
+// See - security/sandbox/win/src/sandboxbroker/sandboxBroker.cpp
+// SetSecurityLevelForContentProcess() for what the different settings mean.
+pref("security.sandbox.content.level", 0);
+#endif

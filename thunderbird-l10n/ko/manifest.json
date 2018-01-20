@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "ko": {
+      "chrome_resources": {
+        "necko": "chrome/ko/locale/ko/necko/", 
+        "global": "chrome/ko/locale/ko/global/", 
+        "messenger-region": "chrome/ko/locale/ko/messenger-region/", 
+        "chat": "chrome/ko/locale/ko/chat/", 
+        "devtools": "chrome/ko/locale/ko/devtools/client/", 
+        "pipnss": "chrome/ko/locale/ko/pipnss/", 
+        "messenger-smime": "chrome/ko/locale/ko/messenger-smime/", 
+        "messenger-newsblog": "chrome/ko/locale/ko/messenger-newsblog/", 
+        "devtools-shim": "chrome/ko/locale/ko/devtools/shim/", 
+        "alerts": "chrome/ko/locale/ko/alerts/", 
+        "messenger": "chrome/ko/locale/ko/messenger/", 
+        "editor": "chrome/ko/locale/ko/editor/", 
+        "branding": "chrome/ko/locale/ko/branding/", 
+        "mozldap": "chrome/ko/locale/ko/mozldap/", 
+        "autoconfig": "chrome/ko/locale/ko/autoconfig/", 
+        "devtools-shared": "chrome/ko/locale/ko/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/ko/locale/ko/global-platform/win/", 
+          "android": "chrome/ko/locale/ko/global-platform/unix/", 
+          "macosx": "chrome/ko/locale/ko/global-platform/mac/", 
+          "linux": "chrome/ko/locale/ko/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/ko/locale/ko/mozapps/", 
+        "pluginproblem": "chrome/ko/locale/ko/pluginproblem/", 
+        "communicator": "chrome/ko/locale/ko/communicator/", 
+        "messenger-mapi": "chrome/ko/locale/ko/messenger-mapi/", 
+        "places": "chrome/ko/locale/ko/places/", 
+        "passwordmgr": "chrome/ko/locale/ko/passwordmgr/", 
+        "pippki": "chrome/ko/locale/ko/pippki/"
+      }, 
+      "version": "20171103021227"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-ko@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "ko", 
+  "version": "58.0", 
+  "name": "Korean (KR) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "한글 Mozilla 프로젝트(mozilla.or.kr) (contributors: Seokchan Yun, JoungKyun Kim)", 
+  "description": "Language pack for Thunderbird for ko"
+}

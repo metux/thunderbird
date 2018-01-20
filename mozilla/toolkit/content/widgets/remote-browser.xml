@@ -37,24 +37,6 @@
         ]]></getter>
       </property>
 
-      <!-- increases or decreases the browser's network priority -->
-      <method name="adjustPriority">
-        <parameter name="adjustment"/>
-        <body><![CDATA[
-          this.messageManager.sendAsyncMessage("NetworkPrioritizer:AdjustPriority",
-                                               {adjustment});
-        ]]></body>
-      </method>
-
-      <!-- sets the browser's network priority to a discrete value -->
-      <method name="setPriority">
-        <parameter name="priority"/>
-        <body><![CDATA[
-          this.messageManager.sendAsyncMessage("NetworkPrioritizer:SetPriority",
-                                               {priority});
-        ]]></body>
-      </method>
-
       <field name="_controller">null</field>
 
       <field name="_selectParentHelper">null</field>
@@ -171,6 +153,12 @@
                 onget="return this._contentPrincipal"
                 readonly="true"/>
 
+      <field name="_contentRequestContextID">null</field>
+
+      <property name="contentRequestContextID"
+                onget="return this._contentRequestContextID"
+                readonly="true"/>
+
       <property name="contentDocumentAsCPOW"
                 onget="return this.contentWindowAsCPOW ? this.contentWindowAsCPOW.document : null"
                 readonly="true"/>
@@ -190,7 +178,9 @@
           let changed = val.toFixed(2) != this._fullZoom.toFixed(2);
 
           this._fullZoom = val;
-          this.messageManager.sendAsyncMessage("FullZoom", {value: val});
+          try {
+            this.messageManager.sendAsyncMessage("FullZoom", {value: val});
+          } catch (ex) {}
 
           if (changed) {
             let event = new Event("FullZoomChange", {bubbles: true});
@@ -208,7 +198,9 @@
           let changed = val.toFixed(2) != this._textZoom.toFixed(2);
 
           this._textZoom = val;
-          this.messageManager.sendAsyncMessage("TextZoom", {value: val});
+          try {
+            this.messageManager.sendAsyncMessage("TextZoom", {value: val});
+          } catch (ex) {}
 
           if (changed) {
             let event = new Event("TextZoomChange", {bubbles: true});
@@ -226,8 +218,7 @@
 
       <property name="hasContentOpener">
         <getter><![CDATA[
-          let {frameLoader} = this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner);
-          return frameLoader.tabParent.hasContentOpener;
+          return this.frameLoader.tabParent.hasContentOpener;
         ]]></getter>
       </property>
 
@@ -246,14 +237,12 @@
       <property name="docShellIsActive">
         <getter>
           <![CDATA[
-            let {frameLoader} = this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner);
-            return frameLoader.tabParent.docShellIsActive;
+            return this.frameLoader.tabParent.docShellIsActive;
           ]]>
         </getter>
         <setter>
           <![CDATA[
-            let {frameLoader} = this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner);
-            frameLoader.tabParent.docShellIsActive = val;
+            this.frameLoader.tabParent.docShellIsActive = val;
             return val;
           ]]>
         </setter>
@@ -262,7 +251,7 @@
       <method name="preserveLayers">
         <parameter name="preserve"/>
         <body><![CDATA[
-          let {frameLoader} = this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner);
+          let {frameLoader} = this;
           if (frameLoader.tabParent) {
             frameLoader.tabParent.preserveLayers(preserve);
           }
@@ -289,7 +278,7 @@
             if (msg.data.id != id) {
               return;
             }
-	    aCallback(msg.data.inPermitUnload);
+            aCallback(msg.data.inPermitUnload);
           });
         ]]>
         </body>
@@ -298,7 +287,13 @@
       <method name="permitUnload">
         <body>
         <![CDATA[
-          const kTimeout = 5000;
+          let {tabParent} = this.frameLoader;
+
+          if (!tabParent.hasBeforeUnload) {
+            return { permitUnload: true, timedOut: false };
+          }
+
+          const kTimeout = 1000;
 
           let finished = false;
           let responded = false;
@@ -333,7 +328,7 @@
 
           mm.sendAsyncMessage("PermitUnload", {id});
           mm.addMessageListener("PermitUnload", msgListener);
-          Services.obs.addObserver(observer, "message-manager-close", false);
+          Services.obs.addObserver(observer, "message-manager-close");
 
           let timedOut = false;
           function timeout() {
@@ -342,7 +337,7 @@
             }
 
             // Dispatch something to ensure that the main thread wakes up.
-            Services.tm.mainThread.dispatch(function() {}, Components.interfaces.nsIThread.DISPATCH_NORMAL);
+            Services.tm.dispatchToMainThread(function() {});
           }
 
           let timer = Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
@@ -371,7 +366,7 @@
 
           // Initialize contentPrincipal to the about:blank principal for this loadcontext
           let {Services} = Components.utils.import("resource://gre/modules/Services.jsm", {});
-          let aboutBlank = Services.io.newURI("about:blank", null, null);
+          let aboutBlank = Services.io.newURI("about:blank");
           let ssm = Services.scriptSecurityManager;
           this._contentPrincipal = ssm.getLoadContextCodebasePrincipal(aboutBlank, this.loadContext);
 
@@ -389,15 +384,16 @@
           if (this.hasAttribute("selectmenulist")) {
             this.messageManager.addMessageListener("Forms:ShowDropDown", this);
             this.messageManager.addMessageListener("Forms:HideDropDown", this);
-            this.messageManager.loadFrameScript("chrome://global/content/select-child.js", true);
           }
 
           if (!this.hasAttribute("disablehistory")) {
             Services.obs.addObserver(this, "browser:purge-session-history", true);
           }
 
-          let jsm = "resource://gre/modules/RemoteController.jsm";
-          let RemoteController = Components.utils.import(jsm, {}).RemoteController;
+          let rc_js = "resource://gre/modules/RemoteController.js";
+          let scope = {};
+          Services.scriptloader.loadSubScript(rc_js, scope);
+          let RemoteController = scope.RemoteController;
           this._controller = new RemoteController(this);
           this.controllers.appendController(this._controller);
         ]]>
@@ -472,7 +468,10 @@
 
               let zoom = Services.prefs.getBoolPref("browser.zoom.full") ||
                          this.isSyntheticDocument ? this._fullZoom : this._textZoom;
-              this._selectParentHelper.populate(menulist, data.options, data.selectedIndex, zoom);
+              this._selectParentHelper.populate(menulist, data.options, data.selectedIndex,
+                                                zoom, data.uaBackgroundColor, data.uaColor,
+                                                data.uaSelectBackgroundColor, data.uaSelectColor,
+                                                data.selectBackgroundColor, data.selectColor, data.selectTextShadow);
               this._selectParentHelper.open(this, menulist, data.rect, data.isOpenedViaTouch);
               break;
             }
@@ -497,14 +496,6 @@
               let event = document.createEvent("Events");
               event.initEvent("ZoomChangeUsingMouseWheel", true, false);
               this.dispatchEvent(event);
-              break;
-            }
-
-            case "Forms:HideDropDown": {
-              if (this._selectParentHelper) {
-                let menulist = document.getElementById(this.getAttribute("selectmenulist"));
-                this._selectParentHelper.hide(menulist, this);
-              }
               break;
             }
 
@@ -570,6 +561,13 @@
         <parameter name="aPrincipal"/>
         <body>
           <![CDATA[
+            // Ensure that the content process has the permissions which are
+            // needed to create a document with the given principal.
+            let permissionPrincipal =
+              BrowserUtils.principalWithMatchingOA(aPrincipal, this.contentPrincipal);
+            this.frameLoader.tabParent.transmitPermissionsForPrincipal(permissionPrincipal);
+
+            // Create the about blank content viewer in the content process
             this.messageManager.sendAsyncMessage("Browser:CreateAboutBlank", aPrincipal);
           ]]>
         </body>

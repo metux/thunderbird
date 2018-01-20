@@ -219,7 +219,7 @@ var GenericAccountPrototype = {
   getBool: function(aName) { return this.getPref(aName, "Bool"); },
   getString: function(aName) {
     return this.prefs.prefHasUserValue(aName) ?
-             this.prefs.getComplexValue(aName, Ci.nsISupportsString).data :
+             this.prefs.getStringPref(aName) :
              this.protocol._getOptionDefault(aName);
   },
 
@@ -386,7 +386,7 @@ var GenericMessagePrototype = {
   _lastId: 0,
   _init: function (aWho, aMessage, aObject) {
     this.id = ++GenericMessagePrototype._lastId;
-    this.time = Math.round(new Date() / 1000);
+    this.time = Math.floor(new Date() / 1000);
     this.who = aWho;
     this.message = aMessage;
     this.originalMessage = aMessage;
@@ -874,7 +874,7 @@ var GenericProtocolPrototype = {
       return EmptyEnumerator;
 
     let purplePrefs = [];
-    for (let [name, option] in Iterator(this.options))
+    for (let [name, option] of Object.entries(this.options))
       purplePrefs.push(new purplePref(name, option));
     return new nsSimpleEnumerator(purplePrefs);
   },

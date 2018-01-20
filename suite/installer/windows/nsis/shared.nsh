@@ -8,14 +8,13 @@
   ; Remove registry entries for non-existent apps and for apps that point to our
   ; install location in the Software\Mozilla key and uninstall registry entries
   ; that point to our install location for both HKCU and HKLM.
-  SetShellVarContext current  ; Set SHCTX to the current user (e.g. HKCU) 
+  SetShellVarContext current  ; Set SHCTX to the current user (e.g. HKCU)
   ${RegCleanMain} "Software\Mozilla"
   ${RegCleanUninstall}
   ${UpdateProtocolHandlers}
 
   ; Win7 taskbar and start menu link maintenance
-  ${If} ${AtLeastWin7}
-  ${AndIf} "$AppUserModelID" != ""
+  ${If} "$AppUserModelID" != ""
     ${UpdateShortcutAppModelIDs} "$INSTDIR\${FileMainEXE}" "$AppUserModelID" $0
   ${EndIf}
 
@@ -76,6 +75,9 @@
   ; Remove files that may be left behind by the application in the
   ; VirtualStore directory.
   ${CleanVirtualStore}
+
+  ; Register AccessibleHandler.dll with COM (this writes to HKLM)
+  ${RegisterAccessibleHandler}
 !macroend
 !define PostUpdate "!insertmacro PostUpdate"
 
@@ -119,19 +121,17 @@
     ${FixShellIconHandler}
     WriteRegStr HKCU "Software\Clients\StartMenuInternet" "" "$R9"
 
-    ${If} ${AtLeastWinVista}
-      ClearErrors
-      ReadRegStr $0 HKLM "Software\RegisteredApplications" "${AppRegName}"
-      ; Only register as the handler on Vista if the app registry name exists
-      ; under the RegisteredApplications registry key.
-      ${Unless} ${Errors}
-        AppAssocReg::SetAppAsDefaultAll "${AppRegName}"
-      ${EndUnless}
-    ${EndIf}
+    ClearErrors
+    ReadRegStr $0 HKLM "Software\RegisteredApplications" "${AppRegName}"
+    ; Only register as the handler on 7 if the app registry name exists
+    ; under the RegisteredApplications registry key.
+    ${Unless} ${Errors}
+      AppAssocReg::SetAppAsDefaultAll "${AppRegName}"
+    ${EndUnless}
 
     SetShellVarContext current  ; Set SHCTX to the current user (e.g. HKCU)
     ${SetHandlersBrowser}
-  ${EndUnless} 
+  ${EndUnless}
 
   ClearErrors
   ${GetOptions} "$R0" "Mail" $R1
@@ -201,7 +201,7 @@
   ${RemoveDeprecatedKeys}
   SetShellVarContext all      ; Set SHCTX to all users (e.g. HKLM)
   ; Make sure that the MapiProxy and the mozMapi32 dll copies exist as we will
-  ; use those to register as default mail app. When using a ZIP build, the DLL 
+  ; use those to register as default mail app. When using a ZIP build, the DLL
   ; copies might not exist yet
   IfFileExists "$INSTDIR\MapiProxy_InUse.dll" +2 +1
   CopyFiles /SILENT "$INSTDIR\MapiProxy.dll" "$INSTDIR\MapiProxy_InUse.dll"
@@ -264,8 +264,7 @@
   SetShellVarContext all  ; Set $DESKTOP to All Users
   ${Unless} ${FileExists} "$DESKTOP\${BrandFullName}.lnk"
     CreateShortCut "$DESKTOP\${BrandFullName}.lnk" "$INSTDIR\${FileMainEXE}" "" "$INSTDIR\${FileMainEXE}" 0
-    ${If} ${AtLeastWin7}
-    ${AndIf} "$AppUserModelID" != ""
+    ${If} "$AppUserModelID" != ""
       ApplicationID::Set "$DESKTOP\${BrandFullName}.lnk" "$AppUserModelID"
     ${EndIf}
     ShellLink::SetShortCutWorkingDirectory "$DESKTOP\${BrandFullName}.lnk" "$INSTDIR"
@@ -273,8 +272,7 @@
       SetShellVarContext current  ; Set $DESKTOP to the current user's desktop
       ${Unless} ${FileExists} "$DESKTOP\${BrandFullName}.lnk"
         CreateShortCut "$DESKTOP\${BrandFullName}.lnk" "$INSTDIR\${FileMainEXE}" "" "$INSTDIR\${FileMainEXE}" 0
-        ${If} ${AtLeastWin7}
-        ${AndIf} "$AppUserModelID" != ""
+        ${If} "$AppUserModelID" != ""
           ApplicationID::Set "$DESKTOP\${BrandFullName}.lnk" "$AppUserModelID"
         ${EndIf}
         ShellLink::SetShortCutWorkingDirectory "$DESKTOP\${BrandFullName}.lnk" "$INSTDIR"
@@ -283,8 +281,7 @@
   ${EndUnless}
   ${Unless} ${FileExists} "$QUICKLAUNCH\${BrandFullName}.lnk"
     CreateShortCut "$QUICKLAUNCH\${BrandFullName}.lnk" "$INSTDIR\${FileMainEXE}" "" "$INSTDIR\${FileMainEXE}" 0
-    ${If} ${AtLeastWin7}
-    ${AndIf} "$AppUserModelID" != ""
+    ${If} "$AppUserModelID" != ""
       ApplicationID::Set "$QUICKLAUNCH\${BrandFullName}.lnk" "$AppUserModelID"
     ${EndIf}
     ShellLink::SetShortCutWorkingDirectory "$QUICKLAUNCH\${BrandFullName}.lnk" "$INSTDIR"
@@ -305,15 +302,15 @@
   ${AddHandlerValues} "$0\SeaMonkeyHTML" "$2" \
                       "$INSTDIR\chrome\icons\default\html-file.ico,0" \
                       "${AppRegName} Document" "" ""
-  ${AddDDEHandlerValues} "SeaMonkeyURL" "$1" "$8,0" "${AppRegName} URL" "delete" \
-                         "${DDEApplication}" "$3" "WWW_OpenURL"
+  ${AddDisabledDDEHandlerValues} "SeaMonkeyURL" "$1" "$8,0" \
+                                 "${AppRegName} URL" "delete"
 
   ; An empty string is used for the 4th & 5th params because the following
-  ; protocol handlers already have a display name and additional keys required
-  ; for a protocol handler.
-  ${AddDDEHandlerValues} "ftp" "$1" "$8,0" "" "" "${DDEApplication}" "$3" "WWW_OpenURL"
-  ${AddDDEHandlerValues} "http" "$1" "$8,0" "" "" "${DDEApplication}" "$3" "WWW_OpenURL"
-  ${AddDDEHandlerValues} "https" "$1" "$8,0" "" "" "${DDEApplication}" "$3" "WWW_OpenURL"
+  ; protocol handlers already have a display name and the additional keys
+  ; required for a protocol handler.
+  ${AddDisabledDDEHandlerValues} "ftp" "$1" "$8,0" "" ""
+  ${AddDisabledDDEHandlerValues} "http" "$1" "$8,0" "" ""
+  ${AddDisabledDDEHandlerValues} "https" "$1" "$8,0" "" ""
 
   ReadRegStr $6 HKCR ".htm" ""
   ${If} "$6" != "SeaMonkeyHTML"
@@ -421,7 +418,7 @@
   WriteRegStr HKLM "$0\Capabilities" "ApplicationIcon" "$8,0"
   WriteRegStr HKLM "$0\Capabilities" "ApplicationName" "${BrandShortName}"
 
-  WriteRegStr HKLM "$0\Capabilities\FileAssociations" ".htm"   "SeaMonkeyHTML" 
+  WriteRegStr HKLM "$0\Capabilities\FileAssociations" ".htm"   "SeaMonkeyHTML"
   WriteRegStr HKLM "$0\Capabilities\FileAssociations" ".html"  "SeaMonkeyHTML"
   WriteRegStr HKLM "$0\Capabilities\FileAssociations" ".shtml" "SeaMonkeyHTML"
   WriteRegStr HKLM "$0\Capabilities\FileAssociations" ".xht"   "SeaMonkeyHTML"
@@ -530,7 +527,7 @@
   ; Protocols
   StrCpy $1 "$\"$8$\" -compose $\"%1$\""
   ${AddHandlerValues} "$0\Protocols\mailto" "$1" "$8,0" "${AppRegNameMail} URL" "true" ""
- 
+
   ; Vista Capabilities registry keys
   WriteRegStr HKLM "$0\Capabilities" "ApplicationDescription" "$(REG_APP_DESC)"
   WriteRegStr HKLM "$0\Capabilities" "ApplicationIcon" "$8,0"
@@ -585,7 +582,7 @@
   WriteRegStr HKLM "$1\MozillaMapi\CurVer" "" "MozillaMapi.1"
   WriteRegStr HKLM "$1\MozillaMapi.1" "" "Mozilla MAPI"
   WriteRegStr HKLM "$1\MozillaMapi.1\CLSID" "" "{29F458BE-8866-11D5-A3DD-00B0D0F3BAA7}"
-  
+
   ; Mail shell/open/command
   WriteRegStr HKLM "$0\shell\open\command" "" "$\"$8$\" -mail"
 
@@ -700,26 +697,23 @@
 
   ${IsHandlerForInstallDir} "SeaMonkeyURL" $R9
   ${If} "$R9" == "true"
-    ${AddDDEHandlerValues} "SeaMonkeyURL" "$3" "$8,0" "${AppRegName} URL" \
-                           "delete" "${DDEApplication}" "$4" "WWW_OpenURL"
+    ${AddDisabledDDEHandlerValues} "SeaMonkeyURL" "$3" "$8,0" \
+                                   "${AppRegName} URL" "delete"
   ${EndIf}
 
   ${IsHandlerForInstallDir} "ftp" $R9
   ${If} "$R9" == "true"
-    ${AddDDEHandlerValues} "ftp" "$3" "$8,0" "" "" "${DDEApplication}" \
-                           "$4" "WWW_OpenURL"
+    ${AddDisabledDDEHandlerValues} "ftp" "$3" "$8,0" "" ""
   ${EndIf}
 
   ${IsHandlerForInstallDir} "http" $R9
   ${If} "$R9" == "true"
-    ${AddDDEHandlerValues} "http" "$3" "$8,0" "" "" "${DDEApplication}" \
-                           "$4" "WWW_OpenURL"
+    ${AddDisabledDDEHandlerValues} "http" "$3" "$8,0" "" ""
   ${EndIf}
 
   ${IsHandlerForInstallDir} "https" $R9
   ${If} "$R9" == "true"
-    ${AddDDEHandlerValues} "https" "$3" "$8,0" "" "" "${DDEApplication}" \
-                           "$4" "WWW_OpenURL"
+    ${AddDisabledDDEHandlerValues} "https" "$3" "$8,0" "" ""
   ${EndIf}
 
   ${IsHandlerForInstallDir} "SeaMonkeyEML" $R9
@@ -764,17 +758,22 @@
 !define UpdateProtocolHandlers "!insertmacro UpdateProtocolHandlers"
 !insertmacro RegCleanAppHandler
 
+!macro RegisterAccessibleHandler
+  ${RegisterDLL} "$INSTDIR\AccessibleHandler.dll"
+!macroend
+!define RegisterAccessibleHandler "!insertmacro RegisterAccessibleHandler"
+
 ; Removes various registry entries for reasons noted below (does not use SHCTX).
 !macro RemoveDeprecatedKeys
   StrCpy $0 "SOFTWARE\Classes"
   ; Remove support for launching gopher urls from the shell during install or
   ; update if the DefaultIcon is from seamonkey.exe.
   ${RegCleanAppHandler} "gopher"
-  
+
   ; Remove support for launching chrome urls from the shell during install or
   ; update if the DefaultIcon is from seamonkey.exe (Bug 301073).
   ${RegCleanAppHandler} "chrome"
-  
+
   ; Delete gopher from Capabilities\URLAssociations if it is present.
   ${StrFilter} "${FileMainEXE}" "+" "" "" $R9
   StrCpy $0 "Software\Clients\StartMenuInternet\$R9"
@@ -991,7 +990,9 @@
   ; should be ${FileMainEXE} so if it is in use the CheckForFilesInUse macro
   ; returns after the first check.
   Push "end"
+  Push "AccessibleHandler.dll"
   Push "AccessibleMarshal.dll"
+  Push "IA2Marshal.dll"
   Push "freebl3.dll"
   Push "nssckbi.dll"
   Push "nspr4.dll"
@@ -1000,6 +1001,8 @@
   Push "mozsqlite3.dll"
   Push "xpcom.dll"
   Push "crashreporter.exe"
+  Push "minidump-analyzer.exe"
+  Push "pingsender.exe"
   Push "updater.exe"
   Push "xpicleanup.exe"
   Push "MapiProxy.dll"
@@ -1016,29 +1019,25 @@
 Function SetAsDefaultMailAppUser
   SetShellVarContext current  ; Set SHCTX to the current user (e.g. HKCU)
   ${SetHandlersMail}
-  ${If} ${AtLeastWinVista}
-    ClearErrors
-    ReadRegStr $0 HKLM "Software\RegisteredApplications" "${AppRegNameMail}"
-    ; Only register as the handler on Vista if the app registry name exists
-    ; under the RegisteredApplications registry key.
-    ${Unless} ${Errors}
-      AppAssocReg::SetAppAsDefaultAll "${AppRegNameMail}"
-    ${EndUnless}
-  ${EndIf}
+  ClearErrors
+  ReadRegStr $0 HKLM "Software\RegisteredApplications" "${AppRegNameMail}"
+  ; Only register as the handler if the app registry name exists
+  ; under the RegisteredApplications registry key.
+  ${Unless} ${Errors}
+    AppAssocReg::SetAppAsDefaultAll "${AppRegNameMail}"
+  ${EndUnless}
 FunctionEnd
 
 Function SetAsDefaultNewsAppUser
   SetShellVarContext current  ; Set SHCTX to the current user (e.g. HKCU)
   ${SetHandlersNews}
-  ${If} ${AtLeastWinVista}
-    ClearErrors
-    ReadRegStr $0 HKLM "Software\RegisteredApplications" "${AppRegNameNews}"
-    ; Only register as the handler on Vista if the app registry name exists
-    ; under the RegisteredApplications registry key.
-    ${Unless} ${Errors}
-      AppAssocReg::SetAppAsDefaultAll "${AppRegNameNews}"
-    ${EndUnless}
-  ${EndIf}
+  ClearErrors
+  ReadRegStr $0 HKLM "Software\RegisteredApplications" "${AppRegNameNews}"
+  ; Only register as the handler if the app registry name exists
+  ; under the RegisteredApplications registry key.
+  ${Unless} ${Errors}
+    AppAssocReg::SetAppAsDefaultAll "${AppRegNameNews}"
+  ${EndUnless}
 FunctionEnd
 !endif
 

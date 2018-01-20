@@ -15,6 +15,7 @@
 #include "nsIServiceManager.h"
 #include "nsMsgRDFUtils.h"
 #include "nsIMsgFolder.h"
+#include "nsMsgDBFolder.h"
 #include "nsMsgBaseCID.h"
 
 #include "nsICategoryManager.h"
@@ -82,8 +83,6 @@ nsIRDFResource* nsMsgAccountManagerDataSource::kNC_PageTitleJunk=nullptr;
 
 // common literals
 nsIRDFLiteral* nsMsgAccountManagerDataSource::kTrueLiteral = nullptr;
-
-nsIAtom* nsMsgAccountManagerDataSource::kDefaultServerAtom = nullptr;
 
 nsrefcnt nsMsgAccountManagerDataSource::gAccountManagerResourceRefCnt = 0;
 
@@ -160,8 +159,6 @@ nsMsgAccountManagerDataSource::nsMsgAccountManagerDataSource()
     // eventually these need to exist in some kind of array
     // that's easily extensible
     getRDFService()->GetResource(NS_LITERAL_CSTRING(NC_RDF_SETTINGS), &kNC_Settings);
-
-    kDefaultServerAtom = MsgNewAtom("DefaultServer").take();
   }
 }
 
@@ -203,8 +200,6 @@ nsMsgAccountManagerDataSource::~nsMsgAccountManagerDataSource()
     // that's easily extensible
     NS_IF_RELEASE(kNC_Settings);
 
-
-    NS_IF_RELEASE(kDefaultServerAtom);
     mAccountArcsOut = nullptr;
     mAccountRootArcsOut = nullptr;
   }
@@ -229,7 +224,7 @@ nsMsgAccountManagerDataSource::Init()
   nsCOMPtr<nsIMsgAccountManager> am;
 
   // get a weak ref to the account manager
-  if (!mAccountManager) 
+  if (!mAccountManager)
   {
     am = do_GetService(NS_MSGACCOUNTMANAGER_CONTRACTID, &rv);
     mAccountManager = do_GetWeakReference(am);
@@ -237,7 +232,7 @@ nsMsgAccountManagerDataSource::Init()
   else
     am = do_QueryReferent(mAccountManager);
 
-  if (am) 
+  if (am)
   {
     am->AddIncomingServerListener(this);
     am->AddRootFolderListener(this);
@@ -274,34 +269,27 @@ nsMsgAccountManagerDataSource::GetTarget(nsIRDFResource *source,
 
   nsAutoString str;
   if (property == kNC_Name || property == kNC_FolderTreeName ||
-      property == kNC_FolderTreeSimpleName) 
+      property == kNC_FolderTreeSimpleName)
   {
     rv = getStringBundle();
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsString pageTitle;
     if (source == kNC_PageTitleServer)
-      mStringBundle->GetStringFromName(u"prefPanel-server",
-                                       getter_Copies(pageTitle));
+      mStringBundle->GetStringFromName("prefPanel-server", pageTitle);
 
     else if (source == kNC_PageTitleCopies)
-      mStringBundle->GetStringFromName(u"prefPanel-copies",
-                                       getter_Copies(pageTitle));
+      mStringBundle->GetStringFromName("prefPanel-copies", pageTitle);
     else if (source == kNC_PageTitleSynchronization)
-      mStringBundle->GetStringFromName(u"prefPanel-synchronization",
-                                       getter_Copies(pageTitle));
+      mStringBundle->GetStringFromName("prefPanel-synchronization", pageTitle);
     else if (source == kNC_PageTitleDiskSpace)
-      mStringBundle->GetStringFromName(u"prefPanel-diskspace",
-                                       getter_Copies(pageTitle));
+      mStringBundle->GetStringFromName("prefPanel-diskspace", pageTitle);
     else if (source == kNC_PageTitleAddressing)
-      mStringBundle->GetStringFromName(u"prefPanel-addressing",
-                                       getter_Copies(pageTitle));
+      mStringBundle->GetStringFromName("prefPanel-addressing", pageTitle);
     else if (source == kNC_PageTitleSMTP)
-      mStringBundle->GetStringFromName(u"prefPanel-smtp",
-                                       getter_Copies(pageTitle));
+      mStringBundle->GetStringFromName("prefPanel-smtp", pageTitle);
     else if (source == kNC_PageTitleJunk)
-      mStringBundle->GetStringFromName(u"prefPanel-junk",
-                                       getter_Copies(pageTitle));
+      mStringBundle->GetStringFromName("prefPanel-junk", pageTitle);
 
     else {
       // if it's a server, use the pretty name
@@ -346,10 +334,10 @@ nsMsgAccountManagerDataSource::GetTarget(nsIRDFResource *source,
 
         NS_ENSURE_SUCCESS(rv,rv);
 
-        nsAutoString panelTitleName;
+        nsAutoCString panelTitleName;
         panelTitleName.AssignLiteral("prefPanel-");
-        panelTitleName.Append(NS_ConvertASCIItoUTF16(sourceValue + strlen(NC_RDF_PAGETITLE_PREFIX)));
-        bundle->GetStringFromName(panelTitleName.get(), getter_Copies(pageTitle));
+        panelTitleName.Append(sourceValue + strlen(NC_RDF_PAGETITLE_PREFIX));
+        bundle->GetStringFromName(panelTitleName.get(), pageTitle);
       }
     }
     str = pageTitle.get();
@@ -377,7 +365,7 @@ nsMsgAccountManagerDataSource::GetTarget(nsIRDFResource *source,
         rv = getServerForFolderNode(source, getter_AddRefs(server));
         if (server)
           server->GetAccountManagerChrome(str);
-        else 
+        else
           str.AssignLiteral("am-main.xul");
       }
       else {
@@ -442,17 +430,17 @@ nsMsgAccountManagerDataSource::GetTarget(nsIRDFResource *source,
         if (source == kNC_PageTitleSMTP)
           str.AssignLiteral("900000000");
         else if (source == kNC_PageTitleServer)
-          str.AssignLiteral("1");
+          str.Assign('1');
         else if (source == kNC_PageTitleCopies)
-          str.AssignLiteral("2");
+          str.Assign('2');
         else if (source == kNC_PageTitleAddressing)
-          str.AssignLiteral("3");
+          str.Assign('3');
         else if (source == kNC_PageTitleSynchronization)
-          str.AssignLiteral("4");
+          str.Assign('4');
         else if (source == kNC_PageTitleDiskSpace)
-          str.AssignLiteral("4");
+          str.Assign('4');
         else if (source == kNC_PageTitleJunk)
-          str.AssignLiteral("5");
+          str.Assign('5');
         else {
           // allow for the accountmanager to be dynamically extended
           // all the other pages come after the standard ones
@@ -720,7 +708,7 @@ nsMsgAccountManagerDataSource::createSettingsResources(nsIRDFResource *aSource,
     NS_ENSURE_SUCCESS(rv,rv);
 
     // currently there is no offline without diskspace
-    if (offlineSupportLevel >= OFFLINE_SUPPORT_LEVEL_REGULAR) 
+    if (offlineSupportLevel >= OFFLINE_SUPPORT_LEVEL_REGULAR)
       aNodeArray->AppendObject(kNC_PageTitleSynchronization);
     else if (supportsDiskSpace)
       aNodeArray->AppendObject(kNC_PageTitleDiskSpace);
@@ -769,17 +757,16 @@ nsMsgAccountManagerDataSource::getAccountArcs(nsIMutableArray **aResult)
     mAccountArcsOut = do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    mAccountArcsOut->AppendElement(kNC_Settings, false);
-    mAccountArcsOut->AppendElement(kNC_Name, false);
-    mAccountArcsOut->AppendElement(kNC_FolderTreeName, false);
-    mAccountArcsOut->AppendElement(kNC_FolderTreeSimpleName, false);
-    mAccountArcsOut->AppendElement(kNC_NameSort, false);
-    mAccountArcsOut->AppendElement(kNC_FolderTreeNameSort, false);
-    mAccountArcsOut->AppendElement(kNC_PageTag, false);
+    mAccountArcsOut->AppendElement(kNC_Settings);
+    mAccountArcsOut->AppendElement(kNC_Name);
+    mAccountArcsOut->AppendElement(kNC_FolderTreeName);
+    mAccountArcsOut->AppendElement(kNC_FolderTreeSimpleName);
+    mAccountArcsOut->AppendElement(kNC_NameSort);
+    mAccountArcsOut->AppendElement(kNC_FolderTreeNameSort);
+    mAccountArcsOut->AppendElement(kNC_PageTag);
   }
 
-  *aResult = mAccountArcsOut;
-  NS_IF_ADDREF(*aResult);
+  NS_IF_ADDREF(*aResult = mAccountArcsOut);
   return NS_OK;
 }
 
@@ -791,20 +778,19 @@ nsMsgAccountManagerDataSource::getAccountRootArcs(nsIMutableArray **aResult)
     mAccountRootArcsOut = do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    mAccountRootArcsOut->AppendElement(kNC_Server, false);
-    mAccountRootArcsOut->AppendElement(kNC_Child, false);
+    mAccountRootArcsOut->AppendElement(kNC_Server);
+    mAccountRootArcsOut->AppendElement(kNC_Child);
 
-    mAccountRootArcsOut->AppendElement(kNC_Settings, false);
-    mAccountRootArcsOut->AppendElement(kNC_Name, false);
-    mAccountRootArcsOut->AppendElement(kNC_FolderTreeName, false);
-    mAccountRootArcsOut->AppendElement(kNC_FolderTreeSimpleName, false);
-    mAccountRootArcsOut->AppendElement(kNC_NameSort, false);
-    mAccountRootArcsOut->AppendElement(kNC_FolderTreeNameSort, false);
-    mAccountRootArcsOut->AppendElement(kNC_PageTag, false);
+    mAccountRootArcsOut->AppendElement(kNC_Settings);
+    mAccountRootArcsOut->AppendElement(kNC_Name);
+    mAccountRootArcsOut->AppendElement(kNC_FolderTreeName);
+    mAccountRootArcsOut->AppendElement(kNC_FolderTreeSimpleName);
+    mAccountRootArcsOut->AppendElement(kNC_NameSort);
+    mAccountRootArcsOut->AppendElement(kNC_FolderTreeNameSort);
+    mAccountRootArcsOut->AppendElement(kNC_PageTag);
   }
 
-  *aResult = mAccountRootArcsOut;
-  NS_IF_ADDREF(*aResult);
+  NS_IF_ADDREF(*aResult = mAccountRootArcsOut);
   return NS_OK;
 }
 
@@ -1056,11 +1042,11 @@ nsMsgAccountManagerDataSource::getServerForFolderNode(nsIRDFNode *aResource,
 {
   nsresult rv;
   nsCOMPtr<nsIMsgFolder> folder = do_QueryInterface(aResource, &rv);
-  if (NS_SUCCEEDED(rv)) 
+  if (NS_SUCCEEDED(rv))
   {
     bool isServer;
     rv = folder->GetIsServer(&isServer);
-    if (NS_SUCCEEDED(rv) && isServer) 
+    if (NS_SUCCEEDED(rv) && isServer)
       return folder->GetServer(aResult);
   }
   return NS_ERROR_FAILURE;
@@ -1119,13 +1105,13 @@ nsMsgAccountManagerDataSource::OnServerChanged(nsIMsgIncomingServer *server)
 }
 
 nsresult
-nsMsgAccountManagerDataSource::OnItemPropertyChanged(nsIMsgFolder *, nsIAtom *, char const *, char const *)
+nsMsgAccountManagerDataSource::OnItemPropertyChanged(nsIMsgFolder *, const nsACString &, char const *, char const *)
 {
   return NS_OK;
 }
 
 nsresult
-nsMsgAccountManagerDataSource::OnItemUnicharPropertyChanged(nsIMsgFolder *, nsIAtom *, const char16_t *, const char16_t *)
+nsMsgAccountManagerDataSource::OnItemUnicharPropertyChanged(nsIMsgFolder *, const nsACString &, const char16_t *, const char16_t *)
 {
   return NS_OK;
 }
@@ -1137,7 +1123,7 @@ nsMsgAccountManagerDataSource::OnItemRemoved(nsIMsgFolder *, nsISupports *)
 }
 
 nsresult
-nsMsgAccountManagerDataSource::OnItemPropertyFlagChanged(nsIMsgDBHdr *, nsIAtom *, uint32_t, uint32_t)
+nsMsgAccountManagerDataSource::OnItemPropertyFlagChanged(nsIMsgDBHdr *, const nsACString &, uint32_t, uint32_t)
 {
   return NS_OK;
 }
@@ -1151,11 +1137,11 @@ nsMsgAccountManagerDataSource::OnItemAdded(nsIMsgFolder *, nsISupports *)
 
 nsresult
 nsMsgAccountManagerDataSource::OnItemBoolPropertyChanged(nsIMsgFolder *aItem,
-                                                         nsIAtom *aProperty,
+                                                         const nsACString &aProperty,
                                                          bool aOldValue,
                                                          bool aNewValue)
 {
-  if (aProperty == kDefaultServerAtom) {
+  if (aProperty.Equals(kDefaultServer)) {
     nsCOMPtr<nsIRDFResource> resource(do_QueryInterface(aItem));
     NotifyObservers(resource, kNC_IsDefaultServer, kTrueLiteral, nullptr, aNewValue, false);
   }
@@ -1163,13 +1149,13 @@ nsMsgAccountManagerDataSource::OnItemBoolPropertyChanged(nsIMsgFolder *aItem,
 }
 
 nsresult
-nsMsgAccountManagerDataSource::OnItemEvent(nsIMsgFolder *, nsIAtom *)
+nsMsgAccountManagerDataSource::OnItemEvent(nsIMsgFolder *, const nsACString &)
 {
   return NS_OK;
 }
 
 nsresult
-nsMsgAccountManagerDataSource::OnItemIntPropertyChanged(nsIMsgFolder *, nsIAtom *, int64_t, int64_t)
+nsMsgAccountManagerDataSource::OnItemIntPropertyChanged(nsIMsgFolder *, const nsACString &, int64_t, int64_t)
 {
   return NS_OK;
 }

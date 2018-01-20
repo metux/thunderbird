@@ -46,7 +46,6 @@ class FxDesktopBuild(BuildScript, TryToolsMixin, object):
                 'package-source',
                 'generate-source-signing-manifest',
                 'multi-l10n',
-                'generate-build-stats',
                 'update',
             ],
             'require_config_file': True,
@@ -67,7 +66,7 @@ class FxDesktopBuild(BuildScript, TryToolsMixin, object):
                 # jobs have a minimal `hg pull`.
                 "clone_upstream_url": "https://hg.mozilla.org/mozilla-unified",
                 "repo_base": "https://hg.mozilla.org",
-                'tooltool_url': 'https://api.pub.build.mozilla.org/tooltool/',
+                'tooltool_url': 'https://tooltool.mozilla-releng.net/',
                 "graph_selector": "/server/collect.cgi",
                 # only used for make uploadsymbols
                 'old_packages': [
@@ -79,7 +78,7 @@ class FxDesktopBuild(BuildScript, TryToolsMixin, object):
                 ],
                 'stage_product': 'firefox',
                 'platform_supports_post_upload_to_latest': True,
-                'build_resources_path': '%(abs_src_dir)s/obj-firefox/.mozbuild/build_resources.json',
+                'build_resources_path': '%(abs_obj_dir)s/.mozbuild/build_resources.json',
                 'nightly_promotion_branches': ['mozilla-central', 'mozilla-aurora'],
 
                 # try will overwrite these
@@ -126,12 +125,40 @@ class FxDesktopBuild(BuildScript, TryToolsMixin, object):
             else:
                 self.fatal("'stage_platform' not determined and is required in your config")
 
-        if self.try_message_has_flag('artifact'):
-            self.info('Artifact build requested in try syntax.')
-            variant = 'artifact'
-            if c.get('build_variant') in ['debug', 'cross-debug']:
-                variant = 'debug-artifact'
-            self._update_build_variant(rw_config, variant)
+        if self.try_message_has_flag('artifact') or os.environ.get('USE_ARTIFACT'):
+            # Not all jobs that look like builds can be made into artifact
+            # builds (for example, various SAN builds will not make sense as
+            # artifact builds).  By default, only a vanilla debug or opt build
+            # will be replaced by an artifact build.
+            #
+            # In addition, some jobs want to specify their artifact equivalent.
+            # Use `artifact_flag_build_variant_in_try` to specify that variant.
+            #
+            # This is temporary, until we find a way to introduce an "artifact
+            # build dimension" like "opt"/"debug" into the CI configurations.
+            self.info('Artifact build requested by try push.')
+
+            variant = None
+
+            if 'artifact_flag_build_variant_in_try' in c:
+                variant = c['artifact_flag_build_variant_in_try']
+                if not variant:
+                    self.info('Build variant has falsy `artifact_flag_build_variant_in_try`; '
+                              'ignoring artifact build request and performing original build.')
+                    return
+                self.info('Build variant has `artifact_build_variant_in_try`: "%s".' % variant)
+            else:
+                if not c.get('build_variant'):
+                    if c.get('debug_build'):
+                        variant = 'debug-artifact'
+                    else:
+                        variant = 'artifact'
+                elif c.get('build_variant') in ['debug', 'cross-debug']:
+                    variant = 'debug-artifact'
+
+            if variant:
+                self.info('Using artifact build variant "%s".' % variant)
+                self._update_build_variant(rw_config, variant)
 
     # helpers
     def _update_build_variant(self, rw_config, variant='artifact'):
@@ -177,7 +204,6 @@ class FxDesktopBuild(BuildScript, TryToolsMixin, object):
         rw_config.update_actions()
         self.actions = tuple(rw_config.actions)
         self.all_actions = tuple(rw_config.all_actions)
-
 
     def query_abs_dirs(self):
         if self.abs_dirs:
@@ -229,6 +255,7 @@ class FxDesktopBuild(BuildScript, TryToolsMixin, object):
             # Suppress Windows modal dialogs to avoid hangs
             import ctypes
             ctypes.windll.kernel32.SetErrorMode(0x8001)
+
 
 if __name__ == '__main__':
     fx_desktop_build = FxDesktopBuild()

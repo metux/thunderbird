@@ -19,11 +19,9 @@ function setTestPluginEnabledState(newEnabledState, pluginName) {
     return;
   }
   var plugin = getTestPlugin(pluginName);
-  while (plugin.enabledState != newEnabledState) {
-    // Run a nested event loop to wait for the preference change to
-    // propagate to the child. Yuck!
-    SpecialPowers.Services.tm.currentThread.processNextEvent(true);
-  }
+  // Run a nested event loop to wait for the preference change to
+  // propagate to the child. Yuck!
+  SpecialPowers.Services.tm.spinEventLoopUntil(() => plugin.enabledState == newEnabledState);
   SimpleTest.registerCleanupFunction(function() {
     SpecialPowers.setTestPluginEnabledState(oldEnabledState, pluginName);
   });
@@ -69,7 +67,6 @@ onload = function() {
     ["dom.requestcontext.enabled", true],
     ["dom.serviceWorkers.exemptFromPerDomainMax", true],
     ["dom.serviceWorkers.enabled", true],
-    ["dom.serviceWorkers.openWindow.enabled", true],
     ["dom.serviceWorkers.testing.enabled", true],
   ]}, runTest);
 };

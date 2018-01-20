@@ -202,7 +202,7 @@ contact[droptarget] > buddy[dummy] {
   margin-inline-end: 0;
   -moz-stack-sizing: ignore;
 %ifdef XP_WIN
-  list-style-image: url("chrome://global/skin/icons/close-XPVista7.png");
+  list-style-image: url("chrome://global/skin/icons/close-win7.png");
 %else
   list-style-image: url("chrome://global/skin/icons/close.png");
 %endif
@@ -220,11 +220,11 @@ contact[droptarget] > buddy[dummy] {
 }
 
 .expander-up {
-  list-style-image: url("chrome://instantbird/skin/collapse.png");
+  list-style-image: url("chrome://global/skin/icons/collapse.png");
 }
 
 .expander-down {
-  list-style-image: url("chrome://instantbird/skin/expand.png");
+  list-style-image: url("chrome://global/skin/icons/expand.png");
 }
 
 .contactBuddies {
@@ -233,7 +233,7 @@ contact[droptarget] > buddy[dummy] {
 
 .dummyBuddyIcon {
   margin: 1px 3px;
-  list-style-image: url("chrome://mozapps/skin/places/defaultFavicon.png");
+  list-style-image: url("chrome://mozapps/skin/places/defaultFavicon.svg");
 }
 
 .dummyBuddyLabel {
@@ -497,7 +497,7 @@ group[closed] .twisty {
   background: radial-gradient(circle, rgba(255, 255, 255, 0.25) 25%, transparent 100%);
   border: none;
 %ifdef XP_WIN
-  list-style-image: url("chrome://global/skin/icons/close-XPVista7.png");
+  list-style-image: url("chrome://global/skin/icons/close-win7.png");
 %else
   list-style-image: url("chrome://global/skin/icons/close.png");
 %endif

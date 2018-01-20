@@ -6,8 +6,6 @@
 <!ENTITY optional.label                 "(רשות)">
 <!ENTITY account.label                  "חשבון">
 
-<!ENTITY autojoin.accesskey             "A">
-<!ENTITY autojoin.label                 "Auto-join this Chat Room">
-
-
 <!ENTITY joinChatWindow.title           "Join chat">
+<!ENTITY autojoin.label                 "Auto-join this Chat Room">
+<!ENTITY autojoin.accesskey             "A">

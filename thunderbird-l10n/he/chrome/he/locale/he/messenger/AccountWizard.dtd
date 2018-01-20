@@ -110,25 +110,17 @@
 <!ENTITY clickFinish.label "לחץ על סיום כדי לשמור הגדרות אלה ולצאת מאשף החשבונות.">
 <!ENTITY clickFinish.labelMac "לחץ על סיום כדי לשמור את ההגדרות הללו ולצאת מאשף החשבונות.">
 
-<!ENTITY incomingServer.accesskey "S">
-<!-- LOCALIZATION NOTE (incomingServerNameDesc.label) : Do not translate "&quot;pop.example.net&quot;" in below line -->
+<!ENTITY incomingTitle.label "Incoming Server Information">
 <!ENTITY incomingServer.description "Enter the name of your incoming server (for example, &quot;mail.example.net&quot;).">
 <!ENTITY incomingServer.label "Incoming Server:">
-
-<!-- Entities for Incoming Server page -->
-
-<!ENTITY incomingTitle.label "Incoming Server Information">
-<!ENTITY incomingUsername.accesskey "U">
-<!-- LOCALIZATION NOTE (incomingUsername.description) : do not translate "&quot;jsmith&quot;" in below line -->
+<!ENTITY incomingServer.accesskey "S">
 <!ENTITY incomingUsername.description "Enter the incoming user name given to you by your email provider (for example, &quot;jsmith&quot;).">
-<!ENTITY outgoingServer.accesskey "S">
-<!-- LOCALIZATION NOTE (outgoingServer.description) : Do not translate "SMTP" and "&quot;smtp.example.net&quot;" in below line -->
+<!ENTITY incomingUsername.accesskey "U">
+<!ENTITY outgoingTitle.label "Outgoing Server Information">
 <!ENTITY outgoingServer.description "Enter the name of your outgoing server (SMTP) (for example, &quot;smtp.example.net&quot;).">
 <!ENTITY outgoingServer.label "Outgoing Server:">
-
-<!-- Entities for Outgoing Server page -->
-
-<!ENTITY outgoingTitle.label "Outgoing Server Information">
-<!ENTITY outgoingUsername.accesskey "U">
+<!ENTITY outgoingServer.accesskey "S">
 <!ENTITY outgoingUsername.description "Enter the outgoing user name given to you by your email provider (this is typically the same as your incoming user name).">
 <!ENTITY outgoingUsername.label "Outgoing User Name:">
+<!ENTITY outgoingUsername.accesskey "U">
+

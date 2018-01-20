@@ -26,13 +26,14 @@
 #endif
 #include "threading/Thread.h"
 
+struct JSContext;
 struct JSRuntime;
 
 namespace js {
 
 // Force any currently-executing asm.js/ion code to call HandleExecutionInterrupt.
 extern void
-InterruptRunningJitCode(JSRuntime* rt);
+InterruptRunningJitCode(JSContext* cx);
 
 namespace wasm {
 
@@ -40,20 +41,27 @@ namespace wasm {
 // handlers indicates some catastrophic failure and creation of the runtime must
 // fail.
 MOZ_MUST_USE bool
-EnsureSignalHandlers(JSRuntime* rt);
+EnsureSignalHandlers(JSContext* cx);
 
 // Return whether signals can be used in this process for interrupts or
 // asm.js/wasm out-of-bounds.
 bool
 HaveSignalHandlers();
 
+class CodeSegment;
+
+// Returns true if wasm code is on top of the activation stack (and fills out
+// the code segment outparam in this case), or false otherwise.
+bool
+InInterruptibleCode(JSContext* cx, uint8_t* pc, const CodeSegment** cs);
+
 #if defined(XP_DARWIN)
 // On OSX we are forced to use the lower-level Mach exception mechanism instead
 // of Unix signals. Mach exceptions are not handled on the victim's stack but
 // rather require an extra thread. For simplicity, we create one such thread
-// per JSRuntime (upon the first use of asm.js in the JSRuntime). This thread
+// per JSContext (upon the first use of wasm in the JSContext). This thread
 // and related resources are owned by AsmJSMachExceptionHandler which is owned
-// by JSRuntime.
+// by JSContext.
 class MachExceptionHandler
 {
     bool installed_;
@@ -67,13 +75,9 @@ class MachExceptionHandler
     ~MachExceptionHandler() { uninstall(); }
     mach_port_t port() const { return port_; }
     bool installed() const { return installed_; }
-    bool install(JSRuntime* rt);
+    bool install(JSContext* cx);
 };
 #endif
-
-// Test whether the given PC is within the innermost wasm activation. Return
-// false if it is not, or it cannot be determined.
-bool IsPCInWasmCode(void *pc);
 
 } // namespace wasm
 } // namespace js

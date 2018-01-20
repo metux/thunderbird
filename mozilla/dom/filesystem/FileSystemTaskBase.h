@@ -10,7 +10,6 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/FileSystemRequestParent.h"
 #include "mozilla/dom/PFileSystemRequestChild.h"
-#include "nsIIPCBackgroundChildCreateCallback.h"
 #include "nsThreadUtils.h"
 
 namespace mozilla {
@@ -19,7 +18,6 @@ namespace dom {
 class BlobImpl;
 class FileSystemBase;
 class FileSystemParams;
-class PBlobParent;
 
 /*
  * The base class to implement a Task class.
@@ -100,11 +98,9 @@ class PBlobParent;
  *   (8) Call [HandlerCallback] to send the task result to the content page.
  */
 class FileSystemTaskChildBase : public PFileSystemRequestChild
-                              , public nsIIPCBackgroundChildCreateCallback
 {
 public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIIPCBACKGROUNDCHILDCREATECALLBACK
+  NS_INLINE_DECL_REFCOUNTING(FileSystemTaskChildBase)
 
   /*
    * Start the task. It will dispatch all the information to the parent process,
@@ -138,7 +134,8 @@ protected:
   /*
    * To create a task to handle the page content request.
    */
-  explicit FileSystemTaskChildBase(FileSystemBase* aFileSystem);
+  FileSystemTaskChildBase(nsIGlobalObject* aGlobalObject,
+                          FileSystemBase* aFileSystem);
 
   virtual
   ~FileSystemTaskChildBase();
@@ -164,11 +161,12 @@ protected:
                           ErrorResult& aRv) = 0;
 
   // Overrides PFileSystemRequestChild
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   Recv__delete__(const FileSystemResponseValue& value) override;
 
   nsresult mErrorValue;
   RefPtr<FileSystemBase> mFileSystem;
+  nsCOMPtr<nsIGlobalObject> mGlobalObject;
 
 private:
 
@@ -187,6 +185,10 @@ private:
 class FileSystemTaskParentBase : public Runnable
 {
 public:
+  FileSystemTaskParentBase()
+    : Runnable("FileSystemTaskParentBase")
+  {}
+
   /*
    * Start the task. This must be called from the PBackground thread only.
    */
@@ -224,17 +226,6 @@ public:
    */
   void
   HandleResult();
-
-  // If this task must do something on the main-thread before IOWork(), it must
-  // overwrite this method. Otherwise it returns true if the FileSystem must be
-  // initialized on the main-thread. It's called from the Background thread.
-  virtual bool
-  NeedToGoToMainThread() const;
-
-  // This method is called only if NeedToGoToMainThread() returns true.
-  // Of course, it runs on the main-thread.
-  virtual nsresult
-  MainThreadWork();
 
   bool
   HasError() const { return NS_FAILED(mErrorValue); }

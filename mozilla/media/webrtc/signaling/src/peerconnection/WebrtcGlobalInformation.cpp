@@ -34,9 +34,13 @@
 #include "runnable_utils.h"
 #include "PeerConnectionCtx.h"
 #include "PeerConnectionImpl.h"
-#include "webrtc/system_wrappers/interface/trace.h"
+#include "webrtc/system_wrappers/include/trace.h"
 
-static const char* logTag = "WebrtcGlobalInformation";
+static const char* wgiLogTag = "WebrtcGlobalInformation";
+#ifdef LOGTAG
+#undef LOGTAG
+#endif
+#define LOGTAG wgiLogTag
 
 namespace mozilla {
 namespace dom {
@@ -106,7 +110,7 @@ public:
     mCallback.get()->Call(mResult, rv);
 
     if (rv.Failed()) {
-      CSFLogError(logTag, "Error firing stats observer callback");
+      CSFLogError(LOGTAG, "Error firing stats observer callback");
     }
   }
 
@@ -266,7 +270,7 @@ OnStatsReport_m(WebrtcGlobalChild* aThisChild,
   StatsRequest* request = StatsRequest::Get(aRequestId);
 
   if (!request) {
-    CSFLogError(logTag, "Bad RequestId");
+    CSFLogError(LOGTAG, "Bad RequestId");
     return;
   }
 
@@ -337,7 +341,7 @@ static void OnGetLogging_m(WebrtcGlobalChild* aThisChild,
   LogRequest* request = LogRequest::Get(aRequestId);
 
   if (!request) {
-    CSFLogError(logTag, "Bad RequestId");
+    CSFLogError(LOGTAG, "Bad RequestId");
     return;
   }
 
@@ -420,7 +424,8 @@ RunStatsQuery(
 
   if (NS_FAILED(rv)) {
     return rv;
-  } else if (!stsThread) {
+  }
+  if (!stsThread) {
     return NS_ERROR_FAILURE;
   }
 
@@ -481,7 +486,8 @@ WebrtcGlobalInformation::GetAllStats(
   // CallbackObject does not support threadsafe refcounting, and must be
   // used and destroyed on main.
   StatsRequestCallback callbackHandle(
-    new nsMainThreadPtrHolder<WebrtcGlobalStatisticsCallback>(&aStatsCallback));
+    new nsMainThreadPtrHolder<WebrtcGlobalStatisticsCallback>(
+      "WebrtcGlobalStatisticsCallback", &aStatsCallback));
 
   nsString filter;
   if (pcIdFilter.WasPassed()) {
@@ -528,7 +534,6 @@ WebrtcGlobalInformation::GetAllStats(
   }
 
   aRv = rv;
-  return;
 }
 
 static nsresult
@@ -542,7 +547,8 @@ RunLogQuery(const nsCString& aPattern,
 
   if (NS_FAILED(rv)) {
     return rv;
-  } else if (!stsThread) {
+  }
+  if (!stsThread) {
     return NS_ERROR_FAILURE;
   }
 
@@ -622,7 +628,8 @@ WebrtcGlobalInformation::GetLogging(
   // CallbackObject does not support threadsafe refcounting, and must be
   // destroyed on main.
   LogRequestCallback callbackHandle(
-    new nsMainThreadPtrHolder<WebrtcGlobalLoggingCallback>(&aLoggingCallback));
+    new nsMainThreadPtrHolder<WebrtcGlobalLoggingCallback>(
+      "WebrtcGlobalLoggingCallback", &aLoggingCallback));
 
   nsAutoCString pattern;
   CopyUTF16toUTF8(aPattern, pattern);
@@ -655,11 +662,11 @@ WebrtcGlobalInformation::GetLogging(
   }
 
   aRv = rv;
-  return;
 }
 
 static int32_t sLastSetLevel = 0;
 static bool sLastAECDebug = false;
+static Maybe<nsCString> sAecDebugLogDir;
 
 void
 WebrtcGlobalInformation::SetDebugLevel(const GlobalObject& aGlobal, int32_t aLevel)
@@ -686,7 +693,7 @@ void
 WebrtcGlobalInformation::SetAecDebug(const GlobalObject& aGlobal, bool aEnable)
 {
   if (aEnable) {
-    StartAecLog();
+    sAecDebugLogDir.emplace(StartAecLog());
   } else {
     StopAecLog();
   }
@@ -704,7 +711,13 @@ WebrtcGlobalInformation::AecDebug(const GlobalObject& aGlobal)
   return sLastAECDebug;
 }
 
-bool
+void
+WebrtcGlobalInformation::GetAecDebugLogDir(const GlobalObject& aGlobal, nsAString& aDir)
+{
+  aDir = NS_ConvertASCIItoUTF16(sAecDebugLogDir.valueOr(EmptyCString()));
+}
+
+mozilla::ipc::IPCResult
 WebrtcGlobalParent::RecvGetStatsResult(const int& aRequestId,
                                        nsTArray<RTCStatsReportInternal>&& Stats)
 {
@@ -714,8 +727,8 @@ WebrtcGlobalParent::RecvGetStatsResult(const int& aRequestId,
   StatsRequest* request = StatsRequest::Get(aRequestId);
 
   if (!request) {
-    CSFLogError(logTag, "Bad RequestId");
-    return false;
+    CSFLogError(LOGTAG, "Bad RequestId");
+    return IPC_FAIL_NO_REASON(this);
   }
 
   for (auto&& s : Stats) {
@@ -725,7 +738,10 @@ WebrtcGlobalParent::RecvGetStatsResult(const int& aRequestId,
   auto next = request->GetNextParent();
   if (next) {
     // There are more content instances to query.
-    return next->SendGetStatsRequest(request->mRequestId, request->mPcIdFilter);
+    if (!next->SendGetStatsRequest(request->mRequestId, request->mPcIdFilter)) {
+      return IPC_FAIL_NO_REASON(this);
+    }
+    return IPC_OK();
   }
 
   // Content queries complete, run chrome instance query if applicable
@@ -740,10 +756,13 @@ WebrtcGlobalParent::RecvGetStatsResult(const int& aRequestId,
     StatsRequest::Delete(aRequestId);
   }
 
-  return NS_SUCCEEDED(rv);
+  if (NS_FAILED(rv)) {
+    return IPC_FAIL_NO_REASON(this);
+  }
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 WebrtcGlobalParent::RecvGetLogResult(const int& aRequestId,
                                      const WebrtcGlobalLog& aLog)
 {
@@ -752,15 +771,18 @@ WebrtcGlobalParent::RecvGetLogResult(const int& aRequestId,
   LogRequest* request = LogRequest::Get(aRequestId);
 
   if (!request) {
-    CSFLogError(logTag, "Bad RequestId");
-    return false;
+    CSFLogError(LOGTAG, "Bad RequestId");
+    return IPC_FAIL_NO_REASON(this);
   }
   request->mResult.AppendElements(aLog, fallible);
 
   auto next = request->GetNextParent();
   if (next) {
     // There are more content instances to query.
-    return next->SendGetLogRequest(request->mRequestId, request->mPattern);
+    if (!next->SendGetLogRequest(request->mRequestId, request->mPattern)) {
+      return IPC_FAIL_NO_REASON(this);
+    }
+    return IPC_OK();
   }
 
   // Content queries complete, run chrome instance query if applicable
@@ -768,12 +790,12 @@ WebrtcGlobalParent::RecvGetLogResult(const int& aRequestId,
 
   if (NS_FAILED(rv)) {
     //Unable to get gecko process log. Return what has been collected.
-    CSFLogError(logTag, "Unable to extract chrome process log");
+    CSFLogError(LOGTAG, "Unable to extract chrome process log");
     request->Complete();
     LogRequest::Delete(aRequestId);
   }
 
-  return true;
+  return IPC_OK();
 }
 
 WebrtcGlobalParent*
@@ -793,13 +815,12 @@ void
 WebrtcGlobalParent::ActorDestroy(ActorDestroyReason aWhy)
 {
   mShutdown = true;
-  return;
 }
 
-bool
+mozilla::ipc::IPCResult
 WebrtcGlobalParent::Recv__delete__()
 {
-  return true;
+  return IPC_OK();
 }
 
 MOZ_IMPLICIT WebrtcGlobalParent::WebrtcGlobalParent()
@@ -813,12 +834,12 @@ MOZ_IMPLICIT WebrtcGlobalParent::~WebrtcGlobalParent()
   MOZ_COUNT_DTOR(WebrtcGlobalParent);
 }
 
-bool
+mozilla::ipc::IPCResult
 WebrtcGlobalChild::RecvGetStatsRequest(const int& aRequestId,
                                        const nsString& aPcIdFilter)
 {
   if (mShutdown) {
-    return true;
+    return IPC_OK();
   }
 
   PeerConnectionCtx* ctx = GetPeerConnectionCtx();
@@ -826,32 +847,35 @@ WebrtcGlobalChild::RecvGetStatsRequest(const int& aRequestId,
   if (ctx) {
     nsresult rv = RunStatsQuery(ctx->mGetPeerConnections(),
                                 aPcIdFilter, this, aRequestId);
-    return NS_SUCCEEDED(rv);
+    if (NS_FAILED(rv)) {
+      return IPC_FAIL_NO_REASON(this);
+    }
+    return IPC_OK();
   }
 
   nsTArray<RTCStatsReportInternal> empty_stats;
   SendGetStatsResult(aRequestId, empty_stats);
 
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 WebrtcGlobalChild::RecvClearStatsRequest()
 {
   if (mShutdown) {
-    return true;
+    return IPC_OK();
   }
 
   ClearClosedStats();
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 WebrtcGlobalChild::RecvGetLogRequest(const int& aRequestId,
                                      const nsCString& aPattern)
 {
   if (mShutdown) {
-    return true;
+    return IPC_OK();
   }
 
   nsresult rv;
@@ -859,33 +883,35 @@ WebrtcGlobalChild::RecvGetLogRequest(const int& aRequestId,
     do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
 
   if (NS_SUCCEEDED(rv) && stsThread) {
+    // this is a singleton, so we shouldn't need to hold a ref for the
+    // request (and can't just add a ref here anyways)
     rv = RUN_ON_THREAD(stsThread,
                        WrapRunnableNM(&GetLogging_s, this, aRequestId, aPattern.get()),
                        NS_DISPATCH_NORMAL);
 
     if (NS_SUCCEEDED(rv)) {
-      return true;
+      return IPC_OK();
     }
   }
 
   Sequence<nsString> empty_log;
   SendGetLogResult(aRequestId, empty_log);
 
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 WebrtcGlobalChild::RecvClearLogRequest()
 {
   if (mShutdown) {
-    return true;
+    return IPC_OK();
   }
 
   RunLogClear();
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 WebrtcGlobalChild::RecvSetAecLogging(const bool& aEnable)
 {
   if (!mShutdown) {
@@ -895,10 +921,10 @@ WebrtcGlobalChild::RecvSetAecLogging(const bool& aEnable)
       StopAecLog();
     }
   }
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 WebrtcGlobalChild::RecvSetDebugMode(const int& aLevel)
 {
   if (!mShutdown) {
@@ -908,7 +934,7 @@ WebrtcGlobalChild::RecvSetDebugMode(const int& aLevel)
       StopWebRtcLog();
     }
   }
-  return true;
+  return IPC_OK();
 }
 
 WebrtcGlobalChild*
@@ -1002,16 +1028,15 @@ static void StoreLongTermICEStatisticsImpl_m(
     const RTCIceCandidatePairStats &pair =
       query->report->mIceCandidatePairStats.Value()[i];
 
-    if (!pair.mState.WasPassed() || !pair.mComponentId.WasPassed()) {
+    if (!pair.mState.WasPassed() || !pair.mTransportId.WasPassed()) {
       MOZ_CRASH();
       continue;
     }
 
-    // Note: this is not a "component" in the ICE definition, this is really a
-    // stream ID. This is just the way the stats API is standardized right now.
-    // Very confusing.
+    // Note: we use NrIceMediaStream's name for the
+    // RTCIceCandidatePairStats tranportId
     std::string streamId(
-      NS_ConvertUTF16toUTF8(pair.mComponentId.Value()).get());
+      NS_ConvertUTF16toUTF8(pair.mTransportId.Value()).get());
 
     streamResults[streamId].streamSucceeded |=
       pair.mState.Value() == RTCStatsIceCandidatePairState::Succeeded;
@@ -1069,7 +1094,7 @@ static void StoreLongTermICEStatisticsImpl_m(
     uint32_t candBitmask = GetCandidateIpAndTransportMask(&cand);
 
     // Note: shift values need to result in the above enum table
-    if (cand.mType.Value() == RTCStatsType::Localcandidate) {
+    if (cand.mType.Value() == RTCStatsType::Local_candidate) {
       candBitmask <<= kLocalShift;
     }
 
@@ -1090,9 +1115,9 @@ static void StoreLongTermICEStatisticsImpl_m(
     streamResults[streamId].candidateTypeBitpattern |= candBitmask;
   }
 
-  for (auto i = streamResults.begin(); i != streamResults.end(); ++i) {
-    Telemetry::RecordWebrtcIceCandidates(i->second.candidateTypeBitpattern,
-                                         i->second.streamSucceeded);
+  for (auto& streamResult : streamResults) {
+    Telemetry::RecordWebrtcIceCandidates(streamResult.second.candidateTypeBitpattern,
+                                         streamResult.second.streamSucceeded);
   }
 
   // Beyond ICE, accumulate telemetry for various PER_CALL settings here.

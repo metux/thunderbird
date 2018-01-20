@@ -10,6 +10,7 @@
 #include "mozilla/dom/AnimatableBinding.h"
 #include "mozilla/dom/KeyframeAnimationOptionsBinding.h"
 #include "mozilla/dom/KeyframeEffectBinding.h"
+#include "mozilla/ServoBindings.h"
 #include "nsCSSParser.h" // For nsCSSParser
 #include "nsIDocument.h"
 #include "nsRuleNode.h"
@@ -39,10 +40,10 @@ GetTimingProperties(
 }
 
 template <class OptionsType>
-static TimingParams
-TimingParamsFromOptionsUnion(const OptionsType& aOptions,
-                             nsIDocument* aDocument,
-                             ErrorResult& aRv)
+/* static */ TimingParams
+TimingParams::FromOptionsType(const OptionsType& aOptions,
+                              nsIDocument* aDocument,
+                              ErrorResult& aRv)
 {
   TimingParams result;
   if (aOptions.IsUnrestrictedDouble()) {
@@ -52,6 +53,7 @@ TimingParamsFromOptionsUnion(const OptionsType& aOptions,
         StickyTimeDuration::FromMilliseconds(durationInMs));
     } else {
       aRv.Throw(NS_ERROR_DOM_TYPE_ERR);
+      return result;
     }
   } else {
     const dom::AnimationEffectTimingProperties& timing =
@@ -85,6 +87,8 @@ TimingParamsFromOptionsUnion(const OptionsType& aOptions,
     result.mFill = timing.mFill;
     result.mFunction = easing;
   }
+  result.Update();
+
   return result;
 }
 
@@ -94,7 +98,7 @@ TimingParams::FromOptionsUnion(
   nsIDocument* aDocument,
   ErrorResult& aRv)
 {
-  return TimingParamsFromOptionsUnion(aOptions, aDocument, aRv);
+  return FromOptionsType(aOptions, aDocument, aRv);
 }
 
 /* static */ TimingParams
@@ -103,7 +107,7 @@ TimingParams::FromOptionsUnion(
   nsIDocument* aDocument,
   ErrorResult& aRv)
 {
-  return TimingParamsFromOptionsUnion(aOptions, aDocument, aRv);
+  return FromOptionsType(aOptions, aDocument, aRv);
 }
 
 /* static */ Maybe<ComputedTimingFunction>
@@ -112,6 +116,24 @@ TimingParams::ParseEasing(const nsAString& aEasing,
                           ErrorResult& aRv)
 {
   MOZ_ASSERT(aDocument);
+
+  if (aDocument->IsStyledByServo()) {
+    nsTimingFunction timingFunction;
+    // FIXME this is using the wrong base uri (bug 1343919)
+    RefPtr<URLExtraData> data = new URLExtraData(aDocument->GetDocumentURI(),
+                                                 aDocument->GetDocumentURI(),
+                                                 aDocument->NodePrincipal());
+    if (!Servo_ParseEasing(&aEasing, data, &timingFunction)) {
+      aRv.ThrowTypeError<dom::MSG_INVALID_EASING_ERROR>(aEasing);
+      return Nothing();
+    }
+
+    if (timingFunction.mType == nsTimingFunction::Type::Linear) {
+      return Nothing();
+    }
+
+    return Some(ComputedTimingFunction(timingFunction));
+  }
 
   nsCSSValue value;
   nsCSSParser parser;
@@ -138,12 +160,11 @@ TimingParams::ParseEasing(const nsAString& aEasing,
           }
           MOZ_FALLTHROUGH;
         case eCSSUnit_Cubic_Bezier:
+        case eCSSUnit_Function:
         case eCSSUnit_Steps: {
           nsTimingFunction timingFunction;
           nsRuleNode::ComputeTimingFunction(list->mValue, timingFunction);
-          ComputedTimingFunction computedTimingFunction;
-          computedTimingFunction.Init(timingFunction);
-          return Some(computedTimingFunction);
+          return Some(ComputedTimingFunction(timingFunction));
         }
         default:
           MOZ_ASSERT_UNREACHABLE("unexpected animation-timing-function list "
@@ -170,6 +191,8 @@ TimingParams::ParseEasing(const nsAString& aEasing,
 bool
 TimingParams::operator==(const TimingParams& aOther) const
 {
+  // We don't compare mActiveDuration and mEndTime because they are calculated
+  // from other timing parameters.
   return mDuration == aOther.mDuration &&
          mDelay == aOther.mDelay &&
          mIterations == aOther.mIterations &&

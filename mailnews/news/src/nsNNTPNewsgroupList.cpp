@@ -57,6 +57,7 @@
 #include "nsIMsgWindow.h"
 #include "nsIDocShell.h"
 #include "nsIMutableArray.h"
+#include "nsArrayUtils.h"
 #include "nsIMsgFolderNotificationService.h"
 #include "nsIMsgFilterCustomAction.h"
 #include "nsComponentManagerUtils.h"
@@ -316,7 +317,7 @@ nsNNTPNewsgroupList::GetRangeOfArtsToDownload(nsIMsgWindow *aMsgWindow,
     rv = bundleService->CreateBundle(NEWS_MSGS_URL, getter_AddRefs(bundle));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = bundle->GetStringFromName(u"noNewMessages", getter_Copies(statusString));
+    rv = bundle->GetStringFromName("noNewMessages", statusString);
     NS_ENSURE_SUCCESS(rv, rv);
 
     SetProgressStatus(statusString.get());
@@ -540,7 +541,7 @@ nsNNTPNewsgroupList::ParseLine(char *line, uint32_t * message_number)
     nsCString modifiedSubject;
     if (NS_MsgStripRE(&subject, &subjectLen, getter_Copies(modifiedSubject)))
       (void) newMsgHdr->OrFlags(nsMsgMessageFlags::HasRe, &flags);
-    
+
     // this will make sure read flags agree with newsrc
     if (! (flags & nsMsgMessageFlags::Read))
       rv = newMsgHdr->OrFlags(nsMsgMessageFlags::New, &flags);
@@ -641,9 +642,8 @@ NS_IMETHODIMP nsNNTPNewsgroupList::ApplyFilterHit(nsIMsgFilter *aFilter, nsIMsgW
 
   for (uint32_t actionIndex = 0; actionIndex < numActions; actionIndex++)
   {
-    nsCOMPtr<nsIMsgRuleAction> filterAction;
-    rv = filterActionList->QueryElementAt(actionIndex, NS_GET_IID(nsIMsgRuleAction),
-                                                       getter_AddRefs(filterAction));
+    nsCOMPtr<nsIMsgRuleAction> filterAction =
+      do_QueryElementAt(filterActionList, actionIndex, &rv);
     if (NS_FAILED(rv) || !filterAction)
       continue;
 
@@ -694,7 +694,7 @@ NS_IMETHODIMP nsNNTPNewsgroupList::ApplyFilterHit(nsIMsgFilter *aFilter, nsIMsgW
         nsCString keyword;
         filterAction->GetStrValue(keyword);
         nsCOMPtr<nsIMutableArray> messageArray(do_CreateInstance(NS_ARRAY_CONTRACTID));
-        messageArray->AppendElement(m_newMsgHdr, false);
+        messageArray->AppendElement(m_newMsgHdr);
         nsCOMPtr <nsIMsgFolder> folder = do_QueryInterface(m_newsFolder, &rv);
         if (folder)
           folder->AddKeywordsToMessages(messageArray, keyword);
@@ -729,7 +729,7 @@ NS_IMETHODIMP nsNNTPNewsgroupList::ApplyFilterHit(nsIMsgFilter *aFilter, nsIMsgW
         nsCOMPtr<nsIMutableArray> messageArray(
             do_CreateInstance(NS_ARRAY_CONTRACTID, &rv));
         NS_ENSURE_TRUE(messageArray, rv);
-        messageArray->AppendElement(m_newMsgHdr, false);
+        messageArray->AppendElement(m_newMsgHdr);
 
         customAction->Apply(messageArray, value, nullptr,
                             nsMsgFilterType::NewsRule, aMsgWindow);
@@ -886,7 +886,7 @@ nsNNTPNewsgroupList::FinishXOVERLINE(int status, int *newstatus)
       NS_ENSURE_SUCCESS(rv, rv);
 
       const char16_t *formatStrings[2] = { firstStr.get(), lastStr.get() };
-      rv = bundle->FormatStringFromName(u"downloadingArticles", formatStrings, 2, getter_Copies(statusString));
+      rv = bundle->FormatStringFromName("downloadingArticles", formatStrings, 2, statusString);
       NS_ENSURE_SUCCESS(rv, rv);
 
       SetProgressStatus(statusString.get());
@@ -907,7 +907,7 @@ nsNNTPNewsgroupList::InitXHDR(nsACString &header)
   else
     header.Assign(m_filterHeaders[m_currentXHDRIndex]);
   // Don't include these in our XHDR bouts, as they are already provided through
-  // XOVER. 
+  // XOVER.
   if (header.EqualsLiteral("message-id") ||
       header.EqualsLiteral("references"))
     return InitXHDR(header);
@@ -1019,14 +1019,14 @@ nsNNTPNewsgroupList::ProcessHEADLine(const nsACString &line)
   {
     return NS_OK; // We are malformed. Just ignore and hope for the best...
   }
-  
+
   nsresult rv;
   if (!m_lastHeader.IsEmpty())
   {
     rv = AddHeader(m_lastHeader.get(), m_thisLine.get());
     NS_ENSURE_SUCCESS(rv,rv);
   }
-  
+
   value.Trim(" ");
 
   ToLowerCase(header, m_lastHeader);
@@ -1097,7 +1097,7 @@ nsNNTPNewsgroupList::CallFilters()
 {
   nsresult rv;
   nsCString filterString;
-  
+
   nsCOMPtr <nsIMsgFolder> folder = do_QueryInterface(m_newsFolder, &rv);
   NS_ENSURE_SUCCESS(rv,rv);
 
@@ -1253,8 +1253,8 @@ nsNNTPNewsgroupList::SetProgressStatus(const char16_t *aMessage)
                              getter_AddRefs(bundle));
       NS_ENSURE_SUCCESS_VOID(rv);
       const char16_t *params[] = { accountName.get(), aMessage };
-      bundle->FormatStringFromName(u"statusMessage",
-                                   params, 2, getter_Copies(statusMessage));
+      bundle->FormatStringFromName("statusMessage",
+                                   params, 2, statusMessage);
 
       feedback->ShowStatusString(statusMessage);
     }
@@ -1267,7 +1267,7 @@ nsNNTPNewsgroupList::UpdateStatus(bool filtering, int32_t numDLed, int32_t totTo
   int32_t numerator = (filtering ? m_currentXHDRIndex + 1 : 1) * numDLed;
   int32_t denominator = (m_filterHeaders.Length() + 1) * totToDL;
   int32_t percent = numerator * 100 / denominator;
-  
+
   nsAutoString numDownloadedStr;
   numDownloadedStr.AppendInt(numDLed);
 
@@ -1295,15 +1295,15 @@ nsNNTPNewsgroupList::UpdateStatus(bool filtering, int32_t numDLed, int32_t totTo
     NS_ConvertUTF8toUTF16 header(m_filterHeaders[m_currentXHDRIndex]);
     const char16_t *formatStrings[4] = { header.get(),
       numDownloadedStr.get(), totalToDownloadStr.get(), newsgroupName.get() };
-    rv = bundle->FormatStringFromName(u"newNewsgroupFilteringHeaders",
-      formatStrings, 4, getter_Copies(statusString));
+    rv = bundle->FormatStringFromName("newNewsgroupFilteringHeaders",
+      formatStrings, 4, statusString);
   }
   else
   {
     const char16_t *formatStrings[3] = { numDownloadedStr.get(),
       totalToDownloadStr.get(), newsgroupName.get() };
-    rv = bundle->FormatStringFromName(u"newNewsgroupHeaders",
-      formatStrings, 3, getter_Copies(statusString));
+    rv = bundle->FormatStringFromName("newNewsgroupHeaders",
+      formatStrings, 3, statusString);
   }
   if (!NS_SUCCEEDED(rv))
     return;

@@ -92,6 +92,16 @@ function installInto(module) {
   module.augment_controller = augment_controller;
 }
 
+function getWindowTypeOrId(aWindowElem) {
+  let windowType = aWindowElem.getAttribute("windowtype");
+  // Ignore types that start with "prompt:". This prefix gets added in
+  // toolkit/components/prompts/src/CommonDialog.jsm since bug 1388238.
+  if (windowType && !windowType.startsWith("prompt:"))
+    return windowType;
+
+  return aWindowElem.getAttribute("id");
+}
+
 /**
  * Return the "windowtype" or "id" for the given xul window if it is available.
  * If not, return null.
@@ -103,7 +113,7 @@ function getWindowTypeForXulWindow(aXULWindow, aBusyOk) {
   if (aXULWindow.document &&
       aXULWindow.document.documentElement &&
       aXULWindow.document.documentElement.hasAttribute("windowtype"))
-    return aXULWindow.document.documentElement.getAttribute("windowtype");
+    return getWindowTypeOrId(aXULWindow.document.documentElement);
 
   let docshell = aXULWindow.docShell;
   // we need the docshell to exist...
@@ -126,8 +136,7 @@ function getWindowTypeForXulWindow(aXULWindow, aBusyOk) {
     return null;
 
   // finally, we can now have a windowtype!
-  let windowType = outerDoc.documentElement.getAttribute("windowtype") ||
-                   outerDoc.documentElement.getAttribute("id");
+  let windowType = getWindowTypeOrId(outerDoc.documentElement);
 
   if (windowType)
     return windowType;
@@ -223,7 +232,7 @@ var WindowWatcher = {
     //  window type yet.
     // because this iterates from old to new, this does the right thing in that
     //  side-effects of consider will pick the most recent window.
-    for (let xulWindow in fixIterator(
+    for (let xulWindow of fixIterator(
                                  mozmill.wm.getXULWindowEnumerator(null),
                                  Ci.nsIXULWindow)) {
       if (!this.consider(xulWindow))
@@ -382,9 +391,7 @@ var WindowWatcher = {
   },
 
   planForWindowClose: function WindowWatcher_planForWindowClose(aXULWindow) {
-    let windowType =
-      aXULWindow.document.documentElement.getAttribute("windowtype") ||
-      aXULWindow.document.documentElement.getAttribute("id");
+    let windowType = getWindowTypeOrId(aXULWindow.document.documentElement);
     this.waitingList.set(windowType, aXULWindow);
     this.waitingForClose = windowType;
   },
@@ -479,6 +486,7 @@ var WindowWatcher = {
                 [getWindowTypeForXulWindow(aXULWindow, true) +
                    " (" + getUniqueIdForXulWindow(aXULWindow) + ")",
                    "active?", Services.focus.focusedWindow == aXULWindow]);
+
     if (!this.consider(aXULWindow))
       this.monitorWindowLoad(aXULWindow);
   },
@@ -511,9 +519,7 @@ var WindowWatcher = {
   onCloseWindow: function WindowWatcher_onCloseWindow(aXULWindow) {
     let domWindow = aXULWindow.docShell.QueryInterface(Ci.nsIInterfaceRequestor)
                                        .getInterface(Ci.nsIDOMWindow);
-    let windowType =
-      domWindow.document.documentElement.getAttribute("windowtype") ||
-      domWindow.document.documentElement.getAttribute("id");
+    let windowType = getWindowTypeOrId(domWindow.document.documentElement);
     mark_action("winhelp", "onCloseWindow",
                 [getWindowTypeForXulWindow(aXULWindow, true) +
                    " (" + getUniqueIdForXulWindow(aXULWindow) + ")"]);
@@ -832,8 +838,7 @@ var AugmentEverybodyWith = {
       let elem = this.window.document.getElementById(aId);
       if (aQuery) {
         if (aQuery.tagName) {
-          let elems = Array.prototype.slice.call(
-                        elem.getElementsByTagName(aQuery.tagName));
+          let elems = Array.from(elem.getElementsByTagName(aQuery.tagName));
           if (aQuery.label)
             elems = elems.filter(elem => elem.label == aQuery.label);
           elem = elems[0];
@@ -906,7 +911,7 @@ var AugmentEverybodyWith = {
       }
       else {
         let msg = "Query constraint not implemented, query contained:";
-        for (let [key, val] in Iterator(aQuery)) {
+        for (let [key, val] of Object.entries(aQuery)) {
           msg += " '" + key + "': " + val;
         }
         throw new Error(msg);
@@ -943,9 +948,10 @@ var AugmentEverybodyWith = {
      * Dynamically-built/XBL-defined menus can be hard to work with, this makes it
      *  easier.
      *
-     * @param aRootPopup The base popup.  We will open it if it is not open or
-     *     wait for it to open if it is in the process.
-     * @param aActions A list of objects where each object has a single
+     * @param aRootPopup  The base popup. The caller is expected to activate it
+     *     (by clicking/rightclicking the right widget). We will only wait for it
+     *     to open if it is in the process.
+     * @param aActions  A list of objects where each object has a single
      *     attribute with a single value.  We pick the menu option whose DOM
      *     node has an attribute with that name and value.  We click whatever we
      *     find.  We throw if we don't find what you were asking for.
@@ -955,8 +961,6 @@ var AugmentEverybodyWith = {
      *          an empty array if aKeepOpen was set to false.
      */
     click_menus_in_sequence: function _click_menus(aRootPopup, aActions, aKeepOpen) {
-      if (aRootPopup.state == "closed")
-        aRootPopup.openPopup(null, "", 0, 0, true, true);
       if (aRootPopup.state != "open") { // handle "showing"
         utils.waitFor(() => aRootPopup.state == "open",
                       "Popup never opened! id=" + aRootPopup.id +
@@ -1039,10 +1043,24 @@ var AugmentEverybodyWith = {
     close_popup_sequence: function _close_popup_sequence(aCloseStack) {
       while (aCloseStack.length) {
         let curPopup = aCloseStack.pop();
-        this.keypress(new elib.Elem(curPopup), "VK_ESCAPE", {});
+        if (curPopup.state == "open")
+          this.keypress(new elib.Elem(curPopup), "VK_ESCAPE", {});
         utils.waitFor(function() { return curPopup.state == "closed"; },
                       "Popup did not close! id=" + curPopup.id +
                       ", state=" +  curPopup.state, 5000, 50);
+      }
+    },
+
+    /**
+     * Get dropmarker arrow element from 
+     *
+     * @param aNode  An element containing a dropmarker, e.g. menulist or menu-button
+     */
+    get_menu_dropmarker: function(aNode) {
+      let children = aNode.ownerDocument.getAnonymousNodes(aNode);
+      for (let node of children) {
+        if (node.tagName == "xul:dropmarker")
+          return node;
       }
     },
 
@@ -1097,7 +1115,7 @@ var MOUSE_OPS_TO_WRAP = [
   "middleClick", "rightClick",
 ];
 
-for (let [, mouseOp] in Iterator(MOUSE_OPS_TO_WRAP)) {
+for (let mouseOp of MOUSE_OPS_TO_WRAP) {
   let thisMouseOp = mouseOp;
   let wrapperFunc = function (aElem, aLeft, aTop) {
     let el = aElem.getNode();
@@ -1391,7 +1409,7 @@ function _augment_helper(aController, aAugmentDef) {
       else {
         traceFunc = function() {
           mark_action("winhelp", reportAs,
-                      showArgs ? Array.prototype.slice.call(arguments) : []);
+                      showArgs ? Array.from(arguments) : []);
           try {
             return origFunc.apply(this, arguments);
           }
@@ -1498,14 +1516,14 @@ function describeEventElementInHierarchy(aNode) {
  */
 function _findFrameElementForWindowInWindow(win, parentWin) {
   let elems = parentWin.document.getElementsByTagName("iframe"), i;
-  for (i = 0; i < elems.length; i++) {
+  for (let i = 0; i < elems.length; i++) {
     // (Must not use === because XPConnect uses wrapper identicality when
     //  we do that.)
     if (elems[i].contentWindow == win)
       return elems[i];
   }
   elems = parentWin.document.getElementsByTagName("browser");
-  for (i = 0; i < elems.length; i++) {
+  for (let i = 0; i < elems.length; i++) {
     if (elems[i].contentWindow == win)
       return elems[i];
   }
@@ -1534,8 +1552,7 @@ function getWindowDescribeyFromEvent(event) {
        .QueryInterface(Ci.nsIInterfaceRequestor)
        .getInterface(Ci.nsIDOMWindow);
   var docElem = owningWin.document.documentElement;
-  return (docElem.getAttribute("windowtype") ||
-          docElem.getAttribute("id") || "mysterious") +
+  return (getWindowTypeOrId(docElem) || "mysterious") +
          " (" + (UNIQUE_WINDOW_ID_ATTR in owningWin ?
                    owningWin[UNIQUE_WINDOW_ID_ATTR] :
                    "n/a") + ")";
@@ -1671,8 +1688,7 @@ var gNextOneUpUniqueID = 0;
  */
 function augment_controller(aController, aWindowType) {
   if (aWindowType === undefined)
-    aWindowType =
-      aController.window.document.documentElement.getAttribute("windowtype");
+    aWindowType = getWindowTypeOrId(aController.window.document.documentElement);
 
   _augment_helper(aController, AugmentEverybodyWith);
   if (PerWindowTypeAugmentations[aWindowType])
@@ -1843,15 +1859,13 @@ function captureWindowStatesForErrorReporting(normalizeForJsonFunc) {
   while (enumerator.hasMoreElements()) {
     let win = enumerator.getNext().QueryInterface(Ci.nsIDOMWindow);
 
-    let winId = win.document.documentElement.getAttribute("windowtype") ||
-                win.document.documentElement.getAttribute("id") ||
+    let winId = getWindowTypeOrId(win.document.documentElement) ||
                 ("unnamed:" + iWin);
 
     let openPopups =
-      Array.prototype.slice.call(
-          win.document.documentElement.getElementsByTagName("menupopup"))
-        .filter(x => x.state != "closed")
-        .map(x => normalizeForJsonFunc(x));
+      Array.from(win.document.documentElement.getElementsByTagName("menupopup"))
+           .filter(x => x.state != "closed")
+           .map(x => normalizeForJsonFunc(x));
 
     let ignoredFocusedWindow = {};
     let winfo = {

@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -24,15 +25,22 @@ static mozilla::LazyLogModule gPrintingLog("printing");
 //---------------------------------------------------
 //-- nsPrintData Class Impl
 //---------------------------------------------------
-nsPrintData::nsPrintData(ePrintDataType aType) :
-  mType(aType), mDebugFilePtr(nullptr), mPrintObject(nullptr), mSelectedPO(nullptr),
-  mPrintDocList(0), mIsIFrameSelected(false),
-  mIsParentAFrameSet(false), mOnStartSent(false),
-  mIsAborted(false), mPreparingForPrint(false), mDocWasToBeDestroyed(false),
-  mShrinkToFit(false), mPrintFrameType(nsIPrintSettings::kFramesAsIs),
-  mNumPrintablePages(0), mNumPagesPrinted(0),
-  mShrinkRatio(1.0), mOrigDCScale(1.0), mPPEventListeners(nullptr),
-  mBrandName(nullptr)
+nsPrintData::nsPrintData(ePrintDataType aType)
+  : mType(aType)
+  , mPrintDocList(0)
+  , mIsIFrameSelected(false)
+  , mIsParentAFrameSet(false)
+  , mOnStartSent(false)
+  , mIsAborted(false)
+  , mPreparingForPrint(false)
+  , mDocWasToBeDestroyed(false)
+  , mShrinkToFit(false)
+  , mPrintFrameType(nsIPrintSettings::kFramesAsIs)
+  , mNumPrintablePages(0)
+  , mNumPagesPrinted(0)
+  , mShrinkRatio(1.0)
+  , mOrigDCScale(1.0)
+  , mPPEventListeners(nullptr)
 {
   nsCOMPtr<nsIStringBundle> brandBundle;
   nsCOMPtr<nsIStringBundleService> svc =
@@ -40,14 +48,13 @@ nsPrintData::nsPrintData(ePrintDataType aType) :
   if (svc) {
     svc->CreateBundle( "chrome://branding/locale/brand.properties", getter_AddRefs( brandBundle ) );
     if (brandBundle) {
-      brandBundle->GetStringFromName(u"brandShortName", &mBrandName );
+      brandBundle->GetStringFromName("brandShortName", mBrandName);
     }
   }
 
-  if (!mBrandName) {
-    mBrandName = ToNewUnicode(NS_LITERAL_STRING("Mozilla Document"));
+  if (mBrandName.IsEmpty()) {
+    mBrandName.AssignLiteral(u"Mozilla Document");
   }
-
 }
 
 nsPrintData::~nsPrintData()
@@ -63,14 +70,15 @@ nsPrintData::~nsPrintData()
     OnEndPrinting();
   }
 
-  if (mPrintDC && !mDebugFilePtr) {
+  if (mPrintDC) {
     PR_PL(("****************** End Document ************************\n"));
     PR_PL(("\n"));
     bool isCancelled = false;
     mPrintSettings->GetIsCancelled(&isCancelled);
 
     nsresult rv = NS_OK;
-    if (mType == eIsPrinting) {
+    if (mType == eIsPrinting &&
+        mPrintDC->IsCurrentlyPrintingDocument()) {
       if (!isCancelled && !mIsAborted) {
         rv = mPrintDC->EndDocument();
       } else {
@@ -80,12 +88,6 @@ nsPrintData::~nsPrintData()
         // XXX nsPrintData::ShowPrintErrorDialog(rv);
       }
     }
-  }
-
-  delete mPrintObject;
-
-  if (mBrandName) {
-    free(mBrandName);
   }
 }
 

@@ -13,7 +13,6 @@ this.EXPORTED_SYMBOLS = [
 
 const {utils: Cu} = Components;
 
-Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "AddonManager",
@@ -26,7 +25,7 @@ this.AddonManagerTesting = {
    * @return {Promise<Object>} A promise that resolves returning the found addon or null
    *         if it is not found.
    */
-  getAddonById: function (id) {
+  getAddonById(id) {
     return new Promise(resolve => AddonManager.getAddonByID(id, addon => resolve(addon)));
   },
 
@@ -38,51 +37,51 @@ this.AddonManagerTesting = {
    *
    * @return Promise<restartRequired>
    */
-  uninstallAddonByID: function (id) {
-    let deferred = Promise.defer();
+  uninstallAddonByID(id) {
+    return new Promise((resolve, reject) => {
 
-    AddonManager.getAddonByID(id, (addon) => {
-      if (!addon) {
-        deferred.reject(new Error("Add-on is not known: " + id));
-        return;
-      }
+      AddonManager.getAddonByID(id, (addon) => {
+        if (!addon) {
+          reject(new Error("Add-on is not known: " + id));
+          return;
+        }
 
-      let listener = {
-        onUninstalling: function (addon, needsRestart) {
-          if (addon.id != id) {
-            return;
-          }
+        let listener = {
+          onUninstalling(addon, needsRestart) {
+            if (addon.id != id) {
+              return;
+            }
 
-          if (needsRestart) {
+            if (needsRestart) {
+              AddonManager.removeAddonListener(listener);
+              resolve(true);
+            }
+          },
+
+          onUninstalled(addon) {
+            if (addon.id != id) {
+              return;
+            }
+
             AddonManager.removeAddonListener(listener);
-            deferred.resolve(true);
-          }
-        },
+            resolve(false);
+          },
 
-        onUninstalled: function (addon) {
-          if (addon.id != id) {
-            return;
-          }
+          onOperationCancelled(addon) {
+            if (addon.id != id) {
+              return;
+            }
 
-          AddonManager.removeAddonListener(listener);
-          deferred.resolve(false);
-        },
+            AddonManager.removeAddonListener(listener);
+            reject(new Error("Uninstall cancelled."));
+          },
+        };
 
-        onOperationCancelled: function (addon) {
-          if (addon.id != id) {
-            return;
-          }
+        AddonManager.addAddonListener(listener);
+        addon.uninstall();
+      });
 
-          AddonManager.removeAddonListener(listener);
-          deferred.reject(new Error("Uninstall cancelled."));
-        },
-      };
-
-      AddonManager.addAddonListener(listener);
-      addon.uninstall();
     });
-
-    return deferred.promise;
   },
 
   /**
@@ -90,26 +89,26 @@ this.AddonManagerTesting = {
    *
    * @return Promise<addon>
    */
-  installXPIFromURL: function (url, hash, name, iconURL, version) {
-    let deferred = Promise.defer();
+  installXPIFromURL(url, hash, name, iconURL, version) {
+    return new Promise((resolve, reject) => {
 
-    AddonManager.getInstallForURL(url, (install) => {
-      let fail = () => { deferred.reject(new Error("Add-on install failed.")) };
+      AddonManager.getInstallForURL(url, (install) => {
+        let fail = () => { reject(new Error("Add-on install failed.")); };
 
-      let listener = {
-        onDownloadCancelled: fail,
-        onDownloadFailed: fail,
-        onInstallCancelled: fail,
-        onInstallFailed: fail,
-        onInstallEnded: function (install, addon) {
-          deferred.resolve(addon);
-        },
-      };
+        let listener = {
+          onDownloadCancelled: fail,
+          onDownloadFailed: fail,
+          onInstallCancelled: fail,
+          onInstallFailed: fail,
+          onInstallEnded(install, addon) {
+            resolve(addon);
+          },
+        };
 
-      install.addListener(listener);
-      install.install();
-    }, "application/x-xpinstall", hash, name, iconURL, version);
+        install.addListener(listener);
+        install.install();
+      }, "application/x-xpinstall", hash, name, iconURL, version);
 
-    return deferred.promise;
+    });
   },
 };

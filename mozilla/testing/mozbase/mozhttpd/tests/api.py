@@ -4,6 +4,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 import mozfile
 import mozhttpd
 import urllib2
@@ -11,6 +13,8 @@ import os
 import unittest
 import json
 import tempfile
+
+import mozunit
 
 here = os.path.dirname(os.path.abspath(__file__))
 
@@ -263,4 +267,4 @@ class ProxyTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    mozunit.main()

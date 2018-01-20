@@ -28,10 +28,11 @@ protected:
                    const nsACString &icsString,
                    calITimezoneProvider *tzProvider,
                    calIIcsComponentParsingListener *listener) :
+        mozilla::Runnable("ParserWorker"),
         mString(icsString), mProvider(tzProvider),
         mMainThread(mainThread), mWorkerThread(workerThread)
       {
-        mListener = new nsMainThreadPtrHolder<calIIcsComponentParsingListener>(listener);
+        mListener = new nsMainThreadPtrHolder<calIIcsComponentParsingListener>("calICSService::mListener", listener);
       }
 
       NS_DECL_NSIRUNNABLE
@@ -49,6 +50,7 @@ protected:
                               nsresult status,
                               calIIcalComponent *component,
                               const nsMainThreadPtrHandle<calIIcsComponentParsingListener> &listener) :
+          mozilla::Runnable("ParserWorkerCompleter"),
           mWorkerThread(workerThread), mListener(listener),
           mComp(component), mStatus(status)
         {

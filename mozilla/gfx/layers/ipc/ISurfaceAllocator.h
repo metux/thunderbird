@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -29,6 +30,7 @@ class DataSourceSurface;
 namespace layers {
 
 class CompositableForwarder;
+class CompositorBridgeParentBase;
 class TextureForwarder;
 
 class ShmemAllocator;
@@ -57,7 +59,7 @@ mozilla::ipc::SharedMemory::SharedMemoryType OptimalShmemType();
 
 /**
  * An interface used to create and destroy surfaces that are shared with the
- * Compositor process (using shmem, or gralloc, or other platform specific memory)
+ * Compositor process (using shmem, or other platform specific memory)
  *
  * Most of the methods here correspond to methods that are implemented by IPDL
  * actors without a common polymorphic interface.
@@ -89,6 +91,8 @@ public:
   virtual LegacySurfaceDescriptorAllocator*
   AsLegacySurfaceDescriptorAllocator() { return nullptr; }
 
+  virtual CompositorBridgeParentBase* AsCompositorBridgeParentBase() { return nullptr; }
+
   // ipc info
 
   virtual bool IPCOpen() const { return true; }
@@ -96,6 +100,8 @@ public:
   virtual bool IsSameProcess() const = 0;
 
   virtual bool UsesImageBridge() const { return false; }
+
+  virtual bool UsesWebRenderBridge() const { return false; }
 
 protected:
   void Finalize() {}
@@ -114,8 +120,6 @@ public:
   virtual base::ProcessId GetParentPid() const = 0;
 
   virtual MessageLoop * GetMessageLoop() const = 0;
-
-  virtual int32_t GetMaxTextureSize() const;
 
   virtual void CancelWaitForRecycle(uint64_t aTextureId) = 0;
 };

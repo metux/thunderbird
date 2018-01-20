@@ -39,7 +39,7 @@ function run_test() {
 function get_test_plugin() {
   var pluginEnum = Services.dirsvc.get("APluginsDL", AM_Ci.nsISimpleEnumerator);
   while (pluginEnum.hasMoreElements()) {
-    let dir = pluginEnum.getNext().QueryInterface(AM_Ci.nsILocalFile);
+    let dir = pluginEnum.getNext().QueryInterface(AM_Ci.nsIFile);
     let plugin = dir.clone();
     // OSX plugin
     plugin.append("npswftest.plugin");
@@ -72,7 +72,7 @@ function getFileSize(aFile) {
   let size = 0;
   let entries = aFile.directoryEntries.QueryInterface(AM_Ci.nsIDirectoryEnumerator);
   let entry;
-  while (entry = entries.nextFile)
+  while ((entry = entries.nextFile))
     size += getFileSize(entry);
   entries.close();
   return size;

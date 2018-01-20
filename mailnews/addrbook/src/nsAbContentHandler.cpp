@@ -8,11 +8,13 @@
 #include "nsNetUtil.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
-#include "nsNullPrincipal.h"
+#include "NullPrincipal.h"
 #include "nsISupportsPrimitives.h"
 #include "plstr.h"
 #include "nsPIDOMWindow.h"
 #include "mozIDOMWindow.h"
+#include "nsIDocShell.h"
+#include "nsIDocShellTreeItem.h"
 #include "nsMsgUtils.h"
 #include "nsIMsgVCardService.h"
 #include "nsIAbCard.h"
@@ -52,16 +54,16 @@ nsAbContentHandler::HandleContent(const char *aContentType,
     if (uri)
     {
         nsAutoCString path;
-        rv = uri->GetPath(path);
+        rv = uri->GetPathQueryRef(path);
         NS_ENSURE_SUCCESS(rv,rv);
 
         const char *startOfVCard = strstr(path.get(), "add?vcard=");
         if (startOfVCard)
         {
             nsCString unescapedData;
-            
+
             // XXX todo, explain why we is escaped twice
-            MsgUnescapeString(nsDependentCString(startOfVCard + strlen("add?vcard=")), 
+            MsgUnescapeString(nsDependentCString(startOfVCard + strlen("add?vcard=")),
                                                  0, unescapedData);
 
             if (!aWindowContext)
@@ -89,9 +91,14 @@ nsAbContentHandler::HandleContent(const char *aContentType,
             ifptr->SetData(cardFromVCard);
             ifptr->SetDataIID(&NS_GET_IID(nsIAbCard));
 
-            nsCOMPtr<nsPIDOMWindowOuter> dialogWindow;
+            // Find a privileged chrome window to open the dialog from.
+            nsCOMPtr<nsIDocShell> docShell(parentWindow->GetDocShell());
+            nsCOMPtr<nsIDocShellTreeItem> root;
+            docShell->GetRootTreeItem(getter_AddRefs(root));
+            nsCOMPtr<nsPIDOMWindowOuter> window(do_GetInterface(root));
 
-            rv = parentWindow->OpenDialog(
+            nsCOMPtr<nsPIDOMWindowOuter> dialogWindow;
+            rv = window->OpenDialog(
                 NS_LITERAL_STRING("chrome://messenger/content/addressbook/abNewCardDialog.xul"),
                 EmptyString(),
                 NS_LITERAL_STRING("chrome,resizable=no,titlebar,modal,centerscreen"),
@@ -125,7 +132,7 @@ nsAbContentHandler::HandleContent(const char *aContentType,
                             uri,
                             this,
                             nullPrincipal,
-                            nsILoadInfo::SEC_NORMAL,
+                            nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                             nsIContentPolicy::TYPE_OTHER);
     NS_ENSURE_SUCCESS(rv, rv);
 

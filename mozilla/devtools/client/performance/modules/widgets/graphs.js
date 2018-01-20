@@ -13,8 +13,8 @@ const LineGraphWidget = require("devtools/client/shared/widgets/LineGraphWidget"
 const MountainGraphWidget = require("devtools/client/shared/widgets/MountainGraphWidget");
 const { CanvasGraphUtils } = require("devtools/client/shared/widgets/Graphs");
 
-const promise = require("promise");
-const EventEmitter = require("devtools/shared/event-emitter");
+const defer = require("devtools/shared/defer");
+const EventEmitter = require("devtools/shared/old-event-emitter");
 
 const { colorUtils } = require("devtools/shared/css/color");
 const { getColor } = require("devtools/client/shared/theme");
@@ -25,10 +25,8 @@ const { createTierGraphDataFromFrameNode } = require("devtools/client/performanc
 /**
  * For line graphs
  */
-// px
-const HEIGHT = 35;
-// px
-const STROKE_WIDTH = 1;
+const HEIGHT = 35; // px
+const STROKE_WIDTH = 1; // px
 const DAMPEN_VALUES = 0.95;
 const CLIPHEAD_LINE_COLOR = "#666";
 const SELECTION_LINE_COLOR = "#555";
@@ -39,12 +37,9 @@ const MEMORY_GRAPH_COLOR_NAME = "graphs-blue";
 /**
  * For timeline overview
  */
-// px
-const MARKERS_GRAPH_HEADER_HEIGHT = 14;
-// px
-const MARKERS_GRAPH_ROW_HEIGHT = 10;
-// px
-const MARKERS_GROUP_VERTICAL_PADDING = 4;
+const MARKERS_GRAPH_HEADER_HEIGHT = 14; // px
+const MARKERS_GRAPH_ROW_HEIGHT = 10; // px
+const MARKERS_GROUP_VERTICAL_PADDING = 4; // px
 
 /**
  * For optimization graph
@@ -224,7 +219,7 @@ GraphsController.prototype = {
       return;
     }
 
-    this._rendering = promise.defer();
+    this._rendering = defer();
     for (let graph of (yield this._getEnabled())) {
       yield graph.setPerformanceData(recordingData, resolution);
       this.emit("rendered", graph.graphName);

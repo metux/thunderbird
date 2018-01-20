@@ -8,8 +8,7 @@
 #include <new.h>
 #include <process.h>
 
-#include <windows.h>
-
+#include "jswin.h"
 #include "threading/Thread.h"
 
 class js::Thread::Id::PlatformData
@@ -55,24 +54,37 @@ js::Thread::Id::operator==(const Id& aOther) const
   return platformData()->id == aOther.platformData()->id;
 }
 
-js::Thread::Thread(Thread&& aOther)
+js::Thread::~Thread()
 {
+  LockGuard<Mutex> lock(idMutex_);
+  MOZ_RELEASE_ASSERT(!joinable(lock));
+}
+
+js::Thread::Thread(Thread&& aOther)
+  : idMutex_(mutexid::ThreadId)
+{
+  LockGuard<Mutex> lock(aOther.idMutex_);
   id_ = aOther.id_;
   aOther.id_ = Id();
+  options_ = aOther.options_;
 }
 
 js::Thread&
 js::Thread::operator=(Thread&& aOther)
 {
-  MOZ_RELEASE_ASSERT(!joinable());
+  LockGuard<Mutex> lock(idMutex_);
+  MOZ_RELEASE_ASSERT(!joinable(lock));
   id_ = aOther.id_;
   aOther.id_ = Id();
+  options_ = aOther.options_;
   return *this;
 }
 
 bool
 js::Thread::create(unsigned int (__stdcall* aMain)(void*), void* aArg)
 {
+  LockGuard<Mutex> lock(idMutex_);
+
   // Use _beginthreadex and not CreateThread, because threads that are
   // created with the latter leak a small amount of memory when they use
   // certain msvcrt functions and then exit.
@@ -93,7 +105,8 @@ js::Thread::create(unsigned int (__stdcall* aMain)(void*), void* aArg)
 void
 js::Thread::join()
 {
-  MOZ_RELEASE_ASSERT(joinable());
+  LockGuard<Mutex> lock(idMutex_);
+  MOZ_RELEASE_ASSERT(joinable(lock));
   DWORD r = WaitForSingleObject(id_.platformData()->handle, INFINITE);
   MOZ_RELEASE_ASSERT(r == WAIT_OBJECT_0);
   BOOL success = CloseHandle(id_.platformData()->handle);
@@ -101,10 +114,31 @@ js::Thread::join()
   id_ = Id();
 }
 
+js::Thread::Id
+js::Thread::get_id()
+{
+  LockGuard<Mutex> lock(idMutex_);
+  return id_;
+}
+
+bool
+js::Thread::joinable(LockGuard<Mutex>& lock)
+{
+  return id_ != Id();
+}
+
+bool
+js::Thread::joinable()
+{
+  LockGuard<Mutex> lock(idMutex_);
+  return joinable(lock);
+}
+
 void
 js::Thread::detach()
 {
-  MOZ_RELEASE_ASSERT(joinable());
+  LockGuard<Mutex> lock(idMutex_);
+  MOZ_RELEASE_ASSERT(joinable(lock));
   BOOL success = CloseHandle(id_.platformData()->handle);
   MOZ_RELEASE_ASSERT(success);
   id_ = Id();

@@ -70,5 +70,5 @@
 <!ENTITY languagePopup.label "ভাষা (L):">
 <!ENTITY languagePopup.accessKey "L">
 
-<!ENTITY recheckButton2.accessKey "T">
 <!ENTITY recheckButton2.label "Recheck Text">
+<!ENTITY recheckButton2.accessKey "T">

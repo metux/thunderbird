@@ -35,7 +35,7 @@ let removeAllButton;
 let signonsTree;
 
 let signonReloadDisplay = {
-  observe: function(subject, topic, data) {
+  observe(subject, topic, data) {
     if (topic == "passwordmgr-storage-changed") {
       switch (data) {
         case "addLogin":
@@ -51,23 +51,24 @@ let signonReloadDisplay = {
           if (filterField && filterField.value != "") {
             FilterPasswords();
           }
+          signonsTree.treeBoxObject.ensureRowIsVisible(signonsTree.view.selection.currentIndex);
           break;
       }
-      Services.obs.notifyObservers(null, "passwordmgr-dialog-updated", null);
+      Services.obs.notifyObservers(null, "passwordmgr-dialog-updated");
     }
   }
 };
 
 // Formatter for localization.
-let dateFormatter = new Intl.DateTimeFormat(undefined,
-                      { day: "numeric", month: "short", year: "numeric" });
-let dateAndTimeFormatter = new Intl.DateTimeFormat(undefined,
-                             { day: "numeric", month: "short", year: "numeric",
-                               hour: "numeric", minute: "numeric" });
+let dateFormatter = Services.intl.createDateTimeFormat(undefined,
+                      { dateStyle: "medium" });
+let dateAndTimeFormatter = Services.intl.createDateTimeFormat(undefined,
+                             { dateStyle: "medium",
+                               timeStyle: "short" });
 
 function Startup() {
   // be prepared to reload the display if anything changes
-  Services.obs.addObserver(signonReloadDisplay, "passwordmgr-storage-changed", false);
+  Services.obs.addObserver(signonReloadDisplay, "passwordmgr-storage-changed");
 
   signonsTree = document.getElementById("signonsTree");
   kSignonBundle = document.getElementById("signonBundle");
@@ -79,7 +80,9 @@ function Startup() {
 
   togglePasswordsButton.label = kSignonBundle.getString("showPasswords");
   togglePasswordsButton.accessKey = kSignonBundle.getString("showPasswordsAccessKey");
-  signonsIntro.textContent = kSignonBundle.getString("loginsDescriptionAll");
+  signonsIntro.textContent = kSignonBundle.getString("loginsDescriptionAll2");
+  removeAllButton.setAttribute("label", kSignonBundle.getString("removeAll.label"));
+  removeAllButton.setAttribute("accesskey", kSignonBundle.getString("removeAll.accesskey"));
   document.getElementsByTagName("treecols")[0].addEventListener("click", (event) => {
     let { target, button } = event;
     let sortField = target.getAttribute("data-field-name");
@@ -124,7 +127,7 @@ let signonsTreeView = {
   // Coalesce invalidations to avoid repeated flickering.
   _invalidateTask: new DeferredTask(() => {
     signonsTree.treeBoxObject.invalidateColumn(signonsTree.columns.siteCol);
-  }, 10),
+  }, 10, 0),
   _lastSelectedRanges: [],
   selection: null,
 
@@ -135,7 +138,7 @@ let signonsTreeView = {
       return "";
     }
 
-    const signon = this._filterSet.length ? this._filterSet[row] : signons[row];
+    const signon = GetVisibleLogins()[row];
 
     // We already have the favicon URL or we started to fetch (value is null).
     if (this._faviconMap.has(signon.hostname)) {
@@ -158,7 +161,7 @@ let signonsTreeView = {
   getCellValue(row, column) {},
   getCellText(row, column) {
     let time;
-    let signon = this._filterSet.length ? this._filterSet[row] : signons[row];
+    let signon = GetVisibleLogins()[row];
     switch (column.id) {
       case "siteCol":
         return signon.httpRealm ?
@@ -202,8 +205,7 @@ let signonsTreeView = {
     return "";
   },
   setCellText(row, col, value) {
-    // If there is a filter, _filterSet needs to be used, otherwise signons is used.
-    let table = signonsTreeView._filterSet.length ? signonsTreeView._filterSet : signons;
+    let table = GetVisibleLogins();
     function _editLogin(field) {
       if (value == table[row][field]) {
         return;
@@ -228,7 +230,7 @@ let signonsTreeView = {
 };
 
 function SortTree(column, ascending) {
-  let table = signonsTreeView._filterSet.length ? signonsTreeView._filterSet : signons;
+  let table = GetVisibleLogins();
   // remember which item was selected so we can restore it after the sort
   let selections = GetTreeSelections();
   let selectedNumber = selections.length ? table[selections[0]].number : -1;
@@ -321,6 +323,10 @@ function LoadSignons() {
   return true;
 }
 
+function GetVisibleLogins() {
+  return signonsTreeView._filterSet.length ? signonsTreeView._filterSet : signons;
+}
+
 function GetTreeSelections() {
   let selections = [];
   let select = signonsTree.view.selection;
@@ -350,11 +356,10 @@ function SignonSelected() {
 }
 
 function DeleteSignon() {
-  let filterSet = signonsTreeView._filterSet;
-  let syncNeeded = (filterSet.length != 0);
+  let syncNeeded = (signonsTreeView._filterSet.length != 0);
   let tree = signonsTree;
   let view = signonsTreeView;
-  let table = filterSet.length ? filterSet : signons;
+  let table = GetVisibleLogins();
 
   // Turn off tree selection notifications during the deletion
   tree.view.selection.selectEventsSuppressed = true;
@@ -385,7 +390,6 @@ function DeleteSignon() {
     // update selection
     let nextSelection = (selections[0] < table.length) ? selections[0] : table.length - 1;
     tree.view.selection.select(nextSelection);
-    tree.treeBoxObject.ensureRowIsVisible(nextSelection);
   } else {
     // disable buttons
     removeButton.setAttribute("disabled", "true");
@@ -396,22 +400,18 @@ function DeleteSignon() {
 }
 
 function DeleteAllSignons() {
-  let prompter = Cc["@mozilla.org/embedcomp/prompt-service;1"]
-                           .getService(Ci.nsIPromptService);
-
   // Confirm the user wants to remove all passwords
   let dummy = { value: false };
-  if (prompter.confirmEx(window,
-                         kSignonBundle.getString("removeAllPasswordsTitle"),
-                         kSignonBundle.getString("removeAllPasswordsPrompt"),
-                         prompter.STD_YES_NO_BUTTONS + prompter.BUTTON_POS_1_DEFAULT,
-                         null, null, null, null, dummy) == 1) // 1 == "No" button
+  if (Services.prompt.confirmEx(window,
+    kSignonBundle.getString("removeAllPasswordsTitle"),
+    kSignonBundle.getString("removeAllPasswordsPrompt"),
+    Services.prompt.STD_YES_NO_BUTTONS + Services.prompt.BUTTON_POS_1_DEFAULT,
+    null, null, null, null, dummy) == 1) // 1 == "No" button
     return;
 
-  let filterSet = signonsTreeView._filterSet;
-  let syncNeeded = (filterSet.length != 0);
+  let syncNeeded = signonsTreeView._filterSet.length != 0;
   let view = signonsTreeView;
-  let table = filterSet.length ? filterSet : signons;
+  let table = GetVisibleLogins();
 
   // remove all items from table and place in deleted table
   for (let i = 0; i < table.length; i++) {
@@ -447,19 +447,18 @@ function TogglePasswordVisible() {
 
   // Notify observers that the password visibility toggling is
   // completed.  (Mostly useful for tests)
-  Services.obs.notifyObservers(null, "passwordmgr-password-toggle-complete", null);
+  Services.obs.notifyObservers(null, "passwordmgr-password-toggle-complete");
   Services.telemetry.getHistogramById("PWMGR_MANAGE_VISIBILITY_TOGGLED").add(showingPasswords);
 }
 
 function AskUserShowPasswords() {
-  let prompter = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIPromptService);
   let dummy = { value: false };
 
   // Confirm the user wants to display passwords
-  return prompter.confirmEx(window,
+  return Services.prompt.confirmEx(window,
           null,
-          kSignonBundle.getString("noMasterPasswordPrompt"), prompter.STD_YES_NO_BUTTONS,
-          null, null, null, null, dummy) == 0;    // 0=="Yes" button
+          kSignonBundle.getString("noMasterPasswordPrompt"), Services.prompt.STD_YES_NO_BUTTONS,
+          null, null, null, null, dummy) == 0; // 0=="Yes" button
 }
 
 function FinalizeSignonDeletions(syncNeeded) {
@@ -488,6 +487,7 @@ function HandleSignonKeyPress(e) {
       (AppConstants.platform == "macosx" &&
        e.keyCode == KeyboardEvent.DOM_VK_BACK_SPACE)) {
     DeleteSignon();
+    e.preventDefault();
   }
 }
 
@@ -554,7 +554,9 @@ function SignonClearFilter() {
   }
   signonsTreeView._lastSelectedRanges = [];
 
-  signonsIntro.textContent = kSignonBundle.getString("loginsDescriptionAll");
+  signonsIntro.textContent = kSignonBundle.getString("loginsDescriptionAll2");
+  removeAllButton.setAttribute("label", kSignonBundle.getString("removeAll.label"));
+  removeAllButton.setAttribute("accesskey", kSignonBundle.getString("removeAll.accesskey"));
 }
 
 function FocusFilterBox() {
@@ -623,6 +625,8 @@ function FilterPasswords() {
     signonsTreeView.selection.select(0);
 
   signonsIntro.textContent = kSignonBundle.getString("loginsDescriptionFiltered");
+  removeAllButton.setAttribute("label", kSignonBundle.getString("removeAllShown.label"));
+  removeAllButton.setAttribute("accesskey", kSignonBundle.getString("removeAllShown.accesskey"));
 }
 
 function CopyPassword() {
@@ -634,7 +638,7 @@ function CopyPassword() {
   let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].
                   getService(Ci.nsIClipboardHelper);
   let row = signonsTree.currentIndex;
-  let password = signonsTreeView.getCellText(row, {id : "passwordCol" });
+  let password = signonsTreeView.getCellText(row, {id: "passwordCol" });
   clipboard.copyString(password);
   Services.telemetry.getHistogramById("PWMGR_MANAGE_COPIED_PASSWORD").add(1);
 }
@@ -644,7 +648,7 @@ function CopyUsername() {
   let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].
                   getService(Ci.nsIClipboardHelper);
   let row = signonsTree.currentIndex;
-  let username = signonsTreeView.getCellText(row, {id : "userCol" });
+  let username = signonsTreeView.getCellText(row, {id: "userCol" });
   clipboard.copyString(username);
   Services.telemetry.getHistogramById("PWMGR_MANAGE_COPIED_USERNAME").add(1);
 }
@@ -703,7 +707,7 @@ function masterPasswordLogin(noPasswordCallback) {
   // So there's a master password. But since checkPassword didn't succeed, we're logged out (per nsIPK11Token.idl).
   try {
     // Relogin and ask for the master password.
-    token.login(true);  // 'true' means always prompt for token password. User will be prompted until
+    token.login(true); // 'true' means always prompt for token password. User will be prompted until
                         // clicking 'Cancel' or entering the correct password.
   } catch (e) {
     // An exception will be thrown if the user cancels the login prompt dialog.

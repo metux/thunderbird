@@ -6,12 +6,14 @@
 
 package org.mozilla.gecko.util;
 
+import android.content.ComponentName;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.CheckResult;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
+import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.mozglue.SafeIntent;
 
 import java.util.HashMap;

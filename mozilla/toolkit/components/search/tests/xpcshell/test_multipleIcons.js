@@ -8,15 +8,13 @@
 "use strict";
 
 function run_test() {
-  removeMetadata();
-  updateAppInfo();
   useHttpServer();
 
   run_next_test();
 }
 
-add_task(function* test_multipleIcons() {
-  let [engine] = yield addTestEngines([
+add_task(async function test_multipleIcons() {
+  let [engine] = await addTestEngines([
     { name: "IconsTest", xmlFileName: "engineImages.xml" },
   ]);
 
@@ -47,9 +45,9 @@ add_task(function* test_multipleIcons() {
   }));
 });
 
-add_task(function* test_icon_not_in_file() {
+add_task(async function test_icon_not_in_file() {
   let engineUrl = gDataUrl + "engine-fr.xml";
-  let engine = yield new Promise((resolve, reject) => {
+  let engine = await new Promise((resolve, reject) => {
     Services.search.addEngine(engineUrl, null, "data:image/x-icon;base64,ico16",
                               false, {onSuccess: resolve, onError: reject});
   });

@@ -16,6 +16,7 @@ namespace js {
 class BaseShape;
 class LazyScript;
 class ObjectGroup;
+class RegExpShared;
 class Shape;
 class Scope;
 namespace jit {
@@ -40,9 +41,11 @@ enum class TraceKind
     // Note: The order here is determined by our Value packing. Other users
     //       should sort alphabetically, for consistency.
     Object = 0x00,
-    String = 0x01,
-    Symbol = 0x02,
-    Script = 0x03,
+    String = 0x02,
+    Symbol = 0x03,
+
+    // 0x1 is not used for any GCThing Value tag, so we use it for Script.
+    Script = 0x01,
 
     // Shape details are exposed through JS_TraceShapeCycleCollectorChildren.
     Shape = 0x04,
@@ -57,13 +60,15 @@ enum class TraceKind
     BaseShape = 0x0F,
     JitCode = 0x1F,
     LazyScript = 0x2F,
-    Scope = 0x3F
+    Scope = 0x3F,
+    RegExpShared = 0x4F
 };
 const static uintptr_t OutOfLineTraceKindMask = 0x07;
 static_assert(uintptr_t(JS::TraceKind::BaseShape) & OutOfLineTraceKindMask, "mask bits are set");
 static_assert(uintptr_t(JS::TraceKind::JitCode) & OutOfLineTraceKindMask, "mask bits are set");
 static_assert(uintptr_t(JS::TraceKind::LazyScript) & OutOfLineTraceKindMask, "mask bits are set");
 static_assert(uintptr_t(JS::TraceKind::Scope) & OutOfLineTraceKindMask, "mask bits are set");
+static_assert(uintptr_t(JS::TraceKind::RegExpShared) & OutOfLineTraceKindMask, "mask bits are set");
 
 // When this header is imported inside SpiderMonkey, the class definitions are
 // available and we can query those definitions to find the correct kind
@@ -86,7 +91,8 @@ struct MapTypeToTraceKind {
     D(Script,        JSScript,          true) \
     D(Shape,         js::Shape,         true) \
     D(String,        JSString,          false) \
-    D(Symbol,        JS::Symbol,        false)
+    D(Symbol,        JS::Symbol,        false) \
+    D(RegExpShared,  js::RegExpShared,  true)
 
 // Map from all public types to their trace kind.
 #define JS_EXPAND_DEF(name, type, _) \
@@ -127,7 +133,7 @@ JS_FOR_EACH_TRACEKIND(JS_EXPAND_DEF)
 #undef JS_EXPAND_DEF
 
 // Specify the RootKind for all types. Value and jsid map to special cases;
-// pointer types we can derive directly from the TraceKind; everything else
+// Cell pointer types we can derive directly from the TraceKind; everything else
 // should go in the Traceable list and use GCPolicy<T>::trace for tracing.
 template <typename T>
 struct MapTypeToRootKind {
@@ -137,6 +143,10 @@ template <typename T>
 struct MapTypeToRootKind<T*> {
     static const JS::RootKind kind =
         JS::MapTraceKindToRootKind<JS::MapTypeToTraceKind<T>::kind>::kind;
+};
+template <> struct MapTypeToRootKind<JS::Realm*> {
+    // Not a pointer to a GC cell. Use GCPolicy.
+    static const JS::RootKind kind = JS::RootKind::Traceable;
 };
 template <typename T>
 struct MapTypeToRootKind<mozilla::UniquePtr<T>> {
@@ -164,12 +174,12 @@ template <> struct MapTypeToRootKind<JSFunction*> : public MapTypeToRootKind<JSO
 // type designated by |traceKind| as the functor's template argument. The
 // |thing| parameter is optional; without it, we simply pass through |... args|.
 
-// GCC and Clang require an explicit template declaration in front of the
-// specialization of operator() because it is a dependent template. MSVC, on
-// the other hand, gets very confused if we have a |template| token there.
+// VS2017+, GCC and Clang require an explicit template declaration in front of
+// the specialization of operator() because it is a dependent template. VS2015,
+// on the other hand, gets very confused if we have a |template| token there.
 // The clang-cl front end defines _MSC_VER, but still requires the explicit
 // template declaration, so we must test for __clang__ here as well.
-#if defined(_MSC_VER) && !defined(__clang__)
+#if (defined(_MSC_VER) && _MSC_VER < 1910) && !defined(__clang__)
 # define JS_DEPENDENT_TEMPLATE_HINT
 #else
 # define JS_DEPENDENT_TEMPLATE_HINT template

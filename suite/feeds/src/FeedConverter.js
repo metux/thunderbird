@@ -129,7 +129,6 @@ FeedConverter.prototype = {
      Components.interfaces.nsIRequestObserver,
      Components.interfaces.nsISupports]),
   classID: Components.ID("{88592f45-3866-4c8e-9d8a-ab58b290fcf7}"),
-  implementationLanguage: Components.interfaces.nsIProgrammingLanguage.JAVASCRIPT,
 
   /**
    * See nsIStreamConverter.idl
@@ -252,7 +251,7 @@ FeedConverter.prototype = {
         feedService.addFeedResult(result);
 
         // Now load the actual XUL document.
-        var chromeURI = Services.io.newURI(FEEDHANDLER_URI, null, null);
+        var chromeURI = Services.io.newURI(FEEDHANDLER_URI);
         chromeChannel = Services.io.newChannelFromURIWithLoadInfo(chromeURI, loadInfo);
         // carry the origin attributes from the channel that loaded the feed.
         chromeChannel.owner = Services.scriptSecurityManager
@@ -264,7 +263,7 @@ FeedConverter.prototype = {
         chromeChannel = Services.io.newChannelFromURIWithLoadInfo(result.uri, loadInfo);
 
       chromeChannel.loadGroup = this._request.loadGroup;
-      chromeChannel.asyncOpen(this._listener, null);
+      chromeChannel.asyncOpen2(this._listener);
     }
     finally {
       this._releaseHandles();
@@ -363,7 +362,7 @@ FeedResultService.prototype = {
     switch (handler) {
     case "client":
       var clientApp = Services.prefs.getComplexValue(getPrefAppForType(feedType),
-                                                     Components.interfaces.nsILocalFile);
+                                                     Components.interfaces.nsIFile);
 
       // For the benefit of applications that might know how to deal with more
       // URLs than just feeds, send feed: URLs in the following format:
@@ -372,7 +371,7 @@ FeedResultService.prototype = {
       // http://foo.com/index.rdf -> feed://foo.com/index.rdf
       // other urls: prepend feed: scheme, e.g.
       // https://foo.com/index.rdf -> feed:https://foo.com/index.rdf
-      var feedURI = Services.io.newURI(spec, null, null);
+      var feedURI = Services.io.newURI(spec);
       if (feedURI.schemeIs("http")) {
         feedURI.scheme = "feed";
         spec = feedURI.spec;
@@ -465,8 +464,7 @@ FeedResultService.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsIFeedResultService,
                                          Components.interfaces.nsISupports]),
-  classID: Components.ID("{e5b05e9d-f037-48e4-b9a4-b99476582927}"),
-  implementationLanguage: Components.interfaces.nsIProgrammingLanguage.JAVASCRIPT
+  classID: Components.ID("{e5b05e9d-f037-48e4-b9a4-b99476582927}")
 };
 
 /**
@@ -534,7 +532,7 @@ GenericProtocolHandler.prototype = {
                   ios.newChannelFromURI2(uri, null,
                                          Services.scriptSecurityManager.getSystemPrincipal(),
                                          null,
-                                         Components.interfaces.nsILoadInfo.SEC_NORMAL,
+                                         Components.interfaces.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                          Components.interfaces.nsIContentPolicy.TYPE_OTHER);
     if (channel instanceof Components.interfaces.nsIHttpChannel)
       // Set this so we know this is supposed to be a feed
@@ -544,8 +542,7 @@ GenericProtocolHandler.prototype = {
   },
 
   QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsIProtocolHandler,
-                                         Components.interfaces.nsISupports]),
-  implementationLanguage: Components.interfaces.nsIProgrammingLanguage.JAVASCRIPT
+                                         Components.interfaces.nsISupports])
 };
 
 function FeedProtocolHandler() {

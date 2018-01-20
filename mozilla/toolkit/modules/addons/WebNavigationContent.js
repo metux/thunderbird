@@ -1,21 +1,33 @@
 "use strict";
 
-/* globals docShell */
+/* eslint-env mozilla/frame-script */
 
 var Ci = Components.interfaces;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "WebNavigationFrames",
                                   "resource://gre/modules/WebNavigationFrames.jsm");
+
+function getDocShellOuterWindowId(docShell) {
+  if (!docShell) {
+    return undefined;
+  }
+
+  return docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                 .getInterface(Ci.nsIDOMWindow)
+                 .getInterface(Ci.nsIDOMWindowUtils)
+                 .outerWindowID;
+}
 
 function loadListener(event) {
   let document = event.target;
   let window = document.defaultView;
   let url = document.documentURI;
-  let windowId = WebNavigationFrames.getWindowId(window);
-  let parentWindowId = WebNavigationFrames.getParentWindowId(window);
-  sendAsyncMessage("Extension:DOMContentLoaded", {windowId, parentWindowId, url});
+  let frameId = WebNavigationFrames.getFrameId(window);
+  let parentFrameId = WebNavigationFrames.getParentFrameId(window);
+  sendAsyncMessage("Extension:DOMContentLoaded", {frameId, parentFrameId, url});
 }
 
 addEventListener("DOMContentLoaded", loadListener);
@@ -23,17 +35,67 @@ addMessageListener("Extension:DisableWebNavigation", () => {
   removeEventListener("DOMContentLoaded", loadListener);
 });
 
+var CreatedNavigationTargetListener = {
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver, Ci.nsISupportsWeakReference]),
+
+  init() {
+    Services.obs.addObserver(this, "webNavigation-createdNavigationTarget-from-js");
+  },
+  uninit() {
+    Services.obs.removeObserver(this, "webNavigation-createdNavigationTarget-from-js");
+  },
+
+  observe(subject, topic, data) {
+    if (!(subject instanceof Ci.nsIPropertyBag2)) {
+      return;
+    }
+
+    let props = subject.QueryInterface(Ci.nsIPropertyBag2);
+
+    const createdDocShell = props.getPropertyAsInterface("createdTabDocShell", Ci.nsIDocShell);
+    const sourceDocShell = props.getPropertyAsInterface("sourceTabDocShell", Ci.nsIDocShell);
+
+    const isSourceTabDescendant = sourceDocShell.sameTypeRootTreeItem === docShell;
+
+    if (docShell !== createdDocShell && docShell !== sourceDocShell &&
+        !isSourceTabDescendant) {
+      // if the createdNavigationTarget is not related to this docShell
+      // (this docShell is not the newly created docShell, it is not the source docShell,
+      // and the source docShell is not a descendant of it)
+      // there is nothing to do here and return early.
+      return;
+    }
+
+    const isSourceTab = docShell === sourceDocShell || isSourceTabDescendant;
+
+    const sourceFrameId = WebNavigationFrames.getDocShellFrameId(sourceDocShell);
+    const createdOuterWindowId = getDocShellOuterWindowId(sourceDocShell);
+
+    let url;
+    if (props.hasKey("url")) {
+      url = props.getPropertyAsACString("url");
+    }
+
+    sendAsyncMessage("Extension:CreatedNavigationTarget", {
+      url,
+      sourceFrameId,
+      createdOuterWindowId,
+      isSourceTab,
+    });
+  },
+};
+
 var FormSubmitListener = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
-                                          Ci.nsIFormSubmitObserver,
-                                          Ci.nsISupportsWeakReference]),
+                                         Ci.nsIFormSubmitObserver,
+                                         Ci.nsISupportsWeakReference]),
   init() {
     this.formSubmitWindows = new WeakSet();
-    Services.obs.addObserver(FormSubmitListener, "earlyformsubmit", false);
+    Services.obs.addObserver(FormSubmitListener, "earlyformsubmit");
   },
 
   uninit() {
-    Services.obs.removeObserver(FormSubmitListener, "earlyformsubmit", false);
+    Services.obs.removeObserver(FormSubmitListener, "earlyformsubmit");
     this.formSubmitWindows = new WeakSet();
   },
 
@@ -155,8 +217,8 @@ var WebProgressListener = {
   sendStateChange({webProgress, locationURI, stateFlags, status}) {
     let data = {
       requestURL: locationURI.spec,
-      windowId: webProgress.DOMWindowID,
-      parentWindowId: WebNavigationFrames.getParentWindowId(webProgress.DOMWindow),
+      frameId: WebNavigationFrames.getFrameId(webProgress.DOMWindow),
+      parentFrameId: WebNavigationFrames.getParentFrameId(webProgress.DOMWindow),
       status,
       stateFlags,
     };
@@ -171,8 +233,8 @@ var WebProgressListener = {
     let data = {
       frameTransitionData,
       location: locationURI ? locationURI.spec : "",
-      windowId: webProgress.DOMWindowID,
-      parentWindowId: WebNavigationFrames.getParentWindowId(webProgress.DOMWindow),
+      frameId: WebNavigationFrames.getFrameId(webProgress.DOMWindow),
+      parentFrameId: WebNavigationFrames.getParentFrameId(webProgress.DOMWindow),
     };
 
     sendAsyncMessage("Extension:DocumentChange", data);
@@ -209,8 +271,8 @@ var WebProgressListener = {
         frameTransitionData,
         isHistoryStateUpdated, isReferenceFragmentUpdated,
         location: locationURI ? locationURI.spec : "",
-        windowId: webProgress.DOMWindowID,
-        parentWindowId: WebNavigationFrames.getParentWindowId(webProgress.DOMWindow),
+        frameId: WebNavigationFrames.getFrameId(webProgress.DOMWindow),
+        parentFrameId: WebNavigationFrames.getParentFrameId(webProgress.DOMWindow),
       };
 
       sendAsyncMessage("Extension:HistoryChange", data);
@@ -256,11 +318,13 @@ var WebProgressListener = {
 var disabled = false;
 WebProgressListener.init();
 FormSubmitListener.init();
+CreatedNavigationTargetListener.init();
 addEventListener("unload", () => {
   if (!disabled) {
     disabled = true;
     WebProgressListener.uninit();
     FormSubmitListener.uninit();
+    CreatedNavigationTargetListener.uninit();
   }
 });
 addMessageListener("Extension:DisableWebNavigation", () => {
@@ -268,5 +332,6 @@ addMessageListener("Extension:DisableWebNavigation", () => {
     disabled = true;
     WebProgressListener.uninit();
     FormSubmitListener.uninit();
+    CreatedNavigationTargetListener.uninit();
   }
 });

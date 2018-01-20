@@ -10,9 +10,7 @@
   // For UnrestrictedDoubleOrKeyframeAnimationOptions
 #include "mozilla/dom/AnimationEffectTiming.h"
 #include "mozilla/dom/KeyframeEffectBinding.h"
-#include "mozilla/KeyframeUtils.h"
 #include "nsDOMMutationObserver.h" // For nsAutoAnimationMutationBatch
-#include "nsIScriptError.h"
 
 namespace mozilla {
 namespace dom {
@@ -113,8 +111,6 @@ KeyframeEffect::SetTarget(const Nullable<ElementOrCSSPseudoElement>& aTarget)
     RefPtr<nsStyleContext> styleContext = GetTargetStyleContext();
     if (styleContext) {
       UpdateProperties(styleContext);
-    } else if (mEffectOptions.mSpacingMode == SpacingMode::paced) {
-      KeyframeUtils::ApplyDistributeSpacing(mKeyframes);
     }
 
     MaybeUpdateFrameForCompositor();
@@ -125,19 +121,23 @@ KeyframeEffect::SetTarget(const Nullable<ElementOrCSSPseudoElement>& aTarget)
     if (mAnimation) {
       nsNodeUtils::AnimationAdded(mAnimation);
     }
-  } else if (mEffectOptions.mSpacingMode == SpacingMode::paced) {
-    // New target is null, so fall back to distribute spacing.
-    KeyframeUtils::ApplyDistributeSpacing(mKeyframes);
   }
+
+  // If the new target frame is also oversized we should probably record that
+  // too so we have a more complete picture of the type of frame sizes we
+  // encounter, hence we reset the telemetry flag here.
+  mRecordedContentTooLarge = false;
+  mRecordedFrameSize = false;
 }
 
 void
 KeyframeEffect::SetIterationComposite(
-  const IterationCompositeOperation& aIterationComposite)
+  const IterationCompositeOperation& aIterationComposite,
+  CallerType aCallerType)
 {
   // Ignore iterationComposite if the Web Animations API is not enabled,
   // then the default value 'Replace' will be used.
-  if (!AnimationUtils::IsCoreAPIEnabledForCaller()) {
+  if (!AnimationUtils::IsCoreAPIEnabledForCaller(aCallerType)) {
     return;
   }
 
@@ -154,46 +154,13 @@ KeyframeEffect::SetIterationComposite(
 }
 
 void
-KeyframeEffect::SetSpacing(JSContext* aCx,
-                           const nsAString& aSpacing,
-                           ErrorResult& aRv)
+KeyframeEffect::SetComposite(const CompositeOperation& aComposite)
 {
-  SpacingMode spacingMode = SpacingMode::distribute;
-  nsCSSPropertyID pacedProperty = eCSSProperty_UNKNOWN;
-  nsAutoString invalidPacedProperty;
-  KeyframeEffectParams::ParseSpacing(aSpacing,
-                                     spacingMode,
-                                     pacedProperty,
-                                     invalidPacedProperty,
-                                     aRv);
-  if (aRv.Failed()) {
+  if (mEffectOptions.mComposite == aComposite) {
     return;
   }
 
-  if (!invalidPacedProperty.IsEmpty()) {
-    const char16_t* params[] = { invalidPacedProperty.get() };
-    nsIDocument* doc = AnimationUtils::GetCurrentRealmDocument(aCx);
-    nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                    NS_LITERAL_CSTRING("Animation"),
-                                    doc,
-                                    nsContentUtils::eDOM_PROPERTIES,
-                                    "UnanimatablePacedProperty",
-                                    params, ArrayLength(params));
-  }
-
-  if (mEffectOptions.mSpacingMode == spacingMode &&
-      mEffectOptions.mPacedProperty == pacedProperty) {
-    return;
-  }
-
-  mEffectOptions.mSpacingMode = spacingMode;
-  mEffectOptions.mPacedProperty = pacedProperty;
-
-  // Apply spacing. We apply distribute here. If the new spacing is paced,
-  // UpdateProperties() will apply it.
-  if (mEffectOptions.mSpacingMode == SpacingMode::distribute) {
-    KeyframeUtils::ApplyDistributeSpacing(mKeyframes);
-  }
+  mEffectOptions.mComposite = aComposite;
 
   if (mAnimation && mAnimation->IsRelevant()) {
     nsNodeUtils::AnimationChanged(mAnimation);

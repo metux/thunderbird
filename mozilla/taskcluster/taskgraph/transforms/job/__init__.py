@@ -15,13 +15,19 @@ import copy
 import logging
 import os
 
-from taskgraph.transforms.base import validate_schema, TransformSequence
+from taskgraph.transforms.base import TransformSequence
+from taskgraph.util.schema import (
+    validate_schema,
+    Schema,
+)
+from taskgraph.util.workertypes import worker_type_implementation
 from taskgraph.transforms.task import task_description_schema
 from voluptuous import (
+    Any,
+    Extra,
     Optional,
     Required,
-    Schema,
-    Extra,
+    Exclusive,
 )
 
 logger = logging.getLogger(__name__)
@@ -43,18 +49,34 @@ job_description_schema = Schema({
     # taskcluster/taskgraph/transforms/task.py for the schema details.
     Required('description'): task_description_schema['description'],
     Optional('attributes'): task_description_schema['attributes'],
+    Optional('job-from'): task_description_schema['job-from'],
     Optional('dependencies'): task_description_schema['dependencies'],
     Optional('expires-after'): task_description_schema['expires-after'],
     Optional('routes'): task_description_schema['routes'],
     Optional('scopes'): task_description_schema['scopes'],
+    Optional('tags'): task_description_schema['tags'],
     Optional('extra'): task_description_schema['extra'],
+    Optional('notifications'): task_description_schema['notifications'],
     Optional('treeherder'): task_description_schema['treeherder'],
     Optional('index'): task_description_schema['index'],
     Optional('run-on-projects'): task_description_schema['run-on-projects'],
-    Optional('coalesce-name'): task_description_schema['coalesce-name'],
-    Optional('worker-type'): task_description_schema['worker-type'],
-    Required('worker'): task_description_schema['worker'],
-    Optional('when'): task_description_schema['when'],
+    Optional('shipping-phase'): task_description_schema['shipping-phase'],
+    Optional('shipping-product'): task_description_schema['shipping-product'],
+    Optional('coalesce'): task_description_schema['coalesce'],
+    Optional('always-target'): task_description_schema['always-target'],
+    Exclusive('optimization', 'optimization'): task_description_schema['optimization'],
+    Optional('needs-sccache'): task_description_schema['needs-sccache'],
+
+    # The "when" section contains descriptions of the circumstances under which
+    # this task should be included in the task graph.  This will be converted
+    # into an optimization, so it cannot be specified in a job description that
+    # also gives 'optimization'.
+    Exclusive('when', 'optimization'): Any({
+        # This task only needs to be run if a file matching one of the given
+        # patterns has changed in the push.  The patterns use the mozpack
+        # match function (python/mozbuild/mozpack/path.py).
+        Optional('files-changed'): [basestring],
+    }),
 
     # A description of how to run this job.
     'run': {
@@ -65,6 +87,12 @@ job_description_schema = Schema({
         # own schema.
         Extra: object,
     },
+
+    Required('worker-type'): task_description_schema['worker-type'],
+
+    # This object will be passed through to the task description, with additions
+    # provided by the job's run-using function
+    Optional('worker'): dict,
 })
 
 transforms = TransformSequence()
@@ -74,7 +102,33 @@ transforms = TransformSequence()
 def validate(config, jobs):
     for job in jobs:
         yield validate_schema(job_description_schema, job,
-                              "In job {!r}:".format(job['name']))
+                              "In job {!r}:".format(job.get('name', job.get('label'))))
+
+
+@transforms.add
+def rewrite_when_to_optimization(config, jobs):
+    for job in jobs:
+        when = job.pop('when', {})
+        if not when:
+            yield job
+            continue
+
+        files_changed = when.get('files-changed')
+
+        # add some common files
+        files_changed.extend([
+            '{}/**'.format(config.path),
+            'taskcluster/taskgraph/**',
+        ])
+        if 'in-tree' in job.get('worker', {}).get('docker-image', {}):
+            files_changed.append('taskcluster/docker/{}/**'.format(
+                job['worker']['docker-image']['in-tree']))
+
+        # "only when files changed" implies "skip if files have not changed"
+        job['optimization'] = {'skip-unless-changed': files_changed}
+
+        assert 'when' not in job
+        yield job
 
 
 @transforms.add
@@ -87,8 +141,19 @@ def make_task_description(config, jobs):
             if 'name' not in job:
                 raise Exception("job has neither a name nor a label")
             job['label'] = '{}-{}'.format(config.kind, job['name'])
-        if job['name']:
+        if job.get('name'):
             del job['name']
+
+        impl, os = worker_type_implementation(job['worker-type'])
+        if os:
+            job.setdefault('tags', {})['os'] = os
+        if impl:
+            job.setdefault('tags', {})['worker-implementation'] = impl
+        worker = job.setdefault('worker', {})
+        assert 'implementation' not in worker
+        worker['implementation'] = impl
+        if os:
+            worker['os'] = os
 
         taskdesc = copy.deepcopy(job)
 
@@ -101,11 +166,12 @@ def make_task_description(config, jobs):
 
         # give the function for job.run.using on this worker implementation a
         # chance to set up the task description.
-        configure_taskdesc_for_run(config, job, taskdesc)
+        configure_taskdesc_for_run(config, job, taskdesc, impl)
         del taskdesc['run']
 
         # yield only the task description, discarding the job description
         yield taskdesc
+
 
 # A registry of all functions decorated with run_job_using
 registry = {}
@@ -129,7 +195,7 @@ def run_job_using(worker_implementation, run_using, schema=None):
     return wrap
 
 
-def configure_taskdesc_for_run(config, job, taskdesc):
+def configure_taskdesc_for_run(config, job, taskdesc, worker_implementation):
     """
     Run the appropriate function for this job against the given task
     description.
@@ -141,7 +207,6 @@ def configure_taskdesc_for_run(config, job, taskdesc):
     if run_using not in registry:
         raise Exception("no functions for run.using {!r}".format(run_using))
 
-    worker_implementation = job['worker']['implementation']
     if worker_implementation not in registry[run_using]:
         raise Exception("no functions for run.using {!r} on {!r}".format(
             run_using, worker_implementation))

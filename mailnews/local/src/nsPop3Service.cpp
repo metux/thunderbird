@@ -138,7 +138,7 @@ nsresult nsPop3Service::GetMail(bool downloadNewMail,
     rv = RunPopUrl(server, url);
 
   if (aURL) // we already have a ref count on pop3url...
-    NS_IF_ADDREF(*aURL = url);
+    url.forget(aURL);
 
   return rv;
 }
@@ -466,11 +466,11 @@ void nsPop3Service::AlertServerBusy(nsIMsgMailNewsUrl *url)
   nsString alertString;
   nsString dialogTitle;
   bundle->FormatStringFromName(
-    u"pop3ServerBusy",
-    params, 1, getter_Copies(alertString));
+    "pop3ServerBusy",
+    params, 1, alertString);
   bundle->FormatStringFromName(
-    u"pop3ErrorDialogTitle",
-    params, 1, getter_Copies(dialogTitle));
+    "pop3ErrorDialogTitle",
+    params, 1, dialogTitle);
   if (!alertString.IsEmpty())
     dialog->Alert(dialogTitle.get(), alertString.get());
 }
@@ -557,7 +557,7 @@ nsPop3Service::GetDefaultLocalPath(nsIFile **aResult)
         NS_ASSERTION(NS_SUCCEEDED(rv), "Failed to set root dir pref.");
     }
 
-    NS_IF_ADDREF(*aResult = localFile);
+    localFile.forget(aResult);
     return NS_OK;
 }
 

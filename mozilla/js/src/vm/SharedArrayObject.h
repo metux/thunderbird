@@ -92,8 +92,10 @@ class SharedArrayRawBuffer
 
     uint32_t refcount() const { return refcount_; }
 
-    void addReference();
+    MOZ_MUST_USE bool addReference();
     void dropReference();
+
+    static int32_t liveBuffers();
 };
 
 /*
@@ -127,6 +129,7 @@ class SharedArrayBufferObject : public ArrayBufferObjectMaybeShared
     static const uint8_t RESERVED_SLOTS = 1;
 
     static const Class class_;
+    static const Class protoClass_;
 
     static bool byteLengthGetter(JSContext* cx, unsigned argc, Value* vp);
 
@@ -147,9 +150,9 @@ class SharedArrayBufferObject : public ArrayBufferObjectMaybeShared
     static void addSizeOfExcludingThis(JSObject* obj, mozilla::MallocSizeOf mallocSizeOf,
                                        JS::ClassInfo* info);
 
-    static void copyData(Handle<SharedArrayBufferObject*> toBuffer,
-                         Handle<SharedArrayBufferObject*> fromBuffer,
-                         uint32_t fromIndex, uint32_t count);
+    static void copyData(Handle<SharedArrayBufferObject*> toBuffer, uint32_t toIndex,
+                         Handle<SharedArrayBufferObject*> fromBuffer, uint32_t fromIndex,
+                         uint32_t count);
 
     SharedArrayRawBuffer* rawBufferObject() const;
 

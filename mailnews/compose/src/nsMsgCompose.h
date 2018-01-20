@@ -18,7 +18,6 @@
 #include "nsIAbDirectory.h"
 #include "nsIWebProgressListener.h"
 #include "nsIMimeConverter.h"
-#include "nsIUnicodeDecoder.h"
 #include "nsIMsgFolder.h"
 #include "nsIDOMNode.h"
 #include "mozIDOMWindow.h"
@@ -33,7 +32,7 @@ struct nsMsgMailList;
 
 class nsMsgCompose : public nsIMsgCompose, public nsSupportsWeakReference
 {
- public: 
+ public:
 
   nsMsgCompose();
 
@@ -105,18 +104,18 @@ protected:
    */
   nsresult LookupAddressBook(RecipientsArray &recipientList);
   bool IsLastWindow();
- 
+
        // Helper function. Parameters are not checked.
   bool                                      mConvertStructs;    // for TagConvertible
-  
+
   nsCOMPtr<nsIEditor>                       m_editor;
   mozIDOMWindowProxy                        *m_window;
   nsCOMPtr<nsIDocShell>                     mDocShell;
   nsCOMPtr<nsIBaseWindow>                   m_baseWindow;
-  nsMsgCompFields                           *m_compFields;
+  RefPtr<nsMsgCompFields>                   m_compFields;
   nsCOMPtr<nsIMsgIdentity>                  m_identity;
   bool                                      m_composeHTML;
-  QuotingOutputStreamListener               *mQuoteStreamListener;
+  RefPtr<QuotingOutputStreamListener>       mQuoteStreamListener;
   nsCOMPtr<nsIOutputStream>                 mBaseStream;
 
   nsCOMPtr<nsIMsgSend>                      mMsgSend;           // for composition back end
@@ -133,7 +132,7 @@ protected:
   nsMsgDispositionState                     mDraftDisposition;
   nsCOMPtr <nsIMsgDBHdr>                    mOrigMsgHdr;
 
-  nsCString                                 mSmtpPassword;
+  nsString                                  mSmtpPassword;
   nsCString                                 mHtmlToQuote;
 
   nsTObserverArray<nsCOMPtr<nsIMsgComposeStateListener> > mStateListeners;
@@ -191,15 +190,13 @@ private:
     nsCOMPtr<nsIMsgDBHdr>       mOrigMsgHdr;
     nsString                    mCiteReference;
     nsCOMPtr<nsIMimeConverter>  mMimeConverter;
-    nsCOMPtr<nsIUnicodeDecoder> mUnicodeDecoder;
     int32_t                     mUnicodeBufferCharacterLength;
-    char16_t*                   mUnicodeConversionBuffer;
     bool                        mQuoteOriginal;
     nsCString                   mHtmlToQuote;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
-// This is the listener class for the send operation. We have to create this class 
+// This is the listener class for the send operation. We have to create this class
 // to listen for message send completion and eventually notify the caller
 ////////////////////////////////////////////////////////////////////////////////////
 class nsMsgComposeSendListener : public nsIMsgComposeSendListener, public nsIMsgSendListener, public nsIMsgCopyServiceListener, public nsIWebProgressListener
@@ -215,10 +212,10 @@ public:
 
   // nsIMsgSendListener interface
   NS_DECL_NSIMSGSENDLISTENER
-  
+
   // nsIMsgCopyServiceListener interface
   NS_DECL_NSIMSGCOPYSERVICELISTENER
-  
+
   // nsIWebProgressListener interface
   NS_DECL_NSIWEBPROGRESSLISTENER
 

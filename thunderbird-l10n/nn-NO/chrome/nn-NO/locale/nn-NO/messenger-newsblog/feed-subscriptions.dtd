@@ -1,32 +1,42 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-<!-- Subscription Dialog -->
 
-<!ENTITY feedSubscriptions.label     "Abonnement på nyhendekjelder">
-<!ENTITY learnMore.label             "Les meir om nyhendekjelder">
+<!-- Subscription Dialog -->
+<!ENTITY feedSubscriptions.label     "RSS-abonnement">
+<!ENTITY learnMore.label             "Les meir om RSS-kanalar">
 
 <!ENTITY feedTitle.label             "Tittel:">
 <!ENTITY feedTitle.accesskey         "T">
 
-<!ENTITY feedLocation.label          "Kjelde-URL:">
+<!ENTITY feedLocation.label          "Kanal-URL:">
 <!ENTITY feedLocation.accesskey      "K">
 <!ENTITY feedLocation.placeholder    "Skriv inn ein gyldig nyhendeskjelde-url å leggja til">
 <!ENTITY locationValidate.label      "Valider">
 <!ENTITY validateText.label          "Kontroller validering og hent gyldig url.">
 
-<!ENTITY feedFolder.label            "Lagra artiklar i:">
+<!ENTITY feedFolder.label            "Lagre artiklar i:">
 <!ENTITY feedFolder.accesskey        "L">
+
+<!-- Account Settings and Subscription Dialog -->
+<!ENTITY biffStart.label             "Søk etter nye artiklar kvar(t)  ">
+<!ENTITY biffStart.accesskey         "k">
+<!ENTITY biffMinutes.label           "minutt">
+<!ENTITY biffMinutes.accesskey       "n">
+<!ENTITY biffDays.label              "dagar">
+<!ENTITY biffDays.accesskey          "d">
+<!ENTITY recommendedUnits.label      "Utgjevaren tilrår:">
 
 <!ENTITY quickMode.label             "Vis artikkeloppsummering i staden for å lasta nettsida">
 <!ENTITY quickMode.accesskey         "V">
 
-<!ENTITY autotagEnable.label         "Automatisk lag taggar frå kjelda sitt &lt;kategori&gt;-namn">
+<!ENTITY autotagEnable.label         "Lag automatiskt etikettar frå &lt;kategori&gt; kanalnamn">
 <!ENTITY autotagEnable.accesskey     "A">
 <!ENTITY autotagUsePrefix.label      "Prefiks på taggar:">
 <!ENTITY autotagUsePrefix.accesskey  "P">
 <!ENTITY autoTagPrefix.placeholder   "Skriv inn taggprefiks">
 
+<!-- Subscription Dialog -->
 <!ENTITY button.addFeed.label        "Legg til">
 <!ENTITY button.addFeed.accesskey    "L">
 <!ENTITY button.updateFeed.label     "Rediger">
@@ -37,7 +47,7 @@
 <!ENTITY button.importOPML.accesskey "I">
 <!ENTITY button.exportOPML.label     "Eksporter">
 <!ENTITY button.exportOPML.accesskey "E">
-<!ENTITY button.exportOPML.tooltip   "Eksporter nyhendekjelder med mappestruktur; ctrl+klikk eller ctrl+enter for å eksportera nyhendekjelder som ei liste">
+<!ENTITY button.exportOPML.tooltip   "Eksporter kanalar med mappestruktur; ctrl+klikk eller ctrl+enter for å eksportere kanalar som ei liste">
 
 <!ENTITY cmd.close.commandKey        "w">
 <!ENTITY button.close.label          "Lukk">

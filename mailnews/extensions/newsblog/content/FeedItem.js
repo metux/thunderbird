@@ -6,10 +6,7 @@
 function FeedItem()
 {
   this.mDate = FeedUtils.getValidRFC5322Date();
-  this.mUnicodeConverter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
-                           createInstance(Ci.nsIScriptableUnicodeConverter);
-  this.mParserUtils = Cc["@mozilla.org/parserutils;1"].
-                      getService(Ci.nsIParserUtils);
+  this.mParserUtils = Cc["@mozilla.org/parserutils;1"].getService(Ci.nsIParserUtils);
 }
 
 FeedItem.prototype =
@@ -50,7 +47,7 @@ FeedItem.prototype =
   {
     try
     {
-      this.mURL = Services.io.newURI(aVal, null, null).spec;
+      this.mURL = Services.io.newURI(aVal).spec;
     }
     catch(ex)
     {
@@ -214,7 +211,7 @@ FeedItem.prototype =
     if (ds.hasArcOut(resource, FeedUtils.FZ_STORED))
     {
       currentValue = ds.GetTarget(resource, FeedUtils.FZ_STORED, true);
-      ds.Change(resource, FeedUtils.FZ_STORED, 
+      ds.Change(resource, FeedUtils.FZ_STORED,
                 currentValue, FeedUtils.RDF_LITERAL_TRUE);
     }
     else
@@ -222,7 +219,7 @@ FeedItem.prototype =
                 FeedUtils.RDF_LITERAL_TRUE, true);
   },
 
-  mimeEncodeSubject: function(aSubject, aCharset)
+  mimeEncodeSubject: function(aSubject)
   {
     // This routine sometimes throws exceptions for mis-encoded data so
     // wrap it with a try catch for now.
@@ -231,7 +228,7 @@ FeedItem.prototype =
     {
       newSubject = mailServices.mimeConverter.encodeMimePartIIStr_UTF8(aSubject,
                      false,
-                     aCharset, 9, 72);
+                     "UTF-8", 9, 72);
     }
     catch (ex)
     {
@@ -262,7 +259,7 @@ FeedItem.prototype =
     // the right subject length.
     title = title.replace(/[\t\r\n]+/g, " ").trim();
 
-    this.title = this.mimeEncodeSubject(title, this.characterSet);
+    this.title = this.mimeEncodeSubject(title);
 
     // If the date looks like it's in W3C-DTF format, convert it into
     // an IETF standard date.  Otherwise assume it's in IETF format.
@@ -359,10 +356,10 @@ FeedItem.prototype =
     let folder = this.feed.folder.QueryInterface(Ci.nsIMsgLocalMailFolder);
     let msgFolder = folder.QueryInterface(Ci.nsIMsgFolder);
     msgFolder.gettingNewMessages = true;
-    // Source is a unicode string, we want to save a char * string in
-    // the original charset. So convert back.
-    this.mUnicodeConverter.charset = this.characterSet;
-    let msgDBHdr = folder.addMessage(this.mUnicodeConverter.ConvertFromUnicode(source));
+    // Source is a unicode js string, as UTF-16, and we want to save a
+    // char * cpp |string| as UTF-8 bytes. The source xml doc encoding is utf8.
+    source = unescape(encodeURIComponent(source));
+    let msgDBHdr = folder.addMessage(source);
     msgDBHdr.OrFlags(Ci.nsMsgMessageFlags.FeedMsg);
     msgFolder.gettingNewMessages = false;
     this.tagItem(msgDBHdr, this.keywords);
@@ -376,14 +373,14 @@ FeedItem.prototype =
  */
   tagItem: function(aMsgDBHdr, aKeywords)
   {
-    let categoryPrefs = this.feed.categoryPrefs();
-    if (!aKeywords.length || !categoryPrefs.enabled)
+    let category = this.feed.options.category;
+    if (!aKeywords.length || !category.enabled)
       return;
 
     let msgArray = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
-    msgArray.appendElement(aMsgDBHdr, false);
+    msgArray.appendElement(aMsgDBHdr);
 
-    let prefix = categoryPrefs.prefixEnabled ? categoryPrefs.prefix : "";
+    let prefix = category.prefixEnabled ? category.prefix : "";
     let rtl = Services.prefs.getIntPref("bidi.direction") == 2;
 
     let keys = [];
@@ -454,7 +451,7 @@ function FeedEnclosure(aURL, aContentType, aLength, aTitle)
   {
     try
     {
-      this.mFileName = Services.io.newURI(this.mURL, null, null).
+      this.mFileName = Services.io.newURI(this.mURL).
                                    QueryInterface(Ci.nsIURL).
                                    fileName;
     }

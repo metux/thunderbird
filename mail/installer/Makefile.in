@@ -5,7 +5,7 @@
 STANDALONE_MAKEFILE := 1
 # DIST_SUBDIR := mail  # Not sure why TB is not using this
 
-include $(topsrcdir)/config/rules.mk
+include $(moztopsrcdir)/config/rules.mk
 
 MOZ_PKG_REMOVALS = $(srcdir)/removed-files.in
 
@@ -14,9 +14,13 @@ MOZ_PKG_MANIFEST_P = $(srcdir)/package-manifest.in
 ifndef SYSTEM_LIBXUL
 MOZ_PKG_FATAL_WARNINGS = 1
 endif
+
+DEFINES += -DPKG_LOCALE_MANIFEST=$(commtopobjdir)/mail/installer/locale-manifest.in
+MOZ_CHROME_LOCALE_ENTRIES=@RESPATH@/chrome/
+
 MOZ_PKG_DUPEFLAGS = \
 	-f $(srcdir)/allowed-dupes.mn \
-	-f $(MOZILLA_DIR)/browser/installer/allowed-dupes.mn \
+	-f $(moztopsrcdir)/browser/installer/allowed-dupes.mn \
 	$(NULL)
 
 MOZ_NONLOCALIZED_PKG_LIST = \
@@ -40,10 +44,6 @@ endif
 
 ifdef MOZ_DEBUG
 DEFINES += -DMOZ_DEBUG=1
-endif
-
-ifdef MOZ_ENABLE_GNOME_COMPONENT
-DEFINES += -DMOZ_ENABLE_GNOME_COMPONENT=1
 endif
 
 ifneq (,$(filter gtk%,$(MOZ_WIDGET_TOOLKIT)))
@@ -76,9 +76,6 @@ DEFINES += -DMOZ_ANGLE_RENDERER=$(MOZ_ANGLE_RENDERER)
 ifdef MOZ_D3DCOMPILER_VISTA_DLL
 DEFINES += -DMOZ_D3DCOMPILER_VISTA_DLL=$(MOZ_D3DCOMPILER_VISTA_DLL)
 endif
-ifdef MOZ_D3DCOMPILER_XP_DLL
-DEFINES += -DMOZ_D3DCOMPILER_XP_DLL=$(MOZ_D3DCOMPILER_XP_DLL)
-endif
 endif
 
 ifdef MOZ_UPDATER
@@ -86,6 +83,10 @@ DEFINES += -DMOZ_UPDATER=1
 endif
 
 DEFINES += -DMOZ_CHILD_PROCESS_NAME=$(MOZ_CHILD_PROCESS_NAME)
+
+ifdef MOZ_LDAP_XPCOM
+DEFINES += -DMOZ_LDAP_XPCOM=1
+endif
 
 # Set MSVC dlls version to package, if any.
 ifdef MOZ_NO_DEBUG_RTL
@@ -115,6 +116,10 @@ ifdef MAKENSISU
 DEFINES += -DHAVE_MAKENSISU=1
 endif
 
+ifdef MOZ_PREF_EXTENSIONS
+DEFINES += -DMOZ_PREF_EXTENSIONS=1
+endif
+
 ifdef MOZ_PKG_MANIFEST_P
 MOZ_PKG_MANIFEST = package-manifest
 
@@ -131,10 +136,8 @@ endif
 
 NON_OMNIJAR_FILES = defaults/messenger/mailViews.dat
 
-INSTALL_SDK = 1
-
-include $(MOZILLA_SRCDIR)/toolkit/mozapps/installer/signing.mk
-include $(MOZILLA_SRCDIR)/toolkit/mozapps/installer/packager.mk
+include $(moztopsrcdir)/toolkit/mozapps/installer/signing.mk
+include $(moztopsrcdir)/toolkit/mozapps/installer/packager.mk
 
 ifeq (bundle, $(MOZ_FS_LAYOUT))
 BINPATH = $(_BINPATH)
@@ -175,16 +178,9 @@ endif
 ifdef CLANG_CL
 DEFINES += -DCLANG_CL
 endif
-ifeq (x86,$(CPU_ARCH))
-ifdef _MSC_VER
-ifndef CLANG_CL
-DEFINES += -DWOW_HELPER
-endif
-endif
-endif
 
 libs::
-	$(MAKE) -C $(DEPTH)/mail/locales langpack
+	$(MAKE) -C $(commtopobjdir)/mail/locales langpack
 
 ifeq (WINNT,$(OS_ARCH))
 PKGCOMP_FIND_OPTS =
@@ -211,7 +207,7 @@ ifdef INSTALLER_DIR
 endif
 
 # The comm-* source stamp is already there.
-PLATFORM_SOURCE_STAMP = $(firstword $(shell hg -R "$(MOZILLA_SRCDIR)" parent --template="{node}\n" 2>/dev/null))
-PLATFORM_SOURCE_REPO = $(shell hg -R "$(MOZILLA_SRCDIR)" showconfig paths.default 2>/dev/null | sed -e "s/^ssh:/https:/")
+PLATFORM_SOURCE_STAMP = $(firstword $(shell hg -R "$(moztopsrcdir)" parent --template="{node}\n" 2>/dev/null))
+PLATFORM_SOURCE_REPO = $(shell hg -R "$(moztopsrcdir)" showconfig paths.default 2>/dev/null | sed -e "s/^ssh:/https:/")
 make-sourcestamp-file::
 	@echo "$(PLATFORM_SOURCE_REPO)/rev/$(PLATFORM_SOURCE_STAMP)" >> $(MOZ_SOURCESTAMP_FILE)

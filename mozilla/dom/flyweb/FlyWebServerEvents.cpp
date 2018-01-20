@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -35,7 +35,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(FlyWebFetchEvent, Event)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mRequest)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(FlyWebFetchEvent)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(FlyWebFetchEvent)
 NS_INTERFACE_MAP_END_INHERITING(Event)
 
 FlyWebFetchEvent::FlyWebFetchEvent(FlyWebPublishedServer* aServer,
@@ -86,6 +86,14 @@ FlyWebFetchEvent::ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue)
   RefPtr<InternalResponse> intResponse;
   if (response && response->Type() != ResponseType::Opaque) {
     intResponse = response->GetInternalResponse();
+
+    IgnoredErrorResult rv;
+    response->SetBodyUsed(aCx, rv);
+    if (NS_WARN_IF(rv.Failed())) {
+      // Let's nullify the response. In this way we end up using a NetworkError
+      // response.
+      intResponse = nullptr;
+    }
   }
 
   if (!intResponse) {

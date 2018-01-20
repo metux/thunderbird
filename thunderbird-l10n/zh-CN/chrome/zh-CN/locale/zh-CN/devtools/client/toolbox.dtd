@@ -10,19 +10,6 @@
 <!ENTITY toggleToolboxF12.keycode          "VK_F12">
 <!ENTITY toggleToolboxF12.keytext          "F12">
 
-<!ENTITY toolboxCloseButton.tooltip    "关闭开发者工具">
-
-<!-- LOCALIZATION NOTE (toolboxFramesButton): This is the label for
-  -  the iframes menu list that appears only when the document has some.
-  -  It allows you to switch the context of the whole toolbox. -->
-<!ENTITY toolboxFramesTooltip          "选择一个 iframe 作为当前的目标文档">
-
-<!-- LOCALIZATION NOTE (toolboxNoAutoHideButton): This is the label for
-  -  the button to force the popups/panels to stay visible on blur.
-  -  This is only visible in the browser toolbox as it is meant for
-  -  addon developers and Firefox contributors. -->
-<!ENTITY toolboxNoAutoHideTooltip      "禁用自动隐藏弹窗">
-
 <!-- LOCALIZATION NOTE (browserToolboxErrorMessage): This is the label
   -  shown next to error details when the Browser Toolbox is unable to open. -->
 <!ENTITY browserToolboxErrorMessage          "打开浏览器工具箱时出错：">
@@ -39,7 +26,7 @@
   -  for the checkbox option to show user agent styles in the Inspector
   -  panel. -->
 <!ENTITY options.showUserAgentStyles.label "显示浏览器样式">
-<!ENTITY options.showUserAgentStyles.tooltip "启用此选项将显示由浏览器加载的默认样式。">
+<!ENTITY options.showUserAgentStyles.tooltip "启用此选项将显示由浏览器载入的默认样式。">
 
 <!-- LOCALIZATION NOTE (options.collapseAttrs.label): This is the label
   -  for the checkbox option to enable collapse attributes in the Inspector
@@ -81,12 +68,12 @@
 <!-- LOCALIZATION NOTE (options.context.triggersPageRefresh): This is the
   -  triggers page refresh footnote under the advanced settings group in the
   -  options panel and is used for settings that trigger page reload. -->
-<!ENTITY options.context.triggersPageRefresh  "* 仅限当前会话，重新载入页面">
+<!ENTITY options.context.triggersPageRefresh  "* 仅限当前会话，将重新载入当前页面">
 
 <!-- LOCALIZATION NOTE (options.enableChrome.label4): This is the label for the
   -  checkbox that toggles chrome debugging, i.e. devtools.chrome.enabled
   -  boolean preference in about:config, in the options panel. -->
-<!ENTITY options.enableChrome.label5    "启用浏览器 chrome 部分和附加组件的调试工具箱">
+<!ENTITY options.enableChrome.label5    "启用浏览器界面及附加组件的调试工具箱">
 <!ENTITY options.enableChrome.tooltip3  "打开此选项将允许您使用在浏览器上下文的开发者工具（通过 工具 > Web 开发者 > 浏览器工具箱）和从“附加组件管理器”调试附加组件">
 
 <!-- LOCALIZATION NOTE (options.enableRemote.label3): This is the label for the
@@ -94,12 +81,6 @@
   -  boolean preference in about:config, in the options panel. -->
 <!ENTITY options.enableRemote.label3    "启用远程调试">
 <!ENTITY options.enableRemote.tooltip2  "打开此选项将允许开发者工具调试远端 Firefox 实例，比如 Firefox OS">
-
-<!-- LOCALIZATION NOTE (options.enableWorkers.label): This is the label for the
-  -  checkbox that toggles worker debugging, i.e. devtools.debugger.workers
-  -  boolean preference in about:config, in the options panel. -->
-<!ENTITY options.enableWorkers.label    "启用 Worker 调试（开发中）">
-<!ENTITY options.enableWorkers.tooltip  "启用此选项将允许开发者工具调试 Worker">
 
 <!-- LOCALIZATION NOTE (options.disableJavaScript.label,
   -  options.disableJavaScript.tooltip): This is the options panel label and
@@ -164,36 +145,34 @@
 <!ENTITY options.debugger.label            "调试器">
 
 <!-- LOCALIZATION NOTE (options.sourceMap.label): This is the
-   - label for the checkbox that toggles source maps in the Debugger -->
+   - label for the checkbox that toggles source maps in all tools -->
 <!ENTITY options.sourceMaps.label      "启用源映射">
-<!ENTITY options.sourceMaps.tooltip    "如果您启用此选项，来源将在调试器和控制台中映射。">
+<!ENTITY options.sourceMaps.tooltip1   "如果您启用此选项，工具中的源代码将被映射。">
 
 <!-- LOCALIZATION NOTE (options.styleeditor.label): This is the label for the
   -  heading of the group of Style Editor preferences in the options
   -  panel. -->
 <!ENTITY options.styleeditor.label            "样式编辑器">
 
-<!-- LOCALIZATION NOTE (options.stylesheetSourceMaps.label): This is the
-   - label for the checkbox that toggles showing original sources in the Style Editor -->
-<!ENTITY options.stylesheetSourceMaps.label      "显示原始来源">
-<!ENTITY options.stylesheetSourceMaps.tooltip    "在样式编辑器和查看器中显示原始代码（例如 Sass 文件）">
-
 <!-- LOCALIZATION NOTE (options.stylesheetAutocompletion.label): This is the
    - label for the checkbox that toggles autocompletion of css in the Style Editor -->
 <!ENTITY options.stylesheetAutocompletion.label      "自动补全 CSS">
 <!ENTITY options.stylesheetAutocompletion.tooltip    "在样式编辑器中自动补全您输入的 CSS 属性、值和选择器">
 
-<!-- LOCALIZATION NOTE (options.commonprefs): This is the label for the heading
-      of all preferences that affect both the Web Console and the Network
-      Monitor -->
-<!ENTITY options.commonPrefs.label           "常用首选项">
+<!-- LOCALIZATION NOTE (options.screenshot.label): This is the label for the
+   -  heading of the group of Screenshot preferences in the options
+   -  panel. -->
+<!ENTITY options.screenshot.label            "截图行为">
 
-<!-- LOCALIZATION NOTE (options.enablePersistentLogs.label): This is the
-  -  label for the checkbox that toggles persistent logs in the Web Console and
-  -  network monitor,  i.e. devtools.webconsole.persistlog a boolean preference in
-  -  about:config, in the options panel. -->
-<!ENTITY options.enablePersistentLogs.label    "启用持续日志">
-<!ENTITY options.enablePersistentLogs.tooltip  "如果您启用此选项，Web 控制台将不会在您导航到新页面时清除已输出内容">
+<!-- LOCALIZATION NOTE (options.screenshot.clipboard.label): This is the
+   - label for the checkbox that toggles screenshot to clipboard feature. -->
+<!ENTITY options.screenshot.clipboard.label      "截图到剪贴板">
+<!ENTITY options.screenshot.clipboard.tooltip    "直接将截图保存到剪贴板">
+
+<!-- LOCALIZATION NOTE (options.screenshot.audio.label): This is the
+   - label for the checkbox that toggles the camera shutter audio for screenshot tool -->
+<!ENTITY options.screenshot.audio.label      "播放相机快门声">
+<!ENTITY options.screenshot.audio.tooltip    "截图时播放相机快门声">
 
 <!-- LOCALIZATION NOTE (options.showPlatformData.label): This is the
   -  label for the checkbox that toggles the display of the platform data in the,

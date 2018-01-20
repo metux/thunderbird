@@ -18,7 +18,7 @@
 <!ENTITY newContact.accesskey "φ">
 <!ENTITY attachMenu.label "Επισύναψη">
 <!ENTITY attachMenu.accesskey "ψ">
-<!ENTITY attachFileCmd.label "Αρχείο(α)...">
+<!ENTITY attachFileCmd.label "Αρχείο(α)…">
 <!ENTITY attachFileCmd.accesskey "ρ">
 <!ENTITY attachFileCmd.key "A">
 <!ENTITY attachCloudCmd.label "Filelink">
@@ -91,14 +91,14 @@
 <!ENTITY findBarCmd.label "Εύρεση…">
 <!ENTITY findBarCmd.accesskey "F">
 <!ENTITY findBarCmd.key "F">
-<!ENTITY findReplaceCmd.label "Εύρεση και αντικατάσταση...">
+<!ENTITY findReplaceCmd.label "Εύρεση και αντικατάσταση…">
 <!ENTITY findReplaceCmd.accesskey "ρ">
 <!ENTITY findReplaceCmd.key "F">
 <!ENTITY findAgainCmd.label "Εύρεση ξανά">
 <!ENTITY findAgainCmd.accesskey "ρ">
 <!ENTITY findAgainCmd.key "G">
 <!ENTITY findAgainCmd.key2 "VK_F3">
-<!ENTITY findPrevCmd.label "Εύρεση Προηγουμένου">
+<!ENTITY findPrevCmd.label "Εύρεση προηγούμενου">
 <!ENTITY findPrevCmd.accesskey "ν">
 <!ENTITY findPrevCmd.key "G">
 <!ENTITY findPrevCmd.key2 "VK_F3">
@@ -106,7 +106,7 @@
 <!-- View Menu -->
 <!ENTITY viewMenu.label "Προβολή">
 <!ENTITY viewMenu.accesskey "β">
-<!ENTITY viewToolbarsMenuNew.label "Εργαλειοθήκες">
+<!ENTITY viewToolbarsMenuNew.label "Γραμμές εργαλείων">
 <!ENTITY viewToolbarsMenuNew.accesskey "θ">
 <!ENTITY menubarCmd.label "Γραμμή εργαλείων μενού">
 <!ENTITY menubarCmd.accesskey "μ">
@@ -178,7 +178,7 @@
 <!-- Tools Menu -->
 <!ENTITY tasksMenu.label "Εργαλεία">
 <!ENTITY tasksMenu.accesskey "γ">
-<!ENTITY messengerCmd.label "Αλληλογραφία &amp; Συζητήσεις">
+<!ENTITY messengerCmd.label "Αλληλογραφία &amp; ομάδες ειδήσεων">
 <!ENTITY messengerCmd.accesskey "γ">
 <!ENTITY messengerCmd.commandkey "1">
 <!ENTITY addressBookCmd.label "Ευρετήριο διευθύνσεων">
@@ -215,8 +215,7 @@
 <!ENTITY addressButton.tooltip "Επιλογή παραλήπτη από το Ευρετήριο Διευθύνσεων">
 <!ENTITY attachButton.tooltip "Εισαγωγή ενός συνημμένου">
 <!ENTITY spellingButton.tooltip "Ορθογραφικός έλεγχος επιλογής ή ολόκληρου του μηνύματος">
-<!ENTITY statusLanguageText.tooltip "Γλώσσα ορθογραφικού ελέγχου">
-<!ENTITY saveButton.tooltip "Αποθήκευση του μηνύματος">
+<!ENTITY saveButton.tooltip "Αποθήκευση μηνύματος">
 <!ENTITY cutButton.tooltip              "Αποκοπή">
 <!ENTITY copyButton.tooltip             "Αντιγραφή">
 <!ENTITY pasteButton.tooltip            "Επικόλληση">
@@ -230,7 +229,7 @@
 <!ENTITY fromAddr.accesskey "π">
 <!ENTITY toAddr.label "Προς:">
 <!ENTITY ccAddr.label "Κοιν:">
-<!ENTITY bccAddr.label "Κρυφ.Κοιν:">
+<!ENTITY bccAddr.label "Κρυφ. Κοιν:">
 <!ENTITY replyAddr.label "Απάντηση σε:">
 <!ENTITY newsgroupsAddr.label "Ομάδα συζήτησης:">
 <!ENTITY followupAddr.label "Συνέχεια σε:">
@@ -309,3 +308,29 @@
 <!-- Identity popup customize menuitem -->
 <!ENTITY customizeFromAddress.label "Προσαρμογή από διεύθυνση…">
 <!ENTITY customizeFromAddress.accesskey "A">
+
+<!-- Status Bar -->
+<!ENTITY languageStatusButton.tooltip "Γλώσσα ορθογραφικού ελέγχου">
+<!ENTITY encodingStatusPanel.tooltip "Κωδικοποίηση κειμένου">
+
+<!ENTITY reorderAttachmentsCmd.label "Reorder Attachments…">
+<!ENTITY reorderAttachmentsCmd.accesskey "s">
+<!ENTITY reorderAttachmentsCmd.key "x">
+<!ENTITY reorderAttachmentsPanel.label "Reorder Attachments">
+<!ENTITY moveAttachmentTopPanelBtn.label "Move to Top">
+<!ENTITY moveAttachmentTopPanelBtn.accesskey "T">
+<!ENTITY moveAttachmentUpPanelBtn.label "Move Up">
+<!ENTITY moveAttachmentUpPanelBtn.accesskey "U">
+<!ENTITY moveAttachmentBundleUpPanelBtn.label "Move together">
+<!ENTITY moveAttachmentBundleUpPanelBtn.accesskey "v">
+<!ENTITY moveAttachmentDownPanelBtn.label "Move Down">
+<!ENTITY moveAttachmentDownPanelBtn.accesskey "D">
+<!ENTITY moveAttachmentBottomPanelBtn.label "Move to Bottom">
+<!ENTITY moveAttachmentBottomPanelBtn.accesskey "B">
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.label "Sort Selection: A - Z">
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.accesskey "o">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.label "Sort Selection: Z - A">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.accesskey "o">
+
+<!ENTITY reorderAttachments.label "Reorder Attachments…">
+<!ENTITY reorderAttachments.accesskey "s">

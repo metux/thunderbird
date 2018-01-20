@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "sq": {
+      "chrome_resources": {
+        "necko": "chrome/sq/locale/sq/necko/", 
+        "global": "chrome/sq/locale/sq/global/", 
+        "messenger-region": "chrome/sq/locale/sq/messenger-region/", 
+        "chat": "chrome/sq/locale/sq/chat/", 
+        "devtools": "chrome/sq/locale/sq/devtools/client/", 
+        "pipnss": "chrome/sq/locale/sq/pipnss/", 
+        "messenger-smime": "chrome/sq/locale/sq/messenger-smime/", 
+        "messenger-newsblog": "chrome/sq/locale/sq/messenger-newsblog/", 
+        "devtools-shim": "chrome/sq/locale/sq/devtools/shim/", 
+        "alerts": "chrome/sq/locale/sq/alerts/", 
+        "messenger": "chrome/sq/locale/sq/messenger/", 
+        "editor": "chrome/sq/locale/sq/editor/", 
+        "branding": "chrome/sq/locale/sq/branding/", 
+        "mozldap": "chrome/sq/locale/sq/mozldap/", 
+        "autoconfig": "chrome/sq/locale/sq/autoconfig/", 
+        "devtools-shared": "chrome/sq/locale/sq/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/sq/locale/sq/global-platform/win/", 
+          "android": "chrome/sq/locale/sq/global-platform/unix/", 
+          "macosx": "chrome/sq/locale/sq/global-platform/mac/", 
+          "linux": "chrome/sq/locale/sq/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/sq/locale/sq/mozapps/", 
+        "pluginproblem": "chrome/sq/locale/sq/pluginproblem/", 
+        "communicator": "chrome/sq/locale/sq/communicator/", 
+        "messenger-mapi": "chrome/sq/locale/sq/messenger-mapi/", 
+        "places": "chrome/sq/locale/sq/places/", 
+        "passwordmgr": "chrome/sq/locale/sq/passwordmgr/", 
+        "pippki": "chrome/sq/locale/sq/pippki/"
+      }, 
+      "version": "20171105111141"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-sq@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "sq", 
+  "version": "58.0", 
+  "name": "Shqip Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "Besnik Bleta (contributors: Besnik Bleta)", 
+  "description": "Language pack for Thunderbird for sq"
+}

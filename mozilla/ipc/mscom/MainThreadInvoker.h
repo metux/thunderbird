@@ -8,7 +8,11 @@
 #define mozilla_mscom_MainThreadInvoker_h
 
 #include "mozilla/AlreadyAddRefed.h"
+#include "mozilla/Move.h"
 #include "mozilla/StaticPtr.h"
+#include "mozilla/TimeStamp.h"
+#include "nsCOMPtr.h"
+#include "nsThreadUtils.h"
 
 #include <windows.h>
 
@@ -23,14 +27,31 @@ public:
   MainThreadInvoker();
 
   bool Invoke(already_AddRefed<nsIRunnable>&& aRunnable);
+  const TimeDuration& GetDuration() const { return mDuration; }
   static HANDLE GetTargetThread() { return sMainThread; }
 
 private:
+  TimeDuration  mDuration;
+
   static bool InitStatics();
   static VOID CALLBACK MainThreadAPC(ULONG_PTR aParam);
 
   static HANDLE sMainThread;
 };
+
+template <typename Class, typename... Args>
+inline bool
+InvokeOnMainThread(const char* aName,
+                   Class* aObject, void (Class::*aMethod)(Args...),
+                   Args... aArgs)
+{
+  nsCOMPtr<nsIRunnable> runnable(
+    NewNonOwningRunnableMethod<Args...>(aName, aObject, aMethod,
+                                          Forward<Args>(aArgs)...));
+
+  MainThreadInvoker invoker;
+  return invoker.Invoke(runnable.forget());
+}
 
 } // namespace mscom
 } // namespace mozilla

@@ -63,7 +63,7 @@ Object.defineProperty(this, "HUDService", {
   get() {
     var tmp = {};
     Components.utils.import("resource://devtools/shared/Loader.jsm", tmp);
-    return tmp.require("devtools/client/webconsole/hudservice");
+    return tmp.require("devtools/client/webconsole/hudservice").HUDService;
   },
   configurable: true,
   enumerable: true
@@ -184,9 +184,8 @@ var gWebDeveloper = {
     var webIDEEnabled = Services.prefs.getBoolPref("devtools.webide.enabled");
     toggleCmd("Tools:WebIDE", webIDEEnabled);
 
-    var showWebIDEWidget = Services.prefs.getBoolPref("devtools.webide.widget.enabled");
     /* XXXRatty: NOT WORKING YET
-    if (webIDEEnabled && showWebIDEWidget) {
+    if (webIDEEnabled) {
       gDevToolsBrowser.installWebIDEWidget();
     } else {
       gDevToolsBrowser.uninstallWebIDEWidget();

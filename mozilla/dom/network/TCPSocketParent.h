@@ -47,25 +47,25 @@ public:
 
   TCPSocketParent() {}
 
-  virtual bool RecvOpen(const nsString& aHost, const uint16_t& aPort,
-                        const bool& useSSL, const bool& aUseArrayBuffers) override;
+  virtual mozilla::ipc::IPCResult RecvOpen(const nsString& aHost, const uint16_t& aPort,
+                                           const bool& useSSL, const bool& aUseArrayBuffers) override;
 
-  virtual bool RecvOpenBind(const nsCString& aRemoteHost,
-                            const uint16_t& aRemotePort,
-                            const nsCString& aLocalAddr,
-                            const uint16_t& aLocalPort,
-                            const bool&     aUseSSL,
-                            const bool& aUseArrayBuffers,
-                            const nsCString& aFilter) override;
+  virtual mozilla::ipc::IPCResult RecvOpenBind(const nsCString& aRemoteHost,
+                                               const uint16_t& aRemotePort,
+                                               const nsCString& aLocalAddr,
+                                               const uint16_t& aLocalPort,
+                                               const bool&     aUseSSL,
+                                               const bool&     aReuseAddrPort,
+                                               const bool& aUseArrayBuffers,
+                                               const nsCString& aFilter) override;
 
-  virtual bool RecvStartTLS() override;
-  virtual bool RecvSuspend() override;
-  virtual bool RecvResume() override;
-  virtual bool RecvClose() override;
-  virtual bool RecvData(const SendableData& aData,
-                        const uint32_t& aTrackingNumber) override;
-  virtual bool RecvRequestDelete() override;
-  bool GetInIsolatedMozBrowser();
+  virtual mozilla::ipc::IPCResult RecvStartTLS() override;
+  virtual mozilla::ipc::IPCResult RecvSuspend() override;
+  virtual mozilla::ipc::IPCResult RecvResume() override;
+  virtual mozilla::ipc::IPCResult RecvClose() override;
+  virtual mozilla::ipc::IPCResult RecvData(const SendableData& aData,
+                                           const uint32_t& aTrackingNumber) override;
+  virtual mozilla::ipc::IPCResult RecvRequestDelete() override;
 
   void FireErrorEvent(const nsAString& aName, const nsAString& aType, TCPReadyState aReadyState);
   void FireEvent(const nsAString& aType, TCPReadyState aReadyState);
@@ -77,7 +77,6 @@ public:
   nsresult GetPort(uint16_t* aPort);
 
 private:
-  virtual uint32_t GetAppId();
   virtual void ActorDestroy(ActorDestroyReason why) override;
   void SendEvent(const nsAString& aType, CallbackData aData, TCPReadyState aReadyState);
   nsresult SetFilter(const nsCString& aFilter);

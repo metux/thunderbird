@@ -12,13 +12,10 @@
 #include "mozilla/dom/Exceptions.h"
 #include "nsContentUtils.h"
 #include "nsCOMPtr.h"
-#include "nsIClassInfoImpl.h"
 #include "nsIDocument.h"
 #include "nsIDOMDOMException.h"
 #include "nsIException.h"
-#include "nsIProgrammingLanguage.h"
 #include "nsMemory.h"
-#include "prprf.h"
 #include "xpcprivate.h"
 
 #include "mozilla/dom/DOMExceptionBinding.h"
@@ -82,7 +79,7 @@ enum DOM4ErrorTypeCodeMap {
 #define DOM4_MSG_DEF(name, message, nsresult) {(nsresult), name, #name, message},
 #define DOM_MSG_DEF(val, message) {(val), NS_ERROR_GET_CODE(val), #val, message},
 
-static const struct ResultStruct
+static constexpr struct ResultStruct
 {
   nsresult mNSResult;
   uint16_t mCode;
@@ -116,8 +113,6 @@ NSResultToNameAndMessage(nsresult aNSResult,
   }
 
   NS_WARNING("Huh, someone is throwing non-DOM errors using the DOM module!");
-
-  return;
 }
 
 nsresult
@@ -144,17 +139,12 @@ NS_GetNameAndMessageForDOMNSResult(nsresult aNSResult, nsACString& aName,
 namespace mozilla {
 namespace dom {
 
-bool Exception::sEverMadeOneFromFactory = false;
-
-NS_IMPL_CLASSINFO(Exception, nullptr, nsIClassInfo::DOM_OBJECT,
-                  NS_XPCEXCEPTION_CID)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Exception)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
   NS_INTERFACE_MAP_ENTRY(Exception)
   NS_INTERFACE_MAP_ENTRY(nsIException)
   NS_INTERFACE_MAP_ENTRY(nsIXPCException)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIException)
-  NS_IMPL_QUERY_CLASSINFO(Exception)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(Exception)
@@ -165,7 +155,6 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(Exception)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Exception)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mLocation)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mData)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(Exception)
@@ -191,19 +180,6 @@ Exception::Exception(const nsACString& aMessage,
   mInitialized(false),
   mHoldingJSVal(false)
 {
-  // A little hack... The nsIGenericModule nsIClassInfo scheme relies on there
-  // having been at least one instance made via the factory. Otherwise, the
-  // shared factory/classinsance object never gets created and our QI getter
-  // for our instance's pointer to our nsIClassInfo will always return null.
-  // This is bad because it means that wrapped exceptions will never have a
-  // shared prototype. So... We force one to be created via the factory
-  // *once* and then go about our business.
-  if (!sEverMadeOneFromFactory) {
-    nsCOMPtr<nsIXPCException> e =
-        do_CreateInstance(XPC_EXCEPTION_CONTRACTID);
-    sEverMadeOneFromFactory = true;
-  }
-
   Initialize(aMessage, aResult, aName, aLocation, aData);
 }
 
@@ -362,7 +338,7 @@ Exception::ToString(JSContext* aCx, nsACString& _retval)
   static const char defaultMsg[] = "<no message>";
   static const char defaultLocation[] = "<unknown>";
   static const char format[] =
-"[Exception... \"%s\"  nsresult: \"0x%x (%s)\"  location: \"%s\"  data: %s]";
+"[Exception... \"%s\"  nsresult: \"0x%" PRIx32 " (%s)\"  location: \"%s\"  data: %s]";
 
   nsCString location;
 
@@ -390,7 +366,7 @@ Exception::ToString(JSContext* aCx, nsACString& _retval)
   const char* data = mData ? "yes" : "no";
 
   _retval.Truncate();
-  _retval.AppendPrintf(format, msg, mResult, resultName,
+  _retval.AppendPrintf(format, msg, static_cast<uint32_t>(mResult), resultName,
                        location.get(), data);
   return NS_OK;
 }
@@ -554,7 +530,7 @@ DOMException::ToString(JSContext* aCx, nsACString& aReturn)
   static const char defaultLocation[] = "<unknown>";
   static const char defaultName[] = "<unknown>";
   static const char format[] =
-    "[Exception... \"%s\"  code: \"%d\" nsresult: \"0x%x (%s)\"  location: \"%s\"]";
+    "[Exception... \"%s\"  code: \"%d\" nsresult: \"0x%" PRIx32 " (%s)\"  location: \"%s\"]";
 
   nsAutoCString location;
 
@@ -565,7 +541,7 @@ DOMException::ToString(JSContext* aCx, nsACString& aReturn)
   const char* msg = !mMessage.IsEmpty() ? mMessage.get() : defaultMsg;
   const char* resultName = !mName.IsEmpty() ? mName.get() : defaultName;
 
-  aReturn.AppendPrintf(format, msg, mCode, mResult, resultName,
+  aReturn.AppendPrintf(format, msg, mCode, static_cast<uint32_t>(mResult), resultName,
                        location.get());
 
   return NS_OK;

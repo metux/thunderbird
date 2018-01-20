@@ -1,7 +1,8 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
-* This Source Code Form is subject to the terms of the Mozilla Public
-* License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "BasicCompositor.h"
 #include "BasicLayersImpl.h"            // for FillRectWithMask
@@ -200,7 +201,6 @@ public:
 
 BasicCompositor::BasicCompositor(CompositorBridgeParent* aParent, widget::CompositorWidget* aWidget)
   : Compositor(aWidget, aParent)
-  , mDidExternalComposition(false)
   , mIsPendingEndRemoteDrawing(false)
 {
   MOZ_COUNT_CTOR(BasicCompositor);
@@ -259,9 +259,9 @@ BasicCompositor::GetTextureFactoryIdentifier()
 already_AddRefed<CompositingRenderTarget>
 BasicCompositor::CreateRenderTarget(const IntRect& aRect, SurfaceInitMode aInit)
 {
-  MOZ_ASSERT(aRect.width != 0 && aRect.height != 0, "Trying to create a render target of invalid size");
+  MOZ_ASSERT(aRect.Width() != 0 && aRect.Height() != 0, "Trying to create a render target of invalid size");
 
-  if (aRect.width * aRect.height == 0) {
+  if (aRect.Width() * aRect.Height() == 0) {
     return nullptr;
   }
 
@@ -289,9 +289,9 @@ already_AddRefed<CompositingRenderTarget>
 BasicCompositor::CreateRenderTargetForWindow(const LayoutDeviceIntRect& aRect, const LayoutDeviceIntRect& aClearRect, BufferMode aBufferMode)
 {
   MOZ_ASSERT(mDrawTarget);
-  MOZ_ASSERT(aRect.width != 0 && aRect.height != 0, "Trying to create a render target of invalid size");
+  MOZ_ASSERT(aRect.Width() != 0 && aRect.Height() != 0, "Trying to create a render target of invalid size");
 
-  if (aRect.width * aRect.height == 0) {
+  if (aRect.Width() * aRect.Height() == 0) {
     return nullptr;
   }
 
@@ -357,15 +357,102 @@ BasicCompositor::SupportsEffect(EffectTypes aEffect)
   return aEffect != EffectTypes::YCBCR && aEffect != EffectTypes::COMPONENT_ALPHA;
 }
 
+bool
+BasicCompositor::SupportsLayerGeometry() const
+{
+  return gfxPrefs::BasicLayerGeometry();
+}
+
+static RefPtr<gfx::Path>
+BuildPathFromPolygon(const RefPtr<DrawTarget>& aDT,
+                     const gfx::Polygon& aPolygon)
+{
+  MOZ_ASSERT(!aPolygon.IsEmpty());
+
+  RefPtr<PathBuilder> pathBuilder = aDT->CreatePathBuilder();
+  const nsTArray<Point4D>& points = aPolygon.GetPoints();
+
+  pathBuilder->MoveTo(points[0].As2DPoint());
+
+  for (size_t i = 1; i < points.Length(); ++i) {
+    pathBuilder->LineTo(points[i].As2DPoint());
+  }
+
+  pathBuilder->Close();
+  return pathBuilder->Finish();
+}
+
 static void
-DrawSurfaceWithTextureCoords(DrawTarget *aDest,
+DrawSurface(gfx::DrawTarget* aDest,
+            const gfx::Rect& aDestRect,
+            const gfx::Rect& /* aClipRect */,
+            const gfx::Color& aColor,
+            const gfx::DrawOptions& aOptions,
+            gfx::SourceSurface* aMask,
+            const gfx::Matrix* aMaskTransform)
+{
+  FillRectWithMask(aDest, aDestRect, aColor,
+                   aOptions, aMask, aMaskTransform);
+}
+
+static void
+DrawSurface(gfx::DrawTarget* aDest,
+            const gfx::Polygon& aPolygon,
+            const gfx::Rect& aClipRect,
+            const gfx::Color& aColor,
+            const gfx::DrawOptions& aOptions,
+            gfx::SourceSurface* aMask,
+            const gfx::Matrix* aMaskTransform)
+{
+  RefPtr<Path> path = BuildPathFromPolygon(aDest, aPolygon);
+  FillPathWithMask(aDest, path, aClipRect, aColor,
+                   aOptions, aMask, aMaskTransform);
+}
+
+static void
+DrawTextureSurface(gfx::DrawTarget* aDest,
+                   const gfx::Rect& aDestRect,
+                   const gfx::Rect& /* aClipRect */,
+                   gfx::SourceSurface* aSource,
+                   gfx::SamplingFilter aSamplingFilter,
+                   const gfx::DrawOptions& aOptions,
+                   ExtendMode aExtendMode,
+                   gfx::SourceSurface* aMask,
+                   const gfx::Matrix* aMaskTransform,
+                   const Matrix* aSurfaceTransform)
+{
+  FillRectWithMask(aDest, aDestRect, aSource, aSamplingFilter, aOptions,
+                   aExtendMode, aMask, aMaskTransform, aSurfaceTransform);
+}
+
+static void
+DrawTextureSurface(gfx::DrawTarget* aDest,
+                   const gfx::Polygon& aPolygon,
+                   const gfx::Rect& aClipRect,
+                   gfx::SourceSurface* aSource,
+                   gfx::SamplingFilter aSamplingFilter,
+                   const gfx::DrawOptions& aOptions,
+                   ExtendMode aExtendMode,
+                   gfx::SourceSurface* aMask,
+                   const gfx::Matrix* aMaskTransform,
+                   const Matrix* aSurfaceTransform)
+{
+  RefPtr<Path> path = BuildPathFromPolygon(aDest, aPolygon);
+  FillPathWithMask(aDest, path, aClipRect, aSource, aSamplingFilter, aOptions,
+                   aExtendMode, aMask, aMaskTransform, aSurfaceTransform);
+}
+
+template<typename Geometry>
+static void
+DrawSurfaceWithTextureCoords(gfx::DrawTarget* aDest,
+                             const Geometry& aGeometry,
                              const gfx::Rect& aDestRect,
-                             SourceSurface *aSource,
+                             gfx::SourceSurface* aSource,
                              const gfx::Rect& aTextureCoords,
                              gfx::SamplingFilter aSamplingFilter,
-                             const DrawOptions& aOptions,
-                             SourceSurface *aMask,
-                             const Matrix* aMaskTransform)
+                             const gfx::DrawOptions& aOptions,
+                             gfx::SourceSurface* aMask,
+                             const gfx::Matrix* aMaskTransform)
 {
   if (!aSource) {
     gfxWarning() << "DrawSurfaceWithTextureCoords problem " << gfx::hexa(aSource) << " and " << gfx::hexa(aMask);
@@ -375,8 +462,8 @@ DrawSurfaceWithTextureCoords(DrawTarget *aDest,
   // Convert aTextureCoords into aSource's coordinate space
   gfxRect sourceRect(aTextureCoords.x * aSource->GetSize().width,
                      aTextureCoords.y * aSource->GetSize().height,
-                     aTextureCoords.width * aSource->GetSize().width,
-                     aTextureCoords.height * aSource->GetSize().height);
+                     aTextureCoords.Width() * aSource->GetSize().width,
+                     aTextureCoords.Height() * aSource->GetSize().height);
 
   // Floating point error can accumulate above and we know our visible region
   // is integer-aligned, so round it out.
@@ -393,8 +480,8 @@ DrawSurfaceWithTextureCoords(DrawTarget *aDest,
   gfx::Rect unitRect(0, 0, 1, 1);
   ExtendMode mode = unitRect.Contains(aTextureCoords) ? ExtendMode::CLAMP : ExtendMode::REPEAT;
 
-  FillRectWithMask(aDest, aDestRect, aSource, aSamplingFilter, aOptions,
-                   mode, aMask, aMaskTransform, &matrix);
+  DrawTextureSurface(aDest, aGeometry, aDestRect, aSource, aSamplingFilter,
+                     aOptions, mode, aMask, aMaskTransform, &matrix);
 }
 
 static void
@@ -472,10 +559,10 @@ AttemptVideoScale(TextureSourceBasic* aSource, const SourceSurface* aSourceMask,
 
     ssse3_scale_data((uint32_t*)mapSrc.GetData(), srcSource->GetSize().width, srcSource->GetSize().height,
                      mapSrc.GetStride()/4,
-                     ((uint32_t*)dstData) + fillRect.x + (dstStride / 4) * fillRect.y, dstRect.width, dstRect.height,
+                     ((uint32_t*)dstData) + fillRect.x + (dstStride / 4) * fillRect.y, dstRect.Width(), dstRect.Height(),
                      dstStride / 4,
                      offset.x, offset.y,
-                     fillRect.width, fillRect.height);
+                     fillRect.Width(), fillRect.Height());
 
     aDest->ReleaseBits(dstData);
     return true;
@@ -554,6 +641,35 @@ BasicCompositor::DrawQuad(const gfx::Rect& aRect,
                           const gfx::Matrix4x4& aTransform,
                           const gfx::Rect& aVisibleRect)
 {
+  DrawGeometry(aRect, aRect, aClipRect, aEffectChain,
+               aOpacity, aTransform, aVisibleRect, true);
+}
+
+void
+BasicCompositor::DrawPolygon(const gfx::Polygon& aPolygon,
+                             const gfx::Rect& aRect,
+                             const gfx::IntRect& aClipRect,
+                             const EffectChain& aEffectChain,
+                             gfx::Float aOpacity,
+                             const gfx::Matrix4x4& aTransform,
+                             const gfx::Rect& aVisibleRect)
+{
+  DrawGeometry(aPolygon, aRect, aClipRect, aEffectChain,
+               aOpacity, aTransform, aVisibleRect, false);
+}
+
+
+template<typename Geometry>
+void
+BasicCompositor::DrawGeometry(const Geometry& aGeometry,
+                              const gfx::Rect& aRect,
+                              const gfx::IntRect& aClipRect,
+                              const EffectChain& aEffectChain,
+                              gfx::Float aOpacity,
+                              const gfx::Matrix4x4& aTransform,
+                              const gfx::Rect& aVisibleRect,
+                              const bool aEnableAA)
+{
   RefPtr<DrawTarget> buffer = mRenderTarget->mDrawTarget;
 
   // For 2D drawing, |dest| and |buffer| are the same surface. For 3D drawing,
@@ -614,6 +730,11 @@ BasicCompositor::DrawQuad(const gfx::Rect& aRect,
     blendMode = static_cast<EffectBlendMode*>(effect)->mBlendMode;
   }
 
+  const AntialiasMode aaMode =
+    aEnableAA ? AntialiasMode::DEFAULT : AntialiasMode::NONE;
+
+  DrawOptions drawOptions(aOpacity, blendMode, aaMode);
+
   switch (aEffectChain.mPrimaryEffect->mType) {
     case EffectTypes::SOLID_COLOR: {
       EffectSolidColor* effectSolidColor =
@@ -624,8 +745,8 @@ BasicCompositor::DrawQuad(const gfx::Rect& aRect,
         dest->PushClipRect(aRect);
       }
 
-      FillRectWithMask(dest, aRect, effectSolidColor->mColor,
-                       DrawOptions(aOpacity, blendMode), sourceMask, &maskTransform);
+      DrawSurface(dest, aGeometry, aRect, effectSolidColor->mColor,
+                  drawOptions, sourceMask, &maskTransform);
 
       if (unboundedOp) {
         dest->PopClip();
@@ -655,11 +776,11 @@ BasicCompositor::DrawQuad(const gfx::Rect& aRect,
                               dest, buffer)) {
           // we succeeded in scaling
         } else {
-          DrawSurfaceWithTextureCoords(dest, aRect,
+          DrawSurfaceWithTextureCoords(dest, aGeometry, aRect,
                                        source->GetSurface(dest),
                                        texturedEffect->mTextureCoords,
                                        texturedEffect->mSamplingFilter,
-                                       DrawOptions(aOpacity, blendMode),
+                                       drawOptions,
                                        sourceMask, &maskTransform);
         }
       } else if (source) {
@@ -671,11 +792,11 @@ BasicCompositor::DrawQuad(const gfx::Rect& aRect,
           // This might be better with a cache, eventually.
           RefPtr<DataSourceSurface> premultData = gfxUtils::CreatePremultipliedDataSurface(srcData);
 
-          DrawSurfaceWithTextureCoords(dest, aRect,
+          DrawSurfaceWithTextureCoords(dest, aGeometry, aRect,
                                        premultData,
                                        texturedEffect->mTextureCoords,
                                        texturedEffect->mSamplingFilter,
-                                       DrawOptions(aOpacity, blendMode),
+                                       drawOptions,
                                        sourceMask, &maskTransform);
         }
       } else {
@@ -685,7 +806,7 @@ BasicCompositor::DrawQuad(const gfx::Rect& aRect,
       break;
     }
     case EffectTypes::YCBCR: {
-      NS_RUNTIMEABORT("Can't (easily) support component alpha with BasicCompositor!");
+      MOZ_CRASH("Can't (easily) support component alpha with BasicCompositor!");
       break;
     }
     case EffectTypes::RENDER_TARGET: {
@@ -695,20 +816,20 @@ BasicCompositor::DrawQuad(const gfx::Rect& aRect,
         = static_cast<BasicCompositingRenderTarget*>(effectRenderTarget->mRenderTarget.get());
       RefPtr<SourceSurface> sourceSurf = surface->mDrawTarget->Snapshot();
 
-      DrawSurfaceWithTextureCoords(dest, aRect,
+      DrawSurfaceWithTextureCoords(dest, aGeometry, aRect,
                                    sourceSurf,
                                    effectRenderTarget->mTextureCoords,
                                    effectRenderTarget->mSamplingFilter,
-                                   DrawOptions(aOpacity, blendMode),
+                                   drawOptions,
                                    sourceMask, &maskTransform);
       break;
     }
     case EffectTypes::COMPONENT_ALPHA: {
-      NS_RUNTIMEABORT("Can't (easily) support component alpha with BasicCompositor!");
+      MOZ_CRASH("Can't (easily) support component alpha with BasicCompositor!");
       break;
     }
     default: {
-      NS_RUNTIMEABORT("Invalid effect type!");
+      MOZ_CRASH("Invalid effect type!");
       break;
     }
   }
@@ -722,7 +843,7 @@ BasicCompositor::DrawQuad(const gfx::Rect& aRect,
 
     if (sourceMask) {
       RefPtr<DrawTarget> transformDT =
-        dest->CreateSimilarDrawTarget(IntSize::Truncate(transformBounds.width, transformBounds.height),
+        dest->CreateSimilarDrawTarget(IntSize::Truncate(transformBounds.Width(), transformBounds.Height()),
                                       SurfaceFormat::B8G8R8A8);
       new3DTransform.PostTranslate(-transformBounds.x, -transformBounds.y, 0);
       if (transformDT &&
@@ -781,19 +902,12 @@ BasicCompositor::BeginFrame(const nsIntRegion& aInvalidRegion,
   }
 
   LayoutDeviceIntRect intRect(LayoutDeviceIntPoint(), mWidget->GetClientSize());
-  IntRect rect = IntRect(0, 0, intRect.width, intRect.height);
+  IntRect rect = IntRect(0, 0, intRect.Width(), intRect.Height());
 
   LayoutDeviceIntRegion invalidRegionSafe;
-  if (mDidExternalComposition) {
-    // We do not know rendered region during external composition, just redraw
-    // whole widget.
-    invalidRegionSafe = intRect;
-    mDidExternalComposition = false;
-  } else {
-    // Sometimes the invalid region is larger than we want to draw.
-    invalidRegionSafe.And(
+  // Sometimes the invalid region is larger than we want to draw.
+  invalidRegionSafe.And(
       LayoutDeviceIntRegion::FromUnknownRegion(aInvalidRegion), intRect);
-  }
 
   mInvalidRegion = invalidRegionSafe;
   mInvalidRect = mInvalidRegion.GetBounds();
@@ -914,9 +1028,9 @@ BasicCompositor::TryToEndRemoteDrawing(bool aForceToEnd)
 
     const uint32_t retryMs = 2;
     RefPtr<BasicCompositor> self = this;
-    RefPtr<Runnable> runnable = NS_NewRunnableFunction([self]() {
-      self->TryToEndRemoteDrawing();
-    });
+    RefPtr<Runnable> runnable =
+      NS_NewRunnableFunction("layers::BasicCompositor::TryToEndRemoteDrawing",
+                             [self]() { self->TryToEndRemoteDrawing(); });
     MessageLoop::current()->PostDelayedTask(runnable.forget(), retryMs);
     return;
   }
@@ -940,7 +1054,7 @@ BasicCompositor::TryToEndRemoteDrawing(bool aForceToEnd)
     for (auto iter = mInvalidRegion.RectIter(); !iter.Done(); iter.Next()) {
       const LayoutDeviceIntRect& r = iter.Get();
       dest->CopySurface(source,
-                        IntRect(r.x, r.y, r.width, r.height) - mRenderTarget->GetOrigin(),
+                        IntRect(r.x, r.y, r.Width(), r.Height()) - mRenderTarget->GetOrigin(),
                         IntPoint(r.x, r.y) - offset);
     }
   }
@@ -971,25 +1085,6 @@ void
 BasicCompositor::FinishPendingComposite()
 {
   TryToEndRemoteDrawing(/* aForceToEnd */ true);
-}
-
-void
-BasicCompositor::EndFrameForExternalComposition(const gfx::Matrix& aTransform)
-{
-  MOZ_ASSERT(!mTarget);
-  MOZ_ASSERT(!mDrawTarget);
-  MOZ_ASSERT(!mRenderTarget);
-
-  mDidExternalComposition = true;
-}
-
-BasicCompositor*
-AssertBasicCompositor(Compositor* aCompositor)
-{
-  BasicCompositor* compositor = aCompositor ? aCompositor->AsBasicCompositor()
-                                            : nullptr;
-  MOZ_DIAGNOSTIC_ASSERT(!!compositor);
-  return compositor;
 }
 
 } // namespace layers

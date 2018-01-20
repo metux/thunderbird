@@ -20,6 +20,9 @@
 <!ENTITY installAddonFromFile.accesskey       "I">
 <!ENTITY toolsMenu.tooltip                    "Eines per a tots els complements">
 
+<!ENTITY getThemes.description                "Voleu personalitzar el vostre navegador?">
+<!ENTITY getThemes.learnMore                  "Trieu d'entre els milers de temes disponibles.">
+
 <!ENTITY cmd.back.tooltip                     "Vés enrere una pàgina">
 <!ENTITY cmd.forward.tooltip                  "Vés endavant una pàgina">
 
@@ -68,7 +71,7 @@
 <!ENTITY updates.downloaded.label             "S'han baixat les actualitzacions dels vostres complements.">
 <!ENTITY updates.restart.label                "Reinicia ara per completar la instal·lació">
 <!ENTITY updates.noneFound.label              "No s'ha trobat cap actualització">
-<!ENTITY updates.manualUpdatesFound.label     "Visualitza les actualitzacions disponibles">
+<!ENTITY updates.manualUpdatesFound.label     "Mostra les actualitzacions disponibles">
 <!ENTITY updates.updateSelected.label         "Instal·la les actualitzacions">
 <!ENTITY updates.updateSelected.tooltip       "Instal·la les actualitzacions disponibles en aquesta llista">
 <!-- addon actions -->
@@ -115,6 +118,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "Mostra les notes de la versió d'aquesta actualització">
 <!ENTITY cmd.hideReleaseNotes.label           "Amaga les notes de la versió">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Amaga les notes de la versió d'aquesta actualització">
+<!ENTITY cmd.findReplacement.label            "Cerca un substitut">
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
      Displayed in the center of the Get Add-ons view, see bug 601143 for mockups. -->
@@ -182,6 +186,10 @@
 <!ENTITY addon.details.label                  "Més">
 <!ENTITY addon.details.tooltip                "Mostra més detalls del complement">
 <!ENTITY addon.unknownDate                    "Desconegut">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "ANTIC">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -246,3 +254,9 @@
 
 <!ENTITY pluginDeprecation.description "Us falta res? Alguns complements ja no són compatibles amb el &brandShortName;.">
 <!ENTITY pluginDeprecation.learnMore "Més informació.">
+
+<!ENTITY legacyWarning.description "Us falta res? Algunes extensions ja no són compatibles amb el &brandShortName;.">
+<!ENTITY legacyWarning.showLegacy "Mostra les extensions antigues">
+<!ENTITY legacyExtensions.title "Extensions antigues">
+<!ENTITY legacyExtensions.description "Aquestes extensions no compleixen els estàndards actuals del &brandShortName; i s'han desactivat.">
+<!ENTITY legacyExtensions.learnMore "Més informació sobre els canvis en els complements">

@@ -28,10 +28,10 @@ this.TranslationContentHandler = function(global, docShell) {
   global.addMessageListener("Translation:ShowTranslation", this);
   global.addMessageListener("Translation:ShowOriginal", this);
   this.global = global;
-}
+};
 
 TranslationContentHandler.prototype = {
-  handleEvent: function(aEvent) {
+  handleEvent(aEvent) {
     // We are only listening to pageshow events.
     let target = aEvent.target;
 
@@ -61,7 +61,7 @@ TranslationContentHandler.prototype = {
   },
 
   /* nsIWebProgressListener implementation */
-  onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
+  onStateChange(aWebProgress, aRequest, aStateFlags, aStatus) {
     if (!aWebProgress.isTopLevel ||
         !(aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) ||
         !this.global.content)
@@ -107,16 +107,10 @@ TranslationContentHandler.prototype = {
     });
   },
 
-  // Unused methods.
-  onProgressChange: function() {},
-  onLocationChange: function() {},
-  onStatusChange:   function() {},
-  onSecurityChange: function() {},
-
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
                                          Ci.nsISupportsWeakReference]),
 
-  receiveMessage: function(msg) {
+  receiveMessage(msg) {
     switch (msg.name) {
       case "Translation:TranslateDocument":
       {

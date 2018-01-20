@@ -16,6 +16,7 @@ import org.mozilla.gecko.icons.loader.IconLoader;
 import org.mozilla.gecko.icons.loader.JarLoader;
 import org.mozilla.gecko.icons.loader.LegacyLoader;
 import org.mozilla.gecko.icons.loader.MemoryLoader;
+import org.mozilla.gecko.icons.loader.SuggestedSiteLoader;
 import org.mozilla.gecko.icons.preparation.AboutPagesPreparer;
 import org.mozilla.gecko.icons.preparation.AddDefaultIconUrl;
 import org.mozilla.gecko.icons.preparation.FilterKnownFailureUrls;
@@ -23,9 +24,11 @@ import org.mozilla.gecko.icons.preparation.FilterMimeTypes;
 import org.mozilla.gecko.icons.preparation.FilterPrivilegedUrls;
 import org.mozilla.gecko.icons.preparation.LookupIconUrl;
 import org.mozilla.gecko.icons.preparation.Preparer;
+import org.mozilla.gecko.icons.preparation.SuggestedSitePreparer;
 import org.mozilla.gecko.icons.processing.ColorProcessor;
 import org.mozilla.gecko.icons.processing.DiskProcessor;
 import org.mozilla.gecko.icons.processing.MemoryProcessor;
+import org.mozilla.gecko.icons.processing.MinimumSizeProcessor;
 import org.mozilla.gecko.icons.processing.Processor;
 import org.mozilla.gecko.icons.processing.ResizingProcessor;
 
@@ -67,6 +70,11 @@ import java.util.concurrent.TimeUnit;
             // URLs. We always want to be able to load those specific icons.
             new AboutPagesPreparer(),
 
+            // Suggested sites have icons bundled in the app - we should use them until the user has
+            // visited a specified page (after which the standard icon lookup will generally provide
+            // an update icon.
+            new SuggestedSitePreparer(),
+
             // Add the default favicon URL (*/favicon.ico) to the list of icon URLs; with a low priority,
             // this icon URL should be tried last.
             new AddDefaultIconUrl(),
@@ -94,6 +102,9 @@ import java.util.concurrent.TimeUnit;
             // Try to load the icon from the disk cache.
             new DiskLoader(),
 
+            // Try to load from the suggested site tile builder
+            new SuggestedSiteLoader(),
+
             // If the icon is not in any of our cashes and can't be decoded then look into the
             // database (legacy). Maybe this icon was loaded before the new code was deployed.
             new LegacyLoader(),
@@ -116,7 +127,11 @@ import java.util.concurrent.TimeUnit;
             new ColorProcessor(),
 
             // Store the icon in the memory cache
-            new MemoryProcessor()
+            new MemoryProcessor(),
+
+            // Substitute a generated icon if the final result is not large enough.
+            // Expected to be called after ResizingProcessor.
+            new MinimumSizeProcessor()
     );
 
     private static final ExecutorService EXECUTOR;

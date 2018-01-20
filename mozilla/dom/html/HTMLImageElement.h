@@ -10,8 +10,6 @@
 #include "mozilla/Attributes.h"
 #include "nsGenericHTMLElement.h"
 #include "nsImageLoadingContent.h"
-#include "nsIDOMHTMLImageElement.h"
-#include "imgRequestProxy.h"
 #include "Units.h"
 #include "nsCycleCollectionParticipant.h"
 
@@ -23,8 +21,7 @@ class ImageLoadTask;
 
 class ResponsiveImageSelector;
 class HTMLImageElement final : public nsGenericHTMLElement,
-                               public nsImageLoadingContent,
-                               public nsIDOMHTMLImageElement
+                               public nsImageLoadingContent
 {
   friend class HTMLSourceElement;
   friend class HTMLPictureElement;
@@ -52,9 +49,6 @@ public:
   // EventTarget
   virtual void AsyncEventRunning(AsyncEventDispatcher* aEvent) override;
 
-  // nsIDOMHTMLImageElement
-  NS_DECL_NSIDOMHTMLIMAGEELEMENT
-
   NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLImageElement, img)
 
   // override from nsImageLoadingContent
@@ -62,28 +56,18 @@ public:
 
   // nsIContent
   virtual bool ParseAttribute(int32_t aNamespaceID,
-                                nsIAtom* aAttribute,
+                                nsAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult) override;
-  virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
+  virtual nsChangeHint GetAttributeChangeHint(const nsAtom* aAttribute,
                                               int32_t aModType) const override;
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const override;
+  NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom* aAttribute) const override;
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const override;
 
-  virtual nsresult PreHandleEvent(EventChainPreVisitor& aVisitor) override;
+  virtual nsresult GetEventTargetParent(
+                     EventChainPreVisitor& aVisitor) override;
 
   bool IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, int32_t *aTabIndex) override;
-
-  // SetAttr override.  C++ is stupid, so have to override both
-  // overloaded methods.
-  nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                   const nsAString& aValue, bool aNotify)
-  {
-    return SetAttr(aNameSpaceID, aName, nullptr, aValue, aNotify);
-  }
-  virtual nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                           nsIAtom* aPrefix, const nsAString& aValue,
-                           bool aNotify) override;
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
@@ -91,13 +75,19 @@ public:
   virtual void UnbindFromTree(bool aDeep, bool aNullParent) override;
 
   virtual EventStates IntrinsicState() const override;
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const override;
+  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+                         bool aPreallocateChildren) const override;
 
-  virtual void NodeInfoChanged() override;
+  virtual void NodeInfoChanged(nsIDocument* aOldDoc) override;
 
-  nsresult CopyInnerTo(Element* aDest);
+  nsresult CopyInnerTo(Element* aDest, bool aPreallocateChildren);
 
-  void MaybeLoadImage();
+  void MaybeLoadImage(bool aAlwaysForceLoad);
+
+  // Overrides for nsImageLoadingContent's GetNaturalHeight/Width, since we
+  // handle responsive scaling in the element's version of these methods.
+  NS_IMETHOD GetNaturalHeight(uint32_t* aNaturalHeight) override;
+  NS_IMETHOD GetNaturalWidth(uint32_t* aNaturalWidth) override;
 
   bool IsMap()
   {
@@ -143,18 +133,37 @@ public:
     SetUnsignedIntAttr(nsGkAtoms::vspace, aVspace, 0, aError);
   }
 
-  // The XPCOM versions of the following getters work for Web IDL bindings as well
+  void GetAlt(nsAString& aAlt)
+  {
+    GetHTMLAttr(nsGkAtoms::alt, aAlt);
+  }
   void SetAlt(const nsAString& aAlt, ErrorResult& aError)
   {
     SetHTMLAttr(nsGkAtoms::alt, aAlt, aError);
+  }
+  void GetSrc(nsAString& aSrc, nsIPrincipal&)
+  {
+    GetSrc(aSrc);
+  }
+  void GetSrc(nsAString& aSrc)
+  {
+    GetURIAttr(nsGkAtoms::src, nullptr, aSrc);
   }
   void SetSrc(const nsAString& aSrc, ErrorResult& aError)
   {
     SetHTMLAttr(nsGkAtoms::src, aSrc, aError);
   }
-  void SetSrcset(const nsAString& aSrcset, ErrorResult& aError)
+  void SetSrc(const nsAString& aSrc, nsIPrincipal& aTriggeringPrincipal, ErrorResult& aError)
   {
-    SetHTMLAttr(nsGkAtoms::srcset, aSrcset, aError);
+    SetHTMLAttr(nsGkAtoms::src, aSrc, aTriggeringPrincipal, aError);
+  }
+  void GetSrcset(nsAString& aSrcset, nsIPrincipal&)
+  {
+    GetHTMLAttr(nsGkAtoms::srcset, aSrcset);
+  }
+  void SetSrcset(const nsAString& aSrcset, nsIPrincipal& aTriggeringPrincipal, ErrorResult& aError)
+  {
+    SetHTMLAttr(nsGkAtoms::srcset, aSrcset, aTriggeringPrincipal, aError);
   }
   void GetCrossOrigin(nsAString& aResult)
   {
@@ -167,25 +176,50 @@ public:
   {
     SetOrRemoveNullableStringAttr(nsGkAtoms::crossorigin, aCrossOrigin, aError);
   }
+  void GetUseMap(nsAString& aUseMap)
+  {
+    GetHTMLAttr(nsGkAtoms::usemap, aUseMap);
+  }
   void SetUseMap(const nsAString& aUseMap, ErrorResult& aError)
   {
     SetHTMLAttr(nsGkAtoms::usemap, aUseMap, aError);
+  }
+  void GetName(nsAString& aName)
+  {
+    GetHTMLAttr(nsGkAtoms::name, aName);
   }
   void SetName(const nsAString& aName, ErrorResult& aError)
   {
     SetHTMLAttr(nsGkAtoms::name, aName, aError);
   }
+  void GetAlign(nsAString& aAlign)
+  {
+    GetHTMLAttr(nsGkAtoms::align, aAlign);
+  }
   void SetAlign(const nsAString& aAlign, ErrorResult& aError)
   {
     SetHTMLAttr(nsGkAtoms::align, aAlign, aError);
+  }
+  void GetLongDesc(nsAString& aLongDesc)
+  {
+    GetURIAttr(nsGkAtoms::longdesc, nullptr, aLongDesc);
   }
   void SetLongDesc(const nsAString& aLongDesc, ErrorResult& aError)
   {
     SetHTMLAttr(nsGkAtoms::longdesc, aLongDesc, aError);
   }
+  void GetSizes(nsAString& aSizes)
+  {
+    GetHTMLAttr(nsGkAtoms::sizes, aSizes);
+  }
   void SetSizes(const nsAString& aSizes, ErrorResult& aError)
   {
     SetHTMLAttr(nsGkAtoms::sizes, aSizes, aError);
+  }
+  void GetCurrentSrc(nsAString& aValue);
+  void GetBorder(nsAString& aBorder)
+  {
+    GetHTMLAttr(nsGkAtoms::border, aBorder);
   }
   void SetBorder(const nsAString& aBorder, ErrorResult& aError)
   {
@@ -208,7 +242,10 @@ public:
 
   int32_t X();
   int32_t Y();
-  // Uses XPCOM GetLowsrc.
+  void GetLowsrc(nsAString& aLowsrc)
+  {
+    GetURIAttr(nsGkAtoms::lowsrc, nullptr, aLowsrc);
+  }
   void SetLowsrc(const nsAString& aLowsrc, ErrorResult& aError)
   {
     SetHTMLAttr(nsGkAtoms::lowsrc, aLowsrc, aError);
@@ -342,12 +379,21 @@ protected:
   virtual JSObject* WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto) override;
   void UpdateFormOwner();
 
-  virtual nsresult BeforeSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                 nsAttrValueOrString* aValue,
+  virtual nsresult BeforeSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                 const nsAttrValueOrString* aValue,
                                  bool aNotify) override;
 
-  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify) override;
+  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                const nsAttrValue* aValue,
+                                const nsAttrValue* aOldValue,
+                                nsIPrincipal* aMaybeScriptedPrincipal,
+                                bool aNotify) override;
+  virtual nsresult OnAttrSetButNotChanged(int32_t aNamespaceID, nsAtom* aName,
+                                          const nsAttrValueOrString& aValue,
+                                          bool aNotify) override;
+
+  // Override for nsImageLoadingContent.
+  nsIContent* AsContent() override { return this; }
 
   // This is a weak reference that this element and the HTMLFormElement
   // cooperate in maintaining.
@@ -360,10 +406,33 @@ private:
   bool SourceElementMatches(nsIContent* aSourceNode);
 
   static void MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
-                                    nsRuleData* aData);
+                                    GenericSpecifiedValues* aGenericData);
+  /**
+   * This function is called by AfterSetAttr and OnAttrSetButNotChanged.
+   * It will not be called if the value is being unset.
+   *
+   * @param aNamespaceID the namespace of the attr being set
+   * @param aName the localname of the attribute being set
+   * @param aValue the value it's being set to represented as either a string or
+   *        a parsed nsAttrValue.
+   * @param aOldValue the value previously set. Will be null if no value was
+   *        previously set. This value should only be used when
+   *        aValueMaybeChanged is true; when aValueMaybeChanged is false,
+   *        aOldValue should be considered unreliable.
+   * @param aValueMaybeChanged will be false when this function is called from
+   *        OnAttrSetButNotChanged to indicate that the value was not changed.
+   * @param aNotify Whether we plan to notify document observers.
+   */
+  void AfterMaybeChangeAttr(int32_t aNamespaceID, nsAtom* aName,
+                            const nsAttrValueOrString& aValue,
+                            const nsAttrValue* aOldValue,
+                            nsIPrincipal* aMaybeScriptedPrincipal,
+                            bool aValueMaybeChanged, bool aNotify);
 
   bool mInDocResponsiveContent;
   RefPtr<ImageLoadTask> mPendingImageLoadTask;
+  nsCOMPtr<nsIPrincipal> mSrcTriggeringPrincipal;
+  nsCOMPtr<nsIPrincipal> mSrcsetTriggeringPrincipal;
 
   // Last URL that was attempted to load by this element.
   nsCOMPtr<nsIURI> mLastSelectedSource;

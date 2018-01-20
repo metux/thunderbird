@@ -1,5 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -32,9 +32,9 @@ public:
   virtual bool
   DeallocPPresentationRequestChild(PPresentationRequestChild* aActor) override;
 
-  bool RecvPPresentationBuilderConstructor(PPresentationBuilderChild* aActor,
-                                           const nsString& aSessionId,
-                                           const uint8_t& aRole) override;
+  mozilla::ipc::IPCResult RecvPPresentationBuilderConstructor(PPresentationBuilderChild* aActor,
+                                                              const nsString& aSessionId,
+                                                              const uint8_t& aRole) override;
 
   virtual PPresentationBuilderChild*
   AllocPPresentationBuilderChild(const nsString& aSessionId, const uint8_t& aRole) override;
@@ -42,25 +42,25 @@ public:
   virtual bool
   DeallocPPresentationBuilderChild(PPresentationBuilderChild* aActor) override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvNotifyAvailableChange(nsTArray<nsString>&& aAvailabilityUrls,
                             const bool& aAvailable) override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvNotifySessionStateChange(const nsString& aSessionId,
                                const uint16_t& aState,
                                const nsresult& aReason) override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvNotifyMessage(const nsString& aSessionId,
                     const nsCString& aData,
                     const bool& aIsBinary) override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvNotifySessionConnect(const uint64_t& aWindowId,
                            const nsString& aSessionId) override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvNotifyCloseSessionTransport(const nsString& aSessionId,
                                   const uint8_t& aRole,
                                   const nsresult& aReason) override;
@@ -82,10 +82,10 @@ public:
   virtual void
   ActorDestroy(ActorDestroyReason aWhy) override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   Recv__delete__(const nsresult& aResult) override;
 
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvNotifyRequestUrlSelected(const nsString& aUrl) override;
 
 private:

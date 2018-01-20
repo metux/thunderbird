@@ -32,7 +32,7 @@ public:
 
   ChildDNSService();
 
-  static ChildDNSService* GetSingleton();
+  static already_AddRefed<ChildDNSService> GetSingleton();
 
   void NotifyRequestDone(DNSRequestChild *aDnsRequest);
 
@@ -41,6 +41,7 @@ private:
   virtual ~ChildDNSService();
 
   void MOZ_ALWAYS_INLINE GetDNSRecordHashKey(const nsACString &aHost,
+                                             const OriginAttributes &aOriginAttributes,
                                              uint32_t aFlags,
                                              const nsACString &aNetworkInterface,
                                              nsIDNSListener* aListener,

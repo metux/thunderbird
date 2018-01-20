@@ -3,9 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* The prefs in this file are specific to the seamonkey (toolkit) browser.
- * Generic default prefs that would be useful to embedders belong in
- * modules/libpref/src/init/all.js
+/* The prefs in this file are specific to the SeaMonkey browser.
+ * Generic default prefs are in (mozilla/)modules/libpref/src/init/all.js
  */
 
 /* filter substitution
@@ -41,8 +40,6 @@ pref("general.smoothScroll", false);
 pref("general.autoScroll", true);
 
 pref("general.useragent.compatMode.firefox", true);
-
-pref("general.useragent.complexOverride.moodle", false); // bug 797703; bug 815801
 
 // 0 = blank, 1 = home (browser.startup.homepage), 2 = last visited page, 3 = resume previous browser session
 pref("browser.startup.page",                1);
@@ -247,6 +244,9 @@ pref("browser.tabs.insertRelatedAfterCurrent", true);
 // 0 = append, 1 = replace
 pref("browser.tabs.loadGroup", 1);
 
+// No e10s in SeaMonkey for now.
+pref("browser.tabs.remote.autostart", false);
+
 // how many browsers can be saved in the DOM (by the tabbed browser)
 pref("browser.tabs.max_tabs_undo", 3);
 // should popups by saved in the DOM (by the tabbed browser)
@@ -438,6 +438,12 @@ pref("browser.safebrowsing.id", "navclient-auto-ffox");
 pref("browser.safebrowsing.warning.infoURL", "https://www.mozilla.org/%LOCALE%/firefox/phishing-protection/");
 pref("browser.safebrowsing.controlledAccess.infoURL", "https://support.mozilla.org/kb/controlledaccess/");
 
+// Enable safebrowsing v4 tables (suffixed by "-proto") update.
+#if defined(NIGHTLY_BUILD)
+pref("urlclassifier.malwareTable", "goog-malware-shavar,goog-unwanted-shavar,goog-malware-proto,goog-unwanted-proto,test-malware-simple,test-unwanted-simple");
+pref("urlclassifier.phishTable", "goog-phish-shavar,goog-phish-proto,test-phish-simple");
+#endif
+
 pref("browser.sessionstore.resume_from_crash", true);
 pref("browser.sessionstore.resume_session_once", false);
 
@@ -551,7 +557,7 @@ pref("app.update.timerMinimumDelay", 120);
 // Give the user x seconds to react before showing the big UI. default=8 days
 pref("app.update.promptWaitTime", 691200);
 #else
-// For nightly and aurora builds, before showing the big UI, default=12 hrs
+// For nightly builds, before showing the big UI, default=12 hrs
 pref("app.update.promptWaitTime", 43200);
 #endif
 // Show the Update Checking/Ready UI when the user was idle for x seconds
@@ -589,6 +595,16 @@ pref("extensions.update.autoUpdateDefault", true); // Download and install autom
 // constants in AddonManager.jsm for values to use here.
 pref("extensions.autoDisableScopes", 15);
 
+// Enable add-ons installed and owned by the application, like the default theme.
+pref("extensions.startupScanScopes", 4);
+
+pref("extensions.legacy.enabled", true);
+// Extensions that should not be flagged as legacy in about:addons
+// {972ce4c6-7e08-4474-a285-3208198ce6fd} default theme
+// {59c81df5-4b7a-477b-912d-4e0fdf64e5f2} chatZilla
+// {e2fda1a4-762b-4020-b5ad-a41df1933103} calendar
+pref("extensions.legacy.exceptions", "{972ce4c6-7e08-4474-a285-3208198ce6fd},debugQA@mozilla.org,modern@themes.mozilla.org,inspector@mozilla.org,{59c81df5-4b7a-477b-912d-4e0fdf64e5f2},{e2fda1a4-762b-4020-b5ad-a41df1933103}");
+
 // Preferences for AMO integration
 pref("extensions.getAddons.cache.enabled", true);  // also toggles personalized recommendations
 pref("extensions.getAddons.maxResults", 15);
@@ -603,7 +619,6 @@ pref("extensions.webservice.discoverURL", "https://services.addons.mozilla.org/%
 // getMoreThemes is used by our UI under our switch theme menu
 pref("extensions.getMoreThemesURL", "chrome://branding/locale/brand.properties");
 pref("extensions.getPersonasURL", "chrome://branding/locale/brand.properties");
-pref("extensions.dss.enabled", false);          // Dynamic Skin Switching
 pref("extensions.dss.switchPending", false);    // Non-dynamic switch pending after next
                                                 // restart.
 
@@ -640,7 +655,6 @@ pref("browser.taskbar.previews.max", 20);
 pref("browser.taskbar.previews.cachetime", 5);
 #endif
 
-pref("sidebar.customize.all_panels.url", "http://sidebar-rdf.netscape.com/%LOCALE%/sidebar-rdf/%SIDEBAR_VERSION%/all-panels.rdf");
 pref("sidebar.customize.directory.url", "https://edmullen.net/mozilla/moz_sidebar.php");
 pref("sidebar.customize.more_panels.url", "https://edmullen.net/mozilla/moz_sidebar.php");
 pref("sidebar.num_tabs_in_view", 8);
@@ -680,6 +694,11 @@ pref("privacy.sanitize.sanitizeOnShutdown", false);
 pref("privacy.sanitize.promptOnSanitize", true);
 
 pref("privacy.warn_tracking_content", true);
+
+// Switching this on will also spoof our user agent and other potentially
+// fingerprintable preferences to generic Firefox ones (see nsRFPService
+// introduced by bug 1330890 and meta-bug 1329996 dependencies).
+pref("privacy.resistFingerprinting", false);
 
 // Show XUL error pages instead of alerts for errors
 pref("browser.xul.error_pages.enabled", true);
@@ -953,9 +972,6 @@ pref("full-screen-api.enabled", true);
 // Number of usages of the web console or scratchpad. If this is less than 5,
 // then pasting code into the web console or scratchpad is disabled
 pref("devtools.selfxss.count", 5);
-
-// Enable general plugin loading.
-pref("plugin.load_flash_only", false);
 
 #if defined(XP_WIN) && defined(MOZ_SANDBOX)
 // When this pref is true the Windows process sandbox will set up dummy

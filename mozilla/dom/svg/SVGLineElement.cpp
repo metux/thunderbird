@@ -89,7 +89,7 @@ SVGLineElement::Y2()
 // nsIContent methods
 
 NS_IMETHODIMP_(bool)
-SVGLineElement::IsAttributeMapped(const nsIAtom* name) const
+SVGLineElement::IsAttributeMapped(const nsAtom* name) const
 {
   static const MappedAttributeEntry* const map[] = {
     sMarkersMap
@@ -110,7 +110,7 @@ SVGLineElement::GetLengthInfo()
 }
 
 //----------------------------------------------------------------------
-// nsSVGPathGeometryElement methods
+// SVGGeometryElement methods
 
 void
 SVGLineElement::GetMarkPoints(nsTArray<nsSVGMark> *aMarks) {

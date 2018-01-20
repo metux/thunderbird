@@ -7,16 +7,20 @@
  * Tests Curl Utils functionality.
  */
 
-const { CurlUtils } = require("devtools/client/shared/curl");
+const { Curl, CurlUtils } = require("devtools/client/shared/curl");
 
 add_task(function* () {
   let { tab, monitor } = yield initNetMonitor(CURL_UTILS_URL);
   info("Starting test... ");
 
-  let { NetMonitorView, gNetwork } = monitor.panelWin;
-  let { RequestsMenu } = NetMonitorView;
+  let { store, windowRequire, connector } = monitor.panelWin;
+  let Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
+  let {
+    getSortedRequests,
+  } = windowRequire("devtools/client/netmonitor/src/selectors/index");
+  let { getLongString } = connector;
 
-  RequestsMenu.lazyUpdate = false;
+  store.dispatch(Actions.batchEnable(false));
 
   let wait = waitForNetworkEvents(monitor, 1, 3);
   yield ContentTask.spawn(tab.linkedBrowser, SIMPLE_SJS, function* (url) {
@@ -25,26 +29,33 @@ add_task(function* () {
   yield wait;
 
   let requests = {
-    get: RequestsMenu.getItemAtIndex(0),
-    post: RequestsMenu.getItemAtIndex(1),
-    multipart: RequestsMenu.getItemAtIndex(2),
-    multipartForm: RequestsMenu.getItemAtIndex(3)
+    get: getSortedRequests(store.getState()).get(0),
+    post: getSortedRequests(store.getState()).get(1),
+    multipart: getSortedRequests(store.getState()).get(2),
+    multipartForm: getSortedRequests(store.getState()).get(3),
   };
 
-  let data = yield createCurlData(requests.get.attachment, gNetwork);
+  let data = yield createCurlData(requests.get, getLongString);
   testFindHeader(data);
 
-  data = yield createCurlData(requests.post.attachment, gNetwork);
+  data = yield createCurlData(requests.post, getLongString);
   testIsUrlEncodedRequest(data);
   testWritePostDataTextParams(data);
+  testWriteEmptyPostDataTextParams(data);
+  testDataArgumentOnGeneratedCommand(data);
 
-  data = yield createCurlData(requests.multipart.attachment, gNetwork);
+  data = yield createCurlData(requests.multipart, getLongString);
   testIsMultipartRequest(data);
   testGetMultipartBoundary(data);
+  testMultiPartHeaders(data);
   testRemoveBinaryDataFromMultipartText(data);
 
-  data = yield createCurlData(requests.multipartForm.attachment, gNetwork);
-  testGetHeadersFromMultipartText(data);
+  data = yield createCurlData(requests.multipartForm, getLongString);
+  testMultiPartHeaders(data);
+
+  testGetHeadersFromMultipartText({
+    postDataText: "Content-Type: text/plain\r\n\r\n",
+  });
 
   if (Services.appinfo.OS != "WINNT") {
     testEscapeStringPosix();
@@ -79,10 +90,30 @@ function testFindHeader(data) {
     "Should return null when a header is not found.");
 }
 
+function testMultiPartHeaders(data) {
+  let headers = data.headers;
+  let contentType = CurlUtils.findHeader(headers, "Content-Type");
+
+  ok(contentType.startsWith("multipart/form-data; boundary="),
+     "Multi-part content type header is present in headers array");
+}
+
 function testWritePostDataTextParams(data) {
   let params = CurlUtils.writePostDataTextParams(data.postDataText);
   is(params, "param1=value1&param2=value2&param3=value3",
     "Should return a serialized representation of the request parameters");
+}
+
+function testWriteEmptyPostDataTextParams(data) {
+  let params = CurlUtils.writePostDataTextParams(null);
+  is(params, "",
+    "Should return a empty string when no parameters provided");
+}
+
+function testDataArgumentOnGeneratedCommand(data) {
+  let curlCommand = Curl.generateCommand(data);
+  ok(curlCommand.includes("--data"),
+    "Should return a curl command with --data");
 }
 
 function testGetMultipartBoundary(data) {
@@ -200,7 +231,7 @@ function testEscapeStringWin() {
     "Newlines should be escaped.");
 }
 
-function* createCurlData(selected, network, controller) {
+function* createCurlData(selected, getLongString) {
   let { url, method, httpVersion } = selected;
 
   // Create a sanitized object for the Curl command generator.
@@ -214,14 +245,14 @@ function* createCurlData(selected, network, controller) {
 
   // Fetch header values.
   for (let { name, value } of selected.requestHeaders.headers) {
-    let text = yield network.getString(value);
+    let text = yield getLongString(value);
     data.headers.push({ name: name, value: text });
   }
 
   // Fetch the request payload.
   if (selected.requestPostData) {
     let postData = selected.requestPostData.postData.text;
-    data.postDataText = yield network.getString(postData);
+    data.postDataText = yield getLongString(postData);
   }
 
   return data;

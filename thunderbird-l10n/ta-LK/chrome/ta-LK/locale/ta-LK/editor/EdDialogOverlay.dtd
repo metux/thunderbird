@@ -49,3 +49,6 @@
 
 <!ENTITY LinkURLEditField.label "ஒரு வலையப்பக்க அமைவை, உள் கோப்பை எழுதுக, அல்லது பாப்-அப் பட்டியலில் இருந்து பெயரிடப்பட்ட தொகுப்பு அல்லது தலைப்பை தேர்வு செய்க:">
 <!ENTITY LinkURLEditField.accessKey "அ">
+
+<!ENTITY LinkURLEditField2.label "Enter a web page location, a local file, or select a Named Anchor or Heading from the field's context menu:">
+<!ENTITY LinkURLEditField2.accessKey "w">

@@ -7,7 +7,7 @@ var disableWorkerTest = "Need a way to set temporary prefs from a worker";
 
 var testGenerator = testSteps();
 
-function testSteps()
+function* testSteps()
 {
   const name = this.window ?
     window.location.pathname : "test_maximal_serialized_object_size.js";
@@ -40,7 +40,6 @@ function testSteps()
   let event = yield undefined;
 
   let db = event.target.result;
-  let txn = event.target.transaction;
 
   is(db.objectStoreNames.length, 0, "Correct objectStoreNames list");
 
@@ -91,5 +90,4 @@ function testSteps()
   db.close();
 
   finishTest();
-  yield undefined;
 }

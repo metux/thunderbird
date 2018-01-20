@@ -1,19 +1,20 @@
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-  "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
   "resource://gre/modules/PlacesUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PromiseUtils",
   "resource://gre/modules/PromiseUtils.jsm");
 
+// Various tests in this directory may define gTestBrowser, to use as the
+// default browser under test in some of the functions below.
+/* global gTestBrowser */
+
 // The blocklist shim running in the content process does not initialize at
 // start up, so it's not active until we load content that needs to do a
 // check. This helper bypasses the delay to get the svc up and running
 // immediately. Note, call this after remote content has loaded.
-function promiseInitContentBlocklistSvc(aBrowser)
-{
-  return ContentTask.spawn(aBrowser, {}, function* () {
+function promiseInitContentBlocklistSvc(aBrowser) {
+  return ContentTask.spawn(aBrowser, {}, async function() {
     try {
       Cc["@mozilla.org/extensions/blocklist;1"]
         .getService(Ci.nsIBlocklistService);
@@ -165,8 +166,8 @@ function getTestPluginEnabledState(pluginName) {
 // Returns a promise for nsIObjectLoadingContent props data.
 function promiseForPluginInfo(aId, aBrowser) {
   let browser = aBrowser || gTestBrowser;
-  return ContentTask.spawn(browser, aId, function* (aId) {
-    let plugin = content.document.getElementById(aId);
+  return ContentTask.spawn(browser, aId, async function(contentId) {
+    let plugin = content.document.getElementById(contentId);
     if (!(plugin instanceof Ci.nsIObjectLoadingContent))
       throw new Error("no plugin found");
     return {
@@ -182,8 +183,8 @@ function promiseForPluginInfo(aId, aBrowser) {
 // playPlugin() method.
 function promisePlayObject(aId, aBrowser) {
   let browser = aBrowser || gTestBrowser;
-  return ContentTask.spawn(browser, aId, function* (aId) {
-    let plugin = content.document.getElementById(aId);
+  return ContentTask.spawn(browser, aId, async function(contentId) {
+    let plugin = content.document.getElementById(contentId);
     let objLoadingContent = plugin.QueryInterface(Ci.nsIObjectLoadingContent);
     objLoadingContent.playPlugin();
   });
@@ -191,8 +192,8 @@ function promisePlayObject(aId, aBrowser) {
 
 function promiseCrashObject(aId, aBrowser) {
   let browser = aBrowser || gTestBrowser;
-  return ContentTask.spawn(browser, aId, function* (aId) {
-    let plugin = content.document.getElementById(aId);
+  return ContentTask.spawn(browser, aId, async function(contentId) {
+    let plugin = content.document.getElementById(contentId);
     Components.utils.waiveXrays(plugin).crash();
   });
 }
@@ -200,8 +201,8 @@ function promiseCrashObject(aId, aBrowser) {
 // Return a promise and call the plugin's getObjectValue() method.
 function promiseObjectValueResult(aId, aBrowser) {
   let browser = aBrowser || gTestBrowser;
-  return ContentTask.spawn(browser, aId, function* (aId) {
-    let plugin = content.document.getElementById(aId);
+  return ContentTask.spawn(browser, aId, async function(contentId) {
+    let plugin = content.document.getElementById(contentId);
     return Components.utils.waiveXrays(plugin).getObjectValue();
   });
 }
@@ -209,8 +210,8 @@ function promiseObjectValueResult(aId, aBrowser) {
 // Return a promise and reload the target plugin in the page
 function promiseReloadPlugin(aId, aBrowser) {
   let browser = aBrowser || gTestBrowser;
-  return ContentTask.spawn(browser, aId, function* (aId) {
-    let plugin = content.document.getElementById(aId);
+  return ContentTask.spawn(browser, aId, async function(contentId) {
+    let plugin = content.document.getElementById(contentId);
     plugin.src = plugin.src;
   });
 }
@@ -221,7 +222,7 @@ function clearAllPluginPermissions() {
   let perms = Services.perms.enumerator;
   while (perms.hasMoreElements()) {
     let perm = perms.getNext();
-    if (perm.type.startsWith('plugin')) {
+    if (perm.type.startsWith("plugin")) {
       info("removing permission:" + perm.principal.origin + " " + perm.type + "\n");
       Services.perms.removePermission(perm);
     }
@@ -235,7 +236,7 @@ function updateBlocklist(aCallback) {
     Services.obs.removeObserver(observer, "blocklist-updated");
     SimpleTest.executeSoon(aCallback);
   };
-  Services.obs.addObserver(observer, "blocklist-updated", false);
+  Services.obs.addObserver(observer, "blocklist-updated");
   blocklistNotifier.notify(null);
 }
 
@@ -250,7 +251,7 @@ function setAndUpdateBlocklist(aURL, aCallback) {
 
 // A generator that insures a new blocklist is loaded (in both
 // processes if applicable).
-function* asyncSetAndUpdateBlocklist(aURL, aBrowser) {
+async function asyncSetAndUpdateBlocklist(aURL, aBrowser) {
   info("*** loading new blocklist: " + aURL);
   let doTestRemote = aBrowser ? aBrowser.isRemoteBrowser : false;
   if (!_originalTestBlocklistURL) {
@@ -266,10 +267,10 @@ function* asyncSetAndUpdateBlocklist(aURL, aBrowser) {
                             .getService(Ci.nsITimerCallback);
   blocklistNotifier.notify(null);
   info("*** waiting on local load");
-  yield localPromise;
+  await localPromise;
   if (doTestRemote) {
     info("*** waiting on remote load");
-    yield remotePromise;
+    await remotePromise;
   }
   info("*** blocklist loaded.");
 }
@@ -360,10 +361,9 @@ function waitForNotificationShown(notification, callback) {
     executeSoon(callback);
     return;
   }
-  PopupNotifications.panel.addEventListener("popupshown", function onShown(e) {
-    PopupNotifications.panel.removeEventListener("popupshown", onShown);
+  PopupNotifications.panel.addEventListener("popupshown", function(e) {
     callback();
-  }, false);
+  }, {once: true});
   notification.reshow();
 }
 
@@ -383,11 +383,11 @@ function promiseForNotificationShown(notification) {
  * @return Promise
  */
 function promiseUpdatePluginBindings(browser) {
-  return ContentTask.spawn(browser, {}, function* () {
+  return ContentTask.spawn(browser, {}, async function() {
     let doc = content.document;
-    let elems = doc.getElementsByTagName('embed');
+    let elems = doc.getElementsByTagName("embed");
     if (!elems || elems.length < 1) {
-      elems = doc.getElementsByTagName('object');
+      elems = doc.getElementsByTagName("object");
     }
     if (elems && elems.length > 0) {
       elems[0].clientTop;

@@ -7,9 +7,9 @@
 #include "mozilla/dom/HTMLParagraphElement.h"
 #include "mozilla/dom/HTMLParagraphElementBinding.h"
 
+#include "mozilla/GenericSpecifiedValuesInlines.h"
 #include "nsStyleConsts.h"
 #include "nsMappedAttributes.h"
-#include "nsRuleData.h"
 
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(Paragraph)
@@ -21,16 +21,13 @@ HTMLParagraphElement::~HTMLParagraphElement()
 {
 }
 
-NS_IMPL_ISUPPORTS_INHERITED(HTMLParagraphElement, nsGenericHTMLElement,
-                            nsIDOMHTMLParagraphElement)
+NS_IMPL_ISUPPORTS_INHERITED0(HTMLParagraphElement, nsGenericHTMLElement)
 
 NS_IMPL_ELEMENT_CLONE(HTMLParagraphElement)
 
-NS_IMPL_STRING_ATTR(HTMLParagraphElement, Align, align)
-
 bool
 HTMLParagraphElement::ParseAttribute(int32_t aNamespaceID,
-                                     nsIAtom* aAttribute,
+                                     nsAtom* aAttribute,
                                      const nsAString& aValue,
                                      nsAttrValue& aResult)
 {
@@ -44,14 +41,14 @@ HTMLParagraphElement::ParseAttribute(int32_t aNamespaceID,
 
 void
 HTMLParagraphElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
-                                            nsRuleData* aData)
+                                            GenericSpecifiedValues* aData)
 {
   nsGenericHTMLElement::MapDivAlignAttributeInto(aAttributes, aData);
   nsGenericHTMLElement::MapCommonAttributesInto(aAttributes, aData);
 }
 
 NS_IMETHODIMP_(bool)
-HTMLParagraphElement::IsAttributeMapped(const nsIAtom* aAttribute) const
+HTMLParagraphElement::IsAttributeMapped(const nsAtom* aAttribute) const
 {
   static const MappedAttributeEntry* const map[] = {
     sDivAlignAttributeMap,

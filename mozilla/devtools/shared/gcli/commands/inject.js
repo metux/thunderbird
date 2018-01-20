@@ -53,13 +53,21 @@ exports.items = [
       },
       description: l10n.lookup("injectLibraryDesc")
     }],
-    exec: function*(args, context) {
+    exec: function* (args, context) {
       let document = context.environment.document;
       let library = args.library;
-      let name = (library.type === "selection") ?
-          library.selection.name : library.url;
-      let src = (library.type === "selection") ?
-          library.selection.src : library.url;
+
+      let name;
+      let src;
+
+      if (library.type === "selection") {
+        name = library.selection.name;
+        src = library.selection.src;
+      } else {
+        // The library url is a URL object, let's turn it into a string.
+        let urlStr = library.url + "";
+        name = src = urlStr;
+      }
 
       if (context.environment.window.location.protocol == "https:") {
         src = src.replace(/^http:/, "https:");
@@ -67,8 +75,8 @@ exports.items = [
 
       try {
         // Check if URI is valid
-        Services.io.newURI(src, null, null);
-      } catch(e) {
+        Services.io.newURI(src);
+      } catch (e) {
         return l10n.lookupFormat("injectFailed", [name]);
       }
 

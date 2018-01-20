@@ -7,11 +7,11 @@
 #include "mozilla/dom/HTMLPreElement.h"
 #include "mozilla/dom/HTMLPreElementBinding.h"
 
+#include "mozilla/GenericSpecifiedValuesInlines.h"
 #include "nsAttrValueInlines.h"
 #include "nsGkAtoms.h"
 #include "nsStyleConsts.h"
 #include "nsMappedAttributes.h"
-#include "nsRuleData.h"
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(Pre)
 
@@ -22,16 +22,13 @@ HTMLPreElement::~HTMLPreElement()
 {
 }
 
-NS_IMPL_ISUPPORTS_INHERITED(HTMLPreElement, nsGenericHTMLElement,
-                            nsIDOMHTMLPreElement)
+NS_IMPL_ISUPPORTS_INHERITED0(HTMLPreElement, nsGenericHTMLElement)
 
 NS_IMPL_ELEMENT_CLONE(HTMLPreElement)
 
-NS_IMPL_INT_ATTR(HTMLPreElement, Width, width)
-
 bool
 HTMLPreElement::ParseAttribute(int32_t aNamespaceID,
-                               nsIAtom* aAttribute,
+                               nsAtom* aAttribute,
                                const nsAString& aValue,
                                nsAttrValue& aResult)
 {
@@ -47,14 +44,13 @@ HTMLPreElement::ParseAttribute(int32_t aNamespaceID,
 
 void
 HTMLPreElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
-                                      nsRuleData* aData)
+                                      GenericSpecifiedValues* aData)
 {
-  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Text)) {
-    nsCSSValue* whiteSpace = aData->ValueForWhiteSpace();
-    if (whiteSpace->GetUnit() == eCSSUnit_Null) {
+  if (aData->ShouldComputeStyleStruct(NS_STYLE_INHERIT_BIT(Text))) {
+    if (!aData->PropertyIsSet(eCSSProperty_white_space)) {
       // wrap: empty
       if (aAttributes->GetAttr(nsGkAtoms::wrap))
-        whiteSpace->SetIntValue(NS_STYLE_WHITESPACE_PRE_WRAP, eCSSUnit_Enumerated);
+        aData->SetKeywordValue(eCSSProperty_white_space, StyleWhiteSpace::PreWrap);
     }
   }
 
@@ -62,7 +58,7 @@ HTMLPreElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
 }
 
 NS_IMETHODIMP_(bool)
-HTMLPreElement::IsAttributeMapped(const nsIAtom* aAttribute) const
+HTMLPreElement::IsAttributeMapped(const nsAtom* aAttribute) const
 {
   if (!mNodeInfo->Equals(nsGkAtoms::pre)) {
     return nsGenericHTMLElement::IsAttributeMapped(aAttribute);
@@ -72,7 +68,7 @@ HTMLPreElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     { &nsGkAtoms::wrap },
     { nullptr },
   };
-  
+
   static const MappedAttributeEntry* const map[] = {
     attributes,
     sCommonAttributeMap,

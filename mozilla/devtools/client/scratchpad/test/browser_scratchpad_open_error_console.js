@@ -2,17 +2,16 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const HUDService = require("devtools/client/webconsole/hudservice");
+const {HUDService} = require("devtools/client/webconsole/hudservice");
 
 function test()
 {
   waitForExplicitFinish();
 
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
-    gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
+  gBrowser.selectedBrowser.addEventListener("load", function () {
     openScratchpad(runTests);
-  }, true);
+  }, {capture: true, once: true});
 
   content.location = "data:text/html;charset=utf8,test Scratchpad." +
                      "openErrorConsole()";
@@ -29,7 +28,7 @@ function runTests()
     is(aSubject.data, hud.hudId, "notification hudId is correct");
 
     HUDService.toggleBrowserConsole().then(finish);
-  }, "web-console-created", false);
+  }, "web-console-created");
 
   let hud = HUDService.getBrowserConsole();
   ok(!hud, "browser console is not open");

@@ -13,7 +13,7 @@
 namespace mozilla {
 namespace layers {
 
-class SyncObject;
+class SyncObjectClient;
 class TextureForwarder;
 class LayersIPCActor;
 
@@ -23,15 +23,14 @@ class LayersIPCActor;
  */
 class KnowsCompositor {
 public:
-  NS_IMETHOD_(MozExternalRefCountType) AddRef(void) = 0;
-  NS_IMETHOD_(MozExternalRefCountType) Release(void) = 0;
+  NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
 
   KnowsCompositor();
   ~KnowsCompositor();
 
   void IdentifyTextureHost(const TextureFactoryIdentifier& aIdentifier);
 
-  SyncObject* GetSyncObject() { return mSyncObject; }
+  SyncObjectClient* GetSyncObject() { return mSyncObject; }
 
   int32_t GetMaxTextureSize() const
   {
@@ -63,9 +62,18 @@ public:
     return mTextureFactoryIdentifier.mSupportsComponentAlpha;
   }
 
+  bool GetCompositorUseANGLE() const
+  {
+    return mTextureFactoryIdentifier.mCompositorUseANGLE;
+  }
+
   const TextureFactoryIdentifier& GetTextureFactoryIdentifier() const
   {
     return mTextureFactoryIdentifier;
+  }
+
+  bool DeviceCanReset() const {
+    return GetCompositorBackendType() != LayersBackend::LAYERS_BASIC;
   }
 
   int32_t GetSerial() { return mSerial; }
@@ -78,7 +86,7 @@ public:
 
 protected:
   TextureFactoryIdentifier mTextureFactoryIdentifier;
-  RefPtr<SyncObject> mSyncObject;
+  RefPtr<SyncObjectClient> mSyncObject;
 
   const int32_t mSerial;
   static mozilla::Atomic<int32_t> sSerialCounter;

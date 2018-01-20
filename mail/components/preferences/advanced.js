@@ -6,11 +6,15 @@
 // Load DownloadUtils module for convertByteUnits
 Components.utils.import("resource://gre/modules/DownloadUtils.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
+Components.utils.import("resource://gre/modules/InlineSpellChecker.jsm");
 
 var gAdvancedPane = {
   mPane: null,
   mInitialized: false,
   mShellServiceWorking: false,
+  mInlineSpellChecker: null,
+  mBundle: null,
 
   _loadInContent: Services.prefs.getBoolPref("mail.preferences.inContent"),
 
@@ -18,6 +22,9 @@ var gAdvancedPane = {
   {
     this.mPane = document.getElementById("paneAdvanced");
     this.updateCompactOptions();
+    this.mInlineSpellChecker = new InlineSpellChecker();
+    this.mBundle = document.getElementById("bundlePreferences");
+    this.formatLocaleSetLabels();
 
     if (!(("arguments" in window) && window.arguments[1]))
     {
@@ -85,8 +92,45 @@ var gAdvancedPane = {
       this.mShellServiceWorking = false;
     }
 
-    if (this._loadInContent) {
-      gSubDialog.init();
+    if (AppConstants.MOZ_UPDATER) {
+      let distroId = Services.prefs.getCharPref("distribution.id" , "");
+      if (distroId) {
+        let distroVersion = Services.prefs.getCharPref("distribution.version");
+
+        let distroIdField = document.getElementById("distributionId");
+        distroIdField.value = distroId + " - " + distroVersion;
+        distroIdField.style.display = "block";
+
+        let distroAbout = Services.prefs.getStringPref("distribution.about", "");
+        if (distroAbout) {
+          let distroField = document.getElementById("distribution");
+          distroField.value = distroAbout;
+          distroField.style.display = "block";
+        }
+      }
+
+      let version = AppConstants.MOZ_APP_VERSION_DISPLAY;
+
+      // Include the build ID and display warning if this is an "a#" (nightly) build
+      if (/a\d+$/.test(version)) {
+        let buildID = Services.appinfo.appBuildID;
+        let year = buildID.slice(0, 4);
+        let month = buildID.slice(4, 6);
+        let day = buildID.slice(6, 8);
+        version += ` (${year}-${month}-${day})`;
+      }
+
+      // Append "(32-bit)" or "(64-bit)" build architecture to the version number:
+      let bundle = Services.strings.createBundle("chrome://messenger/locale/messenger.properties");
+      let archResource = Services.appinfo.is64Bit
+                         ? "aboutDialog.architecture.sixtyFourBit"
+                         : "aboutDialog.architecture.thirtyTwoBit";
+      let arch = bundle.GetStringFromName(archResource);
+      version += ` (${arch})`;
+
+      document.getElementById("version").textContent = version;
+
+      gAppUpdater = new appUpdater();
     }
 
     this.mInitialized = true;
@@ -184,6 +228,21 @@ var gAdvancedPane = {
                   .getService(Components.interfaces.nsICacheStorageService);
       cacheService.asyncGetDiskConsumption(this.observer);
     } catch (e) {}
+  },
+
+  updateCacheSizeUI: function (smartSizeEnabled)
+  {
+    document.getElementById("useCacheBefore").disabled = smartSizeEnabled;
+    document.getElementById("cacheSize").disabled = smartSizeEnabled;
+    document.getElementById("useCacheAfter").disabled = smartSizeEnabled;
+  },
+
+  readSmartSizeEnabled: function ()
+  {
+    // The smart_size.enabled preference element is inverted="true", so its
+    // value is the opposite of the actual pref value
+    var disabled = document.getElementById("browser.cache.disk.smart_size.enabled").value;
+    this.updateCacheSizeUI(!disabled);
   },
 
   /**
@@ -312,9 +371,13 @@ updateWritePrefs: function ()
 
   showUpdates: function ()
   {
-    var prompter = Components.classes["@mozilla.org/updates/update-prompt;1"]
-                             .createInstance(Components.interfaces.nsIUpdatePrompt);
-    prompter.showUpdateHistory(window);
+    if (this._loadInContent) {
+      gSubDialog.open("chrome://mozapps/content/update/history.xul");
+    } else {
+      var prompter = Components.classes["@mozilla.org/updates/update-prompt;1"]
+                               .createInstance(Components.interfaces.nsIUpdatePrompt);
+      prompter.showUpdateHistory(window);
+    }
   },
 
   updateCompactOptions: function(aCompactEnabled)
@@ -504,5 +567,28 @@ updateWritePrefs: function ()
   {
     if (AppConstants.MOZ_TELEMETRY_REPORTING)
       this._setupLearnMoreLink("toolkit.telemetry.infoURL", "telemetryLearnMore");
+  },
+
+  formatLocaleSetLabels: function() {
+    const localeService =
+      Components.classes["@mozilla.org/intl/localeservice;1"]
+                .getService(Components.interfaces.mozILocaleService);
+    const osprefs =
+      Components.classes["@mozilla.org/intl/ospreferences;1"]
+                .getService(Components.interfaces.mozIOSPreferences);
+    let appLocale = localeService.getAppLocalesAsBCP47()[0];
+    let rsLocale = osprefs.getRegionalPrefsLocales()[0];
+    appLocale = this.mInlineSpellChecker.getDictionaryDisplayName(appLocale);
+    rsLocale = this.mInlineSpellChecker.getDictionaryDisplayName(rsLocale);
+    let appLocaleRadio = document.getElementById("appLocale");
+    let rsLocaleRadio = document.getElementById("rsLocale");
+    let appLocaleLabel = this.mBundle.getFormattedString("appLocale.label",
+                                                         [appLocale]);
+    let rsLocaleLabel = this.mBundle.getFormattedString("rsLocale.label",
+                                                        [rsLocale]);
+    appLocaleRadio.setAttribute("label", appLocaleLabel);
+    rsLocaleRadio.setAttribute("label", rsLocaleLabel);
+    appLocaleRadio.accessKey = this.mBundle.getString("appLocale.accesskey");
+    rsLocaleRadio.accessKey = this.mBundle.getString("rsLocale.accesskey");
   },
 };

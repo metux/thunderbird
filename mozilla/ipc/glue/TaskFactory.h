@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -58,22 +60,16 @@ public:
     return task.forget();
   }
 
-  template <class Method>
-  inline already_AddRefed<Runnable> NewRunnableMethod(Method method) {
-    typedef TaskWrapper<RunnableMethod<Method, Tuple0> > TaskWrapper;
+  template <class Method, typename... Args>
+  inline already_AddRefed<Runnable>
+  NewRunnableMethod(Method method, Args&&... args) {
+    typedef decltype(base::MakeTuple(mozilla::Forward<Args>(args)...)) ArgTuple;
+    typedef RunnableMethod<Method, ArgTuple> RunnableMethod;
+    typedef TaskWrapper<RunnableMethod> TaskWrapper;
 
-    RefPtr<TaskWrapper> task = new TaskWrapper(this, object_, method,
-                                               base::MakeTuple());
-
-    return task.forget();
-  }
-
-  template <class Method, class A>
-  inline already_AddRefed<Runnable> NewRunnableMethod(Method method, const A& a) {
-    typedef TaskWrapper<RunnableMethod<Method, Tuple1<A> > > TaskWrapper;
-
-    RefPtr<TaskWrapper> task = new TaskWrapper(this, object_, method,
-                                               base::MakeTuple(a));
+    RefPtr<TaskWrapper> task =
+      new TaskWrapper(this, object_, method,
+                      base::MakeTuple(mozilla::Forward<Args>(args)...));
 
     return task.forget();
   }
@@ -82,11 +78,12 @@ protected:
   template <class Method, class Params>
   class RunnableMethod : public Runnable {
    public:
-    RunnableMethod(T* obj, Method meth, const Params& params)
-      : obj_(obj)
-      , meth_(meth)
-      , params_(params) {
-
+     RunnableMethod(T* obj, Method meth, const Params& params)
+       : Runnable("ipc::TaskFactory::RunnableMethod")
+       , obj_(obj)
+       , meth_(meth)
+       , params_(params)
+     {
     }
 
     NS_IMETHOD Run() override {

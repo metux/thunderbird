@@ -16,10 +16,6 @@ const archive = do_get_file(ARCHIVE, false);
 const dir = do_get_profile().clone();
 dir.append("test_ZipUtils");
 
-function run_test() {
-  run_next_test();
-}
-
 function ensureExtracted(target) {
   target.append(SUBDIR);
   do_check_true(target.exists());
@@ -60,13 +56,13 @@ add_task(function test_extractFiles() {
   ensureHasSymlink(target);
 });
 
-add_task(function* test_extractFilesAsync() {
+add_task(async function test_extractFilesAsync() {
   let target = dir.clone();
   target.append("test_extractFilesAsync");
   target.create(Components.interfaces.nsIFile.DIRECTORY_TYPE,
     FileUtils.PERMS_DIRECTORY);
 
-  yield ZipUtils.extractFilesAsync(archive, target).then(
+  await ZipUtils.extractFilesAsync(archive, target).then(
     function success() {
       do_print("SUCCESS");
       ensureExtracted(target);

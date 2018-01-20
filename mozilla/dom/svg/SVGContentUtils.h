@@ -32,11 +32,9 @@ class SVGPreserveAspectRatio;
 namespace dom {
 class Element;
 class SVGSVGElement;
+class SVGViewportElement;
 } // namespace dom
 
-namespace gfx {
-class Matrix;
-} // namespace gfx
 } // namespace mozilla
 
 #define SVG_ZERO_LENGTH_PATH_FIX_FACTOR 512
@@ -177,7 +175,7 @@ public:
 
   /**
    * Returns the current computed value of the CSS property 'stroke-width' for
-   * the given element. aStyleContext may be provided as an optimization. 
+   * the given element. aStyleContext may be provided as an optimization.
    * aContextPaint is also optional.
    *
    * Note that this function does NOT take account of the value of the 'stroke'
@@ -241,8 +239,8 @@ public:
    */
   static bool EstablishesViewport(nsIContent *aContent);
 
-  static nsSVGElement*
-  GetNearestViewportElement(nsIContent *aContent);
+  static mozilla::dom::SVGViewportElement*
+  GetNearestViewportElement(const nsIContent *aContent);
 
   /* enum for specifying coordinate direction for ObjectSpace/UserSpace */
   enum ctxDirection { X, Y, XY };
@@ -384,17 +382,6 @@ public:
    *  to have no corners: circle or ellipse
    */
   static bool ShapeTypeHasNoCorners(const nsIContent* aContent);
-
-  /**
-   *  Prepends an element's local transforms to the transform matrix.
-   *  This is a helper for nsSVGElement::PrependLocalTransformsTo.
-   *  Any callers probably really want to call that method instead of this one.
-   */
-  static gfxMatrix PrependLocalTransformsTo(
-    const gfxMatrix &aMatrix,
-    SVGTransformTypes aWhich,
-    const Matrix* aAnimateMotionTransform,
-    const mozilla::nsSVGAnimatedTransformList* aTransforms);
 };
 
 #endif

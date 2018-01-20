@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- *//* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,6 +13,7 @@
 #include "mozilla/dom/workers/bindings/WorkerHolder.h"
 
 #include "nsIObserver.h"
+#include "nsISupports.h"
 
 #include "nsCycleCollectionParticipant.h"
 #include "nsHashKeys.h"
@@ -64,19 +66,14 @@ public:
   nsresult Init();
   void RecordDNDSupported();
   void RecordPermissions();
-  nsresult RecordSender(nsIPrincipal* aPrincipal);
 
 private:
   virtual ~NotificationTelemetryService();
-
-  nsresult AddPermissionChangeObserver();
-  nsresult RemovePermissionChangeObserver();
 
   bool GetNotificationPermission(nsISupports* aSupports,
                                  uint32_t* aCapability);
 
   bool mDNDRecorded;
-  nsTHashtable<nsStringHashKey> mOrigins;
 };
 
 /*
@@ -327,6 +324,8 @@ public:
 
   static nsresult RemovePermission(nsIPrincipal* aPrincipal);
   static nsresult OpenSettings(nsIPrincipal* aPrincipal);
+
+  nsresult DispatchToMainThread(already_AddRefed<nsIRunnable>&& aRunnable);
 protected:
   Notification(nsIGlobalObject* aGlobal, const nsAString& aID,
                const nsAString& aTitle, const nsAString& aBody,

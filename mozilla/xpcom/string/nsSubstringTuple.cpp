@@ -6,15 +6,4 @@
 
 #include "nsSubstringTuple.h"
 
-// convert fragment to |const substring_type&|
-#define TO_SUBSTRING(_v) (*(_v))
-
-// define nsSubstringTuple
-#include "string-template-def-unichar.h"
 #include "nsTSubstringTuple.cpp"
-#include "string-template-undef.h"
-
-// define nsCSubstringTuple
-#include "string-template-def-char.h"
-#include "nsTSubstringTuple.cpp"
-#include "string-template-undef.h"

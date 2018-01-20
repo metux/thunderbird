@@ -6,33 +6,36 @@
 
 const TEST_PAGE = "http://mochi.test:8888/browser/browser/components/customizableui/test/support/test_967000_charEncoding_page.html";
 
-add_task(function*() {
+add_task(async function() {
   info("Check Character Encoding button functionality");
 
   // add the Character Encoding button to the panel
   CustomizableUI.addWidgetToArea("characterencoding-button",
-                                  CustomizableUI.AREA_PANEL);
+                                  CustomizableUI.AREA_FIXED_OVERFLOW_PANEL);
 
-  // check the button's functionality
-  yield PanelUI.show();
+  await waitForOverflowButtonShown();
+  registerCleanupFunction(() => CustomizableUI.reset());
+
+  await document.getElementById("nav-bar").overflowable.show();
 
   let charEncodingButton = document.getElementById("characterencoding-button");
   ok(charEncodingButton, "The Character Encoding button was added to the Panel Menu");
   is(charEncodingButton.getAttribute("disabled"), "true",
      "The Character encoding button is initially disabled");
 
-  let panelHidePromise = promisePanelHidden(window);
-  PanelUI.hide();
-  yield panelHidePromise;
+  let panelHidePromise = promiseOverflowHidden(window);
+  document.getElementById("nav-bar").overflowable._panel.hidePopup();
+  await panelHidePromise;
+  info("Panel hidden");
 
-  let newTab = yield BrowserTestUtils.openNewForegroundTab(gBrowser, TEST_PAGE, true, true);
+  let newTab = await BrowserTestUtils.openNewForegroundTab(gBrowser, TEST_PAGE, true, true);
 
-  yield PanelUI.show();
+  await document.getElementById("nav-bar").overflowable.show();
   ok(!charEncodingButton.hasAttribute("disabled"), "The Character encoding button gets enabled");
   let characterEncodingView = document.getElementById("PanelUI-characterEncodingView");
   let subviewShownPromise = subviewShown(characterEncodingView);
   charEncodingButton.click();
-  yield subviewShownPromise;
+  await subviewShownPromise;
 
   ok(characterEncodingView.hasAttribute("current"), "The Character encoding panel is displayed");
 
@@ -48,15 +51,16 @@ add_task(function*() {
      1,
      "There should be 1 checked detector.");
 
-  panelHidePromise = promisePanelHidden(window);
-  PanelUI.hide();
-  yield panelHidePromise;
+  panelHidePromise = promiseOverflowHidden(window);
+  document.getElementById("nav-bar").overflowable._panel.hidePopup();
+  await panelHidePromise;
+  info("Panel hidden");
 
-  yield BrowserTestUtils.removeTab(newTab);
+  await BrowserTestUtils.removeTab(newTab);
 });
 
-add_task(function* asyncCleanup() {
+add_task(async function asyncCleanup() {
   // reset the panel to the default state
-  yield resetCustomization();
+  await resetCustomization();
   ok(CustomizableUI.inDefaultState, "The UI is in default state again.");
 });

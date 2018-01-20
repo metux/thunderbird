@@ -15,12 +15,11 @@
 #include "nsIAsyncOutputStream.h"
 #include "nsIAsyncInputStream.h"
 #include "nsImapCore.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIProgressEventSink.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsISocketTransport.h"
-#include "nsIInputStreamPump.h"
 
 // imap event sinks
 #include "nsIImapMailFolderSink.h"
@@ -56,6 +55,9 @@
 #include "mozilla/ReentrantMonitor.h"
 #include "nsSyncRunnableHelpers.h"
 #include "nsICacheEntryOpenCallback.h"
+#include "nsIProtocolProxyCallback.h"
+#include "nsICancelable.h"
+#include "nsImapStringBundle.h"
 
 class nsIMAPMessagePartIDArray;
 class nsIMsgIncomingServer;
@@ -124,18 +126,29 @@ private:
 #define IMAP_ISSUED_LANGUAGE_REQUEST  0x00000020 // make sure we only issue the language request once per connection...
 #define IMAP_ISSUED_COMPRESS_REQUEST  0x00000040 // make sure we only request compression once
 
+// There are 3 types of progress strings for items downloaded from IMAP servers.
+// An index is needed to keep track of the current count of the number of each
+// item type downloaded. The IMAP_EMPTY_STRING_INDEX means no string displayed.
+#define IMAP_NUMBER_OF_PROGRESS_STRINGS 4
+#define IMAP_HEADERS_STRING_INDEX       0
+#define IMAP_FLAGS_STRING_INDEX         1
+#define IMAP_MESSAGES_STRING_INDEX      2
+#define IMAP_EMPTY_STRING_INDEX         3
+
 class nsImapProtocol : public nsIImapProtocol,
                        public nsIRunnable,
                        public nsIInputStreamCallback,
                        public nsSupportsWeakReference,
                        public nsMsgProtocol,
                        public nsIImapProtocolSink,
-                       public nsIMsgAsyncPromptListener
+                       public nsIMsgAsyncPromptListener,
+                       public nsIProtocolProxyCallback
 {
 public:
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIINPUTSTREAMCALLBACK
+  NS_DECL_NSIPROTOCOLPROXYCALLBACK
   nsImapProtocol();
 
   virtual nsresult ProcessProtocolState(nsIURI * url, nsIInputStream * inputStream,
@@ -242,7 +255,7 @@ public:
   void ProgressEventFunctionUsingName(const char* aMsgId);
   void ProgressEventFunctionUsingNameWithString(const char* aMsgName, const char *
     aExtraInfo);
-  void PercentProgressUpdateEvent(char16_t *message, int64_t currentProgress, int64_t maxProgress);
+  void PercentProgressUpdateEvent(const char16_t *message, int64_t currentProgress, int64_t maxProgress);
   void ShowProgress();
 
   // utility function calls made by the server
@@ -355,7 +368,7 @@ private:
   // If we get an async password prompt, this is where the UI thread
   // stores the password, before notifying the imap thread of the password
   // via the m_passwordReadyMonitor.
-  nsCString m_password;
+  nsString m_password;
   // Set to the result of nsImapServer::PromptPassword
   nsresult    m_passwordStatus;
 
@@ -375,6 +388,7 @@ private:
   // helper function to setup imap sink interface proxies
   nsresult SetupSinkProxy();
   // End thread support stuff
+  nsresult LoadImapUrlInternal();
 
   bool GetDeleteIsMoveToTrash();
   bool GetShowDeletedMessages();
@@ -414,6 +428,7 @@ private:
 
   // initialization function given a new url and transport layer
   nsresult  SetupWithUrl(nsIURI * aURL, nsISupports* aConsumer);
+  nsresult  SetupWithUrlCallback(nsIProxyInfo* proxyInfo);
   void ReleaseUrlState(bool rerunningUrl); // release any state that is stored on a per action basis.
   /**
    * Last ditch effort to run the url without using an imap connection.
@@ -450,7 +465,7 @@ private:
   // connection has timed out, this will be set to FALSE.
   bool m_safeToCloseConnection;
 
-  nsImapFlagAndUidState  *m_flagState;
+  RefPtr<nsImapFlagAndUidState> m_flagState;
   nsMsgBiffState        m_currentBiffState;
   // manage the IMAP server command tags
   // 11 = enough memory for the decimal representation of MAX_UINT + trailing nul
@@ -462,7 +477,7 @@ private:
   void StartTLS();
 
   // login related methods.
-  nsresult GetPassword(nsCString &password, bool aNewPasswordRequested);
+  nsresult GetPassword(nsString &password, bool aNewPasswordRequested);
   void InitPrefAuthMethods(int32_t authMethodPrefValue,
                            nsIMsgIncomingServer *aServer);
   nsresult ChooseAuthMethod();
@@ -478,7 +493,7 @@ private:
   void Language(); // set the language on the server if it supports it
   void Namespace();
   void InsecureLogin(const char *userName, const nsCString &password);
-  nsresult AuthLogin(const char *userName, const nsCString &password, eIMAPCapabilityFlag flag);
+  nsresult AuthLogin(const char *userName, const nsString &password, eIMAPCapabilityFlag flag);
   void ProcessAuthenticatedStateURL();
   void ProcessAfterAuthenticated();
   void ProcessSelectedStateURL();
@@ -617,25 +632,19 @@ private:
 
   bool m_fromHeaderSeen;
 
-  // these settings allow clients to override various pieces of the connection info from the url
-  bool m_overRideUrlConnectionInfo;
-
-  nsCString m_logonHost;
-  nsCString m_logonCookie;
-  int16_t m_logonPort;
-  
   nsString mAcceptLanguages;
   
   // progress stuff
-  void SetProgressString(const char* stringName);
+  void SetProgressString(uint32_t aStringIndex);
   
-  nsString m_progressString;
   nsCString     m_progressStringName;
-  int32_t       m_progressIndex;
-  int32_t       m_progressCount;
+  uint32_t      m_stringIndex;
+  int32_t       m_progressCurrentNumber[IMAP_NUMBER_OF_PROGRESS_STRINGS];
+  int32_t       m_progressExpectedNumber;
   nsCString     m_lastProgressStringName;
   int32_t       m_lastPercent;
   int64_t       m_lastProgressTime;
+  nsCOMPtr<nsIStringBundle> m_bundle;
 
   bool m_notifySearchHit;
   bool m_checkForNewMailDownloadsHeaders;
@@ -653,8 +662,8 @@ private:
   int32_t m_uidValidity; // stored uid validity for the selected folder.
 
   enum EMailboxHierarchyNameState {
-    kNoOperationInProgress,
-      kDiscoverBaseFolderInProgress,
+      kNoOperationInProgress,
+      // kDiscoverBaseFolderInProgress, - Unused. Keeping for historical reasons.
       kDiscoverTrashFolderInProgress,
       kDeleteSubFoldersInProgress,
       kListingForInfoOnly,

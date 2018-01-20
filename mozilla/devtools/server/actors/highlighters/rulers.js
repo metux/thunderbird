@@ -4,7 +4,7 @@
 
 "use strict";
 
-const events = require("sdk/event/core");
+const EventEmitter = require("devtools/shared/event-emitter");
 const { getCurrentZoom,
   setIgnoreLayoutChanges } = require("devtools/shared/layout/utils");
 const {
@@ -150,12 +150,10 @@ RulersHighlighter.prototype = {
           } else {
             dGraduations += `M${i} 0 L${i} ${graduationLength} `;
           }
+        } else if (i % 50 === 0) {
+          dMarkers += `M0 ${i} L${graduationLength} ${i}`;
         } else {
-          if (i % 50 === 0) {
-            dMarkers += `M0 ${i} L${graduationLength} ${i}`;
-          } else {
-            dGraduations += `M0 ${i} L${graduationLength} ${i}`;
-          }
+          dGraduations += `M0 ${i} L${graduationLength} ${i}`;
         }
       }
 
@@ -203,7 +201,11 @@ RulersHighlighter.prototype = {
         this._onScroll(event);
         break;
       case "pagehide":
-        this.destroy();
+        // If a page hide event is triggered for current window's highlighter, hide the
+        // highlighter.
+        if (event.target.defaultView === this.env.window) {
+          this.destroy();
+        }
         break;
     }
   },
@@ -267,12 +269,15 @@ RulersHighlighter.prototype = {
     this.hide();
 
     let { pageListenerTarget } = this.env;
-    pageListenerTarget.removeEventListener("scroll", this);
-    pageListenerTarget.removeEventListener("pagehide", this);
+
+    if (pageListenerTarget) {
+      pageListenerTarget.removeEventListener("scroll", this);
+      pageListenerTarget.removeEventListener("pagehide", this);
+    }
 
     this.markup.destroy();
 
-    events.emit(this, "destroy");
+    EventEmitter.emit(this, "destroy");
   },
 
   show: function () {

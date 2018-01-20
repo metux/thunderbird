@@ -18,20 +18,7 @@ const { Management } = Components.utils.import("resource://gre/modules/Extension
 
 const {
   EmbeddedExtensionManager,
-  LegacyExtensionsUtils,
-} = Components.utils.import("resource://gre/modules/LegacyExtensionsUtils.jsm");
-
-// Wait the startup of the embedded webextension.
-function promiseWebExtensionStartup() {
-  return new Promise(resolve => {
-    let listener = (event, extension) => {
-      Management.off("startup", listener);
-      resolve(extension);
-    };
-
-    Management.on("startup", listener);
-  });
-}
+} = Components.utils.import("resource://gre/modules/LegacyExtensionsUtils.jsm", {});
 
 function promiseWebExtensionShutdown() {
   return new Promise(resolve => {
@@ -48,6 +35,12 @@ const BOOTSTRAP = String.raw`
   Components.utils.import("resource://xpcshell-data/BootstrapMonitor.jsm").monitor(this);
 `;
 
+const BOOTSTRAP_WITHOUT_SHUTDOWN = String.raw`
+  Components.utils.import("resource://xpcshell-data/BootstrapMonitor.jsm").monitor(this, [
+    "install", "startup", "uninstall",
+  ]);
+`;
+
 const EMBEDDED_WEBEXT_MANIFEST = JSON.stringify({
   name: "embedded webextension addon",
   manifest_version: 2,
@@ -58,7 +51,7 @@ const EMBEDDED_WEBEXT_MANIFEST = JSON.stringify({
  *  This test case checks that an hasEmbeddedWebExtension addon property
  *  is persisted and restored correctly across restarts.
  */
-add_task(function* has_embedded_webextension_persisted() {
+add_task(async function has_embedded_webextension_persisted() {
   const ID = "embedded-webextension-addon-persist@tests.mozilla.org";
 
   const xpiFile = createTempXPIFile({
@@ -77,9 +70,9 @@ add_task(function* has_embedded_webextension_persisted() {
     "webextension/manifest.json": EMBEDDED_WEBEXT_MANIFEST,
   });
 
-  yield promiseInstallFile(xpiFile);
+  await promiseInstallFile(xpiFile);
 
-  let addon = yield promiseAddonByID(ID);
+  let addon = await promiseAddonByID(ID);
 
   notEqual(addon, null, "Got an addon object as expected");
   equal(addon.version, "1.0", "Got the expected version");
@@ -98,9 +91,10 @@ add_task(function* has_embedded_webextension_persisted() {
 
   // After restarting the manager, the add-on should still have the
   // hasEmbeddedWebExtension property as expected.
-  yield promiseRestartManager();
+  await promiseRestartManager();
 
-  let persisted = JSON.parse(Services.prefs.getCharPref("extensions.bootstrappedAddons"));
+  let persisted = aomStartup.readStartupData()["app-profile"].addons;
+
   ok(ID in persisted, "Hybrid add-on persisted to bootstrappedAddons.");
   equal(persisted[ID].hasEmbeddedWebExtension, true,
         "hasEmbeddedWebExtension flag persisted to bootstrappedAddons.");
@@ -109,7 +103,7 @@ add_task(function* has_embedded_webextension_persisted() {
   BootstrapMonitor.checkAddonInstalled(ID, "1.0");
   BootstrapMonitor.checkAddonStarted(ID, "1.0");
 
-  addon = yield promiseAddonByID(ID);
+  addon = await promiseAddonByID(ID);
   notEqual(addon, null, "Got an addon object as expected");
   equal(addon.hasEmbeddedWebExtension, true, "Got the expected hasEmbeddedWebExtension value");
 
@@ -122,7 +116,7 @@ add_task(function* has_embedded_webextension_persisted() {
 
   let waitUninstall = promiseAddonEvent("onUninstalled");
   addon.uninstall();
-  yield waitUninstall;
+  await waitUninstall;
 });
 
 /**
@@ -130,7 +124,7 @@ add_task(function* has_embedded_webextension_persisted() {
  *  in its install.rdf gets the expected `embeddedWebExtension` object in the
  *  parameters of its bootstrap methods.
  */
-add_task(function* run_embedded_webext_bootstrap() {
+add_task(async function run_embedded_webext_bootstrap() {
   const ID = "embedded-webextension-addon2@tests.mozilla.org";
 
   const xpiFile = createTempXPIFile({
@@ -149,9 +143,9 @@ add_task(function* run_embedded_webext_bootstrap() {
     "webextension/manifest.json": EMBEDDED_WEBEXT_MANIFEST,
   });
 
-  yield AddonManager.installTemporaryAddon(xpiFile);
+  await AddonManager.installTemporaryAddon(xpiFile);
 
-  let addon = yield promiseAddonByID(ID);
+  let addon = await promiseAddonByID(ID);
 
   notEqual(addon, null, "Got an addon object as expected");
   equal(addon.version, "1.0", "Got the expected version");
@@ -177,10 +171,10 @@ add_task(function* run_embedded_webext_bootstrap() {
 
   const waitForWebExtensionStartup = promiseWebExtensionStartup();
 
-  const embeddedAPI = yield startupInfo.data.webExtension.startup();
+  const embeddedAPI = await startupInfo.data.webExtension.startup();
 
   // WebExtension startup should have been fully resolved.
-  yield waitForWebExtensionStartup;
+  await waitForWebExtensionStartup;
 
   Assert.deepEqual(
     Object.keys(embeddedAPI.browser.runtime).sort(),
@@ -193,8 +187,8 @@ add_task(function* run_embedded_webext_bootstrap() {
   let waitForWebExtensionShutdown = promiseWebExtensionShutdown();
   let waitUninstall = promiseAddonEvent("onUninstalled");
   addon.uninstall();
-  yield waitForWebExtensionShutdown;
-  yield waitUninstall;
+  await waitForWebExtensionShutdown;
+  await waitUninstall;
 
   BootstrapMonitor.checkAddonNotStarted(ID, "1.0");
 
@@ -211,7 +205,7 @@ add_task(function* run_embedded_webext_bootstrap() {
  *  This test case checks that an addon with hasEmbeddedWebExtension can be reloaded
  *  without raising unexpected exceptions due to race conditions.
  */
-add_task(function* reload_embedded_webext_bootstrap() {
+add_task(async function reload_embedded_webext_bootstrap() {
   const ID = "embedded-webextension-addon2@tests.mozilla.org";
 
   // No embedded webextension should be currently around.
@@ -234,9 +228,9 @@ add_task(function* reload_embedded_webext_bootstrap() {
     "webextension/manifest.json": EMBEDDED_WEBEXT_MANIFEST,
   });
 
-  yield AddonManager.installTemporaryAddon(xpiFile);
+  await AddonManager.installTemporaryAddon(xpiFile);
 
-  let addon = yield promiseAddonByID(ID);
+  let addon = await promiseAddonByID(ID);
 
   notEqual(addon, null, "Got an addon object as expected");
   equal(addon.version, "1.0", "Got the expected version");
@@ -255,11 +249,11 @@ add_task(function* reload_embedded_webext_bootstrap() {
   const embeddedWebExtension = EmbeddedExtensionManager.embeddedExtensionsByAddonId.get(ID);
 
   let startupInfo = BootstrapMonitor.started.get(ID);
-  yield startupInfo.data.webExtension.startup();
+  await startupInfo.data.webExtension.startup();
 
   const waitForAddonDisabled = promiseAddonEvent("onDisabled");
   addon.userDisabled = true;
-  yield waitForAddonDisabled;
+  await waitForAddonDisabled;
 
   // No embedded webextension should be currently around.
   equal(EmbeddedExtensionManager.embeddedExtensionsByAddonId.size, 0,
@@ -267,7 +261,7 @@ add_task(function* reload_embedded_webext_bootstrap() {
 
   const waitForAddonEnabled = promiseAddonEvent("onEnabled");
   addon.userDisabled = false;
-  yield waitForAddonEnabled;
+  await waitForAddonEnabled;
 
   // Only one embedded extension.
   equal(EmbeddedExtensionManager.embeddedExtensionsByAddonId.size, 1,
@@ -278,11 +272,11 @@ add_task(function* reload_embedded_webext_bootstrap() {
            "Got a new EmbeddedExtension instance after the addon has been disabled and then enabled");
 
   startupInfo = BootstrapMonitor.started.get(ID);
-  yield startupInfo.data.webExtension.startup();
+  await startupInfo.data.webExtension.startup();
 
   const waitForReinstalled = promiseAddonEvent("onInstalled");
   addon.reload();
-  yield waitForReinstalled;
+  await waitForReinstalled;
 
   // No leaked embedded extension after the previous reloads.
   equal(EmbeddedExtensionManager.embeddedExtensionsByAddonId.size, 1,
@@ -293,12 +287,84 @@ add_task(function* reload_embedded_webext_bootstrap() {
            "Got a new EmbeddedExtension instance after the addon has been reloaded");
 
   startupInfo = BootstrapMonitor.started.get(ID);
-  yield startupInfo.data.webExtension.startup();
+  await startupInfo.data.webExtension.startup();
 
   // Uninstall the test addon
   let waitUninstalled = promiseAddonEvent("onUninstalled");
   addon.uninstall();
-  yield waitUninstalled;
+  await waitUninstalled;
+
+  // No leaked embedded extension after uninstalling.
+  equal(EmbeddedExtensionManager.embeddedExtensionsByAddonId.size, 0,
+        "No embedded extension instance should be tracked after the addon uninstall");
+});
+
+/**
+ *  This test case checks that an addon with hasEmbeddedWebExtension without
+ *  a bootstrap shutdown method stops the embedded webextension.
+ */
+add_task(async function shutdown_embedded_webext_without_bootstrap_shutdown() {
+  const ID = "embedded-webextension-without-shutdown@tests.mozilla.org";
+
+  // No embedded webextension should be currently around.
+  equal(EmbeddedExtensionManager.embeddedExtensionsByAddonId.size, 0,
+        "No embedded extension instance should be tracked here");
+
+  const xpiFile = createTempXPIFile({
+    id: ID,
+    name: "Test Add-on",
+    version: "1.0",
+    bootstrap: true,
+    hasEmbeddedWebExtension: true,
+    targetApplications: [{
+      id: "xpcshell@tests.mozilla.org",
+      minVersion: "1",
+      maxVersion: "1.9.2"
+    }]
+  }, {
+    "bootstrap.js": BOOTSTRAP_WITHOUT_SHUTDOWN,
+    "webextension/manifest.json": EMBEDDED_WEBEXT_MANIFEST,
+  });
+
+  await AddonManager.installTemporaryAddon(xpiFile);
+
+  let addon = await promiseAddonByID(ID);
+
+  notEqual(addon, null, "Got an addon object as expected");
+  equal(addon.version, "1.0", "Got the expected version");
+  equal(addon.isActive, true, "The Addon is active");
+  equal(addon.appDisabled, false, "The addon is not app disabled");
+  equal(addon.userDisabled, false, "The addon is not user disabled");
+
+  // Check that the addon has been installed and started.
+  BootstrapMonitor.checkAddonInstalled(ID, "1.0");
+  BootstrapMonitor.checkAddonStarted(ID, "1.0");
+
+  // Only one embedded extension.
+  equal(EmbeddedExtensionManager.embeddedExtensionsByAddonId.size, 1,
+        "Got the expected number of tracked extension instances");
+
+  const startupInfo = BootstrapMonitor.started.get(ID);
+
+  const waitForWebExtensionStartup = promiseWebExtensionStartup();
+
+  await startupInfo.data.webExtension.startup();
+
+  // WebExtension startup should have been fully resolved.
+  await waitForWebExtensionStartup;
+
+  // Fake the BootstrapMonitor notification, or the shutdown checks defined in head_addons.js
+  // will fail because of the missing shutdown method.
+  const fakeShutdownInfo = Object.assign(startupInfo, {
+    event: "shutdown",
+    reason: 2,
+  });
+  Services.obs.notifyObservers({}, "bootstrapmonitor-event", JSON.stringify(fakeShutdownInfo));
+
+  // Uninstall the addon.
+  const waitUninstalled = promiseAddonEvent("onUninstalled");
+  addon.uninstall();
+  await waitUninstalled;
 
   // No leaked embedded extension after uninstalling.
   equal(EmbeddedExtensionManager.embeddedExtensionsByAddonId.size, 0,

@@ -18,14 +18,13 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
  
   expect = 'TypeError: [].__proto__ is not a function';
 
 
-  Array.prototype.__proto__ = function () 3; 
+  Array.prototype.__proto__ = function () { return 3; };
 
   try
   {
@@ -37,6 +36,4 @@ function test()
   }
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

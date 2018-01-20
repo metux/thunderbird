@@ -3,7 +3,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import json
-import os
 import threading
 
 from mozlog.formatters import TbplFormatter
@@ -26,6 +25,9 @@ class ReftestFormatter(TbplFormatter):
             return "%s\n" % data['message']
 
         formatted = TbplFormatter.__call__(self, data)
+
+        if formatted is None:
+            return
         if data['action'] == 'process_output':
             return formatted
         return 'REFTEST %s' % formatted
@@ -34,35 +36,56 @@ class ReftestFormatter(TbplFormatter):
         prefix = "%s |" % data['level'].upper()
         return "%s %s\n" % (prefix, data['message'])
 
-    def test_end(self, data):
+    def _format_status(self, data):
         extra = data.get('extra', {})
         status = data['status']
-        test = data['test']
 
         status_msg = "TEST-"
         if 'expected' in data:
             status_msg += "UNEXPECTED-%s" % status
         else:
-            if status != "PASS":
+            if status not in ("PASS", "SKIP"):
                 status_msg += "KNOWN-"
             status_msg += status
             if extra.get('status_msg') == 'Random':
                 status_msg += "(EXPECTED RANDOM)"
+        return status_msg
 
+    def test_status(self, data):
+        extra = data.get('extra', {})
+        test = data['test']
 
-        output_text = "%s | %s | %s" % (status_msg, test, data.get("message", ""))
+        status_msg = self._format_status(data)
+        output_text = "%s | %s | %s" % (status_msg, test, data.get("subtest", "unknown test"))
+        if data.get('message'):
+            output_text += " | %s" % data['message']
 
         if "reftest_screenshots" in extra:
             screenshots = extra["reftest_screenshots"]
+            image_1 = screenshots[0]["screenshot"]
+
             if len(screenshots) == 3:
+                image_2 = screenshots[2]["screenshot"]
                 output_text += ("\nREFTEST   IMAGE 1 (TEST): data:image/png;base64,%s\n"
-                                "REFTEST   IMAGE 2 (REFERENCE): data:image/png;base64,%s") % (screenshots[0]["screenshot"],
-                                                                         screenshots[2]["screenshot"])
+                                "REFTEST   IMAGE 2 (REFERENCE): data:image/png;base64,%s") % (
+                                image_1, image_2)
             elif len(screenshots) == 1:
-                output_text += "\nREFTEST   IMAGE: data:image/png;base64,%(image1)s" % screenshots[0]["screenshot"]
+                output_text += "\nREFTEST   IMAGE: data:image/png;base64,%s" % image_1
 
+        return output_text + "\n"
 
-        output_text += "\nREFTEST TEST-END | %s" % test
+    def test_end(self, data):
+        status = data['status']
+        test = data['test']
+
+        output_text = ""
+        if status != "OK":
+            status_msg = self._format_status(data)
+            output_text = "%s | %s | %s" % (status_msg, test, data.get("message", ""))
+
+        if output_text:
+            output_text += "\nREFTEST "
+        output_text += "TEST-END | %s" % test
         return "%s\n" % output_text
 
     def process_output(self, data):
@@ -105,13 +128,12 @@ class OutputHandler(object):
     def __init__(self, log, utilityPath, symbolsPath=None):
         self.stack_fixer_function = get_stack_fixer_function(utilityPath, symbolsPath)
         self.log = log
-        # needed for b2gautomation.py
-        self.suite_finished = False
 
     def __call__(self, line):
         # need to return processed messages to appease remoteautomation.py
         if not line.strip():
             return []
+        line = line.decode('utf-8', errors='replace')
 
         try:
             data = json.loads(line)
@@ -120,9 +142,6 @@ class OutputHandler(object):
             return [line]
 
         if isinstance(data, dict) and 'action' in data:
-            if data['action'] == 'suite_end':
-                self.suite_finished = True
-
             self.log.log_raw(data)
         else:
             self.verbatim(json.dumps(data))

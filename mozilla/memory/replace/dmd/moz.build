@@ -8,16 +8,12 @@ EXPORTS += [
     'DMD.h',
 ]
 
-SOURCES += [
+UNIFIED_SOURCES += [
     '../../../mfbt/HashFunctions.cpp',
     '../../../mfbt/JSONWriter.cpp',
     '../../../mfbt/Poison.cpp',
     '../../../mozglue/misc/StackWalk.cpp',
     'DMD.cpp',
-]
-
-SOURCES += [
-    '../../../nsprpub/lib/libc/src/strcpy.c',
 ]
 
 SharedLibrary('dmd')
@@ -29,7 +25,7 @@ DEFINES['XPCOM_GLUE'] = True
 if CONFIG['MOZ_OPTIMIZE']:
     DEFINES['MOZ_OPTIMIZE'] = True
 
-DISABLE_STL_WRAPPING = True
+DisableStlWrapping()
 
 if CONFIG['OS_ARCH'] == 'WINNT':
     OS_LIBS += [

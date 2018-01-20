@@ -5,7 +5,7 @@
 
 var testGenerator = testSteps();
 
-function testSteps()
+function* testSteps()
 {
   const name = this.window ? window.location.pathname : "Splendid Test";
   const storeName = "test store";
@@ -72,7 +72,7 @@ function testSteps()
 
   // rename to "v2".
   index = objectStore.index(indexName_v1);
-  is(index.name, indexName_v1, "Correct index name")
+  is(index.name, indexName_v1, "Correct index name");
   index.name = indexName_v2;
   is(index.name, indexName_v2, "Renamed index successfully");
 
@@ -189,5 +189,4 @@ function testSteps()
   db.close();
 
   finishTest();
-  yield undefined;
 }

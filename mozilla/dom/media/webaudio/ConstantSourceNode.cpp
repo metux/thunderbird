@@ -8,18 +8,20 @@
 
 #include "AudioDestinationNode.h"
 #include "nsContentUtils.h"
+#include "AudioNodeEngine.h"
+#include "AudioNodeStream.h"
 
 namespace mozilla {
 namespace dom {
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED(ConstantSourceNode, AudioNode,
+NS_IMPL_CYCLE_COLLECTION_INHERITED(ConstantSourceNode, AudioScheduledSourceNode,
                                    mOffset)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(ConstantSourceNode)
-NS_INTERFACE_MAP_END_INHERITING(AudioNode)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ConstantSourceNode)
+NS_INTERFACE_MAP_END_INHERITING(AudioScheduledSourceNode)
 
-NS_IMPL_ADDREF_INHERITED(ConstantSourceNode, AudioNode)
-NS_IMPL_RELEASE_INHERITED(ConstantSourceNode, AudioNode)
+NS_IMPL_ADDREF_INHERITED(ConstantSourceNode, AudioScheduledSourceNode)
+NS_IMPL_RELEASE_INHERITED(ConstantSourceNode, AudioScheduledSourceNode)
 
 class ConstantSourceNodeEngine final : public AudioNodeEngine
 {
@@ -134,20 +136,21 @@ public:
     return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
   }
 
-  AudioNodeStream* mSource;
-  AudioNodeStream* mDestination;
+  // mSource deletes the engine in its destructor.
+  AudioNodeStream* MOZ_NON_OWNING_REF mSource;
+  RefPtr<AudioNodeStream> mDestination;
   StreamTime mStart;
   StreamTime mStop;
   AudioParamTimeline mOffset;
 };
 
 ConstantSourceNode::ConstantSourceNode(AudioContext* aContext)
-  : AudioNode(aContext,
-              1,
-              ChannelCountMode::Max,
-              ChannelInterpretation::Speakers)
+  : AudioScheduledSourceNode(aContext,
+                             1,
+                             ChannelCountMode::Max,
+                             ChannelInterpretation::Speakers)
   , mOffset(new AudioParam(this, ConstantSourceNodeEngine::OFFSET,
-                           1.0, "offset"))
+                           "offset", 1.0f))
   , mStartCalled(false)
 {
   ConstantSourceNodeEngine* engine = new ConstantSourceNodeEngine(this, aContext->Destination());
@@ -257,7 +260,10 @@ ConstantSourceNode::NotifyMainThreadStreamFinished()
   {
   public:
     explicit EndedEventDispatcher(ConstantSourceNode* aNode)
-      : mNode(aNode) {}
+      : mozilla::Runnable("EndedEventDispatcher")
+      , mNode(aNode)
+    {
+    }
     NS_IMETHOD Run() override
     {
       // If it's not safe to run scripts right now, schedule this to run later
@@ -275,7 +281,7 @@ ConstantSourceNode::NotifyMainThreadStreamFinished()
     RefPtr<ConstantSourceNode> mNode;
   };
 
-  NS_DispatchToMainThread(new EndedEventDispatcher(this));
+  Context()->Dispatch(do_AddRef(new EndedEventDispatcher(this)));
 
   // Drop the playing reference
   // Warning: The below line might delete this.

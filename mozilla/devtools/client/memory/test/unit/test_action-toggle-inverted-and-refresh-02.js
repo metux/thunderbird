@@ -1,5 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+
 "use strict";
 
 // Test that changing inverted state in the middle of taking a snapshot results
@@ -12,10 +13,6 @@ const {
   setCensusDisplayAndRefresh,
 } = require("devtools/client/memory/actions/census-display");
 const { changeView } = require("devtools/client/memory/actions/view");
-
-function run_test() {
-  run_next_test();
-}
 
 add_task(function* () {
   let front = new StubbedMemoryFront();
@@ -33,7 +30,8 @@ add_task(function* () {
   dispatch(takeSnapshotAndCensus(front, heapWorker));
   yield waitUntilSnapshotState(store, [states.SAVING]);
 
-  dispatch(setCensusDisplayAndRefresh(heapWorker, censusDisplays.invertedAllocationStack));
+  dispatch(setCensusDisplayAndRefresh(heapWorker,
+                                      censusDisplays.invertedAllocationStack));
 
   yield waitUntilCensusState(store, s => s.census, [censusState.SAVED]);
 
@@ -47,7 +45,8 @@ add_task(function* () {
   ok(true, "toggling inverted retriggers census");
   ok(!getState().censusDisplay.inverted, "no longer inverted");
 
-  dispatch(setCensusDisplayAndRefresh(heapWorker, censusDisplays.invertedAllocationStack));
+  dispatch(setCensusDisplayAndRefresh(heapWorker,
+                                      censusDisplays.invertedAllocationStack));
   yield waitUntilCensusState(store, s => s.census, [censusState.SAVED]);
   ok(getState().censusDisplay.inverted, "inverted again");
   ok(getState().snapshots[0].census.display.inverted,

@@ -2,10 +2,8 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-Cu.import("resource://testing-common/MockRegistrar.jsm");
-
 const WindowWatcher = {
-  openWindow: function(aParent, aUrl, aName, aFeatures, aArgs) {
+  openWindow(aParent, aUrl, aName, aFeatures, aArgs) {
     check_showUpdateAvailable();
   },
 
@@ -13,7 +11,7 @@ const WindowWatcher = {
 };
 
 const WindowMediator = {
-  getMostRecentWindow: function(aWindowType) {
+  getMostRecentWindow(aWindowType) {
     return null;
   },
 

@@ -26,7 +26,6 @@ const nsIPrefLocalizedString  = Components.interfaces.nsIPrefLocalizedString;
 const nsISupportsString       = Components.interfaces.nsISupportsString;
 const nsIURIFixup             = Components.interfaces.nsIURIFixup;
 const nsIWindowMediator       = Components.interfaces.nsIWindowMediator;
-const nsIWindowWatcher        = Components.interfaces.nsIWindowWatcher;
 const nsIWebNavigationInfo    = Components.interfaces.nsIWebNavigationInfo;
 
 const NS_ERROR_WONT_HANDLE_CONTENT = 0x805d0001;
@@ -87,8 +86,7 @@ function getHomePageGroup()
 
   for (var i = 1; i < count; ++i) {
     try {
-      homePage += '\n' + Services.prefs.getComplexValue("browser.startup.homepage." + i,
-                                                        nsISupportsString).data;
+      homePage += '\n' + Services.prefs.getStringPref("browser.startup.homepage." + i);
     } catch (e) {
     }
   }
@@ -152,8 +150,7 @@ function getURLToLoad()
       return getHomePageGroup();
 
     case 2:
-      return Services.prefs.getComplexValue("browser.history.last_page_visited",
-                                            nsISupportsString).data;
+      return Services.prefs.getStringPref("browser.history.last_page_visited");
     }
   } catch (e) {
   }
@@ -163,29 +160,20 @@ function getURLToLoad()
 
 function openWindow(parent, url, features, arg)
 {
-  var wwatch = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
-                         .getService(nsIWindowWatcher);
   var argstring = Components.classes["@mozilla.org/supports-string;1"]
                             .createInstance(nsISupportsString);
   argstring.data = arg;
-  return wwatch.openWindow(parent, url, "", features, argstring);
+  return Services.ww.openWindow(parent, url, "", features, argstring);
 }
 
 function openPreferences()
 {
-  var win = getMostRecentWindow("mozilla:preferences");
+  var win = Services.wm.getMostRecentWindow("mozilla:preferences");
   if (win)
     win.focus();
   else
     openWindow(null, "chrome://communicator/content/pref/preferences.xul",
                "chrome,titlebar,dialog=no,resizable", "");
-}
-
-function getMostRecentWindow(aType)
-{
-  var wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-                     .getService(nsIWindowMediator);
-  return wm.getMostRecentWindow(aType);
 }
 
 function getBrowserURL()
@@ -197,17 +185,21 @@ function getBrowserURL()
   return "chrome://navigator/content/navigator.xul";
 }
 
-function handURIToExistingBrowser(uri, location, features)
+function handURIToExistingBrowser(aUri, aLocation, aFeatures, aTriggeringPrincipal)
 {
-  if (!shouldLoadURI(uri))
+  if (!shouldLoadURI(aUri))
     return;
 
-  var navWin = getMostRecentWindow("navigator:browser");
-  if (navWin)
-    navWin.browserDOMWindow.openURI(uri, null, location,
-                                    nsIBrowserDOMWindow.OPEN_EXTERNAL);
-  else
-    openWindow(null, getBrowserURL(), features, uri.spec);
+  var navWin = Services.wm.getMostRecentWindow("navigator:browser");
+  if (!navWin) {
+    // if we couldn't load it in an existing window, open a new one
+    openWindow(null, getBrowserURL(), aFeatures, aUri.spec);
+    return;
+  }
+
+  navWin.browserDOMWindow.openURI(aUri, null, aLocation,
+                                  nsIBrowserDOMWindow.OPEN_EXTERNAL,
+                                  aTriggeringPrincipal);
 }
 
 function doSearch(aSearchTerm, aFeatures) {
@@ -224,17 +216,15 @@ function doSearch(aSearchTerm, aFeatures) {
                             .createInstance(nsISupportsString);
   uristring.data = submission.uri.spec;
 
-  sa.appendElement(uristring, false);
-  sa.appendElement(null, false);
-  sa.appendElement(null, false);
-  sa.appendElement(submission.postData, false);
+  sa.appendElement(uristring);
+  sa.appendElement(null);
+  sa.appendElement(null);
+  sa.appendElement(submission.postData);
 
   // XXXbsmedberg: use handURIToExistingBrowser to obey tabbed-browsing
   // preferences, but need nsIBrowserDOMWindow extensions
-  var wwatch = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
-                         .getService(nsIWindowWatcher);
-
-  return wwatch.openWindow(null, getBrowserURL(), "_blank", aFeatures, sa);
+  return Services.ww.openWindow(null, getBrowserURL(), "_blank", aFeatures,
+                                sa);
 }
 
 var nsBrowserContentHandler = {
@@ -291,7 +281,8 @@ var nsBrowserContentHandler = {
           else if (RegExp.$3 == "new-tab")
             location = nsIBrowserDOMWindow.OPEN_NEWTAB;
 
-          handURIToExistingBrowser(uri, location, features);
+          handURIToExistingBrowser(uri, location, features,
+                                   Services.scriptSecurityManager.getSystemPrincipal());
           break;
 
         case "mailto":
@@ -368,7 +359,7 @@ var nsBrowserContentHandler = {
       // This will throw when a profile has not been selected.
       var fl = Components.classes["@mozilla.org/file/directory_service;1"]
                          .getService(Components.interfaces.nsIProperties);
-      fl.get("ProfD", Components.interfaces.nsILocalFile);
+      fl.get("ProfD", Components.interfaces.nsIFile);
     } catch (e) {
       cmdLine.preventDefault = true;
       throw Components.results.NS_ERROR_ABORT;
@@ -392,7 +383,8 @@ var nsBrowserContentHandler = {
           urlParam = resolveURIInternal(cmdLine, urlParam);
           handURIToExistingBrowser(urlParam,
                                    nsIBrowserDOMWindow.OPEN_DEFAULTWINDOW,
-                                   features);
+                                   features,
+                                   Services.scriptSecurityManager.getSystemPrincipal());
         }
         cmdLine.preventDefault = true;
       }
@@ -403,7 +395,10 @@ var nsBrowserContentHandler = {
     try {
       while ((param = cmdLine.handleFlagWithParam("new-window", false)) != null) {
         var uri = resolveURIInternal(cmdLine, param);
-        handURIToExistingBrowser(uri, nsIBrowserDOMWindow.OPEN_NEWWINDOW, features);
+        handURIToExistingBrowser(uri,
+                                 nsIBrowserDOMWindow.OPEN_NEWWINDOW,
+                                 features,
+                                 Services.scriptSecurityManager.getSystemPrincipal());
         cmdLine.preventDefault = true;
       }
     } catch (e) {
@@ -412,7 +407,10 @@ var nsBrowserContentHandler = {
     try {
       while ((param = cmdLine.handleFlagWithParam("new-tab", false)) != null) {
         var uri = resolveURIInternal(cmdLine, param);
-        handURIToExistingBrowser(uri, nsIBrowserDOMWindow.OPEN_NEWTAB, features);
+        handURIToExistingBrowser(uri,
+                                 nsIBrowserDOMWindow.OPEN_NEWTAB,
+                                 features,
+                                 Services.scriptSecurityManager.getSystemPrincipal());
         cmdLine.preventDefault = true;
       }
     } catch (e) {
@@ -436,9 +434,12 @@ var nsBrowserContentHandler = {
     try {
       var fileParam = cmdLine.handleFlagWithParam("file", false);
       if (fileParam) {
-       fileParam = resolveURIInternal(cmdLine, fileParam);
-       handURIToExistingBrowser(fileParam, nsIBrowserDOMWindow.OPEN_DEFAULTWINDOW, features);
-       cmdLine.preventDefault = true;
+        fileParam = resolveURIInternal(cmdLine, fileParam);
+        handURIToExistingBrowser(fileParam,
+                                 nsIBrowserDOMWindow.OPEN_DEFAULTWINDOW,
+                                 features,
+                                 Services.scriptSecurityManager.getSystemPrincipal());
+        cmdLine.preventDefault = true;
       }
     } catch (e) {
     }
@@ -462,7 +463,10 @@ var nsBrowserContentHandler = {
       if (!/^-/.test(arg)) {
         try {
           arg = resolveURIInternal(cmdLine, arg);
-          handURIToExistingBrowser(arg, nsIBrowserDOMWindow.OPEN_DEFAULTWINDOW, features);
+          handURIToExistingBrowser(arg,
+                                   nsIBrowserDOMWindow.OPEN_DEFAULTWINDOW,
+                                   features,
+                                   Services.scriptSecurityManager.getSystemPrincipal());
           cmdLine.preventDefault = true;
         } catch (e) {
         }
@@ -620,7 +624,9 @@ var nsBrowserContentHandler = {
 
     request.QueryInterface(nsIChannel);
     handURIToExistingBrowser(request.URI,
-      nsIBrowserDOMWindow.OPEN_DEFAULTWINDOW, "chrome,all,dialog=no");
+                             nsIBrowserDOMWindow.OPEN_DEFAULTWINDOW,
+                             "chrome,all,dialog=no",
+                             request.loadInfo.triggeringPrincipal);
     request.cancel(Components.results.NS_BINDING_ABORTED);
   },
 

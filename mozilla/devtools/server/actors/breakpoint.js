@@ -4,6 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* global assert */
+
 "use strict";
 
 const { ActorClassWithSpec } = require("devtools/shared/protocol");
@@ -54,7 +56,7 @@ let BreakpointActor = ActorClassWithSpec(breakpointSpec, {
     this.isPending = true;
   },
 
-  disconnect: function () {
+  destroy: function () {
     this.removeScripts();
   },
 
@@ -111,7 +113,9 @@ let BreakpointActor = ActorClassWithSpec(breakpointSpec, {
           } else if (completion.toString) {
             message = completion.toString();
           }
-        } catch (ex) {}
+        } catch (ex) {
+          // ignore
+        }
         return {
           result: true,
           message: message
@@ -119,12 +123,11 @@ let BreakpointActor = ActorClassWithSpec(breakpointSpec, {
       } else if (completion.yield) {
         assert(false, "Shouldn't ever get yield completions from an eval");
       } else {
-        return { result: completion.return ? true : false };
+        return { result: !!completion.return };
       }
-    } else {
-      // The evaluation was killed (possibly by the slow script dialog)
-      return { result: undefined };
     }
+    // The evaluation was killed (possibly by the slow script dialog)
+    return { result: undefined };
   },
 
   /**
@@ -137,12 +140,25 @@ let BreakpointActor = ActorClassWithSpec(breakpointSpec, {
     // Don't pause if we are currently stepping (in or over) or the frame is
     // black-boxed.
     let generatedLocation = this.threadActor.sources.getFrameLocation(frame);
-    let { originalSourceActor } = this.threadActor.unsafeSynchronize(
+    let {
+      originalSourceActor,
+      originalLine,
+      originalColumn
+    } = this.threadActor.unsafeSynchronize(
       this.threadActor.sources.getOriginalLocation(generatedLocation));
     let url = originalSourceActor.url;
 
     if (this.threadActor.sources.isBlackBoxed(url)
         || frame.onStep) {
+      return undefined;
+    }
+
+    // If we're trying to pop this frame, and we see a breakpoint at
+    // the spot at which popping started, ignore it.  See bug 970469.
+    const locationAtFinish = frame.onPop && frame.onPop.originalLocation;
+    if (locationAtFinish &&
+        locationAtFinish.originalLine === originalLine &&
+        locationAtFinish.originalColumn === originalColumn) {
       return undefined;
     }
 

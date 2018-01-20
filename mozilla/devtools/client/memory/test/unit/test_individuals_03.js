@@ -1,5 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+
 "use strict";
 
 // Test switching to the individuals view when we are in the diffing view.
@@ -22,10 +23,6 @@ const {
   selectSnapshotForDiffingAndRefresh,
 } = require("devtools/client/memory/actions/diffing");
 
-function run_test() {
-  run_next_test();
-}
-
 const EXPECTED_INDIVIDUAL_STATES = [
   individualsState.COMPUTING_DOMINATOR_TREE,
   individualsState.FETCHING,
@@ -45,8 +42,8 @@ add_task(function* () {
 
   dispatch(takeSnapshotAndCensus(front, heapWorker));
   dispatch(takeSnapshotAndCensus(front, heapWorker));
-  yield waitUntilCensusState(store, s => s.census, [censusState.SAVED,
-                                                    censusState.SAVED]);
+  yield waitUntilCensusState(store, s => s.census,
+                             [censusState.SAVED, censusState.SAVED]);
 
   dispatch(changeView(viewState.DIFFING));
   dispatch(selectSnapshotForDiffingAndRefresh(heapWorker, getState().snapshots[0]));

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
+
 import os
 import stat
 import shutil
@@ -8,6 +10,8 @@ import time
 import unittest
 import errno
 from contextlib import contextmanager
+
+import mozunit
 
 import mozfile
 import mozinfo
@@ -229,4 +233,4 @@ class MozFileMoveTestCase(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    mozunit.main()

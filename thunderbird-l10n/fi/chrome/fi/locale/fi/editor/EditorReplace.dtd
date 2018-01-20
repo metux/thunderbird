@@ -24,3 +24,5 @@
 <!ENTITY replaceAllButton.label  "Korvaa kaikki">
 <!ENTITY replaceAllButton.accesskey  "r">
 <!ENTITY closeButton.label  "Sulje">
+
+<!ENTITY closeButton.accesskey "C">

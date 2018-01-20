@@ -40,5 +40,5 @@
 <!ENTITY searchBox.emptyText "Caută filtre după nume…">
 
 
-<!ENTITY newButton.popupCopy.accesskey "C">
 <!ENTITY newButton.popupCopy.label "Copy…">
+<!ENTITY newButton.popupCopy.accesskey "C">

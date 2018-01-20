@@ -16,6 +16,7 @@
 #include "prenv.h"
 
 #include "IPCMessageStart.h"
+#include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ipc/FileDescriptor.h"
 #include "mozilla/ipc/Shmem.h"
@@ -23,9 +24,12 @@
 #include "mozilla/ipc/MessageLink.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/MozPromise.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/NotNull.h"
 #include "mozilla/UniquePtr.h"
 #include "MainThreadUtils.h"
+#include "nsILabelableRunnable.h"
 
 #if defined(ANDROID) && defined(DEBUG)
 #include <android/log.h>
@@ -44,6 +48,7 @@ namespace {
 // protocol 0.  Oops!  We can get away with this until protocol 0
 // starts approaching its 65,536th message.
 enum {
+    BUILD_ID_MESSAGE_TYPE = kuint16max - 7,
     CHANNEL_OPENED_MESSAGE_TYPE = kuint16max - 6,
     SHMEM_DESTROYED_MESSAGE_TYPE = kuint16max - 5,
     SHMEM_CREATED_MESSAGE_TYPE = kuint16max - 4,
@@ -55,7 +60,11 @@ enum {
 
 } // namespace
 
+class nsIEventTarget;
+
 namespace mozilla {
+class SchedulerGroup;
+
 namespace dom {
 class ContentParent;
 } // namespace dom
@@ -113,32 +122,14 @@ struct ActorHandle
     int mId;
 };
 
-// Used internally to represent a "trigger" that might cause a state
-// transition.  Triggers are normalized across parent+child to Send
-// and Recv (instead of child-in, child-out, parent-in, parent-out) so
-// that they can share the same state machine implementation.  To
-// further normalize, |Send| is used for 'call', |Recv| for 'answer'.
-struct Trigger
-{
-    enum Action { Send, Recv };
-
-    Trigger(Action action, int32_t msg) :
-        mAction(action),
-        mMessage(msg)
-    {
-      MOZ_ASSERT(0 <= msg && msg < INT32_MAX);
-    }
-
-    uint32_t mAction : 1;
-    uint32_t mMessage : 31;
-};
-
 // What happens if Interrupt calls race?
 enum RacyInterruptPolicy {
     RIPError,
     RIPChildWins,
     RIPParentWins
 };
+
+class IToplevelProtocol;
 
 class IProtocol : public HasResultCodes
 {
@@ -195,10 +186,41 @@ public:
     bool AllocUnsafeShmem(size_t aSize, Shmem::SharedMemory::SharedMemoryType aType, Shmem* aOutMem);
     bool DeallocShmem(Shmem& aMem);
 
+    // Sets an event target to which all messages for aActor will be
+    // dispatched. This method must be called before right before the SendPFoo
+    // message for aActor is sent. And SendPFoo *must* be called if
+    // SetEventTargetForActor is called. The receiver when calling
+    // SetEventTargetForActor must be the actor that will be the manager for
+    // aActor.
+    void SetEventTargetForActor(IProtocol* aActor, nsIEventTarget* aEventTarget);
+
+    // Replace the event target for the messages of aActor. There must not be
+    // any messages of aActor in the task queue, or we might run into some
+    // unexpected behavior.
+    void ReplaceEventTargetForActor(IProtocol* aActor,
+                                    nsIEventTarget* aEventTarget);
+
+    // Returns the event target set by SetEventTargetForActor() if available.
+    virtual nsIEventTarget* GetActorEventTarget();
+
 protected:
+    friend class IToplevelProtocol;
+
     void SetId(int32_t aId) { mId = aId; }
-    void SetManager(IProtocol* aManager) { mManager = aManager; }
+    void ResetManager() { mManager = nullptr; }
+    void SetManager(IProtocol* aManager);
     void SetIPCChannel(MessageChannel* aChannel) { mChannel = aChannel; }
+
+    virtual void SetEventTargetForActorInternal(IProtocol* aActor, nsIEventTarget* aEventTarget);
+    virtual void ReplaceEventTargetForActorInternal(
+      IProtocol* aActor,
+      nsIEventTarget* aEventTarget);
+
+    virtual already_AddRefed<nsIEventTarget>
+    GetActorEventTargetInternal(IProtocol* aActor);
+
+    static const int32_t kNullActorId = 0;
+    static const int32_t kFreedActorId = 1;
 
 private:
     int32_t mId;
@@ -208,6 +230,26 @@ private:
 };
 
 typedef IPCMessageStart ProtocolId;
+
+#define IPC_OK() mozilla::ipc::IPCResult::Ok()
+#define IPC_FAIL(actor, why) mozilla::ipc::IPCResult::Fail(WrapNotNull(actor), __func__, (why))
+#define IPC_FAIL_NO_REASON(actor) mozilla::ipc::IPCResult::Fail(WrapNotNull(actor), __func__)
+
+/**
+ * All message deserializer and message handler should return this
+ * type via above macros. We use a less generic name here to avoid
+ * conflict with mozilla::Result because we have quite a few using
+ * namespace mozilla::ipc; in the code base.
+ */
+class IPCResult {
+public:
+    static IPCResult Ok() { return IPCResult(true); }
+    static IPCResult Fail(NotNull<IProtocol*> aActor, const char* aWhere, const char* aWhy = "");
+    MOZ_IMPLICIT operator bool() const { return mSuccess; }
+private:
+    explicit IPCResult(bool aResult) : mSuccess(aResult) {}
+    bool mSuccess;
+};
 
 template<class PFooSide>
 class Endpoint;
@@ -227,6 +269,8 @@ protected:
     ~IToplevelProtocol();
 
 public:
+    using SchedulerGroupSet = nsILabelableRunnable::SchedulerGroupSet;
+
     void SetTransport(UniquePtr<Transport> aTrans)
     {
         mTrans = Move(aTrans);
@@ -253,6 +297,10 @@ public:
 
     bool Open(MessageChannel* aChannel,
               MessageLoop* aMessageLoop,
+              mozilla::ipc::Side aSide = mozilla::ipc::UnknownSide);
+
+    bool Open(MessageChannel* aChannel,
+              nsIEventTarget* aEventTarget,
               mozilla::ipc::Side aSide = mozilla::ipc::UnknownSide);
 
     void Close();
@@ -338,14 +386,61 @@ public:
     virtual void ProcessRemoteNativeEventsInInterruptCall() {
     }
 
-private:
+    // Override this method in top-level protocols to change the SchedulerGroups
+    // that a message might affect. This should be used only as a last resort
+    // when it's difficult to determine an EventTarget ahead of time. See the
+    // comment in nsILabelableRunnable.h for more information.
+    virtual bool
+    GetMessageSchedulerGroups(const Message& aMsg, SchedulerGroupSet& aGroups)
+    {
+        return false;
+    }
+
+    virtual already_AddRefed<nsIEventTarget>
+    GetMessageEventTarget(const Message& aMsg);
+
+    already_AddRefed<nsIEventTarget>
+    GetActorEventTarget(IProtocol* aActor);
+
+    virtual nsIEventTarget*
+    GetActorEventTarget();
+
+    virtual void OnChannelReceivedMessage(const Message& aMsg) {}
+
+    bool IsMainThreadProtocol() const { return mIsMainThreadProtocol; }
+    void SetIsMainThreadProtocol() { mIsMainThreadProtocol = NS_IsMainThread(); }
+
+protected:
+    // Override this method in top-level protocols to change the event target
+    // for a new actor (and its sub-actors).
+    virtual already_AddRefed<nsIEventTarget>
+    GetConstructedEventTarget(const Message& aMsg) { return nullptr; }
+
+    // Override this method in top-level protocols to change the event target
+    // for specific messages.
+    virtual already_AddRefed<nsIEventTarget>
+    GetSpecificMessageEventTarget(const Message& aMsg) { return nullptr; }
+
+    virtual void SetEventTargetForActorInternal(IProtocol* aActor, nsIEventTarget* aEventTarget);
+    virtual void ReplaceEventTargetForActorInternal(
+      IProtocol* aActor,
+      nsIEventTarget* aEventTarget);
+
+    virtual already_AddRefed<nsIEventTarget>
+    GetActorEventTargetInternal(IProtocol* aActor);
+
+  private:
     ProtocolId mProtocolId;
     UniquePtr<Transport> mTrans;
     base::ProcessId mOtherPid;
-    IDMap<IProtocol> mActorMap;
+    IDMap<IProtocol*> mActorMap;
     int32_t mLastRouteId;
-    IDMap<Shmem::SharedMemory> mShmemMap;
+    IDMap<Shmem::SharedMemory*> mShmemMap;
     Shmem::id_t mLastShmemId;
+    bool mIsMainThreadProtocol;
+
+    Mutex mEventTargetMutex;
+    IDMap<nsCOMPtr<nsIEventTarget>> mEventTargetMap;
 };
 
 class IShmemAllocator
@@ -375,7 +470,7 @@ public:
 inline bool
 LoggingEnabled()
 {
-#if defined(DEBUG)
+#if defined(DEBUG) || defined(FUZZING)
     return !!PR_GetEnv("MOZ_IPC_MESSAGE_LOG");
 #else
     return false;
@@ -385,7 +480,7 @@ LoggingEnabled()
 inline bool
 LoggingEnabledFor(const char *aTopLevelProtocol)
 {
-#if defined(DEBUG)
+#if defined(DEBUG) || defined(FUZZING)
     const char *filter = PR_GetEnv("MOZ_IPC_MESSAGE_LOG");
     if (!filter) {
         return false;
@@ -440,6 +535,9 @@ UnionTypeReadError(const char* aUnionName);
 
 MOZ_NEVER_INLINE void
 ArrayLengthReadError(const char* aElementName);
+
+MOZ_NEVER_INLINE void
+SentinelReadError(const char* aElementName);
 
 struct PrivateIPDLInterface {};
 
@@ -518,35 +616,35 @@ public:
              mozilla::ipc::Transport::Mode aMode,
              TransportDescriptor aTransport,
              ProcessId aMyPid,
-             ProcessId aOtherPid,
-             ProtocolId aProtocolId)
+             ProcessId aOtherPid)
       : mValid(true)
       , mMode(aMode)
       , mTransport(aTransport)
       , mMyPid(aMyPid)
       , mOtherPid(aOtherPid)
-      , mProtocolId(aProtocolId)
     {}
 
     Endpoint(Endpoint&& aOther)
       : mValid(aOther.mValid)
-      , mMode(aOther.mMode)
       , mTransport(aOther.mTransport)
       , mMyPid(aOther.mMyPid)
       , mOtherPid(aOther.mOtherPid)
-      , mProtocolId(aOther.mProtocolId)
     {
+        if (aOther.mValid) {
+            mMode = aOther.mMode;
+        }
         aOther.mValid = false;
     }
 
     Endpoint& operator=(Endpoint&& aOther)
     {
         mValid = aOther.mValid;
-        mMode = aOther.mMode;
+        if (aOther.mValid) {
+            mMode = aOther.mMode;
+        }
         mTransport = aOther.mTransport;
         mMyPid = aOther.mMyPid;
         mOtherPid = aOther.mOtherPid;
-        mProtocolId = aOther.mProtocolId;
 
         aOther.mValid = false;
         return *this;
@@ -596,7 +694,6 @@ private:
     mozilla::ipc::Transport::Mode mMode;
     TransportDescriptor mTransport;
     ProcessId mMyPid, mOtherPid;
-    ProtocolId mProtocolId;
 };
 
 #if defined(MOZ_CRASHREPORTER) && defined(XP_MACOSX)
@@ -613,8 +710,6 @@ nsresult
 CreateEndpoints(const PrivateIPDLInterface& aPrivate,
                 base::ProcessId aParentDestPid,
                 base::ProcessId aChildDestPid,
-                ProtocolId aProtocol,
-                ProtocolId aChildProtocol,
                 Endpoint<PFooParent>* aParentEndpoint,
                 Endpoint<PFooChild>* aChildEndpoint)
 {
@@ -629,10 +724,10 @@ CreateEndpoints(const PrivateIPDLInterface& aPrivate,
   }
 
   *aParentEndpoint = Endpoint<PFooParent>(aPrivate, mozilla::ipc::Transport::MODE_SERVER,
-                                          parentTransport, aParentDestPid, aChildDestPid, aProtocol);
+                                          parentTransport, aParentDestPid, aChildDestPid);
 
   *aChildEndpoint = Endpoint<PFooChild>(aPrivate, mozilla::ipc::Transport::MODE_CLIENT,
-                                        childTransport, aChildDestPid, aParentDestPid, aChildProtocol);
+                                        childTransport, aChildDestPid, aParentDestPid);
 
   return NS_OK;
 }
@@ -640,8 +735,6 @@ CreateEndpoints(const PrivateIPDLInterface& aPrivate,
 void
 TableToArray(const nsTHashtable<nsPtrHashKey<void>>& aTable,
              nsTArray<void*>& aArray);
-
-const char* StringFromIPCMessageType(uint32_t aMessageType);
 
 } // namespace ipc
 
@@ -743,7 +836,6 @@ struct ParamTraits<mozilla::ipc::Endpoint<PFooSide>>
 
         IPC::WriteParam(aMsg, aParam.mMyPid);
         IPC::WriteParam(aMsg, aParam.mOtherPid);
-        IPC::WriteParam(aMsg, static_cast<uint32_t>(aParam.mProtocolId));
     }
 
     static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
@@ -758,16 +850,14 @@ struct ParamTraits<mozilla::ipc::Endpoint<PFooSide>>
             return true;
         }
 
-        uint32_t mode, protocolId;
+        uint32_t mode;
         if (!IPC::ReadParam(aMsg, aIter, &mode) ||
             !IPC::ReadParam(aMsg, aIter, &aResult->mTransport) ||
             !IPC::ReadParam(aMsg, aIter, &aResult->mMyPid) ||
-            !IPC::ReadParam(aMsg, aIter, &aResult->mOtherPid) ||
-            !IPC::ReadParam(aMsg, aIter, &protocolId)) {
+            !IPC::ReadParam(aMsg, aIter, &aResult->mOtherPid)) {
             return false;
         }
         aResult->mMode = Channel::Mode(mode);
-        aResult->mProtocolId = mozilla::ipc::ProtocolId(protocolId);
         return true;
     }
 

@@ -19,16 +19,15 @@
 #include "nsIDocShellTreeItem.h"
 #include "nsIWebNavigation.h"
 #include "nsContentPolicyUtils.h"
-#include "nsIDOMHTMLImageElement.h"
 #include "nsIFrameLoader.h"
 #include "nsIWebProgress.h"
 #include "nsMsgUtils.h"
 #include "nsThreadUtils.h"
 #include "mozilla/mailnews/MimeHeaderParser.h"
+#include "mozilla/dom/HTMLImageElement.h"
 #include "nsINntpUrl.h"
 
 static const char kBlockRemoteImages[] = "mailnews.message_display.disable_remote_image";
-static const char kAllowPlugins[] = "mailnews.message_display.allow_plugins";
 static const char kTrustedDomains[] =  "mail.trusteddomains";
 
 using namespace mozilla::mailnews;
@@ -50,7 +49,6 @@ NS_IMPL_ISUPPORTS(nsMsgContentPolicy,
 
 nsMsgContentPolicy::nsMsgContentPolicy()
 {
-  mAllowPlugins = false;
   mBlockRemoteImages = true;
 }
 
@@ -62,7 +60,6 @@ nsMsgContentPolicy::~nsMsgContentPolicy()
   if (NS_SUCCEEDED(rv))
   {
     prefInternal->RemoveObserver(kBlockRemoteImages, this);
-    prefInternal->RemoveObserver(kAllowPlugins, this);
   }
 }
 
@@ -75,10 +72,8 @@ nsresult nsMsgContentPolicy::Init()
   NS_ENSURE_SUCCESS(rv, rv);
 
   prefInternal->AddObserver(kBlockRemoteImages, this, true);
-  prefInternal->AddObserver(kAllowPlugins, this, true);
 
-  prefInternal->GetBoolPref(kAllowPlugins, &mAllowPlugins);
-  prefInternal->GetCharPref(kTrustedDomains, getter_Copies(mTrustedMailDomains));
+  prefInternal->GetCharPref(kTrustedDomains, mTrustedMailDomains);
   prefInternal->GetBoolPref(kBlockRemoteImages, &mBlockRemoteImages);
 
   // Grab a handle on the PermissionManager service for managing allowed remote
@@ -112,7 +107,7 @@ nsMsgContentPolicy::ShouldAcceptRemoteContentForSender(nsIMsgDBHdr *aMsgHdr)
   nsCOMPtr<nsIIOService> ios = do_GetService("@mozilla.org/network/io-service;1", &rv);
   NS_ENSURE_SUCCESS(rv, false);
   nsCOMPtr<nsIURI> mailURI;
-  emailAddress.Insert("chrome://messenger/content/email=", 0);
+  emailAddress.InsertLiteral("chrome://messenger/content/email=", 0);
   rv = ios->NewURI(emailAddress, nullptr, nullptr, getter_AddRefs(mailURI));
   NS_ENSURE_SUCCESS(rv, false);
 
@@ -333,6 +328,8 @@ nsMsgContentPolicy::ShouldLoad(uint32_t          aContentType,
   {
     rv = GetOriginatingURIForContext(aRequestingContext,
                                      getter_AddRefs(originatorLocation));
+    if (NS_SUCCEEDED(rv) && !originatorLocation)
+      return NS_OK;
   }
   NS_ENSURE_SUCCESS(rv, NS_OK);
 
@@ -450,14 +447,17 @@ nsMsgContentPolicy::IsExposedProtocol(nsIURI *aContentLocation)
   bool isData;
   bool isChrome;
   bool isRes;
+  bool isMozExtension;
   rv = aContentLocation->SchemeIs("chrome", &isChrome);
   NS_ENSURE_SUCCESS(rv, false);
   rv = aContentLocation->SchemeIs("resource", &isRes);
   NS_ENSURE_SUCCESS(rv, false);
   rv = aContentLocation->SchemeIs("data", &isData);
   NS_ENSURE_SUCCESS(rv, false);
+  rv = aContentLocation->SchemeIs("moz-extension", &isMozExtension);
+  NS_ENSURE_SUCCESS(rv, false);
 
-  return isChrome || isRes || isData;
+  return isChrome || isRes || isData || isMozExtension;
 }
 
 /**
@@ -534,7 +534,8 @@ class RemoteContentNotifierEvent : public mozilla::Runnable
 public:
   RemoteContentNotifierEvent(nsIMsgWindow *aMsgWindow, nsIMsgDBHdr *aMsgHdr,
                              nsIURI *aContentURI)
-    : mMsgWindow(aMsgWindow), mMsgHdr(aMsgHdr), mContentURI(aContentURI)
+    : mozilla::Runnable("RemoteContentNotifierEvent")
+    , mMsgWindow(aMsgWindow), mMsgHdr(aMsgHdr), mContentURI(aContentURI)
   {}
 
   NS_IMETHOD Run()
@@ -674,8 +675,10 @@ void nsMsgContentPolicy::ComposeShouldLoad(nsIMsgCompose *aMsgCompose,
     {
       bool insertingQuotedContent = true;
       aMsgCompose->GetInsertingQuotedContent(&insertingQuotedContent);
-      nsCOMPtr<nsIDOMHTMLImageElement> imageElement(do_QueryInterface(aRequestingContext));
-      if (imageElement)
+      nsCOMPtr<Element> element = do_QueryInterface(aRequestingContext);
+      RefPtr<mozilla::dom::HTMLImageElement> image =
+        mozilla::dom::HTMLImageElement::FromContentOrNull(element);
+      if (image)
       {
         if (!insertingQuotedContent)
         {
@@ -698,6 +701,8 @@ already_AddRefed<nsIMsgCompose> nsMsgContentPolicy::GetMsgComposeForContext(nsIS
   nsresult rv;
 
   nsIDocShell *shell = NS_CP_GetDocShellFromContext(aRequestingContext);
+  if (!shell)
+    return nullptr;
   nsCOMPtr<nsIDocShellTreeItem> docShellTreeItem(do_QueryInterface(shell, &rv));
   NS_ENSURE_SUCCESS(rv, nullptr);
 
@@ -776,7 +781,7 @@ nsresult nsMsgContentPolicy::SetDisableItemsOnMailNewsUrlDocshells(
     NS_ENSURE_SUCCESS(rv, rv);
     rv = docShell->SetAllowContentRetargetingOnChildren(false);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = docShell->SetAllowPlugins(mAllowPlugins);
+    rv = docShell->SetAllowPlugins(false);
     NS_ENSURE_SUCCESS(rv, rv);
   }
   else {
@@ -829,6 +834,10 @@ nsMsgContentPolicy::GetOriginatingURIForContext(nsISupports *aRequestingContext,
   nsresult rv;
 
   nsIDocShell *shell = NS_CP_GetDocShellFromContext(aRequestingContext);
+  if (!shell) {
+    *aURI = nullptr;
+    return NS_OK;
+  }
   nsCOMPtr<nsIDocShellTreeItem> docshellTreeItem(do_QueryInterface(shell, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -874,8 +883,6 @@ NS_IMETHODIMP nsMsgContentPolicy::Observe(nsISupports *aSubject, const char *aTo
 
     if (pref.Equals(kBlockRemoteImages))
       prefBranchInt->GetBoolPref(kBlockRemoteImages, &mBlockRemoteImages);
-    if (pref.Equals(kAllowPlugins))
-      prefBranchInt->GetBoolPref(kAllowPlugins, &mAllowPlugins);
   }
 
   return NS_OK;
@@ -940,7 +947,7 @@ nsMsgContentPolicy::OnLocationChange(nsIWebProgress *aWebProgress,
     NS_ASSERTION(NS_SUCCEEDED(rv),
                  "Failed to set javascript disabled on docShell");
     // Also disable plugins if the preference requires it.
-    rv = docShell->SetAllowPlugins(mAllowPlugins);
+    rv = docShell->SetAllowPlugins(false);
     NS_ASSERTION(NS_SUCCEEDED(rv),
                  "Failed to set plugins disabled on docShell");
   }

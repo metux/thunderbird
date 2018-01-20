@@ -11,7 +11,8 @@
 
 namespace mozilla {
 
-class AppleDecoderModule : public PlatformDecoderModule {
+class AppleDecoderModule : public PlatformDecoderModule
+{
 public:
   AppleDecoderModule();
   virtual ~AppleDecoderModule();
@@ -28,9 +29,6 @@ public:
 
   bool SupportsMimeType(const nsACString& aMimeType,
                         DecoderDoctorDiagnostics* aDiagnostics) const override;
-
-  ConversionRequired
-  DecoderNeedsConversion(const TrackInfo& aConfig) const override;
 
   static void Init();
 

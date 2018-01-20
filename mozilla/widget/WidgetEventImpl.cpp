@@ -6,12 +6,16 @@
 #include "gfxPrefs.h"
 #include "mozilla/BasicEvents.h"
 #include "mozilla/ContentEvents.h"
+#include "mozilla/EventStateManager.h"
 #include "mozilla/InternalMutationEvent.h"
 #include "mozilla/MiscEvents.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/TouchEvents.h"
+#include "nsContentUtils.h"
+#include "nsIContent.h"
+#include "nsIDOMEventTarget.h"
 #include "nsPrintfCString.h"
 
 namespace mozilla {
@@ -236,6 +240,7 @@ WidgetEvent::HasMouseEventMessage() const
     case eMouseUp:
     case eMouseClick:
     case eMouseDoubleClick:
+    case eMouseAuxClick:
     case eMouseEnterIntoWidget:
     case eMouseExitFromWidget:
     case eMouseActivate:
@@ -267,19 +272,16 @@ WidgetEvent::HasDragEventMessage() const
   }
 }
 
+/* static */
 bool
-WidgetEvent::HasKeyEventMessage() const
+WidgetEvent::IsKeyEventMessage(EventMessage aMessage)
 {
-  switch (mMessage) {
+  switch (aMessage) {
     case eKeyDown:
     case eKeyPress:
     case eKeyUp:
     case eKeyDownOnPlugin:
     case eKeyUpOnPlugin:
-    case eBeforeKeyDown:
-    case eBeforeKeyUp:
-    case eAfterKeyDown:
-    case eAfterKeyUp:
     case eAccessKeyNotFound:
       return true;
     default:
@@ -315,6 +317,59 @@ WidgetEvent::HasPluginActivationEventMessage() const
  *
  * Specific event checking methods.
  ******************************************************************************/
+
+bool
+WidgetEvent::CanBeSentToRemoteProcess() const
+{
+  // If this event is explicitly marked as shouldn't be sent to remote process,
+  // just return false.
+  if (IsCrossProcessForwardingStopped()) {
+    return false;
+  }
+
+  if (mClass == eKeyboardEventClass ||
+      mClass == eWheelEventClass) {
+    return true;
+  }
+
+  switch (mMessage) {
+    case eMouseDown:
+    case eMouseUp:
+    case eMouseMove:
+    case eContextMenu:
+    case eMouseEnterIntoWidget:
+    case eMouseExitFromWidget:
+    case eMouseTouchDrag:
+    case eTouchStart:
+    case eTouchMove:
+    case eTouchEnd:
+    case eTouchCancel:
+    case eDragOver:
+    case eDragExit:
+    case eDrop:
+      return true;
+    default:
+      return false;
+  }
+}
+
+bool
+WidgetEvent::WillBeSentToRemoteProcess() const
+{
+  // This event won't be posted to remote process if it's already explicitly
+  // stopped.
+  if (IsCrossProcessForwardingStopped()) {
+    return false;
+  }
+
+  // When mOriginalTarget is nullptr, this method shouldn't be used.
+  if (NS_WARN_IF(!mOriginalTarget)) {
+    return false;
+  }
+
+  nsCOMPtr<nsIContent> originalTarget = do_QueryInterface(mOriginalTarget);
+  return EventStateManager::IsRemoteTarget(originalTarget);
+}
 
 bool
 WidgetEvent::IsRetargetedNativeEventDelivererForPlugin() const
@@ -377,6 +432,16 @@ WidgetEvent::IsAllowedToDispatchDOMEvent() const
 {
   switch (mClass) {
     case eMouseEventClass:
+      // When content PreventDefault on ePointerDown, we will stop dispatching
+      // the subsequent mouse events (eMouseDown, eMouseUp, eMouseMove). But we
+      // still need the mouse events to be handled in EventStateManager to
+      // generate other events (e.g. eMouseClick). So we only stop dispatching
+      // them to DOM.
+      if (DefaultPreventedByContent() &&
+          (mMessage == eMouseMove || mMessage == eMouseDown ||
+           mMessage == eMouseUp)) {
+        return false;
+      }
       if (mMessage == eMouseTouchDrag) {
         return false;
       }
@@ -396,7 +461,8 @@ WidgetEvent::IsAllowedToDispatchDOMEvent() const
       return wheelEvent->mDeltaX != 0.0 || wheelEvent->mDeltaY != 0.0 ||
              wheelEvent->mDeltaZ != 0.0;
     }
-
+    case eTouchEventClass:
+      return mMessage != eTouchPointerCancel;
     // Following events are handled in EventStateManager, so, we don't need to
     // dispatch DOM event for them into the DOM tree.
     case eQueryContentEventClass:
@@ -406,6 +472,101 @@ WidgetEvent::IsAllowedToDispatchDOMEvent() const
 
     default:
       return true;
+  }
+}
+
+bool
+WidgetEvent::IsAllowedToDispatchInSystemGroup() const
+{
+  // We don't expect to implement default behaviors with pointer events because
+  // if we do, prevent default on mouse events can't prevent default behaviors
+  // anymore.
+  return mClass != ePointerEventClass;
+}
+
+/******************************************************************************
+ * mozilla::WidgetEvent
+ *
+ * Misc methods.
+ ******************************************************************************/
+
+static dom::EventTarget*
+GetTargetForDOMEvent(nsIDOMEventTarget* aTarget)
+{
+  return aTarget ? aTarget->GetTargetForDOMEvent() : nullptr;
+}
+
+dom::EventTarget*
+WidgetEvent::GetDOMEventTarget() const
+{
+  return GetTargetForDOMEvent(mTarget);
+}
+
+dom::EventTarget*
+WidgetEvent::GetCurrentDOMEventTarget() const
+{
+  return GetTargetForDOMEvent(mCurrentTarget);
+}
+
+dom::EventTarget*
+WidgetEvent::GetOriginalDOMEventTarget() const
+{
+  if (mOriginalTarget) {
+    return GetTargetForDOMEvent(mOriginalTarget);
+  }
+  return GetDOMEventTarget();
+}
+
+void
+WidgetEvent::PreventDefault(bool aCalledByDefaultHandler,
+                            nsIPrincipal* aPrincipal)
+{
+  if (mMessage == ePointerDown) {
+    if (aCalledByDefaultHandler) {
+      // Shouldn't prevent default on pointerdown by default handlers to stop
+      // firing legacy mouse events. Use MOZ_ASSERT to catch incorrect usages
+      // in debug builds.
+      MOZ_ASSERT(false);
+      return;
+    }
+    if (aPrincipal) {
+      nsAutoString addonId;
+      Unused << NS_WARN_IF(NS_FAILED(aPrincipal->GetAddonId(addonId)));
+      if (!addonId.IsEmpty()) {
+        // Ignore the case that it's called by a web extension.
+        return;
+      }
+    }
+  }
+  mFlags.PreventDefault(aCalledByDefaultHandler);
+}
+
+bool
+WidgetEvent::IsUserAction() const
+{
+  if (!IsTrusted()) {
+    return false;
+  }
+  // FYI: eMouseScrollEventClass and ePointerEventClass represent
+  //      user action but they are synthesized events.
+  switch (mClass) {
+    case eKeyboardEventClass:
+    case eCompositionEventClass:
+    case eMouseScrollEventClass:
+    case eWheelEventClass:
+    case eGestureNotifyEventClass:
+    case eSimpleGestureEventClass:
+    case eTouchEventClass:
+    case eCommandEventClass:
+    case eContentCommandEventClass:
+    case ePluginEventClass:
+      return true;
+    case eMouseEventClass:
+    case eDragEventClass:
+    case ePointerEventClass:
+      return AsMouseEvent()->IsReal();
+    default:
+      return false;
   }
 }
 
@@ -517,6 +678,77 @@ WidgetKeyboardEvent::KeyNameIndexHashtable*
 WidgetKeyboardEvent::CodeNameIndexHashtable*
   WidgetKeyboardEvent::sCodeNameIndexHashtable = nullptr;
 
+void
+WidgetKeyboardEvent::InitAllEditCommands()
+{
+  // If the event was created without widget, e.g., created event in chrome
+  // script, this shouldn't execute native key bindings.
+  if (NS_WARN_IF(!mWidget)) {
+    return;
+  }
+
+  // This event should be trusted event here and we shouldn't expose native
+  // key binding information to web contents with untrusted events.
+  if (NS_WARN_IF(!IsTrusted())) {
+    return;
+  }
+
+  MOZ_ASSERT(XRE_IsParentProcess(),
+    "It's too expensive to retrieve all edit commands from remote process");
+  MOZ_ASSERT(!AreAllEditCommandsInitialized(),
+    "Shouldn't be called two or more times");
+
+  InitEditCommandsFor(nsIWidget::NativeKeyBindingsForSingleLineEditor);
+  InitEditCommandsFor(nsIWidget::NativeKeyBindingsForMultiLineEditor);
+  InitEditCommandsFor(nsIWidget::NativeKeyBindingsForRichTextEditor);
+}
+
+void
+WidgetKeyboardEvent::InitEditCommandsFor(nsIWidget::NativeKeyBindingsType aType)
+{
+  if (NS_WARN_IF(!mWidget) || NS_WARN_IF(!IsTrusted())) {
+    return;
+  }
+
+  bool& initialized = IsEditCommandsInitializedRef(aType);
+  if (initialized) {
+    return;
+  }
+  nsTArray<CommandInt>& commands = EditCommandsRef(aType);
+  mWidget->GetEditCommands(aType, *this, commands);
+  initialized = true;
+}
+
+bool
+WidgetKeyboardEvent::ExecuteEditCommands(nsIWidget::NativeKeyBindingsType aType,
+                                         DoCommandCallback aCallback,
+                                         void* aCallbackData)
+{
+  // If the event was created without widget, e.g., created event in chrome
+  // script, this shouldn't execute native key bindings.
+  if (NS_WARN_IF(!mWidget)) {
+    return false;
+  }
+
+  // This event should be trusted event here and we shouldn't expose native
+  // key binding information to web contents with untrusted events.
+  if (NS_WARN_IF(!IsTrusted())) {
+    return false;
+  }
+
+  InitEditCommandsFor(aType);
+
+  const nsTArray<CommandInt>& commands = EditCommandsRef(aType);
+  if (commands.IsEmpty()) {
+    return false;
+  }
+
+  for (CommandInt command : commands) {
+    aCallback(static_cast<Command>(command), aCallbackData);
+  }
+  return true;
+}
+
 bool
 WidgetKeyboardEvent::ShouldCauseKeypressEvents() const
 {
@@ -575,7 +807,7 @@ IsCaseChangeableChar(uint32_t aChar)
 
 void
 WidgetKeyboardEvent::GetShortcutKeyCandidates(
-                       ShortcutKeyCandidateArray& aCandidates)
+                       ShortcutKeyCandidateArray& aCandidates) const
 {
   MOZ_ASSERT(aCandidates.IsEmpty(), "aCandidates must be empty");
 
@@ -669,7 +901,7 @@ WidgetKeyboardEvent::GetShortcutKeyCandidates(
 }
 
 void
-WidgetKeyboardEvent::GetAccessKeyCandidates(nsTArray<uint32_t>& aCandidates)
+WidgetKeyboardEvent::GetAccessKeyCandidates(nsTArray<uint32_t>& aCandidates) const
 {
   MOZ_ASSERT(aCandidates.IsEmpty(), "aCandidates must be empty");
 
@@ -677,8 +909,9 @@ WidgetKeyboardEvent::GetAccessKeyCandidates(nsTArray<uint32_t>& aCandidates)
   // the priority of the charCodes are:
   //   0: charCode, 1: unshiftedCharCodes[0], 2: shiftedCharCodes[0]
   //   3: unshiftedCharCodes[1], 4: shiftedCharCodes[1],...
-  if (mCharCode) {
-    uint32_t ch = mCharCode;
+  uint32_t pseudoCharCode = PseudoCharCode();
+  if (pseudoCharCode) {
+    uint32_t ch = pseudoCharCode;
     if (IS_IN_BMP(ch)) {
       ch = ToLowerCase(static_cast<char16_t>(ch));
     }
@@ -695,7 +928,7 @@ WidgetKeyboardEvent::GetAccessKeyCandidates(nsTArray<uint32_t>& aCandidates)
       if (IS_IN_BMP(ch[j])) {
         ch[j] = ToLowerCase(static_cast<char16_t>(ch[j]));
       }
-      // Don't append the mCharCode that was already appended.
+      // Don't append the charcode that was already appended.
       if (aCandidates.IndexOf(ch[j]) == aCandidates.NoIndex) {
         aCandidates.AppendElement(ch[j]);
       }
@@ -707,10 +940,131 @@ WidgetKeyboardEvent::GetAccessKeyCandidates(nsTArray<uint32_t>& aCandidates)
   // press.  However, if the space key is assigned to a function key, it
   // shouldn't work as a space key.
   if (mKeyNameIndex == KEY_NAME_INDEX_USE_STRING &&
-      mCodeNameIndex == CODE_NAME_INDEX_Space && mCharCode != ' ') {
+      mCodeNameIndex == CODE_NAME_INDEX_Space && pseudoCharCode != ' ') {
     aCandidates.AppendElement(' ');
   }
-  return;
+}
+
+// mask values for ui.key.chromeAccess and ui.key.contentAccess
+#define NS_MODIFIER_SHIFT    1
+#define NS_MODIFIER_CONTROL  2
+#define NS_MODIFIER_ALT      4
+#define NS_MODIFIER_META     8
+#define NS_MODIFIER_OS       16
+
+static Modifiers PrefFlagsToModifiers(int32_t aPrefFlags)
+{
+  Modifiers result = 0;
+  if (aPrefFlags & NS_MODIFIER_SHIFT) {
+    result |= MODIFIER_SHIFT;
+  }
+  if (aPrefFlags & NS_MODIFIER_CONTROL) {
+    result |= MODIFIER_CONTROL;
+  }
+  if (aPrefFlags & NS_MODIFIER_ALT) {
+    result |= MODIFIER_ALT;
+  }
+  if (aPrefFlags & NS_MODIFIER_META) {
+    result |= MODIFIER_META;
+  }
+  if (aPrefFlags & NS_MODIFIER_OS) {
+    result |= MODIFIER_OS;
+  }
+  return result;
+}
+
+bool
+WidgetKeyboardEvent::ModifiersMatchWithAccessKey(AccessKeyType aType) const
+{
+  if (!ModifiersForAccessKeyMatching()) {
+    return false;
+  }
+  return ModifiersForAccessKeyMatching() == AccessKeyModifiers(aType);
+}
+
+Modifiers
+WidgetKeyboardEvent::ModifiersForAccessKeyMatching() const
+{
+  static const Modifiers kModifierMask =
+    MODIFIER_SHIFT | MODIFIER_CONTROL |
+    MODIFIER_ALT | MODIFIER_META | MODIFIER_OS;
+  return mModifiers & kModifierMask;
+}
+
+/* static */
+Modifiers
+WidgetKeyboardEvent::AccessKeyModifiers(AccessKeyType aType)
+{
+  switch (GenericAccessModifierKeyPref()) {
+    case -1:
+      break; // use the individual prefs
+    case NS_VK_SHIFT:
+      return MODIFIER_SHIFT;
+    case NS_VK_CONTROL:
+      return MODIFIER_CONTROL;
+    case NS_VK_ALT:
+      return MODIFIER_ALT;
+    case NS_VK_META:
+      return MODIFIER_META;
+    case NS_VK_WIN:
+      return MODIFIER_OS;
+    default:
+      return MODIFIER_NONE;
+  }
+
+  switch (aType) {
+    case AccessKeyType::eChrome:
+      return PrefFlagsToModifiers(ChromeAccessModifierMaskPref());
+    case AccessKeyType::eContent:
+      return PrefFlagsToModifiers(ContentAccessModifierMaskPref());
+    default:
+      return MODIFIER_NONE;
+  }
+}
+
+/* static */
+int32_t
+WidgetKeyboardEvent::GenericAccessModifierKeyPref()
+{
+  static bool sInitialized = false;
+  static int32_t sValue = -1;
+  if (!sInitialized) {
+    nsresult rv =
+      Preferences::AddIntVarCache(&sValue, "ui.key.generalAccessKey", sValue);
+    sInitialized = NS_SUCCEEDED(rv);
+    MOZ_ASSERT(sInitialized);
+  }
+  return sValue;
+}
+
+/* static */
+int32_t
+WidgetKeyboardEvent::ChromeAccessModifierMaskPref()
+{
+  static bool sInitialized = false;
+  static int32_t sValue = 0;
+  if (!sInitialized) {
+    nsresult rv =
+      Preferences::AddIntVarCache(&sValue, "ui.key.chromeAccess", sValue);
+    sInitialized = NS_SUCCEEDED(rv);
+    MOZ_ASSERT(sInitialized);
+  }
+  return sValue;
+}
+
+/* static */
+int32_t
+WidgetKeyboardEvent::ContentAccessModifierMaskPref()
+{
+  static bool sInitialized = false;
+  static int32_t sValue = 0;
+  if (!sInitialized) {
+    nsresult rv =
+      Preferences::AddIntVarCache(&sValue, "ui.key.contentAccess", sValue);
+    sInitialized = NS_SUCCEEDED(rv);
+    MOZ_ASSERT(sInitialized);
+  }
+  return sValue;
 }
 
 /* static */ void
@@ -810,12 +1164,12 @@ WidgetKeyboardEvent::ComputeLocationFromCodeValue(CodeNameIndex aCodeNameIndex)
     case CODE_NAME_INDEX_ControlLeft:
     case CODE_NAME_INDEX_OSLeft:
     case CODE_NAME_INDEX_ShiftLeft:
-      return nsIDOMKeyEvent::DOM_KEY_LOCATION_LEFT;
+      return eKeyLocationLeft;
     case CODE_NAME_INDEX_AltRight:
     case CODE_NAME_INDEX_ControlRight:
     case CODE_NAME_INDEX_OSRight:
     case CODE_NAME_INDEX_ShiftRight:
-      return nsIDOMKeyEvent::DOM_KEY_LOCATION_RIGHT;
+      return eKeyLocationRight;
     case CODE_NAME_INDEX_Numpad0:
     case CODE_NAME_INDEX_Numpad1:
     case CODE_NAME_INDEX_Numpad2:
@@ -844,9 +1198,9 @@ WidgetKeyboardEvent::ComputeLocationFromCodeValue(CodeNameIndex aCodeNameIndex)
     case CODE_NAME_INDEX_NumpadParenLeft:
     case CODE_NAME_INDEX_NumpadParenRight:
     case CODE_NAME_INDEX_NumpadSubtract:
-      return nsIDOMKeyEvent::DOM_KEY_LOCATION_NUMPAD;
+      return eKeyLocationNumpad;
     default:
-      return nsIDOMKeyEvent::DOM_KEY_LOCATION_STANDARD;
+      return eKeyLocationStandard;
   }
 }
 

@@ -12,8 +12,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStopwatch",
                                   "resource://gre/modules/TelemetryStopwatch.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-                                  "resource://gre/modules/Task.jsm");
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Constants
@@ -55,15 +53,14 @@ const MATCH_BEGINNING_CASE_SENSITIVE = Ci.mozIPlacesAutoComplete.MATCH_BEGINNING
 // columns in this order.
 const kQueryIndexURL = 0;
 const kQueryIndexTitle = 1;
-const kQueryIndexFaviconURL = 2;
-const kQueryIndexBookmarked = 3;
-const kQueryIndexBookmarkTitle = 4;
-const kQueryIndexTags = 5;
-const kQueryIndexVisitCount = 6;
-const kQueryIndexTyped = 7;
-const kQueryIndexPlaceId = 8;
-const kQueryIndexQueryType = 9;
-const kQueryIndexOpenPageCount = 10;
+const kQueryIndexBookmarked = 2;
+const kQueryIndexBookmarkTitle = 3;
+const kQueryIndexTags = 4;
+const kQueryIndexVisitCount = 5;
+const kQueryIndexTyped = 6;
+const kQueryIndexPlaceId = 7;
+const kQueryIndexQueryType = 8;
+const kQueryIndexOpenPageCount = 9;
 
 // AutoComplete query type constants.  Describes the various types of queries
 // that we can process.
@@ -298,11 +295,10 @@ function nsPlacesAutoComplete()
   // h.visit_count which is better than nothing.  This is slow, so not doing it
   // yet...
   function baseQuery(conditions = "") {
-    let query = `SELECT h.url, h.title, f.url, ${kBookTagSQLFragment},
+    let query = `SELECT h.url, h.title, ${kBookTagSQLFragment},
                         h.visit_count, h.typed, h.id, :query_type,
                         t.open_count
                  FROM moz_places h
-                 LEFT JOIN moz_favicons f ON f.id = h.favicon_id
                  LEFT JOIN moz_openpages_temp t ON t.url = h.url
                  WHERE h.frecency <> 0
                    AND AUTOCOMPLETE_MATCH(:searchString, h.url,
@@ -381,7 +377,7 @@ function nsPlacesAutoComplete()
 
   XPCOMUtils.defineLazyGetter(this, "_openPagesQuery", function() {
     return this._db.createAsyncStatement(
-      `SELECT t.url, t.url, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+      `SELECT t.url, t.url, NULL, NULL, NULL, NULL, NULL, NULL,
               :query_type, t.open_count, NULL
        FROM moz_openpages_temp t
        LEFT JOIN moz_places h ON h.url_hash = hash(t.url) AND h.url = t.url
@@ -401,7 +397,7 @@ function nsPlacesAutoComplete()
   XPCOMUtils.defineLazyGetter(this, "_adaptiveQuery", function() {
     return this._db.createAsyncStatement(
       `/* do not warn (bug 487789) */
-       SELECT h.url, h.title, f.url, ${kBookTagSQLFragment},
+       SELECT h.url, h.title, ${kBookTagSQLFragment},
               h.visit_count, h.typed, h.id, :query_type, t.open_count
        FROM (
        SELECT ROUND(
@@ -412,7 +408,6 @@ function nsPlacesAutoComplete()
          GROUP BY place_id
        ) AS i
        JOIN moz_places h ON h.id = i.place_id
-       LEFT JOIN moz_favicons f ON f.id = h.favicon_id
        LEFT JOIN moz_openpages_temp t ON t.url = h.url
        WHERE AUTOCOMPLETE_MATCH(NULL, h.url,
                                 IFNULL(btitle, h.title), tags,
@@ -427,17 +422,10 @@ function nsPlacesAutoComplete()
     return this._db.createAsyncStatement(
       `/* do not warn (bug 487787) */
        SELECT REPLACE(h.url, '%s', :query_string) AS search_url, h.title,
-       IFNULL(f.url, (SELECT f.url
-                      FROM moz_places
-                      JOIN moz_favicons f ON f.id = favicon_id
-                      WHERE rev_host = h.rev_host
-                      ORDER BY frecency DESC
-                      LIMIT 1)
-       ), 1, NULL, NULL, h.visit_count, h.typed, h.id,
+       1, NULL, NULL, h.visit_count, h.typed, h.id,
        :query_type, t.open_count
        FROM moz_keywords k
        JOIN moz_places h ON k.place_id = h.id
-       LEFT JOIN moz_favicons f ON f.id = h.favicon_id
        LEFT JOIN moz_openpages_temp t ON t.url = search_url
        WHERE k.keyword = LOWER(:keyword)`
     );
@@ -1177,7 +1165,6 @@ nsPlacesAutoComplete.prototype = {
     }
 
     let entryTitle = aRow.getResultByIndex(kQueryIndexTitle) || "";
-    let entryFavicon = aRow.getResultByIndex(kQueryIndexFaviconURL) || "";
     let entryBookmarked = aRow.getResultByIndex(kQueryIndexBookmarked);
     let entryBookmarkTitle = entryBookmarked ?
       aRow.getResultByIndex(kQueryIndexBookmarkTitle) : null;
@@ -1225,7 +1212,7 @@ nsPlacesAutoComplete.prototype = {
       }
     }
 
-    this._addToResults(entryId, url, title, entryFavicon, action + style);
+    this._addToResults(entryId, url, title, action + style);
     return true;
   },
 
@@ -1264,13 +1251,11 @@ nsPlacesAutoComplete.prototype = {
    *        The URI spec for the entry.
    * @param aTitle
    *        The title to give the entry.
-   * @param aFaviconSpec
-   *        The favicon to give to the entry.
    * @param aStyle
    *        Indicates how the entry should be styled when displayed.
    */
   _addToResults: function PAC_addToResults(aPlaceId, aURISpec, aTitle,
-                                           aFaviconSpec, aStyle)
+                                           aStyle)
   {
     // Add this to our internal tracker to ensure duplicates do not end up in
     // the result.  _usedPlaces is an Object that is being used as a set.
@@ -1281,13 +1266,7 @@ nsPlacesAutoComplete.prototype = {
     this._usedPlaces[aPlaceId || aURISpec] = true;
 
     // Obtain the favicon for this URI.
-    let favicon;
-    if (aFaviconSpec) {
-      let uri = NetUtil.newURI(aFaviconSpec);
-      favicon = PlacesUtils.favicons.getFaviconLinkForIcon(uri).spec;
-    }
-    favicon = favicon || PlacesUtils.favicons.defaultFavicon.spec;
-
+    let favicon = "page-icon:" + aURISpec;
     this._result.appendMatch(aURISpec, aTitle, favicon, aStyle);
   },
 

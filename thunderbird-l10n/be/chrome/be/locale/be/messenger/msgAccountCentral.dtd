@@ -21,3 +21,6 @@
 <!ENTITY filtersLink.label "Кіраваць сітамі лістоў">
 <!ENTITY junkSettings.label "Наладжванні пошты-лухты">
 <!ENTITY offlineLink.label "Па-за сеткавыя наладжванні">
+
+<!ENTITY setupNewAcct.label           "Set up an account:">
+

@@ -8,11 +8,11 @@
 
 #include "nsCOMPtr.h"
 #include "nsISpamSettings.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIOutputStream.h"
 #include "nsIMsgIncomingServer.h"
 #include "nsIUrlListener.h"
-#include "nsIDateTimeFormat.h"
+#include "DateTimeFormat.h"
 #include "nsCOMArray.h"
 #include "nsIAbDirectory.h"
 #include "nsTArray.h"
@@ -32,7 +32,7 @@ private:
   nsCOMPtr <nsIOutputStream> mLogStream;
   nsCOMPtr<nsIFile> mLogFile;
 
-  int32_t mLevel; 
+  int32_t mLevel;
   int32_t mPurgeInterval;
   int32_t mMoveTargetMode;
 
@@ -40,7 +40,7 @@ private:
   bool mUseWhiteList;
   bool mMoveOnSpam;
   bool mUseServerFilter;
-  
+
   nsCString mActionTargetAccount;
   nsCString mActionTargetFolder;
   nsCString mWhiteListAbURI;
@@ -49,8 +49,6 @@ private:
   nsCString mServerFilterName;
   nsCOMPtr<nsIFile> mServerFilterFile;
   int32_t  mServerFilterTrustFlags;
-
-  nsCOMPtr<nsIDateTimeFormat> mDateFormatter;
 
   // array of address directories to use in junk whitelisting
   nsCOMArray<nsIAbDirectory> mWhiteListDirArray;

@@ -8,6 +8,7 @@
 
 #include "mozilla/Assertions.h"
 
+#include <functional>
 #include <stddef.h>
 #include <stdint.h>
 #include "nsError.h"
@@ -77,21 +78,19 @@ nsresult AppendAppNotesToCrashReport(const nsACString& data);
 
 void AnnotateOOMAllocationSize(size_t size);
 void AnnotateTexturesSize(size_t size);
-void AnnotatePendingIPC(size_t aNumOfPendingIPC,
-                        uint32_t aTopPendingIPCCount,
-                        const char* aTopPendingIPCName,
-                        uint32_t aTopPendingIPCType);
 nsresult SetGarbageCollecting(bool collecting);
 void SetEventloopNestingLevel(uint32_t level);
+void SetMinidumpAnalysisAllThreads();
 
 nsresult SetRestartArgs(int argc, char** argv);
 nsresult SetupExtraData(nsIFile* aAppDataDirectory,
                         const nsACString& aBuildID);
-bool GetLastRunCrashID(nsAString& id);
-
 // Registers an additional memory region to be included in the minidump
 nsresult RegisterAppMemory(void* ptr, size_t length);
 nsresult UnregisterAppMemory(void* ptr);
+
+// Include heap regions of the crash context.
+void SetIncludeContextHeap(bool aValue);
 
 // Functions for working with minidumps and .extras
 typedef nsDataHashtable<nsCStringHashKey, nsCString> AnnotationTable;
@@ -195,11 +194,14 @@ ThreadId CurrentThreadId();
  *   aIncomingDumpToPair.
  * @return bool indicating success or failure
  */
-bool CreateMinidumpsAndPair(ProcessHandle aTargetPid,
-                            ThreadId aTargetBlamedThread,
-                            const nsACString& aIncomingPairName,
-                            nsIFile* aIncomingDumpToPair,
-                            nsIFile** aTargetDumpOut);
+void
+CreateMinidumpsAndPair(ProcessHandle aTargetPid,
+                       ThreadId aTargetBlamedThread,
+                       const nsACString& aIncomingPairName,
+                       nsIFile* aIncomingDumpToPair,
+                       nsIFile** aTargetDumpOut,
+                       std::function<void(bool)>&& aCallback,
+                       bool aAsync);
 
 // Create an additional minidump for a child of a process which already has
 // a minidump (|parentMinidump|).
@@ -209,6 +211,10 @@ bool CreateAdditionalChildMinidump(ProcessHandle childPid,
                                    ThreadId childBlamedThread,
                                    nsIFile* parentMinidump,
                                    const nsACString& name);
+
+// Parent-side API, returns the tmp dir for child processes to use, accounting
+// for sandbox considerations.
+void GetChildProcessTmpDir(nsIFile** aOutTmpDir);
 
 #  if defined(XP_WIN32) || defined(XP_MACOSX)
 // Parent-side API for children
@@ -240,7 +246,7 @@ void UnregisterInjectorCallback(DWORD processID);
 
 // Child-side API
 bool SetRemoteExceptionHandler(const nsACString& crashPipe);
-void InitChildProcessTmpDir();
+void InitChildProcessTmpDir(nsIFile* aDirOverride = nullptr);
 
 #  elif defined(XP_LINUX)
 // Parent-side API for children
@@ -263,6 +269,10 @@ bool SetRemoteExceptionHandler();
 bool UnsetRemoteExceptionHandler();
 
 #if defined(MOZ_WIDGET_ANDROID)
+// Android creates child process as services so we must explicitly set
+// the handle for the pipe since it can't get remapped to a default value.
+void SetNotificationPipeForChild(int childCrashFd);
+
 // Android builds use a custom library loader, so /proc/<pid>/maps
 // will just show anonymous mappings for all the non-system
 // shared libraries. This API is to work around that by providing
@@ -274,6 +284,10 @@ void AddLibraryMapping(const char* library_name,
                        size_t      file_offset);
 
 #endif
+
+// Annotates the crash report with the name of the calling thread.
+void SetCurrentThreadName(const char* aName);
+
 } // namespace CrashReporter
 
 #endif /* nsExceptionHandler_h__ */

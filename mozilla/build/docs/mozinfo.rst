@@ -136,9 +136,8 @@ release_or_beta
 
    Always defined.
 
-sm_promise
-   Whether spidermonkey promises have been enabled or not.  This is set
-   by adding --enable-sm-promise to the mozconfig file.
+stylo
+   Whether the Stylo styling system is being used.
 
    Values are ``true`` and ``false``.
 
@@ -159,19 +158,5 @@ toolkit
 
 topsrcdir
    The path to the source directory the build came from.
-
-   Always defined.
-
-wave
-   Whether Wave audio support is enabled.
-
-   Values are ``true`` and ``false``.
-
-   Always defined.
-
-webm
-   Whether WebM support is enabled.
-
-   Values are ``true`` and ``false``.
 
    Always defined.

@@ -46,9 +46,37 @@
                              min="0"
                              max="100"
                              xbl:inherits="mode=progressmode,value=progress,paused=progresspaused"/>
-          <xul:description class="downloadDetails"
+          <xul:description class="downloadDetails downloadDetailsNormal"
                            crop="end"
-                           xbl:inherits="value=status,tooltiptext=statusTip"/>
+                           xbl:inherits="value=status"/>
+          <xul:description class="downloadDetails downloadDetailsHover"
+                           crop="end"
+                           xbl:inherits="value=hoverStatus"/>
+          <xul:description class="downloadDetails downloadDetailsFull"
+                           crop="end"
+                           xbl:inherits="value=fullStatus,tooltiptext=fullStatus"/>
+          <xul:description class="downloadDetails downloadOpenFile"
+                           crop="end"
+                           value="&openFile.label;"/>
+          <xul:description class="downloadDetails downloadShowMoreInfo"
+                           crop="end"
+                           value="&showMoreInformation.label;"/>
+          <xul:stack class="downloadButtonLabels">
+            <xul:description class="downloadDetails downloadShow"
+                             crop="end"
+#ifdef XP_MACOSX
+                             value="&cmd.showMac.label;"
+#else
+                             value="&cmd.show.label;"
+#endif
+                             />
+            <xul:description class="downloadDetails downloadCancel"
+                             crop="end"
+                             value="&cancelDownload.label;"/>
+            <xul:description class="downloadDetails downloadRetry"
+                             crop="end"
+                             value="&retryDownload.label;"/>
+          </xul:stack>
         </xul:vbox>
       </xul:hbox>
       <xul:toolbarseparator />
@@ -94,6 +122,22 @@
                  xbl:inherits="value=label,accesskey,crop,wrap"/>
       <xul:label class="toolbarbutton-multiline-text" flex="1"
                  xbl:inherits="xbl:text=label,accesskey,wrap"/>
+    </content>
+  </binding>
+
+  <binding id="download-subview-toolbarbutton"
+           extends="chrome://global/content/bindings/button.xml#menu-button-base">
+    <content>
+      <children includes="observes|template|menupopup|panel|tooltip"/>
+      <xul:image class="toolbarbutton-icon" xbl:inherits="validate,src=image,label,consumeanchor"/>
+      <xul:vbox class="toolbarbutton-text" flex="1">
+        <xul:label crop="end" xbl:inherits="value=label,accesskey,crop,wrap"/>
+        <xul:label class="status-text status-full" crop="end" xbl:inherits="value=fullStatus"/>
+        <xul:label class="status-text status-open" crop="end" xbl:inherits="value=openLabel"/>
+        <xul:label class="status-text status-retry" crop="end" xbl:inherits="value=retryLabel"/>
+        <xul:label class="status-text status-show" crop="end" xbl:inherits="value=showLabel"/>
+      </xul:vbox>
+      <xul:toolbarbutton anonid="button" class="action-button"/>
     </content>
   </binding>
 </bindings>

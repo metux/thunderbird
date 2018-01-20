@@ -9,6 +9,7 @@
 #include "mozilla/dom/UnionTypes.h"
 #include "mozilla/dom/ToJSValue.h"
 #include "mozilla/EMEUtils.h"
+#include "GMPUtils.h"
 
 namespace mozilla {
 namespace dom {
@@ -93,6 +94,13 @@ MediaKeyStatusMap::GetKeyAtIndex(uint32_t aIndex) const
 {
   MOZ_ASSERT(aIndex < GetIterableLength());
   return TypedArrayCreator<ArrayBuffer>(mStatuses[aIndex].mKeyId);
+}
+
+nsString
+MediaKeyStatusMap::GetKeyIDAsHexString(uint32_t aIndex) const
+{
+  MOZ_ASSERT(aIndex < GetIterableLength());
+  return NS_ConvertUTF8toUTF16(ToHexString(mStatuses[aIndex].mKeyId));
 }
 
 MediaKeyStatus

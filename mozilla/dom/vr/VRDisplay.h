@@ -16,6 +16,7 @@
 #include "mozilla/dom/DOMPoint.h"
 #include "mozilla/dom/DOMRect.h"
 #include "mozilla/dom/Pose.h"
+#include "mozilla/TimeStamp.h"
 
 #include "nsCOMPtr.h"
 #include "nsString.h"
@@ -102,7 +103,7 @@ public:
   VRPose(nsISupports* aParent, const gfx::VRHMDSensorState& aState);
   explicit VRPose(nsISupports* aParent);
 
-  uint32_t FrameID() const { return mFrameId; }
+  uint64_t FrameID() const { return mFrameId; }
 
   virtual void GetPosition(JSContext* aCx,
                            JS::MutableHandle<JSObject*> aRetval,
@@ -128,7 +129,7 @@ public:
 protected:
   ~VRPose();
 
-  uint32_t mFrameId;
+  uint64_t mFrameId;
   gfx::VRHMDSensorState mVRState;
 };
 
@@ -150,6 +151,13 @@ struct VRFrameInfo
   gfx::Matrix4x4 mRightProjection;
   gfx::Matrix4x4 mRightView;
 
+  /**
+   * In order to avoid leaking information related to the duration of
+   * the user's VR session, we re-base timestamps.
+   * mTimeStampOffset is added to the actual timestamp returned by the
+   * underlying VR platform API when returned through WebVR API's.
+   */
+  double mTimeStampOffset;
 };
 
 class VRFrameData final : public nsWrapperCache
@@ -263,6 +271,33 @@ protected:
   RefPtr<VRFieldOfView> mFOV;
 };
 
+class VRSubmitFrameResult final : public nsWrapperCache
+{
+public:
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(VRSubmitFrameResult)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(VRSubmitFrameResult)
+
+  explicit VRSubmitFrameResult(nsISupports* aParent);
+  static already_AddRefed<VRSubmitFrameResult> Constructor(const GlobalObject& aGlobal,
+                                                           ErrorResult& aRv);
+
+  void Update(uint64_t aFrameNum, const nsACString& aBase64Image);
+  // WebIDL Members
+  double FrameNum() const;
+  void GetBase64Image(nsAString& aImage) const;
+
+  // WebIDL Boilerplate
+  nsISupports* GetParentObject() const { return mParent; }
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+
+protected:
+  ~VRSubmitFrameResult();
+
+  nsCOMPtr<nsISupports> mParent;
+  nsString mBase64Image;
+  uint64_t mFrameNum;
+};
+
 class VRDisplay final : public DOMEventTargetHelper
                       , public nsIObserver
 {
@@ -273,6 +308,10 @@ public:
 
   virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
+  uint32_t PresentingGroups() const;
+  uint32_t GroupMask() const;
+  void SetGroupMask(const uint32_t& aGroupMask);
+  bool IsAnyPresenting(uint32_t aGroupMask) const;
   bool IsPresenting() const;
   bool IsConnected() const;
 
@@ -293,6 +332,7 @@ public:
   virtual already_AddRefed<VREyeParameters> GetEyeParameters(VREye aEye);
 
   bool GetFrameData(VRFrameData& aFrameData);
+  bool GetSubmitFrameResult(VRSubmitFrameResult& aResult);
   already_AddRefed<VRPose> GetPose();
   void ResetPose();
 
@@ -316,7 +356,9 @@ public:
     mDepthFar = aDepthFar;
   }
 
-  already_AddRefed<Promise> RequestPresent(const nsTArray<VRLayer>& aLayers, ErrorResult& aRv);
+  already_AddRefed<Promise> RequestPresent(const nsTArray<VRLayer>& aLayers,
+                                           CallerType aCallerType,
+                                           ErrorResult& aRv);
   already_AddRefed<Promise> ExitPresent(ErrorResult& aRv);
   void GetLayers(nsTArray<VRLayer>& result);
   void SubmitFrame();
@@ -324,6 +366,9 @@ public:
   int32_t RequestAnimationFrame(mozilla::dom::FrameRequestCallback& aCallback,
                                 mozilla::ErrorResult& aError);
   void CancelAnimationFrame(int32_t aHandle, mozilla::ErrorResult& aError);
+  void StartHandlingVRNavigationEvent();
+  void StopHandlingVRNavigationEvent();
+  bool IsHandlingVRNavigationEvent();
 
 protected:
   VRDisplay(nsPIDOMWindowInner* aWindow, gfx::VRDisplayClient* aClient);
@@ -331,6 +376,7 @@ protected:
   virtual void LastRelease() override;
 
   void ExitPresentInternal();
+  void Shutdown();
   void UpdateFrameInfo();
 
   RefPtr<gfx::VRDisplayClient> mClient;
@@ -354,6 +400,11 @@ protected:
   * will use these cached values.
   */
   VRFrameInfo mFrameInfo;
+
+  // Time at which we began expecting VR navigation.
+  TimeStamp mHandlingVRNavigationEventStart;
+  int32_t mVRNavigationEventDepth;
+  bool mShutdown;
 };
 
 } // namespace dom

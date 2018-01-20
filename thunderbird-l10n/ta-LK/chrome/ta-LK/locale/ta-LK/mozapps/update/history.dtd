@@ -9,3 +9,5 @@
 <!ENTITY  type.header               "வகை">
 <!ENTITY  state.header              "நிலை">
 
+
+<!ENTITY  history2.intro            "The following updates have been installed">

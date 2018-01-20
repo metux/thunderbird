@@ -55,7 +55,7 @@ WebGL2Context::ValidateClearBuffer(const char* funcName, GLenum buffer, GLint dr
     }
 
     if (availElemCount < requiredElements) {
-        ErrorInvalidValue("%s: Not enough elements. Require %u. Given %u.",
+        ErrorInvalidValue("%s: Not enough elements. Require %zu. Given %zu.",
                           funcName, requiredElements, availElemCount);
         return false;
     }

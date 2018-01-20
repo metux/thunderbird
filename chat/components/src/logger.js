@@ -8,6 +8,7 @@ Cu.import("resource:///modules/hiddenWindow.jsm");
 Cu.import("resource:///modules/imServices.jsm");
 Cu.import("resource:///modules/imXPCOMUtils.jsm");
 Cu.import("resource:///modules/jsProtoHelper.jsm");
+Cu.import("resource:///modules/ToLocaleFormat.jsm");
 
 Cu.import("resource://gre/modules/Task.jsm")
 XPCOMUtils.defineLazyModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
@@ -127,7 +128,7 @@ function getLogFilePathForConversation(aConv, aFormat, aStartTime) {
 
 function getNewLogFileName(aFormat, aStartTime) {
   let date = aStartTime ? new Date(aStartTime) : new Date();
-  let dateTime = date.toLocaleFormat("%Y-%m-%d.%H%M%S");
+  let dateTime = ToLocaleFormat("%Y-%m-%d.%H%M%S", date);
   let offset = date.getTimezoneOffset();
   if (offset < 0) {
     dateTime += "+";
@@ -196,8 +197,11 @@ LogWriter.prototype = {
       header = JSON.stringify(header) + "\n";
     }
     else {
+      const dateTimeFormatter = Services.intl.createDateTimeFormat("en-US", {
+        dateStyle: "full", timeStyle: "long"
+      });
       header = "Conversation with " + this._conv.name +
-               " at " + (new Date(this._conv.startDate / 1000)).toLocaleString() +
+               " at " + dateTimeFormatter.format(new Date(this._conv.startDate / 1000)) +
                " on " + account.name +
                " (" + account.protocol.normalizedName + ")" + kLineBreak;
     }
@@ -331,10 +335,13 @@ function SystemLogWriter(aAccount) {
   this._account = aAccount;
   this.path = OS.Path.join(getLogFolderPathForAccount(aAccount), ".system",
                            getNewLogFileName());
+  const dateTimeFormatter = Services.intl.createDateTimeFormat("en-US", {
+    dateStyle: "full", timeStyle: "long"
+  });
   let header = "System log for account " + aAccount.name +
                " (" + aAccount.protocol.normalizedName +
                ") connected at " +
-               (new Date()).toLocaleFormat("%c") + kLineBreak;
+               dateTimeFormatter.format(new Date()) + kLineBreak;
   this._initialized = appendToFile(this.path, this.encoder.encode(header), true);
   // Catch the error separately so that _initialized will stay rejected if
   // writing the header failed.
@@ -348,7 +355,7 @@ SystemLogWriter.prototype = {
   _initialized: null,
   path: null,
   logEvent: function sl_logEvent(aString) {
-    let date = (new Date()).toLocaleFormat("%x %X");
+    let date = ToLocaleFormat("%x %X", new Date());
     let lineToWrite =
       this.encoder.encode("---- " + aString + " @ " + date + " ----" + kLineBreak);
     this._initialized.then(() => {

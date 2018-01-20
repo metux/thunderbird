@@ -8,14 +8,20 @@ USE_LIBS += ['mozglue']
 SOURCES += ['nsSuiteApp.cpp']
 LOCAL_INCLUDES += [
     '!/build',
-    '/mozilla/toolkit/xre',
-    '/mozilla/xpcom/base',
-    '/mozilla/xpcom/build',
+    '/%s/toolkit/xre' % CONFIG['mozreltopsrcdir'],
+    '/%s/xpcom/base' % CONFIG['mozreltopsrcdir'],
+    '/%s/xpcom/build' % CONFIG['mozreltopsrcdir'],
 ]
 
 if CONFIG['OS_ARCH'] == 'WINNT':
     RCINCLUDE = 'splash.rc'
     DEFINES['MOZ_SUITE'] = True
+
+if CONFIG['LIBFUZZER']:
+    USE_LIBS += [ 'fuzzer' ]
+    LOCAL_INCLUDES += [
+        '/%s/tools/fuzzing/libfuzzer' % CONFIG['mozreltopsrcdir'],
+    ]
 
 if CONFIG['_MSC_VER']:
     # Always enter a Windows program through wmain, whether or not we're
@@ -25,8 +31,8 @@ if CONFIG['_MSC_VER']:
 if CONFIG['MOZ_SANDBOX'] and CONFIG['OS_ARCH'] == 'WINNT':
     # For sandbox includes and the include dependencies those have
     LOCAL_INCLUDES += [
-        '/mozilla/security/sandbox/chromium',
-        '/mozilla/security/sandbox/chromium-shim',
+        '/%s/security/sandbox/chromium' % CONFIG['mozreltopsrcdir'],
+        '/%s/security/sandbox/chromium-shim' % CONFIG['mozreltopsrcdir'],
     ]
 
     USE_LIBS += [
@@ -52,8 +58,11 @@ if CONFIG['OS_ARCH'] == 'WINNT' and not CONFIG['GNU_CC']:
 if CONFIG['MOZ_LINKER']:
     OS_LIBS += CONFIG['MOZ_ZLIB_LIBS']
 
+if CONFIG['MOZ_LINUX_32_SSE2_STARTUP_ERROR']:
+    DEFINES['MOZ_LINUX_32_SSE2_STARTUP_ERROR'] = True
+
 DEFINES['APP_VERSION'] = CONFIG['MOZ_APP_VERSION']
 
-DISABLE_STL_WRAPPING = True
+DisableStlWrapping()
 
 FINAL_TARGET_FILES.defaults += ['permissions']

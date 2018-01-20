@@ -5,9 +5,6 @@
 
 package org.mozilla.gecko.gfx;
 
-import org.mozilla.gecko.GeckoAppShell;
-import org.mozilla.gecko.GeckoThread;
-import org.mozilla.gecko.PrefsHelper;
 import org.mozilla.gecko.annotation.WrapForJNI;
 import org.mozilla.gecko.gfx.DynamicToolbarAnimator.PinReason;
 import org.mozilla.gecko.mozglue.JNIObject;
@@ -23,15 +20,14 @@ import android.view.View;
 import android.view.InputDevice;
 
 class NativePanZoomController extends JNIObject implements PanZoomController {
-    private final PanZoomTarget mTarget;
+    private final float MAX_SCROLL;
+
     private final LayerView mView;
+
     private boolean mDestroyed;
     private Overscroll mOverscroll;
-    boolean mNegateWheelScroll;
     private float mPointerScrollFactor;
-    private PrefsHelper.PrefHandler mPrefsObserver;
     private long mLastDownTime;
-    private static final float MAX_SCROLL = 0.075f * GeckoAppShell.getDpi();
 
     @WrapForJNI(calledFrom = "ui")
     private native boolean handleMotionEvent(
@@ -49,9 +45,6 @@ class NativePanZoomController extends JNIObject implements PanZoomController {
     private native boolean handleMouseEvent(
             int action, long time, int metaState,
             float x, float y, int buttons);
-
-    @WrapForJNI(calledFrom = "ui")
-    private native void handleMotionEventVelocity(long time, float ySpeed);
 
     private boolean handleMotionEvent(MotionEvent event) {
         if (mDestroyed) {
@@ -111,11 +104,13 @@ class NativePanZoomController extends JNIObject implements PanZoomController {
         final MotionEvent.PointerCoords coords = new MotionEvent.PointerCoords();
         event.getPointerCoords(0, coords);
         final float x = coords.x;
-        final float y = coords.y;
+        // Scroll events are not adjusted by the AndroidDyanmicToolbarAnimator so adjust the offset here.
+        final float y = coords.y - mView.getCurrentToolbarHeight();
 
-        final float flipFactor = mNegateWheelScroll ? -1.0f : 1.0f;
-        final float hScroll = event.getAxisValue(MotionEvent.AXIS_HSCROLL) * flipFactor * mPointerScrollFactor;
-        final float vScroll = event.getAxisValue(MotionEvent.AXIS_VSCROLL) * flipFactor * mPointerScrollFactor;
+        final float hScroll = event.getAxisValue(MotionEvent.AXIS_HSCROLL) *
+                              mPointerScrollFactor;
+        final float vScroll = event.getAxisValue(MotionEvent.AXIS_VSCROLL) *
+                              mPointerScrollFactor;
 
         return handleScrollEvent(event.getEventTime(), event.getMetaState(), x, y, hScroll, vScroll);
     }
@@ -134,26 +129,18 @@ class NativePanZoomController extends JNIObject implements PanZoomController {
         final MotionEvent.PointerCoords coords = new MotionEvent.PointerCoords();
         event.getPointerCoords(0, coords);
         final float x = coords.x;
-        final float y = coords.y;
+        // Mouse events are not adjusted by the AndroidDyanmicToolbarAnimator so adjust the offset
+        // here.
+        final float y = coords.y - mView.getCurrentToolbarHeight();
 
         return handleMouseEvent(event.getActionMasked(), event.getEventTime(), event.getMetaState(), x, y, event.getButtonState());
     }
 
 
-    NativePanZoomController(PanZoomTarget target, View view) {
-        mTarget = target;
-        mView = (LayerView) view;
-        mDestroyed = true;
+    NativePanZoomController(View view) {
+        MAX_SCROLL = 0.075f * view.getContext().getResources().getDisplayMetrics().densityDpi;
 
-        String[] prefs = { "ui.scrolling.negate_wheel_scroll" };
-        mPrefsObserver = new PrefsHelper.PrefHandlerBase() {
-            @Override public void prefValue(String pref, boolean value) {
-                if (pref.equals("ui.scrolling.negate_wheel_scroll")) {
-                    mNegateWheelScroll = value;
-                }
-            }
-        };
-        PrefsHelper.addObserver(prefs, mPrefsObserver);
+        mView = (LayerView) view;
 
         TypedValue outValue = new TypedValue();
         if (view.getContext().getTheme().resolveAttribute(android.R.attr.listPreferredItemHeight, outValue, true)) {
@@ -197,30 +184,16 @@ class NativePanZoomController extends JNIObject implements PanZoomController {
         }
     }
 
-    @Override
-    public void onMotionEventVelocity(final long aEventTime, final float aSpeedY) {
-        handleMotionEventVelocity(aEventTime, aSpeedY);
-    }
-
     @Override @WrapForJNI(calledFrom = "ui") // PanZoomController
     public void destroy() {
-        if (mPrefsObserver != null) {
-            PrefsHelper.removeObserver(mPrefsObserver);
-            mPrefsObserver = null;
-        }
-        if (mDestroyed || !mTarget.isGeckoReady()) {
+        if (mDestroyed || !mView.isGeckoReady()) {
             return;
         }
         mDestroyed = true;
         disposeNative();
     }
 
-    @Override
-    public void attach() {
-        mDestroyed = false;
-    }
-
-    @WrapForJNI(calledFrom = "ui", dispatchTo = "gecko") @Override // JNIObject
+    @WrapForJNI(calledFrom = "ui", dispatchTo = "gecko_priority") @Override // JNIObject
     protected native void disposeNative();
 
     @Override
@@ -236,15 +209,6 @@ class NativePanZoomController extends JNIObject implements PanZoomController {
         if (!mDestroyed) {
             nativeSetIsLongpressEnabled(isLongpressEnabled);
         }
-    }
-
-    @WrapForJNI(calledFrom = "ui")
-    private native void adjustScrollForSurfaceShift(float aX, float aY);
-
-    @Override // PanZoomController
-    public ImmutableViewportMetrics adjustScrollForSurfaceShift(ImmutableViewportMetrics aMetrics, PointF aShift) {
-        adjustScrollForSurfaceShift(aShift.x, aShift.y);
-        return aMetrics.offsetViewportByAndClamp(aShift.x, aShift.y);
     }
 
     @WrapForJNI
@@ -282,11 +246,6 @@ class NativePanZoomController extends JNIObject implements PanZoomController {
                 });
             }
         }
-    }
-
-    @WrapForJNI(calledFrom = "ui")
-    private void setScrollingRootContent(final boolean isRootContent) {
-        mTarget.setScrollingRootContent(isRootContent);
     }
 
     /**

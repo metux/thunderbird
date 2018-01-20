@@ -23,3 +23,5 @@
 <!ENTITY backgroundImage.label "Imaxe de fondu:">
 <!ENTITY backgroundImage.accessKey "m">
 <!ENTITY backgroundImage.tooltip "Usar un ficheru d'imaxe como fondu de la páxina">
+
+<!ENTITY backgroundImage.shortenedDataURI "Shortened data URI (copy will place the full URI onto the clipboard)">

@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-// vim:cindent:tabstop=2:expandtab:shiftwidth=2:
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -15,12 +15,10 @@
 #include "mozilla/StyleSheet.h"
 #include "mozilla/StyleSheetInfo.h"
 #include "mozilla/css/SheetParsingMode.h"
-#include "mozilla/dom/Element.h"
 
 #include "nscore.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
-#include "nsICSSLoaderObserver.h"
 #include "nsTArrayForwardDeclare.h"
 #include "nsString.h"
 #include "mozilla/CORSMode.h"
@@ -31,23 +29,20 @@
 class CSSRuleListImpl;
 class nsCSSRuleProcessor;
 class nsIURI;
-class nsMediaList;
 class nsMediaQueryResultCacheKey;
-class nsStyleSet;
 class nsPresContext;
 class nsXMLNameSpaceMap;
 
 namespace mozilla {
-struct ChildSheetListBuilder;
 class CSSStyleSheet;
+struct ChildSheetListBuilder;
 
 namespace css {
-class Rule;
 class GroupRule;
-class ImportRule;
 } // namespace css
 namespace dom {
 class CSSRuleList;
+class Element;
 } // namespace dom
 
   // -------------------------------
@@ -56,17 +51,15 @@ class CSSRuleList;
 
 struct CSSStyleSheetInner : public StyleSheetInfo
 {
-  CSSStyleSheetInner(CSSStyleSheet* aPrimarySheet,
-                     CORSMode aCORSMode,
+  CSSStyleSheetInner(CORSMode aCORSMode,
                      ReferrerPolicy aReferrerPolicy,
                      const dom::SRIMetadata& aIntegrity);
   CSSStyleSheetInner(CSSStyleSheetInner& aCopy,
                      CSSStyleSheet* aPrimarySheet);
   ~CSSStyleSheetInner();
 
-  CSSStyleSheetInner* CloneFor(CSSStyleSheet* aPrimarySheet);
-  void AddSheet(CSSStyleSheet* aSheet);
-  void RemoveSheet(CSSStyleSheet* aSheet);
+  StyleSheetInfo* CloneFor(StyleSheet* aPrimarySheet) override;
+  void RemoveSheet(StyleSheet* aSheet) override;
 
   void RebuildNameSpaces();
 
@@ -75,15 +68,8 @@ struct CSSStyleSheetInner : public StyleSheetInfo
 
   size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const;
 
-  AutoTArray<CSSStyleSheet*, 8> mSheets;
   IncrementalClearCOMRuleArray mOrderedRules;
   nsAutoPtr<nsXMLNameSpaceMap> mNameSpaceMap;
-  // Linked list of child sheets.  This is al fundamentally broken, because
-  // each of the child sheets has a unique parent... We can only hope (and
-  // currently this is the case) that any time page JS can get ts hands on a
-  // child sheet that means we've already ensured unique inners throughout its
-  // parent chain and things are good.
-  RefPtr<CSSStyleSheet> mFirstChild;
 };
 
 
@@ -99,7 +85,6 @@ struct CSSStyleSheetInner : public StyleSheetInfo
 
 
 class CSSStyleSheet final : public StyleSheet
-                          , public nsICSSLoaderObserver
 {
 public:
   typedef net::ReferrerPolicy ReferrerPolicy;
@@ -116,28 +101,9 @@ public:
 
   bool HasRules() const;
 
-  /**
-   * Set the stylesheet to be enabled.  This may or may not make it
-   * applicable.  Note that this WILL inform the sheet's document of
-   * its new applicable state if the state changes but WILL NOT call
-   * BeginUpdate() or EndUpdate() on the document -- calling those is
-   * the caller's responsibility.  This allows use of SetEnabled when
-   * batched updates are desired.  If you want updates handled for
-   * you, see nsIDOMStyleSheet::SetDisabled().
-   */
-  void SetEnabled(bool aEnabled);
-
-  // style sheet owner info
-  CSSStyleSheet* GetParentSheet() const;  // may be null
-  void SetOwningDocument(nsIDocument* aDocument);
-
-  // Find the ID of the owner inner window.
-  uint64_t FindOwningWindowInnerID() const;
 #ifdef DEBUG
-  void List(FILE* out = stdout, int32_t aIndent = 0) const;
+  void List(FILE* out = stdout, int32_t aIndent = 0) const override;
 #endif
-
-  void AppendStyleSheet(CSSStyleSheet* aSheet);
 
   // XXX do these belong here or are they generic?
   void AppendStyleRule(css::Rule* aRule);
@@ -145,25 +111,14 @@ public:
   int32_t StyleRuleCount() const;
   css::Rule* GetStyleRuleAt(int32_t aIndex) const;
 
-  nsresult DeleteRuleFromGroup(css::GroupRule* aGroup, uint32_t aIndex);
-  nsresult InsertRuleIntoGroup(const nsAString& aRule, css::GroupRule* aGroup, uint32_t aIndex, uint32_t* _retval);
+  nsXMLNameSpaceMap* GetNameSpaceMap() const {
+    return Inner()->mNameSpaceMap;
+  }
 
-  void SetTitle(const nsAString& aTitle) { mTitle = aTitle; }
-  void SetMedia(nsMediaList* aMedia);
-
-  void SetOwnerRule(css::ImportRule* aOwnerRule) { mOwnerRule = aOwnerRule; /* Not ref counted */ }
-  css::ImportRule* GetOwnerRule() const { return mOwnerRule; }
-  // Workaround overloaded-virtual warning in GCC.
-  using StyleSheet::GetOwnerRule;
-
-  nsXMLNameSpaceMap* GetNameSpaceMap() const { return mInner->mNameSpaceMap; }
-
-  already_AddRefed<CSSStyleSheet> Clone(CSSStyleSheet* aCloneParent,
-                                        css::ImportRule* aCloneOwnerRule,
-                                        nsIDocument* aCloneDocument,
-                                        nsINode* aCloneOwningNode) const;
-
-  bool IsModified() const { return mDirty; }
+  already_AddRefed<StyleSheet> Clone(StyleSheet* aCloneParent,
+    dom::CSSImportRule* aCloneOwnerRule,
+    nsIDocument* aCloneDocument,
+    nsINode* aCloneOwningNode) const final;
 
   void SetModifiedByChildRule() {
     NS_ASSERTION(mDirty,
@@ -174,17 +129,9 @@ public:
   nsresult AddRuleProcessor(nsCSSRuleProcessor* aProcessor);
   nsresult DropRuleProcessor(nsCSSRuleProcessor* aProcessor);
 
-  void AddStyleSet(nsStyleSet* aStyleSet);
-  void DropStyleSet(nsStyleSet* aStyleSet);
-
   // nsICSSLoaderObserver interface
   NS_IMETHOD StyleSheetLoaded(StyleSheet* aSheet, bool aWasAlternate,
                               nsresult aStatus) override;
-
-  void EnsureUniqueInner();
-
-  // Append all of this sheet's child sheets to aArray.
-  void AppendAllChildSheets(nsTArray<CSSStyleSheet*>& aArray);
 
   bool UseForPresentation(nsPresContext* aPresContext,
                             nsMediaQueryResultCacheKey& aKey) const;
@@ -195,32 +142,20 @@ public:
 
   // Function used as a callback to rebuild our inner's child sheet
   // list after we clone a unique inner for ourselves.
-  static bool RebuildChildList(css::Rule* aRule, void* aBuilder);
+  static bool RebuildChildList(css::Rule* aRule,
+                               ChildSheetListBuilder* aBuilder);
 
-  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const;
+  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const override;
 
   dom::Element* GetScopeElement() const { return mScopeElement; }
-  void SetScopeElement(dom::Element* aScopeElement)
-  {
-    mScopeElement = aScopeElement;
-  }
+  void SetScopeElement(dom::Element* aScopeElement);
 
-  // WebIDL StyleSheet API
-  nsMediaList* Media() final;
-
-  // WebIDL CSSStyleSheet API
-  // Can't be inline because we can't include ImportRule here.  And can't be
-  // called GetOwnerRule because that would be ambiguous with the ImportRule
-  // version.
-  nsIDOMCSSRule* GetDOMOwnerRule() const final;
-
-  void WillDirty();
-  void DidDirty();
+  void DidDirty() override;
 
 private:
   CSSStyleSheet(const CSSStyleSheet& aCopy,
                 CSSStyleSheet* aParentToUse,
-                css::ImportRule* aOwnerRuleToUse,
+                dom::CSSImportRule* aOwnerRuleToUse,
                 nsIDocument* aDocumentToUse,
                 nsINode* aOwningNodeToUse);
 
@@ -230,6 +165,8 @@ private:
 protected:
   virtual ~CSSStyleSheet();
 
+  void LastRelease();
+
   void ClearRuleCascades();
 
   // Add the namespace mapping from this @namespace rule to our namespace map
@@ -238,40 +175,36 @@ protected:
   // Drop our reference to mRuleCollection
   void DropRuleCollection();
 
-  // Drop our reference to mMedia
-  void DropMedia();
+  CSSStyleSheetInner* Inner() const
+  {
+    return static_cast<CSSStyleSheetInner*>(mInner);
+  }
 
   // Unlink our inner, if needed, for cycle collection
-  void UnlinkInner();
+  virtual void UnlinkInner() override;
   // Traverse our inner, if needed, for cycle collection
-  void TraverseInner(nsCycleCollectionTraversalCallback &);
+  virtual void TraverseInner(nsCycleCollectionTraversalCallback &) override;
 
 protected:
   // Internal methods which do not have security check and completeness check.
-  dom::CSSRuleList* GetCssRulesInternal(ErrorResult& aRv);
+  dom::CSSRuleList* GetCssRulesInternal();
   uint32_t InsertRuleInternal(const nsAString& aRule,
                               uint32_t aIndex, ErrorResult& aRv);
   void DeleteRuleInternal(uint32_t aIndex, ErrorResult& aRv);
+  nsresult InsertRuleIntoGroupInternal(const nsAString& aRule,
+                                       css::GroupRule* aGroup,
+                                       uint32_t aIndex);
 
-  RefPtr<nsMediaList> mMedia;
-  RefPtr<CSSStyleSheet> mNext;
-  CSSStyleSheet*        mParent;    // weak ref
-  css::ImportRule*      mOwnerRule; // weak ref
+  void EnabledStateChangedInternal();
 
   RefPtr<CSSRuleListImpl> mRuleCollection;
-  bool                  mDirty; // has been modified 
   bool                  mInRuleProcessorCache;
   RefPtr<dom::Element> mScopeElement;
 
-  CSSStyleSheetInner*   mInner;
-
   AutoTArray<nsCSSRuleProcessor*, 8>* mRuleProcessors;
-  nsTArray<nsStyleSet*> mStyleSets;
 
-  friend class ::nsMediaList;
-  friend class ::nsCSSRuleProcessor;
   friend class mozilla::StyleSheet;
-  friend struct mozilla::ChildSheetListBuilder;
+  friend class ::nsCSSRuleProcessor;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(CSSStyleSheet, NS_CSS_STYLE_SHEET_IMPL_CID)

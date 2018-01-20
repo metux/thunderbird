@@ -72,7 +72,7 @@ var tests = [
   },
   function* deleteMessage() {
     let msgToDelete = IMAPPump.inbox.msgDatabase.getMsgHdrForMessageID(gMsgId1);
-    gMessages.appendElement(msgToDelete, false);
+    gMessages.appendElement(msgToDelete);
     IMAPPump.inbox.deleteMessages(gMessages, gMsgWindow, false, true, asyncCopyListener, true);
     yield false;
   },
@@ -99,7 +99,7 @@ var tests = [
   },
   function verifyFolders() {
     let msgRestored = IMAPPump.inbox.msgDatabase.getMsgHdrForMessageID(gMsgId1);
-    do_check_neq(msgRestored, null);
+    do_check_true(msgRestored !== null);
     do_check_eq(IMAPPump.inbox.msgDatabase.dBFolderInfo.numMessages, 4);
   },
   teardown

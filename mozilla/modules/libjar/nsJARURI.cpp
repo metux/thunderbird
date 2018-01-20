@@ -26,11 +26,11 @@ using namespace mozilla::ipc;
 static NS_DEFINE_CID(kJARURICID, NS_JARURI_CID);
 
 ////////////////////////////////////////////////////////////////////////////////
- 
+
 nsJARURI::nsJARURI()
 {
 }
- 
+
 nsJARURI::~nsJARURI()
 {
 }
@@ -41,7 +41,6 @@ NS_IMPL_RELEASE(nsJARURI)
 NS_INTERFACE_MAP_BEGIN(nsJARURI)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIJARURI)
   NS_INTERFACE_MAP_ENTRY(nsIURI)
-  NS_INTERFACE_MAP_ENTRY(nsIURIWithQuery)
   NS_INTERFACE_MAP_ENTRY(nsIURL)
   NS_INTERFACE_MAP_ENTRY(nsIJARURI)
   NS_INTERFACE_MAP_ENTRY(nsISerializable)
@@ -111,7 +110,7 @@ nsJARURI::CreateEntryURL(const nsACString& entryFilename,
 
     return CallQueryInterface(stdURL, url);
 }
-    
+
 ////////////////////////////////////////////////////////////////////////////////
 // nsISerializable methods:
 
@@ -141,7 +140,7 @@ NS_IMETHODIMP
 nsJARURI::Write(nsIObjectOutputStream* aOutputStream)
 {
     nsresult rv;
-    
+
     rv = aOutputStream->WriteCompoundObject(mJARFile, NS_GET_IID(nsIURI),
                                             true);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -157,7 +156,7 @@ nsJARURI::Write(nsIObjectOutputStream* aOutputStream)
 ////////////////////////////////////////////////////////////////////////////////
 // nsIClassInfo methods:
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsJARURI::GetInterfaces(uint32_t *count, nsIID * **array)
 {
     *count = 0;
@@ -165,28 +164,28 @@ nsJARURI::GetInterfaces(uint32_t *count, nsIID * **array)
     return NS_OK;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsJARURI::GetScriptableHelper(nsIXPCScriptable **_retval)
 {
     *_retval = nullptr;
     return NS_OK;
 }
 
-NS_IMETHODIMP 
-nsJARURI::GetContractID(char * *aContractID)
+NS_IMETHODIMP
+nsJARURI::GetContractID(nsACString& aContractID)
 {
-    *aContractID = nullptr;
+    aContractID.SetIsVoid(true);
     return NS_OK;
 }
 
-NS_IMETHODIMP 
-nsJARURI::GetClassDescription(char * *aClassDescription)
+NS_IMETHODIMP
+nsJARURI::GetClassDescription(nsACString& aClassDescription)
 {
-    *aClassDescription = nullptr;
+    aClassDescription.SetIsVoid(true);
     return NS_OK;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsJARURI::GetClassID(nsCID * *aClassID)
 {
     *aClassID = (nsCID*) moz_xmalloc(sizeof(nsCID));
@@ -195,7 +194,7 @@ nsJARURI::GetClassID(nsCID * *aClassID)
     return GetClassIDNoAlloc(*aClassID);
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsJARURI::GetFlags(uint32_t *aFlags)
 {
     // XXX We implement THREADSAFE addref/release, but probably shouldn't.
@@ -203,7 +202,7 @@ nsJARURI::GetFlags(uint32_t *aFlags)
     return NS_OK;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsJARURI::GetClassIDNoAlloc(nsCID *aClassIDNoAlloc)
 {
     *aClassIDNoAlloc = kJARURICID;
@@ -227,6 +226,30 @@ nsJARURI::GetSpecIgnoringRef(nsACString &aSpec)
     nsAutoCString entrySpec;
     mJAREntry->GetSpecIgnoringRef(entrySpec);
     return FormatSpec(entrySpec, aSpec);
+}
+
+NS_IMETHODIMP
+nsJARURI::GetDisplaySpec(nsACString &aUnicodeSpec)
+{
+    return GetSpec(aUnicodeSpec);
+}
+
+NS_IMETHODIMP
+nsJARURI::GetDisplayHostPort(nsACString &aUnicodeHostPort)
+{
+    return GetHostPort(aUnicodeHostPort);
+}
+
+NS_IMETHODIMP
+nsJARURI::GetDisplayPrePath(nsACString &aPrePath)
+{
+    return GetPrePath(aPrePath);
+}
+
+NS_IMETHODIMP
+nsJARURI::GetDisplayHost(nsACString &aUnicodeHost)
+{
+    return GetHost(aUnicodeHost);
 }
 
 NS_IMETHODIMP
@@ -289,10 +312,19 @@ nsJARURI::SetSpecWithBase(const nsACString &aSpec, nsIURI* aBaseURL)
 
     ++begin; // now we're past the "jar:"
 
+    nsACString::const_iterator frag = begin;
+    while (frag != end && *frag != '#') {
+        ++frag;
+    }
+    if (frag != end) {
+        // there was a fragment, mark that as the end of the URL to scan
+        end = frag;
+    }
+
     // Search backward from the end for the "!/" delimiter. Remember, jar URLs
     // can nest, e.g.:
     //    jar:jar:http://www.foo.com/bar.jar!/a.jar!/b.html
-    // This gets the b.html document from out of the a.jar file, that's 
+    // This gets the b.html document from out of the a.jar file, that's
     // contained within the bar.jar file.
     // Also, the outermost "inner" URI may be a relative URI:
     //   jar:../relative.jar!/a.html
@@ -313,6 +345,7 @@ nsJARURI::SetSpecWithBase(const nsACString &aSpec, nsIURI* aBaseURL)
     while (*delim_end == '/')
         ++delim_end;
 
+    aSpec.EndReading(end); // set to the original 'end'
     return SetJAREntry(Substring(delim_end, end));
 }
 
@@ -408,7 +441,7 @@ nsJARURI::GetPort(int32_t *aPort)
 {
     return NS_ERROR_FAILURE;
 }
- 
+
 NS_IMETHODIMP
 nsJARURI::SetPort(int32_t aPort)
 {
@@ -416,7 +449,7 @@ nsJARURI::SetPort(int32_t aPort)
 }
 
 NS_IMETHODIMP
-nsJARURI::GetPath(nsACString &aPath)
+nsJARURI::GetPathQueryRef(nsACString &aPath)
 {
     nsAutoCString entrySpec;
     mJAREntry->GetSpec(entrySpec);
@@ -424,7 +457,7 @@ nsJARURI::GetPath(nsACString &aPath)
 }
 
 NS_IMETHODIMP
-nsJARURI::SetPath(const nsACString &aPath)
+nsJARURI::SetPathQueryRef(const nsACString &aPath)
 {
     return NS_ERROR_FAILURE;
 }
@@ -446,13 +479,6 @@ NS_IMETHODIMP
 nsJARURI::GetAsciiHost(nsACString &aHost)
 {
     return NS_ERROR_FAILURE;
-}
-
-NS_IMETHODIMP
-nsJARURI::GetOriginCharset(nsACString &aOriginCharset)
-{
-    aOriginCharset = mCharsetHint;
-    return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -567,7 +593,7 @@ nsJARURI::Resolve(const nsACString &relativePath, nsACString &result)
 
     nsAutoCString resolvedPath;
     mJAREntry->Resolve(relativePath, resolvedPath);
-    
+
     return FormatSpec(resolvedPath, result);
 }
 
@@ -596,6 +622,13 @@ NS_IMETHODIMP
 nsJARURI::SetQuery(const nsACString& query)
 {
     return mJAREntry->SetQuery(query);
+}
+
+NS_IMETHODIMP
+nsJARURI::SetQueryWithEncoding(const nsACString& query,
+                               const Encoding* encoding)
+{
+    return mJAREntry->SetQueryWithEncoding(query, encoding);
 }
 
 NS_IMETHODIMP
@@ -664,7 +697,7 @@ nsJARURI::GetCommonBaseSpec(nsIURI* uriToCompare, nsACString& commonSpec)
     commonSpec.Truncate();
 
     NS_ENSURE_ARG_POINTER(uriToCompare);
-    
+
     commonSpec.Truncate();
     nsCOMPtr<nsIJARURI> otherJARURI(do_QueryInterface(uriToCompare));
     if (!otherJARURI) {
@@ -693,20 +726,16 @@ nsJARURI::GetCommonBaseSpec(nsIURI* uriToCompare, nsACString& commonSpec)
 
         commonSpec = NS_JAR_SCHEME + common;
         return NS_OK;
-        
+
     }
-    
+
     // At this point we have the same JAR file.  Compare the JAREntrys
     nsAutoCString otherEntry;
     rv = otherJARURI->GetJAREntry(otherEntry);
     if (NS_FAILED(rv)) return rv;
 
-    nsAutoCString otherCharset;
-    rv = uriToCompare->GetOriginCharset(otherCharset);
-    if (NS_FAILED(rv)) return rv;
-
     nsCOMPtr<nsIURL> url;
-    rv = CreateEntryURL(otherEntry, otherCharset.get(), getter_AddRefs(url));
+    rv = CreateEntryURL(otherEntry, nullptr, getter_AddRefs(url));
     if (NS_FAILED(rv)) return rv;
 
     nsAutoCString common;
@@ -748,12 +777,8 @@ nsJARURI::GetRelativeSpec(nsIURI* uriToCompare, nsACString& relativeSpec)
     rv = otherJARURI->GetJAREntry(otherEntry);
     if (NS_FAILED(rv)) return rv;
 
-    nsAutoCString otherCharset;
-    rv = uriToCompare->GetOriginCharset(otherCharset);
-    if (NS_FAILED(rv)) return rv;
-
     nsCOMPtr<nsIURL> url;
-    rv = CreateEntryURL(otherEntry, otherCharset.get(), getter_AddRefs(url));
+    rv = CreateEntryURL(otherEntry, nullptr, getter_AddRefs(url));
     if (NS_FAILED(rv)) return rv;
 
     nsAutoCString relativeEntrySpec;
@@ -838,7 +863,7 @@ nsJARURI::CloneWithJARFileInternal(nsIURI *jarFile,
 
     nsCOMPtr<nsIURL> newJAREntry(do_QueryInterface(newJAREntryURI));
     NS_ASSERTION(newJAREntry, "This had better QI to nsIURL!");
-    
+
     nsJARURI* uri = new nsJARURI();
     NS_ADDREF(uri);
     uri->mJARFile = newJARFile;

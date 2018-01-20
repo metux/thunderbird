@@ -28,6 +28,7 @@
 #include "nsCOMPtr.h"
 #include "PLDHashTable.h"
 #include "nsAutoPtr.h"
+#include "nsCycleCollectionParticipant.h"
 
 #include "mozilla/LinkedList.h"
 
@@ -69,7 +70,9 @@ public:
     // Add aDocLoader as a child to the docloader service.
     static MOZ_MUST_USE nsresult AddDocLoaderAsChildOfRoot(nsDocLoader* aDocLoader);
 
-    NS_DECL_ISUPPORTS
+    NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+    NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsDocLoader, nsIDocumentLoader)
+
     NS_DECL_NSIDOCUMENTLOADER
 
     // nsIProgressEventSink
@@ -181,7 +184,7 @@ protected:
                                        uint32_t aStateFlags) {}
 
     void doStartDocumentLoad();
-    void doStartURLLoad(nsIRequest *request);
+    void doStartURLLoad(nsIRequest *request, int32_t aExtraFlags);
     void doStopURLLoad(nsIRequest *request, nsresult aStatus);
     void doStopDocumentLoad(nsIRequest *request, nsresult aStatus);
 

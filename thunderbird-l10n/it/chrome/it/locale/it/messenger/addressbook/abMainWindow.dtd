@@ -37,7 +37,7 @@
 <!ENTITY printPreviewAddressBook.accesskey              "u">
 <!ENTITY printContactCmd.label                          "Stampa contatto…">
 <!ENTITY printContactCmd.accesskey                      "S">
-<!ENTITY printContactCmd.key                            "S">
+<!ENTITY printContactCmd.key                            "P">
 <!ENTITY printAddressBook.label                         "Stampa rubrica indirizzi…">
 <!ENTITY printAddressBook.accesskey                     "m">
 
@@ -91,7 +91,7 @@
 <!ENTITY viewMenu.accesskey                             "V">
 <!ENTITY viewToolbarsMenu.label                         "Barre degli strumenti">
 <!ENTITY viewToolbarsMenu.accesskey                     "T">
-<!ENTITY menubarCmd.label                               "Barra del menu">
+<!ENTITY menubarCmd.label                               "Barra dei menu">
 <!ENTITY menubarCmd.accesskey                           "B">
 <!ENTITY showAbToolbarCmd.label                         "Strumenti Rubrica">
 <!ENTITY showAbToolbarCmd.accesskey                     "R">
@@ -140,6 +140,8 @@ because displayed names don't have the comma in between. -->
 <!ENTITY newContactButton.accesskey                     "C">
 <!ENTITY newlistButton.label                            "Nuova lista">
 <!ENTITY newlistButton.accesskey                        "L">
+<!ENTITY showAsDefault.label                            "Directory di avvio predefinita">
+<!ENTITY showAsDefault.accesskey                        "S">
 <!ENTITY editPropertiesButton.label                     "Modifica">
 <!ENTITY propertiesContext.label                        "Proprietà">
 <!ENTITY propertiesContext.accesskey                    "i">

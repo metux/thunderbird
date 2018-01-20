@@ -184,6 +184,8 @@ extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/communicator/icon
 chrome/classic/skin/classic/communicator/icons/smileys/smiley-cry.png
 extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/messenger/icons/junk.png
 chrome/classic/skin/classic/messenger/icons/junk.png
+chrome/devtools/modules/devtools/client/themes/toolbars.css
+chrome/devtools/skin/toolbars.css
 modules/devtools/client/framework/gDevTools.jsm
 modules/devtools/gDevTools.jsm
 extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/mozapps/extensions/rating-not-won.png
@@ -193,8 +195,6 @@ extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/mozapps/extension
 extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/mozapps/xpinstall/xpinstallItemGeneric.png
 extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/mozapps/extensions/category-discover.png
 chrome/toolkit/skin/classic/mozapps/extensions/category-discover-XP.png
-extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/global/media/videoClickToPlayButton.svg
-chrome/toolkit/skin/classic/global/media/videoClickToPlayButton.svg
 extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/mozapps/extensions/rating-won.png
 chrome/toolkit/skin/classic/mozapps/extensions/rating-won.png
 extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/mozapps/plugins/contentPluginCrashed.png
@@ -230,8 +230,6 @@ extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/mozapps/extension
 chrome/toolkit/skin/classic/mozapps/extensions/heart.png
 extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/communicator/sync/sync-32.png
 chrome/classic/skin/classic/communicator/sync/sync-32.png
-extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/global/icons/autoscroll.png
-chrome/toolkit/skin/classic/global/icons/autoscroll.png
 extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/communicator/icons/notification-64.png
 chrome/classic/skin/classic/communicator/icons/notification-64.png
 extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/global/icons/blacklist_large.png
@@ -240,11 +238,24 @@ extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/global/icons/sslW
 chrome/toolkit/skin/classic/global/icons/sslWarning-XP.png
 extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/messenger/addressbook/icons/contact-generic.png
 chrome/classic/skin/classic/messenger/addressbook/icons/contact-generic.png
-extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/global/media/clicktoplay-bgtexture.png
 extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/communicator/sync/sync-16-throbber.png
 chrome/classic/skin/classic/communicator/sync/sync-16-throbber.png
 extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/global/media/error.png
 chrome/toolkit/skin/classic/global/media/error.png
+extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/global/media/playButton.svg
+chrome/toolkit/skin/classic/global/media/playButton.svg
+extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/global/media/pauseButton.svg
+chrome/toolkit/skin/classic/global/media/pauseButton.svg
+extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/global/media/TopLevelVideoDocument.css
+chrome/toolkit/skin/classic/global/media/TopLevelVideoDocument.css
+extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/global/media/TopLevelImageDocument.css
+chrome/toolkit/skin/classic/global/media/TopLevelImageDocument.css
+extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/global/media/closedCaptionButton.svg
+chrome/toolkit/skin/classic/global/media/closedCaptionButton.svg
+extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/global/media/imagedoc-darknoise.png
+chrome/toolkit/skin/classic/global/media/imagedoc-darknoise.png
+extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/global/media/imagedoc-lightnoise.png
+chrome/toolkit/skin/classic/global/media/imagedoc-lightnoise.png
 extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/navigator/icons/identity.png
 chrome/classic/skin/classic/navigator/icons/identity.png
 extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/communicator/icons/loading.png
@@ -267,7 +278,8 @@ extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/global/media/thro
 chrome/toolkit/skin/classic/global/media/throbber.png
 extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/communicator/brand/throbber-anim.png
 chrome/classic/skin/classic/communicator/brand/throbber-anim.png
-# Lightning
+
+# Lightning Nighly
 extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/skin/linux/lightning/imip.css
 extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/skin/windows/lightning/imip.css
 extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/skin/linux/calendar/calendar-invitations-dialog.css
@@ -286,6 +298,26 @@ extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/calendar-js/calFilter.js
 extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/calendar/content/calendar/calFilter.js
 extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/calendar-js/calUtils.js
 extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/calendar/content/calendar/calUtils.js
+# Lightning Release and Beta
+distribution/extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/skin/linux/lightning/imip.css
+distribution/extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/skin/windows/lightning/imip.css
+distribution/extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/skin/linux/calendar/calendar-invitations-dialog.css
+distribution/extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/skin/windows/calendar/calendar-invitations-dialog.css
+distribution/extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/skin/linux/calendar/calendar-alarm-dialog.css
+distribution/extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/skin/windows/calendar/calendar-alarm-dialog.css
+distribution/extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/skin/linux/calendar/calendar-daypicker.css
+distribution/extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/skin/windows/calendar/calendar-daypicker.css
+distribution/extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/skin/linux/calendar/calendar-management.css
+distribution/extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/skin/windows/calendar/calendar-management.css
+distribution/extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/skin/linux/lightning/accountCentral.css
+distribution/extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/skin/windows/lightning/accountCentral.css
+distribution/extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/skin/linux/lightning/lightning-widgets.css
+distribution/extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/skin/windows/lightning/lightning-widgets.css
+distribution/extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/calendar-js/calFilter.js
+distribution/extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/calendar/content/calendar/calFilter.js
+distribution/extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/calendar-js/calUtils.js
+distribution/extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}/chrome/calendar/content/calendar/calUtils.js
+
 # DOMi
 distribution/extensions/inspector@mozilla.org/chrome/inspector/skin/classic/inspector/titledsplitter-close.gif
 distribution/extensions/inspector@mozilla.org/chrome/inspector/skin/modern/inspector/titledsplitter-close.gif
@@ -319,48 +351,6 @@ distribution/extensions/inspector@mozilla.org/chrome/inspector/skin/classic/insp
 distribution/extensions/inspector@mozilla.org/chrome/inspector/skin/modern/inspector/viewers/accessibleProps/accessibleProps.css
 distribution/extensions/inspector@mozilla.org/chrome/inspector/skin/classic/inspector/viewers/styleRules/styleRules.css
 distribution/extensions/inspector@mozilla.org/chrome/inspector/skin/modern/inspector/viewers/styleRules/styleRules.css
-# This is currently ineffective probably due to a bug in the toolkit find-dupes.py.
-# The inspector locale files are still reported as duplicate for now.
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-GB/inspector/editing.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-US/inspector/editing.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-GB/inspector/inspector.properties
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-US/inspector/inspector.properties
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-GB/inspector/inspector.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-US/inspector/inspector.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-GB/inspector/tasksOverlay.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-US/inspector/tasksOverlay.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-GB/inspector/viewer-registry.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-US/inspector/viewer-registry.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-GB/inspector/viewers/accessibleProps.properties
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-US/inspector/viewers/accessibleProps.properties
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-GB/inspector/viewers/computedStyle.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-US/inspector/viewers/computedStyle.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-GB/inspector/viewers/stylesheets.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-US/inspector/viewers/stylesheets.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-GB/inspector/viewers/accessibleTree.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-US/inspector/viewers/accessibleTree.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-GB/inspector/viewers/usedFontFaces.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-US/inspector/viewers/usedFontFaces.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-GB/inspector/viewers/accessibleRelations.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-US/inspector/viewers/accessibleRelations.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-GB/inspector/viewers/boxModel.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-US/inspector/viewers/boxModel.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-GB/inspector/viewers/accessibleEvent.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-US/inspector/viewers/accessibleEvent.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-GB/inspector/viewers/accessibleEvents.properties
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-US/inspector/viewers/accessibleEvents.properties
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-GB/inspector/viewers/xblBindings.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-US/inspector/viewers/xblBindings.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-GB/inspector/viewers/jsObject.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-US/inspector/viewers/jsObject.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-GB/inspector/viewers/styleRules.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-US/inspector/viewers/styleRules.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-GB/inspector/viewers/accessibleEvents.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-US/inspector/viewers/accessibleEvents.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-GB/inspector/viewers/accessibleProps.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-US/inspector/viewers/accessibleProps.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-GB/inspector/viewers/domNode.dtd
-distribution/extensions/inspector@mozilla.org/chrome/inspector/locale/en-US/inspector/viewers/domNode.dtd
 
 # Linux
 chrome/icons/default/default16.png
@@ -369,8 +359,8 @@ chrome/icons/default/default.png
 chrome/icons/default/main-window.png
 chrome/icons/default/default48.png
 chrome/icons/default/main-window48.png
-seamonkey
-seamonkey-bin
+@MOZ_APP_NAME@
+@MOZ_APP_NAME@-bin
 
 # OSX
 extensions/modern@themes.mozilla.org/chrome/modern/skin/modern/communicator/sidebar/sbpicker-arrow.gif

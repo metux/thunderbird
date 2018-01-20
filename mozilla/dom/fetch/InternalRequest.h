@@ -141,7 +141,7 @@ public:
     if (GetFragment().IsEmpty()) {
       return;
     }
-    aURL.Append(NS_LITERAL_CSTRING("#"));
+    aURL.AppendLiteral("#");
     aURL.Append(GetFragment());
   }
 
@@ -231,6 +231,72 @@ public:
   SetReferrerPolicy(ReferrerPolicy aReferrerPolicy)
   {
     mReferrerPolicy = aReferrerPolicy;
+  }
+
+  void
+  SetReferrerPolicy(net::ReferrerPolicy aReferrerPolicy)
+  {
+    switch (aReferrerPolicy) {
+      case net::RP_Unset:
+        mReferrerPolicy = ReferrerPolicy::_empty;
+        break;
+      case net::RP_No_Referrer:
+        mReferrerPolicy = ReferrerPolicy::No_referrer;
+        break;
+      case net::RP_No_Referrer_When_Downgrade:
+        mReferrerPolicy = ReferrerPolicy::No_referrer_when_downgrade;
+        break;
+      case net::RP_Origin:
+        mReferrerPolicy = ReferrerPolicy::Origin;
+        break;
+      case net::RP_Origin_When_Crossorigin:
+        mReferrerPolicy = ReferrerPolicy::Origin_when_cross_origin;
+        break;
+      case net::RP_Unsafe_URL:
+        mReferrerPolicy = ReferrerPolicy::Unsafe_url;
+        break;
+      case net::RP_Same_Origin:
+        mReferrerPolicy = ReferrerPolicy::Same_origin;
+        break;
+      case net::RP_Strict_Origin:
+        mReferrerPolicy = ReferrerPolicy::Strict_origin;
+        break;
+      case net::RP_Strict_Origin_When_Cross_Origin:
+        mReferrerPolicy = ReferrerPolicy::Strict_origin_when_cross_origin;
+        break;
+      default:
+        MOZ_ASSERT_UNREACHABLE("Invalid ReferrerPolicy value");
+        break;
+    }
+  }
+
+  net::ReferrerPolicy
+  GetReferrerPolicy()
+  {
+    switch (mReferrerPolicy) {
+      case ReferrerPolicy::_empty:
+        return net::RP_Unset;
+      case ReferrerPolicy::No_referrer:
+        return net::RP_No_Referrer;
+      case ReferrerPolicy::No_referrer_when_downgrade:
+        return net::RP_No_Referrer_When_Downgrade;
+      case ReferrerPolicy::Origin:
+        return net::RP_Origin;
+      case ReferrerPolicy::Origin_when_cross_origin:
+        return net::RP_Origin_When_Crossorigin;
+      case ReferrerPolicy::Unsafe_url:
+        return net::RP_Unsafe_URL;
+      case ReferrerPolicy::Strict_origin:
+        return net::RP_Strict_Origin;
+      case ReferrerPolicy::Same_origin:
+        return net::RP_Same_Origin;
+      case ReferrerPolicy::Strict_origin_when_cross_origin:
+        return net::RP_Strict_Origin_When_Cross_Origin;
+      default:
+        MOZ_ASSERT_UNREACHABLE("Invalid ReferrerPolicy enum value?");
+        break;
+    }
+    return net::RP_Unset;
   }
 
   net::ReferrerPolicy
@@ -396,20 +462,25 @@ public:
   }
 
   void
-  SetBody(nsIInputStream* aStream)
+  SetBody(nsIInputStream* aStream, int64_t aBodyLength)
   {
     // A request's body may not be reset once set.
     MOZ_ASSERT_IF(aStream, !mBodyStream);
     mBodyStream = aStream;
+    mBodyLength = aBodyLength;
   }
 
   // Will return the original stream!
   // Use a tee or copy if you don't want to erase the original.
   void
-  GetBody(nsIInputStream** aStream)
+  GetBody(nsIInputStream** aStream, int64_t* aBodyLength = nullptr)
   {
     nsCOMPtr<nsIInputStream> s = mBodyStream;
     s.forget(aStream);
+
+    if (aBodyLength) {
+      *aBodyLength = mBodyLength;
+    }
   }
 
   // The global is used as the client for the new object.
@@ -488,6 +559,7 @@ private:
   nsTArray<nsCString> mURLList;
   RefPtr<InternalHeaders> mHeaders;
   nsCOMPtr<nsIInputStream> mBodyStream;
+  int64_t mBodyLength;
 
   nsContentPolicyType mContentPolicyType;
 

@@ -12,14 +12,18 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/StyleSheet.h"
 #include "mozilla/StyleSheetInlines.h"
+#include "mozilla/Telemetry.h"
 #include "mozilla/css/Loader.h"
 #include "mozilla/dom/SRIMetadata.h"
+#include "MainThreadUtils.h"
+#include "nsColor.h"
 #include "nsIConsoleService.h"
 #include "nsIFile.h"
 #include "nsNetUtil.h"
 #include "nsIObserverService.h"
 #include "nsServiceManagerUtils.h"
 #include "nsIXULRuntime.h"
+#include "nsPresContext.h"
 #include "nsPrintfCString.h"
 #include "nsXULAppAPI.h"
 
@@ -76,7 +80,7 @@ nsLayoutStylesheetCache::ScrollbarsSheet()
   if (!mScrollbarsSheet) {
     // Scrollbars don't need access to unsafe rules
     LoadSheetURL("chrome://global/skin/scrollbars.css",
-                 &mScrollbarsSheet, eAuthorSheetFeatures, eCrash);
+                 &mScrollbarsSheet, eSafeAgentSheetFeatures, eCrash);
   }
 
   return mScrollbarsSheet;
@@ -135,11 +139,6 @@ nsLayoutStylesheetCache::UASheet()
 StyleSheet*
 nsLayoutStylesheetCache::HTMLSheet()
 {
-  if (!mHTMLSheet) {
-    LoadSheetURL("resource://gre-resources/html.css",
-                 &mHTMLSheet, eAgentSheetFeatures, eCrash);
-  }
-
   return mHTMLSheet;
 }
 
@@ -152,6 +151,11 @@ nsLayoutStylesheetCache::MinimalXULSheet()
 StyleSheet*
 nsLayoutStylesheetCache::XULSheet()
 {
+  if (!mXULSheet) {
+    LoadSheetURL("chrome://global/content/xul.css",
+                 &mXULSheet, eAgentSheetFeatures, eCrash);
+  }
+
   return mXULSheet;
 }
 
@@ -253,16 +257,22 @@ nsLayoutStylesheetCache::Shutdown()
 {
   gCSSLoader_Gecko = nullptr;
   gCSSLoader_Servo = nullptr;
+  NS_WARNING_ASSERTION(!gStyleCache_Gecko || !gUserContentSheetURL_Gecko,
+                       "Got the URL but never used by Gecko?");
+  NS_WARNING_ASSERTION(!gStyleCache_Servo || !gUserContentSheetURL_Servo,
+                       "Got the URL but never used by Servo?");
   gStyleCache_Gecko = nullptr;
   gStyleCache_Servo = nullptr;
-  MOZ_ASSERT(!gUserContentSheetURL, "Got the URL but never used?");
+  gUserContentSheetURL_Gecko = nullptr;
+  gUserContentSheetURL_Servo = nullptr;
 }
 
 void
 nsLayoutStylesheetCache::SetUserContentCSSURL(nsIURI* aURI)
 {
   MOZ_ASSERT(XRE_IsContentProcess(), "Only used in content processes.");
-  gUserContentSheetURL = aURI;
+  gUserContentSheetURL_Gecko = aURI;
+  gUserContentSheetURL_Servo = aURI;
 }
 
 MOZ_DEFINE_MALLOC_SIZE_OF(LayoutStylesheetCacheMallocSizeOf)
@@ -335,19 +345,26 @@ nsLayoutStylesheetCache::nsLayoutStylesheetCache(StyleBackendType aType)
   // per-profile, since they're profile-invariant.
   LoadSheetURL("resource://gre-resources/counterstyles.css",
                &mCounterStylesSheet, eAgentSheetFeatures, eCrash);
+  LoadSheetURL("resource://gre-resources/html.css",
+               &mHTMLSheet, eAgentSheetFeatures, eCrash);
   LoadSheetURL("chrome://global/content/minimal-xul.css",
                &mMinimalXULSheet, eAgentSheetFeatures, eCrash);
   LoadSheetURL("resource://gre-resources/quirk.css",
                &mQuirkSheet, eAgentSheetFeatures, eCrash);
   LoadSheetURL("resource://gre/res/svg.css",
                &mSVGSheet, eAgentSheetFeatures, eCrash);
-  LoadSheetURL("chrome://global/content/xul.css",
-               &mXULSheet, eAgentSheetFeatures, eCrash);
+  if (XRE_IsParentProcess()) {
+    // We know we need xul.css for the UI, so load that now too:
+    XULSheet();
+  }
 
-  if (gUserContentSheetURL) {
+  auto& userContentSheetURL = aType == StyleBackendType::Gecko ?
+                              gUserContentSheetURL_Gecko :
+                              gUserContentSheetURL_Servo;
+  if (userContentSheetURL) {
     MOZ_ASSERT(XRE_IsContentProcess(), "Only used in content processes.");
-    LoadSheet(gUserContentSheetURL, &mUserContentSheet, eUserSheetFeatures, eLogToConsole);
-    gUserContentSheetURL = nullptr;
+    LoadSheet(userContentSheetURL, &mUserContentSheet, eUserSheetFeatures, eLogToConsole);
+    userContentSheetURL = nullptr;
   }
 
   // The remaining sheets are created on-demand do to their use being rarer
@@ -395,8 +412,6 @@ nsLayoutStylesheetCache::For(StyleBackendType aType)
     //                               "layout.css.example-pref.enabled");
     Preferences::RegisterCallback(&DependentPrefChanged,
                                   "layout.css.grid.enabled");
-    Preferences::RegisterCallback(&DependentPrefChanged,
-                                  "dom.details_element.enabled");
   }
 
   return cache;
@@ -430,6 +445,12 @@ nsLayoutStylesheetCache::InitFromProfile()
 
   LoadSheetFile(contentFile, &mUserContentSheet, eUserSheetFeatures, eLogToConsole);
   LoadSheetFile(chromeFile, &mUserChromeSheet, eUserSheetFeatures, eLogToConsole);
+
+  if (XRE_IsParentProcess()) {
+    // We're interested specifically in potential chrome customizations,
+    // so we only need data points from the parent process
+    Telemetry::Accumulate(Telemetry::USER_CHROME_CSS_LOADED, mUserChromeSheet != nullptr);
+  }
 }
 
 void
@@ -503,7 +524,7 @@ ListInterestingFiles(nsString& aAnnotation, nsIFile* aFile,
       aAnnotation.AppendLiteral(" (");
       int64_t size;
       if (NS_SUCCEEDED(aFile->GetFileSize(&size))) {
-        aAnnotation.AppendPrintf("%ld", size);
+        aAnnotation.AppendPrintf("%" PRId64, size);
       } else {
         aAnnotation.AppendLiteral("???");
       }
@@ -604,7 +625,11 @@ AnnotateCrashReport(nsIURI* aURI)
       annotation.AppendLiteral("(ResolveURI failed)\n");
     } else {
       nsAutoCString resolvedSpec;
-      handler->ResolveURI(aURI, resolvedSpec);
+      nsresult rv = handler->ResolveURI(aURI, resolvedSpec);
+      if (NS_FAILED(rv)) {
+        annotation.AppendPrintf("(ResolveURI failed with 0x%08" PRIx32 ")\n",
+                                static_cast<uint32_t>(rv));
+      }
       annotation.Append(NS_ConvertUTF8toUTF16(resolvedSpec));
       annotation.Append('\n');
     }
@@ -696,7 +721,8 @@ AnnotateCrashReport(nsIURI* aURI)
     nsZipFind* find;
     rv = zip->FindInit(nullptr, &find);
     if (NS_FAILED(rv)) {
-      annotation.AppendPrintf("  (FindInit failed with 0x%08x)\n", rv);
+      annotation.AppendPrintf("  (FindInit failed with 0x%08" PRIx32 ")\n",
+                              static_cast<uint32_t>(rv));
     } else if (!find) {
       annotation.AppendLiteral("  (FindInit returned null)\n");
     } else {
@@ -754,7 +780,8 @@ ErrorLoadingSheet(nsIURI* aURI, const char* aMsg, FailureAction aFailureAction)
 #ifdef MOZ_CRASHREPORTER
   AnnotateCrashReport(aURI);
 #endif
-  NS_RUNTIMEABORT(errorMessage.get());
+
+  MOZ_CRASH_UNSAFE_OOL(errorMessage.get());
 }
 
 void
@@ -773,7 +800,7 @@ nsLayoutStylesheetCache::LoadSheet(nsIURI* aURI,
     gCSSLoader_Servo;
 
   if (!loader) {
-    loader = new mozilla::css::Loader(mBackendType);
+    loader = new Loader(mBackendType, nullptr);
     if (!loader) {
       ErrorLoadingSheet(aURI, "no Loader", eCrash);
       return;
@@ -786,7 +813,7 @@ nsLayoutStylesheetCache::LoadSheet(nsIURI* aURI,
   nsresult rv = loader->LoadSheetSync(aURI, aParsingMode, true, aSheet);
   if (NS_FAILED(rv)) {
     ErrorLoadingSheet(aURI,
-      nsPrintfCString("LoadSheetSync failed with error %x", rv).get(),
+      nsPrintfCString("LoadSheetSync failed with error %" PRIx32, static_cast<uint32_t>(rv)).get(),
       aFailureAction);
   }
 }
@@ -848,7 +875,6 @@ nsLayoutStylesheetCache::DependentPrefChanged(const char* aPref, void* aData)
                   gStyleCache_Servo ? &gStyleCache_Servo->sheet_ : nullptr);
 
   INVALIDATE(mUASheet);  // for layout.css.grid.enabled
-  INVALIDATE(mHTMLSheet); // for dom.details_element.enabled
 
 #undef INVALIDATE
 }
@@ -872,10 +898,10 @@ nsLayoutStylesheetCache::BuildPreferenceSheet(RefPtr<StyleSheet>* aSheet,
 {
   if (mBackendType == StyleBackendType::Gecko) {
     *aSheet = new CSSStyleSheet(eAgentSheetFeatures, CORS_NONE,
-                                mozilla::net::RP_Default);
+                                mozilla::net::RP_Unset);
   } else {
     *aSheet = new ServoStyleSheet(eAgentSheetFeatures, CORS_NONE,
-                                  mozilla::net::RP_Default, dom::SRIMetadata());
+                                  mozilla::net::RP_Unset, dom::SRIMetadata());
   }
 
   StyleSheet* sheet = *aSheet;
@@ -889,7 +915,7 @@ nsLayoutStylesheetCache::BuildPreferenceSheet(RefPtr<StyleSheet>* aSheet,
 
   static const uint32_t kPreallocSize = 1024;
 
-  nsString sheetText;
+  nsCString sheetText;
   sheetText.SetCapacity(kPreallocSize);
 
 #define NS_GET_R_G_B(color_) \
@@ -933,7 +959,6 @@ nsLayoutStylesheetCache::BuildPreferenceSheet(RefPtr<StyleSheet>* aSheet,
           "button::-moz-focus-inner, input[type=\"reset\"]::-moz-focus-inner, "
           "input[type=\"button\"]::-moz-focus-inner, "
           "input[type=\"submit\"]::-moz-focus-inner { "
-          "padding: 1px 2px 1px 2px; "
           "border: %dpx %s transparent !important; }\n",
           focusRingWidth,
           focusRingStyle == 0 ? "solid" : "dotted");
@@ -973,9 +998,12 @@ nsLayoutStylesheetCache::BuildPreferenceSheet(RefPtr<StyleSheet>* aSheet,
                "sheet without reallocation");
 
   if (sheet->IsGecko()) {
-    sheet->AsGecko()->ReparseSheet(sheetText);
+    sheet->AsGecko()->ReparseSheet(NS_ConvertUTF8toUTF16(sheetText));
   } else {
-    nsresult rv = sheet->AsServo()->ParseSheet(sheetText, uri, uri, nullptr, 0);
+    ServoStyleSheet* servoSheet = sheet->AsServo();
+    // NB: The pref sheet never has @import rules.
+    nsresult rv = servoSheet->ParseSheet(
+      nullptr, sheetText, uri, uri, nullptr, 0, eCompatibility_FullStandards);
     // Parsing the about:PreferenceStyleSheet URI can only fail on OOM. If we
     // are OOM before we parsed any documents we might as well abort.
     MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv));
@@ -997,4 +1025,7 @@ mozilla::StaticRefPtr<mozilla::css::Loader>
 nsLayoutStylesheetCache::gCSSLoader_Servo;
 
 mozilla::StaticRefPtr<nsIURI>
-nsLayoutStylesheetCache::gUserContentSheetURL;
+nsLayoutStylesheetCache::gUserContentSheetURL_Gecko;
+
+mozilla::StaticRefPtr<nsIURI>
+nsLayoutStylesheetCache::gUserContentSheetURL_Servo;

@@ -5,6 +5,7 @@
 #ifndef MOOF_PARSER_H_
 #define MOOF_PARSER_H_
 
+#include "mozilla/ResultExtensions.h"
 #include "mp4_demuxer/Atom.h"
 #include "mp4_demuxer/AtomType.h"
 #include "mp4_demuxer/SinfParser.h"
@@ -17,6 +18,7 @@ typedef int64_t Microseconds;
 
 class Box;
 class BoxContext;
+class BoxReader;
 class Moof;
 
 class Mvhd : public Atom
@@ -31,8 +33,12 @@ public:
   }
   explicit Mvhd(Box& aBox);
 
-  Microseconds ToMicroseconds(int64_t aTimescaleUnits)
+  Result<Microseconds, nsresult> ToMicroseconds(int64_t aTimescaleUnits)
   {
+    if (!mTimescale) {
+      NS_WARNING("invalid mTimescale");
+      return Err(NS_ERROR_FAILURE);
+    }
     int64_t major = aTimescaleUnits / mTimescale;
     int64_t remainder = aTimescaleUnits % mTimescale;
     return major * 1000000ll + remainder * 1000000ll / mTimescale;
@@ -42,6 +48,9 @@ public:
   uint64_t mModificationTime;
   uint32_t mTimescale;
   uint64_t mDuration;
+
+protected:
+  Result<Ok, nsresult> Parse(Box& aBox);
 };
 
 class Tkhd : public Mvhd
@@ -54,6 +63,9 @@ public:
   explicit Tkhd(Box& aBox);
 
   uint32_t mTrackId;
+
+protected:
+  Result<Ok, nsresult> Parse(Box& aBox);
 };
 
 class Mdhd : public Mvhd
@@ -84,6 +96,9 @@ public:
   uint32_t mDefaultSampleDuration;
   uint32_t mDefaultSampleSize;
   uint32_t mDefaultSampleFlags;
+
+protected:
+  Result<Ok, nsresult> Parse(Box& aBox);
 };
 
 class Tfhd : public Trex
@@ -98,6 +113,9 @@ public:
   Tfhd(Box& aBox, Trex& aTrex);
 
   uint64_t mBaseDataOffset;
+
+protected:
+  Result<Ok, nsresult> Parse(Box& aBox);
 };
 
 class Tfdt : public Atom
@@ -110,6 +128,9 @@ public:
   explicit Tfdt(Box& aBox);
 
   uint64_t mBaseMediaDecodeTime;
+
+protected:
+  Result<Ok, nsresult> Parse(Box& aBox);
 };
 
 class Edts : public Atom
@@ -129,6 +150,9 @@ public:
 
   int64_t mMediaStart;
   int64_t mEmptyOffset;
+
+protected:
+  Result<Ok, nsresult> Parse(Box& aBox);
 };
 
 struct Sample
@@ -148,6 +172,9 @@ public:
   AtomType mAuxInfoType;
   uint32_t mAuxInfoTypeParameter;
   FallibleTArray<uint8_t> mSampleInfoSize;
+
+protected:
+  Result<Ok, nsresult> Parse(Box& aBox);
 };
 
 class Saio final : public Atom
@@ -158,6 +185,62 @@ public:
   AtomType mAuxInfoType;
   uint32_t mAuxInfoTypeParameter;
   FallibleTArray<uint64_t> mOffsets;
+
+protected:
+  Result<Ok, nsresult> Parse(Box& aBox);
+};
+
+struct SampleToGroupEntry
+{
+public:
+  static const uint32_t kTrackGroupDescriptionIndexBase = 0;
+  static const uint32_t kFragmentGroupDescriptionIndexBase = 0x10000;
+
+  SampleToGroupEntry(uint32_t aSampleCount, uint32_t aGroupDescriptionIndex)
+    : mSampleCount(aSampleCount)
+    , mGroupDescriptionIndex(aGroupDescriptionIndex)
+    {
+    }
+
+  uint32_t mSampleCount;
+  uint32_t mGroupDescriptionIndex;
+};
+
+class Sbgp final : public Atom // SampleToGroup box.
+{
+public:
+  explicit Sbgp(Box& aBox);
+
+  AtomType mGroupingType;
+  uint32_t mGroupingTypeParam;
+  FallibleTArray<SampleToGroupEntry> mEntries;
+
+protected:
+  Result<Ok, nsresult> Parse(Box& aBox);
+};
+
+struct CencSampleEncryptionInfoEntry final
+{
+public:
+  CencSampleEncryptionInfoEntry() { }
+
+  Result<Ok, nsresult> Init(BoxReader& aReader);
+
+  bool mIsEncrypted = false;
+  uint8_t mIVSize = 0;
+  nsTArray<uint8_t> mKeyId;
+};
+
+class Sgpd final : public Atom // SampleGroupDescription box.
+{
+public:
+  explicit Sgpd(Box& aBox);
+
+  AtomType mGroupingType;
+  FallibleTArray<CencSampleEncryptionInfoEntry> mEntries;
+
+protected:
+  Result<Ok, nsresult> Parse(Box& aBox);
 };
 
 class AuxInfo {
@@ -174,7 +257,7 @@ class Moof final : public Atom
 {
 public:
   Moof(Box& aBox, Trex& aTrex, Mvhd& aMvhd, Mdhd& aMdhd, Edts& aEdts, Sinf& aSinf, uint64_t* aDecoderTime, bool aIsAudio);
-  bool GetAuxInfo(AtomType aType, nsTArray<MediaByteRange>* aByteRanges);
+  bool GetAuxInfo(AtomType aType, FallibleTArray<MediaByteRange>* aByteRanges);
   void FixRounding(const Moof& aMoof);
 
   mozilla::MediaByteRange mRange;
@@ -182,14 +265,18 @@ public:
   Interval<Microseconds> mTimeRange;
   FallibleTArray<Sample> mIndex;
 
-  nsTArray<Saiz> mSaizs;
-  nsTArray<Saio> mSaios;
+  FallibleTArray<CencSampleEncryptionInfoEntry> mFragmentSampleEncryptionInfoEntries;
+  FallibleTArray<SampleToGroupEntry> mFragmentSampleToGroupEntries;
+
+  FallibleTArray<Saiz> mSaizs;
+  FallibleTArray<Saio> mSaios;
+  nsTArray<nsTArray<uint8_t>> mPsshes;
 
 private:
     // aDecodeTime is updated to the end of the parsed TRAF on return.
   void ParseTraf(Box& aBox, Trex& aTrex, Mvhd& aMvhd, Mdhd& aMdhd, Edts& aEdts, Sinf& aSinf, uint64_t* aDecodeTime, bool aIsAudio);
   // aDecodeTime is updated to the end of the parsed TRUN on return.
-  bool ParseTrun(Box& aBox, Tfhd& aTfhd, Mvhd& aMvhd, Mdhd& aMdhd, Edts& aEdts, uint64_t* aDecodeTime, bool aIsAudio);
+  Result<Ok, nsresult> ParseTrun(Box& aBox, Tfhd& aTfhd, Mvhd& aMvhd, Mdhd& aMdhd, Edts& aEdts, uint64_t* aDecodeTime, bool aIsAudio);
   void ParseSaiz(Box& aBox);
   void ParseSaio(Box& aBox);
   bool ProcessCenc();
@@ -246,6 +333,10 @@ public:
   Tfdt mTfdt;
   Edts mEdts;
   Sinf mSinf;
+
+  FallibleTArray<CencSampleEncryptionInfoEntry> mTrackSampleEncryptionInfoEntries;
+  FallibleTArray<SampleToGroupEntry> mTrackSampleToGroupEntries;
+
   nsTArray<Moof>& Moofs() { return mMoofs; }
 private:
   void ScanForMetadata(mozilla::MediaByteRange& aFtyp,

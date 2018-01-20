@@ -45,8 +45,9 @@ LOCALIZATION NOTE : Do not translate any of the occurrences of the word
 <!ENTITY title.label              "תפקיד">
 <!ENTITY processing.label         "מייבא...">
 
-<!ENTITY acctName.accesskey       "N">
-<!ENTITY importFeeds.accesskey    "d">
 <!ENTITY importFeeds.label        "Feed Subscriptions">
-<!ENTITY noModulesFound.label     "No application or file to import data from was found.">
+<!ENTITY importFeeds.accesskey    "d">
 <!ENTITY selectDescriptionB.label "Please select an existing account or create a new account:">
+<!ENTITY acctName.accesskey       "N">
+<!ENTITY noModulesFound.label     "No application or file to import data from was found.">
+

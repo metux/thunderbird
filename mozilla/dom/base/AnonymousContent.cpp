@@ -7,6 +7,7 @@
 #include "AnonymousContent.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/AnonymousContentBinding.h"
+#include "nsComputedDOMStyle.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIDocument.h"
 #include "nsIDOMHTMLCollection.h"
@@ -74,6 +75,7 @@ void
 AnonymousContent::SetAttributeForElement(const nsAString& aElementId,
                                          const nsAString& aName,
                                          const nsAString& aValue,
+                                         nsIPrincipal* aSubjectPrincipal,
                                          ErrorResult& aRv)
 {
   Element* element = GetElementById(aElementId);
@@ -82,7 +84,7 @@ AnonymousContent::SetAttributeForElement(const nsAString& aElementId,
     return;
   }
 
-  element->SetAttribute(aName, aValue, aRv);
+  element->SetAttribute(aName, aValue, aSubjectPrincipal, aRv);
 }
 
 void
@@ -186,13 +188,13 @@ Element*
 AnonymousContent::GetElementById(const nsAString& aElementId)
 {
   // This can be made faster in the future if needed.
-  nsCOMPtr<nsIAtom> elementId = NS_Atomize(aElementId);
+  RefPtr<nsAtom> elementId = NS_Atomize(aElementId);
   for (nsIContent* node = mContentNode; node;
        node = node->GetNextNode(mContentNode)) {
     if (!node->IsElement()) {
       continue;
     }
-    nsIAtom* id = node->AsElement()->GetID();
+    nsAtom* id = node->AsElement()->GetID();
     if (id && id == elementId) {
       return node->AsElement();
     }
@@ -206,6 +208,30 @@ AnonymousContent::WrapObject(JSContext* aCx,
                              JS::MutableHandle<JSObject*> aReflector)
 {
   return AnonymousContentBinding::Wrap(aCx, this, aGivenProto, aReflector);
+}
+
+void
+AnonymousContent::GetComputedStylePropertyValue(const nsAString& aElementId,
+                                                const nsAString& aPropertyName,
+                                                DOMString& aResult,
+                                                ErrorResult& aRv)
+{
+  Element* element = GetElementById(aElementId);
+  if (!element) {
+    aRv.Throw(NS_ERROR_NOT_AVAILABLE);
+    return;
+  }
+
+  nsIPresShell* shell = element->OwnerDoc()->GetShell();
+  if (!shell) {
+    aRv.Throw(NS_ERROR_NOT_AVAILABLE);
+    return;
+  }
+
+  RefPtr<nsComputedDOMStyle> cs =
+    new nsComputedDOMStyle(element, NS_LITERAL_STRING(""), shell,
+                           nsComputedDOMStyle::eAll);
+  aRv = cs->GetPropertyValue(aPropertyName, aResult);
 }
 
 } // namespace dom

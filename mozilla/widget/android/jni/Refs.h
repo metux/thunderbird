@@ -79,6 +79,45 @@ protected:
 public:
     using JNIType = Type;
 
+    class AutoLock
+    {
+        friend class Ref<Cls, Type>;
+
+        JNIEnv* const mEnv;
+        Type mInstance;
+
+        AutoLock(Type aInstance)
+            : mEnv(FindEnv())
+            , mInstance(mEnv->NewLocalRef(aInstance))
+        {
+            mEnv->MonitorEnter(mInstance);
+            MOZ_CATCH_JNI_EXCEPTION(mEnv);
+        }
+
+    public:
+        AutoLock(AutoLock&& aOther)
+            : mEnv(aOther.mEnv)
+            , mInstance(aOther.mInstance)
+        {
+            aOther.mInstance = nullptr;
+        }
+
+        ~AutoLock()
+        {
+            Unlock();
+        }
+
+        void Unlock()
+        {
+            if (mInstance) {
+                mEnv->MonitorExit(mInstance);
+                mEnv->DeleteLocalRef(mInstance);
+                MOZ_CATCH_JNI_EXCEPTION(mEnv);
+                mInstance = nullptr;
+            }
+        }
+    };
+
     // Construct a Ref form a raw JNI reference.
     static Ref<Cls, Type> From(JNIType obj)
     {
@@ -97,6 +136,29 @@ public:
     JNIType Get() const
     {
         return mInstance;
+    }
+
+    template<class T>
+    bool IsInstanceOf() const
+    {
+        return FindEnv()->IsInstanceOf(
+                mInstance, typename T::Context().ClassRef());
+    }
+
+    template<class T>
+    typename T::Ref Cast() const
+    {
+#ifdef MOZ_CHECK_JNI
+        MOZ_RELEASE_ASSERT(FindEnv()->IsAssignableFrom(
+                Context<Cls, Type>().ClassRef(),
+                typename T::Context().ClassRef()));
+#endif
+        return T::Ref::From(*this);
+    }
+
+    AutoLock Lock() const
+    {
+        return AutoLock(mInstance);
     }
 
     bool operator==(const Ref& other) const
@@ -124,6 +186,11 @@ public:
     CopyableCtx operator->() const
     {
         return CopyableCtx(FindEnv(), mInstance);
+    }
+
+    CopyableCtx operator*() const
+    {
+        return operator->();
     }
 
     // Any ref can be cast to an object ref.
@@ -162,11 +229,6 @@ protected:
     JNIEnv* const mEnv;
 
 public:
-    static jclass RawClassRef()
-    {
-        return sClassRef;
-    }
-
     Context()
         : Ref(nullptr)
         , mEnv(Ref::FindEnv())
@@ -190,6 +252,13 @@ public:
     JNIEnv* Env() const
     {
         return mEnv;
+    }
+
+    template<class T>
+    bool IsInstanceOf() const
+    {
+        return mEnv->IsInstanceOf(
+                Ref::mInstance, typename T::Context(mEnv, nullptr).ClassRef());
     }
 
     bool operator==(const Ref& other) const
@@ -219,8 +288,14 @@ public:
         MOZ_ASSERT(Ref::mInstance, "Null jobject");
         return Cls(*this);
     }
+
+    const Context<Cls, Type>& operator*() const
+    {
+        return *this;
+    }
 };
 
+template<class C, typename T> jclass Context<C, T>::sClassRef;
 
 template<class Cls, typename Type = jobject>
 class ObjectBase
@@ -267,11 +342,51 @@ public:
     {}
 };
 
+// Binding for a boxed primitive object.
+template<typename T>
+class BoxedObject : public ObjectBase<BoxedObject<T>, jobject>
+{
+public:
+    explicit BoxedObject(const Context<BoxedObject<T>, jobject>& ctx)
+        : ObjectBase<BoxedObject<T>, jobject>(ctx)
+    {}
+};
+
+template<> const char ObjectBase<Object, jobject>::name[];
+template<> const char ObjectBase<TypedObject<jstring>, jstring>::name[];
+template<> const char ObjectBase<TypedObject<jclass>, jclass>::name[];
+template<> const char ObjectBase<TypedObject<jthrowable>, jthrowable>::name[];
+template<> const char ObjectBase<BoxedObject<jboolean>, jobject>::name[];
+template<> const char ObjectBase<BoxedObject<jbyte>, jobject>::name[];
+template<> const char ObjectBase<BoxedObject<jchar>, jobject>::name[];
+template<> const char ObjectBase<BoxedObject<jshort>, jobject>::name[];
+template<> const char ObjectBase<BoxedObject<jint>, jobject>::name[];
+template<> const char ObjectBase<BoxedObject<jlong>, jobject>::name[];
+template<> const char ObjectBase<BoxedObject<jfloat>, jobject>::name[];
+template<> const char ObjectBase<BoxedObject<jdouble>, jobject>::name[];
+template<> const char ObjectBase<TypedObject<jbooleanArray>, jbooleanArray>::name[];
+template<> const char ObjectBase<TypedObject<jbyteArray>, jbyteArray>::name[];
+template<> const char ObjectBase<TypedObject<jcharArray>, jcharArray>::name[];
+template<> const char ObjectBase<TypedObject<jshortArray>, jshortArray>::name[];
+template<> const char ObjectBase<TypedObject<jintArray>, jintArray>::name[];
+template<> const char ObjectBase<TypedObject<jlongArray>, jlongArray>::name[];
+template<> const char ObjectBase<TypedObject<jfloatArray>, jfloatArray>::name[];
+template<> const char ObjectBase<TypedObject<jdoubleArray>, jdoubleArray>::name[];
+template<> const char ObjectBase<TypedObject<jobjectArray>, jobjectArray>::name[];
 
 // Define bindings for built-in types.
 using String = TypedObject<jstring>;
 using Class = TypedObject<jclass>;
 using Throwable = TypedObject<jthrowable>;
+
+using Boolean = BoxedObject<jboolean>;
+using Byte = BoxedObject<jbyte>;
+using Character = BoxedObject<jchar>;
+using Short = BoxedObject<jshort>;
+using Integer = BoxedObject<jint>;
+using Long = BoxedObject<jlong>;
+using Float = BoxedObject<jfloat>;
+using Double = BoxedObject<jdouble>;
 
 using BooleanArray = TypedObject<jbooleanArray>;
 using ByteArray = TypedObject<jbyteArray>;
@@ -423,31 +538,31 @@ public:
         return obj;
     }
 
-    LocalRef<Cls>& operator=(LocalRef<Cls> ref)
+    LocalRef<Cls>& operator=(LocalRef<Cls> ref) &
     {
         return swap(ref);
     }
 
-    LocalRef<Cls>& operator=(const Ref& ref)
+    LocalRef<Cls>& operator=(const Ref& ref) &
     {
         LocalRef<Cls> newRef(Ctx::mEnv, ref);
         return swap(newRef);
     }
 
-    LocalRef<Cls>& operator=(LocalRef<GenericObject>&& ref)
+    LocalRef<Cls>& operator=(LocalRef<GenericObject>&& ref) &
     {
         LocalRef<Cls> newRef(mozilla::Move(ref));
         return swap(newRef);
     }
 
     template<class C>
-    LocalRef<Cls>& operator=(GenericLocalRef<C>&& ref)
+    LocalRef<Cls>& operator=(GenericLocalRef<C>&& ref) &
     {
         LocalRef<Cls> newRef(mozilla::Move(ref));
         return swap(newRef);
     }
 
-    LocalRef<Cls>& operator=(decltype(nullptr))
+    LocalRef<Cls>& operator=(decltype(nullptr)) &
     {
         LocalRef<Cls> newRef(Ctx::mEnv, nullptr);
         return swap(newRef);
@@ -532,24 +647,24 @@ public:
         }
     }
 
-    GlobalRef<Cls>& operator=(GlobalRef<Cls> ref)
+    GlobalRef<Cls>& operator=(GlobalRef<Cls> ref) &
     {
         return swap(ref);
     }
 
-    GlobalRef<Cls>& operator=(const Ref& ref)
+    GlobalRef<Cls>& operator=(const Ref& ref) &
     {
         GlobalRef<Cls> newRef(ref);
         return swap(newRef);
     }
 
-    GlobalRef<Cls>& operator=(const LocalRef<Cls>& ref)
+    GlobalRef<Cls>& operator=(const LocalRef<Cls>& ref) &
     {
         GlobalRef<Cls> newRef(ref);
         return swap(newRef);
     }
 
-    GlobalRef<Cls>& operator=(decltype(nullptr))
+    GlobalRef<Cls>& operator=(decltype(nullptr)) &
     {
         GlobalRef<Cls> newRef(nullptr);
         return swap(newRef);
@@ -656,12 +771,22 @@ public:
         , mEnv(env)
     {}
 
+    MOZ_IMPLICIT StringParam(const nsLiteralString& str, JNIEnv* env = Ref::FindEnv())
+        : Ref(GetString(env, str))
+        , mEnv(env)
+    {}
+
     MOZ_IMPLICIT StringParam(const char16_t* str, JNIEnv* env = Ref::FindEnv())
         : Ref(GetString(env, nsDependentString(str)))
         , mEnv(env)
     {}
 
     MOZ_IMPLICIT StringParam(const nsACString& str, JNIEnv* env = Ref::FindEnv())
+        : Ref(GetString(env, NS_ConvertUTF8toUTF16(str)))
+        , mEnv(env)
+    {}
+
+    MOZ_IMPLICIT StringParam(const nsLiteralCString& str, JNIEnv* env = Ref::FindEnv())
         : Ref(GetString(env, NS_ConvertUTF8toUTF16(str)))
         , mEnv(env)
     {}
@@ -751,14 +876,27 @@ public:
         static_assert(sizeof(ElementType) == sizeof(JNIElemType),
                       "Size of native type must match size of JNI type");
 
-        const jsize len = size_t(Base::Env()->GetArrayLength(Base::Instance()));
+        const size_t len = size_t(Base::Env()->GetArrayLength(Base::Instance()));
 
-        nsTArray<ElementType> array((size_t(len)));
-        array.SetLength(size_t(len));
-        (Base::Env()->*detail::TypeAdapter<ElementType>::GetArray)(
-                Base::Instance(), 0, len,
-                reinterpret_cast<JNIElemType*>(array.Elements()));
+        nsTArray<ElementType> array(len);
+        array.SetLength(len);
+        CopyTo(array.Elements(), len);
         return array;
+    }
+
+    // returns number of elements copied
+    size_t CopyTo(ElementType* buffer, size_t size) const
+    {
+        using JNIElemType = typename detail::TypeAdapter<ElementType>::JNIType;
+        static_assert(sizeof(ElementType) == sizeof(JNIElemType),
+                      "Size of native type must match size of JNI type");
+
+        const size_t len = size_t(Base::Env()->GetArrayLength(Base::Instance()));
+        const size_t amountToCopy = (len > size ? size : len);
+        (Base::Env()->*detail::TypeAdapter<ElementType>::GetArray)(
+                Base::Instance(), 0, jsize(amountToCopy),
+                reinterpret_cast<JNIElemType*>(buffer));
+        return amountToCopy;
     }
 
     ElementType operator[](size_t index) const
@@ -825,6 +963,7 @@ public:
     }
 };
 
+template<> const char ObjectBase<ByteBuffer, jobject>::name[];
 
 template<>
 class TypedObject<jobjectArray>
@@ -833,6 +972,18 @@ class TypedObject<jobjectArray>
     using Base = ObjectBase<TypedObject<jobjectArray>, jobjectArray>;
 
 public:
+    template<class Cls = Object>
+    static Base::LocalRef New(size_t length,
+                              typename Cls::Param initialElement = nullptr) {
+        JNIEnv* const env = GetEnvForThread();
+        jobjectArray array = env->NewObjectArray(
+                jsize(length),
+                typename Cls::Context(env, nullptr).ClassRef(),
+                initialElement.Get());
+        MOZ_CATCH_JNI_EXCEPTION(env);
+        return Base::LocalRef::Adopt(env, array);
+    }
+
     explicit TypedObject(const Context& ctx) : Base(ctx) {}
 
     size_t Length() const

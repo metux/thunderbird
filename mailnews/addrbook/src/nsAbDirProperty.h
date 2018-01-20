@@ -4,9 +4,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /********************************************************************************************************
- 
+
    Interface for representing Address Book Directory
- 
+
 *********************************************************************************************************/
 
 #ifndef nsAbDirProperty_h__
@@ -17,19 +17,19 @@
 #include "nsCOMPtr.h"
 #include "nsDirPrefs.h"
 #include "nsIAddrDatabase.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIPrefBranch.h"
 #include "nsIMutableArray.h"
 #include "nsWeakReference.h"
 
- /* 
+ /*
   * Address Book Directory
-  */ 
+  */
 
 class nsAbDirProperty: public nsIAbDirectory,
                        public nsSupportsWeakReference
 {
-public: 
+public:
 	nsAbDirProperty(void);
 
   NS_DECL_ISUPPORTS

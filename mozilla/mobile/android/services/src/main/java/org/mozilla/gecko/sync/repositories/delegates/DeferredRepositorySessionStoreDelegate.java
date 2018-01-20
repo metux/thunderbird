@@ -46,11 +46,31 @@ public class DeferredRepositorySessionStoreDelegate implements
   }
 
   @Override
-  public void onStoreCompleted(final long storeEnd) {
+  public void onStoreCompleted() {
     executor.execute(new Runnable() {
       @Override
       public void run() {
-        inner.onStoreCompleted(storeEnd);
+        inner.onStoreCompleted();
+      }
+    });
+  }
+
+  @Override
+  public void onStoreFailed(final Exception e) {
+    executor.execute(new Runnable() {
+      @Override
+      public void run() {
+        inner.onStoreFailed(e);
+      }
+    });
+  }
+
+  @Override
+  public void onRecordStoreReconciled(final String guid, final String oldGuid, final Integer newVersion) {
+    executor.execute(new Runnable() {
+      @Override
+      public void run() {
+        inner.onRecordStoreReconciled(guid, oldGuid, newVersion);
       }
     });
   }

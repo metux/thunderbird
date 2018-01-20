@@ -18,24 +18,17 @@ enum IterationCompositeOperation {
 dictionary KeyframeEffectOptions : AnimationEffectTimingProperties {
   IterationCompositeOperation iterationComposite = "replace";
   CompositeOperation          composite = "replace";
-  DOMString                   spacing = "distribute";
 };
 
-// Bug 1241783: For the constructor we use (Element or CSSPseudoElement)? for
-// the first argument since we cannot convert a mixin into a union type
-// automatically.
 [Func="nsDocument::IsWebAnimationsEnabled",
  Constructor ((Element or CSSPseudoElement)? target,
               object? keyframes,
               optional (unrestricted double or KeyframeEffectOptions) options),
  Constructor (KeyframeEffectReadOnly source)]
 interface KeyframeEffectReadOnly : AnimationEffectReadOnly {
-  // Bug 1241783: As with the constructor, we use (Element or CSSPseudoElement)?
-  // for the type of |target| instead of Animatable?
   readonly attribute (Element or CSSPseudoElement)?  target;
   readonly attribute IterationCompositeOperation iterationComposite;
   readonly attribute CompositeOperation          composite;
-  readonly attribute DOMString                   spacing;
 
   // We use object instead of ComputedKeyframe so that we can put the
   // property-value pairs on the object.
@@ -45,7 +38,7 @@ interface KeyframeEffectReadOnly : AnimationEffectReadOnly {
 // Non-standard extensions
 dictionary AnimationPropertyValueDetails {
   required double             offset;
-  required DOMString          value;
+           DOMString          value;
            DOMString          easing;
   required CompositeOperation composite;
 };
@@ -68,11 +61,9 @@ partial interface KeyframeEffectReadOnly {
  Constructor (KeyframeEffectReadOnly source)]
 interface KeyframeEffect : KeyframeEffectReadOnly {
   inherit attribute (Element or CSSPseudoElement)? target;
+  [NeedsCallerType]
   inherit attribute IterationCompositeOperation    iterationComposite;
-  // Bug 1216844 - implement additive animation
-  // inherit attribute CompositeOperation          composite;
-  [SetterThrows]
-  inherit attribute DOMString                   spacing;
+  inherit attribute CompositeOperation          composite;
   [Throws]
   void setKeyframes (object? keyframes);
 };

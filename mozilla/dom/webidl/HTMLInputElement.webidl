@@ -19,81 +19,83 @@ enum SelectionMode {
   "preserve",
 };
 
-interface nsIControllers;
+interface XULControllers;
 
+[HTMLConstructor]
 interface HTMLInputElement : HTMLElement {
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute DOMString accept;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute DOMString alt;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute DOMString autocomplete;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute boolean autofocus;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute boolean defaultChecked;
   [Pure]
            attribute boolean checked;
            // Bug 850337 - attribute DOMString dirName;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute boolean disabled;
   readonly attribute HTMLFormElement? form;
   [Pure]
-  readonly attribute FileList? files;
-  [Pure, SetterThrows]
+           attribute FileList? files;
+  [CEReactions, Pure, SetterThrows]
            attribute DOMString formAction;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute DOMString formEnctype;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute DOMString formMethod;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute boolean formNoValidate;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute DOMString formTarget;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute unsigned long height;
   [Pure]
            attribute boolean indeterminate;
-  [Pure, SetterThrows, Pref="dom.forms.inputmode"]
+  [CEReactions, Pure, SetterThrows, Pref="dom.forms.inputmode"]
            attribute DOMString inputMode;
   [Pure]
   readonly attribute HTMLElement? list;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute DOMString max;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute long maxLength;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute DOMString min;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute long minLength;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute boolean multiple;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute DOMString name;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute DOMString pattern;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute DOMString placeholder;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute boolean readOnly;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute boolean required;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute unsigned long size;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, NeedsSubjectPrincipal, SetterThrows]
            attribute DOMString src;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute DOMString step;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute DOMString type;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute DOMString defaultValue;
-  [Pure, TreatNullAs=EmptyString, Throws]
+  [CEReactions, Pure, TreatNullAs=EmptyString, SetterThrows, NeedsCallerType]
            attribute DOMString value;
   [Throws, Func="HTMLInputElement::ValueAsDateEnabled"]
            attribute Date? valueAsDate;
   [Pure, SetterThrows]
            attribute unrestricted double valueAsNumber;
+  [CEReactions, SetterThrows]
            attribute unsigned long width;
 
   [Throws]
@@ -105,21 +107,20 @@ interface HTMLInputElement : HTMLElement {
   readonly attribute boolean willValidate;
   [Pure]
   readonly attribute ValidityState validity;
-  [GetterThrows]
+  [Throws]
   readonly attribute DOMString validationMessage;
   boolean checkValidity();
   boolean reportValidity();
   void setCustomValidity(DOMString error);
 
-  // Bug 850365 readonly attribute NodeList labels;
+  readonly attribute NodeList? labels;
 
   void select();
 
   [Throws]
-           // TODO: unsigned vs signed
-           attribute long? selectionStart;
+           attribute unsigned long? selectionStart;
   [Throws]
-           attribute long? selectionEnd;
+           attribute unsigned long? selectionEnd;
   [Throws]
            attribute DOMString? selectionDirection;
   [Throws]
@@ -127,26 +128,26 @@ interface HTMLInputElement : HTMLElement {
   [Throws]
   void setRangeText(DOMString replacement, unsigned long start,
     unsigned long end, optional SelectionMode selectionMode = "preserve");
+  [Throws]
+  void setSelectionRange(unsigned long start, unsigned long end, optional DOMString direction);
 
   // also has obsolete members
 };
 
 partial interface HTMLInputElement {
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute DOMString align;
-  [Pure, SetterThrows]
+  [CEReactions, Pure, SetterThrows]
            attribute DOMString useMap;
 };
 
 // Mozilla extensions
 
 partial interface HTMLInputElement {
-  [Throws]
-  void setSelectionRange(long start, long end, optional DOMString direction);
-
   [GetterThrows, ChromeOnly]
-  readonly attribute nsIControllers        controllers;
-  [GetterThrows]
+  readonly attribute XULControllers        controllers;
+  // Binaryname because we have a FragmentOrElement function named "TextLength()".
+  [NeedsCallerType, BinaryName="inputTextLength"]
   readonly attribute long                  textLength;
 
   [Throws, ChromeOnly]
@@ -217,14 +218,7 @@ partial interface HTMLInputElement {
   void chooseDirectory();
 };
 
-[NoInterfaceObject]
-interface MozPhonetic {
-  [Pure, ChromeOnly]
-  readonly attribute DOMString phonetic;
-};
-
 HTMLInputElement implements MozImageLoadingContent;
-HTMLInputElement implements MozPhonetic;
 
 // Webkit/Blink
 partial interface HTMLInputElement {
@@ -238,6 +232,9 @@ partial interface HTMLInputElement {
 dictionary DateTimeValue {
   long hour;
   long minute;
+  long year;
+  long month;
+  long day;
 };
 
 partial interface HTMLInputElement {
@@ -250,6 +247,14 @@ partial interface HTMLInputElement {
   [Pref="dom.forms.datetime", ChromeOnly]
   void setDateTimePickerState(boolean open);
 
+  [Pref="dom.forms.datetime", ChromeOnly,
+   BinaryName="getMinimumAsDouble"]
+  double getMinimum();
+
+  [Pref="dom.forms.datetime", ChromeOnly,
+   BinaryName="getMaximumAsDouble"]
+  double getMaximum();
+
   [Pref="dom.forms.datetime", Func="IsChromeOrXBL"]
   void openDateTimePicker(optional DateTimeValue initialValue);
 
@@ -258,4 +263,23 @@ partial interface HTMLInputElement {
 
   [Pref="dom.forms.datetime", Func="IsChromeOrXBL"]
   void closeDateTimePicker();
+
+  [Pref="dom.forms.datetime", Func="IsChromeOrXBL"]
+  void setFocusState(boolean aIsFocused);
+
+  [Pref="dom.forms.datetime", Func="IsChromeOrXBL"]
+  void updateValidityState();
+
+  [Pref="dom.forms.datetime", Func="IsChromeOrXBL",
+   BinaryName="getStepAsDouble"]
+  double getStep();
+
+  [Pref="dom.forms.datetime", Func="IsChromeOrXBL",
+   BinaryName="getStepBaseAsDouble"]
+  double getStepBase();
+};
+
+partial interface HTMLInputElement {
+  [ChromeOnly]
+  attribute DOMString previewValue;
 };

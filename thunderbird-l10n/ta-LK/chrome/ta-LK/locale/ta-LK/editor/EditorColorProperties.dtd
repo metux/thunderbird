@@ -59,3 +59,5 @@
 <!ENTITY backgroundImage.label "பின்னணி  படிமம்:">
 <!ENTITY backgroundImage.accessKey "ட">
 <!ENTITY backgroundImage.tooltip "படிம கோப்பை உங்க கோப்பின் பின்னணியாக பயன்படுத்துக">
+
+<!ENTITY backgroundImage.shortenedDataURI "Shortened data URI (copy will place the full URI onto the clipboard)">

@@ -30,6 +30,7 @@ public:
                                RefPtr<DOMRect> aRootBounds,
                                RefPtr<DOMRect> aBoundingClientRect,
                                RefPtr<DOMRect> aIntersectionRect,
+                               bool aIsIntersecting,
                                Element* aTarget,
                                double aIntersectionRatio)
   : mOwner(aOwner),
@@ -37,6 +38,7 @@ public:
     mRootBounds(aRootBounds),
     mBoundingClientRect(aBoundingClientRect),
     mIntersectionRect(aIntersectionRect),
+    mIsIntersecting(aIsIntersecting),
     mTarget(aTarget),
     mIntersectionRatio(aIntersectionRatio)
   {
@@ -74,6 +76,11 @@ public:
     return mIntersectionRect;
   }
 
+  bool IsIntersecting()
+  {
+    return mIsIntersecting;
+  }
+
   double IntersectionRatio()
   {
     return mIntersectionRatio;
@@ -90,6 +97,7 @@ protected:
   RefPtr<DOMRect>       mRootBounds;
   RefPtr<DOMRect>       mBoundingClientRect;
   RefPtr<DOMRect>       mIntersectionRect;
+  bool                  mIsIntersecting;
   RefPtr<Element>       mTarget;
   double                mIntersectionRatio;
 };
@@ -108,7 +116,7 @@ class DOMIntersectionObserver final : public nsISupports,
 public:
   DOMIntersectionObserver(already_AddRefed<nsPIDOMWindowInner>&& aOwner,
                           mozilla::dom::IntersectionCallback& aCb)
-  : mOwner(aOwner), mCallback(&aCb), mConnected(false)
+  : mOwner(aOwner), mDocument(mOwner->GetExtantDoc()), mCallback(&aCb), mConnected(false)
   {
   }
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -144,7 +152,7 @@ public:
   void Observe(Element& aTarget);
   void Unobserve(Element& aTarget);
 
-  bool UnlinkTarget(Element& aTarget);
+  void UnlinkTarget(Element& aTarget);
   void Disconnect();
 
   void TakeRecords(nsTArray<RefPtr<DOMIntersectionObserverEntry>>& aRetVal);
@@ -166,11 +174,15 @@ protected:
                                       double aIntersectionRatio);
 
   nsCOMPtr<nsPIDOMWindowInner>                    mOwner;
+  RefPtr<nsIDocument>                             mDocument;
   RefPtr<mozilla::dom::IntersectionCallback>      mCallback;
   RefPtr<Element>                                 mRoot;
   nsCSSRect                                       mRootMargin;
   nsTArray<double>                                mThresholds;
-  nsTHashtable<nsPtrHashKey<Element>>             mObservationTargets;
+
+  // Holds raw pointers which are explicitly cleared by UnlinkTarget().
+  nsTArray<Element*>                              mObservationTargets;
+
   nsTArray<RefPtr<DOMIntersectionObserverEntry>>  mQueuedEntries;
   bool                                            mConnected;
 };

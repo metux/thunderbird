@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-include protocol PBlob;
 include ProtocolTypes;
 
 using struct mozilla::void_t
@@ -10,6 +9,12 @@ using struct mozilla::void_t
 
 namespace mozilla {
 namespace ipc {
+
+struct HeaderEntry
+{
+  nsCString name;
+  nsCString value;
+};
 
 struct StringInputStreamParams
 {
@@ -23,20 +28,6 @@ struct FileInputStreamParams
   int32_t ioFlags;
 };
 
-struct PartialFileInputStreamParams
-{
-  FileInputStreamParams fileStreamParams;
-  uint64_t begin;
-  uint64_t length;
-};
-
-struct TemporaryFileInputStreamParams
-{
-  uint32_t fileDescriptorIndex;
-  uint64_t startPos;
-  uint64_t endPos;
-};
-
 struct MultiplexInputStreamParams
 {
   InputStreamParams[] streams;
@@ -45,30 +36,31 @@ struct MultiplexInputStreamParams
   bool startedReadingCurrent;
 };
 
-struct RemoteInputStreamParams
+struct SlicedInputStreamParams
 {
-  nsID id;
+  InputStreamParams stream;
+  uint64_t start;
+  uint64_t length;
+  uint64_t curPos;
+  bool closed;
 };
 
-// XXX This may only be used for same-process inter-thread communication! The
-//     value should be reinterpret_cast'd to nsIInputStream. It carries a
-//     reference.
-struct SameProcessInputStreamParams
+struct IPCBlobInputStreamParams
 {
-  intptr_t addRefedInputStream;
+  nsID id;
+  uint64_t start;
+  uint64_t length;
 };
 
 union InputStreamParams
 {
   StringInputStreamParams;
   FileInputStreamParams;
-  PartialFileInputStreamParams;
-  TemporaryFileInputStreamParams;
   BufferedInputStreamParams;
   MIMEInputStreamParams;
   MultiplexInputStreamParams;
-  RemoteInputStreamParams;
-  SameProcessInputStreamParams;
+  SlicedInputStreamParams;
+  IPCBlobInputStreamParams;
 };
 
 union OptionalInputStreamParams
@@ -86,10 +78,8 @@ struct BufferedInputStreamParams
 struct MIMEInputStreamParams
 {
   OptionalInputStreamParams optionalStream;
-  nsCString headers;
-  nsCString contentLength;
+  HeaderEntry[] headers;
   bool startedReading;
-  bool addContentLength;
 };
 
 } // namespace ipc

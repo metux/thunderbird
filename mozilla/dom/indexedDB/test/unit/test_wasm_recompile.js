@@ -5,7 +5,7 @@
 
 var testGenerator = testSteps();
 
-function testSteps()
+function* testSteps()
 {
   const name = "test_wasm_recompile.js";
 
@@ -21,7 +21,7 @@ function testSteps()
     yield undefined;
   }
 
-  getWasmBinary('(module (func (nop)))');
+  getWasmBinary("(module (func (nop)))");
   let binary = yield undefined;
 
   wasmData.wasm = getWasmModule(binary);
@@ -46,9 +46,12 @@ function testSteps()
 
   info("Reading out contents of compiled blob");
 
+  File.createFromNsIFile(file).then(grabEventAndContinueHandler);
+  let domFile = yield undefined;
+
   let fileReader = new FileReader();
   fileReader.onload = continueToNextStepSync;
-  fileReader.readAsArrayBuffer(File.createFromNsIFile(file));
+  fileReader.readAsArrayBuffer(domFile);
 
   yield undefined;
 
@@ -80,9 +83,12 @@ function testSteps()
 
   info("Reading out contents of new compiled blob");
 
+  File.createFromNsIFile(file).then(grabEventAndContinueHandler);
+  domFile = yield undefined;
+
   fileReader = new FileReader();
   fileReader.onload = continueToNextStepSync;
-  fileReader.readAsArrayBuffer(File.createFromNsIFile(file));
+  fileReader.readAsArrayBuffer(domFile);
 
   yield undefined;
 
@@ -104,11 +110,14 @@ function testSteps()
   verifyWasmModule(request.result, wasmData.wasm);
   yield undefined;
 
-  info("Reading contents of new compiled blob again");
+  info("Reading out contents of new compiled blob again");
+
+  File.createFromNsIFile(file).then(grabEventAndContinueHandler);
+  domFile = yield undefined;
 
   fileReader = new FileReader();
   fileReader.onload = continueToNextStepSync;
-  fileReader.readAsArrayBuffer(File.createFromNsIFile(file));
+  fileReader.readAsArrayBuffer(domFile);
 
   yield undefined;
 

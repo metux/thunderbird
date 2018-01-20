@@ -5,12 +5,14 @@
 
 #include "CompositorWidgetParent.h"
 #include "mozilla/Unused.h"
+#include "mozilla/widget/PlatformWidgetTypes.h"
 
 namespace mozilla {
 namespace widget {
 
-CompositorWidgetParent::CompositorWidgetParent(const CompositorWidgetInitData& aInitData)
- : X11CompositorWidget(aInitData)
+CompositorWidgetParent::CompositorWidgetParent(const CompositorWidgetInitData& aInitData,
+                                               const layers::CompositorOptions& aOptions)
+ : X11CompositorWidget(aInitData.get_X11CompositorWidgetInitData(), aOptions)
 {
   MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_GPU);
 }
@@ -37,11 +39,11 @@ CompositorWidgetParent::GetVsyncObserver() const
   return mVsyncObserver;
 }
 
-bool
+mozilla::ipc::IPCResult
 CompositorWidgetParent::RecvNotifyClientSizeChanged(const LayoutDeviceIntSize& aClientSize)
 {
   NotifyClientSizeChanged(aClientSize);
-  return true;
+  return IPC_OK();
 }
 
 } // namespace widget

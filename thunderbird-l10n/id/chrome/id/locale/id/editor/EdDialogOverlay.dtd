@@ -16,3 +16,6 @@
 
 <!ENTITY LinkURLEditField.label "Masukkan lokasi laman web, berkas lokal, atau pilih Penanda Bernama atau Penajuk dari daftar pada popup:">
 <!ENTITY LinkURLEditField.accessKey "d">
+
+<!ENTITY LinkURLEditField2.label "Enter a web page location, a local file, or select a Named Anchor or Heading from the field's context menu:">
+<!ENTITY LinkURLEditField2.accessKey "w">

@@ -8,9 +8,10 @@
 #define mozilla_dom_FetchConsumer_h
 
 #include "Fetch.h"
+#include "mozilla/dom/AbortSignal.h"
+#include "mozilla/dom/MutableBlobStorage.h"
 #include "nsIObserver.h"
 #include "nsWeakReference.h"
-#include "mozilla/dom/MutableBlobStorage.h"
 
 class nsIThread;
 
@@ -32,6 +33,7 @@ template <class Derived> class FetchBody;
 template <class Derived>
 class FetchBodyConsumer final : public nsIObserver
                               , public nsSupportsWeakReference
+                              , public AbortFollower
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -39,7 +41,9 @@ public:
 
   static already_AddRefed<Promise>
   Create(nsIGlobalObject* aGlobal,
+         nsIEventTarget* aMainThreadEventTarget,
          FetchBody<Derived>* aBody,
+         AbortSignal* aSignal,
          FetchConsumeType aType,
          ErrorResult& aRv);
 
@@ -71,8 +75,12 @@ public:
     mConsumeBodyPump = nullptr;
   }
 
+  // AbortFollower
+  void Abort() override;
+
 private:
-  FetchBodyConsumer(nsIGlobalObject* aGlobalObject,
+  FetchBodyConsumer(nsIEventTarget* aMainThreadEventTarget,
+                    nsIGlobalObject* aGlobalObject,
                     workers::WorkerPrivate* aWorkerPrivate,
                     FetchBody<Derived>* aBody,
                     nsIInputStream* aBodyStream,
@@ -88,6 +96,7 @@ private:
   RegisterWorkerHolder();
 
   nsCOMPtr<nsIThread> mTargetThread;
+  nsCOMPtr<nsIEventTarget> mMainThreadEventTarget;
 
 #ifdef DEBUG
   // This is used only to check if the body has been correctly consumed.

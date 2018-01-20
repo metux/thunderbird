@@ -37,10 +37,6 @@ Cu.import("resource:///modules/gloda/indexer.js");
 
 Cu.import("resource:///modules/gloda/mimemsg.js");
 
-XPCOMUtils.defineLazyServiceGetter(this, "atomService",
-                                   "@mozilla.org/atom-service;1",
-                                   "nsIAtomService");
-
 // Components.results does not have mailnews error codes!
 var NS_MSG_ERROR_FOLDER_SUMMARY_OUT_OF_DATE = 0x80550005;
 
@@ -319,7 +315,7 @@ var PendingCommitTracker = {
       function PendingCommitTracker_noteFolderDatabaseGettingBlownAway(
                  aMsgFolder) {
     let uri = aMsgFolder.URI + "#";
-    for (let key in Iterator(this._indexedMessagesPendingCommitByKey, true)) {
+    for (let key of Object.keys(this._indexedMessagesPendingCommitByKey)) {
       // this is not as efficient as it could be, but compaction is relatively
       //  rare and the number of pending headers is generally going to be
       //  small.
@@ -647,7 +643,7 @@ var GlodaMsgIndexer = {
     catch (ex) {
       this._log.error("Problem entering folder: " +
                       (this._indexingFolder ?
-                         this._indexingFolder.prettiestName : "unknown") +
+                         this._indexingFolder.prettyName : "unknown") +
                       ", skipping. Error was: " + ex.fileName + ":" +
                       ex.lineNumber + ": " + ex);
       this._indexingGlodaFolder.indexing = false;
@@ -747,7 +743,7 @@ var GlodaMsgIndexer = {
       value.status = 0;
       searchTerm.value = value;
       searchTerm.hdrProperty = GLODA_MESSAGE_ID_PROPERTY;
-      searchTerms.appendElement(searchTerm, false);
+      searchTerms.appendElement(searchTerm);
 
       // second term: || GLODA_MESSAGE_ID_PROPERTY Is GLODA_OLD_BAD_MESSAGE_ID
       searchTerm = searchSession.createTerm();
@@ -759,7 +755,7 @@ var GlodaMsgIndexer = {
       value.status = GLODA_OLD_BAD_MESSAGE_ID;
       searchTerm.value = value;
       searchTerm.hdrProperty = GLODA_MESSAGE_ID_PROPERTY;
-      searchTerms.appendElement(searchTerm, false);
+      searchTerms.appendElement(searchTerm);
 
       //  third term: || GLODA_DIRTY_PROPERTY Isnt 0 )
       searchTerm = searchSession.createTerm();
@@ -772,7 +768,7 @@ var GlodaMsgIndexer = {
       value.status = 0;
       searchTerm.value = value;
       searchTerm.hdrProperty = GLODA_DIRTY_PROPERTY;
-      searchTerms.appendElement(searchTerm, false);
+      searchTerms.appendElement(searchTerm);
 
       // JUNK_SCORE_PROPERTY Isnt 100
       // For symmetry with our event-driven stuff, we just directly deal with
@@ -786,7 +782,7 @@ var GlodaMsgIndexer = {
       value.str = JUNK_SPAM_SCORE_STR;
       searchTerm.value = value;
       searchTerm.hdrProperty = JUNK_SCORE_PROPERTY;
-      searchTerms.appendElement(searchTerm, false);
+      searchTerms.appendElement(searchTerm);
 
       if (!isLocal)
       {
@@ -801,7 +797,7 @@ var GlodaMsgIndexer = {
           value.attrib = searchTerm.attrib;
           value.status = nsMsgMessageFlags.Offline;
           searchTerm.value = value;
-          searchTerms.appendElement(searchTerm, false);
+          searchTerms.appendElement(searchTerm);
         }
 
         // fourth term: && Status Isnt nsMsgMessageFlags.Expunged
@@ -813,7 +809,7 @@ var GlodaMsgIndexer = {
         value.attrib = searchTerm.attrib;
         value.status = nsMsgMessageFlags.Expunged;
         searchTerm.value = value;
-        searchTerms.appendElement(searchTerm, false);
+        searchTerms.appendElement(searchTerm);
       }
 
       this._indexingEnumerator =
@@ -852,7 +848,7 @@ var GlodaMsgIndexer = {
       value.status = aAllowPreBadIds ? 0 : (GLODA_FIRST_VALID_MESSAGE_ID - 1);
       searchTerm.value = value;
       searchTerm.hdrProperty = GLODA_MESSAGE_ID_PROPERTY;
-      searchTerms.appendElement(searchTerm, false);
+      searchTerms.appendElement(searchTerm);
 
       //  second term: && GLODA_DIRTY_PROPERTY Isnt kMessageFilthy)
       searchTerm = searchSession.createTerm();
@@ -865,7 +861,7 @@ var GlodaMsgIndexer = {
       value.status = this.kMessageFilthy;
       searchTerm.value = value;
       searchTerm.hdrProperty = GLODA_DIRTY_PROPERTY;
-      searchTerms.appendElement(searchTerm, false);
+      searchTerms.appendElement(searchTerm);
 
       // The use-case of already indexed messages does not want them reversed;
       //  we care about seeing the message keys in order.
@@ -1001,7 +997,7 @@ var GlodaMsgIndexer = {
       let foldersToProcess = aJob.foldersToProcess = [];
 
       let allFolders = MailServices.accounts.allFolders;
-      for (let folder in fixIterator(allFolders, Ci.nsIMsgFolder)) {
+      for (let folder of fixIterator(allFolders, Ci.nsIMsgFolder)) {
         if (this.shouldIndexFolder(folder))
           foldersToProcess.push(Gloda.getFolderForFolder(folder));
       }
@@ -1166,8 +1162,8 @@ var GlodaMsgIndexer = {
     let numHeadersSeen = 0;
 
     // We are consuming two lists; our loop structure has to reflect that.
-    let headerIter = Iterator(fixIterator(this._indexingEnumerator,
-                                          nsIMsgDBHdr));
+    let headerIter = XPCOMUtils.IterSimpleEnumerator(this._indexingEnumerator,
+                                                     nsIMsgDBHdr);
     let mayHaveMoreGlodaMessages = true;
     let keepIterHeader = false;
     let keepGlodaTuple = false;
@@ -1175,21 +1171,15 @@ var GlodaMsgIndexer = {
     while (headerIter || mayHaveMoreGlodaMessages) {
       let glodaId;
       if (headerIter) {
-        try {
-          if (!keepIterHeader)
-            msgHdr = headerIter.next();
-          else
-            keepIterHeader = false;
-        }
-        catch (ex) {
-          if (ex instanceof StopIteration) {
+        if (!keepIterHeader) {
+          let result = headerIter.next();
+          if (result.done) {
             headerIter = null;
             msgHdr = null;
             // do the loop check again
             continue;
-          } else {
-            throw ex;
           }
+          msgHdr = result.value;
         }
       }
 
@@ -1368,7 +1358,7 @@ var GlodaMsgIndexer = {
     if (glodaFolder.dirtyStatus == glodaFolder.kFolderFilthy) {
       this._indexerGetEnumerator(this.kEnumIndexedMsgs, true);
       let count = 0;
-      for (let msgHdr in fixIterator(this._indexingEnumerator, nsIMsgDBHdr)) {
+      for (let msgHdr of fixIterator(this._indexingEnumerator, nsIMsgDBHdr)) {
         // we still need to avoid locking up the UI, pause periodically...
         if (++count % HEADER_CHECK_SYNC_BLOCK_SIZE == 0)
           yield this.kWorkSync;
@@ -1426,7 +1416,7 @@ var GlodaMsgIndexer = {
 
       // Pass 2: index the messages.
       let count = 0;
-      for (let msgHdr in fixIterator(this._indexingEnumerator, nsIMsgDBHdr)) {
+      for (let msgHdr of fixIterator(this._indexingEnumerator, nsIMsgDBHdr)) {
         // per above, we want to periodically release control while doing all
         // this header traversal/investigation.
         if (++count % HEADER_CHECK_SYNC_BLOCK_SIZE == 0)
@@ -1893,7 +1883,7 @@ var GlodaMsgIndexer = {
     this._log.info("Queueing all accounts for indexing.");
 
     GlodaDatastore._beginTransaction();
-    for (let account in fixIterator(MailServices.accounts.accounts,
+    for (let account of fixIterator(MailServices.accounts.accounts,
                                     Ci.nsIMsgAccount)) {
       this.indexAccount(account);
     }
@@ -1910,7 +1900,7 @@ var GlodaMsgIndexer = {
 
       let allFolders = rootFolder.descendants;
       let folderJobs = [];
-      for (let folder in fixIterator(allFolders, Ci.nsIMsgFolder)) {
+      for (let folder of fixIterator(allFolders, Ci.nsIMsgFolder)) {
         if (this.shouldIndexFolder(folder))
           GlodaIndexer.indexJob(
             new IndexingJob("folder", GlodaDatastore._mapFolder(folder).id));
@@ -1940,7 +1930,7 @@ var GlodaMsgIndexer = {
       return false;
 
     this._log.info("Queue-ing folder for indexing: " +
-                   aMsgFolder.prettiestName);
+                   aMsgFolder.prettyName);
     let job = new IndexingJob("folder", glodaFolder.id);
     if (aOptions) {
       if ("callback" in aOptions)
@@ -2059,7 +2049,7 @@ var GlodaMsgIndexer = {
                                       aMsgHdrs, aDirtyingEvent) {
     let glodaIdsNeedingDeletion = null;
     let messageKeyChangedIds = null, messageKeyChangedNewKeys = null;
-    for (let msgHdr in fixIterator(aMsgHdrs, nsIMsgDBHdr)) {
+    for (let msgHdr of fixIterator(aMsgHdrs, nsIMsgDBHdr)) {
       // -- Index this folder?
       let msgFolder = msgHdr.folder;
       if (!this.shouldIndexFolder(msgFolder)) {
@@ -2332,7 +2322,7 @@ var GlodaMsgIndexer = {
                  GlodaFolder.prototype.kFolderFilthy)) {
             // Local case, just modify the destination headers directly.
             if (aDestMsgHdrs) {
-              for (let destMsgHdr in fixIterator(aDestMsgHdrs, nsIMsgDBHdr)) {
+              for (let destMsgHdr of fixIterator(aDestMsgHdrs, nsIMsgDBHdr)) {
                 // zero it out if it exists
                 // (no need to deal with pending commit issues here; a filthy
                 //  folder by definition has nothing indexed in it.)
@@ -2359,12 +2349,12 @@ var GlodaMsgIndexer = {
                 destDb = aDestFolder.msgDatabase;
               } catch (ex) {
                 this.indexer._log.warn("Destination database for " +
-                                       aDestFolder.prettiestName +
+                                       aDestFolder.prettyName +
                                        " not ready on IMAP move." +
                                        " Gloda corruption possible.");
                 return;
               }
-              for (let srcMsgHdr in fixIterator(aSrcMsgHdrs, nsIMsgDBHdr)) {
+              for (let srcMsgHdr of fixIterator(aSrcMsgHdrs, nsIMsgDBHdr)) {
                 // zero it out if it exists
                 // (no need to deal with pending commit issues here; a filthy
                 //  folder by definition has nothing indexed in it.)
@@ -2479,7 +2469,7 @@ var GlodaMsgIndexer = {
           // -- Do not propagate gloda-id's for copies
           // (Only applies if we have the destination header, which means local)
           if (aDestMsgHdrs) {
-            for (let destMsgHdr in fixIterator(aDestMsgHdrs, nsIMsgDBHdr)) {
+            for (let destMsgHdr of fixIterator(aDestMsgHdrs, nsIMsgDBHdr)) {
               let glodaId = destMsgHdr.getUint32Property(
                 GLODA_MESSAGE_ID_PROPERTY);
               if (glodaId)
@@ -2571,7 +2561,7 @@ var GlodaMsgIndexer = {
         let delFunc = function(aFolder, indexer) {
           if (indexer._datastore._folderKnown(aFolder)) {
             indexer._log.info("Processing deletion of folder " +
-                              aFolder.prettiestName + ".");
+                              aFolder.prettyName + ".");
             let glodaFolder = GlodaDatastore._mapFolder(aFolder);
             indexer._datastore.markMessagesDeletedByFolderID(glodaFolder.id);
             indexer._datastore.deleteFolderByID(glodaFolder.id);
@@ -2579,7 +2569,7 @@ var GlodaMsgIndexer = {
           }
           else {
             indexer._log.info("Ignoring deletion of folder " +
-                              aFolder.prettiestName +
+                              aFolder.prettyName +
                               " because it is unknown to gloda.");
           }
         };
@@ -2589,7 +2579,7 @@ var GlodaMsgIndexer = {
         // delete the parent
         delFunc(aFolder, this.indexer);
         // delete all its descendents
-        for (let folder in fixIterator(descendentFolders, Ci.nsIMsgFolder)) {
+        for (let folder of fixIterator(descendentFolders, Ci.nsIMsgFolder)) {
           delFunc(folder, this.indexer);
         }
 
@@ -2642,7 +2632,7 @@ var GlodaMsgIndexer = {
         // First thing to do: make sure we don't index the resulting folder and
         //  its descendents.
         GlodaMsgIndexer.resetFolderIndexingPriority(newFolder);
-        for (let folder in fixIterator(descendentFolders, Ci.nsIMsgFolder)) {
+        for (let folder of fixIterator(descendentFolders, Ci.nsIMsgFolder)) {
           GlodaMsgIndexer.resetFolderIndexingPriority(folder);
         }
 
@@ -2655,7 +2645,7 @@ var GlodaMsgIndexer = {
         // this rename is straightforward.
         GlodaDatastore.renameFolder(aOrigFolder, aNewURI);
 
-        for (let folder in fixIterator(descendentFolders, Ci.nsIMsgFolder)) {
+        for (let folder of fixIterator(descendentFolders, Ci.nsIMsgFolder)) {
           let oldSubURI = folder.URI;
           // mangle a new URI from the old URI.  we could also try and do a
           //  parallel traversal of the new folder hierarchy, but that seems like
@@ -2694,7 +2684,7 @@ var GlodaMsgIndexer = {
      * - JunkStatusChanged: We mark the messages that have had their junk
      *    state change to be reindexed.
      */
-    itemEvent: function gloda_indexer_itemEvent(aItem, aEvent, aData) {
+    itemEvent: function gloda_indexer_itemEvent(aItem, aEvent, aData, aString) {
       // Compact and Reindex are close enough that we can reuse the same code
       //  with one minor difference.
       if (aEvent == "FolderCompactStart" ||
@@ -2775,29 +2765,6 @@ var GlodaMsgIndexer = {
       this.indexer = aIndexer;
     },
 
-    // We explicitly know about these things rather than bothering with some
-    // form of registration scheme because these aren't going to change much.
-    get _kFolderLoadedAtom() {
-      delete this._kFolderLoadedAtom;
-      return this._kFolderLoadedAtom = atomService.getAtom("FolderLoaded");
-    },
-    get _kKeywordsAtom() {
-      delete this._kKeywordsAtom;
-      return this._kKeywordsAtom = atomService.getAtom("Keywords");
-    },
-    get _kStatusAtom() {
-      delete this._kStatusAtom;
-      return this._kStatusAtom = atomService.getAtom("Status");
-    },
-    get _kFlaggedAtom() {
-      delete this._kFlaggedAtom;
-      return this._kFlaggedAtom = atomService.getAtom("Flagged");
-    },
-    get _kFolderFlagAtom() {
-      delete this._kFolderFlagAtom;
-      return this._kFolderFlagAtom = atomService.getAtom("FolderFlag");
-    },
-
     OnItemAdded: function gloda_indexer_OnItemAdded(aParentItem, aItem) {
     },
     OnItemRemoved: function gloda_indexer_OnItemRemoved(aParentItem, aItem) {
@@ -2812,7 +2779,7 @@ var GlodaMsgIndexer = {
      */
     OnItemIntPropertyChanged: function gloda_indexer_OnItemIntPropertyChanged(
                                 aFolderItem, aProperty, aOldValue, aNewValue) {
-      if (aProperty !== this._kFolderFlagAtom)
+      if (aProperty !== "FolderFlag")
         return;
       if (!GlodaMsgIndexer.shouldIndexFolder(aFolderItem))
         return;
@@ -2836,14 +2803,14 @@ var GlodaMsgIndexer = {
      */
     OnItemPropertyFlagChanged: function gloda_indexer_OnItemPropertyFlagChanged(
                                 aMsgHdr, aProperty, aOldValue, aNewValue) {
-      if (aProperty == this._kKeywordsAtom ||
+      if (aProperty == "Keywords" ||
           // We could care less about the new flag changing.
-          (aProperty == this._kStatusAtom &&
+          (aProperty == "Status" &&
            (aOldValue ^ aNewValue) != nsMsgMessageFlags.New &&
            // We do care about IMAP deletion, but msgsDeleted tells us that, so
            //  ignore IMAPDeleted too...
            (aOldValue ^ aNewValue) != nsMsgMessageFlags.IMAPDeleted) ||
-          aProperty == this._kFlaggedAtom) {
+          aProperty == "Flagged") {
         GlodaMsgIndexer._reindexChangedMessages([aMsgHdr], true);
       }
     },
@@ -2853,7 +2820,7 @@ var GlodaMsgIndexer = {
      *  (asynchronous) processing before they could be opened.
      */
     OnItemEvent: function gloda_indexer_OnItemEvent(aFolder, aEvent) {
-      if (aEvent == this._kFolderLoadedAtom)
+      if (aEvent == "FolderLoaded")
         this.indexer._onFolderLoaded(aFolder);
     },
   },

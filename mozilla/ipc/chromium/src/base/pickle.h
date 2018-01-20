@@ -16,18 +16,15 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/BufferList.h"
 #include "mozilla/mozalloc.h"
-
-#ifdef MOZ_FAULTY
+#include "mozilla/TimeStamp.h"
+#ifdef FUZZING
 #include "base/singleton.h"
 #include "mozilla/ipc/Faulty.h"
 #endif
-
-#if !defined(RELEASE_OR_BETA) || defined(DEBUG)
+#if (!defined(RELEASE_OR_BETA) && !defined(FUZZING)) || defined(DEBUG)
 #define MOZ_PICKLE_SENTINEL_CHECKING
 #endif
-
 class Pickle;
-
 class PickleIterator {
 public:
   explicit PickleIterator(const Pickle& pickle);
@@ -36,6 +33,7 @@ private:
   friend class Pickle;
 
   mozilla::BufferList<InfallibleAllocPolicy>::IterImpl iter_;
+  mozilla::TimeStamp start_;
 
   template<typename T>
   void CopyInto(T* dest);
@@ -67,7 +65,7 @@ class Pickle {
   // Initialize a Pickle object with the specified header size in bytes, which
   // must be greater-than-or-equal-to sizeof(Pickle::Header).  The header size
   // will be rounded up to ensure that the header size is 32bit-aligned.
-  explicit Pickle(uint32_t header_size);
+  explicit Pickle(uint32_t header_size, size_t segment_capacity = 0);
 
   Pickle(uint32_t header_size, const char* data, uint32_t length);
 
@@ -127,101 +125,38 @@ class Pickle {
   }
 #endif
 
-  void EndRead(PickleIterator& iter) const;
+  bool IgnoreSentinel(PickleIterator* iter) const
+#ifdef MOZ_PICKLE_SENTINEL_CHECKING
+    ;
+#else
+  {
+    return true;
+  }
+#endif
+
+  // NOTE: The message type optional parameter should _only_ be called from
+  // generated IPDL code, as it is used to trigger the IPC_READ_LATENCY_MS
+  // telemetry probe.
+  void EndRead(PickleIterator& iter, uint32_t ipcMessageType = 0) const;
 
   // Methods for adding to the payload of the Pickle.  These values are
   // appended to the end of the Pickle's payload.  When reading values from a
   // Pickle, it is important to read them in the order in which they were added
   // to the Pickle.
-  bool WriteBool(bool value) {
-#ifdef MOZ_FAULTY
-    Singleton<mozilla::ipc::Faulty>::get()->FuzzBool(&value);
-#endif
-    return WriteInt(value ? 1 : 0);
-  }
-  bool WriteInt16(int16_t value) {
-#ifdef MOZ_FAULTY
-    Singleton<mozilla::ipc::Faulty>::get()->FuzzInt16(&value);
-#endif
-    return WriteBytes(&value, sizeof(value));
-  }
-  bool WriteUInt16(uint16_t value) {
-#ifdef MOZ_FAULTY
-    Singleton<mozilla::ipc::Faulty>::get()->FuzzUInt16(&value);
-#endif
-    return WriteBytes(&value, sizeof(value));
-  }
-  bool WriteInt(int value) {
-#ifdef MOZ_FAULTY
-    Singleton<mozilla::ipc::Faulty>::get()->FuzzInt(&value);
-#endif
-    return WriteBytes(&value, sizeof(value));
-  }
-  bool WriteLong(long value) {
-    // Always written as a 64-bit value since the size for this type can
-    // differ between architectures.
-#ifdef MOZ_FAULTY
-    Singleton<mozilla::ipc::Faulty>::get()->FuzzLong(&value);
-#endif
-    return WriteInt64(int64_t(value));
-  }
-  bool WriteULong(unsigned long value) {
-    // Always written as a 64-bit value since the size for this type can
-    // differ between architectures.
-#ifdef MOZ_FAULTY
-    Singleton<mozilla::ipc::Faulty>::get()->FuzzULong(&value);
-#endif
-    return WriteUInt64(uint64_t(value));
-  }
-  bool WriteSize(size_t value) {
-    // Always written as a 64-bit value since the size for this type can
-    // differ between architectures.
-#ifdef MOZ_FAULTY
-    Singleton<mozilla::ipc::Faulty>::get()->FuzzSize(&value);
-#endif
-    return WriteUInt64(uint64_t(value));
-  }
-  bool WriteInt32(int32_t value) {
-#ifdef MOZ_FAULTY
-    Singleton<mozilla::ipc::Faulty>::get()->FuzzInt(&value);
-#endif
-    return WriteBytes(&value, sizeof(value));
-  }
-  bool WriteUInt32(uint32_t value) {
-#ifdef MOZ_FAULTY
-    Singleton<mozilla::ipc::Faulty>::get()->FuzzUInt32(&value);
-#endif
-    return WriteBytes(&value, sizeof(value));
-  }
-  bool WriteInt64(int64_t value) {
-#ifdef MOZ_FAULTY
-    Singleton<mozilla::ipc::Faulty>::get()->FuzzInt64(&value);
-#endif
-    return WriteBytes(&value, sizeof(value));
-  }
-  bool WriteUInt64(uint64_t value) {
-#ifdef MOZ_FAULTY
-    Singleton<mozilla::ipc::Faulty>::get()->FuzzUInt64(&value);
-#endif
-    return WriteBytes(&value, sizeof(value));
-  }
-  bool WriteDouble(double value) {
-#ifdef MOZ_FAULTY
-    Singleton<mozilla::ipc::Faulty>::get()->FuzzDouble(&value);
-#endif
-    return WriteBytes(&value, sizeof(value));
-  }
-  bool WriteIntPtr(intptr_t value) {
-    // Always written as a 64-bit value since the size for this type can
-    // differ between architectures.
-    return WriteInt64(int64_t(value));
-  }
-  bool WriteUnsignedChar(unsigned char value) {
-#ifdef MOZ_FAULTY
-    Singleton<mozilla::ipc::Faulty>::get()->FuzzUChar(&value);
-#endif
-    return WriteBytes(&value, sizeof(value));
-  }
+  bool WriteBool(bool value);
+  bool WriteInt16(int16_t value);
+  bool WriteUInt16(uint16_t value);
+  bool WriteInt(int value);
+  bool WriteLong(long value);
+  bool WriteULong(unsigned long value);
+  bool WriteSize(size_t value);
+  bool WriteInt32(int32_t value);
+  bool WriteUInt32(uint32_t value);
+  bool WriteInt64(int64_t value);
+  bool WriteUInt64(uint64_t value);
+  bool WriteDouble(double value);
+  bool WriteIntPtr(intptr_t value);
+  bool WriteUnsignedChar(unsigned char value);
   bool WriteString(const std::string& value);
   bool WriteWString(const std::wstring& value);
   bool WriteData(const char* data, uint32_t length);

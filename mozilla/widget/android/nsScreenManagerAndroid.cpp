@@ -10,7 +10,7 @@
 #include "nsScreenManagerAndroid.h"
 #include "nsServiceManagerUtils.h"
 #include "AndroidRect.h"
-#include "FennecJNINatives.h"
+#include "GeneratedJNINatives.h"
 #include "nsAppShell.h"
 #include "nsThreadUtils.h"
 
@@ -55,13 +55,6 @@ nsScreenAndroid::GetDensity() {
 }
 
 NS_IMETHODIMP
-nsScreenAndroid::GetId(uint32_t *outId)
-{
-    *outId = mId;
-    return NS_OK;
-}
-
-NS_IMETHODIMP
 nsScreenAndroid::GetRect(int32_t *outLeft, int32_t *outTop, int32_t *outWidth, int32_t *outHeight)
 {
     if (mDisplayType != DisplayType::DISPLAY_PRIMARY) {
@@ -80,10 +73,10 @@ nsScreenAndroid::GetRect(int32_t *outLeft, int32_t *outTop, int32_t *outWidth, i
     }
 
     java::sdk::Rect::LocalRef rect = java::GeckoAppShell::GetScreenSize();
-    rect->Left(outLeft);
-    rect->Top(outTop);
-    rect->Width(outWidth);
-    rect->Height(outHeight);
+    *outLeft = rect->Left();
+    *outTop = rect->Top();
+    *outWidth = rect->Width();
+    *outHeight = rect->Height();
 
     return NS_OK;
 }
@@ -117,16 +110,6 @@ nsScreenAndroid::GetColorDepth(int32_t *aColorDepth)
     return GetPixelDepth(aColorDepth);
 }
 
-
-void
-nsScreenAndroid::ApplyMinimumBrightness(uint32_t aBrightness)
-{
-    if (mDisplayType == DisplayType::DISPLAY_PRIMARY &&
-        mozilla::jni::IsAvailable()) {
-        java::GeckoAppShell::SetKeepScreenOn(aBrightness == BRIGHTNESS_FULL);
-    }
-}
-
 class nsScreenManagerAndroid::ScreenManagerHelperSupport final
     : public ScreenManagerHelper::Natives<ScreenManagerHelperSupport>
 {
@@ -137,6 +120,7 @@ public:
         int32_t screenId = -1; // return value
         nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
         SyncRunnable::DispatchToThread(mainThread, NS_NewRunnableFunction(
+            "nsScreenManagerAndroid::ScreenManagerHelperSupport::AddDisplay",
             [&aDisplayType, &aWidth, &aHeight, &aDensity, &screenId] {
                 MOZ_ASSERT(NS_IsMainThread());
                 nsCOMPtr<nsIScreenManager> screenMgr =
@@ -158,6 +142,7 @@ public:
     static void RemoveDisplay(int32_t aScreenId) {
         nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
         SyncRunnable::DispatchToThread(mainThread, NS_NewRunnableFunction(
+            "nsScreenManagerAndroid::ScreenManagerHelperSupport::RemoveDisplay",
             [&aScreenId] {
                 MOZ_ASSERT(NS_IsMainThread());
                 nsCOMPtr<nsIScreenManager> screenMgr =
@@ -189,24 +174,24 @@ nsScreenManagerAndroid::~nsScreenManagerAndroid()
 NS_IMETHODIMP
 nsScreenManagerAndroid::GetPrimaryScreen(nsIScreen **outScreen)
 {
-    ScreenForId(PRIMARY_SCREEN_ID, outScreen);
+    RefPtr<nsScreenAndroid> screen = ScreenForId(PRIMARY_SCREEN_ID);
+    if (screen) {
+        screen.forget(outScreen);
+    }
     return NS_OK;
 }
 
-NS_IMETHODIMP
-nsScreenManagerAndroid::ScreenForId(uint32_t aId,
-                                    nsIScreen **outScreen)
+already_AddRefed<nsScreenAndroid>
+nsScreenManagerAndroid::ScreenForId(uint32_t aId)
 {
     for (size_t i = 0; i < mScreens.Length(); ++i) {
         if (aId == mScreens[i]->GetId()) {
-            nsCOMPtr<nsIScreen> screen = (nsIScreen*) mScreens[i];
-            screen.forget(outScreen);
-            return NS_OK;
+            RefPtr<nsScreenAndroid> screen = mScreens[i];
+            return screen.forget();
         }
     }
 
-    *outScreen = nullptr;
-    return NS_OK;
+    return nullptr;
 }
 
 NS_IMETHODIMP
@@ -218,27 +203,6 @@ nsScreenManagerAndroid::ScreenForRect(int32_t inLeft,
 {
     // Not support to query non-primary screen with rect.
     return GetPrimaryScreen(outScreen);
-}
-
-NS_IMETHODIMP
-nsScreenManagerAndroid::ScreenForNativeWidget(void *aWidget, nsIScreen **outScreen)
-{
-    // Not support to query non-primary screen with native widget.
-    return GetPrimaryScreen(outScreen);
-}
-
-NS_IMETHODIMP
-nsScreenManagerAndroid::GetNumberOfScreens(uint32_t *aNumberOfScreens)
-{
-    *aNumberOfScreens = mScreens.Length();
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsScreenManagerAndroid::GetSystemDefaultScale(float *aDefaultScale)
-{
-    *aDefaultScale = 1.0f;
-    return NS_OK;
 }
 
 already_AddRefed<nsScreenAndroid>

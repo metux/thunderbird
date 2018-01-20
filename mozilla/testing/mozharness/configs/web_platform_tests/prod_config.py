@@ -17,8 +17,7 @@ config = {
     ],
 
     "exes": {
-        'python': '/tools/buildbot/bin/python',
-        'virtualenv': ['/tools/buildbot/bin/python', '/tools/misc-python/virtualenv.py'],
+        'virtualenv': '/tools/virtualenv/bin/virtualenv',
         'tooltool.py': "/tools/tooltool.py",
     },
 
@@ -40,8 +39,5 @@ config = {
     "download_minidump_stackwalk": True,
 
     "download_tooltool": True,
-
-    "tooltool_cache": "/builds/tooltool_cache",
-
 }
 

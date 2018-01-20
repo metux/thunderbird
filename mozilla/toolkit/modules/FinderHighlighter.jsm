@@ -9,7 +9,6 @@ this.EXPORTED_SYMBOLS = ["FinderHighlighter"];
 const { interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Color", "resource://gre/modules/Color.jsm");
@@ -21,6 +20,10 @@ XPCOMUtils.defineLazyGetter(this, "kDebug", () => {
 
 const kContentChangeThresholdPx = 5;
 const kBrightTextSampleSize = 5;
+// This limit is arbitrary and doesn't scale for low-powered machines or
+// high-powered machines. Netbooks will probably need a much lower limit, for
+// example. Though getting something out there is better than nothing.
+const kPageIsTooBigPx = 500000;
 const kModalHighlightRepaintLoFreqMs = 100;
 const kModalHighlightRepaintHiFreqMs = 16;
 const kHighlightAllPref = "findbar.highlightAll";
@@ -115,7 +118,7 @@ function mockAnonymousContentNode(domNode) {
     },
     remove() {
       try {
-        domNode.parentNode.removeChild(domNode);
+        domNode.remove();
       } catch (ex) {}
     },
     setAnimationForElement(id, keyframes, duration) {
@@ -160,7 +163,7 @@ FinderHighlighter.prototype = {
    *  - {Map}     frames                 Collection of frames that were encountered
    *                                     when inspecting the found ranges
    *  - {Map}     modalHighlightRectsMap Collection of ranges and their corresponding
-   *                                     Rects
+   *                                     Rects and texts
    *
    * @param  {nsIDOMWindow} window
    * @return {Object}
@@ -171,8 +174,9 @@ FinderHighlighter.prototype = {
         detectedGeometryChange: false,
         dynamicRangesSet: new Set(),
         frames: new Map(),
+        lastWindowDimensions: { width: 0, height: 0 },
         modalHighlightRectsMap: new Map(),
-        previousRangeRectsCount: 0
+        previousRangeRectsAndTexts: { rectList: [], textList: [] }
       });
     }
     return gWindows.get(window);
@@ -195,12 +199,13 @@ FinderHighlighter.prototype = {
    * Toggle highlighting all occurrences of a word in a page. This method will
    * be called recursively for each (i)frame inside a page.
    *
-   * @param {Booolean} highlight Whether highlighting should be turned on
-   * @param {String}   word      Needle to search for and highlight when found
-   * @param {Boolean}  linksOnly Only consider nodes that are links for the search
+   * @param {Booolean} highlight   Whether highlighting should be turned on
+   * @param {String}   word        Needle to search for and highlight when found
+   * @param {Boolean}  linksOnly   Only consider nodes that are links for the search
+   * @param {Boolean}  drawOutline Whether found links should be outlined.
    * @yield {Promise}  that resolves once the operation has finished
    */
-  highlight: Task.async(function* (highlight, word, linksOnly) {
+  async highlight(highlight, word, linksOnly, drawOutline) {
     let window = this.finder._getWindow();
     let dict = this.getForWindow(window);
     let controller = this.finder._getSelectionController(window);
@@ -231,11 +236,9 @@ FinderHighlighter.prototype = {
 
       if (!this._modal)
         dict.visible = true;
-      yield this.iterator.start(params);
-      if (this._found) {
-        this.finder._outlineLink(true);
-        dict.updateAllRanges = true;
-      }
+      await this.iterator.start(params);
+      if (this._found)
+        this.finder._outlineLink(drawOutline);
     } else {
       this.hide(window);
 
@@ -244,7 +247,7 @@ FinderHighlighter.prototype = {
     }
 
     this.notifyFinished({ highlight, found: this._found });
-  }),
+  },
 
   // FinderIterator listener implementation
 
@@ -278,7 +281,7 @@ FinderHighlighter.prototype = {
   highlightRange(range) {
     let node = range.startContainer;
     let editableNode = this._getEditableNode(node);
-    let window = node.ownerDocument.defaultView;
+    let window = node.ownerGlobal;
     let controller = this.finder._getSelectionController(window);
     if (editableNode) {
       controller = editableNode.editor.selectionController;
@@ -289,11 +292,12 @@ FinderHighlighter.prototype = {
     } else {
       let findSelection = controller.getSelection(Ci.nsISelectionController.SELECTION_FIND);
       findSelection.addRange(range);
-      // Check if the range is inside an iframe.
+      // Check if the range is inside an (i)frame.
       if (window != window.top) {
         let dict = this.getForWindow(window.top);
-        if (!dict.frames.has(window))
-          dict.frames.set(window, null);
+        // Add this frame to the list, so that we'll be able to find it later
+        // when we need to clear its selection(s).
+        dict.frames.set(window, {});
       }
     }
 
@@ -373,14 +377,9 @@ FinderHighlighter.prototype = {
       window.clearTimeout(dict.modalRepaintScheduler);
       dict.modalRepaintScheduler = null;
     }
-    dict.lastWindowDimensions = null;
+    dict.lastWindowDimensions = { width: 0, height: 0 };
 
-    if (dict.modalHighlightOutline) {
-      dict.modalHighlightOutline.setAttributeForElement(kModalOutlineId, "style",
-        dict.modalHighlightOutline.getAttributeForElement(kModalOutlineId, "style") +
-        "; opacity: 0");
-    }
-
+    this._removeRangeOutline(window);
     this._removeHighlightAllMask(window);
     this._removeModalHighlightListeners(window);
 
@@ -413,7 +412,6 @@ FinderHighlighter.prototype = {
     let dict = this.getForWindow(window);
     let foundRange = this.finder._fastFind.getFoundRange();
 
-    // Place the match placeholder on top of the current found range.
     if (data.result == Ci.nsITypeAheadFind.FIND_NOTFOUND || !data.searchString || !foundRange) {
       this.hide(window);
       return;
@@ -421,6 +419,7 @@ FinderHighlighter.prototype = {
 
     if (!this._modal) {
       if (this._highlightAll) {
+        dict.previousFoundRange = dict.currentFoundRange;
         dict.currentFoundRange = foundRange;
         let params = this.iterator.params;
         if (dict.visible && this.iterator._areParamsEqual(params, dict.lastIteratorParams))
@@ -428,22 +427,18 @@ FinderHighlighter.prototype = {
         if (!dict.visible && !params)
           params = {word: data.searchString, linksOnly: data.linksOnly};
         if (params)
-          this.highlight(true, params.word, params.linksOnly);
+          this.highlight(true, params.word, params.linksOnly, params.drawOutline);
       }
       return;
     }
 
+    dict.animateOutline = true;
+    // Immediately finish running animations, if any.
+    this._finishOutlineAnimations(dict);
+
     if (foundRange !== dict.currentFoundRange || data.findAgain) {
+      dict.previousFoundRange = dict.currentFoundRange;
       dict.currentFoundRange = foundRange;
-
-      let textContent = this._getRangeContentArray(foundRange);
-      if (!textContent.length) {
-        this.hide(window);
-        return;
-      }
-
-      if (data.findAgain)
-        dict.updateAllRanges = true;
 
       if (!dict.visible)
         this.show(window);
@@ -451,17 +446,8 @@ FinderHighlighter.prototype = {
         this._maybeCreateModalHighlightNodes(window);
     }
 
-    let outlineNode = dict.modalHighlightOutline;
-    if (outlineNode) {
-      if (dict.animation)
-        dict.animation.finish();
-      dict.animation = outlineNode.setAnimationForElement(kModalOutlineId,
-        Cu.cloneInto(kModalOutlineAnim.keyframes, window), kModalOutlineAnim.duration);
-      dict.animation.onfinish = () => dict.animation = null;
-    }
-
     if (this._highlightAll)
-      this.highlight(true, data.searchString, data.linksOnly);
+      this.highlight(true, data.searchString, data.linksOnly, data.drawOutline);
   },
 
   /**
@@ -473,8 +459,7 @@ FinderHighlighter.prototype = {
       return;
 
     let dict = this.getForWindow(window.top);
-    if (dict.animation)
-      dict.animation.finish();
+    this._finishOutlineAnimations(dict);
     dict.dynamicRangesSet.clear();
     dict.frames.clear();
     dict.modalHighlightRectsMap.clear();
@@ -492,22 +477,10 @@ FinderHighlighter.prototype = {
     if (!window || !window.top)
       return;
     this.hide(window);
-    let dict = this.getForWindow(window);
     this.clear(window);
-    dict.currentFoundRange = dict.lastIteratorParams = null;
+    this._removeRangeOutline(window);
 
-    if (!dict.modalHighlightOutline)
-      return;
-
-    if (kDebug) {
-      dict.modalHighlightOutline.remove();
-    } else {
-      try {
-        window.document.removeAnonymousContent(dict.modalHighlightOutline);
-      } catch (ex) {}
-    }
-
-    dict.modalHighlightOutline = null;
+    gWindows.delete(window.top);
   },
 
   /**
@@ -600,6 +573,9 @@ FinderHighlighter.prototype = {
     // If we're in a frame, update the position of the rect (top/ left).
     let currWin = window;
     while (currWin != window.top) {
+      let frameOffsets = this._getFrameElementOffsets(currWin);
+      cssPageRect.translate(frameOffsets.x, frameOffsets.y);
+
       // Since the frame is an element inside a parent window, we'd like to
       // learn its position relative to it.
       let el = this._getDWU(currWin).containerElement;
@@ -622,8 +598,46 @@ FinderHighlighter.prototype = {
 
       cssPageRect.translate(parentRect.left, parentRect.top);
     }
+    let frameOffsets = this._getFrameElementOffsets(currWin);
+    cssPageRect.translate(frameOffsets.x, frameOffsets.y);
 
     return cssPageRect;
+  },
+
+  /**
+   * (I)Frame elements may have a border and/ or padding set, which is not
+   * included in the bounds returned by nsDOMWindowUtils#getRootBounds() for the
+   * window it hosts.
+   * This method fetches this offset of the frame element to the respective window.
+   *
+   * @param  {nsIDOMWindow} window          Window to read the boundary rect from
+   * @return {Object}       Simple object that contains the following two properties:
+   *                        - {Number} x Offset along the horizontal axis.
+   *                        - {Number} y Offset along the vertical axis.
+   */
+  _getFrameElementOffsets(window) {
+    let frame = window.frameElement;
+    if (!frame)
+      return { x: 0, y: 0 };
+
+    // Getting style info is super expensive, causing reflows, so let's cache
+    // frame border widths and padding values aggressively.
+    let dict = this.getForWindow(window.top);
+    let frameData = dict.frames.get(window);
+    if (!frameData)
+      dict.frames.set(window, frameData = {});
+    if (frameData.offset)
+      return frameData.offset;
+
+    let style = frame.ownerGlobal.getComputedStyle(frame);
+    // We only need to left sides, because ranges are offset from point 0,0 in
+    // the top-left corner.
+    let borderOffset = [parseInt(style.borderLeftWidth, 10) || 0, parseInt(style.borderTopWidth, 10) || 0];
+    let paddingOffset = [parseInt(style.paddingLeft, 10) || 0, parseInt(style.paddingTop, 10) || 0];
+    return frameData.offset = {
+      x: borderOffset[0] + paddingOffset[0],
+      y: borderOffset[1] + paddingOffset[1]
+    };
   },
 
   /**
@@ -655,21 +669,6 @@ FinderHighlighter.prototype = {
   },
 
   /**
-   * Utility; fetch the current text contents of a given range.
-   *
-   * @param  {nsIDOMRange} range Range object to extract the contents from.
-   * @return {Array} Snippets of text.
-   */
-  _getRangeContentArray(range) {
-    let content = range.cloneContents();
-    let textContent = [];
-    for (let node of content.childNodes) {
-      textContent.push(node.textContent || node.nodeValue);
-    }
-    return textContent;
-  },
-
-  /**
    * Utility; get all available font styles as applied to the content of a given
    * range. The CSS properties we look for can be found in `kFontPropsCSS`.
    *
@@ -680,7 +679,7 @@ FinderHighlighter.prototype = {
     let node = range.startContainer;
     while (node.nodeType != 1)
       node = node.parentNode;
-    let style = node.ownerDocument.defaultView.getComputedStyle(node, "");
+    let style = node.ownerGlobal.getComputedStyle(node);
     let props = {};
     for (let prop of kFontPropsCamelCase) {
       if (prop in style && style[prop])
@@ -762,9 +761,9 @@ FinderHighlighter.prototype = {
     let rangesCount = ranges.length;
     // Make sure the sample size is an odd number.
     if (sampleSize % 2 == 0) {
-      // Make the currently found range weigh heavier.
-      if (dict.currentFoundRange) {
-        ranges.push(dict.currentFoundRange);
+      // Make the previously or currently found range weigh heavier.
+      if (dict.previousFoundRange || dict.currentFoundRange) {
+        ranges.push(dict.previousFoundRange || dict.currentFoundRange);
         ++sampleSize;
         ++rangesCount;
       } else {
@@ -804,18 +803,18 @@ FinderHighlighter.prototype = {
     // Check if we're in a frameset (including iframes).
     if (window != window.top) {
       if (!dict.frames.has(window))
-        dict.frames.set(window, null);
+        dict.frames.set(window, {});
       return true;
     }
 
     do {
-      let style = window.getComputedStyle(node, null);
+      let style = window.getComputedStyle(node);
       if (kFixed.has(style.position) || kFixed.has(style.overflow) ||
           kFixed.has(style.overflowX) || kFixed.has(style.overflowY)) {
         return true;
       }
       node = node.parentNode;
-    } while (node && node != document.documentElement)
+    } while (node && node != document.documentElement);
 
     return false;
   },
@@ -829,25 +828,26 @@ FinderHighlighter.prototype = {
    *                              the currently active window
    * @return {Set}         Set of rects that were found for the range
    */
-  _getRangeRects(range, dict = null) {
-    let window = range.startContainer.ownerDocument.defaultView;
+  _getRangeRectsAndTexts(range, dict = null) {
+    let window = range.startContainer.ownerGlobal;
     let bounds;
     // If the window is part of a frameset, try to cache the bounds query.
     if (dict && dict.frames.has(window)) {
-      bounds = dict.frames.get(window);
-      if (!bounds) {
-        bounds = this._getRootBounds(window);
-        dict.frames.set(window, bounds);
-      }
-    } else
+      let frameData = dict.frames.get(window);
+      bounds = frameData.bounds;
+      if (!bounds)
+        bounds = frameData.bounds = this._getRootBounds(window);
+    } else {
       bounds = this._getRootBounds(window);
+    }
 
     let topBounds = this._getRootBounds(window.top, false);
     let rects = [];
     // A range may consist of multiple rectangles, we can also do these kind of
     // precise cut-outs. range.getBoundingClientRect() returns the fully
     // encompassing rectangle, which is too much for our purpose here.
-    for (let rect of range.getClientRects()) {
+    let {rectList, textList} = range.getClientRectsAndTexts();
+    for (let rect of rectList) {
       rect = Rect.fromRect(rect);
       rect.x += bounds.x;
       rect.y += bounds.y;
@@ -855,7 +855,7 @@ FinderHighlighter.prototype = {
       if (rect.intersects(topBounds))
         rects.push(rect);
     }
-    return rects;
+    return {rectList: rects, textList};
   },
 
   /**
@@ -873,20 +873,20 @@ FinderHighlighter.prototype = {
    * @return {Set}         Set of rects that were found for the range
    */
   _updateRangeRects(range, checkIfDynamic = true, dict = null) {
-    let window = range.startContainer.ownerDocument.defaultView;
-    let rects = this._getRangeRects(range, dict);
+    let window = range.startContainer.ownerGlobal;
+    let rectsAndTexts = this._getRangeRectsAndTexts(range, dict);
 
     // Only fetch the rect at this point, if not passed in as argument.
     dict = dict || this.getForWindow(window.top);
-    let oldRects = dict.modalHighlightRectsMap.get(range);
-    dict.modalHighlightRectsMap.set(range, rects);
+    let oldRectsAndTexts = dict.modalHighlightRectsMap.get(range);
+    dict.modalHighlightRectsMap.set(range, rectsAndTexts);
     // Check here if we suddenly went down to zero rects from more than zero before,
     // which indicates that we should re-iterate the document.
-    if (oldRects && oldRects.length && !rects.length)
+    if (oldRectsAndTexts && oldRectsAndTexts.rectList.length && !rectsAndTexts.rectList.length)
       dict.detectedGeometryChange = true;
     if (checkIfDynamic && this._isInDynamicContainer(range))
       dict.dynamicRangesSet.add(range);
-    return rects;
+    return rectsAndTexts;
   },
 
   /**
@@ -898,8 +898,8 @@ FinderHighlighter.prototype = {
    */
   _updateDynamicRangesRects(dict) {
     // Reset the frame bounds cache.
-    for (let frame of dict.frames.keys())
-      dict.frames.set(frame, null);
+    for (let frameData of dict.frames.values())
+      frameData.bounds = null;
     for (let range of dict.dynamicRangesSet)
       this._updateRangeRects(range, false, dict);
   },
@@ -910,54 +910,44 @@ FinderHighlighter.prototype = {
    * Rebuild it, if necessary, This will deactivate the animation between
    * occurrences.
    *
-   * @param {Object} dict          Dictionary of properties belonging to the
-   *                               currently active window
-   * @param {Array}  [textContent] Array of text that's inside the range. Optional,
-   *                               defaults to `null`
-   * @param {Object} [fontStyle]   Dictionary of CSS styles in camelCase as
-   *                               returned by `_getRangeFontStyle()`. Optional
+   * @param {Object} dict Dictionary of properties belonging to the currently
+   *                      active window
    */
-  _updateRangeOutline(dict, textContent = null, fontStyle = null) {
+  _updateRangeOutline(dict) {
     let range = dict.currentFoundRange;
     if (!range)
       return;
 
-    fontStyle = fontStyle || this._getRangeFontStyle(range);
+    let fontStyle = this._getRangeFontStyle(range);
     // Text color in the outline is determined by kModalStyles.
     delete fontStyle.color;
 
-    let rects = this._getRangeRects(range);
-    textContent = textContent || this._getRangeContentArray(range);
-
+    let rectsAndTexts = this._updateRangeRects(range, true, dict);
     let outlineAnonNode = dict.modalHighlightOutline;
-    let rectCount = rects.length;
+    let rectCount = rectsAndTexts.rectList.length;
+    let previousRectCount = dict.previousRangeRectsAndTexts.rectList.length;
     // (re-)Building the outline is conditional and happens when one of the
     // following conditions is met:
     // 1. No outline nodes were built before, or
     // 2. When the amount of rectangles to draw is different from before, or
     // 3. When there's more than one rectangle to draw, because it's impossible
     //    to animate that consistently with AnonymousContent nodes.
-    let rebuildOutline = (!outlineAnonNode || rectCount !== dict.previousRangeRectsCount ||
+    let rebuildOutline = (!outlineAnonNode || rectCount !== previousRectCount ||
       rectCount != 1);
-    dict.previousRangeRectsCount = rectCount;
+    dict.previousRangeRectsAndTexts = rectsAndTexts;
 
-    let window = range.startContainer.ownerDocument.defaultView.top;
+    let window = range.startContainer.ownerGlobal.top;
     let document = window.document;
     // First see if we need to and can remove the previous outline nodes.
-    if (rebuildOutline && outlineAnonNode) {
-      if (kDebug) {
-        outlineAnonNode.remove();
-      } else {
-        try {
-          document.removeAnonymousContent(outlineAnonNode);
-        } catch (ex) {}
-      }
-      dict.modalHighlightOutline = null;
-    }
+    if (rebuildOutline)
+      this._removeRangeOutline(window);
 
-    // Abort when there's no text to highlight.
-    if (!textContent.length)
+    // Abort when there's no text to highlight OR when it's the exact same range
+    // as the previous call and isn't inside a dynamic container.
+    if (!rectsAndTexts.textList.length ||
+        (!rebuildOutline && dict.previousUpdatedRange == range && !dict.dynamicRangesSet.has(range))) {
       return;
+    }
 
     let outlineBox;
     if (rebuildOutline) {
@@ -968,11 +958,8 @@ FinderHighlighter.prototype = {
 
     const kModalOutlineTextId = kModalOutlineId + "-text";
     let i = 0;
-    for (let rect of rects) {
-      // if the current rect is the last rect, then text is set to the rest of
-      // the textContent with single spaces injected between the text. Otherwise
-      // text is set to the current textContent for the matching rect.
-      let text = (i == rectCount - 1) ? textContent.slice(i).join(" ") : textContent[i];
+    for (let rect of rectsAndTexts.rectList) {
+      let text = rectsAndTexts.textList[i];
 
       // Next up is to check of the outline box' borders will not overlap with
       // rects that we drew before or will draw after this one.
@@ -982,12 +969,12 @@ FinderHighlighter.prototype = {
       // or next rect, make sure to make the necessary adjustments to the style.
       // These adjustments will override the styles as defined in `kModalStyles.outlineNode`.
       let intersectingSides = new Set();
-      let previous = rects[i - 1];
+      let previous = rectsAndTexts.rectList[i - 1];
       if (previous &&
           rect.left - previous.right <= 2 * kOutlineBoxBorderSize) {
         intersectingSides.add("left");
       }
-      let next = rects[i + 1];
+      let next = rectsAndTexts.rectList[i + 1];
       if (next &&
           next.left - rect.right <= 2 * kOutlineBoxBorderSize) {
         intersectingSides.add("right");
@@ -1003,7 +990,6 @@ FinderHighlighter.prototype = {
           (intersectingSides.has("left") ? 0 : kOutlineBoxBorderRadius) + "px" ]);
       }
 
-      ++i;
       let outlineStyle = this._getStyleString(kModalStyles.outlineNode, [
         ["top", rect.top + "px"],
         ["left", rect.left + "px"],
@@ -1015,23 +1001,24 @@ FinderHighlighter.prototype = {
         this._getHTMLFontStyle(fontStyle);
 
       if (rebuildOutline) {
-        let textBoxParent = (rectCount == 1) ? outlineBox :
-          outlineBox.appendChild(document.createElementNS(kNSHTML, "div"));
+        let textBoxParent = outlineBox.appendChild(document.createElementNS(kNSHTML, "div"));
+        textBoxParent.setAttribute("id", kModalOutlineId + i);
         textBoxParent.setAttribute("style", outlineStyle);
 
         let textBox = document.createElementNS(kNSHTML, "span");
-        if (rectCount == 1)
-          textBox.setAttribute("id", kModalOutlineTextId);
+        textBox.setAttribute("id", kModalOutlineTextId + i);
         textBox.setAttribute("style", textStyle);
         textBox.textContent = text;
         textBoxParent.appendChild(textBox);
       } else {
         // Set the appropriate properties on the existing nodes, which will also
         // activate the transitions.
-        outlineAnonNode.setAttributeForElement(kModalOutlineId, "style", outlineStyle);
-        outlineAnonNode.setAttributeForElement(kModalOutlineTextId, "style", textStyle);
-        outlineAnonNode.setTextContentForElement(kModalOutlineTextId, text);
+        outlineAnonNode.setAttributeForElement(kModalOutlineId + i, "style", outlineStyle);
+        outlineAnonNode.setAttributeForElement(kModalOutlineTextId + i, "style", textStyle);
+        outlineAnonNode.setTextContentForElement(kModalOutlineTextId + i, text);
       }
+
+      ++i;
     }
 
     if (rebuildOutline) {
@@ -1040,6 +1027,54 @@ FinderHighlighter.prototype = {
           document.documentElement).appendChild(outlineBox)) :
         document.insertAnonymousContent(outlineBox);
     }
+
+    if (dict.animateOutline && !this._isPageTooBig(dict)) {
+      let animation;
+      dict.animations = new Set();
+      for (let i = rectsAndTexts.rectList.length - 1; i >= 0; --i) {
+        animation = dict.modalHighlightOutline.setAnimationForElement(kModalOutlineId + i,
+          Cu.cloneInto(kModalOutlineAnim.keyframes, window), kModalOutlineAnim.duration);
+        animation.onfinish = function() { dict.animations.delete(this); };
+        dict.animations.add(animation);
+      }
+    }
+    dict.animateOutline = false;
+
+    dict.previousUpdatedRange = range;
+  },
+
+  /**
+   * Finish any currently playing animations on the found range outline node.
+   *
+   * @param {Object} dict Dictionary of properties belonging to the currently
+   *                      active window
+   */
+  _finishOutlineAnimations(dict) {
+    if (!dict.animations)
+      return;
+    for (let animation of dict.animations)
+      animation.finish();
+  },
+
+  /**
+   * Safely remove the outline AnoymousContent node from the CanvasFrame.
+   *
+   * @param {nsIDOMWindow} window
+   */
+  _removeRangeOutline(window) {
+    let dict = this.getForWindow(window);
+    if (!dict.modalHighlightOutline)
+      return;
+
+    if (kDebug) {
+      dict.modalHighlightOutline.remove();
+    } else {
+      try {
+        window.document.removeAnonymousContent(dict.modalHighlightOutline);
+      } catch (ex) {}
+    }
+
+    dict.modalHighlightOutline = null;
   },
 
   /**
@@ -1050,9 +1085,6 @@ FinderHighlighter.prototype = {
    * @param {nsIDOMWindow} window Window object, whose DOM tree is being traversed
    */
   _modalHighlight(range, controller, window) {
-    if (!this._getRangeContentArray(range).length)
-      return;
-
     this._updateRangeRects(range);
 
     this.show(window);
@@ -1133,19 +1165,25 @@ FinderHighlighter.prototype = {
 
     let allRects = [];
     if (paintContent || dict.modalHighlightAllMask) {
-      this._updateDynamicRangesRects(dict);
+      // No need to update dynamic ranges separately when we already about to
+      // update all of them anyway.
+      if (!dict.updateAllRanges)
+        this._updateDynamicRangesRects(dict);
 
       let DOMRect = window.DOMRect;
-      for (let [range, rects] of dict.modalHighlightRectsMap) {
+      for (let [range, rectsAndTexts] of dict.modalHighlightRectsMap) {
+        if (!this.finder._fastFind.isRangeVisible(range, false))
+          continue;
+
         if (dict.updateAllRanges)
-          rects = this._updateRangeRects(range);
+          rectsAndTexts = this._updateRangeRects(range);
 
         // If a geometry change was detected, we bail out right away here, because
         // the current set of ranges has been invalidated.
         if (dict.detectedGeometryChange)
           return;
 
-        for (let rect of rects)
+        for (let rect of rectsAndTexts.rectList)
           allRects.push(new DOMRect(rect.x, rect.y, rect.width, rect.height));
       }
       dict.updateAllRanges = false;
@@ -1178,6 +1216,20 @@ FinderHighlighter.prototype = {
   },
 
   /**
+   * Check if the width or height of the current document is too big to handle
+   * for certain operations. This allows us to degrade gracefully when we expect
+   * the performance to be negatively impacted due to drawing-intensive operations.
+   *
+   * @param  {Object} dict Dictionary of properties belonging to the currently
+   *                       active window
+   * @return {Boolean}
+   */
+  _isPageTooBig(dict) {
+    let {height, width} = dict.lastWindowDimensions;
+    return height >= kPageIsTooBigPx || width >= kPageIsTooBigPx;
+  },
+
+  /**
    * Doing a full repaint each time a range is delivered by the highlight iterator
    * is way too costly, thus we pipe the frequency down to every
    * `kModalHighlightRepaintLoFreqMs` milliseconds. If there are dynamic ranges
@@ -1204,7 +1256,9 @@ FinderHighlighter.prototype = {
     window = window.top;
     let dict = this.getForWindow(window);
     let hasDynamicRanges = !!dict.dynamicRangesSet.size;
-    let repaintDynamicRanges = ((scrollOnly || contentChanged) && hasDynamicRanges);
+    let pageIsTooBig = this._isPageTooBig(dict);
+    let repaintDynamicRanges = ((scrollOnly || contentChanged) && hasDynamicRanges
+      && !pageIsTooBig);
 
     // When we request to repaint unconditionally, we mean to call
     // `_repaintHighlightAllMask()` right after the timeout.
@@ -1220,15 +1274,18 @@ FinderHighlighter.prototype = {
     dict.modalRepaintScheduler = window.setTimeout(() => {
       dict.modalRepaintScheduler = null;
 
-      let { width: previousWidth, height: previousHeight } = dict.lastWindowDimensions;
-      let { width, height } = dict.lastWindowDimensions = this._getWindowDimensions(window);
-      let pageContentChanged = dict.detectedGeometryChange ||
-                               (Math.abs(previousWidth - width) > kContentChangeThresholdPx ||
-                                Math.abs(previousHeight - height) > kContentChangeThresholdPx);
+      let pageContentChanged = dict.detectedGeometryChange;
+      if (!pageContentChanged && !pageIsTooBig) {
+        let { width: previousWidth, height: previousHeight } = dict.lastWindowDimensions;
+        let { width, height } = dict.lastWindowDimensions = this._getWindowDimensions(window);
+        pageContentChanged = dict.detectedGeometryChange ||
+                             (Math.abs(previousWidth - width) > kContentChangeThresholdPx ||
+                              Math.abs(previousHeight - height) > kContentChangeThresholdPx);
+      }
       dict.detectedGeometryChange = false;
       // When the page has changed significantly enough in size, we'll restart
       // the iterator with the same parameters as before to find us new ranges.
-      if (pageContentChanged)
+      if (pageContentChanged && !pageIsTooBig)
         this.iterator.restart(this.finder);
 
       if (dict.unconditionalRepaintRequested ||
@@ -1262,7 +1319,7 @@ FinderHighlighter.prototype = {
     let target = this.iterator._getDocShell(window).chromeEventHandler;
     target.addEventListener("MozAfterPaint", dict.highlightListeners[0]);
     target.addEventListener("resize", dict.highlightListeners[1]);
-    target.addEventListener("scroll", dict.highlightListeners[2]);
+    target.addEventListener("scroll", dict.highlightListeners[2], { capture: true, passive: true });
     target.addEventListener("click", dict.highlightListeners[3]);
     target.addEventListener("selectstart", dict.highlightListeners[4]);
   },
@@ -1281,7 +1338,7 @@ FinderHighlighter.prototype = {
     let target = this.iterator._getDocShell(window).chromeEventHandler;
     target.removeEventListener("MozAfterPaint", dict.highlightListeners[0]);
     target.removeEventListener("resize", dict.highlightListeners[1]);
-    target.removeEventListener("scroll", dict.highlightListeners[2]);
+    target.removeEventListener("scroll", dict.highlightListeners[2], { capture: true, passive: true });
     target.removeEventListener("click", dict.highlightListeners[3]);
     target.removeEventListener("selectstart", dict.highlightListeners[4]);
 
@@ -1472,7 +1529,7 @@ FinderHighlighter.prototype = {
       if (textNode == range.startContainer &&
           offset == range.startOffset) {
         range.setStart(range.startContainer,
-                       range.startOffset+aString.length);
+                       range.startOffset + aString.length);
       } else if (textNode != range.endContainer ||
                  offset != range.endOffset) {
         // The edit occurred within the highlight - any addition of text
@@ -1492,8 +1549,6 @@ FinderHighlighter.prototype = {
     let controller = editor.selectionController;
     let fSelection = controller.getSelection(Ci.nsISelectionController.SELECTION_FIND);
 
-    let selectionIndex = 0;
-    let findSelectionIndex = 0;
     let shouldDelete = {};
     let numberOfDeletedSelections = 0;
     let numberOfMatches = fSelection.rangeCount;
@@ -1595,7 +1650,7 @@ FinderHighlighter.prototype = {
     return {
       findbar: this,
 
-      QueryInterface: function(iid) {
+      QueryInterface(iid) {
         if (iid.equals(Ci.nsIDocumentStateListener) ||
             iid.equals(Ci.nsISupports))
           return this;
@@ -1603,13 +1658,13 @@ FinderHighlighter.prototype = {
         throw Components.results.NS_ERROR_NO_INTERFACE;
       },
 
-      NotifyDocumentWillBeDestroyed: function() {
+      NotifyDocumentWillBeDestroyed() {
         this.findbar._onEditorDestruction(this);
       },
 
       // Unimplemented
-      notifyDocumentCreated: function() {},
-      notifyDocumentStateChanged: function(aDirty) {}
+      notifyDocumentCreated() {},
+      notifyDocumentStateChanged(aDirty) {}
     };
   }
 };

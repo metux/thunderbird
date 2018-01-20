@@ -13,10 +13,9 @@ this.EXPORTED_SYMBOLS = [
 
 var {utils: Cu} = Components;
 
+Cu.import("resource://services-sync/main.js");
 Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/util.js");
-
-var btoa = Cu.import("resource://gre/modules/Log.jsm").btoa;
 
 this.FakeFilesystemService = function FakeFilesystemService(contents) {
   this.fakeContents = contents;
@@ -36,19 +35,18 @@ this.FakeFilesystemService = function FakeFilesystemService(contents) {
     }
   }
 
-  Utils.jsonSave = function jsonSave(filePath, that, obj, callback) {
+  Utils.jsonSave = async function jsonSave(filePath, that, obj) {
     let json = typeof obj == "function" ? obj.call(that) : obj;
     self.fakeContents["weave/" + filePath + ".json"] = JSON.stringify(json);
-    callback.call(that);
   };
 
-  Utils.jsonLoad = function jsonLoad(filePath, that, cb) {
+  Utils.jsonLoad = async function jsonLoad(filePath, that) {
     let obj;
     let json = self.fakeContents["weave/" + filePath + ".json"];
     if (json) {
       obj = JSON.parse(json);
     }
-    cb.call(that, obj);
+    return obj;
   };
 
   Utils.jsonMove = function jsonMove(aFrom, aTo, that) {
@@ -70,7 +68,7 @@ this.fakeSHA256HMAC = function fakeSHA256HMAC(message) {
      message += " ";
    }
    return message;
-}
+};
 
 this.FakeGUIDService = function FakeGUIDService() {
   let latestGUID = 0;
@@ -78,9 +76,9 @@ this.FakeGUIDService = function FakeGUIDService() {
   Utils.makeGUID = function makeGUID() {
     // ensure that this always returns a unique 12 character string
     let nextGUID = "fake-guid-" + String(latestGUID++).padStart(2, "0");
-    return nextGUID.slice(nextGUID.length-12, nextGUID.length);
+    return nextGUID.slice(nextGUID.length - 12, nextGUID.length);
   };
-}
+};
 
 /*
  * Mock implementation of WeaveCrypto. It does not encrypt or
@@ -89,24 +87,24 @@ this.FakeGUIDService = function FakeGUIDService() {
 this.FakeCryptoService = function FakeCryptoService() {
   this.counter = 0;
 
-  delete Svc.Crypto;  // get rid of the getter first
-  Svc.Crypto = this;
+  delete Weave.Crypto; // get rid of the getter first
+  Weave.Crypto = this;
 
   CryptoWrapper.prototype.ciphertextHMAC = function ciphertextHMAC(keyBundle) {
     return fakeSHA256HMAC(this.ciphertext);
   };
-}
+};
 FakeCryptoService.prototype = {
 
-  encrypt: function encrypt(clearText, symmetricKey, iv) {
+  async encrypt(clearText, symmetricKey, iv) {
     return clearText;
   },
 
-  decrypt: function decrypt(cipherText, symmetricKey, iv) {
+  async decrypt(cipherText, symmetricKey, iv) {
     return cipherText;
   },
 
-  generateRandomKey: function generateRandomKey() {
+  async generateRandomKey() {
     return btoa("fake-symmetric-key-" + this.counter++);
   },
 
@@ -117,11 +115,6 @@ FakeCryptoService.prototype = {
 
   expandData: function expandData(data, len) {
     return data;
-  },
-
-  deriveKeyFromPassphrase: function deriveKeyFromPassphrase(passphrase,
-                                                            salt, keyLength) {
-    return "some derived key string composed of bytes";
   },
 
   generateRandomBytes: function generateRandomBytes(byteCount) {

@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <ctype.h>
+#include <inttypes.h>
 #include <limits>
 #include <stdint.h>
 #include <stdlib.h>
@@ -205,7 +206,7 @@ static void hexdump(const void *_data, size_t size) {
     const uint8_t *data = (const uint8_t *)_data;
     size_t offset = 0;
     while (offset < size) {
-        printf("0x%04x  ", offset);
+        printf("0x%04x  ", static_cast<unsigned int>(offset));
 
         size_t n = size - offset;
         if (n > 16) {
@@ -268,6 +269,9 @@ static const char *FourCC2MIME(uint32_t fourcc) {
 
         case FOURCC('V', 'P', '6', 'F'):
             return MEDIA_MIMETYPE_VIDEO_VP6;
+
+        case FOURCC('v', 'p', '0', '9'):
+            return MEDIA_MIMETYPE_VIDEO_VP9;
 
         default:
             ALOGE("Unknown MIME type %08x", fourcc);
@@ -408,7 +412,7 @@ status_t MPEG4Extractor::readMetaData() {
         // The parseChunk function returns UNKNOWN_ERROR to skip
         // some boxes we don't want to handle. Filter that error
         // code but return others so e.g. I/O errors propagate.
-        if (err != OK && err != (status_t) UNKNOWN_ERROR) {
+        if (err != OK && err != static_cast<status_t>(UNKNOWN_ERROR)) {
           ALOGW("Error %d parsing chunck at offset %lld looking for first track",
               err, (long long)offset);
           break;
@@ -606,7 +610,7 @@ status_t MPEG4Extractor::parseDrmSINF(off64_t *offset, off64_t data_offset) {
                 return ERROR_MALFORMED;
             }
             sinf->len = dataLen - 3;
-            sinf->IPMPData = new (fallible) char[sinf->len];
+            sinf->IPMPData = new (mozilla::fallible) char[sinf->len];
             if (!sinf->IPMPData) {
                 return -ENOMEM;
             }
@@ -624,7 +628,7 @@ status_t MPEG4Extractor::parseDrmSINF(off64_t *offset, off64_t data_offset) {
         return ERROR_MALFORMED;
     }
 
-    return UNKNOWN_ERROR;  // Return a dummy error.
+    return static_cast<status_t>(UNKNOWN_ERROR);  // Return a dummy error.
 }
 
 struct PathAdder {
@@ -753,7 +757,6 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
         case FOURCC('m', 'o', 'o', 'f'):
         case FOURCC('t', 'r', 'a', 'f'):
         case FOURCC('m', 'f', 'r', 'a'):
-        case FOURCC('u', 'd', 't', 'a'):
         case FOURCC('i', 'l', 's', 't'):
         case FOURCC('s', 'i', 'n', 'f'):
         case FOURCC('s', 'c', 'h', 'i'):
@@ -843,7 +846,7 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
                 mInitCheck = OK;
 
                 if (!mIsDrm) {
-                    return UNKNOWN_ERROR;  // Return a dummy error.
+                    return static_cast<status_t>(UNKNOWN_ERROR);  // Return a dummy error.
                 } else {
                     return OK;
                 }
@@ -898,7 +901,7 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
                 }
                 entriesoffset += 4; // ignore media_rate_integer and media_rate_fraction.
                 if (media_time == -1 && i) {
-                    ALOGW("ignoring invalid empty edit", i);
+                    ALOGW("ignoring invalid empty edit");
                     break;
                 } else if (media_time == -1) {
                     // Starting offsets for tracks (streams) are represented by an initial empty edit.
@@ -1045,7 +1048,7 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
 
             // Copy the contents of the box (including header) verbatim.
             pssh.datalen = chunk_data_size + 8;
-            pssh.data = new (fallible) uint8_t[pssh.datalen];
+            pssh.data = new (mozilla::fallible) uint8_t[pssh.datalen];
             if (!pssh.data) {
                 return -ENOMEM;
             }
@@ -1651,7 +1654,8 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
 
             if (mPath.Length() >= 2
                     && (mPath[mPath.Length() - 2] == FOURCC('m', 'p', '4', 'a') ||
-                       (mPath[mPath.Length() - 2] == FOURCC('e', 'n', 'c', 'a')))) {
+                       (mPath[mPath.Length() - 2] == FOURCC('e', 'n', 'c', 'a')) ||
+                       (mPath[mPath.Length() - 2] == FOURCC('w', 'a', 'v', 'e')))) {
                 // Information from the ESDS must be relied on for proper
                 // setup of sample rate and channel count for MPEG4 Audio.
                 // The generic header appears to only contain generic
@@ -1672,11 +1676,11 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
         case FOURCC('a', 'v', 'c', 'C'):
         {
             if (chunk_data_size < 7) {
-              ALOGE("short avcC chunk (%d bytes)", chunk_data_size);
+              ALOGE("short avcC chunk (%" PRId64 " bytes)", int64_t(chunk_data_size));
               return ERROR_MALFORMED;
             }
 
-            sp<ABuffer> buffer = new (fallible) ABuffer(chunk_data_size);
+            sp<ABuffer> buffer = new (mozilla::fallible) ABuffer(chunk_data_size);
             if (!buffer.get() || !buffer->data()) {
                 return -ENOMEM;
             }
@@ -1712,7 +1716,7 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
             char buffer[23];
             if (chunk_data_size != 7 &&
                 chunk_data_size != 23) {
-                ALOGE("Incorrect D263 box size %lld", chunk_data_size);
+                ALOGE("Incorrect D263 box size %" PRId64, chunk_data_size);
                 return ERROR_MALFORMED;
             }
 
@@ -1911,7 +1915,7 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
             if (size >= kMAX_ALLOCATION - chunk_size) {
                 return ERROR_MALFORMED;
             }
-            uint8_t *buffer = new (fallible) uint8_t[size + chunk_size];
+            uint8_t *buffer = new (mozilla::fallible) uint8_t[size + chunk_size];
             if (!buffer) {
                 return -ENOMEM;
             }
@@ -1946,7 +1950,7 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
                 if (chunk_data_size <= kSkipBytesOfDataBox) {
                   return ERROR_MALFORMED;
                 }
-                sp<ABuffer> buffer = new (fallible) ABuffer(chunk_data_size + 1);
+                sp<ABuffer> buffer = new (mozilla::fallible) ABuffer(chunk_data_size + 1);
                 if (!buffer.get() || !buffer->data()) {
                     return -ENOMEM;
                 }
@@ -1976,7 +1980,7 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
         {
             parseSegmentIndex(data_offset, chunk_data_size);
             *offset += chunk_size;
-            return UNKNOWN_ERROR; // stop parsing after sidx
+            return static_cast<status_t>(UNKNOWN_ERROR); // stop parsing after sidx
         }
 
         case FOURCC('w', 'a', 'v', 'e'):

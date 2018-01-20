@@ -1,6 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+"use strict";
+
 // Test that selecting the dominator tree view while in the middle of taking a
 // snapshot properly kicks off fetching and computing dominator trees.
 
@@ -16,19 +18,14 @@ const {
   changeView
 } = require("devtools/client/memory/actions/view");
 
-function run_test() {
-  run_next_test();
-}
-
 add_task(function* () {
   let front = new StubbedMemoryFront();
   let heapWorker = new HeapAnalysesClient();
   yield front.attach();
 
-  for (let intermediateSnapshotState of [states.SAVING,
-                                         states.READING,
-                                         states.READ]) {
-    dumpn(`Testing switching to the DOMINATOR_TREE view in the middle of the ${intermediateSnapshotState} snapshot state`);
+  for (let intermediateSnapshotState of [states.SAVING, states.READING, states.READ]) {
+    dumpn("Testing switching to the DOMINATOR_TREE view in the middle of the " +
+          `${intermediateSnapshotState} snapshot state`);
 
     let store = Store();
     let { getState, dispatch } = store;

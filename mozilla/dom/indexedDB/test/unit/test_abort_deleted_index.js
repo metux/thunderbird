@@ -5,7 +5,7 @@
 
 var testGenerator = testSteps();
 
-function testSteps()
+function* testSteps()
 {
   const name = this.window ? window.location.pathname : "Splendid Test";
   const storeName = "test store";
@@ -56,7 +56,7 @@ function testSteps()
   request.onerror = expectedErrorHandler("AbortError");
   txn.abort();
   try {
-    index.get('foo');
+    index.get("foo");
     ok(false, "TransactionInactiveError shall be thrown right after a deletion of an index is aborted.");
   } catch (e) {
     ok(e instanceof DOMException, "got a database exception");
@@ -66,7 +66,7 @@ function testSteps()
   yield undefined;
 
   try {
-    index.get('foo');
+    index.get("foo");
     ok(false, "TransactionInactiveError shall be thrown after the transaction is inactive.");
   } catch (e) {
     ok(e instanceof DOMException, "got a database exception");
@@ -74,5 +74,4 @@ function testSteps()
   }
 
   finishTest();
-  yield undefined;
 }

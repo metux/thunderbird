@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -41,10 +42,11 @@ DrawTargetTiled::Init(const TileSet& aTiles)
     mRect.y = min(mRect.y, mTiles[i].mTileOrigin.y);
     mRect.width = newXMost - mRect.x;
     mRect.height = newYMost - mRect.y;
-    mTiles[i].mDrawTarget->SetTransform(Matrix::Translation(mTiles[i].mTileOrigin.x,
-                                                            mTiles[i].mTileOrigin.y));
+    mTiles[i].mDrawTarget->SetTransform(Matrix::Translation(-mTiles[i].mTileOrigin.x,
+                                                            -mTiles[i].mTileOrigin.y));
   }
   mFormat = mTiles[0].mDrawTarget->GetFormat();
+  SetPermitSubpixelAA(IsOpaque(mFormat));
   return true;
 }
 
@@ -109,14 +111,16 @@ TILED_COMMAND(Flush)
 TILED_COMMAND4(DrawFilter, FilterNode*, const Rect&, const Point&, const DrawOptions&)
 TILED_COMMAND1(ClearRect, const Rect&)
 TILED_COMMAND4(MaskSurface, const Pattern&, SourceSurface*, Point, const DrawOptions&)
-TILED_COMMAND5(FillGlyphs, ScaledFont*, const GlyphBuffer&, const Pattern&, const DrawOptions&, const GlyphRenderingOptions*)
+TILED_COMMAND4(FillGlyphs, ScaledFont*, const GlyphBuffer&, const Pattern&, const DrawOptions&)
 TILED_COMMAND3(Mask, const Pattern&, const Pattern&, const DrawOptions&)
 
 void
 DrawTargetTiled::PushClip(const Path* aPath)
 {
-  mClippedOutTilesStack.push_back(std::vector<uint32_t>());
-  std::vector<uint32_t>& clippedTiles = mClippedOutTilesStack.back();
+  if (!mClippedOutTilesStack.append(std::vector<bool>(mTiles.size()))) {
+    MOZ_CRASH("out of memory");
+  }
+  std::vector<bool>& clippedTiles = mClippedOutTilesStack.back();
 
   Rect deviceRect = aPath->GetBounds(mTransform);
 
@@ -129,7 +133,7 @@ DrawTargetTiled::PushClip(const Path* aPath)
         mTiles[i].mDrawTarget->PushClip(aPath);
       } else {
         mTiles[i].mClippedOut = true;
-        clippedTiles.push_back(i);
+        clippedTiles[i] = true;
       }
     }
   }
@@ -138,8 +142,10 @@ DrawTargetTiled::PushClip(const Path* aPath)
 void
 DrawTargetTiled::PushClipRect(const Rect& aRect)
 {
-  mClippedOutTilesStack.push_back(std::vector<uint32_t>());
-  std::vector<uint32_t>& clippedTiles = mClippedOutTilesStack.back();
+  if (!mClippedOutTilesStack.append(std::vector<bool>(mTiles.size()))) {
+    MOZ_CRASH("out of memory");
+  }
+  std::vector<bool>& clippedTiles = mClippedOutTilesStack.back();
 
   Rect deviceRect = mTransform.TransformBounds(aRect);
 
@@ -152,7 +158,7 @@ DrawTargetTiled::PushClipRect(const Rect& aRect)
         mTiles[i].mDrawTarget->PushClipRect(aRect);
       } else {
         mTiles[i].mClippedOut = true;
-        clippedTiles.push_back(i);
+        clippedTiles[i] = true;
       }
     }
   }
@@ -161,18 +167,17 @@ DrawTargetTiled::PushClipRect(const Rect& aRect)
 void
 DrawTargetTiled::PopClip()
 {
+  std::vector<bool>& clippedTiles = mClippedOutTilesStack.back();
+  MOZ_ASSERT(clippedTiles.size() == mTiles.size());
   for (size_t i = 0; i < mTiles.size(); i++) {
     if (!mTiles[i].mClippedOut) {
       mTiles[i].mDrawTarget->PopClip();
+    } else if (clippedTiles[i]) {
+      mTiles[i].mClippedOut = false;
     }
   }
 
-  std::vector<uint32_t>& clippedTiles = mClippedOutTilesStack.back();
-  for (size_t i = 0; i < clippedTiles.size(); i++) {
-    mTiles[clippedTiles[i]].mClippedOut = false;
-  }
-
-  mClippedOutTilesStack.pop_back();
+  mClippedOutTilesStack.popBack();
 }
 
 void
@@ -200,6 +205,15 @@ DrawTargetTiled::SetTransform(const Matrix& aTransform)
     mTiles[i].mDrawTarget->SetTransform(mat);
   }
   DrawTarget::SetTransform(aTransform);
+}
+
+void
+DrawTargetTiled::SetPermitSubpixelAA(bool aPermitSubpixelAA)
+{
+  DrawTarget::SetPermitSubpixelAA(aPermitSubpixelAA);
+  for (size_t i = 0; i < mTiles.size(); i++) {
+    mTiles[i].mDrawTarget->SetPermitSubpixelAA(aPermitSubpixelAA);
+  }
 }
 
 void
@@ -317,10 +331,16 @@ DrawTargetTiled::PushLayer(bool aOpaque, Float aOpacity, SourceSurface* aMask,
   // XXX - not sure this is what we want or whether we want to continue drawing to a larger
   // intermediate surface, that would require tweaking the code in here a little though.
   for (size_t i = 0; i < mTiles.size(); i++) {
-    IntRect bounds = aBounds;
-    bounds.MoveBy(-mTiles[i].mTileOrigin);
-    mTiles[i].mDrawTarget->PushLayer(aOpaque, aOpacity, aMask, aMaskTransform, aBounds);
+    if (!mTiles[i].mClippedOut) {
+      IntRect bounds = aBounds;
+      bounds.MoveBy(-mTiles[i].mTileOrigin);
+      mTiles[i].mDrawTarget->PushLayer(aOpaque, aOpacity, aMask, aMaskTransform, bounds, aCopyBackground);
+    }
   }
+
+  PushedLayer layer(GetPermitSubpixelAA());
+  mPushedLayers.push_back(layer);
+  SetPermitSubpixelAA(aOpaque);
 }
 
 void
@@ -329,8 +349,14 @@ DrawTargetTiled::PopLayer()
   // XXX - not sure this is what we want or whether we want to continue drawing to a larger
   // intermediate surface, that would require tweaking the code in here a little though.
   for (size_t i = 0; i < mTiles.size(); i++) {
-    mTiles[i].mDrawTarget->PopLayer();
+    if (!mTiles[i].mClippedOut) {
+      mTiles[i].mDrawTarget->PopLayer();
+    }
   }
+
+  MOZ_ASSERT(mPushedLayers.size());
+  const PushedLayer& layer = mPushedLayers.back();
+  SetPermitSubpixelAA(layer.mOldPermitSubpixelAA);
 }
 
 } // namespace gfx

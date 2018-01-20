@@ -5,9 +5,7 @@
 <!ENTITY aboutProfiles.create "නව පැතිකඩක් තනන්න">
 <!ENTITY aboutProfiles.restart.title "යළි අරඹන්න">
 
+<!ENTITY aboutProfiles.title "About Profiles">
+<!ENTITY aboutProfiles.subtitle "This page helps you to manage your profiles. Each profile is a separate world which contains separate history, bookmarks, settings and add-ons.">
 <!ENTITY aboutProfiles.restart.inSafeMode "Restart with Add-ons Disabled…">
 <!ENTITY aboutProfiles.restart.normal "Restart normally…">
-<!ENTITY aboutProfiles.subtitle "This page helps you to manage your profiles. Each profile is a separate world which contains separate history, bookmarks, settings and add-ons.">
-
-
-<!ENTITY aboutProfiles.title "About Profiles">

@@ -1,12 +1,16 @@
+/* eslint-env mozilla/frame-script */
+// assert is available to chrome scripts loaded via SpecialPowers.loadChromeScript.
+/* global assert */
+
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/FormHistory.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://testing-common/ContentTaskUtils.jsm");
 
-var gAutocompletePopup = Services.ww.activeWindow.
-                                   document.
-                                   getElementById("PopupAutoComplete");
+var gAutocompletePopup = Services.ww.activeWindow
+                                    .document
+                                    .getElementById("PopupAutoComplete");
 assert.ok(gAutocompletePopup, "Got autocomplete popup");
 
 var ParentUtils = {
@@ -25,13 +29,14 @@ var ParentUtils = {
 
   updateFormHistory(changes) {
     let handler = {
-      handleError: function (error) {
+      handleError(error) {
         assert.ok(false, error);
         sendAsyncMessage("formHistoryUpdated", { ok: false });
       },
-      handleCompletion: function (reason) {
-        if (!reason)
+      handleCompletion(reason) {
+        if (!reason) {
           sendAsyncMessage("formHistoryUpdated", { ok: true });
+        }
       },
     };
     FormHistory.update(changes, handler);
@@ -44,14 +49,16 @@ var ParentUtils = {
 
   countEntries(name, value) {
     let obj = {};
-    if (name)
+    if (name) {
       obj.fieldname = name;
-    if (value)
+    }
+    if (value) {
       obj.value = value;
+    }
 
     let count = 0;
     let listener = {
-      handleResult(result) { count = result },
+      handleResult(result) { count = result; },
       handleError(error) {
         assert.ok(false, error);
         sendAsyncMessage("entriesCounted", { ok: false });
@@ -60,7 +67,7 @@ var ParentUtils = {
         if (!reason) {
           sendAsyncMessage("entriesCounted", { ok: true, count });
         }
-      }
+      },
     };
 
     FormHistory.count(obj, listener);
@@ -78,7 +85,8 @@ var ParentUtils = {
       } catch (e) {
         return false;
       }
-    }, "Waiting for row count change: " + expectedCount + " First value: " + expectedFirstValue).then(() => {
+    }, "Waiting for row count change: " + expectedCount + " First value: " + expectedFirstValue)
+    .then(() => {
       let results = this.getMenuEntries();
       sendAsyncMessage("gotMenuChange", { results });
     });
@@ -109,7 +117,7 @@ var ParentUtils = {
   cleanup() {
     gAutocompletePopup.removeEventListener("popupshown", this._popupshownListener);
     this.cleanUpFormHist();
-  }
+  },
 };
 
 ParentUtils._popupshownListener =
@@ -138,7 +146,7 @@ addMessageListener("getPopupState", () => {
 });
 
 addMessageListener("addObserver", () => {
-  Services.obs.addObserver(ParentUtils, "satchel-storage-changed", false);
+  Services.obs.addObserver(ParentUtils, "satchel-storage-changed");
 });
 addMessageListener("removeObserver", () => {
   Services.obs.removeObserver(ParentUtils, "satchel-storage-changed");

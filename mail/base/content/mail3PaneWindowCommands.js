@@ -135,6 +135,7 @@ var DefaultController =
       case "cmd_forwardAttachment":
       case "cmd_editAsNew":
       case "cmd_editDraftMsg":
+      case "cmd_newMsgFromTemplate":
       case "cmd_createFilterFromMenu":
       case "cmd_delete":
       case "cmd_cancel":
@@ -332,6 +333,7 @@ var DefaultController =
       case "cmd_forwardAttachment":
       case "cmd_editAsNew":
       case "cmd_editDraftMsg":
+      case "cmd_newMsgFromTemplate":
       case "cmd_openMessage":
       case "button_print":
       case "cmd_print":
@@ -374,7 +376,7 @@ var DefaultController =
           return gFolderDisplay.getCommandStatus(nsMsgViewCommandType.cmdRequiringMsgBody);
         return false;
       case "cmd_newMessage":
-      // This enables Write button even without any accounts set up, so users might run into Bug 524863
+        return CanComposeMessages();
       case "cmd_printSetup":
       case "cmd_viewAllHeader":
       case "cmd_viewNormalHeader":
@@ -650,6 +652,9 @@ var DefaultController =
         break;
       case "cmd_editDraftMsg":
         MsgEditDraftMessage(null);
+        break;
+      case "cmd_newMsgFromTemplate":
+        MsgNewMessageFromTemplate(null);
         break;
       case "cmd_createFilterFromMenu":
         MsgCreateFilter();

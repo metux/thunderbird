@@ -41,6 +41,13 @@ import mock
 import rsa
 import sys
 
+# "constants" to make it easier for consumers to specify hash algorithms
+HASH_MD5 = 'hash:md5'
+HASH_SHA1 = 'hash:sha1'
+HASH_SHA256 = 'hash:sha256'
+HASH_SHA384 = 'hash:sha384'
+HASH_SHA512 = 'hash:sha512'
+
 def byteStringToHexifiedBitString(string):
     """Takes a string of bytes and returns a hex string representing
     those bytes for use with pyasn1.type.univ.BitString. It must be of
@@ -65,6 +72,25 @@ class UnknownKeySpecificationError(UnknownBaseError):
     def __init__(self, value):
         UnknownBaseError.__init__(self, value)
         self.category = 'key specification'
+
+
+class UnknownHashAlgorithmError(UnknownBaseError):
+    """Helper exception type to handle unknown key specifications."""
+
+    def __init__(self, value):
+        UnknownBaseError.__init__(self, value)
+        self.category = 'hash algorithm'
+
+
+class UnsupportedHashAlgorithmError(Exception):
+    """Helper exception type for unsupported hash algorithms."""
+    def __init__(self, value):
+        super(UnsupportedHashAlgorithmError, self).__init__()
+        self.value = value
+
+    def __str__(self):
+        return 'Unsupported hash algorithm "%s"' % repr(self.value)
+
 
 class RSAPublicKey(univ.Sequence):
     """Helper type for encoding an RSA public key"""
@@ -553,10 +579,23 @@ class RSAKey(object):
         spki.setComponentByName('subjectPublicKey', subjectPublicKey)
         return spki
 
-    def sign(self, data, hashAlgorithmName):
+    def sign(self, data, hashAlgorithm):
         """Returns a hexified bit string representing a
         signature by this key over the specified data.
         Intended for use with pyasn1.type.univ.BitString"""
+        hashAlgorithmName = None
+        if hashAlgorithm == HASH_MD5:
+            hashAlgorithmName = "MD5"
+        elif hashAlgorithm == HASH_SHA1:
+            hashAlgorithmName = "SHA-1"
+        elif hashAlgorithm == HASH_SHA256:
+            hashAlgorithmName = "SHA-256"
+        elif hashAlgorithm == HASH_SHA384:
+            hashAlgorithmName = "SHA-384"
+        elif hashAlgorithm == HASH_SHA512:
+            hashAlgorithmName = "SHA-512"
+        else:
+            raise UnknownHashAlgorithmError(hashAlgorithm)
         rsaPrivateKey = rsa.PrivateKey(self.RSA_N, self.RSA_E, self.RSA_D, self.RSA_P, self.RSA_Q)
         signature = rsa.sign(data, rsaPrivateKey, hashAlgorithmName)
         return byteStringToHexifiedBitString(signature)
@@ -664,7 +703,7 @@ class ECCKey(object):
         spki.setComponentByName('subjectPublicKey', subjectPublicKey)
         return spki
 
-    def sign(self, data, hashAlgorithmName):
+    def sign(self, data, hashAlgorithm):
         """Returns a hexified bit string representing a
         signature by this key over the specified data.
         Intended for use with pyasn1.type.univ.BitString"""
@@ -677,9 +716,9 @@ class ECCKey(object):
             # Also patch in secp256k1 if applicable.
             if self.keyOID == secp256k1:
                 with mock.patch('ecc.curves.DOMAINS', {256: secp256k1Params}):
-                    x, y = encoding.dec_point(self.key.sign(data, hashAlgorithmName))
+                    x, y = encoding.dec_point(self.key.sign(data, hashAlgorithm.split(':')[-1]))
             else:
-                x, y = encoding.dec_point(self.key.sign(data, hashAlgorithmName))
+                x, y = encoding.dec_point(self.key.sign(data, hashAlgorithm.split(':')[-1]))
             point = ECPoint()
             point.setComponentByName('x', x)
             point.setComponentByName('y', y)
@@ -699,6 +738,7 @@ def keyFromSpecification(specification):
 def main(output, inputPath):
     with open(inputPath) as configStream:
         output.write(keyFromSpecification(configStream.read().strip()).toPEM())
+
 
 # When run as a standalone program, this will read a specification from
 # stdin and output the certificate as PEM to stdout.

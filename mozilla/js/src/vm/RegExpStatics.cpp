@@ -22,7 +22,7 @@ using namespace js;
 static void
 resc_finalize(FreeOp* fop, JSObject* obj)
 {
-    MOZ_ASSERT(fop->onMainThread());
+    MOZ_ASSERT(fop->onActiveCooperatingThread());
     RegExpStatics* res = static_cast<RegExpStatics*>(obj->as<RegExpStaticsObject>().getPrivate());
     fop->delete_(res);
 }
@@ -32,15 +32,14 @@ resc_trace(JSTracer* trc, JSObject* obj)
 {
     void* pdata = obj->as<RegExpStaticsObject>().getPrivate();
     if (pdata)
-        static_cast<RegExpStatics*>(pdata)->mark(trc);
+        static_cast<RegExpStatics*>(pdata)->trace(trc);
 }
 
 static const ClassOps RegExpStaticsObjectClassOps = {
     nullptr, /* addProperty */
     nullptr, /* delProperty */
-    nullptr, /* getProperty */
-    nullptr, /* setProperty */
     nullptr, /* enumerate */
+    nullptr, /* newEnumerate */
     nullptr, /* resolve */
     nullptr, /* mayResolve */
     resc_finalize,
@@ -58,7 +57,7 @@ const Class RegExpStaticsObject::class_ = {
 };
 
 RegExpStaticsObject*
-RegExpStatics::create(ExclusiveContext* cx, Handle<GlobalObject*> parent)
+RegExpStatics::create(JSContext* cx, Handle<GlobalObject*> parent)
 {
     RegExpStaticsObject* obj = NewObjectWithGivenProto<RegExpStaticsObject>(cx, nullptr);
     if (!obj)
@@ -80,9 +79,10 @@ RegExpStatics::executeLazy(JSContext* cx)
     MOZ_ASSERT(matchesInput);
     MOZ_ASSERT(lazyIndex != size_t(-1));
 
-    /* Retrieve or create the RegExpShared in this compartment. */
-    RegExpGuard g(cx);
-    if (!cx->compartment()->regExps.get(cx, lazySource, lazyFlags, &g))
+    /* Retrieve or create the RegExpShared in this zone. */
+    RootedAtom source(cx, lazySource);
+    RootedRegExpShared shared(cx, cx->zone()->regExps.get(cx, source, lazyFlags));
+    if (!shared)
         return false;
 
     /*
@@ -92,7 +92,8 @@ RegExpStatics::executeLazy(JSContext* cx)
 
     /* Execute the full regular expression. */
     RootedLinearString input(cx, matchesInput);
-    RegExpRunStatus status = g->execute(cx, input, lazyIndex, &this->matches, nullptr);
+    RegExpRunStatus status = RegExpShared::execute(cx, &shared, input, lazyIndex, &this->matches,
+                                                   nullptr);
     if (status == RegExpRunStatus_Error)
         return false;
 

@@ -6,12 +6,14 @@
 #include "CompositorWidgetParent.h"
 
 #include "mozilla/Unused.h"
+#include "mozilla/widget/PlatformWidgetTypes.h"
 
 namespace mozilla {
 namespace widget {
 
-CompositorWidgetParent::CompositorWidgetParent(const CompositorWidgetInitData& aInitData)
- : WinCompositorWidget(aInitData)
+CompositorWidgetParent::CompositorWidgetParent(const CompositorWidgetInitData& aInitData,
+                                               const layers::CompositorOptions& aOptions)
+ : WinCompositorWidget(aInitData.get_WinCompositorWidgetInitData(), aOptions)
 {
   MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_GPU);
 }
@@ -20,32 +22,32 @@ CompositorWidgetParent::~CompositorWidgetParent()
 {
 }
 
-bool
+mozilla::ipc::IPCResult
 CompositorWidgetParent::RecvEnterPresentLock()
 {
   EnterPresentLock();
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 CompositorWidgetParent::RecvLeavePresentLock()
 {
   LeavePresentLock();
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 CompositorWidgetParent::RecvUpdateTransparency(const int32_t& aMode)
 {
   UpdateTransparency(static_cast<nsTransparencyMode>(aMode));
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 CompositorWidgetParent::RecvClearTransparentWindow()
 {
   ClearTransparentWindow();
-  return true;
+  return IPC_OK();
 }
 
 nsIWidget*

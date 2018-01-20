@@ -11,16 +11,12 @@ import java.nio.IntBuffer;
 import org.mozilla.gecko.AndroidGamepadManager;
 import org.mozilla.gecko.annotation.RobocopTarget;
 import org.mozilla.gecko.annotation.WrapForJNI;
-import org.mozilla.gecko.AppConstants;
-import org.mozilla.gecko.AppConstants.Versions;
-import org.mozilla.gecko.EventDispatcher;
-import org.mozilla.gecko.GeckoAccessibility;
-import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoThread;
 import org.mozilla.gecko.mozglue.JNIObject;
 import org.mozilla.gecko.util.ThreadUtils;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
@@ -28,8 +24,9 @@ import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
-import android.os.Parcelable;
+import android.support.v4.util.SimpleArrayMap;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
@@ -38,7 +35,11 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.InputDevice;
+import android.view.accessibility.AccessibilityManager;
 import android.widget.FrameLayout;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A view rendered by the layer compositor.
@@ -46,12 +47,11 @@ import android.widget.FrameLayout;
 public class LayerView extends FrameLayout {
     private static final String LOGTAG = "GeckoLayerView";
 
+    private static AccessibilityManager sAccessibilityManager;
+
     private GeckoLayerClient mLayerClient;
     private PanZoomController mPanZoomController;
     private DynamicToolbarAnimator mToolbarAnimator;
-    private LayerRenderer mRenderer;
-    /* Must be a PAINT_xxx constant */
-    private int mPaintState;
     private FullScreenState mFullScreenState;
 
     private SurfaceView mSurfaceView;
@@ -65,16 +65,55 @@ public class LayerView extends FrameLayout {
     private boolean mServerSurfaceValid;
     private int mWidth, mHeight;
 
-    private boolean onAttachedToWindowCalled;
+    private int mDefaultClearColor = Color.WHITE;
+    /* package */ GetPixelsResult mGetPixelsResult;
+    private final List<DrawListener> mDrawListeners;
 
     /* This is written by the Gecko thread and the UI thread, and read by the UI thread. */
-    @WrapForJNI(stubName = "CompositorCreated", calledFrom = "ui")
     /* package */ volatile boolean mCompositorCreated;
+    /* package */ volatile boolean mCompositorControllerOpen;
 
-    private class Compositor extends JNIObject {
+    //
+    // NOTE: These values are also defined in gfx/layers/ipc/UiCompositorControllerMessageTypes.h
+    //       and must be kept in sync. Any new AnimatorMessageType added here must also be added there.
+    //
+    /* package */ final static int STATIC_TOOLBAR_NEEDS_UPDATE      = 0;  // Sent from compositor when the static toolbar wants to hide.
+    /* package */ final static int STATIC_TOOLBAR_READY             = 1;  // Sent from compositor when the static toolbar image has been updated and is ready to animate.
+    /* package */ final static int TOOLBAR_HIDDEN                   = 2;  // Sent to compositor when the real toolbar has been hidden.
+    /* package */ final static int TOOLBAR_VISIBLE                  = 3;  // Sent to compositor when the real toolbar is visible.
+    /* package */ final static int TOOLBAR_SHOW                     = 4;  // Sent from compositor when the static toolbar has been made visible so the real toolbar should be shown.
+    /* package */ final static int FIRST_PAINT                      = 5;  // Sent from compositor after first paint
+    /* package */ final static int REQUEST_SHOW_TOOLBAR_IMMEDIATELY = 6;  // Sent to compositor requesting toolbar be shown immediately
+    /* package */ final static int REQUEST_SHOW_TOOLBAR_ANIMATED    = 7;  // Sent to compositor requesting toolbar be shown animated
+    /* package */ final static int REQUEST_HIDE_TOOLBAR_IMMEDIATELY = 8;  // Sent to compositor requesting toolbar be hidden immediately
+    /* package */ final static int REQUEST_HIDE_TOOLBAR_ANIMATED    = 9;  // Sent to compositor requesting toolbar be hidden animated
+    /* package */ final static int LAYERS_UPDATED                   = 10; // Sent from compositor when a layer has been updated
+    /* package */ final static int TOOLBAR_SNAPSHOT_FAILED          = 11; // Sent to compositor when the toolbar snapshot fails.
+    /* package */ final static int COMPOSITOR_CONTROLLER_OPEN       = 20; // Special message sent from UiCompositorControllerChild once it is open
+    /* package */ final static int IS_COMPOSITOR_CONTROLLER_OPEN    = 21; // Special message sent from controller to query if the compositor controller is open
+
+    private void postCompositorMessage(final int message) {
+        ThreadUtils.postToUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mCompositor.sendToolbarAnimatorMessage(message);
+            }
+        });
+    }
+
+    @WrapForJNI(calledFrom = "ui")
+    /* package */ boolean isCompositorReady() {
+        ThreadUtils.assertOnUiThread();
+        return mCompositorCreated && mCompositorControllerOpen;
+    }
+
+    /* package */ class Compositor extends JNIObject {
         public Compositor() {
         }
 
+        /* package */ boolean isReady() {
+            return isCompositorReady();
+        }
         @WrapForJNI(calledFrom = "ui", dispatchTo = "gecko")
         @Override protected native void disposeNative();
 
@@ -102,15 +141,55 @@ public class LayerView extends FrameLayout {
         @WrapForJNI(calledFrom = "any", dispatchTo = "current")
         /* package */ native void syncInvalidateAndScheduleComposite();
 
+        @WrapForJNI(calledFrom = "any", dispatchTo = "current")
+        /* package */ native void setMaxToolbarHeight(int height);
+
+        @WrapForJNI(calledFrom = "any", dispatchTo = "current")
+        /* package */ native void setPinned(boolean pinned, int reason);
+
+        @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
+        /* package */ native void sendToolbarAnimatorMessage(int message);
+
+        @WrapForJNI(calledFrom = "ui")
+        /* package */ void recvToolbarAnimatorMessage(int message) {
+            handleToolbarAnimatorMessage(message);
+        }
+
+        @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
+        /* package */ native void setDefaultClearColor(int color);
+
+        @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
+        /* package */ native void requestScreenPixels();
+
+        @WrapForJNI(calledFrom = "ui")
+        /* package */ void recvScreenPixels(int width, int height, int[] pixels) {
+            if (mGetPixelsResult != null) {
+                mGetPixelsResult.onPixelsResult(width, height, IntBuffer.wrap(pixels));
+                mGetPixelsResult = null;
+            }
+        }
+
+        @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
+        /* package */ native void enableLayerUpdateNotifications(boolean enable);
+
+        @WrapForJNI(calledFrom = "ui", dispatchTo = "current")
+        /* package */ native void sendToolbarPixelsToCompositor(final int width, final int height, final int[] pixels);
+
         @WrapForJNI(calledFrom = "gecko")
         private void reattach() {
-            mCompositorCreated = true;
+            ThreadUtils.postToUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    updateCompositor();
+                }
+            });
         }
 
         @WrapForJNI(calledFrom = "gecko")
         private void destroy() {
             // The nsWindow has been closed. First mark our compositor as destroyed.
             LayerView.this.mCompositorCreated = false;
+            LayerView.this.mCompositorControllerOpen = false;
 
             LayerView.this.mLayerClient.setGeckoReady(false);
 
@@ -118,18 +197,76 @@ public class LayerView extends FrameLayout {
             ThreadUtils.postToUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    LayerView.this.mDrawListeners.clear();
                     disposeNative();
                 }
             });
         }
     }
 
-    private final Compositor mCompositor = new Compositor();
+    /* package */ void handleToolbarAnimatorMessage(int message) {
+        switch (message) {
+            case STATIC_TOOLBAR_NEEDS_UPDATE:
+                // Send updated toolbar image to compositor.
+                Bitmap bm = mToolbarAnimator.getBitmapOfToolbarChrome();
+                if (bm == null) {
+                    postCompositorMessage(TOOLBAR_SNAPSHOT_FAILED);
+                    break;
+                }
+                final int width = bm.getWidth();
+                final int height = bm.getHeight();
+                int[] pixels = new int[bm.getByteCount() / 4];
+                try {
+                    bm.getPixels(pixels, /* offset */ 0, /* stride */ width, /* x */ 0, /* y */ 0, width, height);
+                    mCompositor.sendToolbarPixelsToCompositor(width, height, pixels);
+                } catch (Exception e) {
+                    Log.e(LOGTAG, "Caught exception while getting toolbar pixels from Bitmap: " + e.toString());
+                }
+                break;
+            case STATIC_TOOLBAR_READY:
+                // Hide toolbar and send TOOLBAR_HIDDEN message to compositor
+                mToolbarAnimator.onToggleChrome(false);
+                mListener.surfaceChanged();
+                postCompositorMessage(TOOLBAR_HIDDEN);
+                break;
+            case TOOLBAR_SHOW:
+                // Show toolbar.
+                mToolbarAnimator.onToggleChrome(true);
+                mListener.surfaceChanged();
+                postCompositorMessage(TOOLBAR_VISIBLE);
+                break;
+            case FIRST_PAINT:
+                setSurfaceBackgroundColor(Color.TRANSPARENT);
+                break;
+            case LAYERS_UPDATED:
+                for (DrawListener listener : mDrawListeners) {
+                    listener.drawFinished();
+                }
+                break;
+            case COMPOSITOR_CONTROLLER_OPEN:
+                // It is possible to get this message multiple times. Only act on it if we didn't know the compositor controller was open
+                if (mCompositorControllerOpen) {
+                    break;
+                }
+                mCompositorControllerOpen = true;
+                // updateCompositor makes a synchronous call to the compositor which will dead lock if called directly from here
+                ThreadUtils.postToUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mCompositor.setDefaultClearColor(mDefaultClearColor);
+                        mCompositor.enableLayerUpdateNotifications(!mDrawListeners.isEmpty());
+                        mToolbarAnimator.updateCompositor();
+                        updateCompositor();
+                    }
+                });
+                break;
+            default:
+                Log.e(LOGTAG, "Unhandled Toolbar Animator Message: " + message);
+                break;
+        }
+    }
 
-    /* Flags used to determine when to show the painted surface. */
-    public static final int PAINT_START = 0;
-    public static final int PAINT_BEFORE_FIRST = 1;
-    public static final int PAINT_AFTER_FIRST = 2;
+    private final Compositor mCompositor = new Compositor();
 
     public boolean shouldUseTextureView() {
         // Disable TextureView support for now as it causes panning/zooming
@@ -157,39 +294,43 @@ public class LayerView extends FrameLayout {
     public LayerView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
-        mPaintState = PAINT_START;
         mFullScreenState = FullScreenState.NONE;
 
         mOverscroll = new OverscrollEdgeEffect(this);
+        mDrawListeners = new ArrayList<DrawListener>();
     }
 
     public LayerView(Context context) {
         this(context, null);
     }
 
-    public void initializeView(EventDispatcher eventDispatcher) {
-        mLayerClient = new GeckoLayerClient(getContext(), this, eventDispatcher);
+    public void initializeView() {
+        mLayerClient = new GeckoLayerClient(getContext(), this);
         if (mOverscroll != null) {
             mLayerClient.setOverscrollHandler(mOverscroll);
         }
 
         mPanZoomController = mLayerClient.getPanZoomController();
         mToolbarAnimator = mLayerClient.getDynamicToolbarAnimator();
-
-        mRenderer = new LayerRenderer(this);
+        mToolbarAnimator.notifyCompositorCreated(mCompositor);
 
         setFocusable(true);
         setFocusableInTouchMode(true);
-
-        GeckoAccessibility.setDelegate(this);
     }
 
     /**
      * MotionEventHelper dragAsync() robocop tests can instruct
      * PanZoomController not to generate longpress events.
+     * This call comes in from a thread other than the UI thread.
+     * So dispatch to UI thread first to prevent assert in nsWindow.
      */
-    public void setIsLongpressEnabled(boolean isLongpressEnabled) {
-        mPanZoomController.setIsLongpressEnabled(isLongpressEnabled);
+    public void setIsLongpressEnabled(final boolean isLongpressEnabled) {
+        ThreadUtils.postToUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mPanZoomController.setIsLongpressEnabled(isLongpressEnabled);
+            }
+        });
     }
 
     private static Point getEventRadius(MotionEvent event) {
@@ -211,9 +352,6 @@ public class LayerView extends FrameLayout {
         if (mLayerClient != null) {
             mLayerClient.destroy();
         }
-        if (mRenderer != null) {
-            mRenderer.destroy();
-        }
     }
 
     @Override
@@ -232,12 +370,6 @@ public class LayerView extends FrameLayout {
             requestFocus();
         }
 
-        if (mToolbarAnimator != null && mToolbarAnimator.onInterceptTouchEvent(event)) {
-            if (mPanZoomController != null) {
-                mPanZoomController.onMotionEventVelocity(event.getEventTime(), mToolbarAnimator.getVelocity());
-            }
-            return true;
-        }
         if (!mLayerClient.isGeckoReady()) {
             // If gecko isn't loaded yet, don't try sending events to the
             // native code because it's just going to crash
@@ -249,12 +381,21 @@ public class LayerView extends FrameLayout {
         return false;
     }
 
+    private boolean isAccessibilityEnabled() {
+        if (sAccessibilityManager == null) {
+            sAccessibilityManager = (AccessibilityManager)
+                    getContext().getSystemService(Context.ACCESSIBILITY_SERVICE);
+        }
+        return sAccessibilityManager.isEnabled() &&
+               sAccessibilityManager.isTouchExplorationEnabled();
+    }
+
     @Override
     public boolean onHoverEvent(MotionEvent event) {
         // If we get a touchscreen hover event, and accessibility is not enabled,
         // don't send it to gecko.
         if (event.getSource() == InputDevice.SOURCE_TOUCHSCREEN &&
-            !GeckoAccessibility.isEnabled()) {
+            !isAccessibilityEnabled()) {
             return false;
         }
 
@@ -283,14 +424,6 @@ public class LayerView extends FrameLayout {
             return true;
         }
         return false;
-    }
-
-    @Override
-    protected void onRestoreInstanceState(final Parcelable state) {
-        if (onAttachedToWindowCalled) {
-            attachCompositor();
-        }
-        super.onRestoreInstanceState(state);
     }
 
     @Override
@@ -329,19 +462,14 @@ public class LayerView extends FrameLayout {
         }
 
         attachCompositor();
-
-        onAttachedToWindowCalled = true;
-    }
-
-    @Override
-    protected void onDetachedFromWindow() {
-        super.onDetachedFromWindow();
-
-        onAttachedToWindowCalled = false;
     }
 
     // Don't expose GeckoLayerClient to things outside this package; only expose it as an Object
     GeckoLayerClient getLayerClient() { return mLayerClient; }
+
+    /* package */ boolean isGeckoReady() {
+        return mLayerClient.isGeckoReady();
+    }
 
     public PanZoomController getPanZoomController() { return mPanZoomController; }
     public DynamicToolbarAnimator getDynamicToolbarAnimator() { return mToolbarAnimator; }
@@ -361,40 +489,33 @@ public class LayerView extends FrameLayout {
     }
 
     public void requestRender() {
-        if (mCompositorCreated) {
+        if (isCompositorReady()) {
             mCompositor.syncInvalidateAndScheduleComposite();
         }
     }
 
-    public void postRenderTask(RenderTask task) {
-        mRenderer.postRenderTask(task);
+    public interface GetPixelsResult {
+        public void onPixelsResult(int width, int height, IntBuffer pixels);
     }
 
-    public void removeRenderTask(RenderTask task) {
-        mRenderer.removeRenderTask(task);
-    }
-
-    public int getMaxTextureSize() {
-        return mRenderer.getMaxTextureSize();
-    }
-
-    /** Used by robocop for testing purposes. Not for production use! */
     @RobocopTarget
-    public IntBuffer getPixels() {
-        return mRenderer.getPixels();
-    }
+    public void getPixels(final GetPixelsResult getPixelsResult) {
+        if (!ThreadUtils.isOnUiThread()) {
+            ThreadUtils.postToUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    getPixels(getPixelsResult);
+                }
+            });
+            return;
+        }
 
-    /* paintState must be a PAINT_xxx constant. */
-    public void setPaintState(int paintState) {
-        mPaintState = paintState;
-    }
-
-    public int getPaintState() {
-        return mPaintState;
-    }
-
-    public LayerRenderer getRenderer() {
-        return mRenderer;
+        if (isCompositorReady()) {
+            mGetPixelsResult = getPixelsResult;
+            mCompositor.requestScreenPixels();
+        } else {
+            getPixelsResult.onPixelsResult(0, 0, null);
+        }
     }
 
     public void setListener(Listener listener) {
@@ -436,7 +557,7 @@ public class LayerView extends FrameLayout {
     void updateCompositor() {
         ThreadUtils.assertOnUiThread();
 
-        if (mCompositorCreated) {
+        if (isCompositorReady()) {
             // If the compositor has already been created, just resume it instead. We don't need
             // to block here because if the surface is destroyed before the compositor grabs it,
             // we can handle that gracefully (i.e. the compositor will remain paused).
@@ -456,9 +577,13 @@ public class LayerView extends FrameLayout {
         // Only try to create the compositor if we have a valid surface and gecko is up. When these
         // two conditions are satisfied, we can be relatively sure that the compositor creation will
         // happen without needing to block anywhere.
-        if (mServerSurfaceValid && getLayerClient().isGeckoReady()) {
+        if (!mCompositorCreated && mServerSurfaceValid && getLayerClient().isGeckoReady()) {
             mCompositorCreated = true;
             mCompositor.createCompositor(mWidth, mHeight, getSurface());
+        }
+
+        if (mCompositorCreated && !mCompositorControllerOpen) {
+            mCompositor.sendToolbarAnimatorMessage(IS_COMPOSITOR_CONTROLLER_OPEN);
         }
     }
 
@@ -486,7 +611,7 @@ public class LayerView extends FrameLayout {
             return;
         }
 
-        if (mCompositorCreated) {
+        if (isCompositorReady()) {
             mCompositor.syncResumeResizeCompositor(width, height, getSurface());
         }
 
@@ -499,7 +624,7 @@ public class LayerView extends FrameLayout {
         serverSurfaceChanged(width, height);
 
         if (mListener != null) {
-            mListener.surfaceChanged(width, height);
+            mListener.surfaceChanged();
         }
 
         if (mOverscroll != null) {
@@ -522,7 +647,7 @@ public class LayerView extends FrameLayout {
         // Gecko draw events have been processed.  When this returns, composition is
         // definitely paused -- it'll synchronize with the Gecko event loop, which
         // in turn will synchronize with the compositor thread.
-        if (mCompositorCreated) {
+        if (isCompositorReady()) {
             mCompositor.syncPauseCompositor();
         }
 
@@ -547,20 +672,8 @@ public class LayerView extends FrameLayout {
       return null;
     }
 
-    // This method is called on the Gecko main thread.
-    @WrapForJNI(calledFrom = "gecko")
-    private static void updateZoomedView(ByteBuffer data) {
-        LayerView layerView = GeckoAppShell.getLayerView();
-        if (layerView != null) {
-            LayerRenderer layerRenderer = layerView.getRenderer();
-            if (layerRenderer != null) {
-                layerRenderer.updateZoomedView(data);
-            }
-        }
-    }
-
     public interface Listener {
-        void surfaceChanged(int width, int height);
+        void surfaceChanged();
     }
 
     private class SurfaceListener implements SurfaceHolder.Callback {
@@ -586,9 +699,9 @@ public class LayerView extends FrameLayout {
     private class LayerSurfaceView extends SurfaceView {
         private LayerView mParent;
 
-        public LayerSurfaceView(Context aContext, LayerView aParent) {
-            super(aContext);
-            mParent = aParent;
+        public LayerSurfaceView(Context context, LayerView parent) {
+            super(context);
+            mParent = parent;
         }
 
         @Override
@@ -626,13 +739,41 @@ public class LayerView extends FrameLayout {
     }
 
     @RobocopTarget
-    public void addDrawListener(DrawListener listener) {
-        mLayerClient.addDrawListener(listener);
+    public void addDrawListener(final DrawListener listener) {
+        if (!ThreadUtils.isOnUiThread()) {
+            ThreadUtils.postToUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    addDrawListener(listener);
+                }
+            });
+            return;
+        }
+
+        boolean wasEmpty = mDrawListeners.isEmpty();
+        mDrawListeners.add(listener);
+        if (isCompositorReady() && wasEmpty) {
+            mCompositor.enableLayerUpdateNotifications(true);
+        }
     }
 
     @RobocopTarget
-    public void removeDrawListener(DrawListener listener) {
-        mLayerClient.removeDrawListener(listener);
+    public void removeDrawListener(final DrawListener listener) {
+        if (!ThreadUtils.isOnUiThread()) {
+            ThreadUtils.postToUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    removeDrawListener(listener);
+                }
+            });
+            return;
+        }
+
+        boolean notEmpty = mDrawListeners.isEmpty();
+        mDrawListeners.remove(listener);
+        if (isCompositorReady() && notEmpty && mDrawListeners.isEmpty()) {
+            mCompositor.enableLayerUpdateNotifications(false);
+        }
     }
 
     @RobocopTarget
@@ -640,24 +781,8 @@ public class LayerView extends FrameLayout {
         public void drawFinished();
     }
 
-    @Override
-    public void setOverScrollMode(int overscrollMode) {
-        super.setOverScrollMode(overscrollMode);
-    }
-
-    @Override
-    public int getOverScrollMode() {
-        return super.getOverScrollMode();
-    }
-
     public float getZoomFactor() {
         return getLayerClient().getViewportMetrics().zoomFactor;
-    }
-
-    @Override
-    public void onFocusChanged (boolean gainFocus, int direction, Rect previouslyFocusedRect) {
-        super.onFocusChanged(gainFocus, direction, previouslyFocusedRect);
-        GeckoAccessibility.onLayerViewFocusChanged(gainFocus);
     }
 
     public void setFullScreenState(FullScreenState state) {
@@ -668,44 +793,32 @@ public class LayerView extends FrameLayout {
         return mFullScreenState != FullScreenState.NONE;
     }
 
-    public void setMaxTranslation(float aMaxTranslation) {
-        mToolbarAnimator.setMaxTranslation(aMaxTranslation);
+    public void setMaxToolbarHeight(int maxHeight) {
+        mToolbarAnimator.setMaxToolbarHeight(maxHeight);
     }
 
-    public void setSurfaceTranslation(float translation) {
-        setTranslationY(translation);
+    public int getCurrentToolbarHeight() {
+        return mToolbarAnimator.getCurrentToolbarHeight();
     }
 
-    public float getSurfaceTranslation() {
-        return getTranslationY();
-    }
-
-    // Public hooks for dynamic toolbar translation
-
-    public interface DynamicToolbarListener {
-        public void onTranslationChanged(float aToolbarTranslation, float aLayerViewTranslation);
-        public void onPanZoomStopped();
-        public void onMetricsChanged(ImmutableViewportMetrics viewport);
-    }
-
-    // Public hooks for zoomed view
-
-    public interface ZoomedViewListener {
-        public void requestZoomedViewRender();
-        public void updateView(ByteBuffer data);
-    }
-
-    public void addZoomedViewListener(ZoomedViewListener listener) {
-        mRenderer.addZoomedViewListener(listener);
-    }
-
-    public void removeZoomedViewListener(ZoomedViewListener listener) {
-        mRenderer.removeZoomedViewListener(listener);
-    }
-
-    public void setClearColor(int color) {
-        if (mLayerClient != null) {
-            mLayerClient.setClearColor(color);
+    public void setClearColor(final int color) {
+        if (!ThreadUtils.isOnUiThread()) {
+            ThreadUtils.postToUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    setClearColor(color);
+                }
+            });
+            return;
         }
+
+        mDefaultClearColor = color;
+        if (isCompositorReady()) {
+            mCompositor.setDefaultClearColor(mDefaultClearColor);
+        }
+    }
+
+    public boolean isIMEEnabled() {
+        return false;
     }
 }

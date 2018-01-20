@@ -285,11 +285,13 @@ var contentTabBaseType = {
   },
 
   saveTabState: function onSaveTabState(aTab) {
-    aTab.browser.setAttribute("type", "content-targetable");
+    aTab.browser.setAttribute("type", "content");
+    aTab.browser.removeAttribute("primary");
   },
 
   showTab: function onShowTab(aTab) {
-    aTab.browser.setAttribute("type", "content-primary");
+    aTab.browser.setAttribute("type", "content");
+    aTab.browser.setAttribute("primary", "true");
   },
 
   getBrowser: function getBrowser(aTab) {
@@ -498,8 +500,8 @@ var specialTabs = {
   getFaviconFromPage: function(aUrl, aCallback) {
     let url, uri;
     try {
-      url = Services.io.newURI(aUrl, null, null).prePath;
-      uri = Services.io.newURI(url, null, null);
+      url = Services.io.newURI(aUrl).prePath;
+      uri = Services.io.newURI(url);
     }
     catch (ex) {
       if (aCallback)
@@ -508,7 +510,7 @@ var specialTabs = {
     }
 
     let onLoadSuccess = (aEvent => {
-      let iconUri = Services.io.newURI(aEvent.target.src, null, null);
+      let iconUri = Services.io.newURI(aEvent.target.src);
       specialTabs.mFaviconService.setAndFetchFaviconForPage(
         uri, iconUri, false,
         specialTabs.mFaviconService.FAVICON_LOAD_NON_PRIVATE,
@@ -536,7 +538,7 @@ var specialTabs = {
                                             'link[rel="icon"]');
       let href = linkNode ? linkNode.href : null;
       try {
-        iconUri = Services.io.newURI(href, null, null);
+        iconUri = Services.io.newURI(href);
       }
       catch (ex) {
         onDownloadError(aEvent);
@@ -547,8 +549,7 @@ var specialTabs = {
                                        iconUri.spec);
     });
 
-    let request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
-                    .createInstance(Ci.nsIXMLHttpRequest);
+    let request = new XMLHttpRequest();
     request.open("GET", url, true);
     request.responseType = "document";
     request.onload = onDownload;
@@ -677,8 +678,11 @@ var specialTabs = {
       // As we're opening this tab, showTab may not get called, so set
       // the type according to if we're opening in background or not.
       let background = ("background" in aArgs) && aArgs.background;
-      aTab.browser.setAttribute("type", background ? "content-targetable" :
-                                                     "content-primary");
+      aTab.browser.setAttribute("type", "content");
+      if (background)
+        aTab.browser.removeAttribute("primary");
+      else
+        aTab.browser.setAttribute("primary", "true");
 
       aTab.browser.setAttribute("id", "contentTabBrowser" + this.lastBrowserId);
 
@@ -1332,13 +1336,13 @@ var specialTabs = {
       let brandBundle = document.getElementById("bundle_brand");
       let messengerBundle = document.getElementById("bundle_messenger");
 
-      let installInfo = aSubject.QueryInterface(Ci.amIWebInstallInfo);
+      let installInfo = aSubject.wrappedJSObject;
       let browser = installInfo.browser;
       let notificationBox = getNotificationBox(browser.contentWindow);
       let notificationID = aTopic;
       let brandShortName = brandBundle.getString("brandShortName");
       let notificationName, messageString, buttons;
-      const iconURL = "chrome://messenger/skin/icons/update.png";
+      const iconURL = "chrome://mozapps/skin/extensions/extensionGeneric-16.svg";
 
       switch (aTopic) {
       case "addon-install-disabled":
@@ -1391,7 +1395,7 @@ var specialTabs = {
         break;
       case "addon-install-failed":
         // XXX TODO This isn't terribly ideal for the multiple failure case
-        for (let [, install] in Iterator(installInfo.installs)) {
+        for (let install of installInfo.installs) {
           let host = (installInfo.originatingURI instanceof Ci.nsIStandardURL) &&
                       installInfo.originatingURI.host;
           if (!host)
@@ -1450,7 +1454,7 @@ var specialTabs = {
               // installs.
               let types = {};
               let bestType = null;
-              for (let [, install] in Iterator(installInfo.installs)) {
+              for (let install of installInfo.installs) {
                 if (install.type in types)
                   types[install.type]++;
                 else

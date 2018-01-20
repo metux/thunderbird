@@ -2,15 +2,14 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
- 
-# These are used for the if statement, as the preprocessor can't handle
-# dashes.
-#define en_US en-US
+
 
 @AB_CD@.jar:
 % locale branding @AB_CD@ %locale/@AB_CD@/branding/
 % locale communicator @AB_CD@ %locale/@AB_CD@/communicator/
-% locale communicator-platform @AB_CD@ %locale/@AB_CD@/communicator-platform/
+% locale communicator-platform @AB_CD@ %locale/@AB_CD@/communicator-platform/gtk/ os=LikeUnix
+% locale communicator-platform @AB_CD@ %locale/@AB_CD@/communicator-platform/mac/ os=Darwin
+% locale communicator-platform @AB_CD@ %locale/@AB_CD@/communicator-platform/win/ os=WINNT
 % locale communicator-region @AB_CD@ %locale/@AB_CD@/communicator-region/
 % locale help @AB_CD@ %locale/@AB_CD@/helpviewer/
 % locale messenger @AB_CD@ %locale/@AB_CD@/messenger/
@@ -20,9 +19,10 @@
 % locale messenger-newsblog @AB_CD@ %locale/@AB_CD@/messenger-newsblog/
 % locale mozldap @AB_CD@ %locale/@AB_CD@/mozldap/
 % locale navigator @AB_CD@ %locale/@AB_CD@/navigator/
-% locale navigator-platform @AB_CD@ %locale/@AB_CD@/navigator-platform/
+% locale navigator-platform @AB_CD@ %locale/@AB_CD@/navigator-platform/gtk/ os=LikeUnix
+% locale navigator-platform @AB_CD@ %locale/@AB_CD@/navigator-platform/mac/ os=Darwin
+% locale navigator-platform @AB_CD@ %locale/@AB_CD@/navigator-platform/win/ os=WINNT
 % locale navigator-region @AB_CD@ %locale/@AB_CD@/navigator-region/
-% override chrome://global/locale/notification.dtd chrome://communicator/locale/notification.dtd
   locale/@AB_CD@/branding/brand.dtd                                         (%chrome/branding/brand.dtd)
   locale/@AB_CD@/branding/brand.properties                                  (%chrome/branding/brand.properties)
   locale/@AB_CD@/branding/aboutRights.dtd                                   (%chrome/branding/aboutRights.dtd)
@@ -201,7 +201,7 @@
   locale/@AB_CD@/communicator/pref/pref-sync.dtd                            (%chrome/common/pref/pref-sync.dtd)
   locale/@AB_CD@/communicator/pref/pref-tabs.dtd                            (%chrome/common/pref/pref-tabs.dtd)
   locale/@AB_CD@/communicator-platform/mac/pref/platformPrefOverlay.dtd     (%chrome/common/pref/mac/platformPrefOverlay.dtd)
-  locale/@AB_CD@/communicator-platform/unix/pref/platformPrefOverlay.dtd    (%chrome/common/pref/unix/platformPrefOverlay.dtd)
+  locale/@AB_CD@/communicator-platform/gtk/pref/platformPrefOverlay.dtd     (%chrome/common/pref/unix/platformPrefOverlay.dtd)
   locale/@AB_CD@/communicator-platform/win/pref/platformPrefOverlay.dtd     (%chrome/common/pref/win/platformPrefOverlay.dtd)
   locale/@AB_CD@/communicator/profile/profileSelection.dtd                  (%chrome/common/profile/profileSelection.dtd)
   locale/@AB_CD@/communicator/profile/profileSelection.properties           (%chrome/common/profile/profileSelection.properties)
@@ -211,6 +211,8 @@
   locale/@AB_CD@/communicator/search/search.properties                      (%chrome/common/search/search.properties)
   locale/@AB_CD@/communicator/search/searchbar.dtd                          (%chrome/common/search/searchbar.dtd)
   locale/@AB_CD@/communicator/search/search-panel.dtd                       (%chrome/common/search/search-panel.dtd)
+  locale/@AB_CD@/communicator/searchplugins/list.txt                        (.deps/generated_@AB_CD@/list.txt)
+  locale/@AB_CD@/communicator/searchplugins/                                (.deps/generated_@AB_CD@/*.xml)
   locale/@AB_CD@/communicator/sidebar/customize.dtd                         (%chrome/common/sidebar/customize.dtd)
   locale/@AB_CD@/communicator/sidebar/preview.dtd                           (%chrome/common/sidebar/preview.dtd)
   locale/@AB_CD@/communicator/sidebar/sidebar.properties                    (%chrome/common/sidebar/sidebar.properties)
@@ -223,7 +225,7 @@
   locale/@AB_CD@/communicator/sync/syncQuota.dtd                            (%chrome/common/sync/syncQuota.dtd)
   locale/@AB_CD@/communicator/sync/syncQuota.properties                     (%chrome/common/sync/syncQuota.properties)
   locale/@AB_CD@/communicator-platform/win/platformCommunicatorOverlay.dtd  (%chrome/common/win/platformCommunicatorOverlay.dtd)
-  locale/@AB_CD@/communicator-platform/unix/platformCommunicatorOverlay.dtd (%chrome/common/unix/platformCommunicatorOverlay.dtd)
+  locale/@AB_CD@/communicator-platform/gtk/platformCommunicatorOverlay.dtd  (%chrome/common/unix/platformCommunicatorOverlay.dtd)
   locale/@AB_CD@/communicator-platform/mac/platformCommunicatorOverlay.dtd  (%chrome/common/mac/platformCommunicatorOverlay.dtd)
   locale/@AB_CD@/communicator-region/region.properties                      (%chrome/common/region.properties)
   locale/@AB_CD@/messenger/AccountManager.dtd                               (%chrome/mailnews/pref/AccountManager.dtd)
@@ -292,11 +294,6 @@
   locale/@AB_CD@/messenger/messengercompose/askSendFormat.dtd               (%chrome/mailnews/compose/askSendFormat.dtd)
   locale/@AB_CD@/messenger/messengercompose/askSendFormat.properties        (%chrome/mailnews/compose/askSendFormat.properties)
   locale/@AB_CD@/messenger/messengercompose/composeMsgs.properties          (%chrome/mailnews/compose/composeMsgs.properties)
-#if AB_CD == en_US
-  locale/@AB_CD@/messenger/messengercompose/composeMsgsTB.properties        (/mail/locales/en-US/chrome/messenger/messengercompose/composeMsgs.properties)
-#else
-  locale/@AB_CD@/messenger/messengercompose/composeMsgsTB.properties        (%../mail/chrome/messenger/messengercompose/composeMsgs.properties)
-#endif
   locale/@AB_CD@/messenger/messengercompose/mailComposeEditorOverlay.dtd    (%chrome/mailnews/compose/mailComposeEditorOverlay.dtd)
   locale/@AB_CD@/messenger/messengercompose/messengercompose.dtd            (%chrome/mailnews/compose/messengercompose.dtd)
   locale/@AB_CD@/messenger/messengercompose/pref-composing_messages.dtd     (%chrome/mailnews/pref/pref-composing_messages.dtd)
@@ -314,6 +311,7 @@
   locale/@AB_CD@/messenger/msgViewPickerOverlay.dtd                         (%chrome/mailnews/msgViewPickerOverlay.dtd)
   locale/@AB_CD@/messenger/newFolderDialog.dtd                              (%chrome/mailnews/newFolderDialog.dtd)
   locale/@AB_CD@/messenger/news.properties                                  (%chrome/mailnews/news.properties)
+  locale/@AB_CD@/messenger/newsError.dtd                                    (%chrome/mailnews/newsError.dtd)
   locale/@AB_CD@/messenger/oeImportMsgs.properties                          (%chrome/mailnews/oeImportMsgs.properties)
   locale/@AB_CD@/messenger/offline.properties                               (%chrome/mailnews/offline.properties)
   locale/@AB_CD@/messenger/offlineStartup.properties                        (%chrome/mailnews/offlineStartup.properties)
@@ -378,7 +376,7 @@
   locale/@AB_CD@/navigator/taskbar.properties                               (%chrome/browser/taskbar.properties)
   locale/@AB_CD@/navigator/webDeveloper.dtd                                 (%chrome/browser/webDeveloper.dtd)
   locale/@AB_CD@/navigator-platform/mac/platformNavigationBindings.dtd      (%chrome/browser/mac/platformNavigationBindings.dtd)
-  locale/@AB_CD@/navigator-platform/unix/platformNavigationBindings.dtd     (%chrome/browser/unix/platformNavigationBindings.dtd)
+  locale/@AB_CD@/navigator-platform/gtk/platformNavigationBindings.dtd      (%chrome/browser/unix/platformNavigationBindings.dtd)
   locale/@AB_CD@/navigator-platform/win/platformNavigationBindings.dtd      (%chrome/browser/win/platformNavigationBindings.dtd)
   locale/@AB_CD@/navigator-region/region.properties                         (%chrome/browser/region.properties)
   locale/@AB_CD@/pippki/pref-certs.dtd                                      (%chrome/common/pref/pref-certs.dtd)

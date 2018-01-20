@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -59,26 +60,18 @@ CanvasLayerComposite::GetLayer()
 }
 
 void
-CanvasLayerComposite::SetLayerManager(LayerManagerComposite* aManager)
+CanvasLayerComposite::SetLayerManager(HostLayerManager* aManager)
 {
   LayerComposite::SetLayerManager(aManager);
   mManager = aManager;
   if (mCompositableHost && mCompositor) {
-    mCompositableHost->SetCompositor(mCompositor);
+    mCompositableHost->SetTextureSourceProvider(mCompositor);
   }
-}
-
-LayerRenderState
-CanvasLayerComposite::GetRenderState()
-{
-  if (mDestroyed || !mCompositableHost || !mCompositableHost->IsAttached()) {
-    return LayerRenderState();
-  }
-  return mCompositableHost->GetRenderState();
 }
 
 void
-CanvasLayerComposite::RenderLayer(const IntRect& aClipRect)
+CanvasLayerComposite::RenderLayer(const IntRect& aClipRect,
+                                  const Maybe<gfx::Polygon>& aGeometry)
 {
   if (!mCompositableHost || !mCompositableHost->IsAttached()) {
     return;
@@ -97,7 +90,7 @@ CanvasLayerComposite::RenderLayer(const IntRect& aClipRect)
 
   RenderWithAllMasks(this, mCompositor, aClipRect,
                      [&](EffectChain& effectChain, const IntRect& clipRect) {
-    mCompositableHost->Composite(this, effectChain,
+    mCompositableHost->Composite(mCompositor, this, effectChain,
                           GetEffectiveOpacity(),
                           GetEffectiveTransform(),
                           GetSamplingFilter(),

@@ -7,6 +7,8 @@
 
 promise_test(function(t) {
   var div = addDiv(t);
+  var watcher = new EventWatcher(t, div, [ 'transitionend',
+                                           'transitioncancel' ]);
   div.style.left = '0px';
 
   div.style.transition = 'left 100s';
@@ -19,12 +21,15 @@ promise_test(function(t) {
     transition.effect = null;
     assert_equals(transition.transitionProperty, 'left');
     assert_equals(transition.playState, 'finished');
-    assert_equals(window.getComputedStyle(div).left, '100px');
+    assert_equals(getComputedStyle(div).left, '100px');
+    return watcher.wait_for('transitionend');
   });
 }, 'Test for removing a transition effect');
 
 promise_test(function(t) {
   var div = addDiv(t);
+  var watcher = new EventWatcher(t, div, [ 'transitionend',
+                                           'transitioncancel' ]);
   div.style.left = '0px';
 
   div.style.transition = 'left 100s';
@@ -39,13 +44,15 @@ promise_test(function(t) {
                                            100 * MS_PER_SEC);
     assert_equals(transition.transitionProperty, 'left');
     assert_equals(transition.playState, 'running');
-    assert_equals(window.getComputedStyle(div).left, '100px');
-    assert_equals(window.getComputedStyle(div).marginLeft, '50px');
+    assert_equals(getComputedStyle(div).left, '100px');
+    assert_equals(getComputedStyle(div).marginLeft, '50px');
   });
 }, 'Test for replacing the transition effect by a new keyframe effect');
 
 promise_test(function(t) {
   var div = addDiv(t);
+  var watcher = new EventWatcher(t, div, [ 'transitionend',
+                                           'transitioncancel' ]);
   div.style.left = '0px';
   div.style.width = '0px';
 
@@ -65,6 +72,8 @@ promise_test(function(t) {
 
 promise_test(function(t) {
   var div = addDiv(t);
+  var watcher = new EventWatcher(t, div, [ 'transitionend',
+                                           'transitioncancel' ]);
   div.style.left = '0px';
   div.style.width = '0px';
 

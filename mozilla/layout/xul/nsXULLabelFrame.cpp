@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,15 +17,13 @@ nsIFrame*
 NS_NewXULLabelFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
   nsXULLabelFrame* it = new (aPresShell) nsXULLabelFrame(aContext);
-
-  it->AddStateBits(NS_BLOCK_FLOAT_MGR | NS_BLOCK_MARGIN_ROOT);
-
+  it->AddStateBits(NS_BLOCK_FORMATTING_CONTEXT_STATE_BITS);
   return it;
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsXULLabelFrame)
 
-// If you make changes to this function, check its counterparts 
+// If you make changes to this function, check its counterparts
 // in nsBoxFrame and nsTextBoxFrame
 nsresult
 nsXULLabelFrame::RegUnregAccessKey(bool aDoReg)
@@ -47,7 +46,7 @@ nsXULLabelFrame::RegUnregAccessKey(bool aDoReg)
   if (accessKey.IsEmpty())
     return NS_OK;
 
-  // With a valid PresContext we can get the ESM 
+  // With a valid PresContext we can get the ESM
   // and register the access key
   EventStateManager* esm = PresContext()->EventStateManager();
 
@@ -75,19 +74,19 @@ nsXULLabelFrame::Init(nsIContent*       aContent,
 }
 
 void
-nsXULLabelFrame::DestroyFrom(nsIFrame* aDestructRoot)
+nsXULLabelFrame::DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData)
 {
   // unregister access key
   RegUnregAccessKey(false);
-  nsBlockFrame::DestroyFrom(aDestructRoot);
-} 
+  nsBlockFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
+}
 
 nsresult
 nsXULLabelFrame::AttributeChanged(int32_t aNameSpaceID,
-                                  nsIAtom* aAttribute,
+                                  nsAtom* aAttribute,
                                   int32_t aModType)
 {
-  nsresult rv = nsBlockFrame::AttributeChanged(aNameSpaceID, 
+  nsresult rv = nsBlockFrame::AttributeChanged(aNameSpaceID,
                                                aAttribute, aModType);
 
   // If the accesskey changed, register for the new value
@@ -96,12 +95,6 @@ nsXULLabelFrame::AttributeChanged(int32_t aNameSpaceID,
     RegUnregAccessKey(true);
 
   return rv;
-}
-
-nsIAtom*
-nsXULLabelFrame::GetType() const
-{
-  return nsGkAtoms::XULLabelFrame;
 }
 
 /////////////////////////////////////////////////////////////////////////////

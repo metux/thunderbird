@@ -86,3 +86,11 @@
 <!ENTITY insecureUnencrypted.description "Ваша пошта та пароль надсилаються без шифрування, тому ваш пароль (та ваше повідомлення) можуть бути легко прочитані іншими людьми. &brandShortName; дозволить вам отримати вашу пошту, але вам варто звернутись вашого поштового провайдера щодо налаштування сервера з безпечним з’єднанням.">
 <!ENTITY insecureSelfSigned.description  "Сервер використовує сетрифікат, якому ми не можемо довіряти, отже ми не можемо бути впевнені в тому, що хтось не перехоплює передачу даних між &brandShortName; і вашим сервером. &brandShortName; дозволить вам працювати зі своєю поштою, але ми наполегливо рекомендуємо попросити свого провайдера електронної пошти налаштувати сервер на роботу з довіреним сертифікатом.">
 <!ENTITY secureServer.description        "Вітаємо! Це безпечний сервер.">
+
+<!ENTITY autoconfigWizard2.title         "Set Up an Existing Email Account">
+<!ENTITY email2.placeholder              "you@example.com">
+<!ENTITY email.text                      "Your existing email address">
+<!ENTITY open-provisioner.label          "Get a new email address…">
+<!ENTITY open-provisioner.accesskey      "g">
+
+

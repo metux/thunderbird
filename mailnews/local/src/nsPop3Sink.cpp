@@ -43,8 +43,8 @@
 #include "nsIScriptError.h"
 #include "nsIConsoleService.h"
 
-extern PRLogModuleInfo *POP3LOGMODULE; // defined in nsPop3Protocol.cpp
-#define POP3LOG(str) "%s sink: [this=%p] " str, POP3LOGMODULE->name, this
+static mozilla::LazyLogModule POP3LOGMODULE("POP3");
+#define POP3LOG(str) "sink: [this=%p] " str, this
 
 NS_IMPL_ISUPPORTS(nsPop3Sink, nsIPop3Sink)
 
@@ -60,8 +60,6 @@ nsPop3Sink::nsPop3Sink()
     m_outFileStream = nullptr;
     m_uidlDownload = false;
     m_buildMessageUri = false;
-    if (!POP3LOGMODULE)
-      POP3LOGMODULE = PR_NewLogModule("POP3");
 }
 
 nsPop3Sink::~nsPop3Sink()
@@ -553,7 +551,7 @@ nsPop3Sink::IncorporateBegin(const char* uidlString,
         nsCOMPtr<nsIMsgFolder> localFolder = do_QueryInterface(m_folder);
         nsString folderName;
         if (localFolder)
-          localFolder->GetPrettiestName(folderName);
+          localFolder->GetPrettyName(folderName);
         if (!folderName.IsEmpty()) {
           fprintf(stderr,"(seekdebug) Seek was necessary in IncorporateBegin() for folder %s.\n",
                   NS_ConvertUTF16toUTF8(folderName).get());
@@ -723,7 +721,7 @@ nsresult nsPop3Sink::WriteLineToMailbox(const nsACString& buffer)
         nsCOMPtr<nsIMsgFolder> localFolder = do_QueryInterface(m_folder);
         nsString folderName;
         if (localFolder)
-          localFolder->GetPrettiestName(folderName);
+          localFolder->GetPrettyName(folderName);
         // This merits a console message, it's poor man's telemetry.
         MsgLogToConsole4(
           NS_LITERAL_STRING("Unexpected file position change detected") +
@@ -770,8 +768,8 @@ nsresult nsPop3Sink::HandleTempDownloadFailed(nsIMsgWindow *msgWindow)
   m_newMailParser->m_newMsgHdr->GetMime2DecodedAuthor(fromStr);
   const char16_t *params[] = { fromStr.get(), subjectStr.get() };
   bundle->FormatStringFromName(
-    u"pop3TmpDownloadError",
-    params, 2, getter_Copies(confirmString));
+    "pop3TmpDownloadError",
+    params, 2, confirmString);
   nsCOMPtr<mozIDOMWindowProxy> parentWindow;
   nsCOMPtr<nsIPromptService> promptService = do_GetService(NS_PROMPTSERVICE_CONTRACTID);
   nsCOMPtr<nsIDocShell> docShell;

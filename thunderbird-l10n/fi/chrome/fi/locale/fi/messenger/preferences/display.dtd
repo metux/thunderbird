@@ -72,7 +72,7 @@
 <!ENTITY closeMsgOnMoveOrDelete.label     "Sulje viesti-ikkuna kun viesti siirretään tai poistetaan">
 <!ENTITY closeMsgOnMoveOrDelete.accesskey "v">
 
-<!ENTITY editTagButton1.accesskey  "E">
-<!ENTITY editTagButton1.label      "Edit…">
-<!ENTITY newTagButton.accesskey    "N">
 <!ENTITY newTagButton.label        "New…">
+<!ENTITY newTagButton.accesskey    "N">
+<!ENTITY editTagButton1.label      "Edit…">
+<!ENTITY editTagButton1.accesskey  "E">

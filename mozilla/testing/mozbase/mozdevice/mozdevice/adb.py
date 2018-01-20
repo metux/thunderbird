@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 import os
 import posixpath
 import re
@@ -461,7 +463,7 @@ class ADBHost(ADBCommand):
             r"([^\s]+)\s+(offline|bootloader|device|host|recovery|sideload|"
             "no permissions|unauthorized|unknown)")
         devices = []
-        lines = self.command_output(["devices", "-l"], timeout=timeout).split('\n')
+        lines = self.command_output(["devices", "-l"], timeout=timeout).splitlines()
         for line in lines:
             if line == 'List of devices attached ':
                 continue
@@ -937,7 +939,7 @@ class ADBDevice(ADBCommand):
                  * ADBError
         """
         forwards = self.command_output(["forward", "--list"], timeout=timeout)
-        return [tuple(line.split(" ")) for line in forwards.split("\n") if line.strip()]
+        return [tuple(line.split(" ")) for line in forwards.splitlines() if line.strip()]
 
     def remove_forwards(self, local=None, timeout=None):
         """Remove existing port forwards.
@@ -1224,7 +1226,7 @@ class ADBDevice(ADBCommand):
         """
         buffers = self._get_logcat_buffer_args(buffers)
         cmds = ["logcat", "-v", format, "-d"] + buffers + filter_specs
-        lines = self.command_output(cmds, timeout=timeout).split('\r')
+        lines = self.command_output(cmds, timeout=timeout).splitlines()
 
         for regex in filter_out_regexps:
             lines = [line for line in lines if not re.search(regex, line)]
@@ -1325,7 +1327,7 @@ class ADBDevice(ADBCommand):
             except ADBError:
                 output = ''
 
-            for line in output.split("\n"):
+            for line in output.splitlines():
                 if not matched_interface:
                     match = re1_ip.match(line)
                     if match:
@@ -1369,7 +1371,7 @@ class ADBDevice(ADBCommand):
             output = self.shell_output('netcfg', timeout=timeout)
         except ADBError:
             output = ''
-        for line in output.split("\n"):
+        for line in output.splitlines():
             match = re3_netcfg.search(line)
             if match:
                 matched_interface, matched_ip = match.groups()
@@ -1562,7 +1564,7 @@ class ADBDevice(ADBCommand):
             try:
                 data = self.shell_output("%s %s" % (self._ls, path),
                                          timeout=timeout,
-                                         root=root).split('\r\n')
+                                         root=root).splitlines()
                 self._logger.debug('list_files: data: %s' % data)
             except ADBError:
                 self._logger.error('Ignoring exception in ADBDevice.list_files\n%s' %
@@ -1634,7 +1636,7 @@ class ADBDevice(ADBCommand):
                     path += '*'
         lines = self.shell_output('%s %s %s' % (self._ls, recursive_flag, path),
                                   timeout=timeout,
-                                  root=root).split('\r\n')
+                                  root=root).splitlines()
         for line in lines:
             line = line.strip()
             if not line:
@@ -1728,8 +1730,13 @@ class ADBDevice(ADBCommand):
         local = os.path.normpath(local)
         remote = os.path.normpath(remote)
         copy_required = False
-        if self._adb_version >= '1.0.36' and \
-           os.path.isdir(local) and self.is_dir(remote):
+        if os.path.isdir(local):
+            copy_required = True
+            temp_parent = tempfile.mkdtemp()
+            remote_name = os.path.basename(remote)
+            new_local = os.path.join(temp_parent, remote_name)
+            dir_util.copy_tree(local, new_local)
+            local = new_local
             # See do_sync_push in
             # https://android.googlesource.com/platform/system/core/+/master/adb/file_sync_client.cpp
             # Work around change in behavior in adb 1.0.36 where if
@@ -1737,22 +1744,8 @@ class ADBDevice(ADBCommand):
             # copy the source directory *into* the destination
             # directory otherwise it will copy the source directory
             # *onto* the destination directory.
-            #
-            # If the destination directory does exist, push to its
-            # parent directory.  If the source and destination leaf
-            # directory names are different, copy the source directory
-            # to a temporary directory with the same leaf name as the
-            # destination so that when we push to the parent, the
-            # source is copied onto the destination directory.
-            local_name = os.path.basename(local)
-            remote_name = os.path.basename(remote)
-            if local_name != remote_name:
-                copy_required = True
-                temp_parent = tempfile.mkdtemp()
-                new_local = os.path.join(temp_parent, remote_name)
-                dir_util.copy_tree(local, new_local)
-                local = new_local
-            remote = '/'.join(remote.rstrip('/').split('/')[:-1])
+            if self._adb_version >= '1.0.36':
+                remote = '/'.join(remote.rstrip('/').split('/')[:-1])
         try:
             self.command_output(["push", local, remote], timeout=timeout)
         except:

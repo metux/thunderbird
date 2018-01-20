@@ -12,6 +12,7 @@
 #include "nsIStorageStream.h"
 #include "nsCRT.h"
 #include "nsReadableUtils.h"
+#include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Telemetry.h"
 #include <algorithm>
@@ -66,7 +67,7 @@ nsMemoryCacheDevice::Shutdown()
 {
     NS_ASSERTION(mInitialized, "### attempting shutdown while not initialized");
     NS_ENSURE_TRUE(mInitialized, NS_ERROR_NOT_INITIALIZED);
-    
+
     mMemCacheEntries.Shutdown();
 
     // evict all entries
@@ -78,7 +79,7 @@ nsMemoryCacheDevice::Shutdown()
             NS_ASSERTION(!entry->IsInUse(), "### shutting down with active entries");
             next = (nsCacheEntry *)PR_NEXT_LINK(entry);
             PR_REMOVE_AND_INIT_LINK(entry);
-        
+
             // update statistics
             int32_t memoryRecovered = (int32_t)entry->DataSize();
             mTotalSize    -= memoryRecovered;
@@ -91,12 +92,12 @@ nsMemoryCacheDevice::Shutdown()
     }
 
 /*
- * we're not factoring in changes to meta data yet...    
+ * we're not factoring in changes to meta data yet...
  *  NS_ASSERTION(mTotalSize == 0, "### mem cache leaking entries?");
  */
     NS_ASSERTION(mInactiveSize == 0, "### mem cache leaking entries?");
     NS_ASSERTION(mEntryCount == 0, "### mem cache leaking entries?");
-    
+
     mInitialized = false;
 
     return NS_OK;
@@ -120,7 +121,7 @@ nsMemoryCacheDevice::FindEntry(nsCString * key, bool *collision)
     // move entry to the tail of an eviction list
     PR_REMOVE_AND_INIT_LINK(entry);
     PR_APPEND_LINK(entry, &mEvictionList[EvictionList(entry, 0)]);
-    
+
     mInactiveSize -= entry->DataSize();
 
     return entry;
@@ -267,7 +268,7 @@ bool
 nsMemoryCacheDevice::EntryIsTooBig(int64_t entrySize)
 {
     CACHE_LOG_DEBUG(("nsMemoryCacheDevice::EntryIsTooBig "
-                     "[size=%d max=%d soft=%d]\n",
+                     "[size=%" PRId64 " max=%d soft=%d]\n",
                      entrySize, mMaxEntrySize, mSoftLimit));
     if (mMaxEntrySize == -1)
         return entrySize > mSoftLimit;
@@ -299,7 +300,7 @@ nsMemoryCacheDevice::OnDataSizeChange( nsCacheEntry * entry, int32_t deltaSize)
 
     // adjust our totals
     mTotalSize    += deltaSize;
-    
+
     if (!entry->IsDoomed()) {
         // move entry to the tail of the appropriate eviction list
         PR_REMOVE_AND_INIT_LINK(entry);
@@ -329,17 +330,17 @@ nsMemoryCacheDevice::EvictEntry(nsCacheEntry * entry, bool deleteEntry)
                      entry, deleteEntry));
     // remove entry from our hashtable
     mMemCacheEntries.RemoveEntry(entry);
-    
+
     // remove entry from the eviction list
     PR_REMOVE_AND_INIT_LINK(entry);
-    
+
     // update statistics
     int32_t memoryRecovered = (int32_t)entry->DataSize();
     mTotalSize    -= memoryRecovered;
     if (!entry->IsDoomed())
         mInactiveSize -= memoryRecovered;
     --mEntryCount;
-    
+
     if (deleteEntry)  delete entry;
 }
 
@@ -352,7 +353,7 @@ nsMemoryCacheDevice::EvictEntriesIfNecessary(void)
     CACHE_LOG_DEBUG(("EvictEntriesIfNecessary.  mTotalSize: %d, mHardLimit: %d,"
                      "mInactiveSize: %d, mSoftLimit: %d\n",
                      mTotalSize, mHardLimit, mInactiveSize, mSoftLimit));
-    
+
     if ((mTotalSize < mHardLimit) && (mInactiveSize < mSoftLimit))
         return;
 
@@ -375,7 +376,7 @@ nsMemoryCacheDevice::EvictEntriesIfNecessary(void)
 
             if (entry != &mEvictionList[i]) {
                 entryCost = (uint64_t)
-                    (now - entry->LastFetched()) * entry->DataSize() / 
+                    (now - entry->LastFetched()) * entry->DataSize() /
                     std::max(1, entry->FetchCount());
                 if (!maxEntry || (entryCost > maxCost)) {
                     maxEntry = entry;
@@ -478,11 +479,12 @@ nsMemoryCacheDevice::DoEvictEntries(bool (*matchFn)(nsCacheEntry* entry, void* a
 
             if (!matchFn(entry, args))
                 continue;
-            
+
             if (entry->IsInUse()) {
                 nsresult rv = nsCacheService::DoomEntry(entry);
                 if (NS_FAILED(rv)) {
-                    CACHE_LOG_WARNING(("memCache->DoEvictEntries() aborted: rv =%x", rv));
+                    CACHE_LOG_WARNING(("memCache->DoEvictEntries() aborted: rv =%" PRIx32,
+                                       static_cast<uint32_t>(rv)));
                     return rv;
                 }
             } else {
@@ -561,20 +563,17 @@ NS_IMPL_ISUPPORTS(nsMemoryCacheDeviceInfo, nsICacheDeviceInfo)
 
 
 NS_IMETHODIMP
-nsMemoryCacheDeviceInfo::GetDescription(char ** result)
+nsMemoryCacheDeviceInfo::GetDescription(nsACString& aDescription)
 {
-    NS_ENSURE_ARG_POINTER(result);
-    *result = NS_strdup("Memory cache device");
-    if (!*result) return NS_ERROR_OUT_OF_MEMORY;
+    aDescription.AssignLiteral("Memory cache device");
     return NS_OK;
 }
 
 
 NS_IMETHODIMP
-nsMemoryCacheDeviceInfo::GetUsageReport(char ** result)
+nsMemoryCacheDeviceInfo::GetUsageReport(nsACString& aUsageReport)
 {
-    NS_ENSURE_ARG_POINTER(result);
-    nsCString  buffer;
+    nsCString buffer;
 
     buffer.AssignLiteral("  <tr>\n"
                          "    <th>Inactive storage:</th>\n"
@@ -583,8 +582,7 @@ nsMemoryCacheDeviceInfo::GetUsageReport(char ** result)
     buffer.AppendLiteral(" KiB</td>\n"
                          "  </tr>\n");
 
-    *result = ToNewCString(buffer);
-    if (!*result) return NS_ERROR_OUT_OF_MEMORY;
+    aUsageReport.Assign(buffer);
     return NS_OK;
 }
 

@@ -24,7 +24,7 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
     LOCAL_INCLUDES += ['win']
 elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
     osdir = 'mac'
-elif CONFIG['MOZ_WIDGET_TOOLKIT'] in ('android', 'gonk', 'uikit'):
+elif CONFIG['MOZ_WIDGET_TOOLKIT'] in ('android', 'uikit'):
     osdir = CONFIG['MOZ_WIDGET_TOOLKIT']
 else:
     osdir = 'unix'
@@ -101,6 +101,9 @@ if CONFIG['MOZ_ENABLE_DBUS']:
     UNIFIED_SOURCES += [
         'nsDBusHandlerApp.cpp',
     ]
+    EXPORTS.mozilla += [
+        'DBusHelpers.h',
+    ]
 
 if CONFIG['MOZ_ENABLE_CONTENTACTION']:
     UNIFIED_SOURCES += [
@@ -108,6 +111,8 @@ if CONFIG['MOZ_ENABLE_CONTENTACTION']:
     ]
 
 EXTRA_COMPONENTS += [
+    'nsHandlerService-json.js',
+    'nsHandlerService-json.manifest',
     'nsHandlerService.js',
     'nsHandlerService.manifest',
     'nsWebHandlerApp.js',
@@ -124,6 +129,7 @@ include('/ipc/chromium/chromium-config.mozbuild')
 FINAL_LIBRARY = 'xul'
 
 LOCAL_INCLUDES += [
+    '/docshell/base',
     '/dom/base',
     '/dom/ipc',
     '/netwerk/base',

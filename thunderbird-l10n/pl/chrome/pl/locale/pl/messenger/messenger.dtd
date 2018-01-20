@@ -25,11 +25,11 @@
 <!ENTITY newCreateEmailAccountCmd.accesskey "N">
 <!ENTITY newExistingEmailAccountCmd.label "Konfigurację konta pocztowego…">
 <!ENTITY newExistingEmailAccountCmd.accesskey "K">
-<!ENTITY newIMAccountCmd.label "Konfigurację konta czat…">
+<!ENTITY newIMAccountCmd.label "Konfigurację konta komunikatora…">
 <!ENTITY newIMAccountCmd.accesskey "c">
 <!ENTITY newFeedAccountCmd.label "Konfigurację konta aktualności…">
 <!ENTITY newFeedAccountCmd.accesskey "a">
-<!ENTITY newIMContactCmd.label "Wizytówkę dla kontaktu z czatu…">
+<!ENTITY newIMContactCmd.label "Wizytówkę dla kontaktu z komunikatora…">
 <!ENTITY newIMContactCmd.accesskey "t">
 <!ENTITY newOtherAccountsCmd.label "Konfigurację innego konta…">
 <!ENTITY newOtherAccountsCmd.accesskey "o">
@@ -49,8 +49,8 @@
 <!ENTITY getAllNewMsgCmdPopupMenu.accesskey "W">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.label "Bieżącego konta">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.accesskey "B">
-<!ENTITY getNextNMsgCmd.label "Pobierz następne 500 wiadomości">
-<!ENTITY getNextNMsgCmd.accesskey "t">
+<!ENTITY getNextNMsgCmd2.label "Pobierz następne wiadomości">
+<!ENTITY getNextNMsgCmd2.accesskey "t">
 <!ENTITY sendUnsentCmd.label "Wyślij niewysłane wiadomości">
 <!ENTITY sendUnsentCmd.accesskey "W">
 <!ENTITY subscribeCmd.label "Menedżer subskrypcji…">
@@ -222,7 +222,7 @@
 <!ENTITY expandAllThreadsCmd.key "*">
 <!ENTITY collapseAllThreadsCmd.label "Zwijaj wszystkie wątki">
 <!ENTITY collapseAllThreadsCmd.accesskey "Z">
-<!ENTITY collapseAllThreadsCmd.key "/">
+<!ENTITY collapseAllThreadsCmd.key "\">
 <!ENTITY unreadMsgsCmd.label "Nieprzeczytane">
 <!ENTITY unreadMsgsCmd.accesskey "N">
 <!ENTITY threadsWithUnreadCmd.label "Przeczytane z nowymi wiadomościami">
@@ -313,8 +313,8 @@
 <!ENTITY goBackCmd.label "Wstecz">
 <!ENTITY goBackCmd.accesskey "W">
 <!ENTITY goBackCmd.commandKey "[">
-<!ENTITY goChatCmd.label "Czat">
-<!ENTITY goChatCmd.accesskey "C">
+<!ENTITY goChatCmd.label "Komunikator">
+<!ENTITY goChatCmd.accesskey "K">
 <!ENTITY goChatCmd.key "I">
 <!ENTITY prevStarredMsgCmd.label "Wiadomość oznaczona gwiazdką">
 <!ENTITY prevStarredMsgCmd.accesskey "O">
@@ -361,6 +361,8 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Edytuj szkic">
 <!ENTITY editDraftMsgCmd.accesskey "s">
+<!ENTITY newMsgFromTemplateCmd.label "Nowa wiadomość z szablonu">
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN">
 <!ENTITY createFilter.label "Utwórz filtr na podstawie wiadomości…">
 <!ENTITY createFilter.accesskey "U">
 <!ENTITY moveMsgToMenu.label "Przenieś do">
@@ -413,7 +415,7 @@
 <!ENTITY markAllReadCmd.key "c">
 <!ENTITY markStarredCmd.label "Oznacz gwiazdką">
 <!ENTITY markStarredCmd.accesskey "O">
-<!ENTITY markStarredCmd.key "i">
+<!ENTITY markStarredCmd.key "S">
 <!ENTITY markAsJunkCmd.label "Jako niechcianą">
 <!ENTITY markAsJunkCmd.accesskey "J">
 <!ENTITY markAsJunkCmd.key "j">
@@ -447,13 +449,13 @@
 <!ENTITY addons.accesskey "D">
 <!ENTITY activitymanager.label "Monitor aktywności">
 <!ENTITY activitymanager.accesskey "M">
-<!ENTITY imAccountsStatus.label "Status czatu">
-<!ENTITY imAccountsStatus.accesskey "c">
+<!ENTITY imAccountsStatus.label "Status komunikatora">
+<!ENTITY imAccountsStatus.accesskey "k">
 <!ENTITY imStatus.available "Dostępny">
 <!ENTITY imStatus.unavailable "Niedostępny">
 <!ENTITY imStatus.offline "Poza siecią">
 <!ENTITY imStatus.showAccounts "Wyświetl konta…">
-<!ENTITY joinChatCmd.label "Dołącz do czatu…">
+<!ENTITY joinChatCmd.label "Dołącz do rozmowy…">
 <!ENTITY joinChatCmd.accesskey "D">
 <!ENTITY savedFiles.label "Zapisane pliki">
 <!ENTITY savedFiles.accesskey "Z">
@@ -524,7 +526,7 @@
 <!ENTITY junkButton.label "Niechciana">
 <!ENTITY notJunkButton.label "Pożądana">
 <!ENTITY addressBookButton.label "Adresy">
-<!ENTITY chatButton.label "Czat">
+<!ENTITY chatButton.label "Komunikator">
 <!ENTITY glodaSearch.title "Wyszukiwanie">
 <!ENTITY searchItem.title "Szybkie wyszukiwanie">
 <!ENTITY mailViewsToolbarItem.title "Widoki poczty">
@@ -561,7 +563,7 @@
 <!ENTITY junkButton.tooltip "Oznacz wybraną wiadomość jako niechcianą">
 <!ENTITY notJunkButton.tooltip "Oznacz wybraną wiadomość jako pożądaną">
 <!ENTITY addressBookButton.tooltip "Wyświetl Książkę adresową">
-<!ENTITY chatButton.tooltip "Wyświetl kartę czatów">
+<!ENTITY chatButton.tooltip "Wyświetl kartę komunikatora">
 <!ENTITY tagButton.tooltip "Oznacz wiadomości etykietą">
 <!ENTITY compactButton.tooltip "Porządkuj folder, aby wyczyścić pozostałości po usuniętych wiadomościach">
 <!ENTITY appmenuButton1.tooltip "Wyświetl menu programu &brandShortName;">
@@ -602,6 +604,9 @@
 
 <!ENTITY folderContextGetMessages.label "Pobierz wiadomości">
 <!ENTITY folderContextGetMessages.accesskey "P">
+<!ENTITY folderContextPauseAllUpdates.label "Wstrzymaj wszystkie aktualizacje">
+<!ENTITY folderContextPauseUpdates.label "Wstrzymaj aktualizacje">
+<!ENTITY folderContextPauseUpdates.accesskey "s">
 <!ENTITY folderContextOpenInNewWindow.label "Otwórz w nowym oknie">
 <!ENTITY folderContextOpenInNewWindow.accesskey "O">
 <!ENTITY folderContextOpenNewTab.label "Otwórz w nowej karcie">
@@ -696,6 +701,7 @@
 <!ENTITY idColumn2.tooltip "Sortowanie według kolejności otrzymania">
 <!ENTITY attachmentColumn2.tooltip "Sortowanie według załącznika">
 
+<!ENTITY contextNewMsgFromTemplate.label "Nowa wiadomość z szablonu">
 <!ENTITY contextOpenNewWindow.label "Otwórz wiadomość w nowym oknie">
 <!ENTITY contextOpenNewWindow.accesskey "O">
 <!ENTITY contextOpenNewTab.label "Otwórz wiadomość w nowej karcie">
@@ -829,3 +835,7 @@
 <!ENTITY showAllAppsCmdMac.label "Wyświetl wszystkie">
 
 <!ENTITY dockOptions.label "Opcje ikony aplikacji…">
+<!ENTITY writeNewMessageDock.label "Nowa wiadomość">
+<!ENTITY openAddressBookDock.label "Książka adresowa">
+
+<!ENTITY goChatCmd2.key "H">

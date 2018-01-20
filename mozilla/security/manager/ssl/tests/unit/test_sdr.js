@@ -11,23 +11,17 @@ let gSetPasswordShownCount = 0;
 
 // Mock implementation of nsITokenPasswordDialogs.
 const gTokenPasswordDialogs = {
-  setPassword: (ctx, tokenName, canceled) => {
+  setPassword(ctx, tokenName) {
     gSetPasswordShownCount++;
     do_print(`setPassword() called; shown ${gSetPasswordShownCount} times`);
     do_print(`tokenName: ${tokenName}`);
-    canceled.value = false;
+    return false; // Returning false means "the user didn't cancel".
   },
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsITokenPasswordDialogs])
 };
 
 function run_test() {
-  // We have to set a password and login before we attempt to encrypt anything.
-  // In particular, failing to do so will cause the Encrypt() implementation to
-  // pop up a dialog asking for a password to be set. This won't work in the
-  // xpcshell environment and will lead to an assertion.
-  loginToDBWithDefaultPassword();
-
   let sdr = Cc["@mozilla.org/security/sdr;1"]
               .getService(Ci.nsISecretDecoderRing);
 

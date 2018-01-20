@@ -12,6 +12,6 @@
 <!ENTITY account.proxySettings.caption "הגדרות שרת מתווך:">
 <!ENTITY account.proxySettings.change.label     "שינוי…">
 
-<!ENTITY account.autojoin              "Auto-Joined Channels:">
 <!ENTITY account.newMailNotification   "Notify on new Mail">
+<!ENTITY account.autojoin              "Auto-Joined Channels:">
 <!ENTITY account.proxySettings.change.accessKey "C">

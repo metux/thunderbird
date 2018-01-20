@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -19,27 +20,26 @@
 #include "nsNodeInfoManager.h"
 #include "nsContentCreatorFunctions.h"
 #include "nsContentUtils.h"
-#include "nsContentList.h"
 #include "mozilla/dom/Element.h"
 
 //#define DEBUG_REFLOW
 
 using namespace mozilla::dom;
 
-class nsDocElementBoxFrame : public nsBoxFrame,
-                             public nsIAnonymousContentCreator
+class nsDocElementBoxFrame final : public nsBoxFrame
+                                 , public nsIAnonymousContentCreator
 {
 public:
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
+  virtual void DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData) override;
 
   friend nsIFrame* NS_NewBoxFrame(nsIPresShell* aPresShell,
                                   nsStyleContext* aContext);
 
   explicit nsDocElementBoxFrame(nsStyleContext* aContext)
-    :nsBoxFrame(aContext, true) {}
+    :nsBoxFrame(aContext, kClassID, true) {}
 
   NS_DECL_QUERYFRAME
-  NS_DECL_FRAMEARENA_HELPERS
+  NS_DECL_FRAMEARENA_HELPERS(nsDocElementBoxFrame)
 
   // nsIAnonymousContentCreator
   virtual nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements) override;
@@ -73,11 +73,11 @@ NS_NewDocElementBoxFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 NS_IMPL_FRAMEARENA_HELPERS(nsDocElementBoxFrame)
 
 void
-nsDocElementBoxFrame::DestroyFrom(nsIFrame* aDestructRoot)
+nsDocElementBoxFrame::DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData)
 {
-  nsContentUtils::DestroyAnonymousContent(&mPopupgroupContent);
-  nsContentUtils::DestroyAnonymousContent(&mTooltipContent);
-  nsBoxFrame::DestroyFrom(aDestructRoot);
+  aPostDestroyData.AddAnonymousContent(mPopupgroupContent.forget());
+  aPostDestroyData.AddAnonymousContent(mTooltipContent.forget());
+  nsBoxFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
 }
 
 nsresult

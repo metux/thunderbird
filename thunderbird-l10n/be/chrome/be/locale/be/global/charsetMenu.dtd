@@ -15,7 +15,5 @@
 <!ENTITY charsetMenuAutodet.uk.label "Украінская">
 <!ENTITY charsetMenuAutodet.uk.accesskey "У">
 
-<!ENTITY charsetMenu2.accesskey        "c">
-
-
 <!ENTITY charsetMenu2.label            "Text Encoding">
+<!ENTITY charsetMenu2.accesskey        "c">

@@ -21,10 +21,10 @@ class WindowManagerMixin(object):
         self.start_tabs = self.marionette.window_handles
 
     def tearDown(self):
-        if len(self.marionette.chrome_window_handles) != len(self.start_windows):
+        if len(self.marionette.chrome_window_handles) > len(self.start_windows):
             raise Exception("Not all windows as opened by the test have been closed")
 
-        if len(self.marionette.window_handles) != len(self.start_tabs):
+        if len(self.marionette.window_handles) > len(self.start_tabs):
             raise Exception("Not all tabs as opened by the test have been closed")
 
         super(WindowManagerMixin, self).tearDown()
@@ -41,12 +41,6 @@ class WindowManagerMixin(object):
             self.marionette.switch_to_window(handle)
             self.marionette.close()
 
-            # Bug 1311350 - close() doesn't wait for tab to be closed.
-            Wait(self.marionette).until(
-                lambda mn: handle not in mn.window_handles,
-                message="Failed to close tab with handle {}".format(handle)
-            )
-
         self.marionette.switch_to_window(self.start_tab)
 
     def close_all_windows(self):
@@ -57,18 +51,11 @@ class WindowManagerMixin(object):
             self.start_window = current_chrome_window_handles[0]
         current_chrome_window_handles.remove(self.start_window)
 
-        with self.marionette.using_context("chrome"):
-            for handle in current_chrome_window_handles:
-                self.marionette.switch_to_window(handle)
-                self.marionette.close_chrome_window()
+        for handle in current_chrome_window_handles:
+            self.marionette.switch_to_window(handle)
+            self.marionette.close_chrome_window()
 
-                # Bug 1311350 - close_chrome_window() doesn't wait for window to be closed.
-                Wait(self.marionette).until(
-                    lambda mn: handle not in mn.chrome_window_handles,
-                    message="Failed to close window with handle {}".format(handle)
-                )
-
-            self.marionette.switch_to_window(self.start_window)
+        self.marionette.switch_to_window(self.start_window)
 
     def open_tab(self, trigger="menu"):
         current_tabs = self.marionette.window_handles

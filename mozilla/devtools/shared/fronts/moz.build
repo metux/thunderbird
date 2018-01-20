@@ -5,6 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 DevToolsModules(
+    'accessibility.js',
     'actor-registry.js',
     'addons.js',
     'animation.js',
@@ -13,8 +14,6 @@ DevToolsModules(
     'css-properties.js',
     'csscoverage.js',
     'device.js',
-    'director-manager.js',
-    'director-registry.js',
     'emulation.js',
     'eventlooplag.js',
     'framerate.js',
@@ -23,19 +22,18 @@ DevToolsModules(
     'inspector.js',
     'layout.js',
     'memory.js',
-    'performance-entries.js',
+    'node.js',
     'performance-recording.js',
     'performance.js',
     'preference.js',
-    'profiler.js',
     'promises.js',
     'reflow.js',
-    'settings.js',
     'storage.js',
     'string.js',
     'styles.js',
     'stylesheets.js',
     'timeline.js',
     'webaudio.js',
+    'webextension-inspected-window.js',
     'webgl.js'
 )

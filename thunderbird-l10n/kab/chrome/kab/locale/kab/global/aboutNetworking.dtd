@@ -14,7 +14,7 @@
 <!ENTITY aboutNetworking.autoRefresh           "Smiren yal 3 n tasinin">
 <!ENTITY aboutNetworking.hostname              "Asenneftaɣ">
 <!ENTITY aboutNetworking.port                  "Tabburt">
-<!ENTITY aboutNetworking.spdy                  "SPDY">
+<!ENTITY aboutNetworking.http2                 "HTTP/2">
 <!ENTITY aboutNetworking.ssl                   "SSL">
 <!ENTITY aboutNetworking.active                "Urmid">
 <!ENTITY aboutNetworking.idle                  "Arurmid">
@@ -41,3 +41,18 @@
 <!ENTITY aboutNetworking.dnsLookupButton       "Fru">
 <!ENTITY aboutNetworking.dnsDomain             "Taɣult">
 <!ENTITY aboutNetworking.dnsLookupTableColumn  "IPs">
+<!ENTITY aboutNetworking.rcwn                  "Addad RCWN">
+<!ENTITY aboutNetworking.rcwnStatus            "Tiddadanin RCWN">
+<!ENTITY aboutNetworking.rcwnCacheWonCount     "Aseklas n tzerkatut ad ittwarebḥen">
+<!ENTITY aboutNetworking.rcwnNetWonCount       "Tazerkatut n uẓeṭṭa ad ittwarebḥen">
+<!ENTITY aboutNetworking.totalNetworkRequests  "Aseklas uγrid n isuturen n uẓeṭṭa">
+<!ENTITY aboutNetworking.rcwnOperation         "Tamhelt n tuffirt">
+<!ENTITY aboutNetworking.rcwnPerfOpen          "Ldi">
+<!ENTITY aboutNetworking.rcwnPerfRead          "Γaṛ">
+<!ENTITY aboutNetworking.rcwnPerfWrite         "Aru">
+<!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Ldi anekcum">
+<!ENTITY aboutNetworking.rcwnAvgShort          "Talemmast meẓẓiyet">
+<!ENTITY aboutNetworking.rcwnAvgLong           "Talemmast γezzifet">
+<!ENTITY aboutNetworking.rcwnStddevLong        "Amgared tizeγt muqren">
+<!ENTITY aboutNetworking.rcwnCacheSlow         "Amḍan n tuffirt ẓẓayen">
+<!ENTITY aboutNetworking.rcwnCacheNotSlow      "Amdan n tuffirt ur nelli ẓẓayet">

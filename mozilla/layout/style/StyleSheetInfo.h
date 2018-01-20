@@ -14,7 +14,7 @@
 #include "nsIURI.h"
 
 namespace mozilla {
-class CSSStyleSheet;
+class StyleSheet;
 } // namespace mozilla
 class nsCSSRuleProcessor;
 class nsIPrincipal;
@@ -32,6 +32,16 @@ struct StyleSheetInfo
                  ReferrerPolicy aReferrerPolicy,
                  const dom::SRIMetadata& aIntegrity);
 
+  StyleSheetInfo(StyleSheetInfo& aCopy,
+                 StyleSheet* aPrimarySheet);
+
+  virtual ~StyleSheetInfo();
+
+  virtual StyleSheetInfo* CloneFor(StyleSheet* aPrimarySheet) = 0;
+
+  virtual void AddSheet(StyleSheet* aSheet);
+  virtual void RemoveSheet(StyleSheet* aSheet);
+
   nsCOMPtr<nsIURI>       mSheetURI; // for error reports, etc.
   nsCOMPtr<nsIURI>       mOriginalSheetURI;  // for GetHref.  Can be null.
   nsCOMPtr<nsIURI>       mBaseURI; // for resolving relative URIs
@@ -42,6 +52,28 @@ struct StyleSheetInfo
   ReferrerPolicy         mReferrerPolicy;
   dom::SRIMetadata       mIntegrity;
   bool                   mComplete;
+
+  // Pointer to start of linked list of child sheets. This is all fundamentally
+  // broken, because each of the child sheets has a unique parent... We can
+  // only hope (and currently this is the case) that any time page JS can get
+  // its hands on a child sheet that means we've already ensured unique infos
+  // throughout its parent chain and things are good.
+  RefPtr<StyleSheet>     mFirstChild;
+  AutoTArray<StyleSheet*, 8> mSheets;
+
+  // If a SourceMap or X-SourceMap response header is seen, this is
+  // the value.  If both are seen, SourceMap is preferred.  If neither
+  // is seen, this will be an empty string.
+  nsString mSourceMapURL;
+  // This stores any source map URL that might have been seen in a
+  // comment in the style sheet.  This is separate from mSourceMapURL
+  // so that the value does not overwrite any value that might have
+  // come from a response header.
+  nsString mSourceMapURLFromComment;
+  // This stores any source URL that might have been seen in a comment
+  // in the style sheet.
+  nsString mSourceURL;
+
 #ifdef DEBUG
   bool                   mPrincipalSet;
 #endif

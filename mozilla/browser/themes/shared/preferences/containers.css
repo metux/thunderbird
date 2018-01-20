@@ -10,12 +10,12 @@
   --preference-active-color: #858585;
 }
 
-radiogroup {
+.radio-buttons {
   display: flex;
   margin-inline-start: 0.35rem;
 }
 
-radio {
+.radio-buttons > radio {
   flex: auto;
   display: flex;
   align-items: center;
@@ -28,11 +28,15 @@ radio {
   min-inline-size: 24px;
   border-radius: 50%;
   padding: 2px;
-  margin: 10px;
+  margin: 9px;
 }
 
 .icon-buttons > radio > [data-identity-icon] {
   fill: #4d4d4d;
+}
+
+.radio-buttons > radio {
+  padding-inline-start: 2px;
 }
 
 radio > [data-identity-icon] {
@@ -40,14 +44,14 @@ radio > [data-identity-icon] {
   block-size: 22px;
 }
 
-radio[selected=true] {
+.radio-buttons > radio[selected=true] {
   outline-color: var(--preference-unselected-color);
 }
 
-radio[focused=true] {
+.radio-buttons > radio[focused=true] {
   outline-color: var(--preference-selected-color);
 }
 
-radio:hover:active {
+.radio-buttons > radio:hover:active {
   outline-color: var(--preference-active-color);
 }

@@ -9,7 +9,6 @@
 #include "nsSystemInfo.h"
 #include "prsystem.h"
 #include "prio.h"
-#include "prprf.h"
 #include "mozilla/SSE.h"
 #include "mozilla/arm.h"
 #include "mozilla/Sprintf.h"
@@ -50,12 +49,6 @@
 #include "mozilla/dom/ContentChild.h"
 #endif
 
-#ifdef MOZ_WIDGET_GONK
-#include <sys/system_properties.h>
-#include "mozilla/Preferences.h"
-#include "nsPrintfCString.h"
-#endif
-
 #ifdef ANDROID
 extern "C" {
 NS_EXPORT int android_sdk_version;
@@ -76,6 +69,8 @@ NS_EXPORT int android_sdk_version;
 // so we must call it before going multithreaded, but nsSystemInfo::Init
 // only happens well after that point.
 uint32_t nsSystemInfo::gUserUmask = 0;
+
+using namespace mozilla::dom;
 
 #if defined (XP_LINUX) && !defined (ANDROID)
 static void
@@ -182,9 +177,7 @@ nsresult GetInstallYear(uint32_t& aYear)
 {
   HKEY hKey;
   LONG status = RegOpenKeyExW(HKEY_LOCAL_MACHINE,
-                              NS_LITERAL_STRING(
-                              "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"
-                              ).get(),
+                              L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
                               0, KEY_READ | KEY_WOW64_64KEY, &hKey);
 
   if (status != ERROR_SUCCESS) {
@@ -230,7 +223,7 @@ nsresult GetCountryCode(nsAString& aCountryCode)
   }
   // Now get the string for real
   aCountryCode.SetLength(numChars);
-  numChars = GetGeoInfoW(geoid, GEO_ISO2, wwc(aCountryCode.BeginWriting()),
+  numChars = GetGeoInfoW(geoid, GEO_ISO2, char16ptr_t(aCountryCode.BeginWriting()),
                          aCountryCode.Length(), 0);
   if (!numChars) {
     return NS_ERROR_FAILURE;
@@ -243,6 +236,26 @@ nsresult GetCountryCode(nsAString& aCountryCode)
 
 } // namespace
 #endif // defined(XP_WIN)
+
+#ifdef XP_MACOSX
+static nsresult GetAppleModelId(nsAutoCString& aModelId)
+{
+  size_t numChars = 0;
+  size_t result = sysctlbyname("hw.model", nullptr, &numChars, nullptr, 0);
+  if (result != 0 || !numChars) {
+    return NS_ERROR_FAILURE;
+  }
+  aModelId.SetLength(numChars);
+  result = sysctlbyname("hw.model", aModelId.BeginWriting(), &numChars, nullptr,
+                        0);
+  if (result != 0) {
+    return NS_ERROR_FAILURE;
+  }
+  // numChars includes null terminator
+  aModelId.Truncate(numChars - 1);
+  return NS_OK;
+}
+#endif
 
 using namespace mozilla;
 
@@ -271,6 +284,7 @@ static const struct PropItems
   { "hasSSE4_2", mozilla::supports_sse4_2 },
   { "hasAVX", mozilla::supports_avx },
   { "hasAVX2", mozilla::supports_avx2 },
+  { "hasAES", mozilla::supports_aes },
   // ARM-specific bits.
   { "hasEDSP", mozilla::supports_edsp },
   { "hasARMv6", mozilla::supports_armv6 },
@@ -341,6 +355,10 @@ GetProcessorInformation(int* physical_cpus, int* cache_size_L2, int* cache_size_
 nsresult
 nsSystemInfo::Init()
 {
+  // This uses the observer service on Windows, so for simplicity
+  // check that it is called from the main thread on all platforms.
+  MOZ_ASSERT(NS_IsMainThread());
+
   nsresult rv;
 
   static const struct
@@ -349,7 +367,6 @@ nsSystemInfo::Init()
     const char* name;
   } items[] = {
     { PR_SI_SYSNAME, "name" },
-    { PR_SI_HOSTNAME, "host" },
     { PR_SI_ARCHITECTURE, "arch" },
     { PR_SI_RELEASE, "version" }
   };
@@ -683,6 +700,12 @@ nsSystemInfo::Init()
     rv = SetPropertyAsAString(NS_LITERAL_STRING("countryCode"), countryCode);
     NS_ENSURE_SUCCESS(rv, rv);
   }
+
+  nsAutoCString modelId;
+  if (NS_SUCCEEDED(GetAppleModelId(modelId))) {
+    rv = SetPropertyAsACString(NS_LITERAL_STRING("appleModelId"), modelId);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 #endif
 
 #if defined(MOZ_WIDGET_GTK)
@@ -748,44 +771,6 @@ nsSystemInfo::Init()
   } else {
     GetAndroidSystemInfo(&info);
     SetupAndroidInfo(info);
-  }
-#endif
-
-#ifdef MOZ_WIDGET_GONK
-  char sdk[PROP_VALUE_MAX];
-  if (__system_property_get("ro.build.version.sdk", sdk)) {
-    android_sdk_version = atoi(sdk);
-    SetPropertyAsInt32(NS_LITERAL_STRING("sdk_version"), android_sdk_version);
-
-    SetPropertyAsACString(NS_LITERAL_STRING("secondaryLibrary"),
-                          nsPrintfCString("SDK %u", android_sdk_version));
-  }
-
-  char characteristics[PROP_VALUE_MAX];
-  if (__system_property_get("ro.build.characteristics", characteristics)) {
-    if (!strcmp(characteristics, "tablet")) {
-      SetPropertyAsBool(NS_LITERAL_STRING("tablet"), true);
-    } else if (!strcmp(characteristics, "tv")) {
-      SetPropertyAsBool(NS_LITERAL_STRING("tv"), true);
-    }
-  }
-
-  nsAutoString str;
-  rv = GetPropertyAsAString(NS_LITERAL_STRING("version"), str);
-  if (NS_SUCCEEDED(rv)) {
-    SetPropertyAsAString(NS_LITERAL_STRING("kernel_version"), str);
-  }
-
-  const nsAdoptingString& b2g_os_name =
-    mozilla::Preferences::GetString("b2g.osName");
-  if (b2g_os_name) {
-    SetPropertyAsAString(NS_LITERAL_STRING("name"), b2g_os_name);
-  }
-
-  const nsAdoptingString& b2g_version =
-    mozilla::Preferences::GetString("b2g.version");
-  if (b2g_version) {
-    SetPropertyAsAString(NS_LITERAL_STRING("version"), b2g_version);
   }
 #endif
 

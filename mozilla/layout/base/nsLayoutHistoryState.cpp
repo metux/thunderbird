@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -24,20 +25,7 @@ public:
   }
 
   NS_DECL_ISUPPORTS
-
-  // nsILayoutHistoryState
-  virtual void
-  AddState(const nsCString& aKey, nsPresState* aState) override;
-  virtual nsPresState*
-  GetState(const nsCString& aKey) override;
-  virtual void
-  RemoveState(const nsCString& aKey) override;
-  virtual bool
-  HasStates() const override;
-  virtual void
-  SetScrollPositionOnly(const bool aFlag) override;
-  virtual void
-  ResetScrollState() override;
+  NS_DECL_NSILAYOUTHISTORYSTATE
 
 private:
   ~nsLayoutHistoryState() {}
@@ -57,6 +45,71 @@ NS_NewLayoutHistoryState()
 NS_IMPL_ISUPPORTS(nsLayoutHistoryState,
                   nsILayoutHistoryState,
                   nsISupportsWeakReference)
+
+NS_IMETHODIMP
+nsLayoutHistoryState::GetHasStates(bool* aHasStates)
+{
+  *aHasStates = HasStates();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsLayoutHistoryState::GetKeys(uint32_t* aCount, char*** aKeys)
+{
+  if (!HasStates()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  char** keys =
+    static_cast<char**>(moz_xmalloc(sizeof(char*) * mStates.Count()));
+  *aCount = mStates.Count();
+  *aKeys = keys;
+
+  for (auto iter = mStates.Iter(); !iter.Done(); iter.Next()) {
+    *keys = ToNewCString(iter.Key());
+    keys++;
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsLayoutHistoryState::GetPresState(const nsACString& aKey,
+                                   float* aScrollX, float* aScrollY,
+                                   bool* aAllowScrollOriginDowngrade,
+                                   float* aRes, bool* aScaleToRes)
+{
+  nsPresState* state = GetState(nsCString(aKey));
+
+  if (!state) {
+    return NS_ERROR_FAILURE;
+  }
+
+  *aScrollX = state->GetScrollPosition().x;
+  *aScrollY = state->GetScrollPosition().y;
+  *aAllowScrollOriginDowngrade = state->GetAllowScrollOriginDowngrade();
+  *aRes = state->GetResolution();
+  *aScaleToRes = state->GetScaleToResolution();
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsLayoutHistoryState::AddNewPresState(const nsACString& aKey,
+                                      float aScrollX, float aScrollY,
+                                      bool aAllowScrollOriginDowngrade,
+                                      float aRes, bool aScaleToRes)
+{
+  nsPresState* newState = new nsPresState();
+  newState->SetScrollState(nsPoint(aScrollX, aScrollY));
+  newState->SetAllowScrollOriginDowngrade(aAllowScrollOriginDowngrade);
+  newState->SetResolution(aRes);
+  newState->SetScaleToResolution(aScaleToRes);
+
+  mStates.Put(nsCString(aKey), newState);
+
+  return NS_OK;
+}
 
 void
 nsLayoutHistoryState::AddState(const nsCString& aStateKey, nsPresState* aState)
@@ -85,7 +138,7 @@ nsLayoutHistoryState::RemoveState(const nsCString& aKey)
 }
 
 bool
-nsLayoutHistoryState::HasStates() const
+nsLayoutHistoryState::HasStates()
 {
   return mStates.Count() != 0;
 }

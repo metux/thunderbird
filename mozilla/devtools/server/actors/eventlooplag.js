@@ -14,10 +14,9 @@ const {Ci} = require("chrome");
 const Services = require("Services");
 const {XPCOMUtils} = require("resource://gre/modules/XPCOMUtils.jsm");
 const {Actor, ActorClassWithSpec} = require("devtools/shared/protocol");
-const events = require("sdk/event/core");
 const {eventLoopLagSpec} = require("devtools/shared/specs/eventlooplag");
 
-var EventLoopLagActor = exports.EventLoopLagActor = ActorClassWithSpec(eventLoopLagSpec, {
+exports.EventLoopLagActor = ActorClassWithSpec(eventLoopLagSpec, {
   _observerAdded: false,
 
   /**
@@ -25,7 +24,7 @@ var EventLoopLagActor = exports.EventLoopLagActor = ActorClassWithSpec(eventLoop
    */
   start: function () {
     if (!this._observerAdded) {
-      Services.obs.addObserver(this, "event-loop-lag", false);
+      Services.obs.addObserver(this, "event-loop-lag");
       this._observerAdded = true;
     }
     return Services.appShell.startEventLoopLagTracking();
@@ -52,7 +51,7 @@ var EventLoopLagActor = exports.EventLoopLagActor = ActorClassWithSpec(eventLoop
   observe: function (subject, topic, data) {
     if (topic == "event-loop-lag") {
       // Forward event loop lag event
-      events.emit(this, "event-loop-lag", data);
+      this.emit("event-loop-lag", data);
     }
   },
 

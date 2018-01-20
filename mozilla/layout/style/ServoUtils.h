@@ -11,6 +11,13 @@
 
 #include "mozilla/TypeTraits.h"
 
+namespace mozilla {
+
+// Defined in ServoBindings.cpp.
+void AssertIsMainThreadOrServoFontMetricsLocked();
+
+} // namespace mozilla
+
 #ifdef MOZ_STYLO
 # define MOZ_DECL_STYLO_CHECK_METHODS \
   bool IsGecko() const { return !IsServo(); } \
@@ -21,16 +28,23 @@
   bool IsServo() const { return false; }
 #endif
 
+#define MOZ_DECL_STYLO_CONVERT_METHODS(geckotype_, servotype_)  \
+  inline geckotype_* AsGecko();                         \
+  inline servotype_* AsServo();                         \
+  inline const geckotype_* AsGecko() const;             \
+  inline const servotype_* AsServo() const;             \
+  inline geckotype_* GetAsGecko();                      \
+  inline servotype_* GetAsServo();                      \
+  inline const geckotype_* GetAsGecko() const;          \
+  inline const servotype_* GetAsServo() const;
+
 /**
  * Macro used in a base class of |geckotype_| and |servotype_|.
  * The class should define |StyleBackendType mType;| itself.
  */
 #define MOZ_DECL_STYLO_METHODS(geckotype_, servotype_)  \
   MOZ_DECL_STYLO_CHECK_METHODS                          \
-  inline geckotype_* AsGecko();                         \
-  inline servotype_* AsServo();                         \
-  inline const geckotype_* AsGecko() const;             \
-  inline const servotype_* AsServo() const;
+  MOZ_DECL_STYLO_CONVERT_METHODS(geckotype_, servotype_)
 
 /**
  * Macro used in inline header of class |type_| with its Gecko and Servo
@@ -53,6 +67,18 @@
   const servotype_* type_::AsServo() const {                    \
     MOZ_ASSERT(IsServo());                                      \
     return static_cast<const servotype_*>(this);                \
+  }                                                             \
+  geckotype_* type_::GetAsGecko() {                             \
+    return IsGecko() ? AsGecko() : nullptr;                     \
+  }                                                             \
+  servotype_* type_::GetAsServo() {                             \
+    return IsServo() ? AsServo() : nullptr;                     \
+  }                                                             \
+  const geckotype_* type_::GetAsGecko() const {                 \
+    return IsGecko() ? AsGecko() : nullptr;                     \
+  }                                                             \
+  const servotype_* type_::GetAsServo() const {                 \
+    return IsServo() ? AsServo() : nullptr;                     \
   }
 
 #define MOZ_STYLO_THIS_TYPE  mozilla::RemovePointer<decltype(this)>::Type
@@ -78,5 +104,15 @@
 
 #define MOZ_STYLO_FORWARD(method_, args_) \
   MOZ_STYLO_FORWARD_CONCRETE(method_, args_, args_)
+
+// Warning in MOZ_STYLO builds and non-fatally assert in regular builds.
+#define NS_ASSERTION_STYLO_WARNING_EXPAND(X) X
+#ifdef MOZ_STYLO
+#define NS_ASSERTION_STYLO_WARNING(...) \
+  NS_ASSERTION_STYLO_WARNING_EXPAND(NS_WARNING_ASSERTION(__VA_ARGS__))
+#else
+#define NS_ASSERTION_STYLO_WARNING(...) \
+  NS_ASSERTION_STYLO_WARNING_EXPAND(NS_ASSERTION(__VA_ARGS__))
+#endif
 
 #endif // mozilla_ServoUtils_h

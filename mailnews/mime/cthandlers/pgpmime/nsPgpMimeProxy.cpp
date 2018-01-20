@@ -6,7 +6,7 @@
 #include "nspr.h"
 #include "plstr.h"
 #include "nsCOMPtr.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "mozilla/Services.h"
 #include "nsIRequest.h"
 #include "nsIStringBundle.h"
@@ -24,6 +24,27 @@
 #include "plstr.h"
 #include "nsIPgpMimeProxy.h"
 #include "nsComponentManagerUtils.h"
+
+/**
+ * Overall description
+ * ===================
+ *
+ * There are three components involved here: MIME, a proxy object (nsPgpMimeProxy)
+ * and Enigmail (or any other add-on that registered a decryption object with
+ * "@mozilla.org/mime/pgp-mime-js-decrypt;1").
+ *
+ * MIME creates and initialises the proxy object in nsPgpMimeProxy::Init(). This
+ * creates a decryption object, for example EnigmailMimeDecrypt. When MIME wants to
+ * decode something, it calls the Write() method of the proxy, which in turn calls
+ * OnDataAvailable() on the decryptor. The decryptor optains the encrypted data
+ * form the proxy via the proxy's Read() method. The decryptor decrypts the data and
+ * passes the result back to the proxy, using the OutputDecryptedData() method
+ * or by passing a stream to the proxy's OnDataAvailable() method, in which
+ * the proxy will read from that stream.
+ * The proxy knows how to interface with MIME and passes the data on using
+ * some function pointers it got given via nsPgpMimeProxy::SetMimeCallback().
+ */
+
 
 #define MIME_SUPERCLASS mimeEncryptedClass
 MimeDefClass(MimeEncryptedPgp, MimeEncryptedPgpClass,
@@ -58,7 +79,7 @@ static nsCString determineMimePart(MimeObject* obj);
 
 
 #define PGPMIME_PROPERTIES_URL        "chrome://messenger/locale/pgpmime.properties"
-#define PGPMIME_STR_NOT_SUPPORTED_ID  u"pgpMimeNeedsAddon"
+#define PGPMIME_STR_NOT_SUPPORTED_ID  "pgpMimeNeedsAddon"
 #define PGPMIME_URL_PREF              "mail.pgpmime.addon_url"
 
 static void PgpMimeGetNeedsAddonString(nsCString &aResult)
@@ -79,8 +100,7 @@ static void PgpMimeGetNeedsAddonString(nsCString &aResult)
     return;
 
   nsCString url;
-  if (NS_FAILED(prefs->GetCharPref("mail.pgpmime.addon_url",
-                                   getter_Copies(url))))
+  if (NS_FAILED(prefs->GetCharPref("mail.pgpmime.addon_url", url)))
     return;
 
   NS_ConvertUTF8toUTF16 url16(url);
@@ -88,7 +108,7 @@ static void PgpMimeGetNeedsAddonString(nsCString &aResult)
 
   nsString result;
   rv = stringBundle->FormatStringFromName(PGPMIME_STR_NOT_SUPPORTED_ID,
-                                          formatStrings, 1, getter_Copies(result));
+                                          formatStrings, 1, result);
   if (NS_FAILED(rv))
     return;
   aResult = NS_ConvertUTF16toUTF8(result);
@@ -153,6 +173,7 @@ MimePgpe_init(MimeObject *obj,
   data->output_closure = output_closure;
   data->mimeDecrypt = nullptr;
 
+  // Create proxy object.
   nsresult rv;
   data->mimeDecrypt = do_CreateInstance(NS_PGPMIMEPROXY_CONTRACTID, &rv);
   if (NS_FAILED(rv))
@@ -181,6 +202,7 @@ MimePgpe_init(MimeObject *obj,
   if (channel)
     channel->GetURI(getter_AddRefs(uri));
 
+  // Initialise proxy object with MIME's output function, object and URI.
   if (NS_FAILED(data->mimeDecrypt->SetMimeCallback(output_fn, output_closure, uri)))
     return nullptr;
 
@@ -320,11 +342,8 @@ nsPgpMimeProxy::Init()
 {
   mByteBuf.Truncate();
 
+  // Create add-on supplied decrytion object.
   nsresult rv;
-  nsCOMPtr<nsIPrefBranch> pbi(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
-  if (NS_FAILED(rv))
-    return rv;
-
   mDecryptor = do_CreateInstance(PGPMIME_JS_DECRYPTOR_CONTRACTID, &rv);
   if (NS_FAILED(rv))
     mDecryptor = nullptr;
@@ -340,6 +359,8 @@ nsPgpMimeProxy::Write(const char *buf, uint32_t buf_size)
   mByteBuf.Assign(buf, buf_size);
   mStreamOffset = 0;
 
+  // Pass data to the decrytion object for decryption.
+  // The result is returned via OutputDecryptedData().
   if (mDecryptor)
     return mDecryptor->OnDataAvailable((nsIRequest*) this, nullptr, (nsIInputStream*) this,
                                       0, buf_size);
@@ -355,15 +376,19 @@ nsPgpMimeProxy::Finish() {
     return mDecryptor->OnStopRequest((nsIRequest*) this, nullptr, NS_OK);
   }
   else {
+
+    if (!mOutputFun)
+      return NS_ERROR_FAILURE;
+
     nsCString temp;
-    temp.Append("Content-Type: text/html\r\nCharset: UTF-8\r\n\r\n<html><body>");
-    temp.Append("<BR><text=\"#000000\" bgcolor=\"#FFFFFF\" link=\"#FF0000\" vlink=\"#800080\" alink=\"#0000FF\">");
-    temp.Append("<center><table BORDER=1 ><tr><td><CENTER>");
+    temp.AppendLiteral("Content-Type: text/html\r\nCharset: UTF-8\r\n\r\n<html><body>");
+    temp.AppendLiteral("<BR><text=\"#000000\" bgcolor=\"#FFFFFF\" link=\"#FF0000\" vlink=\"#800080\" alink=\"#0000FF\">");
+    temp.AppendLiteral("<center><table BORDER=1 ><tr><td><CENTER>");
 
     nsCString tString;
     PgpMimeGetNeedsAddonString(tString);
     temp.Append(tString);
-    temp.Append("</CENTER></td></tr></table></center><BR></body></html>\r\n");
+    temp.AppendLiteral("</CENTER></td></tr></table></center><BR></body></html>\r\n");
 
     PR_SetError(0,0);
     int status = mOutputFun(temp.get(), temp.Length(), mOutputClosure);
@@ -421,6 +446,31 @@ NS_IMETHODIMP
 nsPgpMimeProxy::SetMimePart(const nsACString &aMimePart)
 {
   mMimePart = aMimePart;
+  return NS_OK;
+}
+
+/**
+ * This method is called by the add-on-supplied decryption object.
+ * It passes the decrypted data back to the proxy which calls the
+ * output function is was initialised with.
+ */
+NS_IMETHODIMP
+nsPgpMimeProxy::OutputDecryptedData(const char *buf, uint32_t buf_size)
+{
+  NS_ENSURE_TRUE(mInitialized, NS_ERROR_NOT_INITIALIZED);
+
+  NS_ENSURE_ARG(buf);
+
+  if (!mOutputFun)
+    return NS_ERROR_FAILURE;
+
+  int status = mOutputFun(buf, buf_size, mOutputClosure);
+  if (status < 0) {
+    PR_SetError(status, 0);
+    mOutputFun = nullptr;
+    return NS_ERROR_FAILURE;
+  }
+
   return NS_OK;
 }
 
@@ -528,8 +578,7 @@ nsPgpMimeProxy::Available(uint64_t* _retval)
 }
 
 NS_IMETHODIMP
-nsPgpMimeProxy::Read(char* buf, uint32_t count,
-                         uint32_t *readCount)
+nsPgpMimeProxy::Read(char* buf, uint32_t count, uint32_t *readCount)
 {
   NS_ENSURE_TRUE(mInitialized, NS_ERROR_NOT_INITIALIZED);
 
@@ -553,8 +602,8 @@ nsPgpMimeProxy::Read(char* buf, uint32_t count,
 
 NS_IMETHODIMP
 nsPgpMimeProxy::ReadSegments(nsWriteSegmentFun writer,
-                          void * aClosure, uint32_t count,
-                          uint32_t *readCount)
+                             void * aClosure, uint32_t count,
+                             uint32_t *readCount)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -607,8 +656,10 @@ nsPgpMimeProxy::OnDataAvailable(nsIRequest* aRequest, nsISupports* aContext,
                               uint32_t aLength)
 {
   NS_ENSURE_TRUE(mInitialized, NS_ERROR_NOT_INITIALIZED);
-
   NS_ENSURE_ARG(aInputStream);
+
+  if (!mOutputFun)
+    return NS_ERROR_FAILURE;
 
   char buf[kCharMax];
   uint32_t readCount, readMax;

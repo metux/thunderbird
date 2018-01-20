@@ -35,11 +35,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.mozilla.gecko.EventDispatcher;
-import org.mozilla.gecko.GeckoApp;
-import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.RemoteClientsDialogFragment;
@@ -54,6 +50,7 @@ import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.db.RemoteClient;
 import org.mozilla.gecko.restrictions.Restrictable;
 import org.mozilla.gecko.widget.HistoryDividerItemDecoration;
+import org.mozilla.gecko.util.GeckoBundle;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -205,7 +202,7 @@ public class CombinedHistoryPanel extends HomeFragment implements RemoteClientsD
     }
 
     private void setUpRefreshLayout() {
-        mRefreshLayout.setColorSchemeResources(R.color.fennec_ui_orange, R.color.action_orange);
+        mRefreshLayout.setColorSchemeResources(R.color.fennec_ui_accent, R.color.action_accent);
         mRefreshLayout.setOnRefreshListener(new RemoteTabsRefreshListener());
         mRefreshLayout.setEnabled(false);
     }
@@ -459,14 +456,10 @@ public class CombinedHistoryPanel extends HomeFragment implements RemoteClientsD
                             dialog.dismiss();
 
                             // Send message to Java to clear history.
-                            final JSONObject json = new JSONObject();
-                            try {
-                                json.put("history", true);
-                            } catch (JSONException e) {
-                                Log.e(LOGTAG, "JSON error", e);
-                            }
+                            final GeckoBundle data = new GeckoBundle(1);
+                            data.putBoolean("history", true);
+                            EventDispatcher.getInstance().dispatch("Sanitize:ClearData", data);
 
-                            GeckoAppShell.notifyObservers("Sanitize:ClearData", json.toString());
                             Telemetry.sendUIEvent(TelemetryContract.Event.SANITIZE, TelemetryContract.Method.BUTTON, "history");
                         }
                     });
@@ -538,14 +531,7 @@ public class CombinedHistoryPanel extends HomeFragment implements RemoteClientsD
             @Override
             public void onClick(View widget) {
                 Telemetry.sendUIEvent(TelemetryContract.Event.ACTION, TelemetryContract.Method.BUTTON, "hint_private_browsing");
-                try {
-                    final JSONObject json = new JSONObject();
-                    json.put("type", "Menu:Open");
-                    GeckoApp.getEventDispatcher().dispatchEvent(json, null);
-                    EventDispatcher.getInstance().dispatchEvent(json, null);
-                } catch (JSONException e) {
-                    Log.e(LOGTAG, "Error forming JSON for Private Browsing contextual hint", e);
-                }
+                EventDispatcher.getInstance().dispatch("Menu:Open", null);
             }
         };
 
@@ -648,7 +634,7 @@ public class CombinedHistoryPanel extends HomeFragment implements RemoteClientsD
         public void onRefresh() {
             if (FirefoxAccounts.firefoxAccountsExist(getActivity())) {
                 final Account account = FirefoxAccounts.getFirefoxAccount(getActivity());
-                FirefoxAccounts.requestImmediateSync(account, STAGES_TO_SYNC_ON_REFRESH, null);
+                FirefoxAccounts.requestImmediateSync(account, STAGES_TO_SYNC_ON_REFRESH, null, true);
             } else {
                 Log.wtf(LOGTAG, "No Firefox Account found; this should never happen. Ignoring.");
                 mRefreshLayout.setRefreshing(false);

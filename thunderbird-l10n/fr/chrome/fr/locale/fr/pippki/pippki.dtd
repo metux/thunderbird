@@ -2,7 +2,6 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-
 <!-- Values for changepassword.xul -->
 <!ENTITY setPassword.title  "Définir le mot de passe principal">
 <!ENTITY setPassword.tokenName.label "Périphérique de sécurité ">
@@ -44,7 +43,7 @@
 <!-- Strings for the CreateCertInfo dialog  -->
 <!ENTITY createCertInfo.title "Génération d’une clé privée">
 <!ENTITY createCertInfo.msg1 "Génération de la clé en cours… Cette opération peut prendre plusieurs minutes…">
-<!ENTITY createCertInfo.msg2 "Veuillez attendre…">
+<!ENTITY createCertInfo.msg2 "Veuillez patienter…">
 
 <!-- Strings for protectedAuth dialog -->
 <!ENTITY protectedAuth.title "Authentification protégée par jeton">

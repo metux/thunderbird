@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "bg": {
+      "chrome_resources": {
+        "necko": "chrome/bg/locale/bg/necko/", 
+        "global": "chrome/bg/locale/bg/global/", 
+        "messenger-region": "chrome/bg/locale/bg/messenger-region/", 
+        "chat": "chrome/bg/locale/bg/chat/", 
+        "devtools": "chrome/bg/locale/bg/devtools/client/", 
+        "pipnss": "chrome/bg/locale/bg/pipnss/", 
+        "messenger-smime": "chrome/bg/locale/bg/messenger-smime/", 
+        "messenger-newsblog": "chrome/bg/locale/bg/messenger-newsblog/", 
+        "devtools-shim": "chrome/bg/locale/bg/devtools/shim/", 
+        "alerts": "chrome/bg/locale/bg/alerts/", 
+        "messenger": "chrome/bg/locale/bg/messenger/", 
+        "editor": "chrome/bg/locale/bg/editor/", 
+        "branding": "chrome/bg/locale/bg/branding/", 
+        "mozldap": "chrome/bg/locale/bg/mozldap/", 
+        "autoconfig": "chrome/bg/locale/bg/autoconfig/", 
+        "devtools-shared": "chrome/bg/locale/bg/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/bg/locale/bg/global-platform/win/", 
+          "android": "chrome/bg/locale/bg/global-platform/unix/", 
+          "macosx": "chrome/bg/locale/bg/global-platform/mac/", 
+          "linux": "chrome/bg/locale/bg/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/bg/locale/bg/mozapps/", 
+        "pluginproblem": "chrome/bg/locale/bg/pluginproblem/", 
+        "communicator": "chrome/bg/locale/bg/communicator/", 
+        "messenger-mapi": "chrome/bg/locale/bg/messenger-mapi/", 
+        "places": "chrome/bg/locale/bg/places/", 
+        "passwordmgr": "chrome/bg/locale/bg/passwordmgr/", 
+        "pippki": "chrome/bg/locale/bg/pippki/"
+      }, 
+      "version": "20171103113242"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-bg@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "bg", 
+  "version": "58.0", 
+  "name": "Английски (САЩ) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Огнян Кулев, Митко Митев, Златко Попов, Милен Иванов, Стоян Димитров)", 
+  "description": "Language pack for Thunderbird for bg"
+}

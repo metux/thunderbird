@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -25,8 +26,7 @@
 namespace mozilla {
 namespace gfx {
 
-ID2D1Factory1* D2DFactory1();
-static ID2D1Factory* D2DFactory() { return D2DFactory1(); }
+RefPtr<ID2D1Factory1> D2DFactory();
 
 static inline D2D1_POINT_2F D2DPoint(const Point &aPoint)
 {
@@ -579,7 +579,7 @@ CreatePartialBitmapForSurface(DataSourceSurface *aSurface, const Matrix &aDestin
 
   Rect uploadRect(0, 0, Float(size.width), Float(size.height));
   if (aSourceRect) {
-    uploadRect = Rect(aSourceRect->x, aSourceRect->y, aSourceRect->width, aSourceRect->height);
+    uploadRect = Rect(aSourceRect->x, aSourceRect->y, aSourceRect->Width(), aSourceRect->Height());
   }
 
   // Limit the uploadRect as much as possible without supporting discontiguous uploads 
@@ -595,6 +595,8 @@ CreatePartialBitmapForSurface(DataSourceSurface *aSurface, const Matrix &aDestin
   //
   //
 
+  int Bpp = BytesPerPixel(aSurface->GetFormat());
+
   if (uploadRect.Contains(rect)) {
     // Extend mode is irrelevant, the displayed rect is completely contained
     // by the source bitmap.
@@ -609,10 +611,10 @@ CreatePartialBitmapForSurface(DataSourceSurface *aSurface, const Matrix &aDestin
     // upload rect safely without looking at extend mode.
   } else if (rect.x >= 0 && rect.XMost() < size.width) {
     uploadRect.x = rect.x;
-    uploadRect.width = rect.width;
+    uploadRect.SetWidth(rect.Width());
   } else if (rect.y >= 0 && rect.YMost() < size.height) {
     uploadRect.y = rect.y;
-    uploadRect.height = rect.height;
+    uploadRect.SetHeight(rect.Height());
   }
 
   if (uploadRect.IsEmpty()) {
@@ -620,8 +622,8 @@ CreatePartialBitmapForSurface(DataSourceSurface *aSurface, const Matrix &aDestin
     return nullptr;
   }
 
-  if (uploadRect.width <= aRT->GetMaximumBitmapSize() &&
-      uploadRect.height <= aRT->GetMaximumBitmapSize()) {
+  if (uploadRect.Width() <= aRT->GetMaximumBitmapSize() &&
+      uploadRect.Height() <= aRT->GetMaximumBitmapSize()) {
     {
       // Scope to auto-Unmap() |mapping|.
       DataSourceSurface::ScopedMap mapping(aSurface, DataSourceSurface::READ);
@@ -630,8 +632,8 @@ CreatePartialBitmapForSurface(DataSourceSurface *aSurface, const Matrix &aDestin
       }
 
       // A partial upload will suffice.
-      aRT->CreateBitmap(D2D1::SizeU(uint32_t(uploadRect.width), uint32_t(uploadRect.height)),
-                        mapping.GetData() + int(uploadRect.x) * 4 + int(uploadRect.y) * mapping.GetStride(),
+      aRT->CreateBitmap(D2D1::SizeU(uint32_t(uploadRect.Width()), uint32_t(uploadRect.Height())),
+                        mapping.GetData() + int(uploadRect.x) * Bpp + int(uploadRect.y) * mapping.GetStride(),
                         mapping.GetStride(),
                         D2D1::BitmapProperties(D2DPixelFormat(aSurface->GetFormat())),
                         getter_AddRefs(bitmap));
@@ -641,8 +643,6 @@ CreatePartialBitmapForSurface(DataSourceSurface *aSurface, const Matrix &aDestin
 
     return bitmap.forget();
   } else {
-    int Bpp = BytesPerPixel(aSurface->GetFormat());
-
     if (Bpp != 4) {
       // This shouldn't actually happen in practice!
       MOZ_ASSERT(false);
@@ -712,7 +712,7 @@ static inline void AddRectToSink(ID2D1GeometrySink* aSink, const D2D1_RECT_F& aR
 class DCCommandSink : public ID2D1CommandSink
 {
 public:
-  DCCommandSink(ID2D1DeviceContext* aCtx) : mCtx(aCtx)
+  explicit DCCommandSink(ID2D1DeviceContext* aCtx) : mCtx(aCtx)
   {
   }
 

@@ -215,7 +215,6 @@
 <!ENTITY addressButton.tooltip "Izberite prejemnika iz imenika">
 <!ENTITY attachButton.tooltip "Vključi priponko">
 <!ENTITY spellingButton.tooltip "Preveri črkovanje izbire ali celotnega sporočila">
-<!ENTITY statusLanguageText.tooltip "Jezik preverjanja črkovanja">
 <!ENTITY saveButton.tooltip "Shrani to sporočilo">
 <!ENTITY cutButton.tooltip              "Izreži">
 <!ENTITY copyButton.tooltip             "Kopiraj">
@@ -276,7 +275,7 @@
 <!ENTITY pasteQuote.label "Prilepi kot navedek">
 <!ENTITY pasteQuote.accesskey "n">
 
-<!ENTITY openAttachment.label "Pripni">
+<!ENTITY openAttachment.label "Odpri">
 <!ENTITY openAttachment.accesskey "O">
 <!ENTITY delete.label "Izbriši">
 <!ENTITY delete.accesskey "b">
@@ -309,3 +308,29 @@
 <!-- Identity popup customize menuitem -->
 <!ENTITY customizeFromAddress.label "Prilagodi naslov pošiljatelja …">
 <!ENTITY customizeFromAddress.accesskey "P">
+
+<!-- Status Bar -->
+<!ENTITY languageStatusButton.tooltip "Jezik za preverjanje črkovanja">
+<!ENTITY encodingStatusPanel.tooltip "Kodiranje besedila">
+
+<!ENTITY reorderAttachmentsCmd.label "Reorder Attachments…">
+<!ENTITY reorderAttachmentsCmd.accesskey "s">
+<!ENTITY reorderAttachmentsCmd.key "x">
+<!ENTITY reorderAttachmentsPanel.label "Reorder Attachments">
+<!ENTITY moveAttachmentTopPanelBtn.label "Move to Top">
+<!ENTITY moveAttachmentTopPanelBtn.accesskey "T">
+<!ENTITY moveAttachmentUpPanelBtn.label "Move Up">
+<!ENTITY moveAttachmentUpPanelBtn.accesskey "U">
+<!ENTITY moveAttachmentBundleUpPanelBtn.label "Move together">
+<!ENTITY moveAttachmentBundleUpPanelBtn.accesskey "v">
+<!ENTITY moveAttachmentDownPanelBtn.label "Move Down">
+<!ENTITY moveAttachmentDownPanelBtn.accesskey "D">
+<!ENTITY moveAttachmentBottomPanelBtn.label "Move to Bottom">
+<!ENTITY moveAttachmentBottomPanelBtn.accesskey "B">
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.label "Sort Selection: A - Z">
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.accesskey "o">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.label "Sort Selection: Z - A">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.accesskey "o">
+
+<!ENTITY reorderAttachments.label "Reorder Attachments…">
+<!ENTITY reorderAttachments.accesskey "s">

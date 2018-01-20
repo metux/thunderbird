@@ -27,6 +27,8 @@
 # error "Unknown architecture!"
 #endif
 
+#include "wasm/WasmBuiltins.h"
+
 namespace js {
 namespace jit {
 
@@ -84,21 +86,29 @@ void
 MacroAssembler::call(const wasm::CallSiteDesc& desc, const Register reg)
 {
     CodeOffset l = call(reg);
-    append(desc, l, framePushed());
+    append(desc, l);
 }
 
 void
-MacroAssembler::call(const wasm::CallSiteDesc& desc, uint32_t funcDefIndex)
+MacroAssembler::call(const wasm::CallSiteDesc& desc, uint32_t funcIndex)
 {
     CodeOffset l = callWithPatch();
-    append(desc, l, framePushed(), funcDefIndex);
+    append(desc, l, funcIndex);
 }
 
 void
 MacroAssembler::call(const wasm::CallSiteDesc& desc, wasm::Trap trap)
 {
     CodeOffset l = callWithPatch();
-    append(desc, l, framePushed(), trap);
+    append(desc, l, trap);
+}
+
+void
+MacroAssembler::call(const wasm::CallSiteDesc& desc, wasm::SymbolicAddress imm)
+{
+    MOZ_ASSERT(wasm::NeedsBuiltinThunk(imm), "only for functions which may appear in profiler");
+    call(imm);
+    append(desc, CodeOffset(currentOffset()));
 }
 
 // ===============================================================
@@ -116,8 +126,22 @@ MacroAssembler::passABIArg(FloatRegister reg, MoveOp::Type type)
     passABIArg(MoveOperand(reg), type);
 }
 
-template <typename T> void
-MacroAssembler::callWithABI(const T& fun, MoveOp::Type result)
+void
+MacroAssembler::callWithABI(void* fun, MoveOp::Type result, CheckUnsafeCallWithABI check)
+{
+    AutoProfilerCallInstrumentation profiler(*this);
+    callWithABINoProfiler(fun, result, check);
+}
+
+void
+MacroAssembler::callWithABI(Register fun, MoveOp::Type result)
+{
+    AutoProfilerCallInstrumentation profiler(*this);
+    callWithABINoProfiler(fun, result);
+}
+
+void
+MacroAssembler::callWithABI(const Address& fun, MoveOp::Type result)
 {
     AutoProfilerCallInstrumentation profiler(*this);
     callWithABINoProfiler(fun, result);
@@ -281,9 +305,9 @@ MacroAssembler::PushStubCode()
 }
 
 void
-MacroAssembler::enterExitFrame(const VMFunction* f)
+MacroAssembler::enterExitFrame(Register cxreg, Register scratch, const VMFunction* f)
 {
-    linkExitFrame();
+    linkExitFrame(cxreg, scratch);
     // Push the JitCode pointer. (Keep the code alive, when on the stack)
     PushStubCode();
     // Push VMFunction pointer, to mark arguments.
@@ -291,18 +315,18 @@ MacroAssembler::enterExitFrame(const VMFunction* f)
 }
 
 void
-MacroAssembler::enterFakeExitFrame(enum ExitFrameTokenValues token)
+MacroAssembler::enterFakeExitFrame(Register cxreg, Register scratch, ExitFrameToken token)
 {
-    linkExitFrame();
-    Push(Imm32(token));
+    linkExitFrame(cxreg, scratch);
+    Push(Imm32(int32_t(token)));
     Push(ImmPtr(nullptr));
 }
 
 void
-MacroAssembler::enterFakeExitFrameForNative(bool isConstructing)
+MacroAssembler::enterFakeExitFrameForNative(Register cxreg, Register scratch, bool isConstructing)
 {
-    enterFakeExitFrame(isConstructing ? ConstructNativeExitFrameLayoutToken
-                                      : CallNativeExitFrameLayoutToken);
+    enterFakeExitFrame(cxreg, scratch, isConstructing ? ExitFrameToken::ConstructNative
+                                                      : ExitFrameToken::CallNative);
 }
 
 void
@@ -315,6 +339,20 @@ bool
 MacroAssembler::hasSelfReference() const
 {
     return selfReferencePatch_.bound();
+}
+
+// ===============================================================
+// Move instructions
+
+void
+MacroAssembler::moveValue(const ConstantOrRegister& src, const ValueOperand& dest)
+{
+    if (src.constant()) {
+        moveValue(src.value(), dest);
+        return;
+    }
+
+    moveValue(src.reg(), dest);
 }
 
 // ===============================================================
@@ -409,6 +447,14 @@ MacroAssembler::branchIfRopeOrExternal(Register str, Register temp, Label* label
 }
 
 void
+MacroAssembler::branchIfNotRope(Register str, Label* label)
+{
+    Address flags(str, JSString::offsetOfFlags());
+    static_assert(JSString::ROPE_FLAGS == 0, "Rope type flags must be 0");
+    branchTest32(Assembler::NonZero, flags, Imm32(JSString::TYPE_FLAGS_MASK), label);
+}
+
+void
 MacroAssembler::branchLatin1String(Register string, Label* label)
 {
     branchTest32(Assembler::NonZero, Address(string, JSString::offsetOfFlags()),
@@ -444,6 +490,20 @@ MacroAssembler::branchIfInterpreted(Register fun, Label* label)
     Address address(fun, JSFunction::offsetOfNargs());
     int32_t bit = IMM32_16ADJ(JSFunction::INTERPRETED);
     branchTest32(Assembler::NonZero, address, Imm32(bit), label);
+}
+
+void
+MacroAssembler::branchIfObjectEmulatesUndefined(Register objReg, Register scratch,
+                                                Label* slowCheck, Label* label)
+{
+    // The branches to out-of-line code here implement a conservative version
+    // of the JSObject::isWrapper test performed in EmulatesUndefined.
+    loadObjClass(objReg, scratch);
+
+    branchTestClassIsProxy(true, scratch, slowCheck);
+
+    Address flags(scratch, Class::offsetOfFlags());
+    branchTest32(Assembler::NonZero, flags, Imm32(JSCLASS_EMULATES_UNDEFINED), label);
 }
 
 void
@@ -492,22 +552,6 @@ void
 MacroAssembler::branchTestObjGroup(Condition cond, Register obj, Register group, Label* label)
 {
     branchPtr(cond, Address(obj, JSObject::offsetOfGroup()), group, label);
-}
-
-void
-MacroAssembler::branchTestObjectTruthy(bool truthy, Register objReg, Register scratch,
-                                       Label* slowCheck, Label* checked)
-{
-    // The branches to out-of-line code here implement a conservative version
-    // of the JSObject::isWrapper test performed in EmulatesUndefined.  If none
-    // of the branches are taken, we can check class flags directly.
-    loadObjClass(objReg, scratch);
-    Address flags(scratch, Class::offsetOfFlags());
-
-    branchTestClassIsProxy(true, scratch, slowCheck);
-
-    Condition cond = truthy ? Assembler::Zero : Assembler::NonZero;
-    branchTest32(cond, flags, Imm32(JSCLASS_EMULATES_UNDEFINED), checked);
 }
 
 void
@@ -785,6 +829,17 @@ MacroAssembler::storeCallBoolResult(Register reg)
     // C++ compilers like to only use the bottom byte for bools, but we
     // need to maintain the entire register.
     and32(Imm32(0xFF), reg);
+}
+
+void
+MacroAssembler::storeCallInt32Result(Register reg)
+{
+#if JS_BITS_PER_WORD == 32
+    storeCallPointerResult(reg);
+#else
+    // Ensure the upper 32 bits are cleared.
+    move32(ReturnReg, reg);
+#endif
 }
 
 void

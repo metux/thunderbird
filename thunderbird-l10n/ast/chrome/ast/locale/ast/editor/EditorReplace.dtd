@@ -21,3 +21,5 @@
 <!ENTITY replaceAllButton.label "Trocar too">
 <!ENTITY replaceAllButton.accesskey "t">
 <!ENTITY closeButton.label "Zarrar">
+
+<!ENTITY closeButton.accesskey "C">

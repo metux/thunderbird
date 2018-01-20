@@ -30,13 +30,13 @@ function end_test() {
 add_test(function() {
   var sawUninstall = false;
   var listener = {
-    onUninstalling: function(aAddon, aRestartRequired) {
+    onUninstalling(aAddon, aRestartRequired) {
       if (aAddon.id != "addon1@tests.mozilla.org")
         return;
       sawUninstall = true;
       aAddon.cancelUninstall();
     }
-  }
+  };
 
   // Important to add this before opening the UI so it gets its events first
   AddonManager.addAddonListener(listener);

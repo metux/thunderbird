@@ -69,8 +69,8 @@
 <!-- LOCALIZATION NOTE (doneAccount.label): If there is a security warning
      on the incoming or outgoing servers, then the page that pops up will
      have this text in a button to continue by creating the account. -->
-<!ENTITY doneAccount.label               "Gata">
-<!ENTITY doneAccount.accesskey           "G">
+<!ENTITY doneAccount.label               "Terminat">
+<!ENTITY doneAccount.accesskey           "D">
 <!-- LOCALIZATION NOTE (changeSettings.label): If there is a security warning on
      the incoming or outgoing servers, then the page that pops up will have
      this text in a button to take you back to the previous page to change
@@ -86,3 +86,11 @@
 <!ENTITY insecureUnencrypted.description "Adresa dumneavoastră de e-mail și datele de autentificare sunt trimise fără a fi criptate, ca urmare parola și mesajul dumneavoastră pot fi citite de alte persoane. &brandShortName; vă va permite să vă citiți mesajele, dar ar trebui să contactați furnizorul de e-mail în legătură cu configurarea serverului pentru o conexiune securizată.">
 <!ENTITY insecureSelfSigned.description  "Serverul folosește un certificat în care nu aveți încredere, așadar nu puteți fi sigur că cineva nu interceptează traficul dintre &brandShortName; și server. &brandShortName; vă va permite să accesați e-mailul chiar și în acest mod, dar ar trebui să convingeți furnizorul de e-mail să configureze serverul cu un certificat de încredere.">
 <!ENTITY secureServer.description        "Felicitări! Aveți de a face cu un server securizat.">
+
+<!ENTITY autoconfigWizard2.title         "Set Up an Existing Email Account">
+<!ENTITY email2.placeholder              "you@example.com">
+<!ENTITY email.text                      "Your existing email address">
+<!ENTITY open-provisioner.label          "Get a new email address…">
+<!ENTITY open-provisioner.accesskey      "g">
+
+

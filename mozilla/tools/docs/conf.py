@@ -8,6 +8,8 @@ import os
 import re
 import sys
 
+from recommonmark.parser import CommonMarkParser
+
 from datetime import datetime
 
 # Set up Python environment to load build system packages.
@@ -16,15 +18,15 @@ topsrcdir = os.path.normpath(os.path.join(OUR_DIR, '..', '..'))
 
 EXTRA_PATHS = (
     'layout/tools/reftest',
-    'python/futures',
-    'python/jsmin',
     'python/mach',
     'python/mozbuild',
     'python/mozversioncontrol',
-    'python/which',
     'testing/mozbase/manifestparser',
     'testing/mozbase/mozfile',
     'testing/mozbase/mozprocess',
+    'third_party/python/futures',
+    'third_party/python/jsmin',
+    'third_party/python/which',
 )
 
 sys.path[:0] = [os.path.join(topsrcdir, p) for p in EXTRA_PATHS]
@@ -40,6 +42,10 @@ extensions = [
 
 templates_path = ['_templates']
 source_suffix = '.rst'
+source_suffix = ['.rst', '.md']
+source_parsers = {
+   '.md': CommonMarkParser,
+}
 master_doc = 'index'
 project = u'Mozilla Source Tree Docs'
 year = datetime.now().year
@@ -81,3 +87,5 @@ else:
 
 html_static_path = ['_static']
 htmlhelp_basename = 'MozillaTreeDocs'
+
+moz_project_name = 'main'

@@ -76,6 +76,10 @@ class TPSTestRunner(object):
         'toolkit.startup.max_resumed_crashes': -1,
         # hrm - not sure what the release/beta channels will do?
         'xpinstall.signatures.required': False,
+        'services.sync.testing.tps': True,
+        'engine.bookmarks.repair.enabled': False,
+        'extensions.allow-non-mpc-extensions': True,
+        'extensions.legacy.enabled': True,
     }
 
     debug_preferences = {
@@ -442,7 +446,6 @@ class TPSTestRunner(object):
         # build our tps.xpi extension
         self.extensions = []
         self.extensions.append(os.path.join(self.extensionDir, 'tps'))
-        self.extensions.append(os.path.join(self.extensionDir, "mozmill"))
 
         # build the test list
         try:

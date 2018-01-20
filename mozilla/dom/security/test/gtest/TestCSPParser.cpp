@@ -9,34 +9,12 @@
 #include <string.h>
 #include <stdlib.h>
 
-#ifndef MOZILLA_INTERNAL_API
-// some of the includes make use of internal string types
-#define nsAString_h___
-#define nsString_h___
-#define nsStringFwd_h___
-#define nsReadableUtils_h___
-class nsACString;
-class nsAString;
-class nsAFlatString;
-class nsAFlatCString;
-class nsAdoptingString;
-class nsAdoptingCString;
-class nsXPIDLString;
-template<class T> class nsReadingIterator;
-#endif
-
 #include "nsIContentSecurityPolicy.h"
 #include "nsNetUtil.h"
-#include "nsIScriptSecurityManager.h"
 #include "mozilla/dom/nsCSPContext.h"
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
-
-#ifndef MOZILLA_INTERNAL_API
-#undef nsString_h___
-#undef nsAString_h___
-#undef nsReadableUtils_h___
-#endif
+#include "nsStringFwd.h"
 
 /*
  * Testing the parser is non trivial, especially since we can not call
@@ -94,9 +72,6 @@ nsresult runTest(uint32_t aExpectedPolicyCount, // this should be 0 for policies
                  const char* aExpectedResult) {
 
   nsresult rv;
-  nsCOMPtr<nsIScriptSecurityManager> secman =
-    do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   // we init the csp with http://www.selfuri.com
   nsCOMPtr<nsIURI> selfURI;
@@ -104,10 +79,10 @@ nsresult runTest(uint32_t aExpectedPolicyCount, // this should be 0 for policies
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIPrincipal> selfURIPrincipal;
-  // Can't use BasePrincipal::CreateCodebasePrincipal here
-  // because the symbol is not visible here
-  rv = secman->GetCodebasePrincipal(selfURI, getter_AddRefs(selfURIPrincipal));
-  NS_ENSURE_SUCCESS(rv, rv);
+  mozilla::OriginAttributes attrs;
+  selfURIPrincipal =
+    mozilla::BasePrincipal::CreateCodebasePrincipal(selfURI, attrs);
+  NS_ENSURE_TRUE(selfURIPrincipal, NS_ERROR_FAILURE);
 
   // create a CSP object
   nsCOMPtr<nsIContentSecurityPolicy> csp =
@@ -204,6 +179,8 @@ TEST(CSPParser, Directives)
 {
   static const PolicyTest policies[] =
   {
+    { "connect-src xn--mnchen-3ya.de",
+      "connect-src http://xn--mnchen-3ya.de"},
     { "default-src http://www.example.com",
       "default-src http://www.example.com" },
     { "script-src http://www.example.com",
@@ -226,6 +203,10 @@ TEST(CSPParser, Directives)
       "report-uri http://www.example.com/" },
     { "script-src 'nonce-correctscriptnonce'",
       "script-src 'nonce-correctscriptnonce'" },
+    { "script-src 'nonce-a'",
+      "script-src 'nonce-a'" },
+    { "script-src 'sha256-a'",
+      "script-src 'sha256-a'" },
     { "script-src 'sha256-siVR8vAcqP06h2ppeNwqgjr0yZ6yned4X2VF84j4GmI='",
       "script-src 'sha256-siVR8vAcqP06h2ppeNwqgjr0yZ6yned4X2VF84j4GmI='" },
     { "referrer no-referrer",
@@ -238,6 +219,10 @@ TEST(CSPParser, Directives)
       "script-src 'nonce-foo' 'strict-dynamic' 'unsafe-inline' https:" },
     { "default-src 'sha256-siVR8' 'strict-dynamic' 'unsafe-inline' https:  ",
       "default-src 'sha256-siVR8' 'unsafe-inline' https:" },
+    { "worker-src https://example.com",
+      "worker-src https://example.com" },
+    { "worker-src http://worker.com; frame-src http://frame.com; child-src http://child.com",
+      "worker-src http://worker.com; frame-src http://frame.com; child-src http://child.com" },
   };
 
   uint32_t policyCount = sizeof(policies) / sizeof(PolicyTest);
@@ -458,8 +443,6 @@ TEST(CSPParser, SimplePolicies)
       "script-src http://www.selfuri.com; default-src http://trustedscripts.example.com" },
     { "default-src 'none'; report-uri http://localhost:49938/test",
       "default-src 'none'; report-uri http://localhost:49938/test" },
-    { "default-src app://{app-host-is-uid}",
-      "default-src app://{app-host-is-uid}" },
     { "   ;   default-src abc",
       "default-src http://abc" },
     { " ; ; ; ;     default-src            abc    ; ; ; ;",
@@ -542,6 +525,34 @@ TEST(CSPParser, PoliciesWithInvalidSrc)
       "script-src 'none'" },
     { "script-src http://www.example.com:*.",
       "script-src 'none'" },
+    { "script-src 'nonce-{invalid}'",
+      "script-src 'none'" },
+    { "script-src 'sha256-{invalid}'",
+      "script-src 'none'" },
+    { "script-src 'nonce-in$valid'",
+      "script-src 'none'" },
+    { "script-src 'sha256-in$valid'",
+      "script-src 'none'" },
+    { "script-src 'nonce-invalid==='",
+      "script-src 'none'" },
+    { "script-src 'sha256-invalid==='",
+      "script-src 'none'" },
+    { "script-src 'nonce-==='",
+      "script-src 'none'" },
+    { "script-src 'sha256-==='",
+      "script-src 'none'" },
+    { "script-src 'nonce-=='",
+      "script-src 'none'" },
+    { "script-src 'sha256-=='",
+      "script-src 'none'" },
+    { "script-src 'nonce-='",
+      "script-src 'none'" },
+    { "script-src 'sha256-='",
+      "script-src 'none'" },
+    { "script-src 'nonce-'",
+      "script-src 'none'" },
+    { "script-src 'sha256-'",
+      "script-src 'none'" },
     { "connect-src http://www.example.com/foo%zz;",
       "connect-src 'none'" },
     { "script-src https://foo.com/%$",
@@ -601,8 +612,6 @@ TEST(CSPParser, GoodGeneratedPolicies)
       "font-src http://com" },
     { "connect-src f00b4r.com",
       "connect-src http://f00b4r.com" },
-    { "default-src {app-url-is-uid}",
-      "default-src http://{app-url-is-uid}" },
     { "script-src *.a.b.c",
       "script-src http://*.a.b.c" },
     { "object-src *.b.c",
@@ -627,10 +636,6 @@ TEST(CSPParser, GoodGeneratedPolicies)
       "object-src data:" },
     { "style-src javascript:",
       "style-src javascript:" },
-    { "img-src {app-host-is-uid}",
-      "img-src http://{app-host-is-uid}" },
-    { "media-src app://{app-host-is-uid}",
-      "media-src app://{app-host-is-uid}" },
     { "frame-src https://foobar.com:443",
       "frame-src https://foobar.com:443" },
     { "font-src https://a.com:443",
@@ -641,8 +646,6 @@ TEST(CSPParser, GoodGeneratedPolicies)
       "default-src http://foobar.com" },
     { "script-src https://foobar.com",
       "script-src https://foobar.com" },
-    { "object-src https://{app-host-is-uid}",
-      "object-src https://{app-host-is-uid}" },
     { "style-src 'none'",
       "style-src 'none'" },
     { "img-src foo.bar:21 https://ras.bar",

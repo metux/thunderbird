@@ -2,7 +2,7 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
-add_task(function* testWindowCreate() {
+add_task(async function testWindowCreate() {
   let extension = ExtensionTestUtils.loadExtension({
     manifest: {
       permissions: ["tabs"],
@@ -43,6 +43,7 @@ add_task(function* testWindowCreate() {
       async function create(options) {
         let window = await browser.windows.create(options);
         let win = windows.get(window.id);
+        win.id = window.id;
 
         win.expectedTabs = Array.isArray(options.url) ? options.url.length : 1;
 
@@ -66,7 +67,9 @@ add_task(function* testWindowCreate() {
         browser.test.assertEq(EXTENSION_URL, windows[3].tabs.get(1).url, "url[1]: Relative URL");
         browser.test.assertEq(EXTENSION_URL, windows[3].tabs.get(2).url, "url[2]: Absolute, extension URL");
 
-        browser.test.notifyPass("window-create-url");
+        Promise.all(windows.map(({id}) => browser.windows.remove(id))).then(() => {
+          browser.test.notifyPass("window-create-url");
+        });
       } catch (e) {
         browser.test.fail(`${e} :: ${e.stack}`);
         browser.test.notifyFail("window-create-url");
@@ -78,7 +81,7 @@ add_task(function* testWindowCreate() {
     },
   });
 
-  yield extension.startup();
-  yield extension.awaitFinish("window-create-url");
-  yield extension.unload();
+  await extension.startup();
+  await extension.awaitFinish("window-create-url");
+  await extension.unload();
 });

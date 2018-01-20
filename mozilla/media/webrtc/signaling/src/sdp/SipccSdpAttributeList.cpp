@@ -70,6 +70,18 @@ SipccSdpAttributeList::Clear()
   }
 }
 
+uint32_t
+SipccSdpAttributeList::Count() const
+{
+  uint32_t count = 0;
+  for (size_t i = 0; i < kNumAttributeTypes; ++i) {
+    if (mAttributes[i]) {
+      count++;
+    }
+  }
+  return count;
+}
+
 void
 SipccSdpAttributeList::SetAttribute(SdpAttribute* attr)
 {
@@ -133,6 +145,10 @@ SipccSdpAttributeList::LoadSimpleNumbers(sdp_t* sdp, uint16_t level,
                    errorHolder);
   LoadSimpleNumber(sdp, level, SDP_ATTR_MAXPTIME,
                    SdpAttribute::kMaxptimeAttribute, errorHolder);
+  LoadSimpleNumber(sdp, level, SDP_ATTR_SCTPPORT,
+                   SdpAttribute::kSctpPortAttribute, errorHolder);
+  LoadSimpleNumber(sdp, level, SDP_ATTR_MAXMESSAGESIZE,
+                   SdpAttribute::kMaxMessageSizeAttribute, errorHolder);
 }
 
 void
@@ -267,7 +283,7 @@ SipccSdpAttributeList::LoadFingerprint(sdp_t* sdp, uint16_t level,
 
     std::vector<uint8_t> fingerprint =
         SdpFingerprintAttributeList::ParseFingerprint(fingerprintToken);
-    if (fingerprint.size() == 0) {
+    if (fingerprint.empty()) {
       errorHolder.AddParseError(lineNumber, "Malformed fingerprint token");
       return false;
     }
@@ -1051,9 +1067,7 @@ SipccSdpAttributeList::Load(sdp_t* sdp, uint16_t level,
   } else {
     sdp_media_e mtype = sdp_get_media_type(sdp, level);
     if (mtype == SDP_MEDIA_APPLICATION) {
-      if (!LoadSctpmap(sdp, level, errorHolder)) {
-        return false;
-      }
+      LoadSctpmap(sdp, level, errorHolder);
     } else {
       if (!LoadRtpmap(sdp, level, errorHolder)) {
         return false;
@@ -1372,6 +1386,28 @@ SipccSdpAttributeList::GetSctpmap() const
   }
   const SdpAttribute* attr = GetAttribute(SdpAttribute::kSctpmapAttribute);
   return *static_cast<const SdpSctpmapAttributeList*>(attr);
+}
+
+uint32_t
+SipccSdpAttributeList::GetSctpPort() const
+{
+  if (!HasAttribute(SdpAttribute::kSctpPortAttribute)) {
+    MOZ_CRASH();
+  }
+
+  const SdpAttribute* attr = GetAttribute(SdpAttribute::kSctpPortAttribute);
+  return static_cast<const SdpNumberAttribute*>(attr)->mValue;
+}
+
+uint32_t
+SipccSdpAttributeList::GetMaxMessageSize() const
+{
+  if (!HasAttribute(SdpAttribute::kMaxMessageSizeAttribute)) {
+    MOZ_CRASH();
+  }
+
+  const SdpAttribute* attr = GetAttribute(SdpAttribute::kMaxMessageSizeAttribute);
+  return static_cast<const SdpNumberAttribute*>(attr)->mValue;
 }
 
 const SdpSetupAttribute&

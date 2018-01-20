@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -14,6 +15,10 @@ namespace mozilla {
 class ServoDeclarationBlock final : public DeclarationBlock
 {
 public:
+  explicit ServoDeclarationBlock(
+    already_AddRefed<RawServoDeclarationBlock> aRaw)
+    : DeclarationBlock(StyleBackendType::Servo), mRaw(aRaw) {}
+
   ServoDeclarationBlock()
     : ServoDeclarationBlock(Servo_DeclarationBlock_CreateEmpty().Consume()) {}
 
@@ -21,10 +26,11 @@ public:
     : DeclarationBlock(aCopy)
     , mRaw(Servo_DeclarationBlock_Clone(aCopy.mRaw).Consume()) {}
 
-  NS_INLINE_DECL_REFCOUNTING(ServoDeclarationBlock)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ServoDeclarationBlock)
 
   static already_AddRefed<ServoDeclarationBlock>
-  FromCssText(const nsAString& aCssText);
+  FromCssText(const nsAString& aCssText, URLExtraData* aExtraData,
+              nsCompatibility aMode, css::Loader* aLoader);
 
   RawServoDeclarationBlock* Raw() const { return mRaw; }
   RawServoDeclarationBlock* const* RefRaw() const {
@@ -32,6 +38,17 @@ public:
                   sizeof(RawServoDeclarationBlock*),
                   "RefPtr should just be a pointer");
     return reinterpret_cast<RawServoDeclarationBlock* const*>(&mRaw);
+  }
+
+  const RawServoDeclarationBlockStrong* RefRawStrong() const
+  {
+    static_assert(sizeof(RefPtr<RawServoDeclarationBlock>) ==
+                  sizeof(RawServoDeclarationBlock*),
+                  "RefPtr should just be a pointer");
+    static_assert(sizeof(RefPtr<RawServoDeclarationBlock>) ==
+                  sizeof(RawServoDeclarationBlockStrong),
+                  "RawServoDeclarationBlockStrong should be the same as RefPtr");
+    return reinterpret_cast<const RawServoDeclarationBlockStrong*>(&mRaw);
   }
 
   void ToString(nsAString& aResult) const {
@@ -48,18 +65,9 @@ public:
 
   void GetPropertyValue(const nsAString& aProperty, nsAString& aValue) const;
   void GetPropertyValueByID(nsCSSPropertyID aPropID, nsAString& aValue) const;
-  void GetAuthoredPropertyValue(const nsAString& aProperty,
-                                nsAString& aValue) const {
-    GetPropertyValue(aProperty, aValue);
-  }
   bool GetPropertyIsImportant(const nsAString& aProperty) const;
   void RemoveProperty(const nsAString& aProperty);
-  void RemovePropertyByID(nsCSSPropertyID aPropID);
-
-protected:
-  explicit ServoDeclarationBlock(
-    already_AddRefed<RawServoDeclarationBlock> aRaw)
-    : DeclarationBlock(StyleBackendType::Servo), mRaw(aRaw) {}
+  bool RemovePropertyByID(nsCSSPropertyID aPropID);
 
 private:
   ~ServoDeclarationBlock() {}

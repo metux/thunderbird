@@ -62,5 +62,5 @@
 <!ENTITY quitApplicationCmdMac.label  "Saír de &brandShortName;">
 <!ENTITY quitApplicationCmdMac.accesskey  "a">
 
-<!ENTITY preferencesCmd2.accesskey "O">
 <!ENTITY preferencesCmd2.label "Options">
+<!ENTITY preferencesCmd2.accesskey "O">

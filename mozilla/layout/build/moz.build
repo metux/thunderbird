@@ -24,6 +24,7 @@ LOCAL_INCLUDES += [
     '../generic',
     '../inspector',
     '../mathml',
+    '../painting',
     '../style',
     '../tables',
     '../xul',
@@ -31,6 +32,7 @@ LOCAL_INCLUDES += [
     '/docshell/base',
     '/dom/audiochannel',
     '/dom/base',
+    '/dom/bindings',
     '/dom/canvas',
     '/dom/filesystem',
     '/dom/geolocation',
@@ -39,7 +41,6 @@ LOCAL_INCLUDES += [
     '/dom/jsurl',
     '/dom/media',
     '/dom/offline',
-    '/dom/speakermanager',
     '/dom/storage',
     '/dom/svg',
     '/dom/xbl',
@@ -73,21 +74,11 @@ elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
         '/dom/system',
         '/dom/system/android',
     ]
-elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
-    LOCAL_INCLUDES += [
-        '/dom/system/gonk',
-    ]
 
 if CONFIG['MOZ_WEBSPEECH']:
     LOCAL_INCLUDES += [
         '/dom/media/webspeech/recognition',
         '/dom/media/webspeech/synth',
-    ]
-
-if CONFIG['MOZ_WEBSPEECH_POCKETSPHINX']:
-    LOCAL_INCLUDES += [
-        '/media/pocketsphinx',
-        '/media/sphinxbase',
     ]
 
 if CONFIG['MOZ_SECUREELEMENT']:

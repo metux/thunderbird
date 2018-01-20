@@ -6,20 +6,29 @@
 
 UNIFIED_SOURCES += [
     'Helpers.cpp',
+    'TestArenaAllocator.cpp',
     'TestAtoms.cpp',
     'TestAutoPtr.cpp',
     'TestAutoRef.cpp',
+    'TestAutoRefCnt.cpp',
     'TestBase64.cpp',
     'TestCallTemplates.cpp',
     'TestCloneInputStream.cpp',
-    'TestCOMArray.cpp',
     'TestCOMPtrEq.cpp',
     'TestCRT.cpp',
+    'TestDafsa.cpp',
     'TestEncoding.cpp',
-    'TestEscapeURL.cpp',
+    'TestEscape.cpp',
+    'TestEventPriorities.cpp',
+    'TestEventTargetQI.cpp',
     'TestExpirationTracker.cpp',
     'TestFile.cpp',
+    'TestGCPostBarriers.cpp',
     'TestID.cpp',
+    'TestMoveString.cpp',
+    'TestMozPromise.cpp',
+    'TestMultiplexInputStream.cpp',
+    'TestNsDeque.cpp',
     'TestNSPRLogModulesParser.cpp',
     'TestObserverArray.cpp',
     'TestObserverService.cpp',
@@ -27,6 +36,8 @@ UNIFIED_SOURCES += [
     'TestPLDHash.cpp',
     'TestPriorityQueue.cpp',
     'TestRacingServiceManager.cpp',
+    'TestRecursiveMutex.cpp',
+    'TestRWLock.cpp',
     'TestSlicedInputStream.cpp',
     'TestSnappyStreams.cpp',
     'TestStateWatching.cpp',
@@ -36,7 +47,9 @@ UNIFIED_SOURCES += [
     'TestSynchronization.cpp',
     'TestTArray.cpp',
     'TestTArray2.cpp',
+    'TestTaskQueue.cpp',
     'TestTextFormatter.cpp',
+    'TestThreadManager.cpp',
     'TestThreadPool.cpp',
     'TestThreadPoolListener.cpp',
     'TestThreads.cpp',
@@ -45,7 +58,6 @@ UNIFIED_SOURCES += [
     'TestTimeStamp.cpp',
     'TestTokenizer.cpp',
     'TestUTF.cpp',
-    'TestXPIDLString.cpp',
 ]
 
 if CONFIG['MOZ_DEBUG'] and CONFIG['OS_ARCH'] not in ('WINNT') and CONFIG['OS_TARGET'] != 'Android':
@@ -65,6 +77,7 @@ if CONFIG['WRAP_STL_INCLUDES'] and not CONFIG['CLANG_CL']:
 # the global namespace for other files.
 SOURCES += [
     'TestAllocReplacement.cpp',
+    'TestCOMArray.cpp',
     'TestCOMPtr.cpp', # Redefines IFoo and IBar
     'TestHashtables.cpp', # Redefines IFoo
     'TestNsRefPtr.cpp', # Redefines Foo
@@ -74,4 +87,13 @@ LOCAL_INCLUDES += [
     '../../base',
 ]
 
+GENERATED_FILES = [
+    'dafsa_test_1.inc',
+]
+dafsa_data = GENERATED_FILES['dafsa_test_1.inc']
+dafsa_data.script = '../../ds/make_dafsa.py'
+dafsa_data.inputs = ['dafsa_test_1.dat']
+
 FINAL_LIBRARY = 'xul-gtest'
+
+include('/ipc/chromium/chromium-config.mozbuild')

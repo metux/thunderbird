@@ -103,7 +103,7 @@
 #include "prlog.h"
 #include "plstr.h"
 #include "mimemoz2.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIURL.h"
 #include "msgCore.h"
 #include "nsMimeStringResources.h"
@@ -494,7 +494,7 @@ MimeMultipartRelated_output_child_p(MimeObject *obj, MimeObject* child)
             part therfore we will have to hope the datafork is the second one!
           */
           if (mime_typep(child, (MimeObjectClass *) &mimeMultipartAppleDoubleClass))
-            partnum.Append(".2");
+            partnum.AppendLiteral(".2");
 
           char* part;
           if (!imappartnum.IsEmpty())
@@ -528,8 +528,8 @@ MimeMultipartRelated_output_child_p(MimeObject *obj, MimeObject* child)
                (This happens primarily on Windows and Unix.) */
             if (PL_strchr(part, ' ') || PL_strchr(part, '>') || PL_strchr(part, '%'))
               temp = escape_for_mrel_subst(part);
-              MimeHashValue * value = new MimeHashValue(child, temp);
-              PL_HashTableAdd(relobj->hash, absolute, value);
+            MimeHashValue * value = new MimeHashValue(child, temp);
+            PL_HashTableAdd(relobj->hash, absolute, value);
 
             /* rhp - If this part ALSO has a Content-ID we need to put that into
                      the hash table and this is what this code does

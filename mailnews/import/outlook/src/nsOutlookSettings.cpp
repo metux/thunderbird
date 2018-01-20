@@ -31,15 +31,7 @@
 #include <windows.h>
 #include "nsIWindowsRegKey.h"
 #include "nsComponentManagerUtils.h"
-#ifdef MOZILLA_INTERNAL_API
 #include "nsNativeCharsetUtils.h"
-#else
-#include "nsMsgI18N.h"
-#define NS_CopyNativeToUnicode(source, dest) \
-        nsMsgI18NConvertToUnicode(nsMsgI18NFileSystemCharset(), source, dest)
-#define NS_CopyUnicodeToNative(source, dest) \
-        nsMsgI18NConvertFromUnicode(nsMsgI18NFileSystemCharset(), source, dest)
-#endif
 
 class OutlookSettings {
 public:
@@ -80,16 +72,9 @@ public:
 ////////////////////////////////////////////////////////////////////////
 nsresult nsOutlookSettings::Create(nsIImportSettings** aImport)
 {
-    NS_PRECONDITION(aImport != nullptr, "null ptr");
-    if (! aImport)
-        return NS_ERROR_NULL_POINTER;
-
-    *aImport = new nsOutlookSettings();
-    if (! *aImport)
-        return NS_ERROR_OUT_OF_MEMORY;
-
-    NS_ADDREF(*aImport);
-    return NS_OK;
+  NS_ENSURE_ARG_POINTER(aImport);
+  NS_ADDREF(*aImport = new nsOutlookSettings());
+  return NS_OK;
 }
 
 nsOutlookSettings::nsOutlookSettings()

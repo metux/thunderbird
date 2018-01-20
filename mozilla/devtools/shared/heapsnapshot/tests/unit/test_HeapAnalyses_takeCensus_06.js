@@ -1,12 +1,9 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
 // Test that the HeapAnalyses{Client,Worker} can take censuses by
 // "allocationStack" and return a CensusTreeNode.
-
-function run_test() {
-  run_next_test();
-}
 
 const BREAKDOWN = {
   by: "objectClass",

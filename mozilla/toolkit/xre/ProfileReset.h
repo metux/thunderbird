@@ -11,6 +11,7 @@ static bool gProfileResetCleanupCompleted = false;
 static const char kResetProgressURL[] = "chrome://global/content/resetProfileProgress.xul";
 
 nsresult CreateResetProfile(nsIToolkitProfileService* aProfileSvc,
+                            const nsACString& aOldProfileName,
                             nsIToolkitProfile* *aNewProfile);
 
 nsresult ProfileResetCleanup(nsIToolkitProfile* aOldProfile);
@@ -19,7 +20,8 @@ class ProfileResetCleanupResultTask : public mozilla::Runnable
 {
 public:
   ProfileResetCleanupResultTask()
-    : mWorkerThread(do_GetCurrentThread())
+    : mozilla::Runnable("ProfileResetCleanupResultTask")
+    , mWorkerThread(do_GetCurrentThread())
   {
     MOZ_ASSERT(!NS_IsMainThread());
   }
@@ -37,9 +39,12 @@ private:
 class ProfileResetCleanupAsyncTask : public mozilla::Runnable
 {
 public:
-  ProfileResetCleanupAsyncTask(nsIFile* aProfileDir, nsIFile* aProfileLocalDir,
-                               nsIFile* aTargetDir, const nsAString &aLeafName)
-    : mProfileDir(aProfileDir)
+  ProfileResetCleanupAsyncTask(nsIFile* aProfileDir,
+                               nsIFile* aProfileLocalDir,
+                               nsIFile* aTargetDir,
+                               const nsAString& aLeafName)
+    : mozilla::Runnable("ProfileResetCleanupAsyncTask")
+    , mProfileDir(aProfileDir)
     , mProfileLocalDir(aProfileLocalDir)
     , mTargetDir(aTargetDir)
     , mLeafName(aLeafName)

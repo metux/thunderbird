@@ -673,8 +673,8 @@ var gFolderTreeView = {
     if (!targetFolder)
       return false;
     let dt = this._currentTransfer;
-    let types = dt.mozTypesAt(0);
-    if (Array.indexOf(types, "text/x-moz-message") != -1) {
+    let types = Array.from(dt.mozTypesAt(0));
+    if (types.includes("text/x-moz-message")) {
       if (aOrientation != Ci.nsITreeView.DROP_ON)
         return false;
       // Don't allow drop onto server itself.
@@ -692,7 +692,7 @@ var gFolderTreeView = {
       }
       return true;
     }
-    else if (Array.indexOf(types, "text/x-moz-folder") != -1) {
+    else if (types.includes("text/x-moz-folder")) {
       if (aOrientation != Ci.nsITreeView.DROP_ON)
         return false;
       // If cannot create subfolders then don't allow drop here.
@@ -726,7 +726,7 @@ var gFolderTreeView = {
       }
       return true;
     }
-    else if (Array.indexOf(types, "text/x-moz-newsfolder") != -1) {
+    else if (types.includes("text/x-moz-newsfolder")) {
       // Don't allow dragging onto element.
       if (aOrientation == Ci.nsITreeView.DROP_ON)
         return false;
@@ -754,7 +754,7 @@ var gFolderTreeView = {
     // Allow subscribing to feeds by dragging an url to a feed account.
     else if (targetFolder.server.type == "rss" && dt.mozItemCount == 1)
       return FeedUtils.getFeedUriFromDataTransfer(dt) ? true : false;
-    else if (Array.indexOf(types, "application/x-moz-file") != -1) {
+    else if (types.includes("application/x-moz-file")) {
       if (aOrientation != Ci.nsITreeView.DROP_ON)
         return false;
       // Don't allow drop onto server itself.
@@ -765,7 +765,7 @@ var gFolderTreeView = {
         return false;
       for (let i = 0; i < dt.mozItemCount; i++) {
         let extFile = dt.mozGetDataAt("application/x-moz-file", i)
-                        .QueryInterface(Ci.nsILocalFile);
+                        .QueryInterface(Ci.nsIFile);
         return extFile.isFile();
       }
     }
@@ -786,8 +786,8 @@ var gFolderTreeView = {
                     FeedUtils.getFeedUriFromDataTransfer(dt) : null;
 
     // we only support drag of a single flavor at a time.
-    let types = dt.mozTypesAt(0);
-    if (Array.indexOf(types, "text/x-moz-folder") != -1) {
+    let types = Array.from(dt.mozTypesAt(0));
+    if (types.includes("text/x-moz-folder")) {
       for (let i = 0; i < count; i++) {
         let folders = new Array;
         folders.push(dt.mozGetDataAt("text/x-moz-folder", i)
@@ -798,7 +798,7 @@ var gFolderTreeView = {
                        msgWindow);
       }
     }
-    else if (Array.indexOf(types, "text/x-moz-newsfolder") != -1) {
+    else if (types.includes("text/x-moz-newsfolder")) {
       // Start by getting folders into order.
       let folders = new Array;
       for (let i = 0; i < count; i++) {
@@ -820,7 +820,7 @@ var gFolderTreeView = {
         i -= aOrientation;
       }
     }
-    else if (Array.indexOf(types, "text/x-moz-message") != -1) {
+    else if (types.includes("text/x-moz-message")) {
       let array = Cc["@mozilla.org/array;1"]
                     .createInstance(Ci.nsIMutableArray);
       let sourceFolder;
@@ -829,7 +829,7 @@ var gFolderTreeView = {
         let msgHdr = messenger.msgHdrFromURI(dt.mozGetDataAt("text/x-moz-message", i));
         if (!i)
           sourceFolder = msgHdr.folder;
-        array.appendElement(msgHdr, false);
+        array.appendElement(msgHdr);
       }
       let prefBranch = Services.prefs.getBranch("mail.");
       let isMove = Cc["@mozilla.org/widget/dragservice;1"]
@@ -850,10 +850,10 @@ var gFolderTreeView = {
          .getService(Ci.nsINewsBlogFeedDownloader)
          .subscribeToFeed(feedUri.spec, targetFolder, msgWindow);
     }
-    else if (Array.indexOf(types, "application/x-moz-file") != -1) {
+    else if (types.includes("application/x-moz-file")) {
       for (let i = 0; i < count; i++) {
         let extFile = dt.mozGetDataAt("application/x-moz-file", i)
-                        .QueryInterface(Ci.nsILocalFile);
+                        .QueryInterface(Ci.nsIFile);
         if (extFile.isFile()) {
           let len = extFile.leafName.length;
           if (len > 4 && extFile.leafName.toLowerCase().endsWith(".eml"))
@@ -883,6 +883,10 @@ var gFolderTreeView = {
   },
 
   _onDragOver: function ftv_onDragOver(aEvent) {
+    this._currentTransfer = aEvent.dataTransfer;
+  },
+
+  _onDragDrop: function ftv_onDragDrop(aEvent) {
     this._currentTransfer = aEvent.dataTransfer;
   },
 
@@ -917,6 +921,10 @@ var gFolderTreeView = {
     let rowItem = gFolderTreeView._rowMap[aRow];
     let folder = rowItem._folder;
     if (folder.server.type != "rss" || folder.isServer)
+      return "";
+
+    let properties = this.getFolderCacheProperty(folder, "properties");
+    if (properties.includes("hasError") || properties.includes("isBusy"))
       return "";
 
     let favicon = this.getFolderCacheProperty(folder, "favicon");
@@ -1035,7 +1043,7 @@ var gFolderTreeView = {
     // for the next add item at our own level.
     let count = 0;
     if (aChild.children.length && aChild.open) {
-      for (let [i, child] in Iterator(this._rowMap[aNewIndex].children)) {
+      for (let [i, child] of Array.from(this._rowMap[aNewIndex].children).entries()) {
         count++;
         let index = Number(aNewIndex) + Number(i) + 1;
         this._rowMap.splice(index, 0, child);
@@ -1105,7 +1113,7 @@ var gFolderTreeView = {
 
   _subFoldersWithStringProperty: function ftv_subFoldersWithStringProperty(folder, folders, aFolderName, deep)
   {
-    for (let child in fixIterator(folder.subFolders, Components.interfaces.nsIMsgFolder)) {
+    for (let child of fixIterator(folder.subFolders, Components.interfaces.nsIMsgFolder)) {
       // if the folder selection is based on a string propery, use that
       if (aFolderName == getSmartFolderName(child)) {
         folders.push(child);
@@ -1135,7 +1143,7 @@ var gFolderTreeView = {
     for (let acct of accounts) {
       let foldersWithFlag = acct.incomingServer.rootFolder.getFoldersWithFlags(aFolderFlag);
       if (foldersWithFlag.length > 0) {
-        for (let folderWithFlag in fixIterator(foldersWithFlag,
+        for (let folderWithFlag of fixIterator(foldersWithFlag,
                                                Components.interfaces.nsIMsgFolder)) {
           folders.push(folderWithFlag);
           // Add sub-folders of Sent and Archive to the result.
@@ -1494,7 +1502,8 @@ var gFolderTreeView = {
     if (!aFolder || !aProperty)
       return null;
 
-    if (!(aFolder.URI in this._cache))
+    if (!(aFolder.URI in this._cache) ||
+        !(aProperty in this._cache[aFolder.URI]))
       return null;
 
     return this._cache[aFolder.URI][aProperty];
@@ -2006,7 +2015,7 @@ var gFolderTreeView = {
     const Ci = Components.interfaces;
     let folders = [];
 
-    for (let server in fixIterator(MailServices.accounts.allServers, Ci.nsIMsgIncomingServer)) {
+    for (let server of fixIterator(MailServices.accounts.allServers, Ci.nsIMsgIncomingServer)) {
       // Skip deferred accounts
       if (server instanceof Ci.nsIPop3IncomingServer &&
           server.deferredToAccount)
@@ -2027,7 +2036,7 @@ var gFolderTreeView = {
    * @param folders  the array to add the folders to.
    */
   addSubFolders : function ftv_addSubFolders (folder, folders) {
-    for (let f in fixIterator(folder.subFolders, Components.interfaces.nsIMsgFolder)) {
+    for (let f of fixIterator(folder.subFolders, Components.interfaces.nsIMsgFolder)) {
       folders.push(f);
       this.addSubFolders(f, folders);
     }
@@ -2181,7 +2190,7 @@ var gFolderTreeView = {
     if (index == null)
       return;
     // forget our parent's children; they'll get rebuilt
-    if (aRDFParentItem)
+    if (aRDFParentItem && this._rowMap[index]._parent)
       this._rowMap[index]._parent._children = null;
     let kidCount = 1;
     let walker = Number(index) + 1;
@@ -2382,9 +2391,10 @@ ftvItem.prototype = {
       properties += " specialFolder-" + smartFolderName.replace(/\s+/g, "");
     }
 
-    if (this._folder.server.type == "rss" && !this._folder.isServer &&
-        FeedUtils.getFeedUrlsInFolder(this._folder))
-      properties += " isFeedFolder-true";
+    if (FeedMessageHandler.isFeedFolder(this._folder)) {
+      properties += FeedUtils.getFolderProperties(this._folder, null);
+      gFolderTreeView.setFolderCacheProperty(this._folder, "properties", properties);
+    }
 
     return properties;
   },
@@ -2410,7 +2420,7 @@ ftvItem.prototype = {
       this._children = [];
       // Out of all children, only keep those that match the _folderFilter
       // and those that contain such children.
-      for (let folder in iter) {
+      for (let folder of iter) {
         if (!this._folderFilter || this._folderFilter(folder)) {
           this._children.push(new ftvItem(folder, this._folderFilter));
         }
@@ -2518,7 +2528,8 @@ var gFolderTreeController = {
       gFolderDisplay.view.close();
 
       // Send a notification that we are triggering a database rebuild.
-      MailServices.mfn.notifyItemEvent(folder, "FolderReindexTriggered", null);
+      MailServices.mfn.notifyItemEvent(folder, "FolderReindexTriggered", null,
+                                       null);
 
       folder.msgDatabase.summaryValid = false;
 
@@ -2820,13 +2831,13 @@ ftv_SmartItem.prototype = {
     if (!this._children) {
       this._children = [];
       let iter = fixIterator(this._folder.subFolders, Ci.nsIMsgFolder);
-      for (let folder in iter) {
+      for (let folder of iter) {
         if (!smartMode.isSmartFolder(folder)) {
           this._children.push(new ftv_SmartItem(folder));
         }
         else if (folder.flags & nsMsgFolderFlags.Inbox) {
           let subIter = fixIterator(folder.subFolders, Ci.nsIMsgFolder);
-          for (let subfolder in subIter) {
+          for (let subfolder of subIter) {
             if (!smartMode.isSmartFolder(subfolder))
               this._children.push(new ftv_SmartItem(subfolder));
           }

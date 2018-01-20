@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,6 +9,7 @@
 
 #include "jsapi.h"
 #include "js/StructuredClone.h"
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/Move.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/BindingDeclarations.h"
@@ -17,6 +19,8 @@
 #ifdef DEBUG
 #include "nsIThread.h"
 #endif
+
+class nsIInputStream;
 
 namespace mozilla {
 class ErrorResult;
@@ -114,6 +118,15 @@ public:
     return mBuffer->data();
   }
 
+  size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf)
+  {
+    size_t size = 0;
+    if (HasData()) {
+      size += mBuffer->sizeOfIncludingThis(aMallocSizeOf);
+    }
+    return size;
+  }
+
 protected:
   UniquePtr<JSAutoStructuredCloneBuffer> mBuffer;
 
@@ -180,7 +193,8 @@ public:
   {
     return !mBlobImplArray.IsEmpty() ||
            !mWasmModuleArray.IsEmpty() ||
-           !mClonedSurfaces.IsEmpty();
+           !mClonedSurfaces.IsEmpty() ||
+           !mInputStreamArray.IsEmpty();
   }
 
   nsTArray<RefPtr<BlobImpl>>& BlobImpls()
@@ -193,6 +207,12 @@ public:
   {
     MOZ_ASSERT(mSupportsCloning, "WasmModules cannot be taken/set if cloning is not supported.");
     return mWasmModuleArray;
+  }
+
+  nsTArray<nsCOMPtr<nsIInputStream>>& InputStreams()
+  {
+    MOZ_ASSERT(mSupportsCloning, "InputStreams cannot be taken/set if cloning is not supported.");
+    return mInputStreamArray;
   }
 
   StructuredCloneScope CloneScope() const
@@ -297,11 +317,20 @@ protected:
   bool mSupportsCloning;
   bool mSupportsTransferring;
 
+  // SizeOfExcludingThis is inherited from StructuredCloneHolderBase. It doesn't
+  // account for objects in the following arrays because a) they're not expected
+  // to be stored in long-lived StructuredCloneHolder objects, and b) in the
+  // case of BlobImpl objects, MemoryBlobImpls have their own memory reporters,
+  // and the other types do not hold significant amounts of memory alive.
+
   // Used for cloning blobs in the structured cloning algorithm.
   nsTArray<RefPtr<BlobImpl>> mBlobImplArray;
 
   // Used for cloning JS::WasmModules in the structured cloning algorithm.
   nsTArray<RefPtr<JS::WasmModule>> mWasmModuleArray;
+
+  // Used for cloning InputStream in the structured cloning algorithm.
+  nsTArray<nsCOMPtr<nsIInputStream>> mInputStreamArray;
 
   // This is used for sharing the backend of ImageBitmaps.
   // The DataSourceSurface object must be thread-safely reference-counted.
@@ -322,7 +351,7 @@ protected:
   mutable nsTArray<MessagePortIdentifier> mPortIdentifiers;
 
 #ifdef DEBUG
-  nsCOMPtr<nsIThread> mCreationThread;
+  nsCOMPtr<nsIEventTarget> mCreationEventTarget;
 #endif
 };
 

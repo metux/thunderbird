@@ -13,26 +13,15 @@
 #   XPI_PKGNAME = lightning-2.2.en-US.mac # The extension package name
 #   XPI_VERSION = 2.2 # The extension version
 #
-# The following variables are optional:
-#   XPI_NO_UNIVERSAL = 1  # If set, no universal path is used on mac
-#
 # For the upload target to work, you also need to set:
 #   LIGHTNING_VERSION = 2.2  # Will be used to replace the Thunderbird version
 #   						 # in POST_UPLOAD_CMD
 
-include $(MOZILLA_SRCDIR)/toolkit/mozapps/installer/package-name.mk
+include $(moztopsrcdir)/toolkit/mozapps/installer/package-name.mk
 
-# Set the univeral path only if we are building a univeral binary and it was
-# not restricted by the calling makefile
-ifeq ($(UNIVERSAL_BINARY)|$(XPI_NO_UNIVERSAL),1|)
-UNIVERSAL_PATH=universal/
-else
-UNIVERSAL_PATH=
-endif
-
-XPI_STAGE_PATH = $(DIST)/$(UNIVERSAL_PATH)xpi-stage
-_ABS_XPI_STAGE_PATH = $(ABS_DIST)/$(UNIVERSAL_PATH)xpi-stage
-ENUS_PKGNAME=$(subst .$(AB_CD).,.en-US.,$(XPI_PKGNAME))
+XPI_STAGE_PATH = $(DIST)/xpi-stage
+_ABS_XPI_STAGE_PATH = $(ABS_DIST)/xpi-stage
+ENUS_PKGNAME=$(subst .$(AB_CD),.en-US,$(XPI_PKGNAME))
 XPI_ZIP_IN=$(_ABS_XPI_STAGE_PATH)/$(ENUS_PKGNAME).xpi
 
 
@@ -63,19 +52,13 @@ endif
 $(XPI_STAGE_PATH):
 	mkdir -p $@
 
+$(XPI_ZIP_IN): ensure-stage-dir
+
 # Target Directory used for the l10n files
 L10N_TARGET = $(XPI_STAGE_PATH)/$(XPI_NAME)-$(AB_CD)
 
-# Short name of the OS used in shipped-locales file. For now osx is the only
-# special case, so assume linux for everything else.
-ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
-SHORTOS = osx
-else
-SHORTOS = linux
-endif
-
 # function print_ltnconfig(section,configname)
-print_ltnconfig = $(shell $(PYTHON) $(MOZILLA_SRCDIR)/config/printconfigsetting.py $(XPI_STAGE_PATH)/$(XPI_NAME)/app.ini $1 $2)
+print_ltnconfig = $(shell $(PYTHON) $(moztopsrcdir)/config/printconfigsetting.py $(XPI_STAGE_PATH)/$(XPI_NAME)/app.ini $1 $2)
 
 wget-en-US:
 ifeq (thunderbird,$(MOZ_APP_NAME))
@@ -102,29 +85,29 @@ unpack: $(XPI_ZIP_IN)
 langpack-en-US:
 	@echo "Skipping $@ as en-US is the default"
 
+merge-%: AB_CD=$*
 merge-%:
-ifdef LOCALE_MERGEDIR
-	$(RM) -rf $(LOCALE_MERGEDIR)/calendar
-	$(MOZILLA_SRCDIR)/mach compare-locales \
-	    --merge-dir $(LOCALE_MERGEDIR) \
-	    --l10n-ini $(topsrcdir)/calendar/locales/l10n.ini \
+	$(RM) -rf $(REAL_LOCALE_MERGEDIR)/calendar
+	-$(moztopsrcdir)/mach compare-locales \
+	    --merge $(REAL_LOCALE_MERGEDIR)/.. \
+	    $(commtopsrcdir)/calendar/locales/l10n.toml \
+	    $(L10NBASEDIR) \
 	    $*
 
 	# This file requires a bugfix with string changes, see bug 1154448
 	[ -f $(L10NBASEDIR)/$*/calendar/chrome/calendar/calendar-extract.properties ] && \
-	  $(RM) $(LOCALE_MERGEDIR)/calendar/chrome/calendar/calendar-extract.properties \
+	  $(RM) $(REAL_LOCALE_MERGEDIR)/calendar/chrome/calendar/calendar-extract.properties \
 	  || true
-else
-	@echo "Not merging Lightning locales due to missing LOCALE_MERGEDIR"
-endif
 
 # Calling these targets with prerequisites causes the libs and subsequent
 # targets to be switched in order due to some make voodoo. Therefore we call
-# the targets explicitly, which seems to work better.
+# the targets explicitly, which seems to work better. Also, the
+# target-specific variable are not expanded for dependent targets.
 langpack-%: L10N_XPI_NAME=$(XPI_NAME)-$*
 langpack-%: L10N_XPI_PKGNAME=$(subst $(AB_CD),$*,$(XPI_PKGNAME))
 langpack-%: AB_CD=$*
-langpack-%: ensure-stage-dir
+langpack-%:
+	$(MAKE) AB_CD=$(AB_CD) ensure-stage-dir
 	$(MAKE) L10N_XPI_NAME=$(L10N_XPI_NAME) L10N_XPI_PKGNAME=$(L10N_XPI_PKGNAME) AB_CD=$(AB_CD) \
 	  recreate-platformini repack-stage repack-process-extrafiles libs-$(AB_CD)
 	@echo "Done packaging $(L10N_XPI_PKGNAME).xpi"
@@ -151,10 +134,12 @@ repack-stage:
 # so that we can ensure we get the right xpi that gets repacked.
 libs-%: FINAL_XPI_NAME=$(if $(L10N_XPI_NAME),$(L10N_XPI_NAME),$(XPI_NAME))
 libs-%: FINAL_XPI_PKGNAME=$(if $(L10N_XPI_PKGNAME),$(L10N_XPI_PKGNAME),$(XPI_PKGNAME))
+libs-%: AB_CD=$*
 libs-%:
-	$(MAKE) -C locales libs AB_CD=$* FINAL_TARGET=$(ABS_DIST)/$(UNIVERSAL_PATH)xpi-stage/$(FINAL_XPI_NAME) \
+	@$(MAKE) merge-$*
+	$(MAKE) -C locales libs AB_CD=$* FINAL_TARGET=$(ABS_DIST)/xpi-stage/$(FINAL_XPI_NAME) \
 	  XPI_NAME=$(FINAL_XPI_NAME) XPI_PKGNAME=$(FINAL_XPI_PKGNAME) USE_EXTENSION_MANIFEST=1
-	$(MAKE) -C locales tools AB_CD=$* FINAL_TARGET=$(ABS_DIST)/$(UNIVERSAL_PATH)xpi-stage/$(FINAL_XPI_NAME) \
+	$(MAKE) -C locales tools AB_CD=$* FINAL_TARGET=$(ABS_DIST)/xpi-stage/$(FINAL_XPI_NAME) \
 	  XPI_NAME=$(FINAL_XPI_NAME) XPI_PKGNAME=$(FINAL_XPI_PKGNAME) USE_EXTENSION_MANIFEST=1
 
 # The calling makefile might need to process some extra files. Provide an empty
@@ -177,14 +162,17 @@ recreate-platformini: $(DIST)/bin/platform.ini
 # Lightning uses Thunderbird's build machinery, so we need to hack the post
 # upload command to use Lightning's directories and version.
 upload: upload-$(AB_CD)
+
+upload-%: AB_CD=$*
 upload-%: LTN_UPLOAD_CMD := $(patsubst $(THUNDERBIRD_VERSION)%,$(LIGHTNING_VERSION),$(subst thunderbird,calendar/lightning,$(POST_UPLOAD_CMD)))
-upload-%: stage_upload
+upload-%: stage-upload-%
 	POST_UPLOAD_CMD="$(LTN_UPLOAD_CMD)" \
-	  $(PYTHON) $(MOZILLA_DIR)/build/upload.py --base-path $(DIST) \
+	  $(PYTHON) $(moztopsrcdir)/build/upload.py --base-path $(DIST) \
 	  --properties-file $(DIST)/$(XPI_NAME)_build_properties.json \
 	  "$(DIST)/$(MOZ_PKG_PLATFORM)/$(XPI_PKGNAME).xpi"
 
-stage_upload:
+stage-upload-%: AB_CD=$*
+stage-upload-%:
 	$(NSINSTALL) -D $(DIST)/$(MOZ_PKG_PLATFORM)
 	$(call install_cmd,$(IFLAGS1) $(XPI_STAGE_PATH)/$(XPI_PKGNAME).xpi $(DIST)/$(MOZ_PKG_PLATFORM))
 

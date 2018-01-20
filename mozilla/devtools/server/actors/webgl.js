@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-const {Cc, Ci, Cu, Cr} = require("chrome");
-const events = require("sdk/event/core");
-const promise = require("promise");
+/* global XPCNativeWrapper */
+
+const {Cu} = require("chrome");
+const EventEmitter = require("devtools/shared/event-emitter");
+const defer = require("devtools/shared/defer");
 const protocol = require("devtools/shared/protocol");
 const { ContentObserver } = require("devtools/shared/content-observer");
-const { on, once, off, emit } = events;
-const { method, Arg, Option, RetVal } = protocol;
 const {
   shaderSpec,
   programSpec,
@@ -175,7 +175,8 @@ var ProgramActor = protocol.ActorClassWithSpec(programSpec, {
     let proxy = this.linkedProxy;
     let shader = proxy.getShaderOfType(this.shaders, type);
     let shaderActor = new ShaderActor(this.conn, this.program, shader, proxy);
-    return this._shaderActorsCache[type] = shaderActor;
+    this._shaderActorsCache[type] = shaderActor;
+    return this._shaderActorsCache[type];
   }
 });
 
@@ -184,7 +185,7 @@ var ProgramActor = protocol.ActorClassWithSpec(programSpec, {
  * high-level methods. After instantiating this actor, you'll need to set it
  * up by calling setup().
  */
-var WebGLActor = exports.WebGLActor = protocol.ActorClassWithSpec(webGLSpec, {
+exports.WebGLActor = protocol.ActorClassWithSpec(webGLSpec, {
   initialize: function (conn, tabActor) {
     protocol.Actor.prototype.initialize.call(this, conn);
     this.tabActor = tabActor;
@@ -213,9 +214,9 @@ var WebGLActor = exports.WebGLActor = protocol.ActorClassWithSpec(webGLSpec, {
     this._programActorsCache = [];
     this._webglObserver = new WebGLObserver();
 
-    on(this.tabActor, "window-ready", this._onGlobalCreated);
-    on(this.tabActor, "window-destroyed", this._onGlobalDestroyed);
-    on(this._webglObserver, "program-linked", this._onProgramLinked);
+    this.tabActor.on("window-ready", this._onGlobalCreated);
+    this.tabActor.on("window-destroyed", this._onGlobalDestroyed);
+    EventEmitter.on(this._webglObserver, "program-linked", this._onProgramLinked);
 
     if (reload) {
       this.tabActor.window.location.reload();
@@ -233,9 +234,9 @@ var WebGLActor = exports.WebGLActor = protocol.ActorClassWithSpec(webGLSpec, {
     }
     this._initialized = false;
 
-    off(this.tabActor, "window-ready", this._onGlobalCreated);
-    off(this.tabActor, "window-destroyed", this._onGlobalDestroyed);
-    off(this._webglObserver, "program-linked", this._onProgramLinked);
+    this.tabActor.off("window-ready", this._onGlobalCreated);
+    this.tabActor.off("window-destroyed", this._onGlobalDestroyed);
+    EventEmitter.off(this._webglObserver, "program-linked", this._onProgramLinked);
 
     this._programActorsCache = null;
     this._contentObserver = null;
@@ -256,7 +257,7 @@ var WebGLActor = exports.WebGLActor = protocol.ActorClassWithSpec(webGLSpec, {
    * Used in tests.
    */
   waitForFrame: function () {
-    let deferred = promise.defer();
+    let deferred = defer();
     this.tabActor.window.requestAnimationFrame(deferred.resolve);
     return deferred.promise;
   },
@@ -269,7 +270,8 @@ var WebGLActor = exports.WebGLActor = protocol.ActorClassWithSpec(webGLSpec, {
    * @param string selector
    *        A string selector to select the canvas in question from the DOM.
    * @param Object position
-   *        An object with an `x` and `y` property indicating coordinates of the pixel being inspected.
+   *        An object with an `x` and `y` property indicating coordinates of
+   *        the pixel being inspected.
    * @return Object
    *        An object containing `r`, `g`, `b`, and `a` properties of the pixel.
    */
@@ -283,7 +285,9 @@ var WebGLActor = exports.WebGLActor = protocol.ActorClassWithSpec(webGLSpec, {
     let buffer = new this.tabActor.window.Uint8Array(4);
     buffer = XPCNativeWrapper.unwrap(buffer);
 
-    proxy.readPixels(x, height - y - 1, 1, 1, context.RGBA, context.UNSIGNED_BYTE, buffer);
+    proxy.readPixels(
+      x, height - y - 1, 1, 1, context.RGBA, context.UNSIGNED_BYTE, buffer
+    );
 
     return { r: buffer[0], g: buffer[1], b: buffer[2], a: buffer[3] };
   },
@@ -296,14 +300,13 @@ var WebGLActor = exports.WebGLActor = protocol.ActorClassWithSpec(webGLSpec, {
     return this._programActorsCache;
   },
 
-
   /**
    * Invoked whenever the current tab actor's document global is created.
    */
   _onGlobalCreated: function ({id, window, isTopLevel}) {
     if (isTopLevel) {
       WebGLInstrumenter.handle(window, this._webglObserver);
-      events.emit(this, "global-created", id);
+      this.emit("global-created", id);
     }
   },
 
@@ -314,7 +317,7 @@ var WebGLActor = exports.WebGLActor = protocol.ActorClassWithSpec(webGLSpec, {
     if (isTopLevel && !isFrozen) {
       removeFromArray(this._programActorsCache, e => e.ownerWindow == id);
       this._webglObserver.unregisterContextsForWindow(id);
-      events.emit(this, "global-destroyed", id);
+      this.emit("global-destroyed", id);
     }
   },
 
@@ -324,7 +327,7 @@ var WebGLActor = exports.WebGLActor = protocol.ActorClassWithSpec(webGLSpec, {
   _onProgramLinked: function (...args) {
     let programActor = new ProgramActor(this.conn, args);
     this._programActorsCache.push(programActor);
-    events.emit(this, "program-linked", programActor);
+    this.emit("program-linked", programActor);
   }
 });
 
@@ -412,7 +415,9 @@ var WebGLInstrumenter = {
     context[funcName] = function (...glArgs) {
       if (timing <= 0 && !observer.suppressHandlers) {
         let glBreak = observer[beforeFuncName](glArgs, cache, proxy);
-        if (glBreak) return undefined;
+        if (glBreak) {
+          return undefined;
+        }
       }
 
       // Invoking .apply on an unxrayed content function doesn't work, because
@@ -421,7 +426,9 @@ var WebGLInstrumenter = {
 
       if (timing >= 0 && !observer.suppressHandlers) {
         let glBreak = observer[afterFuncName](glArgs, glResult, cache, proxy);
-        if (glBreak) return undefined;
+        if (glBreak) {
+          return undefined;
+        }
       }
 
       return glResult;
@@ -432,12 +439,14 @@ var WebGLInstrumenter = {
    * Override mappings for WebGL methods.
    */
   _methods: [{
-    timing: 1, // after
+    // after
+    timing: 1,
     functions: [
       "linkProgram", "getAttribLocation", "getUniformLocation"
     ]
   }, {
-    timing: -1, // before
+    // before
+    timing: -1,
     callback: [
       "toggleVertexAttribArray"
     ],
@@ -445,7 +454,8 @@ var WebGLInstrumenter = {
       "enableVertexAttribArray", "disableVertexAttribArray"
     ]
   }, {
-    timing: -1, // before
+    // before
+    timing: -1,
     callback: [
       "attribute_"
     ],
@@ -455,7 +465,8 @@ var WebGLInstrumenter = {
       "vertexAttribPointer"
     ]
   }, {
-    timing: -1, // before
+    // before
+    timing: -1,
     callback: [
       "uniform_"
     ],
@@ -467,14 +478,16 @@ var WebGLInstrumenter = {
       "uniformMatrix2fv", "uniformMatrix3fv", "uniformMatrix4fv"
     ]
   }, {
-    timing: -1, // before
+    // before
+    timing: -1,
     functions: [
       "useProgram", "enable", "disable", "blendColor",
       "blendEquation", "blendEquationSeparate",
       "blendFunc", "blendFuncSeparate"
     ]
   }, {
-    timing: 0, // before and after
+    // before and after
+    timing: 0,
     callback: [
       "beforeDraw_", "afterDraw_"
     ],
@@ -562,7 +575,7 @@ WebGLObserver.prototype = {
     let program = glArgs[0];
     let shaders = proxy.getAttachedShaders(program);
     cache.addProgram(program, PROGRAM_DEFAULT_TRAITS);
-    emit(this, "program-linked", program, shaders, cache, proxy);
+    EventEmitter.emit(this, "program-linked", program, shaders, cache, proxy);
   },
 
   /**
@@ -614,7 +627,8 @@ WebGLObserver.prototype = {
    */
   toggleVertexAttribArray: function (glArgs, cache) {
     glArgs[0] = cache.getCurrentAttributeLocation(glArgs[0]);
-    return glArgs[0] < 0; // Return true to break original function call.
+    // Return true to break original function call.
+    return glArgs[0] < 0;
   },
 
   /**
@@ -627,7 +641,8 @@ WebGLObserver.prototype = {
    */
   attribute_: function (glArgs, cache) {
     glArgs[0] = cache.getCurrentAttributeLocation(glArgs[0]);
-    return glArgs[0] < 0; // Return true to break original function call.
+    // Return true to break original function call.
+    return glArgs[0] < 0;
   },
 
   /**
@@ -640,7 +655,8 @@ WebGLObserver.prototype = {
    */
   uniform_: function (glArgs, cache) {
     glArgs[0] = cache.getCurrentUniformLocation(glArgs[0]);
-    return !glArgs[0]; // Return true to break original function call.
+    // Return true to break original function call.
+    return !glArgs[0];
   },
 
   /**
@@ -770,7 +786,8 @@ WebGLObserver.prototype = {
 
     // Handle program blackboxing.
     if (traits & PROGRAM_BLACKBOX_TRAIT) {
-      return true; // Return true to break original function call.
+      // Return true to break original function call.
+      return true;
     }
     // Handle program highlighting.
     if (traits & PROGRAM_HIGHLIGHT_TRAIT) {
@@ -875,8 +892,10 @@ WebGLCache.prototype = {
   addProgram: function (program, traits) {
     this._programs.set(program, {
       traits: traits,
-      attributes: [], // keys are GLints (numbers)
-      uniforms: new Map() // keys are WebGLUniformLocations (objects)
+      // keys are GLints (numbers)
+      attributes: [],
+      // keys are WebGLUniformLocations (objects)
+      uniforms: new Map()
     });
   },
 
@@ -1059,7 +1078,9 @@ function WebGLProxy(id, context, cache, observer) {
     "disableHighlighting",
     "readPixels"
   ];
-  exports.forEach(e => this[e] = (...args) => this._call(e, args));
+  exports.forEach(e => {
+    this[e] = (...args) => this._call(e, args);
+  });
 }
 
 WebGLProxy.prototype = {
@@ -1128,7 +1149,7 @@ WebGLProxy.prototype = {
    * @return any
    *         The corresponding parameter's value.
    */
-  _getFramebufferAttachmentParameter: function (type, name = "FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE") {
+  _getFramebufferAttachmentParameter(type, name = "FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE") {
     if (!this._getParameter("FRAMEBUFFER_BINDING")) {
       return null;
     }

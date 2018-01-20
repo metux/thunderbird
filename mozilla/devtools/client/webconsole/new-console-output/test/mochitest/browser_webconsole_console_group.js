@@ -9,26 +9,26 @@
 // behave as expected.
 
 const TEST_URI = "http://example.com/browser/devtools/client/webconsole/new-console-output/test/mochitest/test-console-group.html";
-const { INDENT_WIDTH } = require("devtools/client/webconsole/new-console-output/components/message-indent");
+const { INDENT_WIDTH } = require("devtools/client/webconsole/new-console-output/components/MessageIndent");
 
 add_task(function* () {
   let toolbox = yield openNewTabAndToolbox(TEST_URI, "webconsole");
   let hud = toolbox.getCurrentPanel().hud;
 
   const store = hud.ui.newConsoleOutput.getStore();
-  // Adding loggin each time the store is modified in order to check
+  // Adding logging each time the store is modified in order to check
   // the store state in case of failure.
   store.subscribe(() => {
-    const messages = store.getState().messages.messagesById.toJS()
-      .map(message => {
-        return {
+    const messages = store.getState().messages.messagesById
+      .reduce(function (res, message) {
+        res.push({
           id: message.id,
           type: message.type,
           parameters: message.parameters,
           messageText: message.messageText
-        };
-      }
-    );
+        });
+        return res;
+      }, []);
     info("messages : " + JSON.stringify(messages));
   });
 
@@ -70,20 +70,16 @@ add_task(function* () {
   node = yield waitFor(() => findMessage(hud, "group-3"));
   testClass(node, "startGroupCollapsed");
   testIndent(node, 0);
-
   info("Test a message at root level, after closing a collapsed group");
   node = yield waitFor(() => findMessage(hud, "log-6"));
   testClass(node, "log");
   testIndent(node, 0);
-
-  let nodes = hud.ui.experimentalOutputNode.querySelectorAll(".message");
+  let nodes = hud.ui.outputNode.querySelectorAll(".message");
   is(nodes.length, 8, "expected number of messages are displayed");
 });
-
 function testClass(node, className) {
   ok(node.classList.contains(className), `message has the expected "${className}" class`);
 }
-
 function testIndent(node, indent) {
   indent = `${indent * INDENT_WIDTH}px`;
   is(node.querySelector(".indent").style.width, indent,

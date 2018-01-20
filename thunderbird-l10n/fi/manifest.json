@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "fi": {
+      "chrome_resources": {
+        "necko": "chrome/fi/locale/fi/necko/", 
+        "global": "chrome/fi/locale/fi/global/", 
+        "messenger-region": "chrome/fi/locale/fi/messenger-region/", 
+        "chat": "chrome/fi/locale/fi/chat/", 
+        "devtools": "chrome/fi/locale/fi/devtools/client/", 
+        "pipnss": "chrome/fi/locale/fi/pipnss/", 
+        "messenger-smime": "chrome/fi/locale/fi/messenger-smime/", 
+        "messenger-newsblog": "chrome/fi/locale/fi/messenger-newsblog/", 
+        "devtools-shim": "chrome/fi/locale/fi/devtools/shim/", 
+        "alerts": "chrome/fi/locale/fi/alerts/", 
+        "messenger": "chrome/fi/locale/fi/messenger/", 
+        "editor": "chrome/fi/locale/fi/editor/", 
+        "branding": "chrome/fi/locale/fi/branding/", 
+        "mozldap": "chrome/fi/locale/fi/mozldap/", 
+        "autoconfig": "chrome/fi/locale/fi/autoconfig/", 
+        "devtools-shared": "chrome/fi/locale/fi/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/fi/locale/fi/global-platform/win/", 
+          "android": "chrome/fi/locale/fi/global-platform/unix/", 
+          "macosx": "chrome/fi/locale/fi/global-platform/mac/", 
+          "linux": "chrome/fi/locale/fi/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/fi/locale/fi/mozapps/", 
+        "pluginproblem": "chrome/fi/locale/fi/pluginproblem/", 
+        "communicator": "chrome/fi/locale/fi/communicator/", 
+        "messenger-mapi": "chrome/fi/locale/fi/messenger-mapi/", 
+        "places": "chrome/fi/locale/fi/places/", 
+        "passwordmgr": "chrome/fi/locale/fi/passwordmgr/", 
+        "pippki": "chrome/fi/locale/fi/pippki/"
+      }, 
+      "version": "20171102104616"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-fi@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "fi", 
+  "version": "58.0", 
+  "name": "Finnish Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "Suomennosprojekti", 
+  "description": "Language pack for Thunderbird for fi"
+}

@@ -24,9 +24,6 @@
 #include "nsVCardAddress.h"
 #include "nsVCardImport.h"
 
-PRLogModuleInfo *VCARDLOGMODULE = nullptr;
-static NS_DEFINE_IID(kISupportsIID, NS_ISUPPORTS_IID);
-
 class ImportVCardAddressImpl : public nsIImportAddressBooks
 {
 public:
@@ -94,9 +91,6 @@ private:
 
 nsVCardImport::nsVCardImport()
 {
-  if (!VCARDLOGMODULE)
-    VCARDLOGMODULE = PR_NewLogModule("IMPORT");
-
   nsImportStringBundle::GetStringBundle(
       VCARDIMPORT_MSGS_URL, getter_AddRefs(m_stringBundle));
 
@@ -149,22 +143,21 @@ NS_IMETHODIMP nsVCardImport::GetImportInterface(
   if (!strcmp(pImportType, "addressbook")) {
     nsresult rv;
     // create the nsIImportMail interface and return it!
-    nsIImportAddressBooks *pAddress = nullptr;
-    nsIImportGeneric *pGeneric = nullptr;
-    rv = ImportVCardAddressImpl::Create(&pAddress, m_stringBundle);
+    nsCOMPtr<nsIImportAddressBooks> pAddress;
+    nsCOMPtr<nsIImportGeneric> pGeneric;
+    rv = ImportVCardAddressImpl::Create(getter_AddRefs(pAddress), m_stringBundle);
     if (NS_SUCCEEDED(rv)) {
       nsCOMPtr<nsIImportService> impSvc(
           do_GetService(NS_IMPORTSERVICE_CONTRACTID, &rv));
       if (NS_SUCCEEDED(rv)) {
-        rv = impSvc->CreateNewGenericAddressBooks(&pGeneric);
+        rv = impSvc->CreateNewGenericAddressBooks(getter_AddRefs(pGeneric));
         if (NS_SUCCEEDED(rv)) {
           pGeneric->SetData("addressInterface", pAddress);
-          rv = pGeneric->QueryInterface(kISupportsIID, (void **)ppInterface);
+          nsCOMPtr<nsISupports> pInterface(do_QueryInterface(pGeneric));
+          pInterface.forget(ppInterface);
         }
       }
     }
-    NS_IF_RELEASE(pAddress);
-    NS_IF_RELEASE(pGeneric);
     return rv;
   }
   return NS_ERROR_NOT_AVAILABLE;
@@ -174,10 +167,7 @@ nsresult ImportVCardAddressImpl::Create(
     nsIImportAddressBooks** aImport, nsIStringBundle* aStringBundle)
 {
   NS_ENSURE_ARG_POINTER(aImport);
-  *aImport = new ImportVCardAddressImpl(aStringBundle);
-  if (!*aImport)
-    return NS_ERROR_OUT_OF_MEMORY;
-  NS_ADDREF(*aImport);
+  NS_ADDREF(*aImport = new ImportVCardAddressImpl(aStringBundle));
   return NS_OK;
 }
 
@@ -276,7 +266,7 @@ NS_IMETHODIMP ImportVCardAddressImpl::FindAddressBooks(
     desc->SetSize((uint32_t) sz);
     desc->SetAbFile(m_fileLoc);
     nsCOMPtr<nsISupports> pInterface(do_QueryInterface(desc, &rv));
-    array->AppendElement(pInterface, false);
+    array->AppendElement(pInterface);
   }
   if (NS_FAILED(rv)) {
     IMPORT_LOG0(
@@ -298,10 +288,10 @@ void ImportVCardAddressImpl::ReportSuccess(
   char16_t *pFmt = nsImportStringBundle::GetStringByName(
       "vCardImportAddressSuccess", pBundle);
 
-  char16_t *pText = nsTextFormatter::smprintf(pFmt, name.get());
+  nsString pText;
+  nsTextFormatter::ssprintf(pText, pFmt, name.get());
   pStream->Append(pText);
-  nsTextFormatter::smprintf_free(pText);
-  NS_Free(pFmt);
+  free(pFmt);
   pStream->Append(char16_t('\n'));
 }
 
@@ -314,10 +304,10 @@ void ImportVCardAddressImpl::ReportError(
 
   // load the error string
   char16_t *pFmt = nsImportStringBundle::GetStringByName(errorName, pBundle);
-  char16_t *pText = nsTextFormatter::smprintf(pFmt, name.get());
+  nsString pText;
+  nsTextFormatter::ssprintf(pText, pFmt, name.get());
   pStream->Append(pText);
-  nsTextFormatter::smprintf_free(pText);
-  NS_Free(pFmt);
+  free(pFmt);
   pStream->Append(char16_t('\n'));
 }
 

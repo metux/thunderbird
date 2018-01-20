@@ -31,7 +31,6 @@ class nsHtml5Parser final : public nsIParser,
                             public nsSupportsWeakReference
 {
   public:
-    NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
     NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsHtml5Parser, nsIParser)
@@ -68,18 +67,11 @@ class nsHtml5Parser final : public nsIParser,
      *  Call this method once you've created a parser, and want to instruct it
      *  about what charset to load
      *
-     *  @param   aCharset the charset of a document
+     *  @param   aEncoding the charset of a document
      *  @param   aCharsetSource the source of the charset
      */
-    NS_IMETHOD_(void) SetDocumentCharset(const nsACString& aCharset, int32_t aSource) override;
-
-    /**
-     * Don't call. For interface compat only.
-     */
-    NS_IMETHOD_(void) GetDocumentCharset(nsACString& aCharset, int32_t& aSource) override
-    {
-      NS_NOTREACHED("No one should call this.");
-    }
+    virtual void SetDocumentCharset(NotNull<const Encoding*> aEncoding,
+                                    int32_t aSource) override;
 
     /**
      * Get the channel associated with this parser
@@ -256,6 +248,11 @@ class nsHtml5Parser final : public nsIParser,
       return mStreamListener->GetDelegate();
     }
 
+    void PermanentlyUndefineInsertionPoint()
+    {
+      mInsertionPointPermanentlyUndefined = true;
+    }
+
     /**
      * Parse until pending data is exhausted or a script blocks the parser
      */
@@ -279,9 +276,10 @@ class nsHtml5Parser final : public nsIParser,
     bool                          mDocWriteSpeculativeLastWasCR;
 
     /**
-     * The parser is blocking on a script
+     * The parser is blocking on the load of an external script from a web
+     * page, or any number of extension content scripts.
      */
-    bool                          mBlocked;
+    uint32_t                      mBlocked;
 
     /**
      * Whether the document.write() speculator is already active.
@@ -300,6 +298,20 @@ class nsHtml5Parser final : public nsIParser,
     bool                          mDocumentClosed;
 
     bool                          mInDocumentWrite;
+
+    /**
+     * This is set when the tokenizer has seen EOF. The purpose is to
+     * keep the insertion point undefined between the time the
+     * parser has reached the point where it can't accept more input
+     * and the time the document's mParser is set to nullptr.
+     * Scripts can run during this time period due to an update
+     * batch ending and due to various end-of-parse events firing.
+     * (Setting mParser on the document to nullptr at the point
+     * where this flag gets set to true would break things that for
+     * legacy reasons assume that mParser on the document stays
+     * non-null though the end-of-parse events.)
+     */
+    bool mInsertionPointPermanentlyUndefined;
 
     // Portable parser objects
     /**

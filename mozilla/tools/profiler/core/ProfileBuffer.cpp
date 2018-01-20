@@ -1,12 +1,20 @@
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ProfileBuffer.h"
 
+#include "ProfilerMarker.h"
+#include "jsfriendapi.h"
+#include "nsScriptSecurityManager.h"
+#include "nsJSPrincipals.h"
+
+using namespace mozilla;
+
 ProfileBuffer::ProfileBuffer(int aEntrySize)
-  : mEntries(MakeUnique<ProfileEntry[]>(aEntrySize))
+  : mEntries(mozilla::MakeUnique<ProfileBufferEntry[]>(aEntrySize))
   , mWritePos(0)
   , mReadPos(0)
   , mEntrySize(aEntrySize)
@@ -22,9 +30,10 @@ ProfileBuffer::~ProfileBuffer()
 }
 
 // Called from signal, call only reentrant functions
-void ProfileBuffer::addTag(const ProfileEntry& aTag)
+void
+ProfileBuffer::AddEntry(const ProfileBufferEntry& aEntry)
 {
-  mEntries[mWritePos++] = aTag;
+  mEntries[mWritePos++] = aEntry;
   if (mWritePos == mEntrySize) {
     // Wrapping around may result in things referenced in the buffer (e.g.,
     // JIT code addresses and markers) being incorrectly collected.
@@ -32,19 +41,68 @@ void ProfileBuffer::addTag(const ProfileEntry& aTag)
     mGeneration++;
     mWritePos = 0;
   }
+
   if (mWritePos == mReadPos) {
     // Keep one slot open.
-    mEntries[mReadPos] = ProfileEntry();
+    mEntries[mReadPos] = ProfileBufferEntry();
     mReadPos = (mReadPos + 1) % mEntrySize;
   }
 }
 
-void ProfileBuffer::addStoredMarker(ProfilerMarker *aStoredMarker) {
+void
+ProfileBuffer::AddThreadIdEntry(int aThreadId, LastSample* aLS)
+{
+  if (aLS) {
+    // This is the start of a sample, so make a note of its location in |aLS|.
+    aLS->mGeneration = mGeneration;
+    aLS->mPos = mWritePos;
+  }
+  AddEntry(ProfileBufferEntry::ThreadId(aThreadId));
+}
+
+void
+ProfileBuffer::AddStoredMarker(ProfilerMarker *aStoredMarker)
+{
   aStoredMarker->SetGeneration(mGeneration);
   mStoredMarkers.insert(aStoredMarker);
 }
 
-void ProfileBuffer::deleteExpiredStoredMarkers() {
+void
+ProfileBuffer::CollectCodeLocation(
+  const char* aLabel, const char* aStr, int aLineNumber,
+  const Maybe<js::ProfileEntry::Category>& aCategory)
+{
+  AddEntry(ProfileBufferEntry::Label(aLabel));
+
+  if (aStr) {
+    // Store the string using one or more DynamicStringFragment entries.
+    size_t strLen = strlen(aStr) + 1;   // +1 for the null terminator
+    for (size_t j = 0; j < strLen; ) {
+      // Store up to kNumChars characters in the entry.
+      char chars[ProfileBufferEntry::kNumChars];
+      size_t len = ProfileBufferEntry::kNumChars;
+      if (j + len >= strLen) {
+        len = strLen - j;
+      }
+      memcpy(chars, &aStr[j], len);
+      j += ProfileBufferEntry::kNumChars;
+
+      AddEntry(ProfileBufferEntry::DynamicStringFragment(chars));
+    }
+  }
+
+  if (aLineNumber != -1) {
+    AddEntry(ProfileBufferEntry::LineNumber(aLineNumber));
+  }
+
+  if (aCategory.isSome()) {
+    AddEntry(ProfileBufferEntry::Category(int(*aCategory)));
+  }
+}
+
+void
+ProfileBuffer::DeleteExpiredStoredMarkers()
+{
   // Delete markers of samples that have been overwritten due to circular
   // buffer wraparound.
   uint32_t generation = mGeneration;
@@ -54,36 +112,116 @@ void ProfileBuffer::deleteExpiredStoredMarkers() {
   }
 }
 
-void ProfileBuffer::reset() {
+void
+ProfileBuffer::Reset()
+{
   mGeneration += 2;
   mReadPos = mWritePos = 0;
 }
 
-#define DYNAMIC_MAX_STRING 8192
-
-char* ProfileBuffer::processDynamicTag(int readPos,
-                                       int* tagsConsumed, char* tagBuff)
+size_t
+ProfileBuffer::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 {
-  int readAheadPos = (readPos + 1) % mEntrySize;
-  int tagBuffPos = 0;
+  size_t n = aMallocSizeOf(this);
+  n += aMallocSizeOf(mEntries.get());
 
-  // Read the string stored in mTagData until the null character is seen
-  bool seenNullByte = false;
-  while (readAheadPos != mWritePos && !seenNullByte) {
-    (*tagsConsumed)++;
-    ProfileEntry readAheadEntry = mEntries[readAheadPos];
-    for (size_t pos = 0; pos < sizeof(void*); pos++) {
-      tagBuff[tagBuffPos] = readAheadEntry.mTagChars[pos];
-      if (tagBuff[tagBuffPos] == '\0' || tagBuffPos == DYNAMIC_MAX_STRING-2) {
-        seenNullByte = true;
-        break;
-      }
-      tagBuffPos++;
-    }
-    if (!seenNullByte)
-      readAheadPos = (readAheadPos + 1) % mEntrySize;
-  }
-  return tagBuff;
+  // Measurement of the following members may be added later if DMD finds it
+  // is worthwhile:
+  // - memory pointed to by the elements within mEntries
+  // - mStoredMarkers
+
+  return n;
 }
 
+/* ProfileBufferCollector */
 
+static bool
+IsChromeJSScript(JSScript* aScript)
+{
+  // WARNING: this function runs within the profiler's "critical section".
+
+  nsIScriptSecurityManager* const secman =
+    nsScriptSecurityManager::GetScriptSecurityManager();
+  NS_ENSURE_TRUE(secman, false);
+
+  JSPrincipals* const principals = JS_GetScriptPrincipals(aScript);
+  return secman->IsSystemPrincipal(nsJSPrincipals::get(principals));
+}
+
+Maybe<uint32_t>
+ProfileBufferCollector::Generation()
+{
+  return Some(mBuf.mGeneration);
+}
+
+void
+ProfileBufferCollector::CollectNativeLeafAddr(void* aAddr)
+{
+  mBuf.AddEntry(ProfileBufferEntry::NativeLeafAddr(aAddr));
+}
+
+void
+ProfileBufferCollector::CollectJitReturnAddr(void* aAddr)
+{
+  mBuf.AddEntry(ProfileBufferEntry::JitReturnAddr(aAddr));
+}
+
+void
+ProfileBufferCollector::CollectWasmFrame(const char* aLabel)
+{
+  mBuf.CollectCodeLocation("", aLabel, -1, Nothing());
+}
+
+void
+ProfileBufferCollector::CollectPseudoEntry(const js::ProfileEntry& aEntry)
+{
+  // WARNING: this function runs within the profiler's "critical section".
+
+  MOZ_ASSERT(aEntry.kind() == js::ProfileEntry::Kind::CPP_NORMAL ||
+             aEntry.kind() == js::ProfileEntry::Kind::JS_NORMAL);
+
+  const char* label = aEntry.label();
+  const char* dynamicString = aEntry.dynamicString();
+  bool isChromeJSEntry = false;
+  int lineno = -1;
+
+  if (aEntry.isJs()) {
+    // There are two kinds of JS frames that get pushed onto the PseudoStack.
+    //
+    // - label = "", dynamic string = <something>
+    // - label = "js::RunScript", dynamic string = nullptr
+    //
+    // The line number is only interesting in the first case.
+
+    if (label[0] == '\0') {
+      MOZ_ASSERT(dynamicString);
+
+      // We call aEntry.script() repeatedly -- rather than storing the result in
+      // a local variable in order -- to avoid rooting hazards.
+      if (aEntry.script()) {
+        isChromeJSEntry = IsChromeJSScript(aEntry.script());
+        if (aEntry.pc()) {
+          lineno = JS_PCToLineNumber(aEntry.script(), aEntry.pc());
+        }
+      }
+
+    } else {
+      MOZ_ASSERT(strcmp(label, "js::RunScript") == 0 && !dynamicString);
+    }
+  } else {
+    MOZ_ASSERT(aEntry.isCpp());
+    lineno = aEntry.line();
+  }
+
+  if (dynamicString) {
+    // Adjust the dynamic string as necessary.
+    if (ProfilerFeature::HasPrivacy(mFeatures) && !isChromeJSEntry) {
+      dynamicString = "(private)";
+    } else if (strlen(dynamicString) >= ProfileBuffer::kMaxFrameKeyLength) {
+      dynamicString = "(too long)";
+    }
+  }
+
+  mBuf.CollectCodeLocation(label, dynamicString, lineno,
+                           Some(aEntry.category()));
+}

@@ -94,7 +94,9 @@ private:
   NS_IMETHOD OnVisit(nsIURI* aURI, int64_t aVisitId, PRTime aTime,      \
                      int64_t aSessionId, int64_t aReferringId,          \
                      uint32_t aTransitionType, const nsACString& aGUID, \
-                     bool aHidden, uint32_t aVisitCount, uint32_t aTyped) __VA_ARGS__;
+                     bool aHidden, uint32_t aVisitCount,                \
+                     uint32_t aTyped, const nsAString& aLastKnownTitle) \
+                     __VA_ARGS__;
 
 // nsNavHistoryResult
 //
@@ -255,8 +257,7 @@ class nsNavHistoryResultNode : public nsINavHistoryResultNode
 {
 public:
   nsNavHistoryResultNode(const nsACString& aURI, const nsACString& aTitle,
-                         uint32_t aAccessCount, PRTime aTime,
-                         const nsACString& aIconURI);
+                         uint32_t aAccessCount, PRTime aTime);
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_NAVHISTORYRESULTNODE_IID)
 
@@ -365,7 +366,6 @@ public:
   bool mAreTagsSorted;
   uint32_t mAccessCount;
   int64_t mTime;
-  nsCString mFaviconURI;
   int32_t mBookmarkIndex;
   int64_t mItemId;
   int64_t mFolderId;
@@ -419,11 +419,6 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsNavHistoryResultNode, NS_NAVHISTORYRESULTNODE_II
     { return nsNavHistoryContainerResultNode::GetChild(index, _retval); } \
   NS_IMETHOD GetChildIndex(nsINavHistoryResultNode* aNode, uint32_t* _retval) override \
     { return nsNavHistoryContainerResultNode::GetChildIndex(aNode, _retval); } \
-  NS_IMETHOD FindNodeByDetails(const nsACString& aURIString, PRTime aTime, \
-                               int64_t aItemId, bool aRecursive, \
-                               nsINavHistoryResultNode** _retval) override \
-    { return nsNavHistoryContainerResultNode::FindNodeByDetails(aURIString, aTime, aItemId, \
-                                                                aRecursive, _retval); }
 
 #define NS_NAVHISTORYCONTAINERRESULTNODE_IID \
   { 0x6e3bf8d3, 0x22aa, 0x4065, { 0x86, 0xbc, 0x37, 0x46, 0xb5, 0xb3, 0x2c, 0xe8 } }
@@ -434,13 +429,10 @@ class nsNavHistoryContainerResultNode : public nsNavHistoryResultNode,
 public:
   nsNavHistoryContainerResultNode(
     const nsACString& aURI, const nsACString& aTitle,
-    const nsACString& aIconURI, uint32_t aContainerType,
-    nsNavHistoryQueryOptions* aOptions);
+    uint32_t aContainerType, nsNavHistoryQueryOptions* aOptions);
   nsNavHistoryContainerResultNode(
     const nsACString& aURI, const nsACString& aTitle,
-    PRTime aTime,
-    const nsACString& aIconURI, uint32_t aContainerType,
-    nsNavHistoryQueryOptions* aOptions);
+    PRTime aTime, uint32_t aContainerType, nsNavHistoryQueryOptions* aOptions);
 
   virtual nsresult Refresh();
 
@@ -623,14 +615,11 @@ class nsNavHistoryQueryResultNode final : public nsNavHistoryContainerResultNode
 {
 public:
   nsNavHistoryQueryResultNode(const nsACString& aTitle,
-                              const nsACString& aIconURI,
                               const nsACString& aQueryURI);
   nsNavHistoryQueryResultNode(const nsACString& aTitle,
-                              const nsACString& aIconURI,
                               const nsCOMArray<nsNavHistoryQuery>& aQueries,
                               nsNavHistoryQueryOptions* aOptions);
   nsNavHistoryQueryResultNode(const nsACString& aTitle,
-                              const nsACString& aIconURI,
                               PRTime aTime,
                               const nsCOMArray<nsNavHistoryQuery>& aQueries,
                               nsNavHistoryQueryOptions* aOptions);

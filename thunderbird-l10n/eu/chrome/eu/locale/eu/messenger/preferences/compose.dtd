@@ -55,6 +55,9 @@
 <!ENTITY editDirectories.label                 "Editatu direktorioak…">
 <!ENTITY editDirectories.accesskey             "E">
 
+
+
+
 <!ENTITY sendOptionsDescription.label          "Konfiguratu testuaren formatuaren portaera">
 <!ENTITY sendOptions.label                     "Bidalketa-aukerak…">
 <!ENTITY sendOptions.accesskey                 "B">
@@ -64,5 +67,10 @@
 <!ENTITY attachmentReminderOptions.label       "Gako-hitzak…">
 <!ENTITY attachmentReminderOptions.accesskey   "k">
 
-<!ENTITY defaultToParagraph.accesskey         "P">
 <!ENTITY defaultToParagraph.label             "Use Paragraph format instead of Body Text by default">
+<!ENTITY defaultToParagraph.accesskey         "P">
+
+<!ENTITY showAsDefault.label                   "Default startup directory in the address book window:">
+<!ENTITY showAsDefault.accesskey               "S">
+<!ENTITY showAsDefaultLast.label               "Last used directory">
+

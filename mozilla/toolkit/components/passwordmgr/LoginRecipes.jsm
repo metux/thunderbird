@@ -8,7 +8,14 @@ this.EXPORTED_SYMBOLS = ["LoginRecipesContent", "LoginRecipesParent"];
 
 const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
 const REQUIRED_KEYS = ["hosts"];
-const OPTIONAL_KEYS = ["description", "notUsernameSelector", "passwordSelector", "pathRegex", "usernameSelector"];
+const OPTIONAL_KEYS = [
+  "description",
+  "notPasswordSelector",
+  "notUsernameSelector",
+  "passwordSelector",
+  "pathRegex",
+  "usernameSelector",
+];
 const SUPPORTED_KEYS = REQUIRED_KEYS.concat(OPTIONAL_KEYS);
 
 Cu.importGlobalProperties(["URL"]);
@@ -97,7 +104,7 @@ LoginRecipesParent.prototype = {
 
       try {
         this.initializationPromise = new Promise(function(resolve) {
-          NetUtil.asyncFetch(channel, function (stream, result) {
+          NetUtil.asyncFetch(channel, function(stream, result) {
             if (!Components.isSuccessCode(result)) {
               throw new Error("Error fetching recipe file:" + result);
             }
@@ -106,6 +113,7 @@ LoginRecipesParent.prototype = {
             resolve(JSON.parse(data));
           });
         }).then(recipes => {
+          Services.ppmm.broadcastAsyncMessage("clearRecipeCache");
           return this.load(recipes);
         }).then(resolve => {
           return this;
@@ -182,6 +190,64 @@ LoginRecipesParent.prototype = {
 
 
 var LoginRecipesContent = {
+  _recipeCache: new WeakMap(),
+
+  _clearRecipeCache() {
+    this._recipeCache = new WeakMap();
+  },
+
+  /**
+   * Locally caches recipes for a given host.
+   *
+   * @param {String} aHost (e.g. example.com:8080 [non-default port] or sub.example.com)
+   * @param {Object} win - the window of the host
+   * @param {Set} recipes - recipes that apply to the host
+   */
+  cacheRecipes(aHost, win, recipes) {
+    log.debug("cacheRecipes: for:", aHost);
+    let recipeMap = this._recipeCache.get(win);
+
+    if (!recipeMap) {
+      recipeMap = new Map();
+      this._recipeCache.set(win, recipeMap);
+    }
+
+    recipeMap.set(aHost, recipes);
+  },
+
+  /**
+   * Tries to fetch recipes for a given host, using a local cache if possible.
+   * Otherwise, the recipes are cached for later use.
+   *
+   * @param {String} aHost (e.g. example.com:8080 [non-default port] or sub.example.com)
+   * @param {Object} win - the window of the host
+   * @return {Set} of recipes that apply to the host
+   */
+  getRecipes(aHost, win) {
+    let recipes;
+    let recipeMap = this._recipeCache.get(win);
+
+    if (recipeMap) {
+      recipes = recipeMap.get(aHost);
+
+      if (recipes) {
+        return recipes;
+      }
+    }
+
+    let mm = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                .getInterface(Ci.nsIWebNavigation)
+                .QueryInterface(Ci.nsIDocShell)
+                .QueryInterface(Ci.nsIInterfaceRequestor)
+                .getInterface(Ci.nsIContentFrameMessageManager);
+
+    log.warn("getRecipes: falling back to a synchronous message for:", aHost);
+    recipes = mm.sendSyncMessage("RemoteLogins:findRecipes", { formOrigin: aHost })[0];
+    this.cacheRecipes(aHost, win, recipes);
+
+    return recipes;
+  },
+
   /**
    * @param {Set} aRecipes - Possible recipes that could apply to the form
    * @param {FormLike} aForm - We use a form instead of just a URL so we can later apply
@@ -226,7 +292,7 @@ var LoginRecipesContent = {
     // Find the first (most-specific recipe that involves field overrides).
     for (let recipe of recipes) {
       if (!recipe.usernameSelector && !recipe.passwordSelector &&
-          !recipe.notUsernameSelector) {
+          !recipe.notUsernameSelector && !recipe.notPasswordSelector) {
         continue;
       }
 
@@ -251,6 +317,8 @@ var LoginRecipesContent = {
       log.debug("Login field selector wasn't matched:", aSelector);
       return null;
     }
+    // ownerGlobal doesn't exist in content privileged windows.
+    // eslint-disable-next-line mozilla/use-ownerGlobal
     if (!(field instanceof aParent.ownerDocument.defaultView.HTMLInputElement)) {
       log.warn("Login field isn't an <input> so ignoring it:", aSelector);
       return null;

@@ -5,11 +5,13 @@
 
 XPCSHELL_TESTS_MANIFESTS += ['unit/xpcshell.ini']
 
-GeckoCppUnitTests([
-    'TestMailCookie',
-])
+FINAL_LIBRARY = 'xul-gtest'
+
+UNIFIED_SOURCES += [
+    'TestMailCookie.cpp',
+]
 
 LOCAL_INCLUDES += [
-    '/mozilla/netwerk/test',
-    '/mozilla/xpcom/tests',
+    '/%s/netwerk/test' % CONFIG['mozreltopsrcdir'],
+    '/%s/xpcom/tests' % CONFIG['mozreltopsrcdir'],
 ]

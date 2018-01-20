@@ -7,6 +7,7 @@
 #ifndef mozilla_dom_MouseEvent_h_
 #define mozilla_dom_MouseEvent_h_
 
+#include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/UIEvent.h"
 #include "mozilla/dom/MouseEventBinding.h"
 #include "mozilla/EventForwards.h"
@@ -42,8 +43,8 @@ public:
     return Button() + 1;
   }
 
-  int32_t ScreenX();
-  int32_t ScreenY();
+  int32_t ScreenX(CallerType aCallerType);
+  int32_t ScreenY(CallerType aCallerType);
   int32_t ClientX();
   int32_t ClientY();
   int32_t OffsetX();
@@ -57,7 +58,7 @@ public:
   already_AddRefed<EventTarget> GetRelatedTarget();
   void GetRegion(nsAString& aRegion);
   void InitMouseEvent(const nsAString& aType, bool aCanBubble, bool aCancelable,
-                      nsGlobalWindow* aView, int32_t aDetail, int32_t aScreenX,
+                      nsGlobalWindowInner* aView, int32_t aDetail, int32_t aScreenX,
                       int32_t aScreenY, int32_t aClientX, int32_t aClientY,
                       bool aCtrlKey, bool aAltKey, bool aShiftKey,
                       bool aMetaKey, uint16_t aButton,
@@ -86,7 +87,7 @@ public:
   uint16_t MozInputSource() const;
   void InitNSMouseEvent(const nsAString& aType,
                         bool aCanBubble, bool aCancelable,
-                        nsGlobalWindow* aView, int32_t aDetail,
+                        nsGlobalWindowInner* aView, int32_t aDetail,
                         int32_t aScreenX, int32_t aScreenY,
                         int32_t aClientX, int32_t aClientY,
                         bool aCtrlKey, bool aAltKey, bool aShiftKey,
@@ -100,7 +101,7 @@ protected:
   void InitMouseEvent(const nsAString& aType,
                       bool aCanBubble,
                       bool aCancelable,
-                      nsGlobalWindow* aView,
+                      nsGlobalWindowInner* aView,
                       int32_t aDetail,
                       int32_t aScreenX,
                       int32_t aScreenY,

@@ -4,7 +4,6 @@
 
 from __future__ import absolute_import, unicode_literals
 
-import cPickle as pickle
 import itertools
 import json
 import os
@@ -15,6 +14,7 @@ from mozbuild.backend.base import BuildBackend
 
 from mozbuild.frontend.context import (
     Context,
+    ObjDirPath,
     Path,
     RenamedSourcePath,
     VARIABLES,
@@ -24,15 +24,16 @@ from mozbuild.frontend.data import (
     ChromeManifestEntry,
     ConfigFileSubstitution,
     ExampleWebIDLInterface,
+    Exports,
     IPDLFile,
     FinalTargetPreprocessedFiles,
     FinalTargetFiles,
     GeneratedEventWebIDLFile,
+    GeneratedSources,
     GeneratedWebIDLFile,
     PreprocessedTestWebIDLFile,
     PreprocessedWebIDLFile,
     SharedLibrary,
-    TestManifest,
     TestWebIDLFile,
     UnifiedSources,
     XPIDLFile,
@@ -44,8 +45,6 @@ from mozbuild.jar import (
 )
 from mozbuild.preprocessor import Preprocessor
 from mozpack.chrome.manifest import parse_manifest_line
-
-from collections import defaultdict
 
 from mozbuild.util import group_unified_files
 
@@ -166,48 +165,6 @@ class WebIDLCollection(object):
         return [os.path.splitext(b)[0] for b in self.generated_events_basenames()]
 
 
-class TestManager(object):
-    """Helps hold state related to tests."""
-
-    def __init__(self, config):
-        self.config = config
-        self.topsrcdir = mozpath.normpath(config.topsrcdir)
-
-        self.tests_by_path = defaultdict(list)
-        self.installs_by_path = defaultdict(list)
-        self.deferred_installs = set()
-        self.manifest_defaults = {}
-
-    def add(self, t, flavor, topsrcdir):
-        t = dict(t)
-        t['flavor'] = flavor
-
-        path = mozpath.normpath(t['path'])
-        assert mozpath.basedir(path, [topsrcdir])
-
-        key = path[len(topsrcdir)+1:]
-        t['file_relpath'] = key
-        t['dir_relpath'] = mozpath.dirname(key)
-
-        self.tests_by_path[key].append(t)
-
-    def add_defaults(self, manifest):
-        if not hasattr(manifest, 'manifest_defaults'):
-            return
-        for sub_manifest, defaults in manifest.manifest_defaults.items():
-            self.manifest_defaults[sub_manifest] = defaults
-
-    def add_installs(self, obj, topsrcdir):
-        for src, (dest, _) in obj.installs.iteritems():
-            key = src[len(topsrcdir)+1:]
-            self.installs_by_path[key].append((src, dest))
-        for src, pat, dest in obj.pattern_installs:
-            key = mozpath.join(src[len(topsrcdir)+1:], pat)
-            self.installs_by_path[key].append((src, pat, dest))
-        for path in obj.deferred_installs:
-            self.deferred_installs.add(path[2:])
-
-
 class BinariesCollection(object):
     """Tracks state of binaries produced by the build."""
 
@@ -221,22 +178,16 @@ class CommonBackend(BuildBackend):
 
     def _init(self):
         self._idl_manager = XPIDLManager(self.environment)
-        self._test_manager = TestManager(self.environment)
         self._webidls = WebIDLCollection()
         self._binaries = BinariesCollection()
         self._configs = set()
         self._ipdl_sources = set()
+        self._generated_sources = set()
 
     def consume_object(self, obj):
         self._configs.add(obj.config)
 
-        if isinstance(obj, TestManifest):
-            for test in obj.tests:
-                self._test_manager.add(test, obj.flavor, obj.topsrcdir)
-            self._test_manager.add_defaults(obj.manifest)
-            self._test_manager.add_installs(obj, obj.topsrcdir)
-
-        elif isinstance(obj, XPIDLFile):
+        if isinstance(obj, XPIDLFile):
             # TODO bug 1240134 tracks not processing XPIDL files during
             # artifact builds.
             self._idl_manager.register_idl(obj)
@@ -330,6 +281,16 @@ class CommonBackend(BuildBackend):
             self._binaries.shared_libraries.append(obj)
             return False
 
+        elif isinstance(obj, GeneratedSources):
+            self._handle_generated_sources(obj.files)
+            return False
+
+        elif isinstance(obj, Exports):
+            objdir_files = [f.full_path for path, files in obj.files.walk() for f in files if isinstance(f, ObjDirPath)]
+            if objdir_files:
+                self._handle_generated_sources(objdir_files)
+            return False
+
         else:
             return False
 
@@ -338,6 +299,7 @@ class CommonBackend(BuildBackend):
     def consume_finished(self):
         if len(self._idl_manager.idls):
             self._handle_idl_manager(self._idl_manager)
+            self._handle_generated_sources(mozpath.join(self.environment.topobjdir, 'dist/include/%s.h' % idl['root']) for idl in self._idl_manager.idls.values())
 
         self._handle_webidl_collection(self._webidls)
 
@@ -358,6 +320,7 @@ class CommonBackend(BuildBackend):
         ipdl_dir = mozpath.join(self.environment.topobjdir, 'ipc', 'ipdl')
 
         ipdl_cppsrcs = list(itertools.chain(*[files_from(p) for p in sorted_ipdl_sources]))
+        self._handle_generated_sources(mozpath.join(ipdl_dir, f) for f in ipdl_cppsrcs)
         unified_source_mapping = list(group_unified_files(ipdl_cppsrcs,
                                                           unified_prefix='UnifiedProtocols',
                                                           unified_suffix='cpp',
@@ -369,28 +332,24 @@ class CommonBackend(BuildBackend):
         for config in self._configs:
             self.backend_input_files.add(config.source)
 
-        # Write out a machine-readable file describing every test.
-        topobjdir = self.environment.topobjdir
-        with self._write_file(mozpath.join(topobjdir, 'all-tests.pkl'), mode='rb') as fh:
-            pickle.dump(dict(self._test_manager.tests_by_path), fh, protocol=2)
-
-        with self._write_file(mozpath.join(topobjdir, 'test-defaults.pkl'), mode='rb') as fh:
-            pickle.dump(self._test_manager.manifest_defaults, fh, protocol=2)
-
-        path = mozpath.join(self.environment.topobjdir, 'test-installs.pkl')
-        with self._write_file(path, mode='rb') as fh:
-            pickle.dump({k: v for k, v in self._test_manager.installs_by_path.items()
-                         if k in self._test_manager.deferred_installs},
-                        fh,
-                        protocol=2)
-
         # Write out a machine-readable file describing binaries.
+        topobjdir = self.environment.topobjdir
         with self._write_file(mozpath.join(topobjdir, 'binaries.json')) as fh:
             d = {
                 'shared_libraries': [s.to_dict() for s in self._binaries.shared_libraries],
                 'programs': [p.to_dict() for p in self._binaries.programs],
             }
             json.dump(d, fh, sort_keys=True, indent=4)
+
+        # Write out a file listing generated sources.
+        with self._write_file(mozpath.join(topobjdir, 'generated-sources.json')) as fh:
+            d = {
+                'sources': sorted(self._generated_sources),
+            }
+            json.dump(d, fh, sort_keys=True, indent=4)
+
+    def _handle_generated_sources(self, files):
+        self._generated_sources.update(mozpath.relpath(f, self.environment.topobjdir) for f in files)
 
     def _handle_webidl_collection(self, webidls):
         if not webidls.all_stems():
@@ -425,7 +384,7 @@ class CommonBackend(BuildBackend):
             self.environment.topobjdir,
             mozpath.join(self.environment.topobjdir, 'dist')
         )
-
+        self._handle_generated_sources(manager.expected_build_output_files())
         # Bindings are compiled in unified mode to speed up compilation and
         # to reduce linker memory size. Note that test bindings are separated
         # from regular ones so tests bindings aren't shipped.

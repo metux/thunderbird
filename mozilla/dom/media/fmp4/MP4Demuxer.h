@@ -29,12 +29,10 @@ public:
 
   RefPtr<InitPromise> Init() override;
 
-  bool HasTrackType(TrackInfo::TrackType aType) const override;
-
   uint32_t GetNumberTracks(TrackInfo::TrackType aType) const override;
 
-  already_AddRefed<MediaTrackDemuxer> GetTrackDemuxer(TrackInfo::TrackType aType,
-                                                      uint32_t aTrackNumber) override;
+  already_AddRefed<MediaTrackDemuxer>
+  GetTrackDemuxer(TrackInfo::TrackType aType, uint32_t aTrackNumber) override;
 
   bool IsSeekable() const override;
 
@@ -48,9 +46,10 @@ private:
   friend class MP4TrackDemuxer;
   RefPtr<MediaResource> mResource;
   RefPtr<mp4_demuxer::ResourceStream> mStream;
-  RefPtr<MediaByteBuffer> mInitData;
-  UniquePtr<mp4_demuxer::MP4Metadata> mMetadata;
-  nsTArray<RefPtr<MP4TrackDemuxer>> mDemuxers;
+  AutoTArray<RefPtr<MP4TrackDemuxer>, 1> mAudioDemuxers;
+  AutoTArray<RefPtr<MP4TrackDemuxer>, 1> mVideoDemuxers;
+  nsTArray<uint8_t> mCryptoInitData;
+  bool mIsSeekable;
 };
 
 } // namespace mozilla

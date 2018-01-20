@@ -15,7 +15,7 @@ var promise = require("promise");
 var defer = require("devtools/shared/defer");
 var Services = require("Services");
 var { DebuggerServer } = require("devtools/server/main");
-var { DebuggerClient } = require("devtools/shared/client/main");
+var { DebuggerClient } = require("devtools/shared/client/debugger-client");
 var DevToolsUtils = require("devtools/shared/DevToolsUtils");
 var flags = require("devtools/shared/flags");
 var { Task } = require("devtools/shared/task");
@@ -54,12 +54,6 @@ function setState(component, newState) {
   });
 }
 
-function setProps(component, newProps) {
-  return new Promise(resolve => {
-    component.setProps(newProps, onNextAnimationFrame(resolve));
-  });
-}
-
 function dumpn(msg) {
   dump(`SHARED-COMPONENTS-TEST: ${msg}\n`);
 }
@@ -85,6 +79,23 @@ function isRenderedTree(actual, expectedDescription, msg) {
   dumpn(`Expected tree:\n${expected}`);
   dumpn(`Actual tree:\n${actual}`);
   is(actual, expected, msg);
+}
+
+function isAccessibleTree(tree, options = {}) {
+  const treeNode = tree.refs.tree;
+  is(treeNode.getAttribute("tabindex"), "0", "Tab index is set");
+  is(treeNode.getAttribute("role"), "tree", "Tree semantics is present");
+  if (options.hasActiveDescendant) {
+    ok(treeNode.hasAttribute("aria-activedescendant"),
+       "Tree has an active descendant set");
+  }
+
+  const treeNodes = [...treeNode.querySelectorAll(".tree-node")];
+  for (let node of treeNodes) {
+    ok(node.id, "TreeNode has an id");
+    is(node.getAttribute("role"), "treeitem", "Tree item semantics is present");
+    ok(node.hasAttribute("aria-level"), "Aria level attribute is set");
+  }
 }
 
 // Encoding of the following tree/forest:
@@ -202,16 +213,23 @@ function shallowRenderComponent(component, props) {
 }
 
 /**
- * Test that a rep renders correctly across different modes.
+ * Creates a React Component for testing
+ *
+ * @param {string} factory - factory object of the component to be created
+ * @param {object} props - React props for the component
+ * @returns {object} - container Node, Object with React component
+ * and querySelector function with $ as name.
  */
-function testRepRenderModes(modeTests, testName, componentUnderTest, gripStub) {
-  modeTests.forEach(({mode, expectedOutput, message}) => {
-    const modeString = typeof mode === "undefined" ? "no mode" : mode;
-    if (!message) {
-      message = `${testName}: ${modeString} renders correctly.`;
-    }
+async function createComponentTest(factory, props) {
+  const container = document.createElement("div");
+  document.body.appendChild(container);
 
-    const rendered = renderComponent(componentUnderTest.rep, { object: gripStub, mode });
-    is(rendered.textContent, expectedOutput, message);
-  });
+  const component = ReactDOM.render(factory(props), container);
+  await forceRender(component);
+
+  return {
+    container,
+    component,
+    $: (s) => container.querySelector(s),
+  };
 }

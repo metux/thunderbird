@@ -37,6 +37,7 @@ TEST_HARNESS_FILES.testing.mochitest += [
     '/build/mobile/remoteautomation.py',
     '/build/pgo/server-locations.txt',
     '/build/sanitizers/lsan_suppressions.txt',
+    '/build/sanitizers/ubsan_suppressions.txt',
     '/build/valgrind/cross-architecture.sup',
     '/build/valgrind/i386-redhat-linux-gnu.sup',
     '/build/valgrind/x86_64-redhat-linux-gnu.sup',
@@ -49,10 +50,6 @@ TEST_HARNESS_FILES.testing.mochitest += [
     'chunkifyTests.js',
     'gen_template.pl',
     'harness.xul',
-    'jetpack-addon-harness.js',
-    'jetpack-addon-overlay.xul',
-    'jetpack-package-harness.js',
-    'jetpack-package-overlay.xul',
     'leaks.py',
     'mach_test_package_commands.py',
     'manifest.webapp',
@@ -61,6 +58,7 @@ TEST_HARNESS_FILES.testing.mochitest += [
     'nested_setup.js',
     'pywebsocket_wrapper.py',
     'redirect.html',
+    'rungeckoview.py',
     'runrobocop.py',
     'runtests.py',
     'runtestsremote.py',
@@ -165,3 +163,24 @@ TEST_HARNESS_FILES.testing.mochitest.websocketprocessbridge += [
     '/testing/tools/websocketprocessbridge/websocketprocessbridge_requirements.txt',
 ]
 
+with Files("**"):
+    BUG_COMPONENT = ("Testing", "Mochitest")
+    SCHEDULES.exclusive = ['mochitest', 'robocop']
+
+with Files("*remote*"):
+    BUG_COMPONENT = ("Firefox for Android", "Testing")
+
+with Files("chrome/**"):
+    BUG_COMPONENT = ("Testing", "Mochitest Chrome")
+
+with Files("chrome-harness.js"):
+    BUG_COMPONENT = ("Testing", "Mochitest Chrome")
+
+with Files("BrowserTestUtils/**"):
+    BUG_COMPONENT = ("Testing", "BrowserTest")
+
+with Files("browser*"):
+    BUG_COMPONENT = ("Testing", "BrowserTest")
+
+with Files("tests/browser/**"):
+    BUG_COMPONENT = ("Testing", "BrowserTest")

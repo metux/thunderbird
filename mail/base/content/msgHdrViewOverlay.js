@@ -566,6 +566,13 @@ var messageHeaderSink = {
           delete currentHeaderData["reply-to"];
       }
 
+      // For content-base urls stored uri encoded, we want to decode for
+      // display (and encode for external link open).
+      if ("content-base" in currentHeaderData) {
+        currentHeaderData["content-base"].headerValue =
+          decodeURI(currentHeaderData["content-base"].headerValue);
+      }
+
       let expandedfromLabel = document.getElementById("expandedfromLabel");
       if (gFolderDisplay.selectedMessageIsFeed)
         expandedfromLabel.value = expandedfromLabel.getAttribute("valueAuthor");
@@ -1778,7 +1785,7 @@ function CopyNewsgroupURL(newsgroupNode)
   }
 
   try {
-    let uri = Services.io.newURI(url, null, null);
+    let uri = Services.io.newURI(url);
     let clipboard = Components.classes["@mozilla.org/widget/clipboardhelper;1"]
                               .getService(Components.interfaces.nsIClipboardHelper);
     clipboard.copyString(decodeURI(uri.spec));
@@ -1905,12 +1912,12 @@ AttachmentInfo.prototype = {
   get isEmpty()
   {
     // Create an input stream on the attachment url.
-    let url = Services.io.newURI(this.url, null, null);
+    let url = Services.io.newURI(this.url);
     let channel = Services.io.newChannelFromURI2(url,
                                                  null,
                                                  Services.scriptSecurityManager.getSystemPrincipal(),
                                                  null,
-                                                 Components.interfaces.nsILoadInfo.SEC_NORMAL,
+                                                 Components.interfaces.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                                  Components.interfaces.nsIContentPolicy.TYPE_OTHER);
     let stream = channel.open();
 

@@ -1,6 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: sw=2 ts=8 et :
- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -11,6 +10,7 @@
 #include "mozilla/layers/ImageBridgeParent.h" // for ImageBridgeParent
 #include "mozilla/layers/TextureHost.h"       // for TextureHost
 #include "mozilla/layers/TextureForwarder.h"
+#include "mozilla/layers/CompositableForwarder.h"
 
 namespace mozilla {
 namespace layers {
@@ -18,6 +18,17 @@ namespace layers {
 NS_IMPL_ISUPPORTS(GfxMemoryImageReporter, nsIMemoryReporter)
 
 mozilla::Atomic<ptrdiff_t> GfxMemoryImageReporter::sAmount(0);
+
+/* static */ uint32_t
+CompositableForwarder::GetMaxFileDescriptorsPerMessage() {
+#if defined(OS_POSIX)
+  static const uint32_t kMaxFileDescriptors = FileDescriptorSet::MAX_DESCRIPTORS_PER_MESSAGE;
+#else
+  // default number that works everywhere else
+  static const uint32_t kMaxFileDescriptors = 250;
+#endif
+  return kMaxFileDescriptors;
+}
 
 mozilla::ipc::SharedMemory::SharedMemoryType OptimalShmemType()
 {
@@ -223,12 +234,6 @@ FixedSizeSmallShmemSectionAllocator::ShrinkShmemSectionHeap()
       i++;
     }
   }
-}
-
-int32_t
-ClientIPCAllocator::GetMaxTextureSize() const
-{
-  return gfxPrefs::MaxTextureSize();
 }
 
 } // namespace layers

@@ -9,6 +9,7 @@
 
 #include "jsapi.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/Mutex.h"
 #include <stdint.h>
 #include "nsAutoPtr.h"
@@ -21,6 +22,7 @@
 #include "nsIWeakReferenceUtils.h"
 #include "nsIInterfaceRequestor.h"
 #include "mozilla/dom/ChannelInfo.h"
+#include "mozilla/dom/ServiceWorkerDescriptor.h"
 #include "mozilla/net/ReferrerPolicy.h"
 
 #define BEGIN_WORKERS_NAMESPACE \
@@ -102,25 +104,12 @@ struct JSSettings
 
   struct JSGCSetting
   {
-    JSGCParamKey key;
+    mozilla::Maybe<JSGCParamKey> key;
     uint32_t value;
 
     JSGCSetting()
-    : key(static_cast<JSGCParamKey>(-1)), value(0)
+    : key(), value(0)
     { }
-
-    bool
-    IsSet() const
-    {
-      return key != static_cast<JSGCParamKey>(-1);
-    }
-
-    void
-    Unset()
-    {
-      key = static_cast<JSGCParamKey>(-1);
-      value = 0;
-    }
   };
 
   // There are several settings that we know we need so it makes sense to
@@ -166,11 +155,11 @@ struct JSSettings
 
     for (uint32_t index = 0; index < ArrayLength(gcSettings); index++) {
       JSSettings::JSGCSetting& setting = gcSettings[index];
-      if (setting.key == aKey) {
+      if (setting.key.isSome() && *setting.key == aKey) {
         foundSetting = &setting;
         break;
       }
-      if (!firstEmptySetting && !setting.IsSet()) {
+      if (!firstEmptySetting && setting.key.isNothing()) {
         firstEmptySetting = &setting;
       }
     }
@@ -183,13 +172,13 @@ struct JSSettings
           return false;
         }
       }
-      foundSetting->key = aKey;
+      foundSetting->key = mozilla::Some(aKey);
       foundSetting->value = aValue;
       return true;
     }
 
     if (foundSetting) {
-      foundSetting->Unset();
+      foundSetting->key.reset();
       return true;
     }
 
@@ -254,13 +243,15 @@ struct WorkerLoadInfo
 
   nsAutoPtr<mozilla::ipc::PrincipalInfo> mPrincipalInfo;
   nsCString mDomain;
+  nsString mOrigin; // Derived from mPrincipal; can be used on worker thread.
 
   nsString mServiceWorkerCacheName;
+  Maybe<ServiceWorkerDescriptor> mServiceWorkerDescriptor;
 
   ChannelInfo mChannelInfo;
+  nsLoadFlags mLoadFlags;
 
   uint64_t mWindowID;
-  uint64_t mServiceWorkerID;
 
   net::ReferrerPolicy mReferrerPolicy;
   bool mFromWindow;
@@ -270,12 +261,41 @@ struct WorkerLoadInfo
   bool mPrincipalIsSystem;
   bool mStorageAllowed;
   bool mServiceWorkersTestingInWindow;
-  PrincipalOriginAttributes mOriginAttributes;
+  OriginAttributes mOriginAttributes;
 
   WorkerLoadInfo();
   ~WorkerLoadInfo();
 
   void StealFrom(WorkerLoadInfo& aOther);
+
+  nsresult
+  SetPrincipalOnMainThread(nsIPrincipal* aPrincipal, nsILoadGroup* aLoadGroup);
+
+  nsresult
+  GetPrincipalAndLoadGroupFromChannel(nsIChannel* aChannel,
+                                      nsIPrincipal** aPrincipalOut,
+                                      nsILoadGroup** aLoadGroupOut);
+
+  nsresult
+  SetPrincipalFromChannel(nsIChannel* aChannel);
+
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+  bool
+  FinalChannelPrincipalIsValid(nsIChannel* aChannel);
+
+  bool
+  PrincipalIsValid() const;
+
+  bool
+  PrincipalURIMatchesScriptURL();
+#endif
+
+  bool
+  ProxyReleaseMainThreadObjects(WorkerPrivate* aWorkerPrivate);
+
+  bool
+  ProxyReleaseMainThreadObjects(WorkerPrivate* aWorkerPrivate,
+                                nsCOMPtr<nsILoadGroup>& aLoadGroupToCancel);
 };
 
 // All of these are implemented in RuntimeService.cpp
@@ -347,19 +367,8 @@ public:
   PostTask(WorkerTask* aTask);
 };
 
-WorkerCrossThreadDispatcher*
-GetWorkerCrossThreadDispatcher(JSContext* aCx, const JS::Value& aWorker);
-
 // Random unique constant to facilitate JSPrincipal debugging
 const uint32_t kJSPrincipalsDebugToken = 0x7e2df9d2;
-
-namespace exceptions {
-
-// Implemented in Exceptions.cpp
-void
-ThrowDOMExceptionForNSResult(JSContext* aCx, nsresult aNSResult);
-
-} // namespace exceptions
 
 bool
 IsWorkerGlobal(JSObject* global);
@@ -369,14 +378,6 @@ IsDebuggerGlobal(JSObject* global);
 
 bool
 IsDebuggerSandbox(JSObject* object);
-
-// Throws the JSMSG_GETTER_ONLY exception.  This shouldn't be used going
-// forward -- getter-only properties should just use JS_PSG for the setter
-// (implying no setter at all), which will not throw when set in non-strict
-// code but will in strict code.  Old code should use this only for temporary
-// compatibility reasons.
-extern bool
-GetterOnlyJSNative(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
 
 END_WORKERS_NAMESPACE
 

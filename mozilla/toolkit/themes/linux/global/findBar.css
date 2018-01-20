@@ -5,8 +5,7 @@
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 
 findbar {
-  border-top: 2px solid;
-  -moz-border-top-colors: ThreeDShadow ThreeDHighlight;
+  border-top: 1px solid ThreeDShadow;
   min-width: 1px;
   transition-property: margin-bottom, opacity, visibility;
   transition-duration: 150ms, 150ms, 0s;
@@ -34,9 +33,6 @@ findbar[noanim] {
 }
 
 .findbar-closebutton {
-  -moz-appearance: none;
-  width: 16px;
-  height: 16px;
   margin: 0 8px;
 }
 
@@ -89,6 +85,9 @@ findbar[noanim] {
   border: 1px solid ThreeDShadow;
   padding: 5px 9px;
   line-height: 1em;
+  -moz-context-properties: fill;
+  fill: currentColor;
+  color: inherit;
 }
 
 .findbar-find-previous:focus,
@@ -105,12 +104,12 @@ findbar[noanim] {
 }
 
 .findbar-find-previous {
-  list-style-image: url(chrome://global/skin/icons/find-arrows.svg#glyph-find-previous);
+  list-style-image: url(chrome://global/skin/icons/find-previous-arrow.svg);
   border-inline-end-width: 0;
 }
 
 .findbar-find-next {
-  list-style-image: url(chrome://global/skin/icons/find-arrows.svg#glyph-find-next);
+  list-style-image: url(chrome://global/skin/icons/find-next-arrow.svg);
 }
 
 .findbar-find-previous > .toolbarbutton-icon,
@@ -120,7 +119,7 @@ findbar[noanim] {
 
 .findbar-find-previous[disabled="true"] > .toolbarbutton-icon,
 .findbar-find-next[disabled="true"] > .toolbarbutton-icon {
-  opacity: .5;
+  opacity: .4;
 }
 
 .findbar-find-next:-moz-locale-dir(ltr) {

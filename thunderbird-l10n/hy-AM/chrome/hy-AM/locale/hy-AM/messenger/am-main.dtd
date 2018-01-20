@@ -40,3 +40,8 @@
 <!ENTITY smtpName.label "Ելքային սպասարկիչը (SMTP).">
 <!ENTITY smtpName.accesskey "u">
 <!ENTITY smtpDefaultServer.label "Օգտ. հիմնական սպասարկիչը">
+
+
+
+<!ENTITY smtpServerEdit.label "Edit SMTP server…">
+<!ENTITY smtpServerEdit.accesskey "P">

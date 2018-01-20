@@ -51,8 +51,8 @@
 <!ENTITY getAllNewMsgCmdPopupMenu.accesskey "P">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.label "Cyfrif Cyfredol">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.accesskey "y">
-<!ENTITY getNextNMsgCmd.label "Estyn y 500 Neges Newyddion Nesaf">
-<!ENTITY getNextNMsgCmd.accesskey "E">
+<!ENTITY getNextNMsgCmd2.label "Estyn y Negeseuon Newyddion Nesaf">
+<!ENTITY getNextNMsgCmd2.accesskey "E">
 <!ENTITY sendUnsentCmd.label "Anfon Negeseuon heb eu Hanfon">
 <!ENTITY sendUnsentCmd.accesskey "H">
 <!ENTITY subscribeCmd.label "Tanysgrifio…">
@@ -366,6 +366,9 @@
 <!ENTITY editAsNewMsgCmd.key "g">
 <!ENTITY editDraftMsgCmd.label "Golygu Neges Ddrafft">
 <!ENTITY editDraftMsgCmd.accesskey "D">
+<!ENTITY newMsgFromTemplateCmd.label "Neges Newydd o Dempled">
+<!-- do not change "VK_RETURN" -->
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN">
 <!ENTITY createFilter.label "Creu Hidl o'r Neges…">
 <!ENTITY createFilter.accesskey "H">
 <!ENTITY moveMsgToMenu.label "Symud i">
@@ -634,6 +637,9 @@
 
 <!ENTITY folderContextGetMessages.label "Estyn Negeseuon">
 <!ENTITY folderContextGetMessages.accesskey "s">
+<!ENTITY folderContextPauseAllUpdates.label "Oedi Pob Diweddariad">
+<!ENTITY folderContextPauseUpdates.label "Oedi Diweddariadau">
+<!ENTITY folderContextPauseUpdates.accesskey "D">
 <!ENTITY folderContextOpenInNewWindow.label "Agor mewn Ffenestr Newydd">
 <!ENTITY folderContextOpenInNewWindow.accesskey "N">
 <!ENTITY folderContextOpenNewTab.label "Agor mewn Tab Newydd">
@@ -731,12 +737,13 @@
 <!ENTITY attachmentColumn2.tooltip "Trefnu yn ôl atodiad">
 <!-- Thread Pane Context Menu -->
 
+<!ENTITY contextNewMsgFromTemplate.label "Neges Newydd o Dempled">
 <!ENTITY contextOpenNewWindow.label "Agor Neges mewn Ffenestr Newydd">
 <!ENTITY contextOpenNewWindow.accesskey "F">
-<!-- The key potentially conflicts with cutCmd.accessKey which is defined in
-     textcontext.dtd from toolkit. Right now, both menu items can't be visible
-     at the same time, but should someone enable copy/paste of message, this key
-     would probably need to be changed. -->
+<!-- The contextOpenNewTab.accesskey ("T") potentially conflicts with
+     cutCmd.accessKey which is defined in textcontext.dtd from toolkit. Right
+     now, both menu items can't be visible at the same time, but should someone
+     enable copy/paste of message, this key would probably need to be changed. -->
 <!ENTITY contextOpenNewTab.label "Agor Neges mewn Tab Newydd">
 <!ENTITY contextOpenNewTab.accesskey "T">
 <!ENTITY contextOpenConversation.label "Agor Neges mewn Sgwrs">
@@ -949,3 +956,7 @@
 <!-- Mac OS X Dock Icon pop-up menu -->
 
 <!ENTITY dockOptions.label              "Dewisiadau Eicon Ap…">
+<!ENTITY writeNewMessageDock.label      "Ysgrifennu Neges Newydd">
+<!ENTITY openAddressBookDock.label      "Agor y Llyfr Cyfeiriadau">
+
+<!ENTITY goChatCmd2.key "H">

@@ -7,19 +7,14 @@
 #ifndef DecoderTraits_h_
 #define DecoderTraits_h_
 
-#include "nsCOMPtr.h"
-
-class nsAString;
-class nsACString;
+#include "nsStringFwd.h"
 
 namespace mozilla {
 
-class AbstractMediaDecoder;
 class DecoderDoctorDiagnostics;
-class MediaContentType;
-class MediaDecoder;
-class MediaDecoderOwner;
-class MediaDecoderReader;
+class MediaContainerType;
+struct MediaFormatReaderInit;
+class MediaFormatReader;
 
 enum CanPlayStatus {
   CANPLAY_NO,
@@ -29,9 +24,9 @@ enum CanPlayStatus {
 
 class DecoderTraits {
 public:
-  // Returns the CanPlayStatus indicating if we can handle this content type.
-  static CanPlayStatus CanHandleContentType(const MediaContentType& aContentType,
-                                            DecoderDoctorDiagnostics* aDiagnostics);
+  // Returns the CanPlayStatus indicating if we can handle this container type.
+  static CanPlayStatus CanHandleContainerType(const MediaContainerType& aContainerType,
+                                              DecoderDoctorDiagnostics* aDiagnostics);
 
   // Returns true if we should handle this MIME type when it appears
   // as an <object> or as a toplevel page. If, in practice, our support
@@ -40,26 +35,25 @@ public:
   static bool ShouldHandleMediaType(const char* aMIMEType,
                                     DecoderDoctorDiagnostics* aDiagnostics);
 
-  // Create a decoder for the given aType. Returns null if we
-  // were unable to create the decoder.
-  static already_AddRefed<MediaDecoder> CreateDecoder(const nsACString& aType,
-                                                      MediaDecoderOwner* aOwner,
-                                                      DecoderDoctorDiagnostics* aDiagnostics);
-
   // Create a reader for thew given MIME type aType. Returns null
   // if we were unable to create the reader.
-  static MediaDecoderReader* CreateReader(const nsACString& aType,
-                                          AbstractMediaDecoder* aDecoder);
+  static MediaFormatReader* CreateReader(const MediaContainerType& aType,
+                                         MediaFormatReaderInit& aInit);
 
   // Returns true if MIME type aType is supported in video documents,
   // or false otherwise. Not all platforms support all MIME types, and
   // vice versa.
   static bool IsSupportedInVideoDocument(const nsACString& aType);
 
-  static bool IsWebMTypeAndEnabled(const nsACString& aType);
-  static bool IsWebMAudioType(const nsACString& aType);
-  static bool IsMP4TypeAndEnabled(const nsACString& aType,
-                                  DecoderDoctorDiagnostics* aDiagnostics);
+  // Convenience function that returns false if MOZ_FMP4 is not defined,
+  // otherwise defers to MP4Decoder::IsSupportedType().
+  static bool IsMP4SupportedType(const MediaContainerType& aType,
+                                 DecoderDoctorDiagnostics* aDiagnostics);
+
+  // Returns true if aType is MIME type of hls.
+  static bool IsHttpLiveStreamingType(const MediaContainerType& aType);
+
+  static bool IsSupportedType(const MediaContainerType& aType);
 };
 
 } // namespace mozilla

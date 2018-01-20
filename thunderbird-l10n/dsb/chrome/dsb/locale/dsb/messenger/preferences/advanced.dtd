@@ -11,6 +11,7 @@
 
 <!ENTITY enableGlodaSearch.label       "Globalne pytanje a indicěrowanje zmóžniś">
 <!ENTITY enableGlodaSearch.accesskey   "G">
+<!ENTITY dateTimeFormatting.label      "Formatěrowanje datuma a casa">
 <!ENTITY allowHWAccel.label            "Hardwarowe póspěšenje wužywaś, jolic jo k dispoziciji">
 <!ENTITY allowHWAccel.accesskey        "H">
 <!ENTITY storeType.label               "Sładowański typ powěsćow za nowe konta:">
@@ -51,8 +52,20 @@
 <!ENTITY enableCrashReporter.accesskey   "R">
 <!ENTITY crashReporterLearnMore.label    "Dalšne informacije">
 <!-- Update -->
+<!-- LOCALIZATION NOTE (updateApp.label):
+  Strings from aboutDialog.dtd are displayed in this section of the preferences.
+  Please check for possible accesskey conflicts.
+-->
 
-<!ENTITY updateApp.label                 "Aktualizacije &brandShortName;:">
+<!ENTITY updateApp2.label                "Aktualizacije &brandShortName;">
+<!-- LOCALIZATION NOTE (updateApp.version.*): updateApp.version.pre is
+  followed by a version number, keep the trailing space or replace it with
+  a different character as needed. updateApp.version.post is displayed after
+  the version number, and is empty on purpose for English. You can use it
+  if required by your language.
+ -->
+<!ENTITY updateApp.version.pre           "Wersija ">
+<!ENTITY updateApp.version.post          "">
 <!ENTITY updateAuto.label                "Aktualizacije awtomatiski instalěrowaś (pśiraźijo se: pólěpšona wěstota)">
 <!ENTITY updateAuto.accesskey            "A">
 <!ENTITY updateCheck.label               "Aktualizacije pytaś, ale rozsud mě pśewóstajiś, lěc maju se instalěrowaś">
@@ -89,6 +102,8 @@
 <!ENTITY useCacheBefore.label            "Až k">
 <!ENTITY useCacheBefore.accesskey        "A">
 <!ENTITY useCacheAfter.label             "MB platowego ruma za pufrowak wužywaś">
+<!ENTITY overrideSmartCacheSize.label    "Awtomatiske zastojanje pufrowaka pśepisaś">
+<!ENTITY overrideSmartCacheSize.accesskey "m">
 <!ENTITY clearCacheNow.label             "Něnto wuprozniś">
 <!ENTITY clearCacheNow.accesskey         "u">
 <!-- Certificates -->

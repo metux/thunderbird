@@ -423,83 +423,8 @@ ScopedVertexAttribPointer::UnwrapImpl()
     mGL->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, mBoundBuffer);
 }
 
-ScopedGLDrawState::ScopedGLDrawState(GLContext* aGL)
-    : blend       (aGL, LOCAL_GL_BLEND,      false)
-    , cullFace    (aGL, LOCAL_GL_CULL_FACE,  false)
-    , depthTest   (aGL, LOCAL_GL_DEPTH_TEST, false)
-    , dither      (aGL, LOCAL_GL_DITHER,     false)
-    , polyOffsFill(aGL, LOCAL_GL_POLYGON_OFFSET_FILL,      false)
-    , sampleAToC  (aGL, LOCAL_GL_SAMPLE_ALPHA_TO_COVERAGE, false)
-    , sampleCover (aGL, LOCAL_GL_SAMPLE_COVERAGE, false)
-    , scissor     (aGL, LOCAL_GL_SCISSOR_TEST,    false)
-    , stencil     (aGL, LOCAL_GL_STENCIL_TEST,    false)
-    , mGL(aGL)
-{
-    mGL->GetUIntegerv(LOCAL_GL_CURRENT_PROGRAM, &boundProgram);
-    mGL->GetUIntegerv(LOCAL_GL_ARRAY_BUFFER_BINDING, &boundBuffer);
-    mGL->GetUIntegerv(LOCAL_GL_MAX_VERTEX_ATTRIBS, &maxAttrib);
-    attrib_enabled = MakeUnique<GLint[]>(maxAttrib);
-
-    for (GLuint i = 0; i < maxAttrib; i++) {
-        mGL->fGetVertexAttribiv(i, LOCAL_GL_VERTEX_ATTRIB_ARRAY_ENABLED, &attrib_enabled[i]);
-        mGL->fDisableVertexAttribArray(i);
-    }
-    // Only Attrib0's client side state affected
-    mGL->fGetVertexAttribiv(0, LOCAL_GL_VERTEX_ATTRIB_ARRAY_SIZE, &attrib0_size);
-    mGL->fGetVertexAttribiv(0, LOCAL_GL_VERTEX_ATTRIB_ARRAY_STRIDE, &attrib0_stride);
-    mGL->fGetVertexAttribiv(0, LOCAL_GL_VERTEX_ATTRIB_ARRAY_TYPE, &attrib0_type);
-    mGL->fGetVertexAttribiv(0, LOCAL_GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &attrib0_normalized);
-    mGL->fGetVertexAttribiv(0, LOCAL_GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &attrib0_bufferBinding);
-    mGL->fGetVertexAttribPointerv(0, LOCAL_GL_VERTEX_ATTRIB_ARRAY_POINTER, &attrib0_pointer);
-    mGL->fGetBooleanv(LOCAL_GL_COLOR_WRITEMASK, colorMask);
-    mGL->fGetIntegerv(LOCAL_GL_VIEWPORT, viewport);
-    mGL->fGetIntegerv(LOCAL_GL_SCISSOR_BOX, scissorBox);
-}
-
-ScopedGLDrawState::~ScopedGLDrawState()
-{
-    MOZ_ASSERT(mGL->IsCurrent());
-
-    mGL->fScissor(scissorBox[0], scissorBox[1],
-                  scissorBox[2], scissorBox[3]);
-
-    mGL->fViewport(viewport[0], viewport[1],
-                   viewport[2], viewport[3]);
-
-    mGL->fColorMask(colorMask[0],
-                    colorMask[1],
-                    colorMask[2],
-                    colorMask[3]);
-
-    for (unsigned int i = 0; i < maxAttrib; i++) {
-        if (attrib_enabled[i])
-            mGL->fEnableVertexAttribArray(i);
-        else
-            mGL->fDisableVertexAttribArray(i);
-    }
-
-
-    mGL->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, attrib0_bufferBinding);
-    mGL->fVertexAttribPointer(0,
-                              attrib0_size,
-                              attrib0_type,
-                              attrib0_normalized,
-                              attrib0_stride,
-                              attrib0_pointer);
-
-    mGL->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, boundBuffer);
-
-    mGL->fUseProgram(boundProgram);
-}
-
 ////////////////////////////////////////////////////////////////////////
 // ScopedPackState
-
-static bool
-HasPBOState(const GLContext* gl)
-{
-    return (!gl->IsGLES() || gl->Version() >= 300);
-}
 
 ScopedPackState::ScopedPackState(GLContext* gl)
     : ScopedGLWrapper<ScopedPackState>(gl)
@@ -508,7 +433,7 @@ ScopedPackState::ScopedPackState(GLContext* gl)
 
     if (mAlignment != 4) mGL->fPixelStorei(LOCAL_GL_PACK_ALIGNMENT, 4);
 
-    if (!HasPBOState(mGL))
+    if (!mGL->HasPBOState())
         return;
 
     mGL->fGetIntegerv(LOCAL_GL_PIXEL_PACK_BUFFER_BINDING, (GLint*)&mPixelBuffer);
@@ -527,13 +452,100 @@ ScopedPackState::UnwrapImpl()
 {
     mGL->fPixelStorei(LOCAL_GL_PACK_ALIGNMENT, mAlignment);
 
-    if (!HasPBOState(mGL))
+    if (!mGL->HasPBOState())
         return;
 
     mGL->fBindBuffer(LOCAL_GL_PIXEL_PACK_BUFFER, mPixelBuffer);
     mGL->fPixelStorei(LOCAL_GL_PACK_ROW_LENGTH, mRowLength);
     mGL->fPixelStorei(LOCAL_GL_PACK_SKIP_PIXELS, mSkipPixels);
     mGL->fPixelStorei(LOCAL_GL_PACK_SKIP_ROWS, mSkipRows);
+}
+
+////////////////////////////////////////////////////////////////////////
+// ResetUnpackState
+
+ResetUnpackState::ResetUnpackState(GLContext* gl)
+    : ScopedGLWrapper<ResetUnpackState>(gl)
+{
+    const auto fnReset = [&](GLenum pname, GLuint val, GLuint* const out_old) {
+        mGL->GetUIntegerv(pname, out_old);
+        if (*out_old != val) {
+            mGL->fPixelStorei(pname, val);
+        }
+    };
+
+    // Default is 4, but 1 is more useful.
+    fnReset(LOCAL_GL_UNPACK_ALIGNMENT, 1, &mAlignment);
+
+    if (!mGL->HasPBOState())
+        return;
+
+    mGL->GetUIntegerv(LOCAL_GL_PIXEL_UNPACK_BUFFER_BINDING, &mPBO);
+    if (mPBO != 0) mGL->fBindBuffer(LOCAL_GL_PIXEL_UNPACK_BUFFER, 0);
+
+    fnReset(LOCAL_GL_UNPACK_ROW_LENGTH  , 0, &mRowLength);
+    fnReset(LOCAL_GL_UNPACK_IMAGE_HEIGHT, 0, &mImageHeight);
+    fnReset(LOCAL_GL_UNPACK_SKIP_PIXELS , 0, &mSkipPixels);
+    fnReset(LOCAL_GL_UNPACK_SKIP_ROWS   , 0, &mSkipRows);
+    fnReset(LOCAL_GL_UNPACK_SKIP_IMAGES , 0, &mSkipImages);
+}
+
+void
+ResetUnpackState::UnwrapImpl()
+{
+    mGL->fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, mAlignment);
+
+    if (!mGL->HasPBOState())
+        return;
+
+    mGL->fBindBuffer(LOCAL_GL_PIXEL_UNPACK_BUFFER, mPBO);
+
+    mGL->fPixelStorei(LOCAL_GL_UNPACK_ROW_LENGTH, mRowLength);
+    mGL->fPixelStorei(LOCAL_GL_UNPACK_IMAGE_HEIGHT, mImageHeight);
+    mGL->fPixelStorei(LOCAL_GL_UNPACK_SKIP_PIXELS, mSkipPixels);
+    mGL->fPixelStorei(LOCAL_GL_UNPACK_SKIP_ROWS, mSkipRows);
+    mGL->fPixelStorei(LOCAL_GL_UNPACK_SKIP_IMAGES, mSkipImages);
+}
+
+////////////////////////////////////////////////////////////////////////
+// ScopedBindPBO
+
+static GLuint
+GetPBOBinding(GLContext* gl, GLenum target)
+{
+    if (!gl->HasPBOState())
+        return 0;
+
+    GLenum targetBinding;
+    switch (target) {
+    case LOCAL_GL_PIXEL_PACK_BUFFER:
+        targetBinding = LOCAL_GL_PIXEL_PACK_BUFFER_BINDING;
+        break;
+
+    case LOCAL_GL_PIXEL_UNPACK_BUFFER:
+        targetBinding = LOCAL_GL_PIXEL_UNPACK_BUFFER_BINDING;
+        break;
+
+    default:
+        MOZ_CRASH();
+    }
+
+    return gl->GetIntAs<GLuint>(targetBinding);
+}
+
+ScopedBindPBO::ScopedBindPBO(GLContext* gl, GLenum target)
+    : ScopedGLWrapper<ScopedBindPBO>(gl)
+    , mTarget(target)
+    , mPBO(GetPBOBinding(mGL, mTarget))
+{ }
+
+void
+ScopedBindPBO::UnwrapImpl()
+{
+    if (!mGL->HasPBOState())
+        return;
+
+    mGL->fBindBuffer(mTarget, mPBO);
 }
 
 } /* namespace gl */

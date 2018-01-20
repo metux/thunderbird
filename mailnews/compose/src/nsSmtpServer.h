@@ -7,7 +7,7 @@
 #define __nsSmtpServer_h_
 
 
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsISmtpServer.h"
 #include "nsIPrefBranch.h"
 #include "nsWeakReference.h"
@@ -17,7 +17,7 @@ class nsSmtpServer : public nsISmtpServer,
 {
 public:
     nsSmtpServer();
-    
+
     NS_DECL_ISUPPORTS
     NS_DECL_NSISMTPSERVER
 
@@ -26,14 +26,14 @@ private:
     nsCString mKey;
     nsCOMPtr<nsIPrefBranch> mPrefBranch;
     nsCOMPtr<nsIPrefBranch> mDefPrefBranch;
-                                                                                                                                               
+
     nsresult getPrefs();
     void getIntPrefWithDefault(const char *prefName, int32_t *val,
                                int32_t defval);
     nsresult GetPasswordWithoutUI();
     nsCString GetServerURIInternal(const bool aIncludeUsername);
 
-    nsCString m_password;
+    nsString m_password;
     bool m_logonFailed;
 };
 

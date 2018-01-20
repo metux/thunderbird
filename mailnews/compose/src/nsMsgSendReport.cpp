@@ -84,7 +84,7 @@ nsMsgSendReport::nsMsgSendReport()
   for (i = 0; i <= SEND_LAST_PROCESS; i ++)
     mProcessReport[i] = new nsMsgProcessReport();
 
-  Reset(); 
+  Reset();
 }
 
 nsMsgSendReport::~nsMsgSendReport()
@@ -259,7 +259,7 @@ NS_IMETHODIMP nsMsgSendReport::DisplayReport(nsIPrompt *prompt, bool showErrorOn
   {
     //TODO need to display a generic hardcoded message
     mAlreadyDisplayReport = true;
-    return NS_OK;  
+    return NS_OK;
   }
 
   nsString dialogTitle;
@@ -291,7 +291,7 @@ NS_IMETHODIMP nsMsgSendReport::DisplayReport(nsIPrompt *prompt, bool showErrorOn
         //Ignore, don't need to repeat ourself.
         break;
       default:
-        const char16_t* errorString = errorStringNameForErrorCode(currError);
+        const char* errorString = errorStringNameForErrorCode(currError);
         nsMsgGetMessageByName(errorString, currMessage);
         break;
     }
@@ -310,47 +310,45 @@ NS_IMETHODIMP nsMsgSendReport::DisplayReport(nsIPrompt *prompt, bool showErrorOn
       return NS_OK;
     }
 
-    bundle->GetStringFromName(u"sendMessageErrorTitle",
-                              getter_Copies(dialogTitle));
+    bundle->GetStringFromName("sendMessageErrorTitle", dialogTitle);
 
-    const char16_t* preStrName = u"sendFailed";
+    const char* preStrName = "sendFailed";
     bool askToGoBackToCompose = false;
     switch (mCurrentProcess)
     {
       case process_BuildMessage :
-        preStrName = u"sendFailed";
+        preStrName = "sendFailed";
         askToGoBackToCompose = false;
         break;
       case process_NNTP :
-        preStrName = u"sendFailed";
+        preStrName = "sendFailed";
         askToGoBackToCompose = false;
         break;
       case process_SMTP :
         bool nntpProceeded;
         mProcessReport[process_NNTP]->GetProceeded(&nntpProceeded);
         if (nntpProceeded)
-          preStrName = u"sendFailedButNntpOk";
+          preStrName = "sendFailedButNntpOk";
         else
-          preStrName = u"sendFailed";
+          preStrName = "sendFailed";
         askToGoBackToCompose = false;
         break;
       case process_Copy:
-        preStrName = u"failedCopyOperation";
+        preStrName = "failedCopyOperation";
         askToGoBackToCompose = (mDeliveryMode == nsIMsgCompDeliverMode::Now);
         break;
       case process_FCC:
-        preStrName = u"failedCopyOperation";
+        preStrName = "failedCopyOperation";
         askToGoBackToCompose = (mDeliveryMode == nsIMsgCompDeliverMode::Now);
         break;
     }
-    bundle->GetStringFromName(preStrName, getter_Copies(dialogMessage));
+    bundle->GetStringFromName(preStrName, dialogMessage);
 
     //Do we already have an error message?
     if (!askToGoBackToCompose && currMessage.IsEmpty())
     {
       //we don't have an error description but we can put a generic explanation
-      bundle->GetStringFromName(u"genericFailureExplanation",
-                                getter_Copies(currMessage));
+      bundle->GetStringFromName("genericFailureExplanation", currMessage);
     }
 
     if (!currMessage.IsEmpty())
@@ -368,8 +366,7 @@ NS_IMETHODIMP nsMsgSendReport::DisplayReport(nsIPrompt *prompt, bool showErrorOn
     {
       bool oopsGiveMeBackTheComposeWindow = true;
       nsString text1;
-      bundle->GetStringFromName(u"returnToComposeWindowQuestion",
-                                getter_Copies(text1));
+      bundle->GetStringFromName("returnToComposeWindowQuestion", text1);
       if (!dialogMessage.IsEmpty())
         dialogMessage.AppendLiteral("\n");
       dialogMessage.Append(text1);
@@ -382,44 +379,42 @@ NS_IMETHODIMP nsMsgSendReport::DisplayReport(nsIPrompt *prompt, bool showErrorOn
   }
   else
   {
-    const char16_t* title;
-    const char16_t* messageName;
+    const char* title;
+    const char* messageName;
 
     switch (mDeliveryMode)
     {
       case nsIMsgCompDeliverMode::Later:
-        title = u"sendLaterErrorTitle";
-        messageName = u"unableToSendLater";
+        title = "sendLaterErrorTitle";
+        messageName = "unableToSendLater";
         break;
 
       case nsIMsgCompDeliverMode::AutoSaveAsDraft:
       case nsIMsgCompDeliverMode::SaveAsDraft:
-        title = u"saveDraftErrorTitle";
-        messageName = u"unableToSaveDraft";
+        title = "saveDraftErrorTitle";
+        messageName = "unableToSaveDraft";
         break;
 
       case nsIMsgCompDeliverMode::SaveAsTemplate:
-        title = u"saveTemplateErrorTitle";
-        messageName = u"unableToSaveTemplate";
+        title = "saveTemplateErrorTitle";
+        messageName = "unableToSaveTemplate";
         break;
 
       default:
         /* This should never happen! */
-        title = u"sendMessageErrorTitle";
-        messageName = u"sendFailed";
+        title = "sendMessageErrorTitle";
+        messageName = "sendFailed";
         break;
     }
 
-    bundle->GetStringFromName(title, getter_Copies(dialogTitle));
-    bundle->GetStringFromName(messageName,
-                              getter_Copies(dialogMessage));
+    bundle->GetStringFromName(title, dialogTitle);
+    bundle->GetStringFromName(messageName, dialogMessage);
 
     //Do we have an error message...
     if (currMessage.IsEmpty())
     {
       //we don't have an error description but we can put a generic explanation
-      bundle->GetStringFromName(u"genericFailureExplanation",
-                                getter_Copies(currMessage));
+      bundle->GetStringFromName("genericFailureExplanation", currMessage);
     }
 
     if (!currMessage.IsEmpty())

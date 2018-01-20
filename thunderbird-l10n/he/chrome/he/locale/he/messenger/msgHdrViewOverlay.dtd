@@ -89,28 +89,28 @@
 <!ENTITY OpenBrowserWithMsgId.accesskey "ד">
 
 <!ENTITY author.label "Author">
-<!ENTITY bccField4.label "Bcc">
+<!ENTITY replyToField4.label "Reply to">
+
 <!ENTITY ccField4.label "Cc">
-<!ENTITY dateField4.label "Date">
+<!ENTITY bccField4.label "Bcc">
+<!ENTITY newsgroupsField4.label "Newsgroups">
 <!ENTITY followupToField4.label "Followup to">
-<!ENTITY hdrFollowupButton1.label "Followup">
-<!ENTITY hdrFollowupButton1.tooltip "Post a followup to this newsgroup">
-<!ENTITY hdrMenuForwardButton.label "Forward As">
+<!ENTITY tagsHdr4.label "Tags">
+<!ENTITY dateField4.label "Date">
+<!ENTITY userAgentField4.label "User agent">
+<!ENTITY referencesField4.label "References">
+<!ENTITY messageIdField4.label "Message ID">
+<!ENTITY inReplyToField4.label "In reply to">
+<!ENTITY originalWebsite4.label "Website">
+
 <!ENTITY hdrOpenConversationButton1.label "Conversation">
 <!ENTITY hdrOpenConversationButton1.tooltip "Show conversation of this message">
 <!ENTITY hdrReplyButton2.tooltip "Reply to the sender of this message">
-<!ENTITY inReplyToField4.label "In reply to">
-<!ENTITY messageIdField4.label "Message ID">
-<!ENTITY newsgroupsField4.label "Newsgroups">
-<!ENTITY originalWebsite4.label "Website">
-<!ENTITY otherActionsButton.tooltip "More actions">
-
+<!ENTITY hdrFollowupButton1.label "Followup">
+<!ENTITY hdrFollowupButton1.tooltip "Post a followup to this newsgroup">
+<!ENTITY hdrMenuForwardButton.label "Forward As">
 <!ENTITY otherActionsButton2.label "More">
-<!ENTITY referencesField4.label "References">
-<!ENTITY replyToField4.label "Reply to">
+<!ENTITY otherActionsButton.tooltip "More actions">
+<!ENTITY startExpandedCmd.label    "Initially Show Attachment Pane">
 <!ENTITY startExpandedCmd.accesskey    "S">
 
-<!-- Attachment bar context menu items -->
-<!ENTITY startExpandedCmd.label    "Initially Show Attachment Pane">
-<!ENTITY tagsHdr4.label "Tags">
-<!ENTITY userAgentField4.label "User agent">

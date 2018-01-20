@@ -74,7 +74,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(TouchEvent, UIEvent,
                                    mTargetTouches,
                                    mChangedTouches)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(TouchEvent)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(TouchEvent)
 NS_INTERFACE_MAP_END_INHERITING(UIEvent)
 
 NS_IMPL_ADDREF_INHERITED(TouchEvent, UIEvent)
@@ -84,7 +84,7 @@ void
 TouchEvent::InitTouchEvent(const nsAString& aType,
                            bool aCanBubble,
                            bool aCancelable,
-                           nsGlobalWindow* aView,
+                           nsGlobalWindowInner* aView,
                            int32_t aDetail,
                            bool aCtrlKey,
                            bool aAltKey,
@@ -171,7 +171,7 @@ TouchEvent::PrefEnabled(JSContext* aCx, JSObject* aGlobal)
 {
   nsIDocShell* docShell = nullptr;
   if (aGlobal) {
-    nsGlobalWindow* win = xpc::WindowOrNull(aGlobal);
+    nsGlobalWindowInner* win = xpc::WindowOrNull(aGlobal);
     if (win) {
       docShell = win->GetDocShell();
     }
@@ -203,7 +203,7 @@ TouchEvent::PrefEnabled(nsIDocShell* aDocShell)
     enabled = false;
   } else {
     if (sPrefCacheValue == 2) {
-#if defined(MOZ_B2G) || defined(MOZ_WIDGET_ANDROID)
+#if defined(MOZ_WIDGET_ANDROID)
       // Touch support is always enabled on B2G and android.
       enabled = true;
 #elif defined(XP_WIN) || MOZ_WIDGET_GTK == 3
@@ -213,8 +213,22 @@ TouchEvent::PrefEnabled(nsIDocShell* aDocShell)
       if (!sDidCheckTouchDeviceSupport) {
         sDidCheckTouchDeviceSupport = true;
         sIsTouchDeviceSupportPresent = WidgetUtils::IsTouchDeviceSupportPresent();
+        // But touch events are only actually supported if APZ is enabled. If
+        // APZ is disabled globally, we can check that once and incorporate that
+        // into the cached state. If APZ is enabled, we need to further check
+        // based on the widget, which we do below (and don't cache that result).
+        sIsTouchDeviceSupportPresent &= gfxPlatform::AsyncPanZoomEnabled();
       }
       enabled = sIsTouchDeviceSupportPresent;
+      if (enabled && aDocShell) {
+        // APZ might be disabled on this particular widget, in which case
+        // TouchEvent support will also be disabled. Try to detect that.
+        RefPtr<nsPresContext> pc;
+        aDocShell->GetPresContext(getter_AddRefs(pc));
+        if (pc && pc->GetRootWidget()) {
+          enabled &= pc->GetRootWidget()->AsyncPanZoomEnabled();
+        }
+      }
 #else
       enabled = false;
 #endif

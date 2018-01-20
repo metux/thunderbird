@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -32,16 +34,6 @@ nsPIDOMWindow<T>::AsOuter() const
 {
   MOZ_ASSERT(IsOuterWindow());
   return reinterpret_cast<const nsPIDOMWindowOuter*>(this);
-}
-
-template <class T>
-bool
-nsPIDOMWindow<T>::IsLoadingOrRunningTimeout() const
-{
-  if (IsOuterWindow()) {
-    return AsOuter()->GetCurrentInnerWindow()->IsLoadingOrRunningTimeout();
-  }
-  return !mIsDocumentLoaded || mRunningTimeout;
 }
 
 template <class T>
@@ -107,6 +99,12 @@ nsPIDOMWindowInner::HasActiveDocument()
     (mOuterWindow &&
      mOuterWindow->GetCurrentInnerWindow() &&
      mOuterWindow->GetCurrentInnerWindow()->GetDoc() == mDoc);
+}
+
+bool
+nsPIDOMWindowInner::IsTopInnerWindow() const
+{
+  return mTopInnerWindow == this;
 }
 
 template <class T>

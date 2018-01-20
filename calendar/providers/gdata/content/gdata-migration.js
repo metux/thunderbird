@@ -2,10 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gdata-provider/modules/shim/Loader.jsm").shimIt(this);
-
-CuImport("resource://calendar/modules/calUtils.jsm", this);
-CuImport("resource://gre/modules/Preferences.jsm", this);
+Components.utils.import("resource://calendar/modules/calUtils.jsm");
+Components.utils.import("resource://gre/modules/Preferences.jsm");
 
 /**
  * Migrate the calendar selected in the wizard from ics to gdata.
@@ -65,21 +63,18 @@ function getMigratableCalendars() {
         return c.type == "ics" && c.uri.spec.match(re);
     }
 
-    return getCalendarManager().getCalendars({}).filter(isMigratable);
+    return cal.getCalendarManager().getCalendars({}).filter(isMigratable);
 }
 
 /**
  * Load Handler for both the wizard and the Thunderbird main window.
  */
 function gdata_migration_loader() {
-    // Only load once
-    window.removeEventListener("load", gdata_migration_loader, false);
-
     if (document.documentElement.id == "gdata-migration-wizard") {
         // This is the migration wizard, load the calendars neeeded.
         let listbox = document.getElementById("calendars-listbox");
 
-        for each (let calendar in sortCalendarArray(getMigratableCalendars())) {
+        for (let calendar of sortCalendarArray(getMigratableCalendars())) {
             let item = listbox.appendItem(calendar.name, calendar.id);
             item.setAttribute("type", "checkbox");
             item.calendar = calendar;
@@ -112,4 +107,4 @@ function gdata_migration_loader() {
 
 // Add a Load handler to check for migratable calendars in the main window, or
 // to load the migration wizard if this is the migration wizard
-window.addEventListener("load", gdata_migration_loader, false);
+window.addEventListener("load", gdata_migration_loader, { capture: false, once: true });

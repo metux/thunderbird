@@ -33,18 +33,24 @@ public:
    * @param aURI a URI object that defines the destination for the link
    * @param aTargetSpec indicates where the link is targeted (may be an empty
    *        string)
-   * @param aPostDataStream the POST data to send
    * @param aFileName non-null when the link should be downloaded as the given file
+   * @param aPostDataStream the POST data to send
+   * @param aPostDataStreamLength the POST data length. Use -1 if the length is
+   *        unknown.
    * @param aHeadersDataStream ???
    * @param aIsTrusted false if the triggerer is an untrusted DOM event.
+   * @param aTriggeringPrincipal, if not passed explicitly we fall back to
+   *        the document's principal.
    */
   NS_IMETHOD OnLinkClick(nsIContent* aContent,
                          nsIURI* aURI,
                          const char16_t* aTargetSpec,
                          const nsAString& aFileName,
                          nsIInputStream* aPostDataStream,
+                         int64_t aPostDataStreamLength,
                          nsIInputStream* aHeadersDataStream,
-                         bool aIsTrusted) = 0;
+                         bool aIsTrusted,
+                         nsIPrincipal* aTriggeringPrincipal) = 0;
 
   /**
    * Process a click on a link.
@@ -58,18 +64,25 @@ public:
    *        string)
    * @param aFileName non-null when the link should be downloaded as the given file
    * @param aPostDataStream the POST data to send
+   * @param aPostDataStreamLength the POST data length
    * @param aHeadersDataStream ???
+   * @param aNoOpenerImplied if the link implies "noopener"
    * @param aDocShell (out-param) the DocShell that the request was opened on
    * @param aRequest the request that was opened
+   * @param aTriggeringPrincipal, if not passed explicitly we fall back to
+   *        the document's principal.
    */
   NS_IMETHOD OnLinkClickSync(nsIContent* aContent,
                              nsIURI* aURI,
                              const char16_t* aTargetSpec,
                              const nsAString& aFileName,
                              nsIInputStream* aPostDataStream = 0,
+                             int64_t aPostDataStreamLength = -1,
                              nsIInputStream* aHeadersDataStream = 0,
+                             bool aNoOpenerImplied = false,
                              nsIDocShell** aDocShell = 0,
-                             nsIRequest** aRequest = 0) = 0;
+                             nsIRequest** aRequest = 0,
+                             nsIPrincipal* aTriggeringPrincipal = nullptr) = 0;
 
   /**
    * Process a mouse-over a link.

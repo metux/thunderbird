@@ -17,6 +17,15 @@
 
 <!ENTITY feedFolder.label            "Nastawki składować w:">
 <!ENTITY feedFolder.accesskey        "N">
+<!-- Account Settings and Subscription Dialog -->
+
+<!ENTITY biffStart.label             "Za nowymi nastawkami pruwować kóžde ">
+<!ENTITY biffStart.accesskey         "k">
+<!ENTITY biffMinutes.label           "mjeńšin">
+<!ENTITY biffMinutes.accesskey       "e">
+<!ENTITY biffDays.label              "dnjow">
+<!ENTITY biffDays.accesskey          "d">
+<!ENTITY recommendedUnits.label      "Wudawaćel poruča:">
 
 <!ENTITY quickMode.label             "Nastawkowe zjeće pokazać, město toho zo by webstronu začitało">
 <!ENTITY quickMode.accesskey         "h">
@@ -26,6 +35,7 @@
 <!ENTITY autotagUsePrefix.label      "Znački prefigować z:">
 <!ENTITY autotagUsePrefix.accesskey  "f">
 <!ENTITY autoTagPrefix.placeholder   "Zapodajće značkowy prefiks">
+<!-- Subscription Dialog -->
 
 <!ENTITY button.addFeed.label        "Přidać">
 <!ENTITY button.addFeed.accesskey    "P">

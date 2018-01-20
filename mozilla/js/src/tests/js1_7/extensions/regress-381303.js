@@ -17,12 +17,11 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
  
   var obj = {set inn(value) {this.for = value;}, get inn() {return this.for;}};
-  expect = '( { ' + 
+  expect = '({' +
     'get inn() {return this.for;}' + 
     ', ' + 
     'set inn(value) {this.for = value;}' + 
@@ -30,6 +29,4 @@ function test()
   actual = obj.toSource();
 
   compareSource(expect, actual, summary);
-
-  exitFunc ('test');
 }

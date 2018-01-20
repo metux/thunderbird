@@ -33,10 +33,7 @@ var glodaFacetTabType = {
 
     // Wire up the search input icon click event
     let searchInput = aTab.panel.querySelector(".remote-gloda-search");
-    let searchIcon = aTab.panel.querySelector(".gloda-search-icon");
-    searchIcon.addEventListener("click", function(e) {
-      searchInput.doSearch();
-    });
+    searchInput.focus();
 
     if ("query" in aArgs) {
       aTab.query = aArgs.query;
@@ -56,8 +53,9 @@ var glodaFacetTabType = {
       }
 
       let searchString = aTab.searcher.searchString;
-      aTab.title = aTab.searchInputValue = aTab.searchString =
-        searchString;
+      aTab.searchInputValue = aTab.searchString = searchString;
+      aTab.title = searchString ? searchString
+                   : this.strings.get("glodaFacetView.tab.search.label");
     }
     else if ("collection" in aArgs) {
       aTab.collection = aArgs.collection;

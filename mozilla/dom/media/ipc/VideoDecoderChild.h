@@ -6,10 +6,9 @@
 #ifndef include_dom_ipc_VideoDecoderChild_h
 #define include_dom_ipc_VideoDecoderChild_h
 
-#include "mozilla/RefPtr.h"
-#include "mozilla/dom/PVideoDecoderChild.h"
-#include "MediaData.h"
+#include "MediaResult.h"
 #include "PlatformDecoderModule.h"
+#include "mozilla/dom/PVideoDecoderChild.h"
 
 namespace mozilla {
 namespace dom {
@@ -26,27 +25,33 @@ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VideoDecoderChild)
 
   // PVideoDecoderChild
-  bool RecvOutput(const VideoDataIPDL& aData) override;
-  bool RecvInputExhausted() override;
-  bool RecvDrainComplete() override;
-  bool RecvError(const nsresult& aError) override;
-  bool RecvInitComplete(const bool& aHardware, const nsCString& aHardwareReason) override;
-  bool RecvInitFailed(const nsresult& aReason) override;
+  mozilla::ipc::IPCResult RecvOutput(const VideoDataIPDL& aData) override;
+  mozilla::ipc::IPCResult RecvInputExhausted() override;
+  mozilla::ipc::IPCResult RecvDrainComplete() override;
+  mozilla::ipc::IPCResult RecvError(const nsresult& aError) override;
+  mozilla::ipc::IPCResult RecvInitComplete(const nsCString& aDecoderDescription,
+                                           const bool& aHardware,
+                                           const nsCString& aHardwareReason,
+                                           const uint32_t& aConversion) override;
+  mozilla::ipc::IPCResult RecvInitFailed(const nsresult& aReason) override;
+  mozilla::ipc::IPCResult RecvFlushComplete() override;
 
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
   RefPtr<MediaDataDecoder::InitPromise> Init();
-  void Input(MediaRawData* aSample);
-  void Flush();
-  void Drain();
+  RefPtr<MediaDataDecoder::DecodePromise> Decode(MediaRawData* aSample);
+  RefPtr<MediaDataDecoder::DecodePromise> Drain();
+  RefPtr<MediaDataDecoder::FlushPromise> Flush();
   void Shutdown();
   bool IsHardwareAccelerated(nsACString& aFailureReason) const;
+  nsCString GetDescriptionName() const;
   void SetSeekThreshold(const media::TimeUnit& aTime);
+  MediaDataDecoder::ConversionRequired NeedsConversion() const;
 
   MOZ_IS_CLASS_INIT
-  void InitIPDL(MediaDataDecoderCallback* aCallback,
-                const VideoInfo& aVideoInfo,
-                const layers::TextureFactoryIdentifier& aIdentifier);
+  MediaResult InitIPDL(const VideoInfo& aVideoInfo,
+                       float aFramerate,
+                       const layers::TextureFactoryIdentifier& aIdentifier);
   void DestroyIPDL();
 
   // Called from IPDL when our actor has been destroyed
@@ -57,21 +62,31 @@ public:
 private:
   ~VideoDecoderChild();
 
-  void AssertOnManagerThread();
+  void AssertOnManagerThread() const;
 
   RefPtr<VideoDecoderChild> mIPDLSelfRef;
   RefPtr<nsIThread> mThread;
 
-  MediaDataDecoderCallback* mCallback;
-
   MozPromiseHolder<MediaDataDecoder::InitPromise> mInitPromise;
+  MozPromiseHolder<MediaDataDecoder::DecodePromise> mDecodePromise;
+  MozPromiseHolder<MediaDataDecoder::DecodePromise> mDrainPromise;
+  MozPromiseHolder<MediaDataDecoder::FlushPromise> mFlushPromise;
 
-  VideoInfo mVideoInfo;
-  layers::TextureFactoryIdentifier mIdentifier;
   nsCString mHardwareAcceleratedReason;
+  nsCString mDescription;
   bool mCanSend;
   bool mInitialized;
   bool mIsHardwareAccelerated;
+  MediaDataDecoder::ConversionRequired mConversion;
+
+  // Set to true if the actor got destroyed and we haven't yet notified the
+  // caller.
+  bool mNeedNewDecoder;
+  MediaDataDecoder::DecodedData mDecodedData;
+
+  nsCString mBlacklistedD3D11Driver;
+  nsCString mBlacklistedD3D9Driver;
+  TimeStamp mGPUCrashTime;
 };
 
 } // namespace dom

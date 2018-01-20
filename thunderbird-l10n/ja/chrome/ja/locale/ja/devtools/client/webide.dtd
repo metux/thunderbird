@@ -32,8 +32,6 @@
 <!ENTITY runtimeMenu_accesskey				"R">
 <!ENTITY runtimeMenu_disconnect_label			"切断">
 <!ENTITY runtimeMenu_disconnect_accesskey		"D">
-<!ENTITY runtimeMenu_showPermissionTable_label		"許可設定一覧">
-<!ENTITY runtimeMenu_showPermissionTable_accesskey	"P">
 <!ENTITY runtimeMenu_takeScreenshot_label		"スクリーンショット撮影">
 <!ENTITY runtimeMenu_takeScreenshot_accesskey		"S">
 <!ENTITY runtimeMenu_showDetails_label			"ランタイム情報">
@@ -47,8 +45,6 @@
 
 <!ENTITY viewMenu_label					"表示">
 <!ENTITY viewMenu_accesskey				"V">
-<!ENTITY viewMenu_toggleEditor_label			"エディターを切り替え">
-<!ENTITY viewMenu_toggleEditor_accesskey		"E">
 <!ENTITY viewMenu_zoomin_label				"拡大">
 <!ENTITY viewMenu_zoomin_accesskey			"I">
 <!ENTITY viewMenu_zoomout_label				"縮小">
@@ -68,8 +64,6 @@
 <!ENTITY key_play					"R">
 <!-- show toolbox -->
 <!ENTITY key_toggleToolbox				"VK_F12">
-<!-- toggle sidebar -->
-<!ENTITY key_toggleEditor				"B">
 <!-- zoom -->
 <!ENTITY key_zoomin					"+">
 <!ENTITY key_zoomin2					"=">
@@ -81,9 +75,7 @@
 <!ENTITY projectPanel_tabs				"タブ">
 <!ENTITY runtimePanel_usb				"USB デバイス">
 <!ENTITY runtimePanel_wifi				"Wi-Fi デバイス">
-<!ENTITY runtimePanel_simulator				"シミュレータ">
 <!ENTITY runtimePanel_other				"その他">
-<!ENTITY runtimePanel_installsimulator			"シミュレータをインストール">
 <!ENTITY runtimePanel_noadbhelper			"ADB Helper をインストール">
 <!ENTITY runtimePanel_nousbdevice			"端末が見つかりませんか？">
 <!ENTITY runtimePanel_refreshDevices_label		"端末をリフレッシュ">
@@ -96,7 +88,6 @@
 <!ENTITY details_location				"場所">
 <!ENTITY details_manifestURL				"App ID">
 <!ENTITY details_removeProject_button			"プロジェクトを削除">
-<!ENTITY details_showPrepackageLog_button		"パッケージング前のログを表示">
 
 <!-- New App -->
 <!ENTITY newAppWindowTitle				"新しいアプリ">
@@ -125,25 +116,6 @@
 <!ENTITY prefs_options_rememberlastproject_tooltip	"WebIDE の起動時に前回開いたプロジェクトを自動的に選択します">
 <!ENTITY prefs_options_templatesurl			"テンプレート URL">
 <!ENTITY prefs_options_templatesurl_tooltip		"利用可能なテンプレートの一覧です">
-<!ENTITY prefs_options_showeditor			"エディターを表示">
-<!ENTITY prefs_options_showeditor_tooltip		"組み込みエディターを表示します">
-<!ENTITY prefs_options_tabsize				"タブの長さ">
-<!ENTITY prefs_options_expandtab			"ソフトタブ">
-<!ENTITY prefs_options_expandtab_tooltip		"タブ文字の代わりにスペース文字を使います">
-<!ENTITY prefs_options_detectindentation		"自動インデント">
-<!ENTITY prefs_options_detectindentation_tooltip	"ソースの内容からインデントを推測します">
-<!ENTITY prefs_options_autocomplete			"自動補完">
-<!ENTITY prefs_options_autocomplete_tooltip		"コードの自動補完を有効にします">
-<!ENTITY prefs_options_autoclosebrackets		"閉じ括弧自動入力">
-<!ENTITY prefs_options_autoclosebrackets_tooltip	"閉じ括弧を自動的に入力します">
-<!ENTITY prefs_options_keybindings			"キー割り当て">
-<!ENTITY prefs_options_keybindings_default		"既定">
-<!ENTITY prefs_options_autosavefiles			"ファイルの自動保存">
-<!ENTITY prefs_options_autosavefiles_tooltip		"プロジェクトを実行する前に、編集したファイルを自動的に保存します">
-
-<!-- Permissions Table -->
-<!ENTITY permissionstable_title				"許可設定一覧">
-<!ENTITY permissionstable_name_header			"名前">
 
 <!-- Runtime Details -->
 <!ENTITY runtimedetails_title				"ランタイム情報">
@@ -200,19 +172,3 @@
 
 <!-- Logs panel -->
 <!ENTITY logs_title					"パッケージング前のコマンドログ">
-
-<!-- Simulator Options -->
-<!ENTITY simulator_title				"シミュレータのオプション">
-<!ENTITY simulator_remove				"シミュレータを削除">
-<!ENTITY simulator_reset				"既定値に戻す">
-<!ENTITY simulator_name					"名前">
-<!ENTITY simulator_software				"ソフトウェア">
-<!ENTITY simulator_version				"バージョン">
-<!ENTITY simulator_profile				"プロファイル">
-<!ENTITY simulator_hardware				"ハードウェア">
-<!ENTITY simulator_device				"デバイス">
-<!ENTITY simulator_screenSize				"スクリーン">
-<!ENTITY simulator_pixelRatio				"ピクセル比">
-<!ENTITY simulator_tv_data				"TV シミュレーション">
-<!ENTITY simulator_tv_data_open				"設定データ">
-<!ENTITY simulator_tv_data_open_button			"設定ディレクトリーを開く...">

@@ -30,6 +30,6 @@
 <!ENTITY deferGetNewMail.label "புதிய அஞ்சலை பெறும்போது இந்த சேவையகத்தையும் சேர்க்கவும்">
 <!ENTITY deferGetNewMail.accesskey "I">
 
-<!ENTITY accountInbox.accesskey "s">
-<!ENTITY accountInbox.label "Inbox for this account">
 <!ENTITY pop3DeferringDesc.label "When downloading mail from this account's server, use the following folder to store new messages:" >
+<!ENTITY accountInbox.label "Inbox for this account">
+<!ENTITY accountInbox.accesskey "s">

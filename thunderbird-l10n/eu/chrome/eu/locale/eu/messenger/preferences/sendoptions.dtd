@@ -36,5 +36,5 @@
 <!ENTITY add.plaintexttitle           "Gehitu testu arrunteko domeinu-izena">
 <!ENTITY add.plaintextdomain          "Testu arrunteko domeinu-izena:">
 
-<!ENTITY autoDowngrade.accesskey      "t">
 <!ENTITY autoDowngrade.label          "Send messages as plain text if possible">
+<!ENTITY autoDowngrade.accesskey      "t">

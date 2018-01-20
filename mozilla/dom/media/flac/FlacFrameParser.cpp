@@ -5,13 +5,14 @@
 * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "FlacFrameParser.h"
-#include "mp4_demuxer/ByteReader.h"
 #include "nsTArray.h"
 #include "OggCodecState.h"
 #include "OpusParser.h"
 #include "VideoUtils.h"
+#include "mp4_demuxer/BufferReader.h"
+#include "mozilla/ResultExtensions.h"
 
-using mp4_demuxer::ByteReader;
+using mp4_demuxer::BufferReader;
 
 namespace mozilla
 {
@@ -60,26 +61,25 @@ FlacFrameParser::HeaderBlockLength(const uint8_t* aPacket) const
   return (BigEndian::readUint32(aPacket) & BITMASK(24)) + extra;
 }
 
-bool
+Result<Ok, nsresult>
 FlacFrameParser::DecodeHeaderBlock(const uint8_t* aPacket, size_t aLength)
 {
   if (aLength < 4 || aPacket[0] == 0xff) {
     // Not a header block.
-    return false;
+    return Err(NS_ERROR_FAILURE);
   }
-  ByteReader br(aPacket, aLength);
+  BufferReader br(aPacket, aLength);
 
   mPacketCount++;
 
   if (aPacket[0] == 'f') {
     if (mPacketCount != 1 || memcmp(br.Read(4), "fLaC", 4) ||
         br.Remaining() != FLAC_STREAMINFO_SIZE + 4) {
-      return false;
+      return Err(NS_ERROR_FAILURE);
     }
-    aPacket += 4;
-    aLength -= 4;
   }
-  uint8_t blockHeader = br.ReadU8();
+  uint8_t blockHeader;
+  MOZ_TRY_VAR(blockHeader, br.ReadU8());
   // blockType is a misnomer as it could indicate here either a packet type
   // should it points to the start of a Flac in Ogg metadata, or an actual
   // block type as per the flac specification.
@@ -89,29 +89,34 @@ FlacFrameParser::DecodeHeaderBlock(const uint8_t* aPacket, size_t aLength)
   if (blockType == OGG_FLAC_METADATA_TYPE_STREAMINFO) {
     if (mPacketCount != 1 || memcmp(br.Read(4), "FLAC", 4) ||
         br.Remaining() != FLAC_STREAMINFO_SIZE + 12) {
-      return false;
+      return Err(NS_ERROR_FAILURE);
     }
-    uint32_t major = br.ReadU8();
+    uint32_t major;
+    MOZ_TRY_VAR(major, br.ReadU8());
     if (major != 1) {
       // unsupported version;
-      return false;
+      return Err(NS_ERROR_FAILURE);
     }
-    br.ReadU8(); // minor version
-    mNumHeaders = Some(uint32_t(br.ReadU16()));
+    MOZ_TRY(br.ReadU8()); // minor version
+    uint32_t header;
+    MOZ_TRY_VAR(header, br.ReadU16());
+    mNumHeaders = Some(header);
     br.Read(4); // fLaC
-    blockType = br.ReadU8() & BITMASK(7);
+    MOZ_TRY_VAR(blockType, br.ReadU8());
+    blockType &= BITMASK(7);
     // First METADATA_BLOCK_STREAMINFO
     if (blockType != FLAC_METADATA_TYPE_STREAMINFO) {
       // First block must be a stream info.
-      return false;
+      return Err(NS_ERROR_FAILURE);
     }
   }
 
-  uint32_t blockDataSize = br.ReadU24();
+  uint32_t blockDataSize;
+  MOZ_TRY_VAR(blockDataSize, br.ReadU24());
   const uint8_t* blockDataStart = br.Peek(blockDataSize);
   if (!blockDataStart) {
     // Incomplete block.
-    return false;
+    return Err(NS_ERROR_FAILURE);
   }
 
   switch (blockType) {
@@ -120,26 +125,27 @@ FlacFrameParser::DecodeHeaderBlock(const uint8_t* aPacket, size_t aLength)
       if (mPacketCount != 1 || blockDataSize != FLAC_STREAMINFO_SIZE) {
         // STREAMINFO must be the first metadata block found, and its size
         // is constant.
-        return false;
+        return Err(NS_ERROR_FAILURE);
       }
 
-      mMinBlockSize = br.ReadU16();
-      mMaxBlockSize = br.ReadU16();
-      mMinFrameSize = br.ReadU24();
-      mMaxFrameSize = br.ReadU24();
+      MOZ_TRY_VAR(mMinBlockSize, br.ReadU16());
+      MOZ_TRY_VAR(mMaxBlockSize, br.ReadU16());
+      MOZ_TRY_VAR(mMinFrameSize, br.ReadU24());
+      MOZ_TRY_VAR(mMaxFrameSize, br.ReadU24());
 
-      uint64_t blob = br.ReadU64();
+      uint64_t blob;
+      MOZ_TRY_VAR(blob, br.ReadU64());
       uint32_t sampleRate = (blob >> 44) & BITMASK(20);
       if (!sampleRate) {
-        return false;
+        return Err(NS_ERROR_FAILURE);
       }
       uint32_t numChannels = ((blob >> 41) & BITMASK(3)) + 1;
       if (numChannels > FLAC_MAX_CHANNELS) {
-        return false;
+        return Err(NS_ERROR_FAILURE);
       }
       uint32_t bps = ((blob >> 36) & BITMASK(5)) + 1;
       if (bps > 24) {
-        return false;
+        return Err(NS_ERROR_FAILURE);
       }
       mNumFrames = blob & BITMASK(36);
 
@@ -148,9 +154,8 @@ FlacFrameParser::DecodeHeaderBlock(const uint8_t* aPacket, size_t aLength)
       mInfo.mChannels = numChannels;
       mInfo.mBitDepth = bps;
       mInfo.mCodecSpecificConfig->AppendElements(blockDataStart, blockDataSize);
-      CheckedInt64 duration =
-        SaferMultDiv(mNumFrames, USECS_PER_S, sampleRate);
-      mInfo.mDuration = duration.isValid() ? duration.value() : 0;
+      auto duration = FramesToTimeUnit(mNumFrames, sampleRate);
+      mInfo.mDuration = duration.IsValid() ? duration : media::TimeUnit::Zero();
       mParser = new OpusParser;
       break;
     }
@@ -158,13 +163,13 @@ FlacFrameParser::DecodeHeaderBlock(const uint8_t* aPacket, size_t aLength)
     {
       if (!mParser) {
         // We must have seen a valid streaminfo first.
-        return false;
+        return Err(NS_ERROR_FAILURE);
       }
       nsTArray<uint8_t> comments(blockDataSize + 8);
       comments.AppendElements("OpusTags", 8);
       comments.AppendElements(blockDataStart, blockDataSize);
       if (!mParser->DecodeTags(comments.Elements(), comments.Length())) {
-        return false;
+        return Err(NS_ERROR_FAILURE);
       }
       break;
     }
@@ -174,14 +179,14 @@ FlacFrameParser::DecodeHeaderBlock(const uint8_t* aPacket, size_t aLength)
 
   if (mNumHeaders && mPacketCount > mNumHeaders.ref() + 1) {
     // Received too many header block. assuming invalid.
-    return false;
+    return Err(NS_ERROR_FAILURE);
   }
 
   if (lastBlock || (mNumHeaders && mNumHeaders.ref() + 1 == mPacketCount)) {
     mFullMetadata = true;
   }
 
-  return true;
+  return Ok();
 }
 
 int64_t
@@ -198,7 +203,7 @@ FlacFrameParser::BlockDuration(const uint8_t* aPacket, size_t aLength) const
   return 0;
 }
 
-bool
+Result<bool, nsresult>
 FlacFrameParser::IsHeaderBlock(const uint8_t* aPacket, size_t aLength) const
 {
   // Ogg Flac header
@@ -215,18 +220,17 @@ FlacFrameParser::IsHeaderBlock(const uint8_t* aPacket, size_t aLength) const
   }
   if (aPacket[0] == 0x7f) {
     // Ogg packet
-    ByteReader br(aPacket + 1, aLength - 1);
+    BufferReader br(aPacket + 1, aLength - 1);
     const uint8_t* signature = br.Read(4);
     return signature && !memcmp(signature, "FLAC", 4);
   }
-  ByteReader br(aPacket, aLength - 1);
+  BufferReader br(aPacket, aLength - 1);
   const uint8_t* signature = br.Read(4);
   if (signature && !memcmp(signature, "fLaC", 4)) {
     // Flac start header, must have STREAMINFO as first metadata block;
-    if (!br.CanRead8()) {
-      return false;
-    }
-    uint32_t blockType = br.ReadU8() & 0x7f;
+    uint32_t blockType;
+    MOZ_TRY_VAR(blockType, br.ReadU8());
+    blockType &= 0x7f;
     return blockType == FLAC_METADATA_TYPE_STREAMINFO;
   }
   char type = aPacket[0] & 0x7f;

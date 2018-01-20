@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
+
 import threading
 from time import sleep
+
+import mozunit
 
 import mozrunnertest
 
@@ -51,3 +55,7 @@ class MozrunnerInteractiveTestCase(mozrunnertest.MozrunnerTestCase):
 
         self.assertNotIn(returncode, [None, 0])
         self.assertIsNotNone(self.runner.process_handler)
+
+
+if __name__ == '__main__':
+    mozunit.main()

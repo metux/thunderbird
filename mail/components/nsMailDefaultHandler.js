@@ -88,7 +88,7 @@ function openURI(uri)
                                                null,
                                                Services.scriptSecurityManager.getSystemPrincipal(),
                                                null,
-                                               Components.interfaces.nsILoadInfo.SEC_NORMAL,
+                                               Components.interfaces.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                                Components.interfaces.nsIContentPolicy.TYPE_OTHER);
   var loader = Components.classes["@mozilla.org/uriloader;1"]
                          .getService(Components.interfaces.nsIURILoader);
@@ -395,7 +395,7 @@ var nsMailDefaultHandler = {
         let attachment = Components.classes["@mozilla.org/messengercompose/attachment;1"]
                                    .createInstance(Components.interfaces.nsIMsgAttachment);
         let localFile = Components.classes["@mozilla.org/file/local;1"]
-                                  .createInstance(Components.interfaces.nsILocalFile);
+                                  .createInstance(Components.interfaces.nsIFile);
         let fileHandler = Services.io.getProtocolHandler("file")
                                      .QueryInterface(Components.interfaces.nsIFileProtocolHandler);
 

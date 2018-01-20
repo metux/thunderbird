@@ -6,3 +6,6 @@
 <!ENTITY closeNotificationItem.label "Не зараз">
 <!ENTITY checkForUpdates "Праверка існавання абнаўленняў…">
 <!ENTITY learnMore "Падрабязней…">
+
+<!ENTITY defaultButton.label "OK!">
+<!ENTITY defaultButton.accesskey "O">

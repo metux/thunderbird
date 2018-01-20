@@ -9,7 +9,6 @@
 
 #include "mozilla/Attributes.h"
 #include "nsGenericHTMLElement.h"
-#include "nsIDOMHTMLFieldSetElement.h"
 #include "nsIConstraintValidation.h"
 #include "mozilla/dom/HTMLFormElement.h"
 #include "mozilla/dom/ValidityState.h"
@@ -19,15 +18,12 @@ class EventChainPreVisitor;
 namespace dom {
 
 class HTMLFieldSetElement final : public nsGenericHTMLFormElement,
-                                  public nsIDOMHTMLFieldSetElement,
                                   public nsIConstraintValidation
 {
 public:
   using nsGenericHTMLFormElement::GetForm;
-  using nsIConstraintValidation::Validity;
-  using nsIConstraintValidation::CheckValidity;
-  using nsIConstraintValidation::ReportValidity;
   using nsIConstraintValidation::GetValidationMessage;
+  using nsIConstraintValidation::SetCustomValidity;
 
   explicit HTMLFieldSetElement(already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo);
 
@@ -36,24 +32,25 @@ public:
   // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
-  // nsIDOMHTMLFieldSetElement
-  NS_DECL_NSIDOMHTMLFIELDSETELEMENT
-
   // nsIContent
-  virtual nsresult PreHandleEvent(EventChainPreVisitor& aVisitor) override;
-  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify) override;
+  virtual nsresult GetEventTargetParent(
+                     EventChainPreVisitor& aVisitor) override;
+  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                const nsAttrValue* aValue,
+                                const nsAttrValue* aOldValue,
+                                nsIPrincipal* aSubjectPrincipal,
+                                bool aNotify) override;
 
   virtual nsresult InsertChildAt(nsIContent* aChild, uint32_t aIndex,
                                      bool aNotify) override;
   virtual void RemoveChildAt(uint32_t aIndex, bool aNotify) override;
 
   // nsIFormControl
-  NS_IMETHOD_(uint32_t) GetType() const override { return NS_FORM_FIELDSET; }
   NS_IMETHOD Reset() override;
   NS_IMETHOD SubmitNamesValues(HTMLFormSubmission* aFormSubmission) override;
   virtual bool IsDisabledForEvents(EventMessage aMessage) override;
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const override;
+  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+                         bool aPreallocateChildren) const override;
 
   const nsIContent* GetFirstLegend() const { return mFirstLegend; }
 
@@ -74,14 +71,17 @@ public:
     SetHTMLBoolAttr(nsGkAtoms::disabled, aValue, aRv);
   }
 
-  // XPCOM GetName is OK for us
+  void GetName(nsAString& aValue)
+  {
+    GetHTMLAttr(nsGkAtoms::name, aValue);
+  }
 
   void SetName(const nsAString& aValue, ErrorResult& aRv)
   {
     SetHTMLAttr(nsGkAtoms::name, aValue, aRv);
   }
 
-  // XPCOM GetType is OK for us
+  NS_IMETHOD GetType(nsAString & aType);
 
   nsIHTMLCollection* Elements();
 
@@ -124,8 +124,8 @@ private:
   void NotifyElementsForFirstLegendChange(bool aNotify);
 
   // This function is used to generate the nsContentList (listed form elements).
-  static bool MatchListedElements(nsIContent* aContent, int32_t aNamespaceID,
-                                    nsIAtom* aAtom, void* aData);
+  static bool MatchListedElements(Element* aElement, int32_t aNamespaceID,
+                                  nsAtom* aAtom, void* aData);
 
   // listed form controls elements.
   RefPtr<nsContentList> mElements;

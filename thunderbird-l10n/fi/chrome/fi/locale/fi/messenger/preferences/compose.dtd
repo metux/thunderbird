@@ -63,3 +63,8 @@
 <!ENTITY attachmentReminder.accesskey          "p">
 <!ENTITY attachmentReminderOptions.label       "Avainsanat…">
 <!ENTITY attachmentReminderOptions.accesskey   "A">
+
+<!ENTITY showAsDefault.label                   "Default startup directory in the address book window:">
+<!ENTITY showAsDefault.accesskey               "S">
+<!ENTITY showAsDefaultLast.label               "Last used directory">
+

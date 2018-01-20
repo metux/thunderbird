@@ -2,6 +2,8 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
+const PAGE = "http://mochi.test:8888/browser/browser/components/extensions/test/browser/context.html";
+
 // Loaded both as a background script and a tab page.
 function testScript() {
   let page = location.pathname.includes("tab.html") ? "tab" : "background";
@@ -75,9 +77,8 @@ function testScript() {
   }
 }
 
-add_task(function* () {
-  let tab1 = yield BrowserTestUtils.openNewForegroundTab(gBrowser,
-    "http://mochi.test:8888/browser/browser/components/extensions/test/browser/context.html");
+add_task(async function() {
+  let tab1 = await BrowserTestUtils.openNewForegroundTab(gBrowser, PAGE);
 
   gBrowser.selectedTab = tab1;
 
@@ -91,30 +92,30 @@ add_task(function* () {
       "tab.js": testScript,
     },
   });
-  yield extension.startup();
-  yield extension.awaitMessage("tab.html ready");
+  await extension.startup();
+  await extension.awaitMessage("tab.html ready");
 
-  function* clickContextMenu() {
+  async function clickContextMenu() {
     // Using openContextMenu instead of openExtensionContextMenu because the
     // test extension has only one context menu item.
-    let extensionMenuRoot = yield openContextMenu();
+    let extensionMenuRoot = await openContextMenu();
     let items = extensionMenuRoot.getElementsByAttribute("label", "tifier");
     is(items.length, 1, "Expected one context menu item");
-    yield closeExtensionContextMenu(items[0]);
+    await closeExtensionContextMenu(items[0]);
     // One of them is "tab", the other is "background".
-    info(`onClicked from: ${yield extension.awaitMessage("onClicked-fired")}`);
-    info(`onClicked from: ${yield extension.awaitMessage("onClicked-fired")}`);
+    info(`onClicked from: ${await extension.awaitMessage("onClicked-fired")}`);
+    info(`onClicked from: ${await extension.awaitMessage("onClicked-fired")}`);
   }
 
-  function* getCounts(page) {
+  function getCounts(page) {
     extension.sendMessage(page, "get-click-counts");
-    return yield extension.awaitMessage("click-counts");
+    return extension.awaitMessage("click-counts");
   }
-  function* resetCounts() {
+  async function resetCounts() {
     extension.sendMessage("tab", "clear-click-counts");
     extension.sendMessage("background", "clear-click-counts");
-    yield extension.awaitMessage("next");
-    yield extension.awaitMessage("next");
+    await extension.awaitMessage("next");
+    await extension.awaitMessage("next");
   }
 
   // During this test, at most one "onclick" attribute is expected at any time.
@@ -122,75 +123,125 @@ add_task(function* () {
     for (let pageTwo of ["background", "tab"]) {
       info(`Testing with menu created by ${pageOne} and updated by ${pageTwo}`);
       extension.sendMessage(pageOne, "create-with-onclick");
-      yield extension.awaitMessage("next");
+      await extension.awaitMessage("next");
 
       // Test that update without onclick attribute does not clear the existing
       // onclick handler.
       extension.sendMessage(pageTwo, "update-without-onclick");
-      yield extension.awaitMessage("next");
-      yield clickContextMenu();
-      let clickCounts = yield getCounts(pageOne);
+      await extension.awaitMessage("next");
+      await clickContextMenu();
+      let clickCounts = await getCounts(pageOne);
       is(clickCounts.old, 1, `Original onclick should still be present in ${pageOne}`);
       is(clickCounts.new, 0, `Not expecting any new handlers in ${pageOne}`);
       if (pageOne !== pageTwo) {
-        clickCounts = yield getCounts(pageTwo);
+        clickCounts = await getCounts(pageTwo);
         is(clickCounts.old, 0, `Not expecting any handlers in ${pageTwo}`);
         is(clickCounts.new, 0, `Not expecting any new handlers in ${pageTwo}`);
       }
-      yield resetCounts();
+      await resetCounts();
 
       // Test that update with onclick handler in a different page clears the
       // existing handler and activates the new onclick handler.
       extension.sendMessage(pageTwo, "update-with-onclick");
-      yield extension.awaitMessage("next");
-      yield clickContextMenu();
-      clickCounts = yield getCounts(pageOne);
+      await extension.awaitMessage("next");
+      await clickContextMenu();
+      clickCounts = await getCounts(pageOne);
       is(clickCounts.old, 0, `Original onclick should be gone from ${pageOne}`);
       if (pageOne !== pageTwo) {
         is(clickCounts.new, 0, `Still not expecting new handlers in ${pageOne}`);
       }
-      clickCounts = yield getCounts(pageTwo);
+      clickCounts = await getCounts(pageTwo);
       if (pageOne !== pageTwo) {
         is(clickCounts.old, 0, `Not expecting an old onclick in ${pageTwo}`);
       }
       is(clickCounts.new, 1, `New onclick should be triggered in ${pageTwo}`);
-      yield resetCounts();
+      await resetCounts();
 
       // Test that updating the handler (different again from the last `update`
       // call, but the same as the `create` call) clears the existing handler
       // and activates the new onclick handler.
       extension.sendMessage(pageOne, "update-with-onclick");
-      yield extension.awaitMessage("next");
-      yield clickContextMenu();
-      clickCounts = yield getCounts(pageOne);
+      await extension.awaitMessage("next");
+      await clickContextMenu();
+      clickCounts = await getCounts(pageOne);
       is(clickCounts.new, 1, `onclick should be triggered in ${pageOne}`);
       if (pageOne !== pageTwo) {
-        clickCounts = yield getCounts(pageTwo);
+        clickCounts = await getCounts(pageTwo);
         is(clickCounts.new, 0, `onclick should be gone from ${pageTwo}`);
       }
-      yield resetCounts();
+      await resetCounts();
 
       // Test that removing the context menu and recreating it with the same ID
       // (in a different context) does not leave behind any onclick handlers.
       extension.sendMessage(pageTwo, "remove");
-      yield extension.awaitMessage("next");
+      await extension.awaitMessage("next");
       extension.sendMessage(pageTwo, "create-without-onclick");
-      yield extension.awaitMessage("next");
-      yield clickContextMenu();
-      clickCounts = yield getCounts(pageOne);
+      await extension.awaitMessage("next");
+      await clickContextMenu();
+      clickCounts = await getCounts(pageOne);
       is(clickCounts.new, 0, `Did not expect any click handlers in ${pageOne}`);
       if (pageOne !== pageTwo) {
-        clickCounts = yield getCounts(pageTwo);
+        clickCounts = await getCounts(pageTwo);
         is(clickCounts.new, 0, `Did not expect any click handlers in ${pageTwo}`);
       }
-      yield resetCounts();
+      await resetCounts();
 
       // Remove context menu for the next iteration of the test. And just to get
       // more coverage, let's use removeAll instead of remove.
       extension.sendMessage(pageOne, "removeAll");
-      yield extension.awaitMessage("next");
+      await extension.awaitMessage("next");
     }
   }
-  yield extension.unload();
-  yield BrowserTestUtils.removeTab(tab1);
+  await extension.unload();
+  await BrowserTestUtils.removeTab(tab1);
+});
+
+add_task(async function test_onclick_modifiers() {
+  const manifest = {
+    permissions: ["contextMenus"],
+  };
+
+  function background() {
+    function onclick(info) {
+      browser.test.sendMessage("click", info);
+    }
+    browser.contextMenus.create({contexts: ["all"], title: "modify", onclick});
+    browser.test.sendMessage("ready");
+  }
+
+  const extension = ExtensionTestUtils.loadExtension({manifest, background});
+  const tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, PAGE);
+
+  await extension.startup();
+  await extension.awaitMessage("ready");
+
+  async function click(modifiers = {}) {
+    const menu = await openContextMenu();
+    const items = menu.getElementsByAttribute("label", "modify");
+    is(items.length, 1, "Got exactly one context menu item");
+    await closeExtensionContextMenu(items[0], modifiers);
+    return extension.awaitMessage("click");
+  }
+
+  const plain = await click();
+  is(plain.modifiers.length, 0, "modifiers array empty with a plain click");
+
+  const shift = await click({shiftKey: true});
+  is(shift.modifiers.join(), "Shift", "Correct modifier: Shift");
+
+  const ctrl = await click({ctrlKey: true});
+  if (AppConstants.platform !== "macosx") {
+    is(ctrl.modifiers.join(), "Ctrl", "Correct modifier: Ctrl");
+  } else {
+    is(ctrl.modifiers.sort().join(), "Ctrl,MacCtrl", "Correct modifier: Ctrl (and MacCtrl)");
+
+    const meta = await click({metaKey: true});
+    is(meta.modifiers.join(), "Command", "Correct modifier: Command");
+  }
+
+  const altShift = await click({altKey: true, shiftKey: true});
+  is(altShift.modifiers.sort().join(), "Alt,Shift", "Correct modifiers: Shift+Alt");
+
+  await BrowserTestUtils.removeTab(tab);
+  await extension.unload();
 });

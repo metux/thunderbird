@@ -6,26 +6,44 @@ if [ "x$IS_NIGHTLY" = "xyes" ]; then
   # Some nightlies (eg: Mulet) don't want these set.
   MOZ_AUTOMATION_UPLOAD_SYMBOLS=${MOZ_AUTOMATION_UPLOAD_SYMBOLS-1}
   MOZ_AUTOMATION_UPDATE_PACKAGING=${MOZ_AUTOMATION_UPDATE_PACKAGING-1}
-  MOZ_AUTOMATION_SDK=${MOZ_AUTOMATION_SDK-1}
 fi
 . "$topsrcdir/build/mozconfig.common"
 
-if [ -d "$topsrcdir/clang" ]; then
+if [ -d $TOOLTOOL_DIR/clang ]; then
+    true
+elif [ -d "$topsrcdir/clang" ]; then
     # mozilla-central based build
-    export CC=$topsrcdir/clang/bin/clang
-    export CXX=$topsrcdir/clang/bin/clang++
-    export LLVMCONFIG=$topsrcdir/clang/bin/llvm-config
-    export DSYMUTIL=$topsrcdir/clang/bin/llvm-dsymutil
-    # Use an updated linker.
-    ldflags="-B$topsrcdir/cctools/bin"
+    TOOLTOOL_DIR=$topsrcdir
 elif [ -d "$topsrcdir/../clang" ]; then
-    # comm-central based build
-    export CC=$topsrcdir/../clang/bin/clang
-    export CXX=$topsrcdir/../clang/bin/clang++
-    export LLVMCONFIG=$topsrcdir/../clang/bin/llvm-config
-    export DSYMUTIL=$topsrcdir/../clang/bin/llvm-dsymutil
+    TOOLTOOL_DIR=$topsrcdir/..
+else
+    echo "Don't know where we are; can't find clang. topsrcdir: $topsrcdir"
+fi
+
+if [ -d $TOOLTOOL_DIR/MacOSX10.10.sdk ]; then
+    export CROSS_SYSROOT=$TOOLTOOL_DIR/MacOSX10.10.sdk
+    CROSS_PRIVATE_FRAMEWORKS=$CROSS_SYSROOT/System/Library/PrivateFrameworks
+    FLAGS="-isysroot $CROSS_SYSROOT"
+    ldflags="-Wl,-syslibroot,$CROSS_SYSROOT "
+    export BINDGEN_CFLAGS="$FLAGS"
+    ac_add_options --with-macos-private-frameworks=$CROSS_PRIVATE_FRAMEWORKS
+    # Since we are manually providing an SDK, don't check for xcode being installed.
+    # See https://bugzilla.mozilla.org/show_bug.cgi?id=1366564
+    ac_add_options --disable-xcode-checks
+else
+    FLAGS=""
+fi
+
+if [ -d $TOOLTOOL_DIR ]; then
+    export CC="$TOOLTOOL_DIR/clang/bin/clang $FLAGS"
+    export CXX="$TOOLTOOL_DIR/clang/bin/clang++ $FLAGS"
+    export CPP="$TOOLTOOL_DIR/clang/bin/clang $FLAGS -E"
+    export LLVMCONFIG=$TOOLTOOL_DIR/clang/bin/llvm-config
+    export DSYMUTIL=$TOOLTOOL_DIR/clang/bin/llvm-dsymutil
     # Use an updated linker.
-    ldflags="-B$topsrcdir/../cctools/bin"
+    ldflags="$ldflags -B$TOOLTOOL_DIR/cctools/bin "
+    export AR=$TOOLTOOL_DIR/cctools/bin/ar
+    export RANLIB=$TOOLTOOL_DIR/cctools/bin/ranlib
 fi
 
 # Ensure the updated linker doesn't generate things our older build tools

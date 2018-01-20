@@ -10,17 +10,10 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "prlog.h"
-
 #include "mozilla/Assertions.h"
 #include "mozilla/Atomics.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/Likely.h"
-#include "mozilla/MacroForEach.h"
-
-// This file is a placeholder for a replacement to the NSPR logging framework
-// that is defined in prlog.h. Currently it is just a pass through, but as
-// work progresses more functionality will be swapped out in favor of
-// mozilla logging implementations.
 
 // We normally have logging enabled everywhere, but measurements showed that
 // having logging enabled on Android is quite expensive (hundreds of kilobytes
@@ -126,7 +119,7 @@ public:
   /**
    * Print a log message for this module.
    */
-  void Printv(LogLevel aLevel, const char* aFmt, va_list aArgs) const;
+  void Printv(LogLevel aLevel, const char* aFmt, va_list aArgs) const MOZ_FORMAT_PRINTF(3, 0);
 
   /**
    * Retrieves the module name.
@@ -169,20 +162,7 @@ public:
   {
   }
 
-  operator LogModule*()
-  {
-    // NB: The use of an atomic makes the reading and assignment of mLog
-    //     thread-safe. There is a small chance that mLog will be set more
-    //     than once, but that's okay as it will be set to the same LogModule
-    //     instance each time. Also note LogModule::Get is thread-safe.
-    LogModule* tmp = mLog;
-    if (MOZ_UNLIKELY(!tmp)) {
-      tmp = LogModule::Get(mLogName);
-      mLog = tmp;
-    }
-
-    return tmp;
-  }
+  operator LogModule*();
 
 private:
   const char* const mLogName;
@@ -191,20 +171,6 @@ private:
 
 namespace detail {
 
-inline bool log_test(const PRLogModuleInfo* module, LogLevel level) {
-  MOZ_ASSERT(level != LogLevel::Disabled);
-  return module && module->level >= static_cast<int>(level);
-}
-
-/**
- * A rather inefficient wrapper for PR_LogPrint that always allocates.
- * PR_LogModuleInfo is deprecated so it's not worth the effort to do
- * any better.
- */
-void log_print(const PRLogModuleInfo* aModule,
-                      LogLevel aLevel,
-                      const char* aFmt, ...);
-
 inline bool log_test(const LogModule* module, LogLevel level) {
   MOZ_ASSERT(level != LogLevel::Disabled);
   return module && module->ShouldLog(level);
@@ -212,7 +178,7 @@ inline bool log_test(const LogModule* module, LogLevel level) {
 
 void log_print(const LogModule* aModule,
                LogLevel aLevel,
-               const char* aFmt, ...);
+               const char* aFmt, ...) MOZ_FORMAT_PRINTF(3, 4);
 } // namespace detail
 
 } // namespace mozilla
@@ -232,21 +198,62 @@ void log_print(const LogModule* aModule,
 //   if (MOZ_LOG_TEST(...)) {
 //     ...compute things to log and log them...
 //   }
-//
-// This also has the nice property that no special definition of MOZ_LOG is
-// required when logging is disabled.
 #define MOZ_LOG_TEST(_module,_level) false
 #endif
 
-#define MOZ_LOG(_module,_level,_args)     \
-  PR_BEGIN_MACRO             \
-    if (MOZ_LOG_TEST(_module,_level)) { \
-      mozilla::detail::log_print(_module, _level, MOZ_LOG_EXPAND_ARGS _args);         \
-    }                     \
-  PR_END_MACRO
-
-#undef PR_LOG
-#undef PR_LOG_TEST
+// The natural definition of the MOZ_LOG macro would expand to:
+//
+//   do {
+//     if (MOZ_LOG_TEST(_module, _level)) {
+//       mozilla::detail::log_print(_module, ...);
+//     }
+//   } while (0)
+//
+// However, since _module is a LazyLogModule, and we need to call
+// LazyLogModule::operator() to get a LogModule* for the MOZ_LOG_TEST
+// macro and for the logging call, we'll wind up doing *two* calls, one
+// for each, rather than a single call.  The compiler is not able to
+// fold the two calls into one, and the extra call can have a
+// significant effect on code size.  (Making LazyLogModule::operator() a
+// `const` function does not have any effect.)
+//
+// Therefore, we will have to make a single call ourselves.  But again,
+// the natural definition:
+//
+//   do {
+//     ::mozilla::LogModule* real_module = _module;
+//     if (MOZ_LOG_TEST(real_module, _level)) {
+//       mozilla::detail::log_print(real_module, ...);
+//     }
+//   } while (0)
+//
+// also has a problem: if logging is disabled, then we will call
+// LazyLogModule::operator() unnecessarily, and the compiler will not be
+// able to optimize away the call as dead code.  We would like to avoid
+// such a scenario, as the whole point of disabling logging is for the
+// logging statements to not generate any code.
+//
+// Therefore, we need different definitions of MOZ_LOG, depending on
+// whether logging is enabled or not.  (We need an actual definition of
+// MOZ_LOG even when logging is disabled to ensure the compiler sees that
+// variables only used during logging code are actually used, even if the
+// code will never be executed.)  Hence, the following code.
+#if MOZ_LOGGING_ENABLED
+#define MOZ_LOG(_module,_level,_args)                                         \
+  do {                                                                        \
+    const ::mozilla::LogModule* moz_real_module = _module;                    \
+    if (MOZ_LOG_TEST(moz_real_module,_level)) {                               \
+      mozilla::detail::log_print(moz_real_module, _level, MOZ_LOG_EXPAND_ARGS _args); \
+    }                                                                         \
+  } while (0)
+#else
+#define MOZ_LOG(_module,_level,_args)                                         \
+  do {                                                                        \
+    if (MOZ_LOG_TEST(_module,_level)) {                        \
+      mozilla::detail::log_print(_module, _level, MOZ_LOG_EXPAND_ARGS _args); \
+    }                                                                         \
+  } while (0)
+#endif
 
 // This #define is a Logging.h-only knob!  Don't encourage people to get fancy
 // with their log definitions by exporting it outside of Logging.h.

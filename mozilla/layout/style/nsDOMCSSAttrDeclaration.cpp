@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,7 +10,12 @@
 
 #include "mozilla/css/Declaration.h"
 #include "mozilla/css/StyleRule.h"
+#include "mozilla/DeclarationBlock.h"
+#include "mozilla/DeclarationBlockInlines.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/InternalMutationEvent.h"
+#include "mozilla/ServoDeclarationBlock.h"
+#include "nsContentUtils.h"
 #include "nsIDocument.h"
 #include "nsIDOMMutationEvent.h"
 #include "nsIURI.h"
@@ -25,14 +31,11 @@ nsDOMCSSAttributeDeclaration::nsDOMCSSAttributeDeclaration(dom::Element* aElemen
   : mElement(aElement)
   , mIsSMILOverride(aIsSMILOverride)
 {
-  MOZ_COUNT_CTOR(nsDOMCSSAttributeDeclaration);
-
   NS_ASSERTION(aElement, "Inline style for a NULL element?");
 }
 
 nsDOMCSSAttributeDeclaration::~nsDOMCSSAttributeDeclaration()
 {
-  MOZ_COUNT_DTOR(nsDOMCSSAttributeDeclaration);
 }
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(nsDOMCSSAttributeDeclaration, mElement)
@@ -43,21 +46,20 @@ NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(nsDOMCSSAttributeDeclaration, mElement)
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsDOMCSSAttributeDeclaration)
   if (tmp->mElement && Element::CanSkip(tmp->mElement, true)) {
     if (tmp->PreservingWrapper()) {
-      // This marks the wrapper black.
-      tmp->GetWrapper();
+      tmp->MarkWrapperLive();
     }
     return true;
   }
-  return tmp->IsBlack();
+  return tmp->HasKnownLiveWrapper();
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(nsDOMCSSAttributeDeclaration)
-  return tmp->IsBlack() ||
+  return tmp->HasKnownLiveWrapper() ||
     (tmp->mElement && Element::CanSkipInCC(tmp->mElement));
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(nsDOMCSSAttributeDeclaration)
-  return tmp->IsBlack() ||
+  return tmp->HasKnownLiveWrapper() ||
     (tmp->mElement && Element::CanSkipThis(tmp->mElement));
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
@@ -72,6 +74,7 @@ nsresult
 nsDOMCSSAttributeDeclaration::SetCSSDeclaration(DeclarationBlock* aDecl)
 {
   NS_ASSERTION(mElement, "Must have Element to set the declaration!");
+  aDecl->SetDirty();
   return mIsSMILOverride
     ? mElement->SetSMILOverrideStyleDeclaration(aDecl, true)
     : mElement->SetInlineStyleDeclaration(aDecl, nullptr, true);
@@ -120,6 +123,15 @@ nsDOMCSSAttributeDeclaration::GetCSSDeclaration(Operation aOperation)
   }
 
   if (declaration) {
+    if (aOperation != eOperation_Read &&
+        nsContentUtils::HasMutationListeners(
+          mElement, NS_EVENT_BITS_MUTATION_ATTRMODIFIED, mElement)) {
+      // If there is any mutation listener on the element, we need to
+      // ensure that any change would create a new declaration so that
+      // nsStyledElement::SetInlineStyleDeclaration can generate the
+      // correct old value.
+      declaration->SetImmutable();
+    }
     return declaration;
   }
 
@@ -158,9 +170,19 @@ nsDOMCSSAttributeDeclaration::GetCSSParsingEnvironment(CSSParsingEnvironment& aC
 
   nsIDocument* doc = mElement->OwnerDoc();
   aCSSParseEnv.mSheetURI = doc->GetDocumentURI();
-  aCSSParseEnv.mBaseURI = mElement->GetBaseURI();
+  aCSSParseEnv.mBaseURI = mElement->GetBaseURIForStyleAttr();
   aCSSParseEnv.mPrincipal = mElement->NodePrincipal();
   aCSSParseEnv.mCSSLoader = doc->CSSLoader();
+}
+
+nsDOMCSSDeclaration::ServoCSSParsingEnvironment
+nsDOMCSSAttributeDeclaration::GetServoCSSParsingEnvironment() const
+{
+  return {
+    mElement->GetURLDataForStyleAttr(),
+    mElement->OwnerDoc()->GetCompatibilityMode(),
+    mElement->OwnerDoc()->CSSLoader(),
+  };
 }
 
 NS_IMETHODIMP
@@ -190,8 +212,6 @@ nsDOMCSSAttributeDeclaration::SetPropertyValue(const nsCSSPropertyID aPropID,
   if (aPropID == eCSSProperty_opacity || aPropID == eCSSProperty_transform ||
       aPropID == eCSSProperty_left || aPropID == eCSSProperty_top ||
       aPropID == eCSSProperty_right || aPropID == eCSSProperty_bottom ||
-      aPropID == eCSSProperty_margin_left || aPropID == eCSSProperty_margin_top ||
-      aPropID == eCSSProperty_margin_right || aPropID == eCSSProperty_margin_bottom ||
       aPropID == eCSSProperty_background_position_x ||
       aPropID == eCSSProperty_background_position_y ||
       aPropID == eCSSProperty_background_position) {

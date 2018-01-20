@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -115,6 +117,13 @@ ShaderConfigOGL::SetYCbCr(bool aEnabled)
 }
 
 void
+ShaderConfigOGL::SetColorMultiplier(uint32_t aMultiplier)
+{
+  MOZ_ASSERT(mFeatures & ENABLE_TEXTURE_YCBCR, "Multiplier only supported with YCbCr!");
+  mMultiplier = aMultiplier;
+}
+
+void
 ShaderConfigOGL::SetNV12(bool aEnabled)
 {
   SetFeature(ENABLE_TEXTURE_NV12, aEnabled);
@@ -194,7 +203,13 @@ ProgramProfileOGL::GetProfileFor(ShaderConfigOGL aConfig)
     vs << "uniform vec2 uViewportSize;" << endl;
   }
   vs << "uniform vec2 uRenderTargetOffset;" << endl;
-  vs << "attribute vec4 aCoord;" << endl;
+
+  if (!(aConfig.mFeatures & ENABLE_DYNAMIC_GEOMETRY)) {
+    vs << "attribute vec4 aCoord;" << endl;
+  } else {
+    vs << "attribute vec2 aCoord;" << endl;
+  }
+
   result.mAttributes.AppendElement(Pair<nsCString, GLuint> {"aCoord", 0});
 
   if (!(aConfig.mFeatures & ENABLE_RENDER_COLOR)) {
@@ -435,11 +450,12 @@ ProgramProfileOGL::GetProfileFor(ShaderConfigOGL aConfig)
           fs << "  COLOR_PRECISION float cr = " << texture2D << "(uCbTexture, coord).a;" << endl;
         }
       }
-
-      fs << "  y = y - 0.06275;" << endl;
-      fs << "  cb = cb - 0.50196;" << endl;
-      fs << "  cr = cr - 0.50196;" << endl;
       fs << "  vec3 yuv = vec3(y, cb, cr);" << endl;
+      if (aConfig.mMultiplier != 1) {
+        fs << "  yuv *= " << aConfig.mMultiplier << ".0;" << endl;
+      }
+      fs << "  vec3 coeff = vec3(0.06275, 0.50196, 0.50196 );" << endl;
+      fs << "  yuv -= coeff;" << endl;
       fs << "  color.rgb = uYuvColorMatrix * yuv;" << endl;
       fs << "  color.a = 1.0;" << endl;
     } else if (aConfig.mFeatures & ENABLE_TEXTURE_COMPONENT_ALPHA) {
@@ -966,7 +982,7 @@ ShaderProgramOGL::SetBlurRadius(float aRX, float aRY)
 void
 ShaderProgramOGL::SetYUVColorSpace(YUVColorSpace aYUVColorSpace)
 {
-  float* yuvToRgb = gfxUtils::Get3x3YuvColorMatrix(aYUVColorSpace);
+  const float* yuvToRgb = gfxUtils::YuvToRgbMatrix3x3ColumnMajor(aYUVColorSpace);
   SetMatrix3fvUniform(KnownUniform::YuvColorMatrix, yuvToRgb);
 }
 

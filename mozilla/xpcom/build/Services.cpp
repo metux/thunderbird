@@ -22,6 +22,11 @@
 #include "inIDOMUtils.h"
 #include "nsIPermissionManager.h"
 #include "nsIServiceWorkerManager.h"
+#include "nsICacheStorageService.h"
+#include "nsIStreamTransportService.h"
+#include "nsISocketTransportService.h"
+#include "nsIURIClassifier.h"
+#include "nsIHttpActivityObserver.h"
 #include "nsIAsyncShutdown.h"
 #include "nsIUUIDGenerator.h"
 #include "nsIGfxInfo.h"
@@ -48,11 +53,6 @@ using namespace mozilla::services;
     }                                                                   \
     nsCOMPtr<TYPE> ret = g##NAME;                                       \
     return ret.forget();                                                \
-  }                                                                     \
-  NS_EXPORT_(already_AddRefed<TYPE>)                                    \
-  mozilla::services::_external_Get##NAME()                              \
-  {                                                                     \
-    return Get##NAME();                                                 \
   }
 
 #include "ServiceList.h"

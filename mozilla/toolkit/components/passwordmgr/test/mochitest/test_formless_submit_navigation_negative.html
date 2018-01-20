@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
-<script type="application/javascript;version=1.8">
+<script type="application/javascript">
 const LMCBackstagePass = SpecialPowers.Cu.import("resource://gre/modules/LoginManagerContent.jsm");
 const { LoginManagerContent, LoginFormFactory } = LMCBackstagePass;
 
@@ -30,15 +30,15 @@ function submissionProcessed(...args) {
   info("got: " + JSON.stringify(args));
 }
 
-add_task(function* setup() {
-  yield SpecialPowers.pushPrefEnv({
+add_task(async function setup() {
+  await SpecialPowers.pushPrefEnv({
     set: [
       ["signon.formlessCapture.enabled", true],
     ],
   });
 
   info("Waiting for page and frame loads");
-  yield loadPromise;
+  await loadPromise;
 
   chromeScript.addMessageListener("formSubmissionProcessed", submissionProcessed);
 
@@ -73,8 +73,16 @@ const TESTCASES = [
   },
 ];
 
-add_task(function* test() {
+add_task(async function test() {
   let loginFrame = document.getElementById("loginFrame");
+
+  var android = navigator.appVersion.includes("Android");
+  if (android) {
+    // intermittent failures on Android Debug at 5 seconds
+    waitTime = 10000;
+  } else {
+    waitTime = 5000;
+  }
 
   for (let tc of TESTCASES) {
     for (let scriptName of Object.keys(SCRIPTS)) {
@@ -85,25 +93,25 @@ add_task(function* test() {
 
       info("Starting testcase with script " + scriptName + ": " + JSON.stringify(tc));
       let loadedPromise = new Promise((resolve) => {
-        loginFrame.addEventListener("load", function frameLoaded() {
-          loginFrame.removeEventListener("load", frameLoaded);
+        loginFrame.addEventListener("load", function() {
           resolve();
-        });
+        }, {once: true});
       });
       loginFrame.src = DEFAULT_ORIGIN + "/tests/toolkit/components/passwordmgr/test/mochitest/blank.html";
-      yield loadedPromise;
+      await loadedPromise;
 
       let frameDoc = SpecialPowers.wrap(loginFrame.contentWindow).document;
+      // eslint-disable-next-line no-unsanitized/property
       frameDoc.documentElement.innerHTML = tc.document;
 
       // Wait for the form to be processed before trying to submit.
-      yield promiseFormsProcessed();
+      await promiseFormsProcessed();
 
       info("Running " + scriptName + " script to check for a submission");
       frameDoc.defaultView.eval(SCRIPTS[scriptName]);
 
-      // Wait for 5000ms to see if the promise above resolves.
-      yield new Promise(resolve => setTimeout(resolve, 5000));
+      // Wait to see if the promise above resolves.
+      await new Promise(resolve => setTimeout(resolve, waitTime));
       ok(true, "Done waiting for captures");
     }
   }

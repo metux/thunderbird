@@ -43,14 +43,9 @@ AnimationSurfaceProvider::DropImageReference()
     return;  // Nothing to do.
   }
 
-  // RasterImage objects need to be destroyed on the main thread. We also need
-  // to destroy them asynchronously, because if our surface cache entry is
-  // destroyed and we were the only thing keeping |mImage| alive, RasterImage's
-  // destructor may call into the surface cache while whatever code caused us to
-  // get evicted is holding the surface cache lock, causing deadlock.
-  RefPtr<RasterImage> image = mImage;
-  mImage = nullptr;
-  NS_ReleaseOnMainThread(image.forget(), /* aAlwaysProxy = */ true);
+  // RasterImage objects need to be destroyed on the main thread.
+  NS_ReleaseOnMainThreadSystemGroup("AnimationSurfaceProvider::mImage",
+                                    mImage.forget());
 }
 
 DrawableFrameRef
@@ -118,7 +113,8 @@ AnimationSurfaceProvider::LogicalSizeInBytes() const
 void
 AnimationSurfaceProvider::AddSizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
                                                  size_t& aHeapSizeOut,
-                                                 size_t& aNonHeapSizeOut)
+                                                 size_t& aNonHeapSizeOut,
+                                                 size_t& aSharedHandlesOut)
 {
   // Note that the surface cache lock is already held here, and then we acquire
   // mFramesMutex. For this method, this ordering is unavoidable, which means
@@ -126,7 +122,8 @@ AnimationSurfaceProvider::AddSizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
   MutexAutoLock lock(mFramesMutex);
 
   for (const RawAccessFrameRef& frame : mFrames) {
-    frame->AddSizeOfExcludingThis(aMallocSizeOf, aHeapSizeOut, aNonHeapSizeOut);
+    frame->AddSizeOfExcludingThis(aMallocSizeOf, aHeapSizeOut,
+                                  aNonHeapSizeOut, aSharedHandlesOut);
   }
 }
 

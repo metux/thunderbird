@@ -11,12 +11,14 @@
 #include "mozilla/FileUtils.h"
 #include "mozilla/HangAnnotations.h"
 #include "mozilla/PluginLibrary.h"
+#include "mozilla/ipc/CrashReporterHost.h"
 #include "mozilla/plugins/PluginProcessParent.h"
 #include "mozilla/plugins/PPluginModuleParent.h"
 #include "mozilla/plugins/PluginMessageUtils.h"
 #include "mozilla/plugins/PluginTypes.h"
 #include "mozilla/ipc/TaskFactory.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/Unused.h"
 #include "npapi.h"
 #include "npfunctions.h"
 #include "nsDataHashtable.h"
@@ -24,23 +26,18 @@
 #include "nsIObserver.h"
 #ifdef XP_WIN
 #include "nsWindowsHelpers.h"
+#if defined(MOZ_SANDBOX)
+#include "sandboxPermissions.h"
+#endif
 #endif
 
 #ifdef MOZ_CRASHREPORTER
 #include "nsExceptionHandler.h"
 #endif
 
-class nsIProfileSaveEvent;
 class nsPluginTag;
 
 namespace mozilla {
-#ifdef MOZ_ENABLE_PROFILER_SPS
-class ProfileGatherer;
-#endif
-namespace dom {
-class PCrashReporterParent;
-class CrashReporterParent;
-} // namespace dom
 
 namespace layers {
 class TextureClientRecycleAllocator;
@@ -50,7 +47,6 @@ namespace plugins {
 //-----------------------------------------------------------------------------
 
 class BrowserStreamParent;
-class PluginAsyncSurrogate;
 class PluginInstanceParent;
 
 #ifdef XP_WIN
@@ -86,12 +82,9 @@ class PluginModuleParent
 {
 protected:
     typedef mozilla::PluginLibrary PluginLibrary;
-    typedef mozilla::dom::PCrashReporterParent PCrashReporterParent;
-    typedef mozilla::dom::CrashReporterParent CrashReporterParent;
 
     PPluginInstanceParent*
     AllocPPluginInstanceParent(const nsCString& aMimeType,
-                               const uint16_t& aMode,
                                const InfallibleTArray<nsCString>& aNames,
                                const InfallibleTArray<nsCString>& aValues)
                                override;
@@ -100,16 +93,9 @@ protected:
     DeallocPPluginInstanceParent(PPluginInstanceParent* aActor) override;
 
 public:
-    explicit PluginModuleParent(bool aIsChrome, bool aAllowAsyncInit);
+    explicit PluginModuleParent(bool aIsChrome);
     virtual ~PluginModuleParent();
 
-    bool RemovePendingSurrogate(const RefPtr<PluginAsyncSurrogate>& aSurrogate);
-
-    /** @return the state of the pref that controls async plugin init */
-    bool IsStartingAsync() const { return mIsStartingAsync; }
-    /** @return whether this modules NP_Initialize has successfully completed
-        executing */
-    bool IsInitialized() const { return mNPInitialized; }
     bool IsChrome() const { return mIsChrome; }
 
     virtual void SetPlugin(nsNPAPIPlugin* plugin) override
@@ -129,14 +115,6 @@ public:
 
     void ProcessRemoteNativeEventsInInterruptCall() override;
 
-    virtual bool WaitForIPCConnection() { return true; }
-
-    nsCString GetHistogramKey() const {
-        return mPluginName + mPluginVersion;
-    }
-
-    void AccumulateModuleInitBlockedTime();
-
     virtual nsresult GetRunID(uint32_t* aRunID) override;
     virtual void SetHasLocalInstance() override {
         mHadLocalInstance = true;
@@ -152,56 +130,60 @@ protected:
         return MediateRace(parent, child);
     }
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvBackUpXResources(const FileDescriptor& aXSocketFd) override;
 
-    virtual bool AnswerProcessSomeEvents() override;
+    virtual mozilla::ipc::IPCResult AnswerProcessSomeEvents() override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvProcessNativeEventsInInterruptCall() override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvPluginShowWindow(const uint32_t& aWindowId, const bool& aModal,
                          const int32_t& aX, const int32_t& aY,
                          const size_t& aWidth, const size_t& aHeight) override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvPluginHideWindow(const uint32_t& aWindowId) override;
 
-    virtual PCrashReporterParent*
-    AllocPCrashReporterParent(mozilla::dom::NativeThreadId* id,
-                              uint32_t* processType) override;
-    virtual bool
-    DeallocPCrashReporterParent(PCrashReporterParent* actor) override;
-
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvSetCursor(const NSCursorInfo& aCursorInfo) override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvShowCursor(const bool& aShow) override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvPushCursor(const NSCursorInfo& aCursorInfo) override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvPopCursor() override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvNPN_SetException(const nsCString& aMessage) override;
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     RecvNPN_ReloadPlugins(const bool& aReloadPages) override;
 
-    virtual bool
-    RecvNP_InitializeResult(const NPError& aError) override;
+    static BrowserStreamParent* StreamCast(NPP instance, NPStream* s);
 
-    static BrowserStreamParent* StreamCast(NPP instance, NPStream* s,
-                                           PluginAsyncSurrogate** aSurrogate = nullptr);
-
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     AnswerNPN_SetValue_NPPVpluginRequiresAudioDeviceChanges(
                                         const bool& shouldRegister,
                                         NPError* result) override;
+
+    virtual mozilla::ipc::IPCResult
+    AnswerGetFileName(const GetFileNameFunc& aFunc,
+                      const OpenFileNameIPC& aOfnIn,
+                      OpenFileNameRetIPC* aOfnOut, bool* aResult) override
+    {
+      return IPC_FAIL_NO_REASON(this);
+    }
+
+    virtual mozilla::ipc::IPCResult
+    AnswerSetCursorPos(const int &x, const int &y, bool* aResult) override
+    {
+      return IPC_FAIL_NO_REASON(this);
+    }
 
 protected:
     void SetChildTimeout(const int32_t aChildTimeout);
@@ -209,26 +191,24 @@ protected:
 
     virtual void UpdatePluginTimeout() {}
 
-    virtual bool RecvNotifyContentModuleDestroyed() override { return true; }
+    virtual mozilla::ipc::IPCResult RecvNotifyContentModuleDestroyed() override { return IPC_OK(); }
 
-    virtual bool RecvProfile(const nsCString& aProfile) override { return true; }
+    virtual mozilla::ipc::IPCResult AnswerGetKeyState(const int32_t& aVirtKey, int16_t* aRet) override;
 
-    virtual bool AnswerGetKeyState(const int32_t& aVirtKey, int16_t* aRet) override;
+    virtual mozilla::ipc::IPCResult RecvReturnClearSiteData(const NPError& aRv,
+                                                            const uint64_t& aCallbackId) override;
 
-    virtual bool RecvReturnClearSiteData(const NPError& aRv,
-                                         const uint64_t& aCallbackId) override;
-
-    virtual bool RecvReturnSitesWithData(nsTArray<nsCString>&& aSites,
-                                         const uint64_t& aCallbackId) override;
+    virtual mozilla::ipc::IPCResult RecvReturnSitesWithData(nsTArray<nsCString>&& aSites,
+                                                            const uint64_t& aCallbackId) override;
 
     void SetPluginFuncs(NPPluginFuncs* aFuncs);
 
-    nsresult NPP_NewInternal(NPMIMEType pluginType, NPP instance, uint16_t mode,
+    nsresult NPP_NewInternal(NPMIMEType pluginType, NPP instance,
                              InfallibleTArray<nsCString>& names,
                              InfallibleTArray<nsCString>& values,
                              NPSavedData* saved, NPError* error);
 
-    // NPP-like API that Gecko calls are trampolined into.  These 
+    // NPP-like API that Gecko calls are trampolined into.  These
     // messages then get forwarded along to the plugin instance,
     // and then eventually the child process.
 
@@ -242,8 +222,6 @@ protected:
     static int32_t NPP_WriteReady(NPP instance, NPStream* stream);
     static int32_t NPP_Write(NPP instance, NPStream* stream,
                              int32_t offset, int32_t len, void* buffer);
-    static void NPP_StreamAsFile(NPP instance,
-                                 NPStream* stream, const char* fname);
     static void NPP_Print(NPP instance, NPPrint* platformPrint);
     static int16_t NPP_HandleEvent(NPP instance, void* event);
     static void NPP_URLNotify(NPP instance, const char* url,
@@ -277,7 +255,7 @@ protected:
                        const mozilla::NativeEventData& aNativeKeyData,
                        bool aIsConsumed) override;
 
-#if defined(XP_UNIX) && !defined(XP_MACOSX) && !defined(MOZ_WIDGET_GONK)
+#if defined(XP_UNIX) && !defined(XP_MACOSX)
     virtual nsresult NP_Initialize(NPNetscapeFuncs* bFuncs, NPPluginFuncs* pFuncs, NPError* error) override;
 #else
     virtual nsresult NP_Initialize(NPNetscapeFuncs* bFuncs, NPError* error) override;
@@ -291,7 +269,7 @@ protected:
     virtual nsresult NP_GetEntryPoints(NPPluginFuncs* pFuncs, NPError* error) override;
 #endif
     virtual nsresult NPP_New(NPMIMEType pluginType, NPP instance,
-                             uint16_t mode, int16_t argc, char* argn[],
+                             int16_t argc, char* argn[],
                              char* argv[], NPSavedData* saved,
                              NPError* error) override;
     virtual nsresult NPP_ClearSiteData(const char* site, uint64_t flags, uint64_t maxAge,
@@ -315,8 +293,6 @@ public:
     virtual nsresult ContentsScaleFactorChanged(NPP instance, double aContentsScaleFactor) override;
 #endif
 
-    void InitAsyncSurrogates();
-
     layers::TextureClientRecycleAllocator* EnsureTextureAllocatorForDirectBitmap();
     layers::TextureClientRecycleAllocator* EnsureTextureAllocatorForDXGISurface();
 
@@ -324,7 +300,6 @@ protected:
     void NotifyFlashHang();
     void NotifyPluginCrashed();
     void OnInitFailure();
-    bool MaybeRunDeferredShutdown();
     bool DoShutdown(NPError* error);
 
     bool GetSetting(NPNVariable aVariable);
@@ -339,11 +314,7 @@ protected:
     NPPluginFuncs* mNPPIface;
     nsNPAPIPlugin* mPlugin;
     ipc::TaskFactory<PluginModuleParent> mTaskFactory;
-    nsString mPluginDumpID;
-    nsString mBrowserDumpID;
     nsString mHangID;
-    RefPtr<nsIObserver> mProfilerObserver;
-    TimeDuration mTimeBlocked;
     nsCString mPluginName;
     nsCString mPluginVersion;
     int32_t mSandboxLevel;
@@ -358,32 +329,29 @@ protected:
     bool
     GetPluginDetails();
 
-    friend class mozilla::dom::CrashReporterParent;
-    friend class mozilla::plugins::PluginAsyncSurrogate;
-
-    bool              mIsStartingAsync;
-    bool              mNPInitialized;
-    bool              mIsNPShutdownPending;
-    nsTArray<RefPtr<PluginAsyncSurrogate>> mSurrogateInstances;
-    nsresult          mAsyncNewRv;
     uint32_t          mRunID;
 
     RefPtr<layers::TextureClientRecycleAllocator> mTextureAllocatorForDirectBitmap;
     RefPtr<layers::TextureClientRecycleAllocator> mTextureAllocatorForDXGISurface;
+
+#ifdef MOZ_CRASHREPORTER
+    /**
+     * This mutex protects the crash reporter when the Plugin Hang UI event
+     * handler is executing off main thread. It is intended to protect both
+     * the mCrashReporter variable in addition to the CrashReporterHost object
+     * that mCrashReporter refers to.
+     */
+    mozilla::Mutex mCrashReporterMutex;
+    UniquePtr<ipc::CrashReporterHost> mCrashReporter;
+#endif // MOZ_CRASHREPORTER
 };
 
 class PluginModuleContentParent : public PluginModuleParent
 {
   public:
-    explicit PluginModuleContentParent(bool aAllowAsyncInit);
+    explicit PluginModuleContentParent();
 
     static PluginLibrary* LoadModule(uint32_t aPluginId, nsPluginTag* aPluginTag);
-
-    static PluginModuleContentParent* Initialize(mozilla::ipc::Transport* aTransport,
-                                                 base::ProcessId aOtherProcess);
-
-    static void OnLoadPluginResult(const uint32_t& aPluginId, const bool& aResult);
-    static void AssociatePluginId(uint32_t aPluginId, base::ProcessId aProcessId);
 
     virtual ~PluginModuleContentParent();
 
@@ -392,6 +360,8 @@ class PluginModuleContentParent : public PluginModuleParent
 #endif
 
   private:
+    static void Initialize(Endpoint<PPluginModuleParent>&& aEndpoint);
+
     virtual bool ShouldContinueFromReplyTimeout() override;
     virtual void OnExitedSyncSend() override;
 
@@ -408,6 +378,11 @@ class PluginModuleChromeParent
     : public PluginModuleParent
     , public mozilla::HangMonitor::Annotator
 {
+    friend class mozilla::ipc::CrashReporterHost;
+    using TerminateChildProcessCallback =
+        mozilla::ipc::CrashReporterHost::CallbackWrapper<bool>;
+    using TakeFullMinidumpCallback =
+        mozilla::ipc::CrashReporterHost::CallbackWrapper<nsString>;
   public:
     /**
      * LoadModule
@@ -417,14 +392,6 @@ class PluginModuleChromeParent
      */
     static PluginLibrary* LoadModule(const char* aFilePath, uint32_t aPluginId,
                                      nsPluginTag* aPluginTag);
-
-    /**
-     * The following two functions are called by SetupBridge to determine
-     * whether an existing plugin module was reused, or whether a new module
-     * was instantiated by the plugin host.
-     */
-    static void ClearInstantiationFlag() { sInstantiated = false; }
-    static bool DidInstantiate() { return sInstantiated; }
 
     virtual ~PluginModuleChromeParent();
 
@@ -440,12 +407,16 @@ class PluginModuleChromeParent
      *   provided TakeFullMinidump will use this dump file instead of
      *   generating a new one. If not provided a browser dump will be taken at
      *   the time of this call.
-     * @param aDumpId Returns the ID of the newly generated crash dump. Left
-     *   untouched upon failure.
+     * @param aCallback a callback invoked when the operation completes. The ID
+     *   of the newly generated crash dump is provided in the callback argument.
+     *   An empty string will be provided upon failure.
+     * @param aAsync whether to perform the dump asynchronously.
      */
-    void TakeFullMinidump(base::ProcessId aContentPid,
-                          const nsAString& aBrowserDumpId,
-                          nsString& aDumpId);
+    void
+    TakeFullMinidump(base::ProcessId aContentPid,
+                     const nsAString& aBrowserDumpId,
+                     std::function<void(nsString)>&& aCallback,
+                     bool aAsync);
 
     /*
      * Terminates the plugin process associated with this plugin module. Also
@@ -463,11 +434,47 @@ class PluginModuleChromeParent
      *   TerminateChildProcess will use this dump file instead of generating a
      *   multi-process crash report. If not provided a multi-process dump will
      *   be taken at the time of this call.
+     * @param aCallback a callback invoked when the operation completes. The
+     *   argument denotes whether the operation succeeded.
+     * @param aAsync whether to perform the operation asynchronously.
      */
-    void TerminateChildProcess(MessageLoop* aMsgLoop,
-                               base::ProcessId aContentPid,
-                               const nsCString& aMonitorDescription,
-                               const nsAString& aDumpId);
+    void
+    TerminateChildProcess(MessageLoop* aMsgLoop,
+                          base::ProcessId aContentPid,
+                          const nsCString& aMonitorDescription,
+                          const nsAString& aDumpId,
+                          std::function<void(bool)>&& aCallback,
+                          bool aAsync);
+
+    /**
+     * Helper for passing a dummy callback in calling the above function if it
+     * is called synchronously and the caller doesn't care about the callback
+     * result.
+     */
+    template<typename T>
+    static std::function<void(T)> DummyCallback()
+    {
+        return std::function<void(T)>([](T aResult) { });
+    }
+
+  private:
+#ifdef MOZ_CRASHREPORTER
+    // The following methods are callbacks invoked after calling
+    // TakeFullMinidump(). The methods are invoked in the following order:
+    void TakeBrowserAndPluginMinidumps(bool aReportsReady,
+                                       base::ProcessId aContentPid,
+                                       const nsAString& aBrowserDumpId,
+                                       bool aAsync);
+    void OnTakeFullMinidumpComplete(bool aReportsReady,
+                                    base::ProcessId aContentPid,
+                                    const nsAString& aBrowserDumpId);
+
+#endif
+    // The following method is the callback invoked after calling
+    // TerminateChidlProcess().
+    void TerminateChildProcessOnDumpComplete(MessageLoop* aMsgLoop,
+                                             const nsCString& aMonitorDescription);
+  public:
 
 #ifdef XP_WIN
     /**
@@ -481,31 +488,20 @@ class PluginModuleChromeParent
     EvaluateHangUIState(const bool aReset);
 #endif // XP_WIN
 
-    virtual bool WaitForIPCConnection() override;
-
-    virtual bool
-    RecvNP_InitializeResult(const NPError& aError) override;
-
-    void
-    SetContentParent(dom::ContentParent* aContentParent);
-
-    bool
-    SendAssociatePluginId();
-
     void CachedSettingChanged();
 
-#ifdef  MOZ_ENABLE_PROFILER_SPS
-    void GatherAsyncProfile();
-    void GatheredAsyncProfile(nsIProfileSaveEvent* aSaveEvent);
-    void StartProfiler(nsIProfilerStartParams* aParams);
-    void StopProfiler();
-#endif
-
-    virtual bool
-    RecvProfile(const nsCString& aProfile) override;
-
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     AnswerGetKeyState(const int32_t& aVirtKey, int16_t* aRet) override;
+
+    // Proxy GetOpenFileName/GetSaveFileName on Windows.
+    virtual mozilla::ipc::IPCResult
+    AnswerGetFileName(const GetFileNameFunc& aFunc,
+                      const OpenFileNameIPC& aOfnIn,
+                      OpenFileNameRetIPC* aOfnOut, bool* aResult) override;
+
+    // Proxy SetCursorPos on Windows.
+    virtual mozilla::ipc::IPCResult
+    AnswerSetCursorPos(const int &x, const int &y, bool* aResult) override;
 
 private:
     virtual void
@@ -524,19 +520,15 @@ private:
 
 #ifdef MOZ_CRASHREPORTER
     void ProcessFirstMinidump();
-    void WriteExtraDataForMinidump(CrashReporter::AnnotationTable& notes);
+    void WriteExtraDataForMinidump();
+    void RetainPluginRef();
+    void ReleasePluginRef();
 #endif
-
-    virtual PCrashReporterParent*
-    AllocPCrashReporterParent(mozilla::dom::NativeThreadId* id,
-                              uint32_t* processType) override;
-    virtual bool
-    DeallocPCrashReporterParent(PCrashReporterParent* actor) override;
 
     PluginProcessParent* Process() const { return mSubprocess; }
     base::ProcessHandle ChildProcessHandle() { return mSubprocess->GetChildProcessHandle(); }
 
-#if defined(XP_UNIX) && !defined(XP_MACOSX) && !defined(MOZ_WIDGET_GONK)
+#if defined(XP_UNIX) && !defined(XP_MACOSX)
     virtual nsresult NP_Initialize(NPNetscapeFuncs* bFuncs, NPPluginFuncs* pFuncs, NPError* error) override;
 #else
     virtual nsresult NP_Initialize(NPNetscapeFuncs* bFuncs, NPError* error) override;
@@ -550,28 +542,22 @@ private:
 
     // aFilePath is UTF8, not native!
     explicit PluginModuleChromeParent(const char* aFilePath, uint32_t aPluginId,
-                                      int32_t aSandboxLevel,
-                                      bool aAllowAsyncInit);
-
-    CrashReporterParent* CrashReporter();
+                                      int32_t aSandboxLevel);
 
     void CleanupFromTimeout(const bool aByHangUI);
 
     virtual void UpdatePluginTimeout() override;
 
-#ifdef MOZ_ENABLE_PROFILER_SPS
-    void InitPluginProfiling();
-    void ShutdownPluginProfiling();
-#endif
-
     void RegisterSettingsCallbacks();
     void UnregisterSettingsCallbacks();
 
-    virtual bool RecvNotifyContentModuleDestroyed() override;
+    bool InitCrashReporter();
+
+    virtual mozilla::ipc::IPCResult RecvNotifyContentModuleDestroyed() override;
 
     static void CachedSettingChanged(const char* aPref, void* aModule);
 
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     AnswerNPN_SetValue_NPPVpluginRequiresAudioDeviceChanges(
                                         const bool& shouldRegister,
                                         NPError* result) override;
@@ -594,17 +580,6 @@ private:
     PluginHangUIParent *mHangUIParent;
     bool mHangUIEnabled;
     bool mIsTimerReset;
-#ifdef MOZ_CRASHREPORTER
-    /**
-     * This mutex protects the crash reporter when the Plugin Hang UI event
-     * handler is executing off main thread. It is intended to protect both
-     * the mCrashReporter variable in addition to the CrashReporterParent object
-     * that mCrashReporter refers to.
-     */
-    mozilla::Mutex mCrashReporterMutex;
-    CrashReporterParent* mCrashReporter;
-#endif // MOZ_CRASHREPORTER
-
 
     /**
      * Launches the Plugin Hang UI.
@@ -622,9 +597,6 @@ private:
     void
     FinishHangUI();
 #endif
-
-    friend class mozilla::dom::CrashReporterParent;
-    friend class mozilla::plugins::PluginAsyncSurrogate;
 
 #ifdef MOZ_CRASHREPORTER_INJECTOR
     friend class mozilla::plugins::FinishInjectorInitTask;
@@ -663,21 +635,17 @@ private:
 
     friend class LaunchedTask;
 
-    bool                mInitOnAsyncConnect;
-    nsresult            mAsyncInitRv;
-    NPError             mAsyncInitError;
-    // mContentParent is to be used ONLY during the IPC dance that occurs
-    // when ContentParent::RecvLoadPlugin is called under async plugin init!
-    // In other contexts it is *unsafe*, as there might be multiple content
-    // processes in existence!
-    dom::ContentParent* mContentParent;
     nsCOMPtr<nsIObserver> mPluginOfflineObserver;
-#ifdef MOZ_ENABLE_PROFILER_SPS
-    RefPtr<mozilla::ProfileGatherer> mGatherer;
-#endif
-    nsCString mProfile;
     bool mIsBlocklisted;
-    static bool sInstantiated;
+#if defined(XP_WIN) && defined(MOZ_SANDBOX)
+    mozilla::SandboxPermissions mSandboxPermissions;
+#endif
+
+#ifdef MOZ_CRASHREPORTER
+    nsCOMPtr<nsIFile> mBrowserDumpFile;
+    TakeFullMinidumpCallback mTakeFullMinidumpCallback;
+#endif
+    TerminateChildProcessCallback mTerminateChildProcessCallback;
 };
 
 } // namespace plugins

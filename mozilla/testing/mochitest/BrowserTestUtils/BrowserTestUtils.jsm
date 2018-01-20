@@ -20,8 +20,6 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 Cu.import("resource://gre/modules/AppConstants.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
-Cu.import("resource://gre/modules/Timer.jsm");
 Cu.import("resource://testing-common/TestUtils.jsm");
 Cu.import("resource://testing-common/ContentTask.jsm");
 
@@ -32,6 +30,30 @@ Cc["@mozilla.org/globalmessagemanager;1"]
 
 XPCOMUtils.defineLazyModuleGetter(this, "E10SUtils",
   "resource:///modules/E10SUtils.jsm");
+
+const PROCESSSELECTOR_CONTRACTID = "@mozilla.org/ipc/processselector;1";
+const OUR_PROCESSSELECTOR_CID =
+  Components.ID("{f9746211-3d53-4465-9aeb-ca0d96de0253}");
+const EXISTING_JSID = Cc[PROCESSSELECTOR_CONTRACTID];
+const DEFAULT_PROCESSSELECTOR_CID = EXISTING_JSID ?
+  Components.ID(EXISTING_JSID.number) : null;
+
+// A process selector that always asks for a new process.
+function NewProcessSelector() {
+}
+
+NewProcessSelector.prototype = {
+  classID: OUR_PROCESSSELECTOR_CID,
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIContentProcessProvider]),
+
+  provideProcess() {
+    return Ci.nsIContentProcessProvider.NEW_PROCESS;
+  }
+};
+
+let registrar = Components.manager.QueryInterface(Ci.nsIComponentRegistrar);
+let selectorFactory = XPCOMUtils._getFactory(NewProcessSelector);
+registrar.registerFactory(OUR_PROCESSSELECTOR_CID, "", null, selectorFactory);
 
 // For now, we'll allow tests to use CPOWs in this module for
 // some cases.
@@ -70,33 +92,37 @@ this.BrowserTestUtils = {
    * @resolves When the tab has been closed.
    * @rejects Any exception from taskFn is propagated.
    */
-  withNewTab: Task.async(function* (options, taskFn) {
+  async withNewTab(options, taskFn) {
     if (typeof(options) == "string") {
       options = {
         gBrowser: Services.wm.getMostRecentWindow("navigator:browser").gBrowser,
         url: options
       }
     }
-    let tab = yield BrowserTestUtils.openNewForegroundTab(options.gBrowser, options.url);
-    let originalWindow = tab.ownerDocument.defaultView;
-    let result = yield taskFn(tab.linkedBrowser);
-    let finalWindow = tab.ownerDocument.defaultView;
+    let tab = await BrowserTestUtils.openNewForegroundTab(options);
+    let originalWindow = tab.ownerGlobal;
+    let result = await taskFn(tab.linkedBrowser);
+    let finalWindow = tab.ownerGlobal;
     if (originalWindow == finalWindow && !tab.closing && tab.linkedBrowser) {
-      yield BrowserTestUtils.removeTab(tab);
+      await BrowserTestUtils.removeTab(tab);
     } else {
       Services.console.logStringMessage(
         "BrowserTestUtils.withNewTab: Tab was already closed before " +
         "removeTab would have been called");
     }
     return Promise.resolve(result);
-  }),
+  },
 
   /**
    * Opens a new tab in the foreground.
    *
-   * @param {tabbrowser} tabbrowser
+   * This function takes an options object (which is preferred) or actual
+   * parameters. The names of the options must correspond to the names below.
+   * gBrowser is required and all other options are optional.
+   *
+   * @param {tabbrowser} gBrowser
    *        The tabbrowser to open the tab new in.
-   * @param {string} opening
+   * @param {string} opening (or url)
    *        May be either a string URL to load in the tab, or a function that
    *        will be called to open a foreground tab. Defaults to "about:blank".
    * @param {boolean} waitForLoad
@@ -104,32 +130,83 @@ this.BrowserTestUtils = {
    * @param {boolean} waitForStateStop
    *        True to wait for the web progress listener to send STATE_STOP for the
    *        document in the tab. Defaults to false.
+   * @param {boolean} forceNewProcess
+   *        True to force the new tab to load in a new process. Defaults to
+   *        false.
    *
    * @return {Promise}
    *         Resolves when the tab is ready and loaded as necessary.
    * @resolves The new tab.
    */
-  openNewForegroundTab(tabbrowser, opening = "about:blank", aWaitForLoad = true, aWaitForStateStop = false) {
-    let tab;
-    let promises = [
-      BrowserTestUtils.switchTab(tabbrowser, function () {
-        if (typeof opening == "function") {
-          opening();
-          tab = tabbrowser.selectedTab;
-        }
-        else {
-          tabbrowser.selectedTab = tab = tabbrowser.addTab(opening);
-        }
-      })
-    ];
+  openNewForegroundTab(tabbrowser, ...args) {
+    let options;
+    if (tabbrowser instanceof Ci.nsIDOMXULElement) {
+      // tabbrowser is a tabbrowser, read the rest of the arguments from args.
+      let [
+        opening = "about:blank",
+        waitForLoad = true,
+        waitForStateStop = false,
+        forceNewProcess = false,
+      ] = args;
 
-    if (aWaitForLoad) {
-      promises.push(BrowserTestUtils.browserLoaded(tab.linkedBrowser));
-    }
-    if (aWaitForStateStop) {
-      promises.push(BrowserTestUtils.browserStopped(tab.linkedBrowser));
+      options = { opening, waitForLoad, waitForStateStop, forceNewProcess };
+    } else {
+      if ("url" in tabbrowser && !("opening" in tabbrowser)) {
+        tabbrowser.opening = tabbrowser.url;
+      }
+
+      let {
+        opening = "about:blank",
+        waitForLoad = true,
+        waitForStateStop = false,
+        forceNewProcess = false,
+      } = tabbrowser;
+
+      tabbrowser = tabbrowser.gBrowser;
+      options = { opening, waitForLoad, waitForStateStop, forceNewProcess };
     }
 
+    let { opening: opening,
+          waitForLoad: aWaitForLoad,
+          waitForStateStop: aWaitForStateStop
+    } = options;
+
+    let promises, tab;
+    try {
+      // If we're asked to force a new process, replace the normal process
+      // selector with one that always asks for a new process.
+      // If DEFAULT_PROCESSSELECTOR_CID is null, we're in non-e10s mode and we
+      // should skip this.
+      if (options.forceNewProcess && DEFAULT_PROCESSSELECTOR_CID) {
+        registrar.registerFactory(OUR_PROCESSSELECTOR_CID, "",
+                                  PROCESSSELECTOR_CONTRACTID, null);
+      }
+
+      promises = [
+        BrowserTestUtils.switchTab(tabbrowser, function () {
+          if (typeof opening == "function") {
+            opening();
+            tab = tabbrowser.selectedTab;
+          }
+          else {
+            tabbrowser.selectedTab = tab = tabbrowser.addTab(opening);
+          }
+        })
+      ];
+
+      if (aWaitForLoad) {
+        promises.push(BrowserTestUtils.browserLoaded(tab.linkedBrowser));
+      }
+      if (aWaitForStateStop) {
+        promises.push(BrowserTestUtils.browserStopped(tab.linkedBrowser));
+      }
+    } finally {
+      // Restore the original process selector, if needed.
+      if (options.forceNewProcess && DEFAULT_PROCESSSELECTOR_CID) {
+        registrar.registerFactory(DEFAULT_PROCESSSELECTOR_CID, "",
+                                  PROCESSSELECTOR_CONTRACTID, null);
+      }
+    }
     return Promise.all(promises).then(() => tab);
   },
 
@@ -147,10 +224,9 @@ this.BrowserTestUtils = {
    */
   switchTab(tabbrowser, tab) {
     let promise = new Promise(resolve => {
-      tabbrowser.addEventListener("TabSwitchDone", function onSwitch() {
-        tabbrowser.removeEventListener("TabSwitchDone", onSwitch);
+      tabbrowser.addEventListener("TabSwitchDone", function() {
         TestUtils.executeSoon(() => resolve(tabbrowser.selectedTab));
-      });
+      }, {once: true});
     });
 
     if (typeof tab == "function") {
@@ -184,6 +260,18 @@ this.BrowserTestUtils = {
    * @resolves When a load event is triggered for the browser.
    */
   browserLoaded(browser, includeSubFrames=false, wantLoad=null) {
+    // Passing a url as second argument is a common mistake we should prevent.
+    if (includeSubFrames && typeof includeSubFrames != "boolean") {
+      throw("The second argument to browserLoaded should be a boolean.");
+    }
+
+    // If browser belongs to tabbrowser-tab, ensure it has been
+    // inserted into the document.
+    let tabbrowser = browser.ownerGlobal.gBrowser;
+    if (tabbrowser && tabbrowser.getTabForBrowser) {
+      tabbrowser._insertBrowser(tabbrowser.getTabForBrowser(browser));
+    }
+
     function isWanted(url) {
       if (!wantLoad) {
         return true;
@@ -196,7 +284,7 @@ this.BrowserTestUtils = {
     }
 
     return new Promise(resolve => {
-      let mm = browser.ownerDocument.defaultView.messageManager;
+      let mm = browser.ownerGlobal.messageManager;
       mm.addMessageListener("browser-test-utils:loadEvent", function onLoad(msg) {
         if (msg.target == browser && (!msg.data.subframe || includeSubFrames) &&
             isWanted(msg.data.url)) {
@@ -229,25 +317,41 @@ this.BrowserTestUtils = {
     });
   },
 
+  _webProgressListeners: new Set(),
+
   /**
    * Waits for the web progress listener associated with this tab to fire a
    * STATE_STOP for the toplevel document.
    *
    * @param {xul:browser} browser
    *        A xul:browser.
+   * @param {String} expectedURI (optional)
+   *        A specific URL to check the channel load against
+   * @param {Boolean} checkAborts (optional, defaults to false)
+   *        Whether NS_BINDING_ABORTED stops 'count' as 'real' stops
+   *        (e.g. caused by the stop button or equivalent APIs)
    *
    * @return {Promise}
    * @resolves When STATE_STOP reaches the tab's progress listener
    */
-  browserStopped(browser) {
+  browserStopped(browser, expectedURI, checkAborts=false) {
     return new Promise(resolve => {
+      const kDocStopFlags = Ci.nsIWebProgressListener.STATE_IS_NETWORK |
+                            Ci.nsIWebProgressListener.STATE_STOP;
       let wpl = {
         onStateChange(aWebProgress, aRequest, aStateFlags, aStatus) {
-          if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+          dump("Saw state " + aStateFlags.toString(16) + " and status " + aStatus.toString(16) + "\n");
+          if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK &&
+              aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+              (checkAborts || aStatus != Cr.NS_BINDING_ABORTED) &&
               aWebProgress.isTopLevel) {
-            browser.webProgress.removeProgressListener(filter);
-            filter.removeProgressListener(wpl);
-            resolve();
+            let chan = aRequest.QueryInterface(Ci.nsIChannel);
+            dump("Browser loaded " + chan.originalURI.spec + "\n");
+            if (!expectedURI || chan.originalURI.spec == expectedURI) {
+              browser.removeProgressListener(wpl);
+              BrowserTestUtils._webProgressListeners.delete(wpl);
+              resolve();
+            }
           };
         },
         onSecurityChange() {},
@@ -256,17 +360,17 @@ this.BrowserTestUtils = {
         QueryInterface: XPCOMUtils.generateQI([
           Ci.nsIWebProgressListener,
           Ci.nsIWebProgressListener2,
+          Ci.nsISupportsWeakReference,
         ]),
       };
-      const filter = Cc["@mozilla.org/appshell/component/browser-status-filter;1"]
-                       .createInstance(Ci.nsIWebProgress);
-      filter.addProgressListener(wpl, Ci.nsIWebProgress.NOTIFY_ALL);
-      browser.webProgress.addProgressListener(filter, Ci.nsIWebProgress.NOTIFY_ALL);
+      browser.addProgressListener(wpl);
+      this._webProgressListeners.add(wpl);
+      dump("Waiting for browser load" + (expectedURI ? (" of " + expectedURI) : "") + "\n");
     });
   },
 
   /**
-   * Waits for the next tab to open and load a given URL.
+   * Waits for a tab to open and load a given URL.
    *
    * The method doesn't wait for the tab contents to load.
    *
@@ -274,32 +378,59 @@ this.BrowserTestUtils = {
    *        The tabbrowser to look for the next new tab in.
    * @param {string} url
    *        A string URL to look for in the new tab. If null, allows any non-blank URL.
+   * @param {boolean} waitForLoad
+   *        True to wait for the page in the new tab to load. Defaults to false.
+   * @param {boolean} waitForAnyTab
+   *        True to wait for the url to be loaded in any new tab, not just the next
+   *        one opened.
    *
    * @return {Promise}
-   * @resolves With the {xul:tab} when a tab is opened and its location changes to the given URL.
+   * @resolves With the {xul:tab} when a tab is opened and its location changes
+   *           to the given URL and optionally that browser has loaded.
    *
    * NB: this method will not work if you open a new tab with e.g. BrowserOpenTab
    * and the tab does not load a URL, because no onLocationChange will fire.
    */
-  waitForNewTab(tabbrowser, url) {
+  waitForNewTab(tabbrowser, url, waitForLoad = false, waitForAnyTab = false) {
+    let urlMatches = url ? (urlToMatch) => urlToMatch == url
+                         : (urlToMatch) => urlToMatch != "about:blank";
     return new Promise((resolve, reject) => {
-      tabbrowser.tabContainer.addEventListener("TabOpen", function onTabOpen(openEvent) {
-        tabbrowser.tabContainer.removeEventListener("TabOpen", onTabOpen);
+      tabbrowser.tabContainer.addEventListener("TabOpen", function tabOpenListener(openEvent) {
+        if (!waitForAnyTab) {
+          tabbrowser.tabContainer.removeEventListener("TabOpen", tabOpenListener);
+        }
+        let newTab = openEvent.target;
+        let newBrowser = newTab.linkedBrowser;
+        let result;
+        if (waitForLoad) {
+          // If waiting for load, resolve with promise for that, which when load
+          // completes resolves to the new tab.
+          result = BrowserTestUtils.browserLoaded(newBrowser, false, urlMatches)
+                                   .then(() => newTab);
+        } else {
+          // If not waiting for load, just resolve with the new tab.
+          result = newTab;
+        }
 
         let progressListener = {
           onLocationChange(aBrowser) {
-            if (aBrowser != openEvent.target.linkedBrowser ||
-                (url && aBrowser.currentURI.spec != url) ||
-                (!url && aBrowser.currentURI.spec == "about:blank")) {
+            // Only interested in location changes on our browser.
+            if (aBrowser != newBrowser) {
               return;
             }
 
+            // Check that new location is the URL we want.
+            if (!urlMatches(aBrowser.currentURI.spec)) {
+              return;
+            }
+            if (waitForAnyTab) {
+              tabbrowser.tabContainer.removeEventListener("TabOpen", tabOpenListener);
+            }
             tabbrowser.removeTabsProgressListener(progressListener);
-            resolve(openEvent.target);
+            resolve(result);
           },
         };
         tabbrowser.addTabsProgressListener(progressListener);
-
       });
     });
   },
@@ -347,9 +478,9 @@ this.BrowserTestUtils = {
    *         A Promise which resolves the next time that a DOM window
    *         opens and the delayed startup observer notification fires.
    */
-  waitForNewWindow: Task.async(function* (delayedStartup=true,
+  async waitForNewWindow(delayedStartup=true,
                                           initialBrowserLoaded=null) {
-    let win = yield this.domWindowOpened();
+    let win = await this.domWindowOpened();
 
     let promises = [
       TestUtils.topicObserved("browser-delayed-startup-finished",
@@ -357,7 +488,7 @@ this.BrowserTestUtils = {
     ];
 
     if (initialBrowserLoaded) {
-      yield this.waitForEvent(win, "DOMContentLoaded");
+      await this.waitForEvent(win, "DOMContentLoaded");
 
       let browser = win.gBrowser.selectedBrowser;
 
@@ -367,17 +498,17 @@ this.BrowserTestUtils = {
                                 : Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT;
       if (win.gMultiProcessBrowser &&
           !E10SUtils.canLoadURIInProcess(initialBrowserLoaded, process)) {
-        yield this.waitForEvent(browser, "XULFrameLoaderCreated");
+        await this.waitForEvent(browser, "XULFrameLoaderCreated");
       }
 
       let loadPromise = this.browserLoaded(browser, false, initialBrowserLoaded);
       promises.push(loadPromise);
     }
 
-    yield Promise.all(promises);
+    await Promise.all(promises);
 
     return win;
-  }),
+  },
 
   /**
    * Loads a new URI in the given browser and waits until we really started
@@ -392,12 +523,12 @@ this.BrowserTestUtils = {
    * @return {Promise}
    * @resolves When we started loading the given URI.
    */
-  loadURI: Task.async(function* (browser, uri) {
+  async loadURI(browser, uri) {
     // Load the new URI.
     browser.loadURI(uri);
 
     // Nothing to do in non-e10s mode.
-    if (!browser.ownerDocument.defaultView.gMultiProcessBrowser) {
+    if (!browser.ownerGlobal.gMultiProcessBrowser) {
       return;
     }
 
@@ -409,9 +540,9 @@ this.BrowserTestUtils = {
     // should wait for the new frameLoader to be created. This will happen
     // asynchronously when the browser's remoteness changes.
     if (!E10SUtils.canLoadURIInProcess(uri, process)) {
-      yield this.waitForEvent(browser, "XULFrameLoaderCreated");
+      await this.waitForEvent(browser, "XULFrameLoaderCreated");
     }
-  }),
+  },
 
   /**
    * @param win (optional)
@@ -478,11 +609,16 @@ this.BrowserTestUtils = {
    * @return {Promise}
    *         Resolves with the new window once it is loaded.
    */
-  openNewBrowserWindow: Task.async(function*(options={}) {
+  async openNewBrowserWindow(options={}) {
     let argString = Cc["@mozilla.org/supports-string;1"].
                     createInstance(Ci.nsISupportsString);
     argString.data = "";
     let features = "chrome,dialog=no,all";
+    let opener = null;
+
+    if (options.opener) {
+      opener = options.opener;
+    }
 
     if (options.private) {
       features += ",private";
@@ -495,13 +631,21 @@ this.BrowserTestUtils = {
       features += ",height=" + options.height;
     }
 
+    if (options.left) {
+      features += ",left=" + options.left;
+    }
+
+    if (options.top) {
+      features += ",top=" + options.top;
+    }
+
     if (options.hasOwnProperty("remote")) {
       let remoteState = options.remote ? "remote" : "non-remote";
       features += `,${remoteState}`;
     }
 
     let win = Services.ww.openWindow(
-      null, Services.prefs.getCharPref("browser.chromeURL"), "_blank",
+      opener, Services.prefs.getCharPref("browser.chromeURL"), "_blank",
       features, argString);
 
     // Wait for browser-delayed-startup-finished notification, it indicates
@@ -513,11 +657,11 @@ this.BrowserTestUtils = {
 
     let loadPromise = this.firstBrowserLoaded(win);
 
-    yield startupPromise;
-    yield loadPromise;
+    await startupPromise;
+    await loadPromise;
 
     return win;
-  }),
+  },
 
   /**
    * Closes a window.
@@ -555,6 +699,11 @@ this.BrowserTestUtils = {
     if (winType == "navigator:browser") {
       let finalMsgsPromise = new Promise((resolve) => {
         let browserSet = new Set(win.gBrowser.browsers);
+        // Ensure all browsers have been inserted or we won't get
+        // messages back from them.
+        browserSet.forEach((browser) => {
+          win.gBrowser._insertBrowser(win.gBrowser.getTabForBrowser(browser));
+        })
         let mm = win.getGroupMessageManager("browsers");
 
         mm.addMessageListener("SessionStore:update", function onMessage(msg) {
@@ -697,7 +846,7 @@ this.BrowserTestUtils = {
     let waitForLoad = () =>
       this.waitForContentEvent(browser, "AboutNetErrorLoad", false, null, true);
 
-    let win = browser.ownerDocument.defaultView;
+    let win = browser.ownerGlobal;
     let tab = win.gBrowser.getTabForBrowser(browser);
     if (!tab || browser.isRemoteBrowser || !win.gMultiProcessBrowser) {
       return waitForLoad();
@@ -707,10 +856,9 @@ this.BrowserTestUtils = {
     // quite careful in order to make sure we're adding the listener in time to
     // get this event:
     return new Promise((resolve, reject) => {
-      tab.addEventListener("TabRemotenessChange", function onTRC() {
-        tab.removeEventListener("TabRemotenessChange", onTRC);
+      tab.addEventListener("TabRemotenessChange", function() {
         waitForLoad().then(resolve, reject);
-      });
+      }, {once: true});
     });
   },
 
@@ -784,7 +932,7 @@ this.BrowserTestUtils = {
       messageManager.addMessageListener(message, function onMessage(msg) {
         if (!checkFn || checkFn(msg)) {
           messageManager.removeMessageListener(message, onMessage);
-          resolve();
+          resolve(msg.data);
         }
       });
     });
@@ -814,10 +962,31 @@ this.BrowserTestUtils = {
   /**
    * Removes the given tab from its parent tabbrowser and
    * waits until its final message has reached the parent.
+   *
+   * @param (tab) tab
+   *        The tab to remove.
+   * @param (Object) options
+   *        Extra options to pass to tabbrowser's removeTab method.
+   * @returns (Promise)
+   * @resolves When the tab is removed. Does not get passed a value.
    */
   removeTab(tab, options = {}) {
-    let dontRemove = options && options.dontRemove;
+    let tabRemoved = BrowserTestUtils.tabRemoved(tab);
+    if (!tab.closing) {
+      tab.ownerGlobal.gBrowser.removeTab(tab, options);
+    }
+    return tabRemoved;
+  },
 
+  /**
+   * Returns a Promise that resolves once a tab has been removed.
+   *
+   * @param (tab) tab
+   *        The tab that will be removed.
+   * @returns (Promise)
+   * @resolves When the tab is removed. Does not get passed a value.
+   */
+  tabRemoved(tab) {
     return new Promise(resolve => {
       let {messageManager: mm, frameLoader} = tab.linkedBrowser;
       mm.addMessageListener("SessionStore:update", function onMessage(msg) {
@@ -826,10 +995,6 @@ this.BrowserTestUtils = {
           resolve();
         }
       }, true);
-
-      if (!dontRemove && !tab.closing) {
-        tab.ownerDocument.defaultView.gBrowser.removeTab(tab);
-      }
     });
   },
 
@@ -843,12 +1008,15 @@ this.BrowserTestUtils = {
    *        True if it is expected that the tab crashed page will be shown
    *        for this browser. If so, the Promise will only resolve once the
    *        tab crash page has loaded.
+   * @param (bool) shouldClearMinidumps
+   *        True if the minidumps left behind by the crash should be removed.
    *
    * @returns (Promise)
    * @resolves An Object with key-value pairs representing the data from the
    *           crash report's extra file (if applicable).
    */
-  crashBrowser: Task.async(function*(browser, shouldShowTabCrashPage=true) {
+  async crashBrowser(browser, shouldShowTabCrashPage=true,
+                     shouldClearMinidumps=true) {
     let extra = {};
     let KeyValueParser = {};
     if (AppConstants.MOZ_CRASHREPORTER) {
@@ -932,31 +1100,41 @@ this.BrowserTestUtils = {
           }
         }
 
-        if (dumpID) {
-          let minidumpDirectory = getMinidumpDirectory();
-          let extrafile = minidumpDirectory.clone();
-          extrafile.append(dumpID + '.extra');
-          if (extrafile.exists()) {
-            dump(`\nNo .extra file for dumpID: ${dumpID}\n`);
-            if (AppConstants.MOZ_CRASHREPORTER) {
-              extra = KeyValueParser.parseKeyValuePairsFromFile(extrafile);
-            } else {
-              dump('\nCrashReporter not enabled - will not return any extra data\n');
-            }
-          }
+        let removalPromise = Promise.resolve();
 
-          removeFile(minidumpDirectory, dumpID + '.dmp');
-          removeFile(minidumpDirectory, dumpID + '.extra');
+        if (dumpID) {
+          removalPromise = Services.crashmanager.ensureCrashIsPresent(dumpID)
+                                                .then(() => {
+            let minidumpDirectory = getMinidumpDirectory();
+            let extrafile = minidumpDirectory.clone();
+            extrafile.append(dumpID + '.extra');
+            if (extrafile.exists()) {
+              dump(`\nNo .extra file for dumpID: ${dumpID}\n`);
+              if (AppConstants.MOZ_CRASHREPORTER) {
+                extra = KeyValueParser.parseKeyValuePairsFromFile(extrafile);
+              } else {
+                dump('\nCrashReporter not enabled - will not return any extra data\n');
+              }
+            }
+
+            if (shouldClearMinidumps) {
+              removeFile(minidumpDirectory, dumpID + '.dmp');
+              removeFile(minidumpDirectory, dumpID + '.extra');
+            }
+          });
         }
 
-        Services.obs.removeObserver(observer, 'ipc:content-shutdown');
-        dump("\nCrash cleaned up\n");
-        // There might be other ipc:content-shutdown handlers that need to run before
-        // we want to continue, so we'll resolve on the next tick of the event loop.
-        TestUtils.executeSoon(() => resolve());
+        removalPromise.then(() => {
+          Services.obs.removeObserver(observer, 'ipc:content-shutdown');
+          dump("\nCrash cleaned up\n");
+          // There might be other ipc:content-shutdown handlers that need to
+          // run before we want to continue, so we'll resolve on the next tick
+          // of the event loop.
+          TestUtils.executeSoon(() => resolve());
+        });
       };
 
-      Services.obs.addObserver(observer, 'ipc:content-shutdown', false);
+      Services.obs.addObserver(observer, 'ipc:content-shutdown');
     });
 
     expectedPromises.push(crashCleanupPromise);
@@ -964,7 +1142,7 @@ this.BrowserTestUtils = {
     if (shouldShowTabCrashPage) {
       expectedPromises.push(new Promise((resolve, reject) => {
         browser.addEventListener("AboutTabCrashedReady", function onCrash() {
-          browser.removeEventListener("AboutTabCrashedReady", onCrash, false);
+          browser.removeEventListener("AboutTabCrashedReady", onCrash);
           dump("\nabout:tabcrashed loaded and ready\n");
           resolve();
         }, false, true);
@@ -976,10 +1154,10 @@ this.BrowserTestUtils = {
     let mm = browser.messageManager;
     mm.loadFrameScript("data:,(" + frame_script.toString() + ")();", false);
 
-    yield Promise.all(expectedPromises);
+    await Promise.all(expectedPromises);
 
     if (shouldShowTabCrashPage) {
-      let gBrowser = browser.ownerDocument.defaultView.gBrowser;
+      let gBrowser = browser.ownerGlobal.gBrowser;
       let tab = gBrowser.getTabForBrowser(browser);
       if (tab.getAttribute("crashed") != "true") {
         throw new Error("Tab should be marked as crashed");
@@ -987,7 +1165,7 @@ this.BrowserTestUtils = {
     }
 
     return extra;
-  }),
+  },
 
   /**
    * Returns a promise that is resolved when element gains attribute (or,
@@ -1002,7 +1180,7 @@ this.BrowserTestUtils = {
    * @returns {Promise}
    */
   waitForAttribute(attr, element, value) {
-    let MutationObserver = element.ownerDocument.defaultView.MutationObserver;
+    let MutationObserver = element.ownerGlobal.MutationObserver;
     return new Promise(resolve => {
       let mut = new MutationObserver(mutations => {
         if ((!value && element.getAttribute(attr)) ||
@@ -1144,53 +1322,8 @@ this.BrowserTestUtils = {
     });
   },
 
-  /**
-   * Will poll a condition function until it returns true.
-   *
-   * @param condition
-   *        A condition function that must return true or false. If the
-   *        condition ever throws, this is also treated as a false. The
-   *        function can be a generator.
-   * @param interval
-   *        The time interval to poll the condition function. Defaults
-   *        to 100ms.
-   * @param attempts
-   *        The number of times to poll before giving up and rejecting
-   *        if the condition has not yet returned true. Defaults to 50
-   *        (~5 seconds for 100ms intervals)
-   * @return Promise
-   *        Resolves when condition is true.
-   *        Rejects if timeout is exceeded or condition ever throws.
-   */
-  waitForCondition(condition, msg, interval=100, maxTries=50) {
-    return new Promise((resolve, reject) => {
-      let tries = 0;
-      let intervalID = setInterval(Task.async(function* () {
-        if (tries >= maxTries) {
-          clearInterval(intervalID);
-          msg += ` - timed out after ${maxTries} tries.`;
-          reject(msg);
-          return;
-        }
-
-        let conditionPassed = false;
-        try {
-          conditionPassed = yield condition();
-        } catch(e) {
-          msg += ` - threw exception: ${e}`;
-          clearInterval(intervalID);
-          reject(msg);
-          return;
-        }
-
-        if (conditionPassed) {
-          clearInterval(intervalID);
-          resolve();
-        }
-        tries++;
-      }), interval);
-    });
-  },
+  // TODO: Fix consumers and remove me.
+  waitForCondition: TestUtils.waitForCondition,
 
   /**
    * Waits for a <xul:notification> with a particular value to appear
@@ -1259,7 +1392,7 @@ this.BrowserTestUtils = {
    * @returns Promise
    */
   contentPainted(browser) {
-    return ContentTask.spawn(browser, null, function*() {
+    return ContentTask.spawn(browser, null, async function() {
       return new Promise((resolve) => {
         addEventListener("MozAfterPaint", function onPaint() {
           removeEventListener("MozAfterPaint", onPaint);
@@ -1320,10 +1453,22 @@ this.BrowserTestUtils = {
     return rv.then(() => this._knownAboutPages.delete(aboutModule));
   },
 
-  *_removeAboutPageRegistrations() {
+  async _removeAboutPageRegistrations() {
     for (let aboutModule of this._knownAboutPages) {
-      yield this.unregisterAboutPage(aboutModule);
+      await this.unregisterAboutPage(aboutModule);
     }
     Services.ppmm.removeDelayedProcessScript(kAboutPageRegistrationContentScript);
   },
+
+  /**
+   * Opens a tab with a given uri and params object. If the params object is not set
+   * or the params parameter does not include a triggeringPricnipal then this function
+   * provides a params object using the systemPrincipal as the default triggeringPrincipal.
+   */
+  addTab(browser, uri, params = {}) {
+    if (!params.triggeringPrincipal) {
+      params.triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
+    }
+    return browser.addTab(uri, params);
+  }
 };

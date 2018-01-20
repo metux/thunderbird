@@ -33,6 +33,8 @@ lightning.jar:
 % overlay chrome://lightning/content/messenger-overlay-sidebar.xul chrome://lightning/content/suite-overlay-sidebar.xul application={92650c4d-4b8e-4d2a-b7eb-24ecf4f6b63a}
 % overlay chrome://calendar/content/calendarCreation.xul chrome://lightning/content/lightning-calendar-creation.xul
 % overlay chrome://calendar/content/calendar-properties-dialog.xul chrome://lightning/content/lightning-calendar-properties.xul
+% overlay chrome://lightning/content/lightning-calendar-creation.xul chrome://lightning/content/caldav-lightning-calendar-creation.xul
+% overlay chrome://lightning/content/lightning-calendar-properties.xul chrome://lightning/content/caldav-lightning-calendar-properties.xul
 % override chrome://lightning/skin/accountCentral.css chrome://lightning-common/skin/suite-accountCentral.css application={92650c4d-4b8e-4d2a-b7eb-24ecf4f6b63a}
 % content lightning %content/lightning/
     content/lightning/imip-bar.js                          (content/imip-bar.js)
@@ -44,7 +46,7 @@ lightning.jar:
     content/lightning/lightning-invitation.xhtml           (content/lightning-invitation.xhtml)
     content/lightning/lightning-menus.xul                  (content/lightning-menus.xul)
     content/lightning/lightning-migration.xul              (content/lightning-migration.xul)
-*   content/lightning/lightning-toolbar.xul                (content/lightning-toolbar.xul)
+    content/lightning/lightning-toolbar.xul                (content/lightning-toolbar.xul)
     content/lightning/lightning-utils.js                   (content/lightning-utils.js)
     content/lightning/lightning-widgets.css                (content/lightning-widgets.css)
     content/lightning/lightning-widgets.xml                (content/lightning-widgets.xml)
@@ -59,16 +61,23 @@ lightning.jar:
     content/lightning/suite-overlay-sidebar.js             (content/suite-overlay-sidebar.js)
     content/lightning/suite-overlay-sidebar.xul            (content/suite-overlay-sidebar.xul)
     content/lightning/lightning-item-toolbar.xul           (content/lightning-item-toolbar.xul)
-*   content/lightning/lightning-item-panel.xul             (content/lightning-item-panel.xul)
+    content/lightning/lightning-item-panel.xul             (content/lightning-item-panel.xul)
     content/lightning/lightning-item-panel.js              (content/lightning-item-panel.js)
     content/lightning/lightning-item-iframe.xul            (content/lightning-item-iframe.xul)
     content/lightning/lightning-item-iframe.js             (content/lightning-item-iframe.js)
     content/lightning/html-item-editing/lightning-item-iframe.html      (content/html-item-editing/lightning-item-iframe.html)
     content/lightning/html-item-editing/react-code.js                   (content/html-item-editing/react-code.js)
+    content/lightning/caldav-lightning-calendar-creation.xul    (../providers/caldav/content/caldav-lightning-calendar-creation.xul)
+    content/lightning/caldav-lightning-calendar-creation.js     (../providers/caldav/content/caldav-lightning-calendar-creation.js)
+    content/lightning/caldav-lightning-calendar-properties.xul  (../providers/caldav/content/caldav-lightning-calendar-properties.xul)
+    content/lightning/caldav-lightning-calendar-properties.js   (../providers/caldav/content/caldav-lightning-calendar-properties.js)
+    content/lightning/caldav-lightning-utils.js                 (../providers/caldav/content/caldav-lightning-utils.js)
+
 % skin lightning classic/1.0 chrome/skin/linux/lightning/
 % skin lightning classic/1.0 chrome/skin/osx/lightning/ os=Darwin
 % skin lightning classic/1.0 chrome/skin/windows/lightning/ os=WINNT
 % skin lightning-common classic/1.0 chrome/skin/lightning-common/
+% style chrome://messenger/content/messageWindow.xul chrome://lightning/skin/lightning.css
 % style chrome://global/content/customizeToolbar.xul chrome://lightning/skin/lightning-toolbar.css
 % style chrome://calendar/content/calendar-event-dialog.xul chrome://communicator/skin/communicator.css application={92650c4d-4b8e-4d2a-b7eb-24ecf4f6b63a}
 % style chrome://global/content/customizeToolbar.xul chrome://lightning-common/skin/lightning.css application={92650c4d-4b8e-4d2a-b7eb-24ecf4f6b63a}
@@ -97,27 +106,25 @@ lightning.jar:
 # Windows theme files
     ../skin/windows/lightning/accountCentral.css              (themes/windows/accountCentral.css)
     ../skin/windows/lightning/imip.css                        (themes/windows/imip.css)
-    ../skin/windows/lightning/imip.png                        (themes/windows/imip.png)
     ../skin/windows/lightning/lightning.css                   (themes/windows/lightning.css)
     ../skin/windows/lightning/lightning-toolbar.css           (themes/windows/lightning-toolbar.css)
     ../skin/windows/lightning/lightning-widgets.css           (themes/windows/lightning-widgets.css)
-    ../skin/windows/lightning/imip-aero.png                   (themes/windows/images/imip-aero.png)
     ../skin/windows/lightning/mode-switch-icons-aero.png      (themes/windows/images/mode-switch-icons-aero.png)
-    ../skin/windows/lightning/mode-switch-icons-inverted.png  (themes/windows/images/mode-switch-icons-inverted.png)
 
 
 calendar.jar:
-    content/calendar/calendarCreation.xul                  (/calendar/resources/content/calendarCreation.xul)
-    content/calendar/calendarCreation.js                   (/calendar/resources/content/calendarCreation.js)
-    content/calendar/datetimepickers/datetimepickers.css   (/calendar/resources/content/datetimepickers/datetimepickers.css)
-    content/calendar/datetimepickers/datetimepickers.xml   (/calendar/resources/content/datetimepickers/datetimepickers.xml)
-    content/calendar/mouseoverPreviews.js                  (/calendar/resources/content/mouseoverPreviews.js)
-    content/calendar/publish.js                            (/calendar/resources/content/publish.js)
-    content/calendar/publishDialog.js                      (/calendar/resources/content/publishDialog.js)
-    content/calendar/publishDialog.xul                     (/calendar/resources/content/publishDialog.xul)
-    content/calendar/sound.wav                             (/calendar/resources/content/sound.wav)
-    ../skin/lightning-common/datetimepickers.css           (/calendar/resources/skin/datetimepickers.css)
-    ../skin/lightning-common/dialogOverlay.css             (/calendar/resources/skin/dialogOverlay.css)
+    content/calendar/calendarCreation.xul                  (../resources/content/calendarCreation.xul)
+    content/calendar/calendarCreation.js                   (../resources/content/calendarCreation.js)
+    content/calendar/datetimepickers/datetimepickers.css   (../resources/content/datetimepickers/datetimepickers.css)
+    content/calendar/datetimepickers/datetimepickers.xml   (../resources/content/datetimepickers/datetimepickers.xml)
+    content/calendar/mouseoverPreviews.js                  (../resources/content/mouseoverPreviews.js)
+    content/calendar/publish.js                            (../resources/content/publish.js)
+    content/calendar/publishDialog.js                      (../resources/content/publishDialog.js)
+    content/calendar/publishDialog.xul                     (../resources/content/publishDialog.xul)
+    content/calendar/sound.wav                             (../resources/content/sound.wav)
+    ../skin/lightning-common/datetimepickers.css           (../resources/skin/datetimepickers.css)
+    ../skin/lightning-common/dialogOverlay.css             (../resources/skin/dialogOverlay.css)
     ../skin/lightning-common/imip.css                      (themes/common/imip.css)
     ../skin/lightning-common/lightning.css                 (themes/common/lightning.css)
+    ../skin/lightning-common/lightning-toolbar.css         (themes/common/lightning-toolbar.css)
     ../skin/lightning-common/html-item-editing.css         (themes/common/html-item-editing.css)

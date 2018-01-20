@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-'use strict';
+"use strict";
 
 var Ci = Components.interfaces;
 var Cc = Components.classes;
 var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
-const FileUtils = Cu.import("resource://gre/modules/FileUtils.jsm").FileUtils
+const FileUtils = Cu.import("resource://gre/modules/FileUtils.jsm").FileUtils;
 const gEnv = Cc["@mozilla.org/process/environment;1"]
                .getService(Ci.nsIEnvironment);
-const gDashboard = Cc['@mozilla.org/network/dashboard;1']
+const gDashboard = Cc["@mozilla.org/network/dashboard;1"]
                      .getService(Ci.nsIDashboard);
 const gDirServ = Cc["@mozilla.org/file/directory_service;1"]
                    .getService(Ci.nsIDirectoryServiceProvider);
@@ -21,32 +21,36 @@ const gRequestNetworkingData = {
   "http": gDashboard.requestHttpConnections,
   "sockets": gDashboard.requestSockets,
   "dns": gDashboard.requestDNSInfo,
-  "websockets": gDashboard.requestWebsocketConnections
+  "websockets": gDashboard.requestWebsocketConnections,
+  "dnslookuptool": () => {},
+  "logging": () => {},
+  "rcwn": gDashboard.requestRcwnStats,
 };
 const gDashboardCallbacks = {
   "http": displayHttp,
   "sockets": displaySockets,
   "dns": displayDns,
-  "websockets": displayWebsockets
+  "websockets": displayWebsockets,
+  "rcwn": displayRcwnStats,
 };
 
 const REFRESH_INTERVAL_MS = 3000;
 
 function col(element) {
-  let col = document.createElement('td');
+  let col = document.createElement("td");
   let content = document.createTextNode(element);
   col.appendChild(content);
   return col;
 }
 
 function displayHttp(data) {
-  let cont = document.getElementById('http_content');
+  let cont = document.getElementById("http_content");
   let parent = cont.parentNode;
-  let new_cont = document.createElement('tbody');
-  new_cont.setAttribute('id', 'http_content');
+  let new_cont = document.createElement("tbody");
+  new_cont.setAttribute("id", "http_content");
 
   for (let i = 0; i < data.connections.length; i++) {
-    let row = document.createElement('tr');
+    let row = document.createElement("tr");
     row.appendChild(col(data.connections[i].host));
     row.appendChild(col(data.connections[i].port));
     row.appendChild(col(data.connections[i].spdy));
@@ -60,13 +64,13 @@ function displayHttp(data) {
 }
 
 function displaySockets(data) {
-  let cont = document.getElementById('sockets_content');
+  let cont = document.getElementById("sockets_content");
   let parent = cont.parentNode;
-  let new_cont = document.createElement('tbody');
-  new_cont.setAttribute('id', 'sockets_content');
+  let new_cont = document.createElement("tbody");
+  new_cont.setAttribute("id", "sockets_content");
 
   for (let i = 0; i < data.sockets.length; i++) {
-    let row = document.createElement('tr');
+    let row = document.createElement("tr");
     row.appendChild(col(data.sockets[i].host));
     row.appendChild(col(data.sockets[i].port));
     row.appendChild(col(data.sockets[i].tcp));
@@ -80,20 +84,20 @@ function displaySockets(data) {
 }
 
 function displayDns(data) {
-  let cont = document.getElementById('dns_content');
+  let cont = document.getElementById("dns_content");
   let parent = cont.parentNode;
-  let new_cont = document.createElement('tbody');
-  new_cont.setAttribute('id', 'dns_content');
+  let new_cont = document.createElement("tbody");
+  new_cont.setAttribute("id", "dns_content");
 
   for (let i = 0; i < data.entries.length; i++) {
-    let row = document.createElement('tr');
+    let row = document.createElement("tr");
     row.appendChild(col(data.entries[i].hostname));
     row.appendChild(col(data.entries[i].family));
-    let column = document.createElement('td');
+    let column = document.createElement("td");
 
     for (let j = 0; j < data.entries[i].hostaddr.length; j++) {
       column.appendChild(document.createTextNode(data.entries[i].hostaddr[j]));
-      column.appendChild(document.createElement('br'));
+      column.appendChild(document.createElement("br"));
     }
 
     row.appendChild(column);
@@ -105,13 +109,13 @@ function displayDns(data) {
 }
 
 function displayWebsockets(data) {
-  let cont = document.getElementById('websockets_content');
+  let cont = document.getElementById("websockets_content");
   let parent = cont.parentNode;
-  let new_cont = document.createElement('tbody');
-  new_cont.setAttribute('id', 'websockets_content');
+  let new_cont = document.createElement("tbody");
+  new_cont.setAttribute("id", "websockets_content");
 
   for (let i = 0; i < data.websockets.length; i++) {
-    let row = document.createElement('tr');
+    let row = document.createElement("tr");
     row.appendChild(col(data.websockets[i].hostport));
     row.appendChild(col(data.websockets[i].encrypted));
     row.appendChild(col(data.websockets[i].msgsent));
@@ -124,6 +128,44 @@ function displayWebsockets(data) {
   parent.replaceChild(new_cont, cont);
 }
 
+function displayRcwnStats(data) {
+  let status = Services.prefs.getBoolPref("network.http.rcwn.enabled");
+  let cacheWon = data.rcwnCacheWonCount;
+  let netWon = data.rcwnNetWonCount;
+  let total = data.totalNetworkRequests;
+  let cacheSlow = data.cacheSlowCount;
+  let cacheNotSlow = data.cacheNotSlowCount;
+
+  document.getElementById("rcwn_status").innerText = status;
+  document.getElementById("total_req_count").innerText = total;
+  document.getElementById("rcwn_cache_won_count").innerText = cacheWon;
+  document.getElementById("rcwn_cache_net_count").innerText = netWon;
+  document.getElementById("rcwn_cache_slow").innerText = cacheSlow;
+  document.getElementById("rcwn_cache_not_slow").innerText = cacheNotSlow;
+
+  // Keep in sync with CachePerfStats::EDataType in CacheFileUtils.h
+  const perfStatTypes = [
+    "open",
+    "read",
+    "write",
+    "entryopen",
+  ];
+
+  const perfStatFieldNames = [
+    "avgShort",
+    "avgLong",
+    "stddevLong",
+  ];
+
+  for (let typeIndex in perfStatTypes) {
+    for (let statFieldIndex in perfStatFieldNames) {
+      document.getElementById("rcwn_perfstats_" + perfStatTypes[typeIndex] + "_"
+                              + perfStatFieldNames[statFieldIndex]).innerText =
+        data.perfStats[typeIndex][perfStatFieldNames[statFieldIndex]];
+    }
+  }
+}
+
 function requestAllNetworkingData() {
   for (let id in gRequestNetworkingData)
     requestNetworkingDataForTab(id);
@@ -133,7 +175,12 @@ function requestNetworkingDataForTab(id) {
   gRequestNetworkingData[id](gDashboardCallbacks[id]);
 }
 
+let gInited = false;
 function init() {
+  if (gInited) {
+    return;
+  }
+  gInited = true;
   gDashboard.enableLogging = true;
   if (Services.prefs.getBoolPref("network.warnOnAboutNetworking")) {
     let div = document.getElementById("warning_message");
@@ -189,7 +236,7 @@ function init() {
   stopLoggingButton.addEventListener("click", stopLogging);
 
   try {
-    let file = gDirServ.getFile("TmpD",  {});
+    let file = gDirServ.getFile("TmpD", {});
     file.append("log.txt");
     document.getElementById("log-file").value = file.path;
   } catch (e) {
@@ -207,6 +254,13 @@ function init() {
   if (setLogButton.disabled && setModulesButton.disabled) {
     startLoggingButton.disabled = true;
     stopLoggingButton.disabled = true;
+  }
+
+  if (location.hash) {
+    let sectionButton = document.getElementById("category-" + location.hash.substring(1));
+    if (sectionButton) {
+      sectionButton.click();
+    }
   }
 }
 
@@ -342,7 +396,7 @@ function stopLogging() {
   updateLogFile();
 }
 
-function confirm () {
+function confirm() {
   let div = document.getElementById("warning_message");
   div.classList.remove("active");
   div.hidden = true;
@@ -352,7 +406,8 @@ function confirm () {
 
 function show(button) {
   let current_tab = document.querySelector(".active");
-  let content = document.getElementById(button.getAttribute("value"));
+  let category = button.getAttribute("id").substring("category-".length);
+  let content = document.getElementById(category);
   if (current_tab == content)
     return;
   current_tab.classList.remove("active");
@@ -372,6 +427,7 @@ function show(button) {
 
   let title = document.getElementById("sectionTitle");
   title.textContent = button.children[0].textContent;
+  location.hash = category;
 }
 
 function setAutoRefreshInterval(checkBox) {
@@ -381,8 +437,11 @@ function setAutoRefreshInterval(checkBox) {
   }, REFRESH_INTERVAL_MS);
 }
 
-window.addEventListener("DOMContentLoaded", function load() {
-  window.removeEventListener("DOMContentLoaded", load);
+// We use the pageshow event instead of onload. This is needed because sometimes
+// the page is loaded via session-restore/bfcache. In such cases we need to call
+// init() to keep the page behaviour consistent with the ticked checkboxes.
+// Mostly the issue is with the autorefresh checkbox.
+window.addEventListener("pageshow", function() {
   init();
 });
 
@@ -405,8 +464,7 @@ function displayDNSLookup(data) {
       row.appendChild(col(address));
       new_cont.appendChild(row);
     }
-  }
-  else {
+  } else {
     new_cont.appendChild(col(data.error));
   }
 

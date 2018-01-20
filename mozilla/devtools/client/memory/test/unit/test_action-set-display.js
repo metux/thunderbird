@@ -1,5 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+
 "use strict";
 
 /**
@@ -8,14 +9,10 @@
  * action for that.
  */
 
-let { censusDisplays, snapshotState: states, censusState, viewState } = require("devtools/client/memory/constants");
+let { censusDisplays, censusState, viewState } = require("devtools/client/memory/constants");
 let { setCensusDisplay } = require("devtools/client/memory/actions/census-display");
 let { takeSnapshotAndCensus } = require("devtools/client/memory/actions/snapshot");
 const { changeView } = require("devtools/client/memory/actions/view");
-
-function run_test() {
-  run_next_test();
-}
 
 // We test setting an invalid display, which triggers an assertion failure.
 EXPECTED_DTU_ASSERT_FAILURE_COUNT = 1;

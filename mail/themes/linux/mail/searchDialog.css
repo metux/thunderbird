@@ -61,10 +61,6 @@ textbox {
   padding-inline-end: 22px;
 }
 
-.fileFieldContentBox {
-  background-color: transparent;
-}
-
 /* ::::: thread decoration ::::: */
 
 treechildren::-moz-tree-cell-text(read) {

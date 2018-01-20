@@ -26,5 +26,5 @@
 <!ENTITY alwaysSend.label             "Luôn gửi">
 <!ENTITY neverSend.label              "Không bao giờ gửi">
 
-<!ENTITY globalReceipts.accesskey     "G">
 <!ENTITY globalReceipts.label         "Global Preferences…">
+<!ENTITY globalReceipts.accesskey     "G">

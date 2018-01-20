@@ -174,6 +174,10 @@ pref("app.update.nagTimer.restart", 1800);
 //     versions.
 pref("app.update.incompatible.mode", 0);
 
+// The time interval between the downloading of mar file chunks in the
+// background (in seconds)
+pref("app.update.download.backgroundInterval", 60);
+
 // base URL for web-based support pages (used by toolkit)
 pref("app.support.baseURL", "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/");
 
@@ -220,7 +224,8 @@ pref("services.kinto.update_enabled", false);
 // Block insecure active content on https pages
 pref("security.mixed_content.block_active_content", true);
 
-// 1 = allow MITM for certificate pinning checks.
+// 1 = allow "Man In The Middle" (local proxy, web filter, etc.) for certificate
+//     pinning checks.
 pref("security.cert_pinning.enforcement_level", 1);
 
 /* Extension manager */
@@ -229,7 +234,6 @@ pref("xpinstall.dialog.progress.skin", "chrome://mozapps/content/extensions/exte
 pref("xpinstall.dialog.progress.chrome", "chrome://mozapps/content/extensions/extensions.xul");
 pref("xpinstall.dialog.progress.type.skin", "Extension:Manager");
 pref("xpinstall.dialog.progress.type.chrome", "Extension:Manager");
-pref("extensions.dss.enabled", false);
 pref("extensions.dss.switchPending", false);
 pref("extensions.ignoreMTimeChanges", false);
 pref("extensions.logging.enabled", false);
@@ -264,8 +268,8 @@ pref("plugins.click_to_play", false);
 // Disable by default.
 pref("plugin.default.state", 0);
 
-// Plugins bundled in XPIs are enabled by default.
-pref("plugin.defaultXpi.state", 2);
+// Plugins bundled in XPIs are disabled by default.
+pref("plugin.defaultXpi.state", 0);
 
 // Flash and Java disabled by default.
 pref("plugin.state.flash", 0);

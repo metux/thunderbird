@@ -212,15 +212,14 @@ NS_IMETHODIMP nsAbDirProperty::SetIsMailList(bool aIsMailList)
 
 NS_IMETHODIMP nsAbDirProperty::GetAddressLists(nsIMutableArray * *aAddressLists)
 {
-  if (!m_AddressList) 
+  if (!m_AddressList)
   {
     nsresult rv;
     m_AddressList = do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  *aAddressLists = m_AddressList;
-  NS_ADDREF(*aAddressLists);
+  NS_ADDREF(*aAddressLists = m_AddressList);
   return NS_OK;
 }
 
@@ -453,7 +452,7 @@ nsresult nsAbDirProperty::InitDirectoryPrefs()
 {
   if (m_DirPrefId.IsEmpty())
     return NS_ERROR_NOT_INITIALIZED;
-    
+
   nsresult rv;
   nsCOMPtr<nsIPrefService> prefService(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -495,7 +494,7 @@ NS_IMETHODIMP nsAbDirProperty::GetBoolValue(const char *aName,
 }
 
 NS_IMETHODIMP nsAbDirProperty::GetStringValue(const char *aName,
-                                              const nsACString &aDefaultValue, 
+                                              const nsACString &aDefaultValue,
                                               nsACString &aResult)
 {
   if (!m_DirectoryPrefs && NS_FAILED(InitDirectoryPrefs()))
@@ -504,7 +503,7 @@ NS_IMETHODIMP nsAbDirProperty::GetStringValue(const char *aName,
   nsCString value;
 
     /* unfortunately, there may be some prefs out there which look like (null) */
-  if (NS_SUCCEEDED(m_DirectoryPrefs->GetCharPref(aName, getter_Copies(value))) &&
+  if (NS_SUCCEEDED(m_DirectoryPrefs->GetCharPref(aName, value)) &&
       !value.EqualsLiteral("(null"))
     aResult = value;
   else
@@ -520,7 +519,7 @@ NS_IMETHODIMP nsAbDirProperty::GetStringValue(const char *aName,
  * "ldap_2.servers.history.description"
  */
 NS_IMETHODIMP nsAbDirProperty::GetLocalizedStringValue(const char *aName,
-                                                       const nsACString &aDefaultValue, 
+                                                       const nsACString &aDefaultValue,
                                                        nsACString &aResult)
 {
   if (!m_DirectoryPrefs && NS_FAILED(InitDirectoryPrefs()))
@@ -570,7 +569,7 @@ NS_IMETHODIMP nsAbDirProperty::SetStringValue(const char *aName,
   if (!m_DirectoryPrefs && NS_FAILED(InitDirectoryPrefs()))
     return NS_ERROR_NOT_INITIALIZED;
 
-  return m_DirectoryPrefs->SetCharPref(aName, nsCString(aValue).get());
+  return m_DirectoryPrefs->SetCharPref(aName, aValue);
 }
 
 NS_IMETHODIMP nsAbDirProperty::SetLocalizedStringValue(const char *aName,
@@ -584,7 +583,7 @@ NS_IMETHODIMP nsAbDirProperty::SetLocalizedStringValue(const char *aName,
     do_CreateInstance(NS_PREFLOCALIZEDSTRING_CONTRACTID, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = locStr->SetData(NS_ConvertUTF8toUTF16(aValue).get());
+  rv = locStr->SetData(NS_ConvertUTF8toUTF16(aValue));
   NS_ENSURE_SUCCESS(rv, rv);
 
   return m_DirectoryPrefs->SetComplexValue(aName,

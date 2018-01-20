@@ -1,10 +1,9 @@
 var Ci = Components.interfaces;
 var Cc = Components.classes;
 
-Components.utils.import("resource:///modules/Services.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
 
-function run_test()
-{
+function run_test() {
   Components.manager.autoRegister(do_get_file("data/process_directive.manifest"));
 
   let isChild = Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT;

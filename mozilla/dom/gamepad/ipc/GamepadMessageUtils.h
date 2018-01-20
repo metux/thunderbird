@@ -1,12 +1,32 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_gamepad_GamepadMessageUtils_h
 #define mozilla_dom_gamepad_GamepadMessageUtils_h
 
 #include "ipc/IPCMessageUtils.h"
-#include "mozilla/dom/GamepadServiceType.h"
+#include "mozilla/dom/GamepadBinding.h"
 #include "mozilla/dom/GamepadPoseState.h"
+#include "mozilla/dom/GamepadServiceType.h"
 
 namespace IPC {
+
+template<>
+struct ParamTraits<mozilla::dom::GamepadMappingType> :
+  public ContiguousEnumSerializer<mozilla::dom::GamepadMappingType,
+                                  mozilla::dom::GamepadMappingType(0),
+                                  mozilla::dom::GamepadMappingType(
+                                  mozilla::dom::GamepadMappingType::EndGuard_)> {};
+
+template<>
+struct ParamTraits<mozilla::dom::GamepadHand> :
+  public ContiguousEnumSerializer<mozilla::dom::GamepadHand,
+                                  mozilla::dom::GamepadHand(0),
+                                  mozilla::dom::GamepadHand(
+                                  mozilla::dom::GamepadHand::EndGuard_)> {};
 
 template<>
 struct ParamTraits<mozilla::dom::GamepadServiceType> :
@@ -47,6 +67,8 @@ struct ParamTraits<mozilla::dom::GamepadPoseState>
     WriteParam(aMsg, aParam.linearAcceleration[0]);
     WriteParam(aMsg, aParam.linearAcceleration[1]);
     WriteParam(aMsg, aParam.linearAcceleration[2]);
+    WriteParam(aMsg, aParam.isPositionValid);
+    WriteParam(aMsg, aParam.isOrientationValid);
   }
 
   static bool Read(const Message* aMsg, PickleIterator* aIter, paramType* aResult)
@@ -70,7 +92,9 @@ struct ParamTraits<mozilla::dom::GamepadPoseState>
         !ReadParam(aMsg, aIter, &(aResult->linearVelocity[2])) ||
         !ReadParam(aMsg, aIter, &(aResult->linearAcceleration[0])) ||
         !ReadParam(aMsg, aIter, &(aResult->linearAcceleration[1])) ||
-        !ReadParam(aMsg, aIter, &(aResult->linearAcceleration[2]))) {
+        !ReadParam(aMsg, aIter, &(aResult->linearAcceleration[2])) ||
+        !ReadParam(aMsg, aIter, &(aResult->isPositionValid)) ||
+        !ReadParam(aMsg, aIter, &(aResult->isOrientationValid))) {
       return false;
     }
     return true;

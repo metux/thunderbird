@@ -20,6 +20,9 @@
 <!ENTITY installAddonFromFile.accesskey       "ה">
 <!ENTITY toolsMenu.tooltip                    "כלים עבור כל התוספות">
 
+<!ENTITY getThemes.description                "מעוניינים להתאים אישית את הדפדפן?">
+<!ENTITY getThemes.learnMore                  "בחרו מאלפי ערכות נושא זמינות.">
+
 <!ENTITY cmd.back.tooltip                     "חזרה דף אחד אחורה">
 <!ENTITY cmd.forward.tooltip                  "התקדמות דף אחד קדימה">
 
@@ -115,6 +118,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "הצגת הערות השחרור של עדכון זה">
 <!ENTITY cmd.hideReleaseNotes.label           "הסתרת הערות שחרור">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "הסתרת הערות השחרור של עדכון זה">
+<!ENTITY cmd.findReplacement.label            "מציאת חלופה">
 
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
@@ -135,7 +139,7 @@
 
 <!ENTITY detail.updateType                    "עדכונים אוטומטיים">
 <!ENTITY detail.updateDefault.label           "בררת מחדל">
-<!ENTITY detail.updateDefault.tooltip         "התקן עדכונים באופן אוטומטי רק אם זה ברירת המחדל">
+<!ENTITY detail.updateDefault.tooltip         "התקנת עדכונים באופן אוטומטי רק אם זו בררת המחדל">
 <!ENTITY detail.updateAutomatic.label         "פעיל">
 <!ENTITY detail.updateAutomatic.tooltip       "התקן עדכונים אוטומטית">
 <!ENTITY detail.updateManual.label            "כבוי">
@@ -183,6 +187,10 @@
 <!ENTITY addon.details.label                  "עוד">
 <!ENTITY addon.details.tooltip                "הצגת פרטים נוספים על תוספת זו">
 <!ENTITY addon.unknownDate                    "לא ידוע">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "דור קודם">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -247,3 +255,9 @@
 
 <!ENTITY pluginDeprecation.description "חסר כאן משהו? חלק מהתוספים החיצוניים אינם נתמכים עוד ב־&brandShortName;.">
 <!ENTITY pluginDeprecation.learnMore "למידע נוסף.">
+
+<!ENTITY legacyWarning.description "מפספסים משהו? חלק מההרחבות לא נתמכות עוד על־ידי &brandShortName;.">
+<!ENTITY legacyWarning.showLegacy "הצגת הרחבות דור קודם">
+<!ENTITY legacyExtensions.title "הרחבות מדור קודם">
+<!ENTITY legacyExtensions.description "הרחבות אלו לא עומדות בתקנים הנוכחיים של &brandShortName; ולכן כובו.">
+<!ENTITY legacyExtensions.learnMore "מידע נוסף על השינויים בתוספות">

@@ -79,22 +79,20 @@ IsUninitializedLexical(const Value& val)
 }
 
 static inline bool
-IsUninitializedLexicalSlot(HandleObject obj, HandleShape shape)
+IsUninitializedLexicalSlot(HandleObject obj, Handle<PropertyResult> prop)
 {
-    MOZ_ASSERT(shape);
+    MOZ_ASSERT(prop);
     if (obj->is<WithEnvironmentObject>())
         return false;
-    // We check for IsImplicitDenseOrTypedArrayElement even though the shape
-    // is always a non-indexed property because proxy hooks may return a
-    // "non-native property found" shape, which happens to be encoded in the
-    // same way as the "dense element" shape. See MarkNonNativePropertyFound.
-    if (IsImplicitDenseOrTypedArrayElement(shape) ||
-        !shape->hasSlot() ||
-        !shape->hasDefaultGetter() ||
-        !shape->hasDefaultSetter())
-    {
+
+    // Proxy hooks may return a non-native property.
+    if (prop.isNonNativeProperty())
         return false;
-    }
+
+    Shape* shape = prop.shape();
+    if (!shape->isDataProperty())
+        return false;
+
     MOZ_ASSERT(obj->as<NativeObject>().containsPure(shape));
     return IsUninitializedLexical(obj->as<NativeObject>().getSlot(shape->slot()));
 }
@@ -173,33 +171,39 @@ GetLengthProperty(const Value& lval, MutableHandleValue vp)
     return false;
 }
 
-template <bool TypeOf> inline bool
-FetchName(JSContext* cx, HandleObject obj, HandleObject obj2, HandlePropertyName name,
-          HandleShape shape, MutableHandleValue vp)
+enum class GetNameMode { Normal, TypeOf };
+
+template <GetNameMode mode>
+inline bool
+FetchName(JSContext* cx, HandleObject receiver, HandleObject holder, HandlePropertyName name,
+          Handle<PropertyResult> prop, MutableHandleValue vp)
 {
-    if (!shape) {
-        if (TypeOf) {
+    if (!prop) {
+        switch (mode) {
+          case GetNameMode::Normal:
+            return ReportIsNotDefined(cx, name);
+          case GetNameMode::TypeOf:
             vp.setUndefined();
             return true;
         }
-        return ReportIsNotDefined(cx, name);
     }
 
     /* Take the slow path if shape was not found in a native object. */
-    if (!obj->isNative() || !obj2->isNative()) {
+    if (!receiver->isNative() || !holder->isNative()) {
         Rooted<jsid> id(cx, NameToId(name));
-        if (!GetProperty(cx, obj, obj, id, vp))
+        if (!GetProperty(cx, receiver, receiver, id, vp))
             return false;
     } else {
-        RootedObject normalized(cx, obj);
-        if (normalized->is<WithEnvironmentObject>() && !shape->hasDefaultGetter())
-            normalized = &normalized->as<WithEnvironmentObject>().object();
+        RootedShape shape(cx, prop.shape());
         if (shape->isDataDescriptor() && shape->hasDefaultGetter()) {
             /* Fast path for Object instance properties. */
-            MOZ_ASSERT(shape->hasSlot());
-            vp.set(obj2->as<NativeObject>().getSlot(shape->slot()));
+            MOZ_ASSERT(shape->isDataProperty());
+            vp.set(holder->as<NativeObject>().getSlot(shape->slot()));
         } else {
-            if (!NativeGetExistingProperty(cx, normalized, obj2.as<NativeObject>(), shape, vp))
+            // Unwrap 'with' environments for reasons given in
+            // GetNameBoundInEnvironment.
+            RootedObject normalized(cx, MaybeUnwrapWithEnvironment(receiver));
+            if (!NativeGetExistingProperty(cx, normalized, holder.as<NativeObject>(), shape, vp))
                 return false;
         }
     }
@@ -214,14 +218,74 @@ FetchName(JSContext* cx, HandleObject obj, HandleObject obj2, HandlePropertyName
 }
 
 inline bool
-FetchNameNoGC(JSObject* pobj, Shape* shape, MutableHandleValue vp)
+FetchNameNoGC(JSObject* pobj, PropertyResult prop, MutableHandleValue vp)
 {
-    if (!shape || !pobj->isNative() || !shape->isDataDescriptor() || !shape->hasDefaultGetter())
+    if (!prop || !pobj->isNative())
+        return false;
+
+    Shape* shape = prop.shape();
+    if (!shape->isDataDescriptor() || !shape->hasDefaultGetter())
         return false;
 
     vp.set(pobj->as<NativeObject>().getSlot(shape->slot()));
     return !IsUninitializedLexical(vp);
 }
+
+template <js::GetNameMode mode>
+inline bool
+GetEnvironmentName(JSContext* cx, HandleObject envChain, HandlePropertyName name,
+                   MutableHandleValue vp)
+{
+    {
+        PropertyResult prop;
+        JSObject* obj = nullptr;
+        JSObject* pobj = nullptr;
+        if (LookupNameNoGC(cx, name, envChain, &obj, &pobj, &prop)) {
+            if (FetchNameNoGC(pobj, prop, vp))
+                return true;
+        }
+    }
+
+    Rooted<PropertyResult> prop(cx);
+    RootedObject obj(cx), pobj(cx);
+    if (!LookupName(cx, name, envChain, &obj, &pobj, &prop))
+        return false;
+
+    return FetchName<mode>(cx, obj, pobj, name, prop, vp);
+}
+
+inline bool
+HasOwnProperty(JSContext* cx, HandleValue val, HandleValue idValue, bool* result)
+{
+
+    // As an optimization, provide a fast path when rooting is not necessary and
+    // we can safely retrieve the object's shape.
+    jsid id;
+    if (val.isObject() && ValueToId<NoGC>(cx, idValue, &id)) {
+        JSObject* obj = &val.toObject();
+        PropertyResult prop;
+        if (obj->isNative() &&
+            NativeLookupOwnProperty<NoGC>(cx, &obj->as<NativeObject>(), id, &prop))
+        {
+            *result = prop.isFound();
+            return true;
+        }
+    }
+
+    // Step 1.
+    RootedId key(cx);
+    if (!ToPropertyKey(cx, idValue, &key))
+        return false;
+
+    // Step 2.
+    RootedObject obj(cx, ToObject(cx, val));
+    if (!obj)
+        return false;
+
+    // Step 3.
+    return HasOwnProperty(cx, obj, key, result);
+}
+
 
 inline bool
 GetIntrinsicOperation(JSContext* cx, jsbytecode* pc, MutableHandleValue vp)
@@ -247,7 +311,7 @@ SetAliasedVarOperation(JSContext* cx, JSScript* script, jsbytecode* pc,
     // Avoid computing the name if no type updates are needed, as this may be
     // expensive on scopes with large numbers of variables.
     PropertyName* name = obj.isSingleton()
-                         ? EnvironmentCoordinateName(cx->caches.envCoordinateNameCache, script, pc)
+                         ? EnvironmentCoordinateName(cx->caches().envCoordinateNameCache, script, pc)
                          : nullptr;
 
     obj.setAliasedBinding(cx, ec, name, val);
@@ -284,7 +348,7 @@ SetNameOperation(JSContext* cx, JSScript* script, jsbytecode* pc, HandleObject e
         else
             varobj = &env->as<NativeObject>();
         MOZ_ASSERT(!varobj->getOpsSetProperty());
-        ok = NativeSetProperty(cx, varobj, id, val, receiver, Unqualified, result);
+        ok = NativeSetProperty<Unqualified>(cx, varobj, id, val, receiver, result);
     } else {
         ok = SetProperty(cx, env, id, val, receiver, result);
     }
@@ -299,7 +363,7 @@ DefLexicalOperation(JSContext* cx, Handle<LexicalEnvironmentObject*> lexicalEnv,
     MOZ_ASSERT(CheckLexicalNameConflict(cx, lexicalEnv, varObj, name));
     RootedId id(cx, NameToId(name));
     RootedValue uninitialized(cx, MagicValue(JS_UNINITIALIZED_LEXICAL));
-    return NativeDefineProperty(cx, lexicalEnv, id, uninitialized, nullptr, nullptr, attrs);
+    return NativeDefineDataProperty(cx, lexicalEnv, id, uninitialized, attrs);
 }
 
 inline bool
@@ -335,15 +399,16 @@ InitGlobalLexicalOperation(JSContext* cx, LexicalEnvironmentObject* lexicalEnvAr
 }
 
 inline bool
-InitPropertyOperation(JSContext* cx, JSOp op, HandleObject obj, HandleId id, HandleValue rhs)
+InitPropertyOperation(JSContext* cx, JSOp op, HandleObject obj, HandlePropertyName name,
+                      HandleValue rhs)
 {
     if (obj->is<PlainObject>() || obj->is<JSFunction>()) {
         unsigned propAttrs = GetInitDataPropAttrs(op);
-        return NativeDefineProperty(cx, obj.as<NativeObject>(), id, rhs, nullptr, nullptr,
-                                    propAttrs);
+        return NativeDefineDataProperty(cx, obj.as<NativeObject>(), name, rhs, propAttrs);
     }
 
-    MOZ_ASSERT(obj->as<UnboxedPlainObject>().layout().lookup(id));
+    MOZ_ASSERT(obj->as<UnboxedPlainObject>().layout().lookup(name));
+    RootedId id(cx, NameToId(name));
     return PutProperty(cx, obj, id, rhs, false);
 }
 
@@ -362,14 +427,14 @@ DefVarOperation(JSContext* cx, HandleObject varobj, HandlePropertyName dn, unsig
     }
 #endif
 
-    RootedShape prop(cx);
+    Rooted<PropertyResult> prop(cx);
     RootedObject obj2(cx);
     if (!LookupProperty(cx, varobj, dn, &obj2, &prop))
         return false;
 
     /* Steps 8c, 8d. */
     if (!prop || (obj2 != varobj && varobj->is<GlobalObject>())) {
-        if (!DefineProperty(cx, varobj, dn, UndefinedHandleValue, nullptr, nullptr, attrs))
+        if (!DefineDataProperty(cx, varobj, dn, UndefinedHandleValue, attrs))
             return false;
     }
 
@@ -421,11 +486,11 @@ ToIdOperation(JSContext* cx, HandleScript script, jsbytecode* pc, HandleValue id
 }
 
 static MOZ_ALWAYS_INLINE bool
-GetObjectElementOperation(JSContext* cx, JSOp op, JS::HandleObject obj, JS::HandleObject receiver,
+GetObjectElementOperation(JSContext* cx, JSOp op, JS::HandleObject obj, JS::HandleValue receiver,
                           HandleValue key, MutableHandleValue res)
 {
     MOZ_ASSERT(op == JSOP_GETELEM || op == JSOP_CALLELEM || op == JSOP_GETELEM_SUPER);
-    MOZ_ASSERT_IF(op == JSOP_GETELEM || op == JSOP_CALLELEM, obj == receiver);
+    MOZ_ASSERT_IF(op == JSOP_GETELEM || op == JSOP_CALLELEM, obj == &receiver.toObject());
 
     do {
         uint32_t index;
@@ -537,7 +602,7 @@ GetElemOptimizedArguments(JSContext* cx, AbstractFramePtr frame, MutableHandleVa
 }
 
 static MOZ_ALWAYS_INLINE bool
-GetElementOperation(JSContext* cx, JSOp op, MutableHandleValue lref, HandleValue rref,
+GetElementOperation(JSContext* cx, JSOp op, HandleValue lref, HandleValue rref,
                     MutableHandleValue res)
 {
     MOZ_ASSERT(op == JSOP_GETELEM || op == JSOP_CALLELEM);
@@ -559,8 +624,9 @@ GetElementOperation(JSContext* cx, JSOp op, MutableHandleValue lref, HandleValue
         return GetPrimitiveElementOperation(cx, op, thisv, rref, res);
     }
 
-    RootedObject thisv(cx, &lref.toObject());
-    return GetObjectElementOperation(cx, op, thisv, thisv, rref, res);
+    RootedObject obj(cx, &lref.toObject());
+    RootedValue thisv(cx, lref);
+    return GetObjectElementOperation(cx, op, obj, thisv, rref, res);
 }
 
 static MOZ_ALWAYS_INLINE JSString*
@@ -570,26 +636,17 @@ TypeOfOperation(const Value& v, JSRuntime* rt)
     return TypeName(type, *rt->commonNames);
 }
 
-static inline JSString*
-TypeOfObjectOperation(JSObject* obj, JSRuntime* rt)
-{
-    JSType type = js::TypeOfObject(obj);
-    return TypeName(type, *rt->commonNames);
-}
-
 static MOZ_ALWAYS_INLINE bool
 InitElemOperation(JSContext* cx, jsbytecode* pc, HandleObject obj, HandleValue idval, HandleValue val)
 {
     MOZ_ASSERT(!val.isMagic(JS_ELEMENTS_HOLE));
-    MOZ_ASSERT(!obj->getClass()->getGetProperty());
-    MOZ_ASSERT(!obj->getClass()->getSetProperty());
 
     RootedId id(cx);
     if (!ToPropertyKey(cx, idval, &id))
         return false;
 
-    unsigned flags = JSOp(*pc) == JSOP_INITHIDDENELEM ? 0 : JSPROP_ENUMERATE;
-    return DefineProperty(cx, obj, id, val, nullptr, nullptr, flags);
+    unsigned flags = GetInitDataPropAttrs(JSOp(*pc));
+    return DefineDataProperty(cx, obj, id, val, flags);
 }
 
 static MOZ_ALWAYS_INLINE bool
@@ -598,7 +655,7 @@ InitArrayElemOperation(JSContext* cx, jsbytecode* pc, HandleObject obj, uint32_t
     JSOp op = JSOp(*pc);
     MOZ_ASSERT(op == JSOP_INITELEM_ARRAY || op == JSOP_INITELEM_INC);
 
-    MOZ_ASSERT(obj->is<ArrayObject>() || obj->is<UnboxedArrayObject>());
+    MOZ_ASSERT(obj->is<ArrayObject>());
 
     if (op == JSOP_INITELEM_INC && index == INT32_MAX) {
         JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_SPREAD_TOO_LARGE);
@@ -623,29 +680,10 @@ InitArrayElemOperation(JSContext* cx, jsbytecode* pc, HandleObject obj, uint32_t
                 return false;
         }
     } else {
-        if (!DefineElement(cx, obj, index, val, nullptr, nullptr, JSPROP_ENUMERATE))
+        if (!DefineDataElement(cx, obj, index, val, JSPROP_ENUMERATE))
             return false;
     }
 
-    return true;
-}
-
-static MOZ_ALWAYS_INLINE bool
-ProcessCallSiteObjOperation(JSContext* cx, RootedObject& cso, RootedObject& raw,
-                            RootedValue& rawValue)
-{
-    bool extensible;
-    if (!IsExtensible(cx, cso, &extensible))
-        return false;
-    if (extensible) {
-        JSAtom* name = cx->names().raw;
-        if (!DefineProperty(cx, cso, name->asPropertyName(), rawValue, nullptr, nullptr, 0))
-            return false;
-        if (!FreezeObject(cx, raw))
-            return false;
-        if (!FreezeObject(cx, cso))
-            return false;
-    }
     return true;
 }
 
@@ -790,90 +828,6 @@ ReportIfNotFunction(JSContext* cx, HandleValue v, MaybeConstruct construct = NO_
     ReportIsNotFunction(cx, v, -1, construct);
     return nullptr;
 }
-
-/*
- * FastCallGuard is used to optimize calls to JS functions from natives written
- * in C++, e.g. Array.prototype.map.  If the callee is not Ion-compiled, this
- * will just call js::Call.  If the callee has a valid IonScript, however, it
- * will enter Ion directly.
- */
-class FastCallGuard
-{
-    InvokeArgs args_;
-    RootedFunction fun_;
-    RootedScript script_;
-
-    // Constructing a JitContext is pretty expensive due to the TLS access,
-    // so only do this if we have to.
-    bool useIon_;
-
-  public:
-    FastCallGuard(JSContext* cx, const Value& fval)
-      : args_(cx)
-      , fun_(cx)
-      , script_(cx)
-      , useIon_(jit::IsIonEnabled(cx))
-    {
-        initFunction(fval);
-    }
-
-    void initFunction(const Value& fval) {
-        if (fval.isObject() && fval.toObject().is<JSFunction>()) {
-            JSFunction* fun = &fval.toObject().as<JSFunction>();
-            if (fun->isInterpreted())
-                fun_ = fun;
-        }
-    }
-
-    InvokeArgs& args() {
-        return args_;
-    }
-
-    bool call(JSContext* cx, HandleValue callee, HandleValue thisv, MutableHandleValue rval) {
-        args_.CallArgs::setCallee(callee);
-        args_.CallArgs::setThis(thisv);
-
-        if (useIon_ && fun_) {
-            if (!script_) {
-                script_ = fun_->getOrCreateScript(cx);
-                if (!script_)
-                    return false;
-            }
-            MOZ_ASSERT(fun_->nonLazyScript() == script_);
-
-            jit::MethodStatus status = jit::CanEnterUsingFastInvoke(cx, script_, args_.length());
-            if (status == jit::Method_Error)
-                return false;
-            if (status == jit::Method_Compiled) {
-                jit::JitExecStatus result = jit::FastInvoke(cx, fun_, args_);
-                if (IsErrorStatus(result))
-                    return false;
-
-                MOZ_ASSERT(result == jit::JitExec_Ok);
-                rval.set(args_.CallArgs::rval());
-                return true;
-            }
-
-            MOZ_ASSERT(status == jit::Method_Skipped);
-
-            if (script_->canIonCompile()) {
-                // This script is not yet hot. Since calling into Ion is much
-                // faster here, bump the warm-up counter a bit to account for this.
-                script_->incWarmUpCounter(5);
-            }
-        }
-
-        if (!InternalCallOrConstruct(cx, args_, NO_CONSTRUCT))
-            return false;
-
-        rval.set(args_.CallArgs::rval());
-        return true;
-    }
-
-  private:
-    FastCallGuard(const FastCallGuard& other) = delete;
-    void operator=(const FastCallGuard& other) = delete;
-};
 
 }  /* namespace js */
 

@@ -14,7 +14,7 @@
 <!ENTITY aboutNetworking.autoRefresh           "Autouppdatera var 3 sekund">
 <!ENTITY aboutNetworking.hostname              "Värdnamn">
 <!ENTITY aboutNetworking.port                  "Port">
-<!ENTITY aboutNetworking.spdy                  "SPDY">
+<!ENTITY aboutNetworking.http2                 "HTTP/2">
 <!ENTITY aboutNetworking.ssl                   "SSL">
 <!ENTITY aboutNetworking.active                "Aktiv">
 <!ENTITY aboutNetworking.idle                  "Vilande">
@@ -41,3 +41,18 @@
 <!ENTITY aboutNetworking.dnsLookupButton       "Lös fel">
 <!ENTITY aboutNetworking.dnsDomain             "Domän">
 <!ENTITY aboutNetworking.dnsLookupTableColumn  "IPs">
+<!ENTITY aboutNetworking.rcwn                  "RCWN statistik">
+<!ENTITY aboutNetworking.rcwnStatus            "RCWN status">
+<!ENTITY aboutNetworking.rcwnCacheWonCount     "Antal cache won">
+<!ENTITY aboutNetworking.rcwnNetWonCount       "Antal net won">
+<!ENTITY aboutNetworking.totalNetworkRequests  "Totalt antal nätverksförfrågningar">
+<!ENTITY aboutNetworking.rcwnOperation         "Cacheoperation">
+<!ENTITY aboutNetworking.rcwnPerfOpen          "Öppen">
+<!ENTITY aboutNetworking.rcwnPerfRead          "Läs">
+<!ENTITY aboutNetworking.rcwnPerfWrite         "Skriv">
+<!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Öppen post">
+<!ENTITY aboutNetworking.rcwnAvgShort          "Kort medelvärde">
+<!ENTITY aboutNetworking.rcwnAvgLong           "Långt medelvärde">
+<!ENTITY aboutNetworking.rcwnStddevLong        "Lång standardavvikelse">
+<!ENTITY aboutNetworking.rcwnCacheSlow         "Antal långsam cache">
+<!ENTITY aboutNetworking.rcwnCacheNotSlow      "Antal inte långsam cache">

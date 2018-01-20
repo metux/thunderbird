@@ -26,6 +26,8 @@
 namespace js {
 
 class TypedArrayObject;
+class WasmFunctionScope;
+class WasmInstanceScope;
 
 namespace wasm {
 
@@ -65,12 +67,12 @@ ReadI64Object(JSContext* cx, HandleValue v, int64_t* i64);
 // eval/compile methods.
 
 bool
-HasCompilerSupport(ExclusiveContext* cx);
+HasCompilerSupport(JSContext* cx);
 
 // Return whether WebAssembly is enabled on this platform.
 
 bool
-HasSupport(ExclusiveContext* cx);
+HasSupport(JSContext* cx);
 
 // Compiles the given binary wasm module given the ArrayBufferObject
 // and links the module's imports with the given import object.
@@ -78,10 +80,6 @@ HasSupport(ExclusiveContext* cx);
 MOZ_MUST_USE bool
 Eval(JSContext* cx, Handle<TypedArrayObject*> code, HandleObject importObj,
      MutableHandleWasmInstanceObject instanceObj);
-
-// The field name of the export object on the instance object.
-
-extern const char InstanceExportField[];
 
 // These accessors can be used to probe JS values for being an exported wasm
 // function.
@@ -124,6 +122,7 @@ class WasmModuleObject : public NativeObject
     static void finalize(FreeOp* fop, JSObject* obj);
     static bool imports(JSContext* cx, unsigned argc, Value* vp);
     static bool exports(JSContext* cx, unsigned argc, Value* vp);
+    static bool customSections(JSContext* cx, unsigned argc, Value* vp);
 
   public:
     static const unsigned RESERVED_SLOTS = 1;
@@ -133,7 +132,7 @@ class WasmModuleObject : public NativeObject
     static const JSFunctionSpec static_methods[];
     static bool construct(JSContext*, unsigned, Value*);
 
-    static WasmModuleObject* create(ExclusiveContext* cx,
+    static WasmModuleObject* create(JSContext* cx,
                                     wasm::Module& module,
                                     HandleObject proto = nullptr);
     wasm::Module& module() const;
@@ -146,24 +145,38 @@ class WasmModuleObject : public NativeObject
 class WasmInstanceObject : public NativeObject
 {
     static const unsigned INSTANCE_SLOT = 0;
-    static const unsigned EXPORTS_SLOT = 1;
+    static const unsigned EXPORTS_OBJ_SLOT = 1;
+    static const unsigned EXPORTS_SLOT = 2;
+    static const unsigned SCOPES_SLOT = 3;
+    static const unsigned INSTANCE_SCOPE_SLOT = 4;
     static const ClassOps classOps_;
+    static bool exportsGetterImpl(JSContext* cx, const CallArgs& args);
+    static bool exportsGetter(JSContext* cx, unsigned argc, Value* vp);
     bool isNewborn() const;
     static void finalize(FreeOp* fop, JSObject* obj);
     static void trace(JSTracer* trc, JSObject* obj);
 
-    // ExportMap maps from function definition index to exported function
-    // object. This map is weak to avoid holding objects alive; the point is
-    // just to ensure a unique object identity for any given function object.
+    // ExportMap maps from function index to exported function object.
+    // This allows the instance to lazily create exported function
+    // objects on demand (instead up-front for all table elements) while
+    // correctly preserving observable function object identity.
     using ExportMap = GCHashMap<uint32_t,
-                                ReadBarrieredFunction,
+                                HeapPtr<JSFunction*>,
                                 DefaultHasher<uint32_t>,
                                 SystemAllocPolicy>;
-    using WeakExportMap = JS::WeakCache<ExportMap>;
-    WeakExportMap& exports() const;
+    ExportMap& exports() const;
+
+    // WeakScopeMap maps from function index to js::Scope. This maps is weak
+    // to avoid holding scope objects alive. The scopes are normally created
+    // during debugging.
+    using ScopeMap = JS::WeakCache<GCHashMap<uint32_t,
+                                             ReadBarriered<WasmFunctionScope*>,
+                                             DefaultHasher<uint32_t>,
+                                             SystemAllocPolicy>>;
+    ScopeMap& scopes() const;
 
   public:
-    static const unsigned RESERVED_SLOTS = 2;
+    static const unsigned RESERVED_SLOTS = 5;
     static const Class class_;
     static const JSPropertySpec properties[];
     static const JSFunctionSpec methods[];
@@ -171,20 +184,30 @@ class WasmInstanceObject : public NativeObject
     static bool construct(JSContext*, unsigned, Value*);
 
     static WasmInstanceObject* create(JSContext* cx,
-                                      UniquePtr<wasm::Code> code,
+                                      RefPtr<const wasm::Code> code,
+                                      UniquePtr<wasm::DebugState> debug,
+                                      UniquePtr<wasm::GlobalSegment> globals,
                                       HandleWasmMemoryObject memory,
                                       Vector<RefPtr<wasm::Table>, 0, SystemAllocPolicy>&& tables,
                                       Handle<FunctionVector> funcImports,
                                       const wasm::ValVector& globalImports,
                                       HandleObject proto);
+    void initExportsObj(JSObject& exportsObj);
+
     wasm::Instance& instance() const;
+    JSObject& exportsObj() const;
 
     static bool getExportedFunction(JSContext* cx,
                                     HandleWasmInstanceObject instanceObj,
                                     uint32_t funcIndex,
                                     MutableHandleFunction fun);
 
-    const wasm::CodeRange& getExportedFunctionCodeRange(HandleFunction fun);
+    const wasm::CodeRange& getExportedFunctionCodeRange(HandleFunction fun, wasm::Tier tier);
+
+    static WasmInstanceScope* getScope(JSContext* cx, HandleWasmInstanceObject instanceObj);
+    static WasmFunctionScope* getFunctionScope(JSContext* cx,
+                                               HandleWasmInstanceObject instanceObj,
+                                               uint32_t funcIndex);
 };
 
 // The class of WebAssembly.Memory. A WasmMemoryObject references an ArrayBuffer
@@ -201,13 +224,12 @@ class WasmMemoryObject : public NativeObject
     static bool growImpl(JSContext* cx, const CallArgs& args);
     static bool grow(JSContext* cx, unsigned argc, Value* vp);
 
-    using InstanceSet = GCHashSet<ReadBarrieredWasmInstanceObject,
-                                  MovableCellHasher<ReadBarrieredWasmInstanceObject>,
-                                  SystemAllocPolicy>;
-    using WeakInstanceSet = JS::WeakCache<InstanceSet>;
+    using InstanceSet = JS::WeakCache<GCHashSet<ReadBarrieredWasmInstanceObject,
+                                                MovableCellHasher<ReadBarrieredWasmInstanceObject>,
+                                                SystemAllocPolicy>>;
     bool hasObservers() const;
-    WeakInstanceSet& observers() const;
-    WeakInstanceSet* getOrCreateObservers(JSContext* cx);
+    InstanceSet& observers() const;
+    InstanceSet* getOrCreateObservers(JSContext* cx);
 
   public:
     static const unsigned RESERVED_SLOTS = 2;
@@ -217,7 +239,7 @@ class WasmMemoryObject : public NativeObject
     static const JSFunctionSpec static_methods[];
     static bool construct(JSContext*, unsigned, Value*);
 
-    static WasmMemoryObject* create(ExclusiveContext* cx,
+    static WasmMemoryObject* create(JSContext* cx,
                                     Handle<ArrayBufferObjectMaybeShared*> buffer,
                                     HandleObject proto);
     ArrayBufferObjectMaybeShared& buffer() const;
@@ -258,7 +280,7 @@ class WasmTableObject : public NativeObject
     // Note that, after creation, a WasmTableObject's table() is not initialized
     // and must be initialized before use.
 
-    static WasmTableObject* create(JSContext* cx, wasm::Limits limits);
+    static WasmTableObject* create(JSContext* cx, const wasm::Limits& limits);
     wasm::Table& table() const;
 };
 

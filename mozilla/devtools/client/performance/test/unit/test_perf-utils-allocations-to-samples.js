@@ -8,10 +8,6 @@
  * received from the profiler.
  */
 
-function run_test() {
-  run_next_test();
-}
-
 add_task(function () {
   const { getProfileThreadFromAllocations } = require("devtools/shared/performance/recording-utils");
   let output = getProfileThreadFromAllocations(TEST_DATA);
@@ -45,7 +41,6 @@ var TEST_DATA = {
   ]
 };
 
-/* eslint-disable no-inline-comments */
 var EXPECTED_OUTPUT = {
   name: "allocations",
   samples: {
@@ -93,4 +88,3 @@ var EXPECTED_OUTPUT = {
     "C:5:6"
   ],
 };
-/* eslint-enable no-inline-comments */

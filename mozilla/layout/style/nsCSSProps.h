@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -13,7 +14,6 @@
 
 #include <limits>
 #include <type_traits>
-#include "nsIAtom.h"
 #include "nsString.h"
 #include "nsCSSPropertyID.h"
 #include "nsStyleStructFwd.h"
@@ -21,6 +21,8 @@
 #include "mozilla/CSSEnabledState.h"
 #include "mozilla/UseCounter.h"
 #include "mozilla/EnumTypeTraits.h"
+#include "mozilla/Preferences.h"
+#include "nsXULAppAPI.h"
 
 // Length of the "--" prefix on custom names (such as custom property names,
 // and, in the future, custom media query names).
@@ -332,10 +334,6 @@ enum nsStyleAnimType {
   eStyleAnimType_None
 };
 
-// Empty class derived from nsIAtom so that function signatures can
-// require an atom from the atom list.
-class nsICSSProperty : public nsIAtom {};
-
 class nsCSSProps {
 public:
   typedef mozilla::CSSEnabledState EnabledState;
@@ -411,14 +409,14 @@ public:
   static bool IsPredefinedCounterStyle(const nsACString& aStyle);
 
   // Given a property enum, get the string value
-  static const nsAFlatCString& GetStringValue(nsCSSPropertyID aProperty);
-  static const nsAFlatCString& GetStringValue(nsCSSFontDesc aFontDesc);
-  static const nsAFlatCString& GetStringValue(nsCSSCounterDesc aCounterDesc);
+  static const nsCString& GetStringValue(nsCSSPropertyID aProperty);
+  static const nsCString& GetStringValue(nsCSSFontDesc aFontDesc);
+  static const nsCString& GetStringValue(nsCSSCounterDesc aCounterDesc);
 
   // Given a CSS Property and a Property Enum Value
   // Return back a const nsString& representation of the
   // value. Return back nullstr if no value is found
-  static const nsAFlatCString& LookupPropertyValue(nsCSSPropertyID aProperty, int32_t aValue);
+  static const nsCString& LookupPropertyValue(nsCSSPropertyID aProperty, int32_t aValue);
 
   // Get a color name for a predefined color value like buttonhighlight or activeborder
   // Sets the aStr param to the name of the propertyID
@@ -448,12 +446,11 @@ public:
     return ValueToKeywordEnum(static_cast<int16_t>(aValue), aTable);
   }
   // Ditto but as a string, return "" when not found.
-  static const nsAFlatCString& ValueToKeyword(int32_t aValue,
-                                              const KTableEntry aTable[]);
+  static const nsCString& ValueToKeyword(int32_t aValue,
+                                         const KTableEntry aTable[]);
   template<typename T,
            typename = typename std::enable_if<std::is_enum<T>::value>::type>
-  static const nsAFlatCString& ValueToKeyword(T aValue,
-                                              const KTableEntry aTable[])
+  static const nsCString& ValueToKeyword(T aValue, const KTableEntry aTable[])
   {
     static_assert(mozilla::EnumTypeFitsWithin<T, int16_t>::value,
                   "aValue must be an enum that fits within KTableEntry::mValue");
@@ -636,6 +633,12 @@ public:
   static bool IsEnabled(nsCSSPropertyID aProperty) {
     MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT_with_aliases,
                "out of range");
+    // We don't have useful pref init phases in the parent process.  But in the
+    // child process, assert that we're not trying to parse stylesheets before
+    // we've gotten all our prefs.
+    MOZ_ASSERT(XRE_IsParentProcess() ||
+               mozilla::Preferences::InitPhase() == END_ALL_PREFS,
+               "Checking style preferences before they have been set");
     return gPropertyEnabled[aProperty];
   }
 
@@ -674,25 +677,6 @@ public:
   }
 
 public:
-  static void AddRefAtoms();
-  static nsICSSProperty* AtomForProperty(nsCSSPropertyID aProperty)
-  {
-    MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT);
-    return gPropertyAtomTable[aProperty];
-  }
-
-#define CSS_PROP(name_, id_, ...) static nsICSSProperty* id_;
-#define CSS_PROP_SHORTHAND(name_, id_, ...) CSS_PROP(name_, id_, ...)
-#define CSS_PROP_LIST_INCLUDE_LOGICAL
-#include "nsCSSPropList.h"
-#undef CSS_PROP_LIST_INCLUDE_LOGICAL
-#undef CSS_PROP_SHORTHAND
-#undef CSS_PROP
-
-private:
-  static nsICSSProperty* gPropertyAtomTable[eCSSProperty_COUNT];
-
-public:
 
 // Storing the enabledstate_ value in an nsCSSPropertyID variable is a small hack
 // to avoid needing a separate variable declaration for its real type
@@ -716,7 +700,8 @@ public:
   static const KTableEntry kBackfaceVisibilityKTable[];
   static const KTableEntry kTransformStyleKTable[];
   static const KTableEntry kImageLayerAttachmentKTable[];
-  static const KTableEntry kImageLayerOriginKTable[];
+  static const KTableEntry kBackgroundOriginKTable[];
+  static const KTableEntry kMaskOriginKTable[];
   static const KTableEntry kImageLayerPositionKTable[];
   static const KTableEntry kImageLayerRepeatKTable[];
   static const KTableEntry kImageLayerRepeatPartKTable[];
@@ -726,6 +711,7 @@ public:
   // Not const because we modify its entries when the pref
   // "layout.css.background-clip.text" changes:
   static KTableEntry kBackgroundClipKTable[];
+  static const KTableEntry kMaskClipKTable[];
   static const KTableEntry kBlendModeKTable[];
   static const KTableEntry kBorderCollapseKTable[];
   static const KTableEntry kBorderImageRepeatKTable[];
@@ -758,6 +744,7 @@ public:
   static const KTableEntry kColorAdjustKTable[];
   static const KTableEntry kColorInterpolationKTable[];
   static const KTableEntry kColumnFillKTable[];
+  static const KTableEntry kColumnSpanKTable[];
   static const KTableEntry kBoxPropSourceKTable[];
   static const KTableEntry kBoxShadowTypeKTable[];
   static const KTableEntry kBoxSizingKTable[];
@@ -770,7 +757,7 @@ public:
   static const KTableEntry kControlCharacterVisibilityKTable[];
   static const KTableEntry kCursorKTable[];
   static const KTableEntry kDirectionKTable[];
-  // Not const because we modify its entries when various 
+  // Not const because we modify its entries when various
   // "layout.css.*.enabled" prefs changes:
   static KTableEntry kDisplayKTable[];
   static const KTableEntry kElevationKTable[];
@@ -823,7 +810,6 @@ public:
   static const KTableEntry kIMEModeKTable[];
   static const KTableEntry kLineHeightKTable[];
   static const KTableEntry kListStylePositionKTable[];
-  static const KTableEntry kListStyleKTable[];
   static const KTableEntry kMaskTypeKTable[];
   static const KTableEntry kMathVariantKTable[];
   static const KTableEntry kMathDisplayKTable[];
@@ -869,8 +855,10 @@ public:
   static const KTableEntry kTextEmphasisPositionKTable[];
   static const KTableEntry kTextEmphasisStyleFillKTable[];
   static const KTableEntry kTextEmphasisStyleShapeKTable[];
+  static const KTableEntry kTextJustifyKTable[];
   static const KTableEntry kTextOrientationKTable[];
   static const KTableEntry kTextOverflowKTable[];
+  static const KTableEntry kTextSizeAdjustKTable[];
   static const KTableEntry kTextTransformKTable[];
   static const KTableEntry kTouchActionKTable[];
   static const KTableEntry kTopLayerKTable[];

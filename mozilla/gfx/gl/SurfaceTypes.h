@@ -74,10 +74,10 @@ enum class SharedSurfaceType : uint8_t {
     EGLSurfaceANGLE,
     DXGLInterop,
     DXGLInterop2,
-    Gralloc,
     IOSurface,
     GLXDrawable,
     SharedGLTexture,
+    AndroidSurfaceTexture,
 
     Max
 };

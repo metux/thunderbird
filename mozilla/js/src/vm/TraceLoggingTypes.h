@@ -23,16 +23,21 @@
     _(InlinedScripts)                                 \
     _(IonAnalysis)                                    \
     _(IonCompilation)                                 \
-    _(IonCompilationPaused)                           \
     _(IonLinking)                                     \
     _(IonMonkey)                                      \
     _(IrregexpCompile)                                \
     _(IrregexpExecute)                                \
     _(MinorGC)                                        \
-    _(ParserCompileFunction)                          \
-    _(ParserCompileLazy)                              \
-    _(ParserCompileScript)                            \
-    _(ParserCompileModule)                            \
+    _(Frontend)                                       \
+    _(ParsingFull)                                    \
+    _(ParsingSyntax)                                  \
+    _(BytecodeEmission)                               \
+    _(BytecodeFoldConstants)                          \
+    _(BytecodeNameFunctions)                          \
+    _(DecodeScript)                                   \
+    _(DecodeFunction)                                 \
+    _(EncodeScript)                                   \
+    _(EncodeFunction)                                 \
     _(Scripts)                                        \
     _(VM)                                             \
     _(CompressSource)                                 \
@@ -42,6 +47,7 @@
     /* Specific passes during ion compilation */      \
     _(PruneUnusedBranches)                            \
     _(FoldTests)                                      \
+    _(FoldEmptyBlocks)                                \
     _(SplitCriticalEdges)                             \
     _(RenumberBlocks)                                 \
     _(ScalarReplacement)                              \
@@ -253,6 +259,10 @@ class ContinuousSpace {
 
     void clear() {
         size_ = 0;
+    }
+
+    size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
+        return mallocSizeOf(data_);
     }
 };
 

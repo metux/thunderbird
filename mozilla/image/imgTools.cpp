@@ -8,6 +8,7 @@
 
 #include "gfxUtils.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/Logging.h"
 #include "mozilla/RefPtr.h"
 #include "nsCOMPtr.h"
 #include "nsIDocument.h"
@@ -46,17 +47,6 @@ imgTools::~imgTools()
 }
 
 NS_IMETHODIMP
-imgTools::DecodeImageData(nsIInputStream* aInStr,
-                          const nsACString& aMimeType,
-                          imgIContainer** aContainer)
-{
-  MOZ_ASSERT(*aContainer == nullptr,
-             "Cannot provide an existing image container to DecodeImageData");
-
-  return DecodeImage(aInStr, aMimeType, aContainer);
-}
-
-NS_IMETHODIMP
 imgTools::DecodeImage(nsIInputStream* aInStr,
                       const nsACString& aMimeType,
                       imgIContainer** aContainer)
@@ -67,20 +57,12 @@ imgTools::DecodeImage(nsIInputStream* aInStr,
 
   NS_ENSURE_ARG_POINTER(aInStr);
 
-  // Create a new image container to hold the decoded data.
-  nsAutoCString mimeType(aMimeType);
-  RefPtr<image::Image> image = ImageFactory::CreateAnonymousImage(mimeType);
-  RefPtr<ProgressTracker> tracker = image->GetProgressTracker();
-
-  if (image->HasError()) {
-    return NS_ERROR_FAILURE;
-  }
-
   // Prepare the input stream.
   nsCOMPtr<nsIInputStream> inStream = aInStr;
   if (!NS_InputStreamIsBuffered(aInStr)) {
     nsCOMPtr<nsIInputStream> bufStream;
-    rv = NS_NewBufferedInputStream(getter_AddRefs(bufStream), aInStr, 1024);
+    rv = NS_NewBufferedInputStream(getter_AddRefs(bufStream),
+                                   inStream.forget(), 1024);
     if (NS_SUCCEEDED(rv)) {
       inStream = bufStream;
     }
@@ -91,6 +73,16 @@ imgTools::DecodeImage(nsIInputStream* aInStr,
   rv = inStream->Available(&length);
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(length <= UINT32_MAX, NS_ERROR_FILE_TOO_BIG);
+
+  // Create a new image container to hold the decoded data.
+  nsAutoCString mimeType(aMimeType);
+  RefPtr<image::Image> image =
+    ImageFactory::CreateAnonymousImage(mimeType, uint32_t(length));
+  RefPtr<ProgressTracker> tracker = image->GetProgressTracker();
+
+  if (image->HasError()) {
+    return NS_ERROR_FAILURE;
+  }
 
   // Send the source data to the Image.
   rv = image->OnImageDataAvailable(nullptr, nullptr, inStream, 0,

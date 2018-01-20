@@ -11,6 +11,7 @@
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/CondVar.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/TimeStamp.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsIStreamLoader.h"
@@ -21,7 +22,7 @@
 
 #include "ocspt.h" // Must be included after pk11func.h.
 
-using mozilla::NeckoOriginAttributes;
+using mozilla::OriginAttributes;
 
 class nsILoadGroup;
 
@@ -56,7 +57,6 @@ public:
 
   bool mHttpRequestSucceeded;
   uint16_t mHttpResponseCode;
-  nsCString mHttpResponseContentType;
 
   const uint8_t* mResultData; // allocated in loader, but owned by listener
   uint32_t mResultLen;
@@ -102,8 +102,8 @@ public:
                           const char* httpProtocolVariant,
                           const char* pathAndQueryString,
                           const char* httpRequestMethod,
-                          const NeckoOriginAttributes& originAttributes,
-                          const PRIntervalTime timeout,
+                          const OriginAttributes& originAttributes,
+                          const mozilla::TimeDuration timeout,
                   /*out*/ nsNSSHttpRequestSession** pRequest);
 
   Result setPostDataFcn(const char* httpData,
@@ -112,7 +112,6 @@ public:
 
   Result trySendAndReceiveFcn(PRPollDesc** pPollDesc,
                               uint16_t* httpResponseCode,
-                              const char** httpResponseContentType,
                               const char** httpResponseHeaders,
                               const char** httpResponseData,
                               uint32_t* httpResponseDataLen);
@@ -127,9 +126,9 @@ public:
   nsCString mPostData;
   nsCString mPostContentType;
 
-  NeckoOriginAttributes mOriginAttributes;
+  OriginAttributes mOriginAttributes;
 
-  PRIntervalTime mTimeoutInterval;
+  mozilla::TimeDuration mTimeout;
 
   RefPtr<nsHTTPListener> mListener;
 
@@ -140,7 +139,6 @@ protected:
   Result internal_send_receive_attempt(bool& retryableError,
                                        PRPollDesc** pPollDesc,
                                        uint16_t* httpResponseCode,
-                                       const char** httpResponseContentType,
                                        const char** httpResponseHeaders,
                                        const char** httpResponseData,
                                        uint32_t* httpResponseDataLen);
@@ -162,8 +160,8 @@ public:
                           const char* httpProtocolVariant,
                           const char* pathAndQueryString,
                           const char* httpRequestMethod,
-                          const NeckoOriginAttributes& originAttributes,
-                          const PRIntervalTime timeout,
+                          const OriginAttributes& originAttributes,
+                          const mozilla::TimeDuration timeout,
                   /*out*/ nsNSSHttpRequestSession** pRequest)
   {
     return nsNSSHttpRequestSession::createFcn(session, httpProtocolVariant,
@@ -183,13 +181,11 @@ public:
   static Result trySendAndReceiveFcn(nsNSSHttpRequestSession* request,
                                      PRPollDesc** pPollDesc,
                                      uint16_t* httpResponseCode,
-                                     const char** httpResponseContentType,
                                      const char** httpResponseHeaders,
                                      const char** httpResponseData,
                                      uint32_t* httpResponseDataLen)
   {
     return request->trySendAndReceiveFcn(pPollDesc, httpResponseCode,
-                                         httpResponseContentType,
                                          httpResponseHeaders,
                                          httpResponseData, httpResponseDataLen);
   }

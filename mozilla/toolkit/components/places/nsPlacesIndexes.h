@@ -89,6 +89,11 @@
     "itemlastmodifiedindex", "moz_bookmarks", "fk, lastModified", "" \
   )
 
+#define CREATE_IDX_MOZ_BOOKMARKS_DATEADDED \
+  CREATE_PLACES_IDX( \
+    "dateaddedindex", "moz_bookmarks", "dateAdded", "" \
+  )
+
 #define CREATE_IDX_MOZ_BOOKMARKS_GUID \
   CREATE_PLACES_IDX( \
     "guid_uniqueindex", "moz_bookmarks", "guid", "UNIQUE" \
@@ -119,6 +124,20 @@
 #define CREATE_IDX_MOZ_KEYWORDS_PLACEPOSTDATA \
   CREATE_PLACES_IDX( \
     "placepostdata_uniqueindex", "moz_keywords", "place_id, post_data", "UNIQUE" \
+  )
+
+// moz_pages_w_icons
+
+#define CREATE_IDX_MOZ_PAGES_W_ICONS_ICONURLHASH \
+  CREATE_PLACES_IDX( \
+    "urlhashindex", "moz_pages_w_icons", "page_url_hash", "" \
+  )
+
+// moz_icons
+
+#define CREATE_IDX_MOZ_ICONS_ICONURLHASH \
+  CREATE_PLACES_IDX( \
+    "iconurlhashindex", "moz_icons", "fixed_icon_url_hash", "" \
   )
 
 #endif // nsPlacesIndexes_h__

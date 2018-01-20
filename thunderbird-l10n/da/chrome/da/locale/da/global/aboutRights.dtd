@@ -1,7 +1,6 @@
 <!-- rights.locale-direction instead of the usual local.dir entity, so RTL can skip translating page. -->
 <!ENTITY rights.locale-direction "ltr">
-<!ENTITY rights.pagetitle       "about:rights">
-<!ENTITY rights.intro-header    "Om dine rettigheder">
+<!ENTITY rights.title "Om dine rettigheder">
 <!ENTITY rights.intro "&brandFullName; er software med fri og åben kildekode, skabt af en sammenslutning af tusindvis af mennesker over hele kloden. Der er et par ting, som du bør vide:">
 
 <!-- Note on pointa / pointb / pointc form:
@@ -29,7 +28,7 @@
 <!ENTITY rights.intro-point3c ".">
 
 <!-- point 3 text for unbranded builds -->
-<!ENTITY rights.intro-point3-unbranded "Alle vedkommende politikker vedrørende privatlivssikring for dette produkt bør optegnes her.">
+<!ENTITY rights.intro-point3-unbranded "Alle relevante privatlivspolitikker for dette produkt bør være beskrevet her.">
 
 <!-- point 4 text for official branded builds -->
 <!ENTITY rights2.intro-point4a "Nogle &brandShortName; funktioner gør brug af webbaserede informationstjenester, men vi kan ikke garantere at de er 100&#37; korrekte eller fejlfrie. Yderligere detaljer, inklusiv information om at deaktivere disse tjenester, kan findes under punktet ">
@@ -40,9 +39,6 @@
 <!ENTITY rights.intro-point4a-unbranded "Hvis dette produkt bruger webbaserede tjenester skal alle vedkommende vilkår for tjenesterne linkes til under afsnittet ">
 <!ENTITY rights.intro-point4b-unbranded "Webbaserede tjenester">
 <!ENTITY rights.intro-point4c-unbranded ".">
-
-<!-- point 3 text for unbranded builds -->
-<!ENTITY rights.intro-point3-unbranded "Alle relevante privatlivspolitikker for dette produkt bør være beskrevet her.">
 
 <!ENTITY rights2.webservices-header "&brandFullName; webbaserede informationstjenester">
 

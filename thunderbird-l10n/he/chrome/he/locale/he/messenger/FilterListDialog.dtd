@@ -36,9 +36,9 @@
 
 
 <!ENTITY newButton.popupCopy.accesskey "C">
-<!ENTITY reorderBottomButton "Move to Bottom">
-<!ENTITY reorderBottomButton.accessKey "B">
-<!ENTITY reorderBottomButton.toolTip "Rearrange filter so it executes after all others">
 <!ENTITY reorderTopButton "Move to Top">
 <!ENTITY reorderTopButton.accessKey "o">
 <!ENTITY reorderTopButton.toolTip "Rearrange filter so it executes before all others">
+<!ENTITY reorderBottomButton "Move to Bottom">
+<!ENTITY reorderBottomButton.accessKey "B">
+<!ENTITY reorderBottomButton.toolTip "Rearrange filter so it executes after all others">

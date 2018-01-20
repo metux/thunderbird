@@ -19,7 +19,7 @@ namespace dom {
 NS_IMPL_CYCLE_COLLECTION_INHERITED(DelayNode, AudioNode,
                                    mDelay)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(DelayNode)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DelayNode)
 NS_INTERFACE_MAP_END_INHERITING(AudioNode)
 
 NS_IMPL_ADDREF_INHERITED(DelayNode, AudioNode)
@@ -82,8 +82,8 @@ public:
       if (mLeftOverData <= 0) {
         RefPtr<PlayingRefChanged> refchanged =
           new PlayingRefChanged(aStream, PlayingRefChanged::ADDREF);
-        aStream->Graph()->
-          DispatchToMainThreadAfterStreamStateUpdate(refchanged.forget());
+        aStream->Graph()->DispatchToMainThreadAfterStreamStateUpdate(
+          refchanged.forget());
       }
       mLeftOverData = mBuffer.MaxDelayTicks();
     } else if (mLeftOverData > 0) {
@@ -98,8 +98,8 @@ public:
 
         RefPtr<PlayingRefChanged> refchanged =
           new PlayingRefChanged(aStream, PlayingRefChanged::RELEASE);
-        aStream->Graph()->
-          DispatchToMainThreadAfterStreamStateUpdate(refchanged.forget());
+        aStream->Graph()->DispatchToMainThreadAfterStreamStateUpdate(
+          refchanged.forget());
       }
       aOutput->SetNull(WEBAUDIO_BLOCK_SIZE);
       return;
@@ -181,7 +181,7 @@ public:
     return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
   }
 
-  AudioNodeStream* mDestination;
+  RefPtr<AudioNodeStream> mDestination;
   AudioParamTimeline mDelay;
   DelayBuffer mBuffer;
   double mMaxDelay;
@@ -196,7 +196,8 @@ DelayNode::DelayNode(AudioContext* aContext, double aMaxDelay)
               2,
               ChannelCountMode::Max,
               ChannelInterpretation::Speakers)
-  , mDelay(new AudioParam(this, DelayNodeEngine::DELAY, 0.0f, "delayTime"))
+  , mDelay(new AudioParam(this, DelayNodeEngine::DELAY, "delayTime", 0.0f,
+                          0.f, aMaxDelay))
 {
   DelayNodeEngine* engine =
     new DelayNodeEngine(this, aContext->Destination(),
@@ -206,8 +207,30 @@ DelayNode::DelayNode(AudioContext* aContext, double aMaxDelay)
                                     aContext->Graph());
 }
 
-DelayNode::~DelayNode()
+/* static */ already_AddRefed<DelayNode>
+DelayNode::Create(AudioContext& aAudioContext,
+                  const DelayOptions& aOptions,
+                  ErrorResult& aRv)
 {
+  if (aAudioContext.CheckClosed(aRv)) {
+    return nullptr;
+  }
+
+  if (aOptions.mMaxDelayTime <= 0. || aOptions.mMaxDelayTime >= 180.) {
+    aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+    return nullptr;
+  }
+
+  RefPtr<DelayNode> audioNode = new DelayNode(&aAudioContext,
+                                              aOptions.mMaxDelayTime);
+
+  audioNode->Initialize(aOptions, aRv);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+
+  audioNode->DelayTime()->SetValue(aOptions.mDelayTime);
+  return audioNode.forget();
 }
 
 size_t

@@ -40,3 +40,6 @@
 <!ENTITY smtpName.label "(SMTP) යැවුම් සේවාදායකය:">
 <!ENTITY smtpName.accesskey "u">
 <!ENTITY smtpDefaultServer.label "පෙරනිමි සේවාදායකය භාවිතා කරන්න">
+
+<!ENTITY smtpServerEdit.label "Edit SMTP server…">
+<!ENTITY smtpServerEdit.accesskey "P">

@@ -301,12 +301,10 @@ imapMailbox.prototype = {
            this.name;
   },
   get displayName() {
-    var converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-                      .createInstance(Ci.nsIScriptableUnicodeConverter);
-    converter.isInternal = true;
-    converter.charset = "x-imap4-modified-utf7";
-    return converter.ConvertFromUnicode(this.fullName.replace(
-      /([\\"])/g, '\\$1')) + converter.Finish();
+    let manager = Cc['@mozilla.org/charset-converter-manager;1']
+                    .getService(Ci.nsICharsetConverterManager);
+    // Escape backslash and double-quote with another backslash before encoding.
+    return manager.unicodeToMutf7(this.fullName.replace(/([\\"])/g, '\\$1'));
   },
   get allChildren() {
     return this._children.reduce(function (arr, elem) {
@@ -368,7 +366,7 @@ imapMessage.prototype = {
                                    null,
                                    Services.scriptSecurityManager.getSystemPrincipal(),
                                    null,
-                                   Ci.nsILoadInfo.SEC_NORMAL,
+                                   Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                    Ci.nsIContentPolicy.TYPE_OTHER);
   },
   setFlag : function (flag) {
@@ -585,11 +583,9 @@ function formatArg(argument, spec) {
   if (spec == "atom") {
     argument = argument.toUpperCase();
   } else if (spec == "mailbox") {
-    var converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-                      .createInstance(Ci.nsIScriptableUnicodeConverter);
-    converter.isInternal = true;
-    converter.charset = "x-imap4-modified-utf7";
-    argument = converter.ConvertToUnicode(argument);
+    let manager = Cc['@mozilla.org/charset-converter-manager;1']
+                    .getService(Ci.nsICharsetConverterManager);
+    argument = manager.mutf7ToUnicode(argument);
   } else if (spec == "string") {
     // Do nothing
   } else if (spec == "flag") {
@@ -1591,8 +1587,20 @@ IMAP_RFC3501_handler.prototype = {
     return response;
   },
   _FETCH_INTERNALDATE : function (message) {
-    var response = "INTERNALDATE \"";
-    response += message.date.toLocaleFormat("%d-%b-%Y %H:%M:%S %z");
+    let date = message.date;
+    // Format timestamp as: "%d-%b-%Y %H:%M:%S %z" (%b in English).
+    let year = date.getFullYear().toString();
+    let month = date.toLocaleDateString("en-US", {month: "short"});
+    let day = date.getDate().toString();
+    let hours = date.getHours().toString().padStart(2, "0");
+    let minutes = date.getMinutes().toString().padStart(2, "0");
+    let seconds = date.getSeconds().toString().padStart(2, "0");
+    let offset = date.getTimezoneOffset();
+    let tzoff = Math.floor(Math.abs(offset) / 60) * 100 + Math.abs(offset) % 60;
+    let timeZone = (offset < 0 ? "+" : "-") + tzoff.toString().padStart(4, "0");
+
+    let response = "INTERNALDATE \"";
+    response += `${day}-${month}-${year} ${hours}:${minutes}:${seconds} ${timeZone}`;
     response += "\"";
     return response;
   },

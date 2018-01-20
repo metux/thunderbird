@@ -3,7 +3,7 @@
 
 function run_test() {
   var cs = Cc["@mozilla.org/cookieService;1"].getService(Ci.nsICookieService);
-  var cm = Cc["@mozilla.org/cookiemanager;1"].getService(Ci.nsICookieManager2);
+  var cm = Cc["@mozilla.org/cookiemanager;1"].getService(Ci.nsICookieManager);
   var expiry = (Date.now() + 1000) * 1000;
 
   cm.removeAll();
@@ -79,23 +79,10 @@ function run_test() {
 
   cm.removeAll();
 
-  // test that setting an empty or '.' http:// host results in a no-op
   var uri = NetUtil.newURI("http://baz.com/");
-  var emptyuri = NetUtil.newURI("http:///");
-  var doturi = NetUtil.newURI("http://./");
   do_check_eq(uri.asciiHost, "baz.com");
-  do_check_eq(emptyuri.asciiHost, "");
-  do_check_eq(doturi.asciiHost, ".");
-  cs.setCookieString(emptyuri, null, "foo2=bar", null);
-  do_check_eq(getCookieCount(), 0);
-  cs.setCookieString(doturi, null, "foo3=bar", null);
-  do_check_eq(getCookieCount(), 0);
   cs.setCookieString(uri, null, "foo=bar", null);
-  do_check_eq(getCookieCount(), 1);
-
   do_check_eq(cs.getCookieString(uri, null), "foo=bar");
-  do_check_eq(cs.getCookieString(emptyuri, null), null);
-  do_check_eq(cs.getCookieString(doturi, null), null);
 
   do_check_eq(cm.countCookiesFromHost(""), 0);
   do_check_throws(function() {
@@ -197,7 +184,7 @@ function run_test() {
 
 function getCookieCount() {
   var count = 0;
-  var cm = Cc["@mozilla.org/cookiemanager;1"].getService(Ci.nsICookieManager2);
+  var cm = Cc["@mozilla.org/cookiemanager;1"].getService(Ci.nsICookieManager);
   var enumerator = cm.enumerator;
   while (enumerator.hasMoreElements()) {
     if (!(enumerator.getNext() instanceof Ci.nsICookie2))
@@ -209,7 +196,7 @@ function getCookieCount() {
 
 function testDomainCookie(uriString, domain) {
   var cs = Cc["@mozilla.org/cookieService;1"].getService(Ci.nsICookieService);
-  var cm = Cc["@mozilla.org/cookiemanager;1"].getService(Ci.nsICookieManager2);
+  var cm = Cc["@mozilla.org/cookiemanager;1"].getService(Ci.nsICookieManager);
 
   cm.removeAll();
 
@@ -229,7 +216,7 @@ function testDomainCookie(uriString, domain) {
 
 function testTrailingDotCookie(uriString, domain) {
   var cs = Cc["@mozilla.org/cookieService;1"].getService(Ci.nsICookieService);
-  var cm = Cc["@mozilla.org/cookiemanager;1"].getService(Ci.nsICookieManager2);
+  var cm = Cc["@mozilla.org/cookiemanager;1"].getService(Ci.nsICookieManager);
 
   cm.removeAll();
 

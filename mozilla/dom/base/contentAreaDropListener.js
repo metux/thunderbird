@@ -109,7 +109,7 @@ ContentAreaDropListener.prototype =
     try {
       // Check that the uri is valid first and return an empty string if not.
       // It may just be plain text and should be ignored here
-      uri = ioService.newURI(uriString, null, null);
+      uri = ioService.newURI(uriString);
     } catch (ex) { }
     if (!uri)
       return uriString;
@@ -122,13 +122,40 @@ ContentAreaDropListener.prototype =
     if (disallowInherit)
       flags |= secMan.DISALLOW_INHERIT_PRINCIPAL;
 
-    // Use file:/// as the default uri so that drops of file URIs are always allowed
-    let principal = sourceNode ? sourceNode.nodePrincipal
-                               : secMan.createCodebasePrincipal(ioService.newURI("file:///", null, null), {});
-
+    let principal;
+    if (sourceNode) {
+      principal = this._getTriggeringPrincipalFromSourceNode(sourceNode);
+    } else {
+      // Use file:/// as the default uri so that drops of file URIs are always
+      // allowed.
+      principal = secMan.createCodebasePrincipal(ioService.newURI("file:///"), {});
+    }
     secMan.checkLoadURIStrWithPrincipal(principal, uriString, flags);
 
     return uriString;
+  },
+
+  _getTriggeringPrincipalFromSourceNode: function(aSourceNode)
+  {
+    if (aSourceNode.localName == "browser" &&
+        aSourceNode.namespaceURI == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul") {
+      return aSourceNode.contentPrincipal;
+    }
+    return aSourceNode.nodePrincipal;
+  },
+
+  getTriggeringPrincipal: function(aEvent)
+  {
+    let dataTransfer = aEvent.dataTransfer;
+    let sourceNode = dataTransfer.mozSourceNode;
+    if (sourceNode) {
+      return this._getTriggeringPrincipalFromSourceNode(sourceNode, false);
+    }
+    // Bug 1367038: mozSourceNode is null if the drag event originated
+    // in an external application - needs better fallback!
+    let secMan = Cc["@mozilla.org/scriptsecuritymanager;1"].
+                   getService(Ci.nsIScriptSecurityManager);
+    return secMan.getSystemPrincipal();
   },
 
   canDropLink: function(aEvent, aAllowSameDocument)
@@ -208,6 +235,15 @@ ContentAreaDropListener.prototype =
     if (aCount)
       aCount.value = links.length;
 
+    return links;
+  },
+
+  queryLinks: function(aDataTransfer, aCount)
+  {
+    let links = this._getDropLinks(aDataTransfer);
+    if (aCount) {
+      aCount.value = links.length;
+    }
     return links;
   },
 

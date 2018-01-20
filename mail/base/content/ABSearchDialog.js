@@ -177,11 +177,8 @@ function onSearch()
     saveSearchTerms(gSearchSession.searchTerms, gSearchSession);
 
     var searchUri = currentAbURI + "?(";
-
-    var count = gSearchSession.searchTerms.Count();
-
-    for (var i=0; i<count; i++) {
-      var searchTerm = gSearchSession.searchTerms.GetElementAt(i).QueryInterface(nsIMsgSearchTerm);
+    for (let i = 0; i < gSearchSession.searchTerms.length; i++) {
+      let searchTerm = gSearchSession.searchTerms.queryElementAt(i, nsIMsgSearchTerm);
 
       // get the "and" / "or" value from the first term
       if (i == 0) {
@@ -354,7 +351,9 @@ function UpdateCardView()
   if (!numSelected)
     return;
 
-  gComposeCmd.removeAttribute("disabled");
+  if (MailServices.accounts.allIdentities.length > 0)
+    gComposeCmd.removeAttribute("disabled");
+
   gDeleteCmd.removeAttribute("disabled");
   if (numSelected == 1)
     gPropertiesCmd.removeAttribute("disabled");

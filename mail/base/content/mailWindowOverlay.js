@@ -18,7 +18,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "ScratchpadManager","resource://devtools
 Object.defineProperty(this, "HUDService", {
   get: function HUDService_getter() {
     let devtools = Components.utils.import("resource://devtools/shared/Loader.jsm", {}).devtools;
-    return devtools.require("devtools/client/webconsole/hudservice");
+    return devtools.require("devtools/client/webconsole/hudservice").HUDService;
   },
   configurable: true,
   enumerable: true
@@ -180,8 +180,7 @@ function InitGoMessagesMenu()
 function view_init()
 {
   let isFeed = gFolderDisplay &&
-               ((gFolderDisplay.displayedFolder &&
-                 gFolderDisplay.displayedFolder.server.type == "rss") ||
+               (FeedMessageHandler.isFeedFolder(gFolderDisplay.displayedFolder) ||
                 gFolderDisplay.selectedMessageIsFeed);
 
   let accountCentralDisplayed = gFolderDisplay.isAccountCentralDisplayed;
@@ -193,7 +192,7 @@ function view_init()
   }
 
   let messagePaneAppMenuItem = document.getElementById("appmenu_showMessage");
-  if (!messagePaneAppMenuItem.hidden) { // Hidden in the standalone msg window.
+  if (messagePaneAppMenuItem && messagePaneAppMenuItem.hidden) { // Hidden in the standalone msg window.
     messagePaneAppMenuItem.setAttribute("checked",
       accountCentralDisplayed ? false : gMessageDisplay.visible);
     messagePaneAppMenuItem.disabled = accountCentralDisplayed;
@@ -492,8 +491,12 @@ function InitMessageMenu()
   // not in a folder.
   document.getElementById("tagMenu").disabled = !messageStoredInternally;
 
-  // Hide "Edit Draft Message" menus if we're not in a draft folder.
-  updateHiddenStateForEditDraftMsgCmd();
+  // Show "Edit Draft Message" menus only in a drafts folder; otherwise hide them.
+  showCommandInSpecialFolder("cmd_editDraftMsg",
+                             Components.interfaces.nsMsgFolderFlags.Drafts);
+  // Show "New Message from Template" menus only in a templates folder; otherwise hide them.
+  showCommandInSpecialFolder("cmd_newMsgFromTemplate",
+                             Components.interfaces.nsMsgFolderFlags.Templates);
 
   // Initialize the Open Message menuitem
   var winType = document.documentElement.getAttribute('windowtype');
@@ -553,8 +556,12 @@ function InitAppMessageMenu()
   // not in a folder.
   document.getElementById("appmenu_tagMenu").disabled = !messageStoredInternally;
 
-  // Hide "Edit Draft Message" menus if we're not in a draft folder.
-  updateHiddenStateForEditDraftMsgCmd();
+  // Show "Edit Draft Message" menus only in a drafts folder; otherwise hide them.
+  showCommandInSpecialFolder("cmd_editDraftMsg",
+                             Components.interfaces.nsMsgFolderFlags.Drafts);
+  // Show "New Message from Template" menus only in a templates folder; otherwise hide them.
+  showCommandInSpecialFolder("cmd_newMsgFromTemplate",
+                             Components.interfaces.nsMsgFolderFlags.Templates);
 
   // Initialize the Open Message menuitem
   let winType = document.documentElement.getAttribute('windowtype');
@@ -578,17 +585,22 @@ function InitAppMessageMenu()
 }
 
 /**
- * Hides the "Edit Draft Message" menuitems for messages which are not in a draft folder.
+ * Show folder-specific menu items only for messages in special folders, e.g.
+ * show 'cmd_editDraftMsg' in Drafts folder, or
+ * show 'cmd_newMsgFromTemplate' in Templates folder.
+ *
+ * aCommandId   the ID of a command to be shown in folders having aFolderFlag
+ * aFolderFlag  the nsMsgFolderFlag that the folder must have to show the command
  */
-function updateHiddenStateForEditDraftMsgCmd()
+function showCommandInSpecialFolder(aCommandId, aFolderFlag)
 {
   let msg = gFolderDisplay.selectedMessage;
   let folder = gFolderDisplay.displayedFolder;
-  let inDraftFolder = (msg && msg.folder &&  // Need to check folder since messages
-                                             // opened from file have none.
-                       msg.folder.isSpecialFolder(nsMsgFolderFlags.Drafts, true)) ||
-                      (folder && folder.getFlag(nsMsgFolderFlags.Drafts));
-  document.getElementById("cmd_editDraftMsg").setAttribute("hidden", !inDraftFolder);
+  let inSpecialFolder = (msg &&
+                         msg.folder &&  // Check folder as messages opened from file have none.
+                         msg.folder.isSpecialFolder(aFolderFlag, true)) ||
+                        (folder && folder.getFlag(aFolderFlag));
+  document.getElementById(aCommandId).setAttribute("hidden", !inSpecialFolder);
 }
 
 /**
@@ -844,7 +856,7 @@ function RemoveAllMessageTags()
       messages.clear();
       prevHdrFolder = msgHdr.folder;
     }
-    messages.appendElement(msgHdr, false);
+    messages.appendElement(msgHdr);
   }
   if (prevHdrFolder)
     prevHdrFolder.removeKeywordsFromMessages(messages, allKeys);
@@ -906,7 +918,7 @@ function ToggleMessageTag(key, addKey)
       // If we don't, the thread tree won't always show the correct tag state,
       // because resetting a label doesn't update the tree anymore...
       msg.clear();
-      msg.appendElement(msgHdr, false);
+      msg.appendElement(msgHdr);
       msgHdr.folder.addKeywordsToMessages(msg, "$label" + msgHdr.label);
       msgHdr.label = 0; // remove legacy label
     }
@@ -917,7 +929,7 @@ function ToggleMessageTag(key, addKey)
       messages.clear();
       prevHdrFolder = msgHdr.folder;
     }
-    messages.appendElement(msgHdr, false);
+    messages.appendElement(msgHdr);
   }
   if (prevHdrFolder)
     prevHdrFolder[toggler](messages, key);
@@ -1223,7 +1235,8 @@ function IsReplyAllEnabled()
     addresses += currentHeaderData.bcc.headerValue;
 
   // Check to see if my email address is in the list of addresses.
-  let myEmail = getIdentityForHeader(msgHdr).email;
+  let myIdentity = getIdentityForHeader(msgHdr);
+  let myEmail = myIdentity ? myIdentity.email : null;
   // We aren't guaranteed to have an email address, so guard against that.
   let imInAddresses = myEmail && (addresses.toLowerCase().includes(
                                     myEmail.toLowerCase()));
@@ -1439,6 +1452,19 @@ function MsgGetMessage()
     GetFolderMessages();
 }
 
+function MsgPauseUpdates(aMenuitem)
+{
+  // Pause single feed folder subscription updates, or all account updates if
+  // folder is the account folder.
+  let selectedFolders = GetSelectedMsgFolders();
+  let folder = selectedFolders.length ? selectedFolders[0] : null;
+  if (!FeedMessageHandler.isFeedFolder(folder))
+    return;
+
+  let pause = aMenuitem.getAttribute("checked") == "true";
+  FeedUtils.pauseFeedFolderUpdates(folder, pause, true);
+}
+
 function MsgGetMessagesForAllServers(defaultServer)
 {
   // now log into any server
@@ -1606,6 +1632,11 @@ function MsgNewMessage(event)
   composeMsgByType(Components.interfaces.nsIMsgCompType.New, event);
 }
 
+function CanComposeMessages()
+{
+  return MailServices.accounts.allIdentities.length > 0;
+}
+
 function MsgReplyMessage(event)
 {
   if (gFolderDisplay.selectedMessageIsNews)
@@ -1660,14 +1691,17 @@ BatchMessageMover.prototype = {
       // Convert date to JS date object.
       let msgDate = new Date(msgHdr.date / 1000);
       let msgYear = msgDate.getFullYear().toString();
-      let monthFolderName = msgDate.toLocaleFormat("%Y-%m");
-      let archiveFolderURI;
+      let monthFolderName = msgYear + "-" + (msgDate.getMonth() + 1).toString().padStart(2, "0");
 
+      let archiveFolderURI;
       let archiveGranularity;
       let archiveKeepFolderStructure;
-      if (server.type == "rss") {
-        // RSS servers don't have an identity, so we need to figure this out
-        // based on the default identity prefs.
+
+      let identity = getIdentityForHeader(msgHdr);
+      if (!identity || FeedMessageHandler.isFeedFolder(msgHdr.folder)) {
+        // If no identity, or a server (RSS) which doesn't have an identity
+        // and doesn't want the default unrelated identity value, figure
+        // this out based on the default identity prefs.
         let enabled = Services.prefs.getBoolPref(
           "mail.identity.default.archive_enabled"
         );
@@ -1683,9 +1717,9 @@ BatchMessageMover.prototype = {
         );
       }
       else {
-        let identity = getIdentityForHeader(msgHdr);
         if (!identity.archiveEnabled)
           continue;
+
         archiveFolderURI = identity.archiveFolder;
         archiveGranularity = identity.archiveGranularity;
         archiveKeepFolderStructure = identity.archiveKeepFolderStructure;
@@ -1743,7 +1777,7 @@ BatchMessageMover.prototype = {
     let filterArray = Components.classes["@mozilla.org/array;1"]
                                 .createInstance(Components.interfaces.nsIMutableArray);
     for (let message of batch.messages) {
-      filterArray.appendElement(message, false);
+      filterArray.appendElement(message);
     }
 
     // Apply filters to this batch.
@@ -1780,7 +1814,7 @@ BatchMessageMover.prototype = {
         if (srcFolder.msgDatabase.ContainsKey(item.messageKey) &&
             !(srcFolder.getProcessingFlags(item.messageKey) &
               Components.interfaces.nsMsgProcessingFlags.FilterToMove)) {
-          moveArray.appendElement(item, false);
+          moveArray.appendElement(item);
         }
       }
 
@@ -1962,12 +1996,17 @@ function MsgForwardAsInline(event)
 
 function MsgEditMessageAsNew(aEvent)
 {
-  composeMsgByType(Components.interfaces.nsIMsgCompType.Template, aEvent);
+  composeMsgByType(Components.interfaces.nsIMsgCompType.EditAsNew, aEvent);
 }
 
 function MsgEditDraftMessage(aEvent)
 {
   composeMsgByType(Components.interfaces.nsIMsgCompType.Draft, aEvent);
+}
+
+function MsgNewMessageFromTemplate(aEvent)
+{
+  composeMsgByType(Components.interfaces.nsIMsgCompType.Template, aEvent);
 }
 
 function MsgComposeDraftMessage()
@@ -2058,7 +2097,7 @@ function MsgSubscribe()
 {
   var preselectedFolder = GetFirstSelectedMsgFolder();
 
-  if (preselectedFolder && preselectedFolder.server.type == "rss")
+  if (FeedMessageHandler.isFeedFolder(preselectedFolder))
     openSubscriptionsDialog(preselectedFolder); // open feed subscription dialog
   else
     Subscribe(preselectedFolder); // open imap/nntp subscription dialog
@@ -2215,21 +2254,16 @@ function MsgOpenFromFile()
   // Default or last filter is "All Files".
   fp.appendFilters(nsIFilePicker.filterAll);
 
-  try {
-    var ret = fp.show();
-    if (ret == nsIFilePicker.returnCancel)
+  fp.open(rv => {
+    if (rv != nsIFilePicker.returnOK || !fp.file) {
       return;
-  }
-  catch (ex) {
-    dump("filePicker.chooseInputFile threw an exception\n");
-    return;
-  }
+    }
+    let uri = fp.fileURL.QueryInterface(Components.interfaces.nsIURL);
+    uri.query = "type=application/x-message-display";
 
-  var uri = fp.fileURL.QueryInterface(Components.interfaces.nsIURL);
-  uri.query = "type=application/x-message-display";
-
-  window.openDialog("chrome://messenger/content/messageWindow.xul", "_blank",
+    window.openDialog("chrome://messenger/content/messageWindow.xul", "_blank",
                     "all,chrome,dialog=no,status,toolbar", uri);
+  });
 }
 
 function MsgOpenNewWindowForMessage(aMsgHdr)
@@ -2428,7 +2462,7 @@ function MsgApplyFilters()
   let preselectedFolder = GetFirstSelectedMsgFolder();
   let selectedFolders = Components.classes["@mozilla.org/array;1"]
                                   .createInstance(Components.interfaces.nsIMutableArray);
-  selectedFolders.appendElement(preselectedFolder, false);
+  selectedFolders.appendElement(preselectedFolder);
 
   let curFilterList = preselectedFolder.getFilterList(msgWindow);
   // create a new filter list and copy over the enabled filters to it.
@@ -2605,6 +2639,7 @@ function IsGetNextNMessagesEnabled()
   var folder = selectedFolders.length ? selectedFolders[0] : null;
 
   var menuItem = document.getElementById("menu_getnextnmsg");
+  var appMenuItem = document.getElementById("appmenu_getNextNMsgs");
   if (folder && !folder.isServer &&
       folder.server instanceof Components.interfaces.nsINntpIncomingServer) {
     menuItem.label = PluralForm.get(folder.server.maxArticles,
@@ -2612,10 +2647,17 @@ function IsGetNextNMessagesEnabled()
                                             .getString("getNextNewsMessages"))
                                .replace("#1", folder.server.maxArticles);
     menuItem.removeAttribute("hidden");
+    if (appMenuItem) {
+      appMenuItem.label = menuItem.label;
+      appMenuItem.removeAttribute("hidden");
+    }
     return true;
   }
 
   menuItem.setAttribute("hidden","true");
+  if (appMenuItem) {
+    appMenuItem.setAttribute("hidden","true");
+  }
   return false;
 }
 
@@ -2806,7 +2848,7 @@ function GetMessagesForAllAuthenticatedAccounts()
   try
   {
     var allServers = accountManager.allServers;
-    // array of isupportsarrays of servers for a particular folder
+    // Array of arrays of servers for a particular folder.
     var pop3DownloadServersArray = [];
     // parallel array of folders to download to...
     var localFoldersToDownloadTo = [];
@@ -3049,7 +3091,7 @@ var gMessageNotificationBar =
 
     if (!this.isShowingRemoteContentNotification()) {
       this.msgNotificationBar.appendNotification(remoteContentMsg, "remoteContent",
-        "chrome://messenger/skin/icons/remote-blocked.png",
+        "chrome://messenger/skin/icons/remote-blocked.svg",
         this.msgNotificationBar.PRIORITY_WARNING_MEDIUM,
         buttons);
     }
@@ -3200,7 +3242,7 @@ function onRemoteContentOptionsShowing(aEvent) {
   if (adrCount > 0) {
     let authorEmailAddress = addresses.value[0];
     let authorEmailAddressURI = Services.io.newURI(
-      "chrome://messenger/content/email=" + authorEmailAddress, null, null);
+      "chrome://messenger/content/email=" + authorEmailAddress);
     let mailPrincipal = Services.scriptSecurityManager
       .createCodebasePrincipal(authorEmailAddressURI, {});
     origins.push(mailPrincipal.origin);
@@ -3250,7 +3292,7 @@ function onRemoteContentOptionsShowing(aEvent) {
  * @param aReload  Reload the message display after allowing the URI.
  */
 function allowRemoteContentForURI(aUriSpec, aReload = true) {
-  let uri = Services.io.newURI(aUriSpec, null, null);
+  let uri = Services.io.newURI(aUriSpec);
   Services.perms.add(uri, "image", Services.perms.ALLOW_ACTION);
   if (aReload)
     ReloadMessage();
@@ -3323,7 +3365,7 @@ function MarkMessageAsRead(msgHdr)
   ClearPendingReadTimer();
   var headers = Components.classes["@mozilla.org/array;1"]
                           .createInstance(Components.interfaces.nsIMutableArray);
-  headers.appendElement(msgHdr, false);
+  headers.appendElement(msgHdr);
   msgHdr.folder.markMessagesRead(headers, true);
 }
 
@@ -3527,33 +3569,64 @@ function IgnoreMDNResponse()
   gMessageNotificationBar.mdnGenerator.userDeclined();
 }
 
+/***
+ * Focus the gloda global search input box on current tab, or,
+ * if the search box is not available, open a new gloda search tab
+ * (with its search box focused).
+ */
 function QuickSearchFocus()
 {
+  // Default to focusing the search box on the current tab
+  let newTab = false;
+  let searchInput;
   let tabmail = document.getElementById('tabmail');
-
-  // If we're currently viewing a Gloda tab, drill down to find the
-  // built-in search input, and select that.
-  if (tabmail
-      && tabmail.currentTabInfo.mode.name == "glodaFacet") {
-    let searchInput = tabmail.currentTabInfo
-                             .panel
-                             .querySelector(".remote-gloda-search");
-    if (searchInput)
-      searchInput.select();
-
+  if (!tabmail) {
+    // This should never happen.
     return;
   }
 
-  if (tabmail && tabmail.currentTabInfo.mode.name == "chat") {
-    let searchInput = document.getElementById("IMSearchInput");
-    if (searchInput)
-      searchInput.select();
-    return;
+  switch (tabmail.currentTabInfo.mode.name) {
+    case  "glodaFacet":
+      // If we're currently viewing a Gloda tab, drill down to find the
+      // built-in search input, and select that.
+      searchInput = tabmail.currentTabInfo
+                           .panel
+                           .querySelector(".remote-gloda-search");
+      break;
+    case "chat":
+      searchInput = document.getElementById("IMSearchInput");
+      break;
+    default:
+      searchInput = document.getElementById("searchInput");
   }
 
-  var quickSearchTextBox = document.getElementById('searchInput');
-  if (quickSearchTextBox)
-    quickSearchTextBox.select();
+  if (!searchInput) {
+    // If searchInput is not found on current tab (e.g. removed by user),
+    // use a new tab.
+    newTab = true;
+  }
+  else {
+    // The searchInput element exists on current tab.
+    // However, via toolbar customization, it can be in different places:
+    // Toolbars, tab bar, menu bar, etc. If the containing elements are hidden,
+    // searchInput will also be hidden, so clientHeight and clientWidth of the
+    // searchbox or one of its parents will typically be zero and we can test
+    // for that. If searchInput is hidden, use a new tab.
+    let element = searchInput;
+    while (element) {
+      if ((element.clientHeight == 0) || (element.clientWidth == 0))
+        newTab = true;
+      element = element.parentElement;
+    }
+  }
+
+  if (!newTab) {
+    // Focus and select global search box on current tab.
+    searchInput.select();
+  } else {
+    // Open a new global search tab (with focus on its global search box)
+    tabmail.openTab("glodaFacet");
+  }
 }
 
 /**

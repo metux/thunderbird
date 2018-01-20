@@ -20,6 +20,7 @@
 #include "nsMsgUtils.h"
 #include "nsIMsgHdr.h"
 #include "nsIMsgFolder.h"
+#include "nsMsgDBFolder.h"
 #include "nsServiceManagerUtils.h"
 #include "mozilla/Services.h"
 #include "nsMsgUtils.h"
@@ -36,8 +37,6 @@ nsMsgStatusFeedback::nsMsgStatusFeedback() :
   if (bundleService)
     bundleService->CreateBundle("chrome://messenger/locale/messenger.properties",
                                 getter_AddRefs(mBundle));
-
-  m_msgLoadedAtom = MsgGetAtom("msgLoaded");
 }
 
 nsMsgStatusFeedback::~nsMsgStatusFeedback()
@@ -56,7 +55,7 @@ NS_IMETHODIMP
 nsMsgStatusFeedback::OnProgressChange(nsIWebProgress* aWebProgress,
                                       nsIRequest* aRequest,
                                       int32_t aCurSelfProgress,
-                                      int32_t aMaxSelfProgress, 
+                                      int32_t aMaxSelfProgress,
                                       int32_t aCurTotalProgress,
                                       int32_t aMaxTotalProgress)
 {
@@ -70,7 +69,7 @@ nsMsgStatusFeedback::OnProgressChange(nsIWebProgress* aWebProgress,
 
    return NS_OK;
 }
-      
+
 NS_IMETHODIMP
 nsMsgStatusFeedback::OnStateChange(nsIWebProgress* aWebProgress,
                                    nsIRequest* aRequest,
@@ -87,20 +86,19 @@ nsMsgStatusFeedback::OnStateChange(nsIWebProgress* aWebProgress,
       m_lastPercent = 0;
       StartMeteors();
       nsString loadingDocument;
-      rv = mBundle->GetStringFromName(u"documentLoading",
-                                      getter_Copies(loadingDocument));
+      rv = mBundle->GetStringFromName("documentLoading", loadingDocument);
       if (NS_SUCCEEDED(rv))
         ShowStatusString(loadingDocument);
     }
     else if (aProgressStateFlags & STATE_STOP)
     {
-      // if we are loading message for display purposes, this STATE_STOP notification is 
+      // if we are loading message for display purposes, this STATE_STOP notification is
       // the only notification we get when layout is actually done rendering the message. We need
       // to fire the appropriate msgHdrSink notification in this particular case.
       nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
-      if (channel) 
+      if (channel)
       {
-        nsCOMPtr<nsIURI> uri; 
+        nsCOMPtr<nsIURI> uri;
         channel->GetURI(getter_AddRefs(uri));
         nsCOMPtr<nsIMsgMailNewsUrl> mailnewsUrl (do_QueryInterface(uri));
         if (mailnewsUrl)
@@ -110,7 +108,7 @@ nsMsgStatusFeedback::OnStateChange(nsIWebProgress* aWebProgress,
           mailnewsUrl->IsUrlType(nsIMsgMailNewsUrl::eDisplay, &messageDisplayUrl);
 
           if (messageDisplayUrl)
-          {              
+          {
             // get the header sink
             nsCOMPtr<nsIMsgWindow> msgWindow;
             mailnewsUrl->GetMsgWindow(getter_AddRefs(msgWindow));
@@ -121,7 +119,7 @@ nsMsgStatusFeedback::OnStateChange(nsIWebProgress* aWebProgress,
               if (hdrSink)
                 hdrSink->OnEndMsgDownload(mailnewsUrl);
             }
-            // get the folder and notify that the msg has been loaded. We're 
+            // get the folder and notify that the msg has been loaded. We're
             // using NotifyPropertyFlagChanged. To be completely consistent,
             // we'd send a similar notification that the old message was
             // unloaded.
@@ -134,15 +132,14 @@ nsMsgStatusFeedback::OnStateChange(nsIWebProgress* aWebProgress,
               // not sending this notification is not a fatal error...
               (void) msgUrl->GetMessageHeader(getter_AddRefs(msgHdr));
               if (msgFolder && msgHdr)
-                msgFolder->NotifyPropertyFlagChanged(msgHdr, m_msgLoadedAtom, 0, 1);
+                msgFolder->NotifyPropertyFlagChanged(msgHdr, kMsgLoaded, 0, 1);
             }
           }
         }
       }
       StopMeteors();
       nsString documentDone;
-      rv = mBundle->GetStringFromName(u"documentDone",
-                                      getter_Copies(documentDone));
+      rv = mBundle->GetStringFromName("documentDone", documentDone);
       if (NS_SUCCEEDED(rv))
         ShowStatusString(documentDone);
     }
@@ -158,7 +155,7 @@ NS_IMETHODIMP nsMsgStatusFeedback::OnLocationChange(nsIWebProgress* aWebProgress
    return NS_OK;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsMsgStatusFeedback::OnStatusChange(nsIWebProgress* aWebProgress,
                                     nsIRequest* aRequest,
                                     nsresult aStatus,
@@ -168,9 +165,9 @@ nsMsgStatusFeedback::OnStatusChange(nsIWebProgress* aWebProgress,
 }
 
 
-NS_IMETHODIMP 
-nsMsgStatusFeedback::OnSecurityChange(nsIWebProgress *aWebProgress, 
-                                    nsIRequest *aRequest, 
+NS_IMETHODIMP
+nsMsgStatusFeedback::OnSecurityChange(nsIWebProgress *aWebProgress,
+                                    nsIRequest *aRequest,
                                     uint32_t state)
 {
     return NS_OK;
@@ -202,7 +199,7 @@ nsMsgStatusFeedback::ShowProgress(int32_t aPercentage)
   // then don't bother....just fall out....
   if (aPercentage == m_lastPercent || (m_lastPercent == 0 && aPercentage >= 100))
     return NS_OK;
-  
+
   m_lastPercent = aPercentage;
 
   int64_t nowMS = 0;
@@ -245,16 +242,16 @@ NS_IMETHODIMP nsMsgStatusFeedback::SetWrappedStatusFeedback(nsIMsgStatusFeedback
   return NS_OK;
 }
 
-NS_IMETHODIMP nsMsgStatusFeedback::OnProgress(nsIRequest *request, nsISupports* ctxt, 
+NS_IMETHODIMP nsMsgStatusFeedback::OnProgress(nsIRequest *request, nsISupports* ctxt,
                                               int64_t aProgress, int64_t aProgressMax)
 {
   // XXX: What should the nsIWebProgress be?
   // XXX: this truncates 64-bit to 32-bit
-  return OnProgressChange(nullptr, request, int32_t(aProgress), int32_t(aProgressMax), 
+  return OnProgressChange(nullptr, request, int32_t(aProgress), int32_t(aProgressMax),
                           int32_t(aProgress) /* current total progress */, int32_t(aProgressMax) /* max total progress */);
 }
 
-NS_IMETHODIMP nsMsgStatusFeedback::OnStatus(nsIRequest *request, nsISupports* ctxt, 
+NS_IMETHODIMP nsMsgStatusFeedback::OnStatus(nsIRequest *request, nsISupports* ctxt,
                                             nsresult aStatus, const char16_t* aStatusArg)
 {
   nsresult rv;
@@ -278,7 +275,7 @@ NS_IMETHODIMP nsMsgStatusFeedback::OnStatus(nsIRequest *request, nsISupports* ct
     mozilla::services::GetStringBundleService();
   NS_ENSURE_TRUE(sbs, NS_ERROR_UNEXPECTED);
   nsString str;
-  rv = sbs->FormatStatusMessage(aStatus, aStatusArg, getter_Copies(str));
+  rv = sbs->FormatStatusMessage(aStatus, aStatusArg, str);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // prefixing the account name to the status message if status message isn't blank
@@ -291,8 +288,8 @@ NS_IMETHODIMP nsMsgStatusFeedback::OnStatus(nsIRequest *request, nsISupports* ct
     const char16_t *params[] = { accountName.get(),
                                   str.get() };
     rv = bundle->FormatStringFromName(
-      u"statusMessage",
-      params, 2, getter_Copies(statusMessage));
+      "statusMessage",
+      params, 2, statusMessage);
     NS_ENSURE_SUCCESS(rv, rv);
   }
   else

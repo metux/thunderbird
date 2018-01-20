@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -178,35 +179,35 @@ inline already_AddRefed<Path> MakePathForRect(const DrawTarget& aDrawTarget,
 }
 
 struct RectCornerRadii {
-  Size radii[RectCorner::Count];
+  Size radii[eCornerCount];
 
   RectCornerRadii() {}
 
   explicit RectCornerRadii(Float radius) {
-    for (int i = 0; i < RectCorner::Count; i++) {
+    NS_FOR_CSS_FULL_CORNERS(i) {
       radii[i].SizeTo(radius, radius);
     }
   }
 
   explicit RectCornerRadii(Float radiusX, Float radiusY) {
-    for (int i = 0; i < RectCorner::Count; i++) {
+    NS_FOR_CSS_FULL_CORNERS(i) {
       radii[i].SizeTo(radiusX, radiusY);
     }
   }
 
   RectCornerRadii(Float tl, Float tr, Float br, Float bl) {
-    radii[RectCorner::TopLeft].SizeTo(tl, tl);
-    radii[RectCorner::TopRight].SizeTo(tr, tr);
-    radii[RectCorner::BottomRight].SizeTo(br, br);
-    radii[RectCorner::BottomLeft].SizeTo(bl, bl);
+    radii[eCornerTopLeft].SizeTo(tl, tl);
+    radii[eCornerTopRight].SizeTo(tr, tr);
+    radii[eCornerBottomRight].SizeTo(br, br);
+    radii[eCornerBottomLeft].SizeTo(bl, bl);
   }
 
   RectCornerRadii(const Size& tl, const Size& tr,
                   const Size& br, const Size& bl) {
-    radii[RectCorner::TopLeft] = tl;
-    radii[RectCorner::TopRight] = tr;
-    radii[RectCorner::BottomRight] = br;
-    radii[RectCorner::BottomLeft] = bl;
+    radii[eCornerTopLeft] = tl;
+    radii[eCornerTopRight] = tr;
+    radii[eCornerBottomRight] = br;
+    radii[eCornerBottomLeft] = bl;
   }
 
   const Size& operator[](size_t aCorner) const {
@@ -218,29 +219,40 @@ struct RectCornerRadii {
   }
 
   bool operator==(const RectCornerRadii& aOther) const {
-    for (size_t i = 0; i < RectCorner::Count; i++) {
-      if (radii[i] != aOther.radii[i]) return false;
-    }
-    return true;
+    return TopLeft() == aOther.TopLeft() &&
+           TopRight() == aOther.TopRight() &&
+           BottomRight() == aOther.BottomRight() &&
+           BottomLeft() == aOther.BottomLeft();
+  }
+
+  bool AreRadiiSame() const {
+    return TopLeft() == TopRight() &&
+           TopLeft() == BottomRight() &&
+           TopLeft() == BottomLeft();
   }
 
   void Scale(Float aXScale, Float aYScale) {
-    for (int i = 0; i < RectCorner::Count; i++) {
+    NS_FOR_CSS_FULL_CORNERS(i) {
       radii[i].Scale(aXScale, aYScale);
     }
   }
 
-  const Size TopLeft() const { return radii[RectCorner::TopLeft]; }
-  Size& TopLeft() { return radii[RectCorner::TopLeft]; }
+  const Size TopLeft() const { return radii[eCornerTopLeft]; }
+  Size& TopLeft() { return radii[eCornerTopLeft]; }
 
-  const Size TopRight() const { return radii[RectCorner::TopRight]; }
-  Size& TopRight() { return radii[RectCorner::TopRight]; }
+  const Size TopRight() const { return radii[eCornerTopRight]; }
+  Size& TopRight() { return radii[eCornerTopRight]; }
 
-  const Size BottomRight() const { return radii[RectCorner::BottomRight]; }
-  Size& BottomRight() { return radii[RectCorner::BottomRight]; }
+  const Size BottomRight() const { return radii[eCornerBottomRight]; }
+  Size& BottomRight() { return radii[eCornerBottomRight]; }
 
-  const Size BottomLeft() const { return radii[RectCorner::BottomLeft]; }
-  Size& BottomLeft() { return radii[RectCorner::BottomLeft]; }
+  const Size BottomLeft() const { return radii[eCornerBottomLeft]; }
+  Size& BottomLeft() { return radii[eCornerBottomLeft]; }
+
+  bool IsEmpty() const {
+    return TopLeft().IsEmpty() && TopRight().IsEmpty() &&
+           BottomRight().IsEmpty() && BottomLeft().IsEmpty();
+  }
 };
 
 /**

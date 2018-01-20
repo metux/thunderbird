@@ -5,17 +5,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "NativeFontResourceDWrite.h"
+#include "UnscaledFontDWrite.h"
 
 #include <unordered_map>
 
-#include "DrawTargetD2D1.h"
 #include "Logging.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/StaticMutex.h"
 
 namespace mozilla {
 namespace gfx {
 
-static Atomic<uint64_t> sNextFontFileKey;
+static StaticMutex sFontFileStreamsMutex;
+static uint64_t sNextFontFileKey = 0;
 static std::unordered_map<uint64_t, IDWriteFontFileStream*> sFontFileStreams;
 
 class DWriteFontFileLoader : public IDWriteFontFileLoader
@@ -69,7 +71,7 @@ public:
   {
     if (!mInstance) {
       mInstance = new DWriteFontFileLoader();
-      DrawTargetD2D1::GetDWriteFactory()->
+      Factory::GetDWriteFactory()->
           RegisterFontFileLoader(mInstance);
     }
     return mInstance;
@@ -79,7 +81,7 @@ private:
   static IDWriteFontFileLoader* mInstance;
 };
 
-class DWriteFontFileStream : public IDWriteFontFileStream
+class DWriteFontFileStream final : public IDWriteFontFileStream
 {
 public:
   /**
@@ -91,7 +93,6 @@ public:
     * @param aData Font data
     */
   DWriteFontFileStream(uint8_t *aData, uint32_t aSize, uint64_t aFontFileKey);
-  ~DWriteFontFileStream();
 
   // IUnknown interface
   IFACEMETHOD(QueryInterface)(IID const& iid, OUT void** ppObject)
@@ -109,18 +110,16 @@ public:
 
   IFACEMETHOD_(ULONG, AddRef)()
   {
-    ++mRefCnt;
-    return mRefCnt;
+    return ++mRefCnt;
   }
 
   IFACEMETHOD_(ULONG, Release)()
   {
-    --mRefCnt;
-    if (mRefCnt == 0) {
+    uint32_t count = --mRefCnt;
+    if (count == 0) {
       delete this;
-      return 0;
     }
-    return mRefCnt;
+    return count;
   }
 
   // IDWriteFontFileStream methods
@@ -137,8 +136,10 @@ public:
 
 private:
   std::vector<uint8_t> mData;
-  uint32_t mRefCnt;
+  Atomic<uint32_t> mRefCnt;
   uint64_t mFontFileKey;
+
+  ~DWriteFontFileStream();
 };
 
 IDWriteFontFileLoader* DWriteFontFileLoader::mInstance = nullptr;
@@ -152,6 +153,7 @@ DWriteFontFileLoader::CreateStreamFromKey(const void *fontFileReferenceKey,
     return E_POINTER;
   }
 
+  StaticMutexAutoLock lock(sFontFileStreamsMutex);
   uint64_t fontFileKey = *static_cast<const uint64_t*>(fontFileReferenceKey);
   auto found = sFontFileStreams.find(fontFileKey);
   if (found == sFontFileStreams.end()) {
@@ -175,6 +177,7 @@ DWriteFontFileStream::DWriteFontFileStream(uint8_t *aData, uint32_t aSize,
 
 DWriteFontFileStream::~DWriteFontFileStream()
 {
+  StaticMutexAutoLock lock(sFontFileStreamsMutex);
   sFontFileStreams.erase(mFontFileKey);
 }
 
@@ -221,16 +224,18 @@ already_AddRefed<NativeFontResourceDWrite>
 NativeFontResourceDWrite::Create(uint8_t *aFontData, uint32_t aDataLength,
                                  bool aNeedsCairo)
 {
-  IDWriteFactory *factory = DrawTargetD2D1::GetDWriteFactory();
+  RefPtr<IDWriteFactory> factory = Factory::GetDWriteFactory();
   if (!factory) {
     gfxWarning() << "Failed to get DWrite Factory.";
     return nullptr;
   }
 
+  sFontFileStreamsMutex.Lock();
   uint64_t fontFileKey = sNextFontFileKey++;
   RefPtr<IDWriteFontFileStream> ffsRef =
     new DWriteFontFileStream(aFontData, aDataLength, fontFileKey);
   sFontFileStreams[fontFileKey] = ffsRef;
+  sFontFileStreamsMutex.Unlock();
 
   RefPtr<IDWriteFontFile> fontFile;
   HRESULT hr =
@@ -258,9 +263,10 @@ NativeFontResourceDWrite::Create(uint8_t *aFontData, uint32_t aDataLength,
   return fontResource.forget();
 }
 
-already_AddRefed<ScaledFont>
-NativeFontResourceDWrite::CreateScaledFont(uint32_t aIndex, Float aGlyphSize,
-                                           const uint8_t* aInstanceData, uint32_t aInstanceDataLength)
+already_AddRefed<UnscaledFont>
+NativeFontResourceDWrite::CreateUnscaledFont(uint32_t aIndex,
+                                             const uint8_t* aInstanceData,
+                                             uint32_t aInstanceDataLength)
 {
   if (aIndex >= mNumberOfFaces) {
     gfxWarning() << "Font face index is too high for font resource.";
@@ -275,13 +281,13 @@ NativeFontResourceDWrite::CreateScaledFont(uint32_t aIndex, Float aGlyphSize,
     return nullptr;
   }
 
-  RefPtr<ScaledFontBase> scaledFont = new ScaledFontDWrite(fontFace, aGlyphSize);
-  if (mNeedsCairo && !scaledFont->PopulateCairoScaledFont()) {
-    gfxWarning() << "Unable to create cairo scaled font DWrite font.";
-    return nullptr;
-  }
+  RefPtr<UnscaledFont> unscaledFont =
+    new UnscaledFontDWrite(fontFace,
+                           nullptr,
+                           DWRITE_FONT_SIMULATIONS_NONE,
+                           mNeedsCairo);
 
-  return scaledFont.forget();
+  return unscaledFont.forget();
 }
 
 } // gfx

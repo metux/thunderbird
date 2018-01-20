@@ -12,6 +12,6 @@
 <!ENTITY caseSensitive.accesskey "р">
 <!ENTITY caseSensitive.tooltiptext "Адрозніваць вялікія/малыя літары падчас пошуку">
 
-<!ENTITY entireWord.accesskey "w">
 <!ENTITY entireWord.label "Whole Words">
+<!ENTITY entireWord.accesskey "w">
 <!ENTITY entireWord.tooltiptext "Search whole words only">

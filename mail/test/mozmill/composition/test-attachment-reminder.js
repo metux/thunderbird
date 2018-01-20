@@ -23,11 +23,16 @@ Cu.import("resource:///modules/mailServices.js");
 var kBoxId = "attachmentNotificationBox";
 var kNotificationId = "attachmentReminder";
 var kReminderPref = "mail.compose.attachment_reminder";
+var gDrafts;
+var gOutbox;
 
 function setupModule(module) {
   for (let lib of MODULE_REQUIRES) {
     collector.getModule(lib).installInto(module);
   }
+
+  gDrafts = get_special_folder(Ci.nsMsgFolderFlags.Drafts, true);
+  gOutbox = get_special_folder(Ci.nsMsgFolderFlags.Queue);
 
   assert_true(Services.prefs.getBoolPref(kReminderPref));
 }
@@ -253,7 +258,7 @@ function test_no_send_now_sends() {
 
   setup_msg_contents(cwc, "test@example.org",
                      "will the 'No, Send Now' button work?",
-                     "Hello, i got your attachment!");
+                     "Hello, I got your attachment!");
 
   wait_for_reminder_state(cwc, true);
 
@@ -278,6 +283,7 @@ function test_no_send_now_sends() {
  */
 function click_manual_reminder(aCwc, aExpectedState) {
   wait_for_window_focused(aCwc.window);
+  aCwc.click(new elementslib.Elem(aCwc.get_menu_dropmarker(aCwc.e("button-attach"))));
   aCwc.click_menus_in_sequence(aCwc.e("button-attachPopup"),
                                [ {id: "button-attachPopup_remindLaterItem"} ]);
   wait_for_window_focused(aCwc.window);
@@ -314,8 +320,7 @@ function test_manual_attachment_reminder() {
   close_compose_window(cwc);
 
   // The draft message was saved into Local Folders/Drafts.
-  let drafts = get_special_folder(Ci.nsMsgFolderFlags.Drafts);
-  be_in_folder(drafts);
+  be_in_folder(gDrafts);
 
   select_click_row(0);
   // Wait for the notification with the Edit button.
@@ -418,10 +423,9 @@ function assert_any_notification(aCwc, aValue)
 
 /**
  * Bug 989653
- * Send filelink attachment should not trigger the
- * attachment reminder.
+ * Send filelink attachment should not trigger the attachment reminder.
  */
-function disabled_attachment_vs_filelink_reminder() {
+function test_attachment_vs_filelink_reminder() {
   // Open a blank message compose
   let cwc = open_compose_new_mail();
   setup_msg_contents(cwc, "test@example.invalid", "Testing Filelink notification",
@@ -433,11 +437,13 @@ function disabled_attachment_vs_filelink_reminder() {
   // Bring up the FileLink notification.
   let kOfferThreshold = "mail.compose.big_attachments.threshold_kb";
   let maxSize = Services.prefs.getIntPref(kOfferThreshold, 0) * 1024;
-  add_attachment(cwc, "http://www.example.com/1", maxSize);
+  let file = Services.dirsvc.get("ProfD", Components.interfaces.nsIFile);
+  file.append("panacea.dat");
+  add_attachment(cwc, Services.io.newFileURI(file).spec, maxSize);
 
   // The filelink attachment proposal should be up but not the attachment
   // reminder and it should also not interfere with the sending of the message.
-  assert_notification_displayed(cwc, kBoxId, "bigAttachment", true);
+  wait_for_notification_to_show(cwc, kBoxId, "bigAttachment");
   assert_automatic_reminder_state(cwc, false);
 
   click_send_and_handle_send_error(cwc);
@@ -511,7 +517,6 @@ function test_attachment_reminder_in_subject_and_body() {
  * is turned off.
  */
 function test_disabled_attachment_reminder() {
-
   Services.prefs.setBoolPref(kReminderPref, false);
 
   // Open a sample message with no attachment keywords.
@@ -575,8 +580,7 @@ function test_reminder_in_draft() {
   wait_for_modal_dialog("commonDialog");
 
   // The draft message was saved into Local Folders/Drafts.
-  let drafts = get_special_folder(Ci.nsMsgFolderFlags.Drafts);
-  be_in_folder(drafts);
+  be_in_folder(gDrafts);
 
   select_click_row(0);
   // Wait for the notification with the Edit button.
@@ -611,7 +615,11 @@ function test_disabling_attachment_reminder() {
   // There should be an attachment reminder.
   wait_for_reminder_state(cwc, true);
 
-  // Disable the reminder (not just dismiss).
+  // Disable the reminder (not just dismiss) using the menuitem
+  // in the notification bar menu-button.
+  let disableButton = get_notification_button(cwc, kBoxId, kNotificationId,
+                                              { popup: "reminderBarPopup" });
+  cwc.click(new elementslib.Elem(cwc.get_menu_dropmarker(disableButton)));
   cwc.click_menus_in_sequence(cwc.e("reminderBarPopup"),
                               [ {id: "disableReminder"} ]);
 
@@ -638,6 +646,9 @@ function test_disabling_attachment_reminder() {
   wait_for_reminder_state(cwc, true);
 
   // Disable the reminder again.
+  disableButton = get_notification_button(cwc, kBoxId, kNotificationId,
+                                          { popup: "reminderBarPopup" });
+  cwc.click(new elementslib.Elem(cwc.get_menu_dropmarker(disableButton)));
   cwc.click_menus_in_sequence(cwc.e("reminderBarPopup"),
                               [ {id: "disableReminder"} ]);
   wait_for_reminder_state(cwc, false);
@@ -648,8 +659,7 @@ function test_disabling_attachment_reminder() {
   wait_for_window_close();
 
   // There should be no alert so it is saved in Outbox.
-  let outbox = get_special_folder(Ci.nsMsgFolderFlags.Queue);
-  be_in_folder(outbox);
+  be_in_folder(gOutbox);
 
   select_click_row(0);
   // Delete the leftover outgoing message.

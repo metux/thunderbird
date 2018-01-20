@@ -6,10 +6,12 @@
 #define AndroidDecoderModule_h_
 
 #include "PlatformDecoderModule.h"
+#include "mozilla/MediaDrmCDMProxy.h"
 
 namespace mozilla {
 
-class AndroidDecoderModule : public PlatformDecoderModule {
+class AndroidDecoderModule : public PlatformDecoderModule
+{
 public:
   already_AddRefed<MediaDataDecoder>
   CreateVideoDecoder(const CreateDecoderParams& aParams) override;
@@ -17,17 +19,20 @@ public:
   already_AddRefed<MediaDataDecoder>
   CreateAudioDecoder(const CreateDecoderParams& aParams) override;
 
-  AndroidDecoderModule() {}
-  virtual ~AndroidDecoderModule() {}
+  AndroidDecoderModule(CDMProxy* aProxy = nullptr);
 
   bool SupportsMimeType(const nsACString& aMimeType,
                         DecoderDoctorDiagnostics* aDiagnostics) const override;
 
-  ConversionRequired
-  DecoderNeedsConversion(const TrackInfo& aConfig) const override;
+private:
+  virtual ~AndroidDecoderModule() { }
+  RefPtr<MediaDrmCDMProxy> mProxy;
 };
 
 extern LazyLogModule sAndroidDecoderModuleLog;
+
+const char*
+TranslateMimeType(const nsACString& aMimeType);
 
 } // namespace mozilla
 

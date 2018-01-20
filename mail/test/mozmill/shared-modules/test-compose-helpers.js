@@ -40,6 +40,7 @@ function installInto(module) {
   module.open_compose_with_forward_as_attachments = open_compose_with_forward_as_attachments;
   module.open_compose_with_edit_as_new = open_compose_with_edit_as_new;
   module.open_compose_with_element_click = open_compose_with_element_click;
+  module.open_compose_from_draft = open_compose_from_draft;
   module.close_compose_window = close_compose_window;
   module.wait_for_compose_window = wait_for_compose_window;
   module.setup_msg_contents = setup_msg_contents;
@@ -197,6 +198,24 @@ function open_compose_with_element_click(aElement, aController) {
   return wait_for_compose_window();
 }
 
+
+/**
+ * Open draft editing by clicking the "Edit" on the draft notification bar
+ * of the selected message.
+ *
+ * @return The loaded window of type "msgcompose" wrapped in a MozmillController
+ *         that is augmented using augment_controller.
+ */
+function open_compose_from_draft(aController) {
+  if (aController === undefined)
+    aController = mc;
+
+  windowHelper.plan_for_new_window("msgcompose");
+  aController.click(aController.eid("msgNotificationBar",
+                                    {tagName: "button", label: "Edit"}));
+  return wait_for_compose_window();
+}
+
 /**
  * Closes the requested compose window.
  *
@@ -312,6 +331,7 @@ function clear_recipient(aController, aRecipientRow = 1) {
  */
 function toggle_recipient_type(aController, aType, aRecipientRow = 1) {
   let addrType = aController.window.awGetPopupElement(aRecipientRow);
+  aController.click(new elib.Elem(addrType));
   aController.click_menus_in_sequence(addrType.menupopup, [ { value: aType } ]);
 }
 
@@ -346,7 +366,7 @@ function add_attachments(aComposeWindow, aUrls, aSizes) {
 
   let attachments = [];
 
-  for (let [i, url] in Iterator(aUrls)) {
+  for (let [i, url] of aUrls.entries()) {
     attachments.push(create_msg_attachment(url, aSizes[i]));
   }
 

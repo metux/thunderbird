@@ -60,7 +60,7 @@ function enableRemove() {
  */
 function openLocalDirectory() {
   let nsLocalFile = Components.Constructor("@mozilla.org/file/local;1",
-                                           "nsILocalFile", "initWithPath");
+                                           "nsIFile", "initWithPath");
   let localDir = gServer.localPath.path;
   try {
     new nsLocalFile(localDir).reveal();
@@ -94,25 +94,17 @@ function showInfo() {
 function removeAccount() {
   let removeAccount = document.getElementById("removeAccount").checked;
   let removeData = document.getElementById("removeData").checked;
+  let account = window.arguments[0].account;
   try {
     // Remove the requested account data.
     if (removeAccount) {
+      try {
+        // Remove password information first.
+        account.incomingServer.forgetPassword();
+      } catch (e) { /* It is OK if this fails. */ }
       // Remove account
-      // Need to save these before the account and its server is removed.
-      let serverUri = gServer.type + "://" + gServer.hostName;
-      let serverUsername = gServer.username;
-
-      MailServices.accounts.removeAccount(window.arguments[0].account, removeData);
+      MailServices.accounts.removeAccount(account, removeData);
       window.arguments[0].result = true;
-
-      // Remove password information.
-      let logins = Services.logins.findLogins({}, serverUri, null, serverUri);
-      for (let i = 0; i < logins.length; i++) {
-        if (logins[i].username == serverUsername) {
-          Services.logins.removeLogin(logins[i]);
-          break;
-        }
-      }
     } else if (removeData) {
       // Remove files only.
       // TODO: bug 1302193

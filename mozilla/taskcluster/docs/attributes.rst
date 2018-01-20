@@ -26,8 +26,9 @@ The projects where this task should be in the target task set.  This is how
 requirements like "only run this on inbound" get implemented.  These are
 either project names or the aliases
 
- * `integration` -- integration branches
- * `release` -- release branches including mozilla-central
+ * `integration` -- integration repositories (autoland, inbound, etc)
+ * `trunk` -- integration repositories plus mozilla-central
+ * `release` -- release repositories including mozilla-central
  * `all` -- everywhere (the default)
 
 For try, this attribute applies only if ``-p all`` is specified.  All jobs can
@@ -100,6 +101,12 @@ talos_try_name
 
 This is the name used to refer to a talos job via try syntax.
 
+job_try_name
+============
+
+This is the name used to refer to a "job" via try syntax (``-j``).  Note that for
+some kinds, ``-j`` also matches against ``build_platform``.
+
 test_chunk
 ==========
 
@@ -122,3 +129,68 @@ nightly
 
 Signals whether the task is part of a nightly graph. Useful when filtering
 out nightly tasks from full task set at target stage.
+
+all_locales
+===========
+
+For the ``l10n`` and ``nightly-l10n`` kinds, this attribute contains the list
+of relevant locales for the platform.
+
+all_locales_with_changesets
+===========================
+
+Contains a dict of l10n changesets, mapped by locales (same as in ``all_locales``).
+
+l10n_chunk
+==========
+For the ``l10n`` and ``nightly-l10n`` kinds, this attribute contains the chunk
+number of the job. Note that this is a string!
+
+chunk_locales
+=============
+For the ``l10n`` and ``nightly-l10n`` kinds, this attribute contains an array of
+the individual locales this chunk is responsible for processing.
+
+locale
+======
+For jobs that operate on only one locale, we set the attribute ``locale`` to the
+specific locale involved. Currently this is only in l10n versions of the
+``beetmover`` and ``balrog`` kinds.
+
+signed
+======
+Signals that the output of this task contains signed artifacts.
+
+repackage_type
+==============
+This is the type of repackage. Can be ``repackage`` or
+``repackage_signing``.
+
+toolchain-artifact
+==================
+For toolchain jobs, this is the path to the artifact for that toolchain.
+
+toolchain-alias
+===============
+For toolchain jobs, this optionally gives an alias that can be used instead of the
+real toolchain job name in the toolchains list for build jobs.
+
+always_target
+=============
+
+Tasks with this attribute will be included in the ``target_task_graph`` regardless
+of any target task filtering that occurs. When a task is included in this manner
+(i.e it otherwise would have been filtered out), it will be considered for
+optimization even if the ``optimize_target_tasks`` parameter is False.
+
+This is meant to be used for tasks which a developer would almost always want to
+run. Typically these tasks will be short running and have a high risk of causing
+a backout. For example ``lint`` or ``python-unittest`` tasks.
+
+shipping_product
+================
+For release promotion jobs, this is the product we are shipping.
+
+shipping_phase
+==============
+For release promotion jobs, this is the shipping phase (promote, publish, ship).

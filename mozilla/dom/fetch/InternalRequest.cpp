@@ -30,6 +30,7 @@ InternalRequest::GetRequestConstructorCopy(nsIGlobalObject* aGlobal, ErrorResult
   copy->mHeaders = new InternalHeaders(*mHeaders);
   copy->SetUnsafeRequest();
   copy->mBodyStream = mBodyStream;
+  copy->mBodyLength = mBodyLength;
   copy->mForceOriginHeader = true;
   // The "client" is not stored in our implementation. Fetch API users should
   // use the appropriate window/document/principal and other Gecko security
@@ -79,10 +80,11 @@ InternalRequest::InternalRequest(const nsACString& aURL,
                                  const nsACString& aFragment)
   : mMethod("GET")
   , mHeaders(new InternalHeaders(HeadersGuardEnum::None))
+  , mBodyLength(InternalResponse::UNKNOWN_BODY_SIZE)
   , mContentPolicyType(nsIContentPolicy::TYPE_FETCH)
   , mReferrer(NS_LITERAL_STRING(kFETCH_CLIENT_REFERRER_STR))
   , mReferrerPolicy(ReferrerPolicy::_empty)
-  , mEnvironmentReferrerPolicy(net::RP_Default)
+  , mEnvironmentReferrerPolicy(net::RP_Unset)
   , mMode(RequestMode::No_cors)
   , mCredentialsMode(RequestCredentials::Omit)
   , mResponseTainting(LoadTainting::Basic)
@@ -121,7 +123,7 @@ InternalRequest::InternalRequest(const nsACString& aURL,
   , mContentPolicyType(aContentPolicyType)
   , mReferrer(aReferrer)
   , mReferrerPolicy(aReferrerPolicy)
-  , mEnvironmentReferrerPolicy(net::RP_Default)
+  , mEnvironmentReferrerPolicy(net::RP_Unset)
   , mMode(aMode)
   , mCredentialsMode(aRequestCredentials)
   , mResponseTainting(LoadTainting::Basic)
@@ -145,6 +147,7 @@ InternalRequest::InternalRequest(const InternalRequest& aOther)
   : mMethod(aOther.mMethod)
   , mURLList(aOther.mURLList)
   , mHeaders(new InternalHeaders(*aOther.mHeaders))
+  , mBodyLength(InternalResponse::UNKNOWN_BODY_SIZE)
   , mContentPolicyType(aOther.mContentPolicyType)
   , mReferrer(aOther.mReferrer)
   , mReferrerPolicy(aOther.mReferrerPolicy)
@@ -234,6 +237,7 @@ InternalRequest::MapContentPolicyTypeToRequestContext(nsContentPolicyType aConte
   case nsIContentPolicy::TYPE_INTERNAL_SCRIPT:
   case nsIContentPolicy::TYPE_INTERNAL_SCRIPT_PRELOAD:
   case nsIContentPolicy::TYPE_INTERNAL_SERVICE_WORKER:
+  case nsIContentPolicy::TYPE_INTERNAL_WORKER_IMPORT_SCRIPTS:
     context = RequestContext::Script;
     break;
   case nsIContentPolicy::TYPE_INTERNAL_WORKER:
@@ -442,25 +446,7 @@ InternalRequest::MapChannelToRequestCredentials(nsIChannel* aChannel)
   nsCOMPtr<nsILoadInfo> loadInfo;
   MOZ_ALWAYS_SUCCEEDS(aChannel->GetLoadInfo(getter_AddRefs(loadInfo)));
 
-
-  // TODO: Remove following code after stylesheet and image support cookie policy
-  if (loadInfo->GetSecurityMode() == nsILoadInfo::SEC_NORMAL) {
-    uint32_t loadFlags;
-    aChannel->GetLoadFlags(&loadFlags);
-
-    if (loadFlags & nsIRequest::LOAD_ANONYMOUS) {
-      return RequestCredentials::Omit;
-    } else {
-      bool includeCrossOrigin;
-      nsCOMPtr<nsIHttpChannelInternal> internalChannel = do_QueryInterface(aChannel);
-
-      internalChannel->GetCorsIncludeCredentials(&includeCrossOrigin);
-      if (includeCrossOrigin) {
-        return RequestCredentials::Include;
-      }
-    }
-    return RequestCredentials::Same_origin;
-  }
+  MOZ_DIAGNOSTIC_ASSERT(loadInfo->GetSecurityMode() != nsILoadInfo::SEC_NORMAL);
 
   uint32_t cookiePolicy = loadInfo->GetCookiePolicy();
 

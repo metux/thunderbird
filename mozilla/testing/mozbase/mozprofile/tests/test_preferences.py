@@ -4,12 +4,17 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 import mozfile
 import mozhttpd
 import os
 import shutil
 import tempfile
 import unittest
+
+import mozunit
+
 from mozprofile.cli import MozProfileCLI
 from mozprofile.prefs import Preferences
 from mozprofile.profile import Profile
@@ -374,5 +379,6 @@ user_pref("webgl.force-enabled", true);
         finally:
             httpd.stop()
 
+
 if __name__ == '__main__':
-    unittest.main()
+    mozunit.main()

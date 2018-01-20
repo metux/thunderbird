@@ -61,12 +61,16 @@ VideoDecoderManagerChild::Shutdown()
   MOZ_ASSERT(NS_IsMainThread());
 
   if (sVideoDecoderChildThread) {
-    sVideoDecoderChildThread->Dispatch(NS_NewRunnableFunction([]() {
-      if (sDecoderManager && sDecoderManager->CanSend()) {
-        sDecoderManager->Close();
-        sDecoderManager = nullptr;
-      }
-    }), NS_DISPATCH_NORMAL);
+    sVideoDecoderChildThread->Dispatch(
+      NS_NewRunnableFunction("dom::VideoDecoderManagerChild::Shutdown",
+                             []() {
+                               if (sDecoderManager &&
+                                   sDecoderManager->CanSend()) {
+                                 sDecoderManager->Close();
+                                 sDecoderManager = nullptr;
+                               }
+                             }),
+      NS_DISPATCH_NORMAL);
 
     sVideoDecoderChildAbstractThread = nullptr;
     sVideoDecoderChildThread->Shutdown();
@@ -111,7 +115,13 @@ VideoDecoderManagerChild::GetManagerAbstractThread()
 }
 
 PVideoDecoderChild*
-VideoDecoderManagerChild::AllocPVideoDecoderChild()
+VideoDecoderManagerChild::AllocPVideoDecoderChild(const VideoInfo& aVideoInfo,
+                                                  const float& aFramerate,
+                                                  const layers::TextureFactoryIdentifier& aIdentifier,
+                                                  bool* aSuccess,
+                                                  nsCString* /* not used */,
+                                                  nsCString* /* not used */,
+                                                  nsCString* /* not used */)
 {
   return new VideoDecoderChild();
 }
@@ -175,12 +185,15 @@ VideoDecoderManagerChild::DeallocShmem(mozilla::ipc::Shmem& aShmem)
   if (NS_GetCurrentThread() != sVideoDecoderChildThread) {
     RefPtr<VideoDecoderManagerChild> self = this;
     mozilla::ipc::Shmem shmem = aShmem;
-    sVideoDecoderChildThread->Dispatch(NS_NewRunnableFunction([self, shmem]() {
-      if (self->CanSend()) {
-        mozilla::ipc::Shmem shmemCopy = shmem;
-        self->DeallocShmem(shmemCopy);
-      }
-    }), NS_DISPATCH_NORMAL);
+    sVideoDecoderChildThread->Dispatch(
+      NS_NewRunnableFunction("dom::VideoDecoderManagerChild::DeallocShmem",
+                             [self, shmem]() {
+                               if (self->CanSend()) {
+                                 mozilla::ipc::Shmem shmemCopy = shmem;
+                                 self->DeallocShmem(shmemCopy);
+                               }
+                             }),
+      NS_DISPATCH_NORMAL);
     return true;
   }
   return PVideoDecoderManagerChild::DeallocShmem(aShmem);
@@ -217,12 +230,15 @@ VideoDecoderManagerChild::Readback(const SurfaceDescriptorGPUVideo& aSD)
 
   RefPtr<VideoDecoderManagerChild> ref = this;
   SurfaceDescriptor sd;
-  sVideoDecoderChildThread->Dispatch(NS_NewRunnableFunction([&]() {
+  if (NS_FAILED(sVideoDecoderChildThread->Dispatch(NS_NewRunnableFunction("VideoDecoderManagerChild::Readback",
+                                                                          [&]() {
     AutoCompleteTask complete(&task);
     if (ref->CanSend()) {
       ref->SendReadback(aSD, &sd);
     }
-  }), NS_DISPATCH_NORMAL);
+  }), NS_DISPATCH_NORMAL))) {
+    return nullptr;
+  }
 
   task.Wait();
 
@@ -250,11 +266,15 @@ VideoDecoderManagerChild::DeallocateSurfaceDescriptorGPUVideo(const SurfaceDescr
 {
   RefPtr<VideoDecoderManagerChild> ref = this;
   SurfaceDescriptorGPUVideo sd = Move(aSD);
-  sVideoDecoderChildThread->Dispatch(NS_NewRunnableFunction([ref, sd]() {
-    if (ref->CanSend()) {
-      ref->SendDeallocateSurfaceDescriptorGPUVideo(sd);
-    }
-  }), NS_DISPATCH_NORMAL);
+  sVideoDecoderChildThread->Dispatch(
+    NS_NewRunnableFunction(
+      "dom::VideoDecoderManagerChild::DeallocateSurfaceDescriptorGPUVideo",
+      [ref, sd]() {
+        if (ref->CanSend()) {
+          ref->SendDeallocateSurfaceDescriptorGPUVideo(sd);
+        }
+      }),
+    NS_DISPATCH_NORMAL);
 }
 
 void

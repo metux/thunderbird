@@ -43,8 +43,6 @@
 #endif
 
 [@AB_CD@]
-@RESPATH@/chrome/@AB_CD@@JAREXT@
-@RESPATH@/chrome/@AB_CD@.manifest
 @RESPATH@/defaults/messenger/mailViews.dat
 @RESPATH@/defaults/profile/bookmarks.html
 @RESPATH@/defaults/profile/chrome/*
@@ -56,13 +54,16 @@
 @RESPATH@/fonts/*
 #endif
 @RESPATH@/@PREF_DIR@/suite-l10n.js
-@RESPATH@/searchplugins/*
 #ifdef HAVE_MAKENSISU
 @BINPATH@/uninstall/helper.exe
 #endif
 #ifdef MOZ_UPDATER
 @RESPATH@/update.locale
 @RESPATH@/updater.ini
+#endif
+
+#ifdef PKG_LOCALE_MANIFEST
+#include @PKG_LOCALE_MANIFEST@
 #endif
 
 [xpcom]
@@ -100,10 +101,6 @@
 @BINPATH@/libGLESv2.dll
 #ifdef MOZ_D3DCOMPILER_VISTA_DLL
 @BINPATH@/@MOZ_D3DCOMPILER_VISTA_DLL@
-#endif
-
-#ifdef MOZ_D3DCOMPILER_XP_DLL
-@BINPATH@/@MOZ_D3DCOMPILER_XP_DLL@
 #endif
 #endif # MOZ_ANGLE_RENDERER
 
@@ -150,18 +147,21 @@
 #endif
 @RESPATH@/license.txt
 @RESPATH@/blocklist.xml
-#ifdef UNIX_BUT_NOT_MAC
-@RESPATH@/run-mozilla.sh
+#ifdef XP_WIN
+#ifdef _AMD64_
+@BINPATH@/@DLL_PREFIX@qipcap64@DLL_SUFFIX@
+#else
+@BINPATH@/@DLL_PREFIX@qipcap@DLL_SUFFIX@
+#endif
 #endif
 
 ; [Components]
-; Although components.manifest ends up being shipped inside omni.jar
-; it still needs listing here as it is parsed for various binary
-; components before being packaged inside omni.jar.
-@RESPATH@/components/components.manifest
 #ifdef ACCESSIBILITY
 #ifdef XP_WIN32
+@BINPATH@/Accessible.tlb
+@BINPATH@/AccessibleHandler.dll
 @BINPATH@/AccessibleMarshal.dll
+@BINPATH@/IA2Marshal.dll
 #endif
 @RESPATH@/components/accessibility.xpt
 #endif
@@ -185,16 +185,16 @@
 @RESPATH@/components/content_webrtc.xpt
 #endif
 @RESPATH@/components/content_xslt.xpt
-@RESPATH@/components/cookie.xpt
 @RESPATH@/components/directory.xpt
 @RESPATH@/components/docshell.xpt
 @RESPATH@/components/dom.xpt
-@RESPATH@/components/dom_apps.xpt
 @RESPATH@/components/dom_base.xpt
+@RESPATH@/components/dom_bindings.xpt
 @RESPATH@/components/dom_canvas.xpt
 @RESPATH@/components/dom_core.xpt
 @RESPATH@/components/dom_css.xpt
 @RESPATH@/components/dom_events.xpt
+@RESPATH@/components/dom_file.xpt
 @RESPATH@/components/dom_geolocation.xpt
 @RESPATH@/components/dom_html.xpt
 @RESPATH@/components/dom_json.xpt
@@ -202,14 +202,12 @@
 @RESPATH@/components/dom_network.xpt
 @RESPATH@/components/dom_notification.xpt
 @RESPATH@/components/dom_offline.xpt
-@RESPATH@/components/dom_permissionsettings.xpt
 @RESPATH@/components/dom_power.xpt
 @RESPATH@/components/dom_push.xpt
 @RESPATH@/components/dom_presentation.xpt
 @RESPATH@/components/dom_quota.xpt
 @RESPATH@/components/dom_range.xpt
 @RESPATH@/components/dom_security.xpt
-@RESPATH@/components/dom_settings.xpt
 @RESPATH@/components/dom_sidebar.xpt
 @RESPATH@/components/dom_smil.xpt
 @RESPATH@/components/dom_storage.xpt
@@ -228,7 +226,6 @@
 @RESPATH@/components/dom_xul.xpt
 @RESPATH@/components/downloads.xpt
 @RESPATH@/components/editor.xpt
-@RESPATH@/components/embed_base.xpt
 @RESPATH@/components/extensions.xpt
 @RESPATH@/components/extensions.manifest
 @RESPATH@/components/exthandler.xpt
@@ -238,11 +235,9 @@
 #ifdef MOZ_GTK
 @RESPATH@/components/filepicker.xpt
 #endif
-@RESPATH@/components/find.xpt
 @RESPATH@/components/gfx.xpt
 @RESPATH@/components/html5.xpt
 @RESPATH@/components/htmlparser.xpt
-@RESPATH@/components/identity.xpt
 @RESPATH@/components/imglib2.xpt
 @RESPATH@/components/inspector.xpt
 @RESPATH@/components/intl.xpt
@@ -258,15 +253,11 @@
 @RESPATH@/components/layout_xul.xpt
 @RESPATH@/components/locale.xpt
 @RESPATH@/components/loginmgr.xpt
-@RESPATH@/components/lwbrk.xpt
 @RESPATH@/components/mimetype.xpt
 @RESPATH@/components/mozfind.xpt
-#ifdef ENABLE_INTL_API
 @RESPATH@/components/mozintl.xpt
-#endif
-#ifdef MOZ_ENABLE_GNOME_COMPONENT
-@RESPATH@/components/@DLL_PREFIX@mozgnome@DLL_SUFFIX@
-#endif
+@RESPATH@/components/mozIntl.manifest
+@RESPATH@/components/mozIntl.js
 @RESPATH@/components/necko.xpt
 @RESPATH@/components/necko_about.xpt
 @RESPATH@/components/necko_cache.xpt
@@ -294,10 +285,11 @@
 @RESPATH@/components/plugin.xpt
 @RESPATH@/components/pref.xpt
 @RESPATH@/components/prefetch.xpt
-#ifdef MOZ_ENABLE_PROFILER_SPS
+#ifdef MOZ_GECKO_PROFILER
 @RESPATH@/components/profiler.xpt
 #endif
 @RESPATH@/components/rdf.xpt
+@RESPATH@/components/reputationservice.xpt
 @RESPATH@/components/satchel.xpt
 @RESPATH@/components/satchel.manifest
 @RESPATH@/components/saxparser.xpt
@@ -306,9 +298,7 @@
 @RESPATH@/components/shistory.xpt
 @RESPATH@/components/smile.xpt
 @RESPATH@/components/spellchecker.xpt
-@RESPATH@/components/startupcache.xpt
 @RESPATH@/components/storage.xpt
-@RESPATH@/components/@DLL_PREFIX@suite@DLL_SUFFIX@
 @RESPATH@/components/SuiteBrowser.manifest
 @RESPATH@/components/suitecommon.xpt
 @RESPATH@/components/SuiteCommon.manifest
@@ -319,7 +309,6 @@
 @RESPATH@/components/toolkit_asyncshutdown.xpt
 @RESPATH@/components/toolkit_filewatcher.xpt
 @RESPATH@/components/toolkit_finalizationwitness.xpt
-@RESPATH@/components/toolkit_formautofill.xpt
 @RESPATH@/components/toolkit_osfile.xpt
 @RESPATH@/components/toolkit_perfmonitoring.xpt
 @RESPATH@/components/toolkit_securityreporter.xpt
@@ -333,7 +322,6 @@
 @RESPATH@/components/txmgr.xpt
 @RESPATH@/components/txtsvc.xpt
 @RESPATH@/components/uconv.xpt
-@RESPATH@/components/unicharutil.xpt
 @RESPATH@/components/update.xpt
 @RESPATH@/components/uriloader.xpt
 @RESPATH@/components/url-classifier.xpt
@@ -345,11 +333,13 @@
 
 @RESPATH@/components/webBrowser_core.xpt
 @RESPATH@/components/webbrowserpersist.xpt
+@RESPATH@/components/webextensions.xpt
 @RESPATH@/components/webvtt.xpt
 @RESPATH@/components/widget.xpt
 #ifdef XP_MACOSX
 @RESPATH@/components/widget_cocoa.xpt
 #endif
+@RESPATH@/components/windowcreator.xpt
 @RESPATH@/components/windowds.xpt
 @RESPATH@/components/windowwatcher.xpt
 @RESPATH@/components/xpcom_base.xpt
@@ -369,9 +359,6 @@
 @RESPATH@/components/addonManager.js
 @RESPATH@/components/amContentHandler.js
 @RESPATH@/components/amInstallTrigger.js
-@RESPATH@/components/amWebInstallListener.js
-@RESPATH@/components/AppsService.js
-@RESPATH@/components/AppsService.manifest
 @RESPATH@/components/BrowserElementParent.js
 @RESPATH@/components/BrowserElementParent.manifest
 @RESPATH@/components/captivedetect.js
@@ -385,24 +372,27 @@
 @RESPATH@/components/cryptoComponents.manifest
 @RESPATH@/components/devtools-startup.manifest
 @RESPATH@/components/devtools-startup.js
+@RESPATH@/components/aboutdebugging-registration.js
+@RESPATH@/components/aboutdebugging.manifest
+@RESPATH@/components/aboutdevtools-registration.js
+@RESPATH@/components/aboutdevtools.manifest
 @RESPATH@/components/Downloads.manifest
 @RESPATH@/components/DownloadLegacy.js
+@RESPATH@/components/EditorUtils.manifest
+@RESPATH@/components/EditorUtils.js
 @RESPATH@/components/FeedConverter.js
 @RESPATH@/components/FeedProcessor.js
 @RESPATH@/components/FeedProcessor.manifest
+@RESPATH@/components/UAOverridesBootstrapper.js
+@RESPATH@/components/UAOverridesBootstrapper.manifest
 @RESPATH@/components/WellKnownOpportunisticUtils.js
 @RESPATH@/components/WellKnownOpportunisticUtils.manifest
 @RESPATH@/components/FeedWriter.js
 @RESPATH@/components/folderLookupService.js
-@RESPATH@/components/formautofill.manifest
-@RESPATH@/components/FormAutofillContentService.js
-@RESPATH@/components/FormAutofillStartup.js
 @RESPATH@/components/htmlMenuBuilder.js
 @RESPATH@/components/htmlMenuBuilder.manifest
 @RESPATH@/components/jsconsole-clhandler.js
 @RESPATH@/components/jsconsole-clhandler.manifest
-@RESPATH@/components/messageWakeupService.js
-@RESPATH@/components/messageWakeupService.manifest
 @RESPATH@/components/mozProtocolHandler.js
 @RESPATH@/components/mozProtocolHandler.manifest
 @RESPATH@/components/multiprocessShims.js
@@ -423,19 +413,19 @@
 @RESPATH@/components/nsComposerCmdLineHandler.manifest
 @RESPATH@/components/nsContentDispatchChooser.js
 @RESPATH@/components/nsContentDispatchChooser.manifest
-@RESPATH@/components/nsContentPrefService.js
-@RESPATH@/components/nsContentPrefService.manifest
+@RESPATH@/components/nsHandlerService-json.js
+@RESPATH@/components/nsHandlerService-json.manifest
+@RESPATH@/components/ContentPrefService2.js
+@RESPATH@/components/ContentPrefService2.manifest
 @RESPATH@/components/nsCrashMonitor.js
 @RESPATH@/components/crashmonitor.manifest
 @RESPATH@/components/nsDefaultCLH.js
 @RESPATH@/components/nsDefaultCLH.manifest
-@RESPATH@/components/nsDownloadsStartup.js
 #ifdef MOZ_GTK
 @RESPATH@/components/nsFilePicker.js
 @RESPATH@/components/nsFilePicker.manifest
 #endif
 @RESPATH@/components/nsFormAutoComplete.js
-@RESPATH@/components/nsFormHistory.js
 @RESPATH@/components/FormHistoryStartup.js
 @RESPATH@/components/nsGopherProtocolStubHandler.js
 @RESPATH@/components/nsHandlerService.js
@@ -443,8 +433,6 @@
 @RESPATH@/components/nsHelperAppDlg.js
 @RESPATH@/components/nsHelperAppDlg.manifest
 @RESPATH@/components/PresentationControlService.js
-@RESPATH@/components/PresentationDeviceInfoManager.manifest
-@RESPATH@/components/PresentationDeviceInfoManager.js
 @RESPATH@/components/BuiltinProviders.manifest
 @RESPATH@/components/nsINIProcessor.js
 @RESPATH@/components/nsINIProcessor.manifest
@@ -484,16 +472,15 @@
 @RESPATH@/components/nsURLFormatter.manifest
 @RESPATH@/components/nsWebHandlerApp.js
 @RESPATH@/components/nsWebHandlerApp.manifest
-@RESPATH@/components/PageThumbsProtocol.js
-@RESPATH@/components/BrowserPageThumbs.manifest
+@RESPATH@/components/PageThumbsStorageService.js
+@RESPATH@/components/thumbnails.xpt
+@RESPATH@/components/PageThumbsComponents.manifest
 @RESPATH@/components/PageIconProtocolHandler.js
 @RESPATH@/components/passwordmgr.manifest
 #ifdef MOZ_WEBRTC
 @RESPATH@/components/PeerConnection.js
 @RESPATH@/components/PeerConnection.manifest
 #endif
-@RESPATH@/components/PermissionSettings.js
-@RESPATH@/components/PermissionSettings.manifest
 @RESPATH@/components/PlacesCategoriesStarter.js
 @RESPATH@/components/pluginGlue.manifest
 @RESPATH@/components/ProcessSingleton.manifest
@@ -505,10 +492,8 @@
 @RESPATH@/components/recording-cmdline.js
 @RESPATH@/components/recording-cmdline.manifest
 @RESPATH@/components/servicesComponents.manifest
-@RESPATH@/components/SettingsManager.js
-@RESPATH@/components/SettingsManager.manifest
-@RESPATH@/components/SiteSpecificUserAgent.js
-@RESPATH@/components/SiteSpecificUserAgent.manifest
+@RESPATH@/components/ProcessSelector.js
+@RESPATH@/components/ProcessSelector.manifest
 @RESPATH@/components/SlowScriptDebug.js
 @RESPATH@/components/SlowScriptDebug.manifest
 @RESPATH@/components/smileApplication.js
@@ -517,7 +502,7 @@
 @RESPATH@/components/SuiteProfileMigrator.js
 @RESPATH@/components/SuiteProfileMigrator.manifest
 @RESPATH@/components/SyncComponents.manifest
-#ifdef MOZ_DEBUG
+#if defined(ENABLE_TESTS) && defined(MOZ_DEBUG)
 @RESPATH@/components/TestInterfaceJS.js
 @RESPATH@/components/TestInterfaceJS.manifest
 @RESPATH@/components/TestInterfaceJSMaplike.js
@@ -528,8 +513,6 @@
 @RESPATH@/components/txEXSLTRegExFunctions.manifest
 @RESPATH@/components/UnifiedComplete.js
 @RESPATH@/components/Weave.js
-@RESPATH@/components/webideCli.js
-@RESPATH@/components/webideComponents.manifest
 @RESPATH@/components/WebContentConverter.js
 @RESPATH@/components/WebVTT.manifest
 @RESPATH@/components/WebVTTParserWrapper.js
@@ -538,6 +521,10 @@
 
 ; Modules
 @RESPATH@/modules/*
+
+; [Extensions]
+@RESPATH@/components/extensions-toolkit.manifest
+@RESPATH@/components/extension-process-script.js
 
 ; [Browser Chrome Files]
 @RESPATH@/chrome/comm@JAREXT@
@@ -552,10 +539,16 @@
 @RESPATH@/chrome/webide.manifest
 @RESPATH@/@PREF_DIR@/webide-prefs.js
 
+; [DevTools Shim Files]
+@RESPATH@/chrome/devtools-shim@JAREXT@
+@RESPATH@/chrome/devtools-shim.manifest
+@RESPATH@/@PREF_DIR@/devtools-startup-prefs.js
+
 ; DevTools
 @RESPATH@/chrome/devtools@JAREXT@
 @RESPATH@/chrome/devtools.manifest
 @RESPATH@/@PREF_DIR@/devtools.js
+@RESPATH@/@PREF_DIR@/debugger.js
 
 ; classic theme
 @RESPATH@/chrome/classic@JAREXT@
@@ -644,6 +637,8 @@
 @RESPATH@/greprefs.js
 @RESPATH@/defaults/autoconfig/prefcalls.js
 @RESPATH@/defaults/permissions
+@RESPATH@/defaults/blocklists
+@RESPATH@/defaults/pinning
 ; Warning: changing the path to channel-prefs.js can cause bugs. (Bug 756325)
 @RESPATH@/defaults/pref/channel-prefs.js
 
@@ -661,7 +656,6 @@
 @RESPATH@/res/designmode.css
 @RESPATH@/res/EditorOverride.css
 @RESPATH@/res/grabber.gif
-@RESPATH@/res/langGroups.properties
 @RESPATH@/res/language.properties
 @RESPATH@/res/svg.css
 @RESPATH@/res/table-add-column-after-active.gif
@@ -682,19 +676,18 @@
 @RESPATH@/res/table-remove-row-active.gif
 @RESPATH@/res/table-remove-row-hover.gif
 @RESPATH@/res/table-remove-row.gif
-@RESPATH@/res/ImageDocument.css
-@RESPATH@/res/TopLevelImageDocument.css
-@RESPATH@/res/TopLevelVideoDocument.css
 #ifdef XP_MACOSX
 @RESPATH@/res/cursors/*
 #endif
 @RESPATH@/res/fonts/*
 @RESPATH@/res/dtd/*
 @RESPATH@/res/html/*
-@RESPATH@/res/entityTables/*
 #ifdef XP_MACOSX
 @RESPATH@/res/MainMenu.nib/
 #endif
+
+; Content-accessible resources.
+@RESPATH@/contentaccessible/*
 
 ; [Personal Security Manager]
 ;
@@ -726,17 +719,10 @@
 
 ; For process sandboxing
 #if defined(MOZ_SANDBOX)
-#if defined(XP_WIN)
-#if defined(WOW_HELPER)
-@BINPATH@/wow_helper.exe
-#endif
-#endif
-#endif
-
-#if defined(MOZ_SANDBOX)
 #if defined(XP_LINUX)
 @BINPATH@/@DLL_PREFIX@mozsandbox@DLL_SUFFIX@
 #endif
+@RESPATH@/components/sandbox.xpt
 #endif
 
 ; for Solaris SPARC
@@ -778,6 +764,7 @@ bin/libfreebl_32int64_3.so
 @BINPATH@/crashreporter.app/
 #else
 @BINPATH@/crashreporter@BIN_SUFFIX@
+@BINPATH@/minidump-analyzer@BIN_SUFFIX@
 @RESPATH@/crashreporter.ini
 #ifdef XP_UNIX
 @RESPATH@/Throbber-small.gif
@@ -788,6 +775,10 @@ bin/libfreebl_32int64_3.so
 @BINPATH@/breakpadinjector.dll
 #endif
 #endif
+
+; [ Ping Sender ]
+;
+@BINPATH@/pingsender@BIN_SUFFIX@
 
 [mail]
 ; MailNews component xpts
@@ -901,10 +892,11 @@ bin/libfreebl_32int64_3.so
 #endif
 
 #if defined(MOZ_ASAN) && defined(CLANG_CL)
-@BINPATH@/clang_rt.asan_dynamic-i386.dll
+@BINPATH@/clang_rt.asan_dynamic-*.dll
 #endif
 
 [chatzilla]
+#ifdef MOZ_IRC
 #ifdef MOZ_OMNIJAR
 @RESPATH@/distribution/extensions/{59c81df5-4b7a-477b-912d-4e0fdf64e5f2}.xpi
 #else
@@ -930,8 +922,10 @@ bin/libfreebl_32int64_3.so
 @RESPATH@/extensions/langpack-@AB_CD@@chatzilla.mozilla.org/install.rdf
 #endif
 #endif
+#endif
 
 [inspector]
+#ifdef MOZ_DOMINSPECTOR
 #ifdef MOZ_OMNIJAR
 @RESPATH@/distribution/extensions/inspector@mozilla.org.xpi
 #else
@@ -947,6 +941,7 @@ bin/libfreebl_32int64_3.so
 @RESPATH@/extensions/inspector@mozilla.org/components/components.list
 @RESPATH@/extensions/inspector@mozilla.org/components/inspector-cmdline.js
 @RESPATH@/extensions/inspector@mozilla.org/defaults/preferences/inspector.js
+#endif
 #endif
 
 [debugqa]

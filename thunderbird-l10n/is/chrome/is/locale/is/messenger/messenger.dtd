@@ -905,3 +905,15 @@
 <!ENTITY showAllAppsCmdMac.label "Sýna allt">
 <!-- Mac OS X Dock Icon pop-up menu -->
 <!ENTITY dockOptions.label "App Icon valkostir…">
+
+<!ENTITY getNextNMsgCmd2.label "Get Next News Messages">
+<!ENTITY getNextNMsgCmd2.accesskey "t">
+<!ENTITY goChatCmd2.key "H">
+<!ENTITY newMsgFromTemplateCmd.label "New Message from Template">
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN">
+<!ENTITY folderContextPauseAllUpdates.label "Pause All Updates">
+<!ENTITY folderContextPauseUpdates.label "Pause Updates">
+<!ENTITY folderContextPauseUpdates.accesskey "U">
+<!ENTITY contextNewMsgFromTemplate.label "New Message from Template">
+<!ENTITY writeNewMessageDock.label      "Write New Message">
+<!ENTITY openAddressBookDock.label      "Open Address Book">

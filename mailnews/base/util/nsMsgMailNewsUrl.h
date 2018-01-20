@@ -24,11 +24,11 @@
 #include "nsICacheSession.h"
 #include "nsIMimeMiscStatus.h"
 #include "nsWeakReference.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 
 ///////////////////////////////////////////////////////////////////////////////////
 // Okay, I found that all of the mail and news url interfaces needed to support
-// several common interfaces (in addition to those provided through nsIURI). 
+// several common interfaces (in addition to those provided through nsIURI).
 // So I decided to group them all in this implementation so we don't have to
 // duplicate the code.
 //
@@ -46,7 +46,6 @@ public:
     NS_DECL_THREADSAFE_ISUPPORTS
     NS_DECL_NSIMSGMAILNEWSURL
     NS_DECL_NSIURI
-    NS_DECL_NSIURIWITHQUERY
     NS_DECL_NSIURL
     NS_DECL_NSIURIWITHPRINCIPAL
 
@@ -70,10 +69,10 @@ protected:
   bool m_suppressErrorMsgs;
   bool m_isPrincipalURL;
 
-  // the following field is really a bit of a hack to make 
+  // the following field is really a bit of a hack to make
   // open attachments work. The external applications code sometimes tries to figure out the right
   // handler to use by looking at the file extension of the url we are trying to load. Unfortunately,
-  // the attachment file name really isn't part of the url string....so we'll store it here...and if 
+  // the attachment file name really isn't part of the url string....so we'll store it here...and if
   // the url we are running is an attachment url, we'll set it here. Then when the helper apps code
   // asks us for it, we'll return the right value.
   nsCString mAttachmentFileName;

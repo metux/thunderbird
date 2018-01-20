@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* globals is, isnot, registerCleanupFunction, add_task */
-
 "use strict";
+
+/* eslint-disable mozilla/no-cpows-in-tests */
 
 registerCleanupFunction(teardown);
 
-add_task(function* testNarrate() {
+add_task(async function testNarrate() {
   setup("urn:moz-tts:fake-indirect:teresa");
 
-  yield spawnInNewReaderTab(TEST_ARTICLE, function* () {
+  await spawnInNewReaderTab(TEST_ARTICLE, async function() {
     let $ = content.document.querySelector.bind(content.document);
 
-    yield NarrateTestUtils.waitForNarrateToggle(content);
+    await NarrateTestUtils.waitForNarrateToggle(content);
 
     let popup = $(NarrateTestUtils.POPUP);
     ok(!NarrateTestUtils.isVisible(popup), "popup is initially hidden");
@@ -28,7 +28,7 @@ add_task(function* testNarrate() {
 
     let promiseEvent = ContentTaskUtils.waitForEvent(content, "paragraphstart");
     $(NarrateTestUtils.START).click();
-    let voice = (yield promiseEvent).detail.voice;
+    let voice = (await promiseEvent).detail.voice;
     is(voice, "urn:moz-tts:fake-indirect:teresa", "double-check voice");
 
     // Skip forward to first paragraph.
@@ -36,16 +36,17 @@ add_task(function* testNarrate() {
     do {
       promiseEvent = ContentTaskUtils.waitForEvent(content, "paragraphstart");
       $(NarrateTestUtils.FORWARD).click();
-      details = (yield promiseEvent).detail;
+      details = (await promiseEvent).detail;
     } while (details.tag != "p");
 
-    let boundaryPat = /(\s+)\S/g;
+    let boundaryPat = /(\S+)/g;
     let position = { left: 0, top: 0 };
     let text = details.paragraph;
     for (let res = boundaryPat.exec(text); res; res = boundaryPat.exec(text)) {
       promiseEvent = ContentTaskUtils.waitForEvent(content, "wordhighlight");
-      NarrateTestUtils.sendBoundaryEvent(content, "word", res.index);
-      let { start, end } = (yield promiseEvent).detail;
+      NarrateTestUtils.sendBoundaryEvent(content, "word",
+        res.index, res[0].length);
+      let { start, end } = (await promiseEvent).detail;
       let nodes = NarrateTestUtils.getWordHighlights(content);
       for (let node of nodes) {
         // Since this is English we can assume each word is to the right or
@@ -62,7 +63,7 @@ add_task(function* testNarrate() {
     }
 
     $(NarrateTestUtils.STOP).click();
-    yield ContentTaskUtils.waitForCondition(
+    await ContentTaskUtils.waitForCondition(
       () => !$(NarrateTestUtils.STOP), "transitioned to stopped state");
     NarrateTestUtils.isWordHighlightGone(content, ok);
   });

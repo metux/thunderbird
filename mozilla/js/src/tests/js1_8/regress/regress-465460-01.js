@@ -16,17 +16,14 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
  
   expect = '11111';
 
 
-  (function(d) { for (let j = 0; j < 5; ++j) { actual += ('' + d); } })({valueOf: function()1});
+  (function(d) { for (let j = 0; j < 5; ++j) { actual += ('' + d); } })({valueOf: function() { return 1; }});
 
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

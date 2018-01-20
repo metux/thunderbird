@@ -402,26 +402,33 @@ function create_virtual_folder() {
 
 /**
  * Get special folder having a folder flag under Local Folders.
+ * This function clears the contents of the folder by default.
  *
  * @param aFolderFlag  Folder flag of the required folder.
  * @param aCreate      Create the folder if it does not exist yet.
+ * @param aEmpty       Set to false if messages from the folder must not be emptied.
  */
-function get_special_folder(aFolderFlag, aCreate = false) {
+function get_special_folder(aFolderFlag, aCreate = false, aServer, aEmpty = true) {
   let folderNames = new Map([[ Ci.nsMsgFolderFlags.Drafts, "Drafts" ],
                              [ Ci.nsMsgFolderFlags.Templates, "Templates" ],
-                             [ Ci.nsMsgFolderFlags.Queue, "Outbox" ]
+                             [ Ci.nsMsgFolderFlags.Queue, "Outbox" ],
+                             [ Ci.nsMsgFolderFlags.Inbox, "Inbox" ],
                             ]);
 
-  let folder = MailServices.accounts
-                           .localFoldersServer
-                           .rootFolder
-                           .getFolderWithFlags(aFolderFlag);
+  let folder = (aServer ? aServer : MailServices.accounts.localFoldersServer)
+                        .rootFolder
+                        .getFolderWithFlags(aFolderFlag);
 
   if (!folder && aCreate) {
     folder = create_folder(folderNames.get(aFolderFlag), [aFolderFlag]);
   }
   if (!folder)
     throw new Error("Special folder not found");
+
+  // Ensure the folder is empty so that each test file can puts its new messages in it
+  // and they are always at reliable positions (starting from 0).
+  if (aEmpty)
+    empty_folder(folder);
 
   return folder;
 }
@@ -660,11 +667,15 @@ function display_message_in_folder_tab(aMsgHdr, aExpectNew3Pane) {
  * Create a new window displaying a message loaded from a file.  We do not
  * return until the message has finished loading.
  *
- * @param file an nsIFile for the message
- * @return The MozmillController-wrapped new window.
+ * @param file  An nsIFile to load the message from.
+ * @return      The MozmillController-wrapped new window.
  */
 function open_message_from_file(file) {
   mark_action("fdh", "open_message_from_file", ["file", file.nativePath]);
+
+  if (!file.isFile() || !file.isReadable())
+    throw new Error("The requested message file " + file.leafName +
+                    " was not found or is not accessible.");
 
   let fileURL = Services.io.newFileURI(file)
                         .QueryInterface(Ci.nsIFileURL);
@@ -800,7 +811,7 @@ function assert_number_of_tabs_open(aNumber) {
 function assert_tab_titled_from(aTab, aWhat) {
   let text;
   if (aWhat instanceof Ci.nsIMsgFolder)
-    text = aWhat.prettiestName;
+    text = aWhat.prettyName;
   else if (aWhat instanceof Ci.nsIMsgDBHdr)
     text = aWhat.mime2DecodedSubject;
 
@@ -1411,7 +1422,7 @@ function delete_via_popup() {
 function wait_for_popup_to_open(popupElem) {
   mark_action("fdh", "wait_for_popup_to_open", [popupElem]);
   utils.waitFor(() => popupElem.state == "open",
-                "Timeout waiting for popup to open", 1000, 50);
+                "Timeout waiting for popup to open, state=" + popupElem.state, 1000, 50);
 }
 
 /**
@@ -1460,6 +1471,27 @@ function press_delete(aController, aModifiers) {
   aController.keypress(aController == mc ? mc.eThreadTree : null,
                        "VK_DELETE", aModifiers || {});
   wait_for_folder_events();
+}
+
+/**
+ * Delete all messages in the given folder.
+ * (called empty_folder similarly to emptyTrash method on root folder)
+ *
+ * @param aFolder     Folder to empty.
+ * @param aController The controller in whose context to do this, defaults to
+ *                    |mc| if omitted.
+ */
+function empty_folder(aFolder, aController = mc) {
+  if (!aFolder)
+    throw new Error("No folder for emptying given");
+
+  be_in_folder(aFolder);
+  let msgCount;
+  while ((msgCount = aFolder.getTotalMessages(false)) > 0) {
+    select_click_row(0, aController);
+    press_delete(aController);
+    aController.waitFor(() => (aFolder.getTotalMessages(false) < msgCount));
+  }
 }
 
 /**
@@ -1723,7 +1755,7 @@ var FolderListener = {
       aFolder, aEvent) {
     if (!this.watchingFor)
       return;
-    if (this.watchingFor.includes(aEvent.toString())) {
+    if (this.watchingFor.includes(aEvent)) {
       this.watchingFor = null;
       this.sawEvents = true;
     }
@@ -2581,7 +2613,7 @@ function assert_folder_at_index_as(n, str) {
  * Since indexOf does strict equality checking, we need this.
  */
 function _non_strict_index_of(aArray, aSearchElement) {
-  for ([i, item] in Iterator(aArray)) {
+  for (let [i, item] of aArray.entries()) {
     if (item == aSearchElement)
       return i;
   }
@@ -2589,7 +2621,7 @@ function _non_strict_index_of(aArray, aSearchElement) {
 }
 
 function _prettify_folder_array(aArray) {
-  return aArray.map(folder => folder.prettiestName).join(", ");
+  return aArray.map(folder => folder.prettyName).join(", ");
 }
 
 /**
@@ -2847,7 +2879,7 @@ function load_via_src_path(aPath, aModule) {
     let fullPath = os.abspath(aPath, os.getFileForPath(srcPath));
 
     let file = Cc["@mozilla.org/file/local;1"]
-                 .createInstance(Ci.nsILocalFile);
+                 .createInstance(Ci.nsIFile);
     file.initWithPath(fullPath);
 
     if (file.exists()) {
@@ -2863,7 +2895,7 @@ function load_via_src_path(aPath, aModule) {
   }
 
   // If we've got this far, then we weren't successful, fail out.
-  throw new Error("Could not find " + aModule + " in available paths");
+  throw new Error("Could not find " + aPath + " in available paths");
 }
 
 function assert_equals(a, b, comment)

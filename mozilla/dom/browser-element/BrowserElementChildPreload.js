@@ -16,12 +16,7 @@ var { classes: Cc, interfaces: Ci, results: Cr, utils: Cu }  = Components;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/BrowserElementPromptService.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
-Cu.import("resource://gre/modules/ExtensionContent.jsm");
 
-XPCOMUtils.defineLazyServiceGetter(this, "acs",
-                                   "@mozilla.org/audiochannel/service;1",
-                                   "nsIAudioChannelService");
 XPCOMUtils.defineLazyModuleGetter(this, "ManifestFinder",
                                   "resource://gre/modules/ManifestFinder.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ManifestObtainer",
@@ -116,57 +111,13 @@ var LISTENED_SYSTEM_EVENTS = [
 
 var global = this;
 
-function BrowserElementProxyForwarder() {
-}
-
-BrowserElementProxyForwarder.prototype = {
-  init: function() {
-    Services.obs.addObserver(this, "browser-element-api:proxy-call", false);
-    addMessageListener("browser-element-api:proxy", this);
-  },
-
-  uninit: function() {
-    Services.obs.removeObserver(this, "browser-element-api:proxy-call", false);
-    removeMessageListener("browser-element-api:proxy", this);
-  },
-
-  // Observer callback receives messages from BrowserElementProxy.js
-  observe: function(subject, topic, stringifedData) {
-    if (subject !== content) {
-      return;
-    }
-
-    // Forward it to BrowserElementParent.js
-    sendAsyncMessage(topic, JSON.parse(stringifedData));
-  },
-
-  // Message manager callback receives messages from BrowserElementParent.js
-  receiveMessage: function(mmMsg) {
-    // Forward it to BrowserElementProxy.js
-    Services.obs.notifyObservers(
-      content, mmMsg.name, JSON.stringify(mmMsg.json));
-  }
-};
-
 function BrowserElementChild() {
   // Maps outer window id --> weak ref to window.  Used by modal dialog code.
   this._windowIDDict = {};
 
-  // _forcedVisible corresponds to the visibility state our owner has set on us
-  // (via iframe.setVisible).  ownerVisible corresponds to whether the docShell
-  // whose window owns this element is visible.
-  //
-  // Our docShell is visible iff _forcedVisible and _ownerVisible are both
-  // true.
-  this._forcedVisible = true;
-  this._ownerVisible = true;
-
   this._nextPaintHandler = null;
 
   this._isContentWindowCreated = false;
-  this._pendingSetInputMethodActive = [];
-
-  this.forwarder = new BrowserElementProxyForwarder();
 
   this._init();
 };
@@ -224,10 +175,8 @@ BrowserElementChild.prototype = {
     });
 
     OBSERVED_EVENTS.forEach((aTopic) => {
-      Services.obs.addObserver(this, aTopic, false);
+      Services.obs.addObserver(this, aTopic);
     });
-
-    this.forwarder.init();
   },
 
   /**
@@ -262,9 +211,6 @@ BrowserElementChild.prototype = {
     OBSERVED_EVENTS.forEach((aTopic) => {
       Services.obs.removeObserver(this, aTopic);
     });
-
-    this.forwarder.uninit();
-    this.forwarder = null;
   },
 
   handleEvent: function(event) {
@@ -330,17 +276,10 @@ BrowserElementChild.prototype = {
       "purge-history": this._recvPurgeHistory,
       "get-screenshot": this._recvGetScreenshot,
       "get-contentdimensions": this._recvGetContentDimensions,
-      "set-visible": this._recvSetVisible,
-      "get-visible": this._recvVisible,
       "send-mouse-event": this._recvSendMouseEvent,
       "send-touch-event": this._recvSendTouchEvent,
       "get-can-go-back": this._recvCanGoBack,
       "get-can-go-forward": this._recvCanGoForward,
-      "mute": this._recvMute,
-      "unmute": this._recvUnmute,
-      "get-muted": this._recvGetMuted,
-      "set-volume": this._recvSetVolume,
-      "get-volume": this._recvGetVolume,
       "go-back": this._recvGoBack,
       "go-forward": this._recvGoForward,
       "reload": this._recvReload,
@@ -352,17 +291,11 @@ BrowserElementChild.prototype = {
       "entered-fullscreen": this._recvEnteredFullscreen,
       "exit-fullscreen": this._recvExitFullscreen,
       "activate-next-paint-listener": this._activateNextPaintListener,
-      "set-input-method-active": this._recvSetInputMethodActive,
       "deactivate-next-paint-listener": this._deactivateNextPaintListener,
       "find-all": this._recvFindAll,
       "find-next": this._recvFindNext,
       "clear-match": this._recvClearMatch,
       "execute-script": this._recvExecuteScript,
-      "get-audio-channel-volume": this._recvGetAudioChannelVolume,
-      "set-audio-channel-volume": this._recvSetAudioChannelVolume,
-      "get-audio-channel-muted": this._recvGetAudioChannelMuted,
-      "set-audio-channel-muted": this._recvSetAudioChannelMuted,
-      "get-is-audio-channel-active": this._recvIsAudioChannelActive,
       "get-web-manifest": this._recvGetWebManifest,
     }
 
@@ -491,20 +424,19 @@ BrowserElementChild.prototype = {
     win.modalDepth++;
     let origModalDepth = win.modalDepth;
 
-    let thread = Services.tm.currentThread;
     debug("Nested event loop - begin");
-    while (win.modalDepth == origModalDepth && !this._shuttingDown) {
+    Services.tm.spinEventLoopUntil(() => {
       // Bail out of the loop if the inner window changed; that means the
       // window navigated.  Bail out when we're shutting down because otherwise
       // we'll leak our window.
       if (this._tryGetInnerWindowID(win) !== innerWindowID) {
         debug("_waitForResult: Inner window ID changed " +
               "while in nested event loop.");
-        break;
+        return true;
       }
 
-      thread.processNextEvent(/* mayWait = */ true);
-    }
+      return win.modalDepth !== origModalDepth || this._shuttingDown;
+    });
     debug("Nested event loop - finish");
 
     if (win.modalDepth == 0) {
@@ -622,7 +554,7 @@ BrowserElementChild.prototype = {
 
   // Processes the "rel" field in <link> tags and forward to specific handlers.
   _linkAddedHandler: function(e) {
-    let win = e.target.ownerDocument.defaultView;
+    let win = e.target.ownerGlobal;
     // Ignore links which don't come from the top-level
     // <iframe mozbrowser> window.
     if (win != content) {
@@ -648,7 +580,7 @@ BrowserElementChild.prototype = {
   },
 
   _metaChangedHandler: function(e) {
-    let win = e.target.ownerDocument.defaultView;
+    let win = e.target.ownerGlobal;
     // Ignore metas which don't come from the top-level
     // <iframe mozbrowser> window.
     if (win != content) {
@@ -734,9 +666,9 @@ BrowserElementChild.prototype = {
   _ClickHandler: function(e) {
 
     let isHTMLLink = node =>
-      ((node instanceof Ci.nsIDOMHTMLAnchorElement && node.href) ||
-       (node instanceof Ci.nsIDOMHTMLAreaElement && node.href) ||
-        node instanceof Ci.nsIDOMHTMLLinkElement);
+        ((ChromeUtils.getClassName(node) === "HTMLAnchorElement" && node.href) ||
+         (ChromeUtils.getClassName(node) === "HTMLAreaElement" && node.href) ||
+         ChromeUtils.getClassName(node) === "HTMLLinkElement");
 
     // Open in a new tab if middle click or ctrl/cmd-click,
     // and e.target is a link or inside a link.
@@ -786,10 +718,10 @@ BrowserElementChild.prototype = {
 
   _activateNextPaintListener: function(e) {
     if (!this._nextPaintHandler) {
-      this._nextPaintHandler = this._addMozAfterPaintHandler(function () {
+      this._nextPaintHandler = this._addMozAfterPaintHandler(() => {
         this._nextPaintHandler = null;
         sendAsyncMsg('nextpaint');
-      }.bind(this));
+      });
     }
   },
 
@@ -828,10 +760,6 @@ BrowserElementChild.prototype = {
         sendAsyncMsg('documentfirstpaint');
       });
       this._isContentWindowCreated = true;
-      // Handle pending SetInputMethodActive request.
-      while (this._pendingSetInputMethodActive.length > 0) {
-        this._recvSetInputMethodActive(this._pendingSetInputMethodActive.shift());
-      }
     }
   },
 
@@ -927,8 +855,9 @@ BrowserElementChild.prototype = {
   _getSystemCtxMenuData: function(elem) {
     let documentURI =
       docShell.QueryInterface(Ci.nsIWebNavigation).currentURI.spec;
-    if ((elem instanceof Ci.nsIDOMHTMLAnchorElement && elem.href) ||
-        (elem instanceof Ci.nsIDOMHTMLAreaElement && elem.href)) {
+
+    if ((ChromeUtils.getClassName(elem) === "HTMLAnchorElement" && elem.href) ||
+        (ChromeUtils.getClassName(elem) === "HTMLAreaElement" && elem.href)) {
       return {uri: elem.href,
               documentURI: documentURI,
               text: elem.textContent.substring(0, kLongestReturnedString)};
@@ -936,7 +865,7 @@ BrowserElementChild.prototype = {
     if (elem instanceof Ci.nsIImageLoadingContent && elem.currentURI) {
       return {uri: elem.currentURI.spec, documentURI: documentURI};
     }
-    if (elem instanceof Ci.nsIDOMHTMLImageElement) {
+    if (ChromeUtils.getClassName(elem) === "HTMLImageElement") {
       return {uri: elem.src, documentURI: documentURI};
     }
     if (elem instanceof Ci.nsIDOMHTMLMediaElement) {
@@ -1010,11 +939,7 @@ BrowserElementChild.prototype = {
       self._takeScreenshot(maxWidth, maxHeight, mimeType, domRequestID);
     };
 
-    let maxDelayMS = 2000;
-    try {
-      maxDelayMS = Services.prefs.getIntPref('dom.browserElement.maxScreenshotDelayMS');
-    }
-    catch(e) {}
+    let maxDelayMS = Services.prefs.getIntPref('dom.browserElement.maxScreenshotDelayMS', 2000);
 
     // Try to wait for the event loop to go idle before we take the screenshot,
     // but once we've waited maxDelayMS milliseconds, go ahead and take it
@@ -1060,7 +985,7 @@ BrowserElementChild.prototype = {
     if (expectedUrl) {
       let expectedURI
       try {
-       expectedURI = Services.io.newURI(expectedUrl, null, null);
+       expectedURI = Services.io.newURI(expectedUrl);
       } catch(e) {
         sendError("Malformed URL");
         return;
@@ -1294,38 +1219,15 @@ BrowserElementChild.prototype = {
     return menuObj;
   },
 
-  _recvSetVisible: function(data) {
-    debug("Received setVisible message: (" + data.json.visible + ")");
-    if (this._forcedVisible == data.json.visible) {
-      return;
-    }
-
-    this._forcedVisible = data.json.visible;
-    this._updateVisibility();
-  },
-
-  _recvVisible: function(data) {
-    sendAsyncMsg('got-visible', {
-      id: data.json.id,
-      successRv: docShell.isActive
-    });
-  },
-
   /**
    * Called when the window which contains this iframe becomes hidden or
    * visible.
    */
   _recvOwnerVisibilityChange: function(data) {
     debug("Received ownerVisibilityChange: (" + data.json.visible + ")");
-    this._ownerVisible = data.json.visible;
-    this._updateVisibility();
-  },
-
-  _updateVisibility: function() {
-    var visible = this._forcedVisible && this._ownerVisible;
+    var visible = data.json.visible;
     if (docShell && docShell.isActive !== visible) {
       docShell.isActive = visible;
-      sendAsyncMsg('visibilitychange', {visible: visible});
 
       // Ensure painting is not frozen if the app goes visible.
       if (visible && this._paintFrozenTimer) {
@@ -1368,32 +1270,6 @@ BrowserElementChild.prototype = {
     });
   },
 
-  _recvMute: function(data) {
-    this._windowUtils.audioMuted = true;
-  },
-
-  _recvUnmute: function(data) {
-    this._windowUtils.audioMuted = false;
-  },
-
-  _recvGetMuted: function(data) {
-    sendAsyncMsg('got-muted', {
-      id: data.json.id,
-      successRv: this._windowUtils.audioMuted
-    });
-  },
-
-  _recvSetVolume: function(data) {
-    this._windowUtils.audioVolume = data.json.volume;
-  },
-
-  _recvGetVolume: function(data) {
-    sendAsyncMsg('got-volume', {
-      id: data.json.id,
-      successRv: this._windowUtils.audioVolume
-    });
-  },
-
   _recvGoBack: function(data) {
     try {
       docShell.QueryInterface(Ci.nsIWebNavigation).goBack();
@@ -1431,61 +1307,13 @@ BrowserElementChild.prototype = {
     docShell.contentViewer.fullZoom = data.json.zoom;
   },
 
-  _recvGetAudioChannelVolume: function(data) {
-    debug("Received getAudioChannelVolume message: (" + data.json.id + ")");
-
-    let volume = acs.getAudioChannelVolume(content,
-                                           data.json.args.audioChannel);
-    sendAsyncMsg('got-audio-channel-volume', {
-      id: data.json.id, successRv: volume
-    });
-  },
-
-  _recvSetAudioChannelVolume: function(data) {
-    debug("Received setAudioChannelVolume message: (" + data.json.id + ")");
-
-    acs.setAudioChannelVolume(content,
-                              data.json.args.audioChannel,
-                              data.json.args.volume);
-    sendAsyncMsg('got-set-audio-channel-volume', {
-      id: data.json.id, successRv: true
-    });
-  },
-
-  _recvGetAudioChannelMuted: function(data) {
-    debug("Received getAudioChannelMuted message: (" + data.json.id + ")");
-
-    let muted = acs.getAudioChannelMuted(content, data.json.args.audioChannel);
-    sendAsyncMsg('got-audio-channel-muted', {
-      id: data.json.id, successRv: muted
-    });
-  },
-
-  _recvSetAudioChannelMuted: function(data) {
-    debug("Received setAudioChannelMuted message: (" + data.json.id + ")");
-
-    acs.setAudioChannelMuted(content, data.json.args.audioChannel,
-                             data.json.args.muted);
-    sendAsyncMsg('got-set-audio-channel-muted', {
-      id: data.json.id, successRv: true
-    });
-  },
-
-  _recvIsAudioChannelActive: function(data) {
-    debug("Received isAudioChannelActive message: (" + data.json.id + ")");
-
-    let active = acs.isAudioChannelActive(content, data.json.args.audioChannel);
-    sendAsyncMsg('got-is-audio-channel-active', {
-      id: data.json.id, successRv: active
-    });
-  },
-  _recvGetWebManifest: Task.async(function* (data) {
+  async _recvGetWebManifest(data) {
     debug(`Received GetWebManifest message: (${data.json.id})`);
     let manifest = null;
     let hasManifest = ManifestFinder.contentHasManifestLink(content);
     if (hasManifest) {
       try {
-        manifest = yield ManifestObtainer.contentObtainManifest(content);
+        manifest = await ManifestObtainer.contentObtainManifest(content);
       } catch (e) {
         sendAsyncMsg('got-web-manifest', {
           id: data.json.id,
@@ -1498,7 +1326,7 @@ BrowserElementChild.prototype = {
       id: data.json.id,
       successRv: manifest
     });
-  }),
+  },
 
   _initFinder: function() {
     if (!this._finder) {
@@ -1545,31 +1373,6 @@ BrowserElementChild.prototype = {
     }
     this._finder.removeSelection();
     sendAsyncMsg("findchange", {active: false});
-  },
-
-  _recvSetInputMethodActive: function(data) {
-    let msgData = { id: data.json.id };
-    if (!this._isContentWindowCreated) {
-      if (data.json.args.isActive) {
-        // To activate the input method, we should wait before the content
-        // window is ready.
-        this._pendingSetInputMethodActive.push(data);
-        return;
-      }
-      msgData.successRv = null;
-      sendAsyncMsg('got-set-input-method-active', msgData);
-      return;
-    }
-    // Unwrap to access webpage content.
-    let nav = XPCNativeWrapper.unwrap(content.document.defaultView.navigator);
-    if (nav.mozInputMethod) {
-      // Wrap to access the chrome-only attribute setActive.
-      new XPCNativeWrapper(nav.mozInputMethod).setActive(data.json.args.isActive);
-      msgData.successRv = null;
-    } else {
-      msgData.errorMsg = 'Cannot access mozInputMethod.';
-    }
-    sendAsyncMsg('got-set-input-method-active', msgData);
   },
 
   // The docShell keeps a weak reference to the progress listener, so we need
@@ -1658,6 +1461,9 @@ BrowserElementChild.prototype = {
           case Cr.NS_ERROR_MALWARE_URI :
             sendAsyncMsg('error', { type: 'malwareBlocked' });
             return;
+          case Cr.NS_ERROR_HARMFUL_URI :
+            sendAsyncMsg('error', { type: 'harmfulBlocked' });
+            return;
           case Cr.NS_ERROR_UNWANTED_URI :
             sendAsyncMsg('error', { type: 'unwantedBlocked' });
             return;
@@ -1720,10 +1526,7 @@ BrowserElementChild.prototype = {
                 // certerror? If yes, maybe we should add a property to the
                 // event to to indicate whether there is a custom page. That would
                 // let the embedder have more control over the desired behavior.
-                let errorPage = null;
-                try {
-                  errorPage = Services.prefs.getCharPref(CERTIFICATE_ERROR_PAGE_PREF);
-                } catch (e) {}
+                let errorPage = Services.prefs.getCharPref(CERTIFICATE_ERROR_PAGE_PREF, "");
 
                 if (errorPage == 'certerror') {
                   sendAsyncMsg('error', { type: 'certerror' });
@@ -1792,10 +1595,6 @@ BrowserElementChild.prototype = {
         mixedContent: isMixedContent,
       });
     },
-
-    onStatusChange: function(webProgress, request, status, message) {},
-    onProgressChange: function(webProgress, request, curSelfProgress,
-                               maxSelfProgress, curTotalProgress, maxTotalProgress) {},
   },
 
   // Expose the message manager for WebApps and others.

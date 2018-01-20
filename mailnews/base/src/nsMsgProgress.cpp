@@ -67,8 +67,8 @@ NS_IMETHODIMP nsMsgProgress::OpenProgressDialog(mozIDOMWindowProxy *parentDOMWin
   ifptr->SetData(static_cast<nsIMsgProgress*>(this));
   ifptr->SetDataIID(&NS_GET_IID(nsIMsgProgress));
 
-  array->AppendElement(ifptr, false);
-  array->AppendElement(parameters, false);
+  array->AppendElement(ifptr);
+  array->AppendElement(parameters);
 
   // Open the dialog.
   nsCOMPtr<nsPIDOMWindowOuter> newWindow;
@@ -256,7 +256,7 @@ NS_IMETHODIMP nsMsgProgress::OnStatus(nsIRequest *request, nsISupports* ctxt,
     mozilla::services::GetStringBundleService();
   NS_ENSURE_TRUE(sbs, NS_ERROR_UNEXPECTED);
   nsString str;
-  rv = sbs->FormatStatusMessage(aStatus, aStatusArg, getter_Copies(str));
+  rv = sbs->FormatStatusMessage(aStatus, aStatusArg, str);
   NS_ENSURE_SUCCESS(rv, rv);
   return ShowStatusString(str);
 }

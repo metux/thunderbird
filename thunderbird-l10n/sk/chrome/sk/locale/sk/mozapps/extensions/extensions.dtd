@@ -20,6 +20,9 @@
 <!ENTITY installAddonFromFile.accesskey       "N">
 <!ENTITY toolsMenu.tooltip                    "Nástroje pre všetky doplnky">
 
+<!ENTITY getThemes.description                "Chcete si prispôsobiť svoj prehliadač?">
+<!ENTITY getThemes.learnMore                  "Vyberte si niektorú z tisícov tém vzhľadu.">
+
 <!ENTITY cmd.back.tooltip                     "Prejsť naspäť o jednu stránku">
 <!ENTITY cmd.forward.tooltip                  "Prejsť dopredu o jednu stránku">
 
@@ -115,6 +118,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "Zobraziť poznámky k vydaniu tejto aktualizácie">
 <!ENTITY cmd.hideReleaseNotes.label           "Skryť poznámky k vydaniu">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Skryť poznámky k vydaniu tejto aktualizácie">
+<!ENTITY cmd.findReplacement.label            "Nájsť náhradu">
 
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
@@ -185,6 +189,10 @@
 <!ENTITY addon.details.label                  "Viac">
 <!ENTITY addon.details.tooltip                "Zobraziť ďalšie informácie o tomto doplnku">
 <!ENTITY addon.unknownDate                    "neznámy">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "ZASTARANÁ TECHNOLÓGIA">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -249,3 +257,9 @@
 
 <!ENTITY pluginDeprecation.description "Chýba vám tu niečo? Niektoré zásuvné moduly už &brandShortName; nepodporuje.">
 <!ENTITY pluginDeprecation.learnMore "Ďalšie informácie.">
+
+<!ENTITY legacyWarning.description "Chýba vám tu niečo? Niektoré rozšírenia už &brandShortName; nepodporuje.">
+<!ENTITY legacyWarning.showLegacy "Zobraziť zastarané rozšírenia">
+<!ENTITY legacyExtensions.title "Zastarané rozšírenia">
+<!ENTITY legacyExtensions.description "Tieto rozšírenia nespĺňajú súčasné kritériá prehliadača &brandShortName; a boli preto deaktivované.">
+<!ENTITY legacyExtensions.learnMore "Ďalšie informácie o zmenách ohľadom doplnkov">

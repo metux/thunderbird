@@ -24,7 +24,7 @@
 <!ENTITY fontColor.accesskey                  "x">
 <!ENTITY bgColor.label                        "Culoare fundal:">
 <!ENTITY bgColor.accesskey                    "C">
-<!ENTITY restoreHTMLDefaults.label            "Restaurează setările implicite">
+<!ENTITY restoreHTMLDefaults.label            "Restaurează valorile implicite">
 <!ENTITY restoreHTMLDefaults.accesskey        "R">
 
 
@@ -55,6 +55,9 @@
 <!ENTITY editDirectories.label                 "Editează directoarele…">
 <!ENTITY editDirectories.accesskey             "E">
 
+
+
+
 <!ENTITY sendOptionsDescription.label          "Configurează aspectul textului">
 <!ENTITY sendOptions.label                     "Opțiuni de trimitere…">
 <!ENTITY sendOptions.accesskey                 "O">
@@ -64,5 +67,10 @@
 <!ENTITY attachmentReminderOptions.label       "Cuvinte cheie…">
 <!ENTITY attachmentReminderOptions.accesskey   "C">
 
-<!ENTITY defaultToParagraph.accesskey         "P">
 <!ENTITY defaultToParagraph.label             "Use Paragraph format instead of Body Text by default">
+<!ENTITY defaultToParagraph.accesskey         "P">
+
+<!ENTITY showAsDefault.label                   "Default startup directory in the address book window:">
+<!ENTITY showAsDefault.accesskey               "S">
+<!ENTITY showAsDefaultLast.label               "Last used directory">
+

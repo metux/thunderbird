@@ -2,7 +2,9 @@
 
 <!ENTITY closeNotificationItem.label "Không phải Bây giờ">
 
-
 <!ENTITY checkForUpdates "Check for updates…">
 
 <!ENTITY learnMore "Learn more…">
+
+<!ENTITY defaultButton.label "OK!">
+<!ENTITY defaultButton.accesskey "O">

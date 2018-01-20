@@ -5,16 +5,6 @@
 
 "use strict";
 
-function build_cert_chain(certNames) {
-  let certList = Cc["@mozilla.org/security/x509certlist;1"]
-                   .createInstance(Ci.nsIX509CertList);
-  certNames.forEach(function(certName) {
-    let cert = constructCertFromFile("bad_certs/" + certName + ".pem");
-    certList.addCert(cert);
-  });
-  return certList;
-}
-
 function test_cert_equals() {
   let certA = constructCertFromFile("bad_certs/default-ee.pem");
   let certB = constructCertFromFile("bad_certs/default-ee.pem");
@@ -32,7 +22,7 @@ function test_cert_equals() {
 }
 
 function test_cert_list_serialization() {
-  let certList = build_cert_chain(['default-ee', 'expired-ee']);
+  let certList = build_cert_chain(["default-ee", "expired-ee"]);
 
   // Serialize the cert list to a string
   let serHelper = Cc["@mozilla.org/network/serialization-helper;1"]

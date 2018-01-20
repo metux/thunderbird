@@ -16,7 +16,6 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
@@ -25,7 +24,7 @@ function test()
  
   try
   {
-    var o = {toString: function()(i > 2) ? this : "foo"};
+    var o = {toString: function() { return (i > 2) ? this : "foo"; }};
     var s = "";
     for (var i = 0; i < 5; i++)
       s += o + o;
@@ -38,6 +37,4 @@ function test()
   }
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

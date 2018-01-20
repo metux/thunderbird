@@ -7,15 +7,17 @@
 #ifndef DocGroup_h
 #define DocGroup_h
 
-#include "nsISupports.h"
 #include "nsISupportsImpl.h"
 #include "nsIPrincipal.h"
 #include "nsTHashtable.h"
 #include "nsString.h"
 
+#include "mozilla/dom/TabGroup.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/dom/CustomElementRegistry.h"
 
 namespace mozilla {
+class AbstractThread;
 namespace dom {
 
 // Two browsing contexts are considered "related" if they are reachable from one
@@ -33,17 +35,20 @@ namespace dom {
 // (through its DocGroups) the documents from one or more tabs related by
 // window.opener. A DocGroup is a member of exactly one TabGroup.
 
-class TabGroup;
-
-class DocGroup final : public nsISupports
+class DocGroup final
 {
 public:
   typedef nsTArray<nsIDocument*>::iterator Iterator;
   friend class TabGroup;
 
-  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DocGroup)
 
-  static void GetKey(nsIPrincipal* aPrincipal, nsACString& aString);
+  // Returns NS_ERROR_FAILURE and sets |aString| to an empty string if the TLD
+  // service isn't available. Returns NS_OK on success, but may still set
+  // |aString| may still be set to an empty string.
+  static MOZ_MUST_USE nsresult
+  GetKey(nsIPrincipal* aPrincipal, nsACString& aString);
+
   bool MatchesKey(const nsACString& aKey)
   {
     return aKey == mKey;
@@ -52,17 +57,47 @@ public:
   {
     return mTabGroup;
   }
+  mozilla::dom::CustomElementReactionsStack* CustomElementReactionsStack()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    if (!mReactionsStack) {
+      mReactionsStack = new mozilla::dom::CustomElementReactionsStack();
+    }
+
+    return mReactionsStack;
+  }
   void RemoveDocument(nsIDocument* aWindow);
 
   // Iterators for iterating over every document within the DocGroup
   Iterator begin()
   {
+    MOZ_ASSERT(NS_IsMainThread());
     return mDocuments.begin();
   }
   Iterator end()
   {
+    MOZ_ASSERT(NS_IsMainThread());
     return mDocuments.end();
   }
+
+  nsresult Dispatch(TaskCategory aCategory,
+                    already_AddRefed<nsIRunnable>&& aRunnable);
+
+  nsISerialEventTarget* EventTargetFor(TaskCategory aCategory) const;
+
+  AbstractThread*
+  AbstractMainThreadFor(TaskCategory aCategory);
+
+  // Ensure that it's valid to access the DocGroup at this time.
+  void ValidateAccess() const
+  {
+    mTabGroup->ValidateAccess();
+  }
+
+  // Return a pointer that can be continually checked to see if access to this
+  // DocGroup is valid. This pointer should live at least as long as the
+  // DocGroup.
+  bool* GetValidAccessPtr();
 
 private:
   DocGroup(TabGroup* aTabGroup, const nsACString& aKey);
@@ -71,6 +106,7 @@ private:
   nsCString mKey;
   RefPtr<TabGroup> mTabGroup;
   nsTArray<nsIDocument*> mDocuments;
+  RefPtr<mozilla::dom::CustomElementReactionsStack> mReactionsStack;
 };
 
 } // namespace dom

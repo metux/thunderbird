@@ -18,9 +18,7 @@ StyleInfo::StyleInfo(dom::Element* aElement, nsIPresShell* aPresShell) :
   mElement(aElement)
 {
   mStyleContext =
-    nsComputedDOMStyle::GetStyleContextForElementNoFlush(aElement,
-                                                         nullptr,
-                                                         aPresShell);
+    nsComputedDOMStyle::GetStyleContextNoFlush(aElement, nullptr, aPresShell);
 }
 
 void
@@ -81,7 +79,7 @@ StyleInfo::TextIndent(nsAString& aValue)
 }
 
 void
-StyleInfo::Margin(css::Side aSide, nsAString& aValue)
+StyleInfo::Margin(Side aSide, nsAString& aValue)
 {
   MOZ_ASSERT(mElement->GetPrimaryFrame(), " mElement->GetPrimaryFrame() needs to be valid pointer");
   aValue.Truncate();

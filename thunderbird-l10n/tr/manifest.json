@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "tr": {
+      "chrome_resources": {
+        "necko": "chrome/tr/locale/tr/necko/", 
+        "global": "chrome/tr/locale/tr/global/", 
+        "messenger-region": "chrome/tr/locale/tr/messenger-region/", 
+        "chat": "chrome/tr/locale/tr/chat/", 
+        "devtools": "chrome/tr/locale/tr/devtools/client/", 
+        "pipnss": "chrome/tr/locale/tr/pipnss/", 
+        "messenger-smime": "chrome/tr/locale/tr/messenger-smime/", 
+        "messenger-newsblog": "chrome/tr/locale/tr/messenger-newsblog/", 
+        "devtools-shim": "chrome/tr/locale/tr/devtools/shim/", 
+        "alerts": "chrome/tr/locale/tr/alerts/", 
+        "messenger": "chrome/tr/locale/tr/messenger/", 
+        "editor": "chrome/tr/locale/tr/editor/", 
+        "branding": "chrome/tr/locale/tr/branding/", 
+        "mozldap": "chrome/tr/locale/tr/mozldap/", 
+        "autoconfig": "chrome/tr/locale/tr/autoconfig/", 
+        "devtools-shared": "chrome/tr/locale/tr/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/tr/locale/tr/global-platform/win/", 
+          "android": "chrome/tr/locale/tr/global-platform/unix/", 
+          "macosx": "chrome/tr/locale/tr/global-platform/mac/", 
+          "linux": "chrome/tr/locale/tr/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/tr/locale/tr/mozapps/", 
+        "pluginproblem": "chrome/tr/locale/tr/pluginproblem/", 
+        "communicator": "chrome/tr/locale/tr/communicator/", 
+        "messenger-mapi": "chrome/tr/locale/tr/messenger-mapi/", 
+        "places": "chrome/tr/locale/tr/places/", 
+        "passwordmgr": "chrome/tr/locale/tr/passwordmgr/", 
+        "pippki": "chrome/tr/locale/tr/pippki/"
+      }, 
+      "version": "20171104131141"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-tr@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "tr", 
+  "version": "58.0", 
+  "name": "Türkçe (TR) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Mozilla Türkiye takımı)", 
+  "description": "Language pack for Thunderbird for tr"
+}

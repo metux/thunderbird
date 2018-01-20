@@ -25,30 +25,17 @@ XPC_WN_MaybeResolvingDeletePropertyStub(JSContext* cx, JS::HandleObject obj,
                                         JS::HandleId id,
                                         JS::ObjectOpResult& result);
 bool
-XPC_WN_CantDeletePropertyStub(JSContext* cx, JS::HandleObject obj,
-                              JS::HandleId id, JS::ObjectOpResult& result);
-
-bool
-XPC_WN_Helper_GetProperty(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
-                          JS::MutableHandleValue vp);
-
-bool
-XPC_WN_Helper_SetProperty(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
-                          JS::MutableHandleValue vp,
-                          JS::ObjectOpResult& result);
-bool
-XPC_WN_MaybeResolvingSetPropertyStub(JSContext* cx, JS::HandleObject obj,
-                                     JS::HandleId id, JS::MutableHandleValue vp,
-                                     JS::ObjectOpResult& result);
-bool
-XPC_WN_CannotModifySetPropertyStub(JSContext* cx, JS::HandleObject obj,
-                                   JS::HandleId id, JS::MutableHandleValue vp,
-                                   JS::ObjectOpResult& result);
+XPC_WN_CannotDeletePropertyStub(JSContext* cx, JS::HandleObject obj,
+                                JS::HandleId id, JS::ObjectOpResult& result);
 
 bool
 XPC_WN_Helper_Enumerate(JSContext* cx, JS::HandleObject obj);
 bool
 XPC_WN_Shared_Enumerate(JSContext* cx, JS::HandleObject obj);
+
+bool
+XPC_WN_NewEnumerate(JSContext* cx, JS::HandleObject obj, JS::AutoIdVector& properties,
+                    bool enumerableOnly);
 
 bool
 XPC_WN_Helper_Resolve(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
@@ -74,43 +61,32 @@ XPCWrappedNative_Trace(JSTracer* trc, JSObject* obj);
 
 extern const js::ClassExtension XPC_WN_JSClassExtension;
 
-extern const js::ObjectOps XPC_WN_ObjectOpsWithEnumerate;
-
 #define XPC_MAKE_CLASS_OPS(_flags) { \
     /* addProperty */ \
-    ((_flags) & nsIXPCScriptable::USE_JSSTUB_FOR_ADDPROPERTY) \
+    ((_flags) & XPC_SCRIPTABLE_USE_JSSTUB_FOR_ADDPROPERTY) \
     ? nullptr \
-    : ((_flags) & nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE) \
+    : ((_flags) & XPC_SCRIPTABLE_ALLOW_PROP_MODS_DURING_RESOLVE) \
       ? XPC_WN_MaybeResolvingPropertyStub \
       : XPC_WN_CannotModifyPropertyStub, \
     \
     /* delProperty */ \
-    ((_flags) & nsIXPCScriptable::USE_JSSTUB_FOR_DELPROPERTY) \
+    ((_flags) & XPC_SCRIPTABLE_USE_JSSTUB_FOR_DELPROPERTY) \
     ? nullptr \
-    : ((_flags) & nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE) \
+    : ((_flags) & XPC_SCRIPTABLE_ALLOW_PROP_MODS_DURING_RESOLVE) \
       ? XPC_WN_MaybeResolvingDeletePropertyStub \
-      : XPC_WN_CantDeletePropertyStub, \
-    \
-    /* getProperty */ \
-    ((_flags) & nsIXPCScriptable::WANT_GETPROPERTY) \
-    ? XPC_WN_Helper_GetProperty \
-    : nullptr, \
-    \
-    /* setProperty */ \
-    ((_flags) & nsIXPCScriptable::WANT_SETPROPERTY) \
-    ? XPC_WN_Helper_SetProperty \
-    : ((_flags) & nsIXPCScriptable::USE_JSSTUB_FOR_SETPROPERTY) \
-      ? nullptr \
-      : ((_flags) & nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE) \
-        ? XPC_WN_MaybeResolvingSetPropertyStub \
-        : XPC_WN_CannotModifySetPropertyStub, \
+      : XPC_WN_CannotDeletePropertyStub, \
     \
     /* enumerate */ \
-    ((_flags) & nsIXPCScriptable::WANT_NEWENUMERATE) \
-    ? nullptr /* We will use oOps->enumerate set below in this case */ \
-    : ((_flags) & nsIXPCScriptable::WANT_ENUMERATE) \
+    ((_flags) & XPC_SCRIPTABLE_WANT_NEWENUMERATE) \
+    ? nullptr /* We will use newEnumerate set below in this case */ \
+    : ((_flags) & XPC_SCRIPTABLE_WANT_ENUMERATE) \
       ? XPC_WN_Helper_Enumerate \
       : XPC_WN_Shared_Enumerate, \
+    \
+    /* newEnumerate */ \
+    ((_flags) & XPC_SCRIPTABLE_WANT_NEWENUMERATE) \
+    ? XPC_WN_NewEnumerate \
+    : nullptr, \
     \
     /* resolve */ \
     /* We have to figure out resolve strategy at call time */ \
@@ -120,27 +96,27 @@ extern const js::ObjectOps XPC_WN_ObjectOpsWithEnumerate;
     nullptr, \
     \
     /* finalize */ \
-    ((_flags) & nsIXPCScriptable::WANT_FINALIZE) \
+    ((_flags) & XPC_SCRIPTABLE_WANT_FINALIZE) \
     ? XPC_WN_Helper_Finalize \
     : XPC_WN_NoHelper_Finalize, \
     \
     /* call */ \
-    ((_flags) & nsIXPCScriptable::WANT_CALL) \
+    ((_flags) & XPC_SCRIPTABLE_WANT_CALL) \
     ? XPC_WN_Helper_Call \
     : nullptr, \
     \
     /* hasInstance */ \
-    ((_flags) & nsIXPCScriptable::WANT_HASINSTANCE) \
+    ((_flags) & XPC_SCRIPTABLE_WANT_HASINSTANCE) \
     ? XPC_WN_Helper_HasInstance \
     : nullptr, \
     \
     /* construct */ \
-    ((_flags) & nsIXPCScriptable::WANT_CONSTRUCT) \
+    ((_flags) & XPC_SCRIPTABLE_WANT_CONSTRUCT) \
     ? XPC_WN_Helper_Construct \
     : nullptr, \
     \
     /* trace */ \
-    ((_flags) & nsIXPCScriptable::IS_GLOBAL_OBJECT) \
+    ((_flags) & XPC_SCRIPTABLE_IS_GLOBAL_OBJECT) \
     ? JS_GlobalObjectTraceHook \
     : XPCWrappedNative_Trace, \
 }
@@ -153,7 +129,7 @@ extern const js::ObjectOps XPC_WN_ObjectOpsWithEnumerate;
     XPC_WRAPPER_FLAGS | \
     JSCLASS_PRIVATE_IS_NSISUPPORTS | \
     JSCLASS_IS_WRAPPED_NATIVE | \
-    (((_flags) & nsIXPCScriptable::IS_GLOBAL_OBJECT) \
+    (((_flags) & XPC_SCRIPTABLE_IS_GLOBAL_OBJECT) \
      ? XPCONNECT_GLOBAL_FLAGS \
      : 0), \
     \
@@ -167,9 +143,7 @@ extern const js::ObjectOps XPC_WN_ObjectOpsWithEnumerate;
     &XPC_WN_JSClassExtension, \
     \
     /* oOps */ \
-    ((_flags) & nsIXPCScriptable::WANT_NEWENUMERATE) \
-    ? &XPC_WN_ObjectOpsWithEnumerate \
-    : nullptr, \
+    nullptr, \
 }
 
 #endif

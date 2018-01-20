@@ -6,7 +6,7 @@
 #include "mozilla/ChangeStyleTransaction.h"
 
 #include "mozilla/dom/Element.h"        // for Element
-#include "nsAString.h"                  // for nsAString_internal::Append, etc.
+#include "nsAString.h"                  // for nsAString::Append, etc.
 #include "nsCRT.h"                      // for nsCRT::IsAsciiSpace
 #include "nsDebug.h"                    // for NS_ENSURE_SUCCESS, etc.
 #include "nsError.h"                    // for NS_ERROR_NULL_POINTER, etc.
@@ -120,7 +120,7 @@ ChangeStyleTransaction::RemoveValueFromListOfValues(
 }
 
 ChangeStyleTransaction::ChangeStyleTransaction(Element& aElement,
-                                               nsIAtom& aProperty,
+                                               nsAtom& aProperty,
                                                const nsAString& aValue,
                                                EChangeType aChangeType)
   : EditTransactionBase()
@@ -265,7 +265,7 @@ ChangeStyleTransaction::GetTxnDescription(nsAString& aString)
 
 // True if the CSS property accepts more than one value
 bool
-ChangeStyleTransaction::AcceptsMoreThanOneValue(nsIAtom& aCSSProperty)
+ChangeStyleTransaction::AcceptsMoreThanOneValue(nsAtom& aCSSProperty)
 {
   return &aCSSProperty == nsGkAtoms::text_decoration;
 }

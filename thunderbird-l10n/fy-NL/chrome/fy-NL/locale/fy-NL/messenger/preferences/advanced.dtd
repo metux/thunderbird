@@ -11,6 +11,7 @@
 <!-- General Settings -->
 <!ENTITY enableGlodaSearch.label       "Globaal sykje en yndeksearder ynskeakelje">
 <!ENTITY enableGlodaSearch.accesskey   "y">
+<!ENTITY dateTimeFormatting.label      "Datum- en tiidnotaasje">
 <!ENTITY allowHWAccel.label            "Hardwarefersnelling brûke wannear beskikber">
 <!ENTITY allowHWAccel.accesskey        "f">
 <!ENTITY storeType.label               "Type berjochtenopslach foar nije accounts:">
@@ -52,7 +53,19 @@
 <!ENTITY crashReporterLearnMore.label    "Mear ynfo">
 
 <!-- Update -->
-<!ENTITY updateApp.label                 "&brandShortName;-fernijingen:">
+<!-- LOCALIZATION NOTE (updateApp.label):
+  Strings from aboutDialog.dtd are displayed in this section of the preferences.
+  Please check for possible accesskey conflicts.
+-->
+<!ENTITY updateApp2.label                "&brandShortName;-fernijingen">
+<!-- LOCALIZATION NOTE (updateApp.version.*): updateApp.version.pre is
+  followed by a version number, keep the trailing space or replace it with
+  a different character as needed. updateApp.version.post is displayed after
+  the version number, and is empty on purpose for English. You can use it
+  if required by your language.
+ -->
+<!ENTITY updateApp.version.pre           "Ferzje ">
+<!ENTITY updateApp.version.post          "">
 <!ENTITY updateAuto.label                "Fernijingen automatysk ynstallearje (oanrekommandearre: ferbettere feilichheid)">
 <!ENTITY updateAuto.accesskey            "a">
 <!ENTITY updateCheck.label               "Kontrolearje op fernijngen, mar lit my kieze oft ik se ynstallearje wol">
@@ -89,6 +102,8 @@
 <!ENTITY useCacheBefore.label            "Oant">
 <!ENTITY useCacheBefore.accesskey        "O">
 <!ENTITY useCacheAfter.label             "MB skiifromte brûke foar de buffer">
+<!ENTITY overrideSmartCacheSize.label    "Automatysk bufferbehear net brûke">
+<!ENTITY overrideSmartCacheSize.accesskey "r">
 <!ENTITY clearCacheNow.label             "No wiskje">
 <!ENTITY clearCacheNow.accesskey         "N">
 

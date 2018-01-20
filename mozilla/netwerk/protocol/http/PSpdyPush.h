@@ -28,8 +28,7 @@
 #include "nsAutoPtr.h"
 #include "nsDataHashtable.h"
 #include "nsISupports.h"
-
-class nsCString;
+#include "nsStringFwd.h"
 
 namespace mozilla {
 namespace net {
@@ -43,9 +42,10 @@ public:
   // The cache holds only weak pointers - no references
   SpdyPushCache();
   virtual ~SpdyPushCache();
-  bool               RegisterPushedStreamHttp2(nsCString key,
+  MOZ_MUST_USE bool  RegisterPushedStreamHttp2(const nsCString& key,
                                                Http2PushedStream *stream);
-  Http2PushedStream *RemovePushedStreamHttp2(nsCString key);
+  Http2PushedStream *RemovePushedStreamHttp2(const nsCString& key);
+  Http2PushedStream *RemovePushedStreamHttp2ByID(const nsCString& key, const uint32_t& streamID);
 private:
   nsDataHashtable<nsCStringHashKey, Http2PushedStream *> mHashHttp2;
 };

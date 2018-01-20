@@ -76,8 +76,9 @@ case $cmd in
     cp -pPR ${TOPSRCDIR}/js/moz.configure ${tgtpath}/js
     cp -pPR ${TOPSRCDIR}/js/ffi.configure ${tgtpath}/js
 
-    mkdir -p ${tgtpath}/taskcluster
+    mkdir -p ${tgtpath}/taskcluster/taskgraph
     cp -pPR ${TOPSRCDIR}/taskcluster/moz.build ${tgtpath}/taskcluster/
+    cp -pPR ${TOPSRCDIR}/taskcluster/taskgraph/test ${tgtpath}/taskcluster/taskgraph/
 
     # copy the embedded icu
     ${MKDIR} -p ${tgtpath}/intl
@@ -109,6 +110,7 @@ case $cmd in
     cp -pPR ${TOPSRCDIR}/mfbt ${tgtpath}
     cp -p ${SRCDIR}/../moz.configure ${tgtpath}/js
     cp -pPR ${SRCDIR}/../public ${tgtpath}/js
+    cp -pPR ${SRCDIR}/../rust ${tgtpath}/js
     cp -pPR ${SRCDIR}/../examples ${tgtpath}/js
     find ${SRCDIR} -mindepth 1 -maxdepth 1 -not -path ${STAGING} -a -not -name ${pkg} \
         -exec cp -pPR {} ${tgtpath}/js/src \;
@@ -116,6 +118,10 @@ case $cmd in
     cp -pPR \
         ${TOPSRCDIR}/python \
         ${tgtpath}
+    ${MKDIR} -p ${tgtpath}/third_party
+    cp -pPR \
+        ${TOPSRCDIR}/third_party/python \
+        ${tgtpath}/third_party
     ${MKDIR} -p ${tgtpath}/dom/bindings
     cp -pPR \
         ${TOPSRCDIR}/dom/bindings/mozwebidlcodegen \
@@ -155,13 +161,15 @@ case $cmd in
         ${TOPSRCDIR}/memory/moz.build \
         ${TOPSRCDIR}/memory/build \
         ${TOPSRCDIR}/memory/fallible \
-        ${TOPSRCDIR}/memory/jemalloc \
         ${TOPSRCDIR}/memory/mozalloc \
-        ${TOPSRCDIR}/memory/mozjemalloc \
         ${tgtpath}/memory
 
     # remove *.pyc and *.pyo files if any
     find ${tgtpath} -type f -name "*.pyc" -o -name "*.pyo" |xargs rm -f
+
+    # Remove non-JS Cargo.toml files (for example, the invalid Cargo.toml files
+    # used for some testing).
+    find ${tgtpath} -type f -name Cargo.toml | grep -v js | xargs rm -f
 
     # copy or create INSTALL
     if [ -e ${STAGING}/INSTALL ]; then
@@ -192,7 +200,7 @@ INSTALL_EOF
 This directory contains SpiderMonkey ${MOZJS_MAJOR_VERSION}.
 
 This release is based on a revision of Mozilla ${MOZJS_MAJOR_VERSION}:
-  http://hg.mozilla.org/releases/
+  https://hg.mozilla.org/releases/
 The changes in the patches/ directory were applied.
 
 MDN hosts the latest SpiderMonkey ${MOZJS_MAJOR_VERSION} release notes:

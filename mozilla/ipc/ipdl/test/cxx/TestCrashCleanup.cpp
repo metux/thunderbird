@@ -103,14 +103,12 @@ TestCrashCleanupChild::~TestCrashCleanupChild()
     MOZ_COUNT_DTOR(TestCrashCleanupChild);
 }
 
-bool
+mozilla::ipc::IPCResult
 TestCrashCleanupChild::AnswerDIEDIEDIE()
 {
     _exit(0);
-    NS_RUNTIMEABORT("unreached");
-    return false;
+    MOZ_CRASH("unreached");
 }
-
 
 } // namespace _ipdltest
 } // namespace mozilla

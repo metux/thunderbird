@@ -47,11 +47,13 @@ class RegExpObject;
 class SavedFrame;
 class Scope;
 class EnvironmentObject;
+class RequestedModuleObject;
 class ScriptSourceObject;
 class Shape;
 class SharedArrayBufferObject;
 class StructTypeDescr;
 class UnownedBaseShape;
+class WasmFunctionScope;
 class WasmMemoryObject;
 namespace jit {
 class JitCode;
@@ -85,6 +87,8 @@ class JitCode;
     D(js::PlainObject*) \
     D(js::PropertyName*) \
     D(js::RegExpObject*) \
+    D(js::RegExpShared*) \
+    D(js::RequestedModuleObject*) \
     D(js::SavedFrame*) \
     D(js::Scope*) \
     D(js::ScriptSourceObject*) \
@@ -92,6 +96,7 @@ class JitCode;
     D(js::SharedArrayBufferObject*) \
     D(js::StructTypeDescr*) \
     D(js::UnownedBaseShape*) \
+    D(js::WasmFunctionScope*) \
     D(js::WasmInstanceObject*) \
     D(js::WasmMemoryObject*) \
     D(js::WasmTableObject*) \
@@ -120,6 +125,9 @@ struct InternalGCPointerPolicy {
     static void readBarrier(T v) { Type::readBarrier(v); }
     static void trace(JSTracer* trc, T* vp, const char* name) {
         TraceManuallyBarrieredEdge(trc, vp, name);
+    }
+    static bool isValid(T v) {
+        return gc::IsCellPointerValidOrNull(v);
     }
 };
 

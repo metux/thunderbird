@@ -272,27 +272,10 @@ var stateListener = {
 
       this.editor.enableUndo(false);
 
-      // Delete a <br> if we see one.
-      let deleted2ndBR = false;
-      let currentNode = mailBody.childNodes[start];
-      if (currentNode.nodeName == "BR") {
-        currentNode.remove();
-        currentNode = mailBody.childNodes[start];
-        if (currentNode && currentNode.nodeName == "BR") {
-          currentNode.remove();
-          deleted2ndBR = true;
-        }
-      }
-
       let pElement = this.editor.createElementWithDefaults("p");
       let brElement = this.editor.createElementWithDefaults("br");
       pElement.appendChild(brElement);
       this.editor.insertElementAtSelection(pElement, false);
-
-      if (deleted2ndBR) {
-        let brElement2 = this.editor.createElementWithDefaults("br");
-        this.editor.insertElementAtSelection(brElement2, false);
-      }
 
       // Position into the paragraph.
       selection.collapse(pElement, 0);
@@ -1020,7 +1003,7 @@ function handleMailtoArgs(mailtoUrl)
   if (/^mailto:/i.test(mailtoUrl))
   {
     // if it is a mailto url, turn the mailto url into a MsgComposeParams object....
-    var uri = Services.io.newURI(mailtoUrl, null, null);
+    var uri = Services.io.newURI(mailtoUrl);
 
     if (uri)
       return sMsgComposeService.getParamsForMailto(uri);
@@ -1079,7 +1062,7 @@ function onPasteOrDrop(e) {
   let doc = (new DOMParser()).parseFromString(html, "text/html");
   let tmpD = Services.dirsvc.get("TmpD", Components.interfaces.nsIFile);
   let pendingConversions = 0;
-  let toConvert = 0;
+  let needToPreventDefault = true;
   for (let img of doc.images) {
     if (!/^file:/i.test(img.src)) {
       // Doesn't start with file:. Nothing to do here.
@@ -1090,8 +1073,8 @@ function onPasteOrDrop(e) {
     let nsFile;
     try {
       nsFile = Services.io.getProtocolHandler("file")
-        .QueryInterface(Components.interfaces.nsIFileProtocolHandler)
-        .getFileFromURLSpec(img.src);
+                 .QueryInterface(Components.interfaces.nsIFileProtocolHandler)
+                 .getFileFromURLSpec(img.src);
     } catch (ex) {
       continue;
     }
@@ -1106,52 +1089,57 @@ function onPasteOrDrop(e) {
     }
 
     let contentType = Components.classes["@mozilla.org/mime;1"]
-      .getService(Components.interfaces.nsIMIMEService)
-      .getTypeFromFile(nsFile);
+                        .getService(Components.interfaces.nsIMIMEService)
+                        .getTypeFromFile(nsFile);
     if (!contentType.startsWith("image/")) {
       continue;
     }
 
-    let file = File.createFromNsIFile(nsFile);
-    if (file.lastModifiedDate.getTime() < (Date.now() - 60000)) {
-      // Not put in temp in the last minute. May be something other than
-      // a copy-paste. Let's not allow that.
-      continue;
+    // If we ever get here, we need to prevent the default paste or drop since
+    // the code below will do its own insertion.
+    if (needToPreventDefault) {
+      e.preventDefault();
+      needToPreventDefault = false;
     }
 
-    let doTheInsert = function() {
-      // Now run it through sanitation to make sure there wasn't any
-      // unwanted things in the content.
-      let ParserUtils = Components.classes["@mozilla.org/parserutils;1"]
-        .getService(Components.interfaces.nsIParserUtils);
-      let html2 = ParserUtils.sanitize(doc.documentElement.innerHTML,
-                                     ParserUtils.SanitizerAllowStyle);
-      getBrowser().contentDocument.execCommand("insertHTML", false, html2);
-    }
-
-    // Everything checks out. Convert file to data URL.
-    toConvert++;
-    let reader = new FileReader();
-    reader.addEventListener("load", function() {
-      let dataURL = reader.result;
-      pendingConversions--;
-      img.src = dataURL;
-      if (pendingConversions == 0) {
-        doTheInsert();
+    File.createFromNsIFile(nsFile).then(function(file) {
+      if (file.lastModified < (Date.now() - 60000)) {
+        // Not put in temp in the last minute. May be something other than
+        // a copy-paste. Let's not allow that.
+        return;
       }
-    });
-    reader.addEventListener("error", function() {
-      pendingConversions--;
-      if (pendingConversions == 0) {
-        doTheInsert();
-      }
-    });
 
-    pendingConversions++;
-    reader.readAsDataURL(file);
-  }
-  if (toConvert > 0) {
-    e.preventDefault();
+      let doTheInsert = function() {
+        // Now run it through sanitation to make sure there wasn't any
+        // unwanted things in the content.
+        let ParserUtils = Components.classes["@mozilla.org/parserutils;1"]
+                            .getService(Components.interfaces.nsIParserUtils);
+        let html2 = ParserUtils.sanitize(doc.documentElement.innerHTML,
+                                         ParserUtils.SanitizerAllowStyle);
+        getBrowser().contentDocument.execCommand("insertHTML", false, html2);
+      }
+
+      // Everything checks out. Convert file to data URL.
+      let reader = new FileReader();
+      reader.addEventListener("load", function() {
+        let dataURL = reader.result;
+        pendingConversions--;
+        img.src = dataURL;
+        if (pendingConversions == 0) {
+          doTheInsert();
+        }
+      });
+
+      reader.addEventListener("error", function() {
+        pendingConversions--;
+        if (pendingConversions == 0) {
+          doTheInsert();
+        }
+      });
+
+      pendingConversions++;
+      reader.readAsDataURL(file);
+    });
   }
 }
 
@@ -1896,7 +1884,7 @@ function Save()
 function SaveAsFile(saveAs)
 {
   var subject = GetMsgSubjectElement().value;
-  GetCurrentEditor().setDocumentTitle(subject);
+  GetCurrentEditorElement().contentDocument.title = subject;
 
   if (gMsgCompose.bodyConvertible() == nsIMsgCompConvertible.Plain)
     SaveDocument(saveAs, false, "text/plain");
@@ -2333,7 +2321,7 @@ function ComposeCanClose()
     let draftFolderName = MailUtils.getFolderForURI(draftFolderURI).prettyName;
     switch (Services.prompt.confirmEx(window,
               sComposeMsgsBundle.getString("saveDlogTitle"),
-              sComposeMsgsBundle.getFormattedString("saveDlogMessages",[draftFolderName]),
+              sComposeMsgsBundle.getFormattedString("saveDlogMessages2", [draftFolderName]),
               (Services.prompt.BUTTON_TITLE_SAVE * Services.prompt.BUTTON_POS_0) +
               (Services.prompt.BUTTON_TITLE_CANCEL * Services.prompt.BUTTON_POS_1) +
               (Services.prompt.BUTTON_TITLE_DONT_SAVE * Services.prompt.BUTTON_POS_2),
@@ -2371,7 +2359,7 @@ function RemoveDraft()
       {
         var msgs = Components.classes["@mozilla.org/array;1"]
                              .createInstance(Components.interfaces.nsIMutableArray);
-        msgs.appendElement(folder.GetMessageHeader(msgKey), false);
+        msgs.appendElement(folder.GetMessageHeader(msgKey));
         folder.deleteMessages(msgs, null, true, false, null, false);
       }
     }
@@ -2400,15 +2388,15 @@ function MsgComposeCloseWindow()
     window.close();
 }
 
-// attachedLocalFile must be a nsILocalFile
+// attachedLocalFile must be a nsIFile
 function SetLastAttachDirectory(attachedLocalFile)
 {
   try {
     var file = attachedLocalFile.QueryInterface(Components.interfaces.nsIFile);
-    var parent = file.parent.QueryInterface(Components.interfaces.nsILocalFile);
+    var parent = file.parent.QueryInterface(Components.interfaces.nsIFile);
 
     Services.prefs.setComplexValue(kComposeAttachDirPrefName,
-                                   Components.interfaces.nsILocalFile, parent);
+                                   Components.interfaces.nsIFile, parent);
   }
   catch (ex) {
     dump("error: SetLastAttachDirectory failed: " + ex + "\n");
@@ -2446,7 +2434,7 @@ function AttachFiles(attachments)
   var firstAttachedFile = null;
 
   while (attachments.hasMoreElements()) {
-    var currentFile = attachments.getNext().QueryInterface(Components.interfaces.nsILocalFile);
+    var currentFile = attachments.getNext().QueryInterface(Components.interfaces.nsIFile);
 
     if (!firstAttachedFile) {
       firstAttachedFile = currentFile;
@@ -2659,13 +2647,13 @@ function OpenSelectedAttachment()
       }
     } else {
       // Turn the URL into a nsIURI object then open it.
-      let uri = Services.io.newURI(attachmentUrl, null, null);
+      let uri = Services.io.newURI(attachmentUrl);
       if (uri) {
         let channel = Services.io.newChannelFromURI2(uri,
                                                      null,
                                                      Services.scriptSecurityManager.getSystemPrincipal(),
                                                      null,
-                                                     Components.interfaces.nsILoadInfo.SEC_NORMAL,
+                                                     Components.interfaces.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                                      Components.interfaces.nsIContentPolicy.TYPE_OTHER);
         if (channel) {
           let uriLoader = Components.classes["@mozilla.org/uriloader;1"].getService(Components.interfaces.nsIURILoader);
@@ -3341,6 +3329,10 @@ function InitEditor(editor)
   editor.returnInParagraphCreatesNewParagraph =
     Services.prefs.getBoolPref("mail.compose.default_to_paragraph") ||
     Services.prefs.getBoolPref("editor.CR_creates_new_p");
+  editor.document.execCommand("defaultparagraphseparator", false,
+    gMsgCompose.composeHTML &&
+    Services.prefs.getBoolPref("mail.compose.default_to_paragraph") ?
+                               "p" : "br");
 
   gMsgCompose.initEditor(editor, window.content);
   InlineSpellCheckerUI.init(editor);
@@ -3507,10 +3499,6 @@ function getPref(aPrefName, aIsComplex)
  * notificationbox below the composed message content.
  */
 var gComposeNotificationBar = {
-  get stringBundle() {
-    delete this.stringBundle;
-    return this.stringBundle = document.getElementById("bundle_composeMsgsTB");
-  },
 
   get notificationBar() {
     delete this.notificationBar;
@@ -3519,8 +3507,8 @@ var gComposeNotificationBar = {
 
   setBlockedContent: function(aBlockedURI) {
     let brandName = sBrandBundle.getString("brandShortName");
-    let buttonLabel = this.stringBundle.getString("blockedContentPrefLabel");
-    let buttonAccesskey = this.stringBundle.getString("blockedContentPrefAccesskey");
+    let buttonLabel = sComposeMsgsBundle.getString("blockedContentPrefLabel");
+    let buttonAccesskey = sComposeMsgsBundle.getString("blockedContentPrefAccesskey");
 
     let buttons = [{
       label: buttonLabel,
@@ -3539,8 +3527,8 @@ var gComposeNotificationBar = {
     }
     popup.value = urls.join(" ");
 
-    let msg = this.stringBundle.getFormattedString("blockedContentMessage",
-                                                   [brandName, brandName]);
+    let msg = sComposeMsgsBundle.getFormattedString("blockedContentMessage",
+                                                    [brandName, brandName]);
     msg = PluralForm.get(urls.length, msg);
 
     if (!this.isShowingBlockedContentNotification()) {
@@ -3570,8 +3558,6 @@ var gComposeNotificationBar = {
 function onBlockedContentOptionsShowing(aEvent) {
   let urls = aEvent.target.value ? aEvent.target.value.split(" ") : [];
 
-  let composeBundle = document.getElementById("bundle_composeMsgsTB");
-
   // Out with the old...
   let childNodes = aEvent.target.childNodes;
   for (let i = childNodes.length - 1; i >= 0; i--) {
@@ -3581,8 +3567,8 @@ function onBlockedContentOptionsShowing(aEvent) {
   // ... and in with the new.
   for (let url of urls) {
     let menuitem = document.createElement("menuitem");
-    let fString = composeBundle.getFormattedString("blockedAllowResource",
-                                                   [url]);
+    let fString = sComposeMsgsBundle.getFormattedString("blockedAllowResource",
+                                                        [url]);
     menuitem.setAttribute("label", fString);
     menuitem.setAttribute("crop", "center");
     menuitem.setAttribute("value", url);
@@ -3640,7 +3626,7 @@ function loadBlockedImage(aURL, aReturnDataURL = false) {
   }
 
   filename = decodeURIComponent(filename);
-  let uri = Services.io.newURI(aURL, null, null);
+  let uri = Services.io.newURI(aURL);
   let contentType;
   if (filename) {
     try {
@@ -3667,7 +3653,7 @@ function loadBlockedImage(aURL, aReturnDataURL = false) {
       null,
       Services.scriptSecurityManager.getSystemPrincipal(),
       null,
-      Components.interfaces.nsILoadInfo.SEC_NORMAL,
+      Components.interfaces.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
       Components.interfaces.nsIContentPolicy.TYPE_OTHER);
 
   let inputStream = channel.open();

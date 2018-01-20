@@ -4,12 +4,17 @@
 
 #include "sandbox/win/src/win_utils.h"
 
+#include <psapi.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include <map>
+#include <memory>
+#include <vector>
 
 #include "base/macros.h"
-#include "base/memory/scoped_ptr.h"
+#include "base/numerics/safe_math.h"
+#include "base/strings/string16.h"
 #include "base/strings/string_util.h"
 #include "base/win/pe_image.h"
 #include "sandbox/win/src/internal_types.h"
@@ -92,8 +97,7 @@ bool StartsWithDriveLetter(const base::string16& path) {
   if (path[1] != L':' || path[2] != L'\\')
     return false;
 
-  return (path[0] >= 'a' && path[0] <= 'z') ||
-         (path[0] >= 'A' && path[0] <= 'Z');
+  return base::IsAsciiAlpha(path[0]);
 }
 
 const wchar_t kNTDotPrefix[] = L"\\\\.\\";
@@ -303,7 +307,7 @@ bool ConvertToLongPath(base::string16* path) {
   }
 
   DWORD size = MAX_PATH;
-  scoped_ptr<wchar_t[]> long_path_buf(new wchar_t[size]);
+  std::unique_ptr<wchar_t[]> long_path_buf(new wchar_t[size]);
 
   DWORD return_value = ::GetLongPathName(temp_path.c_str(), long_path_buf.get(),
                                          size);
@@ -364,7 +368,7 @@ bool GetPathFromHandle(HANDLE handle, base::string16* path) {
   NTSTATUS status = NtQueryObject(handle, ObjectNameInformation, name, size,
                                   &size);
 
-  scoped_ptr<BYTE[]> name_ptr;
+  std::unique_ptr<BYTE[]> name_ptr;
   if (size) {
     name_ptr.reset(new BYTE[size]);
     name = reinterpret_cast<OBJECT_NAME_INFORMATION*>(name_ptr.get());
@@ -414,6 +418,48 @@ bool WriteProtectedChildMemory(HANDLE child_process, void* address,
   return ok;
 }
 
+DWORD GetLastErrorFromNtStatus(NTSTATUS status) {
+  RtlNtStatusToDosErrorFunction NtStatusToDosError = nullptr;
+  ResolveNTFunctionPtr("RtlNtStatusToDosError", &NtStatusToDosError);
+  return NtStatusToDosError(status);
+}
+
+// This function uses the undocumented PEB ImageBaseAddress field to extract
+// the base address of the new process.
+void* GetProcessBaseAddress(HANDLE process) {
+  NtQueryInformationProcessFunction query_information_process = NULL;
+  ResolveNTFunctionPtr("NtQueryInformationProcess", &query_information_process);
+  if (!query_information_process)
+    return nullptr;
+  PROCESS_BASIC_INFORMATION process_basic_info = {};
+  NTSTATUS status = query_information_process(
+      process, ProcessBasicInformation, &process_basic_info,
+      sizeof(process_basic_info), nullptr);
+  if (STATUS_SUCCESS != status)
+    return nullptr;
+
+  PEB peb = {};
+  SIZE_T bytes_read = 0;
+  if (!::ReadProcessMemory(process, process_basic_info.PebBaseAddress, &peb,
+                           sizeof(peb), &bytes_read) ||
+      (sizeof(peb) != bytes_read)) {
+    return nullptr;
+  }
+
+  void* base_address = peb.ImageBaseAddress;
+  char magic[2] = {};
+  if (!::ReadProcessMemory(process, base_address, magic, sizeof(magic),
+                           &bytes_read) ||
+      (sizeof(magic) != bytes_read)) {
+    return nullptr;
+  }
+
+  if (magic[0] != 'M' || magic[1] != 'Z')
+    return nullptr;
+
+  return base_address;
+}
+
 };  // namespace sandbox
 
 void ResolveNTFunctionPtr(const char* name, void* ptr) {
@@ -427,7 +473,6 @@ void ResolveNTFunctionPtr(const char* name, void* ptr) {
     // Race-safe way to set static ntdll.
     ::InterlockedCompareExchangePointer(
         reinterpret_cast<PVOID volatile*>(&ntdll), ntdll_local, NULL);
-
   }
 
   CHECK_NT(ntdll);

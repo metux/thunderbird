@@ -4,15 +4,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "MediaSourceDemuxer.h"
+
+#include "MediaSourceUtils.h"
+#include "OpusDecoder.h"
+#include "SourceBufferList.h"
+#include "VorbisDecoder.h"
+#include "nsPrintfCString.h"
+
 #include <algorithm>
 #include <limits>
 #include <stdint.h>
-
-#include "MediaSourceDemuxer.h"
-#include "MediaSourceUtils.h"
-#include "SourceBufferList.h"
-#include "nsPrintfCString.h"
-#include "OpusDecoder.h"
 
 namespace mozilla {
 
@@ -20,50 +22,44 @@ typedef TrackInfo::TrackType TrackType;
 using media::TimeUnit;
 using media::TimeIntervals;
 
-MediaSourceDemuxer::MediaSourceDemuxer()
+MediaSourceDemuxer::MediaSourceDemuxer(AbstractThread* aAbstractMainThread)
   : mTaskQueue(new AutoTaskQueue(GetMediaThreadPool(MediaThreadType::PLAYBACK),
-                                 /* aSupportsTailDispatch = */ false))
+                                 "MediaSourceDemuxer::mTaskQueue"))
   , mMonitor("MediaSourceDemuxer")
 {
   MOZ_ASSERT(NS_IsMainThread());
 }
 
-// Due to inaccuracies in determining buffer end
-// frames (Bug 1065207). This value is based on videos seen in the wild.
-const TimeUnit MediaSourceDemuxer::EOS_FUZZ = media::TimeUnit::FromMicroseconds(500000);
+constexpr TimeUnit MediaSourceDemuxer::EOS_FUZZ;
 
 RefPtr<MediaSourceDemuxer::InitPromise>
 MediaSourceDemuxer::Init()
 {
-  return InvokeAsync(GetTaskQueue(), this, __func__,
-                     &MediaSourceDemuxer::AttemptInit);
-}
+  RefPtr<MediaSourceDemuxer> self = this;
+  return InvokeAsync(GetTaskQueue(), __func__,
+    [self](){
+      if (self->ScanSourceBuffersForContent()) {
+        return InitPromise::CreateAndResolve(NS_OK, __func__);
+      }
 
-RefPtr<MediaSourceDemuxer::InitPromise>
-MediaSourceDemuxer::AttemptInit()
-{
-  MOZ_ASSERT(OnTaskQueue());
+      RefPtr<InitPromise> p = self->mInitPromise.Ensure(__func__);
 
-  if (ScanSourceBuffersForContent()) {
-    return InitPromise::CreateAndResolve(NS_OK, __func__);
-  }
-
-  RefPtr<InitPromise> p = mInitPromise.Ensure(__func__);
-
-  return p;
+      return p;
+    });
 }
 
 void
-MediaSourceDemuxer::AddSizeOfResources(MediaSourceDecoder::ResourceSizes* aSizes)
+MediaSourceDemuxer::AddSizeOfResources(
+  MediaSourceDecoder::ResourceSizes* aSizes)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
   // NB: The track buffers must only be accessed on the TaskQueue.
   RefPtr<MediaSourceDemuxer> self = this;
   RefPtr<MediaSourceDecoder::ResourceSizes> sizes = aSizes;
-  nsCOMPtr<nsIRunnable> task =
-    NS_NewRunnableFunction([self, sizes] () {
-      for (TrackBuffersManager* manager : self->mSourceBuffers) {
+  nsCOMPtr<nsIRunnable> task = NS_NewRunnableFunction(
+    "MediaSourceDemuxer::AddSizeOfResources", [self, sizes]() {
+      for (const RefPtr<TrackBuffersManager>& manager : self->mSourceBuffers) {
         manager->AddSizeOfResources(sizes);
       }
     });
@@ -71,11 +67,11 @@ MediaSourceDemuxer::AddSizeOfResources(MediaSourceDecoder::ResourceSizes* aSizes
   GetTaskQueue()->Dispatch(task.forget());
 }
 
-void MediaSourceDemuxer::NotifyDataArrived()
+void MediaSourceDemuxer::NotifyInitDataArrived()
 {
   RefPtr<MediaSourceDemuxer> self = this;
-  nsCOMPtr<nsIRunnable> task =
-    NS_NewRunnableFunction([self] () {
+  nsCOMPtr<nsIRunnable> task = NS_NewRunnableFunction(
+    "MediaSourceDemuxer::NotifyInitDataArrived", [self]() {
       if (self->mInitPromise.IsEmpty()) {
         return;
       }
@@ -122,25 +118,19 @@ MediaSourceDemuxer::ScanSourceBuffersForContent()
   return !haveEmptySourceBuffer;
 }
 
-bool
-MediaSourceDemuxer::HasTrackType(TrackType aType) const
+uint32_t
+MediaSourceDemuxer::GetNumberTracks(TrackType aType) const
 {
   MonitorAutoLock mon(mMonitor);
 
   switch (aType) {
     case TrackType::kAudioTrack:
-      return mInfo.HasAudio();
+      return mInfo.HasAudio() ? 1u : 0;
     case TrackType::kVideoTrack:
-      return mInfo.HasVideo();
+      return mInfo.HasVideo() ? 1u : 0;
     default:
-      return false;
+      return 0;
   }
-}
-
-uint32_t
-MediaSourceDemuxer::GetNumberTracks(TrackType aType) const
-{
-  return HasTrackType(aType) ? 1u : 0;
 }
 
 already_AddRefed<MediaTrackDemuxer>
@@ -172,47 +162,61 @@ MediaSourceDemuxer::GetCrypto()
 }
 
 void
-MediaSourceDemuxer::AttachSourceBuffer(TrackBuffersManager* aSourceBuffer)
+MediaSourceDemuxer::AttachSourceBuffer(
+  RefPtr<TrackBuffersManager>& aSourceBuffer)
 {
-  nsCOMPtr<nsIRunnable> task =
-    NewRunnableMethod<TrackBuffersManager*>(
-      this, &MediaSourceDemuxer::DoAttachSourceBuffer,
-      aSourceBuffer);
+  nsCOMPtr<nsIRunnable> task = NewRunnableMethod<RefPtr<TrackBuffersManager>&&>(
+    "MediaSourceDemuxer::DoAttachSourceBuffer",
+    this,
+    &MediaSourceDemuxer::DoAttachSourceBuffer,
+    aSourceBuffer);
   GetTaskQueue()->Dispatch(task.forget());
 }
 
 void
-MediaSourceDemuxer::DoAttachSourceBuffer(mozilla::TrackBuffersManager* aSourceBuffer)
+MediaSourceDemuxer::DoAttachSourceBuffer(
+  RefPtr<mozilla::TrackBuffersManager>&& aSourceBuffer)
 {
   MOZ_ASSERT(OnTaskQueue());
-  mSourceBuffers.AppendElement(aSourceBuffer);
+  mSourceBuffers.AppendElement(Move(aSourceBuffer));
   ScanSourceBuffersForContent();
 }
 
 void
-MediaSourceDemuxer::DetachSourceBuffer(TrackBuffersManager* aSourceBuffer)
+MediaSourceDemuxer::DetachSourceBuffer(
+  RefPtr<TrackBuffersManager>& aSourceBuffer)
 {
-  nsCOMPtr<nsIRunnable> task =
-    NewRunnableMethod<TrackBuffersManager*>(
-      this, &MediaSourceDemuxer::DoDetachSourceBuffer,
-      aSourceBuffer);
+  nsCOMPtr<nsIRunnable> task = NewRunnableMethod<RefPtr<TrackBuffersManager>&&>(
+    "MediaSourceDemuxer::DoDetachSourceBuffer",
+    this,
+    &MediaSourceDemuxer::DoDetachSourceBuffer,
+    aSourceBuffer);
   GetTaskQueue()->Dispatch(task.forget());
 }
 
 void
-MediaSourceDemuxer::DoDetachSourceBuffer(TrackBuffersManager* aSourceBuffer)
+MediaSourceDemuxer::DoDetachSourceBuffer(
+  RefPtr<TrackBuffersManager>&& aSourceBuffer)
 {
   MOZ_ASSERT(OnTaskQueue());
-  for (uint32_t i = 0; i < mSourceBuffers.Length(); i++) {
-    if (mSourceBuffers[i].get() == aSourceBuffer) {
-      mSourceBuffers.RemoveElementAt(i);
+  mSourceBuffers.RemoveElementsBy(
+    [&aSourceBuffer](const RefPtr<TrackBuffersManager> aLinkedSourceBuffer) {
+      return aLinkedSourceBuffer == aSourceBuffer;
+    });
+  {
+    MonitorAutoLock mon(mMonitor);
+    if (aSourceBuffer == mAudioTrack) {
+      mAudioTrack = nullptr;
+    }
+    if (aSourceBuffer == mVideoTrack) {
+      mVideoTrack = nullptr;
     }
   }
-  if (aSourceBuffer == mAudioTrack) {
-    mAudioTrack = nullptr;
-  }
-  if (aSourceBuffer == mVideoTrack) {
-    mVideoTrack = nullptr;
+
+  for (auto& demuxer : mDemuxers) {
+    if (demuxer->HasManager(aSourceBuffer)) {
+      demuxer->DetachManager();
+    }
   }
   ScanSourceBuffersForContent();
 }
@@ -231,7 +235,7 @@ MediaSourceDemuxer::GetTrackInfo(TrackType aTrack)
   }
 }
 
-TrackBuffersManager*
+RefPtr<TrackBuffersManager>
 MediaSourceDemuxer::GetManager(TrackType aTrack)
 {
   MonitorAutoLock mon(mMonitor);
@@ -251,54 +255,69 @@ MediaSourceDemuxer::~MediaSourceDemuxer()
 }
 
 void
-MediaSourceDemuxer::GetMozDebugReaderData(nsAString& aString)
+MediaSourceDemuxer::GetMozDebugReaderData(nsACString& aString)
 {
   MonitorAutoLock mon(mMonitor);
   nsAutoCString result;
-  result += nsPrintfCString("Dumping data for demuxer %p:\n", this);
+  result += nsPrintfCString("Dumping Data for Demuxer: %p\n", this);
   if (mAudioTrack) {
-    result += nsPrintfCString("\tDumping Audio Track Buffer(%s): - mLastAudioTime: %f\n"
-                              "\t\tNumSamples:%u Size:%u Evictable:%u NextGetSampleIndex:%u NextInsertionIndex:%d\n",
-                              mAudioTrack->mAudioTracks.mInfo->mMimeType.get(),
-                              mAudioTrack->mAudioTracks.mNextSampleTime.ToSeconds(),
-                              mAudioTrack->mAudioTracks.mBuffers[0].Length(),
-                              mAudioTrack->mAudioTracks.mSizeBuffer,
-                              mAudioTrack->Evictable(TrackInfo::kAudioTrack),
-                              mAudioTrack->mAudioTracks.mNextGetSampleIndex.valueOr(-1),
-                              mAudioTrack->mAudioTracks.mNextInsertionIndex.valueOr(-1));
+    result += nsPrintfCString(
+      "\tDumping Audio Track Buffer(%s): mLastAudioTime=%f\n"
+      "\t\tAudio Track Buffer Details: NumSamples=%zu"
+      " Size=%u Evictable=%u "
+      "NextGetSampleIndex=%u NextInsertionIndex=%d\n",
+      mAudioTrack->mType.Type().AsString().get(),
+      mAudioTrack->mAudioTracks.mNextSampleTime.ToSeconds(),
+      mAudioTrack->mAudioTracks.mBuffers[0].Length(),
+      mAudioTrack->mAudioTracks.mSizeBuffer,
+      mAudioTrack->Evictable(TrackInfo::kAudioTrack),
+      mAudioTrack->mAudioTracks.mNextGetSampleIndex.valueOr(-1),
+      mAudioTrack->mAudioTracks.mNextInsertionIndex.valueOr(-1));
 
-    result += nsPrintfCString("\t\tBuffered: ranges=%s\n",
-                              DumpTimeRanges(mAudioTrack->SafeBuffered(TrackInfo::kAudioTrack)).get());
+    result += nsPrintfCString(
+      "\t\tAudio Track Buffered: ranges=%s\n",
+      DumpTimeRanges(mAudioTrack->SafeBuffered(TrackInfo::kAudioTrack)).get());
   }
   if (mVideoTrack) {
-    result += nsPrintfCString("\tDumping Video Track Buffer(%s) - mLastVideoTime: %f\n"
-                              "\t\tNumSamples:%u Size:%u Evictable:%u NextGetSampleIndex:%u NextInsertionIndex:%d\n",
-                              mVideoTrack->mVideoTracks.mInfo->mMimeType.get(),
-                              mVideoTrack->mVideoTracks.mNextSampleTime.ToSeconds(),
-                              mVideoTrack->mVideoTracks.mBuffers[0].Length(),
-                              mVideoTrack->mVideoTracks.mSizeBuffer,
-                              mVideoTrack->Evictable(TrackInfo::kVideoTrack),
-                              mVideoTrack->mVideoTracks.mNextGetSampleIndex.valueOr(-1),
-                              mVideoTrack->mVideoTracks.mNextInsertionIndex.valueOr(-1));
+    result += nsPrintfCString(
+      "\tDumping Video Track Buffer(%s): mLastVideoTime=%f\n"
+      "\t\tVideo Track Buffer Details: NumSamples=%zu"
+      " Size=%u Evictable=%u "
+      "NextGetSampleIndex=%u NextInsertionIndex=%d\n",
+      mVideoTrack->mType.Type().AsString().get(),
+      mVideoTrack->mVideoTracks.mNextSampleTime.ToSeconds(),
+      mVideoTrack->mVideoTracks.mBuffers[0].Length(),
+      mVideoTrack->mVideoTracks.mSizeBuffer,
+      mVideoTrack->Evictable(TrackInfo::kVideoTrack),
+      mVideoTrack->mVideoTracks.mNextGetSampleIndex.valueOr(-1),
+      mVideoTrack->mVideoTracks.mNextInsertionIndex.valueOr(-1));
 
-    result += nsPrintfCString("\t\tBuffered: ranges=%s\n",
-                              DumpTimeRanges(mVideoTrack->SafeBuffered(TrackInfo::kVideoTrack)).get());
+    result += nsPrintfCString(
+      "\t\tVideo Track Buffered: ranges=%s\n",
+      DumpTimeRanges(mVideoTrack->SafeBuffered(TrackInfo::kVideoTrack)).get());
   }
-  aString += NS_ConvertUTF8toUTF16(result);
+  aString += result;
 }
 
 MediaSourceTrackDemuxer::MediaSourceTrackDemuxer(MediaSourceDemuxer* aParent,
                                                  TrackInfo::TrackType aType,
                                                  TrackBuffersManager* aManager)
   : mParent(aParent)
-  , mManager(aManager)
   , mType(aType)
   , mMonitor("MediaSourceTrackDemuxer")
+  , mManager(aManager)
   , mReset(true)
-  , mPreRoll(
-      TimeUnit::FromMicroseconds(
-        OpusDataDecoder::IsOpus(mParent->GetTrackInfo(mType)->mMimeType)
-          ? 80000 : 0))
+  , mPreRoll(TimeUnit::FromMicroseconds(
+      OpusDataDecoder::IsOpus(mParent->GetTrackInfo(mType)->mMimeType) ||
+      VorbisDataDecoder::IsVorbis(mParent->GetTrackInfo(mType)->mMimeType)
+      ? 80000
+      : mParent->GetTrackInfo(mType)->mMimeType.EqualsLiteral("audio/mp4a-latm")
+        // AAC encoder delay is by default 2112 audio frames.
+        // See https://developer.apple.com/library/content/documentation/QuickTime/QTFF/QTFFAppenG/QTFFAppenG.html
+        // So we always seek 2112 frames
+        ? (2112 * 1000000ULL
+           / mParent->GetTrackInfo(mType)->GetAsAudioInfo()->mRate)
+        : 0))
 {
 }
 
@@ -309,11 +328,12 @@ MediaSourceTrackDemuxer::GetInfo() const
 }
 
 RefPtr<MediaSourceTrackDemuxer::SeekPromise>
-MediaSourceTrackDemuxer::Seek(media::TimeUnit aTime)
+MediaSourceTrackDemuxer::Seek(const TimeUnit& aTime)
 {
   MOZ_ASSERT(mParent, "Called after BreackCycle()");
-  return InvokeAsync(mParent->GetTaskQueue(), this, __func__,
-                     &MediaSourceTrackDemuxer::DoSeek, aTime);
+  return InvokeAsync(
+           mParent->GetTaskQueue(), this, __func__,
+           &MediaSourceTrackDemuxer::DoSeek, aTime);
 }
 
 RefPtr<MediaSourceTrackDemuxer::SamplesPromise>
@@ -330,22 +350,25 @@ MediaSourceTrackDemuxer::Reset()
   MOZ_ASSERT(mParent, "Called after BreackCycle()");
   RefPtr<MediaSourceTrackDemuxer> self = this;
   nsCOMPtr<nsIRunnable> task =
-    NS_NewRunnableFunction([self] () {
+    NS_NewRunnableFunction("MediaSourceTrackDemuxer::Reset", [self]() {
       self->mNextSample.reset();
       self->mReset = true;
-      self->mManager->Seek(self->mType, TimeUnit(), TimeUnit());
+      if (!self->mManager) {
+        return;
+      }
+      MOZ_ASSERT(self->OnTaskQueue());
+      self->mManager->Seek(self->mType, TimeUnit::Zero(), TimeUnit::Zero());
       {
         MonitorAutoLock mon(self->mMonitor);
-        self->mNextRandomAccessPoint =
-          self->mManager->GetNextRandomAccessPoint(self->mType,
-                                                   MediaSourceDemuxer::EOS_FUZZ);
+        self->mNextRandomAccessPoint = self->mManager->GetNextRandomAccessPoint(
+          self->mType, MediaSourceDemuxer::EOS_FUZZ);
       }
     });
   mParent->GetTaskQueue()->Dispatch(task.forget());
 }
 
 nsresult
-MediaSourceTrackDemuxer::GetNextRandomAccessPoint(media::TimeUnit* aTime)
+MediaSourceTrackDemuxer::GetNextRandomAccessPoint(TimeUnit* aTime)
 {
   MonitorAutoLock mon(mMonitor);
   *aTime = mNextRandomAccessPoint;
@@ -353,16 +376,22 @@ MediaSourceTrackDemuxer::GetNextRandomAccessPoint(media::TimeUnit* aTime)
 }
 
 RefPtr<MediaSourceTrackDemuxer::SkipAccessPointPromise>
-MediaSourceTrackDemuxer::SkipToNextRandomAccessPoint(media::TimeUnit aTimeThreshold)
+MediaSourceTrackDemuxer::SkipToNextRandomAccessPoint(
+  const TimeUnit& aTimeThreshold)
 {
-  return InvokeAsync(mParent->GetTaskQueue(), this, __func__,
-                     &MediaSourceTrackDemuxer::DoSkipToNextRandomAccessPoint,
-                     aTimeThreshold);
+  return InvokeAsync(
+           mParent->GetTaskQueue(), this, __func__,
+           &MediaSourceTrackDemuxer::DoSkipToNextRandomAccessPoint,
+           aTimeThreshold);
 }
 
 media::TimeIntervals
 MediaSourceTrackDemuxer::GetBuffered()
 {
+  MonitorAutoLock mon(mMonitor);
+  if (!mManager) {
+    return media::TimeIntervals();
+  }
   return mManager->Buffered();
 }
 
@@ -371,28 +400,34 @@ MediaSourceTrackDemuxer::BreakCycles()
 {
   RefPtr<MediaSourceTrackDemuxer> self = this;
   nsCOMPtr<nsIRunnable> task =
-    NS_NewRunnableFunction([self]() {
+    NS_NewRunnableFunction("MediaSourceTrackDemuxer::BreakCycles", [self]() {
+      self->DetachManager();
       self->mParent = nullptr;
-      self->mManager = nullptr;
-    } );
+    });
   mParent->GetTaskQueue()->Dispatch(task.forget());
 }
 
 RefPtr<MediaSourceTrackDemuxer::SeekPromise>
-MediaSourceTrackDemuxer::DoSeek(media::TimeUnit aTime)
+MediaSourceTrackDemuxer::DoSeek(const TimeUnit& aTime)
 {
+  if (!mManager) {
+    return SeekPromise::CreateAndReject(
+      MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                  RESULT_DETAIL("manager is detached.")), __func__);
+  }
+
+  MOZ_ASSERT(OnTaskQueue());
   TimeIntervals buffered = mManager->Buffered(mType);
   // Fuzz factor represents a +/- threshold. So when seeking it allows the gap
   // to be twice as big as the fuzz value. We only want to allow EOS_FUZZ gap.
   buffered.SetFuzz(MediaSourceDemuxer::EOS_FUZZ / 2);
-  TimeUnit seekTime = std::max(aTime - mPreRoll, TimeUnit::FromMicroseconds(0));
+  TimeUnit seekTime = std::max(aTime - mPreRoll, TimeUnit::Zero());
 
   if (mManager->IsEnded() && seekTime >= buffered.GetEnd()) {
     // We're attempting to seek past the end time. Cap seekTime so that we seek
     // to the last sample instead.
     seekTime =
-      std::max(mManager->HighestStartTime(mType) - mPreRoll,
-               TimeUnit::FromMicroseconds(0));
+      std::max(mManager->HighestStartTime(mType) - mPreRoll, TimeUnit::Zero());
   }
   if (!buffered.ContainsWithStrictEnd(seekTime)) {
     if (!buffered.ContainsWithStrictEnd(aTime)) {
@@ -413,7 +448,7 @@ MediaSourceTrackDemuxer::DoSeek(media::TimeUnit aTime)
   MediaResult result = NS_OK;
   RefPtr<MediaRawData> sample =
     mManager->GetSample(mType,
-                        media::TimeUnit(),
+                        TimeUnit::Zero(),
                         result);
   MOZ_ASSERT(NS_SUCCEEDED(result) && sample);
   mNextSample = Some(sample);
@@ -429,6 +464,13 @@ MediaSourceTrackDemuxer::DoSeek(media::TimeUnit aTime)
 RefPtr<MediaSourceTrackDemuxer::SamplesPromise>
 MediaSourceTrackDemuxer::DoGetSamples(int32_t aNumSamples)
 {
+  if (!mManager) {
+    return SamplesPromise::CreateAndReject(
+      MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                  RESULT_DETAIL("manager is detached.")), __func__);
+  }
+
+  MOZ_ASSERT(OnTaskQueue());
   if (mReset) {
     // If a seek (or reset) was recently performed, we ensure that the data
     // we are about to retrieve is still available.
@@ -439,9 +481,9 @@ MediaSourceTrackDemuxer::DoGetSamples(int32_t aNumSamples)
       return SamplesPromise::CreateAndReject(NS_ERROR_DOM_MEDIA_END_OF_STREAM,
                                              __func__);
     }
-    if (!buffered.ContainsWithStrictEnd(TimeUnit::FromMicroseconds(0))) {
-      return SamplesPromise::CreateAndReject(NS_ERROR_DOM_MEDIA_WAITING_FOR_DATA,
-                                             __func__);
+    if (!buffered.ContainsWithStrictEnd(TimeUnit::Zero())) {
+      return SamplesPromise::CreateAndReject(
+        NS_ERROR_DOM_MEDIA_WAITING_FOR_DATA, __func__);
     }
     mReset = false;
   }
@@ -465,7 +507,7 @@ MediaSourceTrackDemuxer::DoGetSamples(int32_t aNumSamples)
   }
   RefPtr<SamplesHolder> samples = new SamplesHolder;
   samples->mSamples.AppendElement(sample);
-  if (mNextRandomAccessPoint.ToMicroseconds() <= sample->mTime) {
+  if (mNextRandomAccessPoint <= sample->mTime) {
     MonitorAutoLock mon(mMonitor);
     mNextRandomAccessPoint =
       mManager->GetNextRandomAccessPoint(mType, MediaSourceDemuxer::EOS_FUZZ);
@@ -474,8 +516,16 @@ MediaSourceTrackDemuxer::DoGetSamples(int32_t aNumSamples)
 }
 
 RefPtr<MediaSourceTrackDemuxer::SkipAccessPointPromise>
-MediaSourceTrackDemuxer::DoSkipToNextRandomAccessPoint(media::TimeUnit aTimeThreadshold)
+MediaSourceTrackDemuxer::DoSkipToNextRandomAccessPoint(
+  const TimeUnit& aTimeThreadshold)
 {
+  if (!mManager) {
+    return SkipAccessPointPromise::CreateAndReject(
+      SkipFailureHolder(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                        RESULT_DETAIL("manager is detached.")), 0), __func__);
+  }
+
+  MOZ_ASSERT(OnTaskQueue());
   uint32_t parsed = 0;
   // Ensure that the data we are about to skip to is still available.
   TimeIntervals buffered = mManager->Buffered(mType);
@@ -494,6 +544,21 @@ MediaSourceTrackDemuxer::DoSkipToNextRandomAccessPoint(media::TimeUnit aTimeThre
     mManager->IsEnded() ? NS_ERROR_DOM_MEDIA_END_OF_STREAM :
                           NS_ERROR_DOM_MEDIA_WAITING_FOR_DATA, parsed);
   return SkipAccessPointPromise::CreateAndReject(holder, __func__);
+}
+
+bool
+MediaSourceTrackDemuxer::HasManager(TrackBuffersManager* aManager) const
+{
+  MOZ_ASSERT(OnTaskQueue());
+  return mManager == aManager;
+}
+
+void
+MediaSourceTrackDemuxer::DetachManager()
+{
+  MOZ_ASSERT(OnTaskQueue());
+  MonitorAutoLock mon(mMonitor);
+  mManager = nullptr;
 }
 
 } // namespace mozilla

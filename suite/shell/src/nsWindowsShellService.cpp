@@ -3,33 +3,39 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsWindowsShellService.h"
+
 #include "imgIContainer.h"
 #include "imgIRequest.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/RefPtr.h"
-#include "nsIDOMHTMLImageElement.h"
+#include "nsIContent.h"
+#include "nsIDOMElement.h"
 #include "nsIImageLoadingContent.h"
+#include "nsIOutputStream.h"
 #include "nsIPrefService.h"
 #include "nsIPrefLocalizedString.h"
-#include "nsWindowsShellService.h"
-#include "nsIProcess.h"
-#include "windows.h"
-#include "nsIFile.h"
-#include "nsNetUtil.h"
-#include "nsNativeCharsetUtils.h"
-#include "nsUnicharUtils.h"
-#include "nsIStringBundle.h"
 #include "nsIServiceManager.h"
+#include "nsIStringBundle.h"
+#include "nsNetUtil.h"
 #include "nsServiceManagerUtils.h"
+#include "nsShellService.h"
+#include "nsIProcess.h"
+#include "nsICategoryManager.h"
+#include "nsDirectoryServiceUtils.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsDirectoryServiceDefs.h"
-#include "nsDirectoryServiceUtils.h"
 #include "nsIWindowsRegKey.h"
+#include "nsUnicharUtils.h"
 #include "nsIWinTaskbar.h"
 #include "nsISupportsPrimitives.h"
+#include "nsIURLFormatter.h"
+#include "nsThreadUtils.h"
 #include "nsXULAppAPI.h"
-#include <mbstring.h>
-#include "mozilla/Services.h"
+#include "mozilla/WindowsVersion.h"
+
+#include "windows.h"
+#include "shellapi.h"
 
 #ifdef _WIN32_WINNT
 #undef _WIN32_WINNT
@@ -735,30 +741,27 @@ NS_IMETHODIMP
 nsWindowsShellService::SetDesktopBackground(nsIDOMElement* aElement,
                                             int32_t aPosition)
 {
-  nsresult rv;
-
-  nsCOMPtr<imgIContainer> container;
-
-  nsCOMPtr<nsIDOMHTMLImageElement> imgElement(do_QueryInterface(aElement));
-  if (!imgElement) {
+  nsCOMPtr<nsIContent> content(do_QueryInterface(aElement));
+  if (!content || !content->IsHTMLElement(nsGkAtoms::img)) {
     // XXX write background loading stuff!
     return NS_ERROR_NOT_AVAILABLE;
   }
-  else {
-    nsCOMPtr<nsIImageLoadingContent> imageContent =
-      do_QueryInterface(aElement, &rv);
-    if (!imageContent)
-      return rv;
 
-    // get the image container
-    nsCOMPtr<imgIRequest> request;
-    rv = imageContent->GetRequest(nsIImageLoadingContent::CURRENT_REQUEST,
-                                  getter_AddRefs(request));
-    if (!request)
-      return rv;
-    rv = request->GetImage(getter_AddRefs(container));
-  }
+  nsresult rv;
+  nsCOMPtr<nsIImageLoadingContent> imageContent =
+    do_QueryInterface(aElement, &rv);
+  if (!imageContent)
+    return rv;
 
+  // get the image container
+  nsCOMPtr<imgIRequest> request;
+  rv = imageContent->GetRequest(nsIImageLoadingContent::CURRENT_REQUEST,
+                                getter_AddRefs(request));
+  if (!request)
+    return rv;
+
+  nsCOMPtr<imgIContainer> container;
+  rv = request->GetImage(getter_AddRefs(container));
   if (!container)
     return NS_ERROR_FAILURE;
 
@@ -775,8 +778,7 @@ nsWindowsShellService::SetDesktopBackground(nsIDOMElement* aElement,
   // e.g. "Desktop Background.bmp"
   nsString fileLeafName;
   rv = shellBundle->GetStringFromName
-                      (u"desktopBackgroundLeafNameWin",
-                       getter_Copies(fileLeafName));
+                      ("desktopBackgroundLeafNameWin", fileLeafName);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // get the profile root directory

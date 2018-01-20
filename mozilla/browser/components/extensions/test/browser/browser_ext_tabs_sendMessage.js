@@ -2,7 +2,7 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
-add_task(function* tabsSendMessageReply() {
+add_task(async function tabsSendMessageReply() {
   let extension = ExtensionTestUtils.loadExtension({
     manifest: {
       "permissions": ["tabs"],
@@ -82,7 +82,7 @@ add_task(function* tabsSendMessageReply() {
           } else if (msg == "respond-promise") {
             return Promise.resolve(msg);
           } else if (msg == "respond-never") {
-            return;
+            return undefined;
           } else if (msg == "respond-error") {
             return Promise.reject(new Error(msg));
           } else if (msg == "throw-error") {
@@ -104,15 +104,15 @@ add_task(function* tabsSendMessageReply() {
     },
   });
 
-  yield extension.startup();
+  await extension.startup();
 
-  yield extension.awaitFinish("sendMessage");
+  await extension.awaitFinish("sendMessage");
 
-  yield extension.unload();
+  await extension.unload();
 });
 
 
-add_task(function* tabsSendHidden() {
+add_task(async function tabsSendHidden() {
   let extension = ExtensionTestUtils.loadExtension({
     manifest: {
       "permissions": ["tabs"],
@@ -187,15 +187,15 @@ add_task(function* tabsSendHidden() {
     },
   });
 
-  yield extension.startup();
+  await extension.startup();
 
-  yield extension.awaitFinish("contentscript-bfcache-window");
+  await extension.awaitFinish("contentscript-bfcache-window");
 
-  yield extension.unload();
+  await extension.unload();
 });
 
 
-add_task(function* tabsSendMessageNoExceptionOnNonExistentTab() {
+add_task(async function tabsSendMessageNoExceptionOnNonExistentTab() {
   let extension = ExtensionTestUtils.loadExtension({
     manifest: {
       "permissions": ["tabs"],
@@ -218,10 +218,10 @@ add_task(function* tabsSendMessageNoExceptionOnNonExistentTab() {
     },
   });
 
-  yield Promise.all([
+  await Promise.all([
     extension.startup(),
     extension.awaitFinish("tabs.sendMessage"),
   ]);
 
-  yield extension.unload();
+  await extension.unload();
 });

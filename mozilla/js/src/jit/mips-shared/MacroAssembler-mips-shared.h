@@ -65,6 +65,7 @@ class MacroAssemblerMIPSShared : public Assembler
     void ma_li(Register dest, ImmGCPtr ptr);
 
     void ma_li(Register dest, Imm32 imm);
+    void ma_liPatchable(Register dest, Imm32 imm);
 
     // Shift operations
     void ma_sll(Register rd, Register rt, Imm32 shift);
@@ -83,6 +84,14 @@ class MacroAssemblerMIPSShared : public Assembler
     void ma_negu(Register rd, Register rs);
 
     void ma_not(Register rd, Register rs);
+
+    // Bit extract/insert
+    void ma_ext(Register rt, Register rs, uint16_t pos, uint16_t size);
+    void ma_ins(Register rt, Register rs, uint16_t pos, uint16_t size);
+
+    // Sign extend
+    void ma_seb(Register rd, Register rt);
+    void ma_seh(Register rd, Register rt);
 
     // and
     void ma_and(Register rd, Register rs);
@@ -104,7 +113,7 @@ class MacroAssemblerMIPSShared : public Assembler
     // load
     void ma_load(Register dest, const BaseIndex& src, LoadStoreSize size = SizeWord,
                  LoadStoreExtension extension = SignExtend);
-    void ma_load_unaligned(Register dest, const BaseIndex& src, Register temp,
+    void ma_load_unaligned(const wasm::MemoryAccessDesc& access, Register dest, const BaseIndex& src, Register temp,
                            LoadStoreSize size, LoadStoreExtension extension);
 
     // store
@@ -112,7 +121,7 @@ class MacroAssemblerMIPSShared : public Assembler
                   LoadStoreExtension extension = SignExtend);
     void ma_store(Imm32 imm, const BaseIndex& dest, LoadStoreSize size = SizeWord,
                   LoadStoreExtension extension = SignExtend);
-    void ma_store_unaligned(Register data, const BaseIndex& dest, Register temp,
+    void ma_store_unaligned(const wasm::MemoryAccessDesc& access, Register data, const BaseIndex& dest, Register temp,
                             LoadStoreSize size, LoadStoreExtension extension);
 
     // arithmetic based ops
@@ -163,7 +172,6 @@ class MacroAssemblerMIPSShared : public Assembler
 
     // fp instructions
     void ma_lis(FloatRegister dest, float value);
-    void ma_lis(FloatRegister dest, wasm::RawF32 value);
     void ma_liNegZero(FloatRegister dest);
 
     void ma_sd(FloatRegister fd, BaseIndex address);
@@ -183,6 +191,12 @@ class MacroAssemblerMIPSShared : public Assembler
     void ma_cmp_set(Register dst, Register lhs, Imm32 imm, Condition c);
     void ma_cmp_set_double(Register dst, FloatRegister lhs, FloatRegister rhs, DoubleCondition c);
     void ma_cmp_set_float32(Register dst, FloatRegister lhs, FloatRegister rhs, DoubleCondition c);
+
+    BufferOffset ma_BoundsCheck(Register bounded) {
+        BufferOffset bo = m_buffer.nextOffset();
+        ma_liPatchable(bounded, Imm32(0));
+        return bo;
+    }
 
     void moveToDoubleLo(Register src, FloatRegister dest) {
         as_mtc1(src, dest);
@@ -249,11 +263,6 @@ class MacroAssemblerMIPSShared : public Assembler
     void atomicExchange(int nbytes, bool signExtend, const BaseIndex& address, Register value,
                         Register valueTemp, Register offsetTemp, Register maskTemp,
                         Register output);
-
-  public:
-    struct AutoPrepareForPatching {
-        explicit AutoPrepareForPatching(MacroAssemblerMIPSShared&) {}
-    };
 };
 
 } // namespace jit

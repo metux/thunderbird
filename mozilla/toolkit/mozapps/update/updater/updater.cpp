@@ -13,21 +13,17 @@
  *
  *  Available methods for the manifest file:
  *
- *  updatev2.manifest
- *  -----------------
- *  method   = "add" | "add-if" | "patch" | "patch-if" | "remove" |
- *             "rmdir" | "rmrfdir" | type
- *
- *  'type' is the update type (e.g. complete or partial) and when present MUST
- *  be the first entry in the update manifest. The type is used to support
- *  downgrades by causing the actions defined in precomplete to be performed.
- *
  *  updatev3.manifest
  *  -----------------
  *  method   = "add" | "add-if" | "add-if-not" | "patch" | "patch-if" |
  *             "remove" | "rmdir" | "rmrfdir" | type
  *
  *  'add-if-not' adds a file if it doesn't exist.
+ *
+ *  'type' is the update type (e.g. complete or partial) and when present MUST
+ *  be the first entry in the update manifest. The type is used to support
+ *  removing files that no longer exist when when applying a complete update by
+ *  causing the actions defined in the precomplete file to be performed.
  *
  *  precomplete
  *  -----------
@@ -67,13 +63,10 @@
 #define PROGRESS_EXECUTE_SIZE 75.0f
 #define PROGRESS_FINISH_SIZE   5.0f
 
-// Amount of time in ms to wait for the parent process to close
-#ifdef DEBUG
-// Use a large value for debug builds since the xpcshell tests take a long time.
+// Maximum amount of time in ms to wait for the parent process to close. The 30
+// seconds is rather long but there have been bug reports where the parent
+// process has exited after 10 seconds and it is better to give it a chance.
 #define PARENT_WAIT 30000
-#else
-#define PARENT_WAIT 10000
-#endif
 
 #if defined(XP_MACOSX)
 // These functions are defined in launchchild_osx.mm
@@ -110,33 +103,8 @@ struct UpdateServerThreadArgs
 #define USE_EXECV
 #endif
 
-#if defined(MOZ_WIDGET_GONK)
-# include "automounter_gonk.h"
-# include <unistd.h>
-# include <android/log.h>
-# include <linux/ioprio.h>
-# include <sys/resource.h>
-
-#if ANDROID_VERSION < 21
-// The only header file in bionic which has a function prototype for ioprio_set
-// is libc/include/sys/linux-unistd.h. However, linux-unistd.h conflicts
-// badly with unistd.h, so we declare the prototype for ioprio_set directly.
-extern "C" MOZ_EXPORT int ioprio_set(int which, int who, int ioprio);
-#else
-# include <sys/syscall.h>
-static int ioprio_set(int which, int who, int ioprio) {
-      return syscall(__NR_ioprio_set, which, who, ioprio);
-}
-#endif
-
-# define MAYBE_USE_HARD_LINKS 1
-static bool sUseHardLinks = true;
-#else
-# define MAYBE_USE_HARD_LINKS 0
-#endif
-
 #if defined(MOZ_VERIFY_MAR_SIGNATURE) && !defined(XP_WIN) && \
-    !defined(XP_MACOSX) && !defined(MOZ_WIDGET_GONK)
+    !defined(XP_MACOSX)
 #include "nss.h"
 #include "prerror.h"
 #endif
@@ -243,6 +211,34 @@ struct MARChannelStringTable {
 
 //-----------------------------------------------------------------------------
 
+#ifdef XP_MACOSX
+
+// Just a simple class that sets a umask value in its constructor and resets
+// it in its destructor.
+class UmaskContext
+{
+public:
+  explicit UmaskContext(mode_t umaskToSet);
+  ~UmaskContext();
+
+private:
+  mode_t mPreviousUmask;
+};
+
+UmaskContext::UmaskContext(mode_t umaskToSet)
+{
+  mPreviousUmask = umask(umaskToSet);
+}
+
+UmaskContext::~UmaskContext()
+{
+  umask(mPreviousUmask);
+}
+
+#endif
+
+//-----------------------------------------------------------------------------
+
 typedef void (* ThreadFunc)(void *param);
 
 #ifdef XP_WIN
@@ -314,7 +310,6 @@ static bool gSucceeded = false;
 static bool sStagedUpdate = false;
 static bool sReplaceRequest = false;
 static bool sUsingService = false;
-static bool sIsOSUpdate = false;
 
 #ifdef XP_WIN
 // The current working directory specified in the command line.
@@ -375,12 +370,20 @@ mstrtok(const NS_tchar *delims, NS_tchar **str)
   return ret;
 }
 
+#if defined(TEST_UPDATER)
+#define HAS_ENV_CHECK 1
+#elif defined(MOZ_MAINTENANCE_SERVICE)
+#define HAS_ENV_CHECK 1
+#endif
+
+#if defined(HAS_ENV_CHECK)
 static bool
 EnvHasValue(const char *name)
 {
   const char *val = getenv(name);
   return (val && *val);
 }
+#endif
 
 /**
  * Coverts a relative update path to a full path.
@@ -458,7 +461,7 @@ get_valid_path(NS_tchar **line, bool isdir = false)
 {
   NS_tchar *path = mstrtok(kQuote, line);
   if (!path) {
-    LOG(("get_valid_path: unable to determine path: " LOG_S, line));
+    LOG(("get_valid_path: unable to determine path: " LOG_S, *line));
     return nullptr;
   }
 
@@ -688,25 +691,6 @@ static int ensure_copy_symlink(const NS_tchar *path, const NS_tchar *dest)
 }
 #endif
 
-#if MAYBE_USE_HARD_LINKS
-/*
- * Creates a hardlink (destFilename) which points to the existing file
- * (srcFilename).
- *
- * @return 0 if successful, an error otherwise
- */
-
-static int
-create_hard_link(const NS_tchar *srcFilename, const NS_tchar *destFilename)
-{
-  if (link(srcFilename, destFilename) < 0) {
-    LOG(("link(%s, %s) failed errno = %d", srcFilename, destFilename, errno));
-    return WRITE_ERROR;
-  }
-  return OK;
-}
-#endif
-
 // Copy the file named path onto a new file named dest.
 static int ensure_copy(const NS_tchar *path, const NS_tchar *dest)
 {
@@ -731,16 +715,6 @@ static int ensure_copy(const NS_tchar *path, const NS_tchar *dest)
 #ifdef XP_UNIX
   if (S_ISLNK(ss.st_mode)) {
     return ensure_copy_symlink(path, dest);
-  }
-#endif
-
-#if MAYBE_USE_HARD_LINKS
-  if (sUseHardLinks) {
-    if (!create_hard_link(path, dest)) {
-      return OK;
-    }
-    // Since we failed to create the hard link, fall through and copy the file.
-    sUseHardLinks = false;
   }
 #endif
 
@@ -899,9 +873,8 @@ static int rename_file(const NS_tchar *spath, const NS_tchar *dpath,
       LOG(("rename_file: path present, but not a file: " LOG_S ", err: %d",
            spath, errno));
       return RENAME_ERROR_EXPECTED_FILE;
-    } else {
-      LOG(("rename_file: proceeding to rename the directory"));
     }
+    LOG(("rename_file: proceeding to rename the directory"));
   }
 
   if (!NS_taccess(dpath, F_OK)) {
@@ -1086,7 +1059,7 @@ class Action
 {
 public:
   Action() : mProgressCost(1), mNext(nullptr) { }
-  virtual ~Action() { }
+  virtual ~Action() = default;
 
   virtual int Parse(NS_tchar *line) = 0;
 
@@ -1115,10 +1088,10 @@ class RemoveFile : public Action
 public:
   RemoveFile() : mSkip(0) { }
 
-  int Parse(NS_tchar *line);
-  int Prepare();
-  int Execute();
-  void Finish(int status);
+  int Parse(NS_tchar *line) override;
+  int Prepare() override;
+  int Execute() override;
+  void Finish(int status) override;
 
 private:
   mozilla::UniquePtr<NS_tchar[]> mFile;
@@ -1246,10 +1219,10 @@ class RemoveDir : public Action
 public:
   RemoveDir() : mSkip(0) { }
 
-  virtual int Parse(NS_tchar *line);
-  virtual int Prepare(); // check that the source dir exists
-  virtual int Execute();
-  virtual void Finish(int status);
+  int Parse(NS_tchar *line) override;
+  int Prepare() override; // check that the source dir exists
+  int Execute() override;
+  void Finish(int status) override;
 
 private:
   mozilla::UniquePtr<NS_tchar[]> mDir;
@@ -1363,10 +1336,10 @@ class AddFile : public Action
 public:
   AddFile() : mAdded(false) { }
 
-  virtual int Parse(NS_tchar *line);
-  virtual int Prepare();
-  virtual int Execute();
-  virtual void Finish(int status);
+  int Parse(NS_tchar *line) override;
+  int Prepare() override;
+  int Execute() override;
+  void Finish(int status) override;
 
 private:
   mozilla::UniquePtr<NS_tchar[]> mFile;
@@ -1466,12 +1439,12 @@ class PatchFile : public Action
 public:
   PatchFile() : mPatchFile(nullptr), mPatchIndex(-1), buf(nullptr) { }
 
-  virtual ~PatchFile();
+  ~PatchFile() override;
 
-  virtual int Parse(NS_tchar *line);
-  virtual int Prepare(); // should check for patch file and for checksum here
-  virtual int Execute();
-  virtual void Finish(int status);
+  int Parse(NS_tchar *line) override;
+  int Prepare() override; // should check for patch file and for checksum here
+  int Execute() override;
+  void Finish(int status) override;
 
 private:
   int LoadSourceFile(FILE* ofile);
@@ -1787,10 +1760,10 @@ PatchFile::Finish(int status)
 class AddIfFile : public AddFile
 {
 public:
-  virtual int Parse(NS_tchar *line);
-  virtual int Prepare();
-  virtual int Execute();
-  virtual void Finish(int status);
+  int Parse(NS_tchar *line) override;
+  int Prepare() override;
+  int Execute() override;
+  void Finish(int status) override;
 
 protected:
   mozilla::UniquePtr<NS_tchar[]> mTestFile;
@@ -1848,10 +1821,10 @@ AddIfFile::Finish(int status)
 class AddIfNotFile : public AddFile
 {
 public:
-  virtual int Parse(NS_tchar *line);
-  virtual int Prepare();
-  virtual int Execute();
-  virtual void Finish(int status);
+  int Parse(NS_tchar *line) override;
+  int Prepare() override;
+  int Execute() override;
+  void Finish(int status) override;
 
 protected:
   mozilla::UniquePtr<NS_tchar[]> mTestFile;
@@ -1909,10 +1882,10 @@ AddIfNotFile::Finish(int status)
 class PatchIfFile : public PatchFile
 {
 public:
-  virtual int Parse(NS_tchar *line);
-  virtual int Prepare(); // should check for patch file and for checksum here
-  virtual int Execute();
-  virtual void Finish(int status);
+  int Parse(NS_tchar *line) override;
+  int Prepare() override; // should check for patch file and for checksum here
+  int Execute() override;
+  void Finish(int status) override;
 
 private:
   mozilla::UniquePtr<NS_tchar[]> mTestFile;
@@ -2124,9 +2097,7 @@ LaunchCallbackApp(const NS_tchar *workingDir,
   putenv(const_cast<char*>("NO_EM_RESTART="));
   putenv(const_cast<char*>("MOZ_LAUNCHED_CHILD=1"));
 
-  // Run from the specified working directory (see bug 312360). This is not
-  // necessary on Windows CE since the application that launches the updater
-  // passes the working directory as an --environ: command line argument.
+  // Run from the specified working directory (see bug 312360).
   if (NS_tchdir(workingDir) != 0) {
     LOG(("Warning: chdir failed"));
   }
@@ -2495,44 +2466,8 @@ ReadMARChannelIDs(const NS_tchar *path, MARChannelStringTable *results)
 static int
 GetUpdateFileName(NS_tchar *fileName, int maxChars)
 {
-#if defined(MOZ_WIDGET_GONK)
-  // If an update.link file exists, then it will contain the name
-  // of the update file (terminated by a newline).
-
-  NS_tchar linkFileName[MAXPATHLEN];
-  NS_tsnprintf(linkFileName, sizeof(linkFileName)/sizeof(linkFileName[0]),
-               NS_T("%s/update.link"), gPatchDirPath);
-  AutoFile linkFile(NS_tfopen(linkFileName, NS_T("rb")));
-  if (linkFile == nullptr) {
-    NS_tsnprintf(fileName, maxChars,
-                 NS_T("%s/update.mar"), gPatchDirPath);
-    return OK;
-  }
-
-  char dataFileName[MAXPATHLEN];
-  size_t bytesRead;
-
-  if ((bytesRead = fread(dataFileName, 1, sizeof(dataFileName)-1, linkFile)) <= 0) {
-    *fileName = NS_T('\0');
-    return READ_ERROR;
-  }
-  if (dataFileName[bytesRead-1] == '\n') {
-    // Strip trailing newline (for \n and \r\n)
-    bytesRead--;
-  }
-  if (dataFileName[bytesRead-1] == '\r') {
-    // Strip trailing CR (for \r, \r\n)
-    bytesRead--;
-  }
-  dataFileName[bytesRead] = '\0';
-
-  strncpy(fileName, dataFileName, maxChars-1);
-  fileName[maxChars-1] = '\0';
-#else
-  // We currently only support update.link files under GONK
   NS_tsnprintf(fileName, maxChars,
                NS_T("%s/update.mar"), gPatchDirPath);
-#endif
   return OK;
 }
 
@@ -2552,42 +2487,7 @@ UpdateThreadFunc(void *param)
 
 #ifdef MOZ_VERIFY_MAR_SIGNATURE
     if (rv == OK) {
-#ifdef XP_WIN
-      HKEY baseKey = nullptr;
-      wchar_t valueName[] = L"Image Path";
-      wchar_t rasenh[] = L"rsaenh.dll";
-      bool reset = false;
-      if (RegOpenKeyExW(HKEY_LOCAL_MACHINE,
-                        L"SOFTWARE\\Microsoft\\Cryptography\\Defaults\\Provider\\Microsoft Enhanced Cryptographic Provider v1.0",
-                        0, KEY_READ | KEY_WRITE,
-                        &baseKey) == ERROR_SUCCESS) {
-        wchar_t path[MAX_PATH + 1];
-        DWORD size = sizeof(path);
-        DWORD type;
-        if (RegQueryValueExW(baseKey, valueName, 0, &type,
-                             (LPBYTE)path, &size) == ERROR_SUCCESS) {
-          if (type == REG_SZ && wcscmp(path, rasenh) == 0) {
-            wchar_t rasenhFullPath[] = L"%SystemRoot%\\System32\\rsaenh.dll";
-            if (RegSetValueExW(baseKey, valueName, 0, REG_SZ,
-                               (const BYTE*)rasenhFullPath,
-                               sizeof(rasenhFullPath)) == ERROR_SUCCESS) {
-              reset = true;
-            }
-          }
-        }
-      }
-#endif
       rv = gArchiveReader.VerifySignature();
-#ifdef XP_WIN
-      if (baseKey) {
-        if (reset) {
-          RegSetValueExW(baseKey, valueName, 0, REG_SZ,
-                         (const BYTE*)rasenh,
-                         sizeof(rasenh));
-        }
-        RegCloseKey(baseKey);
-      }
-#endif
     }
 
     if (rv == OK) {
@@ -2614,7 +2514,7 @@ UpdateThreadFunc(void *param)
     }
 #endif
 
-    if (rv == OK && sStagedUpdate && !sIsOSUpdate) {
+    if (rv == OK && sStagedUpdate) {
 #ifdef TEST_UPDATER
       // The MOZ_TEST_SKIP_UPDATE_STAGE environment variable prevents copying
       // the files in dist/bin in the test updater when staging an update since
@@ -2640,16 +2540,6 @@ UpdateThreadFunc(void *param)
   }
 
   if (rv && (sReplaceRequest || sStagedUpdate)) {
-#ifdef XP_WIN
-    // On Windows, the current working directory of the process should be changed
-    // so that it's not locked.
-    if (sStagedUpdate) {
-      NS_tchar sysDir[MAX_PATH + 1] = { L'\0' };
-      if (GetSystemDirectoryW(sysDir, MAX_PATH + 1)) {
-        NS_tchdir(sysDir);
-      }
-    }
-#endif
     ensure_remove_recursive(gWorkingDirPath);
     // When attempting to replace the application, we should fall back
     // to non-staged updates in case of a failure.  We do this by
@@ -2765,6 +2655,11 @@ int NS_main(int argc, NS_tchar **argv)
   const int callbackIndex = 6;
 
 #ifdef XP_MACOSX
+  // We want to control file permissions explicitly, or else we could end up
+  // corrupting installs for other users on the system. Accordingly, set the
+  // umask to 0 for all file creations below and reset it on exit. See Bug 1337007
+  UmaskContext umaskContext(0);
+
   bool isElevated =
     strstr(argv[0], "/Library/PrivilegedHelperTools/org.mozilla.updater") != 0;
   if (isElevated) {
@@ -2776,26 +2671,7 @@ int NS_main(int argc, NS_tchar **argv)
   }
 #endif
 
-#if defined(MOZ_WIDGET_GONK)
-  if (EnvHasValue("LD_PRELOAD")) {
-    // If the updater is launched with LD_PRELOAD set, then we wind up
-    // preloading libmozglue.so. Under some circumstances, this can cause
-    // the remount of /system to fail when going from rw to ro, so if we
-    // detect LD_PRELOAD we unsetenv it and relaunch ourselves without it.
-    // This will cause the offending preloaded library to be closed.
-    //
-    // For a variety of reasons, this is really hard to do in a safe manner
-    // in the parent process, so we do it here.
-    unsetenv("LD_PRELOAD");
-    execv(argv[0], argv);
-    __android_log_print(ANDROID_LOG_INFO, "updater",
-                        "execve failed: errno: %d. Exiting...", errno);
-    _exit(1);
-  }
-#endif
-
-#if defined(MOZ_VERIFY_MAR_SIGNATURE) && !defined(XP_WIN) && \
-    !defined(XP_MACOSX) && !defined(MOZ_WIDGET_GONK)
+#if defined(MOZ_VERIFY_MAR_SIGNATURE) && !defined(XP_WIN) && !defined(XP_MACOSX)
   // On Windows and Mac we rely on native APIs to do verifications so we don't
   // need to initialize NSS at all there.
   // Otherwise, minimize the amount of NSS we depend on by avoiding all the NSS
@@ -2840,6 +2716,17 @@ int NS_main(int argc, NS_tchar **argv)
 #endif
     return 1;
   }
+
+#if defined(TEST_UPDATER) && defined(XP_WIN)
+  // The tests use nsIProcess to launch the updater and it is simpler for the
+  // tests to just set an environment variable and have the test updater set
+  // the current working directory than it is to set the current working
+  // directory in the test itself.
+  if (EnvHasValue("CURWORKDIRPATH")) {
+    const WCHAR *val = _wgetenv(L"CURWORKDIRPATH");
+    NS_tchdir(val);
+  }
+#endif
 
   // This check is also performed in workmonitor.cpp since the maintenance
   // service can be called directly.
@@ -2923,17 +2810,9 @@ int NS_main(int argc, NS_tchar **argv)
 #endif
 
   // If there is a PID specified and it is not '0' then wait for the process to exit.
-#ifdef XP_WIN
-  __int64 pid = 0;
-#else
-  int pid = 0;
-#endif
+  NS_tpid pid = 0;
   if (argc > 4) {
-#ifdef XP_WIN
-    pid = _wtoi64(argv[4]);
-#else
-    pid = atoi(argv[4]);
-#endif
+    pid = NS_tatoi(argv[4]);
     if (pid == -1) {
       // This is a signal from the parent process that the updater should stage
       // the update.
@@ -2970,8 +2849,6 @@ int NS_main(int argc, NS_tchar **argv)
     *slash = NS_T('\0');
   }
 
-  // These checks are also performed in workmonitor.cpp since the maintenance
-  // service can be called directly.
   if (argc > callbackIndex) {
     if (!IsValidFullPath(argv[callbackIndex])) {
       WriteStatusFile(INVALID_CALLBACK_PATH_ERROR);
@@ -3023,11 +2900,6 @@ int NS_main(int argc, NS_tchar **argv)
     return gSucceeded ? 0 : 1;
   }
 #endif
-
-  if (EnvHasValue("MOZ_OS_UPDATE")) {
-    sIsOSUpdate = true;
-    putenv(const_cast<char*>("MOZ_OS_UPDATE="));
-  }
 
   LogInit(gPatchDirPath, NS_T("update.log"));
 
@@ -3085,36 +2957,6 @@ int NS_main(int argc, NS_tchar **argv)
   }
 #endif
 
-#ifdef MOZ_WIDGET_GONK
-  const char *prioEnv = getenv("MOZ_UPDATER_PRIO");
-  if (prioEnv) {
-    int32_t prioVal;
-    int32_t oomScoreAdj;
-    int32_t ioprioClass;
-    int32_t ioprioLevel;
-    if (sscanf(prioEnv, "%d/%d/%d/%d",
-               &prioVal, &oomScoreAdj, &ioprioClass, &ioprioLevel) == 4) {
-      LOG(("MOZ_UPDATER_PRIO=%s", prioEnv));
-      if (setpriority(PRIO_PROCESS, 0, prioVal)) {
-        LOG(("setpriority(%d) failed, errno = %d", prioVal, errno));
-      }
-      if (ioprio_set(IOPRIO_WHO_PROCESS, 0,
-                     IOPRIO_PRIO_VALUE(ioprioClass, ioprioLevel))) {
-        LOG(("ioprio_set(%d,%d) failed: errno = %d",
-             ioprioClass, ioprioLevel, errno));
-      }
-      FILE *fs = fopen("/proc/self/oom_score_adj", "w");
-      if (fs) {
-        fprintf(fs, "%d", oomScoreAdj);
-        fclose(fs);
-      } else {
-        LOG(("Unable to open /proc/self/oom_score_adj for writing, errno = %d",
-             errno));
-      }
-    }
-  }
-#endif
-
 #ifdef XP_WIN
   if (pid > 0) {
     HANDLE parent = OpenProcess(SYNCHRONIZE, false, (DWORD) pid);
@@ -3123,10 +2965,19 @@ int NS_main(int argc, NS_tchar **argv)
     // update.
     if (parent) {
       DWORD waitTime = PARENT_WAIT;
+#ifdef TEST_UPDATER
+      if (EnvHasValue("MOZ_TEST_SHORTER_WAIT_PID")) {
+        // Use a shorter time to wait for the PID to exit for the test.
+        waitTime = 100;
+      }
+#endif
       DWORD result = WaitForSingleObject(parent, waitTime);
       CloseHandle(parent);
       if (result != WAIT_OBJECT_0) {
-        return 1;
+        // Continue to update since the parent application sometimes doesn't
+        // exit (see bug 1375242) so any fixes to the parent application will
+        // be applied instead of leaving the client in a broken state.
+        LOG(("The parent process didn't exit! Continuing with update."));
       }
     }
   }
@@ -3136,6 +2987,15 @@ int NS_main(int argc, NS_tchar **argv)
 #endif
 
 #ifdef XP_WIN
+  if (sReplaceRequest || sStagedUpdate) {
+    // On Windows, when performing a stage or replace request the current
+    // working directory for the process must be changed so it isn't locked.
+    NS_tchar sysDir[MAX_PATH + 1] = { L'\0' };
+    if (GetSystemDirectoryW(sysDir, MAX_PATH + 1)) {
+      NS_tchdir(sysDir);
+    }
+  }
+
 #ifdef MOZ_MAINTENANCE_SERVICE
   sUsingService = EnvHasValue("MOZ_USING_SERVICE");
   putenv(const_cast<char*>("MOZ_USING_SERVICE="));
@@ -3439,27 +3299,6 @@ int NS_main(int argc, NS_tchar **argv)
   }
 #endif
 
-#if defined(MOZ_WIDGET_GONK)
-  // In gonk, the master b2g process sets its umask to 0027 because
-  // there's no reason for it to ever create world-readable files.
-  // The updater binary, however, needs to do this, and it inherits
-  // the master process's cautious umask.  So we drop down a bit here.
-  umask(0022);
-
-  // Remount the /system partition as read-write for gonk. The destructor will
-  // remount /system as read-only. We add an extra level of scope here to avoid
-  // calling LogFinish() before the GonkAutoMounter destructor has a chance
-  // to be called
-  {
-#if !defined(TEST_UPDATER)
-    GonkAutoMounter mounter;
-    if (mounter.GetAccess() != MountAccess::ReadWrite) {
-      WriteStatusFile(FILESYSTEM_MOUNT_READWRITE_ERROR);
-      return 1;
-    }
-#endif
-#endif
-
   if (sStagedUpdate) {
     // When staging updates, blow away the old installation directory and create
     // it from scratch.
@@ -3759,49 +3598,7 @@ int NS_main(int argc, NS_tchar **argv)
   }
 #endif /* XP_WIN */
 
-#if defined(MOZ_WIDGET_GONK)
-  } // end the extra level of scope for the GonkAutoMounter
-#endif
-
 #ifdef XP_MACOSX
-  // When the update is successful remove the precomplete file in the root of
-  // the application bundle and move the distribution directory from
-  // Contents/MacOS to Contents/Resources and if both exist delete the
-  // directory under Contents/MacOS (see Bug 1068439).
-  if (gSucceeded && !sStagedUpdate) {
-    NS_tchar oldPrecomplete[MAXPATHLEN];
-    NS_tsnprintf(oldPrecomplete, sizeof(oldPrecomplete)/sizeof(oldPrecomplete[0]),
-                 NS_T("%s/precomplete"), gInstallDirPath);
-    NS_tremove(oldPrecomplete);
-
-    NS_tchar oldDistDir[MAXPATHLEN];
-    NS_tsnprintf(oldDistDir, sizeof(oldDistDir)/sizeof(oldDistDir[0]),
-                 NS_T("%s/Contents/MacOS/distribution"), gInstallDirPath);
-    int rv = NS_taccess(oldDistDir, F_OK);
-    if (!rv) {
-      NS_tchar newDistDir[MAXPATHLEN];
-      NS_tsnprintf(newDistDir, sizeof(newDistDir)/sizeof(newDistDir[0]),
-                   NS_T("%s/Contents/Resources/distribution"), gInstallDirPath);
-      rv = NS_taccess(newDistDir, F_OK);
-      if (!rv) {
-        LOG(("New distribution directory already exists... removing old " \
-             "distribution directory: " LOG_S, oldDistDir));
-        rv = ensure_remove_recursive(oldDistDir);
-        if (rv) {
-          LOG(("Removing old distribution directory failed - err: %d", rv));
-        }
-      } else {
-        LOG(("Moving old distribution directory to new location. src: " LOG_S \
-             ", dst:" LOG_S, oldDistDir, newDistDir));
-        rv = rename_file(oldDistDir, newDistDir, true);
-        if (rv) {
-          LOG(("Moving old distribution directory to new location failed - " \
-               "err: %d", rv));
-        }
-      }
-    }
-  }
-
   if (isElevated) {
     SetGroupOwnershipAndPermissions(gInstallDirPath);
     freeArguments(argc, argv);
@@ -3824,7 +3621,7 @@ int NS_main(int argc, NS_tchar **argv)
 #elif XP_MACOSX
                                                 , isElevated
 #endif
-                                               );
+                                                );
 
   return retVal ? retVal : (gSucceeded ? 0 : 1);
 }
@@ -4274,10 +4071,6 @@ GetManifestContents(const NS_tchar *manifest)
 
 int AddPreCompleteActions(ActionList *list)
 {
-  if (sIsOSUpdate) {
-    return OK;
-  }
-
 #ifdef XP_MACOSX
   mozilla::UniquePtr<NS_tchar[]> manifestPath(get_full_path(
     NS_T("Contents/Resources/precomplete")));
@@ -4346,11 +4139,8 @@ int DoUpdate()
   // extract the manifest
   int rv = gArchiveReader.ExtractFile("updatev3.manifest", manifest);
   if (rv) {
-    rv = gArchiveReader.ExtractFile("updatev2.manifest", manifest);
-    if (rv) {
-      LOG(("DoUpdate: error extracting manifest file"));
-      return rv;
-    }
+    LOG(("DoUpdate: error extracting manifest file"));
+    return rv;
   }
 
   NS_tchar *rb = GetManifestContents(manifest);

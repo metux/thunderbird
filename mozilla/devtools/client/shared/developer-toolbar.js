@@ -6,11 +6,9 @@
 
 const { Ci } = require("chrome");
 const promise = require("promise");
-const defer = require("devtools/shared/defer");
 const Services = require("Services");
 const { TargetFactory } = require("devtools/client/framework/target");
 const Telemetry = require("devtools/client/shared/telemetry");
-const {ViewHelpers} = require("devtools/client/shared/widgets/view-helpers");
 const {LocalizationHelper} = require("devtools/shared/l10n");
 const L10N = new LocalizationHelper("devtools/client/locales/toolbox.properties");
 const {Task} = require("devtools/shared/task");
@@ -21,21 +19,43 @@ const { PluralForm } = require("devtools/shared/plural-form");
 
 loader.lazyGetter(this, "prefBranch", function () {
   return Services.prefs.getBranch(null)
-                    .QueryInterface(Ci.nsIPrefBranch2);
+                    .QueryInterface(Ci.nsIPrefBranch);
 });
 
 loader.lazyRequireGetter(this, "gcliInit", "devtools/shared/gcli/commands/index");
 loader.lazyRequireGetter(this, "util", "gcli/util/util");
-loader.lazyRequireGetter(this, "ConsoleServiceListener", "devtools/server/actors/utils/webconsole-utils", true);
+loader.lazyRequireGetter(this, "ConsoleServiceListener", "devtools/server/actors/webconsole/listeners", true);
 loader.lazyRequireGetter(this, "gDevTools", "devtools/client/framework/devtools", true);
 loader.lazyRequireGetter(this, "gDevToolsBrowser", "devtools/client/framework/devtools-browser", true);
 loader.lazyRequireGetter(this, "nodeConstants", "devtools/shared/dom-node-constants");
-loader.lazyRequireGetter(this, "EventEmitter", "devtools/shared/event-emitter");
+loader.lazyRequireGetter(this, "EventEmitter", "devtools/shared/old-event-emitter");
 
 /**
  * A collection of utilities to help working with commands
  */
 var CommandUtils = {
+  /**
+   * Caches requisitions created when calling executeOnTarget:
+   * Target => Requisition Promise
+   */
+  _requisitions: new WeakMap(),
+
+  /**
+   * Utility to execute a command string on a given target
+   */
+  executeOnTarget: Task.async(function* (target, command) {
+    let requisitionPromise = this._requisitions.get(target);
+    if (!requisitionPromise) {
+      requisitionPromise = this.createRequisition(target, {
+        environment: CommandUtils.createEnvironment({ target }, "target")
+      });
+      // Store the promise to avoid races by storing the promise immediately
+      this._requisitions.set(target, requisitionPromise);
+    }
+    let requisition = yield requisitionPromise;
+    requisition.updateExec(command);
+  }),
+
   /**
    * Utility to ensure that things are loaded in the correct order
    */
@@ -55,115 +75,6 @@ var CommandUtils = {
   destroyRequisition: function (requisition, target) {
     requisition.destroy();
     gcliInit.releaseSystem(target);
-  },
-
-  /**
-   * Read a toolbarSpec from preferences
-   * @param pref The name of the preference to read
-   */
-  getCommandbarSpec: function (pref) {
-    let value = prefBranch.getComplexValue(pref, Ci.nsISupportsString).data;
-    return JSON.parse(value);
-  },
-
-  /**
-   * A toolbarSpec is an array of strings each of which is a GCLI command.
-   *
-   * Warning: this method uses the unload event of the window that owns the
-   * buttons that are of type checkbox. this means that we don't properly
-   * unregister event handlers until the window is destroyed.
-   */
-  createButtons: function (toolbarSpec, target, document, requisition) {
-    return util.promiseEach(toolbarSpec, typed => {
-      // Ask GCLI to parse the typed string (doesn't execute it)
-      return requisition.update(typed).then(() => {
-        let button = document.createElementNS(NS_XHTML, "button");
-
-        // Ignore invalid commands
-        let command = requisition.commandAssignment.value;
-        if (command == null) {
-          throw new Error("No command '" + typed + "'");
-        }
-
-        if (command.buttonId != null) {
-          button.id = command.buttonId;
-          if (command.buttonClass != null) {
-            button.className = command.buttonClass;
-          }
-        } else {
-          button.setAttribute("text-as-image", "true");
-          button.setAttribute("label", command.name);
-        }
-
-        button.classList.add("devtools-button");
-
-        if (command.tooltipText != null) {
-          button.setAttribute("title", command.tooltipText);
-        } else if (command.description != null) {
-          button.setAttribute("title", command.description);
-        }
-
-        button.addEventListener("click",
-          requisition.updateExec.bind(requisition, typed));
-
-        button.addEventListener("keypress", (event) => {
-          if (ViewHelpers.isSpaceOrReturn(event)) {
-            event.preventDefault();
-            requisition.updateExec(typed);
-          }
-        }, false);
-
-        // Allow the command button to be toggleable
-        let onChange = null;
-        if (command.state) {
-          button.setAttribute("autocheck", false);
-
-          /**
-           * The onChange event should be called with an event object that
-           * contains a target property which specifies which target the event
-           * applies to. For legacy reasons the event object can also contain
-           * a tab property.
-           */
-          onChange = (eventName, ev) => {
-            if (ev.target == target || ev.tab == target.tab) {
-              let updateChecked = (checked) => {
-                if (checked) {
-                  button.setAttribute("checked", true);
-                } else if (button.hasAttribute("checked")) {
-                  button.removeAttribute("checked");
-                }
-              };
-
-              // isChecked would normally be synchronous. An annoying quirk
-              // of the 'csscoverage toggle' command forces us to accept a
-              // promise here, but doing Promise.resolve(reply).then(...) here
-              // makes this async for everyone, which breaks some tests so we
-              // treat non-promise replies separately to keep then synchronous.
-              let reply = command.state.isChecked(target);
-              if (typeof reply.then == "function") {
-                reply.then(updateChecked, console.error);
-              } else {
-                updateChecked(reply);
-              }
-            }
-          };
-
-          command.state.onChange(target, onChange);
-          onChange("", { target: target });
-        }
-        document.defaultView.addEventListener("unload", function (event) {
-          if (onChange && command.state.offChange) {
-            command.state.offChange(target, onChange);
-          }
-          button.remove();
-          button = null;
-        }, { once: true });
-
-        requisition.clear();
-
-        return button;
-      });
-    });
   },
 
   /**
@@ -238,6 +149,16 @@ function DeveloperToolbar(chromeWindow) {
   // Will be setup when show() is called
   this.target = null;
 
+  // The `_showPromise` will be set once `show` is called the first time, and resolved
+  // when the toolbar is shown. Since it will be set to `null` only when `hide` method
+  // is called, multiple calls to `show` method will returns this promise instead of
+  // process again all the initialization.
+  this._showPromise = null;
+  // The `_hidePromise` will be set once `hide` is called, and resolved when the method
+  // has finished. Once the toolbar is hidden, both `_showPromise` and `_hidePromise`
+  // will be set to `null`.
+  this._hidePromise = null;
+
   this._doc = chromeWindow.document;
 
   this._telemetry = new Telemetry();
@@ -304,11 +225,14 @@ DeveloperToolbar.prototype.createToolbar = function () {
   let toolbar = this._doc.createElement("toolbar");
   toolbar.setAttribute("id", "developer-toolbar");
   toolbar.setAttribute("hidden", "true");
+  toolbar.setAttribute("fullscreentoolbar", "true");
 
   let close = this._doc.createElement("toolbarbutton");
   close.setAttribute("id", "developer-toolbar-closebutton");
   close.setAttribute("class", "close-icon");
-  close.setAttribute("oncommand", "DeveloperToolbar.hide();");
+  close.addEventListener("command", (event) => {
+    this.hide();
+  });
   let closeTooltip = L10N.getStr("toolbar.closeButton.tooltip");
   close.setAttribute("tooltiptext", closeTooltip);
 
@@ -376,13 +300,33 @@ DeveloperToolbar.prototype.toggle = function () {
 
 /**
  * Called from browser.xul in response to menu-click or keyboard shortcut to
- * toggle the toolbar
+ * toggle the toolbar.
+ * The method returns a promise that would be resolved once focused; if the toolbar is not
+ * visible yet it will be automatically shown.
  */
 DeveloperToolbar.prototype.focus = function () {
   if (this.visible) {
-    this._input.focus();
-    return promise.resolve();
+    // If the toolbar was just inserted, the <textbox> may still have
+    // its binding in process of being applied and not be focusable yet
+    return new Promise((resolve, reject) => {
+      let checkBinding = () => {
+        // Bail out if the toolbar has been destroyed in the meantime
+        if (!this._input) {
+          reject();
+          return;
+        }
+        // mInputField is a xbl field of <xul:textbox>
+        if (typeof this._input.mInputField != "undefined") {
+          this._input.focus();
+          resolve();
+        } else {
+          this._input.ownerDocument.defaultView.setTimeout(checkBinding, 50);
+        }
+      };
+      checkBinding();
+    });
   }
+
   return this.show(true);
 };
 
@@ -418,7 +362,12 @@ DeveloperToolbar.introShownThisSession = false;
  * Show the developer toolbar
  */
 DeveloperToolbar.prototype.show = function (focus) {
-  if (this._showPromise != null) {
+  // if `_showPromise` is set, just returns it instead of process all the initialization
+  // again; ensuring we're focusing the element too if `focus` argument is set to `true`.
+  if (this._showPromise !== null) {
+    if (focus) {
+      return this.focus();
+    }
     return this._showPromise;
   }
 
@@ -428,6 +377,9 @@ DeveloperToolbar.prototype.show = function (focus) {
     // null, so that the spawn call returns a promise before starting
     // to do any real work.
     yield this._hidePromise;
+
+    // Append the browser-level stylesheet to the browser document.
+    yield gDevToolsBrowser.loadBrowserStyleSheet(this._chromeWindow);
 
     this.createToolbar();
 
@@ -505,8 +457,8 @@ DeveloperToolbar.prototype.show = function (focus) {
     this.onOutput.add(this.outputPanel._outputChanged, this.outputPanel);
 
     let tabbrowser = this._chromeWindow.gBrowser;
-    tabbrowser.tabContainer.addEventListener("TabSelect", this, false);
-    tabbrowser.tabContainer.addEventListener("TabClose", this, false);
+    tabbrowser.tabContainer.addEventListener("TabSelect", this);
+    tabbrowser.tabContainer.addEventListener("TabClose", this);
     tabbrowser.addEventListener("load", this, true);
     tabbrowser.addEventListener("beforeunload", this, true);
 
@@ -518,25 +470,9 @@ DeveloperToolbar.prototype.show = function (focus) {
     this._element.hidden = false;
 
     if (focus) {
-      // If the toolbar was just inserted, the <textbox> may still have
-      // its binding in process of being applied and not be focusable yet
-      let waitForBinding = () => {
-        // Bail out if the toolbar has been destroyed in the meantime
-        if (!this._input) {
-          return;
-        }
-        // mInputField is a xbl field of <xul:textbox>
-        if (typeof this._input.mInputField != "undefined") {
-          this._input.focus();
-          this._notify(NOTIFICATIONS.SHOW);
-        } else {
-          this._input.ownerDocument.defaultView.setTimeout(waitForBinding, 50);
-        }
-      };
-      waitForBinding();
-    } else {
-      this._notify(NOTIFICATIONS.SHOW);
+      yield this.focus();
     }
+    this._notify(NOTIFICATIONS.SHOW);
 
     if (!DeveloperToolbar.introShownThisSession) {
       let intro = require("gcli/ui/intro");
@@ -545,8 +481,6 @@ DeveloperToolbar.prototype.show = function (focus) {
                            this.outputPanel);
       DeveloperToolbar.introShownThisSession = true;
     }
-
-    this._showPromise = null;
   }).bind(this));
 
   return this._showPromise;
@@ -556,15 +490,19 @@ DeveloperToolbar.prototype.show = function (focus) {
  * Hide the developer toolbar.
  */
 DeveloperToolbar.prototype.hide = function () {
-  // If we're already in the process of hiding, just use the other promise
-  if (this._hidePromise != null) {
+  // If we're already in the process of hiding, just returns the promise
+  if (this._hidePromise !== null) {
     return this._hidePromise;
   }
 
-  // show() is async, so ensure we don't need to wait for show() to finish
-  let waitPromise = this._showPromise || promise.resolve();
+  // If `_showPromise` is `null`, it means `show` method was never called, so just
+  // returns a resolved promise.
+  if (this._showPromise === null) {
+    return promise.resolve();
+  }
 
-  this._hidePromise = waitPromise.then(() => {
+  // show() is async, so ensure we don't need to wait for show() to finish
+  this._hidePromise = this._showPromise.then(() => {
     this._element.hidden = true;
 
     Services.prefs.setBoolPref("devtools.toolbar.visible", false);
@@ -575,6 +513,9 @@ DeveloperToolbar.prototype.hide = function () {
     this._telemetry.toolClosed("developertoolbar");
     this._notify(NOTIFICATIONS.HIDE);
 
+    // The developer toolbar is now closed, is neither shown or in process of hiding,
+    // so we're set to `null` both `_showPromise` and `_hidePromise`.
+    this._showPromise = null;
     this._hidePromise = null;
   });
 
@@ -645,8 +586,8 @@ DeveloperToolbar.prototype.destroy = function () {
   }
 
   let tabbrowser = this._chromeWindow.gBrowser;
-  tabbrowser.tabContainer.removeEventListener("TabSelect", this, false);
-  tabbrowser.tabContainer.removeEventListener("TabClose", this, false);
+  tabbrowser.tabContainer.removeEventListener("TabSelect", this);
+  tabbrowser.tabContainer.removeEventListener("TabClose", this);
   tabbrowser.removeEventListener("load", this, true);
   tabbrowser.removeEventListener("beforeunload", this, true);
 
@@ -687,7 +628,7 @@ DeveloperToolbar.prototype.destroy = function () {
 DeveloperToolbar.prototype._notify = function (topic) {
   let data = { toolbar: this };
   data.wrappedJSObject = data;
-  Services.obs.notifyObservers(data, topic, null);
+  Services.obs.notifyObservers(data, topic);
 };
 
 /**
@@ -873,85 +814,84 @@ OutputPanel.create = function (devtoolbar) {
  * @private See OutputPanel.create
  */
 OutputPanel.prototype._init = function (devtoolbar) {
-  this._devtoolbar = devtoolbar;
-  this._input = this._devtoolbar._input;
-  this._toolbar = this._devtoolbar._doc.getElementById("developer-toolbar");
+  return new Promise((resolve, reject) => {
+    this._devtoolbar = devtoolbar;
+    this._input = this._devtoolbar._input;
+    this._toolbar = this._devtoolbar._doc.getElementById("developer-toolbar");
 
-  /*
-  <tooltip|panel id="gcli-output"
-         noautofocus="true"
-         noautohide="true"
-         class="gcli-panel">
-    <html:iframe xmlns:html="http://www.w3.org/1999/xhtml"
-                 id="gcli-output-frame"
-                 src="chrome://devtools/content/commandline/commandlineoutput.xhtml"
-                 sandbox="allow-same-origin"/>
-  </tooltip|panel>
-  */
+    /*
+    <tooltip|panel id="gcli-output"
+           noautofocus="true"
+           noautohide="true"
+           class="gcli-panel">
+      <html:iframe xmlns:html="http://www.w3.org/1999/xhtml"
+                   id="gcli-output-frame"
+                   src="chrome://devtools/content/commandline/commandlineoutput.xhtml"
+                   sandbox="allow-same-origin"/>
+    </tooltip|panel>
+    */
 
-  // TODO: Switch back from tooltip to panel when metacity focus issue is fixed:
-  // https://bugzilla.mozilla.org/show_bug.cgi?id=780102
-  this._panel = this._devtoolbar._doc.createElement(isLinux ? "tooltip" : "panel");
+    // TODO: Switch back from tooltip to panel when metacity focus issue is fixed:
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=780102
+    this._panel = this._devtoolbar._doc.createElement(isLinux ? "tooltip" : "panel");
 
-  this._panel.id = "gcli-output";
-  this._panel.classList.add("gcli-panel");
+    this._panel.id = "gcli-output";
+    this._panel.classList.add("gcli-panel");
 
-  if (isLinux) {
-    this.canHide = false;
-    this._onpopuphiding = this._onpopuphiding.bind(this);
-    this._panel.addEventListener("popuphiding", this._onpopuphiding, true);
-  } else {
-    this._panel.setAttribute("noautofocus", "true");
-    this._panel.setAttribute("noautohide", "true");
+    if (isLinux) {
+      this.canHide = false;
+      this._onpopuphiding = this._onpopuphiding.bind(this);
+      this._panel.addEventListener("popuphiding", this._onpopuphiding, true);
+    } else {
+      this._panel.setAttribute("noautofocus", "true");
+      this._panel.setAttribute("noautohide", "true");
 
-    // Bug 692348: On Windows and OSX if a panel has no content and no height
-    // openPopup fails to display it. Setting the height to 1px alows the panel
-    // to be displayed before has content or a real height i.e. the first time
-    // it is displayed.
-    this._panel.setAttribute("height", "1px");
-  }
+      // Bug 692348: On Windows and OSX if a panel has no content and no height
+      // openPopup fails to display it. Setting the height to 1px alows the panel
+      // to be displayed before has content or a real height i.e. the first time
+      // it is displayed.
+      this._panel.setAttribute("height", "1px");
+    }
 
-  this._toolbar.parentElement.insertBefore(this._panel, this._toolbar);
+    this._toolbar.parentElement.insertBefore(this._panel, this._toolbar);
 
-  this._frame = this._devtoolbar._doc.createElementNS(NS_XHTML, "iframe");
-  this._frame.id = "gcli-output-frame";
-  this._frame.setAttribute("src", "chrome://devtools/content/commandline/commandlineoutput.xhtml");
-  this._frame.setAttribute("sandbox", "allow-same-origin");
-  this._panel.appendChild(this._frame);
+    this._frame = this._devtoolbar._doc.createElementNS(NS_XHTML, "iframe");
+    this._frame.id = "gcli-output-frame";
+    this._frame.setAttribute("src", "chrome://devtools/content/commandline/commandlineoutput.xhtml");
+    this._frame.setAttribute("sandbox", "allow-same-origin");
+    this._panel.appendChild(this._frame);
 
-  this.displayedOutput = undefined;
+    this.displayedOutput = undefined;
 
-  this._update = this._update.bind(this);
+    this._update = this._update.bind(this);
 
-  // Wire up the element from the iframe, and resolve the promise
-  let deferred = defer();
-  let onload = () => {
-    this._frame.removeEventListener("load", onload, true);
+    // Wire up the element from the iframe, and resolve the promise
+    let onload = () => {
+      this._frame.removeEventListener("load", onload, true);
 
-    this.document = this._frame.contentDocument;
-    this._copyTheme();
+      this.document = this._frame.contentDocument;
+      this._copyTheme();
 
-    this._div = this.document.getElementById("gcli-output-root");
-    this._div.classList.add("gcli-row-out");
-    this._div.setAttribute("aria-live", "assertive");
+      this._div = this.document.getElementById("gcli-output-root");
+      this._div.classList.add("gcli-row-out");
+      this._div.setAttribute("aria-live", "assertive");
 
-    let styles = this._toolbar.ownerDocument.defaultView
-                    .getComputedStyle(this._toolbar);
-    this._div.setAttribute("dir", styles.direction);
+      let styles = this._toolbar.ownerDocument.defaultView
+                      .getComputedStyle(this._toolbar);
+      this._div.setAttribute("dir", styles.direction);
 
-    deferred.resolve(this);
-  };
-  this._frame.addEventListener("load", onload, true);
-
-  return deferred.promise;
+      resolve(this);
+    };
+    this._frame.addEventListener("load", onload, true);
+  });
 };
 
 /* Copy the current devtools theme attribute into the iframe,
    so it can be styled correctly. */
 OutputPanel.prototype._copyTheme = function () {
   if (this.document) {
-    let theme =
-      this._devtoolbar._doc.documentElement.getAttribute("devtoolstheme");
+    let theme = this._devtoolbar._doc.getElementById("browser-bottombox")
+                  .getAttribute("devtoolstheme");
     this.document.documentElement.setAttribute("devtoolstheme", theme);
   }
 };
@@ -1065,7 +1005,7 @@ OutputPanel.prototype._outputChanged = function (ev) {
     this._update();
   } else {
     this.displayedOutput.promise.then(this._update, this._update)
-                                .then(null, console.error);
+                                .catch(console.error);
   }
 };
 
@@ -1081,7 +1021,7 @@ OutputPanel.prototype._update = function () {
 
   // Empty this._div
   while (this._div.hasChildNodes()) {
-    this._div.removeChild(this._div.firstChild);
+    this._div.firstChild.remove();
   }
 
   if (this.displayedOutput.data != null) {
@@ -1092,7 +1032,7 @@ OutputPanel.prototype._update = function () {
       }
 
       while (this._div.hasChildNodes()) {
-        this._div.removeChild(this._div.firstChild);
+        this._div.firstChild.remove();
       }
 
       let links = node.querySelectorAll("*[href]");
@@ -1192,86 +1132,84 @@ TooltipPanel.create = function (devtoolbar) {
  * @private See TooltipPanel.create
  */
 TooltipPanel.prototype._init = function (devtoolbar) {
-  let deferred = defer();
+  return new Promise((resolve, reject) => {
+    this._devtoolbar = devtoolbar;
+    this._input = devtoolbar._doc.querySelector(".gclitoolbar-input-node");
+    this._toolbar = devtoolbar._doc.querySelector("#developer-toolbar");
+    this._dimensions = { start: 0, end: 0 };
 
-  this._devtoolbar = devtoolbar;
-  this._input = devtoolbar._doc.querySelector(".gclitoolbar-input-node");
-  this._toolbar = devtoolbar._doc.querySelector("#developer-toolbar");
-  this._dimensions = { start: 0, end: 0 };
+    /*
+    <tooltip|panel id="gcli-tooltip"
+           type="arrow"
+           noautofocus="true"
+           noautohide="true"
+           class="gcli-panel">
+      <html:iframe xmlns:html="http://www.w3.org/1999/xhtml"
+                   id="gcli-tooltip-frame"
+                   src="chrome://devtools/content/commandline/commandlinetooltip.xhtml"
+                   flex="1"
+                   sandbox="allow-same-origin"/>
+    </tooltip|panel>
+    */
 
-  /*
-  <tooltip|panel id="gcli-tooltip"
-         type="arrow"
-         noautofocus="true"
-         noautohide="true"
-         class="gcli-panel">
-    <html:iframe xmlns:html="http://www.w3.org/1999/xhtml"
-                 id="gcli-tooltip-frame"
-                 src="chrome://devtools/content/commandline/commandlinetooltip.xhtml"
-                 flex="1"
-                 sandbox="allow-same-origin"/>
-  </tooltip|panel>
-  */
+    // TODO: Switch back from tooltip to panel when metacity focus issue is fixed:
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=780102
+    this._panel = devtoolbar._doc.createElement(isLinux ? "tooltip" : "panel");
 
-  // TODO: Switch back from tooltip to panel when metacity focus issue is fixed:
-  // https://bugzilla.mozilla.org/show_bug.cgi?id=780102
-  this._panel = devtoolbar._doc.createElement(isLinux ? "tooltip" : "panel");
+    this._panel.id = "gcli-tooltip";
+    this._panel.classList.add("gcli-panel");
 
-  this._panel.id = "gcli-tooltip";
-  this._panel.classList.add("gcli-panel");
+    if (isLinux) {
+      this.canHide = false;
+      this._onpopuphiding = this._onpopuphiding.bind(this);
+      this._panel.addEventListener("popuphiding", this._onpopuphiding, true);
+    } else {
+      this._panel.setAttribute("noautofocus", "true");
+      this._panel.setAttribute("noautohide", "true");
 
-  if (isLinux) {
-    this.canHide = false;
-    this._onpopuphiding = this._onpopuphiding.bind(this);
-    this._panel.addEventListener("popuphiding", this._onpopuphiding, true);
-  } else {
-    this._panel.setAttribute("noautofocus", "true");
-    this._panel.setAttribute("noautohide", "true");
+      // Bug 692348: On Windows and OSX if a panel has no content and no height
+      // openPopup fails to display it. Setting the height to 1px alows the panel
+      // to be displayed before has content or a real height i.e. the first time
+      // it is displayed.
+      this._panel.setAttribute("height", "1px");
+    }
 
-    // Bug 692348: On Windows and OSX if a panel has no content and no height
-    // openPopup fails to display it. Setting the height to 1px alows the panel
-    // to be displayed before has content or a real height i.e. the first time
-    // it is displayed.
-    this._panel.setAttribute("height", "1px");
-  }
+    this._toolbar.parentElement.insertBefore(this._panel, this._toolbar);
 
-  this._toolbar.parentElement.insertBefore(this._panel, this._toolbar);
+    this._frame = devtoolbar._doc.createElementNS(NS_XHTML, "iframe");
+    this._frame.id = "gcli-tooltip-frame";
+    this._frame.setAttribute("src", "chrome://devtools/content/commandline/commandlinetooltip.xhtml");
+    this._frame.setAttribute("flex", "1");
+    this._frame.setAttribute("sandbox", "allow-same-origin");
+    this._panel.appendChild(this._frame);
 
-  this._frame = devtoolbar._doc.createElementNS(NS_XHTML, "iframe");
-  this._frame.id = "gcli-tooltip-frame";
-  this._frame.setAttribute("src", "chrome://devtools/content/commandline/commandlinetooltip.xhtml");
-  this._frame.setAttribute("flex", "1");
-  this._frame.setAttribute("sandbox", "allow-same-origin");
-  this._panel.appendChild(this._frame);
+    /**
+     * Wire up the element from the iframe, and resolve the promise.
+     */
+    let onload = () => {
+      this._frame.removeEventListener("load", onload, true);
 
-  /**
-   * Wire up the element from the iframe, and resolve the promise.
-   */
-  let onload = () => {
-    this._frame.removeEventListener("load", onload, true);
+      this.document = this._frame.contentDocument;
+      this._copyTheme();
+      this.hintElement = this.document.getElementById("gcli-tooltip-root");
+      this._connector = this.document.getElementById("gcli-tooltip-connector");
 
-    this.document = this._frame.contentDocument;
-    this._copyTheme();
-    this.hintElement = this.document.getElementById("gcli-tooltip-root");
-    this._connector = this.document.getElementById("gcli-tooltip-connector");
+      let styles = this._toolbar.ownerDocument.defaultView
+                      .getComputedStyle(this._toolbar);
+      this.hintElement.setAttribute("dir", styles.direction);
 
-    let styles = this._toolbar.ownerDocument.defaultView
-                    .getComputedStyle(this._toolbar);
-    this.hintElement.setAttribute("dir", styles.direction);
-
-    deferred.resolve(this);
-  };
-  this._frame.addEventListener("load", onload, true);
-
-  return deferred.promise;
+      resolve(this);
+    };
+    this._frame.addEventListener("load", onload, true);
+  });
 };
 
 /* Copy the current devtools theme attribute into the iframe,
    so it can be styled correctly. */
 TooltipPanel.prototype._copyTheme = function () {
   if (this.document) {
-    let theme =
-      this._devtoolbar._doc.documentElement.getAttribute("devtoolstheme");
+    let theme = this._devtoolbar._doc.getElementById("browser-bottombox")
+                  .getAttribute("devtoolstheme");
     this.document.documentElement.setAttribute("devtoolstheme", theme);
   }
 };

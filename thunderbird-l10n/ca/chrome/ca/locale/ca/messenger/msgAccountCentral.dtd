@@ -26,3 +26,6 @@
 <!ENTITY filtersLink.label            "Crea filtres de missatge">
 <!ENTITY junkSettings.label           "Paràmetres del correu brossa…">
 <!ENTITY offlineLink.label            "Paràmetres de fora de línia">
+
+<!ENTITY setupNewAcct.label           "Set up an account:">
+

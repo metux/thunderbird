@@ -44,9 +44,8 @@
 
 
 
-<!ENTITY globalAddressingPrefs.accesskey      "P">
-
-<!ENTITY globalAddressingPrefs.label          "Global Addressing Preferences…">
+<!ENTITY globalComposingPrefs.label           "Global Composing Preferences…">
 <!ENTITY globalComposingPrefs.accesskey       "G">
 
-<!ENTITY globalComposingPrefs.label           "Global Composing Preferences…">
+<!ENTITY globalAddressingPrefs.label          "Global Addressing Preferences…">
+<!ENTITY globalAddressingPrefs.accesskey      "P">

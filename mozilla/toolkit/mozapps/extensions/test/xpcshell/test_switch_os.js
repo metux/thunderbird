@@ -13,20 +13,19 @@ profileDir.append("extensions");
 
 createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9.2");
 
-add_task(function*() {
+add_task(async function() {
   startupManager();
 
-  let install = yield new Promise(resolve => AddonManager.getInstallForFile(do_get_addon("test_bootstrap1_1"), resolve));
-  yield promiseCompleteAllInstalls([install]);
+  await promiseInstallFile(do_get_addon("test_bootstrap1_1"));
 
-  let addon = yield promiseAddonByID(ID);
+  let addon = await promiseAddonByID(ID);
   do_check_neq(addon, null);
 
   BootstrapMonitor.checkAddonStarted(ID);
   do_check_false(addon.userDisabled);
   do_check_true(addon.isActive);
 
-  yield promiseShutdownManager();
+  await promiseShutdownManager();
 
   BootstrapMonitor.checkAddonNotStarted(ID);
 
@@ -43,7 +42,7 @@ add_task(function*() {
 
   startupManager();
 
-  addon = yield promiseAddonByID(ID);
+  addon = await promiseAddonByID(ID);
   do_check_neq(addon, null);
 
   BootstrapMonitor.checkAddonStarted(ID);

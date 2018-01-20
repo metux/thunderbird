@@ -275,6 +275,14 @@ typedef struct SSLChannelInfoStr {
     SSLAuthType authType;
     SSLSignatureScheme signatureScheme;
 
+    /* The following fields were added in NSS 3.34. */
+    /* When the session was resumed this holds the key exchange group of the
+     * original handshake. */
+    SSLNamedGroup originalKeaGroup;
+    /* This field is PR_TRUE when the session is resumed and PR_FALSE
+     * otherwise. */
+    PRBool resumed;
+
     /* When adding new fields to this structure, please document the
      * NSS version in which they were added. */
 } SSLChannelInfo;
@@ -297,6 +305,21 @@ typedef struct SSLPreliminaryChannelInfoStr {
     PRUint16 protocolVersion;
     /* Cipher suite: test (valuesSet & ssl_preinfo_cipher_suite) */
     PRUint16 cipherSuite;
+
+    /* The following fields were added in NSS 3.29. */
+    /* |canSendEarlyData| is true when a 0-RTT is enabled. This can only be
+     * true after sending the ClientHello and before the handshake completes.
+     */
+    PRBool canSendEarlyData;
+
+    /* The following fields were added in NSS 3.31. */
+    /* The number of early data octets that a client is permitted to send on
+     * this connection.  The value will be zero if the connection was not
+     * resumed or early data is not permitted.  For a client, this value only
+     * has meaning if |canSendEarlyData| is true.  For a server, this indicates
+     * the value that was advertised in the session ticket that was used to
+     * resume this session. */
+    PRUint32 maxEarlyDataSize;
 
     /* When adding new fields to this structure, please document the
      * NSS version in which they were added. */
@@ -395,11 +418,10 @@ typedef enum {
 /* This is the old name for the supported_groups extensions. */
 #define ssl_elliptic_curves_xtn ssl_supported_groups_xtn
 
-/* SSL_MAX_EXTENSIONS doesn't include ssl_padding_xtn.  It includes the maximum
- * number of extensions that are supported for any single message type.  That
- * is, a ClientHello; ServerHello and TLS 1.3 NewSessionTicket and
- * HelloRetryRequest extensions are smaller. */
-#define SSL_MAX_EXTENSIONS 19
+/* SSL_MAX_EXTENSIONS includes the maximum number of extensions that are
+ * supported for any single message type.  That is, a ClientHello; ServerHello
+ * and TLS 1.3 NewSessionTicket and HelloRetryRequest extensions have fewer. */
+#define SSL_MAX_EXTENSIONS 20
 
 /* Deprecated */
 typedef enum {

@@ -1,11 +1,9 @@
-/*
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
-*/
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /*
- * On Vista, the emptytext style would appear to use italics.  This is causing
+ * The emptytext style would appear to use italics.  This is causing
  * problems for the search box because it has no minwidth and is flexy, so
  * removing the emptytext causes the size of the box to change and this is silly
  * and undesirable.  This change is being made to maintain the generally
@@ -28,39 +26,38 @@
   margin-inline-end: 2px;
 }
 
-.gloda-search-icon {
-  list-style-image: url(chrome://global/skin/icons/Search-glass.png);
-  -moz-image-region: rect(0, 16px, 16px, 0);
+.searchBox > hbox {
+  -moz-box-ordinal-group: 1;
 }
 
-.gloda-search-icon:-moz-locale-dir(rtl) {
-  transform: scaleX(-1);
+.searchBox > .textbox-input-box {
+  -moz-box-ordinal-group: 2;
 }
 
-.gloda-search-icon[searchbutton]:not([disabled]) {
-  cursor: pointer;
+.gloda-search-icon,
+.textbox-search-icon[searchbutton],
+textbox:not([searchbutton]) > .textbox-input-box > .textbox-search-sign {
+  list-style-image: url(chrome://messenger/skin/icons/search-glass.svg);
+  -moz-context-properties: fill;
+  fill: currentColor;
+  opacity: 0.54;
 }
 
-.gloda-search-icon[searchbutton]:not([disabled]):hover {
-  -moz-image-region: rect(0, 32px, 16px, 16px);
+.textbox-search-clear {
+  list-style-image: url(chrome://messenger/skin/icons/search-close.svg);
+  -moz-context-properties: fill;
+  fill: currentColor;
+  opacity: 0.8;
 }
 
-.gloda-search-icon[searchbutton]:not([disabled]):hover:active {
-  -moz-image-region: rect(0, 48px, 16px, 32px);
+.textbox-search-clear:not([disabled]):hover {
+  -moz-image-region: auto;
+  opacity: 1;
 }
 
-
-/* things from xul.css that only exist if Thunderbird did not define
- * AUTOCOMPLETE_OLD_STYLE
- */
-
-.autocomplete-history-dropmarker {
-  display: none;
-}
-
-.autocomplete-history-dropmarker[enablehistory="true"] {
-  display: -moz-box;
-  -moz-binding: url("chrome://global/content/bindings/autocomplete.xml#history-dropmarker");
+.textbox-search-clear:not([disabled]):hover:active {
+  -moz-image-region: auto;
+  transform: scale(0.8);
 }
 
 .remote-gloda-search-container {
@@ -72,100 +69,53 @@
 #view-task-edit-field,
 #unifinder-task-edit-field {
   -moz-appearance: none;
-  border: 1px solid ThreeDShadow;
+  background-clip: padding-box;
+  border: 1px solid hsla(240,5%,5%,.25);
+  border-radius: 2px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
   padding-inline-end: 2px;
   padding-inline-start: 2px;
+  min-height: 24px;
+  margin-top: 1px;
+  margin-bottom: 1px;
+  width: 25em;
 }
 
-@media (-moz-os-version: windows-xp) {
-  .remote-gloda-search-container {
-    padding-top: 6px;
-    padding-bottom: 5px;
-  }
-
-  .searchBox,
-  #view-task-edit-field,
-  #unifinder-task-edit-field {
-    min-height: 22px;
-  }
-}
-
-@media not all and (-moz-os-version: windows-xp) {
-  .searchBox,
-  #view-task-edit-field,
-  #unifinder-task-edit-field {
-    background-clip: padding-box;
-    min-height: 24px;
-    margin-top: 1px;
-    margin-bottom: 1px;
-    width: 25em;
-  }
-
-  #searchInput,
-  #IMSearchInput,
-  #peopleSearchInput {
-    margin-top: -1px;
-    margin-bottom: -1px;
-  }
-
-  .searchBox[focused],
-  #view-task-edit-field[focused],
-  #unifinder-task-edit-field[focused] {
-    border-color: Highlight;
+@media (-moz-windows-default-theme: 0) {
+  .searchBox:not(:-moz-lwtheme):not([focused="true"]),
+  #view-task-edit-field:not(:-moz-lwtheme):not([focused="true"]),
+  #unifinder-task-edit-field:not(:-moz-lwtheme):not([focused="true"]) {
+    border-color: ThreeDShadow;
   }
 }
 
-@media (-moz-windows-default-theme) and (-moz-os-version: windows-vista),
-       (-moz-windows-default-theme) and (-moz-os-version: windows-win7) {
-  .searchBox,
-  #view-task-edit-field,
-  #unifinder-task-edit-field {
-    border-radius: 2px;
-  }
+/* Add margins to show the hover box-shadow */
+#searchInput,
+#IMSearchInput,
+#peopleSearchInput {
+  margin-top: 3px;
+  margin-bottom: 3px;
 }
 
-@media (-moz-windows-default-theme) and (-moz-os-version: windows-vista),
-       (-moz-windows-default-theme) and (-moz-os-version: windows-win7),
-       (-moz-windows-default-theme) and (-moz-os-version: windows-win8) {
-  .searchBox,
-  #view-task-edit-field,
-  #unifinder-task-edit-field {
-    border-color: hsla(210, 54%, 20%, .25) hsla(210, 54%, 20%, .27)
-                  hsla(210, 54%, 20%, .3);
-    box-shadow: 0 1px 0 hsla(0, 0%, 0%, .01) inset,
-                0 1px 0 hsla(0, 0%, 100%, .1);
-  }
-
-  .searchBox:hover,
-  #view-task-edit-field:hover,
-  #unifinder-task-edit-field:hover {
-    border-color: hsla(210, 54%, 20%, .35) hsla(210, 54%, 20%, .37)
-                  hsla(210, 54%, 20%, .4);
-  }
+/* Balance the margins from child's textbox */
+#gloda-search,
+#gloda-im-search,
+#search-container {
+  margin-top: -3px;
+  margin-bottom: -3px;
 }
 
-@media (-moz-windows-default-theme) and (-moz-os-version: windows-win10) {
-  .searchBox,
-  #view-task-edit-field,
-  #unifinder-task-edit-field {
-    border-radius: 1px;
-    border-color: hsl(0, 0%, 90%);
-    transition-property: border-color;
-    transition-duration: .1s;
-  }
+.searchBox:hover,
+#view-task-edit-field:hover,
+#unifinder-task-edit-field:hover {
+  border-color: hsla(240,5%,5%,.35);
+  box-shadow: 0 1px 6px rgba(0,0,0,.1);
+}
 
-  .searchBox:hover,
-  #view-task-edit-field:hover,
-  #unifinder-task-edit-field:hover {
-    border-color: hsl(0, 0%, 80%);
-  }
-
-  .searchBox[focused],
-  #view-task-edit-field[focused],
-  #unifinder-task-edit-field[focused] {
-    border-color: Highlight;
-    box-shadow: 0 0 0 1px Highlight inset;
-  }
+.searchBox[focused="true"],
+#view-task-edit-field[focused="true"],
+#unifinder-task-edit-field[focused="true"]  {
+  border-color: Highlight;
 }
 
 /* special treatment because this boxes are on the main toolbars */
@@ -173,47 +123,56 @@
 #IMSearchInput,
 #peopleSearchInput,
 .remote-gloda-search {
-  min-height: 28px;
+  min-height: 26px;
 }
 
 #searchInput:-moz-lwtheme,
 #IMSearchInput:-moz-lwtheme,
 #peopleSearchInput:-moz-lwtheme,
 .remote-gloda-search:-moz-lwtheme {
-  border-color: rgba(0, 0, 0, .32);
-  color: black;
+  background-color: var(--url-and-searchbar-background-color, hsla(0,0%,100%,.8));
+  color: var(--url-and-searchbar-color, black);
 }
 
 #searchInput:-moz-lwtheme:hover,
+#searchInput:-moz-lwtheme[focused="true"],
 #IMSearchInput:-moz-lwtheme:hover,
+#IMSearchInput:-moz-lwtheme[focused="true"],
 #peopleSearchInput:-moz-lwtheme:hover,
-.remote-gloda-search:-moz-lwtheme:hover {
-  background-color: rgba(255,255,255,.9);
+#peopleSearchInput:-moz-lwtheme[focused="true"],
+.remote-gloda-search:-moz-lwtheme:hover,
+.remote-gloda-search:-moz-lwtheme[focused="true"] {
+  background-color: var(--url-and-searchbar-background-color, white);
 }
 
-#searchInput:-moz-lwtheme:not([focused]),
-#IMSearchInput:-moz-lwtheme:not([focused]),
-#peopleSearchInput:-moz-lwtheme:not([focused]),
-.remote-gloda-search:-moz-lwtheme:not([focused]) {
-  opacity: .85;
+#PopupGlodaAutocomplete {
+  -moz-appearance: none;
+  margin-top: -1px;
+  border-width: 1px;
+  -moz-border-top-colors: ThreeDShadow;
+  -moz-border-right-colors: ThreeDShadow;
+  -moz-border-bottom-colors: ThreeDShadow;
+  -moz-border-left-colors: ThreeDShadow;
+  background-color: -moz-Field;
+  color: -moz-FieldText;
 }
 
-#searchInput:-moz-lwtheme[focused],
-#IMSearchInput:-moz-lwtheme[focused],
-#peopleSearchInput:-moz-lwtheme[focused],
-.remote-gloda-search:-moz-lwtheme[focused] {
-  box-shadow: none;
-  border-color: rgba(0, 0, 0, .32);
-  background-color: white;
+#PopupGlodaAutocomplete > .autocomplete-richlistbox {
+  padding: 2px 0;
 }
 
-@media (-moz-windows-glass) {
-  #tabbar-toolbar #searchInput:not(:-moz-lwtheme):not([focused]) {
-    background-color: rgba(255, 255, 255, .725);
-    border-color: rgba(0, 0, 0, .32);
-  }
+.autocomplete-richlistitem[type^="gloda-"] {
+  margin-right: 2px;
+  margin-left: 2px;
+  padding-inline-start: 7px;
+  border-radius: 2px;
+}
 
-  #tabbar-toolbar #searchInput:not(:-moz-lwtheme):not([focused]):hover {
-    background-color: rgba(255, 255, 255, .9);
-  }
+.autocomplete-richlistitem[type^="gloda-"]:hover {
+  background-color: hsla(0,0%,80%,.3);
+}
+
+.autocomplete-richlistitem[type^="gloda-"][selected] {
+  background-color: Highlight;
+  color: HighlightText;
 }

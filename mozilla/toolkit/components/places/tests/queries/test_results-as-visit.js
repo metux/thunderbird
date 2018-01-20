@@ -37,15 +37,9 @@ function createTestData() {
 /**
  * This test will test Queries that use relative search terms and URI options
  */
-function run_test()
-{
-  run_next_test();
-}
-
-add_task(function* test_results_as_visit()
-{
+add_task(async function test_results_as_visit() {
    createTestData();
-   yield task_populateDB(testData);
+   await task_populateDB(testData);
    var query = PlacesUtils.history.getNewQuery();
    query.searchTerms = "moz";
    query.minVisits = 2;
@@ -61,7 +55,7 @@ add_task(function* test_results_as_visit()
    root.containerOpen = true;
 
    do_print("Number of items in result set: " + root.childCount);
-   for (let i=0; i < root.childCount; ++i) {
+   for (let i = 0; i < root.childCount; ++i) {
      do_print("result: " + root.getChild(i).uri + " Title: " + root.getChild(i).title);
    }
 
@@ -70,15 +64,15 @@ add_task(function* test_results_as_visit()
 
    // If that passes, check liveupdate
    // Add to the query set
-   do_print("Adding item to query")
+   do_print("Adding item to query");
    var tmp = [];
-   for (let i=0; i < 2; i++) {
+   for (let i = 0; i < 2; i++) {
      tmp.push({ isVisit: true,
                 uri: "http://foo.com/added.html",
                 title: "ab moz" });
    }
-   yield task_populateDB(tmp);
-   for (let i=0; i < 2; i++)
+   await task_populateDB(tmp);
+   for (let i = 0; i < 2; i++)
      do_check_eq(root.getChild(i).title, "ab moz");
 
    // Update an existing URI
@@ -86,7 +80,7 @@ add_task(function* test_results_as_visit()
    var change2 = [{ isVisit: true,
                     title: "moz",
                     uri: "http://foo.mail.com/changeme2.html" }];
-   yield task_populateDB(change2);
+   await task_populateDB(change2);
    do_check_true(isInResult(change2, root));
 
    // Update some visits - add one and take one out of query set, and simply
@@ -102,7 +96,7 @@ add_task(function* test_results_as_visit()
                     title: "moz",
                     isTag: true,
                     tagArray: ["foo", "moz"] }];
-   yield task_populateDB(change3);
+   await task_populateDB(change3);
    do_check_false(isInResult({uri: "http://foo.mail.com/changeme1.html"}, root));
    do_check_true(isInResult({uri: "http://foo.mail.com/changeme3.html"}, root));
 
@@ -112,7 +106,7 @@ add_task(function* test_results_as_visit()
                     lastVisit: newTimeInMicroseconds(),
                     uri: "http://moilla.com/",
                     title: "mo,z" }];
-   yield task_populateDB(change4);
+   await task_populateDB(change4);
    do_check_false(isInResult(change4, root));
 
    root.containerOpen = false;

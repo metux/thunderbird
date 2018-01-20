@@ -2,7 +2,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
       package="@ANDROID_PACKAGE_NAME@"
-      android:installLocation="auto"
+      android:installLocation="internalOnly"
       android:versionCode="@ANDROID_VERSION_CODE@"
       android:versionName="@MOZ_APP_VERSION@"
 #ifdef MOZ_ANDROID_SHARED_ID
@@ -13,13 +13,13 @@
 #ifdef MOZ_ANDROID_MAX_SDK_VERSION
               android:maxSdkVersion="@MOZ_ANDROID_MAX_SDK_VERSION@"
 #endif
-              android:targetSdkVersion="23"/>
+              android:targetSdkVersion="@ANDROID_TARGET_SDK@"/>
 
-<!-- The bouncer APK and the main APK should define the same set of
-     <permission>, <uses-permission>, and <uses-feature> elements.  This reduces
-     the likelihood of permission-related surprises when installing the main APK
-     on top of a pre-installed bouncer APK.  Add such shared elements in the
-     fileincluded here, so that they can be referenced by both APKs. -->
+
+<!--
+    The separated permission file is for bouncer.apk. Since it's removed,
+     we can merge the permission declaration back. See Bug 1411809.
+ -->
 #include FennecManifest_permissions.xml.in
 
     <application android:label="@string/moz_app_displayname"
@@ -27,6 +27,7 @@
                  android:logo="@drawable/logo"
                  android:name="@MOZ_ANDROID_APPLICATION_CLASS@"
                  android:hardwareAccelerated="true"
+                 android:supportsRtl="true"
                  android:allowBackup="false"
 # The preprocessor does not yet support arbitrary parentheses, so this cannot
 # be parenthesized thus to clarify that the logical AND operator has precedence:
@@ -38,6 +39,8 @@
 #endif
 
         <meta-data android:name="com.sec.android.support.multiwindow" android:value="true"/>
+
+        <meta-data android:name="android.max_aspect" android:value="2.1"/>
 
 #ifdef MOZ_NATIVE_DEVICES
         <!-- This resources comes from Google Play Services. Required for casting support. -->
@@ -51,6 +54,7 @@
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:relinquishTaskIdentity="true"
             android:taskAffinity=""
+            android:exported="true"
             android:excludeFromRecents="true" />
 
         <!-- Fennec is shipped as the Android package named
@@ -94,6 +98,7 @@
                 <data android:scheme="https" />
                 <data android:scheme="about" />
                 <data android:scheme="javascript" />
+                <data android:scheme="firefox" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -105,6 +110,7 @@
                 <data android:mimeType="text/html"/>
                 <data android:mimeType="text/plain"/>
                 <data android:mimeType="application/xhtml+xml"/>
+                <data android:mimeType="image/svg+xml"/>
             </intent-filter>
 
             <meta-data android:name="com.sec.minimode.icon.portrait.normal"
@@ -230,11 +236,9 @@
         </service>
 
         <service android:name="org.mozilla.gecko.media.MediaControlService"
-                 android:exported="false">
+                 android:exported="false"
+                 android:stopWithTask="true">
         </service>
-
-        <receiver android:name="org.mozilla.gecko.AlarmReceiver" >
-        </receiver>
 
         <receiver
             android:name="org.mozilla.gecko.notifications.WhatsNewReceiver"
@@ -259,11 +263,8 @@
         </receiver>
 
 #include ../services/manifests/FxAccountAndroidManifest_activities.xml.in
-#ifdef MOZ_ANDROID_SEARCH_ACTIVITY
-#include ../search/manifests/SearchAndroidManifest_activities.xml.in
-#endif
 
-#if MOZ_CRASHREPORTER
+#ifdef MOZ_CRASHREPORTER
   <activity android:name="org.mozilla.gecko.CrashReporter"
             android:process="@ANDROID_PACKAGE_NAME@.CrashReporter"
             android:label="@string/crash_reporter_title"
@@ -309,10 +310,19 @@
 
         </activity>
 
-#ifdef MOZ_ANDROID_CUSTOM_TABS
         <activity android:name="org.mozilla.gecko.customtabs.CustomTabsActivity"
+                  android:configChanges="keyboard|keyboardHidden|mcc|mnc|orientation|screenSize|locale|layoutDirection|smallestScreenSize|screenLayout"
+                  android:windowSoftInputMode="stateUnspecified|adjustResize"
+                  android:theme="@style/GeckoCustomTabs" />
+
+        <activity android:name="org.mozilla.gecko.webapps.WebAppActivity"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
-#endif
+
+        <!-- Declare a predefined number of WebApp<num> activities. These are
+             used so that each web app can launch in its own activity. -->
+#define FRAGMENT WebAppManifestFragment.xml.frag.in
+#include WebAppFragmentRepeater.inc
+
 
         <!-- Service to handle requests from overlays. -->
         <service android:name="org.mozilla.gecko.overlays.service.OverlayActionService" />
@@ -372,28 +382,11 @@
             android:name="org.mozilla.gecko.dlc.DownloadContentService">
         </service>
 
-        <service
-            android:exported="false"
-            android:name="org.mozilla.gecko.feeds.FeedService">
-        </service>
-
         <!-- DON'T EXPORT THIS, please! An attacker could delete arbitrary files. -->
         <service
             android:exported="false"
             android:name="org.mozilla.gecko.cleanup.FileCleanupService">
         </service>
-
-        <receiver
-            android:name="org.mozilla.gecko.feeds.FeedAlarmReceiver"
-            android:exported="false" />
-
-        <receiver
-            android:name="org.mozilla.gecko.BootReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED"></action>
-            </intent-filter>
-        </receiver>
 
         <receiver
             android:name="org.mozilla.gecko.PackageReplacedReceiver"
@@ -407,7 +400,6 @@
           android:name="org.mozilla.gecko.telemetry.TelemetryUploadService"
           android:exported="false"/>
 
-#ifdef MOZ_ANDROID_CUSTOM_TABS
         <service
             android:name="org.mozilla.gecko.customtabs.GeckoCustomTabsService"
             android:exported="true">
@@ -415,7 +407,6 @@
                 <action android:name="android.support.customtabs.action.CustomTabsService" />
             </intent-filter>
         </service>
-#endif
 
 #include ../services/manifests/FxAccountAndroidManifest_services.xml.in
 
@@ -424,9 +415,6 @@
             android:exported="false" />
 
 
-#ifdef MOZ_ANDROID_SEARCH_ACTIVITY
-#include ../search/manifests/SearchAndroidManifest_services.xml.in
-#endif
 #ifdef MOZ_ANDROID_MLS_STUMBLER
 #include ../stumbler/manifests/StumblerManifest_services.xml.in
 #endif
@@ -442,6 +430,34 @@
             android:process=":media"
             android:isolatedProcess="false">
         </service>
+
+        <!-- New child services must also be added to the GeckoView AndroidManifest.xml -->
+        <service
+            android:name="org.mozilla.gecko.process.GeckoServiceChildProcess$geckomediaplugin"
+            android:enabled="true"
+            android:exported="false"
+            android:process=":geckomediaplugin"
+            android:isolatedProcess="false">
+        </service>
+
+        <service
+            android:name="org.mozilla.gecko.process.GeckoServiceChildProcess$tab"
+            android:enabled="true"
+            android:exported="false"
+            android:process=":tab"
+            android:isolatedProcess="false">
+        </service>
+
+        <service
+            android:name="org.mozilla.gecko.gfx.SurfaceAllocatorService"
+            android:enabled="true"
+            android:exported="false"
+            android:isolatedProcess="false">
+        </service>
+
+#ifdef MOZ_ANDROID_MMA
+#include MmaAndroidManifest_services.xml.in
+#endif
 
     </application>
 </manifest>

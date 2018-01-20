@@ -1,9 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
-
-/* This Source Code is subject to the terms of the Mozilla Public License
- * version 2.0 (the "License"). You can obtain a copy of the License at
- * http://mozilla.org/MPL/2.0/. */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /* rendering object for CSS "display: flex" and "display: -webkit-box" */
 
@@ -41,10 +40,10 @@ nsContainerFrame* NS_NewFlexContainerFrame(nsIPresShell* aPresShell,
  * layout here as well (since that's what the -webkit versions are aliased to)
  * -- but only inside of a "display:-webkit-{inline-}box" container.)
  */
-class nsFlexContainerFrame : public nsContainerFrame {
+class nsFlexContainerFrame final : public nsContainerFrame
+{
 public:
-  NS_DECL_FRAMEARENA_HELPERS
-  NS_DECL_QUERYFRAME_TARGET(nsFlexContainerFrame)
+  NS_DECL_FRAMEARENA_HELPERS(nsFlexContainerFrame)
   NS_DECL_QUERYFRAME
 
   // Factory method:
@@ -56,29 +55,28 @@ public:
   class FlexLine;
   class FlexboxAxisTracker;
   struct StrutInfo;
+  class CachedMeasuringReflowResult;
 
   // nsIFrame overrides
   void Init(nsIContent*       aContent,
             nsContainerFrame* aParent,
             nsIFrame*         aPrevInFlow) override;
 
-  virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) override;
+  void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                        const nsDisplayListSet& aLists) override;
 
-  virtual void Reflow(nsPresContext*           aPresContext,
-                      ReflowOutput&     aDesiredSize,
-                      const ReflowInput& aReflowInput,
-                      nsReflowStatus&          aStatus) override;
+  void MarkIntrinsicISizesDirty() override;
 
-  virtual nscoord
-    GetMinISize(nsRenderingContext* aRenderingContext) override;
-  virtual nscoord
-    GetPrefISize(nsRenderingContext* aRenderingContext) override;
+  void Reflow(nsPresContext* aPresContext,
+              ReflowOutput& aDesiredSize,
+              const ReflowInput& aReflowInput,
+              nsReflowStatus& aStatus) override;
 
-  virtual nsIAtom* GetType() const override;
+  nscoord GetMinISize(gfxContext* aRenderingContext) override;
+  nscoord GetPrefISize(gfxContext* aRenderingContext) override;
+
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const override;
+  nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
   nscoord GetLogicalBaseline(mozilla::WritingMode aWM) const override;
@@ -132,10 +130,11 @@ public:
 protected:
   // Protected constructor & destructor
   explicit nsFlexContainerFrame(nsStyleContext* aContext)
-    : nsContainerFrame(aContext)
+    : nsContainerFrame(aContext, kClassID)
     , mBaselineFromLastReflow(NS_INTRINSIC_WIDTH_UNKNOWN)
     , mLastBaselineFromLastReflow(NS_INTRINSIC_WIDTH_UNKNOWN)
   {}
+
   virtual ~nsFlexContainerFrame();
 
   /*
@@ -193,6 +192,18 @@ protected:
                                      nsIFrame* aChildFrame,
                                      const ReflowInput& aParentReflowInput,
                                      const FlexboxAxisTracker& aAxisTracker);
+
+  /**
+   * This method gets a cached measuring reflow for a flex item, or does it and
+   * caches it.
+   *
+   * This avoids exponential reflows, see the comment on
+   * CachedMeasuringReflowResult.
+   */
+  const CachedMeasuringReflowResult& MeasureAscentAndHeightForFlexItem(
+    FlexItem& aItem,
+    nsPresContext* aPresContext,
+    ReflowInput& aChildReflowInput);
 
   /**
    * This method performs a "measuring" reflow to get the content height of
@@ -315,9 +326,6 @@ protected:
                           nsTArray<nsIFrame*>& aPlaceholders,
                           const mozilla::LogicalPoint& aContentBoxOrigin,
                           const nsSize& aContainerSize);
-
-  bool mChildrenHaveBeenReordered; // Have we ever had to reorder our kids
-                                   // to satisfy their 'order' values?
 
   nscoord mBaselineFromLastReflow;
   // Note: the last baseline is a distance from our border-box end edge.

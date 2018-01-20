@@ -9,6 +9,7 @@
 
 #include "angle_gl.h"
 #include "libANGLE/angletypes.h"
+#include "libANGLE/Version.h"
 
 #include <map>
 #include <set>
@@ -18,6 +19,8 @@
 
 namespace gl
 {
+
+struct Extensions;
 
 typedef std::set<GLuint> SupportedSampleSet;
 
@@ -45,6 +48,10 @@ struct TextureCaps
     GLuint getNearestSamples(GLuint requestedSamples) const;
 };
 
+TextureCaps GenerateMinimumTextureCaps(GLenum internalFormat,
+                                       const Version &clientVersion,
+                                       const Extensions &extensions);
+
 class TextureCapsMap
 {
   public:
@@ -65,6 +72,9 @@ class TextureCapsMap
     typedef std::map<GLenum, TextureCaps> InternalFormatToCapsMap;
     InternalFormatToCapsMap mCapsMap;
 };
+
+TextureCapsMap GenerateMinimumTextureCapsMap(const Version &clientVersion,
+                                             const Extensions &extensions);
 
 struct Extensions
 {
@@ -144,11 +154,17 @@ struct Extensions
     bool textureRG;
 
     // GL_EXT_texture_compression_dxt1, GL_ANGLE_texture_compression_dxt3 and GL_ANGLE_texture_compression_dxt5
-    // Implies that TextureCaps for GL_COMPRESSED_RGB_S3TC_DXT1_EXT, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT
+    // Implies that TextureCaps exist for GL_COMPRESSED_RGB_S3TC_DXT1_EXT, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT
     // GL_COMPRESSED_RGBA_S3TC_DXT3_ANGLE and GL_COMPRESSED_RGBA_S3TC_DXT5_ANGLE
     bool textureCompressionDXT1;
     bool textureCompressionDXT3;
     bool textureCompressionDXT5;
+
+    // GL_EXT_texture_compression_s3tc_srgb
+    // Implies that TextureCaps exist for GL_COMPRESSED_SRGB_S3TC_DXT1_EXT,
+    // GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT, and
+    // GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT
+    bool textureCompressionS3TCsRGB;
 
     // GL_KHR_texture_compression_astc_hdr
     bool textureCompressionASTCHDR;
@@ -202,6 +218,9 @@ struct Extensions
     // GL_EXT_robustness
     bool robustness;
 
+    // GL_KHR_robust_buffer_access_behavior
+    bool robustBufferAccessBehavior;
+
     // GL_EXT_blend_minmax
     bool blendMinMax;
 
@@ -234,6 +253,10 @@ struct Extensions
 
     // GL_EXT_frag_depth
     bool fragDepth;
+
+    // ANGLE_multiview
+    bool multiview;
+    GLuint maxViews;
 
     // GL_ANGLE_texture_usage
     bool textureUsage;
@@ -299,6 +322,9 @@ struct Extensions
     // GL_ANGLE_webgl_compatibility
     bool webglCompatibility;
 
+    // GL_ANGLE_request_extension
+    bool requestExtension;
+
     // GL_CHROMIUM_bind_generates_resource
     bool bindGeneratesResource;
 
@@ -310,6 +336,12 @@ struct Extensions
 
     // GL_EXT_sRGB_write_control
     bool sRGBWriteControl;
+
+    // GL_CHROMIUM_color_buffer_float_rgb
+    bool colorBufferFloatRGB;
+
+    // GL_CHROMIUM_color_buffer_float_rgba
+    bool colorBufferFloatRGBA;
 
     // ES3 Extension support
 
@@ -329,12 +361,27 @@ struct Extensions
 
     // GL_CHROMIUM_path_rendering
     bool pathRendering;
+
+    // GL_OES_surfaceless_context
+    bool surfacelessContext;
+
+    // GL_ANGLE_client_arrays
+    bool clientArrays;
+
+    // GL_ANGLE_robust_resource_initialization
+    bool robustResourceInitialization;
+
+    // GL_ANGLE_program_cache_control
+    bool programCacheControl;
+
+    // GL_ANGLE_texture_rectangle
+    bool textureRectangle;
 };
 
 struct ExtensionInfo
 {
-    // If this extension can be enabled with glEnableExtension (GL_ANGLE_webgl_compatibility)
-    bool Enableable = false;
+    // If this extension can be enabled with glRequestExtension (GL_ANGLE_request_extension)
+    bool Requestable = false;
 
     // Pointer to a boolean member of the Extensions struct
     typedef bool(Extensions::*ExtensionBool);
@@ -374,11 +421,12 @@ struct TypePrecision
 
     void setIEEEFloat();
     void setTwosComplementInt(unsigned int bits);
+    void setSimulatedFloat(unsigned int range, unsigned int precision);
     void setSimulatedInt(unsigned int range);
 
     void get(GLint *returnRange, GLint *returnPrecision) const;
 
-    GLint range[2];
+    std::array<GLint, 2> range;
     GLint precision;
 };
 
@@ -390,6 +438,7 @@ struct Caps
     GLuint64 maxElementIndex;
     GLuint max3DTextureSize;
     GLuint max2DTextureSize;
+    GLuint maxRectangleTextureSize;
     GLuint maxArrayTextureLayers;
     GLfloat maxLODBias;
     GLuint maxCubeMapTextureSize;
@@ -415,7 +464,7 @@ struct Caps
 
     // ES 3.1 (April 29, 2015) Table 20.41: Implementation dependent values (cont.)
     GLint maxVertexAttribRelativeOffset;
-    GLint maxVertexAttribBindings;
+    GLuint maxVertexAttribBindings;
     GLint maxVertexAttribStride;
     GLuint maxElementsIndices;
     GLuint maxElementsVertices;
@@ -510,6 +559,7 @@ struct Caps
     GLuint maxSamples;
 };
 
+Caps GenerateMinimumCaps(const Version &clientVersion);
 }
 
 namespace egl
@@ -614,8 +664,26 @@ struct DisplayExtensions
     // EGL_CHROMIUM_create_context_bind_generates_resource
     bool createContextBindGeneratesResource;
 
+    // EGL_CHROMIUM_get_sync_values
+    bool getSyncValues;
+
     // EGL_EXT_swap_buffers_with_damage
     bool swapBuffersWithDamage;
+
+    // EGL_EXT_pixel_format_float
+    bool pixelFormatFloat;
+
+    // EGL_KHR_surfaceless_context
+    bool surfacelessContext;
+
+    // EGL_ANGLE_display_texture_share_group
+    bool displayTextureShareGroup;
+
+    // EGL_ANGLE_create_context_client_arrays
+    bool createContextClientArrays;
+
+    // EGL_ANGLE_program_cache_control
+    bool programCacheControl;
 };
 
 struct DeviceExtensions
@@ -657,6 +725,9 @@ struct ClientExtensions
     // EGL_ANGLE_platform_angle_null
     bool platformANGLENULL;
 
+    // EGL_ANGLE_platform_angle_vulkan
+    bool platformANGLEVulkan;
+
     // EGL_ANGLE_device_creation
     bool deviceCreation;
 
@@ -671,8 +742,11 @@ struct ClientExtensions
 
     // EGL_KHR_client_get_all_proc_addresses
     bool clientGetAllProcAddresses;
+
+    // EGL_ANGLE_display_robust_resource_initialization
+    bool displayRobustResourceInitialization;
 };
 
-}
+}  // namespace egl
 
 #endif // LIBANGLE_CAPS_H_

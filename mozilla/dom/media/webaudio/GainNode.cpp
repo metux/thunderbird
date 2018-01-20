@@ -18,7 +18,7 @@ namespace dom {
 NS_IMPL_CYCLE_COLLECTION_INHERITED(GainNode, AudioNode,
                                    mGain)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(GainNode)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(GainNode)
 NS_INTERFACE_MAP_END_INHERITING(AudioNode)
 
 NS_IMPL_ADDREF_INHERITED(GainNode, AudioNode)
@@ -101,7 +101,7 @@ public:
   size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const override
   {
     // Not owned:
-    // - mDestination (probably)
+    // - mDestination - MediaStreamGraphImpl::CollectSizesForMemoryReport() accounts for mDestination.
     // - mGain - Internal ref owned by AudioNode
     return AudioNodeEngine::SizeOfExcludingThis(aMallocSizeOf);
   }
@@ -111,7 +111,7 @@ public:
     return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
   }
 
-  AudioNodeStream* mDestination;
+  RefPtr<AudioNodeStream> mDestination;
   AudioParamTimeline mGain;
 };
 
@@ -120,7 +120,7 @@ GainNode::GainNode(AudioContext* aContext)
               2,
               ChannelCountMode::Max,
               ChannelInterpretation::Speakers)
-  , mGain(new AudioParam(this, GainNodeEngine::GAIN, 1.0f, "gain"))
+  , mGain(new AudioParam(this, GainNodeEngine::GAIN, "gain", 1.0f))
 {
   GainNodeEngine* engine = new GainNodeEngine(this, aContext->Destination());
   mStream = AudioNodeStream::Create(aContext, engine,
@@ -128,8 +128,24 @@ GainNode::GainNode(AudioContext* aContext)
                                     aContext->Graph());
 }
 
-GainNode::~GainNode()
+/* static */ already_AddRefed<GainNode>
+GainNode::Create(AudioContext& aAudioContext,
+                 const GainOptions& aOptions,
+                 ErrorResult& aRv)
 {
+  if (aAudioContext.CheckClosed(aRv)) {
+    return nullptr;
+  }
+
+  RefPtr<GainNode> audioNode = new GainNode(&aAudioContext);
+
+  audioNode->Initialize(aOptions, aRv);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+
+  audioNode->Gain()->SetValue(aOptions.mGain);
+  return audioNode.forget();
 }
 
 size_t

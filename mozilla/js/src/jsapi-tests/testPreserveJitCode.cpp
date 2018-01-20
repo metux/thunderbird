@@ -37,7 +37,7 @@ testPreserveJitCode(bool preserveJitCode, unsigned remainingIonScripts)
 {
     cx->options().setBaseline(true);
     cx->options().setIon(true);
-    cx->setOffthreadIonCompilationEnabled(false);
+    cx->runtime()->setOffthreadIonCompilationEnabled(false);
 
     RootedObject global(cx, createTestGlobal(preserveJitCode));
     CHECK(global);
@@ -91,7 +91,7 @@ createTestGlobal(bool preserveJitCode)
 {
     JS::CompartmentOptions options;
     options.creationOptions().setPreserveJitCode(preserveJitCode);
-    options.behaviors().setVersion(JSVERSION_LATEST);
+    options.behaviors().setVersion(JSVERSION_DEFAULT);
     return JS_NewGlobalObject(cx, getGlobalClass(), nullptr, JS::FireOnNewGlobalHook, options);
 }
 END_TEST(test_PreserveJitCode)

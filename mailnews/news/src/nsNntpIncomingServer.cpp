@@ -105,10 +105,6 @@ nsNntpIncomingServer::nsNntpIncomingServer()
   mPostingAllowed = false;
   mLastUpdatedTime = 0;
 
-  // these atoms are used for subscribe search
-  mSubscribedAtom = MsgGetAtom("subscribed");
-  mNntpAtom = MsgGetAtom("nntp");
-
   // we have server wide and per group filters
   m_canHaveFilters = true;
 
@@ -142,8 +138,6 @@ nsNntpIncomingServer::CreateRootFolderFromUri(const nsCString &serverUri,
                                               nsIMsgFolder **rootFolder)
 {
   nsMsgNewsFolder *newRootFolder = new nsMsgNewsFolder;
-  if (!newRootFolder)
-    return NS_ERROR_OUT_OF_MEMORY;
   NS_ADDREF(*rootFolder = newRootFolder);
   newRootFolder->Init(serverUri.get());
   return NS_OK;
@@ -155,8 +149,7 @@ nsNntpIncomingServer::GetNewsrcFilePath(nsIFile **aNewsrcFilePath)
   nsresult rv;
   if (mNewsrcFilePath)
   {
-    *aNewsrcFilePath = mNewsrcFilePath;
-    NS_IF_ADDREF(*aNewsrcFilePath);
+    NS_IF_ADDREF(*aNewsrcFilePath = mNewsrcFilePath);
     return NS_OK;
   }
 
@@ -269,8 +262,10 @@ nsresult nsNntpIncomingServer::SetupNewsrcSaveTimer()
   if(mNewsrcSaveTimer)
     mNewsrcSaveTimer->Cancel();
   mNewsrcSaveTimer = do_CreateInstance("@mozilla.org/timer;1");
-  mNewsrcSaveTimer->InitWithFuncCallback(OnNewsrcSaveTimer, (void*)this, timeInMSUint32,
-                                           nsITimer::TYPE_REPEATING_SLACK);
+  mNewsrcSaveTimer->InitWithNamedFuncCallback(OnNewsrcSaveTimer, (void*)this,
+                                              timeInMSUint32,
+                                              nsITimer::TYPE_REPEATING_SLACK,
+                                              "nsNntpIncomingServer::OnNewsrcSaveTimer");
   return NS_OK;
 }
 
@@ -551,8 +546,8 @@ nsNntpIncomingServer::GetNntpConnection(nsIURI * aUri, nsIMsgWindow *aMsgWindow,
 
   if (connection)
   {
-    NS_IF_ADDREF(*aNntpConnection = connection);
-    connection->SetIsCachedConnection(true);
+    connection.forget(aNntpConnection);
+    (*aNntpConnection)->SetIsCachedConnection(true);
   }
   else if (cnt < maxConnections)
   {
@@ -588,8 +583,6 @@ nsNntpIncomingServer::GetNntpChannel(nsIURI *aURI, nsIMsgWindow *aMsgWindow,
 
   // No protocol? We need our mock channel.
   nsNntpMockChannel *channel = new nsNntpMockChannel(aURI, aMsgWindow);
-  if (!channel)
-    return NS_ERROR_OUT_OF_MEMORY;
   NS_ADDREF(*aChannel = channel);
 
   m_queuedChannels.AppendElement(channel);
@@ -634,7 +627,7 @@ nsNntpIncomingServer::PrepareForNextUrl(nsNNTPProtocol *aConnection)
     if (NS_SUCCEEDED(rv))
       return NS_OK;
   }
-  
+
   // No queued uris.
   return NS_OK;
 }
@@ -822,7 +815,7 @@ nsNntpIncomingServer::WriteHostInfoFile()
   // XXX TODO: missing some formatting, see the 4.x code
   nsAutoCString header("# News host information file.");
   WriteLine(hostInfoStream, header);
-  header.Assign("# This is a generated file!  Do not edit.");
+  header.AssignLiteral("# This is a generated file!  Do not edit.");
   WriteLine(hostInfoStream, header);
   header.Truncate();
   WriteLine(hostInfoStream, header);
@@ -1578,9 +1571,9 @@ nsNntpIncomingServer::GroupNotFound(nsIMsgWindow *aMsgWindow,
   const char16_t *formatStrings[2] = { groupName.get(), hostStr.get() };
   nsString confirmText;
   rv = bundle->FormatStringFromName(
-                    u"autoUnsubscribeText",
+                    "autoUnsubscribeText",
                     formatStrings, 2,
-                    getter_Copies(confirmText));
+                    confirmText);
   NS_ENSURE_SUCCESS(rv,rv);
 
   bool confirmResult = false;
@@ -1711,8 +1704,7 @@ nsNntpIncomingServer::GetRowCount(int32_t *aRowCount)
 NS_IMETHODIMP
 nsNntpIncomingServer::GetSelection(nsITreeSelection * *aSelection)
 {
-  *aSelection = mTreeSelection;
-  NS_IF_ADDREF(*aSelection);
+  NS_IF_ADDREF(*aSelection = mTreeSelection);
   return NS_OK;
 }
 

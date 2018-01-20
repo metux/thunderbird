@@ -31,13 +31,6 @@
 
 #include <stdio.h>
 
-#ifndef PK11_SETATTRS
-#define PK11_SETATTRS(x, id, v, l) \
-    (x)->type = (id);              \
-    (x)->pValue = (v);             \
-    (x)->ulValueLen = (l);
-#endif
-
 SECStatus
 ssl_NamedGroup2ECParams(PLArenaPool *arena, const sslNamedGroupDef *ecGroup,
                         SECKEYECParams *params)
@@ -118,7 +111,7 @@ ssl_ECPubKey2NamedGroup(const SECKEYPublicKey *pubKey)
 static SECStatus
 ssl3_ComputeECDHKeyHash(SSLHashType hashAlg,
                         SECItem ec_params, SECItem server_ecpoint,
-                        SSL3Random *client_rand, SSL3Random *server_rand,
+                        PRUint8 *client_rand, PRUint8 *server_rand,
                         SSL3Hashes *hashes)
 {
     PRUint8 *hashBuf;
@@ -257,16 +250,6 @@ loser:
     return SECFailure;
 }
 
-/* This function returns the size of the key_exchange field in
- * the KeyShareEntry structure, i.e.:
- *     opaque point <1..2^8-1>; */
-unsigned int
-tls13_SizeOfECDHEKeyShareKEX(const SECKEYPublicKey *pubKey)
-{
-    PORT_Assert(pubKey->keyType == ecKey);
-    return pubKey->u.ec.publicValue.len;
-}
-
 /* This function encodes the key_exchange field in
  * the KeyShareEntry structure. */
 SECStatus
@@ -284,7 +267,7 @@ tls13_EncodeECDHEKeyShareKEX(const sslSocket *ss, const SECKEYPublicKey *pubKey)
 ** Called from ssl3_HandleClientKeyExchange()
 */
 SECStatus
-ssl3_HandleECDHClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
+ssl3_HandleECDHClientKeyExchange(sslSocket *ss, PRUint8 *b,
                                  PRUint32 length,
                                  sslKeyPair *serverKeyPair)
 {
@@ -358,7 +341,7 @@ ssl3_HandleECDHClientKeyExchange(sslSocket *ss, SSL3Opaque *b,
 */
 SECStatus
 ssl_ImportECDHKeyShare(sslSocket *ss, SECKEYPublicKey *peerKey,
-                       SSL3Opaque *b, PRUint32 length,
+                       PRUint8 *b, PRUint32 length,
                        const sslNamedGroupDef *ecGroup)
 {
     SECStatus rv;
@@ -436,23 +419,19 @@ ssl_GetECGroupForServerSocket(sslSocket *ss)
         return NULL;
     }
 
-    if (cert->certType.authType == ssl_auth_rsa_sign) {
+    if (SSL_CERT_IS(cert, ssl_auth_rsa_sign) ||
+        SSL_CERT_IS(cert, ssl_auth_rsa_pss)) {
         certKeySize = SECKEY_PublicKeyStrengthInBits(cert->serverKeyPair->pubKey);
-        certKeySize =
-            SSL_RSASTRENGTH_TO_ECSTRENGTH(certKeySize);
-    } else if (cert->certType.authType == ssl_auth_ecdsa ||
-               cert->certType.authType == ssl_auth_ecdh_rsa ||
-               cert->certType.authType == ssl_auth_ecdh_ecdsa) {
-        const sslNamedGroupDef *groupDef = cert->certType.namedCurve;
-
+        certKeySize = SSL_RSASTRENGTH_TO_ECSTRENGTH(certKeySize);
+    } else if (SSL_CERT_IS_EC(cert)) {
         /* We won't select a certificate unless the named curve has been
          * negotiated (or supported_curves was absent), double check that. */
-        PORT_Assert(groupDef->keaType == ssl_kea_ecdh);
-        PORT_Assert(ssl_NamedGroupEnabled(ss, groupDef));
-        if (!ssl_NamedGroupEnabled(ss, groupDef)) {
+        PORT_Assert(cert->namedCurve->keaType == ssl_kea_ecdh);
+        PORT_Assert(ssl_NamedGroupEnabled(ss, cert->namedCurve));
+        if (!ssl_NamedGroupEnabled(ss, cert->namedCurve)) {
             return NULL;
         }
-        certKeySize = groupDef->bits;
+        certKeySize = cert->namedCurve->bits;
     } else {
         PORT_Assert(0);
         return NULL;
@@ -519,7 +498,7 @@ ssl_CreateECDHEphemeralKeyPair(const sslSocket *ss,
 }
 
 SECStatus
-ssl3_HandleECDHServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
+ssl3_HandleECDHServerKeyExchange(sslSocket *ss, PRUint8 *b, PRUint32 length)
 {
     PLArenaPool *arena = NULL;
     SECKEYPublicKey *peerKey = NULL;
@@ -618,8 +597,8 @@ ssl3_HandleECDHServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
      *  check to make sure the hash is signed by right guy
      */
     rv = ssl3_ComputeECDHKeyHash(hashAlg, ec_params, ec_point,
-                                 &ss->ssl3.hs.client_random,
-                                 &ss->ssl3.hs.server_random,
+                                 ss->ssl3.hs.client_random,
+                                 ss->ssl3.hs.server_random,
                                  &hashes);
 
     if (rv != SECSuccess) {
@@ -732,8 +711,8 @@ ssl3_SendECDHServerKeyExchange(sslSocket *ss)
     }
     rv = ssl3_ComputeECDHKeyHash(hashAlg, ec_params,
                                  pubKey->u.ec.publicValue,
-                                 &ss->ssl3.hs.client_random,
-                                 &ss->ssl3.hs.server_random,
+                                 ss->ssl3.hs.client_random,
+                                 ss->ssl3.hs.server_random,
                                  &hashes);
     if (rv != SECSuccess) {
         ssl_MapLowLevelError(SSL_ERROR_SERVER_KEY_EXCHANGE_FAILURE);

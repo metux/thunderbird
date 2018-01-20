@@ -12,6 +12,14 @@
 namespace js {
 namespace jit {
 
+// Limit on the number of bytes of executable memory to prevent JIT spraying
+// attacks.
+#if JS_BITS_PER_WORD == 32
+static const size_t MaxCodeBytesPerProcess = 140 * 1024 * 1024;
+#else
+static const size_t MaxCodeBytesPerProcess = 1 * 1024 * 1024 * 1024;
+#endif
+
 // Executable code is allocated in 64K chunks. ExecutableAllocator uses pools
 // that are at least this big. Code we allocate does not necessarily have 64K
 // alignment though.
@@ -41,6 +49,11 @@ extern void DeallocateExecutableMemory(void* addr, size_t bytes);
 // per-process, so other threads can also allocate code after we call this
 // function.
 extern bool CanLikelyAllocateMoreExecutableMemory();
+
+// Returns a rough guess of how much executable memory remains available,
+// rounded down to MB limit.  Note this can fluctuate as other threads within
+// the process allocate executable memory.
+extern size_t LikelyAvailableExecutableMemory();
 
 } // namespace jit
 } // namespace js

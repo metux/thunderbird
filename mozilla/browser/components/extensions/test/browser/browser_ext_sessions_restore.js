@@ -6,9 +6,16 @@ SimpleTest.requestCompleteLog();
 
 XPCOMUtils.defineLazyModuleGetter(this, "SessionStore",
                                   "resource:///modules/sessionstore/SessionStore.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "TabStateFlusher",
+                                  "resource:///modules/sessionstore/TabStateFlusher.jsm");
 
-add_task(function* test_sessions_restore() {
+add_task(async function test_sessions_restore() {
   function background() {
+    let notificationCount = 0;
+    browser.sessions.onChanged.addListener(() => {
+      notificationCount++;
+      browser.test.sendMessage("notificationCount", notificationCount);
+    });
     browser.test.onMessage.addListener((msg, data) => {
       if (msg == "check-sessions") {
         browser.sessions.getRecentlyClosed().then(recentlyClosed => {
@@ -31,6 +38,7 @@ add_task(function* test_sessions_restore() {
         );
       }
     });
+    browser.test.sendMessage("ready");
   }
 
   let extension = ExtensionTestUtils.loadExtension({
@@ -40,95 +48,110 @@ add_task(function* test_sessions_restore() {
     background,
   });
 
-  yield extension.startup();
+  async function assertNotificationCount(expected) {
+    let notificationCount = await extension.awaitMessage("notificationCount");
+    is(notificationCount, expected, "the expected number of notifications was fired");
+  }
 
-  let {Management: {global: {WindowManager, TabManager}}} = Cu.import("resource://gre/modules/Extension.jsm", {});
+  await extension.startup();
+
+  let {Management: {global: {windowTracker, tabTracker}}} = Cu.import("resource://gre/modules/Extension.jsm", {});
 
   function checkLocalTab(tab, expectedUrl) {
-    let realTab = TabManager.getTab(tab.id);
+    let realTab = tabTracker.getTab(tab.id);
     let tabState = JSON.parse(SessionStore.getTabState(realTab));
     is(tabState.entries[0].url, expectedUrl, "restored tab has the expected url");
   }
 
-  let win = yield BrowserTestUtils.openNewBrowserWindow();
-  yield BrowserTestUtils.loadURI(win.gBrowser.selectedBrowser, "about:config");
-  yield BrowserTestUtils.browserLoaded(win.gBrowser.selectedBrowser);
+  await extension.awaitMessage("ready");
+
+  let win = await BrowserTestUtils.openNewBrowserWindow();
+  await BrowserTestUtils.loadURI(win.gBrowser.selectedBrowser, "about:config");
+  await BrowserTestUtils.browserLoaded(win.gBrowser.selectedBrowser);
   for (let url of ["about:robots", "about:mozilla"]) {
-    yield BrowserTestUtils.openNewForegroundTab(win.gBrowser, url);
+    await BrowserTestUtils.openNewForegroundTab(win.gBrowser, url);
   }
-  yield BrowserTestUtils.closeWindow(win);
+  await BrowserTestUtils.closeWindow(win);
+  await assertNotificationCount(1);
 
   extension.sendMessage("check-sessions");
-  let recentlyClosed = yield extension.awaitMessage("recentlyClosed");
+  let recentlyClosed = await extension.awaitMessage("recentlyClosed");
 
   // Check that our expected window is the most recently closed.
   is(recentlyClosed[0].window.tabs.length, 3, "most recently closed window has the expected number of tabs");
 
   // Restore the window.
   extension.sendMessage("restore");
-  let restored = yield extension.awaitMessage("restored");
+  await assertNotificationCount(2);
+  let restored = await extension.awaitMessage("restored");
 
-  is(restored.length, 1, "restore returned the expected number of sessions");
-  is(restored[0].window.tabs.length, 3, "restore returned a window with the expected number of tabs");
-  checkLocalTab(restored[0].window.tabs[0], "about:config");
-  checkLocalTab(restored[0].window.tabs[1], "about:robots");
-  checkLocalTab(restored[0].window.tabs[2], "about:mozilla");
+  is(restored.window.tabs.length, 3, "restore returned a window with the expected number of tabs");
+  checkLocalTab(restored.window.tabs[0], "about:config");
+  checkLocalTab(restored.window.tabs[1], "about:robots");
+  checkLocalTab(restored.window.tabs[2], "about:mozilla");
 
   // Close the window again.
-  let window = WindowManager.getWindow(restored[0].window.id);
-  yield BrowserTestUtils.closeWindow(window);
+  let window = windowTracker.getWindow(restored.window.id);
+  await BrowserTestUtils.closeWindow(window);
+  await assertNotificationCount(3);
 
   // Restore the window using the sessionId.
   extension.sendMessage("check-sessions");
-  recentlyClosed = yield extension.awaitMessage("recentlyClosed");
+  recentlyClosed = await extension.awaitMessage("recentlyClosed");
   extension.sendMessage("restore", recentlyClosed[0].window.sessionId);
-  restored = yield extension.awaitMessage("restored");
+  await assertNotificationCount(4);
+  restored = await extension.awaitMessage("restored");
 
-  is(restored.length, 1, "restore returned the expected number of sessions");
-  is(restored[0].window.tabs.length, 3, "restore returned a window with the expected number of tabs");
-  checkLocalTab(restored[0].window.tabs[0], "about:config");
-  checkLocalTab(restored[0].window.tabs[1], "about:robots");
-  checkLocalTab(restored[0].window.tabs[2], "about:mozilla");
+  is(restored.window.tabs.length, 3, "restore returned a window with the expected number of tabs");
+  checkLocalTab(restored.window.tabs[0], "about:config");
+  checkLocalTab(restored.window.tabs[1], "about:robots");
+  checkLocalTab(restored.window.tabs[2], "about:mozilla");
 
   // Close the window again.
-  window = WindowManager.getWindow(restored[0].window.id);
-  yield BrowserTestUtils.closeWindow(window);
+  window = windowTracker.getWindow(restored.window.id);
+  await BrowserTestUtils.closeWindow(window);
+  // notificationCount = yield extension.awaitMessage("notificationCount");
+  await assertNotificationCount(5);
 
   // Open and close a tab.
-  let tab = yield BrowserTestUtils.openNewForegroundTab(gBrowser, "about:robots");
-  yield BrowserTestUtils.removeTab(tab);
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:robots");
+  await TabStateFlusher.flush(tab.linkedBrowser);
+  await BrowserTestUtils.removeTab(tab);
+  await assertNotificationCount(6);
 
   // Restore the most recently closed item.
   extension.sendMessage("restore");
-  restored = yield extension.awaitMessage("restored");
+  await assertNotificationCount(7);
+  restored = await extension.awaitMessage("restored");
 
-  is(restored.length, 1, "restore returned the expected number of sessions");
-  tab = restored[0].tab;
+  tab = restored.tab;
   ok(tab, "restore returned a tab");
   checkLocalTab(tab, "about:robots");
 
   // Close the tab again.
-  let realTab = TabManager.getTab(tab.id);
-  yield BrowserTestUtils.removeTab(realTab);
+  let realTab = tabTracker.getTab(tab.id);
+  await BrowserTestUtils.removeTab(realTab);
+  await assertNotificationCount(8);
 
   // Restore the tab using the sessionId.
   extension.sendMessage("check-sessions");
-  recentlyClosed = yield extension.awaitMessage("recentlyClosed");
+  recentlyClosed = await extension.awaitMessage("recentlyClosed");
   extension.sendMessage("restore", recentlyClosed[0].tab.sessionId);
-  restored = yield extension.awaitMessage("restored");
+  await assertNotificationCount(9);
+  restored = await extension.awaitMessage("restored");
 
-  is(restored.length, 1, "restore returned the expected number of sessions");
-  tab = restored[0].tab;
+  tab = restored.tab;
   ok(tab, "restore returned a tab");
   checkLocalTab(tab, "about:robots");
 
   // Close the tab again.
-  realTab = TabManager.getTab(tab.id);
-  yield BrowserTestUtils.removeTab(realTab);
+  realTab = tabTracker.getTab(tab.id);
+  await BrowserTestUtils.removeTab(realTab);
+  await assertNotificationCount(10);
 
   // Try to restore something with an invalid sessionId.
   extension.sendMessage("restore-reject");
-  restored = yield extension.awaitMessage("restore-rejected");
+  restored = await extension.awaitMessage("restore-rejected");
 
-  yield extension.unload();
+  await extension.unload();
 });

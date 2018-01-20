@@ -23,6 +23,7 @@
 #include "jsprf.h"
 
 #include "builtin/TypedObject.h"
+#include "jit/AtomicOperations.h"
 #include "jit/InlinableNatives.h"
 #include "js/GCAPI.h"
 #include "js/Value.h"
@@ -155,6 +156,72 @@ ErrorBadIndex(JSContext* cx)
     return false;
 }
 
+/* Non-standard: convert and range check an index value for SIMD operations.
+ *
+ *   1. numericIndex = ToNumber(argument)            (may throw TypeError)
+ *   2. intIndex = ToInteger(numericIndex)
+ *   3. if intIndex != numericIndex throw RangeError
+ *
+ * This function additionally bounds the range to the non-negative contiguous
+ * integers:
+ *
+ *   4. if intIndex < 0 or intIndex > 2^53 throw RangeError
+ *
+ * Return true and set |*index| to the integer value if |argument| is a valid
+ * array index argument. Otherwise report an TypeError or RangeError and return
+ * false.
+ *
+ * The returned index will always be in the range 0 <= *index <= 2^53.
+ */
+static bool
+NonStandardToIndex(JSContext* cx, HandleValue v, uint64_t* index)
+{
+    // Fast common case.
+    if (v.isInt32()) {
+        int32_t i = v.toInt32();
+        if (i >= 0) {
+            *index = i;
+            return true;
+        }
+    }
+
+    // Slow case. Use ToNumber() to coerce. This may throw a TypeError.
+    double d;
+    if (!ToNumber(cx, v, &d))
+        return false;
+
+    // Check that |d| is an integer in the valid range.
+    //
+    // Not all floating point integers fit in the range of a uint64_t, so we
+    // need a rough range check before the real range check in our caller. We
+    // could limit indexes to UINT64_MAX, but this would mean that our callers
+    // have to be very careful about integer overflow. The contiguous integer
+    // floating point numbers end at 2^53, so make that our upper limit. If we
+    // ever support arrays with more than 2^53 elements, this will need to
+    // change.
+    //
+    // Reject infinities, NaNs, and numbers outside the contiguous integer range
+    // with a RangeError.
+
+    // Write relation so NaNs throw a RangeError.
+    if (!(0 <= d && d <= (uint64_t(1) << 53))) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_BAD_INDEX);
+        return false;
+    }
+
+    // Check that d is an integer, throw a RangeError if not.
+    // Note that this conversion could invoke undefined behaviour without the
+    // range check above.
+    uint64_t i(d);
+    if (d != double(i)) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_BAD_INDEX);
+        return false;
+    }
+
+    *index = i;
+    return true;
+}
+
 template<typename T>
 static SimdTypeDescr*
 GetTypeDescr(JSContext* cx)
@@ -199,9 +266,8 @@ TypedObjectMemory(HandleValue v, const JS::AutoRequireNoGC& nogc)
 static const ClassOps SimdTypeDescrClassOps = {
     nullptr, /* addProperty */
     nullptr, /* delProperty */
-    nullptr, /* getProperty */
-    nullptr, /* setProperty */
     nullptr, /* enumerate */
+    nullptr, /* newEnumerate */
     nullptr, /* resolve */
     nullptr, /* mayResolve */
     TypeDescr::finalize,
@@ -463,9 +529,8 @@ SimdTypeDescr::call(JSContext* cx, unsigned argc, Value* vp)
 static const ClassOps SimdObjectClassOps = {
     nullptr, /* addProperty */
     nullptr, /* delProperty */
-    nullptr, /* getProperty */
-    nullptr, /* setProperty */
     nullptr, /* enumerate */
+    nullptr, /* newEnumerate */
     SimdObject::resolve
 };
 
@@ -475,7 +540,7 @@ const Class SimdObject::class_ = {
     &SimdObjectClassOps
 };
 
-bool
+/* static */ bool
 GlobalObject::initSimdObject(JSContext* cx, Handle<GlobalObject*> global)
 {
     // SIMD relies on the TypedObject module being initialized.
@@ -483,11 +548,11 @@ GlobalObject::initSimdObject(JSContext* cx, Handle<GlobalObject*> global)
     // to be able to call GetTypedObjectModule(). It is NOT necessary
     // to install the TypedObjectModule global, but at the moment
     // those two things are not separable.
-    if (!global->getOrCreateTypedObjectModule(cx))
+    if (!GlobalObject::getOrCreateTypedObjectModule(cx, global))
         return false;
 
     RootedObject globalSimdObject(cx);
-    RootedObject objProto(cx, global->getOrCreateObjectPrototype(cx));
+    RootedObject objProto(cx, GlobalObject::getOrCreateObjectPrototype(cx, global));
     if (!objProto)
         return false;
 
@@ -496,11 +561,8 @@ GlobalObject::initSimdObject(JSContext* cx, Handle<GlobalObject*> global)
         return false;
 
     RootedValue globalSimdValue(cx, ObjectValue(*globalSimdObject));
-    if (!DefineProperty(cx, global, cx->names().SIMD, globalSimdValue, nullptr, nullptr,
-                        JSPROP_RESOLVING))
-    {
+    if (!DefineDataProperty(cx, global, cx->names().SIMD, globalSimdValue, JSPROP_RESOLVING))
         return false;
-    }
 
     global->setConstructor(JSProto_SIMD, globalSimdValue);
     return true;
@@ -510,7 +572,7 @@ static bool
 CreateSimdType(JSContext* cx, Handle<GlobalObject*> global, HandlePropertyName stringRepr,
                SimdType simdType, const JSFunctionSpec* methods)
 {
-    RootedObject funcProto(cx, global->getOrCreateFunctionPrototype(cx));
+    RootedObject funcProto(cx, GlobalObject::getOrCreateFunctionPrototype(cx, global));
     if (!funcProto)
         return false;
 
@@ -531,7 +593,7 @@ CreateSimdType(JSContext* cx, Handle<GlobalObject*> global, HandlePropertyName s
         return false;
 
     // Create prototype property, which inherits from Object.prototype.
-    RootedObject objProto(cx, global->getOrCreateObjectPrototype(cx));
+    RootedObject objProto(cx, GlobalObject::getOrCreateObjectPrototype(cx, global));
     if (!objProto)
         return false;
     Rooted<TypedProto*> proto(cx);
@@ -551,13 +613,13 @@ CreateSimdType(JSContext* cx, Handle<GlobalObject*> global, HandlePropertyName s
     }
 
     // Bind type descriptor to the global SIMD object
-    RootedObject globalSimdObject(cx, global->getOrCreateSimdGlobalObject(cx));
+    RootedObject globalSimdObject(cx, GlobalObject::getOrCreateSimdGlobalObject(cx, global));
     MOZ_ASSERT(globalSimdObject);
 
     RootedValue typeValue(cx, ObjectValue(*typeDescr));
     if (!JS_DefineFunctions(cx, typeDescr, methods) ||
-        !DefineProperty(cx, globalSimdObject, stringRepr, typeValue, nullptr, nullptr,
-                        JSPROP_READONLY | JSPROP_PERMANENT | JSPROP_RESOLVING))
+        !DefineDataProperty(cx, globalSimdObject, stringRepr, typeValue,
+                            JSPROP_READONLY | JSPROP_PERMANENT | JSPROP_RESOLVING))
     {
         return false;
     }
@@ -568,7 +630,7 @@ CreateSimdType(JSContext* cx, Handle<GlobalObject*> global, HandlePropertyName s
     return !!typeDescr;
 }
 
-bool
+/* static */ bool
 GlobalObject::initSimdType(JSContext* cx, Handle<GlobalObject*> global, SimdType simdType)
 {
 #define CREATE_(Type) \
@@ -584,13 +646,13 @@ GlobalObject::initSimdType(JSContext* cx, Handle<GlobalObject*> global, SimdType
 #undef CREATE_
 }
 
-SimdTypeDescr*
+/* static */ SimdTypeDescr*
 GlobalObject::getOrCreateSimdTypeDescr(JSContext* cx, Handle<GlobalObject*> global,
                                        SimdType simdType)
 {
     MOZ_ASSERT(unsigned(simdType) < unsigned(SimdType::Count), "Invalid SIMD type");
 
-    RootedObject globalSimdObject(cx, global->getOrCreateSimdGlobalObject(cx));
+    RootedObject globalSimdObject(cx, GlobalObject::getOrCreateSimdGlobalObject(cx, global));
     if (!globalSimdObject)
        return nullptr;
 
@@ -628,8 +690,8 @@ SimdObject::resolve(JSContext* cx, JS::HandleObject obj, JS::HandleId id, bool* 
 JSObject*
 js::InitSimdClass(JSContext* cx, HandleObject obj)
 {
-    Rooted<GlobalObject*> global(cx, &obj->as<GlobalObject>());
-    return global->getOrCreateSimdGlobalObject(cx);
+    Handle<GlobalObject*> global = obj.as<GlobalObject>();
+    return GlobalObject::getOrCreateSimdGlobalObject(cx, global);
 }
 
 template<typename V>
@@ -1339,7 +1401,7 @@ static bool
 ArgumentToLaneIndex(JSContext* cx, JS::HandleValue v, unsigned limit, unsigned* lane)
 {
     uint64_t arg;
-    if (!ToIntegerIndex(cx, v, &arg))
+    if (!NonStandardToIndex(cx, v, &arg))
         return false;
     if (arg >= limit)
         return ErrorBadIndex(cx);
@@ -1366,7 +1428,7 @@ TypedArrayFromArgs(JSContext* cx, const CallArgs& args, uint32_t accessBytes,
     typedArray.set(&argobj);
 
     uint64_t index;
-    if (!ToIntegerIndex(cx, args[1], &index))
+    if (!NonStandardToIndex(cx, args[1], &index))
         return false;
 
     // Do the range check in 64 bits even when size_t is 32 bits.

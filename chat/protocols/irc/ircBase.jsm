@@ -28,7 +28,7 @@ Cu.import("resource:///modules/ircUtils.jsm");
 Cu.import("resource:///modules/jsProtoHelper.jsm");
 
 function privmsg(aAccount, aMessage, aIsNotification) {
-  let params = {incoming: true};
+  let params = {incoming: true, tags: aMessage.tags};
   if (aIsNotification)
     params.notification = true;
   aAccount.getConversation(aAccount.isMUCName(aMessage.params[0]) ?
@@ -79,6 +79,7 @@ function leftRoom(aAccount, aNicks, aChannels, aSource, aReason, aKicked) {
 function writeMessage(aAccount, aMessage, aString, aType) {
   let type = {};
   type[aType] = true;
+  type.tags = aMessage.tags;
   aAccount.getConversation(aMessage.origin)
           .writeMessage(aMessage.origin, aString, type);
   return true;
@@ -100,7 +101,7 @@ function serverErrorMessage(aAccount, aMessage, aError) {
   if (!aAccount._showServerTab)
     return true;
 
-  return writeMessage(aAccount, aMessage, aError, "error")
+  return writeMessage(aAccount, aMessage, aError, "error");
 }
 
 function addMotd(aAccount, aMessage) {
@@ -124,7 +125,7 @@ function addMotd(aAccount, aMessage) {
   // Oh, also some servers don't send a RPL_ENDOFMOTD (e.g. irc.ppy.sh), so if
   // we don't receive another MOTD message after 1 second, consider it to be
   // RPL_ENDOFMOTD.
-  clearTimeout(aAccount._motdTimer)
+  clearTimeout(aAccount._motdTimer);
   aAccount._motdTimer = setTimeout(ircBase.commands["376"].bind(aAccount),
                                    1000, aMessage);
 
@@ -1047,7 +1048,7 @@ var ircBase = {
       // No reason to keep the MOTD in memory.
       delete this._motd;
       // Clear the MOTD timer.
-      clearTimeout(this._motdTimer)
+      clearTimeout(this._motdTimer);
       delete this._motdTimer;
 
       return true;

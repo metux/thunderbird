@@ -10,7 +10,6 @@ const PREF_GETADDONS_CACHE_ENABLED       = "extensions.getAddons.cache.enabled";
 
 const PORT          = gServer.identity.primaryPort;
 const BASE_URL      = "http://localhost:" + PORT;
-const DEFAULT_URL   = "about:blank";
 
 var addon = {
   id: "addon@tests.mozilla.org",
@@ -27,10 +26,10 @@ const profileDir = gProfD.clone();
 profileDir.append("extensions");
 
 function backgroundUpdate(aCallback) {
-  Services.obs.addObserver(function() {
-    Services.obs.removeObserver(arguments.callee, "addons-background-update-complete");
+  Services.obs.addObserver(function observer() {
+    Services.obs.removeObserver(observer, "addons-background-update-complete");
     aCallback();
-  }, "addons-background-update-complete", false);
+  }, "addons-background-update-complete");
 
   AddonManagerPrivate.backgroundUpdateCheck();
 }

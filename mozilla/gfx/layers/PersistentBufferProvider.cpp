@@ -1,11 +1,13 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "PersistentBufferProvider.h"
 
 #include "Layers.h"
+#include "mozilla/layers/ShadowLayers.h"
 #include "mozilla/gfx/Logging.h"
 #include "pratom.h"
 #include "gfxPlatform.h"
@@ -25,6 +27,7 @@ PersistentBufferProviderBasic::PersistentBufferProviderBasic(DrawTarget* aDt)
 PersistentBufferProviderBasic::~PersistentBufferProviderBasic()
 {
   MOZ_COUNT_DTOR(PersistentBufferProviderBasic);
+  Destroy();
 }
 
 already_AddRefed<gfx::DrawTarget>
@@ -62,6 +65,13 @@ PersistentBufferProviderBasic::ReturnSnapshot(already_AddRefed<gfx::SourceSurfac
   RefPtr<SourceSurface> snapshot = aSnapshot;
   MOZ_ASSERT(!snapshot || snapshot == mSnapshot);
   mSnapshot = nullptr;
+}
+
+void
+PersistentBufferProviderBasic::Destroy()
+{
+  mSnapshot = nullptr;
+  mDrawTarget = nullptr;
 }
 
 //static
@@ -214,7 +224,7 @@ PersistentBufferProviderShared::SetForwarder(ShadowLayerForwarder* aFwd)
 }
 
 TextureClient*
-PersistentBufferProviderShared::GetTexture(Maybe<uint32_t> aIndex)
+PersistentBufferProviderShared::GetTexture(const Maybe<uint32_t>& aIndex)
 {
   if (aIndex.isNothing() || !CheckIndex(aIndex.value())) {
     return nullptr;
@@ -241,8 +251,6 @@ PersistentBufferProviderShared::BorrowDrawTarget(const gfx::IntRect& aPersistedR
     RefPtr<gfx::DrawTarget> dt(mDrawTarget);
     return dt.forget();
   }
-
-  mFront = Nothing();
 
   auto previousBackBuffer = mBack;
 
@@ -271,17 +279,32 @@ PersistentBufferProviderShared::BorrowDrawTarget(const gfx::IntRect& aPersistedR
     // We have to allocate a new texture.
     if (mTextures.length() >= 4) {
       // We should never need to buffer that many textures, something's wrong.
-      MOZ_ASSERT(false);
       // In theory we throttle the main thread when the compositor can't keep up,
       // so we shoud never get in a situation where we sent 4 textures to the
-      // compositor and the latter as not released any of them.
-      // This seems to happen, however, in some edge cases such as just after a
-      // device reset (cf. Bug 1291163).
-      // It would be pretty bad to keep piling textures up at this point so we
-      // call NotifyInactive to remove some of our textures.
-      NotifyInactive();
-      // Give up now. The caller can fall-back to a non-shared buffer provider.
-      return nullptr;
+      // compositor and the latter has not released any of them.
+      // In practice, though, the throttling mechanism appears to have some issues,
+      // especially when switching between layer managers (during tab-switch).
+      // To make sure we don't get too far ahead of the compositor, we send a
+      // sync ping to the compositor thread...
+      mFwd->SyncWithCompositor();
+      // ...and try again.
+      for (uint32_t i = 0; i < mTextures.length(); ++i) {
+        if (!mTextures[i]->IsReadLocked()) {
+          gfxCriticalNote << "Managed to allocate after flush.";
+          mBack = Some(i);
+          tex = mTextures[i];
+          break;
+        }
+      }
+
+      if (!tex) {
+        gfxCriticalError() << "Unexpected BufferProvider over-production.";
+        // It would be pretty bad to keep piling textures up at this point so we
+        // call NotifyInactive to remove some of our textures.
+        NotifyInactive();
+        // Give up now. The caller can fall-back to a non-shared buffer provider.
+        return nullptr;
+      }
     }
 
     RefPtr<TextureClient> newTexture = TextureClient::CreateForDrawing(
@@ -402,6 +425,12 @@ PersistentBufferProviderShared::ReturnSnapshot(already_AddRefed<gfx::SourceSurfa
 void
 PersistentBufferProviderShared::NotifyInactive()
 {
+  ClearCachedResources();
+}
+
+void
+PersistentBufferProviderShared::ClearCachedResources()
+{
   RefPtr<TextureClient> front = GetTexture(mFront);
   RefPtr<TextureClient> back = GetTexture(mBack);
 
@@ -430,8 +459,8 @@ PersistentBufferProviderShared::Destroy()
   mSnapshot = nullptr;
   mDrawTarget = nullptr;
 
-  for (uint32_t i = 0; i < mTextures.length(); ++i) {
-    TextureClient* texture = mTextures[i];
+  for (auto& mTexture : mTextures) {
+    TextureClient* texture = mTexture;
     if (texture && texture->IsLocked()) {
       MOZ_ASSERT(false);
       texture->Unlock();

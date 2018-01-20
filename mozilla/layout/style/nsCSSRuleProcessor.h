@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-// vim:cindent:tabstop=2:expandtab:shiftwidth=2:
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -19,7 +19,7 @@
 #include "mozilla/SheetType.h"
 #include "mozilla/UniquePtr.h"
 #include "nsExpirationTracker.h"
-#include "nsIMediaList.h"
+#include "nsMediaList.h"
 #include "nsIStyleRuleProcessor.h"
 #include "nsRuleWalker.h"
 #include "nsTArray.h"
@@ -39,6 +39,7 @@ class nsCSSCounterStyleRule;
 namespace mozilla {
 class CSSStyleSheet;
 enum class CSSPseudoElementType : uint8_t;
+enum class CSSPseudoClassType : uint8_t;
 namespace css {
 class DocumentRule;
 } // namespace css
@@ -80,10 +81,12 @@ public:
 public:
   nsresult ClearRuleCascades();
 
+  static bool VisitedLinksEnabled();
   static void Startup();
+  static void InitSystemMetrics();
   static void Shutdown();
   static void FreeSystemMetrics();
-  static bool HasSystemMetric(nsIAtom* aMetric);
+  static bool HasSystemMetric(nsAtom* aMetric);
 
   /*
    * Returns true if the given aElement matches one of the
@@ -101,15 +104,19 @@ public:
    * slightly adjusted from IntrinsicState().
    */
   static mozilla::EventStates GetContentState(
-                                mozilla::dom::Element* aElement,
+                                const mozilla::dom::Element* aElement,
+                                bool aUsingPrivateBrowsing);
+  static mozilla::EventStates GetContentState(
+                                const mozilla::dom::Element* aElement,
                                 const TreeMatchContext& aTreeMatchContext);
+  static mozilla::EventStates GetContentState(
+                                const mozilla::dom::Element* aElement);
 
   /*
    * Helper to get the content state for :visited handling for an element
    */
   static mozilla::EventStates GetContentStateForVisitedHandling(
-             mozilla::dom::Element* aElement,
-             const TreeMatchContext& aTreeMatchContext,
+             const mozilla::dom::Element* aElement,
              nsRuleWalker::VisitedHandlingType aVisitedHandling,
              bool aIsRelevantLink);
 
@@ -132,6 +139,38 @@ public:
   static bool RestrictedSelectorMatches(mozilla::dom::Element* aElement,
                                         nsCSSSelector* aSelector,
                                         TreeMatchContext& aTreeMatchContext);
+  /**
+   * Checks if a function-like ident-containing pseudo (:pseudo(ident))
+   * matches a given element.
+   *
+   * Returns true if it parses and matches, Some(false) if it
+   * parses but does not match. Asserts if it fails to parse; only
+   * call this when you're sure it's a string-like pseudo.
+   *
+   * In Servo mode, please ensure that UpdatePossiblyStaleDocumentState()
+   * has been called first.
+   *
+   * @param aElement The element we are trying to match
+   * @param aPseudo The name of the pseudoselector
+   * @param aString The identifier inside the pseudoselector (cannot be null)
+   * @param aDocument The document
+   * @param aStateMask Mask containing states which we should exclude.
+   *                   Ignored if aDependence is null
+   * @param aDependence Pointer to be set to true if we ignored a state due to
+   *                    aStateMask. Can be null.
+   */
+  static bool StringPseudoMatches(const mozilla::dom::Element* aElement,
+                                  mozilla::CSSPseudoClassType aPseudo,
+                                  const char16_t* aString,
+                                  const nsIDocument* aDocument,
+                                  mozilla::EventStates aStateMask,
+                                  bool* const aDependence = nullptr);
+
+  static bool LangPseudoMatches(const mozilla::dom::Element* aElement,
+                                const nsAtom* aOverrideLang,
+                                bool aHasOverrideLang,
+                                const char16_t* aString,
+                                const nsIDocument* aDocument);
 
   // nsIStyleRuleProcessor
   virtual void RulesMatching(ElementRuleProcessorData* aData) override;
@@ -173,10 +212,10 @@ public:
                            nsTArray<nsFontFaceRuleContainer>& aArray);
 
   nsCSSKeyframesRule* KeyframesRuleForName(nsPresContext* aPresContext,
-                                           const nsString& aName);
+                                           const nsAtom* aName);
 
   nsCSSCounterStyleRule* CounterStyleRuleForName(nsPresContext* aPresContext,
-                                                 const nsAString& aName);
+                                                 nsAtom* aName);
 
   bool AppendPageRules(nsPresContext* aPresContext,
                        nsTArray<nsCSSPageRule*>& aArray);
@@ -211,7 +250,7 @@ public:
 #ifdef XP_WIN
   // Cached theme identifier for the moz-windows-theme media query.
   static uint8_t GetWindowsThemeIdentifier();
-  static void SetWindowsThemeIdentifier(uint8_t aId) { 
+  static void SetWindowsThemeIdentifier(uint8_t aId) {
     sWinThemeId = aId;
   }
 #endif

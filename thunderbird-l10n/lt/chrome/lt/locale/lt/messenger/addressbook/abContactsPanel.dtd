@@ -35,6 +35,10 @@
 <!ENTITY editMailingListContext.label       "Keisti sąrašą">
 <!ENTITY editMailingListContext.accesskey   "K">
 
+
+
+
+
 <!ENTITY toButton.label                     "Pridėti į „Kam“">
 <!ENTITY toButton.accesskey                 "P">
 <!ENTITY ccButton.label                     "Pridėti į „Kopija“">
@@ -43,3 +47,9 @@
 <!ENTITY bccButton.accesskey                "N">
 
 <!ENTITY propertiesCmd.key                  "i">
+<!ENTITY abContextMenuButton.tooltip        "Display Address Book Context Menu">
+<!ENTITY newContactAbContext.label          "New Contact">
+<!ENTITY newContactAbContext.accesskey      "C">
+<!ENTITY newListAbContext.label             "New List">
+<!ENTITY newListAbContext.accesskey         "L">
+

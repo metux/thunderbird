@@ -209,7 +209,7 @@ calStorageCalendar.prototype = {
 
             // First, we need to check if this is from 0.9, i.e we need to
             // migrate from storage.sdb to local.sqlite.
-            let storageSdb = Services.dirsvc.get("ProfD", Components.interfaces.nsILocalFile);
+            let storageSdb = Services.dirsvc.get("ProfD", Components.interfaces.nsIFile);
             storageSdb.append("storage.sdb");
             this.mDB = Services.storage.openDatabase(storageSdb);
             if (this.mDB.tableExists("cal_events")) {
@@ -282,11 +282,12 @@ calStorageCalendar.prototype = {
                  * @param oldCalId  The old calendar id to look for
                  */
                 let migrateTables = function(db, newCalId, oldCalId) {
-                    for (let tbl of ["cal_alarms", "cal_attachments",
-                                     "cal_attendees", "cal_events",
-                                     "cal_metadata", "cal_properties",
-                                     "cal_recurrence", "cal_relations",
-                                     "cal_todos"]) {
+                    let tables = [
+                        "cal_alarms", "cal_attachments", "cal_attendees",
+                        "cal_events", "cal_metadata", "cal_properties",
+                        "cal_recurrence", "cal_relations", "cal_todos"
+                    ];
+                    for (let tbl of tables) {
                         let stmt;
                         try {
                             stmt = db.createStatement("UPDATE " + tbl +
@@ -307,7 +308,7 @@ calStorageCalendar.prototype = {
                 };
 
                 let id = 0;
-                let path = this.uri.path;
+                let path = this.uri.pathQueryRef;
                 let pos = path.indexOf("?id=");
 
                 if (pos == -1) {
@@ -323,7 +324,7 @@ calStorageCalendar.prototype = {
                 } else {
                     // There is an "id" parameter in the uri. This calendar
                     // has not been migrated to using the uuid as its cal_id.
-                    pos = this.uri.path.indexOf("?id=");
+                    pos = this.uri.pathQueryRef.indexOf("?id=");
                     if (pos == -1) {
                         this.mDB.rollbackTransaction();
                     } else {
@@ -357,7 +358,7 @@ calStorageCalendar.prototype = {
         }
 
         this.initDB();
-        Services.obs.addObserver(this, "profile-before-change", false);
+        Services.obs.addObserver(this, "profile-before-change");
     },
 
     observe: function(aSubject, aTopic, aData) {
@@ -771,7 +772,7 @@ calStorageCalendar.prototype = {
                     expandedItems = expandedItems.filter(checkUnrespondedInvitation);
                 }
             } else if ((!wantUnrespondedInvitations || checkUnrespondedInvitation(item)) &&
-                       checkIfInRange(item, aRangeStart, aRangeEnd)) {
+                       cal.checkIfInRange(item, aRangeStart, aRangeEnd)) {
                 // If no occurrences are wanted, check only the parent item.
                 // This will be changed with bug 416975.
                 expandedItems = [item];
@@ -809,6 +810,15 @@ calStorageCalendar.prototype = {
         if (wantEvents) {
             let params;             // stmt params
             let resultItems = [];
+            let requestedOfflineJournal = null;
+
+            if (wantOfflineDeletedItems) {
+                requestedOfflineJournal = cICL.OFFLINE_FLAG_DELETED_RECORD;
+            } else if (wantOfflineCreatedItems) {
+                requestedOfflineJournal = cICL.OFFLINE_FLAG_CREATED_RECORD;
+            } else if (wantOfflineModifiedItems) {
+                requestedOfflineJournal = cICL.OFFLINE_FLAG_MODIFIED_RECORD;
+            }
 
             // first get non-recurring events that happen to fall within the range
             //
@@ -819,15 +829,7 @@ calStorageCalendar.prototype = {
                 params.range_end = endTime;
                 params.start_offset = aRangeStart ? aRangeStart.timezoneOffset * USECS_PER_SECOND : 0;
                 params.end_offset = aRangeEnd ? aRangeEnd.timezoneOffset * USECS_PER_SECOND : 0;
-                params.offline_journal = null;
-
-                if (wantOfflineDeletedItems) {
-                    params.offline_journal = cICL.OFFLINE_FLAG_DELETED_RECORD;
-                } else if (wantOfflineCreatedItems) {
-                    params.offline_journal = cICL.OFFLINE_FLAG_CREATED_RECORD;
-                } else if (wantOfflineModifiedItems) {
-                    params.offline_journal = cICL.OFFLINE_FLAG_MODIFIED_RECORD;
-                }
+                params.offline_journal = requestedOfflineJournal;
 
                 while (this.mSelectNonRecurringEventsByRange.executeStep()) {
                     let row = this.mSelectNonRecurringEventsByRange.row;
@@ -850,11 +852,11 @@ calStorageCalendar.prototype = {
             // Process the recurring events from the cache
             for (let id in this.mRecEventCache) {
                 let evitem = this.mRecEventCache[id];
-                let offline_journal_flag = this.mRecEventCacheOfflineFlags[evitem.id] || null;
-                // No need to return flagged unless asked i.e. params.offline_journal == offline_journal_flag
-                // Return created and modified offline records if params.offline_journal is null alongwith events that have no flag
-                if ((params.offline_journal == null && offline_journal_flag != cICL.OFFLINE_FLAG_DELETED_RECORD) ||
-                    (params.offline_journal != null && offline_journal_flag == params.offline_journal)) {
+                let cachedJournalFlag = this.mRecEventCacheOfflineFlags[evitem.id] || null;
+                // No need to return flagged unless asked i.e. requestedOfflineJournal == cachedJournalFlag
+                // Return created and modified offline records if requestedOfflineJournal is null alongwith events that have no flag
+                if ((requestedOfflineJournal == null && cachedJournalFlag != cICL.OFFLINE_FLAG_DELETED_RECORD) ||
+                    (requestedOfflineJournal != null && cachedJournalFlag == requestedOfflineJournal)) {
                     count += handleResultItem(evitem, Components.interfaces.calIEvent);
                     if (checkCount()) {
                         return;
@@ -867,6 +869,15 @@ calStorageCalendar.prototype = {
         if (wantTodos) {
             let params;             // stmt params
             let resultItems = [];
+            let requestedOfflineJournal = null;
+
+            if (wantOfflineCreatedItems) {
+                requestedOfflineJournal = cICL.OFFLINE_FLAG_CREATED_RECORD;
+            } else if (wantOfflineDeletedItems) {
+                requestedOfflineJournal = cICL.OFFLINE_FLAG_DELETED_RECORD;
+            } else if (wantOfflineModifiedItems) {
+                requestedOfflineJournal = cICL.OFFLINE_FLAG_MODIFIED_RECORD;
+            }
 
             // first get non-recurring todos that happen to fall within the range
             try {
@@ -876,16 +887,7 @@ calStorageCalendar.prototype = {
                 params.range_end = endTime;
                 params.start_offset = aRangeStart ? aRangeStart.timezoneOffset * USECS_PER_SECOND : 0;
                 params.end_offset = aRangeEnd ? aRangeEnd.timezoneOffset * USECS_PER_SECOND : 0;
-                params.offline_journal = null;
-                if (wantOfflineCreatedItems) {
-                    params.offline_journal = cICL.OFFLINE_FLAG_CREATED_RECORD;
-                }
-                if (wantOfflineDeletedItems) {
-                    params.offline_journal = cICL.OFFLINE_FLAG_DELETED_RECORD;
-                }
-                if (wantOfflineModifiedItems) {
-                    params.offline_journal = cICL.OFFLINE_FLAG_MODIFIED_RECORD;
-                }
+                params.offline_journal = requestedOfflineJournal;
 
                 while (this.mSelectNonRecurringTodosByRange.executeStep()) {
                     let row = this.mSelectNonRecurringTodosByRange.row;
@@ -912,13 +914,13 @@ calStorageCalendar.prototype = {
             // process the recurring todos from the cache
             for (let id in this.mRecTodoCache) {
                 let todoitem = this.mRecTodoCache[id];
-                let offline_journal_flag = this.mRecTodoCacheOfflineFlags[todoitem.id] || null;
-                if ((params.offline_journal == null &&
-                     (offline_journal_flag == cICL.OFFLINE_FLAG_MODIFIED_RECORD ||
-                      offline_journal_flag == cICL.OFFLINE_FLAG_CREATED_RECORD ||
-                      offline_journal_flag == null)) ||
-                    (params.offline_journal != null &&
-                     (offline_journal_flag == params.offline_journal))) {
+                let cachedJournalFlag = this.mRecTodoCacheOfflineFlags[todoitem.id] || null;
+                if ((requestedOfflineJournal == null &&
+                     (cachedJournalFlag == cICL.OFFLINE_FLAG_MODIFIED_RECORD ||
+                      cachedJournalFlag == cICL.OFFLINE_FLAG_CREATED_RECORD ||
+                      cachedJournalFlag == null)) ||
+                    (requestedOfflineJournal != null &&
+                     (cachedJournalFlag == requestedOfflineJournal))) {
                     count += handleResultItem(todoitem,
                                               Components.interfaces.calITodo,
                                               checkCompleted);
@@ -1388,10 +1390,11 @@ calStorageCalendar.prototype = {
                 );
 
             // These are only used when deleting an entire calendar
-            let extrasTables = ["cal_attendees", "cal_properties",
-                                "cal_recurrence", "cal_attachments",
-                                "cal_metadata", "cal_relations",
-                                "cal_alarms"];
+            let extrasTables = [
+                "cal_attendees", "cal_properties", "cal_recurrence",
+                "cal_attachments", "cal_metadata", "cal_relations",
+                "cal_alarms"
+            ];
 
             this.mDeleteEventExtras = [];
             this.mDeleteTodoExtras = [];
@@ -1599,7 +1602,7 @@ calStorageCalendar.prototype = {
             }
         }
 
-        item = createEvent();
+        item = cal.createEvent();
 
         if (row.event_start) {
             item.startDate = newDateTime(row.event_start, row.event_start_tz);
@@ -1635,7 +1638,7 @@ calStorageCalendar.prototype = {
             }
         }
 
-        item = createTodo();
+        item = cal.createTodo();
 
         if (row.todo_entry) {
             item.entryDate = newDateTime(row.todo_entry, row.todo_entry_tz);
@@ -1727,7 +1730,7 @@ calStorageCalendar.prototype = {
                             // for events DTEND/DUE is enforced by calEvent/calTodo, so suppress DURATION:
                             break;
                         case "CATEGORIES": {
-                            let cats = categoriesStringToArray(row.value);
+                            let cats = cal.categoriesStringToArray(row.value);
                             item.setCategories(cats.length, cats);
                             break;
                         }
@@ -1881,6 +1884,7 @@ calStorageCalendar.prototype = {
     },
 
     getRecurrenceItemFromRow: function(row, item) {
+        let ritem;
         let prop = cal.getIcsService().createIcalPropertyFromString(row.icalString);
         switch (prop.propertyName) {
             case "RDATE":
@@ -1969,7 +1973,7 @@ calStorageCalendar.prototype = {
     },
 
     flushItem: function(item, olditem) {
-        ASSERT(!item.recurrenceId, "no parent item passed!", true);
+        cal.ASSERT(!item.recurrenceId, "no parent item passed!", true);
 
         try {
             this.deleteItemById(olditem ? olditem.id : item.id, true);
@@ -2160,7 +2164,7 @@ calStorageCalendar.prototype = {
         let cats = item.getCategories({});
         if (cats.length > 0) {
             ret = CAL_ITEM_FLAG.HAS_PROPERTIES;
-            this.writeProperty(item, "CATEGORIES", categoriesArrayToString(cats));
+            this.writeProperty(item, "CATEGORIES", cal.categoriesArrayToString(cats));
         }
 
         return ret;
@@ -2465,9 +2469,4 @@ calStorageCalendar.prototype = {
     }
 };
 
-/** Module Registration */
-var scriptLoadOrder = [
-    "calUtils.js",
-];
-
-this.NSGetFactory = cal.loadingNSGetFactory(scriptLoadOrder, [calStorageCalendar], this);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([calStorageCalendar]);

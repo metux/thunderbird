@@ -21,17 +21,17 @@ add_task(function* () {
   yield selectNode("#scale", inspector);
 
   // Find the color swatch in the rule-view.
-  let ruleView = inspector.ruleview.view;
+  let ruleView = inspector.getPanel("ruleview").view;
   let ruleViewDocument = ruleView.styleDocument;
   let swatchEl = ruleViewDocument.querySelector(".ruleview-colorswatch");
 
   info("Open the color picker");
-  let cPicker = ruleView.tooltips.colorPicker;
+  let cPicker = ruleView.tooltips.getTooltip("colorPicker");
   let onColorPickerReady = cPicker.once("ready");
   swatchEl.click();
   yield onColorPickerReady;
 
-  button = cPicker.tooltip.doc.querySelector("#eyedropper-button");
+  button = cPicker.tooltip.container.querySelector("#eyedropper-button");
   ok(isDisabled(button), "The button is disabled in the color picker");
 
   info("Navigate to a HTML document");
@@ -45,17 +45,17 @@ add_task(function* () {
   // Find the color swatch in the rule-view.
   yield selectNode("h1", inspector);
 
-  ruleView = inspector.ruleview.view;
+  ruleView = inspector.getPanel("ruleview").view;
   ruleViewDocument = ruleView.styleDocument;
   swatchEl = ruleViewDocument.querySelector(".ruleview-colorswatch");
 
   info("Open the color picker in HTML document");
-  cPicker = ruleView.tooltips.colorPicker;
+  cPicker = ruleView.tooltips.getTooltip("colorPicker");
   onColorPickerReady = cPicker.once("ready");
   swatchEl.click();
   yield onColorPickerReady;
 
-  button = cPicker.tooltip.doc.querySelector("#eyedropper-button");
+  button = cPicker.tooltip.container.querySelector("#eyedropper-button");
   ok(!isDisabled(button), "The button is enabled in the color picker");
 });
 

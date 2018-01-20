@@ -5,8 +5,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "AnimValuesStyleRule.h"
+#include "mozilla/GeckoStyleContext.h"
 #include "nsRuleData.h"
-#include "nsStyleContext.h"
 
 namespace mozilla {
 
@@ -15,7 +15,7 @@ NS_IMPL_ISUPPORTS(AnimValuesStyleRule, nsIStyleRule)
 void
 AnimValuesStyleRule::MapRuleInfoInto(nsRuleData* aRuleData)
 {
-  nsStyleContext *contextParent = aRuleData->mStyleContext->GetParent();
+  GeckoStyleContext* contextParent = aRuleData->mStyleContext->GetParent();
   if (contextParent && contextParent->HasPseudoElementData()) {
     // Don't apply transitions or animations to things inside of
     // pseudo-elements.
@@ -81,6 +81,13 @@ AnimValuesStyleRule::AddValue(nsCSSPropertyID aProperty,
   mAnimationValues.Put(aProperty, Move(aValue));
   mStyleBits |=
     nsCachedStyleData::GetBitForSID(nsCSSProps::kSIDTable[aProperty]);
+}
+
+bool
+AnimValuesStyleRule::GetValue(nsCSSPropertyID aProperty,
+                              StyleAnimationValue& aValue) const
+{
+  return mAnimationValues.Get(aProperty, &aValue);
 }
 
 #ifdef DEBUG

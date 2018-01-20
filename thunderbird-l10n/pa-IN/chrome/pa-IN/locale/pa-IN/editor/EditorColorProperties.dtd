@@ -44,3 +44,5 @@
 <!ENTITY backgroundImage.label "ਬੈਕਗਰਾਊਂਡ ਚਿੱਤਰ:">
 <!ENTITY backgroundImage.accessKey "m">
 <!ENTITY backgroundImage.tooltip "ਆਪਣੇ  ਪੇਜ਼ ਦੀ ਬੈਕਗਰਾਊਂਡ ਲਈ ਇੱਕ ਚਿੱਤਰ ਫਾਇਲ਼ ਦੀ ਵਰਤੋਂ ਕਰੋ">
+
+<!ENTITY backgroundImage.shortenedDataURI "Shortened data URI (copy will place the full URI onto the clipboard)">

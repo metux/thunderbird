@@ -161,10 +161,9 @@ var gPluginHandler = {
     return true;
   },
 
-  addLinkClickCallback: function ph_addLinkClickCallback(linkNode, callbackName /*callbackArgs...*/) {
+  addLinkClickCallback: function ph_addLinkClickCallback(linkNode, callbackName, ...callbackArgs) {
     // XXX just doing (callback)(arg) was giving a same-origin error. bug?
     let self = this;
-    let callbackArgs = Array.prototype.slice.call(arguments).slice(2);
     linkNode.addEventListener("click",
                               function(evt) {
                                 if (!evt.isTrusted)
@@ -382,7 +381,7 @@ var gPluginHandler = {
     let notifications = {
       PluginBlocklisted : {
         barID: "blocked-plugins",
-        iconURL: "chrome://mozapps/skin/plugins/pluginGeneric-16.png",
+        iconURL: "chrome://messenger/skin/icons/pluginBlocked.svg",
         message: messengerBundle.getString("blockedpluginsMessage.title"),
         buttons: [{
           label: messengerBundle.getString("blockedpluginsMessage.infoButton.label"),
@@ -399,7 +398,7 @@ var gPluginHandler = {
       },
       PluginOutdated: {
         barID: "outdated-plugins",
-        iconURL: "chrome://mozapps/skin/plugins/pluginGeneric-16.png",
+        iconURL: "chrome://mozapps/skin/plugins/pluginGeneric.svg",
         message: messengerBundle.getString("outdatedpluginsMessage.title"),
         buttons: [{
           label: messengerBundle.getString("outdatedpluginsMessage.updateButton.label"),
@@ -412,7 +411,7 @@ var gPluginHandler = {
     if (AppConstants.platform == "macosx") {
       notifications["npapi-carbon-event-model-failure"] = {
         barID: "carbon-failure-plugins",
-        iconURL: "chrome://mozapps/skin/plugins/pluginGeneric-16.png",
+        iconURL: "chrome://mozapps/skin/plugins/pluginGeneric.svg",
         message: messengerBundle.getString("carbonFailurePluginsMessage.message"),
         buttons: [{
           label: messengerBundle.getString("carbonFailurePluginsMessage.restartButton.label"),
@@ -639,7 +638,7 @@ var gPluginHandler = {
 
       // Configure the notification bar
       let priority = notificationBox.PRIORITY_WARNING_MEDIUM;
-      let iconURL = "chrome://mozapps/skin/plugins/pluginGeneric-16.png";
+      let iconURL = "chrome://mozapps/skin/plugins/pluginGeneric.svg";
       let reloadLabel = messengerBundle.getString("crashedpluginsMessage.reloadButton.label");
       let reloadKey   = messengerBundle.getString("crashedpluginsMessage.reloadButton.accesskey");
       let submitLabel = messengerBundle.getString("crashedpluginsMessage.submitButton.label");

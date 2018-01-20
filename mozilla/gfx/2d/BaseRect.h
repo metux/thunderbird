@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -206,6 +207,11 @@ struct BaseRect {
   {
     SetRect(aPt.x, aPt.y, aSize.width, aSize.height);
   }
+  void GetRect(T* aX, T* aY, T* aWidth, T* aHeight)
+  {
+    *aX = x; *aY = y; *aWidth = width; *aHeight = height;
+  }
+
   void MoveTo(T aX, T aY) { x = aX; y = aY; }
   void MoveTo(const Point& aPoint) { x = aPoint.x; y = aPoint.y; }
   void MoveBy(T aDx, T aDy) { x += aDx; y += aDy; }
@@ -319,30 +325,30 @@ struct BaseRect {
   Point TopRight() const { return Point(XMost(), y); }
   Point BottomLeft() const { return Point(x, YMost()); }
   Point BottomRight() const { return Point(XMost(), YMost()); }
-  Point AtCorner(int aCorner) const {
+  Point AtCorner(Corner aCorner) const {
     switch (aCorner) {
-      case RectCorner::TopLeft: return TopLeft();
-      case RectCorner::TopRight: return TopRight();
-      case RectCorner::BottomRight: return BottomRight();
-      case RectCorner::BottomLeft: return BottomLeft();
+      case eCornerTopLeft: return TopLeft();
+      case eCornerTopRight: return TopRight();
+      case eCornerBottomRight: return BottomRight();
+      case eCornerBottomLeft: return BottomLeft();
     }
     MOZ_CRASH("GFX: Incomplete switch");
   }
   Point CCWCorner(mozilla::Side side) const {
     switch (side) {
-      case NS_SIDE_TOP: return TopLeft();
-      case NS_SIDE_RIGHT: return TopRight();
-      case NS_SIDE_BOTTOM: return BottomRight();
-      case NS_SIDE_LEFT: return BottomLeft();
+      case eSideTop: return TopLeft();
+      case eSideRight: return TopRight();
+      case eSideBottom: return BottomRight();
+      case eSideLeft: return BottomLeft();
     }
     MOZ_CRASH("GFX: Incomplete switch");
   }
   Point CWCorner(mozilla::Side side) const {
     switch (side) {
-      case NS_SIDE_TOP: return TopRight();
-      case NS_SIDE_RIGHT: return BottomRight();
-      case NS_SIDE_BOTTOM: return BottomLeft();
-      case NS_SIDE_LEFT: return TopLeft();
+      case eSideTop: return TopRight();
+      case eSideRight: return BottomRight();
+      case eSideBottom: return BottomLeft();
+      case eSideLeft: return TopLeft();
     }
     MOZ_CRASH("GFX: Incomplete switch");
   }
@@ -352,21 +358,25 @@ struct BaseRect {
   T Area() const { return width * height; }
 
   // Helper methods for computing the extents
-  T X() const { return x; }
-  T Y() const { return y; }
-  T Width() const { return width; }
-  T Height() const { return height; }
-  T XMost() const { return x + width; }
-  T YMost() const { return y + height; }
+  MOZ_ALWAYS_INLINE T X() const { return x; }
+  MOZ_ALWAYS_INLINE T Y() const { return y; }
+  MOZ_ALWAYS_INLINE T Width() const { return width; }
+  MOZ_ALWAYS_INLINE T Height() const { return height; }
+  MOZ_ALWAYS_INLINE T XMost() const { return x + width; }
+  MOZ_ALWAYS_INLINE T YMost() const { return y + height; }
+
+  // Set width and height. SizeTo() sets them together.
+  MOZ_ALWAYS_INLINE void SetWidth(T aWidth) { width = aWidth; }
+  MOZ_ALWAYS_INLINE void SetHeight(T aHeight) { height = aHeight; }
 
   // Get the coordinate of the edge on the given side.
   T Edge(mozilla::Side aSide) const
   {
     switch (aSide) {
-      case NS_SIDE_TOP: return Y();
-      case NS_SIDE_RIGHT: return XMost();
-      case NS_SIDE_BOTTOM: return YMost();
-      case NS_SIDE_LEFT: return X();
+      case eSideTop: return Y();
+      case eSideRight: return XMost();
+      case eSideBottom: return YMost();
+      case eSideLeft: return X();
     }
     MOZ_CRASH("GFX: Incomplete switch");
   }
@@ -389,6 +399,10 @@ struct BaseRect {
   void SetBottomEdge(T aYMost) { 
     MOZ_ASSERT(aYMost >= y);
     height = aYMost - y; 
+  }
+  void Swap() {
+    std::swap(x, y);
+    std::swap(width, height);
   }
 
   // Round the rectangle edges to integer coordinates, such that the rounded
@@ -567,6 +581,17 @@ struct BaseRect {
     );
   };
 
+  // Returns a point representing the distance, along each dimension, of the
+  // given point from this rectangle. The distance along a dimension is defined
+  // as zero if the point is within the bounds of the rectangle in that
+  // dimension; otherwise, it's the distance to the closer endpoint of the
+  // rectangle in that dimension.
+  Point DistanceTo(const Point& aPoint) const
+  {
+    return {DistanceFromInterval(aPoint.x, x, XMost()),
+            DistanceFromInterval(aPoint.y, y, YMost())};
+  }
+
   friend std::ostream& operator<<(std::ostream& stream,
       const BaseRect<T, Sub, Point, SizeT, MarginT>& aRect) {
     return stream << '(' << aRect.x << ',' << aRect.y << ','
@@ -578,6 +603,19 @@ private:
   // Use IsEqualEdges or IsEqualInterior explicitly.
   bool operator==(const Sub& aRect) const { return false; }
   bool operator!=(const Sub& aRect) const { return false; }
+
+  // Helper function for DistanceTo() that computes the distance of a
+  // coordinate along one dimension from an interval in that dimension.
+  static T DistanceFromInterval(T aCoord, T aIntervalStart, T aIntervalEnd)
+  {
+    if (aCoord < aIntervalStart) {
+      return aIntervalStart - aCoord;
+    }
+    if (aCoord > aIntervalEnd) {
+      return aCoord - aIntervalEnd;
+    }
+    return 0;
+  }
 };
 
 } // namespace gfx

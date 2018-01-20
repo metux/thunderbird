@@ -88,9 +88,7 @@ AsyncRead.prototype.onDataAvailable = function (request, context, inputStream, o
   this.session.receive(str.value);
 }
 
-
-
-globalRegistry = {};
+var globalRegistry = {};
 
 function Bridge (session) {
   this.session = session;
@@ -131,7 +129,7 @@ Bridge.prototype._describe = function (obj) {
       var type = "array";
     }
     response.attributes = [];
-    for (i in obj) {
+    for (var i in obj) {
       response.attributes = response.attributes.concat(i);
     }
   }
@@ -201,10 +199,10 @@ Bridge.prototype.execFunction = function (uuid, func, args) {
   }
 }
 
-backstage = this;
+var backstage = this;
 
 function Session (transport) {
-  this.transpart = transport;
+  this.transpart = transport;  // XXX Unused, needed to hold reference? Note the typo.
   this.sandbox = Components.utils.Sandbox(backstage);
   this.sandbox.bridge = new Bridge(this);
   this.sandbox.openPreferences = hwindow.openPreferences;
@@ -212,8 +210,7 @@ function Session (transport) {
       this.outputstream = transport.openOutputStream(Ci.nsITransport.OPEN_BLOCKING, 0, 0);
       this.outstream = Cc['@mozilla.org/intl/converter-output-stream;1']
                     .createInstance(Ci.nsIConverterOutputStream);
-      this.outstream.init(this.outputstream, 'UTF-8', BUFFER_SIZE,
-                    Ci.nsIConverterOutputStream.DEFAULT_REPLACEMENT_CHARACTER);
+      this.outstream.init(this.outputstream, 'UTF-8');
       this.stream = transport.openInputStream(0, 0, 0);
       this.instream = Cc['@mozilla.org/intl/converter-input-stream;1']
           .createInstance(Ci.nsIConverterInputStream);
@@ -226,7 +223,7 @@ function Session (transport) {
 
   this.pump = Cc['@mozilla.org/network/input-stream-pump;1']
       .createInstance(Ci.nsIInputStreamPump);
-  this.pump.init(this.stream, -1, -1, 0, 0, false);
+  this.pump.init(this.stream, 0, 0, false);
   this.pump.asyncRead(new AsyncRead(this), null);
 }
 Session.prototype.onOutput = function(string) {
@@ -264,7 +261,7 @@ Session.prototype.onOutput = function(string) {
 Session.prototype.onQuit = function() {
   this.instream.close();
   this.outstream.close();
-  sessions.remove(session);
+  sessions.remove(this);
 };
 Session.prototype.encodeOut = function (obj) {
   try {
@@ -297,8 +294,7 @@ var sessions = {
         return this._list[index];
     },
     quit: function() {
-        this._list.forEach(
-            function(session) { session.quit; });
+        this._list.forEach(function(session) { session.onQuit(); });
         this._list.splice(0, this._list.length);
     }
 };
@@ -326,7 +322,7 @@ Server.prototype.onStopListening = function (serv, status) {
 // Stub function
 }
 Server.prototype.onSocketAccepted = function (serv, transport) {
-  session = new Session(transport)
+  let session = new Session(transport);
   sessions.add(session);
 }
 

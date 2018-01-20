@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=99: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -119,11 +119,31 @@ APZCTreeManagerChild::ReceiveInputEvent(
     event = processedEvent;
     return res;
   }
+  case KEYBOARD_INPUT: {
+    KeyboardInput& event = aEvent.AsKeyboardInput();
+    KeyboardInput processedEvent;
+
+    nsEventStatus res;
+    SendReceiveKeyboardInputEvent(event,
+                                  &res,
+                                  &processedEvent,
+                                  aOutTargetGuid,
+                                  aOutInputBlockId);
+
+    event = processedEvent;
+    return res;
+  }
   default: {
     MOZ_ASSERT_UNREACHABLE("Invalid InputData type.");
     return nsEventStatus_eConsumeNoDefault;
   }
   }
+}
+
+void
+APZCTreeManagerChild::SetKeyboardMap(const KeyboardMap& aKeyboardMap)
+{
+  SendSetKeyboardMap(aKeyboardMap);
 }
 
 void
@@ -160,18 +180,6 @@ APZCTreeManagerChild::UpdateZoomConstraints(
 }
 
 void
-APZCTreeManagerChild::CancelAnimation(const ScrollableLayerGuid &aGuid)
-{
-  SendCancelAnimation(aGuid);
-}
-
-void
-APZCTreeManagerChild::AdjustScrollForSurfaceShift(const ScreenPoint& aShift)
-{
-  SendAdjustScrollForSurfaceShift(aShift);
-}
-
-void
 APZCTreeManagerChild::SetDPI(float aDpiValue)
 {
   SendSetDPI(aDpiValue);
@@ -191,6 +199,20 @@ APZCTreeManagerChild::StartScrollbarDrag(
     const AsyncDragMetrics& aDragMetrics)
 {
   SendStartScrollbarDrag(aGuid, aDragMetrics);
+}
+
+bool
+APZCTreeManagerChild::StartAutoscroll(
+    const ScrollableLayerGuid& aGuid,
+    const ScreenPoint& aAnchorLocation)
+{
+  return SendStartAutoscroll(aGuid, aAnchorLocation);
+}
+
+void
+APZCTreeManagerChild::StopAutoscroll(const ScrollableLayerGuid& aGuid)
+{
+  SendStopAutoscroll(aGuid);
 }
 
 void
@@ -213,14 +235,18 @@ APZCTreeManagerChild::UpdateWheelTransaction(
   SendUpdateWheelTransaction(aRefPoint, aEventMessage);
 }
 
-void APZCTreeManagerChild::TransformEventRefPoint(
+void APZCTreeManagerChild::ProcessUnhandledEvent(
     LayoutDeviceIntPoint* aRefPoint,
-    ScrollableLayerGuid* aOutTargetGuid)
+    ScrollableLayerGuid*  aOutTargetGuid,
+    uint64_t*             aOutFocusSequenceNumber)
 {
-  SendTransformEventRefPoint(*aRefPoint, aRefPoint, aOutTargetGuid);
+  SendProcessUnhandledEvent(*aRefPoint,
+                            aRefPoint,
+                            aOutTargetGuid,
+                            aOutFocusSequenceNumber);
 }
 
-bool
+mozilla::ipc::IPCResult
 APZCTreeManagerChild::RecvHandleTap(const TapType& aType,
                                     const LayoutDevicePoint& aPoint,
                                     const Modifiers& aModifiers,
@@ -233,16 +259,16 @@ APZCTreeManagerChild::RecvHandleTap(const TapType& aType,
       mCompositorSession->GetContentController()) {
     mCompositorSession->GetContentController()->HandleTap(aType, aPoint,
         aModifiers, aGuid, aInputBlockId);
-    return true;
+    return IPC_OK();
   }
   dom::TabParent* tab = dom::TabParent::GetTabParentFromLayersId(aGuid.mLayersId);
   if (tab) {
     tab->SendHandleTap(aType, aPoint, aModifiers, aGuid, aInputBlockId);
   }
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 APZCTreeManagerChild::RecvNotifyPinchGesture(const PinchGestureType& aType,
                                              const ScrollableLayerGuid& aGuid,
                                              const LayoutDeviceCoord& aSpanChange,
@@ -259,7 +285,19 @@ APZCTreeManagerChild::RecvNotifyPinchGesture(const PinchGestureType& aType,
       mCompositorSession->GetWidget()) {
     APZCCallbackHelper::NotifyPinchGesture(aType, aSpanChange, aModifiers, mCompositorSession->GetWidget());
   }
-  return true;
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult
+APZCTreeManagerChild::RecvCancelAutoscroll(const FrameMetrics::ViewID& aScrollId)
+{
+  // This will only get sent from the GPU process to the parent process, so
+  // this function should never get called in the content process.
+  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(NS_IsMainThread());
+
+  APZCCallbackHelper::CancelAutoscroll(aScrollId);
+  return IPC_OK();
 }
 
 } // namespace layers

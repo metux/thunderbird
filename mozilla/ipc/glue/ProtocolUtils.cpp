@@ -11,12 +11,15 @@
 #include <errno.h>
 #endif
 
+#include "mozilla/IntegerPrintfMacros.h"
+
 #include "mozilla/ipc/ProtocolUtils.h"
 
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/ipc/MessageChannel.h"
 #include "mozilla/ipc/Transport.h"
 #include "mozilla/StaticMutex.h"
+#include "mozilla/SystemGroup.h"
 #include "mozilla/Unused.h"
 #include "nsPrintfCString.h"
 
@@ -54,6 +57,16 @@ MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedPSecurityDescriptor, \
 
 namespace ipc {
 
+IPCResult
+IPCResult::Fail(NotNull<IProtocol*> actor, const char* where, const char* why)
+{
+  // Calls top-level protocol to handle the error.
+  nsPrintfCString errorMsg("%s::%s %s\n", actor->ProtocolName(), where, why);
+  actor->GetIPCChannel()->Listener()->ProcessingError(
+    HasResultCodes::MsgProcessingError, errorMsg.get());
+  return IPCResult(false);
+}
+
 class ChannelOpened : public IPC::Message
 {
 public:
@@ -63,7 +76,8 @@ public:
                 NestedLevel aNestedLevel = NOT_NESTED)
     : IPC::Message(MSG_ROUTING_CONTROL, // these only go to top-level actors
                    CHANNEL_OPENED_MESSAGE_TYPE,
-                   aNestedLevel)
+                   0,
+                   HeaderFlags(aNestedLevel))
   {
     IPC::WriteParam(this, aDescriptor);
     IPC::WriteParam(this, aOtherProcess);
@@ -222,7 +236,7 @@ AnnotateSystemError()
   if (error) {
     CrashReporter::AnnotateCrashReport(
       NS_LITERAL_CSTRING("IPCSystemError"),
-      nsPrintfCString("%lld", error));
+      nsPrintfCString("%" PRId64, error));
   }
 }
 #endif
@@ -289,21 +303,20 @@ FatalError(const char* aProtocolName, const char* aMsg, bool aIsParent)
     MOZ_CRASH("IPC FatalError in the parent process!");
   } else {
     formattedMessage.AppendLiteral("\". abort()ing as a result.");
-    NS_RUNTIMEABORT(formattedMessage.get());
+    MOZ_CRASH_UNSAFE_OOL(formattedMessage.get());
   }
 }
 
 void
 LogicError(const char* aMsg)
 {
-  NS_RUNTIMEABORT(aMsg);
+  MOZ_CRASH_UNSAFE_OOL(aMsg);
 }
 
 void
 ActorIdReadError(const char* aActorDescription)
 {
-  nsPrintfCString message("Error deserializing id for %s", aActorDescription);
-  NS_RUNTIMEABORT(message.get());
+  MOZ_CRASH_UNSAFE_PRINTF("Error deserializing id for %s", aActorDescription);
 }
 
 void
@@ -331,14 +344,19 @@ MismatchedActorTypeError(const char* aActorDescription)
 void
 UnionTypeReadError(const char* aUnionName)
 {
-  nsPrintfCString message("error deserializing type of union %s", aUnionName);
-  NS_RUNTIMEABORT(message.get());
+  MOZ_CRASH_UNSAFE_PRINTF("error deserializing type of union %s", aUnionName);
 }
 
-void ArrayLengthReadError(const char* aElementName)
+void
+ArrayLengthReadError(const char* aElementName)
 {
-  nsPrintfCString message("error deserializing length of %s[]", aElementName);
-  NS_RUNTIMEABORT(message.get());
+  MOZ_CRASH_UNSAFE_PRINTF("error deserializing length of %s[]", aElementName);
+}
+
+void
+SentinelReadError(const char* aClassName)
+{
+  MOZ_CRASH_UNSAFE_PRINTF("incorrect sentinel when reading %s", aClassName);
 }
 
 void
@@ -407,6 +425,9 @@ IProtocol::Lookup(int32_t aId)
 void
 IProtocol::Unregister(int32_t aId)
 {
+  if (mId == aId) {
+    mId = kFreedActorId;
+  }
   Manager()->Unregister(aId);
 }
 
@@ -508,12 +529,67 @@ IProtocol::DeallocShmem(Shmem& aMem)
   return ok;
 }
 
+void
+IProtocol::SetManager(IProtocol* aManager)
+{
+  MOZ_RELEASE_ASSERT(!mManager || mManager == aManager);
+  mManager = aManager;
+}
+
+void
+IProtocol::SetEventTargetForActor(IProtocol* aActor, nsIEventTarget* aEventTarget)
+{
+  // Make sure we have a manager for the internal method to access.
+  aActor->SetManager(this);
+  SetEventTargetForActorInternal(aActor, aEventTarget);
+}
+
+void
+IProtocol::ReplaceEventTargetForActor(IProtocol* aActor,
+                                      nsIEventTarget* aEventTarget)
+{
+  // Ensure the actor has been registered.
+  MOZ_ASSERT(aActor->Manager());
+  ReplaceEventTargetForActorInternal(aActor, aEventTarget);
+}
+
+void
+IProtocol::SetEventTargetForActorInternal(IProtocol* aActor,
+                                          nsIEventTarget* aEventTarget)
+{
+  Manager()->SetEventTargetForActorInternal(aActor, aEventTarget);
+}
+
+void
+IProtocol::ReplaceEventTargetForActorInternal(IProtocol* aActor,
+                                              nsIEventTarget* aEventTarget)
+{
+  Manager()->ReplaceEventTargetForActorInternal(aActor, aEventTarget);
+}
+
+nsIEventTarget*
+IProtocol::GetActorEventTarget()
+{
+  // We should only call this function when this actor has been registered and
+  // is not unregistered yet.
+  MOZ_RELEASE_ASSERT(mId != kNullActorId && mId != kFreedActorId);
+  RefPtr<nsIEventTarget> target = Manager()->GetActorEventTargetInternal(this);
+  return target;
+}
+
+already_AddRefed<nsIEventTarget>
+IProtocol::GetActorEventTargetInternal(IProtocol* aActor)
+{
+  return Manager()->GetActorEventTargetInternal(aActor);
+}
+
 IToplevelProtocol::IToplevelProtocol(ProtocolId aProtoId, Side aSide)
  : IProtocol(aSide),
    mProtocolId(aProtoId),
    mOtherPid(mozilla::ipc::kInvalidProcessId),
-   mLastRouteId(aSide == ParentSide ? 1 : 0),
-   mLastShmemId(aSide == ParentSide ? 1 : 0)
+   mLastRouteId(aSide == ParentSide ? kFreedActorId : kNullActorId),
+   mLastShmemId(aSide == ParentSide ? kFreedActorId : kNullActorId),
+   mEventTargetMutex("ProtocolEventTargetMutex")
 {
 }
 
@@ -564,7 +640,16 @@ IToplevelProtocol::Open(MessageChannel* aChannel,
                         mozilla::ipc::Side aSide)
 {
   SetOtherProcessId(base::GetCurrentProcId());
-  return GetIPCChannel()->Open(aChannel, aMessageLoop, aSide);
+  return GetIPCChannel()->Open(aChannel, aMessageLoop->SerialEventTarget(), aSide);
+}
+
+bool
+IToplevelProtocol::Open(MessageChannel* aChannel,
+                        nsIEventTarget* aEventTarget,
+                        mozilla::ipc::Side aSide)
+{
+  SetOtherProcessId(base::GetCurrentProcId());
+  return GetIPCChannel()->Open(aChannel, aEventTarget, aSide);
 }
 
 void
@@ -588,8 +673,22 @@ IToplevelProtocol::IsOnCxxStack() const
 int32_t
 IToplevelProtocol::Register(IProtocol* aRouted)
 {
+  if (aRouted->Id() != kNullActorId && aRouted->Id() != kFreedActorId) {
+    // If there's already an ID, just return that.
+    return aRouted->Id();
+  }
   int32_t id = GetSide() == ParentSide ? ++mLastRouteId : --mLastRouteId;
   mActorMap.AddWithID(aRouted, id);
+  aRouted->SetId(id);
+
+  // Inherit our event target from our manager.
+  if (IProtocol* manager = aRouted->Manager()) {
+    MutexAutoLock lock(mEventTargetMutex);
+    if (nsCOMPtr<nsIEventTarget> target = mEventTargetMap.Lookup(manager->Id())) {
+      mEventTargetMap.AddWithID(target, id);
+    }
+  }
+
   return id;
 }
 
@@ -598,6 +697,7 @@ IToplevelProtocol::RegisterID(IProtocol* aRouted,
                               int32_t aId)
 {
   mActorMap.AddWithID(aRouted, aId);
+  aRouted->SetId(aId);
   return aId;
 }
 
@@ -610,7 +710,10 @@ IToplevelProtocol::Lookup(int32_t aId)
 void
 IToplevelProtocol::Unregister(int32_t aId)
 {
-  return mActorMap.Remove(aId);
+  mActorMap.Remove(aId);
+
+  MutexAutoLock lock(mEventTargetMutex);
+  mEventTargetMap.RemoveIfPresent(aId);
 }
 
 Shmem::SharedMemory*
@@ -680,7 +783,7 @@ IToplevelProtocol::DestroySharedMemory(Shmem& shmem)
 void
 IToplevelProtocol::DeallocShmems()
 {
-  for (IDMap<SharedMemory>::const_iterator cit = mShmemMap.begin(); cit != mShmemMap.end(); ++cit) {
+  for (IDMap<SharedMemory*>::const_iterator cit = mShmemMap.begin(); cit != mShmemMap.end(); ++cit) {
     Shmem::Dealloc(Shmem::IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead(), cit->second);
   }
   mShmemMap.Clear();
@@ -714,6 +817,102 @@ IToplevelProtocol::ShmemDestroyed(const Message& aMsg)
     Shmem::Dealloc(Shmem::IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead(), rawmem);
   }
   return true;
+}
+
+already_AddRefed<nsIEventTarget>
+IToplevelProtocol::GetMessageEventTarget(const Message& aMsg)
+{
+  int32_t route = aMsg.routing_id();
+
+  Maybe<MutexAutoLock> lock;
+  lock.emplace(mEventTargetMutex);
+
+  nsCOMPtr<nsIEventTarget> target = mEventTargetMap.Lookup(route);
+
+  if (aMsg.is_constructor()) {
+    ActorHandle handle;
+    PickleIterator iter = PickleIterator(aMsg);
+    if (!IPC::ReadParam(&aMsg, &iter, &handle)) {
+      return nullptr;
+    }
+
+    // Normally a new actor inherits its event target from its manager. If the
+    // manager has no event target, we give the subclass a chance to make a new
+    // one.
+    if (!target) {
+      MutexAutoUnlock unlock(mEventTargetMutex);
+      target = GetConstructedEventTarget(aMsg);
+    }
+
+    mEventTargetMap.AddWithID(target, handle.mId);
+  } else if (!target) {
+    // We don't need the lock after this point.
+    lock.reset();
+
+    target = GetSpecificMessageEventTarget(aMsg);
+  }
+
+  return target.forget();
+}
+
+already_AddRefed<nsIEventTarget>
+IToplevelProtocol::GetActorEventTargetInternal(IProtocol* aActor)
+{
+  MOZ_RELEASE_ASSERT(aActor->Id() != kNullActorId && aActor->Id() != kFreedActorId);
+
+  MutexAutoLock lock(mEventTargetMutex);
+  nsCOMPtr<nsIEventTarget> target = mEventTargetMap.Lookup(aActor->Id());
+  return target.forget();
+}
+
+already_AddRefed<nsIEventTarget>
+IToplevelProtocol::GetActorEventTarget(IProtocol* aActor)
+{
+  return GetActorEventTargetInternal(aActor);
+}
+
+nsIEventTarget*
+IToplevelProtocol::GetActorEventTarget()
+{
+  // The EventTarget of a ToplevelProtocol shall never be set.
+  return nullptr;
+}
+
+void
+IToplevelProtocol::SetEventTargetForActorInternal(IProtocol* aActor,
+                                                  nsIEventTarget* aEventTarget)
+{
+  // The EventTarget of a ToplevelProtocol shall never be set.
+  MOZ_RELEASE_ASSERT(aActor != this);
+
+  // We should only call this function on actors that haven't been used for IPC
+  // code yet. Otherwise we'll be posting stuff to the wrong event target before
+  // we're called.
+  MOZ_RELEASE_ASSERT(aActor->Id() == kNullActorId || aActor->Id() == kFreedActorId);
+
+  // Register the actor early. When it's registered again, it will keep the same
+  // ID.
+  int32_t id = Register(aActor);
+  aActor->SetId(id);
+
+  MutexAutoLock lock(mEventTargetMutex);
+  mEventTargetMap.AddWithID(aEventTarget, id);
+}
+
+void
+IToplevelProtocol::ReplaceEventTargetForActorInternal(
+  IProtocol* aActor,
+  nsIEventTarget* aEventTarget)
+{
+  // The EventTarget of a ToplevelProtocol shall never be set.
+  MOZ_RELEASE_ASSERT(aActor != this);
+
+  int32_t id = aActor->Id();
+  // The ID of the actor should have existed.
+  MOZ_RELEASE_ASSERT(id!= kNullActorId && id!= kFreedActorId);
+
+  MutexAutoLock lock(mEventTargetMutex);
+  mEventTargetMap.ReplaceWithID(aEventTarget, id);
 }
 
 } // namespace ipc

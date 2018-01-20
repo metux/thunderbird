@@ -101,7 +101,7 @@ const gPopupPermListener = {
       // the URI in the notification
       var popupOpenerURI = maybeInitPopupContext();
       if (popupOpenerURI) {
-        closeURI = Services.io.newURI(data, null, null);
+        closeURI = Services.io.newURI(data);
         if (closeURI.host == popupOpenerURI.host)
           window.close();
       }
@@ -346,9 +346,21 @@ function nsBrowserAccess() {
 }
 
 nsBrowserAccess.prototype = {
+  createContentWindow(aURI, aOpener, aWhere, aFlags, aTriggeringPrincipal = null) {
+    return this.getContentWindowOrOpenURI(null, aOpener, aWhere, aFlags,
+                                          aTriggeringPrincipal);
+  },
 
-  openURI: function openURI(aURI, aOpener, aWhere, aFlags) {
+  openURI: function (aURI, aOpener, aWhere, aFlags, aTriggeringPrincipal = null) {
+    if (!aURI) {
+      Components.utils.reportError("openURI should only be called with a valid URI");
+      throw Components.results.NS_ERROR_FAILURE;
+    }
+    return this.getContentWindowOrOpenURI(aURI, aOpener, aWhere, aFlags,
+                                          aTriggeringPrincipal);
+  },
 
+  getContentWindowOrOpenURI(aURI, aOpener, aWhere, aFlags, aTriggeringPrincipal) {
     var isExternal = !!(aFlags & nsIBrowserDOMWindow.OPEN_EXTERNAL);
 
     if (aOpener && isExternal) {
@@ -364,15 +376,16 @@ nsBrowserAccess.prototype = {
         aWhere = Services.prefs.getIntPref("browser.link.open_newwindow");
     }
 
-    var referrer = aOpener ? aOpener.QueryInterface(nsIInterfaceRequestor)
+    let referrer = aOpener ? aOpener.QueryInterface(nsIInterfaceRequestor)
                                     .getInterface(nsIWebNavigation)
                                     .currentURI : null;
+    let referrerPolicy = Components.interfaces.nsIHttpChannel.REFERRER_POLICY_UNSET;
     var uri = aURI ? aURI.spec : "about:blank";
 
     switch (aWhere) {
       case nsIBrowserDOMWindow.OPEN_NEWWINDOW:
         return window.openDialog(getBrowserURL(), "_blank", "all,dialog=no",
-                                 uri, null, referrer);
+                                 uri, null, null);
       case nsIBrowserDOMWindow.OPEN_NEWTAB:
         var bgLoad = Services.prefs.getBoolPref("browser.tabs.loadDivertedInBackground");
         var isRelated = referrer ? true : false;
@@ -380,16 +393,18 @@ nsBrowserAccess.prototype = {
         // to the nsIDOMWindow of the opened tab right away.
         let userContextId = aOpener && aOpener.document
                             ? aOpener.document.nodePrincipal.originAttributes.userContextId
-                           : Components.interfaces.nsIScriptSecurityManager.DEFAULT_USER_CONTEXT_ID;
+                            : Components.interfaces.nsIScriptSecurityManager.DEFAULT_USER_CONTEXT_ID;
         let openerWindow = (aFlags & nsIBrowserDOMWindow.OPEN_NO_OPENER) ? null : aOpener;
 
-        var newTab = gBrowser.loadOneTab(uri, {inBackground: bgLoad,
+        var newTab = gBrowser.loadOneTab(uri, {triggeringPrincipal: aTriggeringPrincipal,
+                                               referrerURI: referrer,
+                                               referrerPolicy,
+                                               inBackground: bgLoad,
                                                fromExternal: isExternal,
                                                relatedToCurrent: isRelated,
-                                               referrerURI: referrer,
                                                userContextId: userContextId,
                                                opener: openerWindow,
-                                               });
+                                              });
         var contentWin = gBrowser.getBrowserForTab(newTab).contentWindow;
         if (!bgLoad)
           contentWin.focus();
@@ -400,8 +415,14 @@ nsBrowserAccess.prototype = {
                         nsIWebNavigation.LOAD_FLAGS_NONE;
 
         if (!aOpener) {
-          if (aURI)
-            gBrowser.loadURIWithFlags(aURI.spec, loadflags);
+          if (aURI) {
+            gBrowser.loadURIWithFlags(aURI.spec, {
+                                                  flags: loadflags,
+                                                  referrerURI: referrer,
+                                                  referrerPolicy,
+                                                  triggeringPrincipal: aTriggeringPrincipal,
+                                                 });
+          }
           return content;
         }
         aOpener = aOpener.top;
@@ -620,11 +641,46 @@ function Startup()
       gURLBar.value = uriToLoad;
       browser.userTypedValue = uriToLoad;
     }
-    if ("arguments" in window && window.arguments.length >= 3) {
-      loadURI(uriToLoad, window.arguments[2], window.arguments[3] || null,
-              window.arguments[4] || false, window.arguments[5] || false);
+
+  if ("arguments" in window && window.arguments.length >= 3) {
+      // window.arguments[2]: referrer (nsIURI | string)
+      //                 [3]: postData (nsIInputStream)
+      //                 [4]: allowThirdPartyFixup (bool)
+      //                 [5]: referrerPolicy (int)
+      //                 [6]: userContextId (int)
+      //                 [7]: originPrincipal (nsIPrincipal)
+      //                 [8]: triggeringPrincipal (nsIPrincipal)
+      let referrerURI = window.arguments[2];
+      if (typeof(referrerURI) == "string") {
+        try {
+          referrerURI = makeURI(referrerURI);
+        } catch (e) {
+          referrerURI = null;
+        }
+      }
+      let referrerPolicy = (window.arguments[5] != undefined ?
+          window.arguments[5] : Components.interfaces.nsIHttpChannel.REFERRER_POLICY_UNSET);
+
+      let userContextId = (window.arguments[6] != undefined ?
+          window.arguments[6] : Components.interfaces.nsIScriptSecurityManager.DEFAULT_USER_CONTEXT_ID);
+
+      try {
+        openLinkIn(uriToLoad, "current",
+                   { referrerURI,
+                     referrerPolicy,
+                     postData: window.arguments[3] || null,
+                     allowThirdPartyFixup: window.arguments[4] || false,
+                     userContextId,
+                     // pass the origin principal (if any) and force its use to create
+                     // an initial about:blank viewer if present:
+                     originPrincipal: window.arguments[7],
+                     triggeringPrincipal: window.arguments[8],
+                   });
+      } catch (e) {}
     } else {
-      loadURI(uriToLoad);
+      // Note: loadOneOrMoreURIs *must not* be called if window.arguments.length >= 3.
+      // Such callers expect that window.arguments[0] is handled as a single URI.
+      loadOneOrMoreURIs(uriToLoad, Services.scriptSecurityManager.getSystemPrincipal());
     }
   }
 
@@ -870,7 +926,7 @@ function GetTypePermFromId(aId)
 function CheckForVisibility(aEvent, aNode)
 {
   CheckPermissionsMenu("popup", aNode);
-  
+
   var uri = getBrowser().currentURI;
   var allowBlocking = Services.prefs.getBoolPref("dom.disable_open_during_load");
 
@@ -1479,14 +1535,14 @@ function selectFileToOpen(label, prefRoot)
   // use a pref to remember the displayDirectory selected by the user.
   try {
     fp.displayDirectory = Services.prefs.getComplexValue(lastDirPref,
-                              Components.interfaces.nsILocalFile);
+                              Components.interfaces.nsIFile);
   } catch (ex) {
   }
 
   if (fp.show() == nsIFilePicker.returnOK) {
     Services.prefs.setIntPref(filterIndexPref, fp.filterIndex);
     Services.prefs.setComplexValue(lastDirPref,
-                                   Components.interfaces.nsILocalFile,
+                                   Components.interfaces.nsIFile,
                                    fp.file.parent);
     fileURL = fp.fileURL;
   }
@@ -1657,6 +1713,10 @@ function BrowserCloseWindow()
   window.close();
 }
 
+// TODO align the function parameters with Firefox
+// function loadURI(uri, referrer, postData, allowThirdPartyFixup, referrerPolicy,
+//                  userContextId, originPrincipal, forceAboutBlankViewerInCurrent,
+//                  triggeringPrincipal)
 function loadURI(uri, referrer, postData, allowThirdPartyFixup)
 {
   try {
@@ -1671,6 +1731,25 @@ function loadURI(uri, referrer, postData, allowThirdPartyFixup)
       postData = null;
     }
     gBrowser.loadURIWithFlags(uri, flags, referrer, null, postData);
+  } catch (e) {
+  }
+}
+
+function loadOneOrMoreURIs(aURIString, aTriggeringPrincipal) {
+  // we're not a browser window, pass the URI string to a new browser window
+  if (window.location.href != getBrowserURL()) {
+    window.openDialog(getBrowserURL(), "_blank", "all,dialog=no", aURIString);
+    return;
+  }
+
+  // This function throws for certain malformed URIs, so use exception handling
+  // so that we don't disrupt startup
+  try {
+    gBrowser.loadTabs(aURIString.split("|"), {
+      inBackground: false,
+      replace: true,
+      triggeringPrincipal: aTriggeringPrincipal,
+    });
   } catch (e) {
   }
 }
@@ -1781,7 +1860,7 @@ function handleURLBarCommand(aUserAction, aTriggeringEvent)
  *           to discern a keyword or an alias, url will be the input string.
  */
 function getShortcutOrURIAndPostData(url) {
-  return Task.spawn(function* () {
+  return (async function() {
     let mayInheritPrincipal = false;
     let postData = null;
     // Split on the first whitespace.
@@ -1803,7 +1882,7 @@ function getShortcutOrURIAndPostData(url) {
     // from the location bar.
     let entry = null;
     try {
-      entry = yield PlacesUtils.keywords.fetch(keyword);
+      entry = await PlacesUtils.keywords.fetch(keyword);
     } catch (ex) {
       Components.utils.reportError(`Unable to fetch Places keyword "${keyword}": ${ex}`);
     }
@@ -1814,7 +1893,7 @@ function getShortcutOrURIAndPostData(url) {
 
     try {
       [url, postData] =
-        yield BrowserUtils.parseUrlAndPostData(entry.url.href,
+        await BrowserUtils.parseUrlAndPostData(entry.url.href,
                                                entry.postData,
                                                param);
       if (postData) {
@@ -1829,7 +1908,7 @@ function getShortcutOrURIAndPostData(url) {
     }
 
     return { url, postData, mayInheritPrincipal };
-  }).then(data => {
+  })().then(data => {
     return data;
   });
 }
@@ -1844,21 +1923,21 @@ function getPostDataStream(aStringData, aKeyword, aEncKeyword, aType)
   var mimeStream = Components.classes["@mozilla.org/network/mime-input-stream;1"]
                              .createInstance(Components.interfaces.nsIMIMEInputStream);
   mimeStream.addHeader("Content-Type", aType);
-  mimeStream.addContentLength = true;
   mimeStream.setData(dataStream);
   return mimeStream.QueryInterface(Components.interfaces.nsIInputStream);
 }
 
 // handleDroppedLink has the following 2 overloads:
-//   handleDroppedLink(event, url, name)
-//   handleDroppedLink(event, links)
-function handleDroppedLink(event, urlOrLinks, name)
+//   handleDroppedLink(event, url, name, triggeringPrincipal)
+//   handleDroppedLink(event, links, triggeringPrincipal)
+function handleDroppedLink(event, urlOrLinks, nameOrTriggeringPrincipal, triggeringPrincipal)
 {
   let links;
   if (Array.isArray(urlOrLinks)) {
     links = urlOrLinks;
+    triggeringPrincipal = nameOrTriggeringPrincipal;
   } else {
-    links = [{ url: urlOrLinks, name, type: "" }];
+    links = [{ url: urlOrLinks, nameOrTriggeringPrincipal, type: "" }];
   }
 
   let lastLocationChange = gBrowser.selectedBrowser.lastLocationChange;
@@ -1875,11 +1954,11 @@ function handleDroppedLink(event, urlOrLinks, name)
       inBackground = !inBackground;
   }
 
-  Task.spawn(function*() {
+  (async function() {
     let urls = [];
     let postDatas = [];
     for (let link of links) {
-      let data = yield getShortcutOrURIAndPostData(link.url);
+      let data = await getShortcutOrURIAndPostData(link.url);
       urls.push(data.url);
       postDatas.push(data.postData);
     }
@@ -1890,9 +1969,10 @@ function handleDroppedLink(event, urlOrLinks, name)
         allowThirdPartyFixup: false,
         postDatas,
         userContextId,
+        triggeringPrincipal,
       });
     }
-  });
+  })();
 
   // If links are dropped in content process, event.preventDefault() should be
   // called in content process.
@@ -2472,7 +2552,7 @@ function maybeInitPopupContext()
     if (xulwin.contextFlags &
         CI.nsIWindowCreator2.PARENT_IS_LOADING_OR_RUNNING_TIMEOUT) {
       // return our opener's URI
-      return Services.io.newURI(window.content.opener.location.href, null, null);
+      return Services.io.newURI(window.content.opener.location.href);
     }
   } catch(e) {
   }
@@ -2617,21 +2697,18 @@ function updateFileUploadItem()
 
 function isBidiEnabled()
 {
-  var rv = false;
-
-  var systemLocale;
-  try {
-    systemLocale = Services.locale.getSystemLocale()
-                                  .getCategory("NSILOCALE_CTYPE");
-    rv = /^(he|ar|syr|fa|ur)-/.test(systemLocale);
-  } catch (e) {}
-
-  if (!rv) {
-    // check the overriding pref
-    rv = Services.prefs.getBoolPref("bidi.browser.ui");
+  // first check the pref.
+  if (GetBoolPref("bidi.browser.ui", false)) {
+    return true;
   }
 
-  return rv;
+  // now see if the app locale is an RTL one.
+  const isRTL = Services.locale.isAppLocaleRTL;
+
+  if (isRTL) {
+    Services.prefs.setBoolPref("bidi.browser.ui", true);
+  }
+  return isRTL;
 }
 
 function SwitchDocumentDirection(aWindow)
@@ -2903,3 +2980,21 @@ function onViewSecurityContextMenu()
 {
   document.getElementById("viewCertificate").disabled = !getCert();
 }
+
+var browserDragAndDrop = {
+  canDropLink: aEvent => Services.droppedLinkHandler.canDropLink(aEvent, true),
+
+  dragOver(aEvent) {
+    if (this.canDropLink(aEvent)) {
+      aEvent.preventDefault();
+    }
+  },
+
+  getTriggeringPrincipal(aEvent) {
+    return Services.droppedLinkHandler.getTriggeringPrincipal(aEvent);
+  },
+
+  dropLinks(aEvent, aDisallowInherit) {
+    return Services.droppedLinkHandler.dropLinks(aEvent, aDisallowInherit);
+  }
+};

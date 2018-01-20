@@ -127,7 +127,7 @@ Assembler::emitExtendedJumpTable()
 }
 
 void
-Assembler::executableCopy(uint8_t* buffer)
+Assembler::executableCopy(uint8_t* buffer, bool flushICache)
 {
     // Copy the code and all constant pools into the output buffer.
     armbuffer_.executableCopy(buffer);
@@ -161,6 +161,9 @@ Assembler::executableCopy(uint8_t* buffer)
             // into a single instruction call + nop in some instances, but this will work.
         }
     }
+
+    if (flushICache)
+        AutoFlushICache::setRange(uintptr_t(buffer), armbuffer_.size());
 }
 
 BufferOffset
@@ -625,13 +628,7 @@ Assembler::FixupNurseryObjects(JSContext* cx, JitCode* code, CompactBufferReader
     }
 
     if (hasNurseryPointers)
-        cx->runtime()->gc.storeBuffer.putWholeCell(code);
-}
-
-void
-Assembler::PatchInstructionImmediate(uint8_t* code, PatchedImmPtr imm)
-{
-    MOZ_CRASH("PatchInstructionImmediate()");
+        cx->zone()->group()->storeBuffer().putWholeCell(code);
 }
 
 void
@@ -659,8 +656,7 @@ Assembler::retarget(Label* label, Label* target)
         } else {
             // The target is unbound and unused. We can just take the head of
             // the list hanging off of label, and dump that into target.
-            DebugOnly<uint32_t> prev = target->use(label->offset());
-            MOZ_ASSERT((int32_t)prev == Label::INVALID_OFFSET);
+            target->use(label->offset());
         }
     }
     label->reset();

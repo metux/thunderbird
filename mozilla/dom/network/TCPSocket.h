@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -30,7 +31,6 @@ namespace mozilla {
 class ErrorResult;
 namespace dom {
 
-class DOMError;
 struct ServerSocketOptions;
 class TCPServerSocket;
 class TCPSocketChild;
@@ -137,8 +137,6 @@ public:
   static already_AddRefed<TCPSocket>
   CreateAcceptedSocket(nsIGlobalObject* aGlobal, TCPSocketChild* aSocketBridge, bool aUseArrayBuffers);
 
-  // Initialize this socket's associated app and browser information.
-  void SetAppIdAndBrowser(uint32_t aAppId, bool aInBrowser);
   // Initialize this socket's associated IPC actor in the parent process.
   void SetSocketBridgeParent(TCPSocketParent* aBridgeParent);
 
@@ -179,10 +177,6 @@ private:
   void ActivateTLS();
   // Dispatch an error event if necessary, then dispatch a "close" event.
   nsresult MaybeReportErrorAndCloseIfOpen(nsresult status);
-#ifdef MOZ_WIDGET_GONK
-  // Store and reset any saved network stats for this socket.
-  void SaveNetworkStats(bool aEnforce);
-#endif
 
   // Helper for FireDataStringEvent/FireDataArrayEvent.
   nsresult FireDataEvent(JSContext* aCx, const nsAString& aType,
@@ -246,19 +240,6 @@ private:
   nsTArray<nsCOMPtr<nsIInputStream>> mPendingDataWhileCopierActive;
 
   bool mObserversActive;
-
-#ifdef MOZ_WIDGET_GONK
-  // Number of bytes sent.
-  uint32_t mTxBytes;
-  // Number of bytes received.
-  uint32_t mRxBytes;
-  // The app that owns this socket.
-  uint32_t mAppId;
-  // Was this socket created inside of an isolated browser frame?
-  bool mInIsolatedMozBrowser;
-  // The name of the active network used by this socket.
-  nsCOMPtr<nsINetworkInfo> mActiveNetworkInfo;
-#endif
 };
 
 } // namespace dom

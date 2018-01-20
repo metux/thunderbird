@@ -1,14 +1,12 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+"use strict";
+
 // Test clearSnapshots deletes several snapshots
 
 let { takeSnapshotAndCensus, clearSnapshots } = require("devtools/client/memory/actions/snapshot");
 let { snapshotState: states, actions, treeMapState } = require("devtools/client/memory/constants");
-
-function run_test() {
-  run_next_test();
-}
 
 add_task(function* () {
   let front = new StubbedMemoryFront();
@@ -22,8 +20,7 @@ add_task(function* () {
   dispatch(takeSnapshotAndCensus(front, heapWorker));
   dispatch(takeSnapshotAndCensus(front, heapWorker));
   yield waitUntilCensusState(store, snapshot => snapshot.treeMap,
-                             [treeMapState.SAVED, treeMapState.SAVED,
-                              treeMapState.SAVED]);
+    [treeMapState.SAVED, treeMapState.SAVED, treeMapState.SAVED]);
   ok(true, "snapshots created with a saved census");
 
   ok(true, "set first snapshot state to error");

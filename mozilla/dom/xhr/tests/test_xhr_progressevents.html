@@ -2,13 +2,12 @@
 <html>
 <head>
   <title>Test for XMLHttpRequest Progress Events</title>
-  <script type="text/javascript" src="/MochiKit/packed.js"></script>
   <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body onload="gen.next();">
 <pre id=l></pre>
-<script type="application/javascript;version=1.7">
+<script type="application/javascript">
 SimpleTest.waitForExplicitFinish();
 
 var gen = runTests();
@@ -23,7 +22,7 @@ function log(s) {
 
 function getEvent(e) {
   log("got event: " + e.type + " (" + e.target.readyState + ")");
-  gen.send(e);
+  gen.next(e);
 }
 
 function startsWith(a, b) {
@@ -126,18 +125,16 @@ function bufferToString(buffer) {
   return String.fromCharCode.apply(String, new Uint8Array(buffer));
 }
 
-function runTests() {
+function* runTests() {
   var xhr = new XMLHttpRequest();
   xhr.onprogress = xhr.onload = xhr.onerror = xhr.onreadystatechange = xhr.onloadend = getEvent;
 
   var responseTypes = [{ type: "text", text: true },
                        { type: "arraybuffer", text: false, nodata: true },
                        { type: "blob", text: false, nodata: true, blob: true },
-                       { type: "moz-blob", text: false, nodata: false, blob: true },
                        { type: "document", text: true, nodata: true },
                        { type: "json", text: true, nodata: true },
                        { type: "", text: true },
-                       { type: "moz-chunked-text", text: true, chunked: true },
                        { type: "moz-chunked-arraybuffer", text: false, chunked: true },
                       ];
   var responseType;
@@ -324,7 +321,6 @@ function runTests() {
   }
 
   SimpleTest.finish();
-  yield undefined;
 }
 
 </script>

@@ -85,6 +85,14 @@ no such emphasized headings will appear.
 A `Debugger.Script` instance inherits the following accessor properties
 from its prototype:
 
+`isGeneratorFunction`
+:   True if this instance refers to a `JSScript` for a function defined with a
+    `function*` expression or statement. False otherwise.
+
+`isAsyncFunction`
+:   True if this instance refers to a `JSScript` for an async function, defined
+    with an `async function` expression or statement. False otherwise.
+
 `displayName`
 :   **If the instance refers to a `JSScript`**, this is the script's display
     name, if it has one. If the script has no display name &mdash; for example,
@@ -125,8 +133,12 @@ from its prototype:
 
 `url`
 :   **If the instance refers to a `JSScript`**, the filename or URL from which
-    this script's code was loaded. If the `source` property is non-`null`,
-    then this is equal to `source.url`.
+    this script's code was loaded. For scripts created by `eval` or the
+    `Function` constructor, this may be a synthesized filename, starting with a
+    valid URL and followed by information tracking how the code was introduced
+    into the system; the entire string is not a valid URL. For
+    `Function.prototype`'s script, this is `null`. If this `Debugger.Script`'s
+    `source` property is non-`null`, then this is equal to `source.url`.
 
     **If the instance refers to WebAssembly code**, throw a `TypeError`.
 
@@ -135,13 +147,9 @@ from its prototype:
     which this script's code starts, within the file or document named by
     `url`.
 
-    **If the instance refers to WebAssembly code**, throw a `TypeError`.
-
 `lineCount`
 :   **If the instance refers to a `JSScript`**, the number of lines this
     script's code occupies, within the file or document named by `url`.
-
-    **If the instance refers to WebAssembly code**, throw a `TypeError`.
 
 `source`
 :   **If the instance refers to a `JSScript`**, the
@@ -267,8 +275,6 @@ methods of other kinds of objects.
     <i>line</i>. If the script contains no executable code at that line, the
     array returned is empty.
 
-    **If the instance refers to WebAssembly code**, throw a `TypeError`.
-
 <code>getOffsetLocation(<i>offset</i>)</code>
 :   **If the instance refers to a `JSScript`**, return an object describing the
     source code location responsible for the bytecode at <i>offset</i> in this
@@ -280,8 +286,6 @@ methods of other kinds of objects.
 
     * isEntryPoint: true if the offset is a column entry point, as
       would be reported by getAllColumnOffsets(); otherwise false.
-
-    **If the instance refers to WebAssembly code**, throw a `TypeError`.
 
 `getOffsetsCoverage()`:
 :   **If the instance refers to a `JSScript`**, return `null` or an array which
@@ -341,8 +345,6 @@ methods of other kinds of objects.
     breakpoints belonging to that [`Debugger`][debugger-object] instance in that
     global's scripts.
 
-    **If the instance refers to WebAssembly code**, throw a `TypeError`.
-
 <code>getBreakpoints([<i>offset</i>])</code>
 :   **If the instance refers to a `JSScript`**, return an array containing the
     handler objects for all the breakpoints set at <i>offset</i> in this
@@ -362,15 +364,11 @@ methods of other kinds of objects.
     Note that, if breakpoints using other handler objects are set at the
     same location(s) as <i>handler</i>, they remain in place.
 
-    **If the instance refers to WebAssembly code**, throw a `TypeError`.
-
 <code>clearAllBreakpoints([<i>offset</i>])</code>
 :   **If the instance refers to a `JSScript`**, remove all breakpoints set in
     this script. If <i>offset</i> is present, remove all breakpoints set at
     that offset in this script; if <i>offset</i> is not a valid bytecode
     offset in this script, throw an error.
-
-    **If the instance refers to WebAssembly code**, throw a `TypeError`.
 
 <code>isInCatchScope([<i>offset</i>])</code>
 :   **If the instance refers to a `JSScript`**, this is `true` if this offset

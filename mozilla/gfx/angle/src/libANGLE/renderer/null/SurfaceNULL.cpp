@@ -11,6 +11,8 @@
 
 #include "common/debug.h"
 
+#include "libANGLE/renderer/null/FramebufferNULL.h"
+
 namespace rx
 {
 
@@ -22,82 +24,76 @@ SurfaceNULL::~SurfaceNULL()
 {
 }
 
-egl::Error SurfaceNULL::initialize()
+egl::Error SurfaceNULL::initialize(const egl::Display *display)
 {
-    UNIMPLEMENTED();
-    return egl::Error(EGL_BAD_ACCESS);
+    return egl::NoError();
 }
 
 FramebufferImpl *SurfaceNULL::createDefaultFramebuffer(const gl::FramebufferState &state)
 {
-    UNIMPLEMENTED();
-    return static_cast<FramebufferImpl *>(0);
+    return new FramebufferNULL(state);
 }
 
-egl::Error SurfaceNULL::swap()
+egl::Error SurfaceNULL::swap(const gl::Context *context)
 {
-    UNIMPLEMENTED();
-    return egl::Error(EGL_BAD_ACCESS);
+    return egl::NoError();
 }
 
-egl::Error SurfaceNULL::postSubBuffer(EGLint x, EGLint y, EGLint width, EGLint height)
+egl::Error SurfaceNULL::postSubBuffer(const gl::Context *context,
+                                      EGLint x,
+                                      EGLint y,
+                                      EGLint width,
+                                      EGLint height)
 {
-    UNIMPLEMENTED();
-    return egl::Error(EGL_BAD_ACCESS);
+    return egl::NoError();
 }
 
 egl::Error SurfaceNULL::querySurfacePointerANGLE(EGLint attribute, void **value)
 {
-    UNIMPLEMENTED();
-    return egl::Error(EGL_BAD_ACCESS);
+    UNREACHABLE();
+    return egl::NoError();
 }
 
 egl::Error SurfaceNULL::bindTexImage(gl::Texture *texture, EGLint buffer)
 {
-    UNIMPLEMENTED();
-    return egl::Error(EGL_BAD_ACCESS);
+    return egl::NoError();
 }
 
 egl::Error SurfaceNULL::releaseTexImage(EGLint buffer)
 {
+    return egl::NoError();
+}
+
+egl::Error SurfaceNULL::getSyncValues(EGLuint64KHR *ust, EGLuint64KHR *msc, EGLuint64KHR *sbc)
+{
     UNIMPLEMENTED();
-    return egl::Error(EGL_BAD_ACCESS);
+    return egl::EglBadAccess();
 }
 
 void SurfaceNULL::setSwapInterval(EGLint interval)
 {
-    UNIMPLEMENTED();
 }
 
 EGLint SurfaceNULL::getWidth() const
 {
-    UNIMPLEMENTED();
-    return EGLint();
+    // TODO(geofflang): Read from an actual window?
+    return 100;
 }
 
 EGLint SurfaceNULL::getHeight() const
 {
-    UNIMPLEMENTED();
-    return EGLint();
+    // TODO(geofflang): Read from an actual window?
+    return 100;
 }
 
 EGLint SurfaceNULL::isPostSubBufferSupported() const
 {
-    UNIMPLEMENTED();
-    return EGLint();
+    return EGL_TRUE;
 }
 
 EGLint SurfaceNULL::getSwapBehavior() const
 {
-    UNIMPLEMENTED();
-    return EGLint();
-}
-
-gl::Error SurfaceNULL::getAttachmentRenderTarget(const gl::FramebufferAttachment::Target &target,
-                                                 FramebufferAttachmentRenderTarget **rtOut)
-{
-    UNIMPLEMENTED();
-    return gl::Error(GL_INVALID_OPERATION);
+    return EGL_BUFFER_PRESERVED;
 }
 
 }  // namespace rx

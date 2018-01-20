@@ -16,6 +16,7 @@
 #include "nsIFile.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/IntegerPrintfMacros.h"
 #include "prnetdb.h"
 
 
@@ -58,7 +59,6 @@ CacheFileMetadata::CacheFileMetadata(CacheFileHandle *aHandle, const nsACString 
   LOG(("CacheFileMetadata::CacheFileMetadata() [this=%p, handle=%p, key=%s]",
        this, aHandle, PromiseFlatCString(aKey).get()));
 
-  MOZ_COUNT_CTOR(CacheFileMetadata);
   memset(&mMetaHdr, 0, sizeof(CacheFileMetadataHeader));
   mMetaHdr.mVersion = kCacheEntryVersion;
   mMetaHdr.mExpirationTime = nsICacheEntry::NO_EXPIRATION_TIME;
@@ -88,7 +88,6 @@ CacheFileMetadata::CacheFileMetadata(bool aMemoryOnly, bool aPinned, const nsACS
   LOG(("CacheFileMetadata::CacheFileMetadata() [this=%p, key=%s]",
        this, PromiseFlatCString(aKey).get()));
 
-  MOZ_COUNT_CTOR(CacheFileMetadata);
   memset(&mMetaHdr, 0, sizeof(CacheFileMetadataHeader));
   mMetaHdr.mVersion = kCacheEntryVersion;
   if (aPinned) {
@@ -121,7 +120,6 @@ CacheFileMetadata::CacheFileMetadata()
 {
   LOG(("CacheFileMetadata::CacheFileMetadata() [this=%p]", this));
 
-  MOZ_COUNT_CTOR(CacheFileMetadata);
   memset(&mMetaHdr, 0, sizeof(CacheFileMetadataHeader));
 }
 
@@ -129,7 +127,6 @@ CacheFileMetadata::~CacheFileMetadata()
 {
   LOG(("CacheFileMetadata::~CacheFileMetadata() [this=%p]", this));
 
-  MOZ_COUNT_DTOR(CacheFileMetadata);
   MOZ_ASSERT(!mListener);
 
   if (mHashArray) {
@@ -190,7 +187,7 @@ CacheFileMetadata::ReadMetadata(CacheFileMetadataListener *aListener)
   if (size < int64_t(sizeof(CacheFileMetadataHeader) + 2*sizeof(uint32_t))) {
     // there must be at least checksum, header and offset
     LOG(("CacheFileMetadata::ReadMetadata() - File is corrupted, creating "
-         "empty metadata. [this=%p, filesize=%lld]", this, size));
+         "empty metadata. [this=%p, filesize=%" PRId64 "]", this, size));
 
     InitEmptyMetadata();
     aListener->OnMetadataRead(NS_OK);
@@ -215,15 +212,15 @@ CacheFileMetadata::ReadMetadata(CacheFileMetadataListener *aListener)
   DoMemoryReport(MemoryUsage());
 
   LOG(("CacheFileMetadata::ReadMetadata() - Reading metadata from disk, trying "
-       "offset=%lld, filesize=%lld [this=%p]", offset, size, this));
+       "offset=%" PRId64 ", filesize=%" PRId64 " [this=%p]", offset, size, this));
 
   mReadStart = mozilla::TimeStamp::Now();
   mListener = aListener;
   rv = CacheFileIOManager::Read(mHandle, offset, mBuf, mBufSize, this);
   if (NS_FAILED(rv)) {
     LOG(("CacheFileMetadata::ReadMetadata() - CacheFileIOManager::Read() failed"
-         " synchronously, creating empty metadata. [this=%p, rv=0x%08x]",
-         this, rv));
+         " synchronously, creating empty metadata. [this=%p, rv=0x%08" PRIx32 "]",
+         this, static_cast<uint32_t>(rv)));
 
     mListener = nullptr;
     InitEmptyMetadata();
@@ -266,8 +263,10 @@ CacheFileMetadata::WriteMetadata(uint32_t aOffset,
   }
 
   char *p = mWriteBuf + sizeof(uint32_t);
-  memcpy(p, mHashArray, mHashCount * sizeof(CacheHash::Hash16_t));
-  p += mHashCount * sizeof(CacheHash::Hash16_t);
+  if (mHashCount) {
+    memcpy(p, mHashArray, mHashCount * sizeof(CacheHash::Hash16_t));
+    p += mHashCount * sizeof(CacheHash::Hash16_t);
+  }
   mMetaHdr.WriteToBuf(p);
   p += sizeof(CacheFileMetadataHeader);
   memcpy(p, mKey.get(), mKey.Length());
@@ -298,7 +297,8 @@ CacheFileMetadata::WriteMetadata(uint32_t aOffset,
                                  true, true, aListener ? this : nullptr);
   if (NS_FAILED(rv)) {
     LOG(("CacheFileMetadata::WriteMetadata() - CacheFileIOManager::Write() "
-         "failed synchronously. [this=%p, rv=0x%08x]", this, rv));
+         "failed synchronously. [this=%p, rv=0x%08" PRIx32 "]",
+         this, static_cast<uint32_t>(rv)));
 
     mListener = nullptr;
     if (mWriteBuf) {
@@ -389,20 +389,29 @@ CacheFileMetadata::GetElement(const char *aKey)
   const char *data = mBuf;
   const char *limit = mBuf + mElementsSize;
 
-  while (data < limit) {
-    // Point to the value part
-    const char *value = data + strlen(data) + 1;
-    MOZ_ASSERT(value < limit, "Metadata elements corrupted");
+  while (data != limit) {
+    size_t maxLen = limit - data;
+    size_t keyLen = strnlen(data, maxLen);
+    MOZ_RELEASE_ASSERT(keyLen != maxLen, "Metadata elements corrupted. Key "
+                       "isn't null terminated!");
+    MOZ_RELEASE_ASSERT(keyLen + 1 != maxLen, "Metadata elements corrupted. "
+                       "There is no value for the key!");
+
+    const char *value = data + keyLen + 1;
+    maxLen = limit - value;
+    size_t valueLen = strnlen(value, maxLen);
+    MOZ_RELEASE_ASSERT(valueLen != maxLen, "Metadata elements corrupted. Value "
+                       "isn't null terminated!");
+
     if (strcmp(data, aKey) == 0) {
       LOG(("CacheFileMetadata::GetElement() - Key found [this=%p, key=%s]",
            this, aKey));
       return value;
     }
 
-    // Skip value part
-    data = value + strlen(value) + 1;
+    // point to next pair
+    data += keyLen + valueLen + 2;
   }
-  MOZ_ASSERT(data == limit, "Metadata elements corrupted");
   LOG(("CacheFileMetadata::GetElement() - Key not found [this=%p, key=%s]",
        this, aKey));
   return nullptr;
@@ -536,6 +545,23 @@ CacheFileMetadata::SetHash(uint32_t aIndex, CacheHash::Hash16_t aHash)
 }
 
 nsresult
+CacheFileMetadata::RemoveHash(uint32_t aIndex)
+{
+  LOG(("CacheFileMetadata::RemoveHash() [this=%p, idx=%d]", this, aIndex));
+
+  MarkDirty();
+
+  MOZ_ASSERT((aIndex + 1) == mHashCount, "Can remove only last hash!");
+
+  if (aIndex + 1 != mHashCount) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  mHashCount--;
+  return NS_OK;
+}
+
+nsresult
 CacheFileMetadata::AddFlags(uint32_t aFlags)
 {
   MarkDirty(false);
@@ -645,8 +671,8 @@ nsresult
 CacheFileMetadata::OnDataWritten(CacheFileHandle *aHandle, const char *aBuf,
                                  nsresult aResult)
 {
-  LOG(("CacheFileMetadata::OnDataWritten() [this=%p, handle=%p, result=0x%08x]",
-       this, aHandle, aResult));
+  LOG(("CacheFileMetadata::OnDataWritten() [this=%p, handle=%p, result=0x%08" PRIx32 "]",
+       this, aHandle, static_cast<uint32_t>(aResult)));
 
   MOZ_ASSERT(mListener);
   MOZ_ASSERT(mWriteBuf);
@@ -668,8 +694,8 @@ nsresult
 CacheFileMetadata::OnDataRead(CacheFileHandle *aHandle, char *aBuf,
                               nsresult aResult)
 {
-  LOG(("CacheFileMetadata::OnDataRead() [this=%p, handle=%p, result=0x%08x]",
-       this, aHandle, aResult));
+  LOG(("CacheFileMetadata::OnDataRead() [this=%p, handle=%p, result=0x%08" PRIx32 "]",
+       this, aHandle, static_cast<uint32_t>(aResult)));
 
   MOZ_ASSERT(mListener);
 
@@ -678,7 +704,8 @@ CacheFileMetadata::OnDataRead(CacheFileHandle *aHandle, char *aBuf,
 
   if (NS_FAILED(aResult)) {
     LOG(("CacheFileMetadata::OnDataRead() - CacheFileIOManager::Read() failed"
-         ", creating empty metadata. [this=%p, rv=0x%08x]", this, aResult));
+         ", creating empty metadata. [this=%p, rv=0x%08" PRIx32 "]",
+         this, static_cast<uint32_t>(aResult)));
 
     InitEmptyMetadata();
 
@@ -706,7 +733,7 @@ CacheFileMetadata::OnDataRead(CacheFileHandle *aHandle, char *aBuf,
 
   if (realOffset >= size) {
     LOG(("CacheFileMetadata::OnDataRead() - Invalid realOffset, creating "
-         "empty metadata. [this=%p, realOffset=%u, size=%lld]", this,
+         "empty metadata. [this=%p, realOffset=%u, size=%" PRId64 "]", this,
          realOffset, size));
 
     InitEmptyMetadata();
@@ -721,7 +748,7 @@ CacheFileMetadata::OnDataRead(CacheFileHandle *aHandle, char *aBuf,
   if (size - realOffset > maxMetadataSize) {
     LOG(("CacheFileMetadata::OnDataRead() - Invalid realOffset, metadata would "
          "be too big, creating empty metadata. [this=%p, realOffset=%u, "
-         "maxMetadataSize=%u, size=%lld]", this, realOffset, maxMetadataSize,
+         "maxMetadataSize=%u, size=%" PRId64 "]", this, realOffset, maxMetadataSize,
          size));
 
     InitEmptyMetadata();
@@ -764,7 +791,7 @@ CacheFileMetadata::OnDataRead(CacheFileHandle *aHandle, char *aBuf,
     if (NS_FAILED(rv)) {
       LOG(("CacheFileMetadata::OnDataRead() - CacheFileIOManager::Read() "
            "failed synchronously, creating empty metadata. [this=%p, "
-           "rv=0x%08x]", this, rv));
+           "rv=0x%08" PRIx32 "]", this, static_cast<uint32_t>(rv)));
 
       InitEmptyMetadata();
 
@@ -1079,7 +1106,8 @@ CacheFileMetadata::SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const
   n += mKey.SizeOfExcludingThisIfUnshared(mallocSizeOf);
   n += mallocSizeOf(mHashArray);
   n += mallocSizeOf(mBuf);
-  n += mallocSizeOf(mWriteBuf);
+  // Ignore mWriteBuf, it's not safe to access it when metadata is being
+  // written and it's null otherwise.
   // mListener is usually the owning CacheFile.
 
   return n;

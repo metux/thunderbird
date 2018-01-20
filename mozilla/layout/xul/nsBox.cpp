@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -119,7 +120,7 @@ nsBox::GetBoxName(nsAutoString& aName)
 nsresult
 nsBox::BeginXULLayout(nsBoxLayoutState& aState)
 {
-#ifdef DEBUG_LAYOUT 
+#ifdef DEBUG_LAYOUT
 
   nsBoxAddIndents();
   printf("XULLayout: ");
@@ -131,7 +132,7 @@ nsBox::BeginXULLayout(nsBoxLayoutState& aState)
   // mark ourselves as dirty so no child under us
   // can post an incremental layout.
   // XXXldb Is this still needed?
-  mState |= NS_FRAME_HAS_DIRTY_CHILDREN;
+  AddStateBits(NS_FRAME_HAS_DIRTY_CHILDREN);
 
   if (GetStateBits() & NS_FRAME_IS_DIRTY)
   {
@@ -144,10 +145,9 @@ nsBox::BeginXULLayout(nsBoxLayoutState& aState)
 
   // Another copy-over from ReflowInput.
   // Since we are in reflow, we don't need to store these properties anymore.
-  FrameProperties props = Properties();
-  props.Delete(UsedBorderProperty());
-  props.Delete(UsedPaddingProperty());
-  props.Delete(UsedMarginProperty());
+  DeleteProperty(UsedBorderProperty());
+  DeleteProperty(UsedPaddingProperty());
+  DeleteProperty(UsedMarginProperty());
 
 #ifdef DEBUG_LAYOUT
   PropagateDebug(aState);
@@ -176,7 +176,8 @@ nsBox::EndXULLayout(nsBoxLayoutState& aState)
 bool nsBox::gGotTheme = false;
 nsITheme* nsBox::gTheme = nullptr;
 
-nsBox::nsBox()
+nsBox::nsBox(ClassID aID)
+  : nsIFrame(aID)
 {
   MOZ_COUNT_CTOR(nsBox);
   //mX = 0;
@@ -260,9 +261,9 @@ nsBox::SetXULBounds(nsBoxLayoutState& aState, const nsRect& aRect, bool aRemoveO
       if ((rect.x != aRect.x) || (rect.y != aRect.y))
         nsContainerFrame::PositionChildViews(this);
     }
-  
 
-   /*  
+
+   /*
     // only if the origin changed
     if ((rect.x != aRect.x) || (rect.y != aRect.y))  {
       if (frame->HasView()) {
@@ -297,7 +298,7 @@ nsresult
 nsBox::GetXULBorder(nsMargin& aMargin)
 {
   aMargin.SizeTo(0,0,0,0);
-    
+
   const nsStyleDisplay* disp = StyleDisplay();
   if (disp->mAppearance && gTheme) {
     // Go to the theme for the border.
@@ -524,7 +525,7 @@ nsBox::SyncLayout(nsBoxLayoutState& aState)
     return NS_OK;
   }
   */
-  
+
 
   if (GetStateBits() & NS_FRAME_IS_DIRTY)
      XULRedraw(aState);
@@ -567,7 +568,7 @@ nsBox::SyncLayout(nsBoxLayoutState& aState)
     // things like opacity correct
     nsContainerFrame::SyncFrameViewAfterReflow(presContext, this, view,
                                                visualOverflow, flags);
-  } 
+  }
 
   return NS_OK;
 }

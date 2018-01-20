@@ -23,6 +23,8 @@ from mozpack.chrome.manifest import ManifestEntry
 import mozpack.path as mozpath
 from .context import FinalTargetValue
 
+from collections import defaultdict, OrderedDict
+
 from ..util import (
     group_unified_files,
 )
@@ -156,6 +158,30 @@ class VariablePassthru(ContextDerived):
     def __init__(self, context):
         ContextDerived.__init__(self, context)
         self.variables = {}
+
+
+class ComputedFlags(ContextDerived):
+    """Aggregate flags for consumption by various backends.
+    """
+    __slots__ = ('flags',)
+
+    def __init__(self, context, reader_flags):
+        ContextDerived.__init__(self, context)
+        self.flags = reader_flags
+
+    def resolve_flags(self, key, value):
+        # Bypass checks done by CompileFlags that would keep us from
+        # setting a value here.
+        dict.__setitem__(self.flags, key, value)
+
+    def get_flags(self):
+        flags = defaultdict(list)
+        for key, _, dest_vars in self.flags.flag_variables:
+            value = self.flags.get(key)
+            if value:
+                for dest_var in dest_vars:
+                    flags[dest_var].extend(value)
+        return flags.items()
 
 class XPIDLFile(ContextDerived):
     """Describes an XPIDL file to be compiled."""
@@ -332,9 +358,6 @@ class Linkable(ContextDerived):
 
     def link_library(self, obj):
         assert isinstance(obj, BaseLibrary)
-        if isinstance(obj, SharedLibrary) and obj.variant == obj.COMPONENT:
-            raise LinkageWrongKindError(
-                'Linkable.link_library() does not take components.')
         if obj.KIND != self.KIND:
             raise LinkageWrongKindError('%s != %s' % (obj.KIND, self.KIND))
         # Linking multiple Rust libraries into an object would result in
@@ -345,7 +368,7 @@ class Linkable(ContextDerived):
             raise LinkageMultipleRustLibrariesError("Cannot link multiple Rust libraries into %s",
                                                     self)
         self.linked_libraries.append(obj)
-        if obj.cxx_link:
+        if obj.cxx_link and not isinstance(obj, SharedLibrary):
             self.cxx_link = True
         obj.refs.append(self)
 
@@ -420,6 +443,61 @@ class HostSimpleProgram(HostMixin, BaseProgram):
     KIND = 'host'
 
 
+def cargo_output_directory(context, target_var):
+    # cargo creates several directories and places its build artifacts
+    # in those directories.  The directory structure depends not only
+    # on the target, but also what sort of build we are doing.
+    rust_build_kind = 'release'
+    if context.config.substs.get('MOZ_DEBUG_RUST'):
+        rust_build_kind = 'debug'
+    return mozpath.join(context.config.substs[target_var], rust_build_kind)
+
+
+# Rust programs aren't really Linkable, since Cargo handles all the details
+# of linking things.
+class BaseRustProgram(ContextDerived):
+    __slots__ = (
+        'name',
+        'cargo_file',
+        'location',
+        'SUFFIX_VAR',
+        'KIND',
+        'TARGET_SUBST_VAR',
+    )
+
+    def __init__(self, context, name, cargo_file):
+        ContextDerived.__init__(self, context)
+        self.name = name
+        self.cargo_file = cargo_file
+        cargo_dir = cargo_output_directory(context, self.TARGET_SUBST_VAR)
+        exe_file = '%s%s' % (name, context.config.substs.get(self.SUFFIX_VAR, ''))
+        self.location = mozpath.join(cargo_dir, exe_file)
+
+
+class RustProgram(BaseRustProgram):
+    SUFFIX_VAR = 'BIN_SUFFIX'
+    KIND = 'target'
+    TARGET_SUBST_VAR = 'RUST_TARGET'
+
+
+class HostRustProgram(BaseRustProgram):
+    SUFFIX_VAR = 'HOST_BIN_SUFFIX'
+    KIND = 'host'
+    TARGET_SUBST_VAR = 'RUST_HOST_TARGET'
+
+
+class RustTest(ContextDerived):
+    __slots__ = (
+        'name',
+        'features',
+    )
+
+    def __init__(self, context, name, features):
+        ContextDerived.__init__(self, context)
+        self.name = name
+        self.features = features
+
+
 class BaseLibrary(Linkable):
     """Generic context derived container object for libraries."""
     __slots__ = (
@@ -451,13 +529,11 @@ class Library(BaseLibrary):
     """Context derived container object for a library"""
     KIND = 'target'
     __slots__ = (
-        'is_sdk',
     )
 
-    def __init__(self, context, basename, real_name=None, is_sdk=False):
+    def __init__(self, context, basename, real_name=None):
         BaseLibrary.__init__(self, context, real_name or basename)
         self.basename = basename
-        self.is_sdk = is_sdk
 
 
 class StaticLibrary(Library):
@@ -467,9 +543,9 @@ class StaticLibrary(Library):
         'no_expand_lib',
     )
 
-    def __init__(self, context, basename, real_name=None, is_sdk=False,
+    def __init__(self, context, basename, real_name=None,
         link_into=None, no_expand_lib=False):
-        Library.__init__(self, context, basename, real_name, is_sdk)
+        Library.__init__(self, context, basename, real_name)
         self.link_into = link_into
         self.no_expand_lib = no_expand_lib
 
@@ -481,9 +557,15 @@ class RustLibrary(StaticLibrary):
         'crate_type',
         'dependencies',
         'deps_path',
+        'features',
+        'target_dir',
     )
+    TARGET_SUBST_VAR = 'RUST_TARGET'
+    FEATURES_VAR = 'RUST_LIBRARY_FEATURES'
+    LIB_FILE_VAR = 'RUST_LIBRARY_FILE'
 
-    def __init__(self, context, basename, cargo_file, crate_type, dependencies, **args):
+    def __init__(self, context, basename, cargo_file, crate_type, dependencies,
+                 features, target_dir, **args):
         StaticLibrary.__init__(self, context, basename, **args)
         self.cargo_file = cargo_file
         self.crate_type = crate_type
@@ -492,18 +574,21 @@ class RustLibrary(StaticLibrary):
         # filenames. But we need to keep the basename consistent because
         # many other things in the build system depend on that.
         assert self.crate_type == 'staticlib'
-        self.lib_name = '%s%s%s' % (context.config.lib_prefix,
+        self.lib_name = '%s%s%s' % (context.config.rust_lib_prefix,
                                      basename.replace('-', '_'),
-                                     context.config.lib_suffix)
+                                     context.config.rust_lib_suffix)
         self.dependencies = dependencies
-        # cargo creates several directories and places its build artifacts
-        # in those directories.  The directory structure depends not only
-        # on the target, but also what sort of build we are doing.
-        rust_build_kind = 'release'
-        if context.config.substs.get('MOZ_DEBUG'):
-            rust_build_kind = 'debug'
-        build_dir = mozpath.join(context.config.substs['RUST_TARGET'],
-                                 rust_build_kind)
+        self.features = features
+        self.target_dir = target_dir
+        # Skip setting properties below which depend on cargo
+        # when we don't have a compile environment. The required
+        # config keys won't be available, but the instance variables
+        # that we don't set should never be accessed by the actual
+        # build in that case.
+        if not context.config.substs.get('COMPILE_ENVIRONMENT'):
+            return
+        build_dir = mozpath.join(target_dir,
+                                 cargo_output_directory(context, self.TARGET_SUBST_VAR))
         self.import_name = mozpath.join(build_dir, self.lib_name)
         self.deps_path = mozpath.join(build_dir, 'deps')
 
@@ -526,13 +611,12 @@ class SharedLibrary(Library):
     }
 
     FRAMEWORK = 1
-    COMPONENT = 2
-    MAX_VARIANT = 3
+    MAX_VARIANT = 2
 
-    def __init__(self, context, basename, real_name=None, is_sdk=False,
+    def __init__(self, context, basename, real_name=None,
                  soname=None, variant=None, symbols_file=False):
         assert(variant in range(1, self.MAX_VARIANT) or variant is None)
-        Library.__init__(self, context, basename, real_name, is_sdk)
+        Library.__init__(self, context, basename, real_name)
         self.variant = variant
         self.lib_name = real_name or basename
         assert self.lib_name
@@ -593,6 +677,14 @@ class HostLibrary(HostMixin, BaseLibrary):
     KIND = 'host'
 
 
+class HostRustLibrary(HostMixin, RustLibrary):
+    """Context derived container object for a host rust library"""
+    KIND = 'host'
+    TARGET_SUBST_VAR = 'RUST_HOST_TARGET'
+    FEATURES_VAR = 'HOST_RUST_LIBRARY_FEATURES'
+    LIB_FILE_VAR = 'HOST_RUST_LIBRARY_FILE'
+
+
 class TestManifest(ContextDerived):
     """Represents a manifest file containing information about tests."""
 
@@ -639,13 +731,17 @@ class TestManifest(ContextDerived):
         # The relative path of the parsed manifest within the objdir.
         'manifest_obj_relpath',
 
+        # The relative paths to all source files for this manifest.
+        'source_relpaths',
+
         # If this manifest is a duplicate of another one, this is the
         # manifestparser.TestManifest of the other one.
         'dupe_manifest',
     )
 
     def __init__(self, context, path, manifest, flavor=None,
-            install_prefix=None, relpath=None, dupe_manifest=False):
+            install_prefix=None, relpath=None, sources=(),
+            dupe_manifest=False):
         ContextDerived.__init__(self, context)
 
         assert flavor in all_test_flavors()
@@ -657,6 +753,7 @@ class TestManifest(ContextDerived):
         self.install_prefix = install_prefix
         self.manifest_relpath = relpath
         self.manifest_obj_relpath = relpath
+        self.source_relpaths = sources
         self.dupe_manifest = dupe_manifest
         self.installs = {}
         self.pattern_installs = []
@@ -802,7 +899,7 @@ class UnifiedSources(BaseSources):
         'unified_source_mapping'
     )
 
-    def __init__(self, context, files, canonical_suffix, files_per_unified_file=16):
+    def __init__(self, context, files, canonical_suffix, files_per_unified_file):
         BaseSources.__init__(self, context, files, canonical_suffix)
 
         self.have_unified_mapping = files_per_unified_file > 1
@@ -884,31 +981,19 @@ class FinalTargetPreprocessedFiles(ContextDerived):
         self.files = files
 
 
-class ObjdirFiles(ContextDerived):
+class ObjdirFiles(FinalTargetFiles):
     """Sandbox container object for OBJDIR_FILES, which is a
     HierarchicalStringList.
     """
-    __slots__ = ('files')
-
-    def __init__(self, sandbox, files):
-        ContextDerived.__init__(self, sandbox)
-        self.files = files
-
     @property
     def install_target(self):
         return ''
 
 
-class ObjdirPreprocessedFiles(ContextDerived):
+class ObjdirPreprocessedFiles(FinalTargetPreprocessedFiles):
     """Sandbox container object for OBJDIR_PP_FILES, which is a
     HierarchicalStringList.
     """
-    __slots__ = ('files')
-
-    def __init__(self, sandbox, files):
-        ContextDerived.__init__(self, sandbox)
-        self.files = files
-
     @property
     def install_target(self):
         return ''
@@ -949,19 +1034,6 @@ class BrandingFiles(FinalTargetFiles):
         return 'dist/branding'
 
 
-class SdkFiles(FinalTargetFiles):
-    """Sandbox container object for SDK_FILES, which is a
-    HierarchicalStringList.
-
-    We need an object derived from ContextDerived for use in the backend, so
-    this object fills that role. It just has a reference to the underlying
-    HierarchicalStringList, which is created when parsing SDK_FILES.
-    """
-    @property
-    def install_target(self):
-        return 'dist/sdk'
-
-
 class GeneratedFile(ContextDerived):
     """Represents a generated file."""
 
@@ -982,69 +1054,6 @@ class GeneratedFile(ContextDerived):
         self.flags = flags
 
 
-class ClassPathEntry(object):
-    """Represents a classpathentry in an Android Eclipse project."""
-
-    __slots__ = (
-        'dstdir',
-        'srcdir',
-        'path',
-        'exclude_patterns',
-        'ignore_warnings',
-    )
-
-    def __init__(self):
-        self.dstdir = None
-        self.srcdir = None
-        self.path = None
-        self.exclude_patterns = []
-        self.ignore_warnings = False
-
-
-class AndroidEclipseProjectData(object):
-    """Represents an Android Eclipse project."""
-
-    __slots__ = (
-        'name',
-        'package_name',
-        'is_library',
-        'res',
-        'assets',
-        'libs',
-        'manifest',
-        'recursive_make_targets',
-        'extra_jars',
-        'included_projects',
-        'referenced_projects',
-        '_classpathentries',
-        'filtered_resources',
-    )
-
-    def __init__(self, name):
-        self.name = name
-        self.is_library = False
-        self.manifest = None
-        self.res = None
-        self.assets = None
-        self.libs = []
-        self.recursive_make_targets = []
-        self.extra_jars = []
-        self.included_projects = []
-        self.referenced_projects = []
-        self._classpathentries = []
-        self.filtered_resources = []
-
-    def add_classpathentry(self, path, srcdir, dstdir, exclude_patterns=[], ignore_warnings=False):
-        cpe = ClassPathEntry()
-        cpe.srcdir = srcdir
-        cpe.dstdir = dstdir
-        cpe.path = path
-        cpe.exclude_patterns = list(exclude_patterns)
-        cpe.ignore_warnings = ignore_warnings
-        self._classpathentries.append(cpe)
-        return cpe
-
-
 class AndroidResDirs(ContextDerived):
     """Represents Android resource directories."""
 
@@ -1056,6 +1065,7 @@ class AndroidResDirs(ContextDerived):
         ContextDerived.__init__(self, context)
         self.paths = paths
 
+
 class AndroidAssetsDirs(ContextDerived):
     """Represents Android assets directories."""
 
@@ -1066,6 +1076,7 @@ class AndroidAssetsDirs(ContextDerived):
     def __init__(self, context, paths):
         ContextDerived.__init__(self, context)
         self.paths = paths
+
 
 class AndroidExtraResDirs(ContextDerived):
     """Represents Android extra resource directories.
@@ -1083,6 +1094,7 @@ class AndroidExtraResDirs(ContextDerived):
         ContextDerived.__init__(self, context)
         self.paths = paths
 
+
 class AndroidExtraPackages(ContextDerived):
     """Represents Android extra packages."""
 
@@ -1093,6 +1105,7 @@ class AndroidExtraPackages(ContextDerived):
     def __init__(self, context, packages):
         ContextDerived.__init__(self, context)
         self.packages = packages
+
 
 class ChromeManifestEntry(ContextDerived):
     """Represents a chrome.manifest entry."""

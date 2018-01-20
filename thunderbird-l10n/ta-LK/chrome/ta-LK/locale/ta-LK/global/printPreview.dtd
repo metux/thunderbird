@@ -78,7 +78,8 @@ Entities below were automatically added by compare-locales,
 <!ENTITY previousarrow.tooltip "முந்தைய பக்கம்">
 <!ENTITY nextarrow.tooltip "அடுத்த பக்கம்">
 
-<!ENTITY simplifyPage.accesskey "i">
-<!ENTITY simplifyPage.disabled.tooltip "This page cannot be automatically simplified">
-<!ENTITY simplifyPage.enabled.tooltip  "Change layout for easier reading">
 <!ENTITY simplifyPage.label   "Simplify Page">
+<!ENTITY simplifyPage.accesskey "i">
+<!ENTITY simplifyPage.enabled.tooltip  "Change layout for easier reading">
+<!ENTITY simplifyPage.disabled.tooltip "This page cannot be automatically simplified">
+

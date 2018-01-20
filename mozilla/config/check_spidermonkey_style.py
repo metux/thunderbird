@@ -63,10 +63,13 @@ included_inclnames_to_ignore = set([
     'devtools/Instruments.h',   # we ignore devtools/ in general
     'double-conversion.h',      # strange MFBT case
     'javascript-trace.h',       # generated in $OBJDIR if HAVE_DTRACE is defined
-    'jsautokw.h',               # generated in $OBJDIR
+    'frontend/ReservedWordsGenerated.h', # generated in $OBJDIR
+    'gc/StatsPhasesGenerated.h',         # generated in $OBJDIR
+    'gc/StatsPhasesGenerated.cpp',       # generated in $OBJDIR
     'jscustomallocator.h',      # provided by embedders;  allowed to be missing
     'js-config.h',              # generated in $OBJDIR
     'fdlibm.h',                 # fdlibm
+    'mozmemory.h',              # included without a path
     'pratom.h',                 # NSPR
     'prcvar.h',                 # NSPR
     'prerror.h',                # NSPR
@@ -81,15 +84,22 @@ included_inclnames_to_ignore = set([
     'selfhosted.out.h',         # generated in $OBJDIR
     'shellmoduleloader.out.h',  # generated in $OBJDIR
     'unicode/timezone.h',       # ICU
+    'unicode/plurrule.h',       # ICU
     'unicode/ucal.h',           # ICU
+    'unicode/uchar.h',          # ICU
     'unicode/uclean.h',         # ICU
     'unicode/ucol.h',           # ICU
     'unicode/udat.h',           # ICU
     'unicode/udatpg.h',         # ICU
+    'unicode/udisplaycontext.h',# ICU
     'unicode/uenum.h',          # ICU
-    'unicode/unorm.h',          # ICU
+    'unicode/uloc.h',           # ICU
+    'unicode/unistr.h',         # ICU
+    'unicode/unorm2.h',         # ICU
     'unicode/unum.h',           # ICU
     'unicode/unumsys.h',        # ICU
+    'unicode/upluralrules.h',   # ICU
+    'unicode/ureldatefmt.h',    # ICU
     'unicode/ustring.h',        # ICU
     'unicode/utypes.h',         # ICU
     'vtune/VTuneWrapper.h'      # VTune
@@ -99,7 +109,9 @@ included_inclnames_to_ignore = set([
 # ignore #includes of them when checking #include ordering.
 oddly_ordered_inclnames = set([
     'ctypes/typedefs.h',        # Included multiple times in the body of ctypes/CTypes.h
-    'jsautokw.h',               # Included in the body of frontend/TokenStream.h
+    'frontend/ReservedWordsGenerated.h', # Included in the body of frontend/TokenStream.h
+    'gc/StatsPhasesGenerated.h',         # Included in the body of gc/Statistics.h
+    'gc/StatsPhasesGenerated.cpp',       # Included in the body of gc/Statistics.cpp
     'jswin.h',                  # Must be #included before <psapi.h>
     'machine/endian.h',         # Must be included after <sys/types.h> on BSD
     'winbase.h',                # Must precede other system headers(?)
@@ -241,24 +253,23 @@ def check_style():
     non_js_inclnames = set()        # type: set(inclname)
     js_names = dict()               # type: dict(filename, inclname)
 
-    repo = get_repository_from_env()
+    with get_repository_from_env() as repo:
+        # Select the appropriate files.
+        for filename in repo.get_files_in_working_directory():
+            for non_js_dir in non_js_dirnames:
+                if filename.startswith(non_js_dir) and filename.endswith('.h'):
+                    inclname = 'mozilla/' + filename.split('/')[-1]
+                    non_js_inclnames.add(inclname)
 
-    # Select the appropriate files.
-    for filename in repo.get_files_in_working_directory():
-        for non_js_dir in non_js_dirnames:
-            if filename.startswith(non_js_dir) and filename.endswith('.h'):
-                inclname = 'mozilla/' + filename.split('/')[-1]
-                non_js_inclnames.add(inclname)
+            if filename.startswith('js/public/') and filename.endswith('.h'):
+                inclname = 'js/' + filename[len('js/public/'):]
+                js_names[filename] = inclname
 
-        if filename.startswith('js/public/') and filename.endswith('.h'):
-            inclname = 'js/' + filename[len('js/public/'):]
-            js_names[filename] = inclname
-
-        if filename.startswith('js/src/') and \
-           not filename.startswith(tuple(ignored_js_src_dirs)) and \
-           filename.endswith(('.c', '.cpp', '.h', '.tbl', '.msg')):
-            inclname = filename[len('js/src/'):]
-            js_names[filename] = inclname
+            if filename.startswith('js/src/') and \
+               not filename.startswith(tuple(ignored_js_src_dirs)) and \
+               filename.endswith(('.c', '.cpp', '.h', '.tbl', '.msg')):
+                inclname = filename[len('js/src/'):]
+                js_names[filename] = inclname
 
     all_inclnames = non_js_inclnames | set(js_names.values())
 
@@ -288,8 +299,8 @@ def check_style():
 
     # Compare expected and actual output.
     difflines = difflib.unified_diff(expected_output, actual_output,
-                                     fromfile='check_spider_monkey_style.py expected output',
-                                       tofile='check_spider_monkey_style.py actual output')
+                                     fromfile='check_spidermonkey_style.py expected output',
+                                       tofile='check_spidermonkey_style.py actual output')
     ok = True
     for diffline in difflines:
         ok = False

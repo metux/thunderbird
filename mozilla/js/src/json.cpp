@@ -23,6 +23,7 @@
 #include "vm/JSONParser.h"
 #include "vm/StringBuffer.h"
 
+#include "jsarrayinlines.h"
 #include "jsatominlines.h"
 #include "jsboolinlines.h"
 
@@ -40,78 +41,81 @@ const Class js::JSONClass = {
     JSCLASS_HAS_CACHED_PROTO(JSProto_JSON)
 };
 
-static inline bool
-IsQuoteSpecialCharacter(char16_t c)
+/* ES5 15.12.3 Quote.
+ * Requires that the destination has enough space allocated for src after escaping
+ * (that is, `2 + 6 * (srcEnd - srcBegin)` characters).
+ */
+template <typename SrcCharT, typename DstCharT>
+static MOZ_ALWAYS_INLINE RangedPtr<DstCharT>
+InfallibleQuote(RangedPtr<const SrcCharT> srcBegin, RangedPtr<const SrcCharT> srcEnd, RangedPtr<DstCharT> dstPtr)
 {
-    static_assert('\b' < ' ', "'\\b' must be treated as special below");
-    static_assert('\f' < ' ', "'\\f' must be treated as special below");
-    static_assert('\n' < ' ', "'\\n' must be treated as special below");
-    static_assert('\r' < ' ', "'\\r' must be treated as special below");
-    static_assert('\t' < ' ', "'\\t' must be treated as special below");
-
-    return c == '"' || c == '\\' || c < ' ';
-}
-
-/* ES5 15.12.3 Quote. */
-template <typename CharT>
-static bool
-Quote(StringBuffer& sb, JSLinearString* str)
-{
-    size_t len = str->length();
+    // Maps characters < 256 to the value that must follow the '\\' in the quoted string.
+    // Entries with 'u' are handled as \\u00xy, and entries with 0 are not escaped in any way.
+    // Characters >= 256 are all assumed to be unescaped.
+    static const Latin1Char escapeLookup[256] = {
+        'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'b', 't',
+        'n', 'u', 'f', 'r', 'u', 'u', 'u', 'u', 'u', 'u',
+        'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u',
+        'u', 'u', 0,   0,  '\"', 0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,  '\\', // rest are all zeros
+    };
 
     /* Step 1. */
-    if (!sb.append('"'))
-        return false;
+    *dstPtr++ = '"';
 
     /* Step 2. */
-    JS::AutoCheckCannotGC nogc;
-    const RangedPtr<const CharT> buf(str->chars<CharT>(nogc), len);
-    for (size_t i = 0; i < len; ++i) {
-        /* Batch-append maximal character sequences containing no escapes. */
-        size_t mark = i;
-        do {
-            if (IsQuoteSpecialCharacter(buf[i]))
-                break;
-        } while (++i < len);
-        if (i > mark) {
-            if (!sb.appendSubstring(str, mark, i - mark))
-                return false;
-            if (i == len)
-                break;
+    while (srcBegin != srcEnd) {
+        SrcCharT c = *srcBegin++;
+        size_t escapeIndex = c % sizeof(escapeLookup);
+        Latin1Char escaped = escapeLookup[escapeIndex];
+        if (MOZ_LIKELY((escapeIndex != size_t(c)) || !escaped)) {
+            *dstPtr++ = c;
+            continue;
         }
-
-        char16_t c = buf[i];
-        if (c == '"' || c == '\\') {
-            if (!sb.append('\\') || !sb.append(c))
-                return false;
-        } else if (c == '\b' || c == '\f' || c == '\n' || c == '\r' || c == '\t') {
-           char16_t abbrev = (c == '\b')
-                         ? 'b'
-                         : (c == '\f')
-                         ? 'f'
-                         : (c == '\n')
-                         ? 'n'
-                         : (c == '\r')
-                         ? 'r'
-                         : 't';
-           if (!sb.append('\\') || !sb.append(abbrev))
-               return false;
-        } else {
+        *dstPtr++ = '\\';
+        *dstPtr++ = escaped;
+        if (escaped == 'u') {
             MOZ_ASSERT(c < ' ');
-            if (!sb.append("\\u00"))
-                return false;
             MOZ_ASSERT((c >> 4) < 10);
             uint8_t x = c >> 4, y = c % 16;
-            if (!sb.append(Latin1Char('0' + x)) ||
-                !sb.append(Latin1Char(y < 10 ? '0' + y : 'a' + (y - 10))))
-            {
-                return false;
-            }
+            *dstPtr++ = '0';
+            *dstPtr++ = '0';
+            *dstPtr++ = '0' + x;
+            *dstPtr++ = y < 10 ? '0' + y : 'a' + (y - 10);
         }
     }
 
     /* Steps 3-4. */
-    return sb.append('"');
+    *dstPtr++ = '"';
+    return dstPtr;
+}
+
+template <typename SrcCharT, typename CharVectorT>
+static bool
+Quote(CharVectorT& sb, JSLinearString* str)
+{
+    // We resize the backing buffer to the maximum size we could possibly need,
+    // write the escaped string into it, and shrink it back to the size we ended
+    // up needing.
+    size_t len = str->length();
+    size_t sbInitialLen = sb.length();
+    if (!sb.growByUninitialized(len * 6 + 2))
+        return false;
+
+    typedef typename CharVectorT::ElementType DstCharT;
+
+    JS::AutoCheckCannotGC nogc;
+    RangedPtr<const SrcCharT> srcBegin{str->chars<SrcCharT>(nogc), len};
+    RangedPtr<DstCharT> dstBegin{sb.begin(), sb.begin(), sb.end()};
+    RangedPtr<DstCharT> dstEnd = InfallibleQuote(srcBegin, srcBegin + len, dstBegin + sbInitialLen);
+    size_t newSize = dstEnd - dstBegin;
+    sb.shrinkTo(newSize);
+    return true;
 }
 
 static bool
@@ -121,14 +125,23 @@ Quote(JSContext* cx, StringBuffer& sb, JSString* str)
     if (!linear)
         return false;
 
-    return linear->hasLatin1Chars()
-           ? Quote<Latin1Char>(sb, linear)
-           : Quote<char16_t>(sb, linear);
+    // Check if either has non-latin1 before calling ensure, so that the buffer's
+    // hasEnsured flag is set if the converstion to twoByte was automatic.
+    if (!sb.isUnderlyingBufferLatin1() || linear->hasTwoByteChars()) {
+        if (!sb.ensureTwoByteChars())
+            return false;
+    }
+    if (linear->hasTwoByteChars())
+        return Quote<char16_t>(sb.rawTwoByteBuffer(), linear);
+
+    return sb.isUnderlyingBufferLatin1()
+           ? Quote<Latin1Char>(sb.latin1Chars(), linear)
+           : Quote<Latin1Char>(sb.rawTwoByteBuffer(), linear);
 }
 
 namespace {
 
-using ObjectSet = GCHashSet<JSObject*, MovableCellHasher<JSObject*>, SystemAllocPolicy>;
+using ObjectVector = GCVector<JSObject*, 8>;
 
 class StringifyContext
 {
@@ -139,7 +152,7 @@ class StringifyContext
       : sb(sb),
         gap(gap),
         replacer(cx, replacer),
-        stack(cx),
+        stack(cx, ObjectVector(cx)),
         propertyList(propertyList),
         depth(0),
         maybeSafely(maybeSafely)
@@ -148,14 +161,10 @@ class StringifyContext
         MOZ_ASSERT_IF(maybeSafely, gap.empty());
     }
 
-    bool init() {
-        return stack.init(8);
-    }
-
     StringBuffer& sb;
     const StringBuffer& gap;
     RootedObject replacer;
-    Rooted<ObjectSet> stack;
+    Rooted<ObjectVector> stack;
     const AutoIdVector& propertyList;
     uint32_t depth;
     bool maybeSafely;
@@ -247,6 +256,8 @@ PreprocessValue(JSContext* cx, HandleObject holder, KeyType key, MutableHandleVa
 
     /* Step 3. */
     if (scx->replacer && scx->replacer->isCallable()) {
+        MOZ_ASSERT(holder != nullptr, "holder object must be present when replacer is callable");
+
         if (!keyStr) {
             keyStr = KeyStringifier<KeyType>::toString(cx, key);
             if (!keyStr)
@@ -303,29 +314,32 @@ class CycleDetector
 {
   public:
     CycleDetector(StringifyContext* scx, HandleObject obj)
-      : stack(&scx->stack), obj_(obj) {
+      : stack_(&scx->stack), obj_(obj), appended_(false) {
     }
 
-    bool foundCycle(JSContext* cx) {
-        auto addPtr = stack.lookupForAdd(obj_);
-        if (addPtr) {
-            JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_JSON_CYCLIC_VALUE);
-            return false;
+    MOZ_ALWAYS_INLINE bool foundCycle(JSContext* cx) {
+        JSObject* obj = obj_;
+        for (JSObject* obj2 : stack_) {
+            if (MOZ_UNLIKELY(obj == obj2)) {
+                JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_JSON_CYCLIC_VALUE);
+                return false;
+            }
         }
-        if (!stack.add(addPtr, obj_)) {
-            ReportOutOfMemory(cx);
-            return false;
-        }
-        return true;
+        appended_ = stack_.append(obj);
+        return appended_;
     }
 
     ~CycleDetector() {
-        stack.remove(obj_);
+        if (MOZ_LIKELY(appended_)) {
+            MOZ_ASSERT(stack_.back() == obj_);
+            stack_.popBack();
+        }
     }
 
   private:
-    MutableHandle<ObjectSet> stack;
+    MutableHandle<ObjectVector> stack_;
     HandleObject obj_;
+    bool appended_;
 };
 
 /* ES5 15.12.3 JO. */
@@ -392,9 +406,9 @@ JO(JSContext* cx, HandleObject obj, StringifyContext* scx)
 #ifdef DEBUG
         if (scx->maybeSafely) {
             RootedNativeObject nativeObj(cx, &obj->as<NativeObject>());
-            RootedShape prop(cx);
+            Rooted<PropertyResult> prop(cx);
             NativeLookupOwnPropertyNoResolve(cx, nativeObj, id, &prop);
-            MOZ_ASSERT(prop && prop->isDataDescriptor());
+            MOZ_ASSERT(prop && prop.isNativeProperty() && prop.shape()->isDataDescriptor());
         }
 #endif // DEBUG
         if (!GetProperty(cx, obj, obj, id, &outputValue))
@@ -493,11 +507,11 @@ JA(JSContext* cx, HandleObject obj, StringifyContext* scx)
                                "all its initially-dense elements were sparsified "
                                "and the object is indexed");
                 } else {
-                    MOZ_ASSERT(obj->isIndexed());
+                    MOZ_ASSERT(nativeObj->isIndexed());
                 }
             }
 #endif
-            if (!GetElement(cx, obj, obj, i, &outputValue))
+            if (!GetElement(cx, obj, i, &outputValue))
                 return false;
             if (!PreprocessValue(cx, obj, i, &outputValue, scx))
                 return false;
@@ -532,7 +546,8 @@ Str(JSContext* cx, const Value& v, StringifyContext* scx)
     /* Step 11 must be handled by the caller. */
     MOZ_ASSERT(!IsFilteredValue(v));
 
-    JS_CHECK_RECURSION(cx, return false);
+    if (!CheckRecursionLimit(cx))
+        return false;
 
     /*
      * This method implements the Str algorithm in ES5 15.12.3, but:
@@ -644,7 +659,7 @@ js::Stringify(JSContext* cx, MutableHandleValue vp, JSObject* replacer_, const V
                     return false;
 
                 /* Step 4b(iii)(5)(a-b). */
-                if (!GetElement(cx, replacer, replacer, k, &item))
+                if (!GetElement(cx, replacer, k, &item))
                     return false;
 
                 RootedId id(cx);
@@ -735,21 +750,25 @@ js::Stringify(JSContext* cx, MutableHandleValue vp, JSObject* replacer_, const V
         MOZ_ASSERT(gap.empty());
     }
 
-    /* Step 9. */
-    RootedPlainObject wrapper(cx, NewBuiltinClassInstance<PlainObject>(cx));
-    if (!wrapper)
-        return false;
-
-    /* Steps 10-11. */
+    RootedPlainObject wrapper(cx);
     RootedId emptyId(cx, NameToId(cx->names().empty));
-    if (!NativeDefineProperty(cx, wrapper, emptyId, vp, nullptr, nullptr, JSPROP_ENUMERATE))
-        return false;
+    if (replacer && replacer->isCallable()) {
+        // We can skip creating the initial wrapper object if no replacer
+        // function is present.
+
+        /* Step 9. */
+        wrapper = NewBuiltinClassInstance<PlainObject>(cx);
+        if (!wrapper)
+            return false;
+
+        /* Steps 10-11. */
+        if (!NativeDefineDataProperty(cx, wrapper, emptyId, vp, JSPROP_ENUMERATE))
+            return false;
+    }
 
     /* Step 12. */
     StringifyContext scx(cx, sb, gap, replacer, propertyList,
                          stringifyBehavior == StringifyBehavior::RestrictedSafe);
-    if (!scx.init())
-        return false;
     if (!PreprocessValue(cx, wrapper, HandleId(emptyId), vp, &scx))
         return false;
     if (IsFilteredValue(vp))
@@ -762,7 +781,8 @@ js::Stringify(JSContext* cx, MutableHandleValue vp, JSObject* replacer_, const V
 static bool
 Walk(JSContext* cx, HandleObject holder, HandleId name, HandleValue reviver, MutableHandleValue vp)
 {
-    JS_CHECK_RECURSION(cx, return false);
+    if (!CheckRecursionLimit(cx))
+        return false;
 
     /* Step 1. */
     RootedValue val(cx);
@@ -860,7 +880,7 @@ Revive(JSContext* cx, HandleValue reviver, MutableHandleValue vp)
     if (!obj)
         return false;
 
-    if (!DefineProperty(cx, obj, cx->names().empty, vp))
+    if (!DefineDataProperty(cx, obj, cx->names().empty, vp))
         return false;
 
     Rooted<jsid> id(cx, NameToId(cx->names().empty));
@@ -971,20 +991,17 @@ static const JSFunctionSpec json_static_methods[] = {
 JSObject*
 js::InitJSONClass(JSContext* cx, HandleObject obj)
 {
-    Rooted<GlobalObject*> global(cx, &obj->as<GlobalObject>());
+    Handle<GlobalObject*> global = obj.as<GlobalObject>();
 
-    RootedObject proto(cx, global->getOrCreateObjectPrototype(cx));
+    RootedObject proto(cx, GlobalObject::getOrCreateObjectPrototype(cx, global));
     if (!proto)
         return nullptr;
     RootedObject JSON(cx, NewObjectWithGivenProto(cx, &JSONClass, proto, SingletonObject));
     if (!JSON)
         return nullptr;
 
-    if (!JS_DefineProperty(cx, global, js_JSON_str, JSON, JSPROP_RESOLVING,
-                           JS_STUBGETTER, JS_STUBSETTER))
-    {
+    if (!JS_DefineProperty(cx, global, js_JSON_str, JSON, JSPROP_RESOLVING))
         return nullptr;
-    }
 
     if (!JS_DefineFunctions(cx, JSON, json_static_methods))
         return nullptr;

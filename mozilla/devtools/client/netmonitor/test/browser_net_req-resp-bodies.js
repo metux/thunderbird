@@ -8,15 +8,19 @@
  */
 
 add_task(function* () {
-  let { L10N } = require("devtools/client/netmonitor/l10n");
+  let { L10N } = require("devtools/client/netmonitor/src/utils/l10n");
 
   let { tab, monitor } = yield initNetMonitor(JSON_LONG_URL);
   info("Starting test... ");
 
-  let { NetMonitorView } = monitor.panelWin;
-  let { RequestsMenu } = NetMonitorView;
+  let { document, store, windowRequire } = monitor.panelWin;
+  let Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
+  let {
+    getDisplayedRequests,
+    getSortedRequests,
+  } = windowRequire("devtools/client/netmonitor/src/selectors/index");
 
-  RequestsMenu.lazyUpdate = false;
+  store.dispatch(Actions.batchEnable(false));
 
   // Perform first batch of requests.
   let wait = waitForNetworkEvents(monitor, 1);
@@ -25,16 +29,16 @@ add_task(function* () {
   });
   yield wait;
 
-  verifyRequest(0);
+  yield verifyRequest(0);
 
   // Switch to the webconsole.
-  let onWebConsole = monitor._toolbox.once("webconsole-selected");
-  monitor._toolbox.selectTool("webconsole");
+  let onWebConsole = monitor.toolbox.once("webconsole-selected");
+  monitor.toolbox.selectTool("webconsole");
   yield onWebConsole;
 
   // Switch back to the netmonitor.
-  let onNetMonitor = monitor._toolbox.once("netmonitor-selected");
-  monitor._toolbox.selectTool("netmonitor");
+  let onNetMonitor = monitor.toolbox.once("netmonitor-selected");
+  monitor.toolbox.selectTool("netmonitor");
   yield onNetMonitor;
 
   // Reload debugee.
@@ -49,13 +53,25 @@ add_task(function* () {
   });
   yield wait;
 
-  verifyRequest(1);
+  yield verifyRequest(1);
 
   return teardown(monitor);
 
-  function verifyRequest(offset) {
-    verifyRequestItemTarget(RequestsMenu.getItemAtIndex(offset),
-      "GET", CONTENT_TYPE_SJS + "?fmt=json-long", {
+  function* verifyRequest(index) {
+    let requestItems = document.querySelectorAll(".request-list-item");
+    for (let requestItem of requestItems) {
+      requestItem.scrollIntoView();
+      let requestsListStatus = requestItem.querySelector(".requests-list-status");
+      EventUtils.sendMouseEvent({ type: "mouseover" }, requestsListStatus);
+      yield waitUntil(() => requestsListStatus.title);
+    }
+    verifyRequestItemTarget(
+      document,
+      getDisplayedRequests(store.getState()),
+      getSortedRequests(store.getState()).get(index),
+      "GET",
+      CONTENT_TYPE_SJS + "?fmt=json-long",
+      {
         status: 200,
         statusText: "OK",
         type: "json",

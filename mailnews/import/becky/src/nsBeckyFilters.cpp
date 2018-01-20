@@ -30,10 +30,7 @@ nsresult
 nsBeckyFilters::Create(nsIImportFilters **aImport)
 {
   NS_ENSURE_ARG_POINTER(aImport);
-
-  *aImport = new nsBeckyFilters();
-
-  NS_ADDREF(*aImport);
+  NS_ADDREF(*aImport = new nsBeckyFilters());
   return NS_OK;
 }
 
@@ -100,7 +97,7 @@ nsBeckyFilters::AutoLocate(char16_t **aDescription,
 
   if (aDescription) {
     *aDescription =
-      nsBeckyStringBundle::GetStringByName(u"BeckyImportDescription");
+      nsBeckyStringBundle::GetStringByName("BeckyImportDescription");
   }
   *aLocation = nullptr;
   *_retval = false;

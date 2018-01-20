@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -11,6 +12,7 @@
 #include "gfxASurface.h"                // for gfxASurface, etc
 #include "gfxPlatform.h"                // for gfxPlatform, gfxImageFormat
 #include "gfxUtils.h"                   // for gfxUtils
+#include "mozilla/CheckedInt.h"
 #include "mozilla/mozalloc.h"           // for operator delete[], etc
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
@@ -20,6 +22,7 @@
 #include "nsISupportsImpl.h"            // for Image::Release, etc
 #include "nsThreadUtils.h"              // for NS_IsMainThread
 #include "mozilla/gfx/Point.h"          // for IntSize
+#include "mozilla/gfx/DataSurfaceHelpers.h"
 #include "gfx2DGlue.h"
 #include "YCbCrUtils.h"                 // for YCbCr conversions
 
@@ -109,16 +112,21 @@ BasicPlanarYCbCrImage::CopyData(const Data& aData)
     return false;
   }
 
-  gfxImageFormat iFormat = gfx::SurfaceFormatToImageFormat(format);
-  mStride = gfxASurface::FormatStrideForWidth(iFormat, size.width);
-  mDecodedBuffer = AllocateBuffer(size.height * mStride);
+  mStride = gfx::StrideForFormatAndWidth(format, size.width);
+  mozilla::CheckedInt32 requiredBytes =
+    mozilla::CheckedInt32(size.height) * mozilla::CheckedInt32(mStride);
+  if (!requiredBytes.isValid()) {
+    // invalid size
+    return false;
+  }
+  mDecodedBuffer = AllocateBuffer(requiredBytes.value());
   if (!mDecodedBuffer) {
     // out of memory
     return false;
   }
 
   gfx::ConvertYCbCrToRGB(aData, format, size, mDecodedBuffer.get(), mStride);
-  SetOffscreenFormat(iFormat);
+  SetOffscreenFormat(gfx::SurfaceFormatToImageFormat(format));
   mSize = size;
 
   return true;

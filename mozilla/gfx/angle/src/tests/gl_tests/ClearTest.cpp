@@ -7,7 +7,6 @@
 #include "test_utils/ANGLETest.h"
 
 #include "random_utils.h"
-#include "Vector.h"
 
 using namespace angle;
 
@@ -26,10 +25,10 @@ Vector4 RandomVec4(int seed, float minValue, float maxValue)
 GLColor Vec4ToColor(const Vector4 &vec)
 {
     GLColor color;
-    color.R = static_cast<uint8_t>(vec.x * 255.0f);
-    color.G = static_cast<uint8_t>(vec.y * 255.0f);
-    color.B = static_cast<uint8_t>(vec.z * 255.0f);
-    color.A = static_cast<uint8_t>(vec.w * 255.0f);
+    color.R = static_cast<uint8_t>(vec.x() * 255.0f);
+    color.G = static_cast<uint8_t>(vec.y() * 255.0f);
+    color.B = static_cast<uint8_t>(vec.z() * 255.0f);
+    color.A = static_cast<uint8_t>(vec.w() * 255.0f);
     return color;
 };
 
@@ -76,26 +75,22 @@ class ClearTestBase : public ANGLETest
 
     void setupDefaultProgram()
     {
-        const std::string vertexShaderSource = SHADER_SOURCE
-        (
-            precision highp float;
+        const std::string vertexShaderSource =
+            R"(precision highp float;
             attribute vec4 position;
 
             void main()
             {
                 gl_Position = position;
-            }
-        );
+            })";
 
-        const std::string fragmentShaderSource = SHADER_SOURCE
-        (
-            precision highp float;
+        const std::string fragmentShaderSource =
+            R"(precision highp float;
 
             void main()
             {
                 gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-            }
-        );
+            })";
 
         mProgram = CompileProgram(vertexShaderSource, fragmentShaderSource);
         ASSERT_NE(0u, mProgram);
@@ -356,9 +351,11 @@ TEST_P(ClearTestES3, MixedSRGBClear)
 // flush or finish after ClearBufferfv or each draw.
 TEST_P(ClearTestES3, RepeatedClear)
 {
-    if (IsD3D11() && (IsNVIDIA() || IsIntel()))
+    if (IsD3D11() && IsIntel())
     {
-        std::cout << "Test skipped on Nvidia and Intel D3D11." << std::endl;
+        // Note that there's been a bug affecting this test on NVIDIA drivers as well, until fall
+        // 2016 driver releases.
+        std::cout << "Test skipped on Intel D3D11." << std::endl;
         return;
     }
 

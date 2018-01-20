@@ -7,7 +7,7 @@
 #define nsSubscribableServer_h__
 
 #include "nsCOMPtr.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsISubscribableServer.h"
 #include "nsIRDFService.h"
 #include "nsSubscribeDataSource.h"
@@ -44,7 +44,7 @@ class nsSubscribableServer : public nsISubscribableServer
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSISUBSCRIBABLESERVER
-  
+
 private:
   virtual ~nsSubscribableServer();
 

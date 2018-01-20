@@ -56,7 +56,6 @@
 <!ENTITY ListDescription.accesskey      "M">
 
 
-
-
-<!-- Title -->
 <!ENTITY mailListWindowAdd.title        "New Mailing List">
+
+<!ENTITY AddressTitle.accesskey         "m">

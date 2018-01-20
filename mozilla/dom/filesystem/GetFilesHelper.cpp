@@ -7,6 +7,10 @@
 #include "GetFilesHelper.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/ContentParent.h"
+#include "mozilla/dom/FileBlobImpl.h"
+#include "mozilla/dom/IPCBlobUtils.h"
+#include "mozilla/ipc/IPCStreamUtils.h"
+#include "FileSystemUtils.h"
 #include "nsProxyRelease.h"
 
 namespace mozilla {
@@ -32,7 +36,7 @@ public:
 
     RefPtr<ReleaseRunnable> runnable =
       new ReleaseRunnable(aPromises, aCallbacks, aFiles, global.forget());
-    NS_DispatchToMainThread(runnable);
+    FileSystemUtils::DispatchRunnable(nullptr, runnable.forget());
   }
 
   NS_IMETHOD
@@ -53,6 +57,7 @@ private:
                   nsTArray<RefPtr<GetFilesCallback>>& aCallbacks,
                   Sequence<RefPtr<File>>& aFiles,
                   already_AddRefed<nsIGlobalObject> aGlobal)
+    : Runnable("dom::ReleaseRunnable")
   {
     mPromises.SwapElements(aPromises);
     mCallbacks.SwapElements(aCallbacks);
@@ -129,7 +134,8 @@ GetFilesHelper::Create(nsIGlobalObject* aGlobal,
 }
 
 GetFilesHelper::GetFilesHelper(nsIGlobalObject* aGlobal, bool aRecursiveFlag)
-  : GetFilesHelperBase(aRecursiveFlag)
+  : Runnable("GetFilesHelper")
+  , GetFilesHelperBase(aRecursiveFlag)
   , mGlobal(aGlobal)
   , mListingCompleted(false)
   , mErrorResult(NS_OK)
@@ -226,7 +232,8 @@ GetFilesHelper::Run()
       return NS_OK;
     }
 
-    return NS_DispatchToMainThread(this);
+    RefPtr<Runnable> runnable = this;
+    return FileSystemUtils::DispatchRunnable(nullptr, runnable.forget());
   }
 
   // We are here, but we should not do anything on this thread because, in the
@@ -383,7 +390,7 @@ GetFilesHelperBase::ExploreDirectory(const nsAString& aDOMPath, nsIFile* aFile)
     domPath.Append(leafName);
 
     if (isFile) {
-      RefPtr<BlobImpl> blobImpl = new BlobImplFile(currFile);
+      RefPtr<BlobImpl> blobImpl = new FileBlobImpl(currFile);
       blobImpl->SetDOMPath(domPath);
 
       if (!mTargetBlobImplArray.AppendElement(blobImpl, fallible)) {
@@ -429,18 +436,14 @@ GetFilesHelperBase::AddExploredDirectory(nsIFile* aDir)
     return rv;
   }
 
-  nsAutoCString path;
-
+  nsAutoString path;
   if (!isLink) {
-    nsAutoString path16;
-    rv = aDir->GetPath(path16);
+    rv = aDir->GetPath(path);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
-
-    path = NS_ConvertUTF16toUTF8(path16);
   } else {
-    rv = aDir->GetNativeTarget(path);
+    rv = aDir->GetTarget(path);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
@@ -463,8 +466,8 @@ GetFilesHelperBase::ShouldFollowSymLink(nsIFile* aDir)
   MOZ_ASSERT(isLink && isDir, "Why are we here?");
 #endif
 
-  nsAutoCString targetPath;
-  if (NS_WARN_IF(NS_FAILED(aDir->GetNativeTarget(targetPath)))) {
+  nsAutoString targetPath;
+  if (NS_WARN_IF(NS_FAILED(aDir->GetTarget(targetPath)))) {
     return false;
   }
 
@@ -581,13 +584,15 @@ public:
     }
 
     GetFilesResponseSuccess success;
-    nsTArray<PBlobParent*>& blobsParent = success.blobsParent();
-    blobsParent.SetLength(aFiles.Length());
+
+    nsTArray<IPCBlob>& ipcBlobs = success.blobs();
+    ipcBlobs.SetLength(aFiles.Length());
 
     for (uint32_t i = 0; i < aFiles.Length(); ++i) {
-      blobsParent[i] =
-        mParent->mContentParent->GetOrCreateActorForBlob(aFiles[i]);
-      if (!blobsParent[i]) {
+      nsresult rv = IPCBlobUtils::Serialize(aFiles[i]->Impl(),
+                                            mParent->mContentParent,
+                                            ipcBlobs[i]);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
         mParent->mContentParent->SendGetFilesResponseAndForget(mParent->mUUID,
                                                                GetFilesResponseFailure(NS_ERROR_OUT_OF_MEMORY));
         return;
@@ -613,7 +618,8 @@ GetFilesHelperParent::GetFilesHelperParent(const nsID& aUUID,
 
 GetFilesHelperParent::~GetFilesHelperParent()
 {
-  NS_ReleaseOnMainThread(mContentParent.forget());
+  NS_ReleaseOnMainThreadSystemGroup(
+    "GetFilesHelperParent::mContentParent", mContentParent.forget());
 }
 
 /* static */ already_AddRefed<GetFilesHelperParent>

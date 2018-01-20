@@ -111,13 +111,6 @@ interface nsIUrlClassifierDBService : nsISupports
                         in nsIUrlClassifierHashCompleter completer);
 
   /**
-   * Set the last update time for the given table. We use this to
-   * remember freshness past restarts. Time is in milliseconds since epoch.
-   */
-  void setLastUpdateTime(in ACString tableName,
-                         in unsigned long long lastUpdateTime);
-
-  /**
    * Forget the results that were used in the last DB update.
    */
   void clearLastResults();
@@ -208,6 +201,11 @@ interface nsIUrlClassifierDBService : nsISupports
    * for use in tests.
    */
   void reloadDatabase();
+
+  /**
+   * Empty all the caches.
+   */
+  void clearCache();
 };
 
 /**
@@ -229,4 +227,21 @@ interface nsIUrlClassifierLookupCallback : nsISupports
    *        this array.
    */
   void lookupComplete(in ResultArray results);
+};
+
+/**
+ * This is an internal helper interface which is called after each
+ * classify completes to provide and handle a set of possible results,
+ * which the main thread may need to expand using an nsIURIClassifierCallback.
+ */
+[uuid(091adf98-28a5-473d-8dec-5b34b4e62496)]
+interface nsIUrlClassifierClassifyCallback : nsISupports
+{
+  /**
+   * The function is called each time the URL matches a Safe Browsing list
+   * The function could be called multiple times if URL matches multiple lists
+   *
+   */
+  void handleResult(in ACString aList,
+                    in ACString aPrefix);
 };

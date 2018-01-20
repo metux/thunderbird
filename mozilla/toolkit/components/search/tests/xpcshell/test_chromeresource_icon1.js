@@ -6,21 +6,19 @@
 "use strict";
 
 function run_test() {
-  updateAppInfo();
-
   // The test engines used in this test need to be recognized as 'default'
   // engines or the resource URL won't be used
   let url = "resource://test/data/";
   let resProt = Services.io.getProtocolHandler("resource")
                         .QueryInterface(Ci.nsIResProtocolHandler);
   resProt.setSubstitution("search-plugins",
-                          Services.io.newURI(url, null, null));
+                          Services.io.newURI(url));
 
   run_next_test();
 }
 
-add_task(function* test_defaultresourceicon() {
-  yield asyncInit();
+add_task(async function test_defaultresourceicon() {
+  await asyncInit();
 
   let engine1 = Services.search.getEngineByName("engine-resourceicon");
   do_check_eq(engine1.iconURI.spec, "resource://search-plugins/icon16.png");

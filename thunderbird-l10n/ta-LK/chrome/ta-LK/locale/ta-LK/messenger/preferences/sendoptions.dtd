@@ -31,5 +31,5 @@
 <!ENTITY add.plaintextdomain "எளிய உரை ஆள்கள பெயர்:">
 
 
-<!ENTITY autoDowngrade.accesskey      "t">
 <!ENTITY autoDowngrade.label          "Send messages as plain text if possible">
+<!ENTITY autoDowngrade.accesskey      "t">

@@ -127,7 +127,7 @@ SyntheticMessageSet.prototype = {
   msgHdrs: function*() {
     // get the databases
     let msgDatabases = this.msgFolders.map(folder => folder.msgDatabase);
-    for (let [iMsg, synMsg] in Iterator(this.synMessages)) {
+    for (let [iMsg, synMsg] of this.synMessages.entries()) {
       let folderIndex = this.folderIndices[iMsg];
       if (folderIndex != null)
         yield msgDatabases[folderIndex].getMsgHdrForMessageID(synMsg.messageId);
@@ -155,7 +155,7 @@ SyntheticMessageSet.prototype = {
    */
   get foldersWithMsgHdrs() {
     let results = this.msgFolders.map(folder => [folder, []]);
-    for (let [iMsg, synMsg] in Iterator(this.synMessages)) {
+    for (let [iMsg, synMsg] of this.synMessages.entries()) {
       let folderIndex = this.folderIndices[iMsg];
       if (folderIndex != null) {
         let [folder, msgHdrs] = results[folderIndex];
@@ -221,18 +221,16 @@ SyntheticMessageSet.prototype = {
       msgHdr.setStringProperty("junkscore", junkscore);
     };
 
-    let atomService = Cc["@mozilla.org/atom-service;1"].
-                        getService(Ci.nsIAtomService);
-    let atom = atomService.getAtom(aIsJunk ? "junk" : "notjunk");
+    let str = aIsJunk ? "junk" : "notjunk";
     let xpcomHdrArray = toXPCOMArray(msgHdrs, Ci.nsIMutableArray);
     MailServices.mfn.notifyItemEvent(xpcomHdrArray,
                                      "JunkStatusChanged",
-                                     atom);
+                                     null, str);
   },
 
   /**
-   * Slice the message set using the exact Array.slice semantics (because we
-   *  call Array.slice).
+   * Slice the message set using the exact Array.prototype.slice semantics
+   * (because we call Array.prototype.slice).
    */
   slice: function() {
     let slicedMessages = this.synMessages.slice.apply(this.synMessages,

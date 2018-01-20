@@ -4,16 +4,20 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files("**"):
+    BUG_COMPONENT = ("Core", "DOM: Device Interfaces")
+
 EXPORTS.mozilla.dom += [
-    'NSSU2FTokenRemote.h',
     'U2F.h',
-    'USBToken.h',
+    'U2FAuthenticator.h',
+    'U2FUtil.h',
 ]
 
 UNIFIED_SOURCES += [
-    'NSSU2FTokenRemote.cpp',
     'U2F.cpp',
-    'USBToken.cpp',
+    'U2FManager.cpp',
+    'U2FTransactionChild.cpp',
+    'U2FTransactionParent.cpp',
 ]
 
 include('/ipc/chromium/chromium-config.mozbuild')
@@ -23,8 +27,10 @@ FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
     '/dom/base',
     '/dom/crypto',
+    '/dom/webauthn',
     '/security/manager/ssl',
     '/security/pkix/include',
+    '/security/pkix/lib',
 ]
 
 MOCHITEST_MANIFESTS += ['tests/mochitest.ini']

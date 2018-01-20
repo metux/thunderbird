@@ -5,7 +5,7 @@
 
 Cu.import("resource://testing-common/httpd.js");
 Cu.import("resource://gre/modules/TelemetryLog.jsm");
-var bsp = Cu.import("resource:///modules/experiments/Experiments.jsm");
+var {TELEMETRY_LOG, Experiments} = Cu.import("resource:///modules/experiments/Experiments.jsm", {});
 
 
 const MANIFEST_HANDLER         = "manifests/handler";
@@ -21,10 +21,9 @@ var gPolicy              = null;
 var gManifestObject      = null;
 var gManifestHandlerURI  = null;
 
-const TLOG = bsp.TELEMETRY_LOG;
+const TLOG = TELEMETRY_LOG;
 
-function checkEvent(event, id, data)
-{
+function checkEvent(event, id, data) {
   do_print("Checking message " + id);
   Assert.equal(event[0], id, "id should match");
   Assert.ok(event[1] > 0, "timestamp should be greater than 0");
@@ -40,11 +39,7 @@ function checkEvent(event, id, data)
   }
 }
 
-function run_test() {
-  run_next_test();
-}
-
-add_task(function* test_setup() {
+add_task(async function test_setup() {
   loadAddonManager();
 
   gHttpServer = new HttpServer();
@@ -75,12 +70,12 @@ add_task(function* test_setup() {
     oneshotTimer: (callback, timeout, thisObj, name) => dummyTimer,
   });
 
-  yield removeCacheFile();
+  await removeCacheFile();
 });
 
 // Test basic starting and stopping of experiments.
 
-add_task(function* test_telemetryBasics() {
+add_task(async function test_telemetryBasics() {
   // Check TelemetryLog instead of TelemetrySession.getPayload().log because
   // TelemetrySession gets Experiments.instance() and side-effects log entries.
 
@@ -89,7 +84,7 @@ add_task(function* test_telemetryBasics() {
   // Dates the following tests are based on.
 
   let baseDate   = new Date(2014, 5, 1, 12);
-  let startDate1 = futureDate(baseDate,  50 * MS_IN_ONE_DAY);
+  let startDate1 = futureDate(baseDate, 50 * MS_IN_ONE_DAY);
   let endDate1   = futureDate(baseDate, 100 * MS_IN_ONE_DAY);
   let startDate2 = futureDate(baseDate, 150 * MS_IN_ONE_DAY);
   let endDate2   = futureDate(baseDate, 200 * MS_IN_ONE_DAY);
@@ -130,17 +125,17 @@ add_task(function* test_telemetryBasics() {
   let now = baseDate;
   defineNow(gPolicy, now);
 
-  yield experiments.updateManifest();
-  let list = yield experiments.getExperiments();
+  await experiments.updateManifest();
+  let list = await experiments.getExperiments();
   Assert.equal(list.length, 0, "Experiment list should be empty.");
 
   expectedLogLength += 2;
   let log = TelemetryLog.entries();
   do_print("Telemetry log: " + JSON.stringify(log));
   Assert.equal(log.length, expectedLogLength, "Telemetry log should have " + expectedLogLength + " entries.");
-  checkEvent(log[log.length-2], TLOG.ACTIVATION_KEY,
+  checkEvent(log[log.length - 2], TLOG.ACTIVATION_KEY,
              [TLOG.ACTIVATION.REJECTED, EXPERIMENT1_ID, "startTime"]);
-  checkEvent(log[log.length-1], TLOG.ACTIVATION_KEY,
+  checkEvent(log[log.length - 1], TLOG.ACTIVATION_KEY,
              [TLOG.ACTIVATION.REJECTED, EXPERIMENT2_ID, "startTime"]);
 
   // Trigger update, clock set for experiment 1 to start.
@@ -148,14 +143,14 @@ add_task(function* test_telemetryBasics() {
   now = futureDate(startDate1, 5 * MS_IN_ONE_DAY);
   defineNow(gPolicy, now);
 
-  yield experiments.updateManifest();
-  list = yield experiments.getExperiments();
+  await experiments.updateManifest();
+  list = await experiments.getExperiments();
   Assert.equal(list.length, 1, "Experiment list should have 1 entry now.");
 
   expectedLogLength += 1;
   log = TelemetryLog.entries();
   Assert.equal(log.length, expectedLogLength, "Telemetry log should have " + expectedLogLength + " entries. Got " + log.toSource());
-  checkEvent(log[log.length-1], TLOG.ACTIVATION_KEY,
+  checkEvent(log[log.length - 1], TLOG.ACTIVATION_KEY,
              [TLOG.ACTIVATION.ACTIVATED, EXPERIMENT1_ID]);
 
   // Trigger update, clock set for experiment 1 to stop.
@@ -163,16 +158,16 @@ add_task(function* test_telemetryBasics() {
   now = futureDate(endDate1, 1000);
   defineNow(gPolicy, now);
 
-  yield experiments.updateManifest();
-  list = yield experiments.getExperiments();
+  await experiments.updateManifest();
+  list = await experiments.getExperiments();
   Assert.equal(list.length, 1, "Experiment list should have 1 entry.");
 
   expectedLogLength += 2;
   log = TelemetryLog.entries();
   Assert.equal(log.length, expectedLogLength, "Telemetry log should have " + expectedLogLength + " entries.");
-  checkEvent(log[log.length-2], TLOG.TERMINATION_KEY,
+  checkEvent(log[log.length - 2], TLOG.TERMINATION_KEY,
              [TLOG.TERMINATION.EXPIRED, EXPERIMENT1_ID]);
-  checkEvent(log[log.length-1], TLOG.ACTIVATION_KEY,
+  checkEvent(log[log.length - 1], TLOG.ACTIVATION_KEY,
              [TLOG.ACTIVATION.REJECTED, EXPERIMENT2_ID, "startTime"]);
 
   // Trigger update, clock set for experiment 2 to start with invalid hash.
@@ -181,14 +176,14 @@ add_task(function* test_telemetryBasics() {
   defineNow(gPolicy, now);
   gManifestObject.experiments[1].xpiHash = "sha1:0000000000000000000000000000000000000000";
 
-  yield experiments.updateManifest();
-  list = yield experiments.getExperiments();
+  await experiments.updateManifest();
+  list = await experiments.getExperiments();
   Assert.equal(list.length, 1, "Experiment list should have 1 entries.");
 
   expectedLogLength += 1;
   log = TelemetryLog.entries();
   Assert.equal(log.length, expectedLogLength, "Telemetry log should have " + expectedLogLength + " entries.");
-  checkEvent(log[log.length-1], TLOG.ACTIVATION_KEY,
+  checkEvent(log[log.length - 1], TLOG.ACTIVATION_KEY,
              [TLOG.ACTIVATION.INSTALL_FAILURE, EXPERIMENT2_ID]);
 
   // Trigger update, clock set for experiment 2 to properly start now.
@@ -197,14 +192,14 @@ add_task(function* test_telemetryBasics() {
   defineNow(gPolicy, now);
   gManifestObject.experiments[1].xpiHash = EXPERIMENT2_XPI_SHA1;
 
-  yield experiments.updateManifest();
-  list = yield experiments.getExperiments();
+  await experiments.updateManifest();
+  list = await experiments.getExperiments();
   Assert.equal(list.length, 2, "Experiment list should have 2 entries.");
 
   expectedLogLength += 1;
   log = TelemetryLog.entries();
   Assert.equal(log.length, expectedLogLength, "Telemetry log should have " + expectedLogLength + " entries.");
-  checkEvent(log[log.length-1], TLOG.ACTIVATION_KEY,
+  checkEvent(log[log.length - 1], TLOG.ACTIVATION_KEY,
              [TLOG.ACTIVATION.ACTIVATED, EXPERIMENT2_ID]);
 
   // Fake user uninstall of experiment via add-on manager.
@@ -212,14 +207,14 @@ add_task(function* test_telemetryBasics() {
   now = futureDate(now, MS_IN_ONE_DAY);
   defineNow(gPolicy, now);
 
-  yield experiments.disableExperiment(TLOG.TERMINATION.ADDON_UNINSTALLED);
-  list = yield experiments.getExperiments();
+  await experiments.disableExperiment(TLOG.TERMINATION.ADDON_UNINSTALLED);
+  list = await experiments.getExperiments();
   Assert.equal(list.length, 2, "Experiment list should have 2 entries.");
 
   expectedLogLength += 1;
   log = TelemetryLog.entries();
   Assert.equal(log.length, expectedLogLength, "Telemetry log should have " + expectedLogLength + " entries.");
-  checkEvent(log[log.length-1], TLOG.TERMINATION_KEY,
+  checkEvent(log[log.length - 1], TLOG.TERMINATION_KEY,
              [TLOG.TERMINATION.ADDON_UNINSTALLED, EXPERIMENT2_ID]);
 
   // Trigger update with experiment 1a ready to start.
@@ -229,14 +224,14 @@ add_task(function* test_telemetryBasics() {
   gManifestObject.experiments[0].id      = EXPERIMENT3_ID;
   gManifestObject.experiments[0].endTime = dateToSeconds(futureDate(now, 50 * MS_IN_ONE_DAY));
 
-  yield experiments.updateManifest();
-  list = yield experiments.getExperiments();
+  await experiments.updateManifest();
+  list = await experiments.getExperiments();
   Assert.equal(list.length, 3, "Experiment list should have 3 entries.");
 
   expectedLogLength += 1;
   log = TelemetryLog.entries();
   Assert.equal(log.length, expectedLogLength, "Telemetry log should have " + expectedLogLength + " entries.");
-  checkEvent(log[log.length-1], TLOG.ACTIVATION_KEY,
+  checkEvent(log[log.length - 1], TLOG.ACTIVATION_KEY,
              [TLOG.ACTIVATION.ACTIVATED, EXPERIMENT3_ID]);
 
   // Trigger disable of an experiment via the API.
@@ -244,14 +239,14 @@ add_task(function* test_telemetryBasics() {
   now = futureDate(now, MS_IN_ONE_DAY);
   defineNow(gPolicy, now);
 
-  yield experiments.disableExperiment(TLOG.TERMINATION.FROM_API);
-  list = yield experiments.getExperiments();
+  await experiments.disableExperiment(TLOG.TERMINATION.FROM_API);
+  list = await experiments.getExperiments();
   Assert.equal(list.length, 3, "Experiment list should have 3 entries.");
 
   expectedLogLength += 1;
   log = TelemetryLog.entries();
   Assert.equal(log.length, expectedLogLength, "Telemetry log should have " + expectedLogLength + " entries.");
-  checkEvent(log[log.length-1], TLOG.TERMINATION_KEY,
+  checkEvent(log[log.length - 1], TLOG.TERMINATION_KEY,
              [TLOG.TERMINATION.FROM_API, EXPERIMENT3_ID]);
 
   // Trigger update with experiment 1a ready to start.
@@ -261,14 +256,14 @@ add_task(function* test_telemetryBasics() {
   gManifestObject.experiments[0].id      = EXPERIMENT4_ID;
   gManifestObject.experiments[0].endTime = dateToSeconds(futureDate(now, 50 * MS_IN_ONE_DAY));
 
-  yield experiments.updateManifest();
-  list = yield experiments.getExperiments();
+  await experiments.updateManifest();
+  list = await experiments.getExperiments();
   Assert.equal(list.length, 4, "Experiment list should have 4 entries.");
 
   expectedLogLength += 1;
   log = TelemetryLog.entries();
   Assert.equal(log.length, expectedLogLength, "Telemetry log should have " + expectedLogLength + " entries.");
-  checkEvent(log[log.length-1], TLOG.ACTIVATION_KEY,
+  checkEvent(log[log.length - 1], TLOG.ACTIVATION_KEY,
              [TLOG.ACTIVATION.ACTIVATED, EXPERIMENT4_ID]);
 
   // Trigger experiment termination by something other than expiry via the manifest.
@@ -277,18 +272,18 @@ add_task(function* test_telemetryBasics() {
   defineNow(gPolicy, now);
   gManifestObject.experiments[0].os = "Plan9";
 
-  yield experiments.updateManifest();
-  list = yield experiments.getExperiments();
+  await experiments.updateManifest();
+  list = await experiments.getExperiments();
   Assert.equal(list.length, 4, "Experiment list should have 4 entries.");
 
   expectedLogLength += 1;
   log = TelemetryLog.entries();
   Assert.equal(log.length, expectedLogLength, "Telemetry log should have " + expectedLogLength + " entries.");
-  checkEvent(log[log.length-1], TLOG.TERMINATION_KEY,
+  checkEvent(log[log.length - 1], TLOG.TERMINATION_KEY,
              [TLOG.TERMINATION.RECHECK, EXPERIMENT4_ID, "os"]);
 
   // Cleanup.
 
-  yield promiseRestartManager();
-  yield removeCacheFile();
+  await promiseRestartManager();
+  await removeCacheFile();
 });

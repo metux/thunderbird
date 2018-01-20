@@ -23,7 +23,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsArrayUtils.h"
 
-static PRLogModuleInfo *MsgPurgeLogModule = nullptr;
+static mozilla::LazyLogModule MsgPurgeLogModule("MsgPurge");
 
 NS_IMPL_ISUPPORTS(nsMsgPurgeService, nsIMsgPurgeService, nsIMsgSearchNotify)
 
@@ -52,9 +52,6 @@ nsMsgPurgeService::~nsMsgPurgeService()
 NS_IMETHODIMP nsMsgPurgeService::Init()
 {
   nsresult rv;
-
-  if (!MsgPurgeLogModule)
-    MsgPurgeLogModule = PR_NewLogModule("MsgPurge");
 
   // these prefs are here to help QA test this feature
   nsCOMPtr<nsIPrefBranch> prefBranch(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
@@ -108,8 +105,11 @@ nsresult nsMsgPurgeService::SetupNextPurge()
     mPurgeTimer->Cancel();
 
   mPurgeTimer = do_CreateInstance("@mozilla.org/timer;1");
-  mPurgeTimer->InitWithFuncCallback(OnPurgeTimer, (void*)this, timeInMSUint32,
-    nsITimer::TYPE_ONE_SHOT);
+  mPurgeTimer->InitWithNamedFuncCallback(OnPurgeTimer,
+                                         (void*)this,
+                                         timeInMSUint32,
+                                         nsITimer::TYPE_ONE_SHOT,
+                                         "nsMsgPurgeService::OnPurgeTimer");
 
   return NS_OK;
 }
@@ -453,7 +453,7 @@ NS_IMETHODIMP nsMsgPurgeService::OnSearchHit(nsIMsgDBHdr* aMsgHdr, nsIMsgFolder 
 
   if (atoi(junkScoreStr.get()) == nsIJunkMailPlugin::IS_SPAM_SCORE) {
     MOZ_LOG(MsgPurgeLogModule, mozilla::LogLevel::Info, ("added message to delete"));
-    return mHdrsToDelete->AppendElement(aMsgHdr, false);
+    return mHdrsToDelete->AppendElement(aMsgHdr);
   }
   return NS_OK;
 }

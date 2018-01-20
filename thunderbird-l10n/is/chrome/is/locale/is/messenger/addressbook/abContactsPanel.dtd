@@ -38,3 +38,10 @@
 <!ENTITY ccButton.accesskey "æ">
 <!ENTITY bccButton.label "Bæta við í falið afrit:">
 <!ENTITY bccButton.accesskey "B">
+
+<!ENTITY abContextMenuButton.tooltip        "Display Address Book Context Menu">
+<!ENTITY newContactAbContext.label          "New Contact">
+<!ENTITY newContactAbContext.accesskey      "C">
+<!ENTITY newListAbContext.label             "New List">
+<!ENTITY newListAbContext.accesskey         "L">
+

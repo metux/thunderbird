@@ -1,15 +1,15 @@
-/* -*- Mode: C++; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* vim: set sts=2 ts=8 sw=2 tw=99 et: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #ifndef mozilla_gfx_config_gfxFeature_h
 #define mozilla_gfx_config_gfxFeature_h
 
+#include <functional>
 #include <stdint.h>
 #include "gfxTelemetry.h"
 #include "mozilla/Assertions.h"
-#include "mozilla/Function.h"
 #include "nsString.h"
 
 namespace mozilla {
@@ -19,12 +19,14 @@ namespace gfx {
   /* Name,                        Type,         Description */                    \
   _(HW_COMPOSITING,               Feature,      "Compositing")                    \
   _(D3D11_COMPOSITING,            Feature,      "Direct3D11 Compositing")         \
-  _(D3D9_COMPOSITING,             Feature,      "Direct3D9 Compositing")          \
   _(OPENGL_COMPOSITING,           Feature,      "OpenGL Compositing")             \
   _(DIRECT2D,                     Feature,      "Direct2D")                       \
   _(D3D11_HW_ANGLE,               Feature,      "Direct3D11 hardware ANGLE")      \
   _(DIRECT_DRAW,                  Feature,      "DirectDraw")                     \
   _(GPU_PROCESS,                  Feature,      "GPU Process")                    \
+  _(WEBRENDER,                    Feature,      "WebRender")                      \
+  _(OMTP,                         Feature,      "Off Main Thread Painting")       \
+  _(ADVANCED_LAYERS,              Feature,      "Advanced Layers")                \
   /* Add new entries above this comment */
 
 enum class Feature : uint32_t {
@@ -64,9 +66,9 @@ class FeatureState
 
   // aType is "base", "user", "env", or "runtime".
   // aMessage may be null.
-  typedef mozilla::function<void(const char* aType,
-                                 FeatureStatus aStatus,
-                                 const char* aMessage)> StatusIterCallback;
+  typedef std::function<void(const char* aType,
+                             FeatureStatus aStatus,
+                             const char* aMessage)> StatusIterCallback;
   void ForEachStatusChange(const StatusIterCallback& aCallback) const;
 
   const char* GetFailureMessage() const;

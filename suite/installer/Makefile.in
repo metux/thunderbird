@@ -4,7 +4,7 @@
 
 STANDALONE_MAKEFILE := 1
 
-include $(topsrcdir)/config/rules.mk
+include $(moztopsrcdir)/config/rules.mk
 
 MOZ_PKG_REMOVALS = $(srcdir)/removed-files.in
 
@@ -14,10 +14,13 @@ ifndef SYSTEM_LIBXUL
 MOZ_PKG_FATAL_WARNINGS = 1
 endif
 
+DEFINES += -DPKG_LOCALE_MANIFEST=$(topobjdir)/suite/installer/locale-manifest.in
+MOZ_CHROME_LOCALE_ENTRIES=@RESPATH@/chrome/
+
 MOZ_PKG_DUPEFLAGS = \
 	-w \
 	-f $(srcdir)/allowed-dupes.mn \
-	-f $(MOZILLA_DIR)/browser/installer/allowed-dupes.mn \
+	-f $(moztopsrcdir)/browser/installer/allowed-dupes.mn \
 	$(NULL)
 
 MOZ_NONLOCALIZED_PKG_LIST = \
@@ -43,9 +46,6 @@ DEFINES += -DMOZ_ANGLE_RENDERER=$(MOZ_ANGLE_RENDERER)
 ifdef MOZ_D3DCOMPILER_VISTA_DLL
 DEFINES += -DMOZ_D3DCOMPILER_VISTA_DLL=$(MOZ_D3DCOMPILER_VISTA_DLL)
 endif
-ifdef MOZ_D3DCOMPILER_XP_DLL
-DEFINES += -DMOZ_D3DCOMPILER_XP_DLL=$(MOZ_D3DCOMPILER_XP_DLL)
-endif
 endif
 
 ifdef NIGHTLY_BUILD
@@ -60,10 +60,6 @@ ifdef MOZ_DEBUG
 DEFINES += -DMOZ_DEBUG=1
 endif
 
-ifdef MOZ_ENABLE_GNOME_COMPONENT
-DEFINES += -DMOZ_ENABLE_GNOME_COMPONENT=1
-endif
-
 ifneq (,$(filter gtk%,$(MOZ_WIDGET_TOOLKIT)))
 DEFINES += -DMOZ_GTK=1
 ifeq ($(MOZ_WIDGET_TOOLKIT),gtk3)
@@ -71,11 +67,16 @@ DEFINES += -DMOZ_GTK3=1
 endif
 endif
 
-# Check whether this build is an alpha or nightly:
-# replace "pre" with "a" in the version then look if "a" matches.
-# This should match /suite/Makefile.in.
-ifneq (,$(findstring a,$(MOZ_APP_VERSION:pre=a)))
+ifdef MOZ_DEBUGQA
 DEFINES += -DMOZ_PACKAGE_DEBUGQA=1
+endif
+
+ifdef MOZ_IRC
+DEFINES += -DMOZ_IRC=1
+endif
+
+ifdef MOZ_DOMINSPECTOR
+DEFINES += -DMOZ_DOMINSPECTOR=1
 endif
 
 ifdef NSS_DISABLE_DBM
@@ -115,7 +116,7 @@ endif
 
 # Set MSVC dlls version to package, if any.
 # With VS2015+ it does not make sense to define the ucrt libs without
-# the base c++ libs and vice versa. 
+# the base c++ libs and vice versa.
 ifdef MOZ_NO_DEBUG_RTL
 ifdef WIN32_REDIST_DIR
 ifdef WIN_UCRT_REDIST_DIR
@@ -165,9 +166,7 @@ NON_OMNIJAR_FILES = \
 	defaults/profile/chrome/userContent-example.css \
 	$(NULL)
 
-INSTALL_SDK = 1
-
-include $(MOZILLA_SRCDIR)/toolkit/mozapps/installer/packager.mk
+include $(moztopsrcdir)/toolkit/mozapps/installer/packager.mk
 
 ifeq (Darwin, $(OS_ARCH))
 BINPATH = $(_BINPATH)
@@ -208,14 +207,6 @@ ifdef CLANG_CL
 DEFINES += -DCLANG_CL
 endif
 
-ifeq (x86,$(CPU_ARCH))
-ifdef _MSC_VER
-ifndef CLANG_CL
-DEFINES += -DWOW_HELPER
-endif
-endif
-endif
-
 ifeq ($(MOZ_PACKAGER_FORMAT),omni)
 DEFINES += -DMOZ_OMNIJAR=1
 endif
@@ -248,7 +239,7 @@ ifdef INSTALLER_DIR
 endif
 
 # The comm-* source stamp is already there.
-PLATFORM_SOURCE_STAMP = $(firstword $(shell hg -R "$(MOZILLA_SRCDIR)" parent --template="{node|short}\n" 2>/dev/null))
-PLATFORM_SOURCE_REPO = $(shell hg -R "$(MOZILLA_SRCDIR)" showconfig paths.default 2>/dev/null | sed -e "s/^ssh:/https:/")
+PLATFORM_SOURCE_STAMP = $(firstword $(shell hg -R "$(moztopsrcdir)" parent --template="{node|short}\n" 2>/dev/null))
+PLATFORM_SOURCE_REPO = $(shell hg -R "$(moztopsrcdir)" showconfig paths.default 2>/dev/null | sed -e "s/^ssh:/https:/")
 make-sourcestamp-file::
 	@echo "$(PLATFORM_SOURCE_REPO)/rev/$(PLATFORM_SOURCE_STAMP)" >> $(MOZ_SOURCESTAMP_FILE)

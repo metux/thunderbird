@@ -308,14 +308,14 @@ var SearchSupport =
     // if the last folder indexed is empty, this needs to be true initially
     let afterLastFolderIndexed = (this._lastFolderIndexedUri.length == 0);
 
-    for (var server in fixIterator(servers, Ci.nsIMsgIncomingServer))
+    for (var server of fixIterator(servers, Ci.nsIMsgIncomingServer))
     {
       let allFolders = server.rootFolder.descendants;
       let numFolders = allFolders.length;
       this._log.debug("in find next folder, lastFolderIndexedUri = " +
                       this._lastFolderIndexedUri);
 
-      for (var folder in fixIterator(allFolders, Ci.nsIMsgFolder))
+      for (var folder of fixIterator(allFolders, Ci.nsIMsgFolder))
       {
         let searchPath = this._getSearchPathForFolder(folder);
         searchPath.leafName = searchPath.leafName + ".mozmsgs";
@@ -401,7 +401,7 @@ var SearchSupport =
         searchTerm.hdrProperty = this._hdrIndexedProperty;
         value.status = reindexTime;
         searchTerm.value = value;
-        searchTerms.appendElement(searchTerm, false);
+        searchTerms.appendElement(searchTerm);
         this._headerEnumerator = this._currentFolderToIndex.msgDatabase
                                  .getFilterEnumerator(searchTerms);
       }
@@ -658,7 +658,7 @@ var SearchSupport =
     folderDeleted: function(aFolder)
     {
       SearchIntegration._log.info("in folderDeleted, folder name = " +
-                                  aFolder.prettiestName);
+                                  aFolder.prettyName);
       let srcFile = SearchIntegration._getSearchPathForFolder(aFolder);
       srcFile.leafName = srcFile.leafName + ".mozmsgs";
       if (srcFile.exists())
@@ -693,8 +693,8 @@ var SearchSupport =
     folderRenamed: function(aOrigFolder, aNewFolder)
     {
       SearchIntegration._log.info("in folderRenamed, aOrigFolder = " +
-                                  aOrigFolder.prettiestName +
-                                  ", aNewFolder = " + aNewFolder.prettiestName);
+                                  aOrigFolder.prettyName +
+                                  ", aNewFolder = " + aNewFolder.prettyName);
       let srcFile = SearchIntegration._getSearchPathForFolder(aOrigFolder);
       srcFile.leafName = srcFile.leafName + ".mozmsgs";
       let destName = aNewFolder.name + ".mozmsgs";
@@ -704,10 +704,12 @@ var SearchSupport =
         srcFile.moveTo(null, destName);
     },
 
-    itemEvent: function(aItem, aEvent, aData)
+    itemEvent: function(aItem, aEvent, aData, aString)
     {
       SearchIntegration._log.info("in itemEvent, aItem = " + aItem +
-                                  ", aEvent = " + aEvent + ", aData = " + aData);
+                                  ", aEvent = " + aEvent +
+                                  ", aData = " + aData +
+                                  ", aString = " + aString);
     }
   },
 

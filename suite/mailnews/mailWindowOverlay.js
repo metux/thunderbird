@@ -10,27 +10,26 @@ Components.utils.import("resource:///modules/FeedUtils.jsm");
 Components.utils.import("resource:///modules/folderUtils.jsm");
 Components.utils.import("resource:///modules/mailServices.js");
 
-const kClassicMailLayout  = 0;
-const kWideMailLayout     = 1;
-const kVerticalMailLayout = 2;
+var kClassicMailLayout  = 0;
+var kWideMailLayout     = 1;
+var kVerticalMailLayout = 2;
 
-const kMouseButtonLeft   = 0;
-const kMouseButtonMiddle = 1;
-const kMouseButtonRight  = 2;
+var kMouseButtonLeft   = 0;
+var kMouseButtonMiddle = 1;
+var kMouseButtonRight  = 2;
 
 // Per message header flags to keep track of whether the user is allowing remote
 // content for a particular message.
 // if you change or add more values to these constants, be sure to modify
 // the corresponding definitions in nsMsgContentPolicy.cpp
-const kNoRemoteContentPolicy = 0;
-const kBlockRemoteContent = 1;
-const kAllowRemoteContent = 2;
+var kNoRemoteContentPolicy = 0;
+var kBlockRemoteContent = 1;
+var kAllowRemoteContent = 2;
 
-const kIsAPhishMessage = 0;
-const kNotAPhishMessage = 1;
+var kIsAPhishMessage = 0;
+var kNotAPhishMessage = 1;
 
-const kMsgForwardAsAttachment = 0;
-const kMsgForwardInline = 2;
+var kMsgForwardAsAttachment = 0;
 
 var gMessengerBundle;
 var gOfflineManager;
@@ -536,7 +535,7 @@ function RemoveAllMessageTags()
       messages.clear();
       prevHdrFolder = msgHdr.folder;
     }
-    messages.appendElement(msgHdr, false);
+    messages.appendElement(msgHdr);
   }
   if (prevHdrFolder)
     prevHdrFolder.removeKeywordsFromMessages(messages, allKeys);
@@ -647,7 +646,7 @@ function ToggleMessageTag(key, addKey)
       // If we don't, the thread tree won't always show the correct tag state,
       // because resetting a label doesn't update the tree anymore...
       msg.clear();
-      msg.appendElement(msgHdr, false);
+      msg.appendElement(msgHdr);
       msgHdr.folder.addKeywordsToMessages(msg, "$label" + msgHdr.label);
       msgHdr.label = 0; // remove legacy label
     }
@@ -658,7 +657,7 @@ function ToggleMessageTag(key, addKey)
       messages.clear();
       prevHdrFolder = msgHdr.folder;
     }
-    messages.appendElement(msgHdr, false);
+    messages.appendElement(msgHdr);
   }
   if (prevHdrFolder)
     prevHdrFolder[toggler](messages, key);
@@ -1199,7 +1198,7 @@ BatchMessageMover.prototype =
     let filterArray = Components.classes["@mozilla.org/array;1"]
                                 .createInstance(Components.interfaces.nsIMutableArray);
     for (let message of msgs) {
-      filterArray.appendElement(message, false);
+      filterArray.appendElement(message);
     }
 
     // Apply filters to this batch.
@@ -1236,7 +1235,7 @@ BatchMessageMover.prototype =
       if (srcFolder.msgDatabase.ContainsKey(item.messageKey) &&
           !(srcFolder.getProcessingFlags(item.messageKey) &
             Components.interfaces.nsMsgProcessingFlags.FilterToMove)) {
-        moveArray.appendElement(item, false);
+        moveArray.appendElement(item);
       }
     }
 
@@ -1882,7 +1881,7 @@ function MsgApplyFilters()
   var preselectedFolder = GetFirstSelectedMsgFolder();
   var selectedFolders = Components.classes["@mozilla.org/array;1"]
                                   .createInstance(Components.interfaces.nsIMutableArray);
-  selectedFolders.appendElement(preselectedFolder, false);
+  selectedFolders.appendElement(preselectedFolder);
 
   var curFilterList = preselectedFolder.getFilterList(msgWindow);
   // create a new filter list and copy over the enabled filters to it.
@@ -1931,7 +1930,7 @@ function MsgApplyFiltersToSelection()
         {
           var msgHdr = folder.GetMessageHeader(gDBView.getKeyAt(indices[i]));
           if (msgHdr)
-            selectedMsgs.appendElement(msgHdr, false);
+            selectedMsgs.appendElement(msgHdr);
         }
       } catch (ex) {}
     }
@@ -2762,7 +2761,7 @@ function onRemoteContentOptionsShowing(aEvent)
   var authorEmailAddress = addresses.value[0];
 
   var emailURI = Services.io.newURI(
-    "chrome://messenger/content/email=" + authorEmailAddress, null, null);
+    "chrome://messenger/content/email=" + authorEmailAddress);
   var principal = Services.scriptSecurityManager
                           .createCodebasePrincipal(emailURI, {});
   // Put author email first in the menu.
@@ -2803,7 +2802,7 @@ function allowRemoteContentForURI(aItem)
   if (!origin)
     return;
 
-  let uri = Services.io.newURI(origin, null, null);
+  let uri = Services.io.newURI(origin);
   Services.perms.add(uri, "image", Services.perms.ALLOW_ACTION);
 
   ReloadMessage();
@@ -2869,7 +2868,7 @@ function MarkMessageAsRead(msgHdr)
   ClearPendingReadTimer();
   var headers = Components.classes["@mozilla.org/array;1"]
                           .createInstance(Components.interfaces.nsIMutableArray);
-  headers.appendElement(msgHdr, false);
+  headers.appendElement(msgHdr);
   msgHdr.folder.markMessagesRead(headers, true);
 }
 
@@ -2898,7 +2897,7 @@ function OnMsgParsed(aUrl)
   // scale any overflowing images
   var doc = getMessageBrowser().contentDocument;
   var imgs = doc.getElementsByTagName("img");
-  for each (var img in imgs)
+  for (var img of imgs)
   {
     if (img.className == "moz-attached-image" &&
         img.naturalWidth > doc.body.clientWidth)

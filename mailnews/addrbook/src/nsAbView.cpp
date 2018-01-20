@@ -10,8 +10,6 @@
 #include "nsCOMPtr.h"
 #include "nsIServiceManager.h"
 #include "nsIAbCard.h"
-#include "nsILocale.h"
-#include "nsILocaleService.h"
 #include "prmem.h"
 #include "nsCollationCID.h"
 #include "nsIAbManager.h"
@@ -40,7 +38,7 @@ using namespace mozilla;
 #define PREF_MAIL_ADDR_BOOK_DISPLAYNAME_LASTNAMEFIRST "mail.addr_book.displayName.lastnamefirst"
 
 // Also, our default primary sort
-#define GENERATED_NAME_COLUMN_ID "GeneratedName" 
+#define GENERATED_NAME_COLUMN_ID "GeneratedName"
 
 NS_IMPL_ISUPPORTS(nsAbView, nsIAbView, nsITreeView, nsIAbListener, nsIObserver)
 
@@ -105,7 +103,7 @@ nsresult nsAbView::RemoveCardAt(int32_t row)
   PR_FREEIF(abcard->secondaryCollationKey);
   PR_FREEIF(abcard);
 
-  
+
   // This needs to happen after we remove the card, as RowCountChanged() will call GetRowCount()
   if (mTree) {
     rv = mTree->RowCountChanged(row, -1);
@@ -286,7 +284,7 @@ NS_IMETHODIMP nsAbView::GetDirectory(nsIAbDirectory **aDirectory)
 
 nsresult nsAbView::EnumerateCards()
 {
-  nsresult rv;    
+  nsresult rv;
   nsCOMPtr<nsISimpleEnumerator> cardsEnumerator;
   nsCOMPtr<nsIAbCard> card;
 
@@ -306,7 +304,7 @@ nsresult nsAbView::EnumerateCards()
         nsCOMPtr <nsIAbCard> card = do_QueryInterface(item);
         // Malloc these from an arena
         AbCard *abcard = (AbCard *) PR_Calloc(1, sizeof(struct AbCard));
-        if (!abcard) 
+        if (!abcard)
           return NS_ERROR_OUT_OF_MEMORY;
 
         abcard->card = card;
@@ -502,7 +500,7 @@ nsresult nsAbView::RefreshTree()
   //
   // One day, we can get fancy and remember what the secondary sort is.
   // We do that, we can fix this code. At best, it will turn a sort into a invalidate.
-  // 
+  //
   // If neither the primary nor the secondary sorts are GeneratedName (or kPhoneticNameColumn),
   // all we have to do is invalidate (to show the new GeneratedNames),
   // but the sort will not change.
@@ -553,7 +551,7 @@ nsresult nsAbView::InvalidateTree(int32_t row)
 {
   if (!mTree)
     return NS_OK;
-  
+
   if (row == ALL_ROWS)
     return mTree->Invalidate();
   else
@@ -611,7 +609,7 @@ NS_IMETHODIMP nsAbView::PerformActionOnCell(const char16_t *action, int32_t row,
 
 NS_IMETHODIMP nsAbView::GetCardFromRow(int32_t row, nsIAbCard **aCard)
 {
-  *aCard = nullptr;  
+  *aCard = nullptr;
   NS_ENSURE_TRUE(row >= 0, NS_ERROR_UNEXPECTED);
   if (mCards.Length() <= (size_t)row) {
     return NS_OK;
@@ -639,7 +637,7 @@ static int
 inplaceSortCallback(const AbCard *card1, const AbCard *card2, SortClosure *closure)
 {
   int32_t sortValue;
-  
+
   // If we are sorting the "PrimaryEmail", swap the collation keys, as the secondary is always the
   // PrimaryEmail. Use the last primary key as the secondary key.
   //
@@ -663,10 +661,10 @@ inplaceSortCallback(const AbCard *card1, const AbCard *card2, SortClosure *closu
 static void SetSortClosure(const char16_t *sortColumn, const char16_t *sortDirection, nsAbView *abView, SortClosure *closure)
 {
   closure->colID = sortColumn;
-  
+
   if (sortDirection && !NS_strcmp(sortDirection, u"descending"))
     closure->factor = DESCENDING_SORT_FACTOR;
-  else 
+  else
     closure->factor = ASCENDING_SORT_FACTOR;
 
   closure->abView = abView;
@@ -796,34 +794,27 @@ nsresult nsAbView::GenerateCollationKeysForCard(const char16_t *colID, AbCard *a
 
   if (!mCollationKeyGenerator)
   {
-    nsCOMPtr<nsILocaleService> localeSvc = do_GetService(NS_LOCALESERVICE_CONTRACTID,&rv); 
+    nsCOMPtr <nsICollationFactory> factory = do_CreateInstance(NS_COLLATIONFACTORY_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsCOMPtr<nsILocale> locale; 
-    rv = localeSvc->GetApplicationLocale(getter_AddRefs(locale));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsCOMPtr <nsICollationFactory> factory = do_CreateInstance(NS_COLLATIONFACTORY_CONTRACTID, &rv); 
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = factory->CreateCollation(locale, getter_AddRefs(mCollationKeyGenerator));
+    rv = factory->CreateCollation(getter_AddRefs(mCollationKeyGenerator));
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
   rv = GetCardValue(abcard->card, colID, value);
   NS_ENSURE_SUCCESS(rv,rv);
-  
+
   PR_FREEIF(abcard->primaryCollationKey);
   rv = mCollationKeyGenerator->AllocateRawSortKey(nsICollation::kCollationCaseInSensitive,
     value, &(abcard->primaryCollationKey), &(abcard->primaryCollationKeyLen));
   NS_ENSURE_SUCCESS(rv,rv);
-  
+
   // Hardcode email to be our secondary key. As we are doing this, just call
   // the card's GetCardValue direct, rather than our own function which will
   // end up doing the same as then we can save a bit of time.
   rv = abcard->card->GetPrimaryEmail(value);
   NS_ENSURE_SUCCESS(rv,rv);
-  
+
   PR_FREEIF(abcard->secondaryCollationKey);
   rv = mCollationKeyGenerator->AllocateRawSortKey(nsICollation::kCollationCaseInSensitive,
     value, &(abcard->secondaryCollationKey), &(abcard->secondaryCollationKeyLen));
@@ -890,7 +881,7 @@ NS_IMETHODIMP nsAbView::OnItemAdded(nsISupports *parentDir, nsISupports *item)
 
       abcard->card = addedCard;
       NS_IF_ADDREF(abcard->card);
-    
+
       rv = GenerateCollationKeysForCard(mSortColumn.get(), abcard);
       NS_ENSURE_SUCCESS(rv,rv);
 
@@ -920,7 +911,7 @@ nsresult nsAbView::AddCard(AbCard *abcard, bool selectCardAfterAdding, int32_t *
 {
   nsresult rv = NS_OK;
   NS_ENSURE_ARG_POINTER(abcard);
-  
+
   *index = FindIndexForInsert(abcard);
   mCards.InsertElementAt(*index, abcard);
 
@@ -949,13 +940,13 @@ int32_t nsAbView::FindIndexForInsert(AbCard *abcard)
 
   SortClosure closure;
   SetSortClosure(mSortColumn.get(), mSortDirection.get(), this, &closure);
-  
+
   // XXX todo
   // Make this a binary search
   for (i=0; i < count; i++) {
     int32_t value = inplaceSortCallback(abcard, mCards.ElementAt(i), &closure);
     // XXX Fix me, this is not right for both ascending and descending
-    if (value <= 0) 
+    if (value <= 0)
       break;
   }
   return i;
@@ -1033,7 +1024,7 @@ int32_t nsAbView::FindIndexForCard(nsIAbCard *card)
 {
   int32_t count = mCards.Length();
   int32_t i;
- 
+
   // You can't implement the binary search here, as all you have is the nsIAbCard
   // you might be here because one of the card properties has changed, and that property
   // could be the collation key.
@@ -1069,7 +1060,7 @@ NS_IMETHODIMP nsAbView::OnItemPropertyChanged(nsISupports *item, const char *pro
 
   newCard->card = card;
   NS_IF_ADDREF(newCard->card);
-    
+
   rv = GenerateCollationKeysForCard(mSortColumn.get(), newCard);
   NS_ENSURE_SUCCESS(rv,rv);
 
@@ -1079,7 +1070,7 @@ NS_IMETHODIMP nsAbView::OnItemPropertyChanged(nsISupports *item, const char *pro
     rv = mTreeSelection->IsSelected(index, &cardWasSelected);
     NS_ENSURE_SUCCESS(rv,rv);
   }
-  
+
   if (!CompareCollationKeys(newCard->primaryCollationKey,newCard->primaryCollationKeyLen,oldCard->primaryCollationKey,oldCard->primaryCollationKeyLen)
     && CompareCollationKeys(newCard->secondaryCollationKey,newCard->secondaryCollationKeyLen,oldCard->secondaryCollationKey,oldCard->secondaryCollationKeyLen)) {
     // No need to remove and add, since the collation keys haven't changed.
@@ -1112,7 +1103,7 @@ NS_IMETHODIMP nsAbView::OnItemPropertyChanged(nsISupports *item, const char *pro
     mSuppressCountChange = false;
 
     // Ensure restored selection is visible
-    if (cardWasSelected && mTree) 
+    if (cardWasSelected && mTree)
       mTree->EnsureRowIsVisible(index);
   }
 
@@ -1179,7 +1170,7 @@ nsresult nsAbView::ReselectCards(nsIArray *aCards, nsIAbCard *aIndexCard)
     int32_t currentIndex = FindIndexForCard(aIndexCard);
     rv = mTreeSelection->SetCurrentIndex(currentIndex);
     NS_ENSURE_SUCCESS(rv, rv);
-  
+
     if (mTree) {
       rv = mTree->EnsureRowIsVisible(currentIndex);
       NS_ENSURE_SUCCESS(rv, rv);
@@ -1194,7 +1185,7 @@ NS_IMETHODIMP nsAbView::DeleteSelectedCards()
   nsresult rv;
   nsCOMPtr<nsIMutableArray> cardsToDelete = do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   rv = GetSelectedCards(cardsToDelete);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1212,7 +1203,7 @@ nsresult nsAbView::GetSelectedCards(nsCOMPtr<nsIMutableArray> &aSelectedCards)
   if (!mTreeSelection)
     return NS_OK;
 
-  int32_t selectionCount; 
+  int32_t selectionCount;
   nsresult rv = mTreeSelection->GetRangeCount(&selectionCount);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1224,7 +1215,7 @@ nsresult nsAbView::GetSelectedCards(nsCOMPtr<nsIMutableArray> &aSelectedCards)
     int32_t startRange;
     int32_t endRange;
     rv = mTreeSelection->GetRangeAt(i, &startRange, &endRange);
-    NS_ENSURE_SUCCESS(rv, NS_OK); 
+    NS_ENSURE_SUCCESS(rv, NS_OK);
     int32_t totalCards = mCards.Length();
     if (startRange >= 0 && startRange < totalCards)
     {
@@ -1232,8 +1223,8 @@ nsresult nsAbView::GetSelectedCards(nsCOMPtr<nsIMutableArray> &aSelectedCards)
         nsCOMPtr<nsIAbCard> abCard;
         rv = GetCardFromRow(rangeIndex, getter_AddRefs(abCard));
         NS_ENSURE_SUCCESS(rv,rv);
-        
-        rv = aSelectedCards->AppendElement(abCard, false);
+
+        rv = aSelectedCards->AppendElement(abCard);
         NS_ENSURE_SUCCESS(rv, rv);
       }
     }
@@ -1246,14 +1237,14 @@ NS_IMETHODIMP nsAbView::SwapFirstNameLastName()
 {
   if (!mTreeSelection)
     return NS_OK;
-  
-  int32_t selectionCount; 
+
+  int32_t selectionCount;
   nsresult rv = mTreeSelection->GetRangeCount(&selectionCount);
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   if (!selectionCount)
     return NS_OK;
-  
+
   // Prepare for displayname generation
   // No cache for pref and bundle since the swap operation is not executed frequently
   bool displayNameAutoGeneration;
@@ -1280,7 +1271,7 @@ NS_IMETHODIMP nsAbView::SwapFirstNameLastName()
       mozilla::services::GetStringBundleService();
     NS_ENSURE_TRUE(bundleService, NS_ERROR_UNEXPECTED);
 
-    rv = bundleService->CreateBundle("chrome://messenger/locale/addressbook/addressBook.properties", 
+    rv = bundleService->CreateBundle("chrome://messenger/locale/addressbook/addressBook.properties",
                                      getter_AddRefs(bundle));
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -1290,7 +1281,7 @@ NS_IMETHODIMP nsAbView::SwapFirstNameLastName()
     int32_t startRange;
     int32_t endRange;
     rv = mTreeSelection->GetRangeAt(i, &startRange, &endRange);
-    NS_ENSURE_SUCCESS(rv, NS_OK); 
+    NS_ENSURE_SUCCESS(rv, NS_OK);
     int32_t totalCards = mCards.Length();
     if (startRange >= 0 && startRange < totalCards)
     {
@@ -1315,12 +1306,12 @@ NS_IMETHODIMP nsAbView::SwapFirstNameLastName()
             nsString dnLnFn;
             nsString dnFnLn;
             const char16_t *nameString[2];
-            const char16_t *formatString;
+            const char *formatString;
 
             // The format should stays the same before/after we swap the names
             formatString = displayNameLastnamefirst ?
-                              u"lastFirstFormat" :
-                              u"firstLastFormat";
+                              "lastFirstFormat" :
+                              "firstLastFormat";
 
             // Generate both ln/fn and fn/ln combination since we need both later
             // to check to see if the current display name was edited
@@ -1328,12 +1319,12 @@ NS_IMETHODIMP nsAbView::SwapFirstNameLastName()
             nameString[0] = ln.get();
             nameString[1] = fn.get();
             rv = bundle->FormatStringFromName(formatString,
-                                              nameString, 2, getter_Copies(dnLnFn));
+                                              nameString, 2, dnLnFn);
             NS_ENSURE_SUCCESS(rv, rv);
             nameString[0] = fn.get();
             nameString[1] = ln.get();
             rv = bundle->FormatStringFromName(formatString,
-                                              nameString, 2, getter_Copies(dnFnLn));
+                                              nameString, 2, dnFnLn);
             NS_ENSURE_SUCCESS(rv, rv);
 
             // Get the current display name
@@ -1429,7 +1420,7 @@ NS_IMETHODIMP nsAbView::GetSelectedAddresses(nsIArray **_retval)
         if (!primaryEmail.IsEmpty()) {
           nsCOMPtr<nsISupportsString> supportsEmail(do_CreateInstance(NS_SUPPORTS_STRING_CONTRACTID));
           supportsEmail->SetData(primaryEmail);
-          addresses->AppendElement(supportsEmail, false);
+          addresses->AppendElement(supportsEmail);
         }
       }
     }
@@ -1440,12 +1431,12 @@ NS_IMETHODIMP nsAbView::GetSelectedAddresses(nsIArray **_retval)
       if (!primaryEmail.IsEmpty()) {
         nsCOMPtr<nsISupportsString> supportsEmail(do_CreateInstance(NS_SUPPORTS_STRING_CONTRACTID));
         supportsEmail->SetData(primaryEmail);
-        addresses->AppendElement(supportsEmail, false);
+        addresses->AppendElement(supportsEmail);
       }
-    }    
+    }
   }
 
-  NS_IF_ADDREF(*_retval = addresses);
+  addresses.forget(_retval);
 
   return NS_OK;
 }

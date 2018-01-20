@@ -3,7 +3,8 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
- 
+
+Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/AppConstants.jsm");
 
 var kObserverService;
@@ -39,14 +40,6 @@ function Startup() {
                                 .getService(Components.interfaces.nsIPermissionManager);
   promptservice = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
                             .getService(Components.interfaces.nsIPromptService);
-
-  // intialize gDateService
-  if (!gDateService) {
-    const nsScriptableDateFormat_CONTRACTID = "@mozilla.org/intl/scriptabledateformat;1";
-    const nsIScriptableDateFormat = Components.interfaces.nsIScriptableDateFormat;
-    gDateService = Components.classes[nsScriptableDateFormat_CONTRACTID]
-      .getService(nsIScriptableDateFormat);
-  }
 
   // intialize string bundle
   cookieBundle = document.getElementById("cookieBundle");
@@ -177,11 +170,9 @@ function GetExpiresString(expires) {
     // see bug 238045 for details
     var expiry = "";
     try {
-      expiry = gDateService.FormatDateTime("", gDateService.dateFormatLong,
-                                           gDateService.timeFormatSeconds,
-                                           date.getFullYear(), date.getMonth()+1,
-                                           date.getDate(), date.getHours(),
-                                           date.getMinutes(), date.getSeconds());
+      const dateTimeFormatter = Services.intl.createDateTimeFormat(undefined, {
+                                dateStyle: "full", timeStyle: "long" });
+      expiry = dateTimeFormatter.format(date);
     } catch(ex) {
       // do nothing
     }
@@ -494,7 +485,7 @@ function setCookiePermissions(action) {
                             .getService(Components.interfaces.nsIIOService);
 
   try {
-    var uri = ioService.newURI(url, null, null);
+    var uri = ioService.newURI(url);
   } catch (e) {
     // show an error if URI can not be constructed or adding it failed
     window.alert(cookieBundle.getString("errorAddPermission"));

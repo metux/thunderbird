@@ -6,7 +6,7 @@
 
 const Services = require("Services");
 const {AppManager} = require("devtools/client/webide/modules/app-manager");
-const EventEmitter = require("devtools/shared/event-emitter");
+const EventEmitter = require("devtools/shared/old-event-emitter");
 const {RuntimeScanners, WiFiScanner} = require("devtools/client/webide/modules/runtimes");
 const {Devices} = require("resource://devtools/shared/apps/Devices.jsm");
 const {Task} = require("devtools/shared/task");
@@ -66,10 +66,6 @@ RuntimeList.prototype = {
     this._Cmds.showRuntimeDetails();
   },
 
-  showPermissionsTable: function () {
-    this._Cmds.showPermissionsTable();
-  },
-
   showDevicePreferences: function () {
     this._Cmds.showDevicePrefs();
   },
@@ -95,7 +91,6 @@ RuntimeList.prototype = {
 
     // Runtime commands
     let screenshotCmd = doc.querySelector("#runtime-screenshot");
-    let permissionsCmd = doc.querySelector("#runtime-permissions");
     let detailsCmd = doc.querySelector("#runtime-details");
     let disconnectCmd = doc.querySelector("#runtime-disconnect");
     let devicePrefsCmd = doc.querySelector("#runtime-preferences");
@@ -104,19 +99,14 @@ RuntimeList.prototype = {
     if (AppManager.connected) {
       if (AppManager.deviceFront) {
         detailsCmd.removeAttribute("disabled");
-        permissionsCmd.removeAttribute("disabled");
         screenshotCmd.removeAttribute("disabled");
       }
       if (AppManager.preferenceFront) {
         devicePrefsCmd.removeAttribute("disabled");
       }
-      if (AppManager.settingsFront) {
-        settingsCmd.removeAttribute("disabled");
-      }
       disconnectCmd.removeAttribute("disabled");
     } else {
       detailsCmd.setAttribute("disabled", "true");
-      permissionsCmd.setAttribute("disabled", "true");
       screenshotCmd.setAttribute("disabled", "true");
       disconnectCmd.setAttribute("disabled", "true");
       devicePrefsCmd.setAttribute("disabled", "true");
@@ -136,7 +126,6 @@ RuntimeList.prototype = {
 
     let usbListNode = doc.querySelector("#runtime-panel-usb");
     let wifiListNode = doc.querySelector("#runtime-panel-wifi");
-    let simulatorListNode = doc.querySelector("#runtime-panel-simulator");
     let otherListNode = doc.querySelector("#runtime-panel-other");
     let noHelperNode = doc.querySelector("#runtime-panel-noadbhelper");
     let noUSBNode = doc.querySelector("#runtime-panel-nousbdevice");
@@ -162,7 +151,6 @@ RuntimeList.prototype = {
     for (let [type, parent] of [
       ["usb", usbListNode],
       ["wifi", wifiListNode],
-      ["simulator", simulatorListNode],
       ["other", otherListNode],
     ]) {
       while (parent.hasChildNodes()) {

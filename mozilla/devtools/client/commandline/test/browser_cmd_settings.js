@@ -5,10 +5,7 @@
 
 var prefBranch = Cc["@mozilla.org/preferences-service;1"]
                     .getService(Ci.nsIPrefService).getBranch(null)
-                    .QueryInterface(Ci.nsIPrefBranch2);
-
-var supportsString = Cc["@mozilla.org/supports-string;1"]
-                      .createInstance(Ci.nsISupportsString);
+                    .QueryInterface(Ci.nsIPrefBranch);
 
 const TEST_URI = "data:text/html;charset=utf-8,gcli-settings";
 
@@ -35,9 +32,8 @@ function* spawnTest() {
 
   let hideIntroOrig = prefBranch.getBoolPref("devtools.gcli.hideIntro");
   let tabSizeOrig = prefBranch.getIntPref("devtools.editor.tabsize");
-  let remoteHostOrig = prefBranch.getComplexValue(
-          "devtools.debugger.remote-host",
-          Components.interfaces.nsISupportsString).data;
+  let remoteHostOrig = prefBranch.getStringPref(
+          "devtools.debugger.remote-host");
 
   info("originally: devtools.gcli.hideIntro = " + hideIntroOrig);
   info("originally: devtools.editor.tabsize = " + tabSizeOrig);
@@ -115,10 +111,7 @@ function* spawnTest() {
   // Cleanup
   prefBranch.setBoolPref("devtools.gcli.hideIntro", hideIntroOrig);
   prefBranch.setIntPref("devtools.editor.tabsize", tabSizeOrig);
-  supportsString.data = remoteHostOrig;
-  prefBranch.setComplexValue("devtools.debugger.remote-host",
-          Components.interfaces.nsISupportsString,
-          supportsString);
+  prefBranch.setStringPref("devtools.debugger.remote-host", remoteHostOrig);
 
   yield helpers.closeTab(options);
 }

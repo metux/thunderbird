@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 from telnetlib import Telnet
 import datetime
 import os
@@ -165,7 +167,8 @@ class BaseEmulator(Device):
             self.connected = False
 
         # Remove temporary files
-        shutil.rmtree(self.tmpdir)
+        if os.path.isdir(self.tmpdir):
+            shutil.rmtree(self.tmpdir)
 
     def _get_telnet_response(self, command=None):
         output = []

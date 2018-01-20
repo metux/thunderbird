@@ -10,11 +10,10 @@
 <!ENTITY certmgr.tab.ca                       "Հեղինակություններ">
 <!ENTITY certmgr.tab.orphan2                  "Այլոք">
 
-<!ENTITY certmgr.mine                         "Դուք ունեք Ձեր անձը նույնացնող վկայագրեր հետևյալ կազմակերպություններից.">
-<!ENTITY certmgr.others                       "Դուք ունեք պահպանված արտոնաթղթեր, որոնք այս անձանց նույնացնում են:">
-<!ENTITY certmgr.websites2                    "Դուք ֆայլում ունեք վկայագրեր որոնք նույնականացնում են հետևյալ սերվերներին.">
-<!ENTITY certmgr.cas                          "Դուք ունեք պահպանված Վկայագրեր, որոնք այս հեղինակությունները նույնացնում են:">
-<!ENTITY certmgr.orphans                      "Դուք ֆալյում ունեք վկայագրեր որենք չեն համատեղվում ոչ մի այլ բաժիններում.">
+
+
+
+
 
 <!ENTITY certmgr.detail.general_tab.title     "Գլխավորը">
 <!ENTITY certmgr.detail.general_tab.accesskey "Գ">
@@ -91,3 +90,10 @@
 <!ENTITY exceptionMgr.certstatus.accesskey    "V">
 <!ENTITY exceptionMgr.permanent.label         "Ընդմիշտ պահել այս բացառությունը">
 <!ENTITY exceptionMgr.permanent.accesskey     "Ը">
+
+<!ENTITY certmgr.mine2                        "You have certificates from these organizations that identify you">
+<!ENTITY certmgr.others2                      "You have certificates on file that identify these people">
+<!ENTITY certmgr.websites3                    "You have certificates on file that identify these servers">
+<!ENTITY certmgr.cas2                         "You have certificates on file that identify these certificate authorities">
+<!ENTITY certmgr.orphans2                     "You have certificates on file that do not fit in any of the other categories">
+

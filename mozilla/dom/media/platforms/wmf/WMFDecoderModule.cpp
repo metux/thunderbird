@@ -4,39 +4,40 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "WMF.h"
 #include "WMFDecoderModule.h"
-#include "WMFVideoMFTManager.h"
-#include "WMFAudioMFTManager.h"
-#include "MFTDecoder.h"
-#include "mozilla/DebugOnly.h"
-#include "mozilla/Services.h"
-#include "WMFMediaDataDecoder.h"
-#include "nsAutoPtr.h"
-#include "nsIWindowsRegKey.h"
-#include "nsComponentManagerUtils.h"
-#include "nsServiceManagerUtils.h"
-#include "nsIGfxInfo.h"
-#include "nsWindowsHelpers.h"
 #include "GfxDriverInfo.h"
-#include "mozilla/gfx/gfxVars.h"
+#include "MFTDecoder.h"
+#include "MP4Decoder.h"
 #include "MediaInfo.h"
 #include "MediaPrefs.h"
-#include "prsystem.h"
+#include "VPXDecoder.h"
+#include "WMF.h"
+#include "WMFAudioMFTManager.h"
+#include "WMFMediaDataDecoder.h"
+#include "WMFVideoMFTManager.h"
+#include "gfxPrefs.h"
+#include "mozilla/DebugOnly.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/Services.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/WindowsVersion.h"
-#include "MP4Decoder.h"
-#include "VPXDecoder.h"
+#include "mozilla/gfx/gfxVars.h"
+#include "nsAutoPtr.h"
+#include "nsComponentManagerUtils.h"
+#include "nsIGfxInfo.h"
+#include "nsIWindowsRegKey.h"
+#include "nsServiceManagerUtils.h"
+#include "nsWindowsHelpers.h"
+#include "prsystem.h"
+#include "nsIXULRuntime.h"
+#include "mozilla/mscom/EnsureMTA.h"
+
+extern const GUID CLSID_WebmMfVpxDec;
+extern const GUID CLSID_AMDWebmMfVp9Dec;
 
 namespace mozilla {
 
 static Atomic<bool> sDXVAEnabled(false);
-
-WMFDecoderModule::WMFDecoderModule()
-  : mWMFInitialized(false)
-{
-}
 
 WMFDecoderModule::~WMFDecoderModule()
 {
@@ -50,7 +51,20 @@ WMFDecoderModule::~WMFDecoderModule()
 void
 WMFDecoderModule::Init()
 {
-  sDXVAEnabled = gfx::gfxVars::CanUseHardwareVideoDecoding();
+  if (XRE_IsContentProcess()) {
+    // If we're in the content process and the UseGPUDecoder pref is set, it
+    // means that we've given up on the GPU process (it's been crashing) so we
+    // should disable DXVA
+    sDXVAEnabled = !MediaPrefs::PDMUseGPUDecoder();
+  } else if (XRE_IsGPUProcess()) {
+    // Always allow DXVA in the GPU process.
+    sDXVAEnabled = true;
+  } else {
+    // Only allow DXVA in the UI process if we aren't in e10s Firefox
+    sDXVAEnabled = !mozilla::BrowserTabsRemoteAutostart();
+  }
+
+  sDXVAEnabled = sDXVAEnabled && gfx::gfxVars::CanUseHardwareVideoDecoding();
 }
 
 /* static */
@@ -84,18 +98,29 @@ WMFDecoderModule::Startup()
 already_AddRefed<MediaDataDecoder>
 WMFDecoderModule::CreateVideoDecoder(const CreateDecoderParams& aParams)
 {
+  if (aParams.mOptions.contains(CreateDecoderParams::Option::LowLatency)) {
+    // Latency on Windows is bad. Let's not attempt to decode with WMF decoders
+    // when low latency is required.
+    return nullptr;
+  }
+
   nsAutoPtr<WMFVideoMFTManager> manager(
     new WMFVideoMFTManager(aParams.VideoConfig(),
                            aParams.mKnowsCompositor,
                            aParams.mImageContainer,
+                           aParams.mRate.mValue,
                            sDXVAEnabled));
 
-  if (!manager->Init()) {
+  MediaResult result = manager->Init();
+  if (NS_FAILED(result)) {
+    if (aParams.mError) {
+      *aParams.mError = result;
+    }
     return nullptr;
   }
 
   RefPtr<MediaDataDecoder> decoder =
-    new WMFMediaDataDecoder(manager.forget(), aParams.mTaskQueue, aParams.mCallback);
+    new WMFMediaDataDecoder(manager.forget(), aParams.mTaskQueue);
 
   return decoder.forget();
 }
@@ -103,30 +128,37 @@ WMFDecoderModule::CreateVideoDecoder(const CreateDecoderParams& aParams)
 already_AddRefed<MediaDataDecoder>
 WMFDecoderModule::CreateAudioDecoder(const CreateDecoderParams& aParams)
 {
-  nsAutoPtr<WMFAudioMFTManager> manager(new WMFAudioMFTManager(aParams.AudioConfig()));
+  nsAutoPtr<WMFAudioMFTManager> manager(
+    new WMFAudioMFTManager(aParams.AudioConfig()));
 
   if (!manager->Init()) {
     return nullptr;
   }
 
   RefPtr<MediaDataDecoder> decoder =
-    new WMFMediaDataDecoder(manager.forget(), aParams.mTaskQueue, aParams.mCallback);
+    new WMFMediaDataDecoder(manager.forget(), aParams.mTaskQueue);
   return decoder.forget();
 }
 
 static bool
 CanCreateMFTDecoder(const GUID& aGuid)
 {
-  if (FAILED(wmf::MFStartup())) {
-    return false;
-  }
-  bool hasdecoder = false;
-  {
+  // The IMFTransform interface used by MFTDecoder is documented to require to
+  // run on an MTA thread.
+  // https://msdn.microsoft.com/en-us/library/windows/desktop/ee892371(v=vs.85).aspx#components
+  // Note: our normal SharedThreadPool task queues are initialized to MTA, but
+  // the main thread (which calls in here from our CanPlayType implementation)
+  // is not.
+  bool canCreateDecoder = false;
+  mozilla::mscom::EnsureMTA([&]() -> void {
+    if (FAILED(wmf::MFStartup())) {
+      return;
+    }
     RefPtr<MFTDecoder> decoder(new MFTDecoder());
-    hasdecoder = SUCCEEDED(decoder->Create(aGuid));
-  }
-  wmf::MFShutdown();
-  return hasdecoder;
+    canCreateDecoder = SUCCEEDED(decoder->Create(aGuid));
+    wmf::MFShutdown();
+  });
+  return canCreateDecoder;
 }
 
 template<const GUID& aGuid>
@@ -142,45 +174,9 @@ CanCreateWMFDecoder()
   return result.value();
 }
 
-static bool
-IsH264DecoderBlacklisted()
-{
-#ifdef BLACKLIST_CRASHY_H264_DECODERS
-  WCHAR systemPath[MAX_PATH + 1];
-  if (!ConstructSystem32Path(L"msmpeg2vdec.dll", systemPath, MAX_PATH + 1)) {
-    // Cannot build path -> Assume it's not the blacklisted DLL.
-    return false;
-  }
-
-  DWORD zero;
-  DWORD infoSize = GetFileVersionInfoSizeW(systemPath, &zero);
-  if (infoSize == 0) {
-    // Can't get file info -> Assume we don't have the blacklisted DLL.
-    return false;
-  }
-  auto infoData = MakeUnique<unsigned char[]>(infoSize);
-  VS_FIXEDFILEINFO *vInfo;
-  UINT vInfoLen;
-  if (GetFileVersionInfoW(systemPath, 0, infoSize, infoData.get()) &&
-    VerQueryValueW(infoData.get(), L"\\", (LPVOID*)&vInfo, &vInfoLen))
-  {
-    if ((vInfo->dwFileVersionMS == ((12u << 16) | 0u))
-        && ((vInfo->dwFileVersionLS == ((9200u << 16) | 16426u))
-            || (vInfo->dwFileVersionLS == ((9200u << 16) | 17037u)))) {
-      // 12.0.9200.16426 & .17037 are blacklisted on Win64, see bug 1242343.
-      return true;
-    }
-  }
-#endif // BLACKLIST_CRASHY_H264_DECODERS
-  return false;
-}
-
 /* static */ bool
 WMFDecoderModule::HasH264()
 {
-  if (IsH264DecoderBlacklisted()) {
-    return false;
-  }
   return CanCreateWMFDecoder<CLSID_CMSH264DecoderMFT>();
 }
 
@@ -191,8 +187,9 @@ WMFDecoderModule::HasAAC()
 }
 
 bool
-WMFDecoderModule::SupportsMimeType(const nsACString& aMimeType,
-                                   DecoderDoctorDiagnostics* aDiagnostics) const
+WMFDecoderModule::SupportsMimeType(
+  const nsACString& aMimeType,
+  DecoderDoctorDiagnostics* aDiagnostics) const
 {
   UniquePtr<TrackInfo> trackInfo = CreateTrackInfoWithMIMEType(aMimeType);
   if (!trackInfo) {
@@ -205,53 +202,40 @@ bool
 WMFDecoderModule::Supports(const TrackInfo& aTrackInfo,
                            DecoderDoctorDiagnostics* aDiagnostics) const
 {
+  const auto videoInfo = aTrackInfo.GetAsVideoInfo();
+  if (videoInfo && !SupportsBitDepth(videoInfo->mBitDepth, aDiagnostics)) {
+    return false;
+  }
+
   if ((aTrackInfo.mMimeType.EqualsLiteral("audio/mp4a-latm") ||
        aTrackInfo.mMimeType.EqualsLiteral("audio/mp4")) &&
        WMFDecoderModule::HasAAC()) {
     return true;
   }
   if (MP4Decoder::IsH264(aTrackInfo.mMimeType) && WMFDecoderModule::HasH264()) {
-    const VideoInfo* videoInfo = aTrackInfo.GetAsVideoInfo();
-    MOZ_ASSERT(videoInfo);
-    // Check Windows format constraints, based on:
-    // https://msdn.microsoft.com/en-us/library/windows/desktop/dd797815(v=vs.85).aspx
-    if (IsWin8OrLater()) {
-      // Windows >7 supports at most 4096x2304.
-      if (videoInfo->mImage.width > 4096 || videoInfo->mImage.height > 2304) {
-        return false;
-      }
-    } else {
-      // Windows <=7 supports at most 1920x1088.
-      if (videoInfo->mImage.width > 1920 || videoInfo->mImage.height > 1088) {
-        return false;
-      }
-    }
     return true;
   }
   if (aTrackInfo.mMimeType.EqualsLiteral("audio/mpeg") &&
       CanCreateWMFDecoder<CLSID_CMP3DecMediaObject>()) {
     return true;
   }
-  if (MediaPrefs::PDMWMFVP9DecoderEnabled() && sDXVAEnabled) {
-    if ((VPXDecoder::IsVP8(aTrackInfo.mMimeType) ||
-         VPXDecoder::IsVP9(aTrackInfo.mMimeType)) &&
+  if (MediaPrefs::PDMWMFVP9DecoderEnabled()) {
+    static const uint32_t VP8_USABLE_BUILD = 16287;
+    if (VPXDecoder::IsVP8(aTrackInfo.mMimeType) &&
+        IsWindowsBuildOrLater(VP8_USABLE_BUILD) &&
         CanCreateWMFDecoder<CLSID_WebmMfVpxDec>()) {
+      return true;
+    }
+    if (VPXDecoder::IsVP9(aTrackInfo.mMimeType) &&
+        ((gfxPrefs::PDMWMFAMDVP9DecoderEnabled() &&
+          CanCreateWMFDecoder<CLSID_AMDWebmMfVp9Dec>()) ||
+         CanCreateWMFDecoder<CLSID_WebmMfVpxDec>())) {
       return true;
     }
   }
 
   // Some unsupported codec.
   return false;
-}
-
-PlatformDecoderModule::ConversionRequired
-WMFDecoderModule::DecoderNeedsConversion(const TrackInfo& aConfig) const
-{
-  if (aConfig.IsVideo() && MP4Decoder::IsH264(aConfig.mMimeType)) {
-    return ConversionRequired::kNeedAnnexB;
-  } else {
-    return ConversionRequired::kNeedNone;
-  }
 }
 
 } // namespace mozilla

@@ -10,7 +10,6 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/LightweightThemeManager.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
 
 this.LightweightThemes = {
@@ -28,18 +27,19 @@ this.LightweightThemes = {
 
   configurations: {
     noLWT: {
-      applyConfig: Task.async(function*() {
+      selectors: ["#navigator-toolbox"],
+      async applyConfig() {
         LightweightThemeManager.currentTheme = null;
-      }),
+      },
     },
 
     darkLWT: {
+      selectors: ["#navigator-toolbox"],
       applyConfig() {
         LightweightThemeManager.setLocalTheme({
           id:          "black",
           name:        "black",
           headerURL:   LightweightThemes._blackImageURL,
-          footerURL:   LightweightThemes._blackImageURL,
           textcolor:   "#eeeeee",
           accentcolor: "#111111",
         });
@@ -51,17 +51,15 @@ this.LightweightThemes = {
           }, 500);
         });
       },
-
-      verifyConfig: verifyConfigHelper,
     },
 
     lightLWT: {
+      selectors: ["#navigator-toolbox"],
       applyConfig() {
         LightweightThemeManager.setLocalTheme({
           id:          "white",
           name:        "white",
           headerURL:   LightweightThemes._whiteImageURL,
-          footerURL:   LightweightThemes._whiteImageURL,
           textcolor:   "#111111",
           accentcolor: "#eeeeee",
         });
@@ -72,21 +70,20 @@ this.LightweightThemes = {
           }, 500);
         });
       },
-
-      verifyConfig: verifyConfigHelper,
     },
 
+    compactLight: {
+      selectors: ["#navigator-toolbox"],
+      applyConfig() {
+        LightweightThemeManager.currentTheme = LightweightThemeManager.getUsedTheme("firefox-compact-light@mozilla.org");
+      },
+    },
+
+    compactDark: {
+      selectors: ["#navigator-toolbox"],
+      applyConfig() {
+        LightweightThemeManager.currentTheme = LightweightThemeManager.getUsedTheme("firefox-compact-dark@mozilla.org");
+      },
+    },
   },
 };
-
-
-function verifyConfigHelper() {
-  return new Promise((resolve, reject) => {
-    let browserWindow = Services.wm.getMostRecentWindow("navigator:browser");
-    if (browserWindow.document.documentElement.hasAttribute("lwtheme")) {
-      resolve("verifyConfigHelper");
-    } else {
-      reject("The @lwtheme attribute wasn't present so themes may not be available");
-    }
-  });
-}

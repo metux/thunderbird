@@ -5,7 +5,9 @@
 "use strict";
 
 const Cu = Components.utils;
-var { DER } = Cu.import("resource://gre/modules/psm/DER.jsm", {});
+// Until DER.jsm is actually used in production code, this is where we have to
+// import it from.
+var { DER } = Cu.import("resource://testing-common/psm/DER.jsm", {});
 
 const ERROR_UNSUPPORTED_ASN1 = "unsupported asn.1";
 const ERROR_TIME_NOT_VALID = "Time not valid";
@@ -556,7 +558,7 @@ class Time extends DecodedDER {
   /**
    * Takes a byte that is supposed to be in the ASCII range for "0" to "9".
    * Validates the range and then converts it to the range 0 to 9.
-   * @param {Number} the digit in question (as ASCII in the range ["0", "9"])
+   * @param {Number} d the digit in question (as ASCII in the range ["0", "9"])
    * @return {Number} the numerical value of the digit (in the range [0, 9])
    */
   _validateDigit(d) {

@@ -20,7 +20,8 @@ config = {
     "work_dir": ".",
     "log_name": "multilocale",
     "objdir": OBJDIR,
-    "locales_file": "%s/%s/locales/maemo-locales" % (BUILD_DIR, ANDROID_DIR),
+    "locales_file": "%s/mobile/locales/l10n-changesets.json" % BUILD_DIR,
+    "locales_platform": "android-multilocale",
     "locales_dir": "%s/locales" % ANDROID_DIR,
     "ignore_locales": ["en-US", "multi"],
     "repos": [{
@@ -33,7 +34,6 @@ config = {
     "hg_l10n_base": "https://hg.mozilla.org/%s" % L10N_REPO_PATH,
     "hg_l10n_tag": "default",
     "l10n_dir": "l10n",
-    "merge_locales": True,
     "mozilla_dir": BUILD_DIR,
     "mozconfig": MOZCONFIG,
     "default_actions": [

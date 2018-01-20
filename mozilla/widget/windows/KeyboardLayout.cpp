@@ -10,14 +10,12 @@
 #include "mozilla/MouseEvents.h"
 #include "mozilla/MiscEvents.h"
 #include "mozilla/TextEvents.h"
-#include "mozilla/WindowsVersion.h"
 
 #include "nsAlgorithm.h"
 #ifdef MOZ_CRASHREPORTER
 #include "nsExceptionHandler.h"
 #endif
 #include "nsGkAtoms.h"
-#include "nsIDOMKeyEvent.h"
 #include "nsIIdleServiceInternal.h"
 #include "nsIWindowsRegKey.h"
 #include "nsMemory.h"
@@ -50,7 +48,7 @@
 namespace mozilla {
 namespace widget {
 
-static const char* kVirtualKeyName[] = {
+static const char* const kVirtualKeyName[] = {
   "NULL", "VK_LBUTTON", "VK_RBUTTON", "VK_CANCEL",
   "VK_MBUTTON", "VK_XBUTTON1", "VK_XBUTTON2", "0x07",
   "VK_BACK", "VK_TAB", "0x0A", "0x0B",
@@ -255,13 +253,13 @@ static const nsCString
 GetKeyLocationName(uint32_t aLocation)
 {
   switch (aLocation) {
-    case nsIDOMKeyEvent::DOM_KEY_LOCATION_LEFT:
+    case eKeyLocationLeft:
       return NS_LITERAL_CSTRING("KEY_LOCATION_LEFT");
-    case nsIDOMKeyEvent::DOM_KEY_LOCATION_RIGHT:
+    case eKeyLocationRight:
       return NS_LITERAL_CSTRING("KEY_LOCATION_RIGHT");
-    case nsIDOMKeyEvent::DOM_KEY_LOCATION_STANDARD:
+    case eKeyLocationStandard:
       return NS_LITERAL_CSTRING("KEY_LOCATION_STANDARD");
-    case nsIDOMKeyEvent::DOM_KEY_LOCATION_NUMPAD:
+    case eKeyLocationNumpad:
       return NS_LITERAL_CSTRING("KEY_LOCATION_NUMPAD");
     default:
       return nsPrintfCString("Unknown (0x%04X)", aLocation);
@@ -504,7 +502,7 @@ GetAppCommandDeviceName(LPARAM aDevice)
 class MOZ_STACK_CLASS GetAppCommandKeysName final : public nsAutoCString
 {
 public:
-  GetAppCommandKeysName(WPARAM aKeys)
+  explicit GetAppCommandKeysName(WPARAM aKeys)
   {
     if (aKeys & MK_CONTROL) {
       AppendLiteral("MK_CONTROL");
@@ -658,49 +656,6 @@ ToString(const ModifierKeyState& aModifierKeyState)
 // identifing keypress events for removal from async event dispatch queue
 // in metrofx after preventDefault is called on keydown events.
 static uint32_t sUniqueKeyEventId = 0;
-
-struct DeadKeyEntry
-{
-  char16_t BaseChar;
-  char16_t CompositeChar;
-};
-
-
-class DeadKeyTable
-{
-  friend class KeyboardLayout;
-
-  uint16_t mEntries;
-  // KeyboardLayout::AddDeadKeyTable() will allocate as many entries as
-  // required.  It is the only way to create new DeadKeyTable instances.
-  DeadKeyEntry mTable[1];
-
-  void Init(const DeadKeyEntry* aDeadKeyArray, uint32_t aEntries)
-  {
-    mEntries = aEntries;
-    memcpy(mTable, aDeadKeyArray, aEntries * sizeof(DeadKeyEntry));
-  }
-
-  static uint32_t SizeInBytes(uint32_t aEntries)
-  {
-    return offsetof(DeadKeyTable, mTable) + aEntries * sizeof(DeadKeyEntry);
-  }
-
-public:
-  uint32_t Entries() const
-  {
-    return mEntries;
-  }
-
-  bool IsEqual(const DeadKeyEntry* aDeadKeyArray, uint32_t aEntries) const
-  {
-    return (mEntries == aEntries &&
-            !memcmp(mTable, aDeadKeyArray,
-                    aEntries * sizeof(DeadKeyEntry)));
-  }
-
-  char16_t GetCompositeChar(char16_t aBaseChar) const;
-};
 
 
 /*****************************************************************************
@@ -1025,12 +980,6 @@ VirtualKey::ShiftStateToModifiers(ShiftState aShiftState)
   return modifiers;
 }
 
-inline char16_t
-VirtualKey::GetCompositeChar(ShiftState aShiftState, char16_t aBaseChar) const
-{
-  return mShiftStates[aShiftState].DeadKey.Table->GetCompositeChar(aBaseChar);
-}
-
 const DeadKeyTable*
 VirtualKey::MatchingDeadKeyTable(const DeadKeyEntry* aDeadKeyArray,
                                  uint32_t aEntries) const
@@ -1198,6 +1147,7 @@ VirtualKey::FillKbdState(PBYTE aKbdState,
 uint8_t NativeKey::sDispatchedKeyOfAppCommand = 0;
 NativeKey* NativeKey::sLatestInstance = nullptr;
 const MSG NativeKey::sEmptyMSG = {};
+MSG NativeKey::sLastKeyMSG = {};
 
 LazyLogModule sNativeKeyLogger("NativeKeyWidgets");
 
@@ -1247,6 +1197,7 @@ NativeKey::NativeKey(nsWindowBase* aWidget,
     mIsOverridingKeyboardLayout = true;
   } else {
     mIsOverridingKeyboardLayout = false;
+    sLastKeyMSG = aMessage;
   }
 
   if (mMsg.message == WM_APPCOMMAND) {
@@ -1363,34 +1314,6 @@ NativeKey::InitWithKeyChar()
         break;
       }
 
-      if (!CanComputeVirtualKeyCodeFromScanCode()) {
-        // The right control key and the right alt key are extended keys.
-        // Therefore, we never get VK_RCONTRL and VK_RMENU for the result of
-        // MapVirtualKeyEx() on WinXP or WinServer2003.
-        //
-        // If VK_SHIFT, VK_CONTROL or VK_MENU key message is caused by well
-        // known scan code, we should decide it as Right key.  Otherwise,
-        // decide it as Left key.
-        switch (mOriginalVirtualKeyCode) {
-          case VK_CONTROL:
-            mVirtualKeyCode =
-              mIsExtended && mScanCode == 0x1D ? VK_RCONTROL : VK_LCONTROL;
-            break;
-          case VK_MENU:
-            mVirtualKeyCode =
-              mIsExtended && mScanCode == 0x38 ? VK_RMENU : VK_LMENU;
-            break;
-          case VK_SHIFT:
-            // Neither left shift nor right shift is an extended key,
-            // let's use VK_LSHIFT for unknown mapping.
-            mVirtualKeyCode = VK_LSHIFT;
-            break;
-          default:
-            MOZ_CRASH("Unsupported mOriginalVirtualKeyCode");
-        }
-        break;
-      }
-
       NS_ASSERTION(!mVirtualKeyCode,
                    "mVirtualKeyCode has been computed already");
 
@@ -1447,11 +1370,6 @@ NativeKey::InitWithKeyChar()
       //       scancode, we cannot compute virtual keycode.  I.e., with such
       //       applications, we cannot generate proper KeyboardEvent.code value.
 
-      // We cannot compute the virtual key code from WM_CHAR message on WinXP
-      // if it's caused by an extended key.
-      if (!CanComputeVirtualKeyCodeFromScanCode()) {
-        break;
-      }
       mVirtualKeyCode = mOriginalVirtualKeyCode =
         ComputeVirtualKeyCodeFromScanCodeEx();
       NS_ASSERTION(mVirtualKeyCode, "Failed to compute virtual keycode");
@@ -1501,7 +1419,7 @@ NativeKey::InitWithKeyChar()
       MOZ_LOG(sNativeKeyLogger, LogLevel::Info,
         ("%p   NativeKey::InitWithKeyChar(), removed char message, %s",
          this, ToString(charMsg).get()));
-      NS_WARN_IF(charMsg.hwnd != mMsg.hwnd);
+      Unused << NS_WARN_IF(charMsg.hwnd != mMsg.hwnd);
       mFollowingCharMsgs.AppendElement(charMsg);
     }
   }
@@ -1811,18 +1729,17 @@ NativeKey::GetKeyLocation() const
     case VK_LCONTROL:
     case VK_LMENU:
     case VK_LWIN:
-      return nsIDOMKeyEvent::DOM_KEY_LOCATION_LEFT;
+      return eKeyLocationLeft;
 
     case VK_RSHIFT:
     case VK_RCONTROL:
     case VK_RMENU:
     case VK_RWIN:
-      return nsIDOMKeyEvent::DOM_KEY_LOCATION_RIGHT;
+      return eKeyLocationRight;
 
     case VK_RETURN:
       // XXX This code assumes that all keyboard drivers use same mapping.
-      return !mIsExtended ? nsIDOMKeyEvent::DOM_KEY_LOCATION_STANDARD :
-                            nsIDOMKeyEvent::DOM_KEY_LOCATION_NUMPAD;
+      return !mIsExtended ? eKeyLocationStandard : eKeyLocationNumpad;
 
     case VK_INSERT:
     case VK_DELETE:
@@ -1836,8 +1753,7 @@ NativeKey::GetKeyLocation() const
     case VK_UP:
     case VK_PRIOR:
       // XXX This code assumes that all keyboard drivers use same mapping.
-      return mIsExtended ? nsIDOMKeyEvent::DOM_KEY_LOCATION_STANDARD :
-                           nsIDOMKeyEvent::DOM_KEY_LOCATION_NUMPAD;
+      return mIsExtended ? eKeyLocationStandard : eKeyLocationNumpad;
 
     // NumLock key isn't included due to IE9's behavior.
     case VK_NUMPAD0:
@@ -1857,7 +1773,7 @@ NativeKey::GetKeyLocation() const
     case VK_ADD:
     // Separator key of Brazilian keyboard or JIS keyboard for Mac
     case VK_ABNT_C2:
-      return nsIDOMKeyEvent::DOM_KEY_LOCATION_NUMPAD;
+      return eKeyLocationNumpad;
 
     case VK_SHIFT:
     case VK_CONTROL:
@@ -1865,20 +1781,8 @@ NativeKey::GetKeyLocation() const
       NS_WARNING("Failed to decide the key location?");
 
     default:
-      return nsIDOMKeyEvent::DOM_KEY_LOCATION_STANDARD;
+      return eKeyLocationStandard;
   }
-}
-
-bool
-NativeKey::CanComputeVirtualKeyCodeFromScanCode() const
-{
-  // Vista or later supports ScanCodeEx.
-  if (IsVistaOrLater()) {
-    return true;
-  }
-  // Otherwise, MapVirtualKeyEx() can compute virtual keycode only with
-  // non-extended key.
-  return !mIsExtended;
 }
 
 uint8_t
@@ -1894,12 +1798,6 @@ NativeKey::ComputeVirtualKeyCodeFromScanCodeEx() const
   // MapVirtualKeyEx() has been improved for supporting extended keys since
   // Vista.  When we call it for mapping a scancode of an extended key and
   // a virtual keycode, we need to add 0xE000 to the scancode.
-  // On the other hand, neither WinXP nor WinServer2003 doesn't support 0xE000.
-  // Therefore, we have no way to get virtual keycode from scan code of
-  // extended keys.
-  if (NS_WARN_IF(!CanComputeVirtualKeyCodeFromScanCode())) {
-    return 0;
-  }
   return static_cast<uint8_t>(
            ::MapVirtualKeyEx(GetScanCodeWithExtendedFlag(), MAPVK_VSC_TO_VK_EX,
                              mKeyboardLayout));
@@ -1910,8 +1808,7 @@ NativeKey::ComputeScanCodeExFromVirtualKeyCode(UINT aVirtualKeyCode) const
 {
   return static_cast<uint16_t>(
            ::MapVirtualKeyEx(aVirtualKeyCode,
-                             IsVistaOrLater() ? MAPVK_VK_TO_VSC_EX :
-                                                MAPVK_VK_TO_VSC,
+                             MAPVK_VK_TO_VSC_EX,
                              mKeyboardLayout));
 }
 
@@ -2029,7 +1926,7 @@ NativeKey::MaybeInitPluginEventOfKeyEvent(WidgetKeyboardEvent& aKeyEvent,
 bool
 NativeKey::DispatchCommandEvent(uint32_t aEventCommand) const
 {
-  nsCOMPtr<nsIAtom> command;
+  RefPtr<nsAtom> command;
   switch (aEventCommand) {
     case APPCOMMAND_BROWSER_BACKWARD:
       command = nsGkAtoms::Back;
@@ -4352,8 +4249,7 @@ KeyboardLayout::LoadLayout(HKL aLayout)
 
   if (MOZ_LOG_TEST(sKeyboardLayoutLogger, LogLevel::Verbose)) {
     static const UINT kExtendedScanCode[] = { 0x0000, 0xE000 };
-    static const UINT kMapType =
-      IsVistaOrLater() ? MAPVK_VSC_TO_VK_EX : MAPVK_VSC_TO_VK;
+    static const UINT kMapType = MAPVK_VSC_TO_VK_EX;
     MOZ_LOG(sKeyboardLayoutLogger, LogLevel::Verbose,
       ("Logging virtual keycode values for scancode (0x%p)...",
        mKeyboardLayout));
@@ -4364,11 +4260,6 @@ KeyboardLayout::LoadLayout(HKL aLayout)
           ::MapVirtualKeyEx(scanCode, kMapType, mKeyboardLayout);
         MOZ_LOG(sKeyboardLayoutLogger, LogLevel::Verbose,
           ("0x%04X, %s", scanCode, kVirtualKeyName[virtualKeyCode]));
-      }
-      // XP and Server 2003 don't support 0xE0 prefix of the scancode.
-      // Therefore, we don't need to continue on them.
-      if (!IsVistaOrLater()) {
-        break;
       }
     }
   }
@@ -4640,7 +4531,7 @@ KeyboardLayout::GetDeadKeyCombinations(uint8_t aDeadKey,
                   break;
                 }
                 default:
-                  NS_WARN_IF("File a bug for this dead-key handling!");
+                  NS_WARNING("File a bug for this dead-key handling!");
                   deadKeyActive = false;
                   break;
               }

@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-// vim:cindent:ts=2:et:sw=2:
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -33,11 +33,23 @@ using namespace mozilla;
 
 nsLineBox::nsLineBox(nsIFrame* aFrame, int32_t aCount, bool aIsBlock)
   : mFirstChild(aFrame)
+  , mWritingMode()
   , mContainerSize(-1, -1)
   , mBounds(WritingMode()) // mBounds will be initialized with the correct
                            // writing mode when it is set
-// NOTE: memory is already zeroed since we allocate with AllocateByObjectID.
+  , mFrames()
+  , mAscent()
+  , mAllFlags(0)
+  , mData(nullptr)
 {
+  // Assert that the union elements chosen for initialisation are at
+  // least as large as all other elements in their respective unions, so
+  // as to ensure that no parts are missed.
+  static_assert(sizeof(mFrames) >= sizeof(mChildCount), "nsLineBox init #1");
+  static_assert(sizeof(mAllFlags) >= sizeof(mFlags), "nsLineBox init #2");
+  static_assert(sizeof(mData) >= sizeof(mBlockData), "nsLineBox init #3");
+  static_assert(sizeof(mData) >= sizeof(mInlineData), "nsLineBox init #4");
+
   MOZ_COUNT_CTOR(nsLineBox);
 #ifdef DEBUG
   ++ctorCount;
@@ -61,7 +73,7 @@ nsLineBox::~nsLineBox()
   MOZ_COUNT_DTOR(nsLineBox);
   if (MOZ_UNLIKELY(mFlags.mHasHashedFrames)) {
     delete mFrames;
-  }  
+  }
   Cleanup();
 }
 
@@ -336,7 +348,7 @@ nsLineBox::CachedIsEmpty()
   if (mFlags.mDirty) {
     return IsEmpty();
   }
-  
+
   if (mFlags.mEmptyCacheValid) {
     return mFlags.mEmptyCacheState;
   }
@@ -369,7 +381,8 @@ nsLineBox::CachedIsEmpty()
 
 void
 nsLineBox::DeleteLineList(nsPresContext* aPresContext, nsLineList& aLines,
-                          nsIFrame* aDestructRoot, nsFrameList* aFrames)
+                          nsIFrame* aDestructRoot, nsFrameList* aFrames,
+                          PostDestroyData& aPostDestroyData)
 {
   nsIPresShell* shell = aPresContext->PresShell();
 
@@ -386,7 +399,7 @@ nsLineBox::DeleteLineList(nsPresContext* aPresContext, nsLineList& aLines,
       MOZ_ASSERT(child == line->mFirstChild, "Lines out of sync");
       line->mFirstChild = aFrames->FirstChild();
       line->NoteFrameRemoved(child);
-      child->DestroyFrom(aDestructRoot);
+      child->DestroyFrom(aDestructRoot, aPostDestroyData);
     }
 
     aLines.pop_front();
@@ -502,7 +515,7 @@ nsLineBox::FreeFloats(nsFloatCacheFreeList& aFreeList)
 
 void
 nsLineBox::AppendFloats(nsFloatCacheFreeList& aFreeList)
-{ 
+{
   MOZ_ASSERT(IsInline(), "block line can't have floats");
   if (IsInline()) {
     if (aFreeList.NotEmpty()) {
@@ -530,6 +543,27 @@ nsLineBox::RemoveFloat(nsIFrame* aFrame)
     }
   }
   return false;
+}
+
+void
+nsLineBox::SetFloatEdges(nscoord aStart, nscoord aEnd)
+{
+  MOZ_ASSERT(IsInline(), "block line can't have float edges");
+  if (!mInlineData) {
+    mInlineData = new ExtraInlineData(GetPhysicalBounds());
+  }
+  mInlineData->mFloatEdgeIStart = aStart;
+  mInlineData->mFloatEdgeIEnd = aEnd;
+}
+
+void
+nsLineBox::ClearFloatEdges()
+{
+  MOZ_ASSERT(IsInline(), "block line can't have float edges");
+  if (mInlineData) {
+    mInlineData->mFloatEdgeIStart = nscoord_MIN;
+    mInlineData->mFloatEdgeIEnd = nscoord_MIN;
+  }
 }
 
 void
@@ -744,7 +778,7 @@ nsLineIterator::FindFrameAt(int32_t aLineNumber,
         break;
       }
       if (rect.IStart(wm) < pos.I(wm)) {
-        if (!closestFromStart || 
+        if (!closestFromStart ||
             rect.IEnd(wm) > closestFromStart->
                               GetLogicalRect(wm, containerSize).IEnd(wm))
           closestFromStart = frame;
@@ -839,7 +873,7 @@ void
 nsFloatCacheList::Append(nsFloatCacheFreeList& aList)
 {
   NS_PRECONDITION(aList.NotEmpty(), "Appending empty list will fail");
-  
+
   nsFloatCache* tail = Tail();
   if (tail) {
     NS_ASSERTION(!tail->mNext, "Bogus!");
@@ -900,12 +934,12 @@ nsFloatCacheFreeList::~nsFloatCacheFreeList()
   MOZ_COUNT_DTOR(nsFloatCacheFreeList);
 }
 #endif
-  
+
 void
 nsFloatCacheFreeList::Append(nsFloatCacheList& aList)
 {
   NS_PRECONDITION(aList.NotEmpty(), "Appending empty list will fail");
-  
+
   if (mTail) {
     NS_ASSERTION(!mTail->mNext, "Bogus");
     mTail->mNext = aList.mHead;

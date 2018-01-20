@@ -37,11 +37,10 @@
 #include "nsLocalUndoTxn.h"
 #include "nsIMessenger.h"
 
-static PRLogModuleInfo* MailDirLog;
+static mozilla::LazyLogModule MailDirLog("MailDirStore");
 
 nsMsgMaildirStore::nsMsgMaildirStore()
 {
-  MailDirLog = PR_NewLogModule("MailDirStore");
 }
 
 nsMsgMaildirStore::~nsMsgMaildirStore()
@@ -252,7 +251,7 @@ NS_IMETHODIMP nsMsgMaildirStore::CreateFolder(nsIMsgFolder *aParent,
       rv = NS_MSG_CANT_CREATE_FOLDER;
     }
   }
-  child.swap(*aResult);
+  child.forget(aResult);
   return rv;
 }
 
@@ -382,13 +381,13 @@ NS_IMETHODIMP nsMsgMaildirStore::RenameFolder(nsIMsgFolder *aFolder,
   {
     // rename "*.sbd" directory
     nsAutoString sbdName = safeName;
-    sbdName += NS_LITERAL_STRING(FOLDER_SUFFIX);
+    sbdName.AppendLiteral(FOLDER_SUFFIX);
     sbdPathFile->MoveTo(nullptr, sbdName);
   }
 
   // rename summary
   nsAutoString summaryName(safeName);
-  summaryName += NS_LITERAL_STRING(SUMMARY_SUFFIX);
+  summaryName.AppendLiteral(SUMMARY_SUFFIX);
   oldSummaryFile->MoveTo(nullptr, summaryName);
 
   nsCOMPtr<nsIMsgFolder> parentFolder;
@@ -448,7 +447,7 @@ NS_IMETHODIMP nsMsgMaildirStore::CopyFolder(nsIMsgFolder *aSrcFolder,
   // without copying it. If it fails and file exist and is not zero sized
   // there is real problem.
   nsAutoString dbName(safeFolderName);
-  dbName += NS_LITERAL_STRING(SUMMARY_SUFFIX);
+  dbName.AppendLiteral(SUMMARY_SUFFIX);
   rv = summaryFile->CopyTo(newPath, dbName);
   if (!NS_SUCCEEDED(rv))
   {
@@ -800,8 +799,10 @@ nsMsgMaildirStore::MoveNewlyDownloadedMessage(nsIMsgDBHdr *aHdr,
   if (NS_SUCCEEDED(rv) && !newHdr)
     rv = NS_ERROR_UNEXPECTED;
 
-  if (NS_FAILED(rv))
+  if (NS_FAILED(rv)) {
     aDestFolder->ThrowAlertMsg("filterFolderHdrAddFailed", nullptr);
+    return rv;
+  }
 
   nsCOMPtr<nsIFile> existingPath;
   toPath->Clone(getter_AddRefs(existingPath));
@@ -858,7 +859,8 @@ nsMsgMaildirStore::MoveNewlyDownloadedMessage(nsIMsgDBHdr *aHdr,
     if (notifier) {
       notifier->NotifyItemEvent(folder,
                                 NS_LITERAL_CSTRING("UnincorporatedMessageMoved"),
-                                newHdr);
+                                newHdr,
+                                EmptyCString());
     }
   }
 
@@ -1093,7 +1095,7 @@ nsMsgMaildirStore::CopyMessages(bool aIsMove, nsIArray *aHdrArray,
       rv = destDB->CopyHdrFromExistingHdr(nsMsgKey_None, srcHdr, true, getter_AddRefs(destHdr));
       NS_ENSURE_SUCCESS(rv, rv);
       destHdr->SetStringProperty("storeToken", fileName.get());
-      dstHdrs->AppendElement(destHdr, false);
+      dstHdrs->AppendElement(destHdr);
       nsMsgKey dstKey;
       destHdr->GetMessageKey(&dstKey);
       msgTxn->AddDstKey(dstKey);
@@ -1214,7 +1216,7 @@ nsresult MaildirStoreParser::ParseNextMessage(nsIFile *aFile)
       if (newLine)
       {
         msgParser->ParseAFolderLine(newLine, numBytesInLine);
-        NS_Free(newLine);
+        free(newLine);
       }
     } while (newLine && numBytesInLine > 0);
 
@@ -1275,8 +1277,9 @@ nsresult MaildirStoreParser::StartTimer()
   nsresult rv;
   m_timer = do_CreateInstance("@mozilla.org/timer;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  m_timer->InitWithFuncCallback(TimerCallback, (void *) this, 0,
-                                          nsITimer::TYPE_REPEATING_SLACK);
+  m_timer->InitWithNamedFuncCallback(TimerCallback, (void *) this, 0,
+                                     nsITimer::TYPE_REPEATING_SLACK,
+                                     "MaildirStoreParser::TimerCallback");
   return NS_OK;
 }
 

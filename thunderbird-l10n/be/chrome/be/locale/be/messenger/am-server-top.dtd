@@ -71,10 +71,10 @@
 <!ENTITY accountTitle.label "Наладжванні рахунку">
 <!ENTITY accountSettingsDesc.label "Гэта адмысловы рахунак.  Няма адметаў, злучаных з ім.">
 
-<!ENTITY maildirStore.label "File per message (maildir)">
-<!ENTITY mboxStore2.label "File per folder (mbox)">
-<!ENTITY serverDefaultCharset2.label "Default Text Encoding:">
-<!ENTITY storeType.accesskey "T">
-<!ENTITY storeType.label "Message Store Type:">
-<!ENTITY useIdleNotifications.accesskey "w">
 <!ENTITY useIdleNotifications.label "Allow immediate server notifications when new messages arrive">
+<!ENTITY useIdleNotifications.accesskey "w">
+<!ENTITY serverDefaultCharset2.label "Default Text Encoding:">
+<!ENTITY storeType.label "Message Store Type:">
+<!ENTITY storeType.accesskey "T">
+<!ENTITY mboxStore2.label "File per folder (mbox)">
+<!ENTITY maildirStore.label "File per message (maildir)">

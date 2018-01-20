@@ -26,3 +26,6 @@
 <!ENTITY backgroundImage.label "Atzeko planoko irudia:">
 <!ENTITY backgroundImage.accessKey "r">
 <!ENTITY backgroundImage.tooltip "Erabili irudi-fitxategi bat zure orriaren atzeko plano gisa">
+
+
+<!ENTITY backgroundImage.shortenedDataURI "Shortened data URI (copy will place the full URI onto the clipboard)">

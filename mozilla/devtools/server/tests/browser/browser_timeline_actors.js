@@ -1,6 +1,7 @@
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+/* eslint-disable mozilla/no-arbitrary-setTimeout */
 
 "use strict";
 
@@ -10,8 +11,7 @@
 const {TimelineFront} = require("devtools/shared/fronts/timeline");
 
 add_task(function* () {
-  let browser = yield addTab("data:text/html;charset=utf-8,mop");
-  let doc = browser.contentDocument;
+  yield addTab("data:text/html;charset=utf-8,mop");
 
   initDebuggerServer();
   let client = new DebuggerClient(DebuggerServer.connectPipe());

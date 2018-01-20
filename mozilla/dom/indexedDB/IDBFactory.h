@@ -8,6 +8,7 @@
 #define mozilla_dom_idbfactory_h__
 
 #include "mozilla/Attributes.h"
+#include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/StorageTypeBinding.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
@@ -17,9 +18,9 @@
 #include "nsTArray.h"
 #include "nsWrapperCache.h"
 
+class nsIEventTarget;
 class nsIPrincipal;
 class nsPIDOMWindowInner;
-struct PRThread;
 
 namespace mozilla {
 
@@ -38,6 +39,7 @@ struct IDBOpenDBOptions;
 class IDBOpenDBRequest;
 template <typename> class Optional;
 class TabChild;
+enum class CallerType : uint32_t;
 
 namespace indexedDB {
 class BackgroundFactoryChild;
@@ -67,13 +69,11 @@ class IDBFactory final
   // process.
   RefPtr<TabChild> mTabChild;
 
-  nsTArray<nsAutoPtr<PendingRequestInfo>> mPendingRequests;
-
   indexedDB::BackgroundFactoryChild* mBackgroundActor;
 
-#ifdef DEBUG
-  PRThread* mOwningThread;
-#endif
+  // It is either set to a DocGroup-specific EventTarget if created by
+  // CreateForWindow() or set to GetCurrentThreadEventTarget() otherwise.
+  nsCOMPtr<nsIEventTarget> mEventTarget;
 
   uint64_t mInnerWindowID;
 
@@ -104,17 +104,19 @@ public:
   AllowedForPrincipal(nsIPrincipal* aPrincipal,
                       bool* aIsSystemPrincipal = nullptr);
 
-#ifdef DEBUG
-  void
-  AssertIsOnOwningThread() const;
-
-  PRThread*
-  OwningThread() const;
-#else
   void
   AssertIsOnOwningThread() const
-  { }
-#endif
+  {
+    NS_ASSERT_OWNINGTHREAD(IDBFactory);
+  }
+
+  nsIEventTarget*
+  EventTarget() const
+  {
+    AssertIsOnOwningThread();
+    MOZ_RELEASE_ASSERT(mEventTarget);
+    return mEventTarget;
+  }
 
   void
   ClearBackgroundActor()
@@ -123,6 +125,20 @@ public:
 
     mBackgroundActor = nullptr;
   }
+
+  // Increase/Decrease the number of active transactions for the decision
+  // making of preemption and throttling.
+  // Note: If the state of its actor is not committed or aborted, it could block
+  // IDB operations in other window.
+  void
+  UpdateActiveTransactionCount(int32_t aDelta);
+
+  // Increase/Decrease the number of active databases and IDBOpenRequests for
+  // the decision making of preemption and throttling.
+  // Note: A non-closed database or a pending IDBOpenRequest could block
+  // IDB operations in other window.
+  void
+  UpdateActiveDatabaseCount(int32_t aDelta);
 
   void
   IncrementParentLoggingRequestSerialNumber();
@@ -162,18 +178,21 @@ public:
   Open(JSContext* aCx,
        const nsAString& aName,
        uint64_t aVersion,
+       CallerType aCallerType,
        ErrorResult& aRv);
 
   already_AddRefed<IDBOpenDBRequest>
   Open(JSContext* aCx,
        const nsAString& aName,
        const IDBOpenDBOptions& aOptions,
+       CallerType aCallerType,
        ErrorResult& aRv);
 
   already_AddRefed<IDBOpenDBRequest>
   DeleteDatabase(JSContext* aCx,
                  const nsAString& aName,
                  const IDBOpenDBOptions& aOptions,
+                 CallerType aCallerType,
                  ErrorResult& aRv);
 
   int16_t
@@ -187,6 +206,7 @@ public:
                    nsIPrincipal* aPrincipal,
                    const nsAString& aName,
                    uint64_t aVersion,
+                   SystemCallerGuarantee,
                    ErrorResult& aRv);
 
   already_AddRefed<IDBOpenDBRequest>
@@ -194,6 +214,7 @@ public:
                    nsIPrincipal* aPrincipal,
                    const nsAString& aName,
                    const IDBOpenDBOptions& aOptions,
+                   SystemCallerGuarantee,
                    ErrorResult& aRv);
 
   already_AddRefed<IDBOpenDBRequest>
@@ -201,6 +222,7 @@ public:
                      nsIPrincipal* aPrincipal,
                      const nsAString& aName,
                      const IDBOpenDBOptions& aOptions,
+                     SystemCallerGuarantee,
                      ErrorResult& aRv);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -238,14 +260,8 @@ private:
                const Optional<uint64_t>& aVersion,
                const Optional<StorageType>& aStorageType,
                bool aDeleting,
+               CallerType aCallerType,
                ErrorResult& aRv);
-
-  nsresult
-  BackgroundActorCreated(PBackgroundChild* aBackgroundActor,
-                         const indexedDB::LoggingInfo& aLoggingInfo);
-
-  void
-  BackgroundActorFailed();
 
   nsresult
   InitiateRequest(IDBOpenDBRequest* aRequest,

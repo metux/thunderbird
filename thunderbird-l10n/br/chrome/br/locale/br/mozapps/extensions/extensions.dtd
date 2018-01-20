@@ -20,6 +20,9 @@
 <!ENTITY installAddonFromFile.accesskey       "i">
 <!ENTITY toolsMenu.tooltip                    "Ostilhoù evit an holl askouezhioù">
 
+<!ENTITY getThemes.description                "Klask a rit personelaat ho merdeer?">
+<!ENTITY getThemes.learnMore                  "Dibab e-touez miliadoù a neuzioù.">
+
 <!ENTITY cmd.back.tooltip                     "Mont d'ar bajennad kent">
 <!ENTITY cmd.forward.tooltip                  "Mont d'ar bajennad war-lerc'h">
 
@@ -115,6 +118,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "Diskouez an notennoù handelv evit an hizivadur-mañ">
 <!ENTITY cmd.hideReleaseNotes.label           "Kuzhat an notennoù handelv">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Kuzhat an notennoù handelv evit an hizivadur-mañ">
+
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
      Displayed in the center of the Get Add-ons view, see bug 601143 for mockups. -->
@@ -182,6 +186,9 @@
 <!ENTITY addon.details.label                  "Muioc'h">
 <!ENTITY addon.details.tooltip                "Diskouez muioc'h a ditouroù a-zivout an askouezh-mañ">
 <!ENTITY addon.unknownDate                    "Dianav">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -246,3 +253,16 @@
 
 <!ENTITY pluginDeprecation.description "Mankout 'ra un dra bennak? Ul lodenn eus an enlugelladoù n'int ket skoret gant &brandShortName; ken.">
 <!ENTITY pluginDeprecation.learnMore "Gouzout hiroc'h.">
+
+
+
+
+
+
+<!ENTITY cmd.findReplacement.label            "Find a Replacement">
+
+<!ENTITY addon.legacy.label                   "LEGACY">
+<!ENTITY legacyWarning.showLegacy "Show legacy extensions">
+<!ENTITY legacyExtensions.title "Legacy Extensions">
+<!ENTITY legacyExtensions.description "These extensions do not meet current &brandShortName; standards so they have been deactivated.">
+<!ENTITY legacyExtensions.learnMore "Learn about the changes to add-ons">

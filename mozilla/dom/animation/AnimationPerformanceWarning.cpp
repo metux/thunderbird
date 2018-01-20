@@ -12,7 +12,7 @@ namespace mozilla {
 
 template<uint32_t N> nsresult
 AnimationPerformanceWarning::ToLocalizedStringWithIntParams(
-  const char* aKey, nsXPIDLString& aLocalizedString) const
+  const char* aKey, nsAString& aLocalizedString) const
 {
   nsAutoString strings[N];
   const char16_t* charParams[N];
@@ -28,25 +28,25 @@ AnimationPerformanceWarning::ToLocalizedStringWithIntParams(
 
 bool
 AnimationPerformanceWarning::ToLocalizedString(
-  nsXPIDLString& aLocalizedString) const
+  nsAString& aLocalizedString) const
 {
   const char* key = nullptr;
 
   switch (mType) {
-    case Type::ContentTooSmall:
-      MOZ_ASSERT(mParams && mParams->Length() == 2,
-                 "Parameter's length should be 2 for ContentTooSmall");
-
-      return NS_SUCCEEDED(
-        ToLocalizedStringWithIntParams<2>(
-          "CompositorAnimationWarningContentTooSmall", aLocalizedString));
     case Type::ContentTooLarge:
-      MOZ_ASSERT(mParams && mParams->Length() == 7,
-                 "Parameter's length should be 7 for ContentTooLarge");
+      MOZ_ASSERT(mParams && mParams->Length() == 6,
+                 "Parameter's length should be 6 for ContentTooLarge2");
 
       return NS_SUCCEEDED(
         ToLocalizedStringWithIntParams<7>(
-          "CompositorAnimationWarningContentTooLarge", aLocalizedString));
+          "CompositorAnimationWarningContentTooLarge2", aLocalizedString));
+    case Type::ContentTooLargeArea:
+      MOZ_ASSERT(mParams && mParams->Length() == 2,
+                 "Parameter's length should be 2 for ContentTooLargeArea");
+
+      return NS_SUCCEEDED(
+        ToLocalizedStringWithIntParams<3>(
+          "CompositorAnimationWarningContentTooLargeArea", aLocalizedString));
     case Type::TransformBackfaceVisibilityHidden:
       key = "CompositorAnimationWarningTransformBackfaceVisibilityHidden";
       break;
@@ -58,6 +58,9 @@ AnimationPerformanceWarning::ToLocalizedString(
       break;
     case Type::TransformWithGeometricProperties:
       key = "CompositorAnimationWarningTransformWithGeometricProperties";
+      break;
+    case Type::TransformWithSyncGeometricAnimations:
+      key = "CompositorAnimationWarningTransformWithSyncGeometricAnimations";
       break;
     case Type::TransformFrameInactive:
       key = "CompositorAnimationWarningTransformFrameInactive";

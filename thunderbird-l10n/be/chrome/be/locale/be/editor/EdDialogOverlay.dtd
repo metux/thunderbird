@@ -14,3 +14,6 @@
 <!ENTITY makeUrlRelative.tooltip "Выбар паміж адноснага ці безумоўнага URL. Вы мусіце захаваць старонку перад выбарам.">
 <!ENTITY LinkURLEditField.label "Увядзіце месцазнаходжанне старонкі сеціва, мясцовага файла, або вылучыце іменаваны якар або загаловак з спіса-вынырца: ">
 <!ENTITY LinkURLEditField.accessKey "У">
+
+<!ENTITY LinkURLEditField2.label "Enter a web page location, a local file, or select a Named Anchor or Heading from the field's context menu:">
+<!ENTITY LinkURLEditField2.accessKey "w">

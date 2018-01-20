@@ -347,5 +347,5 @@
 <!ENTITY tocMenu.label            "Cuprins…">
 <!ENTITY tocMenu.accesskey        "C">
 
-<!ENTITY formatRemoveLinks.key "K">
 <!ENTITY insertLinkCmd2.key "K">
+<!ENTITY formatRemoveLinks.key "K">

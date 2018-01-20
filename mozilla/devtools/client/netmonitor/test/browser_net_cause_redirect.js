@@ -19,19 +19,24 @@ add_task(function* () {
   ];
 
   let { tab, monitor } = yield initNetMonitor(CUSTOM_GET_URL);
-  let { RequestsMenu } = monitor.panelWin.NetMonitorView;
-  RequestsMenu.lazyUpdate = false;
+  let { store, windowRequire } = monitor.panelWin;
+  let Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
+  let {
+    getSortedRequests,
+  } = windowRequire("devtools/client/netmonitor/src/selectors/index");
+
+  store.dispatch(Actions.batchEnable(false));
 
   let wait = waitForNetworkEvents(monitor, EXPECTED_REQUESTS.length);
   yield performRequests(2, HSTS_SJS);
   yield wait;
 
   EXPECTED_REQUESTS.forEach(({status, hasStack}, i) => {
-    let { attachment } = RequestsMenu.getItemAtIndex(i);
+    let item = getSortedRequests(store.getState()).get(i);
 
-    is(attachment.status, status, `Request #${i} has the expected status`);
+    is(item.status, status, `Request #${i} has the expected status`);
 
-    let { stacktrace } = attachment.cause;
+    let { stacktrace } = item.cause;
     let stackLen = stacktrace ? stacktrace.length : 0;
 
     if (hasStack) {

@@ -18,6 +18,7 @@ messenger.jar:
     content/messenger/preferences/display.js
     content/messenger/preferences/chat.xul
     content/messenger/preferences/chat.js
+    content/messenger/preferences/messagestyle.js
 *   content/messenger/preferences/colors.xul
     content/messenger/preferences/compose.xul
     content/messenger/preferences/compose.js
@@ -32,7 +33,7 @@ messenger.jar:
     content/messenger/preferences/receipts.js
 *   content/messenger/preferences/receipts.xul
     content/messenger/preferences/connection.js
-    content/messenger/preferences/connection.xul
+*   content/messenger/preferences/connection.xul
     content/messenger/preferences/downloads.js
     content/messenger/preferences/attachmentReminder.js
     content/messenger/preferences/attachmentReminder.xul

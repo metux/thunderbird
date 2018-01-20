@@ -10,7 +10,7 @@
 #include "mozITXTToHTMLConv.h"
 #include "nsCOMPtr.h"
 #include "nsIComponentManager.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsMimeStringResources.h"
 #include "mimemoz2.h"
 #include "nsIServiceManager.h"
@@ -41,7 +41,7 @@ extern "C"
 void
 MimeTextBuildPrefixCSS(int32_t    quotedSizeSetting,   // mail.quoted_size
                        int32_t    quotedStyleSetting,  // mail.quoted_style
-                       char       *citationColor,      // mail.citation_color
+                       nsACString &citationColor,      // mail.citation_color
                        nsACString &style)
 {
   switch (quotedStyleSetting)
@@ -49,13 +49,13 @@ MimeTextBuildPrefixCSS(int32_t    quotedSizeSetting,   // mail.quoted_size
   case 0:     // regular
     break;
   case 1:     // bold
-    style.Append("font-weight: bold; ");
+    style.AppendLiteral("font-weight: bold; ");
     break;
   case 2:     // italic
-    style.Append("font-style: italic; ");
+    style.AppendLiteral("font-style: italic; ");
     break;
   case 3:     // bold-italic
-    style.Append("font-weight: bold; font-style: italic; ");
+    style.AppendLiteral("font-weight: bold; font-style: italic; ");
     break;
   }
 
@@ -64,14 +64,14 @@ MimeTextBuildPrefixCSS(int32_t    quotedSizeSetting,   // mail.quoted_size
   case 0:     // regular
     break;
   case 1:     // large
-    style.Append("font-size: large; ");
+    style.AppendLiteral("font-size: large; ");
     break;
   case 2:     // small
-    style.Append("font-size: small; ");
+    style.AppendLiteral("font-size: small; ");
     break;
   }
 
-  if (citationColor && *citationColor)
+  if (!citationColor.IsEmpty())
   {
     style += "color: ";
     style += citationColor;
@@ -114,7 +114,7 @@ MimeInlineTextPlain_parse_begin (MimeObject *obj)
       // Viewing
       text->mQuotedSizeSetting = 0;   // mail.quoted_size
       text->mQuotedStyleSetting = 0;  // mail.quoted_style
-      text->mCitationColor = nullptr;  // mail.citation_color
+      text->mCitationColor.Truncate();  // mail.citation_color
       text->mStripSig = true; // mail.strip_sig_on_reply
       bool graphicalQuote = true; // mail.quoted_graphical
 
@@ -123,7 +123,7 @@ MimeInlineTextPlain_parse_begin (MimeObject *obj)
       {
         prefBranch->GetIntPref("mail.quoted_size", &(text->mQuotedSizeSetting));
         prefBranch->GetIntPref("mail.quoted_style", &(text->mQuotedStyleSetting));
-        prefBranch->GetCharPref("mail.citation_color", &(text->mCitationColor));
+        prefBranch->GetCharPref("mail.citation_color", text->mCitationColor);
         prefBranch->GetBoolPref("mail.strip_sig_on_reply", &(text->mStripSig));
         prefBranch->GetBoolPref("mail.quoted_graphical", &graphicalQuote);
         prefBranch->GetBoolPref("mail.quoteasblock", &(text->mBlockquoting));
@@ -193,10 +193,10 @@ MimeInlineTextPlain_parse_begin (MimeObject *obj)
               openingDiv += '\"';
             }
           }
-          openingDiv += "><pre wrap>\n";
+          openingDiv += "><pre wrap class=\"moz-quote-pre\">\n";
         }
         else
-          openingDiv = "<pre wrap>\n";
+          openingDiv = "<pre wrap class=\"moz-quote-pre\">\n";
 
       /* text/plain objects always have separators before and after them.
        Note that this is not the case for text/enriched objects. */
@@ -222,8 +222,8 @@ MimeInlineTextPlain_parse_eof (MimeObject *obj, bool abort_p)
 
   nsCString citationColor;
   MimeInlineTextPlain *text = (MimeInlineTextPlain *) obj;
-  if (text && text->mCitationColor)
-    citationColor.Adopt(text->mCitationColor);
+  if (text && !text->mCitationColor.IsEmpty())
+    citationColor = text->mCitationColor;
 
   bool quoting = ( obj->options
     && ( obj->options->format_out == nsMimeOutput::nsMimeMessageQuoting ||
@@ -369,14 +369,14 @@ MimeInlineTextPlain_parse_line (const char *line, int32_t length, MimeObject *ob
         else
           prefaceResultStr += "<blockquote type=cite>";
       }
-      prefaceResultStr += "<pre wrap>\n";
+      prefaceResultStr += "<pre wrap class=\"moz-quote-pre\">\n";
     }
     else if (text->mCiteLevel < oldCiteLevel)
     {
       prefaceResultStr += "</pre>";
       for (uint32_t i = 0; i < oldCiteLevel - text->mCiteLevel; i++)
         prefaceResultStr += "</blockquote>";
-      prefaceResultStr += "<pre wrap>\n";
+      prefaceResultStr += "<pre wrap class=\"moz-quote-pre\">\n";
     }
 
     // Write plain text quoting tags

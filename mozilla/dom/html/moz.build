@@ -4,9 +4,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files("**"):
+    BUG_COMPONENT = ("Core", "DOM")
+
+DIRS += ['input']
+
 MOCHITEST_MANIFESTS += [
     'test/forms/mochitest.ini',
-    'test/imports/mochitest.ini',
     'test/mochitest.ini',
 ]
 
@@ -20,16 +24,15 @@ BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
 XPIDL_SOURCES += [
     'nsIDateTimeInputArea.idl',
     'nsIFormSubmitObserver.idl',
-    'nsIHTMLMenu.idl',
     'nsIImageDocument.idl',
     'nsIMenuBuilder.idl',
-    'nsIPhonetic.idl',
 ]
 
 XPIDL_MODULE = 'content_html'
 
 EXPORTS += [
     'nsGenericHTMLElement.h',
+    'nsGenericHTMLFrameElement.h',
     'nsHTMLDNSPrefetch.h',
     'nsIConstraintValidation.h',
     'nsIForm.h',
@@ -56,7 +59,9 @@ EXPORTS.mozilla.dom += [
     'HTMLDataElement.h',
     'HTMLDataListElement.h',
     'HTMLDetailsElement.h',
+    'HTMLDialogElement.h',
     'HTMLDivElement.h',
+    'HTMLEmbedElement.h',
     'HTMLFieldSetElement.h',
     'HTMLFontElement.h',
     'HTMLFormControlsCollection.h',
@@ -91,10 +96,9 @@ EXPORTS.mozilla.dom += [
     'HTMLProgressElement.h',
     'HTMLScriptElement.h',
     'HTMLSelectElement.h',
-    'HTMLShadowElement.h',
     'HTMLSharedElement.h',
     'HTMLSharedListElement.h',
-    'HTMLSharedObjectElement.h',
+    'HTMLSlotElement.h',
     'HTMLSourceElement.h',
     'HTMLSpanElement.h',
     'HTMLStyleElement.h',
@@ -134,8 +138,10 @@ UNIFIED_SOURCES += [
     'HTMLDataElement.cpp',
     'HTMLDataListElement.cpp',
     'HTMLDetailsElement.cpp',
+    'HTMLDialogElement.cpp',
     'HTMLDivElement.cpp',
     'HTMLElement.cpp',
+    'HTMLEmbedElement.cpp',
     'HTMLFieldSetElement.cpp',
     'HTMLFontElement.cpp',
     'HTMLFormControlsCollection.cpp',
@@ -170,10 +176,9 @@ UNIFIED_SOURCES += [
     'HTMLProgressElement.cpp',
     'HTMLScriptElement.cpp',
     'HTMLSelectElement.cpp',
-    'HTMLShadowElement.cpp',
     'HTMLSharedElement.cpp',
     'HTMLSharedListElement.cpp',
-    'HTMLSharedObjectElement.cpp',
+    'HTMLSlotElement.cpp',
     'HTMLSourceElement.cpp',
     'HTMLSpanElement.cpp',
     'HTMLStyleElement.cpp',
@@ -228,7 +233,9 @@ LOCAL_INCLUDES += [
     '/docshell/base',
     '/dom/base',
     '/dom/canvas',
-    '/dom/media/',
+    '/dom/html/input',
+    '/dom/media',
+    '/dom/security',
     '/dom/xbl',
     '/dom/xul',
     '/editor/txmgr',
@@ -242,6 +249,9 @@ LOCAL_INCLUDES += [
 ]
 
 FINAL_LIBRARY = 'xul'
+
+if CONFIG['MOZ_ANDROID_HLS_SUPPORT']:
+    DEFINES['MOZ_ANDROID_HLS_SUPPORT'] = True
 
 if CONFIG['GNU_CXX']:
     CXXFLAGS += ['-Wno-error=shadow']

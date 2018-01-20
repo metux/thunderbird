@@ -20,6 +20,9 @@
 <!ENTITY installAddonFromFile.accesskey       "I">
 <!ENTITY toolsMenu.tooltip                    "Ferramientes pa tolos complementos">
 
+<!ENTITY getThemes.description                "¿Tas mirando cómo personalizar el restolador?">
+<!ENTITY getThemes.learnMore                  "Escueyi ente milenta temes.">
+
 <!ENTITY cmd.back.tooltip                     "Retroceder una páxina">
 <!ENTITY cmd.forward.tooltip                  "Avanzar una páxina">
 
@@ -246,3 +249,11 @@
 
 <!ENTITY pluginDeprecation.description "¿Fáltate daqué? Dalgunos complementos yá nun tienen sofitu de &brandShortName;.">
 <!ENTITY pluginDeprecation.learnMore "Deprendi más">
+
+<!ENTITY cmd.findReplacement.label            "Find a Replacement">
+
+<!ENTITY addon.legacy.label                   "LEGACY">
+<!ENTITY legacyWarning.showLegacy "Show legacy extensions">
+<!ENTITY legacyExtensions.title "Legacy Extensions">
+<!ENTITY legacyExtensions.description "These extensions do not meet current &brandShortName; standards so they have been deactivated.">
+<!ENTITY legacyExtensions.learnMore "Learn about the changes to add-ons">

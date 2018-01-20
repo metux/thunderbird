@@ -21,6 +21,11 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Versió">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.featuresTitle "Característiques del &brandShortName;">
+<!ENTITY aboutSupport.featureName "Nom">
+<!ENTITY aboutSupport.featureVersion "Versió">
+<!ENTITY aboutSupport.featureId "ID">
+
 <!ENTITY aboutSupport.experimentsTitle "Funcions experimentals">
 <!ENTITY aboutSupport.experimentName "Nom">
 <!ENTITY aboutSupport.experimentId "ID">
@@ -61,6 +66,10 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Finestres multiprocés">
 
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Clau de Google">
+
+
 <!ENTITY aboutSupport.appBasicsSafeMode "Mode segur">
 
 <!ENTITY aboutSupport.showDir.label "Obre el directori">
@@ -97,6 +106,7 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yActivated "Activat">
 <!ENTITY aboutSupport.a11yForceDisabled "Evita l'accessibilitat">
 
+
 <!ENTITY aboutSupport.libraryVersionsTitle "Versions de la biblioteca">
 
 <!ENTITY aboutSupport.installationHistoryTitle "Historial d'instal·lacions">
@@ -106,6 +116,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Copia les dades sense processar al porta-retalls">
 
 <!ENTITY aboutSupport.sandboxTitle "Entorn de proves">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Crides del sistema rebutjades">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "Fa uns segons">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Tipus de procés">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Crida del sistema">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Arguments">
 
 <!ENTITY aboutSupport.safeModeTitle "Prova el mode segur">
 <!ENTITY aboutSupport.restartInSafeMode.label "Reinicia amb els complements inhabilitats…">
@@ -118,3 +136,42 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Registre de decisions">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Característiques del protector de fallades desactivades">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Solucions temporals">
+
+
+
+<!ENTITY aboutSupport.mediaDeviceName "Nom">
+
+
+
+
+
+
+
+<!ENTITY aboutSupport.mediaDeviceLatency "Latència">
+
+<!ENTITY aboutSupport.appBasicsProcessCount "Web Content Processes">
+
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla Location Service Key">
+
+<!ENTITY aboutSupport.a11yHandlerUsed "Accessible Handler Used">
+<!ENTITY aboutSupport.a11yInstantiator "Accessibility Instantiator">
+
+<!ENTITY aboutSupport.mediaTitle "Media">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Output Devices">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Input Devices">
+<!ENTITY aboutSupport.mediaDeviceGroup "Group">
+<!ENTITY aboutSupport.mediaDeviceVendor "Vendor">
+<!ENTITY aboutSupport.mediaDeviceState "State">
+<!ENTITY aboutSupport.mediaDevicePreferred "Preferred">
+<!ENTITY aboutSupport.mediaDeviceFormat "Format">
+<!ENTITY aboutSupport.mediaDeviceChannels "Channels">
+<!ENTITY aboutSupport.mediaDeviceRate "Rate">
+<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
+<!ENTITY aboutSupport.intlAppTitle "Application Settings">
+<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
+<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
+<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
+<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
+<!ENTITY aboutSupport.intlOSTitle "Operating System">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">

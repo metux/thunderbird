@@ -7,17 +7,26 @@
 #ifndef TabGroup_h
 #define TabGroup_h
 
-#include "nsISupports.h"
+#include "nsHashKeys.h"
 #include "nsISupportsImpl.h"
 #include "nsIPrincipal.h"
 #include "nsTHashtable.h"
 #include "nsString.h"
 
+#include "mozilla/Atomics.h"
+#include "mozilla/SchedulerGroup.h"
 #include "mozilla/RefPtr.h"
 
+class mozIDOMWindowProxy;
+class nsIDocShellTreeItem;
+class nsIDocument;
+class nsPIDOMWindowOuter;
+
 namespace mozilla {
+class AbstractThread;
 class ThrottledEventQueue;
 namespace dom {
+class TabChild;
 
 // Two browsing contexts are considered "related" if they are reachable from one
 // another through window.opener, window.parent, or window.frames. This is the
@@ -35,8 +44,9 @@ namespace dom {
 // window.opener. A DocGroup is a member of exactly one TabGroup.
 
 class DocGroup;
+class TabChild;
 
-class TabGroup final : public nsISupports
+class TabGroup final : public SchedulerGroup
 {
 private:
   class HashEntry : public nsCStringHashKey
@@ -49,15 +59,24 @@ private:
   };
 
   typedef nsTHashtable<HashEntry> DocGroupMap;
+
 public:
   typedef DocGroupMap::Iterator Iterator;
 
   friend class DocGroup;
 
-  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(TabGroup, override)
 
   static TabGroup*
   GetChromeTabGroup();
+
+  // Checks if the TabChild already has a TabGroup assigned to it in
+  // IPDL. Returns this TabGroup if it does. This could happen if the parent
+  // process created the PBrowser and we needed to assign a TabGroup immediately
+  // upon receiving the IPDL message. This method is main thread only.
+  static TabGroup* GetFromActor(TabChild* aTabChild);
+
+  static TabGroup* GetFromWindow(mozIDOMWindowProxy* aWindow);
 
   explicit TabGroup(bool aIsChrome = false);
 
@@ -98,18 +117,52 @@ public:
                    nsIDocShellTreeItem* aOriginalRequestor,
                    nsIDocShellTreeItem** aFoundItem);
 
-  nsTArray<nsPIDOMWindowOuter*> GetTopLevelWindows();
+  nsTArray<nsPIDOMWindowOuter*> GetTopLevelWindows() const;
+  const nsTArray<nsPIDOMWindowOuter*>& GetWindows() { return mWindows; }
 
-  // Get the event queue that associated windows can use to issue runnables to
-  // the main thread.  This may return nullptr during browser shutdown.
-  ThrottledEventQueue*
-  GetThrottledEventQueue() const;
+  // This method is always safe to call off the main thread. The nsIEventTarget
+  // can always be used off the main thread.
+  nsISerialEventTarget* EventTargetFor(TaskCategory aCategory) const override;
+
+  void WindowChangedBackgroundStatus(bool aIsNowBackground);
+
+  // Returns true if all of the TabGroup's top-level windows are in
+  // the background.
+  bool IsBackground() const override;
+
+  // Increase/Decrease the number of IndexedDB transactions/databases for the
+  // decision making of the preemption in the scheduler.
+  Atomic<uint32_t>& IndexedDBTransactionCounter()
+  {
+    return mNumOfIndexedDBTransactions;
+  }
+
+  Atomic<uint32_t>& IndexedDBDatabaseCounter()
+  {
+    return mNumOfIndexedDBDatabases;
+  }
 
 private:
+  virtual AbstractThread*
+  AbstractMainThreadForImpl(TaskCategory aCategory) override;
+
+  TabGroup* AsTabGroup() override { return this; }
+
+  void EnsureThrottledEventQueues();
+
   ~TabGroup();
+
+  // Thread-safe members
+  Atomic<bool> mLastWindowLeft;
+  Atomic<bool> mThrottledQueuesInitialized;
+  Atomic<uint32_t> mNumOfIndexedDBTransactions;
+  Atomic<uint32_t> mNumOfIndexedDBDatabases;
+  const bool mIsChrome;
+
+  // Main thread only
   DocGroupMap mDocGroups;
   nsTArray<nsPIDOMWindowOuter*> mWindows;
-  RefPtr<ThrottledEventQueue> mThrottledEventQueue;
+  uint32_t mForegroundCount;
 };
 
 } // namespace dom

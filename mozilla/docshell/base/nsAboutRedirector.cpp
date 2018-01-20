@@ -29,7 +29,7 @@ struct RedirEntry
   URI_SAFE_FOR_UNTRUSTED_CONTENT will allow random web sites to link to that
   URI.  Perhaps we should separate the two concepts out...
  */
-static RedirEntry kRedirMap[] = {
+static const RedirEntry kRedirMap[] = {
   {
     "", "chrome://global/content/about.xhtml",
     nsIAboutModule::ALLOW_SCRIPT
@@ -56,12 +56,6 @@ static RedirEntry kRedirMap[] = {
     "credits", "https://www.mozilla.org/credits/",
     nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT
   },
-#ifdef MOZ_DEVTOOLS_ALL
-  {
-    "debugging", "chrome://devtools/content/aboutdebugging/aboutdebugging.xhtml",
-    nsIAboutModule::ALLOW_SCRIPT
-  },
-#endif
   {
     "license", "chrome://global/content/license.html",
     nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT |
@@ -136,8 +130,18 @@ static RedirEntry kRedirMap[] = {
     nsIAboutModule::ALLOW_SCRIPT
   },
   {
+    "url-classifier", "chrome://global/content/aboutUrlClassifier.xhtml",
+    nsIAboutModule::ALLOW_SCRIPT
+  },
+  {
     "webrtc", "chrome://global/content/aboutwebrtc/aboutWebrtc.html",
     nsIAboutModule::ALLOW_SCRIPT
+  },
+  {
+    "printpreview", "about:blank",
+    nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT |
+    nsIAboutModule::HIDE_FROM_ABOUTABOUT |
+    nsIAboutModule::URI_CAN_LOAD_IN_CHILD
   }
 };
 static const int kRedirTotal = mozilla::ArrayLength(kRedirMap);
@@ -148,6 +152,7 @@ nsAboutRedirector::NewChannel(nsIURI* aURI,
                               nsIChannel** aResult)
 {
   NS_ENSURE_ARG_POINTER(aURI);
+  NS_ENSURE_ARG_POINTER(aLoadInfo);
   NS_ASSERTION(aResult, "must not be null");
 
   nsAutoCString path;
@@ -164,26 +169,25 @@ nsAboutRedirector::NewChannel(nsIURI* aURI,
       rv = NS_NewURI(getter_AddRefs(tempURI), kRedirMap[i].url);
       NS_ENSURE_SUCCESS(rv, rv);
 
+      rv = NS_NewChannelInternal(getter_AddRefs(tempChannel),
+                                 tempURI,
+                                 aLoadInfo);
+      NS_ENSURE_SUCCESS(rv, rv);
+
       // If tempURI links to an external URI (i.e. something other than
-      // chrome:// or resource://) then set the LOAD_REPLACE flag on the
-      // channel which forces the channel owner to reflect the displayed
+      // chrome:// or resource://) then set result principal URI on the
+      // load info which forces the channel principal to reflect the displayed
       // URL rather then being the systemPrincipal.
       bool isUIResource = false;
       rv = NS_URIChainHasFlags(tempURI, nsIProtocolHandler::URI_IS_UI_RESOURCE,
                                &isUIResource);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      nsLoadFlags loadFlags =
-        isUIResource ? static_cast<nsLoadFlags>(nsIChannel::LOAD_NORMAL)
-                     : static_cast<nsLoadFlags>(nsIChannel::LOAD_REPLACE);
+      bool isAboutBlank = NS_IsAboutBlank(tempURI);
 
-      rv = NS_NewChannelInternal(getter_AddRefs(tempChannel),
-                                 tempURI,
-                                 aLoadInfo,
-                                 nullptr, // aLoadGroup
-                                 nullptr, // aCallbacks
-                                 loadFlags);
-      NS_ENSURE_SUCCESS(rv, rv);
+      if (!isUIResource && !isAboutBlank) {
+        aLoadInfo->SetResultPrincipalURI(tempURI);
+      }
 
       tempChannel->SetOriginalURI(aURI);
 

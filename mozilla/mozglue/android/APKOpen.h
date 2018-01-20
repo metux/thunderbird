@@ -6,10 +6,9 @@
 #define APKOpen_h
 
 #include <jni.h>
-#include <pthread.h>
 
-#ifndef NS_EXPORT
-#define NS_EXPORT __attribute__ ((visibility("default")))
+#ifndef APKOPEN_EXPORT
+#define APKOPEN_EXPORT __attribute__ ((visibility("default")))
 #endif
 
 struct mapping_info {
@@ -19,9 +18,8 @@ struct mapping_info {
   size_t offset;
 };
 
-NS_EXPORT const struct mapping_info * getLibraryMapping();
-NS_EXPORT void abortThroughJava(const char* msg);
-NS_EXPORT pthread_t getJavaUiThread();
+APKOPEN_EXPORT const struct mapping_info * getLibraryMapping();
+APKOPEN_EXPORT void abortThroughJava(const char* msg);
 
 static const int SUCCESS = 0;
 static const int FAILURE = 1;

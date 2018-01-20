@@ -12,13 +12,14 @@
 <!ENTITY mailingListPropertiesMenu.label    "Својства дописне листе">
 <!ENTITY mailingListPropertiesMenu.accesskey "и">
 
+<!ENTITY abContextMenuButton.tooltip        "Прикажи контекстуални мени именика">
 <!ENTITY addressbookPicker.label            "Именик:">
 <!ENTITY addressbookPicker.accesskey        "к">
 <!ENTITY searchContacts.label               "Претражи контакте:">
 <!ENTITY searchContacts.accesskey           "н">
-<!ENTITY SearchNameOrEmail.label            "Име или е-адреса">
+<!ENTITY SearchNameOrEmail.label            "Име или мејл">
 
-<!ENTITY addtoToFieldMenu.label             "Додај у поље">
+<!ENTITY addtoToFieldMenu.label             "Додај у Прима поље">
 <!ENTITY addtoToFieldMenu.accesskey         "а">
 <!ENTITY addtoCcFieldMenu.label             "Додај у Коп поље">
 <!ENTITY addtoCcFieldMenu.accesskey         "К">
@@ -35,7 +36,12 @@
 <!ENTITY editMailingListContext.label       "Уреди списак">
 <!ENTITY editMailingListContext.accesskey   "е">
 
-<!ENTITY toButton.label                     "Додај у За:">
+<!ENTITY newContactAbContext.label          "Нови контакт">
+<!ENTITY newContactAbContext.accesskey      "к">
+<!ENTITY newListAbContext.label             "Нови списак">
+<!ENTITY newListAbContext.accesskey         "и">
+
+<!ENTITY toButton.label                     "Додај у Прима:">
 <!ENTITY toButton.accesskey                 "Д">
 <!ENTITY ccButton.label                     "Додај у Коп:">
 <!ENTITY ccButton.accesskey                 "К">

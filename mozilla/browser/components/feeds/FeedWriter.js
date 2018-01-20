@@ -2,6 +2,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+"use strict";
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -16,15 +17,7 @@ const FEEDWRITER_CID = Components.ID("{49bb6593-3aff-4eb3-a068-2712c28bd58e}");
 const FEEDWRITER_CONTRACTID = "@mozilla.org/browser/feeds/result-writer;1";
 
 function LOG(str) {
-  let prefB = Cc["@mozilla.org/preferences-service;1"].
-              getService(Ci.nsIPrefBranch);
-
-  let shouldLog = false;
-  try {
-    shouldLog = prefB.getBoolPref("feeds.log");
-  }
-  catch (ex) {
-  }
+  let shouldLog = Services.prefs.getBoolPref("feeds.log", false);
 
   if (shouldLog)
     dump("*** Feeds: " + str + "\n");
@@ -37,10 +30,8 @@ function LOG(str) {
  * @returns an nsIURI object, or null if the creation of the URI failed.
  */
 function makeURI(aURLSpec, aCharset) {
-  let ios = Cc["@mozilla.org/network/io-service;1"].
-            getService(Ci.nsIIOService);
   try {
-    return ios.newURI(aURLSpec, aCharset, null);
+    return Services.io.newURI(aURLSpec, aCharset);
   } catch (ex) { }
 
   return null;
@@ -83,6 +74,13 @@ function FeedWriter() {
   this._selectedAppMenuItem = null;
   this._subscribeCallback = null;
   this._defaultHandlerMenuItem = null;
+
+
+  XPCOMUtils.defineLazyGetter(this, "_mm", () =>
+    this._window.QueryInterface(Ci.nsIInterfaceRequestor).
+                 getInterface(Ci.nsIDocShell).
+                 QueryInterface(Ci.nsIInterfaceRequestor).
+                 getInterface(Ci.nsIContentFrameMessageManager));
 }
 
 FeedWriter.prototype = {
@@ -94,8 +92,7 @@ FeedWriter.prototype = {
   _getPropertyAsString(container, property) {
     try {
       return container.fields.getPropertyAsAString(property);
-    }
-    catch (e) {
+    } catch (e) {
     }
     return "";
   },
@@ -104,10 +101,10 @@ FeedWriter.prototype = {
     let element = this._document.getElementById(id);
     let textNode = text.createDocumentFragment(element);
     while (element.hasChildNodes())
-      element.removeChild(element.firstChild);
+      element.firstChild.remove();
     element.appendChild(textNode);
     if (text.base) {
-      element.setAttributeNS(XML_NS, 'base', text.base.spec);
+      element.setAttributeNS(XML_NS, "base", text.base.spec);
     }
   },
 
@@ -122,17 +119,14 @@ FeedWriter.prototype = {
    *          The URI spec to set as the href
    */
   _safeSetURIAttribute(element, attribute, uri) {
-    let secman = Cc["@mozilla.org/scriptsecuritymanager;1"].
-                 getService(Ci.nsIScriptSecurityManager);
     const flags = Ci.nsIScriptSecurityManager.DISALLOW_INHERIT_PRINCIPAL;
     try {
       // TODO Is this necessary?
-      secman.checkLoadURIStrWithPrincipal(this._feedPrincipal, uri, flags);
+      Services.scriptSecurityManager.checkLoadURIStrWithPrincipal(this._feedPrincipal, uri, flags);
       // checkLoadURIStrWithPrincipal will throw if the link URI should not be
       // loaded, either because our feedURI isn't allowed to load it or per
       // the rules specified in |flags|, so we'll never "linkify" the link...
-    }
-    catch (e) {
+    } catch (e) {
       // Not allowed to load this link because secman.checkLoadURIStr threw
       return;
     }
@@ -143,9 +137,7 @@ FeedWriter.prototype = {
   __bundle: null,
   get _bundle() {
     if (!this.__bundle) {
-      this.__bundle = Cc["@mozilla.org/intl/stringbundle;1"].
-                      getService(Ci.nsIStringBundleService).
-                      createBundle(URI_BUNDLE);
+      this.__bundle = Services.strings.createBundle(URI_BUNDLE);
     }
     return this.__bundle;
   },
@@ -196,12 +188,11 @@ FeedWriter.prototype = {
   __dateFormatter: null,
   get _dateFormatter() {
     if (!this.__dateFormatter) {
-      const locale = Cc["@mozilla.org/chrome/chrome-registry;1"]
-                     .getService(Ci.nsIXULChromeRegistry)
-                     .getSelectedLocale("global", true);
-      const dtOptions = { year: 'numeric', month: 'long', day: 'numeric',
-                          hour: 'numeric', minute: 'numeric' };
-      this.__dateFormatter = new Intl.DateTimeFormat(locale, dtOptions);
+      const dtOptions = {
+        timeStyle: "short",
+        dateStyle: "long"
+      };
+      this.__dateFormatter = Services.intl.createDateTimeFormat(undefined, dtOptions);
     }
     return this.__dateFormatter;
   },
@@ -266,13 +257,12 @@ FeedWriter.prototype = {
 
       // Fix the margin on the main title, so that the image doesn't run over
       // the underline
-      feedTitleLink.setAttribute('title', titleText);
-      feedTitleText.style.marginRight = titleImageWidth + 'px';
+      feedTitleLink.setAttribute("title", titleText);
+      feedTitleText.style.marginRight = titleImageWidth + "px";
 
       this._safeSetURIAttribute(feedTitleLink, "href",
                                 parts.getPropertyAsAString("link"));
-    }
-    catch (e) {
+    } catch (e) {
       LOG("Failed to set Title Image (this is benign): " + e);
     }
   },
@@ -442,10 +432,10 @@ FeedWriter.prototype = {
         enclosureDiv.appendChild(this._document.createTextNode( " (" + type_text + ", " + size_text + ")"));
 
       else if (type_text)
-        enclosureDiv.appendChild(this._document.createTextNode( " (" + type_text + ")"))
+        enclosureDiv.appendChild(this._document.createTextNode( " (" + type_text + ")"));
 
       else if (size_text)
-        enclosureDiv.appendChild(this._document.createTextNode( " (" + size_text + ")"))
+        enclosureDiv.appendChild(this._document.createTextNode( " (" + size_text + ")"));
 
       enclosuresDiv.appendChild(enclosureDiv);
     }
@@ -468,8 +458,7 @@ FeedWriter.prototype = {
     try {
       result =
         feedService.getFeedResult(this._getOriginalURI(this._window));
-    }
-    catch (e) {
+    } catch (e) {
       LOG("Subscribe Preview: feed not available?!");
     }
 
@@ -480,8 +469,7 @@ FeedWriter.prototype = {
     let container;
     try {
       container = result.doc;
-    }
-    catch (e) {
+    } catch (e) {
       LOG("Subscribe Preview: no result.doc? Why didn't the original reload?");
       return null;
     }
@@ -495,9 +483,7 @@ FeedWriter.prototype = {
    * @returns moz-icon url of the given file as a string
    */
   _getFileIconURL(file) {
-    let ios = Cc["@mozilla.org/network/io-service;1"].
-              getService(Ci.nsIIOService);
-    let fph = ios.getProtocolHandler("file")
+    let fph = Services.io.getProtocolHandler("file")
                  .QueryInterface(Ci.nsIFileProtocolHandler);
     let urlSpec = fph.getURLSpecFromFile(file);
     return "moz-icon://" + urlSpec + "?size=16";
@@ -634,15 +620,15 @@ FeedWriter.prototype = {
     let header = this._document.getElementById("feedHeader");
     switch (feedType) {
       case Ci.nsIFeed.TYPE_VIDEO:
-        header.className = 'videoPodcastBackground';
+        header.className = "videoPodcastBackground";
         break;
 
       case Ci.nsIFeed.TYPE_AUDIO:
-        header.className = 'audioPodcastBackground';
+        header.className = "audioPodcastBackground";
         break;
 
       default:
-        header.className = 'feedBackground';
+        header.className = "feedBackground";
     }
 
     let liveBookmarksMenuItem = this._document.getElementById("liveBookmarksMenuItem");
@@ -748,7 +734,7 @@ FeedWriter.prototype = {
       feedinfo1.textContent = feedinfo1Str;
       feedinfo2.textContent = feedinfo2Str;
 
-      header.setAttribute('firstrun', 'true');
+      header.setAttribute("firstrun", "true");
 
       this._mm.sendAsyncMessage("FeedWriter:ShownFirstRun");
     }
@@ -766,8 +752,8 @@ FeedWriter.prototype = {
                           .QueryInterface(Ci.nsIDocShell);
     let chan = docShell.currentDocumentChannel;
 
-    // We probably need to call InheritFromDocShellToDoc for this, but right now
-    // we can't call it from JS.
+    // We probably need to call Inherit() for this, but right now we can't call
+    // it from JS.
     let attrs = docShell.getOriginAttributes();
     let ssm = Services.scriptSecurityManager;
     let nullPrincipal = ssm.createNullPrincipal(attrs);
@@ -804,9 +790,7 @@ FeedWriter.prototype = {
     this._document = window.document;
     this._handlersList = this._document.getElementById("handlersMenuList");
 
-    let secman = Cc["@mozilla.org/scriptsecuritymanager;1"].
-                 getService(Ci.nsIScriptSecurityManager);
-    this._feedPrincipal = secman.createCodebasePrincipal(this._feedURI, {});
+    this._feedPrincipal = Services.scriptSecurityManager.createCodebasePrincipal(this._feedURI, {});
 
     LOG("Subscribe Preview: feed uri = " + this._window.location.href);
 
@@ -832,7 +816,7 @@ FeedWriter.prototype = {
       case "FeedWriter:PreferenceUpdated":
         // This is called when browser-feeds.js spots a pref change
         // This will happen when
-        // - about:preferences#applications changes
+        // - about:preferences#general changes
         // - another feed reader page changes the preference
         // - when this page itself changes the select and there isn't a redirect
         //   bookmarks and launching an external app means the page stays open after subscribe
@@ -891,17 +875,16 @@ FeedWriter.prototype = {
       this._setTitleText(container);
       this._setTitleImage(container);
       this._writeFeedContent(container);
-    }
-    finally {
+    } finally {
       this._removeFeedFromCache();
     }
   },
 
   close() {
     this._document.getElementById("subscribeButton")
-        .removeEventListener("click", this, false);
+        .removeEventListener("click", this);
     this._handlersList
-        .removeEventListener("change", this, false);
+        .removeEventListener("change", this);
     this._document = null;
     this._window = null;
     this._handlersList = null;
@@ -972,35 +955,25 @@ FeedWriter.prototype = {
       LOG(`FeedWriter:SetFeedPrefsAndSubscribe - ${JSON.stringify(settings)}`);
       this._mm.sendAsyncMessage("FeedWriter:SetFeedPrefsAndSubscribe",
                                 settings);
-    }
+    };
 
     // Show the file picker before subscribing if the
     // choose application menuitem was chosen using the keyboard
     if (selectedItem.id == "chooseApplicationMenuItem") {
-      this._chooseClientApp(function(aResult) {
+      this._chooseClientApp(aResult => {
         if (aResult) {
           selectedItem =
             this._handlersList.selectedOptions[0];
           subscribeCallback();
         }
-      }.bind(this));
+      });
     } else {
       subscribeCallback();
     }
   },
 
-  get _mm() {
-    let mm = this._window.QueryInterface(Ci.nsIInterfaceRequestor).
-                          getInterface(Ci.nsIDocShell).
-                          QueryInterface(Ci.nsIInterfaceRequestor).
-                          getInterface(Ci.nsIContentFrameMessageManager);
-    delete this._mm;
-    return this._mm = mm;
-  },
-
   classID: FEEDWRITER_CID,
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIDOMEventListener, Ci.nsIObserver,
-                                         Ci.nsINavHistoryObserver,
                                          Ci.nsIDOMGlobalPropertyInitializer])
 };
 

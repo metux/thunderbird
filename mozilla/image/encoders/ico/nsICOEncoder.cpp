@@ -7,7 +7,6 @@
 #include "nsBMPEncoder.h"
 #include "nsPNGEncoder.h"
 #include "nsICOEncoder.h"
-#include "prprf.h"
 #include "nsString.h"
 #include "nsStreamUtils.h"
 #include "nsTArray.h"
@@ -443,7 +442,8 @@ nsICOEncoder::NotifyListener()
          mImageBufferReadPoint >= mNotifyThreshold || mFinished)) {
     nsCOMPtr<nsIInputStreamCallback> callback;
     if (mCallbackTarget) {
-      callback = NS_NewInputStreamReadyEvent(mCallback, mCallbackTarget);
+      callback = NS_NewInputStreamReadyEvent("nsICOEncoder::NotifyListener",
+                                             mCallback, mCallbackTarget);
     } else {
       callback = mCallback;
     }

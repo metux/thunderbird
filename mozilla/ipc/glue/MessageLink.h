@@ -87,7 +87,7 @@ class ProcessLink
     // or a pipe error) the chain will be destroyed and the original listener
     // will again be registered.
     void Open(Transport* aTransport, MessageLoop *aIOLoop, Side aSide);
-    
+
     // Run on the I/O thread, only when using inter-process link.
     // These methods acquire the monitor and forward to the
     // similarly named methods in AsyncChannel below
@@ -102,6 +102,9 @@ class ProcessLink
 
     virtual bool Unsound_IsClosed() const override;
     virtual uint32_t Unsound_NumQueuedMessages() const override;
+
+  protected:
+    void OnChannelConnectError();
 
   protected:
     Transport* mTransport;

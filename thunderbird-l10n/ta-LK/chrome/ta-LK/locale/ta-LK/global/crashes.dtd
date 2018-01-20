@@ -11,10 +11,8 @@ Entities below were automatically added by compare-locales,
 
 <!ENTITY clearAllReports.label "அனைத்து அறிக்கைகளையும் நீக்குக.">
 
-
-
 <!ENTITY crashReports.title         "Crash Reports">
-<!ENTITY crashesSubmitted.label     "Submitted Crash Reports">
 <!ENTITY crashesUnsubmitted.label   "Unsubmitted Crash Reports">
+<!ENTITY crashesSubmitted.label     "Submitted Crash Reports">
 <!ENTITY dateCrashed.heading        "Date Crashed">
 <!ENTITY dateSubmitted.heading      "Date Submitted">

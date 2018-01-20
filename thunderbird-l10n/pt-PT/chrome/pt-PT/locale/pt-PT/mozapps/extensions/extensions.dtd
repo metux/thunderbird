@@ -14,11 +14,14 @@
 <!ENTITY listEmpty.availableUpdates.label     "Nenhuma atualização encontrada">
 <!ENTITY listEmpty.recentUpdates.label        "Não possui extras atualizados recentemente">
 <!ENTITY listEmpty.findUpdates.label          "Procurar atualizações">
-<!ENTITY listEmpty.search.label               "Não foram encontrados extras coincidentes">
+<!ENTITY listEmpty.search.label               "Não foram encontrados extras correspondentes">
 <!ENTITY listEmpty.button.label               "Saber mais acerca dos extras">
 <!ENTITY installAddonFromFile.label           "Instalar extra a partir de ficheiro…">
 <!ENTITY installAddonFromFile.accesskey       "I">
 <!ENTITY toolsMenu.tooltip                    "Ferramentas para todos os extras">
+
+<!ENTITY getThemes.description                "À procura de personalizar o seu navegador?">
+<!ENTITY getThemes.learnMore                  "Escolha de entre milhares de temas.">
 
 <!ENTITY cmd.back.tooltip                     "Retroceder uma página">
 <!ENTITY cmd.forward.tooltip                  "Avançar uma página">
@@ -27,8 +30,8 @@
 <!ENTITY showAllExtensions.button.label       "Mostrar todas as extensões">
 <!ENTITY debugAddons.label                    "Depurar extras">
 <!ENTITY debugAddons.accesskey                "p">
-<!-- global warnings -->
 
+<!-- global warnings -->
 <!ENTITY warning.safemode.label                    "Todos os extras foram desativados pelo modo de segurança.">
 <!ENTITY warning.checkcompatibility.label          "A verificação de compatibilidade de extras está desativada. Poderá ter extras incompatíveis.">
 <!ENTITY warning.checkcompatibility.enable.label   "Ativar">
@@ -36,14 +39,14 @@
 <!ENTITY warning.updatesecurity.label              "A verificação de compatibilidade de extras está desativada. Poderá estar comprometido com atualizações.">
 <!ENTITY warning.updatesecurity.enable.label       "Ativar">
 <!ENTITY warning.updatesecurity.enable.tooltip     "Ativar verificação de segurança de atualização do extra">
-<!-- categories / views -->
 
+<!-- categories / views -->
 <!ENTITY view.search.label                    "Pesquisar">
 <!ENTITY view.discover.label                  "Obter extras">
 <!ENTITY view.recentUpdates.label             "Atualizações recentes">
 <!ENTITY view.availableUpdates.label          "Atualizações disponíveis">
-<!-- addon updates -->
 
+<!-- addon updates -->
 <!ENTITY updates.checkForUpdates.label        "Procurar atualizações">
 <!ENTITY updates.checkForUpdates.accesskey    "c">
 <!ENTITY updates.viewUpdates.label            "Ver atualizações recentes">
@@ -66,13 +69,13 @@
 <!ENTITY updates.updating.label               "A atualizar extras">
 <!ENTITY updates.installed.label              "Os seus extras foram atualizados.">
 <!ENTITY updates.downloaded.label             "As atualizações dos seus extras foram descarregadas.">
-<!ENTITY updates.restart.label                "Reinicie para completar a instalação">
+<!ENTITY updates.restart.label                "Reiniciar agora para completar a instalação">
 <!ENTITY updates.noneFound.label              "Nenhuma atualização encontrada">
 <!ENTITY updates.manualUpdatesFound.label     "Ver atualizações disponíveis">
 <!ENTITY updates.updateSelected.label         "Instalar atualizações">
 <!ENTITY updates.updateSelected.tooltip       "Instalar atualizações disponíveis nesta lista">
-<!-- addon actions -->
 
+<!-- addon actions -->
 <!ENTITY cmd.showDetails.label                "Mostrar mais informações">
 <!ENTITY cmd.showDetails.accesskey            "s">
 <!ENTITY cmd.findUpdates.label                "Procurar atualizações">
@@ -111,19 +114,20 @@
 <!ENTITY cmd.contribute.accesskey             "C">
 <!ENTITY cmd.contribute.tooltip               "Participar no desenvolvimento deste extra">
 
-<!ENTITY cmd.showReleaseNotes.label           "Mostrar notas da versão">
-<!ENTITY cmd.showReleaseNotes.tooltip         "Mostra as notas de versão desta atualização">
-<!ENTITY cmd.hideReleaseNotes.label           "Ocultar notas da versão">
-<!ENTITY cmd.hideReleaseNotes.tooltip         "Oculta as notas de versão desta atualização">
+<!ENTITY cmd.showReleaseNotes.label           "Mostrar notas de lançamento">
+<!ENTITY cmd.showReleaseNotes.tooltip         "Mostra as notas de lançamento para esta atualização">
+<!ENTITY cmd.hideReleaseNotes.label           "Ocultar notas de lançamento">
+<!ENTITY cmd.hideReleaseNotes.tooltip         "Oculta as notas de lançamento para esta atualização">
+<!ENTITY cmd.findReplacement.label            "Encontrar uma substituição">
+
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
      Displayed in the center of the Get Add-ons view, see bug 601143 for mockups. -->
-
 <!ENTITY discover.title                       "O que são extras?">
 <!ENTITY discover.description2                "Os extras são aplicações que permitem personalizar o &brandShortName; com funcionalidades ou estilos. Experimente uma barra lateral, um notificador meteorológico ou um tema para ajustar o &brandShortName; ao seu gosto.">
 <!ENTITY discover.footer                      "Quando estiver ligado à Internet, este painel mostrará alguns dos melhores e mais populares extras para que os possa experimentar.">
-<!-- detail view -->
 
+<!-- detail view -->
 <!ENTITY detail.version.label                 "Versão">
 <!ENTITY detail.lastupdated.label             "Última atualização">
 <!ENTITY detail.creator.label                 "Programador">
@@ -152,17 +156,17 @@
 <!ENTITY detail.showPreferencesUnix.label     "Preferências">
 <!ENTITY detail.showPreferencesUnix.accesskey "P">
 <!ENTITY detail.showPreferencesUnix.tooltip   "Mudar as preferências deste extra">
+
+
 <!-- ratings -->
-
-
 <!ENTITY rating2.label                        "Avaliação">
-<!-- download/install progress -->
 
+<!-- download/install progress -->
 <!ENTITY progress.pause.tooltip               "Pausa">
 <!ENTITY progress.cancel.tooltip              "Cancelar">
+
+
 <!-- list sorting -->
-
-
 <!ENTITY sort.name.label                      "Nome">
 <!ENTITY sort.name.tooltip                    "Ordenar por nome">
 <!ENTITY sort.dateUpdated.label               "Última atualização">
@@ -180,8 +184,12 @@
 
 <!ENTITY addon.homepage                       "Página inicial">
 <!ENTITY addon.details.label                  "Mais">
-<!ENTITY addon.details.tooltip                "Mostrar mais detalhes sobre este extra">
+<!ENTITY addon.details.tooltip                "Mostrar mais detalhes acerca deste extra">
 <!ENTITY addon.unknownDate                    "Desconhecido">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "LEGADO">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -203,9 +211,9 @@
 <!ENTITY addon.includeUpdate.label            "Incluir na atualização">
 <!ENTITY addon.updateAvailable.label          "Está disponível uma atualização">
 <!ENTITY addon.checkingForUpdates.label       "A procurar atualizações…">
-<!ENTITY addon.releaseNotes.label             "Notas da versão:">
+<!ENTITY addon.releaseNotes.label             "Notas de lançamento:">
 <!ENTITY addon.loadingReleaseNotes.label      "A carregar…">
-<!ENTITY addon.errorLoadingReleaseNotes.label "Ocorreu um erro ao carregar as notas da versão.">
+<!ENTITY addon.errorLoadingReleaseNotes.label "Ocorreu um erro ao carregar as notas de lançamento.">
 
 <!ENTITY addon.createdBy.label                "De ">
 
@@ -215,12 +223,12 @@
 <!ENTITY eula.accept                          "Aceitar e instalar…">
 
 <!ENTITY settings.path.button.label           "Procurar…">
+
 <!-- LOCALIZATION NOTE (experiment.info.label): The strings related to
      experiments are present on the "Experiments" tab of the add-ons manager.
      This tab won't be displayed unless an Experiment add-on is installed.
      Install https://people.mozilla.org/~gszorc/dummy-experiment-addon.xpi
      to cause this tab to appear. -->
-
 <!ENTITY experiment.info.label "O que é isto? A telemetria pode instalar e executar experiências de vez em quando.">
 <!ENTITY experiment.info.learnmore "Saber mais">
 <!ENTITY experiment.info.learnmore.accesskey "m">
@@ -234,7 +242,7 @@
      These entities form a sentence, with
      disabledUnsigned.description.findAddonsLink being a link to an external site. -->
 <!ENTITY disabledUnsigned.description.start "Os seguintes extras não foram verificados para utilização no &brandShortName;. Pode ">
-<!ENTITY disabledUnsigned.description.findAddonsLink "localizar substitutos">
+<!ENTITY disabledUnsigned.description.findAddonsLink "encontrar substitutos">
 <!ENTITY disabledUnsigned.description.end " ou solicitar que o programador peça a sua verificação.">
 <!ENTITY disabledUnsigned.learnMore "Saber mais acerca do nosso esforço para manter os utilizadores seguros.">
 <!-- LOCALIZATION NOTE (disabledUnsigned.devInfo.start, disabledUnsigned.devInfo.linkToManual, disabledUnsigned.devInfo.end):
@@ -246,3 +254,9 @@
 
 <!ENTITY pluginDeprecation.description "Falta alguma coisa? Alguns plugins deixaram de ser suportados pelo &brandShortName;.">
 <!ENTITY pluginDeprecation.learnMore "Saber mais.">
+
+<!ENTITY legacyWarning.description "Falta alguma coisa? Algumas extensões deixaram de ser suportadas pelo &brandShortName;.">
+<!ENTITY legacyWarning.showLegacy "Mostrar extensões de legado">
+<!ENTITY legacyExtensions.title "Extensões de legado">
+<!ENTITY legacyExtensions.description "Estas extensões não atendem aos padrões atuais do &brandShortName; por isso foram desativadas">
+<!ENTITY legacyExtensions.learnMore "Saber acerca das alterações aos extras">

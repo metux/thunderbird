@@ -20,6 +20,9 @@
 <!ENTITY installAddonFromFile.accesskey       "i">
 <!ENTITY toolsMenu.tooltip                    "Verkfæri fyrir allar viðbætur">
 
+<!ENTITY getThemes.description                "Ertu að leita eftir að gera vafrann persónulegri?">
+<!ENTITY getThemes.learnMore                  "Veldu frá þúsundum þema.">
+
 <!ENTITY cmd.back.tooltip                     "Til baka um eina síðu">
 <!ENTITY cmd.forward.tooltip                  "Áfram um eina síðu">
 
@@ -115,6 +118,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "Sýna útgáfuupplýsingar fyrir þessa uppfærslu">
 <!ENTITY cmd.hideReleaseNotes.label           "Fela útgáfuupplýsingar">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Fela útgáfuupplýsingar fyrir þessa uppfærslu">
+<!ENTITY cmd.findReplacement.label            "Finna staðgengil">
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
      Displayed in the center of the Get Add-ons view, see bug 601143 for mockups. -->
@@ -182,6 +186,10 @@
 <!ENTITY addon.details.label                  "Meira">
 <!ENTITY addon.details.tooltip                "Sýna meiri upplýsingar um þessa viðbót">
 <!ENTITY addon.unknownDate                    "Óþekkt">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "GAMALT">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -246,3 +254,9 @@
 
 <!ENTITY pluginDeprecation.description "Vantar eitthvað? Sum tengiforrit eru ekki lengur stutt af &brandShortName;.">
 <!ENTITY pluginDeprecation.learnMore "Lesa meira.">
+
+<!ENTITY legacyWarning.description "Vantar eitthvað? Sum tengiforrit eru ekki lengur stutt af &brandShortName;.">
+<!ENTITY legacyWarning.showLegacy "Sýna allar gamlar viðbætur">
+<!ENTITY legacyExtensions.title "Gamlar viðbætur">
+<!ENTITY legacyExtensions.description "Þessar viðbætur standast ekki núverandi staðla í &brandShortName; þannig að þær hafa verið gerðar óvirkar.">
+<!ENTITY legacyExtensions.learnMore "Fræðast um breytingar á viðbótum">

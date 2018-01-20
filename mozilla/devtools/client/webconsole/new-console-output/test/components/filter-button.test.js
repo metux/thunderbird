@@ -7,7 +7,7 @@ const { render } = require("enzyme");
 
 const { createFactory } = require("devtools/client/shared/vendor/react");
 
-const FilterButton = createFactory(require("devtools/client/webconsole/new-console-output/components/filter-button"));
+const FilterButton = createFactory(require("devtools/client/webconsole/new-console-output/components/FilterButton"));
 const { MESSAGE_LEVEL } = require("devtools/client/webconsole/new-console-output/constants");
 
 describe("FilterButton component:", () => {
@@ -20,7 +20,8 @@ describe("FilterButton component:", () => {
   it("displays as active when turned on", () => {
     const wrapper = render(FilterButton(props));
     expect(wrapper.html()).toBe(
-      "<button class=\"menu-filter-button error checked\">Error</button>"
+      "<button aria-pressed=\"true\" class=\"devtools-button error checked\">" +
+      "Error</button>"
     );
   });
 
@@ -28,7 +29,7 @@ describe("FilterButton component:", () => {
     const inactiveProps = Object.assign({}, props, { active: false });
     const wrapper = render(FilterButton(inactiveProps));
     expect(wrapper.html()).toBe(
-      "<button class=\"menu-filter-button error\">Error</button>"
+      "<button aria-pressed=\"false\" class=\"devtools-button error\">Error</button>"
     );
   });
 });

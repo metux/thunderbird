@@ -27,8 +27,11 @@ public:
 
   IMPL_EVENT_HANDLER(audioprocess)
 
-  void EventListenerAdded(nsIAtom* aType) override;
-  void EventListenerRemoved(nsIAtom* aType) override;
+  using EventTarget::EventListenerAdded;
+  void EventListenerAdded(nsAtom* aType) override;
+
+  using EventTarget::EventListenerRemoved;
+  void EventListenerRemoved(nsAtom* aType) override;
 
   JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
@@ -100,14 +103,12 @@ public:
     if (aChannelCount != ChannelCount()) {
       aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
     }
-    return;
   }
   void SetChannelCountModeValue(ChannelCountMode aMode, ErrorResult& aRv) override
   {
     if (aMode != ChannelCountMode::Explicit) {
       aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
     }
-    return;
   }
 
   uint32_t BufferSize() const

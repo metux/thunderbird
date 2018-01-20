@@ -30,41 +30,39 @@ function test() {
       { uri: NetUtil.newURI("http://ubuntu.org"),
         visits: [ new VisitInfo(PlacesUtils.history.TRANSITION_DOWNLOAD) ]
       },
-    ]
+    ];
     PlacesUtils.asyncHistory.updatePlaces(places, {
-      handleResult: function () {},
-      handleError: function () {
+      handleResult() {},
+      handleError() {
         ok(false, "gHistory.updatePlaces() failed");
       },
-      handleCompletion: function () {
+      handleCompletion() {
         // Make sure Downloads is present.
         isnot(win.PlacesOrganizer._places.selectedNode, null,
               "Downloads is present and selected");
 
 
         // Check results.
-        let contentRoot = win.ContentArea.currentView.result.root;
-        let len = contentRoot.childCount;
-        const TEST_URIS = ["http://ubuntu.org/", "http://google.com/"];
-        for (let i = 0; i < len; i++) {
-          is(contentRoot.getChild(i).uri, TEST_URIS[i],
-              "Comparing downloads shown at index " + i);
+        let testURIs = ["http://ubuntu.org/", "http://google.com/"];
+        for (let element of win.ContentArea.currentView
+                                           .associatedElement.children) {
+          is(element._shell.download.source.url, testURIs.shift(),
+             "URI matches");
         }
 
         win.close();
         PlacesTestUtils.clearHistory().then(finish);
       }
-    })
-  }
+    });
+  };
 
   openLibrary(onLibraryReady, "Downloads");
 }
 
-function VisitInfo(aTransitionType)
-{
+function VisitInfo(aTransitionType) {
   this.transitionType =
     aTransitionType === undefined ?
       PlacesUtils.history.TRANSITION_LINK : aTransitionType;
   this.visitDate = now++ * 1000;
 }
-VisitInfo.prototype = {}
+VisitInfo.prototype = {};

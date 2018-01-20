@@ -32,6 +32,11 @@ using mozilla::ipc::PBackgroundChild;
 
 namespace {
 
+enum class PutStatusPolicy {
+  Default,
+  RequireOK
+};
+
 bool
 IsValidPutRequestURL(const nsAString& aUrl, ErrorResult& aRv)
 {
@@ -77,6 +82,26 @@ IsValidPutRequestMethod(const RequestOrUSVString& aRequest, ErrorResult& aRv)
     return true;
   }
   return IsValidPutRequestMethod(aRequest.GetAsRequest(), aRv);
+}
+
+static bool
+IsValidPutResponseStatus(Response& aResponse, PutStatusPolicy aPolicy,
+                         ErrorResult& aRv)
+{
+  if ((aPolicy == PutStatusPolicy::RequireOK && !aResponse.Ok()) ||
+      aResponse.Status() == 206) {
+    uint32_t t = static_cast<uint32_t>(aResponse.Type());
+    NS_ConvertASCIItoUTF16 type(ResponseTypeValues::strings[t].value,
+                                ResponseTypeValues::strings[t].length);
+    nsAutoString status;
+    status.AppendInt(aResponse.Status());
+    nsAutoString url;
+    aResponse.GetUrl(url);
+    aRv.ThrowTypeError<MSG_CACHE_ADD_FAILED_RESPONSE>(type, status, url);
+    return false;
+  }
+
+  return true;
 }
 
 } // namespace
@@ -159,22 +184,14 @@ public:
       }
 
       // Do not allow the convenience methods .add()/.addAll() to store failed
-      // responses.  A consequence of this is that these methods cannot be
-      // used to store opaque or opaqueredirect responses since they always
-      // expose a 0 status value.
-      if (!response->Ok()) {
-        uint32_t t = static_cast<uint32_t>(response->Type());
-        NS_ConvertASCIItoUTF16 type(ResponseTypeValues::strings[t].value,
-                                    ResponseTypeValues::strings[t].length);
-        nsAutoString status;
-        status.AppendInt(response->Status());
-        nsAutoString url;
-        mRequestList[i]->GetUrl(url);
-        ErrorResult rv;
-        rv.ThrowTypeError<MSG_CACHE_ADD_FAILED_RESPONSE>(type, status, url);
-
+      // or invalid responses.  A consequence of this is that these methods
+      // cannot be used to store opaque or opaqueredirect responses since they
+      // always expose a 0 status value.
+      ErrorResult errorResult;
+      if (!IsValidPutResponseStatus(*response, PutStatusPolicy::RequireOK,
+                                    errorResult)) {
         // TODO: abort the fetch requests we have running (bug 1157434)
-        mPromise->MaybeReject(rv);
+        mPromise->MaybeReject(errorResult);
         return;
       }
 
@@ -185,7 +202,10 @@ public:
 
     // Now store the unwrapped Response list in the Cache.
     ErrorResult result;
-    RefPtr<Promise> put = mCache->PutAll(mRequestList, responseList, result);
+    // TODO: Here we use the JSContext as received by the ResolvedCallback, and
+    // its state could be the wrong one. The spec doesn't say anything
+    // about it, yet (bug 1384006)
+    RefPtr<Promise> put = mCache->PutAll(aCx, mRequestList, responseList, result);
     if (NS_WARN_IF(result.Failed())) {
       // TODO: abort the fetch requests we have running (bug 1157434)
       mPromise->MaybeReject(result);
@@ -236,17 +256,19 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Cache)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-Cache::Cache(nsIGlobalObject* aGlobal, CacheChild* aActor)
+Cache::Cache(nsIGlobalObject* aGlobal, CacheChild* aActor, Namespace aNamespace)
   : mGlobal(aGlobal)
   , mActor(aActor)
+  , mNamespace(aNamespace)
 {
   MOZ_DIAGNOSTIC_ASSERT(mGlobal);
   MOZ_DIAGNOSTIC_ASSERT(mActor);
+  MOZ_DIAGNOSTIC_ASSERT(mNamespace != INVALID_NAMESPACE);
   mActor->SetListener(this);
 }
 
 already_AddRefed<Promise>
-Cache::Match(const RequestOrUSVString& aRequest,
+Cache::Match(JSContext* aCx, const RequestOrUSVString& aRequest,
              const CacheQueryOptions& aOptions, ErrorResult& aRv)
 {
   if (NS_WARN_IF(!mActor)) {
@@ -256,7 +278,8 @@ Cache::Match(const RequestOrUSVString& aRequest,
 
   CacheChild::AutoLock actorLock(mActor);
 
-  RefPtr<InternalRequest> ir = ToInternalRequest(aRequest, IgnoreBody, aRv);
+  RefPtr<InternalRequest> ir =
+    ToInternalRequest(aCx, aRequest, IgnoreBody, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
@@ -264,7 +287,9 @@ Cache::Match(const RequestOrUSVString& aRequest,
   CacheQueryParams params;
   ToCacheQueryParams(params, aOptions);
 
-  AutoChildOpArgs args(this, CacheMatchArgs(CacheRequest(), params), 1);
+  AutoChildOpArgs args(this,
+                       CacheMatchArgs(CacheRequest(), params, GetOpenMode()),
+                       1);
 
   args.Add(ir, IgnoreBody, IgnoreInvalidScheme, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
@@ -275,7 +300,7 @@ Cache::Match(const RequestOrUSVString& aRequest,
 }
 
 already_AddRefed<Promise>
-Cache::MatchAll(const Optional<RequestOrUSVString>& aRequest,
+Cache::MatchAll(JSContext* aCx, const Optional<RequestOrUSVString>& aRequest,
                 const CacheQueryOptions& aOptions, ErrorResult& aRv)
 {
   if (NS_WARN_IF(!mActor)) {
@@ -288,11 +313,13 @@ Cache::MatchAll(const Optional<RequestOrUSVString>& aRequest,
   CacheQueryParams params;
   ToCacheQueryParams(params, aOptions);
 
-  AutoChildOpArgs args(this, CacheMatchAllArgs(void_t(), params), 1);
+  AutoChildOpArgs args(this,
+                       CacheMatchAllArgs(void_t(), params, GetOpenMode()),
+                       1);
 
   if (aRequest.WasPassed()) {
-    RefPtr<InternalRequest> ir = ToInternalRequest(aRequest.Value(),
-                                                     IgnoreBody, aRv);
+    RefPtr<InternalRequest> ir = ToInternalRequest(aCx, aRequest.Value(),
+                                                   IgnoreBody, aRv);
     if (aRv.Failed()) {
       return nullptr;
     }
@@ -308,7 +335,7 @@ Cache::MatchAll(const Optional<RequestOrUSVString>& aRequest,
 
 already_AddRefed<Promise>
 Cache::Add(JSContext* aContext, const RequestOrUSVString& aRequest,
-           ErrorResult& aRv)
+           CallerType aCallerType, ErrorResult& aRv)
 {
   if (NS_WARN_IF(!mActor)) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
@@ -338,12 +365,13 @@ Cache::Add(JSContext* aContext, const RequestOrUSVString& aRequest,
   }
 
   requestList.AppendElement(Move(request));
-  return AddAll(global, Move(requestList), aRv);
+  return AddAll(global, Move(requestList), aCallerType, aRv);
 }
 
 already_AddRefed<Promise>
 Cache::AddAll(JSContext* aContext,
               const Sequence<OwningRequestOrUSVString>& aRequestList,
+              CallerType aCallerType,
               ErrorResult& aRv)
 {
   if (NS_WARN_IF(!mActor)) {
@@ -387,12 +415,12 @@ Cache::AddAll(JSContext* aContext,
     requestList.AppendElement(Move(request));
   }
 
-  return AddAll(global, Move(requestList), aRv);
+  return AddAll(global, Move(requestList), aCallerType, aRv);
 }
 
 already_AddRefed<Promise>
-Cache::Put(const RequestOrUSVString& aRequest, Response& aResponse,
-           ErrorResult& aRv)
+Cache::Put(JSContext* aCx, const RequestOrUSVString& aRequest,
+           Response& aResponse, ErrorResult& aRv)
 {
   if (NS_WARN_IF(!mActor)) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
@@ -405,14 +433,18 @@ Cache::Put(const RequestOrUSVString& aRequest, Response& aResponse,
     return nullptr;
   }
 
-  RefPtr<InternalRequest> ir = ToInternalRequest(aRequest, ReadBody, aRv);
+  if (!IsValidPutResponseStatus(aResponse, PutStatusPolicy::Default, aRv)) {
+    return nullptr;
+  }
+
+  RefPtr<InternalRequest> ir = ToInternalRequest(aCx, aRequest, ReadBody, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
 
   AutoChildOpArgs args(this, CachePutAllArgs(), 1);
 
-  args.Add(ir, ReadBody, TypeErrorOnInvalidScheme,
+  args.Add(aCx, ir, ReadBody, TypeErrorOnInvalidScheme,
            aResponse, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
@@ -422,7 +454,7 @@ Cache::Put(const RequestOrUSVString& aRequest, Response& aResponse,
 }
 
 already_AddRefed<Promise>
-Cache::Delete(const RequestOrUSVString& aRequest,
+Cache::Delete(JSContext* aCx, const RequestOrUSVString& aRequest,
               const CacheQueryOptions& aOptions, ErrorResult& aRv)
 {
   if (NS_WARN_IF(!mActor)) {
@@ -432,7 +464,8 @@ Cache::Delete(const RequestOrUSVString& aRequest,
 
   CacheChild::AutoLock actorLock(mActor);
 
-  RefPtr<InternalRequest> ir = ToInternalRequest(aRequest, IgnoreBody, aRv);
+  RefPtr<InternalRequest> ir =
+    ToInternalRequest(aCx, aRequest, IgnoreBody, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
@@ -451,7 +484,7 @@ Cache::Delete(const RequestOrUSVString& aRequest,
 }
 
 already_AddRefed<Promise>
-Cache::Keys(const Optional<RequestOrUSVString>& aRequest,
+Cache::Keys(JSContext* aCx, const Optional<RequestOrUSVString>& aRequest,
             const CacheQueryOptions& aOptions, ErrorResult& aRv)
 {
   if (NS_WARN_IF(!mActor)) {
@@ -464,11 +497,13 @@ Cache::Keys(const Optional<RequestOrUSVString>& aRequest,
   CacheQueryParams params;
   ToCacheQueryParams(params, aOptions);
 
-  AutoChildOpArgs args(this, CacheKeysArgs(void_t(), params), 1);
+  AutoChildOpArgs args(this,
+                       CacheKeysArgs(void_t(), params, GetOpenMode()),
+                       1);
 
   if (aRequest.WasPassed()) {
-    RefPtr<InternalRequest> ir = ToInternalRequest(aRequest.Value(),
-                                                     IgnoreBody, aRv);
+    RefPtr<InternalRequest> ir =
+      ToInternalRequest(aCx, aRequest.Value(), IgnoreBody, aRv);
     if (NS_WARN_IF(aRv.Failed())) {
       return nullptr;
     }
@@ -575,7 +610,8 @@ Cache::ExecuteOp(AutoChildOpArgs& aOpArgs, ErrorResult& aRv)
 
 already_AddRefed<Promise>
 Cache::AddAll(const GlobalObject& aGlobal,
-              nsTArray<RefPtr<Request>>&& aRequestList, ErrorResult& aRv)
+              nsTArray<RefPtr<Request>>&& aRequestList,
+              CallerType aCallerType, ErrorResult& aRv)
 {
   MOZ_DIAGNOSTIC_ASSERT(mActor);
 
@@ -601,7 +637,7 @@ Cache::AddAll(const GlobalObject& aGlobal,
     RequestOrUSVString requestOrString;
     requestOrString.SetAsRequest() = aRequestList[i];
     RefPtr<Promise> fetch = FetchRequest(mGlobal, requestOrString,
-                                           RequestInit(), aRv);
+                                         RequestInit(), aCallerType, aRv);
     if (NS_WARN_IF(aRv.Failed())) {
       return nullptr;
     }
@@ -628,7 +664,7 @@ Cache::AddAll(const GlobalObject& aGlobal,
 }
 
 already_AddRefed<Promise>
-Cache::PutAll(const nsTArray<RefPtr<Request>>& aRequestList,
+Cache::PutAll(JSContext* aCx, const nsTArray<RefPtr<Request>>& aRequestList,
               const nsTArray<RefPtr<Response>>& aResponseList,
               ErrorResult& aRv)
 {
@@ -645,13 +681,20 @@ Cache::PutAll(const nsTArray<RefPtr<Request>>& aRequestList,
 
   for (uint32_t i = 0; i < aRequestList.Length(); ++i) {
     RefPtr<InternalRequest> ir = aRequestList[i]->GetInternalRequest();
-    args.Add(ir, ReadBody, TypeErrorOnInvalidScheme, *aResponseList[i], aRv);
+    args.Add(aCx, ir, ReadBody, TypeErrorOnInvalidScheme, *aResponseList[i],
+             aRv);
     if (NS_WARN_IF(aRv.Failed())) {
       return nullptr;
     }
   }
 
   return ExecuteOp(args, aRv);
+}
+
+OpenMode
+Cache::GetOpenMode() const
+{
+  return mNamespace == CHROME_ONLY_NAMESPACE ? OpenMode::Eager : OpenMode::Lazy;
 }
 
 } // namespace cache

@@ -1,3 +1,4 @@
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 /*
  * Gather (Read) entire SSL3 records from socket into buffer.
  *
@@ -32,6 +33,7 @@ ssl3_InitGather(sslGather *gs)
     gs->readOffset = 0;
     gs->dtlsPacketOffset = 0;
     gs->dtlsPacket.len = 0;
+    gs->rejectV2Records = PR_FALSE;
     status = sslBuffer_Grow(&gs->buf, 4096);
     return status;
 }
@@ -147,8 +149,11 @@ ssl3_GatherData(sslSocket *ss, sslGather *gs, int flags, ssl2Gather *ssl2gs)
         switch (gs->state) {
             case GS_HEADER:
                 /* Check for SSLv2 handshakes. Always assume SSLv3 on clients,
-                 * support SSLv2 handshakes only when ssl2gs != NULL. */
-                if (!ssl2gs || ssl3_isLikelyV3Hello(gs->hdr)) {
+                 * support SSLv2 handshakes only when ssl2gs != NULL.
+                 * Always assume v3 after we received the first record. */
+                if (!ssl2gs ||
+                    ss->gs.rejectV2Records ||
+                    ssl3_isLikelyV3Hello(gs->hdr)) {
                     /* Should have a non-SSLv2 record header in gs->hdr. Extract
                      * the length of the following encrypted data, and then
                      * read in the rest of the record into gs->inbuf. */
@@ -183,7 +188,7 @@ ssl3_GatherData(sslSocket *ss, sslGather *gs, int flags, ssl2Gather *ssl2gs)
                 /* This is the max length for an encrypted SSLv3+ fragment. */
                 if (!v2HdrLength &&
                     gs->remainder > (MAX_FRAGMENT_LENGTH + 2048)) {
-                    SSL3_SendAlert(ss, alert_fatal, unexpected_message);
+                    SSL3_SendAlert(ss, alert_fatal, record_overflow);
                     gs->state = GS_INIT;
                     PORT_SetError(SSL_ERROR_RX_RECORD_TOO_LONG);
                     return SECFailure;
@@ -205,13 +210,28 @@ ssl3_GatherData(sslSocket *ss, sslGather *gs, int flags, ssl2Gather *ssl2gs)
                  * many into the gs->hdr[] buffer. Copy them over into inbuf so
                  * that we can properly process the hello record later. */
                 if (v2HdrLength) {
+                    /* Reject v2 records that don't even carry enough data to
+                     * resemble a valid ClientHello header. */
+                    if (gs->remainder < SSL_HL_CLIENT_HELLO_HBYTES) {
+                        SSL3_SendAlert(ss, alert_fatal, illegal_parameter);
+                        PORT_SetError(SSL_ERROR_RX_MALFORMED_CLIENT_HELLO);
+                        return SECFailure;
+                    }
+
+                    PORT_Assert(lbp);
                     gs->inbuf.len = 5 - v2HdrLength;
                     PORT_Memcpy(lbp, gs->hdr + v2HdrLength, gs->inbuf.len);
                     gs->remainder -= gs->inbuf.len;
                     lbp += gs->inbuf.len;
                 }
 
-                break; /* End this case.  Continue around the loop. */
+                if (gs->remainder > 0) {
+                    break; /* End this case.  Continue around the loop. */
+                }
+
+            /* FALL THROUGH if (gs->remainder == 0) as we just received
+                 * an empty record and there's really no point in calling
+                 * ssl_DefRecv() with buf=NULL and len=0. */
 
             case GS_DATA:
                 /*
@@ -219,6 +239,10 @@ ssl3_GatherData(sslSocket *ss, sslGather *gs, int flags, ssl2Gather *ssl2gs)
                 */
                 SSL_TRC(10, ("%d: SSL[%d]: got record of %d bytes",
                              SSL_GETPID(), ss->fd, gs->inbuf.len));
+
+                /* reject any v2 records from now on */
+                ss->gs.rejectV2Records = PR_TRUE;
+
                 gs->state = GS_INIT;
                 return 1;
         }
@@ -371,7 +395,8 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
     SSL3Ciphertext cText;
     PRBool keepGoing = PR_TRUE;
 
-    SSL_TRC(30, ("ssl3_GatherCompleteHandshake"));
+    SSL_TRC(30, ("%d: SSL3[%d]: ssl3_GatherCompleteHandshake",
+                 SSL_GETPID(), ss->fd));
 
     /* ssl3_HandleRecord may end up eventually calling ssl_FinishHandshake,
      * which requires the 1stHandshakeLock, which must be acquired before the
@@ -382,8 +407,11 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
 
     do {
         PRBool handleRecordNow = PR_FALSE;
+        PRBool processingEarlyData;
 
         ssl_GetSSL3HandshakeLock(ss);
+
+        processingEarlyData = ss->ssl3.hs.zeroRttState == ssl_0rtt_accepted;
 
         /* Without this, we may end up wrongly reporting
          * SSL_ERROR_RX_UNEXPECTED_* errors if we receive any records from the
@@ -481,7 +509,6 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
                 if (IS_DTLS(ss)) {
                     sslSequenceNumber seq_num;
 
-                    cText.version = dtls_DTLSVersionToTLSVersion(cText.version);
                     /* DTLS sequence number */
                     PORT_Memcpy(&seq_num, &ss->gs.hdr[3], sizeof(seq_num));
                     cText.seq_num = PR_ntohll(seq_num);
@@ -532,6 +559,15 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
             } else {
                 ss->ssl3.hs.canFalseStart = PR_FALSE;
             }
+        } else if (processingEarlyData &&
+                   ss->ssl3.hs.zeroRttState == ssl_0rtt_done &&
+                   !PR_CLIST_IS_EMPTY(&ss->ssl3.hs.bufferedEarlyData)) {
+            /* If we were processing early data and we are no longer, then force
+             * the handshake to block.  This ensures that early data is
+             * delivered to the application before the handshake completes. */
+            ssl_ReleaseSSL3HandshakeLock(ss);
+            PORT_SetError(PR_WOULD_BLOCK_ERROR);
+            return SECWouldBlock;
         }
         ssl_ReleaseSSL3HandshakeLock(ss);
     } while (keepGoing);

@@ -8,10 +8,10 @@ package org.mozilla.gecko;
 import org.mozilla.gecko.annotation.RobocopTarget;
 import org.mozilla.gecko.annotation.WrapForJNI;
 import org.mozilla.gecko.mozglue.GeckoLoader;
+import org.mozilla.gecko.process.GeckoProcessManager;
+import org.mozilla.gecko.util.GeckoBundle;
+import org.mozilla.gecko.util.FileUtils;
 import org.mozilla.gecko.util.ThreadUtils;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import android.content.Context;
 import android.content.res.Configuration;
@@ -21,22 +21,20 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.MessageQueue;
 import android.os.SystemClock;
+import android.text.TextUtils;
 import android.util.Log;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Locale;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.StringTokenizer;
 
 public class GeckoThread extends Thread {
     private static final String LOGTAG = "GeckoThread";
 
-    public enum State {
+    public enum State implements NativeQueue.State {
         // After being loaded by class loader.
         @WrapForJNI INITIAL(0),
         // After launching Gecko thread
@@ -51,8 +49,10 @@ public class GeckoThread extends Thread {
         @WrapForJNI PROFILE_READY(5),
         // After initializing frontend JS
         @WrapForJNI RUNNING(6),
-        // After leaving Gecko event loop
+        // After granting request to shutdown
         @WrapForJNI EXITING(3),
+        // After granting request to restart
+        @WrapForJNI RESTARTING(3),
         // After exiting GeckoThread (corresponding to "Gecko:Exited" event)
         @WrapForJNI EXITED(0);
 
@@ -69,46 +69,29 @@ public class GeckoThread extends Thread {
             this.rank = rank;
         }
 
-        public boolean is(final State other) {
+        @Override
+        public boolean is(final NativeQueue.State other) {
             return this == other;
         }
 
-        public boolean isAtLeast(final State other) {
-            return this.rank >= other.rank;
+        @Override
+        public boolean isAtLeast(final NativeQueue.State other) {
+            if (other instanceof State) {
+                return this.rank >= ((State) other).rank;
+            }
+            return false;
         }
+    }
 
-        public boolean isAtMost(final State other) {
-            return this.rank <= other.rank;
-        }
+    private static final NativeQueue sNativeQueue =
+        new NativeQueue(State.INITIAL, State.RUNNING);
 
-        // Inclusive
-        public boolean isBetween(final State min, final State max) {
-            return this.rank >= min.rank && this.rank <= max.rank;
-        }
+    /* package */ static NativeQueue getNativeQueue() {
+        return sNativeQueue;
     }
 
     public static final State MIN_STATE = State.INITIAL;
     public static final State MAX_STATE = State.EXITED;
-
-    private static volatile State sState = State.INITIAL;
-
-    private static class QueuedCall {
-        public Method method;
-        public Object target;
-        public Object[] args;
-        public State state;
-
-        public QueuedCall(final Method method, final Object target,
-                          final Object[] args, final State state) {
-            this.method = method;
-            this.target = target;
-            this.args = args;
-            this.state = state;
-        }
-    }
-
-    private static final int QUEUED_CALLS_COUNT = 16;
-    private static final ArrayList<QueuedCall> QUEUED_CALLS = new ArrayList<>(QUEUED_CALLS_COUNT);
 
     private static final Runnable UI_THREAD_CALLBACK = new Runnable() {
         @Override
@@ -121,35 +104,71 @@ public class GeckoThread extends Thread {
         }
     };
 
-    private static GeckoThread sGeckoThread;
+    private static final GeckoThread INSTANCE = new GeckoThread();
 
     @WrapForJNI
     private static final ClassLoader clsLoader = GeckoThread.class.getClassLoader();
     @WrapForJNI
     private static MessageQueue msgQueue;
+    @WrapForJNI
+    private static int uiThreadId;
+
+    private boolean mInitialized;
+    private String[] mArgs;
+
+    // Main process parameters
+    public static final int FLAG_DEBUGGING = 1; // Debugging mode.
+    public static final int FLAG_PRELOAD_CHILD = 2; // Preload child during main thread start.
 
     private GeckoProfile mProfile;
+    private String mExtraArgs;
+    private int mFlags;
 
-    private final String mArgs;
-    private final String mAction;
-    private final boolean mDebugging;
+    // Child process parameters
+    private int mCrashFileDescriptor = -1;
+    private int mIPCFileDescriptor = -1;
 
-    GeckoThread(GeckoProfile profile, String args, String action, boolean debugging) {
-        mProfile = profile;
-        mArgs = args;
-        mAction = action;
-        mDebugging = debugging;
-
+    GeckoThread() {
         setName("Gecko");
     }
 
-    public static boolean init(GeckoProfile profile, String args, String action, boolean debugging) {
+    @WrapForJNI
+    private static boolean isChildProcess() {
+        return INSTANCE.mIPCFileDescriptor != -1;
+    }
+
+    private synchronized boolean init(final GeckoProfile profile, final String[] args,
+                                      final String extraArgs, final int flags,
+                                      final int crashFd, final int ipcFd) {
         ThreadUtils.assertOnUiThread();
-        if (isState(State.INITIAL) && sGeckoThread == null) {
-            sGeckoThread = new GeckoThread(profile, args, action, debugging);
-            return true;
+        uiThreadId = android.os.Process.myTid();
+
+        if (mInitialized) {
+            return false;
         }
-        return false;
+
+        mProfile = profile;
+        mArgs = args;
+        mExtraArgs = extraArgs;
+        mFlags = flags;
+        mCrashFileDescriptor = crashFd;
+        mIPCFileDescriptor = ipcFd;
+
+        mInitialized = true;
+        notifyAll();
+        return true;
+    }
+
+    public static boolean initMainProcess(final GeckoProfile profile, final String extraArgs,
+                                          final int flags) {
+        return INSTANCE.init(profile, /* args */ null, extraArgs, flags,
+                                 /* crashFd */ -1, /* ipcFd */ -1);
+    }
+
+    public static boolean initChildProcess(final String[] args, final int crashFd,
+                                           final int ipcFd) {
+        return INSTANCE.init(/* profile */ null, args, /* extraArgs */ null,
+                                 /* flags */ 0, crashFd, ipcFd);
     }
 
     private static boolean canUseProfile(final Context context, final GeckoProfile profile,
@@ -182,7 +201,9 @@ public class GeckoThread extends Thread {
                              profileName, profileDir);
     }
 
-    public static boolean initWithProfile(final String profileName, final File profileDir) {
+    public static boolean initMainProcessWithProfile(final String profileName,
+                                                     final File profileDir,
+                                                     final String args) {
         if (profileName == null) {
             throw new IllegalArgumentException("Null profile name");
         }
@@ -201,14 +222,15 @@ public class GeckoThread extends Thread {
         }
 
         // We haven't initialized yet; okay to initialize now.
-        return init(GeckoProfile.get(context, profileName, profileDir),
-                    /* args */ null, /* action */ null, /* debugging */ false);
+        return initMainProcess(GeckoProfile.get(context, profileName, profileDir),
+                               args, /* flags */ 0);
     }
 
     public static boolean launch() {
         ThreadUtils.assertOnUiThread();
+
         if (checkAndSetState(State.INITIAL, State.LAUNCHED)) {
-            sGeckoThread.start();
+            INSTANCE.start();
             return true;
         }
         return false;
@@ -223,154 +245,13 @@ public class GeckoThread extends Thread {
         return isState(State.RUNNING);
     }
 
-    // Invoke the given Method and handle checked Exceptions.
-    private static void invokeMethod(final Method method, final Object obj, final Object[] args) {
-        try {
-            method.setAccessible(true);
-            method.invoke(obj, args);
-        } catch (final IllegalAccessException e) {
-            throw new IllegalStateException("Unexpected exception", e);
-        } catch (final InvocationTargetException e) {
-            throw new UnsupportedOperationException("Cannot make call", e.getCause());
-        }
+    private static void loadGeckoLibs(final Context context, final String resourcePath) {
+        GeckoLoader.loadSQLiteLibs(context, resourcePath);
+        GeckoLoader.loadNSSLibs(context, resourcePath);
+        GeckoLoader.loadGeckoLibs(context, resourcePath);
     }
 
-    // Queue a call to the given method.
-    private static void queueNativeCallLocked(final Class<?> cls, final String methodName,
-                                              final Object obj, final Object[] args,
-                                              final State state) {
-        final ArrayList<Class<?>> argTypes = new ArrayList<>(args.length);
-        final ArrayList<Object> argValues = new ArrayList<>(args.length);
-
-        for (int i = 0; i < args.length; i++) {
-            if (args[i] instanceof Class) {
-                argTypes.add((Class<?>) args[i]);
-                argValues.add(args[++i]);
-                continue;
-            }
-            Class<?> argType = args[i].getClass();
-            if (argType == Boolean.class) argType = Boolean.TYPE;
-            else if (argType == Byte.class) argType = Byte.TYPE;
-            else if (argType == Character.class) argType = Character.TYPE;
-            else if (argType == Double.class) argType = Double.TYPE;
-            else if (argType == Float.class) argType = Float.TYPE;
-            else if (argType == Integer.class) argType = Integer.TYPE;
-            else if (argType == Long.class) argType = Long.TYPE;
-            else if (argType == Short.class) argType = Short.TYPE;
-            argTypes.add(argType);
-            argValues.add(args[i]);
-        }
-        final Method method;
-        try {
-            method = cls.getDeclaredMethod(
-                    methodName, argTypes.toArray(new Class<?>[argTypes.size()]));
-        } catch (final NoSuchMethodException e) {
-            throw new IllegalArgumentException("Cannot find method", e);
-        }
-
-        if (!Modifier.isNative(method.getModifiers())) {
-            // As a precaution, we disallow queuing non-native methods. Queuing non-native
-            // methods is dangerous because the method could end up being called on either
-            // the original thread or the Gecko thread depending on timing. Native methods
-            // usually handle this by posting an event to the Gecko thread automatically,
-            // but there is no automatic mechanism for non-native methods.
-            throw new UnsupportedOperationException("Not allowed to queue non-native methods");
-        }
-
-        if (isStateAtLeast(state)) {
-            invokeMethod(method, obj, argValues.toArray());
-            return;
-        }
-
-        QUEUED_CALLS.add(new QueuedCall(
-                method, obj, argValues.toArray(), state));
-    }
-
-    /**
-     * Queue a call to the given static method until Gecko is in the given state.
-     *
-     * @param state The Gecko state in which the native call could be executed.
-     *              Default is State.RUNNING, which means this queued call will
-     *              run when Gecko is at or after RUNNING state.
-     * @param cls Class that declares the static method.
-     * @param methodName Name of the static method.
-     * @param args Args to call the static method with; to specify a parameter type,
-     *             pass in a Class instance first, followed by the value.
-     */
-    public static void queueNativeCallUntil(final State state, final Class<?> cls,
-                                            final String methodName, final Object... args) {
-        synchronized (QUEUED_CALLS) {
-            queueNativeCallLocked(cls, methodName, null, args, state);
-        }
-    }
-
-    /**
-     * Queue a call to the given static method until Gecko is in the RUNNING state.
-     */
-    public static void queueNativeCall(final Class<?> cls, final String methodName,
-                                       final Object... args) {
-        synchronized (QUEUED_CALLS) {
-            queueNativeCallLocked(cls, methodName, null, args, State.RUNNING);
-        }
-    }
-
-    /**
-     * Queue a call to the given instance method until Gecko is in the given state.
-     *
-     * @param state The Gecko state in which the native call could be executed.
-     * @param obj Object that declares the instance method.
-     * @param methodName Name of the instance method.
-     * @param args Args to call the instance method with; to specify a parameter type,
-     *             pass in a Class instance first, followed by the value.
-     */
-    public static void queueNativeCallUntil(final State state, final Object obj,
-                                            final String methodName, final Object... args) {
-        synchronized (QUEUED_CALLS) {
-            queueNativeCallLocked(obj.getClass(), methodName, obj, args, state);
-        }
-    }
-
-    /**
-     * Queue a call to the given instance method until Gecko is in the RUNNING state.
-     */
-    public static void queueNativeCall(final Object obj, final String methodName,
-                                       final Object... args) {
-        synchronized (QUEUED_CALLS) {
-            queueNativeCallLocked(obj.getClass(), methodName, obj, args, State.RUNNING);
-        }
-    }
-
-    // Run all queued methods
-    private static void flushQueuedNativeCallsLocked(final State state) {
-        int lastSkipped = -1;
-        for (int i = 0; i < QUEUED_CALLS.size(); i++) {
-            final QueuedCall call = QUEUED_CALLS.get(i);
-            if (call == null) {
-                // We already handled the call.
-                continue;
-            }
-            if (!state.isAtLeast(call.state)) {
-                // The call is not ready yet; skip it.
-                lastSkipped = i;
-                continue;
-            }
-            // Mark as handled.
-            QUEUED_CALLS.set(i, null);
-
-            invokeMethod(call.method, call.target, call.args);
-        }
-        if (lastSkipped < 0) {
-            // We're done here; release the memory
-            QUEUED_CALLS.clear();
-            QUEUED_CALLS.trimToSize();
-        } else if (lastSkipped < QUEUED_CALLS.size() - 1) {
-            // We skipped some; free up null entries at the end,
-            // but keep all the previous entries for later.
-            QUEUED_CALLS.subList(lastSkipped + 1, QUEUED_CALLS.size()).clear();
-        }
-    }
-
-    private static String initGeckoEnvironment() {
+    private static void initGeckoEnvironment() {
         final Context context = GeckoAppShell.getApplicationContext();
         GeckoLoader.loadMozGlue(context);
         setState(State.MOZGLUE_READY);
@@ -385,82 +266,79 @@ public class GeckoThread extends Thread {
             res.updateConfiguration(config, null);
         }
 
-        String[] pluginDirs = null;
+        final String resourcePath = context.getPackageResourcePath();
+        GeckoLoader.setupGeckoEnvironment(context, context.getFilesDir().getPath());
+
         try {
-            pluginDirs = GeckoAppShell.getPluginDirectories();
-        } catch (Exception e) {
-            Log.w(LOGTAG, "Caught exception getting plugin dirs.", e);
+            loadGeckoLibs(context, resourcePath);
+
+        } catch (final Exception e) {
+            // Cannot load libs; try clearing the cached files.
+            Log.w(LOGTAG, "Clearing cache after load libs exception", e);
+            FileUtils.delTree(GeckoLoader.getCacheDir(context),
+                              new FileUtils.FilenameRegexFilter(".*\\.so(?:\\.crc)?$"),
+                              /* recurse */ true);
+
+            // Then try loading again. If this throws again, we actually crash.
+            loadGeckoLibs(context, resourcePath);
         }
 
-        final String resourcePath = context.getPackageResourcePath();
-        GeckoLoader.setupGeckoEnvironment(context, pluginDirs, context.getFilesDir().getPath());
-
-        GeckoLoader.loadSQLiteLibs(context, resourcePath);
-        GeckoLoader.loadNSSLibs(context, resourcePath);
-        GeckoLoader.loadGeckoLibs(context, resourcePath);
         setState(State.LIBS_READY);
-
-        return resourcePath;
     }
 
-    private String addCustomProfileArg(String args) {
-        String profileArg = "";
+    private String[] getMainProcessArgs() {
+        final Context context = GeckoAppShell.getApplicationContext();
+        final ArrayList<String> args = new ArrayList<String>();
 
-        // Make sure a profile exists.
+        // argv[0] is the program name, which for us is the package name.
+        args.add(context.getPackageName());
+        args.add("-greomni");
+        args.add(context.getPackageResourcePath());
+
         final GeckoProfile profile = getProfile();
-        profile.getDir(); // call the lazy initializer
+        if (profile.isCustomProfile()) {
+            args.add("-profile");
+            args.add(profile.getDir().getAbsolutePath());
+        } else {
+            profile.getDir(); // Make sure the profile dir exists.
+            args.add("-P");
+            args.add(profile.getName());
+        }
 
-        // If args don't include the profile, make sure it's included.
-        if (args == null || !args.matches(".*\\B-(P|profile)\\s+\\S+.*")) {
-            if (profile.isCustomProfile()) {
-                profileArg = " -profile " + profile.getDir().getAbsolutePath();
-            } else {
-                profileArg = " -P " + profile.getName();
+        if (mExtraArgs != null) {
+            final StringTokenizer st = new StringTokenizer(mExtraArgs);
+            while (st.hasMoreTokens()) {
+                final String token = st.nextToken();
+                if ("-P".equals(token) || "-profile".equals(token)) {
+                    // Skip -P and -profile arguments because we added them above.
+                    if (st.hasMoreTokens()) {
+                        st.nextToken();
+                    }
+                    continue;
+                }
+                args.add(token);
             }
         }
 
-        return (args != null ? args : "") + profileArg;
+        return args.toArray(new String[args.size()]);
     }
 
-    private String getGeckoArgs(final String apkPath) {
-        // argv[0] is the program name, which for us is the package name.
-        final Context context = GeckoAppShell.getApplicationContext();
-        final StringBuilder args = new StringBuilder(context.getPackageName());
-        args.append(" -greomni ").append(apkPath);
-
-        final String userArgs = addCustomProfileArg(mArgs);
-        if (userArgs != null) {
-            args.append(' ').append(userArgs);
-        }
-
-        // In un-official builds, we want to load Javascript resources fresh
-        // with each build.  In official builds, the startup cache is purged by
-        // the buildid mechanism, but most un-official builds don't bump the
-        // buildid, so we purge here instead.
-        if (!AppConstants.MOZILLA_OFFICIAL) {
-            Log.w(LOGTAG, "STARTUP PERFORMANCE WARNING: un-official build: purging the " +
-                          "startup (JavaScript) caches.");
-            args.append(" -purgecaches");
-        }
-
-        return args.toString();
-    }
-
+    @RobocopTarget
     public static GeckoProfile getActiveProfile() {
-        if (sGeckoThread == null) {
-            return null;
-        }
-        final GeckoProfile profile = sGeckoThread.mProfile;
-        if (profile != null) {
-            return profile;
-        }
-        return sGeckoThread.getProfile();
+        return INSTANCE.getProfile();
     }
 
     public synchronized GeckoProfile getProfile() {
+        if (!mInitialized) {
+            return null;
+        }
+        if (isChildProcess()) {
+            throw new UnsupportedOperationException(
+                    "Cannot access profile from child process");
+        }
         if (mProfile == null) {
             final Context context = GeckoAppShell.getApplicationContext();
-            mProfile = GeckoProfile.initFromArgs(context, mArgs);
+            mProfile = GeckoProfile.initFromArgs(context, mExtraArgs);
         }
         return mProfile;
     }
@@ -488,43 +366,53 @@ public class GeckoThread extends Thread {
         };
         Looper.myQueue().addIdleHandler(idleHandler);
 
-        if (mDebugging) {
+        initGeckoEnvironment();
+
+        if ((mFlags & FLAG_PRELOAD_CHILD) != 0) {
+            ThreadUtils.postToBackgroundThread(new Runnable() {
+                @Override
+                public void run() {
+                    // Preload the content ("tab") child process.
+                    GeckoProcessManager.getInstance().preload("tab");
+                }
+            });
+        }
+
+        // Wait until initialization before calling Gecko entry point.
+        synchronized (this) {
+            while (!mInitialized) {
+                try {
+                    wait();
+                } catch (final InterruptedException e) {
+                }
+            }
+        }
+
+        final String[] args = isChildProcess() ? mArgs : getMainProcessArgs();
+
+        if ((mFlags & FLAG_DEBUGGING) != 0) {
             try {
                 Thread.sleep(5 * 1000 /* 5 seconds */);
             } catch (final InterruptedException e) {
             }
         }
 
-        final String args = getGeckoArgs(initGeckoEnvironment());
+        Log.w(LOGTAG, "zerdatime " + SystemClock.elapsedRealtime() + " - runGecko");
 
-        // This can only happen after the call to initGeckoEnvironment
-        // above, because otherwise the JNI code hasn't been loaded yet.
-        ThreadUtils.postToUiThread(new Runnable() {
-            @Override public void run() {
-                registerUiThread();
-            }
-        });
-
-        Log.w(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - runGecko");
-
-        if (!AppConstants.MOZILLA_OFFICIAL) {
-            Log.i(LOGTAG, "RunGecko - args = " + args);
+        if ((mFlags & FLAG_DEBUGGING) != 0) {
+            Log.i(LOGTAG, "RunGecko - args = " + TextUtils.join(" ", args));
         }
 
         // And go.
-        GeckoLoader.nativeRun(args);
+        GeckoLoader.nativeRun(args, mCrashFileDescriptor, mIPCFileDescriptor);
 
         // And... we're done.
+        final boolean restarting = isState(State.RESTARTING);
         setState(State.EXITED);
 
-        try {
-            final JSONObject msg = new JSONObject();
-            msg.put("type", "Gecko:Exited");
-            GeckoAppShell.getGeckoInterface().getAppEventDispatcher().dispatchEvent(msg, null);
-            EventDispatcher.getInstance().dispatchEvent(msg, null);
-        } catch (final JSONException e) {
-            Log.e(LOGTAG, "unable to dispatch event", e);
-        }
+        final GeckoBundle data = new GeckoBundle(1);
+        data.putBoolean("restart", restarting);
+        EventDispatcher.getInstance().dispatch("Gecko:Exited", data);
 
         // Remove pumpMessageLoop() idle handler
         Looper.myQueue().removeIdleHandler(idleHandler);
@@ -555,7 +443,7 @@ public class GeckoThread extends Thread {
      * @return True if the current Gecko thread state matches
      */
     public static boolean isState(final State state) {
-        return sState.is(state);
+        return sNativeQueue.getState().is(state);
     }
 
     /**
@@ -566,7 +454,7 @@ public class GeckoThread extends Thread {
      * @return True if the current Gecko thread state matches
      */
     public static boolean isStateAtLeast(final State state) {
-        return sState.isAtLeast(state);
+        return sNativeQueue.getState().isAtLeast(state);
     }
 
     /**
@@ -577,7 +465,7 @@ public class GeckoThread extends Thread {
      * @return True if the current Gecko thread state matches
      */
     public static boolean isStateAtMost(final State state) {
-        return sState.isAtMost(state);
+        return state.isAtLeast(sNativeQueue.getState());
     }
 
     /**
@@ -589,28 +477,18 @@ public class GeckoThread extends Thread {
      * @return True if the current Gecko thread state matches
      */
     public static boolean isStateBetween(final State minState, final State maxState) {
-        return sState.isBetween(minState, maxState);
+        return isStateAtLeast(minState) && isStateAtMost(maxState);
     }
 
     @WrapForJNI(calledFrom = "gecko")
     private static void setState(final State newState) {
-        ThreadUtils.assertOnGeckoThread();
-        synchronized (QUEUED_CALLS) {
-            flushQueuedNativeCallsLocked(newState);
-            sState = newState;
-        }
+        sNativeQueue.setState(newState);
     }
 
     @WrapForJNI(calledFrom = "gecko")
-    private static boolean checkAndSetState(final State currentState, final State newState) {
-        synchronized (QUEUED_CALLS) {
-            if (sState == currentState) {
-                flushQueuedNativeCallsLocked(newState);
-                sState = newState;
-                return true;
-            }
-        }
-        return false;
+    private static boolean checkAndSetState(final State expectedState,
+                                            final State newState) {
+        return sNativeQueue.checkAndSetState(expectedState, newState);
     }
 
     @WrapForJNI(stubName = "SpeculativeConnect")
@@ -664,14 +542,46 @@ public class GeckoThread extends Thread {
         }
     }
 
-    // Implemented in mozglue/android/APKOpen.cpp.
-    /* package */ static native void registerUiThread();
-
     @WrapForJNI(calledFrom = "ui")
     /* package */ static native long runUiThreadCallback();
+
+    @WrapForJNI(dispatchTo = "gecko")
+    public static native void forceQuit();
 
     @WrapForJNI
     private static void requestUiThreadCallback(long delay) {
         ThreadUtils.getUiHandler().postDelayed(UI_THREAD_CALLBACK, delay);
+    }
+
+    /**
+     * Queue a call to the given static method until Gecko is in the RUNNING state.
+     */
+    public static void queueNativeCall(final Class<?> cls, final String methodName,
+                                       final Object... args) {
+        sNativeQueue.queueUntilReady(cls, methodName, args);
+    }
+
+    /**
+     * Queue a call to the given instance method until Gecko is in the RUNNING state.
+     */
+    public static void queueNativeCall(final Object obj, final String methodName,
+                                       final Object... args) {
+        sNativeQueue.queueUntilReady(obj, methodName, args);
+    }
+
+    /**
+     * Queue a call to the given instance method until Gecko is in the RUNNING state.
+     */
+    public static void queueNativeCallUntil(final State state, final Object obj, final String methodName,
+                                       final Object... args) {
+        sNativeQueue.queueUntil(state, obj, methodName, args);
+    }
+
+    /**
+     * Queue a call to the given static method until Gecko is in the RUNNING state.
+     */
+    public static void queueNativeCallUntil(final State state, final Class<?> cls, final String methodName,
+                                       final Object... args) {
+        sNativeQueue.queueUntil(state, cls, methodName, args);
     }
 }

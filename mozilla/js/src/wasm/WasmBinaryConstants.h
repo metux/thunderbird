@@ -27,12 +27,9 @@ namespace wasm {
 static const uint32_t MagicNumber        = 0x6d736100; // "\0asm"
 static const uint32_t EncodingVersion    = 0x01;
 
-// 0xd is equivalent to 0x1 modulo unreachability validation rules, so to aid
-// transition of toolchain, accept both for a short period of time.
-static const uint32_t PrevEncodingVersion = 0x0d;
-
-enum class SectionId {
-    UserDefined                          = 0,
+enum class SectionId
+{
+    Custom                               = 0,
     Type                                 = 1,
     Import                               = 2,
     Function                             = 3,
@@ -45,8 +42,6 @@ enum class SectionId {
     Code                                 = 10,
     Data                                 = 11
 };
-
-static const char NameSectionName[] = "name";
 
 enum class TypeCode
 {
@@ -311,12 +306,36 @@ enum class Op
     F32ReinterpretI32                    = 0xbe,
     F64ReinterpretI64                    = 0xbf,
 
-    // ------------------------------------------------------------------------
-    // The rest of these operators are currently only emitted internally when
-    // compiling asm.js and are rejected by wasm validation.
+#ifdef ENABLE_WASM_THREAD_OPS
+    // Sign extension
+    I32Extend8S                          = 0xc0,
+    I32Extend16S                         = 0xc1,
+    I64Extend8S                          = 0xc2,
+    I64Extend16S                         = 0xc3,
+    I64Extend32S                         = 0xc4,
+#endif
 
-    // asm.js-specific operators
-    TeeGlobal                            = 0xc8,
+    AtomicPrefix                         = 0xfe,
+    MozPrefix                            = 0xff,
+
+    Limit                                = 0x100
+};
+
+inline bool
+IsPrefixByte(uint8_t b)
+{
+    return b >= uint8_t(Op::AtomicPrefix);
+}
+
+enum class MozOp
+{
+    // ------------------------------------------------------------------------
+    // These operators are emitted internally when compiling asm.js and are
+    // rejected by wasm validation.  They are prefixed by MozPrefix.
+
+    // asm.js-specific operators.  They start at 1 so as to check for
+    // uninitialized (zeroed) storage.
+    TeeGlobal                            = 0x01,
     I32Min,
     I32Max,
     I32Neg,
@@ -346,6 +365,7 @@ enum class Op
     F64Atan2,
 
     // asm.js-style call_indirect with the callee evaluated first.
+    OldCallDirect,
     OldCallIndirect,
 
     // Atomics
@@ -434,14 +454,57 @@ enum class Op
     Limit
 };
 
-// Telemetry sample values for the JS_AOT_USAGE key, indicating whether asm.js
-// or WebAssembly is used.
-
-enum class Telemetry
+struct OpBytes
 {
-    ASMJS = 0,
-    WASM = 1
+    // The bytes of the opcode have 16-bit representations to allow for a full
+    // 256-value range plus a sentinel Limit value.
+    uint16_t b0;
+    uint16_t b1;
+
+    explicit OpBytes(Op x) {
+        b0 = uint16_t(x);
+        b1 = 0;
+    }
+    OpBytes() = default;
 };
+
+static const char NameSectionName[]      = "name";
+static const char SourceMappingURLSectionName[] = "sourceMappingURL";
+
+enum class NameType
+{
+    Module                               = 0,
+    Function                             = 1,
+    Local                                = 2
+};
+
+// These limits are agreed upon with other engines for consistency.
+
+static const unsigned MaxTypes               =  1000000;
+static const unsigned MaxFuncs               =  1000000;
+static const unsigned MaxImports             =   100000;
+static const unsigned MaxExports             =   100000;
+static const unsigned MaxGlobals             =  1000000;
+static const unsigned MaxDataSegments        =   100000;
+static const unsigned MaxElemSegments        = 10000000;
+static const unsigned MaxTableInitialLength  = 10000000;
+static const unsigned MaxStringBytes         =   100000;
+static const unsigned MaxLocals              =    50000;
+static const unsigned MaxParams              =     1000;
+static const unsigned MaxBrTableElems        =  1000000;
+static const unsigned MaxMemoryInitialPages  = 16384;
+static const unsigned MaxMemoryMaximumPages  = 65536;
+static const unsigned MaxModuleBytes         = 1024 * 1024 * 1024;
+static const unsigned MaxFunctionBytes       =  7654321;
+
+// A magic value of the FramePointer to indicate after a return to the entry
+// stub that an exception has been caught and that we should throw.
+
+static const unsigned FailFP = 0xbad;
+
+// Asserted by Decoder::readVarU32.
+
+static const unsigned MaxVarU32DecodedBytes = 5;
 
 } // namespace wasm
 } // namespace js

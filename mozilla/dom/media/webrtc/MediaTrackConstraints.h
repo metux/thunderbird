@@ -204,7 +204,7 @@ public:
     void SetFrom(const dom::ConstrainDOMStringParameters& aOther);
     ValueType Clamp(const ValueType& n) const;
     ValueType Get(const ValueType& defaultValue) const {
-      return Clamp(mIdeal.size() ? mIdeal : defaultValue);
+      return Clamp(mIdeal.empty() ? defaultValue : mIdeal);
     }
     bool Intersects(const StringRange& aOther) const;
     void Intersect(const StringRange& aOther);
@@ -225,7 +225,8 @@ public:
   BooleanRange mScrollWithPage;
   StringRange mDeviceId;
   LongRange mViewportOffsetX, mViewportOffsetY, mViewportWidth, mViewportHeight;
-  BooleanRange mEchoCancellation, mMozNoiseSuppression, mMozAutoGainControl;
+  BooleanRange mEchoCancellation, mNoiseSuppression, mAutoGainControl;
+  LongRange mChannelCount;
 private:
   typedef NormalizedConstraintSet T;
 public:
@@ -254,11 +255,13 @@ public:
                     aOther.mViewportHeight, advanced, aList)
   , mEchoCancellation(&T::mEchoCancellation, "echoCancellation",
                       aOther.mEchoCancellation, advanced, aList)
-  , mMozNoiseSuppression(&T::mMozNoiseSuppression, "mozNoiseSuppression",
-                         aOther.mMozNoiseSuppression,
-                         advanced, aList)
-  , mMozAutoGainControl(&T::mMozAutoGainControl, "mozAutoGainControl",
-                        aOther.mMozAutoGainControl, advanced, aList) {}
+  , mNoiseSuppression(&T::mNoiseSuppression, "noiseSuppression",
+                      aOther.mNoiseSuppression,
+                      advanced, aList)
+  , mAutoGainControl(&T::mAutoGainControl, "autoGainControl",
+                     aOther.mAutoGainControl, advanced, aList)
+  , mChannelCount(&T::mChannelCount, "channelCount",
+                  aOther.mChannelCount, advanced, aList) {}
 };
 
 template<> bool NormalizedConstraintSet::Range<bool>::Merge(const Range& aOther);
@@ -442,6 +445,15 @@ public:
   FindBadConstraint(const NormalizedConstraints& aConstraints,
                     const MediaEngineSourceType& aMediaEngineSource,
                     const nsString& aDeviceId);
+
+  // Warn on and convert use of deprecated constraints to new ones
+
+  static void
+  ConvertOldWithWarning(
+      const dom::OwningBooleanOrConstrainBooleanParameters& old,
+      dom::OwningBooleanOrConstrainBooleanParameters& to,
+      const char* aMessageName,
+      nsPIDOMWindowInner* aWindow);
 };
 
 } // namespace mozilla

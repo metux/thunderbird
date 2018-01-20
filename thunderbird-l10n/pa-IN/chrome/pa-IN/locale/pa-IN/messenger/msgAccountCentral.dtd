@@ -22,7 +22,8 @@
 <!ENTITY subscribeFeeds.label         "ਮੈਂਬਰੀ ਪਰਬੰਧ">
 
 
-
 <!ENTITY chat.label                   "Chat">
 <!ENTITY movemail.label               "Movemail">
-<!ENTITY newAcct.label                "Create a new account:">
+
+<!ENTITY setupNewAcct.label           "Set up an account:">
+

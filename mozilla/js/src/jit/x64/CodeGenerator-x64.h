@@ -53,6 +53,7 @@ class CodeGeneratorX64 : public CodeGeneratorX86Shared
     void visitTruncateFToInt32(LTruncateFToInt32* ins);
     void visitWrapInt64ToInt32(LWrapInt64ToInt32* lir);
     void visitExtendInt32ToInt64(LExtendInt32ToInt64* lir);
+    void visitSignExtendInt64(LSignExtendInt64* ins);
     void visitWasmTruncateToInt64(LWasmTruncateToInt64* lir);
     void visitInt64ToFloatingPoint(LInt64ToFloatingPoint* lir);
     void visitLoadTypedArrayElementStatic(LLoadTypedArrayElementStatic* ins);
@@ -61,13 +62,7 @@ class CodeGeneratorX64 : public CodeGeneratorX86Shared
     void visitWasmLoadI64(LWasmLoadI64* ins);
     void visitWasmStore(LWasmStore* ins);
     void visitWasmStoreI64(LWasmStoreI64* ins);
-    void visitWasmLoadGlobalVar(LWasmLoadGlobalVar* ins);
-    void visitWasmStoreGlobalVar(LWasmStoreGlobalVar* ins);
-    void visitWasmLoadGlobalVarI64(LWasmLoadGlobalVarI64* ins);
-    void visitWasmStoreGlobalVarI64(LWasmStoreGlobalVarI64* ins);
     void visitWasmSelectI64(LWasmSelectI64* ins);
-    void visitWasmCall(LWasmCall* ins);
-    void visitWasmCallI64(LWasmCallI64* ins);
     void visitAsmJSLoadHeap(LAsmJSLoadHeap* ins);
     void visitAsmJSStoreHeap(LAsmJSStoreHeap* ins);
     void visitAsmJSCompareExchangeHeap(LAsmJSCompareExchangeHeap* ins);

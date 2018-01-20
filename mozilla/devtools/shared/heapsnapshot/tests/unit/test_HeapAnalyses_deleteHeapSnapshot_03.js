@@ -1,11 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
 // Test other dominatorTrees can still be retrieved after deleting a snapshot
-
-function run_test() {
-  run_next_test();
-}
 
 const breakdown = {
   by: "coarseType",

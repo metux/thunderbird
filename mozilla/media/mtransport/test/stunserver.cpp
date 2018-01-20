@@ -82,6 +82,11 @@ nrappkit copyright:
 #include "mozilla/Unused.h"
 #include "databuffer.h"
 
+// mozilla/utils.h defines this as well
+#ifdef UNIMPLEMENTED
+#undef UNIMPLEMENTED
+#endif
+
 extern "C" {
 #include "nr_api.h"
 #include "async_wait.h"
@@ -116,7 +121,7 @@ static int nr_socket_wrapped_destroy(void **objp) {
     return 0;
 
   nr_socket_wrapped *wrapped = static_cast<nr_socket_wrapped *>(*objp);
-  *objp = 0;
+  *objp = nullptr;
 
   delete wrapped;
 
@@ -166,12 +171,12 @@ static nr_socket_vtbl nr_socket_wrapped_vtbl = {
   nr_socket_wrapped_recvfrom,
   nr_socket_wrapped_getfd,
   nr_socket_wrapped_getaddr,
-  0,
-  0,
-  0,
+  nullptr,
+  nullptr,
+  nullptr,
   nr_socket_wrapped_close,
-  0,
-  0
+  nullptr,
+  nullptr
 };
 
 int nr_socket_wrapped_create(nr_socket *inner, nr_socket **outp) {
@@ -260,6 +265,13 @@ int TestStunServer::Initialize(int address_family) {
   r = nr_stun_find_local_addresses(addrs, max_addrs, &addr_ct);
   if (r) {
     MOZ_MTLOG(ML_ERROR, "Couldn't retrieve addresses");
+    return R_INTERNAL;
+  }
+
+  // removes duplicates and, based on prefs, loopback and link_local addrs
+  r = nr_stun_filter_local_addresses(addrs, &addr_ct);
+  if (r) {
+    MOZ_MTLOG(ML_ERROR, "Couldn't filter addresses");
     return R_INTERNAL;
   }
 

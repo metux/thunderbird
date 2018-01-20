@@ -67,9 +67,6 @@ public:
 protected:
     bool mIsLocked;
     bool mIsProducerAcquired;
-#ifdef DEBUG
-    nsIThread* const mOwningThread;
-#endif
 
     SharedSurface(SharedSurfaceType type,
                   AttachmentType attachType,
@@ -95,6 +92,10 @@ public:
 
     // Unlocking is harmless if we're already unlocked.
     void UnlockProd();
+
+    // This surface has been moved to the front buffer and will not be locked again
+    // until it is recycled. Do any finalization steps here.
+    virtual void Commit(){}
 
 protected:
     virtual void LockProdImpl() = 0;

@@ -6,7 +6,7 @@
 #include "nsCOMPtr.h"
 #include "nsComponentManagerUtils.h"
 #include "nsNetCID.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsWMUtils.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMNodeList.h"
@@ -29,7 +29,7 @@ nsWMUtils::FindWMKey(nsIWindowsRegKey **aKey)
                  NS_LITERAL_STRING("Software\\Microsoft\\Windows Live Mail"),
                  nsIWindowsRegKey::ACCESS_QUERY_VALUE);
   if (NS_SUCCEEDED(rv)) {
-    NS_ADDREF(*aKey = key);
+    key.forget(aKey);
     return rv;
   }
 

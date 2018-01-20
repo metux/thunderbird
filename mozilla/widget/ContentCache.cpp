@@ -6,16 +6,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/ContentCache.h"
+
 #include "mozilla/IMEStateManager.h"
+#include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Logging.h"
+#include "mozilla/Move.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/TextComposition.h"
 #include "mozilla/TextEvents.h"
+#include "mozilla/dom/TabParent.h"
+#ifdef MOZ_CRASHREPORTER
+#include "nsExceptionHandler.h"
+#endif // #ifdef MOZ_CRASHREPORTER
 #include "nsIWidget.h"
-#include "mozilla/RefPtr.h"
-#include "mozilla/Move.h"
 
 namespace mozilla {
 
+using namespace dom;
 using namespace widget;
 
 static const char*
@@ -38,15 +45,15 @@ class GetRectText : public nsAutoCString
 public:
   explicit GetRectText(const LayoutDeviceIntRect& aRect)
   {
-    Assign("{ x=");
+    AssignLiteral("{ x=");
     AppendInt(aRect.x);
-    Append(", y=");
+    AppendLiteral(", y=");
     AppendInt(aRect.y);
-    Append(", width=");
+    AppendLiteral(", width=");
     AppendInt(aRect.width);
-    Append(", height=");
+    AppendLiteral(", height=");
     AppendInt(aRect.height);
-    Append(" }");
+    AppendLiteral(" }");
   }
   virtual ~GetRectText() {}
 };
@@ -57,14 +64,14 @@ public:
   explicit GetWritingModeName(const WritingMode& aWritingMode)
   {
     if (!aWritingMode.IsVertical()) {
-      Assign("Horizontal");
+      AssignLiteral("Horizontal");
       return;
     }
     if (aWritingMode.IsVerticalLR()) {
-      Assign("Vertical (LTR)");
+      AssignLiteral("Vertical (LTR)");
       return;
     }
-    Assign("Vertical (RTL)");
+    AssignLiteral("Vertical (RTL)");
   }
   virtual ~GetWritingModeName() {}
 };
@@ -346,7 +353,10 @@ ContentCacheInChild::CacheTextRects(nsIWidget* aWidget,
     // Note that TextComposition::String() may not be modified here because
     // it's modified after all edit action listeners are performed but this
     // is called while some of them are performed.
-    uint32_t length = textComposition->LastData().Length();
+    // FYI: For supporting IME which commits composition and restart new
+    //      composition immediately, we should cache next character of current
+    //      composition too.
+    uint32_t length = textComposition->LastData().Length() + 1;
     mTextRectArray.mStart = mCompositionStart;
     if (NS_WARN_IF(!QueryCharRectArray(aWidget, mTextRectArray.mStart, length,
                                        mTextRectArray.mRects))) {
@@ -458,8 +468,8 @@ ContentCacheInChild::CacheTextRects(nsIWidget* aWidget,
 
   MOZ_LOG(sContentCacheLog, LogLevel::Info,
     ("0x%p CacheTextRects(), Succeeded, "
-     "mText.Length()=%u, mTextRectArray={ mStart=%u, mRects.Length()=%u }, "
-     "mSelection={ mAnchor=%u, mAnchorCharRects[eNextCharRect]=%s, "
+     "mText.Length()=%x, mTextRectArray={ mStart=%u, mRects.Length()=%zu"
+     " }, mSelection={ mAnchor=%u, mAnchorCharRects[eNextCharRect]=%s, "
      "mAnchorCharRects[ePrevCharRect]=%s, mFocus=%u, "
      "mFocusCharRects[eNextCharRect]=%s, mFocusCharRects[ePrevCharRect]=%s, "
      "mRect=%s }, mFirstCharRect=%s",
@@ -506,13 +516,17 @@ ContentCacheInChild::SetSelection(nsIWidget* aWidget,
  * mozilla::ContentCacheInParent
  *****************************************************************************/
 
-ContentCacheInParent::ContentCacheInParent()
+ContentCacheInParent::ContentCacheInParent(TabParent& aTabParent)
   : ContentCache()
+  , mTabParent(aTabParent)
   , mCommitStringByRequest(nullptr)
   , mPendingEventsNeedingAck(0)
   , mCompositionStartInChild(UINT32_MAX)
+  , mPendingCommitLength(0)
   , mPendingCompositionCount(0)
+  , mPendingCommitCount(0)
   , mWidgetHasComposition(false)
+  , mIsChildIgnoringCompositionEvents(false)
 {
 }
 
@@ -543,15 +557,20 @@ ContentCacheInParent::AssignContent(const ContentCache& aOther,
   mCompositionStartInChild = aOther.mCompositionStart;
   if (mWidgetHasComposition) {
     if (aOther.mCompositionStart != UINT32_MAX) {
-      mCompositionStart = aOther.mCompositionStart;
-    } else {
+      if (mCompositionStart != aOther.mCompositionStart) {
+        mCompositionStart = aOther.mCompositionStart;
+        mPendingCommitLength = 0;
+      }
+    } else if (mCompositionStart != mSelection.StartOffset()) {
       mCompositionStart = mSelection.StartOffset();
+      mPendingCommitLength = 0;
       NS_WARNING_ASSERTION(mCompositionStart != UINT32_MAX,
                            "mCompositionStart shouldn't be invalid offset when "
                            "the widget has composition");
     }
-  } else {
+  } else if (mCompositionStart != UINT32_MAX) {
     mCompositionStart = UINT32_MAX;
+    mPendingCommitLength = 0;
   }
 
   MOZ_LOG(sContentCacheLog, LogLevel::Info,
@@ -561,8 +580,9 @@ ContentCacheInParent::AssignContent(const ContentCache& aOther,
      "mAnchorCharRects[ePrevCharRect]=%s, mFocusCharRects[eNextCharRect]=%s, "
      "mFocusCharRects[ePrevCharRect]=%s, mRect=%s }, "
      "mFirstCharRect=%s, mCaret={ mOffset=%u, mRect=%s }, mTextRectArray={ "
-     "mStart=%u, mRects.Length()=%u }, mWidgetHasComposition=%s, "
-     "mPendingCompositionCount=%u, mCompositionStart=%u, mEditorRect=%s",
+     "mStart=%u, mRects.Length()=%zu }, mWidgetHasComposition=%s, "
+     "mPendingCompositionCount=%u, mCompositionStart=%u, "
+     "mPendingCommitLength=%u, mEditorRect=%s",
      this, GetNotificationName(aNotification),
      mText.Length(), mSelection.mAnchor, mSelection.mFocus,
      GetWritingModeName(mSelection.mWritingMode).get(),
@@ -573,7 +593,7 @@ ContentCacheInParent::AssignContent(const ContentCache& aOther,
      GetRectText(mSelection.mRect).get(), GetRectText(mFirstCharRect).get(),
      mCaret.mOffset, GetRectText(mCaret.mRect).get(), mTextRectArray.mStart,
      mTextRectArray.mRects.Length(), GetBoolName(mWidgetHasComposition),
-     mPendingCompositionCount, mCompositionStart,
+     mPendingCompositionCount, mCompositionStart, mPendingCommitLength,
      GetRectText(mEditorRect).get()));
 }
 
@@ -617,20 +637,25 @@ ContentCacheInParent::HandleQueryContentEvent(WidgetQueryContentEvent& aEvent,
         MOZ_LOG(sContentCacheLog, LogLevel::Error,
           ("0x%p HandleQueryContentEvent(), FAILED due to "
            "aEvent.mInput.MakeOffsetAbsolute(0) failure, aEvent={ mMessage=%s, "
-           "mInput={ mOffset=%d, mLength=%d } }",
+           "mInput={ mOffset=%" PRId64 ", mLength=%" PRIu32 " } }",
            this, ToChar(aEvent.mMessage), aEvent.mInput.mOffset,
            aEvent.mInput.mLength));
         return false;
       }
     } else if (mWidgetHasComposition) {
-      if (NS_WARN_IF(!aEvent.mInput.MakeOffsetAbsolute(mCompositionStart))) {
+      if (NS_WARN_IF(!aEvent.mInput.MakeOffsetAbsolute(
+                                      mCompositionStart +
+                                        mPendingCommitLength))) {
         MOZ_LOG(sContentCacheLog, LogLevel::Error,
           ("0x%p HandleQueryContentEvent(), FAILED due to "
-           "aEvent.mInput.MakeOffsetAbsolute(mCompositionStart) failure, "
-           "mCompositionStart=%d, aEvent={ mMessage=%s, "
-           "mInput={ mOffset=%d, mLength=%d } }",
-           this, mCompositionStart, ToChar(aEvent.mMessage),
-           aEvent.mInput.mOffset, aEvent.mInput.mLength));
+           "aEvent.mInput.MakeOffsetAbsolute(mCompositionStart + "
+           "mPendingCommitLength) failure, "
+           "mCompositionStart=%" PRIu32 ", mPendingCommitLength=%" PRIu32 ", "
+           "aEvent={ mMessage=%s, mInput={ mOffset=%" PRId64
+           ", mLength=%" PRIu32 " } }",
+           this, mCompositionStart, mPendingCommitLength,
+           ToChar(aEvent.mMessage), aEvent.mInput.mOffset,
+           aEvent.mInput.mLength));
         return false;
       }
     } else if (NS_WARN_IF(!mSelection.IsValid())) {
@@ -639,15 +664,18 @@ ContentCacheInParent::HandleQueryContentEvent(WidgetQueryContentEvent& aEvent,
          this));
       return false;
     } else if (NS_WARN_IF(!aEvent.mInput.MakeOffsetAbsolute(
-                                           mSelection.StartOffset()))) {
+                                           mSelection.StartOffset() +
+                                             mPendingCommitLength))) {
       MOZ_LOG(sContentCacheLog, LogLevel::Error,
         ("0x%p HandleQueryContentEvent(), FAILED due to "
-         "aEvent.mInput.MakeOffsetAbsolute(mSelection.StartOffset()) "
-         "failure, mSelection={ StartOffset()=%d, Length()=%d }, "
-         "aEvent={ mMessage=%s, mInput={ mOffset=%d, mLength=%d } }",
+         "aEvent.mInput.MakeOffsetAbsolute(mSelection.StartOffset() + "
+         "mPendingCommitLength) failure, "
+         "mSelection={ StartOffset()=%d, Length()=%d }, "
+         "mPendingCommitLength=%" PRIu32 ", aEvent={ mMessage=%s, "
+         "mInput={ mOffset=%" PRId64 ", mLength=%" PRIu32 " } }",
          this, mSelection.StartOffset(), mSelection.Length(),
-         ToChar(aEvent.mMessage), aEvent.mInput.mOffset,
-         aEvent.mInput.mLength));
+         mPendingCommitLength, ToChar(aEvent.mMessage),
+         aEvent.mInput.mOffset, aEvent.mInput.mLength));
       return false;
     }
   }
@@ -708,8 +736,8 @@ ContentCacheInParent::HandleQueryContentEvent(WidgetQueryContentEvent& aEvent,
     case eQueryTextContent: {
       MOZ_LOG(sContentCacheLog, LogLevel::Info,
         ("0x%p HandleQueryContentEvent("
-         "aEvent={ mMessage=eQueryTextContent, mInput={ mOffset=%u, "
-         "mLength=%u } }, aWidget=0x%p), mText.Length()=%u",
+         "aEvent={ mMessage=eQueryTextContent, mInput={ mOffset=%" PRId64
+         ", mLength=%u } }, aWidget=0x%p), mText.Length()=%u",
          this, aEvent.mInput.mOffset,
          aEvent.mInput.mLength, aWidget, mText.Length()));
       uint32_t inputOffset = aEvent.mInput.mOffset;
@@ -734,8 +762,8 @@ ContentCacheInParent::HandleQueryContentEvent(WidgetQueryContentEvent& aEvent,
     case eQueryTextRect:
       MOZ_LOG(sContentCacheLog, LogLevel::Info,
         ("0x%p HandleQueryContentEvent("
-         "aEvent={ mMessage=eQueryTextRect, mInput={ mOffset=%u, "
-         "mLength=%u } }, aWidget=0x%p), mText.Length()=%u",
+         "aEvent={ mMessage=eQueryTextRect, mInput={ mOffset=%" PRId64
+         ", mLength=%u } }, aWidget=0x%p), mText.Length()=%u",
          this, aEvent.mInput.mOffset, aEvent.mInput.mLength, aWidget,
          mText.Length()));
       if (NS_WARN_IF(!IsSelectionValid())) {
@@ -795,7 +823,7 @@ ContentCacheInParent::HandleQueryContentEvent(WidgetQueryContentEvent& aEvent,
     case eQueryCaretRect:
       MOZ_LOG(sContentCacheLog, LogLevel::Info,
         ("0x%p HandleQueryContentEvent("
-         "aEvent={ mMessage=eQueryCaretRect, mInput={ mOffset=%u } }, "
+         "aEvent={ mMessage=eQueryCaretRect, mInput={ mOffset=%" PRId64 " } }, "
          "aWidget=0x%p), mText.Length()=%u",
          this, aEvent.mInput.mOffset, aWidget, mText.Length()));
       if (NS_WARN_IF(!IsSelectionValid())) {
@@ -850,7 +878,7 @@ ContentCacheInParent::GetTextRect(uint32_t aOffset,
   MOZ_LOG(sContentCacheLog, LogLevel::Info,
     ("0x%p GetTextRect(aOffset=%u, "
      "aRoundToExistingOffset=%s), "
-     "mTextRectArray={ mStart=%u, mRects.Length()=%u }, "
+     "mTextRectArray={ mStart=%u, mRects.Length()=%zu }, "
      "mSelection={ mAnchor=%u, mFocus=%u }",
      this, aOffset, GetBoolName(aRoundToExistingOffset),
      mTextRectArray.mStart, mTextRectArray.mRects.Length(),
@@ -919,7 +947,7 @@ ContentCacheInParent::GetUnionTextRects(
   MOZ_LOG(sContentCacheLog, LogLevel::Info,
     ("0x%p GetUnionTextRects(aOffset=%u, "
      "aLength=%u, aRoundToExistingOffset=%s), mTextRectArray={ "
-     "mStart=%u, mRects.Length()=%u }, "
+     "mStart=%u, mRects.Length()=%zu }, "
      "mSelection={ mAnchor=%u, mFocus=%u }",
      this, aOffset, aLength, GetBoolName(aRoundToExistingOffset),
      mTextRectArray.mStart, mTextRectArray.mRects.Length(),
@@ -1024,7 +1052,7 @@ ContentCacheInParent::GetCaretRect(uint32_t aOffset,
     ("0x%p GetCaretRect(aOffset=%u, "
      "aRoundToExistingOffset=%s), "
      "mCaret={ mOffset=%u, mRect=%s, IsValid()=%s }, mTextRectArray={ "
-     "mStart=%u, mRects.Length()=%u }, mSelection={ mAnchor=%u, mFocus=%u, "
+     "mStart=%u, mRects.Length()=%zu }, mSelection={ mAnchor=%u, mFocus=%u, "
      "mWritingMode=%s, mAnchorCharRects[eNextCharRect]=%s, "
      "mAnchorCharRects[ePrevCharRect]=%s, mFocusCharRects[eNextCharRect]=%s, "
      "mFocusCharRects[ePrevCharRect]=%s }, mFirstCharRect=%s",
@@ -1078,14 +1106,20 @@ ContentCacheInParent::OnCompositionEvent(const WidgetCompositionEvent& aEvent)
 {
   MOZ_LOG(sContentCacheLog, LogLevel::Info,
     ("0x%p OnCompositionEvent(aEvent={ "
-     "mMessage=%s, mData=\"%s\" (Length()=%u), mRanges->Length()=%u }), "
+     "mMessage=%s, mData=\"%s\" (Length()=%u), mRanges->Length()=%zu }), "
      "mPendingEventsNeedingAck=%u, mWidgetHasComposition=%s, "
-     "mPendingCompositionCount=%u, mCommitStringByRequest=0x%p",
+     "mPendingCompositionCount=%" PRIu8 ", mPendingCommitCount=%" PRIu8 ", "
+     "mIsChildIgnoringCompositionEvents=%s, mCommitStringByRequest=0x%p",
      this, ToChar(aEvent.mMessage),
      GetEscapedUTF8String(aEvent.mData).get(), aEvent.mData.Length(),
      aEvent.mRanges ? aEvent.mRanges->Length() : 0, mPendingEventsNeedingAck,
      GetBoolName(mWidgetHasComposition), mPendingCompositionCount,
+     mPendingCommitCount, GetBoolName(mIsChildIgnoringCompositionEvents),
      mCommitStringByRequest));
+
+#if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+  mDispatchedEventMessages.AppendElement(aEvent.mMessage);
+#endif // #ifdef defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
 
   // We must be able to simulate the selection because
   // we might not receive selection updates in time
@@ -1111,6 +1145,12 @@ ContentCacheInParent::OnCompositionEvent(const WidgetCompositionEvent& aEvent)
 
   if (!mWidgetHasComposition) {
     mCompositionStart = UINT32_MAX;
+    if (mPendingCompositionCount == 1) {
+      mPendingCommitLength = aEvent.mData.Length();
+    }
+    mPendingCommitCount++;
+  } else if (aEvent.mMessage != eCompositionStart) {
+    mCompositionString = aEvent.mData;
   }
 
   // During REQUEST_TO_COMMIT_COMPOSITION or REQUEST_TO_CANCEL_COMPOSITION,
@@ -1124,6 +1164,18 @@ ContentCacheInParent::OnCompositionEvent(const WidgetCompositionEvent& aEvent)
     MOZ_ASSERT(aEvent.mMessage == eCompositionChange ||
                aEvent.mMessage == eCompositionCommit);
     *mCommitStringByRequest = aEvent.mData;
+    // We need to wait eCompositionCommitRequestHandled from the remote process
+    // in this case.  Therefore, mPendingEventsNeedingAck needs to be
+    // incremented here.  Additionally, we stop sending eCompositionCommit(AsIs)
+    // event.  Therefore, we need to decrement mPendingCommitCount which has
+    // been incremented above.
+    if (!mWidgetHasComposition) {
+      mPendingEventsNeedingAck++;
+      MOZ_DIAGNOSTIC_ASSERT(mPendingCommitCount);
+      if (mPendingCommitCount) {
+        mPendingCommitCount--;
+      }
+    }
     return false;
   }
 
@@ -1140,13 +1192,19 @@ ContentCacheInParent::OnSelectionEvent(
      "mMessage=%s, mOffset=%u, mLength=%u, mReversed=%s, "
      "mExpandToClusterBoundary=%s, mUseNativeLineBreak=%s }), "
      "mPendingEventsNeedingAck=%u, mWidgetHasComposition=%s, "
-     "mPendingCompositionCount=%u",
+     "mPendingCompositionCount=%" PRIu8 ", mPendingCommitCount=%" PRIu8 ", "
+     "mIsChildIgnoringCompositionEvents=%s",
      this, ToChar(aSelectionEvent.mMessage),
      aSelectionEvent.mOffset, aSelectionEvent.mLength,
      GetBoolName(aSelectionEvent.mReversed),
      GetBoolName(aSelectionEvent.mExpandToClusterBoundary),
      GetBoolName(aSelectionEvent.mUseNativeLineBreak), mPendingEventsNeedingAck,
-     GetBoolName(mWidgetHasComposition), mPendingCompositionCount));
+     GetBoolName(mWidgetHasComposition), mPendingCompositionCount,
+     mPendingCommitCount, GetBoolName(mIsChildIgnoringCompositionEvents)));
+
+#if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+  mDispatchedEventMessages.AppendElement(aSelectionEvent.mMessage);
+#endif // #if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
 
   mPendingEventsNeedingAck++;
 }
@@ -1160,15 +1218,104 @@ ContentCacheInParent::OnEventNeedingAckHandled(nsIWidget* aWidget,
 
   MOZ_LOG(sContentCacheLog, LogLevel::Info,
     ("0x%p OnEventNeedingAckHandled(aWidget=0x%p, "
-     "aMessage=%s), mPendingEventsNeedingAck=%u, mPendingCompositionCount=%u",
-     this, aWidget, ToChar(aMessage), mPendingEventsNeedingAck));
+     "aMessage=%s), mPendingEventsNeedingAck=%u, "
+     "mPendingCompositionCount=%" PRIu8 ", mPendingCommitCount=%" PRIu8 ", "
+     "mIsChildIgnoringCompositionEvents=%s",
+     this, aWidget, ToChar(aMessage), mPendingEventsNeedingAck,
+     mPendingCompositionCount, mPendingCommitCount,
+     GetBoolName(mIsChildIgnoringCompositionEvents)));
 
-  if (WidgetCompositionEvent::IsFollowedByCompositionEnd(aMessage)) {
-    MOZ_RELEASE_ASSERT(mPendingCompositionCount > 0);
+#if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+  mReceivedEventMessages.AppendElement(aMessage);
+#endif // #if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+
+  bool isCommittedInChild =
+    // Commit requester in the remote process has committed the composition.
+    aMessage == eCompositionCommitRequestHandled ||
+    // The commit event has been handled normally in the remote process.
+    (!mIsChildIgnoringCompositionEvents &&
+     WidgetCompositionEvent::IsFollowedByCompositionEnd(aMessage));
+
+  if (isCommittedInChild) {
+#if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+    if (mPendingCompositionCount == 1) {
+      RemoveUnnecessaryEventMessageLog();
+    }
+#endif // #if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+
+    if (NS_WARN_IF(!mPendingCompositionCount)) {
+#if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+      nsPrintfCString info("\nThere is no pending composition but received %s "
+                           "message from the remote child\n\n",
+                           ToChar(aMessage));
+      AppendEventMessageLog(info);
+      CrashReporter::AppendAppNotesToCrashReport(info);
+#endif // #if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+      MOZ_DIAGNOSTIC_ASSERT(false,
+        "No pending composition but received unexpected commit event");
+
+      // Prevent odd behavior in release channel.
+      mPendingCompositionCount = 1;
+    }
+
     mPendingCompositionCount--;
+
+    // Forget composition string only when the latest composition string is
+    // handled in the remote process because if there is 2 or more pending
+    // composition, this value shouldn't be referred.
+    if (!mPendingCompositionCount) {
+      mCompositionString.Truncate();
+    }
+
+    // Forget pending commit string length if it's handled in the remote
+    // process.  Note that this doesn't care too old composition's commit
+    // string because in such case, we cannot return proper information
+    // to IME synchornously.
+    mPendingCommitLength = 0;
   }
 
-  MOZ_RELEASE_ASSERT(mPendingEventsNeedingAck > 0);
+  if (WidgetCompositionEvent::IsFollowedByCompositionEnd(aMessage)) {
+    // After the remote process receives eCompositionCommit(AsIs) event,
+    // it'll restart to handle composition events.
+    mIsChildIgnoringCompositionEvents = false;
+
+    if (NS_WARN_IF(!mPendingCommitCount)) {
+#if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+      nsPrintfCString info("\nThere is no pending comment events but received "
+                           "%s message from the remote child\n\n",
+                           ToChar(aMessage));
+      AppendEventMessageLog(info);
+      CrashReporter::AppendAppNotesToCrashReport(info);
+#endif // #if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+      MOZ_DIAGNOSTIC_ASSERT(false,
+        "No pending commit events but received unexpected commit event");
+
+      // Prevent odd behavior in release channel.
+      mPendingCommitCount = 1;
+    }
+
+    mPendingCommitCount--;
+  } else if (aMessage == eCompositionCommitRequestHandled &&
+             mPendingCommitCount) {
+    // If the remote process commits composition synchronously after
+    // requesting commit composition and we've already sent commit composition,
+    // it starts to ignore following composition events until receiving
+    // eCompositionStart event.
+    mIsChildIgnoringCompositionEvents = true;
+  }
+
+  if (NS_WARN_IF(!mPendingEventsNeedingAck)) {
+#if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+    nsPrintfCString info("\nThere is no pending events but received %s "
+                         "message from the remote child\n\n",
+                         ToChar(aMessage));
+    AppendEventMessageLog(info);
+    CrashReporter::AppendAppNotesToCrashReport(info);
+#endif // #if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+    MOZ_DIAGNOSTIC_ASSERT(false,
+      "No pending event message but received unexpected event");
+    mPendingEventsNeedingAck = 1;
+  }
   if (--mPendingEventsNeedingAck) {
     return;
   }
@@ -1183,11 +1330,68 @@ ContentCacheInParent::RequestIMEToCommitComposition(nsIWidget* aWidget,
 {
   MOZ_LOG(sContentCacheLog, LogLevel::Info,
     ("0x%p RequestToCommitComposition(aWidget=%p, "
-     "aCancel=%s), mWidgetHasComposition=%s, mCommitStringByRequest=%p",
-     this, aWidget, GetBoolName(aCancel), GetBoolName(mWidgetHasComposition),
-     mCommitStringByRequest));
+     "aCancel=%s), mPendingCompositionCount=%" PRIu8 ", "
+     "mPendingCommitCount=%" PRIu8 ", mIsChildIgnoringCompositionEvents=%s, "
+     "IMEStateManager::DoesTabParentHaveIMEFocus(&mTabParent)=%s, "
+     "mWidgetHasComposition=%s, mCommitStringByRequest=%p",
+     this, aWidget, GetBoolName(aCancel), mPendingCompositionCount,
+     mPendingCommitCount, GetBoolName(mIsChildIgnoringCompositionEvents),
+     GetBoolName(IMEStateManager::DoesTabParentHaveIMEFocus(&mTabParent)),
+     GetBoolName(mWidgetHasComposition), mCommitStringByRequest));
 
   MOZ_ASSERT(!mCommitStringByRequest);
+
+  // If there are 2 or more pending compositions, we already sent
+  // eCompositionCommit(AsIs) to the remote process.  So, this request is
+  // too late for IME.  The remote process should wait following
+  // composition events for cleaning up TextComposition and handle the
+  // request as it's handled asynchronously.
+  if (mPendingCompositionCount > 1) {
+#if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+    mRequestIMEToCommitCompositionResults.
+      AppendElement(RequestIMEToCommitCompositionResult::
+                      eToOldCompositionReceived);
+#endif // #if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+    return false;
+  }
+
+  // If there is no pending composition, we may have already sent
+  // eCompositionCommit(AsIs) event for the active composition.  If so, the
+  // remote process will receive composition events which causes cleaning up
+  // TextComposition.  So, this shouldn't do nothing and TextComposition
+  // should handle the request as it's handled asynchronously.
+  // XXX Perhaps, this is wrong because TextComposition in child process
+  //     may commit the composition with current composition string in the
+  //     remote process.  I.e., it may be different from actual commit string
+  //     which user typed.  So, perhaps, we should return true and the commit
+  //     string.
+  if (mPendingCommitCount) {
+#if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+    mRequestIMEToCommitCompositionResults.
+      AppendElement(RequestIMEToCommitCompositionResult::
+                      eToCommittedCompositionReceived);
+#endif // #if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+    return false;
+  }
+
+  // If TabParent which has IME focus was already changed to different one, the
+  // request shouldn't be sent to IME because it's too late.
+  if (!IMEStateManager::DoesTabParentHaveIMEFocus(&mTabParent)) {
+    // Use the latest composition string which may not be handled in the
+    // remote process for avoiding data loss.
+#if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+    mRequestIMEToCommitCompositionResults.
+      AppendElement(RequestIMEToCommitCompositionResult::
+                      eReceivedAfterTabParentBlur);
+#endif // #if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+    aCommittedString = mCompositionString;
+    // After we return true from here, i.e., without actually requesting IME
+    // to commit composition, we will receive eCompositionCommitRequestHandled
+    // pseudo event message from the remote process.  So, we need to increment
+    // mPendingEventsNeedingAck here.
+    mPendingEventsNeedingAck++;
+    return true;
+  }
 
   RefPtr<TextComposition> composition =
     IMEStateManager::GetTextCompositionFor(aWidget);
@@ -1195,13 +1399,22 @@ ContentCacheInParent::RequestIMEToCommitComposition(nsIWidget* aWidget,
     MOZ_LOG(sContentCacheLog, LogLevel::Warning,
       ("  0x%p RequestToCommitComposition(), "
        "does nothing due to no composition", this));
+#if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+    mRequestIMEToCommitCompositionResults.
+      AppendElement(RequestIMEToCommitCompositionResult::
+                      eReceivedButNoTextComposition);
+#endif // #if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
     return false;
   }
 
   mCommitStringByRequest = &aCommittedString;
 
-  aWidget->NotifyIME(IMENotification(aCancel ? REQUEST_TO_CANCEL_COMPOSITION :
-                                               REQUEST_TO_COMMIT_COMPOSITION));
+  // Request commit or cancel composition with TextComposition because we may
+  // have already requested to commit or cancel the composition or we may
+  // have already received eCompositionCommit(AsIs) event.  Those status are
+  // managed by composition.  So, if we don't request commit composition,
+  // we should do nothing with native IME here.
+  composition->RequestToCommit(aWidget, aCancel);
 
   mCommitStringByRequest = nullptr;
 
@@ -1221,17 +1434,24 @@ ContentCacheInParent::RequestIMEToCommitComposition(nsIWidget* aWidget,
     // normally. On the other hand, TextComposition instance in the remote
     // process won't dispatch following composition events and will be
     // destroyed by IMEStateManager::DispatchCompositionEvent().
+#if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+    mRequestIMEToCommitCompositionResults.
+      AppendElement(RequestIMEToCommitCompositionResult::
+                      eHandledAsynchronously);
+#endif // #if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
     return false;
   }
 
   // When the composition is committed synchronously, the commit string will be
-  // returned to the remote process. Then, PuppetWidget will dispatch
+  // returned to the remote process.  Then, PuppetWidget will dispatch
   // eCompositionCommit event with the returned commit string (i.e., the value
-  // is aCommittedString of this method).  Finally, TextComposition instance in
-  // the remote process will be destroyed by
-  // IMEStateManager::DispatchCompositionEvent() at receiving the
-  // eCompositionCommit event (Note that TextComposition instance in this
-  // process was already destroyed).
+  // is aCommittedString of this method) and that causes destroying
+  // TextComposition instance in the remote process (Note that TextComposition
+  // instance in this process was already destroyed).
+#if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+  mRequestIMEToCommitCompositionResults.
+    AppendElement(RequestIMEToCommitCompositionResult::eHandledSynchronously);
+#endif // #if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
   return true;
 }
 
@@ -1240,7 +1460,7 @@ ContentCacheInParent::MaybeNotifyIME(nsIWidget* aWidget,
                                      const IMENotification& aNotification)
 {
   if (!mPendingEventsNeedingAck) {
-    IMEStateManager::NotifyIME(aNotification, aWidget, true);
+    IMEStateManager::NotifyIME(aNotification, aWidget, &mTabParent);
     return;
   }
 
@@ -1268,28 +1488,34 @@ ContentCacheInParent::FlushPendingNotifications(nsIWidget* aWidget)
 {
   MOZ_ASSERT(!mPendingEventsNeedingAck);
 
+  // If the TabParent's widget has already gone, this can do nothing since
+  // widget is necessary to notify IME of something.
+  if (!aWidget) {
+    return;
+  }
+
   // New notifications which are notified during flushing pending notifications
   // should be merged again.
   mPendingEventsNeedingAck++;
 
-  nsCOMPtr<nsIWidget> kungFuDeathGrip(aWidget);
+  nsCOMPtr<nsIWidget> widget = aWidget;
 
   // First, text change notification should be sent because selection change
   // notification notifies IME of current selection range in the latest content.
   // So, IME may need the latest content before that.
   if (mPendingTextChange.HasNotification()) {
     IMENotification notification(mPendingTextChange);
-    if (!aWidget->Destroyed()) {
+    if (!widget->Destroyed()) {
       mPendingTextChange.Clear();
-      IMEStateManager::NotifyIME(notification, aWidget, true);
+      IMEStateManager::NotifyIME(notification, widget, &mTabParent);
     }
   }
 
   if (mPendingSelectionChange.HasNotification()) {
     IMENotification notification(mPendingSelectionChange);
-    if (!aWidget->Destroyed()) {
+    if (!widget->Destroyed()) {
       mPendingSelectionChange.Clear();
-      IMEStateManager::NotifyIME(notification, aWidget, true);
+      IMEStateManager::NotifyIME(notification, widget, &mTabParent);
     }
   }
 
@@ -1297,9 +1523,9 @@ ContentCacheInParent::FlushPendingNotifications(nsIWidget* aWidget)
   // notification because IME may want to query position of new caret position.
   if (mPendingLayoutChange.HasNotification()) {
     IMENotification notification(mPendingLayoutChange);
-    if (!aWidget->Destroyed()) {
+    if (!widget->Destroyed()) {
       mPendingLayoutChange.Clear();
-      IMEStateManager::NotifyIME(notification, aWidget, true);
+      IMEStateManager::NotifyIME(notification, widget, &mTabParent);
     }
   }
 
@@ -1307,20 +1533,111 @@ ContentCacheInParent::FlushPendingNotifications(nsIWidget* aWidget)
   // finishing handling whole sending events.
   if (mPendingCompositionUpdate.HasNotification()) {
     IMENotification notification(mPendingCompositionUpdate);
-    if (!aWidget->Destroyed()) {
+    if (!widget->Destroyed()) {
       mPendingCompositionUpdate.Clear();
-      IMEStateManager::NotifyIME(notification, aWidget, true);
+      IMEStateManager::NotifyIME(notification, widget, &mTabParent);
     }
   }
 
-  if (!--mPendingEventsNeedingAck && !aWidget->Destroyed() &&
+  if (!--mPendingEventsNeedingAck && !widget->Destroyed() &&
       (mPendingTextChange.HasNotification() ||
        mPendingSelectionChange.HasNotification() ||
        mPendingLayoutChange.HasNotification() ||
        mPendingCompositionUpdate.HasNotification())) {
-    FlushPendingNotifications(aWidget);
+    FlushPendingNotifications(widget);
   }
 }
+
+#if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
+
+void
+ContentCacheInParent::RemoveUnnecessaryEventMessageLog()
+{
+  bool foundLastCompositionStart = false;
+  for (size_t i = mDispatchedEventMessages.Length(); i > 1; i--) {
+    if (mDispatchedEventMessages[i - 1] != eCompositionStart) {
+      continue;
+    }
+    if (!foundLastCompositionStart) {
+      // Find previous eCompositionStart of the latest eCompositionStart.
+      foundLastCompositionStart = true;
+      continue;
+    }
+    // Remove the messages before the last 2 sets of composition events.
+    mDispatchedEventMessages.RemoveElementsAt(0, i - 1);
+    break;
+  }
+  uint32_t numberOfCompositionCommitRequestHandled = 0;
+  foundLastCompositionStart = false;
+  for (size_t i = mReceivedEventMessages.Length(); i > 1; i--) {
+    if (mReceivedEventMessages[i - 1] == eCompositionCommitRequestHandled) {
+      numberOfCompositionCommitRequestHandled++;
+    }
+    if (mReceivedEventMessages[i - 1] != eCompositionStart) {
+      continue;
+    }
+    if (!foundLastCompositionStart) {
+      // Find previous eCompositionStart of the latest eCompositionStart.
+      foundLastCompositionStart = true;
+      continue;
+    }
+    // Remove the messages before the last 2 sets of composition events.
+    mReceivedEventMessages.RemoveElementsAt(0, i - 1);
+    break;
+  }
+
+  if (!numberOfCompositionCommitRequestHandled) {
+    // If there is no eCompositionCommitRequestHandled in
+    // mReceivedEventMessages, we don't need to store log of
+    // RequestIMEToCommmitComposition().
+    mRequestIMEToCommitCompositionResults.Clear();
+  } else {
+    // We need to keep all reason of eCompositionCommitRequestHandled, which
+    // is sent when mRequestIMEToCommitComposition() returns true.
+    // So, we can discard older log than the first
+    // eCompositionCommitRequestHandled in mReceivedEventMessages.
+    for (size_t i = mRequestIMEToCommitCompositionResults.Length();
+         i > 1; i--) {
+      if (mRequestIMEToCommitCompositionResults[i - 1] ==
+            RequestIMEToCommitCompositionResult::eReceivedAfterTabParentBlur ||
+          mRequestIMEToCommitCompositionResults[i - 1] ==
+            RequestIMEToCommitCompositionResult::eHandledSynchronously) {
+        --numberOfCompositionCommitRequestHandled;
+        if (!numberOfCompositionCommitRequestHandled) {
+          mRequestIMEToCommitCompositionResults.RemoveElementsAt(0, i - 1);
+          break;
+        }
+      }
+    }
+  }
+}
+
+void
+ContentCacheInParent::AppendEventMessageLog(nsACString& aLog) const
+{
+  aLog.AppendLiteral("Dispatched Event Message Log:\n");
+  for (EventMessage message : mDispatchedEventMessages) {
+    aLog.AppendLiteral("  ");
+    aLog.Append(ToChar(message));
+    aLog.AppendLiteral("\n");
+  }
+  aLog.AppendLiteral("\nReceived Event Message Log:\n");
+  for (EventMessage message : mReceivedEventMessages) {
+    aLog.AppendLiteral("  ");
+    aLog.Append(ToChar(message));
+    aLog.AppendLiteral("\n");
+  }
+  aLog.AppendLiteral("\nResult of RequestIMEToCommitComposition():\n");
+  for (RequestIMEToCommitCompositionResult result :
+         mRequestIMEToCommitCompositionResults) {
+    aLog.AppendLiteral("  ");
+    aLog.Append(ToReadableText(result));
+    aLog.AppendLiteral("\n");
+  }
+  aLog.AppendLiteral("\n");
+}
+
+#endif // #if defined(MOZ_CRASHREPORTER) && MOZ_DIAGNOSTIC_ASSERT_ENABLED
 
 /*****************************************************************************
  * mozilla::ContentCache::TextRectArray

@@ -9,7 +9,7 @@ const L10N = new LocalizationHelper(STRINGS_URI);
 
 const {PluralForm} = require("devtools/shared/plural-form");
 const { DOM: dom, PropTypes, createClass, createFactory } = require("devtools/client/shared/vendor/react");
-const Frame = createFactory(require("devtools/client/shared/components/frame"));
+const Frame = createFactory(require("devtools/client/shared/components/Frame"));
 const PROPNAME_MAX_LENGTH = 4;
 // If TREE_ROW_HEIGHT changes, be sure to change `var(--jit-tree-row-height)`
 // in `devtools/client/themes/jit-optimizations.css`
@@ -39,6 +39,10 @@ const JITOptimizationsItem = createClass({
     onViewSourceInDebugger: PropTypes.func.isRequired,
     frameData: PropTypes.object.isRequired,
     type: PropTypes.oneOf(OPTIMIZATION_ITEM_TYPES).isRequired,
+    depth: PropTypes.number.isRequired,
+    arrow: PropTypes.element.isRequired,
+    item: PropTypes.object,
+    focused: PropTypes.bool
   },
 
   _renderSite({ item: site, onViewSourceInDebugger, frameData }) {

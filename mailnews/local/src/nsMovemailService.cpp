@@ -38,15 +38,9 @@
 #include "nsIOutputStream.h"
 
 #include "mozilla/Logging.h"
-#if defined(PR_LOGGING)
-//
-// export NSPR_LOG_MODULES=Movemail:5
-//
-static PRLogModuleInfo *gMovemailLog = nullptr;
+// export MOZ_LOG_MODULES=Movemail:5
+static mozilla::LazyLogModule gMovemailLog("Movemail");
 #define LOG(args) MOZ_LOG(gMovemailLog, mozilla::LogLevel::Debug, args)
-#else
-#define LOG(args)
-#endif
 
 #define PREF_MAIL_ROOT_MOVEMAIL "mail.root.movemail"            // old - for backward compatibility only
 #define PREF_MAIL_ROOT_MOVEMAIL_REL "mail.root.movemail-rel"
@@ -96,11 +90,7 @@ private:
 
 nsMovemailService::nsMovemailService()
 {
-#if defined(PR_LOGGING)
-  if (!gMovemailLog)
-      gMovemailLog = PR_NewLogModule("Movemail");
-#endif
-  LOG(("nsMovemailService created: 0x%x\n", this));
+  LOG(("nsMovemailService created: 0x%p\n", this));
 }
 
 nsMovemailService::~nsMovemailService()
@@ -147,11 +137,10 @@ nsMovemailService::Error(const char* errorCode,
   nsString errStr;
   // Format the error string if necessary
   if (params)
-    bundle->FormatStringFromName(NS_ConvertASCIItoUTF16(errorCode).get(),
-                                 params, length, getter_Copies(errStr));
+    bundle->FormatStringFromName(errorCode,
+                                 params, length, errStr);
   else
-    bundle->GetStringFromName(NS_ConvertASCIItoUTF16(errorCode).get(),
-                              getter_Copies(errStr));
+    bundle->GetStringFromName(errorCode, errStr);
 
   if (!errStr.IsEmpty()) {
     dialog->Alert(nullptr, errStr.get());
@@ -227,7 +216,7 @@ SpoolLock::ObtainSpoolLock(unsigned int aSeconds /* number of seconds to retry *
 
     do {
       lock_result = PR_TLockFile(fd);
-  
+
       retry_count++;
       LOG(("Attempt %d of %d to lock file", retry_count, aSeconds));
       if (aSeconds > 0 && lock_result == PR_FAILURE) {
@@ -553,7 +542,7 @@ nsMovemailService::GetNewMail(nsIMsgWindow *aMsgWindow,
     Error("movemailCantTruncateSpoolFile", spoolPathString, 1);
   }
 
-  LOG(("GetNewMail returning rv=%d", rv));
+  LOG(("GetNewMail returning rv=%" PRIx32, static_cast<uint32_t>(rv)));
   return rv;
 }
 
@@ -592,7 +581,7 @@ nsMovemailService::GetDefaultLocalPath(nsIFile ** aResult)
     NS_ASSERTION(NS_SUCCEEDED(rv), "Failed to set root dir pref.");
   }
 
-  NS_IF_ADDREF(*aResult = localFile);
+  localFile.forget(aResult);
   return NS_OK;
 }
 

@@ -89,7 +89,7 @@ function copyMessages(items, isMove, srcFolder, destFolder)
   let listener = new PromiseTestUtils.PromiseCopyListener(copyListenerWrap);
   var array = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
   items.forEach(function (item) {
-    array.appendElement(item, false);
+    array.appendElement(item);
   });
   MailServices.copy.CopyMessages(srcFolder, array, destFolder, isMove, listener, null, true);
   return listener.promise;
@@ -99,7 +99,7 @@ function deleteMessages(srcFolder, items)
 {
   var array = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
   items.forEach(function (item) {
-    array.appendElement(item, false);
+    array.appendElement(item);
   });
   
   let listener = new PromiseTestUtils.PromiseCopyListener(copyListenerWrap);
@@ -306,12 +306,12 @@ function run_test()
 
   // Create another folder to move and copy messages around, and force initialization.
   gLocalFolder2 = localAccountUtils.rootFolder.createLocalSubfolder("folder2");
-  let folderName = gLocalFolder2.prettiestName;
+  let folderName = gLocalFolder2.prettyName;
   // Create a third folder for more testing.
   gLocalFolder3 = localAccountUtils.rootFolder.createLocalSubfolder("folder3");
-  folderName = gLocalFolder3.prettiestName;
+  folderName = gLocalFolder3.prettyName;
 
-  gTestArray.forEach(add_task);
+  gTestArray.forEach(x => add_task(x));
   run_next_test();
 }
 

@@ -5,14 +5,25 @@ set -ex
 
 run() {
     echo $1
-    docker build -t libc ci/docker/$1
+    # use -f so we can use ci/ as build context
+    docker build -t libc -f ci/docker/$1/Dockerfile ci/
+    mkdir -p target
+    if [ -w /dev/kvm ]; then
+      kvm="--volume /dev/kvm:/dev/kvm"
+    fi
     docker run \
-      -v `rustc --print sysroot`:/rust:ro \
-      -v `pwd`:/checkout:ro \
-      -e CARGO_TARGET_DIR=/tmp/target \
-      -w /checkout \
-      --privileged \
-      -it libc \
+      --user `id -u`:`id -g` \
+      --rm \
+      --init \
+      --volume $HOME/.cargo:/cargo \
+      $kvm \
+      --env CARGO_HOME=/cargo \
+      --volume `rustc --print sysroot`:/rust:ro \
+      --volume `pwd`:/checkout:ro \
+      --volume `pwd`/target:/checkout/target \
+      --env CARGO_TARGET_DIR=/checkout/target \
+      --workdir /checkout \
+      libc \
       ci/run.sh $1
 }
 

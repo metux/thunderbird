@@ -4,6 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files('**'):
+    BUG_COMPONENT = ('Toolkit', 'General')
+
 # These component dirs are built for all apps (including suite)
 if CONFIG['MOZ_ENABLE_XREMOTE']:
     DIRS += ['remote']
@@ -17,24 +20,25 @@ DIRS += [
     'alerts',
     'apppicker',
     'asyncshutdown',
+    'backgroundhangmonitor',
+    'browser',
+    'cloudstorage',
     'commandlines',
     'contentprefs',
     'contextualidentity',
-    'cookie',
     'crashmonitor',
     'diskspacewatcher',
     'downloads',
     'extensions',
-    'exthelper',
     'filewatcher',
     'finalizationwitness',
-    'formautofill',
     'find',
-    'gfx',
     'jsdownloads',
+    'jsoncpp/src/lib_json',
     'lz4',
     'mediasniffer',
     'microformats',
+    'mozintl',
     'mozprotocol',
     'osfile',
     'parentalcontrols',
@@ -50,8 +54,9 @@ DIRS += [
     'reader',
     'remotebrowserutils',
     'reflect',
+    'reputationservice',
+    'resistfingerprinting',
     'securityreporter',
-    'sqlite',
     'startup',
     'statusfilter',
     'telemetry',
@@ -63,12 +68,11 @@ DIRS += [
     'url-classifier',
     'urlformatter',
     'viewconfig',
+    'windowcreator',
+    'windowwatcher',
     'workerloader',
     'xulstore'
 ]
-
-if CONFIG['ENABLE_INTL_API']:
-    DIRS += ['mozintl']
 
 if CONFIG['MOZ_BUILD_APP'] != 'mobile/android':
     DIRS += ['narrate', 'viewsource'];
@@ -86,7 +90,7 @@ if CONFIG['MOZ_FEEDS']:
     DIRS += ['feeds']
 
 if CONFIG['MOZ_XUL']:
-    DIRS += ['autocomplete', 'satchel']
+    DIRS += ['autocomplete', 'printingui', 'satchel']
 
 if 'gtk' in CONFIG['MOZ_WIDGET_TOOLKIT']:
     DIRS += ['filepicker']
@@ -101,8 +105,14 @@ if CONFIG['OS_TARGET'] != 'Android':
 
 DIRS += ['build']
 
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
+    DIRS += ['gfx']
+
 if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'android':
     EXTRA_COMPONENTS += [
         'nsDefaultCLH.js',
         'nsDefaultCLH.manifest',
     ]
+
+if CONFIG['NIGHTLY_BUILD'] and CONFIG['MOZ_BUILD_APP'] == 'browser':
+    DIRS += ['payments']

@@ -13,13 +13,13 @@
 
 #include "mozilla/Casting.h"
 #include "mozilla/EditorBase.h"
+#include "mozilla/EditorDOMPoint.h"
 
 #include "nsAlgorithm.h"
 #include "nsAString.h"
 #include "nsDebug.h"
 #include "nsError.h"
 #include "nsIContent.h"
-#include "nsIDOMCharacterData.h"
 #include "nsIEditor.h"
 #include "nsINode.h"
 #include "nsISupportsUtils.h"
@@ -32,15 +32,14 @@ namespace mozilla {
 
 using namespace dom;
 
-CreateElementTransaction::CreateElementTransaction(EditorBase& aEditorBase,
-                                                   nsIAtom& aTag,
-                                                   nsINode& aParent,
-                                                   int32_t aOffsetInParent)
+CreateElementTransaction::CreateElementTransaction(
+                            EditorBase& aEditorBase,
+                            nsAtom& aTag,
+                            const EditorRawDOMPoint& aPointToInsert)
   : EditTransactionBase()
   , mEditorBase(&aEditorBase)
   , mTag(&aTag)
-  , mParent(&aParent)
-  , mOffsetInParent(aOffsetInParent)
+  , mPointToInsert(aPointToInsert)
 {
 }
 
@@ -50,9 +49,9 @@ CreateElementTransaction::~CreateElementTransaction()
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(CreateElementTransaction,
                                    EditTransactionBase,
-                                   mParent,
-                                   mNewNode,
-                                   mRefNode)
+                                   mEditorBase,
+                                   mPointToInsert,
+                                   mNewNode)
 
 NS_IMPL_ADDREF_INHERITED(CreateElementTransaction, EditTransactionBase)
 NS_IMPL_RELEASE_INHERITED(CreateElementTransaction, EditTransactionBase)
@@ -63,7 +62,10 @@ NS_INTERFACE_MAP_END_INHERITING(EditTransactionBase)
 NS_IMETHODIMP
 CreateElementTransaction::DoTransaction()
 {
-  MOZ_ASSERT(mEditorBase && mTag && mParent);
+  if (NS_WARN_IF(!mEditorBase) || NS_WARN_IF(!mTag) ||
+      NS_WARN_IF(!mPointToInsert.IsSet())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
 
   mNewNode = mEditorBase->CreateHTMLContent(mTag);
   NS_ENSURE_STATE(mNewNode);
@@ -72,21 +74,11 @@ CreateElementTransaction::DoTransaction()
   mEditorBase->MarkNodeDirty(GetAsDOMNode(mNewNode));
 
   // Insert the new node
-  ErrorResult rv;
-  if (mOffsetInParent == -1) {
-    mParent->AppendChild(*mNewNode, rv);
-    return rv.StealNSResult();
+  ErrorResult error;
+  InsertNewNode(error);
+  if (NS_WARN_IF(error.Failed())) {
+    return error.StealNSResult();
   }
-
-  mOffsetInParent = std::min(mOffsetInParent,
-                             static_cast<int32_t>(mParent->GetChildCount()));
-
-  // Note, it's ok for mRefNode to be null. That means append
-  mRefNode = mParent->GetChildAt(mOffsetInParent);
-
-  nsCOMPtr<nsIContent> refNode = mRefNode;
-  mParent->InsertBefore(*mNewNode, refNode, rv);
-  NS_ENSURE_TRUE(!rv.Failed(), rv.StealNSResult());
 
   // Only set selection to insertion point if editor gives permission
   if (!mEditorBase->GetShouldTxnSetSelection()) {
@@ -97,37 +89,84 @@ CreateElementTransaction::DoTransaction()
   RefPtr<Selection> selection = mEditorBase->GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
 
-  rv = selection->CollapseNative(mParent, mParent->IndexOf(mNewNode) + 1);
-  NS_ASSERTION(!rv.Failed(),
-               "selection could not be collapsed after insert");
+  EditorRawDOMPoint afterNewNode(mNewNode);
+  if (NS_WARN_IF(!afterNewNode.AdvanceOffset())) {
+    // If mutation observer or mutation event listener moved or removed the
+    // new node, we hit this case.  Should we use script blocker while we're
+    // in this method?
+    return NS_ERROR_FAILURE;
+  }
+  selection->Collapse(afterNewNode, error);
+  if (error.Failed()) {
+    NS_WARNING("selection could not be collapsed after insert");
+    error.SuppressException();
+  }
   return NS_OK;
+}
+
+void
+CreateElementTransaction::InsertNewNode(ErrorResult& aError)
+{
+  if (mPointToInsert.IsSetAndValid()) {
+    if (mPointToInsert.IsEndOfContainer()) {
+      mPointToInsert.Container()->AppendChild(*mNewNode, aError);
+      NS_WARNING_ASSERTION(!aError.Failed(), "Failed to append the new node");
+      return;
+    }
+    mPointToInsert.Container()->InsertBefore(*mNewNode,
+                                             mPointToInsert.GetChildAtOffset(),
+                                             aError);
+    NS_WARNING_ASSERTION(!aError.Failed(), "Failed to insert the new node");
+    return;
+  }
+
+  if (NS_WARN_IF(mPointToInsert.GetChildAtOffset() &&
+                 mPointToInsert.Container() !=
+                   mPointToInsert.GetChildAtOffset()->GetParentNode())) {
+    aError.Throw(NS_ERROR_FAILURE);
+    return;
+  }
+
+  // If mPointToInsert has only offset and it's not valid, we need to treat
+  // it as pointing end of the container.
+  mPointToInsert.Container()->AppendChild(*mNewNode, aError);
+  NS_WARNING_ASSERTION(!aError.Failed(), "Failed to append the new node");
 }
 
 NS_IMETHODIMP
 CreateElementTransaction::UndoTransaction()
 {
-  MOZ_ASSERT(mEditorBase && mParent);
+  if (NS_WARN_IF(!mEditorBase) || NS_WARN_IF(!mPointToInsert.IsSet())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
 
-  ErrorResult rv;
-  mParent->RemoveChild(*mNewNode, rv);
-
-  return rv.StealNSResult();
+  ErrorResult error;
+  mPointToInsert.Container()->RemoveChild(*mNewNode, error);
+  if (NS_WARN_IF(error.Failed())) {
+    return error.StealNSResult();
+  }
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 CreateElementTransaction::RedoTransaction()
 {
-  MOZ_ASSERT(mEditorBase && mParent);
+  if (NS_WARN_IF(!mEditorBase) || NS_WARN_IF(!mPointToInsert.IsSet())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
 
   // First, reset mNewNode so it has no attributes or content
   // XXX We never actually did this, we only cleared mNewNode's contents if it
   // was a CharacterData node (which it's not, it's an Element)
+  // XXX Don't we need to set selection like DoTransaction()?
 
   // Now, reinsert mNewNode
-  ErrorResult rv;
-  nsCOMPtr<nsIContent> refNode = mRefNode;
-  mParent->InsertBefore(*mNewNode, refNode, rv);
-  return rv.StealNSResult();
+  ErrorResult error;
+  InsertNewNode(error);
+  if (NS_WARN_IF(error.Failed())) {
+    return error.StealNSResult();
+  }
+  return NS_OK;
 }
 
 NS_IMETHODIMP

@@ -10,7 +10,6 @@
 #include "mozilla/Attributes.h"
 #include "nsGenericHTMLElement.h"
 #include "nsObjectLoadingContent.h"
-#include "nsIDOMHTMLObjectElement.h"
 #include "nsIConstraintValidation.h"
 
 namespace mozilla {
@@ -20,7 +19,6 @@ class HTMLFormSubmission;
 
 class HTMLObjectElement final : public nsGenericHTMLFormElement
                               , public nsObjectLoadingContent
-                              , public nsIDOMHTMLObjectElement
                               , public nsIConstraintValidation
 {
 public:
@@ -51,29 +49,16 @@ public:
   // EventTarget
   virtual void AsyncEventRunning(AsyncEventDispatcher* aEvent) override;
 
-  // nsIDOMHTMLObjectElement
-  NS_DECL_NSIDOMHTMLOBJECTELEMENT
-
   virtual nsresult BindToTree(nsIDocument *aDocument, nsIContent *aParent,
                               nsIContent *aBindingParent,
                               bool aCompileEventHandlers) override;
   virtual void UnbindFromTree(bool aDeep = true,
                               bool aNullParent = true) override;
-  virtual nsresult SetAttr(int32_t aNameSpaceID, nsIAtom *aName,
-                           nsIAtom *aPrefix, const nsAString &aValue,
-                           bool aNotify) override;
-  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
-                             bool aNotify) override;
 
   virtual bool IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, int32_t *aTabIndex) override;
   virtual IMEState GetDesiredIMEState() override;
 
   // Overriden nsIFormControl methods
-  NS_IMETHOD_(uint32_t) GetType() const override
-  {
-    return NS_FORM_OBJECT;
-  }
-
   NS_IMETHOD Reset() override;
   NS_IMETHOD SubmitNamesValues(HTMLFormSubmission *aFormSubmission) override;
 
@@ -83,28 +68,32 @@ public:
   virtual bool IsDoneAddingChildren() override;
 
   virtual bool ParseAttribute(int32_t aNamespaceID,
-                                nsIAtom *aAttribute,
+                                nsAtom *aAttribute,
                                 const nsAString &aValue,
                                 nsAttrValue &aResult) override;
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const override;
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom *aAttribute) const override;
+  NS_IMETHOD_(bool) IsAttributeMapped(const nsAtom *aAttribute) const override;
   virtual EventStates IntrinsicState() const override;
   virtual void DestroyContent() override;
 
   // nsObjectLoadingContent
   virtual uint32_t GetCapabilities() const override;
 
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const override;
+  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+                         bool aPreallocateChildren) const override;
 
-  nsresult CopyInnerTo(Element* aDest);
+  nsresult CopyInnerTo(Element* aDest, bool aPreallocateChildren);
 
-  void StartObjectLoad() { StartObjectLoad(true); }
+  void StartObjectLoad() { StartObjectLoad(true, false); }
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLObjectElement,
                                            nsGenericHTMLFormElement)
 
   // Web IDL binding methods
-  // XPCOM GetData is ok; note that it's a URI attribute with a weird base URI
+  void GetData(DOMString& aValue)
+  {
+    GetURIAttr(nsGkAtoms::data, nsGkAtoms::codebase, aValue);
+  }
   void SetData(const nsAString& aValue, ErrorResult& aRv)
   {
     SetHTMLAttr(nsGkAtoms::data, aValue, aRv);
@@ -163,9 +152,8 @@ public:
   nsPIDOMWindowOuter*
   GetContentWindow(nsIPrincipal& aSubjectPrincipal);
 
-  using nsIConstraintValidation::CheckValidity;
-  using nsIConstraintValidation::ReportValidity;
   using nsIConstraintValidation::GetValidationMessage;
+  using nsIConstraintValidation::SetCustomValidity;
   void GetAlign(DOMString& aValue)
   {
     GetHTMLAttr(nsGkAtoms::align, aValue);
@@ -182,7 +170,10 @@ public:
   {
     SetHTMLAttr(nsGkAtoms::archive, aValue, aRv);
   }
-  // XPCOM GetCode is ok
+  void GetCode(DOMString& aValue)
+  {
+    GetHTMLAttr(nsGkAtoms::code, aValue);
+  }
   void SetCode(const nsAString& aValue, ErrorResult& aRv)
   {
     SetHTMLAttr(nsGkAtoms::code, aValue, aRv);
@@ -219,7 +210,10 @@ public:
   {
     SetUnsignedIntAttr(nsGkAtoms::vspace, aValue, 0, aRv);
   }
-  // XPCOM GetCodebase is ok; note that it's a URI attribute
+  void GetCodeBase(DOMString& aValue)
+  {
+    GetURIAttr(nsGkAtoms::codebase, nullptr, aValue);
+  }
   void SetCodeBase(const nsAString& aValue, ErrorResult& aRv)
   {
     SetHTMLAttr(nsGkAtoms::codebase, aValue, aRv);
@@ -247,12 +241,25 @@ public:
     return GetContentDocument(aSubjectPrincipal);
   }
 
-private:
   /**
    * Calls LoadObject with the correct arguments to start the plugin load.
    */
-  void StartObjectLoad(bool aNotify);
+  void StartObjectLoad(bool aNotify, bool aForceLoad);
 
+protected:
+  // Override for nsImageLoadingContent.
+  nsIContent* AsContent() override { return this; }
+
+  virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                                const nsAttrValue* aValue,
+                                const nsAttrValue* aOldValue,
+                                nsIPrincipal* aSubjectPrincipal,
+                                bool aNotify) override;
+  virtual nsresult OnAttrSetButNotChanged(int32_t aNamespaceID, nsAtom* aName,
+                                          const nsAttrValueOrString& aValue,
+                                          bool aNotify) override;
+
+private:
   /**
    * Returns if the element is currently focusable regardless of it's tabindex
    * value. This is used to know the default tabindex value.
@@ -269,7 +276,19 @@ private:
   virtual JSObject* WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   static void MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
-                                    nsRuleData* aData);
+                                    GenericSpecifiedValues* aGenericData);
+
+  /**
+   * This function is called by AfterSetAttr and OnAttrSetButNotChanged.
+   * This function will be called by AfterSetAttr whether the attribute is being
+   * set or unset.
+   *
+   * @param aNamespaceID the namespace of the attr being set
+   * @param aName the localname of the attribute being set
+   * @param aNotify Whether we plan to notify document observers.
+   */
+  nsresult AfterMaybeChangeAttr(int32_t aNamespaceID, nsAtom* aName,
+                                bool aNotify);
 
   bool mIsDoneAddingChildren;
 };

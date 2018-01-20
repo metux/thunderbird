@@ -63,3 +63,8 @@
 <!ENTITY attachmentReminder.accesskey          "b">
 <!ENTITY attachmentReminderOptions.label       "Pallabres clave…">
 <!ENTITY attachmentReminderOptions.accesskey   "P">
+
+<!ENTITY showAsDefault.label                   "Default startup directory in the address book window:">
+<!ENTITY showAsDefault.accesskey               "S">
+<!ENTITY showAsDefaultLast.label               "Last used directory">
+

@@ -30,6 +30,7 @@
 #define HB_OPEN_TYPE_PRIVATE_HH
 
 #include "hb-private.hh"
+#include "hb-face-private.hh"
 
 
 namespace OT {
@@ -84,7 +85,7 @@ static inline Type& StructAfter(TObject &X)
 #define _DEFINE_INSTANCE_ASSERTION1(_line, _assertion) \
   inline void _instance_assertion_on_line_##_line (void) const \
   { \
-    ASSERT_STATIC (_assertion); \
+    static_assert ((_assertion), ""); \
     ASSERT_INSTANCE_POD (*this); /* Make sure it's POD. */ \
   }
 # define _DEFINE_INSTANCE_ASSERTION0(_line, _assertion) _DEFINE_INSTANCE_ASSERTION1 (_line, _assertion)
@@ -135,7 +136,7 @@ static const void *_NullPool[(256+8) / sizeof (void *)];
 /* Generic nul-content Null objects. */
 template <typename Type>
 static inline const Type& Null (void) {
-  ASSERT_STATIC (sizeof (Type) <= sizeof (_NullPool));
+  static_assert ((sizeof (Type) <= sizeof (_NullPool)), "");
   return *CastP<Type> (_NullPool);
 }
 
@@ -146,7 +147,7 @@ template <> \
 /*static*/ inline const Type& Null<Type> (void) { \
   return *CastP<Type> (_Null##Type); \
 } /* The following line really exists such that we end in a place needing semicolon */ \
-ASSERT_STATIC (Type::min_size + 1 <= sizeof (_Null##Type))
+static_assert (Type::min_size + 1 <= sizeof (_Null##Type), "Null pool too small.  Enlarge.")
 
 /* Accessor macro. */
 #define Null(Type) Null<Type>()
@@ -191,9 +192,9 @@ struct hb_sanitize_context_t :
 {
   inline hb_sanitize_context_t (void) :
 	debug_depth (0),
-	start (NULL), end (NULL),
+	start (nullptr), end (nullptr),
 	writable (false), edit_count (0),
-	blob (NULL) {}
+	blob (nullptr) {}
 
   inline const char *get_name (void) { return "SANITIZE"; }
   template <typename T, typename F>
@@ -213,7 +214,7 @@ struct hb_sanitize_context_t :
 
   inline void start_processing (void)
   {
-    this->start = hb_blob_get_data (this->blob, NULL);
+    this->start = hb_blob_get_data (this->blob, nullptr);
     this->end = this->start + hb_blob_get_length (this->blob);
     assert (this->start <= this->end); /* Must not overflow. */
     this->edit_count = 0;
@@ -232,8 +233,8 @@ struct hb_sanitize_context_t :
 		     this->start, this->end, this->edit_count);
 
     hb_blob_destroy (this->blob);
-    this->blob = NULL;
-    this->start = this->end = NULL;
+    this->blob = nullptr;
+    this->start = this->end = nullptr;
   }
 
   inline bool check_range (const void *base, unsigned int len) const
@@ -348,7 +349,7 @@ struct Sanitizer
     } else {
       unsigned int edit_count = c->edit_count;
       if (edit_count && !c->writable) {
-        c->start = hb_blob_get_data_writable (blob, NULL);
+        c->start = hb_blob_get_data_writable (blob, nullptr);
 	c->end = c->start + hb_blob_get_length (blob);
 
 	if (c->start) {
@@ -373,7 +374,7 @@ struct Sanitizer
 
   static const Type* lock_instance (hb_blob_t *blob) {
     hb_blob_make_immutable (blob);
-    const char *base = hb_blob_get_data (blob, NULL);
+    const char *base = hb_blob_get_data (blob, nullptr);
     return unlikely (!base) ? &Null(Type) : CastP<Type> (base);
   }
 };
@@ -444,7 +445,7 @@ struct hb_serialize_context_t
   {
     if (unlikely (this->ran_out_of_room || this->end - this->head < ptrdiff_t (size))) {
       this->ran_out_of_room = true;
-      return NULL;
+      return nullptr;
     }
     memset (this->head, 0, size);
     char *ret = this->head;
@@ -470,7 +471,7 @@ struct hb_serialize_context_t
   {
     unsigned int size = obj.get_size ();
     Type *ret = this->allocate_size<Type> (size);
-    if (unlikely (!ret)) return NULL;
+    if (unlikely (!ret)) return nullptr;
     memcpy (ret, obj, size);
     return ret;
   }
@@ -480,7 +481,7 @@ struct hb_serialize_context_t
   {
     unsigned int size = obj.min_size;
     assert (this->start <= (char *) &obj && (char *) &obj <= this->head && (char *) &obj + size >= this->head);
-    if (unlikely (!this->allocate_size<Type> (((char *) &obj) + size - this->head))) return NULL;
+    if (unlikely (!this->allocate_size<Type> (((char *) &obj) + size - this->head))) return nullptr;
     return reinterpret_cast<Type *> (&obj);
   }
 
@@ -489,7 +490,7 @@ struct hb_serialize_context_t
   {
     unsigned int size = obj.get_size ();
     assert (this->start < (char *) &obj && (char *) &obj <= this->head && (char *) &obj + size >= this->head);
-    if (unlikely (!this->allocate_size<Type> (((char *) &obj) + size - this->head))) return NULL;
+    if (unlikely (!this->allocate_size<Type> (((char *) &obj) + size - this->head))) return nullptr;
     return reinterpret_cast<Type *> (&obj);
   }
 
@@ -829,6 +830,7 @@ struct OffsetTo : Offset<OffsetType>
   }
   DEFINE_SIZE_STATIC (sizeof(OffsetType));
 };
+template <typename Type> struct LOffsetTo : OffsetTo<Type, ULONG> {};
 template <typename Base, typename OffsetType, typename Type>
 static inline const Type& operator + (const Base &base, const OffsetTo<Type, OffsetType> &offset) { return offset (base); }
 template <typename Base, typename OffsetType, typename Type>
@@ -950,6 +952,7 @@ struct ArrayOf
   public:
   DEFINE_SIZE_ARRAY (sizeof (LenType), array);
 };
+template <typename Type> struct LArrayOf : ArrayOf<Type, ULONG> {};
 
 /* Array of Offset's */
 template <typename Type, typename OffsetType=USHORT>
@@ -1044,11 +1047,12 @@ struct SortedArrayOf : ArrayOf<Type, LenType>
   inline int bsearch (const SearchType &x) const
   {
     /* Hand-coded bsearch here since this is in the hot inner loop. */
+    const Type *array = this->array;
     int min = 0, max = (int) this->len - 1;
     while (min <= max)
     {
       int mid = (min + max) / 2;
-      int c = this->array[mid].cmp (x);
+      int c = array[mid].cmp (x);
       if (c < 0)
         max = mid - 1;
       else if (c > 0)
@@ -1058,6 +1062,104 @@ struct SortedArrayOf : ArrayOf<Type, LenType>
     }
     return -1;
   }
+};
+
+
+/* Lazy struct and blob loaders. */
+
+/* Logic is shared between hb_lazy_loader_t and hb_lazy_table_loader_t */
+template <typename T>
+struct hb_lazy_loader_t
+{
+  inline void init (hb_face_t *face_)
+  {
+    face = face_;
+    instance = nullptr;
+  }
+
+  inline void fini (void)
+  {
+    if (instance && instance != &OT::Null(T))
+    {
+      instance->fini();
+      free (instance);
+    }
+  }
+
+  inline const T* get (void) const
+  {
+  retry:
+    T *p = (T *) hb_atomic_ptr_get (&instance);
+    if (unlikely (!p))
+    {
+      p = (T *) calloc (1, sizeof (T));
+      if (unlikely (!p))
+        p = const_cast<T *> (&OT::Null(T));
+      else
+	p->init (face);
+      if (unlikely (!hb_atomic_ptr_cmpexch (const_cast<T **>(&instance), nullptr, p)))
+      {
+	if (p != &OT::Null(T))
+	  p->fini ();
+	goto retry;
+      }
+    }
+    return p;
+  }
+
+  inline const T* operator-> (void) const
+  {
+    return get ();
+  }
+
+  private:
+  hb_face_t *face;
+  T *instance;
+};
+
+/* Logic is shared between hb_lazy_loader_t and hb_lazy_table_loader_t */
+template <typename T>
+struct hb_lazy_table_loader_t
+{
+  inline void init (hb_face_t *face_)
+  {
+    face = face_;
+    instance = nullptr;
+    blob = nullptr;
+  }
+
+  inline void fini (void)
+  {
+    hb_blob_destroy (blob);
+  }
+
+  inline const T* get (void) const
+  {
+  retry:
+    T *p = (T *) hb_atomic_ptr_get (&instance);
+    if (unlikely (!p))
+    {
+      hb_blob_t *blob_ = OT::Sanitizer<T>::sanitize (face->reference_table (T::tableTag));
+      p = const_cast<T *>(OT::Sanitizer<T>::lock_instance (blob_));
+      if (!hb_atomic_ptr_cmpexch (const_cast<T **>(&instance), nullptr, p))
+      {
+	hb_blob_destroy (blob_);
+	goto retry;
+      }
+      blob = blob_;
+    }
+    return p;
+  }
+
+  inline const T* operator-> (void) const
+  {
+    return get();
+  }
+
+  private:
+  hb_face_t *face;
+  T *instance;
+  mutable hb_blob_t *blob;
 };
 
 

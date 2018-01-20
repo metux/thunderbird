@@ -17,6 +17,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.mozilla.gecko.annotation.ReflectionTarget;
+import org.mozilla.gecko.annotation.WrapForJNI;
+import org.mozilla.gecko.util.GeckoBundle;
 import org.mozilla.gecko.util.GeckoJarReader;
 
 import android.content.BroadcastReceiver;
@@ -26,6 +28,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.os.Build;
 import android.util.Log;
 
 /**
@@ -77,11 +80,6 @@ public class BrowserLocaleManager implements LocaleManager {
         }
     }
 
-    @Override
-    public boolean isEnabled() {
-        return AppConstants.MOZ_LOCALE_SWITCHER;
-    }
-
     /**
      * Ensure that you call this early in your application startup,
      * and with a context that's sufficiently long-lived (typically
@@ -109,6 +107,10 @@ public class BrowserLocaleManager implements LocaleManager {
                 systemLocaleDidChange = true;
 
                 Log.d(LOG_TAG, "System locale changed from " + current + " to " + systemLocale);
+
+                // If the OS locale changed, we need to tell Gecko.
+                final SharedPreferences prefs = GeckoSharedPrefs.forProfile(context);
+                BrowserLocaleManager.storeAndNotifyOSLocale(prefs, systemLocale);
             }
         };
         context.registerReceiver(receiver, new IntentFilter(Intent.ACTION_LOCALE_CHANGED));
@@ -211,6 +213,7 @@ public class BrowserLocaleManager implements LocaleManager {
         final String osLocaleString = osLocale.toString();
 
         if (osLocaleString.equals(lastOSLocale)) {
+            Log.d(LOG_TAG, "Previous locale " + lastOSLocale + " same as new. Doing nothing.");
             return;
         }
 
@@ -219,8 +222,16 @@ public class BrowserLocaleManager implements LocaleManager {
 
         // The value we send to Gecko should be a language tag, not
         // a Java locale string.
-        final String osLanguageTag = Locales.getLanguageTag(osLocale);
-        GeckoAppShell.notifyObservers("Locale:OS", osLanguageTag);
+        final GeckoBundle data = new GeckoBundle(1);
+        data.putString("languageTag", Locales.getLanguageTag(osLocale));
+
+        EventDispatcher.getInstance().dispatch("Locale:OS", data);
+
+        if (GeckoThread.isRunning()) {
+            refreshLocales();
+        } else {
+            GeckoThread.queueNativeCall(BrowserLocaleManager.class, "refreshLocales");
+        }
     }
 
     @Override
@@ -264,7 +275,9 @@ public class BrowserLocaleManager implements LocaleManager {
         persistLocale(context, localeCode);
 
         // Tell Gecko.
-        GeckoAppShell.notifyObservers(EVENT_LOCALE_CHANGED, Locales.getLanguageTag(getCurrentLocale(context)));
+        final GeckoBundle data = new GeckoBundle(1);
+        data.putString("languageTag", Locales.getLanguageTag(getCurrentLocale(context)));
+        EventDispatcher.getInstance().dispatch(EVENT_LOCALE_CHANGED, data);
 
         return resultant;
     }
@@ -279,7 +292,7 @@ public class BrowserLocaleManager implements LocaleManager {
         updateLocale(context, systemLocale);
 
         // Tell Gecko.
-        GeckoAppShell.notifyObservers(EVENT_LOCALE_CHANGED, "");
+        EventDispatcher.getInstance().dispatch(EVENT_LOCALE_CHANGED, null);
     }
 
     /**
@@ -295,10 +308,19 @@ public class BrowserLocaleManager implements LocaleManager {
         // We should use setLocale, but it's unexpectedly missing
         // on real devices.
         config.locale = locale;
+        //  LayoutDirection is also updated in setLocale, do this manually.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            config.setLayoutDirection(locale);
+        }
+
         res.updateConfiguration(config, null);
     }
 
     private SharedPreferences getSharedPreferences(Context context) {
+        // We should be using per-profile prefs here, because we're tracking against
+        // a Gecko pref. The same applies to the locale switcher!
+        // Bug 940575, Bug 873166 are relevant, and see Bug 1378501 for the commit
+        // that added this comment.
         return GeckoSharedPrefs.forApp(context);
     }
 
@@ -331,6 +353,11 @@ public class BrowserLocaleManager implements LocaleManager {
             return null;
         }
         return currentLocale = Locales.parseLocaleCode(current);
+    }
+
+    @Override
+    public Locale getDefaultSystemLocale() {
+        return systemLocale;
     }
 
     /**
@@ -373,7 +400,8 @@ public class BrowserLocaleManager implements LocaleManager {
         return locale.toString();
     }
 
-    private boolean isMirroringSystemLocale(final Context context) {
+    @Override
+    public boolean isMirroringSystemLocale(Context context) {
         return getPersistedLocale(context) == null;
     }
 
@@ -435,5 +463,27 @@ public class BrowserLocaleManager implements LocaleManager {
     @SuppressWarnings("static-method")
     public String getFallbackLocaleTag() {
         return FALLBACK_LOCALE_TAG;
+    }
+
+    @WrapForJNI(dispatchTo = "Gecko")
+    private static native void refreshLocales();
+
+
+    @WrapForJNI
+    private static String getLocale() {
+        try {
+            LocaleManager localeManager = Locales.getLocaleManager();
+            Context context = GeckoAppShell.getApplicationContext();
+            if (!localeManager.isMirroringSystemLocale(context)) {
+                // User uses specific browser locale instead of system locale
+                return Locales.getLanguageTag(localeManager.getCurrentLocale(context));
+            }
+            // Since user selects system default for browser locale, we should return system locale
+            Locale locale = localeManager.getDefaultSystemLocale();
+            return Locales.getLanguageTag(locale);
+        } catch (NullPointerException e) {
+            Log.i(LOG_TAG, "Couldn't get current locale.");
+            return null;
+        }
     }
 }

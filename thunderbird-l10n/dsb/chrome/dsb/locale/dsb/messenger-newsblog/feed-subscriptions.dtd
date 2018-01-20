@@ -17,6 +17,15 @@
 
 <!ENTITY feedFolder.label            "Nastawki składowaś w:">
 <!ENTITY feedFolder.accesskey        "N">
+<!-- Account Settings and Subscription Dialog -->
+
+<!ENTITY biffStart.label             "Za nowymi nastawkami pytaś kužde ">
+<!ENTITY biffStart.accesskey         "k">
+<!ENTITY biffMinutes.label           "minutow">
+<!ENTITY biffMinutes.accesskey       "n">
+<!ENTITY biffDays.label              "dnjow">
+<!ENTITY biffDays.accesskey          "d">
+<!ENTITY recommendedUnits.label      "Wudawaŕ pórucujo:">
 
 <!ENTITY quickMode.label             "Nastawkowe zespominanje pokazaś, město aby webbok zacytało">
 <!ENTITY quickMode.accesskey         "z">
@@ -26,6 +35,7 @@
 <!ENTITY autotagUsePrefix.label      "Wobznamjenja prefigěrowaś z:">
 <!ENTITY autotagUsePrefix.accesskey  "f">
 <!ENTITY autoTagPrefix.placeholder   "Zapódajśo wobznamjenjowy prefiks">
+<!-- Subscription Dialog -->
 
 <!ENTITY button.addFeed.label        "Pśidaś">
 <!ENTITY button.addFeed.accesskey    "P">

@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -210,8 +211,6 @@ CompositorOGL::CleanupResources()
 
   mBlitTextureImageHelper = nullptr;
 
-  mContextStateTracker.DestroyOGL(mGLContext);
-
   // On the main thread the Widget will be destroyed soon and calling MakeCurrent
   // after that could cause a crash (at least with GLX, see bug 1059793), unless
   // context is marked as destroyed.
@@ -235,7 +234,7 @@ CompositorOGL::Initialize(nsCString* const out_failureReason)
 #ifdef MOZ_WIDGET_ANDROID
   if (!mGLContext){
     *out_failureReason = "FEATURE_FAILURE_OPENGL_NO_ANDROID_CONTEXT";
-    NS_RUNTIMEABORT("We need a context on Android");
+    MOZ_CRASH("We need a context on Android");
   }
 #endif
 
@@ -521,9 +520,9 @@ CompositorOGL::PrepareViewport(CompositingRenderTargetOGL* aRenderTarget)
 already_AddRefed<CompositingRenderTarget>
 CompositorOGL::CreateRenderTarget(const IntRect &aRect, SurfaceInitMode aInit)
 {
-  MOZ_ASSERT(aRect.width != 0 && aRect.height != 0, "Trying to create a render target of invalid size");
+  MOZ_ASSERT(aRect.Width() != 0 && aRect.Height() != 0, "Trying to create a render target of invalid size");
 
-  if (aRect.width * aRect.height == 0) {
+  if (aRect.Width() * aRect.Height() == 0) {
     return nullptr;
   }
 
@@ -548,9 +547,9 @@ CompositorOGL::CreateRenderTargetFromSource(const IntRect &aRect,
                                             const CompositingRenderTarget *aSource,
                                             const IntPoint &aSourcePoint)
 {
-  MOZ_ASSERT(aRect.width != 0 && aRect.height != 0, "Trying to create a render target of invalid size");
+  MOZ_ASSERT(aRect.Width() != 0 && aRect.Height() != 0, "Trying to create a render target of invalid size");
 
-  if (aRect.width * aRect.height == 0) {
+  if (aRect.Width() * aRect.Height() == 0) {
     return nullptr;
   }
 
@@ -588,10 +587,6 @@ CompositorOGL::SetRenderTarget(CompositingRenderTarget *aSurface)
     = static_cast<CompositingRenderTargetOGL*>(aSurface);
   if (mCurrentRenderTarget != surface) {
     mCurrentRenderTarget = surface;
-    if (mCurrentRenderTarget) {
-      mContextStateTracker.PopOGLSection(gl(), "Frame");
-    }
-    mContextStateTracker.PushOGLSection(gl(), "Frame");
     surface->BindRenderTarget();
   }
 
@@ -619,10 +614,10 @@ void
 CompositorOGL::ClearRect(const gfx::Rect& aRect)
 {
   // Map aRect to OGL coordinates, origin:bottom-left
-  GLint y = mViewportSize.height - (aRect.y + aRect.height);
+  GLint y = mViewportSize.height - (aRect.y + aRect.Height());
 
   ScopedGLState scopedScissorTestState(mGLContext, LOCAL_GL_SCISSOR_TEST, true);
-  ScopedScissorRect autoScissorRect(mGLContext, aRect.x, y, aRect.width, aRect.height);
+  ScopedScissorRect autoScissorRect(mGLContext, aRect.x, y, aRect.Width(), aRect.Height());
   mGLContext->fClearColor(0.0, 0.0, 0.0, 0.0);
   mGLContext->fClear(LOCAL_GL_COLOR_BUFFER_BIT | LOCAL_GL_DEPTH_BUFFER_BIT);
 }
@@ -635,8 +630,7 @@ CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
                           IntRect *aClipRectOut,
                           IntRect *aRenderBoundsOut)
 {
-  PROFILER_LABEL("CompositorOGL", "BeginFrame",
-    js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("CompositorOGL::BeginFrame", GRAPHICS);
 
   MOZ_ASSERT(!mFrameInProgress, "frame still in progress (should have called EndFrame");
 
@@ -644,15 +638,15 @@ CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
   if (mUseExternalSurfaceSize) {
     rect = gfx::IntRect(0, 0, mSurfaceSize.width, mSurfaceSize.height);
   } else {
-    rect = gfx::IntRect(aRenderBounds.x, aRenderBounds.y, aRenderBounds.width, aRenderBounds.height);
+    rect = gfx::IntRect(aRenderBounds.x, aRenderBounds.y, aRenderBounds.Width(), aRenderBounds.Height());
   }
 
   if (aRenderBoundsOut) {
     *aRenderBoundsOut = rect;
   }
 
-  GLint width = rect.width;
-  GLint height = rect.height;
+  GLint width = rect.Width();
+  GLint height = rect.Height();
 
   // We can't draw anything to something with no area
   // so just return
@@ -728,8 +722,8 @@ CompositorOGL::CreateTexture(const IntRect& aRect, bool aCopyFromSource,
   // See bug 827170 for a discussion.
   IntRect clampedRect = aRect;
   int32_t maxTexSize = GetMaxTextureSize();
-  clampedRect.width = std::min(clampedRect.width, maxTexSize);
-  clampedRect.height = std::min(clampedRect.height, maxTexSize);
+  clampedRect.SetWidth(std::min(clampedRect.Width(), maxTexSize));
+  clampedRect.SetHeight(std::min(clampedRect.Height(), maxTexSize));
 
   GLuint tex;
 
@@ -759,25 +753,25 @@ CompositorOGL::CreateTexture(const IntRect& aRect, bool aCopyFromSource,
       mGLContext->fCopyTexImage2D(mFBOTextureTarget,
                                   0,
                                   LOCAL_GL_RGBA,
-                                  clampedRect.x, FlipY(clampedRect.y + clampedRect.height),
-                                  clampedRect.width, clampedRect.height,
+                                  clampedRect.x, FlipY(clampedRect.y + clampedRect.Height()),
+                                  clampedRect.Width(), clampedRect.Height(),
                                   0);
     } else {
       // Curses, incompatible formats.  Take a slow path.
 
       // RGBA
-      size_t bufferSize = clampedRect.width * clampedRect.height * 4;
+      size_t bufferSize = clampedRect.Width() * clampedRect.Height() * 4;
       auto buf = MakeUnique<uint8_t[]>(bufferSize);
 
       mGLContext->fReadPixels(clampedRect.x, clampedRect.y,
-                              clampedRect.width, clampedRect.height,
+                              clampedRect.Width(), clampedRect.Height(),
                               LOCAL_GL_RGBA,
                               LOCAL_GL_UNSIGNED_BYTE,
                               buf.get());
       mGLContext->fTexImage2D(mFBOTextureTarget,
                               0,
                               LOCAL_GL_RGBA,
-                              clampedRect.width, clampedRect.height,
+                              clampedRect.Width(), clampedRect.Height(),
                               0,
                               LOCAL_GL_RGBA,
                               LOCAL_GL_UNSIGNED_BYTE,
@@ -795,7 +789,7 @@ CompositorOGL::CreateTexture(const IntRect& aRect, bool aCopyFromSource,
     mGLContext->fTexImage2D(mFBOTextureTarget,
                             0,
                             LOCAL_GL_RGBA,
-                            clampedRect.width, clampedRect.height,
+                            clampedRect.Width(), clampedRect.Height(),
                             0,
                             LOCAL_GL_RGBA,
                             LOCAL_GL_UNSIGNED_BYTE,
@@ -812,8 +806,8 @@ CompositorOGL::CreateTexture(const IntRect& aRect, bool aCopyFromSource,
   mGLContext->fBindTexture(mFBOTextureTarget, 0);
 
   if (aAllocSize) {
-    aAllocSize->width = clampedRect.width;
-    aAllocSize->height = clampedRect.height;
+    aAllocSize->width = clampedRect.Width();
+    aAllocSize->height = clampedRect.Height();
   }
 
   return tex;
@@ -833,8 +827,18 @@ CompositorOGL::GetShaderConfigFor(Effect *aEffect,
     config.SetRenderColor(true);
     break;
   case EffectTypes::YCBCR:
+  {
     config.SetYCbCr(true);
+    EffectYCbCr* effectYCbCr =
+      static_cast<EffectYCbCr*>(aEffect);
+    uint32_t pixelBits = (8 * BytesPerPixel(SurfaceFormatForAlphaBitDepth(effectYCbCr->mBitDepth)));
+    uint32_t paddingBits = pixelBits - effectYCbCr->mBitDepth;
+    // OpenGL expects values between [0,255], this range needs to be adjusted
+    // according to the bit depth.
+    // So we will scale the YUV values by this amount.
+    config.SetColorMultiplier(pow(2, paddingBits));
     break;
+  }
   case EffectTypes::NV12:
     config.SetNV12(true);
     config.SetTextureTarget(LOCAL_GL_TEXTURE_RECTANGLE_ARB);
@@ -862,7 +866,10 @@ CompositorOGL::GetShaderConfigFor(Effect *aEffect,
     TextureSourceOGL* source = texturedEffect->mTexture->AsSourceOGL();
     MOZ_ASSERT_IF(source->GetTextureTarget() == LOCAL_GL_TEXTURE_EXTERNAL,
                   source->GetFormat() == gfx::SurfaceFormat::R8G8B8A8 ||
-                  source->GetFormat() == gfx::SurfaceFormat::R8G8B8X8);
+                  source->GetFormat() == gfx::SurfaceFormat::R8G8B8X8 ||
+                  source->GetFormat() == gfx::SurfaceFormat::B8G8R8A8 ||
+                  source->GetFormat() == gfx::SurfaceFormat::B8G8R8X8 ||
+                  source->GetFormat() == gfx::SurfaceFormat::R5G6B5_UINT16);
     MOZ_ASSERT_IF(source->GetTextureTarget() == LOCAL_GL_TEXTURE_RECTANGLE_ARB,
                   source->GetFormat() == gfx::SurfaceFormat::R8G8B8A8 ||
                   source->GetFormat() == gfx::SurfaceFormat::R8G8B8X8 ||
@@ -992,34 +999,34 @@ CompositorOGL::DrawQuad(const Rect& aRect,
                         const gfx::Matrix4x4& aTransform,
                         const gfx::Rect& aVisibleRect)
 {
-  PROFILER_LABEL("CompositorOGL", "DrawQuad",
-    js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("CompositorOGL::DrawQuad", GRAPHICS);
 
-  DrawGeometry(aRect, aClipRect, aEffectChain,
+  DrawGeometry(aRect, aRect, aClipRect, aEffectChain,
                aOpacity, aTransform, aVisibleRect);
 }
 
 void
-CompositorOGL::DrawTriangle(const gfx::TexturedTriangle& aTriangle,
-                            const gfx::IntRect& aClipRect,
-                            const EffectChain& aEffectChain,
-                            gfx::Float aOpacity,
-                            const gfx::Matrix4x4& aTransform,
-                            const gfx::Rect& aVisibleRect)
+CompositorOGL::DrawTriangles(const nsTArray<gfx::TexturedTriangle>& aTriangles,
+                             const gfx::Rect& aRect,
+                             const gfx::IntRect& aClipRect,
+                             const EffectChain& aEffectChain,
+                             gfx::Float aOpacity,
+                             const gfx::Matrix4x4& aTransform,
+                             const gfx::Rect& aVisibleRect)
 {
-  PROFILER_LABEL("CompositorOGL", "DrawTriangle",
-    js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("CompositorOGL::DrawTriangles", GRAPHICS);
 
-  DrawGeometry(aTriangle, aClipRect, aEffectChain,
+  DrawGeometry(aTriangles, aRect, aClipRect, aEffectChain,
                aOpacity, aTransform, aVisibleRect);
 }
 
 template<typename Geometry>
 void
 CompositorOGL::DrawGeometry(const Geometry& aGeometry,
-                            const IntRect& aClipRect,
-                            const EffectChain &aEffectChain,
-                            Float aOpacity,
+                            const gfx::Rect& aRect,
+                            const gfx::IntRect& aClipRect,
+                            const EffectChain& aEffectChain,
+                            gfx::Float aOpacity,
                             const gfx::Matrix4x4& aTransform,
                             const gfx::Rect& aVisibleRect)
 {
@@ -1035,7 +1042,7 @@ CompositorOGL::DrawGeometry(const Geometry& aGeometry,
   renderBound.IntersectRect(renderBound, Rect(aClipRect));
   renderBound.MoveBy(offset);
 
-  Rect destRect = aTransform.TransformAndClipBounds(aGeometry, renderBound);
+  Rect destRect = aTransform.TransformAndClipBounds(aRect, renderBound);
 
   // XXX: This doesn't handle 3D transforms. It also doesn't handled rotated
   //      quads. Fix me.
@@ -1160,7 +1167,7 @@ CompositorOGL::DrawGeometry(const Geometry& aGeometry,
       gl()->fTextureBarrier();
       mixBlendBackdrop = mCurrentRenderTarget->GetTextureHandle();
     } else {
-      gfx::IntRect rect = ComputeBackdropCopyRect(aGeometry, aClipRect,
+      gfx::IntRect rect = ComputeBackdropCopyRect(aRect, aClipRect,
                                                   aTransform, &backdropTransform);
       mixBlendBackdrop = CreateTexture(rect, true, mCurrentRenderTarget->GetFBO());
       createdMixBlendBackdropTexture = true;
@@ -1474,45 +1481,35 @@ CompositorOGL::DrawGeometry(const Geometry& aGeometry,
   MakeCurrent();
 
   LayerScope::DrawEnd(mGLContext, aEffectChain,
-                      aGeometry.width, aGeometry.height);
+                      aRect.width, aRect.height);
 }
 
 void
 CompositorOGL::BindAndDrawGeometry(ShaderProgramOGL* aProgram,
-                                   const gfx::Rect& aRect,
-                                   const gfx::Rect& aTextureRect)
+                                   const gfx::Rect& aRect)
 {
-  BindAndDrawQuad(aProgram, aRect, aTextureRect);
+  BindAndDrawQuad(aProgram, aRect);
 }
 
 void
 CompositorOGL::BindAndDrawGeometry(ShaderProgramOGL* aProgram,
-                                   const gfx::TexturedTriangle& aTriangle,
-                                   const gfx::Rect& aTextureRect)
+                                   const nsTArray<gfx::TexturedTriangle>& aTriangles)
 {
   NS_ASSERTION(aProgram->HasInitialized(), "Shader program not correctly initialized");
 
-  const gfx::TexturedTriangle& t = aTriangle;
-  const gfx::Triangle& tex = t.textureCoords;
+  const nsTArray<TexturedVertex> vertices = TexturedTrianglesToVertexArray(aTriangles);
 
-  GLfloat vertices[] = {
-    t.p1.x, t.p1.y, 0.0f, 1.0f, tex.p1.x, tex.p1.y,
-    t.p2.x, t.p2.y, 0.0f, 1.0f, tex.p2.x, tex.p2.y,
-    t.p3.x, t.p3.y, 0.0f, 1.0f, tex.p3.x, tex.p3.y
-  };
-
-  HeapCopyOfStackArray<GLfloat> verticesOnHeap(vertices);
   mGLContext->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, mTriangleVBO);
   mGLContext->fBufferData(LOCAL_GL_ARRAY_BUFFER,
-                          verticesOnHeap.ByteLength(),
-                          verticesOnHeap.Data(),
+                          vertices.Length() * sizeof(TexturedVertex),
+                          vertices.Elements(),
                           LOCAL_GL_STREAM_DRAW);
 
-  const GLsizei stride = 6 * sizeof(GLfloat);
-  InitializeVAO(kCoordinateAttributeIndex, 4, stride, 0);
-  InitializeVAO(kTexCoordinateAttributeIndex, 2, stride, 4 * sizeof(GLfloat));
+  const GLsizei stride = 4 * sizeof(GLfloat);
+  InitializeVAO(kCoordinateAttributeIndex, 2, stride, 0);
+  InitializeVAO(kTexCoordinateAttributeIndex, 2, stride, 2 * sizeof(GLfloat));
 
-  mGLContext->fDrawArrays(LOCAL_GL_TRIANGLES, 0, 3);
+  mGLContext->fDrawArrays(LOCAL_GL_TRIANGLES, 0, vertices.Length());
 
   mGLContext->fDisableVertexAttribArray(kCoordinateAttributeIndex);
   mGLContext->fDisableVertexAttribArray(kTexCoordinateAttributeIndex);
@@ -1544,12 +1541,11 @@ CompositorOGL::BindAndDrawGeometryWithTextureRect(ShaderProgramOGL *aProg,
 
 void
 CompositorOGL::BindAndDrawGeometryWithTextureRect(ShaderProgramOGL *aProg,
-                                                  const gfx::TexturedTriangle& aTriangle,
+                                                  const nsTArray<gfx::TexturedTriangle>& aTriangles,
                                                   const gfx::Rect& aTexCoordRect,
                                                   TextureSource *aTexture)
 {
-  BindAndDrawGeometry(aProg, aTriangle,
-                      GetTextureCoordinates(aTexCoordRect, aTexture));
+  BindAndDrawGeometry(aProg, aTriangles);
 }
 
 void
@@ -1589,8 +1585,7 @@ CompositorOGL::InitializeVAO(const GLuint aAttrib, const GLint aComponents,
 void
 CompositorOGL::EndFrame()
 {
-  PROFILER_LABEL("CompositorOGL", "EndFrame",
-    js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("CompositorOGL::EndFrame", GRAPHICS);
 
   MOZ_ASSERT(mCurrentRenderTarget == mWindowRenderTarget, "Rendering target not properly restored");
 
@@ -1609,8 +1604,6 @@ CompositorOGL::EndFrame()
     }
   }
 #endif
-
-  mContextStateTracker.PopOGLSection(gl(), "Frame");
 
   mFrameInProgress = false;
 
@@ -1644,15 +1637,6 @@ CompositorOGL::EndFrame()
 }
 
 void
-CompositorOGL::EndFrameForExternalComposition(const gfx::Matrix& aTransform)
-{
-  MOZ_ASSERT(!mTarget);
-  if (mTexturePool) {
-    mTexturePool->EndFrame();
-  }
-}
-
-void
 CompositorOGL::SetDestinationSurfaceSize(const IntSize& aSize)
 {
   mSurfaceSize.width = aSize.width;
@@ -1669,8 +1653,8 @@ CompositorOGL::CopyToTarget(DrawTarget* aTarget, const nsIntPoint& aTopLeft, con
   } else {
     rect = IntRect(0, 0, mWidgetSize.width, mWidgetSize.height);
   }
-  GLint width = rect.width;
-  GLint height = rect.height;
+  GLint width = rect.Width();
+  GLint height = rect.Height();
 
   if ((int64_t(width) * int64_t(height) * int64_t(4)) > INT32_MAX) {
     NS_ERROR("Widget size too big - integer overflow!");
@@ -1703,7 +1687,7 @@ CompositorOGL::CopyToTarget(DrawTarget* aTarget, const nsIntPoint& aTopLeft, con
 
   Matrix oldMatrix = aTarget->GetTransform();
   aTarget->SetTransform(glToCairoTransform);
-  Rect floatRect = Rect(rect.x, rect.y, rect.width, rect.height);
+  Rect floatRect = Rect(rect.x, rect.y, rect.Width(), rect.Height());
   aTarget->DrawSurface(source, floatRect, floatRect, DrawSurfaceOptions(), DrawOptions(1.0f, CompositionOp::OP_SOURCE));
   aTarget->SetTransform(oldMatrix);
   aTarget->Flush();
@@ -1729,7 +1713,7 @@ CompositorOGL::Resume()
     return false;
 
   // RenewSurface internally calls MakeCurrent.
-  return gl()->RenewSurface(GetWidget()->RealWidget());
+  return gl()->RenewSurface(GetWidget());
 #endif
   return true;
 }
@@ -1828,88 +1812,10 @@ PerUnitTexturePoolOGL::DestroyTextures()
   mTextures.SetLength(0);
 }
 
-void
-PerFrameTexturePoolOGL::DestroyTextures()
+bool
+CompositorOGL::SupportsLayerGeometry() const
 {
-  if (!mGL->MakeCurrent()) {
-    return;
-  }
-
-  if (mUnusedTextures.Length() > 0) {
-    mGL->fDeleteTextures(mUnusedTextures.Length(), &mUnusedTextures[0]);
-    mUnusedTextures.Clear();
-  }
-
-  if (mCreatedTextures.Length() > 0) {
-    mGL->fDeleteTextures(mCreatedTextures.Length(), &mCreatedTextures[0]);
-    mCreatedTextures.Clear();
-  }
-}
-
-GLuint
-PerFrameTexturePoolOGL::GetTexture(GLenum aTarget, GLenum)
-{
-  if (mTextureTarget == 0) {
-    mTextureTarget = aTarget;
-  }
-
-  // The pool should always use the same texture target because it is illegal
-  // to change the target of an already exisiting gl texture.
-  // If we need to use several targets, a pool with several sub-pools (one per
-  // target) will have to be implemented.
-  // At the moment this pool is only used with tiling on b2g so we always need
-  // the same target.
-  MOZ_ASSERT(mTextureTarget == aTarget);
-
-  GLuint texture = 0;
-
-  if (!mUnusedTextures.IsEmpty()) {
-    // Try to reuse one from the unused pile first
-    texture = mUnusedTextures[0];
-    mUnusedTextures.RemoveElementAt(0);
-  } else if (mGL->MakeCurrent()) {
-    // There isn't one to reuse, create one.
-    mGL->fGenTextures(1, &texture);
-    mGL->fBindTexture(aTarget, texture);
-    mGL->fTexParameteri(aTarget, LOCAL_GL_TEXTURE_WRAP_S, LOCAL_GL_CLAMP_TO_EDGE);
-    mGL->fTexParameteri(aTarget, LOCAL_GL_TEXTURE_WRAP_T, LOCAL_GL_CLAMP_TO_EDGE);
-  }
-
-  if (texture) {
-    mCreatedTextures.AppendElement(texture);
-  }
-
-  return texture;
-}
-
-void
-PerFrameTexturePoolOGL::EndFrame()
-{
-  if (!mGL->MakeCurrent()) {
-    // this means the context got destroyed underneith us somehow, and the driver
-    // already has destroyed the textures.
-    mCreatedTextures.Clear();
-    mUnusedTextures.Clear();
-    return;
-  }
-
-  // Some platforms have issues unlocking Gralloc buffers even when they're
-  // rebound.
-  if (gfxPrefs::OverzealousGrallocUnlocking()) {
-    mUnusedTextures.AppendElements(mCreatedTextures);
-    mCreatedTextures.Clear();
-  }
-
-  // Delete unused textures
-  for (size_t i = 0; i < mUnusedTextures.Length(); i++) {
-    GLuint texture = mUnusedTextures[i];
-    mGL->fDeleteTextures(1, &texture);
-  }
-  mUnusedTextures.Clear();
-
-  // Move all created textures into the unused pile
-  mUnusedTextures.AppendElements(mCreatedTextures);
-  mCreatedTextures.Clear();
+  return gfxPrefs::OGLLayerGeometry();
 }
 
 } // namespace layers

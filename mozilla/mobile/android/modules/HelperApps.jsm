@@ -13,7 +13,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Prompt",
                                   "resource://gre/modules/Prompt.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "Messaging",
+XPCOMUtils.defineLazyModuleGetter(this, "EventDispatcher",
                                   "resource://gre/modules/Messaging.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "ContentAreaUtils", function() {
@@ -22,7 +22,7 @@ XPCOMUtils.defineLazyGetter(this, "ContentAreaUtils", function() {
   return ContentAreaUtils;
 });
 
-this.EXPORTED_SYMBOLS = ["App","HelperApps"];
+this.EXPORTED_SYMBOLS = ["App", "HelperApps"];
 
 function App(data) {
   this.name = data.name;
@@ -38,7 +38,7 @@ App.prototype = {
     HelperApps._launchApp(this, uri, callback);
     return false;
   }
-}
+};
 
 var HelperApps =  {
   get defaultBrowsers() {
@@ -64,7 +64,7 @@ var HelperApps =  {
   _getHandlers: function(url, options) {
     let values = {};
 
-    let handlers = this.getAppsForUri(Services.io.newURI(url, null, null), options);
+    let handlers = this.getAppsForUri(Services.io.newURI(url), options);
     handlers.forEach(function(app) {
       values[app.name] = app;
     }, this);
@@ -98,7 +98,7 @@ var HelperApps =  {
           name: protoApp.name,
           description: protoApp.detailedDescription,
         });
-      } catch(e) {}
+      } catch (e) {}
     }
 
     return results;
@@ -118,13 +118,12 @@ var HelperApps =  {
 
     // Query for apps that can/can't handle the mimetype
     let msg = this._getMessage("Intent:GetHandlers", uri, flags);
-    let parseData = (d) => {
-      let apps = []
-      if (!d) {
-        return apps;
+    let parseData = (apps) => {
+      if (!apps) {
+        return [];
       }
 
-      apps = this._parseApps(d.apps);
+      apps = this._parseApps(apps);
 
       if (flags.filterBrowsers) {
         apps = apps.filter((app) => {
@@ -137,7 +136,7 @@ var HelperApps =  {
       // file extension.
       if (flags.filterHtml) {
         // Matches from the first '.' to the end of the string, '?', or '#'
-        let ext = /\.([^\?#]*)/.exec(uri.path);
+        let ext = /\.([^\?#]*)/.exec(uri.pathQueryRef);
         if (ext && (ext[1] === "html" || ext[1] === "htm")) {
           apps = apps.filter(function(app) {
             return app.name && !this.defaultHtmlHandlers[app.name];
@@ -149,18 +148,26 @@ var HelperApps =  {
     };
 
     if (!callback) {
-      let data = this._sendMessageSync(msg);
+      let data = null;
+      // Use dispatch to enable synchronous callback for Gecko thread event.
+      EventDispatcher.instance.dispatch(msg.type, msg, {
+        onSuccess: (result) => { data = result; },
+        onError: () => { throw new Error("Intent:GetHandler callback failed"); },
+      });
+      if (data === null) {
+        throw new Error("Intent:GetHandler did not return data");
+      }
       return parseData(data);
-    } else {
-      Messaging.sendRequestForResult(msg).then(function(data) {
+    }
+      EventDispatcher.instance.sendRequestForResult(msg).then(function(data) {
         callback(parseData(data));
       });
-    }
+
   },
 
   launchUri: function launchUri(uri) {
     let msg = this._getMessage("Intent:Open", uri);
-    Messaging.sendRequest(msg);
+    EventDispatcher.instance.sendRequest(msg);
   },
 
   _parseApps: function _parseApps(appInfo) {
@@ -170,10 +177,10 @@ var HelperApps =  {
 
     let apps = [];
     for (let i = 0; i < appInfo.length; i += numAttr) {
-      apps.push(new App({"name" : appInfo[i],
-                 "isDefault" : appInfo[i+1],
-                 "packageName" : appInfo[i+2],
-                 "activityName" : appInfo[i+3]}));
+      apps.push(new App({"name": appInfo[i],
+                 "isDefault": appInfo[i + 1],
+                 "packageName": appInfo[i + 2],
+                 "activityName": appInfo[i + 3]}));
     }
 
     return apps;
@@ -189,7 +196,7 @@ var HelperApps =  {
       type: type,
       mime: mimeType,
       action: options.action || "", // empty action string defaults to android.intent.action.VIEW
-      url: uri ? uri.spec : "",
+      url: uri ? uri.displaySpec : "",
       packageName: options.packageName || "",
       className: options.className || ""
     };
@@ -202,28 +209,14 @@ var HelperApps =  {
             className: app.activityName
         });
 
-        Messaging.sendRequestForResult(msg).then(callback);
+        EventDispatcher.instance.sendRequestForResult(msg).then(callback);
     } else {
         let msg = this._getMessage("Intent:Open", uri, {
             packageName: app.packageName,
             className: app.activityName
         });
 
-        Messaging.sendRequest(msg);
+        EventDispatcher.instance.sendRequest(msg);
     }
-  },
-
-  _sendMessageSync: function(msg) {
-    let res = null;
-    Messaging.sendRequestForResult(msg).then(function(data) {
-      res = data;
-    });
-
-    let thread = Services.tm.currentThread;
-    while (res == null) {
-      thread.processNextEvent(true);
-    }
-
-    return res;
   },
 };

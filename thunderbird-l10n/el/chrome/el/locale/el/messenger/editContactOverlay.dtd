@@ -8,7 +8,7 @@
 <!ENTITY editContactName.label "Όνομα:">
 <!ENTITY editContactName.accesskey "ν">
 
-<!ENTITY editContactEmail.label "Ηλ. Διεύθυνση:">
+<!ENTITY editContactEmail.label "E-mail:">
 <!ENTITY editContactEmail.accesskey "Δ">
 
 <!ENTITY editContactAddressBook.label "Βιβλίο διευθύνσεων:">
@@ -17,7 +17,7 @@
 <!ENTITY editContactPanelCancel.label "Ακύρωση">
 <!ENTITY editContactPanelCancel.accesskey "κ">
 
-<!ENTITY editContactPanelDone.label "Ολοκληρώθηκε">
+<!ENTITY editContactPanelDone.label "Τέλος">
 <!ENTITY editContactPanelDone.accesskey "Ο">
 
 <!ENTITY contactMoveDisabledWarning.description "Δεν μπορείτε να τροποποιήσετε αυτό το ευρετήριο διευθύνσεων επειδή αυτή η επαφή είναι σε λίστα αλληλογραφίας.">

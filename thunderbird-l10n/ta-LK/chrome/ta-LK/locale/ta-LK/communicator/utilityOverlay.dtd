@@ -61,5 +61,5 @@
 <!ENTITY quitApplicationCmdMac.accesskey  "q">
 
 
-<!ENTITY preferencesCmd2.accesskey "O">
 <!ENTITY preferencesCmd2.label "Options">
+<!ENTITY preferencesCmd2.accesskey "O">

@@ -4,10 +4,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files("**"):
+    BUG_COMPONENT = ("Core", "Audio/Video: Playback")
+
 DEFINES['ANDROID_SMP'] = 0
 DEFINES['LOG_NDEBUG'] = 1
 
-if CONFIG['OS_TARGET'] != 'WINNT':
+if CONFIG['OS_TARGET'] != 'WINNT' and CONFIG['OS_TARGET'] != 'SunOS':
    DEFINES['_GLIBCXX_OS_DEFINES'] = True
 
 if CONFIG['OS_TARGET'] == 'WINNT':
@@ -18,7 +21,10 @@ if CONFIG['OS_TARGET'] == 'WINNT':
         DEFINES['strncasecmp'] = 'strnicmp'
     DEFINES['HAVE_MS_C_RUNTIME'] = True
     DEFINES['__PRETTY_FUNCTION__'] = '__FUNCTION__'
-    LOCAL_INCLUDES += [ 'ports/win32/include' ]
+    if CONFIG['CC_TYPE'] == 'gcc':
+        LOCAL_INCLUDES += [ 'ports/mingw32/include' ]
+    else:
+        LOCAL_INCLUDES += [ 'ports/win32/include' ]
 elif CONFIG['OS_TARGET'] == 'Darwin':
     DEFINES['HAVE_SYS_UIO_H'] = True
     DEFINES['off64_t'] = 'off_t'
@@ -53,8 +59,8 @@ EXPORTS.mp4_demuxer += [
     'binding/include/mp4_demuxer/Atom.h',
     'binding/include/mp4_demuxer/AtomType.h',
     'binding/include/mp4_demuxer/BitReader.h',
+    'binding/include/mp4_demuxer/BufferReader.h',
     'binding/include/mp4_demuxer/BufferStream.h',
-    'binding/include/mp4_demuxer/ByteReader.h',
     'binding/include/mp4_demuxer/ByteWriter.h',
     'binding/include/mp4_demuxer/DecoderData.h',
     'binding/include/mp4_demuxer/H264.h',
@@ -80,10 +86,9 @@ SOURCES += [
     'system/core/libutils/VectorImpl.cpp',
 ]
 
-if CONFIG['MOZ_RUST']:
-    EXPORTS += [
-        'binding/include/mp4parse.h',
-    ]
+EXPORTS += [
+    'binding/include/mp4parse.h',
+]
 
 UNIFIED_SOURCES += [
     'binding/Adts.cpp',
@@ -132,7 +137,7 @@ TEST_DIRS += [
 ]
 
 # We allow warnings for third-party code that can be updated from upstream.
-ALLOW_COMPILER_WARNINGS = True
+AllowCompilerWarnings()
 
 FINAL_LIBRARY = 'xul'
 
@@ -154,11 +159,11 @@ if CONFIG['_MSC_VER']:
 elif CONFIG['GNU_CXX']:
     CFLAGS += [
         '-Wno-comment',
-        '-Wno-sign-compare'
+        '-Wno-sign-compare',
+        '-Wno-unused-function',
     ]
     CXXFLAGS += [
-        '-Wno-format',
-        '-Wno-format-security',
+        '-Werror=format',
         '-Wno-multichar',
         '-Wno-sign-compare',
         '-Wno-unused',

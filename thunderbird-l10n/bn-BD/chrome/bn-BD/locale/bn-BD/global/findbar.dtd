@@ -15,12 +15,12 @@
 <!ENTITY caseSensitiveCheckbox.label "অক্ষরের ছাঁদ মেলানো (c)">
 <!ENTITY caseSensitiveCheckbox.accesskey "c">
 
-<!ENTITY caseSensitive.accesskey "c">
-<!ENTITY caseSensitive.label "Match Case">
-<!ENTITY caseSensitive.tooltiptext "Search with case sensitivity">
-<!ENTITY entireWord.accesskey "w">
-<!ENTITY entireWord.label "Whole Words">
-<!ENTITY entireWord.tooltiptext "Search whole words only">
-<!ENTITY highlightAll.accesskey "l">
 <!ENTITY highlightAll.label "Highlight All">
+<!ENTITY highlightAll.accesskey "l">
 <!ENTITY highlightAll.tooltiptext "Highlight all occurrences of the phrase">
+<!ENTITY caseSensitive.label "Match Case">
+<!ENTITY caseSensitive.accesskey "c">
+<!ENTITY caseSensitive.tooltiptext "Search with case sensitivity">
+<!ENTITY entireWord.label "Whole Words">
+<!ENTITY entireWord.accesskey "w">
+<!ENTITY entireWord.tooltiptext "Search whole words only">

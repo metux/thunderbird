@@ -1,4 +1,4 @@
-/* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
+  /* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim: set ft=javascript ts=2 et sw=2 tw=80: */
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
@@ -16,9 +16,10 @@ Services.prefs.setBoolPref("devtools.debugger.log", false);
 
 var { BrowserToolboxProcess } = Cu.import("resource://devtools/client/framework/ToolboxProcess.jsm", {});
 var { DebuggerServer } = require("devtools/server/main");
-var { DebuggerClient, ObjectClient } = require("devtools/shared/client/main");
+var { DebuggerClient } = require("devtools/shared/client/debugger-client");
+var ObjectClient = require("devtools/shared/client/object-client");
 var { AddonManager } = Cu.import("resource://gre/modules/AddonManager.jsm", {});
-var EventEmitter = require("devtools/shared/event-emitter");
+var EventEmitter = require("devtools/shared/old-event-emitter");
 var { Toolbox } = require("devtools/client/framework/toolbox");
 
 const chromeRegistry = Cc["@mozilla.org/chrome/chrome-registry;1"].getService(Ci.nsIChromeRegistry);
@@ -29,7 +30,7 @@ promise = Cu.import("resource://devtools/shared/deprecated-sync-thenables.js", {
 const EXAMPLE_URL = "http://example.com/browser/devtools/client/debugger/test/mochitest/";
 const FRAME_SCRIPT_URL = getRootDirectory(gTestPath) + "code_frame-script.js";
 const CHROME_URL = "chrome://mochitests/content/browser/devtools/client/debugger/test/mochitest/";
-const CHROME_URI = Services.io.newURI(CHROME_URL, null, null);
+const CHROME_URI = Services.io.newURI(CHROME_URL);
 
 Services.prefs.setBoolPref("devtools.debugger.new-debugger-frontend", false);
 
@@ -52,8 +53,12 @@ registerCleanupFunction(function* () {
   DebuggerServer.destroy();
 
   // Debugger tests use a lot of memory, so force a GC to help fragmentation.
-  info("Forcing GC after debugger test.");
-  Cu.forceGC();
+  info("Forcing GC/CC after debugger test.");
+  yield new Promise(resolve => {
+    Cu.forceGC();
+    Cu.forceCC();
+    Cu.schedulePreciseGC(resolve);
+  });
 });
 
 // Import the GCLI test helper
@@ -108,12 +113,10 @@ this.removeTab = function removeTab(aTab, aWindow) {
   let targetBrowser = targetWindow.gBrowser;
   let tabContainer = targetBrowser.tabContainer;
 
-  tabContainer.addEventListener("TabClose", function onClose(aEvent) {
-    tabContainer.removeEventListener("TabClose", onClose, false);
-
+  tabContainer.addEventListener("TabClose", function (aEvent) {
     info("Tab removed and finished closing.");
     deferred.resolve();
-  }, false);
+  }, {once: true});
 
   targetBrowser.removeTab(aTab);
   return deferred.promise;
@@ -1348,4 +1351,3 @@ function* initWorkerDebugger(TAB_URL, WORKER_URL) {
 
   return {client, tab, tabClient, workerClient, toolbox, gDebugger};
 }
-

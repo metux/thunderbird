@@ -12,13 +12,20 @@
 <!ENTITY locationValidate.label "Валидация">
 <!ENTITY validateText.label "Проверьте корректность и получите корректную ссылку.">
 <!ENTITY feedFolder.label "Хранить статьи в:">
-<!ENTITY feedFolder.accesskey "н">
+<!ENTITY feedFolder.accesskey "ь">
+<!ENTITY biffStart.label "Проверять наличие новых статей каждые ">
+<!ENTITY biffStart.accesskey "о">
+<!ENTITY biffMinutes.label "минут">
+<!ENTITY biffMinutes.accesskey "и">
+<!ENTITY biffDays.label "дней">
+<!ENTITY biffDays.accesskey "е">
+<!ENTITY recommendedUnits.label "Издатель рекомендует:">
 <!ENTITY quickMode.label "Показывать краткое описание статьи вместо загрузки веб-страницы">
 <!ENTITY quickMode.accesskey "а">
 <!ENTITY autotagEnable.label "Автоматически создавать метки из имён &lt;категорий&gt; лент">
-<!ENTITY autotagEnable.accesskey "о">
+<!ENTITY autotagEnable.accesskey "з">
 <!ENTITY autotagUsePrefix.label "Префикс меток:">
-<!ENTITY autotagUsePrefix.accesskey "е">
+<!ENTITY autotagUsePrefix.accesskey "к">
 <!ENTITY autoTagPrefix.placeholder "Введите префикс метки">
 <!ENTITY button.addFeed.label "Добавить">
 <!ENTITY button.addFeed.accesskey "б">
@@ -29,7 +36,7 @@
 <!ENTITY button.importOPML.label "Импортировать">
 <!ENTITY button.importOPML.accesskey "м">
 <!ENTITY button.exportOPML.label "Экспортировать">
-<!ENTITY button.exportOPML.accesskey "к">
+<!ENTITY button.exportOPML.accesskey "с">
 <!ENTITY button.exportOPML.tooltip "Экспорт лент новостей со структурой папок; ctrl щелчок или ctrl enter экспортирует ленты в виде списка">
 <!ENTITY cmd.close.commandKey "w">
 <!ENTITY button.close.label "Закрыть">

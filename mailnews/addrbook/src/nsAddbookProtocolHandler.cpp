@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "msgCore.h"    // precompiled header...
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIIOService.h"
 
 #include "nsIStreamListener.h"
@@ -27,6 +27,7 @@
 #include "nsIAsyncOutputStream.h"
 #include "nsIPipe.h"
 #include "nsIPrincipal.h"
+#include "nsIInputStream.h"
 
 nsAddbookProtocolHandler::nsAddbookProtocolHandler()
 {
@@ -42,7 +43,7 @@ NS_IMPL_ISUPPORTS(nsAddbookProtocolHandler, nsIProtocolHandler)
 NS_IMETHODIMP nsAddbookProtocolHandler::GetScheme(nsACString &aScheme)
 {
 	aScheme = "addbook";
-	return NS_OK; 
+	return NS_OK;
 }
 
 NS_IMETHODIMP nsAddbookProtocolHandler::GetDefaultPort(int32_t *aDefaultPort)
@@ -62,23 +63,23 @@ NS_IMETHODIMP nsAddbookProtocolHandler::NewURI(const nsACString &aSpec,
                                                nsIURI **_retval)
 {
   nsresult rv;
-	nsCOMPtr <nsIAddbookUrl> addbookUrl = do_CreateInstance(NS_ADDBOOKURL_CONTRACTID, &rv);
+  nsCOMPtr<nsIAddbookUrl> addbookUrl = do_CreateInstance(NS_ADDBOOKURL_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv,rv);
 
   rv = addbookUrl->SetSpec(aSpec);
   NS_ENSURE_SUCCESS(rv,rv);
 
-  nsCOMPtr <nsIURI> uri = do_QueryInterface(addbookUrl, &rv);
+  nsCOMPtr<nsIURI> uri = do_QueryInterface(addbookUrl, &rv);
   NS_ENSURE_SUCCESS(rv,rv);
 
-  NS_ADDREF(*_retval = uri);
+  uri.forget(_retval);
   return NS_OK;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsAddbookProtocolHandler::AllowPort(int32_t port, const char *scheme, bool *_retval)
 {
-    // don't override anything.  
+    // don't override anything.
     *_retval = false;
     return NS_OK;
 }
@@ -99,10 +100,11 @@ nsAddbookProtocolHandler::GenerateXMLOutputChannel( nsString &aOutput,
   rv = inStr->SetData(utf8String.get(), utf8String.Length());
   NS_ENSURE_SUCCESS(rv, rv);
 
+  nsCOMPtr<nsIInputStream> stream(do_QueryInterface(inStr));
   if (aLoadInfo) {
     return NS_NewInputStreamChannelInternal(_retval,
                                             aURI,
-                                            inStr,
+                                            stream,
                                             NS_LITERAL_CSTRING("text/xml"),
                                             EmptyCString(),
                                             aLoadInfo);
@@ -114,8 +116,11 @@ nsAddbookProtocolHandler::GenerateXMLOutputChannel( nsString &aOutput,
   if (NS_FAILED(rv))
       return rv;
 
-  return NS_NewInputStreamChannel(_retval, aURI, inStr,
-                                  nullPrincipal, nsILoadInfo::SEC_NORMAL,
+  return NS_NewInputStreamChannel(_retval,
+                                  aURI,
+                                  stream,
+                                  nullPrincipal,
+                                  nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                   nsIContentPolicy::TYPE_OTHER,
                                   NS_LITERAL_CSTRING("text/xml"));
 }
@@ -134,7 +139,7 @@ nsAddbookProtocolHandler::NewChannel2(nsIURI *aURI,
   nsresult rv;
   nsCOMPtr <nsIAddbookUrl> addbookUrl = do_QueryInterface(aURI, &rv);
   NS_ENSURE_SUCCESS(rv,rv);
-  
+
   rv = addbookUrl->GetAddbookOperation(&mAddbookOperation);
   NS_ENSURE_SUCCESS(rv,rv);
 
@@ -150,13 +155,13 @@ nsAddbookProtocolHandler::NewChannel2(nsIURI *aURI,
     NS_ENSURE_SUCCESS(rv,rv);
     return NS_OK;
   }
- 
+
   if (mAddbookOperation == nsIAddbookUrlOperation::AddVCard) {
       // create an empty pipe for use with the input stream channel.
       nsCOMPtr<nsIAsyncInputStream> pipeIn;
       nsCOMPtr<nsIAsyncOutputStream> pipeOut;
       nsCOMPtr<nsIPipe> pipe = do_CreateInstance("@mozilla.org/pipe;1");
-      
+
       rv = pipe->Init(false, false, 0, 0);
       NS_ENSURE_SUCCESS(rv, rv);
 
@@ -179,10 +184,14 @@ nsAddbookProtocolHandler::NewChannel2(nsIURI *aURI,
       NS_ASSERTION(NS_SUCCEEDED(rv), "CreateInstance of nullprincipal failed.");
       if (NS_FAILED(rv))
           return rv;
-      
-      return NS_NewInputStreamChannel(_retval, aURI, pipeIn,
-          nullPrincipal, nsILoadInfo::SEC_NORMAL, nsIContentPolicy::TYPE_OTHER,
-          NS_LITERAL_CSTRING("application/x-addvcard"));
+
+      return NS_NewInputStreamChannel(_retval,
+                                      aURI,
+                                      pipeIn,
+                                      nullPrincipal,
+                                      nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                                      nsIContentPolicy::TYPE_OTHER,
+                                      NS_LITERAL_CSTRING("application/x-addvcard"));
   }
 
   nsString output;
@@ -194,20 +203,20 @@ nsAddbookProtocolHandler::NewChannel2(nsIURI *aURI,
     NS_ENSURE_SUCCESS(rv,rv);
     output.Append(NS_ConvertUTF8toUTF16(spec));
   }
- 
+
   rv = GenerateXMLOutputChannel(output, addbookUrl, aURI, aLoadInfo, _retval);
   NS_ENSURE_SUCCESS(rv,rv);
   return NS_OK;
 }
 
-nsresult    
-nsAddbookProtocolHandler::GeneratePrintOutput(nsIAddbookUrl *addbookUrl, 
+nsresult
+nsAddbookProtocolHandler::GeneratePrintOutput(nsIAddbookUrl *addbookUrl,
                                               nsString &aOutput)
 {
   NS_ENSURE_ARG_POINTER(addbookUrl);
 
   nsAutoCString uri;
-  nsresult rv = addbookUrl->GetPath(uri);
+  nsresult rv = addbookUrl->GetPathQueryRef(uri);
   NS_ENSURE_SUCCESS(rv,rv);
 
   /* turn
@@ -215,7 +224,7 @@ nsAddbookProtocolHandler::GeneratePrintOutput(nsIAddbookUrl *addbookUrl,
    into "moz-abmdbdirectory://abook.mab"
   */
 
-  /* step 1:  
+  /* step 1:
    turn "//moz-abmdbdirectory/abook.mab?action=print"
    into "moz-abmdbdirectory/abook.mab?action=print"
    */
@@ -224,7 +233,7 @@ nsAddbookProtocolHandler::GeneratePrintOutput(nsIAddbookUrl *addbookUrl,
 
   uri.Cut(0,2);
 
-  /* step 2:  
+  /* step 2:
    turn "moz-abmdbdirectory/abook.mab?action=print"
    into "moz-abmdbdirectory/abook.mab"
    */
@@ -234,7 +243,7 @@ nsAddbookProtocolHandler::GeneratePrintOutput(nsIAddbookUrl *addbookUrl,
 
   uri.SetLength(pos);
 
-  /* step 2:  
+  /* step 2:
    turn "moz-abmdbdirectory/abook.mab"
    into "moz-abmdbdirectory://abook.mab"
    */
@@ -259,12 +268,12 @@ nsAddbookProtocolHandler::GeneratePrintOutput(nsIAddbookUrl *addbookUrl,
 }
 
 nsresult
-nsAddbookProtocolHandler::BuildDirectoryXML(nsIAbDirectory *aDirectory, 
+nsAddbookProtocolHandler::BuildDirectoryXML(nsIAbDirectory *aDirectory,
                                        nsString &aOutput)
 {
   NS_ENSURE_ARG_POINTER(aDirectory);
 
-  nsresult rv;    
+  nsresult rv;
   nsCOMPtr<nsISimpleEnumerator> cardsEnumerator;
   nsCOMPtr<nsIAbCard> card;
 
@@ -280,7 +289,7 @@ nsAddbookProtocolHandler::BuildDirectoryXML(nsIAbDirectory *aDirectory,
     rv = stringBundleService->CreateBundle("chrome://messenger/locale/addressbook/addressBook.properties", getter_AddRefs(bundle));
     if (NS_SUCCEEDED(rv)) {
       nsString addrBook;
-      rv = bundle->GetStringFromName(u"addressBook", getter_Copies(addrBook));
+      rv = bundle->GetStringFromName("addressBook", addrBook);
       if (NS_SUCCEEDED(rv)) {
         aOutput.AppendLiteral("<title xmlns=\"http://www.w3.org/1999/xhtml\">");
         aOutput.Append(addrBook);
@@ -293,7 +302,7 @@ nsAddbookProtocolHandler::BuildDirectoryXML(nsIAbDirectory *aDirectory,
   // over the view, getting the card for each row, and printing them.
   nsString sortColumn;
   nsCOMPtr <nsIAbView> view = do_CreateInstance("@mozilla.org/addressbook/abview;1", &rv);
-  
+
   view->SetView(aDirectory, nullptr, NS_LITERAL_STRING("GeneratedName"),
                 NS_LITERAL_STRING("ascending"), sortColumn);
 
@@ -301,10 +310,10 @@ nsAddbookProtocolHandler::BuildDirectoryXML(nsIAbDirectory *aDirectory,
   nsCOMPtr <nsITreeView> treeView = do_QueryInterface(view, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
   treeView->GetRowCount(&numRows);
-  
+
   for (int32_t row = 0; row < numRows; row++)
   {
-    
+
     nsCOMPtr <nsIAbCard> card;
     view->GetCardFromRow(row, getter_AddRefs(card));
     nsCString xmlSubstr;

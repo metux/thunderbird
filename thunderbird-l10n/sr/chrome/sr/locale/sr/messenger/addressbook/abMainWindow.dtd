@@ -53,7 +53,7 @@
 <!ENTITY cutCmd.label                                   "Исеци">
 <!ENTITY cutCmd.key                                     "X">
 <!ENTITY cutCmd.accesskey                               "и">
-<!ENTITY copyCmd.label                                  "Умножи">
+<!ENTITY copyCmd.label                                  "Ископирај">
 <!ENTITY copyCmd.key                                    "C">
 <!ENTITY copyCmd.accesskey                              "у">
 <!ENTITY pasteCmd.label                                 "Налепи">
@@ -140,6 +140,8 @@ because displayed names don't have the comma in between. -->
 <!ENTITY newContactButton.accesskey                     "к">
 <!ENTITY newlistButton.label                            "Нови списак">
 <!ENTITY newlistButton.accesskey                        "с">
+<!ENTITY showAsDefault.label                            "Подразумевана почетна фасцикла">
+<!ENTITY showAsDefault.accesskey                        "з">
 <!ENTITY editPropertiesButton.label                     "Уреди">
 <!ENTITY propertiesContext.label                        "Својства">
 <!ENTITY propertiesContext.accesskey                    "ј">
@@ -192,7 +194,7 @@ because displayed names don't have the comma in between. -->
 <!ENTITY Company.accesskey                              "з">
 <!ENTITY NickName.label                                 "Надимак">
 <!ENTITY NickName.accesskey                             "и">
-<!ENTITY SecondEmail.label                              "Додатна е-пошта">
+<!ENTITY SecondEmail.label                              "Додатни мејл">
 <!ENTITY SecondEmail.accesskey                          "р">
 <!ENTITY Department.label                               "Одељење">
 <!ENTITY Department.accesskey                           "д">

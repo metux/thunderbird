@@ -70,7 +70,7 @@ var nsTransferable = {
    * @param FlavourSet aFlavourSet
    *        a FlavourSet object that contains a list of supported flavours.
    * @param Function aRetrievalFunc
-   *        a reference to a function that returns a nsISupportsArray of nsITransferables
+   *        a reference to a function that returns a nsIArray of nsITransferables
    *        for each item from the specified source (clipboard/drag&drop etc)
    * @param Boolean aAnyFlag
    *        a flag specifying whether or not a specific flavour is requested. If false,
@@ -82,18 +82,17 @@ var nsTransferable = {
       if (!aRetrievalFunc)
         throw "No data retrieval handler provided!";
 
-      var supportsArray = aRetrievalFunc(aFlavourSet);
+      var array = aRetrievalFunc(aFlavourSet);
       var dataArray = [];
-      var count = supportsArray.Count();
 
       // Iterate over the number of items returned from aRetrievalFunc. For
       // clipboard operations, this is 1, for drag and drop (where multiple
       // items may have been dragged) this could be >1.
-      for (var i = 0; i < count; i++)
+      for (let i = 0; i < array.length; i++)
         {
-          var trans = supportsArray.GetElementAt(i);
-          if (!trans) continue;
-          trans = trans.QueryInterface(Components.interfaces.nsITransferable);
+          let trans = array.queryElementAt(i, Components.interfaces.nsITransferable);
+          if (!trans)
+            continue;
 
           var data = { };
           var length = { };
@@ -455,7 +454,7 @@ var nsDragAndDrop = {
           // dataTransfer uses text/plain but older code used text/unicode, so
           // switch this for compatibility
           var modtype = (type == "text/unicode") ? "text/plain" : type;
-          if (Array.indexOf(types, modtype) >= 0) {
+          if (Array.from(types).includes(modtype)) {
             var data = dt.mozGetDataAt(modtype, i);
             if (data) {
               // Non-strings need some non-zero value used for their data length.
@@ -568,7 +567,7 @@ var nsDragAndDrop = {
       var ioService = Components.classes["@mozilla.org/network/io-service;1"]
                                 .getService(Components.interfaces.nsIIOService);
       try {
-        uri = ioService.newURI(aDraggedText, null, null);
+        uri = ioService.newURI(aDraggedText);
       } catch (e) {
       }
 
@@ -588,7 +587,7 @@ var nsDragAndDrop = {
       // Use "file:///" as the default sourceURI so that drops of file:// URIs
       // are always allowed.
       var principal = sourceDoc ? sourceDoc.nodePrincipal
-                                : secMan.createCodebasePrincipal(ioService.newURI("file:///", null, null), {});
+                                : secMan.createCodebasePrincipal(ioService.newURI("file:///"), {});
 
       try {
         secMan.checkLoadURIStrWithPrincipal(principal, aDraggedText,

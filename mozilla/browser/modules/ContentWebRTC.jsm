@@ -17,36 +17,8 @@ XPCOMUtils.defineLazyServiceGetter(this, "MediaManagerService",
 const kBrowserURL = "chrome://browser/content/browser.xul";
 
 this.ContentWebRTC = {
-  _initialized: false,
-
-  init: function() {
-    if (this._initialized)
-      return;
-
-    this._initialized = true;
-    Services.obs.addObserver(handleGUMRequest, "getUserMedia:request", false);
-    Services.obs.addObserver(handlePCRequest, "PeerConnection:request", false);
-    Services.obs.addObserver(updateIndicators, "recording-device-events", false);
-    Services.obs.addObserver(removeBrowserSpecificIndicator, "recording-window-ended", false);
-
-    if (Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT)
-      Services.obs.addObserver(processShutdown, "content-child-shutdown", false);
-  },
-
-  uninit: function() {
-    Services.obs.removeObserver(handleGUMRequest, "getUserMedia:request");
-    Services.obs.removeObserver(handlePCRequest, "PeerConnection:request");
-    Services.obs.removeObserver(updateIndicators, "recording-device-events");
-    Services.obs.removeObserver(removeBrowserSpecificIndicator, "recording-window-ended");
-
-    if (Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT)
-      Services.obs.removeObserver(processShutdown, "content-child-shutdown");
-
-    this._initialized = false;
-  },
-
   // Called only for 'unload' to remove pending gUM prompts in reloaded frames.
-  handleEvent: function(aEvent) {
+  handleEvent(aEvent) {
     let contentWindow = aEvent.target.defaultView;
     let mm = getMessageManagerForWindow(contentWindow);
     for (let key of contentWindow.pendingGetUserMediaRequests.keys()) {
@@ -57,7 +29,29 @@ this.ContentWebRTC = {
     }
   },
 
-  receiveMessage: function(aMessage) {
+  // This observer is registered in ContentObservers.js to avoid
+  // loading this .jsm when WebRTC is not in use.
+  observe(aSubject, aTopic, aData) {
+    switch (aTopic) {
+      case "getUserMedia:request":
+        handleGUMRequest(aSubject, aTopic, aData);
+        break;
+      case "recording-device-stopped":
+        handleGUMStop(aSubject, aTopic, aData);
+        break;
+      case "PeerConnection:request":
+        handlePCRequest(aSubject, aTopic, aData);
+        break;
+      case "recording-device-events":
+        updateIndicators(aSubject, aTopic, aData);
+        break;
+      case "recording-window-ended":
+        removeBrowserSpecificIndicator(aSubject, aTopic, aData);
+        break;
+    }
+  },
+
+  receiveMessage(aMessage) {
     switch (aMessage.name) {
       case "rtcpeer:Allow":
       case "rtcpeer:Deny": {
@@ -78,7 +72,7 @@ this.ContentWebRTC = {
         let allowedDevices = Cc["@mozilla.org/array;1"]
                                .createInstance(Ci.nsIMutableArray);
         for (let deviceIndex of aMessage.data.devices)
-           allowedDevices.appendElement(devices[deviceIndex], /* weak =*/ false);
+           allowedDevices.appendElement(devices[deviceIndex]);
 
         Services.obs.notifyObservers(allowedDevices, "getUserMedia:response:allow", callID);
         break;
@@ -115,13 +109,27 @@ function handlePCRequest(aSubject, aTopic, aData) {
   contentWindow.pendingPeerConnectionRequests.add(callID);
 
   let request = {
-    windowID: windowID,
-    innerWindowID: innerWindowID,
-    callID: callID,
+    windowID,
+    innerWindowID,
+    callID,
     documentURI: contentWindow.document.documentURI,
     secure: isSecure,
   };
   mm.sendAsyncMessage("rtcpeer:Request", request);
+}
+
+function handleGUMStop(aSubject, aTopic, aData) {
+  let contentWindow = Services.wm.getOuterWindowWithId(aSubject.windowID);
+
+  let request = {
+    windowID: aSubject.windowID,
+    rawID: aSubject.rawID,
+    mediaSource: aSubject.mediaSource,
+  };
+
+  let mm = getMessageManagerForWindow(contentWindow);
+  if (mm)
+    mm.sendAsyncMessage("webrtc:StopRecording", request);
 }
 
 function handleGUMRequest(aSubject, aTopic, aData) {
@@ -131,7 +139,7 @@ function handleGUMRequest(aSubject, aTopic, aData) {
 
   contentWindow.navigator.mozGetUserMediaDevices(
     constraints,
-    function (devices) {
+    function(devices) {
       // If the window has been closed while we were waiting for the list of
       // devices, there's nothing to do in the callback anymore.
       if (contentWindow.closed)
@@ -140,7 +148,7 @@ function handleGUMRequest(aSubject, aTopic, aData) {
       prompt(contentWindow, aSubject.windowID, aSubject.callID,
              constraints, devices, secure);
     },
-    function (error) {
+    function(error) {
       // bug 827146 -- In the future, the UI should catch NotFoundError
       // and allow the user to plug in a device, instead of immediately failing.
       denyGUMRequest({callID: aSubject.callID}, error);
@@ -210,11 +218,11 @@ function prompt(aContentWindow, aWindowID, aCallID, aConstraints, aDevices, aSec
     windowID: aWindowID,
     documentURI: aContentWindow.document.documentURI,
     secure: aSecure,
-    requestTypes: requestTypes,
-    sharingScreen: sharingScreen,
-    sharingAudio: sharingAudio,
-    audioDevices: audioDevices,
-    videoDevices: videoDevices
+    requestTypes,
+    sharingScreen,
+    sharingAudio,
+    audioDevices,
+    videoDevices
   };
 
   let mm = getMessageManagerForWindow(aContentWindow);
@@ -308,16 +316,13 @@ function updateIndicators(aSubject, aTopic, aData) {
     if (tabState.screen) {
       if (tabState.screen == "Screen") {
         state.showScreenSharingIndicator = "Screen";
-      }
-      else if (tabState.screen == "Window") {
+      } else if (tabState.screen == "Window") {
         if (state.showScreenSharingIndicator != "Screen")
           state.showScreenSharingIndicator = "Window";
-      }
-      else if (tabState.screen == "Application") {
+      } else if (tabState.screen == "Application") {
         if (!state.showScreenSharingIndicator)
           state.showScreenSharingIndicator = "Application";
-      }
-      else if (tabState.screen == "Browser") {
+      } else if (tabState.screen == "Browser") {
         if (!state.showScreenSharingIndicator)
           state.showScreenSharingIndicator = "Browser";
       }
@@ -372,12 +377,23 @@ function getInnerWindowIDForWindow(aContentWindow) {
 }
 
 function getMessageManagerForWindow(aContentWindow) {
-  let ir = aContentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                         .getInterface(Ci.nsIDocShell)
-                         .sameTypeRootTreeItem
-                         .QueryInterface(Ci.nsIInterfaceRequestor);
+  aContentWindow.QueryInterface(Ci.nsIInterfaceRequestor);
+
+  let docShell;
   try {
-    // If e10s is disabled, this throws NS_NOINTERFACE for closed tabs.
+    // This throws NS_NOINTERFACE for closed tabs.
+    docShell = aContentWindow.getInterface(Ci.nsIDocShell);
+  } catch (e) {
+    if (e.result == Cr.NS_NOINTERFACE) {
+      return null;
+    }
+    throw e;
+  }
+
+  let ir = docShell.sameTypeRootTreeItem
+                   .QueryInterface(Ci.nsIInterfaceRequestor);
+  try {
+    // This throws NS_NOINTERFACE for closed tabs (only with e10s enabled).
     return ir.getInterface(Ci.nsIContentFrameMessageManager);
   } catch (e) {
     if (e.result == Cr.NS_NOINTERFACE) {
@@ -385,8 +401,4 @@ function getMessageManagerForWindow(aContentWindow) {
     }
     throw e;
   }
-}
-
-function processShutdown() {
-  ContentWebRTC.uninit();
 }

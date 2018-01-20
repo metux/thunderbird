@@ -145,34 +145,33 @@ class ArrayIteratorObject : public JSObject
     static const Class class_;
 };
 
+ArrayIteratorObject*
+NewArrayIteratorObject(JSContext* cx, NewObjectKind newKind = GenericObject);
+
 class StringIteratorObject : public JSObject
 {
   public:
     static const Class class_;
 };
 
-class ListIteratorObject : public JSObject
-{
-  public:
-    static const Class class_;
-};
-
-bool
-GetIterator(JSContext* cx, HandleObject obj, unsigned flags, MutableHandleObject objp);
+StringIteratorObject*
+NewStringIteratorObject(JSContext* cx, NewObjectKind newKind = GenericObject);
 
 JSObject*
-GetIteratorObject(JSContext* cx, HandleObject obj, unsigned flags);
+GetIterator(JSContext* cx, HandleObject obj, unsigned flags);
+
+PropertyIteratorObject*
+LookupInIteratorCache(JSContext* cx, HandleObject obj);
 
 /*
  * Creates either a key or value iterator, depending on flags. For a value
  * iterator, performs value-lookup to convert the given list of jsids.
  */
-bool
-EnumeratedIdVectorToIterator(JSContext* cx, HandleObject obj, unsigned flags, AutoIdVector& props,
-                             MutableHandleObject objp);
+JSObject*
+EnumeratedIdVectorToIterator(JSContext* cx, HandleObject obj, unsigned flags, AutoIdVector& props);
 
-bool
-NewEmptyPropertyIterator(JSContext* cx, unsigned flags, MutableHandleObject objp);
+JSObject*
+NewEmptyPropertyIterator(JSContext* cx, unsigned flags);
 
 /*
  * Convert the value stored in *vp to its iteration object. The flags should
@@ -183,17 +182,14 @@ NewEmptyPropertyIterator(JSContext* cx, unsigned flags, MutableHandleObject objp
 JSObject*
 ValueToIterator(JSContext* cx, unsigned flags, HandleValue vp);
 
-bool
-CloseIterator(JSContext* cx, HandleObject iterObj);
+void
+CloseIterator(JSObject* obj);
 
 bool
-UnwindIteratorForException(JSContext* cx, HandleObject obj);
+IteratorCloseForException(JSContext* cx, HandleObject obj);
 
 void
 UnwindIteratorForUncatchableException(JSContext* cx, JSObject* obj);
-
-bool
-IteratorConstructor(JSContext* cx, unsigned argc, Value* vp);
 
 extern bool
 SuppressDeletedProperty(JSContext* cx, HandleObject obj, jsid id);
@@ -208,21 +204,17 @@ SuppressDeletedElement(JSContext* cx, HandleObject obj, uint32_t index);
 extern bool
 IteratorMore(JSContext* cx, HandleObject iterobj, MutableHandleValue rval);
 
-extern bool
-ThrowStopIteration(JSContext* cx);
-
 /*
  * Create an object of the form { value: VALUE, done: DONE }.
- * ES6 draft from 2013-09-05, section 25.4.3.4.
+ * ES 2017 draft 7.4.7.
  */
 extern JSObject*
-CreateItrResultObject(JSContext* cx, HandleValue value, bool done);
+CreateIterResultObject(JSContext* cx, HandleValue value, bool done);
 
-extern JSObject*
-InitLegacyIteratorClass(JSContext* cx, HandleObject obj);
+bool
+IsPropertyIterator(HandleValue v);
 
-extern JSObject*
-InitStopIterationClass(JSContext* cx, HandleObject obj);
+enum class IteratorKind { Sync, Async };
 
 } /* namespace js */
 

@@ -21,7 +21,7 @@ function check_PointerEvent(event, testNamePrefix) {
 
     if (expectedPointerType != null) {
         test(function () {
-            assert_equals(event.pointerType, expectedPointerType, "pointerType should be the same as the requested device.");
+            assert_equals(event.pointerType, expectedPointerType, "pointerType should be the one specified in the test page.");
         }, pointerTestName + " event pointerType is correct.");
     }
 
@@ -90,15 +90,13 @@ function check_PointerEvent(event, testNamePrefix) {
         assert_greater_than_equal(event.pressure, 0, "pressure is greater than or equal to 0");
         assert_less_than_equal(event.pressure, 1, "pressure is less than or equal to 1");
 
-        if (event.type === "pointerup") {
-            assert_equals(event.pressure, 0, "pressure is 0 during pointerup");
+        if (event.buttons === 0) {
+            assert_equals(event.pressure, 0, "pressure is 0 for mouse with no buttons pressed");
         }
 
         // TA: 1.7, 1.8
         if (event.pointerType === "mouse") {
-            if (event.buttons === 0) {
-                assert_equals(event.pressure, 0, "pressure is 0 for mouse with no buttons pressed");
-            } else {
+            if (event.buttons !== 0) {
                 assert_equals(event.pressure, 0.5, "pressure is 0.5 for mouse with a button pressed");
             }
         }
@@ -163,10 +161,13 @@ function updateDescriptionSecondStepTouchActionElement(target, scrollReturnInter
     document.getElementById('desc').innerHTML = "Test Description: Try to scroll element RIGHT moving your outside of the red border";
 }
 
-function updateDescriptionThirdStepTouchActionElement(target, scrollReturnInterval) {
+function updateDescriptionThirdStepTouchActionElement(target, scrollReturnInterval, callback = null) {
     window.setTimeout(function() {
-    objectScroller(target, 'left', 0);}
-    , scrollReturnInterval);
+        objectScroller(target, 'left', 0);
+        if (callback) {
+            callback();
+        }
+    }, scrollReturnInterval);
     document.getElementById('desc').innerHTML = "Test Description: Try to scroll element DOWN then RIGHT starting your touch inside of the element. Then tap complete button";
 }
 
@@ -201,6 +202,7 @@ function rPointerCapture(e) {
 
 var globalPointerEventTest = null;
 var expectedPointerType = null;
+const ALL_POINTERS = ['mouse', 'touch', 'pen'];
 const HOVERABLE_POINTERS = ['mouse', 'pen'];
 const NOHOVER_POINTERS = ['touch'];
 
@@ -212,6 +214,10 @@ function MultiPointerTypeTest(testName, types) {
     this.createNextTest();
 }
 
+MultiPointerTypeTest.prototype.step = function(op) {
+    this.currentTest.step(op);
+}
+
 MultiPointerTypeTest.prototype.skip = function() {
     var prevTest = this.currentTest;
     this.createNextTest();
@@ -219,10 +225,16 @@ MultiPointerTypeTest.prototype.skip = function() {
 }
 
 MultiPointerTypeTest.prototype.done = function() {
-    var prevTest = this.currentTest;
-    this.createNextTest();
-    if (prevTest != null)
-        prevTest.done();
+    if (this.currentTest.status != 1) {
+        var prevTest = this.currentTest;
+        this.createNextTest();
+        if (prevTest != null)
+            prevTest.done();
+    }
+}
+
+MultiPointerTypeTest.prototype.step = function(stepFunction) {
+    this.currentTest.step(stepFunction);
 }
 
 MultiPointerTypeTest.prototype.createNextTest = function() {
@@ -238,7 +250,10 @@ MultiPointerTypeTest.prototype.createNextTest = function() {
     resetTestState();
 }
 
-
 function setup_pointerevent_test(testName, supportedPointerTypes) {
-   return globalPointerEventTest = new MultiPointerTypeTest(testName, supportedPointerTypes);
+    return globalPointerEventTest = new MultiPointerTypeTest(testName, supportedPointerTypes);
+}
+
+function checkPointerEventType(event) {
+    assert_equals(event.pointerType, expectedPointerType, "pointerType should be the same as the requested device.");
 }

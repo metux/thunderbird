@@ -1,9 +1,10 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#ifndef nsMenuBarListener_h__
-#define nsMenuBarListener_h__
+#ifndef nsMenuBarListener_h
+#define nsMenuBarListener_h
 
 #include "mozilla/Attributes.h"
 #include "mozilla/EventForwards.h"
@@ -14,45 +15,77 @@
 #undef KeyPress
 #endif
 
+class nsMenuFrame;
 class nsMenuBarFrame;
 class nsIDOMKeyEvent;
 
-/** editor Implementation of the DragListener interface
+namespace mozilla {
+namespace dom {
+class EventTarget;
+} // namespace dom
+} // namespace mozilla
+
+/**
+ * EventListener implementation for menubar.
  */
 class nsMenuBarListener final : public nsIDOMEventListener
 {
 public:
-  /** default constructor
+  explicit nsMenuBarListener(nsMenuBarFrame* aMenuBarFrame,
+                             nsIContent* aMenuBarContent);
+
+  NS_DECL_ISUPPORTS
+
+  /**
+   * nsIDOMEventListener interface method.
    */
-  explicit nsMenuBarListener(nsMenuBarFrame* aMenuBar);
+  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent) override;
+
+  /**
+   * When mMenuBarFrame is being destroyed, this should be called.
+   */
+  void OnDestroyMenuBarFrame();
 
   static void InitializeStatics();
-   
-  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent) override;
-  
+
+  /**
+   * GetMenuAccessKey() returns keyCode value of a modifier key which is
+   * used for accesskey.  Returns 0 if the platform doesn't support access key.
+   */
+  static nsresult GetMenuAccessKey(int32_t* aAccessKey);
+
+  /**
+   * IsAccessKeyPressed() returns true if the modifier state of aEvent matches
+   * the modifier state of access key.
+   */
+  static bool IsAccessKeyPressed(nsIDOMKeyEvent* aEvent);
+
+protected:
+  virtual ~nsMenuBarListener();
+
   nsresult KeyUp(nsIDOMEvent* aMouseEvent);
   nsresult KeyDown(nsIDOMEvent* aMouseEvent);
   nsresult KeyPress(nsIDOMEvent* aMouseEvent);
   nsresult Blur(nsIDOMEvent* aEvent);
+  nsresult OnWindowDeactivated(nsIDOMEvent* aEvent);
   nsresult MouseDown(nsIDOMEvent* aMouseEvent);
   nsresult Fullscreen(nsIDOMEvent* aEvent);
-
-  static nsresult GetMenuAccessKey(int32_t* aAccessKey);
-  
-  NS_DECL_ISUPPORTS
-
-  static bool IsAccessKeyPressed(nsIDOMKeyEvent* event);
-
-  void OnDestroyMenuBarFrame();
-
-protected:
-  /** default destructor
-   */
-  virtual ~nsMenuBarListener();
 
   static void InitAccessKey();
 
   static mozilla::Modifiers GetModifiersForAccessKey(nsIDOMKeyEvent* event);
+
+  /**
+   * Given a key event for an Alt+shortcut combination,
+   * return the menu, if any, that would be opened.
+   */
+  nsMenuFrame* GetMenuForKeyEvent(nsIDOMKeyEvent* aKeyEvent);
+
+  /**
+   * Call MarkAsReservedByChrome if the user's preferences indicate that
+   * the key should be chrome-only.
+   */
+  void ReserveKeyIfNeeded(nsIDOMEvent* aKeyEvent);
 
   // This should only be called by the nsMenuBarListener during event dispatch,
   // thus ensuring that this doesn't get destroyed during the process.
@@ -60,15 +93,25 @@ protected:
 
   bool Destroyed() const { return !mMenuBarFrame; }
 
-  nsMenuBarFrame* mMenuBarFrame; // The menu bar object.
+  // The menu bar object.
+  nsMenuBarFrame* mMenuBarFrame;
+  // The event target to listen to the events.
+  // XXX Should this store this as strong reference?  However,
+  //     OnDestroyMenuBarFrame() should be called at destroying mMenuBarFrame.
+  //     So, weak reference must be safe.
+  mozilla::dom::EventTarget* mEventTarget;
+  // The top window as EventTarget.
+  mozilla::dom::EventTarget* mTopWindowEventTarget;
   // Whether or not the ALT key is currently down.
   bool mAccessKeyDown;
   // Whether or not the ALT key down is canceled by other action.
   bool mAccessKeyDownCanceled;
-  static bool mAccessKeyFocuses; // Does the access key by itself focus the menubar?
-  static int32_t mAccessKey;     // See nsIDOMKeyEvent.h for sample values
-  static mozilla::Modifiers mAccessKeyMask;// Modifier mask for the access key
+  // Does the access key by itself focus the menubar?
+  static bool mAccessKeyFocuses;
+  // See nsIDOMKeyEvent.h for sample values.
+  static int32_t mAccessKey;
+  // Modifier mask for the access key.
+  static mozilla::Modifiers mAccessKeyMask;
 };
 
-
-#endif
+#endif // #ifndef nsMenuBarListener_h

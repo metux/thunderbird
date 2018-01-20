@@ -7,36 +7,23 @@ pub type pthread_mutexattr_t = *mut ::c_void;
 pub type pthread_cond_t = *mut ::c_void;
 pub type pthread_condattr_t = *mut ::c_void;
 pub type pthread_rwlock_t = *mut ::c_void;
+pub type pthread_rwlockattr_t = *mut ::c_void;
 pub type pthread_key_t = ::c_int;
 pub type tcflag_t = ::c_uint;
 pub type speed_t = ::c_uint;
 pub type nl_item = ::c_int;
 pub type id_t = i64;
-pub type sem_t = _sem;
 
 pub enum timezone {}
 
 s! {
-    pub struct utmpx {
-        pub ut_type: ::c_short,
-        pub ut_tv: ::timeval,
-        pub ut_id: [::c_char; 8],
-        pub ut_pid: ::pid_t,
-        pub ut_user: [::c_char; 32],
-        pub ut_line: [::c_char; 16],
-        pub ut_host: [::c_char; 128],
-        pub __ut_spare: [::c_char; 64],
-    }
-
     pub struct glob_t {
-        pub gl_pathc: ::size_t,
-        __unused1: ::size_t,
-        pub gl_offs: ::size_t,
-        __unused2: ::c_int,
+        pub gl_pathc:  ::size_t,
+        pub gl_matchc: ::size_t,
+        pub gl_offs:   ::size_t,
+        pub gl_flags:  ::c_int,
         pub gl_pathv:  *mut *mut ::c_char,
-
         __unused3: *mut ::c_void,
-
         __unused4: *mut ::c_void,
         __unused5: *mut ::c_void,
         __unused6: *mut ::c_void,
@@ -94,6 +81,7 @@ s! {
     }
 
     pub struct stack_t {
+        // In FreeBSD 11 and later, ss_sp is actually a void*
         pub ss_sp: *mut ::c_char,
         pub ss_size: ::size_t,
         pub ss_flags: ::c_int,
@@ -171,35 +159,22 @@ s! {
         pub int_p_sign_posn: ::c_char,
         pub int_n_sign_posn: ::c_char,
     }
-
-    // internal structure has changed over time
-    pub struct _sem {
-        data: [u32; 4],
-    }
 }
 
-pub const EMPTY: ::c_short = 0;
-pub const BOOT_TIME: ::c_short = 1;
-pub const OLD_TIME: ::c_short = 2;
-pub const NEW_TIME: ::c_short = 3;
-pub const USER_PROCESS: ::c_short = 4;
-pub const INIT_PROCESS: ::c_short = 5;
-pub const LOGIN_PROCESS: ::c_short = 6;
-pub const DEAD_PROCESS: ::c_short = 7;
-pub const SHUTDOWN_TIME: ::c_short = 8;
+pub const AIO_LISTIO_MAX: ::c_int = 16;
+pub const AIO_CANCELED: ::c_int = 1;
+pub const AIO_NOTCANCELED: ::c_int = 2;
+pub const AIO_ALLDONE: ::c_int = 3;
+pub const LIO_NOP: ::c_int = 0;
+pub const LIO_WRITE: ::c_int = 1;
+pub const LIO_READ: ::c_int = 2;
+pub const LIO_WAIT: ::c_int = 1;
+pub const LIO_NOWAIT: ::c_int = 0;
 
-pub const LC_COLLATE_MASK: ::c_int = (1 << 0);
-pub const LC_CTYPE_MASK: ::c_int = (1 << 1);
-pub const LC_MESSAGES_MASK: ::c_int = (1 << 2);
-pub const LC_MONETARY_MASK: ::c_int = (1 << 3);
-pub const LC_NUMERIC_MASK: ::c_int = (1 << 4);
-pub const LC_TIME_MASK: ::c_int = (1 << 5);
-pub const LC_ALL_MASK: ::c_int = LC_COLLATE_MASK
-                               | LC_CTYPE_MASK
-                               | LC_MESSAGES_MASK
-                               | LC_MONETARY_MASK
-                               | LC_NUMERIC_MASK
-                               | LC_TIME_MASK;
+pub const SIGEV_NONE: ::c_int = 0;
+pub const SIGEV_SIGNAL: ::c_int = 1;
+pub const SIGEV_THREAD: ::c_int = 2;
+pub const SIGEV_KEVENT: ::c_int = 3;
 
 pub const CODESET: ::nl_item = 0;
 pub const D_T_FMT: ::nl_item = 1;
@@ -289,6 +264,8 @@ pub const EOF: ::c_int = -1;
 pub const SEEK_SET: ::c_int = 0;
 pub const SEEK_CUR: ::c_int = 1;
 pub const SEEK_END: ::c_int = 2;
+pub const SEEK_DATA: ::c_int = 3;
+pub const SEEK_HOLE: ::c_int = 4;
 pub const _IOFBF: ::c_int = 0;
 pub const _IONBF: ::c_int = 2;
 pub const _IOLBF: ::c_int = 1;
@@ -298,15 +275,9 @@ pub const FILENAME_MAX: ::c_uint = 1024;
 pub const L_tmpnam: ::c_uint = 1024;
 pub const TMP_MAX: ::c_uint = 308915776;
 
-pub const O_RDONLY: ::c_int = 0;
-pub const O_WRONLY: ::c_int = 1;
-pub const O_RDWR: ::c_int = 2;
-pub const O_ACCMODE: ::c_int = 3;
-pub const O_APPEND: ::c_int = 8;
-pub const O_CREAT: ::c_int = 512;
-pub const O_EXCL: ::c_int = 2048;
 pub const O_NOCTTY: ::c_int = 32768;
-pub const O_TRUNC: ::c_int = 1024;
+pub const O_DIRECT: ::c_int = 0x00010000;
+
 pub const S_IFIFO: mode_t = 4096;
 pub const S_IFCHR: mode_t = 8192;
 pub const S_IFBLK: mode_t = 24576;
@@ -365,6 +336,7 @@ pub const MAP_SHARED: ::c_int = 0x0001;
 pub const MAP_PRIVATE: ::c_int = 0x0002;
 pub const MAP_FIXED: ::c_int = 0x0010;
 pub const MAP_ANON: ::c_int = 0x1000;
+pub const MAP_ANONYMOUS: ::c_int = MAP_ANON;
 
 pub const MAP_FAILED: *mut ::c_void = !0 as *mut ::c_void;
 
@@ -421,6 +393,7 @@ pub const ENOPROTOOPT: ::c_int = 42;
 pub const EPROTONOSUPPORT: ::c_int = 43;
 pub const ESOCKTNOSUPPORT: ::c_int = 44;
 pub const EOPNOTSUPP: ::c_int = 45;
+pub const ENOTSUP: ::c_int = EOPNOTSUPP;
 pub const EPFNOSUPPORT: ::c_int = 46;
 pub const EAFNOSUPPORT: ::c_int = 47;
 pub const EADDRINUSE: ::c_int = 48;
@@ -469,6 +442,12 @@ pub const EMULTIHOP: ::c_int = 90;
 pub const ENOLINK: ::c_int = 91;
 pub const EPROTO: ::c_int = 92;
 
+pub const POLLSTANDARD: ::c_short = ::POLLIN | ::POLLPRI | ::POLLOUT |
+    ::POLLRDNORM | ::POLLRDBAND | ::POLLWRBAND | ::POLLERR |
+    ::POLLHUP | ::POLLNVAL;
+
+pub const EAI_SYSTEM: ::c_int = 11;
+
 pub const F_DUPFD: ::c_int = 0;
 pub const F_GETFD: ::c_int = 1;
 pub const F_SETFD: ::c_int = 2;
@@ -495,36 +474,8 @@ pub const POSIX_MADV_SEQUENTIAL: ::c_int = 2;
 pub const POSIX_MADV_WILLNEED: ::c_int = 3;
 pub const POSIX_MADV_DONTNEED: ::c_int = 4;
 
-pub const _SC_IOV_MAX: ::c_int = 56;
-pub const _SC_GETGR_R_SIZE_MAX: ::c_int = 70;
-pub const _SC_GETPW_R_SIZE_MAX: ::c_int = 71;
-pub const _SC_LOGIN_NAME_MAX: ::c_int = 73;
-pub const _SC_MQ_PRIO_MAX: ::c_int = 75;
-pub const _SC_NPROCESSORS_ONLN: ::c_int = 58;
-pub const _SC_THREAD_ATTR_STACKADDR: ::c_int = 82;
-pub const _SC_THREAD_ATTR_STACKSIZE: ::c_int = 83;
-pub const _SC_THREAD_DESTRUCTOR_ITERATIONS: ::c_int = 85;
-pub const _SC_THREAD_KEYS_MAX: ::c_int = 86;
-pub const _SC_THREAD_PRIO_INHERIT: ::c_int = 87;
-pub const _SC_THREAD_PRIO_PROTECT: ::c_int = 88;
-pub const _SC_THREAD_PRIORITY_SCHEDULING: ::c_int = 89;
-pub const _SC_THREAD_PROCESS_SHARED: ::c_int = 90;
-pub const _SC_THREAD_SAFE_FUNCTIONS: ::c_int = 91;
-pub const _SC_THREAD_STACK_MIN: ::c_int = 93;
-pub const _SC_THREAD_THREADS_MAX: ::c_int = 94;
-pub const _SC_THREADS: ::c_int = 96;
-pub const _SC_TTY_NAME_MAX: ::c_int = 101;
-pub const _SC_ATEXIT_MAX: ::c_int = 107;
-pub const _SC_XOPEN_CRYPT: ::c_int = 108;
-pub const _SC_XOPEN_ENH_I18N: ::c_int = 109;
-pub const _SC_XOPEN_LEGACY: ::c_int = 110;
-pub const _SC_XOPEN_REALTIME: ::c_int = 111;
-pub const _SC_XOPEN_REALTIME_THREADS: ::c_int = 112;
-pub const _SC_XOPEN_SHM: ::c_int = 113;
-pub const _SC_XOPEN_UNIX: ::c_int = 115;
-pub const _SC_XOPEN_VERSION: ::c_int = 116;
-pub const _SC_XOPEN_XCU_VERSION: ::c_int = 117;
-
+pub const PTHREAD_PROCESS_PRIVATE: ::c_int = 0;
+pub const PTHREAD_PROCESS_SHARED: ::c_int = 1;
 pub const PTHREAD_CREATE_JOINABLE: ::c_int = 0;
 pub const PTHREAD_CREATE_DETACHED: ::c_int = 1;
 
@@ -563,18 +514,100 @@ pub const MINCORE_REFERENCED_OTHER: ::c_int = 0x8;
 pub const MINCORE_MODIFIED_OTHER: ::c_int = 0x10;
 pub const MINCORE_SUPER: ::c_int = 0x20;
 
+pub const AF_UNSPEC: ::c_int = 0;
+pub const AF_LOCAL: ::c_int = 1;
+pub const AF_UNIX: ::c_int = AF_LOCAL;
 pub const AF_INET: ::c_int = 2;
+pub const AF_IMPLINK: ::c_int = 3;
+pub const AF_PUP: ::c_int = 4;
+pub const AF_CHAOS: ::c_int = 5;
+pub const AF_NETBIOS: ::c_int = 6;
+pub const AF_ISO: ::c_int = 7;
+pub const AF_OSI: ::c_int = AF_ISO;
+pub const AF_ECMA: ::c_int = 8;
+pub const AF_DATAKIT: ::c_int = 9;
+pub const AF_CCITT: ::c_int = 10;
+pub const AF_SNA: ::c_int = 11;
+pub const AF_DECnet: ::c_int = 12;
+pub const AF_DLI: ::c_int = 13;
+pub const AF_LAT: ::c_int = 14;
+pub const AF_HYLINK: ::c_int = 15;
+pub const AF_APPLETALK: ::c_int = 16;
+pub const AF_ROUTE: ::c_int = 17;
+pub const AF_LINK: ::c_int = 18;
+pub const pseudo_AF_XTP: ::c_int = 19;
+pub const AF_COIP: ::c_int = 20;
+pub const AF_CNT: ::c_int = 21;
+pub const pseudo_AF_RTIP: ::c_int = 22;
+pub const AF_IPX: ::c_int = 23;
+pub const AF_SIP: ::c_int = 24;
+pub const pseudo_AF_PIP: ::c_int = 25;
+pub const AF_ISDN: ::c_int = 26;
+pub const AF_E164: ::c_int = AF_ISDN;
+pub const pseudo_AF_KEY: ::c_int = 27;
 pub const AF_INET6: ::c_int = 28;
-pub const AF_UNIX: ::c_int = 1;
+pub const AF_NATM: ::c_int = 29;
+pub const AF_ATM: ::c_int = 30;
+pub const pseudo_AF_HDRCMPLT: ::c_int = 31;
+pub const AF_NETGRAPH: ::c_int = 32;
+
+pub const PF_UNSPEC: ::c_int = AF_UNSPEC;
+pub const PF_LOCAL: ::c_int = AF_LOCAL;
+pub const PF_UNIX: ::c_int = PF_LOCAL;
+pub const PF_INET: ::c_int = AF_INET;
+pub const PF_IMPLINK: ::c_int = AF_IMPLINK;
+pub const PF_PUP: ::c_int = AF_PUP;
+pub const PF_CHAOS: ::c_int = AF_CHAOS;
+pub const PF_NETBIOS: ::c_int = AF_NETBIOS;
+pub const PF_ISO: ::c_int = AF_ISO;
+pub const PF_OSI: ::c_int = AF_ISO;
+pub const PF_ECMA: ::c_int = AF_ECMA;
+pub const PF_DATAKIT: ::c_int = AF_DATAKIT;
+pub const PF_CCITT: ::c_int = AF_CCITT;
+pub const PF_SNA: ::c_int = AF_SNA;
+pub const PF_DECnet: ::c_int = AF_DECnet;
+pub const PF_DLI: ::c_int = AF_DLI;
+pub const PF_LAT: ::c_int = AF_LAT;
+pub const PF_HYLINK: ::c_int = AF_HYLINK;
+pub const PF_APPLETALK: ::c_int = AF_APPLETALK;
+pub const PF_ROUTE: ::c_int = AF_ROUTE;
+pub const PF_LINK: ::c_int = AF_LINK;
+pub const PF_XTP: ::c_int = pseudo_AF_XTP;
+pub const PF_COIP: ::c_int = AF_COIP;
+pub const PF_CNT: ::c_int = AF_CNT;
+pub const PF_SIP: ::c_int = AF_SIP;
+pub const PF_IPX: ::c_int = AF_IPX;
+pub const PF_RTIP: ::c_int = pseudo_AF_RTIP;
+pub const PF_PIP: ::c_int = pseudo_AF_PIP;
+pub const PF_ISDN: ::c_int = AF_ISDN;
+pub const PF_KEY: ::c_int = pseudo_AF_KEY;
+pub const PF_INET6: ::c_int = AF_INET6;
+pub const PF_NATM: ::c_int = AF_NATM;
+pub const PF_ATM: ::c_int = AF_ATM;
+pub const PF_NETGRAPH: ::c_int = AF_NETGRAPH;
+
+pub const SOMAXCONN: ::c_int = 128;
+
+pub const MSG_OOB: ::c_int = 0x00000001;
+pub const MSG_PEEK: ::c_int = 0x00000002;
+pub const MSG_DONTROUTE: ::c_int = 0x00000004;
+pub const MSG_EOR: ::c_int =  0x00000008;
+pub const MSG_TRUNC: ::c_int = 0x00000010;
+pub const MSG_CTRUNC: ::c_int = 0x00000020;
+pub const MSG_WAITALL: ::c_int = 0x00000040;
+pub const MSG_DONTWAIT: ::c_int = 0x00000080;
+pub const MSG_EOF: ::c_int = 0x00000100;
+
+pub const SCM_TIMESTAMP: ::c_int = 0x02;
+
 pub const SOCK_STREAM: ::c_int = 1;
 pub const SOCK_DGRAM: ::c_int = 2;
 pub const SOCK_RAW: ::c_int = 3;
+pub const SOCK_RDM: ::c_int = 4;
 pub const SOCK_SEQPACKET: ::c_int = 5;
-pub const IPPROTO_TCP: ::c_int = 6;
-pub const IPPROTO_IP: ::c_int = 0;
-pub const IPPROTO_IPV6: ::c_int = 41;
-pub const IP_MULTICAST_TTL: ::c_int = 10;
-pub const IP_MULTICAST_LOOP: ::c_int = 11;
+pub const SOCK_CLOEXEC: ::c_int = 0x10000000;
+pub const SOCK_NONBLOCK: ::c_int = 0x20000000;
+pub const SOCK_MAXADDRLEN: ::c_int = 255;
 pub const IP_TTL: ::c_int = 4;
 pub const IP_HDRINCL: ::c_int = 2;
 pub const IP_ADD_MEMBERSHIP: ::c_int = 12;
@@ -595,6 +628,9 @@ pub const SO_USELOOPBACK: ::c_int = 0x0040;
 pub const SO_LINGER: ::c_int = 0x0080;
 pub const SO_OOBINLINE: ::c_int = 0x0100;
 pub const SO_REUSEPORT: ::c_int = 0x0200;
+pub const SO_TIMESTAMP: ::c_int = 0x0400;
+pub const SO_NOSIGPIPE: ::c_int = 0x0800;
+pub const SO_ACCEPTFILTER: ::c_int = 0x1000;
 pub const SO_SNDBUF: ::c_int = 0x1001;
 pub const SO_RCVBUF: ::c_int = 0x1002;
 pub const SO_SNDLOWAT: ::c_int = 0x1003;
@@ -615,9 +651,6 @@ pub const LOCK_EX: ::c_int = 2;
 pub const LOCK_NB: ::c_int = 4;
 pub const LOCK_UN: ::c_int = 8;
 
-pub const O_SYNC: ::c_int = 128;
-pub const O_NONBLOCK: ::c_int = 4;
-
 pub const MAP_COPY: ::c_int = 0x0002;
 pub const MAP_RENAME: ::c_int = 0x0020;
 pub const MAP_NORESERVE: ::c_int = 0x0040;
@@ -627,6 +660,32 @@ pub const MAP_NOSYNC: ::c_int = 0x0800;
 pub const MAP_NOCORE: ::c_int = 0x020000;
 
 pub const IPPROTO_RAW: ::c_int = 255;
+
+pub const _PC_LINK_MAX: ::c_int = 1;
+pub const _PC_MAX_CANON: ::c_int = 2;
+pub const _PC_MAX_INPUT: ::c_int = 3;
+pub const _PC_NAME_MAX: ::c_int = 4;
+pub const _PC_PATH_MAX: ::c_int = 5;
+pub const _PC_PIPE_BUF: ::c_int = 6;
+pub const _PC_CHOWN_RESTRICTED: ::c_int = 7;
+pub const _PC_NO_TRUNC: ::c_int = 8;
+pub const _PC_VDISABLE: ::c_int = 9;
+pub const _PC_ALLOC_SIZE_MIN: ::c_int = 10;
+pub const _PC_FILESIZEBITS: ::c_int = 12;
+pub const _PC_REC_INCR_XFER_SIZE: ::c_int = 14;
+pub const _PC_REC_MAX_XFER_SIZE: ::c_int = 15;
+pub const _PC_REC_MIN_XFER_SIZE: ::c_int = 16;
+pub const _PC_REC_XFER_ALIGN: ::c_int = 17;
+pub const _PC_SYMLINK_MAX: ::c_int = 18;
+pub const _PC_MIN_HOLE_SIZE: ::c_int = 21;
+pub const _PC_ASYNC_IO: ::c_int = 53;
+pub const _PC_PRIO_IO: ::c_int = 54;
+pub const _PC_SYNC_IO: ::c_int = 55;
+pub const _PC_ACL_EXTENDED: ::c_int = 59;
+pub const _PC_ACL_PATH_MAX: ::c_int = 60;
+pub const _PC_CAP_PRESENT: ::c_int = 61;
+pub const _PC_INF_PRESENT: ::c_int = 62;
+pub const _PC_MAC_PRESENT: ::c_int = 63;
 
 pub const _SC_ARG_MAX: ::c_int = 1;
 pub const _SC_CHILD_MAX: ::c_int = 2;
@@ -681,7 +740,71 @@ pub const _SC_SEM_NSEMS_MAX: ::c_int = 49;
 pub const _SC_SEM_VALUE_MAX: ::c_int = 50;
 pub const _SC_SIGQUEUE_MAX: ::c_int = 51;
 pub const _SC_TIMER_MAX: ::c_int = 52;
+pub const _SC_IOV_MAX: ::c_int = 56;
+pub const _SC_NPROCESSORS_CONF: ::c_int = 57;
+pub const _SC_2_PBS: ::c_int = 59;
+pub const _SC_2_PBS_ACCOUNTING: ::c_int = 60;
+pub const _SC_2_PBS_CHECKPOINT: ::c_int = 61;
+pub const _SC_2_PBS_LOCATE: ::c_int = 62;
+pub const _SC_2_PBS_MESSAGE: ::c_int = 63;
+pub const _SC_2_PBS_TRACK: ::c_int = 64;
+pub const _SC_ADVISORY_INFO: ::c_int = 65;
+pub const _SC_BARRIERS: ::c_int = 66;
+pub const _SC_CLOCK_SELECTION: ::c_int = 67;
+pub const _SC_CPUTIME: ::c_int = 68;
+pub const _SC_FILE_LOCKING: ::c_int = 69;
+pub const _SC_NPROCESSORS_ONLN: ::c_int = 58;
+pub const _SC_GETGR_R_SIZE_MAX: ::c_int = 70;
+pub const _SC_GETPW_R_SIZE_MAX: ::c_int = 71;
 pub const _SC_HOST_NAME_MAX: ::c_int = 72;
+pub const _SC_LOGIN_NAME_MAX: ::c_int = 73;
+pub const _SC_MONOTONIC_CLOCK: ::c_int = 74;
+pub const _SC_MQ_PRIO_MAX: ::c_int = 75;
+pub const _SC_READER_WRITER_LOCKS: ::c_int = 76;
+pub const _SC_REGEXP: ::c_int = 77;
+pub const _SC_SHELL: ::c_int = 78;
+pub const _SC_SPAWN: ::c_int = 79;
+pub const _SC_SPIN_LOCKS: ::c_int = 80;
+pub const _SC_SPORADIC_SERVER: ::c_int = 81;
+pub const _SC_THREAD_ATTR_STACKADDR: ::c_int = 82;
+pub const _SC_THREAD_ATTR_STACKSIZE: ::c_int = 83;
+pub const _SC_THREAD_DESTRUCTOR_ITERATIONS: ::c_int = 85;
+pub const _SC_THREAD_KEYS_MAX: ::c_int = 86;
+pub const _SC_THREAD_PRIO_INHERIT: ::c_int = 87;
+pub const _SC_THREAD_PRIO_PROTECT: ::c_int = 88;
+pub const _SC_THREAD_PRIORITY_SCHEDULING: ::c_int = 89;
+pub const _SC_THREAD_PROCESS_SHARED: ::c_int = 90;
+pub const _SC_THREAD_SAFE_FUNCTIONS: ::c_int = 91;
+pub const _SC_THREAD_SPORADIC_SERVER: ::c_int = 92;
+pub const _SC_THREAD_STACK_MIN: ::c_int = 93;
+pub const _SC_THREAD_THREADS_MAX: ::c_int = 94;
+pub const _SC_TIMEOUTS: ::c_int = 95;
+pub const _SC_THREADS: ::c_int = 96;
+pub const _SC_TRACE: ::c_int = 97;
+pub const _SC_TRACE_EVENT_FILTER: ::c_int = 98;
+pub const _SC_TRACE_INHERIT: ::c_int = 99;
+pub const _SC_TRACE_LOG: ::c_int = 100;
+pub const _SC_TTY_NAME_MAX: ::c_int = 101;
+pub const _SC_TYPED_MEMORY_OBJECTS: ::c_int = 102;
+pub const _SC_V6_ILP32_OFF32: ::c_int = 103;
+pub const _SC_V6_ILP32_OFFBIG: ::c_int = 104;
+pub const _SC_V6_LP64_OFF64: ::c_int = 105;
+pub const _SC_V6_LPBIG_OFFBIG: ::c_int = 106;
+pub const _SC_ATEXIT_MAX: ::c_int = 107;
+pub const _SC_XOPEN_CRYPT: ::c_int = 108;
+pub const _SC_XOPEN_ENH_I18N: ::c_int = 109;
+pub const _SC_XOPEN_LEGACY: ::c_int = 110;
+pub const _SC_XOPEN_REALTIME: ::c_int = 111;
+pub const _SC_XOPEN_REALTIME_THREADS: ::c_int = 112;
+pub const _SC_XOPEN_SHM: ::c_int = 113;
+pub const _SC_XOPEN_STREAMS: ::c_int = 114;
+pub const _SC_XOPEN_UNIX: ::c_int = 115;
+pub const _SC_XOPEN_VERSION: ::c_int = 116;
+pub const _SC_XOPEN_XCU_VERSION: ::c_int = 117;
+pub const _SC_IPV6: ::c_int = 118;
+pub const _SC_RAW_SOCKETS: ::c_int = 119;
+pub const _SC_SYMLOOP_MAX: ::c_int = 120;
+pub const _SC_PHYS_PAGES: ::c_int = 121;
 
 pub const PTHREAD_MUTEX_INITIALIZER: pthread_mutex_t = 0 as *mut _;
 pub const PTHREAD_COND_INITIALIZER: pthread_cond_t = 0 as *mut _;
@@ -689,7 +812,6 @@ pub const PTHREAD_RWLOCK_INITIALIZER: pthread_rwlock_t = 0 as *mut _;
 pub const PTHREAD_MUTEX_ERRORCHECK: ::c_int = 1;
 pub const PTHREAD_MUTEX_RECURSIVE: ::c_int = 2;
 pub const PTHREAD_MUTEX_NORMAL: ::c_int = 3;
-pub const PTHREAD_MUTEX_ADAPTIVE_NP: ::c_int = 4;
 pub const PTHREAD_MUTEX_DEFAULT: ::c_int = PTHREAD_MUTEX_ERRORCHECK;
 
 pub const SCHED_FIFO: ::c_int = 1;
@@ -712,12 +834,113 @@ pub const LOG_SECURITY: ::c_int = 13 << 3;
 pub const LOG_CONSOLE: ::c_int = 14 << 3;
 pub const LOG_NFACILITIES: ::c_int = 24;
 
-pub const TIOCGWINSZ: ::c_ulong = 0x40087468;
+pub const TIOCEXCL: ::c_uint = 0x2000740d;
+pub const TIOCNXCL: ::c_uint = 0x2000740e;
+pub const TIOCFLUSH: ::c_ulong = 0x80047410;
+pub const TIOCGETA: ::c_uint = 0x402c7413;
+pub const TIOCSETA: ::c_ulong = 0x802c7414;
+pub const TIOCSETAW: ::c_ulong = 0x802c7415;
+pub const TIOCSETAF: ::c_ulong = 0x802c7416;
+pub const TIOCGETD: ::c_uint = 0x4004741a;
+pub const TIOCSETD: ::c_ulong = 0x8004741b;
+pub const TIOCGDRAINWAIT: ::c_uint = 0x40047456;
+pub const TIOCSDRAINWAIT: ::c_ulong = 0x80047457;
+pub const TIOCTIMESTAMP: ::c_uint = 0x40107459;
+pub const TIOCMGDTRWAIT: ::c_uint = 0x4004745a;
+pub const TIOCMSDTRWAIT: ::c_ulong = 0x8004745b;
+pub const TIOCDRAIN: ::c_uint = 0x2000745e;
+pub const TIOCEXT: ::c_ulong = 0x80047460;
+pub const TIOCSCTTY: ::c_uint = 0x20007461;
+pub const TIOCCONS: ::c_ulong = 0x80047462;
+pub const TIOCGSID: ::c_uint = 0x40047463;
+pub const TIOCSTAT: ::c_uint = 0x20007465;
+pub const TIOCUCNTL: ::c_ulong = 0x80047466;
 pub const TIOCSWINSZ: ::c_ulong = 0x80087467;
+pub const TIOCGWINSZ: ::c_uint = 0x40087468;
+pub const TIOCMGET: ::c_uint = 0x4004746a;
+pub const TIOCM_LE: ::c_int = 0x1;
+pub const TIOCM_DTR: ::c_int = 0x2;
+pub const TIOCM_RTS: ::c_int = 0x4;
+pub const TIOCM_ST: ::c_int = 0x8;
+pub const TIOCM_SR: ::c_int = 0x10;
+pub const TIOCM_CTS: ::c_int = 0x20;
+pub const TIOCM_RI: ::c_int = 0x80;
+pub const TIOCM_DSR: ::c_int = 0x100;
+pub const TIOCM_CD: ::c_int = 0x40;
+pub const TIOCM_CAR: ::c_int = 0x40;
+pub const TIOCM_RNG: ::c_int = 0x80;
+pub const TIOCMBIC: ::c_ulong = 0x8004746b;
+pub const TIOCMBIS: ::c_ulong = 0x8004746c;
+pub const TIOCMSET: ::c_ulong = 0x8004746d;
+pub const TIOCSTART: ::c_uint = 0x2000746e;
+pub const TIOCSTOP: ::c_uint = 0x2000746f;
+pub const TIOCPKT: ::c_ulong = 0x80047470;
+pub const TIOCPKT_DATA: ::c_int = 0x0;
+pub const TIOCPKT_FLUSHREAD: ::c_int = 0x1;
+pub const TIOCPKT_FLUSHWRITE: ::c_int = 0x2;
+pub const TIOCPKT_STOP: ::c_int = 0x4;
+pub const TIOCPKT_START: ::c_int = 0x8;
+pub const TIOCPKT_NOSTOP: ::c_int = 0x10;
+pub const TIOCPKT_DOSTOP: ::c_int = 0x20;
+pub const TIOCPKT_IOCTL: ::c_int = 0x40;
+pub const TIOCNOTTY: ::c_uint = 0x20007471;
+pub const TIOCSTI: ::c_ulong = 0x80017472;
+pub const TIOCOUTQ: ::c_uint = 0x40047473;
+pub const TIOCSPGRP: ::c_ulong = 0x80047476;
+pub const TIOCGPGRP: ::c_uint = 0x40047477;
+pub const TIOCCDTR: ::c_uint = 0x20007478;
+pub const TIOCSDTR: ::c_uint = 0x20007479;
+pub const TIOCCBRK: ::c_uint = 0x2000747a;
+pub const TIOCSBRK: ::c_uint = 0x2000747b;
+pub const TTYDISC: ::c_int = 0x0;
+pub const SLIPDISC: ::c_int = 0x4;
+pub const PPPDISC: ::c_int = 0x5;
+pub const NETGRAPHDISC: ::c_int = 0x6;
+
+pub const B0: speed_t = 0;
+pub const B50: speed_t = 50;
+pub const B75: speed_t = 75;
+pub const B110: speed_t = 110;
+pub const B134: speed_t = 134;
+pub const B150: speed_t = 150;
+pub const B200: speed_t = 200;
+pub const B300: speed_t = 300;
+pub const B600: speed_t = 600;
+pub const B1200: speed_t = 1200;
+pub const B1800: speed_t = 1800;
+pub const B2400: speed_t = 2400;
+pub const B4800: speed_t = 4800;
+pub const B9600: speed_t = 9600;
+pub const B19200: speed_t = 19200;
+pub const B38400: speed_t = 38400;
+pub const B7200: speed_t = 7200;
+pub const B14400: speed_t = 14400;
+pub const B28800: speed_t = 28800;
+pub const B57600: speed_t = 57600;
+pub const B76800: speed_t = 76800;
+pub const B115200: speed_t = 115200;
+pub const B230400: speed_t = 230400;
+pub const EXTA: speed_t = 19200;
+pub const EXTB: speed_t = 38400;
 
 pub const SEM_FAILED: *mut sem_t = 0 as *mut sem_t;
 
+pub const CRTSCTS: ::tcflag_t = 0x00030000;
+pub const CCTS_OFLOW: ::tcflag_t = 0x00010000;
+pub const CRTS_IFLOW: ::tcflag_t = 0x00020000;
+pub const CDTR_IFLOW: ::tcflag_t = 0x00040000;
+pub const CDSR_OFLOW: ::tcflag_t = 0x00080000;
+pub const CCAR_OFLOW: ::tcflag_t = 0x00100000;
+pub const VERASE2: usize = 7;
+pub const OCRNL: ::tcflag_t = 0x10;
+pub const ONOCR: ::tcflag_t = 0x20;
+pub const ONLRET: ::tcflag_t = 0x40;
+
 f! {
+    pub fn WIFCONTINUED(status: ::c_int) -> bool {
+        status == 0x13
+    }
+
     pub fn WSTOPSIG(status: ::c_int) -> ::c_int {
         status >> 8
     }
@@ -739,12 +962,28 @@ extern {
     pub fn getutxline(ut: *const utmpx) -> *mut utmpx;
     pub fn pututxline(ut: *const utmpx) -> *mut utmpx;
     pub fn setutxent();
-    pub fn getutxuser(user: *const ::c_char) -> *mut utmpx;
-    pub fn setutxdb(_type: ::c_int, file: *const ::c_char) -> ::c_int;
+    pub fn setresgid(rgid: ::gid_t, egid: ::gid_t, sgid: ::gid_t) -> ::c_int;
+    pub fn setresuid(ruid: ::uid_t, euid: ::uid_t, suid: ::uid_t) -> ::c_int;
+    pub fn getgrouplist(name: *const ::c_char,
+                        basegid: ::gid_t,
+                        groups: *mut ::gid_t,
+                        ngroups: *mut ::c_int) -> ::c_int;
+    pub fn initgroups(name: *const ::c_char, basegid: ::gid_t) -> ::c_int;
 }
 
 #[link(name = "util")]
 extern {
+    pub fn aio_read(aiocbp: *mut aiocb) -> ::c_int;
+    pub fn aio_write(aiocbp: *mut aiocb) -> ::c_int;
+    pub fn aio_fsync(op: ::c_int, aiocbp: *mut aiocb) -> ::c_int;
+    pub fn aio_error(aiocbp: *const aiocb) -> ::c_int;
+    pub fn aio_return(aiocbp: *mut aiocb) -> ::ssize_t;
+    pub fn aio_suspend(aiocb_list: *const *const aiocb, nitems: ::c_int,
+                       timeout: *const ::timespec) -> ::c_int;
+    pub fn aio_cancel(fd: ::c_int, aiocbp: *mut aiocb) -> ::c_int;
+    pub fn lio_listio(mode: ::c_int, aiocb_list: *const *mut aiocb,
+                      nitems: ::c_int, sevp: *mut sigevent) -> ::c_int;
+    pub fn dirfd(dirp: *mut ::DIR) -> ::c_int;
     pub fn getnameinfo(sa: *const ::sockaddr,
                        salen: ::socklen_t,
                        host: *mut ::c_char,
@@ -760,6 +999,14 @@ extern {
                   timeout: *const ::timespec) -> ::c_int;
     pub fn mincore(addr: *const ::c_void, len: ::size_t,
                    vec: *mut ::c_char) -> ::c_int;
+    pub fn pwritev(fd: ::c_int,
+                   iov: *const ::iovec,
+                   iovcnt: ::c_int,
+                   offset: ::off_t) -> ::ssize_t;
+    pub fn preadv(fd: ::c_int,
+                  iov: *const ::iovec,
+                  iovcnt: ::c_int,
+                  offset: ::off_t) -> ::ssize_t;
     pub fn sysctlnametomib(name: *const ::c_char,
                            mibp: *mut ::c_int,
                            sizep: *mut ::size_t)
@@ -781,7 +1028,7 @@ extern {
                         -> ::c_int;
     pub fn sched_setscheduler(pid: ::pid_t,
                               policy: ::c_int,
-                              param: *const sched_param) -> ::c_int;
+                              param: *const ::sched_param) -> ::c_int;
     pub fn sched_getscheduler(pid: ::pid_t) -> ::c_int;
     pub fn memrchr(cx: *const ::c_void,
                    c: ::c_int,
@@ -809,12 +1056,13 @@ extern {
                    winp: *mut ::winsize) -> ::pid_t;
     pub fn nl_langinfo_l(item: ::nl_item, locale: ::locale_t) -> *mut ::c_char;
     pub fn duplocale(base: ::locale_t) -> ::locale_t;
-    pub fn freelocale(loc: ::locale_t) -> ::c_int;
     pub fn newlocale(mask: ::c_int,
                      locale: *const ::c_char,
                      base: ::locale_t) -> ::locale_t;
     pub fn uselocale(loc: ::locale_t) -> ::locale_t;
     pub fn querylocale(mask: ::c_int, loc: ::locale_t) -> *const ::c_char;
+    pub fn accept4(s: ::c_int, addr: *mut ::sockaddr,
+                   addrlen: *mut ::socklen_t, flags: ::c_int) -> ::c_int;
     pub fn pthread_set_name_np(tid: ::pthread_t, name: *const ::c_char);
     pub fn pthread_attr_get_np(tid: ::pthread_t,
                                attr: *mut ::pthread_attr_t) -> ::c_int;
@@ -823,45 +1071,45 @@ extern {
     pub fn pthread_attr_getstack(attr: *const ::pthread_attr_t,
                                  stackaddr: *mut *mut ::c_void,
                                  stacksize: *mut ::size_t) -> ::c_int;
+    pub fn pthread_condattr_setpshared(attr: *mut pthread_condattr_t,
+                                       pshared: ::c_int) -> ::c_int;
+    pub fn pthread_condattr_getpshared(attr: *const pthread_condattr_t,
+                                       pshared: *mut ::c_int) -> ::c_int;
+    pub fn pthread_mutexattr_setpshared(attr: *mut pthread_mutexattr_t,
+                                        pshared: ::c_int) -> ::c_int;
+    pub fn pthread_mutexattr_getpshared(attr: *const pthread_mutexattr_t,
+                                        pshared: *mut ::c_int) -> ::c_int;
+    pub fn pthread_rwlockattr_getpshared(attr: *const pthread_rwlockattr_t,
+                                         val: *mut ::c_int) -> ::c_int;
+    pub fn pthread_rwlockattr_setpshared(attr: *mut pthread_rwlockattr_t,
+                                         val: ::c_int) -> ::c_int;
     pub fn getpriority(which: ::c_int, who: ::c_int) -> ::c_int;
     pub fn setpriority(which: ::c_int, who: ::c_int, prio: ::c_int) -> ::c_int;
 
-    pub fn openat(dirfd: ::c_int, pathname: *const ::c_char,
-                  flags: ::c_int, ...) -> ::c_int;
-    pub fn faccessat(dirfd: ::c_int, pathname: *const ::c_char,
-                     mode: ::c_int, flags: ::c_int) -> ::c_int;
-    pub fn fchmodat(dirfd: ::c_int, pathname: *const ::c_char,
-                    mode: ::mode_t, flags: ::c_int) -> ::c_int;
-    pub fn fchownat(dirfd: ::c_int, pathname: *const ::c_char,
-                    owner: ::uid_t, group: ::gid_t,
-                    flags: ::c_int) -> ::c_int;
-    pub fn fstatat(dirfd: ::c_int, pathname: *const ::c_char,
-                   buf: *mut stat, flags: ::c_int) -> ::c_int;
-    pub fn linkat(olddirfd: ::c_int, oldpath: *const ::c_char,
-                  newdirfd: ::c_int, newpath: *const ::c_char,
-                  flags: ::c_int) -> ::c_int;
-   pub fn mkdirat(dirfd: ::c_int, pathname: *const ::c_char,
-                  mode: ::mode_t) -> ::c_int;
-   pub fn mknodat(dirfd: ::c_int, pathname: *const ::c_char,
-                 mode: ::mode_t, dev: dev_t) -> ::c_int;
-   pub fn readlinkat(dirfd: ::c_int, pathname: *const ::c_char,
-                     buf: *mut ::c_char, bufsiz: ::size_t) -> ::ssize_t;
-   pub fn renameat(olddirfd: ::c_int, oldpath: *const ::c_char,
-                   newdirfd: ::c_int, newpath: *const ::c_char)
-                   -> ::c_int;
-   pub fn symlinkat(target: *const ::c_char, newdirfd: ::c_int,
-                    linkpath: *const ::c_char) -> ::c_int;
-   pub fn unlinkat(dirfd: ::c_int, pathname: *const ::c_char,
-                   flags: ::c_int) -> ::c_int;
-   pub fn mkfifoat(dirfd: ::c_int, pathname: *const ::c_char,
-                   mode: ::mode_t) -> ::c_int;
+    pub fn fdopendir(fd: ::c_int) -> *mut ::DIR;
+
+    pub fn mknodat(dirfd: ::c_int, pathname: *const ::c_char,
+                  mode: ::mode_t, dev: dev_t) -> ::c_int;
+    pub fn mkfifoat(dirfd: ::c_int, pathname: *const ::c_char,
+                    mode: ::mode_t) -> ::c_int;
     pub fn pthread_condattr_getclock(attr: *const pthread_condattr_t,
                                      clock_id: *mut clockid_t) -> ::c_int;
     pub fn pthread_condattr_setclock(attr: *mut pthread_condattr_t,
-                                     clock_id: clockid_t) -> ::c_int;
+                                     clock_id: ::clockid_t) -> ::c_int;
     pub fn sethostname(name: *const ::c_char, len: ::c_int) -> ::c_int;
     pub fn sem_timedwait(sem: *mut sem_t,
                          abstime: *const ::timespec) -> ::c_int;
+    pub fn pthread_mutex_timedlock(lock: *mut pthread_mutex_t,
+                                   abstime: *const ::timespec) -> ::c_int;
+    pub fn pipe2(fds: *mut ::c_int, flags: ::c_int) -> ::c_int;
+    pub fn ppoll(fds: *mut ::pollfd,
+                 nfds: ::nfds_t,
+                 timeout: *const ::timespec,
+                 sigmask: *const sigset_t) -> ::c_int;
+    pub fn settimeofday(tv: *const ::timeval, tz: *const ::timezone) -> ::c_int;
+    pub fn fexecve(fd: ::c_int, argv: *const *const ::c_char,
+                   envp: *const *const ::c_char)
+                   -> ::c_int;
 }
 
 cfg_if! {

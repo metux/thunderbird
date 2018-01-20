@@ -16,6 +16,7 @@ handle SIGPIPE noprint nostop pass
 # sandboxing code on older kernels.
 handle SIG38 noprint nostop pass
 handle SIG64 noprint nostop pass
+handle SIGSYS noprint nostop pass
 
 # Show the concrete types behind nsIFoo
 set print object on
@@ -85,7 +86,7 @@ def ps
   end
 end
 
-# Define a "pa" command to display the string value for an nsIAtom
+# Define a "pa" command to display the string value for an nsAtom
 def pa
   set $atom = $arg0
   if (sizeof(*((&*$atom)->mString)) == 2)

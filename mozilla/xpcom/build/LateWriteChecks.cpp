@@ -13,6 +13,7 @@
 #include "mozilla/Scoped.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/Unused.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsDirectoryServiceUtils.h"
 #include "nsPrintfCString.h"
@@ -35,8 +36,6 @@
 
 #include "LateWriteChecks.h"
 
-#define OBSERVE_LATE_WRITES
-
 using namespace mozilla;
 
 /*************************** Auxiliary Declarations ***************************/
@@ -52,7 +51,7 @@ public:
     MozillaRegisterDebugFILE(mFile);
   }
 
-  void Printf(const char* aFormat, ...)
+  void Printf(const char* aFormat, ...) MOZ_FORMAT_PRINTF(2, 3)
   {
     MOZ_ASSERT(mFile);
     va_list list;
@@ -61,7 +60,7 @@ public:
     str.AppendPrintf(aFormat, list);
     va_end(list);
     mSHA1.update(str.get(), str.Length());
-    fwrite(str.get(), 1, str.Length(), mFile);
+    Unused << fwrite(str.get(), 1, str.Length(), mFile);
   }
   void Finish(SHA1Sum::Hash& aHash)
   {
@@ -112,7 +111,6 @@ private:
 void
 LateWriteObserver::Observe(IOInterposeObserver::Observation& aOb)
 {
-#ifdef OBSERVE_LATE_WRITES
   // Crash if that is the shutdown check mode
   if (gShutdownChecks == SCM_CRASH) {
     MOZ_CRASH();
@@ -128,7 +126,7 @@ LateWriteObserver::Observe(IOInterposeObserver::Observation& aOb)
   std::vector<uintptr_t> rawStack;
 
   MozStackWalk(RecordStackWalker, /* skipFrames */ 0, /* maxFrames */ 0,
-               reinterpret_cast<void*>(&rawStack), 0, nullptr);
+               &rawStack);
   Telemetry::ProcessedStack stack = Telemetry::GetStackAndModules(rawStack);
 
   nsPrintfCString nameAux("%s%s%s", mProfileDirectory,
@@ -143,24 +141,27 @@ LateWriteObserver::Observe(IOInterposeObserver::Observation& aOb)
   HANDLE hFile;
   do {
     // mkstemp isn't supported so keep trying until we get a file
-    int result = _mktemp_s(name, strlen(name) + 1);
+    _mktemp_s(name, strlen(name) + 1);
     hFile = CreateFileA(name, GENERIC_WRITE, 0, nullptr, CREATE_NEW,
                         FILE_ATTRIBUTE_NORMAL, nullptr);
   } while (GetLastError() == ERROR_FILE_EXISTS);
 
   if (hFile == INVALID_HANDLE_VALUE) {
-    NS_RUNTIMEABORT("Um, how did we get here?");
+    MOZ_CRASH("Um, how did we get here?");
   }
 
   // http://support.microsoft.com/kb/139640
   int fd = _open_osfhandle((intptr_t)hFile, _O_APPEND);
   if (fd == -1) {
-    NS_RUNTIMEABORT("Um, how did we get here?");
+    MOZ_CRASH("Um, how did we get here?");
   }
 
   stream = _fdopen(fd, "w");
 #else
   int fd = mkstemp(name);
+  if (fd == -1) {
+    MOZ_CRASH("mkstemp failed");
+  }
   stream = fdopen(fd, "w");
 #endif
 
@@ -171,7 +172,7 @@ LateWriteObserver::Observe(IOInterposeObserver::Observation& aOb)
   for (size_t i = 0; i < numModules; ++i) {
     Telemetry::ProcessedStack::Module module = stack.GetModule(i);
     sha1Stream.Printf("%s %s\n", module.mBreakpadId.c_str(),
-                      module.mName.c_str());
+                      NS_ConvertUTF16toUTF8(module.mName).get());
   }
 
   size_t numFrames = stack.GetStackSize();
@@ -207,7 +208,6 @@ LateWriteObserver::Observe(IOInterposeObserver::Observation& aOb)
   }
   PR_Delete(finalName.get());
   PR_Rename(name, finalName.get());
-#endif
 }
 
 /******************************* Setup/Teardown *******************************/

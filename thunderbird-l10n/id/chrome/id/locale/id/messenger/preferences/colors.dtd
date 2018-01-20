@@ -23,27 +23,25 @@
 
 
 
-
-<!ENTITY  color                           "Text and Background">
-
-
 <!ENTITY  colorsDialog.title              "Colors">
-<!ENTITY  linkColor.accesskey             "L">
-<!ENTITY  linkColor.label                 "Unvisited Links:">
-<!ENTITY  links                           "Link Colors">
+<!ENTITY  window.width                    "38em">
+<!ENTITY  window.macWidth                 "41em">
+
+<!ENTITY  overridePageColors.label        "Override the colors specified by the content with my selections above:">
 <!ENTITY  overridePageColors.accesskey    "O">
 
 <!ENTITY  overridePageColors.always.label "Always">
 <!ENTITY  overridePageColors.auto.label   "Only with High Contrast themes">
-
-<!ENTITY  overridePageColors.label        "Override the colors specified by the content with my selections above:">
 <!ENTITY  overridePageColors.never.label  "Never">
-<!ENTITY  underlineLinks.accesskey        "U">
+
+<!ENTITY  color                           "Text and Background">
+<!ENTITY  useSystemColors.label           "Use system colors">
+<!ENTITY  useSystemColors.accesskey       "s">
 
 <!ENTITY  underlineLinks.label            "Underline links">
-<!ENTITY  useSystemColors.accesskey       "s">
-<!ENTITY  useSystemColors.label           "Use system colors">
-<!ENTITY  visitedLinkColor.accesskey      "V">
+<!ENTITY  underlineLinks.accesskey        "U">
+<!ENTITY  links                           "Link Colors">
+<!ENTITY  linkColor.label                 "Unvisited Links:">
+<!ENTITY  linkColor.accesskey             "L">
 <!ENTITY  visitedLinkColor.label          "Visited Links:">
-<!ENTITY  window.macWidth                 "41em">
-<!ENTITY  window.width                    "38em">
+<!ENTITY  visitedLinkColor.accesskey      "V">

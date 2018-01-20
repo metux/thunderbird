@@ -86,3 +86,11 @@
 <!ENTITY insecureUnencrypted.description "Sähköpostisi välitetään selkokielisenä, jonka takia on mahdollista, että asiaankuulumattomat henkilöt lukevat sähköpostejasi. &brandShortName; toimii myös näillä asetuksilla, mutta olisi parempi jos saisit sähköpostipalveluntarjoajasi muuttamaan sähköpostipalvelunsa käyttämään suojattua yhteyttä.">
 <!ENTITY insecureSelfSigned.description  "Palvelin käyttää ei luotettua varmennetta, joten ei voi olla varma ettei joku kolmas osapuoli kaappaa &brandShortName;in ja sähköpostipalvelimen välistä liikennettä. &brandShortName; toimii myös näillä asetuksilla, mutta olisi parempi jos saisit sähköpostipalveluntarjoajasi käyttämään luotettua varmennetta.">
 <!ENTITY secureServer.description        "Onneksi olkoon! Sähköpostipalvelin on asianmukaisesti suojattu.">
+
+<!ENTITY autoconfigWizard2.title         "Set Up an Existing Email Account">
+<!ENTITY email2.placeholder              "you@example.com">
+<!ENTITY email.text                      "Your existing email address">
+<!ENTITY open-provisioner.label          "Get a new email address…">
+<!ENTITY open-provisioner.accesskey      "g">
+
+

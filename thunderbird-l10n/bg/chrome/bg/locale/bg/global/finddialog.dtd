@@ -7,8 +7,8 @@
 <!ENTITY findDialog.title "Търсене в страницата">
 <!ENTITY findField.label "Търсене на:">
 <!ENTITY findField.accesskey "Т">
-<!ENTITY caseSensitiveCheckbox.label "Главни/малки букви">
-<!ENTITY caseSensitiveCheckbox.accesskey "б">
+<!ENTITY caseSensitiveCheckbox.label "Чувствителност към регистъра">
+<!ENTITY caseSensitiveCheckbox.accesskey "р">
 <!ENTITY wrapCheckbox.label "Пренасяне">
 <!ENTITY wrapCheckbox.accesskey "П">
 <!ENTITY findButton.label "Търсене следващ">

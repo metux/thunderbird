@@ -1,4 +1,4 @@
-/** ***** BEGIN LICENSE BLOCK *****
+/**
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -262,6 +262,7 @@ nsContextMenu.prototype = {
         "mailContext-openConversation", "mailContext-openContainingFolder",
         "mailContext-archive", "mailContext-replySender",
         "mailContext-editAsNew", "mailContext-editDraftMsg",
+        "mailContext-newMsgFromTemplate",
         "mailContext-replyNewsgroup", "mailContext-replyAll",
         "mailContext-replyList", "mailContext-forward",
         "mailContext-forwardAsMenu", "mailContext-multiForwardAsAttachment",
@@ -298,6 +299,9 @@ nsContextMenu.prototype = {
     this.setSingleSelection("mailContext-editAsNew");
     this.setSingleSelection("mailContext-editDraftMsg",
                             document.getElementById("cmd_editDraftMsg")
+                                    .getAttribute("hidden") != "true");
+    this.setSingleSelection("mailContext-newMsgFromTemplate",
+                            document.getElementById("cmd_newMsgFromTemplate")
                                     .getAttribute("hidden") != "true");
     this.setSingleSelection("mailContext-replyNewsgroup", this.isNewsgroup);
     this.setSingleSelection("mailContext-replyAll");
@@ -796,7 +800,7 @@ nsContextMenu.prototype = {
    */
   getLinkURI: function CM_getLinkURI() {
     try {
-      return Services.io.newURI(this.linkURL, null, null);
+      return Services.io.newURI(this.linkURL);
     } catch (ex) {
       // e.g. empty URL string
     }
@@ -875,9 +879,9 @@ nsContextMenu.prototype = {
    */
   makeURLAbsolute : function CM_makeURLAbsolute(aBase, aUrl) {
     // Construct nsIURL.
-    var baseURI  = Services.io.newURI(aBase, null, null);
+    var baseURI  = Services.io.newURI(aBase);
 
-    return Services.io.newURI(baseURI.resolve(aUrl), null, null).spec;
+    return Services.io.newURI(baseURI.resolve(aUrl)).spec;
   },
 
   /**
@@ -947,7 +951,7 @@ nsContextMenu.prototype = {
 
   openInBrowser: function CM_openInBrowser() {
     let uri = Services.io.newURI(this.target.ownerDocument.defaultView.
-                                 top.location.href, null, null);
+                                 top.location.href);
     PlacesUtils.asyncHistory.updatePlaces({
       uri: uri,
       visits:  [{

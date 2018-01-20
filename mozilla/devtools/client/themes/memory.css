@@ -34,7 +34,7 @@ html, body, #app, #memory-tool {
   --sidebar-width: 185px;
   /**
    * If --heap-tree-row-height changes, be sure to change HEAP_TREE_ROW_HEIGHT
-   * in `devtools/client/memory/components/heap.js`.
+   * in `devtools/client/memory/components/Heap.js`.
    */
   --heap-tree-row-height: 18px;
   --heap-tree-header-height: 18px;
@@ -97,6 +97,8 @@ html, body, #app, #memory-tool {
 
 .devtools-toolbar > label {
   margin-inline-end: 5px;
+  display: flex;
+  align-items: center;
 }
 
 #select-view {
@@ -212,13 +214,15 @@ html, body, #app, #memory-tool {
   min-width: 1.3em;
 }
 
-.snapshot-list-item.selected .delete::before {
-  filter: invert(1);
-}
-
 .snapshot-list-item .delete::before {
+  display: block;
+  width: 16px;
+  height: 16px;
+  content: "";
   background-image: url("chrome://devtools/skin/images/close.svg");
-  background-position: 0.2em 0;
+  background-repeat: no-repeat;
+  -moz-context-properties: fill;
+  fill: currentColor;
 }
 
 .snapshot-list-item > .snapshot-title {
@@ -468,16 +472,21 @@ html, body, #app, #memory-tool {
 
 .heap-tree-item-name {
   /**
-   * Flex: contains an .arrow and some text, which need to be laid out
-   * horizontally, vertically aligned in the middle of the container.
-   */
-  display: flex;
-  align-items: center;
-  /**
    * Flexing to fill out remaining vertical space.
    * @see .header and .heap-tree-item */
   flex: 1;
   padding-inline-start: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.heap-tree-item-name .arrow {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.heap-tree-item-name .frame-link {
+  display: inline-block;
 }
 
 /**
@@ -518,19 +527,16 @@ html, body, #app, #memory-tool {
 }
 
 .heap-tree-item-individuals {
-  width: 38px;
-  min-width: 20px;
+  min-width: 38px;
   overflow: hidden;
   margin: 0;
 }
 
 .heap-tree-item-individuals > button {
-  height: 10px;
   width: 32px;
-
   /* Override default styles for toolbar buttons to fix entire row height. */
   margin: 0 auto !important;
-  padding: 0;
+  color: inherit;
 }
 
 /**
@@ -597,7 +603,7 @@ html, body, #app, #memory-tool {
 
 svg {
   --arrow-color: var(--theme-splitter-color);
-  --text-color: var(--theme-body-color-alt);
+  --text-color: var(--theme-body-color);
 }
 
 .theme-dark svg {

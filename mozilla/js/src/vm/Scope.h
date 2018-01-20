@@ -22,6 +22,7 @@
 namespace js {
 
 class ModuleObject;
+class Scope;
 
 enum class BindingKind : uint8_t
 {
@@ -70,13 +71,30 @@ enum class ScopeKind : uint8_t
     NonSyntactic,
 
     // ModuleScope
-    Module
+    Module,
+
+    // WasmInstanceScope
+    WasmInstance,
+
+    // WasmFunctionScope
+    WasmFunction
 };
 
 static inline bool
 ScopeKindIsCatch(ScopeKind kind)
 {
     return kind == ScopeKind::SimpleCatch || kind == ScopeKind::Catch;
+}
+
+static inline bool
+ScopeKindIsInBody(ScopeKind kind)
+{
+    return kind == ScopeKind::Lexical ||
+           kind == ScopeKind::SimpleCatch ||
+           kind == ScopeKind::Catch ||
+           kind == ScopeKind::With ||
+           kind == ScopeKind::FunctionBodyVar ||
+           kind == ScopeKind::ParameterExpressionVar;
 }
 
 const char* BindingKindString(BindingKind kind);
@@ -183,6 +201,21 @@ class BindingLocation
 };
 
 //
+// Allow using is<T> and as<T> on Rooted<Scope*> and Handle<Scope*>.
+//
+template <typename Wrapper>
+class WrappedPtrOperations<Scope*, Wrapper>
+{
+  public:
+    template <class U>
+    JS::Handle<U*> as() const {
+        const Wrapper& self = *static_cast<const Wrapper*>(this);
+        MOZ_ASSERT_IF(self, self->template is<U>());
+        return Handle<U*>::fromMarkedLocation(reinterpret_cast<U* const*>(self.address()));
+    }
+};
+
+//
 // The base class of all Scopes.
 //
 class Scope : public js::gc::TenuredCell
@@ -209,11 +242,11 @@ class Scope : public js::gc::TenuredCell
         data_(0)
     { }
 
-    static Scope* create(ExclusiveContext* cx, ScopeKind kind, HandleScope enclosing,
+    static Scope* create(JSContext* cx, ScopeKind kind, HandleScope enclosing,
                          HandleShape envShape);
 
     template <typename T, typename D>
-    static Scope* create(ExclusiveContext* cx, ScopeKind kind, HandleScope enclosing,
+    static Scope* create(JSContext* cx, ScopeKind kind, HandleScope enclosing,
                          HandleShape envShape, mozilla::UniquePtr<T, D> data);
 
     template <typename ConcreteScope, XDRMode mode>
@@ -355,7 +388,12 @@ class LexicalScope : public Scope
         return sizeof(Data) + (length ? length - 1 : 0) * sizeof(BindingName);
     }
 
-    static LexicalScope* create(ExclusiveContext* cx, ScopeKind kind, Handle<Data*> data,
+    static void getDataNamesAndLength(Data* data, BindingName** names, uint32_t* length) {
+        *names = data->names;
+        *length = data->length;
+    }
+
+    static LexicalScope* create(JSContext* cx, ScopeKind kind, Handle<Data*> data,
                                 uint32_t firstFrameSlot, HandleScope enclosing);
 
     template <XDRMode mode>
@@ -363,7 +401,7 @@ class LexicalScope : public Scope
                     MutableHandleScope scope);
 
   private:
-    static LexicalScope* createWithData(ExclusiveContext* cx, ScopeKind kind,
+    static LexicalScope* createWithData(JSContext* cx, ScopeKind kind,
                                         MutableHandle<UniquePtr<Data>> data,
                                         uint32_t firstFrameSlot, HandleScope enclosing);
 
@@ -386,7 +424,7 @@ class LexicalScope : public Scope
 
     // Returns an empty shape for extensible global and non-syntactic lexical
     // scopes.
-    static Shape* getEmptyExtensibleEnvironmentShape(ExclusiveContext* cx);
+    static Shape* getEmptyExtensibleEnvironmentShape(JSContext* cx);
 };
 
 template <>
@@ -401,10 +439,11 @@ Scope::is<LexicalScope>() const
 }
 
 //
-// Scope corresponding to a function. Holds formal parameter names and, if the
-// function parameters contain no expressions that might possibly be
-// evaluated, the function's var bindings.  For example, in these functions,
-// the FunctionScope will store a/b/c bindings but not d/e/f bindings:
+// Scope corresponding to a function. Holds formal parameter names, special
+// internal names (see FunctionScope::isSpecialName), and, if the function
+// parameters contain no expressions that might possibly be evaluated, the
+// function's var bindings. For example, in these functions, the FunctionScope
+// will store a/b/c bindings but not d/e/f bindings:
 //
 //   function f1(a, b) {
 //     var c;
@@ -465,13 +504,19 @@ class FunctionScope : public Scope
         BindingName names[1];
 
         void trace(JSTracer* trc);
+        Zone* zone() const;
     };
 
     static size_t sizeOfData(uint32_t length) {
         return sizeof(Data) + (length ? length - 1 : 0) * sizeof(BindingName);
     }
 
-    static FunctionScope* create(ExclusiveContext* cx, Handle<Data*> data,
+    static void getDataNamesAndLength(Data* data, BindingName** names, uint32_t* length) {
+        *names = data->names;
+        *length = data->length;
+    }
+
+    static FunctionScope* create(JSContext* cx, Handle<Data*> data,
                                  bool hasParameterExprs, bool needsEnvironment,
                                  HandleFunction fun, HandleScope enclosing);
 
@@ -483,7 +528,7 @@ class FunctionScope : public Scope
                     MutableHandleScope scope);
 
   private:
-    static FunctionScope* createWithData(ExclusiveContext* cx, MutableHandle<UniquePtr<Data>> data,
+    static FunctionScope* createWithData(JSContext* cx, MutableHandle<UniquePtr<Data>> data,
                                          bool hasParameterExprs, bool needsEnvironment,
                                          HandleFunction fun, HandleScope enclosing);
 
@@ -514,7 +559,9 @@ class FunctionScope : public Scope
         return data().nonPositionalFormalStart;
     }
 
-    static Shape* getEmptyEnvironmentShape(ExclusiveContext* cx, bool hasParameterExprs);
+    static bool isSpecialName(JSContext* cx, JSAtom* name);
+
+    static Shape* getEmptyEnvironmentShape(JSContext* cx, bool hasParameterExprs);
 };
 
 //
@@ -565,7 +612,12 @@ class VarScope : public Scope
         return sizeof(Data) + (length ? length - 1 : 0) * sizeof(BindingName);
     }
 
-    static VarScope* create(ExclusiveContext* cx, ScopeKind kind, Handle<Data*> data,
+    static void getDataNamesAndLength(Data* data, BindingName** names, uint32_t* length) {
+        *names = data->names;
+        *length = data->length;
+    }
+
+    static VarScope* create(JSContext* cx, ScopeKind kind, Handle<Data*> data,
                             uint32_t firstFrameSlot, bool needsEnvironment,
                             HandleScope enclosing);
 
@@ -574,7 +626,7 @@ class VarScope : public Scope
                     MutableHandleScope scope);
 
   private:
-    static VarScope* createWithData(ExclusiveContext* cx, ScopeKind kind, MutableHandle<UniquePtr<Data>> data,
+    static VarScope* createWithData(JSContext* cx, ScopeKind kind, MutableHandle<UniquePtr<Data>> data,
                                     uint32_t firstFrameSlot, bool needsEnvironment,
                                     HandleScope enclosing);
 
@@ -593,7 +645,7 @@ class VarScope : public Scope
         return data().nextFrameSlot;
     }
 
-    static Shape* getEmptyEnvironmentShape(ExclusiveContext* cx);
+    static Shape* getEmptyEnvironmentShape(JSContext* cx);
 };
 
 template <>
@@ -654,9 +706,14 @@ class GlobalScope : public Scope
         return sizeof(Data) + (length ? length - 1 : 0) * sizeof(BindingName);
     }
 
-    static GlobalScope* create(ExclusiveContext* cx, ScopeKind kind, Handle<Data*> data);
+    static void getDataNamesAndLength(Data* data, BindingName** names, uint32_t* length) {
+        *names = data->names;
+        *length = data->length;
+    }
 
-    static GlobalScope* createEmpty(ExclusiveContext* cx, ScopeKind kind) {
+    static GlobalScope* create(JSContext* cx, ScopeKind kind, Handle<Data*> data);
+
+    static GlobalScope* createEmpty(JSContext* cx, ScopeKind kind) {
         return create(cx, kind, nullptr);
     }
 
@@ -666,7 +723,7 @@ class GlobalScope : public Scope
     static bool XDR(XDRState<mode>* xdr, ScopeKind kind, MutableHandleScope scope);
 
   private:
-    static GlobalScope* createWithData(ExclusiveContext* cx, ScopeKind kind,
+    static GlobalScope* createWithData(JSContext* cx, ScopeKind kind,
                                        MutableHandle<UniquePtr<Data>> data);
 
     Data& data() {
@@ -704,7 +761,7 @@ class WithScope : public Scope
     static const ScopeKind classScopeKind_ = ScopeKind::With;
 
   public:
-    static WithScope* create(ExclusiveContext* cx, HandleScope enclosing);
+    static WithScope* create(JSContext* cx, HandleScope enclosing);
 };
 
 //
@@ -754,7 +811,12 @@ class EvalScope : public Scope
         return sizeof(Data) + (length ? length - 1 : 0) * sizeof(BindingName);
     }
 
-    static EvalScope* create(ExclusiveContext* cx, ScopeKind kind, Handle<Data*> data,
+    static void getDataNamesAndLength(Data* data, BindingName** names, uint32_t* length) {
+        *names = data->names;
+        *length = data->length;
+    }
+
+    static EvalScope* create(JSContext* cx, ScopeKind kind, Handle<Data*> data,
                              HandleScope enclosing);
 
     template <XDRMode mode>
@@ -762,7 +824,7 @@ class EvalScope : public Scope
                     MutableHandleScope scope);
 
   private:
-    static EvalScope* createWithData(ExclusiveContext* cx, ScopeKind kind, MutableHandle<UniquePtr<Data>> data,
+    static EvalScope* createWithData(JSContext* cx, ScopeKind kind, MutableHandle<UniquePtr<Data>> data,
                                      HandleScope enclosing);
 
     Data& data() {
@@ -796,7 +858,7 @@ class EvalScope : public Scope
         return !nearestVarScopeForDirectEval(enclosing())->is<GlobalScope>();
     }
 
-    static Shape* getEmptyEnvironmentShape(ExclusiveContext* cx);
+    static Shape* getEmptyEnvironmentShape(JSContext* cx);
 };
 
 template <>
@@ -849,17 +911,23 @@ class ModuleScope : public Scope
         BindingName names[1];
 
         void trace(JSTracer* trc);
+        Zone* zone() const;
     };
 
     static size_t sizeOfData(uint32_t length) {
         return sizeof(Data) + (length ? length - 1 : 0) * sizeof(BindingName);
     }
 
-    static ModuleScope* create(ExclusiveContext* cx, Handle<Data*> data,
+    static void getDataNamesAndLength(Data* data, BindingName** names, uint32_t* length) {
+        *names = data->names;
+        *length = data->length;
+    }
+
+    static ModuleScope* create(JSContext* cx, Handle<Data*> data,
                                Handle<ModuleObject*> module, HandleScope enclosing);
 
   private:
-    static ModuleScope* createWithData(ExclusiveContext* cx, MutableHandle<UniquePtr<Data>> data,
+    static ModuleScope* createWithData(JSContext* cx, MutableHandle<UniquePtr<Data>> data,
                                        Handle<ModuleObject*> module, HandleScope enclosing);
 
     Data& data() {
@@ -881,7 +949,108 @@ class ModuleScope : public Scope
 
     JSScript* script() const;
 
-    static Shape* getEmptyEnvironmentShape(ExclusiveContext* cx);
+    static Shape* getEmptyEnvironmentShape(JSContext* cx);
+};
+
+class WasmInstanceScope : public Scope
+{
+    friend class BindingIter;
+    friend class Scope;
+    static const ScopeKind classScopeKind_ = ScopeKind::WasmInstance;
+
+  public:
+    struct Data
+    {
+        uint32_t memoriesStart;
+        uint32_t globalsStart;
+        uint32_t length;
+        uint32_t nextFrameSlot;
+
+        // The wasm instance of the scope.
+        GCPtr<WasmInstanceObject*> instance;
+
+        BindingName names[1];
+
+        void trace(JSTracer* trc);
+    };
+
+    static WasmInstanceScope* create(JSContext* cx, WasmInstanceObject* instance);
+
+    static size_t sizeOfData(uint32_t length) {
+        return sizeof(Data) + (length ? length - 1 : 0) * sizeof(BindingName);
+    }
+
+  private:
+    Data& data() {
+        return *reinterpret_cast<Data*>(data_);
+    }
+
+    const Data& data() const {
+        return *reinterpret_cast<Data*>(data_);
+    }
+
+  public:
+    WasmInstanceObject* instance() const {
+        return data().instance;
+    }
+
+    uint32_t memoriesStart() const {
+        return data().memoriesStart;
+    }
+
+    uint32_t globalsStart() const {
+        return data().globalsStart;
+    }
+
+    uint32_t namesCount() const {
+        return data().length;
+    }
+
+    static Shape* getEmptyEnvironmentShape(JSContext* cx);
+};
+
+// Scope corresponding to the wasm function. A WasmFunctionScope is used by
+// Debugger only, and not for wasm execution.
+//
+class WasmFunctionScope : public Scope
+{
+    friend class BindingIter;
+    friend class Scope;
+    static const ScopeKind classScopeKind_ = ScopeKind::WasmFunction;
+
+  public:
+    struct Data
+    {
+        uint32_t length;
+        uint32_t nextFrameSlot;
+        uint32_t funcIndex;
+
+        BindingName names[1];
+
+        void trace(JSTracer* trc);
+    };
+
+    static WasmFunctionScope* create(JSContext* cx, HandleScope enclosing, uint32_t funcIndex);
+
+    static size_t sizeOfData(uint32_t length) {
+        return sizeof(Data) + (length ? length - 1 : 0) * sizeof(BindingName);
+    }
+
+  private:
+    Data& data() {
+        return *reinterpret_cast<Data*>(data_);
+    }
+
+    const Data& data() const {
+        return *reinterpret_cast<Data*>(data_);
+    }
+
+  public:
+    uint32_t funcIndex() const {
+        return data().funcIndex;
+    }
+
+    static Shape* getEmptyEnvironmentShape(JSContext* cx);
 };
 
 //
@@ -931,15 +1100,15 @@ class BindingIter
     //               vars - environment slot or name
     //               lets - environment slot or name
     //             consts - environment slot or name
-    uint32_t positionalFormalStart_;
-    uint32_t nonPositionalFormalStart_;
-    uint32_t topLevelFunctionStart_;
-    uint32_t varStart_;
-    uint32_t letStart_;
-    uint32_t constStart_;
-    uint32_t length_;
+    MOZ_INIT_OUTSIDE_CTOR uint32_t positionalFormalStart_;
+    MOZ_INIT_OUTSIDE_CTOR uint32_t nonPositionalFormalStart_;
+    MOZ_INIT_OUTSIDE_CTOR uint32_t topLevelFunctionStart_;
+    MOZ_INIT_OUTSIDE_CTOR uint32_t varStart_;
+    MOZ_INIT_OUTSIDE_CTOR uint32_t letStart_;
+    MOZ_INIT_OUTSIDE_CTOR uint32_t constStart_;
+    MOZ_INIT_OUTSIDE_CTOR uint32_t length_;
 
-    uint32_t index_;
+    MOZ_INIT_OUTSIDE_CTOR uint32_t index_;
 
     enum Flags : uint8_t {
         CannotHaveSlots = 0,
@@ -957,12 +1126,12 @@ class BindingIter
 
     static const uint8_t CanHaveSlotsMask = 0x7;
 
-    uint8_t flags_;
-    uint16_t argumentSlot_;
-    uint32_t frameSlot_;
-    uint32_t environmentSlot_;
+    MOZ_INIT_OUTSIDE_CTOR uint8_t flags_;
+    MOZ_INIT_OUTSIDE_CTOR uint16_t argumentSlot_;
+    MOZ_INIT_OUTSIDE_CTOR uint32_t frameSlot_;
+    MOZ_INIT_OUTSIDE_CTOR uint32_t environmentSlot_;
 
-    BindingName* names_;
+    MOZ_INIT_OUTSIDE_CTOR BindingName* names_;
 
     void init(uint32_t positionalFormalStart, uint32_t nonPositionalFormalStart,
               uint32_t topLevelFunctionStart, uint32_t varStart,
@@ -993,6 +1162,8 @@ class BindingIter
     void init(GlobalScope::Data& data);
     void init(EvalScope::Data& data, bool strict);
     void init(ModuleScope::Data& data);
+    void init(WasmInstanceScope::Data& data);
+    void init(WasmFunctionScope::Data& data);
 
     bool hasFormalParameterExprs() const {
         return flags_ & HasFormalParameterExprs;
@@ -1062,6 +1233,10 @@ class BindingIter
     }
 
     explicit BindingIter(ModuleScope::Data& data) {
+        init(data);
+    }
+
+    explicit BindingIter(WasmFunctionScope::Data& data) {
         init(data);
     }
 
@@ -1276,10 +1451,10 @@ class MOZ_STACK_CLASS ScopeIter
 // Specializations of Rooted containers for the iterators.
 //
 
-template <typename Outer>
-class BindingIterOperations
+template <typename Wrapper>
+class WrappedPtrOperations<BindingIter, Wrapper>
 {
-    const BindingIter& iter() const { return static_cast<const Outer*>(this)->get(); }
+    const BindingIter& iter() const { return static_cast<const Wrapper*>(this)->get(); }
 
   public:
     bool done() const { return iter().done(); }
@@ -1299,19 +1474,20 @@ class BindingIterOperations
     uint32_t nextEnvironmentSlot() const { return iter().nextEnvironmentSlot(); }
 };
 
-template <typename Outer>
-class MutableBindingIterOperations : public BindingIterOperations<Outer>
+template <typename Wrapper>
+class MutableWrappedPtrOperations<BindingIter, Wrapper>
+  : public WrappedPtrOperations<BindingIter, Wrapper>
 {
-    BindingIter& iter() { return static_cast<Outer*>(this)->get(); }
+    BindingIter& iter() { return static_cast<Wrapper*>(this)->get(); }
 
   public:
     void operator++(int) { iter().operator++(1); }
 };
 
-template <typename Outer>
-class ScopeIterOperations
+template <typename Wrapper>
+class WrappedPtrOperations<ScopeIter, Wrapper>
 {
-    const ScopeIter& iter() const { return static_cast<const Outer*>(this)->get(); }
+    const ScopeIter& iter() const { return static_cast<const Wrapper*>(this)->get(); }
 
   public:
     bool done() const { return iter().done(); }
@@ -1322,68 +1498,15 @@ class ScopeIterOperations
     bool hasSyntacticEnvironment() const { return iter().hasSyntacticEnvironment(); }
 };
 
-template <typename Outer>
-class MutableScopeIterOperations : public ScopeIterOperations<Outer>
+template <typename Wrapper>
+class MutableWrappedPtrOperations<ScopeIter, Wrapper>
+  : public WrappedPtrOperations<ScopeIter, Wrapper>
 {
-    ScopeIter& iter() { return static_cast<Outer*>(this)->get(); }
+    ScopeIter& iter() { return static_cast<Wrapper*>(this)->get(); }
 
   public:
     void operator++(int) { iter().operator++(1); }
 };
-
-#define SPECIALIZE_ROOTING_CONTAINERS(Iter, BaseIter)                    \
-    template <>                                                          \
-    class RootedBase<Iter>                                               \
-      : public Mutable##BaseIter##Operations<JS::Rooted<Iter>>           \
-    { };                                                                 \
-                                                                         \
-    template <>                                                          \
-    class MutableHandleBase<Iter>                                        \
-      : public Mutable##BaseIter##Operations<JS::MutableHandle<Iter>>    \
-    { };                                                                 \
-                                                                         \
-    template <>                                                          \
-    class HandleBase<Iter>                                               \
-      : public BaseIter##Operations<JS::Handle<Iter>>                    \
-    { };                                                                 \
-                                                                         \
-    template <>                                                          \
-    class PersistentRootedBase<Iter>                                     \
-      : public Mutable##BaseIter##Operations<JS::PersistentRooted<Iter>> \
-    { }
-
-SPECIALIZE_ROOTING_CONTAINERS(BindingIter, BindingIter);
-SPECIALIZE_ROOTING_CONTAINERS(PositionalFormalParameterIter, BindingIter);
-SPECIALIZE_ROOTING_CONTAINERS(ScopeIter, ScopeIter);
-
-#undef SPECIALIZE_ROOTING_CONTAINERS
-
-//
-// Allow using is<T> and as<T> on Rooted<Scope*> and Handle<Scope*>.
-//
-
-template <typename Outer>
-struct ScopeCastOperation
-{
-    template <class U>
-    JS::Handle<U*> as() const {
-        const Outer& self = *static_cast<const Outer*>(this);
-        MOZ_ASSERT_IF(self, self->template is<U>());
-        return Handle<U*>::fromMarkedLocation(reinterpret_cast<U* const*>(self.address()));
-    }
-};
-
-template <>
-class RootedBase<Scope*> : public ScopeCastOperation<JS::Rooted<Scope*>>
-{ };
-
-template <>
-class HandleBase<Scope*> : public ScopeCastOperation<JS::Handle<Scope*>>
-{ };
-
-template <>
-class MutableHandleBase<Scope*> : public ScopeCastOperation<JS::MutableHandle<Scope*>>
-{ };
 
 } // namespace js
 
@@ -1394,17 +1517,7 @@ struct GCPolicy<js::ScopeKind> : public IgnoreGCPolicy<js::ScopeKind>
 { };
 
 template <typename T>
-struct ScopeDataGCPolicy
-{
-    static T initial() {
-        return nullptr;
-    }
-
-    static void trace(JSTracer* trc, T* vp, const char* name) {
-        if (*vp)
-            (*vp)->trace(trc);
-    }
-};
+struct ScopeDataGCPolicy : public NonGCPointerPolicy<T> {};
 
 #define DEFINE_SCOPE_DATA_GCPOLICY(Data)                        \
     template <>                                                 \
@@ -1421,6 +1534,7 @@ DEFINE_SCOPE_DATA_GCPOLICY(js::VarScope::Data);
 DEFINE_SCOPE_DATA_GCPOLICY(js::GlobalScope::Data);
 DEFINE_SCOPE_DATA_GCPOLICY(js::EvalScope::Data);
 DEFINE_SCOPE_DATA_GCPOLICY(js::ModuleScope::Data);
+DEFINE_SCOPE_DATA_GCPOLICY(js::WasmFunctionScope::Data);
 
 #undef DEFINE_SCOPE_DATA_GCPOLICY
 

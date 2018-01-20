@@ -9,17 +9,12 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "mozilla/dom/BrowserElementBinding.h"
-#include "mozilla/dom/BrowserElementAudioChannel.h"
 #include "mozilla/dom/DOMRequest.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/ToJSValue.h"
 
-#include "AudioChannelService.h"
-
-#include "mozIApplication.h"
 #include "nsComponentManagerUtils.h"
 #include "nsFrameLoader.h"
-#include "nsIAppsService.h"
 #include "nsIDOMDOMRequest.h"
 #include "nsIDOMElement.h"
 #include "nsIMozBrowserFrame.h"
@@ -43,13 +38,13 @@ nsBrowserElement::IsBrowserElementOrThrow(ErrorResult& aRv)
 void
 nsBrowserElement::InitBrowserElementAPI()
 {
-  bool isMozBrowserOrApp;
+  bool isMozBrowser;
   nsCOMPtr<nsIFrameLoader> frameLoader = GetFrameLoader();
   NS_ENSURE_TRUE_VOID(frameLoader);
-  nsresult rv = frameLoader->GetOwnerIsMozBrowserOrAppFrame(&isMozBrowserOrApp);
+  nsresult rv = frameLoader->GetOwnerIsMozBrowserFrame(&isMozBrowser);
   NS_ENSURE_SUCCESS_VOID(rv);
 
-  if (!isMozBrowserOrApp) {
+  if (!isMozBrowser) {
     return;
   }
 
@@ -69,62 +64,6 @@ nsBrowserElement::DestroyBrowserElementFrameScripts()
     return;
   }
   mBrowserElementAPI->DestroyFrameScripts();
-}
-
-void
-nsBrowserElement::SetVisible(bool aVisible, ErrorResult& aRv)
-{
-  NS_ENSURE_TRUE_VOID(IsBrowserElementOrThrow(aRv));
-
-  nsresult rv = mBrowserElementAPI->SetVisible(aVisible);
-
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-  }
-}
-
-already_AddRefed<DOMRequest>
-nsBrowserElement::GetVisible(ErrorResult& aRv)
-{
-  NS_ENSURE_TRUE(IsBrowserElementOrThrow(aRv), nullptr);
-
-  nsCOMPtr<nsIDOMDOMRequest> req;
-  nsresult rv = mBrowserElementAPI->GetVisible(getter_AddRefs(req));
-
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-    return nullptr;
-  }
-
-  return req.forget().downcast<DOMRequest>();
-}
-
-void
-nsBrowserElement::SetActive(bool aVisible, ErrorResult& aRv)
-{
-  NS_ENSURE_TRUE_VOID(IsBrowserElementOrThrow(aRv));
-
-  nsresult rv = mBrowserElementAPI->SetActive(aVisible);
-
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-  }
-}
-
-bool
-nsBrowserElement::GetActive(ErrorResult& aRv)
-{
-  NS_ENSURE_TRUE(IsBrowserElementOrThrow(aRv), false);
-
-  bool isActive;
-  nsresult rv = mBrowserElementAPI->GetActive(&isActive);
-
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-    return false;
-  }
-
-  return isActive;
 }
 
 void
@@ -453,216 +392,6 @@ nsBrowserElement::RemoveNextPaintListener(BrowserElementNextPaintEventCallback& 
   nsCOMPtr<nsIBrowserElementNextPaintListener> listener = holder.ToXPCOMCallback();
 
   nsresult rv = mBrowserElementAPI->RemoveNextPaintListener(listener);
-
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-  }
-}
-
-already_AddRefed<DOMRequest>
-nsBrowserElement::SetInputMethodActive(bool aIsActive,
-                                       ErrorResult& aRv)
-{
-  NS_ENSURE_TRUE(IsBrowserElementOrThrow(aRv), nullptr);
-
-  nsCOMPtr<nsIDOMDOMRequest> req;
-  nsresult rv = mBrowserElementAPI->SetInputMethodActive(aIsActive,
-                                                         getter_AddRefs(req));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    if (rv == NS_ERROR_INVALID_ARG) {
-      aRv.Throw(NS_ERROR_DOM_INVALID_ACCESS_ERR);
-    } else {
-      aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-    }
-    return nullptr;
-  }
-
-  return req.forget().downcast<DOMRequest>();
-}
-
-void
-nsBrowserElement::GetAllowedAudioChannels(
-                 nsTArray<RefPtr<BrowserElementAudioChannel>>& aAudioChannels,
-                 ErrorResult& aRv)
-{
-  aAudioChannels.Clear();
-
-  // If empty, it means that this is the first call of this method.
-  if (mBrowserElementAudioChannels.IsEmpty()) {
-    nsCOMPtr<nsIFrameLoader> frameLoader = GetFrameLoader();
-    if (NS_WARN_IF(!frameLoader)) {
-      return;
-    }
-
-    bool isMozBrowserOrApp;
-    aRv = frameLoader->GetOwnerIsMozBrowserOrAppFrame(&isMozBrowserOrApp);
-    if (NS_WARN_IF(aRv.Failed())) {
-      return;
-    }
-
-    if (!isMozBrowserOrApp) {
-      return;
-    }
-
-    nsCOMPtr<nsIDOMElement> frameElement;
-    aRv = frameLoader->GetOwnerElement(getter_AddRefs(frameElement));
-    if (NS_WARN_IF(aRv.Failed())) {
-      return;
-    }
-
-    MOZ_ASSERT(frameElement);
-
-    nsCOMPtr<nsIDOMDocument> doc;
-    aRv = frameElement->GetOwnerDocument(getter_AddRefs(doc));
-    if (NS_WARN_IF(aRv.Failed())) {
-      return;
-    }
-
-    MOZ_ASSERT(doc);
-
-    nsCOMPtr<mozIDOMWindowProxy> win;
-    aRv = doc->GetDefaultView(getter_AddRefs(win));
-    if (NS_WARN_IF(aRv.Failed())) {
-      return;
-    }
-
-    MOZ_ASSERT(win);
-
-    auto* window = nsPIDOMWindowOuter::From(win);
-    nsPIDOMWindowInner* innerWindow = window->GetCurrentInnerWindow();
-
-    nsCOMPtr<nsIMozBrowserFrame> mozBrowserFrame =
-      do_QueryInterface(frameElement);
-    if (NS_WARN_IF(!mozBrowserFrame)) {
-      aRv.Throw(NS_ERROR_FAILURE);
-      return;
-    }
-
-    MOZ_LOG(AudioChannelService::GetAudioChannelLog(), LogLevel::Debug,
-            ("nsBrowserElement, GetAllowedAudioChannels, this = %p\n", this));
-
-    GenerateAllowedAudioChannels(innerWindow, frameLoader, mBrowserElementAPI,
-                                 mBrowserElementAudioChannels, aRv);
-    if (NS_WARN_IF(aRv.Failed())) {
-      return;
-    }
-  }
-
-  aAudioChannels.AppendElements(mBrowserElementAudioChannels);
-}
-
-/* static */ void
-nsBrowserElement::GenerateAllowedAudioChannels(
-                 nsPIDOMWindowInner* aWindow,
-                 nsIFrameLoader* aFrameLoader,
-                 nsIBrowserElementAPI* aAPI,
-                 nsTArray<RefPtr<BrowserElementAudioChannel>>& aAudioChannels,
-                 ErrorResult& aRv)
-{
-  MOZ_ASSERT(aAudioChannels.IsEmpty());
-
-  // Normal is always allowed.
-  nsTArray<RefPtr<BrowserElementAudioChannel>> channels;
-
-  RefPtr<BrowserElementAudioChannel> ac =
-    BrowserElementAudioChannel::Create(aWindow, aFrameLoader, aAPI,
-                                       AudioChannel::Normal, aRv);
-  if (NS_WARN_IF(aRv.Failed())) {
-    return;
-  }
-
-  channels.AppendElement(ac);
-
-  nsCOMPtr<nsIDocument> doc = aWindow->GetExtantDoc();
-  if (NS_WARN_IF(!doc)) {
-    aRv.Throw(NS_ERROR_FAILURE);
-    return;
-  }
-
-  // Since we don't have permissions anymore let only chrome windows pick a
-  // non-default channel
-  if (nsContentUtils::IsChromeDoc(doc)) {
-    const nsAttrValue::EnumTable* audioChannelTable =
-      AudioChannelService::GetAudioChannelTable();
-
-    for (uint32_t i = 0; audioChannelTable && audioChannelTable[i].tag; ++i) {
-      AudioChannel value = (AudioChannel)audioChannelTable[i].value;
-      RefPtr<BrowserElementAudioChannel> ac =
-        BrowserElementAudioChannel::Create(aWindow, aFrameLoader, aAPI,
-                                           value, aRv);
-      if (NS_WARN_IF(aRv.Failed())) {
-        return;
-      }
-
-      channels.AppendElement(ac);
-    }
-  }
-
-  aAudioChannels.SwapElements(channels);
-}
-
-already_AddRefed<DOMRequest>
-nsBrowserElement::GetMuted(ErrorResult& aRv)
-{
-  NS_ENSURE_TRUE(IsBrowserElementOrThrow(aRv), nullptr);
-
-  nsCOMPtr<nsIDOMDOMRequest> req;
-  nsresult rv = mBrowserElementAPI->GetMuted(getter_AddRefs(req));
-
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-    return nullptr;
-  }
-
-  return req.forget().downcast<DOMRequest>();
-}
-
-void
-nsBrowserElement::Mute(ErrorResult& aRv)
-{
-  NS_ENSURE_TRUE_VOID(IsBrowserElementOrThrow(aRv));
-
-  nsresult rv = mBrowserElementAPI->Mute();
-
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-  }
-}
-
-void
-nsBrowserElement::Unmute(ErrorResult& aRv)
-{
-  NS_ENSURE_TRUE_VOID(IsBrowserElementOrThrow(aRv));
-
-  nsresult rv = mBrowserElementAPI->Unmute();
-
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-  }
-}
-
-already_AddRefed<DOMRequest>
-nsBrowserElement::GetVolume(ErrorResult& aRv)
-{
-  NS_ENSURE_TRUE(IsBrowserElementOrThrow(aRv), nullptr);
-
-  nsCOMPtr<nsIDOMDOMRequest> req;
-  nsresult rv = mBrowserElementAPI->GetVolume(getter_AddRefs(req));
-
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-    return nullptr;
-  }
-
-  return req.forget().downcast<DOMRequest>();
-}
-
-void
-nsBrowserElement::SetVolume(float aVolume, ErrorResult& aRv)
-{
-  NS_ENSURE_TRUE_VOID(IsBrowserElementOrThrow(aRv));
-
-  nsresult rv = mBrowserElementAPI->SetVolume(aVolume);
 
   if (NS_WARN_IF(NS_FAILED(rv))) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);

@@ -36,6 +36,7 @@ class UpdateTestCase(PuppeteerMixin, MarionetteTestCase):
 
         self.update_channel = kwargs.pop('update_channel')
         self.update_mar_channels = set(kwargs.pop('update_mar_channels'))
+        self.update_url = kwargs.pop('update_url')
 
         self.target_buildid = kwargs.pop('update_target_buildid')
         self.target_version = kwargs.pop('update_target_version')
@@ -68,6 +69,8 @@ class UpdateTestCase(PuppeteerMixin, MarionetteTestCase):
 
         # Ensure that there exists no already partially downloaded update
         self.remove_downloaded_update()
+
+        self.set_preferences_defaults()
 
         # Dictionary which holds the information for each update
         self.update_status = {
@@ -309,7 +312,7 @@ class UpdateTestCase(PuppeteerMixin, MarionetteTestCase):
             self.software_update.force_fallback()
 
         # Restart Firefox to apply the downloaded update
-        self.restart()
+        self.restart(callback=lambda: about_window.deck.apply.button.click())
 
     def download_and_apply_forced_update(self):
         self.check_update_not_applied()
@@ -338,9 +341,13 @@ class UpdateTestCase(PuppeteerMixin, MarionetteTestCase):
                 self.wait_for_update_applied(about_window)
 
             finally:
-                if about_window:
-                    self.update_status['patch'] = self.patch_info
+                self.update_status['patch'] = self.patch_info
 
+            # Restart Firefox to apply the downloaded fallback update
+            self.assertIsNotNone(about_window)
+            self.restart(callback=lambda: about_window.deck.apply.button.click())
+
+        # For a broken partial update, the software update window is used
         else:
             try:
                 self.assertEqual(dialog.wizard.selected_panel,
@@ -352,8 +359,8 @@ class UpdateTestCase(PuppeteerMixin, MarionetteTestCase):
             finally:
                 self.update_status['patch'] = self.patch_info
 
-        # Restart Firefox to apply the update
-        self.restart()
+            # Restart Firefox to apply the downloaded fallback update
+            self.restart(callback=lambda: dialog.wizard.finish_button.click())
 
     def read_update_log(self):
         """Read the content of the update log file for the last update attempt."""
@@ -374,6 +381,18 @@ class UpdateTestCase(PuppeteerMixin, MarionetteTestCase):
         path = os.path.dirname(self.software_update.staging_directory)
         self.logger.info('Clean-up update staging directory: {}'.format(path))
         mozfile.remove(path)
+
+    def restart(self, *args, **kwargs):
+        super(UpdateTestCase, self).restart(*args, **kwargs)
+
+        # After a restart default preference values as set in the former session are lost.
+        # Make sure that any of those are getting restored.
+        self.set_preferences_defaults()
+
+    def set_preferences_defaults(self):
+        """Set the default value for specific preferences to force its usage."""
+        if self.update_url:
+            self.software_update.update_url = self.update_url
 
     def wait_for_download_finished(self, window, timeout=TIMEOUT_UPDATE_DOWNLOAD):
         """ Waits until download is completed.

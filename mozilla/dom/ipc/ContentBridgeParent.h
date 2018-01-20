@@ -20,7 +20,7 @@ class ContentBridgeParent : public PContentBridgeParent
                           , public nsIObserver
 {
 public:
-  explicit ContentBridgeParent(Transport* aTransport);
+  explicit ContentBridgeParent();
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
@@ -31,20 +31,19 @@ public:
   void NotifyTabDestroyed();
 
   static ContentBridgeParent*
-  Create(Transport* aTransport, ProcessId aOtherProcess);
-
-  virtual PBlobParent*
-  SendPBlobConstructor(PBlobParent* actor,
-                       const BlobConstructorParams& params) override;
+  Create(Endpoint<PContentBridgeParent>&& aEndpoint);
 
   virtual PBrowserParent*
   SendPBrowserConstructor(PBrowserParent* aActor,
                           const TabId& aTabId,
+                          const TabId& aSameTabGroupAs,
                           const IPCTabContext& aContext,
                           const uint32_t& aChromeFlags,
                           const ContentParentId& aCpID,
-                          const bool& aIsForApp,
                           const bool& aIsForBrowser) override;
+
+  virtual PFileDescriptorSetParent*
+  SendPFileDescriptorSetConstructor(const FileDescriptor&) override;
 
   FORWARD_SHMEM_ALLOCATOR_TO(PContentBridgeParent)
 
@@ -53,10 +52,6 @@ public:
   virtual ContentParentId ChildID() const override
   {
     return mChildID;
-  }
-  virtual bool IsForApp() const override
-  {
-    return mIsForApp;
   }
   virtual bool IsForBrowser() const override
   {
@@ -67,6 +62,24 @@ public:
     // XXX: do we need this for ContentBridgeParent?
     return -1;
   }
+  virtual bool IsForJSPlugin() const override
+  {
+    return mIsForJSPlugin;
+  }
+
+
+  virtual mozilla::ipc::PParentToChildStreamParent*
+  SendPParentToChildStreamConstructor(mozilla::ipc::PParentToChildStreamParent*) override;
+
+  virtual bool SendActivate(PBrowserParent* aTab) override
+  {
+    return PContentBridgeParent::SendActivate(aTab);
+  }
+
+  virtual bool SendDeactivate(PBrowserParent* aTab) override
+  {
+    return PContentBridgeParent::SendDeactivate(aTab);
+  }
 
 protected:
   virtual ~ContentBridgeParent();
@@ -76,14 +89,13 @@ protected:
     mChildID = aId;
   }
 
-  void SetIsForApp(bool aIsForApp)
-  {
-    mIsForApp = aIsForApp;
-  }
-
   void SetIsForBrowser(bool aIsForBrowser)
   {
     mIsForBrowser = aIsForBrowser;
+  }
+  void SetIsForJSPlugin(bool aIsForJSPlugin)
+  {
+    mIsForJSPlugin = aIsForJSPlugin;
   }
 
   void Close()
@@ -93,17 +105,17 @@ protected:
   }
 
 protected:
-  virtual bool
+  virtual mozilla::ipc::IPCResult
   RecvSyncMessage(const nsString& aMsg,
                   const ClonedMessageData& aData,
                   InfallibleTArray<jsipc::CpowEntry>&& aCpows,
                   const IPC::Principal& aPrincipal,
                   nsTArray<StructuredCloneData>* aRetvals) override;
 
-  virtual bool RecvAsyncMessage(const nsString& aMsg,
-                                InfallibleTArray<jsipc::CpowEntry>&& aCpows,
-                                const IPC::Principal& aPrincipal,
-                                const ClonedMessageData& aData) override;
+  virtual mozilla::ipc::IPCResult RecvAsyncMessage(const nsString& aMsg,
+                                                   InfallibleTArray<jsipc::CpowEntry>&& aCpows,
+                                                   const IPC::Principal& aPrincipal,
+                                                   const ClonedMessageData& aData) override;
 
   virtual jsipc::PJavaScriptParent* AllocPJavaScriptParent() override;
 
@@ -112,22 +124,45 @@ protected:
 
   virtual PBrowserParent*
   AllocPBrowserParent(const TabId& aTabId,
+                      const TabId& aSameTabGroupAs,
                       const IPCTabContext &aContext,
                       const uint32_t& aChromeFlags,
                       const ContentParentId& aCpID,
-                      const bool& aIsForApp,
                       const bool& aIsForBrowser) override;
 
   virtual bool DeallocPBrowserParent(PBrowserParent*) override;
 
-  virtual PBlobParent*
-  AllocPBlobParent(const BlobConstructorParams& aParams) override;
+  virtual mozilla::ipc::IPCResult
+  RecvPBrowserConstructor(PBrowserParent* actor,
+                          const TabId& tabId,
+                          const TabId& sameTabGroupAs,
+                          const IPCTabContext& context,
+                          const uint32_t& chromeFlags,
+                          const ContentParentId& cpId,
+                          const bool& isForBrowser) override;
 
-  virtual bool DeallocPBlobParent(PBlobParent*) override;
+  virtual PIPCBlobInputStreamParent*
+  SendPIPCBlobInputStreamConstructor(PIPCBlobInputStreamParent* aActor,
+                                     const nsID& aID,
+                                     const uint64_t& aSize) override;
 
-  virtual PSendStreamParent* AllocPSendStreamParent() override;
+  virtual PIPCBlobInputStreamParent*
+  AllocPIPCBlobInputStreamParent(const nsID& aID,
+                                 const uint64_t& aSize) override;
 
-  virtual bool DeallocPSendStreamParent(PSendStreamParent* aActor) override;
+  virtual bool
+  DeallocPIPCBlobInputStreamParent(PIPCBlobInputStreamParent*) override;
+
+  virtual PChildToParentStreamParent* AllocPChildToParentStreamParent() override;
+
+  virtual bool
+  DeallocPChildToParentStreamParent(PChildToParentStreamParent* aActor) override;
+
+  virtual mozilla::ipc::PParentToChildStreamParent*
+  AllocPParentToChildStreamParent() override;
+
+  virtual bool
+  DeallocPParentToChildStreamParent(mozilla::ipc::PParentToChildStreamParent* aActor) override;
 
   virtual PFileDescriptorSetParent*
   AllocPFileDescriptorSetParent(const mozilla::ipc::FileDescriptor&) override;
@@ -139,10 +174,9 @@ protected:
 
 protected: // members
   RefPtr<ContentBridgeParent> mSelfRef;
-  Transport* mTransport; // owned
   ContentParentId mChildID;
-  bool mIsForApp;
   bool mIsForBrowser;
+  bool mIsForJSPlugin;
 
 private:
   friend class ContentParent;

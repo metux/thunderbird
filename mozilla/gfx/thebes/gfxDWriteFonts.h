@@ -8,7 +8,7 @@
 
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/UniquePtr.h"
-#include <dwrite.h>
+#include <dwrite_1.h>
 
 #include "gfxFont.h"
 #include "gfxUserFontSet.h"
@@ -17,19 +17,24 @@
 #include "nsDataHashtable.h"
 #include "nsHashKeys.h"
 
+#include "mozilla/gfx/UnscaledFontDWrite.h"
+
 /**
  * \brief Class representing a font face for a font entry.
  */
 class gfxDWriteFont : public gfxFont 
 {
 public:
-    gfxDWriteFont(gfxFontEntry *aFontEntry,
+    gfxDWriteFont(const RefPtr<mozilla::gfx::UnscaledFontDWrite>& aUnscaledFont,
+                  gfxFontEntry *aFontEntry,
                   const gfxFontStyle *aFontStyle,
                   bool aNeedsBold = false,
                   AntialiasOption = kAntialiasDefault);
     ~gfxDWriteFont();
 
-    virtual gfxFont*
+    static void UpdateClearTypeUsage();
+
+    mozilla::UniquePtr<gfxFont>
     CopyWithAntialiasOption(AntialiasOption anAAOption) override;
 
     virtual uint32_t GetSpaceGlyph() override;
@@ -49,15 +54,12 @@ public:
                                BoundingBoxType aBoundingBoxType,
                                DrawTarget *aDrawTargetForTightBoundingBox,
                                Spacing *aSpacing,
-                               uint16_t aOrientation) override;
+                               mozilla::gfx::ShapedTextFlags aOrientation) override;
 
     virtual bool ProvidesGlyphWidths() const override;
 
     virtual int32_t GetGlyphWidth(DrawTarget& aDrawTarget,
                                   uint16_t aGID) override;
-
-    virtual already_AddRefed<mozilla::gfx::GlyphRenderingOptions>
-    GetGlyphRenderingOptions(const TextRunDrawParams* aRunParams = nullptr) override;
 
     virtual void AddSizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf,
                                         FontCacheSizes* aSizes) const override;
@@ -69,9 +71,9 @@ public:
     virtual already_AddRefed<mozilla::gfx::ScaledFont>
     GetScaledFont(mozilla::gfx::DrawTarget *aTarget) override;
 
-    virtual cairo_scaled_font_t *GetCairoScaledFont() override;
-
 protected:
+    cairo_scaled_font_t *InitCairoScaledFont();
+
     virtual const Metrics& GetHorizontalMetrics() override;
 
     bool GetFakeMetricsForArialBlack(DWRITE_FONT_METRICS *aFontMetrics);
@@ -88,6 +90,8 @@ protected:
     bool GetForceGDIClassic();
 
     RefPtr<IDWriteFontFace> mFontFace;
+    RefPtr<IDWriteFontFace1> mFontFace1; // may be unavailable on older DWrite
+
     cairo_font_face_t *mCairoFontFace;
 
     Metrics *mMetrics;
@@ -101,7 +105,8 @@ protected:
     bool mNeedsBold;
     bool mUseSubpixelPositions;
     bool mAllowManualShowGlyphs;
-    bool mAzureScaledFontIsCairo;
+
+    static bool sUseClearType;
 };
 
 #endif

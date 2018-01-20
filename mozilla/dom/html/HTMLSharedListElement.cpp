@@ -9,12 +9,12 @@
 #include "mozilla/dom/HTMLOListElementBinding.h"
 #include "mozilla/dom/HTMLUListElementBinding.h"
 
+#include "mozilla/GenericSpecifiedValuesInlines.h"
 #include "nsGenericHTMLElement.h"
 #include "nsAttrValueInlines.h"
 #include "nsGkAtoms.h"
 #include "nsStyleConsts.h"
 #include "nsMappedAttributes.h"
-#include "nsRuleData.h"
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(SharedList)
 
@@ -25,23 +25,11 @@ HTMLSharedListElement::~HTMLSharedListElement()
 {
 }
 
-NS_IMPL_ADDREF_INHERITED(HTMLSharedListElement, Element)
-NS_IMPL_RELEASE_INHERITED(HTMLSharedListElement, Element)
-
-// QueryInterface implementation for nsHTMLSharedListElement
-NS_INTERFACE_MAP_BEGIN(HTMLSharedListElement)
-  NS_INTERFACE_MAP_ENTRY_IF_TAG(nsIDOMHTMLOListElement, ol)
-  NS_INTERFACE_MAP_ENTRY_IF_TAG(nsIDOMHTMLUListElement, ul)
-NS_INTERFACE_MAP_END_INHERITING(nsGenericHTMLElement)
-
+NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(HTMLSharedListElement,
+                                               nsGenericHTMLElement)
 
 NS_IMPL_ELEMENT_CLONE(HTMLSharedListElement)
 
-
-NS_IMPL_BOOL_ATTR(HTMLSharedListElement, Compact, compact)
-NS_IMPL_INT_ATTR_DEFAULT_VALUE(HTMLSharedListElement, Start, start, 1)
-NS_IMPL_STRING_ATTR(HTMLSharedListElement, Type, type)
-NS_IMPL_BOOL_ATTR(HTMLSharedListElement, Reversed, reversed)
 
 // Shared with nsHTMLSharedElement.cpp
 nsAttrValue::EnumTable kListTypeTable[] = {
@@ -69,7 +57,7 @@ static const nsAttrValue::EnumTable kOldListTypeTable[] = {
 
 bool
 HTMLSharedListElement::ParseAttribute(int32_t aNamespaceID,
-                                      nsIAtom* aAttribute,
+                                      nsAtom* aAttribute,
                                       const nsAString& aValue,
                                       nsAttrValue& aResult)
 {
@@ -92,15 +80,14 @@ HTMLSharedListElement::ParseAttribute(int32_t aNamespaceID,
 
 void
 HTMLSharedListElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
-                                             nsRuleData* aData)
+                                             GenericSpecifiedValues* aData)
 {
-  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(List)) {
-    nsCSSValue* listStyleType = aData->ValueForListStyleType();
-    if (listStyleType->GetUnit() == eCSSUnit_Null) {
+  if (aData->ShouldComputeStyleStruct(NS_STYLE_INHERIT_BIT(List))) {
+    if (!aData->PropertyIsSet(eCSSProperty_list_style_type)) {
       // type: enum
       const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::type);
       if (value && value->Type() == nsAttrValue::eEnum) {
-        listStyleType->SetIntValue(value->GetEnumValue(), eCSSUnit_Enumerated);
+        aData->SetKeywordValue(eCSSProperty_list_style_type, value->GetEnumValue());
       }
     }
   }
@@ -109,7 +96,7 @@ HTMLSharedListElement::MapAttributesIntoRule(const nsMappedAttributes* aAttribut
 }
 
 NS_IMETHODIMP_(bool)
-HTMLSharedListElement::IsAttributeMapped(const nsIAtom* aAttribute) const
+HTMLSharedListElement::IsAttributeMapped(const nsAtom* aAttribute) const
 {
   if (mNodeInfo->Equals(nsGkAtoms::ol) ||
       mNodeInfo->Equals(nsGkAtoms::ul)) {

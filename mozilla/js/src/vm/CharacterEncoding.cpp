@@ -18,7 +18,7 @@
 using namespace js;
 
 Latin1CharsZ
-JS::LossyTwoByteCharsToNewLatin1CharsZ(js::ExclusiveContext* cx,
+JS::LossyTwoByteCharsToNewLatin1CharsZ(JSContext* cx,
                                        const mozilla::Range<const char16_t> tbchars)
 {
     MOZ_ASSERT(cx);
@@ -153,7 +153,7 @@ JS::DeflateStringToUTF8Buffer(JSFlatString* src, mozilla::RangedPtr<char> dst,
 
 template <typename CharT>
 UTF8CharsZ
-JS::CharsToNewUTF8CharsZ(js::ExclusiveContext* maybeCx, const mozilla::Range<CharT> chars)
+JS::CharsToNewUTF8CharsZ(JSContext* maybeCx, const mozilla::Range<CharT> chars)
 {
     /* Get required buffer size. */
     const CharT* str = chars.begin().get();
@@ -176,19 +176,19 @@ JS::CharsToNewUTF8CharsZ(js::ExclusiveContext* maybeCx, const mozilla::Range<Cha
 }
 
 template UTF8CharsZ
-JS::CharsToNewUTF8CharsZ(js::ExclusiveContext* maybeCx,
+JS::CharsToNewUTF8CharsZ(JSContext* maybeCx,
                          const mozilla::Range<Latin1Char> chars);
 
 template UTF8CharsZ
-JS::CharsToNewUTF8CharsZ(js::ExclusiveContext* maybeCx,
+JS::CharsToNewUTF8CharsZ(JSContext* maybeCx,
                          const mozilla::Range<char16_t> chars);
 
 template UTF8CharsZ
-JS::CharsToNewUTF8CharsZ(js::ExclusiveContext* maybeCx,
+JS::CharsToNewUTF8CharsZ(JSContext* maybeCx,
                          const mozilla::Range<const Latin1Char> chars);
 
 template UTF8CharsZ
-JS::CharsToNewUTF8CharsZ(js::ExclusiveContext* maybeCx,
+JS::CharsToNewUTF8CharsZ(JSContext* maybeCx,
                          const mozilla::Range<const char16_t> chars);
 
 static const uint32_t INVALID_UTF8 = UINT32_MAX;
@@ -236,19 +236,9 @@ ReportInvalidCharacter(JSContext* cx, uint32_t offset)
 }
 
 static void
-ReportInvalidCharacter(js::ExclusiveContext* cx, uint32_t offset)
-{
-}
-
-static void
 ReportBufferTooSmall(JSContext* cx, uint32_t dummy)
 {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_BUFFER_TOO_SMALL);
-}
-
-static void
-ReportBufferTooSmall(js::ExclusiveContext* cx, uint32_t dummy)
-{
 }
 
 static void
@@ -258,11 +248,6 @@ ReportTooBigCharacter(JSContext* cx, uint32_t v)
     SprintfLiteral(buffer, "0x%x", v + 0x10000);
     JS_ReportErrorFlagsAndNumberASCII(cx, JSREPORT_ERROR, GetErrorMessage, nullptr,
                                       JSMSG_UTF8_CHAR_TOO_LARGE, buffer);
-}
-
-static void
-ReportTooBigCharacter(js::ExclusiveContext* cx, uint32_t v)
-{
 }
 
 enum InflateUTF8Action {
@@ -449,28 +434,16 @@ JS::UTF8CharsToNewTwoByteCharsZ(JSContext* cx, const ConstUTF8CharsZ& utf8, size
 }
 
 TwoByteCharsZ
-js::LossyUTF8CharsToNewTwoByteCharsZ(js::ExclusiveContext* cx, const JS::UTF8Chars utf8, size_t* outlen)
+JS::LossyUTF8CharsToNewTwoByteCharsZ(JSContext* cx, const JS::UTF8Chars utf8, size_t* outlen)
 {
     return InflateUTF8StringHelper<CountAndIgnoreInvalids, TwoByteCharsZ>(cx, utf8, outlen);
 }
 
 TwoByteCharsZ
-JS::LossyUTF8CharsToNewTwoByteCharsZ(JSContext* cx, const UTF8Chars utf8, size_t* outlen)
-{
-    return js::LossyUTF8CharsToNewTwoByteCharsZ(cx, utf8, outlen);
-}
-
-TwoByteCharsZ
-js::LossyUTF8CharsToNewTwoByteCharsZ(js::ExclusiveContext* cx, const JS::ConstUTF8CharsZ& utf8, size_t* outlen)
+JS::LossyUTF8CharsToNewTwoByteCharsZ(JSContext* cx, const JS::ConstUTF8CharsZ& utf8, size_t* outlen)
 {
     UTF8Chars chars(utf8.c_str(), strlen(utf8.c_str()));
     return InflateUTF8StringHelper<CountAndIgnoreInvalids, TwoByteCharsZ>(cx, chars, outlen);
-}
-
-TwoByteCharsZ
-JS::LossyUTF8CharsToNewTwoByteCharsZ(JSContext* cx, const ConstUTF8CharsZ& utf8, size_t* outlen)
-{
-    return js::LossyUTF8CharsToNewTwoByteCharsZ(cx, utf8, outlen);
 }
 
 JS::SmallestEncoding
@@ -493,15 +466,9 @@ JS::UTF8CharsToNewLatin1CharsZ(JSContext* cx, const UTF8Chars utf8, size_t* outl
 }
 
 Latin1CharsZ
-js::LossyUTF8CharsToNewLatin1CharsZ(js::ExclusiveContext* cx, const JS::UTF8Chars utf8, size_t* outlen)
-{
-    return InflateUTF8StringHelper<CountAndIgnoreInvalids, Latin1CharsZ>(cx, utf8, outlen);
-}
-
-Latin1CharsZ
 JS::LossyUTF8CharsToNewLatin1CharsZ(JSContext* cx, const UTF8Chars utf8, size_t* outlen)
 {
-    return js::LossyUTF8CharsToNewLatin1CharsZ(cx, utf8, outlen);
+    return InflateUTF8StringHelper<CountAndIgnoreInvalids, Latin1CharsZ>(cx, utf8, outlen);
 }
 
 #ifdef DEBUG
@@ -526,6 +493,46 @@ JS::StringIsASCII(const char* s)
         if (*s & 0x80)
             return false;
         s++;
+    }
+    return true;
+}
+
+bool
+JS::StringIsUTF8(const uint8_t* s, uint32_t length)
+{
+    const uint8_t* limit = s + length;
+    while (s < limit) {
+        uint32_t len;
+        uint32_t min;
+        uint32_t n = *s;
+        if ((n & 0x80) == 0) {
+            len = 1;
+            min = 0;
+        } else if ((n & 0xE0) == 0xC0) {
+            len = 2;
+            min = 0x80;
+            n &= 0x1F;
+        } else if ((n & 0xF0) == 0xE0) {
+            len = 3;
+            min = 0x800;
+            n &= 0x0F;
+        } else if ((n & 0xF8) == 0xF0) {
+            len = 4;
+            min = 0x10000;
+            n &= 0x07;
+        } else {
+            return false;
+        }
+        if (s + len > limit)
+            return false;
+        for (uint32_t i = 1; i < len; i++) {
+            if ((s[i] & 0xC0) != 0x80)
+                return false;
+            n = (n << 6) | (s[i] & 0x3F);
+        }
+        if (n < min || (0xD800 <= n && n < 0xE000) || n >= 0x110000)
+            return false;
+        s += len;
     }
     return true;
 }

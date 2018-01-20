@@ -4,234 +4,317 @@
 
 "use strict";
 
-const {Constructor: CC, interfaces: Ci, utils: Cu, classes: Cc} = Components;
-
-const MARIONETTE_CONTRACTID = "@mozilla.org/marionette;1";
-const MARIONETTE_CID = Components.ID("{786a1369-dca5-4adc-8486-33d23c88010a}");
-
-const DEFAULT_PORT = 2828;
-const ENABLED_PREF = "marionette.defaultPrefs.enabled";
-const PORT_PREF = "marionette.defaultPrefs.port";
-const FORCELOCAL_PREF = "marionette.force-local";
-const LOG_PREF = "marionette.logging";
-
-/**
- * Besides starting based on existing prefs in a profile and a commandline flag,
- * we also support inheriting prefs out of an env var, and to start marionette
- * that way.
- * This allows marionette prefs to persist when we do a restart into a
- * different profile in order to test things like Firefox refresh.
- * The env var itself, if present, is interpreted as a JSON structure, with the
- * keys mapping to preference names in the "marionette." branch, and the values
- * to the values of those prefs. So something like {"defaultPrefs.enabled": true}
- * in the env var would result in the marionette.defaultPrefs.enabled pref being
- * set to true, thus triggering marionette being enabled for that startup.
- */
-const ENV_PREF_VAR = "MOZ_MARIONETTE_PREF_STATE_ACROSS_RESTARTS";
-
-const ServerSocket = CC("@mozilla.org/network/server-socket;1",
-    "nsIServerSocket",
-    "initSpecialConnection");
+const {interfaces: Ci, utils: Cu, classes: Cc} = Components;
 
 Cu.import("resource://gre/modules/Log.jsm");
-Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+XPCOMUtils.defineLazyServiceGetter(
+    this, "env", "@mozilla.org/process/environment;1", "nsIEnvironment");
+
+XPCOMUtils.defineLazyModuleGetter(this, "Preferences",
+    "resource://gre/modules/Preferences.jsm");
+
+const MARIONETTE_CONTRACT_ID = "@mozilla.org/remote/marionette;1";
+const MARIONETTE_CID = Components.ID("{786a1369-dca5-4adc-8486-33d23c88010a}");
+
+const PREF_PORT = "marionette.port";
+const PREF_PORT_FALLBACK = "marionette.defaultPrefs.port";
+const PREF_LOG_LEVEL = "marionette.log.level";
+const PREF_LOG_LEVEL_FALLBACK = "marionette.logging";
+
+const DEFAULT_LOG_LEVEL = "info";
+const LOG_LEVELS = new class extends Map {
+  constructor() {
+    super([
+      ["fatal", Log.Level.Fatal],
+      ["error", Log.Level.Error],
+      ["warn", Log.Level.Warn],
+      ["info", Log.Level.Info],
+      ["config", Log.Level.Config],
+      ["debug", Log.Level.Debug],
+      ["trace", Log.Level.Trace],
+    ]);
+  }
+
+  get(level) {
+    let s = String(level).toLowerCase();
+    if (!this.has(s)) {
+      return DEFAULT_LOG_LEVEL;
+    }
+    return super.get(s);
+  }
+};
+
+// Complements -marionette flag for starting the Marionette server.
+// We also set this if Marionette is running in order to start the server
+// again after a Firefox restart.
+const ENV_ENABLED = "MOZ_MARIONETTE";
+
+// Besides starting based on existing prefs in a profile and a command
+// line flag, we also support inheriting prefs out of an env var, and to
+// start Marionette that way.
+//
+// This allows marionette prefs to persist when we do a restart into
+// a different profile in order to test things like Firefox refresh.
+// The environment variable itself, if present, is interpreted as a
+// JSON structure, with the keys mapping to preference names in the
+// "marionette." branch, and the values to the values of those prefs. So
+// something like {"port": 4444} would result in the marionette.port
+// pref being set to 4444.
+const ENV_PRESERVE_PREFS = "MOZ_MARIONETTE_PREF_STATE_ACROSS_RESTARTS";
+
+const {PREF_STRING, PREF_BOOL, PREF_INT, PREF_INVALID} = Ci.nsIPrefBranch;
+
+function getPrefVal(pref) {
+  let prefType = Services.prefs.getPrefType(pref);
+  let prefValue;
+  switch (prefType) {
+    case PREF_STRING:
+      prefValue = Services.prefs.getStringPref(pref);
+      break;
+
+    case PREF_BOOL:
+      prefValue = Services.prefs.getBoolPref(pref);
+      break;
+
+    case PREF_INT:
+      prefValue = Services.prefs.getIntPref(pref);
+      break;
+
+    case PREF_INVALID:
+      prefValue = undefined;
+      break;
+
+    default:
+      throw new TypeError(`Unexpected preference type (${prefType}) for ` +
+                          `${pref}`);
+  }
+
+  return prefValue;
+}
+
+// Get preference value of |preferred|, falling back to |fallback|
+// if |preferred| is not user-modified and |fallback| exists.
+function getPref(preferred, fallback) {
+  if (!Services.prefs.prefHasUserValue(preferred) &&
+      Services.prefs.getPrefType(fallback) != Ci.nsIPrefBranch.PREF_INVALID) {
+    return getPrefVal(fallback, getPrefVal(preferred));
+  }
+  return getPrefVal(preferred);
+}
+
+// Marionette preferences recently changed names.  This is an abstraction
+// that first looks for the new name, but falls back to using the old name
+// if the new does not exist.
+//
+// This shim can be removed when Firefox 55 ships.
+const prefs = {
+  get port() {
+    return getPref(PREF_PORT, PREF_PORT_FALLBACK);
+  },
+
+  get logLevel() {
+    let s = getPref(PREF_LOG_LEVEL, PREF_LOG_LEVEL_FALLBACK);
+    return LOG_LEVELS.get(s);
+  },
+
+  readFromEnvironment(key) {
+    const env = Cc["@mozilla.org/process/environment;1"]
+        .getService(Ci.nsIEnvironment);
+
+    if (env.exists(key)) {
+      let prefs;
+      try {
+        prefs = JSON.parse(env.get(key));
+      } catch (e) {
+        Cu.reportError(
+            "Invalid Marionette preferences in environment; " +
+            "preferences will not have been applied");
+        Cu.reportError(e);
+      }
+
+      if (prefs) {
+        for (let prefName of Object.keys(prefs)) {
+          Preferences.set(prefName, prefs[prefName]);
+        }
+      }
+    }
+  },
+};
+
 function MarionetteComponent() {
-  this.loaded_ = false;
-  this.observerService = Services.obs;
-  this.logger = this.setupLogger_(this.determineLoggingLevel_());
+  this.running = false;
+  this.server = null;
+
+  // holds reference to ChromeWindow
+  // used to run GFX sanity tests on Windows
+  this.gfxWindow = null;
+
+  // indicates that all pending window checks have been completed
+  // and that we are ready to start the Marionette server
+  this.finalUIStartup = false;
+
+  this.logger = this.setupLogger(prefs.logLevel);
+
+  this.enabled = env.exists(ENV_ENABLED);
+  if (this.enabled) {
+    this.logger.info(`Enabled via ${ENV_ENABLED}`);
+  }
 }
 
 MarionetteComponent.prototype = {
   classDescription: "Marionette component",
   classID: MARIONETTE_CID,
-  contractID: MARIONETTE_CONTRACTID,
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsICommandLineHandler, Ci.nsIObserver]),
+  contractID: MARIONETTE_CONTRACT_ID,
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsICommandLineHandler,
+    Ci.nsIMarionette,
+  ]),
+  // eslint-disable-next-line camelcase
   _xpcom_categories: [
     {category: "command-line-handler", entry: "b-marionette"},
-    {category: "profile-after-change", service: true}
+    {category: "profile-after-change", service: true},
   ],
-  enabled: false,
-  finalUiStartup: false,
-  server: null,
+  helpInfo: "  --marionette       Enable remote control server.\n",
 };
 
-MarionetteComponent.prototype.setupLogger_ = function (level) {
-  let log = Log.repository.getLogger("Marionette");
-  log.level = level;
-  log.addAppender(new Log.DumpAppender());
-  return log;
-};
-
-MarionetteComponent.prototype.determineLoggingLevel_ = function() {
-  let level = Log.Level.Info;
-
-  // marionette.logging pref can override default
-  // with an entry from the Log.Level enum
-  if (Preferences.has(LOG_PREF)) {
-    let p = Preferences.get(LOG_PREF);
-
-    switch (typeof p) {
-      // Gecko >= 46
-      case "string":
-        let s = p.toLowerCase();
-        s = s.charAt(0).toUpperCase() + s.slice(1);
-        level = Log.Level[s];
-        break;
-
-      // Gecko <= 45
-      case "boolean":
-        if (p) {
-          level = Log.Level.Trace;
-        }
-        break;
-    }
-  }
-
-  return level;
-};
-
-MarionetteComponent.prototype.onSocketAccepted = function(
-    socket, transport) {
-  this.logger.info("onSocketAccepted for Marionette dummy socket");
-};
-
-MarionetteComponent.prototype.onStopListening = function (socket, status) {
-  this.logger.info(`onStopListening for Marionette dummy socket, code ${status}`);
-  socket.close();
-};
-
-/** Check cmdLine argument for {@code --marionette}. */
-MarionetteComponent.prototype.handle = function (cmdLine) {
-  // if the CLI is there then lets do work otherwise nothing to see
-  if (cmdLine.handleFlag("marionette", false)) {
+// Handle -marionette flag
+MarionetteComponent.prototype.handle = function(cmdLine) {
+  if (!this.enabled && cmdLine.handleFlag("marionette", false)) {
     this.enabled = true;
-    this.logger.debug("Marionette enabled via command-line flag");
-    this.init();
+    this.logger.info("Enabled via --marionette");
   }
 };
 
-MarionetteComponent.prototype.observe = function (subj, topic, data) {
+MarionetteComponent.prototype.observe = function(subject, topic) {
+  this.logger.debug(`Received observer notification "${topic}"`);
+
   switch (topic) {
     case "profile-after-change":
-      this.maybeReadPrefsFromEnvironment();
-      // Using final-ui-startup as the xpcom category doesn't seem to work,
-      // so we wait for that by adding an observer here.
-      this.observerService.addObserver(this, "final-ui-startup", false);
-#ifdef ENABLE_MARIONETTE
-      this.enabled = Preferences.get(ENABLED_PREF, false);
-      if (this.enabled) {
-        this.logger.debug("Marionette enabled via build flag and pref");
+      Services.obs.addObserver(this, "command-line-startup");
+      Services.obs.addObserver(this, "sessionstore-windows-restored");
 
-        // We want to suppress the modal dialog that's shown
-        // when starting up in safe-mode to enable testing.
-        if (Services.appinfo.inSafeMode) {
-          this.observerService.addObserver(this, "domwindowopened", false);
-        }
-      }
-#endif
+      prefs.readFromEnvironment(ENV_PRESERVE_PREFS);
       break;
 
-    case "final-ui-startup":
-      this.finalUiStartup = true;
-      this.observerService.removeObserver(this, topic);
-      this.observerService.addObserver(this, "xpcom-shutdown", false);
-      this.init();
+    // In safe mode the command line handlers are getting parsed after the
+    // safe mode dialog has been closed. To allow Marionette to start
+    // earlier, use the CLI startup observer notification for
+    // special-cased handlers, which gets fired before the dialog appears.
+    case "command-line-startup":
+      Services.obs.removeObserver(this, topic);
+      this.handle(subject);
+
+      // We want to suppress the modal dialog that's shown
+      // when starting up in safe-mode to enable testing.
+      if (this.enabled && Services.appinfo.inSafeMode) {
+        Services.obs.addObserver(this, "domwindowopened");
+      }
+
+      break;
+
+    case "domwindowclosed":
+      if (this.gfxWindow === null || subject === this.gfxWindow) {
+        Services.obs.removeObserver(this, topic);
+
+        Services.obs.addObserver(this, "xpcom-shutdown");
+        this.finalUIStartup = true;
+        this.init();
+      }
       break;
 
     case "domwindowopened":
-      this.observerService.removeObserver(this, topic);
-      this.suppressSafeModeDialog_(subj);
+      Services.obs.removeObserver(this, topic);
+      this.suppressSafeModeDialog(subject);
+      break;
+
+    case "sessionstore-windows-restored":
+      Services.obs.removeObserver(this, topic);
+
+      // When Firefox starts on Windows, an additional GFX sanity test
+      // window may appear off-screen.  Marionette should wait for it
+      // to close.
+      let winEn = Services.wm.getEnumerator(null);
+      while (winEn.hasMoreElements()) {
+        let win = winEn.getNext();
+        if (win.document.documentURI == "chrome://gfxsanity/content/sanityparent.html") {
+          this.gfxWindow = win;
+          break;
+        }
+      }
+
+      if (this.gfxWindow) {
+        Services.obs.addObserver(this, "domwindowclosed");
+      } else {
+        Services.obs.addObserver(this, "xpcom-shutdown");
+        this.finalUIStartup = true;
+        this.init();
+      }
+
       break;
 
     case "xpcom-shutdown":
-      this.observerService.removeObserver(this, "xpcom-shutdown");
+      Services.obs.removeObserver(this, "xpcom-shutdown");
       this.uninit();
       break;
   }
 };
 
-MarionetteComponent.prototype.maybeReadPrefsFromEnvironment = function() {
-  let env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
-  if (env.exists(ENV_PREF_VAR)) {
-    let prefStr = env.get(ENV_PREF_VAR);
-    let prefs;
-    try {
-      prefs = JSON.parse(prefStr);
-    } catch (ex) {
-      Cu.reportError("Invalid marionette prefs in environment; prefs won't have been applied.");
-      Cu.reportError(ex);
-    }
-    if (prefs) {
-      for (let prefName of Object.keys(prefs)) {
-        Preferences.set("marionette." + prefName, prefs[prefName]);
-      }
-    }
-  }
-}
+MarionetteComponent.prototype.setupLogger = function(level) {
+  let logger = Log.repository.getLogger("Marionette");
+  logger.level = level;
+  logger.addAppender(new Log.DumpAppender());
+  return logger;
+};
 
-MarionetteComponent.prototype.suppressSafeModeDialog_ = function (win) {
-  // Wait for the modal dialog to finish loading.
-  win.addEventListener("load", function onload() {
-    win.removeEventListener("load", onload);
-
+MarionetteComponent.prototype.suppressSafeModeDialog = function(win) {
+  win.addEventListener("load", () => {
     if (win.document.getElementById("safeModeDialog")) {
-      // Accept the dialog to start in safe-mode
+      // accept the dialog to start in safe-mode
+      this.logger.debug("Safe Mode detected. Going to suspress the dialog now.");
       win.setTimeout(() => {
         win.document.documentElement.getButton("accept").click();
       });
     }
-  });
+  }, {once: true});
 };
 
 MarionetteComponent.prototype.init = function() {
-  if (this.loaded_ || !this.enabled || !this.finalUiStartup) {
+  if (this.running || !this.enabled || !this.finalUIStartup) {
     return;
   }
 
-  this.loaded_ = true;
-
-  let forceLocal = Preferences.get(FORCELOCAL_PREF,
-      Services.appinfo.name == "B2G" ? false : true);
-  Preferences.set(FORCELOCAL_PREF, forceLocal);
-
-  if (!forceLocal) {
-    // See bug 800138.  Because the first socket that opens with
-    // force-local=false fails, we open a dummy socket that will fail.
-    // keepWhenOffline=true so that it still work when offline (local).
-    // This allows the following attempt by Marionette to open a socket
-    // to succeed.
-    let insaneSacrificialGoat =
-        new ServerSocket(666, Ci.nsIServerSocket.KeepWhenOffline, 4);
-    insaneSacrificialGoat.asyncListen(this);
-  }
-
-  let port = Preferences.get(PORT_PREF, DEFAULT_PORT);
-
-  let s;
-  try {
-    Cu.import("chrome://marionette/content/server.js");
-    s = new MarionetteServer(port, forceLocal);
-    s.start();
-    this.logger.info(`Listening on port ${s.port}`);
-  } catch (e) {
-    this.logger.error(`Error on starting server: ${e}`);
-    dump(e.toString() + "\n" + e.stack + "\n");
-  } finally {
-    if (s) {
-      this.server = s;
-    }
-  }
+  // Delay initialization until we are done with delayed startup...
+  Services.tm.idleDispatchToMainThread(() => {
+    // ... and with startup tests.
+    let promise = Promise.resolve();
+    if ("@mozilla.org/test/startuprecorder;1" in Cc)
+      promise = Cc["@mozilla.org/test/startuprecorder;1"].getService().wrappedJSObject.done;
+    promise.then(() => {
+      let s;
+      try {
+        Cu.import("chrome://marionette/content/server.js");
+        s = new server.TCPListener(prefs.port);
+        s.start();
+        this.logger.info(`Listening on port ${s.port}`);
+      } finally {
+        if (s) {
+          this.server = s;
+          this.running = true;
+        }
+      }
+    });
+  });
 };
 
 MarionetteComponent.prototype.uninit = function() {
-  if (!this.loaded_) {
+  if (!this.running) {
     return;
   }
   this.server.stop();
-  this.loaded_ = false;
+  this.running = false;
 };
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([MarionetteComponent]);

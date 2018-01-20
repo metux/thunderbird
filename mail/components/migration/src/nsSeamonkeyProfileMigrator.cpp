@@ -138,7 +138,7 @@ nsSeamonkeyProfileMigrator::GetMigrateData(const char16_t* aProfile,
 
   // Now locate passwords
   nsCString signonsFileName;
-  GetSignonFileName(aReplace, getter_Copies(signonsFileName));
+  GetSignonFileName(aReplace, signonsFileName);
 
   if (!signonsFileName.IsEmpty()) {
     nsAutoString fileName;
@@ -320,7 +320,7 @@ nsSeamonkeyProfileMigrator::TransformPreferences(const nsAString& aSourcePrefFil
   nsCOMPtr<nsIFile> sourcePrefsFile;
   mSourceProfile->Clone(getter_AddRefs(sourcePrefsFile));
   sourcePrefsFile->Append(aSourcePrefFileName);
-  psvc->ReadUserPrefs(sourcePrefsFile);
+  psvc->ReadUserPrefsFromFile(sourcePrefsFile);
 
   nsCOMPtr<nsIPrefBranch> branch(do_QueryInterface(psvc));
   for (transform = gTransforms; transform < end; ++transform)
@@ -450,7 +450,7 @@ nsSeamonkeyProfileMigrator::CopySignatureFiles(PBStructArray &aIdentities,
         nsAutoCString descriptorString;
         rv = targetSigFile->GetPersistentDescriptor(descriptorString);
         NS_ENSURE_SUCCESS(rv, rv);
-        NS_Free(pref->stringValue);
+        free(pref->stringValue);
         pref->stringValue = ToNewCString(descriptorString);
       }
     }
@@ -481,7 +481,7 @@ nsSeamonkeyProfileMigrator::CopyMailFolders(PBStructArray &aMailServers,
       // *.directory-rel prefs. Mailnews will cope with this, creating them
       // when it first needs them.
       if (pref->type == nsIPrefBranch::PREF_STRING)
-        NS_Free(pref->stringValue);
+        free(pref->stringValue);
 
       aMailServers.RemoveElementAt(i);
       // Now decrease i and count to match the removed element
@@ -501,7 +501,7 @@ nsSeamonkeyProfileMigrator::CopyMailFolders(PBStructArray &aMailServers,
         break; // should we clear out this server pref from aMailServers?
 
       nsCString serverType;
-      serverBranch->GetCharPref("type", getter_Copies(serverType));
+      serverBranch->GetCharPref("type", serverType);
 
       nsCOMPtr<nsIFile> sourceMailFolder;
       serverBranch->GetComplexValue("directory", NS_GET_IID(nsIFile), getter_AddRefs(sourceMailFolder));
@@ -529,7 +529,7 @@ nsSeamonkeyProfileMigrator::CopyMailFolders(PBStructArray &aMailServers,
       {
         // for all of our server types, append the host name to the directory as part of the new location
         nsCString hostName;
-        serverBranch->GetCharPref("hostname", getter_Copies(hostName));
+        serverBranch->GetCharPref("hostname", hostName);
         targetMailFolder->Append(NS_ConvertASCIItoUTF16(hostName));
 
         // we should make sure the host name based directory we are going to migrate
@@ -545,7 +545,7 @@ nsSeamonkeyProfileMigrator::CopyMailFolders(PBStructArray &aMailServers,
         nsAutoCString descriptorString;
         rv = targetMailFolder->GetPersistentDescriptor(descriptorString);
         NS_ENSURE_SUCCESS(rv, rv);
-        NS_Free(pref->stringValue);
+        free(pref->stringValue);
         pref->stringValue = ToNewCString(descriptorString);
       }
     }
@@ -577,7 +577,7 @@ nsSeamonkeyProfileMigrator::CopyMailFolders(PBStructArray &aMailServers,
         nsAutoCString descriptorString;
         rv = targetNewsRCFile->GetPersistentDescriptor(descriptorString);
         NS_ENSURE_SUCCESS(rv, rv);
-        NS_Free(pref->stringValue);
+        free(pref->stringValue);
         pref->stringValue = ToNewCString(descriptorString);
       }
     }
@@ -656,9 +656,12 @@ nsSeamonkeyProfileMigrator::ReadBranch(const char *branchName,
     pref->prefName = currPref;
     pref->type = type;
     switch (type) {
-    case nsIPrefBranch::PREF_STRING:
-      rv = branch->GetCharPref(currPref, &pref->stringValue);
+    case nsIPrefBranch::PREF_STRING: {
+      nsCString str;
+      rv = branch->GetCharPref(currPref, str);
+      pref->stringValue = moz_xstrdup(str.get());
       break;
+    }
     case nsIPrefBranch::PREF_BOOL:
       rv = branch->GetBoolPref(currPref, &pref->boolValue);
       break;
@@ -690,8 +693,9 @@ nsSeamonkeyProfileMigrator::WriteBranch(const char *branchName,
     PrefBranchStruct* pref = aPrefs.ElementAt(i);
     switch (pref->type) {
     case nsIPrefBranch::PREF_STRING:
-      (void) branch->SetCharPref(pref->prefName, pref->stringValue);
-      NS_Free(pref->stringValue);
+      (void) branch->SetCharPref(pref->prefName,
+                                 nsDependentCString(pref->stringValue));
+      free(pref->stringValue);
       pref->stringValue = nullptr;
       break;
     case nsIPrefBranch::PREF_BOOL:
@@ -705,7 +709,7 @@ nsSeamonkeyProfileMigrator::WriteBranch(const char *branchName,
                  "nsNetscapeProfileMigratorBase::WriteBranch\n");
       break;
     }
-    NS_Free(pref->prefName);
+    free(pref->prefName);
     pref->prefName = nullptr;
     delete pref;
     pref = nullptr;
@@ -731,7 +735,7 @@ nsSeamonkeyProfileMigrator::CopyPasswords(bool aReplace)
   nsresult rv = NS_OK;
 
   nsCString signonsFileName;
-  GetSignonFileName(aReplace, getter_Copies(signonsFileName));
+  GetSignonFileName(aReplace, signonsFileName);
 
   if (signonsFileName.IsEmpty())
     return NS_ERROR_FILE_NOT_FOUND;

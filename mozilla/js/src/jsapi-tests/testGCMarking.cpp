@@ -165,7 +165,7 @@ BEGIN_TEST(testDeadNurseryCCW)
 
     // Now a GC should clear the CCW.
     CHECK(countWrappers(global1->compartment()) == 1);
-    cx->gc.evictNursery();
+    cx->runtime()->gc.evictNursery();
     CHECK(countWrappers(global1->compartment()) == 0);
 
     // Check for corruption of the CCW table by doing a full GC to force sweeping.
@@ -193,7 +193,7 @@ BEGIN_TEST(testLiveNurseryCCW)
 
     // Now a GC should not kill the CCW.
     CHECK(countWrappers(global1->compartment()) == 1);
-    cx->gc.evictNursery();
+    cx->runtime()->gc.evictNursery();
     CHECK(countWrappers(global1->compartment()) == 1);
 
     CHECK(!js::gc::IsInsideNursery(wrappee));
@@ -230,7 +230,7 @@ BEGIN_TEST(testLiveNurseryWrapperCCW)
 
     // Now a GC should not kill the CCW.
     CHECK(countWrappers(global1->compartment()) == 1);
-    cx->gc.evictNursery();
+    cx->runtime()->gc.evictNursery();
     CHECK(countWrappers(global1->compartment()) == 1);
 
     CHECK(!js::gc::IsInsideNursery(wrapper));
@@ -264,7 +264,7 @@ BEGIN_TEST(testLiveNurseryWrappeeCCW)
 
     // Now a GC should not kill the CCW.
     CHECK(countWrappers(global1->compartment()) == 1);
-    cx->gc.evictNursery();
+    cx->runtime()->gc.evictNursery();
     CHECK(countWrappers(global1->compartment()) == 0);
 
     CHECK(!js::gc::IsInsideNursery(wrappee));
@@ -330,7 +330,7 @@ BEGIN_TEST(testIncrementalRoots)
 
     // Tenure everything so intentionally unrooted objects don't move before we
     // can use them.
-    cx->minorGC(JS::gcreason::API);
+    cx->runtime()->gc.minorGC(JS::gcreason::API);
 
     // Release all roots except for the AutoObjectVector.
     obj = root = nullptr;
@@ -367,9 +367,9 @@ BEGIN_TEST(testIncrementalRoots)
     MOZ_ASSERT(JS::IsIncrementalGCInProgress(cx));
 
     // And assert that the mark bits are as we expect them to be.
-    MOZ_ASSERT(vec[0]->asTenured().isMarked());
-    MOZ_ASSERT(!leafHandle->asTenured().isMarked());
-    MOZ_ASSERT(!leafOwnerHandle->asTenured().isMarked());
+    MOZ_ASSERT(vec[0]->asTenured().isMarkedBlack());
+    MOZ_ASSERT(!leafHandle->asTenured().isMarkedBlack());
+    MOZ_ASSERT(!leafOwnerHandle->asTenured().isMarkedBlack());
 
 #ifdef DEBUG
     // Remember the current GC number so we can assert that no GC occurs
@@ -387,7 +387,7 @@ BEGIN_TEST(testIncrementalRoots)
     if (!JS_SetProperty(cx, vec[0], "newobj", leafValueHandle))
         return false;
     MOZ_ASSERT(rt->gc.gcNumber() == currentGCNumber);
-    MOZ_ASSERT(leafHandle->asTenured().isMarked());
+    MOZ_ASSERT(leafHandle->asTenured().isMarkedBlack());
 
     // Also take an unmarked object 'leaf2' from the graph and add an
     // additional edge from the root to it. This will not be marked by any
@@ -403,11 +403,11 @@ BEGIN_TEST(testIncrementalRoots)
         if (!JS_GetProperty(cx, leafOwnerHandle, "leaf2", &leaf2))
             return false;
         MOZ_ASSERT(rt->gc.gcNumber() == currentGCNumber);
-        MOZ_ASSERT(!leaf2.toObject().asTenured().isMarked());
+        MOZ_ASSERT(!leaf2.toObject().asTenured().isMarkedBlack());
         if (!JS_SetProperty(cx, vec[0], "leafcopy", leaf2))
             return false;
         MOZ_ASSERT(rt->gc.gcNumber() == currentGCNumber);
-        MOZ_ASSERT(!leaf2.toObject().asTenured().isMarked());
+        MOZ_ASSERT(!leaf2.toObject().asTenured().isMarkedBlack());
     }
 
     // Finish the GC using an unlimited budget.

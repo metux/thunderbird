@@ -47,9 +47,16 @@ interface nsIAddonPolicyService : nsISupports
 
   /**
    * Returns true if unprivileged code associated with the given addon may load
-   * data from |aURI|.
+   * data from |aURI|.  If |aExplicit| is true, the <all_urls> permission and
+   * permissive host globs are ignored when checking for a match.
    */
-  boolean addonMayLoadURI(in AString aAddonId, in nsIURI aURI);
+  boolean addonMayLoadURI(in AString aAddonId, in nsIURI aURI, [optional] in boolean aExplicit);
+
+  /**
+   * Returns the name of the WebExtension with the given ID, or the ID string
+   * if no matching add-on can be found.
+   */
+  AString getExtensionName(in AString aAddonId);
 
   /**
    * Returns true if a given extension:// URI is web-accessible.

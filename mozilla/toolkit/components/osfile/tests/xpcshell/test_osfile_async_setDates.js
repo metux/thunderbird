@@ -1,7 +1,8 @@
 "use strict";
 
+/* eslint-disable no-lone-blocks */
+
 Components.utils.import("resource://gre/modules/osfile.jsm");
-Components.utils.import("resource://gre/modules/Task.jsm");
 
 /**
  * A test to ensure that OS.File.setDates and OS.File.prototype.setDates are
@@ -9,16 +10,12 @@ Components.utils.import("resource://gre/modules/Task.jsm");
  * (see bug 924916)
  */
 
-function run_test() {
-  run_next_test();
-}
-
 // Non-prototypical tests, operating on path names.
-add_task(function* test_nonproto() {
+add_task(async function test_nonproto() {
   // First, create a file we can mess with.
   let path = OS.Path.join(OS.Constants.Path.tmpDir,
                               "test_osfile_async_setDates_nonproto.tmp");
-  yield OS.File.writeAtomic(path, new Uint8Array(1));
+  await OS.File.writeAtomic(path, new Uint8Array(1));
 
   try {
     // 1. Try to set some well known dates.
@@ -27,8 +24,8 @@ add_task(function* test_nonproto() {
     const accDate = 2000;
     const modDate = 4000;
     {
-      yield OS.File.setDates(path, accDate, modDate);
-      let stat = yield OS.File.stat(path);
+      await OS.File.setDates(path, accDate, modDate);
+      let stat = await OS.File.stat(path);
       do_check_eq(accDate, stat.lastAccessDate.getTime());
       do_check_eq(modDate, stat.lastModificationDate.getTime());
     }
@@ -36,8 +33,8 @@ add_task(function* test_nonproto() {
     // 2.1 Try to omit modificationDate (which should then default to
     // |Date.now()|, expect for resolution differences).
     {
-      yield OS.File.setDates(path, accDate);
-      let stat = yield OS.File.stat(path);
+      await OS.File.setDates(path, accDate);
+      let stat = await OS.File.stat(path);
       do_check_eq(accDate, stat.lastAccessDate.getTime());
       do_check_neq(modDate, stat.lastModificationDate.getTime());
     }
@@ -45,16 +42,16 @@ add_task(function* test_nonproto() {
     // 2.2 Try to omit accessDate as well (which should then default to
     // |Date.now()|, expect for resolution differences).
     {
-      yield OS.File.setDates(path);
-      let stat = yield OS.File.stat(path);
+      await OS.File.setDates(path);
+      let stat = await OS.File.stat(path);
       do_check_neq(accDate, stat.lastAccessDate.getTime());
       do_check_neq(modDate, stat.lastModificationDate.getTime());
     }
 
     // 3. Repeat 1., but with Date objects this time
     {
-      yield OS.File.setDates(path, new Date(accDate), new Date(modDate));
-      let stat = yield OS.File.stat(path);
+      await OS.File.setDates(path, new Date(accDate), new Date(modDate));
+      let stat = await OS.File.stat(path);
       do_check_eq(accDate, stat.lastAccessDate.getTime());
       do_check_eq(modDate, stat.lastModificationDate.getTime());
     }
@@ -63,26 +60,26 @@ add_task(function* test_nonproto() {
     {
       for (let p of ["invalid", new Uint8Array(1), NaN]) {
         try {
-          yield OS.File.setDates(path, p, modDate);
+          await OS.File.setDates(path, p, modDate);
           do_throw("Invalid access date should have thrown for: " + p);
         } catch (ex) {
-          let stat = yield OS.File.stat(path);
+          let stat = await OS.File.stat(path);
           do_check_eq(accDate, stat.lastAccessDate.getTime());
           do_check_eq(modDate, stat.lastModificationDate.getTime());
         }
         try {
-          yield OS.File.setDates(path, accDate, p);
+          await OS.File.setDates(path, accDate, p);
           do_throw("Invalid modification date should have thrown for: " + p);
         } catch (ex) {
-          let stat = yield OS.File.stat(path);
+          let stat = await OS.File.stat(path);
           do_check_eq(accDate, stat.lastAccessDate.getTime());
           do_check_eq(modDate, stat.lastModificationDate.getTime());
         }
         try {
-          yield OS.File.setDates(path, p, p);
+          await OS.File.setDates(path, p, p);
           do_throw("Invalid dates should have thrown for: " + p);
         } catch (ex) {
-          let stat = yield OS.File.stat(path);
+          let stat = await OS.File.stat(path);
           do_check_eq(accDate, stat.lastAccessDate.getTime());
           do_check_eq(modDate, stat.lastModificationDate.getTime());
         }
@@ -90,14 +87,14 @@ add_task(function* test_nonproto() {
     }
   } finally {
     // Remove the temp file again
-    yield OS.File.remove(path);
+    await OS.File.remove(path);
   }
 });
 
 // Prototypical tests, operating on |File| handles.
-add_task(function* test_proto() {
-  if (OS.Constants.Sys.Name == "Android" || OS.Constants.Sys.Name == "Gonk") {
-    do_print("File.prototype.setDates is not implemented for Android/B2G");
+add_task(async function test_proto() {
+  if (OS.Constants.Sys.Name == "Android") {
+    do_print("File.prototype.setDates is not implemented for Android");
     do_check_eq(OS.File.prototype.setDates, undefined);
     return;
   }
@@ -105,10 +102,10 @@ add_task(function* test_proto() {
   // First, create a file we can mess with.
   let path = OS.Path.join(OS.Constants.Path.tmpDir,
                               "test_osfile_async_setDates_proto.tmp");
-  yield OS.File.writeAtomic(path, new Uint8Array(1));
+  await OS.File.writeAtomic(path, new Uint8Array(1));
 
-  try {
-    let fd = yield OS.File.open(path, {write: true});
+  try {
+    let fd = await OS.File.open(path, {write: true});
 
     try {
       // 1. Try to set some well known dates.
@@ -117,8 +114,8 @@ add_task(function* test_proto() {
       const accDate = 2000;
       const modDate = 4000;
       {
-        yield fd.setDates(accDate, modDate);
-        let stat = yield fd.stat();
+        await fd.setDates(accDate, modDate);
+        let stat = await fd.stat();
         do_check_eq(accDate, stat.lastAccessDate.getTime());
         do_check_eq(modDate, stat.lastModificationDate.getTime());
       }
@@ -126,8 +123,8 @@ add_task(function* test_proto() {
       // 2.1 Try to omit modificationDate (which should then default to
       // |Date.now()|, expect for resolution differences).
       {
-        yield fd.setDates(accDate);
-        let stat = yield fd.stat();
+        await fd.setDates(accDate);
+        let stat = await fd.stat();
         do_check_eq(accDate, stat.lastAccessDate.getTime());
         do_check_neq(modDate, stat.lastModificationDate.getTime());
       }
@@ -135,16 +132,16 @@ add_task(function* test_proto() {
       // 2.2 Try to omit accessDate as well (which should then default to
       // |Date.now()|, expect for resolution differences).
       {
-        yield fd.setDates();
-        let stat = yield fd.stat();
+        await fd.setDates();
+        let stat = await fd.stat();
         do_check_neq(accDate, stat.lastAccessDate.getTime());
         do_check_neq(modDate, stat.lastModificationDate.getTime());
       }
 
       // 3. Repeat 1., but with Date objects this time
       {
-        yield fd.setDates(new Date(accDate), new Date(modDate));
-        let stat = yield fd.stat();
+        await fd.setDates(new Date(accDate), new Date(modDate));
+        let stat = await fd.stat();
         do_check_eq(accDate, stat.lastAccessDate.getTime());
         do_check_eq(modDate, stat.lastModificationDate.getTime());
       }
@@ -153,45 +150,45 @@ add_task(function* test_proto() {
       {
         for (let p of ["invalid", new Uint8Array(1), NaN]) {
           try {
-            yield fd.setDates(p, modDate);
+            await fd.setDates(p, modDate);
             do_throw("Invalid access date should have thrown for: " + p);
           } catch (ex) {
-            let stat = yield fd.stat();
+            let stat = await fd.stat();
             do_check_eq(accDate, stat.lastAccessDate.getTime());
             do_check_eq(modDate, stat.lastModificationDate.getTime());
           }
           try {
-            yield fd.setDates(accDate, p);
+            await fd.setDates(accDate, p);
             do_throw("Invalid modification date should have thrown for: " + p);
           } catch (ex) {
-            let stat = yield fd.stat();
+            let stat = await fd.stat();
             do_check_eq(accDate, stat.lastAccessDate.getTime());
             do_check_eq(modDate, stat.lastModificationDate.getTime());
           }
           try {
-            yield fd.setDates(p, p);
+            await fd.setDates(p, p);
             do_throw("Invalid dates should have thrown for: " + p);
           } catch (ex) {
-            let stat = yield fd.stat();
+            let stat = await fd.stat();
             do_check_eq(accDate, stat.lastAccessDate.getTime());
             do_check_eq(modDate, stat.lastModificationDate.getTime());
           }
         }
       }
     } finally {
-      yield fd.close();
+      await fd.close();
     }
   } finally {
     // Remove the temp file again
-    yield OS.File.remove(path);
+    await OS.File.remove(path);
   }
 });
 
 // Tests setting dates on directories.
-add_task(function* test_dirs() {
+add_task(async function test_dirs() {
   let path = OS.Path.join(OS.Constants.Path.tmpDir,
                               "test_osfile_async_setDates_dir");
-  yield OS.File.makeDir(path);
+  await OS.File.makeDir(path);
 
   try {
     // 1. Try to set some well known dates.
@@ -200,12 +197,12 @@ add_task(function* test_dirs() {
     const accDate = 2000;
     const modDate = 4000;
     {
-      yield OS.File.setDates(path, accDate, modDate);
-      let stat = yield OS.File.stat(path);
+      await OS.File.setDates(path, accDate, modDate);
+      let stat = await OS.File.stat(path);
       do_check_eq(accDate, stat.lastAccessDate.getTime());
       do_check_eq(modDate, stat.lastModificationDate.getTime());
     }
   } finally {
-    yield OS.File.removeEmptyDir(path);
+    await OS.File.removeEmptyDir(path);
   }
 });

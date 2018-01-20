@@ -49,16 +49,19 @@ public:
     NS_IMETHOD GetDomFileOrDirectory(nsISupports** aValue) override;
     NS_IMETHOD GetDomFileOrDirectoryEnumerator(nsISimpleEnumerator** aValue) override;
 
-    NS_IMETHOD Show(int16_t* aReturn) override;
     NS_IMETHOD Open(nsIFilePickerShownCallback* aCallback) override;
 
     // PFilePickerChild
-    virtual bool
+    virtual mozilla::ipc::IPCResult
     Recv__delete__(const MaybeInputData& aData, const int16_t& aResult) override;
 
 private:
     ~nsFilePickerProxy();
     void InitNative(nsIWidget*, const nsAString&) override;
+    nsresult Show(int16_t* aReturn) override;
+
+    void
+    ActorDestroy(ActorDestroyReason aWhy) override;
 
     nsTArray<mozilla::dom::OwningFileOrDirectory> mFilesOrDirectories;
     nsCOMPtr<nsIFilePickerShownCallback> mCallback;
@@ -67,6 +70,8 @@ private:
     nsString  mFile;
     nsString  mDefault;
     nsString  mDefaultExtension;
+
+    bool mIPCActive;
 
     InfallibleTArray<nsString> mFilters;
     InfallibleTArray<nsString> mFilterNames;

@@ -149,6 +149,8 @@ because displayed names don't have the comma in between. -->
 
 
 
+
+
 <!ENTITY newmsgButton.label                             "Scrie mesaj">
 <!ENTITY newmsgButton.accesskey                         "m">
 <!ENTITY newIM.label                                    "Mesaj instantaneu">
@@ -240,23 +242,26 @@ because displayed names don't have the comma in between. -->
 <!ENTITY bringAllToFront.label                          "Adu-le pe toate în față">
 <!ENTITY zoomWindow.label                               "Lupă">
 
-<!ENTITY abPropertiesContext.accesskey                  "i">
-<!ENTITY abPropertiesContext.label                      "Properties">
-<!ENTITY abPropertiesMenu.accesskey                     "i">
-<!ENTITY abPropertiesMenu.label                         "Address Book Properties">
-<!ENTITY contactPropertiesMenu.accesskey                "i">
-<!ENTITY contactPropertiesMenu.label                    "Contact Properties">
-<!ENTITY editAbPropertiesButton.tooltip                 "Edit the properties of the selected address book">
-<!ENTITY editContactContext.accesskey                   "E">
-<!ENTITY editContactContext.label                       "Edit Contact">
-<!ENTITY editContactPropertiesButton.tooltip            "Edit the selected contact">
-<!ENTITY editMailingListContext.accesskey               "E">
-<!ENTITY editMailingListContext.label                   "Edit List">
-<!ENTITY editMailingListPropertiesButton.tooltip        "Edit the selected mailing list">
-<!ENTITY editPropertiesButton.label                     "Edit">
-<!ENTITY mailingListPropertiesMenu.accesskey            "i">
-<!ENTITY mailingListPropertiesMenu.label                "Mailing List Properties">
-<!ENTITY propertiesContext.accesskey                    "i">
-<!ENTITY propertiesContext.label                        "Properties">
-<!ENTITY propertiesMenu.accesskey                       "i">
 <!ENTITY propertiesMenu.label                           "Properties">
+<!ENTITY propertiesMenu.accesskey                       "i">
+<!ENTITY abPropertiesMenu.label                         "Address Book Properties">
+<!ENTITY abPropertiesMenu.accesskey                     "i">
+<!ENTITY contactPropertiesMenu.label                    "Contact Properties">
+<!ENTITY contactPropertiesMenu.accesskey                "i">
+<!ENTITY mailingListPropertiesMenu.label                "Mailing List Properties">
+<!ENTITY mailingListPropertiesMenu.accesskey            "i">
+
+<!ENTITY showAsDefault.label                            "Default startup directory">
+<!ENTITY showAsDefault.accesskey                        "S">
+<!ENTITY editPropertiesButton.label                     "Edit">
+<!ENTITY propertiesContext.label                        "Properties">
+<!ENTITY propertiesContext.accesskey                    "i">
+<!ENTITY abPropertiesContext.label                      "Properties">
+<!ENTITY abPropertiesContext.accesskey                  "i">
+<!ENTITY editContactContext.label                       "Edit Contact">
+<!ENTITY editContactContext.accesskey                   "E">
+<!ENTITY editMailingListContext.label                   "Edit List">
+<!ENTITY editMailingListContext.accesskey               "E">
+<!ENTITY editAbPropertiesButton.tooltip                 "Edit the properties of the selected address book">
+<!ENTITY editContactPropertiesButton.tooltip            "Edit the selected contact">
+<!ENTITY editMailingListPropertiesButton.tooltip        "Edit the selected mailing list">

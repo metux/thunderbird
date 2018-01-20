@@ -1,6 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: sw=2 ts=8 et :
- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -14,6 +13,7 @@
 #include "mozilla/Attributes.h"         // for override
 #include "mozilla/ipc/SharedMemory.h"   // for SharedMemory, etc
 #include "mozilla/layers/PLayerTransactionParent.h"
+#include "nsRefPtrHashtable.h"
 #include "nsTArrayForwardDeclare.h"     // for InfallibleTArray
 
 namespace mozilla {
@@ -29,9 +29,10 @@ class RenderFrameParent;
 namespace layers {
 
 class Layer;
-class LayerManagerComposite;
+class HostLayerManager;
 class ShadowLayerParent;
 class CompositableParent;
+class CompositorAnimationStorage;
 class CompositorBridgeParentBase;
 
 class LayerTransactionParent final : public PLayerTransactionParent,
@@ -41,12 +42,13 @@ class LayerTransactionParent final : public PLayerTransactionParent,
   typedef mozilla::layout::RenderFrameParent RenderFrameParent;
   typedef InfallibleTArray<Edit> EditArray;
   typedef InfallibleTArray<OpDestroy> OpDestroyArray;
-  typedef InfallibleTArray<EditReply> EditReplyArray;
   typedef InfallibleTArray<PluginWindowData> PluginsArray;
+  typedef InfallibleTArray<ReadLockInit> ReadLockArray;
 
 public:
-  LayerTransactionParent(LayerManagerComposite* aManager,
+  LayerTransactionParent(HostLayerManager* aManager,
                          CompositorBridgeParentBase* aBridge,
+                         CompositorAnimationStorage* aAnimStorage,
                          uint64_t aId);
 
 protected:
@@ -55,9 +57,7 @@ protected:
 public:
   void Destroy();
 
-  LayerManagerComposite* layer_manager() const { return mLayerManager; }
-
-  void SetLayerManager(LayerManagerComposite* aLayerManager);
+  void SetLayerManager(HostLayerManager* aLayerManager, CompositorAnimationStorage* aAnimStorage);
 
   uint64_t GetId() const { return mId; }
   Layer* GetRoot() const { return mRoot; }
@@ -80,7 +80,13 @@ public:
   virtual bool IsSameProcess() const override;
 
   const uint64_t& GetPendingTransactionId() { return mPendingTransaction; }
-  void SetPendingTransactionId(uint64_t aId) { mPendingTransaction = aId; }
+  void SetPendingTransactionId(uint64_t aId, const TimeStamp& aTxnStartTime, const TimeStamp& aFwdTime)
+  {
+    mPendingTransaction = aId;
+    mTxnStartTime = aTxnStartTime;
+    mFwdTime = aFwdTime;
+  }
+  uint64_t FlushTransactionId(TimeStamp& aCompositeEnd);
 
   // CompositableParentManager
   virtual void SendAsyncMessage(const InfallibleTArray<AsyncParentMessageData>& aMessage) override;
@@ -96,85 +102,58 @@ public:
     return OtherPid();
   }
 
-  void AddPendingCompositorUpdate() {
-    mPendingCompositorUpdates++;
-  }
-  void SetPendingCompositorUpdates(uint32_t aCount) {
-    // Only called after construction.
-    MOZ_ASSERT(mPendingCompositorUpdates == 0);
-    mPendingCompositorUpdates = aCount;
-  }
-  void AcknowledgeCompositorUpdate() {
-    MOZ_ASSERT(mPendingCompositorUpdates > 0);
-    mPendingCompositorUpdates--;
-  }
-
 protected:
-  virtual bool RecvShutdown() override;
+  virtual mozilla::ipc::IPCResult RecvShutdown() override;
+  virtual mozilla::ipc::IPCResult RecvShutdownSync() override;
 
-  virtual bool RecvPaintTime(const uint64_t& aTransactionId,
-                             const TimeDuration& aPaintTime) override;
+  virtual mozilla::ipc::IPCResult RecvPaintTime(const uint64_t& aTransactionId,
+                                                const TimeDuration& aPaintTime) override;
 
-  virtual bool RecvUpdate(EditArray&& cset,
-                          OpDestroyArray&& aToDestroy,
-                          const uint64_t& aFwdTransactionId,
-                          const uint64_t& aTransactionId,
-                          const TargetConfig& targetConfig,
-                          PluginsArray&& aPlugins,
-                          const bool& isFirstPaint,
-                          const bool& scheduleComposite,
-                          const uint32_t& paintSequenceNumber,
-                          const bool& isRepeatTransaction,
-                          const mozilla::TimeStamp& aTransactionStart,
-                          const int32_t& aPaintSyncId,
-                          EditReplyArray* reply) override;
+  virtual mozilla::ipc::IPCResult RecvInitReadLocks(ReadLockArray&& aReadLocks) override;
+  virtual mozilla::ipc::IPCResult RecvUpdate(const TransactionInfo& aInfo) override;
 
-  virtual bool RecvUpdateNoSwap(EditArray&& cset,
-                                OpDestroyArray&& aToDestroy,
-                                const uint64_t& aFwdTransactionId,
-                                const uint64_t& aTransactionId,
-                                const TargetConfig& targetConfig,
-                                PluginsArray&& aPlugins,
-                                const bool& isFirstPaint,
-                                const bool& scheduleComposite,
-                                const uint32_t& paintSequenceNumber,
-                                const bool& isRepeatTransaction,
-                                const mozilla::TimeStamp& aTransactionStart,
-                                const int32_t& aPaintSyncId) override;
+  virtual mozilla::ipc::IPCResult RecvSetLayerObserverEpoch(const uint64_t& aLayerObserverEpoch) override;
+  virtual mozilla::ipc::IPCResult RecvNewCompositable(const CompositableHandle& aHandle,
+                                                      const TextureInfo& aInfo) override;
+  virtual mozilla::ipc::IPCResult RecvReleaseLayer(const LayerHandle& aHandle) override;
+  virtual mozilla::ipc::IPCResult RecvReleaseCompositable(const CompositableHandle& aHandle) override;
 
-  virtual bool RecvSetLayerObserverEpoch(const uint64_t& aLayerObserverEpoch) override;
-
-  virtual bool RecvClearCachedResources() override;
-  virtual bool RecvForceComposite() override;
-  virtual bool RecvSetTestSampleTime(const TimeStamp& aTime) override;
-  virtual bool RecvLeaveTestMode() override;
-  virtual bool RecvGetAnimationOpacity(PLayerParent* aParent,
-                                       float* aOpacity,
-                                       bool* aHasAnimationOpacity) override;
-  virtual bool RecvGetAnimationTransform(PLayerParent* aParent,
-                                         MaybeTransform* aTransform)
+  virtual mozilla::ipc::IPCResult RecvClearCachedResources() override;
+  virtual mozilla::ipc::IPCResult RecvForceComposite() override;
+  virtual mozilla::ipc::IPCResult RecvSetTestSampleTime(const TimeStamp& aTime) override;
+  virtual mozilla::ipc::IPCResult RecvLeaveTestMode() override;
+  virtual mozilla::ipc::IPCResult RecvGetAnimationOpacity(const uint64_t& aCompositorAnimationsId,
+                                                          float* aOpacity,
+                                                          bool* aHasAnimationOpacity) override;
+  virtual mozilla::ipc::IPCResult RecvGetAnimationTransform(const uint64_t& aCompositorAnimationsId,
+                                                            MaybeTransform* aTransform)
                                          override;
-  virtual bool RecvSetAsyncScrollOffset(const FrameMetrics::ViewID& aId,
-                                        const float& aX, const float& aY) override;
-  virtual bool RecvSetAsyncZoom(const FrameMetrics::ViewID& aId,
-                                const float& aValue) override;
-  virtual bool RecvFlushApzRepaints() override;
-  virtual bool RecvGetAPZTestData(APZTestData* aOutData) override;
-  virtual bool RecvRequestProperty(const nsString& aProperty, float* aValue) override;
-  virtual bool RecvSetConfirmedTargetAPZC(const uint64_t& aBlockId,
-                                          nsTArray<ScrollableLayerGuid>&& aTargets) override;
+  virtual mozilla::ipc::IPCResult RecvSetAsyncScrollOffset(const FrameMetrics::ViewID& aId,
+                                                           const float& aX, const float& aY) override;
+  virtual mozilla::ipc::IPCResult RecvSetAsyncZoom(const FrameMetrics::ViewID& aId,
+                                                   const float& aValue) override;
+  virtual mozilla::ipc::IPCResult RecvFlushApzRepaints() override;
+  virtual mozilla::ipc::IPCResult RecvGetAPZTestData(APZTestData* aOutData) override;
+  virtual mozilla::ipc::IPCResult RecvRequestProperty(const nsString& aProperty, float* aValue) override;
+  virtual mozilla::ipc::IPCResult RecvSetConfirmedTargetAPZC(const uint64_t& aBlockId,
+                                                             nsTArray<ScrollableLayerGuid>&& aTargets) override;
+  virtual mozilla::ipc::IPCResult RecvRecordPaintTimes(const PaintTiming& aTiming) override;
+  virtual mozilla::ipc::IPCResult RecvGetTextureFactoryIdentifier(TextureFactoryIdentifier* aIdentifier) override;
 
-  virtual PLayerParent* AllocPLayerParent() override;
-  virtual bool DeallocPLayerParent(PLayerParent* actor) override;
-
-  virtual PCompositableParent* AllocPCompositableParent(const TextureInfo& aInfo) override;
-  virtual bool DeallocPCompositableParent(PCompositableParent* actor) override;
+  bool SetLayerAttributes(const OpSetLayerAttributes& aOp);
 
   virtual void ActorDestroy(ActorDestroyReason why) override;
 
-  bool Attach(ShadowLayerParent* aLayerParent,
-              CompositableHost* aCompositable,
-              bool aIsAsyncVideo);
+  template <typename T>
+  bool BindLayer(const RefPtr<Layer>& aLayer, const T& aCreateOp) {
+    return BindLayerToHandle(aLayer, aCreateOp.layer());
+  }
+
+  bool BindLayerToHandle(RefPtr<Layer> aLayer, const LayerHandle& aHandle);
+
+  Layer* AsLayer(const LayerHandle& aLayer);
+
+  bool Attach(Layer* aLayer, CompositableHost* aCompositable, bool aIsAsyncVideo);
 
   void AddIPDLReference() {
     MOZ_ASSERT(mIPCOpen == false);
@@ -191,11 +170,24 @@ protected:
   friend class layout::RenderFrameParent;
 
 private:
-  RefPtr<LayerManagerComposite> mLayerManager;
+  // This is a function so we can log or breakpoint on why hit
+  // testing tree changes are made.
+  void UpdateHitTestingTree(Layer* aLayer, const char* aWhy) {
+    mUpdateHitTestingTree = true;
+  }
+
+private:
+  RefPtr<HostLayerManager> mLayerManager;
   CompositorBridgeParentBase* mCompositorBridge;
+  RefPtr<CompositorAnimationStorage> mAnimStorage;
+
   // Hold the root because it might be grafted under various
   // containers in the "real" layer tree
   RefPtr<Layer> mRoot;
+
+  // Mapping from LayerHandles to Layers.
+  nsRefPtrHashtable<nsUint64HashKey, Layer> mLayerMap;
+
   // When this is nonzero, it refers to a layer tree owned by the
   // compositor thread.  It is always true that
   //   mId != 0 => mRoot == null
@@ -210,10 +202,8 @@ private:
   uint64_t mParentEpoch;
 
   uint64_t mPendingTransaction;
-
-  // Number of compositor updates we're waiting for the child to
-  // acknowledge.
-  uint32_t mPendingCompositorUpdates;
+  TimeStamp mTxnStartTime;
+  TimeStamp mFwdTime;
 
   // When the widget/frame/browser stuff in this process begins its
   // destruction process, we need to Disconnect() all the currently
@@ -230,8 +220,11 @@ private:
   // transactions posted by the child.
 
   bool mDestroyed;
-
   bool mIPCOpen;
+
+  // This is set during RecvUpdate to track whether we'll need to update
+  // APZ's hit test regions.
+  bool mUpdateHitTestingTree;
 };
 
 } // namespace layers

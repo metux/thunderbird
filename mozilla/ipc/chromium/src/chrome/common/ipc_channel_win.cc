@@ -24,7 +24,7 @@
 #ifdef DEBUG
 #define ASSERT_OWNINGTHREAD(_class) \
   if (nsAutoOwningThread* owningThread = _mOwningThread.get()) {               \
-    NS_CheckThreadSafe(owningThread->GetThread(), #_class " not thread-safe"); \
+    owningThread->AssertOwnership(#_class " not thread-safe"); \
   }
 #else
 #define ASSERT_OWNINGTHREAD(_class) ((void)0)
@@ -219,6 +219,7 @@ bool Channel::ChannelImpl::CreatePipe(const std::wstring& channel_id,
   if (pipe_ == INVALID_HANDLE_VALUE) {
     // If this process is being closed, the pipe may be gone already.
     CHROMIUM_LOG(WARNING) << "failed to create pipe: " << GetLastError();
+    closed_ = true;
     return false;
   }
 

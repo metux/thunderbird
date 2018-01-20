@@ -8,7 +8,6 @@
 
 #include "mozilla/MemoryReporting.h"
 #include "nsIURI.h"
-#include "nsIURIWithQuery.h"
 #include "nsISerializable.h"
 #include "nsString.h"
 #include "nsIClassInfo.h"
@@ -28,7 +27,7 @@ namespace net {
 }
 
 class nsSimpleURI
-    : public nsIURIWithQuery
+    : public nsIURI
     , public nsISerializable
     , public nsIClassInfo
     , public nsIMutable
@@ -41,15 +40,21 @@ protected:
 public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIURI
-    NS_DECL_NSIURIWITHQUERY
     NS_DECL_NSISERIALIZABLE
     NS_DECL_NSICLASSINFO
     NS_DECL_NSIMUTABLE
     NS_DECL_NSIIPCSERIALIZABLEURI
 
+    static already_AddRefed<nsSimpleURI> From(nsIURI* aURI);
+
     // nsSimpleURI methods:
 
     nsSimpleURI();
+
+    bool Equals(nsSimpleURI* aOther)
+    {
+      return EqualsInternal(aOther, eHonorRef);
+    }
 
     // nsISizeOf
     // Among the sub-classes that inherit (directly or indirectly) from
@@ -94,7 +99,9 @@ protected:
     virtual nsresult CloneInternal(RefHandlingEnum refHandlingMode,
                                    const nsACString &newRef,
                                    nsIURI** clone);
-    
+
+    nsresult SetPathQueryRefEscaped(const nsACString &aPath, bool aNeedsEscape);
+
     nsCString mScheme;
     nsCString mPath; // NOTE: mPath does not include ref, as an optimization
     nsCString mRef;  // so that URIs with different refs can share string data.

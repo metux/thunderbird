@@ -50,7 +50,7 @@ nsScreen::~nsScreen()
 
 
 // QueryInterface implementation for nsScreen
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(nsScreen)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsScreen)
   NS_INTERFACE_MAP_ENTRY(nsIDOMScreen)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
@@ -92,16 +92,10 @@ nsScreen::GetPixelDepth(ErrorResult& aRv)
 
 FORWARD_LONG_GETTER(AvailWidth)
 FORWARD_LONG_GETTER(AvailHeight)
-FORWARD_LONG_GETTER(Width)
-FORWARD_LONG_GETTER(Height)
 
 FORWARD_LONG_GETTER(Top)
-FORWARD_LONG_GETTER(Left)
 FORWARD_LONG_GETTER(AvailTop)
 FORWARD_LONG_GETTER(AvailLeft)
-
-FORWARD_LONG_GETTER(PixelDepth)
-FORWARD_LONG_GETTER(ColorDepth)
 
 nsPIDOMWindowOuter*
 nsScreen::GetOuter() const
@@ -143,8 +137,8 @@ nsScreen::GetRect(nsRect& aRect)
   aRect.x = NSToIntRound(screenTopLeftDesk.x);
   aRect.y = NSToIntRound(screenTopLeftDesk.y);
 
-  aRect.height = nsPresContext::AppUnitsToIntCSSPixels(aRect.height);
-  aRect.width = nsPresContext::AppUnitsToIntCSSPixels(aRect.width);
+  aRect.SetHeight(nsPresContext::AppUnitsToIntCSSPixels(aRect.Height()));
+  aRect.SetWidth(nsPresContext::AppUnitsToIntCSSPixels(aRect.Width()));
 
   return NS_OK;
 }
@@ -178,8 +172,8 @@ nsScreen::GetAvailRect(nsRect& aRect)
   aRect.y = NSToIntRound(screenTopLeftDesk.y) +
             nsPresContext::AppUnitsToIntCSSPixels(aRect.y - r.y);
 
-  aRect.height = nsPresContext::AppUnitsToIntCSSPixels(aRect.height);
-  aRect.width = nsPresContext::AppUnitsToIntCSSPixels(aRect.width);
+  aRect.SetHeight(nsPresContext::AppUnitsToIntCSSPixels(aRect.Height()));
+  aRect.SetWidth(nsPresContext::AppUnitsToIntCSSPixels(aRect.Width()));
 
   return NS_OK;
 }
@@ -191,9 +185,10 @@ nsScreen::Orientation() const
 }
 
 void
-nsScreen::GetMozOrientation(nsString& aOrientation) const
+nsScreen::GetMozOrientation(nsString& aOrientation,
+                            CallerType aCallerType) const
 {
-  switch (mScreenOrientation->DeviceType()) {
+  switch (mScreenOrientation->DeviceType(aCallerType)) {
   case OrientationType::Portrait_primary:
     aOrientation.AssignLiteral("portrait-primary");
     break;
@@ -209,15 +204,6 @@ nsScreen::GetMozOrientation(nsString& aOrientation) const
   default:
     MOZ_CRASH("Unacceptable screen orientation type.");
   }
-}
-
-NS_IMETHODIMP
-nsScreen::GetSlowMozOrientation(nsAString& aOrientation)
-{
-  nsString orientation;
-  GetMozOrientation(orientation);
-  aOrientation = orientation;
-  return NS_OK;
 }
 
 static void

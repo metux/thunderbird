@@ -87,7 +87,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //// Globals
 
-const Promise = require("promise");
 const defer = require("devtools/shared/defer");
 
 // The following error types are considered programmer errors, which should be
@@ -158,7 +157,7 @@ var Task = {
    *         called when the task terminates.
    */
   spawn: function (task) {
-    return createAsyncFunction(task).call(undefined);
+    return createAsyncFunction(task)();
   },
 
   /**

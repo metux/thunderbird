@@ -18,6 +18,8 @@
     <script type="application/javascript" src="chrome://messenger/content/am-identity-edit.js"/>
     <script type="application/javascript" src="chrome://messenger/content/am-main.js"/>
     <script type="application/javascript" src="chrome://messenger/content/am-prefs.js"/>
+    <script type="application/javascript"
+            src="chrome://messenger/content/amUtils.js"/>
 
     <broadcaster id="broadcaster_attachSignature"/>
 
@@ -117,9 +119,10 @@
       </hbox>
 
       <separator class="thin"/>
+
+      <label value="&smtpName.label;" control="identity.smtpServerKey"
+             accesskey="&smtpName.accesskey;"/>
       <hbox align="center">
-        <label value="&smtpName.label;" control="identity.smtpServerKey"
-               accesskey="&smtpName.accesskey;"/>
         <menulist wsm_persist="true" id="identity.smtpServerKey" flex="1"
                   pref="true" preftype="string" prefattribute="value"
                   prefstring="mail.identity.%identitykey%.smtpServer">
@@ -129,6 +132,10 @@
             <!-- list will be inserted here -->
           </menupopup>
         </menulist>
+        <button id="editSmtp"
+                label="&smtpServerEdit.label;"
+                accesskey="&smtpServerEdit.accesskey;"
+                oncommand="editCurrentSMTP();"/>
       </hbox>
     </groupbox>
 

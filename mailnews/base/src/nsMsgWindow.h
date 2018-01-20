@@ -10,12 +10,12 @@
 #include "nsIMsgStatusFeedback.h"
 #include "nsITransactionManager.h"
 #include "nsIMsgFolder.h"
+#include "nsCOMPtr.h"
 #include "nsIDocShell.h"
 #include "nsIURIContentListener.h"
 #include "nsIMimeMiscStatus.h"
 #include "nsWeakReference.h"
 #include "nsIInterfaceRequestor.h"
-#include "nsCOMPtr.h"
 
 class nsMsgWindow : public nsIMsgWindow,
                     public nsIURIContentListener,
@@ -51,7 +51,7 @@ protected:
   // let's not make this a strong ref - we don't own it.
   nsWeakPtr mRootDocShellWeak;
   nsWeakPtr mMessageWindowDocShellWeak;
-  nsWeakPtr mDomWindow; 
+  nsWeakPtr mDomWindow;
 
   nsCString mMailCharacterSet;
   bool      mCharsetOverride;

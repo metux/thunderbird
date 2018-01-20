@@ -15,7 +15,7 @@
 #include "nsICryptoHash.h"
 #include "nsICMSMessage.h"
 #include "nsIMutableArray.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIOutputStream.h"
 #include "nsAutoPtr.h"
 
@@ -68,10 +68,10 @@ private:
   nsresult MimeFinishEncryption (bool aSign, nsIMsgSendReport *sendReport);
   nsresult MimeCryptoHackCerts(const char *aRecipients, nsIMsgSendReport *sendReport, bool aEncrypt, bool aSign, nsIMsgIdentity *aIdentity);
   bool InitializeSMIMEBundle();
-  nsresult SMIMEBundleFormatStringFromName(const char16_t *name,
+  nsresult SMIMEBundleFormatStringFromName(const char *name,
 					   const char16_t **params,
 					   uint32_t numParams,
-					   char16_t **outString);
+					   nsAString& outString);
   nsresult ExtractEncryptionState(nsIMsgIdentity * aIdentity, nsIMsgCompFields * aComposeFields, bool * aSignMessage, bool * aEncrypt);
 
   mimeDeliveryCryptoState mCryptoState;
@@ -100,7 +100,7 @@ private:
 
   bool mErrorAlreadyReported;
   void SetError(nsIMsgSendReport *sendReport, const char16_t *bundle_string);
-  void SetErrorWithParam(nsIMsgSendReport *sendReport, const char16_t *bundle_string, const char *param);
+  void SetErrorWithParam(nsIMsgSendReport *sendReport, const char *bundle_string, const char *param);
 };
 
 #endif

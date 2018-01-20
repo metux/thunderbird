@@ -61,8 +61,8 @@ var gTestArray =
     let enumerator = gMoveFolder.msgDatabase.EnumerateMessages();
     let firstMsgHdr = enumerator.getNext().QueryInterface(Ci.nsIMsgDBHdr);
     let secondMsgHdr = enumerator.getNext().QueryInterface(Ci.nsIMsgDBHdr);
-    messages.appendElement(firstMsgHdr, false);
-    messages.appendElement(secondMsgHdr, false);
+    messages.appendElement(firstMsgHdr);
+    messages.appendElement(secondMsgHdr);
     let promiseCopyListener = new PromiseTestUtils.PromiseCopyListener();
     MailServices.copy.CopyMessages(gMoveFolder, messages, gMoveFolder2, false,
                                    promiseCopyListener, null, false);
@@ -114,7 +114,7 @@ function run_test()
   gMoveFolder = localAccountUtils.rootFolder.createLocalSubfolder("MoveFolder");
   gMoveFolder2 = localAccountUtils.rootFolder.createLocalSubfolder("MoveFolder2");
 
-  gTestArray.forEach(add_task);
+  gTestArray.forEach(x => add_task(x));
   run_next_test();
 }
 

@@ -78,7 +78,8 @@ static MOZ_ALWAYS_INLINE int32_t
 JSID_TO_INT(jsid id)
 {
     MOZ_ASSERT(JSID_IS_INT(id));
-    return ((uint32_t)JSID_BITS(id)) >> 1;
+    uint32_t bits = static_cast<uint32_t>(JSID_BITS(id)) >> 1;
+    return static_cast<int32_t>(bits);
 }
 
 #define JSID_INT_MIN  0
@@ -95,7 +96,8 @@ INT_TO_JSID(int32_t i)
 {
     jsid id;
     MOZ_ASSERT(INT_FITS_IN_JSID(i));
-    JSID_BITS(id) = ((i << 1) | JSID_TYPE_INT);
+    uint32_t bits = (static_cast<uint32_t>(i) << 1) | JSID_TYPE_INT;
+    JSID_BITS(id) = static_cast<size_t>(bits);
     return id;
 }
 
@@ -169,6 +171,9 @@ struct GCPolicy<jsid>
     static void trace(JSTracer* trc, jsid* idp, const char* name) {
         js::UnsafeTraceManuallyBarrieredEdge(trc, idp, name);
     }
+    static bool isValid(jsid id) {
+        return !JSID_IS_GCTHING(id) || js::gc::IsCellPointerValid(JSID_TO_GCTHING(id).asCell());
+    }
 };
 
 } // namespace JS
@@ -178,6 +183,13 @@ namespace js {
 template <>
 struct BarrierMethods<jsid>
 {
+    static gc::Cell* asGCThingOrNull(jsid id) {
+        if (JSID_IS_STRING(id))
+            return reinterpret_cast<gc::Cell*>(JSID_TO_STRING(id));
+        if (JSID_IS_SYMBOL(id))
+            return reinterpret_cast<gc::Cell*>(JSID_TO_SYMBOL(id));
+        return nullptr;
+    }
     static void postBarrier(jsid* idp, jsid prev, jsid next) {}
     static void exposeToJS(jsid id) {
         if (JSID_IS_GCTHING(id))

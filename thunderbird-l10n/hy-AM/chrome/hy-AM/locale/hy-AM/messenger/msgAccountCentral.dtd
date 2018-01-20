@@ -26,3 +26,6 @@
 <!ENTITY filtersLink.label            "Կառավարել նամակի զտիչները">
 <!ENTITY junkSettings.label           "Թափոն նամակի կարգավորումներ">
 <!ENTITY offlineLink.label            "Անցանց կարգավորումներ">
+
+<!ENTITY setupNewAcct.label           "Set up an account:">
+

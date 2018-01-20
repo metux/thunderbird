@@ -64,6 +64,10 @@ Zgjidhni ping:
 Ping më të vjetër &gt;&gt;
 ">
 
+<!ENTITY aboutTelemetry.rawPingData "
+Të dhëna të papërpunuara pingjesh ...
+">
+
 <!ENTITY aboutTelemetry.archiveWeekHeader "
 Javë
 ">
@@ -96,6 +100,7 @@ Ping
   Ngecje Rrjedhe
 ">
 
+
 <!ENTITY aboutTelemetry.scalarsSection "
   Skalarë
 ">
@@ -110,6 +115,10 @@ Ping
 
 <!ENTITY aboutTelemetry.keyedHistogramsSection "
   Histograme Me Kyç
+">
+
+<!ENTITY aboutTelemetry.eventsSection "
+  Akte
 ">
 
 <!ENTITY aboutTelemetry.simpleMeasurementsSection "
@@ -128,8 +137,6 @@ Ping
   Të dhëna Sesioni
 ">
 
-
-
 <!ENTITY aboutTelemetry.addonHistogramsSection "
   Histograme të Grumbulluara nga Shtesat
 ">
@@ -146,13 +153,7 @@ Ping
   SHËNIM: Diagnostikimi i Ngadalësisë në SQL është i aktivizuar. Vargjet e plota SQL mund të shfaqen më poshtë, por ato nuk do t&apos;i parashtrohen Telemetry-së.
 ">
 
-<!ENTITY aboutTelemetry.fetchSymbols "
-  Sill emra funksionesh nga stack-e ngecjesh
-">
 
-<!ENTITY aboutTelemetry.hideSymbols "
-  Shfaq të dhëna ngecjesh të papërpunuara
-">
 
 <!ENTITY aboutTelemetry.filterText "
   Filtroni (vargje ose /regexp/)
@@ -166,6 +167,22 @@ Ping
   Ngarkesë e Papërpunuar
 ">
 
-<!ENTITY aboutTelemetry.rawPingData "
-Të dhëna të papërpunuara pingjesh ...
-">
+<!ENTITY aboutTelemetry.archivePingType "Ping Type">
+<!ENTITY aboutTelemetry.optionGroupToday "Today">
+<!ENTITY aboutTelemetry.optionGroupYesterday "Yesterday">
+<!ENTITY aboutTelemetry.optionGroupOlder "Older">
+<!ENTITY aboutTelemetry.previousPing "&lt;&lt;">
+<!ENTITY aboutTelemetry.nextPing "&gt;&gt;">
+
+<!ENTITY aboutTelemetry.moreInformations "Looking for more information?">
+<!ENTITY aboutTelemetry.firefoxDataDoc "The <a>Firefox Data Documentation</a> contains guides about how to work with our data tools.">
+<!ENTITY aboutTelemetry.telemetryClientDoc "The <a>Firefox Telemetry client documentation</a> includes definitions for concepts, API documentation and data references.">
+<!ENTITY aboutTelemetry.telemetryDashboard "The <a>Telemetry dashboards</a> allow you to visualize the data Mozilla receives via Telemetry.">
+
+<!ENTITY aboutTelemetry.showInFirefoxJsonViewer "Open in the JSON viewer">
+
+<!ENTITY aboutTelemetry.homeSection "Home">
+<!ENTITY aboutTelemetry.capturedStacksSection "Captured Stacks">
+<!ENTITY aboutTelemetry.rawPayloadSection "Raw Payload">
+<!ENTITY aboutTelemetry.fetchStackSymbols "Fetch function names for stacks">
+<!ENTITY aboutTelemetry.hideStackSymbols "Show raw stack data">

@@ -128,16 +128,16 @@
 
   <div id="output">
     <div class="summary clearfix">
-      <h4>Progress
-        <span id="manifest">updating and loading test manifest; this may take several minutes</span>
-      </h4>
+      <h4>Progress</h4>
       <div class="progress">
         <div class="progress-bar" role="progressbar"
              aria-valuenow="0" aria-valuemin="0" aria-valuemax="0" style="width: 0">
           0%
         </div>
       </div>
-      <div id='test_url'></div>
+      <div id="current_test">
+        <label>Current test:</label><a></a>
+      </div>
       <table class='table'>
         <thead>
           <tr>
@@ -195,6 +195,7 @@
           <div class="panel-footer">
             The test has:
             <button class="btn btn-success pass">Passed</button>
+            <button class="btn btn-info skip">Not Run</button>
             <button class="btn btn-danger fail">Failed</button>
           </div>
         </div>

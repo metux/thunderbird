@@ -37,6 +37,15 @@ interface nsIMsgFolder : nsISupports {
   const nsMsgBiffState nsMsgBiffState_NoMail =  1; // No new mail is waiting.
   const nsMsgBiffState nsMsgBiffState_Unknown = 2; // We dunno whether there is new mail.
 
+  /* folder name properties */
+  readonly attribute ACString URI;
+  attribute AString name;
+  attribute AString prettyName;
+  readonly attribute AString abbreviatedName;
+  /* @deprecated */ readonly attribute AString prettiestName;
+
+  attribute nsIMsgFolder parent;
+
   /// Returns an enumerator containing the messages within the current database.
   readonly attribute nsISimpleEnumerator messages;
 
@@ -45,8 +54,6 @@ interface nsIMsgFolder : nsISupports {
 
   /* get new headers for db */
   void updateFolder(in nsIMsgWindow aWindow);
-
-  readonly attribute AString prettiestName;
 
   /**
    * URL for this folder
@@ -583,8 +590,7 @@ interface nsIMsgFolder : nsISupports {
    *  unread message counts.
    */
   const unsigned long allMessageCountNotifications    = 0;
-  void enableNotifications(in long notificationType, in boolean enable,
-                           in boolean dbBatching);
+  void enableNotifications(in long notificationType, in boolean enable);
   boolean isCommandEnabled(in ACString command);
   boolean matchOrChangeFilterDestination(in nsIMsgFolder folder,
                                          in boolean caseInsensitive);
@@ -616,14 +622,6 @@ interface nsIMsgFolder : nsISupports {
 
   /* does not persist across sessions */
   attribute nsMsgKey lastMessageLoaded;
-
-  /* old nsIFolder properties and methods */
-  readonly attribute ACString URI;
-  attribute AString name;
-  attribute AString prettyName;
-  readonly attribute AString abbreviatedName;
-
-  attribute nsIMsgFolder parent;
 
   /**
    * Returns an enumerator containing a list of nsIMsgFolder items that are
@@ -676,27 +674,27 @@ interface nsIMsgFolder : nsISupports {
 
   void AddFolderListener(in nsIFolderListener listener);
   void RemoveFolderListener(in nsIFolderListener listener);
-  void NotifyPropertyChanged(in nsIAtom property,
+  void NotifyPropertyChanged(in ACString property,
                              in ACString oldValue,
                              in ACString newValue);
-  void NotifyIntPropertyChanged(in nsIAtom property,
+  void NotifyIntPropertyChanged(in ACString property,
                                 in long long oldValue,
                                 in long long newValue);
-  void NotifyBoolPropertyChanged(in nsIAtom property,
+  void NotifyBoolPropertyChanged(in ACString property,
                                  in boolean oldValue,
                                  in boolean newValue);
   void NotifyPropertyFlagChanged(in nsIMsgDBHdr item,
-                                 in nsIAtom property,
+                                 in ACString property,
                                  in unsigned long oldValue,
                                  in unsigned long newValue);
-  void NotifyUnicharPropertyChanged(in nsIAtom property,
+  void NotifyUnicharPropertyChanged(in ACString property,
                                     in AString oldValue,
                                     in AString newValue);
 
   void NotifyItemAdded(in nsISupports item);
   void NotifyItemRemoved(in nsISupports item);
 
-  void NotifyFolderEvent(in nsIAtom event);
+  void NotifyFolderEvent(in ACString event);
 
   //  void NotifyFolderLoaded();
   //  void NotifyDeleteOrMoveMessagesCompleted(in nsIMsgFolder folder);

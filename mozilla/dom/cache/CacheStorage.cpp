@@ -50,11 +50,10 @@ NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(mozilla::dom::cache::CacheStorage,
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(CacheStorage)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
   NS_INTERFACE_MAP_ENTRY(nsISupports)
-  NS_INTERFACE_MAP_ENTRY(nsIIPCBackgroundChildCreateCallback)
 NS_INTERFACE_MAP_END
 
 // We cannot reference IPC types in a webidl binding implementation header.  So
-// define this in the .cpp and use heap storage in the mPendingRequests list.
+// define this in the .cpp.
 struct CacheStorage::Entry final
 {
   RefPtr<Promise> mPromise;
@@ -76,14 +75,7 @@ IsTrusted(const PrincipalInfo& aPrincipalInfo, bool aTestingPrefEnabled)
   }
 
   // Require a ContentPrincipal to avoid null principal, etc.
-  //
-  // Also, an unknown appId means that this principal was created for the
-  // codebase without all the security information from the end document or
-  // worker.  We require exact knowledge of this information before allowing
-  // the caller to touch the disk using the Cache API.
-  if (NS_WARN_IF(aPrincipalInfo.type() != PrincipalInfo::TContentPrincipalInfo ||
-                 aPrincipalInfo.get_ContentPrincipalInfo().attrs().mAppId ==
-                 nsIScriptSecurityManager::UNKNOWN_APP_ID)) {
+  if (NS_WARN_IF(aPrincipalInfo.type() != PrincipalInfo::TContentPrincipalInfo)) {
     return false;
   }
 
@@ -202,7 +194,8 @@ CacheStorage::CreateOnWorker(Namespace aNamespace, nsIGlobalObject* aGlobal,
   }
 
   RefPtr<CacheWorkerHolder> workerHolder =
-    CacheWorkerHolder::Create(aWorkerPrivate);
+    CacheWorkerHolder::Create(aWorkerPrivate,
+                              CacheWorkerHolder::AllowIdleShutdownStart);
   if (!workerHolder) {
     NS_WARNING("Worker thread is shutting down.");
     aRv.Throw(NS_ERROR_FAILURE);
@@ -281,7 +274,6 @@ CacheStorage::CacheStorage(Namespace aNamespace, nsIGlobalObject* aGlobal,
   : mNamespace(aNamespace)
   , mGlobal(aGlobal)
   , mPrincipalInfo(MakeUnique<PrincipalInfo>(aPrincipalInfo))
-  , mWorkerHolder(aWorkerHolder)
   , mActor(nullptr)
   , mStatus(NS_OK)
 {
@@ -289,19 +281,26 @@ CacheStorage::CacheStorage(Namespace aNamespace, nsIGlobalObject* aGlobal,
 
   // If the PBackground actor is already initialized then we can
   // immediately use it
-  PBackgroundChild* actor = BackgroundChild::GetForCurrentThread();
-  if (actor) {
-    ActorCreated(actor);
+  PBackgroundChild* actor = BackgroundChild::GetOrCreateForCurrentThread();
+  if (NS_WARN_IF(!actor)) {
+    mStatus = NS_ERROR_UNEXPECTED;
     return;
   }
 
-  // Otherwise we must begin the PBackground initialization process and
-  // wait for the async ActorCreated() callback.
-  MOZ_ASSERT(NS_IsMainThread());
-  bool ok = BackgroundChild::GetOrCreateForCurrentThread(this);
-  if (NS_WARN_IF(!ok)) {
-    ActorFailed();
+  // WorkerHolder ownership is passed to the CacheStorageChild actor and any
+  // actors it may create.  The WorkerHolder will keep the worker thread alive
+  // until the actors can gracefully shutdown.
+  CacheStorageChild* newActor = new CacheStorageChild(this, aWorkerHolder);
+  PCacheStorageChild* constructedActor =
+    actor->SendPCacheStorageConstructor(newActor, mNamespace, *mPrincipalInfo);
+
+  if (NS_WARN_IF(!constructedActor)) {
+    mStatus = NS_ERROR_UNEXPECTED;
+    return;
   }
+
+  MOZ_DIAGNOSTIC_ASSERT(constructedActor == newActor);
+  mActor = newActor;
 }
 
 CacheStorage::CacheStorage(nsresult aFailureResult)
@@ -313,7 +312,7 @@ CacheStorage::CacheStorage(nsresult aFailureResult)
 }
 
 already_AddRefed<Promise>
-CacheStorage::Match(const RequestOrUSVString& aRequest,
+CacheStorage::Match(JSContext* aCx, const RequestOrUSVString& aRequest,
                     const CacheQueryOptions& aOptions, ErrorResult& aRv)
 {
   NS_ASSERT_OWNINGTHREAD(CacheStorage);
@@ -323,8 +322,8 @@ CacheStorage::Match(const RequestOrUSVString& aRequest,
     return nullptr;
   }
 
-  RefPtr<InternalRequest> request = ToInternalRequest(aRequest, IgnoreBody,
-                                                        aRv);
+  RefPtr<InternalRequest> request =
+    ToInternalRequest(aCx, aRequest, IgnoreBody, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
@@ -339,11 +338,10 @@ CacheStorage::Match(const RequestOrUSVString& aRequest,
 
   nsAutoPtr<Entry> entry(new Entry());
   entry->mPromise = promise;
-  entry->mArgs = StorageMatchArgs(CacheRequest(), params);
+  entry->mArgs = StorageMatchArgs(CacheRequest(), params, GetOpenMode());
   entry->mRequest = request;
 
-  mPendingRequests.AppendElement(entry.forget());
-  MaybeRunPendingRequests();
+  RunRequest(Move(entry));
 
   return promise.forget();
 }
@@ -367,8 +365,7 @@ CacheStorage::Has(const nsAString& aKey, ErrorResult& aRv)
   entry->mPromise = promise;
   entry->mArgs = StorageHasArgs(nsString(aKey));
 
-  mPendingRequests.AppendElement(entry.forget());
-  MaybeRunPendingRequests();
+  RunRequest(Move(entry));
 
   return promise.forget();
 }
@@ -392,8 +389,7 @@ CacheStorage::Open(const nsAString& aKey, ErrorResult& aRv)
   entry->mPromise = promise;
   entry->mArgs = StorageOpenArgs(nsString(aKey));
 
-  mPendingRequests.AppendElement(entry.forget());
-  MaybeRunPendingRequests();
+  RunRequest(Move(entry));
 
   return promise.forget();
 }
@@ -417,8 +413,7 @@ CacheStorage::Delete(const nsAString& aKey, ErrorResult& aRv)
   entry->mPromise = promise;
   entry->mArgs = StorageDeleteArgs(nsString(aKey));
 
-  mPendingRequests.AppendElement(entry.forget());
-  MaybeRunPendingRequests();
+  RunRequest(Move(entry));
 
   return promise.forget();
 }
@@ -442,8 +437,7 @@ CacheStorage::Keys(ErrorResult& aRv)
   entry->mPromise = promise;
   entry->mArgs = StorageKeysArgs();
 
-  mPendingRequests.AppendElement(entry.forget());
-  MaybeRunPendingRequests();
+  RunRequest(Move(entry));
 
   return promise.forget();
 }
@@ -505,65 +499,18 @@ CacheStorage::WrapObject(JSContext* aContext, JS::Handle<JSObject*> aGivenProto)
 }
 
 void
-CacheStorage::ActorCreated(PBackgroundChild* aActor)
-{
-  NS_ASSERT_OWNINGTHREAD(CacheStorage);
-  MOZ_DIAGNOSTIC_ASSERT(aActor);
-
-  if (NS_WARN_IF(mWorkerHolder && mWorkerHolder->Notified())) {
-    ActorFailed();
-    return;
-  }
-
-  // WorkerHolder ownership is passed to the CacheStorageChild actor and any
-  // actors it may create.  The WorkerHolder will keep the worker thread alive
-  // until the actors can gracefully shutdown.
-  CacheStorageChild* newActor = new CacheStorageChild(this, mWorkerHolder);
-  PCacheStorageChild* constructedActor =
-    aActor->SendPCacheStorageConstructor(newActor, mNamespace, *mPrincipalInfo);
-
-  if (NS_WARN_IF(!constructedActor)) {
-    ActorFailed();
-    return;
-  }
-
-  mWorkerHolder = nullptr;
-
-  MOZ_DIAGNOSTIC_ASSERT(constructedActor == newActor);
-  mActor = newActor;
-
-  MaybeRunPendingRequests();
-  MOZ_DIAGNOSTIC_ASSERT(mPendingRequests.IsEmpty());
-}
-
-void
-CacheStorage::ActorFailed()
-{
-  NS_ASSERT_OWNINGTHREAD(CacheStorage);
-  MOZ_DIAGNOSTIC_ASSERT(!NS_FAILED(mStatus));
-
-  mStatus = NS_ERROR_UNEXPECTED;
-  mWorkerHolder = nullptr;
-
-  for (uint32_t i = 0; i < mPendingRequests.Length(); ++i) {
-    nsAutoPtr<Entry> entry(mPendingRequests[i].forget());
-    entry->mPromise->MaybeReject(NS_ERROR_UNEXPECTED);
-  }
-  mPendingRequests.Clear();
-}
-
-void
 CacheStorage::DestroyInternal(CacheStorageChild* aActor)
 {
   NS_ASSERT_OWNINGTHREAD(CacheStorage);
   MOZ_DIAGNOSTIC_ASSERT(mActor);
   MOZ_DIAGNOSTIC_ASSERT(mActor == aActor);
+  MOZ_DIAGNOSTIC_ASSERT(!NS_FAILED(mStatus));
   mActor->ClearListener();
   mActor = nullptr;
+  mStatus = NS_ERROR_UNEXPECTED;
 
   // Note that we will never get an actor again in case another request is
   // made before this object is destructed.
-  ActorFailed();
 }
 
 nsIGlobalObject*
@@ -601,26 +548,30 @@ CacheStorage::~CacheStorage()
 }
 
 void
-CacheStorage::MaybeRunPendingRequests()
+CacheStorage::RunRequest(nsAutoPtr<Entry>&& aEntry)
 {
-  if (!mActor) {
-    return;
-  }
+  MOZ_ASSERT(mActor);
 
-  for (uint32_t i = 0; i < mPendingRequests.Length(); ++i) {
+  nsAutoPtr<Entry> entry(Move(aEntry));
+
+  AutoChildOpArgs args(this, entry->mArgs, 1);
+
+  if (entry->mRequest) {
     ErrorResult rv;
-    nsAutoPtr<Entry> entry(mPendingRequests[i].forget());
-    AutoChildOpArgs args(this, entry->mArgs, 1);
-    if (entry->mRequest) {
-      args.Add(entry->mRequest, IgnoreBody, IgnoreInvalidScheme, rv);
-    }
+    args.Add(entry->mRequest, IgnoreBody, IgnoreInvalidScheme, rv);
     if (NS_WARN_IF(rv.Failed())) {
       entry->mPromise->MaybeReject(rv);
-      continue;
+      return;
     }
-    mActor->ExecuteOp(mGlobal, entry->mPromise, this, args.SendAsOpArgs());
   }
-  mPendingRequests.Clear();
+
+  mActor->ExecuteOp(mGlobal, entry->mPromise, this, args.SendAsOpArgs());
+}
+
+OpenMode
+CacheStorage::GetOpenMode() const
+{
+  return mNamespace == CHROME_ONLY_NAMESPACE ? OpenMode::Eager : OpenMode::Lazy;
 }
 
 } // namespace cache

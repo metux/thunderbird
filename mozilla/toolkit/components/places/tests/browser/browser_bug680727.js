@@ -6,8 +6,7 @@
 /* TEST_PATH=toolkit/components/places/tests/browser/browser_bug680727.js make -C $(OBJDIR) mochitest-browser-chrome */
 
 
-const kUniqueURI = Services.io.newURI("http://mochi.test:8888/#bug_680727",
-                                      null, null);
+const kUniqueURI = Services.io.newURI("http://mochi.test:8888/#bug_680727");
 var gAsyncHistory =
   Cc["@mozilla.org/browser/history;1"].getService(Ci.mozIAsyncHistory);
 
@@ -23,9 +22,7 @@ function test() {
   Services.prefs.setIntPref("network.proxy.type", 0);
 
   // Clear network cache.
-  Components.classes["@mozilla.org/netwerk/cache-storage-service;1"]
-            .getService(Components.interfaces.nsICacheStorageService)
-            .clear();
+  Services.cache2.clear();
 
   // Go offline, expecting the error page.
   Services.io.offline = true;
@@ -102,8 +99,8 @@ function reloadAsyncListener(aURI, aIsVisited) {
   PlacesTestUtils.clearHistory().then(finish);
 }
 
-registerCleanupFunction(function* () {
+registerCleanupFunction(async function() {
   Services.prefs.setIntPref("network.proxy.type", proxyPrefValue);
   Services.io.offline = false;
-  yield BrowserTestUtils.removeTab(ourTab);
+  await BrowserTestUtils.removeTab(ourTab);
 });

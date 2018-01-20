@@ -8,7 +8,7 @@
 <!ENTITY itemAntiVirus.label     "Antivírus">
 <!-- Junk Mail Controls -->
 
-<!ENTITY junkMail.intro "Configure as pré-definições para o lixo eletrónico. As definições específicas de lixo eletrónico podem ser efetuadas nas definições da conta.">
+<!ENTITY junkMail.intro "Configure as predefinições para o lixo eletrónico. As definições específicas de lixo eletrónico podem ser efetuadas nas definições da conta.">
 <!ENTITY manualMark.label "Ao marcar uma mensagem como lixo eletrónico:">
 <!ENTITY manualMark.accesskey "A">
 <!ENTITY manualMarkModeMove.label "Mover para a pasta &quot;Lixo eletrónico&quot;">
@@ -32,7 +32,7 @@
 <!ENTITY useDownloadedList.accesskey "U">
 <!-- Passwords -->
 
-<!ENTITY savedPasswords.intro           "O &brandShortName; pode guardar as palavras-passe de todas as suas contas.">
+<!ENTITY savedPasswords.intro           "O &brandShortName; pode memorizar palavras-passe para todas as suas contas.">
 <!ENTITY useMasterPassword.label        "Utilizar uma palavra-passe mestra">
 <!ENTITY useMasterPassword.accesskey    "U">
 <!ENTITY masterPassword.intro           "A palavra-passe mestra protege todas as suas palavras-passe, mas terá que a indicar uma vez por sessão.">

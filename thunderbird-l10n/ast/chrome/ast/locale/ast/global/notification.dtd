@@ -4,8 +4,9 @@
 
 <!ENTITY closeNotification.tooltip "Zarrar esti mensaxe">
 
-<!ENTITY closeNotificationItem.label "Agora non">
-
 <!ENTITY checkForUpdates "Guetar anovamientos…">
 
 <!ENTITY learnMore "Deprender más…">
+
+<!ENTITY defaultButton.label "¡VAL!">
+<!ENTITY defaultButton.accesskey "V">

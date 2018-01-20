@@ -59,7 +59,7 @@ DownloadPlatform* DownloadPlatform::GetDownloadPlatform()
   return gDownloadPlatformService;
 }
 
-#ifdef MOZ_ENABLE_GIO
+#ifdef MOZ_WIDGET_GTK
 static void gio_set_metadata_done(GObject *source_obj, GAsyncResult *res, gpointer user_data)
 {
   GError *err = nullptr;
@@ -102,7 +102,7 @@ nsresult DownloadPlatform::DownloadDone(nsIURI* aSource, nsIURI* aReferrer, nsIF
                                         const nsACString& aContentType, bool aIsPrivate)
 {
 #if defined(XP_WIN) || defined(XP_MACOSX) || defined(MOZ_WIDGET_ANDROID) \
- || defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_GONK)
+ || defined(MOZ_WIDGET_GTK)
 
   nsAutoString path;
   if (aTarget && NS_SUCCEEDED(aTarget->GetPath(path))) {
@@ -131,7 +131,7 @@ nsresult DownloadPlatform::DownloadDone(nsIURI* aSource, nsIURI* aReferrer, nsIF
 #endif
       }
 #endif
-#ifdef MOZ_ENABLE_GIO
+#ifdef MOZ_WIDGET_GTK
       // Use GIO to store the source URI for later display in the file manager.
       GFile* gio_file = g_file_new_for_path(NS_ConvertUTF16toUTF8(path).get());
       nsCString source_uri;

@@ -25,13 +25,18 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Версія">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.featuresTitle "Можливості &brandShortName;">
+<!ENTITY aboutSupport.featureName "Назва">
+<!ENTITY aboutSupport.featureVersion "Версія">
+<!ENTITY aboutSupport.featureId "ID">
+
 <!ENTITY aboutSupport.experimentsTitle "Експериментальні можливості">
 <!ENTITY aboutSupport.experimentName "Назва">
 <!ENTITY aboutSupport.experimentId "ID">
 <!ENTITY aboutSupport.experimentDescription "Опис">
 <!ENTITY aboutSupport.experimentActive "Активна">
 <!ENTITY aboutSupport.experimentEndDate "Дата завершення">
-<!ENTITY aboutSupport.experimentHomepage "Початкова сторінка">
+<!ENTITY aboutSupport.experimentHomepage "Домівка">
 <!ENTITY aboutSupport.experimentBranch "Гілка">
 
 <!ENTITY aboutSupport.appBasicsTitle "Інформація про програму">
@@ -64,6 +69,11 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsProfiles "Профілі">
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Багатопроцесні вікна">
+
+<!ENTITY aboutSupport.appBasicsProcessCount "Процеси веб-вмісту">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Ключ Google">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Ключ Служби визначення розташування від Mozilla">
 
 <!ENTITY aboutSupport.appBasicsSafeMode "Безпечний режим">
 
@@ -100,6 +110,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "Можливості доступності">
 <!ENTITY aboutSupport.a11yActivated "Активовано">
 <!ENTITY aboutSupport.a11yForceDisabled "Блокувати можливості доступності">
+<!ENTITY aboutSupport.a11yHandlerUsed "Використовується обробник доступності">
+<!ENTITY aboutSupport.a11yInstantiator "Виконуваний файл доступності">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Версії бібліотек">
 
@@ -110,6 +122,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Копіювати необроблені дані в буфер">
 
 <!ENTITY aboutSupport.sandboxTitle "Пісочниця">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Відхилені системні виклики">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "Секунд тому">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Тип процесу">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Системний виклик">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Аргументи">
 
 <!ENTITY aboutSupport.safeModeTitle "Спробувати безпечний режим">
 <!ENTITY aboutSupport.restartInSafeMode.label "Перезапустити з вимкненими додатками…">
@@ -122,3 +142,26 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Журнал рішень">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Можливості, вимкнені захистом від збоїв">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Способи обходу">
+
+<!ENTITY aboutSupport.mediaTitle "Медіа">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Пристрої відтворення">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Пристрої введення">
+<!ENTITY aboutSupport.mediaDeviceName "Назва">
+<!ENTITY aboutSupport.mediaDeviceGroup "Група">
+<!ENTITY aboutSupport.mediaDeviceVendor "Постачальник">
+<!ENTITY aboutSupport.mediaDeviceState "Стан">
+<!ENTITY aboutSupport.mediaDevicePreferred "Основний">
+<!ENTITY aboutSupport.mediaDeviceFormat "Формат">
+<!ENTITY aboutSupport.mediaDeviceChannels "Канали">
+<!ENTITY aboutSupport.mediaDeviceRate "Частота">
+<!ENTITY aboutSupport.mediaDeviceLatency "Затримка">
+
+<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
+<!ENTITY aboutSupport.intlAppTitle "Application Settings">
+<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
+<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
+<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
+<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
+<!ENTITY aboutSupport.intlOSTitle "Operating System">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">

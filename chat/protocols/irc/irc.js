@@ -71,7 +71,7 @@ function ircMessage(aData, aOrigin) {
   // here, we want to ignore the first value (which is empty).
   message.params = temp[4] ? temp[4].split(" ").slice(1) : [];
   // Last parameter can contain spaces or be an empty string.
-  if (temp[5] != undefined)
+  if (temp[5] !== undefined)
     message.params.push(temp[5]);
 
   // Handle the prefix part of the message per RFC 2812 Section 2.3.
@@ -153,6 +153,12 @@ function _setMode(aAddNewMode, aNewModes) {
   }
 }
 
+function TagMessage(aMessage, aTagName) {
+    this.message = aMessage;
+    this.tagName = aTagName;
+    this.tagValue = aMessage.tags.get(aTagName);
+}
+
 // Properties / methods shared by both ircChannel and ircConversation.
 var GenericIRCConversation = {
   _observedNicks: [],
@@ -173,6 +179,37 @@ var GenericIRCConversation = {
                       " :\r\n";
     return this._account.maxMessageLength -
            this._account.countBytes(baseMessage);
+  },
+  /**
+   * @param {string} aWho - Message author's username.
+   * @param {string} aMessage - Message text.
+   * @param {Object} aObject - Other properties to set on the imMessage.
+   */
+  handleTags: function(aWho, aMessage, aObject) {
+    let messageProps = aObject;
+    if ("tags" in aObject && ircHandlers.hasTagHandlers) {
+      // Merge extra info for the handler into the props.
+      messageProps = Object.assign({
+        who: aWho,
+        message: aMessage,
+        get originalMessage() {
+          return aMessage;
+        }
+      }, messageProps);
+      for (let tag of aObject.tags.keys()) {
+        // Unhandled tags may be common, since a tag does not have to be handled
+        // with a tag handler, it may also be handled by a message command handler.
+        ircHandlers.handleTag(this._account, new TagMessage(messageProps, tag));
+      }
+
+      // Remove helper prop for tag handlers. We don't want to remove the other
+      // ones, since they might have been changed and will override aWho and
+      // aMessage in the imMessage constructor.
+      delete messageProps.originalMessage;
+    }
+    // Remove the IRC tags, as those were passed in just for this step.
+    delete messageProps.tags;
+    return messageProps;
   },
   // Apply CTCP formatting before displaying.
   prepareForDisplaying: function(aMsg) {
@@ -545,6 +582,10 @@ ircChannel.prototype = {
     // If the channel mode is +t, hops and ops can set the topic; otherwise
     // everyone can.
     return !this._modes.has("t") || participant.op || participant.halfOp;
+  },
+  writeMessage: function(aMsg, aWho, aObject) {
+    const messageProps = this.handleTags(aMsg, aWho, aObject);
+    GenericConvChatPrototype.writeMessage.call(this, aMsg, aWho, messageProps);
   }
 };
 Object.assign(ircChannel.prototype, GenericIRCConversation);
@@ -610,6 +651,10 @@ ircConversation.prototype = {
   updateNick: function(aNewNick) {
     this._name = aNewNick;
     this.notifyObservers(null, "update-conv-title");
+  },
+  writeMessage: function(aMsg, aWho, aObject) {
+    const messageProps = this.handleTags(aMsg, aWho, aObject);
+    GenericConvIMPrototype.writeMessage.call(this, aMsg, aWho, messageProps);
   }
 };
 Object.assign(ircConversation.prototype, GenericIRCConversation);
@@ -1917,6 +1962,7 @@ function ircProtocol() {
   Cu.import("resource:///modules/ircMultiPrefix.jsm", tempScope);
   Cu.import("resource:///modules/ircNonStandard.jsm", tempScope);
   Cu.import("resource:///modules/ircSASL.jsm", tempScope);
+  Cu.import("resource:///modules/ircServerTime.jsm", tempScope);
   Cu.import("resource:///modules/ircWatchMonitor.jsm", tempScope);
 
   // Register default IRC handlers (IRC base, CTCP).
@@ -1943,6 +1989,8 @@ function ircProtocol() {
   ircHandlers.registerISUPPORTHandler(tempScope.isupportMONITOR);
   ircHandlers.registerHandler(tempScope.ircSASL);
   ircHandlers.registerCAPHandler(tempScope.capSASL);
+  ircHandlers.registerCAPHandler(tempScope.capServerTime);
+  ircHandlers.registerTagHandler(tempScope.tagServerTime);
 }
 ircProtocol.prototype = {
   __proto__: GenericProtocolPrototype,

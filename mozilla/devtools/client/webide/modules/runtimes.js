@@ -9,9 +9,8 @@ const Services = require("Services");
 const {Devices} = require("resource://devtools/shared/apps/Devices.jsm");
 const {Connection} = require("devtools/shared/client/connection-manager");
 const {DebuggerServer} = require("devtools/server/main");
-const {Simulators} = require("devtools/client/webide/modules/simulators");
 const discovery = require("devtools/shared/discovery/discovery");
-const EventEmitter = require("devtools/shared/event-emitter");
+const EventEmitter = require("devtools/shared/old-event-emitter");
 const promise = require("promise");
 loader.lazyRequireGetter(this, "AuthenticationResult",
   "devtools/shared/security/auth", true);
@@ -195,105 +194,6 @@ exports.RuntimeScanners = RuntimeScanners;
 
 /* SCANNERS */
 
-var SimulatorScanner = {
-
-  _runtimes: [],
-
-  enable() {
-    this._updateRuntimes = this._updateRuntimes.bind(this);
-    Simulators.on("updated", this._updateRuntimes);
-    this._updateRuntimes();
-  },
-
-  disable() {
-    Simulators.off("updated", this._updateRuntimes);
-  },
-
-  _emitUpdated() {
-    this.emit("runtime-list-updated");
-  },
-
-  _updateRuntimes() {
-    Simulators.findSimulators().then(simulators => {
-      this._runtimes = [];
-      for (let simulator of simulators) {
-        this._runtimes.push(new SimulatorRuntime(simulator));
-      }
-      this._emitUpdated();
-    });
-  },
-
-  scan() {
-    return promise.resolve();
-  },
-
-  listRuntimes: function () {
-    return this._runtimes;
-  }
-
-};
-
-EventEmitter.decorate(SimulatorScanner);
-RuntimeScanners.add(SimulatorScanner);
-
-/**
- * TODO: Remove this comaptibility layer in the future (bug 1085393)
- * This runtime exists to support the ADB Helper add-on below version 0.7.0.
- *
- * This scanner will list all ADB devices as runtimes, even if they may or may
- * not actually connect (since the |DeprecatedUSBRuntime| assumes a Firefox OS
- * device).
- */
-var DeprecatedAdbScanner = {
-
-  _runtimes: [],
-
-  enable() {
-    this._updateRuntimes = this._updateRuntimes.bind(this);
-    Devices.on("register", this._updateRuntimes);
-    Devices.on("unregister", this._updateRuntimes);
-    Devices.on("addon-status-updated", this._updateRuntimes);
-    this._updateRuntimes();
-  },
-
-  disable() {
-    Devices.off("register", this._updateRuntimes);
-    Devices.off("unregister", this._updateRuntimes);
-    Devices.off("addon-status-updated", this._updateRuntimes);
-  },
-
-  _emitUpdated() {
-    this.emit("runtime-list-updated");
-  },
-
-  _updateRuntimes() {
-    this._runtimes = [];
-    for (let id of Devices.available()) {
-      let runtime = new DeprecatedUSBRuntime(id);
-      this._runtimes.push(runtime);
-      runtime.updateNameFromADB().then(() => {
-        this._emitUpdated();
-      }, () => {});
-    }
-    this._emitUpdated();
-  },
-
-  scan() {
-    return promise.resolve();
-  },
-
-  listRuntimes: function () {
-    return this._runtimes;
-  }
-
-};
-
-EventEmitter.decorate(DeprecatedAdbScanner);
-RuntimeScanners.add(DeprecatedAdbScanner);
-
-// ADB Helper 0.7.0 and later will replace this scanner on startup
-exports.DeprecatedAdbScanner = DeprecatedAdbScanner;
-
 /**
  * This is a lazy ADB scanner shim which only tells the ADB Helper to start and
  * stop as needed.  The real scanner that lists devices lives in ADB Helper.
@@ -329,7 +229,7 @@ var WiFiScanner = {
 
   init() {
     this.updateRegistration();
-    Services.prefs.addObserver(this.ALLOWED_PREF, this, false);
+    Services.prefs.addObserver(this.ALLOWED_PREF, this);
   },
 
   enable() {
@@ -419,63 +319,10 @@ RuntimeScanners.add(StaticScanner);
 var RuntimeTypes = exports.RuntimeTypes = {
   USB: "USB",
   WIFI: "WIFI",
-  SIMULATOR: "SIMULATOR",
   REMOTE: "REMOTE",
   LOCAL: "LOCAL",
   OTHER: "OTHER"
 };
-
-/**
- * TODO: Remove this comaptibility layer in the future (bug 1085393)
- * This runtime exists to support the ADB Helper add-on below version 0.7.0.
- *
- * This runtime assumes it is connecting to a Firefox OS device.
- */
-function DeprecatedUSBRuntime(id) {
-  this._id = id;
-}
-
-DeprecatedUSBRuntime.prototype = {
-  type: RuntimeTypes.USB,
-  get device() {
-    return Devices.getByName(this._id);
-  },
-  connect: function (connection) {
-    if (!this.device) {
-      return promise.reject(new Error("Can't find device: " + this.name));
-    }
-    return this.device.connect().then((port) => {
-      connection.host = "localhost";
-      connection.port = port;
-      connection.connect();
-    });
-  },
-  get id() {
-    return this._id;
-  },
-  get name() {
-    return this._productModel || this._id;
-  },
-  updateNameFromADB: function () {
-    if (this._productModel) {
-      return promise.reject();
-    }
-    let deferred = promise.defer();
-    if (this.device && this.device.shell) {
-      this.device.shell("getprop ro.product.model").then(stdout => {
-        this._productModel = stdout;
-        deferred.resolve();
-      }, () => {});
-    } else {
-      this._productModel = null;
-      deferred.reject();
-    }
-    return deferred.promise;
-  },
-};
-
-// For testing use only
-exports._DeprecatedUSBRuntime = DeprecatedUSBRuntime;
 
 function WiFiRuntime(deviceName) {
   this.deviceName = deviceName;
@@ -545,15 +392,14 @@ WiFiRuntime.prototype = {
       onOpenWindow(xulWindow) {
         let win = xulWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                            .getInterface(Ci.nsIDOMWindow);
-        win.addEventListener("load", function listener() {
-          win.removeEventListener("load", listener, false);
+        win.addEventListener("load", function () {
           if (win.document.documentElement.getAttribute("id") != WINDOW_ID) {
             return;
           }
           // Found the window
           promptWindow = win;
           Services.wm.removeListener(windowListener);
-        }, false);
+        }, {once: true});
       },
       onCloseWindow() {},
       onWindowTitleChange() {}
@@ -587,35 +433,6 @@ WiFiRuntime.prototype = {
 
 // For testing use only
 exports._WiFiRuntime = WiFiRuntime;
-
-function SimulatorRuntime(simulator) {
-  this.simulator = simulator;
-}
-
-SimulatorRuntime.prototype = {
-  type: RuntimeTypes.SIMULATOR,
-  connect: function (connection) {
-    return this.simulator.launch().then(port => {
-      connection.host = "localhost";
-      connection.port = port;
-      connection.keepConnecting = true;
-      connection.once(Connection.Events.DISCONNECTED, e => this.simulator.kill());
-      connection.connect();
-    });
-  },
-  configure() {
-    Simulators.emit("configure", this.simulator);
-  },
-  get id() {
-    return this.simulator.id;
-  },
-  get name() {
-    return this.simulator.name;
-  },
-};
-
-// For testing use only
-exports._SimulatorRuntime = SimulatorRuntime;
 
 var gLocalRuntime = {
   type: RuntimeTypes.LOCAL,

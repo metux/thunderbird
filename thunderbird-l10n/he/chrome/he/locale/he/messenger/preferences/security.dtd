@@ -69,5 +69,5 @@
 
 
 
-<!ENTITY enableAdaptiveJunkLogging.accesskey "E">
 <!ENTITY enableAdaptiveJunkLogging.label "Enable adaptive junk filter logging">
+<!ENTITY enableAdaptiveJunkLogging.accesskey "E">

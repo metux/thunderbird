@@ -14,12 +14,14 @@
 
 var helpers = require("../helpers");
 
+// Note: we match to the end of the string as well as the beginning, to avoid
+// multiple reports from MemberExpression statements.
 var cpows = [
-  /^gBrowser\.contentWindow/,
-  /^gBrowser\.contentDocument/,
-  /^gBrowser\.selectedBrowser.contentWindow/,
-  /^browser\.contentDocument/,
-  /^window\.content/
+  /^gBrowser\.contentWindow$/,
+  /^gBrowser\.contentDocument$/,
+  /^gBrowser\.selectedBrowser\.contentWindow$/,
+  /^browser\.contentDocument$/,
+  /^window\.content$/
 ];
 
 var isInContentTask = false;
@@ -35,7 +37,7 @@ module.exports = function(context) {
     }
 
     context.report({
-      node: node,
+      node,
       message: identifier +
                " is a possible Cross Process Object Wrapper (CPOW)."
     });
@@ -55,7 +57,7 @@ module.exports = function(context) {
   // ---------------------------------------------------------------------------
 
   return {
-    CallExpression: function(node) {
+    CallExpression(node) {
       if (isContentTask(node.callee)) {
         isInContentTask = true;
       }
@@ -67,8 +69,8 @@ module.exports = function(context) {
       }
     },
 
-    MemberExpression: function(node) {
-      if (helpers.getTestType(this) != "browser") {
+    MemberExpression(node) {
+      if (helpers.getTestType(context) != "browser") {
         return;
       }
 
@@ -86,27 +88,55 @@ module.exports = function(context) {
       if (!someCpowFound && helpers.getIsGlobalScope(context.getAncestors())) {
         if (/^content\./.test(expression)) {
           showError(node, expression);
-          return;
         }
       }
     },
 
-    Identifier: function(node) {
-      if (helpers.getTestType(this) != "browser") {
+    Identifier(node) {
+      if (helpers.getTestType(context) != "browser") {
         return;
       }
 
-      var expression = context.getSource(node);
-      if (expression == "content" || /^content\./.test(expression)) {
-        if (node.parent.type === "MemberExpression" &&
-            node.parent.object &&
-            node.parent.object.type === "Identifier" &&
-            node.parent.object.name != "content") {
-          return;
-        }
-        showError(node, expression);
+      if (node.name !== "content" ||
+          // Don't complain if this is part of a member expression - the
+          // MemberExpression() function will handle those.
+          node.parent.type === "MemberExpression" ||
+          // If this is a declared variable in a function, then don't complain.
+          node.parent.type === "FunctionDeclaration") {
         return;
       }
+
+      // Don't error in the case of `let content = foo`.
+      if (node.parent.type === "VariableDeclarator" &&
+          node.parent.id && node.parent.id.name === "content") {
+        return;
+      }
+
+      // Walk up the parents, see if we can find if this is a local variable.
+      let parent = node;
+      do {
+        parent = parent.parent;
+
+        // Don't error if 'content' is one of the function parameters.
+        if (parent.type === "FunctionDeclaration" &&
+            context.getDeclaredVariables(parent).some(variable => variable.name === "content")) {
+          return;
+        } else if (parent.type === "BlockStatement" || parent.type === "Program") {
+          // Don't error if the block or program includes their own definition of content.
+          for (let item of parent.body) {
+            if (item.type === "VariableDeclaration" && item.declarations.length) {
+              for (let declaration of item.declarations) {
+                if (declaration.id && declaration.id.name === "content") {
+                  return;
+                }
+              }
+            }
+          }
+        }
+      } while (parent.parent);
+
+      var expression = context.getSource(node);
+      showError(node, expression);
     }
   };
 };

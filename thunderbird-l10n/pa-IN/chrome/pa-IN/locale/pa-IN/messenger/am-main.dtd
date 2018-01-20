@@ -37,3 +37,6 @@
 <!ENTITY smtpName.label "ਬਾਹਰੀ ਸਰਵਰ (SMTP):">
 <!ENTITY smtpName.accesskey "u">
 <!ENTITY smtpDefaultServer.label "ਡਿਫਾਲਟ ਸਰਵਰ ਵਰਤੋਂ">
+
+<!ENTITY smtpServerEdit.label "Edit SMTP server…">
+<!ENTITY smtpServerEdit.accesskey "P">

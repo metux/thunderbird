@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "NativeFontResourceMac.h"
+#include "UnscaledFontMac.h"
 #include "Types.h"
 
 #include "mozilla/RefPtr.h"
@@ -12,6 +13,8 @@
 #ifdef MOZ_WIDGET_UIKIT
 #include <CoreFoundation/CoreFoundation.h>
 #endif
+
+#include "nsCocoaFeatures.h"
 
 namespace mozilla {
 namespace gfx {
@@ -49,18 +52,14 @@ NativeFontResourceMac::Create(uint8_t *aFontData, uint32_t aDataLength)
   return fontResource.forget();
 }
 
-already_AddRefed<ScaledFont>
-NativeFontResourceMac::CreateScaledFont(uint32_t aIndex, Float aGlyphSize,
-                                        const uint8_t* aInstanceData, uint32_t aInstanceDataLength)
+already_AddRefed<UnscaledFont>
+NativeFontResourceMac::CreateUnscaledFont(uint32_t aIndex,
+                                          const uint8_t* aInstanceData,
+                                          uint32_t aInstanceDataLength)
 {
-  RefPtr<ScaledFontBase> scaledFont = new ScaledFontMac(mFontRef, aGlyphSize);
+  RefPtr<UnscaledFont> unscaledFont = new UnscaledFontMac(mFontRef, true);
 
-  if (!scaledFont->PopulateCairoScaledFont()) {
-    gfxWarning() << "Unable to create cairo scaled Mac font.";
-    return nullptr;
-  }
-
-  return scaledFont.forget();
+  return unscaledFont.forget();
 }
 
 } // gfx

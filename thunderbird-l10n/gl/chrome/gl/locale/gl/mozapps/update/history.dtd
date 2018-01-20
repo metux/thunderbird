@@ -14,3 +14,5 @@
 <!ENTITY  type.header               "Tipo">
 <!ENTITY  state.header              "Estado">
 
+
+<!ENTITY  history2.intro            "The following updates have been installed">

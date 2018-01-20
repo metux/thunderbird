@@ -10,19 +10,6 @@
 <!ENTITY toggleToolboxF12.keycode          "VK_F12">
 <!ENTITY toggleToolboxF12.keytext          "F12">
 
-<!ENTITY toolboxCloseButton.tooltip    "關閉開發者工具">
-
-<!-- LOCALIZATION NOTE (toolboxFramesButton): This is the label for
-  -  the iframes menu list that appears only when the document has some.
-  -  It allows you to switch the context of the whole toolbox. -->
-<!ENTITY toolboxFramesTooltip          "選擇要做為目標文件的 iframe">
-
-<!-- LOCALIZATION NOTE (toolboxNoAutoHideButton): This is the label for
-  -  the button to force the popups/panels to stay visible on blur.
-  -  This is only visible in the browser toolbox as it is meant for
-  -  addon developers and Firefox contributors. -->
-<!ENTITY toolboxNoAutoHideTooltip      "關閉自動隱藏彈出視窗">
-
 <!-- LOCALIZATION NOTE (browserToolboxErrorMessage): This is the label
   -  shown next to error details when the Browser Toolbox is unable to open. -->
 <!ENTITY browserToolboxErrorMessage          "開啟瀏覽器工具箱時發生錯誤:">
@@ -95,12 +82,6 @@
 <!ENTITY options.enableRemote.label3    "啟用遠端除錯">
 <!ENTITY options.enableRemote.tooltip2  "開啟此選項將允許開發者工具對遠端實例，例如 Firefox OS 除錯">
 
-<!-- LOCALIZATION NOTE (options.enableWorkers.label): This is the label for the
-  -  checkbox that toggles worker debugging, i.e. devtools.debugger.workers
-  -  boolean preference in about:config, in the options panel. -->
-<!ENTITY options.enableWorkers.label    "開啟 worker 除錯（開發中）">
-<!ENTITY options.enableWorkers.tooltip  "開啟此選項後將允許開發者工具對 worker 除錯">
-
 <!-- LOCALIZATION NOTE (options.disableJavaScript.label,
   -  options.disableJavaScript.tooltip): This is the options panel label and
   -  tooltip for the checkbox that toggles JavaScript on or off. -->
@@ -164,36 +145,34 @@
 <!ENTITY options.debugger.label            "除錯器">
 
 <!-- LOCALIZATION NOTE (options.sourceMap.label): This is the
-   - label for the checkbox that toggles source maps in the Debugger -->
+   - label for the checkbox that toggles source maps in all tools -->
 <!ENTITY options.sourceMaps.label      "開啟原始碼對應">
-<!ENTITY options.sourceMaps.tooltip    "若您開啟此選項，將會在除錯器與主控台中進行原始碼對應。">
+<!ENTITY options.sourceMaps.tooltip1   "若您開啟此選項，將會在開發者工具中進行原始碼對應。">
 
 <!-- LOCALIZATION NOTE (options.styleeditor.label): This is the label for the
   -  heading of the group of Style Editor preferences in the options
   -  panel. -->
 <!ENTITY options.styleeditor.label            "樣式編輯器">
 
-<!-- LOCALIZATION NOTE (options.stylesheetSourceMaps.label): This is the
-   - label for the checkbox that toggles showing original sources in the Style Editor -->
-<!ENTITY options.stylesheetSourceMaps.label      "顯示原始碼">
-<!ENTITY options.stylesheetSourceMaps.tooltip    "在樣式編輯器與檢測器中顯示原始碼（例如 Sass 檔案）">
-
 <!-- LOCALIZATION NOTE (options.stylesheetAutocompletion.label): This is the
    - label for the checkbox that toggles autocompletion of css in the Style Editor -->
 <!ENTITY options.stylesheetAutocompletion.label      "自動完成 CSS">
 <!ENTITY options.stylesheetAutocompletion.tooltip    "在您於樣式編輯器中輸入時自動完成 CSS 屬性、值與選擇器">
 
-<!-- LOCALIZATION NOTE (options.commonprefs): This is the label for the heading
-      of all preferences that affect both the Web Console and the Network
-      Monitor -->
-<!ENTITY options.commonPrefs.label           "共同偏好設定">
+<!-- LOCALIZATION NOTE (options.screenshot.label): This is the label for the
+   -  heading of the group of Screenshot preferences in the options
+   -  panel. -->
+<!ENTITY options.screenshot.label            "畫面擷圖行為">
 
-<!-- LOCALIZATION NOTE (options.enablePersistentLogs.label): This is the
-  -  label for the checkbox that toggles persistent logs in the Web Console and
-  -  network monitor,  i.e. devtools.webconsole.persistlog a boolean preference in
-  -  about:config, in the options panel. -->
-<!ENTITY options.enablePersistentLogs.label    "啟用保持記錄">
-<!ENTITY options.enablePersistentLogs.tooltip  "若您啟用了此選項，網頁主控台將不會在您瀏覽新頁面時清除輸出結果。">
+<!-- LOCALIZATION NOTE (options.screenshot.clipboard.label): This is the
+   - label for the checkbox that toggles screenshot to clipboard feature. -->
+<!ENTITY options.screenshot.clipboard.label      "將畫面擷圖拍到剪貼簿">
+<!ENTITY options.screenshot.clipboard.tooltip    "直接將畫面擷圖拍到剪貼簿">
+
+<!-- LOCALIZATION NOTE (options.screenshot.audio.label): This is the
+   - label for the checkbox that toggles the camera shutter audio for screenshot tool -->
+<!ENTITY options.screenshot.audio.label      "播放快門音效">
+<!ENTITY options.screenshot.audio.tooltip    "拍攝畫面擷圖時播放快門音效">
 
 <!-- LOCALIZATION NOTE (options.showPlatformData.label): This is the
   -  label for the checkbox that toggles the display of the platform data in the,

@@ -2,7 +2,7 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
-add_task(function* () {
+add_task(async function() {
   let extension = ExtensionTestUtils.loadExtension({
     manifest: {
       "permissions": ["tabs", "<all_urls>"],
@@ -12,29 +12,39 @@ add_task(function* () {
       const BASE = "http://mochi.test:8888/browser/browser/components/extensions/test/browser/";
       const URL = BASE + "file_bypass_cache.sjs";
 
-      function awaitLoad(tabId) {
-        return new Promise(resolve => {
-          browser.tabs.onUpdated.addListener(function listener(tabId_, changed, tab) {
-            if (tabId == tabId_ && changed.status == "complete" && tab.url == URL) {
-              browser.tabs.onUpdated.removeListener(listener);
-              resolve();
-            }
-          });
+      let tabId = null;
+      let loadPromise, resolveLoad;
+      function resetLoad() {
+        loadPromise = new Promise(resolve => {
+          resolveLoad = resolve;
         });
       }
+      function awaitLoad() {
+        return loadPromise.then(() => {
+          resetLoad();
+        });
+      }
+      resetLoad();
+
+      browser.tabs.onUpdated.addListener(function listener(tabId_, changed, tab) {
+        if (tabId == tabId_ && changed.status == "complete" && tab.url == URL) {
+          resolveLoad();
+        }
+      });
 
       try {
         let tab = await browser.tabs.create({url: URL});
-        await awaitLoad(tab.id);
+        tabId = tab.id;
+        await awaitLoad();
 
         await browser.tabs.reload(tab.id, {bypassCache: false});
-        await awaitLoad(tab.id);
+        await awaitLoad();
 
         let [textContent] = await browser.tabs.executeScript(tab.id, {code: "document.body.textContent"});
         browser.test.assertEq("", textContent, "`textContent` should be empty when bypassCache=false");
 
         await browser.tabs.reload(tab.id, {bypassCache: true});
-        await awaitLoad(tab.id);
+        await awaitLoad();
 
         [textContent] = await browser.tabs.executeScript(tab.id, {code: "document.body.textContent"});
 
@@ -52,7 +62,7 @@ add_task(function* () {
     },
   });
 
-  yield extension.startup();
-  yield extension.awaitFinish("tabs.reload_bypass_cache");
-  yield extension.unload();
+  await extension.startup();
+  await extension.awaitFinish("tabs.reload_bypass_cache");
+  await extension.unload();
 });

@@ -51,3 +51,4 @@ LOCALIZATION NOTE : Do not translate any of the occurrences of the word
 <!ENTITY processing.label         "Import…">
 
 <!ENTITY noModulesFound.label     "No application or file to import data from was found.">
+

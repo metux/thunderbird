@@ -220,8 +220,7 @@ var FeedHandler = {
     let feeds = gBrowser.selectedBrowser.feeds;
     try {
       openUILink(href, event, { ignoreAlt: true });
-    }
-    finally {
+    } finally {
       // We might default to a livebookmarks modal dialog,
       // so reset that if the user happens to click it again
       gBrowser.selectedBrowser.feeds = feeds;
@@ -349,7 +348,7 @@ var FeedHandler = {
           }
 
           if (fp.file.leafName != appName) {
-            Services.prefs.setComplexValue(prefName, Ci.nsILocalFile, selectedApp);
+            Services.prefs.setComplexValue(prefName, Ci.nsIFile, selectedApp);
             aBrowser.messageManager.sendAsyncMessage("FeedWriter:SetApplicationLauncherMenuItem",
                                                     { name: this._getFileDisplayName(selectedApp),
                                                       type: "SelectedAppMenuItem" });
@@ -362,7 +361,7 @@ var FeedHandler = {
 
   executeClientApp(aSpec, aTitle, aSubtitle, aFeedHandler) {
     // aFeedHandler is either "default", indicating the system default reader, or a pref-name containing
-    // an nsILocalFile pointing to the feed handler's executable.
+    // an nsIFile pointing to the feed handler's executable.
 
     let clientApp = null;
     if (aFeedHandler == "default") {
@@ -370,7 +369,7 @@ var FeedHandler = {
                     .getService(Ci.nsIShellService)
                     .defaultFeedReader;
     } else {
-      clientApp = Services.prefs.getComplexValue(aFeedHandler, Ci.nsILocalFile);
+      clientApp = Services.prefs.getComplexValue(aFeedHandler, Ci.nsIFile);
     }
 
     // For the benefit of applications that might know how to deal with more
@@ -409,6 +408,7 @@ var FeedHandler = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                          Ci.nsISupportsWeakReference]),
 
+
   init() {
     window.messageManager.addMessageListener("FeedWriter:ChooseClientApp", this);
     window.messageManager.addMessageListener("FeedWriter:GetSubscriptionUI", this);
@@ -438,7 +438,7 @@ var FeedHandler = {
   // nsIObserver
   observe(subject, topic, data) {
     if (topic == "nsPref:changed") {
-      LOG(`Pref changed ${data}`)
+      LOG(`Pref changed ${data}`);
       if (this._prefChangeCallback) {
         this._prefChangeCallback.disarm();
       }
@@ -497,7 +497,7 @@ var FeedHandler = {
     let selectedClientApp;
     const feedTypePref = getPrefAppForType(feedType);
     try {
-      selectedClientApp = Services.prefs.getComplexValue(feedTypePref, Ci.nsILocalFile);
+      selectedClientApp = Services.prefs.getComplexValue(feedTypePref, Ci.nsIFile);
     } catch (ex) {
       // Just do nothing, then we won't bother populating
     }
@@ -528,10 +528,7 @@ var FeedHandler = {
     // Ensure we have a pref that is settable
     if (aPrefName && SETTABLE_PREFS.has(aPrefName)) {
       if (aIsComplex) {
-        const supportsString = Cc["@mozilla.org/supports-string;1"].
-                             createInstance(Ci.nsISupportsString);
-        supportsString.data = aPrefValue;
-        Services.prefs.setComplexValue(aPrefName, Ci.nsISupportsString, supportsString);
+        Services.prefs.setStringPref(aPrefName, aPrefValue);
       } else {
         Services.prefs.setCharPref(aPrefName, aPrefValue);
       }
@@ -551,7 +548,7 @@ var FeedHandler = {
 
     if (handler === "web") {
       try {
-        url = prefs.getComplexValue(getPrefWebForType(feedType), Ci.nsISupportsString).data;
+        url = prefs.getStringPref(getPrefWebForType(feedType));
       } catch (ex) {
         LOG("FeedWriter._setSelectedHandler: invalid or no handler in prefs");
         url = null;
@@ -630,8 +627,8 @@ var FeedHandler = {
                                           settings.feedSubtitle,
                                           settings.feedType,
                                           settings.reader);
-        }
-        break;
+         }
+         break;
       case "FeedConverter:ExecuteClientApp":
         // Always check feedHandler is from a set array of executable prefs
         if (EXECUTABLE_PREFS.has(msg.data.feedHandler)) {

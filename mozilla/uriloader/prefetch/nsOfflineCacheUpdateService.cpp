@@ -257,6 +257,9 @@ nsOfflineCacheUpdateService::nsOfflineCacheUpdateService()
 nsOfflineCacheUpdateService::~nsOfflineCacheUpdateService()
 {
     gOfflineCacheUpdateService = nullptr;
+
+    delete mAllowedDomains;
+    mAllowedDomains = nullptr;
 }
 
 nsresult
@@ -292,25 +295,20 @@ nsOfflineCacheUpdateService::Init()
 }
 
 /* static */
-nsOfflineCacheUpdateService *
+already_AddRefed<nsOfflineCacheUpdateService>
 nsOfflineCacheUpdateService::GetInstance()
 {
     if (!gOfflineCacheUpdateService) {
-        gOfflineCacheUpdateService = new nsOfflineCacheUpdateService();
-        if (!gOfflineCacheUpdateService)
-            return nullptr;
-        NS_ADDREF(gOfflineCacheUpdateService);
-        nsresult rv = gOfflineCacheUpdateService->Init();
-        if (NS_FAILED(rv)) {
-            NS_RELEASE(gOfflineCacheUpdateService);
+        auto serv = MakeRefPtr<nsOfflineCacheUpdateService>();
+        gOfflineCacheUpdateService = serv.get();
+        if (NS_FAILED(serv->Init())) {
+            gOfflineCacheUpdateService = nullptr;
             return nullptr;
         }
-        return gOfflineCacheUpdateService;
+        return serv.forget();
     }
 
-    NS_ADDREF(gOfflineCacheUpdateService);
-
-    return gOfflineCacheUpdateService;
+    return do_AddRef(gOfflineCacheUpdateService);
 }
 
 /* static */
@@ -396,7 +394,7 @@ nsOfflineCacheUpdateService::UpdateFinished(nsOfflineCacheUpdate *aUpdate)
 nsresult
 nsOfflineCacheUpdateService::ProcessNextUpdate()
 {
-    LOG(("nsOfflineCacheUpdateService::ProcessNextUpdate [%p, num=%d]",
+    LOG(("nsOfflineCacheUpdateService::ProcessNextUpdate [%p, num=%zu]",
          this, mUpdates.Length()));
 
     if (mDisabled)
@@ -681,7 +679,7 @@ nsOfflineCacheUpdateService::OfflineAppAllowedForURI(nsIURI *aURI,
                                                      nsIPrefBranch *aPrefBranch,
                                                      bool *aAllowed)
 {
-    PrincipalOriginAttributes attrs;
+    OriginAttributes attrs;
     nsCOMPtr<nsIPrincipal> principal =
         BasePrincipal::CreateCodebasePrincipal(aURI, attrs);
     return OfflineAppPermForPrincipal(principal, aPrefBranch, false, aAllowed);
@@ -692,7 +690,7 @@ nsOfflineCacheUpdateService::OfflineAppPinnedForURI(nsIURI *aDocumentURI,
                                                     nsIPrefBranch *aPrefBranch,
                                                     bool *aPinned)
 {
-    PrincipalOriginAttributes attrs;
+    OriginAttributes attrs;
     nsCOMPtr<nsIPrincipal> principal =
         BasePrincipal::CreateCodebasePrincipal(aDocumentURI, attrs);
     return OfflineAppPermForPrincipal(principal, aPrefBranch, true, aPinned);

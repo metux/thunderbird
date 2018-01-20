@@ -32,6 +32,7 @@ if CONFIG['MOZ_PLACES']:
     EXPORTS.mozilla.places = [
         'Database.h',
         'History.h',
+        'Shutdown.h',
     ]
 
     UNIFIED_SOURCES += [
@@ -95,3 +96,5 @@ with Files('**'):
 
 if CONFIG['GNU_CXX']:
     CXXFLAGS += ['-Wno-error=shadow']
+
+JAR_MANIFESTS += ['jar.mn']

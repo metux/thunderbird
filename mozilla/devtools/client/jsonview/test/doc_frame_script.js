@@ -32,7 +32,11 @@ Services.scriptloader.loadSubScript(
  */
 content.addEventListener("JSONViewInitialized", () => {
   sendAsyncMessage("Test:JsonView:JSONViewInitialized");
-}, false);
+});
+
+content.addEventListener("load", () => {
+  sendAsyncMessage("Test:JsonView:load");
+});
 
 addMessageListener("Test:JsonView:GetElementCount", function (msg) {
   let {selector} = msg.data;
@@ -44,6 +48,20 @@ addMessageListener("Test:JsonView:GetElementText", function (msg) {
   let {selector} = msg.data;
   let element = content.document.querySelector(selector);
   let text = element ? element.textContent : null;
+  sendAsyncMessage(msg.name, {text: text});
+});
+
+addMessageListener("Test:JsonView:GetElementVisibleText", function (msg) {
+  let {selector} = msg.data;
+  let element = content.document.querySelector(selector);
+  let text = element ? element.innerText : null;
+  sendAsyncMessage(msg.name, {text: text});
+});
+
+addMessageListener("Test:JsonView:GetElementAttr", function (msg) {
+  let {selector, attr} = msg.data;
+  let element = content.document.querySelector(selector);
+  let text = element ? element.getAttribute(attr) : null;
   sendAsyncMessage(msg.name, {text: text});
 });
 
@@ -96,3 +114,13 @@ addMessageListener("Test:JsonView:WaitForFilter", function (msg) {
 
   observer.observe(firstRow, { attributes: true });
 });
+
+addMessageListener("Test:JsonView:Eval", function (msg) {
+  let result = content.eval(msg.data.code);
+  sendAsyncMessage(msg.name, {result});
+});
+
+Components.utils.exportFunction(content.document.querySelector.bind(content.document),
+  content, {defineAs: "$"});
+Components.utils.exportFunction(content.document.querySelectorAll.bind(content.document),
+  content, {defineAs: "$$"});

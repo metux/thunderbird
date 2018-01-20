@@ -2,11 +2,7 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
-let delay = ms => new Promise(resolve => {
-  setTimeout(resolve, ms);
-});
-
-add_task(function* testPageActionPopupResize() {
+add_task(async function testPageActionPopupResize() {
   let browser;
 
   let extension = ExtensionTestUtils.loadExtension({
@@ -32,15 +28,15 @@ add_task(function* testPageActionPopupResize() {
     },
   });
 
-  yield extension.startup();
-  yield extension.awaitMessage("action-shown");
+  await extension.startup();
+  await extension.awaitMessage("action-shown");
 
   clickPageAction(extension, window);
 
-  browser = yield awaitExtensionPanel(extension);
+  browser = await awaitExtensionPanel(extension);
 
-  function* checkSize(expected) {
-    let dims = yield promiseContentDimensions(browser);
+  async function checkSize(expected) {
+    let dims = await promiseContentDimensions(browser);
     let {body, root} = dims;
 
     is(dims.window.innerHeight, expected, `Panel window should be ${expected}px tall`);
@@ -70,21 +66,12 @@ add_task(function* testPageActionPopupResize() {
   ];
 
   for (let size of sizes) {
-    yield alterContent(browser, setSize, size);
-    yield checkSize(size);
+    await alterContent(browser, setSize, size);
+    await checkSize(size);
   }
 
-  yield alterContent(browser, setSize, 1400);
-
-  let dims = yield promiseContentDimensions(browser);
+  let dims = await alterContent(browser, setSize, 1400);
   let {body, root} = dims;
-
-  if (AppConstants.platform == "win") {
-    while (dims.window.innerWidth < 800) {
-      yield delay(50);
-      dims = yield promiseContentDimensions(browser);
-    }
-  }
 
   is(dims.window.innerWidth, 800, "Panel window width");
   ok(body.clientWidth <= 800, `Panel body width ${body.clientWidth} is less than 800`);
@@ -94,10 +81,10 @@ add_task(function* testPageActionPopupResize() {
   ok(root.clientHeight <= 600, `Panel root height (${root.clientHeight}px) is less than 600px`);
   is(root.scrollHeight, 1400, "Panel root scroll height");
 
-  yield extension.unload();
+  await extension.unload();
 });
 
-add_task(function* testPageActionPopupReflow() {
+add_task(async function testPageActionPopupReflow() {
   let browser;
 
   let extension = ExtensionTestUtils.loadExtension({
@@ -130,12 +117,12 @@ add_task(function* testPageActionPopupReflow() {
     },
   });
 
-  yield extension.startup();
-  yield extension.awaitMessage("action-shown");
+  await extension.startup();
+  await extension.awaitMessage("action-shown");
 
   clickPageAction(extension, window);
 
-  browser = yield awaitExtensionPanel(extension);
+  browser = await awaitExtensionPanel(extension);
 
   /* eslint-disable mozilla/no-cpows-in-tests */
   function setSize(size) {
@@ -143,14 +130,7 @@ add_task(function* testPageActionPopupReflow() {
   }
   /* eslint-enable mozilla/no-cpows-in-tests */
 
-  let dims = yield alterContent(browser, setSize, 18);
-
-  if (AppConstants.platform == "win") {
-    while (dims.window.innerWidth < 800) {
-      yield delay(50);
-      dims = yield promiseContentDimensions(browser);
-    }
-  }
+  let dims = await alterContent(browser, setSize, 18);
 
   is(dims.window.innerWidth, 800, "Panel window should be 800px wide");
   is(dims.body.clientWidth, 800, "Panel body should be 800px wide");
@@ -165,5 +145,5 @@ add_task(function* testPageActionPopupReflow() {
   is(dims.root.clientHeight, dims.root.scrollHeight,
     "Panel root should be tall enough to fit its contents");
 
-  yield extension.unload();
+  await extension.unload();
 });

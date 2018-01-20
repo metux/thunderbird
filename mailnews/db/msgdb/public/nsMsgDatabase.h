@@ -10,7 +10,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "nsIMsgDatabase.h"
 #include "nsMsgHdr.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsAutoPtr.h"
 #include "nsIDBChangeListener.h"
 #include "nsIDBChangeAnnouncer.h"
@@ -301,7 +301,7 @@ protected:
   virtual nsresult      InitMDBInfo();
 
   nsCOMPtr <nsIMsgFolder> m_folder;
-  nsDBFolderInfo      *m_dbFolderInfo;
+  RefPtr<nsDBFolderInfo>  m_dbFolderInfo;
   nsMsgKey      m_nextPseudoMsgKey;
   nsIMdbEnv     *m_mdbEnv;  // to be used in all the db calls.
   nsIMdbStore   *m_mdbStore;

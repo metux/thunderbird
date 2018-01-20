@@ -71,7 +71,7 @@ function getWcapSessionFor(calendar, uri) {
             session.defaultCalendar = defaultCal;
             // eslint-disable-next-line array-bracket-spacing
             let [defaultSpec, ] = splitUriParams(defaultCal.uri);
-            session.uri = cal.makeURL(defaultSpec);
+            session.uri = Services.io.newURI(defaultSpec);
             session.credentials.userId = defaultCal.getProperty("user_id");
             log("default calendar found.", defaultCal);
 
@@ -102,7 +102,7 @@ function calWcapSession(contextId) {
     this.m_loginQueue = [];
 
     // listen for shutdown, being logged out:
-    Services.obs.addObserver(this, "quit-application", false /* don't hold weakly */);
+    Services.obs.addObserver(this, "quit-application");
     cal.getCalendarManager().addObserver(this);
 }
 var calWcapSessionClassID = Components.ID("{cbf803fd-4469-4999-ae39-367af1c7b077}");
@@ -153,7 +153,7 @@ calWcapSession.prototype = {
             m_index: 0,
             getNext: function() {
                 if (this.m_index >= tzids) {
-                    ASSERT(false, "calWcapSession::timezoneIds enumerator!");
+                    cal.ASSERT(false, "calWcapSession::timezoneIds enumerator!");
                     throw Components.results.NS_ERROR_UNEXPECTED;
                 }
                 return tzids[this.m_index++];
@@ -166,9 +166,9 @@ calWcapSession.prototype = {
     getTimezone: function(tzid) {
         switch (tzid) {
             case "floating":
-                return floating();
+                return cal.floating();
             case "UTC":
-                return UTC();
+                return cal.UTC();
             default:
                 if (this.m_serverTimezones) {
                     return this.m_serverTimezones[tzid];
@@ -216,8 +216,8 @@ calWcapSession.prototype = {
 
             if (timedOutSessionId) {
                 log("reconnecting due to session timeout...", this);
-                getFreeBusyService().removeProvider(this);
-                getCalendarSearchService().removeProvider(this);
+                cal.getFreeBusyService().removeProvider(this);
+                cal.getCalendarSearchService().removeProvider(this);
             }
 
             this.getSessionId_(null, // don't couple to parent request parent may be cancelled
@@ -225,8 +225,8 @@ calWcapSession.prototype = {
                                    log("getSessionId_resp_(): " + sessionId, this);
                                    if (!err) {
                                        this.m_sessionId = sessionId;
-                                       getFreeBusyService().addProvider(this);
-                                       getCalendarSearchService().addProvider(this);
+                                       cal.getFreeBusyService().addProvider(this);
+                                       cal.getCalendarSearchService().addProvider(this);
                                    }
 
                                    let queue = this.m_loginQueue;
@@ -387,8 +387,8 @@ calWcapSession.prototype = {
             // WTF.
             url = (this.sessionUri.spec + "logout.wcap?fmt-out=text%2Fxml&id=" + this.m_sessionId);
             this.m_sessionId = null;
-            getFreeBusyService().removeProvider(this);
-            getCalendarSearchService().removeProvider(this);
+            cal.getFreeBusyService().removeProvider(this);
+            cal.getCalendarSearchService().removeProvider(this);
         }
         this.m_credentials = null;
 
@@ -568,7 +568,7 @@ calWcapSession.prototype = {
                         if (calendar === null) {
                             calendar = new calWcapCalendar(this);
                             let uri = this.uri.clone();
-                            uri.path += "?calid=" + encodeURIComponent(calId);
+                            uri.pathQueryRef += "?calid=" + encodeURIComponent(calId);
                             calendar.uri = uri;
                         }
                         if (calendar) {
@@ -839,7 +839,7 @@ calWcapSession.prototype = {
         let alarmEmails = this.getUserPreferences("X-NSCP-WCAP-PREF-ceDefaultAlarmEmail");
         if (alarmEmails.length > 0 && alarmEmails[0].length > 0) {
             for (let email of alarmEmails) {
-                ret = ret.concat(email.split(/[;,]/).map(String.trim));
+                ret = ret.concat(email.split(/[;,]/).map(mail => mail.trim()));
             }
         }
         out_count.value = ret.length;
@@ -896,7 +896,7 @@ calWcapSession.prototype = {
                                 } else {
                                     calendar = new calWcapCalendar(this, node);
                                     let uri = this.uri.clone();
-                                    uri.path += "?calid=" + encodeURIComponent(calId);
+                                    uri.pathQueryRef += "?calid=" + encodeURIComponent(calId);
                                     calendar.uri = uri;
                                 }
                                 ret.push(calendar);
@@ -925,8 +925,8 @@ calWcapSession.prototype = {
 
     // calIFreeBusyProvider:
     getFreeBusyIntervals: function(calId, rangeStart, rangeEnd, busyTypes, listener) {
-        rangeStart = ensureDateTime(rangeStart);
-        rangeEnd = ensureDateTime(rangeEnd);
+        rangeStart = cal.ensureDateTime(rangeStart);
+        rangeEnd = cal.ensureDateTime(rangeEnd);
         let zRangeStart = getIcalUTC(rangeStart);
         let zRangeEnd = getIcalUTC(rangeEnd);
 
@@ -1042,19 +1042,21 @@ calWcapSession.prototype = {
                 assureDefault("shared_context", this.m_contextId);
                 assureDefault("name", aCalendar.name);
 
-                const s_colors = ["#FFCCCC", "#FFCC99", "#FFFF99", "#FFFFCC", "#99FF99",
-                                  "#99FFFF", "#CCFFFF", "#CCCCFF", "#FFCCFF", "#FF6666",
-                                  "#FF9966", "#FFFF66", "#FFFF33", "#66FF99", "#33FFFF",
-                                  "#66FFFF", "#9999FF", "#FF99FF", "#FF0000", "#FF9900",
-                                  "#FFCC66", "#FFFF00", "#33FF33", "#66CCCC", "#33CCFF",
-                                  "#6666CC", "#CC66CC", "#CC0000", "#FF6600", "#FFCC33",
-                                  "#FFCC00", "#33CC00", "#00CCCC", "#3366FF", "#6633FF",
-                                  "#CC33CC", "#990000", "#CC6600", "#CC9933", "#999900",
-                                  "#009900", "#339999", "#3333FF", "#6600CC", "#993399",
-                                  "#660000", "#993300", "#996633", "#666600", "#006600",
-                                  "#336666", "#000099", "#333399", "#663366", "#330000",
-                                  "#663300", "#663333", "#333300", "#003300", "#003333",
-                                  "#000066", "#330099", "#330033"];
+                const s_colors = [
+                    "#FFCCCC", "#FFCC99", "#FFFF99", "#FFFFCC", "#99FF99",
+                    "#99FFFF", "#CCFFFF", "#CCCCFF", "#FFCCFF", "#FF6666",
+                    "#FF9966", "#FFFF66", "#FFFF33", "#66FF99", "#33FFFF",
+                    "#66FFFF", "#9999FF", "#FF99FF", "#FF0000", "#FF9900",
+                    "#FFCC66", "#FFFF00", "#33FF33", "#66CCCC", "#33CCFF",
+                    "#6666CC", "#CC66CC", "#CC0000", "#FF6600", "#FFCC33",
+                    "#FFCC00", "#33CC00", "#00CCCC", "#3366FF", "#6633FF",
+                    "#CC33CC", "#990000", "#CC6600", "#CC9933", "#999900",
+                    "#009900", "#339999", "#3333FF", "#6600CC", "#993399",
+                    "#660000", "#993300", "#996633", "#666600", "#006600",
+                    "#336666", "#000099", "#333399", "#663366", "#330000",
+                    "#663300", "#663333", "#333300", "#003300", "#003333",
+                    "#000066", "#330099", "#330033"
+                ];
                 assureDefault("color", s_colors[(new Date()).getUTCMilliseconds() % s_colors.length]);
             }
         } catch (exc) { // never break the listener chain
@@ -1069,8 +1071,8 @@ calWcapSession.prototype = {
             // then remove all subscribed calendars:
             aCalendar = this.belongsTo(aCalendar);
             if (aCalendar && aCalendar.isDefaultCalendar) {
-                getFreeBusyService().removeProvider(this);
-                getCalendarSearchService().removeProvider(this);
+                cal.getFreeBusyService().removeProvider(this);
+                cal.getCalendarSearchService().removeProvider(this);
                 let registeredCalendars = this.getRegisteredCalendars();
                 for (let regCal of registeredCalendars) {
                     try {

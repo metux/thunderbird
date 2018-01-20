@@ -46,8 +46,7 @@ function* loadImapMessage()
 
   let msgURI =
     Services.io.newURI("data:text/plain;base64," +
-                       btoa(smsg.toMessageString()),
-                       null, null);
+                       btoa(smsg.toMessageString()));
   let imapInbox = IMAPPump.daemon.getMailbox("INBOX");
   let message = new imapMessage(msgURI.spec, imapInbox.uidnext++, []);
   IMAPPump.mailbox.addMessage(message);
@@ -103,7 +102,7 @@ function* testDetach()
 
   // Get the message header - detached copy has UID 2.
   let msgHdr = IMAPPump.inbox.GetMessageHeader(2);
-  do_check_neq(msgHdr, null);
+  do_check_true(msgHdr !== null);
   let messageContent = getContentFromMessage(msgHdr);
   do_check_true(messageContent.includes("AttachmentDetached"));
 }

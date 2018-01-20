@@ -3,13 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 Components.utils.import("resource://gre/modules/AppConstants.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 function AppPicker() {}
 
 AppPicker.prototype =
 {
     // Class members
-    _incomingParams:null,
+    _incomingParams: null,
 
     /**
     * Init the dialog and populate the application list
@@ -96,14 +97,10 @@ AppPicker.prototype =
     * Retrieve the moz-icon for the app
     */
     getFileIconURL: function getFileIconURL(file) {
-      var ios = Components.classes["@mozilla.org/network/io-service;1"].
-                getService(Components.interfaces.nsIIOService);
-
-      if (!ios) return "";
       const nsIFileProtocolHandler =
         Components.interfaces.nsIFileProtocolHandler;
 
-      var fph = ios.getProtocolHandler("file")
+      var fph = Services.io.getProtocolHandler("file")
                 .QueryInterface(nsIFileProtocolHandler);
       if (!fph) return "";
 
@@ -180,8 +177,6 @@ AppPicker.prototype =
       fp.init(window, this._incomingParams.title, nsIFilePicker.modeOpen);
       fp.appendFilters(nsIFilePicker.filterApps);
 
-      var fileLoc = Components.classes["@mozilla.org/file/directory_service;1"]
-                            .getService(Components.interfaces.nsIProperties);
       var startLocation;
       if (AppConstants.platform == "win") {
         startLocation = "ProgF"; // Program Files
@@ -191,20 +186,22 @@ AppPicker.prototype =
         startLocation = "Home";
       }
       fp.displayDirectory =
-        fileLoc.get(startLocation, Components.interfaces.nsILocalFile);
+        Services.dirsvc.get(startLocation, Components.interfaces.nsIFile);
 
-      if (fp.show() == nsIFilePicker.returnOK && fp.file) {
-          var localHandlerApp =
-            Components.classes["@mozilla.org/uriloader/local-handler-app;1"].
-            createInstance(Components.interfaces.nsILocalHandlerApp);
-          localHandlerApp.executable = fp.file;
+      fp.open(rv => {
+          if (rv == nsIFilePicker.returnOK && fp.file) {
+              var localHandlerApp =
+                Components.classes["@mozilla.org/uriloader/local-handler-app;1"].
+                createInstance(Components.interfaces.nsILocalHandlerApp);
+              localHandlerApp.executable = fp.file;
 
-          this._incomingParams.handlerApp = localHandlerApp;
-          window.close();
-      }
+              this._incomingParams.handlerApp = localHandlerApp;
+              window.close();
+          }
+      });
       return true;
     }
-}
+};
 
 // Global object
 var g_dialog = new AppPicker();

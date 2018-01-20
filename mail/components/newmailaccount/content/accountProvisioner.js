@@ -38,9 +38,9 @@ function isAccel (event) { return isOSX && event.metaKey || event.ctrlKey; }
 function getLocalStorage(page) {
   var url = "chrome://content/messenger/accountProvisionerStorage/" + page;
 
-  var uri = Services.io.newURI(url, "", null);
-  var principal = Services.scriptSecurityManager.getNoAppCodebasePrincipal(uri);
-  return Services.domStorageManager.getLocalStorageForPrincipal(principal, url);
+  var uri = Services.io.newURI(url, "");
+  var principal = Services.scriptSecurityManager.createCodebasePrincipal(uri, {});
+  return Services.domStorageManager.createStorage(null, principal, url);
 }
 
 var MAX_SMALL_ADDRESSES = 2;
@@ -103,7 +103,7 @@ var EmailAccountProvisioner = {
    * Returns the language that the user currently accepts.
    */
   get userLanguage() {
-    return Services.prefs.getCharPref("general.useragent.locale");
+    return Services.locale.getRequestedLocale();
   },
 
   /**
@@ -228,7 +228,7 @@ var EmailAccountProvisioner = {
           e.target.classList.contains("external")) {
         e.preventDefault();
         let uri = e.target.getAttribute("href");
-        opener.loadUrl(Services.io.newURI(uri, "UTF-8", null));
+        opener.loadURI(Services.io.newURI(uri, "UTF-8"));
       }
     });
 
@@ -417,7 +417,7 @@ var EmailAccountProvisioner = {
     // Here's where we do some kind of hack-y client-side sanitization.
     // Believe it or not, this is how you sanitize stuff to HTML elements
     // via jQuery.
-    // let name = String.trim($("<div></div>").text($("#name").val()).html());
+    // let name = $("<div></div>").text($("#name").val()).html().trim();
     // Not quite sure what this was for, but here's the hack converted
     // to vanilla JS.
     let nameElement = document.getElementById("name");
@@ -461,7 +461,7 @@ var EmailAccountProvisioner = {
     request.onloadend = function() {
       // Also called if we timeout.
       let firstAndLastName = document.getElementById("FirstAndLastName");
-      firstAndLastName.innerHTML = String.trim(firstname + " " + lastname);
+      firstAndLastName.innerHTML = (firstname + " " + lastname).trim();
       EmailAccountProvisioner.searchEnabled(true);
       EmailAccountProvisioner.spinning(false);
     };
@@ -501,7 +501,7 @@ var EmailAccountProvisioner = {
     let tabmail = mail3Pane.document.getElementById("tabmail");
     tabmail.openTab("accountProvisionerTab", {
       contentPage: url,
-      realName: String.trim(firstName + " " + lastName),
+      realName: (firstName + " " + lastName).trim(),
       email: email,
       searchEngine: provider.search_engine,
       onLoad: function (aEvent, aBrowser) {
@@ -622,7 +622,7 @@ var EmailAccountProvisioner = {
       EmailAccountProvisioner.providers[provider.id] = provider;
 
       // Let's go through the array of languages for this provider, and
-      // check to see if at least one of them matches general.useragent.locale.
+      // check to see if at least one of them matches the user's language.
       // If so, we'll show / select this provider by default.
       let supportsSomeUserLang = provider.languages.some(function (x) {
         return x == "*" || x == EmailAccountProvisioner.userLanguage;
@@ -921,7 +921,9 @@ var EmailAccountProvisioner = {
   beOffline: function EAP_beOffline() {
     let offlineMsg = stringBundle.get("cannotConnect");
     let element = document.getElementById("cannotConnectMessage");
-    element.appendChild(document.createTextNode(offlineMsg));
+    if(!element.hasChildNodes()) {
+      element.appendChild(document.createTextNode(offlineMsg));
+    }
     element.style.display = "block";
     element.style.opacity = 1;
     this.searchEnabled(false);

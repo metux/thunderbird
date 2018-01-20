@@ -7,6 +7,7 @@
 #ifndef __NSCLIENTAUTHREMEMBER_H__
 #define __NSCLIENTAUTHREMEMBER_H__
 
+#include "mozilla/Move.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "nsTHashtable.h"
 #include "nsIObserver.h"
@@ -17,10 +18,10 @@
 #include "mozilla/Attributes.h"
 
 namespace mozilla {
-  class NeckoOriginAttributes;
+  class OriginAttributes;
 }
 
-using mozilla::NeckoOriginAttributes;
+using mozilla::OriginAttributes;
 
 class nsClientAuthRemember
 {
@@ -62,9 +63,10 @@ class nsClientAuthRememberEntry final : public PLDHashEntryHdr
     {
     }
 
-    nsClientAuthRememberEntry(const nsClientAuthRememberEntry& aToCopy)
+    nsClientAuthRememberEntry(nsClientAuthRememberEntry&& aToMove)
+      : mSettings(mozilla::Move(aToMove.mSettings))
+      , mEntryKey(mozilla::Move(aToMove.mEntryKey))
     {
-      mSettings = aToCopy.mSettings;
     }
 
     ~nsClientAuthRememberEntry()
@@ -122,17 +124,17 @@ public:
   nsresult Init();
 
   static void GetEntryKey(const nsACString& aHostName,
-                          const NeckoOriginAttributes& aOriginAttributes,
+                          const OriginAttributes& aOriginAttributes,
                           const nsACString& aFingerprint,
                           /*out*/ nsACString& aEntryKey);
 
   nsresult RememberDecision(const nsACString& aHostName,
-                            const NeckoOriginAttributes& aOriginAttributes,
+                            const OriginAttributes& aOriginAttributes,
                             CERTCertificate* aServerCert,
                             CERTCertificate* aClientCert);
 
   nsresult HasRememberedDecision(const nsACString& aHostName,
-                                 const NeckoOriginAttributes& aOriginAttributes,
+                                 const OriginAttributes& aOriginAttributes,
                                  CERTCertificate* aServerCert,
                                  nsACString& aCertDBKey, bool* aRetVal);
 
@@ -147,7 +149,7 @@ protected:
 
     void RemoveAllFromMemory();
     nsresult AddEntryToList(const nsACString& aHost,
-                            const NeckoOriginAttributes& aOriginAttributes,
+                            const OriginAttributes& aOriginAttributes,
                             const nsACString& aServerFingerprint,
                             const nsACString& aDBKey);
 };

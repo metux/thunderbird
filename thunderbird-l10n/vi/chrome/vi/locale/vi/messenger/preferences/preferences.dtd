@@ -11,10 +11,10 @@
 <!ENTITY paneSecurity.title       "Bảo mật">
 <!ENTITY paneAdvanced.title       "Nâng cao">
 
-<!ENTITY okButton.accesskey       "O">
-
-<!ENTITY okButton.title           "OK">
-<!ENTITY paneAccount.title        "Accounts">
+<!ENTITY  prefWindow.titleMAC     "Preferences">
 <!ENTITY paneChat.title           "Chat">
 <!ENTITY panePrivacy.title        "Privacy">
-<!ENTITY  prefWindow.titleMAC     "Preferences">
+<!ENTITY paneAccount.title        "Accounts">
+
+<!ENTITY okButton.title           "OK">
+<!ENTITY okButton.accesskey       "O">

@@ -38,6 +38,8 @@ public:
     , mActiveIterators(0)
     , mCalledPropertyDtor(false)
 #endif
+    , mMayHaveOpacityAnim(false)
+    , mMayHaveTransformAnim(false)
   {
     MOZ_COUNT_CTOR(EffectSet);
   }
@@ -51,13 +53,13 @@ public:
                "enumerated");
     MOZ_COUNT_DTOR(EffectSet);
   }
-  static void PropertyDtor(void* aObject, nsIAtom* aPropertyName,
+  static void PropertyDtor(void* aObject, nsAtom* aPropertyName,
                            void* aPropertyValue, void* aData);
 
   // Methods for supporting cycle-collection
   void Traverse(nsCycleCollectionTraversalCallback& aCallback);
 
-  static EffectSet* GetEffectSet(dom::Element* aElement,
+  static EffectSet* GetEffectSet(const dom::Element* aElement,
                                  CSSPseudoElementType aPseudoType);
   static EffectSet* GetEffectSet(const nsIFrame* aFrame);
   static EffectSet* GetOrCreateEffectSet(dom::Element* aElement,
@@ -67,6 +69,11 @@ public:
 
   void AddEffect(dom::KeyframeEffectReadOnly& aEffect);
   void RemoveEffect(dom::KeyframeEffectReadOnly& aEffect);
+
+  void SetMayHaveOpacityAnimation() { mMayHaveOpacityAnim = true; }
+  bool MayHaveOpacityAnimation() const { return mMayHaveOpacityAnim; }
+  void SetMayHaveTransformAnimation() { mMayHaveTransformAnim = true; }
+  bool MayHaveTransformAnimation() const { return mMayHaveTransformAnim; }
 
 private:
   typedef nsTHashtable<nsRefPtrHashKey<dom::KeyframeEffectReadOnly>>
@@ -163,22 +170,19 @@ public:
 
   size_t Count() const { return mEffects.Count(); }
 
-  RefPtr<AnimValuesStyleRule>& AnimationRule(EffectCompositor::CascadeLevel
-                                             aCascadeLevel)
+  RefPtr<AnimValuesStyleRule>&
+  AnimationRule(EffectCompositor::CascadeLevel aCascadeLevel)
   {
     return mAnimationRule[aCascadeLevel];
   }
 
-  const TimeStamp& AnimationRuleRefreshTime(EffectCompositor::CascadeLevel
-                                              aCascadeLevel) const
+  const TimeStamp& LastTransformSyncTime() const
   {
-    return mAnimationRuleRefreshTime[aCascadeLevel];
+    return mLastTransformSyncTime;
   }
-  void UpdateAnimationRuleRefreshTime(EffectCompositor::CascadeLevel
-                                        aCascadeLevel,
-                                      const TimeStamp& aRefreshTime)
+  void UpdateLastTransformSyncTime(const TimeStamp& aRefreshTime)
   {
-    mAnimationRuleRefreshTime[aCascadeLevel] = aRefreshTime;
+    mLastTransformSyncTime = aRefreshTime;
   }
 
   bool CascadeNeedsUpdate() const { return mCascadeNeedsUpdate; }
@@ -188,7 +192,7 @@ public:
   void UpdateAnimationGeneration(nsPresContext* aPresContext);
   uint64_t GetAnimationGeneration() const { return mAnimationGeneration; }
 
-  static nsIAtom** GetEffectSetPropertyAtoms();
+  static nsAtom** GetEffectSetPropertyAtoms();
 
   nsCSSPropertyIDSet& PropertiesWithImportantRules()
   {
@@ -198,9 +202,13 @@ public:
   {
     return mPropertiesForAnimationsLevel;
   }
+  nsCSSPropertyIDSet PropertiesForAnimationsLevel() const
+  {
+    return mPropertiesForAnimationsLevel;
+  }
 
 private:
-  static nsIAtom* GetEffectSetPropertyAtom(CSSPseudoElementType aPseudoType);
+  static nsAtom* GetEffectSetPropertyAtom(CSSPseudoElementType aPseudoType);
 
   OwningEffectSet mEffects;
 
@@ -214,14 +222,11 @@ private:
                     EffectCompositor::kCascadeLevelCount),
                   RefPtr<AnimValuesStyleRule>> mAnimationRule;
 
-  // A parallel array to mAnimationRule that records the refresh driver
-  // timestamp when the rule was last updated. This is used for certain
-  // animations which are updated only periodically (e.g. transform animations
-  // running on the compositor that affect the scrollable overflow region).
-  EnumeratedArray<EffectCompositor::CascadeLevel,
-                  EffectCompositor::CascadeLevel(
-                    EffectCompositor::kCascadeLevelCount),
-                  TimeStamp> mAnimationRuleRefreshTime;
+  // Refresh driver timestamp from the moment when transform animations in this
+  // effect set were last updated and sent to the compositor. This is used for
+  // transform animations that run on the compositor but need to be updated on
+  // the main thread periodically (e.g. so scrollbars can be updated).
+  TimeStamp mLastTransformSyncTime;
 
   // Dirty flag to represent when the mPropertiesWithImportantRules and
   // mPropertiesForAnimationsLevel on effects in this set might need to be
@@ -254,6 +259,9 @@ private:
 
   bool mCalledPropertyDtor;
 #endif
+
+  bool mMayHaveOpacityAnim;
+  bool mMayHaveTransformAnim;
 };
 
 } // namespace mozilla

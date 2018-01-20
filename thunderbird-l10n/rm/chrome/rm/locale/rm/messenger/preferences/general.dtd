@@ -17,8 +17,11 @@
 <!ENTITY newMessagesArrive.label          "Sche in nov messadi arriva:">
 <!ENTITY playSound.label                  "Far ir in tun">
 <!ENTITY playSound1.accesskey             "F">
+<!ENTITY playSoundMac.label               "Far ir la suandanta datoteca da tun:">
+<!ENTITY playSoundMac.accesskey           "d">
 <!ENTITY showAnimatedAlert.label          "Mussar in avis">
 <!ENTITY showAnimatedAlert.accesskey      "S">
+<!ENTITY notificationAlertSettings2.label "Avertiments ed il tun da standard pon vegnir deactivads sin la panela da communicaziuns en las preferenzas dal sistem.">
 <!ENTITY customizeMailAlert.label         "Modifitgar…">
 <!ENTITY customizeMailAlert.accesskey     "M">
 
@@ -35,7 +38,3 @@
 <!ENTITY browse.accesskey                 "e">
 
 <!ENTITY defaultSearchEngine.label        "Maschina da tschertgar da standard">
-
-<!ENTITY notificationAlertSettings2.label "Alerts and the default sound can be disabled on the Notification pane of System Preferences.">
-<!ENTITY playSoundMac.accesskey           "d">
-<!ENTITY playSoundMac.label               "Play the following sound file:">

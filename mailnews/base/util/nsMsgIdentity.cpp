@@ -6,7 +6,7 @@
 #include "msgCore.h" // for pre-compiled headers
 #include "nsMsgIdentity.h"
 #include "nsIPrefService.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsMsgCompCID.h"
 #include "nsIRDFService.h"
 #include "nsIRDFResource.h"
@@ -79,7 +79,7 @@ nsMsgIdentity::GetIdentityName(nsAString& idName)
   { // TODO: this should be localizable
     idName.AppendLiteral(" (");
     idName.Append(label);
-    idName.AppendLiteral(")");
+    idName.Append(')');
   }
 
   if (!idName.IsEmpty())
@@ -113,7 +113,7 @@ nsMsgIdentity::ToString(nsAString& aResult)
 {
   aResult.AssignLiteral("[nsIMsgIdentity: ");
   aResult.Append(NS_ConvertASCIItoUTF16(mKey));
-  aResult.AppendLiteral("]");
+  aResult.Append(']');
   return NS_OK;
 }
 
@@ -226,7 +226,7 @@ nsMsgIdentity::GetDoBccList(nsACString& aValue)
     return NS_ERROR_NOT_INITIALIZED;
 
   nsCString val;
-  nsresult rv = mPrefBranch->GetCharPref("doBccList", getter_Copies(val));
+  nsresult rv = mPrefBranch->GetCharPref("doBccList", val);
   aValue = val;
   if (NS_SUCCEEDED(rv))
     return rv;
@@ -248,7 +248,7 @@ nsMsgIdentity::GetDoBccList(nsACString& aValue)
 
   if (bccOthers && !others.IsEmpty()) {
     if (bccSelf)
-      aValue.AppendLiteral(",");
+      aValue.Append(',');
     aValue.Append(others);
   }
 
@@ -283,7 +283,7 @@ nsMsgIdentity::getFolderPref(const char *prefname, nsCString& retval,
   if (!mPrefBranch)
     return NS_ERROR_NOT_INITIALIZED;
 
-  nsresult rv = mPrefBranch->GetCharPref(prefname, getter_Copies(retval));
+  nsresult rv = mPrefBranch->GetCharPref(prefname, retval);
   if (NS_SUCCEEDED(rv) && !retval.IsEmpty()) {
     // get the corresponding RDF resource
     // RDF will create the folder resource if it doesn't already exist
@@ -318,7 +318,7 @@ nsMsgIdentity::getFolderPref(const char *prefname, nsCString& retval,
   }
 
   // if the server doesn't exist, fall back to the default pref.
-  rv = mDefPrefBranch->GetCharPref(prefname, getter_Copies(retval));
+  rv = mDefPrefBranch->GetCharPref(prefname, retval);
   if (NS_SUCCEEDED(rv) && !retval.IsEmpty())
     return setFolderPref(prefname, retval, folderflag);
 
@@ -395,7 +395,7 @@ nsMsgIdentity::setFolderPref(const char *prefname, const nsACString& value, uint
   }
 
   // get the old folder, and clear the special folder flag on it
-  rv = mPrefBranch->GetCharPref(prefname, getter_Copies(oldpref));
+  rv = mPrefBranch->GetCharPref(prefname, oldpref);
   if (NS_SUCCEEDED(rv) && !oldpref.IsEmpty())
   {
     rv = rdf->GetResource(oldpref, getter_AddRefs(res));
@@ -427,18 +427,8 @@ NS_IMETHODIMP nsMsgIdentity::SetUnicharAttribute(const char *aName, const nsAStr
   if (!mPrefBranch)
     return NS_ERROR_NOT_INITIALIZED;
 
-  if (!val.IsEmpty()) {
-    nsresult rv;
-    nsCOMPtr<nsISupportsString> supportsString(
-        do_CreateInstance(NS_SUPPORTS_STRING_CONTRACTID, &rv));
-    if (NS_SUCCEEDED(rv))
-      rv = supportsString->SetData(val);
-    if (NS_SUCCEEDED(rv))
-      rv = mPrefBranch->SetComplexValue(aName,
-                                        NS_GET_IID(nsISupportsString),
-                                        supportsString);
-    return rv;
-  }
+  if (!val.IsEmpty())
+    return mPrefBranch->SetStringPref(aName, NS_ConvertUTF16toUTF8(val));
 
   mPrefBranch->ClearUserPref(aName);
   return NS_OK;
@@ -449,19 +439,10 @@ NS_IMETHODIMP nsMsgIdentity::GetUnicharAttribute(const char *aName, nsAString& v
   if (!mPrefBranch)
     return NS_ERROR_NOT_INITIALIZED;
 
-  nsCOMPtr<nsISupportsString> supportsString;
-  if (NS_FAILED(mPrefBranch->GetComplexValue(aName,
-                                             NS_GET_IID(nsISupportsString),
-                                             getter_AddRefs(supportsString))))
-    mDefPrefBranch->GetComplexValue(aName,
-                                    NS_GET_IID(nsISupportsString),
-                                    getter_AddRefs(supportsString));
-
-  if (supportsString)
-    supportsString->GetData(val);
-  else
-    val.Truncate();
-
+  nsCString valueUtf8;
+  if (NS_FAILED(mPrefBranch->GetStringPref(aName, EmptyCString(), 0, valueUtf8)))
+    mDefPrefBranch->GetStringPref(aName, EmptyCString(), 0, valueUtf8);
+  CopyUTF8toUTF16(valueUtf8, val);
   return NS_OK;
 }
 
@@ -471,7 +452,7 @@ NS_IMETHODIMP nsMsgIdentity::SetCharAttribute(const char *aName, const nsACStrin
     return NS_ERROR_NOT_INITIALIZED;
 
   if (!val.IsEmpty())
-    return mPrefBranch->SetCharPref(aName, nsCString(val).get());
+    return mPrefBranch->SetCharPref(aName, val);
 
   mPrefBranch->ClearUserPref(aName);
   return NS_OK;
@@ -483,8 +464,8 @@ NS_IMETHODIMP nsMsgIdentity::GetCharAttribute(const char *aName, nsACString& val
     return NS_ERROR_NOT_INITIALIZED;
 
   nsCString tmpVal;
-  if (NS_FAILED(mPrefBranch->GetCharPref(aName, getter_Copies(tmpVal))))
-    mDefPrefBranch->GetCharPref(aName, getter_Copies(tmpVal));
+  if (NS_FAILED(mPrefBranch->GetCharPref(aName, tmpVal)))
+    mDefPrefBranch->GetCharPref(aName, tmpVal);
   val = tmpVal;
   return NS_OK;
 }

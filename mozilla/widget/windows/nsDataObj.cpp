@@ -16,7 +16,7 @@
 #include "nsISupportsPrimitives.h"
 #include "IEnumFE.h"
 #include "nsPrimitiveHelpers.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "nsImageClipboard.h"
 #include "nsCRT.h"
 #include "nsPrintfCString.h"
@@ -26,7 +26,6 @@
 #include "nsNetUtil.h"
 #include "mozilla/Services.h"
 #include "nsIOutputStream.h"
-#include "nsXPCOMStrings.h"
 #include "nscore.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsITimer.h"
@@ -38,7 +37,6 @@
 
 #include "WinUtils.h"
 #include "mozilla/LazyIdleThread.h"
-#include "mozilla/WindowsVersion.h"
 #include <algorithm>
 
 
@@ -161,10 +159,7 @@ NS_IMETHODIMP nsDataObj::CStream::OnStopRequest(nsIRequest *aRequest,
 nsresult nsDataObj::CStream::WaitForCompletion()
 {
   // We are guaranteed OnStopRequest will get called, so this should be ok.
-  while (!mChannelRead) {
-    // Pump messages
-    NS_ProcessNextEvent(nullptr, true);
-  }
+  SpinEventLoopUntil([&]() { return mChannelRead; });
 
   if (!mChannelData.Length())
     mChannelResult = NS_ERROR_FAILURE;
@@ -443,6 +438,82 @@ STDMETHODIMP_(ULONG) nsDataObj::AddRef()
 	return m_cRef;
 }
 
+namespace {
+class RemoveTempFileHelper final : public nsIObserver
+{
+public:
+  explicit RemoveTempFileHelper(nsIFile* aTempFile)
+    : mTempFile(aTempFile)
+  {
+    MOZ_ASSERT(mTempFile);
+  }
+
+  // The attach method is seperate from the constructor as we may be addref-ing
+  // ourself, and we want to be sure someone has a strong reference to us.
+  void Attach()
+  {
+    // We need to listen to both the xpcom shutdown message and our timer, and
+    // fire when the first of either of these two messages is received.
+    nsresult rv;
+    rv = NS_NewTimerWithObserver(getter_AddRefs(mTimer),
+                                 this, 500, nsITimer::TYPE_ONE_SHOT);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return;
+    }
+
+    nsCOMPtr<nsIObserverService> observerService =
+      do_GetService("@mozilla.org/observer-service;1");
+    if (NS_WARN_IF(!observerService)) {
+      mTimer->Cancel();
+      mTimer = nullptr;
+      return;
+    }
+    observerService->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
+  }
+
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIOBSERVER
+
+private:
+  ~RemoveTempFileHelper()
+  {
+    if (mTempFile) {
+      mTempFile->Remove(false);
+    }
+  }
+
+  nsCOMPtr<nsIFile> mTempFile;
+  nsCOMPtr<nsITimer> mTimer;
+};
+
+NS_IMPL_ISUPPORTS(RemoveTempFileHelper, nsIObserver);
+
+NS_IMETHODIMP
+RemoveTempFileHelper::Observe(nsISupports* aSubject, const char* aTopic, const char16_t* aData)
+{
+  // Let's be careful and make sure that we don't die immediately
+  RefPtr<RemoveTempFileHelper> grip = this;
+
+  // Make sure that we aren't called again by destroying references to ourself.
+  nsCOMPtr<nsIObserverService> observerService =
+    do_GetService("@mozilla.org/observer-service;1");
+  if (observerService) {
+    observerService->RemoveObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID);
+  }
+
+  if (mTimer) {
+    mTimer->Cancel();
+    mTimer = nullptr;
+  }
+
+  // Remove the tempfile
+  if (mTempFile) {
+    mTempFile->Remove(false);
+    mTempFile = nullptr;
+  }
+  return NS_OK;
+}
+} // namespace
 
 //-----------------------------------------------------
 STDMETHODIMP_(ULONG) nsDataObj::Release()
@@ -456,17 +527,12 @@ STDMETHODIMP_(ULONG) nsDataObj::Release()
   // We have released our last ref on this object and need to delete the
   // temp file. External app acting as drop target may still need to open the
   // temp file. Addref a timer so it can delay deleting file and destroying
-  // this object. Delete file anyway and destroy this obj if there's a problem.
+  // this object.
   if (mCachedTempFile) {
-    nsresult rv;
-    mTimer = do_CreateInstance(NS_TIMER_CONTRACTID, &rv);
-    if (NS_SUCCEEDED(rv)) {
-      mTimer->InitWithFuncCallback(nsDataObj::RemoveTempFile, this,
-                                   500, nsITimer::TYPE_ONE_SHOT);
-      return AddRef();
-    }
-    mCachedTempFile->Remove(false);
+    RefPtr<RemoveTempFileHelper> helper =
+      new RemoveTempFileHelper(mCachedTempFile);
     mCachedTempFile = nullptr;
+    helper->Attach();
   }
 
 	delete this;
@@ -1013,7 +1079,7 @@ CreateFilenameFromTextW(nsString & aText, const wchar_t * aExtension,
 #define PAGEINFO_PROPERTIES "chrome://navigator/locale/pageInfo.properties"
 
 static bool
-GetLocalizedString(const char16_t * aName, nsXPIDLString & aString)
+GetLocalizedString(const char* aName, nsAString& aString)
 {
   nsCOMPtr<nsIStringBundleService> stringService =
     mozilla::services::GetStringBundleService();
@@ -1026,7 +1092,7 @@ GetLocalizedString(const char16_t * aName, nsXPIDLString & aString)
   if (NS_FAILED(rv))
     return false;
 
-  rv = stringBundle->GetStringFromName(aName, getter_Copies(aString));
+  rv = stringBundle->GetStringFromName(aName, aString);
   return NS_SUCCEEDED(rv);
 }
 
@@ -1058,8 +1124,8 @@ nsDataObj :: GetFileDescriptorInternetShortcutA ( FORMATETC& aFE, STGMEDIUM& aST
   // 2) localized string for an untitled page, 3) just use "Untitled.URL"
   if (!CreateFilenameFromTextA(title, ".URL", 
                                fileGroupDescA->fgd[0].cFileName, NS_MAX_FILEDESCRIPTOR)) {
-    nsXPIDLString untitled;
-    if (!GetLocalizedString(u"noPageTitle", untitled) ||
+    nsAutoString untitled;
+    if (!GetLocalizedString("noPageTitle", untitled) ||
         !CreateFilenameFromTextA(untitled, ".URL", 
                                  fileGroupDescA->fgd[0].cFileName, NS_MAX_FILEDESCRIPTOR)) {
       strcpy(fileGroupDescA->fgd[0].cFileName, "Untitled.URL");
@@ -1099,8 +1165,8 @@ nsDataObj :: GetFileDescriptorInternetShortcutW ( FORMATETC& aFE, STGMEDIUM& aST
   // 2) localized string for an untitled page, 3) just use "Untitled.URL"
   if (!CreateFilenameFromTextW(title, L".URL",
                                fileGroupDescW->fgd[0].cFileName, NS_MAX_FILEDESCRIPTOR)) {
-    nsXPIDLString untitled;
-    if (!GetLocalizedString(u"noPageTitle", untitled) ||
+    nsAutoString untitled;
+    if (!GetLocalizedString("noPageTitle", untitled) ||
         !CreateFilenameFromTextW(untitled, L".URL",
                                  fileGroupDescW->fgd[0].cFileName, NS_MAX_FILEDESCRIPTOR)) {
       wcscpy(fileGroupDescW->fgd[0].cFileName, L"Untitled.URL");
@@ -1148,8 +1214,7 @@ nsDataObj :: GetFileContentsInternetShortcut ( FORMATETC& aFE, STGMEDIUM& aSTG )
   const char *shortcutFormatStr;
   int totalLen;
   nsCString path;
-  if (!Preferences::GetBool(kShellIconPref, true) ||
-      !IsVistaOrLater()) {
+  if (!Preferences::GetBool(kShellIconPref, true)) {
     shortcutFormatStr = "[InternetShortcut]\r\nURL=%s\r\n";
     const int formatLen = strlen(shortcutFormatStr) - 2;  // don't include %s
     totalLen = formatLen + asciiUrl.Length();  // don't include null character
@@ -1276,7 +1341,8 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
   mTransferable->GetTransferData(flavorStr, getter_AddRefs(genericDataWrapper), &len);
   if ( !len )
     return E_FAIL;
-  nsPrimitiveHelpers::CreateDataFromPrimitive ( flavorStr, genericDataWrapper, &data, len );
+  nsPrimitiveHelpers::CreateDataFromPrimitive(
+    nsDependentCString(flavorStr), genericDataWrapper, &data, len);
   if ( !data )
     return E_FAIL;
 
@@ -1602,7 +1668,7 @@ HRESULT nsDataObj::DropTempFile(FORMATETC& aFE, STGMEDIUM& aSTG)
       wideFileName);
     if (FAILED(res))
       return res;
-    NS_UTF16ToCString(wideFileName, NS_CSTRING_ENCODING_NATIVE_FILESYSTEM, filename);
+    NS_CopyUnicodeToNative(wideFileName, filename);
 
     dropFile->AppendNative(filename);
     rv = dropFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0660);
@@ -2090,7 +2156,7 @@ HRESULT nsDataObj::GetFileDescriptor_IStreamA(FORMATETC& aFE, STGMEDIUM& aSTG)
   }
 
   nsAutoCString nativeFileName;
-  NS_UTF16ToCString(wideFileName, NS_CSTRING_ENCODING_NATIVE_FILESYSTEM, nativeFileName);
+  NS_CopyUnicodeToNative(wideFileName, nativeFileName);
   
   strncpy(fileGroupDescA->fgd[0].cFileName, nativeFileName.get(), NS_MAX_FILEDESCRIPTOR - 1);
   fileGroupDescA->fgd[0].cFileName[NS_MAX_FILEDESCRIPTOR - 1] = '\0';
@@ -2153,14 +2219,4 @@ HRESULT nsDataObj::GetFileContents_IStream(FORMATETC& aFE, STGMEDIUM& aSTG)
   aSTG.pUnkForRelease = nullptr;
 
   return S_OK;
-}
-
-void nsDataObj::RemoveTempFile(nsITimer* aTimer, void* aClosure)
-{
-  nsDataObj *timedDataObj = static_cast<nsDataObj *>(aClosure);
-  if (timedDataObj->mCachedTempFile) {
-    timedDataObj->mCachedTempFile->Remove(false);
-    timedDataObj->mCachedTempFile = nullptr;
-  }
-  timedDataObj->Release();
 }

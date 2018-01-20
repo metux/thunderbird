@@ -8,7 +8,7 @@
 
 #ifdef XP_WIN
 #include "WMFDecoderModule.h"
-
+#include "mozilla/WindowsVersion.h"
 #endif
 #ifdef MOZ_FFVPX
 #include "FFVPXRuntimeLinker.h"
@@ -18,9 +18,6 @@
 #endif
 #ifdef MOZ_APPLEMEDIA
 #include "AppleDecoderModule.h"
-#endif
-#ifdef MOZ_GONK_MEDIACODEC
-#include "GonkDecoderModule.h"
 #endif
 #ifdef MOZ_WIDGET_ANDROID
 #include "AndroidDecoderModule.h"
@@ -36,7 +33,6 @@
 
 #include "MediaInfo.h"
 #include "MediaPrefs.h"
-#include "FuzzingWrapper.h"
 #include "H264Converter.h"
 
 #include "AgnosticDecoderModule.h"
@@ -47,18 +43,17 @@
 #include "MP4Decoder.h"
 #include "mozilla/dom/RemoteVideoDecoder.h"
 
-#ifdef XP_WIN
-#include "mozilla/WindowsVersion.h"
-#endif
-
 #include "mp4_demuxer/H264.h"
+
+#include <functional>
 
 namespace mozilla {
 
-extern already_AddRefed<PlatformDecoderModule> CreateAgnosticDecoderModule();
 extern already_AddRefed<PlatformDecoderModule> CreateBlankDecoderModule();
+extern already_AddRefed<PlatformDecoderModule> CreateNullDecoderModule();
 
-class PDMFactoryImpl final {
+class PDMFactoryImpl final
+{
 public:
   PDMFactoryImpl()
   {
@@ -97,7 +92,8 @@ public:
                          MediaResult aResult = MediaResult(NS_OK))
       : mReason(aReason),
         mMediaResult(mozilla::Move(aResult))
-    {}
+    {
+    }
     CheckResult(const CheckResult& aOther) = default;
     CheckResult(CheckResult&& aOther) = default;
     CheckResult& operator=(const CheckResult& aOther) = default;
@@ -118,10 +114,10 @@ public:
   AddMediaFormatChecker(const TrackInfo& aTrackConfig)
   {
     if (aTrackConfig.IsVideo()) {
-    auto mimeType = aTrackConfig.GetAsVideoInfo()->mMimeType;
-    RefPtr<MediaByteBuffer> extraData = aTrackConfig.GetAsVideoInfo()->mExtraData;
-    AddToCheckList(
-      [mimeType, extraData]() {
+      auto mimeType = aTrackConfig.GetAsVideoInfo()->mMimeType;
+      RefPtr<MediaByteBuffer> extraData =
+        aTrackConfig.GetAsVideoInfo()->mExtraData;
+      AddToCheckList([mimeType, extraData]() {
         if (MP4Decoder::IsH264(mimeType)) {
           mp4_demuxer::SPSData spsdata;
           // WMF H.264 Video Decoder and Apple ATDecoder
@@ -132,11 +128,10 @@ public:
                spsdata.chroma_format_idc == PDMFactory::kYUV444)) {
             return CheckResult(
               SupportChecker::Reason::kVideoFormatNotSupported,
-              MediaResult(
-                NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                RESULT_DETAIL("Decoder may not have the capability to handle"
-                              " the requested video format"
-                              " with YUV444 chroma subsampling.")));
+              MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                          RESULT_DETAIL("Decoder may not have the capability "
+                                        "to handle the requested video format "
+                                        "with YUV444 chroma subsampling.")));
           }
         }
         return CheckResult(SupportChecker::Reason::kSupported);
@@ -159,14 +154,14 @@ public:
   void Clear() { mCheckerList.Clear(); }
 
 private:
-  nsTArray<mozilla::function<CheckResult()>> mCheckerList;
+  nsTArray<std::function<CheckResult()>> mCheckerList;
 }; // SupportChecker
 
 PDMFactory::PDMFactory()
 {
   EnsureInit();
   CreatePDMs();
-  CreateBlankPDM();
+  CreateNullPDM();
 }
 
 PDMFactory::~PDMFactory()
@@ -191,24 +186,24 @@ PDMFactory::EnsureInit() const
   }
 
   // Not on the main thread -> Sync-dispatch creation to main thread.
-  nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+  nsCOMPtr<nsIEventTarget> mainTarget = GetMainThreadEventTarget();
   nsCOMPtr<nsIRunnable> runnable =
-    NS_NewRunnableFunction([]() {
+    NS_NewRunnableFunction("PDMFactory::EnsureInit", []() {
       StaticMutexAutoLock mon(sMonitor);
       if (!sInstance) {
         sInstance = new PDMFactoryImpl();
         ClearOnShutdown(&sInstance);
       }
     });
-  SyncRunnable::DispatchToThread(mainThread, runnable);
+  SyncRunnable::DispatchToThread(mainTarget, runnable);
 }
 
 already_AddRefed<MediaDataDecoder>
 PDMFactory::CreateDecoder(const CreateDecoderParams& aParams)
 {
-  if (aParams.mUseBlankDecoder) {
-    MOZ_ASSERT(mBlankPDM);
-    return CreateDecoderWithPDM(mBlankPDM, aParams);
+  if (aParams.mUseNullDecoder.mUse) {
+    MOZ_ASSERT(mNullPDM);
+    return CreateDecoderWithPDM(mNullPDM, aParams);
   }
 
   const TrackInfo& config = aParams.mConfig;
@@ -234,7 +229,7 @@ PDMFactory::CreateDecoder(const CreateDecoderParams& aParams)
   }
 
   for (auto& current : mCurrentPDMs) {
-    if (!current->SupportsMimeType(config.mMimeType, diagnostics)) {
+    if (!current->Supports(config, diagnostics)) {
       continue;
     }
     RefPtr<MediaDataDecoder> m = CreateDecoderWithPDM(current, aParams);
@@ -261,14 +256,16 @@ PDMFactory::CreateDecoderWithPDM(PlatformDecoderModule* aPDM,
   auto checkResult = supportChecker.Check();
   if (checkResult.mReason != SupportChecker::Reason::kSupported) {
     DecoderDoctorDiagnostics* diagnostics = aParams.mDiagnostics;
-    if (checkResult.mReason == SupportChecker::Reason::kVideoFormatNotSupported) {
+    if (checkResult.mReason
+        == SupportChecker::Reason::kVideoFormatNotSupported) {
       if (diagnostics) {
         diagnostics->SetVideoNotSupported();
       }
       if (result) {
         *result = checkResult.mMediaResult;
       }
-    } else if (checkResult.mReason == SupportChecker::Reason::kAudioFormatNotSupported) {
+    } else if (checkResult.mReason
+               == SupportChecker::Reason::kAudioFormatNotSupported) {
       if (diagnostics) {
         diagnostics->SetAudioNotSupported();
       }
@@ -285,39 +282,25 @@ PDMFactory::CreateDecoderWithPDM(PlatformDecoderModule* aPDM,
   }
 
   if (!config.IsVideo()) {
-    *result = MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                          RESULT_DETAIL("Decoder configuration error, expected audio or video."));
+    *result = MediaResult(
+      NS_ERROR_DOM_MEDIA_FATAL_ERR,
+      RESULT_DETAIL("Decoder configuration error, expected audio or video."));
     return nullptr;
   }
 
-  MediaDataDecoderCallback* callback = aParams.mCallback;
-  RefPtr<DecoderCallbackFuzzingWrapper> callbackWrapper;
-  if (MediaPrefs::PDMFuzzingEnabled()) {
-    callbackWrapper = new DecoderCallbackFuzzingWrapper(callback);
-    callbackWrapper->SetVideoOutputMinimumInterval(
-      TimeDuration::FromMilliseconds(MediaPrefs::PDMFuzzingInterval()));
-    callbackWrapper->SetDontDelayInputExhausted(!MediaPrefs::PDMFuzzingDelayInputExhausted());
-    callback = callbackWrapper.get();
-  }
-
-  CreateDecoderParams params = aParams;
-  params.mCallback = callback;
-
-  if (MP4Decoder::IsH264(config.mMimeType) && !aParams.mUseBlankDecoder) {
-    RefPtr<H264Converter> h = new H264Converter(aPDM, params);
-    const nsresult rv = h->GetLastError();
-    if (NS_SUCCEEDED(rv) || rv == NS_ERROR_NOT_INITIALIZED) {
+  if (MP4Decoder::IsH264(config.mMimeType) && !aParams.mUseNullDecoder.mUse) {
+    RefPtr<H264Converter> h = new H264Converter(aPDM, aParams);
+    const MediaResult result = h->GetLastError();
+    if (NS_SUCCEEDED(result) || result == NS_ERROR_NOT_INITIALIZED) {
       // The H264Converter either successfully created the wrapped decoder,
       // or there wasn't enough AVCC data to do so. Otherwise, there was some
       // problem, for example WMF DLLs were missing.
       m = h.forget();
+    } else if (aParams.mError) {
+      *aParams.mError = result;
     }
   } else {
-    m = aPDM->CreateVideoDecoder(params);
-  }
-
-  if (callbackWrapper && m) {
-    m = new DecoderFuzzingWrapper(m.forget(), callbackWrapper.forget());
+    m = aPDM->CreateVideoDecoder(aParams);
   }
 
   return m.forget();
@@ -359,24 +342,8 @@ PDMFactory::CreatePDMs()
     return;
   }
 
-#ifdef MOZ_WIDGET_ANDROID
-  if(MediaPrefs::PDMAndroidMediaCodecPreferred() &&
-     MediaPrefs::PDMAndroidMediaCodecEnabled()) {
-    m = new AndroidDecoderModule();
-    StartupPDM(m);
-  }
-#endif
 #ifdef XP_WIN
-  if (MediaPrefs::PDMWMFEnabled() && IsVistaOrLater() && !IsWin7AndPre2000Compatible()) {
-    // *Only* use WMF on Vista and later, as if Firefox is run in Windows 95
-    // compatibility mode on Windows 7 (it does happen!) we may crash trying
-    // to startup WMF. So we need to detect the OS version here, as in
-    // compatibility mode IsVistaOrLater() and friends behave as if we're on
-    // the emulated version of Windows. See bug 1279171.
-    // Additionally, we don't want to start the RemoteDecoderModule if we
-    // expect it's not going to work (i.e. on Windows older than Vista).
-    // IsWin7AndPre2000Compatible() uses GetVersionEx as the user specified OS version can
-    // be reflected when compatibility mode is in effect.
+  if (MediaPrefs::PDMWMFEnabled() && !IsWin7AndPre2000Compatible()) {
     m = new WMFDecoderModule();
     RefPtr<PlatformDecoderModule> remote = new dom::RemoteDecoderModule(m);
     StartupPDM(remote);
@@ -403,16 +370,10 @@ PDMFactory::CreatePDMs()
   m = new AppleDecoderModule();
   StartupPDM(m);
 #endif
-#ifdef MOZ_GONK_MEDIACODEC
-  if (MediaPrefs::PDMGonkDecoderEnabled()) {
-    m = new GonkDecoderModule();
-    StartupPDM(m);
-  }
-#endif
 #ifdef MOZ_WIDGET_ANDROID
   if(MediaPrefs::PDMAndroidMediaCodecEnabled()){
     m = new AndroidDecoderModule();
-    StartupPDM(m);
+    StartupPDM(m, MediaPrefs::PDMAndroidMediaCodecPreferred());
   }
 #endif
 
@@ -428,17 +389,21 @@ PDMFactory::CreatePDMs()
 }
 
 void
-PDMFactory::CreateBlankPDM()
+PDMFactory::CreateNullPDM()
 {
-  mBlankPDM = CreateBlankDecoderModule();
-  MOZ_ASSERT(mBlankPDM && NS_SUCCEEDED(mBlankPDM->Startup()));
+  mNullPDM = CreateNullDecoderModule();
+  MOZ_ASSERT(mNullPDM && NS_SUCCEEDED(mNullPDM->Startup()));
 }
 
 bool
-PDMFactory::StartupPDM(PlatformDecoderModule* aPDM)
+PDMFactory::StartupPDM(PlatformDecoderModule* aPDM, bool aInsertAtBeginning)
 {
   if (aPDM && NS_SUCCEEDED(aPDM->Startup())) {
-    mCurrentPDMs.AppendElement(aPDM);
+    if (aInsertAtBeginning) {
+      mCurrentPDMs.InsertElementAt(0, aPDM);
+    } else {
+      mCurrentPDMs.AppendElement(aPDM);
+    }
     return true;
   }
   return false;
@@ -475,6 +440,14 @@ PDMFactory::GetDecoder(const TrackInfo& aTrackInfo,
 void
 PDMFactory::SetCDMProxy(CDMProxy* aProxy)
 {
+  MOZ_ASSERT(aProxy);
+
+#ifdef MOZ_WIDGET_ANDROID
+  if (IsWidevineKeySystem(aProxy->KeySystem())) {
+    mEMEPDM = new AndroidDecoderModule(aProxy);
+    return;
+  }
+#endif
   RefPtr<PDMFactory> m = new PDMFactory();
   mEMEPDM = new EMEDecoderModule(aProxy, m);
 }

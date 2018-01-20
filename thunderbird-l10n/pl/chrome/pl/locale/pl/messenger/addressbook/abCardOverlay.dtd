@@ -39,7 +39,7 @@
 <!ENTITY PlainText.label "Tekstowy">
 <!ENTITY HTML.label "HTML">
 <!ENTITY Unknown.label "Nieznany">
-<!ENTITY chatName.label "Nazwa czat:">
+<!ENTITY chatName.label "Nazwa komunikatora:">
 
 <!ENTITY WorkPhone.label "Praca:">
 <!ENTITY WorkPhone.accesskey "c">
@@ -112,12 +112,12 @@
 <!ENTITY Notes.label "Notatki:">
 <!ENTITY Notes.accesskey "N">
 
-<!ENTITY Chat.tab "Czat">
-<!ENTITY Chat.accesskey "C">
+<!ENTITY Chat.tab "Komunikator">
+<!ENTITY Chat.accesskey "K">
 <!ENTITY Gtalk.label "Google Talk:">
 <!ENTITY Gtalk.accesskey "G">
 <!ENTITY AIM.label "AIM:">
-<!ENTITY AIM.accesskey "A">
+<!ENTITY AIM2.accesskey "A">
 <!ENTITY Yahoo.label "Yahoo!:">
 <!ENTITY Yahoo.accesskey "Y">
 <!ENTITY Skype.label "Skype:">
@@ -125,7 +125,7 @@
 <!ENTITY QQ.label "QQ:">
 <!ENTITY QQ.accesskey "Q">
 <!ENTITY MSN.label "MSN:">
-<!ENTITY MSN.accesskey "M">
+<!ENTITY MSN2.accesskey "M">
 <!ENTITY ICQ.label "ICQ:">
 <!ENTITY ICQ.accesskey "Q">
 <!ENTITY XMPP.label "Jabber:">

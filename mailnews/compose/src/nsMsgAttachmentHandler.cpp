@@ -54,10 +54,10 @@ nsresult nsSimpleZipper::Zip(nsIFile *aInputFile, nsIFile *aOutputFile)
   nsresult rv;
   nsCOMPtr<nsIZipWriter> zipWriter = do_CreateInstance("@mozilla.org/zipwriter;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   rv = zipWriter->Open(aOutputFile, PR_RDWR | PR_CREATE_FILE | PR_TRUNCATE);
-  NS_ENSURE_SUCCESS(rv, rv); 
-  
+  NS_ENSURE_SUCCESS(rv, rv);
+
   rv = AddToZip(zipWriter, aInputFile, EmptyCString());
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -67,7 +67,7 @@ nsresult nsSimpleZipper::Zip(nsIFile *aInputFile, nsIFile *aOutputFile)
 }
 
 /* static */
-nsresult nsSimpleZipper::AddToZip(nsIZipWriter *aZipWriter, 
+nsresult nsSimpleZipper::AddToZip(nsIZipWriter *aZipWriter,
                                   nsIFile *aFile,
                                   const nsACString &aPath)
 {
@@ -76,17 +76,17 @@ nsresult nsSimpleZipper::AddToZip(nsIZipWriter *aZipWriter,
   aFile->GetNativeLeafName(leafName);
   nsCString currentPath(aPath);
   currentPath += leafName;
-    
+
   bool isDirectory;
   aFile->IsDirectory(&isDirectory);
   // append slash for a directory entry
   if (isDirectory)
     currentPath.Append('/');
-  
+
   // add the file or directory entry to the zip
   nsresult rv = aZipWriter->AddEntryFile(currentPath, nsIZipWriter::COMPRESSION_DEFAULT, aFile, false);
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   // if it's a directory, add all its contents too
   if (isDirectory) {
     nsCOMPtr<nsISimpleEnumerator> e;
@@ -102,7 +102,7 @@ nsresult nsSimpleZipper::AddToZip(nsIZipWriter *aZipWriter,
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
-  
+
   return NS_OK;
 }
 #endif // XP_MACOSX
@@ -129,8 +129,8 @@ nsMsgAttachmentHandler::nsMsgAttachmentHandler() :
   m_highbit_count(0),
   m_ctl_count(0),
   m_null_count(0),
-  m_have_cr(0), 
-  m_have_lf(0), 
+  m_have_cr(0),
+  m_have_lf(0),
   m_have_crlf(0),
   m_prev_char_was_cr(false),
   m_current_column(0),
@@ -529,10 +529,10 @@ nsMsgAttachmentHandler::PickCharset()
     do_QueryInterface(mTmpFile);
   if (!tmpFile)
     return NS_OK;
-  
+
   return MsgDetectCharsetFromFile(tmpFile, m_charset);
 }
-    
+
 static nsresult
 FetcherURLDoneCallback(nsresult aStatus,
                        const nsACString &aContentType,
@@ -573,7 +573,7 @@ nsMsgAttachmentHandler::SnarfMsgAttachment(nsMsgCompFields *compFields)
   nsresult rv = NS_ERROR_INVALID_ARG;
   nsCOMPtr <nsIMsgMessageService> messageService;
 
-  if (m_uri.Find("-message:", CaseInsensitiveCompare) != -1)
+  if (m_uri.Find("-message:", /* ignoreCase = */ true) != -1)
   {
     nsCOMPtr <nsIFile> tmpFile;
     rv = nsMsgCreateTempFile("nsmail.tmp", getter_AddRefs(tmpFile));
@@ -621,9 +621,8 @@ nsMsgAttachmentHandler::SnarfMsgAttachment(nsMsgCompFields *compFields)
     {
       nsAutoCString uri(m_uri);
       uri += (uri.FindChar('?') == kNotFound) ? '?' : '&';
-      uri.Append("fetchCompleteMessage=true");
-      nsCOMPtr<nsIStreamListener> strListener;
-      fetcher->QueryInterface(NS_GET_IID(nsIStreamListener), getter_AddRefs(strListener));
+      uri.AppendLiteral("fetchCompleteMessage=true");
+      nsCOMPtr<nsIStreamListener> strListener = do_QueryInterface(fetcher);
 
       // initialize a new stream converter, that uses the strListener as its input
       // obtain the input stream listener from the new converter,
@@ -663,7 +662,7 @@ nsMsgAttachmentHandler::SnarfMsgAttachment(nsMsgCompFields *compFields)
                                     aURL,
                                     nullptr,
                                     nullPrincipal,
-                                    nsILoadInfo::SEC_NORMAL,
+                                    nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                     nsIContentPolicy::TYPE_OTHER);
       if (NS_FAILED(rv))
         goto done;
@@ -759,8 +758,8 @@ nsMsgAttachmentHandler::SnarfAttachment(nsMsgCompFields *compFields)
     NS_NewNativeLocalFile(unescapedFilePath, true, getter_AddRefs(sourceFile));
     if (!sourceFile)
       return NS_ERROR_FAILURE;
-      
-    // check if it is a bundle. if it is, we'll zip it. 
+
+    // check if it is a bundle. if it is, we'll zip it.
     // if not, we'll apple encode it (applesingle or appledouble)
     nsCOMPtr<nsILocalFileMac> macFile(do_QueryInterface(sourceFile));
     bool isPackage;
@@ -769,7 +768,7 @@ nsMsgAttachmentHandler::SnarfAttachment(nsMsgCompFields *compFields)
       rv = ConvertToZipFile(macFile);
     else
       rv = ConvertToAppleEncoding(sourceURISpec, unescapedFilePath, macFile);
-    
+
     NS_ENSURE_SUCCESS(rv, rv);
   }
 #endif /* XP_MACOSX */
@@ -779,7 +778,7 @@ nsMsgAttachmentHandler::SnarfAttachment(nsMsgCompFields *compFields)
   // in the temp file
   //
   // Create a fetcher for the URL attachment...
-  
+
   nsCOMPtr<nsIURLFetcher> fetcher = do_CreateInstance(NS_URLFETCHER_CONTRACTID, &rv);
   if (NS_FAILED(rv) || !fetcher)
   {
@@ -823,13 +822,13 @@ nsMsgAttachmentHandler::ConvertToZipFile(nsILocalFileMac *aSourceFile)
 }
 
 nsresult
-nsMsgAttachmentHandler::ConvertToAppleEncoding(const nsCString &aFileURI, 
-                                               const nsCString &aFilePath, 
+nsMsgAttachmentHandler::ConvertToAppleEncoding(const nsCString &aFileURI,
+                                               const nsCString &aFilePath,
                                                nsILocalFileMac *aSourceFile)
 {
   // convert the apple file to AppleDouble first, and then patch the
   // address in the url.
-  
+
   //We need to retrieve the file type and creator...
 
   char fileInfo[32];
@@ -981,7 +980,7 @@ nsMsgAttachmentHandler::ConvertToAppleEncoding(const nsCString &aFileURI,
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
-    if (NS_FAILED(nsMsgNewURL(getter_AddRefs(mURL), newURLSpec.get())))
+    if (NS_FAILED(nsMsgNewURL(getter_AddRefs(mURL), newURLSpec)))
     {
       PR_FREEIF(separator);
       return NS_ERROR_OUT_OF_MEMORY;
@@ -1161,16 +1160,16 @@ nsMsgAttachmentHandler::UrlExit(nsresult status, const char16_t* aMsg)
         params = unescapedUrl;
     }
     else
-      params.AssignLiteral("?");
+      params.Assign('?');
 
     NS_ConvertUTF8toUTF16 UTF16params(params);
     const char16_t* formatParams[] = { UTF16params.get() };
     if (mode == nsIMsgSend::nsMsgSaveAsDraft || mode == nsIMsgSend::nsMsgSaveAsTemplate)
-      bundle->FormatStringFromName(u"failureOnObjectEmbeddingWhileSaving",
-                                   formatParams, 1, getter_Copies(msg));
+      bundle->FormatStringFromName("failureOnObjectEmbeddingWhileSaving",
+                                   formatParams, 1, msg);
     else
-      bundle->FormatStringFromName(u"failureOnObjectEmbeddingWhileSending",
-                                   formatParams, 1, getter_Copies(msg));
+      bundle->FormatStringFromName("failureOnObjectEmbeddingWhileSending",
+                                   formatParams, 1, msg);
 
     nsCOMPtr<nsIPrompt> aPrompt;
     if (m_mime_delivery_state)
@@ -1361,8 +1360,7 @@ nsresult
 nsMsgAttachmentHandler::GetMimeDeliveryState(nsIMsgSend** _retval)
 {
   NS_ENSURE_ARG(_retval);
-  *_retval = m_mime_delivery_state;
-  NS_IF_ADDREF(*_retval);
+  NS_IF_ADDREF(*_retval = m_mime_delivery_state);
   return NS_OK;
 }
 

@@ -10,6 +10,7 @@
 #include "mozilla/MediaManager.h"
 #include "MediaTrackConstraints.h"
 #include "nsIEventTarget.h"
+#include "nsINamed.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIPermissionManager.h"
 #include "nsPIDOMWindow.h"
@@ -20,7 +21,7 @@
 namespace mozilla {
 namespace dom {
 
-class FuzzTimerCallBack final : public nsITimerCallback
+class FuzzTimerCallBack final : public nsITimerCallback, public nsINamed
 {
   ~FuzzTimerCallBack() {}
 
@@ -35,11 +36,17 @@ public:
     return NS_OK;
   }
 
+  NS_IMETHOD GetName(nsACString& aName) override
+  {
+    aName.AssignLiteral("FuzzTimerCallBack");
+    return NS_OK;
+  }
+
 private:
   nsCOMPtr<MediaDevices> mMediaDevices;
 };
 
-NS_IMPL_ISUPPORTS(FuzzTimerCallBack, nsITimerCallback)
+NS_IMPL_ISUPPORTS(FuzzTimerCallBack, nsITimerCallback, nsINamed)
 
 class MediaDevices::GumResolver : public nsIDOMGetUserMediaSuccessCallback
 {
@@ -75,8 +82,6 @@ public:
   NS_IMETHOD
   OnSuccess(nsIVariant* aDevices) override
   {
-    // Cribbed from MediaPermissionGonk.cpp
-
     // Create array for nsIMediaDevice
     nsTArray<nsCOMPtr<nsIMediaDevice>> devices;
     // Contain the fumes
@@ -174,6 +179,7 @@ NS_IMPL_ISUPPORTS(MediaDevices::GumRejecter, nsIDOMGetUserMediaErrorCallback)
 
 already_AddRefed<Promise>
 MediaDevices::GetUserMedia(const MediaStreamConstraints& aConstraints,
+			   CallerType aCallerType,
                            ErrorResult &aRv)
 {
   nsPIDOMWindowInner* window = GetOwner();
@@ -185,7 +191,8 @@ MediaDevices::GetUserMedia(const MediaStreamConstraints& aConstraints,
   RefPtr<GumRejecter> rejecter = new GumRejecter(p);
 
   aRv = MediaManager::Get()->GetUserMedia(window, aConstraints,
-                                          resolver, rejecter);
+                                          resolver, rejecter,
+					  aCallerType);
   return p.forget();
 }
 
@@ -227,7 +234,7 @@ MediaDevices::OnDeviceChange()
 
   if (!mFuzzTimer)
   {
-    mFuzzTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
+    mFuzzTimer = NS_NewTimer();
   }
 
   if (!mFuzzTimer) {

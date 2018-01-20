@@ -3,10 +3,11 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <!-- LOCALIZATION NOTE (tapToPlayPlugin): Mobile (used for touch interfaces) only has one type of plugin possible. -->
 
+<!ENTITY pluginActivationWarning                             "يستخدم هذا الموقع ملحقة قد تُبطئ &brandShortName;.">
 <!ENTITY tapToPlayPlugin                                     "اضغط هنا لتفعيل الملحقة.">
 <!ENTITY clickToActivatePlugin                               "فعّل المُلحقة.">
 <!ENTITY checkForUpdates                                     "التمس التحديثات…">
-<!ENTITY blockedPlugin.label                                 "لقد مُنعت هذه الملحقة لحمايتك.">
+<!ENTITY blockedPlugin.label                                 "لقد حُجبت هذه الملحقة لحمايتك.">
 <!ENTITY hidePluginBtn.label                                 "أخفِ الملحقة">
 <!ENTITY managePlugins                                       "أدِر الملحقات…">
 <!-- LOCALIZATION NOTE (reloadPlugin.pre): include a trailing space as needed -->
@@ -18,7 +19,7 @@
 <!ENTITY reloadPlugin.post                                   " للمحاولة من جديد.">
 <!-- LOCALIZATION NOTE (report.please): This and the other report.* strings should be as short as possible, ideally 2-3 words. -->
 <!ENTITY report.please                                       "أرسِل بلاغ انهيار">
-<!ENTITY report.submitting                                   "يرسل البلاغ...">
+<!ENTITY report.submitting                                   "يرسل البلاغ…">
 <!ENTITY report.submitted                                    "أُرسل البلاغ.">
 <!ENTITY report.disabled                                     "التبليغ بالانهيار معطل.">
 <!ENTITY report.failed                                       "فشل الإرسال.">
@@ -29,3 +30,4 @@
 <!ENTITY plugin.file                                         "ملف">
 <!ENTITY plugin.mimeTypes                                    "أنواع MIME">
 <!ENTITY plugin.flashProtectedMode.label                     "فعّل وضع الحماية لفلاش أدوبي">
+<!ENTITY plugin.enableBlocklists.label                       "احجب محتوى فلاش الخطير و المتطفّل">

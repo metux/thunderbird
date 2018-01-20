@@ -3,6 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!-- LOCALIZATION NOTE (tapToPlayPlugin): Mobile (used for touch interfaces) only has one type of plugin possible. -->
+<!ENTITY pluginActivationWarning                             "此网站使用的一个插件可能使 &brandShortName; 变慢。">
 <!ENTITY tapToPlayPlugin                                     "点按此处激活插件。">
 <!ENTITY clickToActivatePlugin                               "激活插件。">
 <!ENTITY checkForUpdates                                     "检查更新…">
@@ -23,9 +24,10 @@
 <!ENTITY report.disabled                                     "崩溃报告已被禁用。">
 <!ENTITY report.failed                                       "发送失败。">
 <!ENTITY report.unavailable                                  "没有可用的报告。">
-<!ENTITY report.comment                                      "加上附注（附注将公开可见）">
+<!ENTITY report.comment                                      "附上说明（说明公开可见）">
 <!ENTITY report.pageURL                                      "一并提交页面网址">
 
 <!ENTITY plugin.file                                         "文件">
 <!ENTITY plugin.mimeTypes                                    "MIME 类型">
 <!ENTITY plugin.flashProtectedMode.label                     "启用 Adobe Flash 保护模式">
+<!ENTITY plugin.enableBlocklists.label                       "拦截危险与侵扰性的 Flash 内容">

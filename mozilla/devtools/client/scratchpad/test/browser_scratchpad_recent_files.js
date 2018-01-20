@@ -192,11 +192,11 @@ function createAndLoadTemporaryFile(aFile, aFileName, aFileContent)
   // Write the temporary file.
   let fout = Cc["@mozilla.org/network/file-output-stream;1"].
              createInstance(Ci.nsIFileOutputStream);
-  fout.init(aFile.QueryInterface(Ci.nsILocalFile), 0x02 | 0x08 | 0x20,
+  fout.init(aFile.QueryInterface(Ci.nsIFile), 0x02 | 0x08 | 0x20,
             0o644, fout.DEFER_OPEN);
 
   gScratchpad.setFilename(aFile.path);
-  gScratchpad.importFromFile(aFile.QueryInterface(Ci.nsILocalFile), true,
+  gScratchpad.importFromFile(aFile.QueryInterface(Ci.nsIFile), true,
                             fileImported);
   gScratchpad.saveFile(fileSaved);
 
@@ -254,7 +254,7 @@ var PreferenceObserver = {
     }
 
     this.branch = Services.prefs.getBranch("devtools.scratchpad.");
-    this.branch.addObserver("", this, false);
+    this.branch.addObserver("", this);
     this._initialized = true;
   },
 
@@ -335,11 +335,10 @@ function test()
   // files max for this test.
   PreferenceObserver.init();
 
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
-    gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
+  gBrowser.selectedBrowser.addEventListener("load", function () {
     openScratchpad(startTest);
-  }, true);
+  }, {capture: true, once: true});
 
   content.location = "data:text/html,<p>test recent files in Scratchpad";
 }

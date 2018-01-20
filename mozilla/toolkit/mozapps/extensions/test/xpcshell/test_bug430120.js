@@ -9,7 +9,6 @@ const PREF_BLOCKLIST_ENABLED          = "extensions.blocklist.enabled";
 const PREF_APP_DISTRIBUTION           = "distribution.id";
 const PREF_APP_DISTRIBUTION_VERSION   = "distribution.version";
 const PREF_APP_UPDATE_CHANNEL         = "app.update.channel";
-const PREF_GENERAL_USERAGENT_LOCALE   = "general.useragent.locale";
 const CATEGORY_UPDATE_TIMER           = "update-timer";
 
 // Get the HTTP server.
@@ -22,7 +21,7 @@ var gBlocklist;
 // This is a replacement for the timer service so we can trigger timers
 var timerService = {
 
-  hasTimer: function(id) {
+  hasTimer(id) {
     var catMan = Components.classes["@mozilla.org/categorymanager;1"]
                            .getService(Components.interfaces.nsICategoryManager);
     var entries = catMan.enumerateCategory(CATEGORY_UPDATE_TIMER);
@@ -37,11 +36,11 @@ var timerService = {
     return false;
   },
 
-  fireTimer: function(id) {
+  fireTimer(id) {
     gBlocklist.QueryInterface(Components.interfaces.nsITimerCallback).notify(null);
   },
 
-  QueryInterface: function(iid) {
+  QueryInterface(iid) {
     if (iid.equals(Components.interfaces.nsIUpdateTimerManager)
      || iid.equals(Components.interfaces.nsISupports))
       return this;
@@ -85,13 +84,11 @@ function run_test() {
     if (osVersion) {
       try {
         osVersion += " (" + sysInfo.getProperty("secondaryLibrary") + ")";
-      }
-      catch (e) {
+      } catch (e) {
       }
       gOSVersion = encodeURIComponent(osVersion);
     }
-  }
-  catch (e) {
+  } catch (e) {
   }
 
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9");
@@ -123,7 +120,7 @@ function run_test() {
   defaults.setCharPref(PREF_APP_UPDATE_CHANNEL, "updatechannel");
   defaults.setCharPref(PREF_APP_DISTRIBUTION, "distribution");
   defaults.setCharPref(PREF_APP_DISTRIBUTION_VERSION, "distribution-version");
-  defaults.setCharPref(PREF_GENERAL_USERAGENT_LOCALE, "locale");
+  Services.locale.setRequestedLocales(["locale"]);
 
   // This should correctly escape everything
   Services.prefs.setCharPref(PREF_BLOCKLIST_URL, "http://localhost:" + gPort + "/2?" +

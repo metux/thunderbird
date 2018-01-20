@@ -23,6 +23,11 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "גרסה">
 <!ENTITY aboutSupport.extensionId "מזהה">
 
+<!ENTITY aboutSupport.featuresTitle "התכונות של &brandShortName;">
+<!ENTITY aboutSupport.featureName "שם">
+<!ENTITY aboutSupport.featureVersion "גרסה">
+<!ENTITY aboutSupport.featureId "מזהה">
+
 <!ENTITY aboutSupport.experimentsTitle "תכונות ניסיוניות">
 <!ENTITY aboutSupport.experimentName "שם">
 <!ENTITY aboutSupport.experimentId "מזהה">
@@ -62,6 +67,11 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsProfiles "פרופילים">
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "חלונות מרובי תהליכים">
+
+<!ENTITY aboutSupport.appBasicsProcessCount "תהליכי תוכן רשת">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "מפתח עבור שירותי Google">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "מפתח עבור שירותי המיקום של Mozilla">
 
 <!ENTITY aboutSupport.appBasicsSafeMode "מצב בטוח">
 
@@ -108,6 +118,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "העתקת נתונים גולמיים ללוח">
 
 <!ENTITY aboutSupport.sandboxTitle "ארגז חול">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "קריאות מערכת שנדחו">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "שניות עברו">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "סוג תהליך">
+<!ENTITY aboutSupport.sandboxSyscallNumber "קריאת מערכת">
+<!ENTITY aboutSupport.sandboxSyscallArgs "ארגומנטים">
 
 <!ENTITY aboutSupport.safeModeTitle "לנסות במצב בטוח">
 <!ENTITY aboutSupport.restartInSafeMode.label "הפעלה מחדש עם תוספות מנוטרלות…">
@@ -120,3 +138,29 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "יומן החלטות">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "תכונות מנוטרלות של מגן הקריסות">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "מעקפים">
+
+<!ENTITY aboutSupport.mediaTitle "מדיה">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "התקני פלט">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "התקני קלט">
+<!ENTITY aboutSupport.mediaDeviceName "שם">
+<!ENTITY aboutSupport.mediaDeviceGroup "קבוצה">
+<!ENTITY aboutSupport.mediaDeviceVendor "יצרן">
+<!ENTITY aboutSupport.mediaDeviceState "מצב">
+<!ENTITY aboutSupport.mediaDevicePreferred "מועדף">
+<!ENTITY aboutSupport.mediaDeviceFormat "תצורה">
+<!ENTITY aboutSupport.mediaDeviceChannels "ערוצים">
+<!ENTITY aboutSupport.mediaDeviceRate "קצב">
+<!ENTITY aboutSupport.mediaDeviceLatency "עיכוב">
+
+<!ENTITY aboutSupport.a11yHandlerUsed "Accessible Handler Used">
+<!ENTITY aboutSupport.a11yInstantiator "Accessibility Instantiator">
+
+<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
+<!ENTITY aboutSupport.intlAppTitle "Application Settings">
+<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
+<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
+<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
+<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
+<!ENTITY aboutSupport.intlOSTitle "Operating System">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">

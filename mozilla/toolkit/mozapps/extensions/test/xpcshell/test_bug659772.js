@@ -59,13 +59,13 @@ function run_test() {
 }
 
 // Tests whether a schema migration without app version change works
-function run_test_1() {
+async function run_test_1() {
   writeInstallRDFForExtension(addon1, profileDir);
   writeInstallRDFForExtension(addon2, profileDir);
   writeInstallRDFForExtension(addon3, profileDir);
   writeInstallRDFForExtension(addon4, profileDir);
 
-  startupManager();
+  await promiseStartupManager();
 
   AddonManager.getAddonsByIDs(["addon1@tests.mozilla.org",
                                "addon2@tests.mozilla.org",
@@ -104,7 +104,7 @@ function run_test_1() {
     installAllFiles([
       do_get_addon("test_bug659772"),
       do_get_addon("test_bootstrap1_1")
-    ], function() {
+    ], async function() {
       shutdownManager();
 
       // Make it look like the next time the app is started it has a new DB schema
@@ -134,7 +134,7 @@ function run_test_1() {
       stream.init(jsonfile, FileUtils.MODE_WRONLY | FileUtils.MODE_CREATE |
                             FileUtils.MODE_TRUNCATE, FileUtils.PERMS_FILE,
                             0);
-      converter.init(stream, "UTF-8", 0, 0x0000);
+      converter.init(stream, "UTF-8");
       converter.writeString(JSON.stringify(addonObj));
       converter.close();
       stream.close();
@@ -142,7 +142,7 @@ function run_test_1() {
       Services.prefs.clearUserPref("bootstraptest.install_reason");
       Services.prefs.clearUserPref("bootstraptest.uninstall_reason");
 
-      startupManager(false);
+      await promiseStartupManager(false);
 
       AddonManager.getAddonsByIDs(["addon1@tests.mozilla.org",
                                    "addon2@tests.mozilla.org",
@@ -194,7 +194,7 @@ function run_test_1() {
 }
 
 // Tests whether a schema migration with app version change works
-function run_test_2() {
+async function run_test_2() {
   restartManager();
 
   shutdownManager();
@@ -204,7 +204,7 @@ function run_test_2() {
   writeInstallRDFForExtension(addon3, profileDir);
   writeInstallRDFForExtension(addon4, profileDir);
 
-  startupManager();
+  await promiseStartupManager();
 
   AddonManager.getAddonsByIDs(["addon1@tests.mozilla.org",
                                "addon2@tests.mozilla.org",
@@ -245,7 +245,7 @@ function run_test_2() {
       do_get_addon("test_bootstrap1_1")
     ], function() { do_execute_soon(prepare_schema_migrate); });
 
-    function prepare_schema_migrate() {
+    async function prepare_schema_migrate() {
       shutdownManager();
 
       // Make it look like the next time the app is started it has a new DB schema
@@ -275,7 +275,7 @@ function run_test_2() {
       stream.init(jsonfile, FileUtils.MODE_WRONLY | FileUtils.MODE_CREATE |
                             FileUtils.MODE_TRUNCATE, FileUtils.PERMS_FILE,
                             0);
-      converter.init(stream, "UTF-8", 0, 0x0000);
+      converter.init(stream, "UTF-8");
       converter.writeString(JSON.stringify(addonObj));
       converter.close();
       stream.close();
@@ -284,7 +284,7 @@ function run_test_2() {
       Services.prefs.clearUserPref("bootstraptest.uninstall_reason");
 
       gAppInfo.version = "2";
-      startupManager(true);
+      await promiseStartupManager(true);
 
       AddonManager.getAddonsByIDs(["addon1@tests.mozilla.org",
                                    "addon2@tests.mozilla.org",

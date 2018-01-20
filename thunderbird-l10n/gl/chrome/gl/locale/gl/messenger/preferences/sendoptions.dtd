@@ -34,5 +34,5 @@
 <!ENTITY add.plaintexttitle           "Engadir nome de dominio de texto sen formato">
 <!ENTITY add.plaintextdomain          "Nome de dominio de texto sen formato:">
 
-<!ENTITY autoDowngrade.accesskey      "t">
 <!ENTITY autoDowngrade.label          "Send messages as plain text if possible">
+<!ENTITY autoDowngrade.accesskey      "t">

@@ -26,3 +26,6 @@
 <!ENTITY filtersLink.label            "Kudeatu mezu-iragazkiak">
 <!ENTITY junkSettings.label           "Zabor-postaren ezarpenak">
 <!ENTITY offlineLink.label            "Lineaz kanpoko ezarpenak">
+
+<!ENTITY setupNewAcct.label           "Set up an account:">
+

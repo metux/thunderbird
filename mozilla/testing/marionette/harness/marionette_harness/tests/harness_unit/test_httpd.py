@@ -7,6 +7,7 @@ import os
 import types
 import urllib2
 
+import mozunit
 import pytest
 
 from wptserve.handlers import json_handler
@@ -86,5 +87,4 @@ def test_handler(server):
 
 
 if __name__ == "__main__":
-    import sys
-    sys.exit(pytest.main(["--verbose", __file__]))
+    mozunit.main('--log-tbpl=-')

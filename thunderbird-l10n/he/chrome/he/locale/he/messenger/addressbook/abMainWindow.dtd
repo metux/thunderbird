@@ -225,18 +225,22 @@ because displayed names don't have the comma in between. -->
 <!ENTITY bringAllToFront.label                          "הבא הכול לקידמה">
 <!ENTITY zoomWindow.label                               "הגדל חלון">
 
-<!ENTITY Addrbook.accesskey                             "B">
-<!ENTITY ChatName.accesskey                             "C">
-<!ENTITY ChatName.label                                 "Chat Name">
-<!ENTITY abPropertiesContext.accesskey                  "i">
+<!ENTITY localResultsOnlyMessage.label                  "Contacts from remote address books are not shown until you search">
+
+<!ENTITY propertiesMenu.accesskey                       "i">
 <!ENTITY abPropertiesMenu.accesskey                     "i">
-<!ENTITY chat.heading                                   "Chat">
 <!ENTITY contactPropertiesMenu.accesskey                "i">
+<!ENTITY mailingListPropertiesMenu.accesskey            "i">
+
+<!ENTITY preferencesCmd2.accesskey                      "O">
+<!ENTITY showAsDefault.label                            "Default startup directory">
+<!ENTITY showAsDefault.accesskey                        "S">
+<!ENTITY propertiesContext.accesskey                    "i">
+<!ENTITY abPropertiesContext.accesskey                  "i">
 <!ENTITY editContactContext.accesskey                   "E">
 <!ENTITY editMailingListContext.accesskey               "E">
-<!ENTITY localResultsOnlyMessage.label                  "Contacts from remote address books are not shown until you search">
-<!ENTITY mailingListPropertiesMenu.accesskey            "i">
-<!ENTITY preferencesCmd2.accesskey                      "O">
 <!ENTITY printButton.accesskey                          "r">
-<!ENTITY propertiesContext.accesskey                    "i">
-<!ENTITY propertiesMenu.accesskey                       "i">
+<!ENTITY Addrbook.accesskey                             "B">
+<!ENTITY ChatName.label                                 "Chat Name">
+<!ENTITY ChatName.accesskey                             "C">
+<!ENTITY chat.heading                                   "Chat">

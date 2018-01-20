@@ -26,3 +26,6 @@
 <!ENTITY filtersLink.label             "Muokkaa viestisuodattimia">
 <!ENTITY junkSettings.label            "Roskapostin asetukset">
 <!ENTITY offlineLink.label             "Yhteydettömän tilan asetukset">
+
+<!ENTITY setupNewAcct.label           "Set up an account:">
+

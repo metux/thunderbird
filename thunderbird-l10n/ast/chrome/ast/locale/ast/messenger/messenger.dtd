@@ -948,5 +948,16 @@
 <!-- Mac OS X Dock Icon pop-up menu -->
 <!ENTITY dockOptions.label              "Opciones del iconu de l'aplicación…">
 
+<!ENTITY getNextNMsgCmd2.label "Get Next News Messages">
+<!ENTITY getNextNMsgCmd2.accesskey "t">
 <!ENTITY folderPaneBar.accesskey "F">
+<!ENTITY goChatCmd2.key "H">
+<!ENTITY newMsgFromTemplateCmd.label "New Message from Template">
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN">
 <!ENTITY tabsDebugCmd.label "Content Frame Debugger">
+<!ENTITY folderContextPauseAllUpdates.label "Pause All Updates">
+<!ENTITY folderContextPauseUpdates.label "Pause Updates">
+<!ENTITY folderContextPauseUpdates.accesskey "U">
+<!ENTITY contextNewMsgFromTemplate.label "New Message from Template">
+<!ENTITY writeNewMessageDock.label      "Write New Message">
+<!ENTITY openAddressBookDock.label      "Open Address Book">

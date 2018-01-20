@@ -18,28 +18,24 @@
 
 #include "wasm/WasmTypes.h"
 
-#include "mozilla/MathAlgorithms.h"
-
-#include "fdlibm.h"
-
-#include "jslibmath.h"
-#include "jsmath.h"
-
-#include "jit/MacroAssembler.h"
-#include "js/Conversions.h"
-#include "vm/Interpreter.h"
+#include "wasm/WasmBaselineCompile.h"
 #include "wasm/WasmInstance.h"
 #include "wasm/WasmSerialize.h"
-#include "wasm/WasmSignalHandlers.h"
 
-#include "vm/Stack-inl.h"
+#include "jsobjinlines.h"
 
 using namespace js;
 using namespace js::jit;
 using namespace js::wasm;
 
-using mozilla::IsNaN;
 using mozilla::IsPowerOfTwo;
+
+// A sanity check.  We have only tested WASM_HUGE_MEMORY on x64, and only tested
+// x64 with WASM_HUGE_MEMORY.
+
+#if defined(WASM_HUGE_MEMORY) != defined(JS_CODEGEN_X64)
+#  error "Not an expected configuration"
+#endif
 
 void
 Val::writePayload(uint8_t* dst) const
@@ -65,321 +61,29 @@ Val::writePayload(uint8_t* dst) const
     }
 }
 
-#if defined(JS_CODEGEN_ARM)
-extern "C" {
-
-extern MOZ_EXPORT int64_t
-__aeabi_idivmod(int, int);
-
-extern MOZ_EXPORT int64_t
-__aeabi_uidivmod(int, int);
-
-}
-#endif
-
-static void
-WasmReportOverRecursed()
+bool
+wasm::IsRoundingFunction(SymbolicAddress callee, jit::RoundingMode* mode)
 {
-    ReportOverRecursed(JSRuntime::innermostWasmActivation()->cx());
-}
-
-static bool
-WasmHandleExecutionInterrupt()
-{
-    WasmActivation* activation = JSRuntime::innermostWasmActivation();
-    bool success = CheckForInterrupt(activation->cx());
-
-    // Preserve the invariant that having a non-null resumePC means that we are
-    // handling an interrupt.  Note that resumePC has already been copied onto
-    // the stack by the interrupt stub, so we can clear it before returning
-    // to the stub.
-    activation->setResumePC(nullptr);
-
-    return success;
-}
-
-static void
-WasmReportTrap(int32_t trapIndex)
-{
-    JSContext* cx = JSRuntime::innermostWasmActivation()->cx();
-
-    MOZ_ASSERT(trapIndex < int32_t(Trap::Limit) && trapIndex >= 0);
-    Trap trap = Trap(trapIndex);
-
-    unsigned errorNumber;
-    switch (trap) {
-      case Trap::Unreachable:
-        errorNumber = JSMSG_WASM_UNREACHABLE;
-        break;
-      case Trap::IntegerOverflow:
-        errorNumber = JSMSG_WASM_INTEGER_OVERFLOW;
-        break;
-      case Trap::InvalidConversionToInteger:
-        errorNumber = JSMSG_WASM_INVALID_CONVERSION;
-        break;
-      case Trap::IntegerDivideByZero:
-        errorNumber = JSMSG_WASM_INT_DIVIDE_BY_ZERO;
-        break;
-      case Trap::IndirectCallToNull:
-        errorNumber = JSMSG_WASM_IND_CALL_TO_NULL;
-        break;
-      case Trap::IndirectCallBadSig:
-        errorNumber = JSMSG_WASM_IND_CALL_BAD_SIG;
-        break;
-      case Trap::ImpreciseSimdConversion:
-        errorNumber = JSMSG_SIMD_FAILED_CONVERSION;
-        break;
-      case Trap::OutOfBounds:
-        errorNumber = JSMSG_WASM_OUT_OF_BOUNDS;
-        break;
-      case Trap::StackOverflow:
-        errorNumber = JSMSG_OVER_RECURSED;
-        break;
-      default:
-        MOZ_CRASH("unexpected trap");
-    }
-
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, errorNumber);
-}
-
-static void
-WasmReportOutOfBounds()
-{
-    JSContext* cx = JSRuntime::innermostWasmActivation()->cx();
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_WASM_OUT_OF_BOUNDS);
-}
-
-static void
-WasmReportUnalignedAccess()
-{
-    JSContext* cx = JSRuntime::innermostWasmActivation()->cx();
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_WASM_UNALIGNED_ACCESS);
-}
-
-static int32_t
-CoerceInPlace_ToInt32(MutableHandleValue val)
-{
-    JSContext* cx = JSRuntime::innermostWasmActivation()->cx();
-
-    int32_t i32;
-    if (!ToInt32(cx, val, &i32))
-        return false;
-    val.set(Int32Value(i32));
-
-    return true;
-}
-
-static int32_t
-CoerceInPlace_ToNumber(MutableHandleValue val)
-{
-    JSContext* cx = JSRuntime::innermostWasmActivation()->cx();
-
-    double dbl;
-    if (!ToNumber(cx, val, &dbl))
-        return false;
-    val.set(DoubleValue(dbl));
-
-    return true;
-}
-
-static int64_t
-DivI64(uint32_t x_hi, uint32_t x_lo, uint32_t y_hi, uint32_t y_lo)
-{
-    int64_t x = ((uint64_t)x_hi << 32) + x_lo;
-    int64_t y = ((uint64_t)y_hi << 32) + y_lo;
-    MOZ_ASSERT(x != INT64_MIN || y != -1);
-    MOZ_ASSERT(y != 0);
-    return x / y;
-}
-
-static int64_t
-UDivI64(uint32_t x_hi, uint32_t x_lo, uint32_t y_hi, uint32_t y_lo)
-{
-    uint64_t x = ((uint64_t)x_hi << 32) + x_lo;
-    uint64_t y = ((uint64_t)y_hi << 32) + y_lo;
-    MOZ_ASSERT(y != 0);
-    return x / y;
-}
-
-static int64_t
-ModI64(uint32_t x_hi, uint32_t x_lo, uint32_t y_hi, uint32_t y_lo)
-{
-    int64_t x = ((uint64_t)x_hi << 32) + x_lo;
-    int64_t y = ((uint64_t)y_hi << 32) + y_lo;
-    MOZ_ASSERT(x != INT64_MIN || y != -1);
-    MOZ_ASSERT(y != 0);
-    return x % y;
-}
-
-static int64_t
-UModI64(uint32_t x_hi, uint32_t x_lo, uint32_t y_hi, uint32_t y_lo)
-{
-    uint64_t x = ((uint64_t)x_hi << 32) + x_lo;
-    uint64_t y = ((uint64_t)y_hi << 32) + y_lo;
-    MOZ_ASSERT(y != 0);
-    return x % y;
-}
-
-static int64_t
-TruncateDoubleToInt64(double input)
-{
-    // Note: INT64_MAX is not representable in double. It is actually
-    // INT64_MAX + 1.  Therefore also sending the failure value.
-    if (input >= double(INT64_MAX) || input < double(INT64_MIN) || IsNaN(input))
-        return 0x8000000000000000;
-    return int64_t(input);
-}
-
-static uint64_t
-TruncateDoubleToUint64(double input)
-{
-    // Note: UINT64_MAX is not representable in double. It is actually UINT64_MAX + 1.
-    // Therefore also sending the failure value.
-    if (input >= double(UINT64_MAX) || input <= -1.0 || IsNaN(input))
-        return 0x8000000000000000;
-    return uint64_t(input);
-}
-
-static double
-Int64ToFloatingPoint(int32_t x_hi, uint32_t x_lo)
-{
-    int64_t x = int64_t((uint64_t(x_hi) << 32)) + int64_t(x_lo);
-    return double(x);
-}
-
-static double
-Uint64ToFloatingPoint(int32_t x_hi, uint32_t x_lo)
-{
-    uint64_t x = (uint64_t(x_hi) << 32) + uint64_t(x_lo);
-    return double(x);
-}
-
-template <class F>
-static inline void*
-FuncCast(F* pf, ABIFunctionType type)
-{
-    void *pv = JS_FUNC_TO_DATA_PTR(void*, pf);
-#ifdef JS_SIMULATOR
-    pv = Simulator::RedirectNativeFunction(pv, type);
-#endif
-    return pv;
-}
-
-void*
-wasm::AddressOf(SymbolicAddress imm, ExclusiveContext* cx)
-{
-    switch (imm) {
-      case SymbolicAddress::Context:
-        return cx->contextAddressForJit();
-      case SymbolicAddress::InterruptUint32:
-        return cx->runtimeAddressOfInterruptUint32();
-      case SymbolicAddress::ReportOverRecursed:
-        return FuncCast(WasmReportOverRecursed, Args_General0);
-      case SymbolicAddress::HandleExecutionInterrupt:
-        return FuncCast(WasmHandleExecutionInterrupt, Args_General0);
-      case SymbolicAddress::ReportTrap:
-        return FuncCast(WasmReportTrap, Args_General1);
-      case SymbolicAddress::ReportOutOfBounds:
-        return FuncCast(WasmReportOutOfBounds, Args_General0);
-      case SymbolicAddress::ReportUnalignedAccess:
-        return FuncCast(WasmReportUnalignedAccess, Args_General0);
-      case SymbolicAddress::CallImport_Void:
-        return FuncCast(Instance::callImport_void, Args_General4);
-      case SymbolicAddress::CallImport_I32:
-        return FuncCast(Instance::callImport_i32, Args_General4);
-      case SymbolicAddress::CallImport_I64:
-        return FuncCast(Instance::callImport_i64, Args_General4);
-      case SymbolicAddress::CallImport_F64:
-        return FuncCast(Instance::callImport_f64, Args_General4);
-      case SymbolicAddress::CoerceInPlace_ToInt32:
-        return FuncCast(CoerceInPlace_ToInt32, Args_General1);
-      case SymbolicAddress::CoerceInPlace_ToNumber:
-        return FuncCast(CoerceInPlace_ToNumber, Args_General1);
-      case SymbolicAddress::ToInt32:
-        return FuncCast<int32_t (double)>(JS::ToInt32, Args_Int_Double);
-      case SymbolicAddress::DivI64:
-        return FuncCast(DivI64, Args_General4);
-      case SymbolicAddress::UDivI64:
-        return FuncCast(UDivI64, Args_General4);
-      case SymbolicAddress::ModI64:
-        return FuncCast(ModI64, Args_General4);
-      case SymbolicAddress::UModI64:
-        return FuncCast(UModI64, Args_General4);
-      case SymbolicAddress::TruncateDoubleToUint64:
-        return FuncCast(TruncateDoubleToUint64, Args_Int64_Double);
-      case SymbolicAddress::TruncateDoubleToInt64:
-        return FuncCast(TruncateDoubleToInt64, Args_Int64_Double);
-      case SymbolicAddress::Uint64ToFloatingPoint:
-        return FuncCast(Uint64ToFloatingPoint, Args_Double_IntInt);
-      case SymbolicAddress::Int64ToFloatingPoint:
-        return FuncCast(Int64ToFloatingPoint, Args_Double_IntInt);
-#if defined(JS_CODEGEN_ARM)
-      case SymbolicAddress::aeabi_idivmod:
-        return FuncCast(__aeabi_idivmod, Args_General2);
-      case SymbolicAddress::aeabi_uidivmod:
-        return FuncCast(__aeabi_uidivmod, Args_General2);
-      case SymbolicAddress::AtomicCmpXchg:
-        return FuncCast(atomics_cmpxchg_asm_callout, Args_General5);
-      case SymbolicAddress::AtomicXchg:
-        return FuncCast(atomics_xchg_asm_callout, Args_General4);
-      case SymbolicAddress::AtomicFetchAdd:
-        return FuncCast(atomics_add_asm_callout, Args_General4);
-      case SymbolicAddress::AtomicFetchSub:
-        return FuncCast(atomics_sub_asm_callout, Args_General4);
-      case SymbolicAddress::AtomicFetchAnd:
-        return FuncCast(atomics_and_asm_callout, Args_General4);
-      case SymbolicAddress::AtomicFetchOr:
-        return FuncCast(atomics_or_asm_callout, Args_General4);
-      case SymbolicAddress::AtomicFetchXor:
-        return FuncCast(atomics_xor_asm_callout, Args_General4);
-#endif
-      case SymbolicAddress::ModD:
-        return FuncCast(NumberMod, Args_Double_DoubleDouble);
-      case SymbolicAddress::SinD:
-        return FuncCast<double (double)>(sin, Args_Double_Double);
-      case SymbolicAddress::CosD:
-        return FuncCast<double (double)>(cos, Args_Double_Double);
-      case SymbolicAddress::TanD:
-        return FuncCast<double (double)>(tan, Args_Double_Double);
-      case SymbolicAddress::ASinD:
-        return FuncCast<double (double)>(fdlibm::asin, Args_Double_Double);
-      case SymbolicAddress::ACosD:
-        return FuncCast<double (double)>(fdlibm::acos, Args_Double_Double);
-      case SymbolicAddress::ATanD:
-        return FuncCast<double (double)>(fdlibm::atan, Args_Double_Double);
-      case SymbolicAddress::CeilD:
-        return FuncCast<double (double)>(fdlibm::ceil, Args_Double_Double);
-      case SymbolicAddress::CeilF:
-        return FuncCast<float (float)>(fdlibm::ceilf, Args_Float32_Float32);
+    switch (callee) {
       case SymbolicAddress::FloorD:
-        return FuncCast<double (double)>(fdlibm::floor, Args_Double_Double);
       case SymbolicAddress::FloorF:
-        return FuncCast<float (float)>(fdlibm::floorf, Args_Float32_Float32);
+        *mode = jit::RoundingMode::Down;
+        return true;
+      case SymbolicAddress::CeilD:
+      case SymbolicAddress::CeilF:
+        *mode = jit::RoundingMode::Up;
+        return true;
       case SymbolicAddress::TruncD:
-        return FuncCast<double (double)>(fdlibm::trunc, Args_Double_Double);
       case SymbolicAddress::TruncF:
-        return FuncCast<float (float)>(fdlibm::truncf, Args_Float32_Float32);
+        *mode = jit::RoundingMode::TowardsZero;
+        return true;
       case SymbolicAddress::NearbyIntD:
-        return FuncCast<double (double)>(fdlibm::nearbyint, Args_Double_Double);
       case SymbolicAddress::NearbyIntF:
-        return FuncCast<float (float)>(fdlibm::nearbyintf, Args_Float32_Float32);
-      case SymbolicAddress::ExpD:
-        return FuncCast<double (double)>(fdlibm::exp, Args_Double_Double);
-      case SymbolicAddress::LogD:
-        return FuncCast<double (double)>(fdlibm::log, Args_Double_Double);
-      case SymbolicAddress::PowD:
-        return FuncCast(ecmaPow, Args_Double_DoubleDouble);
-      case SymbolicAddress::ATan2D:
-        return FuncCast(ecmaAtan2, Args_Double_DoubleDouble);
-      case SymbolicAddress::GrowMemory:
-        return FuncCast<uint32_t (Instance*, uint32_t)>(Instance::growMemory_i32, Args_General2);
-      case SymbolicAddress::CurrentMemory:
-        return FuncCast<uint32_t (Instance*)>(Instance::currentMemory_i32, Args_General1);
-      case SymbolicAddress::Limit:
-        break;
+        *mode = jit::RoundingMode::NearestTiesToEven;
+        return true;
+      default:
+        return false;
     }
-
-    MOZ_CRASH("Bad SymbolicAddress");
 }
 
 static uint32_t
@@ -592,6 +296,132 @@ SigWithId::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const
     return Sig::sizeOfExcludingThis(mallocSizeOf);
 }
 
+size_t
+Import::serializedSize() const
+{
+    return module.serializedSize() +
+           field.serializedSize() +
+           sizeof(kind);
+}
+
+uint8_t*
+Import::serialize(uint8_t* cursor) const
+{
+    cursor = module.serialize(cursor);
+    cursor = field.serialize(cursor);
+    cursor = WriteScalar<DefinitionKind>(cursor, kind);
+    return cursor;
+}
+
+const uint8_t*
+Import::deserialize(const uint8_t* cursor)
+{
+    (cursor = module.deserialize(cursor)) &&
+    (cursor = field.deserialize(cursor)) &&
+    (cursor = ReadScalar<DefinitionKind>(cursor, &kind));
+    return cursor;
+}
+
+size_t
+Import::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const
+{
+    return module.sizeOfExcludingThis(mallocSizeOf) +
+           field.sizeOfExcludingThis(mallocSizeOf);
+}
+
+Export::Export(UniqueChars fieldName, uint32_t index, DefinitionKind kind)
+  : fieldName_(Move(fieldName))
+{
+    pod.kind_ = kind;
+    pod.index_ = index;
+}
+
+Export::Export(UniqueChars fieldName, DefinitionKind kind)
+  : fieldName_(Move(fieldName))
+{
+    pod.kind_ = kind;
+    pod.index_ = 0;
+}
+
+uint32_t
+Export::funcIndex() const
+{
+    MOZ_ASSERT(pod.kind_ == DefinitionKind::Function);
+    return pod.index_;
+}
+
+uint32_t
+Export::globalIndex() const
+{
+    MOZ_ASSERT(pod.kind_ == DefinitionKind::Global);
+    return pod.index_;
+}
+
+size_t
+Export::serializedSize() const
+{
+    return fieldName_.serializedSize() +
+           sizeof(pod);
+}
+
+uint8_t*
+Export::serialize(uint8_t* cursor) const
+{
+    cursor = fieldName_.serialize(cursor);
+    cursor = WriteBytes(cursor, &pod, sizeof(pod));
+    return cursor;
+}
+
+const uint8_t*
+Export::deserialize(const uint8_t* cursor)
+{
+    (cursor = fieldName_.deserialize(cursor)) &&
+    (cursor = ReadBytes(cursor, &pod, sizeof(pod)));
+    return cursor;
+}
+
+size_t
+Export::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const
+{
+    return fieldName_.sizeOfExcludingThis(mallocSizeOf);
+}
+
+size_t
+ElemSegment::serializedSize() const
+{
+    return sizeof(tableIndex) +
+           sizeof(offset) +
+           SerializedPodVectorSize(elemFuncIndices) +
+           SerializedPodVectorSize(elemCodeRangeIndices(Tier::Serialized));
+}
+
+uint8_t*
+ElemSegment::serialize(uint8_t* cursor) const
+{
+    cursor = WriteBytes(cursor, &tableIndex, sizeof(tableIndex));
+    cursor = WriteBytes(cursor, &offset, sizeof(offset));
+    cursor = SerializePodVector(cursor, elemFuncIndices);
+    cursor = SerializePodVector(cursor, elemCodeRangeIndices(Tier::Serialized));
+    return cursor;
+}
+
+const uint8_t*
+ElemSegment::deserialize(const uint8_t* cursor)
+{
+    (cursor = ReadBytes(cursor, &tableIndex, sizeof(tableIndex))) &&
+    (cursor = ReadBytes(cursor, &offset, sizeof(offset))) &&
+    (cursor = DeserializePodVector(cursor, &elemFuncIndices)) &&
+    (cursor = DeserializePodVector(cursor, &elemCodeRangeIndices(Tier::Serialized)));
+    return cursor;
+}
+
+size_t
+ElemSegment::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const
+{
+    return elemFuncIndices.sizeOfExcludingThis(mallocSizeOf) +
+           elemCodeRangeIndices(Tier::Serialized).sizeOfExcludingThis(mallocSizeOf);
+}
+
 Assumptions::Assumptions(JS::BuildIdCharVector&& buildId)
   : cpuId(GetCPUID()),
     buildId(Move(buildId))
@@ -603,7 +433,7 @@ Assumptions::Assumptions()
 {}
 
 bool
-Assumptions::initBuildIdFromContext(ExclusiveContext* cx)
+Assumptions::initBuildIdFromContext(JSContext* cx)
 {
     if (!cx->buildIdOp() || !cx->buildIdOp()(&buildId)) {
         ReportOutOfMemory(cx);
@@ -725,3 +555,250 @@ wasm::ComputeMappedSize(uint32_t maxSize)
 }
 
 #endif  // WASM_HUGE_MEMORY
+
+void
+DebugFrame::alignmentStaticAsserts()
+{
+    // VS2017 doesn't consider offsetOfFrame() to be a constexpr, so we have
+    // to use offsetof directly. These asserts can't be at class-level
+    // because the type is incomplete.
+
+    static_assert(WasmStackAlignment >= Alignment,
+                  "Aligned by ABI before pushing DebugFrame");
+    static_assert((offsetof(DebugFrame, frame_) + sizeof(Frame)) % Alignment == 0,
+                  "Aligned after pushing DebugFrame");
+}
+
+GlobalObject*
+DebugFrame::global() const
+{
+    return &instance()->object()->global();
+}
+
+JSObject*
+DebugFrame::environmentChain() const
+{
+    return &global()->lexicalEnvironment();
+}
+
+bool
+DebugFrame::getLocal(uint32_t localIndex, MutableHandleValue vp)
+{
+    ValTypeVector locals;
+    size_t argsLength;
+    if (!instance()->debug().debugGetLocalTypes(funcIndex(), &locals, &argsLength))
+        return false;
+
+    BaseLocalIter iter(locals, argsLength, /* debugEnabled = */ true);
+    while (!iter.done() && iter.index() < localIndex)
+        iter++;
+    MOZ_ALWAYS_TRUE(!iter.done());
+
+    uint8_t* frame = static_cast<uint8_t*>((void*)this) + offsetOfFrame();
+    void* dataPtr = frame - iter.frameOffset();
+    switch (iter.mirType()) {
+      case jit::MIRType::Int32:
+          vp.set(Int32Value(*static_cast<int32_t*>(dataPtr)));
+          break;
+      case jit::MIRType::Int64:
+          // Just display as a Number; it's ok if we lose some precision
+          vp.set(NumberValue((double)*static_cast<int64_t*>(dataPtr)));
+          break;
+      case jit::MIRType::Float32:
+          vp.set(NumberValue(JS::CanonicalizeNaN(*static_cast<float*>(dataPtr))));
+          break;
+      case jit::MIRType::Double:
+          vp.set(NumberValue(JS::CanonicalizeNaN(*static_cast<double*>(dataPtr))));
+          break;
+      default:
+          MOZ_CRASH("local type");
+    }
+    return true;
+}
+
+void
+DebugFrame::updateReturnJSValue()
+{
+    hasCachedReturnJSValue_ = true;
+    ExprType returnType = instance()->debug().debugGetResultType(funcIndex());
+    switch (returnType) {
+      case ExprType::Void:
+          cachedReturnJSValue_.setUndefined();
+          break;
+      case ExprType::I32:
+          cachedReturnJSValue_.setInt32(resultI32_);
+          break;
+      case ExprType::I64:
+          // Just display as a Number; it's ok if we lose some precision
+          cachedReturnJSValue_.setDouble((double)resultI64_);
+          break;
+      case ExprType::F32:
+          cachedReturnJSValue_.setDouble(JS::CanonicalizeNaN(resultF32_));
+          break;
+      case ExprType::F64:
+          cachedReturnJSValue_.setDouble(JS::CanonicalizeNaN(resultF64_));
+          break;
+      default:
+          MOZ_CRASH("result type");
+    }
+}
+
+HandleValue
+DebugFrame::returnValue() const
+{
+    MOZ_ASSERT(hasCachedReturnJSValue_);
+    return HandleValue::fromMarkedLocation(&cachedReturnJSValue_);
+}
+
+void
+DebugFrame::clearReturnJSValue()
+{
+    hasCachedReturnJSValue_ = true;
+    cachedReturnJSValue_.setUndefined();
+}
+
+void
+DebugFrame::observe(JSContext* cx)
+{
+   if (!observing_) {
+       instance()->debug().adjustEnterAndLeaveFrameTrapsState(cx, /* enabled = */ true);
+       observing_ = true;
+   }
+}
+
+void
+DebugFrame::leave(JSContext* cx)
+{
+    if (observing_) {
+       instance()->debug().adjustEnterAndLeaveFrameTrapsState(cx, /* enabled = */ false);
+       observing_ = false;
+    }
+}
+
+CodeRange::CodeRange(Kind kind, Offsets offsets)
+  : begin_(offsets.begin),
+    ret_(0),
+    end_(offsets.end),
+    kind_(kind)
+{
+    MOZ_ASSERT(begin_ <= end_);
+    PodZero(&u);
+#ifdef DEBUG
+    switch (kind_) {
+      case FarJumpIsland:
+      case OutOfBoundsExit:
+      case UnalignedExit:
+      case Throw:
+      case Interrupt:
+        break;
+      default:
+        MOZ_CRASH("should use more specific constructor");
+    }
+#endif
+}
+
+CodeRange::CodeRange(Kind kind, uint32_t funcIndex, Offsets offsets)
+  : begin_(offsets.begin),
+    ret_(0),
+    end_(offsets.end),
+    kind_(kind)
+{
+    u.funcIndex_ = funcIndex;
+    u.func.lineOrBytecode_ = 0;
+    u.func.beginToNormalEntry_ = 0;
+    u.func.beginToTierEntry_ = 0;
+    MOZ_ASSERT(kind == InterpEntry);
+    MOZ_ASSERT(begin_ <= end_);
+}
+
+CodeRange::CodeRange(Kind kind, CallableOffsets offsets)
+  : begin_(offsets.begin),
+    ret_(offsets.ret),
+    end_(offsets.end),
+    kind_(kind)
+{
+    MOZ_ASSERT(begin_ < ret_);
+    MOZ_ASSERT(ret_ < end_);
+    PodZero(&u);
+#ifdef DEBUG
+    switch (kind_) {
+      case TrapExit:
+      case DebugTrap:
+      case BuiltinThunk:
+        break;
+      default:
+        MOZ_CRASH("should use more specific constructor");
+    }
+#endif
+}
+
+CodeRange::CodeRange(Kind kind, uint32_t funcIndex, CallableOffsets offsets)
+  : begin_(offsets.begin),
+    ret_(offsets.ret),
+    end_(offsets.end),
+    kind_(kind)
+{
+    MOZ_ASSERT(isImportExit() && !isImportJitExit());
+    MOZ_ASSERT(begin_ < ret_);
+    MOZ_ASSERT(ret_ < end_);
+    u.funcIndex_ = funcIndex;
+    u.func.lineOrBytecode_ = 0;
+    u.func.beginToNormalEntry_ = 0;
+    u.func.beginToTierEntry_ = 0;
+}
+
+CodeRange::CodeRange(uint32_t funcIndex, JitExitOffsets offsets)
+  : begin_(offsets.begin),
+    ret_(offsets.ret),
+    end_(offsets.end),
+    kind_(ImportJitExit)
+{
+    MOZ_ASSERT(isImportJitExit());
+    MOZ_ASSERT(begin_ < ret_);
+    MOZ_ASSERT(ret_ < end_);
+    u.funcIndex_ = funcIndex;
+    u.jitExit.beginToUntrustedFPStart_ = offsets.untrustedFPStart - begin_;
+    u.jitExit.beginToUntrustedFPEnd_ = offsets.untrustedFPEnd - begin_;
+    MOZ_ASSERT(jitExitUntrustedFPStart() == offsets.untrustedFPStart);
+    MOZ_ASSERT(jitExitUntrustedFPEnd() == offsets.untrustedFPEnd);
+}
+
+CodeRange::CodeRange(Trap trap, CallableOffsets offsets)
+  : begin_(offsets.begin),
+    ret_(offsets.ret),
+    end_(offsets.end),
+    kind_(TrapExit)
+{
+    MOZ_ASSERT(begin_ < ret_);
+    MOZ_ASSERT(ret_ < end_);
+    u.trap_ = trap;
+}
+
+CodeRange::CodeRange(uint32_t funcIndex, uint32_t funcLineOrBytecode, FuncOffsets offsets)
+  : begin_(offsets.begin),
+    ret_(offsets.ret),
+    end_(offsets.end),
+    kind_(Function)
+{
+    MOZ_ASSERT(begin_ < ret_);
+    MOZ_ASSERT(ret_ < end_);
+    MOZ_ASSERT(offsets.normalEntry - begin_ <= UINT8_MAX);
+    MOZ_ASSERT(offsets.tierEntry - begin_ <= UINT8_MAX);
+    u.funcIndex_ = funcIndex;
+    u.func.lineOrBytecode_ = funcLineOrBytecode;
+    u.func.beginToNormalEntry_ = offsets.normalEntry - begin_;
+    u.func.beginToTierEntry_ = offsets.tierEntry - begin_;
+}
+
+const CodeRange*
+wasm::LookupInSorted(const CodeRangeVector& codeRanges, CodeRange::OffsetInCode target)
+{
+    size_t lowerBound = 0;
+    size_t upperBound = codeRanges.length();
+
+    size_t match;
+    if (!BinarySearch(codeRanges, lowerBound, upperBound, target, &match))
+        return nullptr;
+
+    return &codeRanges[match];
+}

@@ -6,7 +6,6 @@
 #include "nsISupports.idl"
 #include "domstubs.idl"
 
-interface nsIAtom;
 interface nsIContent;
 interface nsIArray;
 interface nsISelection;
@@ -22,7 +21,7 @@ class Element;
 
 [ptr] native Element (mozilla::dom::Element);
 
-[scriptable, uuid(87ee993e-985f-4a43-a974-0d9512da2fb0)]
+[scriptable, builtinclass, uuid(87ee993e-985f-4a43-a974-0d9512da2fb0)]
 interface nsIHTMLEditor : nsISupports
 {
 %{C++
@@ -38,43 +37,6 @@ interface nsIHTMLEditor : nsISupports
 
   /* ------------ Inline property methods -------------- */
 
-
-  /**
-   * AddDefaultProperty() registers a default style property with the editor
-   *
-   * @param aProperty   the property to set by default
-   * @param aAttribute  the attribute of the property, if applicable.
-   *                    May be null.
-   *                    Example: aProperty="font", aAttribute="color"
-   * @param aValue      if aAttribute is not null, the value of the attribute.
-   *                    Example: aProperty="font", aAttribute="color",
-   *                             aValue="0x00FFFF"
-   */
-  void addDefaultProperty(in nsIAtom aProperty,
-                          in AString aAttribute,
-                          in AString aValue);
-
-  /**
-   * RemoveDefaultProperty() unregisters a default style property with the editor
-   *
-   * @param aProperty   the property to remove from defaults
-   * @param aAttribute  the attribute of the property, if applicable.
-   *                    May be null.
-   *                    Example: aProperty="font", aAttribute="color"
-   * @param aValue      if aAttribute is not null, the value of the attribute.
-   *                    Example: aProperty="font", aAttribute="color",
-   *                             aValue="0x00FFFF"
-   */
-  void removeDefaultProperty(in nsIAtom aProperty,
-                             in AString aAttribute,
-                             in AString aValue);
-
-  /**
-   * RemoveAllDefaultProperties() unregisters all default style properties with the editor
-   *
-   */
-  void removeAllDefaultProperties();
-
   /**
    * SetInlineProperty() sets the aggregate properties on the current selection
    *
@@ -87,7 +49,7 @@ interface nsIHTMLEditor : nsISupports
    *                    Example: aProperty="font", aAttribute="color",
    *                             aValue="0x00FFFF"
    */
-  void setInlineProperty(in nsIAtom aProperty,
+  void setInlineProperty(in AString aProperty,
                          in AString aAttribute,
                          in AString aValue);
 
@@ -111,19 +73,19 @@ interface nsIHTMLEditor : nsISupports
    * @param aAll        [OUT] PR_TRUE if all of the text nodes in the
    *                          selection have the property
    */
-  void getInlineProperty(in nsIAtom aProperty,
-                         in AString  aAttribute,
-                         in AString  aValue,
+  void getInlineProperty(in AString aProperty,
+                         in AString aAttribute,
+                         in AString aValue,
                          out boolean aFirst,
                          out boolean aAny,
                          out boolean aAll);
 
-  AString getInlinePropertyWithAttrValue(in nsIAtom aProperty,
-                                           in AString  aAttribute,
-                                           in AString  aValue,
-                                           out boolean aFirst,
-                                           out boolean aAny,
-                                           out boolean aAll);
+  AString getInlinePropertyWithAttrValue(in AString aProperty,
+                                         in AString aAttribute,
+                                         in AString aValue,
+                                         out boolean aFirst,
+                                         out boolean aAny,
+                                         out boolean aAll);
 
   /**
    * removeAllInlineProperties() deletes all the inline properties from all
@@ -149,7 +111,7 @@ interface nsIHTMLEditor : nsISupports
    *                    It indicates that all content-based text properties
    *                    are to be removed from the selection.
    */
-  void removeInlineProperty(in nsIAtom aProperty, in AString  aAttribute);
+  void removeInlineProperty(in AString aProperty, in AString aAttribute);
 
   /**
    *  Increase font size for text in selection by 1 HTML unit
@@ -235,11 +197,6 @@ interface nsIHTMLEditor : nsISupports
     */
   void insertElementAtSelection(in nsIDOMElement aElement,
                                 in boolean aDeleteSelection);
-
-  /**
-   *   Set the documents title.
-   */
-  void setDocumentTitle(in AString aTitle);
 
   /**
    *   Set the BaseURL for the document to the current URL
@@ -508,24 +465,6 @@ interface nsIHTMLEditor : nsISupports
    * @param inFilter  function which callers do not want called during insertion
    */
   void removeInsertionListener(in nsIContentFilter inFilter);
-
-  /**
-   * Returns an anonymous nsDOMElement of type aTag,
-   * child of aParentNode. If aIsCreatedHidden is true, the class
-   * "hidden" is added to the created element. If aAnonClass is not
-   * the empty string, it becomes the value of the attribute "_moz_anonclass"
-   * @return a DOM Element
-   * @param aTag             [IN] a string representing the desired type of
-   *                              the element to create
-   * @param aParentNode      [IN] the parent node of the created anonymous
-   *                              element
-   * @param aAnonClass       [IN] contents of the _moz_anonclass attribute
-   * @param aIsCreatedHidden [IN] a boolean specifying if the class "hidden"
-   *                              is to be added to the created anonymous
-   *                              element
-   */
-  nsIDOMElement createAnonymousElement(in AString aTag, in nsIDOMNode aParentNode,
-                                       in AString aAnonClass, in boolean aIsCreatedHidden);
 
   /**
    * returns the deepest container of the selection

@@ -7,10 +7,8 @@
 #define nsAbOSXUtils_h___
 
 #include <Foundation/NSString.h>
-#include "nsStringGlue.h"
+#include "nsString.h"
 
-class nsString;
-class nsCString;
 class nsAbCardProperty;
 
 NSString *WrapString(const nsString &aString);

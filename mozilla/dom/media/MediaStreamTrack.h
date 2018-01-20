@@ -6,17 +6,18 @@
 #ifndef MEDIASTREAMTRACK_H_
 #define MEDIASTREAMTRACK_H_
 
-#include "mozilla/DOMEventTargetHelper.h"
-#include "nsError.h"
-#include "nsID.h"
-#include "nsIPrincipal.h"
-#include "StreamTracks.h"
 #include "MediaTrackConstraints.h"
-#include "mozilla/CORSMode.h"
 #include "PrincipalChangeObserver.h"
+#include "StreamTracks.h"
+#include "mozilla/CORSMode.h"
+#include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/dom/MediaStreamTrackBinding.h"
 #include "mozilla/dom/MediaTrackSettingsBinding.h"
 #include "mozilla/media/MediaUtils.h"
+#include "mozilla/WeakPtr.h"
+#include "nsError.h"
+#include "nsID.h"
+#include "nsIPrincipal.h"
 
 namespace mozilla {
 
@@ -40,6 +41,7 @@ namespace dom {
 class AudioStreamTrack;
 class VideoStreamTrack;
 class MediaStreamError;
+enum class CallerType : uint32_t;
 
 /**
  * Common interface through which a MediaStreamTrack can communicate with its
@@ -66,7 +68,6 @@ public:
       mLabel(aLabel),
       mStopped(false)
   {
-    MOZ_COUNT_CTOR(MediaStreamTrackSource);
   }
 
   /**
@@ -97,7 +98,7 @@ public:
    * This is used in WebRTC. A peerIdentity constrained MediaStreamTrack cannot
    * be sent across the network to anything other than a peer with the provided
    * identity. If this is set, then GetPrincipal() should return an instance of
-   * nsNullPrincipal.
+   * NullPrincipal.
    *
    * A track's PeerIdentity is immutable and will not change during the track's
    * lifetime.
@@ -124,7 +125,8 @@ public:
    */
   virtual already_AddRefed<PledgeVoid>
   ApplyConstraints(nsPIDOMWindowInner* aWindow,
-                   const dom::MediaTrackConstraints& aConstraints);
+                   const dom::MediaTrackConstraints& aConstraints,
+                   CallerType aCallerType);
 
   /**
    * Same for GetSettings (no-op).
@@ -166,7 +168,6 @@ public:
 protected:
   virtual ~MediaStreamTrackSource()
   {
-    MOZ_COUNT_DTOR(MediaStreamTrackSource);
   }
 
   /**
@@ -221,11 +222,11 @@ protected:
  * Base class that consumers of a MediaStreamTrack can use to get notifications
  * about state changes in the track.
  */
-class MediaStreamTrackConsumer : public nsISupports
+class MediaStreamTrackConsumer
+  : public SupportsWeakPtr<MediaStreamTrackConsumer>
 {
 public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(MediaStreamTrackConsumer)
+  MOZ_DECLARE_WEAKREFERENCE_TYPENAME(MediaStreamTrackConsumer)
 
   /**
    * Called when the track's readyState transitions to "ended".
@@ -233,9 +234,6 @@ public:
    * including MediaStreamTrack::Stop().
    */
   virtual void NotifyEnded(MediaStreamTrack* aTrack) {};
-
-protected:
-  virtual ~MediaStreamTrackConsumer() {}
 };
 
 /**
@@ -290,7 +288,8 @@ public:
   void GetSettings(dom::MediaTrackSettings& aResult);
 
   already_AddRefed<Promise>
-  ApplyConstraints(const dom::MediaTrackConstraints& aConstraints, ErrorResult &aRv);
+  ApplyConstraints(const dom::MediaTrackConstraints& aConstraints,
+                   CallerType aCallerType, ErrorResult &aRv);
   already_AddRefed<MediaStreamTrack> Clone();
   MediaStreamTrackState ReadyState() { return mReadyState; }
 
@@ -393,7 +392,7 @@ public:
    * Adds a MediaStreamTrackListener to the MediaStreamGraph representation of
    * this track.
    */
-  void AddListener(MediaStreamTrackListener* aListener);
+  virtual void AddListener(MediaStreamTrackListener* aListener);
 
   /**
    * Removes a MediaStreamTrackListener from the MediaStreamGraph representation
@@ -407,7 +406,7 @@ public:
    * the listener succeeded (tracks originating from SourceMediaStreams) or
    * failed (e.g., WebAudio originated tracks).
    */
-  void AddDirectListener(DirectMediaStreamTrackListener *aListener);
+  virtual void AddDirectListener(DirectMediaStreamTrackListener *aListener);
   void RemoveDirectListener(DirectMediaStreamTrackListener  *aListener);
 
   /**
@@ -455,7 +454,7 @@ protected:
 
   nsTArray<PrincipalChangeObserver<MediaStreamTrack>*> mPrincipalChangeObservers;
 
-  nsTArray<RefPtr<MediaStreamTrackConsumer>> mConsumers;
+  nsTArray<WeakPtr<MediaStreamTrackConsumer>> mConsumers;
 
   RefPtr<DOMMediaStream> mOwningStream;
   TrackID mTrackID;

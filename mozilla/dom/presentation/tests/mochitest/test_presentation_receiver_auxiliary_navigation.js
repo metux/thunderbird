@@ -35,14 +35,14 @@ function setup() {
 
         teardown();
       }
-    }, false);
+    });
 
     var promise = new Promise(function(aResolve, aReject) {
       document.body.appendChild(iframe);
 
       aResolve(iframe);
     });
-    obs.notifyObservers(promise, "setup-request-promise", null);
+    obs.notifyObservers(promise, "setup-request-promise");
 
     aResolve();
   });

@@ -333,18 +333,18 @@
 <!ENTITY tocMenu.label            "תוכן עניינים…">
 <!ENTITY tocMenu.accesskey        "b">
 
-<!ENTITY decrementFontSize.key "&lt;">
-<!ENTITY decrementFontSize.key2 ","> <!-- < is above this key on many keyboards -->
 <!ENTITY findBarCmd.label "Find…">
 <!ENTITY findReplaceCmd.label "Find and Replace…">
-<!ENTITY incrementFontSize.key "&gt;">
-<!ENTITY incrementFontSize.key2 "."> <!-- > is above this key on many keyboards -->
-
+<!ENTITY insertLinkCmd2.label "Link…">
 <!ENTITY insertLinkCmd2.accesskey "L">
 <!ENTITY insertLinkCmd2.key "K">
-<!ENTITY insertLinkCmd2.label "Link…">
-<!ENTITY insertMathCmd.accesskey "M">
 <!ENTITY insertMathCmd.label "Math…">
+<!ENTITY insertMathCmd.accesskey "M">
+<!ENTITY decrementFontSize.key "&lt;">
+<!ENTITY decrementFontSize.key2 ","> 
+<!ENTITY incrementFontSize.key "&gt;">
+<!ENTITY incrementFontSize.key2 "."> 
+<!ENTITY size-tinyCmd.accesskey "T">
 <!ENTITY size-extraLargeCmd.accesskey "x">
 <!ENTITY size-hugeCmd.accesskey "H">
-<!ENTITY size-tinyCmd.accesskey "T">
+

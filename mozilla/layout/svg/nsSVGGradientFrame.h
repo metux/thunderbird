@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,19 +9,18 @@
 
 #include "mozilla/Attributes.h"
 #include "gfxMatrix.h"
+#include "gfxRect.h"
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsLiteralString.h"
 #include "nsSVGPaintServerFrame.h"
 
 class gfxPattern;
-class nsIAtom;
+class nsAtom;
 class nsIContent;
 class nsIFrame;
 class nsIPresShell;
 class nsStyleContext;
-
-struct gfxRect;
 
 namespace mozilla {
 class nsSVGAnimatedTransformList;
@@ -40,23 +40,24 @@ class nsSVGGradientFrame : public nsSVGPaintServerFrame
   typedef mozilla::gfx::ExtendMode ExtendMode;
 
 protected:
-  explicit nsSVGGradientFrame(nsStyleContext* aContext);
+  nsSVGGradientFrame(nsStyleContext* aContext, ClassID aID);
 
 public:
   NS_DECL_ABSTRACT_FRAME(nsSVGGradientFrame)
 
   // nsSVGPaintServerFrame methods:
   virtual already_AddRefed<gfxPattern>
-    GetPaintServerPattern(nsIFrame* aSource,
+    GetPaintServerPattern(nsIFrame *aSource,
                           const DrawTarget* aDrawTarget,
                           const gfxMatrix& aContextMatrix,
                           nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
-                          float aGraphicOpacity,
+                          float aOpacity,
+                          imgDrawingParams& aImgParams,
                           const gfxRect* aOverrideBounds) override;
 
   // nsIFrame interface:
   virtual nsresult AttributeChanged(int32_t         aNameSpaceID,
-                                    nsIAtom*        aAttribute,
+                                    nsAtom*        aAttribute,
                                     int32_t         aModType) override;
 
 #ifdef DEBUG_FRAME_DUMP
@@ -85,10 +86,6 @@ private:
 protected:
   virtual bool GradientVectorLengthIsZero() = 0;
   virtual already_AddRefed<gfxPattern> CreateGradient() = 0;
-
-  // Internal methods for handling referenced gradients
-  class AutoGradientReferencer;
-  nsSVGGradientFrame* GetReferencedGradientIfNotInUse();
 
   // Accessors to lookup gradient attributes
   uint16_t GetEnumValue(uint32_t aIndex, nsIContent *aDefault);
@@ -130,10 +127,11 @@ class nsSVGLinearGradientFrame : public nsSVGGradientFrame
                                                 nsStyleContext* aContext);
 protected:
   explicit nsSVGLinearGradientFrame(nsStyleContext* aContext)
-    : nsSVGGradientFrame(aContext) {}
+    : nsSVGGradientFrame(aContext, kClassID)
+  {}
 
 public:
-  NS_DECL_FRAMEARENA_HELPERS
+  NS_DECL_FRAMEARENA_HELPERS(nsSVGLinearGradientFrame)
 
   // nsIFrame interface:
 #ifdef DEBUG
@@ -142,10 +140,8 @@ public:
                     nsIFrame*         aPrevInFlow) override;
 #endif
 
-  virtual nsIAtom* GetType() const override;  // frame type: nsGkAtoms::svgLinearGradientFrame
-
   virtual nsresult AttributeChanged(int32_t         aNameSpaceID,
-                                    nsIAtom*        aAttribute,
+                                    nsAtom*        aAttribute,
                                     int32_t         aModType) override;
 
 #ifdef DEBUG_FRAME_DUMP
@@ -173,10 +169,11 @@ class nsSVGRadialGradientFrame : public nsSVGGradientFrame
                                                 nsStyleContext* aContext);
 protected:
   explicit nsSVGRadialGradientFrame(nsStyleContext* aContext)
-    : nsSVGGradientFrame(aContext) {}
+    : nsSVGGradientFrame(aContext, kClassID)
+  {}
 
 public:
-  NS_DECL_FRAMEARENA_HELPERS
+  NS_DECL_FRAMEARENA_HELPERS(nsSVGRadialGradientFrame)
 
   // nsIFrame interface:
 #ifdef DEBUG
@@ -185,10 +182,8 @@ public:
                     nsIFrame*         aPrevInFlow) override;
 #endif
 
-  virtual nsIAtom* GetType() const override;  // frame type: nsGkAtoms::svgRadialGradientFrame
-
   virtual nsresult AttributeChanged(int32_t         aNameSpaceID,
-                                    nsIAtom*        aAttribute,
+                                    nsAtom*        aAttribute,
                                     int32_t         aModType) override;
 
 #ifdef DEBUG_FRAME_DUMP

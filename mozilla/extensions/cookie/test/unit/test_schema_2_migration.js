@@ -13,14 +13,25 @@ function run_test() {
 
 function finish_test() {
   do_execute_soon(function() {
-    test_generator.close();
+    test_generator.return();
     do_test_finished();
   });
 }
 
-function do_run_test() {
+function* do_run_test() {
   // Set up a profile.
   let profile = do_get_profile();
+
+  // Start the cookieservice, to force creation of a database.
+  // Get the sessionEnumerator to join the initialization in cookie thread
+  Services.cookiemgr.sessionEnumerator;
+
+  // Close the profile.
+  do_close_profile(test_generator);
+  yield;
+
+  // Remove the cookie file in order to create another database file.
+  do_get_cookie_file(profile).remove(false);
 
   // Create a schema 2 database.
   let schema2db = new CookieDatabaseConnection(do_get_cookie_file(profile), 2);
@@ -79,6 +90,8 @@ function do_run_test() {
 
   // Load the database, forcing migration to the current schema version. Then
   // test the expected set of cookies:
+  do_load_profile();
+
   // 1) All unexpired, unique cookies exist.
   do_check_eq(Services.cookiemgr.countCookiesFromHost("foo.com"), 20);
 

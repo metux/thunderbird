@@ -17,13 +17,18 @@
 
 namespace mozilla {
 class MediaRawData;
+class ChromiumCDMProxy;
 
+namespace eme {
 enum DecryptStatus {
   Ok = 0,
   GenericErr = 1,
   NoKeyErr = 2,
   AbortedErr = 3,
 };
+}
+
+using eme::DecryptStatus;
 
 struct DecryptResult {
   DecryptResult(DecryptStatus aStatus, MediaRawData* aSample)
@@ -33,6 +38,8 @@ struct DecryptResult {
   DecryptStatus mStatus;
   RefPtr<MediaRawData> mSample;
 };
+
+typedef MozPromise<DecryptResult, DecryptResult, /* IsExclusive = */ true> DecryptPromise;
 
 class CDMKeyInfo {
 public:
@@ -61,6 +68,8 @@ public:
   dom::Optional<dom::MediaKeyStatus> mStatus;
 };
 
+// Time is defined as the number of milliseconds since the
+// Epoch (00:00:00 UTC, January 1, 1970).
 typedef int64_t UnixTime;
 
 // Proxies calls CDM, and proxies calls back.
@@ -73,20 +82,19 @@ protected:
   typedef dom::MediaKeySessionType MediaKeySessionType;
 public:
 
-  NS_IMETHOD_(MozExternalRefCountType) AddRef(void) = 0;
-  NS_IMETHOD_(MozExternalRefCountType) Release(void) = 0;
-
-  typedef MozPromise<DecryptResult, DecryptResult, /* IsExclusive = */ true> DecryptPromise;
+  NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
 
   // Main thread only.
   CDMProxy(dom::MediaKeys* aKeys,
            const nsAString& aKeySystem,
            bool aDistinctiveIdentifierRequired,
-           bool aPersistentStateRequired)
+           bool aPersistentStateRequired,
+           nsIEventTarget* aMainThread)
     : mKeys(aKeys)
     , mKeySystem(aKeySystem)
     , mDistinctiveIdentifierRequired(aDistinctiveIdentifierRequired)
     , mPersistentStateRequired(aPersistentStateRequired)
+    , mMainThread(aMainThread)
   {}
 
   // Main thread only.
@@ -95,8 +103,7 @@ public:
   virtual void Init(PromiseId aPromiseId,
                     const nsAString& aOrigin,
                     const nsAString& aTopLevelOrigin,
-                    const nsAString& aName,
-                    bool aInPrivateBrowsing) = 0;
+                    const nsAString& aName) = 0;
 
   virtual void OnSetDecryptorId(uint32_t aId) {}
 
@@ -114,6 +121,7 @@ public:
   // Uses the CDM to load a presistent session stored on disk.
   // Calls MediaKeys::OnSessionActivated() when session is loaded.
   virtual void LoadSession(PromiseId aPromiseId,
+                           dom::MediaKeySessionType aSessionType,
                            const nsAString& aSessionId) = 0;
 
   // Main thread only.
@@ -169,7 +177,7 @@ public:
   // Main thread only.
   virtual void OnSessionMessage(const nsAString& aSessionId,
                                 dom::MediaKeyMessageType aMessageType,
-                                nsTArray<uint8_t>& aMessage) = 0;
+                                const nsTArray<uint8_t>& aMessage) = 0;
 
   // Main thread only.
   virtual void OnExpirationChange(const nsAString& aSessionId,
@@ -223,6 +231,8 @@ public:
 
   virtual uint32_t GetDecryptorId() { return 0; }
 
+  virtual ChromiumCDMProxy* AsChromiumCDMProxy() { return nullptr; }
+
 protected:
   virtual ~CDMProxy() {}
 
@@ -271,6 +281,9 @@ protected:
 
   const bool mDistinctiveIdentifierRequired;
   const bool mPersistentStateRequired;
+
+  // The main thread associated with the root document.
+  const nsCOMPtr<nsIEventTarget> mMainThread;
 };
 
 

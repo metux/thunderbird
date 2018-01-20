@@ -382,7 +382,7 @@ function _normalize_for_json(aObj, aDepthAllowed, aJsonMeNotNeeded) {
     let flags = aObj.flags;
     return {
       type: "folder",
-      name: aObj.prettiestName,
+      name: aObj.prettyName,
       uri: aObj.URI,
       flags: _explode_flags(aObj.flags,
                             Ci.nsMsgFolderFlags),
@@ -478,7 +478,7 @@ function _normalize_for_json(aObj, aDepthAllowed, aJsonMeNotNeeded) {
     return {
       type: "error",
       message: "nsIException: " + aObj.name,
-      fileName: aObj.filename,
+      fileName: aObj.filename, // intentionally lower-case
       lineNumber: aObj.lineNumber,
       name: aObj.name,
       result: aObj.result,
@@ -633,7 +633,11 @@ function mark_failure(aRichString) {
     }
     else {
       let jsonThing = _normalize_for_json(richThing);
-      text += "[" + jsonThing.type + " " + jsonThing.name + "]";
+      if (("type" in jsonThing) && ("name" in jsonThing))
+        text += "[" + jsonThing.type + " " + jsonThing.name + "]";
+      else
+        text += "[" + jsonThing + "]";
+
       // hook things up to be json serialized.
       if (!("_jsonMe" in jsonThing))
         jsonThing._jsonMe = true;

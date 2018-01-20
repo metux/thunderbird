@@ -106,7 +106,7 @@ WindowNamedPropertiesHandler::getOwnPropDescriptor(JSContext* aCx,
 
   // Grab the DOM window.
   JS::Rooted<JSObject*> global(aCx, JS_GetGlobalForObject(aCx, aProxy));
-  nsGlobalWindow* win = xpc::WindowOrNull(global);
+  nsGlobalWindowInner* win = xpc::WindowOrNull(global);
   if (win->Length() > 0) {
     nsCOMPtr<nsPIDOMWindowOuter> childWin = win->GetChildWindow(str);
     if (childWin && ShouldExposeChildWindow(str, childWin)) {
@@ -162,7 +162,7 @@ WindowNamedPropertiesHandler::defineProperty(JSContext* aCx,
 {
   ErrorResult rv;
   rv.ThrowTypeError<MSG_DEFINEPROPERTY_ON_GSP>();
-  rv.MaybeSetPendingException(aCx);
+  MOZ_ALWAYS_TRUE(rv.MaybeSetPendingException(aCx));
   return false;
 }
 
@@ -178,10 +178,10 @@ WindowNamedPropertiesHandler::ownPropNames(JSContext* aCx,
   }
 
   // Grab the DOM window.
-  nsGlobalWindow* win = xpc::WindowOrNull(JS_GetGlobalForObject(aCx, aProxy));
+  nsGlobalWindowInner* win = xpc::WindowOrNull(JS_GetGlobalForObject(aCx, aProxy));
   nsTArray<nsString> names;
   // The names live on the outer window, which might be null
-  nsGlobalWindow* outer = win->GetOuterWindowInternal();
+  nsGlobalWindowOuter* outer = win->GetOuterWindowInternal();
   if (outer) {
     nsDOMWindowList* childWindows = outer->GetWindowList();
     if (childWindows) {
@@ -237,55 +237,17 @@ WindowNamedPropertiesHandler::delete_(JSContext* aCx,
   return aResult.failCantDeleteWindowNamedProperty();
 }
 
-static bool
-ResolveWindowNamedProperty(JSContext* aCx, JS::Handle<JSObject*> aWrapper,
-                           JS::Handle<JSObject*> aObj, JS::Handle<jsid> aId,
-                           JS::MutableHandle<JS::PropertyDescriptor> aDesc)
-{
-  {
-    JSAutoCompartment ac(aCx, aObj);
-    if (!js::GetProxyHandler(aObj)->getOwnPropertyDescriptor(aCx, aObj, aId,
-                                                             aDesc)) {
-      return false;
-    }
-  }
-
-  if (aDesc.object()) {
-    aDesc.object().set(aWrapper);
-
-    return JS_WrapPropertyDescriptor(aCx, aDesc);
-  }
-
-  return true;
-}
-
-static bool
-EnumerateWindowNamedProperties(JSContext* aCx, JS::Handle<JSObject*> aWrapper,
-                               JS::Handle<JSObject*> aObj,
-                               JS::AutoIdVector& aProps)
-{
-  JSAutoCompartment ac(aCx, aObj);
-  return js::GetProxyHandler(aObj)->ownPropertyKeys(aCx, aObj, aProps);
-}
-
-const NativePropertyHooks sWindowNamedPropertiesNativePropertyHooks[] = { {
-  ResolveWindowNamedProperty,
-  EnumerateWindowNamedProperties,
-  nullptr,
-  { nullptr, nullptr },
-  prototypes::id::_ID_Count,
-  constructors::id::_ID_Count,
-  nullptr
-} };
-
+// Note that this class doesn't need any reserved slots, but SpiderMonkey
+// asserts all proxy classes have at least one reserved slot.
 static const DOMIfaceAndProtoJSClass WindowNamedPropertiesClass = {
   PROXY_CLASS_DEF("WindowProperties",
-                  JSCLASS_IS_DOMIFACEANDPROTOJSCLASS),
+                  JSCLASS_IS_DOMIFACEANDPROTOJSCLASS |
+                  JSCLASS_HAS_RESERVED_SLOTS(1)),
   eNamedPropertiesObject,
   false,
   prototypes::id::_ID_Count,
   0,
-  sWindowNamedPropertiesNativePropertyHooks,
+  &sEmptyNativePropertyHooks,
   "[object WindowProperties]",
   EventTargetBinding::GetProtoObject
 };

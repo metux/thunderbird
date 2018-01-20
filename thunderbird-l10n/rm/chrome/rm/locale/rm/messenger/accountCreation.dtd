@@ -75,7 +75,7 @@
      the incoming or outgoing servers, then the page that pops up will have
      this text in a button to take you back to the previous page to change
      the settings and try again. -->
-<!ENTITY changeSettings.label            "Midar las preferenzas">
+<!ENTITY changeSettings.label            "Midar ils parameters">
 <!ENTITY changeSettings.accesskey        "S">
 
 <!ENTITY contactYourProvider.description "&brandShortName; po ta permetter dad acceder a tes e-mails cun la configuraziun messa a disposiziun. Tuttina vegn recumandà da contactar tes administratur u il purschider da servetschs dad e-mail areguard questas connexiuns nunadattadas. Vesair il FAQ (dumondas frequentas) da Thunderbird per ulteriuras infurmaziuns.">
@@ -86,3 +86,11 @@
 <!ENTITY insecureUnencrypted.description "Tes e-mail e l'autentificaziun vegnan tramess a moda betg criptada, uschia che tes pled-clav (e tes messadi) pudessan vegnir legids facilmain dad autras persunas. Igl è pussaivel da retschaiver e-mails cun &brandShortName; en quella moda, ma ti stuessas contactar tes purschider da servetschs dad e-mail areguard la configuraziun da ses server cun ina connexiun segira.">
 <!ENTITY insecureSelfSigned.description  "Il server utilisescha in certificat betg fidà. Per quest motiv na po betg vegnir garantì che nagin intercepteschia la communicaziun tranter &brandShortName; e tes server. Igl è pussaivel da retschaiver e-mails cun &brandShortName; en quella moda, ma ti stuessas infurmar tes purschider da servetschs dad e-mail per ch'el possia configurar ses server cun in certificat fidà.">
 <!ENTITY secureServer.description        "Gratulaziun! Quai è in server segir.">
+
+<!ENTITY autoconfigWizard2.title         "Set Up an Existing Email Account">
+<!ENTITY email2.placeholder              "you@example.com">
+<!ENTITY email.text                      "Your existing email address">
+<!ENTITY open-provisioner.label          "Get a new email address…">
+<!ENTITY open-provisioner.accesskey      "g">
+
+

@@ -25,6 +25,11 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Έκδοση">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.featuresTitle "Χαρακτηριστικά του &brandShortName;">
+<!ENTITY aboutSupport.featureName "Όνομα">
+<!ENTITY aboutSupport.featureVersion "Έκδοση">
+<!ENTITY aboutSupport.featureId "ID">
+
 <!ENTITY aboutSupport.experimentsTitle "Πειραματικές λειτουργίες">
 <!ENTITY aboutSupport.experimentName "Όνομα">
 <!ENTITY aboutSupport.experimentId "ID">
@@ -65,6 +70,11 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Παράθυρα πολυδιεργασιών">
 
+<!ENTITY aboutSupport.appBasicsProcessCount "Διεργασίες διαδικτυακού περιεχομένου">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Κλειδί Google">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Κλειδί υπηρεσίας τοποθεσίας Mozilla">
+
 <!ENTITY aboutSupport.appBasicsSafeMode "Ασφαλής λειτουργία">
 
 <!ENTITY aboutSupport.showDir.label "Άνοιγμα καταλόγου">
@@ -100,6 +110,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "Προσιτότητα">
 <!ENTITY aboutSupport.a11yActivated "Ενεργοποιήθηκε">
 <!ENTITY aboutSupport.a11yForceDisabled "Να μην επιτρέπεται η προσιτότητα">
+<!ENTITY aboutSupport.a11yHandlerUsed "Προσβάσιμο όνομα χρήστη σε χρήση">
+<!ENTITY aboutSupport.a11yInstantiator "Ενεργοποιητής προσβασιμότητας">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Εκδόσεις βιβλιοθήκης">
 
@@ -110,6 +122,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Αντιγραφή δεδομένων raw στο πρόχειρο">
 
 <!ENTITY aboutSupport.sandboxTitle "Sandbox">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Απορριφθήσες κλήσεις συστήματος">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "δευτερόλεπτα πριν">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Τύπος διεργασίας">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Syscall">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Επιχειρήματα">
 
 <!ENTITY aboutSupport.safeModeTitle "Δοκιμή ασφαλούς λειτουργίας">
 <!ENTITY aboutSupport.restartInSafeMode.label "Επανεκκίνηση με τα πρόσθετα απενεργοποιημένα…">
@@ -122,3 +142,26 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Αρχείο καταγραφής αποφάσεων">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Απενεργοποιημένες λειτουργίες φύλαξης κατάρρευσης">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Λύσεις">
+
+<!ENTITY aboutSupport.mediaTitle "Πολυμέσα">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Συσκευές εξόδου">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Συσκευές εισόδου">
+<!ENTITY aboutSupport.mediaDeviceName "Όνομα">
+<!ENTITY aboutSupport.mediaDeviceGroup "Ομάδα">
+<!ENTITY aboutSupport.mediaDeviceVendor "Κατασκευαστής">
+<!ENTITY aboutSupport.mediaDeviceState "Κατάσταση">
+<!ENTITY aboutSupport.mediaDevicePreferred "Προτίμηση">
+<!ENTITY aboutSupport.mediaDeviceFormat "Τύπος">
+<!ENTITY aboutSupport.mediaDeviceChannels "Κανάλια">
+<!ENTITY aboutSupport.mediaDeviceRate "Ρυθμός">
+<!ENTITY aboutSupport.mediaDeviceLatency "Καθυστέρηση">
+
+<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
+<!ENTITY aboutSupport.intlAppTitle "Application Settings">
+<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
+<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
+<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
+<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
+<!ENTITY aboutSupport.intlOSTitle "Operating System">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">

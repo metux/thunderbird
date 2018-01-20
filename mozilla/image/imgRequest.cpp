@@ -37,6 +37,8 @@
 #include "nsIProtocolHandler.h"
 #include "imgIRequest.h"
 
+#include "mozilla/IntegerPrintfMacros.h"
+
 using namespace mozilla;
 using namespace mozilla::image;
 
@@ -57,7 +59,7 @@ imgRequest::imgRequest(imgLoader* aLoader, const ImageCacheKey& aCacheKey)
  , mValidator(nullptr)
  , mInnerWindowId(0)
  , mCORSMode(imgIRequest::CORS_NONE)
- , mReferrerPolicy(mozilla::net::RP_Default)
+ , mReferrerPolicy(mozilla::net::RP_Unset)
  , mImageErrorCode(NS_OK)
  , mMutex("imgRequest")
  , mProgressTracker(new ProgressTracker())
@@ -67,7 +69,9 @@ imgRequest::imgRequest(imgLoader* aLoader, const ImageCacheKey& aCacheKey)
  , mDecodeRequested(false)
  , mNewPartPending(false)
  , mHadInsecureRedirect(false)
-{ }
+{
+  LOG_FUNC(gImgLog, "imgRequest::imgRequest()");
+}
 
 imgRequest::~imgRequest()
 {
@@ -91,7 +95,7 @@ imgRequest::Init(nsIURI *aURI,
                  nsIChannel *aChannel,
                  imgCacheEntry *aCacheEntry,
                  nsISupports* aCX,
-                 nsIPrincipal* aLoadingPrincipal,
+                 nsIPrincipal* aTriggeringPrincipal,
                  int32_t aCORSMode,
                  ReferrerPolicy aReferrerPolicy)
 {
@@ -117,7 +121,7 @@ imgRequest::Init(nsIURI *aURI,
   mChannel = aChannel;
   mTimedChannel = do_QueryInterface(mChannel);
 
-  mLoadingPrincipal = aLoadingPrincipal;
+  mTriggeringPrincipal = aTriggeringPrincipal;
   mCORSMode = aCORSMode;
   mReferrerPolicy = aReferrerPolicy;
 
@@ -178,16 +182,16 @@ imgRequest::GetProgressTracker() const
     MOZ_ASSERT(!mProgressTracker,
                "Should have given mProgressTracker to mImage");
     return mImage->GetProgressTracker();
-  } else {
-    MOZ_ASSERT(mProgressTracker,
-               "Should have mProgressTracker until we create mImage");
-    RefPtr<ProgressTracker> progressTracker = mProgressTracker;
-    MOZ_ASSERT(progressTracker);
-    return progressTracker.forget();
   }
+  MOZ_ASSERT(mProgressTracker,
+             "Should have mProgressTracker until we create mImage");
+  RefPtr<ProgressTracker> progressTracker = mProgressTracker;
+  MOZ_ASSERT(progressTracker);
+  return progressTracker.forget();
 }
 
-void imgRequest::SetCacheEntry(imgCacheEntry* entry)
+void
+imgRequest::SetCacheEntry(imgCacheEntry* entry)
 {
   mCacheEntry = entry;
 }
@@ -286,12 +290,6 @@ imgRequest::RemoveProxy(imgRequestProxy* proxy, nsresult aStatus)
     mCacheEntry = nullptr;
   }
 
-  // If a proxy is removed for a reason other than its owner being
-  // changed, remove the proxy from the loadgroup.
-  if (aStatus != NS_IMAGELIB_CHANGING_OWNER) {
-    proxy->RemoveFromLoadGroup(true);
-  }
-
   return NS_OK;
 }
 
@@ -315,7 +313,8 @@ class imgRequestMainThreadCancel : public Runnable
 {
 public:
   imgRequestMainThreadCancel(imgRequest* aImgRequest, nsresult aStatus)
-    : mImgRequest(aImgRequest)
+    : Runnable("imgRequestMainThreadCancel")
+    , mImgRequest(aImgRequest)
     , mStatus(aStatus)
   {
     MOZ_ASSERT(!NS_IsMainThread(), "Create me off main thread only!");
@@ -342,7 +341,10 @@ imgRequest::Cancel(nsresult aStatus)
   if (NS_IsMainThread()) {
     ContinueCancel(aStatus);
   } else {
-    NS_DispatchToMainThread(new imgRequestMainThreadCancel(this, aStatus));
+    RefPtr<ProgressTracker> progressTracker = GetProgressTracker();
+    nsCOMPtr<nsIEventTarget> eventTarget = progressTracker->GetEventTarget();
+    nsCOMPtr<nsIRunnable> ev = new imgRequestMainThreadCancel(this, aStatus);
+    eventTarget->Dispatch(ev.forget(), NS_DISPATCH_NORMAL);
   }
 }
 
@@ -352,7 +354,7 @@ imgRequest::ContinueCancel(nsresult aStatus)
   MOZ_ASSERT(NS_IsMainThread());
 
   RefPtr<ProgressTracker> progressTracker = GetProgressTracker();
-  progressTracker->SyncNotifyProgress(FLAG_HAS_ERROR | FLAG_ONLOAD_UNBLOCKED);
+  progressTracker->SyncNotifyProgress(FLAG_HAS_ERROR);
 
   RemoveFromCache();
 
@@ -365,7 +367,8 @@ class imgRequestMainThreadEvict : public Runnable
 {
 public:
   explicit imgRequestMainThreadEvict(imgRequest* aImgRequest)
-    : mImgRequest(aImgRequest)
+    : Runnable("imgRequestMainThreadEvict")
+    , mImgRequest(aImgRequest)
   {
     MOZ_ASSERT(!NS_IsMainThread(), "Create me off main thread only!");
     MOZ_ASSERT(aImgRequest);
@@ -450,13 +453,26 @@ imgRequest::GetCurrentURI(nsIURI** aURI)
 }
 
 bool
-imgRequest::IsChrome() const
+imgRequest::IsScheme(const char* aScheme) const
 {
-  bool isChrome = false;
-  if (NS_WARN_IF(NS_FAILED(mURI->SchemeIs("chrome", &isChrome)))) {
+  MOZ_ASSERT(aScheme);
+  bool isScheme = false;
+  if (NS_WARN_IF(NS_FAILED(mURI->SchemeIs(aScheme, &isScheme)))) {
     return false;
   }
-  return isChrome;
+  return isScheme;
+}
+
+bool
+imgRequest::IsChrome() const
+{
+  return IsScheme("chrome");
+}
+
+bool
+imgRequest::IsData() const
+{
+  return IsScheme("data");
 }
 
 nsresult
@@ -507,11 +523,11 @@ imgRequest::HasConsumers() const
   return progressTracker && progressTracker->ObserverCount() > 0;
 }
 
-already_AddRefed<Image>
+already_AddRefed<image::Image>
 imgRequest::GetImage() const
 {
   MutexAutoLock lock(mMutex);
-  RefPtr<Image> image = mImage;
+  RefPtr<image::Image> image = mImage;
   return image.forget();
 }
 
@@ -539,10 +555,52 @@ imgRequest::AdjustPriority(imgRequestProxy* proxy, int32_t delta)
     return;
   }
 
+  AdjustPriorityInternal(delta);
+}
+
+void
+imgRequest::AdjustPriorityInternal(int32_t aDelta)
+{
   nsCOMPtr<nsISupportsPriority> p = do_QueryInterface(mChannel);
   if (p) {
-    p->AdjustPriority(delta);
+    p->AdjustPriority(aDelta);
   }
+}
+
+void
+imgRequest::BoostPriority(uint32_t aCategory)
+{
+  if (!gfxPrefs::ImageLayoutNetworkPriority()) {
+    return;
+  }
+
+  uint32_t newRequestedCategory =
+    (mBoostCategoriesRequested & aCategory) ^ aCategory;
+  if (!newRequestedCategory) {
+    // priority boost for each category can only apply once.
+    return;
+  }
+
+  MOZ_LOG(gImgLog, LogLevel::Debug,
+         ("[this=%p] imgRequest::BoostPriority for category %x",
+          this, newRequestedCategory));
+
+  int32_t delta = 0;
+
+  if (newRequestedCategory & imgIRequest::CATEGORY_FRAME_INIT) {
+    --delta;
+  }
+
+  if (newRequestedCategory & imgIRequest::CATEGORY_SIZE_QUERY) {
+    --delta;
+  }
+
+  if (newRequestedCategory & imgIRequest::CATEGORY_DISPLAY) {
+    delta += nsISupportsPriority::PRIORITY_HIGH;
+  }
+
+  AdjustPriorityInternal(delta);
+  mBoostCategoriesRequested |= newRequestedCategory;
 }
 
 bool
@@ -569,7 +627,8 @@ imgRequest::UpdateCacheEntrySize()
   }
 
   RefPtr<Image> image = GetImage();
-  size_t size = image->SizeOfSourceWithComputedFallback(moz_malloc_size_of);
+  SizeOfState state(moz_malloc_size_of);
+  size_t size = image->SizeOfSourceWithComputedFallback(state);
   mCacheEntry->SetDataSize(size);
 }
 
@@ -597,17 +656,17 @@ imgRequest::SetCacheValidation(imgCacheEntry* aCacheEntry, nsIRequest* aRequest)
     if (httpChannel) {
       bool bMustRevalidate = false;
 
-      httpChannel->IsNoStoreResponse(&bMustRevalidate);
+      Unused << httpChannel->IsNoStoreResponse(&bMustRevalidate);
 
       if (!bMustRevalidate) {
-        httpChannel->IsNoCacheResponse(&bMustRevalidate);
+        Unused << httpChannel->IsNoCacheResponse(&bMustRevalidate);
       }
 
       if (!bMustRevalidate) {
         nsAutoCString cacheHeader;
 
-        httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("Cache-Control"),
-                                            cacheHeader);
+        Unused << httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("Cache-Control"),
+                                                 cacheHeader);
         if (PL_strcasestr(cacheHeader.get(), "must-revalidate")) {
           bMustRevalidate = true;
         }
@@ -767,13 +826,17 @@ imgRequest::OnStartRequest(nsIRequest* aRequest, nsISupports* ctxt)
     this->Cancel(NS_IMAGELIB_ERROR_FAILURE);
   }
 
-  // Try to retarget OnDataAvailable to a decode thread.
-  nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aRequest);
+  // Try to retarget OnDataAvailable to a decode thread. We must process data
+  // URIs synchronously as per the spec however.
+  if (!channel || IsData()) {
+    return NS_OK;
+  }
+
   nsCOMPtr<nsIThreadRetargetableRequest> retargetable =
     do_QueryInterface(aRequest);
-  if (httpChannel && retargetable) {
+  if (retargetable) {
     nsAutoCString mimeType;
-    nsresult rv = httpChannel->GetContentType(mimeType);
+    nsresult rv = channel->GetContentType(mimeType);
     if (NS_SUCCEEDED(rv) && !mimeType.EqualsLiteral(IMAGE_SVG_XML)) {
       // Retarget OnDataAvailable to the DecodePool's IO thread.
       nsCOMPtr<nsIEventTarget> target =
@@ -782,8 +845,8 @@ imgRequest::OnStartRequest(nsIRequest* aRequest, nsISupports* ctxt)
     }
     MOZ_LOG(gImgLog, LogLevel::Warning,
            ("[this=%p] imgRequest::OnStartRequest -- "
-            "RetargetDeliveryTo rv %d=%s\n",
-            this, rv, NS_SUCCEEDED(rv) ? "succeeded" : "failed"));
+            "RetargetDeliveryTo rv %" PRIu32 "=%s\n",
+            this, static_cast<uint32_t>(rv), NS_SUCCEEDED(rv) ? "succeeded" : "failed"));
   }
 
   return NS_OK;
@@ -903,7 +966,7 @@ imgRequest::CheckListenerChain()
 
 struct NewPartResult final
 {
-  explicit NewPartResult(Image* aExistingImage)
+  explicit NewPartResult(image::Image* aExistingImage)
     : mImage(aExistingImage)
     , mIsFirstPart(!aExistingImage)
     , mSucceeded(false)
@@ -912,7 +975,7 @@ struct NewPartResult final
 
   nsAutoCString mContentType;
   nsAutoCString mContentDisposition;
-  RefPtr<Image> mImage;
+  RefPtr<image::Image> mImage;
   const bool mIsFirstPart;
   bool mSucceeded;
   bool mShouldResetCacheEntry;
@@ -920,7 +983,7 @@ struct NewPartResult final
 
 static NewPartResult
 PrepareForNewPart(nsIRequest* aRequest, nsIInputStream* aInStr, uint32_t aCount,
-                  ImageURL* aURI, bool aIsMultipart, Image* aExistingImage,
+                  ImageURL* aURI, bool aIsMultipart, image::Image* aExistingImage,
                   ProgressTracker* aProgressTracker, uint32_t aInnerWindowId)
 {
   NewPartResult result(aExistingImage);
@@ -965,16 +1028,18 @@ PrepareForNewPart(nsIRequest* aRequest, nsIInputStream* aInStr, uint32_t aCount,
   if (aIsMultipart) {
     // Create the ProgressTracker and image for this part.
     RefPtr<ProgressTracker> progressTracker = new ProgressTracker();
-    RefPtr<Image> partImage =
-      ImageFactory::CreateImage(aRequest, progressTracker, result.mContentType,
-                                aURI, /* aIsMultipart = */ true,
-                                aInnerWindowId);
+    RefPtr<image::Image> partImage =
+      image::ImageFactory::CreateImage(aRequest, progressTracker,
+                                       result.mContentType,
+                                       aURI, /* aIsMultipart = */ true,
+                                       aInnerWindowId);
 
     if (result.mIsFirstPart) {
       // First part for a multipart channel. Create the MultipartImage wrapper.
       MOZ_ASSERT(aProgressTracker, "Shouldn't have given away tracker yet");
+      aProgressTracker->SetIsMultipart();
       result.mImage =
-        ImageFactory::CreateMultipartImage(partImage, aProgressTracker);
+        image::ImageFactory::CreateMultipartImage(partImage, aProgressTracker);
     } else {
       // Transition to the new part.
       auto multipartImage = static_cast<MultipartImage*>(aExistingImage);
@@ -989,9 +1054,10 @@ PrepareForNewPart(nsIRequest* aRequest, nsIInputStream* aInStr, uint32_t aCount,
 
     // Create an image using our progress tracker.
     result.mImage =
-      ImageFactory::CreateImage(aRequest, aProgressTracker, result.mContentType,
-                                aURI, /* aIsMultipart = */ false,
-                                aInnerWindowId);
+      image::ImageFactory::CreateImage(aRequest, aProgressTracker,
+                                       result.mContentType,
+                                       aURI, /* aIsMultipart = */ false,
+                                       aInnerWindowId);
   }
 
   MOZ_ASSERT(result.mImage);
@@ -1010,7 +1076,8 @@ class FinishPreparingForNewPartRunnable final : public Runnable
 public:
   FinishPreparingForNewPartRunnable(imgRequest* aImgRequest,
                                     NewPartResult&& aResult)
-    : mImgRequest(aImgRequest)
+    : Runnable("FinishPreparingForNewPartRunnable")
+    , mImgRequest(aImgRequest)
     , mResult(aResult)
   {
     MOZ_ASSERT(aImgRequest);
@@ -1048,7 +1115,7 @@ imgRequest::FinishPreparingForNewPart(const NewPartResult& aResult)
   }
 
   if (IsDecodeRequested()) {
-    aResult.mImage->StartDecoding();
+    aResult.mImage->StartDecoding(imgIContainer::FLAG_NONE);
   }
 }
 
@@ -1088,22 +1155,35 @@ imgRequest::OnDataAvailable(nsIRequest* aRequest, nsISupports* aContext,
 
     if (result.mImage) {
       image = result.mImage;
+      nsCOMPtr<nsIEventTarget> eventTarget;
 
       // Update our state to reflect this new part.
       {
         MutexAutoLock lock(mMutex);
         mImage = image;
+
+        // We only get an event target if we are not on the main thread, because
+        // we have to dispatch in that case. If we are on the main thread, but
+        // on a different scheduler group than ProgressTracker would give us,
+        // that is okay because nothing in imagelib requires that, just our
+        // listeners (which have their own checks).
+        if (!NS_IsMainThread()) {
+          eventTarget = mProgressTracker->GetEventTarget();
+          MOZ_ASSERT(eventTarget);
+        }
+
         mProgressTracker = nullptr;
       }
 
       // Some property objects are not threadsafe, and we need to send
       // OnImageAvailable on the main thread, so finish on the main thread.
-      if (NS_IsMainThread()) {
+      if (!eventTarget) {
+        MOZ_ASSERT(NS_IsMainThread());
         FinishPreparingForNewPart(result);
       } else {
         nsCOMPtr<nsIRunnable> runnable =
           new FinishPreparingForNewPartRunnable(this, Move(result));
-        NS_DispatchToMainThread(runnable);
+        eventTarget->Dispatch(runnable.forget(), NS_DISPATCH_NORMAL);
       }
     }
 

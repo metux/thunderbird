@@ -3,10 +3,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsSAXXMLReader.h"
+
+#include "mozilla/Encoding.h"
 #include "nsIInputStream.h"
 #include "nsNetCID.h"
 #include "nsNetUtil.h"
-#include "nsNullPrincipal.h"
+#include "NullPrincipal.h"
 #include "nsIParser.h"
 #include "nsParserCIID.h"
 #include "nsStreamUtils.h"
@@ -14,12 +17,10 @@
 #include "nsIScriptError.h"
 #include "nsSAXAttributes.h"
 #include "nsSAXLocator.h"
-#include "nsSAXXMLReader.h"
 #include "nsCharsetSource.h"
 
-#include "mozilla/dom/EncodingUtils.h"
-
-using mozilla::dom::EncodingUtils;
+using mozilla::Encoding;
+using mozilla::NotNull;
 
 #define XMLNS_URI "http://www.w3.org/2000/xmlns/"
 
@@ -473,37 +474,38 @@ nsSAXXMLReader::ParseFromString(const nsAString &aStr,
 }
 
 NS_IMETHODIMP
-nsSAXXMLReader::ParseFromStream(nsIInputStream *aStream,
+nsSAXXMLReader::ParseFromStream(nsIInputStream *aStreamPtr,
                                 const char *aCharset,
                                 const char *aContentType)
 {
   // Don't call this in the middle of an async parse
   NS_ENSURE_TRUE(!mIsAsyncParse, NS_ERROR_FAILURE);
 
-  NS_ENSURE_ARG(aStream);
+  NS_ENSURE_ARG(aStreamPtr);
   NS_ENSURE_ARG(aContentType);
 
   // Put the nsCOMPtr out here so we hold a ref to the stream as needed
   nsresult rv;
-  nsCOMPtr<nsIInputStream> bufferedStream;
-  if (!NS_InputStreamIsBuffered(aStream)) {
+  nsCOMPtr<nsIInputStream> stream = aStreamPtr;
+  if (!NS_InputStreamIsBuffered(stream)) {
+    nsCOMPtr<nsIInputStream> bufferedStream;
     rv = NS_NewBufferedInputStream(getter_AddRefs(bufferedStream),
-                                   aStream, 4096);
+                                   stream.forget(), 4096);
     NS_ENSURE_SUCCESS(rv, rv);
-    aStream = bufferedStream;
+    stream = bufferedStream;
   }
  
   rv = EnsureBaseURI();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIPrincipal> nullPrincipal = nsNullPrincipal::Create();
+  nsCOMPtr<nsIPrincipal> nullPrincipal = NullPrincipal::Create();
 
   // The following channel is never openend, so it does not matter what
   // securityFlags we pass; let's follow the principle of least privilege.
   nsCOMPtr<nsIChannel> parserChannel;
   rv = NS_NewInputStreamChannel(getter_AddRefs(parserChannel),
                                 mBaseURI,
-                                aStream,
+                                stream,
                                 nullPrincipal,
                                 nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED,
                                 nsIContentPolicy::TYPE_OTHER,
@@ -535,7 +537,7 @@ nsSAXXMLReader::ParseFromStream(nsIInputStream *aStream,
   uint64_t offset = 0;
   while (NS_SUCCEEDED(rv) && NS_SUCCEEDED(status)) {
     uint64_t available;
-    rv = aStream->Available(&available);
+    rv = stream->Available(&available);
     if (rv == NS_BASE_STREAM_CLOSED) {
       rv = NS_OK;
       available = 0;
@@ -551,7 +553,7 @@ nsSAXXMLReader::ParseFromStream(nsIInputStream *aStream,
       available = UINT32_MAX;
 
     rv = mListener->OnDataAvailable(parserChannel, nullptr,
-                                    aStream,
+                                    stream,
                                     offset,
                                     (uint32_t)available);
     if (NS_SUCCEEDED(rv))
@@ -628,9 +630,9 @@ nsSAXXMLReader::InitParser(nsIRequestObserver *aObserver, nsIChannel *aChannel)
   parser->SetContentSink(this);
 
   int32_t charsetSource = kCharsetFromDocTypeDefault;
-  nsAutoCString charset(NS_LITERAL_CSTRING("UTF-8"));
-  TryChannelCharset(aChannel, charsetSource, charset);
-  parser->SetDocumentCharset(charset, charsetSource);
+  auto encoding = UTF_8_ENCODING;
+  TryChannelCharset(aChannel, charsetSource, encoding);
+  parser->SetDocumentCharset(encoding, charsetSource);
 
   rv = parser->Parse(mBaseURI, aObserver);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -644,7 +646,7 @@ nsSAXXMLReader::InitParser(nsIRequestObserver *aObserver, nsIChannel *aChannel)
 bool
 nsSAXXMLReader::TryChannelCharset(nsIChannel *aChannel,
                                   int32_t& aCharsetSource,
-                                  nsACString& aCharset)
+                                  NotNull<const Encoding*>& aEncoding)
 {
   if (aCharsetSource >= kCharsetFromChannel)
     return true;
@@ -653,11 +655,11 @@ nsSAXXMLReader::TryChannelCharset(nsIChannel *aChannel,
     nsAutoCString charsetVal;
     nsresult rv = aChannel->GetContentCharset(charsetVal);
     if (NS_SUCCEEDED(rv)) {
-      nsAutoCString preferred;
-      if (!EncodingUtils::FindEncodingForLabel(charsetVal, preferred))
+      const Encoding* preferred = Encoding::ForLabel(charsetVal);
+      if (!preferred)
         return false;
 
-      aCharset = preferred;
+      aEncoding = WrapNotNull(preferred);
       aCharsetSource = kCharsetFromChannel;
       return true;
     }

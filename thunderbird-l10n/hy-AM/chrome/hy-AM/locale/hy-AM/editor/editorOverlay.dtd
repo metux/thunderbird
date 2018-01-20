@@ -29,7 +29,7 @@
 <!ENTITY insertMenu.accesskey "I">
 <!ENTITY insertLinkCmd2.label "Հղում...">
 <!ENTITY insertLinkCmd2.accesskey "L">
-
+<!ENTITY insertLinkCmd2.key "K">
 <!ENTITY insertAnchorCmd.label "Անվանարկված խարիսխ...">
 <!ENTITY insertAnchorCmd.accesskey "A">
 <!ENTITY insertImageCmd.label "Նկար...">
@@ -140,7 +140,7 @@
 <!ENTITY tableOrCellColor.accesskey "B">
 
 <!ENTITY formatRemoveStyles.key "Y">
-
+<!ENTITY formatRemoveLinks.key "K">
 <!ENTITY formatRemoveNamedAnchors.label "Հեռացնել խարսխի անունը">
 <!ENTITY formatRemoveNamedAnchors.accesskey "R">
 <!ENTITY formatRemoveNamedAnchors2.key "R">
@@ -346,6 +346,3 @@
 <!ENTITY removeTOC.accesskey      "R">
 <!ENTITY tocMenu.label            "Պարունակության աղյուսակը...">
 <!ENTITY tocMenu.accesskey        "b">
-
-<!ENTITY formatRemoveLinks.key "K">
-<!ENTITY insertLinkCmd2.key "K">

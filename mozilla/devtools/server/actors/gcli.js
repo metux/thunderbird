@@ -4,12 +4,8 @@
 
 "use strict";
 
-const { Task } = require("devtools/shared/task");
-const {
-  method, Arg, Option, RetVal, Actor, ActorClassWithSpec
-} = require("devtools/shared/protocol");
+const { Actor, ActorClassWithSpec } = require("devtools/shared/protocol");
 const { gcliSpec } = require("devtools/shared/specs/gcli");
-const events = require("sdk/event/core");
 const { createSystem } = require("gcli/system");
 
 /**
@@ -22,11 +18,8 @@ const GcliActor = ActorClassWithSpec(gcliSpec, {
     this._commandsChanged = this._commandsChanged.bind(this);
 
     this._tabActor = tabActor;
-    this._requisitionPromise = undefined; // see _getRequisition()
-  },
-
-  disconnect: function () {
-    return this.destroy();
+    // see _getRequisition()
+    this._requisitionPromise = undefined;
   },
 
   destroy: function () {
@@ -200,11 +193,13 @@ const GcliActor = ActorClassWithSpec(gcliSpec, {
     this._requisitionPromise = this._system.load().then(() => {
       const environment = {
         get chromeWindow() {
-          throw new Error("environment.chromeWindow is not available in runAt:server commands");
+          throw new Error("environment.chromeWindow is not available in runAt:server" +
+            " commands");
         },
 
         get chromeDocument() {
-          throw new Error("environment.chromeDocument is not available in runAt:server commands");
+          throw new Error("environment.chromeDocument is not available in runAt:server" +
+            " commands");
         },
 
         get window() {
@@ -226,7 +221,7 @@ const GcliActor = ActorClassWithSpec(gcliSpec, {
    * Pass events from requisition.system.commands.onCommandsChange upwards
    */
   _commandsChanged: function () {
-    events.emit(this, "commands-changed");
+    this.emit("commands-changed");
   },
 });
 

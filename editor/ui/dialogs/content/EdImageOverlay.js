@@ -79,10 +79,7 @@ function InitImage()
   // For image insertion the 'src' attribute is null.
   if (src) {
     // Shorten data URIs for display.
-    if (shortenImageData(src, gDialog.srcInput)) {
-      gDialog.srcInput.removeAttribute("tooltiptext");
-      gDialog.srcInput.setAttribute("tooltip", "shortenedDataURI");
-    }
+    shortenImageData(src, gDialog.srcInput);
   }
 
   // Set "Relativize" checkbox according to current URL state
@@ -219,23 +216,21 @@ function chooseFile()
 {
   if (gTimerID)
     clearTimeout(gTimerID);
-  // Get a local file, converted into URL format
-  var fileName = GetLocalFileURL("img");
-  if (fileName)
-  {
-    // Always try to relativize local file URLs
-    if (gHaveDocumentUrl)
-      fileName = MakeRelativeUrl(fileName);
-
-    gDialog.srcInput.value = fileName;
-
-    SetRelativeCheckbox();
-    doOverallEnabling();
-  }
-  LoadPreviewImage();
 
   // Put focus into the input field
   SetTextboxFocus(gDialog.srcInput);
+
+  GetLocalFileURL("img").then(fileURL => {
+    // Always try to relativize local file URLs
+    if (gHaveDocumentUrl)
+      fileURL = MakeRelativeUrl(fileURL);
+
+    gDialog.srcInput.value = fileURL;
+
+    SetRelativeCheckbox();
+    doOverallEnabling();
+    LoadPreviewImage();
+  });
 }
 
 function PreviewImageLoaded()
@@ -302,7 +297,7 @@ function LoadPreviewImage()
 
     if (GetScheme(imageSrc))
     {
-      let uri = Services.io.newURI(imageSrc, null, null);
+      let uri = Services.io.newURI(imageSrc);
       if (uri)
       {
         let imgCache = Components.classes["@mozilla.org/image/cache;1"]

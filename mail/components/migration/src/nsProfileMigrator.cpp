@@ -49,9 +49,9 @@ nsProfileMigrator::Migrate(nsIProfileStartup* aStartup, const nsACString& aKey, 
   nsCOMPtr<nsIMutableArray> params (do_CreateInstance(NS_ARRAY_CONTRACTID));
   if (!ww || !params) return NS_ERROR_FAILURE;
 
-  params->AppendElement(cstr, false);
-  params->AppendElement(mailMigrator, false);
-  params->AppendElement(aStartup, false);
+  params->AppendElement(cstr);
+  params->AppendElement(mailMigrator);
+  params->AppendElement(aStartup);
 
   nsCOMPtr<mozIDOMWindowProxy> migrateWizard;
   return ww->OpenWindow(nullptr,
@@ -82,7 +82,7 @@ nsProfileMigrator::GetDefaultMailMigratorKey(nsACString& aKey, nsCOMPtr<nsIMailP
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCString forceMigrationType;
-  prefs->GetCharPref("profile.force.migration", getter_Copies(forceMigrationType));
+  prefs->GetCharPref("profile.force.migration", forceMigrationType);
 
   // if we are being forced to migrate to a particular migration type, then create an instance of that migrator
   // and return it.
@@ -111,7 +111,6 @@ nsProfileMigrator::GetDefaultMailMigratorKey(nsACString& aKey, nsCOMPtr<nsIMailP
   #define MAX_SOURCE_LENGTH 10
   const char sources[][MAX_SOURCE_LENGTH] = {
     "seamonkey",
-    "oexpress",
     "outlook",
     ""
   };

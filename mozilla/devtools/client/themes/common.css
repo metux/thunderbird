@@ -3,9 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 @import url("resource://devtools/client/themes/splitters.css");
+@namespace html url("http://www.w3.org/1999/xhtml");
 
 :root {
   font: message-box;
+
+  --tab-line-selected-color: var(--blue-50);
+}
+
+:root.theme-light {
+  --tab-line-hover-color: rgba(0,0,0,.2);
+}
+
+:root.theme-dark {
+  --tab-line-hover-color: rgba(255,255,255,.2);
 }
 
 :root[platform="mac"] {
@@ -30,9 +41,13 @@
 }
 
 :root[platform="linux"] .devtools-monospace {
-  font-size: 80%;
+  font-size: 11px;
 }
 
+/* Override wrong system font from forms.css */
+html|button, html|select {
+  font: message-box;
+}
 
 /* Autocomplete Popup */
 
@@ -76,35 +91,16 @@
   background-color: transparent;
   border-radius: 4px;
   padding: 1px 0;
-}
-
-.devtools-autocomplete-listbox .autocomplete-selected {
-  background-color: rgba(0,0,0,0.2);
-}
-
-.devtools-autocomplete-listbox.dark-theme .autocomplete-selected,
-.devtools-autocomplete-listbox.dark-theme .autocomplete-item:hover {
-  background-color: rgba(0,0,0,0.5);
-}
-
-.devtools-autocomplete-listbox.dark-theme .autocomplete-selected > .autocomplete-value,
-.devtools-autocomplete-listbox:focus.dark-theme .autocomplete-selected > .initial-value {
-  color: hsl(208,100%,60%);
-}
-
-.devtools-autocomplete-listbox.dark-theme .autocomplete-selected > span {
-  color: #eee;
-}
-
-.devtools-autocomplete-listbox.dark-theme .autocomplete-item > span {
-  color: #ccc;
+  cursor: default;
+  text-overflow: ellipsis;
+  white-space: pre;
+  overflow: hidden;
 }
 
 .devtools-autocomplete-listbox .autocomplete-item > .initial-value,
 .devtools-autocomplete-listbox .autocomplete-item > .autocomplete-value {
   margin: 0;
   padding: 0;
-  cursor: default;
 }
 
 .devtools-autocomplete-listbox .autocomplete-item > .autocomplete-count {
@@ -114,50 +110,56 @@
 /* Rest of the dark and light theme */
 
 .devtools-autocomplete-popup,
+.CodeMirror-hints,
+.CodeMirror-Tern-tooltip {
+  border: 1px solid hsl(210,24%,90%);
+  background-image: linear-gradient(to bottom, hsla(209,18%,100%,0.9), hsl(210,24%,95%));
+}
+
+.theme-dark .devtools-autocomplete-popup,
 .theme-dark .CodeMirror-hints,
 .theme-dark .CodeMirror-Tern-tooltip {
   border: 1px solid hsl(210,11%,10%);
   background-image: linear-gradient(to bottom, hsla(209,18%,18%,0.9), hsl(210,11%,16%));
 }
 
-.devtools-autocomplete-popup.light-theme,
-.light-theme .CodeMirror-hints,
-.light-theme .CodeMirror-Tern-tooltip {
-  border: 1px solid hsl(210,24%,90%);
-  background-image: linear-gradient(to bottom, hsla(209,18%,100%,0.9), hsl(210,24%,95%));
-}
-
-.devtools-autocomplete-popup.light-theme {
-  box-shadow: 0 1px 0 hsla(209,29%,90%,.25) inset;
-}
-
 .theme-firebug .devtools-autocomplete-popup {
   border-color: var(--theme-splitter-color);
   border-radius: 5px;
   font-size: var(--theme-autompletion-font-size);
-}
-
-.devtools-autocomplete-popup.firebug-theme {
   background: var(--theme-body-background);
 }
 
-.devtools-autocomplete-listbox.firebug-theme .autocomplete-selected,
-.devtools-autocomplete-listbox.firebug-theme .autocomplete-item:hover,
-.devtools-autocomplete-listbox.light-theme .autocomplete-selected,
-.devtools-autocomplete-listbox.light-theme .autocomplete-item:hover {
+.devtools-autocomplete-listbox .autocomplete-selected,
+.devtools-autocomplete-listbox .autocomplete-item:hover {
   background-color: rgba(128,128,128,0.3);
 }
 
-.devtools-autocomplete-listbox.firebug-theme .autocomplete-selected > .autocomplete-value,
-.devtools-autocomplete-listbox:focus.firebug-theme .autocomplete-selected > .initial-value,
-.devtools-autocomplete-listbox.light-theme .autocomplete-selected > .autocomplete-value,
-.devtools-autocomplete-listbox:focus.light-theme .autocomplete-selected > .initial-value {
+.theme-dark .devtools-autocomplete-listbox .autocomplete-selected,
+.theme-dark .devtools-autocomplete-listbox .autocomplete-item:hover {
+  background-color: rgba(0,0,0,0.5);
+}
+
+.devtools-autocomplete-listbox .autocomplete-selected > .autocomplete-value,
+.devtools-autocomplete-listbox:focus .autocomplete-selected > .initial-value {
   color: #222;
 }
 
-.devtools-autocomplete-listbox.firebug-theme .autocomplete-item > span,
-.devtools-autocomplete-listbox.light-theme .autocomplete-item > span {
+.theme-dark .devtools-autocomplete-listbox .autocomplete-selected > .autocomplete-value,
+.theme-dark .devtools-autocomplete-listbox:focus .autocomplete-selected > .initial-value {
+  color: hsl(208,100%,60%);
+}
+
+.devtools-autocomplete-listbox .autocomplete-item > span {
   color: #666;
+}
+
+.theme-dark .devtools-autocomplete-listbox .autocomplete-item > span {
+  color: #ccc;
+}
+
+.theme-dark .devtools-autocomplete-listbox .autocomplete-selected > span {
+  color: #eee;
 }
 
 /* Autocomplete list clone used for accessibility. */
@@ -239,52 +241,41 @@ checkbox:-moz-focusring {
 .devtools-button {
   -moz-appearance: none;
   background: transparent;
-  min-height: 18px;
-  text-shadow: none;
-  border: none;
-  border-radius: 0;
+  border: 1px solid var(--toolbarbutton-border-color);
+  border-radius: 2px;
   color: var(--theme-body-color);
   transition: background 0.05s ease-in-out;
-}
-
-.devtools-menulist,
-.devtools-toolbarbutton {
   -moz-box-align: center;
-  min-width: 78px;
+  text-shadow: none;
   padding: 1px;
-  margin: 2px 1px;
+  margin: 1px;
+
+  /* Button text should not wrap on multiple lines */
+  white-space: nowrap;
 }
 
 .devtools-toolbarbutton:not([label]) > .toolbarbutton-icon,
-.devtools-button::before {
+.devtools-button:empty::before {
   width: 16px;
   height: 16px;
+  margin: 0 3px;
   transition: opacity 0.05s ease-in-out;
+
+  color: var(--theme-toolbar-color);
+  direction: ltr;
+  font-size: 11px;
 }
 
-/* HTML buttons */
-.devtools-button {
-  margin: 2px 1px;
-  padding: 1px;
-  min-width: 32px;
-  /* The icon is absolutely positioned in the button using ::before */
-  position: relative;
-}
-
-.devtools-button::before {
+.devtools-button:empty::before {
   content: "";
-  display: block;
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  margin: -8px 0 0 -8px;
+  display: inline-block;
   background-size: cover;
   background-repeat: no-repeat;
-  transition: opacity 0.05s ease-in-out;
+  vertical-align: middle;
 }
 
-.devtools-button:-moz-focusring {
-  outline: none;
+.devtools-button.checked:empty::before {
+  color: var(--theme-toolbar-checked-color);
 }
 
 /* Standalone buttons */
@@ -292,84 +283,22 @@ checkbox:-moz-focusring {
 .devtools-button[data-standalone],
 .devtools-toolbarbutton[standalone],
 .devtools-toolbarbutton[data-standalone] {
-  border-width: 1px;
-  border-style: solid;
-  min-height: 32px;
-  background-color: var(--theme-toolbar-background);
+  border-color: rgba(138,161,180,0.2) !important;
+  min-height: 30px;
 }
 
 .devtools-toolbarbutton[standalone], .devtools-toolbarbutton[data-standalone] {
   margin-inline-end: 5px;
 }
 
-.devtools-toolbarbutton[label][standalone] {
-  min-height: 2em;
-}
-
-.devtools-menulist,
-.devtools-toolbarbutton,
-.devtools-button {
-  border-color: var(--toolbar-button-border-color);
-}
-
 /* Icon button styles */
-.devtools-toolbarbutton:not([label]),
-.devtools-toolbarbutton[text-as-image] {
-  min-width: 32px;
-}
-
 .devtools-toolbarbutton:not([label]) > .toolbarbutton-text {
   display: none;
 }
 
-.devtools-toolbarbutton > .toolbarbutton-icon {
-  margin: 0;
-}
-
-/* Menu button styles (eg. web console filters) */
-.devtools-toolbarbutton[type=menu-button] > .toolbarbutton-menubutton-button {
-  -moz-appearance: none;
-  color: inherit;
-  border-width: 0;
-  -moz-box-orient: horizontal;
-  padding: 0;
-}
-
-.devtools-toolbarbutton[type=menu-button] {
-  padding: 0 1px;
-  -moz-box-align: stretch;
-}
-
-.devtools-toolbarbutton > .toolbarbutton-menubutton-button > .toolbarbutton-icon {
-  margin-inline-end: 4px;
-}
-
-.devtools-menulist > .menulist-dropmarker {
-  -moz-appearance: none;
-  display: -moz-box;
-  list-style-image: url("chrome://devtools/skin/images/dropmarker.svg");
-  -moz-box-align: center;
-  min-width: 16px;
-}
-
-.devtools-toolbarbutton[type=menu] > .toolbarbutton-menu-dropmarker,
-.devtools-toolbarbutton[type=menu-button] > .toolbarbutton-menubutton-dropmarker {
-  -moz-appearance: none !important;
-  list-style-image: url("chrome://devtools/skin/images/dropmarker.svg");
-  -moz-box-align: center;
-  padding: 0 3px;
-}
-
 /* Icon-only buttons */
-.devtools-button:empty::before,
-.devtools-toolbarbutton:not([label]):not([disabled]) > image {
-  opacity: 0.8;
-}
-
 .devtools-button:hover:empty:not(:disabled):before,
 .devtools-button.checked:empty::before,
-.devtools-button[checked]:empty::before,
-.devtools-button[open]:empty::before,
 .devtools-toolbarbutton:not([label]):not([disabled=true]):hover > image,
 .devtools-toolbarbutton:not([label])[checked=true] > image,
 .devtools-toolbarbutton:not([label])[open=true] > image {
@@ -377,77 +306,55 @@ checkbox:-moz-focusring {
 }
 
 .devtools-button:disabled,
-.devtools-button[disabled],
 .devtools-toolbarbutton[disabled] {
   opacity: 0.5 !important;
 }
 
-.devtools-button[checked]:empty::before,
-.devtools-button[open]:empty::before,
 .devtools-button.checked::before,
 .devtools-toolbarbutton:not([label])[checked=true] > image,
 .devtools-toolbarbutton:not([label])[open=true] > image {
-  filter: var(--checked-icon-filter);
+  fill: var(--theme-toolbar-checked-color);
 }
 
-/* Checked/opened icon button background */
-.theme-firebug .devtools-button[checked]:empty,
-.theme-firebug .devtools-button[open]:empty,
-.theme-firebug .devtools-button.checked,
-.theme-firebug .devtools-toolbarbutton:not([label])[checked=true],
-.theme-firebug .devtools-toolbarbutton:not([label])[open=true] {
-  background-color: #C8D8E7;
+/* Button states */
+.devtools-toolbarbutton[label]:not([type=menu-button]),
+.devtools-toolbarbutton[standalone],
+.devtools-button[data-standalone],
+.devtools-button:not(:empty) {
+  background: var(--toolbarbutton-background);
+  padding: 0 5px;
 }
 
-/* Icon-and-text buttons */
-.devtools-toolbarbutton.icon-and-text .toolbarbutton-text {
-  margin-inline-start: .5em !important;
-  font-weight: 600;
+.devtools-toolbarbutton:not([label]):hover,
+.devtools-button:empty:not(:disabled):hover {
+  background: var(--toolbarbutton-background);
 }
 
-/* Text-only buttons */
-.theme-light .devtools-toolbarbutton[label]:not([text-as-image]):not([type=menu-button]),
-.theme-light .devtools-toolbarbutton[data-text-only],
-.theme-light .devtools-button:not(:empty) {
-  background-color: var(--toolbar-tab-hover);
-}
-.theme-dark .devtools-toolbarbutton[label]:not([text-as-image]):not([type=menu-button]),
-.theme-dark .devtools-toolbarbutton[data-text-only],
-.theme-dark .devtools-button:not(:empty) {
-  background-color: rgba(0, 0, 0, .2); /* Splitter */
+.devtools-button:not(:empty):not(:disabled):not(.checked):hover,
+.devtools-toolbarbutton[label]:not(:-moz-any([checked=true],[disabled])):hover,
+.devtools-button:empty:not(:disabled):-moz-any(:hover:active,.checked),
+.devtools-toolbarbutton:not([label]):-moz-any([checked],[open],:hover:active) {
+  background: var(--toolbarbutton-hover-background);
+  border-color: var(--toolbarbutton-hover-border-color);
 }
 
-/* Text-only button states */
-.theme-dark .devtools-button:not(:empty):not(:disabled):hover,
-.theme-dark .devtools-toolbarbutton:not(:-moz-any([checked=true],[disabled],[text-as-image]))[label]:hover {
-  background: rgba(0, 0, 0, .3); /* Splitters */
-}
-.theme-light .devtools-button:not(:empty):not(:disabled):hover,
-.theme-light .devtools-toolbarbutton:not(:-moz-any([checked=true],[disabled],[text-as-image]))[label]:hover {
-  background: rgba(170, 170, 170, .3); /* Splitters */
+.devtools-button:not(:empty):not(.checked):not(:disabled):hover:active,
+.devtools-toolbarbutton:not(:-moz-any([checked=true],[disabled]))[label]:hover:active {
+  background-color: var(--theme-selection-background-hover);
 }
 
-.theme-dark .devtools-button:not(:empty):not(:disabled):hover:active,
-.theme-dark .devtools-toolbarbutton:not(:-moz-any([checked=true],[disabled],[text-as-image]))[label]:hover:active {
-  background: rgba(0, 0, 0, .4); /* Splitters */
-}
-.theme-light .devtools-button:not(:empty):not(:disabled):hover:active,
-.theme-light .devtools-toolbarbutton:not(:-moz-any([checked=true],[disabled],[text-as-image]))[label]:hover:active {
-  background: var(--toolbar-tab-hover-active);
-}
-
-.theme-dark .devtools-toolbarbutton:not([disabled])[label][checked=true],
-.theme-dark .devtools-toolbarbutton:not([disabled])[label][open],
-.theme-dark .devtools-button:not(:empty)[checked=true] {
-  background: var(--theme-selection-background-semitransparent);
-  color: var(--theme-selection-color);
-}
-.theme-light .devtools-toolbarbutton:not([disabled])[label][checked=true],
-.theme-light .devtools-toolbarbutton:not([disabled])[label][open],
-.theme-light .devtools-button:not(:empty)[checked=true] {
-  background: rgba(76, 158, 217, .3); /* Select highlight blue */
+.devtools-toolbarbutton:not([disabled])[label][checked=true],
+.devtools-toolbarbutton:not([disabled])[label][open],
+.devtools-button:not(:empty).checked,
+.theme-firebug .devtools-toolbarbutton[checked],
+.theme-firebug .devtools-toolbarbutton[open],
+.theme-firebug .devtools-button.checked:empty {
+  background: var(--toolbarbutton-checked-background);
+  border-color: var(--toolbarbutton-checked-border-color);
+  color: var(--toolbarbutton-checked-color);
 }
 
+/* Icons */
 :root {
   --clear-icon-url: url("chrome://devtools/skin/images/clear.svg");
 }
@@ -474,38 +381,6 @@ checkbox:-moz-focusring {
 
 .devtools-toolbarbutton-group + .devtools-toolbarbutton {
   margin-inline-start: 3px;
-}
-
-.devtools-separator + .devtools-toolbarbutton {
-  margin-inline-start: 1px;
-}
-
-/*
- * Filter buttons
- * @TODO : Fix when https://bugzilla.mozilla.org/show_bug.cgi?id=1255116 lands
- */
-.menu-filter-button {
-  -moz-appearance: none;
-  background: rgba(128,128,128,0.1);
-  border: none;
-  border-radius: 2px;
-  min-width: 0;
-  padding: 0 5px;
-  margin: 2px;
-  color: var(--theme-body-color);
-}
-
-.menu-filter-button:hover {
-  background: rgba(128,128,128,0.2);
-}
-
-.menu-filter-button:hover:active {
-  background-color: var(--theme-selection-background-semitransparent);
-}
-
-.menu-filter-button:not(:active).checked {
-  background-color: var(--theme-selection-background);
-  color: var(--theme-selection-color);
 }
 
 /* Text input */
@@ -563,6 +438,11 @@ checkbox:-moz-focusring {
   background-position: calc(100% - 8px) center;
 }
 
+/* This is needed to remove the default search icon on windows. See bug 1400615. */
+.devtools-filterinput > .textbox-input-box > .textbox-search-sign {
+  display: none;
+}
+
 .devtools-searchinput > .textbox-input-box > .textbox-search-icons > .textbox-search-icon,
 .devtools-filterinput > .textbox-input-box > .textbox-search-icons > .textbox-search-icon {
   visibility: hidden;
@@ -607,6 +487,16 @@ checkbox:-moz-focusring {
   box-shadow: var(--theme-focus-box-shadow-textbox);
   transition: all 0.2s ease-in-out;
   outline: none;
+}
+
+.devtools-searchbox .devtools-autocomplete-popup {
+  position: absolute;
+  top: 100%;
+  width: 100%;
+  line-height: initial !important;
+  /* See bug - 1414609. z-index is greater than 1000 so that searchbox's z-index
+  is more than z-index of requests-list-headers-wrapper in netmonitor */
+  z-index: 1001;
 }
 
 /* Don't add 'double spacing' for inputs that are at beginning / end
@@ -788,4 +678,56 @@ checkbox:-moz-focusring {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Common tabs styles */
+
+.all-tabs-menu {
+  position: absolute;
+
+  top: 0;
+  offset-inline-end: 0;
+  width: 15px;
+  height: 100%;
+
+  border-inline-start: 1px solid var(--theme-splitter-color);
+
+  background: var(--theme-tab-toolbar-background);
+  background-image: url("chrome://devtools/skin/images/dropmarker.svg");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.devtools-tab-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: transparent;
+}
+
+.devtools-tab:hover .devtools-tab-line,
+.tabs-menu-item:hover .devtools-tab-line {
+  background: var(--tab-line-hover-color);
+}
+
+.devtools-tab.selected .devtools-tab-line,
+.tabs-menu-item.is-active .devtools-tab-line {
+  background: var(--tab-line-selected-color);
+}
+
+/* Hide the tab line in the firebug theme */
+.theme-firebug .devtools-tab-line {
+  background: transparent !important;
+}
+
+/* No result message styles */
+
+.devtools-sidepanel-no-result {
+  font-style: italic;
+  text-align: center;
+  padding: 0.5em;
+  -moz-user-select: none;
+  font-size: 12px;
 }

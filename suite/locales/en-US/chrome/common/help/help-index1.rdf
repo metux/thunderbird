@@ -618,6 +618,11 @@
          nc:link="developer_tools.xhtml#devtools"/>
      </rdf:li>
      <rdf:li>
+       <rdf:Description ID="WebIDE"
+         nc:name="WebIDE"
+         nc:link="developer_tools.xhtml#webide"/>
+     </rdf:li>
+     <rdf:li>
        <rdf:Description ID="device_manager"
          nc:name="Device Manager"
          nc:link="using_certs_help.xhtml#about_security_devices_and_modules"/>
@@ -1327,11 +1332,6 @@
          nc:name="Master Password Preferences"
          nc:link="passwords_help.xhtml#master_passwords"/>
      </rdf:li>
-     <rdf:li>
-       <rdf:Description ID="master_password:timeout"
-         nc:name="Master Password Timeout"
-         nc:link="passwords_help.xhtml#master_password_timeout"/>
-     </rdf:li></rdf:Seq>
    </nc:subheadings>
 </rdf:Description>
 
@@ -1516,11 +1516,6 @@
          nc:name="Remembering Automatically"
          nc:link="using_priv_help.xhtml#using_the_password_manager"/>
      </rdf:li>
-     <rdf:li>
-       <rdf:Description ID="passwords:timeout_for_master_password"
-         nc:name="Timeout for Master Password"
-         nc:link="passwords_help.xhtml#master_password_timeout"/>
-     </rdf:li></rdf:Seq>
    </nc:subheadings>
 </rdf:Description>
 

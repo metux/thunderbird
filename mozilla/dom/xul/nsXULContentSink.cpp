@@ -38,11 +38,10 @@
 #include "nsLayoutCID.h"
 #include "nsNetUtil.h"
 #include "nsRDFCID.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "nsReadableUtils.h"
 #include "nsXULElement.h"
 #include "mozilla/Logging.h"
-#include "prmem.h"
 #include "nsCRT.h"
 
 #include "nsXULPrototypeDocument.h"     // XXXbe temporary
@@ -256,15 +255,13 @@ XULContentSinkImpl::SetParser(nsParserBase* aParser)
     return NS_OK;
 }
 
-NS_IMETHODIMP
-XULContentSinkImpl::SetDocumentCharset(nsACString& aCharset)
+void
+XULContentSinkImpl::SetDocumentCharset(NotNull<const Encoding*> aEncoding)
 {
     nsCOMPtr<nsIDocument> doc = do_QueryReferent(mDocument);
     if (doc) {
-        doc->SetDocumentCharacterSet(aCharset);
+        doc->SetDocumentCharacterSet(aEncoding);
     }
-
-    return NS_OK;
 }
 
 nsISupports *
@@ -399,7 +396,7 @@ XULContentSinkImpl::NormalizeAttributeString(const char16_t *aExpatName,
                                              nsAttrName &aName)
 {
     int32_t nameSpaceID;
-    nsCOMPtr<nsIAtom> prefix, localName;
+    RefPtr<nsAtom> prefix, localName;
     nsContentUtils::SplitExpatName(aExpatName, getter_AddRefs(prefix),
                                    getter_AddRefs(localName), &nameSpaceID);
 
@@ -453,7 +450,7 @@ XULContentSinkImpl::HandleStartElement(const char16_t *aName,
   }
 
   int32_t nameSpaceID;
-  nsCOMPtr<nsIAtom> prefix, localName;
+  RefPtr<nsAtom> prefix, localName;
   nsContentUtils::SplitExpatName(aName, getter_AddRefs(prefix),
                                  getter_AddRefs(localName), &nameSpaceID);
 
@@ -838,7 +835,7 @@ XULContentSinkImpl::OpenScript(const char16_t** aAttributes,
                                const uint32_t aLineNumber)
 {
   bool isJavaScript = true;
-  uint32_t version = JSVERSION_LATEST;
+  uint32_t version = JSVERSION_DEFAULT;
   nsresult rv;
 
   // Look for SRC attribute and look for a LANGUAGE attribute
@@ -864,14 +861,20 @@ XULContentSinkImpl::OpenScript(const char16_t** aAttributes,
 
           if (nsContentUtils::IsJavascriptMIMEType(mimeType)) {
               isJavaScript = true;
-              version = JSVERSION_LATEST;
+              version = JSVERSION_DEFAULT;
 
               // Get the version string, and ensure that JavaScript supports it.
               nsAutoString versionName;
               rv = parser.GetParameter("version", versionName);
 
               if (NS_SUCCEEDED(rv)) {
-                  version = nsContentUtils::ParseJavascriptVersion(versionName);
+                  nsContentUtils::ReportToConsoleNonLocalized(
+                      NS_LITERAL_STRING("Versioned JavaScripts are no longer supported. "
+                                        "Please remove the version parameter."),
+                      nsIScriptError::errorFlag,
+                      NS_LITERAL_CSTRING("XUL Document"),
+                      nullptr, mDocumentURL, EmptyString(), aLineNumber);
+                  isJavaScript = false;
               } else if (rv != NS_ERROR_INVALID_ARG) {
                   return rv;
               }
@@ -879,7 +882,7 @@ XULContentSinkImpl::OpenScript(const char16_t** aAttributes,
               isJavaScript = false;
           }
       } else if (key.EqualsLiteral("language")) {
-          // Language is deprecated, and the impl in nsScriptLoader ignores the
+          // Language is deprecated, and the impl in ScriptLoader ignores the
           // various version strings anyway.  So we make no attempt to support
           // languages other than JS for language=
           nsAutoString lang(aAttributes[1]);

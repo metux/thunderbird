@@ -15,7 +15,6 @@
 namespace mozilla {
 
 class OggTrackDemuxer;
-class OggHeaders;
 
 class OggDemuxer : public MediaDataDemuxer
 {
@@ -23,8 +22,6 @@ public:
   explicit OggDemuxer(MediaResource* aResource);
 
   RefPtr<InitPromise> Init() override;
-
-  bool HasTrackType(TrackInfo::TrackType aType) const override;
 
   uint32_t GetNumberTracks(TrackInfo::TrackType aType) const override;
 
@@ -203,7 +200,7 @@ private:
   // fails, or is complete. Initializes the codec state before returning.
   // Returns true if reading headers and initializtion of the stream
   // succeeds.
-  bool ReadHeaders(TrackInfo::TrackType aType, OggCodecState* aState, OggHeaders& aHeaders);
+  bool ReadHeaders(TrackInfo::TrackType aType, OggCodecState* aState);
 
   // Reads the next link in the chain.
   bool ReadOggChain(const media::TimeUnit& aLastEndTime);
@@ -217,10 +214,7 @@ private:
   void BuildSerialList(nsTArray<uint32_t>& aTracks);
 
   // Setup target bitstreams for decoding.
-  void SetupTargetTheora(TheoraState* aTheoraState, OggHeaders& aHeaders);
-  void SetupTargetVorbis(VorbisState* aVorbisState, OggHeaders& aHeaders);
-  void SetupTargetOpus(OpusState* aOpusState, OggHeaders& aHeaders);
-  void SetupTargetFlac(FlacState* aFlacState, OggHeaders& aHeaders);
+  void SetupTarget(OggCodecState** aSavedState, OggCodecState* aNewState);
   void SetupTargetSkeleton();
   void SetupMediaTracksInfo(const nsTArray<uint32_t>& aSerials);
   void FillTags(TrackInfo* aInfo, MetadataTags* aTags);
@@ -256,17 +250,17 @@ private:
   OggCodecStore mCodecStore;
 
   // Decode state of the Theora bitstream we're decoding, if we have video.
-  TheoraState* mTheoraState;
+  OggCodecState* mTheoraState;
 
   // Decode state of the Vorbis bitstream we're decoding, if we have audio.
-  VorbisState* mVorbisState;
+  OggCodecState* mVorbisState;
 
   // Decode state of the Opus bitstream we're decoding, if we have one.
-  OpusState* mOpusState;
+  OggCodecState* mOpusState;
 
   // Get the bitstream decode state for the given track type
   // Decode state of the Flac bitstream we're decoding, if we have one.
-  FlacState* mFlacState;
+  OggCodecState* mFlacState;
 
   OggCodecState* GetTrackCodecState(TrackInfo::TrackType aType) const;
   TrackInfo::TrackType GetCodecStateType(OggCodecState* aState) const;
@@ -297,21 +291,6 @@ private:
   OggStateContext mAudioOggState;
   OggStateContext mVideoOggState;
 
-  // Vorbis/Opus/Theora data used to compute timestamps. This is written on the
-  // decoder thread and read on the main thread. All reading on the main
-  // thread must be done after metadataloaded. We can't use the existing
-  // data in the codec states due to threading issues. You must check the
-  // associated mTheoraState or mVorbisState pointer is non-null before
-  // using this codec data.
-  uint32_t mVorbisSerial;
-  uint32_t mOpusSerial;
-  uint32_t mTheoraSerial;
-  uint32_t mFlacSerial;
-
-  vorbis_info mVorbisInfo;
-  int mOpusPreSkip;
-  th_info mTheoraInfo;
-
   Maybe<int64_t> mStartTime;
 
   // Booleans to indicate if we have audio and/or video data
@@ -328,7 +307,7 @@ private:
 
   // The picture region inside Theora frame to be displayed, if we have
   // a Theora video track.
-  nsIntRect mPicture;
+  gfx::IntRect mPicture;
 
   // True if we are decoding a chained ogg.
   bool mIsChained;
@@ -345,7 +324,7 @@ private:
   // It is updated once a chained ogg is encountered.
   // As Ogg chaining is only supported for audio, we only need an audio track
   // info.
-  RefPtr<SharedTrackInfo> mSharedAudioTrackInfo;
+  RefPtr<TrackInfoSharedPtr> mSharedAudioTrackInfo;
 
   friend class OggTrackDemuxer;
 };
@@ -359,13 +338,13 @@ public:
 
   UniquePtr<TrackInfo> GetInfo() const override;
 
-  RefPtr<SeekPromise> Seek(media::TimeUnit aTime) override;
+  RefPtr<SeekPromise> Seek(const media::TimeUnit& aTime) override;
 
   RefPtr<SamplesPromise> GetSamples(int32_t aNumSamples = 1) override;
 
   void Reset() override;
 
-  RefPtr<SkipAccessPointPromise> SkipToNextRandomAccessPoint(media::TimeUnit aTimeThreshold) override;
+  RefPtr<SkipAccessPointPromise> SkipToNextRandomAccessPoint(const media::TimeUnit& aTimeThreshold) override;
 
   media::TimeIntervals GetBuffered() override;
 

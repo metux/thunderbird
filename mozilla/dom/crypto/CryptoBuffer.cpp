@@ -124,7 +124,7 @@ CryptoBuffer::FromJwkBase64(const nsString& aBase64)
 }
 
 nsresult
-CryptoBuffer::ToJwkBase64(nsString& aBase64)
+CryptoBuffer::ToJwkBase64(nsString& aBase64) const
 {
   // Shortcut for the empty octet string
   if (Length() == 0) {
@@ -159,6 +159,12 @@ JSObject*
 CryptoBuffer::ToUint8Array(JSContext* aCx) const
 {
   return Uint8Array::Create(aCx, Length(), Elements());
+}
+
+JSObject*
+CryptoBuffer::ToArrayBuffer(JSContext* aCx) const
+{
+  return ArrayBuffer::Create(aCx, Length(), Elements());
 }
 
 bool

@@ -16,9 +16,14 @@
 const {
   utils: Cu,
 } = Components;
-Cu.import("resource://gre/modules/ManifestObtainer.jsm");
-Cu.import("resource://gre/modules/ManifestFinder.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "ManifestObtainer",
+				  "resource://gre/modules/ManifestObtainer.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "ManifestFinder",
+				  "resource://gre/modules/ManifestFinder.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "ManifestIcons",
+				  "resource://gre/modules/ManifestIcons.jsm");
 
 const MessageHandler = {
   registerListeners() {
@@ -33,6 +38,10 @@ const MessageHandler = {
     addMessageListener(
       "DOM:Manifest:FireAppInstalledEvent",
       this.fireAppInstalledEvent.bind(this)
+    );
+    addMessageListener(
+      "DOM:WebManifest:fetchIcon",
+      this.fetchIcon.bind(this)
     );
   },
 
@@ -54,16 +63,16 @@ const MessageHandler = {
    * @param {Object} aMsg The IPC message, which is destructured to just
    *                      get the id.
    */
-  obtainManifest: Task.async(function* ({data: {id}}) {
+  async obtainManifest({data: {id}}) {
     const response = makeMsgResponse(id);
     try {
-      response.result = yield ManifestObtainer.contentObtainManifest(content);
+      response.result = await ManifestObtainer.contentObtainManifest(content);
       response.success = true;
     } catch (err) {
       response.result = serializeError(err);
     }
     sendAsyncMessage("DOM:ManifestObtainer:Obtain", response);
-  }),
+  },
 
   fireAppInstalledEvent({data: {id}}){
     const ev = new Event("appinstalled");
@@ -76,7 +85,24 @@ const MessageHandler = {
       content.dispatchEvent(ev);
     }
     sendAsyncMessage("DOM:Manifest:FireAppInstalledEvent", response);
-  }
+  },
+
+  /**
+   * Given a manifest and an expected icon size, ask ManifestIcons
+   * to fetch the appropriate icon and send along result
+   */
+  async fetchIcon({data: {id, manifest, iconSize}}) {
+    const response = makeMsgResponse(id);
+    try {
+      response.result =
+        await ManifestIcons.contentFetchIcon(content, manifest, iconSize);
+      response.success = true;
+    } catch (err) {
+      response.result = serializeError(err);
+    }
+    sendAsyncMessage("DOM:WebManifest:fetchIcon", response);
+  },
+
 };
 /**
  * Utility function to Serializes an JS Error, so it can be transferred over

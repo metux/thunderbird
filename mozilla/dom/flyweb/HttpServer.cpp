@@ -36,9 +36,10 @@ NS_IMPL_ISUPPORTS(HttpServer,
                   nsIServerSocketListener,
                   nsILocalCertGetCallback)
 
-HttpServer::HttpServer()
+HttpServer::HttpServer(nsISerialEventTarget* aEventTarget)
   : mPort()
   , mHttps()
+  , mEventTarget(aEventTarget)
 {
 }
 
@@ -88,10 +89,9 @@ void
 HttpServer::NotifyStarted(nsresult aStatus)
 {
   RefPtr<HttpServerListener> listener = mListener;
-  nsCOMPtr<nsIRunnable> event = NS_NewRunnableFunction([listener, aStatus] ()
-  {
-    listener->OnServerStarted(aStatus);
-  });
+  nsCOMPtr<nsIRunnable> event = NS_NewRunnableFunction(
+    "dom::HttpServer::NotifyStarted",
+    [listener, aStatus]() { listener->OnServerStarted(aStatus); });
   NS_DispatchToCurrentThread(event);
 }
 
@@ -152,7 +152,8 @@ HttpServer::OnStopListening(nsIServerSocket* aServ,
 {
   MOZ_ASSERT(aServ == mServerSocket || !mServerSocket);
 
-  LOG_I("HttpServer::OnStopListening(%p) - status 0x%lx", this, aStatus);
+  LOG_I("HttpServer::OnStopListening(%p) - status 0x%" PRIx32,
+        this, static_cast<uint32_t>(aStatus));
 
   Close();
 
@@ -190,9 +191,8 @@ HttpServer::AcceptWebSocket(InternalRequest* aConnectRequest,
     return provider.forget();
   }
 
-  aRv.Throw(NS_ERROR_UNEXPECTED);
   MOZ_ASSERT(false, "Unknown request");
-
+  aRv.Throw(NS_ERROR_UNEXPECTED);
   return nullptr;
 }
 
@@ -287,10 +287,12 @@ HttpServer::TransportProvider::MaybeNotify()
 {
   if (mTransport && mListener) {
     RefPtr<TransportProvider> self = this;
-    nsCOMPtr<nsIRunnable> event = NS_NewRunnableFunction([self, this] ()
-    {
-      mListener->OnTransportAvailable(mTransport, mInput, mOutput);
-    });
+    nsCOMPtr<nsIRunnable> event = NS_NewRunnableFunction(
+      "dom::HttpServer::TransportProvider::MaybeNotify", [self, this]() {
+        DebugOnly<nsresult> rv =
+          mListener->OnTransportAvailable(mTransport, mInput, mOutput);
+        MOZ_ASSERT(NS_SUCCEEDED(rv));
+      });
     NS_DispatchToCurrentThread(event);
   }
 }
@@ -324,7 +326,7 @@ HttpServer::Connection::Connection(nsISocketTransport* aTransport,
   if (mServer->mHttps) {
     SetSecurityObserver(true);
   } else {
-    mInput->AsyncWait(this, 0, 0, NS_GetCurrentThread());
+    mInput->AsyncWait(this, 0, 0, GetCurrentThreadEventTarget());
   }
 }
 
@@ -337,7 +339,7 @@ HttpServer::Connection::OnHandshakeDone(nsITLSServerSocket* aServer,
   // XXX Verify connection security
 
   SetSecurityObserver(false);
-  mInput->AsyncWait(this, 0, 0, NS_GetCurrentThread());
+  mInput->AsyncWait(this, 0, 0, GetCurrentThreadEventTarget());
 
   return NS_OK;
 }
@@ -388,7 +390,7 @@ HttpServer::Connection::OnInputStreamReady(nsIAsyncInputStream* aStream)
                             &numRead);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = mInput->AsyncWait(this, 0, 0, NS_GetCurrentThread());
+  rv = mInput->AsyncWait(this, 0, 0, GetCurrentThreadEventTarget());
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -630,11 +632,9 @@ HttpServer::Connection::ConsumeLine(const char* aBuffer,
 
       RefPtr<HttpServerListener> listener = mServer->mListener;
       RefPtr<InternalRequest> request = mPendingWebSocketRequest;
-      nsCOMPtr<nsIRunnable> event =
-        NS_NewRunnableFunction([listener, request] ()
-      {
-        listener->OnWebSocket(request);
-      });
+      nsCOMPtr<nsIRunnable> event = NS_NewRunnableFunction(
+        "dom::HttpServer::Connection::ConsumeLine",
+        [listener, request]() { listener->OnWebSocket(request); });
       NS_DispatchToCurrentThread(event);
 
       return NS_OK;
@@ -687,7 +687,7 @@ HttpServer::Connection::ConsumeLine(const char* aBuffer,
       NS_ENSURE_SUCCESS(rv, rv);
 
       mCurrentRequestBody = do_QueryInterface(output);
-      mPendingReq->SetBody(input);
+      mPendingReq->SetBody(input, -1);
     } else {
       LOG_V("HttpServer::Connection::ConsumeLine(%p) - No body", this);
       mState = eRequestLine;
@@ -699,11 +699,9 @@ HttpServer::Connection::ConsumeLine(const char* aBuffer,
 
     RefPtr<HttpServerListener> listener = mServer->mListener;
     RefPtr<InternalRequest> request = mPendingReq.forget();
-    nsCOMPtr<nsIRunnable> event =
-      NS_NewRunnableFunction([listener, request] ()
-    {
-      listener->OnRequest(request);
-    });
+    nsCOMPtr<nsIRunnable> event = NS_NewRunnableFunction(
+      "dom::HttpServer::Connection::ConsumeLine",
+      [listener, request]() { listener->OnRequest(request); });
     NS_DispatchToCurrentThread(event);
 
     mPendingReqVersion = 0;
@@ -859,7 +857,7 @@ HttpServer::Connection::HandleWebSocketResponse(InternalResponse* aResponse)
 
   mState = eRequestLine;
   mPendingWebSocketRequest = nullptr;
-  mInput->AsyncWait(this, 0, 0, NS_GetCurrentThread());
+  mInput->AsyncWait(this, 0, 0, GetCurrentThreadEventTarget());
 
   QueueResponse(aResponse);
 }
@@ -926,7 +924,7 @@ HttpServer::Connection::QueueResponse(InternalResponse* aResponse)
                 NS_LITERAL_CSTRING("\r\n"));
   }
 
-  head.Append(NS_LITERAL_CSTRING("\r\n"));
+  head.AppendLiteral("\r\n");
 
   mOutputBuffers.AppendElement()->mString = head;
   if (body) {
@@ -1230,7 +1228,7 @@ HttpServer::Connection::OnOutputStreamReady(nsIAsyncOutputStream* aStream)
         buffer.Cut(0, written);
 
         if (rv == NS_BASE_STREAM_WOULD_BLOCK) {
-          return mOutput->AsyncWait(this, 0, 0, NS_GetCurrentThread());
+          return mOutput->AsyncWait(this, 0, 0, GetCurrentThreadEventTarget());
         }
 
         if (NS_FAILED(rv)) {
@@ -1253,13 +1251,13 @@ HttpServer::Connection::OnOutputStreamReady(nsIAsyncOutputStream* aStream)
       RefPtr<Connection> self = this;
 
       mOutputCopy->
-        Then(AbstractThread::MainThread(),
+        Then(mServer->mEventTarget,
              __func__,
              [self, this] (nsresult aStatus) {
                MOZ_ASSERT(mOutputBuffers[0].mStream);
                LOG_V("HttpServer::Connection::OnOutputStreamReady(%p) - "
-                     "Sent body. Status 0x%lx",
-                     this, aStatus);
+                     "Sent body. Status 0x%" PRIx32,
+                     this, static_cast<uint32_t>(aStatus));
 
                mOutputBuffers.RemoveElementAt(0);
                mOutputCopy = nullptr;

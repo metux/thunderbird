@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -24,6 +25,7 @@ namespace mozilla {
 namespace gfx {
 
 class SourceSurfaceSkia;
+class BorrowedCGContext;
 
 class DrawTargetSkia : public DrawTarget
 {
@@ -79,21 +81,16 @@ public:
   virtual void Fill(const Path *aPath,
                     const Pattern &aPattern,
                     const DrawOptions &aOptions = DrawOptions()) override;
-#ifdef MOZ_WIDGET_COCOA
-  CGContextRef BorrowCGContext(const DrawOptions &aOptions);
-  void ReturnCGContext(CGContextRef);
-  bool FillGlyphsWithCG(ScaledFont *aFont,
-                        const GlyphBuffer &aBuffer,
-                        const Pattern &aPattern,
-                        const DrawOptions &aOptions = DrawOptions(),
-                        const GlyphRenderingOptions *aRenderingOptions = nullptr);
-#endif
 
   virtual void FillGlyphs(ScaledFont *aFont,
                           const GlyphBuffer &aBuffer,
                           const Pattern &aPattern,
-                          const DrawOptions &aOptions = DrawOptions(),
-                          const GlyphRenderingOptions *aRenderingOptions = nullptr) override;
+                          const DrawOptions &aOptions = DrawOptions()) override;
+  virtual void StrokeGlyphs(ScaledFont* aFont,
+                            const GlyphBuffer& aBuffer,
+                            const Pattern& aPattern,
+                            const StrokeOptions& aStrokeOptions = StrokeOptions(),
+                            const DrawOptions& aOptions = DrawOptions()) override;
   virtual void Mask(const Pattern &aSource,
                     const Pattern &aMask,
                     const DrawOptions &aOptions = DrawOptions()) override;
@@ -113,6 +110,7 @@ public:
                          const IntRect& aBounds = IntRect(),
                          bool aCopyBackground = false) override;
   virtual void PopLayer() override;
+  virtual void Blur(const AlphaBoxBlur& aBlur) override;
   virtual already_AddRefed<SourceSurface> CreateSourceSurfaceFromData(unsigned char *aData,
                                                             const IntSize &aSize,
                                                             int32_t aStride,
@@ -162,11 +160,16 @@ public:
 
 private:
   friend class SourceSurfaceSkia;
-  void SnapshotDestroyed();
 
   void MarkChanged();
 
   bool ShouldLCDRenderText(FontType aFontType, AntialiasMode aAntialiasMode);
+
+  void DrawGlyphs(ScaledFont* aFont,
+                  const GlyphBuffer& aBuffer,
+                  const Pattern& aPattern,
+                  const StrokeOptions* aStrokeOptions = nullptr,
+                  const DrawOptions& aOptions = DrawOptions());
 
   bool UsingSkiaGPU() const;
 
@@ -176,18 +179,21 @@ private:
                 bool aOpaque,
                 Float aOpacity,
                 SourceSurface* aMask,
-                const Matrix& aMaskTransform)
+                const Matrix& aMaskTransform,
+                SkBaseDevice* aPreviousDevice)
       : mOldPermitSubpixelAA(aOldPermitSubpixelAA),
         mOpaque(aOpaque),
         mOpacity(aOpacity),
         mMask(aMask),
-        mMaskTransform(aMaskTransform)
+        mMaskTransform(aMaskTransform),
+        mPreviousDevice(aPreviousDevice)
     {}
     bool mOldPermitSubpixelAA;
     bool mOpaque;
     Float mOpacity;
     RefPtr<SourceSurface> mMask;
     Matrix mMaskTransform;
+    SkBaseDevice* mPreviousDevice;
   };
   std::vector<PushedLayer> mPushedLayers;
 
@@ -197,14 +203,25 @@ private:
 
   IntSize mSize;
   sk_sp<SkSurface> mSurface;
-  sk_sp<SkCanvas> mCanvas;
-  SourceSurfaceSkia* mSnapshot;
+  SkCanvas* mCanvas;
+  RefPtr<SourceSurfaceSkia> mSnapshot;
+  Mutex mSnapshotLock;
 
 #ifdef MOZ_WIDGET_COCOA
+  friend class BorrowedCGContext;
+
+  CGContextRef BorrowCGContext(const DrawOptions &aOptions);
+  void ReturnCGContext(CGContextRef);
+  bool FillGlyphsWithCG(ScaledFont* aFont,
+                        const GlyphBuffer& aBuffer,
+                        const Pattern& aPattern,
+                        const DrawOptions& aOptions = DrawOptions());
+
   CGContextRef mCG;
   CGColorSpaceRef mColorSpace;
   uint8_t* mCanvasData;
   IntSize mCGSize;
+  bool mNeedLayer;
 #endif
 };
 

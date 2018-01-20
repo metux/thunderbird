@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 import sys
 from setuptools import setup, find_packages
 
@@ -41,9 +43,6 @@ setup(name=PACKAGE_NAME,
       url='https://wiki.mozilla.org/Auto-tools/Projects/Mozbase',
       license='MPL 2.0',
       packages=find_packages(),
-      package_data={'mozrunner': [
-          'resources/metrotestharness.exe'
-      ]},
       zip_safe=False,
       install_requires=deps,
       extras_require=EXTRAS_REQUIRE,

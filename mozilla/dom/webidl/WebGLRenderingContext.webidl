@@ -217,6 +217,7 @@ interface WebGLRenderingContextBase {
     const GLenum SAMPLE_COVERAGE                = 0x80A0;
 
     /* ErrorCode */
+    [NeedsWindowsUndef]
     const GLenum NO_ERROR                       = 0;
     const GLenum INVALID_ENUM                   = 0x0500;
     const GLenum INVALID_VALUE                  = 0x0501;
@@ -482,7 +483,6 @@ interface WebGLRenderingContextBase {
     const GLenum RGB5_A1                        = 0x8057;
     const GLenum RGB565                         = 0x8D62;
     const GLenum DEPTH_COMPONENT16              = 0x81A5;
-    const GLenum STENCIL_INDEX                  = 0x1901;
     const GLenum STENCIL_INDEX8                 = 0x8D48;
     const GLenum DEPTH_STENCIL                  = 0x84F9;
 
@@ -728,7 +728,7 @@ interface WebGLRenderingContext {
                                  ArrayBufferView data);
 
     // readPixels has WebGL2 overloads.
-    [Throws]
+    [Throws, NeedsCallerType]
     void readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
                     GLenum format, GLenum type, ArrayBufferView? pixels);
 
@@ -817,6 +817,52 @@ interface WEBGL_compressed_texture_s3tc
     const GLenum COMPRESSED_RGBA_S3TC_DXT1_EXT = 0x83F1;
     const GLenum COMPRESSED_RGBA_S3TC_DXT3_EXT = 0x83F2;
     const GLenum COMPRESSED_RGBA_S3TC_DXT5_EXT = 0x83F3;
+};
+
+[NoInterfaceObject]
+interface WEBGL_compressed_texture_s3tc_srgb {
+    /* Compressed Texture Formats */
+    const GLenum COMPRESSED_SRGB_S3TC_DXT1_EXT        = 0x8C4C;
+    const GLenum COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT  = 0x8C4D;
+    const GLenum COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT  = 0x8C4E;
+    const GLenum COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT  = 0x8C4F;
+};
+
+[NoInterfaceObject]
+interface WEBGL_compressed_texture_astc {
+    /* Compressed Texture Format */
+    const GLenum COMPRESSED_RGBA_ASTC_4x4_KHR = 0x93B0;
+    const GLenum COMPRESSED_RGBA_ASTC_5x4_KHR = 0x93B1;
+    const GLenum COMPRESSED_RGBA_ASTC_5x5_KHR = 0x93B2;
+    const GLenum COMPRESSED_RGBA_ASTC_6x5_KHR = 0x93B3;
+    const GLenum COMPRESSED_RGBA_ASTC_6x6_KHR = 0x93B4;
+    const GLenum COMPRESSED_RGBA_ASTC_8x5_KHR = 0x93B5;
+    const GLenum COMPRESSED_RGBA_ASTC_8x6_KHR = 0x93B6;
+    const GLenum COMPRESSED_RGBA_ASTC_8x8_KHR = 0x93B7;
+    const GLenum COMPRESSED_RGBA_ASTC_10x5_KHR = 0x93B8;
+    const GLenum COMPRESSED_RGBA_ASTC_10x6_KHR = 0x93B9;
+    const GLenum COMPRESSED_RGBA_ASTC_10x8_KHR = 0x93BA;
+    const GLenum COMPRESSED_RGBA_ASTC_10x10_KHR = 0x93BB;
+    const GLenum COMPRESSED_RGBA_ASTC_12x10_KHR = 0x93BC;
+    const GLenum COMPRESSED_RGBA_ASTC_12x12_KHR = 0x93BD;
+
+    const GLenum COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR = 0x93D0;
+    const GLenum COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR = 0x93D1;
+    const GLenum COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR = 0x93D2;
+    const GLenum COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR = 0x93D3;
+    const GLenum COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR = 0x93D4;
+    const GLenum COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR = 0x93D5;
+    const GLenum COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR = 0x93D6;
+    const GLenum COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR = 0x93D7;
+    const GLenum COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR = 0x93D8;
+    const GLenum COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR = 0x93D9;
+    const GLenum COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR = 0x93DA;
+    const GLenum COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR = 0x93DB;
+    const GLenum COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR = 0x93DC;
+    const GLenum COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR = 0x93DD;
+
+    // Profile query support.
+    sequence<DOMString>? getSupportedProfiles();
 };
 
 [NoInterfaceObject]
@@ -1045,4 +1091,14 @@ interface EXT_disjoint_timer_query {
     void queryCounterEXT(WebGLQuery query, GLenum target);
     any getQueryEXT(GLenum target, GLenum pname);
     any getQueryObjectEXT(WebGLQuery query, GLenum pname);
+};
+
+[NoInterfaceObject]
+interface MOZ_debug {
+    const GLenum EXTENSIONS = 0x1F03;
+    const GLenum WSI_INFO   = 0x10000;
+    const GLenum UNPACK_REQUIRE_FASTPATH = 0x10001;
+
+    [Throws]
+    any getParameter(GLenum pname);
 };

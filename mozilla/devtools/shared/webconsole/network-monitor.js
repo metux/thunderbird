@@ -86,9 +86,16 @@ function matchRequest(channel, filters) {
 
   if (filters.outerWindowID) {
     let topFrame = NetworkHelper.getTopFrameForRequest(channel);
-    if (topFrame && topFrame.outerWindowID &&
-        topFrame.outerWindowID == filters.outerWindowID) {
-      return true;
+    // topFrame is typically null for some chrome requests like favicons
+    if (topFrame) {
+      try {
+        if (topFrame.outerWindowID == filters.outerWindowID) {
+          return true;
+        }
+      } catch (e) {
+        // outerWindowID getter from browser.xml (non-remote <xul:browser>) may
+        // throw when closing a tab while resources are still loading.
+      }
     }
   }
 
@@ -182,7 +189,7 @@ function StackTraceCollector(filters) {
 
 StackTraceCollector.prototype = {
   init() {
-    Services.obs.addObserver(this, "http-on-opening-request", false);
+    Services.obs.addObserver(this, "http-on-opening-request");
     ChannelEventSinkFactory.getService().registerCollector(this);
   },
 
@@ -359,7 +366,7 @@ NetworkResponseListener.prototype = {
   bodySize: null,
 
   /**
-   * Response body size on the wire, potentially compressed / encoded.
+   * Response size on the wire, potentially compressed / encoded.
    */
   transferredSize: null,
 
@@ -432,13 +439,34 @@ NetworkResponseListener.prototype = {
     // we pass the data from our pipe to the converter.
     this.offset = 0;
 
+    let channel = this.request;
+
+    // Bug 1372115 - We should load bytecode cached requests from cache as the actual
+    // channel content is going to be optimized data that reflects platform internals
+    // instead of the content user expects (i.e. content served by HTTP server)
+    // Note that bytecode cached is one example, there may be wasm or other usecase in
+    // future.
+    let isOptimizedContent = false;
+    try {
+      if (channel instanceof Ci.nsICacheInfoChannel) {
+        isOptimizedContent = channel.alternativeDataType;
+      }
+    } catch (e) {
+      // Accessing `alternativeDataType` for some SW requests throws.
+    }
+    if (isOptimizedContent) {
+      let charset = this.request.contentCharset || this.httpActivity.charset;
+      NetworkHelper.loadFromCache(this.httpActivity.url, charset,
+                                  this._onComplete.bind(this));
+      return;
+    }
+
     // In the multi-process mode, the conversion happens on the child
     // side while we can only monitor the channel on the parent
     // side. If the content is gzipped, we have to unzip it
     // ourself. For that we use the stream converter services.  Do not
     // do that for Service workers as they are run in the child
     // process.
-    let channel = this.request;
     if (!this.httpActivity.fromServiceWorker &&
         channel instanceof Ci.nsIEncodedChannel &&
         channel.contentEncodings &&
@@ -530,22 +558,14 @@ NetworkResponseListener.prototype = {
       return;
     }
 
-    let openResponse = null;
-
-    for (let id in this.owner.openResponses) {
-      let item = this.owner.openResponses[id];
-      if (item.channel === this.httpActivity.channel) {
-        openResponse = item;
-        break;
-      }
-    }
-
+    let channel = this.httpActivity.channel;
+    let openResponse = this.owner.openResponses.get(channel);
     if (!openResponse) {
       return;
     }
     this._foundOpenResponse = true;
 
-    delete this.owner.openResponses[openResponse.id];
+    this.owner.openResponses.delete(channel);
 
     this.httpActivity.owner.addResponseHeaders(openResponse.headers);
     this.httpActivity.owner.addResponseCookies(openResponse.cookies);
@@ -594,7 +614,7 @@ NetworkResponseListener.prototype = {
     };
 
     response.size = this.bodySize;
-    response.transferredSize = this.transferredSize;
+    response.transferredSize = this.transferredSize + this.httpActivity.headersSize;
 
     try {
       response.mimeType = this.request.contentType;
@@ -702,8 +722,8 @@ NetworkResponseListener.prototype = {
 function NetworkMonitor(filters, owner) {
   this.filters = filters;
   this.owner = owner;
-  this.openRequests = {};
-  this.openResponses = {};
+  this.openRequests = new Map();
+  this.openResponses = new Map();
   this._httpResponseExaminer =
     DevToolsUtils.makeInfallible(this._httpResponseExaminer).bind(this);
   this._httpModifyExaminer =
@@ -732,7 +752,9 @@ NetworkMonitor.prototype = {
     0x804b0004: "STATUS_CONNECTED_TO",
     0x804b0005: "STATUS_SENDING_TO",
     0x804b000a: "STATUS_WAITING_FOR",
-    0x804b0006: "STATUS_RECEIVING_FROM"
+    0x804b0006: "STATUS_RECEIVING_FROM",
+    0x804b000c: "STATUS_TLS_STARTING",
+    0x804b000d: "STATUS_TLS_ENDING"
   },
 
   httpDownloadActivities: [
@@ -775,16 +797,16 @@ NetworkMonitor.prototype = {
     if (Services.appinfo.processType != Ci.nsIXULRuntime.PROCESS_TYPE_CONTENT) {
       gActivityDistributor.addObserver(this);
       Services.obs.addObserver(this._httpResponseExaminer,
-                               "http-on-examine-response", false);
+                               "http-on-examine-response");
       Services.obs.addObserver(this._httpResponseExaminer,
-                               "http-on-examine-cached-response", false);
+                               "http-on-examine-cached-response");
       Services.obs.addObserver(this._httpModifyExaminer,
-                               "http-on-modify-request", false);
+                               "http-on-modify-request");
     }
     // In child processes, only watch for service worker requests
     // everything else only happens in the parent process
     Services.obs.addObserver(this._serviceWorkerRequest,
-                             "service-worker-synthesized-response", false);
+                             "service-worker-synthesized-response");
   },
 
   get throttleData() {
@@ -813,10 +835,8 @@ NetworkMonitor.prototype = {
 
     this.interceptedChannels.add(subject);
 
-    // On e10s, we never receive http-on-examine-cached-response, so fake one.
-    if (Services.appinfo.processType == Ci.nsIXULRuntime.PROCESS_TYPE_CONTENT) {
-      this._httpResponseExaminer(channel, "http-on-examine-cached-response");
-    }
+    // Service workers never fire http-on-examine-cached-response, so fake one.
+    this._httpResponseExaminer(channel, "http-on-examine-cached-response");
   },
 
   /**
@@ -887,7 +907,7 @@ NetworkMonitor.prototype = {
     response.httpVersion = "HTTP/" + httpVersionMaj.value + "." +
                                      httpVersionMin.value;
 
-    this.openResponses[response.id] = response;
+    this.openResponses.set(channel, response);
 
     if (topic === "http-on-examine-cached-response") {
       // Service worker requests emits cached-reponse notification on non-e10s,
@@ -914,7 +934,8 @@ NetworkMonitor.prototype = {
       // There also is never any timing events, so we can fire this
       // event with zeroed out values.
       let timings = this._setupHarTimings(httpActivity, true);
-      httpActivity.owner.addEventTimings(timings.total, timings.timings);
+      httpActivity.owner.addEventTimings(timings.total, timings.timings,
+                                         timings.offsets);
     }
   },
 
@@ -1074,10 +1095,18 @@ NetworkMonitor.prototype = {
     }
 
     // Determine the cause and if this is an XHR request.
-    let causeType = channel.loadInfo.externalContentPolicyType;
-    let loadingPrincipal = channel.loadInfo.loadingPrincipal;
-    let causeUri = loadingPrincipal ? loadingPrincipal.URI : null;
+    let causeType = Ci.nsIContentPolicy.TYPE_OTHER;
+    let causeUri = null;
     let stacktrace;
+
+    if (channel.loadInfo) {
+      causeType = channel.loadInfo.externalContentPolicyType;
+      const { loadingPrincipal } = channel.loadInfo;
+      if (loadingPrincipal && loadingPrincipal.URI) {
+        causeUri = loadingPrincipal.URI.spec;
+      }
+    }
+
     // If this is the parent process, there is no stackTraceCollector - the stack
     // trace will be added in NetworkMonitorChild._onNewEvent.
     if (this.owner.stackTraceCollector) {
@@ -1085,8 +1114,8 @@ NetworkMonitor.prototype = {
     }
 
     event.cause = {
-      type: causeType,
-      loadingDocumentUri: causeUri ? causeUri.spec : null,
+      type: causeTypeToString(causeType),
+      loadingDocumentUri: causeUri,
       stacktrace
     };
 
@@ -1163,13 +1192,7 @@ NetworkMonitor.prototype = {
    *        The HTTP activity object, or null if it is not found.
    */
   _findActivityObject: function (channel) {
-    for (let id in this.openRequests) {
-      let item = this.openRequests[id];
-      if (item.channel === channel) {
-        return item;
-      }
-    }
-    return null;
+    return this.openRequests.get(channel) || null;
   },
 
   /**
@@ -1211,7 +1234,7 @@ NetworkMonitor.prototype = {
         owner: null,
       };
 
-      this.openRequests[httpActivity.id] = httpActivity;
+      this.openRequests.set(channel, httpActivity);
     }
 
     return httpActivity;
@@ -1334,6 +1357,7 @@ NetworkMonitor.prototype = {
     response.headersSize = extraStringData.length;
 
     httpActivity.responseStatus = response.status;
+    httpActivity.headersSize = response.headersSize;
 
     // Discard the response body for known response statuses.
     switch (parseInt(response.status, 10)) {
@@ -1361,8 +1385,9 @@ NetworkMonitor.prototype = {
    */
   _onTransactionClose: function (httpActivity) {
     let result = this._setupHarTimings(httpActivity);
-    httpActivity.owner.addEventTimings(result.total, result.timings);
-    delete this.openRequests[httpActivity.id];
+    httpActivity.owner.addEventTimings(result.total, result.timings,
+                                       result.offsets);
+    this.openRequests.delete(httpActivity.channel);
   },
 
   /**
@@ -1390,6 +1415,16 @@ NetworkMonitor.prototype = {
         timings: {
           blocked: 0,
           dns: 0,
+          ssl: 0,
+          connect: 0,
+          send: 0,
+          wait: 0,
+          receive: 0
+        },
+        offsets: {
+          blocked: 0,
+          dns: 0,
+          ssl: 0,
           connect: 0,
           send: 0,
           wait: 0,
@@ -1400,6 +1435,16 @@ NetworkMonitor.prototype = {
 
     let timings = httpActivity.timings;
     let harTimings = {};
+    // If the TCP Fast Open option or tls1.3 0RTT is used tls and data can
+    // be dispatched in SYN packet and not after tcp socket is connected.
+    // To demostrate this properly we will calculated TLS and send start time
+    // relative to CONNECTING_TO.
+    // Similary if 0RTT is used, data can be sent as soon as a TLS handshake
+    // starts.
+    let secureConnectionStartTime = 0;
+    let secureConnectionStartTimeRelative = false;
+    let startSendingTime = 0;
+    let startSendingTimeRelative = false;
 
     if (timings.STATUS_RESOLVING && timings.STATUS_CONNECTING_TO) {
       harTimings.blocked = timings.STATUS_RESOLVING.first -
@@ -1424,8 +1469,113 @@ NetworkMonitor.prototype = {
       harTimings.connect = -1;
     }
 
+    if (timings.STATUS_TLS_STARTING && timings.STATUS_TLS_ENDING) {
+      harTimings.ssl = timings.STATUS_TLS_ENDING.last -
+                           timings.STATUS_TLS_STARTING.first;
+      if (timings.STATUS_CONNECTING_TO) {
+        secureConnectionStartTime =
+          timings.STATUS_TLS_STARTING.first - timings.STATUS_CONNECTING_TO.first;
+      }
+      if (secureConnectionStartTime < 0) {
+        secureConnectionStartTime = 0;
+      }
+      secureConnectionStartTimeRelative = true;
+    } else {
+      harTimings.ssl = -1;
+    }
+
+    // sometimes the connection information events are attached to a speculative
+    // channel instead of this one, but necko might glue them back together in the
+    // nsITimedChannel interface used by Resource and Navigation Timing
+    let timedChannel = httpActivity.channel.QueryInterface(Ci.nsITimedChannel);
+
+    let tcTcpConnectEndTime = 0;
+    let tcConnectStartTime = 0;
+    let tcConnectEndTime = 0;
+    let tcSecureConnectionStartTime = 0;
+    let tcDomainLookupEndTime = 0;
+    let tcDomainLookupStartTime = 0;
+
+    if (timedChannel) {
+      tcTcpConnectEndTime = timedChannel.tcpConnectEndTime;
+      tcConnectStartTime = timedChannel.connectStartTime;
+      tcConnectEndTime = timedChannel.connectEndTime;
+      tcSecureConnectionStartTime = timedChannel.secureConnectionStartTime;
+      tcDomainLookupEndTime = timedChannel.domainLookupEndTime;
+      tcDomainLookupStartTime = timedChannel.domainLookupStartTime;
+    }
+
+    // Make sure the above values are at least timedChannel.asyncOpenTime.
+    if (timedChannel && timedChannel.asyncOpenTime) {
+      if ((tcTcpConnectEndTime != 0) &&
+          (tcTcpConnectEndTime < timedChannel.asyncOpenTime)) {
+        tcTcpConnectEndTime = 0;
+      }
+      if ((tcConnectStartTime != 0) &&
+          (tcConnectStartTime < timedChannel.asyncOpenTime)) {
+        tcConnectStartTime = 0;
+      }
+      if ((tcConnectEndTime != 0) &&
+          (tcConnectEndTime < timedChannel.asyncOpenTime)) {
+        tcConnectEndTime = 0;
+      }
+      if ((tcSecureConnectionStartTime != 0) &&
+          (tcSecureConnectionStartTime < timedChannel.asyncOpenTime)) {
+        tcSecureConnectionStartTime = 0;
+      }
+      if ((tcDomainLookupEndTime != 0) &&
+          (tcDomainLookupEndTime < timedChannel.asyncOpenTime)) {
+        tcDomainLookupEndTime = 0;
+      }
+      if ((tcDomainLookupStartTime != 0) &&
+          (tcDomainLookupStartTime < timedChannel.asyncOpenTime)) {
+        tcDomainLookupStartTime = 0;
+      }
+    }
+
+    if ((harTimings.connect <= 0) && timedChannel &&
+        (tcTcpConnectEndTime != 0) && (tcConnectStartTime != 0)) {
+      harTimings.connect = tcTcpConnectEndTime - tcConnectStartTime;
+      if (tcSecureConnectionStartTime != 0) {
+        harTimings.ssl = tcConnectEndTime - tcSecureConnectionStartTime;
+        secureConnectionStartTime =
+          tcSecureConnectionStartTime - tcConnectStartTime;
+        secureConnectionStartTimeRelative = true;
+      } else {
+        harTimings.ssl = -1;
+      }
+    } else if (timedChannel && timings.STATUS_TLS_STARTING &&
+               (tcSecureConnectionStartTime != 0)) {
+      // It can happen that TCP Fast Open actually have not sent any data and
+      // timings.STATUS_TLS_STARTING.first value will be corrected in
+      // timedChannel.secureConnectionStartTime
+      if (tcSecureConnectionStartTime > timings.STATUS_TLS_STARTING.first) {
+        // TCP Fast Open actually did not sent any data.
+        harTimings.ssl =
+          tcConnectEndTime - tcSecureConnectionStartTime;
+        secureConnectionStartTimeRelative = false;
+      }
+    }
+
+    if ((harTimings.dns <= 0) && timedChannel &&
+        (tcDomainLookupEndTime != 0) && (tcDomainLookupStartTime != 0)) {
+      harTimings.dns = tcDomainLookupEndTime - tcDomainLookupStartTime;
+    }
+
     if (timings.STATUS_SENDING_TO) {
-      harTimings.send = timings.STATUS_SENDING_TO.last - timings.STATUS_SENDING_TO.first;
+      harTimings.send =
+        timings.STATUS_SENDING_TO.last - timings.STATUS_SENDING_TO.first;
+      if (timings.STATUS_CONNECTING_TO) {
+        startSendingTime =
+          timings.STATUS_SENDING_TO.first - timings.STATUS_CONNECTING_TO.first;
+        startSendingTimeRelative = true;
+      } else if (tcConnectStartTime != 0) {
+        startSendingTime = timings.STATUS_SENDING_TO.first - tcConnectStartTime;
+        startSendingTimeRelative = true;
+      }
+      if (startSendingTime < 0) {
+        startSendingTime = 0;
+      }
     } else if (timings.REQUEST_HEADER && timings.REQUEST_BODY_SENT) {
       harTimings.send = timings.REQUEST_BODY_SENT.last - timings.REQUEST_HEADER.first;
     } else {
@@ -1447,18 +1597,72 @@ NetworkMonitor.prototype = {
       harTimings.receive = -1;
     }
 
+    if (secureConnectionStartTimeRelative) {
+      let time = Math.max(Math.round(secureConnectionStartTime / 1000), -1);
+      secureConnectionStartTime = time;
+    }
+    if (startSendingTimeRelative) {
+      let time = Math.max(Math.round(startSendingTime / 1000), -1);
+      startSendingTime = time;
+    }
+
+    let ot = this._calculateOffsetAndTotalTime(harTimings,
+                                               secureConnectionStartTime,
+                                               startSendingTimeRelative,
+                                               secureConnectionStartTimeRelative,
+                                               startSendingTime);
+    return {
+      total: ot.total,
+      timings: harTimings,
+      offsets: ot.offsets
+    };
+  },
+
+  _calculateOffsetAndTotalTime: function (harTimings,
+                                          secureConnectionStartTime,
+                                          startSendingTimeRelative,
+                                          secureConnectionStartTimeRelative,
+                                          startSendingTime) {
     let totalTime = 0;
     for (let timing in harTimings) {
       let time = Math.max(Math.round(harTimings[timing] / 1000), -1);
       harTimings[timing] = time;
-      if (time > -1) {
+      if ((time > -1) && (timing != "connect") && (timing != "ssl")) {
         totalTime += time;
       }
     }
 
+    // connect, ssl and send times can be overlapped.
+    if (startSendingTimeRelative) {
+      totalTime += startSendingTime;
+    } else if (secureConnectionStartTimeRelative) {
+      totalTime += secureConnectionStartTime;
+      totalTime += harTimings.ssl;
+    }
+
+    let offsets = {};
+    offsets.blocked = 0;
+    offsets.dns = harTimings.blocked;
+    offsets.connect = offsets.dns + harTimings.dns;
+    if (secureConnectionStartTimeRelative) {
+      offsets.ssl = offsets.connect + secureConnectionStartTime;
+    } else {
+      offsets.ssl = offsets.connect + harTimings.connect;
+    }
+    if (startSendingTimeRelative) {
+      offsets.send = offsets.connect + startSendingTime;
+      if (!secureConnectionStartTimeRelative) {
+        offsets.ssl = offsets.send - harTimings.ssl;
+      }
+    } else {
+      offsets.send = offsets.ssl + harTimings.ssl;
+    }
+    offsets.wait = offsets.send + harTimings.send;
+    offsets.receive = offsets.wait + harTimings.wait;
+
     return {
       total: totalTime,
-      timings: harTimings,
+      offsets: offsets
     };
   },
 
@@ -1474,15 +1678,15 @@ NetworkMonitor.prototype = {
       Services.obs.removeObserver(this._httpResponseExaminer,
                                   "http-on-examine-cached-response");
       Services.obs.removeObserver(this._httpModifyExaminer,
-                                  "http-on-modify-request", false);
+                                  "http-on-modify-request");
     }
 
     Services.obs.removeObserver(this._serviceWorkerRequest,
                                 "service-worker-synthesized-response");
 
     this.interceptedChannels.clear();
-    this.openRequests = {};
-    this.openResponses = {};
+    this.openRequests.clear();
+    this.openResponses.clear();
     this.owner = null;
     this.filters = null;
     this._throttler = null;
@@ -1503,8 +1707,6 @@ NetworkMonitor.prototype = {
  * data to the WebConsoleActor or to a NetworkEventActor.
  *
  * @constructor
- * @param number appId
- *        The web appId of the child process.
  * @param number outerWindowID
  *        The outerWindowID of the TabActor's main window.
  * @param nsIMessageManager messageManager
@@ -1514,8 +1716,7 @@ NetworkMonitor.prototype = {
  * @param object owner
  *        The WebConsoleActor that is listening for the network requests.
  */
-function NetworkMonitorChild(appId, outerWindowID, messageManager, conn, owner) {
-  this.appId = appId;
+function NetworkMonitorChild(outerWindowID, messageManager, conn, owner) {
   this.outerWindowID = outerWindowID;
   this.conn = conn;
   this.owner = owner;
@@ -1529,7 +1730,6 @@ function NetworkMonitorChild(appId, outerWindowID, messageManager, conn, owner) 
 exports.NetworkMonitorChild = NetworkMonitorChild;
 
 NetworkMonitorChild.prototype = {
-  appId: null,
   owner: null,
   _netEvents: null,
   _saveRequestAndResponseBodies: true,
@@ -1575,7 +1775,6 @@ NetworkMonitorChild.prototype = {
     mm.addMessageListener(`${this._msgName}:newEvent`, this._onNewEvent);
     mm.addMessageListener(`${this._msgName}:updateEvent`, this._onUpdateEvent);
     mm.sendAsyncMessage(this._msgName, {
-      appId: this.appId,
       outerWindowID: this.outerWindowID,
       action: "start",
     });
@@ -2009,11 +2208,6 @@ ConsoleProgressListener.prototype = {
     }
   },
 
-  onLocationChange: function () {},
-  onStatusChange: function () {},
-  onProgressChange: function () {},
-  onSecurityChange: function () {},
-
   /**
    * Destroy the ConsoleProgressListener.
    */
@@ -2042,3 +2236,36 @@ function gSequenceId() {
   return gSequenceId.n++;
 }
 gSequenceId.n = 1;
+
+/**
+ * Convert a nsIContentPolicy constant to a display string
+ */
+const LOAD_CAUSE_STRINGS = {
+  [Ci.nsIContentPolicy.TYPE_INVALID]: "invalid",
+  [Ci.nsIContentPolicy.TYPE_OTHER]: "other",
+  [Ci.nsIContentPolicy.TYPE_SCRIPT]: "script",
+  [Ci.nsIContentPolicy.TYPE_IMAGE]: "img",
+  [Ci.nsIContentPolicy.TYPE_STYLESHEET]: "stylesheet",
+  [Ci.nsIContentPolicy.TYPE_OBJECT]: "object",
+  [Ci.nsIContentPolicy.TYPE_DOCUMENT]: "document",
+  [Ci.nsIContentPolicy.TYPE_SUBDOCUMENT]: "subdocument",
+  [Ci.nsIContentPolicy.TYPE_REFRESH]: "refresh",
+  [Ci.nsIContentPolicy.TYPE_XBL]: "xbl",
+  [Ci.nsIContentPolicy.TYPE_PING]: "ping",
+  [Ci.nsIContentPolicy.TYPE_XMLHTTPREQUEST]: "xhr",
+  [Ci.nsIContentPolicy.TYPE_OBJECT_SUBREQUEST]: "objectSubdoc",
+  [Ci.nsIContentPolicy.TYPE_DTD]: "dtd",
+  [Ci.nsIContentPolicy.TYPE_FONT]: "font",
+  [Ci.nsIContentPolicy.TYPE_MEDIA]: "media",
+  [Ci.nsIContentPolicy.TYPE_WEBSOCKET]: "websocket",
+  [Ci.nsIContentPolicy.TYPE_CSP_REPORT]: "csp",
+  [Ci.nsIContentPolicy.TYPE_XSLT]: "xslt",
+  [Ci.nsIContentPolicy.TYPE_BEACON]: "beacon",
+  [Ci.nsIContentPolicy.TYPE_FETCH]: "fetch",
+  [Ci.nsIContentPolicy.TYPE_IMAGESET]: "imageset",
+  [Ci.nsIContentPolicy.TYPE_WEB_MANIFEST]: "webManifest"
+};
+
+function causeTypeToString(causeType) {
+  return LOAD_CAUSE_STRINGS[causeType] || "unknown";
+}

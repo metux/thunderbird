@@ -52,14 +52,12 @@ public:
     kIceUfragAttribute,
     kIdentityAttribute,
     kImageattrAttribute,
-    kInactiveAttribute,
     kLabelAttribute,
     kMaxptimeAttribute,
     kMidAttribute,
     kMsidAttribute,
     kMsidSemanticAttribute,
     kPtimeAttribute,
-    kRecvonlyAttribute,
     kRemoteCandidatesAttribute,
     kRidAttribute,
     kRtcpAttribute,
@@ -68,13 +66,13 @@ public:
     kRtcpRsizeAttribute,
     kRtpmapAttribute,
     kSctpmapAttribute,
-    kSendonlyAttribute,
-    kSendrecvAttribute,
     kSetupAttribute,
     kSimulcastAttribute,
     kSsrcAttribute,
     kSsrcGroupAttribute,
-    kLastAttribute = kSsrcGroupAttribute
+    kSctpPortAttribute,
+    kMaxMessageSizeAttribute,
+    kLastAttribute = kMaxMessageSizeAttribute
   };
 
   explicit SdpAttribute(AttributeType type) : mType(type) {}
@@ -219,6 +217,37 @@ inline std::ostream& operator<<(std::ostream& os,
       os << "?";
   }
   return os;
+}
+
+inline SdpDirectionAttribute::Direction
+reverse(SdpDirectionAttribute::Direction d)
+{
+  switch (d) {
+    case SdpDirectionAttribute::Direction::kInactive:
+      return SdpDirectionAttribute::Direction::kInactive;
+    case SdpDirectionAttribute::Direction::kSendonly:
+      return SdpDirectionAttribute::Direction::kRecvonly;
+    case SdpDirectionAttribute::Direction::kRecvonly:
+      return SdpDirectionAttribute::Direction::kSendonly;
+    case SdpDirectionAttribute::Direction::kSendrecv:
+      return SdpDirectionAttribute::Direction::kSendrecv;
+  }
+  MOZ_MAKE_COMPILER_ASSUME_IS_UNREACHABLE("Invalid direction!");
+  MOZ_RELEASE_ASSERT(false);
+}
+
+inline SdpDirectionAttribute::Direction
+operator|(SdpDirectionAttribute::Direction d1,
+          SdpDirectionAttribute::Direction d2)
+{
+  return (SdpDirectionAttribute::Direction)((unsigned)d1 | (unsigned)d2);
+}
+
+inline SdpDirectionAttribute::Direction
+operator&(SdpDirectionAttribute::Direction d1,
+          SdpDirectionAttribute::Direction d2)
+{
+  return (SdpDirectionAttribute::Direction)((unsigned)d1 & (unsigned)d2);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -1455,9 +1484,6 @@ public:
 //      streams      =  1*DIGIT
 //
 // We're going to pretend that there are spaces where they make sense.
-//
-// (draft-06 is not backward compatabile and draft-07 replaced sctpmap's with
-// fmtp maps - we should carefully choose when to upgrade)
 class SdpSctpmapAttributeList : public SdpAttribute
 {
 public:
@@ -1491,14 +1517,9 @@ public:
   }
 
   const Sctpmap&
-  GetEntry(const std::string& pt) const
+  GetFirstEntry() const
   {
-    for (auto it = mSctpmaps.begin(); it != mSctpmaps.end(); ++it) {
-      if (it->pt == pt) {
-        return *it;
-      }
-    }
-    MOZ_CRASH();
+    return mSctpmaps[0];
   }
 
   std::vector<Sctpmap> mSctpmaps;

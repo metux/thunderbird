@@ -1,5 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+
 "use strict";
 
 // Basic test for switching to the individuals view.
@@ -16,10 +17,6 @@ const {
 const {
   changeView,
 } = require("devtools/client/memory/actions/view");
-
-function run_test() {
-  run_next_test();
-}
 
 const EXPECTED_INDIVIDUAL_STATES = [
   individualsState.COMPUTING_DOMINATOR_TREE,

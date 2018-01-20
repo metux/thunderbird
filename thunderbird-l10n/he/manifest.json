@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "he": {
+      "chrome_resources": {
+        "necko": "chrome/he/locale/he/necko/", 
+        "global": "chrome/he/locale/he/global/", 
+        "messenger-region": "chrome/he/locale/he/messenger-region/", 
+        "chat": "chrome/he/locale/he/chat/", 
+        "devtools": "chrome/he/locale/he/devtools/client/", 
+        "pipnss": "chrome/he/locale/he/pipnss/", 
+        "messenger-smime": "chrome/he/locale/he/messenger-smime/", 
+        "messenger-newsblog": "chrome/he/locale/he/messenger-newsblog/", 
+        "devtools-shim": "chrome/he/locale/he/devtools/shim/", 
+        "alerts": "chrome/he/locale/he/alerts/", 
+        "messenger": "chrome/he/locale/he/messenger/", 
+        "editor": "chrome/he/locale/he/editor/", 
+        "branding": "chrome/he/locale/he/branding/", 
+        "mozldap": "chrome/he/locale/he/mozldap/", 
+        "autoconfig": "chrome/he/locale/he/autoconfig/", 
+        "devtools-shared": "chrome/he/locale/he/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/he/locale/he/global-platform/win/", 
+          "android": "chrome/he/locale/he/global-platform/unix/", 
+          "macosx": "chrome/he/locale/he/global-platform/mac/", 
+          "linux": "chrome/he/locale/he/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/he/locale/he/mozapps/", 
+        "pluginproblem": "chrome/he/locale/he/pluginproblem/", 
+        "communicator": "chrome/he/locale/he/communicator/", 
+        "messenger-mapi": "chrome/he/locale/he/messenger-mapi/", 
+        "places": "chrome/he/locale/he/places/", 
+        "passwordmgr": "chrome/he/locale/he/passwordmgr/", 
+        "pippki": "chrome/he/locale/he/pippki/"
+      }, 
+      "version": "20171105175226"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-he@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "he", 
+  "version": "58.0", 
+  "name": "Hebrew (IL) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Reuven Gonen, Tsahi Asher, Tomer Cohen)", 
+  "description": "Language pack for Thunderbird for he"
+}

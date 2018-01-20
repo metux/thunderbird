@@ -1,11 +1,11 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsFont.h"
 #include "gfxFont.h"                    // for gfxFontStyle
-#include "gfxFontConstants.h"           // for NS_FONT_KERNING_AUTO, etc
 #include "gfxFontFeatures.h"            // for gfxFontFeature, etc
 #include "gfxFontUtils.h"               // for TRUETYPE_TAG
 #include "nsCRT.h"                      // for nsCRT
@@ -20,37 +20,14 @@ using namespace mozilla;
 
 nsFont::nsFont(const FontFamilyList& aFontlist, nscoord aSize)
   : fontlist(aFontlist)
+  , size(aSize)
 {
-  Init();
-  size = aSize;
 }
 
 nsFont::nsFont(FontFamilyType aGenericType, nscoord aSize)
   : fontlist(aGenericType)
+  , size(aSize)
 {
-  Init();
-  size = aSize;
-}
-
-void
-nsFont::Init()
-{
-  style = NS_FONT_STYLE_NORMAL;
-  weight = NS_FONT_WEIGHT_NORMAL;
-  stretch = NS_FONT_STRETCH_NORMAL;
-  systemFont = false;
-  smoothing = NS_FONT_SMOOTHING_AUTO;
-  sizeAdjust = -1.0f;
-  kerning = NS_FONT_KERNING_AUTO;
-  synthesis = NS_FONT_SYNTHESIS_WEIGHT | NS_FONT_SYNTHESIS_STYLE;
-
-  variantAlternates = 0;
-  variantCaps = NS_FONT_VARIANT_CAPS_NORMAL;
-  variantEastAsian = 0;
-  variantLigatures = 0;
-  variantNumeric = 0;
-  variantPosition = NS_FONT_VARIANT_POSITION_NORMAL;
-  variantWidth = NS_FONT_VARIANT_WIDTH_NORMAL;
 }
 
 nsFont::nsFont(const nsFont& aOther) = default;
@@ -65,30 +42,42 @@ nsFont::~nsFont()
 
 bool nsFont::Equals(const nsFont& aOther) const
 {
-  if ((style == aOther.style) &&
-      (systemFont == aOther.systemFont) &&
-      (weight == aOther.weight) &&
-      (stretch == aOther.stretch) &&
-      (size == aOther.size) &&
-      (sizeAdjust == aOther.sizeAdjust) &&
-      (fontlist == aOther.fontlist) &&
-      (kerning == aOther.kerning) &&
-      (synthesis == aOther.synthesis) &&
-      (fontFeatureSettings == aOther.fontFeatureSettings) &&
-      (languageOverride == aOther.languageOverride) &&
-      (variantAlternates == aOther.variantAlternates) &&
-      (variantCaps == aOther.variantCaps) &&
-      (variantEastAsian == aOther.variantEastAsian) &&
-      (variantLigatures == aOther.variantLigatures) &&
-      (variantNumeric == aOther.variantNumeric) &&
-      (variantPosition == aOther.variantPosition) &&
-      (variantWidth == aOther.variantWidth) &&
-      (alternateValues == aOther.alternateValues) &&
-      (featureValueLookup == aOther.featureValueLookup) &&
-      (smoothing == aOther.smoothing)) {
-    return true;
+  return CalcDifference(aOther) == MaxDifference::eNone;
+}
+
+nsFont::MaxDifference
+nsFont::CalcDifference(const nsFont& aOther) const
+{
+  if ((style != aOther.style) ||
+      (systemFont != aOther.systemFont) ||
+      (weight != aOther.weight) ||
+      (stretch != aOther.stretch) ||
+      (size != aOther.size) ||
+      (sizeAdjust != aOther.sizeAdjust) ||
+      (fontlist != aOther.fontlist) ||
+      (kerning != aOther.kerning) ||
+      (synthesis != aOther.synthesis) ||
+      (fontFeatureSettings != aOther.fontFeatureSettings) ||
+      (fontVariationSettings != aOther.fontVariationSettings) ||
+      (languageOverride != aOther.languageOverride) ||
+      (variantAlternates != aOther.variantAlternates) ||
+      (variantCaps != aOther.variantCaps) ||
+      (variantEastAsian != aOther.variantEastAsian) ||
+      (variantLigatures != aOther.variantLigatures) ||
+      (variantNumeric != aOther.variantNumeric) ||
+      (variantPosition != aOther.variantPosition) ||
+      (variantWidth != aOther.variantWidth) ||
+      (alternateValues != aOther.alternateValues) ||
+      (featureValueLookup != aOther.featureValueLookup)) {
+    return MaxDifference::eLayoutAffecting;
   }
-  return false;
+
+  if ((smoothing != aOther.smoothing) ||
+      (fontSmoothingBackgroundColor != aOther.fontSmoothingBackgroundColor)) {
+    return MaxDifference::eVisual;
+  }
+
+  return MaxDifference::eNone;
 }
 
 nsFont& nsFont::operator=(const nsFont& aOther) = default;
@@ -120,8 +109,8 @@ const gfxFontFeature eastAsianDefaults[] = {
 };
 
 static_assert(MOZ_ARRAY_LENGTH(eastAsianDefaults) ==
-              eFeatureEastAsian_numFeatures,
-              "eFeatureEastAsian_numFeatures should be correct");
+              NS_FONT_VARIANT_EAST_ASIAN_COUNT,
+              "eastAsianDefaults[] should be correct");
 
 // NS_FONT_VARIANT_LIGATURES_xxx values
 const gfxFontFeature ligDefaults[] = {
@@ -137,8 +126,8 @@ const gfxFontFeature ligDefaults[] = {
 };
 
 static_assert(MOZ_ARRAY_LENGTH(ligDefaults) ==
-              eFeatureLigatures_numFeatures,
-              "eFeatureLigatures_numFeatures should be correct");
+              NS_FONT_VARIANT_LIGATURES_COUNT,
+              "ligDefaults[] should be correct");
 
 // NS_FONT_VARIANT_NUMERIC_xxx values
 const gfxFontFeature numericDefaults[] = {
@@ -153,8 +142,8 @@ const gfxFontFeature numericDefaults[] = {
 };
 
 static_assert(MOZ_ARRAY_LENGTH(numericDefaults) ==
-              eFeatureNumeric_numFeatures,
-              "eFeatureNumeric_numFeatures should be correct");
+              NS_FONT_VARIANT_NUMERIC_COUNT,
+              "numericDefaults[] should be correct");
 
 static void
 AddFontFeaturesBitmask(uint32_t aValue, uint32_t aMin, uint32_t aMax,
@@ -189,13 +178,15 @@ FontFeatureTagForVariantWidth(uint32_t aVariantWidth)
   }
 }
 
-void nsFont::AddFontFeaturesToStyle(gfxFontStyle *aStyle) const
+void nsFont::AddFontFeaturesToStyle(gfxFontStyle *aStyle,
+                                    bool aVertical) const
 {
   // add in font-variant features
   gfxFontFeature setting;
 
   // -- kerning
-  setting.mTag = TRUETYPE_TAG('k','e','r','n');
+  setting.mTag = aVertical ? TRUETYPE_TAG('v','k','r','n')
+                           : TRUETYPE_TAG('k','e','r','n');
   switch (kerning) {
     case NS_FONT_KERNING_NONE:
       setting.mValue = 0;
@@ -294,4 +285,15 @@ void nsFont::AddFontFeaturesToStyle(gfxFontStyle *aStyle) const
   if (smoothing == NS_FONT_SMOOTHING_GRAYSCALE) {
     aStyle->useGrayscaleAntialiasing = true;
   }
+
+  aStyle->fontSmoothingBackgroundColor = fontSmoothingBackgroundColor;
+}
+
+void nsFont::AddFontVariationsToStyle(gfxFontStyle *aStyle) const
+{
+  // TODO: add variation settings from specific CSS properties
+  // such as weight, width, optical-size
+
+  // Add in arbitrary values from font-variation-settings
+  aStyle->variationSettings.AppendElements(fontVariationSettings);
 }

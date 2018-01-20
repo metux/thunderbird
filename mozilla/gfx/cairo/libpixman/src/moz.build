@@ -63,7 +63,7 @@ SOURCES += [
 ]
 
 # We allow warnings for third-party code that can be updated from upstream.
-ALLOW_COMPILER_WARNINGS = True
+AllowCompilerWarnings()
 
 FINAL_LIBRARY = 'gkmedias'
 LOCAL_INCLUDES += [
@@ -72,9 +72,6 @@ LOCAL_INCLUDES += [
 
 if CONFIG['MOZ_USE_PTHREADS']:
     DEFINES['HAVE_PTHREAD_SETSPECIFIC'] = True
-
-if CONFIG['_MSC_VER']:
-    DEFINES['PIXMAN_USE_XP_DLL_TLS_WORKAROUND'] = True
 
 DEFINES['PACKAGE'] = 'mozpixman'
 
@@ -145,6 +142,7 @@ if CONFIG['GNU_CC'] or CONFIG['CLANG_CL']:
         '-Wno-address',
         '-Wno-missing-field-initializers',
         '-Wno-sign-compare',
+        '-Wno-incompatible-pointer-types',
         '-Wno-unused',                      # too many unused warnings; ignore
     ]
 if CONFIG['CLANG_CXX'] or CONFIG['CLANG_CL']:
@@ -156,6 +154,14 @@ if CONFIG['CLANG_CXX'] or CONFIG['CLANG_CL']:
 if CONFIG['CLANG_CL']:
     CFLAGS += [
         '-Wno-unused-variable',
+    ]
+if CONFIG['_MSC_VER'] and not CONFIG['CLANG_CL']:
+    CFLAGS += [
+        '-wd4047', # different levels of indirection
+        '-wd4101', # unreferenced local variable
+        '-wd4133', # 'function' : incompatible types
+        '-wd4146', # unary minus operator applied to unsigned type
+        '-wd4311', # 'variable' : pointer truncation from 'type' to 'type'
     ]
 
 # See bug 386897.

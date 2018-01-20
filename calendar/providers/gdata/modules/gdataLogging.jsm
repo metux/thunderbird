@@ -4,10 +4,8 @@
 
 var EXPORTED_SYMBOLS = ["LOGitem", "LOGverbose", "LOGinterval", "stringException"];
 
-Components.utils.import("resource://gdata-provider/modules/shim/Loader.jsm").shimIt(this);
-
-CuImport("resource://calendar/modules/calUtils.jsm", this);
-CuImport("resource://gre/modules/Preferences.jsm", this);
+Components.utils.import("resource://calendar/modules/calUtils.jsm");
+Components.utils.import("resource://gre/modules/Preferences.jsm");
 
 function LOGverbose(aStr) {
     if (Preferences.get("calendar.debug.log.verbose", false)) {
@@ -34,27 +32,27 @@ function LOGitem(item) {
 
     let attendees = item.getAttendees({});
     let attendeeString = "";
-    for each (let a in attendees) {
+    for (let a of attendees) {
         attendeeString += "\n" + LOGattendee(a);
     }
 
     let rstr = "\n";
     if (item.recurrenceInfo) {
         let ritems = item.recurrenceInfo.getRecurrenceItems({});
-        for each (let ritem in ritems) {
+        for (let ritem of ritems) {
             rstr += "\t\t" + ritem.icalProperty.icalString;
         }
 
         rstr += "\tExceptions:\n";
         let exids = item.recurrenceInfo.getExceptionIds({});
-        for each (let exc in exids) {
+        for (let exc of exids) {
             rstr += "\t\t" + exc + "\n";
         }
     }
 
     let astr = "\n";
     let alarms = item.getAlarms({});
-    for each (let alarm in alarms) {
+    for (let alarm of alarms) {
         astr += "\t\t" + LOGalarm(alarm) + "\n";
     }
 

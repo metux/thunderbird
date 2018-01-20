@@ -29,3 +29,6 @@
 
 <!ENTITY feedsSectionHdr.label        "Prurje">
 <!ENTITY subscribeFeeds.label         "Administroni pajtime">
+
+<!ENTITY setupNewAcct.label           "Set up an account:">
+

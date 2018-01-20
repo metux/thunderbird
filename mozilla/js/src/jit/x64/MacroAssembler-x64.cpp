@@ -19,7 +19,7 @@ using namespace js;
 using namespace js::jit;
 
 void
-MacroAssemblerX64::loadConstantDouble(wasm::RawF64 d, FloatRegister dest)
+MacroAssemblerX64::loadConstantDouble(double d, FloatRegister dest)
 {
     if (maybeInlineDouble(d, dest))
         return;
@@ -36,7 +36,7 @@ MacroAssemblerX64::loadConstantDouble(wasm::RawF64 d, FloatRegister dest)
 }
 
 void
-MacroAssemblerX64::loadConstantFloat32(wasm::RawF32 f, FloatRegister dest)
+MacroAssemblerX64::loadConstantFloat32(float f, FloatRegister dest)
 {
     if (maybeInlineFloat(f, dest))
         return;
@@ -58,18 +58,6 @@ MacroAssemblerX64::loadConstantSimd128Int(const SimdConstant& v, FloatRegister d
         return;
     JmpSrc j = masm.vmovdqa_ripr(dest.encoding());
     propagateOOM(val->uses.append(CodeOffset(j.offset())));
-}
-
-void
-MacroAssemblerX64::loadConstantFloat32(float f, FloatRegister dest)
-{
-    loadConstantFloat32(wasm::RawF32(f), dest);
-}
-
-void
-MacroAssemblerX64::loadConstantDouble(double d, FloatRegister dest)
-{
-    loadConstantDouble(wasm::RawF64(d), dest);
 }
 
 void
@@ -105,19 +93,18 @@ MacroAssemblerX64::convertInt64ToFloat32(Register64 input, FloatRegister output)
 bool
 MacroAssemblerX64::convertUInt64ToDoubleNeedsTemp()
 {
-    return false;
+    return true;
 }
 
 void
 MacroAssemblerX64::convertUInt64ToDouble(Register64 input, FloatRegister output, Register temp)
 {
-    MOZ_ASSERT(temp == Register::Invalid());
-
     // Zero the output register to break dependencies, see convertInt32ToDouble.
     zeroDouble(output);
 
     // If the input's sign bit is not set we use vcvtsq2sd directly.
-    // Else, we divide by 2, convert to double, and multiply the result by 2.
+    // Else, we divide by 2 and keep the LSB, convert to double, and multiply
+    // the result by 2.
     Label done;
     Label isSigned;
 
@@ -130,7 +117,11 @@ MacroAssemblerX64::convertUInt64ToDouble(Register64 input, FloatRegister output,
 
     ScratchRegisterScope scratch(asMasm());
     mov(input.reg, scratch);
+    mov(input.reg, temp);
     shrq(Imm32(1), scratch);
+    andq(Imm32(1), temp);
+    orq(temp, scratch);
+
     vcvtsq2sd(scratch, output, output);
     vaddsd(output, output, output);
 
@@ -140,13 +131,10 @@ MacroAssemblerX64::convertUInt64ToDouble(Register64 input, FloatRegister output,
 void
 MacroAssemblerX64::convertUInt64ToFloat32(Register64 input, FloatRegister output, Register temp)
 {
-    MOZ_ASSERT(temp == Register::Invalid());
-
     // Zero the output register to break dependencies, see convertInt32ToDouble.
     zeroFloat32(output);
 
-    // If the input's sign bit is not set we use vcvtsq2ss directly.
-    // Else, we divide by 2, convert to float, and multiply the result by 2.
+    // See comment in convertUInt64ToDouble.
     Label done;
     Label isSigned;
 
@@ -159,7 +147,11 @@ MacroAssemblerX64::convertUInt64ToFloat32(Register64 input, FloatRegister output
 
     ScratchRegisterScope scratch(asMasm());
     mov(input.reg, scratch);
+    mov(input.reg, temp);
     shrq(Imm32(1), scratch);
+    andq(Imm32(1), temp);
+    orq(temp, scratch);
+
     vcvtsq2ss(scratch, output, output);
     vaddss(output, output, output);
 
@@ -265,14 +257,14 @@ MacroAssemblerX64::finish()
         masm.haltingAlign(sizeof(double));
     for (const Double& d : doubles_) {
         bindOffsets(d.uses);
-        masm.int64Constant(d.value);
+        masm.doubleConstant(d.value);
     }
 
     if (!floats_.empty())
         masm.haltingAlign(sizeof(float));
     for (const Float& f : floats_) {
         bindOffsets(f.uses);
-        masm.int32Constant(f.value);
+        masm.floatConstant(f.value);
     }
 
     // SIMD memory values must be suitably aligned.
@@ -315,27 +307,29 @@ MacroAssemblerX64::handleFailureWithHandlerTail(void* handler)
     // Call the handler.
     asMasm().setupUnalignedABICall(rcx);
     asMasm().passABIArg(rax);
-    asMasm().callWithABI(handler);
+    asMasm().callWithABI(handler, MoveOp::GENERAL, CheckUnsafeCallWithABI::DontCheckHasExitFrame);
 
     Label entryFrame;
     Label catch_;
     Label finally;
     Label return_;
     Label bailout;
+    Label wasm;
 
-    loadPtr(Address(rsp, offsetof(ResumeFromException, kind)), rax);
+    load32(Address(rsp, offsetof(ResumeFromException, kind)), rax);
     asMasm().branch32(Assembler::Equal, rax, Imm32(ResumeFromException::RESUME_ENTRY_FRAME), &entryFrame);
     asMasm().branch32(Assembler::Equal, rax, Imm32(ResumeFromException::RESUME_CATCH), &catch_);
     asMasm().branch32(Assembler::Equal, rax, Imm32(ResumeFromException::RESUME_FINALLY), &finally);
     asMasm().branch32(Assembler::Equal, rax, Imm32(ResumeFromException::RESUME_FORCED_RETURN), &return_);
     asMasm().branch32(Assembler::Equal, rax, Imm32(ResumeFromException::RESUME_BAILOUT), &bailout);
+    asMasm().branch32(Assembler::Equal, rax, Imm32(ResumeFromException::RESUME_WASM), &wasm);
 
     breakpoint(); // Invalid kind.
 
     // No exception handler. Load the error value, load the new stack pointer
     // and return from the entry frame.
     bind(&entryFrame);
-    moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
+    asMasm().moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
     loadPtr(Address(rsp, offsetof(ResumeFromException, stackPointer)), rsp);
     ret();
 
@@ -374,7 +368,7 @@ MacroAssemblerX64::handleFailureWithHandlerTail(void* handler)
     // frame before returning.
     {
         Label skipProfilingInstrumentation;
-        AbsoluteAddress addressOfEnabled(GetJitContext()->runtime->spsProfiler().addressOfEnabled());
+        AbsoluteAddress addressOfEnabled(GetJitContext()->runtime->geckoProfiler().addressOfEnabled());
         asMasm().branch32(Assembler::Equal, addressOfEnabled, Imm32(0), &skipProfilingInstrumentation);
         profilerExitFrame();
         bind(&skipProfilingInstrumentation);
@@ -388,13 +382,21 @@ MacroAssemblerX64::handleFailureWithHandlerTail(void* handler)
     loadPtr(Address(esp, offsetof(ResumeFromException, bailoutInfo)), r9);
     mov(ImmWord(BAILOUT_RETURN_OK), rax);
     jmp(Operand(rsp, offsetof(ResumeFromException, target)));
+
+    // If we are throwing and the innermost frame was a wasm frame, reset SP and
+    // FP; SP is pointing to the unwound return address to the wasm entry, so
+    // we can just ret().
+    bind(&wasm);
+    loadPtr(Address(rsp, offsetof(ResumeFromException, framePointer)), rbp);
+    loadPtr(Address(rsp, offsetof(ResumeFromException, stackPointer)), rsp);
+    masm.ret();
 }
 
 void
 MacroAssemblerX64::profilerEnterFrame(Register framePtr, Register scratch)
 {
-    AbsoluteAddress activation(GetJitContext()->runtime->addressOfProfilingActivation());
-    loadPtr(activation, scratch);
+    asMasm().loadJSContext(scratch);
+    loadPtr(Address(scratch, offsetof(JSContext, profilingActivation_)), scratch);
     storePtr(framePtr, Address(scratch, JitActivation::offsetOfLastProfilingFrame()));
     storePtr(ImmPtr(nullptr), Address(scratch, JitActivation::offsetOfLastProfilingCallSite()));
 }
@@ -424,15 +426,34 @@ MacroAssembler::subFromStackPtr(Imm32 imm32)
         // On windows, we cannot skip very far down the stack without touching the
         // memory pages in-between.  This is a corner-case code for situations where the
         // Ion frame data for a piece of code is very large.  To handle this special case,
-        // for frames over 1k in size we allocate memory on the stack incrementally, touching
+        // for frames over 4k in size we allocate memory on the stack incrementally, touching
         // it as we go.
+        //
+        // When the amount is quite large, which it can be, we emit an actual loop, in order
+        // to keep the function prologue compact.  Compactness is a requirement for eg
+        // Wasm's CodeRange data structure, which can encode only 8-bit offsets.
         uint32_t amountLeft = imm32.value;
-        while (amountLeft > 4096) {
+        uint32_t fullPages = amountLeft / 4096;
+        if (fullPages <= 8) {
+            while (amountLeft > 4096) {
+                subq(Imm32(4096), StackPointer);
+                store32(Imm32(0), Address(StackPointer, 0));
+                amountLeft -= 4096;
+            }
+            subq(Imm32(amountLeft), StackPointer);
+        } else {
+            ScratchRegisterScope scratch(*this);
+            Label top;
+            move32(Imm32(fullPages), scratch);
+            bind(&top);
             subq(Imm32(4096), StackPointer);
             store32(Imm32(0), Address(StackPointer, 0));
-            amountLeft -= 4096;
+            subl(Imm32(1), scratch);
+            j(Assembler::NonZero, &top);
+            amountLeft -= fullPages * 4096;
+            if (amountLeft)
+                subq(Imm32(amountLeft), StackPointer);
         }
-        subq(Imm32(amountLeft), StackPointer);
     }
 }
 
@@ -443,6 +464,7 @@ MacroAssembler::subFromStackPtr(Imm32 imm32)
 void
 MacroAssembler::setupUnalignedABICall(Register scratch)
 {
+    MOZ_ASSERT(!IsCompilingWasm(), "wasm should only use aligned ABI calls");
     setupABICall();
     dynamicAlignment_ = true;
 
@@ -463,9 +485,8 @@ MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm)
         stackForCall += ComputeByteAlignment(stackForCall + sizeof(intptr_t),
                                              ABIStackAlignment);
     } else {
-        static_assert(sizeof(wasm::Frame) % ABIStackAlignment == 0,
-                      "wasm::Frame should be part of the stack alignment.");
-        stackForCall += ComputeByteAlignment(stackForCall + framePushed(),
+        uint32_t alignmentAtPrologue = callFromWasm ? sizeof(wasm::Frame) : 0;
+        stackForCall += ComputeByteAlignment(stackForCall + framePushed() + alignmentAtPrologue,
                                              ABIStackAlignment);
     }
 
@@ -487,7 +508,7 @@ MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm)
 }
 
 void
-MacroAssembler::callWithABIPost(uint32_t stackAdjust, MoveOp::Type result)
+MacroAssembler::callWithABIPost(uint32_t stackAdjust, MoveOp::Type result, bool cleanupArg)
 {
     freeStack(stackAdjust);
     if (dynamicAlignment_)
@@ -550,6 +571,49 @@ MacroAssembler::callWithABINoProfiler(const Address& fun, MoveOp::Type result)
 }
 
 // ===============================================================
+// Move instructions
+
+void
+MacroAssembler::moveValue(const TypedOrValueRegister& src, const ValueOperand& dest)
+{
+    if (src.hasValue()) {
+        moveValue(src.valueReg(), dest);
+        return;
+    }
+
+    MIRType type = src.type();
+    AnyRegister reg = src.typedReg();
+
+    if (!IsFloatingPointType(type)) {
+        boxValue(ValueTypeFromMIRType(type), reg.gpr(), dest.valueReg());
+        return;
+    }
+
+    ScratchDoubleScope scratch(*this);
+    FloatRegister freg = reg.fpu();
+    if (type == MIRType::Float32) {
+        convertFloat32ToDouble(freg, scratch);
+        freg = scratch;
+    }
+    vmovq(freg, dest.valueReg());
+}
+
+void
+MacroAssembler::moveValue(const ValueOperand& src, const ValueOperand& dest)
+{
+    if (src == dest)
+        return;
+    movq(src.valueReg(), dest.valueReg());
+}
+
+void
+MacroAssembler::moveValue(const Value& src, const ValueOperand& dest)
+{
+    movWithPatch(ImmWord(src.asRawBits()), dest.valueReg());
+    writeDataRelocation(src);
+}
+
+// ===============================================================
 // Branch functions
 
 void
@@ -607,7 +671,7 @@ MacroAssembler::branchTestValue(Condition cond, const ValueOperand& lhs,
     MOZ_ASSERT(cond == Equal || cond == NotEqual);
     ScratchRegisterScope scratch(*this);
     MOZ_ASSERT(lhs.valueReg() != scratch);
-    moveValue(rhs, scratch);
+    moveValue(rhs, ValueOperand(scratch));
     cmpPtr(lhs.valueReg(), scratch);
     j(cond, label);
 }

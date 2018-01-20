@@ -24,12 +24,7 @@ def Libxul(name):
 
     DELAYLOAD_DLLS += [
         'comdlg32.dll',
-        'dbghelp.dll',
         'netapi32.dll',
-        'PowrProf.dll',
-        'psapi.dll',
-        'rasapi32.dll',
-        'rasdlg.dll',
         'secur32.dll',
         'wininet.dll',
         'winspool.drv'
@@ -47,6 +42,9 @@ def Libxul(name):
             'api-ms-win-core-winrt-string-l1-1-0.dll',
         ]
 
+    if CONFIG['OS_ARCH'] == 'WINNT' and CONFIG['ACCESSIBILITY']:
+        LOCAL_INCLUDES += ['!/accessible/interfaces/gecko/']
+
     if CONFIG['OS_ARCH'] == 'WINNT' and not CONFIG['GNU_CC']:
         LOCAL_INCLUDES += [
             '/widget/windows',
@@ -58,6 +56,19 @@ def Libxul(name):
         # and config/version.mk would lift the $(srcdir)
         RCINCLUDE = '$(DEPTH)/toolkit/library/xulrunner.rc'
 
+    if CONFIG['OS_ARCH'] == 'Linux' and CONFIG['OS_TARGET'] != 'Android':
+        LDFLAGS += ['-Wl,-version-script,symverscript']
+
+    # BFD ld doesn't create multiple PT_LOADs as usual when an unknown section
+    # exists. Using an implicit linker script to make it fold that section in
+    # .data.rel.ro makes it create multiple PT_LOADs. That implicit linker
+    # script however makes gold misbehave, first because it doesn't like that
+    # the linker script is given after crtbegin.o, and even past that, replaces
+    # the default section rules with those from the script instead of
+    # supplementing them. Which leads to a lib with a huge load of sections.
+    if CONFIG['OS_TARGET'] not in ('OpenBSD', 'WINNT') and CONFIG['LD_IS_BFD']:
+        LDFLAGS += [TOPSRCDIR + '/toolkit/library/StaticXULComponents.ld']
+
     Libxul_defines()
 
     if CONFIG['MOZ_NEEDS_LIBATOMIC']:
@@ -65,12 +76,11 @@ def Libxul(name):
 
     # This option should go away in bug 1290972, but we need to wait until
     # Rust 1.12 has been released.
-    if CONFIG['MOZ_RUST'] and CONFIG['OS_ARCH'] == 'Darwin':
-        LDFLAGS += ['-Wl,-no_compact_unwind']
+    # We're also linking against libresolv to solve bug 1367932.
+    if CONFIG['OS_ARCH'] == 'Darwin':
+        LDFLAGS += ['-Wl,-no_compact_unwind,-lresolv']
 
 Libxul('xul')
-
-SDK_LIBRARY = True
 
 FORCE_STATIC_LIB = True
 
@@ -116,7 +126,6 @@ USE_LIBS += [
 ]
 
 USE_LIBS += [
-    'gkmedias',
     'lgpllibs',
     'nspr',
     'nss',
@@ -182,14 +191,6 @@ if CONFIG['MOZ_WMF']:
         'strmiids',
     ]
 
-if CONFIG['MOZ_DIRECTSHOW']:
-    OS_LIBS += [
-        'dmoguids',
-        'wmcodecdspuuid',
-        'strmiids',
-        'msdmo',
-    ]
-
 if CONFIG['OS_ARCH'] == 'FreeBSD':
     OS_LIBS += [
         'util',
@@ -204,14 +205,15 @@ if CONFIG['OS_ARCH'] == 'WINNT':
         'winspool',
     ]
 
-if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
-    OS_LIBS += [
-        'dbus',
-    ]
-
 if CONFIG['OS_ARCH'] == 'Linux' and CONFIG['OS_TARGET'] != 'Android':
     OS_LIBS += [
         'rt',
+    ]
+
+if CONFIG['MOZ_ANDROID_GOOGLE_VR']:
+    OS_LIBS += [
+        '-L%s' % CONFIG['MOZ_ANDROID_GOOGLE_VR_LIBS'],
+        '-lgvr',
     ]
 
 OS_LIBS += CONFIG['MOZ_CAIRO_OSLIBS']
@@ -246,45 +248,6 @@ if CONFIG['MOZ_ALSA']:
 
 if CONFIG['HAVE_CLOCK_MONOTONIC']:
     OS_LIBS += CONFIG['REALTIME_LIBS']
-
-if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
-    OS_LIBS += [
-        'GLESv2',
-    ]
-
-if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
-    OS_LIBS += [
-        'ui',
-        'media',
-        'hardware_legacy',
-        'hardware',
-        'utils',
-        'cutils',
-        'sysutils',
-        'camera_client',
-        'sensorservice',
-        'stagefright',
-        'stagefright_foundation',
-        'stagefright_omx',
-        'binder',
-        'gui',
-        'mtp',
-    ]
-
-    if int(CONFIG['ANDROID_VERSION']) >= 17:
-        OS_LIBS += [
-            'sync',
-        ]
-
-    if CONFIG['ANDROID_VERSION'] >= '16':
-        OS_LIBS += [
-            'mdnssd',
-        ]
-
-if 'rtsp' in CONFIG['NECKO_PROTOCOLS']:
-    OS_LIBS += [
-        'stagefright_foundation',
-    ]
 
 OS_LIBS += CONFIG['ICONV_LIBS']
 
@@ -345,18 +308,14 @@ if CONFIG['OS_ARCH'] == 'WINNT':
         'msimg32',
         'netapi32',
         'shlwapi',
-        'psapi',
         'ws2_32',
-        'dbghelp',
-        'rasapi32',
-        'rasdlg',
+        'dwmapi',
         'iphlpapi',
         'uxtheme',
         'setupapi',
         'secur32',
         'sensorsapi',
         'portabledeviceguids',
-        'windowscodecs',
         'wininet',
         'wbemuuid',
         'wintrust',
@@ -385,12 +344,13 @@ if CONFIG['COMPILE_ENVIRONMENT']:
             LIBRARY_NAME,
             CONFIG['DLL_SUFFIX']
         )
-    GENERATED_FILES += ['dependentlibs.list']
-    GENERATED_FILES['dependentlibs.list'].script = 'dependentlibs.py:gen_list'
-    GENERATED_FILES['dependentlibs.list'].inputs = [
+    GENERATED_FILES += [('dependentlibs.list', 'dependentlibs.list.gtest')]
+    dep_libs_list = GENERATED_FILES[('dependentlibs.list', 'dependentlibs.list.gtest')]
+    dep_libs_list.script = 'dependentlibs.py:gen_list'
+    dep_libs_list.inputs = [
         '!%s' % full_libname,
     ]
-    FINAL_TARGET_FILES += ['!dependentlibs.list']
+    FINAL_TARGET_FILES += ['!dependentlibs.list', '!dependentlibs.list.gtest']
 
 # This library needs to be last to make XPCOM module registration work.
 USE_LIBS += ['StaticXULComponentsEnd']
@@ -398,5 +358,4 @@ USE_LIBS += ['StaticXULComponentsEnd']
 # The above library needs to be last for C++ purposes.  This library,
 # however, is entirely composed of Rust code, and needs to come after
 # all the C++ code so any possible C++ -> Rust calls can be resolved.
-if CONFIG['MOZ_RUST']:
-    USE_LIBS += ['gkrust']
+USE_LIBS += ['gkrust']

@@ -30,6 +30,48 @@ MacroAssembler::move64(Register64 src, Register64 dest)
 }
 
 void
+MacroAssembler::moveDoubleToGPR64(FloatRegister src, Register64 dest)
+{
+    vmovq(src, dest.reg);
+}
+
+void
+MacroAssembler::moveGPR64ToDouble(Register64 src, FloatRegister dest)
+{
+    vmovq(src.reg, dest);
+}
+
+void
+MacroAssembler::move64To32(Register64 src, Register dest)
+{
+    movl(src.reg, dest);
+}
+
+void
+MacroAssembler::move32To64ZeroExtend(Register src, Register64 dest)
+{
+    movl(src, dest.reg);
+}
+
+void
+MacroAssembler::move8To64SignExtend(Register src, Register64 dest)
+{
+    movsbq(Operand(src), dest.reg);
+}
+
+void
+MacroAssembler::move16To64SignExtend(Register src, Register64 dest)
+{
+    movswq(Operand(src), dest.reg);
+}
+
+void
+MacroAssembler::move32To64SignExtend(Register src, Register64 dest)
+{
+    movslq(src, dest.reg);
+}
+
+void
 MacroAssembler::andPtr(Register src, Register dest)
 {
     andq(src, dest);
@@ -205,6 +247,21 @@ void
 MacroAssembler::add64(Imm64 imm, Register64 dest)
 {
     addPtr(ImmWord(imm.value), dest.reg);
+}
+
+CodeOffset
+MacroAssembler::add32ToPtrWithPatch(Register src, Register dest)
+{
+    if (src != dest)
+        movePtr(src, dest);
+    addqWithPatch(Imm32(0), dest);
+    return CodeOffset(currentOffset());
+}
+
+void
+MacroAssembler::patchAdd32ToPtr(CodeOffset offset, Imm32 imm)
+{
+    patchAddq(offset, imm.value);
 }
 
 void
@@ -757,6 +814,13 @@ MacroAssembler::branchTestMagic(Condition cond, const Address& valaddr, JSWhyMag
     cmpPtr(valaddr, ImmWord(magic));
     j(cond, label);
 }
+
+void
+MacroAssembler::branchToComputedAddress(const BaseIndex& address)
+{
+    jmp(Operand(address));
+}
+
 // ========================================================================
 // Truncate floating point.
 
@@ -814,22 +878,6 @@ MacroAssembler::truncateDoubleToUInt64(Address src, Address dest, Register temp,
     storePtr(temp, dest);
 
     bind(&done);
-}
-
-// ========================================================================
-// wasm support
-
-template <class L>
-void
-MacroAssembler::wasmBoundsCheck(Condition cond, Register index, L label)
-{
-    MOZ_CRASH("x64 should never emit a bounds check");
-}
-
-void
-MacroAssembler::wasmPatchBoundsCheck(uint8_t* patchAt, uint32_t limit)
-{
-    MOZ_CRASH("x64 should never emit a bounds check");
 }
 
 //}}} check_macroassembler_style

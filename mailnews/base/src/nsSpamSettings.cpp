@@ -20,7 +20,6 @@
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
 #include "nsIStringBundle.h"
-#include "nsDateTimeFormatCID.h"
 #include "mozilla/Services.h"
 #include "mozilla/mailnews/MimeHeaderParser.h"
 #include "nsIArray.h"
@@ -311,8 +310,7 @@ NS_IMETHODIMP nsSpamSettings::Initialize(nsIMsgIncomingServer *aServer)
 
   nsCOMPtr<nsIPrefBranch> prefBranch(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
   if (prefBranch)
-    prefBranch->GetCharPref("mail.trusteddomains",
-                            getter_Copies(mTrustedMailDomains));
+    prefBranch->GetCharPref("mail.trusteddomains", mTrustedMailDomains);
 
   mWhiteListDirArray.Clear();
   if (!mWhiteListAbURI.IsEmpty())
@@ -363,7 +361,7 @@ NS_IMETHODIMP nsSpamSettings::Initialize(nsIMsgIncomingServer *aServer)
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsAutoCString accountKey;
-    if (account) 
+    if (account)
       account->GetKey(accountKey);
 
     // Loop through all accounts, adding emails from this account, as well as
@@ -532,10 +530,10 @@ NS_IMETHODIMP nsSpamSettings::GetSpamFolderURI(char **aSpamFolderURI)
 
   // see nsMsgFolder::SetPrettyName() for where the pretty name is set.
 
-  // Check for an existing junk folder - this will do a case-insensitive 
+  // Check for an existing junk folder - this will do a case-insensitive
   // search by URI - if we find a junk folder, use its URI.
   nsCOMPtr<nsIMsgFolder> junkFolder;
-  folderURI.Append("/Junk");
+  folderURI.AppendLiteral("/Junk");
   if (NS_SUCCEEDED(server->GetMsgFolderFromURI(nullptr, folderURI,
                                                getter_AddRefs(junkFolder))) &&
       junkFolder)
@@ -584,7 +582,7 @@ NS_IMETHODIMP nsSpamSettings::GetServerFilterFile(nsIFile ** aFile)
     nsresult rv;
     nsAutoCString serverFilterFileName;
     GetServerFilterName(serverFilterFileName);
-    serverFilterFileName.Append(".sfd");
+    serverFilterFileName.AppendLiteral(".sfd");
 
     nsCOMPtr<nsIProperties> dirSvc = do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -650,18 +648,10 @@ NS_IMETHODIMP nsSpamSettings::LogJunkHit(nsIMsgDBHdr *aMsgHdr, bool aMoveMessage
   PRExplodedTime exploded;
   PR_ExplodeTime(date, PR_LocalTimeParameters, &exploded);
 
-  if (!mDateFormatter)
-  {
-    mDateFormatter = do_CreateInstance(NS_DATETIMEFORMAT_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (!mDateFormatter)
-    {
-      return NS_ERROR_FAILURE;
-    }
-  }
-  mDateFormatter->FormatPRExplodedTime(nullptr, kDateFormatShort,
-                                      kTimeFormatSeconds, &exploded,
-                                      dateValue);
+  mozilla::DateTimeFormat::FormatPRExplodedTime(mozilla::kDateFormatShort,
+                                                mozilla::kTimeFormatSeconds,
+                                                &exploded,
+                                                dateValue);
 
   (void)aMsgHdr->GetMime2DecodedAuthor(authorValue);
   (void)aMsgHdr->GetMime2DecodedSubject(subjectValue);
@@ -669,9 +659,7 @@ NS_IMETHODIMP nsSpamSettings::LogJunkHit(nsIMsgDBHdr *aMsgHdr, bool aMoveMessage
   nsCString buffer;
   // this is big enough to hold a log entry.
   // do this so we avoid growing and copying as we append to the log.
-#ifdef MOZILLA_INTERNAL_API
   buffer.SetCapacity(512);
-#endif
 
   nsCOMPtr<nsIStringBundleService> bundleService =
     mozilla::services::GetStringBundleService();
@@ -685,9 +673,9 @@ NS_IMETHODIMP nsSpamSettings::LogJunkHit(nsIMsgDBHdr *aMsgHdr, bool aMoveMessage
   const char16_t *junkLogDetectFormatStrings[3] = { authorValue.get(), subjectValue.get(), dateValue.get() };
   nsString junkLogDetectStr;
   rv = bundle->FormatStringFromName(
-    u"junkLogDetectStr",
+    "junkLogDetectStr",
     junkLogDetectFormatStrings, 3,
-    getter_Copies(junkLogDetectStr));
+    junkLogDetectStr);
   NS_ENSURE_SUCCESS(rv, rv);
 
   buffer += NS_ConvertUTF16toUTF8(junkLogDetectStr);
@@ -707,9 +695,9 @@ NS_IMETHODIMP nsSpamSettings::LogJunkHit(nsIMsgDBHdr *aMsgHdr, bool aMoveMessage
     const char16_t *logMoveFormatStrings[2] = { msgIdValue.get(), junkFolderURIValue.get() };
     nsString logMoveStr;
     rv = bundle->FormatStringFromName(
-      u"logMoveStr",
+      "logMoveStr",
       logMoveFormatStrings, 2,
-      getter_Copies(logMoveStr));
+      logMoveStr);
     NS_ENSURE_SUCCESS(rv, rv);
 
     buffer += NS_ConvertUTF16toUTF8(logMoveStr);
@@ -732,18 +720,10 @@ NS_IMETHODIMP nsSpamSettings::LogJunkString(const char *string)
   PRExplodedTime exploded;
   PR_ExplodeTime(PR_Now(), PR_LocalTimeParameters, &exploded);
 
-  if (!mDateFormatter)
-  {
-    mDateFormatter = do_CreateInstance(NS_DATETIMEFORMAT_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (!mDateFormatter)
-    {
-      return NS_ERROR_FAILURE;
-    }
-  }
-  mDateFormatter->FormatPRExplodedTime(nullptr, kDateFormatShort,
-                                       kTimeFormatSeconds, &exploded,
-                                       dateValue);
+  mozilla::DateTimeFormat::FormatPRExplodedTime(mozilla::kDateFormatShort,
+                                                mozilla::kTimeFormatSeconds,
+                                                &exploded,
+                                                dateValue);
 
   nsCString timestampString(LOG_ENTRY_TIMESTAMP);
   MsgReplaceSubstring(timestampString, "$S", NS_ConvertUTF16toUTF8(dateValue).get());
@@ -765,13 +745,11 @@ NS_IMETHODIMP nsSpamSettings::LogJunkString(const char *string)
   // HTML-escape the log for security reasons.
   // We don't want someone to send us a message with a subject with
   // HTML tags, especially <script>.
-  char *escapedBuffer = MsgEscapeHTML(string);
-  if (!escapedBuffer)
-    return NS_ERROR_OUT_OF_MEMORY;
+  nsCString escapedBuffer;
+  nsAppendEscapedHTML(nsDependentCString(string), escapedBuffer);
 
-  uint32_t escapedBufferLen = strlen(escapedBuffer);
-  rv = logStream->Write(escapedBuffer, escapedBufferLen, &writeCount);
-  PR_Free(escapedBuffer);
+  uint32_t escapedBufferLen = escapedBuffer.Length();
+  rv = logStream->Write(escapedBuffer.get(), escapedBufferLen, &writeCount);
   NS_ENSURE_SUCCESS(rv,rv);
   NS_ASSERTION(writeCount == escapedBufferLen, "failed to write out log hit");
 

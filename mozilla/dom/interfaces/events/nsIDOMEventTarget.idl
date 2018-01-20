@@ -13,6 +13,7 @@
 using mozilla::dom::Nullable;
 
 namespace mozilla {
+class EventChainVisitor;
 class EventChainPostVisitor;
 class EventChainPreVisitor;
 class EventListenerManager;
@@ -224,7 +225,19 @@ interface nsIDOMEventTarget : nsISupports
    * @note Only EventDispatcher should call this method.
    */
   [noscript, nostdcall]
-  void PreHandleEvent(in EventChainPreVisitorRef aVisitor);
+  void GetEventTargetParent(in EventChainPreVisitorRef aVisitor);
+
+  /**
+   * Called before the capture phase of the event flow and after event target
+   * chain creation. This is used to handle those stuffs must be executed before
+   * dispatch event to DOM
+   */
+%{C++
+  virtual nsresult PreHandleEvent(mozilla::EventChainVisitor& aVisitor)
+  {
+    return NS_OK;
+  }
+%}
 
   /**
    * If EventChainPreVisitor.mWantsWillHandleEvent is set PR_TRUE,
@@ -243,29 +256,6 @@ interface nsIDOMEventTarget : nsISupports
    */
   [noscript, nostdcall]
   void PostHandleEvent(in EventChainPostVisitorRef aVisitor);
-
-  /**
-   * Dispatch an event.
-   * @param aEvent the event that is being dispatched.
-   * @param aDOMEvent the event that is being dispatched, use if you want to
-   *                  dispatch nsIDOMEvent, not only WidgetEvent.
-   * @param aPresContext the current presentation context, can be nullptr.
-   * @param aEventStatus the status returned from the function, can be nullptr.
-   *
-   * @note If both aEvent and aDOMEvent are used, aEvent must be the internal
-   *       event of the aDOMEvent.
-   *
-   * If aDOMEvent is not nullptr (in which case aEvent can be nullptr) it is used
-   * for dispatching, otherwise aEvent is used.
-   *
-   * @deprecated This method is here just until all the callers outside Gecko
-   *             have been converted to use nsIDOMEventTarget::dispatchEvent.
-   */
-  [noscript, nostdcall]
-  void DispatchDOMEvent(in WidgetEventPtr aEvent,
-                        in nsIDOMEvent aDOMEvent,
-                        in nsPresContextPtr aPresContext,
-                        in nsEventStatusPtr aEventStatus);
 
   /**
    * Get the script context in which the event handlers should be run.

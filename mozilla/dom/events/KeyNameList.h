@@ -32,10 +32,6 @@ DEFINE_KEYNAME_INTERNAL(PrintableKey, "MozPrintableKey")
 DEFINE_KEYNAME_INTERNAL(SoftLeft, "MozSoftLeft")
 DEFINE_KEYNAME_INTERNAL(SoftRight, "MozSoftRight")
 
-#ifdef MOZ_B2G
-DEFINE_KEYNAME_INTERNAL(HomeScreen, "MozHomeScreen")
-#endif // #ifdef MOZ_B2G
-
 /******************************************************************************
  * Modifier Keys
  *****************************************************************************/
@@ -216,6 +212,7 @@ DEFINE_KEYNAME_WITH_SAME_NAME(Close)
 DEFINE_KEYNAME_WITH_SAME_NAME(MailForward)
 DEFINE_KEYNAME_WITH_SAME_NAME(MailReply)
 DEFINE_KEYNAME_WITH_SAME_NAME(MailSend)
+DEFINE_KEYNAME_WITH_SAME_NAME(MediaFastForward)
 DEFINE_KEYNAME_WITH_SAME_NAME(MediaPause)
 DEFINE_KEYNAME_WITH_SAME_NAME(MediaPlay)
 DEFINE_KEYNAME_WITH_SAME_NAME(MediaPlayPause)
@@ -400,7 +397,6 @@ DEFINE_KEYNAME_WITH_SAME_NAME(LiveContent)
 DEFINE_KEYNAME_WITH_SAME_NAME(Lock)
 DEFINE_KEYNAME_WITH_SAME_NAME(MediaApps)
 DEFINE_KEYNAME_WITH_SAME_NAME(MediaAudioTrack)
-DEFINE_KEYNAME_WITH_SAME_NAME(MediaFastForward)
 DEFINE_KEYNAME_WITH_SAME_NAME(MediaLast)
 DEFINE_KEYNAME_WITH_SAME_NAME(MediaSkipBackward)
 DEFINE_KEYNAME_WITH_SAME_NAME(MediaSkipForward)

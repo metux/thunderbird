@@ -13,15 +13,15 @@ const HOME_PAGE = "chrome://mozscreenshots/content/lib/mozscreenshots.html";
 
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
+Cu.import("resource://gre/modules/Geometry.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "BrowserTestUtils",
                                   "resource://testing-common/BrowserTestUtils.jsm");
 
-Cu.import("chrome://mozscreenshots/content/Screenshot.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Screenshot", "chrome://mozscreenshots/content/Screenshot.jsm");
 
 // Create a new instance of the ConsoleAPI so we can control the maxLogLevel with a pref.
 // See LOG_LEVELS in Console.jsm. Common examples: "All", "Info", "Warn", & "Error".
@@ -42,6 +42,7 @@ this.TestRunner = {
   currentComboIndex: 0,
   _lastCombo: null,
   _libDir: null,
+  croppingPadding: 10,
 
   init(extensionPath) {
     log.debug("init");
@@ -51,7 +52,7 @@ this.TestRunner = {
   /**
    * Load specified sets, execute all combinations of them, and capture screenshots.
    */
-  start: Task.async(function*(setNames, jobName = null) {
+  async start(setNames, jobName = null) {
     let subDirs = ["mozscreenshots",
                    (new Date()).toISOString().replace(/:/g, "-") + "_" + Services.appinfo.OS];
     let screenshotPath = FileUtils.getFile("TmpD", subDirs).path;
@@ -89,21 +90,50 @@ this.TestRunner = {
     Services.prefs.setCharPref("extensions.ui.lastCategory", "addons://list/extension");
     // Don't let the caret blink since it causes false positives for image diffs
     Services.prefs.setIntPref("ui.caretBlinkTime", -1);
+    // Disable some animations that can cause false positives, such as the
+    // reload/stop button spinning animation.
+    Services.prefs.setBoolPref("toolkit.cosmeticAnimations.enabled", false);
 
     let browserWindow = Services.wm.getMostRecentWindow("navigator:browser");
+
+    // When being automated through Marionette, Firefox shows a prominent indication
+    // in the urlbar and identity block. We don't want this to show when testing browser UI.
+    // Note that this doesn't prevent subsequently opened windows from showing the automation UI.
+    browserWindow.document.getElementById("main-window").removeAttribute("remotecontrol");
+
     let selectedBrowser = browserWindow.gBrowser.selectedBrowser;
-    yield BrowserTestUtils.loadURI(selectedBrowser, HOME_PAGE);
-    yield BrowserTestUtils.browserLoaded(selectedBrowser);
+    await BrowserTestUtils.loadURI(selectedBrowser, HOME_PAGE);
+    await BrowserTestUtils.browserLoaded(selectedBrowser);
 
     for (let i = 0; i < this.combos.length; i++) {
       this.currentComboIndex = i;
-      yield this._performCombo(this.combos.item(this.currentComboIndex));
+      await this._performCombo(this.combos.item(this.currentComboIndex));
     }
 
     log.info("Done: Completed " + this.completedCombos + " out of " +
              this.combos.length + " configurations.");
     this.cleanup();
-  }),
+  },
+
+  /**
+   * Helper function for loadSets. This filters out the restricted configs from setName.
+   * This was made a helper function to facilitate xpcshell unit testing.
+   * @param {String} setName - set name to be filtered e.g. "Toolbars[onlyNavBar,allToolbars]"
+   * @return {Object} Returns an object with two values: the filtered set name and a set of
+   *                  restricted configs.
+   */
+  filterRestrictions(setName) {
+    let match = /\[([^\]]+)\]$/.exec(setName);
+    if (!match) {
+      throw new Error(`Invalid restrictions in ${setName}`);
+    }
+    // Trim the restrictions from the set name.
+    setName = setName.slice(0, match.index);
+    let restrictions = match[1].split(",").reduce((set, name) => set.add(name.trim())
+                                                 , new Set());
+
+    return { trimmedSetName: setName, restrictions };
+  },
 
   /**
    * Load sets of configurations from JSMs.
@@ -113,6 +143,12 @@ this.TestRunner = {
   loadSets(setNames) {
     let sets = [];
     for (let setName of setNames) {
+      let restrictions = null;
+      if (setName.includes("[")) {
+        let filteredData = this.filterRestrictions(setName);
+        setName = filteredData.trimmedSetName;
+        restrictions = filteredData.restrictions;
+      }
       try {
         let imported = {};
         Cu.import("chrome://mozscreenshots/content/configurations/" + setName + ".jsm",
@@ -122,12 +158,24 @@ this.TestRunner = {
         if (!configurationNames.length) {
           throw new Error(setName + " has no configurations for this environment");
         }
+        // Checks to see if nonexistent configuration have been specified
+        if (restrictions) {
+          let incorrectConfigs = [...restrictions].filter(r => !configurationNames.includes(r));
+          if (incorrectConfigs.length) {
+            throw new Error("non existent configurations: " + incorrectConfigs);
+          }
+        }
+        let configurations = {};
         for (let config of configurationNames) {
           // Automatically set the name property of the configuration object to
           // its name from the configuration object.
           imported[setName].configurations[config].name = config;
+          // Filter restricted configurations.
+          if (!restrictions || restrictions.has(config)) {
+            configurations[config] = imported[setName].configurations[config];
+          }
         }
-        sets.push(imported[setName].configurations);
+        sets.push(configurations);
       } catch (ex) {
         log.error("Error loading set: " + setName);
         log.error(ex);
@@ -146,11 +194,79 @@ this.TestRunner = {
     gBrowser.unpinTab(gBrowser.selectedTab);
     gBrowser.selectedBrowser.loadURI("data:text/html;charset=utf-8,<h1>Done!");
     browserWindow.restore();
+    Services.prefs.clearUserPref("toolkit.cosmeticAnimations.enabled");
   },
 
   // helpers
 
-  _performCombo: function*(combo) {
+  /**
+  * Calculate the bounding box based on CSS selector from config for cropping
+  *
+  * @param {String[]} selectors - array of CSS selectors for relevant DOM element
+  * @return {Geometry.jsm Rect} Rect holding relevant x, y, width, height with padding
+  **/
+  _findBoundingBox(selectors, windowType) {
+    // No selectors provided
+    if (!selectors.length) {
+      log.info("_findBoundingBox: selectors argument is empty");
+      return null;
+    }
+
+    // Set window type, default "navigator:browser"
+    windowType = windowType || "navigator:browser";
+    let browserWindow = Services.wm.getMostRecentWindow(windowType);
+    // Scale for high-density displays
+    const scale = browserWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                        .getInterface(Ci.nsIDocShell).QueryInterface(Ci.nsIBaseWindow)
+                        .devicePixelsPerDesktopPixel;
+
+    let finalRect = undefined;
+    // Grab bounding boxes and find the union
+    for (let selector of selectors) {
+      let element;
+      // Check for function to find anonymous content
+      if (typeof(selector) == "function") {
+        element = selector();
+      } else {
+        element = browserWindow.document.querySelector(selector);
+      }
+
+      // Selector not found
+      if (!element) {
+        log.info("_findBoundingBox: selector not found");
+        return null;
+      }
+
+      // Calculate box region, convert to Rect
+      let box = element.ownerDocument.getBoxObjectFor(element);
+      let newRect = new Rect(box.screenX * scale, box.screenY * scale,
+                             box.width * scale, box.height * scale);
+
+      if (!finalRect) {
+        finalRect = newRect;
+      } else {
+        finalRect = finalRect.union(newRect);
+      }
+    }
+
+    // Add fixed padding
+    finalRect = finalRect.inflateFixed(this.croppingPadding * scale);
+
+    let windowLeft = browserWindow.screenX * scale;
+    let windowTop = browserWindow.screenY * scale;
+    let windowWidth = browserWindow.outerWidth * scale;
+    let windowHeight = browserWindow.outerHeight * scale;
+
+    // Clip dimensions to window only
+    finalRect.left = Math.max(finalRect.left, windowLeft);
+    finalRect.top = Math.max(finalRect.top, windowTop);
+    finalRect.right = Math.min(finalRect.right, windowLeft + windowWidth);
+    finalRect.bottom = Math.min(finalRect.bottom, windowTop + windowHeight);
+
+    return finalRect;
+  },
+
+  async _performCombo(combo) {
     let paddedComboIndex = padLeft(this.currentComboIndex + 1, String(this.combos.length).length);
     log.info("Combination " + paddedComboIndex + "/" + this.combos.length + ": " +
              this._comboName(combo).substring(1));
@@ -177,7 +293,7 @@ this.TestRunner = {
         let config = combo[i];
         if (!this._lastCombo || config !== this._lastCombo[i]) {
           log.debug("promising", config.name);
-          yield changeConfig(config);
+          await changeConfig(config);
         }
       }
 
@@ -196,7 +312,7 @@ this.TestRunner = {
         // have invalidated it.
         if (config.verifyConfig) {
           log.debug("checking if the combo is valid with", config.name);
-          yield config.verifyConfig();
+          await config.verifyConfig();
         }
       }
     } catch (ex) {
@@ -208,7 +324,7 @@ this.TestRunner = {
       return;
     }
 
-    yield this._onConfigurationReady(combo);
+    await this._onConfigurationReady(combo);
   },
 
   _onConfigurationReady(combo) {
@@ -222,7 +338,7 @@ this.TestRunner = {
     };
 
     log.debug("_onConfigurationReady");
-    return Task.spawn(delayedScreenshot);
+    return delayedScreenshot();
   },
 
   _comboName(combo) {
@@ -230,6 +346,45 @@ this.TestRunner = {
       return a + "_" + b.name;
     }, "");
   },
+
+  /**
+   * Finds the index of the first comma that is not enclosed within square brackets.
+   * @param {String} envVar - the string that needs to be searched
+   * @return {Integer} index of valid comma or -1 if not found.
+   */
+  findComma(envVar) {
+    let nestingDepth = 0;
+    for (let i = 0; i < envVar.length; i++) {
+      if (envVar[i] === "[") {
+        nestingDepth += 1;
+      } else if (envVar[i] === "]") {
+        nestingDepth -= 1;
+      } else if (envVar[i] === "," && nestingDepth === 0) {
+        return i;
+      }
+    }
+
+    return -1;
+  },
+
+  /**
+   * Splits the environment variable around commas not enclosed in brackets.
+   * @param {String} envVar - The environment variable
+   * @return {String[]} Array of strings containing the configurations
+   * e.g. ["Toolbars[onlyNavBar,allToolbars]","DevTools[jsdebugger,webconsole]","Tabs"]
+   */
+  splitEnv(envVar) {
+    let result = [];
+
+    let commaIndex = this.findComma(envVar);
+    while (commaIndex != -1) {
+      result.push(envVar.slice(0, commaIndex).trim());
+      envVar = envVar.slice(commaIndex + 1);
+      commaIndex = this.findComma(envVar);
+    }
+    result.push(envVar.trim());
+    return result;
+  }
 };
 
 /**

@@ -11,7 +11,7 @@
 
 #include "nsIMsgCompFields.h"
 #include "msgMapiHook.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsISupports.h"
 #include "nsMsgCompCID.h"
@@ -36,14 +36,12 @@
 
 using namespace mozilla::mailnews;
 
-PRLogModuleInfo *MAPI;
+static mozilla::LazyLogModule MAPI("MAPI");
 
 CMapiImp::CMapiImp()
 : m_cRef(1)
 {
     m_Lock = PR_NewLock();
-  if (!MAPI)
-    MAPI = PR_NewLogModule("MAPI");
 }
 
 CMapiImp::~CMapiImp() 
@@ -169,7 +167,7 @@ STDMETHODIMP CMapiImp::Login(unsigned long aUIArg, LOGIN_PW_TYPE aLogin, LOGIN_P
 
     nsMAPIConfiguration *pConfig = nsMAPIConfiguration::GetMAPIConfiguration();
     if (pConfig != nullptr)
-        nResult = pConfig->RegisterSession(aUIArg, wwc(aLogin), wwc(aPassWord),
+        nResult = pConfig->RegisterSession(aUIArg, char16ptr_t(aLogin), char16ptr_t(aPassWord),
                                            (aFlags & MAPI_FORCE_DOWNLOAD), bNewSession,
                                            &nSession_Id, id_key.get());
     switch (nResult)

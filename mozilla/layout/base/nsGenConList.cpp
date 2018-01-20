@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-// vim:cindent:ts=2:et:sw=2:
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -19,6 +19,7 @@ nsGenConList::Clear()
     delete node;
   }
   mSize = 0;
+  mLastInserted = nullptr;
 }
 
 bool
@@ -41,6 +42,9 @@ nsGenConList::DestroyNodesFor(nsIFrame* aFrame)
     node = nextNode;
   }
 
+  // Modification of the list invalidates the cached pointer.
+  mLastInserted = nullptr;
+
   return true;
 }
 
@@ -54,7 +58,7 @@ nsGenConList::DestroyNodesFor(nsIFrame* aFrame)
  */
 inline int32_t PseudoCompareType(nsIFrame* aFrame, nsIContent** aContent)
 {
-  nsIAtom *pseudo = aFrame->StyleContext()->GetPseudo();
+  nsAtom *pseudo = aFrame->StyleContext()->GetPseudo();
   if (pseudo == nsCSSPseudoElements::before) {
     *aContent = aFrame->GetContent()->GetParent();
     return -1;
@@ -108,6 +112,11 @@ nsGenConList::Insert(nsGenConNode* aNode)
   // Check for append.
   if (mList.isEmpty() || NodeAfter(aNode, mList.getLast())) {
     mList.insertBack(aNode);
+  } else if (mLastInserted && mLastInserted != mList.getLast() &&
+             NodeAfter(aNode, mLastInserted) &&
+             NodeAfter(Next(mLastInserted), aNode)) {
+    // Fast path for inserting many consecutive nodes in one place
+    mLastInserted->setNext(aNode);
   } else {
     // Binary search.
 
@@ -141,6 +150,8 @@ nsGenConList::Insert(nsGenConNode* aNode)
     curNode->setPrevious(aNode);
   }
   ++mSize;
+
+  mLastInserted = aNode;
 
   // Set the mapping only if it is the first node of the frame.
   // The DEBUG blocks below are for ensuring the invariant required by

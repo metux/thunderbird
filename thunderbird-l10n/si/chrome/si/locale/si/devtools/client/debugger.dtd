@@ -212,24 +212,9 @@
   -  the same as netmonitorUI.context.copyUrl -->
 <!ENTITY debuggerUI.context.copyUrl.accesskey "C">
 
-
-<!-- LOCALIZATION NOTE (debuggerUI.context.copyUrl): This is the label displayed
-  -  on the context menu that copies the selected request's url. This should be
-  -  the same as netmonitorUI.context.copyUrl -->
+<!ENTITY debuggerUI.seEditMenuCondBreak     "Edit Conditional Breakpoint">
+<!ENTITY debuggerUI.tabs.workers        "Workers">
+<!ENTITY debuggerUI.tabs.callstack      "Call Stack">
+<!ENTITY debuggerUI.context.newTab           "Open in New Tab">
 <!ENTITY debuggerUI.context.copyUrl           "Copy URL">
 <!ENTITY debuggerUI.context.copyUrl.key "C">
-
-<!-- LOCALIZATION NOTE (debuggerUI.context.newTab):  This is the label
-  -  for the Open in New Tab menu item displayed in the context menu of the
-  -  debugger sources side menu. This should be the same as
-  -  netmonitorUI.context.newTab  -->
-<!ENTITY debuggerUI.context.newTab           "Open in New Tab">
-
-<!-- LOCALIZATION NOTE (debuggerUI.seMenuBreak): This is the text that
-  -  appears in the source editor context menu for editing a breakpoint. -->
-<!ENTITY debuggerUI.seEditMenuCondBreak     "Edit Conditional Breakpoint">
-<!ENTITY debuggerUI.tabs.callstack      "Call Stack">
-
-<!-- LOCALIZATION NOTE (debuggerUI.tabs.*): This is the text that
-  -  appears in the debugger's side pane tabs. -->
-<!ENTITY debuggerUI.tabs.workers        "Workers">

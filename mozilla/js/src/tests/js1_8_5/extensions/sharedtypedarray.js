@@ -12,11 +12,6 @@
 // These tests cannot test that sharing works across workers.  There
 // are or will be tests, in dom/workers, that do that.
 
-if (!this.SharedArrayBuffer) {
-    reportCompare(true,true);
-    quit(0);
-}
-
 var b;
 
 function testSharedArrayBuffer() {
@@ -207,15 +202,12 @@ function testNoClone() {
     assertEq(typeof serialize(b, [], {SharedArrayBuffer: 'allow'}), "object");
 }
 
-// Eventually, this will be prohibited, but for now, allow the SAB to
-// appear in the transfer list.  See bug 1302036 and bug 1302037.
-
 function testRedundantTransfer() {
-    var sab1 = b;
-    var blob = serialize(sab1, [sab1]);
-    var sab2 = deserialize(blob);
-    if (typeof sharedAddress != "undefined")
-	assertEq(sharedAddress(sab1), sharedAddress(sab2));
+    // Throws TypeError in the shell, DataCloneError in the browser.
+    assertThrowsInstanceOf(() => {
+	var sab1 = b;
+	var blob = serialize(sab1, [sab1]);
+    }, TypeError);
 }
 
 function testApplicable() {
@@ -251,13 +243,15 @@ function testApplicable() {
     assertEq(x.length, sab.byteLength / Float64Array.BYTES_PER_ELEMENT);
 }
 
-testSharedArrayBuffer();
-testSharedTypedArray();
-testSharedTypedArrayMethods();
-testClone1();
-testClone2();
-testNoClone();
-testRedundantTransfer();
-testApplicable();
+if (this.SharedArrayBuffer) {
+    testSharedArrayBuffer();
+    testSharedTypedArray();
+    testSharedTypedArrayMethods();
+    testClone1();
+    testClone2();
+    testNoClone();
+    testRedundantTransfer();
+    testApplicable();
+}
 
 reportCompare(0, 0, 'ok');

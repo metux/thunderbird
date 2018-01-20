@@ -5,7 +5,12 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["BrowserUsageTelemetry"];
+this.EXPORTED_SYMBOLS = [
+  "BrowserUsageTelemetry",
+  "URLBAR_SELECTED_RESULT_TYPES",
+  "URLBAR_SELECTED_RESULT_METHODS",
+  "MINIMUM_TAB_COUNT_INTERVAL_MS",
+ ];
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
@@ -19,10 +24,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
 const MAX_UNIQUE_VISITED_DOMAINS = 100;
 
 // Observed topic names.
-const WINDOWS_RESTORED_TOPIC = "sessionstore-windows-restored";
 const TAB_RESTORING_TOPIC = "SSTabRestoring";
 const TELEMETRY_SUBSESSIONSPLIT_TOPIC = "internal-telemetry-after-subsession-split";
 const DOMWINDOW_OPENED_TOPIC = "domwindowopened";
+const AUTOCOMPLETE_ENTER_TEXT_TOPIC = "autocomplete-did-enter-text";
 
 // Probe names.
 const MAX_TAB_COUNT_SCALAR_NAME = "browser.engagement.max_concurrent_tab_count";
@@ -48,6 +53,42 @@ const KNOWN_ONEOFF_SOURCES = [
   "unknown", // Edge case: this is the searchbar (see bug 1195733 comment 7).
 ];
 
+/**
+ * The buckets used for logging telemetry to the FX_URLBAR_SELECTED_RESULT_TYPE
+ * histogram.
+ */
+const URLBAR_SELECTED_RESULT_TYPES = {
+  autofill: 0,
+  bookmark: 1,
+  history: 2,
+  keyword: 3,
+  searchengine: 4,
+  searchsuggestion: 5,
+  switchtab: 6,
+  tag: 7,
+  visiturl: 8,
+  remotetab: 9,
+  extension: 10,
+  "preloaded-top-site": 11,
+};
+
+/**
+ * This maps the categories used by the FX_URLBAR_SELECTED_RESULT_METHOD and
+ * FX_SEARCHBAR_SELECTED_RESULT_METHOD histograms to their indexes in the
+ * `labels` array.  This only needs to be used by tests that need to map from
+ * category names to indexes in histogram snapshots.  Actual app code can use
+ * these category names directly when they add to a histogram.
+ */
+const URLBAR_SELECTED_RESULT_METHODS = {
+  enter: 0,
+  enterSelection: 1,
+  click: 2,
+};
+
+
+const MINIMUM_TAB_COUNT_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes, in ms
+
+
 function getOpenTabsAndWinsCounts() {
   let tabCount = 0;
   let winCount = 0;
@@ -62,17 +103,16 @@ function getOpenTabsAndWinsCounts() {
   return { tabCount, winCount };
 }
 
+function getTabCount() {
+  return getOpenTabsAndWinsCounts().tabCount;
+}
+
 function getSearchEngineId(engine) {
   if (engine) {
     if (engine.identifier) {
       return engine.identifier;
     }
-    // Due to bug 1222070, we can't directly check Services.telemetry.canRecordExtended
-    // here.
-    const extendedTelemetry = Services.prefs.getBoolPref("toolkit.telemetry.enabled");
-    if (engine.name && extendedTelemetry) {
-      // If it's a custom search engine only report the engine name
-      // if extended Telemetry is enabled.
+    if (engine.name) {
       return "other-" + engine.name;
     }
   }
@@ -133,7 +173,7 @@ let URICountListener = {
 
     // Don't count about:blank and similar pages, as they would artificially
     // inflate the counts.
-    if (browser.ownerDocument.defaultView.gInitialPages.includes(uriSpec)) {
+    if (browser.ownerGlobal.gInitialPages.includes(uriSpec)) {
       return;
     }
 
@@ -156,6 +196,9 @@ let URICountListener = {
 
     // Update the URI counts.
     Services.telemetry.scalarAdd(TOTAL_URI_COUNT_SCALAR_NAME, 1);
+
+    // Update tab count
+    BrowserUsageTelemetry._recordTabCount();
 
     // We only want to count the unique domains up to MAX_UNIQUE_VISITED_DOMAINS.
     if (this._domainSet.size == MAX_UNIQUE_VISITED_DOMAINS) {
@@ -187,9 +230,99 @@ let URICountListener = {
                                          Ci.nsISupportsWeakReference]),
 };
 
-let BrowserUsageTelemetry = {
+let urlbarListener = {
+
+  // This is needed for recordUrlbarSelectedResultMethod().
+  selectedIndex: -1,
+
   init() {
-    Services.obs.addObserver(this, WINDOWS_RESTORED_TOPIC, false);
+    Services.obs.addObserver(this, AUTOCOMPLETE_ENTER_TEXT_TOPIC, true);
+  },
+
+  uninit() {
+    Services.obs.removeObserver(this, AUTOCOMPLETE_ENTER_TEXT_TOPIC);
+  },
+
+  observe(subject, topic, data) {
+    switch (topic) {
+      case AUTOCOMPLETE_ENTER_TEXT_TOPIC:
+        this._handleURLBarTelemetry(subject.QueryInterface(Ci.nsIAutoCompleteInput));
+        break;
+    }
+  },
+
+  /**
+   * Used to log telemetry when the user enters text in the urlbar.
+   *
+   * @param {nsIAutoCompleteInput} input  The autocomplete element where the
+   *                                      text was entered.
+   */
+  _handleURLBarTelemetry(input) {
+    if (!input || input.id != "urlbar") {
+      return;
+    }
+    if (input.inPrivateContext || input.popup.selectedIndex < 0) {
+      this.selectedIndex = -1;
+      return;
+    }
+
+    // Except for the history popup, the urlbar always has a selection.  The
+    // first result at index 0 is the "heuristic" result that indicates what
+    // will happen when you press the Enter key.  Treat it as no selection.
+    this.selectedIndex =
+      input.popup.selectedIndex > 0 || !input.popup._isFirstResultHeuristic ?
+      input.popup.selectedIndex :
+      -1;
+
+    let controller =
+      input.popup.view.QueryInterface(Ci.nsIAutoCompleteController);
+    let idx = input.popup.selectedIndex;
+    let value = controller.getValueAt(idx);
+    let action = input._parseActionUrl(value);
+    let actionType;
+    if (action) {
+      actionType =
+        action.type == "searchengine" && action.params.searchSuggestion ?
+          "searchsuggestion" :
+        action.type;
+    }
+    if (!actionType) {
+      let styles = new Set(controller.getStyleAt(idx).split(/\s+/));
+      let style = ["preloaded-top-site", "autofill", "tag", "bookmark"].find(s => styles.has(s));
+      actionType = style || "history";
+    }
+
+    Services.telemetry
+            .getHistogramById("FX_URLBAR_SELECTED_RESULT_INDEX")
+            .add(idx);
+
+    // You can add values but don't change any of the existing values.
+    // Otherwise you'll break our data.
+    if (actionType in URLBAR_SELECTED_RESULT_TYPES) {
+      Services.telemetry
+              .getHistogramById("FX_URLBAR_SELECTED_RESULT_TYPE")
+              .add(URLBAR_SELECTED_RESULT_TYPES[actionType]);
+      Services.telemetry
+              .getKeyedHistogramById("FX_URLBAR_SELECTED_RESULT_INDEX_BY_TYPE")
+              .add(actionType, idx);
+    } else {
+      Cu.reportError("Unknown FX_URLBAR_SELECTED_RESULT_TYPE type: " +
+                     actionType);
+    }
+  },
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
+                                         Ci.nsISupportsWeakReference]),
+};
+
+let BrowserUsageTelemetry = {
+  _inited: false,
+
+  init() {
+    this._lastRecordTabCount = 0;
+    urlbarListener.init();
+    this._setupAfterRestore();
+    this._inited = true;
   },
 
   /**
@@ -207,17 +340,20 @@ let BrowserUsageTelemetry = {
     URICountListener.reset();
   },
 
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
+                                         Ci.nsISupportsWeakReference]),
+
   uninit() {
-    Services.obs.removeObserver(this, DOMWINDOW_OPENED_TOPIC, false);
-    Services.obs.removeObserver(this, TELEMETRY_SUBSESSIONSPLIT_TOPIC, false);
-    Services.obs.removeObserver(this, WINDOWS_RESTORED_TOPIC, false);
+    if (!this._inited) {
+      return;
+    }
+    Services.obs.removeObserver(this, DOMWINDOW_OPENED_TOPIC);
+    Services.obs.removeObserver(this, TELEMETRY_SUBSESSIONSPLIT_TOPIC);
+    urlbarListener.uninit();
   },
 
   observe(subject, topic, data) {
     switch (topic) {
-      case WINDOWS_RESTORED_TOPIC:
-        this._setupAfterRestore();
-        break;
       case DOMWINDOW_OPENED_TOPIC:
         this._onWindowOpen(subject);
         break;
@@ -268,7 +404,7 @@ let BrowserUsageTelemetry = {
    *        The object describing the event that triggered the search.
    * @throws if source is not in the known sources list.
    */
-  recordSearch(engine, source, details={}) {
+  recordSearch(engine, source, details = {}) {
     const isOneOff = !!details.isOneOff;
     const countId = getSearchEngineId(engine) + "." + source;
 
@@ -279,7 +415,7 @@ let BrowserUsageTelemetry = {
         // calling |recordSearch| twice from two different
         // code paths because they want to record the search
         // in SEARCH_COUNTS.
-        if (['urlbar', 'searchbar'].includes(source)) {
+        if (["urlbar", "searchbar"].includes(source)) {
           Services.telemetry.getKeyedHistogramById("SEARCH_COUNTS").add(countId);
           return;
         }
@@ -371,14 +507,65 @@ let BrowserUsageTelemetry = {
   },
 
   /**
+   * Records the method by which the user selected a urlbar result.
+   *
+   * @param {nsIDOMEvent} event
+   *        The event that triggered the selection.
+   */
+  recordUrlbarSelectedResultMethod(event) {
+    // The reason this method relies on urlbarListener instead of having the
+    // caller pass in an index is that by the time the urlbar handles a
+    // selection, the selection in its popup has been cleared, so it's not easy
+    // to tell which popup index was selected.  Fortunately this file already
+    // has urlbarListener, which gets notified of selections in the urlbar
+    // before the popup selection is cleared, so just use that.
+    this._recordUrlOrSearchbarSelectedResultMethod(
+      event, urlbarListener.selectedIndex,
+      "FX_URLBAR_SELECTED_RESULT_METHOD"
+    );
+  },
+
+  /**
+   * Records the method by which the user selected a searchbar result.
+   *
+   * @param {nsIDOMEvent} event
+   *        The event that triggered the selection.
+   * @param {number} highlightedIndex
+   *        The index that the user chose in the popup, or -1 if there wasn't a
+   *        selection.
+   */
+  recordSearchbarSelectedResultMethod(event, highlightedIndex) {
+    this._recordUrlOrSearchbarSelectedResultMethod(
+      event, highlightedIndex,
+      "FX_SEARCHBAR_SELECTED_RESULT_METHOD"
+    );
+  },
+
+  _recordUrlOrSearchbarSelectedResultMethod(event, highlightedIndex, histogramID) {
+    let histogram = Services.telemetry.getHistogramById(histogramID);
+    // command events are from the one-off context menu.  Treat them as clicks.
+    let isClick = event instanceof Ci.nsIDOMMouseEvent ||
+                  (event && event.type == "command");
+    let category;
+    if (isClick) {
+      category = "click";
+    } else if (highlightedIndex >= 0) {
+      category = "enterSelection";
+    } else {
+      category = "enter";
+    }
+    histogram.add(category);
+  },
+
+  /**
    * This gets called shortly after the SessionStore has finished restoring
    * windows and tabs. It counts the open tabs and adds listeners to all the
    * windows.
    */
   _setupAfterRestore() {
     // Make sure to catch new chrome windows and subsession splits.
-    Services.obs.addObserver(this, DOMWINDOW_OPENED_TOPIC, false);
-    Services.obs.addObserver(this, TELEMETRY_SUBSESSIONSPLIT_TOPIC, false);
+    Services.obs.addObserver(this, DOMWINDOW_OPENED_TOPIC, true);
+    Services.obs.addObserver(this, TELEMETRY_SUBSESSIONSPLIT_TOPIC, true);
 
     // Attach the tabopen handlers to the existing Windows.
     let browserEnum = Services.wm.getEnumerator("navigator:browser");
@@ -433,6 +620,8 @@ let BrowserUsageTelemetry = {
     // Update the "tab opened" count and its maximum.
     Services.telemetry.scalarAdd(TAB_OPEN_EVENT_COUNT_SCALAR_NAME, 1);
     Services.telemetry.scalarSetMaximum(MAX_TAB_COUNT_SCALAR_NAME, tabCount);
+
+    this._recordTabCount(tabCount);
   },
 
   /**
@@ -446,7 +635,7 @@ let BrowserUsageTelemetry = {
     }
 
     let onLoad = () => {
-      win.removeEventListener("load", onLoad, false);
+      win.removeEventListener("load", onLoad);
 
       // Ignore non browser windows.
       if (win.document.documentElement.getAttribute("windowtype") != "navigator:browser") {
@@ -463,6 +652,17 @@ let BrowserUsageTelemetry = {
       // Account for that.
       this._onTabOpen(counts.tabCount);
     };
-    win.addEventListener("load", onLoad, false);
+    win.addEventListener("load", onLoad);
   },
+
+  _recordTabCount(tabCount) {
+    let currentTime = Date.now();
+    if (currentTime > this._lastRecordTabCount + MINIMUM_TAB_COUNT_INTERVAL_MS) {
+      if (tabCount === undefined) {
+        tabCount = getTabCount();
+      }
+      Services.telemetry.getHistogramById("TAB_COUNT").add(tabCount);
+      this._lastRecordTabCount = currentTime;
+    }
+  }
 };

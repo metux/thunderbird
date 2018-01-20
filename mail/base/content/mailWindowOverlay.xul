@@ -23,6 +23,7 @@
 <?xul-overlay href="chrome://messenger/content/macMenuOverlay.xul"?>
 #endif
 <?xul-overlay href="chrome://messenger/content/baseMenuOverlay.xul"?>
+<?xul-overlay href="chrome://messenger/content/about-support/aboutSupportOverlay.xul"?>
 
 <!DOCTYPE overlay [
   <!ENTITY % messengerDTD SYSTEM "chrome://messenger/locale/messenger.dtd">
@@ -248,8 +249,9 @@
   <command id="cmd_forward" oncommand="MsgForwardMessage(event);"/>
   <command id="cmd_forwardInline" oncommand="MsgForwardAsInline(event)"/>
   <command id="cmd_forwardAttachment" oncommand="MsgForwardAsAttachment(event);"/>
-  <command id="cmd_editAsNew" oncommand="goDoCommand('cmd_editAsNew')"/>
-  <command id="cmd_editDraftMsg" oncommand="goDoCommand('cmd_editDraftMsg')"/>
+  <command id="cmd_editAsNew" oncommand="MsgEditMessageAsNew(event);"/>
+  <command id="cmd_editDraftMsg" oncommand="MsgEditDraftMessage(event);"/>
+  <command id="cmd_newMsgFromTemplate" oncommand="MsgNewMessageFromTemplate(event);"/>
   <command id="cmd_openMessage" oncommand="goDoCommand('cmd_openMessage')"/>
   <command id="cmd_openConversation" oncommand="goDoCommand('cmd_openConversation')"/>
   <command id="cmd_moveToFolderAgain" oncommand="goDoCommand('cmd_moveToFolderAgain')"/>
@@ -418,7 +420,7 @@
   <key id="key_archive" key="&archiveMsgCmd.key;"                    oncommand="goDoCommand('cmd_archive')"/>
   <key id="key_goForward" key="&goForwardCmd.commandKey;"            oncommand="goDoCommand('cmd_goForward')"/>
   <key id="key_goBack" key="&goBackCmd.commandKey;"                  oncommand="goDoCommand('cmd_goBack')"/>
-  <key id="key_goChat" key="&goChatCmd.key;"                         oncommand="goDoCommand('cmd_chat')" modifiers="accel,shift"/>
+  <key id="key_goChat" key="&goChatCmd2.key;"                        oncommand="goDoCommand('cmd_chat')" modifiers="accel,shift"/>
   <key id="key_goStartPage" keycode="VK_HOME"                        oncommand="goDoCommand('cmd_goStartPage')" modifiers="alt"/>
   <key id="key_undoCloseTab" key="&undoCloseTabCmd.commandkey;"      oncommand="goDoCommand('cmd_undoCloseTab')" modifiers="accel, shift"/>
   <key id="key_reply" key="&replyMsgCmd.key;"                        oncommand="goDoCommand('cmd_reply')" modifiers="accel"/>
@@ -426,6 +428,7 @@
   <key id="key_replylist" key="&replyToListMsgCmd.key;"              oncommand="goDoCommand('cmd_replylist')" modifiers="accel, shift"/>
   <key id="key_forward" key="&forwardMsgCmd.key;"                    oncommand="goDoCommand('cmd_forward')" modifiers="accel"/>
   <key id="key_editAsNew" key="&editAsNewMsgCmd.key;"                oncommand="goDoCommand('cmd_editAsNew')" modifiers="accel"/>
+  <key id="key_newMsgFromTemplate" keycode="&newMsgFromTemplateCmd.keycode;"/><!-- for display on menus only -->
   <key id="key_watchThread" key="&watchThreadMenu.key;"              oncommand="goDoCommand('cmd_watchThread')" />
   <key id="key_killThread" key="&killThreadMenu.key;"                oncommand="goDoCommand('cmd_killThread')" />
   <key id="key_killSubthread" key="&killSubthreadMenu.key;"          oncommand="goDoCommand('cmd_killSubthread')" modifiers="shift" />
@@ -675,6 +678,14 @@
         </menupopup>
     </menu>
 
+    <menuitem id="mailContext-editDraftMsg"
+              label="&contextEditDraftMsg.label;"
+              default="true"
+              oncommand="MsgEditDraftMessage(event);"/>
+    <menuitem id="mailContext-newMsgFromTemplate"
+              label="&contextNewMsgFromTemplate.label;"
+              default="true"
+              oncommand="MsgNewMessageFromTemplate(event);"/>
     <menuseparator id="mailContext-sep-open"/>
     <menuitem id="mailContext-media-play"
               label="&contextPlay.label;"
@@ -754,9 +765,6 @@
               label="&contextEditMsgAsNew.label;"
               accesskey="&contextEditMsgAsNew.accesskey;"
               oncommand="MsgEditMessageAsNew(event);"/>
-    <menuitem id="mailContext-editDraftMsg"
-              label="&contextEditDraftMsg.label;"
-              oncommand="MsgEditDraftMessage(event);"/>
     <menuseparator id="mailContext-sep-reply"/>
     <menu id="mailContext-tags" label="&tagMenu.label;" accesskey="&tagMenu.accesskey;">
       <menupopup id="mailContext-tagpopup"
@@ -940,6 +948,17 @@
               label="&folderContextGetMessages.label;"
               accesskey="&folderContextGetMessages.accesskey;"
               oncommand="MsgGetMessage();"/>
+    <menuitem id="folderPaneContext-pauseAllUpdates"
+              type="checkbox"
+              label="&folderContextPauseAllUpdates.label;"
+              accesskey="&folderContextPauseUpdates.accesskey;"
+              oncommand="MsgPauseUpdates(this);"/>
+    <menuitem id="folderPaneContext-pauseUpdates"
+              type="checkbox"
+              label="&folderContextPauseUpdates.label;"
+              accesskey="&folderContextPauseUpdates.accesskey;"
+              oncommand="MsgPauseUpdates(this);"/>
+    <menuseparator id="folderPaneContext-sepPause"/>
     <menuitem id="folderPaneContext-openNewTab"
               label="&folderContextOpenNewTab.label;"
               accesskey="&folderContextOpenNewTab.accesskey;"
@@ -1185,9 +1204,8 @@
             </menupopup>
           </menu>
         </hbox>
-        <splitmenu id="appmenu_find"
-                   label="&findMenu.label;"
-                   command="cmd_find">
+        <menu id="appmenu_find"
+              label="&findMenu.label;">
           <menupopup id="appmenu_FindPopup">
             <menuitem id="appmenu_findCmd"
                       label="&findCmd.label;"
@@ -1206,7 +1224,7 @@
                       label="&searchAddressesCmd.label;"
                       oncommand="MsgSearchAddresses()"/>
           </menupopup>
-        </splitmenu>
+        </menu>
         <splitmenu id="appmenu_print"
                    iconic="true"
                    label="&printCmd.label;"
@@ -1430,7 +1448,7 @@
               </menupopup>
             </menu>
             <menuitem id="appmenu_getNextNMsgs"
-                      label="&getNextNMsgCmd.label;"
+                      label="&getNextNMsgCmd2.label;"
                       command="cmd_getNextNMessages"/>
             <menuitem id="appmenu_sendUnsentMsgs"
                       label="&sendUnsentCmd.label;"
@@ -1929,6 +1947,10 @@
                       label="&editDraftMsgCmd.label;"
                       accesskey="&editDraftMsgCmd.accesskey;"
                       command="cmd_editDraftMsg"/>
+            <menuitem id="appmenu_newMsgFromTemplateCmd"
+                      label="&newMsgFromTemplateCmd.label;"
+                      key="key_newMsgFromTemplate"
+                      command="cmd_newMsgFromTemplate"/>
             <menuseparator id="appmenu_messageMenuAfterCompositionCommandsSeparator"/>
             <menuitem id="appmenu_openMessageWindowMenuitem"
                       label="&openMessageWindowCmd.label;"
@@ -2179,7 +2201,7 @@
               <menuseparator/>
               <menuitem id="appmenu_troubleshootingInfo"
                         label="&helpTroubleshootingInfo.label;"
-                        oncommand="AboutSupportOverlay.openInNewTab();"/>
+                        oncommand="openAboutSupport();"/>
               <menuseparator/>
               <menuitem id="appmenu_safeMode"
                   label="&helpSafeMode.label;"
@@ -2353,7 +2375,8 @@
               <menuseparator/>
             </menupopup>
           </menu>
-          <menuitem id="menu_getnextnmsg" label="&getNextNMsgCmd.label;" accesskey="&getNextNMsgCmd.accesskey;"
+          <menuitem id="menu_getnextnmsg" label="&getNextNMsgCmd2.label;"
+                    accesskey="&getNextNMsgCmd2.accesskey;"
                     command="cmd_getNextNMessages"/>
           <menuitem id="menu_sendunsentmsgs" label="&sendUnsentCmd.label;"
                     accesskey="&sendUnsentCmd.accesskey;" command="cmd_sendUnsentMsgs"/>
@@ -2823,6 +2846,10 @@
                       label="&editDraftMsgCmd.label;"
                       accesskey="&editDraftMsgCmd.accesskey;"
                       command="cmd_editDraftMsg"/>
+            <menuitem id="menu_newMsgFromTemplate"
+                      label="&newMsgFromTemplateCmd.label;"
+                      key="key_newMsgFromTemplate"
+                      command="cmd_newMsgFromTemplate"/>
             <menuseparator id="messageMenuAfterCompositionCommandsSeparator"/>
             <menuitem id="openMessageWindowMenuitem" label="&openMessageWindowCmd.label;"
                       command="cmd_openMessage"
@@ -3098,7 +3125,7 @@
 
 #ifdef XP_MACOSX
 <!-- Mac window menu -->
-#include ../../../mozilla/toolkit/content/macWindowMenu.inc
+#includesubst @TOOLKIT_DIR@/content/macWindowMenu.inc
 #endif
 
       <!-- Help -->
@@ -3459,7 +3486,7 @@
 </toolbox>
 
 <statusbar class="chromeclass-status" id="status-bar">
-  <hbox insertbefore="unreadMessageCount"  id="statusTextBox" flex="1">
+  <hbox insertbefore="unreadMessageCount"  id="statusTextBox" ondblclick="openActivityMgr();" flex="1">
     <statusbarpanel id="offline-status" class="statusbarpanel-iconic" oncommand="MailOfflineMgr.toggleOfflineStatus();"/>
     <statusbarpanel id="statusText" label="&statusText.label;" flex="1"/>
     <statusbarpanel class="statusbarpanel-progress" collapsed="true" id="statusbar-progresspanel">

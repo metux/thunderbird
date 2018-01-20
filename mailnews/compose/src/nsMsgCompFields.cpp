@@ -60,7 +60,7 @@ static_assert(MOZ_ARRAY_LENGTH(kHeaders) ==
 
 NS_IMPL_ISUPPORTS(nsMsgCompFields, nsIMsgCompFields, msgIStructuredHeaders,
   msgIWritableStructuredHeaders)
- 
+
 nsMsgCompFields::nsMsgCompFields()
 : mStructuredHeaders(do_CreateInstance(NS_ISTRUCTUREDHEADERS_CONTRACTID))
 {
@@ -608,7 +608,7 @@ nsMsgCompFields::SplitRecipients(const nsAString &aRecipients,
     ExtractDisplayAddresses(header, results);
 
   uint32_t count = results.Length();
-  char16_t **result = (char16_t **)NS_Alloc(sizeof(char16_t *) * count);
+  char16_t **result = (char16_t **)moz_xmalloc(sizeof(char16_t *) * count);
   for (uint32_t i = 0; i < count; ++i)
     result[i] = ToNewUnicode(results[i]);
 
@@ -661,8 +661,7 @@ NS_IMETHODIMP nsMsgCompFields::ConvertBodyToPlainText()
 NS_IMETHODIMP nsMsgCompFields::GetSecurityInfo(nsISupports ** aSecurityInfo)
 {
   NS_ENSURE_ARG_POINTER(aSecurityInfo);
-  *aSecurityInfo = mSecureCompFields;
-  NS_IF_ADDREF(*aSecurityInfo);
+  NS_IF_ADDREF(*aSecurityInfo = mSecureCompFields);
   return NS_OK;
 }
 

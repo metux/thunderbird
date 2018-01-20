@@ -8,17 +8,21 @@
 #include "MediaEngine.h"
 
 #include "nsDirectoryServiceDefs.h"
+#include "mozilla/Unused.h"
 
 // conflicts with #include of scoped_ptr.h
 #undef FF
-#include "webrtc/video_engine/include/vie_capture.h"
+// Avoid warnings about redefinition of WARN_UNUSED_RESULT
+#include "ipc/IPCMessageUtils.h"
+
+// WebRTC includes
+#include "webrtc/modules/video_capture/video_capture_defines.h"
+
+namespace webrtc {
+  using CaptureCapability = VideoCaptureCapability;
+}
 
 namespace mozilla {
-
-bool operator == (const webrtc::CaptureCapability& a,
-                  const webrtc::CaptureCapability& b);
-bool operator != (const webrtc::CaptureCapability& a,
-                  const webrtc::CaptureCapability& b);
 
 class MediaEngineCameraVideoSource : public MediaEngineVideoSource
 {
@@ -31,7 +35,6 @@ public:
     , mWidth(0)
     , mHeight(0)
     , mInitDone(false)
-    , mHasDirectListeners(false)
     , mCaptureIndex(aIndex)
     , mTrackID(0)
   {}
@@ -41,7 +44,6 @@ public:
 
   void GetName(nsAString& aName) const override;
   void GetUUID(nsACString& aUUID) const override;
-  void SetDirectListeners(bool aHasListeners) override;
 
   bool IsFake() override
   {
@@ -57,7 +59,14 @@ public:
       const nsTArray<const NormalizedConstraintSet*>& aConstraintSets,
       const nsString& aDeviceId) const override;
 
-  void Shutdown() override {};
+  void Shutdown() override
+  {
+    MonitorAutoLock lock(mMonitor);
+    // really Stop() *should* be called before it gets here
+    Unused << NS_WARN_IF(mImage);
+    mImage = nullptr;
+    mImageContainer = nullptr;
+  }
 
 protected:
   struct CapabilityCandidate {
@@ -108,12 +117,10 @@ protected:
   nsTArray<PrincipalHandle> mPrincipalHandles; // Directly mapped to mSources.
   RefPtr<layers::Image> mImage;
   RefPtr<layers::ImageContainer> mImageContainer;
-  int mWidth, mHeight; // protected with mMonitor on Gonk due to different threading
   // end of data protected by mMonitor
 
-
+  int mWidth, mHeight;
   bool mInitDone;
-  bool mHasDirectListeners;
   int mCaptureIndex;
   TrackID mTrackID;
 

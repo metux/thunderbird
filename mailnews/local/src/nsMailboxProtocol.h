@@ -11,7 +11,6 @@
 #include "nsCOMPtr.h"
 #include "nsIFile.h"
 #include "nsIChannel.h"
-#include "nsIInputStreamPump.h"
 #include "nsIOutputStream.h"
 #include "nsIMailboxUrl.h"
 // State Flags (Note, I use the word state in terms of storing
@@ -96,7 +95,7 @@ private:
   virtual nsresult CloseSocket() override;
 
   nsresult SetupMessageExtraction();
-  nsresult OpenMultipleMsgTransport(uint64_t offset, int32_t size);
+  nsresult OpenMultipleMsgTransport(uint64_t offset, int64_t size);
   bool RunningMultipleMsgUrl();
 
   ////////////////////////////////////////////////////////////////////////////////////////

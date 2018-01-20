@@ -30,8 +30,7 @@ function check_addon(aAddon, aVersion) {
   if (aVersion == "1.0") {
     do_check_true(aAddon.hasResource("testfile1"));
     do_check_false(aAddon.hasResource("testfile2"));
-  }
-  else {
+  } else {
     do_check_false(aAddon.hasResource("testfile1"));
     do_check_true(aAddon.hasResource("testfile2"));
   }
@@ -61,8 +60,7 @@ function check_addon_uninstalling(aAddon, aAfterRestart) {
   if (aAfterRestart) {
     do_check_false(aAddon.isActive);
     do_check_false(isExtensionInAddonsList(profileDir, aAddon.id));
-  }
-  else {
+  } else {
     do_check_true(aAddon.isActive);
     do_check_true(isExtensionInAddonsList(profileDir, aAddon.id));
   }
@@ -125,10 +123,10 @@ function run_test_1() {
 function run_test_2() {
   restartManager();
 
-  installAllFiles([do_get_addon("test_bug587088_1")], function() {
-    restartManager();
+  installAllFiles([do_get_addon("test_bug587088_1")], async function() {
+    await promiseRestartManager();
 
-    AddonManager.getAddonByID("addon1@tests.mozilla.org", callback_soon(function(a1) {
+    AddonManager.getAddonByID("addon1@tests.mozilla.org", callback_soon(async function(a1) {
       check_addon(a1, "1.0");
 
       // Lock either install.rdf for unpacked add-ons or the xpi for packed add-ons.
@@ -144,19 +142,19 @@ function run_test_2() {
 
       check_addon_uninstalling(a1);
 
-      restartManager();
+      await promiseRestartManager();
 
-      AddonManager.getAddonByID("addon1@tests.mozilla.org", callback_soon(function(a1_2) {
+      AddonManager.getAddonByID("addon1@tests.mozilla.org", callback_soon(async function(a1_2) {
         check_addon_uninstalling(a1_2, true);
 
-        restartManager();
+        await promiseRestartManager();
 
-        AddonManager.getAddonByID("addon1@tests.mozilla.org", callback_soon(function(a1_3) {
+        AddonManager.getAddonByID("addon1@tests.mozilla.org", callback_soon(async function(a1_3) {
           check_addon_uninstalling(a1_3, true);
 
           fstream.close();
 
-          restartManager();
+          await promiseRestartManager();
 
           AddonManager.getAddonByID("addon1@tests.mozilla.org", function(a1_4) {
             do_check_eq(a1_4, null);

@@ -414,9 +414,10 @@ var mailTestUtils = {
    * @param aFuncThis Optional 'this' pointer to use.
    * @param aFuncArgs Optional list of arguments to pass to the function.
    */
+  _timer: null,
   do_timeout_function: function(aDelayInMS, aFunc, aFuncThis, aFuncArgs) {
-    let timer = Components.classes["@mozilla.org/timer;1"]
-                          .createInstance(Components.interfaces.nsITimer);
+    this._timer = Components.classes["@mozilla.org/timer;1"]
+                            .createInstance(Components.interfaces.nsITimer);
     let wrappedFunc = function() {
       try {
         aFunc.apply(aFuncThis, aFuncArgs);
@@ -427,7 +428,7 @@ var mailTestUtils = {
         do_throw(ex);
       }
     };
-    timer.initWithCallback(wrappedFunc, aDelayInMS,
+    this._timer.initWithCallback(wrappedFunc, aDelayInMS,
       Components.interfaces.nsITimer.TYPE_ONE_SHOT);
   },
 
@@ -453,13 +454,9 @@ var mailTestUtils = {
       aCallbackArgs, aSomeoneElseWillTriggerTheUpdate) {
     // register for the folder loaded notification ahead of time... even though
     //  we may not need it...
-    let atomService = Cc["@mozilla.org/atom-service;1"]
-                        .getService(Ci.nsIAtomService);
-    let kFolderLoadedAtom = atomService.getAtom("FolderLoaded");
-
     let folderListener = {
       OnItemEvent: function (aEventFolder, aEvent) {
-        if (aEvent == kFolderLoadedAtom && aFolder.URI == aEventFolder.URI) {
+        if (aEvent == "FolderLoaded" && aFolder.URI == aEventFolder.URI) {
           MailServices.mailSession.RemoveFolderListener(this);
           aCallback.apply(aCallbackThis, aCallbackArgs);
         }
@@ -476,7 +473,7 @@ var mailTestUtils = {
    * For when you want to compare elements non-strictly.
    */
   non_strict_index_of: function(aArray, aElem) {
-    for (let [i, elem] in Iterator(aArray)) {
+    for (let [i, elem] of aArray.entries()) {
       if (elem == aElem)
         return i;
     }

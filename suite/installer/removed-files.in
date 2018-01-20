@@ -658,7 +658,6 @@ Throbber-small.gif
   @DIR_MACOS@components/nsBrowserContentHandler.js
   @DIR_MACOS@components/nsComposerCmdLineHandler.js
   @DIR_MACOS@components/nsContentDispatchChooser.js
-  @DIR_MACOS@components/nsContentPrefService.js
   @DIR_MACOS@components/nsDefaultCLH.js
   @DIR_MACOS@components/nsDOMIdentity.js
   #ifdef UNIX_BUT_NOT_MAC
@@ -1115,13 +1114,6 @@ Throbber-small.gif
   @DIR_MACOS@res/dtd/xhtml11.dtd
   @DIR_MACOS@res/html/
   @DIR_MACOS@res/html/folder.png
-  @DIR_MACOS@res/entityTables/
-  @DIR_MACOS@res/entityTables/html40Latin1.properties
-  @DIR_MACOS@res/entityTables/html40Special.properties
-  @DIR_MACOS@res/entityTables/html40Symbols.properties
-  @DIR_MACOS@res/entityTables/htmlEntityVersions.properties
-  @DIR_MACOS@res/entityTables/mathml20.properties
-  @DIR_MACOS@res/entityTables/transliterate.properties
   #ifdef MOZ_UPDATER
     @DIR_MACOS@update.locale
   #endif
@@ -1307,7 +1299,6 @@ components/xpautoc.dll
 @DIR_MACOS@components/embed_base.xpt
 @DIR_MACOS@components/extensions.xpt
 @DIR_MACOS@components/exthandler.xpt
-@DIR_MACOS@components/exthelper.xpt
 @DIR_MACOS@components/fastfind.xpt
 @DIR_MACOS@components/feeds.xpt
 @DIR_MACOS@components/find.xpt
@@ -1379,7 +1370,6 @@ components/xpautoc.dll
 @DIR_MACOS@components/txmgr.xpt
 @DIR_MACOS@components/txtsvc.xpt
 @DIR_MACOS@components/uconv.xpt
-@DIR_MACOS@components/unicharutil.xpt
 @DIR_MACOS@components/update.xpt
 @DIR_MACOS@components/uriloader.xpt
 @DIR_MACOS@components/urlformatter.xpt

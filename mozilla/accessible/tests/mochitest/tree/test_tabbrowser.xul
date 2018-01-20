@@ -35,7 +35,11 @@
       this.invoke = function testTabHierarchy_invoke()
       {
         var docURIs = ["about:", "about:mozilla"];
-        tabBrowser().loadTabs(docURIs, false, true);
+        tabBrowser().loadTabs(docURIs, {
+          inBackground: false,
+          replace: true,
+          triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+        });
       }
 
       this.finalCheck = function testTabHierarchy_finalCheck(aEvent)
@@ -108,6 +112,11 @@
               role: ROLE_PAGETAB,
               children: [
                 {
+                  // xul:text, i.e. the tab label text
+                  role: ROLE_TEXT_LEAF,
+                  children: []
+                },
+                {
                   // xul:toolbarbutton ("Close Tab")
                   role: ROLE_PUSHBUTTON,
                   children: []
@@ -118,6 +127,11 @@
               // tab ("about:mozilla")
               role: ROLE_PAGETAB,
               children: [
+                {
+                  // xul:text, i.e. the tab label text
+                  role: ROLE_TEXT_LEAF,
+                  children: []
+                },
                 {
                   // xul:toolbarbutton ("Close Tab")
                   role: ROLE_PUSHBUTTON,

@@ -36,3 +36,6 @@
 <!ENTITY smtpName.label "வெளியே அனுப்பும் சேவையகம் (SMTP)">
 <!ENTITY smtpName.accesskey "u">
 <!ENTITY smtpDefaultServer.label "கொடாநிலை சேவையகத்தைப் பயன்படுத்துக">
+
+<!ENTITY smtpServerEdit.label "Edit SMTP server…">
+<!ENTITY smtpServerEdit.accesskey "P">

@@ -148,7 +148,9 @@ Http2HeaderListener.prototype.onDataAvailable = function(request, ctx, stream, o
   read_stream(stream, cnt);
 };
 
-var Http2PushListener = function() {};
+var Http2PushListener = function(shouldBePushed) {
+  this.shouldBePushed = shouldBePushed;
+};
 
 Http2PushListener.prototype = new Http2CheckListener();
 
@@ -158,7 +160,7 @@ Http2PushListener.prototype.onDataAvailable = function(request, ctx, stream, off
   if (request.originalURI.spec == "https://localhost:" + serverPort + "/push.js"  ||
       request.originalURI.spec == "https://localhost:" + serverPort + "/push2.js" ||
       request.originalURI.spec == "https://localhost:" + serverPort + "/push5.js") {
-    do_check_eq(request.getResponseHeader("pushed"), "yes");
+    do_check_eq(request.getResponseHeader("pushed"), this.shouldBePushed ? "yes" : "no");
   }
   read_stream(stream, cnt);
 };
@@ -386,8 +388,7 @@ function test_http2_xhr() {
   var req = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
             .createInstance(Ci.nsIXMLHttpRequest);
   req.open("GET", "https://localhost:" + serverPort + "/", true);
-  req.addEventListener("readystatechange", function (evt) { checkXhr(req); },
-                       false);
+  req.addEventListener("readystatechange", function (evt) { checkXhr(req); });
   req.send(null);
 }
 
@@ -493,42 +494,42 @@ function test_http2_cookie_crumbling() {
 function test_http2_push1() {
   var chan = makeChan("https://localhost:" + serverPort + "/push");
   chan.loadGroup = loadGroup;
-  var listener = new Http2PushListener();
+  var listener = new Http2PushListener(true);
   chan.asyncOpen2(listener);
 }
 
 function test_http2_push2() {
   var chan = makeChan("https://localhost:" + serverPort + "/push.js");
   chan.loadGroup = loadGroup;
-  var listener = new Http2PushListener();
+  var listener = new Http2PushListener(true);
   chan.asyncOpen2(listener);
 }
 
 function test_http2_push3() {
   var chan = makeChan("https://localhost:" + serverPort + "/push2");
   chan.loadGroup = loadGroup;
-  var listener = new Http2PushListener();
+  var listener = new Http2PushListener(true);
   chan.asyncOpen2(listener);
 }
 
 function test_http2_push4() {
   var chan = makeChan("https://localhost:" + serverPort + "/push2.js");
   chan.loadGroup = loadGroup;
-  var listener = new Http2PushListener();
+  var listener = new Http2PushListener(true);
   chan.asyncOpen2(listener);
 }
 
 function test_http2_push5() {
   var chan = makeChan("https://localhost:" + serverPort + "/push5");
   chan.loadGroup = loadGroup;
-  var listener = new Http2PushListener();
+  var listener = new Http2PushListener(true);
   chan.asyncOpen2(listener);
 }
 
 function test_http2_push6() {
   var chan = makeChan("https://localhost:" + serverPort + "/push5.js");
   chan.loadGroup = loadGroup;
-  var listener = new Http2PushListener();
+  var listener = new Http2PushListener(true);
   chan.asyncOpen2(listener);
 }
 
@@ -727,6 +728,8 @@ Http2PushApiListener.prototype = {
     pushChannel.asyncOpen2(this);
     if (pushChannel.originalURI.spec == "https://localhost:" + serverPort + "/pushapi1/2") {
       pushChannel.cancel(Components.results.NS_ERROR_ABORT);
+    } else if (pushChannel.originalURI.spec == "https://localhost:" + serverPort + "/pushapi1/3") {
+      do_check_true(pushChannel.getRequestHeader("Accept-Encoding").includes("br"));
     }
   },
 
@@ -773,7 +776,7 @@ Http2PushApiListener.prototype = {
 // 2 to see /pushapi1/1 with 1
 // 3 to see /pushapi1/1 with 1 (again)
 // 4 to see /pushapi1/2 that it will cancel
-// 5 to see /pushapi1/3 with 3
+// 5 to see /pushapi1/3 with 3 with brotli
 
 function test_http2_pushapi_1() {
   var chan = makeChan("https://localhost:" + serverPort + "/pushapi1");
@@ -900,6 +903,157 @@ function test_http2_empty_data() {
   chan.asyncOpen2(listener);
 }
 
+function test_http2_push_firstparty1() {
+  var chan = makeChan("https://localhost:" + serverPort + "/push");
+  chan.loadGroup = loadGroup;
+  chan.loadInfo.originAttributes = { firstPartyDomain: "foo.com" };
+  var listener = new Http2PushListener(true);
+  chan.asyncOpen2(listener);
+}
+
+function test_http2_push_firstparty2() {
+  var chan = makeChan("https://localhost:" + serverPort + "/push.js");
+  chan.loadGroup = loadGroup;
+  chan.loadInfo.originAttributes = { firstPartyDomain: "bar.com" };
+  var listener = new Http2PushListener(false);
+  chan.asyncOpen2(listener);
+}
+
+function test_http2_push_firstparty3() {
+  var chan = makeChan("https://localhost:" + serverPort + "/push.js");
+  chan.loadGroup = loadGroup;
+  chan.loadInfo.originAttributes = { firstPartyDomain: "foo.com" };
+  var listener = new Http2PushListener(true);
+  chan.asyncOpen2(listener);
+}
+
+function test_http2_push_userContext1() {
+  var chan = makeChan("https://localhost:" + serverPort + "/push");
+  chan.loadGroup = loadGroup;
+  chan.loadInfo.originAttributes = { userContextId: 1 };
+  var listener = new Http2PushListener(true);
+  chan.asyncOpen2(listener);
+}
+
+function test_http2_push_userContext2() {
+  var chan = makeChan("https://localhost:" + serverPort + "/push.js");
+  chan.loadGroup = loadGroup;
+  chan.loadInfo.originAttributes = { userContextId: 2 };
+  var listener = new Http2PushListener(false);
+  chan.asyncOpen2(listener);
+}
+
+function test_http2_push_userContext3() {
+  var chan = makeChan("https://localhost:" + serverPort + "/push.js");
+  chan.loadGroup = loadGroup;
+  chan.loadInfo.originAttributes = { userContextId: 1 };
+  var listener = new Http2PushListener(true);
+  chan.asyncOpen2(listener);
+}
+
+function test_http2_status_phrase() {
+  var chan = makeChan("https://localhost:" + serverPort + "/statusphrase");
+  var listener = new Http2CheckListener();
+  listener.shouldSucceed = false;
+  chan.asyncOpen2(listener);
+}
+
+var PulledDiskCacheListener = function() {};
+PulledDiskCacheListener.prototype = new Http2CheckListener();
+PulledDiskCacheListener.prototype.EXPECTED_DATA = "this was pulled via h2";
+PulledDiskCacheListener.prototype.readData = "";
+PulledDiskCacheListener.prototype.onDataAvailable = function testOnDataAvailable(request, ctx, stream, off, cnt) {
+  this.onDataAvailableFired = true;
+  this.isHttp2Connection = checkIsHttp2(request);
+  this.accum += cnt;
+  this.readData += read_stream(stream, cnt);
+};
+PulledDiskCacheListener.prototype.onStopRequest = function testOnStopRequest(request, ctx, status) {
+  do_check_eq(this.EXPECTED_DATA, this.readData);
+  Http2CheckListener.prorotype.onStopRequest.call(this, request, ctx, status);
+};
+
+const DISK_CACHE_DATA = "this is from disk cache";
+
+var FromDiskCacheListener = function() {};
+FromDiskCacheListener.prototype = {
+  onStartRequestFired: false,
+  onDataAvailableFired: false,
+  readData: "",
+
+  onStartRequest: function testOnStartRequest(request, ctx) {
+    this.onStartRequestFired = true;
+    if (!Components.isSuccessCode(request.status)) {
+      do_throw("Channel should have a success code! (" + request.status + ")");
+    }
+
+    do_check_true(request instanceof Components.interfaces.nsIHttpChannel);
+    do_check_true(request.requestSucceeded);
+    do_check_eq(request.responseStatus, 200);
+  },
+
+  onDataAvailable: function testOnDataAvailable(request, ctx, stream, off, cnt) {
+    this.onDataAvailableFired = true;
+    this.readData += read_stream(stream, cnt);
+  },
+
+  onStopRequest: function testOnStopRequest(request, ctx, status) {
+    do_check_true(this.onStartRequestFired);
+    do_check_true(Components.isSuccessCode(status));
+    do_check_true(this.onDataAvailableFired);
+    do_check_eq(this.readData, DISK_CACHE_DATA);
+
+    evict_cache_entries("disk");
+    syncWithCacheIOThread(() => {
+      // Now that we know the entry is out of the disk cache, check to make sure
+      // we don't have this hiding in the push cache somewhere - if we do, it
+      // didn't get cancelled, and we have a bug.
+      var chan = makeChan("https://localhost:" + serverPort + "/diskcache");
+      chan.listener = new PulledDiskCacheListener();
+      chan.loadGroup = loadGroup;
+      chan.asyncOpen2(listener);
+    });
+  }
+};
+
+var Http2DiskCachePushListener = function() {};
+
+Http2DiskCachePushListener.prototype = new Http2CheckListener();
+
+Http2DiskCachePushListener.onStopRequest = function(request, ctx, status) {
+    do_check_true(this.onStartRequestFired);
+    do_check_true(Components.isSuccessCode(status));
+    do_check_true(this.onDataAvailableFired);
+    do_check_true(this.isHttp2Connection == this.shouldBeHttp2);
+
+    // Now we need to open a channel to ensure we get data from the disk cache
+    // for the pushed item, instead of from the push cache.
+    var chan = makeChan("https://localhost:" + serverPort + "/diskcache");
+    chan.listener = new FromDiskCacheListener();
+    chan.loadGroup = loadGroup;
+    chan.asyncOpen2(listener);
+};
+
+function continue_test_http2_disk_cache_push(status, entry, appCache) {
+  // TODO - store stuff in cache entry, then open an h2 channel that will push
+  // this, once that completes, open a channel for the cache entry we made and
+  // ensure it came from disk cache, not the push cache.
+  var outputStream = entry.openOutputStream(0);
+  outputStream.write(DISK_CACHE_DATA, DISK_CACHE_DATA.length);
+
+  // Now we open our URL that will push data for the URL above
+  var chan = makeChan("https://localhost:" + serverPort + "/pushindisk");
+  var listener = new Http2DiskCachePushListener();
+  chan.loadGroup = loadGroup;
+  chan.asyncOpen2(listener);
+}
+
+function test_http2_disk_cache_push() {
+  asyncOpenCacheEntry("https://localhost:" + serverPort + "/diskcache",
+                      "disk", Ci.nsICacheStorage.OPEN_NORMALLY, null,
+                      continue_test_http2_disk_cache_push, false);
+}
+
 function test_complete() {
   resetPrefs();
   do_test_pending();
@@ -909,6 +1063,45 @@ function test_complete() {
 
   do_test_finished();
   do_timeout(0,run_next_test);
+}
+
+var Http2DoublepushListener = function () {};
+Http2DoublepushListener.prototype = new Http2CheckListener();
+Http2DoublepushListener.prototype.onStopRequest = function (request, ctx, status) {
+  do_check_true(this.onStartRequestFired);
+  do_check_true(Components.isSuccessCode(status));
+  do_check_true(this.onDataAvailableFired);
+  do_check_true(this.isHttp2Connection == this.shouldBeHttp2);
+
+  var chan = makeChan("https://localhost:" + serverPort + "/doublypushed");
+  var listener = new Http2DoublypushedListener();
+  chan.loadGroup = loadGroup;
+  chan.asyncOpen2(listener);
+};
+
+var Http2DoublypushedListener = function () {};
+Http2DoublypushedListener.prototype = new Http2CheckListener();
+Http2DoublypushedListener.prototype.readData = "";
+Http2DoublypushedListener.prototype.onDataAvailable = function (request, ctx, stream, off, cnt) {
+  this.onDataAvailableFired = true;
+  this.accum += cnt;
+  this.readData += read_stream(stream, cnt);
+};
+Http2DoublypushedListener.prototype.onStopRequest = function (request, ctx, status) {
+  do_check_true(this.onStartRequestFired);
+  do_check_true(Components.isSuccessCode(status));
+  do_check_true(this.onDataAvailableFired);
+  do_check_eq(this.readData, "pushed");
+
+  run_next_test();
+  do_test_finished();
+};
+
+function test_http2_doublepush() {
+  var chan = makeChan("https://localhost:" + serverPort + "/doublepush");
+  var listener = new Http2DoublepushListener();
+  chan.loadGroup = loadGroup;
+  chan.asyncOpen2(listener);
 }
 
 // hack - the header test resets the multiplex object on the server,
@@ -945,6 +1138,9 @@ var tests = [ test_http2_post_big
             , test_http2_illegalhpackhard
             , test_http2_folded_header
             , test_http2_empty_data
+            , test_http2_status_phrase
+            , test_http2_doublepush
+            , test_http2_disk_cache_push
             // Add new tests above here - best to add new tests before h1
             // streams get too involved
             // These next two must always come in this order
@@ -952,6 +1148,12 @@ var tests = [ test_http2_post_big
             , test_http2_h11required_session
             , test_http2_retry_rst
             , test_http2_wrongsuite
+            , test_http2_push_firstparty1
+            , test_http2_push_firstparty2
+            , test_http2_push_firstparty3
+            , test_http2_push_userContext1
+            , test_http2_push_userContext2
+            , test_http2_push_userContext3
 
             // cleanup
             , test_complete
@@ -1025,7 +1227,6 @@ var prefs;
 var spdypref;
 var spdypush;
 var http2pref;
-var tlspref;
 var altsvcpref1;
 var altsvcpref2;
 var loadGroup;
@@ -1037,7 +1238,6 @@ function resetPrefs() {
   prefs.setBoolPref("network.http.spdy.enabled", spdypref);
   prefs.setBoolPref("network.http.spdy.allow-push", spdypush);
   prefs.setBoolPref("network.http.spdy.enabled.http2", http2pref);
-  prefs.setBoolPref("network.http.spdy.enforce-tls-profile", tlspref);
   prefs.setBoolPref("network.http.altsvc.enabled", altsvcpref1);
   prefs.setBoolPref("network.http.altsvc.oe", altsvcpref2);
   prefs.clearUserPref("network.dns.localDomains");
@@ -1072,15 +1272,12 @@ function run_test() {
   spdypref = prefs.getBoolPref("network.http.spdy.enabled");
   spdypush = prefs.getBoolPref("network.http.spdy.allow-push");
   http2pref = prefs.getBoolPref("network.http.spdy.enabled.http2");
-  tlspref = prefs.getBoolPref("network.http.spdy.enforce-tls-profile");
   altsvcpref1 = prefs.getBoolPref("network.http.altsvc.enabled");
   altsvcpref2 = prefs.getBoolPref("network.http.altsvc.oe", true);
 
   prefs.setBoolPref("network.http.spdy.enabled", true);
-  prefs.setBoolPref("network.http.spdy.enabled.v3-1", true);
   prefs.setBoolPref("network.http.spdy.allow-push", true);
   prefs.setBoolPref("network.http.spdy.enabled.http2", true);
-  prefs.setBoolPref("network.http.spdy.enforce-tls-profile", false);
   prefs.setBoolPref("network.http.altsvc.enabled", true);
   prefs.setBoolPref("network.http.altsvc.oe", true);
   prefs.setCharPref("network.dns.localDomains", "foo.example.com, bar.example.com");
@@ -1115,5 +1312,5 @@ function readFile(file) {
 function addCertFromFile(certdb, filename, trustString) {
   let certFile = do_get_file(filename, false);
   let der = readFile(certFile);
-  certdb.addCert(der, trustString, null);
+  certdb.addCert(der, trustString);
 }

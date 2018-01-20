@@ -39,7 +39,7 @@ function uninstall(aData, aReason) {}
 
 function startup(aData, aReason) {
   // Observe pref changes and enable/disable as necessary.
-  Services.prefs.addObserver(FLYWEB_ENABLED_PREF, prefObserver, false);
+  Services.prefs.addObserver(FLYWEB_ENABLED_PREF, prefObserver);
 
   // Only initialize if pref is enabled.
   let enabled = Services.prefs.getBoolPref(FLYWEB_ENABLED_PREF);
@@ -136,7 +136,7 @@ const FlyWebPermissionPromptIntegration = (base) => ({
       get popupOptions() {
         return {
           learnMoreURL: "https://flyweb.github.io",
-          popupIconURL: "chrome://flyweb/skin/icon-64.png",
+          popupIconURL: "chrome://flyweb-shared/skin/icon.svg",
         };
       },
       get notificationID() {
@@ -152,13 +152,12 @@ const FlyWebPermissionPromptIntegration = (base) => ({
           let notificationIcon = chromeDoc.createElement("image");
           notificationIcon.id = kAnchorID;
           notificationIcon.setAttribute("src",
-                                        "chrome://flyweb/skin/icon-64.png");
+                                        "chrome://flyweb-shared/skin/icon.svg");
           notificationIcon.classList.add("notification-anchor-icon");
           notificationIcon.setAttribute("role", "button");
           notificationIcon.setAttribute("aria-label",
                                         "View the publish-server request");
-          notificationIcon.style.filter =
-            "url('chrome://browser/skin/filters.svg#fill')";
+          notificationIcon.style.mozContextProperties = "fill";
           notificationIcon.style.fill = "currentcolor";
           notificationIcon.style.opacity = "0.4";
           notificationPopupBox.appendChild(notificationIcon);
@@ -203,10 +202,6 @@ let FlyWebView = {
         panel.setAttribute("class", "PanelUI-subView");
         panel.setAttribute("flex", "1");
 
-        let label = aDocument.createElement("label");
-        label.setAttribute("class", "panel-subview-header");
-        label.setAttribute("value", gFlyWebBundle.GetStringFromName("flyweb-button.label"));
-
         let empty = aDocument.createElement("description");
         empty.id = "flyweb-items-empty";
         empty.setAttribute("mousethrough", "always");
@@ -216,7 +211,6 @@ let FlyWebView = {
         items.id = "flyweb-items";
         items.setAttribute("class", "panel-subview-body");
 
-        panel.appendChild(label);
         panel.appendChild(empty);
         panel.appendChild(items);
 
@@ -224,7 +218,7 @@ let FlyWebView = {
 
         aDocument.getElementById("PanelUI-multiView").appendChild(panel);
 
-        this._sheetURI = Services.io.newURI("chrome://flyweb/skin/flyweb.css", null, null);
+        this._sheetURI = Services.io.newURI("chrome://flyweb/skin/flyweb.css");
         aDocument.defaultView.QueryInterface(Ci.nsIInterfaceRequestor).
             getInterface(Ci.nsIDOMWindowUtils).loadSheet(this._sheetURI, 1);
       },

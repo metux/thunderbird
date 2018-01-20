@@ -14,7 +14,6 @@
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/ScriptSettings.h"
-#include "nsIProgrammingLanguage.h"
 #include "nsPIDOMWindow.h"
 #include "nsServiceManagerUtils.h"
 #include "nsThreadUtils.h"
@@ -58,7 +57,7 @@ ThrowExceptionValueIfSafe(JSContext* aCx, JS::Handle<JS::Value> exnVal,
   // is also why we don't just call ThrowExceptionObject on the Exception we
   // create: it would do the right thing, but that fact is not obvious.
   RefPtr<Exception> syntheticException =
-    CreateException(aCx, NS_ERROR_UNEXPECTED);
+    CreateException(NS_ERROR_UNEXPECTED);
   JS::Rooted<JS::Value> syntheticVal(aCx);
   if (!GetOrCreateDOMReflector(aCx, syntheticException, &syntheticVal)) {
     return;
@@ -163,7 +162,7 @@ Throw(JSContext* aCx, nsresult aRv, const nsACString& aMessage)
     }
   }
 
-  RefPtr<Exception> finalException = CreateException(aCx, aRv, aMessage);
+  RefPtr<Exception> finalException = CreateException(aRv, aMessage);
   MOZ_ASSERT(finalException);
 
   ThrowExceptionObject(aCx, finalException);
@@ -184,7 +183,7 @@ ThrowAndReport(nsPIDOMWindowInner* aWindow, nsresult aRv)
 }
 
 already_AddRefed<Exception>
-CreateException(JSContext* aCx, nsresult aRv, const nsACString& aMessage)
+CreateException(nsresult aRv, const nsACString& aMessage)
 {
   // Do we use DOM exceptions for this error code?
   switch (NS_ERROR_GET_MODULE(aRv)) {
@@ -305,7 +304,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(JSStackFrame)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCaller)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mAsyncCaller)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(JSStackFrame)
   NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mStack)
@@ -318,18 +316,6 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(JSStackFrame)
   NS_INTERFACE_MAP_ENTRY(nsIStackFrame)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
-
-NS_IMETHODIMP JSStackFrame::GetLanguage(uint32_t* aLanguage)
-{
-  *aLanguage = nsIProgrammingLanguage::JAVASCRIPT;
-  return NS_OK;
-}
-
-NS_IMETHODIMP JSStackFrame::GetLanguageName(nsACString& aLanguageName)
-{
-  aLanguageName.AssignLiteral("JavaScript");
-  return NS_OK;
-}
 
 // Helper method to get the value of a stack property, if it's not already
 // cached.  This will make sure we skip the cache if the access is happening

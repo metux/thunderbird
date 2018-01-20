@@ -2,14 +2,28 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 import os
+import sys
 
 __all__ = ['read_ini', 'combine_fields']
 
 
+class IniParseError(Exception):
+    def __init__(self, fp, linenum, msg):
+        if isinstance(fp, basestring):
+            path = fp
+        elif hasattr(fp, 'name'):
+            path = fp.name
+        else:
+            path = getattr(fp, 'path', 'unknown')
+        msg = "Error parsing manifest file '{}', line {}: {}".format(path, linenum, msg)
+        super(IniParseError, self).__init__(msg)
+
+
 def read_ini(fp, variables=None, default='DEFAULT', defaults_only=False,
-             comments=';#', separators=('=', ':'), strict=True,
-             handle_defaults=True):
+             comments=None, separators=None, strict=True, handle_defaults=True):
     """
     read an .ini file and return a list of [(section, values)]
     - fp : file pointer or path to read
@@ -24,6 +38,8 @@ def read_ini(fp, variables=None, default='DEFAULT', defaults_only=False,
 
     # variables
     variables = variables or {}
+    comments = comments or ('#',)
+    separators = separators or ('=', ':')
     sections = []
     key = value = None
     section_names = set()
@@ -42,13 +58,30 @@ def read_ini(fp, variables=None, default='DEFAULT', defaults_only=False,
             continue
 
         # ignore comment lines
-        if stripped[0] in comments:
+        if any(stripped.startswith(c) for c in comments):
             continue
+
+        # strip inline comments (borrowed from configparser)
+        comment_start = sys.maxsize
+        inline_prefixes = {p: -1 for p in comments}
+        while comment_start == sys.maxsize and inline_prefixes:
+            next_prefixes = {}
+            for prefix, index in inline_prefixes.items():
+                index = line.find(prefix, index+1)
+                if index == -1:
+                    continue
+                next_prefixes[prefix] = index
+                if index == 0 or (index > 0 and line[index-1].isspace()):
+                    comment_start = min(comment_start, index)
+            inline_prefixes = next_prefixes
+
+        if comment_start != sys.maxsize:
+            stripped = stripped[:comment_start].rstrip()
 
         # check for a new section
         if len(stripped) > 2 and stripped[0] == '[' and stripped[-1] == ']':
             section = stripped[1:-1].strip()
-            key = value = None
+            key = value = key_indent = None
 
             # deal with DEFAULT section
             if section.lower() == default.lower():
@@ -70,7 +103,15 @@ def read_ini(fp, variables=None, default='DEFAULT', defaults_only=False,
 
         # if there aren't any sections yet, something bad happen
         if not section_names:
-            raise Exception('No sections found')
+            raise IniParseError(fp, linenum, "Expected a comment or section, "
+                                             "instead found '{}'".format(stripped))
+
+        # continuation line ?
+        line_indent = len(line) - len(line.lstrip(' '))
+        if key and line_indent > key_indent:
+            value = '%s%s%s' % (value, os.linesep, stripped)
+            current_section[key] = value
+            continue
 
         # (key, value) pair
         for separator in separators:
@@ -78,6 +119,7 @@ def read_ini(fp, variables=None, default='DEFAULT', defaults_only=False,
                 key, value = stripped.split(separator, 1)
                 key = key.strip()
                 value = value.strip()
+                key_indent = line_indent
 
                 if strict:
                     # make sure this key isn't already in the section or empty
@@ -88,18 +130,8 @@ def read_ini(fp, variables=None, default='DEFAULT', defaults_only=False,
                 current_section[key] = value
                 break
         else:
-            # continuation line ?
-            if line[0].isspace() and key:
-                value = '%s%s%s' % (value, os.linesep, stripped)
-                current_section[key] = value
-            else:
-                # something bad happened!
-                if hasattr(fp, 'name'):
-                    filename = fp.name
-                else:
-                    filename = 'unknown'
-                raise Exception("Error parsing manifest file '%s', line %s" %
-                                (filename, linenum))
+            # something bad happened!
+            raise IniParseError(fp, linenum, "Unexpected line '{}'".format(stripped))
 
     # server-root is a special os path declared relative to the manifest file.
     # inheritance demands we expand it as absolute
@@ -137,6 +169,5 @@ def combine_fields(global_vars, local_vars):
             continue
         global_value = global_vars[field_name]
         pattern = field_patterns[field_name]
-        final_mapping[field_name] = pattern % (
-            global_value.split('#')[0], value.split('#')[0])
+        final_mapping[field_name] = pattern % (global_value, value)
     return final_mapping

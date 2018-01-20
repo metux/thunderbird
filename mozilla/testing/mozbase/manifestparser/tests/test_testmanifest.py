@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
+
 import os
 import shutil
 import tempfile
 import unittest
+
+import mozunit
 
 from manifestparser import TestManifest, ParseError
 from manifestparser.filters import subsuite
@@ -118,5 +122,6 @@ class TestTestManifest(unittest.TestCase):
         self.assertEqual(len(empty_manifest.test_paths()), 0)
         self.assertEqual(len(empty_manifest.active_tests()), 0)
 
+
 if __name__ == '__main__':
-    unittest.main()
+    mozunit.main()

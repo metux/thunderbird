@@ -35,9 +35,9 @@ class JSObject;
 extern mozilla::LogModule* GetMediaSourceLog();
 extern mozilla::LogModule* GetMediaSourceAPILog();
 
-#define MSE_DEBUG(arg, ...) MOZ_LOG(GetMediaSourceLog(), mozilla::LogLevel::Debug, ("SourceBuffer(%p:%s)::%s: " arg, this, mType.get(), __func__, ##__VA_ARGS__))
-#define MSE_DEBUGV(arg, ...) MOZ_LOG(GetMediaSourceLog(), mozilla::LogLevel::Verbose, ("SourceBuffer(%p:%s)::%s: " arg, this, mType.get(), __func__, ##__VA_ARGS__))
-#define MSE_API(arg, ...) MOZ_LOG(GetMediaSourceAPILog(), mozilla::LogLevel::Debug, ("SourceBuffer(%p:%s)::%s: " arg, this, mType.get(), __func__, ##__VA_ARGS__))
+#define MSE_DEBUG(arg, ...) MOZ_LOG(GetMediaSourceLog(), mozilla::LogLevel::Debug, ("SourceBuffer(%p:%s)::%s: " arg, this, mType.OriginalString().Data(), __func__, ##__VA_ARGS__))
+#define MSE_DEBUGV(arg, ...) MOZ_LOG(GetMediaSourceLog(), mozilla::LogLevel::Verbose, ("SourceBuffer(%p:%s)::%s: " arg, this, mType.OriginalString().Data(), __func__, ##__VA_ARGS__))
+#define MSE_API(arg, ...) MOZ_LOG(GetMediaSourceAPILog(), mozilla::LogLevel::Debug, ("SourceBuffer(%p:%s)::%s: " arg, this, mType.OriginalString().Data(), __func__, ##__VA_ARGS__))
 
 namespace mozilla {
 
@@ -50,7 +50,7 @@ void
 SourceBuffer::SetMode(SourceBufferAppendMode aMode, ErrorResult& aRv)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  MSE_API("SetMode(aMode=%d)", aMode);
+  MSE_API("SetMode(aMode=%" PRIu32 ")", static_cast<uint32_t>(aMode));
   if (!IsAttached() || mUpdating) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
@@ -114,14 +114,13 @@ SourceBuffer::GetBuffered(ErrorResult& aRv)
   media::TimeIntervals intersection = mTrackBuffersManager->Buffered();
   MSE_DEBUGV("intersection=%s", DumpTimeRanges(intersection).get());
   if (mBuffered) {
-    media::TimeIntervals currentValue(mBuffered);
+    media::TimeIntervals currentValue(mBuffered->ToTimeIntervals());
     rangeChanged = (intersection != currentValue);
     MSE_DEBUGV("currentValue=%s", DumpTimeRanges(currentValue).get());
   }
   // 5. If intersection ranges does not contain the exact same range information as the current value of this attribute, then update the current value of this attribute to intersection ranges.
   if (rangeChanged) {
-    mBuffered = new TimeRanges(ToSupports(this));
-    intersection.ToTimeRanges(mBuffered);
+    mBuffered = new TimeRanges(ToSupports(this), intersection);
   }
   // 6. Return the current value of this attribute.
   return mBuffered;
@@ -212,6 +211,7 @@ void
 SourceBuffer::AbortBufferAppend()
 {
   if (mUpdating) {
+    mCompletionPromise.DisconnectIfExists();
     if (mPendingAppend.Exists()) {
       mPendingAppend.Disconnect();
       mTrackBuffersManager->AbortAppendData();
@@ -258,15 +258,15 @@ SourceBuffer::RangeRemoval(double aStart, double aEnd)
   StartUpdating();
 
   RefPtr<SourceBuffer> self = this;
-  mPendingRemoval.Begin(
     mTrackBuffersManager->RangeRemoval(TimeUnit::FromSeconds(aStart),
                                        TimeUnit::FromSeconds(aEnd))
-      ->Then(AbstractThread::MainThread(), __func__,
+      ->Then(mAbstractMainThread, __func__,
              [self] (bool) {
                self->mPendingRemoval.Complete();
                self->StopUpdating();
              },
-             []() { MOZ_ASSERT(false); }));
+             []() { MOZ_ASSERT(false); })
+      ->Track(mPendingRemoval);
 }
 
 void
@@ -280,9 +280,9 @@ SourceBuffer::Detach()
   }
   AbortBufferAppend();
   if (mTrackBuffersManager) {
-    mTrackBuffersManager->Detach();
     mMediaSource->GetDecoder()->GetDemuxer()->DetachSourceBuffer(
-      mTrackBuffersManager.get());
+      mTrackBuffersManager);
+    mTrackBuffersManager->Detach();
   }
   mTrackBuffersManager = nullptr;
   mMediaSource = nullptr;
@@ -297,11 +297,13 @@ SourceBuffer::Ended()
   mTrackBuffersManager->Ended();
 }
 
-SourceBuffer::SourceBuffer(MediaSource* aMediaSource, const nsACString& aType)
+SourceBuffer::SourceBuffer(MediaSource* aMediaSource,
+                           const MediaContainerType& aType)
   : DOMEventTargetHelper(aMediaSource->GetParentObject())
   , mMediaSource(aMediaSource)
-  , mCurrentAttributes(aType.LowerCaseEqualsLiteral("audio/mpeg") ||
-                       aType.LowerCaseEqualsLiteral("audio/aac"))
+  , mAbstractMainThread(aMediaSource->AbstractMainThread())
+  , mCurrentAttributes(aType.Type() == MEDIAMIMETYPE("audio/mpeg") ||
+                       aType.Type() == MEDIAMIMETYPE("audio/aac"))
   , mUpdating(false)
   , mActive(false)
   , mType(aType)
@@ -322,7 +324,7 @@ SourceBuffer::SourceBuffer(MediaSource* aMediaSource, const nsACString& aType)
     SetMode(SourceBufferAppendMode::Segments, dummy);
   }
   mMediaSource->GetDecoder()->GetDemuxer()->AttachSourceBuffer(
-    mTrackBuffersManager.get());
+    mTrackBuffersManager);
 }
 
 SourceBuffer::~SourceBuffer()
@@ -357,7 +359,7 @@ SourceBuffer::QueueAsyncSimpleEvent(const char* aName)
 {
   MSE_DEBUG("Queuing event '%s'", aName);
   nsCOMPtr<nsIRunnable> event = new AsyncEventRunner<SourceBuffer>(this, aName);
-  NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+  mAbstractMainThread->Dispatch(event.forget());
 }
 
 void
@@ -415,14 +417,15 @@ SourceBuffer::AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aR
   }
   StartUpdating();
 
-  mPendingAppend.Begin(mTrackBuffersManager->AppendData(data, mCurrentAttributes)
-                       ->Then(AbstractThread::MainThread(), __func__, this,
-                              &SourceBuffer::AppendDataCompletedWithSuccess,
-                              &SourceBuffer::AppendDataErrored));
+  mTrackBuffersManager->AppendData(data.forget(), mCurrentAttributes)
+    ->Then(mAbstractMainThread, __func__, this,
+           &SourceBuffer::AppendDataCompletedWithSuccess,
+           &SourceBuffer::AppendDataErrored)
+    ->Track(mPendingAppend);
 }
 
 void
-SourceBuffer::AppendDataCompletedWithSuccess(SourceBufferTask::AppendBufferResult aResult)
+SourceBuffer::AppendDataCompletedWithSuccess(const SourceBufferTask::AppendBufferResult& aResult)
 {
   MOZ_ASSERT(mUpdating);
   mPendingAppend.Complete();
@@ -430,21 +433,31 @@ SourceBuffer::AppendDataCompletedWithSuccess(SourceBufferTask::AppendBufferResul
   if (aResult.first()) {
     if (!mActive) {
       mActive = true;
-      mMediaSource->SourceBufferIsActive(this);
+      MSE_DEBUG("Init segment received");
+      RefPtr<SourceBuffer> self = this;
+      mMediaSource->SourceBufferIsActive(this)
+        ->Then(mAbstractMainThread, __func__,
+               [self, this]() {
+                 MSE_DEBUG("Complete AppendBuffer operation");
+                 mCompletionPromise.Complete();
+                 StopUpdating();
+               })
+        ->Track(mCompletionPromise);
     }
   }
   if (mActive) {
-    // Tell our parent decoder that we have received new data.
+    // Tell our parent decoder that we have received new data
+    // and send progress event.
     mMediaSource->GetDecoder()->NotifyDataArrived();
-    // Send progress event.
-    mMediaSource->GetDecoder()->NotifyBytesDownloaded();
   }
 
   mCurrentAttributes = aResult.second();
 
   CheckEndTime();
 
-  StopUpdating();
+  if (!mCompletionPromise.Exists()) {
+    StopUpdating();
+  }
 }
 
 void
@@ -566,11 +579,7 @@ SourceBuffer::HighestEndTime()
 NS_IMPL_CYCLE_COLLECTION_CLASS(SourceBuffer)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(SourceBuffer)
-  // Tell the TrackBuffer to end its current SourceBufferResource.
-  TrackBuffersManager* manager = tmp->mTrackBuffersManager;
-  if (manager) {
-    manager->Detach();
-  }
+  tmp->Detach();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mMediaSource)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mBuffered)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END_INHERITED(DOMEventTargetHelper)
@@ -584,7 +593,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_ADDREF_INHERITED(SourceBuffer, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(SourceBuffer, DOMEventTargetHelper)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(SourceBuffer)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(SourceBuffer)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 #undef MSE_DEBUG

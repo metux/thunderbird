@@ -23,8 +23,7 @@ function checkService(service, interface) {
 
 // Tests
 
-function run_test()
-{
+function run_test() {
   do_get_profile();
 
   checkService("appShell", Ci.nsIAppShellService);
@@ -34,8 +33,7 @@ function run_test()
   checkService("cache2", Ci.nsICacheStorageService);
   checkService("clipboard", Ci.nsIClipboard);
   checkService("console", Ci.nsIConsoleService);
-  checkService("contentPrefs", Ci.nsIContentPrefService);
-  checkService("cookies", Ci.nsICookieManager2);
+  checkService("cookies", Ci.nsICookieManager);
   checkService("dirsvc", Ci.nsIDirectoryService);
   checkService("dirsvc", Ci.nsIProperties);
   checkService("DOMRequest", Ci.nsIDOMRequestService);
@@ -45,8 +43,8 @@ function run_test()
   checkService("eTLD", Ci.nsIEffectiveTLDService);
   checkService("focus", Ci.nsIFocusManager);
   checkService("io", Ci.nsIIOService);
-  checkService("io", Ci.nsIIOService2);
-  checkService("locale", Ci.nsILocaleService);
+  checkService("intl", Ci.mozIMozIntl);
+  checkService("locale", Ci.mozILocaleService);
   checkService("logins", Ci.nsILoginManager);
   checkService("obs", Ci.nsIObserverService);
   checkService("perms", Ci.nsIPermissionManager);

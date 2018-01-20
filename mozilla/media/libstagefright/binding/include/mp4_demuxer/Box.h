@@ -12,7 +12,7 @@
 #include "MediaResource.h"
 #include "mozilla/EndianUtils.h"
 #include "mp4_demuxer/AtomType.h"
-#include "mp4_demuxer/ByteReader.h"
+#include "mp4_demuxer/BufferReader.h"
 
 using namespace mozilla;
 
@@ -48,10 +48,12 @@ public:
 
   Box Next() const;
   Box FirstChild() const;
-  nsTArray<uint8_t> Read();
-  bool Read(nsTArray<uint8_t>* aDest, const MediaByteRange& aRange);
+  nsTArray<uint8_t> Read() const;
+  bool Read(nsTArray<uint8_t>* aDest, const MediaByteRange& aRange) const;
 
   static const uint64_t kMAX_BOX_READ;
+
+  const nsTArray<uint8_t>& Header() const { return mHeader; }
 
 private:
   bool Contains(MediaByteRange aRange) const;
@@ -60,12 +62,12 @@ private:
   uint64_t mBodyOffset;
   uint64_t mChildOffset;
   AtomType mType;
+  nsTArray<uint8_t> mHeader;
   const Box* mParent;
 };
 
 // BoxReader takes a copy of a box contents and serves through an AutoByteReader.
-MOZ_RAII
-class BoxReader
+class MOZ_RAII BoxReader
 {
 public:
   explicit BoxReader(Box& aBox)
@@ -73,11 +75,11 @@ public:
     , mReader(mBuffer.Elements(), mBuffer.Length())
   {
   }
-  ByteReader* operator->() { return &mReader; }
+  BufferReader* operator->() { return &mReader; }
 
 private:
   nsTArray<uint8_t> mBuffer;
-  ByteReader mReader;
+  BufferReader mReader;
 };
 }
 

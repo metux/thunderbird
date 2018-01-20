@@ -9,12 +9,12 @@
 <!-- LOCALIZATION NOTE (mainWindow.titlemodifier) : DONT_TRANSLATE --> 
 <!ENTITY mainWindow.titlemodifier "&brandFullName;">
 <!-- LOCALIZATION NOTE (mainWindow.titlemodifierseparator) : DONT_TRANSLATE -->
-<!ENTITY mainWindow.titlemodifierseparator " - ">
+<!ENTITY mainWindow.titlemodifierseparator " – ">
 <!ENTITY mainWindow.preface "Изходен код на: ">
 
 <!ENTITY fileMenu.label "Файл">
 <!ENTITY fileMenu.accesskey "Ф">
-<!ENTITY savePageCmd.label "Запазване на страницата като…">
+<!ENTITY savePageCmd.label "Запазване на като…">
 <!ENTITY savePageCmd.accesskey "к">
 <!ENTITY savePageCmd.commandkey "S">
 <!ENTITY pageSetupCmd.label "Настройки на отпечатване…">
@@ -82,5 +82,5 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 
 <!ENTITY copyLinkCmd.label "Копиране на препратката">
 <!ENTITY copyLinkCmd.accesskey "К">
-<!ENTITY copyEmailCmd.label "Копиране на пощенския адрес">
+<!ENTITY copyEmailCmd.label "Копиране на електронния адрес">
 <!ENTITY copyEmailCmd.accesskey "К">

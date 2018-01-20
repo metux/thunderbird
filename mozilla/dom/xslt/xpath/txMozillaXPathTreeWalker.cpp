@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "txXPathTreeWalker.h"
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsIAttribute.h"
 #include "nsIDOMAttr.h"
 #include "nsIDOMDocument.h"
@@ -27,17 +27,13 @@
 
 using namespace mozilla::dom;
 
-const uint32_t kUnknownIndex = uint32_t(-1);
-
 txXPathTreeWalker::txXPathTreeWalker(const txXPathTreeWalker& aOther)
-    : mPosition(aOther.mPosition),
-      mCurrentIndex(aOther.mCurrentIndex)
+    : mPosition(aOther.mPosition)
 {
 }
 
 txXPathTreeWalker::txXPathTreeWalker(const txXPathNode& aNode)
-    : mPosition(aNode),
-      mCurrentIndex(kUnknownIndex)
+    : mPosition(aNode)
 {
 }
 
@@ -56,15 +52,12 @@ txXPathTreeWalker::moveToRoot()
     else {
         nsINode *rootNode = mPosition.Root();
 
-        NS_ASSERTION(rootNode->IsNodeOfType(nsINode::eCONTENT),
+        NS_ASSERTION(rootNode->IsContent(),
                      "root of subtree wasn't an nsIContent");
 
         mPosition.mIndex = txXPathNode::eContent;
         mPosition.mNode = rootNode;
     }
-
-    mCurrentIndex = kUnknownIndex;
-    mDescendants.Clear();
 }
 
 bool
@@ -84,7 +77,7 @@ txXPathTreeWalker::moveToElementById(const nsAString& aID)
         // We're in a disconnected subtree, search only that subtree.
         nsINode *rootNode = mPosition.Root();
 
-        NS_ASSERTION(rootNode->IsNodeOfType(nsINode::eCONTENT),
+        NS_ASSERTION(rootNode->IsContent(),
                      "root of subtree wasn't an nsIContent");
 
         content = nsContentUtils::MatchElementId(
@@ -97,8 +90,6 @@ txXPathTreeWalker::moveToElementById(const nsAString& aID)
 
     mPosition.mIndex = txXPathNode::eContent;
     mPosition.mNode = content;
-    mCurrentIndex = kUnknownIndex;
-    mDescendants.Clear();
 
     return true;
 }
@@ -149,7 +140,7 @@ txXPathTreeWalker::moveToValidAttribute(uint32_t aStartIndex)
 }
 
 bool
-txXPathTreeWalker::moveToNamedAttribute(nsIAtom* aLocalName, int32_t aNSID)
+txXPathTreeWalker::moveToNamedAttribute(nsAtom* aLocalName, int32_t aNSID)
 {
     if (!mPosition.isContent()) {
         return false;
@@ -174,24 +165,12 @@ txXPathTreeWalker::moveToFirstChild()
         return false;
     }
 
-    NS_ASSERTION(!mPosition.isDocument() ||
-                 (mCurrentIndex == kUnknownIndex && mDescendants.IsEmpty()),
-                 "we shouldn't have any position info at the document");
-    NS_ASSERTION(mCurrentIndex != kUnknownIndex || mDescendants.IsEmpty(),
-                 "Index should be known if parents index are");
-
     nsIContent* child = mPosition.mNode->GetFirstChild();
     if (!child) {
         return false;
     }
     mPosition.mIndex = txXPathNode::eContent;
     mPosition.mNode = child;
-
-    if (mCurrentIndex != kUnknownIndex &&
-        !mDescendants.AppendValue(mCurrentIndex)) {
-        mDescendants.Clear();
-    }
-    mCurrentIndex = 0;
 
     return true;
 }
@@ -203,23 +182,13 @@ txXPathTreeWalker::moveToLastChild()
         return false;
     }
 
-    NS_ASSERTION(!mPosition.isDocument() ||
-                 (mCurrentIndex == kUnknownIndex && mDescendants.IsEmpty()),
-                 "we shouldn't have any position info at the document");
-    NS_ASSERTION(mCurrentIndex != kUnknownIndex || mDescendants.IsEmpty(),
-                 "Index should be known if parents index are");
-
-    uint32_t total = mPosition.mNode->GetChildCount();
-    if (!total) {
+    nsIContent* child = mPosition.mNode->GetLastChild();
+    if (!child) {
         return false;
     }
-    mPosition.mNode = mPosition.mNode->GetLastChild();
 
-    if (mCurrentIndex != kUnknownIndex &&
-        !mDescendants.AppendValue(mCurrentIndex)) {
-        mDescendants.Clear();
-    }
-    mCurrentIndex = total - 1;
+    mPosition.mIndex = txXPathNode::eContent;
+    mPosition.mNode = child;
 
     return true;
 }
@@ -231,7 +200,14 @@ txXPathTreeWalker::moveToNextSibling()
         return false;
     }
 
-    return moveToSibling(1);
+    nsINode* sibling = mPosition.mNode->GetNextSibling();
+    if (!sibling) {
+      return false;
+    }
+
+    mPosition.mNode = sibling;
+
+    return true;
 }
 
 bool
@@ -241,7 +217,14 @@ txXPathTreeWalker::moveToPreviousSibling()
         return false;
     }
 
-    return moveToSibling(-1);
+    nsINode* sibling = mPosition.mNode->GetPreviousSibling();
+    if (!sibling) {
+      return false;
+    }
+
+    mPosition.mNode = sibling;
+
+    return true;
 }
 
 bool
@@ -262,46 +245,9 @@ txXPathTreeWalker::moveToParent()
         return false;
     }
 
-    uint32_t count = mDescendants.Length();
-    if (count) {
-        mCurrentIndex = mDescendants.ValueAt(--count);
-        mDescendants.RemoveValueAt(count);
-    }
-    else {
-        mCurrentIndex = kUnknownIndex;
-    }
-
     mPosition.mIndex = mPosition.mNode->GetParent() ?
       txXPathNode::eContent : txXPathNode::eDocument;
     mPosition.mNode = parent;
-
-    return true;
-}
-
-bool
-txXPathTreeWalker::moveToSibling(int32_t aDir)
-{
-    NS_ASSERTION(mPosition.isContent(),
-                 "moveToSibling should only be called for content");
-
-    nsINode* parent = mPosition.mNode->GetParentNode();
-    if (!parent) {
-        return false;
-    }
-    if (mCurrentIndex == kUnknownIndex) {
-        mCurrentIndex = parent->IndexOf(mPosition.mNode);
-    }
-
-    // if mCurrentIndex is 0 we rely on GetChildAt returning null for an
-    // index of uint32_t(-1).
-    uint32_t newIndex = mCurrentIndex + aDir;
-    nsIContent* newChild = parent->GetChildAt(newIndex);
-    if (!newChild) {
-        return false;
-    }
-
-    mPosition.mNode = newChild;
-    mCurrentIndex = newIndex;
 
     return true;
 }
@@ -328,7 +274,7 @@ txXPathNode::~txXPathNode()
 
 /* static */
 bool
-txXPathNodeUtils::getAttr(const txXPathNode& aNode, nsIAtom* aLocalName,
+txXPathNodeUtils::getAttr(const txXPathNode& aNode, nsAtom* aLocalName,
                           int32_t aNSID, nsAString& aValue)
 {
     if (aNode.isDocument() || aNode.isAttribute()) {
@@ -339,7 +285,7 @@ txXPathNodeUtils::getAttr(const txXPathNode& aNode, nsIAtom* aLocalName,
 }
 
 /* static */
-already_AddRefed<nsIAtom>
+already_AddRefed<nsAtom>
 txXPathNodeUtils::getLocalName(const txXPathNode& aNode)
 {
     if (aNode.isDocument()) {
@@ -348,7 +294,7 @@ txXPathNodeUtils::getLocalName(const txXPathNode& aNode)
 
     if (aNode.isContent()) {
         if (aNode.mNode->IsElement()) {
-            nsCOMPtr<nsIAtom> localName =
+            RefPtr<nsAtom> localName =
                 aNode.Content()->NodeInfo()->NameAtom();
             return localName.forget();
         }
@@ -364,13 +310,13 @@ txXPathNodeUtils::getLocalName(const txXPathNode& aNode)
         return nullptr;
     }
 
-    nsCOMPtr<nsIAtom> localName = aNode.Content()->
+    RefPtr<nsAtom> localName = aNode.Content()->
         GetAttrNameAt(aNode.mIndex)->LocalName();
 
     return localName.forget();
 }
 
-nsIAtom*
+nsAtom*
 txXPathNodeUtils::getPrefix(const txXPathNode& aNode)
 {
     if (aNode.isDocument()) {
@@ -539,8 +485,8 @@ txXPathNodeUtils::getOwnerDocument(const txXPathNode& aNode)
     return new txXPathNode(aNode.mNode->OwnerDoc());
 }
 
-const char gPrintfFmt[] = "id0x%p";
-const char gPrintfFmtAttr[] = "id0x%p-%010i";
+const char gPrintfFmt[] = "id0x%" PRIxPTR;
+const char gPrintfFmtAttr[] = "id0x%" PRIxPTR "-%010i";
 
 /* static */
 nsresult

@@ -12,7 +12,6 @@
 #include "mozilla/dom/FileSystemRequestParent.h"
 #include "mozilla/dom/FileSystemUtils.h"
 #include "mozilla/dom/Promise.h"
-#include "mozilla/dom/ipc/BlobParent.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/ipc/PBackgroundChild.h"
@@ -84,7 +83,8 @@ class ErrorRunnable final : public CancelableRunnable
 {
 public:
   explicit ErrorRunnable(FileSystemTaskChildBase* aTask)
-    : mTask(aTask)
+    : CancelableRunnable("ErrorRunnable")
+    , mTask(aTask)
   {
     MOZ_ASSERT(aTask);
   }
@@ -105,18 +105,19 @@ private:
 
 } // anonymous namespace
 
-NS_IMPL_ISUPPORTS(FileSystemTaskChildBase, nsIIPCBackgroundChildCreateCallback)
-
 /**
  * FileSystemTaskBase class
  */
 
-FileSystemTaskChildBase::FileSystemTaskChildBase(FileSystemBase* aFileSystem)
+FileSystemTaskChildBase::FileSystemTaskChildBase(nsIGlobalObject* aGlobalObject,
+                                                 FileSystemBase* aFileSystem)
   : mErrorValue(NS_OK)
   , mFileSystem(aFileSystem)
+  , mGlobalObject(aGlobalObject)
 {
   MOZ_ASSERT(aFileSystem, "aFileSystem should not be null.");
   aFileSystem->AssertIsOnOwningThread();
+  MOZ_ASSERT(aGlobalObject);
 }
 
 FileSystemTaskChildBase::~FileSystemTaskChildBase()
@@ -137,35 +138,9 @@ FileSystemTaskChildBase::Start()
   mFileSystem->AssertIsOnOwningThread();
 
   mozilla::ipc::PBackgroundChild* actor =
-    mozilla::ipc::BackgroundChild::GetForCurrentThread();
-  if (actor) {
-    ActorCreated(actor);
-  } else {
-    if (NS_WARN_IF(
-        !mozilla::ipc::BackgroundChild::GetOrCreateForCurrentThread(this))) {
-      MOZ_CRASH();
-    }
-  }
-}
-
-void
-FileSystemTaskChildBase::ActorFailed()
-{
-  MOZ_CRASH("Failed to create a PBackgroundChild actor!");
-}
-
-void
-FileSystemTaskChildBase::ActorCreated(mozilla::ipc::PBackgroundChild* aActor)
-{
-  if (HasError()) {
-    // In this case we don't want to use IPC at all.
-    RefPtr<ErrorRunnable> runnable = new ErrorRunnable(this);
-    DebugOnly<nsresult> rv = NS_DispatchToCurrentThread(runnable);
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "NS_DispatchToCurrentThread failed");
-    return;
-  }
-
-  if (mFileSystem->IsShutdown()) {
+    mozilla::ipc::BackgroundChild::GetOrCreateForCurrentThread();
+  if (NS_WARN_IF(!actor)) {
+    // We are probably shutting down.
     return;
   }
 
@@ -184,9 +159,12 @@ FileSystemTaskChildBase::ActorCreated(mozilla::ipc::PBackgroundChild* aActor)
   // mozilla::ipc::BackgroundChildImpl::DeallocPFileSystemRequestChild.
   NS_ADDREF_THIS();
 
-  mozilla::ipc::PBackgroundChild* actor =
-    mozilla::ipc::BackgroundChild::GetForCurrentThread();
-  MOZ_ASSERT(actor);
+  if (NS_IsMainThread()) {
+    nsIEventTarget* target = mGlobalObject->EventTargetFor(TaskCategory::Other);
+    MOZ_ASSERT(target);
+
+    actor->SetEventTargetForActor(this, target);
+  }
 
   actor->SendPFileSystemRequestConstructor(this, params);
 }
@@ -206,14 +184,14 @@ FileSystemTaskChildBase::SetRequestResult(const FileSystemResponseValue& aValue)
   }
 }
 
-bool
+mozilla::ipc::IPCResult
 FileSystemTaskChildBase::Recv__delete__(const FileSystemResponseValue& aValue)
 {
   mFileSystem->AssertIsOnOwningThread();
 
   SetRequestResult(aValue);
   HandlerCallback();
-  return true;
+  return IPC_OK();
 }
 
 void
@@ -226,13 +204,15 @@ FileSystemTaskChildBase::SetError(const nsresult& aErrorValue)
  * FileSystemTaskParentBase class
  */
 
-FileSystemTaskParentBase::FileSystemTaskParentBase(FileSystemBase* aFileSystem,
-                                                   const FileSystemParams& aParam,
-                                                   FileSystemRequestParent* aParent)
-  : mErrorValue(NS_OK)
+FileSystemTaskParentBase::FileSystemTaskParentBase(
+  FileSystemBase* aFileSystem,
+  const FileSystemParams& aParam,
+  FileSystemRequestParent* aParent)
+  : Runnable("dom::FileSystemTaskParentBase")
+  , mErrorValue(NS_OK)
   , mFileSystem(aFileSystem)
   , mRequestParent(aParent)
-  , mBackgroundEventTarget(NS_GetCurrentThread())
+  , mBackgroundEventTarget(GetCurrentThreadEventTarget())
 {
   MOZ_ASSERT(XRE_IsParentProcess(),
              "Only call from parent process!");
@@ -246,8 +226,12 @@ FileSystemTaskParentBase::~FileSystemTaskParentBase()
 {
   // This task can be released on different threads because we dispatch it (as
   // runnable) to main-thread, I/O and then back to the PBackground thread.
-  NS_ProxyRelease(mBackgroundEventTarget, mFileSystem.forget());
-  NS_ProxyRelease(mBackgroundEventTarget, mRequestParent.forget());
+  NS_ProxyRelease(
+    "FileSystemTaskParentBase::mFileSystem",
+    mBackgroundEventTarget, mFileSystem.forget());
+  NS_ProxyRelease(
+    "FileSystemTaskParentBase::mRequestParent",
+    mBackgroundEventTarget, mRequestParent.forget());
 }
 
 void
@@ -255,12 +239,6 @@ FileSystemTaskParentBase::Start()
 {
   AssertIsOnBackgroundThread();
   mFileSystem->AssertIsOnOwningThread();
-
-  if (NeedToGoToMainThread()) {
-    DebugOnly<nsresult> rv = NS_DispatchToMainThread(this, NS_DISPATCH_NORMAL);
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "NS_DispatchToCurrentThread failed");
-    return;
-  }
 
   DebugOnly<nsresult> rv = DispatchToIOThread(this);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "DispatchToIOThread failed");
@@ -305,52 +283,12 @@ FileSystemTaskParentBase::SetError(const nsresult& aErrorValue)
   mErrorValue = FileSystemErrorFromNsError(aErrorValue);
 }
 
-bool
-FileSystemTaskParentBase::NeedToGoToMainThread() const
-{
-  return mFileSystem->NeedToGoToMainThread();
-}
-
-nsresult
-FileSystemTaskParentBase::MainThreadWork()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  return mFileSystem->MainThreadWork();
-}
-
 NS_IMETHODIMP
 FileSystemTaskParentBase::Run()
 {
-  // This method can run in 3 different threads. Here why:
-  // 1. if we are on the main-thread it's because the task must do something
-  //    here. If no errors are returned we go the step 2.
-  // 2. We can be here directly if the task doesn't have nothing to do on the
-  //    main-thread. We are are on the I/O thread and we call IOWork().
-  // 3. Both step 1 (in case of error) and step 2 end up here where return the
-  //    value back to the PBackground thread.
-  if (NS_IsMainThread()) {
-    MOZ_ASSERT(NeedToGoToMainThread());
-
-    nsresult rv = MainThreadWork();
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      SetError(rv);
-
-      // Something when wrong. Let's go to the Background thread directly
-      // skipping the I/O thread step.
-      rv = mBackgroundEventTarget->Dispatch(this, NS_DISPATCH_NORMAL);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
-    }
-
-    // Next step must happen on the I/O thread.
-    rv = DispatchToIOThread(this);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-
-    return NS_OK;
-  }
+  // This method can run in 2 different threads. Here why:
+  // 1. We are are on the I/O thread and we call IOWork().
+  // 2. After step 1, it returns back to the PBackground thread.
 
   // Run I/O thread tasks
   if (!IsOnBackgroundThread()) {

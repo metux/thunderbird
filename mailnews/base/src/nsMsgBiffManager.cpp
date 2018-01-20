@@ -23,7 +23,7 @@
 
 static NS_DEFINE_CID(kStatusBarBiffManagerCID, NS_STATUSBARBIFFMANAGER_CID);
 
-static PRLogModuleInfo *MsgBiffLogModule = nullptr;
+static mozilla::LazyLogModule MsgBiffLogModule("MsgBiff");
 
 NS_IMPL_ISUPPORTS(nsMsgBiffManager, nsIMsgBiffManager,
                    nsIIncomingServerListener, nsIObserver,
@@ -66,7 +66,7 @@ NS_IMETHODIMP nsMsgBiffManager::Init()
   mInited = true;
   nsresult rv;
 
-  nsCOMPtr<nsIMsgAccountManager> accountManager = 
+  nsCOMPtr<nsIMsgAccountManager> accountManager =
   do_GetService(NS_MSGACCOUNTMANAGER_CONTRACTID, &rv);
   if (NS_SUCCEEDED(rv))
     accountManager->AddIncomingServerListener(this);
@@ -79,11 +79,8 @@ NS_IMETHODIMP nsMsgBiffManager::Init()
   }
 
   // Ensure status bar biff service has started
-  nsCOMPtr<nsIFolderListener> statusBarBiffService = 
+  nsCOMPtr<nsIFolderListener> statusBarBiffService =
     do_GetService(kStatusBarBiffManagerCID, &rv);
-
-  if (!MsgBiffLogModule)
-    MsgBiffLogModule = PR_NewLogModule("MsgBiff");
 
   nsCOMPtr<nsIObserverService> observerService =
     mozilla::services::GetObserverService();
@@ -97,7 +94,7 @@ NS_IMETHODIMP nsMsgBiffManager::Init()
 
 NS_IMETHODIMP nsMsgBiffManager::Shutdown()
 {
-  if (mBiffTimer) 
+  if (mBiffTimer)
   {
     mBiffTimer->Cancel();
     mBiffTimer = nullptr;
@@ -125,8 +122,9 @@ NS_IMETHODIMP nsMsgBiffManager::Observe(nsISupports *aSubject, const char *aTopi
   {
     // wait 10 seconds after waking up to start biffing again.
     mBiffTimer = do_CreateInstance("@mozilla.org/timer;1");
-    mBiffTimer->InitWithFuncCallback(OnBiffTimer, (void*)this, 10000,
-                                     nsITimer::TYPE_ONE_SHOT);
+    mBiffTimer->InitWithNamedFuncCallback(OnBiffTimer, (void*)this, 10000,
+                                          nsITimer::TYPE_ONE_SHOT,
+                                          "nsMsgBiffManager::OnBiffTimer");
   }
   return NS_OK;
 }
@@ -296,8 +294,9 @@ nsresult nsMsgBiffManager::SetupNextBiff()
 
     MOZ_LOG(MsgBiffLogModule, mozilla::LogLevel::Info, ("setting %d timer\n", timeInMSUint32));
     mBiffTimer = do_CreateInstance("@mozilla.org/timer;1");
-    mBiffTimer->InitWithFuncCallback(OnBiffTimer, (void*)this, timeInMSUint32, 
-                                     nsITimer::TYPE_ONE_SHOT);
+    mBiffTimer->InitWithNamedFuncCallback(OnBiffTimer, (void*)this, timeInMSUint32,
+                                          nsITimer::TYPE_ONE_SHOT,
+                                          "nsMsgBiffManager::OnBiffTimer");
 
   }
   return NS_OK;
@@ -320,7 +319,7 @@ nsresult nsMsgBiffManager::PerformBiff()
     {
       bool serverBusy = false;
       bool serverRequiresPassword = true;
-      bool passwordPromptRequired; 
+      bool passwordPromptRequired;
 
       current.server->GetPasswordPromptRequired(&passwordPromptRequired);
       current.server->GetServerBusy(&serverBusy);
@@ -343,7 +342,7 @@ nsresult nsMsgBiffManager::PerformBiff()
         nsCString serverKey;
         current.server->GetKey(serverKey);
         nsresult rv = current.server->PerformBiff(nullptr);
-        MOZ_LOG(MsgBiffLogModule, mozilla::LogLevel::Info, ("biffing server %s rv = %x\n", serverKey.get(), rv));
+        MOZ_LOG(MsgBiffLogModule, mozilla::LogLevel::Info, ("biffing server %s rv = %" PRIx32 "\n", serverKey.get(), static_cast<uint32_t>(rv)));
       }
       else
       {

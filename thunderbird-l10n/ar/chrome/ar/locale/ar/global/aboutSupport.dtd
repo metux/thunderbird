@@ -3,8 +3,8 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY aboutSupport.pageTitle "معلومات مواجهة الأعطال">
-<!-- LOCALIZATION NOTE (aboutSupport.pageSubtitle): don't change the 'supportLink' id. -->
 
+<!-- LOCALIZATION NOTE (aboutSupport.pageSubtitle): don't change the 'supportLink' id. -->
 <!ENTITY aboutSupport.pageSubtitle "  تحتوي هذه الصفحة معلومات تقنية قد تكون مفيدة عندما تحاول حل مشكلة ما. إن كنت تبحث عن إجابات لأسئلة شائعة تخص &brandShortName;، تحقق من <a id='supportLink'>موقع الدعم</a>.">
 
 <!ENTITY aboutSupport.crashes.title "بلاغات الانهيار">
@@ -21,6 +21,11 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "النسخة">
 <!ENTITY aboutSupport.extensionId "المعرّف">
 
+<!ENTITY aboutSupport.featuresTitle "مميزات &brandShortName;">
+<!ENTITY aboutSupport.featureName "الاسم">
+<!ENTITY aboutSupport.featureVersion "النسخة">
+<!ENTITY aboutSupport.featureId "المعرّف">
+
 <!ENTITY aboutSupport.experimentsTitle "المزايا التجريبية">
 <!ENTITY aboutSupport.experimentName "الاسم">
 <!ENTITY aboutSupport.experimentId "المعرّف">
@@ -34,9 +39,9 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.appBasicsName "الاسم">
 <!ENTITY aboutSupport.appBasicsVersion "النسخة">
 <!ENTITY aboutSupport.appBasicsBuildID "معرف البناء">
+
 <!-- LOCALIZATION NOTE (aboutSupport.appBasicsUpdateChannel, aboutSupport.appBasicsUpdateHistory, aboutSupport.appBasicsShowUpdateHistory):
 "Update" is a noun here, not a verb. -->
-
 <!ENTITY aboutSupport.appBasicsUpdateChannel "قناة التحديث">
 <!ENTITY aboutSupport.appBasicsUpdateHistory "تأريخ التحديث">
 <!ENTITY aboutSupport.appBasicsShowUpdateHistory "أظهر تأريخ التحديث">
@@ -53,13 +58,18 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsOS "نظام التشغيل">
 <!ENTITY aboutSupport.appBasicsMemoryUse "استخدام الذاكرة">
 <!ENTITY aboutSupport.appBasicsPerformance "الأداء">
-<!-- LOCALIZATION NOTE the term "Service Workers" should not be translated. -->
 
+<!-- LOCALIZATION NOTE the term "Service Workers" should not be translated. -->
 <!ENTITY aboutSupport.appBasicsServiceWorkers "عمّال الخدمة المسجلين">
 
 <!ENTITY aboutSupport.appBasicsProfiles "ملفات الإعدادات">
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "نوافذ متعددة السيرورات">
+
+<!ENTITY aboutSupport.appBasicsProcessCount "سيرورة محتوى الوب">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "مفتاح جوجل">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "مفتاح خدمة التموضع من موزيلا">
 
 <!ENTITY aboutSupport.appBasicsSafeMode "الوضع الآمن">
 
@@ -75,8 +85,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.modifiedKeyPrefsTitle "التفضيلات المهمّة المُعدّلة">
 <!ENTITY aboutSupport.modifiedPrefsName "الاسم">
 <!ENTITY aboutSupport.modifiedPrefsValue "قيمة">
-<!-- LOCALIZATION NOTE (aboutSupport.userJSTitle, aboutSupport.userJSDescription): user.js is the name of the preference override file being checked. -->
 
+<!-- LOCALIZATION NOTE (aboutSupport.userJSTitle, aboutSupport.userJSDescription): user.js is the name of the preference override file being checked. -->
 <!ENTITY aboutSupport.userJSTitle "تفضيلات user.js">
 <!ENTITY aboutSupport.userJSDescription "يحتوي مجلد إعداداتك على <a id='prefs-user-js-link'>ملف user.js</a> به تفضيلات لم يُنشئها &brandShortName;.">
 
@@ -96,16 +106,26 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "الإتاحة">
 <!ENTITY aboutSupport.a11yActivated "مفعّلة">
 <!ENTITY aboutSupport.a11yForceDisabled "امنع الإتاحة">
+<!ENTITY aboutSupport.a11yHandlerUsed "مُعالج الإتاحة المستخدم">
+<!ENTITY aboutSupport.a11yInstantiator "بادئ الإتاحة">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "إصدارات المكتبات">
 
-<!ENTITY aboutSupport.installationHistoryTitle "تأريخ التثبيت">
+<!ENTITY aboutSupport.installationHistoryTitle "تأريخ التنصيب">
 <!ENTITY aboutSupport.updateHistoryTitle "تأريخ التحديث">
 
 <!ENTITY aboutSupport.copyTextToClipboard.label "انسخ النص إلى الحافظة">
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "انسخ البيانات الخام إلى الحافظة">
 
 <!ENTITY aboutSupport.sandboxTitle "العزل">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "نداءات النظام المرفوضة">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "ثوان مضت">
+<!ENTITY aboutSupport.sandboxSyscallPID "معرف السيرورة">
+<!ENTITY aboutSupport.sandboxSyscallTID "معرف الخيط">
+<!ENTITY aboutSupport.sandboxSyscallProcType "نوع السيرورة">
+<!ENTITY aboutSupport.sandboxSyscallNumber "نداء النظام">
+<!ENTITY aboutSupport.sandboxSyscallArgs "المعطيات">
 
 <!ENTITY aboutSupport.safeModeTitle "جرّب الوضع الآمن">
 <!ENTITY aboutSupport.restartInSafeMode.label "أعِد التشغيل مع تعطيل الإضافات…">
@@ -118,3 +138,26 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "سجل القرارات">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "خصائص حامي التحطم المعطَّلة">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "الحلول الالتفافية">
+
+<!ENTITY aboutSupport.mediaTitle "الوسائط">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "أجهزة الخَرْج">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "أجهزة الدَخْل">
+<!ENTITY aboutSupport.mediaDeviceName "الاسم">
+<!ENTITY aboutSupport.mediaDeviceGroup "المجموعة">
+<!ENTITY aboutSupport.mediaDeviceVendor "المُنتِج">
+<!ENTITY aboutSupport.mediaDeviceState "الحالة">
+<!ENTITY aboutSupport.mediaDevicePreferred "مفضّل">
+<!ENTITY aboutSupport.mediaDeviceFormat "التنسيق">
+<!ENTITY aboutSupport.mediaDeviceChannels "القنوات">
+<!ENTITY aboutSupport.mediaDeviceRate "المعدل">
+<!ENTITY aboutSupport.mediaDeviceLatency "الكمون">
+
+<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
+<!ENTITY aboutSupport.intlAppTitle "Application Settings">
+<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
+<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
+<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
+<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
+<!ENTITY aboutSupport.intlOSTitle "Operating System">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">

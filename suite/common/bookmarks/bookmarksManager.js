@@ -362,8 +362,11 @@ var PlacesOrganizer = {
   populateRestoreMenu: function PO_populateRestoreMenu() {
     let restorePopup = document.getElementById("fileRestorePopup");
 
-    let dateSvc = Components.classes["@mozilla.org/intl/scriptabledateformat;1"]
-                            .getService(Components.interfaces.nsIScriptableDateFormat);
+    const locale = Components.classes["@mozilla.org/chrome/chrome-registry;1"]
+                             .getService(Components.interfaces.nsIXULChromeRegistry)
+                             .getSelectedLocale("global", true);
+    const dtOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+    let dateFormatter = new Intl.DateTimeFormat(locale, dtOptions);
 
     // Remove existing menu items. Last item is the restoreFromFile item.
     while (restorePopup.childNodes.length > 1)
@@ -378,12 +381,7 @@ var PlacesOrganizer = {
       let backupDate = PlacesBackups.getDateForFile(backupFiles[i]);
       let m = restorePopup.insertBefore(document.createElement("menuitem"),
                                         document.getElementById("restoreFromFile"));
-      m.setAttribute("label",
-                     dateSvc.FormatDate("",
-                                        Components.interfaces.nsIScriptableDateFormat.dateFormatLong,
-                                        backupDate.getFullYear(),
-                                        backupDate.getMonth() + 1,
-                                        backupDate.getDate()));
+      m.setAttribute("label", dateFormatter.format(backupDate));
       m.setAttribute("value", backupFiles[i].leafName);
       m.setAttribute("oncommand",
                      "PlacesOrganizer.onRestoreMenuItemClick(this);");
@@ -470,7 +468,7 @@ var PlacesOrganizer = {
 
     var dirSvc = Components.classes["@mozilla.org/file/directory_service;1"]
                            .getService(Components.interfaces.nsIProperties);
-    var backupsDir = dirSvc.get("Desk", Components.interfaces.nsILocalFile);
+    var backupsDir = dirSvc.get("Desk", Components.interfaces.nsIFile);
     fp.displayDirectory = backupsDir;
 
     fp.defaultString = PlacesBackups.getFilenameForDate();
@@ -721,7 +719,7 @@ var PlacesOrganizer = {
     var placeSpec = PlacesUtils.history.queriesToQueryString(queries,
                                                              queries.length,
                                                              options);
-    var placeURI = Services.io.newURI(placeSpec, null, null);
+    var placeURI = Services.io.newURI(placeSpec);
 
     // Prompt the user for a name for the query.
     // XXX - using prompt service for now; will need to make

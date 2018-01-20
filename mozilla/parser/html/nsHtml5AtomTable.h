@@ -7,11 +7,10 @@
 
 #include "nsHashKeys.h"
 #include "nsTHashtable.h"
-#include "nsAutoPtr.h"
-#include "nsIAtom.h"
-#include "nsIThread.h"
+#include "nsAtom.h"
+#include "nsISerialEventTarget.h"
 
-class nsHtml5Atom;
+#define RECENTLY_USED_PARSER_ATOMS_SIZE 31
 
 class nsHtml5AtomEntry : public nsStringHashKey
 {
@@ -19,12 +18,9 @@ class nsHtml5AtomEntry : public nsStringHashKey
     explicit nsHtml5AtomEntry(KeyTypePointer aStr);
     nsHtml5AtomEntry(const nsHtml5AtomEntry& aOther);
     ~nsHtml5AtomEntry();
-    inline nsHtml5Atom* GetAtom()
-    {
-      return mAtom;
-    }
+    inline nsAtom* GetAtom() { return mAtom; }
   private:
-    nsAutoPtr<nsHtml5Atom> mAtom;
+    nsAtom* mAtom;
 };
 
 /**
@@ -80,27 +76,31 @@ class nsHtml5AtomTable
     /**
      * Obtains the atom for the given string in the scope of this atom table.
      */
-    nsIAtom* GetAtom(const nsAString& aKey);
+    nsAtom* GetAtom(const nsAString& aKey);
     
     /**
      * Empties the table.
      */
     void Clear()
     {
+      for (uint32_t i = 0; i < RECENTLY_USED_PARSER_ATOMS_SIZE; ++i) {
+        mRecentlyUsedParserAtoms[i] = nullptr;
+      }
       mTable.Clear();
     }
     
 #ifdef DEBUG
-    void SetPermittedLookupThread(nsIThread* aThread)
+    void SetPermittedLookupEventTarget(nsISerialEventTarget* aEventTarget)
     {
-      mPermittedLookupThread = aThread;
+      mPermittedLookupEventTarget = aEventTarget;
     }
 #endif  
   
   private:
     nsTHashtable<nsHtml5AtomEntry> mTable;
+    nsAtom* mRecentlyUsedParserAtoms[RECENTLY_USED_PARSER_ATOMS_SIZE];
 #ifdef DEBUG
-    nsCOMPtr<nsIThread>            mPermittedLookupThread;
+    nsCOMPtr<nsISerialEventTarget>            mPermittedLookupEventTarget;
 #endif
 };
 

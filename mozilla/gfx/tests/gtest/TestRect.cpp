@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,6 +9,7 @@
 
 #include "nsRect.h"
 #include "gfxRect.h"
+#include "mozilla/WritingModes.h"
 #ifdef XP_WIN
 #include <windows.h>
 #endif
@@ -21,7 +23,7 @@ TestConstructors()
 
   // Make sure the rectangle was properly initialized
   EXPECT_TRUE(rect1.x == 10 && rect1.y == 20 &&
-      rect1.width == 30 && rect1.height == 40) <<
+    rect1.Width() == 30 && rect1.Height() == 40) <<
     "[1] Make sure the rectangle was properly initialized with constructor";
 
   // Create a second rect using the copy constructor
@@ -29,7 +31,7 @@ TestConstructors()
 
   // Make sure the rectangle was properly initialized
   EXPECT_TRUE(rect2.x == rect1.x && rect2.y == rect2.y &&
-      rect2.width == rect2.width && rect2.height == rect2.height) <<
+    rect2.Width() == rect2.Width() && rect2.Height() == rect2.Height()) <<
     "[2] Make sure the rectangle was properly initialized with copy constructor";
 
 
@@ -73,7 +75,7 @@ TestContainment()
   //
 
   // Basic test of a point in the middle of the rect
-  EXPECT_FALSE(!rect1.Contains(rect1.x + rect1.width/2, rect1.y + rect1.height/2)) <<
+  EXPECT_FALSE(!rect1.Contains(rect1.x + rect1.Width()/2, rect1.y + rect1.Height()/2)) <<
     "[1] Basic test of a point in the middle of the rect";
 
   // Test against a point at the left/top edges
@@ -149,10 +151,10 @@ TestIntersects()
   rect2.x++;
 
   // Test against a rect that's outside of rect1 on the left
-  rect2.x -= rect2.width;
+  rect2.x -= rect2.Width();
   EXPECT_FALSE(rect1.Intersects(rect2)) <<
     "[5] Test against a rect that's outside of rect1 on the left";
-  rect2.x += rect2.width;
+  rect2.x += rect2.Width();
 
   // Test against a rect that overlaps the top edge of rect1
   rect2.y--;
@@ -161,10 +163,10 @@ TestIntersects()
   rect2.y++;
 
   // Test against a rect that's outside of rect1 on the top
-  rect2.y -= rect2.height;
+  rect2.y -= rect2.Height();
   EXPECT_FALSE(rect1.Intersects(rect2)) <<
     "[7] Test against a rect that's outside of rect1 on the top";
-  rect2.y += rect2.height;
+  rect2.y += rect2.Height();
 
   // Test against a rect that overlaps the right edge of rect1
   rect2.x++;
@@ -173,10 +175,10 @@ TestIntersects()
   rect2.x--;
 
   // Test against a rect that's outside of rect1 on the right
-  rect2.x += rect2.width;
+  rect2.x += rect2.Width();
   EXPECT_FALSE(rect1.Intersects(rect2)) <<
     "[9] Test against a rect that's outside of rect1 on the right";
-  rect2.x -= rect2.width;
+  rect2.x -= rect2.Width();
 
   // Test against a rect that overlaps the bottom edge of rect1
   rect2.y++;
@@ -185,10 +187,10 @@ TestIntersects()
   rect2.y--;
 
   // Test against a rect that's outside of rect1 on the bottom
-  rect2.y += rect2.height;
+  rect2.y += rect2.Height();
   EXPECT_FALSE(rect1.Intersects(rect2)) <<
     "[11] Test against a rect that's outside of rect1 on the bottom";
-  rect2.y -= rect2.height;
+  rect2.y -= rect2.Height();
 
   return true;
 }
@@ -215,72 +217,72 @@ TestIntersection()
   // Test against a rect that overlaps the left edge of rect1
   rect2.x--;
   EXPECT_FALSE(!dest.IntersectRect(rect1, rect2) ||
-     !(dest.IsEqualInterior(RectType(rect1.x, rect1.y, rect1.width - 1, rect1.height)))) <<
+    !(dest.IsEqualInterior(RectType(rect1.x, rect1.y, rect1.Width() - 1, rect1.Height())))) <<
     "[3] Test against a rect that overlaps the left edge of rect1";
   rect2.x++;
 
   // Test against a rect that's outside of rect1 on the left
-  rect2.x -= rect2.width;
+  rect2.x -= rect2.Width();
   EXPECT_FALSE(dest.IntersectRect(rect1, rect2)) <<
     "[4] Test against a rect that's outside of rect1 on the left";
   // Make sure an empty rect is returned
   EXPECT_FALSE(!dest.IsEmpty()) <<
     "[4] Make sure an empty rect is returned";
   EXPECT_TRUE(dest.IsFinite()) << "[4b] Should be finite";
-  rect2.x += rect2.width;
+  rect2.x += rect2.Width();
 
   // Test against a rect that overlaps the top edge of rect1
   rect2.y--;
   EXPECT_FALSE(!dest.IntersectRect(rect1, rect2) ||
-     !(dest.IsEqualInterior(RectType(rect1.x, rect1.y, rect1.width, rect1.height - 1)))) <<
+    !(dest.IsEqualInterior(RectType(rect1.x, rect1.y, rect1.Width(), rect1.Height() - 1)))) <<
     "[5] Test against a rect that overlaps the top edge of rect1";
   EXPECT_TRUE(dest.IsFinite()) << "[5b] Should be finite";
   rect2.y++;
 
   // Test against a rect that's outside of rect1 on the top
-  rect2.y -= rect2.height;
+  rect2.y -= rect2.Height();
   EXPECT_FALSE(dest.IntersectRect(rect1, rect2)) <<
     "[6] Test against a rect that's outside of rect1 on the top";
   // Make sure an empty rect is returned
   EXPECT_FALSE(!dest.IsEmpty()) <<
     "[6] Make sure an empty rect is returned";
   EXPECT_TRUE(dest.IsFinite()) << "[6b] Should be finite";
-  rect2.y += rect2.height;
+  rect2.y += rect2.Height();
 
   // Test against a rect that overlaps the right edge of rect1
   rect2.x++;
   EXPECT_FALSE(!dest.IntersectRect(rect1, rect2) ||
-     !(dest.IsEqualInterior(RectType(rect1.x + 1, rect1.y, rect1.width - 1, rect1.height)))) <<
+    !(dest.IsEqualInterior(RectType(rect1.x + 1, rect1.y, rect1.Width() - 1, rect1.Height())))) <<
     "[7] Test against a rect that overlaps the right edge of rect1";
   rect2.x--;
 
   // Test against a rect that's outside of rect1 on the right
-  rect2.x += rect2.width;
+  rect2.x += rect2.Width();
   EXPECT_FALSE(dest.IntersectRect(rect1, rect2)) <<
     "[8] Test against a rect that's outside of rect1 on the right";
   // Make sure an empty rect is returned
   EXPECT_FALSE(!dest.IsEmpty()) <<
     "[8] Make sure an empty rect is returned";
   EXPECT_TRUE(dest.IsFinite()) << "[8b] Should be finite";
-  rect2.x -= rect2.width;
+  rect2.x -= rect2.Width();
 
   // Test against a rect that overlaps the bottom edge of rect1
   rect2.y++;
   EXPECT_FALSE(!dest.IntersectRect(rect1, rect2) ||
-     !(dest.IsEqualInterior(RectType(rect1.x, rect1.y + 1, rect1.width, rect1.height - 1)))) <<
+    !(dest.IsEqualInterior(RectType(rect1.x, rect1.y + 1, rect1.Width(), rect1.Height() - 1)))) <<
     "[9] Test against a rect that overlaps the bottom edge of rect1";
   EXPECT_TRUE(dest.IsFinite()) << "[9b] Should be finite";
   rect2.y--;
 
   // Test against a rect that's outside of rect1 on the bottom
-  rect2.y += rect2.height;
+  rect2.y += rect2.Height();
   EXPECT_FALSE(dest.IntersectRect(rect1, rect2)) <<
     "[10] Test against a rect that's outside of rect1 on the bottom";
   // Make sure an empty rect is returned
   EXPECT_FALSE(!dest.IsEmpty()) <<
     "[10] Make sure an empty rect is returned";
   EXPECT_TRUE(dest.IsFinite()) << "[10b] Should be finite";
-  rect2.y -= rect2.height;
+  rect2.y -= rect2.Height();
 
   // Test against a rect with zero width or height
   rect1.SetRect(100, 100, 100, 100);
@@ -412,10 +414,86 @@ TestBug1135677()
   dest = rect1.Intersect(rect2);
 
   EXPECT_TRUE(dest.x == 1073741820 && dest.y == 1073741820 &&
-              dest.width == 14400 && dest.height == 77640) <<
+              dest.Width() == 14400 && dest.Height() == 77640) <<
               "[1] Operation should not overflow internally.";
 
   return true;
+}
+
+template <class RectType>
+static bool
+TestSetWH()
+{
+  RectType  rect(1, 2, 3, 4);
+  EXPECT_TRUE(rect.X() == 1 && rect.Y() == 2 && rect.Width() == 3 && rect.Height() == 4);
+  rect.SetWidth(13);
+  EXPECT_TRUE(rect.X() == 1 && rect.Y() == 2 && rect.Width() == 13 && rect.Height() == 4);
+  rect.SetHeight(14);
+  EXPECT_TRUE(rect.X() == 1 && rect.Y() == 2 && rect.Width() == 13 && rect.Height() == 14);
+  rect.SizeTo(23, 24);
+  EXPECT_TRUE(rect.X() == 1 && rect.Y() == 2 && rect.Width() == 23 && rect.Height() == 24);
+  return true;
+}
+
+template <class RectType>
+static bool
+TestSwap()
+{
+  RectType  rect(1, 2, 3, 4);
+  EXPECT_TRUE(rect.X() == 1 && rect.Y() == 2 && rect.Width() == 3 && rect.Height() == 4);
+  rect.Swap();
+  EXPECT_TRUE(rect.X() == 2 && rect.Y() == 1 && rect.Width() == 4 && rect.Height() == 3);
+  return true;
+}
+
+static void
+TestIntersectionLogicalHelper(nscoord x1, nscoord y1, nscoord w1, nscoord h1,
+                              nscoord x2, nscoord y2, nscoord w2, nscoord h2,
+                              nscoord xR, nscoord yR, nscoord wR, nscoord hR,
+                              bool isNonEmpty)
+{
+  nsRect rect1(x1, y1, w1, h1);
+  nsRect rect2(x2, y2, w2, h2);
+  nsRect rectDebug;
+  EXPECT_TRUE(isNonEmpty == rectDebug.IntersectRect(rect1, rect2));
+  EXPECT_TRUE(rectDebug.IsEqualEdges(nsRect(xR, yR, wR, hR)));
+
+  mozilla::LogicalRect r1(mozilla::WritingMode(), rect1.X(), rect1.Y(), rect1.Width(), rect1.Height());
+  mozilla::LogicalRect r2(mozilla::WritingMode(), rect2.X(), rect2.Y(), rect2.Width(), rect2.Height());
+  EXPECT_TRUE(isNonEmpty == r1.IntersectRect(r1, r2));
+  EXPECT_TRUE(rectDebug.IsEqualEdges(nsRect(r1.IStart(WritingMode()), r1.BStart(WritingMode()),
+                                            r1.ISize(WritingMode()), r1.BSize(WritingMode()))));
+
+  mozilla::LogicalRect r3(mozilla::WritingMode(), rect1.X(), rect1.Y(), rect1.Width(), rect1.Height());
+  mozilla::LogicalRect r4(mozilla::WritingMode(), rect2.X(), rect2.Y(), rect2.Width(), rect2.Height());
+  EXPECT_TRUE(isNonEmpty == r4.IntersectRect(r3, r4));
+  EXPECT_TRUE(rectDebug.IsEqualEdges(nsRect(r4.IStart(WritingMode()), r4.BStart(WritingMode()),
+                                            r4.ISize(WritingMode()), r4.BSize(WritingMode()))));
+
+  mozilla::LogicalRect r5(mozilla::WritingMode(), rect1.X(), rect1.Y(), rect1.Width(), rect1.Height());
+  mozilla::LogicalRect r6(mozilla::WritingMode(), rect2.X(), rect2.Y(), rect2.Width(), rect2.Height());
+  mozilla::LogicalRect r7(mozilla::WritingMode(), 0, 0, 1, 1);
+  EXPECT_TRUE(isNonEmpty == r7.IntersectRect(r5, r6));
+  EXPECT_TRUE(rectDebug.IsEqualEdges(nsRect(r7.IStart(WritingMode()), r7.BStart(WritingMode()),
+                                            r7.ISize(WritingMode()), r7.BSize(WritingMode()))));
+}
+
+static void
+TestIntersectionLogical(nscoord x1, nscoord y1, nscoord w1, nscoord h1,
+                        nscoord x2, nscoord y2, nscoord w2, nscoord h2,
+                        nscoord xR, nscoord yR, nscoord wR, nscoord hR,
+                        bool isNonEmpty)
+{
+  TestIntersectionLogicalHelper(x1, y1, w1, h1, x2, y2, w2, h2, xR, yR, wR, hR, isNonEmpty);
+  TestIntersectionLogicalHelper(x2, y2, w2, h2, x1, y1, w1, h1, xR, yR, wR, hR, isNonEmpty);
+}
+
+TEST(Gfx, Logical)
+{
+  TestIntersectionLogical(578, 0, 2650, 1152, 1036, 0, 2312, 1, 1036, 0, 2192, 1, true);
+  TestIntersectionLogical(0, 0, 1000, 1000, 500, 500, 1000, 1000, 500, 500, 500, 500, true);
+  TestIntersectionLogical(100, 200, 300, 400, 50, 250, 100, 100, 100, 250, 50, 100, true);
+  TestIntersectionLogical(0, 100, 200, 300, 300, 100, 100, 300, 300, 100, 0, 0, false);
 }
 
 TEST(Gfx, nsRect) {
@@ -426,6 +504,8 @@ TEST(Gfx, nsRect) {
   TestIntersection<nsRect>();
   TestUnion<nsRect>();
   TestBug1135677<nsRect>();
+  TestSetWH<nsRect>();
+  TestSwap<nsRect>();
 }
 
 TEST(Gfx, nsIntRect) {
@@ -436,6 +516,8 @@ TEST(Gfx, nsIntRect) {
   TestIntersection<nsIntRect>();
   TestUnion<nsIntRect>();
   TestBug1135677<nsIntRect>();
+  TestSetWH<nsIntRect>();
+  TestSwap<nsIntRect>();
 }
 
 TEST(Gfx, gfxRect) {
@@ -447,4 +529,7 @@ TEST(Gfx, gfxRect) {
   TestUnion<gfxRect>();
   TestBug1135677<gfxRect>();
   TestFiniteGfx();
+  TestSetWH<gfxRect>();
+  TestSwap<gfxRect>();
 }
+

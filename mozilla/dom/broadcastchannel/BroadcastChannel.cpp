@@ -10,6 +10,7 @@
 #include "mozilla/dom/Navigator.h"
 #include "mozilla/dom/File.h"
 #include "mozilla/dom/StructuredCloneHolder.h"
+#include "mozilla/dom/ipc/StructuredCloneData.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/BackgroundUtils.h"
 #include "mozilla/ipc/PBackgroundChild.h"
@@ -32,15 +33,15 @@ using namespace ipc;
 namespace dom {
 
 using namespace workers;
+using namespace ipc;
 
-class BroadcastChannelMessage final : public StructuredCloneHolder
+class BroadcastChannelMessage final : public StructuredCloneDataNoTransfers
 {
 public:
   NS_INLINE_DECL_REFCOUNTING(BroadcastChannelMessage)
 
   BroadcastChannelMessage()
-    : StructuredCloneHolder(CloningSupported, TransferringNotSupported,
-                            StructuredCloneScope::DifferentProcess)
+    : StructuredCloneDataNoTransfers()
   {}
 
 private:
@@ -88,11 +89,6 @@ public:
 
     nsIPrincipal* principal = GetPrincipalFromWorkerPrivate(mWorkerPrivate);
     if (!principal) {
-      mRv.Throw(NS_ERROR_FAILURE);
-      return true;
-    }
-
-    if (NS_WARN_IF(principal->GetIsNullPrincipal())) {
       mRv.Throw(NS_ERROR_FAILURE);
       return true;
     }
@@ -151,33 +147,7 @@ public:
     }
 
     ClonedMessageData message;
-
-    bool success;
-    SerializedStructuredCloneBuffer& buffer = message.data();
-    auto iter = mData->BufferData().Iter();
-    buffer.data = mData->BufferData().Borrow<js::SystemAllocPolicy>(iter, mData->BufferData().Size(), &success);
-    if (NS_WARN_IF(!success)) {
-      return NS_OK;
-    }
-
-    PBackgroundChild* backgroundManager = mActor->Manager();
-    MOZ_ASSERT(backgroundManager);
-
-    const nsTArray<RefPtr<BlobImpl>>& blobImpls = mData->BlobImpls();
-
-    if (!blobImpls.IsEmpty()) {
-      message.blobsChild().SetCapacity(blobImpls.Length());
-
-      for (uint32_t i = 0, len = blobImpls.Length(); i < len; ++i) {
-        PBlobChild* blobChild =
-          BackgroundChild::GetOrCreateActorForBlobImpl(backgroundManager,
-                                                       blobImpls[i]);
-        MOZ_ASSERT(blobChild);
-
-        message.blobsChild().AppendElement(blobChild);
-      }
-    }
-
+    mData->BuildClonedMessageDataForBackgroundChild(mActor->Manager(), message);
     mActor->SendPostMessage(message);
     return NS_OK;
   }
@@ -299,14 +269,13 @@ BroadcastChannel::BroadcastChannel(nsPIDOMWindowInner* aWindow,
                                    const nsAString& aChannel)
   : DOMEventTargetHelper(aWindow)
   , mWorkerHolder(nullptr)
-  , mPrincipalInfo(new PrincipalInfo(aPrincipalInfo))
-  , mOrigin(aOrigin)
   , mChannel(aChannel)
-  , mIsKeptAlive(false)
   , mInnerID(0)
   , mState(StateActive)
 {
   // Window can be null in workers
+
+  KeepAliveIfHasListenersFor(NS_LITERAL_STRING("message"));
 }
 
 BroadcastChannel::~BroadcastChannel()
@@ -348,11 +317,6 @@ BroadcastChannel::Constructor(const GlobalObject& aGlobal,
       return nullptr;
     }
 
-    if (NS_WARN_IF(principal->GetIsNullPrincipal())) {
-      aRv.Throw(NS_ERROR_FAILURE);
-      return nullptr;
-    }
-
     aRv = principal->GetOrigin(origin);
     if (NS_WARN_IF(aRv.Failed())) {
       return nullptr;
@@ -369,7 +333,7 @@ BroadcastChannel::Constructor(const GlobalObject& aGlobal,
 
     RefPtr<InitializeRunnable> runnable =
       new InitializeRunnable(workerPrivate, origin, principalInfo, aRv);
-    runnable->Dispatch(aRv);
+    runnable->Dispatch(Closing, aRv);
   }
 
   if (aRv.Failed()) {
@@ -380,12 +344,21 @@ BroadcastChannel::Constructor(const GlobalObject& aGlobal,
     new BroadcastChannel(window, principalInfo, origin, aChannel);
 
   // Register this component to PBackground.
-  PBackgroundChild* actor = BackgroundChild::GetForCurrentThread();
-  if (actor) {
-    bc->ActorCreated(actor);
-  } else {
-    BackgroundChild::GetOrCreateForCurrentThread(bc);
+  PBackgroundChild* actorChild = BackgroundChild::GetOrCreateForCurrentThread();
+  if (NS_WARN_IF(!actorChild)) {
+    // Firefox is probably shutting down. Let's return a 'generic' error.
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
   }
+
+  PBroadcastChannelChild* actor =
+    actorChild->SendPBroadcastChannelConstructor(principalInfo, origin,
+                                                 nsString(aChannel));
+
+  bc->mActor = static_cast<BroadcastChannelChild*>(actor);
+  MOZ_ASSERT(bc->mActor);
+
+  bc->mActor->SetParent(bc);
 
   if (!workerPrivate) {
     MOZ_ASSERT(window);
@@ -441,18 +414,12 @@ BroadcastChannel::PostMessageData(BroadcastChannelMessage* aData)
 {
   RemoveDocFromBFCache();
 
-  if (mActor) {
-    RefPtr<BCPostMessageRunnable> runnable =
-      new BCPostMessageRunnable(mActor, aData);
+  RefPtr<BCPostMessageRunnable> runnable =
+    new BCPostMessageRunnable(mActor, aData);
 
-    if (NS_FAILED(NS_DispatchToCurrentThread(runnable))) {
-      NS_WARNING("Failed to dispatch to the current thread!");
-    }
-
-    return;
+  if (NS_FAILED(NS_DispatchToCurrentThread(runnable))) {
+    NS_WARNING("Failed to dispatch to the current thread!");
   }
-
-  mPendingMessages.AppendElement(aData);
 }
 
 void
@@ -462,55 +429,15 @@ BroadcastChannel::Close()
     return;
   }
 
-  if (mPendingMessages.IsEmpty()) {
-    // We cannot call Shutdown() immediatelly because we could have some
-    // postMessage runnable already dispatched. Instead, we change the state to
-    // StateClosed and we shutdown the actor asynchrounsly.
+  // We cannot call Shutdown() immediatelly because we could have some
+  // postMessage runnable already dispatched. Instead, we change the state to
+  // StateClosed and we shutdown the actor asynchrounsly.
 
-    mState = StateClosed;
-    RefPtr<CloseRunnable> runnable = new CloseRunnable(this);
+  mState = StateClosed;
+  RefPtr<CloseRunnable> runnable = new CloseRunnable(this);
 
-    if (NS_FAILED(NS_DispatchToCurrentThread(runnable))) {
-      NS_WARNING("Failed to dispatch to the current thread!");
-    }
-  } else {
-    MOZ_ASSERT(!mActor);
-    mState = StateClosing;
-  }
-}
-
-void
-BroadcastChannel::ActorFailed()
-{
-  MOZ_CRASH("Failed to create a PBackgroundChild actor!");
-}
-
-void
-BroadcastChannel::ActorCreated(PBackgroundChild* aActor)
-{
-  MOZ_ASSERT(aActor);
-
-  if (mState == StateClosed) {
-    return;
-  }
-
-  PBroadcastChannelChild* actor =
-    aActor->SendPBroadcastChannelConstructor(*mPrincipalInfo, mOrigin, mChannel);
-
-  mActor = static_cast<BroadcastChannelChild*>(actor);
-  MOZ_ASSERT(mActor);
-
-  mActor->SetParent(this);
-
-  // Flush pending messages.
-  for (uint32_t i = 0; i < mPendingMessages.Length(); ++i) {
-    PostMessageData(mPendingMessages[i]);
-  }
-
-  mPendingMessages.Clear();
-
-  if (mState == StateClosing) {
-    Shutdown();
+  if (NS_FAILED(NS_DispatchToCurrentThread(runnable))) {
+    NS_WARNING("Failed to dispatch to the current thread!");
   }
 }
 
@@ -531,82 +458,7 @@ BroadcastChannel::Shutdown()
     mActor = nullptr;
   }
 
-  // If shutdown() is called we have to release the reference if we still keep
-  // it.
-  if (mIsKeptAlive) {
-    mIsKeptAlive = false;
-    Release();
-  }
-}
-
-EventHandlerNonNull*
-BroadcastChannel::GetOnmessage()
-{
-  if (NS_IsMainThread()) {
-    return GetEventHandler(nsGkAtoms::onmessage, EmptyString());
-  }
-  return GetEventHandler(nullptr, NS_LITERAL_STRING("message"));
-}
-
-void
-BroadcastChannel::SetOnmessage(EventHandlerNonNull* aCallback)
-{
-  if (NS_IsMainThread()) {
-    SetEventHandler(nsGkAtoms::onmessage, EmptyString(), aCallback);
-  } else {
-    SetEventHandler(nullptr, NS_LITERAL_STRING("message"), aCallback);
-  }
-
-  UpdateMustKeepAlive();
-}
-
-void
-BroadcastChannel::AddEventListener(const nsAString& aType,
-                                   EventListener* aCallback,
-                                   const AddEventListenerOptionsOrBoolean& aOptions,
-                                   const dom::Nullable<bool>& aWantsUntrusted,
-                                   ErrorResult& aRv)
-{
-  DOMEventTargetHelper::AddEventListener(aType, aCallback, aOptions,
-                                         aWantsUntrusted, aRv);
-
-  if (aRv.Failed()) {
-    return;
-  }
-
-  UpdateMustKeepAlive();
-}
-
-void
-BroadcastChannel::RemoveEventListener(const nsAString& aType,
-                                      EventListener* aCallback,
-                                      const EventListenerOptionsOrBoolean& aOptions,
-                                      ErrorResult& aRv)
-{
-  DOMEventTargetHelper::RemoveEventListener(aType, aCallback, aOptions, aRv);
-
-  if (aRv.Failed()) {
-    return;
-  }
-
-  UpdateMustKeepAlive();
-}
-
-void
-BroadcastChannel::UpdateMustKeepAlive()
-{
-  bool toKeepAlive = HasListenersFor(NS_LITERAL_STRING("message"));
-  if (toKeepAlive == mIsKeptAlive) {
-    return;
-  }
-
-  mIsKeptAlive = toKeepAlive;
-
-  if (toKeepAlive) {
-    AddRef();
-  } else {
-    Release();
-  }
+  IgnoreKeepAliveIfHasListenersFor(NS_LITERAL_STRING("message"));
 }
 
 NS_IMETHODIMP
@@ -673,8 +525,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(BroadcastChannel,
   tmp->Shutdown();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(BroadcastChannel)
-  NS_INTERFACE_MAP_ENTRY(nsIIPCBackgroundChildCreateCallback)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(BroadcastChannel)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 

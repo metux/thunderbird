@@ -20,6 +20,25 @@ UNIFIED_SOURCES += [
     'nsTestCrasher.cpp',
 ]
 
+SOURCES += [
+  'ExceptionThrower.cpp',
+]
+
+if CONFIG['OS_TARGET'] == 'WINNT' and CONFIG['CPU_ARCH'] == 'x86_64':
+    SOURCES += [
+        'win64UnwindInfoTests.asm',
+    ]
+
+if CONFIG['CLANG_CL']:
+    SOURCES['ExceptionThrower.cpp'].flags += [
+        '-Xclang',
+        '-fcxx-exceptions',
+    ]
+elif not CONFIG['_MSC_VER']:
+    SOURCES['ExceptionThrower.cpp'].flags += [
+        '-fexceptions',
+    ]
+
 GeckoSharedLibrary('testcrasher')
 
 DEFINES['SHARED_LIBRARY'] = '%s%s%s' % (

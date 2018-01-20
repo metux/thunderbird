@@ -22,7 +22,7 @@
 
     <content>
       <xul:stringbundle anonid="tbstringbundle" src="chrome://navigator/locale/tabbrowser.properties"/>
-      <xul:tabbox anonid="tabbox" flex="1" eventnode="document" xbl:inherits="handleCtrlPageUpDown">
+      <xul:tabbox anonid="tabbox" flex="1" eventnode="document">
         <xul:hbox class="tab-drop-indicator-bar" collapsed="true">
           <xul:image class="tab-drop-indicator" mousethrough="always"/>
         </xul:hbox>
@@ -89,7 +89,8 @@
         </xul:hbox>
         <xul:tabpanels flex="1" class="plain" selectedIndex="0" anonid="panelcontainer">
           <xul:notificationbox class="browser-notificationbox" xbl:inherits="popupnotification">
-            <xul:browser flex="1" type="content-primary" xbl:inherits="tooltip=contenttooltip,contextmenu=contentcontextmenu,autocompletepopup"/>
+            <xul:browser flex="1" type="content" primary="true"
+                         xbl:inherits="tooltip=contenttooltip,contextmenu=contentcontextmenu,autocompletepopup"/>
           </xul:notificationbox>
         </xul:tabpanels>
       </xul:tabbox>
@@ -299,14 +300,14 @@
            sizing is happening too early when we want to stop showing the
            preview.  This clears the label's width early (i.e. when the
            previous preview disappears) so that when the next tooltip appears,
-           it doesn't start with a bad size.  For now, I blame Gecko. -->
+           it doesn't start with a bad size. For now, I blame Gecko. -->
       <method name="resetPreview">
         <parameter name="aPopup"/>
         <body>
         <![CDATA[
           var label = aPopup.firstChild;
-          // if this function is removed, these two lines need to be restored
-          // to the non-preview codepath above
+          // If this function is removed, these two lines need to be restored
+          // to the non-preview codepath above.
           label.removeAttribute("width");
           aPopup.removeAttribute("tabpreview");
         ]]>
@@ -448,8 +449,6 @@
             mStateFlags: 0,
             mStatus: 0,
             mMessage: "",
-            mCurProgress: 0,
-            mMaxProgress: 0,
 
             // cache flags for correct status UI update after tab switching
             mTotalProgress: 0,
@@ -458,7 +457,7 @@
             mRequestCount: 0,
 
             _callProgressListeners: function () {
-              Array.unshift(arguments, this.mBrowser);
+              Array.prototype.unshift.call(arguments, this.mBrowser);
               return this.mTabBrowser._callProgressListeners.apply(this.mTabBrowser, arguments);
             },
 
@@ -479,19 +478,18 @@
             onProgressChange: function (aWebProgress, aRequest,
                                         aCurSelfProgress, aMaxSelfProgress,
                                         aCurTotalProgress, aMaxTotalProgress) {
-              if (aMaxTotalProgress > 0)
-                this.mTab.setAttribute("progress", Math.floor(aCurTotalProgress * 9.9 / aMaxTotalProgress));
+              this.mTotalProgress = aMaxTotalProgress ? aCurTotalProgress / aMaxTotalProgress : 0;
 
-              if (this.mBlank)
+              if (!this._shouldShowProgress(aRequest))
                 return;
 
-              this.mCurProgress = aCurTotalProgress;
-              this.mMaxProgress = aMaxTotalProgress;
+              if (this.mTotalProgress)
+                this.mTab.setAttribute("progress", "true");
 
-              this.mTabBrowser._callProgressListeners(this.mBrowser, "onProgressChange",
-                                                      [aWebProgress, aRequest,
-                                                      aCurSelfProgress, aMaxSelfProgress,
-                                                      aCurTotalProgress, aMaxTotalProgress]);
+              this._callProgressListeners("onProgressChange",
+                                          [aWebProgress, aRequest,
+                                           aCurSelfProgress, aMaxSelfProgress,
+                                           aCurTotalProgress, aMaxTotalProgress]);
             },
 
             onProgressChange64: function (aWebProgress, aRequest,
@@ -932,7 +930,7 @@
           <![CDATA[
             var iconURL = this.buildFavIconString(aURI);
             if (this.mFaviconService) {
-              var iconURI = this.mIOService.newURI(iconURL, null, null);
+              var iconURI = this.mIOService.newURI(iconURL);
               var faviconFlags = this.usePrivateBrowsing ?
                   this.mFaviconService.FAVICON_LOAD_PRIVATE :
                   this.mFaviconService.FAVICON_LOAD_NON_PRIVATE;
@@ -956,7 +954,7 @@
         <body>
           <![CDATA[
             if (this.mFaviconService) {
-              let uri = this.mIOService.newURI(aURI, null, null);
+              let uri = this.mIOService.newURI(aURI);
               this.mFaviconService.addFailedFavicon(uri);
             }
           ]]>
@@ -1139,11 +1137,11 @@
             if (this.mCurrentBrowser) {
               this.mCurrentBrowser.droppedLinkHandler = null;
               this.mCurrentBrowser.docShellIsActive = false;
-              this.mCurrentBrowser.setAttribute("type", "content-targetable");
+              this.mCurrentBrowser.removeAttribute("primary");
               this.finder.mListeners.forEach(l => this.mCurrentBrowser.finder.removeResultListener(l));
             }
 
-            newBrowser.setAttribute("type", "content-primary");
+            newBrowser.setAttribute("primary", "true");
             this.mCurrentBrowser = newBrowser;
             this.mCurrentTab = this.selectedTab;
             this.mCurrentTab.removeAttribute("unread");
@@ -1183,23 +1181,12 @@
                                          tabListener.mMessage],
                                         true, false);
 
-            this._callProgressListeners(null, "onProgressChange",
-                                        [this.mCurrentBrowser.webProgress,
-                                         tabListener.mRequest,
-                                         tabListener.mCurProgress,
-                                         tabListener.mMaxProgress,
-                                         tabListener.mCurProgress,
-                                         tabListener.mMaxProgress],
-                                        true, false);
-
             // Also send the onUpdateCurrentBrowser event for compatibility
-            var progress = tabListener.mMaxProgress > 0 ?
-                tabListener.mCurProgress / tabListener.mMaxProgress : 0;
             this._callProgressListeners(null, "onUpdateCurrentBrowser",
                                         [tabListener.mStateFlags,
                                          tabListener.mStatus,
                                          tabListener.mMessage,
-                                         progress],
+                                         tabListener.mTotalProgress],
                                         true, false);
 
             if (this.mAeroPeek)
@@ -1283,7 +1270,7 @@
               return;
 
             try {
-              var feedUri = this.mIOService.newURI(href, targetDoc.characterSet, null);
+              var feedUri = this.mIOService.newURI(href, targetDoc.characterSet);
               this.mSecMan.checkLoadURIWithPrincipal(targetDoc.nodePrincipal, feedUri,
                                                      this.mSecMan.DISALLOW_INHERIT_PRINCIPAL);
             } catch(e) {
@@ -1313,7 +1300,7 @@
         <body><![CDATA[
           var targetDoc = aLink.ownerDocument;
           // Make a URI out of our href.
-          var uri = this.mIOService.newURI(aLink.href, targetDoc.characterSet, null);
+          var uri = this.mIOService.newURI(aLink.href, targetDoc.characterSet);
 
           // Verify that the load of this icon is legal.
           // Some error or special pages can load their favicon.
@@ -1445,6 +1432,8 @@
             var params = aReferrerURI;
             if (!params || params instanceof Components.interfaces.nsIURI) {
               params = {
+                triggeringPrincipal: Services.scriptSecurityManager
+                                             .getSystemPrincipal(),
                 referrerURI: aReferrerURI,
                 charset: aCharset,
                 postData: aPostData,
@@ -1472,6 +1461,7 @@
           let aAllowThirdPartyFixup;
           let aPostDatas = [];
           let aUserContextId;
+          let aTriggeringPrincipal;
 
           // Additional parameters are in a params object.
           // Firefox uses additional parameters not supported here.
@@ -1483,6 +1473,7 @@
             aAllowThirdPartyFixup = params.allowThirdPartyFixup;
             aPostDatas            = params.postDatas || aPostDatas;
             aUserContextId        = params.userContextId;
+            aTriggeringPrincipal  = params.triggeringPrincipal;
           }
 
           if (!aURIs.length)
@@ -1516,7 +1507,9 @@
             }
             try {
               browser.loadURIWithFlags(aURIs[0], {
-                flags, postData: aPostDatas[0]
+                flags,
+                postData: aPostDatas[0],
+                triggeringPrincipal : aTriggeringPrincipal,
               });
             } catch (e) {
               // Ignore failure in case a URI is wrong, so we can continue
@@ -1527,7 +1520,8 @@
               ownerTab: owner,
               allowThirdPartyFixup: aAllowThirdPartyFixup,
               postData: aPostDatas[0],
-              userContextId: aUserContextId
+              userContextId: aUserContextId,
+              triggeringPrincipal: aTriggeringPrincipal,
             });
           }
 
@@ -1536,7 +1530,8 @@
             let tab = this.addTab(aURIs[i], {
               allowThirdPartyFixup: aAllowThirdPartyFixup,
               postData: aPostDatas[i],
-              userContextId: aUserContextId
+              userContextId: aUserContextId,
+              triggeringPrincipal: aTriggeringPrincipal,
             });
             if (targetTabIndex !== -1)
               this.moveTabTo(tab, ++tabNum);
@@ -1561,6 +1556,8 @@
         <parameter name="aAllowThirdPartyFixup"/>
         <body>
           <![CDATA[
+            var aTriggeringPrincipal;
+            var aReferrerPolicy;
             var aFromExternal;
             var aRelatedToCurrent;
             var aUserContextId;
@@ -1570,7 +1567,9 @@
                 typeof arguments[1] == "object" &&
                 !(arguments[1] instanceof Components.interfaces.nsIURI)) {
               let params = arguments[1];
+              aTriggeringPrincipal  = params.triggeringPrincipal;
               aReferrerURI          = params.referrerURI;
+              aReferrerPolicy       = params.referrerPolicy;
               aCharset              = params.charset;
               aPostData             = params.postData;
               aFocusNewTab          = params.focusNewTab;
@@ -1594,7 +1593,7 @@
 
             var b = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul",
                                              "browser");
-            b.setAttribute("type", "content-targetable");
+            b.setAttribute("type", "content");
             b.setAttribute("contextmenu", this.getAttribute("contentcontextmenu"));
             b.setAttribute("tooltip", this.getAttribute("contenttooltip"));
             b.setAttribute("autocompletepopup", this.getAttribute("autocompletepopup"));
@@ -1663,7 +1662,14 @@
               if (aFromExternal)
                 flags |= nsIWebNavigation.LOAD_FLAGS_FROM_EXTERNAL;
               try {
-                b.loadURIWithFlags(aURI, flags, aReferrerURI, aCharset, aPostData);
+                b.loadURIWithFlags(aURI, {
+                  flags,
+                  triggeringPrincipal : aTriggeringPrincipal,
+                  referrerURI: aReferrerURI,
+                  charset: aCharset,
+                  referrerPolicy: aReferrerPolicy,
+                  postData: aPostData,
+                });
               }
               catch (ex) { }
             }
@@ -1922,8 +1928,8 @@
             // Remove our title change listener
             oldBrowser.removeEventListener("DOMTitleChanged", this.onTitleChanged, true);
 
-            // We are no longer a targetable content area
-            oldBrowser.setAttribute("type", "content");
+            // We are no longer the primary content area
+            oldBrowser.removeAttribute("primary");
 
             // Now select the new tab before nuking the old one.
             var currentIndex = this.tabContainer.selectedIndex;
@@ -2010,6 +2016,9 @@
             var entry = oldSH.getEntryAtIndex(oldSH.index, false)
                              .QueryInterface(Components.interfaces.nsISHEntry)
                              .clone();
+            // The bfcache entry is tightly coupled to the original shistory it
+            // belongs to, better to drop it.
+            entry.abandonBFCacheEntry();
             // don't try to repost data when restoring the tab
             entry.postData = null;
             newSH.addEntry(entry, true);
@@ -2258,7 +2267,7 @@
         <getter>
           <![CDATA[
             return this._browsers ||
-                   (this._browsers = Array.map(this.tabs, tab => tab.linkedBrowser));
+                   (this._browsers = Array.from(this.tabs, tab => tab.linkedBrowser));
           ]]>
         </getter>
       </property>
@@ -2408,25 +2417,40 @@
               if (aEvent.shiftKey)
                 bgLoad = !bgLoad;
 
+              let triggeringPrincipal = browserDragAndDrop.getTriggeringPrincipal(aEvent);
+
               var tab = null;
               tabIndex = this.getDropOnIndex(aEvent);
               if (tabIndex != -1) {
                 // Load in an existing tab.
                 tab = this.tabs[tabIndex];
-                tab.linkedBrowser.loadURI(data.url);
+                tab.linkedBrowser.loadURI(data.url, {
+                  allowThirdPartyFixup: true,
+                  triggeringPrincipal,
+                });
                 if (this.mCurrentTab != tab && !bgLoad)
                   this.selectedTab = tab;
               }
               else if (dt.mozSourceDocument &&
                        dt.mozSourceDocument.defaultView.top == content) {
                 // We're adding a new tab, and we may want parent-tab tracking.
-                tab = this.loadOneTab(data.url, {inBackground: bgLoad});
+
+                tab = this.loadOneTab(data.url, {
+                  inBackground: bgLoad,
+                  allowThirdPartyFixup: true,
+                  triggeringPrincipal,
+                });
+
                 if (newIndex != this.tabs.length - 1)
                   this.moveTabTo(this.tabs.length - 1, newIndex);
               }
               else {
                 // We're adding a new tab, but do not want parent-tab tracking.
-                tab = this.addTab(data.url);
+                tab = this.addTab(data.url, {
+                  allowThirdPartyFixup: true,
+                  triggeringPrincipal,
+                });
+
                 if (newIndex != this.tabs.length - 1)
                   this.moveTabTo(this.tabs.length - 1, newIndex);
                 if (this.mCurrentTab != tab && !bgLoad)
@@ -2778,6 +2802,11 @@
         <parameter name="aPostData"/>
         <body>
           <![CDATA[
+            // Note - the callee understands both:
+            // (a) loadURIWithFlags(aURI, aFlags, ...)
+            // (b) loadURIWithFlags(aURI, { flags: aFlags, ... })
+            // Forwarding it as (a) here actually supports both (a) and (b),
+            // so you can call us either way too.
             return this.mCurrentBrowser.loadURIWithFlags(aURI, aFlags, aReferrerURI, aCharset, aPostData);
           ]]>
         </body>
@@ -3206,8 +3235,8 @@
       <method name="_getScrollableElements">
         <body>
           <![CDATA[
-            return Array.filter(document.getBindingParent(this).childNodes,
-                                this._canScrollToElement,
+            return Array.from(document.getBindingParent(this).childNodes)
+                        .filter(this._canScrollToElement,
                                 this);
           ]]>
         </body>

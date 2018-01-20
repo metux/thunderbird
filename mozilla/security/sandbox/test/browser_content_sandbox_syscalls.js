@@ -1,5 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
+ /* import-globals-from browser_content_sandbox_utils.js */
+"use strict";
 
 var prefs = Cc["@mozilla.org/preferences-service;1"]
             .getService(Ci.nsIPrefBranch);
@@ -38,6 +40,20 @@ function callFork(args) {
   return (rv);
 }
 
+// Calls the native sysctl syscall.
+function callSysctl(args) {
+  Components.utils.import("resource://gre/modules/ctypes.jsm");
+  let {lib, name} = args;
+  let libc = ctypes.open(lib);
+  let sysctlbyname = libc.declare("sysctlbyname", ctypes.default_abi,
+                                  ctypes.int, ctypes.char.ptr,
+                                  ctypes.voidptr_t, ctypes.size_t.ptr,
+                                  ctypes.voidptr_t, ctypes.size_t.ptr);
+  let rv = sysctlbyname(name, null, null, null, null);
+  libc.close();
+  return rv;
+}
+
 // Calls the native open/close syscalls.
 function callOpen(args) {
   Components.utils.import("resource://gre/modules/ctypes.jsm");
@@ -60,12 +76,11 @@ function openWriteCreateFlags() {
     let O_WRONLY = 0x001;
     let O_CREAT  = 0x200;
     return (O_WRONLY | O_CREAT);
-  } else {
-    // Linux
-    let O_WRONLY = 0x01;
-    let O_CREAT  = 0x40;
-    return (O_WRONLY | O_CREAT);
   }
+  // Linux
+  let O_WRONLY = 0x01;
+  let O_CREAT  = 0x40;
+  return (O_WRONLY | O_CREAT);
 }
 
 // Returns the name of the native library needed for native syscalls
@@ -79,6 +94,7 @@ function getOSLib() {
       return "libc.so.6";
     default:
       Assert.ok(false, "Unknown OS");
+      return 0;
   }
 }
 
@@ -104,7 +120,7 @@ function areContentSyscallsSandboxed(level) {
       syscallsSandboxMinLevel = 1;
       break;
     case "Linux":
-      syscallsSandboxMinLevel = 2;
+      syscallsSandboxMinLevel = 1;
       break;
     default:
       Assert.ok(false, "Unknown OS");
@@ -119,7 +135,7 @@ function areContentSyscallsSandboxed(level) {
 // Tests executing OS API calls in the content process. Limited to Mac
 // and Linux calls for now.
 //
-add_task(function*() {
+add_task(async function() {
   // This test is only relevant in e10s
   if (!gMultiProcessBrowser) {
     ok(false, "e10s is enabled");
@@ -134,18 +150,11 @@ add_task(function*() {
   // If the pref isn't set and we're running on Linux on !isNightly(),
   // exit without failing. The Linux content sandbox is only enabled
   // on Nightly at this time.
+  // eslint-disable-next-line mozilla/use-default-preference-values
   try {
     level = prefs.getIntPref("security.sandbox.content.level");
   } catch (e) {
     prefExists = false;
-  }
-
-  // Special case Linux on !isNightly
-  if (isLinux() && !isNightly()) {
-    todo(prefExists, "pref security.sandbox.content.level exists");
-    if (!prefExists) {
-      return;
-    }
   }
 
   ok(prefExists, "pref security.sandbox.content.level exists");
@@ -153,26 +162,10 @@ add_task(function*() {
     return;
   }
 
-  // Special case Linux on !isNightly
-  if (isLinux() && !isNightly()) {
-    todo(level > 0, "content sandbox enabled for !nightly.");
-    return;
-  }
-
   info(`security.sandbox.content.level=${level}`);
   ok(level > 0, "content sandbox is enabled.");
-  if (level == 0) {
-    info("content sandbox is not enabled, exiting");
-    return;
-  }
 
   let areSyscallsSandboxed = areContentSyscallsSandboxed(level);
-
-  // Special case Linux on !isNightly
-  if (isLinux() && !isNightly()) {
-    todo(areSyscallsSandboxed, "content syscall sandbox enabled for !nightly.");
-    return;
-  }
 
   // Content sandbox enabled, but level doesn't include syscall sandboxing.
   ok(areSyscallsSandboxed, "content syscall sandboxing is enabled.");
@@ -189,35 +182,49 @@ add_task(function*() {
   if (isMac()) {
     // exec something harmless, this should fail
     let cmd = getOSExecCmd();
-    let rv = yield ContentTask.spawn(browser, {lib, cmd}, callExec);
+    let rv = await ContentTask.spawn(browser, {lib, cmd}, callExec);
     ok(rv == -1, `exec(${cmd}) is not permitted`);
   }
 
   // use open syscall
-  if (isLinux() || isMac())
-  {
+  if (isLinux() || isMac()) {
     // open a file for writing in $HOME, this should fail
     let path = fileInHomeDir().path;
     let flags = openWriteCreateFlags();
-    let fd = yield ContentTask.spawn(browser, {lib, path, flags}, callOpen);
+    let fd = await ContentTask.spawn(browser, {lib, path, flags}, callOpen);
     ok(fd < 0, "opening a file for writing in home is not permitted");
   }
 
   // use open syscall
-  if (isLinux() || isMac())
-  {
+  if (isLinux() || isMac()) {
     // open a file for writing in the content temp dir, this should work
     // and the open handler in the content process closes the file for us
     let path = fileInTempDir().path;
     let flags = openWriteCreateFlags();
-    let fd = yield ContentTask.spawn(browser, {lib, path, flags}, callOpen);
+    let fd = await ContentTask.spawn(browser, {lib, path, flags}, callOpen);
     ok(fd >= 0, "opening a file for writing in content temp is permitted");
   }
 
   // use fork syscall
-  if (isLinux() || isMac())
-  {
-    let rv = yield ContentTask.spawn(browser, {lib}, callFork);
+  if (isLinux() || isMac()) {
+    let rv = await ContentTask.spawn(browser, {lib}, callFork);
     ok(rv == -1, "calling fork is not permitted");
+  }
+
+  // On macOS before 10.10 the |sysctl-name| predicate didn't exist for
+  // filtering |sysctl| access. Check the Darwin version before running the
+  // tests (Darwin 14.0.0 is macOS 10.10). This branch can be removed when we
+  // remove support for macOS 10.9.
+  if (isMac() && Services.sysinfo.getProperty("version") >= "14.0.0") {
+    let rv = await ContentTask.spawn(browser, {lib, name: "kern.boottime"},
+                                     callSysctl);
+    ok(rv == -1, "calling sysctl('kern.boottime') is not permitted");
+
+    rv = await ContentTask.spawn(browser, {lib, name: "net.inet.ip.ttl"},
+                                 callSysctl);
+    ok(rv == -1, "calling sysctl('net.inet.ip.ttl') is not permitted");
+
+    rv = await ContentTask.spawn(browser, {lib, name: "hw.ncpu"}, callSysctl);
+    ok(rv == 0, "calling sysctl('hw.ncpu') is permitted");
   }
 });

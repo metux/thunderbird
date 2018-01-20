@@ -22,6 +22,7 @@
 #define ROUND(x) floor((x) + 0.5)
 
 using namespace mozilla;
+using namespace mozilla::gfx;
 using namespace mozilla::unicode;
 
 static inline cairo_antialias_t
@@ -44,7 +45,7 @@ gfxGDIFont::gfxGDIFont(GDIFontEntry *aFontEntry,
                        const gfxFontStyle *aFontStyle,
                        bool aNeedsBold,
                        AntialiasOption anAAOption)
-    : gfxFont(aFontEntry, aFontStyle, anAAOption),
+    : gfxFont(nullptr, aFontEntry, aFontStyle, anAAOption),
       mFont(nullptr),
       mFontFace(nullptr),
       mMetrics(nullptr),
@@ -53,6 +54,10 @@ gfxGDIFont::gfxGDIFont(GDIFontEntry *aFontEntry,
       mScriptCache(nullptr)
 {
     Initialize();
+
+    if (mFont) {
+        mUnscaledFont = aFontEntry->LookupUnscaledFont(mFont);
+    }
 }
 
 gfxGDIFont::~gfxGDIFont()
@@ -72,11 +77,11 @@ gfxGDIFont::~gfxGDIFont()
     delete mMetrics;
 }
 
-gfxFont*
+UniquePtr<gfxFont>
 gfxGDIFont::CopyWithAntialiasOption(AntialiasOption anAAOption)
 {
-    return new gfxGDIFont(static_cast<GDIFontEntry*>(mFontEntry.get()),
-                          &mStyle, mNeedsBold, anAAOption);
+    auto entry = static_cast<GDIFontEntry*>(mFontEntry.get());
+    return MakeUnique<gfxGDIFont>(entry, &mStyle, mNeedsBold, anAAOption);
 }
 
 bool
@@ -86,6 +91,7 @@ gfxGDIFont::ShapeText(DrawTarget     *aDrawTarget,
                       uint32_t        aLength,
                       Script          aScript,
                       bool            aVertical,
+                      RoundingFlags   aRounding,
                       gfxShapedText  *aShapedText)
 {
     if (!mIsValid) {
@@ -102,7 +108,7 @@ gfxGDIFont::ShapeText(DrawTarget     *aDrawTarget,
     }
 
     return gfxFont::ShapeText(aDrawTarget, aText, aOffset, aLength, aScript,
-                              aVertical, aShapedText);
+                              aVertical, aRounding, aShapedText);
 }
 
 const gfxFont::Metrics&
@@ -130,13 +136,34 @@ gfxGDIFont::SetupCairoFont(DrawTarget* aDrawTarget)
     return true;
 }
 
+already_AddRefed<ScaledFont>
+gfxGDIFont::GetScaledFont(DrawTarget *aTarget)
+{
+    if (!mAzureScaledFont) {
+        NativeFont nativeFont;
+        nativeFont.mType = NativeFontType::GDI_FONT_FACE;
+        LOGFONT lf;
+        GetObject(GetHFONT(), sizeof(LOGFONT), &lf);
+        nativeFont.mFont = &lf;
+
+        mAzureScaledFont =
+          Factory::CreateScaledFontWithCairo(nativeFont,
+                                             GetUnscaledFont(),
+                                             GetAdjustedSize(),
+                                             GetCairoScaledFont());
+    }
+
+    RefPtr<ScaledFont> scaledFont(mAzureScaledFont);
+    return scaledFont.forget();
+}
+
 gfxFont::RunMetrics
 gfxGDIFont::Measure(const gfxTextRun *aTextRun,
                     uint32_t aStart, uint32_t aEnd,
                     BoundingBoxType aBoundingBoxType,
                     DrawTarget *aRefDrawTarget,
                     Spacing *aSpacing,
-                    uint16_t aOrientation)
+                    gfx::ShapedTextFlags aOrientation)
 {
     gfxFont::RunMetrics metrics =
         gfxFont::Measure(aTextRun, aStart, aEnd, aBoundingBoxType,
@@ -223,6 +250,12 @@ gfxGDIFont::Initialize()
 
     mMetrics = new gfxFont::Metrics;
     ::memset(mMetrics, 0, sizeof(*mMetrics));
+
+    if (!mFont) {
+        NS_WARNING("Failed creating GDI font");
+        mIsValid = false;
+        return;
+    }
 
     AutoDC dc;
     SetGraphicsMode(dc.GetDC(), GM_ADVANCED);
@@ -461,8 +494,7 @@ gfxGDIFont::FillLogFont(LOGFONTW& aLogFont, gfxFloat aSize,
         weight = mNeedsBold ? 700 : fe->Weight();
     }
 
-    fe->FillLogFont(&aLogFont, weight, aSize, 
-                    (mAntialiasOption == kAntialiasSubpixel) ? true : false);
+    fe->FillLogFont(&aLogFont, weight, aSize);
 
     // If GDI synthetic italic is wanted, force the lfItalic field to true
     if (aUseGDIFakeItalic) {

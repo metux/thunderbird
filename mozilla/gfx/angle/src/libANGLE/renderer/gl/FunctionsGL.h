@@ -775,9 +775,15 @@ class FunctionsGL
     PFNGLBLENDBARRIERPROC blendBarrier;
     PFNGLPRIMITIVEBOUNDINGBOXPROC primitiveBoundingBox;
 
-    // ES extensions
+    // GL_OES_EGL_image
     PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC eglImageTargetRenderbufferStorageOES;
     PFNGLEGLIMAGETARGETTEXTURE2DOESPROC eglImageTargetTexture2DOES;
+
+    // GL_EXT_discard_framebuffer
+    PFNGLDISCARDFRAMEBUFFEREXTPROC discardFramebuffer;
+
+    // GL_NV_internalformat_sample_query
+    PFNGLGETINTERNALFORMATSAMPLEIVNVPROC getInternalformatSampleivNV;
 
   private:
     void initializeProcsDesktopGL();

@@ -28,16 +28,18 @@ module.exports = {
     "setInterval": true,
     "setTimeout": true,
     "uneval": true,
+    "TextDecoder": true,
+    "TextEncoder": true,
     "URL": true,
     "WebSocket": true,
-    "XMLHttpRequest": true,
+    "XMLHttpRequest": true
   },
   "rules": {
     // These are the rules that have been configured so far to match the
     // devtools coding style.
 
     // Rules from the mozilla plugin
-    "mozilla/no-aArgs": "warn",
+    "mozilla/no-aArgs": "error",
     "mozilla/no-cpows-in-tests": "error",
     "mozilla/no-single-arg-cu-import": "error",
     // See bug 1224289.
@@ -46,7 +48,7 @@ module.exports = {
     // directory for details.  We reject requires using explicit
     // subdirectories of this directory.
     "mozilla/reject-some-requires": ["error", "^devtools/shared/platform/(chome|content)/"],
-    "mozilla/var-only-at-top-level": "warn",
+    "mozilla/var-only-at-top-level": "error",
 
     // Rules from the React plugin
     "react/display-name": "error",
@@ -55,9 +57,8 @@ module.exports = {
     "react/no-did-update-set-state": "error",
     "react/no-direct-mutation-state": "error",
     "react/no-unknown-property": "error",
-    "react/prefer-es6-class": ["warn", "never"],
-    // Disabled temporarily until errors are fixed.
-    "react/prop-types": "off",
+    "react/prefer-es6-class": ["off", "always"],
+    "react/prop-types": "error",
     "react/sort-comp": ["error", {
       order: [
         "lifecycle",
@@ -142,7 +143,7 @@ module.exports = {
     // Only useful in a node environment.
     "handle-callback-err": "off",
     // Tab width.
-    "indent": ["error", 2, {"SwitchCase": 1}],
+    "indent": ["error", 2, {"SwitchCase": 1, "ArrayExpression": "first", "ObjectExpression": "first"}],
     // Enforces spacing between keys and values in object literal properties.
     "key-spacing": ["error", {"beforeColon": false, "afterColon": true}],
     // Enforces unix style line breaks.
@@ -234,8 +235,10 @@ module.exports = {
     "no-fallthrough": "error",
     // Allow the use of leading or trailing decimal points in numeric literals.
     "no-floating-decimal": "off",
-    // Disallow comments inline after code.
-    "no-inline-comments": "error",
+    // disallow use of eval()-like methods
+    "no-implied-eval": "error",
+    // Allow comments inline after code.
+    "no-inline-comments": "off",
     // Disallow if as the only statement in an else block.
     "no-lonely-if": "error",
     // Allow mixing regular variable and require declarations (not a node env).
@@ -273,7 +276,7 @@ module.exports = {
     // Disallow declaring the same variable more than once (we use let anyway).
     "no-redeclare": "error",
     // Disallow multiple spaces in a regular expression literal.
-    "no-regex-spaces": "error",
+    "no-regex-spaces": "off",
     // Allow reserved words being used as object literal keys.
     "no-reserved-keys": "off",
     // Don't restrict usage of specified node modules (not a node environment).
@@ -283,6 +286,8 @@ module.exports = {
     "no-return-assign": "error",
     // Allow use of javascript: urls.
     "no-script-url": "off",
+    // Disallow assignments like foo = foo
+    "no-self-assign": "error",
     // Disallow comparisons where both sides are exactly the same.
     "no-self-compare": "error",
     // Disallow use of comma operator.
@@ -328,8 +333,14 @@ module.exports = {
     // Disallow global and local variables that aren't used, but allow unused
     // function arguments.
     "no-unused-vars": ["error", {"vars": "all", "args": "none"}],
+    // Disallow flow control that escapes from "finally".
+    "no-unsafe-finally": "error",
     // Allow using variables before they are defined.
     "no-use-before-define": "off",
+    // Disallow useless Function.prototype.{call/apply}
+    "no-useless-call": "error",
+    // Disallow useless return;
+    "no-useless-return": "error",
     // We use var-only-at-top-level instead of no-var as we allow top level
     // vars.
     "no-var": "off",
@@ -410,6 +421,10 @@ module.exports = {
     // And these are the rules that haven't been discussed so far, and that are
     // disabled for now until we introduce them, one at a time.
 
+    // enforce consistent spacing before and after the arrow in arrow functions
+    "arrow-spacing": "off",
+    // enforce consistent spacing inside computed property brackets
+    "computed-property-spacing": "off",
     // Require for-in loops to have an if statement.
     "guard-for-in": "off",
     // allow/disallow an empty newline after var statement
@@ -420,8 +435,6 @@ module.exports = {
     "no-eq-null": "off",
     // disallow overwriting functions written as function declarations
     "no-func-assign": "off",
-    // disallow use of eval()-like methods
-    "no-implied-eval": "off",
     // disallow function or variable declarations in nested blocks
     "no-inner-declarations": "off",
     // disallow invalid regular expression strings in the RegExp constructor
@@ -459,6 +472,8 @@ module.exports = {
     "no-undef-init": "off",
     // disallow usage of expressions in statement position
     "no-unused-expressions": "off",
+    // disallow unnecessary concatenation of literals or template literals
+    "no-useless-concat": "off",
     // disallow use of void operator
     "no-void": "off",
     // disallow wrapping of non-IIFE statements in parens

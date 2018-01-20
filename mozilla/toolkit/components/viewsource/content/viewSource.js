@@ -1,5 +1,10 @@
 // -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
 
+/* import-globals-from ../../../content/globalOverlay.js */
+/* import-globals-from ../../printing/content/printUtils.js */
+/* import-globals-from ../../../content/viewZoomOverlay.js */
+/* import-globals-from ../../../content/contentAreaUtils.js */
+
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,17 +21,22 @@ XPCOMUtils.defineLazyModuleGetter(this, "CharsetMenu",
 XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
   "resource://gre/modules/Deprecated.jsm");
 
+/* global gBrowser, gViewSourceBundle, gContextMenu */
 [
   ["gBrowser",          "content"],
   ["gViewSourceBundle", "viewSourceBundle"],
   ["gContextMenu",      "viewSourceContextMenu"]
-].forEach(function ([name, id]) {
-  window.__defineGetter__(name, function () {
-    var element = document.getElementById(id);
-    if (!element)
-      return null;
-    delete window[name];
-    return window[name] = element;
+].forEach(function([name, id]) {
+  Object.defineProperty(window, name, {
+    configurable: true,
+    enumerable: true,
+    get() {
+      var element = document.getElementById(id);
+      if (!element)
+        return null;
+      delete window[name];
+      return window[name] = element;
+    },
   });
 });
 
@@ -441,7 +451,7 @@ ViewSourceChrome.prototype = {
       // If we don't have history enabled, we have to do a reload in order to
       // show the character set change. See bug 136322.
       this.sendAsyncMessage("ViewSource:SetCharacterSet", {
-        charset: charset,
+        charset,
         doPageLoad: this.historyEnabled,
       });
 
@@ -521,10 +531,7 @@ ViewSourceChrome.prototype = {
         event.preventDefault();
     }
 
-    let linkHandler = Cc["@mozilla.org/content/dropped-link-handler;1"]
-                        .getService(Ci.nsIDroppedLinkHandler);
-
-    if (linkHandler.canDropLink(event, false)) {
+    if (Services.droppedLinkHandler.canDropLink(event, false)) {
       event.preventDefault();
     }
   },
@@ -537,12 +544,10 @@ ViewSourceChrome.prototype = {
       return;
 
     let name = { };
-    let linkHandler = Cc["@mozilla.org/content/dropped-link-handler;1"]
-                        .getService(Ci.nsIDroppedLinkHandler);
     let uri;
     try {
       // Pass true to prevent the dropping of javascript:/data: URIs
-      uri = linkHandler.dropLink(event, name, true);
+      uri = Services.droppedLinkHandler.dropLink(event, name, true);
     } catch (e) {
       return;
     }
@@ -666,30 +671,35 @@ ViewSourceChrome.prototype = {
    *        True if the browser should be made remote. If the browsers
    *        remoteness already matches this value, this function does
    *        nothing.
+   * @param remoteType
+   *        The type of remote browser process.
    */
-  updateBrowserRemoteness(shouldBeRemote) {
-    if (this.browser.isRemoteBrowser == shouldBeRemote) {
+  updateBrowserRemoteness(shouldBeRemote, remoteType) {
+    if (this.browser.isRemoteBrowser == shouldBeRemote &&
+        this.browser.remoteType == remoteType) {
       return;
     }
 
     let parentNode = this.browser.parentNode;
     let nextSibling = this.browser.nextSibling;
 
-    // XX Removing and re-adding the browser from and to the DOM strips its
-    // XBL properties. Save and restore relatedBrowser. Note that when we
-    // restore relatedBrowser, there won't yet be a binding or setter. This
-    // works in conjunction with the hack in <xul:browser>'s constructor to
-    // re-get the weak reference to it.
-    let relatedBrowser = this.browser.relatedBrowser;
+    // Removing and re-adding the browser from and to the DOM strips its XBL
+    // properties. Save and restore sameProcessAsFrameLoader. Note that when we
+    // restore sameProcessAsFrameLoader, there won't yet be a binding or
+    // setter. This works in conjunction with the hack in <xul:browser>'s
+    // constructor to re-get the weak reference to it.
+    let sameProcessAsFrameLoader = this.browser.sameProcessAsFrameLoader;
 
     this.browser.remove();
     if (shouldBeRemote) {
       this.browser.setAttribute("remote", "true");
+      this.browser.setAttribute("remoteType", remoteType);
     } else {
       this.browser.removeAttribute("remote");
+      this.browser.removeAttribute("remoteType");
     }
 
-    this.browser.relatedBrowser = relatedBrowser;
+    this.browser.sameProcessAsFrameLoader = sameProcessAsFrameLoader;
 
     // If nextSibling was null, this will put the browser at
     // the end of the list.
@@ -768,19 +778,22 @@ function getBrowser() {
   return gBrowser;
 }
 
-this.__defineGetter__("gPageLoader", function () {
-  var webnav = viewSourceChrome.webNav;
-  if (!webnav)
-    return null;
-  delete this.gPageLoader;
-  this.gPageLoader = (webnav instanceof Ci.nsIWebPageDescriptor) ? webnav
-                                                                 : null;
-  return this.gPageLoader;
+Object.defineProperty(this, "gPageLoader", {
+  configurable: true,
+  enumerable: true,
+  get() {
+    var webnav = viewSourceChrome.webNav;
+    if (!webnav)
+      return null;
+    delete this.gPageLoader;
+    this.gPageLoader = (webnav instanceof Ci.nsIWebPageDescriptor) ? webnav
+                                                                   : null;
+    return this.gPageLoader;
+  },
 });
 
 // Strips the |view-source:| for internalSave()
-function ViewSourceSavePage()
-{
+function ViewSourceSavePage() {
   internalSave(gBrowser.currentURI.spec.replace(/^view-source:/i, ""),
                null, null, null, null, null, "SaveLinkTitle",
                null, null, gBrowser.contentDocumentAsCPOW, null,
@@ -790,11 +803,15 @@ function ViewSourceSavePage()
 // Below are old deprecated functions and variables left behind for
 // compatibility reasons. These will be removed soon via bug 1159293.
 
-this.__defineGetter__("gLastLineFound", function () {
-  Deprecated.warning("gLastLineFound is deprecated - please use " +
-                     "viewSourceChrome.lastLineFound instead.",
-                     "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/View_Source_for_XUL_Applications");
-  return viewSourceChrome.lastLineFound;
+Object.defineProperty(this, "gLastLineFound", {
+  configurable: true,
+  enumerable: true,
+  get() {
+    Deprecated.warning("gLastLineFound is deprecated - please use " +
+                       "viewSourceChrome.lastLineFound instead.",
+                       "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/View_Source_for_XUL_Applications");
+    return viewSourceChrome.lastLineFound;
+  },
 });
 
 function onLoadViewSource() {
@@ -825,8 +842,7 @@ function ViewSourceReload() {
   viewSourceChrome.reload();
 }
 
-function getWebNavigation()
-{
+function getWebNavigation() {
   Deprecated.warning("getWebNavigation() is deprecated - please use " +
                      "viewSourceChrome.webNav instead.",
                      "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/View_Source_for_XUL_Applications");
@@ -846,16 +862,14 @@ function viewSource(url) {
   viewSourceChrome.loadURL(url);
 }
 
-function ViewSourceGoToLine()
-{
+function ViewSourceGoToLine() {
   Deprecated.warning("ViewSourceGoToLine() is deprecated - please use " +
                      "viewSourceChrome.promptAndGoToLine() instead.",
                      "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/View_Source_for_XUL_Applications");
   viewSourceChrome.promptAndGoToLine();
 }
 
-function goToLine(line)
-{
+function goToLine(line) {
   Deprecated.warning("goToLine() is deprecated - please use " +
                      "viewSourceChrome.goToLine() instead.",
                      "https://developer.mozilla.org/en-US/Add-ons/Code_snippets/View_Source_for_XUL_Applications");

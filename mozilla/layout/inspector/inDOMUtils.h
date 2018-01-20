@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,7 +11,7 @@
 
 class nsRuleNode;
 class nsStyleContext;
-class nsIAtom;
+class nsAtom;
 
 namespace mozilla {
 namespace dom {
@@ -28,11 +30,9 @@ public:
 private:
   virtual ~inDOMUtils();
 
-  // aStyleContext must be released by the caller once he's done with aRuleNode.
-  static nsresult GetRuleNodeForElement(mozilla::dom::Element* aElement,
-                                        nsIAtom* aPseudo,
-                                        nsStyleContext** aStyleContext,
-                                        nsRuleNode** aRuleNode);
+  static already_AddRefed<nsStyleContext>
+    GetCleanStyleContextForElement(mozilla::dom::Element* aElement,
+                                   nsAtom* aPseudo);
 };
 
 // {0a499822-a287-4089-ad3f-9ffcd4f40263}

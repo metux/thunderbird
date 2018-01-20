@@ -2,7 +2,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
- 
+
 #include "msgCore.h"    // precompiled header...
 #include "nsMsgLocalStoreUtils.h"
 #include "nsIFile.h"
@@ -58,7 +58,7 @@ nsMsgLocalStoreUtils::nsShouldIgnoreFile(nsAString& name)
 
   // The .mozmsgs dir is for spotlight support
     return (StringEndsWith(name, NS_LITERAL_STRING(".mozmsgs")) ||
-            StringEndsWith(name, NS_LITERAL_STRING(".sbd")) ||
+            StringEndsWith(name, NS_LITERAL_STRING(FOLDER_SUFFIX)) ||
             StringEndsWith(name, NS_LITERAL_STRING(SUMMARY_SUFFIX)));
 }
 

@@ -12,9 +12,13 @@
 #include "libANGLE/Context.h"
 #include "libANGLE/Error.h"
 
+#include "libANGLE/validationES.h"
 #include "libANGLE/validationES31.h"
+#include "libANGLE/queryconversions.h"
+#include "libANGLE/queryutils.h"
 
 #include "common/debug.h"
+#include "common/utilities.h"
 
 namespace gl
 {
@@ -26,11 +30,13 @@ void GL_APIENTRY DispatchCompute(GLuint numGroupsX, GLuint numGroupsY, GLuint nu
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() &&
+            !ValidateDispatchCompute(context, numGroupsX, numGroupsY, numGroupsZ))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        context->dispatchCompute(numGroupsX, numGroupsY, numGroupsZ);
     }
 }
 
@@ -42,7 +48,7 @@ void GL_APIENTRY DispatchComputeIndirect(GLintptr indirect)
     {
         if (!context->skipValidation())
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            context->handleError(InvalidOperation() << "Entry point not implemented");
         }
         UNIMPLEMENTED();
     }
@@ -54,11 +60,12 @@ void GL_APIENTRY DrawArraysIndirect(GLenum mode, const void *indirect)
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() && !ValidateDrawArraysIndirect(context, mode, indirect))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        context->drawArraysIndirect(mode, indirect);
     }
 }
 
@@ -68,11 +75,13 @@ void GL_APIENTRY DrawElementsIndirect(GLenum mode, GLenum type, const void *indi
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() &&
+            !ValidateDrawElementsIndirect(context, mode, type, indirect))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        context->drawElementsIndirect(mode, type, indirect);
     }
 }
 
@@ -82,11 +91,13 @@ void GL_APIENTRY FramebufferParameteri(GLenum target, GLenum pname, GLint param)
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() &&
+            !ValidationFramebufferParameteri(context, target, pname, param))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        context->setFramebufferParameteri(target, pname, param);
     }
 }
 
@@ -97,11 +108,13 @@ void GL_APIENTRY GetFramebufferParameteriv(GLenum target, GLenum pname, GLint *p
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() &&
+            !ValidationGetFramebufferParameteri(context, target, pname, params))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        context->getFramebufferParameteriv(target, pname, params);
     }
 }
 
@@ -117,11 +130,12 @@ void GL_APIENTRY GetProgramInterfaceiv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() &&
+            !ValidateGetProgramInterfaceiv(context, program, programInterface, pname, params))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+        context->getProgramInterfaceiv(program, programInterface, pname, params);
     }
 }
 
@@ -134,13 +148,14 @@ GLuint GL_APIENTRY GetProgramResourceIndex(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() &&
+            !ValidateGetProgramResourceIndex(context, program, programInterface, name))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return GL_INVALID_INDEX;
         }
-        UNIMPLEMENTED();
+        return context->getProgramResourceIndex(program, programInterface, name);
     }
-    return 0u;
+    return GL_INVALID_INDEX;
 }
 
 void GL_APIENTRY GetProgramResourceName(GLuint program,
@@ -157,11 +172,13 @@ void GL_APIENTRY GetProgramResourceName(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() &&
+            !ValidateGetProgramResourceName(context, program, programInterface, index, bufSize,
+                                            length, name))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+        context->getProgramResourceName(program, programInterface, index, bufSize, length, name);
     }
 }
 
@@ -182,11 +199,14 @@ void GL_APIENTRY GetProgramResourceiv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() &&
+            !ValidateGetProgramResourceiv(context, program, programInterface, index, propCount,
+                                          props, bufSize, length, params))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+        context->getProgramResourceiv(program, programInterface, index, propCount, props, bufSize,
+                                      length, params);
     }
 }
 
@@ -199,13 +219,14 @@ GLint GL_APIENTRY GetProgramResourceLocation(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() &&
+            !ValidateGetProgramResourceLocation(context, program, programInterface, name))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return -1;
         }
-        UNIMPLEMENTED();
+        return context->getProgramResourceLocation(program, programInterface, name);
     }
-    return 0;
+    return -1;
 }
 
 void GL_APIENTRY UseProgramStages(GLuint pipeline, GLbitfield stages, GLuint program)
@@ -217,7 +238,7 @@ void GL_APIENTRY UseProgramStages(GLuint pipeline, GLbitfield stages, GLuint pro
     {
         if (!context->skipValidation())
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            context->handleError(InvalidOperation() << "Entry point not implemented");
         }
         UNIMPLEMENTED();
     }
@@ -231,7 +252,7 @@ void GL_APIENTRY ActiveShaderProgram(GLuint pipeline, GLuint program)
     {
         if (!context->skipValidation())
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            context->handleError(InvalidOperation() << "Entry point not implemented");
         }
         UNIMPLEMENTED();
     }
@@ -246,7 +267,7 @@ GLuint GL_APIENTRY CreateShaderProgramv(GLenum type, GLsizei count, const GLchar
     {
         if (!context->skipValidation())
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            context->handleError(InvalidOperation() << "Entry point not implemented");
         }
         UNIMPLEMENTED();
     }
@@ -259,11 +280,12 @@ void GL_APIENTRY BindProgramPipeline(GLuint pipeline)
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() && !ValidateBindProgramPipeline(context, pipeline))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        context->bindProgramPipeline(pipeline);
     }
 }
 
@@ -273,11 +295,12 @@ void GL_APIENTRY DeleteProgramPipelines(GLsizei n, const GLuint *pipelines)
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() && !ValidateDeleteProgramPipelines(context, n, pipelines))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        context->deleteProgramPipelines(n, pipelines);
     }
 }
 
@@ -287,11 +310,12 @@ void GL_APIENTRY GenProgramPipelines(GLsizei n, GLuint *pipelines)
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() && !ValidateGenProgramPipelines(context, n, pipelines))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        context->genProgramPipelines(n, pipelines);
     }
 }
 
@@ -301,13 +325,15 @@ GLboolean GL_APIENTRY IsProgramPipeline(GLuint pipeline)
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() && !ValidateIsProgramPipeline(context, pipeline))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return GL_FALSE;
         }
-        UNIMPLEMENTED();
+
+        return context->isProgramPipeline(pipeline);
     }
-    return false;
+
+    return GL_FALSE;
 }
 
 void GL_APIENTRY GetProgramPipelineiv(GLuint pipeline, GLenum pname, GLint *params)
@@ -319,7 +345,7 @@ void GL_APIENTRY GetProgramPipelineiv(GLuint pipeline, GLenum pname, GLint *para
     {
         if (!context->skipValidation())
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            context->handleError(InvalidOperation() << "Entry point not implemented");
         }
         UNIMPLEMENTED();
     }
@@ -327,193 +353,75 @@ void GL_APIENTRY GetProgramPipelineiv(GLuint pipeline, GLenum pname, GLint *para
 
 void GL_APIENTRY ProgramUniform1i(GLuint program, GLint location, GLint v0)
 {
-    EVENT("(GLuint program = %u, GLint location = %d, GLint v0 = %d)", program, location, v0);
-    Context *context = GetValidGlobalContext();
-    if (context)
-    {
-        if (!context->skipValidation())
-        {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
-        }
-        UNIMPLEMENTED();
-    }
+    ProgramUniform1iv(program, location, 1, &v0);
 }
 
 void GL_APIENTRY ProgramUniform2i(GLuint program, GLint location, GLint v0, GLint v1)
 {
-    EVENT("(GLuint program = %u, GLint location = %d, GLint v0 = %d, GLint v1 = %d)", program,
-          location, v0, v1);
-    Context *context = GetValidGlobalContext();
-    if (context)
-    {
-        if (!context->skipValidation())
-        {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
-        }
-        UNIMPLEMENTED();
-    }
+    GLint xy[2] = {v0, v1};
+    ProgramUniform2iv(program, location, 1, xy);
 }
 
 void GL_APIENTRY ProgramUniform3i(GLuint program, GLint location, GLint v0, GLint v1, GLint v2)
 {
-    EVENT("(GLuint program = %u, GLint location = %d, GLint v0 = %d, GLint v1 = %d, GLint v2 = %d)",
-          program, location, v0, v1, v2);
-    Context *context = GetValidGlobalContext();
-    if (context)
-    {
-        if (!context->skipValidation())
-        {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
-        }
-        UNIMPLEMENTED();
-    }
+    GLint xyz[3] = {v0, v1, v2};
+    ProgramUniform3iv(program, location, 1, xyz);
 }
 
 void GL_APIENTRY
 ProgramUniform4i(GLuint program, GLint location, GLint v0, GLint v1, GLint v2, GLint v3)
 {
-    EVENT(
-        "(GLuint program = %u, GLint location = %d, GLint v0 = %d, GLint v1 = %d, GLint v2 = %d, "
-        "GLint v3 = %d)",
-        program, location, v0, v1, v2, v3);
-    Context *context = GetValidGlobalContext();
-    if (context)
-    {
-        if (!context->skipValidation())
-        {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
-        }
-        UNIMPLEMENTED();
-    }
+    GLint xyzw[4] = {v0, v1, v2, v3};
+    ProgramUniform4iv(program, location, 1, xyzw);
 }
 
 void GL_APIENTRY ProgramUniform1ui(GLuint program, GLint location, GLuint v0)
 {
-    EVENT("(GLuint program = %u, GLint location = %d, GLuint v0 = %u)", program, location, v0);
-    Context *context = GetValidGlobalContext();
-    if (context)
-    {
-        if (!context->skipValidation())
-        {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
-        }
-        UNIMPLEMENTED();
-    }
+    ProgramUniform1uiv(program, location, 1, &v0);
 }
 
 void GL_APIENTRY ProgramUniform2ui(GLuint program, GLint location, GLuint v0, GLuint v1)
 {
-    EVENT("(GLuint program = %u, GLint location = %d, GLuint v0 = %u, GLuint v1 = %u)", program,
-          location, v0, v1);
-    Context *context = GetValidGlobalContext();
-    if (context)
-    {
-        if (!context->skipValidation())
-        {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
-        }
-        UNIMPLEMENTED();
-    }
+    GLuint xy[2] = {v0, v1};
+    ProgramUniform2uiv(program, location, 1, xy);
 }
 
 void GL_APIENTRY ProgramUniform3ui(GLuint program, GLint location, GLuint v0, GLuint v1, GLuint v2)
 {
-    EVENT(
-        "(GLuint program = %u, GLint location = %d, GLuint v0 = %u, GLuint v1 = %u, GLuint v2 = "
-        "%u)",
-        program, location, v0, v1, v2);
-    Context *context = GetValidGlobalContext();
-    if (context)
-    {
-        if (!context->skipValidation())
-        {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
-        }
-        UNIMPLEMENTED();
-    }
+    GLuint xyz[3] = {v0, v1, v2};
+    ProgramUniform3uiv(program, location, 1, xyz);
 }
 
 void GL_APIENTRY
 ProgramUniform4ui(GLuint program, GLint location, GLuint v0, GLuint v1, GLuint v2, GLuint v3)
 {
-    EVENT(
-        "(GLuint program = %u, GLint location = %d, GLuint v0 = %u, GLuint v1 = %u, GLuint v2 = "
-        "%u, GLuint v3 = %u)",
-        program, location, v0, v1, v2, v3);
-    Context *context = GetValidGlobalContext();
-    if (context)
-    {
-        if (!context->skipValidation())
-        {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
-        }
-        UNIMPLEMENTED();
-    }
+    GLuint xyzw[4] = {v0, v1, v2, v3};
+    ProgramUniform4uiv(program, location, 1, xyzw);
 }
 
 void GL_APIENTRY ProgramUniform1f(GLuint program, GLint location, GLfloat v0)
 {
-    EVENT("(GLuint program = %u, GLint location = %d, GLfloat v0 = %g)", program, location, v0);
-    Context *context = GetValidGlobalContext();
-    if (context)
-    {
-        if (!context->skipValidation())
-        {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
-        }
-        UNIMPLEMENTED();
-    }
+    ProgramUniform1fv(program, location, 1, &v0);
 }
 
 void GL_APIENTRY ProgramUniform2f(GLuint program, GLint location, GLfloat v0, GLfloat v1)
 {
-    EVENT("(GLuint program = %u, GLint location = %d, GLfloat v0 = %g, GLfloat v1 = %g)", program,
-          location, v0, v1);
-    Context *context = GetValidGlobalContext();
-    if (context)
-    {
-        if (!context->skipValidation())
-        {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
-        }
-        UNIMPLEMENTED();
-    }
+    GLfloat xy[2] = {v0, v1};
+    ProgramUniform2fv(program, location, 1, xy);
 }
 
 void GL_APIENTRY
 ProgramUniform3f(GLuint program, GLint location, GLfloat v0, GLfloat v1, GLfloat v2)
 {
-    EVENT(
-        "(GLuint program = %u, GLint location = %d, GLfloat v0 = %g, GLfloat v1 = %g, GLfloat v2 = "
-        "%g)",
-        program, location, v0, v1, v2);
-    Context *context = GetValidGlobalContext();
-    if (context)
-    {
-        if (!context->skipValidation())
-        {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
-        }
-        UNIMPLEMENTED();
-    }
+    GLfloat xyz[3] = {v0, v1, v2};
+    ProgramUniform3fv(program, location, 1, xyz);
 }
 
 void GL_APIENTRY
 ProgramUniform4f(GLuint program, GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3)
 {
-    EVENT(
-        "(GLuint program = %u, GLint location = %d, GLfloat v0 = %g, GLfloat v1 = %g, GLfloat v2 = "
-        "%g, GLfloat v3 = %g)",
-        program, location, v0, v1, v2, v3);
-    Context *context = GetValidGlobalContext();
-    if (context)
-    {
-        if (!context->skipValidation())
-        {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
-        }
-        UNIMPLEMENTED();
-    }
+    GLfloat xyzw[4] = {v0, v1, v2, v3};
+    ProgramUniform4fv(program, location, 1, xyzw);
 }
 
 void GL_APIENTRY ProgramUniform1iv(GLuint program,
@@ -528,11 +436,12 @@ void GL_APIENTRY ProgramUniform1iv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniform1iv(context, program, location, count, value))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        context->programUniform1iv(program, location, count, value);
     }
 }
 
@@ -548,11 +457,14 @@ void GL_APIENTRY ProgramUniform2iv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniform(context, GL_INT_VEC2, program, location, count))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Program *programObject = context->getProgram(program);
+        ASSERT(programObject);
+        programObject->setUniform2iv(location, count, value);
     }
 }
 
@@ -568,11 +480,14 @@ void GL_APIENTRY ProgramUniform3iv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniform(context, GL_INT_VEC3, program, location, count))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Program *programObject = context->getProgram(program);
+        ASSERT(programObject);
+        programObject->setUniform3iv(location, count, value);
     }
 }
 
@@ -588,11 +503,14 @@ void GL_APIENTRY ProgramUniform4iv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniform(context, GL_INT_VEC4, program, location, count))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Program *programObject = context->getProgram(program);
+        ASSERT(programObject);
+        programObject->setUniform4iv(location, count, value);
     }
 }
 
@@ -608,11 +526,14 @@ void GL_APIENTRY ProgramUniform1uiv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniform(context, GL_UNSIGNED_INT, program, location, count))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Program *programObject = context->getProgram(program);
+        ASSERT(programObject);
+        programObject->setUniform1uiv(location, count, value);
     }
 }
 
@@ -628,11 +549,14 @@ void GL_APIENTRY ProgramUniform2uiv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniform(context, GL_UNSIGNED_INT_VEC2, program, location, count))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Program *programObject = context->getProgram(program);
+        ASSERT(programObject);
+        programObject->setUniform2uiv(location, count, value);
     }
 }
 
@@ -648,11 +572,14 @@ void GL_APIENTRY ProgramUniform3uiv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniform(context, GL_UNSIGNED_INT_VEC3, program, location, count))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Program *programObject = context->getProgram(program);
+        ASSERT(programObject);
+        programObject->setUniform3uiv(location, count, value);
     }
 }
 
@@ -668,11 +595,14 @@ void GL_APIENTRY ProgramUniform4uiv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniform(context, GL_UNSIGNED_INT_VEC4, program, location, count))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Program *programObject = context->getProgram(program);
+        ASSERT(programObject);
+        programObject->setUniform4uiv(location, count, value);
     }
 }
 
@@ -688,11 +618,14 @@ void GL_APIENTRY ProgramUniform1fv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniform(context, GL_FLOAT, program, location, count))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Program *programObject = context->getProgram(program);
+        ASSERT(programObject);
+        programObject->setUniform1fv(location, count, value);
     }
 }
 
@@ -708,11 +641,14 @@ void GL_APIENTRY ProgramUniform2fv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniform(context, GL_FLOAT_VEC2, program, location, count))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Program *programObject = context->getProgram(program);
+        ASSERT(programObject);
+        programObject->setUniform2fv(location, count, value);
     }
 }
 
@@ -728,11 +664,14 @@ void GL_APIENTRY ProgramUniform3fv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniform(context, GL_FLOAT_VEC3, program, location, count))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Program *programObject = context->getProgram(program);
+        ASSERT(programObject);
+        programObject->setUniform3fv(location, count, value);
     }
 }
 
@@ -748,11 +687,14 @@ void GL_APIENTRY ProgramUniform4fv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniform(context, GL_FLOAT_VEC4, program, location, count))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Program *programObject = context->getProgram(program);
+        ASSERT(programObject);
+        programObject->setUniform4fv(location, count, value);
     }
 }
 
@@ -769,11 +711,15 @@ void GL_APIENTRY ProgramUniformMatrix2fv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniformMatrix(context, GL_FLOAT_MAT2, program, location, count,
+                                          transpose))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Program *programObject = context->getProgram(program);
+        ASSERT(programObject);
+        programObject->setUniformMatrix2fv(location, count, transpose, value);
     }
 }
 
@@ -790,11 +736,15 @@ void GL_APIENTRY ProgramUniformMatrix3fv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniformMatrix(context, GL_FLOAT_MAT3, program, location, count,
+                                          transpose))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Program *programObject = context->getProgram(program);
+        ASSERT(programObject);
+        programObject->setUniformMatrix3fv(location, count, transpose, value);
     }
 }
 
@@ -811,11 +761,15 @@ void GL_APIENTRY ProgramUniformMatrix4fv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniformMatrix(context, GL_FLOAT_MAT4, program, location, count,
+                                          transpose))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Program *programObject = context->getProgram(program);
+        ASSERT(programObject);
+        programObject->setUniformMatrix4fv(location, count, transpose, value);
     }
 }
 
@@ -832,11 +786,15 @@ void GL_APIENTRY ProgramUniformMatrix2x3fv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniformMatrix(context, GL_FLOAT_MAT2x3, program, location, count,
+                                          transpose))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Program *programObject = context->getProgram(program);
+        ASSERT(programObject);
+        programObject->setUniformMatrix2x3fv(location, count, transpose, value);
     }
 }
 
@@ -853,11 +811,15 @@ void GL_APIENTRY ProgramUniformMatrix3x2fv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniformMatrix(context, GL_FLOAT_MAT3x2, program, location, count,
+                                          transpose))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Program *programObject = context->getProgram(program);
+        ASSERT(programObject);
+        programObject->setUniformMatrix3x2fv(location, count, transpose, value);
     }
 }
 
@@ -874,11 +836,15 @@ void GL_APIENTRY ProgramUniformMatrix2x4fv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniformMatrix(context, GL_FLOAT_MAT2x4, program, location, count,
+                                          transpose))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Program *programObject = context->getProgram(program);
+        ASSERT(programObject);
+        programObject->setUniformMatrix2x4fv(location, count, transpose, value);
     }
 }
 
@@ -895,11 +861,15 @@ void GL_APIENTRY ProgramUniformMatrix4x2fv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniformMatrix(context, GL_FLOAT_MAT4x2, program, location, count,
+                                          transpose))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Program *programObject = context->getProgram(program);
+        ASSERT(programObject);
+        programObject->setUniformMatrix4x2fv(location, count, transpose, value);
     }
 }
 
@@ -916,11 +886,15 @@ void GL_APIENTRY ProgramUniformMatrix3x4fv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniformMatrix(context, GL_FLOAT_MAT3x4, program, location, count,
+                                          transpose))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Program *programObject = context->getProgram(program);
+        ASSERT(programObject);
+        programObject->setUniformMatrix3x4fv(location, count, transpose, value);
     }
 }
 
@@ -937,11 +911,15 @@ void GL_APIENTRY ProgramUniformMatrix4x3fv(GLuint program,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!ValidateProgramUniformMatrix(context, GL_FLOAT_MAT4x3, program, location, count,
+                                          transpose))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Program *programObject = context->getProgram(program);
+        ASSERT(programObject);
+        programObject->setUniformMatrix4x3fv(location, count, transpose, value);
     }
 }
 
@@ -953,7 +931,7 @@ void GL_APIENTRY ValidateProgramPipeline(GLuint pipeline)
     {
         if (!context->skipValidation())
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            context->handleError(InvalidOperation() << "Entry point not implemented");
         }
         UNIMPLEMENTED();
     }
@@ -973,7 +951,7 @@ void GL_APIENTRY GetProgramPipelineInfoLog(GLuint pipeline,
     {
         if (!context->skipValidation())
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            context->handleError(InvalidOperation() << "Entry point not implemented");
         }
         UNIMPLEMENTED();
     }
@@ -994,11 +972,13 @@ void GL_APIENTRY BindImageTexture(GLuint unit,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() && !ValidateBindImageTexture(context, unit, texture, level,
+                                                                    layered, layer, access, format))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        context->bindImageTexture(unit, texture, level, layered, layer, access, format);
     }
 }
 
@@ -1026,7 +1006,7 @@ void GL_APIENTRY MemoryBarrier(GLbitfield barriers)
     {
         if (!context->skipValidation())
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            context->handleError(InvalidOperation() << "Entry point not implemented");
         }
         UNIMPLEMENTED();
     }
@@ -1040,7 +1020,7 @@ void GL_APIENTRY MemoryBarrierByRegion(GLbitfield barriers)
     {
         if (!context->skipValidation())
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            context->handleError(InvalidOperation() << "Entry point not implemented");
         }
         UNIMPLEMENTED();
     }
@@ -1060,18 +1040,31 @@ void GL_APIENTRY TexStorage2DMultisample(GLenum target,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() &&
+            !ValidateTexStorage2DMultiSample(context, target, samples, internalformat, width,
+                                             height, fixedsamplelocations))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+        context->texStorage2DMultisample(target, samples, internalformat, width, height,
+                                         fixedsamplelocations);
     }
 }
 
 void GL_APIENTRY GetMultisamplefv(GLenum pname, GLuint index, GLfloat *val)
 {
     EVENT("(GLenum pname = 0x%X, GLuint index = %u, GLfloat* val = 0x%0.8p)", pname, index, val);
-    UNIMPLEMENTED();
+
+    Context *context = GetValidGlobalContext();
+    if (context)
+    {
+        if (!context->skipValidation() && !ValidateGetMultisamplefv(context, pname, index, val))
+        {
+            return;
+        }
+
+        context->getMultisamplefv(pname, index, val);
+    }
 }
 
 void GL_APIENTRY SampleMaski(GLuint maskNumber, GLbitfield mask)
@@ -1080,11 +1073,11 @@ void GL_APIENTRY SampleMaski(GLuint maskNumber, GLbitfield mask)
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() && !ValidateSampleMaski(context, maskNumber))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+        context->sampleMaski(maskNumber, mask);
     }
 }
 
@@ -1092,7 +1085,20 @@ void GL_APIENTRY GetTexLevelParameteriv(GLenum target, GLint level, GLenum pname
 {
     EVENT("(GLenum target = 0x%X, GLint level = %d, GLenum pname = 0x%X, GLint* params = 0x%0.8p)",
           target, level, pname, params);
-    UNIMPLEMENTED();
+
+    Context *context = GetValidGlobalContext();
+    if (context)
+    {
+        if (!context->skipValidation() &&
+            !ValidateGetTexLevelParameteriv(context, target, level, pname, params))
+        {
+            return;
+        }
+
+        Texture *texture = context->getTargetTexture(
+            IsCubeMapTextureTarget(target) ? GL_TEXTURE_CUBE_MAP : target);
+        QueryTexLevelParameteriv(texture, target, level, pname, params);
+    }
 }
 
 void GL_APIENTRY GetTexLevelParameterfv(GLenum target, GLint level, GLenum pname, GLfloat *params)
@@ -1100,14 +1106,19 @@ void GL_APIENTRY GetTexLevelParameterfv(GLenum target, GLint level, GLenum pname
     EVENT(
         "(GLenum target = 0x%X, GLint level = %d, GLenum pname = 0x%X, GLfloat* params = 0x%0.8p)",
         target, level, pname, params);
+
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() &&
+            !ValidateGetTexLevelParameterfv(context, target, level, pname, params))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        Texture *texture = context->getTargetTexture(
+            IsCubeMapTextureTarget(target) ? GL_TEXTURE_CUBE_MAP : target);
+        QueryTexLevelParameterfv(texture, target, level, pname, params);
     }
 }
 
@@ -1122,11 +1133,13 @@ void GL_APIENTRY BindVertexBuffer(GLuint bindingindex,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() &&
+            !ValidateBindVertexBuffer(context, bindingindex, buffer, offset, stride))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        context->bindVertexBuffer(bindingindex, buffer, offset, stride);
     }
 }
 
@@ -1143,11 +1156,13 @@ void GL_APIENTRY VertexAttribFormat(GLuint attribindex,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() &&
+            !ValidateVertexAttribFormat(context, attribindex, size, type, relativeoffset, false))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        context->vertexAttribFormat(attribindex, size, type, normalized, relativeoffset);
     }
 }
 
@@ -1163,11 +1178,13 @@ void GL_APIENTRY VertexAttribIFormat(GLuint attribindex,
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() &&
+            !ValidateVertexAttribFormat(context, attribindex, size, type, relativeoffset, true))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        context->vertexAttribIFormat(attribindex, size, type, relativeoffset);
     }
 }
 
@@ -1177,11 +1194,13 @@ void GL_APIENTRY VertexAttribBinding(GLuint attribindex, GLuint bindingindex)
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() &&
+            !ValidateVertexAttribBinding(context, attribindex, bindingindex))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        context->vertexAttribBinding(attribindex, bindingindex);
     }
 }
 
@@ -1191,11 +1210,13 @@ void GL_APIENTRY VertexBindingDivisor(GLuint bindingindex, GLuint divisor)
     Context *context = GetValidGlobalContext();
     if (context)
     {
-        if (!context->skipValidation())
+        if (!context->skipValidation() &&
+            !ValidateVertexBindingDivisor(context, bindingindex, divisor))
         {
-            context->handleError(Error(GL_INVALID_OPERATION, "Entry point not implemented"));
+            return;
         }
-        UNIMPLEMENTED();
+
+        context->setVertexBindingDivisor(bindingindex, divisor);
     }
 }
 }  // namespace gl

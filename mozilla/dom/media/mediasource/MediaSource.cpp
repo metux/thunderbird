@@ -6,12 +6,16 @@
 
 #include "MediaSource.h"
 
+#if MOZ_AV1
+#include "AOMDecoder.h"
+#endif
 #include "AsyncEventRunner.h"
 #include "DecoderTraits.h"
 #include "Benchmark.h"
 #include "DecoderDoctorDiagnostics.h"
-#include "MediaContentType.h"
+#include "MediaContainerType.h"
 #include "MediaResult.h"
+#include "MediaSourceDemuxer.h"
 #include "MediaSourceUtils.h"
 #include "SourceBuffer.h"
 #include "SourceBufferList.h"
@@ -72,8 +76,8 @@ static bool
 IsWebMForced(DecoderDoctorDiagnostics* aDiagnostics)
 {
   bool mp4supported =
-    DecoderTraits::IsMP4TypeAndEnabled(NS_LITERAL_CSTRING("video/mp4"),
-                                       aDiagnostics);
+    DecoderTraits::IsMP4SupportedType(MediaContainerType(MEDIAMIMETYPE("video/mp4")),
+                                      aDiagnostics);
   bool hwsupported = gfx::gfxVars::CanUseHardwareVideoDecoding();
 #ifdef MOZ_WIDGET_ANDROID
   return !mp4supported || !hwsupported || VP9Benchmark::IsVP9DecodeFast() ||
@@ -93,33 +97,41 @@ MediaSource::IsTypeSupported(const nsAString& aType, DecoderDoctorDiagnostics* a
     return NS_ERROR_DOM_TYPE_ERR;
   }
 
-  MediaContentType contentType{aType};
-  if (!contentType.IsValid()) {
-    return NS_ERROR_DOM_TYPE_ERR;
+  Maybe<MediaContainerType> containerType = MakeMediaContainerType(aType);
+  if (!containerType) {
+    return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
   }
 
-  if (DecoderTraits::CanHandleContentType(contentType, aDiagnostics)
+  if (DecoderTraits::CanHandleContainerType(*containerType, aDiagnostics)
       == CANPLAY_NO) {
     return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
   }
 
   // Now we know that this media type could be played.
   // MediaSource imposes extra restrictions, and some prefs.
-  const nsACString& mimeType = contentType.GetMIMEType();
-  if (mimeType.EqualsASCII("video/mp4") || mimeType.EqualsASCII("audio/mp4")) {
+  const MediaMIMEType& mimeType = containerType->Type();
+  if (mimeType == MEDIAMIMETYPE("video/mp4") ||
+      mimeType == MEDIAMIMETYPE("audio/mp4")) {
     if (!Preferences::GetBool("media.mediasource.mp4.enabled", false)) {
       return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
     }
     return NS_OK;
   }
-  if (mimeType.EqualsASCII("video/webm")) {
+  if (mimeType == MEDIAMIMETYPE("video/webm")) {
     if (!(Preferences::GetBool("media.mediasource.webm.enabled", false) ||
+          containerType->ExtendedType().Codecs().Contains(
+            NS_LITERAL_STRING("vp8")) ||
+#ifdef MOZ_AV1
+          // FIXME: Temporary comparison with the full codecs attribute.
+          // See bug 1377015.
+          AOMDecoder::IsSupportedCodec(containerType->ExtendedType().Codecs().AsString()) ||
+#endif
           IsWebMForced(aDiagnostics))) {
       return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
     }
     return NS_OK;
   }
-  if (mimeType.EqualsASCII("audio/webm")) {
+  if (mimeType == MEDIAMIMETYPE("audio/webm")) {
     if (!(Preferences::GetBool("media.mediasource.webm.enabled", false) ||
           Preferences::GetBool("media.mediasource.webm.audio.enabled", true))) {
       return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
@@ -237,13 +249,12 @@ MediaSource::AddSourceBuffer(const nsAString& aType, ErrorResult& aRv)
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return nullptr;
   }
-  MediaContentType contentType{aType};
-  if (!contentType.IsValid()) {
+  Maybe<MediaContainerType> containerType = MakeMediaContainerType(aType);
+  if (!containerType) {
     aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
     return nullptr;
   }
-  const nsACString& mimeType = contentType.GetMIMEType();
-  RefPtr<SourceBuffer> sourceBuffer = new SourceBuffer(this, mimeType);
+  RefPtr<SourceBuffer> sourceBuffer = new SourceBuffer(this, *containerType);
   if (!sourceBuffer) {
     aRv.Throw(NS_ERROR_FAILURE); // XXX need a better error here
     return nullptr;
@@ -253,11 +264,12 @@ MediaSource::AddSourceBuffer(const nsAString& aType, ErrorResult& aRv)
   return sourceBuffer.forget();
 }
 
-void
+RefPtr<MediaSource::ActiveCompletionPromise>
 MediaSource::SourceBufferIsActive(SourceBuffer* aSourceBuffer)
 {
   MOZ_ASSERT(NS_IsMainThread());
   mActiveSourceBuffers->ClearSimple();
+  bool initMissing = false;
   bool found = false;
   for (uint32_t i = 0; i < mSourceBuffers->Length(); i++) {
     SourceBuffer* sourceBuffer = mSourceBuffers->IndexedGetter(i, found);
@@ -266,8 +278,35 @@ MediaSource::SourceBufferIsActive(SourceBuffer* aSourceBuffer)
       mActiveSourceBuffers->Append(aSourceBuffer);
     } else if (sourceBuffer->IsActive()) {
       mActiveSourceBuffers->AppendSimple(sourceBuffer);
+    } else {
+      // Some source buffers haven't yet received an init segment.
+      // There's nothing more we can do at this stage.
+      initMissing = true;
     }
   }
+  if (initMissing || !mDecoder) {
+    return ActiveCompletionPromise::CreateAndResolve(true, __func__);
+  }
+
+  mDecoder->NotifyInitDataArrived();
+
+  // Add our promise to the queue.
+  // It will be resolved once the HTMLMediaElement modifies its readyState.
+  MozPromiseHolder<ActiveCompletionPromise> holder;
+  RefPtr<ActiveCompletionPromise> promise = holder.Ensure(__func__);
+  mCompletionPromises.AppendElement(Move(holder));
+  return promise;
+}
+
+void
+MediaSource::CompletePendingTransactions()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MSE_DEBUG("Resolving %u promises", unsigned(mCompletionPromises.Length()));
+  for (auto& promise : mCompletionPromises) {
+    promise.Resolve(true, __func__);
+  }
+  mCompletionPromises.Clear();
 }
 
 void
@@ -321,7 +360,7 @@ MediaSource::EndOfStream(const Optional<MediaSourceEndOfStreamError>& aError, Er
   }
   switch (aError.Value()) {
   case MediaSourceEndOfStreamError::Network:
-    mDecoder->NetworkError();
+    mDecoder->NetworkError(MediaResult(NS_ERROR_FAILURE, "MSE network"));
     break;
   case MediaSourceEndOfStreamError::Decode:
     mDecoder->DecodeError(NS_ERROR_DOM_MEDIA_FATAL_ERR);
@@ -335,7 +374,7 @@ void
 MediaSource::EndOfStream(const MediaResult& aError)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  MSE_API("EndOfStream(aError=%d)", aError.Code());
+  MSE_API("EndOfStream(aError=%s)", aError.ErrorName().get());
 
   SetReadyState(MediaSourceReadyState::Ended);
   mSourceBuffers->Ended();
@@ -431,6 +470,7 @@ void
 MediaSource::Detach()
 {
   MOZ_ASSERT(NS_IsMainThread());
+  MOZ_RELEASE_ASSERT(mCompletionPromises.IsEmpty());
   MSE_DEBUG("mDecoder=%p owner=%p",
             mDecoder.get(), mDecoder ? mDecoder->GetOwner() : nullptr);
   if (!mDecoder) {
@@ -454,6 +494,7 @@ MediaSource::MediaSource(nsPIDOMWindowInner* aWindow)
   : DOMEventTargetHelper(aWindow)
   , mDecoder(nullptr)
   , mPrincipal(nullptr)
+  , mAbstractMainThread(GetOwnerGlobal()->AbstractMainThreadFor(TaskCategory::Other))
   , mReadyState(MediaSourceReadyState::Closed)
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -474,7 +515,8 @@ MediaSource::SetReadyState(MediaSourceReadyState aState)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aState != mReadyState);
-  MSE_DEBUG("SetReadyState(aState=%d) mReadyState=%d", aState, mReadyState);
+  MSE_DEBUG("SetReadyState(aState=%" PRIu32 ") mReadyState=%" PRIu32,
+            static_cast<uint32_t>(aState), static_cast<uint32_t>(mReadyState));
 
   MediaSourceReadyState oldState = mReadyState;
   mReadyState = aState;
@@ -519,7 +561,7 @@ MediaSource::QueueAsyncSimpleEvent(const char* aName)
 {
   MSE_DEBUG("Queuing event '%s'", aName);
   nsCOMPtr<nsIRunnable> event = new AsyncEventRunner<MediaSource>(this, aName);
-  NS_DispatchToMainThread(event);
+  mAbstractMainThread->Dispatch(event.forget());
 }
 
 void
@@ -557,7 +599,9 @@ MediaSource::DurationChange(double aNewDuration, ErrorResult& aRv)
 void
 MediaSource::GetMozDebugReaderData(nsAString& aString)
 {
-  mDecoder->GetMozDebugReaderData(aString);
+  nsAutoCString result;
+  mDecoder->GetMozDebugReaderData(result);
+  aString = NS_ConvertUTF8toUTF16(result);
 }
 
 nsPIDOMWindowInner*
@@ -579,7 +623,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(MediaSource, DOMEventTargetHelper,
 NS_IMPL_ADDREF_INHERITED(MediaSource, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(MediaSource, DOMEventTargetHelper)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(MediaSource)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(MediaSource)
   NS_INTERFACE_MAP_ENTRY(mozilla::dom::MediaSource)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 

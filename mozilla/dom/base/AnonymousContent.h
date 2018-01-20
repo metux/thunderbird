@@ -43,6 +43,7 @@ public:
   void SetAttributeForElement(const nsAString& aElementId,
                               const nsAString& aName,
                               const nsAString& aValue,
+                              nsIPrincipal* aSubjectPrincipal,
                               ErrorResult& aRv);
 
   void GetAttributeForElement(const nsAString& aElementId,
@@ -67,6 +68,11 @@ public:
   void SetCutoutRectsForElement(const nsAString& aElementId,
                                 const Sequence<OwningNonNull<DOMRect>>& aRects,
                                 ErrorResult& aError);
+
+  void GetComputedStylePropertyValue(const nsAString& aElementId,
+                                     const nsAString& aPropertyName,
+                                     DOMString& aResult,
+                                     ErrorResult& aRv);
 
 private:
   ~AnonymousContent();

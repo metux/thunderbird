@@ -11,7 +11,7 @@
 <!ENTITY removeKeywordButton.label        "Poista">
 <!ENTITY removeKeywordButton.accesskey    "P">
 
-<!ENTITY editKeywordButton1.accesskey     "E">
-<!ENTITY editKeywordButton1.label         "Edit…">
-<!ENTITY newKeywordButton.accesskey       "N">
 <!ENTITY newKeywordButton.label           "New…">
+<!ENTITY newKeywordButton.accesskey       "N">
+<!ENTITY editKeywordButton1.label         "Edit…">
+<!ENTITY editKeywordButton1.accesskey     "E">

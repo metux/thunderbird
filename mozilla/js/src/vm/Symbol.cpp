@@ -20,7 +20,7 @@ using JS::Symbol;
 using namespace js;
 
 Symbol*
-Symbol::newInternal(ExclusiveContext* cx, JS::SymbolCode code, uint32_t hash, JSAtom* description,
+Symbol::newInternal(JSContext* cx, JS::SymbolCode code, uint32_t hash, JSAtom* description,
                     AutoLockForExclusiveAccess& lock)
 {
     MOZ_ASSERT(cx->compartment() == cx->atomsCompartment(lock));
@@ -35,7 +35,7 @@ Symbol::newInternal(ExclusiveContext* cx, JS::SymbolCode code, uint32_t hash, JS
 }
 
 Symbol*
-Symbol::new_(ExclusiveContext* cx, JS::SymbolCode code, JSString* description)
+Symbol::new_(JSContext* cx, JS::SymbolCode code, JSString* description)
 {
     JSAtom* atom = nullptr;
     if (description) {
@@ -45,14 +45,20 @@ Symbol::new_(ExclusiveContext* cx, JS::SymbolCode code, JSString* description)
     }
 
     // Lock to allocate. If symbol allocation becomes a bottleneck, this can
-    // probably be replaced with an assertion that we're on the main thread.
+    // probably be replaced with an assertion that we're on the active thread.
     AutoLockForExclusiveAccess lock(cx);
-    AutoCompartment ac(cx, cx->atomsCompartment(lock), &lock);
-    return newInternal(cx, code, cx->compartment()->randomHashCode(), atom, lock);
+    Symbol* sym;
+    {
+        AutoAtomsCompartment ac(cx, lock);
+        sym = newInternal(cx, code, cx->compartment()->randomHashCode(), atom, lock);
+    }
+    if (sym)
+        cx->markAtom(sym);
+    return sym;
 }
 
 Symbol*
-Symbol::for_(js::ExclusiveContext* cx, HandleString description)
+Symbol::for_(JSContext* cx, HandleString description)
 {
     JSAtom* atom = AtomizeString(cx, description);
     if (!atom)
@@ -62,45 +68,61 @@ Symbol::for_(js::ExclusiveContext* cx, HandleString description)
 
     SymbolRegistry& registry = cx->symbolRegistry(lock);
     SymbolRegistry::AddPtr p = registry.lookupForAdd(atom);
-    if (p)
+    if (p) {
+        cx->markAtom(*p);
         return *p;
-
-    AutoCompartment ac(cx, cx->atomsCompartment(lock), &lock);
-    Symbol* sym = newInternal(cx, SymbolCode::InSymbolRegistry, atom->hash(), atom, lock);
-    if (!sym)
-        return nullptr;
-
-    // p is still valid here because we have held the lock since the
-    // lookupForAdd call, and newInternal can't GC.
-    if (!registry.add(p, sym)) {
-        // SystemAllocPolicy does not report OOM.
-        ReportOutOfMemory(cx);
-        return nullptr;
     }
+
+    Symbol* sym;
+    {
+        AutoAtomsCompartment ac(cx, lock);
+        // Rehash the hash of the atom to give the corresponding symbol a hash
+        // that is different than the hash of the corresponding atom.
+        HashNumber hash = mozilla::HashGeneric(atom->hash());
+        sym = newInternal(cx, SymbolCode::InSymbolRegistry, hash, atom, lock);
+        if (!sym)
+            return nullptr;
+
+        // p is still valid here because we have held the lock since the
+        // lookupForAdd call, and newInternal can't GC.
+        if (!registry.add(p, sym)) {
+            // SystemAllocPolicy does not report OOM.
+            ReportOutOfMemory(cx);
+            return nullptr;
+        }
+    }
+    cx->markAtom(sym);
     return sym;
 }
 
 #ifdef DEBUG
 void
-Symbol::dump(FILE* fp)
+Symbol::dump()
+{
+    js::Fprinter out(stderr);
+    dump(out);
+}
+
+void
+Symbol::dump(js::GenericPrinter& out)
 {
     if (isWellKnownSymbol()) {
         // All the well-known symbol names are ASCII.
-        description_->dumpCharsNoNewline(fp);
+        description_->dumpCharsNoNewline(out);
     } else if (code_ == SymbolCode::InSymbolRegistry || code_ == SymbolCode::UniqueSymbol) {
-        fputs(code_ == SymbolCode::InSymbolRegistry ? "Symbol.for(" : "Symbol(", fp);
+        out.printf(code_ == SymbolCode::InSymbolRegistry ? "Symbol.for(" : "Symbol(");
 
         if (description_)
-            description_->dumpCharsNoNewline(fp);
+            description_->dumpCharsNoNewline(out);
         else
-            fputs("undefined", fp);
+            out.printf("undefined");
 
-        fputc(')', fp);
+        out.putChar(')');
 
         if (code_ == SymbolCode::UniqueSymbol)
-            fprintf(fp, "@%p", (void*) this);
+            out.printf("@%p", (void*) this);
     } else {
-        fprintf(fp, "<Invalid Symbol code=%u>", unsigned(code_));
+        out.printf("<Invalid Symbol code=%u>", unsigned(code_));
     }
 }
 #endif  // DEBUG
@@ -127,20 +149,6 @@ js::SymbolDescriptiveString(JSContext* cx, Symbol* sym, MutableHandleValue resul
     result.setString(str);
     return true;
 }
-
-bool
-js::IsSymbolOrSymbolWrapper(const Value& v)
-{
-    return v.isSymbol() || (v.isObject() && v.toObject().is<SymbolObject>());
-}
-
-JS::Symbol*
-js::ToSymbolPrimitive(const Value& v)
-{
-    MOZ_ASSERT(IsSymbolOrSymbolWrapper(v));
-    return v.isSymbol() ? v.toSymbol() : v.toObject().as<SymbolObject>().unbox();
-}
-
 
 JS::ubi::Node::Size
 JS::ubi::Concrete<JS::Symbol>::size(mozilla::MallocSizeOf mallocSizeOf) const

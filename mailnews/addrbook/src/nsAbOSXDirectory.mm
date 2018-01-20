@@ -840,7 +840,7 @@ nsAbOSXDirectory::AssertDirectory(nsIAbManager *aManager,
     NS_ENSURE_SUCCESS(rv, rv);
   }
   
-  rv = m_AddressList->AppendElement(aDirectory, false);
+  rv = m_AddressList->AppendElement(aDirectory);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return aManager->NotifyDirectoryItemAdded(this, aDirectory);
@@ -854,8 +854,8 @@ nsAbOSXDirectory::AssertCard(nsIAbManager *aManager,
   GetUuid(ourUuid);
   aCard->SetDirectoryId(ourUuid);
 
-  nsresult rv = m_IsMailList ? m_AddressList->AppendElement(aCard, false) :
-                               mCardList->AppendElement(aCard, false);
+  nsresult rv = m_IsMailList ? m_AddressList->AppendElement(aCard) :
+                               mCardList->AppendElement(aCard);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Get the card's URI and add it to our card store
@@ -965,7 +965,7 @@ nsAbOSXDirectory::GetChildCards(nsISimpleEnumerator **aCards)
       NS_ENSURE_SUCCESS(rv, rv);
       card->SetDirectoryId(ourUuid);
 
-      mCardList->AppendElement(card, false);
+      mCardList->AppendElement(card);
     }
 
     return NS_NewArrayEnumerator(aCards, mCardList);
@@ -1060,13 +1060,8 @@ nsAbOSXDirectory::GetCardFromProperty(const char *aProperty,
       rv = card->GetPropertyAsAUTF8String(aProperty, cardValue);
       if (NS_SUCCEEDED(rv))
       {
-#ifdef MOZILLA_INTERNAL_API
         bool equal = aCaseSensitive ? cardValue.Equals(aValue) :
           cardValue.Equals(aValue, nsCaseInsensitiveCStringComparator());
-#else
-        bool equal = aCaseSensitive ? cardValue.Equals(aValue) :
-          cardValue.Equals(aValue, CaseInsensitiveCompare);
-#endif
         if (equal)
           NS_IF_ADDREF(*aResult = card);
       }
@@ -1109,13 +1104,8 @@ nsAbOSXDirectory::GetCardsFromProperty(const char *aProperty,
       rv = card->GetPropertyAsAUTF8String(aProperty, cardValue);
       if (NS_SUCCEEDED(rv))
       {
-#ifdef MOZILLA_INTERNAL_API
         bool equal = aCaseSensitive ? cardValue.Equals(aValue) :
           cardValue.Equals(aValue, nsCaseInsensitiveCStringComparator());
-#else
-        bool equal = aCaseSensitive ? cardValue.Equals(aValue) :
-          cardValue.Equals(aValue, CaseInsensitiveCompare);
-#endif
         if (equal)
           resultArray.AppendObject(card);
       }
@@ -1219,10 +1209,10 @@ nsAbOSXDirectory::OnSearchFoundCard(nsIAbCard *aCard)
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  rv = m_AddressList->AppendElement(aCard, false);
+  rv = m_AddressList->AppendElement(aCard);
   NS_ENSURE_SUCCESS(rv, rv);
   
-  rv = mCardList->AppendElement(aCard, false);
+  rv = mCardList->AppendElement(aCard);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsAutoCString ourUuid;

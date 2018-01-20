@@ -104,7 +104,7 @@ class ThunderTestProfile(mozprofile.ThunderbirdProfile):
         # Do not allow check new mail to be set
         'mail.startup.enabledMailCheckOnce' :  True,
         # Disable compatibility checking
-        'extensions.checkCompatibility.52.0': False,
+        'extensions.checkCompatibility.58': False,
         # Stop any pings to AMO on add-on install
         'extensions.getAddons.cache.enabled': False,
         # In case a developer is working on a laptop without a network
@@ -510,8 +510,9 @@ def dumpRichResults():
         print '##### MOZMILL-RICH-FAILURES-END #####'
 
 def checkCrashesAtExit():
-    if mozcrash.check_for_crashes(os.path.join(PROFILE_DIR, 'minidumps'), SYMBOLS_PATH,
-                                  TEST_NAME):
+    if mozcrash.check_for_crashes(dump_directory=os.path.join(PROFILE_DIR, 'minidumps'),
+                                  symbols_path=SYMBOLS_PATH,
+                                  test_name=TEST_NAME):
         print >> sys.stderr, 'TinderboxPrint: ' + TEST_NAME + '<br/><em class="testfail">CRASH</em>'
         sys.exit(1)
 

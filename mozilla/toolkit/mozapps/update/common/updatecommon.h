@@ -7,11 +7,12 @@
 
 #include "updatedefines.h"
 #include <stdio.h>
+#include "mozilla/Attributes.h"
 
 class UpdateLog
 {
 public:
-  static UpdateLog & GetPrimaryLog() 
+  static UpdateLog & GetPrimaryLog()
   {
     static UpdateLog primaryLog;
     return primaryLog;
@@ -20,8 +21,8 @@ public:
   void Init(NS_tchar* sourcePath, const NS_tchar* fileName);
   void Finish();
   void Flush();
-  void Printf(const char *fmt, ... );
-  void WarnPrintf(const char *fmt, ... );
+  void Printf(const char *fmt, ... ) MOZ_FORMAT_PRINTF(2, 3);
+  void WarnPrintf(const char *fmt, ... ) MOZ_FORMAT_PRINTF(2, 3);
 
   ~UpdateLog()
   {

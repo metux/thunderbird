@@ -7,28 +7,31 @@
 #include "Performance.h"
 
 #include "GeckoProfiler.h"
+#include "nsRFPService.h"
 #include "PerformanceEntry.h"
 #include "PerformanceMainThread.h"
 #include "PerformanceMark.h"
 #include "PerformanceMeasure.h"
 #include "PerformanceObserver.h"
 #include "PerformanceResourceTiming.h"
+#include "PerformanceService.h"
 #include "PerformanceWorker.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/PerformanceBinding.h"
 #include "mozilla/dom/PerformanceEntryEvent.h"
 #include "mozilla/dom/PerformanceNavigationBinding.h"
 #include "mozilla/dom/PerformanceObserverBinding.h"
+#include "mozilla/dom/PerformanceNavigationTiming.h"
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Preferences.h"
 #include "WorkerPrivate.h"
 #include "WorkerRunnable.h"
 
-#ifdef MOZ_WIDGET_GONK
-#define PERFLOG(msg, ...)  __android_log_print(ANDROID_LOG_INFO, "PerformanceTiming", msg, ##__VA_ARGS__)
-#else
-#define PERFLOG(msg, ...) printf_stderr(msg, ##__VA_ARGS__)
+#ifdef MOZ_GECKO_PROFILER
+#include "ProfilerMarkerPayload.h"
 #endif
+
+#define PERFLOG(msg, ...) printf_stderr(msg, ##__VA_ARGS__)
 
 namespace mozilla {
 namespace dom {
@@ -36,27 +39,6 @@ namespace dom {
 using namespace workers;
 
 namespace {
-
-// Helper classes
-class MOZ_STACK_CLASS PerformanceEntryComparator final
-{
-public:
-  bool Equals(const PerformanceEntry* aElem1,
-              const PerformanceEntry* aElem2) const
-  {
-    MOZ_ASSERT(aElem1 && aElem2,
-               "Trying to compare null performance entries");
-    return aElem1->StartTime() == aElem2->StartTime();
-  }
-
-  bool LessThan(const PerformanceEntry* aElem1,
-                const PerformanceEntry* aElem2) const
-  {
-    MOZ_ASSERT(aElem1 && aElem2,
-               "Trying to compare null performance entries");
-    return aElem1->StartTime() < aElem2->StartTime();
-  }
-};
 
 class PrefEnabledRunnable final
   : public WorkerCheckAPIExposureOnMainThreadRunnable
@@ -88,7 +70,7 @@ private:
 
 } // anonymous namespace
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(Performance)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Performance)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(Performance,
@@ -102,14 +84,12 @@ NS_IMPL_RELEASE_INHERITED(Performance, DOMEventTargetHelper)
 /* static */ already_AddRefed<Performance>
 Performance::CreateForMainThread(nsPIDOMWindowInner* aWindow,
                                  nsDOMNavigationTiming* aDOMTiming,
-                                 nsITimedChannel* aChannel,
-                                 Performance* aParentPerformance)
+                                 nsITimedChannel* aChannel)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
   RefPtr<Performance> performance =
-    new PerformanceMainThread(aWindow, aDOMTiming, aChannel,
-                              aParentPerformance);
+    new PerformanceMainThread(aWindow, aDOMTiming, aChannel);
   return performance.forget();
 }
 
@@ -141,6 +121,24 @@ Performance::Performance(nsPIDOMWindowInner* aWindow)
 Performance::~Performance()
 {}
 
+DOMHighResTimeStamp
+Performance::Now() const
+{
+  TimeDuration duration = TimeStamp::Now() - CreationTimeStamp();
+  return RoundTime(duration.ToMilliseconds());
+}
+
+DOMHighResTimeStamp
+Performance::TimeOrigin()
+{
+  if (!mPerformanceService) {
+    mPerformanceService = PerformanceService::GetOrCreate();
+  }
+
+  MOZ_ASSERT(mPerformanceService);
+  return mPerformanceService->TimeOrigin(CreationTimeStamp());
+}
+
 JSObject*
 Performance::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
@@ -150,6 +148,12 @@ Performance::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 void
 Performance::GetEntries(nsTArray<RefPtr<PerformanceEntry>>& aRetval)
 {
+  // We return an empty list when 'privacy.resistFingerprinting' is on.
+  if (nsContentUtils::ShouldResistFingerprinting()) {
+    aRetval.Clear();
+    return;
+  }
+
   aRetval = mResourceEntries;
   aRetval.AppendElements(mUserEntries);
   aRetval.Sort(PerformanceEntryComparator());
@@ -159,6 +163,12 @@ void
 Performance::GetEntriesByType(const nsAString& aEntryType,
                               nsTArray<RefPtr<PerformanceEntry>>& aRetval)
 {
+  // We return an empty list when 'privacy.resistFingerprinting' is on.
+  if (nsContentUtils::ShouldResistFingerprinting()) {
+    aRetval.Clear();
+    return;
+  }
+
   if (aEntryType.EqualsLiteral("resource")) {
     aRetval = mResourceEntries;
     return;
@@ -182,6 +192,11 @@ Performance::GetEntriesByName(const nsAString& aName,
                               nsTArray<RefPtr<PerformanceEntry>>& aRetval)
 {
   aRetval.Clear();
+
+  // We return an empty list when 'privacy.resistFingerprinting' is on.
+  if (nsContentUtils::ShouldResistFingerprinting()) {
+    return;
+  }
 
   for (PerformanceEntry* entry : mResourceEntries) {
     if (entry->GetName().Equals(aName) &&
@@ -228,19 +243,19 @@ Performance::ClearResourceTimings()
 DOMHighResTimeStamp
 Performance::RoundTime(double aTime) const
 {
-  // Round down to the nearest 5us, because if the timer is too accurate people
-  // can do nasty timing attacks with it.  See similar code in the worker
-  // Performance implementation.
-  const double maxResolutionMs = 0.005;
-  return floor(aTime / maxResolutionMs) * maxResolutionMs;
+  // Round down to the nearest 20us, because if the timer is too accurate people
+  // can do nasty timing attacks with it.
+  const double maxResolutionMs = 0.020;
+  return nsRFPService::ReduceTimePrecisionAsMSecs(
+    floor(aTime / maxResolutionMs) * maxResolutionMs);
 }
 
 
 void
 Performance::Mark(const nsAString& aName, ErrorResult& aRv)
 {
-  // Don't add the entry if the buffer is full. XXX should be removed by bug 1159003.
-  if (mUserEntries.Length() >= mResourceTimingBufferSize) {
+  // We add nothing when 'privacy.resistFingerprinting' is on.
+  if (nsContentUtils::ShouldResistFingerprinting()) {
     return;
   }
 
@@ -250,12 +265,16 @@ Performance::Mark(const nsAString& aName, ErrorResult& aRv)
   }
 
   RefPtr<PerformanceMark> performanceMark =
-    new PerformanceMark(GetAsISupports(), aName, Now());
+    new PerformanceMark(GetParentObject(), aName, Now());
   InsertUserEntry(performanceMark);
 
+#ifdef MOZ_GECKO_PROFILER
   if (profiler_is_active()) {
-    PROFILER_MARKER(NS_ConvertUTF16toUTF8(aName).get());
+    profiler_add_marker(
+      "UserTiming",
+      MakeUnique<UserTimingMarkerPayload>(aName, TimeStamp::Now()));
   }
+#endif
 }
 
 void
@@ -266,7 +285,7 @@ Performance::ClearMarks(const Optional<nsAString>& aName)
 
 DOMHighResTimeStamp
 Performance::ResolveTimestampFromName(const nsAString& aName,
-                                          ErrorResult& aRv)
+                                      ErrorResult& aRv)
 {
   AutoTArray<RefPtr<PerformanceEntry>, 1> arr;
   DOMHighResTimeStamp ts;
@@ -299,9 +318,8 @@ Performance::Measure(const nsAString& aName,
                      const Optional<nsAString>& aEndMark,
                      ErrorResult& aRv)
 {
-  // Don't add the entry if the buffer is full. XXX should be removed by bug
-  // 1159003.
-  if (mUserEntries.Length() >= mResourceTimingBufferSize) {
+  // We add nothing when 'privacy.resistFingerprinting' is on.
+  if (nsContentUtils::ShouldResistFingerprinting()) {
     return;
   }
 
@@ -335,8 +353,20 @@ Performance::Measure(const nsAString& aName,
   }
 
   RefPtr<PerformanceMeasure> performanceMeasure =
-    new PerformanceMeasure(GetAsISupports(), aName, startTime, endTime);
+    new PerformanceMeasure(GetParentObject(), aName, startTime, endTime);
   InsertUserEntry(performanceMeasure);
+
+#ifdef MOZ_GECKO_PROFILER
+  if (profiler_is_active()) {
+    TimeStamp startTimeStamp = CreationTimeStamp() +
+                               TimeDuration::FromMilliseconds(startTime);
+    TimeStamp endTimeStamp = CreationTimeStamp() +
+                             TimeDuration::FromMilliseconds(endTime);
+    profiler_add_marker(
+      "UserTiming",
+      MakeUnique<UserTimingMarkerPayload>(aName, startTimeStamp, endTimeStamp));
+  }
+#endif
 }
 
 void
@@ -401,6 +431,12 @@ Performance::InsertResourceEntry(PerformanceEntry* aEntry)
 {
   MOZ_ASSERT(aEntry);
   MOZ_ASSERT(mResourceEntries.Length() < mResourceTimingBufferSize);
+
+  // We won't add an entry when 'privacy.resistFingerprint' is true.
+  if (nsContentUtils::ShouldResistFingerprinting()) {
+    return;
+  }
+
   if (mResourceEntries.Length() >= mResourceTimingBufferSize) {
     return;
   }
@@ -445,7 +481,8 @@ class NotifyObserversTask final : public CancelableRunnable
 {
 public:
   explicit NotifyObserversTask(Performance* aPerformance)
-    : mPerformance(aPerformance)
+    : CancelableRunnable("dom::NotifyObserversTask")
+    , mPerformance(aPerformance)
   {
     MOZ_ASSERT(mPerformance);
   }
@@ -499,23 +536,6 @@ Performance::QueueEntry(PerformanceEntry* aEntry)
 }
 
 /* static */ bool
-Performance::IsEnabled(JSContext* aCx, JSObject* aGlobal)
-{
-  if (NS_IsMainThread()) {
-    return Preferences::GetBool("dom.enable_user_timing", false);
-  }
-
-  WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
-  MOZ_ASSERT(workerPrivate);
-  workerPrivate->AssertIsOnWorkerThread();
-
-  RefPtr<PrefEnabledRunnable> runnable =
-    new PrefEnabledRunnable(workerPrivate,
-                            NS_LITERAL_CSTRING("dom.enable_user_timing"));
-  return runnable->Dispatch() && runnable->IsEnabled();
-}
-
-/* static */ bool
 Performance::IsObserverEnabled(JSContext* aCx, JSObject* aGlobal)
 {
   if (NS_IsMainThread()) {
@@ -531,6 +551,32 @@ Performance::IsObserverEnabled(JSContext* aCx, JSObject* aGlobal)
                             NS_LITERAL_CSTRING("dom.enable_performance_observer"));
 
   return runnable->Dispatch() && runnable->IsEnabled();
+}
+
+void
+Performance::MemoryPressure()
+{
+  mUserEntries.Clear();
+}
+
+size_t
+Performance::SizeOfUserEntries(mozilla::MallocSizeOf aMallocSizeOf) const
+{
+  size_t userEntries = 0;
+  for (const PerformanceEntry* entry : mUserEntries) {
+    userEntries += entry->SizeOfIncludingThis(aMallocSizeOf);
+  }
+  return userEntries;
+}
+
+size_t
+Performance::SizeOfResourceEntries(mozilla::MallocSizeOf aMallocSizeOf) const
+{
+  size_t resourceEntries = 0;
+  for (const PerformanceEntry* entry : mResourceEntries) {
+    resourceEntries += entry->SizeOfIncludingThis(aMallocSizeOf);
+  }
+  return resourceEntries;
 }
 
 } // dom namespace

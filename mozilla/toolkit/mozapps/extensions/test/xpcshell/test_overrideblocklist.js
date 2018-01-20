@@ -19,19 +19,19 @@ const gAppDir = FileUtils.getFile(KEY_APPDIR, []);
 var oldAddon = {
   id: "old@tests.mozilla.org",
   version: 1
-}
+};
 var newAddon = {
   id: "new@tests.mozilla.org",
   version: 1
-}
+};
 var ancientAddon = {
   id: "ancient@tests.mozilla.org",
   version: 1
-}
+};
 var invalidAddon = {
   id: "invalid@tests.mozilla.org",
   version: 1
-}
+};
 
 function incrementAppVersion() {
   gAppInfo.version = "" + (parseInt(gAppInfo.version) + 1);
@@ -71,8 +71,7 @@ function run_test() {
   if (appBlocklist.exists()) {
     try {
       appBlocklist.moveTo(gAppDir, "blocklist.old");
-    }
-    catch (e) {
+    } catch (e) {
       todo(false, "Aborting test due to unmovable blocklist file: " + e);
       return;
     }

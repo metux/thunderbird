@@ -1,4 +1,4 @@
-/** ***** BEGIN LICENSE BLOCK *****
+/**
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -207,6 +207,7 @@ function InitMsgWindow()
 function nsMsgStatusFeedback()
 {
   this._statusText = document.getElementById("statusText");
+  this._statusPanel = document.getElementById("statusbar-display");
   this._progressBar = document.getElementById("statusbar-icon");
   this._progressBarContainer = document.getElementById("statusbar-progresspanel");
   this._throbber = document.getElementById("throbber-box");
@@ -220,6 +221,7 @@ nsMsgStatusFeedback.prototype =
 {
   // Document elements.
   _statusText: null,
+  _statusPanel: null,
   _progressBar: null,
   _progressBarContainer: null,
   _throbber: null,
@@ -250,7 +252,12 @@ nsMsgStatusFeedback.prototype =
   },
 
   setOverLink: function(link, context) {
-    this._statusText.label = link;
+    if (!document.getElementById("status-bar").hidden) {
+      this._statusText.label = link;
+    } else {
+      // Statusbar invisible: Show link in statuspanel instead.
+      this._statusPanel.label = link;
+    }
   },
 
   // Called before links are navigated to to allow us to retarget them if needed.
@@ -642,7 +649,23 @@ function nsBrowserAccess() { }
 nsBrowserAccess.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsIBrowserDOMWindow]),
 
-  openURI: function (aURI, aOpener, aWhere, aFlags) {
+  // The following function may be called during account creation, it is called by
+  // the Mozmill test test-newmailaccount.js::test_window_open_link_opening_behaviour.
+  createContentWindow(aURI, aOpener, aWhere, aFlags, aTriggeringPrincipal = null) {
+    return this.getContentWindowOrOpenURI(null, aOpener, aWhere, aFlags,
+                                          aTriggeringPrincipal);
+  },
+
+  openURI: function (aURI, aOpener, aWhere, aFlags, aTriggeringPrincipal = null) {
+    if (!aURI) {
+      Components.utils.reportError("openURI should only be called with a valid URI");
+      throw Components.results.NS_ERROR_FAILURE;
+    }
+    return this.getContentWindowOrOpenURI(aURI, aOpener, aWhere, aFlags,
+                                          aTriggeringPrincipal);
+  },
+
+  getContentWindowOrOpenURI(aURI, aOpener, aWhere, aFlags, aTriggeringPrincipal) {
     const nsIBrowserDOMWindow = Components.interfaces.nsIBrowserDOMWindow;
     let isExternal = !!(aFlags & nsIBrowserDOMWindow.OPEN_EXTERNAL);
     if (isExternal && aURI && aURI.schemeIs("chrome")) {
@@ -693,11 +716,11 @@ nsBrowserAccess.prototype = {
         let referrer = null;
         if (aOpener) {
           let location = aOpener.location;
-          referrer = Services.io.newURI(location, null, null);
+          referrer = Services.io.newURI(location);
         }
         newWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
                  .getInterface(Components.interfaces.nsIWebNavigation)
-                 .loadURI(aURI.spec, loadflags, referrer, null, null);
+                 .loadURI(aURI.spec, loadflags, referrer, null, null, aTriggeringPrincipal);
       }
       if (needToFocusWin || (!loadInBackground && isExternal))
         newWindow.focus();

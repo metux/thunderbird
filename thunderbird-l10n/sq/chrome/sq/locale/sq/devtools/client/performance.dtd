@@ -136,9 +136,6 @@
 <!ENTITY performanceUI.console.stopCommandStart "Ndaleni regjistrimin duke dhënë">
 <!ENTITY performanceUI.console.stopCommandEnd   "te konsola.">
 
-
-<!-- LOCALIZATION NOTE (performanceUI.flattenTreeRecursion): This is the
-  -  label for the checkbox that toggles the flattening of tree recursion in inspected
-  -  functions in the profiler. -->
 <!ENTITY performanceUI.flattenTreeRecursion             "Flatten Tree Recursion">
 <!ENTITY performanceUI.flattenTreeRecursion.tooltiptext "Flatten recursion when inspecting functions.">
+

@@ -5,22 +5,24 @@
 
 Components.utils.import("resource://gre/modules/BrowserUtils.jsm");
 
+/* import-globals-from pageInfo.js */
+
 XPCOMUtils.defineLazyModuleGetter(this, "LoginHelper",
                                   "resource://gre/modules/LoginHelper.jsm");
 
 var security = {
-  init: function(uri, windowInfo) {
+  init(uri, windowInfo) {
     this.uri = uri;
     this.windowInfo = windowInfo;
   },
 
   // Display the server certificate (static)
-  viewCert : function () {
+  viewCert() {
     var cert = security._cert;
     viewCertHelper(window, cert);
   },
 
-  _getSecurityInfo : function() {
+  _getSecurityInfo() {
     const nsISSLStatusProvider = Components.interfaces.nsISSLStatusProvider;
     const nsISSLStatus = Components.interfaces.nsISSLStatus;
 
@@ -54,16 +56,16 @@ var security = {
         this.mapIssuerOrganization(cert.issuerOrganization) || cert.issuerName;
 
       var retval = {
-        hostName : hostName,
-        cAName : issuerName,
-        encryptionAlgorithm : undefined,
-        encryptionStrength : undefined,
+        hostName,
+        cAName: issuerName,
+        encryptionAlgorithm: undefined,
+        encryptionStrength: undefined,
         version: undefined,
-        isBroken : isBroken,
-        isMixed : isMixed,
-        isEV : isEV,
-        cert : cert,
-        certificateTransparency : undefined
+        isBroken,
+        isMixed,
+        isEV,
+        cert,
+        certificateTransparency: undefined
       };
 
       var version;
@@ -71,8 +73,7 @@ var security = {
         retval.encryptionAlgorithm = status.cipherName;
         retval.encryptionStrength = status.secretKeyLength;
         version = status.protocolVersion;
-      }
-      catch (e) {
+      } catch (e) {
       }
 
       switch (version) {
@@ -86,52 +87,46 @@ var security = {
           retval.version = "TLS 1.1";
           break;
         case nsISSLStatus.TLS_VERSION_1_2:
-          retval.version = "TLS 1.2"
+          retval.version = "TLS 1.2";
           break;
         case nsISSLStatus.TLS_VERSION_1_3:
-          retval.version = "TLS 1.3"
+          retval.version = "TLS 1.3";
           break;
       }
 
-      // Select status text to display for Certificate Transparency.
+      // Select the status text to display for Certificate Transparency.
+      // Since we do not yet enforce the CT Policy on secure connections,
+      // we must not complain on policy discompliance (it might be viewed
+      // as a security issue by the user).
       switch (status.certificateTransparencyStatus) {
         case nsISSLStatus.CERTIFICATE_TRANSPARENCY_NOT_APPLICABLE:
-          // CT compliance checks were not performed,
-          // do not display any status text.
+        case nsISSLStatus.CERTIFICATE_TRANSPARENCY_POLICY_NOT_ENOUGH_SCTS:
+        case nsISSLStatus.CERTIFICATE_TRANSPARENCY_POLICY_NOT_DIVERSE_SCTS:
           retval.certificateTransparency = null;
           break;
-        case nsISSLStatus.CERTIFICATE_TRANSPARENCY_NONE:
-          retval.certificateTransparency = "None";
-          break;
-        case nsISSLStatus.CERTIFICATE_TRANSPARENCY_OK:
-          retval.certificateTransparency = "OK";
-          break;
-        case nsISSLStatus.CERTIFICATE_TRANSPARENCY_UNKNOWN_LOG:
-          retval.certificateTransparency = "UnknownLog";
-          break;
-        case nsISSLStatus.CERTIFICATE_TRANSPARENCY_INVALID:
-          retval.certificateTransparency = "Invalid";
+        case nsISSLStatus.CERTIFICATE_TRANSPARENCY_POLICY_COMPLIANT:
+          retval.certificateTransparency = "Compliant";
           break;
       }
 
       return retval;
     }
     return {
-      hostName : hostName,
-      cAName : "",
-      encryptionAlgorithm : "",
-      encryptionStrength : 0,
+      hostName,
+      cAName: "",
+      encryptionAlgorithm: "",
+      encryptionStrength: 0,
       version: "",
-      isBroken : isBroken,
-      isMixed : isMixed,
-      isEV : isEV,
-      cert : null,
-      certificateTransparency : null
+      isBroken,
+      isMixed,
+      isEV,
+      cert: null,
+      certificateTransparency: null
     };
   },
 
   // Find the secureBrowserUI object (if present)
-  _getSecurityUI : function() {
+  _getSecurityUI() {
     if (window.opener.gBrowser)
       return window.opener.gBrowser.securityUI;
     return null;
@@ -140,7 +135,7 @@ var security = {
   // Interface for mapping a certificate issuer organization to
   // the value to be displayed.
   // Bug 82017 - this implementation should be moved to pipnss C++ code
-  mapIssuerOrganization: function(name) {
+  mapIssuerOrganization(name) {
     if (!name) return null;
 
     if (name == "RSA Data Security, Inc.") return "Verisign, Inc.";
@@ -152,8 +147,7 @@ var security = {
   /**
    * Open the cookie manager window
    */
-  viewCookies : function()
-  {
+  viewCookies() {
     var wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
                        .getService(Components.interfaces.nsIWindowMediator);
     var win = wm.getMostRecentWindow("Browser:Cookies");
@@ -163,8 +157,7 @@ var security = {
     var eTLD;
     try {
       eTLD = eTLDService.getBaseDomain(this.uri);
-    }
-    catch (e) {
+    } catch (e) {
       // getBaseDomain will fail if the host is an IP address or is empty
       eTLD = this.uri.asciiHost;
     }
@@ -172,20 +165,19 @@ var security = {
     if (win) {
       win.gCookiesWindow.setFilter(eTLD);
       win.focus();
-    }
-    else
+    } else
       window.openDialog("chrome://browser/content/preferences/cookies.xul",
-                        "Browser:Cookies", "", {filterString : eTLD});
+                        "Browser:Cookies", "", {filterString: eTLD});
   },
 
   /**
    * Open the login manager window
    */
-  viewPasswords : function() {
+  viewPasswords() {
     LoginHelper.openPasswordManager(window, this._getSecurityInfo().hostName);
   },
 
-  _cert : null
+  _cert: null
 };
 
 function securityOnLoad(uri, windowInfo) {
@@ -203,16 +195,17 @@ function securityOnLoad(uri, windowInfo) {
   /* Set Identity section text */
   setText("security-identity-domain-value", info.hostName);
 
-  var owner, verifier;
+  var owner, verifier, validity;
   if (info.cert && !info.isBroken) {
+    validity = info.cert.validity.notAfterLocalDay;
+
     // Try to pull out meaningful values.  Technically these fields are optional
     // so we'll employ fallbacks where appropriate.  The EV spec states that Org
     // fields must be specified for subject and issuer so that case is simpler.
     if (info.isEV) {
       owner = info.cert.organization;
       verifier = security.mapIssuerOrganization(info.cAName);
-    }
-    else {
+    } else {
       // Technically, a non-EV cert might specify an owner in the O field or not,
       // depending on the CA's issuing policies.  However we don't have any programmatic
       // way to tell those apart, and no policy way to establish which organization
@@ -223,8 +216,7 @@ function securityOnLoad(uri, windowInfo) {
                                                 info.cert.issuerCommonName ||
                                                 info.cert.issuerName);
     }
-  }
-  else {
+  } else {
     // We don't have valid identity credentials.
     owner = pageInfoBundle.getString("securityNoOwner");
     verifier = pageInfoBundle.getString("notset");
@@ -232,14 +224,18 @@ function securityOnLoad(uri, windowInfo) {
 
   setText("security-identity-owner-value", owner);
   setText("security-identity-verifier-value", verifier);
+  if (validity) {
+    setText("security-identity-validity-value", validity);
+  } else {
+    document.getElementById("security-identity-validity-row").hidden = true;
+  }
 
   /* Manage the View Cert button*/
   var viewCert = document.getElementById("security-view-cert");
   if (info.cert) {
     security._cert = info.cert;
     viewCert.collapsed = false;
-  }
-  else
+  } else
     viewCert.collapsed = true;
 
   /* Set Privacy & History section text */
@@ -255,12 +251,10 @@ function securityOnLoad(uri, windowInfo) {
   if (visitCount > 1) {
     setText("security-privacy-history-value",
             pageInfoBundle.getFormattedString("securityNVisits", [visitCount.toLocaleString()]));
-  }
-  else if (visitCount == 1) {
+  } else if (visitCount == 1) {
     setText("security-privacy-history-value",
             pageInfoBundle.getString("securityOneVisit"));
-  }
-  else {
+  } else {
     setText("security-privacy-history-value", noStr);
   }
 
@@ -282,8 +276,7 @@ function securityOnLoad(uri, windowInfo) {
       msg1 = pkiBundle.getString("pageInfo_WeakCipher");
     }
     msg2 = pkiBundle.getString("pageInfo_Privacy_None2");
-  }
-  else if (info.encryptionStrength > 0) {
+  } else if (info.encryptionStrength > 0) {
     hdr = pkiBundle.getFormattedString("pageInfo_EncryptionWithBitsAndProtocol",
                                        [info.encryptionAlgorithm,
                                         info.encryptionStrength + "",
@@ -291,8 +284,7 @@ function securityOnLoad(uri, windowInfo) {
     msg1 = pkiBundle.getString("pageInfo_Privacy_Encrypted1");
     msg2 = pkiBundle.getString("pageInfo_Privacy_Encrypted2");
     security._cert = info.cert;
-  }
-  else {
+  } else {
     hdr = pkiBundle.getString("pageInfo_NoEncryption");
     if (info.hostName != null)
       msg1 = pkiBundle.getFormattedString("pageInfo_Privacy_None1", [info.hostName]);
@@ -315,8 +307,7 @@ function securityOnLoad(uri, windowInfo) {
   }
 }
 
-function setText(id, value)
-{
+function setText(id, value) {
   var element = document.getElementById(id);
   if (!element)
     return;
@@ -324,14 +315,13 @@ function setText(id, value)
     element.value = value;
   else {
     if (element.hasChildNodes())
-      element.removeChild(element.firstChild);
+      element.firstChild.remove();
     var textNode = document.createTextNode(value);
     element.appendChild(textNode);
   }
 }
 
-function viewCertHelper(parent, cert)
-{
+function viewCertHelper(parent, cert) {
   if (!cert)
     return;
 
@@ -344,7 +334,7 @@ function viewCertHelper(parent, cert)
  */
 function hostHasCookies(uri) {
   var cookieManager = Components.classes["@mozilla.org/cookiemanager;1"]
-                                .getService(Components.interfaces.nsICookieManager2);
+                                .getService(Components.interfaces.nsICookieManager);
 
   return cookieManager.countCookiesFromHost(uri.asciiHost) > 0;
 }

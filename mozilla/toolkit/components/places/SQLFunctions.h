@@ -59,6 +59,8 @@ namespace places {
 class MatchAutoCompleteFunction final : public mozIStorageFunction
 {
 public:
+  MatchAutoCompleteFunction();
+
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_MOZISTORAGEFUNCTION
 
@@ -72,6 +74,13 @@ public:
 
 private:
   ~MatchAutoCompleteFunction() {}
+
+  /**
+   * IntegerVariants for 0 and 1 are frequently used in awesomebar queries,
+   * so we cache them to avoid allocating memory repeatedly.
+   */
+  nsCOMPtr<nsIVariant> mCachedZero;
+  nsCOMPtr<nsIVariant> mCachedOne;
 
   /**
    * Argument Indexes
@@ -187,14 +196,10 @@ private:
  * Optional parameters must be passed in if the page is not yet in the database,
  * otherwise they will be fetched from it automatically.
  *
- * @param pageId
+ * @param {int64_t} pageId
  *        The id of the page.  Pass -1 if the page is being added right now.
- * @param [optional] typed
- *        Whether the page has been typed in.  Default is false.
- * @param [optional] fullVisitCount
- *        Count of all the visits (All types).  Default is 0.
- * @param [optional] isBookmarked
- *        Whether the page is bookmarked. Default is false.
+ * @param [optional] {int32_t} redirect
+ *        Whether the page visit is a redirect.  Default is false.
  */
 class CalculateFrecencyFunction final : public mozIStorageFunction
 {
@@ -234,6 +239,29 @@ public:
   static nsresult create(mozIStorageConnection *aDBConn);
 private:
   ~GenerateGUIDFunction() {}
+};
+
+/**
+ * SQL function to check if a GUID is valid.  This is just a wrapper around
+ * IsValidGUID in Helpers.h.
+ *
+ * @return true if valid, false otherwise.
+ */
+class IsValidGUIDFunction final : public mozIStorageFunction
+{
+public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_MOZISTORAGEFUNCTION
+
+  /**
+   * Registers the function with the specified database connection.
+   *
+   * @param aDBConn
+   *        The database connection to register with.
+   */
+  static nsresult create(mozIStorageConnection *aDBConn);
+private:
+  ~IsValidGUIDFunction() {}
 };
 
 /**

@@ -278,7 +278,7 @@ NS_IMETHODIMP nsMsgTagService::GetColorForKey(const nsACString &key, nsACString 
     ToLowerCase(prefName);
   prefName.AppendLiteral(TAG_PREF_SUFFIX_COLOR);
   nsCString color;
-  nsresult rv = m_tagPrefBranch->GetCharPref(prefName.get(), getter_Copies(color));
+  nsresult rv = m_tagPrefBranch->GetCharPref(prefName.get(), color);
   if (NS_SUCCEEDED(rv))
     _retval = color;
   return NS_OK;
@@ -295,7 +295,7 @@ NS_IMETHODIMP nsMsgTagService::SetColorForKey(const nsACString & key, const nsAC
     m_tagPrefBranch->ClearUserPref(prefName.get());
     return NS_OK;
   }
-  return m_tagPrefBranch->SetCharPref(prefName.get(), nsCString(color).get());
+  return m_tagPrefBranch->SetCharPref(prefName.get(), color);
 }
 
 /* ACString getOrdinalForKey (in ACString key); */
@@ -306,7 +306,7 @@ NS_IMETHODIMP nsMsgTagService::GetOrdinalForKey(const nsACString & key, nsACStri
     ToLowerCase(prefName);
   prefName.AppendLiteral(TAG_PREF_SUFFIX_ORDINAL);
   nsCString ordinal;
-  nsresult rv = m_tagPrefBranch->GetCharPref(prefName.get(), getter_Copies(ordinal));
+  nsresult rv = m_tagPrefBranch->GetCharPref(prefName.get(), ordinal);
   _retval = ordinal;
   return rv;
 }
@@ -322,7 +322,7 @@ NS_IMETHODIMP nsMsgTagService::SetOrdinalForKey(const nsACString & key, const ns
     m_tagPrefBranch->ClearUserPref(prefName.get());
     return NS_OK;
   }
-  return m_tagPrefBranch->SetCharPref(prefName.get(), nsCString(ordinal).get());
+  return m_tagPrefBranch->SetCharPref(prefName.get(), ordinal);
 }
 
 /* void deleteTag (in wstring tag); */
@@ -358,7 +358,7 @@ NS_IMETHODIMP nsMsgTagService::GetAllTags(uint32_t *aCount, nsIMsgTag ***aTagArr
 
   // build an array of nsIMsgTag elements from the orderered list
   // it's at max the same size as the preflist, but usually only about half
-  nsIMsgTag** tagArray = (nsIMsgTag**) NS_Alloc(sizeof(nsIMsgTag*) * prefCount);
+  nsIMsgTag** tagArray = (nsIMsgTag**) moz_xmalloc(sizeof(nsIMsgTag*) * prefCount);
 
   if (!tagArray)
   {
@@ -426,15 +426,7 @@ nsresult nsMsgTagService::SetUnicharPref(const char *prefName,
   nsresult rv = NS_OK;
   if (!val.IsEmpty())
   {
-    nsCOMPtr<nsISupportsString> supportsString =
-      do_CreateInstance(NS_SUPPORTS_STRING_CONTRACTID, &rv);
-    if (supportsString)
-    {
-      supportsString->SetData(val);
-      rv = m_tagPrefBranch->SetComplexValue(prefName,
-                                            NS_GET_IID(nsISupportsString),
-                                            supportsString);
-    }
+    rv = m_tagPrefBranch->SetStringPref(prefName, NS_ConvertUTF16toUTF8(val));
   }
   else
   {
@@ -446,19 +438,9 @@ nsresult nsMsgTagService::SetUnicharPref(const char *prefName,
 nsresult nsMsgTagService::GetUnicharPref(const char *prefName,
                               nsAString &prefValue)
 {
-  nsresult rv;
-  nsCOMPtr<nsISupportsString> supportsString =
-    do_CreateInstance(NS_SUPPORTS_STRING_CONTRACTID, &rv);
-  if (supportsString)
-  {
-    rv = m_tagPrefBranch->GetComplexValue(prefName,
-                                          NS_GET_IID(nsISupportsString),
-                                          getter_AddRefs(supportsString));
-    if (supportsString)
-      rv = supportsString->GetData(prefValue);
-    else
-      prefValue.Truncate();
-  }
+  nsCString valueUtf8;
+  nsresult rv = m_tagPrefBranch->GetStringPref(prefName, EmptyCString(), 0, valueUtf8);
+  CopyUTF8toUTF16(valueUtf8, prefValue);
   return rv;
 }
 
@@ -494,7 +476,7 @@ nsresult nsMsgTagService::MigrateLabelsToTags()
     NS_FREE_XPCOM_ISUPPORTS_POINTER_ARRAY(numTags, tagArray);
     gMigratingKeys = false;
   }
-  else 
+  else
   {
     nsCOMPtr<nsIPrefBranch> prefRoot(do_GetService(NS_PREFSERVICE_CONTRACTID));
     nsCOMPtr<nsIPrefLocalizedString> pls;
@@ -513,7 +495,7 @@ nsresult nsMsgTagService::MigrateLabelsToTags()
       prefString.Assign(PREF_LABELS_COLOR);
       prefString.AppendInt(i + 1);
       nsCString csval;
-      rv = prefRoot->GetCharPref(prefString.get(), getter_Copies(csval));
+      rv = prefRoot->GetCharPref(prefString.get(), csval);
       NS_ENSURE_SUCCESS(rv, rv);
 
       rv = AddTagForKey(labelKey, ucsval, csval, EmptyCString());

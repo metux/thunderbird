@@ -8,6 +8,7 @@
 #include "HttpLog.h"
 
 #include "mozilla/Sprintf.h"
+#include "mozilla/Unused.h"
 
 #include "nsHttp.h"
 #include "nsHttpDigestAuth.h"
@@ -105,7 +106,7 @@ nsHttpDigestAuth::GetMethodAndPath(nsIHttpAuthenticableChannel *authChannel,
       }
       else {
         rv = authChannel->GetRequestMethod(httpMethod);
-        rv2 = uri->GetPath(path);
+        rv2 = uri->GetPathQueryRef(path);
         if (NS_SUCCEEDED(rv) && NS_SUCCEEDED(rv2)) {
           //
           // strip any fragment identifier from the URL path.
@@ -204,7 +205,7 @@ nsHttpDigestAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
   bool requireExtraQuotes = false;
   {
     nsAutoCString serverVal;
-    authChannel->GetServerResponseHeader(serverVal);
+    Unused << authChannel->GetServerResponseHeader(serverVal);
     if (!serverVal.IsEmpty()) {
       requireExtraQuotes = !PL_strncasecmp(serverVal.get(), "Microsoft-IIS", 13);
     }
@@ -223,7 +224,8 @@ nsHttpDigestAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
   rv = ParseChallenge(challenge, realm, domain, nonce, opaque,
                       &stale, &algorithm, &qop);
   if (NS_FAILED(rv)) {
-    LOG(("nsHttpDigestAuth::GenerateCredentials [ParseChallenge failed rv=%x]\n", rv));
+    LOG(("nsHttpDigestAuth::GenerateCredentials [ParseChallenge failed rv=%" PRIx32 "]\n",
+         static_cast<uint32_t>(rv)));
     return rv;
   }
 
@@ -404,10 +406,10 @@ nsHttpDigestAuth::GetAuthFlags(uint32_t *flags)
 nsresult
 nsHttpDigestAuth::CalculateResponse(const char * ha1_digest,
                                     const char * ha2_digest,
-                                    const nsAFlatCString & nonce,
+                                    const nsCString& nonce,
                                     uint16_t qop,
                                     const char * nonce_count,
-                                    const nsAFlatCString & cnonce,
+                                    const nsCString& cnonce,
                                     char * result)
 {
   uint32_t len = 2*EXPANDED_DIGEST_LENGTH + nonce.Length() + 2;
@@ -471,12 +473,12 @@ nsHttpDigestAuth::ExpandToHex(const char * digest, char * result)
 }
 
 nsresult
-nsHttpDigestAuth::CalculateHA1(const nsAFlatCString & username,
-                               const nsAFlatCString & password,
-                               const nsAFlatCString & realm,
+nsHttpDigestAuth::CalculateHA1(const nsCString& username,
+                               const nsCString& password,
+                               const nsCString& realm,
                                uint16_t algorithm,
-                               const nsAFlatCString & nonce,
-                               const nsAFlatCString & cnonce,
+                               const nsCString& nonce,
+                               const nsCString& cnonce,
                                char * result)
 {
   int16_t len = username.Length() + password.Length() + realm.Length() + 2;
@@ -502,7 +504,8 @@ nsHttpDigestAuth::CalculateHA1(const nsAFlatCString & username,
 
   if (algorithm & ALGO_MD5_SESS) {
     char part1[EXPANDED_DIGEST_LENGTH+1];
-    ExpandToHex(mHashBuf, part1);
+    rv = ExpandToHex(mHashBuf, part1);
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
 
     contents.Assign(part1, EXPANDED_DIGEST_LENGTH);
     contents.Append(':');
@@ -519,8 +522,8 @@ nsHttpDigestAuth::CalculateHA1(const nsAFlatCString & username,
 }
 
 nsresult
-nsHttpDigestAuth::CalculateHA2(const nsAFlatCString & method,
-                               const nsAFlatCString & path,
+nsHttpDigestAuth::CalculateHA2(const nsCString& method,
+                               const nsCString& path,
                                uint16_t qop,
                                const char * bodyDigest,
                                char * result)

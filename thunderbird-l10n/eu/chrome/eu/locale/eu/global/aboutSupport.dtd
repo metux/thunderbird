@@ -21,6 +21,11 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Bertsioa">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.featuresTitle "&brandShortName;(r)en eginbideak">
+<!ENTITY aboutSupport.featureName "Izena">
+<!ENTITY aboutSupport.featureVersion "Bertsioa">
+<!ENTITY aboutSupport.featureId "ID">
+
 <!ENTITY aboutSupport.experimentsTitle "Eginbide esperimentalak">
 <!ENTITY aboutSupport.experimentName "Izena">
 <!ENTITY aboutSupport.experimentId "IDa">
@@ -61,6 +66,11 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Multiprozesu leihoak">
 
+<!ENTITY aboutSupport.appBasicsProcessCount "Webeko eduki-prozesuak">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Google gakoa">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla Location Service gakoa">
+
 <!ENTITY aboutSupport.appBasicsSafeMode "Modu segurua">
 
 <!ENTITY aboutSupport.showDir.label "Ireki direktorioa">
@@ -96,6 +106,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "Erabilgarritasuna">
 <!ENTITY aboutSupport.a11yActivated "Aktibatuta">
 <!ENTITY aboutSupport.a11yForceDisabled "Eragotzi erabilgarritasuna">
+<!ENTITY aboutSupport.a11yHandlerUsed "Maneiatzaile erabilerraza erabilita">
+<!ENTITY aboutSupport.a11yInstantiator "Erabilerraztasunaren instantziatzailea">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Liburutegien bertsioak">
 
@@ -106,6 +118,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Kopiatu datu gordinak arbelean">
 
 <!ENTITY aboutSupport.sandboxTitle "Isolamendua">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Baztertutako sistema-deiak">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "Duela zenbat segundo">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Prozesu mota">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Sistema-deia">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Argumentuak">
 
 <!ENTITY aboutSupport.safeModeTitle "Probatu modu segurua">
 <!ENTITY aboutSupport.restartInSafeMode.label "Berrabiarazi gehigarriak desgaituta…">
@@ -118,3 +138,26 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Erabakien erregistroa">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Babestu desgaitutako eginbideen hutsegiteak">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Behin-behineko konponbideak">
+
+<!ENTITY aboutSupport.mediaTitle "Multimedia">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Irteerako gailuak">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Sarrerako gailuak">
+<!ENTITY aboutSupport.mediaDeviceName "Izena">
+<!ENTITY aboutSupport.mediaDeviceGroup "Taldea">
+<!ENTITY aboutSupport.mediaDeviceVendor "Hornitzailea">
+<!ENTITY aboutSupport.mediaDeviceState "Egoera">
+<!ENTITY aboutSupport.mediaDevicePreferred "Hobetsia">
+<!ENTITY aboutSupport.mediaDeviceFormat "Formatua">
+<!ENTITY aboutSupport.mediaDeviceChannels "Kanalak">
+<!ENTITY aboutSupport.mediaDeviceRate "Emaria">
+<!ENTITY aboutSupport.mediaDeviceLatency "Atzerapena">
+
+<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
+<!ENTITY aboutSupport.intlAppTitle "Application Settings">
+<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
+<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
+<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
+<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
+<!ENTITY aboutSupport.intlOSTitle "Operating System">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">

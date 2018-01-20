@@ -5,10 +5,7 @@
 
 var prefBranch = Cc["@mozilla.org/preferences-service;1"]
                     .getService(Ci.nsIPrefService).getBranch(null)
-                    .QueryInterface(Ci.nsIPrefBranch2);
-
-var supportsString = Cc["@mozilla.org/supports-string;1"]
-                      .createInstance(Ci.nsISupportsString);
+                    .QueryInterface(Ci.nsIPrefBranch);
 
 const TEST_URI = "data:text/html;charset=utf-8,gcli-pref3";
 
@@ -20,8 +17,7 @@ function* spawnTest() {
   let options = yield helpers.openTab(TEST_URI);
   yield helpers.openToolbar(options);
 
-  let remoteHostOrig = prefBranch.getComplexValue("devtools.debugger.remote-host",
-                                                  Ci.nsISupportsString).data;
+  let remoteHostOrig = prefBranch.getStringPref("devtools.debugger.remote-host");
   info("originally: devtools.debugger.remote-host = " + remoteHostOrig);
 
   yield helpers.audit(options, [
@@ -65,8 +61,7 @@ function* spawnTest() {
         output: new RegExp("^devtools\.debugger\.remote-host: e.com$"),
       },
       post: function () {
-        var ecom = prefBranch.getComplexValue("devtools.debugger.remote-host",
-                                              Ci.nsISupportsString).data;
+        var ecom = prefBranch.getStringPref("devtools.debugger.remote-host");
         is(ecom, "e.com", "devtools.debugger.remote-host is e.com");
       }
     },
@@ -97,16 +92,13 @@ function* spawnTest() {
         output: new RegExp("^devtools\.debugger\.remote-host: moz.foo$"),
       },
       post: function () {
-        var mozfoo = prefBranch.getComplexValue("devtools.debugger.remote-host",
-                                                Ci.nsISupportsString).data;
+        var mozfoo = prefBranch.getStringPref("devtools.debugger.remote-host");
         is(mozfoo, "moz.foo", "devtools.debugger.remote-host is moz.foo");
       }
     },
   ]);
 
-  supportsString.data = remoteHostOrig;
-  prefBranch.setComplexValue("devtools.debugger.remote-host",
-                             Ci.nsISupportsString, supportsString);
+  prefBranch.setStringPref("devtools.debugger.remote-host", remoteHostOrig);
 
   yield helpers.closeToolbar(options);
   yield helpers.closeTab(options);

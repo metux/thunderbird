@@ -28,7 +28,6 @@
 #include "nsIDragService.h"
 #include "nsIDragSession.h"
 #include "nsIEditor.h"
-#include "nsIEditorIMESupport.h"
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsIPrincipal.h"
@@ -98,7 +97,7 @@ TextEditor::InsertTextAt(const nsAString& aStringToInsert,
   return InsertText(aStringToInsert);
 }
 
-NS_IMETHODIMP
+nsresult
 TextEditor::InsertTextFromTransferable(nsITransferable* aTransferable,
                                        nsIDOMNode* aDestinationNode,
                                        int32_t aDestOffset,
@@ -114,7 +113,7 @@ TextEditor::InsertTextFromTransferable(nsITransferable* aTransferable,
                                           &len)) &&
       (bestFlavor.EqualsLiteral(kUnicodeMime) ||
        bestFlavor.EqualsLiteral(kMozTextInternal))) {
-    AutoTransactionsConserveSelection dontSpazMySelection(this);
+    AutoTransactionsConserveSelection dontChangeMySelection(this);
     nsCOMPtr<nsISupportsString> textDataObj ( do_QueryInterface(genericDataObj) );
     if (textDataObj && len > 0) {
       nsAutoString stuffToPaste;
@@ -124,7 +123,7 @@ TextEditor::InsertTextFromTransferable(nsITransferable* aTransferable,
       // Sanitize possible carriage returns in the string to be inserted
       nsContentUtils::PlatformToDOMLineBreaks(stuffToPaste);
 
-      AutoEditBatch beginBatching(this);
+      AutoPlaceholderBatch beginBatching(this);
       rv = InsertTextAt(stuffToPaste, aDestinationNode, aDestOffset, aDoDeleteSelection);
     }
   }
@@ -154,7 +153,7 @@ TextEditor::InsertFromDataTransfer(DataTransfer* aDataTransfer,
     data->GetAsAString(insertText);
     nsContentUtils::PlatformToDOMLineBreaks(insertText);
 
-    AutoEditBatch beginBatching(this);
+    AutoPlaceholderBatch beginBatching(this);
     return InsertTextAt(insertText, aDestinationNode, aDestOffset, aDoDeleteSelection);
   }
 
@@ -164,7 +163,7 @@ TextEditor::InsertFromDataTransfer(DataTransfer* aDataTransfer,
 nsresult
 TextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
 {
-  ForceCompositionEnd();
+  CommitComposition();
 
   nsCOMPtr<nsIDOMDragEvent> dragEvent(do_QueryInterface(aDropEvent));
   NS_ENSURE_TRUE(dragEvent, NS_ERROR_FAILURE);
@@ -207,7 +206,7 @@ TextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
   }
 
   // Combine any deletion and drop insertion into one transaction
-  AutoEditBatch beginBatching(this);
+  AutoPlaceholderBatch beginBatching(this);
 
   bool deleteSelection = false;
 
@@ -230,23 +229,6 @@ TextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
 
   bool isCollapsed = selection->Collapsed();
 
-  // Only the HTMLEditor::FindUserSelectAllNode returns a node.
-  nsCOMPtr<nsIDOMNode> userSelectNode = FindUserSelectAllNode(newSelectionParent);
-  if (userSelectNode) {
-    // The drop is happening over a "-moz-user-select: all"
-    // subtree so make sure the content we insert goes before
-    // the root of the subtree.
-    //
-    // XXX: Note that inserting before the subtree matches the
-    //      current behavior when dropping on top of an image.
-    //      The decision for dropping before or after the
-    //      subtree should really be done based on coordinates.
-
-    newSelectionParent = GetNodeLocation(userSelectNode, &newSelectionOffset);
-
-    NS_ENSURE_TRUE(newSelectionParent, NS_ERROR_FAILURE);
-  }
-
   // Check if mouse is in the selection
   // if so, jump through some hoops to determine if mouse is over selection (bail)
   // and whether user wants to copy selection or delete it
@@ -254,11 +236,9 @@ TextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
     // We never have to delete if selection is already collapsed
     bool cursorIsInSelection = false;
 
-    int32_t rangeCount;
-    rv = selection->GetRangeCount(&rangeCount);
-    NS_ENSURE_SUCCESS(rv, rv);
+    uint32_t rangeCount = selection->RangeCount();
 
-    for (int32_t j = 0; j < rangeCount; j++) {
+    for (uint32_t j = 0; j < rangeCount; j++) {
       RefPtr<nsRange> range = selection->GetRangeAt(j);
       if (!range) {
         // don't bail yet, iterate through them all
@@ -382,6 +362,13 @@ TextEditor::CanPaste(int32_t aSelectionType,
 {
   NS_ENSURE_ARG_POINTER(aCanPaste);
   *aCanPaste = false;
+
+  // Always enable the paste command when inside of a HTML or XHTML document.
+  nsCOMPtr<nsIDocument> doc = GetDocument();
+  if (doc && doc->IsHTMLOrXHTML()) {
+    *aCanPaste = true;
+    return NS_OK;
+  }
 
   // can't paste if readonly
   if (!IsModifiable()) {

@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -64,15 +65,6 @@ ImageLayerComposite::Disconnect()
   Destroy();
 }
 
-LayerRenderState
-ImageLayerComposite::GetRenderState()
-{
-  if (mImageHost && mImageHost->IsAttached()) {
-    return mImageHost->GetRenderState();
-  }
-  return LayerRenderState();
-}
-
 Layer*
 ImageLayerComposite::GetLayer()
 {
@@ -80,17 +72,18 @@ ImageLayerComposite::GetLayer()
 }
 
 void
-ImageLayerComposite::SetLayerManager(LayerManagerComposite* aManager)
+ImageLayerComposite::SetLayerManager(HostLayerManager* aManager)
 {
   LayerComposite::SetLayerManager(aManager);
   mManager = aManager;
   if (mImageHost) {
-    mImageHost->SetCompositor(mCompositor);
+    mImageHost->SetTextureSourceProvider(mCompositor);
   }
 }
 
 void
-ImageLayerComposite::RenderLayer(const IntRect& aClipRect)
+ImageLayerComposite::RenderLayer(const IntRect& aClipRect,
+                                 const Maybe<gfx::Polygon>& aGeometry)
 {
   if (!mImageHost || !mImageHost->IsAttached()) {
     return;
@@ -109,8 +102,8 @@ ImageLayerComposite::RenderLayer(const IntRect& aClipRect)
 
   RenderWithAllMasks(this, mCompositor, aClipRect,
                      [&](EffectChain& effectChain, const IntRect& clipRect) {
-    mImageHost->SetCompositor(mCompositor);
-    mImageHost->Composite(this, effectChain,
+    mImageHost->SetTextureSourceProvider(mCompositor);
+    mImageHost->Composite(mCompositor, this, effectChain,
                           GetEffectiveOpacity(),
                           GetEffectiveTransformForBuffer(),
                           GetSamplingFilter(),

@@ -4,6 +4,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files("**"):
+    BUG_COMPONENT = ("Core", "Widget: Android")
+
+with Files("*CompositorWidget*"):
+    BUG_COMPONENT = ("Core", "Graphics")
+
 DIRS += [
     'bindings',
     'fennec',
@@ -18,14 +24,13 @@ XPIDL_MODULE = 'widget_android'
 
 EXPORTS += [
     'AndroidBridge.h',
-    'AndroidJavaWrappers.h',
-    'AndroidJNIWrapper.h',
     'GeneratedJNINatives.h',
     'GeneratedJNIWrappers.h',
 ]
 
 EXPORTS.mozilla.widget += [
     'AndroidCompositorWidget.h',
+    'AndroidUiThread.h',
 ]
 
 UNIFIED_SOURCES += [
@@ -33,19 +38,19 @@ UNIFIED_SOURCES += [
     'AndroidBridge.cpp',
     'AndroidCompositorWidget.cpp',
     'AndroidContentController.cpp',
-    'AndroidJavaWrappers.cpp',
-    'AndroidJNI.cpp',
-    'AndroidJNIWrapper.cpp',
+    'AndroidUiThread.cpp',
     'ANRReporter.cpp',
+    'EventDispatcher.cpp',
+    'GeckoEditableSupport.cpp',
     'GeneratedJNIWrappers.cpp',
     'GfxInfo.cpp',
-    'NativeJSContainer.cpp',
     'nsAndroidProtocolHandler.cpp',
     'nsAppShell.cpp',
     'nsClipboard.cpp',
     'nsDeviceContextAndroid.cpp',
     'nsIdleServiceAndroid.cpp',
     'nsLookAndFeel.cpp',
+    'nsNativeThemeAndroid.cpp',
     'nsPrintOptionsAndroid.cpp',
     'nsScreenManagerAndroid.cpp',
     'nsWidgetFactory.cpp',
@@ -60,9 +65,13 @@ LOCAL_INCLUDES += [
     '/docshell/base',
     '/dom/base',
     '/dom/system/android',
+    '/gfx/2d',
+    '/gfx/vr',
+    '/layout/painting',
     '/netwerk/base',
     '/netwerk/cache',
     '/widget',
+    '/xpcom/threads',
 ]
 
 CXXFLAGS += ['-Wno-error=shadow']

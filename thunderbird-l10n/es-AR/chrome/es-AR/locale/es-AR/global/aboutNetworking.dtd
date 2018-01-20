@@ -14,7 +14,7 @@
 <!ENTITY aboutNetworking.autoRefresh           "Autorefrescar cada 3 segundos">
 <!ENTITY aboutNetworking.hostname              "Servidor">
 <!ENTITY aboutNetworking.port                  "Puerto">
-<!ENTITY aboutNetworking.spdy                  "SPDY">
+<!ENTITY aboutNetworking.http2                 "HTTP/2">
 <!ENTITY aboutNetworking.ssl                   "SSL">
 <!ENTITY aboutNetworking.active                "Activo">
 <!ENTITY aboutNetworking.idle                  "Idle">
@@ -41,3 +41,18 @@
 <!ENTITY aboutNetworking.dnsLookupButton       "Resolución">
 <!ENTITY aboutNetworking.dnsDomain             "Dominio">
 <!ENTITY aboutNetworking.dnsLookupTableColumn  "IPs">
+<!ENTITY aboutNetworking.rcwn                  "Estadísticas RCWN">
+<!ENTITY aboutNetworking.rcwnStatus            "Estado RCWN">
+<!ENTITY aboutNetworking.rcwnCacheWonCount     "Cuenta de ganancia de caché">
+<!ENTITY aboutNetworking.rcwnNetWonCount       "Cuenta de ganacia en la Red">
+<!ENTITY aboutNetworking.totalNetworkRequests  "Cantidad de pedidos de red">
+<!ENTITY aboutNetworking.rcwnOperation         "Operación de cache">
+<!ENTITY aboutNetworking.rcwnPerfOpen          "Abierto">
+<!ENTITY aboutNetworking.rcwnPerfRead          "Leído">
+<!ENTITY aboutNetworking.rcwnPerfWrite         "Escrito">
+<!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Entrada abierta">
+<!ENTITY aboutNetworking.rcwnAvgShort          "Promedio corto">
+<!ENTITY aboutNetworking.rcwnAvgLong           "Promedio largo">
+<!ENTITY aboutNetworking.rcwnStddevLong        "Desviación estándar larga">
+<!ENTITY aboutNetworking.rcwnCacheSlow         "Cuenta lenta de caché">
+<!ENTITY aboutNetworking.rcwnCacheNotSlow      "Cuenta de caché no lenta">

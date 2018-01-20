@@ -17,15 +17,25 @@
 
 <!ENTITY feedFolder.label            "Emmagatzema els articles en:">
 <!ENTITY feedFolder.accesskey        "g">
+<!-- Account Settings and Subscription Dialog -->
+
+<!ENTITY biffStart.label             "Comprova si hi ha articles nous cada ">
+<!ENTITY biffStart.accesskey         "a">
+<!ENTITY biffMinutes.label           "minuts">
+<!ENTITY biffMinutes.accesskey       "n">
+<!ENTITY biffDays.label              "dies">
+<!ENTITY biffDays.accesskey          "d">
+<!ENTITY recommendedUnits.label      "Recomanats per l'editor:">
 
 <!ENTITY quickMode.label             "Mostra el resum de l'article en comptes de carregar la pàgina web">
 <!ENTITY quickMode.accesskey         "M">
 
-<!ENTITY autotagEnable.label         "Crea automàticament etiquetes a partir dels noms de les categories dels canals">
+<!ENTITY autotagEnable.label         "Crea automàticament etiquetes a partir dels noms de les &lt;categories&gt;">
 <!ENTITY autotagEnable.accesskey     "C">
 <!ENTITY autotagUsePrefix.label      "Afegeix aquest prefix a les etiquetes:">
 <!ENTITY autotagUsePrefix.accesskey  "p">
 <!ENTITY autoTagPrefix.placeholder   "Introduïu un prefix per a l'etiqueta">
+<!-- Subscription Dialog -->
 
 <!ENTITY button.addFeed.label        "Afegeix">
 <!ENTITY button.addFeed.accesskey    "A">

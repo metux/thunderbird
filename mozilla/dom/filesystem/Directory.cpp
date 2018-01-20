@@ -36,7 +36,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Directory)
     tmp->mFileSystem->Traverse(cb);
   }
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mParent)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_WRAPPERCACHE(Directory)
@@ -86,12 +85,6 @@ Directory::Create(nsISupports* aParent, nsIFile* aFile,
 {
   MOZ_ASSERT(aParent);
   MOZ_ASSERT(aFile);
-
-#ifdef DEBUG
-  bool isDir;
-  nsresult rv = aFile->IsDirectory(&isDir);
-  MOZ_ASSERT(NS_SUCCEEDED(rv) && isDir);
-#endif
 
   RefPtr<Directory> directory = new Directory(aParent, aFile, aFileSystem);
   return directory.forget();
@@ -238,19 +231,6 @@ Directory::GetFileSystem(ErrorResult& aRv)
   }
 
   return mFileSystem;
-}
-
-
-bool
-Directory::ClonableToDifferentThreadOrProcess() const
-{
-  // If we don't have a fileSystem we are going to create a OSFileSystem that is
-  // clonable everywhere.
-  if (!mFileSystem) {
-    return true;
-  }
-
-  return mFileSystem->ClonableToDifferentThreadOrProcess();
 }
 
 } // namespace dom

@@ -23,14 +23,17 @@
 
 namespace js {
 
-class ExclusiveContext;
 namespace frontend {
-    template <typename ParseHandler> class Parser;
-    class ParseContext;
-    class FullParseHandler;
-    class ParseNode;
+
+class ParseContext;
+class ParseNode;
+
+template <class ParseHandler, typename CharT> class Parser;
+class FullParseHandler;
+
 }
-typedef frontend::Parser<frontend::FullParseHandler> AsmJSParser;
+
+using AsmJSParser = frontend::Parser<frontend::FullParseHandler, char16_t>;
 
 // This function takes over parsing of a function starting with "use asm". The
 // return value indicates whether an error was reported which the caller should
@@ -40,7 +43,7 @@ typedef frontend::Parser<frontend::FullParseHandler> AsmJSParser;
 // beginning.
 
 extern MOZ_MUST_USE bool
-CompileAsmJS(ExclusiveContext* cx, AsmJSParser& parser, frontend::ParseNode* stmtList,
+CompileAsmJS(JSContext* cx, AsmJSParser& parser, frontend::ParseNode* stmtList,
              bool* validated);
 
 // asm.js module/export queries:
@@ -56,6 +59,9 @@ IsAsmJSFunction(JSFunction* fun);
 
 extern bool
 IsAsmJSStrictModeModuleOrFunction(JSFunction* fun);
+
+extern bool
+InstantiateAsmJS(JSContext* cx, unsigned argc, JS::Value* vp);
 
 // asm.js testing natives:
 
@@ -77,7 +83,7 @@ extern JSString*
 AsmJSFunctionToString(JSContext* cx, HandleFunction fun);
 
 extern JSString*
-AsmJSModuleToString(JSContext* cx, HandleFunction fun, bool addParenToLambda);
+AsmJSModuleToString(JSContext* cx, HandleFunction fun, bool isToSource);
 
 // asm.js heap:
 

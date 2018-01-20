@@ -15,10 +15,13 @@
 <!ENTITY newButton.accesskey        "Ν">
 
 <!ENTITY importButton.label         "Εισαγωγή…">
+<!ENTITY importButton.tooltip       "Εισαγωγή και επισύναψη ενός υπάρχοντος φύλλου στυλ στο έγγραφο">
 <!ENTITY importButton.accesskey     "Ε">
 
+<!ENTITY visibilityToggle.tooltip   "(Απ)ενεργοποίηση ορατότητας φύλλου στυλ">
 
 <!ENTITY saveButton.label           "Αποθήκευση">
+<!ENTITY saveButton.tooltip         "Αποθήκευση φύλλου στυλ σε αρχείο">
 <!ENTITY saveButton.accesskey       "Α">
 
 <!ENTITY optionsButton.tooltip      "Επιλογές επεξεργασίας στυλ">
@@ -29,15 +32,19 @@
 
 <!-- LOCALIZATION NOTE  (showOriginalSources.accesskey): This is the access key for
      the menu item to toggle showing original sources in the editor. -->
+<!ENTITY showOriginalSources.accesskey  "α">
 
 <!-- LOCALIZATION NOTE  (showMediaSidebar.label): This is the label on the context
      menu item to toggle showing @media rule shortcuts in a sidebar. -->
+<!ENTITY showMediaSidebar.label     "Εμφάνιση πλευρικής στήλης @media">
 
 <!-- LOCALIZATION NOTE  (showMediaSidebar.accesskey): This is the access key for
      the menu item to toggle showing the @media sidebar. -->
+<!ENTITY showMediaSidebar.accesskey     "m">
 
 <!-- LOCALICATION NOTE  (mediaRules.label): This is shown above the list of @media rules
      in each stylesheet editor sidebar. -->
+<!ENTITY mediaRules.label           "Κανόνες @media">
 
 <!ENTITY editorTextbox.placeholder  "Πληκτρολογήστε CSS εδώ.">
 
@@ -58,24 +65,3 @@
 <!-- LOCALIZATION NOTE (openLinkNewTab.label): This is the text for the
      context menu item that opens a stylesheet in a new tab -->
 <!ENTITY openLinkNewTab.label     "Άνοιγμα συνδέσμου σε νέα καρτέλα">
-
-<!ENTITY importButton.tooltip       "Import and append an existing style sheet to the document">
-
-<!-- LOCALICATION NOTE  (mediaRules.label): This is shown above the list of @media rules
-     in each stylesheet editor sidebar. -->
-<!ENTITY mediaRules.label           "@media rules">
-<!ENTITY saveButton.tooltip         "Save this style sheet to a file">
-
-<!-- LOCALIZATION NOTE  (showMediaSidebar.accesskey): This is the access key for
-     the menu item to toggle showing the @media sidebar. -->
-<!ENTITY showMediaSidebar.accesskey     "m">
-
-<!-- LOCALIZATION NOTE  (showMediaSidebar.label): This is the label on the context
-     menu item to toggle showing @media rule shortcuts in a sidebar. -->
-<!ENTITY showMediaSidebar.label     "Show @media sidebar">
-
-<!-- LOCALIZATION NOTE  (showOriginalSources.accesskey): This is the access key for
-     the menu item to toggle showing original sources in the editor. -->
-<!ENTITY showOriginalSources.accesskey  "o">
-
-<!ENTITY visibilityToggle.tooltip   "Toggle style sheet visibility">

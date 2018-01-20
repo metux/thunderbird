@@ -72,6 +72,18 @@ nsFolderCompactState::~nsFolderCompactState()
   }
 }
 
+nsresult
+GetBaseStringBundle(nsIStringBundle **aBundle)
+{
+  NS_ENSURE_ARG_POINTER(aBundle);
+  nsCOMPtr<nsIStringBundleService> bundleService =
+    mozilla::services::GetStringBundleService();
+  NS_ENSURE_TRUE(bundleService, NS_ERROR_UNEXPECTED);
+  nsCOMPtr<nsIStringBundle> bundle;
+  return bundleService->CreateBundle(
+    "chrome://messenger/locale/messenger.properties", aBundle);
+}
+
 void nsFolderCompactState::CloseOutputStream()
 {
   if (m_fileStream)
@@ -88,7 +100,7 @@ void nsFolderCompactState::CleanupTempFilesAfterError()
   if (m_db)
     m_db->ForceClosed();
   nsCOMPtr <nsIFile> summaryFile;
-  GetSummaryFileLocation(m_file, getter_AddRefs(summaryFile)); 
+  GetSummaryFileLocation(m_file, getter_AddRefs(summaryFile));
   m_file->Remove(false);
   summaryFile->Remove(false);
 }
@@ -142,7 +154,7 @@ NS_IMETHODIMP nsFolderCompactState::CompactFolders(nsIArray *aArrayOfFoldersToCo
   }
   if (!m_folderArray)
     return NS_OK;
- 
+
   m_compactAll = true;
   m_compactOfflineAlso = aOfflineFolderArray != nullptr;
   if (m_compactOfflineAlso)
@@ -154,9 +166,9 @@ NS_IMETHODIMP nsFolderCompactState::CompactFolders(nsIArray *aArrayOfFoldersToCo
                                                          m_folderIndex, &rv);
 
   if (NS_SUCCEEDED(rv) && firstFolder)
-    Compact(firstFolder, m_compactingOfflineFolders, aUrlListener, 
+    Compact(firstFolder, m_compactingOfflineFolders, aUrlListener,
             aMsgWindow);   //start with first folder from here.
-  
+
   return rv;
 }
 
@@ -307,14 +319,38 @@ nsFolderCompactState::Compact(nsIMsgFolder *folder, bool aOfflineStore,
 
 nsresult nsFolderCompactState::ShowStatusMsg(const nsString& aMsg)
 {
-  nsCOMPtr <nsIMsgStatusFeedback> statusFeedback;
-  if (m_window)
-  {
-    m_window->GetStatusFeedback(getter_AddRefs(statusFeedback));
-    if (statusFeedback && !aMsg.IsEmpty())
-      return statusFeedback->SetStatusString(aMsg);
-  }
-  return NS_OK;
+  if (!m_window || aMsg.IsEmpty())
+    return NS_OK;
+
+  nsCOMPtr<nsIMsgStatusFeedback> statusFeedback;
+  nsresult rv = m_window->GetStatusFeedback(getter_AddRefs(statusFeedback));
+  if (NS_FAILED(rv) || !statusFeedback)
+    return NS_OK;
+
+  // Try to prepend account name to the message.
+  nsString statusMessage;
+  do {
+    nsCOMPtr<nsIMsgIncomingServer> server;
+    rv = m_folder->GetServer(getter_AddRefs(server));
+    if (NS_FAILED(rv))
+      break;
+    nsAutoString accountName;
+    rv = server->GetPrettyName(accountName);
+    if (NS_FAILED(rv))
+      break;
+    nsCOMPtr<nsIStringBundle> bundle;
+    rv = GetBaseStringBundle(getter_AddRefs(bundle));
+    if (NS_FAILED(rv))
+      break;
+    const char16_t *params[] = { accountName.get(), aMsg.get() };
+    rv = bundle->FormatStringFromName("statusMessage",
+                                      params, 2, statusMessage);
+  } while (false);
+
+  // If fetching any of the needed info failed, just show the original message.
+  if (NS_FAILED(rv))
+    statusMessage.Assign(aMsg);
+  return statusFeedback->SetStatusString(statusMessage);
 }
 
 nsresult
@@ -350,7 +386,7 @@ nsFolderCompactState::Init(nsIMsgFolder *folder, const char *baseMsgUri, nsIMsgD
   m_curIndex = 0;
 
   rv = MsgNewBufferedFileOutputStream(getter_AddRefs(m_fileStream), m_file, -1, 00600);
-  if (NS_FAILED(rv)) 
+  if (NS_FAILED(rv))
     m_folder->ThrowAlertMsg("compactFolderWriteFailed", m_window);
   else
     rv = GetMessageServiceFromURI(nsDependentCString(baseMsgUri),
@@ -404,12 +440,12 @@ nsresult nsFolderCompactState::StartCompacting()
 {
   nsCOMPtr<nsIMsgPluggableStore> msgStore;
   nsCOMPtr<nsIMsgIncomingServer> server;
-  
+
   nsresult rv = m_folder->GetServer(getter_AddRefs(server));
   NS_ENSURE_SUCCESS(rv, rv);
   rv = server->GetMsgStore(getter_AddRefs(msgStore));
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   // Notify that compaction is beginning.  We do this even if there are no
   // messages to be copied because the summary database still gets blown away
   // which is still pretty interesting.  (And we like consistency.)
@@ -418,7 +454,8 @@ nsresult nsFolderCompactState::StartCompacting()
   if (notifier)
     notifier->NotifyItemEvent(m_folder,
                               NS_LITERAL_CSTRING("FolderCompactStart"),
-                              nullptr);
+                              nullptr,
+                              EmptyCString());
 
   // TODO: test whether sorting the messages (m_keyArray) by messageOffset
   // would improve performance on large files (less seeks).
@@ -428,7 +465,7 @@ nsresult nsFolderCompactState::StartCompacting()
   {
     nsCOMPtr<nsIURI> notUsed;
     ShowCompactingStatusMsg();
-    AddRef();
+    NS_ADDREF_THIS();
     rv = m_messageService->CopyMessages(m_size, m_keyArray->m_keys.Elements(),
                                         m_folder, this,
                                         false, nullptr, m_window,
@@ -437,7 +474,6 @@ nsresult nsFolderCompactState::StartCompacting()
   else
   { // no messages to copy with
     FinishCompact();
-//    Release(); // we don't "own" ourselves yet.
   }
   return rv;
 }
@@ -606,28 +642,18 @@ nsFolderCompactState::FinishCompact()
   if (notifier)
     notifier->NotifyItemEvent(m_folder,
                               NS_LITERAL_CSTRING("FolderCompactFinish"),
-                              nullptr);
+                              nullptr,
+                              EmptyCString());
   m_folder->NotifyCompactCompleted();
 
   if (m_compactAll)
     rv = CompactNextFolder();
   else
     CompactCompleted(rv);
-      
+
   return rv;
 }
 
-nsresult
-GetBaseStringBundle(nsIStringBundle **aBundle)
-{
-  NS_ENSURE_ARG_POINTER(aBundle);
-  nsCOMPtr<nsIStringBundleService> bundleService =
-    mozilla::services::GetStringBundleService();
-  NS_ENSURE_TRUE(bundleService, NS_ERROR_UNEXPECTED);
-  nsCOMPtr<nsIStringBundle> bundle;
-  return bundleService->CreateBundle(
-    "chrome://messenger/locale/messenger.properties", aBundle);
-}
 
 void nsFolderCompactState::CompactCompleted(nsresult exitCode)
 {
@@ -662,8 +688,8 @@ void nsFolderCompactState::ShowDoneStatus()
     nsAutoString expungedAmount;
     FormatFileSize(m_totalExpungedBytes, true, expungedAmount);
     const char16_t* params[] = { expungedAmount.get() };
-    rv = bundle->FormatStringFromName(u"compactingDone",
-                                      params, 1, getter_Copies(statusString));
+    rv = bundle->FormatStringFromName("compactingDone",
+                                      params, 1, statusString);
 
     if (!statusString.IsEmpty() && NS_SUCCEEDED(rv))
       ShowStatusMsg(statusString);
@@ -750,7 +776,7 @@ nsFolderCompactState::OnStopRequest(nsIRequest *request, nsISupports *ctxt,
       ReleaseFolderLock();
     }
   }
-  Release(); // kill self
+  NS_RELEASE_THIS(); // kill self
   return status;
 }
 
@@ -759,7 +785,7 @@ nsFolderCompactState::OnDataAvailable(nsIRequest *request, nsISupports *ctxt,
                                       nsIInputStream *inStr,
                                       uint64_t sourceOffset, uint32_t count)
 {
-  if (!m_fileStream || !inStr) 
+  if (!m_fileStream || !inStr)
     return NS_ERROR_FAILURE;
 
   nsresult rv = NS_OK;
@@ -784,7 +810,7 @@ nsFolderCompactState::OnDataAvailable(nsIRequest *request, nsISupports *ctxt,
       {
         (void) m_curSrcHdr->GetFlags(&msgFlags);
         (void) m_curSrcHdr->GetStatusOffset(&statusOffset);
-        
+
         if (statusOffset == 0)
           m_needStatusLine = true;
         // x-mozilla-status lines should be at the start of the headers, and the code
@@ -794,7 +820,7 @@ nsFolderCompactState::OnDataAvailable(nsIRequest *request, nsISupports *ctxt,
         {
           checkForKeyword = false;
           NS_ASSERTION(false, "status offset past end of read buffer size");
-          
+
         }
       }
     }
@@ -802,18 +828,18 @@ nsFolderCompactState::OnDataAvailable(nsIRequest *request, nsISupports *ctxt,
   }
   uint32_t maxReadCount, readCount, writeCount;
   uint32_t bytesWritten;
-  
+
   while (NS_SUCCEEDED(rv) && (int32_t) count > 0)
   {
     maxReadCount = count > sizeof(m_dataBuffer) - 1 ? sizeof(m_dataBuffer) - 1 : count;
     writeCount = 0;
     rv = inStr->Read(m_dataBuffer, maxReadCount, &readCount);
-    
+
     // if status offset is past the number of bytes we read, it's probably bogus,
     // and we shouldn't do any of the keyword stuff.
     if (statusOffset + X_MOZILLA_STATUS_LEN > readCount)
       checkForKeyword = false;
-    
+
     if (NS_SUCCEEDED(rv))
     {
       if (checkForKeyword)
@@ -834,9 +860,9 @@ nsFolderCompactState::OnDataAvailable(nsIRequest *request, nsISupports *ctxt,
       if (m_needStatusLine)
       {
         m_needStatusLine = false;
-        // we need to parse out the "From " header, write it out, then 
-        // write out the x-mozilla-status headers, and set the 
-        // status offset of the dest hdr for later use 
+        // we need to parse out the "From " header, write it out, then
+        // write out the x-mozilla-status headers, and set the
+        // status offset of the dest hdr for later use
         // in OnEndCopy).
         if (!strncmp(m_dataBuffer, "From ", 5))
         {
@@ -967,7 +993,7 @@ nsFolderCompactState::OnDataAvailable(nsIRequest *request, nsISupports *ctxt,
       {
         NS_ASSERTION(false, "bad block offset");
         // not sure what to do to handle this.
-      
+
       }
       m_fileStream->Write(m_dataBuffer + blockOffset, readCount - blockOffset, &bytesWritten);
       writeCount += bytesWritten;
@@ -1118,7 +1144,7 @@ nsOfflineStoreCompactState::OnStopRequest(nsIRequest *request, nsISupports *ctxt
     // no more to copy finish it up
     ReleaseFolderLock();
     FinishCompact();
-    Release(); // kill self
+    NS_RELEASE_THIS(); // kill self
   }
 
 done:
@@ -1126,12 +1152,12 @@ done:
     m_status = rv; // set the status to rv so the destructor can remove the
                    // temp folder and database
     ReleaseFolderLock();
-    Release(); // kill self
+    NS_RELEASE_THIS(); // kill self
     return rv;
   }
   return rv;
 }
- 
+
 
 nsresult
 nsOfflineStoreCompactState::FinishCompact()
@@ -1167,10 +1193,10 @@ nsOfflineStoreCompactState::FinishCompact()
   m_folder->UpdateSummaryTotals(true);
   m_db->SetSummaryValid(true);
 
-    // remove the old folder 
+    // remove the old folder
   path->Remove(false);
 
-    // rename the copied folder to be the original folder 
+    // rename the copied folder to be the original folder
   m_file->MoveToNative((nsIFile *) nullptr, leafName);
 
   ShowStatusMsg(EmptyString());
@@ -1277,7 +1303,7 @@ nsresult nsOfflineStoreCompactState::StartCompacting()
   nsresult rv = NS_OK;
   if (m_size > 0 && m_curIndex == 0)
   {
-    AddRef(); // we own ourselves, until we're done, anyway.
+    NS_ADDREF_THIS(); // we own ourselves, until we're done, anyway.
     ShowCompactingStatusMsg();
     bool done = false;
     rv = CopyNextMessage(done);
@@ -1294,7 +1320,7 @@ nsOfflineStoreCompactState::OnDataAvailable(nsIRequest *request, nsISupports *ct
                                             nsIInputStream *inStr,
                                             uint64_t sourceOffset, uint32_t count)
 {
-  if (!m_fileStream || !inStr) 
+  if (!m_fileStream || !inStr)
     return NS_ERROR_FAILURE;
 
   nsresult rv = NS_OK;

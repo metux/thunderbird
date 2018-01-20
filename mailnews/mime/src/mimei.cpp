@@ -107,7 +107,7 @@ find_content_type_attribs(const char *content_type,
   if (!ctHandlerList)
     return false;
 
-  for (size_t i = 0; i < ctHandlerList->Length(); i++) 
+  for (size_t i = 0; i < ctHandlerList->Length(); i++)
   {
     cthandler_struct *ptr = ctHandlerList->ElementAt(i);
     if (PL_strcasecmp(content_type, ptr->content_type) == 0)
@@ -1715,7 +1715,7 @@ MimeOptions_write(MimeHeaders *hdrs, MimeDisplayOptions *opt, const char *data,
           if (lstatus < 0) return lstatus;
 
           nsCString escapedName;
-          escapedName.Adopt(MsgEscapeHTML(name.get()));
+          nsAppendEscapedHTML(name, escapedName);
 
           lstatus = opt->output_fn(escapedName.get(),
                                    escapedName.Length(), closure);
@@ -1728,7 +1728,7 @@ MimeOptions_write(MimeHeaders *hdrs, MimeDisplayOptions *opt, const char *data,
           if (lstatus < 0) return lstatus;
       }
 
-      sep = "</FIELDSET><BR/>";
+      sep = "</FIELDSET>";
       lstatus = opt->output_fn(sep, strlen(sep), closure);
       opt->state->separator_suppressed_p = false;
       if (lstatus < 0) return lstatus;

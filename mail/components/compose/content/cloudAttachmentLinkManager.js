@@ -47,7 +47,7 @@ var gCloudAttachmentLinkManager = {
       if (list)
         items = list.getElementsByClassName("cloudAttachmentItem");
 
-      for (let attachment in fixIterator(
+      for (let attachment of fixIterator(
            event.detail, Components.interfaces.nsIMsgAttachment)) {
         // Remove the attachment from the message body.
         if (list)
@@ -152,8 +152,8 @@ var gCloudAttachmentLinkManager = {
         // last node.
         if (signature && signature.previousSibling)
           selection.collapse(mailBody,
-                             Array.indexOf(childNodes,
-                                           signature.previousSibling));
+                             Array.from(childNodes)
+                                  .indexOf(signature.previousSibling));
         else {
           selection.collapse(mailBody, childNodes.length - 1);
           editor.insertLineBreak();
@@ -166,7 +166,7 @@ var gCloudAttachmentLinkManager = {
       } else {
         // Replying above quote
         if (replyCitation.previousSibling) {
-          let nodeIndex = Array.indexOf(childNodes, replyCitation.previousSibling);
+          let nodeIndex = Array.from(childNodes).indexOf(replyCitation.previousSibling);
           if (nodeIndex <= 0) {
             editor.insertLineBreak();
             nodeIndex = 1;
@@ -184,8 +184,8 @@ var gCloudAttachmentLinkManager = {
     let forwardBody = mailBody.querySelector(".moz-forward-container");
     if (forwardBody) {
       if (forwardBody.previousSibling) {
-        let nodeIndex = Array.indexOf(childNodes,
-                                      forwardBody.previousSibling);
+        let nodeIndex = Array.from(childNodes)
+                             .indexOf(forwardBody.previousSibling);
         if (nodeIndex <= 0) {
           editor.insertLineBreak();
           nodeIndex = 1;
@@ -204,7 +204,7 @@ var gCloudAttachmentLinkManager = {
     // If we haven't figured it out at this point, let's see if there's a
     // signature, and just insert before it.
     if (signature && signature.previousSibling) {
-      let nodeIndex = Array.indexOf(childNodes, signature.previousSibling);
+      let nodeIndex = Array.from(childNodes).indexOf(signature.previousSibling);
       if (nodeIndex <= 0) {
         editor.insertLineBreak();
         nodeIndex = 1;

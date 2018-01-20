@@ -13,7 +13,9 @@
 NS_IMPL_ISUPPORTS(nsX509CertValidity, nsIX509CertValidity)
 
 nsX509CertValidity::nsX509CertValidity(const mozilla::UniqueCERTCertificate& cert)
-  : mTimesInitialized(false)
+  : mNotBefore(0)
+  , mNotAfter(0)
+  , mTimesInitialized(false)
 {
   MOZ_ASSERT(cert);
   if (!cert) {
@@ -62,16 +64,11 @@ nsX509CertValidity::FormatTime(const PRTime& aTimeDate,
   if (!mTimesInitialized)
     return NS_ERROR_FAILURE;
 
-  nsCOMPtr<nsIDateTimeFormat> dateFormatter = nsIDateTimeFormat::Create();
-  if (!dateFormatter) {
-    return NS_ERROR_FAILURE;
-  }
-
   PRExplodedTime explodedTime;
   PR_ExplodeTime(const_cast<PRTime&>(aTimeDate), aParamFn, &explodedTime);
-  return dateFormatter->FormatPRExplodedTime(nullptr, kDateFormatLong,
-					     aTimeFormatSelector,
-					     &explodedTime, aFormattedTimeDate);
+  return mozilla::DateTimeFormat::FormatPRExplodedTime(kDateFormatLong,
+                                                       aTimeFormatSelector,
+                                                       &explodedTime, aFormattedTimeDate);
 }
 
 NS_IMETHODIMP

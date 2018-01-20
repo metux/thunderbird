@@ -21,6 +21,7 @@
 
 struct nsGlobalNameStruct;
 class nsGlobalWindow;
+class nsGlobalWindowInner;
 
 struct nsDOMClassInfoData;
 
@@ -31,9 +32,7 @@ typedef nsresult (*nsDOMConstructorFunc)(nsISupports** aNewObject);
 
 struct nsDOMClassInfoData
 {
-  // XXX: mName is the same as the name gettable from the callback. This
-  // redundancy should be removed eventually.
-  const char *mName;
+  // The ASCII name is available as mClass.name.
   const char16_t *mNameUTF16;
   const js::ClassOps mClassOps;
   const js::Class mClass;
@@ -94,13 +93,6 @@ public:
    */
   static bool ObjectIsNativeWrapper(JSContext* cx, JSObject* obj);
 
-  static nsISupports *GetNative(nsIXPConnectWrappedNative *wrapper, JSObject *obj);
-
-  static nsIXPConnect *XPConnect()
-  {
-    return sXPConnect;
-  }
-
 protected:
   friend nsIClassInfo* NS_GetDOMClassInfoInstance(nsDOMClassInfoID aID);
 
@@ -124,27 +116,6 @@ public:
   static jsid sWrappedJSObject_id;
 };
 
-// THIS ONE ISN'T SAFE!! It assumes that the private of the JSObject is
-// an nsISupports.
-inline
-const nsQueryInterface
-do_QueryWrappedNative(nsIXPConnectWrappedNative *wrapper, JSObject *obj)
-{
-  return nsQueryInterface(nsDOMClassInfo::GetNative(wrapper, obj));
-}
-
-// THIS ONE ISN'T SAFE!! It assumes that the private of the JSObject is
-// an nsISupports.
-inline
-const nsQueryInterfaceWithError
-do_QueryWrappedNative(nsIXPConnectWrappedNative *wrapper, JSObject *obj,
-                      nsresult *aError)
-
-{
-  return nsQueryInterfaceWithError(nsDOMClassInfo::GetNative(wrapper, obj),
-                                   aError);
-}
-
 typedef nsDOMClassInfo nsDOMGenericSH;
 
 // Makes sure that the wrapper is preserved if new properties are added.
@@ -161,16 +132,8 @@ protected:
 public:
   NS_IMETHOD PreCreate(nsISupports *nativeObj, JSContext *cx,
                        JSObject *globalObj, JSObject **parentObj) override;
-  NS_IMETHOD AddProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                         JSObject *obj, jsid id, JS::Handle<JS::Value> val,
-                         bool *_retval) override;
 
   virtual void PreserveWrapper(nsISupports *aNative) override;
-
-  static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
-  {
-    return new nsEventTargetSH(aData);
-  }
 };
 
 // A place to hang some static methods that we should really consider
@@ -178,13 +141,13 @@ public:
 class nsWindowSH
 {
 protected:
-  static nsresult GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
+  static nsresult GlobalResolve(nsGlobalWindowInner *aWin, JSContext *cx,
                                 JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
                                 JS::MutableHandle<JS::PropertyDescriptor> desc);
 
   friend class nsGlobalWindow;
 public:
-  static bool NameStructEnabled(JSContext* aCx, nsGlobalWindow *aWin,
+  static bool NameStructEnabled(JSContext* aCx, nsGlobalWindowInner *aWin,
                                 const nsAString& aName,
                                 const nsGlobalNameStruct& aNameStruct);
 };
@@ -245,26 +208,6 @@ public:
   static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
   {
     return new nsDOMConstructorSH(aData);
-  }
-};
-
-class nsNonDOMObjectSH : public nsDOMGenericSH
-{
-protected:
-  explicit nsNonDOMObjectSH(nsDOMClassInfoData* aData) : nsDOMGenericSH(aData)
-  {
-  }
-
-  virtual ~nsNonDOMObjectSH()
-  {
-  }
-
-public:
-  NS_IMETHOD GetFlags(uint32_t *aFlags) override;
-
-  static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
-  {
-    return new nsNonDOMObjectSH(aData);
   }
 };
 

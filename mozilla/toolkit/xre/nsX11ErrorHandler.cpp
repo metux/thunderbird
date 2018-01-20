@@ -124,7 +124,7 @@ X11Error(Display *display, XErrorEvent *event) {
   case GeckoProcessType_Content:
     CrashReporter::AppendAppNotesToCrashReport(notes);
     break;
-  default: 
+  default:
     ; // crash report notes not supported.
   }
 #endif
@@ -144,8 +144,7 @@ X11Error(Display *display, XErrorEvent *event) {
 #endif
 #endif
 
-  NS_RUNTIMEABORT(notes.get());
-  return 0; // not reached
+  MOZ_CRASH_UNSAFE_OOL(notes.get());
 }
 }
 

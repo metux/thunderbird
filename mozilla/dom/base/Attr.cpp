@@ -59,8 +59,6 @@ Attr::Attr(nsDOMAttributeMap *aAttrMap,
 NS_IMPL_CYCLE_COLLECTION_CLASS(Attr)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Attr)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
-
   if (!nsINode::Traverse(tmp, cb)) {
     return NS_SUCCESS_INTERRUPTED_TRAVERSE;
   }
@@ -76,7 +74,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(Attr)
   Element* ownerElement = tmp->GetElement();
-  if (tmp->IsBlack()) {
+  if (tmp->HasKnownLiveWrapper()) {
     if (ownerElement) {
       // The attribute owns the element via attribute map so we can
       // mark it when the attribute is certainly alive.
@@ -91,11 +89,11 @@ NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(Attr)
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(Attr)
-  return tmp->IsBlackAndDoesNotNeedTracing(static_cast<nsIAttribute*>(tmp));
+  return tmp->HasKnownLiveWrapperAndDoesNotNeedTracing(static_cast<nsIAttribute*>(tmp));
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(Attr)
-  return tmp->IsBlack();
+  return tmp->HasKnownLiveWrapper();
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
 // QueryInterface implementation for Attr
@@ -166,7 +164,7 @@ Attr::GetValue(nsAString& aValue)
 {
   Element* element = GetElement();
   if (element) {
-    nsCOMPtr<nsIAtom> nameAtom = mNodeInfo->NameAtom();
+    RefPtr<nsAtom> nameAtom = mNodeInfo->NameAtom();
     element->GetAttr(mNodeInfo->NamespaceID(), nameAtom, aValue);
   }
   else {
@@ -177,7 +175,7 @@ Attr::GetValue(nsAString& aValue)
 }
 
 void
-Attr::SetValue(const nsAString& aValue, ErrorResult& aRv)
+Attr::SetValue(const nsAString& aValue, nsIPrincipal* aTriggeringPrincipal, ErrorResult& aRv)
 {
   Element* element = GetElement();
   if (!element) {
@@ -185,11 +183,12 @@ Attr::SetValue(const nsAString& aValue, ErrorResult& aRv)
     return;
   }
 
-  nsCOMPtr<nsIAtom> nameAtom = mNodeInfo->NameAtom();
+  RefPtr<nsAtom> nameAtom = mNodeInfo->NameAtom();
   aRv = element->SetAttr(mNodeInfo->NamespaceID(),
                          nameAtom,
                          mNodeInfo->GetPrefixAtom(),
                          aValue,
+                         aTriggeringPrincipal,
                          true);
 }
 
@@ -197,7 +196,7 @@ NS_IMETHODIMP
 Attr::SetValue(const nsAString& aValue)
 {
   ErrorResult rv;
-  SetValue(aValue, rv);
+  SetValue(aValue, nullptr, rv);
   return rv.StealNSResult();
 }
 
@@ -239,21 +238,18 @@ Attr::GetOwnerElement(nsIDOMElement** aOwnerElement)
 void
 Attr::GetNodeValueInternal(nsAString& aNodeValue)
 {
-  OwnerDoc()->WarnOnceAbout(nsIDocument::eNodeValue);
-
   GetValue(aNodeValue);
 }
 
 void
 Attr::SetNodeValueInternal(const nsAString& aNodeValue, ErrorResult& aError)
 {
-  OwnerDoc()->WarnOnceAbout(nsIDocument::eNodeValue);
-
   aError = SetValue(aNodeValue);
 }
 
 nsresult
-Attr::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const
+Attr::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult,
+            bool aPreallocateChildren) const
 {
   nsAutoString value;
   const_cast<Attr*>(this)->GetValue(value);
@@ -279,10 +275,8 @@ Attr::GetBaseURI(bool aTryUseXHRDocBaseURI) const
 
 void
 Attr::GetTextContentInternal(nsAString& aTextContent,
-                             ErrorResult& aError)
+                             OOMReporter& aError)
 {
-  OwnerDoc()->WarnOnceAbout(nsIDocument::eTextContent);
-
   GetValue(aTextContent);
 }
 
@@ -290,8 +284,6 @@ void
 Attr::SetTextContentInternal(const nsAString& aTextContent,
                              ErrorResult& aError)
 {
-  OwnerDoc()->WarnOnceAbout(nsIDocument::eTextContent);
-
   SetNodeValueInternal(aTextContent, aError);
 }
 
@@ -320,13 +312,6 @@ Attr::GetChildAt(uint32_t aIndex) const
   return nullptr;
 }
 
-nsIContent * const *
-Attr::GetChildArray(uint32_t* aChildCount) const
-{
-  *aChildCount = 0;
-  return nullptr;
-}
-
 int32_t
 Attr::IndexOf(const nsINode* aPossibleChild) const
 {
@@ -346,7 +331,7 @@ Attr::RemoveChildAt(uint32_t aIndex, bool aNotify)
 }
 
 nsresult
-Attr::PreHandleEvent(EventChainPreVisitor& aVisitor)
+Attr::GetEventTargetParent(EventChainPreVisitor& aVisitor)
 {
   aVisitor.mCanHandle = true;
   return NS_OK;

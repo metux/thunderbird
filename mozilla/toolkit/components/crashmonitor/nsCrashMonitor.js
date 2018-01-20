@@ -5,7 +5,7 @@
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
-var Scope = {}
+var Scope = {};
 Components.utils.import("resource://gre/modules/CrashMonitor.jsm", Scope);
 var MonitorAPI = Scope.CrashMonitor;
 
@@ -18,7 +18,7 @@ CrashMonitor.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsIObserver]),
 
-  observe: function (aSubject, aTopic, aData) {
+  observe(aSubject, aTopic, aData) {
     switch (aTopic) {
     case "profile-after-change":
       MonitorAPI.init();

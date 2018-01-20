@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -36,10 +37,7 @@ public:
 protected:
   virtual ~ClientContainerLayer()
   {
-    while (mFirstChild) {
-      ContainerLayer::RemoveChild(mFirstChild);
-    }
-
+    ContainerLayer::RemoveAllChildren();
     MOZ_COUNT_DTOR(ClientContainerLayer);
   }
 
@@ -47,15 +45,13 @@ public:
   virtual void RenderLayer() override
   {
     RenderMaskLayers(this);
-    
-    DefaultComputeSupportsComponentAlphaChildren();
 
-    AutoTArray<Layer*, 12> children;
-    SortChildrenBy3DZOrder(children);
+    DefaultComputeSupportsComponentAlphaChildren();
 
     ReadbackProcessor readback;
     readback.BuildUpdates(this);
 
+    nsTArray<Layer*> children = CollectChildren();
     for (uint32_t i = 0; i < children.Length(); i++) {
       Layer* child = children.ElementAt(i);
 
@@ -133,11 +129,6 @@ public:
 
   void SetSupportsComponentAlphaChildren(bool aSupports) { mSupportsComponentAlphaChildren = aSupports; }
 
-  virtual void Disconnect() override
-  {
-    ClientLayer::Disconnect();
-  }
-
 protected:
   ClientLayerManager* ClientManager()
   {
@@ -163,11 +154,6 @@ protected:
 public:
   virtual Layer* AsLayer() { return this; }
   virtual ShadowableLayer* AsShadowableLayer() { return this; }
-
-  virtual void Disconnect()
-  {
-    ClientLayer::Disconnect();
-  }
 
   virtual void RenderLayer() { }
 

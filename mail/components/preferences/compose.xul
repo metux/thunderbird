@@ -79,9 +79,12 @@
                   <menuitem value="0" label="&asAttachment.label;"/>
                 </menupopup>
               </menulist>
+              <separator orient="vertical" class="thin"/>
               <checkbox id="addExtension" label="&addExtension.label;" preference="mail.forward_add_extension"
                         accesskey="&addExtension.accesskey;"/>
             </hbox>
+
+            <separator class="thin"/>
 
             <hbox align="center" pack="start">
               <checkbox id="autoSave" label="&autoSave.label;" preference="mail.compose.autosave"
@@ -219,6 +222,18 @@
                            localonly="true" writable="true"/>
               </menulist>
             </hbox>
+
+           <hbox align="center" pack="start">
+             <label value="&showAsDefault.label;" accesskey="&showAsDefault.accesskey;"
+                    control="defaultStartupDirList"/>
+             <menulist id="defaultStartupDirList" flex="1"
+                       oncommand="gComposePane.setDefaultStartupDir(this.value);">
+               <menupopup class="addrbooksPopup"
+                          none="&showAsDefaultLast.label;"
+                          alladdressbooks="true"
+                          mailinglists="true"/>
+             </menulist>
+           </hbox>
          </tabpanel>
 
          <tabpanel orient="vertical">

@@ -17,6 +17,7 @@
 
 #include <gdk/gdk.h>
 #include <gtk/gtk.h>
+#include <algorithm>
 
 #if (MOZ_WIDGET_GTK == 2)
 #ifdef __cplusplus
@@ -39,13 +40,55 @@ typedef struct {
   gint32 maxpos;
 } GtkWidgetState;
 
+/**
+ * A size in the same GTK pixel units as GtkBorder and GdkRectangle.
+ */
+struct MozGtkSize {
+  gint width;
+  gint height;
+
+  MozGtkSize& operator+=(const GtkBorder& aBorder)
+  {
+    width += aBorder.left + aBorder.right;
+    height += aBorder.top + aBorder.bottom;
+    return *this;
+  }
+  MozGtkSize operator+(const GtkBorder& aBorder) const
+  {
+    MozGtkSize result = *this;
+    return result += aBorder;
+  }
+  void Include(MozGtkSize aOther)
+  {
+    width = std::max(width, aOther.width);
+    height = std::max(height, aOther.height);
+  }
+  void Rotate()
+  {
+    gint tmp = width;
+    width = height;
+    height = tmp;
+  }
+};
+
 typedef struct {
-  gint slider_width;
-  gint trough_border;
-  gint stepper_size;
-  gint stepper_spacing;
-  gint min_slider_size;
-} MozGtkScrollbarMetrics;
+  bool initialized;
+  struct {
+    MozGtkSize scrollbar;
+    MozGtkSize thumb;
+    MozGtkSize button;
+  } size;
+  struct {
+    GtkBorder scrollbar;
+    GtkBorder track;
+  } border;
+} ScrollbarGTKMetrics;
+
+typedef struct {
+  bool initialized;
+  MozGtkSize minSizeWithBorder;
+  GtkBorder borderAndPadding;
+} ToggleGTKMetrics;
 
 typedef enum {
   MOZ_GTK_STEPPER_DOWN        = 1 << 0,
@@ -66,9 +109,6 @@ typedef enum {
   /* the selected tab */
   MOZ_GTK_TAB_SELECTED        = 1 << 10
 } GtkTabFlags;
-
-/* function type for moz_gtk_enable_style_props */
-typedef gint (*style_prop_t)(GtkStyle*, const gchar*, gint);
 
 /*** result/error codes ***/
 #define MOZ_GTK_SUCCESS 0
@@ -145,8 +185,11 @@ typedef enum {
   MOZ_GTK_ENTRY,
   /* Paints a GtkExpander. */
   MOZ_GTK_EXPANDER,
-  /* Paints a GtkTextView. */
+  /* Paints a GtkTextView or gets the style context corresponding to the
+     root node of a GtkTextView. */
   MOZ_GTK_TEXT_VIEW,
+  /* The "text" window or node of a GtkTextView */
+  MOZ_GTK_TEXT_VIEW_TEXT,
   /* Paints a GtkOptionMenu. */
   MOZ_GTK_DROPDOWN,
   /* Paints a dropdown arrow (a GtkButton containing a down GtkArrow). */
@@ -160,11 +203,15 @@ typedef enum {
   MOZ_GTK_TOOLBAR_SEPARATOR,
   /* Paints a GtkToolTip */
   MOZ_GTK_TOOLTIP,
+  /* Paints a GtkBox from GtkToolTip  */
+  MOZ_GTK_TOOLTIP_BOX,
+  /* Paints a GtkLabel of GtkToolTip */
+  MOZ_GTK_TOOLTIP_BOX_LABEL,
   /* Paints a GtkFrame (e.g. a status bar panel). */
   MOZ_GTK_FRAME,
   /* Paints the border of a GtkFrame */
   MOZ_GTK_FRAME_BORDER,
-  /* Paints a resize grip for a GtkWindow */
+  /* Paints a resize grip for a GtkTextView */
   MOZ_GTK_RESIZER,
   /* Paints a GtkProgressBar. */
   MOZ_GTK_PROGRESSBAR,
@@ -210,11 +257,13 @@ typedef enum {
   MOZ_GTK_MENUBARITEM,
   /* Paints items of popup menus. */
   MOZ_GTK_MENUITEM,
-  MOZ_GTK_IMAGEMENUITEM,
-  MOZ_GTK_CHECKMENUITEM_CONTAINER,
-  MOZ_GTK_RADIOMENUITEM_CONTAINER,
+  /* Paints a menuitem with check indicator, or the gets the style context for
+     a menuitem that contains a checkbox. */
   MOZ_GTK_CHECKMENUITEM,
+  /* Gets the style context for a checkbox in a check menuitem. */
+  MOZ_GTK_CHECKMENUITEM_INDICATOR,
   MOZ_GTK_RADIOMENUITEM,
+  MOZ_GTK_RADIOMENUITEM_INDICATOR,
   MOZ_GTK_MENUSEPARATOR,
   /* GtkVPaned base class */
   MOZ_GTK_SPLITTER_HORIZONTAL,
@@ -226,6 +275,8 @@ typedef enum {
   MOZ_GTK_SPLITTER_SEPARATOR_VERTICAL,
   /* Paints the background of a window, dialog or page. */
   MOZ_GTK_WINDOW,
+  /* Used only as a container for MOZ_GTK_HEADER_BAR_MAXIMIZED. */
+  MOZ_GTK_WINDOW_MAXIMIZED,
   /* Window container for all widgets */
   MOZ_GTK_WINDOW_CONTAINER,
   /* Paints a GtkInfoBar, for notifications. */
@@ -248,6 +299,14 @@ typedef enum {
   MOZ_GTK_COMBOBOX_ENTRY_ARROW,
   /* Used for scrolled window shell. */
   MOZ_GTK_SCROLLED_WINDOW,
+  /* Paints a GtkHeaderBar */
+  MOZ_GTK_HEADER_BAR,
+  /* Paints a GtkHeaderBar in maximized state */
+  MOZ_GTK_HEADER_BAR_MAXIMIZED,
+  /* Paints GtkHeaderBar title buttons */
+  MOZ_GTK_HEADER_BAR_BUTTON_CLOSE,
+  MOZ_GTK_HEADER_BAR_BUTTON_MINIMIZE,
+  MOZ_GTK_HEADER_BAR_BUTTON_MAXIMIZE,
 
   MOZ_GTK_WIDGET_NODE_COUNT
 } WidgetNodeType;
@@ -263,13 +322,9 @@ typedef enum {
 gint moz_gtk_init();
 
 /**
- * Enable GTK+ 1.2.9+ theme enhancements. You must provide a pointer
- * to the GTK+ 1.2.9+ function "gtk_style_get_prop_experimental".
- * styleGetProp:  pointer to gtk_style_get_prop_experimental
- * 
- * returns: MOZ_GTK_SUCCESS if there was no error, an error code otherwise
+ * Updates the drawing library when the theme changes.
  */
-gint moz_gtk_enable_style_props(style_prop_t styleGetProp);
+void moz_gtk_refresh();
 
 /**
  * Perform cleanup of the drawing library. You should call this function
@@ -318,15 +373,14 @@ moz_gtk_widget_paint(WidgetNodeType widget, cairo_t *cr,
  * Get the border size of a widget
  * left/right:  [OUT] the widget's left/right border
  * top/bottom:  [OUT] the widget's top/bottom border
- * direction:   the text direction for the widget
- * inhtml:      boolean indicating whether this widget will be drawn as a HTML form control,
- *              in order to workaround a size issue (MOZ_GTK_BUTTON only, ignored otherwise)
+ * direction:   the text direction for the widget.  Callers depend on this
+ *              being used only for MOZ_GTK_DROPDOWN widgets, and cache
+ *              results for other widget types across direction values.
  *
  * returns:    MOZ_GTK_SUCCESS if there was no error, an error code otherwise
  */
 gint moz_gtk_get_widget_border(WidgetNodeType widget, gint* left, gint* top,
-                               gint* right, gint* bottom, GtkTextDirection direction,
-                               gboolean inhtml);
+                               gint* right, gint* bottom, GtkTextDirection direction);
 
 /**
  * Get the border size of a notebook tab
@@ -353,6 +407,14 @@ moz_gtk_get_tab_border(gint* left, gint* top, gint* right, gint* bottom,
  */
 gint
 moz_gtk_checkbox_get_metrics(gint* indicator_size, gint* indicator_spacing);
+
+/**
+ * Get metrics of the toggle (radio or checkbox)
+ * isRadio:            [IN] true when requesting metrics for the radio button
+ * returns:    pointer to ToggleGTKMetrics struct
+ */
+const ToggleGTKMetrics*
+GetToggleMetrics(bool isRadio);
 
 /**
  * Get the desired size of a GtkRadioButton
@@ -423,13 +485,10 @@ gint
 moz_gtk_get_scalethumb_metrics(GtkOrientation orient, gint* thumb_length, gint* thumb_height);
 
 /**
- * Get the desired metrics for a GtkScrollbar
- * metrics:          [IN]  struct which will contain the metrics
- *
- * returns:    MOZ_GTK_SUCCESS if there was no error, an error code otherwise
+ * Get the metrics in GTK pixels for a scrollbar.
  */
-gint
-moz_gtk_get_scrollbar_metrics(MozGtkScrollbarMetrics* metrics);
+const ScrollbarGTKMetrics*
+GetScrollbarMetrics(GtkOrientation aOrientation);
 
 /**
  * Get the desired size of a dropdown arrow button
@@ -509,29 +568,10 @@ gint moz_gtk_get_menu_separator_height(gint* size);
 gint moz_gtk_splitter_get_metrics(gint orientation, gint* size);
 
 /**
- * Retrieve an actual GTK scrollbar widget for style analysis. It will not
- * be modified.
- */
-GtkWidget* moz_gtk_get_scrollbar_widget(void);
-
-/**
  * Get the YTHICKNESS of a tab (notebook extension).
  */
 gint
 moz_gtk_get_tab_thickness(WidgetNodeType aNodeType);
-
-/**
- * Get a boolean which indicates whether the theme draws scrollbar buttons.
- * If TRUE, draw scrollbar buttons.
- */
-gboolean moz_gtk_has_scrollbar_buttons(void);
-
-/**
- * Get minimum widget size as sum of margin, padding, border and min-width,
- * min-height.
- */
-void moz_gtk_get_widget_min_size(WidgetNodeType aGtkWidgetType, int* width,
-                                 int* height);
 
 #if (MOZ_WIDGET_GTK == 2)
 #ifdef __cplusplus

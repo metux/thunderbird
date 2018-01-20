@@ -9,13 +9,13 @@
 #include "ExtendedValidation.h"
 #include "NSSCertDBTrustDomain.h"
 #include "certdb.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/Base64.h"
 #include "mozilla/Casting.h"
 #include "mozilla/NotNull.h"
 #include "mozilla/Unused.h"
 #include "nsArray.h"
 #include "nsCOMPtr.h"
-#include "nsCRT.h"
 #include "nsICertificateDialogs.h"
 #include "nsIClassInfoImpl.h"
 #include "nsIObjectInputStream.h"
@@ -34,14 +34,11 @@
 #include "nsString.h"
 #include "nsThreadUtils.h"
 #include "nsUnicharUtils.h"
-#include "nsXULAppAPI.h"
 #include "nspr.h"
 #include "pkix/pkixnss.h"
 #include "pkix/pkixtypes.h"
 #include "pkix/Result.h"
 #include "prerror.h"
-#include "prmem.h"
-#include "prprf.h"
 #include "secasn1.h"
 #include "secder.h"
 #include "secerr.h"
@@ -72,10 +69,6 @@ static NS_DEFINE_CID(kNSSComponentCID, NS_NSSCOMPONENT_CID);
 /*static*/ nsNSSCertificate*
 nsNSSCertificate::Create(CERTCertificate* cert)
 {
-  if (GeckoProcessType_Default != XRE_GetProcessType()) {
-    NS_ERROR("Trying to initialize nsNSSCertificate in a non-chrome process!");
-    return nullptr;
-  }
   if (cert)
     return new nsNSSCertificate(cert);
   else
@@ -85,10 +78,6 @@ nsNSSCertificate::Create(CERTCertificate* cert)
 nsNSSCertificate*
 nsNSSCertificate::ConstructFromDER(char* certDER, int derLen)
 {
-  // On non-chrome process prevent instantiation
-  if (GeckoProcessType_Default != XRE_GetProcessType())
-    return nullptr;
-
   nsNSSCertificate* newObject = nsNSSCertificate::Create();
   if (newObject && !newObject->InitFromDER(certDER, derLen)) {
     delete newObject;
@@ -127,11 +116,6 @@ nsNSSCertificate::nsNSSCertificate(CERTCertificate* cert)
   , mPermDelete(false)
   , mCertType(CERT_TYPE_NOT_YET_INITIALIZED)
 {
-#if defined(DEBUG)
-  if (GeckoProcessType_Default != XRE_GetProcessType())
-    NS_ERROR("Trying to initialize nsNSSCertificate in a non-chrome process!");
-#endif
-
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown())
     return;
@@ -146,8 +130,6 @@ nsNSSCertificate::nsNSSCertificate()
   , mPermDelete(false)
   , mCertType(CERT_TYPE_NOT_YET_INITIALIZED)
 {
-  if (GeckoProcessType_Default != XRE_GetProcessType())
-    NS_ERROR("Trying to initialize nsNSSCertificate in a non-chrome process!");
 }
 
 nsNSSCertificate::~nsNSSCertificate()
@@ -366,58 +348,71 @@ nsNSSCertificate::GetDbKey(const UniqueCERTCertificate& cert, nsACString& aDbKey
 }
 
 NS_IMETHODIMP
-nsNSSCertificate::GetWindowTitle(nsAString& aWindowTitle)
+nsNSSCertificate::GetDisplayName(nsAString& aDisplayName)
 {
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  aWindowTitle.Truncate();
+  aDisplayName.Truncate();
 
+  MOZ_ASSERT(mCert, "mCert should not be null in GetDisplayName");
   if (!mCert) {
-    NS_ERROR("Somehow got nullptr for mCert in nsNSSCertificate.");
     return NS_ERROR_FAILURE;
   }
 
   UniquePORTString commonName(CERT_GetCommonName(&mCert->subject));
+  UniquePORTString organizationalUnitName(CERT_GetOrgUnitName(&mCert->subject));
+  UniquePORTString organizationName(CERT_GetOrgName(&mCert->subject));
 
-  const char* titleOptions[] = {
-    mCert->nickname,
+  bool isBuiltInRoot;
+  nsresult rv = GetIsBuiltInRoot(&isBuiltInRoot);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  // Only use the nickname for built-in roots where we already have a hard-coded
+  // reasonable display name (unfortunately we have to strip off the leading
+  // slot identifier followed by a ':'). Otherwise, attempt to use the following
+  // in order:
+  //  - the common name, if present
+  //  - an organizational unit name, if present
+  //  - an organization name, if present
+  //  - the entire subject distinguished name, if non-empty
+  //  - an email address, if one can be found
+  // In the unlikely event that none of these fields are present and non-empty
+  // (the subject really shouldn't be empty), an empty string is returned.
+  nsAutoCString builtInRootNickname;
+  if (isBuiltInRoot) {
+    nsAutoCString fullNickname(mCert->nickname);
+    int32_t index = fullNickname.Find(":");
+    if (index != kNotFound) {
+      // Substring will gracefully handle the case where index is the last
+      // character in the string (that is, if the nickname is just
+      // "Builtin Object Token:"). In that case, we'll get an empty string.
+      builtInRootNickname = Substring(fullNickname,
+                                      AssertedCast<uint32_t>(index + 1));
+    }
+  }
+  const char* nameOptions[] = {
+    builtInRootNickname.get(),
     commonName.get(),
+    organizationalUnitName.get(),
+    organizationName.get(),
     mCert->subjectName,
     mCert->emailAddr
   };
 
-  nsAutoCString titleOption;
-  for (size_t i = 0; i < ArrayLength(titleOptions); i++) {
-    titleOption = titleOptions[i];
-    if (titleOption.Length() > 0 && IsUTF8(titleOption)) {
-      CopyUTF8toUTF16(titleOption, aWindowTitle);
+  nsAutoCString nameOption;
+  for (auto nameOptionPtr : nameOptions) {
+    nameOption.Assign(nameOptionPtr);
+    if (nameOption.Length() > 0 && IsUTF8(nameOption)) {
+      CopyUTF8toUTF16(nameOption, aDisplayName);
       return NS_OK;
     }
   }
 
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsNSSCertificate::GetNickname(nsAString& aNickname)
-{
-  nsNSSShutDownPreventionLock locker;
-  if (isAlreadyShutDown())
-    return NS_ERROR_NOT_AVAILABLE;
-
-  if (mCert->nickname) {
-    CopyUTF8toUTF16(mCert->nickname, aNickname);
-  } else {
-    nsresult rv;
-    nsCOMPtr<nsINSSComponent> nssComponent(do_GetService(kNSSComponentCID, &rv));
-    if (NS_FAILED(rv) || !nssComponent) {
-      return NS_ERROR_FAILURE;
-    }
-    nssComponent->GetPIPNSSBundleString("CertNoNickname", aNickname);
-  }
   return NS_OK;
 }
 
@@ -647,6 +642,34 @@ nsNSSCertificate::GetOrganizationalUnit(nsAString& aOrganizationalUnit)
   return NS_OK;
 }
 
+static nsresult
+UniqueCERTCertListToMutableArray(/*in*/ UniqueCERTCertList& nssChain,
+                                /*out*/ nsIArray** x509CertArray)
+{
+  if (!x509CertArray) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  nsCOMPtr<nsIMutableArray> array = nsArrayBase::Create();
+  if (!array) {
+    return NS_ERROR_FAILURE;
+  }
+
+  CERTCertListNode* node;
+  for (node = CERT_LIST_HEAD(nssChain.get());
+       !CERT_LIST_END(node, nssChain.get());
+       node = CERT_LIST_NEXT(node)) {
+    nsCOMPtr<nsIX509Cert> cert = nsNSSCertificate::Create(node->cert);
+    nsresult rv = array->AppendElement(cert);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+  }
+
+  array.forget(x509CertArray);
+  return NS_OK;
+}
+
 NS_IMETHODIMP
 nsNSSCertificate::GetChain(nsIArray** _rvChain)
 {
@@ -655,7 +678,6 @@ nsNSSCertificate::GetChain(nsIArray** _rvChain)
     return NS_ERROR_NOT_AVAILABLE;
 
   NS_ENSURE_ARG(_rvChain);
-  MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("Getting chain for \"%s\"\n", mCert->nickname));
 
   mozilla::pkix::Time now(mozilla::pkix::Now());
 
@@ -663,127 +685,34 @@ nsNSSCertificate::GetChain(nsIArray** _rvChain)
   NS_ENSURE_TRUE(certVerifier, NS_ERROR_UNEXPECTED);
 
   UniqueCERTCertList nssChain;
-  // We want to test all usages, but we start with server because most of the
-  // time Firefox users care about server certs.
-  if (certVerifier->VerifyCert(mCert.get(), certificateUsageSSLServer, now,
-                               nullptr, /*XXX fixme*/
-                               nullptr, /* hostname */
-                               nssChain,
-                               CertVerifier::FLAG_LOCAL_ONLY)
-        != mozilla::pkix::Success) {
-    nssChain = nullptr;
-    // keep going
-  }
-
-  // This is the whitelist of all non-SSLServer usages that are supported by
-  // verifycert.
-  const int otherUsagesToTest = certificateUsageSSLClient |
-                                certificateUsageSSLCA |
-                                certificateUsageEmailSigner |
-                                certificateUsageEmailRecipient |
-                                certificateUsageObjectSigner |
-                                certificateUsageStatusResponder;
-  for (int usage = certificateUsageSSLClient;
-       usage < certificateUsageAnyCA && !nssChain;
-       usage = usage << 1) {
-    if ((usage & otherUsagesToTest) == 0) {
-      continue;
-    }
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-           ("pipnss: PKIX attempting chain(%d) for '%s'\n",
-            usage, mCert->nickname));
+  // We want to test all usages supported by the certificate verifier, but we
+  // start with TLS server because most of the time Firefox users care about
+  // server certs.
+  const int usagesToTest[] = { certificateUsageSSLServer,
+                               certificateUsageSSLClient,
+                               certificateUsageSSLCA,
+                               certificateUsageEmailSigner,
+                               certificateUsageEmailRecipient };
+  for (auto usage : usagesToTest) {
     if (certVerifier->VerifyCert(mCert.get(), usage, now,
                                  nullptr, /*XXX fixme*/
                                  nullptr, /*hostname*/
                                  nssChain,
                                  CertVerifier::FLAG_LOCAL_ONLY)
-          != mozilla::pkix::Success) {
-      nssChain = nullptr;
-      // keep going
+          == mozilla::pkix::Success) {
+      return UniqueCERTCertListToMutableArray(nssChain, _rvChain);
     }
   }
 
-  if (!nssChain) {
-    // There is not verified path for the chain, however we still want to
-    // present to the user as much of a possible chain as possible, in the case
-    // where there was a problem with the cert or the issuers.
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-           ("pipnss: getchain :CertVerify failed to get chain for '%s'\n",
-            mCert->nickname));
-    nssChain = UniqueCERTCertList(
-      CERT_GetCertChainFromCert(mCert.get(), PR_Now(), certUsageSSLClient));
-  }
+  // There is no verified path for the chain, however we still want to
+  // present to the user as much of a possible chain as possible, in the case
+  // where there was a problem with the cert or the issuers.
+  nssChain = UniqueCERTCertList(
+    CERT_GetCertChainFromCert(mCert.get(), PR_Now(), certUsageSSLClient));
   if (!nssChain) {
     return NS_ERROR_FAILURE;
   }
-
-  // enumerate the chain for scripting purposes
-  nsCOMPtr<nsIMutableArray> array = nsArrayBase::Create();
-  if (!array) {
-    return NS_ERROR_FAILURE;
-  }
-  CERTCertListNode* node;
-  for (node = CERT_LIST_HEAD(nssChain.get());
-       !CERT_LIST_END(node, nssChain.get());
-       node = CERT_LIST_NEXT(node)) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-           ("adding %s to chain\n", node->cert->nickname));
-    nsCOMPtr<nsIX509Cert> cert = nsNSSCertificate::Create(node->cert);
-    array->AppendElement(cert, false);
-  }
-  *_rvChain = array;
-  NS_IF_ADDREF(*_rvChain);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsNSSCertificate::GetAllTokenNames(uint32_t* aLength, char16_t*** aTokenNames)
-{
-  nsNSSShutDownPreventionLock locker;
-  if (isAlreadyShutDown())
-    return NS_ERROR_NOT_AVAILABLE;
-
-  NS_ENSURE_ARG(aLength);
-  NS_ENSURE_ARG(aTokenNames);
-  *aLength = 0;
-  *aTokenNames = nullptr;
-
-  // Get the slots from NSS
-  MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("Getting slots for \"%s\"\n", mCert->nickname));
-  UniquePK11SlotList slots(PK11_GetAllSlotsForCert(mCert.get(), nullptr));
-  if (!slots) {
-    if (PORT_GetError() == SEC_ERROR_NO_TOKEN) {
-      return NS_OK; // List of slots is empty, return empty array
-    }
-    return NS_ERROR_FAILURE;
-  }
-
-  // read the token names from slots
-  PK11SlotListElement* le;
-
-  for (le = slots->head; le; le = le->next) {
-    ++(*aLength);
-  }
-
-  *aTokenNames = (char16_t**) moz_xmalloc(sizeof(char16_t*) * (*aLength));
-  if (!*aTokenNames) {
-    *aLength = 0;
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  uint32_t iToken;
-  for (le = slots->head, iToken = 0; le; le = le->next, ++iToken) {
-    char* token = PK11_GetTokenName(le->slot);
-    (*aTokenNames)[iToken] = ToNewUnicode(NS_ConvertUTF8toUTF16(token));
-    if (!(*aTokenNames)[iToken]) {
-      NS_FREE_XPCOM_ALLOCATED_POINTER_ARRAY(iToken, *aTokenNames);
-      *aLength = 0;
-      *aTokenNames = nullptr;
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-  }
-
-  return NS_OK;
+  return UniqueCERTCertListToMutableArray(nssChain, _rvChain);
 }
 
 NS_IMETHODIMP
@@ -958,6 +887,11 @@ nsNSSCertificate::ExportAsCMS(uint32_t chainMode,
   if (isAlreadyShutDown())
     return NS_ERROR_NOT_AVAILABLE;
 
+  nsresult rv = BlockUntilLoadableRootsLoaded();
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
   if (!mCert)
     return NS_ERROR_FAILURE;
 
@@ -1104,6 +1038,9 @@ NS_IMETHODIMP
 nsNSSCertificate::GetASN1Structure(nsIASN1Object** aASN1Structure)
 {
   NS_ENSURE_ARG_POINTER(aASN1Structure);
+  if (!NS_IsMainThread()) {
+    return NS_ERROR_NOT_SAME_THREAD;
+  }
   return CreateASN1Struct(aASN1Structure);
 }
 
@@ -1205,6 +1142,12 @@ void nsNSSCertList::destructorSafeDestroyNSSReference()
   mCertList = nullptr;
 }
 
+nsNSSCertList*
+nsNSSCertList::GetCertList()
+{
+  return this;
+}
+
 NS_IMETHODIMP
 nsNSSCertList::AddCert(nsIX509Cert* aCert)
 {
@@ -1212,7 +1155,8 @@ nsNSSCertList::AddCert(nsIX509Cert* aCert)
   if (isAlreadyShutDown()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
-  CERTCertificate* cert = aCert->GetCert();
+  // We need an owning handle when calling nsIX509Cert::GetCert().
+  UniqueCERTCertificate cert(aCert->GetCert());
   if (!cert) {
     NS_ERROR("Somehow got nullptr for mCertificate in nsNSSCertificate.");
     return NS_ERROR_FAILURE;
@@ -1222,39 +1166,11 @@ nsNSSCertList::AddCert(nsIX509Cert* aCert)
     NS_ERROR("Somehow got nullptr for mCertList in nsNSSCertList.");
     return NS_ERROR_FAILURE;
   }
-  // XXX: check return value!
-  CERT_AddCertToListTail(mCertList.get(), cert);
+  if (CERT_AddCertToListTail(mCertList.get(), cert.get()) != SECSuccess) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+  Unused << cert.release(); // Ownership transferred to the cert list.
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsNSSCertList::DeleteCert(nsIX509Cert* aCert)
-{
-  nsNSSShutDownPreventionLock locker;
-  if (isAlreadyShutDown()) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-  CERTCertificate* cert = aCert->GetCert();
-  CERTCertListNode* node;
-
-  if (!cert) {
-    NS_ERROR("Somehow got nullptr for mCertificate in nsNSSCertificate.");
-    return NS_ERROR_FAILURE;
-  }
-
-  if (!mCertList) {
-    NS_ERROR("Somehow got nullptr for mCertList in nsNSSCertList.");
-    return NS_ERROR_FAILURE;
-  }
-
-  for (node = CERT_LIST_HEAD(mCertList.get());
-       !CERT_LIST_END(node, mCertList.get()); node = CERT_LIST_NEXT(node)) {
-    if (node->cert == cert) {
-	CERT_RemoveCertListNode(node);
-        return NS_OK;
-    }
-  }
-  return NS_OK; // XXX Should we fail if we couldn't find it?
 }
 
 UniqueCERTCertList
@@ -1462,6 +1378,96 @@ nsNSSCertList::Equals(nsIX509CertList* other, bool* result)
   return NS_OK;
 }
 
+nsresult
+nsNSSCertList::ForEachCertificateInChain(ForEachCertOperation& aOperation)
+{
+  nsCOMPtr<nsISimpleEnumerator> chainElt;
+  nsresult rv = GetEnumerator(getter_AddRefs(chainElt));
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  // Each chain may have multiple certificates.
+  bool hasMore = false;
+  rv = chainElt->HasMoreElements(&hasMore);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  if (!hasMore) {
+    return NS_OK; // Empty lists are fine
+  }
+
+  do {
+    nsCOMPtr<nsISupports> certSupports;
+    rv = chainElt->GetNext(getter_AddRefs(certSupports));
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
+    nsCOMPtr<nsIX509Cert> cert = do_QueryInterface(certSupports, &rv);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
+    rv = chainElt->HasMoreElements(&hasMore);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
+    bool continueLoop = true;
+    rv = aOperation(cert, hasMore, continueLoop);
+    if (NS_FAILED(rv) || !continueLoop) {
+      return rv;
+    }
+  } while (hasMore);
+
+  return NS_OK;
+}
+
+nsresult
+nsNSSCertList::SegmentCertificateChain(/* out */ nsCOMPtr<nsIX509Cert>& aRoot,
+                          /* out */ nsCOMPtr<nsIX509CertList>& aIntermediates,
+                          /* out */ nsCOMPtr<nsIX509Cert>& aEndEntity)
+{
+  if (aRoot || aIntermediates || aEndEntity) {
+    // All passed-in nsCOMPtrs should be empty for the state machine to work
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  aIntermediates = new nsNSSCertList();
+
+  nsresult rv = ForEachCertificateInChain(
+    [&aRoot, &aIntermediates, &aEndEntity] (nsCOMPtr<nsIX509Cert> aCert,
+                                            bool hasMore, bool& aContinue) {
+      if (!aEndEntity) {
+        // This is the end entity
+        aEndEntity = aCert;
+      } else if (!hasMore) {
+        // This is the root
+        aRoot = aCert;
+      } else {
+        // One of (potentially many) intermediates
+        if (NS_FAILED(aIntermediates->AddCert(aCert))) {
+          return NS_ERROR_OUT_OF_MEMORY;
+        }
+      }
+
+      return NS_OK;
+  });
+
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  if (!aRoot || !aEndEntity) {
+    // No self-sigend (or empty) chains allowed
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  return NS_OK;
+}
+
 NS_IMPL_ISUPPORTS(nsNSSCertListEnumerator, nsISimpleEnumerator)
 
 nsNSSCertListEnumerator::nsNSSCertListEnumerator(
@@ -1532,7 +1538,6 @@ nsNSSCertListEnumerator::GetNext(nsISupports** _retval)
   return NS_OK;
 }
 
-// NB: This serialization must match that of nsNSSCertificateFakeTransport.
 NS_IMETHODIMP
 nsNSSCertificate::Write(nsIObjectOutputStream* aStream)
 {
@@ -1567,7 +1572,7 @@ nsNSSCertificate::Read(nsIObjectInputStream* aStream)
     return rv;
   }
 
-  nsXPIDLCString str;
+  nsCString str;
   rv = aStream->ReadBytes(len, getter_Copies(str));
   if (NS_FAILED(rv)) {
     return rv;
@@ -1596,16 +1601,16 @@ nsNSSCertificate::GetScriptableHelper(nsIXPCScriptable** _retval)
 }
 
 NS_IMETHODIMP
-nsNSSCertificate::GetContractID(char** aContractID)
+nsNSSCertificate::GetContractID(nsACString& aContractID)
 {
-  *aContractID = nullptr;
+  aContractID.SetIsVoid(true);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsNSSCertificate::GetClassDescription(char** aClassDescription)
+nsNSSCertificate::GetClassDescription(nsACString& aClassDescription)
 {
-  *aClassDescription = nullptr;
+  aClassDescription.SetIsVoid(true);
   return NS_OK;
 }
 

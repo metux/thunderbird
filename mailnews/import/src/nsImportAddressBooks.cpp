@@ -13,7 +13,7 @@
 #include "nsISupportsPrimitives.h"
 #include "nsIImportABDescriptor.h"
 #include "nsIImportFieldMap.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIFile.h"
 #include "nsIAddrDatabase.h"
 #include "nsIAbManager.h"
@@ -72,23 +72,23 @@ public:
                           nsIStringBundle *aBundle);
 
 private:
-  nsIImportAddressBooks *    m_pInterface;
-  nsCOMPtr<nsIArray> m_Books;
-  nsCOMArray<nsIAddrDatabase> m_DBs;
+  nsCOMPtr<nsIImportAddressBooks> m_pInterface;
+  nsCOMPtr<nsIArray>              m_Books;
+  nsCOMArray<nsIAddrDatabase>     m_DBs;
   nsCOMPtr <nsIFile>              m_pLocation;
-  nsIImportFieldMap *      m_pFieldMap;
-  bool              m_autoFind;
-  char16_t *          m_description;
-  bool              m_gotLocation;
-  bool              m_found;
-  bool              m_userVerify;
-  nsISupportsString *    m_pSuccessLog;
-  nsISupportsString *    m_pErrorLog;
-  uint32_t          m_totalSize;
-  bool              m_doImport;
-  AddressThreadData *      m_pThreadData;
-  char *            m_pDestinationUri;
-  nsCOMPtr<nsIStringBundle>   m_stringBundle;
+  nsCOMPtr<nsIImportFieldMap>     m_pFieldMap;
+  bool                            m_autoFind;
+  char16_t *                      m_description;
+  bool                            m_gotLocation;
+  bool                            m_found;
+  bool                            m_userVerify;
+  nsCOMPtr<nsISupportsString>     m_pSuccessLog;
+  nsCOMPtr<nsISupportsString>     m_pErrorLog;
+  uint32_t                        m_totalSize;
+  bool                            m_doImport;
+  AddressThreadData *             m_pThreadData;
+  nsCString                       m_pDestinationUri;
+  nsCOMPtr<nsIStringBundle>       m_stringBundle;
 };
 
 class AddressThreadData {
@@ -99,15 +99,15 @@ public:
   bool              fatalError;
   uint32_t          currentTotal;
   uint32_t          currentSize;
-  nsIArray         *books;
-  nsCOMArray<nsIAddrDatabase>* dBs;
-  nsCOMPtr<nsIAbLDIFService> ldifService;
-  nsIImportAddressBooks *    addressImport;
-  nsIImportFieldMap *      fieldMap;
-  nsISupportsString *    successLog;
-  nsISupportsString *    errorLog;
-  char *            pDestinationUri;
-    nsIStringBundle*            stringBundle;
+  nsCOMPtr<nsIArray>              books;
+  nsCOMArray<nsIAddrDatabase>*    dBs;
+  nsCOMPtr<nsIAbLDIFService>      ldifService;
+  nsCOMPtr<nsIImportAddressBooks> addressImport;
+  nsCOMPtr<nsIImportFieldMap>     fieldMap;
+  nsCOMPtr<nsISupportsString>     successLog;
+  nsCOMPtr<nsISupportsString>     errorLog;
+  nsCString                       pDestinationUri;
+  nsCOMPtr<nsIStringBundle>       stringBundle;
 
   AddressThreadData();
   ~AddressThreadData();
@@ -120,28 +120,15 @@ nsresult NS_NewGenericAddressBooks(nsIImportGeneric** aImportGeneric)
     if (! aImportGeneric)
         return NS_ERROR_NULL_POINTER;
 
-  nsImportGenericAddressBooks *pGen = new nsImportGenericAddressBooks();
-
-  if (pGen == nullptr)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  NS_ADDREF(pGen);
-  nsresult rv = pGen->QueryInterface(NS_GET_IID(nsIImportGeneric), (void **)aImportGeneric);
-  NS_RELEASE(pGen);
-
-    return rv;
+  RefPtr<nsImportGenericAddressBooks> pGen = new nsImportGenericAddressBooks();
+  return pGen->QueryInterface(NS_GET_IID(nsIImportGeneric), (void **)aImportGeneric);
 }
 
 nsImportGenericAddressBooks::nsImportGenericAddressBooks()
 {
-  m_pInterface = nullptr;
-  m_pSuccessLog = nullptr;
-  m_pErrorLog = nullptr;
   m_totalSize = 0;
   m_doImport = false;
   m_pThreadData = nullptr;
-  m_pDestinationUri = nullptr;
-  m_pFieldMap = nullptr;
 
   m_autoFind = false;
   m_description = nullptr;
@@ -155,16 +142,8 @@ nsImportGenericAddressBooks::nsImportGenericAddressBooks()
 
 nsImportGenericAddressBooks::~nsImportGenericAddressBooks()
 {
-  if (m_pDestinationUri)
-    NS_Free(m_pDestinationUri);
-
   if (m_description)
-    NS_Free(m_description);
-
-  NS_IF_RELEASE(m_pFieldMap);
-  NS_IF_RELEASE(m_pInterface);
-  NS_IF_RELEASE(m_pSuccessLog);
-  NS_IF_RELEASE(m_pErrorLog);
+    free(m_description);
 }
 
 
@@ -174,15 +153,11 @@ NS_IMPL_ISUPPORTS(nsImportGenericAddressBooks, nsIImportGeneric)
 
 NS_IMETHODIMP nsImportGenericAddressBooks::GetData(const char *dataId, nsISupports **_retval)
 {
-  NS_PRECONDITION(_retval != nullptr, "null ptr");
-  if (!_retval)
-    return NS_ERROR_NULL_POINTER;
-
+  NS_ENSURE_ARG_POINTER(_retval);
   nsresult rv;
   *_retval = nullptr;
   if (!PL_strcasecmp(dataId, "addressInterface")) {
-    *_retval = m_pInterface;
-    NS_IF_ADDREF(m_pInterface);
+    NS_IF_ADDREF(*_retval = m_pInterface);
   }
 
   if (!PL_strcasecmp(dataId, "addressLocation")) {
@@ -200,18 +175,17 @@ NS_IMETHODIMP nsImportGenericAddressBooks::GetData(const char *dataId, nsISuppor
   }
 
   if (!PL_strcasecmp(dataId, "addressDestination")) {
-    if (m_pDestinationUri) {
-            nsCOMPtr<nsISupportsCString> abString = do_CreateInstance(NS_SUPPORTS_CSTRING_CONTRACTID, &rv);
-            NS_ENSURE_SUCCESS(rv, rv);
-            abString->SetData(nsDependentCString(m_pDestinationUri));
-            NS_IF_ADDREF(*_retval = abString);
+    if (!m_pDestinationUri.IsEmpty()) {
+      nsCOMPtr<nsISupportsCString> abString = do_CreateInstance(NS_SUPPORTS_CSTRING_CONTRACTID, &rv);
+      NS_ENSURE_SUCCESS(rv, rv);
+      abString->SetData(m_pDestinationUri);
+      abString.forget(_retval);
     }
   }
 
   if (!PL_strcasecmp(dataId, "fieldMap")) {
     if (m_pFieldMap) {
-      *_retval = m_pFieldMap;
-      m_pFieldMap->AddRef();
+      NS_ADDREF(*_retval = m_pFieldMap);
     }
     else {
       if (m_pInterface && m_pLocation) {
@@ -220,8 +194,7 @@ NS_IMETHODIMP nsImportGenericAddressBooks::GetData(const char *dataId, nsISuppor
         if (needsIt) {
           GetDefaultFieldMap();
           if (m_pFieldMap) {
-            *_retval = m_pFieldMap;
-            m_pFieldMap->AddRef();
+            NS_ADDREF(*_retval = m_pFieldMap);
           }
         }
       }
@@ -249,10 +222,9 @@ NS_IMETHODIMP nsImportGenericAddressBooks::GetData(const char *dataId, nsISuppor
         return rv;
       if (found) {
         data->SetData(nsDependentString(pData));
-        *_retval = data;
-        NS_ADDREF(*_retval);
+        data.forget(_retval);
       }
-      NS_Free(pData);
+      free(pData);
     }
   }
 
@@ -267,13 +239,13 @@ NS_IMETHODIMP nsImportGenericAddressBooks::SetData(const char *dataId, nsISuppor
     return NS_ERROR_NULL_POINTER;
 
   if (!PL_strcasecmp(dataId, "addressInterface")) {
-    NS_IF_RELEASE(m_pInterface);
+    m_pInterface = nullptr;
     if (item)
-      item->QueryInterface(NS_GET_IID(nsIImportAddressBooks), (void **) &m_pInterface);
+      m_pInterface = do_QueryInterface(item);
   }
   if (!PL_strcasecmp(dataId, "addressBooks")) {
     if (item)
-      item->QueryInterface(NS_GET_IID(nsIArray), (void **) &m_Books);
+      m_Books = do_QueryInterface(item);
   }
 
   if (!PL_strcasecmp(dataId, "addressLocation")) {
@@ -291,23 +263,17 @@ NS_IMETHODIMP nsImportGenericAddressBooks::SetData(const char *dataId, nsISuppor
 
   if (!PL_strcasecmp(dataId, "addressDestination")) {
     if (item) {
-      nsCOMPtr<nsISupportsCString> abString;
-      item->QueryInterface(NS_GET_IID(nsISupportsCString), getter_AddRefs(abString));
+      nsCOMPtr<nsISupportsCString> abString = do_QueryInterface(item);
       if (abString) {
-        if (m_pDestinationUri)
-          NS_Free(m_pDestinationUri);
-        m_pDestinationUri = nullptr;
-                nsAutoCString tempUri;
-                abString->GetData(tempUri);
-                m_pDestinationUri = ToNewCString(tempUri);
+        abString->GetData(m_pDestinationUri);
       }
     }
   }
 
   if (!PL_strcasecmp(dataId, "fieldMap")) {
-    NS_IF_RELEASE(m_pFieldMap);
+    m_pFieldMap = nullptr;
     if (item)
-      item->QueryInterface(NS_GET_IID(nsIImportFieldMap), (void **) &m_pFieldMap);
+      m_pFieldMap = do_QueryInterface(item);
   }
 
   return NS_OK;
@@ -363,7 +329,7 @@ void nsImportGenericAddressBooks::GetDefaultLocation(void)
     return;
 
   if (m_description)
-    NS_Free(m_description);
+    free(m_description);
   m_description = nullptr;
   m_pInterface->GetAutoFind(&m_description, &m_autoFind);
   m_gotLocation = true;
@@ -398,8 +364,6 @@ void nsImportGenericAddressBooks::GetDefaultFieldMap(void)
   if (!m_pInterface || !m_pLocation)
     return;
 
-  NS_IF_RELEASE(m_pFieldMap);
-
   nsresult  rv;
   nsCOMPtr<nsIImportService> impSvc(do_GetService(NS_IMPORTSERVICE_CONTRACTID, &rv));
   if (NS_FAILED(rv)) {
@@ -407,7 +371,7 @@ void nsImportGenericAddressBooks::GetDefaultFieldMap(void)
     return;
   }
 
-  rv = impSvc->CreateNewFieldMap(&m_pFieldMap);
+  rv = impSvc->CreateNewFieldMap(getter_AddRefs(m_pFieldMap));
   if (NS_FAILED(rv))
     return;
 
@@ -419,7 +383,7 @@ void nsImportGenericAddressBooks::GetDefaultFieldMap(void)
     rv = m_pInterface->InitFieldMap(m_pFieldMap);
   if (NS_FAILED(rv)) {
     IMPORT_LOG0("*** Error: Unable to initialize field map\n");
-    NS_IF_RELEASE(m_pFieldMap);
+    m_pFieldMap = nullptr;
   }
 }
 
@@ -625,37 +589,26 @@ NS_IMETHODIMP nsImportGenericAddressBooks::BeginImport(nsISupportsString *succes
     return NS_OK;
   }
 
-  NS_IF_RELEASE(m_pSuccessLog);
-  NS_IF_RELEASE(m_pErrorLog);
   m_pSuccessLog = successLog;
   m_pErrorLog = errorLog;
-  NS_IF_ADDREF(m_pSuccessLog);
-  NS_IF_ADDREF(m_pErrorLog);
-
 
   // create the info need to drive address book import. We're
   // not going to create a new thread for this since address books
   // don't tend to be large, and import is rare.
   m_pThreadData = new AddressThreadData();
   m_pThreadData->books = m_Books;
-  NS_ADDREF(m_Books);
   m_pThreadData->addressImport = m_pInterface;
-  NS_ADDREF(m_pInterface);
   m_pThreadData->fieldMap = m_pFieldMap;
-  NS_IF_ADDREF(m_pFieldMap);
   m_pThreadData->errorLog = m_pErrorLog;
-  NS_IF_ADDREF(m_pErrorLog);
   m_pThreadData->successLog = m_pSuccessLog;
-  NS_IF_ADDREF(m_pSuccessLog);
-  if (m_pDestinationUri)
-    m_pThreadData->pDestinationUri = strdup(m_pDestinationUri);
+  m_pThreadData->pDestinationUri = m_pDestinationUri;
 
   uint32_t count = 0;
   m_Books->GetLength(&count);
   // Create/obtain any address books that we need here, so that we don't need
   // to do so inside the import thread which would just proxy the create
   // operations back to the main thread anyway.
-  nsCOMPtr<nsIAddrDatabase> db = GetAddressBookFromUri(m_pDestinationUri);
+  nsCOMPtr<nsIAddrDatabase> db = GetAddressBookFromUri(m_pDestinationUri.get());
   for (uint32_t i = 0; i < count; ++i)
   {
     nsCOMPtr<nsIImportABDescriptor> book = do_QueryElementAt(m_Books, i);
@@ -672,7 +625,7 @@ NS_IMETHODIMP nsImportGenericAddressBooks::BeginImport(nsISupportsString *succes
   }
   m_pThreadData->dBs = &m_DBs;
 
-  NS_IF_ADDREF(m_pThreadData->stringBundle = m_stringBundle);
+  m_pThreadData->stringBundle = m_stringBundle;
 
   nsresult rv;
   m_pThreadData->ldifService = do_GetService(NS_ABLDIFSERVICE_CONTRACTID, &rv);
@@ -757,27 +710,10 @@ AddressThreadData::AddressThreadData()
   abort = false;
   currentTotal = 0;
   currentSize = 0;
-  books = nullptr;
-  addressImport = nullptr;
-  successLog = nullptr;
-  errorLog = nullptr;
-  pDestinationUri = nullptr;
-  fieldMap = nullptr;
-  stringBundle = nullptr;
-  ldifService = nullptr;
 }
 
 AddressThreadData::~AddressThreadData()
 {
-  if (pDestinationUri)
-    NS_Free(pDestinationUri);
-
-  NS_IF_RELEASE(books);
-  NS_IF_RELEASE(addressImport);
-  NS_IF_RELEASE(errorLog);
-  NS_IF_RELEASE(successLog);
-  NS_IF_RELEASE(fieldMap);
-  NS_IF_RELEASE(stringBundle);
 }
 
 void nsImportGenericAddressBooks::ReportError(const char16_t *pName,
@@ -788,10 +724,10 @@ void nsImportGenericAddressBooks::ReportError(const char16_t *pName,
     return;
   // load the error string
   char16_t *pFmt = nsImportStringBundle::GetStringByID(IMPORT_ERROR_GETABOOK, aBundle);
-  char16_t *pText = nsTextFormatter::smprintf(pFmt, pName);
+  nsString pText;
+  nsTextFormatter::ssprintf(pText, pFmt, pName);
   pStream->Append(pText);
-  nsTextFormatter::smprintf_free(pText);
-  NS_Free(pFmt);
+  free(pFmt);
   pStream->AppendLiteral(MSG_LINEBREAK);
 }
 
@@ -857,11 +793,11 @@ static void ImportAddressThread(void *stuff)
                                                        &fatalError);
           if (NS_SUCCEEDED(rv) && pSuccess) {
             success.Append(pSuccess);
-            NS_Free(pSuccess);
+            free(pSuccess);
           }
           if (pError) {
             error.Append(pError);
-            NS_Free(pError);
+            free(pError);
           }
         }
         else {

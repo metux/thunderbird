@@ -20,6 +20,8 @@
 #include <windows.h>
 #include <process.h>
 #else
+#include <pthread.h>
+#include <sys/types.h>
 #include <unistd.h>
 #endif
 
@@ -47,33 +49,7 @@
 
 // replace_malloc.h needs to be included before replace_malloc_bridge.h,
 // which DMD.h includes, so DMD.h needs to be included after replace_malloc.h.
-// MOZ_REPLACE_ONLY_MEMALIGN saves us from having to define
-// replace_{posix_memalign,aligned_alloc,valloc}.  It requires defining
-// PAGE_SIZE.  Nb: sysconf() is expensive, but it's only used for (the obsolete
-// and rarely used) valloc.
-#define MOZ_REPLACE_ONLY_MEMALIGN 1
-
-#ifndef PAGE_SIZE
-#define DMD_DEFINED_PAGE_SIZE
-#ifdef XP_WIN
-#define PAGE_SIZE GetPageSize()
-static long GetPageSize()
-{
-  SYSTEM_INFO si;
-  GetSystemInfo(&si);
-  return si.dwPageSize;
-}
-#else // XP_WIN
-#define PAGE_SIZE sysconf(_SC_PAGESIZE)
-#endif // XP_WIN
-#endif // PAGE_SIZE
 #include "replace_malloc.h"
-#undef MOZ_REPLACE_ONLY_MEMALIGN
-#ifdef DMD_DEFINED_PAGE_SIZE
-#undef DMD_DEFINED_PAGE_SIZE
-#undef PAGE_SIZE
-#endif // DMD_DEFINED_PAGE_SIZE
-
 #include "DMD.h"
 
 namespace mozilla {
@@ -93,6 +69,7 @@ DMDBridge::GetDMDFuncs()
   return &gDMDFuncs;
 }
 
+MOZ_FORMAT_PRINTF(1, 2)
 inline void
 StatusMsg(const char* aFmt, ...)
 {
@@ -440,9 +417,6 @@ public:
 
 #else
 
-#include <pthread.h>
-#include <sys/types.h>
-
 class MutexBase
 {
   pthread_mutex_t mMutex;
@@ -526,8 +500,6 @@ public:
 #define DMD_SET_TLS_DATA(i_, v_)        TlsSetValue((i_), (v_))
 
 #else
-
-#include <pthread.h>
 
 #define DMD_TLS_INDEX_TYPE               pthread_key_t
 #define DMD_CREATE_TLS_INDEX(i_)         pthread_key_create(&(i_), nullptr)
@@ -781,13 +753,64 @@ StackTrace::Get(Thread* aT)
   StackTrace tmp;
   {
     AutoUnlockState unlock;
-    uint32_t skipFrames = 2;
-    if (MozStackWalk(StackWalkCallback, skipFrames,
-                     MaxFrames, &tmp, 0, nullptr)) {
-      // Handle the common case first.  All is ok.  Nothing to do.
-    } else {
-      tmp.mLength = 0;
+    // In each of the following cases, skipFrames is chosen so that the
+    // first frame in each stack trace is a replace_* function (or as close as
+    // possible, given the vagaries of inlining on different platforms).
+#if defined(XP_WIN) && defined(_M_IX86)
+    // This avoids MozStackWalk(), which causes unusably slow startup on Win32
+    // when it is called during static initialization (see bug 1241684).
+    //
+    // This code is cribbed from the Gecko Profiler, which also uses
+    // FramePointerStackWalk() on Win32: Registers::SyncPopulate() for the
+    // frame pointer, and GetStackTop() for the stack end.
+    CONTEXT context;
+    RtlCaptureContext(&context);
+    void** fp = reinterpret_cast<void**>(context.Ebp);
+
+    // Offset 0x18 from the FS segment register gives a pointer to the thread
+    // information block for the current thread.
+#if defined(_MSC_VER)
+    NT_TIB* pTib;
+    __asm {
+      MOV EAX, FS:[18h]
+      MOV pTib, EAX
     }
+#elif defined(__GNUC__)
+    NT_TIB* pTib;
+    asm ( "movl %%fs:0x18, %0\n"
+         : "=r" (pTib)
+        );
+#else
+#   error "unknown compiler"
+#endif
+    void* stackEnd = static_cast<void*>(pTib->StackBase);
+    FramePointerStackWalk(StackWalkCallback, /* skipFrames = */ 0, MaxFrames,
+                          &tmp, fp, stackEnd);
+#elif defined(XP_MACOSX)
+    // This avoids MozStackWalk(), which has become unusably slow on Mac due to
+    // changes in libunwind.
+    //
+    // This code is cribbed from the Gecko Profiler, which also uses
+    // FramePointerStackWalk() on Mac: Registers::SyncPopulate() for the frame
+    // pointer, and GetStackTop() for the stack end.
+    void** fp;
+    asm (
+        // Dereference %rbp to get previous %rbp
+        "movq (%%rbp), %0\n\t"
+        :
+        "=r"(fp)
+    );
+    void* stackEnd = pthread_get_stackaddr_np(pthread_self());
+    FramePointerStackWalk(StackWalkCallback, /* skipFrames = */ 0, MaxFrames,
+                          &tmp, fp, stackEnd);
+#else
+#if defined(XP_WIN) && defined(_M_X64)
+    int skipFrames = 1;
+#else
+    int skipFrames = 2;
+#endif
+    MozStackWalk(StackWalkCallback, skipFrames, MaxFrames, &tmp);
+#endif
   }
 
   StackTraceTable::AddPtr p = gStackTraceTable->lookupForAdd(&tmp);
@@ -1538,13 +1561,21 @@ Options::ModeString() const
 // DMD start-up
 //---------------------------------------------------------------------------
 
-#ifdef XP_MACOSX
 static void
-NopStackWalkCallback(uint32_t aFrameNumber, void* aPc, void* aSp,
-                     void* aClosure)
+prefork()
 {
+  if (gStateLock) {
+    gStateLock->Lock();
+  }
 }
-#endif
+
+static void
+postfork()
+{
+  if (gStateLock) {
+    gStateLock->Unlock();
+  }
+}
 
 // WARNING: this function runs *very* early -- before all static initializers
 // have run.  For this reason, non-scalar globals such as gStateLock and
@@ -1556,28 +1587,27 @@ Init(const malloc_table_t* aMallocTable)
   gMallocTable = aMallocTable;
   gDMDBridge = InfallibleAllocPolicy::new_<DMDBridge>();
 
+#ifndef XP_WIN
+  // Avoid deadlocks when forking by acquiring our state lock prior to forking
+  // and releasing it after forking. See |LogAlloc|'s |replace_init| for
+  // in-depth details.
+  //
+  // Note: This must run after attempting an allocation so as to give the
+  // system malloc a chance to insert its own atfork handler.
+  pthread_atfork(prefork, postfork, postfork);
+#endif
+
   // DMD is controlled by the |DMD| environment variable.
   const char* e = getenv("DMD");
 
   if (e) {
     StatusMsg("$DMD = '%s'\n", e);
   } else {
-    StatusMsg("$DMD is undefined\n", e);
+    StatusMsg("$DMD is undefined\n");
   }
 
   // Parse $DMD env var.
   gOptions = InfallibleAllocPolicy::new_<Options>(e);
-
-#ifdef XP_MACOSX
-  // On Mac OS X we need to call StackWalkInitCriticalAddress() very early
-  // (prior to the creation of any mutexes, apparently) otherwise we can get
-  // hangs when getting stack traces (bug 821577).  But
-  // StackWalkInitCriticalAddress() isn't exported from xpcom/, so instead we
-  // just call MozStackWalk, because that calls StackWalkInitCriticalAddress().
-  // See the comment above StackWalkInitCriticalAddress() for more details.
-  (void)MozStackWalk(NopStackWalkCallback, /* skipFrames */ 0,
-                     /* maxFrames */ 1, nullptr, 0, nullptr);
-#endif
 
   gStateLock = InfallibleAllocPolicy::new_<Mutex>();
 
@@ -1628,7 +1658,9 @@ ReportHelper(const void* aPtr, bool aReportedOnAlloc)
   } else {
     // We have no record of the block. It must be a bogus pointer. This should
     // be extremely rare because Report() is almost always called in
-    // conjunction with a malloc_size_of-style function.
+    // conjunction with a malloc_size_of-style function. Print a message so
+    // that we get some feedback.
+    StatusMsg("Unknown pointer %p\n", aPtr);
   }
 }
 

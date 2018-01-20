@@ -23,7 +23,9 @@
 #include "nsHashKeys.h"
 #include "GeckoProfiler.h"
 #include "nsComponentManagerUtils.h"
-#include "nsITimer.h"
+#include "ScreenHelperWin.h"
+#include "HeadlessScreenHelper.h"
+#include "mozilla/widget/ScreenManager.h"
 
 // These are two messages that the code in winspool.drv on Windows 7 explicitly
 // waits for while it is pumping other Windows messages, during display of the
@@ -34,111 +36,60 @@
 using namespace mozilla;
 using namespace mozilla::widget;
 
-#define WAKE_LOCK_LOG(...) MOZ_LOG(GetWinWakeLockLog(), mozilla::LogLevel::Debug, (__VA_ARGS__))
-PRLogModuleInfo* GetWinWakeLockLog() {
-  static PRLogModuleInfo* log = nullptr;
-  if (!log) {
-    log = PR_NewLogModule("WinWakeLock");
-  }
-  return log;
-}
+#define WAKE_LOCK_LOG(...) MOZ_LOG(gWinWakeLockLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
+static mozilla::LazyLogModule gWinWakeLockLog("WinWakeLock");
 
 // A wake lock listener that disables screen saver when requested by
 // Gecko. For example when we're playing video in a foreground tab we
 // don't want the screen saver to turn on.
 class WinWakeLockListener final : public nsIDOMMozWakeLockListener
-                                , public nsITimerCallback {
+{
 public:
-  NS_DECL_ISUPPORTS;
+  NS_DECL_ISUPPORTS
 
-  NS_IMETHOD Notify(nsITimer *timer) override {
-    WAKE_LOCK_LOG("WinWakeLock: periodic timer fired");
-    ResetScreenSaverTimeout();
-    return NS_OK;
-  }
 private:
   ~WinWakeLockListener() {}
 
   NS_IMETHOD Callback(const nsAString& aTopic, const nsAString& aState) {
-    if (!aTopic.EqualsASCII("screen")) {
+    if (!aTopic.EqualsASCII("screen") &&
+        !aTopic.EqualsASCII("audio-playing") &&
+        !aTopic.EqualsASCII("video-playing")) {
       return NS_OK;
     }
+
+    // we should still hold the lock for background audio.
+    if (aTopic.EqualsASCII("audio-playing") &&
+        aState.EqualsASCII("locked-background")) {
+      return NS_OK;
+    }
+
+    if (aTopic.EqualsASCII("screen") ||
+        aTopic.EqualsASCII("video-playing")) {
+      mRequireForDisplay = aState.EqualsASCII("locked-foreground");
+    }
+
     // Note the wake lock code ensures that we're not sent duplicate
-    // "locked-foreground" notifications when multipe wake locks are held.
+    // "locked-foreground" notifications when multiple wake locks are held.
     if (aState.EqualsASCII("locked-foreground")) {
       WAKE_LOCK_LOG("WinWakeLock: Blocking screen saver");
-      // We block the screen saver by periodically resetting the screen
-      // saver timeout.
-      StartTimer();
-      // Prevent the display turning off. On Win7 and later this also
-      // blocks the screen saver, but we need the timer started above
-      // to block on Win XP and Vista.
-      SetThreadExecutionState(ES_DISPLAY_REQUIRED|ES_CONTINUOUS);
+      if (mRequireForDisplay) {
+        // Prevent the display turning off and block the screen saver.
+        SetThreadExecutionState(ES_DISPLAY_REQUIRED|ES_CONTINUOUS);
+      } else {
+        SetThreadExecutionState(ES_SYSTEM_REQUIRED|ES_CONTINUOUS);
+      }
     } else {
       WAKE_LOCK_LOG("WinWakeLock: Unblocking screen saver");
-      // Re-enable screen saver.
-      StopTimer();
-      // Unblock display turning off.
+      // Unblock display/screen saver turning off.
       SetThreadExecutionState(ES_CONTINUOUS);
     }
     return NS_OK;
   }
 
-  void StartTimer() {
-    ResetScreenSaverTimeout();
-    MOZ_ASSERT(!mTimer);
-    if (mTimer) {
-      return;
-    }
-
-    nsresult rv;
-    nsCOMPtr<nsITimer> timer = do_CreateInstance(NS_TIMER_CONTRACTID, &rv);
-    if (NS_FAILED(rv)) {
-      NS_WARNING("Failed to create screen saver timeout reset timer");
-      return;
-    }
-    // The minimum screensaver timeout that can be specified with Windows' UI
-    // is 60 seconds. We set a timer to re-jig the screen saver 10 seconds
-    // before we expect the timer to run out, but always at least in 1 second
-    // intervals. We reset the timer at a max of 50 seconds, so that if the
-    // user changes the timeout using the UI, we won't be caught out.
-    int32_t timeout = std::max(std::min(50, (int32_t)mScreenSaverTimeout - 10), 1);
-    uint32_t timeoutMs = (uint32_t)timeout * 1000;
-    WAKE_LOCK_LOG("WinWakeLock: Setting periodic timer for %d ms", timeoutMs);
-    rv = timer->InitWithCallback(this,
-                                 timeoutMs,
-                                 nsITimer::TYPE_REPEATING_SLACK);
-    if (NS_FAILED(rv)) {
-      NS_WARNING("Failed to initialize screen saver timeout reset timer");
-      return;
-    }
-
-    mTimer = timer.forget();
-  }
-
-  void StopTimer() {
-    WAKE_LOCK_LOG("WinWakeLock: StopTimer()");
-    if (!mTimer) {
-      return;
-    }
-    mTimer->Cancel();
-    mTimer = nullptr;
-  }
-
-  // Resets the operating system's timeout for when to disable the screen.
-  // Called periodically to keep the screensaver off.
-  void ResetScreenSaverTimeout() {
-    if (SystemParametersInfo(SPI_GETSCREENSAVETIMEOUT, 0, &mScreenSaverTimeout, 0)) {
-      SystemParametersInfo(SPI_SETSCREENSAVETIMEOUT, mScreenSaverTimeout, NULL, 0);
-    }
-    WAKE_LOCK_LOG("WinWakeLock: ResetScreenSaverTimeout() mScreenSaverTimeout=%d", mScreenSaverTimeout);
-  }
-
-  UINT mScreenSaverTimeout = 60;
-  nsCOMPtr<nsITimer> mTimer;
+  bool mRequireForDisplay = false;
 };
 
-NS_IMPL_ISUPPORTS(WinWakeLockListener, nsIDOMMozWakeLockListener, nsITimerCallback)
+NS_IMPL_ISUPPORTS(WinWakeLockListener, nsIDOMMozWakeLockListener)
 StaticRefPtr<WinWakeLockListener> sWakeLockListener;
 
 static void
@@ -243,8 +194,19 @@ nsAppShell::Init()
   }
 
   mEventWnd = CreateWindowW(kWindowClass, L"nsAppShell:EventWindow",
-                           0, 0, 0, 10, 10, nullptr, nullptr, module, nullptr);
+                            0, 0, 0, 10, 10, HWND_MESSAGE, nullptr, module,
+                            nullptr);
   NS_ENSURE_STATE(mEventWnd);
+
+  if (XRE_IsParentProcess()) {
+    ScreenManager& screenManager = ScreenManager::GetSingleton();
+    if (gfxPlatform::IsHeadless()) {
+      screenManager.SetHelper(mozilla::MakeUnique<HeadlessScreenHelper>());
+    } else {
+      screenManager.SetHelper(mozilla::MakeUnique<ScreenHelperWin>());
+      ScreenHelperWin::RefreshScreens();
+    }
+  }
 
   return nsBaseAppShell::Init();
 }
@@ -305,7 +267,7 @@ nsAppShell::DoProcessMoreGeckoEvents()
   // if we need it, which insures NS_ProcessPendingEvents gets called and all
   // gecko events get processed.
   if (mEventloopNestingLevel < 2) {
-    OnDispatchedEvent(nullptr);
+    OnDispatchedEvent();
     mNativeCallbackPending = false;
   } else {
     mNativeCallbackPending = true;
@@ -393,7 +355,7 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
       // Block and wait for any posted application message
       mozilla::HangMonitor::Suspend();
       {
-        GeckoProfilerSleepRAII profiler_sleep;
+        AUTO_PROFILER_THREAD_SLEEP;
         WinUtils::WaitForMessage();
       }
     }

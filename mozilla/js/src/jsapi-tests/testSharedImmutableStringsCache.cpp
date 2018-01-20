@@ -44,7 +44,7 @@ getString(CacheAndIndex* cacheAndIndex)
 
         auto deduped = cacheAndIndex->cache->getOrCreate(mozilla::Move(dupe), js_strlen(str));
         MOZ_RELEASE_ASSERT(deduped.isSome());
-        MOZ_RELEASE_ASSERT(js_strcmp(str, deduped->chars()) == 0);
+        MOZ_RELEASE_ASSERT(js::EqualChars(str, deduped->chars(), js_strlen(str) + 1));
 
         {
             auto cloned = deduped->clone();
@@ -65,7 +65,7 @@ BEGIN_TEST(testSharedImmutableStringsCache)
     js::Vector<js::Thread> threads(cx);
     CHECK(threads.reserve(NUM_THREADS));
 
-    for (auto i : mozilla::MakeRange(NUM_THREADS)) {
+    for (auto i : mozilla::IntegerRange(NUM_THREADS)) {
         auto cacheAndIndex = js_new<CacheAndIndex>(&cache, i);
         CHECK(cacheAndIndex);
         threads.infallibleEmplaceBack();

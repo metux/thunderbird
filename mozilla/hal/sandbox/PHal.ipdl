@@ -98,24 +98,7 @@ parent:
     sync GetCurrentNetworkInformation()
       returns (NetworkInformation aNetworkInfo);
 
-    sync GetScreenEnabled() returns (bool enabled);
-    async SetScreenEnabled(bool aEnabled);
-
-    sync GetKeyLightEnabled() returns (bool enabled);
-    async SetKeyLightEnabled(bool aEnabled);
-
-    sync GetCpuSleepAllowed() returns (bool allowed);
-    async SetCpuSleepAllowed(bool aAllowed);
-
-    sync GetScreenBrightness() returns (double brightness);
-    async SetScreenBrightness(double aBrightness);
-
     async AdjustSystemClock(int64_t aDeltaMilliseconds);
-    async SetTimezone(nsCString aTimezoneSpec);
-    sync GetTimezone()
-      returns (nsCString aTimezoneSpec);
-    sync GetTimezoneOffset()
-      returns (int32_t aTimezoneOffset);
     async EnableSystemClockChangeNotifications();
     async DisableSystemClockChangeNotifications();
     async EnableSystemTimezoneChangeNotifications();
@@ -132,18 +115,12 @@ parent:
 
     async EnableScreenConfigurationNotifications();
     async DisableScreenConfigurationNotifications();
-    nested(inside_cpow) sync GetCurrentScreenConfiguration()
-      returns (ScreenConfiguration aScreenConfiguration);
     sync LockScreenOrientation(ScreenOrientationInternal aOrientation)
       returns (bool allowed);
     async UnlockScreenOrientation();
  
     async EnableSwitchNotifications(SwitchDevice aDevice);
     async DisableSwitchNotifications(SwitchDevice aDevice);
-    sync GetCurrentSwitchState(SwitchDevice aDevice)
-      returns (SwitchState aState);
-
-    async FactoryReset(nsString aReason);
 
 child:
     async NotifySensorChange(SensorData aSensorData);

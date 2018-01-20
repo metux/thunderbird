@@ -8,10 +8,9 @@
 
 #include "nsIMessengerOSIntegration.h"
 #include "nsIFolderListener.h"
-#include "nsIAtom.h"
 #include "nsITimer.h"
 #include "nsCOMPtr.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsIObserver.h"
 #include "nsIAlertsService.h"
 #include "mozINewMailListener.h"
@@ -40,8 +39,6 @@ public:
 private:
   virtual ~nsMessengerOSXIntegration();
 
-  nsCOMPtr<nsIAtom> mBiffStateAtom;
-  nsCOMPtr<nsIAtom> mNewMailReceivedAtom;
   nsresult ShowAlertMessage(const nsAString& aAlertTitle, const nsAString& aAlertText, const nsACString& aFolderURI);
   nsresult OnAlertFinished();
   nsresult OnAlertClicked(const char16_t * aAlertCookie);

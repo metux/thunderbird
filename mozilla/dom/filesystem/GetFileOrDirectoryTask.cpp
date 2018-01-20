@@ -7,13 +7,12 @@
 #include "GetFileOrDirectoryTask.h"
 
 #include "js/Value.h"
-#include "mozilla/dom/File.h"
+#include "mozilla/dom/FileBlobImpl.h"
 #include "mozilla/dom/FileSystemBase.h"
 #include "mozilla/dom/FileSystemUtils.h"
 #include "mozilla/dom/PFileSystemParams.h"
 #include "mozilla/dom/Promise.h"
-#include "mozilla/dom/ipc/BlobChild.h"
-#include "mozilla/dom/ipc/BlobParent.h"
+#include "mozilla/dom/IPCBlobUtils.h"
 #include "nsIFile.h"
 #include "nsStringGlue.h"
 
@@ -32,17 +31,17 @@ GetFileOrDirectoryTaskChild::Create(FileSystemBase* aFileSystem,
   MOZ_ASSERT(NS_IsMainThread(), "Only call on main thread!");
   MOZ_ASSERT(aFileSystem);
 
-  RefPtr<GetFileOrDirectoryTaskChild> task =
-    new GetFileOrDirectoryTaskChild(aFileSystem, aTargetPath);
-
-  // aTargetPath can be null. In this case SetError will be called.
-
   nsCOMPtr<nsIGlobalObject> globalObject =
     do_QueryInterface(aFileSystem->GetParentObject());
   if (NS_WARN_IF(!globalObject)) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
   }
+
+  RefPtr<GetFileOrDirectoryTaskChild> task =
+    new GetFileOrDirectoryTaskChild(globalObject, aFileSystem, aTargetPath);
+
+  // aTargetPath can be null. In this case SetError will be called.
 
   task->mPromise = Promise::Create(globalObject, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
@@ -52,9 +51,10 @@ GetFileOrDirectoryTaskChild::Create(FileSystemBase* aFileSystem,
   return task.forget();
 }
 
-GetFileOrDirectoryTaskChild::GetFileOrDirectoryTaskChild(FileSystemBase* aFileSystem,
+GetFileOrDirectoryTaskChild::GetFileOrDirectoryTaskChild(nsIGlobalObject* aGlobalObject,
+                                                         FileSystemBase* aFileSystem,
                                                          nsIFile* aTargetPath)
-  : FileSystemTaskChildBase(aFileSystem)
+  : FileSystemTaskChildBase(aGlobalObject, aFileSystem)
   , mTargetPath(aTargetPath)
 {
   MOZ_ASSERT(NS_IsMainThread(), "Only call on main thread!");
@@ -97,8 +97,7 @@ GetFileOrDirectoryTaskChild::SetSuccessRequestResult(const FileSystemResponseVal
     case FileSystemResponseValue::TFileSystemFileResponse: {
       FileSystemFileResponse r = aValue;
 
-      RefPtr<BlobImpl> blobImpl =
-        static_cast<BlobChild*>(r.blobChild())->GetBlobImpl();
+      RefPtr<BlobImpl> blobImpl = IPCBlobUtils::Deserialize(r.blob());
       MOZ_ASSERT(blobImpl);
 
       mResultFile = File::Create(mFileSystem->GetParentObject(), blobImpl);
@@ -120,7 +119,7 @@ GetFileOrDirectoryTaskChild::SetSuccessRequestResult(const FileSystemResponseVal
       break;
     }
     default: {
-      NS_RUNTIMEABORT("not reached");
+      MOZ_CRASH("not reached");
       break;
     }
   }
@@ -206,10 +205,15 @@ GetFileOrDirectoryTaskParent::GetSuccessRequestResult(ErrorResult& aRv) const
     return FileSystemDirectoryResponse(path);
   }
 
-  RefPtr<BlobImpl> blobImpl = new BlobImplFile(mTargetPath);
-  BlobParent* blobParent =
-    BlobParent::GetOrCreate(mRequestParent->Manager(), blobImpl);
-  return FileSystemFileResponse(blobParent, nullptr);
+  RefPtr<BlobImpl> blobImpl = new FileBlobImpl(mTargetPath);
+
+  IPCBlob ipcBlob;
+  aRv = IPCBlobUtils::Serialize(blobImpl, mRequestParent->Manager(), ipcBlob);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return FileSystemDirectoryResponse();
+  }
+
+  return FileSystemFileResponse(ipcBlob);
 }
 
 nsresult

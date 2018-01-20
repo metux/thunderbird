@@ -101,6 +101,13 @@ var gAddressBookAbListener = {
 
 function OnUnloadAddressBook()
 {
+  // If there's no default startupURI, save the last used URI as new startupURI.
+  let saveLastURIasStartupURI = !Services.prefs.getBoolPref("mail.addr_book.view.startupURIisDefault");
+  if (saveLastURIasStartupURI) {
+    let selectedDirURI = getSelectedDirectoryURI();
+    Services.prefs.setCharPref("mail.addr_book.view.startupURI", selectedDirURI);
+  }
+
   MailServices.ab.removeAddressBookListener(gAddressBookAbListener);
   MailServices.ab.removeAddressBookListener(gDirectoryTreeView);
 
@@ -162,8 +169,6 @@ function OnLoadAddressBook()
 
 function delayedOnLoadAddressBook()
 {
-  verifyAccounts(null, false);   // this will do migration, if we need to.
-
   InitCommonJS();
 
   GetCurrentPrefs();
@@ -175,11 +180,15 @@ function delayedOnLoadAddressBook()
   gDirectoryTreeView.init(gDirTree,
                           kPersistCollapseMapStorage);
 
-  SelectFirstAddressBook();
+  selectStartupViewDirectory();
+  gAbResultsTree.focus();
 
   // if the pref is locked disable the menuitem New->LDAP directory
   if (Services.prefs.prefIsLocked("ldap_2.disable_button_add"))
     document.getElementById("addLDAP").setAttribute("disabled", "true");
+
+  document.getElementById("cmd_newMessage")
+          .setAttribute("disabled", (MailServices.accounts.allIdentities.length == 0));
 
   // Add a listener, so we can switch directories if the current directory is
   // deleted. This listener cares when a directory (= address book), or a
@@ -283,7 +292,10 @@ function CommandUpdate_AddressBook()
 {
   goUpdateCommand('cmd_delete');
   goUpdateCommand('button_delete');
+  goUpdateCommand('cmd_printcardpreview');
+  goUpdateCommand('cmd_printcard');
   goUpdateCommand('cmd_properties');
+  goUpdateCommand("cmd_abToggleStartupDir");
   goUpdateCommand('cmd_newlist');
   goUpdateCommand('cmd_newCard');
   goUpdateCommand('cmd_chatWithCard');

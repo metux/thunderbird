@@ -8,13 +8,13 @@
 #define mozilla_dom_workers_scriptloader_h__
 
 #include "Workers.h"
-#include "nsIContentPolicyBase.h"
+#include "nsIContentPolicy.h"
+#include "nsStringFwd.h"
 
 class nsIPrincipal;
 class nsIURI;
 class nsIDocument;
 class nsILoadGroup;
-class nsString;
 class nsIChannel;
 
 namespace mozilla {
@@ -46,7 +46,7 @@ nsresult
 ChannelFromScriptURLWorkerThread(JSContext* aCx,
                                  WorkerPrivate* aParent,
                                  const nsAString& aScriptURL,
-                                 nsIChannel** aChannel);
+                                 WorkerLoadInfo& aLoadInfo);
 
 void ReportLoadError(ErrorResult& aRv, nsresult aLoadResult,
                      const nsAString& aScriptURL);

@@ -277,7 +277,7 @@ function onViewToolbarsPopupShowing(aEvent, toolboxIds, aInsertPoint)
 
     // We'll consider either childnodes that have a toolbarname attribute,
     // or externalToolbars.
-    let potentialToolbars = Array.slice(
+    let potentialToolbars = Array.from(
       toolbox.querySelectorAll("[toolbarname]")
     );
     for (let externalToolbar of toolbox.externalToolbars) {
@@ -584,11 +584,20 @@ function openFormattedURL(aPrefName)
 {
   var urlToOpen = Services.urlFormatter.formatURLPref(aPrefName);
 
-  var uri = Services.io.newURI(urlToOpen, null, null);
+  var uri = Services.io.newURI(urlToOpen);
 
   var protocolSvc = Components.classes["@mozilla.org/uriloader/external-protocol-service;1"]
                               .getService(Components.interfaces.nsIExternalProtocolService);
   protocolSvc.loadURI(uri);
+}
+
+/**
+ * Opens the Troubleshooting page in a new tab.
+ */
+function openAboutSupport() {
+  let tabmail = document.getElementById("tabmail");
+  tabmail.openTab("contentTab", {contentPage: "about:support",
+                  clickHandler: "specialTabs.aboutClickHandler(event);" });
 }
 
 /**
@@ -742,7 +751,7 @@ nsFlavorDataProvider.prototype =
       var dirPrimitive = {};
       aTransferable.getTransferData("application/x-moz-file-promise-dir",
                                     dirPrimitive, dataSize);
-      var destDirectory = dirPrimitive.value.QueryInterface(Components.interfaces.nsILocalFile);
+      var destDirectory = dirPrimitive.value.QueryInterface(Components.interfaces.nsIFile);
 
       // now save the attachment to the specified location
       // XXX: we need more information than just the attachment url to save it,

@@ -16,6 +16,10 @@
           src="chrome://messenger/content/macMessengerOverlay.js"/>
   <popupset>
     <menupopup id="menu_mac_dockmenu">
+      <menuitem label="&writeNewMessageDock.label;" id="tasksWriteNewMessage"
+                oncommand="writeNewMessageDock();"/>
+      <menuitem label="&openAddressBookDock.label;" id="tasksOpenAddressBook"
+                oncommand="openAddressBookDock();"/>
       <menuitem label="&dockOptions.label;" id="tasksMenuDockOptions"
                 oncommand="openDockOptions();"/>
     </menupopup>

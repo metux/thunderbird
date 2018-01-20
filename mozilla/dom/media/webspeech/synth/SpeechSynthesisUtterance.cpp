@@ -21,7 +21,7 @@ namespace dom {
 NS_IMPL_CYCLE_COLLECTION_INHERITED(SpeechSynthesisUtterance,
                                    DOMEventTargetHelper, mVoice);
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(SpeechSynthesisUtterance)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(SpeechSynthesisUtterance)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 NS_IMPL_ADDREF_INHERITED(SpeechSynthesisUtterance, DOMEventTargetHelper)
@@ -69,6 +69,7 @@ SpeechSynthesisUtterance::Constructor(GlobalObject& aGlobal,
 
   if (!win) {
     aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
   }
 
   MOZ_ASSERT(win->IsInnerWindow());
@@ -158,6 +159,7 @@ SpeechSynthesisUtterance::GetChosenVoiceURI(nsString& aResult) const
 void
 SpeechSynthesisUtterance::DispatchSpeechSynthesisEvent(const nsAString& aEventType,
                                                        uint32_t aCharIndex,
+                                                       const Nullable<uint32_t>& aCharLength,
                                                        float aElapsedTime,
                                                        const nsAString& aName)
 {
@@ -166,6 +168,7 @@ SpeechSynthesisUtterance::DispatchSpeechSynthesisEvent(const nsAString& aEventTy
   init.mCancelable = false;
   init.mUtterance = this;
   init.mCharIndex = aCharIndex;
+  init.mCharLength = aCharLength;
   init.mElapsedTime = aElapsedTime;
   init.mName = aName;
 

@@ -307,7 +307,7 @@ LIRGeneratorX86Shared::visitWasmSelect(MWasmSelect* ins)
 }
 
 void
-LIRGeneratorX86Shared::visitAsmJSNeg(MAsmJSNeg* ins)
+LIRGeneratorX86Shared::visitWasmNeg(MWasmNeg* ins)
 {
     switch (ins->type()) {
       case MIRType::Int32:
@@ -322,18 +322,6 @@ LIRGeneratorX86Shared::visitAsmJSNeg(MAsmJSNeg* ins)
       default:
         MOZ_CRASH();
     }
-}
-
-void
-LIRGeneratorX86Shared::lowerWasmLoad(MWasmLoad* ins)
-{
-    MOZ_ASSERT(ins->type() != MIRType::Int64);
-
-    MDefinition* base = ins->base();
-    MOZ_ASSERT(base->type() == MIRType::Int32);
-
-    auto* lir = new(alloc()) LWasmLoad(useRegisterOrZeroAtStart(base));
-    define(lir, ins);
 }
 
 void

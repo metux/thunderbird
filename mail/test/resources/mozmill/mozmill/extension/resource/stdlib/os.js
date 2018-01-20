@@ -52,7 +52,7 @@ function listDirectory (file) {
 
 function getFileForPath (path) {
   var file = Components.classes["@mozilla.org/file/local;1"]
-                       .createInstance(Components.interfaces.nsILocalFile);
+                       .createInstance(Components.interfaces.nsIFile);
   file.initWithPath(path);
   return file;
 }
@@ -79,8 +79,7 @@ function abspath (rel, file) {
 function getPlatform () {
   var xulRuntime = Components.classes["@mozilla.org/xre/app-info;1"]
                    .getService(Components.interfaces.nsIXULRuntime);
-  mPlatform = xulRuntime.OS.toLowerCase();
-  return mPlatform;
+  return xulRuntime.OS.toLowerCase();
 }
 
 

@@ -16,7 +16,6 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
  
@@ -29,7 +28,7 @@ function test()
     get inn() {return this.for;}
   };
 
-  expect = '({get inn() { return this.for; }, set inn(value) { this.for = value; } })';
+  expect = '({get inn() {return this.for;}, set inn(value) {this.for = value;}})';
   actual = obj.toSource();
   compareSource(expect, actual, summary + ': 1');
 
@@ -40,7 +39,7 @@ function test()
     get in() {return this.for;}
   };
 
-  expect = '({ get in() { return this.for; }, set in(value) { this.for = value; } })';
+  expect = '({get in() {return this.for;}, set in(value) {this.for = value;}})';
   actual = obj.toSource();
   compareSource(expect, actual, summary + ': 2');
 
@@ -51,7 +50,7 @@ function test()
     get in() {return this.for;}
   };
 
-  expect = '({ set inn(value) { this.for = value; }, get in() { return this.for; } })';
+  expect = '({set inn(value) {this.for = value;}, get in() {return this.for;}})';
   actual = obj.toSource();
   compareSource(expect, actual, summary + ': 4');
 
@@ -62,8 +61,7 @@ function test()
     get inn() {return this.for;}
   };
 
-  expect = ' ({ set in(value) { this.for = value; }, get inn() { return this.for; } })';
+  expect = '({set in(value) {this.for = value;}, get inn() {return this.for;}})';
   actual = obj.toSource();
   compareSource(expect, actual, summary + ': 5');
-  exitFunc ('test');
 }

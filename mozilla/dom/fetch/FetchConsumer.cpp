@@ -56,7 +56,8 @@ class BeginConsumeBodyRunnable final : public Runnable
 
 public:
   explicit BeginConsumeBodyRunnable(FetchBodyConsumer<Derived>* aConsumer)
-    : mFetchBodyConsumer(aConsumer)
+    : Runnable("BeginConsumeBodyRunnable")
+    , mFetchBodyConsumer(aConsumer)
   { }
 
   NS_IMETHOD
@@ -283,11 +284,14 @@ NS_INTERFACE_MAP_END
 template <class Derived>
 /* static */ already_AddRefed<Promise>
 FetchBodyConsumer<Derived>::Create(nsIGlobalObject* aGlobal,
+                                   nsIEventTarget* aMainThreadEventTarget,
                                    FetchBody<Derived>* aBody,
+                                   AbortSignal* aSignal,
                                    FetchConsumeType aType,
                                    ErrorResult& aRv)
 {
   MOZ_ASSERT(aBody);
+  MOZ_ASSERT(aMainThreadEventTarget);
 
   nsCOMPtr<nsIInputStream> bodyStream;
   aBody->DerivedClass()->GetBody(getter_AddRefs(bodyStream));
@@ -310,8 +314,9 @@ FetchBodyConsumer<Derived>::Create(nsIGlobalObject* aGlobal,
   }
 
   RefPtr<FetchBodyConsumer<Derived>> consumer =
-    new FetchBodyConsumer<Derived>(aGlobal, workerPrivate, aBody, bodyStream,
-                                   promise, aType);
+    new FetchBodyConsumer<Derived>(aMainThreadEventTarget, aGlobal,
+                                   workerPrivate, aBody, bodyStream, promise,
+                                   aType);
 
   if (!NS_IsMainThread()) {
     MOZ_ASSERT(workerPrivate);
@@ -338,15 +343,13 @@ FetchBodyConsumer<Derived>::Create(nsIGlobalObject* aGlobal,
   }
 
   nsCOMPtr<nsIRunnable> r = new BeginConsumeBodyRunnable<Derived>(consumer);
-
-  if (workerPrivate) {
-    aRv = workerPrivate->DispatchToMainThread(r.forget());
-  } else {
-    aRv = NS_DispatchToMainThread(r.forget());
-  }
-
+  aRv = aMainThreadEventTarget->Dispatch(r.forget(), NS_DISPATCH_NORMAL);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
+  }
+
+  if (aSignal) {
+    consumer->Follow(aSignal);
   }
 
   return promise.forget();
@@ -372,16 +375,20 @@ FetchBodyConsumer<Derived>::ReleaseObject()
 #ifdef DEBUG
   mBody = nullptr;
 #endif
+
+  Unfollow();
 }
 
 template <class Derived>
-FetchBodyConsumer<Derived>::FetchBodyConsumer(nsIGlobalObject* aGlobalObject,
+FetchBodyConsumer<Derived>::FetchBodyConsumer(nsIEventTarget* aMainThreadEventTarget,
+                                              nsIGlobalObject* aGlobalObject,
                                               WorkerPrivate* aWorkerPrivate,
                                               FetchBody<Derived>* aBody,
                                               nsIInputStream* aBodyStream,
                                               Promise* aPromise,
                                               FetchConsumeType aType)
   : mTargetThread(NS_GetCurrentThread())
+  , mMainThreadEventTarget(aMainThreadEventTarget)
 #ifdef DEBUG
   , mBody(aBody)
 #endif
@@ -394,6 +401,7 @@ FetchBodyConsumer<Derived>::FetchBodyConsumer(nsIGlobalObject* aGlobalObject,
   , mBodyConsumed(false)
   , mShuttingDown(false)
 {
+  MOZ_ASSERT(aMainThreadEventTarget);
   MOZ_ASSERT(aBody);
   MOZ_ASSERT(aBodyStream);
   MOZ_ASSERT(aPromise);
@@ -464,7 +472,8 @@ FetchBodyConsumer<Derived>::BeginConsumeBodyMainThread()
 
   nsCOMPtr<nsIInputStreamPump> pump;
   nsresult rv = NS_NewInputStreamPump(getter_AddRefs(pump),
-                                      mBodyStream, -1, -1, 0, 0, false);
+                                      mBodyStream, 0, 0, false,
+                                      mMainThreadEventTarget);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }
@@ -475,7 +484,8 @@ FetchBodyConsumer<Derived>::BeginConsumeBodyMainThread()
   nsCOMPtr<nsIStreamListener> listener;
   if (mConsumeType == CONSUME_BLOB) {
     listener = new MutableBlobStreamListener(mBlobStorageType, nullptr,
-                                             mBodyMimeType, p);
+                                             mBodyMimeType, p,
+                                             mMainThreadEventTarget);
   } else {
     nsCOMPtr<nsIStreamLoader> loader;
     rv = NS_NewStreamLoader(getter_AddRefs(loader), p);
@@ -653,11 +663,10 @@ FetchBodyConsumer<Derived>::ShutDownMainThreadConsuming()
     RefPtr<FetchBodyConsumer<Derived>> self = this;
 
     nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
+      "FetchBodyConsumer::ShutDownMainThreadConsuming",
       [self] () { self->ShutDownMainThreadConsuming(); });
 
-    WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
-    MOZ_ASSERT(workerPrivate);
-    workerPrivate->DispatchToMainThread(r.forget());
+    mMainThreadEventTarget->Dispatch(r.forget(), NS_DISPATCH_NORMAL);
     return;
   }
 
@@ -688,6 +697,14 @@ FetchBodyConsumer<Derived>::Observe(nsISupports* aSubject,
   }
 
   return NS_OK;
+}
+
+template <class Derived>
+void
+FetchBodyConsumer<Derived>::Abort()
+{
+  AssertIsOnTargetThread();
+  ContinueConsumeBody(NS_ERROR_DOM_ABORT_ERR, 0, nullptr);
 }
 
 template <class Derived>

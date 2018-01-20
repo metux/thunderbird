@@ -71,7 +71,7 @@ txExecutionState::~txExecutionState()
     if (mEvalContext != mInitialEvalContext) {
         delete mEvalContext;
     }
-    
+
     txStackIterator varsIter(&mLocalVarsStack);
     while (varsIter.hasNext()) {
         delete (txVariableMap*)varsIter.next();
@@ -87,15 +87,7 @@ txExecutionState::~txExecutionState()
 
     txStackIterator handlerIter(&mResultHandlerStack);
     while (handlerIter.hasNext()) {
-        txAXMLEventHandler* handler = (txAXMLEventHandler*)handlerIter.next();
-        if (handler != mObsoleteHandler) {
-          delete handler;
-        }
-    }
-
-    txStackIterator paramIter(&mParamStack);
-    while (paramIter.hasNext()) {
-        delete (txVariableMap*)paramIter.next();
+        delete (txAXMLEventHandler*)handlerIter.next();
     }
 
     delete mInitialEvalContext;
@@ -130,9 +122,9 @@ txExecutionState::init(const txXPathNode& aNode,
     // Init members
     rv = mKeyHash.init();
     NS_ENSURE_SUCCESS(rv, rv);
-    
+
     mRecycler = new txResultRecycler;
-    
+
     // The actual value here doesn't really matter since noone should use this
     // value. But lets put something errorlike in just in case
     mGlobalVarPlaceholderValue = new StringResult(NS_LITERAL_STRING("Error"), nullptr);
@@ -141,8 +133,11 @@ txExecutionState::init(const txXPathNode& aNode,
     // might use us.
     txStylesheet::ImportFrame* frame = 0;
     txExpandedName nullName;
-    txInstruction* templ = mStylesheet->findTemplate(aNode, nullName,
-                                                     this, nullptr, &frame);
+    txInstruction* templ;
+    rv = mStylesheet->findTemplate(aNode, nullName, this, nullptr, &templ,
+                                   &frame);
+    NS_ENSURE_SUCCESS(rv, rv);
+
     pushTemplateRule(frame, nullName, nullptr);
 
     return runTemplate(templ);
@@ -163,17 +158,6 @@ txExecutionState::end(nsresult aResult)
 }
 
 void
-txExecutionState::popAndDeleteEvalContext()
-{
-  if (!mEvalContextStack.isEmpty()) {
-    auto ctx = popEvalContext();
-    if (ctx != mInitialEvalContext) {
-      delete ctx;
-    }
-  }
-}
-
-void
 txExecutionState::popAndDeleteEvalContextUntil(txIEvalContext* aContext)
 {
   auto ctx = popEvalContext();
@@ -185,7 +169,7 @@ txExecutionState::popAndDeleteEvalContextUntil(txIEvalContext* aContext)
 }
 
 nsresult
-txExecutionState::getVariable(int32_t aNamespace, nsIAtom* aLName,
+txExecutionState::getVariable(int32_t aNamespace, nsAtom* aLName,
                               txAExprResult*& aResult)
 {
     nsresult rv = NS_OK;
@@ -216,7 +200,7 @@ txExecutionState::getVariable(int32_t aNamespace, nsIAtom* aLName,
         // XXX ErrorReport: variable doesn't exist in this scope
         return NS_ERROR_FAILURE;
     }
-    
+
     NS_ASSERTION((var->mExpr && !var->mFirstInstruction) ||
                  (!var->mExpr && var->mFirstInstruction),
                  "global variable should have either instruction or expression");
@@ -233,7 +217,7 @@ txExecutionState::getVariable(int32_t aNamespace, nsIAtom* aLName,
                 NS_RELEASE(aResult);
                 return rv;
             }
-            
+
             return NS_OK;
         }
     }
@@ -306,10 +290,10 @@ txExecutionState::getVariable(int32_t aNamespace, nsIAtom* aLName,
     return NS_OK;
 }
 
-bool
-txExecutionState::isStripSpaceAllowed(const txXPathNode& aNode)
+nsresult
+txExecutionState::isStripSpaceAllowed(const txXPathNode& aNode, bool& aAllowed)
 {
-    return mStylesheet->isStripSpaceAllowed(aNode, this);
+    return mStylesheet->isStripSpaceAllowed(aNode, this, aAllowed);
 }
 
 void*
@@ -335,9 +319,9 @@ txExecutionState::pushEvalContext(txIEvalContext* aContext)
 {
     nsresult rv = mEvalContextStack.push(mEvalContext);
     NS_ENSURE_SUCCESS(rv, rv);
-    
+
     mEvalContext = aContext;
-    
+
     return NS_OK;
 }
 
@@ -346,7 +330,7 @@ txExecutionState::popEvalContext()
 {
     txIEvalContext* prev = mEvalContext;
     mEvalContext = (txIEvalContext*)mEvalContextStack.pop();
-    
+
     return prev;
 }
 
@@ -374,7 +358,7 @@ txExecutionState::pushResultHandler(txAXMLEventHandler* aHandler)
 {
     nsresult rv = mResultHandlerStack.push(mResultHandler);
     NS_ENSURE_SUCCESS(rv, rv);
-    
+
     mResultHandler = aHandler;
 
     return NS_OK;
@@ -392,7 +376,7 @@ txExecutionState::popResultHandler()
 void
 txExecutionState::pushTemplateRule(txStylesheet::ImportFrame* aFrame,
                                    const txExpandedName& aMode,
-                                   txVariableMap* aParams)
+                                   txParameterMap* aParams)
 {
     TemplateRule* rule = mTemplateRules.AppendElement();
     rule->mFrame = aFrame;
@@ -477,7 +461,7 @@ txExecutionState::getNextInstruction()
     if (instr) {
         mNextInstruction = instr->mNext;
     }
-    
+
     return instr;
 }
 
@@ -492,10 +476,10 @@ txExecutionState::runTemplate(txInstruction* aTemplate)
 
     rv = mReturnStack.push(mNextInstruction);
     NS_ENSURE_SUCCESS(rv, rv);
-    
+
     mLocalVariables = nullptr;
     mNextInstruction = aTemplate;
-    
+
     return NS_OK;
 }
 
@@ -532,23 +516,19 @@ txExecutionState::removeVariable(const txExpandedName& aName)
     mLocalVariables->removeVariable(aName);
 }
 
-nsresult
-txExecutionState::pushParamMap(txVariableMap* aParams)
+void
+txExecutionState::pushParamMap(txParameterMap* aParams)
 {
-    nsresult rv = mParamStack.push(mTemplateParams);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    mTemplateParams.forget();
+    mParamStack.AppendElement(mTemplateParams.forget());
     mTemplateParams = aParams;
-    
-    return NS_OK;
 }
 
-txVariableMap*
+already_AddRefed<txParameterMap>
 txExecutionState::popParamMap()
 {
-    txVariableMap* oldParams = mTemplateParams.forget();
-    mTemplateParams = (txVariableMap*)mParamStack.pop();
+    RefPtr<txParameterMap> oldParams = mTemplateParams.forget();
+    mTemplateParams = mParamStack.LastElement();
+    mParamStack.RemoveElementAt(mParamStack.Length() - 1);
 
-    return oldParams;
+    return oldParams.forget();
 }

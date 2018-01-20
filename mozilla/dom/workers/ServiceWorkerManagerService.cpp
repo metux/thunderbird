@@ -7,6 +7,7 @@
 #include "ServiceWorkerManagerService.h"
 #include "ServiceWorkerManagerParent.h"
 #include "ServiceWorkerRegistrar.h"
+#include "ServiceWorkerUpdaterParent.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/Unused.h"
@@ -105,6 +106,21 @@ ServiceWorkerManagerService::PropagateRegistration(
     }
   }
 
+  // Send permissions fot the newly registered service worker to all of the
+  // content processes.
+  PrincipalInfo pi = aData.principal();
+  NS_DispatchToMainThread(NS_NewRunnableFunction(
+    "dom::workers::ServiceWorkerManagerService::PropagateRegistration", [pi]() {
+      nsTArray<ContentParent*> cps;
+      ContentParent::GetAll(cps);
+      for (auto* cp : cps) {
+        nsCOMPtr<nsIPrincipal> principal = PrincipalInfoToPrincipal(pi);
+        if (principal) {
+          cp->TransmitPermissionsForPrincipal(principal);
+        }
+      }
+    }));
+
 #ifdef DEBUG
   MOZ_ASSERT(parentFound);
 #endif
@@ -113,7 +129,7 @@ ServiceWorkerManagerService::PropagateRegistration(
 void
 ServiceWorkerManagerService::PropagateSoftUpdate(
                                       uint64_t aParentID,
-                                      const PrincipalOriginAttributes& aOriginAttributes,
+                                      const OriginAttributes& aOriginAttributes,
                                       const nsAString& aScope)
 {
   AssertIsOnBackgroundThread();
@@ -230,6 +246,51 @@ ServiceWorkerManagerService::PropagateRemoveAll(uint64_t aParentID)
 #ifdef DEBUG
   MOZ_ASSERT(parentFound);
 #endif
+}
+
+void
+ServiceWorkerManagerService::ProcessUpdaterActor(ServiceWorkerUpdaterParent* aActor,
+                                                 const OriginAttributes& aOriginAttributes,
+                                                 const nsACString& aScope,
+                                                 uint64_t aParentId)
+{
+  AssertIsOnBackgroundThread();
+
+  nsAutoCString suffix;
+  aOriginAttributes.CreateSuffix(suffix);
+
+  nsCString scope(aScope);
+  scope.Append(suffix);
+
+  for (uint32_t i = 0; i < mPendingUpdaterActors.Length(); ++i) {
+    // We already have an actor doing this update on another process.
+    if (mPendingUpdaterActors[i].mScope.Equals(scope) &&
+        mPendingUpdaterActors[i].mParentId != aParentId) {
+      Unused << aActor->SendProceed(false);
+      return;
+    }
+  }
+
+  if (aActor->Proceed(this)) {
+    PendingUpdaterActor* pua = mPendingUpdaterActors.AppendElement();
+    pua->mActor = aActor;
+    pua->mScope = scope;
+    pua->mParentId = aParentId;
+  }
+}
+
+void
+ServiceWorkerManagerService::UpdaterActorDestroyed(ServiceWorkerUpdaterParent* aActor)
+{
+  for (uint32_t i = 0; i < mPendingUpdaterActors.Length(); ++i) {
+    // We already have an actor doing the update for this scope.
+    if (mPendingUpdaterActors[i].mActor == aActor) {
+      mPendingUpdaterActors.RemoveElementAt(i);
+      return;
+    }
+  }
+
+  MOZ_CRASH("The actor should be found");
 }
 
 } // namespace workers

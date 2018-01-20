@@ -15,6 +15,7 @@
 
 // template <class T> class RefPtrGetterAddRefs;
 
+class nsQueryReferent;
 class nsCOMPtr_helper;
 
 namespace mozilla {
@@ -44,7 +45,7 @@ struct RefPtrTraits
 } // namespace mozilla
 
 template <class T>
-class RefPtr
+class MOZ_IS_REFPTR RefPtr
 {
 private:
   void
@@ -148,6 +149,7 @@ public:
   {
   }
 
+  MOZ_IMPLICIT RefPtr(const nsQueryReferent& aHelper);
   MOZ_IMPLICIT RefPtr(const nsCOMPtr_helper& aHelper);
 
   // Defined in OwningNonNull.h
@@ -210,6 +212,7 @@ public:
     return *this;
   }
 
+  RefPtr<T>& operator=(const nsQueryReferent& aQueryReferent);
   RefPtr<T>& operator=(const nsCOMPtr_helper& aHelper);
 
   RefPtr<T>&
@@ -251,6 +254,7 @@ public:
   }
 
   already_AddRefed<T>
+  MOZ_MAY_CALL_AFTER_MUST_RETURN
   forget()
   // return the value of mRawPtr and null out mRawPtr. Useful for
   // already_AddRefed return values.
@@ -283,10 +287,7 @@ public:
     return const_cast<T*>(mRawPtr);
   }
 
-  operator T*() const
-#ifdef MOZ_HAVE_REF_QUALIFIERS
-  &
-#endif
+  operator T*() const &
   /*
     ...makes an |RefPtr| act like its underlying raw pointer type whenever it
     is used in a context where a raw pointer is expected.  It is this operator
@@ -299,7 +300,6 @@ public:
     return get();
   }
 
-#ifdef MOZ_HAVE_REF_QUALIFIERS
   // Don't allow implicit conversion of temporary RefPtr to raw pointer,
   // because the refcount might be one and the pointer will immediately become
   // invalid.
@@ -310,7 +310,6 @@ public:
   // operator bool instead of the deleted operator T*?
   explicit operator bool() const { return !!mRawPtr; }
   bool operator!() const { return !mRawPtr; }
-#endif
 
   T*
   operator->() const MOZ_NO_ADDREF_RELEASE_ON_RETURN
@@ -649,6 +648,20 @@ MakeAndAddRef(Args&&... aArgs)
 {
   RefPtr<T> p(new T(Forward<Args>(aArgs)...));
   return p.forget();
+}
+
+/**
+ * Helper function to be able to conveniently write things like:
+ *
+ *   auto runnable = MakeRefPtr<ErrorCallbackRunnable<nsIDOMGetUserMediaSuccessCallback>>(
+ *       mOnSuccess, mOnFailure, *error, mWindowID);
+ */
+template<typename T, typename... Args>
+RefPtr<T>
+MakeRefPtr(Args&&... aArgs)
+{
+  RefPtr<T> p(new T(Forward<Args>(aArgs)...));
+  return p;
 }
 
 } // namespace mozilla

@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const { Cu, Cc, Ci } = require("chrome");
+"use strict";
+
+const { Cc, Ci } = require("chrome");
 
 const { LocalizationHelper } = require("devtools/shared/l10n");
 const STRINGS_URI = "devtools/client/locales/memory.properties";
@@ -330,7 +332,6 @@ exports.censusIsUpToDate = function (filter, display, census) {
       && display === census.display;
 };
 
-
 /**
  * Check to see if the snapshot is in a state that it can take a census.
  *
@@ -409,19 +410,21 @@ exports.getSnapshotTotals = function (census) {
  *        The default name chosen by the file picker window.
  * @param {String} .mode
  *        The mode that this filepicker should open in. Can be "open" or "save".
- * @return {Promise<?nsILocalFile>}
+ * @return {Promise<?nsIFile>}
  *        The file selected by the user, or null, if cancelled.
  */
 exports.openFilePicker = function ({ title, filters, defaultName, mode }) {
-  mode = mode === "save" ? Ci.nsIFilePicker.modeSave :
-         mode === "open" ? Ci.nsIFilePicker.modeOpen : null;
-
-  if (mode == void 0) {
+  let fpMode;
+  if (mode === "save") {
+    fpMode = Ci.nsIFilePicker.modeSave;
+  } else if (mode === "open") {
+    fpMode = Ci.nsIFilePicker.modeOpen;
+  } else {
     throw new Error("No valid mode specified for nsIFilePicker.");
   }
 
   let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
-  fp.init(window, title, mode);
+  fp.init(window, title, fpMode);
 
   for (let filter of (filters || [])) {
     fp.appendFilter(filter[0], filter[1]);

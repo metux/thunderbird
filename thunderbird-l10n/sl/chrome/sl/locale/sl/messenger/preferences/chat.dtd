@@ -13,17 +13,17 @@ displayed at the end of the line. The translations of the
 reportIdleAfter.label and idleTime parts don't have to mean the exact
 same thing as in English; please try instead to translate the whole
 sentence. -->
-<!ENTITY  reportIdleAfter.label         "Naj moji stiki vedo, da sem odsoten po">
+<!ENTITY  reportIdleAfter.label         "Naj moji stiki vedo, da sem odsoten, po">
 <!ENTITY  reportIdleAfter.accesskey     "N">
 <!ENTITY  idleTime                      "minutah nedejavnosti">
 
 <!ENTITY  andSetStatusToAway.label      "in mojo odsotnost objavi s sporočilom stanja:">
 <!ENTITY  andSetStatusToAway.accesskey  "o">
 
-<!ENTITY  sendTyping.label              "Med pogovori pošlji obvestila o tipkanju">
+<!ENTITY  sendTyping.label              "Med pogovori pošiljaj obvestila o tipkanju">
 <!ENTITY  sendTyping.accesskey          "M">
 
-<!ENTITY  chatNotifications.label             "Kadar prispejo sporočila namenjena meni:">
+<!ENTITY  chatNotifications.label             "Kadar prispejo sporočila, namenjena meni:">
 <!ENTITY  desktopChatNotifications.label      "prikaži obvestilo:">
 <!ENTITY  desktopChatNotifications.accesskey  "a">
 <!ENTITY  completeNotification.label          "s pošiljateljevim imenom in predogledom sporočila">
@@ -40,3 +40,22 @@ sentence. -->
 <!ENTITY  browse.label                        "Brskaj …">
 <!ENTITY  browse.accesskey                    "B">
 
+
+<!ENTITY  generalTab.label            "General">
+
+<!ENTITY messageStyleTab.title             "Message Styles">
+<!ENTITY messageStylePreview.label         "Preview:">
+<!ENTITY messageStyleTheme.label           "Theme:">
+<!ENTITY messageStyleTheme.accesskey       "T">
+<!ENTITY messageStyleThunderbirdTheme.label "Thunderbird">
+<!ENTITY messageStyleBubblesTheme.label    "Bubbles">
+<!ENTITY messageStyleDarkTheme.label       "Dark">
+<!ENTITY messageStylePaperSheetsTheme.label "Paper Sheets">
+<!ENTITY messageStyleSimpleTheme.label     "Simple">
+<!ENTITY messageStyleDefaultTheme.label    "Default">
+<!ENTITY messageStyleVariant.label         "Variant:">
+<!ENTITY messageStyleVariant.accesskey     "V">
+<!ENTITY messageStyleShowHeader.label      "Show Header">
+<!ENTITY messageStyleShowHeader.accesskey  "H">
+<!ENTITY messageStyleNoPreview.title       "No preview available">
+<!ENTITY messageStyleNoPreview.description "This theme is not valid or is currently unavailable (disabled addon, safe-mode, …).">

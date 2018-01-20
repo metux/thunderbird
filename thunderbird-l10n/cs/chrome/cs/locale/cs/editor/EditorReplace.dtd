@@ -3,12 +3,13 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!-- extracted from EdReplace.xul -->
+
 <!ENTITY replaceDialog.title "Najít a nahradit">
 <!ENTITY findField.label "Najít:">
 <!ENTITY findField.accesskey "N">
 <!ENTITY replaceField.label "Nahradit čím:">
 <!ENTITY replaceField.accesskey "h">
-<!ENTITY caseSensitiveCheckbox.label "Rozlišovat malá/velká písmena">
+<!ENTITY caseSensitiveCheckbox.label "Rozlišovat malá a velká písmena">
 <!ENTITY caseSensitiveCheckbox.accesskey "l">
 <!ENTITY wrapCheckbox.label "Zalamovat">
 <!ENTITY wrapCheckbox.accesskey "Z">
@@ -23,3 +24,4 @@
 <!ENTITY replaceAllButton.label "Nahradit vše">
 <!ENTITY replaceAllButton.accesskey "v">
 <!ENTITY closeButton.label "Zavřít">
+<!ENTITY closeButton.accesskey "t">

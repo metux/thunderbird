@@ -11,10 +11,13 @@ add_task(function* () {
   let { tab, monitor } = yield initNetMonitor(POST_DATA_URL);
   info("Starting test... ");
 
-  let { document, EVENTS, NetMonitorView } = monitor.panelWin;
-  let { RequestsMenu } = NetMonitorView;
+  let { document, store, windowRequire } = monitor.panelWin;
+  let Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
+  let {
+    getSortedRequests,
+  } = windowRequire("devtools/client/netmonitor/src/selectors/index");
 
-  RequestsMenu.lazyUpdate = false;
+  store.dispatch(Actions.batchEnable(false));
 
   let wait = waitForNetworkEvents(monitor, 0, 2);
   yield ContentTask.spawn(tab.linkedBrowser, {}, function* () {
@@ -22,49 +25,79 @@ add_task(function* () {
   });
   yield wait;
 
-  let origItem = RequestsMenu.getItemAtIndex(0);
+  wait = waitForDOM(document, ".headers-overview");
+  EventUtils.sendMouseEvent({ type: "mousedown" },
+    document.querySelectorAll(".request-list-item")[0]);
+  yield wait;
 
-  let onTabEvent = monitor.panelWin.once(EVENTS.TAB_UPDATED);
-  RequestsMenu.selectedItem = origItem;
-  yield onTabEvent;
+  wait = waitForDOM(document, ".raw-headers-container textarea", 2);
+  EventUtils.sendMouseEvent({ type: "click" }, getRawHeadersButton());
+  yield wait;
 
-  EventUtils.sendMouseEvent({ type: "click" },
-    document.getElementById("toggle-raw-headers"));
+  testRawHeaderButtonStyle(true);
 
-  testShowRawHeaders(origItem.attachment);
+  testShowRawHeaders(getSortedRequests(store.getState()).get(0));
 
-  EventUtils.sendMouseEvent({ type: "click" },
-    document.getElementById("toggle-raw-headers"));
+  EventUtils.sendMouseEvent({ type: "click" }, getRawHeadersButton());
+
+  testRawHeaderButtonStyle(false);
 
   testHideRawHeaders(document);
 
   return teardown(monitor);
 
+  /**
+   * Tests that checked, aria-pressed style is applied correctly
+   *
+   * @param checked
+   *        flag indicating whether button is pressed or not
+   */
+  function testRawHeaderButtonStyle(checked) {
+    let rawHeadersButton = getRawHeadersButton();
+
+    if (checked) {
+      is(rawHeadersButton.classList.contains("checked"), true,
+        "The 'Raw Headers' button should have a 'checked' class.");
+      is(rawHeadersButton.getAttribute("aria-pressed"), "true",
+        "The 'Raw Headers' button should have the 'aria-pressed' attribute set to true");
+    } else {
+      is(rawHeadersButton.classList.contains("checked"), false,
+        "The 'Raw Headers' button should not have a 'checked' class.");
+      is(rawHeadersButton.getAttribute("aria-pressed"), "false",
+        "The 'Raw Headers' button should have the 'aria-pressed' attribute set to false");
+    }
+  }
+
   /*
    * Tests that raw headers were displayed correctly
    */
   function testShowRawHeaders(data) {
-    let requestHeaders = document.getElementById("raw-request-headers-textarea").value;
+    let requestHeaders = document
+      .querySelectorAll(".raw-headers-container textarea")[0].value;
     for (let header of data.requestHeaders.headers) {
-      ok(requestHeaders.indexOf(header.name + ": " + header.value) >= 0,
+      ok(requestHeaders.includes(header.name + ": " + header.value),
         "textarea contains request headers");
     }
-    let responseHeaders = document.getElementById("raw-response-headers-textarea").value;
+    let responseHeaders = document
+      .querySelectorAll(".raw-headers-container textarea")[1].value;
     for (let header of data.responseHeaders.headers) {
-      ok(responseHeaders.indexOf(header.name + ": " + header.value) >= 0,
+      ok(responseHeaders.includes(header.name + ": " + header.value),
         "textarea contains response headers");
     }
   }
 
   /*
-   * Tests that raw headers textareas are hidden and empty
+   * Tests that raw headers textareas are hidden
    */
   function testHideRawHeaders() {
-    let rawHeadersHidden = document.getElementById("raw-headers").getAttribute("hidden");
-    let requestTextarea = document.getElementById("raw-request-headers-textarea");
-    let responseTextarea = document.getElementById("raw-response-headers-textarea");
-    ok(rawHeadersHidden, "raw headers textareas are hidden");
-    ok(requestTextarea.value == "", "raw request headers textarea is empty");
-    ok(responseTextarea.value == "", "raw response headers textarea is empty");
+    ok(!document.querySelector(".raw-headers-container"),
+      "raw request headers textarea is empty");
+  }
+
+  /**
+   * Returns the 'Raw Headers' button
+   */
+  function getRawHeadersButton() {
+    return document.querySelectorAll(".headers-summary .devtools-button")[2];
   }
 });

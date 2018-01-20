@@ -39,5 +39,5 @@
 <!ENTITY closeCmd.key "W"> 
 <!ENTITY searchBox.emptyText "නම අනුව පෙරහන් සොයන්න…">
 
-<!ENTITY newButton.popupCopy.accesskey "C">
 <!ENTITY newButton.popupCopy.label "Copy…">
+<!ENTITY newButton.popupCopy.accesskey "C">

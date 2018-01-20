@@ -28,17 +28,15 @@
 #include "mozilla/ipc/BackgroundUtils.h"
 #include "nsClassHashtable.h"
 #include "nsDataHashtable.h"
-#include "nsIIPCBackgroundChildCreateCallback.h"
 #include "nsRefPtrHashtable.h"
 #include "nsTArrayForwardDeclare.h"
 #include "nsTObserverArray.h"
 
-class mozIApplicationClearPrivateDataParams;
 class nsIConsoleReportCollector;
 
 namespace mozilla {
 
-class PrincipalOriginAttributes;
+class OriginAttributes;
 
 namespace dom {
 
@@ -84,7 +82,6 @@ public:
  */
 class ServiceWorkerManager final
   : public nsIServiceWorkerManager
-  , public nsIIPCBackgroundChildCreateCallback
   , public nsIObserver
 {
   friend class GetReadyPromiseRunnable;
@@ -99,7 +96,6 @@ class ServiceWorkerManager final
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSISERVICEWORKERMANAGER
-  NS_DECL_NSIIPCBACKGROUNDCHILDCREATECALLBACK
   NS_DECL_NSIOBSERVER
 
   struct RegistrationDataPerPrincipal;
@@ -152,7 +148,7 @@ public:
                                      nsIPrincipal* aPrincipal);
 
   void
-  DispatchFetchEvent(const PrincipalOriginAttributes& aOriginAttributes,
+  DispatchFetchEvent(const OriginAttributes& aOriginAttributes,
                      nsIDocument* aDoc,
                      const nsAString& aDocumentIdForTopLevelNavigation,
                      nsIInterceptedChannel* aChannel,
@@ -166,11 +162,22 @@ public:
          ServiceWorkerUpdateFinishCallback* aCallback);
 
   void
-  SoftUpdate(const PrincipalOriginAttributes& aOriginAttributes,
+  UpdateInternal(nsIPrincipal* aPrincipal,
+                 const nsACString& aScope,
+                 ServiceWorkerUpdateFinishCallback* aCallback);
+
+  void
+  SoftUpdate(const OriginAttributes& aOriginAttributes,
              const nsACString& aScope);
 
   void
-  PropagateSoftUpdate(const PrincipalOriginAttributes& aOriginAttributes,
+  SoftUpdateInternal(const OriginAttributes& aOriginAttributes,
+                     const nsACString& aScope,
+                     ServiceWorkerUpdateFinishCallback* aCallback);
+
+
+  void
+  PropagateSoftUpdate(const OriginAttributes& aOriginAttributes,
                       const nsAString& aScope);
 
   void
@@ -189,7 +196,9 @@ public:
   GetRegistration(nsIPrincipal* aPrincipal, const nsACString& aScope) const;
 
   already_AddRefed<ServiceWorkerRegistrationInfo>
-  CreateNewRegistration(const nsCString& aScope, nsIPrincipal* aPrincipal);
+  CreateNewRegistration(const nsCString& aScope,
+                        nsIPrincipal* aPrincipal,
+                        ServiceWorkerUpdateViaCache aUpdateViaCache);
 
   void
   RemoveRegistration(ServiceWorkerRegistrationInfo* aRegistration);
@@ -271,6 +280,7 @@ public:
   void
   GetAllClients(nsIPrincipal* aPrincipal,
                 const nsCString& aScope,
+                uint64_t aServiceWorkerID,
                 bool aIncludeUncontrolled,
                 nsTArray<ServiceWorkerClientInfo>& aDocuments);
 
@@ -323,6 +333,9 @@ public:
   void
   WorkerIsIdle(ServiceWorkerInfo* aWorker);
 
+  void
+  CheckPendingReadyPromises();
+
 private:
   ServiceWorkerManager();
   ~ServiceWorkerManager();
@@ -361,12 +374,15 @@ private:
                            nsISupports** aServiceWorker);
 
   ServiceWorkerInfo*
-  GetActiveWorkerInfoForScope(const PrincipalOriginAttributes& aOriginAttributes,
+  GetActiveWorkerInfoForScope(const OriginAttributes& aOriginAttributes,
                               const nsACString& aScope);
 
   ServiceWorkerInfo*
   GetActiveWorkerInfoForDocument(nsIDocument* aDocument);
 
+  void
+  TransitionServiceWorkerRegistrationWorker(ServiceWorkerRegistrationInfo* aRegistration,
+                                            WhichServiceWorker aWhichOne);
   void
   InvalidateServiceWorkerRegistrationWorker(ServiceWorkerRegistrationInfo* aRegistration,
                                             WhichServiceWorker aWhichOnes);
@@ -430,9 +446,6 @@ private:
   StorePendingReadyPromise(nsPIDOMWindowInner* aWindow, nsIURI* aURI,
                            Promise* aPromise);
 
-  void
-  CheckPendingReadyPromises();
-
   bool
   CheckReadyPromise(nsPIDOMWindowInner* aWindow, nsIURI* aURI,
                     Promise* aPromise);
@@ -447,13 +460,6 @@ private:
     RefPtr<Promise> mPromise;
   };
 
-  void AppendPendingOperation(nsIRunnable* aRunnable);
-
-  bool HasBackgroundActor() const
-  {
-    return !!mActor;
-  }
-
   nsClassHashtable<nsISupportsHashKey, PendingReadyPromise> mPendingReadyPromises;
 
   void
@@ -464,8 +470,6 @@ private:
   RemoveAllRegistrations(OriginAttributesPattern* aPattern);
 
   RefPtr<ServiceWorkerManagerChild> mActor;
-
-  nsTArray<nsCOMPtr<nsIRunnable>> mPendingOperations;
 
   bool mShuttingDown;
 

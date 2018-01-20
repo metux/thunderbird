@@ -26,6 +26,9 @@ mod imp {
     #[lang = "copy"]
     pub trait Copy {}
 
+    #[lang = "freeze"]
+    pub trait Freeze {}
+
     #[lang = "sync"]
     pub trait Sync {}
     impl<T> Sync for T {}
@@ -40,6 +43,12 @@ mod imp {
             $mac!(u32);
             $mac!(u64);
             $mac!(usize);
+            each_signed_int!($mac);
+        )
+    }
+
+    macro_rules! each_signed_int {
+        ($mac:ident) => (
             $mac!(i8);
             $mac!(i16);
             $mac!(i32);
@@ -54,31 +63,11 @@ mod imp {
         fn div(self, rhs: RHS) -> Self::Output;
     }
 
-    macro_rules! impl_div {
-        ($($i:ident)*) => ($(
-            impl Div<$i> for $i {
-                type Output = $i;
-                fn div(self, rhs: $i) -> $i { self / rhs }
-            }
-        )*)
-    }
-    each_int!(impl_div);
-
     #[lang = "shl"]
     pub trait Shl<RHS> {
         type Output;
         fn shl(self, rhs: RHS) -> Self::Output;
     }
-
-    macro_rules! impl_shl {
-        ($($i:ident)*) => ($(
-            impl Shl<$i> for $i {
-                type Output = $i;
-                fn shl(self, rhs: $i) -> $i { self << rhs }
-            }
-        )*)
-    }
-    each_int!(impl_shl);
 
     #[lang = "mul"]
     pub trait Mul<RHS=Self> {
@@ -86,31 +75,11 @@ mod imp {
         fn mul(self, rhs: RHS) -> Self::Output;
     }
 
-    macro_rules! impl_mul {
-        ($($i:ident)*) => ($(
-            impl Mul for $i {
-                type Output = $i;
-                fn mul(self, rhs: $i) -> $i { self * rhs }
-            }
-        )*)
-    }
-    each_int!(impl_mul);
-
     #[lang = "sub"]
     pub trait Sub<RHS=Self> {
         type Output;
         fn sub(self, rhs: RHS) -> Self::Output;
     }
-
-    macro_rules! impl_sub {
-        ($($i:ident)*) => ($(
-            impl Sub for $i {
-                type Output = $i;
-                fn sub(self, rhs: $i) -> $i { self - rhs }
-            }
-        )*)
-    }
-    each_int!(impl_sub);
 
     #[lang = "bitor"]
     pub trait Bitor<RHS=Self> {
@@ -118,15 +87,62 @@ mod imp {
         fn bitor(self, rhs: RHS) -> Self::Output;
     }
 
-    macro_rules! impl_bitor {
+    #[lang = "neg"]
+    pub trait Neg {
+        type Output;
+        fn neg(self) -> Self::Output;
+    }
+
+    #[lang = "not"]
+    pub trait Not {
+        type Output;
+        fn not(self) -> Self::Output;
+    }
+
+    #[lang = "add"]
+    pub trait Add<RHS = Self> {
+        type Output;
+        fn add(self, r: RHS) -> Self::Output;
+    }
+
+    macro_rules! impl_traits {
         ($($i:ident)*) => ($(
+            impl Div<$i> for $i {
+                type Output = $i;
+                fn div(self, rhs: $i) -> $i { self / rhs }
+            }
+            impl Shl<$i> for $i {
+                type Output = $i;
+                fn shl(self, rhs: $i) -> $i { self << rhs }
+            }
+            impl Mul for $i {
+                type Output = $i;
+                fn mul(self, rhs: $i) -> $i { self * rhs }
+            }
+
+            impl Sub for $i {
+                type Output = $i;
+                fn sub(self, rhs: $i) -> $i { self - rhs }
+            }
             impl Bitor for $i {
                 type Output = $i;
                 fn bitor(self, rhs: $i) -> $i { self | rhs }
             }
+            impl Neg for $i {
+                type Output = $i;
+                fn neg(self) -> $i { -self }
+            }
+            impl Not for $i {
+                type Output = $i;
+                fn not(self) -> $i { !self }
+            }
+            impl Add<$i> for $i {
+                type Output = $i;
+                fn add(self, other: $i) -> $i { self + other }
+            }
         )*)
     }
-    each_int!(impl_bitor);
+    each_int!(impl_traits);
 
     pub mod mem {
         pub fn size_of_val<T>(_: &T) -> usize { 4 }

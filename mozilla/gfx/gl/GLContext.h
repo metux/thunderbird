@@ -31,6 +31,7 @@
 
 #include "../../mfbt/RefPtr.h"
 #include "../../mfbt/UniquePtr.h"
+#include "../../mfbt/ThreadLocal.h"
 
 #include "GLDefs.h"
 #include "GLLibraryLoader.h"
@@ -44,8 +45,6 @@
 #include "mozilla/WeakPtr.h"
 #include "gfx2DGlue.h"
 #include "GeckoProfiler.h"
-
-class nsIWidget;
 
 namespace android {
     class GraphicBuffer;
@@ -65,13 +64,16 @@ namespace mozilla {
         class GLReadTexImageHelper;
         class GLScreenBuffer;
         class SharedSurface;
-        class TextureGarbageBin;
         struct SurfaceCaps;
     } // namespace gl
 
     namespace layers {
         class ColorTextureLayerProgram;
     } // namespace layers
+
+    namespace widget {
+        class CompositorWidget;
+    } // namespace widget
 } // namespace mozilla
 
 namespace mozilla {
@@ -100,7 +102,6 @@ enum class GLFeature {
     get_integer64_indexed,
     get_query_object_i64v,
     get_query_object_iv,
-    get_string_indexed,
     gpu_shader4,
     instanced_arrays,
     instanced_non_arrays,
@@ -119,9 +120,9 @@ enum class GLFeature {
     read_buffer,
     renderbuffer_color_float,
     renderbuffer_color_half_float,
+    robust_buffer_access_behavior,
     robustness,
-    sRGB_framebuffer,
-    sRGB_texture,
+    sRGB,
     sampler_objects,
     seamless_cube_map_opt_in,
     shader_texture_lod,
@@ -148,7 +149,6 @@ enum class GLFeature {
 
 enum class ContextProfile : uint8_t {
     Unknown = 0,
-    OpenGL, // only for IsAtLeast's <profile> parameter
     OpenGLCore,
     OpenGLCompatibility,
     OpenGLES
@@ -196,10 +196,7 @@ class GLContext
 {
 public:
     MOZ_DECLARE_WEAKREFERENCE_TYPENAME(GLContext)
-
-// -----------------------------------------------------------------------------
-// basic enums
-public:
+    static MOZ_THREAD_LOCAL(GLContext*) sCurrentContext;
 
 // -----------------------------------------------------------------------------
 // basic getters
@@ -221,6 +218,8 @@ public:
         return false;
     }
 
+    virtual void GetWSIInfo(nsCString* const out) const = 0;
+
     /**
      * Return true if we are running on a OpenGL core profile context
      */
@@ -240,48 +239,12 @@ public:
         return mProfile == ContextProfile::OpenGLCompatibility;
     }
 
-    /**
-     * Return true if the context is a true OpenGL ES context or an ANGLE context
-     */
     inline bool IsGLES() const {
         MOZ_ASSERT(mProfile != ContextProfile::Unknown, "unknown context profile");
 
         return mProfile == ContextProfile::OpenGLES;
     }
 
-    static const char* GetProfileName(ContextProfile profile)
-    {
-        switch (profile)
-        {
-            case ContextProfile::OpenGL:
-                return "OpenGL";
-            case ContextProfile::OpenGLCore:
-                return "OpenGL Core";
-            case ContextProfile::OpenGLCompatibility:
-                return "OpenGL Compatibility";
-            case ContextProfile::OpenGLES:
-                return "OpenGL ES";
-            default:
-                break;
-        }
-
-        MOZ_ASSERT(profile != ContextProfile::Unknown, "unknown context profile");
-        return "OpenGL unknown profile";
-    }
-
-    /**
-     * Return true if we are running on a OpenGL core profile context
-     */
-    const char* ProfileString() const {
-        return GetProfileName(mProfile);
-    }
-
-    /**
-     * Return true if the context is compatible with given parameters
-     *
-     * IsAtLeast(ContextProfile::OpenGL, N) is exactly same as
-     * IsAtLeast(ContextProfile::OpenGLCore, N) || IsAtLeast(ContextProfile::OpenGLCompatibility, N)
-     */
     inline bool IsAtLeast(ContextProfile profile, unsigned int version) const
     {
         MOZ_ASSERT(profile != ContextProfile::Unknown, "IsAtLeast: bad <profile> parameter");
@@ -290,11 +253,6 @@ public:
 
         if (version > mVersion) {
             return false;
-        }
-
-        if (profile == ContextProfile::OpenGL) {
-            return mProfile == ContextProfile::OpenGLCore ||
-                   mProfile == ContextProfile::OpenGLCompatibility;
         }
 
         return profile == mProfile;
@@ -307,10 +265,6 @@ public:
      */
     inline uint32_t Version() const {
         return mVersion;
-    }
-
-    const char* VersionString() const {
-        return mVersionString.get();
     }
 
     inline uint32_t ShadingLanguageVersion() const {
@@ -327,6 +281,10 @@ public:
 
     bool IsContextLost() const {
         return mContextLost;
+    }
+
+    bool HasPBOState() const {
+        return (!IsGLES() || Version() >= 300);
     }
 
     /**
@@ -350,32 +308,19 @@ public:
 protected:
     bool mIsOffscreen;
     bool mContextLost;
+    const bool mUseTLSIsCurrent;
 
     /**
      * mVersion store the OpenGL's version, multiplied by 100. For example, if
      * the context is an OpenGL 2.1 context, mVersion value will be 210.
      */
     uint32_t mVersion;
-    nsCString mVersionString;
     ContextProfile mProfile;
 
     uint32_t mShadingLanguageVersion;
 
     GLVendor mVendor;
     GLRenderer mRenderer;
-
-    void SetProfileVersion(ContextProfile profile, uint32_t version) {
-        MOZ_ASSERT(!mSymbols.fBindFramebuffer,
-                   "SetProfileVersion can only be called before initialization!");
-        MOZ_ASSERT(profile != ContextProfile::Unknown &&
-                   profile != ContextProfile::OpenGL,
-                   "Invalid `profile` for SetProfileVersion");
-        MOZ_ASSERT(version >= 100, "Invalid `version` for SetProfileVersion");
-
-        mVersion = version;
-        mProfile = profile;
-    }
-
 
 // -----------------------------------------------------------------------------
 // Extensions management
@@ -412,6 +357,7 @@ public:
         ARB_ES2_compatibility,
         ARB_ES3_compatibility,
         ARB_color_buffer_float,
+        ARB_compatibility,
         ARB_copy_buffer,
         ARB_depth_texture,
         ARB_draw_buffers,
@@ -426,6 +372,7 @@ public:
         ARB_map_buffer_range,
         ARB_occlusion_query2,
         ARB_pixel_buffer_object,
+        ARB_robust_buffer_access_behavior,
         ARB_robustness,
         ARB_sampler_objects,
         ARB_seamless_cube_map,
@@ -469,6 +416,7 @@ public:
         EXT_texture3D,
         EXT_texture_compression_dxt1,
         EXT_texture_compression_s3tc,
+        EXT_texture_compression_s3tc_srgb,
         EXT_texture_filter_anisotropic,
         EXT_texture_format_BGRA8888,
         EXT_texture_sRGB,
@@ -480,6 +428,10 @@ public:
         IMG_texture_compression_pvrtc,
         IMG_texture_npot,
         KHR_debug,
+        KHR_robust_buffer_access_behavior,
+        KHR_robustness,
+        KHR_texture_compression_astc_hdr,
+        KHR_texture_compression_astc_ldr,
         NV_draw_instanced,
         NV_fence,
         NV_framebuffer_blit,
@@ -560,15 +512,6 @@ private:
      * Is this feature supported using the core (unsuffixed) symbols?
      */
     bool IsFeatureProvidedByCoreSymbols(GLFeature feature);
-
-// -----------------------------------------------------------------------------
-// Robustness handling
-private:
-    /**
-     * The derived class is expected to provide information on whether or not it
-     * supports robustness.
-     */
-    virtual bool SupportsRobustness() const = 0;
 
 public:
 // -----------------------------------------------------------------------------
@@ -785,8 +728,7 @@ private:
 #ifdef MOZ_WIDGET_ANDROID
 // Record the name of the GL call for better hang stacks on Android.
 #define BEFORE_GL_CALL                              \
-            PROFILER_LABEL_FUNC(                    \
-              js::ProfileEntry::Category::GRAPHICS);\
+            AUTO_PROFILER_LABEL(__func__, GRAPHICS);\
             BeforeGLCall(MOZ_FUNCTION_NAME)
 #else
 #define BEFORE_GL_CALL                              \
@@ -811,7 +753,7 @@ private:
 
 #ifdef MOZ_WIDGET_ANDROID
 // Record the name of the GL call for better hang stacks on Android.
-#define BEFORE_GL_CALL PROFILER_LABEL_FUNC(js::ProfileEntry::Category::GRAPHICS)
+#define BEFORE_GL_CALL AUTO_PROFILER_LABEL(__func__, GRAPHICS)
 #else
 #define BEFORE_GL_CALL do { } while (0)
 #endif
@@ -846,6 +788,16 @@ private:
     // if it's bound.
     void AfterGLReadCall() { }
 
+public:
+    void OnSyncCall() const {
+        mSyncGLCallCount++;
+    }
+
+    uint64_t GetSyncCallCount() const {
+        return mSyncGLCallCount;
+    }
+
+    void ResetSyncCallCount(const char* resetReason) const;
 
 // -----------------------------------------------------------------------------
 // GL official entry points
@@ -943,6 +895,7 @@ private:
         ASSERT_NOT_PASSING_STACK_BUFFER_TO_GL(data);
         BEFORE_GL_CALL;
         mSymbols.fBufferData(target, size, data, usage);
+        OnSyncCall();
         AFTER_GL_CALL;
         mHeavyGLCallsSinceLastFlush = true;
     }
@@ -1189,6 +1142,7 @@ public:
     void fFinish() {
         BEFORE_GL_CALL;
         mSymbols.fFinish();
+        OnSyncCall();
         AFTER_GL_CALL;
         mHeavyGLCallsSinceLastFlush = false;
     }
@@ -1209,24 +1163,28 @@ public:
     void fGetActiveAttrib(GLuint program, GLuint index, GLsizei maxLength, GLsizei* length, GLint* size, GLenum* type, GLchar* name) {
         BEFORE_GL_CALL;
         mSymbols.fGetActiveAttrib(program, index, maxLength, length, size, type, name);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
     void fGetActiveUniform(GLuint program, GLuint index, GLsizei maxLength, GLsizei* length, GLint* size, GLenum* type, GLchar* name) {
         BEFORE_GL_CALL;
         mSymbols.fGetActiveUniform(program, index, maxLength, length, size, type, name);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
     void fGetAttachedShaders(GLuint program, GLsizei maxCount, GLsizei* count, GLuint* shaders) {
         BEFORE_GL_CALL;
         mSymbols.fGetAttachedShaders(program, maxCount, count, shaders);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
     GLint fGetAttribLocation(GLuint program, const GLchar* name) {
         BEFORE_GL_CALL;
         GLint retval = mSymbols.fGetAttribLocation(program, name);
+        OnSyncCall();
         AFTER_GL_CALL;
         return retval;
     }
@@ -1235,6 +1193,7 @@ private:
     void raw_fGetIntegerv(GLenum pname, GLint* params) {
         BEFORE_GL_CALL;
         mSymbols.fGetIntegerv(pname, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -1257,18 +1216,21 @@ public:
     void fGetFloatv(GLenum pname, GLfloat* params) {
         BEFORE_GL_CALL;
         mSymbols.fGetFloatv(pname, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
     void fGetBooleanv(GLenum pname, realGLboolean* params) {
         BEFORE_GL_CALL;
         mSymbols.fGetBooleanv(pname, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
     void fGetBufferParameteriv(GLenum target, GLenum pname, GLint* params) {
         BEFORE_GL_CALL;
         mSymbols.fGetBufferParameteriv(target, pname, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -1276,6 +1238,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetDebugMessageLog);
         GLuint ret = mSymbols.fGetDebugMessageLog(count, bufsize, sources, types, ids, severities, lengths, messageLog);
+        OnSyncCall();
         AFTER_GL_CALL;
         return ret;
     }
@@ -1284,6 +1247,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetPointerv);
         mSymbols.fGetPointerv(pname, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -1291,6 +1255,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetObjectLabel);
         mSymbols.fGetObjectLabel(identifier, name, bufSize, length, label);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -1298,6 +1263,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetObjectPtrLabel);
         mSymbols.fGetObjectPtrLabel(ptr, bufSize, length, label);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -1310,12 +1276,14 @@ public:
     void fGetProgramiv(GLuint program, GLenum pname, GLint* param) {
         BEFORE_GL_CALL;
         mSymbols.fGetProgramiv(program, pname, param);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
     void fGetProgramInfoLog(GLuint program, GLsizei bufSize, GLsizei* length, GLchar* infoLog) {
         BEFORE_GL_CALL;
         mSymbols.fGetProgramInfoLog(program, bufSize, length, infoLog);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -1340,6 +1308,7 @@ public:
     const GLubyte* fGetString(GLenum name) {
         BEFORE_GL_CALL;
         const GLubyte* result = mSymbols.fGetString(name);
+        OnSyncCall();
         AFTER_GL_CALL;
         return result;
     }
@@ -1348,6 +1317,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetTexImage);
         mSymbols.fGetTexImage(target, level, format, type, img);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -1356,30 +1326,35 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetTexLevelParameteriv);
         mSymbols.fGetTexLevelParameteriv(target, level, pname, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
     void fGetTexParameterfv(GLenum target, GLenum pname, GLfloat* params) {
         BEFORE_GL_CALL;
         mSymbols.fGetTexParameterfv(target, pname, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
     void fGetTexParameteriv(GLenum target, GLenum pname, GLint* params) {
         BEFORE_GL_CALL;
         mSymbols.fGetTexParameteriv(target, pname, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
     void fGetUniformfv(GLuint program, GLint location, GLfloat* params) {
         BEFORE_GL_CALL;
         mSymbols.fGetUniformfv(program, location, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
     void fGetUniformiv(GLuint program, GLint location, GLint* params) {
         BEFORE_GL_CALL;
         mSymbols.fGetUniformiv(program, location, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -1387,12 +1362,14 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetUniformuiv);
         mSymbols.fGetUniformuiv(program, location, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
     GLint fGetUniformLocation (GLint programObj, const GLchar* name) {
         BEFORE_GL_CALL;
         GLint retval = mSymbols.fGetUniformLocation(programObj, name);
+        OnSyncCall();
         AFTER_GL_CALL;
         return retval;
     }
@@ -1400,18 +1377,21 @@ public:
     void fGetVertexAttribfv(GLuint index, GLenum pname, GLfloat* retval) {
         BEFORE_GL_CALL;
         mSymbols.fGetVertexAttribfv(index, pname, retval);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
     void fGetVertexAttribiv(GLuint index, GLenum pname, GLint* retval) {
         BEFORE_GL_CALL;
         mSymbols.fGetVertexAttribiv(index, pname, retval);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
     void fGetVertexAttribPointerv(GLuint index, GLenum pname, GLvoid** retval) {
         BEFORE_GL_CALL;
         mSymbols.fGetVertexAttribPointerv(index, pname, retval);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -1424,6 +1404,7 @@ public:
     realGLboolean fIsBuffer(GLuint buffer) {
         BEFORE_GL_CALL;
         realGLboolean retval = mSymbols.fIsBuffer(buffer);
+        OnSyncCall();
         AFTER_GL_CALL;
         return retval;
     }
@@ -1433,6 +1414,22 @@ public:
         realGLboolean retval = mSymbols.fIsEnabled(capability);
         AFTER_GL_CALL;
         return retval;
+    }
+
+    void SetEnabled(const GLenum cap, const bool val) {
+        if (val) {
+            fEnable(cap);
+        } else {
+            fDisable(cap);
+        }
+    }
+
+    bool PushEnabled(const GLenum cap, const bool newVal) {
+        const bool oldVal = fIsEnabled(cap);
+        if (oldVal != newVal) {
+            SetEnabled(cap, newVal);
+        }
+        return oldVal;
     }
 
     realGLboolean fIsProgram(GLuint program) {
@@ -1519,6 +1516,12 @@ public:
         AFTER_GL_CALL;
     }
 
+    void fPolygonMode(GLenum face, GLenum mode) {
+        BEFORE_GL_CALL;
+        mSymbols.fPolygonMode(face, mode);
+        AFTER_GL_CALL;
+    }
+
     void fPolygonOffset(GLfloat factor, GLfloat bias) {
         BEFORE_GL_CALL;
         mSymbols.fPolygonOffset(factor, bias);
@@ -1549,6 +1552,7 @@ public:
         ASSERT_NOT_PASSING_STACK_BUFFER_TO_GL(pixels);
         BEFORE_GL_CALL;
         mSymbols.fReadPixels(x, y, width, height, format, type, pixels);
+        OnSyncCall();
         AFTER_GL_CALL;
         mHeavyGLCallsSinceLastFlush = true;
     }
@@ -1912,12 +1916,14 @@ public:
     void fGetShaderiv(GLuint shader, GLenum pname, GLint* param) {
         BEFORE_GL_CALL;
         mSymbols.fGetShaderiv(shader, pname, param);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
     void fGetShaderInfoLog(GLuint shader, GLsizei bufSize, GLsizei* length, GLchar* infoLog) {
         BEFORE_GL_CALL;
         mSymbols.fGetShaderInfoLog(shader, bufSize, length, infoLog);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -1928,6 +1934,7 @@ private:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetShaderPrecisionFormat);
         mSymbols.fGetShaderPrecisionFormat(shadertype, precisiontype, range, precision);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -1944,6 +1951,7 @@ public:
     void fGetShaderSource(GLint obj, GLsizei maxLength, GLsizei* length, GLchar* source) {
         BEFORE_GL_CALL;
         mSymbols.fGetShaderSource(obj, maxLength, length, source);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -1972,6 +1980,7 @@ public:
     GLenum fCheckFramebufferStatus(GLenum target) {
         BEFORE_GL_CALL;
         GLenum retval = mSymbols.fCheckFramebufferStatus(target);
+        OnSyncCall();
         AFTER_GL_CALL;
         return retval;
     }
@@ -2001,18 +2010,21 @@ public:
     void fGetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment, GLenum pname, GLint* value) {
         BEFORE_GL_CALL;
         mSymbols.fGetFramebufferAttachmentParameteriv(target, attachment, pname, value);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
     void fGetRenderbufferParameteriv(GLenum target, GLenum pname, GLint* value) {
         BEFORE_GL_CALL;
         mSymbols.fGetRenderbufferParameteriv(target, pname, value);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
     realGLboolean fIsFramebuffer (GLuint framebuffer) {
         BEFORE_GL_CALL;
         realGLboolean retval = mSymbols.fIsFramebuffer(framebuffer);
+        OnSyncCall();
         AFTER_GL_CALL;
         return retval;
     }
@@ -2021,6 +2033,7 @@ public:
     realGLboolean fIsRenderbuffer (GLuint renderbuffer) {
         BEFORE_GL_CALL;
         realGLboolean retval = mSymbols.fIsRenderbuffer(renderbuffer);
+        OnSyncCall();
         AFTER_GL_CALL;
         return retval;
     }
@@ -2089,6 +2102,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fMapBuffer);
         void* ret = mSymbols.fMapBuffer(target, access);
+        OnSyncCall();
         AFTER_GL_CALL;
         return ret;
     }
@@ -2120,24 +2134,28 @@ private:
     void raw_fGenBuffers(GLsizei n, GLuint* names) {
         BEFORE_GL_CALL;
         mSymbols.fGenBuffers(n, names);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
     void raw_fGenFramebuffers(GLsizei n, GLuint* names) {
         BEFORE_GL_CALL;
         mSymbols.fGenFramebuffers(n, names);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
     void raw_fGenRenderbuffers(GLsizei n, GLuint* names) {
         BEFORE_GL_CALL;
         mSymbols.fGenRenderbuffers(n, names);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
     void raw_fGenTextures(GLsizei n, GLuint* names) {
         BEFORE_GL_CALL;
         mSymbols.fGenTextures(n, names);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -2244,6 +2262,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetGraphicsResetStatus);
         GLenum ret = mSymbols.fGetGraphicsResetStatus();
+        OnSyncCall();
         AFTER_GL_CALL;
         return ret;
     }
@@ -2256,6 +2275,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fFenceSync);
         GLsync ret = mSymbols.fFenceSync(condition, flags);
+        OnSyncCall();
         AFTER_GL_CALL;
         return ret;
     }
@@ -2264,6 +2284,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fIsSync);
         realGLboolean ret = mSymbols.fIsSync(sync);
+        OnSyncCall();
         AFTER_GL_CALL;
         return ret;
     }
@@ -2279,6 +2300,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fClientWaitSync);
         GLenum ret = mSymbols.fClientWaitSync(sync, flags, timeout);
+        OnSyncCall();
         AFTER_GL_CALL;
         return ret;
     }
@@ -2301,6 +2323,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetSynciv);
         mSymbols.fGetSynciv(sync, pname, bufSize, length, values);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -2443,6 +2466,7 @@ public:
         ASSERT_SYMBOL_PRESENT(fGetVertexAttribIiv);
         BEFORE_GL_CALL;
         mSymbols.fGetVertexAttribIiv(index, pname, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -2451,6 +2475,7 @@ public:
         ASSERT_SYMBOL_PRESENT(fGetVertexAttribIuiv);
         BEFORE_GL_CALL;
         mSymbols.fGetVertexAttribIuiv(index, pname, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -2555,6 +2580,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetFragDataLocation);
         GLint result = mSymbols.fGetFragDataLocation(program, name);
+        OnSyncCall();
         AFTER_GL_CALL;
         return result;
     }
@@ -2578,6 +2604,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetInternalformativ);
         mSymbols.fGetInternalformativ(target, internalformat, pname, bufSize, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -2634,6 +2661,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetQueryiv);
         mSymbols.fGetQueryiv(target, pname, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -2641,6 +2669,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetQueryObjectuiv);
         mSymbols.fGetQueryObjectuiv(id, pname, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -2648,6 +2677,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fIsQuery);
         realGLboolean retval = mSymbols.fIsQuery(query);
+        OnSyncCall();
         AFTER_GL_CALL;
         return retval;
     }
@@ -2664,6 +2694,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetQueryObjecti64v);
         mSymbols.fGetQueryObjecti64v(id, pname, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -2671,6 +2702,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetQueryObjectui64v);
         mSymbols.fGetQueryObjectui64v(id, pname, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -2691,6 +2723,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetQueryObjectiv);
         mSymbols.fGetQueryObjectiv(id, pname, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -2719,6 +2752,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGenTransformFeedbacks);
         mSymbols.fGenTransformFeedbacks(n, ids);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -2735,6 +2769,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fIsTransformFeedback);
         realGLboolean result = mSymbols.fIsTransformFeedback(id);
+        OnSyncCall();
         AFTER_GL_CALL;
         return result;
     }
@@ -2776,6 +2811,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetTransformFeedbackVarying);
         mSymbols.fGetTransformFeedbackVarying(program, index, bufSize, length, size, type, name);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -2800,6 +2836,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetIntegeri_v);
         mSymbols.fGetIntegeri_v(param, index, values);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -2807,6 +2844,7 @@ public:
         ASSERT_SYMBOL_PRESENT(fGetInteger64i_v);
         BEFORE_GL_CALL;
         mSymbols.fGetInteger64i_v(target, index, data);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -2842,6 +2880,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fIsVertexArray);
         realGLboolean ret = mSymbols.fIsVertexArray(array);
+        OnSyncCall();
         AFTER_GL_CALL;
         return ret;
     }
@@ -2878,6 +2917,7 @@ public:
         ASSERT_SYMBOL_PRESENT(fTestFence);
         BEFORE_GL_CALL;
         realGLboolean ret = mSymbols.fTestFence(fence);
+        OnSyncCall();
         AFTER_GL_CALL;
         return ret;
     }
@@ -2887,6 +2927,7 @@ public:
         ASSERT_SYMBOL_PRESENT(fFinishFence);
         BEFORE_GL_CALL;
         mSymbols.fFinishFence(fence);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -2895,6 +2936,7 @@ public:
         ASSERT_SYMBOL_PRESENT(fIsFence);
         BEFORE_GL_CALL;
         realGLboolean ret = mSymbols.fIsFence(fence);
+        OnSyncCall();
         AFTER_GL_CALL;
         return ret;
     }
@@ -2904,6 +2946,7 @@ public:
         ASSERT_SYMBOL_PRESENT(fGetFenceiv);
         BEFORE_GL_CALL;
         mSymbols.fGetFenceiv(fence, pname, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -2940,6 +2983,7 @@ public:
         ASSERT_SYMBOL_PRESENT(fMapBufferRange);
         BEFORE_GL_CALL;
         void* data = mSymbols.fMapBufferRange(target, offset, length, access);
+        OnSyncCall();
         AFTER_GL_CALL;
         return data;
     }
@@ -2976,6 +3020,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fIsSampler);
         realGLboolean result = mSymbols.fIsSampler(sampler);
+        OnSyncCall();
         AFTER_GL_CALL;
         return result;
     }
@@ -3046,6 +3091,7 @@ public:
         ASSERT_SYMBOL_PRESENT(fGetUniformIndices);
         BEFORE_GL_CALL;
         mSymbols.fGetUniformIndices(program, uniformCount, uniformNames, uniformIndices);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -3055,6 +3101,7 @@ public:
         ASSERT_SYMBOL_PRESENT(fGetActiveUniformsiv);
         BEFORE_GL_CALL;
         mSymbols.fGetActiveUniformsiv(program, uniformCount, uniformIndices, pname, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -3062,6 +3109,7 @@ public:
         ASSERT_SYMBOL_PRESENT(fGetUniformBlockIndex);
         BEFORE_GL_CALL;
         GLuint result = mSymbols.fGetUniformBlockIndex(program, uniformBlockName);
+        OnSyncCall();
         AFTER_GL_CALL;
         return result;
     }
@@ -3072,6 +3120,7 @@ public:
         ASSERT_SYMBOL_PRESENT(fGetActiveUniformBlockiv);
         BEFORE_GL_CALL;
         mSymbols.fGetActiveUniformBlockiv(program, uniformBlockIndex, pname, params);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -3081,6 +3130,7 @@ public:
         ASSERT_SYMBOL_PRESENT(fGetActiveUniformBlockName);
         BEFORE_GL_CALL;
         mSymbols.fGetActiveUniformBlockName(program, uniformBlockIndex, bufSize, length, uniformBlockName);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -3098,6 +3148,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fTexStorage2D);
         mSymbols.fTexStorage2D(target, levels, internalformat, width, height);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -3106,6 +3157,7 @@ public:
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fTexStorage3D);
         mSymbols.fTexStorage3D(target, levels, internalformat, width, height, depth);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -3123,6 +3175,7 @@ public:
                              width, height, depth,
                              border, format, type,
                              data);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -3135,6 +3188,7 @@ public:
         mSymbols.fTexSubImage3D(target, level, xoffset, yoffset, zoffset,
                                 width, height, depth, format, type,
                                 pixels);
+        OnSyncCall();
         AFTER_GL_CALL;
     }
 
@@ -3178,12 +3232,13 @@ public:
     }
 
 // -----------------------------------------------------------------------------
-// get_string_indexed
+// GL3+, ES3+
 
     const GLubyte* fGetStringi(GLenum name, GLuint index) {
         BEFORE_GL_CALL;
         ASSERT_SYMBOL_PRESENT(fGetStringi);
         const GLubyte* ret = mSymbols.fGetStringi(name, index);
+        OnSyncCall();
         AFTER_GL_CALL;
         return ret;
     }
@@ -3213,7 +3268,7 @@ public:
 protected:
     explicit GLContext(CreateContextFlags flags, const SurfaceCaps& caps,
                        GLContext* sharedContext = nullptr,
-                       bool isOffscreen = false);
+                       bool isOffscreen = false, bool canUseTLSIsCurrent = false);
 
 
 // -----------------------------------------------------------------------------
@@ -3239,26 +3294,7 @@ public:
     }
 #endif
 
-    bool MakeCurrent(bool aForce = false) {
-        if (IsDestroyed()) {
-            return false;
-        }
-#ifdef MOZ_GL_DEBUG
-    PR_SetThreadPrivate(sCurrentGLContextTLS, this);
-
-    // XXX this assertion is disabled because it's triggering on Mac;
-    // we need to figure out why and reenable it.
-#if 0
-        // IsOwningThreadCurrent is a bit of a misnomer;
-        // the "owning thread" is the creation thread,
-        // and the only thread that can own this.  We don't
-        // support contexts used on multiple threads.
-        NS_ASSERTION(IsOwningThreadCurrent(),
-                     "MakeCurrent() called on different thread than this context was created on!");
-#endif
-#endif
-        return MakeCurrentImpl(aForce);
-    }
+    bool MakeCurrent(bool aForce = false);
 
     virtual bool Init() = 0;
 
@@ -3374,7 +3410,7 @@ public:
             LOCAL_GL_TEXTURE_EXTERNAL : LOCAL_GL_TEXTURE_2D;
     }
 
-    virtual bool RenewSurface(nsIWidget* aWidget) { return false; }
+    virtual bool RenewSurface(widget::CompositorWidget* aWidget) { return false; }
 
     // Shared code for GL extensions and GLX extensions.
     static bool ListHasExtension(const GLubyte* extensions,
@@ -3516,17 +3552,6 @@ public:
 
     bool IsDrawingToDefaultFramebuffer();
 
-protected:
-    RefPtr<TextureGarbageBin> mTexGarbageBin;
-
-public:
-    TextureGarbageBin* TexGarbageBin() {
-        MOZ_ASSERT(mTexGarbageBin);
-        return mTexGarbageBin;
-    }
-
-    void EmptyTexGarbageBin();
-
     bool IsOffscreenSizeAllowed(const gfx::IntSize& aSize) const;
 
 protected:
@@ -3557,6 +3582,7 @@ protected:
     bool mTextureAllocCrashesOnMapFailure;
     bool mNeedsCheckAfterAttachTextureToFb;
     bool mWorkAroundDriverBugs;
+    mutable uint64_t mSyncGLCallCount;
 
     bool IsTextureSizeSafeToPassToDriver(GLenum target, GLsizei width, GLsizei height) const {
         if (mNeedsTextureSizeChecks) {
@@ -3665,7 +3691,16 @@ public:
     void FlushIfHeavyGLCallsSinceLastFlush();
     static bool ShouldSpew();
     static bool ShouldDumpExts();
-    void Readback(SharedSurface* src, gfx::DataSourceSurface* dest);
+    bool Readback(SharedSurface* src, gfx::DataSourceSurface* dest);
+
+    ////
+
+    void TexParams_SetClampNoMips(GLenum target = LOCAL_GL_TEXTURE_2D) {
+        fTexParameteri(target, LOCAL_GL_TEXTURE_WRAP_S, LOCAL_GL_CLAMP_TO_EDGE);
+        fTexParameteri(target, LOCAL_GL_TEXTURE_WRAP_T, LOCAL_GL_CLAMP_TO_EDGE);
+        fTexParameteri(target, LOCAL_GL_TEXTURE_MAG_FILTER, LOCAL_GL_NEAREST);
+        fTexParameteri(target, LOCAL_GL_TEXTURE_MIN_FILTER, LOCAL_GL_NEAREST);
+    }
 };
 
 bool DoesStringMatch(const char* aString, const char* aWantedString);

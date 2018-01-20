@@ -1,5 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+
 "use strict";
 
 /**
@@ -12,10 +13,6 @@ let { snapshotState, dominatorTreeState, viewState, treeMapState } =
   require("devtools/client/memory/constants");
 let { importSnapshotAndCensus } = require("devtools/client/memory/actions/io");
 let { changeViewAndRefresh } = require("devtools/client/memory/actions/view");
-
-function run_test() {
-  run_next_test();
-}
 
 add_task(function* () {
   let front = new StubbedMemoryFront();

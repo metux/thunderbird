@@ -4,8 +4,9 @@
 
 <!ENTITY closeNotification.tooltip "Փակել հաղորդագրությունը">
 
-<!ENTITY closeNotificationItem.label "Ոչ հիմա">
-
 <!ENTITY checkForUpdates "Ստուգել թարմացումները...">
 
 <!ENTITY learnMore "Իմանալ ավելին…">
+
+<!ENTITY defaultButton.label "Լավ">
+<!ENTITY defaultButton.accesskey "Լ">

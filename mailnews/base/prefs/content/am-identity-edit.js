@@ -278,11 +278,12 @@ function selectFile()
   if (sigFolder)
       fp.displayDirectory = sigFolder;
 
-  var ret = fp.show();
-  if (ret == nsIFilePicker.returnOK) {
-      var folderField = document.getElementById("identity.signature");
-      folderField.value = fp.file.path;
-  }
+  fp.open(rv => {
+    if (rv != nsIFilePicker.returnOK || !fp.file) {
+      return;
+    }
+    document.getElementById("identity.signature").value = fp.file.path;
+  });
 }
 
 function GetSigFolder()
@@ -377,6 +378,7 @@ function loadSMTPServerList()
   var smtpServerList = document.getElementById("identity.smtpServerKey");
   let servers = MailServices.smtp.servers;
   let defaultServer = MailServices.smtp.defaultServer;
+  let currentValue = smtpServerList.value;
 
   var smtpPopup = smtpServerList.menupopup;
   while (smtpPopup.lastChild.nodeName != "menuseparator")
@@ -402,4 +404,20 @@ function loadSMTPServerList()
       smtpServerList.appendItem(serverName, server.key);
     }
   }
+
+  smtpServerList.value = currentValue;
+}
+
+/**
+ * Open dialog for editing properties of currently selected SMTP server.
+ */
+function editCurrentSMTP()
+{
+  let smtpKey = document.getElementById("identity.smtpServerKey").value;
+  let server = (smtpKey === "") ? MailServices.smtp.defaultServer :
+                                  MailServices.smtp.getServerByKey(smtpKey);
+
+  let args = editSMTPServer(server);
+  if (args.result)
+    loadSMTPServerList();
 }

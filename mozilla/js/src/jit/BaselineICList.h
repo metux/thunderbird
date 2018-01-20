@@ -18,11 +18,13 @@ namespace jit {
     _(TypeMonitor_SingleObject)                  \
     _(TypeMonitor_ObjectGroup)                   \
     _(TypeMonitor_PrimitiveSet)                  \
+    _(TypeMonitor_AnyValue)                      \
                                                  \
     _(TypeUpdate_Fallback)                       \
     _(TypeUpdate_SingleObject)                   \
     _(TypeUpdate_ObjectGroup)                    \
     _(TypeUpdate_PrimitiveSet)                   \
+    _(TypeUpdate_AnyValue)                       \
                                                  \
     _(NewArray_Fallback)                         \
     _(NewObject_Fallback)                        \
@@ -45,46 +47,16 @@ namespace jit {
     _(Call_ScriptedApplyArray)                   \
     _(Call_ScriptedApplyArguments)               \
     _(Call_ScriptedFunCall)                      \
-    _(Call_StringSplit)                          \
-    _(Call_IsSuspendedStarGenerator)             \
+    _(Call_ConstStringSplit)                     \
+    _(Call_IsSuspendedGenerator)                 \
                                                  \
     _(GetElem_Fallback)                          \
-    _(GetElem_NativeSlotName)                    \
-    _(GetElem_NativeSlotSymbol)                  \
-    _(GetElem_NativePrototypeSlotName)           \
-    _(GetElem_NativePrototypeSlotSymbol)         \
-    _(GetElem_NativePrototypeCallNativeName)     \
-    _(GetElem_NativePrototypeCallNativeSymbol)   \
-    _(GetElem_NativePrototypeCallScriptedName)   \
-    _(GetElem_NativePrototypeCallScriptedSymbol) \
-    _(GetElem_UnboxedPropertyName)               \
-    _(GetElem_String)                            \
-    _(GetElem_Dense)                             \
-    _(GetElem_UnboxedArray)                      \
-    _(GetElem_TypedArray)                        \
-    _(GetElem_Arguments)                         \
-                                                 \
     _(SetElem_Fallback)                          \
-    _(SetElem_DenseOrUnboxedArray)               \
-    _(SetElem_DenseOrUnboxedArrayAdd)            \
-    _(SetElem_TypedArray)                        \
                                                  \
     _(In_Fallback)                               \
-    _(In_Native)                                 \
-    _(In_NativePrototype)                        \
-    _(In_NativeDoesNotExist)                     \
-    _(In_Dense)                                  \
+    _(HasOwn_Fallback)                           \
                                                  \
     _(GetName_Fallback)                          \
-    _(GetName_GlobalLexical)                     \
-    _(GetName_Global)                            \
-    _(GetName_Env0)                              \
-    _(GetName_Env1)                              \
-    _(GetName_Env2)                              \
-    _(GetName_Env3)                              \
-    _(GetName_Env4)                              \
-    _(GetName_Env5)                              \
-    _(GetName_Env6)                              \
                                                  \
     _(BindName_Fallback)                         \
                                                  \
@@ -92,16 +64,10 @@ namespace jit {
     _(GetIntrinsic_Constant)                     \
                                                  \
     _(SetProp_Fallback)                          \
-    _(SetProp_Native)                            \
-    _(SetProp_NativeAdd)                         \
-    _(SetProp_Unboxed)                           \
-    _(SetProp_TypedObject)                       \
-    _(SetProp_CallScripted)                      \
-    _(SetProp_CallNative)                        \
                                                  \
     _(TableSwitch)                               \
                                                  \
-    _(IteratorNew_Fallback)                      \
+    _(GetIterator_Fallback)                      \
     _(IteratorMore_Fallback)                     \
     _(IteratorMore_Native)                       \
     _(IteratorClose_Fallback)                    \
@@ -110,7 +76,6 @@ namespace jit {
     _(InstanceOf_Function)                       \
                                                  \
     _(TypeOf_Fallback)                           \
-    _(TypeOf_Typed)                              \
                                                  \
     _(Rest_Fallback)                             \
                                                  \

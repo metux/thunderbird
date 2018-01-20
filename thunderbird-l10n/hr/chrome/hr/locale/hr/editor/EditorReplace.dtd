@@ -24,3 +24,4 @@
 <!ENTITY replaceAllButton.label "Zamjeni sve">
 <!ENTITY replaceAllButton.accesskey "m">
 <!ENTITY closeButton.label "Zatvori">
+<!ENTITY closeButton.accesskey "Z">

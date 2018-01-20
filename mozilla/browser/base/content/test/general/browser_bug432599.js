@@ -1,3 +1,4 @@
+/* eslint-disable mozilla/no-arbitrary-setTimeout */
 function invokeUsingCtrlD(phase) {
   switch (phase) {
   case 1:
@@ -43,11 +44,10 @@ function add_bookmark(aURI, aTitle) {
 function test() {
   waitForExplicitFinish();
 
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
-    gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
+  gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
+  gBrowser.selectedBrowser.addEventListener("load", function() {
     waitForStarChange(false, initTest);
-  }, true);
+  }, {capture: true, once: true});
 
   content.location = testURL;
 }
@@ -81,17 +81,16 @@ var popupElement = document.getElementById("editBookmarkPanel");
 var titleElement = document.getElementById("editBookmarkPanelTitle");
 var removeElement = document.getElementById("editBookmarkPanelRemoveButton");
 
-function checkBookmarksPanel(invoker, phase)
-{
-  let onPopupShown = function(aEvent) {
+function checkBookmarksPanel(invoker, phase) {
+  let onPopupShown = function popupShownListener(aEvent) {
     if (aEvent.originalTarget == popupElement) {
-      popupElement.removeEventListener("popupshown", arguments.callee, false);
+      popupElement.removeEventListener("popupshown", popupShownListener);
       checkBookmarksPanel(invoker, phase + 1);
     }
   };
-  let onPopupHidden = function(aEvent) {
+  let onPopupHidden = function listener(aEvent) {
     if (aEvent.originalTarget == popupElement) {
-      popupElement.removeEventListener("popuphidden", arguments.callee, false);
+      popupElement.removeEventListener("popuphidden", listener);
       if (phase < 4) {
         checkBookmarksPanel(invoker, phase + 1);
       } else {
@@ -110,15 +109,15 @@ function checkBookmarksPanel(invoker, phase)
   switch (phase) {
   case 1:
   case 3:
-    popupElement.addEventListener("popupshown", onPopupShown, false);
+    popupElement.addEventListener("popupshown", onPopupShown);
     break;
   case 2:
-    popupElement.addEventListener("popuphidden", onPopupHidden, false);
+    popupElement.addEventListener("popuphidden", onPopupHidden);
     initialValue = titleElement.value;
     initialRemoveHidden = removeElement.hidden;
     break;
   case 4:
-    popupElement.addEventListener("popuphidden", onPopupHidden, false);
+    popupElement.addEventListener("popuphidden", onPopupHidden);
     is(titleElement.value, initialValue, "The bookmark panel's title should be the same");
     is(removeElement.hidden, initialRemoveHidden, "The bookmark panel's visibility should not change");
     break;

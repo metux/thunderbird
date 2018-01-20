@@ -23,7 +23,7 @@
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
-#include "mozilla/dom/DOMError.h"
+#include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/ErrorEvent.h"
 #include "mozilla/dom/ErrorEventBinding.h"
 #include "mozilla/dom/quota/QuotaManager.h"
@@ -45,6 +45,8 @@
 #include "ScriptErrorHelper.h"
 #include "WorkerScope.h"
 #include "WorkerPrivate.h"
+#include "nsCharSeparatedTokenizer.h"
+#include "unicode/locid.h"
 
 // Bindings for ResolveConstructors
 #include "mozilla/dom/IDBCursorBinding.h"
@@ -58,11 +60,6 @@
 #include "mozilla/dom/IDBRequestBinding.h"
 #include "mozilla/dom/IDBTransactionBinding.h"
 #include "mozilla/dom/IDBVersionChangeEventBinding.h"
-
-#ifdef ENABLE_INTL_API
-#include "nsCharSeparatedTokenizer.h"
-#include "unicode/locid.h"
-#endif
 
 #define IDB_STR "indexedDB"
 
@@ -149,13 +146,14 @@ const char kPrefExperimental[] = IDB_PREF_BRANCH_ROOT "experimental";
 const char kPrefFileHandle[] = "dom.fileHandle.enabled";
 const char kDataThresholdPref[] = IDB_PREF_BRANCH_ROOT "dataThreshold";
 const char kPrefMaxSerilizedMsgSize[] = IDB_PREF_BRANCH_ROOT "maxSerializedMsgSize";
+const char kPrefErrorEventToSelfError[] = IDB_PREF_BRANCH_ROOT "errorEventToSelfError";
 
 #define IDB_PREF_LOGGING_BRANCH_ROOT IDB_PREF_BRANCH_ROOT "logging."
 
 const char kPrefLoggingEnabled[] = IDB_PREF_LOGGING_BRANCH_ROOT "enabled";
 const char kPrefLoggingDetails[] = IDB_PREF_LOGGING_BRANCH_ROOT "details";
 
-#if defined(DEBUG) || defined(MOZ_ENABLE_PROFILER_SPS)
+#if defined(DEBUG) || defined(MOZ_GECKO_PROFILER)
 const char kPrefLoggingProfiler[] =
   IDB_PREF_LOGGING_BRANCH_ROOT "profiler-marks";
 #endif
@@ -170,6 +168,7 @@ Atomic<bool> gClosed(false);
 Atomic<bool> gTestingMode(false);
 Atomic<bool> gExperimentalFeaturesEnabled(false);
 Atomic<bool> gFileHandleEnabled(false);
+Atomic<bool> gPrefErrorEventToSelfError(false);
 Atomic<int32_t> gDataThresholdBytes(0);
 Atomic<int32_t> gMaxSerializedMsgSize(0);
 
@@ -389,7 +388,7 @@ IndexedDatabaseManager::Init()
       obs->AddObserver(this, DISKSPACEWATCHER_OBSERVER_TOPIC, false);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    mDeleteTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
+    mDeleteTimer = NS_NewTimer();
     NS_ENSURE_STATE(mDeleteTimer);
 
     if (QuotaManager* quotaManager = QuotaManager::Get()) {
@@ -406,6 +405,9 @@ IndexedDatabaseManager::Init()
   Preferences::RegisterCallbackAndCall(AtomicBoolPrefChangedCallback,
                                        kPrefFileHandle,
                                        &gFileHandleEnabled);
+  Preferences::RegisterCallbackAndCall(AtomicBoolPrefChangedCallback,
+                                       kPrefErrorEventToSelfError,
+                                       &gPrefErrorEventToSelfError);
 
   // By default IndexedDB uses SQLite with PRAGMA synchronous = NORMAL. This
   // guarantees (unlike synchronous = OFF) atomicity and consistency, but not
@@ -417,7 +419,7 @@ IndexedDatabaseManager::Init()
 
   Preferences::RegisterCallback(LoggingModePrefChangedCallback,
                                 kPrefLoggingDetails);
-#ifdef MOZ_ENABLE_PROFILER_SPS
+#ifdef MOZ_GECKO_PROFILER
   Preferences::RegisterCallback(LoggingModePrefChangedCallback,
                                 kPrefLoggingProfiler);
 #endif
@@ -430,9 +432,8 @@ IndexedDatabaseManager::Init()
   Preferences::RegisterCallbackAndCall(MaxSerializedMsgSizePrefChangeCallback,
                                        kPrefMaxSerilizedMsgSize);
 
-#ifdef ENABLE_INTL_API
-  const nsAdoptingCString& acceptLang =
-    Preferences::GetLocalizedCString("intl.accept_languages");
+  nsAutoCString acceptLang;
+  Preferences::GetLocalizedCString("intl.accept_languages", acceptLang);
 
   // Split values on commas.
   nsCCharSeparatedTokenizer langTokenizer(acceptLang, ',');
@@ -449,7 +450,6 @@ IndexedDatabaseManager::Init()
   if (mLocale.IsEmpty()) {
     mLocale.AssignLiteral("en_US");
   }
-#endif
 
   return NS_OK;
 }
@@ -480,10 +480,13 @@ IndexedDatabaseManager::Destroy()
   Preferences::UnregisterCallback(AtomicBoolPrefChangedCallback,
                                   kPrefFileHandle,
                                   &gFileHandleEnabled);
+  Preferences::UnregisterCallback(AtomicBoolPrefChangedCallback,
+                                  kPrefErrorEventToSelfError,
+                                  &gPrefErrorEventToSelfError);
 
   Preferences::UnregisterCallback(LoggingModePrefChangedCallback,
                                   kPrefLoggingDetails);
-#ifdef MOZ_ENABLE_PROFILER_SPS
+#ifdef MOZ_GECKO_PROFILER
   Preferences::UnregisterCallback(LoggingModePrefChangedCallback,
                                   kPrefLoggingProfiler);
 #endif
@@ -506,6 +509,10 @@ IndexedDatabaseManager::CommonPostHandleEvent(EventChainPostVisitor& aVisitor,
 {
   MOZ_ASSERT(aVisitor.mDOMEvent);
   MOZ_ASSERT(aFactory);
+
+  if (!gPrefErrorEventToSelfError) {
+    return NS_OK;
+  }
 
   if (aVisitor.mEventStatus == nsEventStatus_eConsumeNoDefault) {
     return NS_OK;
@@ -537,7 +544,7 @@ IndexedDatabaseManager::CommonPostHandleEvent(EventChainPostVisitor& aVisitor,
     return NS_OK;
   }
 
-  RefPtr<DOMError> error = request->GetErrorAfterResult();
+  RefPtr<DOMException> error = request->GetErrorAfterResult();
 
   nsString errorName;
   if (error) {
@@ -829,7 +836,8 @@ IndexedDatabaseManager::ClearBackgroundActor()
 void
 IndexedDatabaseManager::NoteLiveQuotaManager(QuotaManager* aQuotaManager)
 {
-  MOZ_ASSERT(IsMainProcess());
+  // This can be called during Init, so we can't use IsMainProcess() yet.
+  MOZ_ASSERT(sIsMainProcess);
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aQuotaManager);
 
@@ -994,6 +1002,11 @@ IndexedDatabaseManager::BlockAndGetFileReferences(
 
     BackgroundUtilsChild* actor = new BackgroundUtilsChild(this);
 
+    // We don't set event target for BackgroundUtilsChild because:
+    // 1. BackgroundUtilsChild is a singleton.
+    // 2. SendGetFileReferences is a sync operation to be returned asap if unlabeled.
+    // 3. The rest operations like DeleteMe/__delete__ only happens at shutdown.
+    // Hence, we should keep it unlabeled.
     mBackgroundActor =
       static_cast<BackgroundUtilsChild*>(
         bgActor->SendPBackgroundIndexedDBUtilsConstructor(actor));
@@ -1064,9 +1077,9 @@ IndexedDatabaseManager::LoggingModePrefChangedCallback(
   }
 
   bool useProfiler =
-#if defined(DEBUG) || defined(MOZ_ENABLE_PROFILER_SPS)
+#if defined(DEBUG) || defined(MOZ_GECKO_PROFILER)
     Preferences::GetBool(kPrefLoggingProfiler);
-#if !defined(MOZ_ENABLE_PROFILER_SPS)
+#if !defined(MOZ_GECKO_PROFILER)
   if (useProfiler) {
     NS_WARNING("IndexedDB cannot create profiler marks because this build does "
                "not have profiler extensions enabled!");
@@ -1088,7 +1101,6 @@ IndexedDatabaseManager::LoggingModePrefChangedCallback(
   }
 }
 
-#ifdef ENABLE_INTL_API
 // static
 const nsCString&
 IndexedDatabaseManager::GetLocale()
@@ -1098,11 +1110,11 @@ IndexedDatabaseManager::GetLocale()
 
   return idbManager->mLocale;
 }
-#endif
 
 NS_IMPL_ADDREF(IndexedDatabaseManager)
 NS_IMPL_RELEASE_WITH_DESTROY(IndexedDatabaseManager, Destroy())
-NS_IMPL_QUERY_INTERFACE(IndexedDatabaseManager, nsIObserver, nsITimerCallback)
+NS_IMPL_QUERY_INTERFACE(IndexedDatabaseManager, nsIObserver, nsITimerCallback,
+                        nsINamed)
 
 NS_IMETHODIMP
 IndexedDatabaseManager::Observe(nsISupports* aSubject, const char* aTopic,
@@ -1155,6 +1167,13 @@ IndexedDatabaseManager::Notify(nsITimer* aTimer)
 
   mPendingDeleteInfos.Clear();
 
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+IndexedDatabaseManager::GetName(nsACString& aName)
+{
+  aName.AssignLiteral("IndexedDatabaseManager");
   return NS_OK;
 }
 
@@ -1361,7 +1380,6 @@ DeleteFilesRunnable::Open()
   quotaManager->OpenDirectory(mFileManager->Type(),
                               mFileManager->Group(),
                               mFileManager->Origin(),
-                              mFileManager->IsApp(),
                               Client::IDB,
                               /* aExclusive */ false,
                               this);

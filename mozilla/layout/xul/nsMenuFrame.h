@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,7 +11,7 @@
 #ifndef nsMenuFrame_h__
 #define nsMenuFrame_h__
 
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsCOMPtr.h"
 
 #include "nsBoxFrame.h"
@@ -18,6 +19,8 @@
 #include "nsGkAtoms.h"
 #include "nsMenuParent.h"
 #include "nsXULPopupManager.h"
+#include "nsINamed.h"
+#include "nsIReflowCallback.h"
 #include "nsITimer.h"
 #include "mozilla/Attributes.h"
 
@@ -54,13 +57,15 @@ class nsMenuFrame;
  * to it. The callback is delegated to the contained nsMenuFrame as long as
  * the contained nsMenuFrame has not been destroyed.
  */
-class nsMenuTimerMediator final : public nsITimerCallback
+class nsMenuTimerMediator final : public nsITimerCallback,
+                                  public nsINamed
 {
 public:
   explicit nsMenuTimerMediator(nsMenuFrame* aFrame);
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSITIMERCALLBACK
+  NS_DECL_NSINAMED
 
   void ClearFrame();
 
@@ -72,13 +77,13 @@ private:
 };
 
 class nsMenuFrame final : public nsBoxFrame
+                        , public nsIReflowCallback
 {
 public:
   explicit nsMenuFrame(nsStyleContext* aContext);
 
-  NS_DECL_QUERYFRAME_TARGET(nsMenuFrame)
   NS_DECL_QUERYFRAME
-  NS_DECL_FRAMEARENA_HELPERS
+  NS_DECL_FRAMEARENA_HELPERS(nsMenuFrame)
 
   NS_IMETHOD DoXULLayout(nsBoxLayoutState& aBoxLayoutState) override;
   virtual nsSize GetXULMinSize(nsBoxLayoutState& aBoxLayoutState) override;
@@ -97,13 +102,12 @@ public:
   // actual menu item at all.
   virtual const nsFrameList& GetChildList(ChildListID aList) const override;
   virtual void GetChildLists(nsTArray<ChildList>* aLists) const override;
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
+  virtual void DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData& aPostDestroyData) override;
 
   // Overridden to prevent events from going to children of the menu.
   virtual void BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
-                                           const nsRect&           aDirtyRect,
                                            const nsDisplayListSet& aLists) override;
-                                         
+
   // this method can destroy the frame
   virtual nsresult HandleEvent(nsPresContext* aPresContext,
                                mozilla::WidgetGUIEvent* aEvent,
@@ -118,8 +122,6 @@ public:
                             nsFrameList&    aFrameList) override;
   virtual void RemoveFrame(ChildListID     aListID,
                            nsIFrame*       aOldFrame) override;
-
-  virtual nsIAtom* GetType() const override { return nsGkAtoms::menuFrame; }
 
   NS_IMETHOD SelectMenu(bool aActivateFlag);
 
@@ -165,7 +167,7 @@ public:
   }
 
 
-  // nsMenuFrame methods 
+  // nsMenuFrame methods
 
   bool IsOnMenuBar() const
   {
@@ -211,6 +213,10 @@ public:
 
   static bool IsSizedToPopup(nsIContent* aContent, bool aRequireAlways);
 
+  // nsIReflowCallback
+  virtual bool ReflowFinished() override;
+  virtual void ReflowCallbackCanceled() override;
+
 protected:
   friend class nsMenuTimerMediator;
   friend class nsASyncMenuInitialization;
@@ -248,7 +254,7 @@ protected:
 
   // This method can destroy the frame
   virtual nsresult AttributeChanged(int32_t aNameSpaceID,
-                                    nsIAtom* aAttribute,
+                                    nsAtom* aAttribute,
                                     int32_t aModType) override;
   virtual ~nsMenuFrame() { }
 
@@ -270,6 +276,7 @@ protected:
   bool mIsMenu; // Whether or not we can even have children or not.
   bool mChecked;              // are we checked?
   bool mIgnoreAccelTextChange; // temporarily set while determining the accelerator key
+  bool mReflowCallbackPosted;
   nsMenuType mType;
 
   // Reference to the mediator which wraps this frame.

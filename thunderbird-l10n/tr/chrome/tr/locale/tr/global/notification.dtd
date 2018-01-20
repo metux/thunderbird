@@ -4,8 +4,9 @@
 
 <!ENTITY closeNotification.tooltip "Bu iletiyi kapat">
 
-<!ENTITY closeNotificationItem.label "Şimdi değil">
-
 <!ENTITY checkForUpdates "Güncellemeleri denetle…">
 
 <!ENTITY learnMore "Daha fazla bilgi al…">
+
+<!ENTITY defaultButton.label "Tamam!">
+<!ENTITY defaultButton.accesskey "m">

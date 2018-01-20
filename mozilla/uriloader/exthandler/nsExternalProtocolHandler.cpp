@@ -8,7 +8,7 @@
 #include "nsIURI.h"
 #include "nsIURL.h"
 #include "nsExternalProtocolHandler.h"
-#include "nsXPIDLString.h"
+#include "nsString.h"
 #include "nsReadableUtils.h"
 #include "nsCOMPtr.h"
 #include "nsContentUtils.h"
@@ -71,6 +71,7 @@ private:
     nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
     nsCOMPtr<nsILoadGroup> mLoadGroup;
     nsCOMPtr<nsILoadInfo> mLoadInfo;
+    nsCOMPtr<nsIStreamListener> mListener;
 };
 
 NS_IMPL_ADDREF(nsExtProtocolChannel)
@@ -175,16 +176,25 @@ nsresult nsExtProtocolChannel::OpenURL()
     }
                                                 
     rv = extProtService->LoadURI(mUrl, aggCallbacks);
-    if (NS_SUCCEEDED(rv)) {
-        // despite success, we need to abort this channel, at the very least 
-        // to make it clear to the caller that no on{Start,Stop}Request
-        // should be expected.
-        rv = NS_ERROR_NO_CONTENT;
+
+    if (NS_SUCCEEDED(rv) && mListener) {
+      Cancel(NS_ERROR_NO_CONTENT);
+
+      RefPtr<nsExtProtocolChannel> self = this;
+      nsCOMPtr<nsIStreamListener> listener = mListener;
+      MessageLoop::current()->PostTask(
+        NS_NewRunnableFunction(
+          "nsExtProtocolChannel::OpenURL",
+          [self, listener]() {
+            listener->OnStartRequest(self, nullptr);
+            listener->OnStopRequest(self, nullptr, self->mStatus);
+          }));
     }
   }
 
 finish:
   mCallbacks = nullptr;
+  mListener = nullptr;
   return rv;
 }
 
@@ -218,6 +228,7 @@ NS_IMETHODIMP nsExtProtocolChannel::AsyncOpen(nsIStreamListener *listener, nsISu
   NS_ENSURE_TRUE(!mWasOpened, NS_ERROR_ALREADY_OPENED);
 
   mWasOpened = true;
+  mListener = listener;
 
   return OpenURL();
 }
@@ -226,7 +237,10 @@ NS_IMETHODIMP nsExtProtocolChannel::AsyncOpen2(nsIStreamListener *aListener)
 {
   nsCOMPtr<nsIStreamListener> listener = aListener;
   nsresult rv = nsContentSecurityManager::doContentSecurityCheck(this, listener);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+    mCallbacks = nullptr;
+    return rv;
+  }
   return AsyncOpen(listener, nullptr);
 }
 
@@ -240,6 +254,11 @@ NS_IMETHODIMP nsExtProtocolChannel::SetLoadFlags(nsLoadFlags aLoadFlags)
 {
   mLoadFlags = aLoadFlags;
   return NS_OK;
+}
+
+NS_IMETHODIMP nsExtProtocolChannel::GetIsDocument(bool *aIsDocument)
+{
+  return NS_GetIsDocumentChannel(this, aIsDocument);
 }
 
 NS_IMETHODIMP nsExtProtocolChannel::GetContentType(nsACString &aContentType)
@@ -397,6 +416,20 @@ NS_IMETHODIMP nsExtProtocolChannel::SetParentListener(HttpChannelParentListener*
 }
 
 NS_IMETHODIMP nsExtProtocolChannel::NotifyTrackingProtectionDisabled()
+{
+  // nothing to do
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsExtProtocolChannel::SetClassifierMatchedInfo(const nsACString& aList,
+                                                             const nsACString& aProvider,
+                                                             const nsACString& aFullHash)
+{
+  // nothing to do
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsExtProtocolChannel::NotifyTrackingResource()
 {
   // nothing to do
   return NS_OK;

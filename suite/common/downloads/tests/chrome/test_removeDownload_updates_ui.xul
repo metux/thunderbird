@@ -86,18 +86,16 @@ function test()
       "state, currBytes, maxBytes, preferredAction, autoResume) " +
     "VALUES (:name, :source, :target, :startTime, :endTime, :state, " +
       ":currBytes, :maxBytes, :preferredAction, :autoResume)");
-  for each (var dl in DownloadData) {
-    for (var prop in dl)
-      stmt.params[prop] = dl[prop];
+  for (let dl of DownloadData) {
+    for (let [prop, value] of Object.entries(dl))
+      stmt.params[prop] = value;
 
     stmt.execute();
   }
   stmt.finalize();
 
   // See if the DM is already open, and if it is, close it!
-  var wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-                     .getService(Components.interfaces.nsIWindowMediator);
-  var win = wm.getMostRecentWindow("Download:Manager");
+  var win = Services.wm.getMostRecentWindow("Download:Manager");
   if (win)
     win.close();
 

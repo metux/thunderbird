@@ -116,12 +116,14 @@ class JitTest:
                                        # enabled.
         self.test_also_wasm_baseline = False # True means run with and and without
                                        # wasm baseline compiler enabled.
+        self.other_includes = [] # Additional files to include, in addition to prologue.js
         self.test_also = [] # List of other configurations to test with.
         self.test_join = [] # List of other configurations to test with all existing variants.
         self.expect_error = '' # Errors to expect and consider passing
         self.expect_status = 0 # Exit status to expect from shell
         self.expect_crash = False # Exit status or error output.
         self.is_module = False
+        self.need_for_each = False # Enable for-each syntax
         self.test_reflect_stringify = None  # Reflect.stringify implementation to test
 
         # Expected by the test runner. Always true for jit-tests.
@@ -137,7 +139,8 @@ class JitTest:
         t.valgrind = self.valgrind
         t.tz_pacific = self.tz_pacific
         t.test_also_noasmjs = self.test_also_noasmjs
-        t.test_also_wasm_baseline = self.test_also_noasmjs
+        t.test_also_wasm_baseline = self.test_also_wasm_baseline
+        t.other_includes = self.other_includes[:]
         t.test_also = self.test_also
         t.test_join = self.test_join
         t.expect_error = self.expect_error
@@ -146,6 +149,7 @@ class JitTest:
         t.test_reflect_stringify = self.test_reflect_stringify
         t.enable = True
         t.is_module = self.is_module
+        t.need_for_each = self.need_for_each
         return t
 
     def copy_and_extend_jitflags(self, variant):
@@ -226,6 +230,8 @@ class JitTest:
                         except ValueError:
                             print("warning: couldn't parse thread-count"
                                   " {}".format(value))
+                    elif name == 'include':
+                        test.other_includes.append(value)
                     else:
                         print('{}: warning: unrecognized |jit-test| attribute'
                               ' {}'.format(path, part))
@@ -245,9 +251,15 @@ class JitTest:
                     elif name == 'test-also-noasmjs':
                         if options.asmjs_enabled:
                             test.test_also.append(['--no-asmjs'])
-                    elif name == 'test-also-wasm-baseline':
+                    elif name == 'test-also-no-wasm-baseline':
                         if options.wasm_enabled:
-                            test.test_also.append(['--wasm-always-baseline'])
+                            test.test_also.append(['--no-wasm-baseline'])
+                    elif name == 'test-also-no-wasm-ion':
+                        if options.wasm_enabled:
+                            test.test_also.append(['--no-wasm-ion'])
+                    elif name == 'test-also-wasm-tiering':
+                        if options.wasm_enabled:
+                            test.test_also.append(['--test-wasm-await-tier2'])
                     elif name == 'test-also-wasm-check-bce':
                         if options.wasm_enabled:
                             test.test_also.append(['--wasm-check-bce'])
@@ -262,6 +274,8 @@ class JitTest:
                     elif name.startswith('--'):
                         # // |jit-test| --ion-gvn=off; --no-sse4
                         test.jitflags.append(name)
+                    elif name == 'need-for-each':
+                        test.need_for_each = True
                     else:
                         print('{}: warning: unrecognized |jit-test| attribute'
                               ' {}'.format(path, part))
@@ -292,15 +306,24 @@ class JitTest:
             quotechar = '"'
         else:
             quotechar = "'"
-        expr = "const platform={}; const libdir={}; const scriptdir={}".format(
-            js_quote(quotechar, sys.platform),
-            js_quote(quotechar, libdir),
-            js_quote(quotechar, scriptdir_var))
+
+        # Don't merge the expressions: We want separate -e arguments to avoid
+        # semicolons in the command line, bug 1351607.
+        exprs = ["const platform={}".format(js_quote(quotechar, sys.platform)),
+                 "const libdir={}".format(js_quote(quotechar, libdir)),
+                 "const scriptdir={}".format(js_quote(quotechar, scriptdir_var))];
+
+        if self.need_for_each:
+            exprs += ["enableForEach()"]
 
         # We may have specified '-a' or '-d' twice: once via --jitflags, once
         # via the "|jit-test|" line.  Remove dups because they are toggles.
         cmd = prefix + ['--js-cache', JitTest.CacheDir]
-        cmd += list(set(self.jitflags)) + ['-e', expr]
+        cmd += list(set(self.jitflags))
+        for expr in exprs:
+            cmd += ['-e', expr]
+        for inc in self.other_includes:
+            cmd += ['-f', libdir + inc]
         if self.is_module:
             cmd += ['--module-load-path', moduledir]
             cmd += ['--module', path]
@@ -308,6 +331,7 @@ class JitTest:
             cmd += ['-f', path]
         else:
             cmd += ['--', self.test_reflect_stringify, "--check", path]
+
         if self.valgrind:
             cmd = self.VALGRIND_CMD + cmd
         return cmd
@@ -364,7 +388,8 @@ def run_test_remote(test, device, prefix, options):
 
 def check_output(out, err, rc, timed_out, test, options):
     if timed_out:
-        if test.relpath_tests in options.ignore_timeouts:
+        if os.path.normpath(test.relpath_tests).replace(os.sep, '/') \
+                in options.ignore_timeouts:
             return True
 
         # The shell sometimes hangs on shutdown on Windows 7 and Windows
@@ -436,6 +461,11 @@ def check_output(out, err, rc, timed_out, test, options):
            and 'Assertion failure' not in err:
             return True
 
+        # Allow a zero exit code if we are running under a sanitizer that
+        # forces the exit status.
+        if test.expect_status != 0 and options.unusable_error_status:
+            return True
+
         return False
 
     return True
@@ -457,8 +487,8 @@ def print_automation_format(ok, res):
     result = "TEST-PASS" if ok else "TEST-UNEXPECTED-FAIL"
     message = "Success" if ok else res.describe_failure()
     jitflags = " ".join(res.test.jitflags)
-    print("{} | {} | {} (code {}, args \"{}\")".format(
-        result, res.test.relpath_top, message, res.rc, jitflags))
+    print("{} | {} | {} (code {}, args \"{}\") [{:.1f} s]".format(
+        result, res.test.relpath_top, message, res.rc, jitflags, res.dt))
 
     # For failed tests, print as much information as we have, to aid debugging.
     if ok:
@@ -651,28 +681,19 @@ def push_progs(options, device, progs):
 
 def run_tests_remote(tests, num_tests, prefix, options):
     # Setup device with everything needed to run our tests.
-    from mozdevice import devicemanagerADB, devicemanagerSUT
+    from mozdevice import devicemanagerADB
 
-    if options.device_transport == 'adb':
-        if options.device_ip:
-            dm = devicemanagerADB.DeviceManagerADB(
-                options.device_ip, options.device_port,
-                deviceSerial=options.device_serial,
-                packageName=None,
-                deviceRoot=options.remote_test_root)
-        else:
-            dm = devicemanagerADB.DeviceManagerADB(
-                deviceSerial=options.device_serial,
-                packageName=None,
-                deviceRoot=options.remote_test_root)
-    else:
-        dm = devicemanagerSUT.DeviceManagerSUT(
+    if options.device_ip:
+        dm = devicemanagerADB.DeviceManagerADB(
             options.device_ip, options.device_port,
+            deviceSerial=options.device_serial,
+            packageName=None,
             deviceRoot=options.remote_test_root)
-        if options.device_ip == None:
-            print('Error: you must provide a device IP to connect to via the'
-                  ' --device option')
-            sys.exit(1)
+    else:
+        dm = devicemanagerADB.DeviceManagerADB(
+            deviceSerial=options.device_serial,
+            packageName=None,
+            deviceRoot=options.remote_test_root)
 
     # Update the test root to point to our test directory.
     jit_tests_dir = posixpath.join(options.remote_test_root, 'jit-tests')

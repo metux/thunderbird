@@ -41,9 +41,7 @@ function test()
   db.executeSimpleSQL("DELETE FROM moz_downloads");
 
   // See if the DM is already open, and if it is, close it!
-  var wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-                     .getService(Components.interfaces.nsIWindowMediator);
-  var win = wm.getMostRecentWindow("Download:Manager");
+  var win = Services.wm.getMostRecentWindow("Download:Manager");
   if (win)
     win.close();
 
@@ -61,7 +59,7 @@ function test()
       var win = wm.getMostRecentWindow("Download:Manager");
 
       // Now we can run our tests
-      for each (var t in testFuncs)
+      for (let t of testFuncs)
         t(win);
 
       // finish will be called by the last test that also hides the DM UI

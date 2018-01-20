@@ -32,7 +32,7 @@ var setupModule = function (module) {
   // Ensure we're in the tinderbox account as that has the right identities set
   // up for this test.
   let server = MailServices.accounts.FindServer("tinderbox", FAKE_SERVER_HOSTNAME, "pop3");
-  let inbox = server.rootFolder.getChildNamed("Inbox");
+  let inbox = get_special_folder(Ci.nsMsgFolderFlags.Inbox, false, server);
   be_in_folder(inbox);
 };
 
@@ -92,6 +92,7 @@ function plaintextComposeWindowSwitchSignatures(suppressSigSep) {
   assert_equals(sigNode.textContent, expectedText);
 
   // Now switch identities!
+  cwc.click(cwc.eid("msgIdentity"));
   cwc.click_menus_in_sequence(cwc.e("msgIdentityPopup"), [ { identitykey: "id2" } ]);
 
   node = contentFrame.contentDocument.body.lastChild;
@@ -169,6 +170,7 @@ function HTMLComposeWindowSwitchSignatures(suppressSigSep, paragraphFormat) {
     assert_equals(node.nodeValue, "-- \nTinderbox is soo 90ies");
 
   // Now switch identities!
+  cwc.click(cwc.eid("msgIdentity"));
   cwc.click_menus_in_sequence(cwc.e("msgIdentityPopup"), [ { identitykey: "id2" } ]);
 
   node = contentFrame.contentDocument.body.lastChild;

@@ -22,7 +22,11 @@ struct _XDisplay;
 typedef struct _XDisplay Display;
 #endif // MOZ_X11
 
-class gfxFontconfigUtils;
+namespace mozilla {
+    namespace dom {
+        class SystemFontListEntry;
+    };
+};
 
 class gfxPlatformGtk : public gfxPlatform {
 public:
@@ -33,14 +37,14 @@ public:
         return (gfxPlatformGtk*) gfxPlatform::GetPlatform();
     }
 
+    void ReadSystemFontList(
+        InfallibleTArray<mozilla::dom::SystemFontListEntry>* retValue) override;
+
     virtual already_AddRefed<gfxASurface>
       CreateOffscreenSurface(const IntSize& aSize,
                              gfxImageFormat aFormat) override;
 
-    virtual already_AddRefed<mozilla::gfx::ScaledFont>
-      GetScaledFontForFont(mozilla::gfx::DrawTarget* aTarget, gfxFont *aFont) override;
-
-    virtual nsresult GetFontList(nsIAtom *aLangGroup,
+    virtual nsresult GetFontList(nsAtom *aLangGroup,
                                  const nsACString& aGenericFamily,
                                  nsTArray<nsString>& aListOfFonts) override;
 
@@ -84,16 +88,11 @@ public:
                                            uint32_t aLength) override;
 
     /**
-     * Check whether format is supported on a platform or not (if unclear,
-     * returns true).
-     */
-    virtual bool IsFontFormatSupported(nsIURI *aFontURI,
-                                         uint32_t aFormatFlags) override;
-
-    /**
      * Calls XFlush if xrender is enabled.
      */
     virtual void FlushContentDrawing() override;
+
+    FT_Library GetFTLibrary() override;
 
 #if (MOZ_WIDGET_GTK == 2)
     static void SetGdkDrawable(cairo_surface_t *target,
@@ -101,8 +100,8 @@ public:
     static GdkDrawable *GetGdkDrawable(cairo_surface_t *target);
 #endif
 
-    static int32_t GetDPI();
-    static double  GetDPIScale();
+    static int32_t GetFontScaleDPI();
+    static double  GetFontScaleFactor();
 
 #ifdef MOZ_X11
     virtual void GetAzureBackendInfo(mozilla::widget::InfoObject &aObj) override {
@@ -111,8 +110,6 @@ public:
     }
 #endif
 
-    static bool UseFcFontList() { return sUseFcFontList; }
-
     bool UseImageOffscreenSurfaces();
 
     virtual gfxImageFormat GetOffscreenFormat() override;
@@ -120,8 +117,6 @@ public:
     bool SupportsApzWheelInput() const override {
       return true;
     }
-
-    bool SupportsApzTouchInput() const override;
 
     void FontsPrefsChanged(const char *aPref) override;
 
@@ -133,11 +128,6 @@ public:
     }
 
     bool AccelerateLayersByDefault() override {
-#ifdef NIGHTLY_BUILD
-      // Only enable the GL compositor on Nightly for now until we have
-      // sufficient data for blocklisting.
-      return true;
-#endif
       return false;
     }
 
@@ -152,8 +142,6 @@ public:
 #endif // MOZ_X11
 
 protected:
-    static gfxFontconfigUtils *sFontconfigUtils;
-
     int8_t mMaxGenericSubstitutions;
 
 private:
@@ -163,10 +151,6 @@ private:
 #ifdef MOZ_X11
     Display* mCompositorDisplay;
 #endif
-
-    // xxx - this will be removed once the new fontconfig platform font list
-    // replaces gfxPangoFontGroup
-    static bool sUseFcFontList;
 };
 
 #endif /* GFX_PLATFORM_GTK_H */

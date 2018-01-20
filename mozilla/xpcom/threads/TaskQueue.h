@@ -53,26 +53,37 @@ public:
   explicit TaskQueue(already_AddRefed<nsIEventTarget> aTarget,
                      bool aSupportsTailDispatch = false);
 
+  TaskQueue(already_AddRefed<nsIEventTarget> aTarget,
+            const char* aName,
+            bool aSupportsTailDispatch = false);
+
   TaskDispatcher& TailDispatcher() override;
 
   TaskQueue* AsTaskQueue() override { return this; }
 
-  void Dispatch(already_AddRefed<nsIRunnable> aRunnable,
-                DispatchFailureHandling aFailureHandling = AssertDispatchSuccess,
-                DispatchReason aReason = NormalDispatch) override
+  nsresult Dispatch(already_AddRefed<nsIRunnable> aRunnable,
+                    DispatchFailureHandling aFailureHandling = AssertDispatchSuccess,
+                    DispatchReason aReason = NormalDispatch) override
   {
     nsCOMPtr<nsIRunnable> r = aRunnable;
     {
       MonitorAutoLock mon(mQueueMonitor);
       nsresult rv = DispatchLocked(/* passed by ref */r, aFailureHandling, aReason);
-      MOZ_DIAGNOSTIC_ASSERT(aFailureHandling == DontAssertDispatchSuccess || NS_SUCCEEDED(rv));
-      Unused << rv;
+#if defined(DEBUG) || !defined(RELEASE_OR_BETA) || defined(EARLY_BETA_OR_EARLIER)
+      if (NS_FAILED(rv) && aFailureHandling == AssertDispatchSuccess) {
+        MOZ_CRASH_UNSAFE_PRINTF("%s: Dispatch failed. rv=%x", mName, uint32_t(rv));
+      }
+#endif
+      return rv;
     }
     // If the ownership of |r| is not transferred in DispatchLocked() due to
     // dispatch failure, it will be deleted here outside the lock. We do so
     // since the destructor of the runnable might access TaskQueue and result
     // in deadlocks.
   }
+
+  // Prevent a GCC warning about the other overload of Dispatch being hidden.
+  using AbstractThread::Dispatch;
 
   // Puts the queue in a shutdown state and returns immediately. The queue will
   // remain alive at least until all the events are drained, because the Runners
@@ -98,7 +109,7 @@ public:
 
   // Create a new nsIEventTarget wrapper object that dispatches to this
   // TaskQueue.
-  already_AddRefed<nsIEventTarget> WrapAsEventTarget();
+  already_AddRefed<nsISerialEventTarget> WrapAsEventTarget();
 
 protected:
   virtual ~TaskQueue();
@@ -138,7 +149,7 @@ protected:
   // The thread can't die while we're running in it, and we only use it for
   // pointer-comparison with the current thread anyway - so we make it atomic
   // and don't refcount it.
-  Atomic<nsIThread*> mRunningThread;
+  Atomic<PRThread*> mRunningThread;
 
   // RAII class that gets instantiated for each dispatched task.
   class AutoTaskGuard : public AutoTaskDispatcher
@@ -157,14 +168,14 @@ protected:
       sCurrentThreadTLS.set(aQueue);
 
       MOZ_ASSERT(mQueue->mRunningThread == nullptr);
-      mQueue->mRunningThread = NS_GetCurrentThread();
+      mQueue->mRunningThread = GetCurrentPhysicalThread();
     }
 
     ~AutoTaskGuard()
     {
       DrainDirectTasks();
 
-      MOZ_ASSERT(mQueue->mRunningThread == NS_GetCurrentThread());
+      MOZ_ASSERT(mQueue->mRunningThread == GetCurrentPhysicalThread());
       mQueue->mRunningThread = nullptr;
 
       sCurrentThreadTLS.set(mLastCurrentThread);
@@ -186,10 +197,14 @@ protected:
   bool mIsShutdown;
   MozPromiseHolder<ShutdownPromise> mShutdownPromise;
 
+  // The name of this TaskQueue. Useful when debugging dispatch failures.
+  const char* const mName;
+
   class Runner : public Runnable {
   public:
     explicit Runner(TaskQueue* aQueue)
-      : mQueue(aQueue)
+      : Runnable("TaskQueue::Runner")
+      , mQueue(aQueue)
     {
     }
     NS_IMETHOD Run() override;

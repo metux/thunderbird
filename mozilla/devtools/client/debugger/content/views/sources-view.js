@@ -95,7 +95,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     this._preferredSourceURL = null;
     this._unnamedSourceIndex = 0;
     this.emptyText = L10N.getStr("noSourcesText");
-    this._blackBoxCheckboxTooltip = L10N.getStr("blackBoxCheckboxTooltip");
+    this._blackBoxCheckboxTooltip = L10N.getStr("blackboxCheckboxTooltip2");
 
     this._commandset = document.getElementById("debuggerCommands");
     this._popupset = document.getElementById("debuggerPopupset");
@@ -119,18 +119,18 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     }
 
     this._editorContainer = document.getElementById("editor");
-    this._editorContainer.addEventListener("mousedown", this._onMouseDown, false);
+    this._editorContainer.addEventListener("mousedown", this._onMouseDown);
 
-    this.widget.addEventListener("select", this._onSourceSelect, false);
+    this.widget.addEventListener("select", this._onSourceSelect);
 
-    this._stopBlackBoxButton.addEventListener("click", this._onStopBlackBoxing, false);
-    this._cbPanel.addEventListener("popupshowing", this._onConditionalPopupShowing, false);
-    this._cbPanel.addEventListener("popupshown", this._onConditionalPopupShown, false);
-    this._cbPanel.addEventListener("popuphiding", this._onConditionalPopupHiding, false);
-    this._cbPanel.addEventListener("popuphidden", this._onConditionalPopupHidden, false);
-    this._cbTextbox.addEventListener("keypress", this._onConditionalTextboxKeyPress, false);
-    this._copyUrlMenuItem.addEventListener("command", this._onCopyUrlCommand, false);
-    this._newTabMenuItem.addEventListener("command", this._onNewTabCommand, false);
+    this._stopBlackBoxButton.addEventListener("click", this._onStopBlackBoxing);
+    this._cbPanel.addEventListener("popupshowing", this._onConditionalPopupShowing);
+    this._cbPanel.addEventListener("popupshown", this._onConditionalPopupShown);
+    this._cbPanel.addEventListener("popuphiding", this._onConditionalPopupHiding);
+    this._cbPanel.addEventListener("popuphidden", this._onConditionalPopupHidden);
+    this._cbTextbox.addEventListener("keypress", this._onConditionalTextboxKeyPress);
+    this._copyUrlMenuItem.addEventListener("command", this._onCopyUrlCommand);
+    this._newTabMenuItem.addEventListener("command", this._onNewTabCommand);
 
     this._cbPanel.hidden = true;
     this.allowFocusOnRightClick = true;
@@ -162,15 +162,15 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
   destroy: function () {
     dumpn("Destroying the SourcesView");
 
-    this.widget.removeEventListener("select", this._onSourceSelect, false);
-    this._stopBlackBoxButton.removeEventListener("click", this._onStopBlackBoxing, false);
-    this._cbPanel.removeEventListener("popupshowing", this._onConditionalPopupShowing, false);
-    this._cbPanel.removeEventListener("popupshown", this._onConditionalPopupShown, false);
-    this._cbPanel.removeEventListener("popuphiding", this._onConditionalPopupHiding, false);
-    this._cbPanel.removeEventListener("popuphidden", this._onConditionalPopupHidden, false);
-    this._cbTextbox.removeEventListener("keypress", this._onConditionalTextboxKeyPress, false);
-    this._copyUrlMenuItem.removeEventListener("command", this._onCopyUrlCommand, false);
-    this._newTabMenuItem.removeEventListener("command", this._onNewTabCommand, false);
+    this.widget.removeEventListener("select", this._onSourceSelect);
+    this._stopBlackBoxButton.removeEventListener("click", this._onStopBlackBoxing);
+    this._cbPanel.removeEventListener("popupshowing", this._onConditionalPopupShowing);
+    this._cbPanel.removeEventListener("popupshown", this._onConditionalPopupShown);
+    this._cbPanel.removeEventListener("popuphiding", this._onConditionalPopupHiding);
+    this._cbPanel.removeEventListener("popuphidden", this._onConditionalPopupHidden);
+    this._cbTextbox.removeEventListener("keypress", this._onConditionalTextboxKeyPress);
+    this._copyUrlMenuItem.removeEventListener("command", this._onCopyUrlCommand);
+    this._newTabMenuItem.removeEventListener("command", this._onNewTabCommand);
     this.DebuggerView.editor.off("popupOpen", this._onEditorContextMenuOpen, false);
   },
 
@@ -697,12 +697,12 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
                               BREAKPOINT_CONDITIONAL_POPUP_OFFSET_X,
                               BREAKPOINT_CONDITIONAL_POPUP_OFFSET_Y);
 
-      cbPanel.removeEventListener("popuphidden", openPopup, false);
+      cbPanel.removeEventListener("popuphidden", openPopup);
     }
 
     // Wait until the other cb panel is closed
     if (!this._cbPanel.hidden) {
-      this._cbPanel.addEventListener("popuphidden", openPopup, false);
+      this._cbPanel.addEventListener("popuphidden", openPopup);
     } else {
       openPopup();
     }
@@ -733,7 +733,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
    *         line number and line text nodes.
    */
   _createBreakpointView: function (aOptions) {
-    let { location, disabled, text, message } = aOptions;
+    let { location, disabled, text, message, isWasm } = aOptions;
     let identifier = makeLocationId(location);
 
     let checkbox = document.createElement("checkbox");
@@ -744,7 +744,9 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
     let lineNumberNode = document.createElement("label");
     lineNumberNode.className = "plain dbg-breakpoint-line";
-    lineNumberNode.setAttribute("value", location.line);
+    let lineNumberStr = !isWasm ? location.line.toString() :
+      location.line.toString(16).toUpperCase();
+    lineNumberNode.setAttribute("value", lineNumberStr);
 
     let lineTextNode = document.createElement("label");
     lineTextNode.className = "plain dbg-breakpoint-text";
@@ -782,8 +784,8 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     container.setAttribute("align", "center");
     container.setAttribute("flex", "1");
 
-    container.addEventListener("click", this._onBreakpointClick, false);
-    checkbox.addEventListener("click", this._onBreakpointCheckboxClick, false);
+    container.addEventListener("click", this._onBreakpointClick);
+    checkbox.addEventListener("click", this._onBreakpointCheckboxClick);
 
     container.appendChild(checkbox);
     container.appendChild(bpDetailContainer);
@@ -861,7 +863,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
       command.id = commandId;
       command.setAttribute("label", label);
-      command.addEventListener("command", () => this[func](location), false);
+      command.addEventListener("command", () => this[func](location));
 
       menuitem.id = menuitemId;
       menuitem.setAttribute("command", commandId);

@@ -1,7 +1,7 @@
 /**
- * @fileoverview Simply marks `test` (the test method) or `run_test` as used when
- * in mochitests or xpcshell tests respectively. This avoids ESLint telling us
- * that the function is never called.
+ * @fileoverview Simply marks `test` (the test method) or `run_test` as used
+ * when in mochitests or xpcshell tests respectively. This avoids ESLint telling
+ * us that the function is never called.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,15 +22,15 @@ module.exports = function(context) {
   // ---------------------------------------------------------------------------
 
   return {
-    Program: function() {
-      if (helpers.getTestType(this) == "browser") {
+    Program() {
+      let testType = helpers.getTestType(context);
+      if (testType == "browser") {
         context.markVariableAsUsed("test");
         return;
       }
 
-      if (helpers.getTestType(this) == "xpcshell") {
+      if (testType == "xpcshell") {
         context.markVariableAsUsed("run_test");
-        return;
       }
     }
   };

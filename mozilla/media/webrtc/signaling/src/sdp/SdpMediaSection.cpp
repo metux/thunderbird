@@ -84,7 +84,7 @@ SdpMediaSection::FindRtpmap(const std::string& pt) const
 }
 
 const SdpSctpmapAttributeList::Sctpmap*
-SdpMediaSection::FindSctpmap(const std::string& pt) const
+SdpMediaSection::GetSctpmap() const
 {
   auto& attrs = GetAttributeList();
   if (!attrs.HasAttribute(SdpAttribute::kSctpmapAttribute)) {
@@ -92,11 +92,36 @@ SdpMediaSection::FindSctpmap(const std::string& pt) const
   }
 
   const SdpSctpmapAttributeList& sctpmap = attrs.GetSctpmap();
-  if (!sctpmap.HasEntry(pt)) {
+  if (sctpmap.mSctpmaps.empty()) {
     return nullptr;
   }
 
-  return &sctpmap.GetEntry(pt);
+  return &sctpmap.GetFirstEntry();
+}
+
+uint32_t
+SdpMediaSection::GetSctpPort() const
+{
+  auto& attrs = GetAttributeList();
+  if (!attrs.HasAttribute(SdpAttribute::kSctpPortAttribute)) {
+    return 0;
+  }
+
+  return attrs.GetSctpPort();
+}
+
+bool
+SdpMediaSection::GetMaxMessageSize(uint32_t* size) const
+{
+  *size = 0;
+
+  auto& attrs = GetAttributeList();
+  if (!attrs.HasAttribute(SdpAttribute::kMaxMessageSizeAttribute)) {
+    return false;
+  }
+
+  *size = attrs.GetMaxMessageSize();
+  return true;
 }
 
 bool

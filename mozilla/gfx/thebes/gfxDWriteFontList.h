@@ -17,6 +17,8 @@
 #include "gfxPlatform.h"
 #include <algorithm>
 
+#include "mozilla/gfx/UnscaledFontDWrite.h"
+
 
 /**
  * gfxDWriteFontFamily is a class that describes one of the fonts on the
@@ -38,9 +40,11 @@ public:
      * \param aFamily IDWriteFontFamily object representing the directwrite
      * family object.
      */
-    gfxDWriteFontFamily(const nsAString& aName, 
-                        IDWriteFontFamily *aFamily)
-      : gfxFontFamily(aName), mDWFamily(aFamily), mForceGDIClassic(false) {}
+    gfxDWriteFontFamily(const nsAString& aName,
+                        IDWriteFontFamily *aFamily,
+                        bool aIsSystemFontFamily = false)
+      : gfxFontFamily(aName), mDWFamily(aFamily),
+        mIsSystemFontFamily(aIsSystemFontFamily), mForceGDIClassic(false) {}
     virtual ~gfxDWriteFontFamily();
     
     void FindStyleVariations(FontInfoData *aFontInfoData = nullptr) final;
@@ -58,9 +62,18 @@ public:
     void AddSizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf,
                                 FontListSizes* aSizes) const final;
 
+    bool FilterForFontList(nsAtom* aLangGroup,
+                           const nsACString& aGeneric) const final {
+        return !IsSymbolFontFamily();
+    }
+
 protected:
+    // helper for FilterForFontList
+    bool IsSymbolFontFamily() const;
+
     /** This font family's directwrite fontfamily object */
     RefPtr<IDWriteFontFamily> mDWFamily;
+    bool mIsSystemFontFamily;
     bool mForceGDIClassic;
 };
 
@@ -77,9 +90,10 @@ public:
      * \param aFont DirectWrite font object
      */
     gfxDWriteFontEntry(const nsAString& aFaceName,
-                              IDWriteFont *aFont) 
+                       IDWriteFont *aFont,
+                       bool aIsSystemFont = false)
       : gfxFontEntry(aFaceName), mFont(aFont), mFontFile(nullptr),
-        mForceGDIClassic(false)
+        mIsSystemFont(aIsSystemFont), mForceGDIClassic(false)
     {
         DWRITE_FONT_STYLE dwriteStyle = aFont->GetStyle();
         mStyle = (dwriteStyle == DWRITE_FONT_STYLE_ITALIC ?
@@ -113,7 +127,7 @@ public:
                               int16_t aStretch,
                               uint8_t aStyle)
       : gfxFontEntry(aFaceName), mFont(aFont), mFontFile(nullptr),
-        mForceGDIClassic(false)
+        mIsSystemFont(false), mForceGDIClassic(false)
     {
         mWeight = aWeight;
         mStretch = aStretch;
@@ -138,8 +152,9 @@ public:
                               uint16_t aWeight,
                               int16_t aStretch,
                               uint8_t aStyle)
-      : gfxFontEntry(aFaceName), mFont(nullptr), mFontFile(aFontFile),
-        mFontFileStream(aFontFileStream), mForceGDIClassic(false)
+      : gfxFontEntry(aFaceName), mFont(nullptr),
+        mFontFile(aFontFile), mFontFileStream(aFontFileStream),
+        mIsSystemFont(false), mForceGDIClassic(false)
     {
         mWeight = aWeight;
         mStretch = aStretch;
@@ -148,9 +163,9 @@ public:
         mIsCJK = UNINITIALIZED_VALUE;
     }
 
-    virtual ~gfxDWriteFontEntry();
+    gfxFontEntry* Clone() const override;
 
-    virtual bool IsSymbolFont();
+    virtual ~gfxDWriteFontEntry();
 
     virtual hb_blob_t* GetFontTable(uint32_t aTableTag) override;
 
@@ -200,14 +215,18 @@ protected:
     DWRITE_FONT_FACE_TYPE mFaceType;
 
     int8_t mIsCJK;
+    bool mIsSystemFont;
     bool mForceGDIClassic;
+
+    mozilla::ThreadSafeWeakPtr<mozilla::gfx::UnscaledFontDWrite> mUnscaledFont;
+    mozilla::ThreadSafeWeakPtr<mozilla::gfx::UnscaledFontDWrite> mUnscaledFontBold;
 };
 
 // custom text renderer used to determine the fallback font for a given char
 class DWriteFontFallbackRenderer final : public IDWriteTextRenderer
 {
 public:
-    DWriteFontFallbackRenderer(IDWriteFactory *aFactory)
+    explicit DWriteFontFallbackRenderer(IDWriteFactory *aFactory)
         : mRefCount(0)
     {
         HRESULT hr = S_OK;
@@ -354,6 +373,8 @@ public:
     // initialize font lists
     virtual nsresult InitFontListForPlatform() override;
 
+    gfxFontFamily* CreateFontFamily(const nsAString& aName) const override;
+
     virtual gfxFontEntry* LookupLocalFont(const nsAString& aFontName,
                                           uint16_t aWeight,
                                           int16_t aStretch,
@@ -374,6 +395,7 @@ public:
 
     bool FindAndAddFamilies(const nsAString& aFamily,
                             nsTArray<gfxFontFamily*>* aOutput,
+                            FindFamiliesFlags aFlags,
                             gfxFontStyle* aStyle = nullptr,
                             gfxFloat aDevToCssSize = 1.0) override;
 

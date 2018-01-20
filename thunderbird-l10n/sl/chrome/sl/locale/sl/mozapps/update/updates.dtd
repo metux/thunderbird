@@ -6,7 +6,7 @@
 <!ENTITY  checking.title                  "Iskanje posodobitev">
 <!ENTITY  updateCheck.label               "Iskanje novih različic programa &brandShortName; ...">
 
-<!ENTITY  noupdatesfound.title            "Trenutno ni posodobitev">
+<!ENTITY  noupdatesfound.title            "Ni novih posodobitev">
 <!ENTITY  noupdatesautoenabled.intro      "Posodobitve niso na voljo, vendar jih bo &brandShortName; redno
                                            iskal.">
 <!ENTITY  noupdatesautodisabled.intro     "Posodobitve niso na voljo. Ponovno poskusite pozneje ali
@@ -32,7 +32,7 @@
 <!ENTITY  evangelism.desc                 "Toplo priporočamo, da posodobitev za 
                                            &brandShortName; uveljavite čimprej.">
 
-<!ENTITY  downloadPage.title              "Prenašanje &brandShortName;">
+<!ENTITY  downloadPage.title              "Prenašanje &brandShortName;a">
 <!ENTITY  downloading.intro               "Prenašanje posodobitev ...">
 <!ENTITY  connecting.label                "Povezujem se na strežnik za posodobitve...">
 <!ENTITY  verificationFailedText.label    "Ker ni bilo mogoče preveriti neokrnjenosti posodobitve po stopnjah, se zdaj prenaša celoten posodobitveni paket.">

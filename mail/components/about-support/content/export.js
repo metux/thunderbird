@@ -21,12 +21,6 @@ function createWarning() {
   ]);
 }
 
-function getLoadContext() {
-  return window.QueryInterface(Ci.nsIInterfaceRequestor)
-               .getInterface(Ci.nsIWebNavigation)
-               .QueryInterface(Ci.nsILoadContext);
-}
-
 function getClipboardTransferable() {
   // Get the HTML and text representations for the important part of the page.
   let hidePrivateData = !document.getElementById("check-show-private-data").checked;
@@ -56,7 +50,9 @@ function getClipboardTransferable() {
   return transferable;
 }
 
-function copyToClipboard() {
+// This function intentionally has the same name as the one in aboutSupport.js
+// so that the one here is called.
+function copyContentsToClipboard() {
   let transferable = getClipboardTransferable();
   // Store the data into the clipboard.
   Services.clipboard.setData(transferable, null, Services.clipboard.kGlobalClipboard);
@@ -112,8 +108,8 @@ function cleanUpText(aElem, aHidePrivateData) {
   delete aElem.dataset.copyData;
   while (node) {
     let classList = "classList" in node && node.classList;
-    // Delete uionly nodes.
-    if (classList && classList.contains(CLASS_DATA_UIONLY)) {
+    // Delete uionly and no-copy nodes.
+    if (classList && (classList.contains(CLASS_DATA_UIONLY) || classList.contains("no-copy"))) {
       // Advance to the next node before removing the current node, since
       // node.nextSibling is null after remove()
       let nextNode = node.nextSibling;
@@ -172,7 +168,6 @@ function createTextForElement(elem, aHidePrivateData) {
  */
 var gElementsToReplace = {
   "accounts-table": getAccountsText,
-  "extensions-table": getExtensionsText,
 };
 
 function generateTextForElement(elem, aHidePrivateData, indent,
@@ -237,4 +232,20 @@ function generateTextForTextNode(node, indent, textFragmentAccumulator) {
   // any internal line breaks.
   let text = node.textContent.trim().replace(/\n/g, "\n" + indent);
   textFragmentAccumulator.push(text);
+}
+
+/**
+ * Returns a plaintext representation of crashes data.
+ */
+
+function getCrashesText(aIndent) {
+  let crashesData = "";
+  let recentCrashesSubmitted = document.querySelectorAll("#crashes-tbody > tr");
+  for (let i = 0; i < recentCrashesSubmitted.length; i++)
+  {
+    let tds = recentCrashesSubmitted.item(i).querySelectorAll("td");
+    crashesData += aIndent.repeat(2) + tds.item(0).firstChild.href +
+                   " (" + tds.item(1).textContent + ")\n";
+  }
+  return crashesData;
 }

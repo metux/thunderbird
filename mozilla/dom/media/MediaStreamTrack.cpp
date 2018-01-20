@@ -6,13 +6,14 @@
 #include "MediaStreamTrack.h"
 
 #include "DOMMediaStream.h"
+#include "MediaStreamError.h"
 #include "MediaStreamGraph.h"
+#include "MediaStreamListener.h"
+#include "mozilla/dom/Promise.h"
+#include "nsContentUtils.h"
 #include "nsIUUIDGenerator.h"
 #include "nsServiceManagerUtils.h"
-#include "MediaStreamListener.h"
 #include "systemservices/MediaUtils.h"
-
-#include "mozilla/dom/Promise.h"
 
 #ifdef LOG
 #undef LOG
@@ -20,6 +21,8 @@
 
 static mozilla::LazyLogModule gMediaStreamTrackLog("MediaStreamTrack");
 #define LOG(type, msg) MOZ_LOG(gMediaStreamTrackLog, type, msg)
+
+using namespace mozilla::media;
 
 namespace mozilla {
 namespace dom {
@@ -44,7 +47,8 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 auto
 MediaStreamTrackSource::ApplyConstraints(
     nsPIDOMWindowInner* aWindow,
-    const dom::MediaTrackConstraints& aConstraints) -> already_AddRefed<PledgeVoid>
+    const dom::MediaTrackConstraints& aConstraints,
+    CallerType aCallerType) -> already_AddRefed<PledgeVoid>
 {
   RefPtr<PledgeVoid> p = new PledgeVoid();
   p->Reject(new MediaStreamError(aWindow,
@@ -52,14 +56,6 @@ MediaStreamTrackSource::ApplyConstraints(
                                  NS_LITERAL_STRING("")));
   return p.forget();
 }
-
-NS_IMPL_CYCLE_COLLECTING_ADDREF(MediaStreamTrackConsumer)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(MediaStreamTrackConsumer)
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(MediaStreamTrackConsumer)
-  NS_INTERFACE_MAP_ENTRY(nsISupports)
-NS_INTERFACE_MAP_END
-
-NS_IMPL_CYCLE_COLLECTION_0(MediaStreamTrackConsumer)
 
 /**
  * PrincipalHandleListener monitors changes in PrincipalHandle of the media flowing
@@ -83,7 +79,8 @@ class MediaStreamTrack::PrincipalHandleListener : public MediaStreamTrackListene
 {
 public:
   explicit PrincipalHandleListener(MediaStreamTrack* aTrack)
-    : mTrack(aTrack) {}
+    : mTrack(aTrack)
+    {}
 
   void Forget()
   {
@@ -105,10 +102,13 @@ public:
   void NotifyPrincipalHandleChanged(MediaStreamGraph* aGraph,
                                     const PrincipalHandle& aNewPrincipalHandle) override
   {
-    nsCOMPtr<nsIRunnable> runnable =
+    aGraph->DispatchToMainThreadAfterStreamStateUpdate(
       NewRunnableMethod<StoreCopyPassByConstLRef<PrincipalHandle>>(
-        this, &PrincipalHandleListener::DoNotifyPrincipalHandleChanged, aNewPrincipalHandle);
-    aGraph->DispatchToMainThreadAfterStreamStateUpdate(runnable.forget());
+        "dom::MediaStreamTrack::PrincipalHandleListener::"
+        "DoNotifyPrincipalHandleChanged",
+        this,
+        &PrincipalHandleListener::DoNotifyPrincipalHandleChanged,
+        aNewPrincipalHandle));
   }
 
 protected:
@@ -126,11 +126,12 @@ MediaStreamTrack::MediaStreamTrack(DOMMediaStream* aStream, TrackID aTrackID,
     mReadyState(MediaStreamTrackState::Live),
     mEnabled(true), mConstraints(aConstraints)
 {
-
   GetSource().RegisterSink(this);
 
-  mPrincipalHandleListener = new PrincipalHandleListener(this);
-  AddListener(mPrincipalHandleListener);
+  if (GetOwnedStream()) {
+    mPrincipalHandleListener = new PrincipalHandleListener(this);
+    AddListener(mPrincipalHandleListener);
+  }
 
   nsresult rv;
   nsCOMPtr<nsIUUIDGenerator> uuidgen =
@@ -178,7 +179,6 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(MediaStreamTrack)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(MediaStreamTrack,
                                                 DOMEventTargetHelper)
   tmp->Destroy();
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mConsumers)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mOwningStream)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSource)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mOriginalTrack)
@@ -188,7 +188,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(MediaStreamTrack,
                                                   DOMEventTargetHelper)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mConsumers)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mOwningStream)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSource)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mOriginalTrack)
@@ -198,7 +197,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_ADDREF_INHERITED(MediaStreamTrack, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(MediaStreamTrack, DOMEventTargetHelper)
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(MediaStreamTrack)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(MediaStreamTrack)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 nsPIDOMWindowInner*
@@ -267,6 +266,7 @@ MediaStreamTrack::GetSettings(dom::MediaTrackSettings& aResult)
 
 already_AddRefed<Promise>
 MediaStreamTrack::ApplyConstraints(const MediaTrackConstraints& aConstraints,
+                                   CallerType aCallerType,
                                    ErrorResult &aRv)
 {
   if (MOZ_LOG_TEST(gMediaStreamTrackLog, LogLevel::Info)) {
@@ -291,7 +291,8 @@ MediaStreamTrack::ApplyConstraints(const MediaTrackConstraints& aConstraints,
 
   // Keep a reference to this, to make sure it's still here when we get back.
   RefPtr<MediaStreamTrack> that = this;
-  RefPtr<PledgeVoid> p = GetSource().ApplyConstraints(window, aConstraints);
+  RefPtr<PledgeVoid> p = GetSource().ApplyConstraints(window, aConstraints,
+                                                      aCallerType);
   p->Then([this, that, promise, aConstraints](bool& aDummy) mutable {
     mConstraints = aConstraints;
     promise->MaybeResolve(false);
@@ -368,10 +369,14 @@ MediaStreamTrack::NotifyEnded()
 {
   MOZ_ASSERT(mReadyState == MediaStreamTrackState::Ended);
 
-  for (int32_t i = mConsumers.Length() - 1; i >= 0; --i) {
-    // Loop backwards by index in case the consumer removes itself in the
-    // callback.
-    mConsumers[i]->NotifyEnded(this);
+  auto consumers(mConsumers);
+  for (const auto& consumer : consumers) {
+    if (consumer) {
+      consumer->NotifyEnded(this);
+    } else {
+      MOZ_ASSERT_UNREACHABLE("A consumer was not explicitly removed");
+      mConsumers.RemoveElement(consumer);
+    }
   }
 }
 
@@ -394,12 +399,22 @@ MediaStreamTrack::AddConsumer(MediaStreamTrackConsumer* aConsumer)
 {
   MOZ_ASSERT(!mConsumers.Contains(aConsumer));
   mConsumers.AppendElement(aConsumer);
+
+  // Remove destroyed consumers for cleanliness
+  while (mConsumers.RemoveElement(nullptr)) {
+    MOZ_ASSERT_UNREACHABLE("A consumer was not explicitly removed");
+  }
 }
 
 void
 MediaStreamTrack::RemoveConsumer(MediaStreamTrackConsumer* aConsumer)
 {
   mConsumers.RemoveElement(aConsumer);
+
+  // Remove destroyed consumers for cleanliness
+  while (mConsumers.RemoveElement(nullptr)) {
+    MOZ_ASSERT_UNREACHABLE("A consumer was not explicitly removed");
+  }
 }
 
 already_AddRefed<MediaStreamTrack>

@@ -2,21 +2,7 @@
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- *
- * This Original Code has been modified by IBM Corporation.
- * Modifications made by IBM described herein are
- * Copyright (c) International Business Machines
- * Corporation, 2000
- *
- * Modifications to Mozilla code or documentation
- * identified per MPL Section 3.3
- *
- * Date         Modified by     Description of modification
- * 03/27/2000   IBM Corp.       Added PR_CALLBACK for Optlink
- *                               use in OS2
- */
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.  */
 
 /*
 
@@ -35,7 +21,7 @@
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "nsMemory.h"
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsIComponentManager.h"
 #include "nsIRDFDataSource.h"
 #include "nsIRDFNode.h"
@@ -44,7 +30,6 @@
 #include "nsIFactory.h"
 #include "nsRDFCID.h"
 #include "nsString.h"
-#include "nsXPIDLString.h"
 #include "nsNetUtil.h"
 #include "nsIURI.h"
 #include "PLDHashTable.h"
@@ -52,11 +37,11 @@
 #include "plstr.h"
 #include "mozilla/Logging.h"
 #include "prprf.h"
-#include "prmem.h"
 #include "rdf.h"
 #include "nsCRT.h"
 #include "nsCRTGlue.h"
 #include "mozilla/HashFunctions.h"
+#include "mozilla/IntegerPrintfMacros.h"
 
 using namespace mozilla;
 
@@ -82,19 +67,19 @@ class BlobImpl;
 static void *
 DataSourceAllocTable(void *pool, size_t size)
 {
-    return PR_MALLOC(size);
+    return malloc(size);
 }
 
 static void
 DataSourceFreeTable(void *pool, void *item)
 {
-    PR_Free(item);
+    free(item);
 }
 
 static PLHashEntry *
 DataSourceAllocEntry(void *pool, const void *key)
 {
-    return PR_NEW(PLHashEntry);
+    return (PLHashEntry*) malloc(sizeof(PLHashEntry));
 }
 
 static void
@@ -102,7 +87,7 @@ DataSourceFreeEntry(void *pool, PLHashEntry *he, unsigned flag)
 {
     if (flag == HT_FREE_ENTRY) {
         PL_strfree((char*) he->key);
-        PR_Free(he);
+        free(he);
     }
 }
 
@@ -826,7 +811,7 @@ RDFServiceImpl::GetResource(const nsACString& aURI, nsIRDFResource** aResource)
     if (aURI.IsEmpty())
         return NS_ERROR_INVALID_ARG;
 
-    const nsAFlatCString& flatURI = PromiseFlatCString(aURI);
+    const nsCString& flatURI = PromiseFlatCString(aURI);
     MOZ_LOG(gLog, LogLevel::Debug, ("rdfserv get-resource %s", flatURI.get()));
 
     // First, check the cache to see if we've already created and
@@ -1191,12 +1176,14 @@ RDFServiceImpl::RegisterDataSource(nsIRDFDataSource* aDataSource, bool aReplace)
 
     nsresult rv;
 
-    nsXPIDLCString uri;
-    rv = aDataSource->GetURI(getter_Copies(uri));
+    nsAutoCString uri;
+    rv = aDataSource->GetURI(uri);
     if (NS_FAILED(rv)) return rv;
 
     PLHashEntry** hep =
-        PL_HashTableRawLookup(mNamedDataSources, (*mNamedDataSources->keyHash)(uri), uri);
+      PL_HashTableRawLookup(mNamedDataSources,
+                            (*mNamedDataSources->keyHash)(uri.get()),
+                            uri.get());
 
     if (*hep) {
         if (! aReplace)
@@ -1207,12 +1194,12 @@ RDFServiceImpl::RegisterDataSource(nsIRDFDataSource* aDataSource, bool aReplace)
         // refcounts.
         MOZ_LOG(gLog, LogLevel::Debug,
                ("rdfserv    replace-datasource [%p] <-- [%p] %s",
-                (*hep)->value, aDataSource, (const char*) uri));
+                (*hep)->value, aDataSource, uri.get()));
 
         (*hep)->value = aDataSource;
     }
     else {
-        const char* key = PL_strdup(uri);
+        const char* key = PL_strdup(uri.get());
         if (! key)
             return NS_ERROR_OUT_OF_MEMORY;
 
@@ -1220,7 +1207,7 @@ RDFServiceImpl::RegisterDataSource(nsIRDFDataSource* aDataSource, bool aReplace)
 
         MOZ_LOG(gLog, LogLevel::Debug,
                ("rdfserv   register-datasource [%p] %s",
-                aDataSource, (const char*) uri));
+                aDataSource, uri.get()));
 
         // N.B., we only hold a weak reference to the datasource, so don't
         // addref.
@@ -1238,16 +1225,18 @@ RDFServiceImpl::UnregisterDataSource(nsIRDFDataSource* aDataSource)
 
     nsresult rv;
 
-    nsXPIDLCString uri;
-    rv = aDataSource->GetURI(getter_Copies(uri));
+    nsAutoCString uri;
+    rv = aDataSource->GetURI(uri);
     if (NS_FAILED(rv)) return rv;
 
     //NS_ASSERTION(uri != nullptr, "datasource has no URI");
-    if (! uri)
+    if (uri.IsVoid())
         return NS_ERROR_UNEXPECTED;
 
     PLHashEntry** hep =
-        PL_HashTableRawLookup(mNamedDataSources, (*mNamedDataSources->keyHash)(uri), uri);
+        PL_HashTableRawLookup(mNamedDataSources,
+                              (*mNamedDataSources->keyHash)(uri.get()),
+                              uri.get());
 
     // It may well be that this datasource was never registered. If
     // so, don't unregister it.
@@ -1260,7 +1249,7 @@ RDFServiceImpl::UnregisterDataSource(nsIRDFDataSource* aDataSource)
 
     MOZ_LOG(gLog, LogLevel::Debug,
            ("rdfserv unregister-datasource [%p] %s",
-            aDataSource, (const char*) uri));
+            aDataSource, uri.get()));
 
     return NS_OK;
 }
@@ -1385,7 +1374,7 @@ RDFServiceImpl::RegisterLiteral(nsIRDFLiteral* aLiteral)
 
     MOZ_LOG(gLog, LogLevel::Debug,
            ("rdfserv   register-literal [%p] %s",
-            aLiteral, (const char16_t*) value));
+            aLiteral, NS_ConvertUTF16toUTF8(value).get()));
 
     return NS_OK;
 }
@@ -1405,7 +1394,7 @@ RDFServiceImpl::UnregisterLiteral(nsIRDFLiteral* aLiteral)
     // reference to it in the hashtable.
     MOZ_LOG(gLog, LogLevel::Debug,
            ("rdfserv unregister-literal [%p] %s",
-            aLiteral, (const char16_t*) value));
+            aLiteral, NS_ConvertUTF16toUTF8(value).get()));
 
     return NS_OK;
 }
@@ -1484,7 +1473,7 @@ RDFServiceImpl::RegisterDate(nsIRDFDate* aDate)
     entry->mKey = value;
 
     MOZ_LOG(gLog, LogLevel::Debug,
-           ("rdfserv   register-date [%p] %ld",
+           ("rdfserv   register-date [%p] %" PRId64,
             aDate, value));
 
     return NS_OK;
@@ -1504,7 +1493,7 @@ RDFServiceImpl::UnregisterDate(nsIRDFDate* aDate)
     // N.B. that we _don't_ release the literal: we only held a weak
     // reference to it in the hashtable.
     MOZ_LOG(gLog, LogLevel::Debug,
-           ("rdfserv unregister-date [%p] %ld",
+           ("rdfserv unregister-date [%p] %" PRId64,
             aDate, value));
 
     return NS_OK;

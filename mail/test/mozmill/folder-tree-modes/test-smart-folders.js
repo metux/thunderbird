@@ -157,7 +157,7 @@ function test_folder_flag_changes() {
   select_click_row(0);
   archive_selected_messages();
   let pop3Server = MailServices.accounts.FindServer("tinderbox", FAKE_SERVER_HOSTNAME, "pop3");
-  let pop3Inbox = pop3Server.rootFolder.getChildNamed("Inbox");
+  let pop3Inbox = get_special_folder(Ci.nsMsgFolderFlags.Inbox, false, pop3Server);
   make_new_sets_in_folder(pop3Inbox, [{count: 1}]);
   mc.folderTreeView.selectFolder(pop3Inbox);
   select_click_row(0);
@@ -188,7 +188,7 @@ function test_folder_flag_changes() {
   let localArchiveFolder = rootFolder.getChildNamed("Archives");
   let allDescendants = localArchiveFolder.descendants;
   desiredScope = "|" + localArchiveFolder.URI + "|";
-  for (let folder in fixIterator(allDescendants, Ci.nsIMsgFolder)) {
+  for (let folder of fixIterator(allDescendants, Ci.nsIMsgFolder)) {
     desiredScope += folder.URI + "|";
   }
 
@@ -202,7 +202,7 @@ function assert_folder_and_children_in_scope(folder, searchScope)
   let folderURI = "|" + folder.URI + "|";
   assert_uri_found(folderURI, searchScope);
   let allDescendants = folder.descendants;
-  for (let folder in fixIterator(allDescendants, Ci.nsIMsgFolder)) {
+  for (let folder of fixIterator(allDescendants, Ci.nsIMsgFolder)) {
     assert_uri_found(folder.URI, searchScope);
   }
 }
@@ -212,7 +212,7 @@ function assert_folder_and_children_not_in_scope(folder, searchScope)
   let folderURI = "|" + folder.URI + "|";
   assert_uri_not_found(folderURI, searchScope);
   let allDescendants = folder.descendants;
-  for (let folder in fixIterator(allDescendants, Ci.nsIMsgFolder)) {
+  for (let folder of fixIterator(allDescendants, Ci.nsIMsgFolder)) {
     assert_uri_not_found(folder.URI, searchScope);
   }
 }

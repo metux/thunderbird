@@ -7,15 +7,18 @@
 #define WEBGL_EXTENSIONS_H_
 
 #include "mozilla/AlreadyAddRefed.h"
+#include "nsString.h"
+#include "nsTArray.h"
 #include "nsWrapperCache.h"
 #include "WebGLObjectModel.h"
 #include "WebGLTypes.h"
 
 namespace mozilla {
+class ErrorResult;
 
 namespace dom {
-template<typename T>
-class Sequence;
+template<typename> struct Nullable;
+template<typename> class Sequence;
 } // namespace dom
 
 namespace webgl {
@@ -59,6 +62,22 @@ protected:
     WebGLExtensionType::WrapObject(JSContext* cx, JS::Handle<JSObject*> givenProto) {              \
         return dom::WebGLBindingType##Binding::Wrap(cx, this, givenProto); \
     }
+
+////
+
+class WebGLExtensionCompressedTextureASTC
+    : public WebGLExtensionBase
+{
+public:
+    explicit WebGLExtensionCompressedTextureASTC(WebGLContext* webgl);
+    virtual ~WebGLExtensionCompressedTextureASTC();
+
+    void GetSupportedProfiles(dom::Nullable< nsTArray<nsString> >& retval) const;
+
+    static bool IsSupported(const WebGLContext* webgl);
+
+    DECL_WEBGL_EXTENSION_GOOP
+};
 
 class WebGLExtensionCompressedTextureATC
     : public WebGLExtensionBase
@@ -106,6 +125,20 @@ class WebGLExtensionCompressedTextureS3TC
 public:
     explicit WebGLExtensionCompressedTextureS3TC(WebGLContext*);
     virtual ~WebGLExtensionCompressedTextureS3TC();
+
+    static bool IsSupported(const WebGLContext*);
+
+    DECL_WEBGL_EXTENSION_GOOP
+};
+
+class WebGLExtensionCompressedTextureS3TC_SRGB
+    : public WebGLExtensionBase
+{
+public:
+    explicit WebGLExtensionCompressedTextureS3TC_SRGB(WebGLContext*);
+    virtual ~WebGLExtensionCompressedTextureS3TC_SRGB();
+
+    static bool IsSupported(const WebGLContext*);
 
     DECL_WEBGL_EXTENSION_GOOP
 };
@@ -381,6 +414,19 @@ public:
                            GLenum pname, JS::MutableHandleValue retval) const;
 
     static bool IsSupported(const WebGLContext*);
+
+    DECL_WEBGL_EXTENSION_GOOP
+};
+
+class WebGLExtensionMOZDebug final
+    : public WebGLExtensionBase
+{
+public:
+    explicit WebGLExtensionMOZDebug(WebGLContext* webgl);
+    virtual ~WebGLExtensionMOZDebug();
+
+    void GetParameter(JSContext* cx, GLenum pname,
+                      JS::MutableHandle<JS::Value> retval, ErrorResult& er) const;
 
     DECL_WEBGL_EXTENSION_GOOP
 };

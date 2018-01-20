@@ -6,15 +6,22 @@
 
 "use strict";
 
+const {Task} = require("devtools/shared/task");
 const EventEmitter = require("devtools/shared/event-emitter");
 const {
   createNode,
   findOptimalTimeInterval,
-  TimeScale
+  getFormattedAnimationTitle,
+  TimeScale,
+  getCssPropertyName
 } = require("devtools/client/animationinspector/utils");
 const {AnimationDetails} = require("devtools/client/animationinspector/components/animation-details");
 const {AnimationTargetNode} = require("devtools/client/animationinspector/components/animation-target-node");
 const {AnimationTimeBlock} = require("devtools/client/animationinspector/components/animation-time-block");
+
+const { LocalizationHelper } = require("devtools/shared/l10n");
+const L10N =
+  new LocalizationHelper("devtools/client/locales/animationinspector.properties");
 
 // The minimum spacing between 2 time graduation headers in the timeline (px).
 const TIME_GRADUATION_MIN_SPACING = 40;
@@ -40,9 +47,7 @@ const TIMELINE_BACKGROUND_RESIZE_DEBOUNCE_TIMER = 50;
  */
 function AnimationsTimeline(inspector, serverTraits) {
   this.animations = [];
-  this.targetNodes = [];
-  this.timeBlocks = [];
-  this.details = [];
+  this.componentsMap = {};
   this.inspector = inspector;
   this.serverTraits = serverTraits;
 
@@ -53,7 +58,8 @@ function AnimationsTimeline(inspector, serverTraits) {
   this.onScrubberMouseMove = this.onScrubberMouseMove.bind(this);
   this.onAnimationSelected = this.onAnimationSelected.bind(this);
   this.onWindowResize = this.onWindowResize.bind(this);
-  this.onFrameSelected = this.onFrameSelected.bind(this);
+  this.onTimelineDataChanged = this.onTimelineDataChanged.bind(this);
+  this.onDetailCloseButtonClick = this.onDetailCloseButtonClick.bind(this);
 
   EventEmitter.decorate(this);
 }
@@ -63,16 +69,52 @@ exports.AnimationsTimeline = AnimationsTimeline;
 AnimationsTimeline.prototype = {
   init: function (containerEl) {
     this.win = containerEl.ownerDocument.defaultView;
+    this.rootWrapperEl = containerEl;
 
-    this.rootWrapperEl = createNode({
-      parent: containerEl,
-      attributes: {
-        "class": "animation-timeline"
-      }
+    this.setupSplitBox();
+    this.setupAnimationTimeline();
+    this.setupAnimationDetail();
+
+    this.win.addEventListener("resize",
+      this.onWindowResize);
+  },
+
+  setupSplitBox: function () {
+    const browserRequire = this.win.BrowserLoader({
+      window: this.win,
+      useOnlyShared: true
+    }).require;
+
+    const React = browserRequire("devtools/client/shared/vendor/react");
+    const ReactDOM = browserRequire("devtools/client/shared/vendor/react-dom");
+
+    const SplitBox = React.createFactory(
+      browserRequire("devtools/client/shared/components/splitter/SplitBox"));
+
+    const splitter = SplitBox({
+      className: "animation-root",
+      splitterSize: 1,
+      initialHeight: "50%",
+      endPanelControl: true,
+      startPanel: React.DOM.div({
+        className: "animation-timeline"
+      }),
+      endPanel: React.DOM.div({
+        className: "animation-detail"
+      }),
+      vert: false
     });
 
+    ReactDOM.render(splitter, this.rootWrapperEl);
+
+    this.animationRootEl = this.rootWrapperEl.querySelector(".animation-root");
+  },
+
+  setupAnimationTimeline: function () {
+    const animationTimelineEl = this.rootWrapperEl.querySelector(".animation-timeline");
+
     let scrubberContainer = createNode({
-      parent: this.rootWrapperEl,
+      parent: animationTimelineEl,
       attributes: {"class": "scrubber-wrapper"}
     });
 
@@ -89,11 +131,17 @@ AnimationsTimeline.prototype = {
         "class": "scrubber-handle"
       }
     });
+    createNode({
+      parent: this.scrubberHandleEl,
+      attributes: {
+        "class": "scrubber-line"
+      }
+    });
     this.scrubberHandleEl.addEventListener("mousedown",
-      this.onScrubberMouseDown);
+                                           this.onScrubberMouseDown);
 
     this.headerWrapper = createNode({
-      parent: this.rootWrapperEl,
+      parent: animationTimelineEl,
       attributes: {
         "class": "header-wrapper"
       }
@@ -107,30 +155,83 @@ AnimationsTimeline.prototype = {
     });
 
     this.timeHeaderEl.addEventListener("mousedown",
-      this.onScrubberMouseDown);
+                                       this.onScrubberMouseDown);
 
     this.timeTickEl = createNode({
-      parent: this.rootWrapperEl,
+      parent: animationTimelineEl,
       attributes: {
         "class": "time-body track-container"
       }
     });
 
     this.animationsEl = createNode({
-      parent: this.rootWrapperEl,
+      parent: animationTimelineEl,
       nodeType: "ul",
       attributes: {
-        "class": "animations"
+        "class": "animations devtools-monospace"
+      }
+    });
+  },
+
+  setupAnimationDetail: function () {
+    const animationDetailEl = this.rootWrapperEl.querySelector(".animation-detail");
+
+    const animationDetailHeaderEl = createNode({
+      parent: animationDetailEl,
+      attributes: {
+        "class": "animation-detail-header"
       }
     });
 
-    this.win.addEventListener("resize",
-      this.onWindowResize);
+    const headerTitleEl = createNode({
+      parent: animationDetailHeaderEl,
+      attributes: {
+        "class": "devtools-toolbar"
+      }
+    });
+
+    createNode({
+      parent: headerTitleEl,
+      textContent: L10N.getStr("detail.headerTitle")
+    });
+
+    this.animationAnimationNameEl = createNode({
+      parent: headerTitleEl
+    });
+
+    this.animationDetailCloseButton = createNode({
+      parent: headerTitleEl,
+      nodeType: "button",
+      attributes: {
+        "class": "devtools-button",
+        title: L10N.getStr("detail.header.closeLabel"),
+      }
+    });
+    this.animationDetailCloseButton.addEventListener("click",
+                                                     this.onDetailCloseButtonClick);
+
+    const animationDetailBodyEl = createNode({
+      parent: animationDetailEl,
+      attributes: {
+        "class": "animation-detail-body"
+      }
+    });
+
+    this.animatedPropertiesEl = createNode({
+      parent: animationDetailBodyEl,
+      attributes: {
+        "class": "animated-properties"
+      }
+    });
+
+    this.details = new AnimationDetails(this.serverTraits);
+    this.details.init(this.animatedPropertiesEl);
   },
 
   destroy: function () {
     this.stopAnimatingScrubber();
     this.unrender();
+    this.details.destroy();
 
     this.win.removeEventListener("resize",
       this.onWindowResize);
@@ -138,34 +239,52 @@ AnimationsTimeline.prototype = {
       this.onScrubberMouseDown);
     this.scrubberHandleEl.removeEventListener("mousedown",
       this.onScrubberMouseDown);
+    this.animationDetailCloseButton.removeEventListener("click",
+      this.onDetailCloseButtonClick);
 
     this.rootWrapperEl.remove();
     this.animations = [];
-
+    this.componentsMap = null;
     this.rootWrapperEl = null;
     this.timeHeaderEl = null;
     this.animationsEl = null;
+    this.animatedPropertiesEl = null;
     this.scrubberEl = null;
     this.scrubberHandleEl = null;
     this.win = null;
     this.inspector = null;
     this.serverTraits = null;
+    this.animationDetailEl = null;
+    this.animationAnimationNameEl = null;
+    this.animatedPropertiesEl = null;
+    this.animationDetailCloseButton = null;
+    this.animationRootEl = null;
+    this.selectedAnimation = null;
+
+    this.isDestroyed = true;
   },
 
   /**
-   * Destroy sub-components that have been created and stored on this instance.
-   * @param {String} name An array of components will be expected in this[name]
-   * @param {Array} handlers An option list of event handlers information that
-   * should be used to remove these handlers.
+   * Destroy all sub-components that have been created and stored on this instance.
    */
-  destroySubComponents: function (name, handlers = []) {
-    for (let component of this[name]) {
-      for (let {event, fn} of handlers) {
-        component.off(event, fn);
-      }
-      component.destroy();
+  destroyAllSubComponents: function () {
+    for (let actorID in this.componentsMap) {
+      this.destroySubComponents(actorID);
     }
-    this[name] = [];
+  },
+
+  /**
+   * Destroy sub-components which related to given actor id.
+   * @param {String} actor id
+   */
+  destroySubComponents: function (actorID) {
+    const components = this.componentsMap[actorID];
+    components.timeBlock.destroy();
+    components.targetNode.destroy();
+    components.animationEl.remove();
+    delete components.state;
+    delete components.tracks;
+    delete this.componentsMap[actorID];
   },
 
   unrender: function () {
@@ -174,13 +293,10 @@ AnimationsTimeline.prototype = {
     }
     this.stopAnimatingScrubber();
     TimeScale.reset();
-    this.destroySubComponents("targetNodes");
-    this.destroySubComponents("timeBlocks");
-    this.destroySubComponents("details", [{
-      event: "frame-selected",
-      fn: this.onFrameSelected
-    }]);
+    this.destroyAllSubComponents();
     this.animationsEl.innerHTML = "";
+    this.off("timeline-data-changed", this.onTimelineDataChanged);
+    this.details.unrender();
   },
 
   onWindowResize: function () {
@@ -198,36 +314,55 @@ AnimationsTimeline.prototype = {
     }, TIMELINE_BACKGROUND_RESIZE_DEBOUNCE_TIMER);
   },
 
-  onAnimationSelected: function (e, animation) {
+  onAnimationSelected: Task.async(function* (animation) {
     let index = this.animations.indexOf(animation);
     if (index === -1) {
       return;
     }
 
-    let el = this.rootWrapperEl;
-    let animationEl = el.querySelectorAll(".animation")[index];
-    let propsEl = el.querySelectorAll(".animated-properties")[index];
-
-    // Toggle the selected state on this animation.
-    animationEl.classList.toggle("selected");
-    propsEl.classList.toggle("selected");
-
-    // Render the details component for this animation if it was shown.
-    if (animationEl.classList.contains("selected")) {
-      this.details[index].render(animation);
-      this.emit("animation-selected", animation);
-    } else {
-      this.emit("animation-unselected", animation);
+    // Unselect an animation which was selected.
+    const animationEls = this.rootWrapperEl.querySelectorAll(".animation");
+    for (let i = 0; i < animationEls.length; i++) {
+      const animationEl = animationEls[i];
+      if (!animationEl.classList.contains("selected")) {
+        continue;
+      }
+      if (i === index) {
+        if (this.animationRootEl.classList.contains("animation-detail-visible")) {
+          // Already the animation is selected.
+          this.emit("animation-already-selected", this.animations[i]);
+          return;
+        }
+      } else {
+        animationEl.classList.remove("selected");
+        this.emit("animation-unselected", this.animations[i]);
+      }
+      break;
     }
-  },
+
+    // Add class of animation type to animatedPropertiesEl to display the compositor sign.
+    if (!this.animatedPropertiesEl.classList.contains(animation.state.type)) {
+      this.animatedPropertiesEl.className =
+        `animated-properties ${ animation.state.type }`;
+    }
+
+    // Select and render.
+    const selectedAnimationEl = animationEls[index];
+    selectedAnimationEl.classList.add("selected");
+    this.animationRootEl.classList.add("animation-detail-visible");
+    // Don't render if the detail displays same animation already.
+    if (animation !== this.details.animation) {
+      this.selectedAnimation = animation;
+      yield this.details.render(animation, this.componentsMap[animation.actorID].tracks);
+      this.animationAnimationNameEl.textContent = getFormattedAnimationTitle(animation);
+    }
+    this.onTimelineDataChanged({ time: this.currentTime || 0 });
+    this.emit("animation-selected", animation);
+  }),
 
   /**
-   * When a frame gets selected, move the scrubber to the corresponding position
+   * When move the scrubber to the corresponding position
    */
-  onFrameSelected: function (e, {x}) {
-    this.moveScrubberTo(x, true);
-  },
-
   onScrubberMouseDown: function (e) {
     this.moveScrubberTo(e.pageX);
     this.win.addEventListener("mouseup", this.onScrubberMouseUp);
@@ -302,15 +437,31 @@ AnimationsTimeline.prototype = {
     return className;
   },
 
-  render: function (animations, documentCurrentTime) {
-    this.unrender();
-
+  render: Task.async(function* (animations, documentCurrentTime) {
     this.animations = animations;
+
+    // Destroy components which are no longer existed in given animations.
+    for (let animation of this.animations) {
+      if (this.componentsMap[animation.actorID]) {
+        this.componentsMap[animation.actorID].needToLeave = true;
+      }
+    }
+    for (let actorID in this.componentsMap) {
+      const components = this.componentsMap[actorID];
+      if (components.needToLeave) {
+        delete components.needToLeave;
+      } else {
+        this.destroySubComponents(actorID);
+      }
+    }
+
     if (!this.animations.length) {
+      this.emit("animation-timeline-rendering-completed");
       return;
     }
 
-    // Loop first to set the time scale for all current animations.
+    // Loop to set the time scale for all current animations.
+    TimeScale.reset();
     for (let {state} of animations) {
       TimeScale.addAnimation(state);
     }
@@ -319,62 +470,24 @@ AnimationsTimeline.prototype = {
 
     for (let animation of this.animations) {
       animation.on("changed", this.onAnimationStateChanged);
-      // Each line contains the target animated node and the animation time
-      // block.
-      let animationEl = createNode({
-        parent: this.animationsEl,
-        nodeType: "li",
-        attributes: {
-          "class": "animation " +
-                   animation.state.type +
-                   this.getCompositorStatusClassName(animation.state)
-        }
-      });
 
-      // Right below the line is a hidden-by-default line for displaying the
-      // inline keyframes.
-      let detailsEl = createNode({
-        parent: this.animationsEl,
-        nodeType: "li",
-        attributes: {
-          "class": "animated-properties " + animation.state.type
-        }
-      });
+      const tracks = yield this.getTracks(animation);
+      // If we're destroyed by now, just give up.
+      if (this.isDestroyed) {
+        return;
+      }
 
-      let details = new AnimationDetails(this.serverTraits);
-      details.init(detailsEl);
-      details.on("frame-selected", this.onFrameSelected);
-      this.details.push(details);
-
-      // Left sidebar for the animated node.
-      let animatedNodeEl = createNode({
-        parent: animationEl,
-        attributes: {
-          "class": "target"
-        }
-      });
-
-      // Draw the animated node target.
-      let targetNode = new AnimationTargetNode(this.inspector, {compact: true});
-      targetNode.init(animatedNodeEl);
-      targetNode.render(animation);
-      this.targetNodes.push(targetNode);
-
-      // Right-hand part contains the timeline itself (called time-block here).
-      let timeBlockEl = createNode({
-        parent: animationEl,
-        attributes: {
-          "class": "time-block track-container"
-        }
-      });
-
-      // Draw the animation time block.
-      let timeBlock = new AnimationTimeBlock();
-      timeBlock.init(timeBlockEl);
-      timeBlock.render(animation);
-      this.timeBlocks.push(timeBlock);
-
-      timeBlock.on("selected", this.onAnimationSelected);
+      if (this.componentsMap[animation.actorID]) {
+        // Update animation UI using existent components.
+        this.updateAnimation(animation, tracks, this.componentsMap[animation.actorID]);
+      } else {
+        // Render animation UI as new element.
+        const animationEl = createNode({
+          parent: this.animationsEl,
+          nodeType: "li",
+        });
+        this.renderAnimation(animation, tracks, animationEl);
+      }
     }
 
     // Use the document's current time to position the scrubber (if the server
@@ -389,6 +502,84 @@ AnimationsTimeline.prototype = {
                                   ? TimeScale.minStartTime
                                   : documentCurrentTime);
     }
+
+    // To indicate the animation progress in AnimationDetails.
+    this.on("timeline-data-changed", this.onTimelineDataChanged);
+
+    if (this.animations.length === 1) {
+      // Display animation's detail if there is only one animation,
+      // even if the detail pane is closing.
+      yield this.onAnimationSelected(this.animations[0]);
+    } else if (this.animationRootEl.classList.contains("animation-detail-visible") &&
+               this.animations.indexOf(this.selectedAnimation) >= 0) {
+      // animation's detail displays in case of the previously displayed animation is
+      // included in timeline list and the detail pane is not closing.
+      yield this.onAnimationSelected(this.selectedAnimation);
+    } else {
+      // Otherwise, close detail pane.
+      this.onDetailCloseButtonClick();
+    }
+    this.emit("animation-timeline-rendering-completed");
+  }),
+
+  updateAnimation: function (animation, tracks, existentComponents) {
+    // If keyframes (tracks) and effect timing (state) are not changed, we update the
+    // view box only.
+    // As an exception, if iterationCount reprensents Infinity, we need to re-render
+    // the shape along new time scale.
+    // FIXME: To avoid re-rendering even Infinity, we need to change the
+    // representation for Infinity.
+    if (animation.state.iterationCount &&
+        areTimingEffectsEqual(existentComponents.state, animation.state) &&
+        existentComponents.tracks.toString() === tracks.toString()) {
+      // Update timeBlock.
+      existentComponents.timeBlock.update(animation);
+    } else {
+      // Destroy previous components.
+      existentComponents.timeBlock.destroy();
+      existentComponents.targetNode.destroy();
+      // Remove children to re-use.
+      existentComponents.animationEl.innerHTML = "";
+      // Re-render animation using existent animationEl.
+      this.renderAnimation(animation, tracks, existentComponents.animationEl);
+    }
+  },
+
+  renderAnimation: function (animation, tracks, animationEl) {
+    animationEl.setAttribute("class",
+                             "animation " + animation.state.type +
+                             this.getCompositorStatusClassName(animation.state));
+
+    // Left sidebar for the animated node.
+    let animatedNodeEl = createNode({
+      parent: animationEl,
+      attributes: {
+        "class": "target"
+      }
+    });
+
+    // Draw the animated node target.
+    let targetNode = new AnimationTargetNode(this.inspector, {compact: true});
+    targetNode.init(animatedNodeEl);
+    targetNode.render(animation);
+
+    // Right-hand part contains the timeline itself (called time-block here).
+    let timeBlockEl = createNode({
+      parent: animationEl,
+      attributes: {
+        "class": "time-block track-container"
+      }
+    });
+
+    // Draw the animation time block.
+    let timeBlock = new AnimationTimeBlock();
+    timeBlock.init(timeBlockEl);
+    timeBlock.render(animation, tracks);
+    timeBlock.on("selected", this.onAnimationSelected);
+
+    this.componentsMap[animation.actorID] = {
+      animationEl, targetNode, timeBlock, tracks, state: animation.state
+    };
   },
 
   isAtLeastOneAnimationPlaying: function () {
@@ -498,5 +689,117 @@ AnimationsTimeline.prototype = {
         }
       });
     }
-  }
+  },
+
+  onTimelineDataChanged: function ({ time }) {
+    this.currentTime = time;
+    const indicateTime =
+      TimeScale.minStartTime === Infinity ? 0 : this.currentTime + TimeScale.minStartTime;
+    this.details.indicateProgress(indicateTime);
+  },
+
+  onDetailCloseButtonClick: function (e) {
+    if (!this.animationRootEl.classList.contains("animation-detail-visible")) {
+      return;
+    }
+    this.animationRootEl.classList.remove("animation-detail-visible");
+    this.emit("animation-detail-closed");
+  },
+
+  /**
+   * Get a list of the tracks of the animation actor
+   * @param {Object} animation
+   * @return {Object} A list of tracks, one per animated property, each
+   * with a list of keyframes
+   */
+  getTracks: Task.async(function* (animation) {
+    let tracks = {};
+
+    /*
+     * getFrames is a AnimationPlayorActor method that returns data about the
+     * keyframes of the animation.
+     * In FF48, the data it returns change, and will hold only longhand
+     * properties ( e.g. borderLeftWidth ), which does not match what we
+     * want to display in the animation detail.
+     * A new AnimationPlayerActor function, getProperties, is introduced,
+     * that returns the animated css properties of the animation and their
+     * keyframes values.
+     * If the animation actor has the getProperties function, we use it, and if
+     * not, we fall back to getFrames, which then returns values we used to
+     * handle.
+     */
+    if (this.serverTraits.hasGetProperties) {
+      let properties = [];
+      try {
+        properties = yield animation.getProperties();
+      } catch (e) {
+        // Expected if we've already been destroyed in the meantime.
+        if (!this.isDestroyed) {
+          throw e;
+        }
+      }
+
+      for (let {name, values} of properties) {
+        if (!tracks[name]) {
+          tracks[name] = [];
+        }
+
+        for (let {value, offset, easing, distance} of values) {
+          distance = distance ? distance : 0;
+          tracks[name].push({value, offset, easing, distance});
+        }
+      }
+    } else {
+      let frames = [];
+      try {
+        frames = yield animation.getFrames();
+      } catch (e) {
+        // Expected if we've already been destroyed in the meantime.
+        if (!this.isDestroyed) {
+          throw e;
+        }
+      }
+
+      for (let frame of frames) {
+        for (let name in frame) {
+          if (this.NON_PROPERTIES.indexOf(name) != -1) {
+            continue;
+          }
+
+          // We have to change to CSS property name
+          // since GetKeyframes returns JS property name.
+          const propertyCSSName = getCssPropertyName(name);
+          if (!tracks[propertyCSSName]) {
+            tracks[propertyCSSName] = [];
+          }
+
+          tracks[propertyCSSName].push({
+            value: frame[name],
+            offset: frame.computedOffset,
+            easing: frame.easing,
+            distance: 0
+          });
+        }
+      }
+    }
+
+    return tracks;
+  })
 };
+
+/**
+ * Check the equality given states as effect timing.
+ * @param {Object} state of animation.
+ * @param {Object} same to avobe.
+ * @return {boolean} true: same effect timing
+ */
+function areTimingEffectsEqual(stateA, stateB) {
+  for (const property of ["playbackRate", "duration", "delay", "endDelay",
+                          "iterationCount", "iterationStart", "easing",
+                          "fill", "direction"]) {
+    if (stateA[property] !== stateB[property]) {
+      return false;
+    }
+  }
+  return true;
+}

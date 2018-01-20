@@ -6,13 +6,11 @@
 
 var promise = require("promise");
 var defer = require("devtools/shared/defer");
-var {Class} = require("sdk/core/heritage");
-var {EventTarget} = require("sdk/event/target");
-var events = require("sdk/event/core");
-var object = require("sdk/util/object");
+const { extend } = require("devtools/shared/extend");
+var EventEmitter = require("devtools/shared/event-emitter");
 var {getStack, callFunctionWithAsyncStack} = require("devtools/shared/platform/stack");
-
-exports.emit = events.emit;
+var {settleAll} = require("devtools/shared/DevToolsUtils");
+var {lazyLoadSpec, lazyLoadFront} = require("devtools/shared/specs/index");
 
 /**
  * Types: named marshallers/demarshallers.
@@ -64,7 +62,19 @@ types.getType = function (type) {
 
   // If already registered, we're done here.
   let reg = registeredTypes.get(type);
-  if (reg) return reg;
+  if (reg) {
+    return reg;
+  }
+
+  // Try to lazy load the spec, if not already loaded.
+  if (lazyLoadSpec(type)) {
+    // If a spec module was lazy loaded, it will synchronously call
+    // generateActorSpec, and set the type in `registeredTypes`.
+    reg = registeredTypes.get(type);
+    if (reg) {
+      return reg;
+    }
+  }
 
   // New type, see if it's a collection/lifetime type:
   let sep = type.indexOf(":");
@@ -89,12 +99,6 @@ types.getType = function (type) {
   let pieces = type.split("#", 2);
   if (pieces.length > 1) {
     return types.addActorDetail(type, pieces[0], pieces[1]);
-  }
-
-  // Might be a lazily-loaded type
-  if (type === "longstring") {
-    require("devtools/shared/specs/string");
-    return registeredTypes.get("longstring");
   }
 
   throw Error("Unknown type: " + type);
@@ -144,8 +148,10 @@ types.addType = function (name, typeObject = {}, options = {}) {
     throw Error("Type '" + name + "' already exists.");
   }
 
-  let type = object.merge({
-    toString() { return "[protocol type:" + name + "]";},
+  let type = Object.assign({
+    toString() {
+      return "[protocol type:" + name + "]";
+    },
     name: name,
     primitive: !(typeObject.read || typeObject.write),
     read: identityWrite,
@@ -169,7 +175,9 @@ types.removeType = function (name) {
   type.name = "DEFUNCT:" + name;
   type.category = "defunct";
   type.primitive = false;
-  type.read = type.write = function () { throw new Error("Using defunct type: " + name); };
+  type.read = type.write = function () {
+    throw new Error("Using defunct type: " + name);
+  };
 
   registeredTypes.delete(name);
 };
@@ -257,6 +265,13 @@ types.addDictType = function (name, specializations) {
  *    The typestring to register.
  */
 types.addActorType = function (name) {
+  // We call addActorType from:
+  //   FrontClassWithSpec when registering front synchronously,
+  //   generateActorSpec when defining specs,
+  //   specs modules to register actor type early to use them in other types
+  if (registeredTypes.has(name)) {
+    return registeredTypes.get(name);
+  }
   let type = types.addType(name, {
     _actor: true,
     category: "actor",
@@ -273,7 +288,16 @@ types.addActorType = function (name) {
       let actorID = typeof (v) === "string" ? v : v.actor;
       let front = ctx.conn.getActor(actorID);
       if (!front) {
-        front = new type.frontClass(ctx.conn);
+        // If front isn't instanciated yet, create one.
+
+        // Try lazy loading front if not already loaded.
+        // The front module will synchronously call `FrontClassWithSpec` and
+        // augment `type` with the `frontClass` attribute.
+        if (!type.frontClass) {
+          lazyLoadFront(name);
+        }
+
+        front = new type.frontClass(ctx.conn); // eslint-disable-line new-cap
         front.actorID = actorID;
         ctx.marshallPool().manage(front);
       }
@@ -352,7 +376,8 @@ types.addNullableType = function (subtype) {
 types.addActorDetail = function (name, actorType, detail) {
   actorType = types.getType(actorType);
   if (!actorType._actor) {
-    throw Error("Details only apply to actor types, tried to add detail '" + detail + "'' to " + actorType.name + "\n");
+    throw Error(`Details only apply to actor types, tried to add detail '${detail}' ` +
+                `to ${actorType.name}`);
   }
   return types.addType(name, {
     _actor: true,
@@ -401,7 +426,8 @@ types.removeLifetime = function (name) {
 types.addLifetimeType = function (lifetime, subtype) {
   subtype = types.getType(subtype);
   if (!subtype._actor) {
-    throw Error("Lifetimes only apply to actor types, tried to apply lifetime '" + lifetime + "'' to " + subtype.name);
+    throw Error(`Lifetimes only apply to actor types, tried to apply ` +
+                `lifetime '${lifetime}' to ${subtype.name}`);
   }
   let prop = registeredLifetimes.get(lifetime);
   return types.addType(lifetime + ":" + subtype.name, {
@@ -439,12 +465,15 @@ types.JSON = types.addType("json");
  *    The argument should be marshalled as this type.
  * @constructor
  */
-var Arg = Class({
-  initialize: function (index, type) {
-    this.index = index;
-    this.type = types.getType(type);
-  },
+var Arg = function (index, type) {
+  this.index = index;
+  // Prevent force loading all Arg types by accessing it only when needed
+  loader.lazyGetter(this, "type", function () {
+    return types.getType(type);
+  });
+};
 
+Arg.prototype = {
   write: function (arg, ctx) {
     return this.type.write(arg, ctx);
   },
@@ -459,8 +488,12 @@ var Arg = Class({
       type: this.type.name,
     };
   }
-});
-exports.Arg = Arg;
+};
+
+// Outside of protocol.js, Arg is called as factory method, without the new keyword.
+exports.Arg = function (index, type) {
+  return new Arg(index, type);
+};
 
 /**
  * Placeholder for an options argument value that should be hoisted
@@ -479,12 +512,11 @@ exports.Arg = Arg;
  *    The argument should be marshalled as this type.
  * @constructor
  */
-var Option = Class({
-  extends: Arg,
-  initialize: function (index, type) {
-    Arg.prototype.initialize.call(this, index, type);
-  },
+var Option = function (index, type) {
+  Arg.call(this, index, type);
+};
 
+Option.prototype = extend(Arg.prototype, {
   write: function (arg, ctx, name) {
     // Ignore if arg is undefined or null; allow other falsy values
     if (arg == undefined || arg[name] == undefined) {
@@ -511,7 +543,10 @@ var Option = Class({
   }
 });
 
-exports.Option = Option;
+// Outside of protocol.js, Option is called as factory method, without the new keyword.
+exports.Option = function (index, type) {
+  return new Option(index, type);
+};
 
 /**
  * Placeholder for return values in a response template.
@@ -519,11 +554,14 @@ exports.Option = Option;
  * @param type type
  *    The return value should be marshalled as this type.
  */
-var RetVal = Class({
-  initialize: function (type) {
-    this.type = types.getType(type);
-  },
+var RetVal = function (type) {
+  // Prevent force loading all RetVal types by accessing it only when needed
+  loader.lazyGetter(this, "type", function () {
+    return types.getType(type);
+  });
+};
 
+RetVal.prototype = {
   write: function (v, ctx) {
     return this.type.write(v, ctx);
   },
@@ -537,9 +575,12 @@ var RetVal = Class({
       _retval: this.type.name
     };
   }
-});
+};
 
-exports.RetVal = RetVal;
+// Outside of protocol.js, RetVal is called as factory method, without the new keyword.
+exports.RetVal = function (type) {
+  return new RetVal(type);
+};
 
 /* Template handling functions */
 
@@ -579,7 +620,6 @@ function findPlaceholders(template, constructor, path = [], placeholders = []) {
   return placeholders;
 }
 
-
 function describeTemplate(template) {
   return JSON.parse(JSON.stringify(template, (key, value) => {
     if (value.describe) {
@@ -596,13 +636,13 @@ function describeTemplate(template) {
  *    The request template.
  * @construcor
  */
-var Request = Class({
-  initialize: function (template = {}) {
-    this.type = template.type;
-    this.template = template;
-    this.args = findPlaceholders(template, Arg);
-  },
+var Request = function (template = {}) {
+  this.type = template.type;
+  this.template = template;
+  this.args = findPlaceholders(template, Arg);
+};
 
+Request.prototype = {
   /**
    * Write a request.
    *
@@ -643,8 +683,10 @@ var Request = Class({
     return fnArgs;
   },
 
-  describe: function () { return describeTemplate(this.template); }
-});
+  describe: function () {
+    return describeTemplate(this.template);
+  }
+};
 
 /**
  * Manages a response template.
@@ -653,20 +695,20 @@ var Request = Class({
  *    The response template.
  * @construcor
  */
-var Response = Class({
-  initialize: function (template = {}) {
-    this.template = template;
-    let placeholders = findPlaceholders(template, RetVal);
-    if (placeholders.length > 1) {
-      throw Error("More than one RetVal specified in response");
-    }
-    let placeholder = placeholders.shift();
-    if (placeholder) {
-      this.retVal = placeholder.placeholder;
-      this.path = placeholder.path;
-    }
-  },
+var Response = function (template = {}) {
+  this.template = template;
+  let placeholders = findPlaceholders(template, RetVal);
+  if (placeholders.length > 1) {
+    throw Error("More than one RetVal specified in response");
+  }
+  let placeholder = placeholders.shift();
+  if (placeholder) {
+    this.retVal = placeholder.placeholder;
+    this.path = placeholder.path;
+  }
+};
 
+Response.prototype = {
   /**
    * Write a response for the given return value.
    *
@@ -700,8 +742,10 @@ var Response = Class({
     return this.retVal.read(v, ctx);
   },
 
-  describe: function () { return describeTemplate(this.template); }
-});
+  describe: function () {
+    return describeTemplate(this.template);
+  }
+};
 
 /**
  * Actor and Front implementations
@@ -709,37 +753,35 @@ var Response = Class({
 
 /**
  * A protocol object that can manage the lifetime of other protocol
- * objects.
+ * objects. Pools are used on both sides of the connection to help coordinate lifetimes.
+ *
+ * @param optional conn
+ *   Either a DebuggerServerConnection or a DebuggerClient.  Must have
+ *   addActorPool, removeActorPool, and poolFor.
+ *   conn can be null if the subclass provides a conn property.
+ * @constructor
  */
-var Pool = Class({
-  extends: EventTarget,
+var Pool = function (conn) {
+  if (conn) {
+    this.conn = conn;
+  }
+};
 
-  /**
-   * Pools are used on both sides of the connection to help coordinate
-   * lifetimes.
-   *
-   * @param optional conn
-   *   Either a DebuggerServerConnection or a DebuggerClient.  Must have
-   *   addActorPool, removeActorPool, and poolFor.
-   *   conn can be null if the subclass provides a conn property.
-   * @constructor
-   */
-  initialize: function (conn) {
-    if (conn) {
-      this.conn = conn;
-    }
-  },
-
+Pool.prototype = extend(EventEmitter.prototype, {
   /**
    * Return the parent pool for this client.
    */
-  parent: function () { return this.conn.poolFor(this.actorID); },
+  parent: function () {
+    return this.conn.poolFor(this.actorID);
+  },
 
   /**
    * Override this if you want actors returned by this actor
    * to belong to a different actor by default.
    */
-  marshallPool: function () { return this; },
+  marshallPool: function () {
+    return this;
+  },
 
   /**
    * Pool is the base class for all actors, even leaf nodes.
@@ -748,7 +790,9 @@ var Pool = Class({
    */
   __poolMap: null,
   get _poolMap() {
-    if (this.__poolMap) return this.__poolMap;
+    if (this.__poolMap) {
+      return this.__poolMap;
+    }
     this.__poolMap = new Map();
     this.conn.addActorPool(this);
     return this.__poolMap;
@@ -794,6 +838,20 @@ var Pool = Class({
     return !this.__poolMap || this._poolMap.size == 0;
   },
 
+  // Generator that yields each non-self child of the pool.
+  poolChildren: function* () {
+    if (!this.__poolMap) {
+      return;
+    }
+    for (let actor of this.__poolMap.values()) {
+      // Self-owned actors are ok, but don't need visiting twice.
+      if (actor === this) {
+        continue;
+      }
+      yield actor;
+    }
+  },
+
   /**
    * Destroy this item, removing it from a parent if it has one,
    * and destroying all children if necessary.
@@ -837,38 +895,38 @@ exports.Pool = Pool;
 
 /**
  * An actor in the actor tree.
+ *
+ * @param optional conn
+ *   Either a DebuggerServerConnection or a DebuggerClient.  Must have
+ *   addActorPool, removeActorPool, and poolFor.
+ *   conn can be null if the subclass provides a conn property.
+ * @constructor
  */
-var Actor = Class({
-  extends: Pool,
+var Actor = function (conn) {
+  Pool.call(this, conn);
 
+  // Forward events to the connection.
+  if (this._actorSpec && this._actorSpec.events) {
+    for (let key of this._actorSpec.events.keys()) {
+      let name = key;
+      let sendEvent = this._sendEvent.bind(this, name);
+      this.on(name, (...args) => {
+        sendEvent.apply(null, args);
+      });
+    }
+  }
+};
+
+Actor.prototype = extend(Pool.prototype, {
   // Will contain the actor's ID
   actorID: null,
 
-  /**
-   * Initialize an actor.
-   *
-   * @param optional conn
-   *   Either a DebuggerServerConnection or a DebuggerClient.  Must have
-   *   addActorPool, removeActorPool, and poolFor.
-   *   conn can be null if the subclass provides a conn property.
-   * @constructor
-   */
-  initialize: function (conn) {
-    Pool.prototype.initialize.call(this, conn);
+  // Existing Actors extending this class expect initialize to contain constructor logic.
+  initialize: Actor,
 
-    // Forward events to the connection.
-    if (this._actorSpec && this._actorSpec.events) {
-      for (let key of this._actorSpec.events.keys()) {
-        let name = key;
-        let sendEvent = this._sendEvent.bind(this, name);
-        this.on(name, (...args) => {
-          sendEvent.apply(null, args);
-        });
-      }
-    }
+  toString: function () {
+    return "[Actor " + this.typeName + "/" + this.actorID + "]";
   },
-
-  toString: function () { return "[Actor " + this.typeName + "/" + this.actorID + "]"; },
 
   _sendEvent: function (name, ...args) {
     if (!this._actorSpec.events.has(name)) {
@@ -935,8 +993,12 @@ exports.Actor = Actor;
  */
 exports.method = function (fn, spec = {}) {
   fn._methodSpec = Object.freeze(spec);
-  if (spec.request) Object.freeze(spec.request);
-  if (spec.response) Object.freeze(spec.response);
+  if (spec.request) {
+    Object.freeze(spec.request);
+  }
+  if (spec.response) {
+    Object.freeze(spec.response);
+  }
   return fn;
 };
 
@@ -971,8 +1033,9 @@ var generateActorSpec = function (actorDesc) {
       let methodSpec = desc.value._methodSpec;
       let spec = {};
       spec.name = methodSpec.name || name;
-      spec.request = Request(object.merge({type: spec.name}, methodSpec.request || undefined));
-      spec.response = Response(methodSpec.response || undefined);
+      spec.request = new Request(Object.assign({type: spec.name},
+                                          methodSpec.request || undefined));
+      spec.response = new Response(methodSpec.response || undefined);
       spec.release = methodSpec.release;
       spec.oneway = methodSpec.oneway;
 
@@ -987,8 +1050,9 @@ var generateActorSpec = function (actorDesc) {
       let spec = {};
 
       spec.name = methodSpec.name || name;
-      spec.request = Request(object.merge({type: spec.name}, methodSpec.request || undefined));
-      spec.response = Response(methodSpec.response || undefined);
+      spec.request = new Request(Object.assign({type: spec.name},
+                                          methodSpec.request || undefined));
+      spec.response = new Response(methodSpec.response || undefined);
       spec.release = methodSpec.release;
       spec.oneway = methodSpec.oneway;
 
@@ -1002,7 +1066,7 @@ var generateActorSpec = function (actorDesc) {
     for (let name in actorDesc.events) {
       let eventRequest = actorDesc.events[name];
       Object.freeze(eventRequest);
-      actorSpec.events.set(name, Request(object.merge({type: name}, eventRequest)));
+      actorSpec.events.set(name, new Request(Object.assign({type: name}, eventRequest)));
     }
   }
 
@@ -1041,7 +1105,7 @@ var generateRequestHandlers = function (actorSpec, actorProto) {
 
         let ret = this[spec.name].apply(this, args);
 
-        let sendReturn = (ret) => {
+        let sendReturn = (retToSend) => {
           if (spec.oneway) {
             // No need to send a response.
             return;
@@ -1049,7 +1113,7 @@ var generateRequestHandlers = function (actorSpec, actorProto) {
 
           let response;
           try {
-            response = spec.response.write(ret, this);
+            response = spec.response.write(retToSend, this);
           } catch (ex) {
             console.error("Error writing response to: " + spec.name);
             throw ex;
@@ -1072,7 +1136,7 @@ var generateRequestHandlers = function (actorSpec, actorProto) {
           return p
             .then(() => ret)
             .then(sendReturn)
-            .then(null, this.writeError.bind(this));
+            .catch(this.writeError.bind(this));
         });
       } catch (e) {
         this._queueResponse(p => {
@@ -1120,8 +1184,13 @@ var ActorClassWithSpec = function (actorSpec, actorProto) {
     throw Error("Actor specification must have a typeName member.");
   }
 
-  actorProto.extends = Actor;
-  let cls = Class(generateRequestHandlers(actorSpec, actorProto));
+  // Existing Actors are relying on the initialize instead of constructor methods.
+  let cls = function () {
+    let instance = Object.create(cls.prototype);
+    instance.initialize.apply(instance, arguments);
+    return instance;
+  };
+  cls.prototype = extend(Actor.prototype, generateRequestHandlers(actorSpec, actorProto));
 
   return cls;
 };
@@ -1129,37 +1198,35 @@ exports.ActorClassWithSpec = ActorClassWithSpec;
 
 /**
  * Base class for client-side actor fronts.
+ *
+ * @param optional conn
+ *   Either a DebuggerServerConnection or a DebuggerClient.  Must have
+ *   addActorPool, removeActorPool, and poolFor.
+ *   conn can be null if the subclass provides a conn property.
+ * @param optional form
+ *   The json form provided by the server.
+ * @constructor
  */
-var Front = Class({
-  extends: Pool,
+var Front = function (conn = null, form = null, detail = null, context = null) {
+  Pool.call(this, conn);
+  this._requests = [];
 
+  // protocol.js no longer uses this data in the constructor, only external
+  // uses do.  External usage of manually-constructed fronts will be
+  // drastically reduced if we convert the root and tab actors to
+  // protocol.js, in which case this can probably go away.
+  if (form) {
+    this.actorID = form.actor;
+    form = types.getType(this.typeName).formType(detail).read(form, this, detail);
+    this.form(form, detail, context);
+  }
+};
+
+Front.prototype = extend(Pool.prototype, {
   actorID: null,
 
-  /**
-   * The base class for client-side actor fronts.
-   *
-   * @param optional conn
-   *   Either a DebuggerServerConnection or a DebuggerClient.  Must have
-   *   addActorPool, removeActorPool, and poolFor.
-   *   conn can be null if the subclass provides a conn property.
-   * @param optional form
-   *   The json form provided by the server.
-   * @constructor
-   */
-  initialize: function (conn = null, form = null, detail = null, context = null) {
-    Pool.prototype.initialize.call(this, conn);
-    this._requests = [];
-
-    // protocol.js no longer uses this data in the constructor, only external
-    // uses do.  External usage of manually-constructed fronts will be
-    // drastically reduced if we convert the root and tab actors to
-    // protocol.js, in which case this can probably go away.
-    if (form) {
-      this.actorID = form.actor;
-      form = types.getType(this.typeName).formType(detail).read(form, this, detail);
-      this.form(form, detail, context);
-    }
-  },
+  // Existing Fronts extending this class expect initialize to contain constructor logic.
+  initialize: Front,
 
   destroy: function () {
     // Reject all outstanding requests, they won't make sense after
@@ -1187,9 +1254,13 @@ var Front = Class({
    * @returns a promise that will resolve to the actorID this front
    * represents.
    */
-  actor: function () { return promise.resolve(this.actorID); },
+  actor: function () {
+    return promise.resolve(this.actorID);
+  },
 
-  toString: function () { return "[Front for " + this.typeName + "/" + this.actorID + "]"; },
+  toString: function () {
+    return "[Front for " + this.typeName + "/" + this.actorID + "]";
+  },
 
   /**
    * Update the actor from its representation.
@@ -1207,7 +1278,7 @@ var Front = Class({
       this.actor().then(actorID => {
         packet.to = actorID;
         this.conn._transport.send(packet);
-      }).then(null, e => console.error(e));
+      }).catch(console.error);
     }
   },
 
@@ -1250,12 +1321,14 @@ var Front = Class({
         // Check to see if any of the preEvents returned a promise -- if so,
         // wait for their resolution before emitting. Otherwise, emit synchronously.
         if (results.some(result => result && typeof result.then === "function")) {
-          promise.all(results).then(() => events.emit.apply(null, [this, event.name].concat(args)));
+          promise.all(results).then(() => {
+            return EventEmitter.emit.apply(null, [this, event.name].concat(args));
+          });
           return;
         }
       }
 
-      events.emit.apply(null, [this, event.name].concat(args));
+      EventEmitter.emit.apply(null, [this, event.name].concat(args));
       return;
     }
 
@@ -1283,8 +1356,25 @@ var Front = Class({
         deferred.resolve(packet);
       }
     }, stack, "DevTools RDP");
-  }
+  },
+
+  hasRequests() {
+    return !!this._requests.length;
+  },
+
+  /**
+   * Wait for all current requests from this front to settle.  This is especially useful
+   * for tests and other utility environments that may not have events or mechanisms to
+   * await the completion of requests without this utility.
+   *
+   * @return Promise
+   *         Resolved when all requests have settled.
+   */
+  waitForRequestsToSettle() {
+    return settleAll(this._requests.map(({ deferred }) => deferred.promise));
+  },
 });
+
 exports.Front = Front;
 
 /**
@@ -1337,7 +1427,8 @@ var generateRequestMethods = function (actorSpec, frontProto) {
     if (name in frontProto) {
       let custom = frontProto[spec.name]._customFront;
       if (custom === undefined) {
-        throw Error("Existing method for " + spec.name + " not marked customFront while processing " + actorType.typeName + ".");
+        throw Error(`Existing method for ${spec.name} not marked customFront while ` +
+                    ` processing ${actorSpec.typeName}.`);
       }
       // If the user doesn't need the impl don't generate it.
       if (!custom.impl) {
@@ -1384,12 +1475,11 @@ var generateRequestMethods = function (actorSpec, frontProto) {
     }
   });
 
-
   // Process event specifications
   frontProto._clientSpec = {};
 
-  let events = actorSpec.events;
-  if (events) {
+  let actorEvents = actorSpec.events;
+  if (actorEvents) {
     // This actor has events, scan the prototype for preEvent handlers...
     let preHandlers = new Map();
     for (let name of Object.getOwnPropertyNames(frontProto)) {
@@ -1399,7 +1489,7 @@ var generateRequestMethods = function (actorSpec, frontProto) {
       }
       if (desc.value._preEvent) {
         let preEvent = desc.value._preEvent;
-        if (!events.has(preEvent)) {
+        if (!actorEvents.has(preEvent)) {
           throw Error("preEvent for event that doesn't exist: " + preEvent);
         }
         let handlers = preHandlers.get(preEvent);
@@ -1413,7 +1503,7 @@ var generateRequestMethods = function (actorSpec, frontProto) {
 
     frontProto._clientSpec.events = new Map();
 
-    for (let [name, request] of events) {
+    for (let [name, request] of actorEvents) {
       frontProto._clientSpec.events.set(request.type, {
         name: name,
         request: request,
@@ -1450,8 +1540,13 @@ exports.FrontClass = function (actorType, frontProto) {
  *    should have method definitions, can have event definitions.
  */
 var FrontClassWithSpec = function (actorSpec, frontProto) {
-  frontProto.extends = Front;
-  let cls = Class(generateRequestMethods(actorSpec, frontProto));
+  // Existing Fronts are relying on the initialize instead of constructor methods.
+  let cls = function () {
+    let instance = Object.create(cls.prototype);
+    instance.initialize.apply(instance, arguments);
+    return instance;
+  };
+  cls.prototype = extend(Front.prototype, generateRequestMethods(actorSpec, frontProto));
 
   if (!registeredTypes.has(actorSpec.typeName)) {
     types.addActorType(actorSpec.typeName);
@@ -1486,7 +1581,6 @@ exports.dumpActorSpec = function (type) {
       ret.events[name] = request.describe();
     }
   }
-
 
   JSON.stringify(ret);
 

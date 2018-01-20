@@ -2,23 +2,25 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY autoconfigWizard.title          "Configurar conta de e-mail">
+<!ENTITY autoconfigWizard2.title         "Configurar uma conta de e-mail existente">
 <!ENTITY name.label                      "Seu nome:">
 <!ENTITY name.accesskey                  "n">
-<!ENTITY name.placeholder                "Primeiro Último">
-<!ENTITY name.text                       "Seu nome da forma que será exibido aos outros">
+<!ENTITY name.placeholder                "Prenome">
+<!ENTITY name.text                       "Seu nome, como mostrado aos outros">
 <!ENTITY email.label                     "Endereço de e-mail:">
 <!ENTITY email.accesskey                 "E">
-<!ENTITY email.placeholder               "email@exemplo.com">
+<!-- LOCALIZATION NOTE(email.placeholder): Domain @example.com must stay in English -->
+<!ENTITY email2.placeholder              "voce@example.com">
+<!ENTITY email.text                      "Seu endereço de e-mail existente">
 <!ENTITY password.label                  "Senha:">
 <!ENTITY password.accesskey              "S">
 <!ENTITY password.placeholder            "Senha">
 <!ENTITY password.text                   "Opcional, será usada somente para validar o nome de usuário">
-<!ENTITY rememberPassword.label          "Memorizar senha">
+<!ENTITY rememberPassword.label          "Memorizar a senha">
 <!ENTITY rememberPassword.accesskey      "M">
 
 <!ENTITY imapLong.label                  "IMAP (pastas remotas)">
-<!ENTITY pop3Long.label                  "POP3 (manter mensagens no computador)">
+<!ENTITY pop3Long.label                  "POP3 (mantém as mensagens no seu computador)">
 
 <!ENTITY incoming.label                  "Recebimento:">
 <!ENTITY outgoing.label                  "Envio:">
@@ -37,7 +39,7 @@
 <!ENTITY starttls.label                  "STARTTLS">
 <!ENTITY sslTls.label                    "SSL/TLS">
 
-<!ENTITY advancedSetup.label             "Config avançada">
+<!ENTITY advancedSetup.label             "Config. avançada">
 <!ENTITY advancedSetup.accesskey         "o">
 <!ENTITY cancel.label                    "Cancelar">
 <!ENTITY cancel.accesskey                "a">
@@ -53,36 +55,36 @@
 <!ENTITY half-manual-test.accesskey      "R">
 <!ENTITY manual-edit.label               "Config. manual">
 <!ENTITY manual-edit.accesskey           "o">
-<!ENTITY switch-to-provisioner.label     "Criar conta de e-mail">
-<!ENTITY switch-to-provisioner.accesskey "r">
+<!ENTITY open-provisioner.label          "Usar um novo endereço de e-mail…">
+<!ENTITY open-provisioner.accesskey      "o">
 
 
-<!ENTITY warning.label                   "Alerta!">
+<!ENTITY warning.label                   "Aviso!">
 <!ENTITY incomingSettings.label          "Configuração de recebimento:">
-<!ENTITY outgoingSettings.label          "Configuração de envio:">
+<!ENTITY outgoingSettings.label          "Configurações de envio:">
 <!ENTITY technicaldetails.label          "Detalhes técnicos">
 <!-- LOCALIZATION NOTE (confirmWarning.label): If there is a security
      warning on the outgoing server, then the user will need to check a
      checkbox beside this text before continuing. -->
-<!ENTITY confirmWarning.label            "Entendo os riscos">
+<!ENTITY confirmWarning.label            "Eu entendo os riscos.">
 <!ENTITY confirmWarning.accesskey        "E">
 <!-- LOCALIZATION NOTE (doneAccount.label): If there is a security warning
      on the incoming or outgoing servers, then the page that pops up will
      have this text in a button to continue by creating the account. -->
-<!ENTITY doneAccount.label               "Concluir">
+<!ENTITY doneAccount.label               "Concluído">
 <!ENTITY doneAccount.accesskey           "C">
 <!-- LOCALIZATION NOTE (changeSettings.label): If there is a security warning on
      the incoming or outgoing servers, then the page that pops up will have
      this text in a button to take you back to the previous page to change
      the settings and try again. -->
-<!ENTITY changeSettings.label            "Modificar configurações">
+<!ENTITY changeSettings.label            "Alterar as configurações">
 <!ENTITY changeSettings.accesskey        "M">
 
-<!ENTITY contactYourProvider.description "O &brandShortName; possibilitará o uso do seu e-mail usando as configurações fornecidas. Entretanto, você deve contatar o seu administrador ou provedor de e-mail a respeito da não conveniência destas conexões. Consulte o FAQ do Thunderbird para mais informações.">
+<!ENTITY contactYourProvider.description "O &brandShortName; lhe permitirá obter o seu correio utilizando as configurações fornecidas. Entretanto, você deve contatar o seu administrador ou provedor de e-mail a respeito destas conexões impróprias Veja as FAQ do Thunderbird para mais informações.">
 
-<!ENTITY insecureServer.tooltip.title    "Alerta! Este é um servidor inseguro.">
-<!ENTITY insecureServer.tooltip.details  "Clique no círculo para mais detalhes">
+<!ENTITY insecureServer.tooltip.title    "Aviso! Este é um servidor inseguro.">
+<!ENTITY insecureServer.tooltip.details  "Clique no círculo para mais detalhes.">
 
-<!ENTITY insecureUnencrypted.description "Seu e-mail e autenticação são enviados sem criptografia. Sua senha (e sua mensagem) poderia ser lida facilmente por outras pessoas. O &brandShortName; possibilitará o uso do seu e-mail, mas você deve contatar seu provedor de e-mail para que configurem o servidor com um certificado válido.">
-<!ENTITY insecureSelfSigned.description  "O servidor usa um certificado que não é considerado confiável. Assim, não podemos ter certeza de que alguém não esteja interceptando o tráfego entre o &brandShortName; e o servidor. O &brandShortName; possibilitará o uso do seu e-mail, mas você deve realmente contatar seu provedor de e-mail para que configurem o servidor com um certificado válido.">
+<!ENTITY insecureUnencrypted.description "O seu e-mail e a autenticação são enviados desencriptadas, portanto a sua senha (e a sua mensagem) poderão ser lidas facilmente por outras pessoas. O &brandShortName; deixará você obter o seu correio, mas você deve contatar o seu provedor de e-mail para configurar o servidor com uma conexão segura.">
+<!ENTITY insecureSelfSigned.description  "O servidor usa um certificado que não podemos confiar, portanto não podemos garantir que alguém não esteja interceptando o tráfego entre o &brandShortName; e o seu servidor. O &brandShortName; deixará que você obtenha o seu correio, mas você realmente deve solicitar ao seu provedor de e-mail para configurar o servidor com um certificado confiável.">
 <!ENTITY secureServer.description        "Parabéns! Este é um servidor seguro.">

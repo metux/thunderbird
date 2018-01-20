@@ -26,3 +26,6 @@
 <!ENTITY filtersLink.label            "Створити фільтри листів">
 <!ENTITY junkSettings.label           "Параметри анти-спам фільтрів">
 <!ENTITY offlineLink.label            "Параметри автономної роботи">
+
+<!ENTITY setupNewAcct.label           "Set up an account:">
+

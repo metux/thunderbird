@@ -6,6 +6,7 @@
 package org.mozilla.gecko.tabs;
 
 import org.mozilla.gecko.R;
+import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.animation.PropertyAnimator;
 import org.mozilla.gecko.util.ThreadUtils;
 
@@ -31,8 +32,15 @@ public class TabsListLayout extends TabsLayout {
 
         setLayoutManager(new LinearLayoutManager(context));
 
-        // A TouchHelper handler for swipe to close.
-        final TabsTouchHelperCallback callback = new TabsTouchHelperCallback(this);
+        final int dragDirections = ItemTouchHelper.UP | ItemTouchHelper.DOWN;
+        // A TouchHelper handler for drag and drop and swipe to close.
+        final TabsTouchHelperCallback callback = new TabsTouchHelperCallback(this, dragDirections, this) {
+            @Override
+            protected float alphaForItemSwipeDx(float dX, int distanceToAlphaMin) {
+                return Math.max(0.1f,
+                        Math.min(1f, 1f - 2f * Math.abs(dX) / distanceToAlphaMin));
+            }
+        };
         final ItemTouchHelper touchHelper = new ItemTouchHelper(callback);
         touchHelper.attachToRecyclerView(this);
 
@@ -40,7 +48,7 @@ public class TabsListLayout extends TabsLayout {
     }
 
     @Override
-    public void closeAll() {
+    public void onCloseAll() {
         final int childCount = getChildCount();
 
         // Just close the panel if there are no tabs to close.
@@ -87,7 +95,12 @@ public class TabsListLayout extends TabsLayout {
                     TabsListLayout.this.setEnabled(true);
 
                     // Then actually close all the tabs.
-                    closeAllTabs();
+                    if (isNormal()) {
+                        Tabs.getInstance().closeAllTabs();
+                    } else {
+                        Tabs.getInstance().closeAllPrivateTabs();
+                    }
+
                 }
             });
 
@@ -104,15 +117,9 @@ public class TabsListLayout extends TabsLayout {
 
     @Override
     protected boolean addAtIndexRequiresScroll(int index) {
+        // Scroll if we're adding a new first tab (from a close undo) or if we're adding a new last
+        // tab (needed both for close undo and for when a new last tab is added by another app
+        // opening a link in Fennec where Fennec loads with the tabs tray already open).
         return index == 0 || index == getAdapter().getItemCount() - 1;
-    }
-
-    @Override
-    public void onChildAttachedToWindow(View child) {
-        // Make sure we reset any attributes that may have been animated in this child's previous
-        // incarnation.
-        child.setTranslationX(0);
-        child.setTranslationY(0);
-        child.setAlpha(1);
     }
 }

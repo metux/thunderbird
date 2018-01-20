@@ -29,7 +29,7 @@ RemotePrintJobParent::RemotePrintJobParent(nsIPrintSettings* aPrintSettings)
   MOZ_COUNT_CTOR(RemotePrintJobParent);
 }
 
-bool
+mozilla::ipc::IPCResult
 RemotePrintJobParent::RecvInitializePrint(const nsString& aDocumentTitle,
                                           const nsString& aPrintToFile,
                                           const int32_t& aStartPage,
@@ -40,13 +40,13 @@ RemotePrintJobParent::RecvInitializePrint(const nsString& aDocumentTitle,
   if (NS_FAILED(rv)) {
     Unused << SendPrintInitializationResult(rv);
     Unused << Send__delete__(this);
-    return true;
+    return IPC_OK();
   }
 
   mPrintTranslator.reset(new PrintTranslator(mPrintDeviceContext));
   Unused << SendPrintInitializationResult(NS_OK);
 
-  return true;
+  return IPC_OK();
 }
 
 nsresult
@@ -82,7 +82,7 @@ RemotePrintJobParent::InitializePrintDevice(const nsString& aDocumentTitle,
   return NS_OK;
 }
 
-bool
+mozilla::ipc::IPCResult
 RemotePrintJobParent::RecvProcessPage(const nsCString& aPageFileName)
 {
   nsresult rv = PrintPage(aPageFileName);
@@ -93,7 +93,7 @@ RemotePrintJobParent::RecvProcessPage(const nsCString& aPageFileName)
     Unused << SendPageProcessed();
   }
 
-  return true;
+  return IPC_OK();
 }
 
 nsresult
@@ -124,7 +124,9 @@ RemotePrintJobParent::PrintPage(const nsCString& aPageFileName)
     return rv;
   }
 
-  std::ifstream recording(recordingPath.get(), std::ifstream::binary);
+  PRFileDescStream recording;
+  recording.Open(recordingPath.get());
+  MOZ_ASSERT(recording.IsOpen());
   if (!mPrintTranslator->TranslateRecording(recording)) {
     return NS_ERROR_FAILURE;
   }
@@ -134,7 +136,7 @@ RemotePrintJobParent::PrintPage(const nsCString& aPageFileName)
     return rv;
   }
 
-  recording.close();
+  recording.Close();
   rv = recordingFile->Remove(/* recursive= */ false);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -143,7 +145,7 @@ RemotePrintJobParent::PrintPage(const nsCString& aPageFileName)
   return NS_OK;
 }
 
-bool
+mozilla::ipc::IPCResult
 RemotePrintJobParent::RecvFinalizePrint()
 {
   // EndDocument is sometimes called in the child even when BeginDocument has
@@ -157,10 +159,10 @@ RemotePrintJobParent::RecvFinalizePrint()
 
 
   Unused << Send__delete__(this);
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 RemotePrintJobParent::RecvAbortPrint(const nsresult& aRv)
 {
   if (mPrintDeviceContext) {
@@ -168,10 +170,10 @@ RemotePrintJobParent::RecvAbortPrint(const nsresult& aRv)
   }
 
   Unused << Send__delete__(this);
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 RemotePrintJobParent::RecvStateChange(const long& aStateFlags,
                                       const nsresult& aStatus)
 {
@@ -181,10 +183,10 @@ RemotePrintJobParent::RecvStateChange(const long& aStateFlags,
     listener->OnStateChange(nullptr, nullptr, aStateFlags, aStatus);
   }
 
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 RemotePrintJobParent::RecvProgressChange(const long& aCurSelfProgress,
                                          const long& aMaxSelfProgress,
                                          const long& aCurTotalProgress,
@@ -198,10 +200,10 @@ RemotePrintJobParent::RecvProgressChange(const long& aCurSelfProgress,
                                aCurTotalProgress, aMaxTotalProgress);
   }
 
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 RemotePrintJobParent::RecvStatusChange(const nsresult& aStatus)
 {
   uint32_t numberOfListeners = mPrintProgressListeners.Length();
@@ -210,7 +212,7 @@ RemotePrintJobParent::RecvStatusChange(const nsresult& aStatus)
     listener->OnStatusChange(nullptr, nullptr, aStatus, nullptr);
   }
 
-  return true;
+  return IPC_OK();
 }
 
 void
@@ -240,5 +242,3 @@ RemotePrintJobParent::ActorDestroy(ActorDestroyReason aWhy)
 
 } // namespace layout
 } // namespace mozilla
-
-

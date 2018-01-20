@@ -16,11 +16,10 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
  
-  expect = '({a: (void 0)})'
+  expect = '({a:(void 0)})'
   actual = uneval({a: undefined})
   compareSource(expect, actual, summary + ': uneval');
 
@@ -31,6 +30,4 @@ function test()
   expect = '(function () {({a: undefined});})';
   actual = (function () {({a: undefined});}).toSource();
   compareSource(expect, actual, summary + ': toSource');
-
-  exitFunc ('test');
 }

@@ -101,12 +101,22 @@ public:
                     mFuzz + aOther.mFuzz);
   }
 
+  SelfType operator+ (const T& aVal) const
+  {
+    return SelfType(mStart + aVal, mEnd + aVal, mFuzz);
+  }
+
   // Basic interval arithmetic operator definition.
   SelfType operator- (const SelfType& aOther) const
   {
     return SelfType(mStart - aOther.mEnd,
                     mEnd - aOther.mStart,
                     mFuzz + aOther.mFuzz);
+  }
+
+  SelfType operator- (const T& aVal) const
+  {
+    return SelfType(mStart - aVal, mEnd - aVal, mFuzz);
   }
 
   bool operator== (const SelfType& aOther) const
@@ -136,8 +146,8 @@ public:
 
   bool Contains(const SelfType& aOther) const
   {
-    return (mStart - mFuzz <= aOther.mStart + aOther.mFuzz)
-           && (aOther.mEnd - aOther.mFuzz <= mEnd + mFuzz);
+    return (mStart - mFuzz <= aOther.mStart + aOther.mFuzz) &&
+           (aOther.mEnd - aOther.mFuzz <= mEnd + mFuzz);
   }
 
   bool ContainsStrict(const SelfType& aOther) const
@@ -147,14 +157,14 @@ public:
 
   bool ContainsWithStrictEnd(const SelfType& aOther) const
   {
-    return (mStart - mFuzz <= aOther.mStart + aOther.mFuzz)
-           && aOther.mEnd <= mEnd;
+    return (mStart - mFuzz <= aOther.mStart + aOther.mFuzz) &&
+           aOther.mEnd <= mEnd;
   }
 
   bool Intersects(const SelfType& aOther) const
   {
-    return (mStart - mFuzz < aOther.mEnd + aOther.mFuzz)
-           && (aOther.mStart - aOther.mFuzz < mEnd + mFuzz);
+    return (mStart - mFuzz < aOther.mEnd + aOther.mFuzz) &&
+           (aOther.mStart - aOther.mFuzz < mEnd + mFuzz);
   }
 
   bool IntersectsStrict(const SelfType& aOther) const
@@ -165,8 +175,8 @@ public:
   // Same as Intersects, but including the boundaries.
   bool Touches(const SelfType& aOther) const
   {
-    return (mStart - mFuzz <= aOther.mEnd + aOther.mFuzz)
-           && (aOther.mStart - aOther.mFuzz <= mEnd + mFuzz);
+    return (mStart - mFuzz <= aOther.mEnd + aOther.mFuzz) &&
+           (aOther.mStart - aOther.mFuzz <= mEnd + mFuzz);
   }
 
   // Returns true if aOther is strictly to the right of this and contiguous.
@@ -235,9 +245,9 @@ public:
   // of aOther
   bool TouchesOnRight(const SelfType& aOther) const
   {
-    return aOther.mStart <= mStart
-           && (mStart - mFuzz <= aOther.mEnd + aOther.mFuzz)
-           && (aOther.mStart - aOther.mFuzz <= mEnd + mFuzz);
+    return aOther.mStart <= mStart &&
+           (mStart - mFuzz <= aOther.mEnd + aOther.mFuzz) &&
+           (aOther.mStart - aOther.mFuzz <= mEnd + mFuzz);
   }
 
   T mStart;
@@ -617,6 +627,16 @@ public:
   {
     for (const auto& interval : mIntervals) {
       if (interval.ContainsWithStrictEnd(aX)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool ContainsWithStrictEnd(const ElemType& aInterval) const
+  {
+    for (const auto& interval : mIntervals) {
+      if (interval.ContainsWithStrictEnd(aInterval)) {
         return true;
       }
     }

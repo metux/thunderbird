@@ -7,7 +7,7 @@
 // writes its state file.
 
 const EXPECTED_ENTRIES = 6;
-const EXPECTED_HSTS_COLUMNS = 3;
+const EXPECTED_HSTS_COLUMNS = 4;
 const EXPECTED_HPKP_COLUMNS = 4;
 var gProfileDir = null;
 
@@ -29,15 +29,13 @@ function checkStateWritten(aSubject, aTopic, aData) {
   ok(stateFile.exists());
   let stateFileContents = readFile(stateFile);
   // the last line is removed because it's just a trailing newline
-  let lines = stateFileContents.split('\n').slice(0, -1);
+  let lines = stateFileContents.split("\n").slice(0, -1);
   equal(lines.length, EXPECTED_ENTRIES);
   let sites = {}; // a map of domain name -> [the entry in the state file]
   for (let line of lines) {
-    let parts = line.split('\t');
+    let parts = line.split("\t");
     let host = parts[0];
-    let score = parts[1];
-    let lastAccessed = parts[2];
-    let entry = parts[3].split(',');
+    let entry = parts[3].split(",");
     let expectedColumns = EXPECTED_HSTS_COLUMNS;
     if (host.indexOf("HPKP") != -1) {
       expectedColumns = EXPECTED_HPKP_COLUMNS;
@@ -105,11 +103,11 @@ function run_test() {
                        new Date().getTime() + 1000000, 1,
                        [NON_ISSUED_KEY_HASH]);
 
-  let uris = [ Services.io.newURI("http://includesubdomains.preloaded.test", null, null),
-               Services.io.newURI("http://a.example.com", null, null),
-               Services.io.newURI("http://b.example.com", null, null),
-               Services.io.newURI("http://c.c.example.com", null, null),
-               Services.io.newURI("http://d.example.com", null, null) ];
+  let uris = [ Services.io.newURI("http://includesubdomains.preloaded.test"),
+               Services.io.newURI("http://a.example.com"),
+               Services.io.newURI("http://b.example.com"),
+               Services.io.newURI("http://c.c.example.com"),
+               Services.io.newURI("http://d.example.com") ];
 
   for (let i = 0; i < 1000; i++) {
     let uriIndex = i % uris.length;
@@ -120,9 +118,10 @@ function run_test() {
     let sslStatus = new FakeSSLStatus();
     SSService.processHeader(Ci.nsISiteSecurityService.HEADER_HSTS,
                             uris[uriIndex], maxAge + includeSubdomains,
-                            sslStatus, 0);
+                            sslStatus, 0,
+                            Ci.nsISiteSecurityService.SOURCE_ORGANIC_REQUEST);
   }
 
   do_test_pending();
-  Services.obs.addObserver(checkStateWritten, "data-storage-written", false);
+  Services.obs.addObserver(checkStateWritten, "data-storage-written");
 }

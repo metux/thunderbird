@@ -103,9 +103,8 @@ var logWindow = {
       let browser = document.getElementById("text-browser");
       findbar.browser = browser;
       FullZoom.applyPrefValue();
-      browser.docShell.forcedCharset =
-        browser.mAtomService.getAtom("UTF-8");
-      let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
+      browser.docShell.forcedCharset = "UTF-8";
+      let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
       file.initWithPath(log.path);
       browser.loadURI(Services.io.newFileURI(file).spec);
     }
@@ -236,21 +235,21 @@ chatLogTreeView.prototype = {
     let chatBundle = document.getElementById("bundle_instantbird");
     let dateFormatBundle = document.getElementById("bundle_dateformat");
     let placesBundle = document.getElementById("bundle_places");
-    let dts = Cc["@mozilla.org/intl/scriptabledateformat;1"].getService(Ci.nsIScriptableDateFormat);
+    const dateFormatter = Services.intl.createDateTimeFormat(undefined,
+      { dateStyle: "short" });
+    const dateTimeFormatter = Services.intl.createDateTimeFormat(undefined, {
+      dateStyle: "short", timeStyle: "short"
+    });
     let formatDate = function(aDate) {
-      return dts.FormatDate("", dts.dateFormatShort, aDate.getFullYear(),
-                            aDate.getMonth() + 1, aDate.getDate());
+      return dateFormatter.format(aDate);
     };
     let formatDateTime = function(aDate) {
-      return dts.FormatDateTime("", dts.dateFormatShort,
-                                dts.timeFormatNoSeconds, aDate.getFullYear(),
-                                aDate.getMonth() + 1, aDate.getDate(),
-                                aDate.getHours(), aDate.getMinutes(), 0);
+      return dateTimeFormatter.format(aDate);
     };
     let formatMonthYear = function(aDate) {
       let month = formatMonth(aDate);
-      return placesBundle.getFormattedString("finduri-MonthYear",
-                                             [month, aDate.getFullYear()]);
+      return dateFormatBundle.getFormattedString("finduri-MonthYear",
+                                                 [month, aDate.getFullYear()]);
     };
     let formatMonth = aDate =>
       dateFormatBundle.getString("month." + (aDate.getMonth() + 1) + ".name");

@@ -369,7 +369,7 @@ BrowserElementAuthPrompt.prototype = {
       }
     }
 
-    Services.tm.currentThread.dispatch(runnable, Ci.nsIThread.DISPATCH_NORMAL);
+    Services.tm.dispatchToMainThread(runnable);
   },
 
   _getFrameFromChannel: function(channel) {
@@ -381,7 +381,7 @@ BrowserElementAuthPrompt.prototype = {
     let [hostname, httpRealm] = this._getAuthTarget(channel, authInfo);
     return {
       host:             hostname,
-      path:             channel.URI.path,
+      path:             channel.URI.pathQueryRef,
       realm:            httpRealm,
       username:         authInfo.username,
       isProxy:          !!(authInfo.flags & Ci.nsIAuthInformation.AUTH_PROXY),

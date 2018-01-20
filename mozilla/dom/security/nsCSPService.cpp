@@ -20,7 +20,6 @@
 #include "nsIScriptError.h"
 #include "nsContentUtils.h"
 #include "nsContentPolicyUtils.h"
-#include "nsPrincipal.h"
 
 using namespace mozilla;
 
@@ -73,9 +72,15 @@ subjectToCSP(nsIURI* aURI, nsContentPolicyType aContentType) {
   if (NS_SUCCEEDED(rv) && match) {
     return true;
   }
-  // finally we have to whitelist "about:" which does not fall in
-  // any of the two categories underneath but is not subject to CSP.
+
+  // Finally we have to whitelist "about:" which does not fall into
+  // the category underneath and also "javascript:" which is not
+  // subject to CSP content loading rules.
   rv = aURI->SchemeIs("about", &match);
+  if (NS_SUCCEEDED(rv) && match) {
+    return false;
+  }
+  rv = aURI->SchemeIs("javascript", &match);
   if (NS_SUCCEEDED(rv) && match) {
     return false;
   }
@@ -83,17 +88,10 @@ subjectToCSP(nsIURI* aURI, nsContentPolicyType aContentType) {
   // Other protocols are not subject to CSP and can be whitelisted:
   // * URI_IS_LOCAL_RESOURCE
   //   e.g. chrome:, data:, blob:, resource:, moz-icon:
-  // * URI_INHERITS_SECURITY_CONTEXT
-  //   e.g. javascript:
-  //
   // Please note that it should be possible for websites to
   // whitelist their own protocol handlers with respect to CSP,
   // hence we use protocol flags to accomplish that.
   rv = NS_URIChainHasFlags(aURI, nsIProtocolHandler::URI_IS_LOCAL_RESOURCE, &match);
-  if (NS_SUCCEEDED(rv) && match) {
-    return false;
-  }
-  rv = NS_URIChainHasFlags(aURI, nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT, &match);
   if (NS_SUCCEEDED(rv) && match) {
     return false;
   }
@@ -134,12 +132,18 @@ CSPService::ShouldLoad(uint32_t aContentType,
     return NS_OK;
   }
 
-  // query the principal of the document; if no document is passed, then
-  // fall back to using the requestPrincipal (e.g. service workers do not
-  // pass a document).
+  // Find a principal to retrieve the CSP from. If we don't have a context node
+  // (because, for instance, the load originates in a service worker), or the
+  // requesting principal's CSP overrides our document CSP, use the request
+  // principal. Otherwise, use the document principal.
   nsCOMPtr<nsINode> node(do_QueryInterface(aRequestContext));
-  nsCOMPtr<nsIPrincipal> principal = node ? node->NodePrincipal()
-                                          : aRequestPrincipal;
+  nsCOMPtr<nsIPrincipal> principal;
+  if (!node || (aRequestPrincipal &&
+                BasePrincipal::Cast(aRequestPrincipal)->OverridesCSP(node->NodePrincipal()))) {
+    principal = aRequestPrincipal;
+  } else  {
+    principal = node->NodePrincipal();
+  }
   if (!principal) {
     // if we can't query a principal, then there is nothing to do.
     return NS_OK;
@@ -276,7 +280,11 @@ CSPService::AsyncOnChannelRedirect(nsIChannel *oldChannel,
    */
   nsCOMPtr<nsIURI> originalUri;
   rv = oldChannel->GetOriginalURI(getter_AddRefs(originalUri));
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+    autoCallback.DontCallback();
+    oldChannel->Cancel(NS_ERROR_DOM_BAD_URI);
+    return rv;
+  }
 
   bool isPreload = nsContentUtils::IsPreloadType(policyType);
 
@@ -307,6 +315,7 @@ CSPService::AsyncOnChannelRedirect(nsIChannel *oldChannel,
       // is no point in checking the real policy
       if (NS_CP_REJECTED(aDecision)) {
         autoCallback.DontCallback();
+        oldChannel->Cancel(NS_ERROR_DOM_BAD_URI);
         return NS_BINDING_FAILED;
       }
     }
@@ -330,6 +339,7 @@ CSPService::AsyncOnChannelRedirect(nsIChannel *oldChannel,
   // if ShouldLoad doesn't accept the load, cancel the request
   if (!NS_CP_ACCEPTED(aDecision)) {
     autoCallback.DontCallback();
+    oldChannel->Cancel(NS_ERROR_DOM_BAD_URI);
     return NS_BINDING_FAILED;
   }
   return NS_OK;

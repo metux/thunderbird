@@ -25,3 +25,5 @@
 <!ENTITY backgroundImage.label "Bakgrunnsmynd:">
 <!ENTITY backgroundImage.accessKey "m">
 <!ENTITY backgroundImage.tooltip "Nota mynd sem bakgrunn fyrir síðuna">
+
+<!ENTITY backgroundImage.shortenedDataURI "Shortened data URI (copy will place the full URI onto the clipboard)">

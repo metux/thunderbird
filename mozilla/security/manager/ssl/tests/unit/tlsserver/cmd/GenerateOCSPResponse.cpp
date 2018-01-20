@@ -15,7 +15,6 @@
 
 #include "mozilla/ArrayUtils.h"
 
-#include "base64.h"
 #include "cert.h"
 #include "nspr.h"
 #include "nss.h"
@@ -77,9 +76,9 @@ StringToOCSPResponseType(const char* respText,
   if (!OCSPType) {
     return false;
   }
-  for (uint32_t i = 0; i < mozilla::ArrayLength(kOCSPResponseNameList); i++) {
-    if (strcmp(respText, kOCSPResponseNameList[i].mTypeString) == 0) {
-      *OCSPType = kOCSPResponseNameList[i].mORT;
+  for (auto ocspResponseName : kOCSPResponseNameList) {
+    if (strcmp(respText, ocspResponseName.mTypeString) == 0) {
+      *OCSPType = ocspResponseName.mORT;
       return true;
     }
   }
@@ -114,10 +113,10 @@ int
 main(int argc, char* argv[])
 {
 
-  if (argc < 6 || (argc - 6) % 4 != 0) {
+  if (argc < 7 || (argc - 7) % 5 != 0) {
     PR_fprintf(PR_STDERR, "usage: %s <NSS DB directory> <responsetype> "
-                          "<cert_nick> <extranick> <outfilename> [<resptype> "
-                          "<cert_nick> <extranick> <outfilename>]* \n",
+                          "<cert_nick> <extranick> <this_update_skew> <outfilename> [<resptype> "
+                          "<cert_nick> <extranick> <this_update_skew> <outfilename>]* \n",
                           argv[0]);
     exit(EXIT_FAILURE);
   }
@@ -132,11 +131,12 @@ main(int argc, char* argv[])
     exit(EXIT_FAILURE);
   }
 
-  for (int i = 2; i + 3 < argc; i += 4) {
+  for (int i = 2; i + 3 < argc; i += 5) {
     const char* ocspTypeText  = argv[i];
     const char* certNick      = argv[i + 1];
     const char* extraCertname = argv[i + 2];
-    const char* filename      = argv[i + 3];
+    const char* skewChars     = argv[i + 3];
+    const char* filename      = argv[i + 4];
 
     OCSPResponseType ORT;
     if (!StringToOCSPResponseType(ocspTypeText, &ORT)) {
@@ -153,8 +153,10 @@ main(int argc, char* argv[])
       exit(EXIT_FAILURE);
     }
 
+    time_t skew = static_cast<time_t>(atoll(skewChars));
+
     SECItemArray* response = GetOCSPResponseForType(ORT, cert, arena,
-                                                    extraCertname);
+                                                    extraCertname, skew);
     if (!response) {
       PR_fprintf(PR_STDERR, "Failed to generate OCSP response of type %s "
                             "for %s\n", ocspTypeText, certNick);

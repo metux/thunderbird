@@ -77,9 +77,10 @@ LOCALIZATION NOTE : Do not translate any of the occurances of the word
 <!ENTITY title.label "தலைப்பு">
 <!ENTITY processing.label "இறக்குமதியாகிறது">
 
-<!ENTITY acctName.accesskey       "N">
-<!ENTITY acctName.label           "Name:">
-<!ENTITY importFeeds.accesskey    "d">
 <!ENTITY importFeeds.label        "Feed Subscriptions">
-<!ENTITY noModulesFound.label     "No application or file to import data from was found.">
+<!ENTITY importFeeds.accesskey    "d">
 <!ENTITY selectDescriptionB.label "Please select an existing account or create a new account:">
+<!ENTITY acctName.label           "Name:">
+<!ENTITY acctName.accesskey       "N">
+<!ENTITY noModulesFound.label     "No application or file to import data from was found.">
+

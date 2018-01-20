@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set sw=4 ts=8 et tw=80 : */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -25,24 +25,26 @@ public:
   explicit APZChild(RefPtr<GeckoContentController> aController);
   ~APZChild();
 
-  bool RecvRequestContentRepaint(const FrameMetrics& frame) override;
+  mozilla::ipc::IPCResult RecvRequestContentRepaint(const FrameMetrics& frame) override;
 
-  bool RecvUpdateOverscrollVelocity(const float& aX, const float& aY, const bool& aIsRootContent) override;
+  mozilla::ipc::IPCResult RecvUpdateOverscrollVelocity(const float& aX, const float& aY, const bool& aIsRootContent) override;
 
-  bool RecvUpdateOverscrollOffset(const float& aX, const float& aY, const bool& aIsRootContent) override;
+  mozilla::ipc::IPCResult RecvUpdateOverscrollOffset(const float& aX, const float& aY, const bool& aIsRootContent) override;
 
-  bool RecvSetScrollingRootContent(const bool& aIsRootContent) override;
+  mozilla::ipc::IPCResult RecvNotifyMozMouseScrollEvent(const ViewID& aScrollId,
+                                                        const nsString& aEvent) override;
 
-  bool RecvNotifyMozMouseScrollEvent(const ViewID& aScrollId,
-                                     const nsString& aEvent) override;
+  mozilla::ipc::IPCResult RecvNotifyAPZStateChange(const ScrollableLayerGuid& aGuid,
+                                                   const APZStateChange& aChange,
+                                                   const int& aArg) override;
 
-  bool RecvNotifyAPZStateChange(const ScrollableLayerGuid& aGuid,
-                                const APZStateChange& aChange,
-                                const int& aArg) override;
+  mozilla::ipc::IPCResult RecvNotifyFlushComplete() override;
 
-  bool RecvNotifyFlushComplete() override;
+  mozilla::ipc::IPCResult RecvNotifyAsyncScrollbarDragRejected(const ViewID& aScrollId) override;
 
-  bool RecvDestroy() override;
+  mozilla::ipc::IPCResult RecvNotifyAsyncAutoscrollRejected(const ViewID& aScrollId) override;
+
+  mozilla::ipc::IPCResult RecvDestroy() override;
 
 private:
   RefPtr<GeckoContentController> mController;

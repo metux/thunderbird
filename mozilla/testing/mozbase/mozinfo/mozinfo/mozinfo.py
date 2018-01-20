@@ -8,14 +8,14 @@
 # linux) to the information; I certainly wouldn't want anyone parsing this
 # information and having behaviour depend on it
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import os
 import platform
 import re
 import sys
 from .string_version import StringVersion
-
+from ctypes.util import find_library
 
 # keep a copy of the os module since updating globals overrides this
 _os = os
@@ -29,6 +29,8 @@ class unknown(object):
 
     def __str__(self):
         return 'UNKNOWN'
+
+
 unknown = unknown()  # singleton
 
 
@@ -56,13 +58,15 @@ def get_windows_version():
 
     return os_version.dwMajorVersion, os_version.dwMinorVersion, os_version.dwBuildNumber
 
+
 # get system information
 info = {'os': unknown,
         'processor': unknown,
         'version': unknown,
         'os_version': unknown,
         'bits': unknown,
-        'has_sandbox': unknown}
+        'has_sandbox': unknown,
+        'webrender': bool(os.environ.get("MOZ_WEBRENDER", False))}
 (system, node, release, version, machine, processor) = platform.uname()
 (bits, linkage) = platform.architecture()
 
@@ -87,7 +91,7 @@ if system in ["Microsoft", "Windows"]:
         version = "%d.%d.%d" % (major, minor, build_number)
 
     os_version = "%d.%d" % (major, minor)
-elif system.startswith('MINGW'):
+elif system.startswith(('MINGW', 'MSYS_NT')):
     # windows/mingw python build (msys)
     info['os'] = 'win'
     os_version = version = unknown
@@ -150,7 +154,7 @@ if info['os'] == 'linux':
     import errno
     PR_SET_SECCOMP = 22
     SECCOMP_MODE_FILTER = 2
-    ctypes.CDLL("libc.so.6", use_errno=True).prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, 0)
+    ctypes.CDLL(find_library("c"), use_errno=True).prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, 0)
     info['has_sandbox'] = ctypes.get_errno() == errno.EFAULT
 else:
     info['has_sandbox'] = True
@@ -218,6 +222,7 @@ def find_and_update_from_json(*dirs):
     # First, see if we're in an objdir
     try:
         from mozbuild.base import MozbuildObject, BuildEnvironmentNotFoundException
+        from mozbuild.mozconfig import MozconfigFindException
         build = MozbuildObject.from_environment()
         json_path = _os.path.join(build.topobjdir, "mozinfo.json")
         if _os.path.isfile(json_path):
@@ -225,7 +230,7 @@ def find_and_update_from_json(*dirs):
             return json_path
     except ImportError:
         pass
-    except BuildEnvironmentNotFoundException:
+    except (BuildEnvironmentNotFoundException, MozconfigFindException):
         pass
 
     for d in dirs:
@@ -242,6 +247,7 @@ def output_to_file(path):
     import json
     with open(path, 'w') as f:
         f.write(json.dumps(info))
+
 
 update({})
 
@@ -286,15 +292,16 @@ def main(args=None):
     flag = False
     for key, value in options.__dict__.items():
         if value is True:
-            print '%s choices: %s' % (key, ' '.join([str(choice)
-                                                     for choice in choices[key]]))
+            print('%s choices: %s' % (key, ' '.join([str(choice)
+                                                     for choice in choices[key]])))
             flag = True
     if flag:
         return
 
     # otherwise, print out all info
     for key, value in info.items():
-        print '%s: %s' % (key, value)
+        print('%s: %s' % (key, value))
+
 
 if __name__ == '__main__':
     main()

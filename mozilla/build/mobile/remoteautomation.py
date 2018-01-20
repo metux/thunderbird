@@ -16,6 +16,7 @@ import sys
 from automation import Automation
 from mozdevice import DMError, DeviceManager
 from mozlog import get_default_logger
+from mozscreenshot import dump_screen
 import mozcrash
 
 # signatures for logcat messages that we don't care about much
@@ -59,7 +60,7 @@ class RemoteAutomation(Automation):
         self._remoteLog = logfile
 
     # Set up what we need for the remote environment
-    def environment(self, env=None, xrePath=None, crashreporter=True, debugger=False, dmdPath=None, lsanPath=None):
+    def environment(self, env=None, xrePath=None, crashreporter=True, debugger=False, dmdPath=None, lsanPath=None, ubsanPath=None):
         # Because we are running remote, we don't want to mimic the local env
         # so no copying of os.environ
         if env is None:
@@ -108,12 +109,14 @@ class RemoteAutomation(Automation):
             If maxTime seconds elapse or no output is detected for timeout
             seconds, kill the process and fail the test.
         """
+        proc.utilityPath = utilityPath
         # maxTime is used to override the default timeout, we should honor that
         status = proc.wait(timeout = maxTime, noOutputTimeout = timeout)
         self.lastTestSeen = proc.getLastTestSeen
 
         topActivity = self._devicemanager.getTopActivity()
         if topActivity == proc.procName:
+            print "Browser unexpectedly found running. Killing..."
             proc.kill(True)
         if status == 1:
             if maxTime:
@@ -284,6 +287,7 @@ class RemoteAutomation(Automation):
             self.lastTestSeen = "remoteautomation.py"
             self.proc = dm.launchProcess(cmd, stdout, cwd, env, True)
             self.messageLogger = messageLogger
+            self.utilityPath = None
 
             if (self.proc is None):
                 if cmd[0] == 'am':
@@ -324,9 +328,6 @@ class RemoteAutomation(Automation):
             try:
                 newLogContent = self.dm.pullFile(self.proc, self.stdoutlen)
             except DMError:
-                # we currently don't retry properly in the pullFile
-                # function in dmSUT, so an error here is not necessarily
-                # the end of the world
                 return False
             if not newLogContent:
                 return False
@@ -383,9 +384,11 @@ class RemoteAutomation(Automation):
             status = 0
             top = self.procName
             slowLog = False
+            endTime = datetime.datetime.now() + datetime.timedelta(seconds = timeout)
             while (top == self.procName):
                 # Get log updates on each interval, but if it is taking
                 # too long, only do it every 60 seconds
+                hasOutput = False
                 if (not slowLog) or (timer % 60 == 0):
                     startRead = datetime.datetime.now()
                     hasOutput = self.read_stdout()
@@ -396,18 +399,29 @@ class RemoteAutomation(Automation):
                 time.sleep(interval)
                 timer += interval
                 noOutputTimer += interval
-                if (timer > timeout):
+                if datetime.datetime.now() > endTime:
                     status = 1
                     break
                 if (noOutputTimeout and noOutputTimer > noOutputTimeout):
                     status = 2
                     break
-                top = self.dm.getTopActivity()
+                if not hasOutput:
+                    top = self.dm.getTopActivity()
+                    if top == "":
+                        print "Failed to get top activity, retrying, once..."
+                        top = self.dm.getTopActivity()
             # Flush anything added to stdout during the sleep
             self.read_stdout()
             return status
 
         def kill(self, stagedShutdown = False):
+            if self.utilityPath:
+                # Take a screenshot to capture the screen state just before
+                # the application is killed. There are on-device screenshot
+                # options but they rarely work well with Firefox on the
+                # Android emulator. dump_screen provides an effective
+                # screenshot of the emulator and its host desktop.
+                dump_screen(self.utilityPath, get_default_logger())
             if stagedShutdown:
                 # Trigger an ANR report with "kill -3" (SIGQUIT)
                 self.dm.killProcess(self.procName, 3)

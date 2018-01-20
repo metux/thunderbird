@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 from mozboot.base import BaseBootstrapper
 
 
@@ -17,6 +19,7 @@ class FreeBSDBootstrapper(BaseBootstrapper):
             'gtar',
             'mercurial',
             'pkgconf',
+            'rust',
             'watchman',
             'zip',
         ]
@@ -26,6 +29,7 @@ class FreeBSDBootstrapper(BaseBootstrapper):
             'gconf2',
             'gtk2',
             'gtk3',
+            'llvm40',
             'pulseaudio',
             'v4l_compat',
             'yasm',
@@ -33,10 +37,6 @@ class FreeBSDBootstrapper(BaseBootstrapper):
 
         if not self.which('unzip'):
             self.packages.append('unzip')
-
-        # GCC 4.2 or Clang 3.4 in base are too old
-        if self.flavor == 'freebsd' and self.version < 11:
-            self.browser_packages.append('gcc')
 
     def pkg_install(self, *packages):
         command = ['pkg', 'install']
@@ -58,6 +58,10 @@ class FreeBSDBootstrapper(BaseBootstrapper):
     def ensure_browser_packages(self, artifact_mode=False):
         # TODO: Figure out what not to install for artifact mode
         self.pkg_install(*self.browser_packages)
+
+    def ensure_stylo_packages(self, state_dir, checkout_root):
+        # Already installed as browser package
+        pass
 
     def upgrade_mercurial(self, current):
         self.pkg_install('mercurial')

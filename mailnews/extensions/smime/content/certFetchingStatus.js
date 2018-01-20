@@ -45,7 +45,7 @@ function search()
 {
   // get the login to authenticate as, if there is one
   try {
-    gLogin = Services.prefs.getComplexValue(gDirectoryPref + ".auth.dn", Components.interfaces.nsISupportsString).data;
+    gLogin = Services.prefs.getStringPref(gDirectoryPref + ".auth.dn");
   } catch (ex) {
     // if we don't have this pref, no big deal
   }
@@ -54,7 +54,7 @@ function search()
     let url = Services.prefs.getCharPref(gDirectoryPref + ".uri");
 
     gLdapServerURL = Services.io
-      .newURI(url, null, null).QueryInterface(Components.interfaces.nsILDAPURL);
+      .newURI(url).QueryInterface(Components.interfaces.nsILDAPURL);
 
     gLdapConnection = Components.classes["@mozilla.org/network/ldap-connection;1"]
       .createInstance().QueryInterface(Components.interfaces.nsILDAPConnection);

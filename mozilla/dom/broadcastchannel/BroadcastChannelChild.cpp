@@ -7,7 +7,6 @@
 #include "BroadcastChannelChild.h"
 #include "BroadcastChannel.h"
 #include "jsapi.h"
-#include "mozilla/dom/ipc/BlobChild.h"
 #include "mozilla/dom/File.h"
 #include "mozilla/dom/MessageEvent.h"
 #include "mozilla/dom/MessageEventBinding.h"
@@ -38,35 +37,26 @@ BroadcastChannelChild::~BroadcastChannelChild()
   MOZ_ASSERT(!mBC);
 }
 
-bool
+mozilla::ipc::IPCResult
 BroadcastChannelChild::RecvNotify(const ClonedMessageData& aData)
 {
   // Make sure to retrieve all blobs from the message before returning to avoid
   // leaking their actors.
-  nsTArray<RefPtr<BlobImpl>> blobs;
-  if (!aData.blobsChild().IsEmpty()) {
-    blobs.SetCapacity(aData.blobsChild().Length());
-
-    for (uint32_t i = 0, len = aData.blobsChild().Length(); i < len; ++i) {
-      RefPtr<BlobImpl> impl =
-        static_cast<BlobChild*>(aData.blobsChild()[i])->GetBlobImpl();
-
-      blobs.AppendElement(impl);
-    }
-  }
+  ipc::StructuredCloneDataNoTransfers cloneData;
+  cloneData.BorrowFromClonedMessageDataForBackgroundChild(aData);
 
   nsCOMPtr<DOMEventTargetHelper> helper = mBC;
   nsCOMPtr<EventTarget> eventTarget = do_QueryInterface(helper);
 
   // The object is going to be deleted soon. No notify is required.
   if (!eventTarget) {
-    return true;
+    return IPC_OK();
   }
 
   // CheckInnerWindowCorrectness can be used also without a window when
   // BroadcastChannel is running in a worker. In this case, it's a NOP.
   if (NS_FAILED(mBC->CheckInnerWindowCorrectness())) {
-    return true;
+    return IPC_OK();
   }
 
   mBC->RemoveDocFromBFCache();
@@ -84,22 +74,17 @@ BroadcastChannelChild::RecvNotify(const ClonedMessageData& aData)
 
   if (!globalObject || !jsapi.Init(globalObject)) {
     NS_WARNING("Failed to initialize AutoJSAPI object.");
-    return true;
+    return IPC_OK();
   }
 
-  ipc::StructuredCloneData cloneData;
-  cloneData.BlobImpls().AppendElements(blobs);
-
-  const SerializedStructuredCloneBuffer& buffer = aData.data();
   JSContext* cx = jsapi.cx();
   JS::Rooted<JS::Value> value(cx, JS::NullValue());
-  if (buffer.data.Size()) {
-    ErrorResult rv;
-    cloneData.UseExternalData(buffer.data);
+  if (cloneData.DataLength()) {
+    IgnoredErrorResult rv;
     cloneData.Read(cx, &value, rv);
     if (NS_WARN_IF(rv.Failed())) {
-      rv.SuppressException();
-      return true;
+      DispatchError(cx);
+      return IPC_OK();
     }
   }
 
@@ -109,26 +94,37 @@ BroadcastChannelChild::RecvNotify(const ClonedMessageData& aData)
   init.mOrigin = mOrigin;
   init.mData = value;
 
-  ErrorResult rv;
   RefPtr<MessageEvent> event =
-    MessageEvent::Constructor(mBC, NS_LITERAL_STRING("message"), init, rv);
-  if (NS_WARN_IF(rv.Failed())) {
-    rv.SuppressException();
-    return true;
-  }
+    MessageEvent::Constructor(mBC, NS_LITERAL_STRING("message"), init);
 
   event->SetTrusted(true);
 
   bool status;
   mBC->DispatchEvent(static_cast<Event*>(event.get()), &status);
 
-  return true;
+  return IPC_OK();
 }
 
 void
 BroadcastChannelChild::ActorDestroy(ActorDestroyReason aWhy)
 {
   mActorDestroyed = true;
+}
+
+void
+BroadcastChannelChild::DispatchError(JSContext* aCx)
+{
+  RootedDictionary<MessageEventInit> init(aCx);
+  init.mBubbles = false;
+  init.mCancelable = false;
+  init.mOrigin = mOrigin;
+
+  RefPtr<Event> event =
+    MessageEvent::Constructor(mBC, NS_LITERAL_STRING("messageerror"), init);
+  event->SetTrusted(true);
+
+  bool dummy;
+  mBC->DispatchEvent(event, &dummy);
 }
 
 } // namespace dom

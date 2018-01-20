@@ -89,7 +89,7 @@ function testOnNetActivity() {
 }
 
 function onNetworkMessage(results) {
-  let deferred = promise.defer();
+  let deferred = defer();
 
   outputNode.focus();
   let msg = [...results[0].matched][0];
@@ -99,11 +99,10 @@ function onNetworkMessage(results) {
   let currentTab = gBrowser.selectedTab;
   let newTab = null;
 
-  gBrowser.tabContainer.addEventListener("TabOpen", function onOpen(evt) {
-    gBrowser.tabContainer.removeEventListener("TabOpen", onOpen, true);
+  gBrowser.tabContainer.addEventListener("TabOpen", function (evt) {
     newTab = evt.target;
     newTab.linkedBrowser.addEventListener("load", onTabLoaded, true);
-  }, true);
+  }, {capture: true, once: true});
 
   function onTabLoaded() {
     newTab.linkedBrowser.removeEventListener("load", onTabLoaded, true);
@@ -126,7 +125,7 @@ function onNetworkMessage(results) {
 }
 
 function testOnNetActivityContextMenu(msg) {
-  let deferred = promise.defer();
+  let deferred = defer();
 
   outputNode.focus();
   HUD.ui.output.selectMessage(msg);

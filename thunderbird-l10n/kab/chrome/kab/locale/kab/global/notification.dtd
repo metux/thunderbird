@@ -4,8 +4,9 @@
 
 <!ENTITY closeNotification.tooltip "Mdel izen-agi">
 
-<!ENTITY closeNotificationItem.label "Mačči Tura">
-
 <!ENTITY checkForUpdates "Muqel ma yella we maynut...">
 
 <!ENTITY learnMore "Issin ugar…">
+
+<!ENTITY defaultButton.label "IH!">
+<!ENTITY defaultButton.accesskey "I">

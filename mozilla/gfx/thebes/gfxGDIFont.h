@@ -28,13 +28,15 @@ public:
 
     HFONT GetHFONT() { return mFont; }
 
-    cairo_font_face_t   *CairoFontFace() { return mFontFace; }
-    cairo_scaled_font_t *CairoScaledFont() { return mScaledFont; }
+    cairo_font_face_t* CairoFontFace() { return mFontFace; }
 
     /* overrides for the pure virtual methods in gfxFont */
     virtual uint32_t GetSpaceGlyph() override;
 
     virtual bool SetupCairoFont(DrawTarget* aDrawTarget) override;
+
+    virtual already_AddRefed<mozilla::gfx::ScaledFont>
+    GetScaledFont(DrawTarget *aTarget) override;
 
     /* override Measure to add padding for antialiasing */
     virtual RunMetrics Measure(const gfxTextRun *aTextRun,
@@ -42,10 +44,10 @@ public:
                                BoundingBoxType aBoundingBoxType,
                                DrawTarget *aDrawTargetForTightBoundingBox,
                                Spacing *aSpacing,
-                               uint16_t aOrientation) override;
+                               mozilla::gfx::ShapedTextFlags aOrientation) override;
 
     /* required for MathML to suppress effects of ClearType "padding" */
-    virtual gfxFont*
+    mozilla::UniquePtr<gfxFont>
     CopyWithAntialiasOption(AntialiasOption anAAOption) override;
 
     // If the font has a cmap table, we handle it purely with harfbuzz;
@@ -74,13 +76,14 @@ protected:
     virtual const Metrics& GetHorizontalMetrics() override;
 
     /* override to ensure the cairo font is set up properly */
-    virtual bool ShapeText(DrawTarget     *aDrawTarget,
-                           const char16_t *aText,
-                           uint32_t        aOffset,
-                           uint32_t        aLength,
-                           Script          aScript,
-                           bool            aVertical,
-                           gfxShapedText  *aShapedText) override;
+    bool ShapeText(DrawTarget     *aDrawTarget,
+                   const char16_t *aText,
+                   uint32_t        aOffset,
+                   uint32_t        aLength,
+                   Script          aScript,
+                   bool            aVertical,
+                   RoundingFlags   aRounding,
+                   gfxShapedText  *aShapedText) override;
 
     void Initialize(); // creates metrics and Cairo fonts
 

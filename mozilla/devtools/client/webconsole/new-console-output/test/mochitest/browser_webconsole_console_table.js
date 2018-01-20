@@ -115,6 +115,19 @@ add_task(function* () {
         ["1", "Elena"],
       ]
     }
+  }, {
+    info: "Testing nested object with falsy values",
+    input: [
+      {a: null, b: false, c: undefined, d: 0},
+      {b: null, c: false, d: undefined, e: 0}
+    ],
+    expected: {
+      columns: ["(index)", "a", "b", "c", "d", "e"],
+      rows: [
+        ["0", "null", "false", "undefined", "0", "undefined"],
+        ["1", "undefined", "null", "false", "undefined", "0"],
+      ]
+    }
   }];
 
   yield ContentTask.spawn(gBrowser.selectedBrowser, testCases, function (tests) {
@@ -122,49 +135,45 @@ add_task(function* () {
       content.wrappedJSObject.doConsoleTable(test.input, test.headers);
     });
   });
-
   let nodes = [];
   for (let testCase of testCases) {
     let node = yield waitFor(
-      () => findConsoleTable(hud.ui.experimentalOutputNode, testCases.indexOf(testCase))
+      () => findConsoleTable(hud.ui.outputNode, testCases.indexOf(testCase))
     );
     nodes.push(node);
   }
-
-  let consoleTableNodes = hud.ui.experimentalOutputNode.querySelectorAll(
+  let consoleTableNodes = hud.ui.outputNode.querySelectorAll(
     ".message .new-consoletable");
-
   is(consoleTableNodes.length, testCases.length,
     "console has the expected number of consoleTable items");
+  testCases.forEach((testCase, index) => testItem(testCase, nodes[index]));
+});
+function testItem(testCase, node) {
+  info(testCase.info);
 
-  testCases.forEach((testCase, index) => {
-    info(testCase.info);
+  let columns = Array.from(node.querySelectorAll("thead th"));
+  let rows = Array.from(node.querySelectorAll("tbody tr"));
 
-    let node = nodes[index];
-    let columns = Array.from(node.querySelectorAll("thead th"));
-    let rows = Array.from(node.querySelectorAll("tbody tr"));
+  is(
+    JSON.stringify(testCase.expected.columns),
+    JSON.stringify(columns.map(column => column.textContent)),
+    "table has the expected columns"
+  );
 
-    is(
-      JSON.stringify(testCase.expected.columns),
-      JSON.stringify(columns.map(column => column.textContent)),
-      "table has the expected columns"
-    );
+  is(testCase.expected.rows.length, rows.length,
+    "table has the expected number of rows");
 
-    is(testCase.expected.rows.length, rows.length,
-      "table has the expected number of rows");
+  testCase.expected.rows.forEach((expectedRow, rowIndex) => {
+    let row = rows[rowIndex];
+    let cells = row.querySelectorAll("td");
+    is(expectedRow.length, cells.length, "row has the expected number of cells");
 
-    testCase.expected.rows.forEach((expectedRow, rowIndex) => {
-      let row = rows[rowIndex];
-      let cells = row.querySelectorAll("td");
-      is(expectedRow.length, cells.length, "row has the expected number of cells");
-
-      expectedRow.forEach((expectedCell, cellIndex) => {
-        let cell = cells[cellIndex];
-        is(expectedCell, cell.textContent, "cell has the expected content");
-      });
+    expectedRow.forEach((expectedCell, cellIndex) => {
+      let cell = cells[cellIndex];
+      is(expectedCell, cell.textContent, "cell has the expected content");
     });
   });
-});
+}
 
 function findConsoleTable(node, index) {
   let condition = node.querySelector(

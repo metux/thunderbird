@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>Element.requestFullscreen()</title>
+<title>Element#requestFullscreen()</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../trusted-click.js"></script>
@@ -11,12 +11,13 @@ async_test(function(t)
 
     document.addEventListener("fullscreenchange", t.step_func(function(event)
     {
-        assert_equals(event.target, document, "event.target");
-        assert_false(event.bubbles, "event.bubbles");
+        assert_equals(event.target, div, "event.target");
+        assert_true(event.bubbles, "event.bubbles");
         assert_false(event.cancelable, "event.cancelable");
+        assert_true(event.composed, "event.composed");
         t.done();
     }));
 
-    trusted_request(div);
+    trusted_request(t, div);
 });
 </script>

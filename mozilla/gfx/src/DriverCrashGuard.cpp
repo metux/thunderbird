@@ -1,10 +1,12 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "DriverCrashGuard.h"
 #include "gfxEnv.h"
 #include "gfxPrefs.h"
+#include "gfxConfig.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsDirectoryServiceUtils.h"
 #ifdef MOZ_CRASHREPORTER
@@ -38,7 +40,7 @@ BuildCrashGuardPrefName(CrashGuardType aType, nsCString& aOutPrefName)
   MOZ_ASSERT(aType < CrashGuardType::NUM_TYPES);
   MOZ_ASSERT(sCrashGuardNames[size_t(aType)]);
 
-  aOutPrefName.Assign("gfx.crash-guard.status.");
+  aOutPrefName.AssignLiteral("gfx.crash-guard.status.");
   aOutPrefName.Append(sCrashGuardNames[size_t(aType)]);
 }
 
@@ -190,7 +192,7 @@ DriverCrashGuard::GetGuardFile()
 
   nsCString filename;
   filename.Assign(sCrashGuardNames[size_t(mType)]);
-  filename.Append(".guard");
+  filename.AppendLiteral(".guard");
 
   nsCOMPtr<nsIFile> file;
   NS_GetSpecialDirectory(NS_APP_USER_PROFILE_LOCAL_50_DIR, getter_AddRefs(file));
@@ -350,7 +352,8 @@ DriverCrashGuard::CheckAndUpdatePref(const char* aPrefName, const nsAString& aCu
 {
   std::string pref = GetFullPrefName(aPrefName);
 
-  nsAdoptingString oldValue = Preferences::GetString(pref.c_str());
+  nsAutoString oldValue;
+  Preferences::GetString(pref.c_str(), oldValue);
   if (oldValue == aCurrentValue) {
     return false;
   }
@@ -387,7 +390,7 @@ DriverCrashGuard::FlushPreferences()
   MOZ_ASSERT(XRE_IsParentProcess());
 
   if (nsIPrefService* prefService = Preferences::GetService()) {
-    prefService->SavePrefFile(nullptr);
+    static_cast<Preferences *>(prefService)->SavePrefFileBlocking();
   }
 }
 
@@ -456,10 +459,7 @@ D3D11LayersCrashGuard::UpdateEnvironment()
                     (!gfxPrefs::Direct2DDisabled() && FeatureEnabled(nsIGfxInfo::FEATURE_DIRECT2D));
   changed |= CheckAndUpdateBoolPref("feature-d2d", d2dEnabled);
 
-  bool d3d11Enabled = !gfxPrefs::LayersPreferD3D9();
-  if (!FeatureEnabled(nsIGfxInfo::FEATURE_DIRECT3D_11_LAYERS)) {
-    d3d11Enabled = false;
-  }
+  bool d3d11Enabled = gfxConfig::IsEnabled(Feature::D3D11_COMPOSITING);
   changed |= CheckAndUpdateBoolPref("feature-d3d11", d3d11Enabled);
 #endif
 

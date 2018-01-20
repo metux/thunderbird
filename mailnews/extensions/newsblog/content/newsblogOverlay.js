@@ -21,6 +21,8 @@ var FeedMessageHandler = {
   kOpenToggleInMessagePane: 2,
   kOpenLoadInBrowser:       3,
 
+  FeedAccountTypes: ["rss"],
+
   /**
    * How to load message on threadpane select.
    */
@@ -61,9 +63,22 @@ var FeedMessageHandler = {
    * @return true if message is a feed, false if not.
    */
   isFeedMessage: function(aMsgHdr) {
-    return (aMsgHdr instanceof Components.interfaces.nsIMsgDBHdr) &&
-           ((aMsgHdr.flags & Components.interfaces.nsMsgMessageFlags.FeedMsg) ||
-            (aMsgHdr.folder && aMsgHdr.folder.server.type == "rss"));
+    return Boolean(aMsgHdr instanceof Components.interfaces.nsIMsgDBHdr &&
+                   (aMsgHdr.flags & Components.interfaces.nsMsgMessageFlags.FeedMsg ||
+                    this.isFeedFolder(aMsgHdr.folder)));
+  },
+
+  /**
+   * Determine if a folder is a feed acount folder. Trash or a folder in Trash
+   * should be checked with FeedUtils.isInTrash() if required.
+   *
+   * @param nsIMsgFolder aFolder - the folder.
+   *
+   * @return true if folder's server.type is in FeedAccountTypes, false if not.
+   */
+  isFeedFolder: function(aFolder) {
+    return Boolean(aFolder instanceof Components.interfaces.nsIMsgFolder &&
+                   this.FeedAccountTypes.includes(aFolder.server.type));
   },
 
   /**
@@ -184,12 +199,11 @@ var FeedMessageHandler = {
           aMimeMsg.headers["content-base"][0]) {
         let url = aMimeMsg.headers["content-base"], uri;
         try {
-          let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-                            .createInstance(Ci.nsIScriptableUnicodeConverter);
-          converter.charset = "UTF-8";
-          url = converter.ConvertToUnicode(url);
-          uri = Services.io.newURI(url, null, null);
-          url = uri.spec;
+          // The message and headers are stored as a string of UTF-8 bytes
+          // and we need to convert that cpp |string| to js UTF-16 explicitly
+          // for idn and non-ascii urls with this api.
+          url = decodeURIComponent(escape(url));
+          uri = Services.io.newURI(url);
         }
         catch (ex) {
           FeedUtils.log.info("FeedMessageHandler.loadWebPage: " +
@@ -338,10 +352,7 @@ function openComposeWindowForRSSArticle(aMsgComposeWindow, aMsgHdr, aMessageUri,
         if (aMimeMsg && aMimeMsg.headers["content-base"] &&
             aMimeMsg.headers["content-base"][0])
         {
-          let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-                            .createInstance(Ci.nsIScriptableUnicodeConverter);
-          converter.charset = "UTF-8";
-          let url = converter.ConvertToUnicode(aMimeMsg.headers["content-base"]);
+          let url = decodeURIComponent(escape(aMimeMsg.headers["content-base"]));
           params.composeFields.body = url;
           params.bodyIsLink = true;
           MailServices.compose.OpenComposeWindowWithParams(null, params);

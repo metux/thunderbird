@@ -7,10 +7,8 @@
 #include "jit/shared/CodeGenerator-shared-inl.h"
 
 #include "mozilla/DebugOnly.h"
-#include "mozilla/SizePrintfMacros.h"
 
 #include "jit/CompactBuffer.h"
-#include "jit/IonCaches.h"
 #include "jit/JitcodeMap.h"
 #include "jit/JitSpewer.h"
 #include "jit/MacroAssembler.h"
@@ -89,14 +87,14 @@ CodeGeneratorShared::CodeGeneratorShared(MIRGenerator* gen, LIRGraph* graph, Mac
         if (gen->usesSimd()) {
             // If the function uses any SIMD then we may need to insert padding
             // so that local slots are aligned for SIMD.
-            frameInitialAdjustment_ = ComputeByteAlignment(sizeof(wasm::Frame),
-                                                           WasmStackAlignment);
+            frameInitialAdjustment_ = ComputeByteAlignment(sizeof(wasm::Frame), WasmStackAlignment);
             frameDepth_ += frameInitialAdjustment_;
+
             // Keep the stack aligned. Some SIMD sequences build values on the
             // stack and need the stack aligned.
             frameDepth_ += ComputeByteAlignment(sizeof(wasm::Frame) + frameDepth_,
                                                 WasmStackAlignment);
-        } else if (gen->performsCall()) {
+        } else if (gen->needsStaticStackAlignment()) {
             // An MWasmCall does not align the stack pointer at calls sites but
             // instead relies on the a priori stack adjustment. This must be the
             // last adjustment of frameDepth_.
@@ -163,6 +161,10 @@ CodeGeneratorShared::generateEpilogue()
 bool
 CodeGeneratorShared::generateOutOfLineCode()
 {
+    // OOL paths should not attempt to use |current| as it's the last block
+    // instead of the block corresponding to the OOL path.
+    current = nullptr;
+
     for (size_t i = 0; i < outOfLineCode_.length(); i++) {
         // Add native => bytecode mapping entries for OOL sites.
         // Not enabled on wasm yet since it doesn't contain bytecode mappings.
@@ -234,7 +236,7 @@ CodeGeneratorShared::addNativeToBytecodeEntry(const BytecodeSite* site)
         // bytecodeOffset, but the nativeOffset has changed, do nothing.
         // The same site just generated some more code.
         if (lastEntry.tree == tree && lastEntry.pc == pc) {
-            JitSpew(JitSpew_Profiling, " => In-place update [%" PRIuSIZE "-%" PRIu32 "]",
+            JitSpew(JitSpew_Profiling, " => In-place update [%zu-%" PRIu32 "]",
                     lastEntry.nativeOffset.offset(), nativeOffset);
             return true;
         }
@@ -281,7 +283,7 @@ CodeGeneratorShared::dumpNativeToBytecodeEntries()
 {
 #ifdef JS_JITSPEW
     InlineScriptTree* topTree = gen->info().inlineScriptTree();
-    JitSpewStart(JitSpew_Profiling, "Native To Bytecode Entries for %s:%" PRIuSIZE "\n",
+    JitSpewStart(JitSpew_Profiling, "Native To Bytecode Entries for %s:%zu\n",
                  topTree->script()->filename(), topTree->script()->lineno());
     for (unsigned i = 0; i < nativeToBytecodeList_.length(); i++)
         dumpNativeToBytecodeEntry(i);
@@ -304,7 +306,7 @@ CodeGeneratorShared::dumpNativeToBytecodeEntry(uint32_t idx)
         if (nextRef->tree == ref.tree)
             pcDelta = nextRef->pc - ref.pc;
     }
-    JitSpewStart(JitSpew_Profiling, "    %08" PRIxSIZE " [+%-6d] => %-6ld [%-4d] {%-10s} (%s:%" PRIuSIZE,
+    JitSpewStart(JitSpew_Profiling, "    %08zx [+%-6d] => %-6ld [%-4d] {%-10s} (%s:%zu",
                  ref.nativeOffset.offset(),
                  nativeDelta,
                  (long) (ref.pc - script->code()),
@@ -313,7 +315,7 @@ CodeGeneratorShared::dumpNativeToBytecodeEntry(uint32_t idx)
                  script->filename(), script->lineno());
 
     for (tree = tree->caller(); tree; tree = tree->caller()) {
-        JitSpewCont(JitSpew_Profiling, " <= %s:%" PRIuSIZE, tree->script()->filename(),
+        JitSpewCont(JitSpew_Profiling, " <= %s:%zu", tree->script()->filename(),
                                                     tree->script()->lineno());
     }
     JitSpewCont(JitSpew_Profiling, ")");
@@ -412,8 +414,9 @@ CodeGeneratorShared::encodeAllocation(LSnapshot* snapshot, MDefinition* mir,
 
         // Lambda should have a default value readable for iterating over the
         // inner frames.
-        if (mir->isLambda()) {
-            MConstant* constant = mir->toLambda()->functionOperand();
+        if (mir->isLambda() || mir->isLambdaArrow()) {
+            MConstant* constant = mir->isLambda() ? mir->toLambda()->functionOperand()
+                                                  : mir->toLambdaArrow()->functionOperand();
             uint32_t cstIndex;
             masm.propagateOOM(graph.addConstantToPool(constant->toJSValue(), &cstIndex));
             alloc = RValueAllocation::RecoverInstruction(index, cstIndex);
@@ -602,7 +605,7 @@ CodeGeneratorShared::encode(LSnapshot* snapshot)
         lirOpcode = ins->op();
         lirId = ins->id();
         if (ins->mirRaw()) {
-            mirOpcode = ins->mirRaw()->op();
+            mirOpcode = uint32_t(ins->mirRaw()->op());
             mirId = ins->mirRaw()->id();
             if (ins->mirRaw()->trackedPc())
                 pcOpcode = *ins->mirRaw()->trackedPc();
@@ -708,7 +711,7 @@ CodeGeneratorShared::createNativeToBytecodeScriptList(JSContext* cx)
     }
 
     // Allocate array for list.
-    JSScript** data = cx->runtime()->pod_malloc<JSScript*>(scriptList.length());
+    JSScript** data = cx->zone()->pod_malloc<JSScript*>(scriptList.length());
     if (!data)
         return false;
 
@@ -755,7 +758,7 @@ CodeGeneratorShared::generateCompactNativeToBytecodeMap(JSContext* cx, JitCode* 
     MOZ_ASSERT(numRegions > 0);
 
     // Writer is done, copy it to sized buffer.
-    uint8_t* data = cx->runtime()->pod_malloc<uint8_t>(writer.length());
+    uint8_t* data = cx->zone()->pod_malloc<uint8_t>(writer.length());
     if (!data) {
         js_free(nativeToBytecodeScriptList_);
         return false;
@@ -911,7 +914,7 @@ CodeGeneratorShared::generateCompactTrackedOptimizationsMap(JSContext* cx, JitCo
     MOZ_ASSERT(attemptsTableOffset > typesTableOffset);
 
     // Copy over the table out of the writer's buffer.
-    uint8_t* data = cx->runtime()->pod_malloc<uint8_t>(writer.length());
+    uint8_t* data = cx->zone()->pod_malloc<uint8_t>(writer.length());
     if (!data)
         return false;
 
@@ -924,11 +927,11 @@ CodeGeneratorShared::generateCompactTrackedOptimizationsMap(JSContext* cx, JitCo
 
     verifyCompactTrackedOptimizationsMap(code, numRegions, unique, allTypes);
 
-    JitSpew(JitSpew_OptimizationTracking,
+    JitSpew(JitSpew_OptimizationTrackingExtended,
             "== Compact Native To Optimizations Map [%p-%p] size %u",
             data, data + trackedOptimizationsMapSize_, trackedOptimizationsMapSize_);
-    JitSpew(JitSpew_OptimizationTracking,
-            "     with type list of length %" PRIuSIZE ", size %" PRIuSIZE,
+    JitSpew(JitSpew_OptimizationTrackingExtended,
+            "     with type list of length %zu, size %zu",
             allTypes->length(), allTypes->length() * sizeof(IonTrackedTypeWithAddendum));
 
     return true;
@@ -1055,7 +1058,7 @@ CodeGeneratorShared::verifyCompactTrackedOptimizationsMap(JitCode* code, uint32_
             // decoded. This is disabled for now if the types table might
             // contain nursery pointers, in which case the types might not
             // match, see bug 1175761.
-            if (!code->runtimeFromMainThread()->gc.storeBuffer.cancelIonCompilations()) {
+            if (!code->zone()->group()->storeBuffer().cancelIonCompilations()) {
                 IonTrackedOptimizationsTypeInfo typeInfo = typesTable->entry(index);
                 TempOptimizationTypeInfoVector tvec(alloc());
                 ReadTempTypeInfoVectorOp top(alloc(), &tvec);
@@ -1290,8 +1293,8 @@ CodeGeneratorShared::verifyOsiPointRegs(LSafepoint* safepoint)
     // forces them to have an osi point associated with them.  The
     // FunctionBoundary for inline function entry is added to the caller's
     // graph with a PC from the caller's code, but during codegen it modifies
-    // SPS instrumentation to add the callee as the current top-most script.
-    // When codegen gets to the OSIPoint, and the callWithABI below is
+    // Gecko Profiler instrumentation to add the callee as the current top-most
+    // script. When codegen gets to the OSIPoint, and the callWithABI below is
     // emitted, the codegen thinks that the current frame is the callee, but
     // the PC it's using from the OSIPoint refers to the caller.  This causes
     // the profiler instrumentation of the callWithABI below to ASSERT, since
@@ -1344,7 +1347,7 @@ CodeGeneratorShared::callVM(const VMFunction& fun, LInstruction* ins, const Regi
 {
     // If we're calling a function with an out parameter type of double, make
     // sure we have an FPU.
-    MOZ_ASSERT_IF(fun.outParam == Type_Double, GetJitContext()->runtime->jitSupportsFloatingPoint());
+    MOZ_ASSERT_IF(fun.outParam == Type_Double, gen->runtime->jitSupportsFloatingPoint());
 
 #ifdef DEBUG
     if (ins->mirRaw()) {
@@ -1407,10 +1410,15 @@ class OutOfLineTruncateSlow : public OutOfLineCodeBase<CodeGeneratorShared>
     FloatRegister src_;
     Register dest_;
     bool widenFloatToDouble_;
+    wasm::BytecodeOffset bytecodeOffset_;
 
   public:
-    OutOfLineTruncateSlow(FloatRegister src, Register dest, bool widenFloatToDouble = false)
-      : src_(src), dest_(dest), widenFloatToDouble_(widenFloatToDouble)
+    OutOfLineTruncateSlow(FloatRegister src, Register dest, bool widenFloatToDouble = false,
+                          wasm::BytecodeOffset bytecodeOffset = wasm::BytecodeOffset())
+      : src_(src),
+        dest_(dest),
+        widenFloatToDouble_(widenFloatToDouble),
+        bytecodeOffset_(bytecodeOffset)
     { }
 
     void accept(CodeGeneratorShared* codegen) {
@@ -1425,30 +1433,37 @@ class OutOfLineTruncateSlow : public OutOfLineCodeBase<CodeGeneratorShared>
     bool widenFloatToDouble() const {
         return widenFloatToDouble_;
     }
-
+    wasm::BytecodeOffset bytecodeOffset() const {
+        return bytecodeOffset_;
+    }
 };
 
 OutOfLineCode*
-CodeGeneratorShared::oolTruncateDouble(FloatRegister src, Register dest, MInstruction* mir)
+CodeGeneratorShared::oolTruncateDouble(FloatRegister src, Register dest, MInstruction* mir,
+                                       wasm::BytecodeOffset bytecodeOffset)
 {
-    OutOfLineTruncateSlow* ool = new(alloc()) OutOfLineTruncateSlow(src, dest);
+    MOZ_ASSERT_IF(IsCompilingWasm(), bytecodeOffset.isValid());
+
+    OutOfLineTruncateSlow* ool = new(alloc()) OutOfLineTruncateSlow(src, dest, /* float32 */ false,
+                                                                    bytecodeOffset);
     addOutOfLineCode(ool, mir);
     return ool;
 }
 
 void
-CodeGeneratorShared::emitTruncateDouble(FloatRegister src, Register dest, MInstruction* mir)
+CodeGeneratorShared::emitTruncateDouble(FloatRegister src, Register dest, MTruncateToInt32* mir)
 {
-    OutOfLineCode* ool = oolTruncateDouble(src, dest, mir);
+    OutOfLineCode* ool = oolTruncateDouble(src, dest, mir, mir->bytecodeOffset());
 
     masm.branchTruncateDoubleMaybeModUint32(src, dest, ool->entry());
     masm.bind(ool->rejoin());
 }
 
 void
-CodeGeneratorShared::emitTruncateFloat32(FloatRegister src, Register dest, MInstruction* mir)
+CodeGeneratorShared::emitTruncateFloat32(FloatRegister src, Register dest, MTruncateToInt32* mir)
 {
-    OutOfLineTruncateSlow* ool = new(alloc()) OutOfLineTruncateSlow(src, dest, true);
+    OutOfLineTruncateSlow* ool = new(alloc()) OutOfLineTruncateSlow(src, dest, /* float32 */ true,
+                                                                    mir->bytecodeOffset());
     addOutOfLineCode(ool, mir);
 
     masm.branchTruncateFloat32MaybeModUint32(src, dest, ool->entry());
@@ -1462,7 +1477,8 @@ CodeGeneratorShared::visitOutOfLineTruncateSlow(OutOfLineTruncateSlow* ool)
     Register dest = ool->dest();
 
     saveVolatile(dest);
-    masm.outOfLineTruncateSlow(src, dest, ool->widenFloatToDouble(), gen->compilingWasm());
+    masm.outOfLineTruncateSlow(src, dest, ool->widenFloatToDouble(), gen->compilingWasm(),
+                               ool->bytecodeOffset());
     restoreVolatile(dest);
 
     masm.jump(ool->rejoin());
@@ -1476,7 +1492,7 @@ CodeGeneratorShared::omitOverRecursedCheck() const
     // stack overflow check. Note that the actual number here is somewhat
     // arbitrary, and codegen actually uses small bounded amounts of
     // additional stack space in some cases too.
-    return frameSize() < 64 && !gen->performsCall();
+    return frameSize() < 64 && !gen->needsOverrecursedCheck();
 }
 
 void
@@ -1499,35 +1515,37 @@ CodeGeneratorShared::emitWasmCallBase(LWasmCallBase* ins)
     masm.bind(&ok);
 #endif
 
-    // Save the caller's TLS register in a reserved stack slot (below the
-    // call's stack arguments) for retrieval after the call.
-    if (mir->saveTls())
-        masm.storePtr(WasmTlsReg, Address(masm.getStackPointer(), mir->tlsStackOffset()));
+    // LWasmCallBase::isCallPreserved() assumes that all MWasmCalls preserve the
+    // TLS and pinned regs. The only case where where we don't have to reload
+    // the TLS and pinned regs is when the callee preserves them.
+    bool reloadRegs = true;
 
     const wasm::CallSiteDesc& desc = mir->desc();
     const wasm::CalleeDesc& callee = mir->callee();
     switch (callee.which()) {
       case wasm::CalleeDesc::Func:
         masm.call(desc, callee.funcIndex());
+        reloadRegs = false;
         break;
       case wasm::CalleeDesc::Import:
         masm.wasmCallImport(desc, callee);
         break;
-      case wasm::CalleeDesc::WasmTable:
       case wasm::CalleeDesc::AsmJSTable:
-        masm.wasmCallIndirect(desc, callee);
+      case wasm::CalleeDesc::WasmTable:
+        masm.wasmCallIndirect(desc, callee, ins->needsBoundsCheck());
+        reloadRegs = callee.which() == wasm::CalleeDesc::WasmTable && callee.wasmTableIsExternal();
         break;
       case wasm::CalleeDesc::Builtin:
-        masm.call(callee.builtin());
+        masm.call(desc, callee.builtin());
+        reloadRegs = false;
         break;
       case wasm::CalleeDesc::BuiltinInstanceMethod:
-        masm.wasmCallBuiltinInstanceMethod(mir->instanceArg(), callee.builtin());
+        masm.wasmCallBuiltinInstanceMethod(desc, mir->instanceArg(), callee.builtin());
         break;
     }
 
-    // After return, restore the caller's TLS and pinned registers.
-    if (mir->saveTls()) {
-        masm.loadPtr(Address(masm.getStackPointer(), mir->tlsStackOffset()), WasmTlsReg);
+    if (reloadRegs) {
+        masm.loadWasmTlsRegFromFrame();
         masm.loadWasmPinnedRegsFromTls();
     }
 
@@ -1536,21 +1554,123 @@ CodeGeneratorShared::emitWasmCallBase(LWasmCallBase* ins)
 }
 
 void
+CodeGeneratorShared::visitWasmLoadGlobalVar(LWasmLoadGlobalVar* ins)
+{
+    MWasmLoadGlobalVar* mir = ins->mir();
+
+    MIRType type = mir->type();
+    MOZ_ASSERT(IsNumberType(type) || IsSimdType(type));
+
+    Register tls = ToRegister(ins->tlsPtr());
+    Address addr(tls, offsetof(wasm::TlsData, globalArea) + mir->globalDataOffset());
+    switch (type) {
+      case MIRType::Int32:
+        masm.load32(addr, ToRegister(ins->output()));
+        break;
+      case MIRType::Float32:
+        masm.loadFloat32(addr, ToFloatRegister(ins->output()));
+        break;
+      case MIRType::Double:
+        masm.loadDouble(addr, ToFloatRegister(ins->output()));
+        break;
+      // Aligned access: code is aligned on PageSize + there is padding
+      // before the global data section.
+      case MIRType::Int8x16:
+      case MIRType::Int16x8:
+      case MIRType::Int32x4:
+      case MIRType::Bool8x16:
+      case MIRType::Bool16x8:
+      case MIRType::Bool32x4:
+        masm.loadInt32x4(addr, ToFloatRegister(ins->output()));
+        break;
+      case MIRType::Float32x4:
+        masm.loadFloat32x4(addr, ToFloatRegister(ins->output()));
+        break;
+      default:
+        MOZ_CRASH("unexpected type in visitWasmLoadGlobalVar");
+    }
+}
+
+void
+CodeGeneratorShared::visitWasmStoreGlobalVar(LWasmStoreGlobalVar* ins)
+{
+    MWasmStoreGlobalVar* mir = ins->mir();
+
+    MIRType type = mir->value()->type();
+    MOZ_ASSERT(IsNumberType(type) || IsSimdType(type));
+
+    Register tls = ToRegister(ins->tlsPtr());
+    Address addr(tls, offsetof(wasm::TlsData, globalArea) + mir->globalDataOffset());
+    switch (type) {
+      case MIRType::Int32:
+        masm.store32(ToRegister(ins->value()), addr);
+        break;
+      case MIRType::Float32:
+        masm.storeFloat32(ToFloatRegister(ins->value()), addr);
+        break;
+      case MIRType::Double:
+        masm.storeDouble(ToFloatRegister(ins->value()), addr);
+        break;
+      // Aligned access: code is aligned on PageSize + there is padding
+      // before the global data section.
+      case MIRType::Int8x16:
+      case MIRType::Int16x8:
+      case MIRType::Int32x4:
+      case MIRType::Bool8x16:
+      case MIRType::Bool16x8:
+      case MIRType::Bool32x4:
+        masm.storeInt32x4(ToFloatRegister(ins->value()), addr);
+        break;
+      case MIRType::Float32x4:
+        masm.storeFloat32x4(ToFloatRegister(ins->value()), addr);
+        break;
+      default:
+        MOZ_CRASH("unexpected type in visitWasmStoreGlobalVar");
+    }
+}
+
+void
+CodeGeneratorShared::visitWasmLoadGlobalVarI64(LWasmLoadGlobalVarI64* ins)
+{
+    MWasmLoadGlobalVar* mir = ins->mir();
+    MOZ_ASSERT(mir->type() == MIRType::Int64);
+
+    Register tls = ToRegister(ins->tlsPtr());
+    Address addr(tls, offsetof(wasm::TlsData, globalArea) + mir->globalDataOffset());
+
+    Register64 output = ToOutRegister64(ins);
+    masm.load64(addr, output);
+}
+
+void
+CodeGeneratorShared::visitWasmStoreGlobalVarI64(LWasmStoreGlobalVarI64* ins)
+{
+    MWasmStoreGlobalVar* mir = ins->mir();
+    MOZ_ASSERT(mir->value()->type() == MIRType::Int64);
+
+    Register tls = ToRegister(ins->tlsPtr());
+    Address addr(tls, offsetof(wasm::TlsData, globalArea) + mir->globalDataOffset());
+
+    Register64 value = ToRegister64(ins->value());
+    masm.store64(value, addr);
+}
+
+void
 CodeGeneratorShared::emitPreBarrier(Register base, const LAllocation* index, int32_t offsetAdjustment)
 {
     if (index->isConstant()) {
         Address address(base, ToInt32(index) * sizeof(Value) + offsetAdjustment);
-        masm.patchableCallPreBarrier(address, MIRType::Value);
+        masm.guardedCallPreBarrier(address, MIRType::Value);
     } else {
         BaseIndex address(base, ToRegister(index), TimesEight, offsetAdjustment);
-        masm.patchableCallPreBarrier(address, MIRType::Value);
+        masm.guardedCallPreBarrier(address, MIRType::Value);
     }
 }
 
 void
 CodeGeneratorShared::emitPreBarrier(Address address)
 {
-    masm.patchableCallPreBarrier(address, MIRType::Value);
+    masm.guardedCallPreBarrier(address, MIRType::Value);
 }
 
 Label*
@@ -1646,26 +1766,6 @@ CodeGeneratorShared::jumpToBlock(MBasicBlock* mir, Assembler::Condition cond)
     }
 }
 #endif
-
-MOZ_MUST_USE bool
-CodeGeneratorShared::addCacheLocations(const CacheLocationList& locs, size_t* numLocs,
-                                       size_t* curIndex)
-{
-    size_t firstIndex = runtimeData_.length();
-    size_t numLocations = 0;
-    for (CacheLocationList::iterator iter = locs.begin(); iter != locs.end(); iter++) {
-        // allocateData() ensures that sizeof(CacheLocation) is word-aligned.
-        // If this changes, we will need to pad to ensure alignment.
-        if (!allocateData(sizeof(CacheLocation), curIndex))
-            return false;
-        new (&runtimeData_[*curIndex]) CacheLocation(iter->pc, iter->script);
-        numLocations++;
-    }
-    MOZ_ASSERT(numLocations != 0);
-    *numLocs = numLocations;
-    *curIndex = firstIndex;
-    return true;
-}
 
 ReciprocalMulConstants
 CodeGeneratorShared::computeDivisionConstants(uint32_t d, int maxLog) {
@@ -1765,10 +1865,8 @@ CodeGeneratorShared::emitTracelogScript(bool isStart)
 
     masm.Push(logger);
 
-    CodeOffset patchLogger = masm.movWithPatch(ImmPtr(nullptr), logger);
-    masm.propagateOOM(patchableTraceLoggers_.append(patchLogger));
-
-    masm.branchTest32(Assembler::Zero, logger, logger, &done);
+    masm.loadTraceLogger(logger);
+    masm.branchTestPtr(Assembler::Zero, logger, logger, &done);
 
     Address enabledAddress(logger, TraceLoggerThread::offsetOfEnabled());
     masm.branch32(Assembler::Equal, enabledAddress, Imm32(0), &done);
@@ -1802,10 +1900,8 @@ CodeGeneratorShared::emitTracelogTree(bool isStart, uint32_t textId)
 
     masm.Push(logger);
 
-    CodeOffset patchLocation = masm.movWithPatch(ImmPtr(nullptr), logger);
-    masm.propagateOOM(patchableTraceLoggers_.append(patchLocation));
-
-    masm.branchTest32(Assembler::Zero, logger, logger, &done);
+    masm.loadTraceLogger(logger);
+    masm.branchTestPtr(Assembler::Zero, logger, logger, &done);
 
     Address enabledAddress(logger, TraceLoggerThread::offsetOfEnabled());
     masm.branch32(Assembler::Equal, enabledAddress, Imm32(0), &done);
@@ -1835,10 +1931,8 @@ CodeGeneratorShared::emitTracelogTree(bool isStart, const char* text,
 
     masm.Push(loggerReg);
 
-    CodeOffset patchLocation = masm.movWithPatch(ImmPtr(nullptr), loggerReg);
-    masm.propagateOOM(patchableTraceLoggers_.append(patchLocation));
-
-    masm.branchTest32(Assembler::Zero, loggerReg, loggerReg, &done);
+    masm.loadTraceLogger(loggerReg);
+    masm.branchTestPtr(Assembler::Zero, loggerReg, loggerReg, &done);
 
     Address enabledAddress(loggerReg, TraceLoggerThread::offsetOfEnabled());
     masm.branch32(Assembler::Equal, enabledAddress, Imm32(0), &done);

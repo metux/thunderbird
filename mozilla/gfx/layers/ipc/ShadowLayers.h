@@ -1,6 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: sw=2 ts=8 et :
- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -17,6 +16,8 @@
 #include "mozilla/dom/ScreenOrientation.h"  // for ScreenOrientation
 #include "mozilla/ipc/SharedMemory.h"   // for SharedMemory, etc
 #include "mozilla/layers/CompositableForwarder.h"
+#include "mozilla/layers/FocusTarget.h"
+#include "mozilla/layers/LayersTypes.h"
 #include "mozilla/layers/TextureForwarder.h"
 #include "mozilla/layers/CompositorTypes.h"  // for OpenMode, etc
 #include "mozilla/layers/CompositorBridgeChild.h"
@@ -32,11 +33,9 @@ namespace layers {
 
 class ClientLayerManager;
 class CompositorBridgeChild;
-class EditReply;
 class FixedSizeSmallShmemSectionAllocator;
 class ImageContainer;
 class Layer;
-class PLayerChild;
 class PLayerTransactionChild;
 class LayerTransactionChild;
 class ShadowableLayer;
@@ -65,8 +64,9 @@ private:
 class ActiveResourceTracker : public nsExpirationTracker<ActiveResource, 3>
 {
 public:
-  ActiveResourceTracker(uint32_t aExpirationCycle, const char* aName)
-  : nsExpirationTracker(aExpirationCycle, aName)
+  ActiveResourceTracker(uint32_t aExpirationCycle, const char* aName,
+                        nsIEventTarget* aEventTarget)
+  : nsExpirationTracker(aExpirationCycle, aName, aEventTarget)
   {}
 
   virtual void NotifyExpired(ActiveResource* aResource) override
@@ -181,7 +181,7 @@ public:
    * the compositable or it's IPDL actor here, so we use an ID instead, that
    * is matched on the compositor side.
    */
-  void AttachAsyncCompositable(uint64_t aCompositableID,
+  void AttachAsyncCompositable(const CompositableHandle& aHandle,
                                ShadowableLayer* aLayer);
 
   /**
@@ -209,13 +209,17 @@ public:
   void CreatedColorLayer(ShadowableLayer* aColor);
   void CreatedCanvasLayer(ShadowableLayer* aCanvas);
   void CreatedRefLayer(ShadowableLayer* aRef);
+  void CreatedTextLayer(ShadowableLayer* aRef);
+  void CreatedBorderLayer(ShadowableLayer* aRef);
 
   /**
    * At least one attribute of |aMutant| has changed, and |aMutant|
    * needs to sync to its shadow layer.  This initial implementation
-   * forwards all attributes when any is mutated.
+   * forwards all attributes when any of the appropriate attribute
+   * set is mutated.
    */
   void Mutated(ShadowableLayer* aMutant);
+  void MutatedSimple(ShadowableLayer* aMutant);
 
   void SetRoot(ShadowableLayer* aRoot);
   /**
@@ -248,8 +252,9 @@ public:
   void UseTiledLayerBuffer(CompositableClient* aCompositable,
                                    const SurfaceDescriptorTiles& aTileLayerDescriptor) override;
 
-  bool DestroyInTransaction(PTextureChild* aTexture, bool synchronously) override;
-  bool DestroyInTransaction(PCompositableChild* aCompositable, bool synchronously) override;
+  void ReleaseCompositable(const CompositableHandle& aHandle) override;
+  bool DestroyInTransaction(PTextureChild* aTexture) override;
+  bool DestroyInTransaction(const CompositableHandle& aHandle);
 
   virtual void RemoveTextureFromCompositable(CompositableClient* aCompositable,
                                              TextureClient* aTexture) override;
@@ -281,8 +286,7 @@ public:
    * |aReplies| are directions from the LayerManagerComposite to the
    * caller of EndTransaction().
    */
-  bool EndTransaction(InfallibleTArray<EditReply>* aReplies,
-                      const nsIntRegion& aRegionToClear,
+  bool EndTransaction(const nsIntRegion& aRegionToClear,
                       uint64_t aId,
                       bool aScheduleComposite,
                       uint32_t aPaintSequenceNumber,
@@ -314,6 +318,10 @@ public:
    */
   bool HasShadowManager() const { return !!mShadowManager; }
   LayerTransactionChild* GetShadowManager() const { return mShadowManager.get(); }
+
+  // Send a synchronous message asking the LayerTransactionParent in the
+  // compositor to shutdown.
+  void SynchronouslyShutdown();
 
   virtual void WindowOverlayChanged() { mWindowOverlayChanged = true; }
 
@@ -356,14 +364,17 @@ public:
    * Construct a shadow of |aLayer| on the "other side", at the
    * LayerManagerComposite.
    */
-  PLayerChild* ConstructShadowFor(ShadowableLayer* aLayer);
+  LayerHandle ConstructShadowFor(ShadowableLayer* aLayer);
 
   /**
    * Flag the next paint as the first for a document.
    */
   void SetIsFirstPaint() { mIsFirstPaint = true; }
 
-  void SetPaintSyncId(int32_t aSyncId) { mPaintSyncId = aSyncId; }
+  /**
+   * Set the current focus target to be sent with the next paint.
+   */
+  void SetFocusTarget(const FocusTarget& aFocusTarget) { mFocusTarget = aFocusTarget; }
 
   void SetLayerObserverEpoch(uint64_t aLayerObserverEpoch);
 
@@ -383,17 +394,40 @@ public:
   virtual void UpdateFwdTransactionId() override;
   virtual uint64_t GetFwdTransactionId() override;
 
+  void ReleaseLayer(const LayerHandle& aHandle);
+
   bool InForwarderThread() override {
     return NS_IsMainThread();
   }
 
+  PaintTiming& GetPaintTiming() {
+    return mPaintTiming;
+  }
+
+  ShadowLayerForwarder* AsLayerForwarder() override { return this; }
+
   // Returns true if aSurface wraps a Shmem.
   static bool IsShmem(SurfaceDescriptor* aSurface);
+
+  /**
+   * Sends a synchronous ping to the compsoitor.
+   *
+   * This is bad for performance and should only be called as a last resort if the
+   * compositor may be blocked for a long period of time, to avoid that the content
+   * process accumulates resource allocations that the compositor is not consuming
+   * and releasing.
+   */
+  void SyncWithCompositor();
 
   TextureForwarder* GetTextureForwarder() override { return GetCompositorBridgeChild(); }
   LayersIPCActor* GetLayersIPCActor() override { return this; }
 
   ActiveResourceTracker& GetActiveResourceTracker() { return *mActiveResourceTracker.get(); }
+
+  CompositorBridgeChild* GetCompositorBridgeChild();
+
+  nsIEventTarget* GetEventTarget() { return mEventTarget; };
+
 protected:
   virtual ~ShadowLayerForwarder();
 
@@ -405,9 +439,9 @@ protected:
   void CheckSurfaceDescriptor(const SurfaceDescriptor* aDescriptor) const {}
 #endif
 
-  bool InWorkerThread();
+  RefPtr<CompositableClient> FindCompositable(const CompositableHandle& aHandle);
 
-  CompositorBridgeChild* GetCompositorBridgeChild();
+  bool InWorkerThread();
 
   RefPtr<LayerTransactionChild> mShadowManager;
   RefPtr<CompositorBridgeChild> mCompositorBridgeChild;
@@ -419,10 +453,19 @@ private:
   MessageLoop* mMessageLoop;
   DiagnosticTypes mDiagnosticTypes;
   bool mIsFirstPaint;
+  FocusTarget mFocusTarget;
   bool mWindowOverlayChanged;
-  int32_t mPaintSyncId;
   InfallibleTArray<PluginWindowData> mPluginWindowData;
   UniquePtr<ActiveResourceTracker> mActiveResourceTracker;
+  uint64_t mNextLayerHandle;
+  nsDataHashtable<nsUint64HashKey, CompositableClient*> mCompositables;
+  PaintTiming mPaintTiming;
+  /**
+   * ShadowLayerForwarder might dispatch tasks to main while puppet widget and
+   * tabChild don't exist anymore; therefore we hold the event target since its
+   *  lifecycle is independent of these objects.
+   */
+  nsCOMPtr<nsIEventTarget> mEventTarget;
 };
 
 class CompositableClient;
@@ -437,26 +480,35 @@ class CompositableClient;
 class ShadowableLayer
 {
 public:
-  virtual ~ShadowableLayer() {}
+  virtual ~ShadowableLayer();
 
   virtual Layer* AsLayer() = 0;
 
   /**
    * True if this layer has a shadow in a parent process.
    */
-  bool HasShadow() { return !!mShadow; }
+  bool HasShadow() { return mShadow.IsValid(); }
 
   /**
    * Return the IPC handle to a Shadow*Layer referring to this if one
    * exists, nullptr if not.
    */
-  PLayerChild* GetShadow() { return mShadow; }
+  const LayerHandle& GetShadow() { return mShadow; }
+
+  void SetShadow(ShadowLayerForwarder* aForwarder, const LayerHandle& aShadow) {
+    MOZ_ASSERT(!mShadow, "can't have two shadows (yet)");
+    mForwarder = aForwarder;
+    mShadow = aShadow;
+  }
 
   virtual CompositableClient* GetCompositableClient() { return nullptr; }
-protected:
-  ShadowableLayer() : mShadow(nullptr) {}
 
-  PLayerChild* mShadow;
+protected:
+  ShadowableLayer() {}
+
+private:
+  RefPtr<ShadowLayerForwarder> mForwarder;
+  LayerHandle mShadow;
 };
 
 } // namespace layers

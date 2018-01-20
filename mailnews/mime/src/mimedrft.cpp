@@ -65,9 +65,9 @@ using namespace mozilla::mailnews;
 // Forward declarations...
 //
 extern "C" char     *MIME_StripContinuations(char *original);
-int                 mime_decompose_file_init_fn ( void *stream_closure, MimeHeaders *headers );
-int                 mime_decompose_file_output_fn ( const char *buf, int32_t size, void *stream_closure );
-int                 mime_decompose_file_close_fn ( void *stream_closure );
+int                 mime_decompose_file_init_fn(void *stream_closure, MimeHeaders *headers);
+int                 mime_decompose_file_output_fn(const char *buf, int32_t size, void *stream_closure);
+int                 mime_decompose_file_close_fn(void *stream_closure);
 extern int          MimeHeaders_build_heads_list(MimeHeaders *hdrs);
 
 // CID's
@@ -97,7 +97,7 @@ mime_draft_data::mime_draft_data() : url_name(nullptr), format_out(0),
 nsresult
 nsMsgCreateTempFile(const char *tFileName, nsIFile **tFile)
 {
-  if ((!tFileName) || (!*tFileName))
+  if (!tFileName || !*tFileName)
     tFileName = SAFE_TMP_FILENAME;
 
   nsresult rv = GetSpecialDirectoryWithFileName(NS_OS_TEMP_DIR,
@@ -132,16 +132,16 @@ typedef enum {
 
 #ifdef NS_DEBUG
 extern "C" void
-mime_dump_attachments ( nsMsgAttachmentData *attachData )
+mime_dump_attachments(nsMsgAttachmentData *attachData)
 {
   int32_t     i = 0;
   class nsMsgAttachmentData  *tmp = attachData;
 
-  while ( (tmp) && (tmp->m_url) )
+  while (tmp && tmp->m_url)
   {
     printf("Real Name         : %s\n", tmp->m_realName.get());
 
-    if ( tmp->m_url )
+    if (tmp->m_url)
     {
       ;
       printf("URL               : %s\n", tmp->m_url->GetSpecOrDefault().get());
@@ -170,7 +170,7 @@ nsresult CreateComposeParams(nsCOMPtr<nsIMsgComposeParams> &pMsgComposeParams,
                              nsIMsgDBHdr *origMsgHdr)
 {
 #ifdef NS_DEBUG
-  mime_dump_attachments ( attachmentList );
+  mime_dump_attachments(attachmentList);
 #endif
 
   nsresult rv;
@@ -254,7 +254,7 @@ CreateTheComposeWindow(nsIMsgCompFields *   compFields,
                        nsIMsgIdentity *     identity,
                        const char *         originalMsgURI,
                        nsIMsgDBHdr *        origMsgHdr
-                       )
+                      )
 {
   nsCOMPtr<nsIMsgComposeParams> pMsgComposeParams;
   nsresult rv = CreateComposeParams(pMsgComposeParams, compFields,
@@ -295,7 +295,7 @@ ForwardMsgInline(nsIMsgCompFields *compFields,
            do_GetService(kCMsgComposeServiceCID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
   // create the nsIMsgCompose object to send the object
-  nsCOMPtr<nsIMsgCompose> pMsgCompose (do_CreateInstance(NS_MSGCOMPOSE_CONTRACTID, &rv));
+  nsCOMPtr<nsIMsgCompose> pMsgCompose(do_CreateInstance(NS_MSGCOMPOSE_CONTRACTID, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
   /** initialize nsIMsgCompose, Send the message, wait for send completion response **/
@@ -417,34 +417,33 @@ CreateCompositionFields(const char        *from,
     cFields->SetNewspostUrl(!val.IsEmpty() ? val.get() : newspost_url);
   }
 
-  *_retval = cFields;
-  NS_IF_ADDREF(*_retval);
+  cFields.forget(_retval);
 
   return rv;
 }
 
 static int
-dummy_file_write( char *buf, int32_t size, void *fileHandle )
+dummy_file_write(char *buf, int32_t size, void *fileHandle)
 {
   if (!fileHandle)
     return -1;
 
-  nsIOutputStream  *tStream = (nsIOutputStream *) fileHandle;
+  nsIOutputStream  *tStream = (nsIOutputStream *)fileHandle;
   uint32_t bytesWritten;
   tStream->Write(buf, size, &bytesWritten);
-  return (int) bytesWritten;
+  return (int)bytesWritten;
 }
 
 static int
-mime_parse_stream_write ( nsMIMESession *stream, const char *buf, int32_t size )
+mime_parse_stream_write(nsMIMESession *stream, const char *buf, int32_t size)
 {
-  mime_draft_data *mdd = (mime_draft_data *) stream->data_object;
-  NS_ASSERTION ( mdd, "null mime draft data!" );
+  mime_draft_data *mdd = (mime_draft_data *)stream->data_object;
+  NS_ASSERTION(mdd, "null mime draft data!");
 
-  if ( !mdd || !mdd->obj )
+  if (!mdd || !mdd->obj)
     return -1;
 
-  return mdd->obj->clazz->parse_buffer ((char *) buf, size, mdd->obj);
+  return mdd->obj->clazz->parse_buffer((char *)buf, size, mdd->obj);
 }
 
 static void
@@ -477,8 +476,8 @@ mime_draft_process_attachments(mime_draft_data *mdd)
   bool bodyAsAttachment = false;
   if (mdd->messageBody &&
       !mdd->messageBody->m_type.IsEmpty() &&
-      mdd->messageBody->m_type.Find("text/html", CaseInsensitiveCompare) == -1 &&
-      mdd->messageBody->m_type.Find("text/plain", CaseInsensitiveCompare) == -1 &&
+      mdd->messageBody->m_type.Find("text/html", /* ignoreCase = */ true) == -1 &&
+      mdd->messageBody->m_type.Find("text/plain", /* ignoreCase = */ true) == -1 &&
       !mdd->messageBody->m_type.LowerCaseEqualsLiteral("text"))
      bodyAsAttachment = true;
 
@@ -489,7 +488,7 @@ mime_draft_process_attachments(mime_draft_data *mdd)
   if (bodyAsAttachment)
     totalCount++;
   attachData = new nsMsgAttachmentData[totalCount + 1];
-  if ( !attachData )
+  if (!attachData)
     return nullptr;
 
   tmp = attachData;
@@ -504,7 +503,7 @@ mime_draft_process_attachments(mime_draft_data *mdd)
     if (tmpFile->m_type.LowerCaseEqualsLiteral("text/x-vcard"))
       tmp->m_realName = tmpFile->m_description;
 
-    if ( tmpFile->m_origUrl )
+    if (tmpFile->m_origUrl)
     {
       nsAutoCString tmpSpec;
       if (NS_FAILED(tmpFile->m_origUrl->GetSpec(tmpSpec)))
@@ -518,7 +517,7 @@ mime_draft_process_attachments(mime_draft_data *mdd)
         if (!tmpFile->m_realName.IsEmpty())
           tmp->m_realName = tmpFile->m_realName;
         else {
-          if (tmpFile->m_type.Find(MESSAGE_RFC822, CaseInsensitiveCompare) != -1)
+          if (tmpFile->m_type.Find(MESSAGE_RFC822, /* ignoreCase = */ true) != -1)
             // we have the odd case of processing an e-mail that had an unnamed
             // eml message attached
             tmp->m_realName = "ForwardedMessage.eml";
@@ -574,21 +573,23 @@ mime_intl_insert_message_header_1(char        **body,
   else
     NS_MsgSACat(body, ": ");
 
-    // MIME decode header
-    nsAutoCString utf8Value;
-    MIME_DecodeMimeHeader(hdr_value, mailcharset, false, true, utf8Value);
-    if (!utf8Value.IsEmpty()) {
-      char *escaped = nullptr;
-      if (htmlEdit)
-        escaped = MsgEscapeHTML(utf8Value.get());
-      NS_MsgSACat(body, escaped ? escaped : utf8Value.get());
-      NS_Free(escaped);
-    } else {
-        NS_MsgSACat(body, hdr_value); // raw MIME encoded string
-    }
+  // MIME decode header
+  nsAutoCString utf8Value;
+  MIME_DecodeMimeHeader(hdr_value, mailcharset, false, true, utf8Value);
+  if (!utf8Value.IsEmpty()) {
+      if (htmlEdit) {
+        nsCString escaped;
+        nsAppendEscapedHTML(utf8Value, escaped);
+        NS_MsgSACat(body, escaped.get());
+      } else {
+        NS_MsgSACat(body, utf8Value.get());
+      }
+  } else {
+      NS_MsgSACat(body, hdr_value); // raw MIME encoded string
+  }
 
   if (htmlEdit)
-    NS_MsgSACat(body, HEADER_END_JUNK);
+      NS_MsgSACat(body, HEADER_END_JUNK);
 }
 
 char *
@@ -768,7 +769,7 @@ mime_insert_all_headers(char            **body,
 static void
 mime_insert_normal_headers(char             **body,
                            MimeHeaders      *headers,
-                           MSG_ComposeFormat  composeFormat,
+                           MSG_ComposeFormat composeFormat,
                            char             *mailcharset)
 {
   char *newBody = nullptr;
@@ -1088,9 +1089,151 @@ mime_insert_forwarded_message_headers(char            **body,
 }
 
 static void
-mime_parse_stream_complete (nsMIMESession *stream)
+convert_plaintext_body_to_html(char **body)
 {
-  mime_draft_data *mdd = (mime_draft_data *) stream->data_object;
+  // We need to convert the plain/text to HTML in order to escape any HTML markup.
+  nsCString escapedBody;
+  nsAppendEscapedHTML(nsDependentCString(*body), escapedBody);
+
+  nsCString newBody;
+  char *q = escapedBody.BeginWriting();
+  char *p;
+  int prevQuoteLevel = 0;
+  bool isFlowed = false;
+  bool haveSig = false;
+
+  // First detect whether this appears to be flowed or not.
+  p = q;
+  while (*p) {
+    // At worst we read the null byte terminator.
+    if (*p == ' ' && (*(p+1) == '\r' || *(p+1) == '\n')) {
+      // This looks flowed, but don't get fooled by a signature separator:
+      // --space
+      if (p-3 >= q && (*(p-3) == '\r' || *(p-3) == '\n') &&
+          *(p-2) == '-' && *(p-1) == '-') {
+        p++;
+        continue;
+      }
+      if (p-2 == q &&
+          *(p-2) == '-' && *(p-1) == '-') {
+        p++;
+        continue;
+      }
+      isFlowed = true;
+      break;
+    }
+    p++;
+  }
+
+  while (*q) {
+    p = q;
+    // Detect quotes. A quote character is a ">" which was escaped to &gt;.
+    // In non-flowed messages the quote character can be optionally followed by a space.
+    // Examples:
+    // Level 0
+    //  > Level 0 (with leading space)
+    // > Level 1
+    // >  > Level 1 (with leading space, note the two spaces between the quote characters)
+    // >> Level 2
+    // > > Level 2 (only when non-flowed, otherwise Level 1 with leading space)
+    // >>> Level 3
+    // > > >  Level 3 (with leading space, only when non-flowed, otherwise Level 1)
+    int quoteLevel = 0;
+    while (strncmp(p, "&gt;", 4) == 0) {
+      p += 4;
+      if (!isFlowed && *p == ' ')
+        p++;
+      quoteLevel++;
+    }
+
+    // Eat space following quote character, for non-flowed already eaten above.
+    if (quoteLevel > 0 && isFlowed && *p == ' ')
+      p++;
+
+    // Close any open signatures if we find a quote. Strange, that shouldn't happen.
+    if (quoteLevel > 0 && haveSig) {
+      newBody.AppendLiteral("</pre>");
+      haveSig = false;
+    }
+    if (quoteLevel > prevQuoteLevel) {
+      while (prevQuoteLevel < quoteLevel) {
+        if (isFlowed)
+          newBody.AppendLiteral("<blockquote type=\"cite\">");
+        else
+          newBody.AppendLiteral("<blockquote type=\"cite\"><pre wrap class=\"moz-quote-pre\">");
+        prevQuoteLevel++;
+      }
+    } else if (quoteLevel < prevQuoteLevel) {
+      while (prevQuoteLevel > quoteLevel) {
+        if (isFlowed)
+          newBody.AppendLiteral("</blockquote>");
+        else
+          newBody.AppendLiteral("</pre></blockquote>");
+        prevQuoteLevel--;
+      }
+    }
+    // Position after the quote.
+    q = p;
+
+    // Detect signature.
+    bool forceBR = false;
+    if (quoteLevel == 0) {
+      if (strncmp(q, "-- \r", 4) == 0 || strncmp(q, "-- \n", 4) == 0) {
+        haveSig = true;
+        forceBR = true;
+        newBody.AppendLiteral("<pre class=\"moz-signature\">");
+      }
+    }
+
+    bool seenSpace = false;
+    while (*p && *p != '\r' && *p != '\n') {
+      seenSpace = (*p == ' ');
+      p++;
+      continue;
+    }
+    if (!*p) {
+      // We're at the end of the string.
+      if (p > q) {
+        // Copy last bit over.
+        newBody.Append(q);
+      }
+      break;
+    }
+    if (*p == '\r' && *(p+1) == '\n') { // At worst we read the null byte terminator.
+      // Skip the CR in CRLF.
+      *p = 0; // don't copy skipped \r.
+      p++;
+    }
+    *p = 0;
+    newBody.Append(q);
+    if (!isFlowed || !seenSpace || forceBR)
+      newBody.AppendLiteral("<br>");
+    q = p + 1;
+  }
+
+  // Close all open quotes.
+  while (prevQuoteLevel > 0) {
+    if (isFlowed)
+      newBody.AppendLiteral("</blockquote>");
+    else
+      newBody.AppendLiteral("</pre></blockquote>");
+    prevQuoteLevel--;
+  }
+
+  // Close any open signatures.
+  if (haveSig) {
+    newBody.AppendLiteral("</pre>");
+    haveSig = false;
+  }
+
+  PR_Free(*body);
+  *body = ToNewCString(newBody);
+}
+
+static void
+mime_parse_stream_complete(nsMIMESession *stream)
+{
+  mime_draft_data *mdd = (mime_draft_data *)stream->data_object;
   nsCOMPtr<nsIMsgCompFields> fields;
   int htmlAction = 0;
   int lineWidth = 0;
@@ -1121,7 +1264,7 @@ mime_parse_stream_complete (nsMIMESession *stream)
   bool bodyAsAttachment = false;
   bool charsetOverride = false;
 
-  NS_ASSERTION (mdd, "null mime draft data");
+  NS_ASSERTION(mdd, "null mime draft data");
 
   if (!mdd) return;
 
@@ -1129,8 +1272,8 @@ mime_parse_stream_complete (nsMIMESession *stream)
   {
     int status;
 
-    status = mdd->obj->clazz->parse_eof ( mdd->obj, false );
-    mdd->obj->clazz->parse_end( mdd->obj, status < 0 ? true : false );
+    status = mdd->obj->clazz->parse_eof(mdd->obj, false);
+    mdd->obj->clazz->parse_end(mdd->obj, status < 0 ? true : false);
 
     // RICHIE
     // We need to figure out how to pass the forwarded flag along with this
@@ -1139,8 +1282,8 @@ mime_parse_stream_complete (nsMIMESession *stream)
     //forward_inline = (mdd->format_out != FO_CMDLINE_ATTACHMENTS);
     forward_inline = mdd->forwardInline;
 
-    NS_ASSERTION ( mdd->options == mdd->obj->options, "mime draft options not same as obj->options" );
-    mime_free (mdd->obj);
+    NS_ASSERTION(mdd->options == mdd->obj->options, "mime draft options not same as obj->options");
+    mime_free(mdd->obj);
     mdd->obj = 0;
     if (mdd->options)
     {
@@ -1158,8 +1301,8 @@ mime_parse_stream_complete (nsMIMESession *stream)
     }
     if (mdd->stream)
     {
-      mdd->stream->complete ((nsMIMESession *)mdd->stream->data_object);
-      PR_Free( mdd->stream );
+      mdd->stream->complete((nsMIMESession *)mdd->stream->data_object);
+      PR_Free(mdd->stream);
       mdd->stream = 0;
     }
   }
@@ -1173,7 +1316,7 @@ mime_parse_stream_complete (nsMIMESession *stream)
   //
   // time to bring up the compose windows with all the info gathered
   //
-  if ( mdd->headers )
+  if (mdd->headers)
   {
     subj = MimeHeaders_get(mdd->headers, HEADER_SUBJECT,  false, false);
     if (forward_inline)
@@ -1185,8 +1328,7 @@ mime_parse_stream_complete (nsMIMESession *stream)
         if (NS_SUCCEEDED(rv))
         {
           nsAutoCString fwdPrefix;
-          prefBranch->GetCharPref("mail.forward_subject_prefix",
-                                  getter_Copies(fwdPrefix));
+          prefBranch->GetCharPref("mail.forward_subject_prefix", fwdPrefix);
           char *newSubj = PR_smprintf("%s: %s", !fwdPrefix.IsEmpty() ?
                                                 fwdPrefix.get(): "Fwd", subj);
           if (newSubj)
@@ -1236,7 +1378,7 @@ mime_parse_stream_complete (nsMIMESession *stream)
     }
 
 
-    CreateCompositionFields( from, repl, to, cc, bcc, fcc, grps, foll,
+    CreateCompositionFields(from, repl, to, cc, bcc, fcc, grps, foll,
       org, subj, refs, priority, news_host,
       mdd->mailcharset,
       getter_AddRefs(fields));
@@ -1305,15 +1447,15 @@ mime_parse_stream_complete (nsMIMESession *stream)
 
   // identity to prefer when opening the message in the compose window?
     identityKey = MimeHeaders_get(mdd->headers, HEADER_X_MOZILLA_IDENTITY_KEY, false, false);
-    if ( identityKey && *identityKey )
+    if (identityKey && *identityKey)
     {
         nsresult rv = NS_OK;
-        nsCOMPtr< nsIMsgAccountManager > accountManager =
-                do_GetService( NS_MSGACCOUNTMANAGER_CONTRACTID, &rv );
-        if ( NS_SUCCEEDED(rv) && accountManager )
+        nsCOMPtr<nsIMsgAccountManager> accountManager =
+                do_GetService(NS_MSGACCOUNTMANAGER_CONTRACTID, &rv);
+        if (NS_SUCCEEDED(rv) && accountManager)
         {
-            nsCOMPtr< nsIMsgIdentity > overrulingIdentity;
-            rv = accountManager->GetIdentity( nsDependentCString(identityKey), getter_AddRefs( overrulingIdentity ) );
+            nsCOMPtr<nsIMsgIdentity> overrulingIdentity;
+            rv = accountManager->GetIdentity(nsDependentCString(identityKey), getter_AddRefs(overrulingIdentity));
 
             if (NS_SUCCEEDED(rv) && overrulingIdentity) {
                 mdd->identity = overrulingIdentity;
@@ -1327,9 +1469,9 @@ mime_parse_stream_complete (nsMIMESession *stream)
       MSG_ComposeFormat composeFormat = nsIMsgCompFormat::Default;
       if (!mdd->messageBody->m_type.IsEmpty())
       {
-        if(mdd->messageBody->m_type.Find("text/html", CaseInsensitiveCompare) != -1)
+        if(mdd->messageBody->m_type.Find("text/html", /* ignoreCase = */ true) != -1)
           composeFormat = nsIMsgCompFormat::HTML;
-        else if (mdd->messageBody->m_type.Find("text/plain", CaseInsensitiveCompare) != -1 ||
+        else if (mdd->messageBody->m_type.Find("text/plain", /* ignoreCase = */ true) != -1 ||
                  mdd->messageBody->m_type.LowerCaseEqualsLiteral("text"))
           composeFormat = nsIMsgCompFormat::PlainText;
         else
@@ -1340,7 +1482,6 @@ mime_parse_stream_complete (nsMIMESession *stream)
         composeFormat = nsIMsgCompFormat::PlainText;
 
       char *body = nullptr;
-      uint32_t bodyLen = 0;
 
       if (!bodyAsAttachment && mdd->messageBody->m_tmpFile)
       {
@@ -1350,6 +1491,7 @@ mime_parse_stream_complete (nsMIMESession *stream)
         mdd->messageBody->m_tmpFile = do_QueryInterface(tempFileCopy);
         tempFileCopy = nullptr;
         mdd->messageBody->m_tmpFile->GetFileSize(&fileSize);
+        uint32_t bodyLen = 0;
 
         // The stream interface can only read up to 4GB (32bit uint).
         // It is highly unlikely to encounter a body lager than that limit,
@@ -1361,10 +1503,10 @@ mime_parse_stream_complete (nsMIMESession *stream)
         }
         if (body)
         {
-          memset (body, 0, bodyLen+1);
+          memset(body, 0, bodyLen+1);
 
           uint32_t bytesRead;
-          nsCOMPtr <nsIInputStream> inputStream;
+          nsCOMPtr<nsIInputStream> inputStream;
 
           nsresult rv = NS_NewLocalFileInputStream(getter_AddRefs(inputStream), mdd->messageBody->m_tmpFile);
           if (NS_FAILED(rv))
@@ -1378,7 +1520,7 @@ mime_parse_stream_complete (nsMIMESession *stream)
           char *mimeCharset = nullptr;
           // Get a charset from the header if no override is set.
           if (!charsetOverride)
-            mimeCharset = MimeHeaders_get_parameter (mdd->messageBody->m_type.get(), "charset", nullptr, nullptr);
+            mimeCharset = MimeHeaders_get_parameter(mdd->messageBody->m_type.get(), "charset", nullptr, nullptr);
           // If no charset is specified in the header then use the default.
           char *bodyCharset = mimeCharset ? mimeCharset : mdd->mailcharset;
           if (bodyCharset)
@@ -1414,28 +1556,7 @@ mime_parse_stream_complete (nsMIMESession *stream)
             if (body && composeFormat == nsIMsgCompFormat::PlainText)
             {
               // ... but the message body is currently plain text.
-
-              //We need to convert the plain/text to HTML in order to escape any HTML markup
-              char *escapedBody = MsgEscapeHTML(body);
-              if (escapedBody)
-              {
-                PR_Free(body);
-                body = escapedBody;
-                bodyLen = strlen(body);
-              }
-
-               //+13 chars for <pre> & </pre> tags and CRLF
-              uint32_t newbodylen = bodyLen + 14;
-              char* newbody = (char *)PR_MALLOC (newbodylen);
-              if (newbody)
-              {
-                *newbody = 0;
-                PL_strcatn(newbody, newbodylen, "<PRE>");
-                PL_strcatn(newbody, newbodylen, body);
-                PL_strcatn(newbody, newbodylen, "</PRE>" CRLF);
-                PR_Free(body);
-                body = newbody;
-              }
+              convert_plaintext_body_to_html(&body);
             }
             // Body is now HTML, set the format too (so headers are inserted in
             // correct format).
@@ -1460,6 +1581,67 @@ mime_parse_stream_complete (nsMIMESession *stream)
 
       }
 
+      MSG_ComposeType msgComposeType = 0;  // Keep compilers happy.
+      if (mdd->format_out == nsMimeOutput::nsMimeMessageEditorTemplate)
+      {
+        if (PL_strstr(mdd->url_name, "&redirect=true"))
+          msgComposeType = nsIMsgCompType::Redirect;
+        else if (PL_strstr(mdd->url_name, "&editasnew=true"))
+          msgComposeType = nsIMsgCompType::EditAsNew;
+        else
+          msgComposeType = nsIMsgCompType::Template;
+      }
+
+      if (body && msgComposeType == nsIMsgCompType::EditAsNew)
+      {
+        // When editing as new, we respect the identities preferred format
+        // which can be overridden.
+        if (mdd->identity)
+        {
+          bool identityComposeHTML;
+          mdd->identity->GetComposeHtml(&identityComposeHTML);
+
+          if (composeFormat == nsIMsgCompFormat::HTML &&
+              identityComposeHTML == mdd->overrideComposeFormat)
+          {
+            // We we have HTML:
+            // If they want HTML and they want to override it (true == true)
+            // or they don't want HTML and they don't want to override it
+            // (false == false), then convert. Conversion happens below.
+            convertToPlainText = true;
+            composeFormat = nsIMsgCompFormat::PlainText;
+          }
+          else if (composeFormat == nsIMsgCompFormat::PlainText &&
+                   identityComposeHTML != mdd->overrideComposeFormat)
+          {
+            // We have plain text:
+            // If they want HTML and they don't want to override it (true != false)
+            // or they don't want HTML and they want to override it
+            // (false != true), then convert.
+            convert_plaintext_body_to_html(&body);
+            composeFormat = nsIMsgCompFormat::HTML;
+          }
+        }
+      }
+      else if (body && mdd->overrideComposeFormat &&
+               (msgComposeType == nsIMsgCompType::Template ||
+                !mdd->forwardInline)) // Draft processing.
+      {
+        // When using a template and overriding, the user gets the
+        // "other" format.
+        if (composeFormat == nsIMsgCompFormat::PlainText)
+        {
+          convert_plaintext_body_to_html(&body);
+          composeFormat = nsIMsgCompFormat::HTML;
+        }
+        else
+        {
+          // Conversion happens below.
+          convertToPlainText = true;
+          composeFormat = nsIMsgCompFormat::PlainText;
+        }
+      }
+
       // convert from UTF-8 to UTF-16
       if (body)
       {
@@ -1474,10 +1656,9 @@ mime_parse_stream_complete (nsMIMESession *stream)
       //
       if (mdd->format_out == nsMimeOutput::nsMimeMessageEditorTemplate)
       {
-        MSG_ComposeType msgComposeType = PL_strstr(mdd->url_name,
-                                                   "&redirect=true") ?
-                                         nsIMsgCompType::Redirect :
-                                         nsIMsgCompType::Template;
+        if (convertToPlainText)
+          fields->ConvertBodyToPlainText();
+
         CreateTheComposeWindow(fields, newAttachData, msgComposeType,
                                composeFormat, mdd->identity,
                                mdd->originalMsgURI, mdd->origMsgHdr);
@@ -1505,6 +1686,8 @@ mime_parse_stream_complete (nsMIMESession *stream)
         }
         else
         {
+          if (convertToPlainText)
+            fields->ConvertBodyToPlainText();
           fields->SetDraftId(mdd->url_name);
           CreateTheComposeWindow(fields, newAttachData, nsIMsgCompType::Draft, composeFormat, mdd->identity, mdd->originalMsgURI, mdd->origMsgHdr);
         }
@@ -1547,7 +1730,7 @@ mime_parse_stream_complete (nsMIMESession *stream)
   }
   else
   {
-    CreateCompositionFields( from, repl, to, cc, bcc, fcc, grps, foll,
+    CreateCompositionFields(from, repl, to, cc, bcc, fcc, grps, foll,
       org, subj, refs, priority, news_host,
       mdd->mailcharset,
       getter_AddRefs(fields));
@@ -1555,8 +1738,8 @@ mime_parse_stream_complete (nsMIMESession *stream)
       CreateTheComposeWindow(fields, newAttachData, nsIMsgCompType::New, nsIMsgCompFormat::Default, mdd->identity, nullptr, mdd->origMsgHdr);
   }
 
-  if ( mdd->headers )
-    MimeHeaders_free ( mdd->headers );
+  if (mdd->headers)
+    MimeHeaders_free(mdd->headers);
 
   //
   // Free the original attachment structure...
@@ -1602,10 +1785,10 @@ mime_parse_stream_complete (nsMIMESession *stream)
 }
 
 static void
-mime_parse_stream_abort (nsMIMESession *stream, int status )
+mime_parse_stream_abort(nsMIMESession *stream, int status)
 {
-  mime_draft_data *mdd = (mime_draft_data *) stream->data_object;
-  NS_ASSERTION (mdd, "null mime draft data");
+  mime_draft_data *mdd = (mime_draft_data *)stream->data_object;
+  NS_ASSERTION(mdd, "null mime draft data");
 
   if (!mdd)
     return;
@@ -1614,12 +1797,12 @@ mime_parse_stream_abort (nsMIMESession *stream, int status )
   {
     int status=0;
 
-    if ( !mdd->obj->closed_p )
-      status = mdd->obj->clazz->parse_eof ( mdd->obj, true );
-    if ( !mdd->obj->parsed_p )
-      mdd->obj->clazz->parse_end( mdd->obj, true );
+    if (!mdd->obj->closed_p)
+      status = mdd->obj->clazz->parse_eof(mdd->obj, true);
+    if (!mdd->obj->parsed_p)
+      mdd->obj->clazz->parse_end(mdd->obj, true);
 
-    NS_ASSERTION ( mdd->options == mdd->obj->options, "draft display options not same as mime obj" );
+    NS_ASSERTION(mdd->options == mdd->obj->options, "draft display options not same as mime obj");
     mime_free (mdd->obj);
     mdd->obj = 0;
     if (mdd->options)
@@ -1630,52 +1813,52 @@ mime_parse_stream_abort (nsMIMESession *stream, int status )
 
     if (mdd->stream)
     {
-      mdd->stream->abort ((nsMIMESession *)mdd->stream->data_object, status);
-      PR_Free( mdd->stream );
+      mdd->stream->abort((nsMIMESession *)mdd->stream->data_object, status);
+      PR_Free(mdd->stream);
       mdd->stream = 0;
     }
   }
 
-  if ( mdd->headers )
-    MimeHeaders_free (mdd->headers);
+  if (mdd->headers)
+    MimeHeaders_free(mdd->headers);
 
 
   mime_free_attachments(mdd->attachments);
 
   PR_FREEIF(mdd->mailcharset);
 
-  PR_Free (mdd);
+  PR_Free(mdd);
 }
 
 static int
-make_mime_headers_copy ( void *closure, MimeHeaders *headers )
+make_mime_headers_copy(void *closure, MimeHeaders *headers)
 {
-  mime_draft_data *mdd = (mime_draft_data *) closure;
+  mime_draft_data *mdd = (mime_draft_data *)closure;
 
-  NS_ASSERTION ( mdd && headers, "null mime draft data and/or headers" );
+  NS_ASSERTION(mdd && headers, "null mime draft data and/or headers");
 
-  if ( !mdd || ! headers )
+  if (!mdd || ! headers)
     return 0;
 
-  NS_ASSERTION ( mdd->headers == NULL , "non null mime draft data headers");
+  NS_ASSERTION(mdd->headers == NULL , "non null mime draft data headers");
 
-  mdd->headers = MimeHeaders_copy ( headers );
+  mdd->headers = MimeHeaders_copy(headers);
   mdd->options->done_parsing_outer_headers = true;
 
   return 0;
 }
 
 int
-mime_decompose_file_init_fn ( void *stream_closure, MimeHeaders *headers )
+mime_decompose_file_init_fn(void *stream_closure, MimeHeaders *headers)
 {
-  mime_draft_data *mdd = (mime_draft_data *) stream_closure;
+  mime_draft_data *mdd = (mime_draft_data *)stream_closure;
   nsMsgAttachedFile *newAttachment = 0;
   int nAttachments = 0;
   //char *hdr_value = NULL;
   char *parm_value = NULL;
   bool creatingMsgBody = true;
 
-  NS_ASSERTION (mdd && headers, "null mime draft data and/or headers");
+  NS_ASSERTION(mdd && headers, "null mime draft data and/or headers");
   if (!mdd || !headers)
     return -1;
 
@@ -1730,24 +1913,24 @@ mime_decompose_file_init_fn ( void *stream_closure, MimeHeaders *headers )
   char *contLoc = nullptr;
 
   newAttachment->m_realName.Adopt(MimeHeaders_get_name(headers, mdd->options));
-  contLoc = MimeHeaders_get( headers, HEADER_CONTENT_LOCATION, false, false );
+  contLoc = MimeHeaders_get(headers, HEADER_CONTENT_LOCATION, false, false);
   if (!contLoc)
-      contLoc = MimeHeaders_get( headers, HEADER_CONTENT_BASE, false, false );
+      contLoc = MimeHeaders_get(headers, HEADER_CONTENT_BASE, false, false);
 
   if (!contLoc && !newAttachment->m_realName.IsEmpty())
     workURLSpec = ToNewCString(newAttachment->m_realName);
-  if ( (contLoc) && (!workURLSpec) )
+  if (contLoc && !workURLSpec)
     workURLSpec = strdup(contLoc);
 
   PR_FREEIF(contLoc);
 
   mdd->curAttachment = newAttachment;
-  newAttachment->m_type.Adopt(MimeHeaders_get ( headers, HEADER_CONTENT_TYPE, false, false ));
+  newAttachment->m_type.Adopt(MimeHeaders_get(headers, HEADER_CONTENT_TYPE, false, false));
 
   //
   // This is to handle the degenerated Apple Double attachment.
   //
-  parm_value = MimeHeaders_get( headers, HEADER_CONTENT_TYPE, false, false );
+  parm_value = MimeHeaders_get(headers, HEADER_CONTENT_TYPE, false, false);
   if (parm_value)
   {
     char *boundary = NULL;
@@ -1767,10 +1950,10 @@ mime_decompose_file_init_fn ( void *stream_closure, MimeHeaders *headers )
   }
 
   newAttachment->m_size = 0;
-  newAttachment->m_encoding.Adopt(MimeHeaders_get (headers, HEADER_CONTENT_TRANSFER_ENCODING,
-                                                   false, false));
+  newAttachment->m_encoding.Adopt(MimeHeaders_get(headers, HEADER_CONTENT_TRANSFER_ENCODING,
+                                                  false, false));
   newAttachment->m_description.Adopt(MimeHeaders_get(headers, HEADER_CONTENT_DESCRIPTION,
-                                                     false, false ));
+                                                     false, false));
   //
   // If we came up empty for description or the orig URL, we should do something about it.
   //
@@ -1797,20 +1980,20 @@ mime_decompose_file_init_fn ( void *stream_closure, MimeHeaders *headers )
     return 0;
   }
 
-  nsCOMPtr <nsIFile> tmpFile = nullptr;
+  nsCOMPtr<nsIFile> tmpFile = nullptr;
   {
     // Let's build a temp file with an extension based on the content-type: nsmail.<extension>
 
-    nsAutoCString  newAttachName ("nsmail");
+    nsAutoCString newAttachName("nsmail");
     bool extensionAdded = false;
     // the content type may contain a charset. i.e. text/html; ISO-2022-JP...we want to strip off the charset
     // before we ask the mime service for a mime info for this content type.
-    nsAutoCString contentType (newAttachment->m_type);
+    nsAutoCString contentType(newAttachment->m_type);
     int32_t pos = contentType.FindChar(';');
     if (pos > 0)
       contentType.SetLength(pos);
-    nsresult  rv = NS_OK;
-    nsCOMPtr<nsIMIMEService> mimeFinder (do_GetService(NS_MIMESERVICE_CONTRACTID, &rv));
+    nsresult rv = NS_OK;
+    nsCOMPtr<nsIMIMEService> mimeFinder(do_GetService(NS_MIMESERVICE_CONTRACTID, &rv));
     if (NS_SUCCEEDED(rv) && mimeFinder)
     {
       nsAutoCString fileExtension;
@@ -1818,7 +2001,7 @@ mime_decompose_file_init_fn ( void *stream_closure, MimeHeaders *headers )
 
       if (NS_SUCCEEDED(rv) && !fileExtension.IsEmpty())
       {
-        newAttachName.Append(".");
+        newAttachName.Append('.');
         newAttachName.Append(fileExtension);
         extensionAdded = true;
       }
@@ -1826,7 +2009,7 @@ mime_decompose_file_init_fn ( void *stream_closure, MimeHeaders *headers )
 
     if (!extensionAdded)
     {
-      newAttachName.Append(".tmp");
+      newAttachName.AppendLiteral(".tmp");
     }
 
     nsMsgCreateTempFile(newAttachName.get(), getter_AddRefs(tmpFile));
@@ -1886,7 +2069,7 @@ mime_decompose_file_init_fn ( void *stream_closure, MimeHeaders *headers )
     {
       mdd->decoder_data = fn (/* The (MimeConverterOutputCallback) cast is to
                                  turn the `void' argument into `MimeObject'. */
-                              ((MimeConverterOutputCallback) dummy_file_write),
+                              ((MimeConverterOutputCallback)dummy_file_write),
                               mdd->tmpFileStream);
       if (!mdd->decoder_data)
         return MIME_OUT_OF_MEMORY;
@@ -1897,18 +2080,18 @@ mime_decompose_file_init_fn ( void *stream_closure, MimeHeaders *headers )
 }
 
 int
-mime_decompose_file_output_fn (const char     *buf,
-                               int32_t  size,
-                               void     *stream_closure )
+mime_decompose_file_output_fn(const char *buf,
+                              int32_t size,
+                              void *stream_closure)
 {
-  mime_draft_data *mdd = (mime_draft_data *) stream_closure;
+  mime_draft_data *mdd = (mime_draft_data *)stream_closure;
   int ret = 0;
 
-  NS_ASSERTION (mdd && buf, "missing mime draft data and/or buf");
+  NS_ASSERTION(mdd && buf, "missing mime draft data and/or buf");
   if (!mdd || !buf) return -1;
   if (!size) return 0;
 
-  if ( !mdd->tmpFileStream )
+  if (!mdd->tmpFileStream)
     return 0;
 
   if (mdd->decoder_data) {
@@ -1930,14 +2113,14 @@ mime_decompose_file_output_fn (const char     *buf,
 }
 
 int
-mime_decompose_file_close_fn ( void *stream_closure )
+mime_decompose_file_close_fn(void *stream_closure)
 {
-  mime_draft_data *mdd = (mime_draft_data *) stream_closure;
+  mime_draft_data *mdd = (mime_draft_data *)stream_closure;
 
   if (!mdd)
     return -1;
 
-  if ( --mdd->options->decompose_init_count > 0 )
+  if (--mdd->options->decompose_init_count > 0)
       return 0;
 
   if (mdd->decoder_data) {
@@ -1972,7 +2155,7 @@ mime_bridge_create_draft_stream(
   mime_draft_data  *mdd = nullptr;
   MimeObject              *obj = nullptr;
 
-  if ( !uri )
+  if (!uri)
     return nullptr;
 
   mdd = new mime_draft_data;
@@ -1980,7 +2163,7 @@ mime_bridge_create_draft_stream(
     return nullptr;
 
   nsAutoCString turl;
-  nsCOMPtr <nsIMsgMessageService> msgService;
+  nsCOMPtr<nsIMsgMessageService> msgService;
   nsCOMPtr<nsIURI> aURL;
   nsAutoCString urlString;
   nsresult rv;
@@ -2016,7 +2199,7 @@ mime_bridge_create_draft_stream(
   newPluginObj2->GetOriginalMsgURI(&mdd->originalMsgURI);
   newPluginObj2->GetOrigMsgHdr(getter_AddRefs(mdd->origMsgHdr));
   mdd->format_out = format_out;
-  mdd->options = new  MimeDisplayOptions ;
+  mdd->options = new MimeDisplayOptions ;
   if (!mdd->options)
     goto FAIL;
 
@@ -2043,15 +2226,15 @@ mime_bridge_create_draft_stream(
   mdd->options->decrypt_p = true;
 #endif /* ENABLE_SMIME */
 
-  obj = mime_new ( (MimeObjectClass *) &mimeMessageClass, (MimeHeaders *) NULL, MESSAGE_RFC822 );
-  if ( !obj )
+  obj = mime_new((MimeObjectClass *)&mimeMessageClass, (MimeHeaders *)NULL, MESSAGE_RFC822);
+  if (!obj)
     goto FAIL;
 
   obj->options = mdd->options;
   mdd->obj = obj;
 
-  stream = PR_NEWZAP ( nsMIMESession );
-  if ( !stream )
+  stream = PR_NEWZAP(nsMIMESession);
+  if (!stream)
     goto FAIL;
 
   stream->name = "MIME To Draft Converter Stream";
@@ -2060,10 +2243,10 @@ mime_bridge_create_draft_stream(
   stream->put_block = mime_parse_stream_write;
   stream->data_object = mdd;
 
-  status = obj->clazz->initialize ( obj );
-  if ( status >= 0 )
-    status = obj->clazz->parse_begin ( obj );
-  if ( status < 0 )
+  status = obj->clazz->initialize(obj);
+  if (status >= 0)
+    status = obj->clazz->parse_begin(obj);
+  if (status < 0)
     goto FAIL;
 
   return stream;
@@ -2075,10 +2258,10 @@ FAIL:
     PR_Free(mdd->originalMsgURI);
     if (mdd->options)
       delete mdd->options;
-    PR_Free ( mdd );
+    PR_Free(mdd);
   }
-  PR_Free ( stream );
-  PR_Free ( obj );
+  PR_Free(stream);
+  PR_Free(obj);
 
   return nullptr;
 }

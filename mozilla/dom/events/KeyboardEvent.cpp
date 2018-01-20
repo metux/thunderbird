@@ -188,14 +188,10 @@ KeyboardEvent::CharCode()
   }
 
   switch (mEvent->mMessage) {
-  case eBeforeKeyDown:
   case eKeyDown:
   case eKeyDownOnPlugin:
-  case eAfterKeyDown:
-  case eBeforeKeyUp:
   case eKeyUp:
   case eKeyUpOnPlugin:
-  case eAfterKeyUp:
     return 0;
   case eKeyPress:
   case eAccessKeyNotFound:
@@ -237,14 +233,10 @@ KeyboardEvent::Which()
   }
 
   switch (mEvent->mMessage) {
-    case eBeforeKeyDown:
     case eKeyDown:
     case eKeyDownOnPlugin:
-    case eAfterKeyDown:
-    case eBeforeKeyUp:
     case eKeyUp:
     case eKeyUpOnPlugin:
-    case eAfterKeyUp:
       return KeyCode();
     case eKeyPress:
       //Special case for 4xp bug 62878.  Try to make value of which
@@ -347,6 +339,30 @@ KeyboardEvent::InitKeyEvent(const nsAString& aType,
   keyEvent->mCharCode = aCharCode;
 
   return NS_OK;
+}
+
+void
+KeyboardEvent::InitKeyboardEvent(const nsAString& aType,
+                                 bool aCanBubble,
+                                 bool aCancelable,
+                                 nsGlobalWindowInner* aView,
+                                 const nsAString& aKey,
+                                 uint32_t aLocation,
+                                 bool aCtrlKey,
+                                 bool aAltKey,
+                                 bool aShiftKey,
+                                 bool aMetaKey,
+                                 ErrorResult& aRv)
+{
+  NS_ENSURE_TRUE_VOID(!mEvent->mFlags.mIsBeingDispatched);
+
+  UIEvent::InitUIEvent(aType, aCanBubble, aCancelable, aView, 0);
+
+  WidgetKeyboardEvent* keyEvent = mEvent->AsKeyboardEvent();
+  keyEvent->InitBasicModifiers(aCtrlKey, aAltKey, aShiftKey, aMetaKey);
+  keyEvent->mLocation = aLocation;
+  keyEvent->mKeyNameIndex = KEY_NAME_INDEX_USE_STRING;
+  keyEvent->mKeyValue = aKey;
 }
 
 } // namespace dom

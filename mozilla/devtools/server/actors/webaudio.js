@@ -3,35 +3,30 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-const {Cc, Ci, Cu, Cr} = require("chrome");
+/* global XPCNativeWrapper */
 
-const Services = require("Services");
+const { Cu, Cc, Ci } = require("chrome");
 
-const events = require("sdk/event/core");
-const promise = require("promise");
-const { on: systemOn, off: systemOff } = require("sdk/system/events");
 const protocol = require("devtools/shared/protocol");
 const { CallWatcherActor } = require("devtools/server/actors/call-watcher");
-const { CallWatcherFront } = require("devtools/shared/fronts/call-watcher");
 const { createValueGrip } = require("devtools/server/actors/object");
 const AutomationTimeline = require("./utils/automation-timeline");
-const { on, once, off, emit } = events;
-const { types, method, Arg, Option, RetVal, preEvent } = protocol;
 const {
   audionodeSpec,
-  webAudioSpec,
-  AUTOMATION_METHODS,
-  NODE_CREATION_METHODS,
-  NODE_ROUTING_METHODS,
+  webAudioSpec
 } = require("devtools/shared/specs/webaudio");
 const { WebAudioFront } = require("devtools/shared/fronts/webaudio");
+
+const observerService = Cc["@mozilla.org/observer-service;1"]
+                       .getService(Ci.nsIObserverService);
+
 const AUDIO_NODE_DEFINITION = require("devtools/server/actors/utils/audionodes.json");
 const ENABLE_AUTOMATION = false;
 const AUTOMATION_GRANULARITY = 2000;
 const AUTOMATION_GRANULARITY_MAX = 6000;
 
 const AUDIO_GLOBALS = [
-  "AudioContext", "AudioNode", "AudioParam"
+  "BaseAudioContext", "AudioContext", "AudioNode", "AudioParam"
 ];
 
 /**
@@ -45,7 +40,8 @@ var AudioNodeActor = exports.AudioNodeActor = protocol.ActorClassWithSpec(audion
     }
 
     return {
-      actor: this.actorID, // actorID is set when this is added to a pool
+      // actorID is set when this is added to a pool
+      actor: this.actorID,
       type: this.type,
       source: this.source,
       bypassable: this.bypassable,
@@ -117,9 +113,9 @@ var AudioNodeActor = exports.AudioNodeActor = protocol.ActorClassWithSpec(audion
 
   /**
    * Takes a boolean, either enabling or disabling the "passThrough" option
-   * on an AudioNode. If a node is bypassed, an effects processing node (like gain, biquad),
-   * will allow the audio stream to pass through the node, unaffected. Returns
-   * the bypass state of the node.
+   * on an AudioNode. If a node is bypassed, an effects processing node (like gain,
+   * biquad), will allow the audio stream to pass through the node, unaffected.
+   * Returns the bypass state of the node.
    *
    * @param Boolean enable
    *        Whether the bypass value should be set on or off.
@@ -129,7 +125,7 @@ var AudioNodeActor = exports.AudioNodeActor = protocol.ActorClassWithSpec(audion
     let node = this.node.get();
 
     if (node === null) {
-      return;
+      return undefined;
     }
 
     if (this.bypassable) {
@@ -159,8 +155,7 @@ var AudioNodeActor = exports.AudioNodeActor = protocol.ActorClassWithSpec(audion
       if (isAudioParam(node, param)) {
         node[param].value = value;
         this.automation[param].setValue(value);
-      }
-      else {
+      } else {
         node[param] = value;
       }
       return undefined;
@@ -239,6 +234,7 @@ var AudioNodeActor = exports.AudioNodeActor = protocol.ActorClassWithSpec(audion
     } catch (e) {
       return constructError(e);
     }
+    return undefined;
   },
 
   /**
@@ -262,6 +258,7 @@ var AudioNodeActor = exports.AudioNodeActor = protocol.ActorClassWithSpec(audion
     } catch (e) {
       return constructError(e);
     }
+    return undefined;
   },
 
   /**
@@ -281,6 +278,7 @@ var AudioNodeActor = exports.AudioNodeActor = protocol.ActorClassWithSpec(audion
     } catch (e) {
       return constructError(e);
     }
+    return undefined;
   },
 
   getAutomationData: function (paramName) {
@@ -289,16 +287,15 @@ var AudioNodeActor = exports.AudioNodeActor = protocol.ActorClassWithSpec(audion
       return null;
     }
 
-    let events = timeline.events;
     let values = [];
     let i = 0;
 
     if (!timeline.events.length) {
-      return { events, values };
+      return { events: timeline.events, values };
     }
 
-    let firstEvent = events[0];
-    let lastEvent = events[timeline.events.length - 1];
+    let firstEvent = timeline.events[0];
+    let lastEvent = timeline.events[timeline.events.length - 1];
     // `setValueCurveAtTime` will have a duration value -- other
     // events will have duration of `0`.
     let timeDelta = (lastEvent.time + lastEvent.duration) - firstEvent.time;
@@ -322,7 +319,7 @@ var AudioNodeActor = exports.AudioNodeActor = protocol.ActorClassWithSpec(audion
       }
     }
 
-    return { events, values };
+    return { events: timeline.events, values };
   },
 
   /**
@@ -378,6 +375,7 @@ var AudioNodeActor = exports.AudioNodeActor = protocol.ActorClassWithSpec(audion
     } catch (e) {
       return constructError(e);
     }
+    return undefined;
   },
 
   /**
@@ -400,11 +398,11 @@ var AudioNodeActor = exports.AudioNodeActor = protocol.ActorClassWithSpec(audion
 });
 
 /**
- * The Web Audio Actor handles simple interaction with an AudioContext
+ * The Web Audio Actor handles simple interaction with an BaseAudioContext
  * high-level methods. After instantiating this actor, you'll need to set it
  * up by calling setup().
  */
-var WebAudioActor = exports.WebAudioActor = protocol.ActorClassWithSpec(webAudioSpec, {
+exports.WebAudioActor = protocol.ActorClassWithSpec(webAudioSpec, {
   initialize: function (conn, tabActor) {
     protocol.Actor.prototype.initialize.call(this, conn);
     this.tabActor = tabActor;
@@ -416,7 +414,6 @@ var WebAudioActor = exports.WebAudioActor = protocol.ActorClassWithSpec(webAudio
     // to the client in any way.
     this._nativeToActorID = new Map();
 
-    this._onDestroyNode = this._onDestroyNode.bind(this);
     this._onGlobalDestroyed = this._onGlobalDestroyed.bind(this);
     this._onGlobalCreated = this._onGlobalCreated.bind(this);
   },
@@ -470,15 +467,15 @@ var WebAudioActor = exports.WebAudioActor = protocol.ActorClassWithSpec(webAudio
     });
     // Bind to `window-ready` so we can reenable recording on the
     // call watcher
-    on(this.tabActor, "window-ready", this._onGlobalCreated);
+    this.tabActor.on("window-ready", this._onGlobalCreated);
     // Bind to the `window-destroyed` event so we can unbind events between
     // the global destruction and the `finalize` cleanup method on the actor.
-    on(this.tabActor, "window-destroyed", this._onGlobalDestroyed);
+    this.tabActor.on("window-destroyed", this._onGlobalDestroyed);
   },
 
   /**
-   * Invoked whenever an instrumented function is called, like an AudioContext
-   * method or an AudioNode method.
+   * Invoked whenever an instrumented function is called, like an
+   * BaseAudioContext method or an AudioNode method.
    */
   _onContentFunctionCall: function (functionCall) {
     let { name } = functionCall.details;
@@ -487,11 +484,9 @@ var WebAudioActor = exports.WebAudioActor = protocol.ActorClassWithSpec(webAudio
     // hook into the `connect` and `disconnect` methods
     if (WebAudioFront.NODE_ROUTING_METHODS.has(name)) {
       this._handleRoutingCall(functionCall);
-    }
-    else if (WebAudioFront.NODE_CREATION_METHODS.has(name)) {
+    } else if (WebAudioFront.NODE_CREATION_METHODS.has(name)) {
       this._handleCreationCall(functionCall);
-    }
-    else if (ENABLE_AUTOMATION && WebAudioFront.AUTOMATION_METHODS.has(name)) {
+    } else if (ENABLE_AUTOMATION && WebAudioFront.AUTOMATION_METHODS.has(name)) {
       this._handleAutomationCall(functionCall);
     }
   },
@@ -500,18 +495,16 @@ var WebAudioActor = exports.WebAudioActor = protocol.ActorClassWithSpec(webAudio
     let { caller, args, name } = functionCall.details;
     let source = caller;
     let dest = args[0];
-    let isAudioParam = dest ? getConstructorName(dest) === "AudioParam" : false;
+    let isAudioPar = dest ? getConstructorName(dest) === "AudioParam" : false;
 
     // audionode.connect(param)
-    if (name === "connect" && isAudioParam) {
+    if (name === "connect" && isAudioPar) {
       this._onConnectParam(source, dest);
-    }
-    // audionode.connect(node)
-    else if (name === "connect") {
+    } else if (name === "connect") {
+      // audionode.connect(node)
       this._onConnectNode(source, dest);
-    }
-    // audionode.disconnect()
-    else if (name === "disconnect") {
+    } else if (name === "disconnect") {
+      // audionode.disconnect()
       this._onDisconnectNode(source);
     }
   },
@@ -562,10 +555,16 @@ var WebAudioActor = exports.WebAudioActor = protocol.ActorClassWithSpec(webAudio
       return;
     }
     this._initialized = false;
-    systemOff("webaudio-node-demise", this._onDestroyNode);
 
-    off(this.tabActor, "window-destroyed", this._onGlobalDestroyed);
-    off(this.tabActor, "window-ready", this._onGlobalCreated);
+    try {
+      observerService.removeObserver(this, "webaudio-node-demise");
+    } catch (e) {
+      // Maybe we've shutdown already and it's too late to remove the observer. So avoid
+      // NS_ERROR_FAILURE errors with this silent try/catch.
+    }
+
+    this.tabActor.off("window-destroyed", this._onGlobalDestroyed);
+    this.tabActor.off("window-ready", this._onGlobalCreated);
     this.tabActor = null;
     this._nativeToActorID = null;
     this._callWatcher.eraseRecording();
@@ -626,8 +625,8 @@ var WebAudioActor = exports.WebAudioActor = protocol.ActorClassWithSpec(webAudio
    * Called on first audio node creation, signifying audio context usage
    */
   _onStartContext: function () {
-    systemOn("webaudio-node-demise", this._onDestroyNode);
-    emit(this, "start-context");
+    observerService.addObserver(this, "webaudio-node-demise");
+    this.emit("start-context");
   },
 
   /**
@@ -637,7 +636,7 @@ var WebAudioActor = exports.WebAudioActor = protocol.ActorClassWithSpec(webAudio
     let sourceActor = this._getActorByNativeID(source.id);
     let destActor = this._getActorByNativeID(dest.id);
 
-    emit(this, "connect-node", {
+    this.emit("connect-node", {
       source: sourceActor,
       dest: destActor
     });
@@ -649,7 +648,7 @@ var WebAudioActor = exports.WebAudioActor = protocol.ActorClassWithSpec(webAudio
   _onConnectParam: function (source, param) {
     let sourceActor = this._getActorByNativeID(source.id);
     let destActor = this._getActorByNativeID(param._parentID);
-    emit(this, "connect-param", {
+    this.emit("connect-param", {
       source: sourceActor,
       dest: destActor,
       param: param._paramName
@@ -661,7 +660,7 @@ var WebAudioActor = exports.WebAudioActor = protocol.ActorClassWithSpec(webAudio
    */
   _onDisconnectNode: function (node) {
     let actor = this._getActorByNativeID(node.id);
-    emit(this, "disconnect-node", actor);
+    this.emit("disconnect-node", actor);
   },
 
   /**
@@ -669,7 +668,7 @@ var WebAudioActor = exports.WebAudioActor = protocol.ActorClassWithSpec(webAudio
    */
   _onParamChange: function (node, param, value) {
     let actor = this._getActorByNativeID(node.id);
-    emit(this, "param-change", {
+    this.emit("param-change", {
       source: actor,
       param: param,
       value: value
@@ -681,24 +680,35 @@ var WebAudioActor = exports.WebAudioActor = protocol.ActorClassWithSpec(webAudio
    */
   _onCreateNode: function (node) {
     let actor = this._constructAudioNode(node);
-    emit(this, "create-node", actor);
+    this.emit("create-node", actor);
   },
 
-  /** Called when `webaudio-node-demise` is triggered,
-   * and emits the associated actor to the front if found.
+  /**
+   * Called by the ObserverService when webaudio-node-demise events are emitted.
    */
-  _onDestroyNode: function ({data}) {
-    // Cast to integer.
-    let nativeID = ~~data;
+  observe: function (subject, topic, data) {
+    switch (topic) {
+      case "webaudio-node-demise":
+        // Cast the data to an integer.
+        this._handleNodeDestroyed(~~data);
+        break;
+    }
+  },
 
-    let actor = this._getActorByNativeID(nativeID);
+  /**
+   * Handles `webaudio-node-demise` events. Emits the associated actor to the front if
+   * found.
+   * @param {Number} nodeNativeID The ID for the audio node.
+   */
+  _handleNodeDestroyed: function (nodeNativeID) {
+    let actor = this._getActorByNativeID(nodeNativeID);
 
     // If actorID exists, emit; in the case where we get demise
     // notifications for a document that no longer exists,
     // the mapping should not be found, so we do not emit an event.
     if (actor) {
-      this._nativeToActorID.delete(nativeID);
-      emit(this, "destroy-node", actor);
+      this._nativeToActorID.delete(nodeNativeID);
+      this.emit("destroy-node", actor);
     }
   },
 
@@ -722,7 +732,7 @@ var WebAudioActor = exports.WebAudioActor = protocol.ActorClassWithSpec(webAudio
    * Fired when an automation event is added to an AudioNode.
    */
   _onAutomationEvent: function ({node, paramName, eventName, args}) {
-    emit(this, "automation-event", {
+    this.emit("automation-event", {
       node: node,
       paramName: paramName,
       eventName: eventName,
@@ -743,7 +753,7 @@ var WebAudioActor = exports.WebAudioActor = protocol.ActorClassWithSpec(webAudio
     if (this._nativeToActorID) {
       this._nativeToActorID.clear();
     }
-    systemOff("webaudio-node-demise", this._onDestroyNode);
+    observerService.removeObserver(this, "webaudio-node-demise");
   }
 });
 
@@ -827,7 +837,8 @@ function createObjectGrip(value) {
  */
 function sanitizeAutomationArgs(args) {
   return args.reduce((newArgs, el) => {
-    newArgs.push(typeof el === "object" && getConstructorName(el) === "Float32Array" ? castToArray(el) : el);
+    let isArray = typeof el === "object" && getConstructorName(el) === "Float32Array";
+    newArgs.push(isArray ? castToArray(el) : el);
     return newArgs;
   }, []);
 }

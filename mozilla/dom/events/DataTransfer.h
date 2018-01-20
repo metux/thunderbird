@@ -18,6 +18,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/EventForwards.h"
+#include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/File.h"
 
 class nsINode;
@@ -60,6 +61,14 @@ public:
     return static_cast<DataTransfer*>(aArg);
   }
 
+  /// An enum which represents which "Drag Data Store Mode" the DataTransfer is
+  /// in according to the spec.
+  enum class Mode : uint8_t {
+    ReadWrite,
+    ReadOnly,
+    Protected,
+  };
+
 protected:
 
   // hide the default constructor
@@ -67,6 +76,7 @@ protected:
 
   // this constructor is used only by the Clone method to copy the fields as
   // needed to a new data transfer.
+  // NOTE: Do not call this method directly.
   DataTransfer(nsISupports* aParent,
                EventMessage aEventMessage,
                const uint32_t aEffectAllowed,
@@ -132,11 +142,10 @@ public:
     }
   }
 
-  void SetDragImage(Element& aElement, int32_t aX, int32_t aY,
-                    ErrorResult& aRv);
+  void SetDragImage(Element& aElement, int32_t aX, int32_t aY);
+  void UpdateDragImage(Element& aElement, int32_t aX, int32_t aY);
 
-  void GetTypes(nsTArray<nsString>& aTypes,
-                nsIPrincipal& aSubjectPrincipal) const;
+  void GetTypes(nsTArray<nsString>& aTypes, CallerType aCallerType) const;
 
   void GetData(const nsAString& aFormat, nsAString& aData,
                nsIPrincipal& aSubjectPrincipal,
@@ -178,6 +187,7 @@ public:
   }
 
   already_AddRefed<DOMStringList> MozTypesAt(uint32_t aIndex,
+                                             CallerType aCallerType,
                                              mozilla::ErrorResult& aRv) const;
 
   void MozClearDataAt(const nsAString& aFormat, uint32_t aIndex,
@@ -213,13 +223,23 @@ public:
     return mItems;
   }
 
-  // a readonly dataTransfer cannot have new data added or existing data
-  // removed. Only the dropEffect and effectAllowed may be modified.
-  bool IsReadOnly() const {
-    return mReadOnly;
+  // Returns the current "Drag Data Store Mode" of the DataTransfer. This
+  // determines what modifications may be performed on the DataTransfer, and
+  // what data may be read from it.
+  Mode GetMode() const {
+    return mMode;
   }
-  void SetReadOnly() {
-    mReadOnly = true;
+  void SetMode(Mode aMode);
+
+  // Helper method. Is true if the DataTransfer's mode is ReadOnly or Protected,
+  // which means that the DataTransfer cannot be modified.
+  bool IsReadOnly() const {
+    return mMode != Mode::ReadWrite;
+  }
+  // Helper method. Is true if the DataTransfer's mode is Protected, which means
+  // that DataTransfer type information may be read, but data may not be.
+  bool IsProtected() const {
+    return mMode == Mode::Protected;
   }
 
   int32_t ClipboardType() const {
@@ -250,6 +270,12 @@ public:
                           nsISupports** aSupports,
                           uint32_t* aLength) const;
 
+  // Disconnects the DataTransfer from the Drag Data Store. If the
+  // dom.dataTransfer.disconnect pref is enabled, this will clear the
+  // DataTransfer and set it to the `Protected` state, otherwise this method is
+  // a no-op.
+  void Disconnect();
+
   // clears all of the data
   void ClearAll();
 
@@ -277,6 +303,12 @@ public:
     return mDragImage;
   }
 
+  // This method makes a copy of the DataTransfer object, with a few properties
+  // changed, and the mode updated to reflect the correct mode for the given
+  // event. This method is used during the drag operation to generate the
+  // DataTransfer objects for each event after `dragstart`. Event objects will
+  // lazily clone the DataTransfer stored in the DragSession (which is a clone
+  // of the DataTransfer used in the `dragstart` event) when requested.
   nsresult Clone(nsISupports* aParent, EventMessage aEventMessage,
                  bool aUserCancelled, bool aIsCrossDomainSubFrameDrop,
                  DataTransfer** aResult);
@@ -294,6 +326,11 @@ public:
   // GetTypes being added or removed or changing item kinds.
   void TypesListMayHaveChanged();
 
+  // Testing method used to emulate internal DataTransfer management.
+  // NOTE: Please don't use this. See the comments in the webidl for more.
+  already_AddRefed<DataTransfer> MozCloneForEvent(const nsAString& aEvent,
+                                                  ErrorResult& aRv);
+
 protected:
 
   // caches text and uri-list data formats that exist in the drag service or
@@ -306,7 +343,7 @@ protected:
   void CacheExternalDragFormats();
 
   // caches the formats that exist in the clipboard
-  void CacheExternalClipboardFormats();
+  void CacheExternalClipboardFormats(bool aPlainTextOnly);
 
   FileList* GetFilesInternal(ErrorResult& aRv, nsIPrincipal* aSubjectPrincipal);
   nsresult GetDataAtInternal(const nsAString& aFormat, uint32_t aIndex,
@@ -342,9 +379,8 @@ protected:
   // Indicates the behavior of the cursor during drag operations
   bool mCursorState;
 
-  // readonly data transfers may not be modified except the drop effect and
-  // effect allowed.
-  bool mReadOnly;
+  // The current "Drag Data Store Mode" which the DataTransfer is in.
+  Mode mMode;
 
   // true for drags started without a data transfer, for example, those from
   // another application.

@@ -100,10 +100,35 @@ CacheStreamControlChild::SerializeStream(CacheReadStream* aReadStreamOut,
 {
   NS_ASSERT_OWNINGTHREAD(CacheStreamControlChild);
   MOZ_DIAGNOSTIC_ASSERT(aReadStreamOut);
-  MOZ_DIAGNOSTIC_ASSERT(aStream);
   UniquePtr<AutoIPCStream> autoStream(new AutoIPCStream(aReadStreamOut->stream()));
   autoStream->Serialize(aStream, Manager());
   aStreamCleanupList.AppendElement(Move(autoStream));
+}
+
+void
+CacheStreamControlChild::OpenStream(const nsID& aId, InputStreamResolver&& aResolver)
+{
+  NS_ASSERT_OWNINGTHREAD(CacheStreamControlChild);
+
+  if (mDestroyStarted) {
+    aResolver(nullptr);
+    return;
+  }
+
+  // If we are on a worker, then we need to hold it alive until the async
+  // IPC operation below completes.  While the IPC layer will trigger a
+  // rejection here in many cases, we must handle the case where the
+  // MozPromise resolve runnable is already in the event queue when the
+  // worker wants to shut down.
+  RefPtr<CacheWorkerHolder> holder = GetWorkerHolder();
+
+  SendOpenStream(aId)->Then(GetCurrentThreadSerialEventTarget(), __func__,
+  [aResolver, holder](const OptionalIPCStream& aOptionalStream) {
+    nsCOMPtr<nsIInputStream> stream = DeserializeIPCStream(aOptionalStream);
+    aResolver(Move(stream));
+  }, [aResolver, holder](PromiseRejectReason aReason) {
+    aResolver(nullptr);
+  });
 }
 
 void
@@ -138,20 +163,20 @@ CacheStreamControlChild::ActorDestroy(ActorDestroyReason aReason)
   RemoveWorkerHolder();
 }
 
-bool
+mozilla::ipc::IPCResult
 CacheStreamControlChild::RecvClose(const nsID& aId)
 {
   NS_ASSERT_OWNINGTHREAD(CacheStreamControlChild);
   CloseReadStreams(aId);
-  return true;
+  return IPC_OK();
 }
 
-bool
+mozilla::ipc::IPCResult
 CacheStreamControlChild::RecvCloseAll()
 {
   NS_ASSERT_OWNINGTHREAD(CacheStreamControlChild);
   CloseAllReadStreams();
-  return true;
+  return IPC_OK();
 }
 
 } // namespace cache

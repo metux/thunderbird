@@ -11,34 +11,29 @@ function initTest() {
     const searchTerm = "example";
     const dummyTerm = "elpmaxe";
 
-    var cm =  Components.classes["@mozilla.org/cookiemanager;1"]
-                        .getService(Components.interfaces.nsICookieManager);
-
     // delete all cookies (might be left over from other tests)
-    cm.removeAll();
+    Services.cookies.removeAll();
 
     // data for cookies
-    var vals = [[searchTerm+".com", dummyTerm, dummyTerm],           // match
-                [searchTerm+".org", dummyTerm, dummyTerm],           // match
-                [dummyTerm+".com", searchTerm, dummyTerm],           // match
-                [dummyTerm+".edu", searchTerm+dummyTerm, dummyTerm], // match
-                [dummyTerm+".net", dummyTerm, searchTerm],           // match
-                [dummyTerm+".org", dummyTerm, searchTerm+dummyTerm], // match
-                [dummyTerm+".int", dummyTerm, dummyTerm]];           // no match
+    var vals = [[searchTerm + ".com", dummyTerm, dummyTerm],           // match
+                [searchTerm + ".org", dummyTerm, dummyTerm],           // match
+                [dummyTerm + ".com", searchTerm, dummyTerm],           // match
+                [dummyTerm + ".edu", searchTerm + dummyTerm, dummyTerm], // match
+                [dummyTerm + ".net", dummyTerm, searchTerm],           // match
+                [dummyTerm + ".org", dummyTerm, searchTerm + dummyTerm], // match
+                [dummyTerm + ".int", dummyTerm, dummyTerm]]; // no match
 
     // matches must correspond to above data
     const matches = 6;
 
-    var ios = Components.classes["@mozilla.org/network/io-service;1"]
-                        .getService(Components.interfaces.nsIIOService);
     var cookieSvc = Components.classes["@mozilla.org/cookieService;1"]
                               .getService(Components.interfaces.nsICookieService);
     var v;
     // inject cookies
     for (v in vals) {
         let [host, name, value] = vals[v];
-        var cookieUri = ios.newURI("http://"+host, null, null);
-        cookieSvc.setCookieString(cookieUri, null, name+"="+value+";", null);
+        var cookieUri = Services.io.newURI("http://" + host);
+        cookieSvc.setCookieString(cookieUri, null, name + "=" + value + ";", null);
     }
 
     // open cookie manager
@@ -46,22 +41,18 @@ function initTest() {
                                 "Browser:Cookies", "", {});
 
     // when it has loaded, run actual tests
-    cmd.addEventListener("load", function() { executeSoon(function() { runTest(cmd, searchTerm, vals.length, matches); }); }, false);
+    cmd.addEventListener("load", function() { executeSoon(function() { runTest(cmd, searchTerm, vals.length, matches); }); });
 }
 
 function isDisabled(win, expectation) {
     var disabled = win.document.getElementById("removeAllCookies").disabled;
-    is(disabled, expectation, "Remove all cookies button has correct state: "+(expectation?"disabled":"enabled"));
+    is(disabled, expectation, "Remove all cookies button has correct state: " + (expectation ? "disabled" : "enabled"));
 }
 
 function runTest(win, searchTerm, cookies, matches) {
-    var cm =  Components.classes["@mozilla.org/cookiemanager;1"]
-                        .getService(Components.interfaces.nsICookieManager);
-
-
     // number of cookies should match injected cookies
     var injectedCookies = 0,
-        injectedEnumerator = cm.enumerator;
+        injectedEnumerator = Services.cookies.enumerator;
     while (injectedEnumerator.hasMoreElements()) {
         injectedCookies++;
         injectedEnumerator.getNext();
@@ -87,7 +78,7 @@ function runTest(win, searchTerm, cookies, matches) {
     EventUtils.synthesizeMouseAtCenter(deleteButton, {}, win);
 
     // count cookies should be matches-1
-    is(win.gCookiesWindow._view.rowCount, matches-1, "Deleted selected cookie");
+    is(win.gCookiesWindow._view.rowCount, matches - 1, "Deleted selected cookie");
 
     // select two adjacent cells and delete
     EventUtils.synthesizeMouse(tree.body, rect.x + rect.width / 2, rect.y + rect.height / 2, {}, win);
@@ -101,7 +92,7 @@ function runTest(win, searchTerm, cookies, matches) {
     EventUtils.synthesizeMouseAtCenter(deleteButton, {}, win);
 
     // count cookies should be matches-3
-    is(win.gCookiesWindow._view.rowCount, matches-3, "Deleted selected two adjacent cookies");
+    is(win.gCookiesWindow._view.rowCount, matches - 3, "Deleted selected two adjacent cookies");
 
     // "delete all cookies" should be enabled
     isDisabled(win, false);
@@ -116,7 +107,7 @@ function runTest(win, searchTerm, cookies, matches) {
 
     // clear filter and count should be cookies-matches
     win.gCookiesWindow.setFilter("");
-    is(win.gCookiesWindow._view.rowCount, cookies-matches, "Unmatched cookies remain");
+    is(win.gCookiesWindow._view.rowCount, cookies - matches, "Unmatched cookies remain");
 
     // "delete all cookies" should be enabled
     isDisabled(win, false);
@@ -127,7 +118,7 @@ function runTest(win, searchTerm, cookies, matches) {
 
     // check that datastore is also at 0
     var remainingCookies = 0,
-        remainingEnumerator = cm.enumerator;
+        remainingEnumerator = Services.cookies.enumerator;
     while (remainingEnumerator.hasMoreElements()) {
         remainingCookies++;
         remainingEnumerator.getNext();
@@ -141,4 +132,3 @@ function runTest(win, searchTerm, cookies, matches) {
     win.close();
     finish();
 }
-

@@ -3,11 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :root {
+  --markup-hidden-attr-name-color: #CA60AC;
+  --markup-hidden-attr-value-color: #5C6D87;
+  --markup-hidden-punctuation-color: #909090;
+  --markup-hidden-tag-color: #97A4B3;
   --markup-outline: var(--theme-splitter-color);
 }
 
 .theme-dark:root {
-  --markup-outline: var(--theme-highlight-pink);
+  --markup-hidden-attr-name-color: #CC8EC8;
+  --markup-hidden-attr-value-color: #9893A3;
+  --markup-hidden-punctuation-color: #909090;
+  --markup-hidden-tag-color: #AFB5BF;
+  --markup-outline: var(--theme-selection-background);
 }
 
 * {
@@ -139,17 +147,24 @@ ul.children + .tag-line::before {
   padding-left: 2px;
 }
 
-.tag-line[selected] + .children {
+.tag-line[selected] + .children,
+.tag-line[selected] ~ .tag-line {
   background-image: linear-gradient(to top, var(--markup-outline), var(--markup-outline));
+  background-position-x: -6px;
   background-repeat: no-repeat;
-  /* Shorten the outline height by 4px to account for the 2px top padding and
-   * allow for a 2px bottom padding */
-  background-size: 1.5px calc(100% - 4px);
-  /* Align the outline to under the expander arrow and provide 2px top
-   * padding */
-  background-position: -6px 2px;
+  background-size: 1.5px 100%;
   border-left: 6px solid transparent;
   margin-left: -6px;
+}
+
+.tag-line[selected] + .children {
+  background-position-y: 2px;
+}
+
+.tag-line[selected] ~ .tag-line {
+  background-position-y: -2px;
+  /* Unset transition-property to prevent the markup outline from horizontal shifting */
+  transition-property: none;
 }
 
 .html-editor-container {
@@ -166,6 +181,11 @@ ul.children + .tag-line::before {
   right: 0;
   height: 100%;
   z-index: 0;
+}
+
+.tag-line .tag-hover:not(.theme-selected) {
+  background: var(--theme-selection-background-hover);
+  z-index: -1;
 }
 
 .expander {
@@ -195,6 +215,22 @@ ul.children + .tag-line::before {
 
 .child.collapsed .close {
   display: inline;
+}
+
+.expandable.collapsed .close::before {
+  /* Display an ellipsis character in collapsed nodes that can be expanded. */
+  content: "\2026";
+  display: inline-block;
+  width: 12px;
+  height: 8px;
+  margin: 0 2px;
+  line-height: 3px;
+  color: var(--theme-body-color-inactive);
+  border-radius: 3px;
+  border-style: solid;
+  border-width: 1px;
+  text-align: center;
+  vertical-align: middle;
 }
 
 /* Hide HTML void elements (img, hr, br, …) closing tag when the element is not
@@ -238,6 +274,10 @@ ul.children + .tag-line::before {
   z-index: 1;
 }
 
+.editor.comment:not(.doctype) {
+  color: var(--theme-highlight-green);
+}
+
 .editor.text {
   display: inline-block;
 }
@@ -247,6 +287,10 @@ ul.children + .tag-line::before {
   font: inherit;
 }
 
+.theme-dark .editor.text pre {
+  color: var(--theme-content-color1);
+}
+
 /* Whitespace only text nodes are sometimes shown in the markup-view, and when they do
    they get a greyed-out whitespace symbol so users know what they are */
 .editor.text .whitespace {
@@ -254,16 +298,24 @@ ul.children + .tag-line::before {
 }
 
 .editor.text .whitespace::before {
-  content: "";
+  /* black circle (full) character */
+  content: "\25cf";
   display: inline-block;
-  height: 4px;
-  width: 4px;
-  border: 1px solid var(--theme-body-color-inactive);
-  border-radius: 50%;
+  width: 12px;
+  height: 8px;
+  margin: 0 2px;
+  line-height: 7px;
+  font-size: 0.6em;
+  color: var(--theme-body-color-inactive);
+  border-radius: 3px;
+  border-style: solid;
+  border-width: 1px;
+  text-align: center;
+  vertical-align: middle;
 }
 
 .tag-line[selected] .editor.text .whitespace::before {
-  border-color: white;
+  color: white;
 }
 
 .more-nodes {
@@ -288,10 +340,27 @@ ul.children + .tag-line::before {
   z-index: 1;
 }
 
+.not-displayed {
+  color: var(--markup-hidden-punctuation-color);
+}
+
+.not-displayed .attr-name {
+  color: var(--markup-hidden-attr-name-color);
+}
+
+.not-displayed .attr-value {
+  color: var(--markup-hidden-attr-value-color);
+}
+
+.not-displayed .tag {
+  color: var(--markup-hidden-tag-color);
+}
+
 /* Firebug Theme */
 
 .theme-firebug .theme-fg-color3 {
   color: var(--theme-graphs-full-blue);
+  font-weight: normal;
 }
 
 .theme-firebug .open,
@@ -308,17 +377,25 @@ ul.children + .tag-line::before {
   font-size: var(--theme-toolbar-font-size);
 }
 
+/* In case a node isn't displayed in the page, we fade the syntax highlighting */
+.theme-firebug .not-displayed .open,
+.theme-firebug .not-displayed .close {
+  opacity: .5;
+}
+
 /* Selected nodes in the tree should have light selected text.
    theme-selected doesn't work in this case since the text is a
    sibling of the class, not a child. */
 .theme-selected ~ .editor,
+.theme-selected ~ .editor.comment,
 .theme-selected ~ .editor .theme-fg-color1,
 .theme-selected ~ .editor .theme-fg-color2,
 .theme-selected ~ .editor .theme-fg-color3,
 .theme-selected ~ .editor .theme-fg-color4,
 .theme-selected ~ .editor .theme-fg-color5,
 .theme-selected ~ .editor .theme-fg-color6,
-.theme-selected ~ .editor .theme-fg-color7 {
+.theme-selected ~ .editor .theme-fg-color7,
+.theme-selected ~ .editor .close::before {
   color: var(--theme-selection-color);
 }
 
@@ -328,10 +405,13 @@ ul.children + .tag-line::before {
   color: var(--theme-selection-color);
 }
 
-/* In case a node isn't displayed in the page, we fade the syntax highlighting */
-.not-displayed .open,
-.not-displayed .close {
-  opacity: .7;
+/* Applicable to the DOCTYPE */
+.doctype {
+  font-style: italic;
+}
+
+.theme-firebug .doctype {
+  color: #787878;
 }
 
 /* Events */

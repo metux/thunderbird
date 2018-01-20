@@ -33,7 +33,7 @@ public:
              nsPresContext* aPresContext,
              InternalFocusEvent* aEvent);
 
-  EventTarget* GetRelatedTarget();
+  already_AddRefed<EventTarget> GetRelatedTarget();
 
   static already_AddRefed<FocusEvent> Constructor(const GlobalObject& aGlobal,
                                                   const nsAString& aType,
@@ -45,7 +45,7 @@ protected:
   void InitFocusEvent(const nsAString& aType,
                       bool aCanBubble,
                       bool aCancelable,
-                      nsGlobalWindow* aView,
+                      nsGlobalWindowInner* aView,
                       int32_t aDetail,
                       EventTarget* aRelatedTarget);
 };

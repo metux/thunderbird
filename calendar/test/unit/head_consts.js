@@ -28,10 +28,6 @@ var { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
 
 Components.utils.import("resource://calendar/modules/calUtils.jsm");
 
-// we might want to use calUtils.jsm only in the future throughout all tests,
-// but for now source in good old calUtils.js:
-cal.loadScripts(["calUtils.js"], Components.utils.getGlobalForObject(Cc));
-
 function createDate(aYear, aMonth, aDay, aHasTime, aHour, aMinute, aSecond, aTimezone) {
     let date = Cc["@mozilla.org/calendar/datetime;1"]
                .createInstance(Ci.calIDateTime);
@@ -41,7 +37,7 @@ function createDate(aYear, aMonth, aDay, aHasTime, aHour, aMinute, aSecond, aTim
                aHour || 0,
                aMinute || 0,
                aSecond || 0,
-               aTimezone || UTC());
+               aTimezone || cal.UTC());
     date.isDate = !aHasTime;
     return date;
 }
@@ -52,7 +48,7 @@ function createEventFromIcalString(icalString) {
                                .createInstance(Components.interfaces.calIIcsParser);
         parser.parseString(icalString);
         let items = parser.getItems({});
-        ASSERT(items.length == 1);
+        cal.ASSERT(items.length == 1);
         return items[0];
     } else {
         let event = Cc["@mozilla.org/calendar/event;1"].createInstance(Ci.calIEvent);
@@ -168,10 +164,10 @@ function compareItemsSpecific(aLeftItem, aRightItem, aPropArray) {
     if (!aPropArray) {
         // left out:  "id", "calendar", "lastModifiedTime", "generation",
         // "stampTime" as these are expected to change
-        aPropArray = ["start", "end", "duration",
-                      "title", "priority", "privacy", "creationDate",
-                      "status", "alarmLastAck",
-                      "recurrenceStartDate"];
+        aPropArray = [
+            "start", "end", "duration", "title", "priority", "privacy",
+            "creationDate", "status", "alarmLastAck", "recurrenceStartDate"
+        ];
     }
     for (let i = 0; i < aPropArray.length; i++) {
         equal(getProps(aLeftItem, aPropArray[i]),
@@ -246,7 +242,7 @@ function do_calendar_startup(callback) {
         callback();
     } else {
         do_test_pending();
-        Services.obs.addObserver(obs, "calendar-startup-done", false);
+        Services.obs.addObserver(obs, "calendar-startup-done");
         if (_profileInitialized) {
             Services.obs.notifyObservers(null, "profile-after-change", "xpcshell-do-get-profile");
         } else {

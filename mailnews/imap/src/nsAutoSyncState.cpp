@@ -14,11 +14,13 @@
 #include "nsIAutoSyncMsgStrategy.h"
 #include "nsServiceManagerUtils.h"
 #include "nsComponentManagerUtils.h"
+#include "nsIMutableArray.h"
+#include "nsArrayUtils.h"
 #include "mozilla/Logging.h"
 
 using namespace mozilla;
 
-extern PRLogModuleInfo *gAutoSyncLog;
+static LazyLogModule gAutoSyncLog("ImapAutoSync");
 
 MsgStrategyComparatorAdaptor::MsgStrategyComparatorAdaptor(nsIAutoSyncMsgStrategy* aStrategy, 
   nsIMsgFolder *aFolder, nsIMsgDatabase *aDatabase) : mStrategy(aStrategy), mFolder(aFolder), 
@@ -296,17 +298,15 @@ NS_IMETHODIMP nsAutoSyncState::GetNextGroupOfMessages(uint32_t aSuggestedGroupSi
         if (!*aActualGroupSize && msgSize >= aSuggestedGroupSizeLimit) 
         {
           *aActualGroupSize = msgSize;
-          group->AppendElement(qhdr, false);
+          group->AppendElement(qhdr);
           idx++;
           break;
         }
-        else if ((*aActualGroupSize) + msgSize > aSuggestedGroupSizeLimit)
+        if ((*aActualGroupSize) + msgSize > aSuggestedGroupSizeLimit)
           break;
-        else
-        {
-          group->AppendElement(qhdr, false);
-          *aActualGroupSize += msgSize;
-        }
+
+        group->AppendElement(qhdr);
+        *aActualGroupSize += msgSize;
       }// endfor
 
       mLastOffset = mOffset;
@@ -318,7 +318,7 @@ NS_IMETHODIMP nsAutoSyncState::GetNextGroupOfMessages(uint32_t aSuggestedGroupSi
   } //endif
 
    // return it to the caller
-  NS_IF_ADDREF(*aMessagesList = group);
+  group.forget(aMessagesList);
 
   return NS_OK;
 }
@@ -366,7 +366,7 @@ NS_IMETHODIMP nsAutoSyncState::ProcessExistingHeaders(uint32_t aNumOfHdrsToProce
     nsCString folderName;
     folder->GetURI(folderName);
     MOZ_LOG(gAutoSyncLog, LogLevel::Debug,
-          ("%d messages will be added into the download q of folder %s\n",
+          ("%zu messages will be added into the download q of folder %s\n",
             msgKeys.Length(), folderName.get()));
 
     rv = PlaceIntoDownloadQ(msgKeys);
@@ -450,23 +450,21 @@ NS_IMETHODIMP nsAutoSyncState::OnStopRunningUrl(nsIURI* aUrl, nsresult aExitCode
       nsCString folderName;
       ownerFolder->GetURI(folderName);
       MOZ_LOG(gAutoSyncLog, LogLevel::Debug,
-             ("folder %s status changed serverNextUID = %lx lastNextUID = %lx\n", folderName.get(),
+             ("folder %s status changed serverNextUID = %x lastNextUID = %x\n", folderName.get(),
               serverNextUID, mLastNextUID));
       MOZ_LOG(gAutoSyncLog, LogLevel::Debug,
-             ("serverTotal = %lx lastServerTotal = %lx serverRecent = %lx lastServerRecent = %lx\n",
+             ("serverTotal = %x lastServerTotal = %x serverRecent = %x lastServerRecent = %x\n",
               serverTotal, mLastServerTotal, serverRecent, mLastServerRecent));
       SetServerCounts(serverTotal, serverRecent, serverUnseen, serverNextUID);
       SetState(nsAutoSyncState::stUpdateIssued);
       return imapFolder->UpdateFolderWithListener(nullptr, autoSyncMgrListener);
     }
-    else
-    {
-      ownerFolder->SetMsgDatabase(nullptr);
-      // nothing more to do.
-      SetState(nsAutoSyncState::stCompletedIdle);
-      // autoSyncMgr needs this notification, so manufacture it.
-      return autoSyncMgrListener->OnStopRunningUrl(nullptr, NS_OK);
-    }
+
+    ownerFolder->SetMsgDatabase(nullptr);
+    // nothing more to do.
+    SetState(nsAutoSyncState::stCompletedIdle);
+    // autoSyncMgr needs this notification, so manufacture it.
+    return autoSyncMgrListener->OnStopRunningUrl(nullptr, NS_OK);
   }
   //XXXemre how we recover from this error?
   rv = ownerFolder->ReleaseSemaphore(ownerFolder);
@@ -515,7 +513,7 @@ NS_IMETHODIMP nsAutoSyncState::SetState(int32_t aState)
   }
   nsCString logStr("Sync State set to ");
   logStr.Append(stateStrings[aState]);
-  logStr.Append(" for ");
+  logStr.AppendLiteral(" for ");
   LogOwnerFolderName(logStr.get());
   return NS_OK;
 }
@@ -563,8 +561,8 @@ NS_IMETHODIMP nsAutoSyncState::GetOwnerFolder(nsIMsgFolder **aFolder)
   nsresult rv;
   nsCOMPtr <nsIMsgFolder> ownerFolder = do_QueryReferent(mOwnerFolder, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  
-  NS_IF_ADDREF(*aFolder = ownerFolder);
+
+  ownerFolder.forget(aFolder);
   return NS_OK;
 }
 
@@ -736,12 +734,10 @@ void nsAutoSyncState::LogQWithSize(nsIMutableArray *q, uint32_t toOffset)
     while (x > toOffset && database) 
     {
       x--;
-      nsCOMPtr<nsIMsgDBHdr> h;
-      q->QueryElementAt(x, NS_GET_IID(nsIMsgDBHdr),
-                        getter_AddRefs(h));
-      uint32_t s;
+      nsCOMPtr<nsIMsgDBHdr> h = do_QueryElementAt(q, x);
       if (h)
       {
+        uint32_t s;
         h->GetMessageSize(&s);
         MOZ_LOG(gAutoSyncLog, LogLevel::Debug,
               ("Elem #%d, size: %u bytes\n", x+1, s));

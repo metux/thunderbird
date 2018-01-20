@@ -26,7 +26,7 @@ set_config('MOZ_SYSTEM_FFI', depends_if(system_ffi)(lambda _: True))
 add_old_configure_assignment('MOZ_SYSTEM_FFI', depends_if(system_ffi)(lambda _: True))
 
 # Target selection, based on ffi/configure.ac.
-@depends_when(target, when=building_ffi)
+@depends(target, when=building_ffi)
 def ffi_target(target):
     if target.cpu not in ('x86', 'x86_64', 'arm', 'aarch64'):
         die('Building libffi from the tree is not supported on this platform. '
@@ -56,5 +56,5 @@ def ffi_target(target):
         dir=target_dir
     )
 
-set_config('FFI_TARGET', delayed_getattr(ffi_target, 'name'))
-set_config('FFI_TARGET_DIR', delayed_getattr(ffi_target, 'dir'))
+set_config('FFI_TARGET', ffi_target.name)
+set_config('FFI_TARGET_DIR', ffi_target.dir)

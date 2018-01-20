@@ -11,37 +11,43 @@ import subprocess
 import tarfile
 import tempfile
 
+from mozbuild.util import memoize
 from mozpack.archive import (
     create_tar_gz_from_files,
 )
+from .. import GECKO
 
 
-GECKO = os.path.realpath(os.path.join(__file__, '..', '..', '..', '..'))
-DOCKER_ROOT = os.path.join(GECKO, 'testing', 'docker')
+IMAGE_DIR = os.path.join(GECKO, 'taskcluster', 'docker')
 INDEX_PREFIX = 'docker.images.v2'
-ARTIFACT_URL = 'https://queue.taskcluster.net/v1/task/{}/artifacts/{}'
 
 
-def docker_image(name, default_version=None):
-    '''Determine the docker image name, including repository and tag, from an
-    in-tree docker file.'''
+def docker_image(name, by_tag=False):
+    '''
+        Resolve in-tree prebuilt docker image to ``<registry>/<repository>@sha256:<digest>``,
+        or ``<registry>/<repository>:<tag>`` if `by_tag` is `True`.
+    '''
     try:
-        with open(os.path.join(DOCKER_ROOT, name, 'REGISTRY')) as f:
+        with open(os.path.join(IMAGE_DIR, name, 'REGISTRY')) as f:
             registry = f.read().strip()
     except IOError:
-        with open(os.path.join(DOCKER_ROOT, 'REGISTRY')) as f:
+        with open(os.path.join(IMAGE_DIR, 'REGISTRY')) as f:
             registry = f.read().strip()
 
+    if not by_tag:
+        hashfile = os.path.join(IMAGE_DIR, name, 'HASH')
+        try:
+            with open(hashfile) as f:
+                return '{}/{}@{}'.format(registry, name, f.read().strip())
+        except IOError:
+            raise Exception('Failed to read HASH file {}'.format(hashfile))
+
     try:
-        with open(os.path.join(DOCKER_ROOT, name, 'VERSION')) as f:
-            version = f.read().strip()
+        with open(os.path.join(IMAGE_DIR, name, 'VERSION')) as f:
+            tag = f.read().strip()
     except IOError:
-        if not default_version:
-            raise
-
-        version = default_version
-
-    return '{}/{}:{}'.format(registry, name, version)
+        tag = 'latest'
+    return '{}/{}:{}'.format(registry, name, tag)
 
 
 def generate_context_hash(topsrcdir, image_path, image_name):
@@ -158,3 +164,24 @@ def build_from_context(docker_bin, context_path, prefix, tag=None):
             raise Exception('error building image')
     finally:
         shutil.rmtree(d)
+
+
+@memoize
+def parse_volumes(image):
+    """Parse VOLUME entries from a Dockerfile for an image."""
+    volumes = set()
+
+    with open(os.path.join(IMAGE_DIR, image, 'Dockerfile'), 'rb') as fh:
+        for line in fh:
+            line = line.strip()
+            if not line.startswith(b'VOLUME '):
+                continue
+
+            v = line.split(None, 1)[1]
+            if v.startswith(b'['):
+                raise ValueError('cannot parse array syntax for VOLUME; '
+                                 'convert to multiple entries')
+
+            volumes |= set(v.split())
+
+    return volumes

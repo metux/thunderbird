@@ -32,9 +32,6 @@ class GeckoInstance(object):
         # Do not show datareporting policy notifications which can interfer with tests
         "datareporting.policy.dataSubmissionPolicyBypassNotification": True,
 
-        # Until Bug 1238095 is fixed, we have to enable CPOWs in order
-        # for Marionette tests to work properly.
-        "dom.ipc.cpows.forbid-unsafe-from-browser": False,
         "dom.ipc.reportProcessHangs": False,
 
         # No slow script dialogs
@@ -45,12 +42,12 @@ class GeckoInstance(object):
         # AddonManager.SCOPE_PROFILE + AddonManager.SCOPE_APPLICATION
         "extensions.autoDisableScopes": 0,
         "extensions.enabledScopes": 5,
-        # don't block add-ons for e10s
-        "extensions.e10sBlocksEnabling": False,
         # Disable metadata caching for installed add-ons by default
         "extensions.getAddons.cache.enabled": False,
         # Disable intalling any distribution add-ons
         "extensions.installDistroAddons": False,
+        # Make sure Shield doesn't hit the network.
+        "extensions.shield-recipe-client.api_url": "",
         "extensions.showMismatchUI": False,
         # Turn off extension updates so they don't bother tests
         "extensions.update.enabled": False,
@@ -74,11 +71,17 @@ class GeckoInstance(object):
         "hangmonitor.timeout": 0,
 
         "javascript.options.showInConsole": True,
+
+        # Enable Marionette component
+        # (deprecated and can be removed when Firefox 60 ships)
+        "marionette.enabled": True,
         "marionette.defaultPrefs.enabled": True,
+
+        # Disable recommended automation prefs in CI
+        "marionette.prefs.recommended": False,
+
         "media.volume_scale": "0.01",
 
-        # Make sure the disk cache doesn't get auto disabled
-        "network.http.bypass-cachelock-threshold": 200000,
         # Do not prompt for temporary redirects
         "network.http.prompt-temp-redirect": False,
         # Disable speculative connections so they aren"t reported as leaking when they"re
@@ -104,11 +107,14 @@ class GeckoInstance(object):
 
         # We want to collect telemetry, but we don't want to send in the results
         "toolkit.telemetry.server": "https://%(server)s/dummy/telemetry/",
+
+        # Enabling the support for File object creation in the content process.
+        "dom.file.createInChild": True,
     }
 
     def __init__(self, host=None, port=None, bin=None, profile=None, addons=None,
                  app_args=None, symbols_path=None, gecko_log=None, prefs=None,
-                 workspace=None, verbose=0):
+                 workspace=None, verbose=0, headless=False):
         self.runner_class = Runner
         self.app_args = app_args or []
         self.runner = None
@@ -134,6 +140,7 @@ class GeckoInstance(object):
         self._gecko_log_option = gecko_log
         self._gecko_log = None
         self.verbose = verbose
+        self.headless = headless
 
     @property
     def gecko_log(self):
@@ -224,6 +231,10 @@ class GeckoInstance(object):
 
         env = os.environ.copy()
 
+        if self.headless:
+            env["MOZ_HEADLESS"] = "1"
+            env["DISPLAY"] = "77"  # Set a fake display.
+
         # environment variables needed for crashreporting
         # https://developer.mozilla.org/docs/Environment_variables_affecting_crash_reporting
         env.update({"MOZ_CRASHREPORTER": "1",
@@ -240,20 +251,32 @@ class GeckoInstance(object):
             "process_args": process_args
         }
 
-    def close(self, restart=False):
-        if not restart:
-            self.profile = None
+    def close(self, clean=False):
+        """
+        Close the managed Gecko process.
 
+        Depending on self.runner_class, setting `clean` to True may also kill
+        the emulator process in which this instance is running.
+
+        :param clean: If True, also perform runner cleanup.
+        """
         if self.runner:
             self.runner.stop()
-            self.runner.cleanup()
-
-    def restart(self, prefs=None, clean=True):
-        self.close(restart=True)
+            if clean:
+                self.runner.cleanup()
 
         if clean and self.profile:
             self.profile.cleanup()
             self.profile = None
+
+    def restart(self, prefs=None, clean=True):
+        """
+        Close then start the managed Gecko process.
+
+        :param prefs: Dictionary of preference names and values.
+        :param clean: If True, reset the profile before starting.
+        """
+        self.close(clean=clean)
 
         if prefs:
             self.prefs = prefs
@@ -273,14 +296,16 @@ class FennecInstance(GeckoInstance):
         "browser.snippets.firstrunHomepage.enabled": False,
 
         # Disable safebrowsing components
+        "browser.safebrowsing.blockedURIs.enabled": False,
         "browser.safebrowsing.downloads.enabled": False,
+        "browser.safebrowsing.passwords.enabled": False,
+        "browser.safebrowsing.malware.enabled": False,
+        "browser.safebrowsing.phishing.enabled": False,
 
         # Do not restore the last open set of tabs if the browser has crashed
         "browser.sessionstore.resume_from_crash": False,
 
         # Disable e10s by default
-        "browser.tabs.remote.autostart.1": False,
-        "browser.tabs.remote.autostart.2": False,
         "browser.tabs.remote.autostart": False,
 
         # Do not allow background tabs to be zombified, otherwise for tests that
@@ -367,9 +392,17 @@ class FennecInstance(GeckoInstance):
 
         return runner_args
 
-    def close(self, restart=False):
-        super(FennecInstance, self).close(restart)
-        if self.runner and self.runner.device.connected:
+    def close(self, clean=False):
+        """
+        Close the managed Gecko process.
+
+        If `clean` is True and the Fennec instance is running in an
+        emulator managed by mozrunner, this will stop the emulator.
+
+        :param clean: If True, also perform runner cleanup.
+        """
+        super(FennecInstance, self).close(clean)
+        if clean and self.runner and self.runner.device.connected:
             self.runner.device.dm.remove_forward(
                 "tcp:{}".format(self.marionette_port))
 
@@ -399,13 +432,10 @@ class DesktopInstance(GeckoInstance):
         # in general can"t hurt - we re-enable them when tests need them
         "browser.pagethumbnails.capturing_disabled": True,
 
-        # Avoid performing Reader Mode intros during tests
-        "browser.reader.detectedFirstArticle": True,
-
         # Disable safebrowsing components
         "browser.safebrowsing.blockedURIs.enabled": False,
         "browser.safebrowsing.downloads.enabled": False,
-        "browser.safebrowsing.forbiddenURIs.enabled": False,
+        "browser.safebrowsing.passwords.enabled": False,
         "browser.safebrowsing.malware.enabled": False,
         "browser.safebrowsing.phishing.enabled": False,
 
@@ -419,8 +449,6 @@ class DesktopInstance(GeckoInstance):
         "browser.shell.checkDefaultBrowser": False,
 
         # Disable e10s by default
-        "browser.tabs.remote.autostart.1": False,
-        "browser.tabs.remote.autostart.2": False,
         "browser.tabs.remote.autostart": False,
 
         # Needed for branded builds to prevent opening a second tab on startup
@@ -428,8 +456,8 @@ class DesktopInstance(GeckoInstance):
         # Start with a blank page by default
         "browser.startup.page": 0,
 
-        # Disable tab animation
-        "browser.tabs.animate": False,
+        # Disable browser animations
+        "toolkit.cosmeticAnimations.enabled": False,
 
         # Do not warn on exit when multiple tabs are open
         "browser.tabs.warnOnClose": False,
@@ -440,6 +468,14 @@ class DesktopInstance(GeckoInstance):
 
         # Disable the UI tour
         "browser.uitour.enabled": False,
+
+        # Turn off search suggestions in the location bar so as not to trigger network
+        # connections.
+        "browser.urlbar.suggest.searches": False,
+
+        # Turn off the location bar search suggestions opt-in.  It interferes with
+        # tests that don't expect it to be there.
+        "browser.urlbar.userMadeSearchSuggestionsChoice": True,
 
         # Disable first-run welcome page
         "startup.homepage_welcome_url": "about:blank",

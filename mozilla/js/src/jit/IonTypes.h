@@ -132,10 +132,6 @@ enum BailoutKind
     // Like Bailout_Overflow, but causes immediate invalidation.
     Bailout_OverflowInvalidate,
 
-    // Like NonStringInput, but should cause immediate invalidation.
-    // Used for jsop_iternext.
-    Bailout_NonStringInputInvalidate,
-
     // Used for integer division, multiplication and modulo.
     // If there's a remainder, bails to return a double.
     // Can also signal overflow or result of -0.
@@ -229,8 +225,6 @@ BailoutKindString(BailoutKind kind)
       // Bailouts caused by invalid assumptions.
       case Bailout_OverflowInvalidate:
         return "Bailout_OverflowInvalidate";
-      case Bailout_NonStringInputInvalidate:
-        return "Bailout_NonStringInputInvalidate";
       case Bailout_DoubleOutput:
         return "Bailout_DoubleOutput";
 
@@ -769,11 +763,11 @@ PropertyNameToExtraName(PropertyName* name)
 
 #endif // DEBUG
 
-enum {
+enum ABIArgType {
     ArgType_General = 0x1,
     ArgType_Double  = 0x2,
     ArgType_Float32 = 0x3,
-    ArgType_Int64 = 0x4,
+    ArgType_Int64   = 0x4,
 
     RetType_Shift   = 0x0,
     ArgType_Shift   = 0x3,
@@ -806,6 +800,11 @@ enum ABIFunctionType
     // float f(float)
     Args_Float32_Float32 = (ArgType_Float32 << RetType_Shift) | (ArgType_Float32 << ArgType_Shift),
 
+    // float f(int, int)
+    Args_Float32_IntInt = (ArgType_Float32 << RetType_Shift) |
+        (ArgType_General << (ArgType_Shift * 1)) |
+        (ArgType_General << (ArgType_Shift * 2)),
+
     // double f(double)
     Args_Double_Double = Args_Double_None | (ArgType_Double << ArgType_Shift),
 
@@ -822,6 +821,9 @@ enum ABIFunctionType
 
     // double f(double, double)
     Args_Double_DoubleDouble = Args_Double_Double | (ArgType_Double << (ArgType_Shift * 2)),
+
+    // float f(float, float)
+    Args_Float32_Float32Float32 = Args_Float32_Float32 | (ArgType_Float32 << (ArgType_Shift * 2)),
 
     // double f(int, double)
     Args_Double_IntDouble = Args_Double_None |
@@ -851,7 +853,6 @@ enum ABIFunctionType
         (ArgType_General << (ArgType_Shift * 2)) |
         (ArgType_Double  << (ArgType_Shift * 3)) |
         (ArgType_General << (ArgType_Shift * 4))
-
 };
 
 enum class BarrierKind : uint32_t {
@@ -868,6 +869,14 @@ enum class BarrierKind : uint32_t {
 };
 
 enum ReprotectCode { Reprotect = true, DontReprotect = false };
+
+// Rounding modes for round instructions.
+enum class RoundingMode {
+    Down,
+    Up,
+    NearestTiesToEven,
+    TowardsZero
+};
 
 } // namespace jit
 } // namespace js

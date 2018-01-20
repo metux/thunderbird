@@ -55,6 +55,9 @@
 <!ENTITY editDirectories.label                 "Tvarkyti katalogus…">
 <!ENTITY editDirectories.accesskey             "T">
 
+
+
+
 <!ENTITY sendOptionsDescription.label          "Parinkite siunčiamų laiškų tekstų tipus:">
 <!ENTITY sendOptions.label                     "Siuntimo parinktys…">
 <!ENTITY sendOptions.accesskey                 "S">
@@ -63,3 +66,8 @@
 <!ENTITY attachmentReminder.accesskey          "t">
 <!ENTITY attachmentReminderOptions.label       "Reikšminiai žodžiai…">
 <!ENTITY attachmentReminderOptions.accesskey   "ž">
+
+<!ENTITY showAsDefault.label                   "Default startup directory in the address book window:">
+<!ENTITY showAsDefault.accesskey               "S">
+<!ENTITY showAsDefaultLast.label               "Last used directory">
+

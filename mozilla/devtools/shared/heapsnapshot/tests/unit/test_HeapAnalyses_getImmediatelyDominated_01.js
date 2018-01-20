@@ -1,11 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
 // Test the HeapAnalyses{Client,Worker} "getImmediatelyDominated" request.
-
-function run_test() {
-  run_next_test();
-}
 
 const breakdown = {
   by: "coarseType",

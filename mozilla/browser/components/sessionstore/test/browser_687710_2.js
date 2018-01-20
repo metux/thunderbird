@@ -1,4 +1,3 @@
-/* eslint-env mozilla/frame-script */
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
@@ -7,25 +6,29 @@
 
 var stateBackup = ss.getBrowserState();
 
-var state = {entries:[
+var state = {entries: [
   {
     docIdentifier: 1,
     url: "http://example.com?1",
+    triggeringPrincipal_base64,
     children: [{ docIdentifier: 10,
-                 url: "http://example.com?10" }]
+                 url: "http://example.com?10",
+                 triggeringPrincipal_base64 }]
   },
   {
     docIdentifier: 1,
     url: "http://example.com?1#a",
+    triggeringPrincipal_base64,
     children: [{ docIdentifier: 10,
-                 url: "http://example.com?10#aa" }]
+                 url: "http://example.com?10#aa",
+                 triggeringPrincipal_base64 }]
   }
 ]};
 
-add_task(function* test() {
-  let tab = gBrowser.addTab("about:blank");
-  yield promiseTabState(tab, state);
-  yield ContentTask.spawn(tab.linkedBrowser, null, function() {
+add_task(async function test() {
+  let tab = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  await promiseTabState(tab, state);
+  await ContentTask.spawn(tab.linkedBrowser, null, function() {
     function compareEntries(i, j, history) {
       let e1 = history.getEntryAtIndex(i, false)
                       .QueryInterface(Ci.nsISHEntry)

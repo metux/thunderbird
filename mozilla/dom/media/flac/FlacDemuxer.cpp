@@ -14,16 +14,11 @@
 #include "VideoUtils.h"
 #include "TimeUnits.h"
 
-#ifdef PR_LOGGING
 extern mozilla::LazyLogModule gMediaDemuxerLog;
 #define LOG(msg, ...) \
   MOZ_LOG(gMediaDemuxerLog, LogLevel::Debug, ("FlacDemuxer " msg, ##__VA_ARGS__))
 #define LOGV(msg, ...) \
   MOZ_LOG(gMediaDemuxerLog, LogLevel::Verbose, ("FlacDemuxer " msg, ##__VA_ARGS__))
-#else
-#define LOG(msg, ...)  do {} while (false)
-#define LOGV(msg, ...) do {} while (false)
-#endif
 
 using namespace mozilla::media;
 
@@ -33,15 +28,8 @@ namespace flac {
 // flac::FrameHeader - Holds the flac frame header and its parsing
 // state.
 
-#define FLAC_MAX_CHANNELS           8
-#define FLAC_MIN_BLOCKSIZE         16
-#define FLAC_MAX_BLOCKSIZE      65535
-#define FLAC_MIN_FRAME_SIZE        11
-#define FLAC_MAX_FRAME_HEADER_SIZE 16
-#define FLAC_MAX_FRAME_SIZE (FLAC_MAX_FRAME_HEADER_SIZE \
-                             +FLAC_MAX_BLOCKSIZE*FLAC_MAX_CHANNELS*3)
-
-class FrameHeader {
+class FrameHeader
+{
 public:
   const AudioInfo& Info() const { return mInfo; }
 
@@ -56,11 +44,9 @@ public:
   // From https://xiph.org/flac/format.html#frame_header
   // A valid header is one that can be decoded without error and that has a
   // valid CRC.
-  // aPacket must points to a buffer that is at least FLAC_MAX_FRAME_HEADER_SIZE
-  // bytes.
-  bool Parse(const uint8_t* aPacket)
+  bool Parse(const uint8_t* aPacket, size_t aBytes)
   {
-    mp4_demuxer::BitReader br(aPacket, FLAC_MAX_FRAME_HEADER_SIZE);
+    mp4_demuxer::BitReader br(aPacket, aBytes * 8);
 
     // Frame sync code.
     if ((br.ReadBits(15) & 0x7fff) != 0x7ffc) {
@@ -95,7 +81,7 @@ public:
     }
     mInfo.mBitDepth = FlacSampleSizeTable[bps_code];
 
-    // Reserved bit, most be 1.
+    // Reserved bit, must be 0.
     if (br.ReadBit()) {
       // Broken stream, invalid padding.
       return false;
@@ -124,9 +110,8 @@ public:
     // 1- coded sample number if blocksize is variable or
     // 2- coded frame number if blocksize is known.
     // A frame is made of Blocksize sample.
-    mIndex = mVariableBlockSize
-      ? frame_or_sample_num
-      : frame_or_sample_num * mBlocksize;
+    mIndex = mVariableBlockSize ? frame_or_sample_num
+                                : frame_or_sample_num * mBlocksize;
 
     // Sample rate.
     if (sr_code < 12) {
@@ -160,7 +145,8 @@ public:
 
 private:
   friend class Frame;
-  enum {
+  enum
+  {
     FLAC_CHMODE_INDEPENDENT = 0,
     FLAC_CHMODE_LEFT_SIDE,
     FLAC_CHMODE_RIGHT_SIDE,
@@ -181,7 +167,8 @@ private:
 };
 
 const int FrameHeader::FlacSampleRateTable[16] =
-{ 0,
+{
+  0,
   88200, 176400, 192000,
   8000, 16000, 22050, 24000, 32000, 44100, 48000, 96000,
   0, 0, 0, 0
@@ -233,34 +220,40 @@ const uint8_t FrameHeader::CRC8Table[256] =
 
 // flac::Frame - Frame meta container used to parse and hold a frame
 // header and side info.
-class Frame {
+class Frame
+{
 public:
 
   // The FLAC signature is made of 14 bits set to 1; however the 15th bit is
   // mandatorily set to 0, so we need to find either of 0xfffc or 0xfffd 2-bytes
   // signature. We first use a bitmask to see if 0xfc or 0xfd is present. And if
   // so we check for the whole signature.
-  // aData must be pointing to a buffer at least
-  // aLength + FLAC_MAX_FRAME_HEADER_SIZE bytes.
   int64_t FindNext(const uint8_t* aData, const uint32_t aLength)
   {
+    // The non-variable size of a FLAC header is 32 bits followed by variable
+    // size data and a 8 bits CRC.
+    // There's no need to read the last 4 bytes, it can never make a complete
+    // header.
+    if (aLength < 4) {
+      return -1;
+    }
     uint32_t modOffset = aLength % 4;
     uint32_t i, j;
 
     for (i = 0; i < modOffset; i++) {
       if ((BigEndian::readUint16(aData + i) & 0xfffe) == 0xfff8) {
-        if (mHeader.Parse(aData + i)) {
+        if (mHeader.Parse(aData + i, aLength - i)) {
           return i;
         }
       }
     }
 
-    for (; i < aLength; i += 4) {
+    for (; i < aLength - 4; i += 4) {
       uint32_t x = BigEndian::readUint32(aData + i);
       if (((x & ~(x + 0x01010101)) & 0x80808080)) {
         for (j = 0; j < 4; j++) {
           if ((BigEndian::readUint16(aData + i + j) & 0xfffe) == 0xfff8) {
-            if (mHeader.Parse(aData + i + j)) {
+            if (mHeader.Parse(aData + i + j, aLength - i - j)) {
               return i + j;
             }
           }
@@ -292,15 +285,7 @@ public:
         return false;
       }
 
-      if (read < FLAC_MAX_FRAME_HEADER_SIZE) {
-        // Assume that we can't have a valid frame in such small content, we
-        // must have reached EOS.
-        // So we're done.
-        mEOS = true;
-        return false;
-      }
-
-      const size_t bufSize = read + innerOffset - FLAC_MAX_FRAME_HEADER_SIZE;
+      const size_t bufSize = read + innerOffset;
       int64_t foundOffset =
         FindNext(reinterpret_cast<uint8_t*>(buffer.Elements()), bufSize);
 
@@ -309,9 +294,19 @@ public:
         return true;
       }
 
+      if (read < BUFFER_SIZE) {
+        // Nothing more to try on as we had reached EOS during the previous
+        // read.
+        mEOS = true;
+        return false;
+      }
+
       // Scan the next block;
-      offset += bufSize;
-      buffer.RemoveElementsAt(0, bufSize);
+      // We rewind a bit to re-try what could have been an incomplete packet.
+      // The maximum size of a FLAC header being FLAC_MAX_FRAME_HEADER_SIZE so
+      // we need to retry just after that amount.
+      offset += bufSize - (FLAC_MAX_FRAME_HEADER_SIZE + 1);
+      buffer.RemoveElementsAt(0, bufSize - (FLAC_MAX_FRAME_HEADER_SIZE + 1));
       innerOffset = buffer.Length();
     } while (offset - originalOffset < FLAC_MAX_FRAME_SIZE);
 
@@ -385,7 +380,8 @@ private:
 
 };
 
-class FrameParser {
+class FrameParser
+{
 public:
 
   // Returns the currently parsed frame. Reset via EndFrameSession.
@@ -431,7 +427,8 @@ public:
   // Convenience methods to external FlacFrameParser ones.
   bool IsHeaderBlock(const uint8_t* aPacket, size_t aLength) const
   {
-    return mParser.IsHeaderBlock(aPacket, aLength);
+    auto res = mParser.IsHeaderBlock(aPacket, aLength);
+    return res.isOk() ? res.unwrap() : false;
   }
 
   uint32_t HeaderBlockLength(const uint8_t* aPacket) const
@@ -441,7 +438,7 @@ public:
 
   bool DecodeHeaderBlock(const uint8_t* aPacket, size_t aLength)
   {
-    return mParser.DecodeHeaderBlock(aPacket, aLength);
+    return mParser.DecodeHeaderBlock(aPacket, aLength).isOk();
   }
 
   bool HasFullMetadata() const { return mParser.HasFullMetadata(); }
@@ -458,11 +455,10 @@ private:
       // Move our offset slightly, so that we don't find the same frame at the
       // next FindNext call.
       aResource.Seek(SEEK_CUR, mNextFrame.Header().Size());
-      if (mFrame.IsValid()
-          && mNextFrame.Offset() - mFrame.Offset() < FLAC_MAX_FRAME_SIZE
-          && !CheckCRC16AtOffset(mFrame.Offset(),
-                                 mNextFrame.Offset(),
-                                 aResource)) {
+      if (mFrame.IsValid() &&
+          mNextFrame.Offset() - mFrame.Offset() < FLAC_MAX_FRAME_SIZE &&
+          !CheckCRC16AtOffset(
+            mFrame.Offset(), mNextFrame.Offset(), aResource)) {
         // The frame doesn't match its CRC or would be too far, skip it..
         continue;
       }
@@ -474,8 +470,8 @@ private:
 
   bool CheckFrameData()
   {
-    if (mNextFrame.Header().Info().mRate == 0
-        || mNextFrame.Header().Info().mBitDepth == 0) {
+    if (mNextFrame.Header().Info().mRate == 0 ||
+        mNextFrame.Header().Info().mBitDepth == 0) {
       if (!Info().IsValid()) {
         // We can only use the STREAMINFO data if we have one.
         mNextFrame.SetInvalid();
@@ -500,9 +496,8 @@ private:
     }
     UniquePtr<char[]> buffer(new char[size]);
     uint32_t read = 0;
-    if (NS_FAILED(aResource.ReadAt(aStart, buffer.get(),
-                                   size, &read))
-        || read != size) {
+    if (NS_FAILED(aResource.ReadAt(aStart, buffer.get(), size, &read)) ||
+        read != size) {
       NS_WARNING("Couldn't read frame content");
       return false;
     }
@@ -564,9 +559,7 @@ private:
 
 // FlacDemuxer
 
-FlacDemuxer::FlacDemuxer(MediaResource* aSource)
-  : mSource(aSource)
-{}
+FlacDemuxer::FlacDemuxer(MediaResource* aSource) : mSource(aSource) { }
 
 bool
 FlacDemuxer::InitInternal()
@@ -589,12 +582,6 @@ FlacDemuxer::Init()
 
   LOG("Init() successful");
   return InitPromise::CreateAndResolve(NS_OK, __func__);
-}
-
-bool
-FlacDemuxer::HasTrackType(TrackInfo::TrackType aType) const
-{
-  return aType == TrackInfo::kAudioTrack;
 }
 
 uint32_t
@@ -639,7 +626,8 @@ FlacTrackDemuxer::Init()
 
   // First check if we have a valid Flac start.
   char buffer[BUFFER_SIZE];
-  const uint8_t* ubuffer = reinterpret_cast<uint8_t*>(buffer); // only needed due to type constraints of ReadAt.
+  const uint8_t* ubuffer = // only needed due to type constraints of ReadAt.
+    reinterpret_cast<uint8_t*>(buffer);
   int64_t offset = 0;
 
   do {
@@ -682,7 +670,7 @@ FlacTrackDemuxer::Init()
     return false;
   }
 
-  if (!mParser->Info().IsValid() || !mParser->Info().mDuration) {
+  if (!mParser->Info().IsValid() || !mParser->Info().mDuration.IsPositive()) {
     // Check if we can look at the last frame for the end time to determine the
     // duration when we don't have any.
     TimeAtEnd();
@@ -707,7 +695,7 @@ FlacTrackDemuxer::GetInfo() const
   } else if (mParser->FirstFrame().Info().IsValid()) {
     // Use the first frame header.
     UniquePtr<TrackInfo> info = mParser->FirstFrame().Info().Clone();
-    info->mDuration = Duration().ToMicroseconds();
+    info->mDuration = Duration();
     return info;
   }
   return nullptr;
@@ -718,11 +706,11 @@ FlacTrackDemuxer::IsSeekable() const
 {
   // For now we only allow seeking if a STREAMINFO block was found and with
   // a known number of samples (duration is set).
-  return mParser->Info().IsValid() && mParser->Info().mDuration;
+  return mParser->Info().IsValid() && mParser->Info().mDuration.IsPositive();
 }
 
 RefPtr<FlacTrackDemuxer::SeekPromise>
-FlacTrackDemuxer::Seek(TimeUnit aTime)
+FlacTrackDemuxer::Seek(const TimeUnit& aTime)
 {
   // Efficiently seek to the position.
   FastSeek(aTime);
@@ -735,7 +723,7 @@ FlacTrackDemuxer::Seek(TimeUnit aTime)
 TimeUnit
 FlacTrackDemuxer::FastSeek(const TimeUnit& aTime)
 {
-  LOG("FastSeek(%f) avgFrameLen=%f mParsedFramesDuration=%f offset=%lld",
+  LOG("FastSeek(%f) avgFrameLen=%f mParsedFramesDuration=%f offset=%" PRId64,
       aTime.ToSeconds(), AverageFrameLength(),
       mParsedFramesDuration.ToSeconds(), GetResourceOffset());
 
@@ -763,7 +751,8 @@ FlacTrackDemuxer::FastSeek(const TimeUnit& aTime)
   int64_t pivot =
     aTime.ToSeconds() * AverageFrameLength() + mParser->FirstFrame().Offset();
 
-  // Time in seconds where we can stop seeking and will continue using ScanUntil.
+  // Time in seconds where we can stop seeking and will continue using
+  // ScanUntil.
   static const int GAP_THRESHOLD = 5;
   int64_t first = mParser->FirstFrame().Offset();
   int64_t last = mSource.GetLength();
@@ -781,7 +770,7 @@ FlacTrackDemuxer::FastSeek(const TimeUnit& aTime)
     }
     timeSeekedTo = frame.Time();
 
-    LOGV("FastSeek: interation:%u found:%f @ %lld",
+    LOGV("FastSeek: interation:%u found:%f @ %" PRId64,
          iterations, timeSeekedTo.ToSeconds(), frame.Offset());
 
     if (lastFoundOffset && lastFoundOffset.ref() == frame.Offset()) {
@@ -793,8 +782,8 @@ FlacTrackDemuxer::FastSeek(const TimeUnit& aTime)
     if (frame.Time() == aTime) {
       break;
     }
-    if (aTime > frame.Time()
-        && aTime - frame.Time() <= TimeUnit::FromSeconds(GAP_THRESHOLD)) {
+    if (aTime > frame.Time() &&
+        aTime - frame.Time() <= TimeUnit::FromSeconds(GAP_THRESHOLD)) {
       // We're close enough to the target, experimentation shows that bisection
       // search doesn't help much after that.
       break;
@@ -818,14 +807,14 @@ FlacTrackDemuxer::FastSeek(const TimeUnit& aTime)
 TimeUnit
 FlacTrackDemuxer::ScanUntil(const TimeUnit& aTime)
 {
-  LOG("ScanUntil(%f avgFrameLen=%f mParsedFramesDuration=%f offset=%lld",
+  LOG("ScanUntil(%f avgFrameLen=%f mParsedFramesDuration=%f offset=%" PRId64,
       aTime.ToSeconds(), AverageFrameLength(),
       mParsedFramesDuration.ToSeconds(), mParser->CurrentFrame().Offset());
 
-   if (!mParser->FirstFrame().IsValid()
-       || aTime <= mParser->FirstFrame().Time()) {
-     return FastSeek(aTime);
-   }
+  if (!mParser->FirstFrame().IsValid() ||
+      aTime <= mParser->FirstFrame().Time()) {
+    return FastSeek(aTime);
+  }
 
   int64_t previousOffset = 0;
   TimeUnit previousTime;
@@ -848,8 +837,8 @@ FlacTrackDemuxer::ScanUntil(const TimeUnit& aTime)
 RefPtr<FlacTrackDemuxer::SamplesPromise>
 FlacTrackDemuxer::GetSamples(int32_t aNumSamples)
 {
-  LOGV("GetSamples(%d) Begin offset=%lld mParsedFramesDuration=%f"
-       " mTotalFrameLen=%llu",
+  LOGV("GetSamples(%d) Begin offset=%" PRId64 " mParsedFramesDuration=%f"
+       " mTotalFrameLen=%" PRIu64,
        aNumSamples, GetResourceOffset(), mParsedFramesDuration.ToSeconds(),
        mTotalFrameLen);
 
@@ -868,8 +857,8 @@ FlacTrackDemuxer::GetSamples(int32_t aNumSamples)
     frames->mSamples.AppendElement(frame);
   }
 
-  LOGV("GetSamples() End mSamples.Length=%u aNumSamples=%d offset=%lld"
-       " mParsedFramesDuration=%f mTotalFrameLen=%llu",
+  LOGV("GetSamples() End mSamples.Length=%zu aNumSamples=%d offset=%" PRId64
+       " mParsedFramesDuration=%f mTotalFrameLen=%" PRIu64,
        frames->mSamples.Length(), aNumSamples, GetResourceOffset(),
        mParsedFramesDuration.ToSeconds(), mTotalFrameLen);
 
@@ -895,7 +884,7 @@ FlacTrackDemuxer::Reset()
 }
 
 RefPtr<FlacTrackDemuxer::SkipAccessPointPromise>
-FlacTrackDemuxer::SkipToNextRandomAccessPoint(TimeUnit aTimeThreshold)
+FlacTrackDemuxer::SkipToNextRandomAccessPoint(const TimeUnit& aTimeThreshold)
 {
   // Will not be called for audio-only resources.
   return SkipAccessPointPromise::CreateAndReject(
@@ -926,8 +915,8 @@ FlacTrackDemuxer::GetBuffered()
 const flac::Frame&
 FlacTrackDemuxer::FindNextFrame()
 {
-  LOGV("FindNext() Begin offset=%lld mParsedFramesDuration=%f"
-       " mTotalFrameLen=%llu",
+  LOGV("FindNext() Begin offset=%" PRId64 " mParsedFramesDuration=%f"
+       " mTotalFrameLen=%" PRIu64,
        GetResourceOffset(), mParsedFramesDuration.ToSeconds(), mTotalFrameLen);
 
   if (mParser->FindNextFrame(mSource)) {
@@ -942,8 +931,8 @@ FlacTrackDemuxer::FindNextFrame()
                          - mParser->FirstFrame().Offset()
                          + mParser->CurrentFrame().Size());
 
-    LOGV("FindNext() End time=%f offset=%lld mParsedFramesDuration=%f"
-         " mTotalFrameLen=%llu",
+    LOGV("FindNext() End time=%f offset=%" PRId64 " mParsedFramesDuration=%f"
+         " mTotalFrameLen=%" PRIu64,
          mParser->CurrentFrame().Time().ToSeconds(), GetResourceOffset(),
          mParsedFramesDuration.ToSeconds(), mTotalFrameLen);
   }
@@ -959,7 +948,7 @@ FlacTrackDemuxer::GetNextFrame(const flac::Frame& aFrame)
     return nullptr;
   }
 
-  LOG("GetNextFrame() Begin(time=%f offset=%lld size=%u)",
+  LOG("GetNextFrame() Begin(time=%f offset=%" PRId64 " size=%u)",
       aFrame.Time().ToSeconds(), aFrame.Offset(), aFrame.Size());
 
   const int64_t offset = aFrame.Offset();
@@ -976,18 +965,18 @@ FlacTrackDemuxer::GetNextFrame(const flac::Frame& aFrame)
 
   const uint32_t read = Read(frameWriter->Data(), offset, size);
   if (read != size) {
-    LOG("GetNextFrame() Exit read=%u frame->Size=%u", read, frame->Size());
+    LOG("GetNextFrame() Exit read=%u frame->Size=%zu", read, frame->Size());
     return nullptr;
   }
 
-  frame->mTime = aFrame.Time().ToMicroseconds();
-  frame->mDuration = aFrame.Duration().ToMicroseconds();
+  frame->mTime = aFrame.Time();
+  frame->mDuration = aFrame.Duration();
   frame->mTimecode = frame->mTime;
   frame->mOffset = aFrame.Offset();
   frame->mKeyframe = true;
 
-  MOZ_ASSERT(frame->mTime >= 0);
-  MOZ_ASSERT(frame->mDuration >= 0);
+  MOZ_ASSERT(!frame->mTime.IsNegative());
+  MOZ_ASSERT(!frame->mDuration.IsNegative());
 
   return frame.forget();
 }
@@ -1015,8 +1004,7 @@ FlacTrackDemuxer::AverageFrameLength() const
 TimeUnit
 FlacTrackDemuxer::Duration() const
 {
-  return std::max(mParsedFramesDuration,
-                  TimeUnit::FromMicroseconds(mParser->Info().mDuration));
+  return std::max(mParsedFramesDuration, mParser->Info().mDuration);
 }
 
 TimeUnit
@@ -1063,12 +1051,12 @@ FlacTrackDemuxer::TimeAtEnd()
 /* static */ bool
 FlacDemuxer::FlacSniffer(const uint8_t* aData, const uint32_t aLength)
 {
-  if (aLength < FLAC_MAX_FRAME_HEADER_SIZE) {
+  if (aLength < FLAC_MIN_FRAME_SIZE) {
     return false;
   }
 
   flac::Frame frame;
-  return frame.FindNext(aData, aLength - FLAC_MAX_FRAME_HEADER_SIZE) >= 0;
+  return frame.FindNext(aData, aLength) >= 0;
 }
 
 } // namespace mozilla

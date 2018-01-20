@@ -25,13 +25,11 @@
  *   /dom/webidl/Animation*.webidl
  */
 
-const {Cu} = require("chrome");
+const {Cu, Ci} = require("chrome");
 const promise = require("promise");
-const {Task} = require("devtools/shared/task");
 const protocol = require("devtools/shared/protocol");
-const {Actor, ActorClassWithSpec} = protocol;
+const {Actor} = protocol;
 const {animationPlayerSpec, animationsSpec} = require("devtools/shared/specs/animation");
-const events = require("sdk/event/core");
 
 // Types of animations.
 const ANIMATION_TYPES = {
@@ -123,6 +121,8 @@ var AnimationPlayerActor = protocol.ActorClassWithSpec(animationPlayerSpec, {
   },
 
   get window() {
+    // ownerGlobal doesn't exist in content privileged windows.
+    // eslint-disable-next-line mozilla/use-ownerGlobal
     return this.node.ownerDocument.defaultView;
   },
 
@@ -262,6 +262,25 @@ var AnimationPlayerActor = protocol.ActorClassWithSpec(animationPlayerSpec, {
     return this.player.effect.getComputedTiming().direction;
   },
 
+  /**
+   * Get animation-timing-function from animated element if CSS Animations.
+   * @return {String}
+   */
+  getAnimationTimingFunction: function () {
+    if (!this.isCssAnimation()) {
+      return null;
+    }
+
+    let pseudo = null;
+    let target = this.player.effect.target;
+    if (target.type) {
+      // Animated element is a pseudo element.
+      pseudo = target.type;
+      target = target.parentElement;
+    }
+    return this.window.getComputedStyle(target, pseudo).animationTimingFunction;
+  },
+
   getPropertiesCompositorStatus: function () {
     let properties = this.player.effect.getProperties();
     return properties.map(prop => {
@@ -307,6 +326,7 @@ var AnimationPlayerActor = protocol.ActorClassWithSpec(animationPlayerSpec, {
       fill: this.getFill(),
       easing: this.getEasing(),
       direction: this.getDirection(),
+      animationTimingFunction: this.getAnimationTimingFunction(),
       // animation is hitting the fast path or not. Returns false whenever the
       // animation is paused as it is taken off the compositor then.
       isRunningOnCompositor:
@@ -384,7 +404,7 @@ var AnimationPlayerActor = protocol.ActorClassWithSpec(animationPlayerSpec, {
     }
 
     if (hasChanged) {
-      events.emit(this, "changed", this.getCurrentState());
+      this.emit("changed", this.getCurrentState());
     }
   },
 
@@ -460,12 +480,122 @@ var AnimationPlayerActor = protocol.ActorClassWithSpec(animationPlayerSpec, {
   /**
    * Get data about the animated properties of this animation player.
    * @return {Array} Returns a list of animated properties.
-   * Each property contains a list of values and their offsets
+   * Each property contains a list of values, their offsets and distances.
    */
   getProperties: function () {
-    return this.player.effect.getProperties().map(property => {
+    const properties = this.player.effect.getProperties().map(property => {
       return {name: property.property, values: property.values};
     });
+
+    const DOMWindowUtils =
+      this.window.QueryInterface(Ci.nsIInterfaceRequestor)
+          .getInterface(Ci.nsIDOMWindowUtils);
+
+    // Fill missing keyframe with computed value.
+    for (let property of properties) {
+      let underlyingValue = null;
+      // Check only 0% and 100% keyframes.
+      [0, property.values.length - 1].forEach(index => {
+        const values = property.values[index];
+        if (values.value !== undefined) {
+          return;
+        }
+        if (!underlyingValue) {
+          let pseudo = null;
+          let target = this.player.effect.target;
+          if (target.type) {
+            // This target is a pseudo element.
+            pseudo = target.type;
+            target = target.parentElement;
+          }
+          const value =
+            DOMWindowUtils.getUnanimatedComputedStyle(target, pseudo, property.name);
+          const animationType = DOMWindowUtils.getAnimationTypeForLonghand(property.name);
+          underlyingValue = animationType === "float" ? parseFloat(value, 10) : value;
+        }
+        values.value = underlyingValue;
+      });
+    }
+
+    // Calculate the distance.
+    for (let property of properties) {
+      const propertyName = property.name;
+      const maxObject = { distance: -1 };
+      for (let i = 0; i < property.values.length - 1; i++) {
+        const value1 = property.values[i].value;
+        for (let j = i + 1; j < property.values.length; j++) {
+          const value2 = property.values[j].value;
+          const distance = this.getDistance(this.player.effect.target, propertyName,
+                                            value1, value2, DOMWindowUtils);
+          if (maxObject.distance >= distance) {
+            continue;
+          }
+          maxObject.distance = distance;
+          maxObject.value1 = value1;
+          maxObject.value2 = value2;
+        }
+      }
+      if (maxObject.distance === 0) {
+        // Distance is zero means that no values change or can't calculate the distance.
+        // In this case, we use the keyframe offset as the distance.
+        property.values.reduce((previous, current) => {
+          // If the current value is same as previous value, use previous distance.
+          current.distance =
+            current.value === previous.value ? previous.distance : current.offset;
+          return current;
+        }, property.values[0]);
+        continue;
+      }
+      const baseValue =
+        maxObject.value1 < maxObject.value2 ? maxObject.value1 : maxObject.value2;
+      for (let values of property.values) {
+        const value = values.value;
+        const distance = this.getDistance(this.player.effect.target, propertyName,
+                                          baseValue, value, DOMWindowUtils);
+        values.distance = distance / maxObject.distance;
+      }
+    }
+    return properties;
+  },
+
+  /**
+   * Get the animation types for a given list of CSS property names.
+   * @param {Array} propertyNames - CSS property names (e.g. background-color)
+   * @return {Object} Returns animation types (e.g. {"background-color": "rgb(0, 0, 0)"}.
+   */
+  getAnimationTypes: function (propertyNames) {
+    const DOMWindowUtils = this.window.QueryInterface(Ci.nsIInterfaceRequestor)
+                               .getInterface(Ci.nsIDOMWindowUtils);
+    const animationTypes = {};
+    for (let propertyName of propertyNames) {
+      animationTypes[propertyName] =
+        DOMWindowUtils.getAnimationTypeForLonghand(propertyName);
+    }
+    return animationTypes;
+  },
+
+  /**
+   * Returns the distance of between value1, value2.
+   * @param {Object} target - dom element
+   * @param {String} propertyName - e.g. transform
+   * @param {String} value1 - e.g. translate(0px)
+   * @param {String} value2 - e.g. translate(10px)
+   * @param {Object} DOMWindowUtils
+   * @param {float} distance
+   */
+  getDistance: function (target, propertyName, value1, value2, DOMWindowUtils) {
+    if (value1 === value2) {
+      return 0;
+    }
+    try {
+      const distance =
+        DOMWindowUtils.computeAnimationDistance(target, propertyName, value1, value2);
+      return distance;
+    } catch (e) {
+      // We can't compute the distance such the 'discrete' animation,
+      // 'auto' keyword and so on.
+      return 0;
+    }
   }
 });
 
@@ -474,8 +604,8 @@ exports.AnimationPlayerActor = AnimationPlayerActor;
 /**
  * The Animations actor lists animation players for a given node.
  */
-var AnimationsActor = exports.AnimationsActor = protocol.ActorClassWithSpec(animationsSpec, {
-  initialize: function(conn, tabActor) {
+exports.AnimationsActor = protocol.ActorClassWithSpec(animationsSpec, {
+  initialize: function (conn, tabActor) {
     Actor.prototype.initialize.call(this, conn);
     this.tabActor = tabActor;
 
@@ -484,25 +614,17 @@ var AnimationsActor = exports.AnimationsActor = protocol.ActorClassWithSpec(anim
     this.onAnimationMutation = this.onAnimationMutation.bind(this);
 
     this.allAnimationsPaused = false;
-    events.on(this.tabActor, "will-navigate", this.onWillNavigate);
-    events.on(this.tabActor, "navigate", this.onNavigate);
+    this.tabActor.on("will-navigate", this.onWillNavigate);
+    this.tabActor.on("navigate", this.onNavigate);
   },
 
   destroy: function () {
     Actor.prototype.destroy.call(this);
-    events.off(this.tabActor, "will-navigate", this.onWillNavigate);
-    events.off(this.tabActor, "navigate", this.onNavigate);
+    this.tabActor.off("will-navigate", this.onWillNavigate);
+    this.tabActor.off("navigate", this.onNavigate);
 
     this.stopAnimationPlayerUpdates();
     this.tabActor = this.observer = this.actors = this.walker = null;
-  },
-
-  /**
-   * Since AnimationsActor doesn't have a protocol.js parent actor that takes
-   * care of its lifetime, implementing disconnect is required to cleanup.
-   */
-  disconnect: function () {
-    this.destroy();
   },
 
   /**
@@ -546,6 +668,8 @@ var AnimationsActor = exports.AnimationsActor = protocol.ActorClassWithSpec(anim
     // either getAnimationPlayersForNode is called again or
     // stopAnimationPlayerUpdates is called.
     this.stopAnimationPlayerUpdates();
+    // ownerGlobal doesn't exist in content privileged windows.
+    // eslint-disable-next-line mozilla/use-ownerGlobal
     let win = nodeActor.rawNode.ownerDocument.defaultView;
     this.observer = new win.MutationObserver(this.onAnimationMutation);
     this.observer.observe(nodeActor.rawNode, {
@@ -624,7 +748,7 @@ var AnimationsActor = exports.AnimationsActor = protocol.ActorClassWithSpec(anim
       // Let's wait for all added animations to be ready before telling the
       // front-end.
       Promise.all(readyPromises).then(() => {
-        events.emit(this, "mutations", eventData);
+        this.emit("mutations", eventData);
       });
     }
   },

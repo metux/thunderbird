@@ -108,30 +108,28 @@
 <!ENTITY OpenBrowserWithMsgId.label "Abrir navegador co ID da mensaxe">
 <!ENTITY OpenBrowserWithMsgId.accesskey "e">
 
-<!ENTITY author.label "Author">
-<!ENTITY bccField4.label "Bcc">
-<!ENTITY ccField4.label "Cc">
-<!ENTITY dateField4.label "Date">
-<!ENTITY followupToField4.label "Followup to">
+<!ENTITY toField4.label "To">
 <!ENTITY fromField4.label "From">
-<!ENTITY hdrMenuForwardButton.label "Forward As">
-<!ENTITY hdrOpenConversationButton1.label "Conversation">
-<!ENTITY hdrOpenConversationButton1.tooltip "Show conversation of this message">
-<!ENTITY inReplyToField4.label "In reply to">
-<!ENTITY messageIdField4.label "Message ID">
-<!ENTITY newsgroupsField4.label "Newsgroups">
-<!ENTITY organizationField4.label "Organization">
-<!ENTITY originalWebsite4.label "Website">
-<!ENTITY otherActionsButton.tooltip "More actions">
-
-<!ENTITY otherActionsButton2.label "More">
-<!ENTITY referencesField4.label "References">
-<!ENTITY replyToField4.label "Reply to">
 <!ENTITY senderField4.label "Sender">
+<!ENTITY author.label "Author">
+<!ENTITY organizationField4.label "Organization">
+<!ENTITY replyToField4.label "Reply to">
 
 <!ENTITY subjectField4.label "Subject">
+<!ENTITY ccField4.label "Cc">
+<!ENTITY bccField4.label "Bcc">
+<!ENTITY newsgroupsField4.label "Newsgroups">
+<!ENTITY followupToField4.label "Followup to">
 <!ENTITY tagsHdr4.label "Tags">
-
-
-<!ENTITY toField4.label "To">
+<!ENTITY dateField4.label "Date">
 <!ENTITY userAgentField4.label "User agent">
+<!ENTITY referencesField4.label "References">
+<!ENTITY messageIdField4.label "Message ID">
+<!ENTITY inReplyToField4.label "In reply to">
+<!ENTITY originalWebsite4.label "Website">
+
+<!ENTITY hdrOpenConversationButton1.label "Conversation">
+<!ENTITY hdrOpenConversationButton1.tooltip "Show conversation of this message">
+<!ENTITY hdrMenuForwardButton.label "Forward As">
+<!ENTITY otherActionsButton2.label "More">
+<!ENTITY otherActionsButton.tooltip "More actions">

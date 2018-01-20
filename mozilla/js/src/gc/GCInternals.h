@@ -4,6 +4,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/*
+ * GC-internal definitions.
+ */
+
 #ifndef gc_GCInternals_h
 #define gc_GCInternals_h
 
@@ -13,6 +17,7 @@
 
 #include "jscntxt.h"
 
+#include "gc/RelocationOverlay.h"
 #include "gc/Zone.h"
 #include "vm/HelperThreads.h"
 #include "vm/Runtime.h"
@@ -46,7 +51,7 @@ class MOZ_RAII AutoTraceSession
     void operator=(const AutoTraceSession&) = delete;
 
     JS::HeapState prevState;
-    AutoSPSEntry pseudoFrame;
+    AutoGeckoProfilerEntry pseudoFrame;
 };
 
 class MOZ_RAII AutoPrepareForTracing
@@ -85,18 +90,16 @@ class MOZ_RAII AutoStopVerifyingBarriers
         // inside of an outer minor GC. This is not allowed by the
         // gc::Statistics phase tree. So we pause the "real" GC, if in fact one
         // is in progress.
-        gcstats::Phase outer = gc->stats.currentPhase();
-        if (outer != gcstats::PHASE_NONE)
-            gc->stats.endPhase(outer);
-        MOZ_ASSERT((gc->stats.currentPhase() == gcstats::PHASE_NONE) ||
-                   (gc->stats.currentPhase() == gcstats::PHASE_GC_BEGIN) ||
-                   (gc->stats.currentPhase() == gcstats::PHASE_GC_END));
+        gcstats::PhaseKind outer = gc->stats().currentPhaseKind();
+        if (outer != gcstats::PhaseKind::NONE)
+            gc->stats().endPhase(outer);
+        MOZ_ASSERT(gc->stats().currentPhaseKind() == gcstats::PhaseKind::NONE);
 
         if (restartPreVerifier)
             gc->startVerifyPreBarriers();
 
-        if (outer != gcstats::PHASE_NONE)
-            gc->stats.beginPhase(outer);
+        if (outer != gcstats::PhaseKind::NONE)
+            gc->stats().beginPhase(outer);
     }
 };
 #else
@@ -122,6 +125,7 @@ struct MovingTracer : JS::CallbackTracer
     void onLazyScriptEdge(LazyScript** lazyp) override;
     void onBaseShapeEdge(BaseShape** basep) override;
     void onScopeEdge(Scope** basep) override;
+    void onRegExpSharedEdge(RegExpShared** sharedp) override;
     void onChild(const JS::GCCellPtr& thing) override {
         MOZ_ASSERT(!RelocationOverlay::isCellForwarded(thing.asCell()));
     }
@@ -129,6 +133,10 @@ struct MovingTracer : JS::CallbackTracer
 #ifdef DEBUG
     TracerKind getTracerKind() const override { return TracerKind::Moving; }
 #endif
+
+  private:
+    template <typename T>
+    void updateEdge(T** thingp);
 };
 
 // Structure for counting how many times objects in a particular group have
@@ -168,6 +176,92 @@ struct TenureCountCache
         return entries[hash(group) % EntryCount];
     }
 };
+
+struct MOZ_RAII AutoAssertNoNurseryAlloc
+{
+#ifdef DEBUG
+    AutoAssertNoNurseryAlloc();
+    ~AutoAssertNoNurseryAlloc();
+#else
+    AutoAssertNoNurseryAlloc() {}
+#endif
+};
+
+/*
+ * There are a couple of classes here that serve mostly as "tokens" indicating
+ * that a condition holds. Some functions force the caller to possess such a
+ * token because they would misbehave if the condition were false, and it is
+ * far more clear to make the condition visible at the point where it can be
+ * affected rather than just crashing in an assertion down in the place where
+ * it is relied upon.
+ */
+
+/*
+ * A class that serves as a token that the nursery in the current thread's zone
+ * group is empty.
+ */
+class MOZ_RAII AutoAssertEmptyNursery
+{
+  protected:
+    JSContext* cx;
+
+    mozilla::Maybe<AutoAssertNoNurseryAlloc> noAlloc;
+
+    // Check that the nursery is empty.
+    void checkCondition(JSContext* cx);
+
+    // For subclasses that need to empty the nursery in their constructors.
+    AutoAssertEmptyNursery() : cx(nullptr) {
+    }
+
+  public:
+    explicit AutoAssertEmptyNursery(JSContext* cx) : cx(nullptr) {
+        checkCondition(cx);
+    }
+
+    AutoAssertEmptyNursery(const AutoAssertEmptyNursery& other) : AutoAssertEmptyNursery(other.cx)
+    {
+    }
+};
+
+/*
+ * Evict the nursery upon construction. Serves as a token indicating that the
+ * nursery is empty. (See AutoAssertEmptyNursery, above.)
+ *
+ * Note that this is very improper subclass of AutoAssertHeapBusy, in that the
+ * heap is *not* busy within the scope of an AutoEmptyNursery. I will most
+ * likely fix this by removing AutoAssertHeapBusy, but that is currently
+ * waiting on jonco's review.
+ */
+class MOZ_RAII AutoEmptyNursery : public AutoAssertEmptyNursery
+{
+  public:
+    explicit AutoEmptyNursery(JSContext* cx);
+};
+
+extern void
+DelayCrossCompartmentGrayMarking(JSObject* src);
+
+inline bool
+IsOOMReason(JS::gcreason::Reason reason)
+{
+    return reason == JS::gcreason::LAST_DITCH ||
+           reason == JS::gcreason::MEM_PRESSURE;
+}
+
+inline void
+RelocationOverlay::forwardTo(Cell* cell)
+{
+    MOZ_ASSERT(!isForwarded());
+    // The location of magic_ is important because it must never be valid to see
+    // the value Relocated there in a GC thing that has not been moved.
+    static_assert(offsetof(RelocationOverlay, magic_) == offsetof(JSObject, group_) &&
+                  offsetof(RelocationOverlay, magic_) == offsetof(js::Shape, base_) &&
+                  offsetof(RelocationOverlay, magic_) == offsetof(JSString, d.u1.flags),
+                  "RelocationOverlay::magic_ is in the wrong location");
+    magic_ = Relocated;
+    newLocation_ = cell;
+}
 
 } /* namespace gc */
 } /* namespace js */

@@ -24,3 +24,5 @@
 <!ENTITY backgroundImage.label "Фонавая выява:">
 <!ENTITY backgroundImage.accessKey "я">
 <!ENTITY backgroundImage.tooltip "Ужываць файл выявы як фон вашай старонкі">
+
+<!ENTITY backgroundImage.shortenedDataURI "Shortened data URI (copy will place the full URI onto the clipboard)">

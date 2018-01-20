@@ -13,7 +13,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/BasicEvents.h"
 
-class nsGlobalWindow;
+class nsGlobalWindowOuter;
 class nsIPresShell;
 class nsIWidget;
 class nsPresContext;
@@ -24,6 +24,7 @@ struct nsPoint;
 namespace mozilla {
   namespace layers {
     class LayerTransactionChild;
+    class WebRenderBridgeChild;
   } // namespace layers
 } // namespace mozilla
 
@@ -61,7 +62,7 @@ class nsDOMWindowUtils final : public nsIDOMWindowUtils,
   typedef mozilla::widget::TextEventDispatcher
     TextEventDispatcher;
 public:
-  explicit nsDOMWindowUtils(nsGlobalWindow *aWindow);
+  explicit nsDOMWindowUtils(nsGlobalWindowOuter *aWindow);
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMWINDOWUTILS
 
@@ -81,6 +82,7 @@ protected:
   nsPresContext* GetPresContext();
   nsIDocument* GetDocument();
   mozilla::layers::LayerTransactionChild* GetLayerTransaction();
+  mozilla::layers::WebRenderBridgeChild* GetWebRenderBridge();
 
   NS_IMETHOD SendMouseEventCommon(const nsAString& aType,
                                   float aX,
@@ -91,6 +93,7 @@ protected:
                                   bool aIgnoreRootScrollFrame,
                                   float aPressure,
                                   unsigned short aInputSourceArg,
+                                  uint32_t aIdentifier,
                                   bool aToWindow,
                                   bool *aPreventDefault,
                                   bool aIsDOMEventSynthesized,

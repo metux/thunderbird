@@ -51,8 +51,8 @@
 <!ENTITY getAllNewMsgCmdPopupMenu.accesskey "A">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.label "Aktuele account">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.accesskey "C">
-<!ENTITY getNextNMsgCmd.label "Folgjende 500 nijsberjochten downloade">
-<!ENTITY getNextNMsgCmd.accesskey "D">
+<!ENTITY getNextNMsgCmd2.label "Folgjende nijsberjocht ophelje">
+<!ENTITY getNextNMsgCmd2.accesskey "t">
 <!ENTITY sendUnsentCmd.label "Net-ferstjoerde berjochten ferstjoere">
 <!ENTITY sendUnsentCmd.accesskey "n">
 <!ENTITY subscribeCmd.label "Abonnearje…">
@@ -204,7 +204,7 @@
 <!ENTITY sortAscending.label "Opgeand">
 <!ENTITY sortAscending.accesskey "O">
 <!ENTITY sortDescending.label "Delgeand">
-<!ENTITY sortDescending.accesskey "f">
+<!ENTITY sortDescending.accesskey "g">
 <!ENTITY sortThreaded.label "Petearen">
 <!ENTITY sortThreaded.accesskey "P">
 <!ENTITY sortUnthreaded.label "Gjin petearen">
@@ -366,6 +366,8 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Konseptberjocht bewurkje">
 <!ENTITY editDraftMsgCmd.accesskey "o">
+<!ENTITY newMsgFromTemplateCmd.label "Nij berjocht fan sjabloan">
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Filter meitsje op basis fan berjocht…">
 <!ENTITY createFilter.accesskey "F">
 <!ENTITY moveMsgToMenu.label "Ferpleatse nei">
@@ -456,7 +458,7 @@
 <!ENTITY addressBookCmd.accesskey "A">
 <!ENTITY addressBookCmd.key "b">
 <!ENTITY addons.label "Add-ons">
-<!ENTITY addons.accesskey "T">
+<!ENTITY addons.accesskey "A">
 <!ENTITY activitymanager.label "Aktiviteitebehearder">
 <!ENTITY activitymanager.accesskey "a">
 <!ENTITY imAccountsStatus.label "Chatsteat">
@@ -634,6 +636,9 @@
 <!-- Folder Pane Context Menu -->
 <!ENTITY folderContextGetMessages.label "Berjochten ophelje">
 <!ENTITY folderContextGetMessages.accesskey "B">
+<!ENTITY folderContextPauseAllUpdates.label "Alle fernijingen pausearje">
+<!ENTITY folderContextPauseUpdates.label "Fernijingen pausearje">
+<!ENTITY folderContextPauseUpdates.accesskey "p">
 <!ENTITY folderContextOpenInNewWindow.label "Iepenje yn nij skerm">
 <!ENTITY folderContextOpenInNewWindow.accesskey "s">
 <!ENTITY folderContextOpenNewTab.label "Iepenje yn nij ljepblêd">
@@ -731,12 +736,13 @@
 <!ENTITY attachmentColumn2.tooltip "Sortearje op bylagen">
 
 <!-- Thread Pane Context Menu -->
+<!ENTITY contextNewMsgFromTemplate.label "Nij berjocht fan sjabloan">
 <!ENTITY contextOpenNewWindow.label "Berjocht iepenje yn nij finster">
 <!ENTITY contextOpenNewWindow.accesskey "f">
-<!-- The key potentially conflicts with cutCmd.accessKey which is defined in
-     textcontext.dtd from toolkit. Right now, both menu items can't be visible
-     at the same time, but should someone enable copy/paste of message, this key
-     would probably need to be changed. -->
+<!-- The contextOpenNewTab.accesskey ("T") potentially conflicts with
+     cutCmd.accessKey which is defined in textcontext.dtd from toolkit. Right
+     now, both menu items can't be visible at the same time, but should someone
+     enable copy/paste of message, this key would probably need to be changed. -->
 <!ENTITY contextOpenNewTab.label "Berjocht iepenje yn nij ljepblêd">
 <!ENTITY contextOpenNewTab.accesskey "l">
 <!ENTITY contextOpenConversation.label "Berjocht iepenje yn Petear">
@@ -949,3 +955,7 @@
 
 <!-- Mac OS X Dock Icon pop-up menu -->
 <!ENTITY dockOptions.label              "Programmasymboalopsjes…">
+<!ENTITY writeNewMessageDock.label      "Skriuw in nij berjocht">
+<!ENTITY openAddressBookDock.label      "Adresboek iepenje">
+
+<!ENTITY goChatCmd2.key "H">

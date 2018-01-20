@@ -31,8 +31,7 @@
 <!ENTITY manageDevices.label "Security Devices">
 <!ENTITY manageDevices.accesskey "y">
 
-<!ENTITY certPicker.detailsLabel "Details of selected certificate:">
-<!ENTITY certPicker.info  "Certificate:">
-
 <!-- Strings for the cert picker dialog -->
 <!ENTITY certPicker.title "Select Certificate">
+<!ENTITY certPicker.info  "Certificate:">
+<!ENTITY certPicker.detailsLabel "Details of selected certificate:">

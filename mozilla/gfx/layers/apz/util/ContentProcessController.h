@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set sw=4 ts=8 et tw=80 : */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -36,13 +36,7 @@ class ContentProcessController final
       : public GeckoContentController
 {
 public:
-  ~ContentProcessController();
-
-  static APZChild* Create(const dom::TabId& aTabId);
-
-  // ContentProcessController
-
-  void SetBrowser(dom::TabChild* aBrowser);
+  explicit ContentProcessController(const RefPtr<dom::TabChild>& aBrowser);
 
   // GeckoContentController
 
@@ -68,6 +62,12 @@ public:
 
   void NotifyFlushComplete() override;
 
+  void NotifyAsyncScrollbarDragRejected(const FrameMetrics::ViewID& aScrollId) override;
+
+  void NotifyAsyncAutoscrollRejected(const FrameMetrics::ViewID& aScrollId) override;
+
+  void CancelAutoscroll(const ScrollableLayerGuid& aGuid) override;
+
   void PostDelayedTask(already_AddRefed<Runnable> aRunnable, int aDelayMs) override;
 
   bool IsRepaintThread() override;
@@ -75,12 +75,7 @@ public:
   void DispatchToRepaintThread(already_AddRefed<Runnable> aTask) override;
 
 private:
-  ContentProcessController();
-
-  void SetObserver(nsIObserver* aObserver);
-
   RefPtr<dom::TabChild> mBrowser;
-  RefPtr<nsIObserver> mObserver;
 };
 
 } // namespace layers

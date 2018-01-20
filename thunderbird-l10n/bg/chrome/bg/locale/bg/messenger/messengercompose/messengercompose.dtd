@@ -33,11 +33,11 @@
 <!ENTITY closeCmd.label "Затваряне">
 <!ENTITY closeCmd.key "W">
 <!ENTITY closeCmd.accesskey "З">
-<!ENTITY saveCmd.label "Запис">
+<!ENTITY saveCmd.label "Запазване">
 <!ENTITY saveCmd.key "S">
 <!ENTITY saveCmd.accesskey "а">
-<!ENTITY saveAsCmd.label "Запис като">
-<!ENTITY saveAsCmd.accesskey "и">
+<!ENTITY saveAsCmd.label "Запазване като">
+<!ENTITY saveAsCmd.accesskey "к">
 <!ENTITY saveAsFileCmd.label "Файл…">
 <!ENTITY saveAsFileCmd.accesskey "Ф">
 <!ENTITY saveAsDraftCmd.label "Чернова">
@@ -85,7 +85,7 @@
 <!ENTITY editRewrapCmd.key "R">
 <!ENTITY renameAttachmentCmd.label "Преименуване…">
 <!ENTITY renameAttachmentCmd.accesskey "П">
-<!ENTITY selectAllCmd.label "Избор на всичко">
+<!ENTITY selectAllCmd.label "Избиране на всичко">
 <!ENTITY selectAllCmd.key "A">
 <!ENTITY selectAllCmd.accesskey "И">
 <!ENTITY findBarCmd.label "Търсене…">
@@ -110,7 +110,7 @@
 <!ENTITY viewToolbarsMenuNew.accesskey "Л">
 <!ENTITY menubarCmd.label "Лента на менюто">
 <!ENTITY menubarCmd.accesskey "м">
-<!ENTITY showCompositionToolbarCmd.label "Инструменти за писане">
+<!ENTITY showCompositionToolbarCmd.label "Лента с инструменти за писане">
 <!ENTITY showCompositionToolbarCmd.accesskey "и">
 <!ENTITY showFormattingBarCmd.label "Лента за форматиране">
 <!ENTITY showFormattingBarCmd.accesskey "ф">
@@ -173,12 +173,12 @@
 <!ENTITY highestPriorityCmd.accesskey "П">
 <!ENTITY fileCarbonCopyCmd.label "Изпращане копие до">
 <!ENTITY fileCarbonCopyCmd.accesskey "щ">
-<!ENTITY fileHereMenu.label "Записване тук">
+<!ENTITY fileHereMenu.label "Запазване тук">
 
 <!-- Tools Menu -->
 <!ENTITY tasksMenu.label "Инструменти">
 <!ENTITY tasksMenu.accesskey "И">
-<!ENTITY messengerCmd.label "Поща и новинарски групи">
+<!ENTITY messengerCmd.label "Поща и дискусионни групи">
 <!ENTITY messengerCmd.accesskey "П">
 <!ENTITY messengerCmd.commandkey "1">
 <!ENTITY addressBookCmd.label "Адресник">
@@ -196,7 +196,7 @@
 <!ENTITY minimizeWindow.key "m">
 <!ENTITY minimizeWindow.label "Минимизиране">
 <!ENTITY bringAllToFront.label "Извежда всичко на преден план">
-<!ENTITY zoomWindow.label "Лупа">
+<!ENTITY zoomWindow.label "Мащабиране">
 <!ENTITY windowMenu.label "Прозорец">
 
 <!-- Mail Toolbar -->
@@ -205,7 +205,7 @@
 <!ENTITY addressButton.label "Контакти">
 <!ENTITY attachButton.label "Прилагане">
 <!ENTITY spellingButton.label "Правопис">
-<!ENTITY saveButton.label "Запис">
+<!ENTITY saveButton.label "Запазване">
 <!ENTITY printButton.label "Отпечатване">
 
 <!-- Mail Toolbar Tooltips -->
@@ -215,8 +215,7 @@
 <!ENTITY addressButton.tooltip "Изберете получател от адресника">
 <!ENTITY attachButton.tooltip "Добавяне на прикачен файл">
 <!ENTITY spellingButton.tooltip "Правописна проверка на маркировката или цялото писмо">
-<!ENTITY statusLanguageText.tooltip "Език за проверка на правописа">
-<!ENTITY saveButton.tooltip "Запис на писмото">
+<!ENTITY saveButton.tooltip "Запазване на писмото">
 <!ENTITY cutButton.tooltip              "Изрязване">
 <!ENTITY copyButton.tooltip             "Копиране">
 <!ENTITY pasteButton.tooltip            "Поставяне">
@@ -232,7 +231,7 @@
 <!ENTITY ccAddr.label "Копие:">
 <!ENTITY bccAddr.label "Скрито:">
 <!ENTITY replyAddr.label "Отговор до:">
-<!ENTITY newsgroupsAddr.label "Новинарска група:">
+<!ENTITY newsgroupsAddr.label "Дискусионна група:">
 <!ENTITY followupAddr.label "Продължение в:">
 <!ENTITY subject.label "Тема:">
 <!ENTITY subject.accesskey "Т">
@@ -261,10 +260,10 @@
 
 <!-- Message Pane Context Menu -->
 <!ENTITY spellCheckNoSuggestions.label "Няма предложения">
-<!ENTITY spellCheckIgnoreWord.label "Игнориране на дума">
-<!ENTITY spellCheckIgnoreWord.accesskey "И">
-<!ENTITY spellCheckAddToDictionary.label "Добавяне в речника">
-<!ENTITY spellCheckAddToDictionary.accesskey "ч">
+<!ENTITY spellCheckIgnoreWord.label "Пренебрегване на думата">
+<!ENTITY spellCheckIgnoreWord.accesskey "д">
+<!ENTITY spellCheckAddToDictionary.label "Добавяне към речника">
+<!ENTITY spellCheckAddToDictionary.accesskey "р">
 <!ENTITY undo.label "Отмяна">
 <!ENTITY undo.accesskey "О">
 <!ENTITY cut.label "Изрязване">
@@ -284,7 +283,7 @@
 <!ENTITY removeAttachment.accesskey "х">
 <!ENTITY renameAttachment.label "Преименуване…">
 <!ENTITY renameAttachment.accesskey "П">
-<!ENTITY selectAll.label "Избор на всичко">
+<!ENTITY selectAll.label "Избиране на всичко">
 <!ENTITY selectAll.accesskey "И">
 <!ENTITY attachFile.label "Прилагане на файл(ове)…">
 <!ENTITY attachFile.accesskey "ф">
@@ -307,5 +306,31 @@
 <!ENTITY addressesSidebarTitle.label "Контакти">
 
 <!-- Identity popup customize menuitem -->
-<!ENTITY customizeFromAddress.label "Потребителски От адрес…">
+<!ENTITY customizeFromAddress.label "Изпращане от друго име…">
 <!ENTITY customizeFromAddress.accesskey "а">
+
+<!-- Status Bar -->
+<!ENTITY languageStatusButton.tooltip "Език за проверка на правописа">
+<!ENTITY encodingStatusPanel.tooltip "Кодиране на текста">
+
+<!ENTITY reorderAttachmentsCmd.label "Reorder Attachments…">
+<!ENTITY reorderAttachmentsCmd.accesskey "s">
+<!ENTITY reorderAttachmentsCmd.key "x">
+<!ENTITY reorderAttachmentsPanel.label "Reorder Attachments">
+<!ENTITY moveAttachmentTopPanelBtn.label "Move to Top">
+<!ENTITY moveAttachmentTopPanelBtn.accesskey "T">
+<!ENTITY moveAttachmentUpPanelBtn.label "Move Up">
+<!ENTITY moveAttachmentUpPanelBtn.accesskey "U">
+<!ENTITY moveAttachmentBundleUpPanelBtn.label "Move together">
+<!ENTITY moveAttachmentBundleUpPanelBtn.accesskey "v">
+<!ENTITY moveAttachmentDownPanelBtn.label "Move Down">
+<!ENTITY moveAttachmentDownPanelBtn.accesskey "D">
+<!ENTITY moveAttachmentBottomPanelBtn.label "Move to Bottom">
+<!ENTITY moveAttachmentBottomPanelBtn.accesskey "B">
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.label "Sort Selection: A - Z">
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.accesskey "o">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.label "Sort Selection: Z - A">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.accesskey "o">
+
+<!ENTITY reorderAttachments.label "Reorder Attachments…">
+<!ENTITY reorderAttachments.accesskey "s">

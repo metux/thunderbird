@@ -26,5 +26,5 @@
 <!ENTITY alwaysSend.label "எப்பவும் அனுப்புக">
 <!ENTITY neverSend.label "எப்பவும் அனுப்ப வேண்டாம்">
 
-<!ENTITY globalReceipts.accesskey     "G">
 <!ENTITY globalReceipts.label         "Global Preferences…">
+<!ENTITY globalReceipts.accesskey     "G">

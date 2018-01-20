@@ -26,7 +26,7 @@ var setupModule = function(module) {
   // Ensure that there are no updated folders to ensure the recent folder
   // is empty.
   let allFolders = MailServices.accounts.allFolders;
-  for (let folder in fixIterator(allFolders, Ci.nsIMsgFolder)) {
+  for (let folder of fixIterator(allFolders, Ci.nsIMsgFolder)) {
     folder.setStringProperty("MRMTime", "0");
   }
 
@@ -53,7 +53,7 @@ function test_move_message() {
   mc.close_popup_sequence(popups);
   let array = Cc["@mozilla.org/array;1"]
                 .createInstance(Ci.nsIMutableArray);
-  array.appendElement(msgHdr, false);
+  array.appendElement(msgHdr);
   let copyListener = {
     copyDone: false,
     OnStartCopy: function() {},
@@ -101,7 +101,7 @@ function test_delete_message() {
 function test_archive_message() {
   archive_selected_messages();
   // We've archived a message - we should still just have folder2 in the menu.
-  let archive = get_special_folder(Ci.nsMsgFolderFlags.Archive, false);
+  let archive = get_special_folder(Ci.nsMsgFolderFlags.Archive, false, false);
   let archives = archive.descendants;
   be_in_folder(archives.queryElementAt(0, Ci.nsIMsgFolder));
   right_click_on_row(0);

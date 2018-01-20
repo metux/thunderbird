@@ -886,8 +886,10 @@ PRBool
 LoggedIn(CERTCertificate *cert, SECKEYPrivateKey *key)
 {
     if ((cert->slot) && (key->pkcs11Slot) &&
-        (PR_TRUE == PK11_IsLoggedIn(cert->slot, NULL)) &&
-        (PR_TRUE == PK11_IsLoggedIn(key->pkcs11Slot, NULL))) {
+        (!PK11_NeedLogin(cert->slot) ||
+         PR_TRUE == PK11_IsLoggedIn(cert->slot, NULL)) &&
+        (!PK11_NeedLogin(key->pkcs11Slot) ||
+         PR_TRUE == PK11_IsLoggedIn(key->pkcs11Slot, NULL))) {
         return PR_TRUE;
     }
 
@@ -1350,6 +1352,7 @@ main(int argc, char **argv)
                 if (SECU_ParseSSLVersionRangeString(optstate->value,
                                                     enabledVersions, &enabledVersions) !=
                     SECSuccess) {
+                    fprintf(stderr, "Bad version specified.\n");
                     Usage(progName);
                 }
                 break;

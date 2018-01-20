@@ -8,6 +8,7 @@ package org.mozilla.gecko.db;
 import org.mozilla.gecko.AppConstants;
 
 import android.net.Uri;
+import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 
 import org.mozilla.gecko.annotation.RobocopTarget;
@@ -45,16 +46,30 @@ public class BrowserContract {
     public static final String PARAM_PROFILE_PATH = "profilePath";
     public static final String PARAM_LIMIT = "limit";
     public static final String PARAM_SUGGESTEDSITES_LIMIT = "suggestedsites_limit";
-    public static final String PARAM_TOPSITES_DISABLE_PINNED = "topsites_disable_pinned";
+    public static final String PARAM_TOPSITES_EXCLUDE_REMOTE_ONLY = "topsites_exclude_remote_only";
     public static final String PARAM_IS_SYNC = "sync";
     public static final String PARAM_SHOW_DELETED = "show_deleted";
     public static final String PARAM_IS_TEST = "test";
+    public static final String PARAM_OLD_BOOKMARK_PARENT = "old_bookmark_parent";
     public static final String PARAM_INSERT_IF_NEEDED = "insert_if_needed";
     public static final String PARAM_INCREMENT_VISITS = "increment_visits";
     public static final String PARAM_INCREMENT_REMOTE_AGGREGATES = "increment_remote_aggregates";
+    public static final String PARAM_INCREMENT_LOCAL_VERSION_FROM_SYNC = "increment_local_version_from_sync";
+    public static final String PARAM_RESET_VERSIONS_TO_SYNCED = "reset_versions_to_synced";
+    public static final String PARAM_RESET_VERSIONS_FOR_ALL_TYPES = "reset_versions_for_all_types";
+    public static final String PARAM_NON_POSITIONED_PINS = "non_positioned_pins";
     public static final String PARAM_EXPIRE_PRIORITY = "priority";
     public static final String PARAM_DATASET_ID = "dataset_id";
     public static final String PARAM_GROUP_BY = "group_by";
+
+    public static final String METHOD_INSERT_HISTORY_WITH_VISITS_FROM_SYNC = "insertHistoryWithVisitsSync";
+    public static final String METHOD_UPDATE_SYNC_VERSIONS = "updateSyncVersions";
+    public static final String METHOD_RESET_RECORD_VERSIONS = "resetRecordVersions";
+    public static final String METHOD_REPLACE_REMOTE_CLIENTS = "replaceRemoteClients";
+    public static final String METHOD_UPDATE_BY_GUID_ASSERTING_LOCAL_VERSION = "updateByGuidAssertingLocalVersion";
+    public static final String METHOD_RESULT = "methodResult";
+    public static final String METHOD_PARAM_OBJECT = "object";
+    public static final String METHOD_PARAM_DATA = "data";
 
     static public enum ExpirePriority {
         NORMAL,
@@ -142,6 +157,16 @@ public class BrowserContract {
     }
 
     @RobocopTarget
+    public interface VersionColumns {
+        String LOCAL_VERSION = "localVersion";
+        String SYNC_VERSION = "syncVersion";
+
+        // This is a flag used to indicate that records inserted from sync should start as modified.
+        // That is, their versions will start as (2,1), instead of (1,1).
+        String PARAM_INSERT_FROM_SYNC_AS_MODIFIED = "modifiedBySync";
+    }
+
+    @RobocopTarget
     public interface SyncColumns extends DateSyncColumns {
         public static final String GUID = "guid";
         public static final String IS_DELETED = "deleted";
@@ -226,7 +251,7 @@ public class BrowserContract {
     }
 
     @RobocopTarget
-    public static final class Bookmarks implements CommonColumns, URLColumns, FaviconColumns, SyncColumns {
+    public static final class Bookmarks implements CommonColumns, URLColumns, FaviconColumns, SyncColumns, VersionColumns {
         private Bookmarks() {}
 
         public static final String TABLE_NAME = "bookmarks";
@@ -241,6 +266,10 @@ public class BrowserContract {
         public static final int FIXED_PINNED_LIST_ID = -3;
         public static final int FIXED_SCREENSHOT_FOLDER_ID = -4;
         public static final int FAKE_READINGLIST_SMARTFOLDER_ID = -5;
+
+        // Fixed position used by Activity Stream pins. A-S displays pins in front of other top sites,
+        // so position is constant for all pins.
+        public static final int FIXED_AS_PIN_POSITION = -1;
 
         /**
          * This ID and the following negative IDs are reserved for bookmarks from Android's partner
@@ -323,6 +352,7 @@ public class BrowserContract {
 
         public static final String BOOKMARK_ID = "bookmark_id";
         public static final String HISTORY_ID = "history_id";
+        public static final String HISTORY_GUID = "history_guid"; // sync GUID to merge with the PageMetadata table.
 
         public static final String REMOTE_VISITS_COUNT = "remoteVisitCount";
         public static final String REMOTE_DATE_LAST_VISITED = "remoteDateLastVisited";
@@ -431,7 +461,7 @@ public class BrowserContract {
 
     public static final class Clients implements CommonColumns {
         private Clients() {}
-        public static final Uri CONTENT_RECENCY_URI = Uri.withAppendedPath(TABS_AUTHORITY_URI, "clients_recency");
+        public static final Uri CONTENT_NO_STALE_SORTED_URI = Uri.withAppendedPath(TABS_AUTHORITY_URI, "clients_no_stale_sorted");
         public static final Uri CONTENT_URI = Uri.withAppendedPath(TABS_AUTHORITY_URI, "clients");
         public static final String CONTENT_TYPE = "vnd.android.cursor.dir/client";
         public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/client";
@@ -447,6 +477,19 @@ public class BrowserContract {
         public static final String LAST_MODIFIED = "last_modified";
 
         public static final String DEVICE_TYPE = "device_type";
+    }
+
+    public static final class RemoteDevices implements CommonColumns, DateSyncColumns {
+        private RemoteDevices() {}
+        public static final String TABLE_NAME = "remote_devices";
+
+        public static final String GUID = "guid"; // FxA device ID
+        public static final String NAME = "name";
+        public static final String TYPE = "type";
+        public static final String IS_CURRENT_DEVICE = "is_current_device";
+        public static final String LAST_ACCESS_TIME = "last_access_time";
+
+        public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, "remote_devices");
     }
 
     // Data storage for dynamic panels on about:home
@@ -590,17 +633,31 @@ public class BrowserContract {
         public static final int TYPE_PINNED = 2;
         public static final int TYPE_SUGGESTED = 3;
 
+        @IntDef({TYPE_BLANK, TYPE_TOP, TYPE_PINNED, TYPE_SUGGESTED})
+        public @interface TopSiteType {}
+
         public static final String BOOKMARK_ID = "bookmark_id";
         public static final String HISTORY_ID = "history_id";
         public static final String TYPE = "type";
+        public static final String PAGE_METADATA_JSON = "page_metadata_json";
 
         public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, "topsites");
     }
 
-    public static final class Highlights {
-        public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, "highlights");
+    public static class Highlights {
+        public static final String BOOKMARK_ID = "bookmark_id";
+        public static final String HISTORY_ID = "history_id";
 
+        public static final String TITLE = "title";
+        public static final String URL = "url";
+        public static final String POSITION = "position";
+        public static final String PARENT = "parent";
         public static final String DATE = "date";
+        public static final String METADATA = "metadata";
+    }
+
+    public static final class HighlightCandidates extends Highlights {
+        public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, "highlight_candidates");
     }
 
     @RobocopTarget

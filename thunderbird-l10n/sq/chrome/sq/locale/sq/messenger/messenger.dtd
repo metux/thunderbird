@@ -634,6 +634,9 @@
 <!-- Folder Pane Context Menu -->
 <!ENTITY folderContextGetMessages.label "Merr Mesazhet">
 <!ENTITY folderContextGetMessages.accesskey "M">
+<!ENTITY folderContextPauseAllUpdates.label "Ndali Krejt Përditësimet">
+<!ENTITY folderContextPauseUpdates.label "Ndali Përditësimet">
+<!ENTITY folderContextPauseUpdates.accesskey "N">
 <!ENTITY folderContextOpenInNewWindow.label "Hape në Dritare të Re">
 <!ENTITY folderContextOpenInNewWindow.accesskey "D">
 <!ENTITY folderContextOpenNewTab.label "Hape në Skedë të Re">
@@ -949,3 +952,12 @@
 
 <!-- Mac OS X Dock Icon pop-up menu -->
 <!ENTITY dockOptions.label              "Mundësi Ikone Aplikacioni…">
+
+<!ENTITY getNextNMsgCmd2.label "Get Next News Messages">
+<!ENTITY getNextNMsgCmd2.accesskey "t">
+<!ENTITY goChatCmd2.key "H">
+<!ENTITY newMsgFromTemplateCmd.label "New Message from Template">
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN">
+<!ENTITY contextNewMsgFromTemplate.label "New Message from Template">
+<!ENTITY writeNewMessageDock.label      "Write New Message">
+<!ENTITY openAddressBookDock.label      "Open Address Book">

@@ -43,22 +43,42 @@ namespace dom {
 class WidgetPointerHelper
 {
 public:
-  bool convertToPointer;
   uint32_t pointerId;
   uint32_t tiltX;
   uint32_t tiltY;
-  bool retargetedByPointerCapture;
+  uint32_t twist;
+  float tangentialPressure;
+  bool convertToPointer;
 
-  WidgetPointerHelper() : convertToPointer(true), pointerId(0), tiltX(0), tiltY(0),
-                          retargetedByPointerCapture(false) {}
+  WidgetPointerHelper()
+    : pointerId(0)
+    , tiltX(0)
+    , tiltY(0)
+    , twist(0)
+    , tangentialPressure(0)
+    , convertToPointer(true)
+  {
+  }
+
+  WidgetPointerHelper(uint32_t aPointerId, uint32_t aTiltX, uint32_t aTiltY,
+                      uint32_t aTwist = 0, float aTangentialPressure = 0)
+    : pointerId(aPointerId)
+    , tiltX(aTiltX)
+    , tiltY(aTiltY)
+    , twist(aTwist)
+    , tangentialPressure(aTangentialPressure)
+    , convertToPointer(true)
+  {
+  }
 
   void AssignPointerHelperData(const WidgetPointerHelper& aEvent)
   {
-    convertToPointer = aEvent.convertToPointer;
     pointerId = aEvent.pointerId;
     tiltX = aEvent.tiltX;
     tiltY = aEvent.tiltY;
-    retargetedByPointerCapture = aEvent.retargetedByPointerCapture;
+    twist = aEvent.twist;
+    tangentialPressure = aEvent.tangentialPressure;
+    convertToPointer = aEvent.convertToPointer;
   }
 };
 
@@ -106,6 +126,7 @@ public:
 
   enum buttonType
   {
+    eNoButton     = -1,
     eLeftButton   = 0,
     eMiddleButton = 1,
     eRightButton  = 2
@@ -469,6 +490,7 @@ private:
     , mViewPortIsOverscrolled(false)
     , mCanTriggerSwipe(false)
     , mAllowToOverrideSystemScrollSpeed(false)
+    , mDeltaValuesAdjustedForDefaultHandler(false)
   {
   }
 
@@ -493,6 +515,7 @@ public:
     , mViewPortIsOverscrolled(false)
     , mCanTriggerSwipe(false)
     , mAllowToOverrideSystemScrollSpeed(true)
+    , mDeltaValuesAdjustedForDefaultHandler(false)
   {
   }
 
@@ -610,6 +633,10 @@ public:
   // it's enabled by the pref.
   bool mAllowToOverrideSystemScrollSpeed;
 
+  // While default handler handles a wheel event specially (e.g., treating
+  // mDeltaY as horizontal scroll), this is set to true.
+  bool mDeltaValuesAdjustedForDefaultHandler;
+
   void AssignWheelEventData(const WidgetWheelEvent& aEvent, bool aCopyTargets)
   {
     AssignMouseEventBaseData(aEvent, aCopyTargets);
@@ -631,6 +658,8 @@ public:
     mCanTriggerSwipe = aEvent.mCanTriggerSwipe;
     mAllowToOverrideSystemScrollSpeed =
       aEvent.mAllowToOverrideSystemScrollSpeed;
+    mDeltaValuesAdjustedForDefaultHandler =
+      aEvent.mDeltaValuesAdjustedForDefaultHandler;
   }
 
   // System scroll speed settings may be too slow at using Gecko.  In such

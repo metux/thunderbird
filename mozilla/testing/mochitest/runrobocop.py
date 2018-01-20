@@ -4,10 +4,10 @@
 
 import json
 import os
-import shutil
 import sys
 import tempfile
 import traceback
+from collections import defaultdict
 
 sys.path.insert(
     0, os.path.abspath(
@@ -42,7 +42,7 @@ class RobocopTestRunner(MochitestDesktop):
         """
            Simple one-time initialization.
         """
-        MochitestDesktop.__init__(self, options)
+        MochitestDesktop.__init__(self, options.flavor, options)
 
         self.auto = automation
         self.dm = devmgr
@@ -83,13 +83,16 @@ class RobocopTestRunner(MochitestDesktop):
         # Despite our efforts to clean up servers started by this script, in practice
         # we still see infrequent cases where a process is orphaned and interferes
         # with future tests, typically because the old server is keeping the port in use.
-        # Try to avoid those failures by checking for and killing orphan servers before
+        # Try to avoid those failures by checking for and killing servers before
         # trying to start new ones.
-        self.killNamedOrphans('ssltunnel')
-        self.killNamedOrphans('xpcshell')
+        self.killNamedProc('ssltunnel')
+        self.killNamedProc('xpcshell')
         self.auto.deleteANRs()
         self.auto.deleteTombstones()
-        self.dm.killProcess(self.options.app.split('/')[-1])
+        procName = self.options.app.split('/')[-1]
+        self.dm.killProcess(procName)
+        if self.dm.processExist(procName):
+            self.log.warning("unable to kill %s before running tests!" % procName)
         self.dm.removeDir(self.remoteScreenshots)
         self.dm.removeDir(self.remoteMozLog)
         self.dm.mkDir(self.remoteMozLog)
@@ -102,7 +105,7 @@ class RobocopTestRunner(MochitestDesktop):
             "Android sdk version '%s'; will use this to filter manifests" %
             str(androidVersion))
         mozinfo.info['android_version'] = androidVersion
-        if (self.options.dm_trans == 'adb' and self.options.robocopApk):
+        if self.options.robocopApk:
             self.dm._checkCmd(["install", "-r", self.options.robocopApk])
             self.log.debug("Robocop APK %s installed" %
                            self.options.robocopApk)
@@ -223,7 +226,6 @@ class RobocopTestRunner(MochitestDesktop):
         self.options.extraPrefs.append('layout.css.devPixelsPerPx=1.0')
         self.options.extraPrefs.append('browser.chrome.dynamictoolbar=false')
         self.options.extraPrefs.append('browser.snippets.enabled=false')
-        self.options.extraPrefs.append('browser.casting.enabled=true')
         self.options.extraPrefs.append('extensions.autoupdate.enabled=false')
 
         # Override the telemetry init delay for integration testing.
@@ -240,7 +242,6 @@ class RobocopTestRunner(MochitestDesktop):
         self.localProfile = self.options.profilePath
         self.log.debug("Profile created at %s" % self.localProfile)
         # some files are not needed for robocop; save time by not pushing
-        shutil.rmtree(os.path.join(self.localProfile, 'webapps'))
         os.remove(os.path.join(self.localProfile, 'userChrome.css'))
         try:
             self.dm.pushDir(self.localProfile, self.remoteProfileCopy)
@@ -398,8 +399,6 @@ class RobocopTestRunner(MochitestDesktop):
             xrePath=None,
             debugger=None)
         # remove desktop environment not used on device
-        if "MOZ_WIN_INHERIT_STD_HANDLES_PRE_VISTA" in browserEnv:
-            del browserEnv["MOZ_WIN_INHERIT_STD_HANDLES_PRE_VISTA"]
         if "XPCOM_MEM_BLOAT_LOG" in browserEnv:
             del browserEnv["XPCOM_MEM_BLOAT_LOG"]
         browserEnv["MOZ_LOG_FILE"] = os.path.join(
@@ -459,7 +458,7 @@ class RobocopTestRunner(MochitestDesktop):
             timeout = self.options.timeout
             if not timeout:
                 timeout = self.NO_OUTPUT_TIMEOUT
-            result = self.auto.runApp(
+            result, _ = self.auto.runApp(
                 None, browserEnv, "am", self.localProfile, browserArgs,
                 timeout=timeout, symbolsPath=self.options.symbolsPath)
             self.log.debug("runApp completes with status %d" % result)
@@ -515,7 +514,12 @@ class RobocopTestRunner(MochitestDesktop):
                               (test['name'], test['disabled']))
                 continue
             active_tests.append(test)
-        self.log.suite_start([t['name'] for t in active_tests])
+
+        tests_by_manifest = defaultdict(list)
+        for test in active_tests:
+            tests_by_manifest[test['manifest']].append(test['name'])
+        self.log.suite_start(tests_by_manifest)
+
         worstTestResult = None
         for test in active_tests:
             result = self.runSingleTest(test)
@@ -582,6 +586,7 @@ def main(args=sys.argv[1:]):
     parser = MochitestArgumentParser(app='android')
     options = parser.parse_args(args)
     return run_test_harness(parser, options)
+
 
 if __name__ == "__main__":
     sys.exit(main())

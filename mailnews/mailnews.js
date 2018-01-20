@@ -166,6 +166,9 @@ pref("mail.accountwizard.deferstorage", false);
 pref("mail.showCondensedAddresses", false);
 #endif
 
+pref("mail.addr_book.view.startupURI", "moz-abdirectory://?");
+pref("mail.addr_book.view.startupURIisDefault", true);
+
 // mail.addr_book.quicksearchquery.format is the model query used for:
 // * TB: AB Quick Search and composition's Contact Side Bar
 // * SM: AB Quick Search and composition's Select Addresses dialogue
@@ -239,8 +242,6 @@ pref("mailnews.wraplength",                 72);
 
 // 0=no header, 1="<author> wrote:", 2="On <date> <author> wrote:", 3="<author> wrote On <date>:", 4=user specified
 pref("mailnews.reply_header_type",          1);
-// locale which affects date format, set empty string to use application default locale
-pref("mailnews.reply_header_locale",        "");
 pref("mailnews.reply_header_authorwrotesingle", "chrome://messenger/locale/messengercompose/composeMsgs.properties");
 pref("mailnews.reply_header_ondateauthorwrote", "chrome://messenger/locale/messengercompose/composeMsgs.properties");
 pref("mailnews.reply_header_authorwroteondate", "chrome://messenger/locale/messengercompose/composeMsgs.properties");
@@ -655,8 +656,6 @@ pref("mailnews.global_html_domains.version", 1);
 /////////////////////////////////////////////////////////////////
 // Privacy Controls for Handling Remote Content
 /////////////////////////////////////////////////////////////////
-// Specific plugins pref just for message content. RSS is not covered by this.
-pref("mailnews.message_display.allow_plugins", false);
 pref("mailnews.message_display.disable_remote_image", true);
 
 /////////////////////////////////////////////////////////////////

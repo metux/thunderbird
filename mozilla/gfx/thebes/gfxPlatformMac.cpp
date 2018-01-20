@@ -30,6 +30,8 @@
 using namespace mozilla;
 using namespace mozilla::gfx;
 
+using mozilla::dom::SystemFontListEntry;
+
 // cribbed from CTFontManager.h
 enum {
    kAutoActivationDisabled = 1
@@ -110,6 +112,13 @@ gfxPlatformMac::CreatePlatformFontList()
     return nullptr;
 }
 
+void
+gfxPlatformMac::ReadSystemFontList(
+    InfallibleTArray<SystemFontListEntry>* aFontList)
+{
+    gfxMacPlatformFontList::PlatformFontList()->ReadSystemFontList(aFontList);
+}
+
 already_AddRefed<gfxASurface>
 gfxPlatformMac::CreateOffscreenSurface(const IntSize& aSize,
                                        gfxImageFormat aFormat)
@@ -121,13 +130,6 @@ gfxPlatformMac::CreateOffscreenSurface(const IntSize& aSize,
     RefPtr<gfxASurface> newSurface =
       new gfxQuartzSurface(aSize, aFormat);
     return newSurface.forget();
-}
-
-already_AddRefed<ScaledFont>
-gfxPlatformMac::GetScaledFontForFont(DrawTarget* aTarget, gfxFont *aFont)
-{
-    gfxMacFont *font = static_cast<gfxMacFont*>(aFont);
-    return font->GetScaledFont(aTarget);
 }
 
 gfxFontGroup *
@@ -142,25 +144,19 @@ gfxPlatformMac::CreateFontGroup(const FontFamilyList& aFontFamilyList,
 }
 
 bool
-gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
+gfxPlatformMac::IsFontFormatSupported(uint32_t aFormatFlags)
 {
-    // check for strange format flags
-    NS_ASSERTION(!(aFormatFlags & gfxUserFontSet::FLAG_FORMAT_NOT_USED),
-                 "strange font format hint set");
-
-    // accept supported formats
-    if (aFormatFlags & (gfxUserFontSet::FLAG_FORMATS_COMMON |
-                        gfxUserFontSet::FLAG_FORMAT_TRUETYPE_AAT)) {
+    if (gfxPlatform::IsFontFormatSupported(aFormatFlags)) {
         return true;
     }
 
-    // reject all other formats, known and unknown
-    if (aFormatFlags != 0) {
-        return false;
+    // If the generic method rejected the format hint, then check for any
+    // platform-specific format we know about.
+    if (aFormatFlags & gfxUserFontSet::FLAG_FORMAT_TRUETYPE_AAT) {
+        return true;
     }
 
-    // no format hint set, need to look at data
-    return true;
+    return false;
 }
 
 static const char kFontArialUnicodeMS[] = "Arial Unicode MS";
@@ -390,7 +386,7 @@ public:
   {
   }
 
-  virtual Display& GetGlobalDisplay() override
+  Display& GetGlobalDisplay() override
   {
     return mGlobalDisplay;
   }
@@ -402,10 +398,10 @@ public:
       : mDisplayLink(nullptr)
     {
       MOZ_ASSERT(NS_IsMainThread());
-      mTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
+      mTimer = NS_NewTimer();
     }
 
-    ~OSXDisplay()
+    ~OSXDisplay() override
     {
       MOZ_ASSERT(NS_IsMainThread());
     }
@@ -418,7 +414,7 @@ public:
       osxDisplay->EnableVsync();
     }
 
-    virtual void EnableVsync() override
+    void EnableVsync() override
     {
       MOZ_ASSERT(NS_IsMainThread());
       if (IsVsyncEnabled()) {
@@ -447,7 +443,8 @@ public:
         // because on a late 2013 15" retina, it takes about that
         // long to come back up from sleep.
         uint32_t delay = 100;
-        mTimer->InitWithFuncCallback(RetryEnableVsync, this, delay, nsITimer::TYPE_ONE_SHOT);
+        mTimer->InitWithNamedFuncCallback(RetryEnableVsync, this, delay, nsITimer::TYPE_ONE_SHOT,
+                                          "RetryEnableVsync");
         return;
       }
 
@@ -478,7 +475,7 @@ public:
       }
     }
 
-    virtual void DisableVsync() override
+    void DisableVsync() override
     {
       MOZ_ASSERT(NS_IsMainThread());
       if (!IsVsyncEnabled()) {
@@ -492,18 +489,18 @@ public:
       }
     }
 
-    virtual bool IsVsyncEnabled() override
+    bool IsVsyncEnabled() override
     {
       MOZ_ASSERT(NS_IsMainThread());
       return mDisplayLink != nullptr;
     }
 
-    virtual TimeDuration GetVsyncRate() override
+    TimeDuration GetVsyncRate() override
     {
       return mVsyncRate;
     }
 
-    virtual void Shutdown() override
+    void Shutdown() override
     {
       MOZ_ASSERT(NS_IsMainThread());
       mTimer->Cancel();
@@ -526,9 +523,7 @@ public:
   }; // OSXDisplay
 
 private:
-  virtual ~OSXVsyncSource()
-  {
-  }
+  ~OSXVsyncSource() override = default;
 
   OSXDisplay mGlobalDisplay;
 }; // OSXVsyncSource

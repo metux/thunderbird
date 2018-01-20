@@ -9,7 +9,7 @@
 #include "nsNSSIOLayer.h"
 #include "nsError.h"
 
-using mozilla::NeckoOriginAttributes;
+using mozilla::OriginAttributes;
 
 nsTLSSocketProvider::nsTLSSocketProvider()
 {
@@ -26,8 +26,9 @@ nsTLSSocketProvider::NewSocket(int32_t family,
                                const char *host,
                                int32_t port,
                                nsIProxyInfo *proxy,
-                               const NeckoOriginAttributes &originAttributes,
+                               const OriginAttributes &originAttributes,
                                uint32_t flags,
+                               uint32_t tlsFlags,
                                PRFileDesc **_result,
                                nsISupports **securityInfo)
 {
@@ -39,8 +40,9 @@ nsTLSSocketProvider::NewSocket(int32_t family,
                                       _result,
                                       securityInfo,
                                       true,
-                                      flags);
-  
+                                      flags,
+                                      tlsFlags);
+
   return (NS_FAILED(rv)) ? NS_ERROR_SOCKET_CREATE_FAILED : NS_OK;
 }
 
@@ -50,8 +52,9 @@ nsTLSSocketProvider::AddToSocket(int32_t family,
                                  const char *host,
                                  int32_t port,
                                  nsIProxyInfo *proxy,
-                                 const NeckoOriginAttributes &originAttributes,
+                                 const OriginAttributes &originAttributes,
                                  uint32_t flags,
+                                 uint32_t tlsFlags,
                                  PRFileDesc *aSocket,
                                  nsISupports **securityInfo)
 {
@@ -63,7 +66,8 @@ nsTLSSocketProvider::AddToSocket(int32_t family,
                                         aSocket,
                                         securityInfo,
                                         true,
-                                        flags);
-  
+                                        flags,
+                                        tlsFlags);
+
   return (NS_FAILED(rv)) ? NS_ERROR_SOCKET_CREATE_FAILED : NS_OK;
 }

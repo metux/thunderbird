@@ -12,11 +12,24 @@
 // corecrt_memory.h.
 #include <string>
 
+// Because we wrap lz4.c in an anonymous namespace, all of its #includes
+// go in the anonymous namespace too. This would create conflicting
+// declarations for intrinsic functions that are internally defined
+// at top-level. Including intrin.h here prevents it from being included
+// later within the anonymous namespace.
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
+
 using namespace mozilla::Compression;
 
 namespace {
 
+extern "C" {
+
 #include "lz4.c"
+
+}
 
 }/* anonymous namespace */
 
@@ -27,7 +40,8 @@ LZ4::compress(const char* aSource, size_t aInputSize, char* aDest)
 {
   CheckedInt<int> inputSizeChecked = aInputSize;
   MOZ_ASSERT(inputSizeChecked.isValid());
-  return LZ4_compress(aSource, aDest, inputSizeChecked.value());
+  return LZ4_compress_default(aSource, aDest, inputSizeChecked.value(),
+                              LZ4_compressBound(inputSizeChecked.value()));
 }
 
 size_t
@@ -38,8 +52,8 @@ LZ4::compressLimitedOutput(const char* aSource, size_t aInputSize, char* aDest,
   MOZ_ASSERT(inputSizeChecked.isValid());
   CheckedInt<int> maxOutputSizeChecked = aMaxOutputSize;
   MOZ_ASSERT(maxOutputSizeChecked.isValid());
-  return LZ4_compress_limitedOutput(aSource, aDest, inputSizeChecked.value(),
-                                    maxOutputSizeChecked.value());
+  return LZ4_compress_default(aSource, aDest, inputSizeChecked.value(),
+                              maxOutputSizeChecked.value());
 }
 
 bool
@@ -71,3 +85,24 @@ LZ4::decompress(const char* aSource, size_t aInputSize, char* aDest,
   return false;
 }
 
+bool
+LZ4::decompressPartial(const char* aSource, size_t aInputSize, char* aDest,
+                       size_t aMaxOutputSize, size_t* aOutputSize)
+{
+  CheckedInt<int> maxOutputSizeChecked = aMaxOutputSize;
+  MOZ_ASSERT(maxOutputSizeChecked.isValid());
+  CheckedInt<int> inputSizeChecked = aInputSize;
+  MOZ_ASSERT(inputSizeChecked.isValid());
+
+  int ret = LZ4_decompress_safe_partial(aSource, aDest,
+                                        inputSizeChecked.value(),
+                                        maxOutputSizeChecked.value(),
+                                        maxOutputSizeChecked.value());
+  if (ret >= 0) {
+    *aOutputSize = ret;
+    return true;
+  }
+
+  *aOutputSize = 0;
+  return false;
+}

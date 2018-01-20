@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm", this);
-Components.utils.import("resource://gre/modules/Services.jsm", this);
+const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
+Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
+Cu.import("resource://gre/modules/Services.jsm", this);
 
 const PREF_APP_UPDATE_LASTUPDATETIME_FMT  = "app.update.lastUpdateTime.%ID%";
 const PREF_APP_UPDATE_TIMERMINIMUMDELAY   = "app.update.timerMinimumDelay";
@@ -57,7 +56,7 @@ function LOG(string) {
  *  @constructor
  */
 function TimerManager() {
-  Services.obs.addObserver(this, "xpcom-shutdown", false);
+  Services.obs.addObserver(this, "profile-before-change");
 }
 TimerManager.prototype = {
   /**
@@ -109,8 +108,8 @@ TimerManager.prototype = {
         this._canEnsureTimer = true;
         this._ensureTimer(firstInterval);
         break;
-      case "xpcom-shutdown":
-        Services.obs.removeObserver(this, "xpcom-shutdown");
+      case "profile-before-change":
+        Services.obs.removeObserver(this, "profile-before-change");
 
         // Release everything we hold onto.
         this._cancelTimer();
@@ -213,7 +212,7 @@ TimerManager.prototype = {
         Services.prefs.setIntPref(prefLastUpdate, lastUpdateTime);
       }
 
-      tryFire(function () {
+      tryFire(function() {
         try {
           Components.classes[cid][method](Ci.nsITimerCallback).notify(timer);
           LOG("TimerManager:notify - notified " + cid);
@@ -238,7 +237,7 @@ TimerManager.prototype = {
         timerData.lastUpdateTime = 0;
         Services.prefs.setIntPref(prefLastUpdate, timerData.lastUpdateTime);
       }
-      tryFire(function () {
+      tryFire(function() {
         if (timerData.callback && timerData.callback.notify) {
           try {
             timerData.callback.notify(timer);
@@ -279,7 +278,7 @@ TimerManager.prototype = {
    * Starts the timer, if necessary, and ensures that it will fire soon enough
    * to happen after time |interval| (in milliseconds).
    */
-  _ensureTimer: function (interval) {
+  _ensureTimer(interval) {
     if (!this._canEnsureTimer) {
       return;
     }
@@ -296,7 +295,7 @@ TimerManager.prototype = {
   /**
    * Stops the timer, if it is running.
    */
-  _cancelTimer: function () {
+  _cancelTimer() {
     if (this._timer) {
       this._timer.cancel();
       this._timer = null;
@@ -308,6 +307,14 @@ TimerManager.prototype = {
    */
   registerTimer: function TM_registerTimer(id, callback, interval) {
     LOG("TimerManager:registerTimer - id: " + id);
+    if (this._timers === null) {
+      // Use normal logging since reportError is not available while shutting
+      // down.
+      gLogEnabled = true;
+      LOG("TimerManager:registerTimer called after profile-before-change " +
+          "notification. Ignoring timer registration for id: " + id);
+      return;
+    }
     if (id in this._timers && callback != this._timers[id].callback) {
       LOG("TimerManager:registerTimer - Ignoring second registration for " + id);
       return;
@@ -323,11 +330,21 @@ TimerManager.prototype = {
     if (lastUpdateTime == 0) {
       Services.prefs.setIntPref(prefLastUpdate, lastUpdateTime);
     }
-    this._timers[id] = {callback: callback,
-                        interval: interval,
-                        lastUpdateTime: lastUpdateTime};
+    this._timers[id] = {callback,
+                        interval,
+                        lastUpdateTime};
 
     this._ensureTimer(interval * 1000);
+  },
+
+  unregisterTimer: function TM_unregisterTimer(id) {
+    LOG("TimerManager:unregisterTimer - id: " + id);
+    if (id in this._timers) {
+      delete this._timers[id];
+    } else {
+      LOG("TimerManager:unregisterTimer - Ignoring unregistration request for " +
+          "unknown id: " + id);
+    }
   },
 
   classID: Components.ID("{B322A5C0-A419-484E-96BA-D7182163899F}"),

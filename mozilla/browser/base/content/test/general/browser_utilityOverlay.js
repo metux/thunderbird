@@ -10,7 +10,7 @@ const gTests = [
   test_openUILink
 ];
 
-function test () {
+function test() {
   waitForExplicitFinish();
   executeSoon(runNextTest);
 }
@@ -19,9 +19,8 @@ function runNextTest() {
   if (gTests.length) {
     let testFun = gTests.shift();
     info("Running " + testFun.name);
-    testFun()
-  }
-  else {
+    testFun();
+  } else {
     finish();
   }
 }
@@ -33,7 +32,7 @@ function test_eventMatchesKey() {
     e.stopPropagation();
     e.preventDefault();
     eventMatchResult = eventMatchesKey(e, key);
-  }
+  };
   document.addEventListener("keypress", checkEvent);
 
   try {
@@ -101,7 +100,7 @@ function test_openNewTabWith() {
 }
 
 function test_openUILink() {
-  let tab = gBrowser.selectedTab = gBrowser.addTab("about:blank");
+  let tab = gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser, "about:blank");
   BrowserTestUtils.browserLoaded(tab.linkedBrowser).then(() => {
     is(tab.linkedBrowser.currentURI.spec, "http://example.org/", "example.org loaded");
     gBrowser.removeCurrentTab();

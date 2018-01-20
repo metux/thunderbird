@@ -7,6 +7,9 @@
 #ifndef MediaResult_h_
 #define MediaResult_h_
 
+#include "nsString.h" // Required before 'mozilla/ErrorNames.h'!?
+#include "mozilla/ErrorNames.h"
+#include "mozilla/TimeStamp.h"
 #include "nsError.h"
 #include "nsPrintfCString.h"
 
@@ -39,6 +42,13 @@ public:
   MediaResult& operator=(MediaResult&& aOther) = default;
 
   nsresult Code() const { return mCode; }
+  nsCString ErrorName() const
+  {
+    nsCString name;
+    GetErrorName(mCode, name);
+    return name;
+  }
+
   const nsCString& Message() const { return mMessage; }
 
   // Interoperations with nsresult.
@@ -51,15 +61,27 @@ public:
     if (NS_SUCCEEDED(mCode)) {
       return nsCString();
     }
-    return nsPrintfCString("0x%08x: %s", mCode, mMessage.get());
+    return nsPrintfCString("%s (0x%08" PRIx32 ")%s%s",
+                           ErrorName().get(),
+                           static_cast<uint32_t>(mCode),
+                           mMessage.IsEmpty() ? "" : " - ",
+                           mMessage.get());
   }
+
+  void SetGPUCrashTimeStamp(const TimeStamp& aTime) { mGPUCrashTimeStamp = aTime; }
+  const TimeStamp& GPUCrashTimeStamp() const { return mGPUCrashTimeStamp; }
 
 private:
   nsresult mCode;
   nsCString mMessage;
+  TimeStamp mGPUCrashTimeStamp; // Used in bug 1393399 for temporary telemetry usage.
 };
 
-#define RESULT_DETAIL(arg, ...) nsPrintfCString("%s: " arg, __func__, ##__VA_ARGS__)
+#ifdef _MSC_VER
+#define RESULT_DETAIL(arg, ...) nsPrintfCString("%s: " arg, __FUNCSIG__, ##__VA_ARGS__)
+#else
+#define RESULT_DETAIL(arg, ...) nsPrintfCString("%s: " arg, __PRETTY_FUNCTION__, ##__VA_ARGS__)
+#endif
 
 } // namespace mozilla
 #endif // MediaResult_h_

@@ -16,3 +16,6 @@
 
 <!ENTITY LinkURLEditField.label "Enankañ lec'hiadur ur bajennad Web, ur restr lec'hel pe ziuzañ un eor anvet pe un talbenn diouzh roll an diflugell :">
 <!ENTITY LinkURLEditField.accessKey "l">
+
+<!ENTITY LinkURLEditField2.label "Enter a web page location, a local file, or select a Named Anchor or Heading from the field's context menu:">
+<!ENTITY LinkURLEditField2.accessKey "w">

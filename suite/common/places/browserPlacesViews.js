@@ -486,7 +486,7 @@ PlacesViewBase.prototype = {
     if (elt.localName == "menupopup")
       elt = elt.parentNode;
 
-    elt.setAttribute("scheme", PlacesUIUtils.guessUrlSchemeForUI(aURIString));
+    elt.setAttribute("scheme", PlacesUIUtils.guessUrlSchemeForUI(aPlacesNode.uri));
   },
 
   nodeIconChanged: function PVB_nodeIconChanged(aPlacesNode) {
@@ -574,26 +574,6 @@ PlacesViewBase.prototype = {
     }
   },
 
-  nodeReplaced:
-  function PVB_nodeReplaced(aParentPlacesNode, aOldPlacesNode, aNewPlacesNode, aIndex) {
-    let parentElt = this._getDOMNodeForPlacesNode(aParentPlacesNode);
-    if (parentElt._built) {
-      let elt = this._getDOMNodeForPlacesNode(aOldPlacesNode);
-
-      // Here we need the <menu>.
-      if (elt.localName == "menupopup")
-        elt = elt.parentNode;
-
-      elt.remove();
-
-      // No worries: If elt is the last item (i.e. no nextSibling),
-      // _insertNewItem/_insertNewItemToPopup will insert the new element as
-      // the last item.
-      let nextElt = elt.nextSibling;
-      this._insertNewItemToPopup(aNewPlacesNode, parentElt, nextElt);
-    }
-  },
-
   nodeHistoryDetailsChanged:
   function PVB_nodeHistoryDetailsChanged(aPlacesNode, aTime, aCount) {
     if (aPlacesNode.parent &&
@@ -603,7 +583,7 @@ PlacesViewBase.prototype = {
       for (let i = popup._startMarker; i < popup.childNodes.length; i++) {
         let child = popup.childNodes[i];
         if (child._placesNode && child._placesNode.uri == aPlacesNode.uri) {
-          if (aCount)
+          if (aPlacesNode.accessCount)
             child.setAttribute("visited", "true");
           else
             child.removeAttribute("visited");
@@ -1231,31 +1211,6 @@ PlacesToolbar.prototype = {
     }
   },
 
-  nodeReplaced:
-  function PT_nodeReplaced(aParentPlacesNode,
-                           aOldPlacesNode, aNewPlacesNode, aIndex) {
-    let parentElt = this._getDOMNodeForPlacesNode(aParentPlacesNode);
-    if (parentElt == this._rootElt) {
-      let elt = this._getDOMNodeForPlacesNode(aOldPlacesNode);
-
-      // Here we need the <menu>.
-      if (elt.localName == "menupopup")
-        elt = elt.parentNode;
-
-      this._removeChild(elt);
-
-      // No worries: If elt is the last item (i.e. no nextSibling),
-      // _insertNewItem/_insertNewItemToPopup will insert the new element as
-      // the last item.
-      let next = elt.nextSibling;
-      this._insertNewItem(aNewPlacesNode, next);
-      this.updateChevron();
-      return;
-    }
-
-    PlacesViewBase.prototype.nodeReplaced.apply(this, arguments);
-  },
-
   invalidateContainer: function PT_invalidateContainer(aPlacesNode) {
     let elt = this._getDOMNodeForPlacesNode(aPlacesNode);
     if (elt == this._rootElt) {
@@ -1310,7 +1265,7 @@ PlacesToolbar.prototype = {
     if (elt._placesNode && elt != this._rootElt &&
         elt.localName != "menupopup") {
       let eltRect = elt.getBoundingClientRect();
-      let eltIndex = Array.indexOf(this._rootElt.childNodes, elt);
+      let eltIndex = Array.from(this._rootElt.childNodes).indexOf(elt);
       if (PlacesUtils.nodeIsFolder(elt._placesNode) &&
           !PlacesUIUtils.isContentsReadOnly(elt._placesNode)) {
         // This is a folder.

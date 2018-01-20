@@ -7,7 +7,7 @@
 #define MEDIA_PREFS_H
 
 #ifdef MOZ_WIDGET_ANDROID
-#include "AndroidBridge.h"
+#include "GeneratedJNIWrappers.h"
 #endif
 
 #include "mozilla/Atomics.h"
@@ -86,12 +86,27 @@ private:
 
   // This is where DECL_MEDIA_PREF for each of the preferences should go.
 
+  // Cache sizes.
+  DECL_MEDIA_PREF("media.cache_size",                         MediaCacheSizeKb, uint32_t, 512000);
+  DECL_MEDIA_PREF("media.memory_cache_max_size",              MediaMemoryCacheMaxSize, uint32_t, 8192);
+  DECL_MEDIA_PREF("media.memory_caches_combined_limit_kb",    MediaMemoryCachesCombinedLimitKb, uint32_t, 524288);
+  DECL_MEDIA_PREF("media.memory_caches_combined_limit_pc_sysmem",
+                                                              MediaMemoryCachesCombinedLimitPcSysmem, uint32_t, 5);
+  DECL_MEDIA_PREF("media.cache.resource-index",               MediaResourceIndexCache, uint32_t, 8192);
+
+  DECL_MEDIA_PREF("media.cache_resume_threshold",             MediaCacheResumeThreshold, int32_t, 10);
+  DECL_MEDIA_PREF("media.cache_readahead_limit",              MediaCacheReadaheadLimit, int32_t, 30);
+
   // AudioSink
   DECL_MEDIA_PREF("accessibility.monoaudio.enable",           MonoAudio, bool, false);
   DECL_MEDIA_PREF("media.resampling.enabled",                 AudioSinkResampling, bool, false);
   DECL_MEDIA_PREF("media.resampling.rate",                    AudioSinkResampleRate, uint32_t, 48000);
+#if defined(XP_WIN) || defined(XP_DARWIN) || defined(MOZ_PULSEAUDIO)
+  // libcubeb backend implement .get_preferred_channel_layout
+  DECL_MEDIA_PREF("media.forcestereo.enabled",                AudioSinkForceStereo, bool, false);
+#else
   DECL_MEDIA_PREF("media.forcestereo.enabled",                AudioSinkForceStereo, bool, true);
-
+#endif
   // VideoSink
   DECL_MEDIA_PREF("media.ruin-av-sync.enabled",               RuinAvSync, bool, false);
 
@@ -101,21 +116,22 @@ private:
   // PlatformDecoderModule
   DECL_MEDIA_PREF("media.apple.forcevda",                     AppleForceVDA, bool, false);
   DECL_MEDIA_PREF("media.gmp.insecure.allow",                 GMPAllowInsecure, bool, false);
-  DECL_MEDIA_PREF("media.gmp.async-shutdown-timeout",         GMPAsyncShutdownTimeout, uint32_t, GMP_DEFAULT_ASYNC_SHUTDOWN_TIMEOUT);
   DECL_MEDIA_PREF("media.eme.enabled",                        EMEEnabled, bool, false);
   DECL_MEDIA_PREF("media.use-blank-decoder",                  PDMUseBlankDecoder, bool, false);
   DECL_MEDIA_PREF("media.gpu-process-decoder",                PDMUseGPUDecoder, bool, false);
-#ifdef MOZ_GONK_MEDIACODEC
-  DECL_MEDIA_PREF("media.gonk.enabled",                       PDMGonkDecoderEnabled, bool, true);
-#endif
 #ifdef MOZ_WIDGET_ANDROID
   DECL_MEDIA_PREF("media.android-media-codec.enabled",        PDMAndroidMediaCodecEnabled, bool, false);
   DECL_MEDIA_PREF("media.android-media-codec.preferred",      PDMAndroidMediaCodecPreferred, bool, false);
-  DECL_MEDIA_PREF("media.android-remote-codec.enabled",       PDMAndroidRemoteCodecEnabled, bool, false);
+  DECL_MEDIA_PREF("media.navigator.hardware.vp8_encode.acceleration_remote_enabled", RemoteMediaCodecVP8EncoderEnabled, bool, false);
 #endif
+  // WebRTC
+  DECL_MEDIA_PREF("media.navigator.mediadatadecoder_enabled", MediaDataDecoderEnabled, bool, false);
 #ifdef MOZ_FFMPEG
   DECL_MEDIA_PREF("media.ffmpeg.enabled",                     PDMFFmpegEnabled, bool, true);
   DECL_MEDIA_PREF("media.libavcodec.allow-obsolete",          LibavcodecAllowObsolete, bool, false);
+#endif
+#if defined(MOZ_FFMPEG) || defined(MOZ_FFVPX)
+  DECL_MEDIA_PREF("media.ffmpeg.low-latency.enabled",         PDMFFmpegLowLatencyEnabled, bool, false);
 #endif
 #ifdef MOZ_FFVPX
   DECL_MEDIA_PREF("media.ffvpx.enabled",                      PDMFFVPXEnabled, bool, true);
@@ -130,9 +146,17 @@ private:
   DECL_MEDIA_PREF("media.decoder.fuzzing.enabled",            PDMFuzzingEnabled, bool, false);
   DECL_MEDIA_PREF("media.decoder.fuzzing.video-output-minimum-interval-ms", PDMFuzzingInterval, uint32_t, 0);
   DECL_MEDIA_PREF("media.decoder.fuzzing.dont-delay-inputexhausted", PDMFuzzingDelayInputExhausted, bool, true);
+  DECL_MEDIA_PREF("media.decoder.recycle.enabled",            MediaDecoderCheckRecycling, bool, false);
+  DECL_MEDIA_PREF("media.decoder.skip-to-next-key-frame.enabled", MFRSkipToNextKeyFrameEnabled, bool, true);
   DECL_MEDIA_PREF("media.gmp.decoder.enabled",                PDMGMPEnabled, bool, true);
   DECL_MEDIA_PREF("media.gmp.decoder.aac",                    GMPAACPreferred, uint32_t, 0);
   DECL_MEDIA_PREF("media.gmp.decoder.h264",                   GMPH264Preferred, uint32_t, 0);
+  DECL_MEDIA_PREF("media.eme.audio.blank",                    EMEBlankAudio, bool, false);
+  DECL_MEDIA_PREF("media.eme.video.blank",                    EMEBlankVideo, bool, false);
+  DECL_MEDIA_PREF("media.eme.chromium-api.video-shmems",
+                  EMEChromiumAPIVideoShmemCount,
+                  uint32_t,
+                  3);
 
   // MediaDecoderStateMachine
   DECL_MEDIA_PREF("media.suspend-bkgnd-video.enabled",        MDSMSuspendBackgroundVideoEnabled, bool, false);
@@ -150,15 +174,44 @@ private:
   DECL_MEDIA_PREF("media.num-decode-threads",                 MediaThreadPoolDefaultCount, uint32_t, 4);
   DECL_MEDIA_PREF("media.decoder.limit",                      MediaDecoderLimit, int32_t, MediaDecoderLimitDefault());
 
+#if defined(RELEASE_OR_BETA)
+  DECL_MEDIA_PREF("media.audio-max-decode-error",             MaxAudioDecodeError, uint32_t, 3);
+  DECL_MEDIA_PREF("media.video-max-decode-error",             MaxVideoDecodeError, uint32_t, 2);
+#else
+  // Take zero tolerance of decoding error in debug for any decoder regression.
+  DECL_MEDIA_PREF("media.audio-max-decode-error",             MaxAudioDecodeError, uint32_t, 0);
+  DECL_MEDIA_PREF("media.video-max-decode-error",             MaxVideoDecodeError, uint32_t, 0);
+#endif
+
   // Ogg
   DECL_MEDIA_PREF("media.ogg.enabled",                        OggEnabled, bool, true);
   // Flac
   DECL_MEDIA_PREF("media.ogg.flac.enabled",                   FlacInOgg, bool, false);
   DECL_MEDIA_PREF("media.flac.enabled",                       FlacEnabled, bool, true);
 
-#if defined(MOZ_RUST_MP4PARSE) && !defined(RELEASE_OR_BETA)
+  // Hls
+  DECL_MEDIA_PREF("media.hls.enabled",                        HLSEnabled, bool, false);
+
+  // Both rust/stagefright will be enabled when this is true regardless of 'media.rust.mp4parser'.
   DECL_MEDIA_PREF("media.rust.test_mode",                     RustTestMode, bool, false);
-#endif
+
+  // True, it enables rust parser and fallback to stagefright if rust parser fails.
+  // False, it uses stagefright only.
+  DECL_MEDIA_PREF("media.rust.mp4parser",                     EnableRustMP4Parser, bool, true);
+
+  DECL_MEDIA_PREF("media.mp4.enabled",                        MP4Enabled, bool, false);
+
+  // Error/warning handling, Decoder Doctor
+  DECL_MEDIA_PREF("media.playback.warnings-as-errors",        MediaWarningsAsErrors, bool, false);
+  DECL_MEDIA_PREF("media.playback.warnings-as-errors.stagefright-vs-rust",
+                                                              MediaWarningsAsErrorsStageFrightVsRust, bool, false);
+
+  // resume background video decoding when the cursor is hovering over the tab.
+  DECL_MEDIA_PREF("media.resume-bkgnd-video-on-tabhover",     ResumeVideoDecodingOnTabHover, bool, false);
+
+  // Enable sandboxing support for cubeb
+  DECL_MEDIA_PREF("media.cubeb.sandbox",                      CubebSandbox, bool, false);
+  DECL_MEDIA_PREF("media.videocontrols.lock-video-orientation",  VideoOrientationLockEnabled, bool, false);
 
 public:
   // Manage the singleton:
@@ -173,8 +226,7 @@ private:
   static int32_t MediaDecoderLimitDefault()
   {
 #ifdef MOZ_WIDGET_ANDROID
-    if (AndroidBridge::Bridge() &&
-        AndroidBridge::Bridge()->GetAPIVersion() < 18) {
+    if (jni::GetAPIVersion() < 18) {
       // Older Android versions have broken support for multiple simultaneous
       // decoders, see bug 1278574.
       return 1;

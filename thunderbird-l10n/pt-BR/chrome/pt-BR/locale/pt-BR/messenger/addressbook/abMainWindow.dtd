@@ -3,7 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY addressbookWindow.title                        "Catálogo de endereços">
-<!ENTITY blankResultsPaneMessage.label                  "Esse catálogo de endereços mostra os contatos só depois de uma pesquisa">
+<!ENTITY blankResultsPaneMessage.label                  "Este catálogo de endereços mostra contatos somente após uma pesquisa">
 <!ENTITY localResultsOnlyMessage.label                  "Contatos do catálogo de endereços remotos não são mostradas até que você pesquise">
 
 <!-- File Menu -->
@@ -87,13 +87,13 @@
 <!ENTITY mailingListPropertiesMenu.accesskey            "i">
 
 <!-- View Menu -->
-<!ENTITY viewMenu.label                                 "Ver">
+<!ENTITY viewMenu.label                                 "Exibir">
 <!ENTITY viewMenu.accesskey                             "x">
 <!ENTITY viewToolbarsMenu.label                         "Barras de ferramentas">
 <!ENTITY viewToolbarsMenu.accesskey                     "B">
 <!ENTITY menubarCmd.label                               "Barra de menus">
 <!ENTITY menubarCmd.accesskey                           "m">
-<!ENTITY showAbToolbarCmd.label                         "Padrão">
+<!ENTITY showAbToolbarCmd.label                         "Barra de ferramentas do catálogo de endereços">
 <!ENTITY showAbToolbarCmd.accesskey                     "a">
 <!ENTITY showTaskbarCmd.label                           "Barra de status">
 <!ENTITY showTaskbarCmd.accesskey                       "s">
@@ -105,7 +105,7 @@
 <!ENTITY showDirectoryPane.accesskey                    "P">
 <!ENTITY showContactPane2.label                         "Painel do contato">
 <!ENTITY showContactPane2.accesskey                     "a">
-<!ENTITY menu_ShowNameAs.label                          "Exibir nome como">
+<!ENTITY menu_ShowNameAs.label                          "Mostrar nome como">
 <!ENTITY menu_ShowNameAs.accesskey                      "n">
 <!-- LOCALIZATION NOTE (firstLastCmd2.label): We're not including a comma here
 because displayed names don't have the comma in between. -->
@@ -140,6 +140,8 @@ because displayed names don't have the comma in between. -->
 <!ENTITY newContactButton.accesskey                     "N">
 <!ENTITY newlistButton.label                            "Nova lista">
 <!ENTITY newlistButton.accesskey                        "l">
+<!ENTITY showAsDefault.label                            "Diretório de inicialização padrão">
+<!ENTITY showAsDefault.accesskey                        "S">
 <!ENTITY editPropertiesButton.label                     "Editar">
 <!ENTITY propertiesContext.label                        "Propriedades">
 <!ENTITY propertiesContext.accesskey                    "i">
@@ -149,7 +151,7 @@ because displayed names don't have the comma in between. -->
 <!ENTITY editContactContext.accesskey                   "E">
 <!ENTITY editMailingListContext.label                   "Editar Lista">
 <!ENTITY editMailingListContext.accesskey               "E">
-<!ENTITY newmsgButton.label                             "Nova msg">
+<!ENTITY newmsgButton.label                             "Escrever">
 <!ENTITY newmsgButton.accesskey                         "N">
 <!ENTITY newIM.label                                    "Msg instantânea">
 <!ENTITY newIM.accesskey                                "M">

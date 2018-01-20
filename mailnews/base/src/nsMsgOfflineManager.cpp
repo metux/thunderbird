@@ -55,8 +55,7 @@ nsMsgOfflineManager::~nsMsgOfflineManager()
 NS_IMETHODIMP nsMsgOfflineManager::GetWindow(nsIMsgWindow * *aWindow)
 {
   NS_ENSURE_ARG(aWindow);
-  *aWindow = m_window;
-  NS_IF_ADDREF(*aWindow);
+  NS_IF_ADDREF(*aWindow = m_window);
   return NS_OK;
 }
 NS_IMETHODIMP nsMsgOfflineManager::SetWindow(nsIMsgWindow * aWindow)
@@ -179,7 +178,7 @@ nsresult nsMsgOfflineManager::SendUnsentMessages()
   nsresult rv;
   nsCOMPtr<nsIMsgSendLater> pMsgSendLater(do_GetService(kMsgSendLaterCID, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
-  nsCOMPtr<nsIMsgAccountManager> accountManager = 
+  nsCOMPtr<nsIMsgAccountManager> accountManager =
            do_GetService(NS_MSGACCOUNTMANAGER_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
   // now we have to iterate over the identities, finding the *unique* unsent messages folder
@@ -216,8 +215,8 @@ nsresult nsMsgOfflineManager::SendUnsentMessages()
       }
     }
   }
-  if (identityToUse) 
-  { 
+  if (identityToUse)
+  {
 #ifdef MOZ_SUITE
     if (m_statusFeedback)
       pMsgSendLater->SetStatusFeedback(m_statusFeedback);
@@ -230,7 +229,7 @@ nsresult nsMsgOfflineManager::SendUnsentMessages()
     // send finishes. Otherwise, advance to the next state.
     if (NS_SUCCEEDED(rv))
       return rv;
-  } 
+  }
   return AdvanceToNextState(rv);
 
 }
@@ -241,7 +240,7 @@ nsresult nsMsgOfflineManager::ShowStatus(const char *statusMsgName)
 {
   if (!mStringBundle)
   {
-    nsCOMPtr<nsIStringBundleService> sBundleService = 
+    nsCOMPtr<nsIStringBundleService> sBundleService =
       mozilla::services::GetStringBundleService();
     NS_ENSURE_TRUE(sBundleService, NS_ERROR_UNEXPECTED);
     sBundleService->CreateBundle(MESSENGER_STRING_URL, getter_AddRefs(mStringBundle));
@@ -249,8 +248,7 @@ nsresult nsMsgOfflineManager::ShowStatus(const char *statusMsgName)
   }
 
   nsString statusString;
-  nsresult res = mStringBundle->GetStringFromName(NS_ConvertASCIItoUTF16(statusMsgName).get(),
-						  getter_Copies(statusString));
+  nsresult res = mStringBundle->GetStringFromName(statusMsgName, statusString);
 
   if (NS_SUCCEEDED(res) && m_statusFeedback)
     m_statusFeedback->ShowStatusString(statusString);
@@ -347,7 +345,7 @@ NS_IMETHODIMP nsMsgOfflineManager::Observe(nsISupports *aSubject, const char *aT
   return NS_OK;
 }
 
-// nsIMsgSendLaterListener implementation 
+// nsIMsgSendLaterListener implementation
 NS_IMETHODIMP
 nsMsgOfflineManager::OnStartSending(uint32_t aTotalMessageCount)
 {
@@ -387,7 +385,7 @@ nsMsgOfflineManager::OnMessageSendError(uint32_t aCurrentMessage,
 
 NS_IMETHODIMP
 nsMsgOfflineManager::OnStopSending(nsresult aStatus,
-                                   const char16_t *aMsg, uint32_t aTotalTried, 
+                                   const char16_t *aMsg, uint32_t aTotalTried,
                                    uint32_t aSuccessful)
 {
 #ifdef NS_DEBUG

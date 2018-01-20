@@ -1,20 +1,23 @@
-Cu.import("resource:///modules/Sanitizer.jsm", this);
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource:///modules/Sanitizer.jsm", this);
+XPCOMUtils.defineLazyModuleGetter(this, "FormHistory",
+                                  "resource://gre/modules/FormHistory.jsm");
 
 var sanTests = {
   cache: {
     desc: "Cache",
-    setup: function() {
+    async setup() {
       var entry = null;
       this.cs = Services.cache.createSession("SanitizerTest", Components.interfaces.nsICache.STORE_ANYWHERE, true);
-      entry = yield promiseOpenCacheEntry("http://santizer.test", Components.interfaces.nsICache.ACCESS_READ_WRITE, this.cs);
+      entry = await promiseOpenCacheEntry("http://santizer.test", Components.interfaces.nsICache.ACCESS_READ_WRITE, this.cs);
       entry.setMetaDataElement("Foo", "Bar");
       entry.markValid();
       entry.close();
     },
 
-    check: function(aShouldBeCleared) {
+    async check(aShouldBeCleared) {
       let entry = null;
-      entry = yield promiseOpenCacheEntry("http://santizer.test", Components.interfaces.nsICache.ACCESS_READ, this.cs);
+      entry = await promiseOpenCacheEntry("http://santizer.test", Components.interfaces.nsICache.ACCESS_READ, this.cs);
 
       if (entry) {
         entry.close();
@@ -26,19 +29,19 @@ var sanTests = {
 
   offlineApps: {
     desc: "Offline app cache",
-    setup: function() {
+    async setup() {
       //XXX test offline DOMStorage
       var entry = null;
       this.cs = Services.cache.createSession("SanitizerTest", Components.interfaces.nsICache.STORE_OFFLINE, true);
-      entry = yield promiseOpenCacheEntry("http://santizer.test", Components.interfaces.nsICache.ACCESS_READ_WRITE, this.cs);
+      entry = await promiseOpenCacheEntry("http://santizer.test", Components.interfaces.nsICache.ACCESS_READ_WRITE, this.cs);
       entry.setMetaDataElement("Foo", "Bar");
       entry.markValid();
       entry.close();
     },
 
-    check: function(aShouldBeCleared) {
+    async check(aShouldBeCleared) {
       var entry = null;
-      entry = yield promiseOpenCacheEntry("http://santizer.test", Components.interfaces.nsICache.ACCESS_READ, this.cs);
+      entry = await promiseOpenCacheEntry("http://santizer.test", Components.interfaces.nsICache.ACCESS_READ, this.cs);
       if (entry) {
         entry.close();
       }
@@ -53,7 +56,7 @@ var sanTests = {
       Services.prefs.setIntPref("network.cookie.cookieBehavior", 0);
       var ios = Components.classes["@mozilla.org/network/io-service;1"]
                           .getService(Components.interfaces.nsIIOService);
-      this.uri = ios.newURI("http://sanitizer.test/", null, null);
+      this.uri = ios.newURI("http://sanitizer.test/");
       this.cs = Components.classes["@mozilla.org/cookieService;1"]
                           .getService(Components.interfaces.nsICookieService);
       this.cs.setCookieString(this.uri, null, "Sanitizer!", null);
@@ -69,11 +72,11 @@ var sanTests = {
 
   history: {
     desc: "History",
-    setup: function() {
+    async setup() {
       var ios = Components.classes["@mozilla.org/network/io-service;1"]
                           .getService(Components.interfaces.nsIIOService);
-      var uri = ios.newURI("http://sanitizer.test/", null, null);
-      yield promiseAddVisits({
+      var uri = ios.newURI("http://sanitizer.test/");
+      await promiseAddVisits({
         uri: uri,
         title: "Sanitizer!"
       });
@@ -121,17 +124,13 @@ var sanTests = {
       }
 
       // Open location dialog.
-      var supStr = Components.classes["@mozilla.org/supports-string;1"]
-                             .createInstance(Components.interfaces.nsISupportsString);
-      supStr.data = "Sanitizer!";
-      Services.prefs.setComplexValue("general.open_location.last_url",
-                                      Components.interfaces.nsISupportsString, supStr);
+      Services.prefs.setStringPref("general.open_location.last_url", "Sanitizer!");
     },
 
     check: function(aShouldBeCleared) {
       let locData;
       try {
-        locData = Services.prefs.getComplexValue("general.open_location.last_url", Components.interfaces.nsISupportsString).data;
+        locData = Services.prefs.getStringPref("general.open_location.last_url");
       } catch(ex) {}
 
       do_check_eq(locData == "Sanitizer!", !aShouldBeCleared);
@@ -161,14 +160,46 @@ var sanTests = {
 
   formdata: {
     desc: "Form history",
-    setup: function() {
-      this.forms = Components.classes["@mozilla.org/satchel/form-history;1"]
-                             .getService(Components.interfaces.nsIFormHistory2);
-      this.forms.addEntry("Sanitizer", "Foo");
+    async setup() {
+      // Adds a form entry to history.
+      function promiseAddFormEntry(aName, aValue) {
+        return new Promise((resolve, reject) =>
+          FormHistory.update({ op: "add", fieldname: aName, value: aValue },
+                             { handleError(error) {
+                                 reject();
+                                 throw new Error("Error occurred updating form history: " + error);
+                               },
+                               handleCompletion(reason) {
+                                 resolve();
+                               }
+                             })
+        )
+      }
+      await promiseAddFormEntry("Sanitizer", "Foo");
     },
+    async check(aShouldBeCleared) {
+      // Check if a form name exists.
+      function formNameExists(aName) {
+        return new Promise((resolve, reject) => {
+          let count = 0;
+          FormHistory.count({ fieldname: aName },
+                            { handleResult: result => count = result,
+                              handleError(error) {
+                                reject(error);
+                                throw new Error("Error occurred searching form history: " + error);
+                              },
+                              handleCompletion(reason) {
+                                if (!reason) {
+                                  resolve(count);
+                                }
+                              }
+                            });
+        });
+      }
 
-    check: function(aShouldBeCleared) {
-      do_check_eq(this.forms.entryExists("Sanitizer", "Foo"), !aShouldBeCleared);
+      // Checking for Sanitizer form history entry creation.
+      let exists = await formNameExists("Sanitizer");
+      do_check_eq(exists, !aShouldBeCleared);
     }
   },
 
@@ -177,7 +208,7 @@ var sanTests = {
     setup: function() {
       var ios = Components.classes["@mozilla.org/network/io-service;1"]
                           .getService(Components.interfaces.nsIIOService);
-      var uri = ios.newURI("http://sanitizer.test/", null, null);
+      var uri = ios.newURI("http://sanitizer.test/");
       var file = Components.classes["@mozilla.org/file/directory_service;1"]
                            .getService(Components.interfaces.nsIProperties)
                            .get("TmpD", Components.interfaces.nsIFile);
@@ -268,7 +299,7 @@ var sanTests = {
   }
 }
 
-function fullSanitize() {
+async function fullSanitize() {
   do_print("Now doing a full sanitize run");
   var prefs = Services.prefs.getBranch("privacy.item.");
 
@@ -276,7 +307,7 @@ function fullSanitize() {
 
   for (var testName in sanTests) {
     var test = sanTests[testName];
-    yield test.setup();
+    await test.setup();
     prefs.setBoolPref(testName, true);
   }
 
@@ -284,7 +315,7 @@ function fullSanitize() {
 
   for (var testName in sanTests) {
     var test = sanTests[testName];
-    yield test.check(true);
+    await test.check(true);
     do_print(test.desc + " data cleared by full sanitize");
     try {
       prefs.clearUserPref(testName);
@@ -301,19 +332,19 @@ function run_test()
   run_next_test();
 }
 
-add_task(function test_browser_sanitizer()
+add_task(async function test_browser_sanitizer()
 {
   for (var testName in sanTests) {
     let test = sanTests[testName];
     dump("\nExecuting test: " + testName + "\n" + "*** " + test.desc + "\n");
-    yield test.setup();
-    yield test.check(false);
+    await test.setup();
+    await test.check(false);
 
     do_check_true(Sanitizer.items[testName].canClear);
     Sanitizer.items[testName].clear();
     do_print(test.desc + " data cleared");
 
-    yield test.check(true);
+    await test.check(true);
   }
 });
 

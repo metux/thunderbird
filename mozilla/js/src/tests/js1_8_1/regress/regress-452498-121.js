@@ -16,18 +16,15 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
 // ------- Comment #121 From Gary Kwong [:nth10sd]
 
 // without -j
-  x = function()x;
+  x = function() { return x; };
 
 // Assertion failure: !(pn->pn_dflags & flag), at ../jsparse.h:651
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }

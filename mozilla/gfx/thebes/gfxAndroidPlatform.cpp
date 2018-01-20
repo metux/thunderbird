@@ -9,6 +9,8 @@
 #include "gfxAndroidPlatform.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/CountingAllocatorBase.h"
+#include "mozilla/intl/LocaleService.h"
+#include "mozilla/intl/OSPreferences.h"
 #include "mozilla/Preferences.h"
 
 #include "gfx2DGlue.h"
@@ -19,7 +21,6 @@
 #include "nsXULAppAPI.h"
 #include "nsIScreen.h"
 #include "nsIScreenManager.h"
-#include "nsILocaleService.h"
 #include "nsServiceManagerUtils.h"
 #include "gfxPrefs.h"
 #include "cairo.h"
@@ -29,9 +30,13 @@
 #include FT_FREETYPE_H
 #include FT_MODULE_H
 
+#include "GeneratedJNINatives.h"
+
 using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::gfx;
+using mozilla::intl::LocaleService;
+using mozilla::intl::OSPreferences;
 
 static FT_Library gPlatformFTLibrary = nullptr;
 
@@ -90,6 +95,8 @@ gfxAndroidPlatform::gfxAndroidPlatform()
     FT_New_Library(&sFreetypeMemoryRecord, &gPlatformFTLibrary);
     FT_Add_Default_Modules(gPlatformFTLibrary);
 
+    Factory::SetFTLibrary(gPlatformFTLibrary);
+
     RegisterStrongMemoryReporter(new FreetypeReporter());
 
     mOffscreenFormat = GetScreenDepth() == 16
@@ -130,29 +137,20 @@ IsJapaneseLocale()
     if (!sInitialized) {
         sInitialized = true;
 
-        do { // to allow 'break' to abandon this block if a call fails
-            nsresult rv;
-            nsCOMPtr<nsILocaleService> ls =
-                do_GetService(NS_LOCALESERVICE_CONTRACTID, &rv);
-            if (NS_FAILED(rv)) {
-                break;
-            }
-            nsCOMPtr<nsILocale> appLocale;
-            rv = ls->GetApplicationLocale(getter_AddRefs(appLocale));
-            if (NS_FAILED(rv)) {
-                break;
-            }
-            nsString localeStr;
-            rv = appLocale->
-                GetCategory(NS_LITERAL_STRING(NSILOCALE_MESSAGE), localeStr);
-            if (NS_FAILED(rv)) {
-                break;
-            }
-            const nsAString& lang = nsDependentSubstring(localeStr, 0, 2);
+        nsAutoCString appLocale;
+        LocaleService::GetInstance()->GetAppLocaleAsLangTag(appLocale);
+
+        const nsDependentCSubstring lang(appLocale, 0, 2);
+        if (lang.EqualsLiteral("ja")) {
+            sIsJapanese = true;
+        } else {
+            OSPreferences::GetInstance()->GetSystemLocale(appLocale);
+
+            const nsDependentCSubstring lang(appLocale, 0, 2);
             if (lang.EqualsLiteral("ja")) {
                 sIsJapanese = true;
             }
-        } while (false);
+        }
     }
 
     return sIsJapanese;
@@ -247,27 +245,6 @@ gfxAndroidPlatform::CreatePlatformFontList()
     return nullptr;
 }
 
-bool
-gfxAndroidPlatform::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
-{
-    // check for strange format flags
-    NS_ASSERTION(!(aFormatFlags & gfxUserFontSet::FLAG_FORMAT_NOT_USED),
-                 "strange font format hint set");
-
-    // accept supported formats
-    if (aFormatFlags & gfxUserFontSet::FLAG_FORMATS_COMMON) {
-        return true;
-    }
-
-    // reject all other formats, known and unknown
-    if (aFormatFlags != 0) {
-        return false;
-    }
-
-    // no format hint set, need to look at data
-    return true;
-}
-
 gfxFontGroup *
 gfxAndroidPlatform::CreateFontGroup(const FontFamilyList& aFontFamilyList,
                                     const gfxFontStyle* aStyle,
@@ -285,12 +262,6 @@ gfxAndroidPlatform::GetFTLibrary()
     return gPlatformFTLibrary;
 }
 
-already_AddRefed<ScaledFont>
-gfxAndroidPlatform::GetScaledFontForFont(DrawTarget* aTarget, gfxFont *aFont)
-{
-    return GetScaledFontForFontWithCairoSkia(aTarget, aFont);
-}
-
 bool
 gfxAndroidPlatform::FontHintingEnabled()
 {
@@ -301,7 +272,7 @@ gfxAndroidPlatform::FontHintingEnabled()
     // On Android, we currently only use gecko to render web
     // content that can always be be non-reflow-zoomed.  So turn off
     // hinting.
-    // 
+    //
     // XXX when gecko-android-java is used as an "app runtime", we may
     // want to re-enable hinting for non-browser processes there.
     return false;
@@ -322,8 +293,7 @@ gfxAndroidPlatform::RequiresLinearZoom()
     // content that can always be be non-reflow-zoomed.
     //
     // XXX when gecko-android-java is used as an "app runtime", we may
-    // want to treat it like B2G and use linear zoom only for the web
-    // browser process, not other apps.
+    // want to use linear zoom only for the web browser process, not other apps.
     return true;
 #endif
 
@@ -331,8 +301,103 @@ gfxAndroidPlatform::RequiresLinearZoom()
     return gfxPlatform::RequiresLinearZoom();
 }
 
+class AndroidVsyncSource final : public VsyncSource {
+public:
+    class JavaVsyncSupport final : public java::VsyncSource::Natives<JavaVsyncSupport>
+    {
+    public:
+        using Base = java::VsyncSource::Natives<JavaVsyncSupport>;
+        using Base::DisposeNative;
+
+        static void NotifyVsync() {
+            GetDisplayInstance().NotifyVsync(TimeStamp::Now());
+        }
+    };
+
+    class Display final : public VsyncSource::Display {
+    public:
+        Display()
+            : mJavaVsync(java::VsyncSource::INSTANCE())
+            , mObservingVsync(false)
+        {
+            JavaVsyncSupport::Init(); // To register native methods.
+        }
+
+        ~Display() { DisableVsync(); }
+
+        bool IsVsyncEnabled() override
+        {
+            MOZ_ASSERT(NS_IsMainThread());
+            MOZ_ASSERT(mJavaVsync);
+
+            return mObservingVsync;
+        }
+
+        void EnableVsync() override
+        {
+            MOZ_ASSERT(NS_IsMainThread());
+            MOZ_ASSERT(mJavaVsync);
+
+            if (mObservingVsync) {
+                return;
+            }
+            bool ok = mJavaVsync->ObserveVsync(true);
+            if (ok && !mVsyncDuration) {
+                float fps = mJavaVsync->GetRefreshRate();
+                mVsyncDuration = TimeDuration::FromMilliseconds(1000.0 / fps);
+            }
+            mObservingVsync = ok;
+            MOZ_ASSERT(mObservingVsync);
+        }
+
+        void DisableVsync() override
+        {
+            MOZ_ASSERT(NS_IsMainThread());
+            MOZ_ASSERT(mJavaVsync);
+
+            if (!mObservingVsync) {
+              return;
+            }
+            mObservingVsync = mJavaVsync->ObserveVsync(false);
+            MOZ_ASSERT(!mObservingVsync);
+        }
+
+        TimeDuration GetVsyncRate() override { return mVsyncDuration; }
+
+        void Shutdown() override {
+            DisableVsync();
+            mJavaVsync = nullptr;
+        }
+
+    private:
+        java::VsyncSource::GlobalRef mJavaVsync;
+        bool mObservingVsync;
+        TimeDuration mVsyncDuration;
+    };
+
+    Display& GetGlobalDisplay() final { return GetDisplayInstance(); }
+
+private:
+   virtual ~AndroidVsyncSource() {}
+
+   static Display& GetDisplayInstance()
+   {
+       static Display globalDisplay;
+       return globalDisplay;
+   }
+};
+
 already_AddRefed<mozilla::gfx::VsyncSource>
 gfxAndroidPlatform::CreateHardwareVsyncSource()
 {
+    // Vsync was introduced since JB (API 16~18) but inaccurate. Enable only for
+    // KK (API 19) and later.
+    if (AndroidBridge::Bridge() &&
+            AndroidBridge::Bridge()->GetAPIVersion() >= 19) {
+        RefPtr<AndroidVsyncSource> vsyncSource = new AndroidVsyncSource();
+        return vsyncSource.forget();
+    }
+
+    NS_WARNING("Vsync not supported. Falling back to software vsync");
     return gfxPlatform::CreateHardwareVsyncSource();
 }

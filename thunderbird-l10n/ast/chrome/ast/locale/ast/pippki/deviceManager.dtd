@@ -33,4 +33,9 @@
 <!ENTITY loaddevice.browse                      "Agüeyar…">
 <!ENTITY loaddevice.browse.accesskey            "A">
 
-<!ENTITY loaddevice.title                       "Cargar preséu PKCS#11">
+
+<!ENTITY loaddevice.modname2                    "Module Name">
+<!ENTITY loaddevice.modname2.accesskey          "M">
+<!ENTITY loaddevice.filename2                   "Module filename">
+<!ENTITY loaddevice.filename2.accesskey         "f">
+<!ENTITY loaddevice.title2                      "Load PKCS#11 Device Driver">

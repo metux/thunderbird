@@ -50,7 +50,7 @@ addRDMTask(TEST_URL, function* ({ ui, manager }) {
   yield testTouchEventsOverride(ui, true);
 
   // Test resetting device when resizing viewport
-  let deviceRemoved = once(ui, "device-removed");
+  let deviceRemoved = once(ui, "device-association-removed");
   yield testViewportResize(ui, ".viewport-vertical-resize-handle",
     [-10, -10], [testDevice.width, testDevice.height - 10], [0, -10], ui);
   yield deviceRemoved;
@@ -74,13 +74,6 @@ function testViewportDimensions(ui, w, h) {
      `${w}px`, `Viewport should have width of ${w}px`);
   is(ui.toolWindow.getComputedStyle(viewport).getPropertyValue("height"),
      `${h}px`, `Viewport should have height of ${h}px`);
-}
-
-function* testUserAgent(ui, expected) {
-  let ua = yield ContentTask.spawn(ui.getViewportBrowser(), {}, function* () {
-    return content.navigator.userAgent;
-  });
-  is(ua, expected, `UA should be set to ${expected}`);
 }
 
 function* testDevicePixelRatio(ui, expected) {

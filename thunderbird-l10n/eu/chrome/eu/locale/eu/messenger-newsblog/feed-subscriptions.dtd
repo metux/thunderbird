@@ -9,23 +9,29 @@
 <!ENTITY feedTitle.label             "Izenburua:">
 <!ENTITY feedTitle.accesskey         "I">
 
-<!ENTITY feedLocation.label          "Jarioaren URLa:">
-<!ENTITY feedLocation.accesskey      "U">
+
 <!ENTITY feedLocation.placeholder    "Sartu gehitzeko baliozko jario URLa">
 <!ENTITY locationValidate.label      "Balidatu">
 <!ENTITY validateText.label          "Egiaztatu balidazioa eta eskuratu baliozko URLa.">
 
 <!ENTITY feedFolder.label            "Gorde artikuluak hemen:">
 <!ENTITY feedFolder.accesskey        "G">
+<!-- Account Settings and Subscription Dialog -->
+
+
+
+
+
+
 
 <!ENTITY quickMode.label             "Erakutsi artikuluaren laburpena web orria kargatu ordez">
 <!ENTITY quickMode.accesskey         "E">
 
-<!ENTITY autotagEnable.label         "Sortu etiketak automatikoki &lt;kategorien&gt; izenetatik">
-<!ENTITY autotagEnable.accesskey     "m">
+
 <!ENTITY autotagUsePrefix.label      "Erabili aurrizkia etiketentzat:">
 <!ENTITY autotagUsePrefix.accesskey  "z">
 <!ENTITY autoTagPrefix.placeholder   "Sartu etiketaren aurrizkia">
+<!-- Subscription Dialog -->
 
 <!ENTITY button.addFeed.label        "Gehitu">
 <!ENTITY button.addFeed.accesskey    "G">
@@ -41,3 +47,16 @@
 
 <!ENTITY cmd.close.commandKey        "w">
 <!ENTITY button.close.label          "Itxi">
+
+<!ENTITY feedLocation.label          "Feed URL:">
+<!ENTITY feedLocation.accesskey      "F">
+<!ENTITY biffStart.label             "Check for new articles every ">
+<!ENTITY biffStart.accesskey         "k">
+<!ENTITY biffMinutes.label           "minutes">
+<!ENTITY biffMinutes.accesskey       "n">
+<!ENTITY biffDays.label              "days">
+<!ENTITY biffDays.accesskey          "d">
+<!ENTITY recommendedUnits.label      "Publisher recommends:">
+
+<!ENTITY autotagEnable.label         "Automatically create tags from feed &lt;category&gt; names">
+<!ENTITY autotagEnable.accesskey     "o">

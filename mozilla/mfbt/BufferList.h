@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include "mozilla/AllocPolicy.h"
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/Move.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Types.h"
@@ -16,14 +17,13 @@
 #include "mozilla/Vector.h"
 #include <string.h>
 
-// Undo potential #include <windows.h> damage to be able to use std::min.
-#undef min
-
 // BufferList represents a sequence of buffers of data. A BufferList can choose
 // to own its buffers or not. The class handles writing to the buffers,
 // iterating over them, and reading data out. Unlike SegmentedVector, the
 // buffers may be of unequal size. Like SegmentedVector, BufferList is a nice
 // way to avoid large contiguous allocations (which can trigger OOMs).
+
+class InfallibleAllocPolicy;
 
 namespace mozilla {
 
@@ -67,9 +67,11 @@ class BufferList : private AllocPolicy
   static const size_t kSegmentAlignment = 8;
 
   // Allocate a BufferList. The BufferList will free all its buffers when it is
-  // destroyed. An initial buffer of size aInitialSize and capacity
-  // aInitialCapacity is allocated automatically. This data will be contiguous
-  // an can be accessed via |Start()|. Subsequent buffers will be allocated with
+  // destroyed. If an infallible allocator is used, an initial buffer of size
+  // aInitialSize and capacity aInitialCapacity is allocated automatically. This
+  // data will be contiguous and can be accessed via |Start()|. If a fallible
+  // alloc policy is used, aInitialSize must be 0, and the fallible |Init()|
+  // method may be called instead. Subsequent buffers will be allocated with
   // capacity aStandardCapacity.
   BufferList(size_t aInitialSize,
              size_t aInitialCapacity,
@@ -85,6 +87,10 @@ class BufferList : private AllocPolicy
     MOZ_ASSERT(aStandardCapacity % kSegmentAlignment == 0);
 
     if (aInitialCapacity) {
+      MOZ_ASSERT((aInitialSize == 0 || IsSame<AllocPolicy, InfallibleAllocPolicy>::value),
+                 "BufferList may only be constructed with an initial size when "
+                 "using an infallible alloc policy");
+
       AllocateSegment(aInitialSize, aInitialCapacity);
     }
   }
@@ -117,8 +123,28 @@ class BufferList : private AllocPolicy
 
   ~BufferList() { Clear(); }
 
+  // Initializes the BufferList with a segment of the given size and capacity.
+  // May only be called once, before any segments have been allocated.
+  bool Init(size_t aInitialSize, size_t aInitialCapacity)
+  {
+    MOZ_ASSERT(mSegments.empty());
+    MOZ_ASSERT(aInitialCapacity != 0);
+    MOZ_ASSERT(aInitialCapacity % kSegmentAlignment == 0);
+
+    return AllocateSegment(aInitialSize, aInitialCapacity);
+  }
+
   // Returns the sum of the sizes of all the buffers.
   size_t Size() const { return mSize; }
+
+  size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf)
+  {
+    size_t size = mSegments.sizeOfExcludingThis(aMallocSizeOf);
+    for (Segment& segment : mSegments) {
+      size += aMallocSizeOf(segment.Start());
+    }
+    return size;
+  }
 
   void Clear()
   {
@@ -137,7 +163,7 @@ class BufferList : private AllocPolicy
   class IterImpl
   {
     // Invariants:
-    //   (0) mSegment <= bufferList.mSegments.size()
+    //   (0) mSegment <= bufferList.mSegments.length()
     //   (1) mData <= mDataEnd
     //   (2) If mSegment is not the last segment, mData < mDataEnd
     uintptr_t mSegment;
@@ -257,7 +283,11 @@ class BufferList : private AllocPolicy
   };
 
   // Special convenience method that returns Iter().Data().
-  char* Start() { return mSegments[0].mData; }
+  char* Start()
+  {
+    MOZ_RELEASE_ASSERT(!mSegments.empty());
+    return mSegments[0].mData;
+  }
   const char* Start() const { return mSegments[0].mData; }
 
   IterImpl Iter() const { return IterImpl(*this); }
@@ -265,6 +295,11 @@ class BufferList : private AllocPolicy
   // Copies aSize bytes from aData into the BufferList. The storage for these
   // bytes may be split across multiple buffers. Size() is increased by aSize.
   inline bool WriteBytes(const char* aData, size_t aSize);
+
+  // Allocates a buffer of at most |aMaxBytes| bytes and, if successful, returns
+  // that buffer, and places its size in |aSize|. If unsuccessful, returns null
+  // and leaves |aSize| undefined.
+  inline char* AllocateBytes(size_t aMaxSize, size_t* aSize);
 
   // Copies possibly non-contiguous byte range starting at aIter into
   // aData. aIter is advanced by aSize bytes. Returns false if it runs out of
@@ -316,9 +351,11 @@ private:
   {
   }
 
-  void* AllocateSegment(size_t aSize, size_t aCapacity)
+  char* AllocateSegment(size_t aSize, size_t aCapacity)
   {
     MOZ_RELEASE_ASSERT(mOwning);
+    MOZ_ASSERT(aCapacity != 0);
+    MOZ_ASSERT(aSize <= aCapacity);
 
     char* data = this->template pod_malloc<char>(aCapacity);
     if (!data) {
@@ -346,34 +383,48 @@ BufferList<AllocPolicy>::WriteBytes(const char* aData, size_t aSize)
   MOZ_RELEASE_ASSERT(mStandardCapacity);
 
   size_t copied = 0;
-  size_t remaining = aSize;
-
-  if (!mSegments.empty()) {
-    Segment& lastSegment = mSegments.back();
-
-    size_t toCopy = std::min(aSize, lastSegment.mCapacity - lastSegment.mSize);
-    memcpy(lastSegment.mData + lastSegment.mSize, aData, toCopy);
-    lastSegment.mSize += toCopy;
-    mSize += toCopy;
-
-    copied += toCopy;
-    remaining -= toCopy;
-  }
-
-  while (remaining) {
-    size_t toCopy = std::min(remaining, mStandardCapacity);
-
-    void* data = AllocateSegment(toCopy, mStandardCapacity);
+  while (copied < aSize) {
+    size_t toCopy;
+    char* data = AllocateBytes(aSize - copied, &toCopy);
     if (!data) {
       return false;
     }
     memcpy(data, aData + copied, toCopy);
-
     copied += toCopy;
-    remaining -= toCopy;
   }
 
   return true;
+}
+
+template<typename AllocPolicy>
+char*
+BufferList<AllocPolicy>::AllocateBytes(size_t aMaxSize, size_t* aSize)
+{
+  MOZ_RELEASE_ASSERT(mOwning);
+  MOZ_RELEASE_ASSERT(mStandardCapacity);
+
+  if (!mSegments.empty()) {
+    Segment& lastSegment = mSegments.back();
+
+    size_t capacity = lastSegment.mCapacity - lastSegment.mSize;
+    if (capacity) {
+      size_t size = std::min(aMaxSize, capacity);
+      char* data = lastSegment.mData + lastSegment.mSize;
+
+      lastSegment.mSize += size;
+      mSize += size;
+
+      *aSize = size;
+      return data;
+    }
+  }
+
+  size_t size = std::min(aMaxSize, mStandardCapacity);
+  char* data = AllocateSegment(size, mStandardCapacity);
+  if (data) {
+    *aSize = size;
+  }
+  return data;
 }
 
 template<typename AllocPolicy>

@@ -17,8 +17,10 @@ fails == flexbox-align-self-baseline-horiz-2.xhtml  flexbox-align-self-baseline-
 # This one fails on windows R (but not Ru, strangely) and GTK.
 # On Windows R and GTK, the single-line <label> flex item has a different
 # background size in test vs. ref
-# Disabled this test in v52 because it depends on bug 418833: fuzzy-if(cocoaWidget,1,2) random-if(winWidget||gtkWidget) skip-if(Android) == flexbox-align-self-baseline-horiz-3.xhtml  flexbox-align-self-baseline-horiz-3-ref.xhtml # XXXdholbert investigate the random-if. The skip-if(Android) is because checkbox/radio appearance:none doesn't work as expected.
+fuzzy-if(cocoaWidget,1,2) random-if(winWidget||gtkWidget) skip-if(Android) == flexbox-align-self-baseline-horiz-3.xhtml  flexbox-align-self-baseline-horiz-3-ref.xhtml # XXXdholbert investigate the random-if. The skip-if(Android) is because checkbox/radio appearance:none doesn't work as expected.
 == flexbox-align-self-baseline-horiz-4.xhtml flexbox-align-self-baseline-horiz-4-ref.xhtml
+== flexbox-item-align-self-dynamic-pos-001.html flexbox-item-align-self-dynamic-pos-001-ref.html
+== flexbox-item-align-self-dynamic-pos-002.html flexbox-item-align-self-dynamic-pos-002-ref.html
 
 # Tests for box-sizing on flex containers and flex items.
 == flexbox-box-sizing-on-container-horiz-1.html flexbox-box-sizing-on-container-horiz-1-ref.html
@@ -115,4 +117,4 @@ skip-if(gtkWidget) == flexbox-widget-flex-items-3.html flexbox-widget-flex-items
 fuzzy-if(gtkWidget,1,31) == flexbox-widget-flex-items-4.html flexbox-widget-flex-items-4-ref.html
 
 # Tests for table flex items
-== flexbox-table-flex-items-1-ref.html flexbox-table-flex-items-1-ref.html
+== flexbox-table-flex-items-1.html flexbox-table-flex-items-1-ref.html

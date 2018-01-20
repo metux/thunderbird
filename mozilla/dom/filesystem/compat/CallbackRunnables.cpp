@@ -26,7 +26,8 @@ namespace dom {
 
 EntryCallbackRunnable::EntryCallbackRunnable(FileSystemEntryCallback* aCallback,
                                              FileSystemEntry* aEntry)
-  : mCallback(aCallback)
+  : Runnable("EntryCallbackRunnable")
+  , mCallback(aCallback)
   , mEntry(aEntry)
 {
   MOZ_ASSERT(aCallback);
@@ -43,7 +44,8 @@ EntryCallbackRunnable::Run()
 ErrorCallbackRunnable::ErrorCallbackRunnable(nsIGlobalObject* aGlobalObject,
                                              ErrorCallback* aCallback,
                                              nsresult aError)
-  : mGlobal(aGlobalObject)
+  : Runnable("ErrorCallbackRunnable")
+  , mGlobal(aGlobalObject)
   , mCallback(aCallback)
   , mError(aError)
 {
@@ -55,18 +57,14 @@ ErrorCallbackRunnable::ErrorCallbackRunnable(nsIGlobalObject* aGlobalObject,
 NS_IMETHODIMP
 ErrorCallbackRunnable::Run()
 {
-  nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(mGlobal);
-  if (NS_WARN_IF(!window)) {
-    return NS_ERROR_FAILURE;
-  }
-
   RefPtr<DOMException> exception = DOMException::Create(mError);
   mCallback->HandleEvent(*exception);
   return NS_OK;
 }
 
 EmptyEntriesCallbackRunnable::EmptyEntriesCallbackRunnable(FileSystemEntriesCallback* aCallback)
-  : mCallback(aCallback)
+  : Runnable("EmptyEntriesCallbackRunnable")
+  , mCallback(aCallback)
 {
   MOZ_ASSERT(aCallback);
 }
@@ -263,25 +261,27 @@ GetEntryHelper::Error(nsresult aError)
     RefPtr<ErrorCallbackRunnable> runnable =
       new ErrorCallbackRunnable(mParentEntry->GetParentObject(),
                                 mErrorCallback, aError);
-    DebugOnly<nsresult> rv = NS_DispatchToMainThread(runnable);
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "NS_DispatchToMainThread failed");
+
+    FileSystemUtils::DispatchRunnable(mParentEntry->GetParentObject(),
+                                      runnable.forget());
   }
 }
 
 NS_IMPL_ISUPPORTS0(GetEntryHelper);
 
 /* static */ void
-FileSystemEntryCallbackHelper::Call(const Optional<OwningNonNull<FileSystemEntryCallback>>& aEntryCallback,
+FileSystemEntryCallbackHelper::Call(nsIGlobalObject* aGlobalObject,
+                                    const Optional<OwningNonNull<FileSystemEntryCallback>>& aEntryCallback,
                                     FileSystemEntry* aEntry)
 {
+  MOZ_ASSERT(aGlobalObject);
   MOZ_ASSERT(aEntry);
 
   if (aEntryCallback.WasPassed()) {
     RefPtr<EntryCallbackRunnable> runnable =
       new EntryCallbackRunnable(&aEntryCallback.Value(), aEntry);
 
-    DebugOnly<nsresult> rv = NS_DispatchToMainThread(runnable);
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "NS_DispatchToMainThread failed");
+    FileSystemUtils::DispatchRunnable(aGlobalObject, runnable.forget());
   }
 }
 
@@ -296,8 +296,8 @@ ErrorCallbackHelper::Call(nsIGlobalObject* aGlobal,
   if (aErrorCallback.WasPassed()) {
     RefPtr<ErrorCallbackRunnable> runnable =
       new ErrorCallbackRunnable(aGlobal, &aErrorCallback.Value(), aError);
-    DebugOnly<nsresult> rv = NS_DispatchToMainThread(runnable);
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "NS_DispatchToMainThread failed");
+
+    FileSystemUtils::DispatchRunnable(aGlobal, runnable.forget());
   }
 }
 

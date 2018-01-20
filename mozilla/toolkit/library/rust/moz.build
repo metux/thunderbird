@@ -4,4 +4,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-RustLibrary('gkrust')
+include('gkrust-features.mozbuild')
+
+RustLibrary('gkrust', gkrust_features, '..')
+
+# Target directory doesn't matter a lot here, since we can't share panic=abort
+# compilation artifacts with gkrust.
+RustTest('stylo_tests', gkrust_features)

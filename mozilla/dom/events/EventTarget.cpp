@@ -25,7 +25,7 @@ EventTarget::RemoveEventListener(const nsAString& aType,
 }
 
 EventHandlerNonNull*
-EventTarget::GetEventHandler(nsIAtom* aType, const nsAString& aTypeString)
+EventTarget::GetEventHandler(nsAtom* aType, const nsAString& aTypeString)
 {
   EventListenerManager* elm = GetExistingListenerManager();
   return elm ? elm->GetEventHandler(aType, aTypeString) : nullptr;
@@ -41,7 +41,7 @@ EventTarget::SetEventHandler(const nsAString& aType,
     return;
   }
   if (NS_IsMainThread()) {
-    nsCOMPtr<nsIAtom> type = NS_Atomize(aType);
+    RefPtr<nsAtom> type = NS_Atomize(aType);
     SetEventHandler(type, EmptyString(), aHandler);
     return;
   }
@@ -51,10 +51,24 @@ EventTarget::SetEventHandler(const nsAString& aType,
 }
 
 void
-EventTarget::SetEventHandler(nsIAtom* aType, const nsAString& aTypeString,
+EventTarget::SetEventHandler(nsAtom* aType, const nsAString& aTypeString,
                              EventHandlerNonNull* aHandler)
 {
   GetOrCreateListenerManager()->SetEventHandler(aType, aTypeString, aHandler);
+}
+
+bool
+EventTarget::HasNonSystemGroupListenersForUntrustedKeyEvents() const
+{
+  EventListenerManager* elm = GetExistingListenerManager();
+  return elm && elm->HasNonSystemGroupListenersForUntrustedKeyEvents();
+}
+
+bool
+EventTarget::HasNonPassiveNonSystemGroupListenersForUntrustedKeyEvents() const
+{
+  EventListenerManager* elm = GetExistingListenerManager();
+  return elm && elm->HasNonPassiveNonSystemGroupListenersForUntrustedKeyEvents();
 }
 
 bool
@@ -65,13 +79,13 @@ EventTarget::IsApzAware() const
 }
 
 bool
-EventTarget::DispatchEvent(JSContext* aCx,
-                           Event& aEvent,
+EventTarget::DispatchEvent(Event& aEvent,
+                           CallerType aCallerType,
                            ErrorResult& aRv)
 {
   bool result = false;
   aRv = DispatchEvent(&aEvent, &result);
-  return !aEvent.DefaultPrevented(aCx);
+  return !aEvent.DefaultPrevented(aCallerType);
 }
 
 } // namespace dom

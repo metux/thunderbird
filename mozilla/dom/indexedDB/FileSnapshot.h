@@ -84,9 +84,10 @@ private:
   }
 
   virtual void
-  GetMozFullPath(nsAString& aName, ErrorResult& aRv) const override
+  GetMozFullPath(nsAString& aName, SystemCallerGuarantee aGuarantee,
+                 ErrorResult& aRv) const override
   {
-    mBlobImpl->GetMozFullPath(aName, aRv);
+    mBlobImpl->GetMozFullPath(aName, aGuarantee, aRv);
   }
 
   virtual void
@@ -105,6 +106,12 @@ private:
   GetType(nsAString& aType) override
   {
     mBlobImpl->GetType(aType);
+  }
+
+  size_t
+  GetAllocationSize() const override
+  {
+    return mBlobImpl->GetAllocationSize();
   }
 
   virtual uint64_t
@@ -126,7 +133,7 @@ private:
   }
 
   virtual void
-  GetInternalStream(nsIInputStream** aStream,
+  CreateInputStream(nsIInputStream** aStream,
                     ErrorResult& aRv) override;
 
   virtual int64_t

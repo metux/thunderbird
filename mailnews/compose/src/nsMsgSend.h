@@ -133,6 +133,7 @@
 #include "nsMsgAttachmentData.h"
 #include "nsIMsgFilterService.h"
 #include "nsIMsgOperationListener.h"
+#include "nsMsgIncomingServer.h"
 
 //
 // Some necessary defines...
@@ -188,7 +189,7 @@ public:
   NS_IMETHOD  DeliverFileAsMail();
   NS_IMETHOD  DeliverFileAsNews();
   void        DoDeliveryExitProcessing(nsIURI * aUrl, nsresult aExitCode, bool aCheckForMail);
-  nsresult    FormatStringWithSMTPHostNameByName(const char16_t* aMsgName, char16_t **aString);
+  nsresult    FormatStringWithSMTPHostNameByName(const char* aMsgName, nsAString& aString);
 
   nsresult    DoFcc();
   nsresult    StartMessageCopyOperation(nsIFile          *aFileSpec,
@@ -197,6 +198,9 @@ public:
 
 
   nsresult SendToMagicFolder(nsMsgDeliverMode flag);
+
+  // For the folderURL return the corresponding pointer to the incoming server.
+  nsresult GetIncomingServer(const char *folderURL, nsIMsgIncomingServer **aServer);
 
   // Check to see if it's ok to save msgs to the configured folder.
   bool CanSaveMessagesToFolder(const char *folderURL);
@@ -226,7 +230,7 @@ public:
                    const nsACString &attachment1_body,
                    nsIArray   *attachments,
                    nsIArray     *preloaded_attachments,
-                   const char       *password,
+                   const nsAString &password,
                    const nsACString &aOriginalMsgURI,
                    MSG_ComposeType  aType);
 
@@ -391,7 +395,7 @@ protected:
   nsresult AddXForwardedMessageIdHeader();
 
   nsCOMPtr<nsIMsgSendReport>  mSendReport;
-  nsCString                   mSmtpPassword;            // store the smtp Password use during a send
+  nsString                    mSmtpPassword;            // store the smtp Password use during a send
 };
 
 //

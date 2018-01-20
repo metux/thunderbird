@@ -17,10 +17,6 @@ var gGeneralPane = {
     this.updatePlaySound();
     this.updateCustomizeAlert();
     this.updateWebSearch();
-
-    if (this._loadInContent) {
-      gSubDialog.init();
-    }
   },
 
   /**
@@ -80,7 +76,7 @@ var gGeneralPane = {
 
   convertURLToLocalFile: function(aFileURL)
   {
-    // convert the file url into a nsILocalFile
+    // convert the file url into a nsIFile
     if (aFileURL)
     {
       return Services.io
@@ -121,7 +117,7 @@ var gGeneralPane = {
       sound.playEventSound(Components.interfaces.nsISound.EVENT_NEW_MAIL_RECEIVED);
     } else {
       // User has set a custom audio file to be played along the alert.
-      sound.play(Services.io.newURI(soundLocation, null, null));
+      sound.play(Services.io.newURI(soundLocation));
     }
   },
 
@@ -149,14 +145,15 @@ var gGeneralPane = {
     else
       fp.appendFilter(soundFilesText, "*.wav");
 
-    var ret = fp.show();
-    if (ret == nsIFilePicker.returnOK)
-    {
-      // convert the nsILocalFile into a nsIFile url
+    fp.open(rv => {
+      if (rv != nsIFilePicker.returnOK || !fp.file) {
+        return;
+      }
+      // convert the nsIFile into a nsIFile url
       document.getElementById("mail.biff.play_sound.url").value = fp.fileURL.spec;
       this.readSoundLocation(); // XXX We shouldn't have to be doing this by hand
       this.updatePlaySound();
-    }
+    });
   },
 
   updatePlaySound: function()
@@ -172,7 +169,7 @@ var gGeneralPane = {
     if (AppConstants.platform != "macosx") {
       var soundTypeEl = document.getElementById('soundType');
       soundTypeEl.disabled = soundsDisabled;
-      document.getElementById('browseForSound').disabled =
+      document.getElementById("soundUrlLocation").disabled =
         soundsDisabled || soundTypeEl.value != 1;
       document.getElementById('playSound').disabled =
         soundsDisabled || (!soundUrlLocation && soundTypeEl.value != 0);

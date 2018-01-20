@@ -36,6 +36,7 @@
 #include "nsIServiceManager.h"
 #include "nsXULPopupManager.h"
 #include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/EventDispatcher.h"
 
 #include "jsapi.h"
 #include "nsIScriptGlobalObject.h"
@@ -361,7 +362,7 @@ nsEventStatus nsMenuX::MenuOpened()
   nsCOMPtr<nsIContent> popupContent;
   GetMenuPopupContent(getter_AddRefs(popupContent));
   nsIContent* dispatchTo = popupContent ? popupContent : mContent;
-  dispatchTo->DispatchDOMEvent(&event, nullptr, nullptr, &status);
+  EventDispatcher::Dispatch(dispatchTo, nullptr, &event, nullptr, &status);
 
   return nsEventStatus_eConsumeNoDefault;
 }
@@ -385,7 +386,7 @@ void nsMenuX::MenuClosed()
     nsCOMPtr<nsIContent> popupContent;
     GetMenuPopupContent(getter_AddRefs(popupContent));
     nsIContent* dispatchTo = popupContent ? popupContent : mContent;
-    dispatchTo->DispatchDOMEvent(&event, nullptr, nullptr, &status);
+    EventDispatcher::Dispatch(dispatchTo, nullptr, &event, nullptr, &status);
 
     mDestroyHandlerCalled = true;
     mConstructed = false;
@@ -450,8 +451,13 @@ void nsMenuX::MenuConstruct()
 
 void nsMenuX::SetRebuild(bool aNeedsRebuild)
 {
-  if (!gConstructingMenu)
+  if (!gConstructingMenu) {
     mNeedsRebuild = aNeedsRebuild;
+    if (mParent->MenuObjectType() == eMenuBarObjectType) {
+      nsMenuBarX* mb = static_cast<nsMenuBarX*>(mParent);
+      mb->SetNeedsRebuild();
+    }
+  }
 }
 
 nsresult nsMenuX::SetEnabled(bool aIsEnabled)
@@ -569,7 +575,7 @@ bool nsMenuX::OnOpen()
 
   nsresult rv = NS_OK;
   nsIContent* dispatchTo = popupContent ? popupContent : mContent;
-  rv = dispatchTo->DispatchDOMEvent(&event, nullptr, nullptr, &status);
+  rv = EventDispatcher::Dispatch(dispatchTo, nullptr, &event, nullptr, &status);
   if (NS_FAILED(rv) || status == nsEventStatus_eConsumeNoDefault)
     return false;
 
@@ -607,7 +613,7 @@ bool nsMenuX::OnClose()
 
   nsresult rv = NS_OK;
   nsIContent* dispatchTo = popupContent ? popupContent : mContent;
-  rv = dispatchTo->DispatchDOMEvent(&event, nullptr, nullptr, &status);
+  rv = EventDispatcher::Dispatch(dispatchTo, nullptr, &event, nullptr, &status);
 
   mDestroyHandlerCalled = true;
 
@@ -629,7 +635,7 @@ void nsMenuX::GetMenuPopupContent(nsIContent** aResult)
   // Check to see if we are a "menupopup" node (if we are a native menu).
   {
     int32_t dummy;
-    nsCOMPtr<nsIAtom> tag = mContent->OwnerDoc()->BindingManager()->ResolveTag(mContent, &dummy);
+    RefPtr<nsAtom> tag = mContent->OwnerDoc()->BindingManager()->ResolveTag(mContent, &dummy);
     if (tag == nsGkAtoms::menupopup) {
       *aResult = mContent;
       NS_ADDREF(*aResult);
@@ -644,7 +650,7 @@ void nsMenuX::GetMenuPopupContent(nsIContent** aResult)
   for (uint32_t i = 0; i < count; i++) {
     int32_t dummy;
     nsIContent *child = mContent->GetChildAt(i);
-    nsCOMPtr<nsIAtom> tag = child->OwnerDoc()->BindingManager()->ResolveTag(child, &dummy);
+    RefPtr<nsAtom> tag = child->OwnerDoc()->BindingManager()->ResolveTag(child, &dummy);
     if (tag == nsGkAtoms::menupopup) {
       *aResult = child;
       NS_ADDREF(*aResult);
@@ -675,7 +681,7 @@ bool nsMenuX::IsXULHelpMenu(nsIContent* aMenuContent)
 //
 
 void nsMenuX::ObserveAttributeChanged(nsIDocument *aDocument, nsIContent *aContent,
-                                      nsIAtom *aAttribute)
+                                      nsAtom *aAttribute)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
@@ -755,8 +761,10 @@ void nsMenuX::ObserveAttributeChanged(nsIDocument *aDocument, nsIContent *aConte
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
 
-void nsMenuX::ObserveContentRemoved(nsIDocument *aDocument, nsIContent *aChild,
-                                    int32_t aIndexInContainer)
+void nsMenuX::ObserveContentRemoved(nsIDocument* aDocument,
+                                    nsIContent* aContainer,
+                                    nsIContent* aChild,
+                                    nsIContent* aPreviousSibling)
 {
   if (gConstructingMenu)
     return;

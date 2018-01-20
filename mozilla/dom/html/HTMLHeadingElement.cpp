@@ -7,10 +7,10 @@
 #include "mozilla/dom/HTMLHeadingElement.h"
 #include "mozilla/dom/HTMLHeadingElementBinding.h"
 
+#include "mozilla/GenericSpecifiedValuesInlines.h"
 #include "nsGkAtoms.h"
 #include "nsStyleConsts.h"
 #include "nsMappedAttributes.h"
-#include "nsRuleData.h"
 #include "mozAutoDocUpdate.h"
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(Heading)
@@ -32,7 +32,7 @@ HTMLHeadingElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
 
 bool
 HTMLHeadingElement::ParseAttribute(int32_t aNamespaceID,
-                                   nsIAtom* aAttribute,
+                                   nsAtom* aAttribute,
                                    const nsAString& aValue,
                                    nsAttrValue& aResult)
 {
@@ -46,14 +46,14 @@ HTMLHeadingElement::ParseAttribute(int32_t aNamespaceID,
 
 void
 HTMLHeadingElement::MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
-                                          nsRuleData* aData)
+                                          GenericSpecifiedValues* aData)
 {
   nsGenericHTMLElement::MapDivAlignAttributeInto(aAttributes, aData);
   nsGenericHTMLElement::MapCommonAttributesInto(aAttributes, aData);
 }
 
 NS_IMETHODIMP_(bool)
-HTMLHeadingElement::IsAttributeMapped(const nsIAtom* aAttribute) const
+HTMLHeadingElement::IsAttributeMapped(const nsAtom* aAttribute) const
 {
   static const MappedAttributeEntry* const map[] = {
     sDivAlignAttributeMap,

@@ -22,7 +22,7 @@
 #include "mozilla/WeakPtr.h"
 #include "mozilla/StyleSheet.h"
 
-class nsIAtom;
+class nsAtom;
 class nsIContent;
 class nsIDocument;
 class nsXBLAttributeEntry;
@@ -58,8 +58,10 @@ public:
   nsresult BindingAttached(nsIContent* aBoundElement);
   nsresult BindingDetached(nsIContent* aBoundElement);
 
-  bool LoadResources();
-  nsresult AddResource(nsIAtom* aResourceType, const nsAString& aSrc);
+  // aBoundElement is passed in here because we need to get owner document
+  // and PresContext in nsXBLResourceLoader::LoadResources().
+  bool LoadResources(nsIContent* aBoundElement);
+  nsresult AddResource(nsAtom* aResourceType, const nsAString& aSrc);
 
   bool InheritsStyle() const { return mInheritStyle; }
   void SetInheritsStyle(bool aInheritStyle) { mInheritStyle = aInheritStyle; }
@@ -108,7 +110,7 @@ public:
   nsresult InstallImplementation(nsXBLBinding* aBinding);
   bool HasImplementation() const { return mImplementation != nullptr; }
 
-  void AttributeChanged(nsIAtom* aAttribute, int32_t aNameSpaceID,
+  void AttributeChanged(nsAtom* aAttribute, int32_t aNameSpaceID,
                         bool aRemoveFlag, nsIContent* aChangedElement,
                         nsIContent* aAnonymousContent, bool aNotify);
 
@@ -129,11 +131,13 @@ public:
   void AppendStyleSheetsTo(nsTArray<mozilla::StyleSheet*>& aResult) const;
 
   nsIStyleRuleProcessor* GetRuleProcessor();
+  void ComputeServoStyleSet(nsPresContext* aPresContext);
+  mozilla::ServoStyleSet* GetServoStyleSet() const;
 
   nsresult FlushSkinSheets();
 
-  nsIAtom* GetBaseTag(int32_t* aNamespaceID);
-  void SetBaseTag(int32_t aNamespaceID, nsIAtom* aTag);
+  nsAtom* GetBaseTag(int32_t* aNamespaceID);
+  void SetBaseTag(int32_t aNamespaceID, nsAtom* aTag);
 
   bool ImplementsInterface(REFNSIID aIID) const;
 
@@ -255,7 +259,7 @@ public:
    * GetImmediateChild locates the immediate child of our binding element which
    * has the localname given by aTag and is in the XBL namespace.
    */
-  nsIContent* GetImmediateChild(nsIAtom* aTag);
+  nsIContent* GetImmediateChild(nsAtom* aTag);
   nsIContent* LocateInstance(nsIContent* aBoundElt,
                              nsIContent* aTemplRoot,
                              nsIContent* aCopyRoot,
@@ -264,14 +268,14 @@ public:
   bool ChromeOnlyContent() { return mChromeOnlyContent; }
   bool BindToUntrustedContent() { return mBindToUntrustedContent; }
 
-  typedef nsClassHashtable<nsISupportsHashKey, nsXBLAttributeEntry> InnerAttributeTable;
+  typedef nsClassHashtable<nsRefPtrHashKey<nsAtom>, nsXBLAttributeEntry> InnerAttributeTable;
 
 protected:
   // Ensure that mAttributeTable has been created.
   void EnsureAttributeTable();
   // Ad an entry to the attribute table
-  void AddToAttributeTable(int32_t aSourceNamespaceID, nsIAtom* aSourceTag,
-                           int32_t aDestNamespaceID, nsIAtom* aDestTag,
+  void AddToAttributeTable(int32_t aSourceNamespaceID, nsAtom* aSourceTag,
+                           int32_t aDestNamespaceID, nsAtom* aDestTag,
                            nsIContent* aContent);
   void ConstructAttributeTable(nsIContent* aElement);
   void CreateKeyHandlers();
@@ -351,7 +355,7 @@ protected:
   nsInterfaceHashtable<IIDHashKey, nsIContent> mInterfaceTable; // A table of cached interfaces that we support.
 
   int32_t mBaseNameSpaceID;    // If we extend a tagname/namespace, then that information will
-  nsCOMPtr<nsIAtom> mBaseTag;  // be stored in here.
+  RefPtr<nsAtom> mBaseTag;  // be stored in here.
 
   nsCOMArray<nsXBLKeyEventHandler> mKeyHandlers;
 };

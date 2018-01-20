@@ -10,3 +10,5 @@
 <!ENTITY date.header "Дата ўсталявання">
 <!ENTITY type.header "Тып">
 <!ENTITY state.header "Стан">
+
+<!ENTITY  history2.intro            "The following updates have been installed">

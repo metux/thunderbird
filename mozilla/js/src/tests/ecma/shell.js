@@ -4,6 +4,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
+var GLOBAL = this + '';
+
 /*
  * Date functions used by tests in Date suite
  *
@@ -630,22 +632,3 @@ function ToInteger( t ) {
 
   return ( sign * Math.floor( Math.abs( t ) ) );
 }
-function Enumerate ( o ) {
-  var p;
-  for ( p in o ) {
-    print( p +": " + o[p] );
-  }
-}
-
-/* these functions are useful for running tests manually in Rhino */
-
-function GetContext() {
-  return Packages.com.netscape.javascript.Context.getCurrentContext();
-}
-function OptLevel( i ) {
-  i = Number(i);
-  var cx = GetContext();
-  cx.setOptimizationLevel(i);
-}
-/* end of Rhino functions */
-

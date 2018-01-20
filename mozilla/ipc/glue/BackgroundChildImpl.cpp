@@ -15,25 +15,34 @@
 #endif
 #include "mozilla/media/MediaChild.h"
 #include "mozilla/Assertions.h"
-#include "mozilla/dom/PBlobChild.h"
+#include "mozilla/SchedulerGroup.h"
+#include "mozilla/dom/ClientManagerActors.h"
 #include "mozilla/dom/PFileSystemRequestChild.h"
 #include "mozilla/dom/FileSystemTaskBase.h"
 #include "mozilla/dom/asmjscache/AsmJSCache.h"
 #include "mozilla/dom/cache/ActorUtils.h"
 #include "mozilla/dom/indexedDB/PBackgroundIDBFactoryChild.h"
 #include "mozilla/dom/indexedDB/PBackgroundIndexedDBUtilsChild.h"
-#include "mozilla/dom/ipc/BlobChild.h"
+#include "mozilla/dom/ipc/IPCBlobInputStreamChild.h"
+#include "mozilla/dom/ipc/PendingIPCBlobChild.h"
+#include "mozilla/dom/ipc/TemporaryIPCBlobChild.h"
 #include "mozilla/dom/quota/PQuotaChild.h"
-#ifdef MOZ_GAMEPAD
+#include "mozilla/dom/StorageIPC.h"
 #include "mozilla/dom/GamepadEventChannelChild.h"
 #include "mozilla/dom/GamepadTestChannelChild.h"
-#endif
+#include "mozilla/dom/LocalStorage.h"
 #include "mozilla/dom/MessagePortChild.h"
+#include "mozilla/dom/TabChild.h"
+#include "mozilla/dom/TabGroup.h"
+#include "mozilla/ipc/IPCStreamAlloc.h"
 #include "mozilla/ipc/PBackgroundTestChild.h"
-#include "mozilla/ipc/PSendStreamChild.h"
+#include "mozilla/ipc/PChildToParentStreamChild.h"
+#include "mozilla/ipc/PParentToChildStreamChild.h"
 #include "mozilla/layout/VsyncChild.h"
+#include "mozilla/net/HttpBackgroundChannelChild.h"
 #include "mozilla/net/PUDPSocketChild.h"
 #include "mozilla/dom/network/UDPSocketChild.h"
+#include "mozilla/dom/WebAuthnTransactionChildBase.h"
 #include "nsID.h"
 #include "nsTraceRefcnt.h"
 
@@ -52,13 +61,13 @@ class TestChild final : public mozilla::ipc::PBackgroundTestChild
   }
 
 protected:
-  ~TestChild()
+  ~TestChild() override
   {
     MOZ_COUNT_DTOR(TestChild);
   }
 
 public:
-  virtual bool
+  mozilla::ipc::IPCResult
   Recv__delete__(const nsCString& aTestArg) override;
 };
 
@@ -74,6 +83,10 @@ using mozilla::dom::asmjscache::PAsmJSCacheEntryChild;
 using mozilla::dom::cache::PCacheChild;
 using mozilla::dom::cache::PCacheStorageChild;
 using mozilla::dom::cache::PCacheStreamControlChild;
+using mozilla::dom::LocalStorage;
+using mozilla::dom::StorageDBChild;
+
+using mozilla::dom::WebAuthnTransactionChildBase;
 
 // -----------------------------------------------------------------------------
 // BackgroundChildImpl::ThreadLocal
@@ -197,21 +210,68 @@ BackgroundChildImpl::DeallocPBackgroundIndexedDBUtilsChild(
   return true;
 }
 
-auto
-BackgroundChildImpl::AllocPBlobChild(const BlobConstructorParams& aParams)
-  -> PBlobChild*
+BackgroundChildImpl::PBackgroundStorageChild*
+BackgroundChildImpl::AllocPBackgroundStorageChild(const nsString& aProfilePath)
 {
-  MOZ_ASSERT(aParams.type() != BlobConstructorParams::T__None);
-
-  return mozilla::dom::BlobChild::Create(this, aParams);
+  MOZ_CRASH("PBackgroundStorageChild actors should be manually constructed!");
 }
 
 bool
-BackgroundChildImpl::DeallocPBlobChild(PBlobChild* aActor)
+BackgroundChildImpl::DeallocPBackgroundStorageChild(
+                                                PBackgroundStorageChild* aActor)
 {
   MOZ_ASSERT(aActor);
 
-  mozilla::dom::BlobChild::Destroy(aActor);
+  StorageDBChild* child = static_cast<StorageDBChild*>(aActor);
+  child->ReleaseIPDLReference();
+  return true;
+}
+
+PPendingIPCBlobChild*
+BackgroundChildImpl::AllocPPendingIPCBlobChild(const IPCBlob& aBlob)
+{
+  return new mozilla::dom::PendingIPCBlobChild(aBlob);
+}
+
+bool
+BackgroundChildImpl::DeallocPPendingIPCBlobChild(PPendingIPCBlobChild* aActor)
+{
+  delete aActor;
+  return true;
+}
+
+PTemporaryIPCBlobChild*
+BackgroundChildImpl::AllocPTemporaryIPCBlobChild()
+{
+  MOZ_CRASH("This is not supposed to be called.");
+  return nullptr;
+}
+
+bool
+BackgroundChildImpl::DeallocPTemporaryIPCBlobChild(PTemporaryIPCBlobChild* aActor)
+{
+  RefPtr<mozilla::dom::TemporaryIPCBlobChild> actor =
+    dont_AddRef(static_cast<mozilla::dom::TemporaryIPCBlobChild*>(aActor));
+  return true;
+}
+
+PIPCBlobInputStreamChild*
+BackgroundChildImpl::AllocPIPCBlobInputStreamChild(const nsID& aID,
+                                                   const uint64_t& aSize)
+{
+  // IPCBlobInputStreamChild is refcounted. Here it's created and in
+  // DeallocPIPCBlobInputStreamChild is released.
+
+  RefPtr<mozilla::dom::IPCBlobInputStreamChild> actor =
+    new mozilla::dom::IPCBlobInputStreamChild(aID, aSize);
+  return actor.forget().take();
+}
+
+bool
+BackgroundChildImpl::DeallocPIPCBlobInputStreamChild(PIPCBlobInputStreamChild* aActor)
+{
+  RefPtr<mozilla::dom::IPCBlobInputStreamChild> actor =
+    dont_AddRef(static_cast<mozilla::dom::IPCBlobInputStreamChild*>(aActor));
   return true;
 }
 
@@ -405,14 +465,27 @@ BackgroundChildImpl::DeallocPMessagePortChild(PMessagePortChild* aActor)
   return true;
 }
 
-PSendStreamChild*
-BackgroundChildImpl::AllocPSendStreamChild()
+PChildToParentStreamChild*
+BackgroundChildImpl::AllocPChildToParentStreamChild()
 {
-  MOZ_CRASH("PSendStreamChild actors should be manually constructed!");
+  MOZ_CRASH("PChildToParentStreamChild actors should be manually constructed!");
 }
 
 bool
-BackgroundChildImpl::DeallocPSendStreamChild(PSendStreamChild* aActor)
+BackgroundChildImpl::DeallocPChildToParentStreamChild(PChildToParentStreamChild* aActor)
+{
+  delete aActor;
+  return true;
+}
+
+PParentToChildStreamChild*
+BackgroundChildImpl::AllocPParentToChildStreamChild()
+{
+  return mozilla::ipc::AllocPParentToChildStreamChild();
+}
+
+bool
+BackgroundChildImpl::DeallocPParentToChildStreamChild(PParentToChildStreamChild* aActor)
 {
   delete aActor;
   return true;
@@ -479,40 +552,136 @@ BackgroundChildImpl::AllocPGamepadEventChannelChild()
 bool
 BackgroundChildImpl::DeallocPGamepadEventChannelChild(PGamepadEventChannelChild* aActor)
 {
-#ifdef MOZ_GAMEPAD
   MOZ_ASSERT(aActor);
   delete static_cast<dom::GamepadEventChannelChild*>(aActor);
-#endif
   return true;
 }
 
 dom::PGamepadTestChannelChild*
 BackgroundChildImpl::AllocPGamepadTestChannelChild()
 {
-#ifdef MOZ_GAMEPAD
   MOZ_CRASH("PGamepadTestChannelChild actor should be manually constructed!");
-#endif
   return nullptr;
 }
 
 bool
 BackgroundChildImpl::DeallocPGamepadTestChannelChild(PGamepadTestChannelChild* aActor)
 {
-#ifdef MOZ_GAMEPAD
   MOZ_ASSERT(aActor);
   delete static_cast<dom::GamepadTestChannelChild*>(aActor);
-#endif
   return true;
+}
+
+mozilla::dom::PClientManagerChild*
+BackgroundChildImpl::AllocPClientManagerChild()
+{
+  return mozilla::dom::AllocClientManagerChild();
+}
+
+bool
+BackgroundChildImpl::DeallocPClientManagerChild(mozilla::dom::PClientManagerChild* aActor)
+{
+  return mozilla::dom::DeallocClientManagerChild(aActor);
+}
+
+#ifdef EARLY_BETA_OR_EARLIER
+void
+BackgroundChildImpl::OnChannelReceivedMessage(const Message& aMsg)
+{
+  if (aMsg.type() == layout::PVsync::MessageType::Msg_Notify__ID) {
+    // Not really necessary to look at the message payload, it will be
+    // <0.5ms away from TimeStamp::Now()
+    SchedulerGroup::MarkVsyncReceived();
+  }
+}
+#endif
+
+dom::PWebAuthnTransactionChild*
+BackgroundChildImpl::AllocPWebAuthnTransactionChild()
+{
+  MOZ_CRASH("PWebAuthnTransaction actor should be manually constructed!");
+  return nullptr;
+}
+
+bool
+BackgroundChildImpl::DeallocPWebAuthnTransactionChild(PWebAuthnTransactionChild* aActor)
+{
+  MOZ_ASSERT(aActor);
+  RefPtr<dom::WebAuthnTransactionChildBase> child =
+    dont_AddRef(static_cast<dom::WebAuthnTransactionChildBase*>(aActor));
+  return true;
+}
+
+net::PHttpBackgroundChannelChild*
+BackgroundChildImpl::AllocPHttpBackgroundChannelChild(const uint64_t& aChannelId)
+{
+  MOZ_CRASH("PHttpBackgroundChannelChild actor should be manually constructed!");
+  return nullptr;
+}
+
+bool
+BackgroundChildImpl::DeallocPHttpBackgroundChannelChild(PHttpBackgroundChannelChild* aActor)
+{
+  // The reference is increased in BackgroundChannelCreateCallback::ActorCreated
+  // of HttpBackgroundChannelChild.cpp. We should decrease it after IPC
+  // destroyed.
+  RefPtr<net::HttpBackgroundChannelChild> child =
+    dont_AddRef(static_cast<net::HttpBackgroundChannelChild*>(aActor));
+  return true;
+}
+
+mozilla::ipc::IPCResult
+BackgroundChildImpl::RecvDispatchLocalStorageChange(
+                                            const nsString& aDocumentURI,
+                                            const nsString& aKey,
+                                            const nsString& aOldValue,
+                                            const nsString& aNewValue,
+                                            const PrincipalInfo& aPrincipalInfo,
+                                            const bool& aIsPrivate)
+{
+  if (!NS_IsMainThread()) {
+    return IPC_OK();
+  }
+
+  nsresult rv;
+  nsCOMPtr<nsIPrincipal> principal =
+    PrincipalInfoToPrincipal(aPrincipalInfo, &rv);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return IPC_FAIL_NO_REASON(this);
+  }
+
+  LocalStorage::DispatchStorageEvent(aDocumentURI, aKey, aOldValue, aNewValue,
+                                     principal, aIsPrivate, nullptr, true);
+
+  return IPC_OK();
+}
+
+bool
+BackgroundChildImpl::GetMessageSchedulerGroups(const Message& aMsg, SchedulerGroupSet& aGroups)
+{
+  if (aMsg.type() == layout::PVsync::MessageType::Msg_Notify__ID) {
+    MOZ_ASSERT(NS_IsMainThread());
+    aGroups.Clear();
+    if (dom::TabChild::HasActiveTabs()) {
+      for (auto iter = dom::TabChild::GetActiveTabs().ConstIter();
+           !iter.Done(); iter.Next()) {
+        aGroups.Put(iter.Get()->GetKey()->TabGroup());
+      }
+    }
+    return true;
+  }
+
+  return false;
 }
 
 } // namespace ipc
 } // namespace mozilla
 
-bool
+mozilla::ipc::IPCResult
 TestChild::Recv__delete__(const nsCString& aTestArg)
 {
   MOZ_RELEASE_ASSERT(aTestArg == mTestArg,
                      "BackgroundTest message was corrupted!");
 
-  return true;
+  return IPC_OK();
 }

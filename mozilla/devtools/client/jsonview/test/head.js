@@ -24,36 +24,55 @@ registerCleanupFunction(() => {
 
 /**
  * Add a new test tab in the browser and load the given url.
- * @param {String} url The url to be loaded in the new tab
- * @return a promise that resolves to the tab object when the url is loaded
+ * @param {String} url
+ *   The url to be loaded in the new tab.
+ * @param {Number} timeout [optional]
+ *   The maximum number of milliseconds allowed before the initialization of the
+ *   JSON Viewer once the tab has been loaded. If exceeded, the initialization
+ *   will be considered to have failed, and the returned promise will be rejected.
+ *   If this parameter is not passed or is negative, it will be ignored.
  */
-function addJsonViewTab(url) {
+async function addJsonViewTab(url, timeout = -1) {
   info("Adding a new JSON tab with URL: '" + url + "'");
 
-  let deferred = promise.defer();
-  addTab(url).then(tab => {
-    let browser = tab.linkedBrowser;
+  let tab = await addTab(url);
+  let browser = tab.linkedBrowser;
 
-    // Load devtools/shared/frame-script-utils.js
-    getFrameScript();
+  // Load devtools/shared/frame-script-utils.js
+  getFrameScript();
 
-    // Load frame script with helpers for JSON View tests.
-    let rootDir = getRootDirectory(gTestPath);
-    let frameScriptUrl = rootDir + "doc_frame_script.js";
-    browser.messageManager.loadFrameScript(frameScriptUrl, false);
+  // Load frame script with helpers for JSON View tests.
+  let rootDir = getRootDirectory(gTestPath);
+  let frameScriptUrl = rootDir + "doc_frame_script.js";
+  browser.messageManager.loadFrameScript(frameScriptUrl, false);
 
-    // Resolve if the JSONView is fully loaded or wait
-    // for an initialization event.
-    if (content.window.wrappedJSObject.jsonViewInitialized) {
-      deferred.resolve(tab);
-    } else {
-      waitForContentMessage("Test:JsonView:JSONViewInitialized").then(() => {
-        deferred.resolve(tab);
-      });
-    }
-  });
+  // Check if there is a JSONView object.
+  if (!content.window.wrappedJSObject.JSONView) {
+    throw new Error("JSON Viewer did not load.");
+  }
 
-  return deferred.promise;
+  // Resolve if the JSONView is fully loaded.
+  if (content.window.wrappedJSObject.JSONView.initialized) {
+    return tab;
+  }
+
+  // Otherwise wait for an initialization event, possibly with a time limit.
+  const onJSONViewInitialized =
+    waitForContentMessage("Test:JsonView:JSONViewInitialized")
+    .then(() => tab);
+
+  if (!(timeout >= 0)) {
+    return onJSONViewInitialized;
+  }
+
+  if (content.window.document.readyState !== "complete") {
+    await waitForContentMessage("Test:JsonView:load");
+  }
+
+  let onTimeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("JSON Viewer did not load.")), timeout));
+
+  return Promise.race([onJSONViewInitialized, onTimeout]);
 }
 
 /**
@@ -103,6 +122,14 @@ function getElementText(selector) {
   });
 }
 
+function getElementAttr(selector, attr) {
+  info("Get attribute '" + attr + "' for element '" + selector + "'");
+
+  let data = {selector, attr};
+  return executeInContent("Test:JsonView:GetElementAttr", data)
+  .then(result => result.text);
+}
+
 function focusElement(selector) {
   info("Focus element: '" + selector + "'");
 
@@ -131,9 +158,7 @@ function sendString(str, selector) {
 }
 
 function waitForTime(delay) {
-  let deferred = promise.defer();
-  setTimeout(deferred.resolve, delay);
-  return deferred.promise;
+  return new Promise(resolve => setTimeout(resolve, delay));
 }
 
 function waitForFilter() {
@@ -142,4 +167,9 @@ function waitForFilter() {
 
 function normalizeNewLines(value) {
   return value.replace("(\r\n|\n)", "\n");
+}
+
+function evalInContent(code) {
+  return executeInContent("Test:JsonView:Eval", {code})
+  .then(result => result.result);
 }

@@ -25,9 +25,6 @@ obj_construct(JSContext* cx, unsigned argc, JS::Value* vp);
 MOZ_MUST_USE bool
 obj_propertyIsEnumerable(JSContext* cx, unsigned argc, Value* vp);
 
-MOZ_MUST_USE bool
-obj_valueOf(JSContext* cx, unsigned argc, JS::Value* vp);
-
 PlainObject*
 ObjectCreateImpl(JSContext* cx, HandleObject proto, NewObjectKind newKind = GenericObject,
                  HandleObjectGroup group = nullptr);
@@ -46,13 +43,8 @@ MOZ_MUST_USE bool
 obj_getOwnPropertyNames(JSContext* cx, unsigned argc, JS::Value* vp);
 
 MOZ_MUST_USE bool
-obj_getOwnPropertyDescriptor(JSContext* cx, unsigned argc, JS::Value* vp);
-
-MOZ_MUST_USE bool
 obj_getPrototypeOf(JSContext* cx, unsigned argc, JS::Value* vp);
 
-MOZ_MUST_USE bool
-obj_hasOwnProperty(JSContext* cx, unsigned argc, JS::Value* vp);
 
 MOZ_MUST_USE bool
 obj_isExtensible(JSContext* cx, unsigned argc, JS::Value* vp);
@@ -60,9 +52,16 @@ obj_isExtensible(JSContext* cx, unsigned argc, JS::Value* vp);
 MOZ_MUST_USE bool
 obj_toString(JSContext* cx, unsigned argc, JS::Value* vp);
 
+JSString*
+ObjectClassToString(JSContext* cx, HandleObject obj);
+
 // Exposed so SelfHosting.cpp can use it in the OwnPropertyKeys intrinsic
 MOZ_MUST_USE bool
 GetOwnPropertyKeys(JSContext* cx, const JS::CallArgs& args, unsigned flags);
+
+// Exposed for SelfHosting.cpp
+MOZ_MUST_USE bool
+GetOwnPropertyDescriptorToArray(JSContext* cx, unsigned argc, JS::Value* vp);
 
 /*
  * Like IdToValue, but convert int jsids to strings. This is used when

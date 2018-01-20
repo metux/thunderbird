@@ -1,7 +1,7 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-<!ENTITY addons.windowTitle                   "Управљач додацима">
+<!ENTITY addons.windowTitle                   "Менаџер додатака">
 
 <!ENTITY search.placeholder                   "Претражи све додатке">
 <!ENTITY search.buttonlabel                   "Претражи">
@@ -10,18 +10,22 @@
 <!ENTITY search.commandkey                    "f">
 
 <!ENTITY loading.label                        "Учитавање…">
-<!ENTITY listEmpty.installed.label            "Нисте инсталирали ни један додатак ове врсте">
+<!ENTITY listEmpty.installed.label            "Нисте инсталирали ниједан додатак ове врсте">
 <!ENTITY listEmpty.availableUpdates.label     "Нема надоградњи">
 <!ENTITY listEmpty.recentUpdates.label        "Нисте недавно ажурирали додатке">
-<!ENTITY listEmpty.findUpdates.label          "Провери надоградње">
+<!ENTITY listEmpty.findUpdates.label          "Провери да ли постоје ажурирања">
 <!ENTITY listEmpty.search.label               "Нема резултата претраге додатака">
 <!ENTITY listEmpty.button.label               "Сазнајте више о додацима">
 <!ENTITY installAddonFromFile.label           "Инсталирај додатак из датотеке…">
 <!ENTITY installAddonFromFile.accesskey       "И">
 <!ENTITY toolsMenu.tooltip                    "Алатке за све додатке">
 
+<!ENTITY getThemes.description                "Желите да персонализујете ваш прегледач?">
+<!ENTITY getThemes.learnMore                  "Изаберите неку од хиљаду тема.">
+
 <!ENTITY cmd.back.tooltip                     "Назад за једну страну">
 <!ENTITY cmd.forward.tooltip                  "Напред за једну страну">
+
 
 <!ENTITY showUnsignedExtensions.button.label  "Неке екстензије нису могле бити потврђене">
 <!ENTITY showAllExtensions.button.label       "Прикажи све екстензије">
@@ -32,26 +36,26 @@
 <!ENTITY warning.safemode.label                    "Сви додаци су онемогућени у безбедном начину рада.">
 <!ENTITY warning.checkcompatibility.label          "Провера усклађености додатака је искључена. Можда имате некомпатибилне додатке.">
 <!ENTITY warning.checkcompatibility.enable.label   "Укључи">
-<!ENTITY warning.checkcompatibility.enable.tooltip "Омогући проверавање компатабилности додатка">
+<!ENTITY warning.checkcompatibility.enable.tooltip "Омогући проверавање компатибилности додатка">
 <!ENTITY warning.updatesecurity.label              "Безбедносна провера додатака је искључена. Неисправни додаци могу да наруше безбедност система.">
 <!ENTITY warning.updatesecurity.enable.label       "Омогући">
 <!ENTITY warning.updatesecurity.enable.tooltip     "Омогући проверавање безбедности додатка">
 
 <!-- categories / views -->
 <!ENTITY view.search.label                    "Тражи">
-<!ENTITY view.discover.label                  "Набави додатке">
+<!ENTITY view.discover.label                  "Додаци">
 <!ENTITY view.recentUpdates.label             "Недавна ажурирања">
 <!ENTITY view.availableUpdates.label          "Доступна ажурирања">
 
 <!-- addon updates -->
-<!ENTITY updates.checkForUpdates.label        "Провери да ли постоје исправке">
+<!ENTITY updates.checkForUpdates.label        "Провери да ли постоје ажурирања">
 <!ENTITY updates.checkForUpdates.accesskey    "П">
 <!ENTITY updates.viewUpdates.label            "Погледај недавна ажурирања">
 <!ENTITY updates.viewUpdates.accesskey        "н">
 <!-- LOCALIZATION NOTE (updates.updateAddonsAutomatically.label): This menu item
      is a checkbox that toggles the default global behavior for add-on update
      checking. -->
-<!ENTITY updates.updateAddonsAutomatically.label     "Аутоматски надогради додатке">
+<!ENTITY updates.updateAddonsAutomatically.label     "Аутоматски ажурирај додатке">
 <!ENTITY updates.updateAddonsAutomatically.accesskey "А">
 <!-- LOCALIZATION NOTE (updates.resetUpdatesToAutomatic.label, updates.resetUpdatesToManual.label):
      Specific addons can have custom update checking behaviors ("Manually",
@@ -59,23 +63,23 @@
      update checking behavior for all add-ons to the default global behavior
      (which itself is either "Automatically" or "Manually", controlled by the
      updates.updateAddonsAutomatically.label menu item). -->
-<!ENTITY updates.resetUpdatesToAutomatic.label       "Све додатке аутоматски надогради">
+<!ENTITY updates.resetUpdatesToAutomatic.label       "Све додатке аутоматски ажурирај">
 <!ENTITY updates.resetUpdatesToAutomatic.accesskey   "С">
 <!ENTITY updates.resetUpdatesToManual.label          "Све додатке мануелно надогради">
 <!ENTITY updates.resetUpdatesToManual.accesskey      "м">
 <!ENTITY updates.updating.label               "Надоградња додатака">
-<!ENTITY updates.installed.label              "Ваши додаци су надограђени.">
+<!ENTITY updates.installed.label              "Ваши додаци су ажурирани.">
 <!ENTITY updates.downloaded.label             "Ваши додаци су преузети.">
 <!ENTITY updates.restart.label                "Поново покрените да бисте довршили инсталацију">
 <!ENTITY updates.noneFound.label              "Нема надоградњи">
-<!ENTITY updates.manualUpdatesFound.label     "Погледај доступне надоградње">
-<!ENTITY updates.updateSelected.label         "Инсталирај надоградње">
-<!ENTITY updates.updateSelected.tooltip       "Инсталирајте доступне надоградње са овог списка">
+<!ENTITY updates.manualUpdatesFound.label     "Погледај доступна ажурирања">
+<!ENTITY updates.updateSelected.label         "Инсталирај ажурирања">
+<!ENTITY updates.updateSelected.tooltip       "Инсталирајте доступна ажурирања са овог списка">
 
 <!-- addon actions -->
 <!ENTITY cmd.showDetails.label                "Прикажи више информација">
 <!ENTITY cmd.showDetails.accesskey            "в">
-<!ENTITY cmd.findUpdates.label                "Нађи надоградње">
+<!ENTITY cmd.findUpdates.label                "Нађи ажурирања">
 <!ENTITY cmd.findUpdates.accesskey            "Н">
 <!ENTITY cmd.preferencesWin.label             "Поставке">
 <!ENTITY cmd.preferencesWin.accesskey         "П">
@@ -112,9 +116,10 @@
 <!ENTITY cmd.contribute.tooltip               "Дајте прилог аутору овог додатка">
 
 <!ENTITY cmd.showReleaseNotes.label           "Прикажи напомене о издању">
-<!ENTITY cmd.showReleaseNotes.tooltip         "Прикажи напомене о издању ове надоградње">
+<!ENTITY cmd.showReleaseNotes.tooltip         "Прикажи напомене о издању овог ажурирања">
 <!ENTITY cmd.hideReleaseNotes.label           "Сакриј напомене о издању">
-<!ENTITY cmd.hideReleaseNotes.tooltip         "Сакриј напомене о издању ове надоградње">
+<!ENTITY cmd.hideReleaseNotes.tooltip         "Сакриј напомене о издању овог ажурирања">
+<!ENTITY cmd.findReplacement.label            "Пронаћи замену">
 
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
@@ -137,7 +142,7 @@
 
 <!ENTITY detail.updateType                    "Аутоматска ажурирања">
 <!ENTITY detail.updateDefault.label           "Подразумевано">
-<!ENTITY detail.updateDefault.tooltip         "Аутоматски инсталирај надоградње само ако је то подразумевано">
+<!ENTITY detail.updateDefault.tooltip         "Аутоматски ажурирај само ако је то подразумевано">
 <!ENTITY detail.updateAutomatic.label         "Укључено">
 <!ENTITY detail.updateAutomatic.tooltip       "Аутоматски ажурирај додатке">
 <!ENTITY detail.updateManual.label            "Искључено">
@@ -146,7 +151,7 @@
 <!ENTITY detail.repository                    "Профил додатка">
 <!ENTITY detail.size                          "Величина">
 
-<!ENTITY detail.checkForUpdates.label         "Провери да ли постоје исправке">
+<!ENTITY detail.checkForUpdates.label         "Провери да ли постоје ажурирања">
 <!ENTITY detail.checkForUpdates.accesskey     "и">
 <!ENTITY detail.checkForUpdates.tooltip       "Проверите да ли постоје унапређења овог додатка">
 <!ENTITY detail.showPreferencesWin.label      "Могућности">
@@ -169,7 +174,7 @@
 <!ENTITY sort.name.label                      "Име">
 <!ENTITY sort.name.tooltip                    "Сортирај по имену">
 <!ENTITY sort.dateUpdated.label               "Последња надоградња">
-<!ENTITY sort.dateUpdated.tooltip             "Сортирај по датуму надоградње">
+<!ENTITY sort.dateUpdated.tooltip             "Сортирај по датуму ажурирања">
 <!ENTITY sort.relevance.label                 "По значају">
 <!ENTITY sort.relevance.tooltip               "Поређај по значају">
 <!ENTITY sort.price.label                     "Цена">
@@ -185,6 +190,10 @@
 <!ENTITY addon.details.label                  "Још">
 <!ENTITY addon.details.tooltip                "Прикажи виде детаља о овом додатку">
 <!ENTITY addon.unknownDate                    "Непознат">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "ЗАСТАРЕЛО">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -193,7 +202,7 @@
      updates list to signify that an item is an update, in the form
      "<Addon name> <1.1> Update". It is fine to use constructs like brackets if
      necessary -->
-<!ENTITY addon.update.postfix                 "Обнављања">
+<!ENTITY addon.update.postfix                 "надоградња">
 <!ENTITY addon.undoAction.label               "Опозови">
 <!ENTITY addon.undoAction.tooltip             "Опозови ову радњу">
 <!ENTITY addon.undoRemove.label               "Опозови">
@@ -204,7 +213,7 @@
 <!ENTITY addon.updateNow.label                "Ажурирај">
 <!ENTITY addon.updateNow.tooltip              "Инсталирај ажурирање за овај додатак">
 <!ENTITY addon.includeUpdate.label            "Укључи у ажурирање">
-<!ENTITY addon.updateAvailable.label          "Доступна је исправка">
+<!ENTITY addon.updateAvailable.label          "Ажурирање је доступно">
 <!ENTITY addon.checkingForUpdates.label       "Провера надоградњи…">
 <!ENTITY addon.releaseNotes.label             "Напомене о издању:">
 <!ENTITY addon.loadingReleaseNotes.label      "Учитавање…">
@@ -249,3 +258,8 @@
 
 <!ENTITY pluginDeprecation.description "Нешто недостаје? &brandShortName; више не подржава неке прикључке.">
 <!ENTITY pluginDeprecation.learnMore "Сазнајте више.">
+
+<!ENTITY legacyWarning.showLegacy "Прикажи застареле екстензије">
+<!ENTITY legacyExtensions.title "Застареле екстензије">
+<!ENTITY legacyExtensions.description "Ове екстензије не подржавају тренутни &brandShortName; стандард тако да су онемогућене.">
+<!ENTITY legacyExtensions.learnMore "Сазнајте више о променама додатака">

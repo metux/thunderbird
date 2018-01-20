@@ -31,13 +31,13 @@ namespace wasm {
 
 class Table : public ShareableBase<Table>
 {
-    using InstanceSet = GCHashSet<ReadBarrieredWasmInstanceObject,
-                                  MovableCellHasher<ReadBarrieredWasmInstanceObject>,
-                                  SystemAllocPolicy>;
-    typedef UniquePtr<uint8_t[], JS::FreePolicy> UniqueByteArray;
+    using InstanceSet = JS::WeakCache<GCHashSet<ReadBarrieredWasmInstanceObject,
+                                                MovableCellHasher<ReadBarrieredWasmInstanceObject>,
+                                                SystemAllocPolicy>>;
+    using UniqueByteArray = UniquePtr<uint8_t[], JS::FreePolicy>;
 
     ReadBarrieredWasmTableObject maybeObject_;
-    JS::WeakCache<InstanceSet>   observers_;
+    InstanceSet                  observers_;
     UniqueByteArray              array_;
     const TableKind              kind_;
     uint32_t                     length_;
@@ -62,9 +62,7 @@ class Table : public ShareableBase<Table>
     Maybe<uint32_t> maximum() const { return maximum_; }
     uint8_t* base() const { return array_.get(); }
 
-    // All updates must go through a set() function with the exception of
-    // (profiling) updates to the callee pointer that do not change which
-    // logical function is being called.
+    // All table updates must go through set() or setNull().
 
     void** internalArray() const;
     ExternalTableElem* externalArray() const;

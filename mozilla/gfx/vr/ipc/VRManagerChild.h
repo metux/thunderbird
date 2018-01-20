@@ -1,6 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: sw=2 ts=8 et :
- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -17,28 +16,24 @@
 
 namespace mozilla {
 namespace dom {
+class Promise;
 class GamepadManager;
 class Navigator;
 class VRDisplay;
 class VREventObserver;
+class VRMockDisplay;
 } // namespace dom
 namespace layers {
-class PCompositableChild;
-class TextureClient;
+class SyncObjectClient;
 }
 namespace gfx {
 class VRLayerChild;
 class VRDisplayClient;
 
 class VRManagerChild : public PVRManagerChild
-                     , public layers::TextureForwarder
-                     , public layers::KnowsCompositor
 {
 public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VRManagerChild, override);
-
-  TextureForwarder* GetTextureForwarder() override { return this; }
-  LayersIPCActor* GetLayersIPCActor() override { return this; }
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VRManagerChild);
 
   static VRManagerChild* Get();
 
@@ -47,9 +42,12 @@ public:
   // Indicate that an observer should no longer receive VR events.
   void RemoveListener(dom::VREventObserver* aObserver);
 
-  int GetInputFrameID();
   bool GetVRDisplays(nsTArray<RefPtr<VRDisplayClient> >& aDisplays);
   bool RefreshVRDisplaysWithCallback(uint64_t aWindowId);
+  void AddPromise(const uint32_t& aID, dom::Promise* aPromise);
+
+  void CreateVRServiceTestDisplay(const nsCString& aID, dom::Promise* aPromise);
+  void CreateVRServiceTestController(const nsCString& aID, dom::Promise* aPromise);
 
   static void InitSameProcess();
   static void InitWithGPUProcess(Endpoint<PVRManagerChild>&& aEndpoint);
@@ -59,20 +57,13 @@ public:
 
   static bool IsCreated();
 
-  virtual PTextureChild* CreateTexture(const SurfaceDescriptor& aSharedData,
-                                       layers::LayersBackend aLayersBackend,
-                                       TextureFlags aFlags,
-                                       uint64_t aSerial) override;
-  virtual void CancelWaitForRecycle(uint64_t aTextureId) override;
-
-  PVRLayerChild* CreateVRLayer(uint32_t aDisplayID, const Rect& aLeftEyeRect, const Rect& aRightEyeRect);
+  PVRLayerChild* CreateVRLayer(uint32_t aDisplayID,
+                               nsIEventTarget* aTarget,
+                               uint32_t aGroup);
 
   static void IdentifyTextureHost(const layers::TextureFactoryIdentifier& aIdentifier);
   layers::LayersBackend GetBackendType() const;
-  layers::SyncObject* GetSyncObject() { return mSyncObject; }
-
-  virtual MessageLoop* GetMessageLoop() const override { return mMessageLoop; }
-  virtual base::ProcessId GetParentPid() const override { return OtherPid(); }
+  layers::SyncObjectClient* GetSyncObject() { return mSyncObject; }
 
   nsresult ScheduleFrameRequestCallback(mozilla::dom::FrameRequestCallback& aCallback,
     int32_t *aHandle);
@@ -80,9 +71,11 @@ public:
   void RunFrameRequestCallbacks();
 
   void UpdateDisplayInfo(nsTArray<VRDisplayInfo>& aDisplayUpdates);
-  void FireDOMVRDisplayConnectEvent();
-  void FireDOMVRDisplayDisconnectEvent();
-  void FireDOMVRDisplayPresentChangeEvent();
+  void FireDOMVRDisplayMountedEvent(uint32_t aDisplayID);
+  void FireDOMVRDisplayUnmountedEvent(uint32_t aDisplayID);
+  void FireDOMVRDisplayConnectEvent(uint32_t aDisplayID);
+  void FireDOMVRDisplayDisconnectEvent(uint32_t aDisplayID);
+  void FireDOMVRDisplayPresentChangeEvent(uint32_t aDisplayID);
 
   virtual void HandleFatalError(const char* aName, const char* aMsg) const override;
 
@@ -92,66 +85,37 @@ protected:
   void Destroy();
   static void DeferredDestroy(RefPtr<VRManagerChild> aVRManagerChild);
 
-  virtual PTextureChild* AllocPTextureChild(const SurfaceDescriptor& aSharedData,
-                                            const layers::LayersBackend& aLayersBackend,
-                                            const TextureFlags& aFlags,
-                                            const uint64_t& aSerial) override;
-  virtual bool DeallocPTextureChild(PTextureChild* actor) override;
-
   virtual PVRLayerChild* AllocPVRLayerChild(const uint32_t& aDisplayID,
-                                            const float& aLeftEyeX,
-                                            const float& aLeftEyeY,
-                                            const float& aLeftEyeWidth,
-                                            const float& aLeftEyeHeight,
-                                            const float& aRightEyeX,
-                                            const float& aRightEyeY,
-                                            const float& aRightEyeWidth,
-                                            const float& aRightEyeHeight) override;
+                                            const uint32_t& aGroup) override;
   virtual bool DeallocPVRLayerChild(PVRLayerChild* actor) override;
 
-  virtual bool RecvUpdateDisplayInfo(nsTArray<VRDisplayInfo>&& aDisplayUpdates) override;
+  virtual mozilla::ipc::IPCResult RecvUpdateDisplayInfo(nsTArray<VRDisplayInfo>&& aDisplayUpdates) override;
 
-  virtual bool RecvParentAsyncMessages(InfallibleTArray<AsyncParentMessageData>&& aMessages) override;
+  virtual mozilla::ipc::IPCResult RecvDispatchSubmitFrameResult(const uint32_t& aDisplayID, const VRSubmitFrameResultInfo& aResult) override;
+  virtual mozilla::ipc::IPCResult RecvGamepadUpdate(const GamepadChangeEvent& aGamepadEvent) override;
+  virtual mozilla::ipc::IPCResult RecvReplyGamepadVibrateHaptic(const uint32_t& aPromiseID) override;
 
-  virtual bool RecvNotifyVSync() override;
-  virtual bool RecvNotifyVRVSync(const uint32_t& aDisplayID) override;
-  virtual bool RecvGamepadUpdate(const GamepadChangeEvent& aGamepadEvent) override;
-
-  // ShmemAllocator
-
-  virtual bool AllocShmem(size_t aSize,
-                          ipc::SharedMemory::SharedMemoryType aType,
-                          ipc::Shmem* aShmem) override;
-
-  virtual bool AllocUnsafeShmem(size_t aSize,
-                                ipc::SharedMemory::SharedMemoryType aType,
-                                ipc::Shmem* aShmem) override;
-
-  virtual bool DeallocShmem(ipc::Shmem& aShmem) override;
-
-  virtual bool IsSameProcess() const override
+  virtual mozilla::ipc::IPCResult RecvReplyCreateVRServiceTestDisplay(const nsCString& aID,
+                                                                      const uint32_t& aPromiseID,
+                                                                      const uint32_t& aDeviceID) override;
+  virtual mozilla::ipc::IPCResult RecvReplyCreateVRServiceTestController(const nsCString& aID,
+                                                                         const uint32_t& aPromiseID,
+                                                                         const uint32_t& aDeviceID) override;
+  bool IsSameProcess() const
   {
     return OtherPid() == base::GetCurrentProcId();
   }
-
-  friend class layers::CompositorBridgeChild;
-
 private:
 
-  void FireDOMVRDisplayConnectEventInternal();
-  void FireDOMVRDisplayDisconnectEventInternal();
-  void FireDOMVRDisplayPresentChangeEventInternal();
-  /**
-  * Notify id of Texture When host side end its use. Transaction id is used to
-  * make sure if there is no newer usage.
-  */
-  void NotifyNotUsed(uint64_t aTextureId, uint64_t aFwdTransactionId);
+  void FireDOMVRDisplayMountedEventInternal(uint32_t aDisplayID);
+  void FireDOMVRDisplayUnmountedEventInternal(uint32_t aDisplayID);
+  void FireDOMVRDisplayConnectEventInternal(uint32_t aDisplayID);
+  void FireDOMVRDisplayDisconnectEventInternal(uint32_t aDisplayID);
+  void FireDOMVRDisplayPresentChangeEventInternal(uint32_t aDisplayID);
 
   nsTArray<RefPtr<VRDisplayClient> > mDisplays;
   bool mDisplaysInitialized;
   nsTArray<uint64_t> mNavigatorCallbacks;
-
-  int32_t mInputFrameID;
 
   MessageLoop* mMessageLoop;
 
@@ -164,17 +128,14 @@ private:
   int32_t mFrameRequestCallbackCounter;
   mozilla::TimeStamp mStartTimeStamp;
 
-  // Array of Weak pointers, instance is owned by nsGlobalWindow::mVREventObserver.
-  nsTArray<dom::VREventObserver*> mListeners;
-
-  /**
-  * Hold TextureClients refs until end of their usages on host side.
-  * It defer calling of TextureClient recycle callback.
-  */
-  nsDataHashtable<nsUint64HashKey, RefPtr<layers::TextureClient> > mTexturesWaitingRecycled;
+  nsTArray<RefPtr<dom::VREventObserver>> mListeners;
 
   layers::LayersBackend mBackend;
-  RefPtr<layers::SyncObject> mSyncObject;
+  RefPtr<layers::SyncObjectClient> mSyncObject;
+  nsRefPtrHashtable<nsUint32HashKey, dom::Promise> mGamepadPromiseList; // TODO: check if it can merge into one list?
+  uint32_t mPromiseID;
+  nsRefPtrHashtable<nsUint32HashKey, dom::Promise> mPromiseList;
+  RefPtr<dom::VRMockDisplay> mVRMockDisplay;
 
   DISALLOW_COPY_AND_ASSIGN(VRManagerChild);
 };

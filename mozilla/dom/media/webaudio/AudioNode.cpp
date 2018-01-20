@@ -39,7 +39,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_ADDREF_INHERITED(AudioNode, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(AudioNode, DOMEventTargetHelper)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(AudioNode)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(AudioNode)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
@@ -54,6 +54,7 @@ AudioNode::AudioNode(AudioContext* aContext,
   , mChannelInterpretation(aChannelInterpretation)
   , mId(gId++)
   , mPassThrough(false)
+  , mAbstractMainThread(aContext->GetOwnerGlobal()->AbstractMainThreadFor(TaskCategory::Other))
 {
   MOZ_ASSERT(aContext);
   DOMEventTargetHelper::BindToOwner(aContext->GetParentObject());
@@ -69,6 +70,28 @@ AudioNode::~AudioNode()
              "The webaudio-node-demise notification must have been sent");
   if (mContext) {
     mContext->UnregisterNode(this);
+  }
+}
+
+void
+AudioNode::Initialize(const AudioNodeOptions& aOptions, ErrorResult& aRv)
+{
+  if (aOptions.mChannelCount.WasPassed()) {
+    SetChannelCount(aOptions.mChannelCount.Value(), aRv);
+    if (NS_WARN_IF(aRv.Failed())) {
+      return;
+    }
+  }
+
+  if (aOptions.mChannelCountMode.WasPassed()) {
+    SetChannelCountModeValue(aOptions.mChannelCountMode.Value(), aRv);
+    if (NS_WARN_IF(aRv.Failed())) {
+      return;
+    }
+  }
+
+  if (aOptions.mChannelInterpretation.WasPassed()) {
+    SetChannelInterpretationValue(aOptions.mChannelInterpretation.Value());
   }
 }
 
@@ -184,7 +207,7 @@ AudioNode::Connect(AudioNode& aDestination, uint32_t aOutput,
   }
 
   if (Context() != aDestination.Context()) {
-    aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
+    aRv.Throw(NS_ERROR_DOM_INVALID_ACCESS_ERR);
     return nullptr;
   }
 
@@ -235,7 +258,7 @@ AudioNode::Connect(AudioParam& aDestination, uint32_t aOutput,
   }
 
   if (Context() != aDestination.GetParentObject()) {
-    aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
+    aRv.Throw(NS_ERROR_DOM_INVALID_ACCESS_ERR);
     return;
   }
 
@@ -317,7 +340,10 @@ AudioNode::DisconnectFromOutputIfConnected<AudioNode>(uint32_t aOutputNodeIndex,
   {
   public:
     explicit RunnableRelease(already_AddRefed<AudioNode> aNode)
-      : mNode(aNode) {}
+      : mozilla::Runnable("RunnableRelease")
+      , mNode(aNode)
+    {
+    }
 
     NS_IMETHOD Run() override
     {

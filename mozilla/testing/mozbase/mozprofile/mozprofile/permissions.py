@@ -7,6 +7,8 @@
 add permissions to the profile
 """
 
+from __future__ import absolute_import
+
 import codecs
 import os
 import sqlite3
@@ -274,9 +276,10 @@ class Permissions(object):
                     permission_type = 2
 
                 if using_origin:
-                    # This is a crude approximation of the origin generation logic from
-                    # nsPrincipal and nsStandardURL. It should suffice for the permissions
-                    # which the test runners will want to insert into the system.
+                    # This is a crude approximation of the origin generation
+                    # logic from ContentPrincipal and nsStandardURL. It should
+                    # suffice for the permissions which the test runners will
+                    # want to insert into the system.
                     origin = location.scheme + "://" + location.host
                     if (location.scheme != 'http' or location.port != '80') and \
                        (location.scheme != 'https' or location.port != '443'):

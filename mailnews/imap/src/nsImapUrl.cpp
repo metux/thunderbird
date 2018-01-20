@@ -10,7 +10,7 @@
 #include "nsImapUrl.h"
 #include "nsIIMAPHostSessionList.h"
 #include "nsThreadUtils.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "prmem.h"
 #include "plstr.h"
 #include "prprf.h"
@@ -126,7 +126,7 @@ NS_IMETHODIMP nsImapUrl::GetFolder(nsIMsgFolder **aMsgFolder)
   NS_ENSURE_ARG_POINTER(m_imapFolder);
 
   nsCOMPtr<nsIMsgFolder> folder = do_QueryReferent(m_imapFolder);
-  NS_IF_ADDREF(*aMsgFolder = folder);
+  folder.forget(aMsgFolder);
   return NS_OK;
 }
 
@@ -152,8 +152,7 @@ NS_IMETHODIMP nsImapUrl::GetImapMailFolderSink(nsIImapMailFolderSink **
       return NS_ERROR_NULL_POINTER; // no assert, so don't use NS_ENSURE_POINTER.
 
     nsCOMPtr<nsIImapMailFolderSink> folderSink = do_QueryReferent(m_imapMailFolderSink);
-    *aImapMailFolderSink = folderSink;
-    NS_IF_ADDREF(*aImapMailFolderSink);
+    folderSink.forget(aImapMailFolderSink);
     return NS_OK;
 }
 
@@ -170,8 +169,7 @@ NS_IMETHODIMP nsImapUrl::GetImapMessageSink(nsIImapMessageSink ** aImapMessageSi
     NS_ENSURE_ARG_POINTER(m_imapMessageSink);
 
     nsCOMPtr<nsIImapMessageSink> messageSink = do_QueryReferent(m_imapMessageSink);
-    *aImapMessageSink = messageSink;
-    NS_IF_ADDREF(*aImapMessageSink);
+    messageSink.forget(aImapMessageSink);
     return NS_OK;
 }
 
@@ -188,8 +186,7 @@ NS_IMETHODIMP nsImapUrl::GetImapServerSink(nsIImapServerSink ** aImapServerSink)
     NS_ENSURE_ARG_POINTER(m_imapServerSink);
 
     nsCOMPtr<nsIImapServerSink> serverSink = do_QueryReferent(m_imapServerSink);
-    *aImapServerSink = serverSink;
-    NS_IF_ADDREF(*aImapServerSink);
+    serverSink.forget(aImapServerSink);
     return NS_OK;
 }
 
@@ -231,7 +228,7 @@ nsresult nsImapUrl::ParseUrl()
   GetUserPass(m_userName);
 
   nsAutoCString imapPartOfUrl;
-  rv = GetPath(imapPartOfUrl);
+  rv = GetPathQueryRef(imapPartOfUrl);
   nsAutoCString unescapedImapPartOfUrl;
   MsgUnescapeString(imapPartOfUrl, 0, unescapedImapPartOfUrl);
   if (NS_SUCCEEDED(rv) && !unescapedImapPartOfUrl.IsEmpty())
@@ -371,10 +368,7 @@ NS_IMETHODIMP nsImapUrl::GetOnlineSubDirSeparator(char* separator)
       *separator = m_onlineSubDirSeparator;
       return NS_OK;
   }
-  else
-  {
-      return NS_ERROR_NULL_POINTER;
-  }
+  return NS_ERROR_NULL_POINTER;
 }
 
 NS_IMETHODIMP nsImapUrl::GetNumBytesToFetch(int32_t *aNumBytesToFetch)
@@ -809,7 +803,7 @@ NS_IMETHODIMP nsImapUrl::AddOnlineDirectoryIfNecessary(const char *onlineMailbox
   if (directory)
     *directory = newOnlineName;
   else if (newOnlineName)
-    NS_Free(newOnlineName);
+    free(newOnlineName);
   return rv;
 }
 
@@ -834,14 +828,14 @@ NS_IMETHODIMP nsImapUrl::AllocateServerPath(const char * canonicalPath, char onl
   AddOnlineDirectoryIfNecessary(rv, &onlineNameAdded);
   if (onlineNameAdded)
   {
-    NS_Free(rv);
+    free(rv);
     rv = onlineNameAdded;
   }
 
   if (aAllocatedPath)
     *aAllocatedPath = rv;
   else
-    NS_Free(rv);
+    free(rv);
 
   return retVal;
 }
@@ -1120,8 +1114,7 @@ NS_IMETHODIMP nsImapUrl::GetCopyState(nsISupports** copyState)
 {
   NS_ENSURE_ARG_POINTER(copyState);
   MutexAutoLock mon(mLock);
-  *copyState = m_copyState;
-  NS_IF_ADDREF(*copyState);
+  NS_IF_ADDREF(*copyState = m_copyState);
 
   return NS_OK;
 }
@@ -1152,7 +1145,7 @@ NS_IMETHODIMP nsImapUrl::GetMockChannel(nsIImapMockChannel ** aChannel)
   NS_WARNING_ASSERTION(NS_IsMainThread(), "should only access mock channel on ui thread");
   *aChannel = nullptr;
   nsCOMPtr<nsIImapMockChannel> channel(do_QueryReferent(m_channelWeakPtr));
-  channel.swap(*aChannel);
+  channel.forget(aChannel);
   return *aChannel ? NS_OK : NS_ERROR_FAILURE;
 }
 

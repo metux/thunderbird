@@ -13,6 +13,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
+import java.util.Arrays;
 
 /**
  * This abstract class exists to capture some of the transaction-handling
@@ -171,7 +172,7 @@ public abstract class AbstractTransactionalProvider extends ContentProvider {
 
     @Override
     public int delete(Uri uri, String selection, String[] selectionArgs) {
-        trace("Calling delete on URI: " + uri + ", " + selection + ", " + selectionArgs);
+        trace("Calling delete on URI: " + uri + ", " + selection + ", " + Arrays.toString(selectionArgs));
 
         final SQLiteDatabase db = getWritableDatabase(uri);
         int deleted = 0;
@@ -218,7 +219,7 @@ public abstract class AbstractTransactionalProvider extends ContentProvider {
 
     @Override
     public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
-        trace("Calling update on URI: " + uri + ", " + selection + ", " + selectionArgs);
+        trace("Calling update on URI: " + uri + ", " + selection + ", " + Arrays.toString(selectionArgs));
 
         final SQLiteDatabase db = getWritableDatabase(uri);
         int updated = 0;
@@ -312,6 +313,11 @@ public abstract class AbstractTransactionalProvider extends ContentProvider {
     protected static boolean isCallerSync(Uri uri) {
         String isSync = uri.getQueryParameter(BrowserContract.PARAM_IS_SYNC);
         return !TextUtils.isEmpty(isSync);
+    }
+
+    protected static boolean shouldIncrementLocalVersionFromSync(Uri uri) {
+        String shouldIncrement = uri.getQueryParameter(BrowserContract.PARAM_INCREMENT_LOCAL_VERSION_FROM_SYNC);
+        return !TextUtils.isEmpty(shouldIncrement);
     }
 
     protected static void trace(String message) {

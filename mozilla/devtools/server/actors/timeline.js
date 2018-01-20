@@ -21,12 +21,11 @@ const { Option, RetVal } = protocol;
 const { actorBridgeWithSpec } = require("devtools/server/actors/common");
 const { Timeline } = require("devtools/server/performance/timeline");
 const { timelineSpec } = require("devtools/shared/specs/timeline");
-const events = require("sdk/event/core");
 
 /**
  * The timeline actor pops and forwards timeline markers registered in docshells.
  */
-var TimelineActor = exports.TimelineActor = protocol.ActorClassWithSpec(timelineSpec, {
+exports.TimelineActor = protocol.ActorClassWithSpec(timelineSpec, {
   /**
    * Initializes this actor with the provided connection and tab actor.
    */
@@ -36,23 +35,14 @@ var TimelineActor = exports.TimelineActor = protocol.ActorClassWithSpec(timeline
     this.bridge = new Timeline(tabActor);
 
     this._onTimelineEvent = this._onTimelineEvent.bind(this);
-    events.on(this.bridge, "*", this._onTimelineEvent);
-  },
-
-  /**
-   * The timeline actor is the first (and last) in its hierarchy to use
-   * protocol.js so it doesn't have a parent protocol actor that takes care of
-   * its lifetime. So it needs a disconnect method to cleanup.
-   */
-  disconnect: function () {
-    this.destroy();
+    this.bridge.on("*", this._onTimelineEvent);
   },
 
   /**
    * Destroys this actor, stopping recording first.
    */
   destroy: function () {
-    events.off(this.bridge, "*", this._onTimelineEvent);
+    this.bridge.off("*", this._onTimelineEvent);
     this.bridge.destroy();
     this.bridge = null;
     this.tabActor = null;
@@ -64,7 +54,7 @@ var TimelineActor = exports.TimelineActor = protocol.ActorClassWithSpec(timeline
    * here.
    */
   _onTimelineEvent: function (eventName, ...args) {
-    events.emit(this, eventName, ...args);
+    this.emit(eventName, ...args);
   },
 
   isRecording: actorBridgeWithSpec("isRecording", {

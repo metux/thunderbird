@@ -4,14 +4,12 @@
 
 // Import globals from the files imported by the .xul files.
 /* import-globals-from subdialogs.js */
-/* import-globals-from advanced.js */
 /* import-globals-from main.js */
 /* import-globals-from search.js */
-/* import-globals-from content.js */
+/* import-globals-from containers.js */
 /* import-globals-from privacy.js */
-/* import-globals-from applications.js */
-/* import-globals-from security.js */
 /* import-globals-from sync.js */
+/* import-globals-from findInPage.js */
 /* import-globals-from ../../../base/content/utilityOverlay.js */
 
 "use strict";
@@ -24,6 +22,11 @@ var Cr = Components.results;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/AppConstants.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "ExtensionSettingsStore",
+                                  "resource://gre/modules/ExtensionSettingsStore.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AddonManager",
+                                  "resource://gre/modules/AddonManager.jsm");
 
 var gLastHash = "";
 
@@ -42,17 +45,14 @@ function init_category_if_required(category) {
 function register_module(categoryName, categoryObject) {
   gCategoryInits.set(categoryName, {
     inited: false,
-    init: function() {
+    init() {
       categoryObject.init();
       this.inited = true;
     }
   });
 }
 
-addEventListener("DOMContentLoaded", function onLoad() {
-  removeEventListener("DOMContentLoaded", onLoad);
-  init_all();
-});
+document.addEventListener("DOMContentLoaded", init_all, {once: true});
 
 function init_all() {
   document.documentElement.instantApply = true;
@@ -62,11 +62,10 @@ function init_all() {
   register_module("paneSearch", gSearchPane);
   register_module("panePrivacy", gPrivacyPane);
   register_module("paneContainers", gContainersPane);
-  register_module("paneAdvanced", gAdvancedPane);
-  register_module("paneApplications", gApplicationsPane);
-  register_module("paneContent", gContentPane);
   register_module("paneSync", gSyncPane);
-  register_module("paneSecurity", gSecurityPane);
+  register_module("paneSearchResults", gSearchResultsPane);
+  gSearchResultsPane.init();
+  gMainPane.preInit();
 
   let categories = document.getElementById("categories");
   categories.addEventListener("select", event => gotoPref(event.target.value));
@@ -83,71 +82,26 @@ function init_all() {
   window.addEventListener("hashchange", onHashChange);
   gotoPref();
 
-  init_dynamic_padding();
+  let helpButton = document.querySelector(".help-button > .text-link");
+  let helpUrl = Services.urlFormatter.formatURLPref("app.support.baseURL") + "preferences";
+  helpButton.setAttribute("href", helpUrl);
 
-  var initFinished = new CustomEvent("Initialized", {
-    'bubbles': true,
-    'cancelable': true
-  });
-  document.dispatchEvent(initFinished);
-
-  categories = categories.querySelectorAll("richlistitem.category");
-  for (let category of categories) {
-    let name = internalPrefCategoryNameToFriendlyName(category.value);
-    let helpSelector = `#header-${name} > .help-button`;
-    let helpButton = document.querySelector(helpSelector);
-    helpButton.setAttribute("href", getHelpLinkURL(category.getAttribute("helpTopic")));
-  }
-
-  // Wait until initialization of all preferences are complete before
-  // notifying observers that the UI is now ready.
-  Services.obs.notifyObservers(window, "advanced-pane-loaded", null);
-}
-
-// Make the space above the categories list shrink on low window heights
-function init_dynamic_padding() {
-  let categories = document.getElementById("categories");
-  let catPadding = Number.parseInt(getComputedStyle(categories)
-                                     .getPropertyValue('padding-top'));
-  let fullHeight = categories.lastElementChild.getBoundingClientRect().bottom;
-  let mediaRule = `
-  @media (max-height: ${fullHeight}px) {
-    #categories {
-      padding-top: calc(100vh - ${fullHeight - catPadding}px);
-    }
-  }
-  `;
-  let mediaStyle = document.createElementNS('http://www.w3.org/1999/xhtml', 'html:style');
-  mediaStyle.setAttribute('type', 'text/css');
-  mediaStyle.appendChild(document.createCDATASection(mediaRule));
-  document.documentElement.appendChild(mediaStyle);
+  document.dispatchEvent(new CustomEvent("Initialized", {
+    "bubbles": true,
+    "cancelable": true
+  }));
 }
 
 function telemetryBucketForCategory(category) {
+  category = category.toLowerCase();
   switch (category) {
+    case "containers":
     case "general":
-    case "search":
-    case "content":
-    case "applications":
     case "privacy":
-    case "security":
+    case "search":
     case "sync":
+    case "searchresults":
       return category;
-    case "advanced":
-      let advancedPaneTabs = document.getElementById("advancedPrefs");
-      switch (advancedPaneTabs.selectedTab.id) {
-        case "generalTab":
-          return "advancedGeneral";
-        case "dataChoicesTab":
-          return "advancedDataChoices";
-        case "networkTab":
-          return "advancedNetwork";
-        case "updateTab":
-          return "advancedUpdates";
-        case "encryptionTab":
-          return "advancedCerts";
-      }
-      // fall-through for unknown.
     default:
       return "unknown";
   }
@@ -159,19 +113,45 @@ function onHashChange() {
 
 function gotoPref(aCategory) {
   let categories = document.getElementById("categories");
-  const kDefaultCategoryInternalName = categories.firstElementChild.value;
+  const kDefaultCategoryInternalName = "paneGeneral";
+  const kDefaultCategory = "general";
   let hash = document.location.hash;
+
   let category = aCategory || hash.substr(1) || kDefaultCategoryInternalName;
+  let breakIndex = category.indexOf("-");
+  // Subcategories allow for selecting smaller sections of the preferences
+  // until proper search support is enabled (bug 1353954).
+  let subcategory = breakIndex != -1 && category.substring(breakIndex + 1);
+  if (subcategory) {
+    category = category.substring(0, breakIndex);
+  }
   category = friendlyPrefCategoryNameToInternalName(category);
+  if (category != "paneSearchResults") {
+    gSearchResultsPane.query = null;
+    gSearchResultsPane.searchInput.value = "";
+    gSearchResultsPane.getFindSelection(window).removeAllRanges();
+    gSearchResultsPane.removeAllSearchTooltips();
+    gSearchResultsPane.removeAllSearchMenuitemIndicators();
+  } else if (!gSearchResultsPane.searchInput.value) {
+    // Something tried to send us to the search results pane without
+    // a query string. Default to the General pane instead.
+    category = kDefaultCategoryInternalName;
+    document.location.hash = kDefaultCategory;
+    gSearchResultsPane.query = null;
+  }
 
   // Updating the hash (below) or changing the selected category
   // will re-enter gotoPref.
-  if (gLastHash == category)
+  if (gLastHash == category && !subcategory)
     return;
-  let item = categories.querySelector(".category[value=" + category + "]");
-  if (!item) {
-    category = kDefaultCategoryInternalName;
+
+  let item;
+  if (category != "paneSearchResults") {
     item = categories.querySelector(".category[value=" + category + "]");
+    if (!item) {
+      category = kDefaultCategoryInternalName;
+      item = categories.querySelector(".category[value=" + category + "]");
+    }
   }
 
   try {
@@ -182,29 +162,53 @@ function gotoPref(aCategory) {
   }
 
   let friendlyName = internalPrefCategoryNameToFriendlyName(category);
-  if (gLastHash || category != kDefaultCategoryInternalName) {
+  if (gLastHash || category != kDefaultCategoryInternalName || subcategory) {
     document.location.hash = friendlyName;
   }
   // Need to set the gLastHash before setting categories.selectedItem since
   // the categories 'select' event will re-enter the gotoPref codepath.
   gLastHash = category;
-  categories.selectedItem = item;
+  if (item) {
+    categories.selectedItem = item;
+  } else {
+    categories.clearSelection();
+  }
   window.history.replaceState(category, document.title);
-  search(category, "data-category");
+  search(category, "data-category", subcategory, "data-subcategory");
+
   let mainContent = document.querySelector(".main-content");
   mainContent.scrollTop = 0;
 
   Services.telemetry
-          .getHistogramById("FX_PREFERENCES_CATEGORY_OPENED")
+          .getHistogramById("FX_PREFERENCES_CATEGORY_OPENED_V2")
           .add(telemetryBucketForCategory(friendlyName));
 }
 
-function search(aQuery, aAttribute) {
+function search(aQuery, aAttribute, aSubquery, aSubAttribute) {
   let mainPrefPane = document.getElementById("mainPrefPane");
   let elements = mainPrefPane.children;
   for (let element of elements) {
-    let attributeValue = element.getAttribute(aAttribute);
-    element.hidden = (attributeValue != aQuery);
+    // If the "data-hidden-from-search" is "true", the
+    // element will not get considered during search. This
+    // should only be used when an element is still under
+    // development and should not be shown for any reason.
+    if (element.getAttribute("data-hidden-from-search") != "true" ||
+        element.getAttribute("data-subpanel") == "true") {
+      let attributeValue = element.getAttribute(aAttribute);
+      if (attributeValue == aQuery) {
+        if (!element.classList.contains("header") &&
+            element.localName !== "preferences" &&
+            aSubquery && aSubAttribute) {
+          let subAttributeValue = element.getAttribute(aSubAttribute);
+          element.hidden = subAttributeValue != aSubquery;
+        } else {
+          element.hidden = false;
+        }
+      } else {
+        element.hidden = true;
+      }
+    }
+    element.classList.remove("visually-hidden");
   }
 
   let keysets = mainPrefPane.getElementsByTagName("keyset");
@@ -247,7 +251,7 @@ const CONFIRM_RESTART_PROMPT_CANCEL = 1;
 const CONFIRM_RESTART_PROMPT_RESTART_LATER = 2;
 function confirmRestartPrompt(aRestartToEnable, aDefaultButtonIndex,
                               aWantRevertAsCancelButton,
-			      aWantRestartLaterButton) {
+                              aWantRestartLaterButton) {
   let brandName = document.getElementById("bundleBrand").getString("brandShortName");
   let bundle = document.getElementById("bundlePreferences");
   let msg = bundle.getFormattedString(aRestartToEnable ?
@@ -255,7 +259,6 @@ function confirmRestartPrompt(aRestartToEnable, aDefaultButtonIndex,
                                       "featureDisableRequiresRestart",
                                       [brandName]);
   let title = bundle.getFormattedString("shouldRestartTitle", [brandName]);
-  let prompts = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIPromptService);
 
   // Set up the first (index 0) button:
   let button0Text = bundle.getFormattedString("okToRestartButton", [brandName]);
@@ -296,9 +299,9 @@ function confirmRestartPrompt(aRestartToEnable, aDefaultButtonIndex,
       break;
   }
 
-  let buttonIndex = prompts.confirmEx(window, title, msg, buttonFlags,
-                                      button0Text, button1Text, button2Text,
-                                      null, {});
+  let buttonIndex = Services.prompt.confirmEx(window, title, msg, buttonFlags,
+                                              button0Text, button1Text, button2Text,
+                                              null, {});
 
   // If we have the second confirmation dialog for restart, see if the user
   // cancels out at that point.
@@ -312,4 +315,100 @@ function confirmRestartPrompt(aRestartToEnable, aDefaultButtonIndex,
     }
   }
   return buttonIndex;
+}
+
+// This function is used to append search keywords found
+// in the related subdialog to the button that will activate the subdialog.
+function appendSearchKeywords(aId, keywords) {
+  let element = document.getElementById(aId);
+  let searchKeywords = element.getAttribute("searchkeywords");
+  if (searchKeywords) {
+    keywords.push(searchKeywords);
+  }
+  element.setAttribute("searchkeywords", keywords.join(" "));
+}
+
+let extensionControlledContentIds = {
+  "privacy.containers": "browserContainersExtensionContent",
+  "homepage_override": "browserHomePageExtensionContent",
+  "newTabURL": "browserNewTabExtensionContent",
+  "defaultSearch": "browserDefaultSearchExtensionContent",
+};
+
+/**
+  * Check if a pref is being managed by an extension.
+  */
+async function getControllingExtensionInfo(type, settingName) {
+  await ExtensionSettingsStore.initialize();
+  return ExtensionSettingsStore.getSetting(type, settingName);
+}
+
+function getControllingExtensionEl(settingName) {
+  return document.getElementById(extensionControlledContentIds[settingName]);
+}
+
+async function handleControllingExtension(type, settingName) {
+  let info = await getControllingExtensionInfo(type, settingName);
+  let addon = info && info.id
+    && await AddonManager.getAddonByID(info.id);
+
+  // Sometimes the ExtensionSettingsStore gets in a bad state where it thinks
+  // an extension is controlling a setting but the extension has been uninstalled
+  // outside of the regular lifecycle. If the extension isn't currently installed
+  // then we should treat the setting as not being controlled.
+  // See https://bugzilla.mozilla.org/show_bug.cgi?id=1411046 for an example.
+  if (addon) {
+    showControllingExtension(settingName, addon);
+  } else {
+    hideControllingExtension(settingName);
+  }
+
+  return !!addon;
+}
+
+async function showControllingExtension(settingName, addon) {
+  // Tell the user what extension is controlling the setting.
+  let extensionControlledContent = getControllingExtensionEl(settingName);
+  extensionControlledContent.classList.remove("extension-controlled-disabled");
+  const defaultIcon = "chrome://mozapps/skin/extensions/extensionGeneric.svg";
+  let stringParts = document
+    .getElementById("bundlePreferences")
+    .getString(`extensionControlled.${settingName}`)
+    .split("%S");
+  let description = extensionControlledContent.querySelector("description");
+
+  // Remove the old content from the description.
+  while (description.firstChild) {
+    description.firstChild.remove();
+  }
+
+  // Populate the description.
+  description.appendChild(document.createTextNode(stringParts[0]));
+  let image = document.createElement("image");
+  image.setAttribute("src", addon.iconURL || defaultIcon);
+  image.classList.add("extension-controlled-icon");
+  description.appendChild(image);
+  description.appendChild(document.createTextNode(` ${addon.name}`));
+  description.appendChild(document.createTextNode(stringParts[1]));
+
+  let disableButton = extensionControlledContent.querySelector("button");
+  if (disableButton) {
+    disableButton.hidden = false;
+  }
+
+  // Show the controlling extension row and hide the old label.
+  extensionControlledContent.hidden = false;
+}
+
+function hideControllingExtension(settingName) {
+  getControllingExtensionEl(settingName).hidden = true;
+}
+
+
+function makeDisableControllingExtension(type, settingName) {
+  return async function disableExtension() {
+    let {id} = await getControllingExtensionInfo(type, settingName);
+    let addon = await AddonManager.getAddonByID(id);
+    addon.userDisabled = true;
+  };
 }

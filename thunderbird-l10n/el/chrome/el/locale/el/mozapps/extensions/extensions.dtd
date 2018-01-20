@@ -20,6 +20,9 @@
 <!ENTITY installAddonFromFile.accesskey       "γ">
 <!ENTITY toolsMenu.tooltip                    "Εργαλεία για όλα τα πρόσθετα">
 
+<!ENTITY getThemes.description                "Ψάχνετε για εξατομίκευση του προγράμματος περιήγησής σας;">
+<!ENTITY getThemes.learnMore                  "Επιλέξτε από χιλιάδες θεμάτων.">
+
 <!ENTITY cmd.back.tooltip                     "Μετάβαση πίσω μια σελίδα">
 <!ENTITY cmd.forward.tooltip                  "Μετάβαση μπροστά μια σελίδα">
 
@@ -115,6 +118,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "Προβολή των σημειώσεων έκδοσης για αυτή την ενημέρωση">
 <!ENTITY cmd.hideReleaseNotes.label           "Απόκρυψη σημειώσεων έκδοσης">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Απόκρυψη των σημειώσεων έκδοσης για αυτή την ενημέρωση">
+<!ENTITY cmd.findReplacement.label            "Βρείτε μία αντικατάσταση">
 
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
@@ -185,6 +189,10 @@
 <!ENTITY addon.details.label                  "Περισσότερα">
 <!ENTITY addon.details.tooltip                "Προβολή περισσότερων πληροφοριών για αυτό το πρόσθετο">
 <!ENTITY addon.unknownDate                    "Άγνωστη">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "ΠΑΛΑΙΟ">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -249,3 +257,9 @@
 
 <!ENTITY pluginDeprecation.description "Λείπει τίποτα; Ορισμένες πρόσθετες λειτουργίες δεν υποστηρίζονται πλέον από το &brandShortName;.">
 <!ENTITY pluginDeprecation.learnMore "Μάθετε περισσότερα.">
+
+<!ENTITY legacyWarning.description "Λείπει κάτι; Ορισμένες επεκτάσεις δεν υποστηρίζονται πλέον από το &brandShortName;.">
+<!ENTITY legacyWarning.showLegacy "Εμφάνιση επεκτάσεων παλαιού τύπου">
+<!ENTITY legacyExtensions.title "Επεκτάσεις παλαιού τύπου">
+<!ENTITY legacyExtensions.description "Αυτές οι επεκτάσεις δεν πληρούν τα τρέχοντα κριτήρια του &brandShortName;, επομένως έχουν απενεργοποιηθεί.">
+<!ENTITY legacyExtensions.learnMore "Μάθετε σχετικά με τις αλλαγές στα πρόσθετα">

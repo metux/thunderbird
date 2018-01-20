@@ -17,6 +17,15 @@
 
 <!ENTITY feedFolder.label            "Cadw erthyglau yn:">
 <!ENTITY feedFolder.accesskey        "e">
+<!-- Account Settings and Subscription Dialog -->
+
+<!ENTITY biffStart.label             "Gwirio am erthyglau newydd bob ">
+<!ENTITY biffStart.accesskey         "e">
+<!ENTITY biffMinutes.label           "munud">
+<!ENTITY biffMinutes.accesskey       "m">
+<!ENTITY biffDays.label              "diwrnod">
+<!ENTITY biffDays.accesskey          "d">
+<!ENTITY recommendedUnits.label      "Argymhelliad y cyhoeddwr:">
 
 <!ENTITY quickMode.label             "Dangos crynodeb erthygl yn lle llwytho tudalen gwe">
 <!ENTITY quickMode.accesskey         "c">
@@ -26,6 +35,7 @@
 <!ENTITY autotagUsePrefix.label      "Rhagosod tagiau gyda:">
 <!ENTITY autotagUsePrefix.accesskey  "R">
 <!ENTITY autoTagPrefix.placeholder   "Rhoi rhagosodiad tag">
+<!-- Subscription Dialog -->
 
 <!ENTITY button.addFeed.label        "Ychwanegu">
 <!ENTITY button.addFeed.accesskey    "Y">

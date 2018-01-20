@@ -40,5 +40,5 @@
 <!ENTITY searchBox.emptyText "Bilatu iragazkiak izenearen arabera…">
 
 
-<!ENTITY newButton.popupCopy.accesskey "C">
 <!ENTITY newButton.popupCopy.label "Copy…">
+<!ENTITY newButton.popupCopy.accesskey "C">

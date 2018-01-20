@@ -5,7 +5,7 @@
 
 const { classes: Cc, interfaces: Ci, manager: Cm, utils: Cu, results: Cr } = Components;
 
-Cu.import('resource://gre/modules/XPCOMUtils.jsm');
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const uuidGenerator = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator);
 
@@ -20,14 +20,14 @@ const mockUpdateManager = {
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIUpdateManager]),
 
-  createInstance: function(outer, iiD) {
+  createInstance(outer, iiD) {
     if (outer) {
       throw Cr.NS_ERROR_NO_AGGREGATION;
     }
     return this.QueryInterface(iiD);
   },
 
-  register: function () {
+  register() {
     let registrar = Cm.QueryInterface(Ci.nsIComponentRegistrar);
     if (!registrar.isCIDRegistered(this._mockClassId)) {
       this._originalClassId = registrar.contractIDToCID(this.contractId);
@@ -37,7 +37,7 @@ const mockUpdateManager = {
     }
   },
 
-  unregister: function () {
+  unregister() {
     let registrar = Cm.QueryInterface(Ci.nsIComponentRegistrar);
     registrar.unregisterFactory(this._mockClassId, this);
     registrar.registerFactory(this._originalClassId, "", this.contractId, this._originalFactory);
@@ -47,7 +47,7 @@ const mockUpdateManager = {
     return this._updates.length;
   },
 
-  getUpdateAt: function (index) {
+  getUpdateAt(index) {
     return this._updates[index];
   },
 
@@ -85,18 +85,15 @@ function resetPreferences() {
 
 function formatInstallDate(sec) {
   var date = new Date(sec);
-  const locale = Cc["@mozilla.org/chrome/chrome-registry;1"]
-                 .getService(Ci.nsIXULChromeRegistry)
-                 .getSelectedLocale("global", true);
-  const dtOptions = { year: 'numeric', month: 'long', day: 'numeric',
-                      hour: 'numeric', minute: 'numeric', second: 'numeric' };
-  return date.toLocaleString(locale, dtOptions);
+  const dtOptions = { year: "numeric", month: "long", day: "numeric",
+                      hour: "numeric", minute: "numeric", second: "numeric" };
+  return date.toLocaleString(undefined, dtOptions);
 }
 
 registerCleanupFunction(resetPreferences);
 
-add_task(function*() {
-  yield openPreferencesViaOpenPreferencesAPI("advanced", "updateTab", { leaveOpen: true });
+add_task(async function() {
+  await openPreferencesViaOpenPreferencesAPI("general", { leaveOpen: true });
   resetPreferences();
   Services.prefs.setBoolPref("browser.search.update", false);
 
@@ -112,22 +109,28 @@ add_task(function*() {
   gBrowser.removeCurrentTab();
 });
 
-add_task(function*() {
-  mockUpdateManager.register();
-
-  yield openPreferencesViaOpenPreferencesAPI("advanced", "updateTab", { leaveOpen: true });
+add_task(async function() {
+  await openPreferencesViaOpenPreferencesAPI("general", { leaveOpen: true });
   let doc = gBrowser.selectedBrowser.contentDocument;
 
   let showBtn = doc.getElementById("showUpdateHistory");
-  let dialogOverlay = doc.getElementById("dialogOverlay");
+  let dialogOverlay = content.gSubDialog._preloadDialog._overlay;
+
+  // XXX: For unknown reasons, this mock cannot be loaded by
+  // XPCOMUtils.defineLazyServiceGetter() called in aboutDialog-appUpdater.js.
+  // It is registered here so that we could assert update history subdialog
+  // without stopping the preferences advanced pane from loading.
+  // See bug 1361929.
+  mockUpdateManager.register();
 
   // Test the dialog window opens
   is(dialogOverlay.style.visibility, "", "The dialog should be invisible");
+  let promiseSubDialogLoaded = promiseLoadSubDialog("chrome://mozapps/content/update/history.xul");
   showBtn.doCommand();
-  yield promiseLoadSubDialog("chrome://mozapps/content/update/history.xul");
+  await promiseSubDialogLoaded;
   is(dialogOverlay.style.visibility, "visible", "The dialog should be visible");
 
-  let dialogFrame = doc.getElementById("dialogFrame");
+  let dialogFrame = dialogOverlay.querySelector(".dialogFrame");
   let frameDoc = dialogFrame.contentDocument;
   let updates = frameDoc.querySelectorAll("update");
 
@@ -149,7 +152,7 @@ add_task(function*() {
   }
 
   // Test the dialog window closes
-  let closeBtn = doc.getElementById("dialogClose");
+  let closeBtn = dialogOverlay.querySelector(".dialogClose");
   closeBtn.doCommand();
   is(dialogOverlay.style.visibility, "", "The dialog should be invisible");
 

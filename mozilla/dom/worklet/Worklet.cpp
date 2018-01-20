@@ -5,7 +5,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "Worklet.h"
-#include "WorkletGlobalScope.h"
+#include "AudioWorkletGlobalScope.h"
+#include "PaintWorkletGlobalScope.h"
+
 #include "mozilla/dom/WorkletBinding.h"
 #include "mozilla/dom/BlobBinding.h"
 #include "mozilla/dom/Fetch.h"
@@ -13,10 +15,10 @@
 #include "mozilla/dom/RegisterWorkletBindings.h"
 #include "mozilla/dom/Response.h"
 #include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/dom/ScriptLoader.h"
 #include "nsIInputStreamPump.h"
 #include "nsIThreadRetargetableRequest.h"
 #include "nsNetUtil.h"
-#include "nsScriptLoader.h"
 #include "xpcprivate.h"
 
 namespace mozilla {
@@ -32,7 +34,8 @@ public:
   NS_DECL_ISUPPORTS
 
   static already_AddRefed<Promise>
-  Fetch(Worklet* aWorklet, const nsAString& aModuleURL, ErrorResult& aRv)
+  Fetch(Worklet* aWorklet, const nsAString& aModuleURL, CallerType aCallerType,
+        ErrorResult& aRv)
   {
     MOZ_ASSERT(aWorklet);
 
@@ -84,7 +87,8 @@ public:
 
     RequestInit init;
 
-    RefPtr<Promise> fetchPromise = FetchRequest(global, request, init, aRv);
+    RefPtr<Promise> fetchPromise =
+      FetchRequest(global, request, init, aCallerType, aRv);
     if (NS_WARN_IF(aRv.Failed())) {
       promise->MaybeReject(aRv);
       return promise.forget();
@@ -171,9 +175,9 @@ public:
     char16_t* scriptTextBuf;
     size_t scriptTextLength;
     nsresult rv =
-      nsScriptLoader::ConvertToUTF16(nullptr, aString, aStringLen,
-                                     NS_LITERAL_STRING("UTF-8"), nullptr,
-                                     scriptTextBuf, scriptTextLength);
+      ScriptLoader::ConvertToUTF16(nullptr, aString, aStringLen,
+                                   NS_LITERAL_STRING("UTF-8"), nullptr,
+                                   scriptTextBuf, scriptTextLength);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       RejectPromises(rv);
       return NS_OK;
@@ -197,19 +201,21 @@ public:
 
     (void) new XPCWrappedNativeScope(cx, globalObj);
 
+    NS_ConvertUTF16toUTF8 url(mURL);
+
     JS::CompileOptions compileOptions(cx);
     compileOptions.setIntroductionType("Worklet");
-    compileOptions.setFileAndLine(NS_ConvertUTF16toUTF8(mURL).get(), 0);
+    compileOptions.setFileAndLine(url.get(), 0);
     compileOptions.setVersion(JSVERSION_DEFAULT);
     compileOptions.setIsRunOnce(true);
-
-    // We only need the setNoScriptRval bit when compiling off-thread here,
-    // since otherwise nsJSUtils::EvaluateString will set it up for us.
     compileOptions.setNoScriptRval(true);
+
+    JSAutoCompartment comp(cx, globalObj);
 
     JS::Rooted<JS::Value> unused(cx);
     if (!JS::Evaluate(cx, compileOptions, buffer, &unused)) {
       ErrorResult error;
+      error.MightThrowJSException();
       error.StealExceptionFromJSContext(cx);
       RejectPromises(error.StealNSResult());
       return NS_OK;
@@ -322,9 +328,11 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Worklet)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-Worklet::Worklet(nsPIDOMWindowInner* aWindow, nsIPrincipal* aPrincipal)
+Worklet::Worklet(nsPIDOMWindowInner* aWindow, nsIPrincipal* aPrincipal,
+                 WorkletType aWorkletType)
   : mWindow(aWindow)
   , mPrincipal(aPrincipal)
+  , mWorkletType(aWorkletType)
 {
   MOZ_ASSERT(aWindow);
   MOZ_ASSERT(aPrincipal);
@@ -344,16 +352,24 @@ Worklet::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 }
 
 already_AddRefed<Promise>
-Worklet::Import(const nsAString& aModuleURL, ErrorResult& aRv)
+Worklet::Import(const nsAString& aModuleURL, CallerType aCallerType,
+                ErrorResult& aRv)
 {
-  return WorkletFetchHandler::Fetch(this, aModuleURL, aRv);
+  return WorkletFetchHandler::Fetch(this, aModuleURL, aCallerType, aRv);
 }
 
 WorkletGlobalScope*
 Worklet::GetOrCreateGlobalScope(JSContext* aCx)
 {
   if (!mScope) {
-    mScope = new WorkletGlobalScope(mWindow);
+    switch (mWorkletType) {
+      case eAudioWorklet:
+        mScope = new AudioWorkletGlobalScope(mWindow);
+        break;
+      case ePaintWorklet:
+        mScope = new PaintWorkletGlobalScope(mWindow);
+        break;
+    }
 
     JS::Rooted<JSObject*> global(aCx);
     NS_ENSURE_TRUE(mScope->WrapGlobalObject(aCx, mPrincipal, &global), nullptr);

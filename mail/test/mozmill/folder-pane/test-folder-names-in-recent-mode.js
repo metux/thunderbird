@@ -5,7 +5,7 @@
 /**
  * Test that the folder names have account name appended when in "recent" view.
  */
-var MODULE_NAME = "test-folder-names-in-favorite-mode";
+var MODULE_NAME = "test-folder-names-in-recent-mode";
 
 var RELATIVE_ROOT = "../shared-modules";
 var MODULE_REQUIRES = ["folder-display-helpers"];
@@ -23,8 +23,8 @@ function test_folder_names_in_recent_view_mode() {
   // We need 2 local accounts that have pristine folders with
   // unmodified times, so that it does not influence the
   // list of Recent folders. So clear out the most-recently-used time.
-  for (let acc in fixIterator(MailServices.accounts.accounts, Ci.nsIMsgAccount)) {
-    for (let fld in fixIterator(acc.incomingServer.rootFolder.subFolders,
+  for (let acc of fixIterator(MailServices.accounts.accounts, Ci.nsIMsgAccount)) {
+    for (let fld of fixIterator(acc.incomingServer.rootFolder.subFolders,
                                 Ci.nsIMsgFolder)) {
       fld.setStringProperty("MRUTime", "0");
     }

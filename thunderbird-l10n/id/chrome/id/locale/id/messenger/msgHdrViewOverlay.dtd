@@ -107,27 +107,26 @@
 <!ENTITY OpenBrowserWithMsgId.label "Buka Program Peramban dengan ID-Pesan">
 <!ENTITY OpenBrowserWithMsgId.accesskey "P">
 
+<!ENTITY toField4.label "To">
+<!ENTITY senderField4.label "Sender">
 <!ENTITY author.label "Author">
-<!ENTITY dateField4.label "Date">
+<!ENTITY organizationField4.label "Organization">
+<!ENTITY replyToField4.label "Reply to">
+
+<!ENTITY newsgroupsField4.label "Newsgroups">
 <!ENTITY followupToField4.label "Followup to">
-<!ENTITY hdrMenuForwardButton.label "Forward As">
+<!ENTITY dateField4.label "Date">
+<!ENTITY userAgentField4.label "User agent">
+<!ENTITY referencesField4.label "References">
+<!ENTITY messageIdField4.label "Message ID">
+<!ENTITY inReplyToField4.label "In reply to">
+<!ENTITY originalWebsite4.label "Website">
+
 <!ENTITY hdrOpenConversationButton1.label "Conversation">
 <!ENTITY hdrOpenConversationButton1.tooltip "Show conversation of this message">
 <!ENTITY hdrReplyButton2.tooltip "Reply to the sender of this message">
-<!ENTITY inReplyToField4.label "In reply to">
-<!ENTITY messageIdField4.label "Message ID">
-<!ENTITY newsgroupsField4.label "Newsgroups">
-<!ENTITY organizationField4.label "Organization">
-<!ENTITY originalWebsite4.label "Website">
+<!ENTITY hdrMenuForwardButton.label "Forward As">
 <!ENTITY otherActionsButton.tooltip "More actions">
-<!ENTITY referencesField4.label "References">
-<!ENTITY replyToField4.label "Reply to">
-<!ENTITY senderField4.label "Sender">
+<!ENTITY startExpandedCmd.label    "Initially Show Attachment Pane">
 <!ENTITY startExpandedCmd.accesskey    "S">
 
-<!-- Attachment bar context menu items -->
-<!ENTITY startExpandedCmd.label    "Initially Show Attachment Pane">
-
-
-<!ENTITY toField4.label "To">
-<!ENTITY userAgentField4.label "User agent">

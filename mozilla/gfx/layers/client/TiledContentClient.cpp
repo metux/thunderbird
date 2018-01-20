@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -7,7 +8,7 @@
 #include <math.h>                       // for ceil, ceilf, floor
 #include <algorithm>
 #include "ClientTiledPaintedLayer.h"     // for ClientTiledPaintedLayer
-#include "GeckoProfiler.h"              // for PROFILER_LABEL
+#include "GeckoProfiler.h"              // for AUTO_PROFILER_LABEL
 #include "ClientLayerManager.h"         // for ClientLayerManager
 #include "gfxContext.h"                 // for gfxContext, etc
 #include "gfxPlatform.h"                // for gfxPlatform
@@ -206,8 +207,8 @@ SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
       fabsf(contentMetrics.GetScrollOffset().y - compositorMetrics.GetScrollOffset().y) <= 2 &&
       fabsf(contentMetrics.GetDisplayPort().x - compositorMetrics.GetDisplayPort().x) <= 2 &&
       fabsf(contentMetrics.GetDisplayPort().y - compositorMetrics.GetDisplayPort().y) <= 2 &&
-      fabsf(contentMetrics.GetDisplayPort().width - compositorMetrics.GetDisplayPort().width) <= 2 &&
-      fabsf(contentMetrics.GetDisplayPort().height - compositorMetrics.GetDisplayPort().height) <= 2) {
+      fabsf(contentMetrics.GetDisplayPort().Width() - compositorMetrics.GetDisplayPort().Width()) <= 2 &&
+      fabsf(contentMetrics.GetDisplayPort().Height() - compositorMetrics.GetDisplayPort().Height()) <= 2) {
     return false;
   }
 
@@ -479,7 +480,6 @@ CopyFrontToBack(TextureClient* aFront,
 {
   TextureClientAutoLock frontLock(aFront, OpenMode::OPEN_READ);
   if (!frontLock.Succeeded()) {
-    gfxCriticalError() << "[Tiling:Client] Failed to lock the tile's front buffer";
     return false;
   }
 
@@ -522,15 +522,15 @@ TileClient::ValidateBackBufferFromFront(const nsIntRegion& aDirtyRegion,
       // is unlikely that we'd save much by copying each individual rect of the
       // region, but we can reevaluate this if it becomes an issue.
       const IntRect rectToCopy = regionToCopy.GetBounds();
-      gfx::IntRect gfxRectToCopy(rectToCopy.x, rectToCopy.y, rectToCopy.width, rectToCopy.height);
-      CopyFrontToBack(mFrontBuffer, mBackBuffer, gfxRectToCopy);
-
-      if (mBackBufferOnWhite) {
-        MOZ_ASSERT(mFrontBufferOnWhite);
-        CopyFrontToBack(mFrontBufferOnWhite, mBackBufferOnWhite, gfxRectToCopy);
+      gfx::IntRect gfxRectToCopy(rectToCopy.x, rectToCopy.y, rectToCopy.Width(), rectToCopy.Height());
+      if (CopyFrontToBack(mFrontBuffer, mBackBuffer, gfxRectToCopy)) {
+        if (mBackBufferOnWhite) {
+          MOZ_ASSERT(mFrontBufferOnWhite);
+          if (CopyFrontToBack(mFrontBufferOnWhite, mBackBufferOnWhite, gfxRectToCopy)) {
+            mInvalidBack.SetEmpty();
+          }
+        }
       }
-
-      mInvalidBack.SetEmpty();
     }
   }
 }
@@ -795,8 +795,7 @@ ClientMultiTiledLayerBuffer::PaintThebes(const nsIntRegion& aNewValidRegion,
   start = PR_IntervalNow();
 #endif
 
-  PROFILER_LABEL("ClientMultiTiledLayerBuffer", "PaintThebesUpdate",
-    js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("ClientMultiTiledLayerBuffer::PaintThebes", GRAPHICS);
 
   mNewValidRegion = aNewValidRegion;
   Update(aNewValidRegion, aPaintRegion, aDirtyRegion);
@@ -924,9 +923,9 @@ void ClientMultiTiledLayerBuffer::Update(const nsIntRegion& newValidRegion,
   const TilesPlacement newTiles(floor_div(newBounds.x, scaledTileSize.width),
                           floor_div(newBounds.y, scaledTileSize.height),
                           floor_div(GetTileStart(newBounds.x, scaledTileSize.width)
-                                    + newBounds.width, scaledTileSize.width) + 1,
+                                    + newBounds.Width(), scaledTileSize.width) + 1,
                           floor_div(GetTileStart(newBounds.y, scaledTileSize.height)
-                                    + newBounds.height, scaledTileSize.height) + 1);
+                                    + newBounds.Height(), scaledTileSize.height) + 1);
 
   const size_t oldTileCount = mRetainedTiles.Length();
   const size_t newTileCount = newTiles.mSize.width * newTiles.mSize.height;
@@ -951,13 +950,15 @@ void ClientMultiTiledLayerBuffer::Update(const nsIntRegion& newValidRegion,
 
   oldRetainedTiles.Clear();
 
-  if (!aPaintRegion.IsEmpty()) {
+  nsIntRegion paintRegion = aPaintRegion;
+  nsIntRegion dirtyRegion = aDirtyRegion;
+  if (!paintRegion.IsEmpty()) {
     for (size_t i = 0; i < newTileCount; ++i) {
       const TileIntPoint tilePosition = newTiles.TilePosition(i);
 
       IntPoint tileOffset = GetTileOffset(tilePosition);
       nsIntRegion tileDrawRegion = IntRect(tileOffset, scaledTileSize);
-      tileDrawRegion.AndWith(aPaintRegion);
+      tileDrawRegion.AndWith(paintRegion);
 
       if (tileDrawRegion.IsEmpty()) {
         continue;
@@ -967,9 +968,13 @@ void ClientMultiTiledLayerBuffer::Update(const nsIntRegion& newValidRegion,
       if (!ValidateTile(tile, GetTileOffset(tilePosition), tileDrawRegion)) {
         gfxCriticalError() << "ValidateTile failed";
       }
+
+      // Validating the tile may have required more to be painted.
+      paintRegion.OrWith(tileDrawRegion);
+      dirtyRegion.OrWith(tileDrawRegion);
     }
 
-    if (mMoz2DTiles.size() > 0) {
+    if (!mMoz2DTiles.empty()) {
       gfx::TileSet tileset;
       for (size_t i = 0; i < mMoz2DTiles.size(); ++i) {
         mMoz2DTiles[i].mTileOrigin -= mTilingOrigin;
@@ -986,9 +991,9 @@ void ClientMultiTiledLayerBuffer::Update(const nsIntRegion& newValidRegion,
       RefPtr<gfxContext> ctx = gfxContext::CreateOrNull(drawTarget);
       MOZ_ASSERT(ctx); // already checked the draw target above
       ctx->SetMatrix(
-        ctx->CurrentMatrix().Scale(mResolution, mResolution).Translate(ThebesPoint(-mTilingOrigin)));
+        ctx->CurrentMatrix().PreScale(mResolution, mResolution).PreTranslate(-mTilingOrigin));
 
-      mCallback(&mPaintedLayer, ctx, aPaintRegion, aDirtyRegion,
+      mCallback(&mPaintedLayer, ctx, paintRegion, dirtyRegion,
                 DrawRegionClip::DRAW, nsIntRegion(), mCallbackData);
       mMoz2DTiles.clear();
       // Reset:
@@ -1015,7 +1020,7 @@ void ClientMultiTiledLayerBuffer::Update(const nsIntRegion& newValidRegion,
                                    GetTileSize().width, GetTileSize().height);
 
         nsIntRegion tileDrawRegion = IntRect(tileOffset, scaledTileSize);
-        tileDrawRegion.AndWith(aPaintRegion);
+        tileDrawRegion.AndWith(paintRegion);
 
         nsIntRegion tileValidRegion = mValidRegion;
         tileValidRegion.OrWith(tileDrawRegion);
@@ -1035,16 +1040,15 @@ void ClientMultiTiledLayerBuffer::Update(const nsIntRegion& newValidRegion,
 
   mTiles = newTiles;
   mValidRegion = newValidRegion;
-  mPaintedRegion.OrWith(aPaintRegion);
+  mPaintedRegion.OrWith(paintRegion);
 }
 
 bool
 ClientMultiTiledLayerBuffer::ValidateTile(TileClient& aTile,
                                           const nsIntPoint& aTileOrigin,
-                                          const nsIntRegion& aDirtyRegion)
+                                          nsIntRegion& aDirtyRegion)
 {
-  PROFILER_LABEL("ClientMultiTiledLayerBuffer", "ValidateTile",
-    js::ProfileEntry::Category::GRAPHICS);
+  AUTO_PROFILER_LABEL("ClientMultiTiledLayerBuffer::ValidateTile", GRAPHICS);
 
 #ifdef GFX_TILEDLAYER_PREF_WARNINGS
   if (aDirtyRegion.IsComplex()) {
@@ -1075,6 +1079,19 @@ ClientMultiTiledLayerBuffer::ValidateTile(TileClient& aTile,
                         extraPainted,
                         &backBufferOnWhite);
 
+  // Mark the area we need to paint in the back buffer as invalid in the
+  // front buffer as they will become out of sync.
+  aTile.mInvalidFront.OrWith(offsetScaledDirtyRegion);
+
+  // Add backbuffer's invalid region to the dirty region to be painted.
+  // This will be empty if we were able to copy from the front in to the back.
+  nsIntRegion invalidBack = aTile.mInvalidBack;
+  invalidBack.MoveBy(aTileOrigin);
+  invalidBack.ScaleInverseRoundOut(mResolution, mResolution);
+  invalidBack.AndWith(mNewValidRegion);
+  aDirtyRegion.OrWith(invalidBack);
+  offsetScaledDirtyRegion.OrWith(aTile.mInvalidBack);
+
   aTile.mUpdateRect = offsetScaledDirtyRegion.GetBounds().Union(extraPainted.GetBounds());
 
   extraPainted.MoveBy(aTileOrigin);
@@ -1104,16 +1121,9 @@ ClientMultiTiledLayerBuffer::ValidateTile(TileClient& aTile,
   mTilingOrigin.x = std::min(mTilingOrigin.x, moz2DTile.mTileOrigin.x);
   mTilingOrigin.y = std::min(mTilingOrigin.y, moz2DTile.mTileOrigin.y);
 
-  for (auto iter = aDirtyRegion.RectIter(); !iter.Done(); iter.Next()) {
-    const IntRect& dirtyRect = iter.Get();
-    gfx::Rect drawRect(dirtyRect.x - aTileOrigin.x,
-                       dirtyRect.y - aTileOrigin.y,
-                       dirtyRect.width,
-                       dirtyRect.height);
-    drawRect.Scale(mResolution);
-
-    // Mark the newly updated area as invalid in the front buffer
-    aTile.mInvalidFront.Or(aTile.mInvalidFront, IntRect::RoundOut(drawRect));
+  for (auto iter = offsetScaledDirtyRegion.RectIter(); !iter.Done(); iter.Next()) {
+    const gfx::Rect drawRect(iter.Get().x, iter.Get().y,
+                             iter.Get().width, iter.Get().height);
 
     if (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
       dt->FillRect(drawRect, ColorPattern(Color(0.0, 0.0, 0.0, 1.0)));
@@ -1206,8 +1216,9 @@ ClientMultiTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& a
     // non-low-precision paint, as in that situation, we're about to override
     // front-end's page/viewport metrics.
     if (!aPaintData->mFirstPaint || drawingLowPrecision) {
-      PROFILER_LABEL("ClientMultiTiledLayerBuffer", "ComputeProgressiveUpdateRegion",
-        js::ProfileEntry::Category::GRAPHICS);
+      AUTO_PROFILER_LABEL(
+        "ClientMultiTiledLayerBuffer::ComputeProgressiveUpdateRegion",
+        GRAPHICS);
 
       aRegionToPaint.SetEmpty();
       return aIsRepeated;
@@ -1218,7 +1229,7 @@ ClientMultiTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& a
     GetCompositorSideCompositionBounds(scrollAncestor,
                                        aPaintData->mTransformToCompBounds,
                                        viewTransform,
-                                       ViewAs<LayerPixel>(Rect(mPaintedLayer.GetLayerBounds())));
+                                       LayerRect(mPaintedLayer.GetVisibleRegion().GetBounds()));
 
   if (!transformedCompositionBounds) {
     aPaintData->mPaintFinished = true;
@@ -1234,8 +1245,6 @@ ClientMultiTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& a
   // we use a coherent update rect that is intersected with the screen at the
   // time of issuing the draw command. This will paint faster but also potentially
   // make the progressive paint more visible to the user while scrolling.
-  // On B2G uploads are cheaper and we value coherency more, especially outside
-  // the browser, so we always use the entire user-visible area.
   IntRect coherentUpdateRect(RoundedOut(
 #ifdef MOZ_WIDGET_ANDROID
     transformedCompositionBounds->Intersect(aPaintData->mCompositionBounds)
@@ -1338,9 +1347,10 @@ ClientMultiTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& a
 }
 
 bool
-ClientMultiTiledLayerBuffer::ProgressiveUpdate(nsIntRegion& aValidRegion,
-                                               nsIntRegion& aInvalidRegion,
+ClientMultiTiledLayerBuffer::ProgressiveUpdate(const nsIntRegion& aValidRegion,
+                                               const nsIntRegion& aInvalidRegion,
                                                const nsIntRegion& aOldValidRegion,
+                                               nsIntRegion& aOutDrawnRegion,
                                                BasicTiledLayerPaintData* aPaintData,
                                                LayerManager::DrawPaintedLayerCallback aCallback,
                                                void* aCallbackData)
@@ -1351,11 +1361,13 @@ ClientMultiTiledLayerBuffer::ProgressiveUpdate(nsIntRegion& aValidRegion,
 
   bool repeat = false;
   bool isBufferChanged = false;
+  nsIntRegion remainingInvalidRegion = aInvalidRegion;
+  nsIntRegion updatedValidRegion = aValidRegion;
   do {
     // Compute the region that should be updated. Repeat as many times as
     // is required.
     nsIntRegion regionToPaint;
-    repeat = ComputeProgressiveUpdateRegion(aInvalidRegion,
+    repeat = ComputeProgressiveUpdateRegion(remainingInvalidRegion,
                                             aOldValidRegion,
                                             regionToPaint,
                                             aPaintData,
@@ -1371,22 +1383,23 @@ ClientMultiTiledLayerBuffer::ProgressiveUpdate(nsIntRegion& aValidRegion,
     isBufferChanged = true;
 
     // Keep track of what we're about to refresh.
-    aValidRegion.Or(aValidRegion, regionToPaint);
+    aOutDrawnRegion.OrWith(regionToPaint);
+    updatedValidRegion.OrWith(regionToPaint);
 
     // aValidRegion may have been altered by InvalidateRegion, but we still
     // want to display stale content until it gets progressively updated.
     // Create a region that includes stale content.
     nsIntRegion validOrStale;
-    validOrStale.Or(aValidRegion, aOldValidRegion);
+    validOrStale.Or(updatedValidRegion, aOldValidRegion);
 
     // Paint the computed region and subtract it from the invalid region.
-    PaintThebes(validOrStale, regionToPaint, aInvalidRegion,
+    PaintThebes(validOrStale, regionToPaint, remainingInvalidRegion,
                 aCallback, aCallbackData, true);
-    aInvalidRegion.Sub(aInvalidRegion, regionToPaint);
+    remainingInvalidRegion.SubOut(regionToPaint);
   } while (repeat);
 
-  TILING_LOG("TILING %p: Progressive update final valid region %s buffer changed %d\n", &mPaintedLayer, Stringify(aValidRegion).c_str(), isBufferChanged);
-  TILING_LOG("TILING %p: Progressive update final invalid region %s\n", &mPaintedLayer, Stringify(aInvalidRegion).c_str());
+  TILING_LOG("TILING %p: Progressive update final valid region %s buffer changed %d\n", &mPaintedLayer, Stringify(updatedValidRegion).c_str(), isBufferChanged);
+  TILING_LOG("TILING %p: Progressive update final invalid region %s\n", &mPaintedLayer, Stringify(remainingInvalidRegion).c_str());
 
   // Return false if nothing has been drawn, or give what has been drawn
   // to the shadow layer to upload.
@@ -1398,13 +1411,6 @@ TiledContentClient::PrintInfo(std::stringstream& aStream, const char* aPrefix)
 {
   aStream << aPrefix;
   aStream << nsPrintfCString("%sTiledContentClient (0x%p)", mName, this).get();
-
-  if (profiler_feature_active("displaylistdump")) {
-    nsAutoCString pfx(aPrefix);
-    pfx += "  ";
-
-    Dump(aStream, pfx.get(), false);
-  }
 }
 
 void

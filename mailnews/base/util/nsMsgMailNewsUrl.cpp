@@ -7,7 +7,7 @@
 #include "nsMsgMailNewsUrl.h"
 #include "nsMsgBaseCID.h"
 #include "nsIMsgAccountManager.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsILoadGroup.h"
 #include "nsIDocShell.h"
 #include "nsIWebProgress.h"
@@ -28,6 +28,7 @@
 #include <algorithm>
 #include "nsProxyRelease.h"
 #include "mozilla/BasePrincipal.h"
+#include "mozilla/Encoding.h"
 
 nsMsgMailNewsUrl::nsMsgMailNewsUrl()
 {
@@ -59,19 +60,19 @@ nsMsgMailNewsUrl::~nsMsgMailNewsUrl()
   // so we must ensure that releases of XPCOM objects (which might be
   // implemented by non-threadsafe JS components) are released on the
   // main thread.
-  NS_ReleaseOnMainThread(m_baseURL.forget());
-  NS_ReleaseOnMainThread(mMimeHeaders.forget());
-  NS_ReleaseOnMainThread(m_searchSession.forget());
-  NS_ReleaseOnMainThread(mMsgHeaderSink.forget());
+  NS_ReleaseOnMainThreadSystemGroup("nsMsgMailNewsUrl::m_baseURL", m_baseURL.forget());
+  NS_ReleaseOnMainThreadSystemGroup("nsMsgMailNewsUrl::mMimeHeaders", mMimeHeaders.forget());
+  NS_ReleaseOnMainThreadSystemGroup("nsMsgMailNewsUrl::m_searchSession", m_searchSession.forget());
+  NS_ReleaseOnMainThreadSystemGroup("nsMsgMailNewsUrl::mMsgHeaderSink", mMsgHeaderSink.forget());
 
   nsTObserverArray<nsCOMPtr<nsIUrlListener>>::ForwardIterator iter(mUrlListeners);
   while (iter.HasMore()) {
     nsCOMPtr<nsIUrlListener> listener = iter.GetNext();
     if (listener)
-      NS_ReleaseOnMainThread(listener.forget());
+      NS_ReleaseOnMainThreadSystemGroup("nsMsgMailNewsUrl::mUrlListeners", listener.forget());
   }
 }
-  
+
 NS_IMPL_ADDREF(nsMsgMailNewsUrl)
 NS_IMPL_RELEASE(nsMsgMailNewsUrl)
 
@@ -82,7 +83,6 @@ NS_INTERFACE_MAP_BEGIN(nsMsgMailNewsUrl)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIMsgMailNewsUrl)
   NS_INTERFACE_MAP_ENTRY(nsIMsgMailNewsUrl)
   NS_INTERFACE_MAP_ENTRY(nsIURL)
-  NS_INTERFACE_MAP_ENTRY(nsIURIWithQuery)
   NS_INTERFACE_MAP_ENTRY(nsIURI)
   NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIURIWithPrincipal, !m_isPrincipalURL)
 NS_INTERFACE_MAP_END
@@ -107,7 +107,7 @@ NS_IMETHODIMP nsMsgMailNewsUrl::GetPrincipal(nsIPrincipal **aPrincipal)
     nsCOMPtr<nsIURI> uri;
     nsresult rv = NS_NewURI(getter_AddRefs(uri), spec);
     NS_ENSURE_SUCCESS(rv, rv);
-    mozilla::PrincipalOriginAttributes attrs;
+    mozilla::OriginAttributes attrs;
     m_principal = mozilla::BasePrincipal::CreateCodebasePrincipal(uri, attrs);
   }
 
@@ -146,7 +146,7 @@ nsresult nsMsgMailNewsUrl::SetUrlState(bool aRunningUrl, nsresult aExitCode)
     return NS_OK;
   m_runningUrl = aRunningUrl;
   nsCOMPtr <nsIMsgStatusFeedback> statusFeedback;
-  
+
   // put this back - we need it for urls that don't run through the doc loader
   if (NS_SUCCEEDED(GetStatusFeedback(getter_AddRefs(statusFeedback))) && statusFeedback)
   {
@@ -158,7 +158,7 @@ nsresult nsMsgMailNewsUrl::SetUrlState(bool aRunningUrl, nsresult aExitCode)
       statusFeedback->StopMeteors();
     }
   }
-  
+
   if (m_runningUrl)
   {
     NOTIFY_URL_LISTENERS(OnStartRunningUrl, (this));
@@ -168,7 +168,7 @@ nsresult nsMsgMailNewsUrl::SetUrlState(bool aRunningUrl, nsresult aExitCode)
     NOTIFY_URL_LISTENERS(OnStopRunningUrl, (this, aExitCode));
     mUrlListeners.Clear();
   }
-  
+
   return NS_OK;
 }
 
@@ -214,21 +214,21 @@ NS_IMETHODIMP nsMsgMailNewsUrl::GetServer(nsIMsgIncomingServer ** aIncomingServe
     if (NS_SUCCEEDED(rv))
     {
         if (scheme.EqualsLiteral("pop"))
-          scheme.Assign("pop3");
+          scheme.AssignLiteral("pop3");
         // we use "nntp" in the server list so translate it here.
         if (scheme.EqualsLiteral("news"))
-          scheme.Assign("nntp");
+          scheme.AssignLiteral("nntp");
         url->SetScheme(scheme);
-        nsCOMPtr<nsIMsgAccountManager> accountManager = 
+        nsCOMPtr<nsIMsgAccountManager> accountManager =
                  do_GetService(NS_MSGACCOUNTMANAGER_CONTRACTID, &rv);
         if (NS_FAILED(rv)) return rv;
-        
+
         nsCOMPtr<nsIMsgIncomingServer> server;
         rv = accountManager->FindServerByURI(url, false,
                                         aIncomingServer);
         if (!*aIncomingServer && scheme.EqualsLiteral("imap"))
         {
-          // look for any imap server with this host name so clicking on 
+          // look for any imap server with this host name so clicking on
           // other users folder urls will work. We could override this method
           // for imap urls, or we could make caching of servers work and
           // just set the server in the imap code for this case.
@@ -245,9 +245,9 @@ NS_IMETHODIMP nsMsgMailNewsUrl::GetMsgWindow(nsIMsgWindow **aMsgWindow)
 {
   NS_ENSURE_ARG_POINTER(aMsgWindow);
   *aMsgWindow = nullptr;
-  
+
   nsCOMPtr<nsIMsgWindow> msgWindow(do_QueryReferent(m_msgWindowWeak));
-  msgWindow.swap(*aMsgWindow);
+  msgWindow.forget(aMsgWindow);
   return *aMsgWindow ? NS_OK : NS_ERROR_NULL_POINTER;
 }
 
@@ -274,7 +274,7 @@ NS_IMETHODIMP nsMsgMailNewsUrl::GetStatusFeedback(nsIMsgStatusFeedback **aMsgFee
   else
   {
     nsCOMPtr<nsIMsgStatusFeedback> statusFeedback(do_QueryReferent(m_statusFeedbackWeak));
-    statusFeedback.swap(*aMsgFeedback);
+    statusFeedback.forget(aMsgFeedback);
   }
   return *aMsgFeedback ? NS_OK : NS_ERROR_NULL_POINTER;
 }
@@ -317,7 +317,7 @@ NS_IMETHODIMP nsMsgMailNewsUrl::GetLoadGroup(nsILoadGroup **aLoadGroup)
       m_loadGroupWeak = do_GetWeakReference(loadGroup);
     }
   }
-  loadGroup.swap(*aLoadGroup);
+  loadGroup.forget(aLoadGroup);
   return *aLoadGroup ? NS_OK : NS_ERROR_NULL_POINTER;
 }
 
@@ -336,7 +336,7 @@ NS_IMETHODIMP nsMsgMailNewsUrl::SetUpdatingFolder(bool updatingFolder)
 
 NS_IMETHODIMP nsMsgMailNewsUrl::GetMsgIsInLocalCache(bool *aMsgIsInLocalCache)
 {
-  NS_ENSURE_ARG(aMsgIsInLocalCache); 
+  NS_ENSURE_ARG(aMsgIsInLocalCache);
   *aMsgIsInLocalCache = m_msgIsInLocalCache;
   return NS_OK;
 }
@@ -349,7 +349,7 @@ NS_IMETHODIMP nsMsgMailNewsUrl::SetMsgIsInLocalCache(bool aMsgIsInLocalCache)
 
 NS_IMETHODIMP nsMsgMailNewsUrl::GetSuppressErrorMsgs(bool *aSuppressErrorMsgs)
 {
-  NS_ENSURE_ARG(aSuppressErrorMsgs); 
+  NS_ENSURE_ARG(aSuppressErrorMsgs);
   *aSuppressErrorMsgs = m_suppressErrorMsgs;
   return NS_OK;
 }
@@ -379,8 +379,7 @@ NS_IMETHODIMP nsMsgMailNewsUrl::SetSearchSession(nsIMsgSearchSession *aSearchSes
 NS_IMETHODIMP nsMsgMailNewsUrl::GetSearchSession(nsIMsgSearchSession **aSearchSession)
 {
   NS_ENSURE_ARG(aSearchSession);
-  *aSearchSession = m_searchSession;
-  NS_IF_ADDREF(*aSearchSession);
+  NS_IF_ADDREF(*aSearchSession = m_searchSession);
   return NS_OK;
 }
 
@@ -521,14 +520,14 @@ NS_IMETHODIMP nsMsgMailNewsUrl::SetPort(int32_t aPort)
   return m_baseURL->SetPort(aPort);
 }
 
-NS_IMETHODIMP nsMsgMailNewsUrl::GetPath(nsACString &aPath)
+NS_IMETHODIMP nsMsgMailNewsUrl::GetPathQueryRef(nsACString &aPath)
 {
-  return m_baseURL->GetPath(aPath);
+  return m_baseURL->GetPathQueryRef(aPath);
 }
 
-NS_IMETHODIMP nsMsgMailNewsUrl::SetPath(const nsACString &aPath)
+NS_IMETHODIMP nsMsgMailNewsUrl::SetPathQueryRef(const nsACString &aPath)
 {
-  return m_baseURL->SetPath(aPath);
+  return m_baseURL->SetPathQueryRef(aPath);
 }
 
 NS_IMETHODIMP nsMsgMailNewsUrl::GetAsciiHost(nsACString &aHostA)
@@ -544,11 +543,6 @@ NS_IMETHODIMP nsMsgMailNewsUrl::GetAsciiHostPort(nsACString &aHostPortA)
 NS_IMETHODIMP nsMsgMailNewsUrl::GetAsciiSpec(nsACString &aSpecA)
 {
     return m_baseURL->GetAsciiSpec(aSpecA);
-}
-
-NS_IMETHODIMP nsMsgMailNewsUrl::GetOriginCharset(nsACString &aOriginCharset)
-{
-    return m_baseURL->GetOriginCharset(aOriginCharset);
 }
 
 NS_IMETHODIMP nsMsgMailNewsUrl::GetBaseURI(nsIURI **aBaseURI)
@@ -583,6 +577,30 @@ NS_IMETHODIMP
 nsMsgMailNewsUrl::GetSpecIgnoringRef(nsACString &result)
 {
   return m_baseURL->GetSpecIgnoringRef(result);
+}
+
+NS_IMETHODIMP
+nsMsgMailNewsUrl::GetDisplaySpec(nsACString& aUnicodeSpec)
+{
+  return GetSpec(aUnicodeSpec);
+}
+
+NS_IMETHODIMP
+nsMsgMailNewsUrl::GetDisplayHostPort(nsACString& aUnicodeHostPort)
+{
+  return GetHostPort(aUnicodeHostPort);
+}
+
+NS_IMETHODIMP
+nsMsgMailNewsUrl::GetDisplayHost(nsACString& aUnicodeHost)
+{
+  return GetHost(aUnicodeHost);
+}
+
+NS_IMETHODIMP
+nsMsgMailNewsUrl::GetDisplayPrePath(nsACString& aPrePath)
+{
+  return GetPrePath(aPrePath);
 }
 
 NS_IMETHODIMP
@@ -647,14 +665,21 @@ nsMsgMailNewsUrl::CloneWithNewRef(const nsACString& newRef, nsIURI** _retval)
   return CloneInternal(nsIMsgMailNewsUrl::REPLACE_REF, newRef, _retval);
 }
 
-NS_IMETHODIMP nsMsgMailNewsUrl::Resolve(const nsACString &relativePath, nsACString &result) 
+NS_IMETHODIMP nsMsgMailNewsUrl::Resolve(const nsACString &relativePath, nsACString &result)
 {
   // only resolve anchor urls....i.e. urls which start with '#' against the mailnews url...
   // everything else shouldn't be resolved against mailnews urls.
   nsresult rv = NS_OK;
 
-  if (!relativePath.IsEmpty() && relativePath.First() == '#') // an anchor
-    return m_baseURL->Resolve(relativePath, result);
+  if (relativePath.IsEmpty())
+  {
+    // Return base URL.
+    rv = GetSpec(result);
+  }
+  else if (!relativePath.IsEmpty() && relativePath.First() == '#') // an anchor
+  {
+    rv = m_baseURL->Resolve(relativePath, result);
+  }
   else
   {
     // if relativePath is a complete url with it's own scheme then allow it...
@@ -744,6 +769,12 @@ NS_IMETHODIMP nsMsgMailNewsUrl::SetQuery(const nsACString &aQuery)
   return m_baseURL->SetQuery(aQuery);
 }
 
+NS_IMETHODIMP
+nsMsgMailNewsUrl::SetQueryWithEncoding(const nsACString &aQuery, const mozilla::Encoding* aEncoding)
+{
+  return m_baseURL->SetQueryWithEncoding(aQuery, aEncoding);
+}
+
 NS_IMETHODIMP nsMsgMailNewsUrl::GetRef(nsACString &aRef)
 {
   return m_baseURL->GetRef(aRef);
@@ -787,8 +818,7 @@ NS_IMETHODIMP nsMsgMailNewsUrl::GetMemCacheEntry(nsICacheEntry **memCacheEntry)
 
   if (m_memCacheEntry)
   {
-    *memCacheEntry = m_memCacheEntry;
-    NS_ADDREF(*memCacheEntry);
+    NS_ADDREF(*memCacheEntry = m_memCacheEntry);
   }
   else
   {
@@ -871,11 +901,11 @@ nsMsgSaveAsListener::OnStopRequest(nsIRequest *request, nsISupports * aCtxt, nsr
     m_outputStream->Close();
   }
   return NS_OK;
-} 
+}
 
-NS_IMETHODIMP nsMsgSaveAsListener::OnDataAvailable(nsIRequest* request, 
+NS_IMETHODIMP nsMsgSaveAsListener::OnDataAvailable(nsIRequest* request,
                                   nsISupports* aSupport,
-                                  nsIInputStream* inStream, 
+                                  nsIInputStream* inStream,
                                   uint64_t srcOffset,
                                   uint32_t count)
 {
@@ -893,10 +923,10 @@ NS_IMETHODIMP nsMsgSaveAsListener::OnDataAvailable(nsIRequest* request,
   nsCOMPtr <nsIMsgMessageUrl> msgUrl = do_QueryInterface(aSupport);
   if (msgUrl)
     msgUrl->GetCanonicalLineEnding(&useCanonicalEnding);
-  
+
   const char *lineEnding = (useCanonicalEnding) ? CRLF : MSG_LINEBREAK;
   uint32_t lineEndingLength = (useCanonicalEnding) ? 2 : MSG_LINEBREAK_LEN;
-  
+
   uint32_t readCount, maxReadCount = SAVE_BUF_SIZE - m_leftOver;
   uint32_t writeCount;
   char *start, *end, lastCharInPrevBuf = '\0';
@@ -920,14 +950,9 @@ NS_IMETHODIMP nsMsgSaveAsListener::OnDataAvailable(nsIRequest* request,
       if (lastCharInPrevBuf == '\r' && *start == '\n')
         start++;
 
-      end = PL_strchr(start, '\r');
-      if (!end)
-          end = PL_strchr(start, '\n');
-      else if (*(end+1) == '\n' && linebreak_len == 0)
-          linebreak_len = 2;
-
-      if (linebreak_len == 0) // not initialize yet
-          linebreak_len = 1;
+      end = PL_strpbrk(start, "\r\n");
+      if (end)
+        linebreak_len = (end[0] == '\r' && end[1] == '\n') ? 2 : 1;
 
       count -= readCount;
       maxReadCount = SAVE_BUF_SIZE - m_leftOver;
@@ -956,9 +981,9 @@ NS_IMETHODIMP nsMsgSaveAsListener::OnDataAvailable(nsIRequest* request,
               m_leftOver = 0;
               break;
           }
-          end = PL_strchr(start, '\r');
-          if (!end)
-              end = PL_strchr(start, '\n');
+          end = PL_strpbrk(start, "\r\n");
+          if (end)
+            linebreak_len = (end[0] == '\r' && end[1] == '\n') ? 2 : 1;
           if (start && !end)
           {
               m_leftOver -= (start - m_dataBuffer);
@@ -972,7 +997,7 @@ NS_IMETHODIMP nsMsgSaveAsListener::OnDataAvailable(nsIRequest* request,
           lastCharInPrevBuf = *end;
   }
   return rv;
-  
+
   //  rv = m_outputStream->WriteFrom(inStream, std::min(available, count), &bytesWritten);
 }
 
@@ -1018,7 +1043,7 @@ nsresult nsMsgSaveAsListener::SetupMsgWriteStream(nsIFile *aFile, bool addDummyE
 }
 
 
-NS_IMETHODIMP nsMsgMailNewsUrl::GetSaveAsListener(bool addDummyEnvelope, 
+NS_IMETHODIMP nsMsgMailNewsUrl::GetSaveAsListener(bool addDummyEnvelope,
                                                   nsIFile *aFile, nsIStreamListener **aSaveListener)
 {
   NS_ENSURE_ARG_POINTER(aSaveListener);

@@ -14,9 +14,9 @@
 <!ENTITY aboutNetworking.autoRefresh           "Oпресняване на всеки 3 секунди">
 <!ENTITY aboutNetworking.hostname              "Име на хост">
 <!ENTITY aboutNetworking.port                  "Порт">
-<!ENTITY aboutNetworking.spdy                  "SPDY">
+<!ENTITY aboutNetworking.http2                 "HTTP/2">
 <!ENTITY aboutNetworking.ssl                   "SSL">
-<!ENTITY aboutNetworking.active                "Активен">
+<!ENTITY aboutNetworking.active                "Включен">
 <!ENTITY aboutNetworking.idle                  "Бездействащ">
 <!ENTITY aboutNetworking.host                  "Хост">
 <!ENTITY aboutNetworking.tcp                   "TCP">
@@ -29,15 +29,30 @@
 <!ENTITY aboutNetworking.messagesReceived      "Съобщения получени">
 <!ENTITY aboutNetworking.bytesSent             "Байта изпратени">
 <!ENTITY aboutNetworking.bytesReceived         "Байта получени">
-<!ENTITY aboutNetworking.logging               "Журнали">
+<!ENTITY aboutNetworking.logging               "Журнал">
 <!ENTITY aboutNetworking.logTutorial           "Вижте <a href='https://developer.mozilla.org/docs/Mozilla/Debugging/HTTP_logging'>Журнали на HTTP</a> за инструкции как да използвате този инструмент.">
 <!ENTITY aboutNetworking.currentLogFile        "Текущ журнал:">
 <!ENTITY aboutNetworking.currentLogModules     "Текущи модули:">
-<!ENTITY aboutNetworking.setLogFile            "Избор на журнал">
-<!ENTITY aboutNetworking.setLogModules         "Избор на модули">
+<!ENTITY aboutNetworking.setLogFile            "Задаване на файлове за журнала">
+<!ENTITY aboutNetworking.setLogModules         "Задаване на модули за журнала">
 <!ENTITY aboutNetworking.startLogging          "Започване">
 <!ENTITY aboutNetworking.stopLogging           "Спиране">
 <!ENTITY aboutNetworking.dnsLookup             "Търсене в DNS">
 <!ENTITY aboutNetworking.dnsLookupButton       "Определяне">
 <!ENTITY aboutNetworking.dnsDomain             "Домейн">
 <!ENTITY aboutNetworking.dnsLookupTableColumn  "IP-та">
+<!ENTITY aboutNetworking.rcwn                  "Статистика на RCWN">
+<!ENTITY aboutNetworking.rcwnStatus            "Състояние на RCWN">
+<!ENTITY aboutNetworking.rcwnCacheWonCount     "Спечелени от кеша">
+<!ENTITY aboutNetworking.rcwnNetWonCount       "Спечелени от мрежата">
+<!ENTITY aboutNetworking.totalNetworkRequests  "Общ брой мрежови заявки">
+<!ENTITY aboutNetworking.rcwnOperation         "Действия с кеша">
+<!ENTITY aboutNetworking.rcwnPerfOpen          "Отваряне">
+<!ENTITY aboutNetworking.rcwnPerfRead          "Четене">
+<!ENTITY aboutNetworking.rcwnPerfWrite         "Писане">
+<!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Отваряне на елемент">
+<!ENTITY aboutNetworking.rcwnAvgShort          "Късо усреднение">
+<!ENTITY aboutNetworking.rcwnAvgLong           "Дълго усреднение">
+<!ENTITY aboutNetworking.rcwnStddevLong        "Дълго стандартно отклонение">
+<!ENTITY aboutNetworking.rcwnCacheSlow         "Брой бавен кеш">
+<!ENTITY aboutNetworking.rcwnCacheNotSlow      "Брой не бавен кеш">

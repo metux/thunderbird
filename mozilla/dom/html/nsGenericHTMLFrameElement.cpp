@@ -6,16 +6,13 @@
 
 #include "nsGenericHTMLFrameElement.h"
 
-#include "mozilla/dom/BrowserElementAudioChannel.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/HTMLIFrameElement.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/ErrorResult.h"
 #include "GeckoProfiler.h"
-#include "mozIApplication.h"
 #include "nsAttrValueInlines.h"
 #include "nsContentUtils.h"
-#include "nsIAppsService.h"
 #include "nsIDocShell.h"
 #include "nsIDOMDocument.h"
 #include "nsIFrame.h"
@@ -27,6 +24,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsSubDocumentFrame.h"
 #include "nsXULElement.h"
+#include "nsAttrValueOrString.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -38,7 +36,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsGenericHTMLFrameElement,
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mFrameLoader)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mOpenerWindow)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mBrowserElementAPI)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mBrowserElementAudioChannels)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsGenericHTMLFrameElement,
@@ -50,18 +47,15 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsGenericHTMLFrameElement,
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mFrameLoader)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mOpenerWindow)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mBrowserElementAPI)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mBrowserElementAudioChannels)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-NS_IMPL_ADDREF_INHERITED(nsGenericHTMLFrameElement, nsGenericHTMLElement)
-NS_IMPL_RELEASE_INHERITED(nsGenericHTMLFrameElement, nsGenericHTMLElement)
+NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(nsGenericHTMLFrameElement,
+                                             nsGenericHTMLElement,
+                                             nsIFrameLoaderOwner,
+                                             nsIDOMMozBrowserFrame,
+                                             nsIMozBrowserFrame,
+                                             nsGenericHTMLFrameElement)
 
-NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsGenericHTMLFrameElement)
-  NS_INTERFACE_TABLE_INHERITED(nsGenericHTMLFrameElement,
-                               nsIFrameLoaderOwner,
-                               nsIDOMMozBrowserFrame,
-                               nsIMozBrowserFrame)
-NS_INTERFACE_TABLE_TAIL_INHERITING(nsGenericHTMLElement)
 NS_IMPL_BOOL_ATTR(nsGenericHTMLFrameElement, Mozbrowser, mozbrowser)
 
 int32_t
@@ -191,31 +185,6 @@ nsGenericHTMLFrameElement::GetFrameLoader()
   return loader.forget();
 }
 
-NS_IMETHODIMP
-nsGenericHTMLFrameElement::GetParentApplication(mozIApplication** aApplication)
-{
-  if (!aApplication) {
-    return NS_ERROR_FAILURE;
-  }
-
-  *aApplication = nullptr;
-
-  nsIPrincipal *principal = NodePrincipal();
-  uint32_t appId = principal->GetAppId();
-
-  nsCOMPtr<nsIAppsService> appsService = do_GetService(APPS_SERVICE_CONTRACTID);
-  if (NS_WARN_IF(!appsService)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsresult rv = appsService->GetAppByLocalId(appId, aApplication);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  return NS_OK;
-}
-
 void
 nsGenericHTMLFrameElement::PresetOpenerWindow(mozIDOMWindowProxy* aWindow, ErrorResult& aRv)
 {
@@ -304,8 +273,7 @@ nsGenericHTMLFrameElement::BindToTree(nsIDocument* aDocument,
     NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),
                  "Missing a script blocker!");
 
-    PROFILER_LABEL("nsGenericHTMLFrameElement", "BindToTree",
-      js::ProfileEntry::Category::OTHER);
+    AUTO_PROFILER_LABEL("nsGenericHTMLFrameElement::BindToTree", OTHER);
 
     // We're in a document now.  Kick off the frame load.
     LoadSrc();
@@ -334,55 +302,6 @@ nsGenericHTMLFrameElement::UnbindFromTree(bool aDeep, bool aNullParent)
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
 }
 
-nsresult
-nsGenericHTMLFrameElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                                   nsIAtom* aPrefix, const nsAString& aValue,
-                                   bool aNotify)
-{
-  nsresult rv = nsGenericHTMLElement::SetAttr(aNameSpaceID, aName, aPrefix,
-                                              aValue, aNotify);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::src &&
-      (!IsHTMLElement(nsGkAtoms::iframe) ||
-       !HasAttr(kNameSpaceID_None,nsGkAtoms::srcdoc))) {
-    // Don't propagate error here. The attribute was successfully set, that's
-    // what we should reflect.
-    LoadSrc();
-  } else if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::name) {
-    // Propagate "name" to the docshell to make browsing context names live,
-    // per HTML5.
-    nsIDocShell *docShell = mFrameLoader ? mFrameLoader->GetExistingDocShell()
-                                         : nullptr;
-    if (docShell) {
-      docShell->SetName(aValue);
-    }
-  }
-
-  return NS_OK;
-}
-
-nsresult
-nsGenericHTMLFrameElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
-                                     bool aNotify)
-{
-  // Invoke on the superclass.
-  nsresult rv = nsGenericHTMLElement::UnsetAttr(aNameSpaceID, aAttribute, aNotify);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (aNameSpaceID == kNameSpaceID_None && aAttribute == nsGkAtoms::name) {
-    // Propagate "name" to the docshell to make browsing context names live,
-    // per HTML5.
-    nsIDocShell *docShell = mFrameLoader ? mFrameLoader->GetExistingDocShell()
-                                         : nullptr;
-    if (docShell) {
-      docShell->SetName(EmptyString());
-    }
-  }
-
-  return NS_OK;
-}
-
 /* static */ int32_t
 nsGenericHTMLFrameElement::MapScrollingAttribute(const nsAttrValue* aValue)
 {
@@ -399,37 +318,107 @@ nsGenericHTMLFrameElement::MapScrollingAttribute(const nsAttrValue* aValue)
   return mappedValue;
 }
 
+static bool
+PrincipalAllowsBrowserFrame(nsIPrincipal* aPrincipal)
+{
+  nsCOMPtr<nsIPermissionManager> permMgr = mozilla::services::GetPermissionManager();
+  NS_ENSURE_TRUE(permMgr, false);
+  uint32_t permission = nsIPermissionManager::DENY_ACTION;
+  nsresult rv = permMgr->TestPermissionFromPrincipal(aPrincipal, "browser", &permission);
+  NS_ENSURE_SUCCESS(rv, false);
+  return permission == nsIPermissionManager::ALLOW_ACTION;
+}
+
 /* virtual */ nsresult
-nsGenericHTMLFrameElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+nsGenericHTMLFrameElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                                         const nsAttrValue* aValue,
+                                        const nsAttrValue* aOldValue,
+                                        nsIPrincipal* aMaybeScriptedPrincipal,
                                         bool aNotify)
 {
-  if (aName == nsGkAtoms::scrolling && aNameSpaceID == kNameSpaceID_None) {
-    if (mFrameLoader) {
-      nsIDocShell* docshell = mFrameLoader->GetExistingDocShell();
-      nsCOMPtr<nsIScrollable> scrollable = do_QueryInterface(docshell);
-      if (scrollable) {
-        int32_t cur;
-        scrollable->GetDefaultScrollbarPreferences(nsIScrollable::ScrollOrientation_X, &cur);
-        int32_t val = MapScrollingAttribute(aValue);
-        if (cur != val) {
-          scrollable->SetDefaultScrollbarPreferences(nsIScrollable::ScrollOrientation_X, val);
-          scrollable->SetDefaultScrollbarPreferences(nsIScrollable::ScrollOrientation_Y, val);
-          RefPtr<nsPresContext> presContext;
-          docshell->GetPresContext(getter_AddRefs(presContext));
-          nsIPresShell* shell = presContext ? presContext->GetPresShell() : nullptr;
-          nsIFrame* rootScroll = shell ? shell->GetRootScrollFrame() : nullptr;
-          if (rootScroll) {
-            shell->FrameNeedsReflow(rootScroll, nsIPresShell::eStyleChange,
-                                    NS_FRAME_IS_DIRTY);
+  if (aValue) {
+    nsAttrValueOrString value(aValue);
+    AfterMaybeChangeAttr(aNameSpaceID, aName, &value, aMaybeScriptedPrincipal, aNotify);
+  } else {
+    AfterMaybeChangeAttr(aNameSpaceID, aName, nullptr, aMaybeScriptedPrincipal, aNotify);
+  }
+
+  if (aNameSpaceID == kNameSpaceID_None) {
+    if (aName == nsGkAtoms::scrolling) {
+      if (mFrameLoader) {
+        nsIDocShell* docshell = mFrameLoader->GetExistingDocShell();
+        nsCOMPtr<nsIScrollable> scrollable = do_QueryInterface(docshell);
+        if (scrollable) {
+          int32_t cur;
+          scrollable->GetDefaultScrollbarPreferences(nsIScrollable::ScrollOrientation_X, &cur);
+          int32_t val = MapScrollingAttribute(aValue);
+          if (cur != val) {
+            scrollable->SetDefaultScrollbarPreferences(nsIScrollable::ScrollOrientation_X, val);
+            scrollable->SetDefaultScrollbarPreferences(nsIScrollable::ScrollOrientation_Y, val);
+            RefPtr<nsPresContext> presContext;
+            docshell->GetPresContext(getter_AddRefs(presContext));
+            nsIPresShell* shell = presContext ? presContext->GetPresShell() : nullptr;
+            nsIFrame* rootScroll = shell ? shell->GetRootScrollFrame() : nullptr;
+            if (rootScroll) {
+              shell->FrameNeedsReflow(rootScroll, nsIPresShell::eStyleChange,
+                                      NS_FRAME_IS_DIRTY);
+            }
           }
         }
       }
+    } else if (aName == nsGkAtoms::mozbrowser) {
+      mReallyIsBrowser = !!aValue && BrowserFramesEnabled() &&
+                         PrincipalAllowsBrowserFrame(NodePrincipal());
     }
   }
 
   return nsGenericHTMLElement::AfterSetAttr(aNameSpaceID, aName, aValue,
-                                            aNotify);
+                                            aOldValue, aMaybeScriptedPrincipal, aNotify);
+}
+
+nsresult
+nsGenericHTMLFrameElement::OnAttrSetButNotChanged(int32_t aNamespaceID,
+                                                  nsAtom* aName,
+                                                  const nsAttrValueOrString& aValue,
+                                                  bool aNotify)
+{
+  AfterMaybeChangeAttr(aNamespaceID, aName, &aValue, nullptr, aNotify);
+
+  return nsGenericHTMLElement::OnAttrSetButNotChanged(aNamespaceID, aName,
+                                                      aValue, aNotify);
+}
+
+void
+nsGenericHTMLFrameElement::AfterMaybeChangeAttr(int32_t aNamespaceID,
+                                                nsAtom* aName,
+                                                const nsAttrValueOrString* aValue,
+                                                nsIPrincipal* aMaybeScriptedPrincipal,
+                                                bool aNotify)
+{
+  if (aNamespaceID == kNameSpaceID_None) {
+    if (aName == nsGkAtoms::src) {
+      mSrcTriggeringPrincipal = nsContentUtils::GetAttrTriggeringPrincipal(
+          this, aValue ? aValue->String() : EmptyString(), aMaybeScriptedPrincipal);
+      if (aValue && (!IsHTMLElement(nsGkAtoms::iframe) ||
+          !HasAttr(kNameSpaceID_None, nsGkAtoms::srcdoc))) {
+        // Don't propagate error here. The attribute was successfully set,
+        // that's what we should reflect.
+        LoadSrc();
+      }
+    } else if (aName == nsGkAtoms::name) {
+      // Propagate "name" to the docshell to make browsing context names live,
+      // per HTML5.
+      nsIDocShell* docShell = mFrameLoader ? mFrameLoader->GetExistingDocShell()
+                                           : nullptr;
+      if (docShell) {
+        if (aValue) {
+          docShell->SetName(aValue->String());
+        } else {
+          docShell->SetName(EmptyString());
+        }
+      }
+    }
+  }
 }
 
 void
@@ -444,9 +433,10 @@ nsGenericHTMLFrameElement::DestroyContent()
 }
 
 nsresult
-nsGenericHTMLFrameElement::CopyInnerTo(Element* aDest)
+nsGenericHTMLFrameElement::CopyInnerTo(Element* aDest,
+                                       bool aPreallocateChildren)
 {
-  nsresult rv = nsGenericHTMLElement::CopyInnerTo(aDest);
+  nsresult rv = nsGenericHTMLElement::CopyInnerTo(aDest, aPreallocateChildren);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsIDocument* doc = aDest->OwnerDoc();
@@ -480,81 +470,42 @@ nsGenericHTMLFrameElement::IsHTMLFocusable(bool aWithMouse,
   return false;
 }
 
+static bool sMozBrowserFramesEnabled = false;
+#ifdef DEBUG
+static bool sBoolVarCacheInitialized = false;
+#endif
+
+void
+nsGenericHTMLFrameElement::InitStatics()
+{
+  MOZ_ASSERT(!sBoolVarCacheInitialized);
+  MOZ_ASSERT(NS_IsMainThread());
+  Preferences::AddBoolVarCache(&sMozBrowserFramesEnabled,
+                               "dom.mozBrowserFramesEnabled");
+#ifdef DEBUG
+  sBoolVarCacheInitialized = true;
+#endif
+}
+
+
 bool
 nsGenericHTMLFrameElement::BrowserFramesEnabled()
 {
-  static bool sMozBrowserFramesEnabled = false;
-  static bool sBoolVarCacheInitialized = false;
-
-  if (!sBoolVarCacheInitialized) {
-    sBoolVarCacheInitialized = true;
-    Preferences::AddBoolVarCache(&sMozBrowserFramesEnabled,
-                                 "dom.mozBrowserFramesEnabled");
-  }
-
+  MOZ_ASSERT(sBoolVarCacheInitialized);
   return sMozBrowserFramesEnabled;
 }
 
 /**
- * Return true if this frame element really is a mozbrowser or mozapp.  (It
+ * Return true if this frame element really is a mozbrowser.  (It
  * needs to have the right attributes, and its creator must have the right
  * permissions.)
  */
 /* [infallible] */ nsresult
-nsGenericHTMLFrameElement::GetReallyIsBrowserOrApp(bool *aOut)
+nsGenericHTMLFrameElement::GetReallyIsBrowser(bool *aOut)
 {
-  *aOut = false;
-
-  // Fail if browser frames are globally disabled.
-  if (!nsGenericHTMLFrameElement::BrowserFramesEnabled()) {
-    return NS_OK;
-  }
-
-  // Fail if this frame doesn't have the mozbrowser attribute.
-  if (!GetBoolAttr(nsGkAtoms::mozbrowser)) {
-    return NS_OK;
-  }
-
-  // Fail if the node principal isn't trusted.
-  nsIPrincipal *principal = NodePrincipal();
-  nsCOMPtr<nsIPermissionManager> permMgr =
-    services::GetPermissionManager();
-  NS_ENSURE_TRUE(permMgr, NS_OK);
-
-  uint32_t permission = nsIPermissionManager::DENY_ACTION;
-  nsresult rv = permMgr->TestPermissionFromPrincipal(principal, "browser", &permission);
-  NS_ENSURE_SUCCESS(rv, NS_OK);
-  *aOut = permission == nsIPermissionManager::ALLOW_ACTION;
+  *aOut = mReallyIsBrowser;
   return NS_OK;
 }
-
-/* [infallible] */ NS_IMETHODIMP
-nsGenericHTMLFrameElement::GetReallyIsApp(bool *aOut)
-{
-  nsAutoString manifestURL;
-  GetAppManifestURL(manifestURL);
-
-  *aOut = !manifestURL.IsEmpty();
-  return NS_OK;
-}
-
-namespace {
-
-bool NestedEnabled()
-{
-  static bool sMozNestedEnabled = false;
-  static bool sBoolVarCacheInitialized = false;
-
-  if (!sBoolVarCacheInitialized) {
-    sBoolVarCacheInitialized = true;
-    Preferences::AddBoolVarCache(&sMozNestedEnabled,
-                                 "dom.ipc.tabs.nested.enabled");
-  }
-
-  return sMozNestedEnabled;
-}
-
-} // namespace
 
 /* [infallible] */ NS_IMETHODIMP
 nsGenericHTMLFrameElement::GetIsolated(bool *aOut)
@@ -567,91 +518,6 @@ nsGenericHTMLFrameElement::GetIsolated(bool *aOut)
 
   // Isolation is only disabled if the attribute is present
   *aOut = !HasAttr(kNameSpaceID_None, nsGkAtoms::noisolation);
-  return NS_OK;
-}
-
-/*
- * Get manifest url of app.
- */
-void nsGenericHTMLFrameElement::GetManifestURL(nsAString& aManifestURL)
-{
-  aManifestURL.Truncate();
-
-  nsAutoString manifestURL;
-  GetAttr(kNameSpaceID_None, nsGkAtoms::mozapp, manifestURL);
-  if (manifestURL.IsEmpty()) {
-    return;
-  }
-
-  // Check permission.
-  nsCOMPtr<nsIPermissionManager> permMgr = services::GetPermissionManager();
-  NS_ENSURE_TRUE_VOID(permMgr);
-  nsIPrincipal *principal = NodePrincipal();
-  const char* aPermissionType = "embed-apps";
-  uint32_t permission = nsIPermissionManager::DENY_ACTION;
-  nsresult rv = permMgr->TestPermissionFromPrincipal(principal,
-                                                     aPermissionType,
-                                                     &permission);
-  NS_ENSURE_SUCCESS_VOID(rv);
-  if (permission != nsIPermissionManager::ALLOW_ACTION) {
-    return;
-  }
-
-  nsCOMPtr<nsIAppsService> appsService = do_GetService(APPS_SERVICE_CONTRACTID);
-  NS_ENSURE_TRUE_VOID(appsService);
-
-  nsCOMPtr<mozIApplication> app;
-  appsService->GetAppByManifestURL(manifestURL, getter_AddRefs(app));
-
-  if (!app) {
-    return;
-  }
-
-  aManifestURL.Assign(manifestURL);
-}
-
-NS_IMETHODIMP
-nsGenericHTMLFrameElement::GetAppManifestURL(nsAString& aOut)
-{
-  aOut.Truncate();
-
-  // At the moment, you can't be an app without being a browser.
-  if (!nsIMozBrowserFrame::GetReallyIsBrowserOrApp()) {
-    return NS_OK;
-  }
-
-  // Only allow content process to embed an app when nested content
-  // process is enabled.
-  if (!XRE_IsParentProcess() &&
-      !(GetBoolAttr(nsGkAtoms::Remote) && NestedEnabled())){
-    NS_WARNING("Can't embed-apps. Embed-apps is restricted to in-proc apps "
-               "or content processes with nested pref enabled, see bug 1097479");
-    return NS_OK;
-  }
-
-  nsAutoString appManifestURL;
-
-  GetManifestURL(appManifestURL);
-
-  bool isApp = !appManifestURL.IsEmpty();
-
-  if (!isApp) {
-    // No valid case to get manifest
-    return NS_OK;
-  }
-
-  if (isApp) {
-    NS_WARNING("Can not simultaneously be mozapp");
-    return NS_OK;
-  }
-
-  nsAutoString manifestURL;
-  if (isApp) {
-    manifestURL.Assign(appManifestURL);
-  }
-
-  aOut.Assign(manifestURL);
-
   return NS_OK;
 }
 

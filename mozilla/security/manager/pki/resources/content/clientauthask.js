@@ -89,7 +89,7 @@ function onLoad() {
     let cert = certArray.queryElementAt(i, Ci.nsIX509Cert);
     let nickAndSerial =
       bundle.getFormattedString("clientAuthNickAndSerial",
-                                [cert.nickname, cert.serialNumber]);
+                                [cert.displayName, cert.serialNumber]);
     menuItemNode.setAttribute("value", i);
     menuItemNode.setAttribute("label", nickAndSerial); // This is displayed.
     selectElement.firstChild.appendChild(menuItemNode);
@@ -101,7 +101,7 @@ function onLoad() {
   setDetails();
 
   Services.obs.notifyObservers(document.getElementById("certAuthAsk"),
-                               "cert-dialog-loaded", null);
+                               "cert-dialog-loaded");
 }
 
 /**

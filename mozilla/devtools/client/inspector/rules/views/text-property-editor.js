@@ -27,6 +27,7 @@ const COLOR_SWATCH_CLASS = "ruleview-colorswatch";
 const BEZIER_SWATCH_CLASS = "ruleview-bezierswatch";
 const FILTER_SWATCH_CLASS = "ruleview-filterswatch";
 const ANGLE_SWATCH_CLASS = "ruleview-angleswatch";
+const INSET_POINT_TYPES = ["top", "right", "bottom", "left"];
 
 /*
  * An actionable element is an element which on click triggers a specific action
@@ -75,9 +76,10 @@ function TextPropertyEditor(ruleEditor, property) {
   this._onSwatchCommit = this._onSwatchCommit.bind(this);
   this._onSwatchPreview = this._onSwatchPreview.bind(this);
   this._onSwatchRevert = this._onSwatchRevert.bind(this);
-  this._onValidate = this.ruleView.throttle(this._previewValue, 10, this);
+  this._onValidate = this.ruleView.debounce(this._previewValue, 10, this);
   this.update = this.update.bind(this);
   this.updatePropertyState = this.updatePropertyState.bind(this);
+  this._onHoverShapePoint = this._onHoverShapePoint.bind(this);
 
   this._create();
   this.update();
@@ -108,7 +110,7 @@ TextPropertyEditor.prototype = {
     this.element._textPropertyEditor = this;
 
     this.container = createChild(this.element, "div", {
-      class: "ruleview-propertycontainer"
+      class: "ruleview-propertycontainer inline-tooltip-container"
     });
 
     // The enable checkbox will disable or enable the rule.
@@ -189,12 +191,18 @@ TextPropertyEditor.prototype = {
     this.filterProperty.addEventListener("click", event => {
       this.ruleEditor.ruleView.setFilterStyles("`" + this.prop.name + "`");
       event.stopPropagation();
-    }, false);
+    });
 
     // Holds the viewers for the computed properties.
     // will be populated in |_updateComputed|.
     this.computed = createChild(this.element, "ul", {
       class: "ruleview-computedlist",
+    });
+
+    // Holds the viewers for the overridden shorthand properties.
+    // will be populated in |_updateShorthandOverridden|.
+    this.shorthandOverridden = createChild(this.element, "ul", {
+      class: "ruleview-overridden-items",
     });
 
     // Only bind event handlers if the rule is editable.
@@ -209,7 +217,7 @@ TextPropertyEditor.prototype = {
         if (event.target === this.nameContainer) {
           this.nameSpan.click();
         }
-      }, false);
+      });
 
       editableField({
         start: this._onStartEditing,
@@ -220,12 +228,11 @@ TextPropertyEditor.prototype = {
         contentType: InplaceEditor.CONTENT_TYPES.CSS_PROPERTY,
         popup: this.popup,
         cssProperties: this.cssProperties,
-        contextMenu: this.ruleView.inspector.onTextBoxContextMenu
       });
 
       // Auto blur name field on multiple CSS rules get pasted in.
       this.nameContainer.addEventListener("paste",
-        blurOnMultipleProperties(this.cssProperties), false);
+        blurOnMultipleProperties(this.cssProperties));
 
       this.valueContainer.addEventListener("click", (event) => {
         // Clicks within the value shouldn't propagate any further.
@@ -235,7 +242,7 @@ TextPropertyEditor.prototype = {
         if (event.target === this.valueContainer) {
           this.valueSpan.click();
         }
-      }, false);
+      });
 
       // The mousedown event could trigger a blur event on nameContainer, which
       // will trigger a call to the update function. The update function clears
@@ -261,12 +268,12 @@ TextPropertyEditor.prototype = {
             index: similarElements.indexOf(clickedEl)
           };
         }
-      }, false);
+      });
 
       this.valueSpan.addEventListener("mouseup", (event) => {
         this._clickedElementOptions = null;
         this._hasPendingClick = false;
-      }, false);
+      });
 
       this.valueSpan.addEventListener("click", (event) => {
         let target = event.target;
@@ -274,9 +281,10 @@ TextPropertyEditor.prototype = {
         if (target.nodeName === "a") {
           event.stopPropagation();
           event.preventDefault();
-          this.browserWindow.openUILinkIn(target.href, "tab");
+          let browserWin = this.ruleView.inspector.target.tab.ownerDocument.defaultView;
+          browserWin.openUILinkIn(target.href, "tab");
         }
-      }, false);
+      });
 
       editableField({
         start: this._onStartEditing,
@@ -287,12 +295,14 @@ TextPropertyEditor.prototype = {
         advanceChars: advanceValidate,
         contentType: InplaceEditor.CONTENT_TYPES.CSS_VALUE,
         property: this.prop,
+        defaultIncrement: this.prop.name === "opacity" ? 0.1 : 1,
         popup: this.popup,
         multiline: true,
         maxWidth: () => this.container.getBoundingClientRect().width,
         cssProperties: this.cssProperties,
-        contextMenu: this.ruleView.inspector.onTextBoxContextMenu
       });
+
+      this.ruleView.highlighters.on("hover-shape-point", this._onHoverShapePoint);
     }
   },
 
@@ -351,9 +361,12 @@ TextPropertyEditor.prototype = {
       filterClass: "ruleview-filter",
       filterSwatchClass: SHARED_SWATCH_CLASS + " " + FILTER_SWATCH_CLASS,
       gridClass: "ruleview-grid",
+      shapeClass: "ruleview-shape",
       defaultColorType: !propDirty,
       urlClass: "theme-link",
-      baseURI: this.sheetHref
+      baseURI: this.sheetHref,
+      unmatchedVariableClass: "ruleview-variable-unmatched",
+      isVariableInUse: varName => this.rule.elementStyle.getVariable(varName),
     };
     let frag = outputParser.parseCssProperty(name, val, parserOptions);
     this.valueSpan.innerHTML = "";
@@ -368,7 +381,7 @@ TextPropertyEditor.prototype = {
       for (let span of this._colorSwatchSpans) {
         // Adding this swatch to the list of swatches our colorpicker
         // knows about
-        this.ruleView.tooltips.colorPicker.addSwatch(span, {
+        this.ruleView.tooltips.getTooltip("colorPicker").addSwatch(span, {
           onShow: this._onStartEditing,
           onPreview: this._onSwatchPreview,
           onCommit: this._onSwatchCommit,
@@ -377,6 +390,7 @@ TextPropertyEditor.prototype = {
         span.on("unit-change", this._onSwatchCommit);
         let title = l10n("rule.colorSwatch.tooltip");
         span.setAttribute("title", title);
+        span.dataset.propertyName = this.nameSpan.textContent;
       }
     }
 
@@ -387,7 +401,7 @@ TextPropertyEditor.prototype = {
       for (let span of this._bezierSwatchSpans) {
         // Adding this swatch to the list of swatches our colorpicker
         // knows about
-        this.ruleView.tooltips.cubicBezier.addSwatch(span, {
+        this.ruleView.tooltips.getTooltip("cubicBezier").addSwatch(span, {
           onShow: this._onStartEditing,
           onPreview: this._onSwatchPreview,
           onCommit: this._onSwatchCommit,
@@ -404,7 +418,7 @@ TextPropertyEditor.prototype = {
       if (span) {
         parserOptions.filterSwatch = true;
 
-        this.ruleView.tooltips.filterEditor.addSwatch(span, {
+        this.ruleView.tooltips.getTooltip("filterEditor").addSwatch(span, {
           onShow: this._onStartEditing,
           onPreview: this._onSwatchPreview,
           onCommit: this._onSwatchCommit,
@@ -434,6 +448,21 @@ TextPropertyEditor.prototype = {
       }
     }
 
+    let shapeToggle = this.valueSpan.querySelector(".ruleview-shape");
+    if (shapeToggle) {
+      let mode = "css" + name.split("-").map(s => {
+        return s[0].toUpperCase() + s.slice(1);
+      }).join("");
+      shapeToggle.setAttribute("data-mode", mode);
+
+      let { highlighters, inspector } = this.ruleView;
+      if (highlighters.shapesHighlighterShown === inspector.selection.nodeFront &&
+          highlighters.state.shapes.options.mode === mode) {
+        shapeToggle.classList.add("active");
+        highlighters.highlightRuleViewShapePoint(highlighters.state.shapes.hoverPoint);
+      }
+    }
+
     // Now that we have updated the property's value, we might have a pending
     // click on the value container. If we do, we have to trigger a click event
     // on the right element.
@@ -454,8 +483,9 @@ TextPropertyEditor.prototype = {
       elToClick.click();
     }
 
-    // Populate the computed styles.
+    // Populate the computed styles and shorthand overridden styles.
     this._updateComputed();
+    this._updateShorthandOverridden();
 
     // Update the rule property highlight.
     this.ruleView._updatePropertyHighlight(this);
@@ -469,7 +499,7 @@ TextPropertyEditor.prototype = {
 
   /**
    * Update the visibility of the enable checkbox, the warning indicator and
-   * the filter property, as well as the overriden state of the property.
+   * the filter property, as well as the overridden state of the property.
    */
   updatePropertyState: function () {
     if (this.prop.enabled) {
@@ -527,43 +557,84 @@ TextPropertyEditor.prototype = {
         continue;
       }
 
-      let li = createChild(this.computed, "li", {
-        class: "ruleview-computed"
-      });
-
-      if (computed.overridden) {
-        li.classList.add("ruleview-overridden");
-      }
-
-      createChild(li, "span", {
-        class: "ruleview-propertyname theme-fg-color5",
-        textContent: computed.name
-      });
-      appendText(li, ": ");
-
-      let outputParser = this.ruleView._outputParser;
-      let frag = outputParser.parseCssProperty(
-        computed.name, computed.value, {
-          colorSwatchClass: "ruleview-swatch ruleview-colorswatch",
-          urlClass: "theme-link",
-          baseURI: this.sheetHref
-        }
-      );
-
-      // Store the computed property value that was parsed for output
-      computed.parsedValue = frag.textContent;
-
-      createChild(li, "span", {
-        class: "ruleview-propertyvalue theme-fg-color1",
-        child: frag
-      });
-
-      appendText(li, ";");
-
       // Store the computed style element for easy access when highlighting
       // styles
-      computed.element = li;
+      computed.element = this._createComputedListItem(this.computed, computed,
+        "ruleview-computed");
     }
+  },
+
+  /**
+   * Update the indicator for overridden shorthand styles. The shorthand
+   * overridden styles themselves are populated on demand, when they
+   * become visible.
+   */
+  _updateShorthandOverridden: function () {
+    this.shorthandOverridden.innerHTML = "";
+
+    this._populatedShorthandOverridden = false;
+    this._populateShorthandOverridden();
+  },
+
+  /**
+   * Populate the list of overridden shorthand styles.
+   */
+  _populateShorthandOverridden: function () {
+    if (this._populatedShorthandOverridden || this.prop.overridden) {
+      return;
+    }
+    this._populatedShorthandOverridden = true;
+
+    for (let computed of this.prop.computed) {
+      // Don't display duplicate information or show properties
+      // that are completely overridden.
+      if (computed.name === this.prop.name || !computed.overridden) {
+        continue;
+      }
+
+      this._createComputedListItem(this.shorthandOverridden, computed,
+        "ruleview-overridden-item");
+    }
+  },
+
+  /**
+   * Creates and populates a list item with the computed CSS property.
+   */
+  _createComputedListItem: function (parentEl, computed, className) {
+    let li = createChild(parentEl, "li", {
+      class: className
+    });
+
+    if (computed.overridden) {
+      li.classList.add("ruleview-overridden");
+    }
+
+    createChild(li, "span", {
+      class: "ruleview-propertyname theme-fg-color5",
+      textContent: computed.name
+    });
+    appendText(li, ": ");
+
+    let outputParser = this.ruleView._outputParser;
+    let frag = outputParser.parseCssProperty(
+      computed.name, computed.value, {
+        colorSwatchClass: "ruleview-swatch ruleview-colorswatch",
+        urlClass: "theme-link",
+        baseURI: this.sheetHref
+      }
+    );
+
+    // Store the computed property value that was parsed for output
+    computed.parsedValue = frag.textContent;
+
+    createChild(li, "span", {
+      class: "ruleview-propertyvalue theme-fg-color1",
+      child: frag
+    });
+
+    appendText(li, ";");
+
+    return li;
   },
 
   /**
@@ -593,9 +664,12 @@ TextPropertyEditor.prototype = {
       this.expander.removeAttribute("open");
       this.computed.removeAttribute("filter-open");
       this.computed.removeAttribute("user-open");
+      this.shorthandOverridden.removeAttribute("hidden");
+      this._populateShorthandOverridden();
     } else {
       this.expander.setAttribute("open", "true");
       this.computed.setAttribute("user-open", "");
+      this.shorthandOverridden.setAttribute("hidden", "true");
       this._populateComputed();
     }
 
@@ -689,7 +763,7 @@ TextPropertyEditor.prototype = {
   remove: function (direction) {
     if (this._colorSwatchSpans && this._colorSwatchSpans.length) {
       for (let span of this._colorSwatchSpans) {
-        this.ruleView.tooltips.colorPicker.removeSwatch(span);
+        this.ruleView.tooltips.getTooltip("colorPicker").removeSwatch(span);
         span.off("unit-change", this._onSwatchCommit);
       }
     }
@@ -700,7 +774,7 @@ TextPropertyEditor.prototype = {
       }
     }
 
-    this.element.parentNode.removeChild(this.element);
+    this.element.remove();
     this.ruleEditor.rule.editClosestTextProperty(this.prop, direction);
     this.nameSpan.textProperty = null;
     this.valueSpan.textProperty = null;
@@ -736,7 +810,7 @@ TextPropertyEditor.prototype = {
     }
 
     if (this.isDisplayGrid()) {
-      this.ruleView.highlighters._hideGridHighlighter();
+      this.ruleView.highlighters.hideGridHighlighter();
     }
 
     // First, set this property value (common case, only modified a property)
@@ -846,7 +920,7 @@ TextPropertyEditor.prototype = {
    *        True if we're reverting the previously previewed value
    */
   _previewValue: function (value, reverting = false) {
-    // Since function call is throttled, we need to make sure we are still
+    // Since function call is debounced, we need to make sure we are still
     // editing, and any selector modifications have been completed
     if (!reverting && (!this.editing || this.ruleEditor.isEditing)) {
       return;
@@ -868,13 +942,76 @@ TextPropertyEditor.prototype = {
   },
 
   /**
-   * Returns true if the property is a `display: grid` declaration.
+   * Returns true if the property is a `display: [inline-]grid` declaration.
    *
-   * @return {Boolean} true if the property is a `display: grid` declaration.
+   * @return {Boolean} true if the property is a `display: [inline-]grid` declaration.
    */
   isDisplayGrid: function () {
-    return this.prop.name === "display" && this.prop.value === "grid";
-  }
+    return this.prop.name === "display" &&
+      (this.prop.value === "grid" ||
+       this.prop.value === "inline-grid");
+  },
+
+  /**
+   * Highlight the given shape point in the rule view. Called when "hover-shape-point"
+   * event is emitted.
+   *
+   * @param {Event} event
+   *        The "hover-shape-point" event.
+   * @param {String} point
+   *        The point to highlight.
+   */
+  _onHoverShapePoint: function (event, point) {
+    // If there is no shape toggle, or it is not active, return.
+    let shapeToggle = this.valueSpan.querySelector(".ruleview-shape.active");
+    if (!shapeToggle) {
+      return;
+    }
+
+    let view = this.ruleView;
+    let { highlighters } = view;
+    let ruleViewEl = view.element;
+    let selector = `.ruleview-shape-point.active`;
+    for (let pointNode of ruleViewEl.querySelectorAll(selector)) {
+      this._toggleShapePointActive(pointNode, false);
+    }
+
+    if (typeof point === "string") {
+      if (point.includes(",")) {
+        point = point.split(",")[0];
+      }
+      // Because one inset value can represent multiple points, inset points use classes
+      // instead of data.
+      selector = (INSET_POINT_TYPES.includes(point)) ?
+                 `.ruleview-shape-point.${point}` :
+                 `.ruleview-shape-point[data-point='${point}']`;
+      for (let pointNode of this.valueSpan.querySelectorAll(selector)) {
+        let nodeInfo = view.getNodeInfo(pointNode);
+        if (highlighters.isRuleViewShapePoint(nodeInfo)) {
+          this._toggleShapePointActive(pointNode, true);
+        }
+      }
+    }
+  },
+
+  /**
+   * Toggle the class "active" on the given shape point in the rule view if the current
+   * inspector selection is highlighted by the shapes highlighter.
+   *
+   * @param {NodeFront} node
+   *        The NodeFront of the shape point to toggle
+   * @param {Boolean} active
+   *        Whether the shape point should be active
+   */
+  _toggleShapePointActive: function (node, active) {
+    let { highlighters } = this.ruleView;
+    if (highlighters.inspector.selection.nodeFront !=
+        highlighters.shapesHighlighterShown) {
+      return;
+    }
+
+    node.classList.toggle("active", active);
+  },
 };
 
 exports.TextPropertyEditor = TextPropertyEditor;

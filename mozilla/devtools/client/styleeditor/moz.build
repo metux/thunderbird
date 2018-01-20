@@ -7,10 +7,13 @@
 BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
 
 DevToolsModules(
+    'original-source.js',
     'styleeditor-commands.js',
     'styleeditor-panel.js',
     'StyleEditorUI.jsm',
     'StyleEditorUtil.jsm',
     'StyleSheetEditor.jsm',
-    'utils.js',
 )
+
+with Files('**'):
+    BUG_COMPONENT = ('Firefox', 'Developer Tools: Style Editor')

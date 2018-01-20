@@ -31,7 +31,7 @@
 
 typedef mozilla::net::LoadContextInfo LoadContextInfo;
 
-// nsWyciwygChannel methods 
+// nsWyciwygChannel methods
 nsWyciwygChannel::nsWyciwygChannel()
   : mMode(NONE),
     mStatus(NS_OK),
@@ -44,10 +44,11 @@ nsWyciwygChannel::nsWyciwygChannel()
 {
 }
 
-nsWyciwygChannel::~nsWyciwygChannel() 
+nsWyciwygChannel::~nsWyciwygChannel()
 {
   if (mLoadInfo) {
-    NS_ReleaseOnMainThread(mLoadInfo.forget(), false);
+    NS_ReleaseOnMainThreadSystemGroup(
+      "nsWyciwygChannel::mLoadInfo", mLoadInfo.forget(), false);
   }
 }
 
@@ -80,7 +81,7 @@ nsWyciwygChannel::GetName(nsACString &aName)
 {
   return mURI->GetSpec(aName);
 }
- 
+
 NS_IMETHODIMP
 nsWyciwygChannel::IsPending(bool *aIsPending)
 {
@@ -107,7 +108,7 @@ nsWyciwygChannel::Cancel(nsresult status)
   // else we're waiting for OnCacheEntryAvailable
   return NS_OK;
 }
- 
+
 NS_IMETHODIMP
 nsWyciwygChannel::Suspend()
 {
@@ -116,7 +117,7 @@ nsWyciwygChannel::Suspend()
   // XXX else, we'll ignore this ... and that's probably bad!
   return NS_OK;
 }
- 
+
 NS_IMETHODIMP
 nsWyciwygChannel::Resume()
 {
@@ -164,6 +165,12 @@ nsWyciwygChannel::GetLoadFlags(uint32_t * aLoadFlags)
 {
   *aLoadFlags = mLoadFlags;
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWyciwygChannel::GetIsDocument(bool *aIsDocument)
+{
+  return NS_GetIsDocumentChannel(this, aIsDocument);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -249,7 +256,7 @@ nsWyciwygChannel::SetNotificationCallbacks(nsIInterfaceRequestor* aNotificationC
   return NS_OK;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsWyciwygChannel::GetSecurityInfo(nsISupports * *aSecurityInfo)
 {
   NS_IF_ADDREF(*aSecurityInfo = mSecurityInfo);
@@ -273,7 +280,7 @@ nsWyciwygChannel::SetContentType(const nsACString &aContentType)
 NS_IMETHODIMP
 nsWyciwygChannel::GetContentCharset(nsACString &aContentCharset)
 {
-  aContentCharset.AssignLiteral("UTF-16");
+  aContentCharset.AssignLiteral("UTF-16LE");
   return NS_OK;
 }
 
@@ -368,8 +375,10 @@ nsWyciwygChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *ctx)
   mIsPending = true;
   nsresult rv = OpenCacheEntryForReading(mURI);
   if (NS_FAILED(rv)) {
-    LOG(("nsWyciwygChannel::OpenCacheEntryForReading failed [rv=%x]\n", rv));
+    LOG(("nsWyciwygChannel::OpenCacheEntryForReading failed [rv=%" PRIx32 "]\n",
+         static_cast<uint32_t>(rv)));
     mIsPending = false;
+    mCallbacks = nullptr;
     return rv;
   }
 
@@ -390,7 +399,11 @@ nsWyciwygChannel::AsyncOpen2(nsIStreamListener *aListener)
 {
   nsCOMPtr<nsIStreamListener> listener = aListener;
   nsresult rv = nsContentSecurityManager::doContentSecurityCheck(this, listener);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+    mIsPending = false;
+    mCallbacks = nullptr;
+    return rv;
+  }
   return AsyncOpen(listener, nullptr);
 }
 
@@ -520,14 +533,14 @@ nsWyciwygChannel::GetCharsetAndSource(int32_t* aSource, nsACString& aCharset)
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  nsXPIDLCString data;
+  nsCString data;
   mCacheEntry->GetMetaDataElement("charset", getter_Copies(data));
 
   if (data.IsEmpty()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  nsXPIDLCString sourceStr;
+  nsCString sourceStr;
   mCacheEntry->GetMetaDataElement("charset-source", getter_Copies(sourceStr));
 
   int32_t source;
@@ -561,12 +574,12 @@ nsWyciwygChannel::OnCacheEntryAvailable(nsICacheEntry *aCacheEntry,
                                         nsresult aStatus)
 {
   LOG(("nsWyciwygChannel::OnCacheEntryAvailable [this=%p entry=%p "
-       "new=%d status=%x]\n", this, aCacheEntry, aNew, aStatus));
+       "new=%d status=%" PRIx32 "]\n", this, aCacheEntry, aNew, static_cast<uint32_t>(aStatus)));
 
   MOZ_RELEASE_ASSERT(!aNew, "New entry must not be returned when flag "
                             "OPEN_READONLY is used!");
 
-  // if the channel's already fired onStopRequest, 
+  // if the channel's already fired onStopRequest,
   // then we should ignore this event.
   if (!mIsPending)
     return NS_OK;
@@ -585,11 +598,13 @@ nsWyciwygChannel::OnCacheEntryAvailable(nsICacheEntry *aCacheEntry,
   }
 
   if (NS_FAILED(mStatus)) {
-    LOG(("channel was canceled [this=%p status=%x]\n", this, mStatus));
+    LOG(("channel was canceled [this=%p status=%" PRIx32 "]\n", this, static_cast<uint32_t>(mStatus)));
     // Since OnCacheEntryAvailable can be called directly from AsyncOpen
     // we must dispatch.
-    NS_DispatchToCurrentThread(mozilla::NewRunnableMethod(
-      this, &nsWyciwygChannel::NotifyListener));
+    NS_DispatchToCurrentThread(
+      mozilla::NewRunnableMethod("nsWyciwygChannel::NotifyListener",
+                                 this,
+                                 &nsWyciwygChannel::NotifyListener));
   }
 
   return NS_OK;
@@ -604,7 +619,7 @@ nsWyciwygChannel::OnDataAvailable(nsIRequest *request, nsISupports *ctx,
                                   nsIInputStream *input,
                                   uint64_t offset, uint32_t count)
 {
-  LOG(("nsWyciwygChannel::OnDataAvailable [this=%p request=%x offset=%llu count=%u]\n",
+  LOG(("nsWyciwygChannel::OnDataAvailable [this=%p request=%p offset=%" PRIu64 " count=%u]\n",
       this, request, offset, count));
 
   nsresult rv;
@@ -634,7 +649,7 @@ nsWyciwygChannel::OnDataAvailable(nsIRequest *request, nsISupports *ctx,
 NS_IMETHODIMP
 nsWyciwygChannel::OnStartRequest(nsIRequest *request, nsISupports *ctx)
 {
-  LOG(("nsWyciwygChannel::OnStartRequest [this=%p request=%x\n",
+  LOG(("nsWyciwygChannel::OnStartRequest [this=%p request=%p]\n",
       this, request));
 
   nsCOMPtr<nsIStreamListener> listener = mListener;
@@ -652,8 +667,8 @@ nsWyciwygChannel::OnStartRequest(nsIRequest *request, nsISupports *ctx)
 NS_IMETHODIMP
 nsWyciwygChannel::OnStopRequest(nsIRequest *request, nsISupports *ctx, nsresult status)
 {
-  LOG(("nsWyciwygChannel::OnStopRequest [this=%p request=%x status=%d\n",
-      this, request, status));
+  LOG(("nsWyciwygChannel::OnStopRequest [this=%p request=%p status=%" PRIu32 "]\n",
+       this, request, static_cast<uint32_t>(status)));
 
   if (NS_SUCCEEDED(mStatus))
     mStatus = status;

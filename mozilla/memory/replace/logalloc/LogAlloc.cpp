@@ -169,10 +169,6 @@ replace_get_bridge()
 /* Do a simple, text-form, log of all calls to replace-malloc functions.
  * Use locking to guarantee that an allocation that did happen is logged
  * before any other allocation/free happens.
- * TODO: Add a thread id to the log: different allocators, or even different
- * configurations of jemalloc behave differently when allocations are coming
- * from different threads. Reproducing those multi-threaded workloads would be
- * useful to test those differences.
  */
 
 void*
@@ -186,6 +182,7 @@ replace_malloc(size_t aSize)
   return ptr;
 }
 
+#ifndef LOGALLOC_MINIMAL
 int
 replace_posix_memalign(void** aPtr, size_t aAlignment, size_t aSize)
 {
@@ -209,6 +206,7 @@ replace_aligned_alloc(size_t aAlignment, size_t aSize)
   }
   return ptr;
 }
+#endif
 
 void*
 replace_calloc(size_t aNum, size_t aSize)
@@ -256,6 +254,7 @@ replace_memalign(size_t aAlignment, size_t aSize)
   return ptr;
 }
 
+#ifndef LOGALLOC_MINIMAL
 void*
 replace_valloc(size_t aSize)
 {
@@ -266,6 +265,7 @@ replace_valloc(size_t aSize)
   }
   return ptr;
 }
+#endif
 
 void
 replace_jemalloc_stats(jemalloc_stats_t* aStats)

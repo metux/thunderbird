@@ -34,6 +34,4 @@
 <!ENTITY certPicker.info  "Վկայագիր.">
 <!ENTITY certPicker.detailsLabel "Ընտրված Վկայագրի մանրամասները.">
 
-
-<!-- Strings for the cert picker dialog -->
 <!ENTITY certPicker.title "Select Certificate">

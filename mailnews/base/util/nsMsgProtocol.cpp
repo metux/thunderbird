@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "msgCore.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsMsgProtocol.h"
 #include "nsIMsgMailNewsUrl.h"
 #include "nsIMsgMailSession.h"
@@ -35,9 +35,11 @@
 #include "nsIAsyncInputStream.h"
 #include "nsIMsgIncomingServer.h"
 #include "nsIInputStreamPump.h"
+#include "nsICancelable.h"
 #include "nsMimeTypes.h"
 #include "nsAlgorithm.h"
 #include "mozilla/Services.h"
+#include "mozilla/SlicedInputStream.h"
 #include <algorithm>
 #include "nsContentSecurityManager.h"
 
@@ -103,7 +105,7 @@ nsMsgProtocol::GetQoSBits(uint8_t *aQoSBits)
 
   nsAutoCString prefName("mail.");
   prefName.Append(protocol);
-  prefName.Append(".qos");
+  prefName.AppendLiteral(".qos");
 
   nsresult rv;
   nsCOMPtr<nsIPrefBranch> prefBranch = do_GetService(NS_PREFSERVICE_CONTRACTID, &rv);
@@ -174,8 +176,8 @@ nsresult nsMsgProtocol::GetFileFromURL(nsIURI * aURL, nsIFile **aResult)
   NS_ENSURE_ARG_POINTER(aResult);
   // extract the file path from the uri...
   nsAutoCString urlSpec;
-  aURL->GetPath(urlSpec);
-  urlSpec.Insert(NS_LITERAL_CSTRING("file://"), 0);
+  aURL->GetPathQueryRef(urlSpec);
+  urlSpec.InsertLiteral("file://", 0);
   nsresult rv;
 
 // dougt - there should be an easier way!
@@ -190,7 +192,7 @@ nsresult nsMsgProtocol::GetFileFromURL(nsIURI * aURL, nsIFile **aResult)
   // dougt
 }
 
-nsresult nsMsgProtocol::OpenFileSocket(nsIURI * aURL, uint32_t aStartPosition, int32_t aReadCount)
+nsresult nsMsgProtocol::OpenFileSocket(nsIURI *aURL, uint64_t aStartPosition, int64_t aReadCount)
 {
   // mscott - file needs to be encoded directly into aURL. I should be able to get
   // rid of this method completely.
@@ -211,8 +213,12 @@ nsresult nsMsgProtocol::OpenFileSocket(nsIURI * aURL, uint32_t aStartPosition, i
       do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID, &rv);
   if (NS_FAILED(rv)) return rv;
 
-  rv = sts->CreateInputTransport(stream, int64_t(aStartPosition),
-                                 int64_t(aReadCount), true,
+  // This can be called with aReadCount == -1 which means "read as much as we can".
+  // We pass this on as UINT64_MAX, which is in fact uint64_t(-1).
+  RefPtr<SlicedInputStream> slicedStream =
+    new SlicedInputStream(stream.forget(), aStartPosition,
+                          aReadCount == -1 ? UINT64_MAX : uint64_t(aReadCount));
+  rv = sts->CreateInputTransport(slicedStream, true,
                                  getter_AddRefs(m_transport));
 
   m_socketIsOpen = false;
@@ -344,10 +350,10 @@ void nsMsgProtocol::ShowAlertMessage(nsIMsgMailNewsUrl *aMsgUrl, nsresult aStatu
      errorString = u"netTimeoutError";
      break;
   case NS_ERROR_NET_RESET:
-     errorString = u"unknownHostError"; // ESR HACK: Can't use new correct string "netResetError"
+     errorString = u"netResetError";
      break;
   case NS_ERROR_NET_INTERRUPT:
-     errorString = u"unknownHostError"; // ESR HACK: Can't use new correct string u"netInterruptError"
+     errorString = u"netInterruptError";
      break;
   default:
      // Leave the string as nullptr.
@@ -361,9 +367,9 @@ void nsMsgProtocol::ShowAlertMessage(nsIMsgMailNewsUrl *aMsgUrl, nsresult aStatu
     errorMsg.Adopt(FormatStringWithHostNameByName(errorString, aMsgUrl));
     if (errorMsg.IsEmpty())
     {
-      errorMsg.Assign(NS_LITERAL_STRING("[StringID "));
+      errorMsg.AssignLiteral(u"[StringID ");
       errorMsg.Append(errorString);
-      errorMsg.AppendLiteral("?]");
+      errorMsg.AppendLiteral(u"?]");
     }
 
     nsCOMPtr<nsIMsgMailSession> mailSession =
@@ -464,9 +470,21 @@ nsresult nsMsgProtocol::LoadUrl(nsIURI * aURL, nsISupports * aConsumer)
           if (NS_FAILED(rv)) return rv;
         }
 
+        int64_t offset = 0;
+        nsCOMPtr<nsISeekableStream> seekable(do_QueryInterface(m_inputStream));
+        if (seekable && NS_FAILED(seekable->Tell(&offset))) {
+          offset = 0;
+        }
+
+        // m_readCount can be -1 which means "read as much as we can".
+        // We pass this on as UINT64_MAX, which is in fact uint64_t(-1).
+        // We don't clone m_inputStream here, we simply give up ownership
+        // since otherwise the original would never be closed.
+        RefPtr<SlicedInputStream> slicedStream =
+          new SlicedInputStream(m_inputStream.forget(), uint64_t(offset),
+                                m_readCount == -1 ? UINT64_MAX : uint64_t(m_readCount));
         nsCOMPtr<nsIInputStreamPump> pump;
-        rv = NS_NewInputStreamPump(getter_AddRefs(pump),
-          m_inputStream, -1, m_readCount);
+        rv = NS_NewInputStreamPump(getter_AddRefs(pump), slicedStream);
         if (NS_FAILED(rv)) return rv;
 
         m_request = pump; // keep a reference to the pump so we can cancel it
@@ -502,8 +520,7 @@ NS_IMETHODIMP nsMsgProtocol::SetLoadGroup(nsILoadGroup * aLoadGroup)
 
 NS_IMETHODIMP nsMsgProtocol::GetOriginalURI(nsIURI* *aURI)
 {
-    *aURI = m_originalUrl ? m_originalUrl : m_url;
-    NS_IF_ADDREF(*aURI);
+    NS_IF_ADDREF(*aURI = m_originalUrl ? m_originalUrl : m_url);
     return NS_OK;
 }
 
@@ -515,8 +532,7 @@ NS_IMETHODIMP nsMsgProtocol::SetOriginalURI(nsIURI* aURI)
 
 NS_IMETHODIMP nsMsgProtocol::GetURI(nsIURI* *aURI)
 {
-    *aURI = m_url;
-    NS_IF_ADDREF(*aURI);
+    NS_IF_ADDREF(*aURI = m_url);
     return NS_OK;
 }
 
@@ -669,8 +685,7 @@ NS_IMETHODIMP nsMsgProtocol::GetName(nsACString &result)
 
 NS_IMETHODIMP nsMsgProtocol::GetOwner(nsISupports * *aPrincipal)
 {
-  *aPrincipal = mOwner;
-  NS_IF_ADDREF(*aPrincipal);
+  NS_IF_ADDREF(*aPrincipal = mOwner);
   return NS_OK;
 }
 
@@ -682,15 +697,13 @@ NS_IMETHODIMP nsMsgProtocol::SetOwner(nsISupports * aPrincipal)
 
 NS_IMETHODIMP nsMsgProtocol::GetLoadGroup(nsILoadGroup * *aLoadGroup)
 {
-  *aLoadGroup = m_loadGroup;
-  NS_IF_ADDREF(*aLoadGroup);
+  NS_IF_ADDREF(*aLoadGroup = m_loadGroup);
   return NS_OK;
 }
 
 NS_IMETHODIMP nsMsgProtocol::GetLoadInfo(nsILoadInfo **aLoadInfo)
 {
-  *aLoadInfo = m_loadInfo;
-  NS_IF_ADDREF(*aLoadInfo);
+  NS_IF_ADDREF(*aLoadInfo = m_loadInfo);
   return NS_OK;
 }
 
@@ -703,8 +716,7 @@ NS_IMETHODIMP nsMsgProtocol::SetLoadInfo(nsILoadInfo *aLoadInfo)
 NS_IMETHODIMP
 nsMsgProtocol::GetNotificationCallbacks(nsIInterfaceRequestor* *aNotificationCallbacks)
 {
-  *aNotificationCallbacks = mCallbacks.get();
-  NS_IF_ADDREF(*aNotificationCallbacks);
+  NS_IF_ADDREF(*aNotificationCallbacks = mCallbacks.get());
   return NS_OK;
 }
 
@@ -751,6 +763,12 @@ nsMsgProtocol::OnTransportStatus(nsITransport *transport, nsresult status,
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsMsgProtocol::GetIsDocument(bool *aIsDocument)
+{
+  return NS_GetIsDocumentChannel(this, aIsDocument);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // From nsIRequest
 ////////////////////////////////////////////////////////////////////////////////
@@ -772,11 +790,14 @@ NS_IMETHODIMP nsMsgProtocol::GetStatus(nsresult *status)
 
 NS_IMETHODIMP nsMsgProtocol::Cancel(nsresult status)
 {
-  NS_ASSERTION(m_request,"no channel");
-  if (!m_request)
-    return NS_ERROR_FAILURE;
+  if (m_proxyRequest)
+    m_proxyRequest->Cancel(status);
 
-  return m_request->Cancel(status);
+  if (m_request)
+    return m_request->Cancel(status);
+
+  NS_WARNING("no request to cancel");
+  return NS_ERROR_NOT_AVAILABLE;
 }
 
 NS_IMETHODIMP nsMsgProtocol::Suspend()
@@ -937,7 +958,7 @@ nsresult nsMsgProtocol::DoGSSAPIStep2(nsCString &commandResponse, nsCString &res
     return rv;
 }
 
-nsresult nsMsgProtocol::DoNtlmStep1(const char *username, const char *password, nsCString &response)
+nsresult nsMsgProtocol::DoNtlmStep1(const nsACString &username, const nsAString &password, nsCString &response)
 {
     nsresult rv;
 
@@ -947,7 +968,7 @@ nsresult nsMsgProtocol::DoNtlmStep1(const char *username, const char *password, 
         return rv;
 
     m_authModule->Init(nullptr, 0, nullptr, NS_ConvertUTF8toUTF16(username).get(),
-                       NS_ConvertUTF8toUTF16(password).get());
+                       nsPromiseFlatString(password).get());
 
     void *outBuf;
     uint32_t outBufLen;
@@ -1207,6 +1228,11 @@ nsMsgAsyncWriteProtocol::~nsMsgAsyncWriteProtocol()
 NS_IMETHODIMP nsMsgAsyncWriteProtocol::Cancel(nsresult status)
 {
   mGenerateProgressNotifications = false;
+
+  if (m_proxyRequest)
+  {
+    m_proxyRequest->Cancel(status);
+  }
 
   if (m_request)
     m_request->Cancel(status);
@@ -1503,7 +1529,8 @@ void nsMsgAsyncWriteProtocol::UpdateProgress(uint32_t aNewBytes)
     if (!webProgressListener) return;
 
     // XXX not sure if m_request is correct here
-    webProgressListener->OnProgressChange(nullptr, m_request, mNumBytesPosted, mFilePostSize, mNumBytesPosted, mFilePostSize);
+    webProgressListener->OnProgressChange(nullptr, m_request, mNumBytesPosted,
+      static_cast<uint32_t>(mFilePostSize), mNumBytesPosted, mFilePostSize);
   }
 
   return;
@@ -1532,7 +1559,6 @@ char16_t *FormatStringWithHostNameByName(const char16_t* stringName, nsIMsgMailN
   rv = sBundleService->CreateBundle(MSGS_URL, getter_AddRefs(sBundle));
   NS_ENSURE_SUCCESS(rv, nullptr);
 
-  char16_t *ptrv = nullptr;
   nsCOMPtr<nsIMsgIncomingServer> server;
   rv = msgUri->GetServer(getter_AddRefs(server));
   NS_ENSURE_SUCCESS(rv, nullptr);
@@ -1543,10 +1569,11 @@ char16_t *FormatStringWithHostNameByName(const char16_t* stringName, nsIMsgMailN
 
   NS_ConvertASCIItoUTF16 hostStr(hostName);
   const char16_t *params[] = { hostStr.get() };
-  rv = sBundle->FormatStringFromName(stringName, params, 1, &ptrv);
+  nsAutoString str;
+  rv = sBundle->FormatStringFromName(NS_ConvertUTF16toUTF8(stringName).get(), params, 1, str);
   NS_ENSURE_SUCCESS(rv, nullptr);
 
-  return ptrv;
+  return ToNewUnicode(str);
 }
 
 // vim: ts=2 sw=2

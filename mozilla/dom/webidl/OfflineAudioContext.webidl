@@ -10,14 +10,22 @@
  * liability, trademark and document use rules apply.
  */
 
-[Constructor(unsigned long numberOfChannels, unsigned long length, float sampleRate),
+dictionary OfflineAudioContextOptions {
+             unsigned long numberOfChannels = 1;
+    required unsigned long length;
+    required float         sampleRate;
+};
+
+[Constructor (OfflineAudioContextOptions contextOptions),
+Constructor(unsigned long numberOfChannels, unsigned long length, float sampleRate),
 Pref="dom.webaudio.enabled"]
-interface OfflineAudioContext : AudioContext {
+interface OfflineAudioContext : BaseAudioContext {
 
     [Throws]
     Promise<AudioBuffer> startRendering();
 
-    attribute EventHandler oncomplete;
-    readonly attribute unsigned long length;
+    // TODO: Promise<void>        suspend (double suspendTime);
 
+    readonly        attribute unsigned long length;
+                    attribute EventHandler  oncomplete;
 };

@@ -7,6 +7,7 @@
 #ifndef MOZILLA_DOM_OFFSCREENCANVAS_H_
 #define MOZILLA_DOM_OFFSCREENCANVAS_H_
 
+#include "gfxTypes.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/layers/LayersTypes.h"
 #include "mozilla/RefPtr.h"
@@ -111,7 +112,7 @@ public:
   }
 
   already_AddRefed<ImageBitmap>
-  TransferToImageBitmap();
+  TransferToImageBitmap(ErrorResult& aRv);
 
   already_AddRefed<Promise>
   ToBlob(JSContext* aCx,
@@ -124,7 +125,7 @@ public:
     return mCurrentContext;
   }
 
-  already_AddRefed<gfx::SourceSurface> GetSurfaceSnapshot(bool* aPremultAlpha = nullptr);
+  already_AddRefed<gfx::SourceSurface> GetSurfaceSnapshot(gfxAlphaType* aOutAlphaType = nullptr);
 
   static already_AddRefed<OffscreenCanvas>
   CreateFromCloneData(nsIGlobalObject* aGlobal, OffscreenCanvasCloneData* aData);

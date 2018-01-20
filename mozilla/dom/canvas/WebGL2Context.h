@@ -115,6 +115,17 @@ protected:
     ////////////////////////////////////
 
 public:
+    void CompressedTexImage3D(GLenum target, GLint level, GLenum internalFormat,
+                              GLsizei width, GLsizei height, GLsizei depth, GLint border,
+                              GLsizei imageSize, WebGLintptr offset)
+    {
+        const char funcName[] = "compressedTexImage3D";
+        const uint8_t funcDims = 3;
+        const TexImageSourceAdapter src(&offset, 0, 0);
+        CompressedTexImage(funcName, funcDims, target, level, internalFormat, width,
+                           height, depth, border, src, Some(imageSize));
+    }
+
     template<typename T>
     void CompressedTexImage3D(GLenum target, GLint level, GLenum internalFormat,
                               GLsizei width, GLsizei height, GLsizei depth, GLint border,
@@ -125,7 +136,19 @@ public:
         const uint8_t funcDims = 3;
         const TexImageSourceAdapter src(&anySrc, viewElemOffset, viewElemLengthOverride);
         CompressedTexImage(funcName, funcDims, target, level, internalFormat, width,
-                           height, depth, border, src);
+                           height, depth, border, src, Nothing());
+    }
+
+    void CompressedTexSubImage3D(GLenum target, GLint level, GLint xOffset, GLint yOffset,
+                                 GLint zOffset, GLsizei width, GLsizei height,
+                                 GLsizei depth, GLenum unpackFormat,
+                                 GLsizei imageSize, WebGLintptr offset)
+    {
+        const char funcName[] = "compressedTexSubImage3D";
+        const uint8_t funcDims = 3;
+        const TexImageSourceAdapter src(&offset, 0, 0);
+        CompressedTexSubImage(funcName, funcDims, target, level, xOffset, yOffset,
+                              zOffset, width, height, depth, unpackFormat, src, Some(imageSize));
     }
 
     template<typename T>
@@ -139,7 +162,7 @@ public:
         const uint8_t funcDims = 3;
         const TexImageSourceAdapter src(&anySrc, viewElemOffset, viewElemLengthOverride);
         CompressedTexSubImage(funcName, funcDims, target, level, xOffset, yOffset,
-                              zOffset, width, height, depth, unpackFormat, src);
+                              zOffset, width, height, depth, unpackFormat, src, Nothing());
     }
 
     ////////////////////////////////////
@@ -238,7 +261,16 @@ public:
 
     // -------------------------------------------------------------------------
     // Uniforms and attributes - WebGL2ContextUniforms.cpp
-    void VertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride, GLintptr offset);
+
+    void VertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride,
+                              WebGLintptr byteOffset)
+    {
+        const char funcName[] = "vertexAttribIPointer";
+        const bool isFuncInt = true;
+        const bool normalized = false;
+        VertexAttribAnyPointer(funcName, isFuncInt, index, size, type, normalized, stride,
+                               byteOffset);
+    }
 
     ////////////////
 
@@ -422,10 +454,6 @@ private:
 
     // CreateVertexArrayImpl is assumed to be infallible.
     virtual WebGLVertexArray* CreateVertexArrayImpl() override;
-    virtual bool ValidateAttribPointerType(bool integerMode, GLenum type,
-                                           uint32_t* alignment,
-                                           const char* info) override;
-    virtual bool ValidateUniformMatrixTranspose(bool transpose, const char* info) override;
 };
 
 } // namespace mozilla

@@ -86,3 +86,11 @@
 <!ENTITY insecureUnencrypted.description "Email dan autentikasi Anda akan dikirim tanpa enkripsi sehingga sandi (dan pesan Anda) dapat dibaca pihak lain dengan mudah.&brandShortName; akan tetap mengambil email Anda, tetapi sebaiknya Anda memberitahukan penyedia layanan email Anda untuk mengkonfigurasi servernya dengan menggunakan sambungan yang aman.">
 <!ENTITY insecureSelfSigned.description  "Server menggunakan sertifikat yang tidak dapat dipercaya, sehingga tidak dapat dipastikan adanya pihak yang mencuri dengan trafik data antara &brandShortName; dan server Anda. &brandShortName;  akan tetap mengambil email Anda, tetapi sebaiknya Anda memberitahukan penyedia layanan email Anda untuk mengkonfigurasi servernya dengan menggunakan sertifikat yang dapat dipercaya.">
 <!ENTITY secureServer.description        "Selamat! Server ini aman.">
+
+<!ENTITY autoconfigWizard2.title         "Set Up an Existing Email Account">
+<!ENTITY email2.placeholder              "you@example.com">
+<!ENTITY email.text                      "Your existing email address">
+<!ENTITY open-provisioner.label          "Get a new email address…">
+<!ENTITY open-provisioner.accesskey      "g">
+
+

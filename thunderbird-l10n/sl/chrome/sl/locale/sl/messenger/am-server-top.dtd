@@ -53,7 +53,7 @@
 <!ENTITY modelDeleteImmediately.label "ga odstrani takoj">
 <!ENTITY modelDeleteImmediately.accesskey "o">
 <!-- LOCALIZATION NOTE (expungeOnExit.label) : do not translate two of "&quot;" in below line -->
-<!ENTITY expungeOnExit.label "Počisti (&quot;Izbriši&quot;) mapo Prejeto ob izhodu">
+<!ENTITY expungeOnExit.label "Počisti (&quot;izprazni&quot;) mapo Prejeto ob izhodu">
 <!ENTITY expungeOnExit.accesskey "č">
 <!ENTITY emptyTrashOnExit.label "Ob izhodu izprazni Koš">
 <!ENTITY emptyTrashOnExit.accesskey "h">
@@ -79,9 +79,9 @@
 <!ENTITY serverDefaultCharset2.label "Privzeto kodiranje besedila:">
 <!ENTITY localPath.label "Krajevni imenik:">
 <!ENTITY localFolderPicker.label "Izberi krajevni imenik">
-<!ENTITY browseFolder.label "Brskaj …">
+<!ENTITY browseFolder.label "Prebrskaj …">
 <!ENTITY browseFolder.accesskey "B">
-<!ENTITY browseNewsrc.label "Brskaj …">
+<!ENTITY browseNewsrc.label "Prebrskaj …">
 <!ENTITY browseNewsrc.accesskey "k">
 
 <!ENTITY accountTitle.label "Nastavitve računa">

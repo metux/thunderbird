@@ -9,11 +9,12 @@
 const React = require("devtools/client/shared/vendor/react");
 const { connect } = require("devtools/client/shared/vendor/react-redux");
 
+const TreeView = React.createFactory(require("devtools/client/shared/components/tree/TreeView"));
+
 // Reps
-const { createFactories } = require("devtools/client/shared/components/reps/rep-utils");
-const TreeView = React.createFactory(require("devtools/client/shared/components/tree/tree-view"));
-const { Rep } = createFactories(require("devtools/client/shared/components/reps/rep"));
-const { Grip } = require("devtools/client/shared/components/reps/grip");
+const { REPS, MODE } = require("devtools/client/shared/components/reps/reps");
+const { Rep } = REPS;
+const Grip = REPS.Grip;
 
 // DOM Panel
 const { GripProvider } = require("../grip-provider");
@@ -29,10 +30,11 @@ var DomTree = React.createClass({
   displayName: "DomTree",
 
   propTypes: {
-    object: PropTypes.any,
-    filter: PropTypes.string,
     dispatch: PropTypes.func.isRequired,
+    filter: PropTypes.string,
     grips: PropTypes.object,
+    object: PropTypes.any,
+    openLink: PropTypes.func,
   },
 
   /**
@@ -51,6 +53,13 @@ var DomTree = React.createClass({
    * Render DOM panel content
    */
   render: function () {
+    let {
+      dispatch,
+      grips,
+      object,
+      openLink,
+    } = this.props;
+
     let columns = [{
       "id": "value"
     }];
@@ -67,13 +76,14 @@ var DomTree = React.createClass({
 
     return (
       TreeView({
-        object: this.props.object,
-        provider: new GripProvider(this.props.grips, this.props.dispatch),
+        columns,
         decorator: new DomDecorator(),
-        mode: "short",
-        columns: columns,
-        renderValue: renderValue,
-        onFilter: this.onFilter
+        mode: MODE.SHORT,
+        object,
+        onFilter: this.onFilter,
+        openLink,
+        provider: new GripProvider(grips, dispatch),
+        renderValue,
       })
     );
   }
@@ -88,4 +98,3 @@ const mapStateToProps = (state) => {
 
 // Exports from this module
 module.exports = connect(mapStateToProps)(DomTree);
-

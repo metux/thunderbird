@@ -9,6 +9,7 @@
 #include "CacheStorageService.h"
 #include "CacheHashUtils.h"
 #include "nsIEventTarget.h"
+#include "nsINamed.h"
 #include "nsITimer.h"
 #include "nsCOMPtr.h"
 #include "mozilla/Atomics.h"
@@ -259,10 +260,12 @@ NS_DEFINE_STATIC_IID_ACCESSOR(CacheFileIOListener, CACHEFILEIOLISTENER_IID)
 
 
 class CacheFileIOManager : public nsITimerCallback
+                         , public nsINamed
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSITIMERCALLBACK
+  NS_DECL_NSINAMED
 
   enum {
     OPEN         =  0U,
@@ -336,7 +339,10 @@ public:
                                  bool             aPinning);
   static nsresult UpdateIndexEntry(CacheFileHandle *aHandle,
                                    const uint32_t  *aFrecency,
-                                   const uint32_t  *aExpirationTime);
+                                   const uint32_t  *aExpirationTime,
+                                   const bool      *aHasAltData,
+                                   const uint16_t  *aOnStartTime,
+                                   const uint16_t  *aOnStopTime);
 
   static nsresult UpdateIndexEntry();
 
@@ -474,6 +480,10 @@ private:
   nsTArray<RefPtr<CacheFile> >         mScheduledMetadataWrites;
   nsCOMPtr<nsITimer>                   mMetadataWritesTimer;
   bool                                 mOverLimitEvicting;
+  // When overlimit eviction is too slow and cache size reaches 105% of the
+  // limit, this flag is set and no other content is cached to prevent
+  // uncontrolled cache growing.
+  bool                                 mCacheSizeOnHardLimit;
   bool                                 mRemovingTrashDirs;
   nsCOMPtr<nsITimer>                   mTrashTimer;
   nsCOMPtr<nsIFile>                    mTrashDir;

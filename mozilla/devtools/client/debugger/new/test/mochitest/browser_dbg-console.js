@@ -13,7 +13,7 @@ function getSplitConsole(dbg) {
   }
 
   if (!toolbox.splitConsole) {
-    EventUtils.synthesizeKey("VK_ESCAPE", {}, win);
+    pressKey(dbg, "Escape");
   }
 
   return new Promise(resolve => {
@@ -25,10 +25,22 @@ function getSplitConsole(dbg) {
   });
 }
 
-add_task(function* () {
+add_task(async function() {
   Services.prefs.setBoolPref("devtools.toolbox.splitconsoleEnabled", true);
-  const dbg = yield initDebugger("doc-script-switching.html");
+  const dbg = await initDebugger("doc-script-switching.html");
 
-  yield getSplitConsole(dbg);
+  await selectSource(dbg, "switching-01");
+
+  // open the console
+  await getSplitConsole(dbg);
   ok(dbg.toolbox.splitConsole, "Split console is shown.");
+
+  // close the console
+  await clickElement(dbg, "codeMirror");
+  // First time to focus out of text area
+  pressKey(dbg, "Escape");
+
+  // Second time to hide console
+  pressKey(dbg, "Escape");
+  ok(!dbg.toolbox.splitConsole, "Split console is hidden.");
 });

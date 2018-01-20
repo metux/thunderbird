@@ -22,14 +22,13 @@ var MigrationWizard = { /* exported MigrationWizard */
   _migrator: null,
   _autoMigrate: null,
 
-  init: function ()
-  {
+  init() {
     let os = Services.obs;
-    os.addObserver(this, "Migration:Started", false);
-    os.addObserver(this, "Migration:ItemBeforeMigrate", false);
-    os.addObserver(this, "Migration:ItemAfterMigrate", false);
-    os.addObserver(this, "Migration:ItemError", false);
-    os.addObserver(this, "Migration:Ended", false);
+    os.addObserver(this, "Migration:Started");
+    os.addObserver(this, "Migration:ItemBeforeMigrate");
+    os.addObserver(this, "Migration:ItemAfterMigrate");
+    os.addObserver(this, "Migration:ItemError");
+    os.addObserver(this, "Migration:Ended");
 
     this._wiz = document.documentElement;
 
@@ -58,10 +57,8 @@ var MigrationWizard = { /* exported MigrationWizard */
     this.onImportSourcePageShow();
   },
 
-  uninit: function ()
-  {
-    var os = Components.classes["@mozilla.org/observer-service;1"]
-                       .getService(Components.interfaces.nsIObserverService);
+  uninit() {
+    var os = Services.obs;
     os.removeObserver(this, "Migration:Started");
     os.removeObserver(this, "Migration:ItemBeforeMigrate");
     os.removeObserver(this, "Migration:ItemAfterMigrate");
@@ -71,8 +68,7 @@ var MigrationWizard = { /* exported MigrationWizard */
   },
 
   // 1 - Import Source
-  onImportSourcePageShow: function ()
-  {
+  onImportSourcePageShow() {
     // Show warning message to close the selected browser when needed
     function toggleCloseBrowserWarning() {
       let visibility = "hidden";
@@ -137,8 +133,7 @@ var MigrationWizard = { /* exported MigrationWizard */
     }
   },
 
-  onImportSourcePageAdvanced: function ()
-  {
+  onImportSourcePageAdvanced() {
     var newSource = document.getElementById("importSourceGroup").selectedItem.id;
 
     if (newSource == "nothing") {
@@ -164,11 +159,9 @@ var MigrationWizard = { /* exported MigrationWizard */
     var sourceProfiles = this._migrator.sourceProfiles;
     if (this._skipImportSourcePage) {
       this._wiz.currentPage.next = "homePageImport";
-    }
-    else if (sourceProfiles && sourceProfiles.length > 1) {
+    } else if (sourceProfiles && sourceProfiles.length > 1) {
       this._wiz.currentPage.next = "selectProfile";
-    }
-    else {
+    } else {
       if (this._autoMigrate)
         this._wiz.currentPage.next = "homePageImport";
       else
@@ -183,8 +176,7 @@ var MigrationWizard = { /* exported MigrationWizard */
   },
 
   // 2 - [Profile Selection]
-  onSelectProfilePageShow: function ()
-  {
+  onSelectProfilePageShow() {
     // Disabling this for now, since we ask about import sources in automigration
     // too and don't want to disable the back button
     // if (this._autoMigrate)
@@ -192,7 +184,7 @@ var MigrationWizard = { /* exported MigrationWizard */
 
     var profiles = document.getElementById("profiles");
     while (profiles.hasChildNodes())
-      profiles.removeChild(profiles.firstChild);
+      profiles.firstChild.remove();
 
     // Note that this block is still reached even if the user chose 'From File'
     // and we canceled the dialog.  When that happens, _migrator will be null.
@@ -210,16 +202,14 @@ var MigrationWizard = { /* exported MigrationWizard */
     profiles.selectedItem = this._selectedProfile ? document.getElementById(this._selectedProfile.id) : profiles.firstChild;
   },
 
-  onSelectProfilePageRewound: function ()
-  {
+  onSelectProfilePageRewound() {
     var profiles = document.getElementById("profiles");
     this._selectedProfile = this._migrator.sourceProfiles.find(
       profile => profile.id == profiles.selectedItem.id
     ) || null;
   },
 
-  onSelectProfilePageAdvanced: function ()
-  {
+  onSelectProfilePageAdvanced() {
     var profiles = document.getElementById("profiles");
     this._selectedProfile = this._migrator.sourceProfiles.find(
       profile => profile.id == profiles.selectedItem.id
@@ -231,11 +221,10 @@ var MigrationWizard = { /* exported MigrationWizard */
   },
 
   // 3 - ImportItems
-  onImportItemsPageShow: function ()
-  {
+  onImportItemsPageShow() {
     var dataSources = document.getElementById("dataSources");
     while (dataSources.hasChildNodes())
-      dataSources.removeChild(dataSources.firstChild);
+      dataSources.firstChild.remove();
 
     var items = this._migrator.getMigrateData(this._selectedProfile, this._autoMigrate);
     for (var i = 0; i < 16; ++i) {
@@ -252,14 +241,12 @@ var MigrationWizard = { /* exported MigrationWizard */
     }
   },
 
-  onImportItemsPageRewound: function ()
-  {
+  onImportItemsPageRewound() {
     this._wiz.canAdvance = true;
     this.onImportItemsPageAdvanced();
   },
 
-  onImportItemsPageAdvanced: function ()
-  {
+  onImportItemsPageAdvanced() {
     var dataSources = document.getElementById("dataSources");
     this._itemsFlags = 0;
     for (var i = 0; i < dataSources.childNodes.length; ++i) {
@@ -269,8 +256,7 @@ var MigrationWizard = { /* exported MigrationWizard */
     }
   },
 
-  onImportItemCommand: function ()
-  {
+  onImportItemCommand() {
     var items = document.getElementById("dataSources");
     var checkboxes = items.getElementsByTagName("checkbox");
 
@@ -286,8 +272,7 @@ var MigrationWizard = { /* exported MigrationWizard */
   },
 
   // 4 - Home Page Selection
-  onHomePageMigrationPageShow: function ()
-  {
+  onHomePageMigrationPageShow() {
     // only want this on the first run
     if (!this._autoMigrate) {
       this._wiz.advance();
@@ -302,8 +287,7 @@ var MigrationWizard = { /* exported MigrationWizard */
       pageTitle = brandBundle.getString("homePageMigrationPageTitle");
       pageDesc = brandBundle.getString("homePageMigrationDescription");
       mainStr = brandBundle.getString("homePageSingleStartMain");
-    }
-    catch (e) {
+    } catch (e) {
       this._wiz.advance();
       return;
     }
@@ -331,15 +315,13 @@ var MigrationWizard = { /* exported MigrationWizard */
       oldHomePage.setAttribute("label", oldHomePageLabel);
       oldHomePage.setAttribute("value", oldHomePageURL);
       oldHomePage.removeAttribute("hidden");
-    }
-    else {
+    } else {
       // if we don't have at least two options, just advance
       this._wiz.advance();
     }
   },
 
-  onHomePageMigrationPageAdvanced: function ()
-  {
+  onHomePageMigrationPageAdvanced() {
     // we might not have a selectedItem if we're in fallback mode
     try {
       var radioGroup = document.getElementById("homePageRadiogroup");
@@ -349,8 +331,7 @@ var MigrationWizard = { /* exported MigrationWizard */
   },
 
   // 5 - Migrating
-  onMigratingPageShow: function ()
-  {
+  onMigratingPageShow() {
     this._wiz.getButton("cancel").disabled = true;
     this._wiz.canRewind = false;
     this._wiz.canAdvance = false;
@@ -363,8 +344,7 @@ var MigrationWizard = { /* exported MigrationWizard */
     setTimeout(() => this.onMigratingMigrate(), 0);
   },
 
-  onMigratingMigrate: function ()
-  {
+  onMigratingMigrate() {
     this._migrator.migrate(this._itemsFlags, this._autoMigrate, this._selectedProfile);
 
     Services.telemetry.getHistogramById("FX_MIGRATION_SOURCE_BROWSER")
@@ -383,11 +363,10 @@ var MigrationWizard = { /* exported MigrationWizard */
     }
   },
 
-  _listItems: function (aID)
-  {
+  _listItems(aID) {
     var items = document.getElementById(aID);
     while (items.hasChildNodes())
-      items.removeChild(items.firstChild);
+      items.firstChild.remove();
 
     var itemID;
     for (var i = 0; i < 16; ++i) {
@@ -399,8 +378,7 @@ var MigrationWizard = { /* exported MigrationWizard */
           label.setAttribute("value",
             MigrationUtils.getLocalizedString(itemID + "_" + this._source));
           items.appendChild(label);
-        }
-        catch (e) {
+        } catch (e) {
           // if the block above throws, we've enumerated all the import data types we
           // currently support and are now just wasting time, break.
           break;
@@ -409,8 +387,7 @@ var MigrationWizard = { /* exported MigrationWizard */
     }
   },
 
-  observe: function (aSubject, aTopic, aData)
-  {
+  observe(aSubject, aTopic, aData) {
     var label;
     switch (aTopic) {
       case "Migration:Started":
@@ -441,27 +418,16 @@ var MigrationWizard = { /* exported MigrationWizard */
           if (this._newHomePage) {
             try {
               // set homepage properly
-              var prefSvc = Components.classes["@mozilla.org/preferences-service;1"]
-                                      .getService(Components.interfaces.nsIPrefService);
-              var prefBranch = prefSvc.getBranch(null);
-
               if (this._newHomePage == "DEFAULT") {
-                prefBranch.clearUserPref("browser.startup.homepage");
-              }
-              else {
-                var str = Components.classes["@mozilla.org/supports-string;1"]
-                                  .createInstance(Components.interfaces.nsISupportsString);
-                str.data = this._newHomePage;
-                prefBranch.setComplexValue("browser.startup.homepage",
-                                           Components.interfaces.nsISupportsString,
-                                           str);
+                Services.prefs.clearUserPref("browser.startup.homepage");
+              } else {
+                Services.prefs.setStringPref("browser.startup.homepage",
+                                             this._newHomePage);
               }
 
-              var dirSvc = Components.classes["@mozilla.org/file/directory_service;1"]
-                                     .getService(Components.interfaces.nsIProperties);
-              var prefFile = dirSvc.get("ProfDS", Components.interfaces.nsIFile);
+              var prefFile = Services.dirsvc.get("ProfDS", Components.interfaces.nsIFile);
               prefFile.append("prefs.js");
-              prefSvc.savePrefFile(prefFile);
+              Services.prefs.savePrefFile(prefFile);
             } catch (ex) {
               dump(ex);
             }
@@ -472,8 +438,7 @@ var MigrationWizard = { /* exported MigrationWizard */
           this._wiz.advance();
 
           setTimeout(close, 5000);
-        }
-        else {
+        } else {
           this._wiz.canAdvance = true;
           var nextButton = this._wiz.getButton("next");
           nextButton.click();
@@ -505,17 +470,14 @@ var MigrationWizard = { /* exported MigrationWizard */
             type = "misc. data";
             break;
         }
-        Cc["@mozilla.org/consoleservice;1"]
-          .getService(Ci.nsIConsoleService)
-          .logStringMessage("some " + type + " did not successfully migrate.");
+        Services.console.logStringMessage("some " + type + " did not successfully migrate.");
         Services.telemetry.getKeyedHistogramById("FX_MIGRATION_ERRORS")
                           .add(this._source, Math.log2(numericType));
         break;
     }
   },
 
-  onDonePageShow: function ()
-  {
+  onDonePageShow() {
     this._wiz.getButton("cancel").disabled = true;
     this._wiz.canRewind = false;
     this._listItems("doneItems");

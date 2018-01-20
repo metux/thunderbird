@@ -17,7 +17,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(FileSystemRootDirectoryEntry,
 NS_IMPL_ADDREF_INHERITED(FileSystemRootDirectoryEntry, FileSystemDirectoryEntry)
 NS_IMPL_RELEASE_INHERITED(FileSystemRootDirectoryEntry, FileSystemDirectoryEntry)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(FileSystemRootDirectoryEntry)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(FileSystemRootDirectoryEntry)
 NS_INTERFACE_MAP_END_INHERITING(FileSystemDirectoryEntry)
 
 FileSystemRootDirectoryEntry::FileSystemRootDirectoryEntry(nsIGlobalObject* aGlobal,
@@ -115,8 +115,9 @@ FileSystemRootDirectoryEntry::GetInternal(const nsAString& aPath,
     if (aSuccessCallback.WasPassed()) {
       RefPtr<EntryCallbackRunnable> runnable =
         new EntryCallbackRunnable(&aSuccessCallback.Value(), entry);
-      DebugOnly<nsresult> rv = NS_DispatchToMainThread(runnable);
-      NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "NS_DispatchToMainThread failed");
+
+      FileSystemUtils::DispatchRunnable(GetParentObject(), runnable.forget());
+
     }
     return;
   }

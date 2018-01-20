@@ -932,34 +932,34 @@
 <!-- Mac OS X Dock Icon pop-up menu -->
 <!ENTITY dockOptions.label              "Sovelluskuvakkeen asetukset…">
 
-<!ENTITY addonDebugCmd.accesskey "A">
-<!ENTITY addonDebugCmd.label "Add-on Debugger">
-<!ENTITY contextKillSubthreadMenu.accesskey "b">
-<!-- LOCALIZATION NOTE (contextWatchThreadMenu.accesskey):
-     In the en-US locale we ran out of access keys, so there is an empty access key for
-     Watch Thread. Localizers can pick a suitable key
-  -->
-<!ENTITY contextWatchThreadMenu.accesskey "">
+<!ENTITY getNextNMsgCmd2.label "Get Next News Messages">
+<!ENTITY getNextNMsgCmd2.accesskey "t">
+<!ENTITY folderPaneBar.accesskey "F">
+<!ENTITY goChatCmd2.key "H">
+<!ENTITY newMsgFromTemplateCmd.label "New Message from Template">
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN">
+<!ENTITY devtoolsMenu.label "Developer Tools">
+<!ENTITY devtoolsMenu.accesskey "e">
+<!ENTITY devToolboxCmd.label "Developer Toolbox">
 <!ENTITY devToolboxCmd.accesskey "T">
 <!ENTITY devToolboxCmd.commandkey "i">
-<!ENTITY devToolboxCmd.label "Developer Toolbox">
-<!ENTITY devtoolsMenu.accesskey "e">
-
-<!-- Developer Tools Submenu -->
-<!ENTITY devtoolsMenu.label "Developer Tools">
-<!ENTITY folderPaneBar.accesskey "F">
-<!ENTITY openConversationButton.label "Conversation">
-<!ENTITY openConversationButton.tooltip "Show conversation of selected message">
+<!ENTITY addonDebugCmd.label "Add-on Debugger">
+<!ENTITY addonDebugCmd.accesskey "A">
+<!ENTITY tabsDebugCmd.label "Content Frame Debugger">
+<!ENTITY tabsDebugCmd.accesskey "C">
+<!ENTITY scratchpadCmd.label "Scratchpad">
 <!ENTITY scratchpadCmd.accesskey "S">
 
-<!--LOCALIZATION NOTE (scratchpadCmd.keycode):
-    This should be a key code constant as per
-    https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode#Constants_for_keyCode_value
-    (but without the DOM_ prefix) -->
 <!ENTITY scratchpadCmd.keycode "VK_F4">
-<!--LOCALIZATION NOTE (scratchpadCmd.keytext):
-    This should be the text printed on the key defined in the previous string. -->
 <!ENTITY scratchpadCmd.keytext "F4">
-<!ENTITY scratchpadCmd.label "Scratchpad">
-<!ENTITY tabsDebugCmd.accesskey "C">
-<!ENTITY tabsDebugCmd.label "Content Frame Debugger">
+
+<!ENTITY openConversationButton.label "Conversation">
+<!ENTITY openConversationButton.tooltip "Show conversation of selected message">
+<!ENTITY folderContextPauseAllUpdates.label "Pause All Updates">
+<!ENTITY folderContextPauseUpdates.label "Pause Updates">
+<!ENTITY folderContextPauseUpdates.accesskey "U">
+<!ENTITY contextNewMsgFromTemplate.label "New Message from Template">
+<!ENTITY contextKillSubthreadMenu.accesskey "b">
+<!ENTITY contextWatchThreadMenu.accesskey "">
+<!ENTITY writeNewMessageDock.label      "Write New Message">
+<!ENTITY openAddressBookDock.label      "Open Address Book">

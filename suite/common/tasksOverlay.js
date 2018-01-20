@@ -28,15 +28,9 @@ function ExpirePassword()
 
 function toDownloadManager()
 {
-  //Ported extensions may only implement the Basic toolkit Interface
-  //and not our progress dialogs.
-  var dlUI = Components.classes["@mozilla.org/download-manager-ui;1"]
-                       .getService(Components.interfaces.nsIDownloadManagerUI);
-  if (dlUI instanceof Components.interfaces.nsISuiteDownloadManagerUI) {
-    dlUI.showManager(window);
-  } else {
-    dlUI.show(window);
-  }
+  Components.classes["@mozilla.org/suite/suiteglue;1"]
+            .getService(Components.interfaces.nsISuiteGlue)
+            .showDownloadManager();
 }
 
 function toDataManager(aView)
@@ -251,7 +245,7 @@ function toProfileManager()
     params.SetString(0, "menu");
     window.openDialog("chrome://communicator/content/profile/profileSelection.xul",
                 "",
-                "centerscreen,chrome,titlebar",
+                "centerscreen,chrome,titlebar,resizable",
                 params);
   }
   // Here, we don't care about the result code

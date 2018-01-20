@@ -53,7 +53,7 @@ public:
   bool IsInEffect() const;
   bool IsActiveDurationZero() const
   {
-    return SpecifiedTiming().ActiveDuration() == StickyTimeDuration();
+    return !SpecifiedTiming().ActiveDuration();
   }
 
   already_AddRefed<AnimationEffectTimingReadOnly> Timing();
@@ -84,6 +84,14 @@ public:
 
   virtual void SetAnimation(Animation* aAnimation) = 0;
   Animation* GetAnimation() const { return mAnimation; };
+
+  /**
+   * Returns true if this effect animates one of the properties we consider
+   * geometric properties, e.g. properties such as 'width' or 'margin-left'
+   * that we try to synchronize with transform animations, on a valid target
+   * element.
+   */
+  virtual bool AffectsGeometry() const = 0;
 
 protected:
   virtual ~AnimationEffectReadOnly();

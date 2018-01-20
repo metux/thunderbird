@@ -4,38 +4,39 @@
 
 package org.mozilla.gecko;
 
-import org.mozilla.gecko.menu.GeckoMenu;
-import org.mozilla.gecko.menu.GeckoMenuItem;
 import org.mozilla.gecko.util.ResourceDrawableUtils;
 import org.mozilla.gecko.text.TextSelection;
-import org.mozilla.gecko.util.GeckoEventListener;
+import org.mozilla.gecko.util.BundleEventListener;
+import org.mozilla.gecko.util.EventCallback;
+import org.mozilla.gecko.util.GeckoBundle;
 import org.mozilla.gecko.util.ThreadUtils;
-import org.mozilla.gecko.ActionModeCompat.Callback;
+import org.mozilla.gecko.widget.ActionModePresenter;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.v7.view.ActionMode;
+import android.view.Menu;
 import android.view.MenuItem;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
+import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import android.util.Log;
 
-class ActionBarTextSelection implements TextSelection, GeckoEventListener {
+public class ActionBarTextSelection implements TextSelection, BundleEventListener {
     private static final String LOGTAG = "GeckoTextSelection";
     private static final int SHUTDOWN_DELAY_MS = 250;
 
-    private final Context context;
+    private final GeckoView geckoView;
+    private final ActionModePresenter presenter;
 
-    private boolean mDraggingHandles;
+    private int selectionID; // Unique ID provided for each selection action.
 
-    private String selectionID; // Unique ID provided for each selection action.
-
-    private String mCurrentItems;
+    private GeckoBundle[] mCurrentItems;
 
     private TextSelectionActionModeCallback mCallback;
 
@@ -55,22 +56,18 @@ class ActionBarTextSelection implements TextSelection, GeckoEventListener {
     };
     private ActionModeTimerTask mActionModeTimerTask;
 
-    ActionBarTextSelection(Context context) {
-        this.context = context;
+    public ActionBarTextSelection(@NonNull final GeckoView geckoView,
+                                  @Nullable final ActionModePresenter presenter) {
+        this.geckoView = geckoView;
+        this.presenter = presenter;
     }
 
     @Override
     public void create() {
-        // Only register listeners if we have valid start/middle/end handles
-        if (context == null) {
-            Log.e(LOGTAG, "Failed to initialize text selection because at least one context is null");
-        } else {
-            GeckoApp.getEventDispatcher().registerGeckoThreadListener(this,
+        geckoView.getEventDispatcher().registerUiThreadListener(this,
                 "TextSelection:ActionbarInit",
                 "TextSelection:ActionbarStatus",
-                "TextSelection:ActionbarUninit",
-                "TextSelection:Update");
-        }
+                "TextSelection:ActionbarUninit");
     }
 
     @Override
@@ -81,176 +78,140 @@ class ActionBarTextSelection implements TextSelection, GeckoEventListener {
 
     @Override
     public void destroy() {
-        if (context == null) {
-            Log.e(LOGTAG, "Do not unregister TextSelection:* listeners since context is null");
-        } else {
-            GeckoApp.getEventDispatcher().unregisterGeckoThreadListener(this,
-                    "TextSelection:ActionbarInit",
-                    "TextSelection:ActionbarStatus",
-                    "TextSelection:ActionbarUninit",
-                    "TextSelection:Update");
-        }
+        geckoView.getEventDispatcher().unregisterUiThreadListener(this,
+                "TextSelection:ActionbarInit",
+                "TextSelection:ActionbarStatus",
+                "TextSelection:ActionbarUninit");
     }
 
     @Override
-    public void handleMessage(final String event, final JSONObject message) {
-        ThreadUtils.postToUiThread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (event.equals("TextSelection:Update")) {
-                        if (mActionModeTimerTask != null)
-                            mActionModeTimerTask.cancel();
-                        showActionMode(message.getJSONArray("actions"));
-                    } else if (event.equals("TextSelection:ActionbarInit")) {
-                        // Init / Open the action bar. Note the current selectionID,
-                        // cancel any pending actionBar close.
-                        Telemetry.sendUIEvent(TelemetryContract.Event.SHOW,
-                            TelemetryContract.Method.CONTENT, "text_selection");
+    public void handleMessage(final String event, final GeckoBundle message,
+                              final EventCallback callback) {
+        if ("TextSelection:ActionbarInit".equals(event)) {
+            // Init / Open the action bar. Note the current selectionID,
+            // cancel any pending actionBar close.
+            Telemetry.sendUIEvent(TelemetryContract.Event.SHOW,
+                TelemetryContract.Method.CONTENT, "text_selection");
 
-                        selectionID = message.getString("selectionID");
-                        mCurrentItems = null;
-                        if (mActionModeTimerTask != null) {
-                            mActionModeTimerTask.cancel();
-                        }
-
-                    } else if (event.equals("TextSelection:ActionbarStatus")) {
-                        // Ensure async updates from SearchService for example are valid.
-                        if (selectionID != message.optString("selectionID")) {
-                            return;
-                        }
-
-                        // Update the actionBar actions as provided by Gecko.
-                        showActionMode(message.getJSONArray("actions"));
-
-                    } else if (event.equals("TextSelection:ActionbarUninit")) {
-                        // Uninit the actionbar. Schedule a cancellable close
-                        // action to avoid UI jank. (During SelectionAll for ex).
-                        mCurrentItems = null;
-                        mActionModeTimerTask = new ActionModeTimerTask();
-                        mActionModeTimer.schedule(mActionModeTimerTask, SHUTDOWN_DELAY_MS);
-                    }
-
-                } catch (JSONException e) {
-                    Log.e(LOGTAG, "JSON exception", e);
-                }
+            selectionID = message.getInt("selectionID");
+            mCurrentItems = null;
+            if (mActionModeTimerTask != null) {
+                mActionModeTimerTask.cancel();
             }
-        });
+
+        } else if ("TextSelection:ActionbarStatus".equals(event)) {
+            // Ensure async updates from SearchService for example are valid.
+            if (selectionID != message.getInt("selectionID")) {
+                return;
+            }
+
+            // Update the actionBar actions as provided by Gecko.
+            showActionMode(message.getBundleArray("actions"));
+
+        } else if ("TextSelection:ActionbarUninit".equals(event)) {
+            // Uninit the actionbar. Schedule a cancellable close
+            // action to avoid UI jank. (During SelectionAll for ex).
+            mCurrentItems = null;
+            mActionModeTimerTask = new ActionModeTimerTask();
+            mActionModeTimer.schedule(mActionModeTimerTask, SHUTDOWN_DELAY_MS);
+        }
     }
 
-    private void showActionMode(final JSONArray items) {
-        String itemsString = items.toString();
-        if (itemsString.equals(mCurrentItems)) {
+    private void showActionMode(final GeckoBundle[] items) {
+        if (Arrays.equals(items, mCurrentItems)) {
             return;
         }
-        mCurrentItems = itemsString;
+        mCurrentItems = items;
 
         if (mCallback != null) {
             mCallback.updateItems(items);
             return;
         }
 
-        if (context instanceof ActionModeCompat.Presenter) {
-            final ActionModeCompat.Presenter presenter = (ActionModeCompat.Presenter) context;
+        if (presenter != null) {
             mCallback = new TextSelectionActionModeCallback(items);
-            presenter.startActionModeCompat(mCallback);
-            mCallback.animateIn();
+            presenter.startActionMode(mCallback);
         }
     }
 
     private void endActionMode() {
-        if (context instanceof ActionModeCompat.Presenter) {
-            final ActionModeCompat.Presenter presenter = (ActionModeCompat.Presenter) context;
-            presenter.endActionModeCompat();
+        if (presenter != null) {
+            presenter.endActionMode();
         }
         mCurrentItems = null;
     }
 
-    private class TextSelectionActionModeCallback implements Callback {
-        private JSONArray mItems;
-        private ActionModeCompat mActionMode;
+    private class TextSelectionActionModeCallback implements ActionMode.Callback {
+        private GeckoBundle[] mItems;
+        private ActionMode mActionMode;
 
-        public TextSelectionActionModeCallback(JSONArray items) {
+        public TextSelectionActionModeCallback(final GeckoBundle[] items) {
             mItems = items;
         }
 
-        public void updateItems(JSONArray items) {
+        public void updateItems(final GeckoBundle[] items) {
             mItems = items;
             if (mActionMode != null) {
                 mActionMode.invalidate();
             }
         }
 
-        public void animateIn() {
-            if (mActionMode != null) {
-                mActionMode.animateIn();
-            }
-        }
-
+        @SuppressLint("AlwaysShowAction")
         @Override
-        public boolean onPrepareActionMode(final ActionModeCompat mode, final GeckoMenu menu) {
-            // Android would normally expect us to only update the state of menu items here
-            // To make the js-java interaction a bit simpler, we just wipe out the menu here and recreate all
-            // the javascript menu items in onPrepare instead. This will be called any time invalidate() is called on the
-            // action mode.
+        public boolean onPrepareActionMode(final ActionMode mode, final Menu menu) {
+            // Android would normally expect us to only update the state of menu items
+            // here To make the js-java interaction a bit simpler, we just wipe out the
+            // menu here and recreate all the javascript menu items in onPrepare instead.
+            // This will be called any time invalidate() is called on the action mode.
             menu.clear();
 
-            int length = mItems.length();
+            final int length = mItems.length;
             for (int i = 0; i < length; i++) {
-                try {
-                    final JSONObject obj = mItems.getJSONObject(i);
-                    final GeckoMenuItem menuitem = (GeckoMenuItem) menu.add(0, i, 0, obj.optString("label"));
-                    final int actionEnum = obj.optBoolean("showAsAction") ? GeckoMenuItem.SHOW_AS_ACTION_ALWAYS : GeckoMenuItem.SHOW_AS_ACTION_NEVER;
-                    menuitem.setShowAsAction(actionEnum, R.attr.menuItemActionModeStyle);
+                final GeckoBundle obj = mItems[i];
+                final MenuItem menuitem = menu.add(0, i, 0, obj.getString("label", ""));
+                final int actionEnum = obj.getBoolean("showAsAction")
+                        ? MenuItem.SHOW_AS_ACTION_ALWAYS
+                        : MenuItem.SHOW_AS_ACTION_NEVER;
+                menuitem.setShowAsAction(actionEnum);
 
-                    final String iconString = obj.optString("icon");
-                    ResourceDrawableUtils.getDrawable(context, iconString, new ResourceDrawableUtils.BitmapLoader() {
-                        @Override
-                        public void onBitmapFound(Drawable d) {
-                            if (d != null) {
-                                menuitem.setIcon(d);
-                            }
+                final String iconString = obj.getString("icon", "");
+                ResourceDrawableUtils.getDrawable(geckoView.getContext(), iconString,
+                        new ResourceDrawableUtils.BitmapLoader() {
+                    @Override
+                    public void onBitmapFound(Drawable d) {
+                        if (d != null) {
+                            menuitem.setIcon(d);
                         }
-                    });
-                } catch (Exception ex) {
-                    Log.i(LOGTAG, "Exception building menu", ex);
-                }
+                    }
+                });
             }
             return true;
         }
 
         @Override
-        public boolean onCreateActionMode(ActionModeCompat mode, GeckoMenu unused) {
+        public boolean onCreateActionMode(ActionMode mode, Menu unused) {
             mActionMode = mode;
             return true;
         }
 
         @Override
-        public boolean onActionItemClicked(ActionModeCompat mode, MenuItem item) {
-            try {
-                final JSONObject obj = mItems.getJSONObject(item.getItemId());
-                GeckoAppShell.notifyObservers("TextSelection:Action", obj.optString("id"));
-                return true;
-            } catch (Exception ex) {
-                Log.i(LOGTAG, "Exception calling action", ex);
-            }
-            return false;
+        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+            final GeckoBundle obj = mItems[item.getItemId()];
+            final GeckoBundle data = new GeckoBundle(1);
+            data.putString("id", obj.getString("id", ""));
+            geckoView.getEventDispatcher().dispatch("TextSelection:Action", data);
+            return true;
         }
 
         // Called when the user exits the action mode
         @Override
-        public void onDestroyActionMode(ActionModeCompat mode) {
+        public void onDestroyActionMode(ActionMode mode) {
             mActionMode = null;
             mCallback = null;
-            final JSONObject args = new JSONObject();
-            try {
-                args.put("selectionID", selectionID);
-            } catch (JSONException e) {
-                Log.e(LOGTAG, "Error building JSON arguments for TextSelection:End", e);
-                return;
-            }
 
-            GeckoAppShell.notifyObservers("TextSelection:End", args.toString());
+            final GeckoBundle data = new GeckoBundle(1);
+            data.putInt("selectionID", selectionID);
+            geckoView.getEventDispatcher().dispatch("TextSelection:End", data);
         }
     }
 }

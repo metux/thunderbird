@@ -1,4 +1,6 @@
 <!DOCTYPE html [
+  <!ENTITY % globalDTD SYSTEM "chrome://global/locale/global.dtd">
+    %globalDTD;
   <!ENTITY % brandDTD SYSTEM "chrome://branding/locale/brand.dtd">
     %brandDTD;
   <!ENTITY % mainDTD SYSTEM "chrome://messenger/locale/newmailaccount/accountProvisioner.dtd">
@@ -20,29 +22,29 @@
         type="text/css"
         href="chrome://messenger/skin/newmailaccount/accountProvisioner.css" />
 
-  <script type="application/javascript;version=1.8"
+  <script type="application/javascript"
           src="chrome://messenger/content/accountcreation/util.js">
   </script>
-  <script type="application/javascript;version=1.8"
+  <script type="application/javascript"
           src="chrome://messenger/content/accountcreation/accountConfig.js">
   </script>
-  <script type="application/javascript;version=1.8"
+  <script type="application/javascript"
           src="chrome://messenger/content/accountcreation/sanitizeDatatypes.js">
   </script>
-  <script type="application/javascript;version=1.8"
+  <script type="application/javascript"
           src="chrome://messenger/content/accountcreation/readFromXML.js">
   </script>
-  <script type="application/javascript;version=1.8"
+  <script type="application/javascript"
           src="chrome://messenger/content/accountcreation/createInBackend.js">
   </script>
-  <script type="application/javascript;version=1.8"
+  <script type="application/javascript"
           src="chrome://communicator/content/utilityOverlay.js">
   </script>
-  <script type="application/javascript;version=1.8"
+  <script type="application/javascript"
           src="chrome://messenger/content/newmailaccount/accountProvisioner.js">
   </script>
 </head>
-<body>
+<body dir="&locale.dir;">
   <div id="window" class="vbox">
 
     <div id="content" class="boxFlex vbox">

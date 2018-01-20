@@ -12,6 +12,7 @@
 #include "mozilla/Logging.h"
 #include "mozilla/RefPtr.h"
 #include "nsArrayUtils.h"
+#include "nsDependentSubstring.h"
 #include "nsIArray.h"
 #include "nsICMSMessageErrors.h"
 #include "nsICryptoHash.h"
@@ -185,9 +186,11 @@ NS_IMETHODIMP nsCMSMessage::GetSignerCert(nsIX509Cert **scert)
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("nsCMSMessage::GetSignerCert got signer cert\n"));
 
     nsCOMPtr<nsIX509CertDB> certdb = do_GetService(NS_X509CERTDB_CONTRACTID);
-    certdb->ConstructX509(reinterpret_cast<const char *>(si->cert->derCert.data),
-                          si->cert->derCert.len,
-                          getter_AddRefs(cert));
+    nsDependentCSubstring certDER(
+      reinterpret_cast<char*>(si->cert->derCert.data),
+      si->cert->derCert.len);
+    nsresult rv = certdb->ConstructX509(certDER, getter_AddRefs(cert));
+    NS_ENSURE_SUCCESS(rv, rv);
   }
   else {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("nsCMSMessage::GetSignerCert no signer cert, do we have a cert list? %s\n",
@@ -201,13 +204,9 @@ NS_IMETHODIMP nsCMSMessage::GetSignerCert(nsIX509Cert **scert)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsCMSMessage::GetEncryptionCert(nsIX509Cert **ecert)
+NS_IMETHODIMP nsCMSMessage::GetEncryptionCert(nsIX509Cert**)
 {
-  nsNSSShutDownPreventionLock locker;
-  if (isAlreadyShutDown())
-    return NS_ERROR_NOT_AVAILABLE;
-
-    return NS_ERROR_NOT_IMPLEMENTED;
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP nsCMSMessage::VerifyDetachedSignature(unsigned char* aDigestData, uint32_t aDigestDataLen)
@@ -862,8 +861,7 @@ NS_IMETHODIMP nsCMSDecoder::Finish(nsICMSMessage ** aCMSMsg)
     // we gave it on construction.
     // Make sure the context will live long enough.
     obj->referenceContext(m_ctx);
-    *aCMSMsg = obj;
-    NS_ADDREF(*aCMSMsg);
+    NS_ADDREF(*aCMSMsg = obj);
   }
   return NS_OK;
 }

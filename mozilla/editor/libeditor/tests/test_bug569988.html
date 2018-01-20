@@ -31,13 +31,13 @@ function runTest()
     var os = Components.classes["@mozilla.org/observer-service;1"]
                        .getService(Components.interfaces.nsIObserverService);
 
-    os.addObserver(onPromptLoad, "common-dialog-loaded", false);
-    os.addObserver(onPromptLoad, "tabmodal-dialog-loaded", false);
+    os.addObserver(onPromptLoad, "common-dialog-loaded");
+    os.addObserver(onPromptLoad, "tabmodal-dialog-loaded");
 
     function onPromptLoad(subject, topic, data) {
       sendAsyncMessage("ok", [true, "onPromptLoad is called"]);
       gPromptInput = subject.Dialog.ui.loginTextbox;
-      gPromptInput.addEventListener("focus", onPromptFocus, false);
+      gPromptInput.addEventListener("focus", onPromptFocus);
       // shift focus to ensure it fires.
       subject.Dialog.ui.button0.focus();
       gPromptInput.focus();
@@ -45,7 +45,7 @@ function runTest()
 
     function onPromptFocus() {
       sendAsyncMessage("ok", [true, "onPromptFocus is called"]);
-      gPromptInput.removeEventListener("focus", onPromptFocus, false);
+      gPromptInput.removeEventListener("focus", onPromptFocus);
 
       var listenerService =
         Components.classes["@mozilla.org/eventlistenerservice;1"]

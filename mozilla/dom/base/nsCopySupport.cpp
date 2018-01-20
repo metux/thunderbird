@@ -8,7 +8,7 @@
 #include "nsIDocumentEncoder.h"
 #include "nsISupports.h"
 #include "nsIContent.h"
-#include "nsIComponentManager.h" 
+#include "nsIComponentManager.h"
 #include "nsIServiceManager.h"
 #include "nsIClipboard.h"
 #include "nsIFormControl.h"
@@ -400,17 +400,17 @@ nsresult
 nsCopySupport::GetContents(const nsACString& aMimeType, uint32_t aFlags, nsISelection *aSel, nsIDocument *aDoc, nsAString& outdata)
 {
   nsresult rv = NS_OK;
-  
+
   nsCOMPtr<nsIDocumentEncoder> docEncoder;
 
   nsAutoCString encoderContractID(NS_DOC_ENCODER_CONTRACTID_BASE);
   encoderContractID.Append(aMimeType);
-    
+
   docEncoder = do_CreateInstance(encoderContractID.get());
   NS_ENSURE_TRUE(docEncoder, NS_ERROR_FAILURE);
 
   uint32_t flags = aFlags | nsIDocumentEncoder::SkipInvisibleContent;
-  
+
   if (aMimeType.EqualsLiteral("text/plain"))
     flags |= nsIDocumentEncoder::OutputPreformatted;
 
@@ -421,13 +421,13 @@ nsCopySupport::GetContents(const nsACString& aMimeType, uint32_t aFlags, nsISele
 
   rv = docEncoder->Init(domDoc, unicodeMimeType, flags);
   if (NS_FAILED(rv)) return rv;
-  
+
   if (aSel)
   {
     rv = docEncoder->SetSelection(aSel);
     if (NS_FAILED(rv)) return rv;
-  } 
-  
+  }
+
   // encode the selection
   return docEncoder->EncodeToString(outdata);
 }
@@ -559,7 +559,7 @@ static nsresult AppendDOMNode(nsITransferable *aTransferable,
   // init encoder with document and node
   rv = docEncoder->NativeInit(document, NS_LITERAL_STRING(kHTMLMime),
                               nsIDocumentEncoder::OutputAbsoluteLinks |
-                              nsIDocumentEncoder::OutputEncodeW3CEntities);
+                              nsIDocumentEncoder::OutputEncodeBasicEntities);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = docEncoder->SetNativeNode(aDOMNode);
@@ -602,6 +602,13 @@ static nsresult AppendImagePromise(nsITransferable* aTransferable,
     return NS_OK;
   }
 
+  bool isMultipart;
+  rv = aImgRequest->GetMultipart(&isMultipart);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (isMultipart) {
+    return NS_OK;
+  }
+
   nsCOMPtr<nsINode> node = do_QueryInterface(aImageElement, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -621,7 +628,7 @@ static nsresult AppendImagePromise(nsITransferable* aTransferable,
   rv = imgUrl->GetFileExtension(extension);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsXPIDLCString mimeType;
+  nsCString mimeType;
   rv = aImgRequest->GetMimeType(getter_Copies(mimeType));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -735,7 +742,7 @@ IsSelectionInsideRuby(nsISelection* aSelection)
   if (NS_FAILED(rv)) {
     return false;
   }
-  for (auto i : MakeRange(rangeCount)) {
+  for (auto i : IntegerRange(rangeCount)) {
     nsCOMPtr<nsIDOMRange> range;
     aSelection->GetRangeAt(i, getter_AddRefs(range));
     nsCOMPtr<nsIDOMNode> node;
@@ -759,8 +766,13 @@ nsCopySupport::FireClipboardEvent(EventMessage aEventMessage,
     *aActionTaken = false;
   }
 
-  NS_ASSERTION(aEventMessage == eCut || aEventMessage == eCopy ||
-               aEventMessage == ePaste,
+  EventMessage originalEventMessage = aEventMessage;
+  if (originalEventMessage == ePasteNoFormatting) {
+    originalEventMessage = ePaste;
+  }
+
+  NS_ASSERTION(originalEventMessage == eCut || originalEventMessage == eCopy ||
+               originalEventMessage == ePaste,
                "Invalid clipboard event type");
 
   nsCOMPtr<nsIPresShell> presShell = aPresShell;
@@ -817,10 +829,10 @@ nsCopySupport::FireClipboardEvent(EventMessage aEventMessage,
   if (chromeShell || Preferences::GetBool("dom.event.clipboardevents.enabled", true)) {
     clipboardData =
       new DataTransfer(doc->GetScopeObject(), aEventMessage,
-                       aEventMessage == ePaste, aClipboardType);
+                       originalEventMessage == ePaste, aClipboardType);
 
     nsEventStatus status = nsEventStatus_eIgnore;
-    InternalClipboardEvent evt(true, aEventMessage);
+    InternalClipboardEvent evt(true, originalEventMessage);
     evt.mClipboardData = clipboardData;
     EventDispatcher::Dispatch(content, presShell->GetPresContext(), &evt,
                               nullptr, &status);
@@ -828,17 +840,28 @@ nsCopySupport::FireClipboardEvent(EventMessage aEventMessage,
     doDefault = (status != nsEventStatus_eConsumeNoDefault);
   }
 
+  // When this function exits, the event dispatch is over. We want to disconnect
+  // our DataTransfer, which means setting its mode to `Protected` and clearing
+  // all stored data, before we return.
+  auto clearAfter = MakeScopeExit([&] {
+    if (clipboardData) {
+      clipboardData->Disconnect();
+
+      // NOTE: Disconnect may not actually clear the DataTransfer if the
+      // dom.events.dataTransfer.protected.enabled pref is not on, so we make
+      // sure we clear here, as not clearing could provide the DataTransfer
+      // access to information from the system clipboard at an arbitrary point
+      // in the future.
+      if (originalEventMessage == ePaste) {
+        clipboardData->ClearAll();
+      }
+    }
+  });
+
   // No need to do anything special during a paste. Either an event listener
   // took care of it and cancelled the event, or the caller will handle it.
   // Return true to indicate that the event wasn't cancelled.
-  if (aEventMessage == ePaste) {
-    // Clear and mark the clipboardData as readonly. This prevents someone
-    // from reading the clipboard contents after the paste event has fired.
-    if (clipboardData) {
-      clipboardData->ClearAll();
-      clipboardData->SetReadOnly();
-    }
-
+  if (originalEventMessage == ePaste) {
     if (aActionTaken) {
       *aActionTaken = true;
     }
@@ -847,7 +870,7 @@ nsCopySupport::FireClipboardEvent(EventMessage aEventMessage,
 
   // Update the presentation in case the event handler modified the selection,
   // see bug 602231.
-  presShell->FlushPendingNotifications(Flush_Frames);
+  presShell->FlushPendingNotifications(FlushType::Frames);
   if (presShell->IsDestroying())
     return false;
 
@@ -864,14 +887,14 @@ nsCopySupport::FireClipboardEvent(EventMessage aEventMessage,
     // check if we are looking at a password input
     nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(srcNode);
     if (formControl) {
-      if (formControl->GetType() == NS_FORM_INPUT_PASSWORD) {
+      if (formControl->ControlType() == NS_FORM_INPUT_PASSWORD) {
         return false;
       }
     }
 
     // when cutting non-editable content, do nothing
     // XXX this is probably the wrong editable flag to check
-    if (aEventMessage != eCut || content->IsEditable()) {
+    if (originalEventMessage != eCut || content->IsEditable()) {
       // get the data from the selection if any
       bool isCollapsed;
       sel->GetIsCollapsed(&isCollapsed);

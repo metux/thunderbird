@@ -9,7 +9,6 @@ var reportURL;
 Cu.import("resource://gre/modules/CrashReports.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "CrashSubmit",
@@ -51,8 +50,6 @@ function submitPendingReport(event) {
 
 function populateReportList() {
 
-  Services.telemetry.getHistogramById("ABOUTCRASHES_OPENED_COUNT").add(1);
-
   var prefService = Cc["@mozilla.org/preferences-service;1"].
                     getService(Ci.nsIPrefBranch);
 
@@ -61,8 +58,7 @@ function populateReportList() {
     // Ignore any non http/https urls
     if (!/^https?:/i.test(reportURL))
       reportURL = null;
-  }
-  catch (e) { }
+  } catch (e) { }
   if (!reportURL) {
     document.getElementById("clear-reports").style.display = "none";
     document.getElementById("reportList").style.display = "none";
@@ -78,17 +74,28 @@ function populateReportList() {
     return;
   }
 
-  const locale = Cc["@mozilla.org/chrome/chrome-registry;1"]
-                 .getService(Ci.nsIXULChromeRegistry)
-                 .getSelectedLocale("global", true);
-  var dateFormatter = new Intl.DateTimeFormat(locale, { year: '2-digit',
-                                                        month: 'numeric',
-                                                        day: 'numeric' });
-  var timeFormatter = new Intl.DateTimeFormat(locale, { hour: 'numeric',
-                                                        minute: 'numeric' });
+  var dateFormatter;
+  var timeFormatter;
+  try {
+    dateFormatter = Services.intl.createDateTimeFormat(undefined, { dateStyle: "short" });
+    timeFormatter = Services.intl.createDateTimeFormat(undefined, { timeStyle: "short" });
+  } catch (e) {
+    // XXX Fallback to be removed once bug 1215247 is complete
+    // and the Intl API is available on all platforms.
+    dateFormatter = {
+      format(date) {
+        return date.toLocaleDateString();
+      }
+    };
+    timeFormatter = {
+      format(date) {
+        return date.toLocaleTimeString();
+      }
+    };
+  }
   var ios = Cc["@mozilla.org/network/io-service;1"].
             getService(Ci.nsIIOService);
-  var reportURI = ios.newURI(reportURL, null, null);
+  var reportURI = ios.newURI(reportURL);
   // resolving this URI relative to /report/index
   var aboutThrottling = ios.newURI("../../about/throttling", null, reportURI);
 
@@ -100,8 +107,7 @@ function populateReportList() {
     if (reports[i].pending) {
       link.setAttribute("href", aboutThrottling.spec);
       link.addEventListener("click", submitPendingReport, true);
-    }
-    else {
+    } else {
       link.setAttribute("href", reportURL + reports[i].id);
     }
     link.setAttribute("id", reports[i].id);
@@ -124,7 +130,7 @@ function populateReportList() {
   }
 }
 
-var clearReports = Task.async(function*() {
+var clearReports = async function() {
   let bundle = Services.strings.createBundle("chrome://global/locale/crashes.properties");
 
   if (!Services.
@@ -134,14 +140,14 @@ var clearReports = Task.async(function*() {
     return;
   }
 
-  let cleanupFolder = Task.async(function*(path, filter) {
+  let cleanupFolder = async function(path, filter) {
     let iterator = new OS.File.DirectoryIterator(path);
     try {
-      yield iterator.forEach(Task.async(function*(aEntry) {
-        if (!filter || (yield filter(aEntry))) {
-          yield OS.File.remove(aEntry.path);
+      await iterator.forEach(async function(aEntry) {
+        if (!filter || (await filter(aEntry))) {
+          await OS.File.remove(aEntry.path);
         }
-      }));
+      });
     } catch (e) {
       if (!(e instanceof OS.File.Error) || !e.becauseNoSuchFile) {
         throw e;
@@ -149,14 +155,14 @@ var clearReports = Task.async(function*() {
     } finally {
       iterator.close();
     }
-  });
+  };
 
-  yield cleanupFolder(CrashReports.submittedDir.path, function*(aEntry) {
+  await cleanupFolder(CrashReports.submittedDir.path, function(aEntry) {
     return aEntry.name.startsWith("bp-") && aEntry.name.endsWith(".txt");
   });
 
   let oneYearAgo = Date.now() - 31586000000;
-  yield cleanupFolder(CrashReports.reportsDir.path, function*(aEntry) {
+  await cleanupFolder(CrashReports.reportsDir.path, async function(aEntry) {
     if (!aEntry.name.startsWith("InstallTime") ||
         aEntry.name == "InstallTime" + buildID) {
       return false;
@@ -164,16 +170,16 @@ var clearReports = Task.async(function*() {
 
     let date = aEntry.winLastWriteDate;
     if (!date) {
-      let stat = yield OS.File.stat(aEntry.path);
+      let stat = await OS.File.stat(aEntry.path);
       date = stat.lastModificationDate;
     }
 
     return (date < oneYearAgo);
   });
 
-  yield cleanupFolder(CrashReports.pendingDir.path);
+  await cleanupFolder(CrashReports.pendingDir.path);
 
   document.getElementById("clear-reports").style.display = "none";
   document.getElementById("reportList").style.display = "none";
   document.getElementById("noReports").style.display = "block";
-});
+};

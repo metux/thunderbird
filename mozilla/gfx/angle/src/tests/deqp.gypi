@@ -229,7 +229,6 @@
             '<(deqp_path)/modules/gles2/functional/es2fShaderInvarianceTests.hpp',
             '<(deqp_path)/modules/gles2/functional/es2fShaderLoopTests.cpp',
             '<(deqp_path)/modules/gles2/functional/es2fShaderLoopTests.hpp',
-            '<(deqp_path)/modules/gles2/functional/es2fShaderMatrixTests.cpp',
             '<(deqp_path)/modules/gles2/functional/es2fShaderMatrixTests.hpp',
             '<(deqp_path)/modules/gles2/functional/es2fShaderOperatorTests.cpp',
             '<(deqp_path)/modules/gles2/functional/es2fShaderOperatorTests.hpp',
@@ -324,6 +323,10 @@
             '<(deqp_path)/modules/gles2/tes2TestPackage.cpp',
             '<(deqp_path)/modules/gles2/tes2TestPackage.hpp',
             '<(deqp_path)/modules/gles2/tes2TestPackageEntry.cpp',
+            # TODO(geofflang): Remove this once the test is updated in dEQP or the VC++2017
+            # compiler is fixed (crbug.com/759402)
+            #'<(deqp_path)/modules/gles2/functional/es2fShaderMatrixTests.cpp',
+            '<(angle_path)/src/tests/deqp_support/es2fShaderMatrixTests.cpp',
         ],
         'deqp_gles3_sources':
         [
@@ -487,7 +490,6 @@
             '<(deqp_path)/modules/gles3/functional/es3fShaderInvarianceTests.hpp',
             '<(deqp_path)/modules/gles3/functional/es3fShaderLoopTests.cpp',
             '<(deqp_path)/modules/gles3/functional/es3fShaderLoopTests.hpp',
-            '<(deqp_path)/modules/gles3/functional/es3fShaderMatrixTests.cpp',
             '<(deqp_path)/modules/gles3/functional/es3fShaderMatrixTests.hpp',
             '<(deqp_path)/modules/gles3/functional/es3fShaderOperatorTests.cpp',
             '<(deqp_path)/modules/gles3/functional/es3fShaderOperatorTests.hpp',
@@ -604,6 +606,10 @@
             '<(deqp_path)/modules/gles3/tes3TestPackage.cpp',
             '<(deqp_path)/modules/gles3/tes3TestPackage.hpp',
             '<(deqp_path)/modules/gles3/tes3TestPackageEntry.cpp',
+            # TODO(jmadill): Remove this once the test is updated in dEQP or the VC++2017
+            # compiler is fixed (crbug.com/759402)
+            #'<(deqp_path)/modules/gles3/functional/es3fShaderMatrixTests.cpp',
+            '<(angle_path)/src/tests/deqp_support/es3fShaderMatrixTests.cpp',
         ],
         'deqp_gles31_sources':
         [
@@ -849,6 +855,8 @@
             '<(deqp_path)/modules/egl/teglMultiContextTests.hpp',
             '<(deqp_path)/modules/egl/teglMultiThreadTests.cpp',
             '<(deqp_path)/modules/egl/teglMultiThreadTests.hpp',
+            '<(deqp_path)/modules/egl/teglMutableRenderBufferTests.cpp',
+            '<(deqp_path)/modules/egl/teglMutableRenderBufferTests.hpp',
             '<(deqp_path)/modules/egl/teglNativeColorMappingTests.cpp',
             '<(deqp_path)/modules/egl/teglNativeColorMappingTests.hpp',
             '<(deqp_path)/modules/egl/teglNativeCoordMappingTests.cpp',
@@ -888,6 +896,8 @@
             '<(deqp_path)/modules/egl/teglTestPackage.cpp',
             '<(deqp_path)/modules/egl/teglTestPackage.hpp',
             '<(deqp_path)/modules/egl/teglTestPackageEntry.cpp',
+            '<(deqp_path)/modules/egl/teglThreadCleanUpTests.cpp',
+            '<(deqp_path)/modules/egl/teglThreadCleanUpTests.hpp',
             '<(deqp_path)/modules/egl/teglVGRenderUtil.cpp',
             '<(deqp_path)/modules/egl/teglVGRenderUtil.hpp',
         ],
@@ -961,12 +971,16 @@
             '<(deqp_path)/framework/common/tcuInterval.cpp',
             '<(deqp_path)/framework/common/tcuPlatform.cpp',
             '<(deqp_path)/framework/common/tcuRandomValueIterator.cpp',
+            '<(deqp_path)/framework/common/tcuRasterizationVerifier.cpp',
+            '<(deqp_path)/framework/common/tcuRasterizationVerifier.hpp',
             '<(deqp_path)/framework/common/tcuRenderTarget.cpp',
             '<(deqp_path)/framework/common/tcuResource.cpp',
             '<(deqp_path)/framework/common/tcuResultCollector.cpp',
             '<(deqp_path)/framework/common/tcuRGBA.cpp',
             '<(deqp_path)/framework/common/tcuStringTemplate.cpp',
             '<(deqp_path)/framework/common/tcuSurface.cpp',
+            '<(deqp_path)/framework/common/tcuSurfaceAccess.cpp',
+            '<(deqp_path)/framework/common/tcuSurfaceAccess.hpp',
             '<(deqp_path)/framework/common/tcuTestCase.cpp',
             '<(deqp_path)/framework/common/tcuTestContext.cpp',
             '<(deqp_path)/framework/common/tcuTestHierarchyIterator.cpp',
@@ -1056,6 +1070,8 @@
             '<(deqp_path)/framework/opengl/gluStrUtil.cpp',
             '<(deqp_path)/framework/opengl/gluTexture.cpp',
             '<(deqp_path)/framework/opengl/gluTextureUtil.cpp',
+            '<(deqp_path)/framework/opengl/gluTextureTestUtil.cpp',
+            '<(deqp_path)/framework/opengl/gluTextureTestUtil.hpp',
             '<(deqp_path)/framework/opengl/gluVarType.cpp',
             '<(deqp_path)/framework/opengl/gluVarTypeUtil.cpp',
             '<(deqp_path)/framework/opengl/simplereference/sglrContext.cpp',
@@ -1077,7 +1093,8 @@
             '<(deqp_path)/framework/qphelper/qpCrashHandler.c',
             '<(deqp_path)/framework/qphelper/qpDebugOut.c',
             '<(deqp_path)/framework/qphelper/qpInfo.c',
-            '<(deqp_path)/framework/qphelper/qpTestLog.c',
+            # TODO(jmadill): Restore this when we upstream the change.
+            #'<(deqp_path)/framework/qphelper/qpTestLog.c',
             '<(deqp_path)/framework/qphelper/qpWatchDog.c',
             '<(deqp_path)/framework/qphelper/qpXmlWriter.c',
             '<(deqp_path)/framework/randomshaders/rsgBinaryOps.cpp',
@@ -1130,7 +1147,6 @@
             '<(deqp_path)/modules/glshared/glsRandomShaderCase.cpp',
             '<(deqp_path)/modules/glshared/glsRandomShaderProgram.cpp',
             '<(deqp_path)/modules/glshared/glsRandomUniformBlockCase.cpp',
-            '<(deqp_path)/modules/glshared/glsRasterizationTestUtil.cpp',
             '<(deqp_path)/modules/glshared/glsSamplerObjectTest.cpp',
             '<(deqp_path)/modules/glshared/glsScissorTests.cpp',
             '<(deqp_path)/modules/glshared/glsShaderConstExprTests.cpp',
@@ -1147,6 +1163,8 @@
             '<(deqp_path)/modules/glshared/glsTextureTestUtil.cpp',
             '<(deqp_path)/modules/glshared/glsUniformBlockCase.cpp',
             '<(deqp_path)/modules/glshared/glsVertexArrayTests.cpp',
+            # TODO(jmadill): Remove this when we upstream the change.
+            '<(angle_path)/src/tests/deqp_support/qpTestLog.c',
             '<(angle_path)/src/tests/deqp_support/tcuANGLENativeDisplayFactory.cpp',
             '<(angle_path)/src/tests/deqp_support/tcuANGLENativeDisplayFactory.h',
             # TODO(jmadill): integrate with dEQP
@@ -1167,6 +1185,11 @@
             '<(deqp_path)/framework/delibs/dethread/unix/deSemaphoreUnix.c',
             '<(deqp_path)/framework/delibs/dethread/unix/deThreadLocalUnix.c',
             '<(deqp_path)/framework/delibs/dethread/unix/deThreadUnix.c',
+        ],
+        'deqp_libtester_sources_android':
+        [
+            '<(deqp_path)/framework/platform/android/tcuAndroidInternals.cpp',
+            '<(deqp_path)/framework/platform/android/tcuAndroidInternals.hpp',
         ],
         'deqp_gpu_test_expectations_sources':
         [
@@ -1270,6 +1293,8 @@
                             [
                                 '/wd4131', # old-style declarator
                                 '/wd4244', # Conversion from 'type1' to 'type2', possible loss of data
+                                '/wd4245', # argument signed/unsigned mismatch
+                                '/wd4267', # size_t to 'type', possible loss of data
                                 '/wd4324', # structure was padded
                                 '/wd4701', # potentially uninit used
                                 '/wd4996', # deprecated
@@ -1310,7 +1335,6 @@
                         '<(zlib_path)/inflate.h',
                         '<(zlib_path)/inftrees.c',
                         '<(zlib_path)/inftrees.h',
-                        '<(zlib_path)/mozzconf.h',
                         '<(zlib_path)/trees.c',
                         '<(zlib_path)/trees.h',
                         '<(zlib_path)/uncompr.c',
@@ -1514,6 +1538,7 @@
                     'type': 'static_library',
                     'dependencies':
                     [
+                        '<(angle_path)/src/angle.gyp:angle_common',
                         'angle_deqp_decpp',
                         'angle_deqp_support',
                         'angle_libpng',
@@ -1610,6 +1635,12 @@
                         'deqp_support/tcuANGLEPlatform.cpp',
                         'deqp_support/tcuANGLEPlatform.h',
                     ],
+                    # TODO(geofflang): Remove once es2fShaderMatrixTests.cpp no longer requires
+                    # a local copy (crbug.com/759402)
+                    'include_dirs':
+                    [
+                        '<(deqp_path)/modules/gles2/functional',
+                    ],
                 },
 
                 {
@@ -1704,6 +1735,8 @@
                     'dependencies':
                     [
                         'angle_deqp_libgles2',
+                        # Real dependency is in angle_deqp_libtester, however, not propagated here by GYP
+                        '<(angle_path)/src/angle.gyp:libEGL',
                     ],
                     'sources':
                     [
@@ -1717,6 +1750,8 @@
                     'dependencies':
                     [
                         'angle_deqp_libgles3',
+                        # Real dependency is in angle_deqp_libtester, however, not propagated here by GYP
+                        '<(angle_path)/src/angle.gyp:libEGL',
                     ],
                     'sources':
                     [
@@ -1730,6 +1765,8 @@
                     'dependencies':
                     [
                         'angle_deqp_libgles31',
+                        # Real dependency is in angle_deqp_libtester, however, not propagated here by GYP
+                        '<(angle_path)/src/angle.gyp:libEGL',
                     ],
                     'sources':
                     [
@@ -1743,6 +1780,8 @@
                     'dependencies':
                     [
                         'angle_deqp_libegl',
+                        # Real dependency is in angle_deqp_libtester, however, not propagated here by GYP
+                        '<(angle_path)/src/angle.gyp:libEGL',
                     ],
                     'sources':
                     [
@@ -1770,7 +1809,16 @@
                         'angle_test_support',
                         '<(angle_path)/util/util.gyp:angle_util',
                     ],
-
+                    'conditions':
+                    [
+                        ['OS!="android"',
+                        {
+                            'dependencies':
+                            [
+                                '<(angle_path)/src/angle.gyp:angle_gpu_info_util',
+                            ],
+                        }],
+                    ],
                     'direct_dependent_settings':
                     {
                         'include_dirs':
@@ -1800,35 +1848,15 @@
                                 ],
                             },
                         },
-
                         'conditions':
                         [
-                            # NOTE(smcgruer): Guarding with use_libpci allows gyp to run successfully
-                            # on systems without libpci, but the test targets will not compile or link.
-                            ['OS=="linux" and use_libpci==1',
-                            {
-                                'ldflags':
-                                [
-                                    '<!@(<(pkg-config) --libs-only-L --libs-only-other libpci)',
-                                ],
-                                'libraries':
-                                [
-                                    '<!@(<(pkg-config) --libs-only-l libpci)',
-                                ],
-                            }],
                             ['OS=="mac"',
                             {
                                 'sources':
                                 [
+                                    'third_party/gpu_test_expectations/gpu_test_config_mac.h',
                                     'third_party/gpu_test_expectations/gpu_test_config_mac.mm',
                                 ],
-                                'link_settings':
-                                {
-                                    'libraries':
-                                    [
-                                        '$(SDKROOT)/System/Library/Frameworks/IOKit.framework',
-                                    ],
-                                },
                             }],
                         ],
                     },
@@ -1847,6 +1875,8 @@
                     [
                         'angle_deqp_gtest_support',
                         'angle_deqp_libgles2',
+                        # Real dependency is in angle_deqp_libtester, however, not propagated here by GYP
+                        '<(angle_path)/src/angle.gyp:libEGL',
                     ],
                     'sources':
                     [
@@ -1862,6 +1892,8 @@
                     [
                         'angle_deqp_gtest_support',
                         'angle_deqp_libgles3',
+                        # Real dependency is in angle_deqp_libtester, however, not propagated here by GYP
+                        '<(angle_path)/src/angle.gyp:libEGL',
                     ],
                     'sources':
                     [
@@ -1877,6 +1909,8 @@
                     [
                         'angle_deqp_gtest_support',
                         'angle_deqp_libgles31',
+                        # Real dependency is in angle_deqp_libtester, however, not propagated here by GYP
+                        '<(angle_path)/src/angle.gyp:libEGL',
                     ],
                     'sources':
                     [
@@ -1892,6 +1926,8 @@
                     [
                         'angle_deqp_gtest_support',
                         'angle_deqp_libegl',
+                        # Real dependency is in angle_deqp_libtester, however, not propagated here by GYP
+                        '<(angle_path)/src/angle.gyp:libEGL',
                     ],
                     'sources':
                     [

@@ -4,7 +4,7 @@
 
 "use strict";
 
-const LMCBackstagePass = Cu.import("resource://gre/modules/LoginManagerContent.jsm");
+const LMCBackstagePass = Cu.import("resource://gre/modules/LoginManagerContent.jsm", {});
 const { LoginManagerContent, LoginFormFactory } = LMCBackstagePass;
 const TESTCASES = [
   {
@@ -78,11 +78,13 @@ const TESTCASES = [
   },
   {
     description: "skipEmptyFields should also skip white-space only fields",
+    /* eslint-disable no-tabs */
     document: `<input id="pw-space" type=password value=" ">
                <input id="pw-tab" type=password value="	">
                <input id="pw-newline" type=password form="form1" value="
 ">
       <form id="form1"></form>`,
+    /* eslint-disable no-tabs */
     returnedFieldIDsByFormLike: [[], []],
     skipEmptyFields: true,
   },
@@ -92,6 +94,21 @@ const TESTCASES = [
       <form id="form1"></form>`,
     returnedFieldIDsByFormLike: [["pw1"], []],
     skipEmptyFields: true,
+    fieldOverrideRecipe: {
+      // Ensure a recipe without `notPasswordSelector` doesn't cause a problem.
+      hosts: ["localhost:8080"],
+    },
+  },
+  {
+    description: "3 password fields outside of a <form> with 1 linked via @form + skipEmpty",
+    document: `<input id="pw1" type=password value="pass1"><input id="pw2" type=password form="form1" value="pass2"><input id="pw3" type=password value="pass3">
+      <form id="form1"><input id="pw4" type=password></form>`,
+    returnedFieldIDsByFormLike: [["pw3"], ["pw2"]],
+    skipEmptyFields: true,
+    fieldOverrideRecipe: {
+      hosts: ["localhost:8080"],
+      notPasswordSelector: "#pw1",
+    },
   },
 ];
 
@@ -100,7 +117,7 @@ for (let tc of TESTCASES) {
 
   (function() {
     let testcase = tc;
-    add_task(function*() {
+    add_task(async function() {
       do_print("Starting testcase: " + testcase.description);
       let document = MockDocument.createTestDocument("http://localhost:8080/test/",
                                                      testcase.document);
@@ -125,8 +142,10 @@ for (let tc of TESTCASES) {
       let formLikeIndex = -1;
       for (let formLikeFromInput of mapRootElementToFormLike.values()) {
         formLikeIndex++;
-        let pwFields = LoginManagerContent._getPasswordFields(formLikeFromInput,
-                                                              testcase.skipEmptyFields);
+        let pwFields = LoginManagerContent._getPasswordFields(formLikeFromInput, {
+          fieldOverrideRecipe: testcase.fieldOverrideRecipe,
+          skipEmptyFields: testcase.skipEmptyFields,
+        });
 
         if (formLikeFromInput.rootElement instanceof Ci.nsIDOMHTMLFormElement) {
           let formLikeFromForm = LoginFormFactory.createFromForm(formLikeFromInput.rootElement);

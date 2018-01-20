@@ -10,11 +10,11 @@
 #include "mozilla/dom/NodeListBinding.h"
 #include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/css/StyleRule.h"
+#include "mozilla/GenericSpecifiedValuesInlines.h"
 #include "nsGkAtoms.h"
 #include "nsStyleConsts.h"
-#include "nsIAtom.h"
+#include "nsAtom.h"
 #include "nsCSSRuleProcessor.h"
-#include "nsRuleData.h"
 #include "nsRuleProcessorData.h"
 #include "nsRuleWalker.h"
 #include "nsCSSParser.h"
@@ -32,7 +32,7 @@ NS_NewHTMLContentElement(already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo,
   // We have to jump through some hoops to be able to produce both NodeInfo* and
   // already_AddRefed<NodeInfo>& for our callees.
   RefPtr<mozilla::dom::NodeInfo> nodeInfo(aNodeInfo);
-  if (!nsDocument::IsWebComponentsEnabled(nodeInfo)) {
+  if (!nsContentUtils::IsWebComponentsEnabled()) {
     already_AddRefed<mozilla::dom::NodeInfo> nodeInfoArg(nodeInfo.forget());
     return new mozilla::dom::HTMLUnknownElement(nodeInfoArg);
   }
@@ -56,11 +56,8 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(HTMLContentElement,
                                    nsGenericHTMLElement,
                                    mMatchedNodes)
 
-NS_IMPL_ADDREF_INHERITED(HTMLContentElement, Element)
-NS_IMPL_RELEASE_INHERITED(HTMLContentElement, Element)
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(HTMLContentElement)
-NS_INTERFACE_MAP_END_INHERITING(nsGenericHTMLElement)
+NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(HTMLContentElement,
+                                               nsGenericHTMLElement)
 
 NS_IMPL_ELEMENT_CLONE(HTMLContentElement)
 
@@ -210,75 +207,63 @@ IsValidContentSelectors(nsCSSSelector* aSelector)
 }
 
 nsresult
-HTMLContentElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
-                            nsIAtom* aPrefix, const nsAString& aValue,
-                            bool aNotify)
+HTMLContentElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
+                                 const nsAttrValue* aValue,
+                                 const nsAttrValue* aOldValue,
+                                 nsIPrincipal* aSubjectPrincipal,
+                                 bool aNotify)
 {
-  nsresult rv = nsGenericHTMLElement::SetAttr(aNameSpaceID, aName, aPrefix,
-                                              aValue, aNotify);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (aNamespaceID == kNameSpaceID_None && aName == nsGkAtoms::select) {
+    if (aValue) {
+      // Select attribute was updated, the insertion point may match different
+      // elements.
+      nsIDocument* doc = OwnerDoc();
+      nsCSSParser parser(doc->CSSLoader());
 
-  if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::select) {
-    // Select attribute was updated, the insertion point may match different
-    // elements.
-    nsIDocument* doc = OwnerDoc();
-    nsCSSParser parser(doc->CSSLoader());
+      mValidSelector = true;
+      mSelectorList = nullptr;
 
-    mValidSelector = true;
-    mSelectorList = nullptr;
+      nsAutoString valueStr;
+      aValue->ToString(valueStr);
+      nsresult rv = parser.ParseSelectorString(valueStr,
+                                               doc->GetDocumentURI(),
+                                               // Bug 11240
+                                               0, // XXX get the line number!
+                                               getter_Transfers(mSelectorList));
 
-    nsresult rv = parser.ParseSelectorString(aValue,
-                                             doc->GetDocumentURI(),
-                                             // Bug 11240
-                                             0, // XXX get the line number!
-                                             getter_Transfers(mSelectorList));
-
-    // We don't want to return an exception if parsing failed because
-    // the spec does not define it as an exception case.
-    if (NS_SUCCEEDED(rv)) {
-      // Ensure that all the selectors are valid
-      nsCSSSelectorList* selectors = mSelectorList;
-      while (selectors) {
-        if (!IsValidContentSelectors(selectors->mSelectors)) {
-          // If we have an invalid selector, we can not match anything.
-          mValidSelector = false;
-          mSelectorList = nullptr;
-          break;
+      // We don't want to return an exception if parsing failed because
+      // the spec does not define it as an exception case.
+      if (NS_SUCCEEDED(rv)) {
+        // Ensure that all the selectors are valid
+        nsCSSSelectorList* selectors = mSelectorList;
+        while (selectors) {
+          if (!IsValidContentSelectors(selectors->mSelectors)) {
+            // If we have an invalid selector, we can not match anything.
+            mValidSelector = false;
+            mSelectorList = nullptr;
+            break;
+          }
+          selectors = selectors->mNext;
         }
-        selectors = selectors->mNext;
+      }
+
+      if (ShadowRoot* containingShadow = GetContainingShadow()) {
+        containingShadow->DistributeAllNodes();
+      }
+    } else {
+      // The select attribute was removed. This insertion point becomes
+      // a universal selector.
+      mValidSelector = true;
+      mSelectorList = nullptr;
+
+      if (ShadowRoot* containingShadow = GetContainingShadow()) {
+        containingShadow->DistributeAllNodes();
       }
     }
-
-    ShadowRoot* containingShadow = GetContainingShadow();
-    if (containingShadow) {
-      containingShadow->DistributeAllNodes();
-    }
   }
 
-  return NS_OK;
-}
-
-nsresult
-HTMLContentElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
-                              bool aNotify)
-{
-  nsresult rv = nsGenericHTMLElement::UnsetAttr(aNameSpaceID,
-                                                aAttribute, aNotify);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (aNameSpaceID == kNameSpaceID_None && aAttribute == nsGkAtoms::select) {
-    // The select attribute was removed. This insertion point becomes
-    // a universal selector.
-    mValidSelector = true;
-    mSelectorList = nullptr;
-
-    ShadowRoot* containingShadow = GetContainingShadow();
-    if (containingShadow) {
-      containingShadow->DistributeAllNodes();
-    }
-  }
-
-  return NS_OK;
+  return nsGenericHTMLElement::AfterSetAttr(aNamespaceID, aName, aValue,
+                                            aOldValue, aSubjectPrincipal, aNotify);
 }
 
 bool
@@ -295,7 +280,6 @@ HTMLContentElement::Match(nsIContent* aContent)
 
     TreeMatchContext matchingContext(false, nsRuleWalker::eRelevantLinkUnvisited,
                                      doc, TreeMatchContext::eNeverMatchVisited);
-    doc->FlushPendingLinkUpdates();
     matchingContext.SetHasSpecifiedScope();
     matchingContext.AddScopeElement(host->AsElement());
 
@@ -333,8 +317,6 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(DistributedContentList)
 DistributedContentList::DistributedContentList(HTMLContentElement* aHostElement)
   : mParent(aHostElement)
 {
-  MOZ_COUNT_CTOR(DistributedContentList);
-
   if (aHostElement->IsInsertionPoint()) {
     if (aHostElement->MatchedNodes().IsEmpty()) {
       // Fallback content.
@@ -352,7 +334,6 @@ DistributedContentList::DistributedContentList(HTMLContentElement* aHostElement)
 
 DistributedContentList::~DistributedContentList()
 {
-  MOZ_COUNT_DTOR(DistributedContentList);
 }
 
 nsIContent*

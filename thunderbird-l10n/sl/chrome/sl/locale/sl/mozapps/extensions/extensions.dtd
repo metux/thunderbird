@@ -11,7 +11,7 @@
 
 <!ENTITY loading.label                        "Nalaganje …">
 <!ENTITY listEmpty.installed.label            "Nimate nameščenega nobenega dodatka te vrste.">
-<!ENTITY listEmpty.availableUpdates.label     "Posodobitve niso na voljo">
+<!ENTITY listEmpty.availableUpdates.label     "Ni novih posodobitev">
 <!ENTITY listEmpty.recentUpdates.label        "Nedavno niste posodobili nobenih dodatkov">
 <!ENTITY listEmpty.findUpdates.label          "Poišči posodobitve">
 <!ENTITY listEmpty.search.label               "Ustreznih dodatkov ni bilo mogoče najti">
@@ -19,6 +19,9 @@
 <!ENTITY installAddonFromFile.label           "Namesti dodatek iz datoteke …">
 <!ENTITY installAddonFromFile.accesskey       "I">
 <!ENTITY toolsMenu.tooltip                    "Orodja za vse dodatke">
+
+<!ENTITY getThemes.description                "Želite brskalnik prilagoditi svojemu okusu?">
+<!ENTITY getThemes.learnMore                  "Izbirajte med tisoči tem.">
 
 <!ENTITY cmd.back.tooltip                     "Pojdi eno stran nazaj">
 <!ENTITY cmd.forward.tooltip                  "Pojdi eno stran naprej">
@@ -115,6 +118,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "Prikaži opombe k izdaji za to posodobitev">
 <!ENTITY cmd.hideReleaseNotes.label           "Skrij opombe k izdaji">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Skrij opombe k izdaji za to posodobitev">
+<!ENTITY cmd.findReplacement.label            "Najdi zamenjavo">
 
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
@@ -177,13 +181,17 @@
 <!ENTITY search.filter2.label                 "Iskanje:">
 <!ENTITY search.filter2.installed.label       "Moji dodatki">
 <!ENTITY search.filter2.installed.tooltip     "Prikaži nameščene dodatke">
-<!ENTITY search.filter2.available.label       "Dodatki na voljo">
+<!ENTITY search.filter2.available.label       "Razpoložljivi dodatki">
 <!ENTITY search.filter2.available.tooltip     "Prikaži dodatke, ki so na voljo za namestitev">
 
 <!ENTITY addon.homepage                       "Domača stran">
 <!ENTITY addon.details.label                  "Več">
 <!ENTITY addon.details.tooltip                "Prikaži več podrobnosti o tem dodatku">
 <!ENTITY addon.unknownDate                    "Neznano">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "ZASTAREL">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -248,3 +256,9 @@
 
 <!ENTITY pluginDeprecation.description "Pogrešate kaj? Nekateri vtičniki niso več podprti v &brandShortName;u.">
 <!ENTITY pluginDeprecation.learnMore "Več o tem.">
+
+<!ENTITY legacyWarning.description "Pogrešate kaj? Nekatere razširitve niso več podprte v &brandShortName;u.">
+<!ENTITY legacyWarning.showLegacy "Prikaži zastarele razširitve">
+<!ENTITY legacyExtensions.title "Zastarele razširitve">
+<!ENTITY legacyExtensions.description "Te razširitve ne ustrezajo trenutnim standardom &brandShortName;a, zato so bile onemogočene.">
+<!ENTITY legacyExtensions.learnMore "Več o spremembah dodatkov">

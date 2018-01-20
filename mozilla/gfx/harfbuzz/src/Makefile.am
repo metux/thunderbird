@@ -25,11 +25,13 @@ HBLIBS =
 HBNONPCLIBS =
 HBDEPS =
 HBSOURCES =  $(HB_BASE_sources)
+HBSOURCES += $(HB_BASE_RAGEL_GENERATED_sources)
 HBHEADERS = $(HB_BASE_headers)
 HBNODISTHEADERS = $(HB_NODIST_headers)
 
 if HAVE_OT
 HBSOURCES += $(HB_OT_sources)
+HBSOURCES += $(HB_OT_RAGEL_GENERATED_sources)
 HBHEADERS += $(HB_OT_headers)
 endif
 
@@ -120,7 +122,7 @@ endif
 
 libharfbuzz_la_SOURCES = $(HBSOURCES) $(HBHEADERS) $(HBNODISTHEADERS)
 libharfbuzz_la_CPPFLAGS = $(HBCFLAGS)
-libharfbuzz_la_LDFLAGS = $(AM_LDFLAGS) -version-info $(HB_LIBTOOL_VERSION_INFO) $(export_symbols) -no-undefined
+libharfbuzz_la_LDFLAGS = $(AM_LDFLAGS) -lm -version-info $(HB_LIBTOOL_VERSION_INFO) $(export_symbols) -no-undefined
 libharfbuzz_la_LIBADD = $(HBLIBS)
 EXTRA_libharfbuzz_la_DEPENDENCIES = $(harfbuzz_def_dependency)
 pkginclude_HEADERS = $(HBHEADERS)
@@ -218,7 +220,7 @@ harfbuzz.def: $(HBHEADERS) $(HBNODISTHEADERS)
 	(cat $^ || echo 'hb_ERROR ()' ) | \
 	$(EGREP) '^hb_.* \(' | \
 	sed -e 's/ (.*//' | \
-	LANG=C sort; \
+	LC_ALL=C sort; \
 	echo LIBRARY libharfbuzz-0.dll; \
 	) >"$@"
 	@ ! grep -q hb_ERROR "$@" \
@@ -251,19 +253,13 @@ built-sources: $(BUILT_SOURCES)
 .PHONY: unicode-tables arabic-table indic-table use-table built-sources
 
 RAGEL_GENERATED = \
-	$(srcdir)/hb-buffer-deserialize-json.hh \
-	$(srcdir)/hb-buffer-deserialize-text.hh \
-	$(srcdir)/hb-ot-shape-complex-indic-machine.hh \
-	$(srcdir)/hb-ot-shape-complex-myanmar-machine.hh \
-	$(srcdir)/hb-ot-shape-complex-use-machine.hh \
+	$(patsubst %,$(srcdir)/%,$(HB_BASE_RAGEL_GENERATED_sources)) \
+	$(patsubst %,$(srcdir)/%,$(HB_OT_RAGEL_GENERATED_sources)) \
 	$(NULL)
 BUILT_SOURCES += $(RAGEL_GENERATED)
 EXTRA_DIST += \
-	hb-buffer-deserialize-json.rl \
-	hb-buffer-deserialize-text.rl \
-	hb-ot-shape-complex-indic-machine.rl \
-	hb-ot-shape-complex-myanmar-machine.rl \
-	hb-ot-shape-complex-use-machine.rl \
+	$(HB_BASE_RAGEL_sources) \
+	$(HB_OT_RAGEL_sources) \
 	$(NULL)
 MAINTAINERCLEANFILES += $(RAGEL_GENERATED)
 $(srcdir)/%.hh: $(srcdir)/%.rl
@@ -299,9 +295,12 @@ test_buffer_serialize_SOURCES = test-buffer-serialize.cc
 test_buffer_serialize_CPPFLAGS = $(HBCFLAGS)
 test_buffer_serialize_LDADD = libharfbuzz.la $(HBLIBS)
 
+check: harfbuzz.def # For check-defs.sh
+
 dist_check_SCRIPTS = \
 	check-c-linkage-decls.sh \
 	check-defs.sh \
+	check-externs.sh \
 	check-header-guards.sh \
 	check-includes.sh \
 	check-libstdc++.sh \

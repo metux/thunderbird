@@ -19,7 +19,7 @@
 #include "nsISupportsPrimitives.h"
 #include "nsIImportMailboxDescriptor.h"
 
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsUnicharUtils.h"
 
 #include "nsMsgUtils.h"
@@ -84,23 +84,23 @@ public:
   static void ReportError(int32_t id, const char16_t *pName, nsString *pStream, nsIStringBundle* aBundle);
 
 private:
-  nsString      m_pName;  // module name that created this interface
-  nsIMsgFolder *    m_pDestFolder;
-  bool          m_deleteDestFolder;
-  bool          m_createdFolder;
-  nsCOMPtr <nsIFile> m_pSrcLocation;
-  bool          m_gotLocation;
-  bool          m_found;
-  bool          m_userVerify;
-  nsIImportMail *m_pInterface;
-  nsIArray *  m_pMailboxes;
-  nsISupportsString *m_pSuccessLog;
-  nsISupportsString *m_pErrorLog;
-  uint32_t      m_totalSize;
-  bool          m_doImport;
-  ImportThreadData *  m_pThreadData;
-    bool          m_performingMigration;
-  nsCOMPtr<nsIStringBundle> m_stringBundle;
+  nsString                    m_pName;  // module name that created this interface
+  nsCOMPtr<nsIMsgFolder>      m_pDestFolder;
+  bool                        m_deleteDestFolder;
+  bool                        m_createdFolder;
+  nsCOMPtr<nsIFile>           m_pSrcLocation;
+  bool                        m_gotLocation;
+  bool                        m_found;
+  bool                        m_userVerify;
+  nsCOMPtr<nsIImportMail>     m_pInterface;
+  nsCOMPtr<nsIArray>          m_pMailboxes;
+  nsCOMPtr<nsISupportsString> m_pSuccessLog;
+  nsCOMPtr<nsISupportsString> m_pErrorLog;
+  uint32_t                    m_totalSize;
+  bool                        m_doImport;
+  ImportThreadData *          m_pThreadData;
+  bool                        m_performingMigration;
+  nsCOMPtr<nsIStringBundle>   m_stringBundle;
 };
 
 class ImportThreadData {
@@ -111,15 +111,15 @@ public:
   bool            fatalError;
   uint32_t        currentTotal;
   uint32_t        currentSize;
-  nsIMsgFolder *      destRoot;
-  bool            ownsDestRoot;
-  nsIArray *boxes;
-  nsIImportMail *      mailImport;
-  nsISupportsString *  successLog;
-  nsISupportsString *  errorLog;
-  uint32_t        currentMailbox;
-    bool            performingMigration;
-  nsIStringBundle *stringBundle;
+  nsCOMPtr<nsIMsgFolder>      destRoot;
+  bool                        ownsDestRoot;
+  nsCOMPtr<nsIArray>          boxes;
+  nsCOMPtr<nsIImportMail>     mailImport;
+  nsCOMPtr<nsISupportsString> successLog;
+  nsCOMPtr<nsISupportsString> errorLog;
+  uint32_t                    currentMailbox;
+  bool                        performingMigration;
+  nsCOMPtr<nsIStringBundle>   stringBundle;
 
   ImportThreadData();
   ~ImportThreadData();
@@ -148,16 +148,8 @@ nsresult NS_NewGenericMail(nsIImportGeneric** aImportGeneric)
     if (! aImportGeneric)
         return NS_ERROR_NULL_POINTER;
 
-  nsImportGenericMail *pGen = new nsImportGenericMail();
-
-  if (pGen == nullptr)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  NS_ADDREF(pGen);
-  nsresult rv = pGen->QueryInterface(NS_GET_IID(nsIImportGeneric), (void **)aImportGeneric);
-  NS_RELEASE(pGen);
-
-    return rv;
+  RefPtr<nsImportGenericMail> pGen = new nsImportGenericMail();
+  return pGen->QueryInterface(NS_GET_IID(nsIImportGeneric), (void **)aImportGeneric);
 }
 
 nsImportGenericMail::nsImportGenericMail()
@@ -165,10 +157,6 @@ nsImportGenericMail::nsImportGenericMail()
   m_found = false;
   m_userVerify = false;
   m_gotLocation = false;
-  m_pInterface = nullptr;
-  m_pMailboxes = nullptr;
-  m_pSuccessLog = nullptr;
-  m_pErrorLog = nullptr;
   m_totalSize = 0;
   m_doImport = false;
   m_pThreadData = nullptr;
@@ -176,11 +164,7 @@ nsImportGenericMail::nsImportGenericMail()
   m_pDestFolder = nullptr;
   m_deleteDestFolder = false;
   m_createdFolder = false;
-    m_performingMigration = false;
-
-  // Init logging module.
-  if (!IMPORTLOGMODULE)
-    IMPORTLOGMODULE = PR_NewLogModule("IMPORT");
+  m_performingMigration = false;
 
   nsresult rv = nsImportStringBundle::GetStringBundle(IMPORT_MSGS_URL, getter_AddRefs(m_stringBundle));
   if (NS_FAILED(rv))
@@ -194,14 +178,7 @@ nsImportGenericMail::~nsImportGenericMail()
     m_pThreadData->DriverAbort();
     m_pThreadData = nullptr;
   }
-
-  NS_IF_RELEASE(m_pDestFolder);
-  NS_IF_RELEASE(m_pInterface);
-  NS_IF_RELEASE(m_pMailboxes);
-  NS_IF_RELEASE(m_pSuccessLog);
-  NS_IF_RELEASE(m_pErrorLog);
 }
-
 
 
 NS_IMPL_ISUPPORTS(nsImportGenericMail, nsIImportGeneric)
@@ -210,22 +187,17 @@ NS_IMPL_ISUPPORTS(nsImportGenericMail, nsIImportGeneric)
 NS_IMETHODIMP nsImportGenericMail::GetData(const char *dataId, nsISupports **_retval)
 {
   nsresult rv = NS_OK;
-
-  NS_PRECONDITION(_retval != nullptr, "null ptr");
-  if (!_retval)
-    return NS_ERROR_NULL_POINTER;
+  NS_ENSURE_ARG_POINTER(_retval);
 
   *_retval = nullptr;
   if (!PL_strcasecmp(dataId, "mailInterface")) {
-    *_retval = m_pInterface;
-    NS_IF_ADDREF(m_pInterface);
+    NS_IF_ADDREF(*_retval = m_pInterface);
   }
 
   if (!PL_strcasecmp(dataId, "mailBoxes")) {
     if (!m_pMailboxes)
       GetDefaultMailboxes();
-    *_retval = m_pMailboxes;
-    NS_IF_ADDREF(m_pMailboxes);
+    NS_IF_ADDREF(*_retval = m_pMailboxes);
   }
 
   if (!PL_strcasecmp(dataId, "mailLocation")) {
@@ -241,10 +213,10 @@ NS_IMETHODIMP nsImportGenericMail::GetData(const char *dataId, nsISupports **_re
   }
 
   if (!PL_strcasecmp(dataId, "migration")) {
-        nsCOMPtr<nsISupportsPRBool> migrationString = do_CreateInstance(NS_SUPPORTS_PRBOOL_CONTRACTID, &rv);
-        NS_ENSURE_SUCCESS(rv, rv);
-        migrationString->SetData(m_performingMigration);
-        NS_IF_ADDREF(*_retval = migrationString);
+    nsCOMPtr<nsISupportsPRBool> migrationString = do_CreateInstance(NS_SUPPORTS_PRBOOL_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+    migrationString->SetData(m_performingMigration);
+    migrationString.forget(_retval);
   }
 
   if (!PL_strcasecmp(dataId, "currentMailbox")) {
@@ -256,7 +228,7 @@ NS_IMETHODIMP nsImportGenericMail::GetData(const char *dataId, nsISupports **_re
     if (m_pThreadData) {
       GetMailboxName(m_pThreadData->currentMailbox, data);
     }
-    NS_ADDREF(*_retval = data);
+    data.forget(_retval);
   }
 
   return rv;
@@ -270,47 +242,47 @@ NS_IMETHODIMP nsImportGenericMail::SetData(const char *dataId, nsISupports *item
     return NS_ERROR_NULL_POINTER;
 
   if (!PL_strcasecmp(dataId, "mailInterface")) {
-    NS_IF_RELEASE(m_pInterface);
+    m_pInterface = nullptr;
     if (item)
-      item->QueryInterface(NS_GET_IID(nsIImportMail), (void **) &m_pInterface);
+      m_pInterface = do_QueryInterface(item);
   }
   if (!PL_strcasecmp(dataId, "mailBoxes")) {
-    NS_IF_RELEASE(m_pMailboxes);
+    m_pMailboxes = nullptr;
     if (item)
-      item->QueryInterface(NS_GET_IID(nsIArray), (void **) &m_pMailboxes);
+      m_pMailboxes = do_QueryInterface(item);
   }
 
   if (!PL_strcasecmp(dataId, "mailLocation")) {
-    NS_IF_RELEASE(m_pMailboxes);
+    m_pMailboxes = nullptr;
     m_pSrcLocation = nullptr;
     if (item) {
       nsresult rv;
-      nsCOMPtr <nsIFile> location = do_QueryInterface(item, &rv);
+      nsCOMPtr<nsIFile> location = do_QueryInterface(item, &rv);
       NS_ENSURE_SUCCESS(rv,rv);
       m_pSrcLocation = location;
     }
   }
 
   if (!PL_strcasecmp(dataId, "mailDestination")) {
-    NS_IF_RELEASE(m_pDestFolder);
+    m_pDestFolder = nullptr;
     if (item)
-      item->QueryInterface(NS_GET_IID(nsIMsgFolder), (void **) &m_pDestFolder);
+      m_pDestFolder = do_QueryInterface(item);
     m_deleteDestFolder = false;
   }
 
   if (!PL_strcasecmp(dataId, "name")) {
-    nsCOMPtr<nsISupportsString> nameString;
     if (item) {
-      item->QueryInterface(NS_GET_IID(nsISupportsString), getter_AddRefs(nameString));
-      rv = nameString->GetData(m_pName);
+      nsCOMPtr<nsISupportsString> nameString = do_QueryInterface(item, &rv);
+      if (NS_SUCCEEDED(rv))
+        rv = nameString->GetData(m_pName);
     }
   }
 
   if (!PL_strcasecmp(dataId, "migration")) {
-    nsCOMPtr<nsISupportsPRBool> migrationString;
     if (item) {
-      item->QueryInterface(NS_GET_IID(nsISupportsPRBool), getter_AddRefs(migrationString));
-      rv = migrationString->GetData(&m_performingMigration);
+      nsCOMPtr<nsISupportsPRBool> migrationString = do_QueryInterface(item, &rv);
+      if (NS_SUCCEEDED(rv))
+        rv = migrationString->GetData(&m_performingMigration);
     }
   }
   return rv;
@@ -360,7 +332,7 @@ void nsImportGenericMail::GetDefaultMailboxes(void)
   if (!m_pInterface || m_pMailboxes || !m_pSrcLocation)
     return;
 
-  m_pInterface->FindMailboxes(m_pSrcLocation, &m_pMailboxes);
+  m_pInterface->FindMailboxes(m_pSrcLocation, getter_AddRefs(m_pMailboxes));
 }
 
 void nsImportGenericMail::GetDefaultDestination(void)
@@ -490,31 +462,21 @@ NS_IMETHODIMP nsImportGenericMail::BeginImport(nsISupportsString *successLog, ns
     m_pThreadData = nullptr;
   }
 
-  NS_IF_RELEASE(m_pSuccessLog);
-  NS_IF_RELEASE(m_pErrorLog);
   m_pSuccessLog = successLog;
   m_pErrorLog = errorLog;
-  NS_IF_ADDREF(m_pSuccessLog);
-  NS_IF_ADDREF(m_pErrorLog);
-
 
   // kick off the thread to do the import!!!!
   m_pThreadData = new ImportThreadData();
   m_pThreadData->boxes = m_pMailboxes;
-  NS_ADDREF(m_pMailboxes);
   m_pThreadData->mailImport = m_pInterface;
-  NS_ADDREF(m_pInterface);
   m_pThreadData->errorLog = m_pErrorLog;
-  NS_IF_ADDREF(m_pErrorLog);
   m_pThreadData->successLog = m_pSuccessLog;
-  NS_IF_ADDREF(m_pSuccessLog);
 
   m_pThreadData->ownsDestRoot = m_deleteDestFolder;
   m_pThreadData->destRoot = m_pDestFolder;
-    m_pThreadData->performingMigration = m_performingMigration;
-  NS_IF_ADDREF(m_pDestFolder);
+  m_pThreadData->performingMigration = m_performingMigration;
 
-  NS_IF_ADDREF(m_pThreadData->stringBundle = m_stringBundle);
+  m_pThreadData->stringBundle = m_stringBundle;
 
   PRThread *pThread = PR_CreateThread(PR_USER_THREAD, &ImportMailThread, m_pThreadData,
                   PR_PRIORITY_NORMAL,
@@ -604,10 +566,10 @@ void nsImportGenericMail::ReportError(int32_t id, const char16_t *pName, nsStrin
 
   // load the error string
   char16_t *pFmt = nsImportStringBundle::GetStringByID(id, aBundle);
-  char16_t *pText = nsTextFormatter::smprintf(pFmt, pName);
+  nsString pText;
+  nsTextFormatter::ssprintf(pText, pFmt, pName);
   pStream->Append(pText);
-  nsTextFormatter::smprintf_free(pText);
-  NS_Free(pFmt);
+  free(pFmt);
   pStream->Append(NS_ConvertASCIItoUTF16(MSG_LINEBREAK));
 }
 
@@ -649,21 +611,10 @@ ImportThreadData::ImportThreadData()
   currentSize = 0;
   destRoot = nullptr;
   ownsDestRoot = false;
-  boxes = nullptr;
-  mailImport = nullptr;
-  successLog = nullptr;
-  errorLog = nullptr;
-  stringBundle = nullptr;
 }
 
 ImportThreadData::~ImportThreadData()
 {
-  NS_IF_RELEASE(destRoot);
-  NS_IF_RELEASE(boxes);
-  NS_IF_RELEASE(mailImport);
-  NS_IF_RELEASE(errorLog);
-  NS_IF_RELEASE(successLog);
-  NS_IF_RELEASE(stringBundle);
 }
 
 void ImportThreadData::DriverDelete(void)
@@ -771,7 +722,7 @@ ImportMailThread(void *stuff)
         while ((newDepth < depth) && NS_SUCCEEDED(rv)) {
           rv = curFolder->GetParent(getter_AddRefs(curFolder));
           if (NS_FAILED(rv)) {
-            IMPORT_LOG1("*** ImportMailThread: Failed to get the interface for parent folder '%s'.", lastName.get());
+            IMPORT_LOG1("*** ImportMailThread: Failed to get the interface for parent folder '%s'.", NS_ConvertUTF16toUTF8(lastName).get());
             nsImportGenericMail::ReportError(IMPORT_ERROR_MB_FINDCHILD,
                                              lastName.get(), &error,
                                              pData->stringBundle);
@@ -781,7 +732,7 @@ ImportMailThread(void *stuff)
           depth--;
         }
         if (NS_FAILED(rv)) {
-          IMPORT_LOG1("*** ImportMailThread: Failed to get the proxy interface for parent folder '%s'.", lastName.get());
+          IMPORT_LOG1("*** ImportMailThread: Failed to get the proxy interface for parent folder '%s'.", NS_ConvertUTF16toUTF8(lastName).get());
           nsImportStringBundle::GetStringByID(IMPORT_ERROR_MB_NOPROXY,
                                               pData->stringBundle, error);
           pData->fatalError = true;
@@ -793,7 +744,7 @@ ImportMailThread(void *stuff)
       box->GetDisplayName(&pName);
       if (pName) {
         lastName = pName;
-        NS_Free(pName);
+        free(pName);
       }
       else
         lastName.AssignLiteral("Unknown!");
@@ -822,7 +773,7 @@ ImportMailThread(void *stuff)
 
       rv = ProxyGetChildNamed(curFolder, lastName, getter_AddRefs(newFolder));
       if (NS_FAILED(rv)) {
-        IMPORT_LOG1("*** ImportMailThread: Failed to locate subfolder '%s' after it's been created.", lastName.get());
+        IMPORT_LOG1("*** ImportMailThread: Failed to locate subfolder '%s' after it's been created.", NS_ConvertUTF16toUTF8(lastName).get());
         nsImportGenericMail::ReportError(IMPORT_ERROR_MB_CREATE, lastName.get(),
                                          &error, pData->stringBundle);
       }
@@ -835,11 +786,11 @@ ImportMailThread(void *stuff)
         rv = pData->mailImport->ImportMailbox(box, newFolder, &pError, &pSuccess, &fatalError);
         if (pError) {
           error.Append(pError);
-          NS_Free(pError);
+          free(pError);
         }
         if (pSuccess) {
           success.Append(pSuccess);
-          NS_Free(pSuccess);
+          free(pSuccess);
         }
 
         pData->currentSize = 0;
@@ -907,13 +858,12 @@ bool nsImportGenericMail::CreateFolder(nsIMsgFolder **ppFolder)
   nsString folderName;
   if (!m_pName.IsEmpty()) {
     const char16_t *moduleName[] = { m_pName.get() };
-    rv = bundle->FormatStringFromName(u"ImportModuleFolderName",
+    rv = bundle->FormatStringFromName("ImportModuleFolderName",
                                       moduleName, 1,
-                                      getter_Copies(folderName));
+                                      folderName);
   }
   else {
-    rv = bundle->GetStringFromName(u"DefaultFolderName",
-                                   getter_Copies(folderName));
+    rv = bundle->GetStringFromName("DefaultFolderName", folderName);
   }
   if (NS_FAILED(rv)) {
       IMPORT_LOG0("*** Failed to get Folder Name!\n");
@@ -995,19 +945,21 @@ class GetSubFoldersRunnable : public mozilla::Runnable
 public:
   GetSubFoldersRunnable(nsIMsgFolder *aFolder);
   NS_DECL_NSIRUNNABLE
+  nsresult mResult;
 private:
   nsCOMPtr<nsIMsgFolder> m_folder;
 };
 
 GetSubFoldersRunnable::GetSubFoldersRunnable(nsIMsgFolder *aFolder) :
-  m_folder(aFolder)
+  mozilla::Runnable("GetSubFoldersRunnable"), m_folder(aFolder)
 {
 }
 
 NS_IMETHODIMP GetSubFoldersRunnable::Run()
 {
   nsCOMPtr<nsISimpleEnumerator> dummy;
-  return m_folder->GetSubFolders(getter_AddRefs(dummy));
+  mResult = m_folder->GetSubFolders(getter_AddRefs(dummy));
+  return NS_OK;  // Sync runnable must return OK.
 }
 
 
@@ -1015,7 +967,9 @@ nsresult ProxyGetSubFolders(nsIMsgFolder *aFolder)
 {
   RefPtr<GetSubFoldersRunnable> getSubFolders =
     new GetSubFoldersRunnable(aFolder);
-  return NS_DispatchToMainThread(getSubFolders, NS_DISPATCH_SYNC);
+  nsresult rv = NS_DispatchToMainThread(getSubFolders, NS_DISPATCH_SYNC);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return getSubFolders->mResult;
 }
 
 class GetChildNamedRunnable : public mozilla::Runnable
@@ -1023,6 +977,7 @@ class GetChildNamedRunnable : public mozilla::Runnable
 public:
   GetChildNamedRunnable(nsIMsgFolder *aFolder, const nsAString& aName, nsIMsgFolder **aChild);
   NS_DECL_NSIRUNNABLE
+  nsresult mResult;
 protected:
   nsCOMPtr<nsIMsgFolder> m_folder;
   nsString m_name;
@@ -1032,13 +987,15 @@ protected:
 GetChildNamedRunnable::GetChildNamedRunnable(nsIMsgFolder *aFolder,
                                              const nsAString & aName,
                                              nsIMsgFolder **aChild) :
+  mozilla::Runnable("GetChildNamedRunnable"),
   m_folder(aFolder), m_name(aName), m_child(aChild)
 {
 }
 
 NS_IMETHODIMP GetChildNamedRunnable::Run()
 {
-  return m_folder->GetChildNamed(m_name, m_child);
+  mResult = m_folder->GetChildNamed(m_name, m_child);
+  return NS_OK;  // Sync runnable must return OK.
 }
 
 
@@ -1047,7 +1004,9 @@ nsresult ProxyGetChildNamed(nsIMsgFolder *aFolder, const nsAString & aName,
 {
   RefPtr<GetChildNamedRunnable> getChildNamed =
     new GetChildNamedRunnable(aFolder, aName, aChild);
-  return NS_DispatchToMainThread(getChildNamed, NS_DISPATCH_SYNC);
+  nsresult rv = NS_DispatchToMainThread(getChildNamed, NS_DISPATCH_SYNC);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return getChildNamed->mResult;
 }
 
 class GetParentRunnable : public mozilla::Runnable
@@ -1055,19 +1014,21 @@ class GetParentRunnable : public mozilla::Runnable
 public:
   GetParentRunnable(nsIMsgFolder *aFolder, nsIMsgFolder **aParent);
   NS_DECL_NSIRUNNABLE
+  nsresult mResult;
 protected:
   nsCOMPtr<nsIMsgFolder> m_folder;
   nsIMsgFolder **m_parent;
 };
 
 GetParentRunnable::GetParentRunnable(nsIMsgFolder *aFolder, nsIMsgFolder **aParent) :
-  m_folder(aFolder), m_parent(aParent)
+  mozilla::Runnable("GetParentRunnable"), m_folder(aFolder), m_parent(aParent)
 {
 }
 
 NS_IMETHODIMP GetParentRunnable::Run()
 {
-  return m_folder->GetParent(m_parent);
+  mResult = m_folder->GetParent(m_parent);
+  return NS_OK;  // Sync runnable must return OK.
 }
 
 
@@ -1075,7 +1036,9 @@ nsresult ProxyGetParent(nsIMsgFolder *aFolder, nsIMsgFolder **aParent)
 {
   RefPtr<GetParentRunnable> getParent =
     new GetParentRunnable(aFolder, aParent);
-  return NS_DispatchToMainThread(getParent, NS_DISPATCH_SYNC);
+  nsresult rv = NS_DispatchToMainThread(getParent, NS_DISPATCH_SYNC);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return getParent->mResult;
 }
 
 class ContainsChildNamedRunnable : public mozilla::Runnable
@@ -1083,6 +1046,7 @@ class ContainsChildNamedRunnable : public mozilla::Runnable
 public:
   ContainsChildNamedRunnable(nsIMsgFolder *aFolder, const nsAString& aName, bool *aResult);
   NS_DECL_NSIRUNNABLE
+  nsresult mResult;
 protected:
   nsCOMPtr<nsIMsgFolder> m_folder;
   nsString m_name;
@@ -1092,13 +1056,15 @@ protected:
 ContainsChildNamedRunnable::ContainsChildNamedRunnable(nsIMsgFolder *aFolder,
                                                        const nsAString &aName,
                                                        bool *aResult) :
+  mozilla::Runnable("ContainsChildNamedRunnable"),
   m_folder(aFolder), m_name(aName), m_result(aResult)
 {
 }
 
 NS_IMETHODIMP ContainsChildNamedRunnable::Run()
 {
-  return m_folder->ContainsChildNamed(m_name, m_result);
+  mResult = m_folder->ContainsChildNamed(m_name, m_result);
+  return NS_OK;  // Sync runnable must return OK.
 }
 
 
@@ -1107,9 +1073,10 @@ nsresult ProxyContainsChildNamed(nsIMsgFolder *aFolder, const nsAString &aName,
 {
   RefPtr<ContainsChildNamedRunnable> containsChildNamed =
     new ContainsChildNamedRunnable(aFolder, aName, aResult);
-  return NS_DispatchToMainThread(containsChildNamed, NS_DISPATCH_SYNC);
+  nsresult rv = NS_DispatchToMainThread(containsChildNamed, NS_DISPATCH_SYNC);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return containsChildNamed->mResult;
 }
-
 
 class GenerateUniqueSubfolderNameRunnable : public mozilla::Runnable
 {
@@ -1119,6 +1086,7 @@ public:
                                       nsIMsgFolder *otherFolder,
                                       nsAString& name);
   NS_DECL_NSIRUNNABLE
+  nsresult mResult;
 protected:
   nsCOMPtr<nsIMsgFolder> m_folder;
   nsString m_prefix;
@@ -1129,13 +1097,15 @@ protected:
 GenerateUniqueSubfolderNameRunnable::GenerateUniqueSubfolderNameRunnable(
   nsIMsgFolder *aFolder, const nsAString& aPrefix, nsIMsgFolder *aOtherFolder,
   nsAString& aName)
-  : m_folder(aFolder), m_prefix(aPrefix), m_otherFolder(aOtherFolder), m_name(aName)
+  : mozilla::Runnable("GenerateUniqueSubfolderNameRunnable")
+  , m_folder(aFolder), m_prefix(aPrefix), m_otherFolder(aOtherFolder), m_name(aName)
 {
 }
 
 NS_IMETHODIMP GenerateUniqueSubfolderNameRunnable::Run()
 {
-  return m_folder->GenerateUniqueSubfolderName(m_prefix, m_otherFolder, m_name);
+  mResult = m_folder->GenerateUniqueSubfolderName(m_prefix, m_otherFolder, m_name);
+  return NS_OK;  // Sync runnable must return OK.
 }
 
 
@@ -1147,7 +1117,9 @@ nsresult ProxyGenerateUniqueSubfolderName(nsIMsgFolder *aFolder,
 {
   RefPtr<GenerateUniqueSubfolderNameRunnable> generateUniqueSubfolderName =
     new GenerateUniqueSubfolderNameRunnable(aFolder, aPrefix, aOtherFolder, aName);
-  return NS_DispatchToMainThread(generateUniqueSubfolderName, NS_DISPATCH_SYNC);
+  nsresult rv = NS_DispatchToMainThread(generateUniqueSubfolderName, NS_DISPATCH_SYNC);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return generateUniqueSubfolderName->mResult;
 }
 
 class CreateSubfolderRunnable : public mozilla::Runnable
@@ -1155,6 +1127,7 @@ class CreateSubfolderRunnable : public mozilla::Runnable
 public:
   CreateSubfolderRunnable(nsIMsgFolder *aFolder, const nsAString& aName);
   NS_DECL_NSIRUNNABLE
+  nsresult mResult;
 protected:
   nsCOMPtr<nsIMsgFolder> m_folder;
   nsString m_name;
@@ -1162,13 +1135,14 @@ protected:
 
 CreateSubfolderRunnable::CreateSubfolderRunnable(nsIMsgFolder *aFolder,
                                                  const nsAString &aName) :
-  m_folder(aFolder), m_name(aName)
+  mozilla::Runnable("CreateSubfolderRunnable"), m_folder(aFolder), m_name(aName)
 {
 }
 
 NS_IMETHODIMP CreateSubfolderRunnable::Run()
 {
-  return m_folder->CreateSubfolder(m_name, nullptr);
+  mResult = m_folder->CreateSubfolder(m_name, nullptr);
+  return NS_OK;  // Sync runnable must return OK.
 }
 
 
@@ -1176,7 +1150,9 @@ nsresult ProxyCreateSubfolder(nsIMsgFolder *aFolder, const nsAString &aName)
 {
   RefPtr<CreateSubfolderRunnable> createSubfolder =
     new CreateSubfolderRunnable(aFolder, aName);
-  return NS_DispatchToMainThread(createSubfolder, NS_DISPATCH_SYNC);
+  nsresult rv = NS_DispatchToMainThread(createSubfolder, NS_DISPATCH_SYNC);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return createSubfolder->mResult;
 }
 
 class ForceDBClosedRunnable : public mozilla::Runnable
@@ -1184,25 +1160,27 @@ class ForceDBClosedRunnable : public mozilla::Runnable
 public:
   ForceDBClosedRunnable(nsIMsgFolder *aFolder);
   NS_DECL_NSIRUNNABLE
+  nsresult mResult;
 protected:
   nsCOMPtr<nsIMsgFolder> m_folder;
 };
 
 ForceDBClosedRunnable::ForceDBClosedRunnable(nsIMsgFolder *aFolder) :
-  m_folder(aFolder)
+  mozilla::Runnable("ForceDBClosedRunnable"), m_folder(aFolder)
 {
 }
 
 NS_IMETHODIMP ForceDBClosedRunnable::Run()
 {
-  return m_folder->ForceDBClosed();
+  mResult = m_folder->ForceDBClosed();
+  return NS_OK;  // Sync runnable must return OK.
 }
 
 nsresult ProxyForceDBClosed(nsIMsgFolder *aFolder)
 {
   RefPtr<ForceDBClosedRunnable> forceDBClosed =
     new ForceDBClosedRunnable(aFolder);
-  return NS_DispatchToMainThread(forceDBClosed, NS_DISPATCH_SYNC);
+  nsresult rv = NS_DispatchToMainThread(forceDBClosed, NS_DISPATCH_SYNC);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return forceDBClosed->mResult;
 }
-
-

@@ -6,7 +6,7 @@
 
 const Editor = require("devtools/client/sourceeditor/editor");
 const Services = require("Services");
-const EventEmitter = require("devtools/shared/event-emitter");
+const EventEmitter = require("devtools/shared/old-event-emitter");
 
 /**
  * A wrapper around the Editor component, that allows editing of HTML.
@@ -53,8 +53,8 @@ function HTMLEditor(htmlDocument) {
   config.extraKeys.F2 = this.hide;
   config.extraKeys.Esc = this.hide.bind(this, false);
 
-  this.container.addEventListener("click", this.hide, false);
-  this.editorInner.addEventListener("click", stopPropagation, false);
+  this.container.addEventListener("click", this.hide);
+  this.editorInner.addEventListener("click", stopPropagation);
   this.editor = new Editor(config);
 
   this.editor.appendToLocalElement(this.editorInner);
@@ -127,6 +127,7 @@ HTMLEditor.prototype = {
 
     this.editor.refresh();
     this.editor.focus();
+    this.editor.clearHistory();
 
     this.emit("popupshown");
   },
@@ -160,8 +161,8 @@ HTMLEditor.prototype = {
   destroy: function () {
     this.doc.defaultView.removeEventListener("resize",
       this.refresh, true);
-    this.container.removeEventListener("click", this.hide, false);
-    this.editorInner.removeEventListener("click", stopPropagation, false);
+    this.container.removeEventListener("click", this.hide);
+    this.editorInner.removeEventListener("click", stopPropagation);
 
     this.hide(false);
     this.container.remove();

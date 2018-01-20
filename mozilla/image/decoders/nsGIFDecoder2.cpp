@@ -91,9 +91,6 @@ nsGIFDecoder2::nsGIFDecoder2(RasterImage* aImage)
 {
   // Clear out the structure, excluding the arrays.
   memset(&mGIFStruct, 0, sizeof(mGIFStruct));
-
-  // Initialize as "animate once" in case no NETSCAPE2.0 extension is found.
-  mGIFStruct.loop_count = 1;
 }
 
 nsGIFDecoder2::~nsGIFDecoder2()
@@ -111,7 +108,7 @@ nsGIFDecoder2::FinishInternal()
     if (mCurrentFrameIndex == mGIFStruct.images_decoded) {
       EndImageFrame();
     }
-    PostDecodeDone(mGIFStruct.loop_count - 1);
+    PostDecodeDone(mGIFStruct.loop_count);
     mGIFOpen = false;
   }
 
@@ -181,8 +178,6 @@ nsGIFDecoder2::BeginImageFrame(const IntRect& aFrameRect,
   MOZ_ASSERT(HasSize());
 
   bool hasTransparency = CheckForTransparency(aFrameRect);
-  gfx::SurfaceFormat format = hasTransparency ? SurfaceFormat::B8G8R8A8
-                                              : SurfaceFormat::B8G8R8X8;
 
   // Make sure there's no animation if we're downscaling.
   MOZ_ASSERT_IF(Size() != OutputSize(), !GetImageMetadata().HasAnimation());
@@ -193,6 +188,9 @@ nsGIFDecoder2::BeginImageFrame(const IntRect& aFrameRect,
 
   Maybe<SurfacePipe> pipe;
   if (mGIFStruct.images_decoded == 0) {
+    gfx::SurfaceFormat format = hasTransparency ? SurfaceFormat::B8G8R8A8
+                                                : SurfaceFormat::B8G8R8X8;
+
     // The first frame may be displayed progressively.
     pipeFlags |= SurfacePipeFlags::PROGRESSIVE_DISPLAY;
 
@@ -204,10 +202,17 @@ nsGIFDecoder2::BeginImageFrame(const IntRect& aFrameRect,
   } else {
     // This is an animation frame (and not the first). To minimize the memory
     // usage of animations, the image data is stored in paletted form.
+    //
+    // We should never use paletted surfaces with a draw target directly, so
+    // the only practical difference between B8G8R8A8 and B8G8R8X8 is the
+    // cleared pixel value if we get truncated. We want 0 in that case to
+    // ensure it is an acceptable value for the color map as was the case
+    // historically.
     MOZ_ASSERT(Size() == OutputSize());
     pipe =
       SurfacePipeFactory::CreatePalettedSurfacePipe(this, mGIFStruct.images_decoded,
-                                                    Size(), aFrameRect, format,
+                                                    Size(), aFrameRect,
+                                                    SurfaceFormat::B8G8R8A8,
                                                     aDepth, pipeFlags);
   }
 
@@ -738,6 +743,11 @@ nsGIFDecoder2::ReadNetscapeExtensionData(const char* aData)
     case NETSCAPE_LOOPING_EXTENSION_SUB_BLOCK_ID:
       // This is looping extension.
       mGIFStruct.loop_count = LittleEndian::readUint16(aData + 1);
+      // Zero loop count is infinite animation loop request.
+      if (mGIFStruct.loop_count == 0) {
+        mGIFStruct.loop_count = -1;
+      }
+
       return Transition::To(State::NETSCAPE_EXTENSION_SUB_BLOCK,
                             SUB_BLOCK_HEADER_LEN);
 
@@ -789,8 +799,8 @@ nsGIFDecoder2::FinishImageDescriptor(const char* aData)
   // Get image offsets with respect to the screen origin.
   frameRect.x = LittleEndian::readUint16(aData + 0);
   frameRect.y = LittleEndian::readUint16(aData + 2);
-  frameRect.width = LittleEndian::readUint16(aData + 4);
-  frameRect.height = LittleEndian::readUint16(aData + 6);
+  frameRect.SetWidth(LittleEndian::readUint16(aData + 4));
+  frameRect.SetHeight(LittleEndian::readUint16(aData + 6));
 
   if (!mGIFStruct.images_decoded) {
     // Work around GIF files where
@@ -798,11 +808,11 @@ nsGIFDecoder2::FinishImageDescriptor(const char* aData)
     //     same dimension in the first image, or
     //   * GIF87a files where the first image's dimensions do not match the
     //     logical screen dimensions.
-    if (mGIFStruct.screen_height < frameRect.height ||
-        mGIFStruct.screen_width < frameRect.width ||
+    if (mGIFStruct.screen_height < frameRect.Height() ||
+        mGIFStruct.screen_width < frameRect.Width() ||
         mGIFStruct.version == 87) {
-      mGIFStruct.screen_height = frameRect.height;
-      mGIFStruct.screen_width = frameRect.width;
+      mGIFStruct.screen_height = frameRect.Height();
+      mGIFStruct.screen_width = frameRect.Width();
       frameRect.MoveTo(0, 0);
     }
 
@@ -823,12 +833,12 @@ nsGIFDecoder2::FinishImageDescriptor(const char* aData)
 
   // Work around broken GIF files that have zero frame width or height; in this
   // case, we'll treat the frame as having the same size as the overall image.
-  if (frameRect.height == 0 || frameRect.width == 0) {
-    frameRect.height = mGIFStruct.screen_height;
-    frameRect.width = mGIFStruct.screen_width;
+  if (frameRect.Height() == 0 || frameRect.Width() == 0) {
+    frameRect.SetHeight(mGIFStruct.screen_height);
+    frameRect.SetWidth(mGIFStruct.screen_width);
 
     // If that still resulted in zero frame width or height, give up.
-    if (frameRect.height == 0 || frameRect.width == 0) {
+    if (frameRect.Height() == 0 || frameRect.Width() == 0) {
       return Transition::TerminateFailure();
     }
   }
@@ -870,7 +880,7 @@ nsGIFDecoder2::FinishImageDescriptor(const char* aData)
   }
 
   // Clear state from last image.
-  mGIFStruct.pixels_remaining = frameRect.width * frameRect.height;
+  mGIFStruct.pixels_remaining = frameRect.Width() * frameRect.Height();
 
   if (haveLocalColorTable) {
     // We have a local color table, so prepare to read it into the palette of
@@ -1075,7 +1085,7 @@ nsGIFDecoder2::SkipSubBlocks(const char* aData)
                                   nextSubBlockLength);
 }
 
-Maybe<Telemetry::ID>
+Maybe<Telemetry::HistogramID>
 nsGIFDecoder2::SpeedHistogram() const
 {
   return Some(Telemetry::IMAGE_DECODE_SPEED_GIF);

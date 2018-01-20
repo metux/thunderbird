@@ -485,15 +485,16 @@ var nsOpenCommand =
     fp.appendFilters(nsIFilePicker.filterText);
     fp.appendFilters(nsIFilePicker.filterAll);
 
-    /* doesn't handle *.shtml files */
-    if (fp.show() == nsIFilePicker.returnCancel)
-      return;
-
-    // editPage checks for already open window and activates it.
-    if (fp.fileURL.spec) {
-      SaveFilePickerDirectory(fp, fileType);
-      editPage(fp.fileURL.spec, fileType);
-    }
+    fp.open(rv => {
+      if (rv == nsIFilePicker.returnCancel) {
+        return;
+      }
+      // editPage checks for already open window and activates it.
+      if (fp.fileURL.spec) {
+        SaveFilePickerDirectory(fp, fileType);
+        editPage(fp.fileURL.spec, fileType);
+      }
+    });
   }
 };
 
@@ -534,15 +535,13 @@ var nsSaveCommand =
 
   doCommand: function(aCommand)
   {
-    var result = false;
     var editor = GetCurrentEditor();
     if (editor)
     {
       if (IsHTMLEditor())
         SetEditMode(gPreviousNonSourceDisplayMode);
-      result = SaveDocument(IsUrlAboutBlank(GetDocumentUrl()), false, editor.contentsMIMEType);
+      SaveDocument(IsUrlAboutBlank(GetDocumentUrl()), false, editor.contentsMIMEType);
     }
-    return result;
   }
 }
 
@@ -558,15 +557,13 @@ var nsSaveAsCommand =
 
   doCommand: function(aCommand)
   {
-    var result = false;
     var editor = GetCurrentEditor();
     if (editor)
     {
       if (IsHTMLEditor())
         SetEditMode(gPreviousNonSourceDisplayMode);
-      result = SaveDocument(true, false, editor.contentsMIMEType);
+      SaveDocument(true, false, editor.contentsMIMEType);
     }
-    return result;
   }
 }
 
@@ -585,10 +582,8 @@ var nsExportToTextCommand =
     if (GetCurrentEditor())
     {
       SetEditMode(gPreviousNonSourceDisplayMode);
-      var result = SaveDocument(true, true, "text/plain");
-      return result;
+      SaveDocument(true, true, "text/plain");
     }
-    return false;
   }
 }
 
@@ -617,16 +612,14 @@ var nsSaveAndChangeEncodingCommand =
     {
       if (window.exportToText)
       {
-        window.ok = SaveDocument(true, true, "text/plain");
+        SaveDocument(true, true, "text/plain");
       }
       else
       {
         var editor = GetCurrentEditor();
-        window.ok = SaveDocument(true, false, editor ? editor.contentsMIMEType : null);
+        SaveDocument(true, false, editor ? editor.contentsMIMEType : null);
       }
     }
-
-    return window.ok;
   }
 };
 
@@ -761,7 +754,7 @@ function GetSuggestedFileName(aDocumentURLString, aMIMEType)
   {
     try {
       let docURI = Services.io.newURI(aDocumentURLString,
-        GetCurrentEditor().documentCharacterSet, null);
+        GetCurrentEditor().documentCharacterSet);
       docURI = docURI.QueryInterface(Components.interfaces.nsIURL);
 
       // grab the file name
@@ -778,7 +771,9 @@ function GetSuggestedFileName(aDocumentURLString, aMIMEType)
   return title + extension;
 }
 
-// returns file picker result
+/**
+ * @return {Promise} dialogResult
+ */
 function PromptForSaveLocation(aDoSaveAsText, aEditorType, aMIMEType, aDocumentURLString)
 {
   var dialogResult = {};
@@ -820,7 +815,7 @@ function PromptForSaveLocation(aDoSaveAsText, aEditorType, aMIMEType, aDocumentU
 
     var isLocalFile = true;
     try {
-      let docURI = Services.io.newURI(aDocumentURLString, GetCurrentEditor().documentCharacterSet, null);
+      let docURI = Services.io.newURI(aDocumentURLString, GetCurrentEditor().documentCharacterSet);
       isLocalFile = docURI.schemeIs("file");
     }
     catch (e) {}
@@ -847,18 +842,22 @@ function PromptForSaveLocation(aDoSaveAsText, aEditorType, aMIMEType, aDocumentU
   }
   catch(e) {}
 
-  dialogResult.filepickerClick = fp.show();
-  if (dialogResult.filepickerClick != nsIFilePicker.returnCancel)
-  {
-    // reset urlstring to new save location
-    dialogResult.resultingURIString = fileHandler.getURLSpecFromFile(fp.file);
-    dialogResult.resultingLocalFile = fp.file;
-    SaveFilePickerDirectory(fp, aEditorType);
-  }
-  else if ("gFilePickerDirectory" in window && gFilePickerDirectory)
-    fp.displayDirectory = gFilePickerDirectory;
-
-  return dialogResult;
+  return new Promise(resolve => {
+    fp.open(rv => {
+      dialogResult.filepickerClick = rv;
+      if (rv == nsIFilePicker.returnOK && fp.file) {
+        // reset urlstring to new save location
+        dialogResult.resultingURIString = fileHandler.getURLSpecFromFile(fp.file);
+        dialogResult.resultingLocalFile = fp.file;
+        SaveFilePickerDirectory(fp, aEditorType);
+        resolve(dialogResult);
+      }
+      else if ("gFilePickerDirectory" in window && gFilePickerDirectory) {
+        fp.displayDirectory = gFilePickerDirectory;
+        resolve(null);
+      }
+    });
+  });
 }
 
 /**
@@ -899,9 +898,8 @@ function OutputFileWithPersistAPI(editorDoc, aDestinationLocation, aRelatedFiles
   gPersistObj = null;
   var editor = GetCurrentEditor();
   try {
-    var imeEditor = editor.QueryInterface(Components.interfaces.nsIEditorIMESupport);
-    imeEditor.forceCompositionEnd();
-    } catch (e) {}
+    editor.forceCompositionEnd();
+  } catch (e) {}
 
   var isLocalFile = false;
   try {
@@ -1181,7 +1179,7 @@ var gEditorOutputProgressListener =
             // Make a new docURI from the "browse location" in case "publish location" was FTP
             // We need to set document uri before notifying listeners
             var docUrl = GetDocUrlFromPublishData(gPublishData);
-            SetDocumentURI(Services.io.newURI(docUrl, editor.documentCharacterSet, null));
+            SetDocumentURI(Services.io.newURI(docUrl, editor.documentCharacterSet));
 
             UpdateWindowTitle();
 
@@ -1583,10 +1581,10 @@ function IsSupportedTextMimeType(aMimeType)
 }
 
 // throws an error or returns true if user attempted save; false if user canceled save
-function SaveDocument(aSaveAs, aSaveCopy, aMimeType)
+async function SaveDocument(aSaveAs, aSaveCopy, aMimeType)
 {
   var editor = GetCurrentEditor();
-  if (!aMimeType || aMimeType == "" || !editor)
+  if (!aMimeType || !editor)
     throw Components.results.NS_ERROR_NOT_INITIALIZED;
 
   var editorDoc = editor.document;
@@ -1630,8 +1628,8 @@ function SaveDocument(aSaveAs, aSaveCopy, aMimeType)
           return false;
       }
 
-      var dialogResult = PromptForSaveLocation(saveAsTextFile, editorType, aMimeType, urlstring);
-      if (dialogResult.filepickerClick == nsIFilePicker.returnCancel)
+      var dialogResult = await PromptForSaveLocation(saveAsTextFile, editorType, aMimeType, urlstring);
+      if (!dialogResult)
         return false;
 
       replacing = (dialogResult.filepickerClick == nsIFilePicker.returnReplace);
@@ -1654,12 +1652,12 @@ function SaveDocument(aSaveAs, aSaveCopy, aMimeType)
     var docURI;
     if (!tempLocalFile)
     {
-      docURI = Services.io.newURI(urlstring, editor.documentCharacterSet, null);
+      docURI = Services.io.newURI(urlstring, editor.documentCharacterSet);
 
       if (docURI.schemeIs("file"))
       {
         var fileHandler = GetFileProtocolHandler();
-        tempLocalFile = fileHandler.getFileFromURLSpec(urlstring).QueryInterface(Components.interfaces.nsILocalFile);
+        tempLocalFile = fileHandler.getFileFromURLSpec(urlstring).QueryInterface(Components.interfaces.nsIFile);
       }
     }
 
@@ -1696,7 +1694,7 @@ function SaveDocument(aSaveAs, aSaveCopy, aMimeType)
           if (lastSlash != -1)
           {
             var relatedFilesDirString = urlstring.slice(0, lastSlash + 1);  // include last slash
-            relatedFilesDir = Services.io.newURI(relatedFilesDirString, editor.documentCharacterSet, null);
+            relatedFilesDir = Services.io.newURI(relatedFilesDirString, editor.documentCharacterSet);
           }
         }
       } catch(e) { relatedFilesDir = null; }
@@ -1716,7 +1714,7 @@ function SaveDocument(aSaveAs, aSaveCopy, aMimeType)
     try {
       if (doUpdateURI)
       {
-         // If a local file, we must create a new uri from nsILocalFile
+         // If a local file, we must create a new uri from nsIFile
         if (tempLocalFile)
           docURI = GetFileProtocolHandler().newFileURI(tempLocalFile);
 
@@ -1907,7 +1905,7 @@ function CreateURIFromPublishData(publishData, doDocUri)
     else
       spec += FormatDirForPublishing(publishData.otherDir);
 
-    URI = Services.io.newURI(spec, GetCurrentEditor().documentCharacterSet, null);
+    URI = Services.io.newURI(spec, GetCurrentEditor().documentCharacterSet);
 
     if (publishData.username)
       URI.username = publishData.username;
@@ -2046,11 +2044,11 @@ var nsCloseCommand =
   }
 };
 
-function CloseWindow()
+async function CloseWindow()
 {
   // Check to make sure document is saved. "true" means allow "Don't Save" button,
   //   so user can choose to close without saving
-  if (CheckAndSaveDocument("cmd_close", true))
+  if (await CheckAndSaveDocument("cmd_close", true))
   {
     if (window.InsertCharWindow)
       SwitchInsertCharToAnotherEditorOrClose();
@@ -2122,11 +2120,11 @@ var nsPreviewCommand =
   getCommandStateParams: function(aCommand, aParams, aRefCon) {},
   doCommandParams: function(aCommand, aParams, aRefCon) {},
 
-  doCommand: function(aCommand)
+  doCommand: async function(aCommand)
   {
     // Don't continue if user canceled during prompt for saving
     // DocumentHasBeenSaved will test if we have a URL and suppress "Don't Save" button if not
-    if (!CheckAndSaveDocument("cmd_preview", DocumentHasBeenSaved()))
+    if (!(await CheckAndSaveDocument("cmd_preview", DocumentHasBeenSaved())))
       return;
 
     // Check if we saved again just in case?
@@ -2177,11 +2175,11 @@ var nsSendPageCommand =
   getCommandStateParams: function(aCommand, aParams, aRefCon) {},
   doCommandParams: function(aCommand, aParams, aRefCon) {},
 
-  doCommand: function(aCommand)
+  doCommand: async function(aCommand)
   {
     // Don't continue if user canceled during prompt for saving
     // DocumentHasBeenSaved will test if we have a URL and suppress "Don't Save" button if not
-    if (!CheckAndSaveDocument("cmd_editSendPage", DocumentHasBeenSaved()))
+    if (!(await CheckAndSaveDocument("cmd_editSendPage", DocumentHasBeenSaved())))
       return;
 
     // Check if we saved again just in case?
@@ -2367,13 +2365,13 @@ var nsValidateCommand =
   getCommandStateParams: function(aCommand, aParams, aRefCon) {},
   doCommandParams: function(aCommand, aParams, aRefCon) {},
 
-  doCommand: function(aCommand)
+  doCommand: async function(aCommand)
   {
     // If the document hasn't been modified,
     // then just validate the current url.
     if (IsDocumentModified() || IsHTMLSourceChanged())
     {
-      if (!CheckAndSaveDocument("cmd_validate", false))
+      if (!(await CheckAndSaveDocument("cmd_validate", false)))
         return;
 
       // Check if we saved again just in case?

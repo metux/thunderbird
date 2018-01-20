@@ -6,33 +6,31 @@
 XPCOMUtils.defineLazyModuleGetter(this, "HttpServer",
   "resource://testing-common/httpd.js");
 
-registerCleanupFunction(function*() {
-  yield task_resetState();
-  yield task_clearHistory();
+registerCleanupFunction(async function() {
+  await task_resetState();
+  await PlacesUtils.history.clear();
 });
 
-add_task(function* test_indicatorDrop() {
-  let scriptLoader = Cc["@mozilla.org/moz/jssubscript-loader;1"].
-      getService(Ci.mozIJSSubScriptLoader);
+add_task(async function test_indicatorDrop() {
   let EventUtils = {};
-  scriptLoader.loadSubScript("chrome://mochikit/content/tests/SimpleTest/EventUtils.js", EventUtils);
+  Services.scriptloader.loadSubScript("chrome://mochikit/content/tests/SimpleTest/EventUtils.js", EventUtils);
 
-  function task_drop(win, urls) {
+  async function drop(win, urls) {
     let dragData = [[{type: "text/plain", data: urls.join("\n")}]];
 
     let listBox = win.document.getElementById("downloadsRichListBox");
     ok(listBox, "download list box present");
 
-    let list = yield Downloads.getList(Downloads.ALL);
+    let list = await Downloads.getList(Downloads.ALL);
 
     let added = new Set();
     let succeeded = new Set();
-    yield new Promise(function(resolve) {
+    await new Promise(resolve => {
       let view = {
-        onDownloadAdded: function(download) {
+        onDownloadAdded(download) {
           added.add(download.source.url);
         },
-        onDownloadChanged: function(download) {
+        onDownloadChanged(download) {
           if (!added.has(download.source.url))
             return;
           if (!download.succeeded)
@@ -54,19 +52,19 @@ add_task(function* test_indicatorDrop() {
   }
 
   // Ensure that state is reset in case previous tests didn't finish.
-  yield task_resetState();
+  await task_resetState();
 
   setDownloadDir();
 
   startServer();
 
-  let win = yield openLibrary("Downloads");
+  let win = await openLibrary("Downloads");
   registerCleanupFunction(function() {
     win.close();
   });
 
-  yield* task_drop(win, [httpUrl("file1.txt")]);
-  yield* task_drop(win, [httpUrl("file1.txt"),
-                         httpUrl("file2.txt"),
-                         httpUrl("file3.txt")]);
+  await drop(win, [httpUrl("file1.txt")]);
+  await drop(win, [httpUrl("file1.txt"),
+                   httpUrl("file2.txt"),
+                   httpUrl("file3.txt")]);
 });

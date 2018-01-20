@@ -4,7 +4,10 @@
 
 "use strict";
 
-Components.utils.import("resource://devtools/shared/event-emitter.js");
+const { require } = Components.utils.import("resource://devtools/shared/Loader.jsm", {});
+const EventEmitter = require("devtools/shared/old-event-emitter");
+
+/* exported EXPORTED_SYMBOLS */
 
 const EXPORTED_SYMBOLS = ["Devices"];
 

@@ -22,7 +22,7 @@ public:
   NS_DECL_NSISTATUSBARBIFFMANAGER
   NS_DECL_NSIOBSERVER
 
-  nsStatusBarBiffManager(); 
+  nsStatusBarBiffManager();
   nsresult Init();
 
 private:
@@ -33,9 +33,6 @@ private:
   nsCString mServerType;
   nsCOMPtr<nsISound> mSound;
   nsresult PlayBiffSound(const char *aPrefBranch);
-
-protected:
-  static nsIAtom* kBiffStateAtom;
 };
 
 

@@ -3,7 +3,4 @@
 <!ENTITY status.label "অবস্থা:">
 <!ENTITY progress.label "অগ্রগতি:">
 
-
-
-<!--LOCALIZATION NOTE sendProgress.dtd Main UI for Send Message Progress Dialog -->
 <!ENTITY sendDialog.title "Processing Message">

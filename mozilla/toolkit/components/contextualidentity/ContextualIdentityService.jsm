@@ -11,16 +11,17 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 const DEFAULT_TAB_COLOR = "#909090";
 const SAVE_DELAY_MS = 1500;
+const CONTEXTUAL_IDENTITY_ENABLED_PREF = "privacy.userContext.enabled";
 
 XPCOMUtils.defineLazyGetter(this, "gBrowserBundle", function() {
   return Services.strings.createBundle("chrome://browser/locale/browser.properties");
 });
 
-XPCOMUtils.defineLazyGetter(this, "gTextDecoder", function () {
+XPCOMUtils.defineLazyGetter(this, "gTextDecoder", function() {
   return new TextDecoder();
 });
 
-XPCOMUtils.defineLazyGetter(this, "gTextEncoder", function () {
+XPCOMUtils.defineLazyGetter(this, "gTextEncoder", function() {
   return new TextEncoder();
 });
 
@@ -32,6 +33,30 @@ XPCOMUtils.defineLazyModuleGetter(this, "DeferredTask",
                                   "resource://gre/modules/DeferredTask.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
                                   "resource://gre/modules/FileUtils.jsm");
+
+function _TabRemovalObserver(resolver, tabParentIds) {
+  this._resolver = resolver;
+  this._tabParentIds = tabParentIds;
+  Services.obs.addObserver(this, "ipc:browser-destroyed");
+}
+
+_TabRemovalObserver.prototype = {
+  _resolver: null,
+  _tabParentIds: null,
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
+
+  observe(subject, topic, data) {
+    let tabParent = subject.QueryInterface(Ci.nsITabParent);
+    if (this._tabParentIds.has(tabParent.tabId)) {
+      this._tabParentIds.delete(tabParent.tabId);
+      if (this._tabParentIds.size == 0) {
+        Services.obs.removeObserver(this, "ipc:browser-destroyed");
+        this._resolver();
+      }
+    }
+  }
+};
 
 function _ContextualIdentityService(path) {
   this.init(path);
@@ -90,11 +115,30 @@ _ContextualIdentityService.prototype = {
 
   init(path) {
     this._path = path;
-    this._saver = new DeferredTask(() => this.save(), SAVE_DELAY_MS);
-    AsyncShutdown.profileBeforeChange.addBlocker("ContextualIdentityService: writing data",
-                                                 () => this._saver.finalize());
+    this._webExtensionUpdating = false;
 
-    this.load();
+    Services.prefs.addObserver(CONTEXTUAL_IDENTITY_ENABLED_PREF, this);
+    Services.obs.addObserver(this, "web-extension-preferences-replacing");
+    Services.obs.addObserver(this, "web-extension-preferences-replaced");
+  },
+
+  async observe(aSubject, aTopic) {
+    switch (aTopic) {
+      case "web-extension-preferences-replacing":
+        this._webExtensionUpdating = true;
+        break;
+      case "web-extension-preferences-replaced":
+        this._webExtensionUpdating = false;
+        // We want to check the pref when the extension has been replaced too
+      case "nsPref:changed":
+        const contextualIdentitiesEnabled = Services.prefs.getBoolPref(CONTEXTUAL_IDENTITY_ENABLED_PREF);
+        if (!contextualIdentitiesEnabled && !this._webExtensionUpdating) {
+          await this.closeContainerTabs();
+          this.notifyAllContainersCleared();
+          this.resetDefault();
+        }
+        break;
+    }
   },
 
   load() {
@@ -128,8 +172,13 @@ _ContextualIdentityService.prototype = {
   },
 
   resetDefault() {
-    this._identities = this._defaultIdentities;
+    this._identities = [];
+    // Clone the array
     this._lastUserContextId = this._defaultIdentities.length;
+    for (let i = 0; i < this._lastUserContextId; i++) {
+      this._identities.push(Object.assign({}, this._defaultIdentities[i]));
+    }
+    this._openedIdentities = new Set();
 
     this._dataReady = true;
 
@@ -154,22 +203,39 @@ _ContextualIdentityService.prototype = {
   },
 
   saveSoon() {
+    if (!this._saver) {
+      this._saverCallback = () => this._saver.finalize();
+
+      this._saver = new DeferredTask(() => this.save(), SAVE_DELAY_MS);
+      AsyncShutdown.profileBeforeChange.addBlocker(
+        "ContextualIdentityService: writing data", this._saverCallback);
+    } else {
+      this._saver.disarm();
+    }
+
     this._saver.arm();
   },
 
   save() {
-   let object = {
-     version: 2,
-     lastUserContextId: this._lastUserContextId,
-     identities: this._identities
-   };
+    AsyncShutdown.profileBeforeChange.removeBlocker(this._saverCallback);
 
-   let bytes = gTextEncoder.encode(JSON.stringify(object));
-   return OS.File.writeAtomic(this._path, bytes,
-                              { tmpPath: this._path + ".tmp" });
+    this._saver = null;
+    this._saverCallback = null;
+
+    let object = {
+      version: 2,
+      lastUserContextId: this._lastUserContextId,
+      identities: this._identities
+    };
+
+    let bytes = gTextEncoder.encode(JSON.stringify(object));
+    return OS.File.writeAtomic(this._path, bytes,
+                               { tmpPath: this._path + ".tmp" });
   },
 
   create(name, icon, color) {
+    this.ensureDataReady();
+
     let identity = {
       userContextId: ++this._lastUserContextId,
       public: true,
@@ -180,11 +246,15 @@ _ContextualIdentityService.prototype = {
 
     this._identities.push(identity);
     this.saveSoon();
+    Services.obs.notifyObservers(this.getIdentityObserverOutput(identity),
+                                 "contextual-identity-created");
 
     return Cu.cloneInto(identity, {});
   },
 
   update(userContextId, name, icon, color) {
+    this.ensureDataReady();
+
     let identity = this._identities.find(identity => identity.userContextId == userContextId &&
                                          identity.public);
     if (identity && name) {
@@ -193,13 +263,18 @@ _ContextualIdentityService.prototype = {
       identity.icon = icon;
       delete identity.l10nID;
       delete identity.accessKey;
+
       this.saveSoon();
+      Services.obs.notifyObservers(this.getIdentityObserverOutput(identity),
+                                   "contextual-identity-updated");
     }
 
     return !!identity;
   },
 
   remove(userContextId) {
+    this.ensureDataReady();
+
     let index = this._identities.findIndex(i => i.userContextId == userContextId && i.public);
     if (index == -1) {
       return false;
@@ -208,11 +283,24 @@ _ContextualIdentityService.prototype = {
     Services.obs.notifyObservers(null, "clear-origin-attributes-data",
                                  JSON.stringify({ userContextId }));
 
+    let deletedOutput = this.getIdentityObserverOutput(this.getPublicIdentityFromId(userContextId));
     this._identities.splice(index, 1);
     this._openedIdentities.delete(userContextId);
     this.saveSoon();
+    Services.obs.notifyObservers(deletedOutput, "contextual-identity-deleted");
 
     return true;
+  },
+
+  getIdentityObserverOutput(identity) {
+    let wrappedJSObject = {
+      name: this.getUserContextLabel(identity.userContextId),
+      icon: identity.icon,
+      color: identity.color,
+      userContextId: identity.userContextId,
+    };
+
+    return {wrappedJSObject};
   },
 
   ensureDataReady() {
@@ -239,11 +327,10 @@ _ContextualIdentityService.prototype = {
       }
     } catch (error) {
       this.loadError(error);
-      return;
     }
   },
 
-  getIdentities() {
+  getPublicIdentities() {
     this.ensureDataReady();
     return Cu.cloneInto(this._identities.filter(info => info.public), {});
   },
@@ -253,15 +340,15 @@ _ContextualIdentityService.prototype = {
     return Cu.cloneInto(this._identities.find(info => !info.public && info.name == name), {});
   },
 
-  getIdentityFromId(userContextId) {
+  getPublicIdentityFromId(userContextId) {
     this.ensureDataReady();
     return Cu.cloneInto(this._identities.find(info => info.userContextId == userContextId &&
                                               info.public), {});
   },
 
   getUserContextLabel(userContextId) {
-    let identity = this.getIdentityFromId(userContextId);
-    if (!identity || !identity.public) {
+    let identity = this.getPublicIdentityFromId(userContextId);
+    if (!identity) {
       return "";
     }
 
@@ -279,46 +366,74 @@ _ContextualIdentityService.prototype = {
     }
 
     let userContextId = tab.getAttribute("usercontextid");
-    let identity = this.getIdentityFromId(userContextId);
+    let identity = this.getPublicIdentityFromId(userContextId);
     tab.setAttribute("data-identity-color", identity ? identity.color : "");
   },
 
-  countContainerTabs() {
+  countContainerTabs(userContextId = 0) {
     let count = 0;
-    this._forEachContainerTab(function() { ++count; });
+    this._forEachContainerTab(function() {
+      ++count;
+    }, userContextId);
     return count;
   },
 
-  closeAllContainerTabs() {
-    this._forEachContainerTab(function(tab, tabbrowser) {
-      tabbrowser.removeTab(tab);
+  closeContainerTabs(userContextId = 0) {
+    return new Promise(resolve => {
+      let tabParentIds = new Set();
+      this._forEachContainerTab((tab, tabbrowser) => {
+        let frameLoader = tab.linkedBrowser.frameLoader;
+
+        // We don't have tabParent in non-e10s mode.
+        if (frameLoader.tabParent) {
+          tabParentIds.add(frameLoader.tabParent.tabId);
+        }
+
+        tabbrowser.removeTab(tab);
+      }, userContextId);
+
+      if (tabParentIds.size == 0) {
+        resolve();
+        return;
+      }
+
+      new _TabRemovalObserver(resolve, tabParentIds);
     });
   },
 
-  _forEachContainerTab(callback) {
+  notifyAllContainersCleared() {
+    for (let identity of this._identities) {
+      Services.obs.notifyObservers(null, "clear-origin-attributes-data",
+                                   JSON.stringify({ userContextId: identity.userContextId }));
+    }
+  },
+
+  _forEachContainerTab(callback, userContextId = 0) {
     let windowList = Services.wm.getEnumerator("navigator:browser");
     while (windowList.hasMoreElements()) {
       let win = windowList.getNext();
 
       if (win.closed || !win.gBrowser) {
-	continue;
+        continue;
       }
 
       let tabbrowser = win.gBrowser;
       for (let i = tabbrowser.tabContainer.childNodes.length - 1; i >= 0; --i) {
         let tab = tabbrowser.tabContainer.childNodes[i];
-	if (tab.hasAttribute("usercontextid")) {
-	  callback(tab, tabbrowser);
-	}
+        if (tab.hasAttribute("usercontextid") &&
+                  (!userContextId ||
+                   parseInt(tab.getAttribute("usercontextid"), 10) == userContextId)) {
+          callback(tab, tabbrowser);
+        }
       }
     }
   },
 
   telemetry(userContextId) {
-    let identity = this.getIdentityFromId(userContextId);
+    let identity = this.getPublicIdentityFromId(userContextId);
 
     // Let's ignore unknown identities for now.
-    if (!identity || !identity.public) {
+    if (!identity) {
       return;
     }
 

@@ -12,7 +12,7 @@
 <script type="text/javascript">
 "use strict";
 
-add_task(function* test_contentscript_about_blank() {
+add_task(async function test_contentscript_about_blank() {
   const manifest = {
     content_scripts: [
       {
@@ -67,7 +67,7 @@ add_task(function* test_contentscript_about_blank() {
 
   const PATH = "tests/toolkit/components/extensions/test/mochitest/file_with_about_blank.html";
   const extension = ExtensionTestUtils.loadExtension({manifest, files, background});
-  yield extension.startup();
+  await extension.startup();
 
   let count = 0;
   extension.onMessage("script", script => {
@@ -76,7 +76,7 @@ add_task(function* test_contentscript_about_blank() {
   });
 
   let win = window.open("http://example.com/" + PATH);
-  yield Promise.all([
+  await Promise.all([
     extension.awaitMessage("all:top"),
     extension.awaitMessage("all:about:blank"),
     extension.awaitMessage("all:about:srcdoc"),
@@ -85,7 +85,7 @@ add_task(function* test_contentscript_about_blank() {
   win.close();
 
   win = window.open("http://mochi.test:8888/" + PATH);
-  yield Promise.all([
+  await Promise.all([
     extension.awaitMessage("all:top"),
     extension.awaitMessage("all:about:blank"),
     extension.awaitMessage("all:about:srcdoc"),
@@ -103,13 +103,13 @@ add_task(function* test_contentscript_about_blank() {
   let a_b = win.document.getElementById("a_b");
   style = a_b.contentWindow.getComputedStyle(a_b.contentDocument.body);
   is(style.color, "rgb(255, 0, 0)", "about:blank iframe text color is red");
-  is(style.backgroundColor, "transparent", "about:blank iframe background is transparent");
+  is(style.backgroundColor, "rgba(0, 0, 0, 0)", "about:blank iframe background is transparent");
   is(style.textAlign, "right", "about:blank text is right-aligned");
 
   is(count, 10, "exactly 7 more scripts ran");
   win.close();
 
-  yield extension.unload();
+  await extension.unload();
 });
 </script>
 

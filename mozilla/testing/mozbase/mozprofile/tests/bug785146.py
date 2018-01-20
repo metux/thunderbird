@@ -4,12 +4,17 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 import mozfile
 import os
 import shutil
 import sqlite3
 import tempfile
 import unittest
+
+import mozunit
+
 from mozprofile.permissions import Permissions
 
 
@@ -47,5 +52,6 @@ http://127.0.0.1:8888           privileged
         schema_version = entries[0][0]
         self.assertEqual(schema_version, 5)
 
+
 if __name__ == '__main__':
-    unittest.main()
+    mozunit.main()

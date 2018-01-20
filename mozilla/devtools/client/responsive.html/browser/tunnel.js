@@ -4,7 +4,7 @@
 
 "use strict";
 
-const { Ci } = require("chrome");
+const { Ci, Cu } = require("chrome");
 const Services = require("Services");
 const { Task } = require("devtools/shared/task");
 const { BrowserElementWebNavigation } = require("./web-navigation");
@@ -12,14 +12,15 @@ const { getStack } = require("devtools/shared/platform/stack");
 
 // A symbol used to hold onto the frame loader from the outer browser while tunneling.
 const FRAME_LOADER = Symbol("devtools/responsive/frame-loader");
+// Export for use in tests.
+exports.OUTER_FRAME_LOADER_SYMBOL = FRAME_LOADER;
 
 function debug(msg) {
   // console.log(msg);
 }
 
 /**
- * Properties swapped between browsers by browser.xml's `swapDocShells`.  See also the
- * list at /devtools/client/responsive.html/docs/browser-swap.md.
+ * Properties swapped between browsers by browser.xml's `swapDocShells`.
  */
 const SWAPPED_BROWSER_STATE = [
   "_remoteFinder",
@@ -35,6 +36,27 @@ const SWAPPED_BROWSER_STATE = [
   "_isSyntheticDocument",
   "_innerWindowID",
   "_manifestURI",
+];
+
+/**
+ * Various parts of the Firefox code base expect to access properties on the browser
+ * window in response to events (by reaching for the window via the event's target).
+ *
+ * When RDM is enabled, these bits of code instead reach the RDM tool's window instead of
+ * the browser window, which won't have the properties they are looking for. At the
+ * moment, we address this by exposing them from the browser window on RDM's window as
+ * needed.
+ */
+const PROPERTIES_FROM_BROWSER_WINDOW = [
+  // This is used by PermissionUI.jsm for permission doorhangers.
+  "PopupNotifications",
+  // These are used by ContentClick.jsm when opening links in ways other than just
+  // navigating the viewport, such as a new tab by pressing Cmd-Click.
+  "whereToOpenLink",
+  "openLinkIn",
+  // This is used by various event handlers, typically to call `getTabForBrowser` to map
+  // a browser back to a tab.
+  "gBrowser",
 ];
 
 /**
@@ -144,6 +166,7 @@ function tunnelToInnerBrowser(outer, inner) {
       // down to the inner browser by this tunnel, the tab's remoteness effectively is the
       // remoteness of the inner browser.
       outer.setAttribute("remote", "true");
+      outer.setAttribute("remoteType", inner.remoteType);
 
       // Clear out any cached state that references the current non-remote XBL binding,
       // such as form fill controllers.  Otherwise they will remain in place and leak the
@@ -160,9 +183,9 @@ function tunnelToInnerBrowser(outer, inner) {
       // The constructor of the new XBL binding is run asynchronously and there is no
       // event to signal its completion.  Spin an event loop to watch for properties that
       // are set by the contructor.
-      while (!outer._remoteWebNavigation) {
-        Services.tm.currentThread.processNextEvent(true);
-      }
+      Services.tm.spinEventLoopUntil(() => {
+        return outer._remoteWebNavigation;
+      });
 
       // Replace the `webNavigation` object with our own version which tries to use
       // mozbrowser APIs where possible.  This replaces the webNavigation object that the
@@ -196,28 +219,18 @@ function tunnelToInnerBrowser(outer, inner) {
         outer[property] = inner[property];
       }
 
-      // Expose `PopupNotifications` on the content's owner global.
-      // This is used by PermissionUI.jsm for permission doorhangers.
-      // Note: This pollutes the responsive.html tool UI's global.
-      Object.defineProperty(inner.ownerGlobal, "PopupNotifications", {
-        get() {
-          return outer.ownerGlobal.PopupNotifications;
-        },
-        configurable: true,
-        enumerable: true,
-      });
-
-      // Expose `whereToOpenLink` on the content's owner global.
-      // This is used by ContentClick.jsm when opening links in ways other than just
-      // navigating the viewport.
-      // Note: This pollutes the responsive.html tool UI's global.
-      Object.defineProperty(inner.ownerGlobal, "whereToOpenLink", {
-        get() {
-          return outer.ownerGlobal.whereToOpenLink;
-        },
-        configurable: true,
-        enumerable: true,
-      });
+      // Expose various properties from the browser window on the RDM tool's global.  This
+      // aids various bits of code that expect to find a browser window, such as event
+      // handlers that reach for the window via the event's target.
+      for (let property of PROPERTIES_FROM_BROWSER_WINDOW) {
+        Object.defineProperty(inner.ownerGlobal, property, {
+          get() {
+            return outer.ownerGlobal[property];
+          },
+          configurable: true,
+          enumerable: true,
+        });
+      }
 
       // Add mozbrowser event handlers
       inner.addEventListener("mozbrowseropenwindow", this);
@@ -237,14 +250,15 @@ function tunnelToInnerBrowser(outer, inner) {
       // outside the main focus of RDM.
       let { detail } = event;
       event.preventDefault();
-      let uri = Services.io.newURI(detail.url, null, null);
+      let uri = Services.io.newURI(detail.url);
       // This API is used mainly because it's near the path used for <a target/> with
       // regular browser tabs (which calls `openURIInFrame`).  The more elaborate APIs
       // that support openers, window features, etc. didn't seem callable from JS and / or
       // this event doesn't give enough info to use them.
       browserWindow.browserDOMWindow
         .openURI(uri, null, Ci.nsIBrowserDOMWindow.OPEN_NEWTAB,
-                 Ci.nsIBrowserDOMWindow.OPEN_NEW);
+                 Ci.nsIBrowserDOMWindow.OPEN_NEW,
+                 outer.contentPrincipal);
     },
 
     stop() {
@@ -270,10 +284,12 @@ function tunnelToInnerBrowser(outer, inner) {
 
       // Reset @remote since this is now back to a regular, non-remote browser
       outer.setAttribute("remote", "false");
+      outer.removeAttribute("remoteType");
 
       // Delete browser window properties exposed on content's owner global
-      delete inner.ownerGlobal.PopupNotifications;
-      delete inner.ownerGlobal.whereToOpenLink;
+      for (let property of PROPERTIES_FROM_BROWSER_WINDOW) {
+        delete inner.ownerGlobal[property];
+      }
 
       // Remove mozbrowser event handlers
       inner.removeEventListener("mozbrowseropenwindow", this);
@@ -311,8 +327,8 @@ function MessageManagerTunnel(outer, inner) {
   if (outer.isRemoteBrowser) {
     throw new Error("The outer browser must be non-remote.");
   }
-  this.outer = outer;
-  this.inner = inner;
+  this.outerRef = Cu.getWeakReference(outer);
+  this.innerRef = Cu.getWeakReference(inner);
   this.tunneledMessageNames = new Set();
   this.init();
 }
@@ -324,11 +340,6 @@ MessageManagerTunnel.prototype = {
    * the outer browser's real message manager.
    */
   PASS_THROUGH_METHODS: [
-    "killChild",
-    "assertPermission",
-    "assertContainApp",
-    "assertAppHasPermission",
-    "assertAppHasStatus",
     "removeDelayedFrameScript",
     "getDelayedFrameScripts",
     "loadProcessScript",
@@ -403,12 +414,12 @@ MessageManagerTunnel.prototype = {
     "Finder:",
     // Messages sent from InlineSpellChecker.jsm
     "InlineSpellChecker:",
+    // Messages sent from MessageChannel.jsm
+    "MessageChannel:",
     // Messages sent from pageinfo.js
     "PageInfo:",
     // Messages sent from printUtils.js
     "Printing:",
-    // Messages sent from browser-social.js
-    "Social:",
     "PageMetadata:",
     // Messages sent from viewSourceUtils.js
     "ViewSource:",
@@ -423,12 +434,12 @@ MessageManagerTunnel.prototype = {
     "Findbar:",
     // Messages sent to RemoteFinder.jsm
     "Finder:",
+    // Messages sent to MessageChannel.jsm
+    "MessageChannel:",
     // Messages sent to pageinfo.js
     "PageInfo:",
     // Messages sent to printUtils.js
     "Printing:",
-    // Messages sent to browser-social.js
-    "Social:",
     "PageMetadata:",
     // Messages sent to viewSourceUtils.js
     "ViewSource:",
@@ -438,6 +449,10 @@ MessageManagerTunnel.prototype = {
     // DevTools server for OOP frames
     "resource://devtools/server/child.js"
   ],
+
+  get outer() {
+    return this.outerRef.get();
+  },
 
   get outerParentMM() {
     if (!this.outer[FRAME_LOADER]) {
@@ -455,6 +470,10 @@ MessageManagerTunnel.prototype = {
                    .getInterface(Ci.nsIContentFrameMessageManager);
   },
 
+  get inner() {
+    return this.innerRef.get();
+  },
+
   get innerParentMM() {
     if (!this.inner.frameLoader) {
       return null;
@@ -464,13 +483,11 @@ MessageManagerTunnel.prototype = {
 
   init() {
     for (let method of this.PASS_THROUGH_METHODS) {
-      // Workaround bug 449811 to ensure a fresh binding each time through the loop
-      let _method = method;
-      this[_method] = (...args) => {
+      this[method] = (...args) => {
         if (!this.outerParentMM) {
           return null;
         }
-        return this.outerParentMM[_method](...args);
+        return this.outerParentMM[method](...args);
       };
     }
 
@@ -479,7 +496,7 @@ MessageManagerTunnel.prototype = {
       this.tunneledMessageNames.add(name);
     }
 
-    Services.obs.addObserver(this, "message-manager-close", false);
+    Services.obs.addObserver(this, "message-manager-close");
 
     // Replace the outer browser's messageManager with this tunnel
     Object.defineProperty(this.outer, "messageManager", {
@@ -514,13 +531,11 @@ MessageManagerTunnel.prototype = {
     // ensure it keeps working after tunnel close, rewrite the overidden methods as pass
     // through methods.
     for (let method of this.OVERRIDDEN_METHODS) {
-      // Workaround bug 449811 to ensure a fresh binding each time through the loop
-      let _method = method;
-      this[_method] = (...args) => {
+      this[method] = (...args) => {
         if (!this.outerParentMM) {
           return null;
         }
-        return this.outerParentMM[_method](...args);
+        return this.outerParentMM[method](...args);
       };
     }
   },
@@ -614,6 +629,10 @@ MessageManagerTunnel.prototype = {
   _shouldTunnelInnerToOuter(name) {
     return this.INNER_TO_OUTER_MESSAGES.includes(name) ||
            this.INNER_TO_OUTER_MESSAGE_PREFIXES.some(prefix => name.startsWith(prefix));
+  },
+
+  toString() {
+    return "[object MessageManagerTunnel]";
   },
 
 };

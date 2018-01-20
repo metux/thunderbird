@@ -12,17 +12,22 @@
 
 use std::cmp::Ordering::{Equal, Less, Greater};
 use std::ops::FnMut;
-use tables::normalization::{canonical_table, compatibility_table, composition_table};
+use tables::normalization::{canonical_table, canonical_table_STRTAB};
+use tables::normalization::{compatibility_table, compatibility_table_STRTAB};
+use tables::normalization::{composition_table, composition_table_STRTAB};
+use tables::normalization::Slice;
 
-fn bsearch_table<T>(c: char, r: &'static [(char, &'static [T])]) -> Option<&'static [T]> {
+fn bsearch_table<T>(c: char, r: &'static [(char, Slice)], strtab: &'static [T]) -> Option<&'static [T]> {
     match r.binary_search_by(|&(val, _)| {
         if c == val { Equal }
         else if val < c { Less }
         else { Greater }
     }) {
         Ok(idx) => {
-            let (_, result) = r[idx];
-            Some(result)
+            let ref slice = r[idx].1;
+            let offset = slice.offset as usize;
+            let length = slice.length as usize;
+            Some(&strtab[offset..(offset + length)])
         }
         Err(_) => None
     }
@@ -50,7 +55,7 @@ fn d<F>(c: char, i: &mut F, k: bool) where F: FnMut(char) {
     }
 
     // First check the canonical decompositions
-    match bsearch_table(c, canonical_table) {
+    match bsearch_table(c, canonical_table, canonical_table_STRTAB) {
         Some(canon) => {
             for x in canon {
                 d(*x, i, k);
@@ -64,7 +69,7 @@ fn d<F>(c: char, i: &mut F, k: bool) where F: FnMut(char) {
     if !k { (*i)(c); return; }
 
     // Then check the compatibility decompositions
-    match bsearch_table(c, compatibility_table) {
+    match bsearch_table(c, compatibility_table, compatibility_table_STRTAB) {
         Some(compat) => {
             for x in compat {
                 d(*x, i, k);
@@ -83,7 +88,7 @@ fn d<F>(c: char, i: &mut F, k: bool) where F: FnMut(char) {
 /// for more information.
 pub fn compose(a: char, b: char) -> Option<char> {
     compose_hangul(a, b).or_else(|| {
-        match bsearch_table(a, composition_table) {
+        match bsearch_table(a, composition_table, composition_table_STRTAB) {
             None => None,
             Some(candidates) => {
                 match candidates.binary_search_by(|&(val, _)| {
@@ -102,7 +107,8 @@ pub fn compose(a: char, b: char) -> Option<char> {
     })
 }
 
-// Constants from Unicode 7.0.0 Section 3.12 Conjoining Jamo Behavior
+// Constants from Unicode 9.0.0 Section 3.12 Conjoining Jamo Behavior
+// http://www.unicode.org/versions/Unicode9.0.0/ch03.pdf#M9.32468.Heading.310.Combining.Jamo.Behavior
 const S_BASE: u32 = 0xAC00;
 const L_BASE: u32 = 0x1100;
 const V_BASE: u32 = 0x1161;
@@ -145,12 +151,15 @@ fn compose_hangul(a: char, b: char) -> Option<char> {
     let l = a as u32;
     let v = b as u32;
     // Compose an LPart and a VPart
-    if L_BASE <= l && l < (L_BASE + L_COUNT) && V_BASE <= v && v < (V_BASE + V_COUNT) {
+    if L_BASE <= l && l < (L_BASE + L_COUNT) // l should be an L choseong jamo
+        && V_BASE <= v && v < (V_BASE + V_COUNT) { // v should be a V jungseong jamo
         let r = S_BASE + (l - L_BASE) * N_COUNT + (v - V_BASE) * T_COUNT;
         return unsafe { Some(transmute(r)) };
     }
     // Compose an LVPart and a TPart
-    if S_BASE <= l && l <= (S_BASE+S_COUNT-T_COUNT) && T_BASE <= v && v < (T_BASE+T_COUNT) {
+    if S_BASE <= l && l <= (S_BASE+S_COUNT-T_COUNT) // l should be a syllable block
+        && T_BASE <= v && v < (T_BASE+T_COUNT) // v should be a T jongseong jamo
+        && (l - S_BASE) % T_COUNT == 0 { // l should be an LV syllable block (not LVT)
         let r = l + (v - T_BASE);
         return unsafe { Some(transmute(r)) };
     }

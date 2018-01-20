@@ -84,6 +84,8 @@ struct EnumEntry {
   size_t length;
 };
 
+enum class CallerType : uint32_t;
+
 class MOZ_STACK_CLASS GlobalObject
 {
 public:
@@ -112,6 +114,10 @@ public:
   // It returns the subjectPrincipal if called on the main-thread, otherwise
   // a nullptr is returned.
   nsIPrincipal* GetSubjectPrincipal() const;
+
+  // Get the caller type.  Note that this needs to be called before anyone has
+  // had a chance to mess with the JSContext.
+  dom::CallerType CallerType() const;
 
 protected:
   JS::Rooted<JSObject*> mGlobalJSObject;
@@ -339,18 +345,19 @@ template<>
 class Optional<nsAString>
 {
 public:
-  Optional() : mPassed(false) {}
+  Optional()
+    : mStr(nullptr)
+  {}
 
   bool WasPassed() const
   {
-    return mPassed;
+    return !!mStr;
   }
 
   void operator=(const nsAString* str)
   {
     MOZ_ASSERT(str);
     mStr = str;
-    mPassed = true;
   }
 
   // If this code ever goes away, remove the comment pointing to it in the
@@ -359,7 +366,6 @@ public:
   {
     MOZ_ASSERT(str);
     mStr = reinterpret_cast<const nsString*>(str);
-    mPassed = true;
   }
 
   const nsAString& Value() const
@@ -373,7 +379,6 @@ private:
   Optional(const Optional& other) = delete;
   const Optional &operator=(const Optional &other) = delete;
 
-  bool mPassed;
   const nsAString* mStr;
 };
 
@@ -382,8 +387,9 @@ class NonNull
 {
 public:
   NonNull()
+    : ptr(nullptr)
 #ifdef DEBUG
-    : inited(false)
+    , inited(false)
 #endif
   {}
 
@@ -527,6 +533,14 @@ public:
 enum class CallerType : uint32_t {
   System,
   NonSystem
+};
+
+// A class that can be passed (by value or const reference) to indicate that the
+// caller is always a system caller.  This can be used as the type of an
+// argument to force only system callers to call a function.
+class SystemCallerGuarantee {
+public:
+  operator CallerType() const { return CallerType::System; }
 };
 
 } // namespace dom

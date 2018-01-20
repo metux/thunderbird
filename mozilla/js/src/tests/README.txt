@@ -4,14 +4,14 @@ JS Test Suite Readme
 The JS test suite is a fairly extensive collection of correctness and regression
 tests for the Spidermonkey engine. Two harnesses run these tests: the shell test
 harness in this directory and the "reftest" harness built into the browser, used
-by Tinderbox. The browser reftests require additional manifest files; these are
+in continuous integration. The browser reftests require additional manifest files; these are
 generated automatically by the build phase 'package-tests' using the
 '--make-manifests' option to jstests.py.
 
 Creating a test
 ---------------
 For general information, see
-https://developer.mozilla.org/en-US/docs/SpiderMonkey/Creating_JavaScript_tests
+https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Creating_JavaScript_tests
 
 Adding a test
 -------------
@@ -19,7 +19,7 @@ Adding a test
 
         <fineprint> Some names are forbidden. Do not name your test browser.js,
         shell.js, template.js, user.js, js-test-driver-begin.js, or
-        js-test-driver-end.js, or any of the names of the files in supporting/.
+        js-test-driver-end.js.
         </fineprint>
 
 Adjusting when and how a test runs

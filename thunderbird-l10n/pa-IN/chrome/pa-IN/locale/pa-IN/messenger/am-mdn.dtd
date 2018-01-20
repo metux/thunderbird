@@ -26,5 +26,5 @@
 <!ENTITY alwaysSend.label             "ਹਮੇਸ਼ਾ ਭੇਜੋ">
 <!ENTITY neverSend.label              "ਕਦੇ ਨਾ ਭੇਜੋ">
 
-<!ENTITY globalReceipts.accesskey     "G">
 <!ENTITY globalReceipts.label         "Global Preferences…">
+<!ENTITY globalReceipts.accesskey     "G">

@@ -249,6 +249,12 @@ public:
     aContext->SetState(aContext->PostScrollState());
   }
 
+  virtual void OnScrollPositionChanged(
+    AccessibleCaretEventHub* aContext) override
+  {
+    aContext->mManager->OnScrollPositionChanged();
+  }
+
   virtual void OnBlur(AccessibleCaretEventHub* aContext,
                       bool aIsLeavingDocument) override
   {
@@ -434,10 +440,10 @@ AccessibleCaretEventHub::Init()
   mDocShell = static_cast<nsDocShell*>(docShell);
 
   if (sUseLongTapInjector) {
-    mLongTapInjectorTimer = do_CreateInstance("@mozilla.org/timer;1");
+    mLongTapInjectorTimer = NS_NewTimer();
   }
 
-  mScrollEndInjectorTimer = do_CreateInstance("@mozilla.org/timer;1");
+  mScrollEndInjectorTimer = NS_NewTimer();
 
   mManager = MakeUnique<AccessibleCaretManager>(mPresShell);
 
@@ -649,8 +655,12 @@ AccessibleCaretEventHub::LaunchLongTapInjector()
   }
 
   int32_t longTapDelay = gfxPrefs::UiClickHoldContextMenusDelay();
-  mLongTapInjectorTimer->InitWithFuncCallback(FireLongTap, this, longTapDelay,
-                                              nsITimer::TYPE_ONE_SHOT);
+  mLongTapInjectorTimer->InitWithNamedFuncCallback(
+    FireLongTap,
+    this,
+    longTapDelay,
+    nsITimer::TYPE_ONE_SHOT,
+    "AccessibleCaretEventHub::LaunchLongTapInjector");
 }
 
 void
@@ -747,8 +757,12 @@ AccessibleCaretEventHub::LaunchScrollEndInjector()
     return;
   }
 
-  mScrollEndInjectorTimer->InitWithFuncCallback(
-    FireScrollEnd, this, kScrollEndTimerDelay, nsITimer::TYPE_ONE_SHOT);
+  mScrollEndInjectorTimer->InitWithNamedFuncCallback(
+    FireScrollEnd,
+    this,
+    kScrollEndTimerDelay,
+    nsITimer::TYPE_ONE_SHOT,
+    "AccessibleCaretEventHub::LaunchScrollEndInjector");
 }
 
 void

@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -555,7 +557,7 @@ uint64_t nsRegion::Area () const
   uint64_t area = 0;
   for (auto iter = RectIter(); !iter.Done(); iter.Next()) {
     const nsRect& rect = iter.Get();
-    area += uint64_t(rect.width) * rect.height;
+    area += uint64_t(rect.Width()) * rect.Height();
   }
   return area;
 }
@@ -610,7 +612,7 @@ TransformRect(const mozilla::gfx::IntRect& aRect, const mozilla::gfx::Matrix4x4&
         return mozilla::gfx::IntRect();
     }
 
-    mozilla::gfx::RectDouble rect(aRect.x, aRect.y, aRect.width, aRect.height);
+    mozilla::gfx::RectDouble rect(aRect.x, aRect.y, aRect.Width(), aRect.Height());
     rect = aTransform.TransformAndClipBounds(rect, mozilla::gfx::RectDouble::MaxIntRect());
     rect.RoundOut();
 

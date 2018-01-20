@@ -21,5 +21,9 @@
 <!ENTITY feeds.wizardLongName "Blogs e fontes de novas">
 <!ENTITY feeds.wizardLongName.accesskey "f">
 
+<!ENTITY biffAll.label                 "Enable updates for all feeds">
+<!ENTITY biffAll.accesskey             "E">
 
-<!ENTITY feedWindowTitle.label "Feed Account Wizard">
+<!ENTITY newFeedSettings.label         "Default Settings for New Feeds">
+
+<!ENTITY feedWindowTitle.label         "Feed Account Wizard">

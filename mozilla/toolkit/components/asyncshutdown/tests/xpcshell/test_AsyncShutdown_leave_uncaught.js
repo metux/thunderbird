@@ -7,14 +7,10 @@
 // errors. If your test catches all its asynchronous errors, please
 // put it in another file.
 //
+Cu.import("resource://testing-common/PromiseTestUtils.jsm");
+PromiseTestUtils.thisTestLeaksUncaughtRejectionsAndShouldBeFixed();
 
-Promise.Debugging.clearUncaughtErrorObservers();
-
-function run_test() {
-  run_next_test();
-}
-
-add_task(function* test_phase_simple_async() {
+add_task(async function test_phase_simple_async() {
   do_print("Testing various combinations of a phase with a single condition");
   for (let kind of ["phase", "barrier", "xpcom-barrier", "xpcom-barrier-unwrapped"]) {
     for (let arg of [undefined, null, "foo", 100, new Error("BOOM")]) {
@@ -24,10 +20,11 @@ add_task(function* test_phase_simple_async() {
                              [],
                              [() => "some state"],
                              [function() {
-                               throw new Error("State BOOM"); }],
+                               throw new Error("State BOOM");
+}],
                              [function() {
                                return {
-                                 toJSON: function() {
+                                 toJSON() {
                                    throw new Error("State.toJSON BOOM");
                                  }
                                };
@@ -47,7 +44,7 @@ add_task(function* test_phase_simple_async() {
                ...state
             );
             do_check_false(outParam.isFinished);
-            yield lock.wait();
+            await lock.wait();
             do_check_eq(outParam.isFinished, success);
           }
         }
@@ -59,13 +56,13 @@ add_task(function* test_phase_simple_async() {
           "Sync test",
           resolution
         );
-        yield lock.wait();
+        await lock.wait();
       }
     }
   }
 });
 
-add_task(function* test_phase_many() {
+add_task(async function test_phase_many() {
   do_print("Testing various combinations of a phase with many conditions");
   for (let kind of ["phase", "barrier", "xpcom-barrier", "xpcom-barrier-unwrapped"]) {
     let lock = makeLock(kind);
@@ -82,7 +79,7 @@ add_task(function* test_phase_many() {
       }
     }
     do_check_true(outParams.every((x) => !x.isFinished));
-    yield lock.wait();
+    await lock.wait();
     do_check_true(outParams.every((x) => x.isFinished));
   }
 });
@@ -90,7 +87,7 @@ add_task(function* test_phase_many() {
 
 
 
-add_task(function*() {
+add_task(async function() {
   Services.prefs.clearUserPref("toolkit.asyncshutdown.testing");
 });
 

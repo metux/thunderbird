@@ -6,24 +6,23 @@
 #ifndef MOZILLA_MEDIASTREAMGRAPH_H_
 #define MOZILLA_MEDIASTREAMGRAPH_H_
 
+#include "AudioStream.h"
+#include "MainThreadUtils.h"
+#include "MediaStreamTypes.h"
+#include "StreamTracks.h"
+#include "VideoSegment.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/TaskQueue.h"
-
-#include "mozilla/dom/AudioChannelBinding.h"
-
-#include "AudioStream.h"
-#include "nsTArray.h"
-#include "nsIRunnable.h"
-#include "VideoSegment.h"
-#include "StreamTracks.h"
-#include "MainThreadUtils.h"
-#include "StreamTracks.h"
 #include "nsAutoPtr.h"
 #include "nsAutoRef.h"
+#include "nsIRunnable.h"
+#include "nsTArray.h"
 #include <speex/speex_resampler.h>
 
 class nsIRunnable;
+class nsIGlobalObject;
+class nsPIDOMWindowInner;
 
 template <>
 class nsAutoRefTraits<SpeexResamplerState> : public nsPointerRefTraits<SpeexResamplerState>
@@ -158,7 +157,6 @@ class AudioNodeEngine;
 class AudioNodeExternalInputStream;
 class AudioNodeStream;
 class AudioSegment;
-class DirectMediaStreamListener;
 class DirectMediaStreamTrackListener;
 class MediaInputPort;
 class MediaStreamGraphImpl;
@@ -169,9 +167,6 @@ class ProcessedMediaStream;
 class SourceMediaStream;
 class TrackUnionStream;
 
-enum MediaStreamGraphEvent : uint32_t;
-enum TrackEventCommand : uint32_t;
-
 /**
  * Helper struct for binding a track listener to a specific TrackID.
  */
@@ -180,24 +175,6 @@ struct TrackBound
 {
   RefPtr<Listener> mListener;
   TrackID mTrackID;
-};
-
-/**
- * Describes how a track should be disabled.
- *
- * ENABLED        Not disabled.
- * SILENCE_BLACK  Audio data is turned into silence, video frames are made black.
- * SILENCE_FREEZE Audio data is turned into silence, video freezes at last frame.
- */
-enum class DisabledTrackMode
-{
-  ENABLED, SILENCE_BLACK, SILENCE_FREEZE
-};
-struct DisabledTrack {
-  DisabledTrack(TrackID aTrackID, DisabledTrackMode aMode)
-    : mTrackID(aTrackID), mMode(aMode) {}
-  TrackID mTrackID;
-  DisabledTrackMode mMode;
 };
 
 /**
@@ -275,7 +252,7 @@ class MediaStream : public mozilla::LinkedListElement<MediaStream>
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaStream)
 
-  MediaStream();
+  explicit MediaStream();
 
 protected:
   // Protected destructor, to discourage deletion outside of Release():
@@ -548,16 +525,9 @@ public:
   virtual size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const;
   virtual size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const;
 
-  void SetAudioChannelType(dom::AudioChannel aType) { mAudioChannelType = aType; }
-  dom::AudioChannel AudioChannelType() const { return mAudioChannelType; }
-
   bool IsSuspended() { return mSuspendedCount > 0; }
-  void IncrementSuspendCount() { ++mSuspendedCount; }
-  void DecrementSuspendCount()
-  {
-    NS_ASSERTION(mSuspendedCount > 0, "Suspend count underrun");
-    --mSuspendedCount;
-  }
+  void IncrementSuspendCount();
+  void DecrementSuspendCount();
 
 protected:
   // |AdvanceTimeVaryingValuesToCurrentTime| will be override in SourceMediaStream.
@@ -687,8 +657,6 @@ protected:
 
   // Our media stream graph.  null if destroyed on the graph thread.
   MediaStreamGraphImpl* mGraph;
-
-  dom::AudioChannel mAudioChannelType;
 };
 
 /**
@@ -734,8 +702,6 @@ public:
    */
   void NotifyListenersEventImpl(MediaStreamGraphEvent aEvent);
   void NotifyListenersEvent(MediaStreamGraphEvent aEvent);
-  void AddDirectListener(DirectMediaStreamListener* aListener);
-  void RemoveDirectListener(DirectMediaStreamListener* aListener);
 
   enum {
     ADDTRACK_QUEUED    = 0x01 // Queue track add until FinishAddTracks()
@@ -770,7 +736,7 @@ public:
    * Returns false if the data was not appended because no such track exists
    * or the stream was already finished.
    */
-  bool AppendToTrack(TrackID aID, MediaSegment* aSegment, MediaSegment *aRawSegment = nullptr);
+  virtual bool AppendToTrack(TrackID aID, MediaSegment* aSegment, MediaSegment *aRawSegment = nullptr);
   /**
    * Get the stream time of the end of the data that has been appended so far.
    * Can be called from any thread but won't be useful if it can race with
@@ -818,6 +784,12 @@ public:
    */
   void EndAllTrackAndFinish();
 
+  /**
+   * Removes all direct listeners and signals to them that they have been
+   * uninstalled.
+   */
+  void RemoveAllDirectListeners();
+
   void RegisterForAudioMixing();
 
   /**
@@ -831,6 +803,8 @@ public:
     MutexAutoLock lock(mMutex);
     return mStreamTracksStartTimeStamp;
   }
+
+  bool OpenNewAudioCallbackDriver(AudioDataListener *aListener);
 
   // XXX need a Reset API
 
@@ -922,7 +896,6 @@ protected:
   TimeStamp mStreamTracksStartTimeStamp;
   nsTArray<TrackData> mUpdateTracks;
   nsTArray<TrackData> mPendingTracks;
-  nsTArray<RefPtr<DirectMediaStreamListener>> mDirectListeners;
   nsTArray<TrackBound<DirectMediaStreamTrackListener>> mDirectTrackListeners;
   bool mPullEnabled;
   bool mUpdateFinished;
@@ -979,9 +952,12 @@ class MediaInputPort final
 {
 private:
   // Do not call this constructor directly. Instead call aDest->AllocateInputPort.
-  MediaInputPort(MediaStream* aSource, TrackID& aSourceTrack,
-                 ProcessedMediaStream* aDest, TrackID& aDestTrack,
-                 uint16_t aInputNumber, uint16_t aOutputNumber)
+  MediaInputPort(MediaStream* aSource,
+                 TrackID& aSourceTrack,
+                 ProcessedMediaStream* aDest,
+                 TrackID& aDestTrack,
+                 uint16_t aInputNumber,
+                 uint16_t aOutputNumber)
     : mSource(aSource)
     , mSourceTrack(aSourceTrack)
     , mDest(aDest)
@@ -1080,10 +1056,21 @@ public:
    */
   MediaStreamGraphImpl* GraphImpl();
   MediaStreamGraph* Graph();
+
   /**
    * Sets the graph that owns this stream.  Should only be called once.
    */
   void SetGraphImpl(MediaStreamGraphImpl* aGraph);
+
+  /**
+   * Notify the port that the source MediaStream has been suspended.
+  */
+  void Suspended();
+
+  /**
+   * Notify the port that the source MediaStream has been resumed.
+  */
+  void Resumed();
 
   size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
   {
@@ -1131,7 +1118,9 @@ class ProcessedMediaStream : public MediaStream
 {
 public:
   explicit ProcessedMediaStream()
-    : MediaStream(), mAutofinish(false), mCycleMarker(0)
+    : MediaStream()
+    , mAutofinish(false)
+    , mCycleMarker(0)
   {}
 
   // Control API.
@@ -1182,16 +1171,18 @@ public:
   virtual void AddInput(MediaInputPort* aPort);
   virtual void RemoveInput(MediaInputPort* aPort)
   {
-    mInputs.RemoveElement(aPort);
+    mInputs.RemoveElement(aPort) || mSuspendedInputs.RemoveElement(aPort);
   }
   bool HasInputPort(MediaInputPort* aPort)
   {
-    return mInputs.Contains(aPort);
+    return mInputs.Contains(aPort) || mSuspendedInputs.Contains(aPort);
   }
   uint32_t InputPortCount()
   {
-    return mInputs.Length();
+    return mInputs.Length() + mSuspendedInputs.Length();
   }
+  void InputSuspended(MediaInputPort* aPort);
+  void InputResumed(MediaInputPort* aPort);
   virtual MediaStream* GetInputStreamFor(TrackID aTrackID) { return nullptr; }
   virtual TrackID GetInputTrackIDFor(TrackID aTrackID) { return TRACK_NONE; }
   void DestroyImpl() override;
@@ -1227,7 +1218,9 @@ public:
     size_t amount = MediaStream::SizeOfExcludingThis(aMallocSizeOf);
     // Not owned:
     // - mInputs elements
+    // - mSuspendedInputs elements
     amount += mInputs.ShallowSizeOfExcludingThis(aMallocSizeOf);
+    amount += mSuspendedInputs.ShallowSizeOfExcludingThis(aMallocSizeOf);
     return amount;
   }
 
@@ -1239,8 +1232,10 @@ public:
 protected:
   // This state is all accessed only on the media graph thread.
 
-  // The list of all inputs that are currently enabled or waiting to be enabled.
+  // The list of all inputs that are not currently suspended.
   nsTArray<MediaInputPort*> mInputs;
+  // The list of all inputs that are currently suspended.
+  nsTArray<MediaInputPort*> mSuspendedInputs;
   bool mAutofinish;
   // After UpdateStreamOrder(), mCycleMarker is either 0 or 1 to indicate
   // whether this stream is in a muted cycle.  During ordering it can contain
@@ -1249,7 +1244,7 @@ protected:
 };
 
 /**
- * There can be multiple MediaStreamGraph per process: one per AudioChannel.
+ * There is a single MediaStreamGraph per window.
  * Additionaly, each OfflineAudioContext object creates its own MediaStreamGraph
  * object too..
  */
@@ -1275,9 +1270,17 @@ public:
   static const uint32_t AUDIO_CALLBACK_DRIVER_SHUTDOWN_TIMEOUT = 20*1000;
 
   // Main thread only
+  static MediaStreamGraph* GetInstanceIfExists(nsPIDOMWindowInner* aWindow);
   static MediaStreamGraph* GetInstance(GraphDriverType aGraphDriverRequested,
-                                       dom::AudioChannel aChannel);
-  static MediaStreamGraph* CreateNonRealtimeInstance(TrackRate aSampleRate);
+                                       nsPIDOMWindowInner* aWindow);
+  static MediaStreamGraph* CreateNonRealtimeInstance(
+    TrackRate aSampleRate,
+    nsPIDOMWindowInner* aWindowId);
+
+  // Return the correct main thread for this graph. This always returns
+  // something that is valid. Thread safe.
+  AbstractThread* AbstractMainThread();
+
   // Idempotent
   static void DestroyNonRealtimeInstance(MediaStreamGraph* aGraph);
 
@@ -1346,14 +1349,12 @@ public:
    * Media graph thread only.
    * Dispatches a runnable that will run on the main thread after all
    * main-thread stream state has been next updated.
+   *
    * Should only be called during MediaStreamListener callbacks or during
    * ProcessedMediaStream::ProcessInput().
    */
-  virtual void DispatchToMainThreadAfterStreamStateUpdate(already_AddRefed<nsIRunnable> aRunnable)
-  {
-    AssertOnGraphThreadOrNotRunning();
-    *mPendingUpdateRunnables.AppendElement() = aRunnable;
-  }
+  virtual void DispatchToMainThreadAfterStreamStateUpdate(
+    already_AddRefed<nsIRunnable> aRunnable);
 
   /**
    * Returns graph sample rate in Hz.
@@ -1373,7 +1374,10 @@ public:
   void NotifyOutputData(AudioDataValue* aBuffer, size_t aFrames,
                         TrackRate aRate, uint32_t aChannels);
 
-  void AssertOnGraphThreadOrNotRunning() const;
+  void AssertOnGraphThreadOrNotRunning() const
+  {
+    MOZ_ASSERT(OnGraphThreadOrNotRunning());
+  }
 
 protected:
   explicit MediaStreamGraph(TrackRate aSampleRate)
@@ -1385,6 +1389,10 @@ protected:
   {
     MOZ_COUNT_DTOR(MediaStreamGraph);
   }
+
+  // Intended only for assertions, either on graph thread, not running, or
+  // with monitor held.
+  bool OnGraphThreadOrNotRunning() const;
 
   // Media graph thread only
   nsTArray<nsCOMPtr<nsIRunnable> > mPendingUpdateRunnables;

@@ -1,12 +1,9 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
+"use strict";
 
 // Test that the HeapAnalyses{Client,Worker} can take diffs between censuses as
 // inverted trees.
-
-function run_test() {
-  run_next_test();
-}
 
 const BREAKDOWN = {
   by: "coarseType",
@@ -43,10 +40,11 @@ add_task(function* () {
                                                 secondSnapshotFilePath,
                                                 { breakdown: BREAKDOWN });
 
-  const { delta: deltaTreeNode } = yield client.takeCensusDiff(firstSnapshotFilePath,
-                                                               secondSnapshotFilePath,
-                                                               { breakdown: BREAKDOWN },
-                                                               { asInvertedTreeNode: true });
+  const { delta: deltaTreeNode }
+    = yield client.takeCensusDiff(firstSnapshotFilePath,
+                                 secondSnapshotFilePath,
+                                 { breakdown: BREAKDOWN },
+                                 { asInvertedTreeNode: true });
 
   // Have to manually set these because symbol properties aren't structured
   // cloned.

@@ -16,6 +16,7 @@
 #include "nsThreadUtils.h"
 #include "nsXPCOMCIDInternal.h"
 #include "prsystem.h"
+#include "nsIXULRuntime.h"
 
 #include "gfxPrefs.h"
 
@@ -59,20 +60,13 @@ public:
     , mShuttingDown(false)
   { }
 
-  /// Initialize the current thread for use by the decode pool.
-  void InitCurrentThread()
-  {
-    MOZ_ASSERT(!NS_IsMainThread());
-
-    mThreadNaming.SetThreadPoolName(NS_LITERAL_CSTRING("ImgDecoder"));
-  }
-
   /// Shut down the provided decode pool thread.
   static void ShutdownThread(nsIThread* aThisThread)
   {
     // Threads have to be shut down from another thread, so we'll ask the
     // main thread to do it for us.
-    NS_DispatchToMainThread(NewRunnableMethod(aThisThread, &nsIThread::Shutdown));
+    NS_DispatchToMainThread(NewRunnableMethod("DecodePoolImpl::ShutdownThread",
+                                              aThisThread, &nsIThread::Shutdown));
   }
 
   /**
@@ -134,6 +128,12 @@ public:
     } while (true);
   }
 
+  nsresult CreateThread(nsIThread** aThread, nsIRunnable* aInitialEvent)
+  {
+    return NS_NewNamedThread(mThreadNaming.GetNextThreadName("ImgDecoder"),
+                             aThread, aInitialEvent);
+  }
+
 private:
   ~DecodePoolImpl() { }
 
@@ -159,13 +159,14 @@ private:
 class DecodePoolWorker : public Runnable
 {
 public:
-  explicit DecodePoolWorker(DecodePoolImpl* aImpl) : mImpl(aImpl) { }
+  explicit DecodePoolWorker(DecodePoolImpl* aImpl)
+    : Runnable("image::DecodePoolWorker")
+    , mImpl(aImpl)
+  { }
 
   NS_IMETHOD Run() override
   {
     MOZ_ASSERT(!NS_IsMainThread());
-
-    mImpl->InitCurrentThread();
 
     nsCOMPtr<nsIThread> thisThread;
     nsThreadManager::get().GetCurrentThread(getter_AddRefs(thisThread));
@@ -179,6 +180,7 @@ public:
 
         case Work::Type::SHUTDOWN:
           DecodePoolImpl::ShutdownThread(thisThread);
+          PROFILER_UNREGISTER_THREAD();
           return NS_OK;
 
         default:
@@ -245,12 +247,17 @@ DecodePool::DecodePool()
   if (limit > 32) {
     limit = 32;
   }
+  // The parent process where there are content processes doesn't need as many
+  // threads for decoding images.
+  if (limit > 4 && XRE_IsE10sParentProcess()) {
+    limit = 4;
+  }
 
   // Initialize the thread pool.
   for (uint32_t i = 0 ; i < limit ; ++i) {
     nsCOMPtr<nsIRunnable> worker = new DecodePoolWorker(mImpl);
     nsCOMPtr<nsIThread> thread;
-    nsresult rv = NS_NewThread(getter_AddRefs(thread), worker);
+    nsresult rv = mImpl->CreateThread(getter_AddRefs(thread), worker);
     MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv) && thread,
                        "Should successfully create image decoding threads");
     mThreads.AppendElement(Move(thread));
@@ -306,25 +313,33 @@ DecodePool::AsyncRun(IDecodingTask* aTask)
   mImpl->PushWork(aTask);
 }
 
-void
-DecodePool::SyncRunIfPreferred(IDecodingTask* aTask)
+bool
+DecodePool::SyncRunIfPreferred(IDecodingTask* aTask, const nsCString& aURI)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aTask);
+
+  AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING(
+    "DecodePool::SyncRunIfPreferred", GRAPHICS, aURI);
 
   if (aTask->ShouldPreferSyncRun()) {
     aTask->Run();
-    return;
+    return true;
   }
 
   AsyncRun(aTask);
+  return false;
 }
 
 void
-DecodePool::SyncRunIfPossible(IDecodingTask* aTask)
+DecodePool::SyncRunIfPossible(IDecodingTask* aTask, const nsCString& aURI)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aTask);
+
+  AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING(
+    "DecodePool::SyncRunIfPossible", GRAPHICS, aURI);
+
   aTask->Run();
 }
 

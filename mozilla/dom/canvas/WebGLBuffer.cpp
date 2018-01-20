@@ -8,7 +8,6 @@
 #include "GLContext.h"
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
 #include "WebGLContext.h"
-#include "WebGLElementArrayCache.h"
 
 namespace mozilla {
 
@@ -38,9 +37,6 @@ WebGLBuffer::SetContentAfterBind(GLenum target)
     switch (target) {
     case LOCAL_GL_ELEMENT_ARRAY_BUFFER:
         mContent = Kind::ElementArray;
-        if (!mCache) {
-            mCache.reset(new WebGLElementArrayCache);
-        }
         break;
 
     case LOCAL_GL_ARRAY_BUFFER:
@@ -63,8 +59,12 @@ WebGLBuffer::Delete()
 {
     mContext->MakeContextCurrent();
     mContext->gl->fDeleteBuffers(1, &mGLName);
+
     mByteLength = 0;
-    mCache = nullptr;
+    mFetchInvalidator.InvalidateCaches();
+
+    mIndexCache = nullptr;
+    mIndexRanges.clear();
     LinkedListElement<WebGLBuffer>::remove(); // remove from mContext->mBuffers
 }
 
@@ -110,14 +110,9 @@ WebGLBuffer::BufferData(GLenum target, size_t size, const void* data, GLenum usa
     if (!ValidateBufferUsageEnum(mContext, funcName, usage))
         return;
 
-    const auto& gl = mContext->gl;
-    gl->MakeCurrent();
-    const ScopedLazyBind lazyBind(gl, target, this);
-    mContext->InvalidateBufferFetching();
-
 #ifdef XP_MACOSX
     // bug 790879
-    if (gl->WorkAroundDriverBugs() &&
+    if (mContext->gl->WorkAroundDriverBugs() &&
         size > INT32_MAX)
     {
         mContext->ErrorOutOfMemory("%s: Allocation size too large.", funcName);
@@ -125,10 +120,29 @@ WebGLBuffer::BufferData(GLenum target, size_t size, const void* data, GLenum usa
     }
 #endif
 
+    const void* uploadData = data;
+
+    UniqueBuffer newIndexCache;
+    if (target == LOCAL_GL_ELEMENT_ARRAY_BUFFER &&
+        mContext->mNeedsIndexValidation)
+    {
+        newIndexCache = malloc(size);
+        if (!newIndexCache) {
+            mContext->ErrorOutOfMemory("%s: Failed to alloc index cache.", funcName);
+            return;
+        }
+        memcpy(newIndexCache.get(), data, size);
+        uploadData = newIndexCache.get();
+    }
+
+    const auto& gl = mContext->gl;
+    gl->MakeCurrent();
+    const ScopedLazyBind lazyBind(gl, target, this);
+
     const bool sizeChanges = (size != ByteLength());
     if (sizeChanges) {
         gl::GLContext::LocalErrorScope errorScope(*gl);
-        gl->fBufferData(target, size, data, usage);
+        gl->fBufferData(target, size, uploadData, usage);
         const auto error = errorScope.GetError();
 
         if (error) {
@@ -137,17 +151,55 @@ WebGLBuffer::BufferData(GLenum target, size_t size, const void* data, GLenum usa
             return;
         }
     } else {
-        gl->fBufferData(target, size, data, usage);
+        gl->fBufferData(target, size, uploadData, usage);
     }
+
+    mContext->OnDataAllocCall();
 
     mUsage = usage;
     mByteLength = size;
+    mFetchInvalidator.InvalidateCaches();
+    mIndexCache = Move(newIndexCache);
 
-    // Warning: Possibly shared memory.  See bug 1225033.
-    if (!ElementArrayCacheBufferData(data, size)) {
-        mByteLength = 0;
-        mContext->ErrorOutOfMemory("%s: Failed update index buffer cache.", funcName);
+    if (mIndexCache) {
+        if (!mIndexRanges.empty()) {
+            mContext->GeneratePerfWarning("[%p] Invalidating %u ranges.", this,
+                                          uint32_t(mIndexRanges.size()));
+            mIndexRanges.clear();
+        }
     }
+}
+
+void
+WebGLBuffer::BufferSubData(GLenum target, size_t dstByteOffset, size_t dataLen,
+                           const void* data) const
+{
+    const char funcName[] = "bufferSubData";
+
+    if (!ValidateRange(funcName, dstByteOffset, dataLen))
+        return;
+
+    if (!CheckedInt<GLintptr>(dataLen).isValid())
+        return mContext->ErrorOutOfMemory("%s: Size too large.", funcName);
+
+    ////
+
+    const void* uploadData = data;
+    if (mIndexCache) {
+        const auto cachedDataBegin = (uint8_t*)mIndexCache.get() + dstByteOffset;
+        memcpy(cachedDataBegin, data, dataLen);
+        uploadData = cachedDataBegin;
+
+        InvalidateCacheRange(dstByteOffset, dataLen);
+    }
+
+    ////
+
+    const auto& gl = mContext->gl;
+    gl->MakeCurrent();
+    const ScopedLazyBind lazyBind(gl, target, this);
+
+    gl->fBufferSubData(target, dstByteOffset, dataLen, uploadData);
 }
 
 bool
@@ -171,54 +223,138 @@ WebGLBuffer::ValidateRange(const char* funcName, size_t byteOffset, size_t byteL
 
 ////////////////////////////////////////
 
-bool
-WebGLBuffer::ElementArrayCacheBufferData(const void* ptr,
-                                         size_t bufferSizeInBytes)
+static uint8_t
+IndexByteSizeByType(GLenum type)
 {
-    if (mContext->IsWebGL2())
-        return true;
-
-    if (mContent == Kind::ElementArray)
-        return mCache->BufferData(ptr, bufferSizeInBytes);
-
-    return true;
+    switch (type) {
+    case LOCAL_GL_UNSIGNED_BYTE:  return 1;
+    case LOCAL_GL_UNSIGNED_SHORT: return 2;
+    case LOCAL_GL_UNSIGNED_INT:   return 4;
+    default:
+        MOZ_CRASH();
+    }
 }
 
 void
-WebGLBuffer::ElementArrayCacheBufferSubData(size_t pos, const void* ptr,
-                                            size_t updateSizeInBytes)
+WebGLBuffer::InvalidateCacheRange(uint64_t byteOffset, uint64_t byteLength) const
 {
-    if (mContext->IsWebGL2())
-        return;
+    MOZ_ASSERT(mIndexCache);
 
-    if (mContent == Kind::ElementArray)
-        mCache->BufferSubData(pos, ptr, updateSizeInBytes);
+    std::vector<IndexRange> invalids;
+    const uint64_t updateBegin = byteOffset;
+    const uint64_t updateEnd = updateBegin + byteLength;
+    for (const auto& cur : mIndexRanges) {
+        const auto& range = cur.first;
+        const auto& indexByteSize = IndexByteSizeByType(range.type);
+        const auto rangeBegin = range.byteOffset * indexByteSize;
+        const auto rangeEnd = rangeBegin + uint64_t(range.indexCount) * indexByteSize;
+        if (rangeBegin >= updateEnd || rangeEnd <= updateBegin)
+            continue;
+        invalids.push_back(range);
+    }
+
+    if (!invalids.empty()) {
+        mContext->GeneratePerfWarning("[%p] Invalidating %u/%u ranges.", this,
+                                      uint32_t(invalids.size()),
+                                      uint32_t(mIndexRanges.size()));
+
+        for (const auto& cur : invalids) {
+            mIndexRanges.erase(cur);
+        }
+    }
 }
 
 size_t
 WebGLBuffer::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const
 {
-    size_t sizeOfCache = mCache ? mCache->SizeOfIncludingThis(mallocSizeOf)
-                                : 0;
-    return mallocSizeOf(this) + sizeOfCache;
+    size_t size = mallocSizeOf(this);
+    if (mIndexCache) {
+        size += mByteLength;
+    }
+    return size;
 }
 
-bool
-WebGLBuffer::Validate(GLenum type, uint32_t maxAllowed, size_t first, size_t count) const
+template<typename T>
+static Maybe<uint32_t>
+MaxForRange(const void* const start, const uint32_t count,
+            const Maybe<uint32_t>& untypedIgnoredVal)
 {
-    if (mContext->IsWebGL2())
-        return true;
+    const Maybe<T> ignoredVal = (untypedIgnoredVal ? Some(T(untypedIgnoredVal.value()))
+                                                   : Nothing());
+    Maybe<uint32_t> maxVal;
 
-    return mCache->Validate(type, maxAllowed, first, count);
+    auto itr = (const T*)start;
+    const auto end = itr + count;
+
+    for (; itr != end; ++itr) {
+        const auto& val = *itr;
+        if (ignoredVal && val == ignoredVal.value())
+            continue;
+
+        if (maxVal && val <= maxVal.value())
+            continue;
+
+        maxVal = Some(val);
+    }
+
+    return maxVal;
 }
 
-bool
-WebGLBuffer::IsElementArrayUsedWithMultipleTypes() const
-{
-    if (mContext->IsWebGL2())
-        return false;
+static const uint32_t kMaxIndexRanges = 256;
 
-    return mCache->BeenUsedWithMultipleTypes();
+Maybe<uint32_t>
+WebGLBuffer::GetIndexedFetchMaxVert(const GLenum type, const uint64_t byteOffset,
+                                    const uint32_t indexCount) const
+{
+    if (!mIndexCache)
+        return Nothing();
+
+    const IndexRange range = { type, byteOffset, indexCount };
+    auto res = mIndexRanges.insert({ range, Nothing() });
+    if (mIndexRanges.size() > kMaxIndexRanges) {
+        mContext->GeneratePerfWarning("[%p] Clearing mIndexRanges after exceeding %u.",
+                                      this, kMaxIndexRanges);
+        mIndexRanges.clear();
+        res = mIndexRanges.insert({ range, Nothing() });
+    }
+
+    const auto& itr = res.first;
+    const auto& didInsert = res.second;
+
+    auto& maxFetchIndex = itr->second;
+    if (didInsert) {
+        const auto& data = mIndexCache.get();
+
+        const auto start = (const uint8_t*)data + byteOffset;
+
+        Maybe<uint32_t> ignoredVal;
+        if (mContext->IsWebGL2()) {
+            ignoredVal = Some(UINT32_MAX);
+        }
+
+        switch (type) {
+        case LOCAL_GL_UNSIGNED_BYTE:
+            maxFetchIndex = MaxForRange<uint8_t>(start, indexCount, ignoredVal);
+            break;
+        case LOCAL_GL_UNSIGNED_SHORT:
+            maxFetchIndex = MaxForRange<uint16_t>(start, indexCount, ignoredVal);
+            break;
+        case LOCAL_GL_UNSIGNED_INT:
+            maxFetchIndex = MaxForRange<uint32_t>(start, indexCount, ignoredVal);
+            break;
+        default:
+            MOZ_CRASH();
+        }
+        const auto displayMaxVertIndex = maxFetchIndex ? int64_t(maxFetchIndex.value())
+                                                       : -1;
+        mContext->GeneratePerfWarning("[%p] New range #%u: (0x%04x, %" PRIu64 ", %u):"
+                                      " %" PRIi64,
+                                      this, uint32_t(mIndexRanges.size()), range.type,
+                                      range.byteOffset, range.indexCount,
+                                      displayMaxVertIndex);
+    }
+
+    return maxFetchIndex;
 }
 
 ////

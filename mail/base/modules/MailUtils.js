@@ -29,7 +29,7 @@ var MailUtils =
    */
   discoverFolders: function MailUtils_discoverFolders() {
     let servers = MailServices.accounts.allServers;
-    for (let server in fixIterator(servers, Ci.nsIMsgIncomingServer)) {
+    for (let server of fixIterator(servers, Ci.nsIMsgIncomingServer)) {
       // Bug 466311 Sometimes this can throw file not found, we're unsure
       // why, but catch it and log the fact.
       try {
@@ -50,7 +50,7 @@ var MailUtils =
    * the search result corresponding to a mozeml/wdseml file, we need to figure
    * out the folder using the file's path.
    *
-   * @param aFile the nsILocalFile to convert to a folder
+   * @param aFile the nsIFile to convert to a folder
    * @returns the nsIMsgFolder corresponding to aFile, or null if the folder
    *          isn't found
    */
@@ -58,7 +58,7 @@ var MailUtils =
       function MailUtils_getFolderForFileInProfile(aFile) {
     let folders = MailServices.accounts.allFolders;
 
-    for (let folder in fixIterator(folders, Ci.nsIMsgFolder)) {
+    for (let folder of fixIterator(folders, Ci.nsIMsgFolder)) {
       if (folder.filePath.equals(aFile))
         return folder;
     }
@@ -352,7 +352,7 @@ var MailUtils =
 
     // - worker function
     function* folder_string_setter_worker() {
-      for (let folder in fixIterator(allFolders, Ci.nsIMsgFolder)) {
+      for (let folder of fixIterator(allFolders, Ci.nsIMsgFolder)) {
         // set the property; this may open the database...
         let value = (typeof aPropertyValue == "function" ?
                      aPropertyValue(folder) : aPropertyValue);

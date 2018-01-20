@@ -9,6 +9,7 @@ Program('logalloc-replay')
 SOURCES += [
     '../FdPrintf.cpp',
     '/mfbt/Assertions.cpp',
+    '/mfbt/Unused.cpp',
     'Replay.cpp',
 ]
 
@@ -24,4 +25,4 @@ USE_LIBS += [
 # The memory library defines this, so it's needed here too.
 DEFINES['IMPL_MFBT'] = True
 
-DISABLE_STL_WRAPPING = True
+DisableStlWrapping()

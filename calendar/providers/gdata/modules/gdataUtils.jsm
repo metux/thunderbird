@@ -2,20 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gdata-provider/modules/shim/Loader.jsm").shimIt(this);
-Components.utils.import("resource://gdata-provider/modules/shim/Calendar.jsm");
 Components.utils.import("resource://gdata-provider/modules/gdataLogging.jsm");
 Components.utils.import("resource://gdata-provider/modules/gdataRequest.jsm");
 Components.utils.import("resource://gdata-provider/modules/timezoneMap.jsm");
 
-CuImport("resource://gre/modules/Services.jsm", this);
-CuImport("resource://gre/modules/Preferences.jsm", this);
-CuImport("resource://gre/modules/Promise.jsm", this);
-CuImport("resource://gre/modules/PromiseUtils.jsm", this);
-CuImport("resource://gre/modules/Task.jsm", this);
+Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/Preferences.jsm");
+Components.utils.import("resource://gre/modules/PromiseUtils.jsm");
 
-CuImport("resource://calendar/modules/calUtils.jsm", this);
-CuImport("resource://calendar/modules/calProviderUtils.jsm", this);
+Components.utils.import("resource://calendar/modules/calAsyncUtils.jsm");
+Components.utils.import("resource://calendar/modules/calUtils.jsm");
+Components.utils.import("resource://calendar/modules/calProviderUtils.jsm");
 
 var cIE = Components.interfaces.calIErrors;
 
@@ -84,7 +81,7 @@ function migrateItemMetadata(aOfflineStorage, aOldItem, aNewItem, aMetadata) {
     // If an exception was turned into an EXDATE, we need to clear its metadata
     if (aOldItem.recurrenceInfo && aNewItem.recurrenceInfo) {
         let newExIds = new Set(aNewItem.recurrenceInfo.getExceptionIds({}).map(function(x) { return x.icalString; }));
-        for each (let exId in aOldItem.recurrenceInfo.getExceptionIds({})) {
+        for (let exId of aOldItem.recurrenceInfo.getExceptionIds({})) {
             if (!newExIds.has(exId.icalString)) {
                 let ex = aOldItem.recurrenceInfo.getExceptionFor(exId);
                 deleteItemMetadata(aOfflineStorage, ex);
@@ -103,7 +100,7 @@ function deleteItemMetadata(aOfflineStorage, aItem) {
     aOfflineStorage.deleteMetaData(aItem.hashId);
     if (aItem.recurrenceInfo) {
         let recInfo = aItem.recurrenceInfo;
-        for each (let exId in recInfo.getExceptionIds({})) {
+        for (let exId of recInfo.getExceptionIds({})) {
             let occ = recInfo.getExceptionFor(exId);
             aOfflineStorage.deleteMetaData(occ.hashId);
         }
@@ -475,7 +472,7 @@ function EventToJSON(aItem, aOfflineStorage, aIsImport) {
     if (aItem.recurrenceInfo) {
         itemData.recurrence = [];
         let recurrenceItems = aItem.recurrenceInfo.getRecurrenceItems({});
-        for each (let ritem in recurrenceItems) {
+        for (let ritem of recurrenceItems) {
             let prop = ritem.icalProperty;
             if (ritem instanceof Components.interfaces.calIRecurrenceDate) {
                 // EXDATES require special casing, since they might contain
@@ -520,7 +517,7 @@ function TaskToJSON(aItem, aOfflineStorage, aIsImport) {
     }
     setIf(itemData, "completed", cal.toRFC3339(aItem.completedDate));
 
-    for each (let relation in aItem.getRelations({})) {
+    for (let relation of aItem.getRelations({})) {
         if (relation.relId &&
             (!relation.relType || relation.relType == "PARENT")) {
             itemData.parent = relation.relId;
@@ -530,7 +527,7 @@ function TaskToJSON(aItem, aOfflineStorage, aIsImport) {
 
     let attachments = aItem.getAttachments({});
     if (attachments.length) itemData.links = [];
-    for each (let attach in aItem.getAttachments({})) {
+    for (let attach of aItem.getAttachments({})) {
         let attachData = {};
         attachData.link = attach.uri.spec;
         attachData.description = attach.getParameter("FILENAME");
@@ -744,7 +741,7 @@ function JSONToEvent(aEntry, aCalendar, aDefaultReminders, aReferenceItem, aMeta
                 tentative: "TENTATIVE",
                 accepted: "ACCEPTED"
             };
-            for each (let attendeeEntry in aEntry.attendees) {
+            for (let attendeeEntry of aEntry.attendees) {
                 let attendee = cal.createAttendee();
                 if (attendeeEntry.email) {
                     attendee.id = "mailto:" + attendeeEntry.email;
@@ -788,7 +785,7 @@ function JSONToEvent(aEntry, aCalendar, aDefaultReminders, aReferenceItem, aMeta
             }
 
             if (aEntry.reminders.overrides) {
-                for each (let reminderEntry in aEntry.reminders.overrides) {
+                for (let reminderEntry of aEntry.reminders.overrides) {
                     item.addAlarm(JSONToAlarm(reminderEntry));
                 }
             }
@@ -896,9 +893,9 @@ function JSONToTask(aEntry, aCalendar, aDefaultReminders, aReferenceItem, aMetad
         }
 
         if (aEntry.links) {
-            for each (let link in aEntry.links) {
+            for (let link of aEntry.links) {
                 let attach = cal.createAttachment();
-                attach.uri = Services.io.newURI(link.link, null, null);
+                attach.uri = Services.io.newURI(link.link);
                 attach.setParameter("FILENAME", link.description);
                 attach.setParameter("X-GOOGLE-TYPE", link.type);
                 item.addAttachment(attach);
@@ -946,7 +943,7 @@ function JSONToItem(aEntry, aCalendar, aDefaultReminders, aReferenceItem, aMetad
 function ItemSaver(aCalendar) {
     this.calendar = aCalendar;
     this.offlineStorage = this.calendar.offlineStorage;
-    this.promiseOfflineStorage = promisifyCalendar(this.calendar.offlineStorage);
+    this.promiseOfflineStorage = cal.async.promisifyCalendar(this.calendar.offlineStorage);
     this.missingParents = [];
     this.masterItems = Object.create(null);
     this.metaData = Object.create(null);
@@ -983,33 +980,31 @@ ItemSaver.prototype = {
      * @param aData         The JS Object from the list response.
      * @return              A promise resolved when completed.
      */
-    parseTaskStream: function(aData) {
-        return Task.spawn(function() {
-            if (!aData.items || !aData.items.length) {
-                cal.LOG("[calGoogleCalendar] No tasks have been changed on " + this.calendar.name);
-            } else {
-                cal.LOG("[calGoogleCalendar] Parsing " + aData.items.length + " received tasks");
+    parseTaskStream: async function(aData) {
+        if (!aData.items || !aData.items.length) {
+            cal.LOG("[calGoogleCalendar] No tasks have been changed on " + this.calendar.name);
+        } else {
+            cal.LOG("[calGoogleCalendar] Parsing " + aData.items.length + " received tasks");
 
-                let total = aData.items.length;
-                let committedUnits = 0;
-                this.activity.addTotal(total);
+            let total = aData.items.length;
+            let committedUnits = 0;
+            this.activity.addTotal(total);
 
-                for (let cur = 0; cur < total; cur++) {
-                    let entry = aData.items[cur];
-                    //let metaData = Object.create(null);
-                    let metaData = {};
-                    let item = JSONToTask(entry, this.calendar, null, null, metaData);
-                    this.metaData[item.hashId] = metaData;
+            for (let cur = 0; cur < total; cur++) {
+                let entry = aData.items[cur];
+                //let metaData = Object.create(null);
+                let metaData = {};
+                let item = JSONToTask(entry, this.calendar, null, null, metaData);
+                this.metaData[item.hashId] = metaData;
 
-                    yield this.commitItem(item);
+                await this.commitItem(item);
 
-                    if (yield spinEventLoop()) {
-                        this.activity.addProgress(cur - committedUnits);
-                        committedUnits = cur;
-                    }
+                if (await spinEventLoop()) {
+                    this.activity.addProgress(cur - committedUnits);
+                    committedUnits = cur;
                 }
             }
-        }.bind(this));
+        }
     },
 
     /**
@@ -1018,80 +1013,78 @@ ItemSaver.prototype = {
      * @param aData         The JS Object from the list response.
      * @return              A promise resolved when completed.
      */
-    parseEventStream: function(aData) {
-        return Task.spawn(function() {
-            if (aData.timeZone) {
-                cal.LOG("[calGoogleCalendar] Timezone for " + this.calendar.name + " is " + aData.timeZone);
-                this.calendar.setProperty("settings.timeZone", aData.timeZone);
-            }
+    parseEventStream: async function(aData) {
+        if (aData.timeZone) {
+            cal.LOG("[calGoogleCalendar] Timezone for " + this.calendar.name + " is " + aData.timeZone);
+            this.calendar.setProperty("settings.timeZone", aData.timeZone);
+        }
 
-            if (!aData.items || !aData.items.length) {
-                cal.LOG("[calGoogleCalendar] No events have been changed on " + this.calendar.name);
-                return;
+        if (!aData.items || !aData.items.length) {
+            cal.LOG("[calGoogleCalendar] No events have been changed on " + this.calendar.name);
+            return;
+        } else {
+            cal.LOG("[calGoogleCalendar] Parsing " + aData.items.length + " received events");
+        }
+
+        let exceptionItems = [];
+        let defaultReminders = (aData.defaultReminders || []).map(function(x) { return JSONToAlarm(x, true); });
+
+        // In the first pass, we go through the data and sort into master items and
+        // exception items, as the master item might be after the exception in the
+        // stream.
+
+        let total = aData.items.length;
+        let committedUnits = 0;
+        this.activity.addTotal(total);
+
+        for (let cur = 0; cur < total; cur++) {
+            let entry = aData.items[cur];
+            let metaData = Object.create(null);
+            let item = JSONToEvent(entry, this.calendar, defaultReminders, null, metaData);
+            LOGitem(item);
+
+            this.metaData[item.hashId] = metaData;
+
+            if (item.recurrenceId) {
+                exceptionItems.push(item);
             } else {
-                cal.LOG("[calGoogleCalendar] Parsing " + aData.items.length + " received events");
+                this.masterItems[item.id] = item;
+                await this.commitItem(item);
             }
 
-            let exceptionItems = [];
-            let defaultReminders = (aData.defaultReminders || []).map(function(x) { return JSONToAlarm(x, true); });
+            if (await spinEventLoop()) {
+                this.activity.addProgress(cur - committedUnits);
+                committedUnits = cur;
+            }
+        }
 
-            // In the first pass, we go through the data and sort into master items and
-            // exception items, as the master item might be after the exception in the
-            // stream.
-
-            let total = aData.items.length;
-            let committedUnits = 0;
-            this.activity.addTotal(total);
-
-            for (let cur = 0; cur < total; cur++) {
-                let entry = aData.items[cur];
-                let metaData = Object.create(null);
-                let item = JSONToEvent(entry, this.calendar, defaultReminders, null, metaData);
-                LOGitem(item);
-
-                this.metaData[item.hashId] = metaData;
-
-                if (item.recurrenceId) {
-                    exceptionItems.push(item);
-                } else {
-                    this.masterItems[item.id] = item;
-                    yield this.commitItem(item);
-                }
-
-                if (yield spinEventLoop()) {
-                    this.activity.addProgress(cur - committedUnits);
-                    committedUnits = cur;
-                }
+        // Go through all exceptions and attempt to find the master item in the
+        // item stream. If it can't be found there, the offline storage is asked
+        // for the parent item. If it still can't be found, then we have to do
+        // this at the end.
+        for (let exc of exceptionItems) {
+            // If we have the master item in our cache then use it. Otherwise
+            // attempt to get it from the offline storage.
+            let item;
+            if (exc.id in this.masterItems) {
+                item = this.masterItems[exc.id];
+            } else {
+                item = (await this.promiseOfflineStorage.getItem(exc.id))[0];
             }
 
-            // Go through all exceptions and attempt to find the master item in the
-            // item stream. If it can't be found there, the offline storage is asked
-            // for the parent item. If it still can't be found, then we have to do
-            // this at the end.
-            for each (let exc in exceptionItems) {
-                // If we have the master item in our cache then use it. Otherwise
-                // attempt to get it from the offline storage.
-                let item;
-                if (exc.id in this.masterItems) {
-                    item = this.masterItems[exc.id];
-                } else {
-                    item = (yield this.promiseOfflineStorage.getItem(exc.id))[0];
+            // If an item was found, we can process this exception. Otherwise
+            // save it for later, maybe its on the next page of the request.
+            if (item) {
+                if (!item.isMutable) {
+                    item = item.clone();
                 }
-
-                // If an item was found, we can process this exception. Otherwise
-                // save it for later, maybe its on the next page of the request.
-                if (item) {
-                    if (!item.isMutable) {
-                        item = item.clone();
-                    }
-                    yield this.processException(exc, item);
-                } else {
-                    this.missingParents.push(exc);
-                }
-
-                yield this.commitException(exc);
+                await this.processException(exc, item);
+            } else {
+                this.missingParents.push(exc);
             }
-        }.bind(this));
+
+            await this.commitException(exc);
+        }
     },
 
     /**
@@ -1141,23 +1134,21 @@ ItemSaver.prototype = {
      * @param item      The item to process.
      * @return          A promise resolved when the process is completed.
      */
-    commitItem: function(item) {
-        return Task.spawn(function() {
-            // This is a normal item. If it was canceled, then it should be
-            // deleted, otherwise it should be either added or modified. The
-            // relaxed mode of the destination calendar takes care of the latter
-            // two cases.
-            if (item.status == "CANCELLED") {
-                yield this.promiseOfflineStorage.deleteItem(item);
-            } else {
-                yield this.promiseOfflineStorage.modifyItem(item, null);
-            }
+    commitItem: async function(item) {
+        // This is a normal item. If it was canceled, then it should be
+        // deleted, otherwise it should be either added or modified. The
+        // relaxed mode of the destination calendar takes care of the latter
+        // two cases.
+        if (item.status == "CANCELLED") {
+            await this.promiseOfflineStorage.deleteItem(item);
+        } else {
+            await this.promiseOfflineStorage.modifyItem(item, null);
+        }
 
-            if (item.hashId in this.metaData) {
-                // Make sure the metadata is up to date for the next request
-                saveItemMetadata(this.offlineStorage, item.hashId, this.metaData[item.hashId]);
-            }
-        }.bind(this));
+        if (item.hashId in this.metaData) {
+            // Make sure the metadata is up to date for the next request
+            saveItemMetadata(this.offlineStorage, item.hashId, this.metaData[item.hashId]);
+        }
     },
 
     /**
@@ -1176,37 +1167,35 @@ ItemSaver.prototype = {
      *
      * @return          A promise resolved on completion
      */
-    processRemainingExceptions: function() {
-        return Task.spawn(function() {
-            for each (let exc in this.missingParents) {
-                let item = (yield this.promiseOfflineStorage.getItem(exc.id))[0];
-                if (item) {
-                    yield this.processException(exc, item);
-                } else if (exc.status != "CANCELLED") {
-                    // If the item could not be found, it could be that the
-                    // user is invited to an instance of a recurring event.
-                    // Unless this is a cancelled exception, create a mock
-                    // parent item with one positive RDATE.
-                    let item = exc.clone();
-                    item.recurrenceId = null;
-                    item.calendar = this.calendar.superCalendar;
-                    item.startDate = exc.recurrenceId.clone();
-                    item.setProperty("X-MOZ-FAKED-MASTER", "1");
-                    if (!item.id) {
-                        // Exceptions often don't have the iCalUID field set,
-                        // we need to fake it from the google id.
-                        let meta = this.metaData[exc.hashId];
-                        item.id = meta.path + "@google.com";
-                    }
-                    item.recurrenceInfo = cal.createRecurrenceInfo(item);
-                    let rdate = Components.classes["@mozilla.org/calendar/recurrence-date;1"]
-                                          .createInstance(Components.interfaces.calIRecurrenceDate);
-                    rdate.date = exc.recurrenceId;
-                    item.recurrenceInfo.appendRecurrenceItem(rdate);
-                    yield this.commitItem(item);
+    processRemainingExceptions: async function() {
+        for (let exc of this.missingParents) {
+            let item = (await this.promiseOfflineStorage.getItem(exc.id))[0];
+            if (item) {
+                await this.processException(exc, item);
+            } else if (exc.status != "CANCELLED") {
+                // If the item could not be found, it could be that the
+                // user is invited to an instance of a recurring event.
+                // Unless this is a cancelled exception, create a mock
+                // parent item with one positive RDATE.
+                let item = exc.clone();
+                item.recurrenceId = null;
+                item.calendar = this.calendar.superCalendar;
+                item.startDate = exc.recurrenceId.clone();
+                item.setProperty("X-MOZ-FAKED-MASTER", "1");
+                if (!item.id) {
+                    // Exceptions often don't have the iCalUID field set,
+                    // we need to fake it from the google id.
+                    let meta = this.metaData[exc.hashId];
+                    item.id = meta.path + "@google.com";
                 }
+                item.recurrenceInfo = cal.createRecurrenceInfo(item);
+                let rdate = Components.classes["@mozilla.org/calendar/recurrence-date;1"]
+                    .createInstance(Components.interfaces.calIRecurrenceDate);
+                rdate.date = exc.recurrenceId;
+                item.recurrenceInfo.appendRecurrenceItem(rdate);
+                await this.commitItem(item);
             }
-        }.bind(this));
+        }
     }
 };
 
@@ -1287,37 +1276,35 @@ ActivityShell.prototype = {
  * @param aItem             The item that was passed to the server
  * @return                  A promise resolved when the conflict has been resolved
  */
-function checkResolveConflict(aOperation, aCalendar, aItem) {
-    return Task.spawn(function() {
-        cal.LOG("[calGoogleCalendar] A conflict occurred for " + aItem.title);
+async function checkResolveConflict(aOperation, aCalendar, aItem) {
+    cal.LOG("[calGoogleCalendar] A conflict occurred for " + aItem.title);
 
-        let method = (aOperation.type == aOperation.DELETE ? "delete" : "modify")
-        let overwrite = cal.promptOverwrite(method, aItem);
-        if (overwrite) {
-            // The user has decided to overwrite the server version. Send again
-            // overwriting the server version with If-Match: *
-            cal.LOG("[calGoogleCalendar] Resending " + method + " and ignoring ETag");
-            aOperation.addRequestHeader("If-Match", "*");
-            try {
-                throw new Task.Result(yield aCalendar.session.asyncItemRequest(aOperation));
-            } catch (e) {
-                if (e.result == calGoogleRequest.RESOURCE_GONE &&
-                    aOperation.type == aOperation.DELETE) {
-                    // The item was deleted on the server and locally, we don't need to
-                    // notify the user about this.
-                    throw new Task.Result(null);
-                } else {
-                    throw e;
-                }
+    let method = (aOperation.type == aOperation.DELETE ? "delete" : "modify");
+    let overwrite = cal.promptOverwrite(method, aItem);
+    if (overwrite) {
+        // The user has decided to overwrite the server version. Send again
+        // overwriting the server version with If-Match: *
+        cal.LOG("[calGoogleCalendar] Resending " + method + " and ignoring ETag");
+        aOperation.addRequestHeader("If-Match", "*");
+        try {
+            return await aCalendar.session.asyncItemRequest(aOperation);
+        } catch (e) {
+            if (e.result == calGoogleRequest.RESOURCE_GONE &&
+                aOperation.type == aOperation.DELETE) {
+                // The item was deleted on the server and locally, we don't need to
+                // notify the user about this.
+                return null;
+            } else {
+                throw e;
             }
-        } else {
-            // The user has decided to throw away changes, use our existing
-            // means to update the item locally.
-            cal.LOG("[calGoogleCalendar] Reload requested, cancelling change of " + aItem.title);
-            aCalendar.superCalendar.refresh();
-            throw Components.Exception(null, cIE.OPERATION_CANCELLED);
         }
-    });
+    } else {
+        // The user has decided to throw away changes, use our existing
+        // means to update the item locally.
+        cal.LOG("[calGoogleCalendar] Reload requested, cancelling change of " + aItem.title);
+        aCalendar.superCalendar.refresh();
+        throw Components.Exception(null, cIE.OPERATION_CANCELLED);
+    }
 }
 
 /**
@@ -1327,8 +1314,7 @@ function checkResolveConflict(aOperation, aCalendar, aItem) {
  * @param ...aParams   Optional parameters to format the string
  * @return             The localized string value.
  */
-function getProviderString(aStringName /*...aParams */) {
-    let aParams = Array.slice(arguments, 1);
+function getProviderString(aStringName, ...aParams) {
     return cal.calGetString("gdata", aStringName, aParams, "gdata-provider");
 }
 
@@ -1345,7 +1331,7 @@ function monkeyPatch(obj, x, func) {
     let old = obj[x];
     obj[x] = function() {
         let parent = old.bind(obj);
-        let args = Array.slice(arguments);
+        let args = Array.from(arguments);
         args.unshift(parent);
         try {
             return func.apply(obj, args);

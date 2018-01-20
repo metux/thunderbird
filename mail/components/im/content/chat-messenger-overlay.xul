@@ -30,7 +30,7 @@
 
   <stringbundleset id="stringbundleset">
     <stringbundle id="chatBundle" src="chrome://messenger/locale/chat.properties"/>
-    <stringbundle id="bundle_dateformat" src="chrome://global/locale/dateFormat.properties"/>
+    <stringbundle id="bundle_dateformat" src="chrome://chat/locale/dateFormat.properties"/>
     <stringbundle id="bundle_places" src="chrome://places/locale/places.properties"/>
   </stringbundleset>
 
@@ -160,7 +160,6 @@
                      autocompletesearch="gloda"
                      autocompletepopup="PopupGlodaAutocomplete"
                      autocompletesearchparam="global"
-                     enablehistory="false"
                      timeout="200"
                      maxlength="192"
                      placeholder=""
@@ -175,9 +174,7 @@
                    clear the box, if people want to clear it that way...
                 -->
               <hbox>
-                <image class="gloda-search-icon"
-                       onclick="document.getElementById('IMSearchInput').doSearch();"
-                       />
+                <image class="gloda-search-icon"/>
               </hbox>
             </textbox>
           </toolbaritem>
@@ -244,7 +241,8 @@
                   </hbox>
                 </vbox>
                 <vbox flex="1" id="logDisplayBrowserBox">
-                  <browser id="conv-log-browser" type="content-conversation" contextmenu="chatConversationContextMenu" flex="1"
+                  <browser id="conv-log-browser" type="content" browser-type="conversation"
+                           contextmenu="chatConversationContextMenu" flex="1"
                            tooltip="imTooltip"/>
                   <progressmeter id="log-browserProgress" hidden="true"/>
                   <findbar id="log-findbar" browserid="conv-log-browser"/>

@@ -11,6 +11,7 @@
 #if defined(XP_WIN) && defined(MOZ_SANDBOX)
 #include "WinUtils.h"
 #endif
+#include "GMPLog.h"
 
 #include "base/string_util.h"
 #include "base/process_util.h"
@@ -22,13 +23,8 @@ using std::string;
 
 using mozilla::gmp::GMPProcessParent;
 using mozilla::ipc::GeckoChildProcessHost;
-using base::ProcessArchitecture;
 
 namespace mozilla {
-
-extern LogModule* GetGMPLog();
-#define GMP_LOG(msg, ...) MOZ_LOG(GetGMPLog(), mozilla::LogLevel::Debug, (msg, ##__VA_ARGS__))
-
 namespace gmp {
 
 GMPProcessParent::GMPProcessParent(const std::string& aGMPPath)
@@ -46,14 +42,6 @@ GMPProcessParent::~GMPProcessParent()
 bool
 GMPProcessParent::Launch(int32_t aTimeoutMs)
 {
-  nsCOMPtr<nsIFile> path;
-  if (!GetEMEVoucherPath(getter_AddRefs(path))) {
-    NS_WARNING("GMPProcessParent can't get EME voucher path!");
-    return false;
-  }
-  nsAutoCString voucherPath;
-  path->GetNativePath(voucherPath);
-
   vector<string> args;
 
 #if defined(XP_WIN) && defined(MOZ_SANDBOX)
@@ -89,16 +77,15 @@ GMPProcessParent::Launch(int32_t aTimeoutMs)
   args.push_back(mGMPPath);
 #endif
 
-  args.push_back(string(voucherPath.BeginReading(), voucherPath.EndReading()));
-
-  return SyncLaunch(args, aTimeoutMs, base::GetCurrentProcessArchitecture());
+  return SyncLaunch(args, aTimeoutMs);
 }
 
 void
 GMPProcessParent::Delete(nsCOMPtr<nsIRunnable> aCallback)
 {
   mDeletedCallback = aCallback;
-  XRE_GetIOMessageLoop()->PostTask(NewNonOwningRunnableMethod(this, &GMPProcessParent::DoDelete));
+  XRE_GetIOMessageLoop()->PostTask(NewNonOwningRunnableMethod(
+    "gmp::GMPProcessParent::DoDelete", this, &GMPProcessParent::DoDelete));
 }
 
 void

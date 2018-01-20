@@ -16,7 +16,6 @@ test();
 
 function test()
 {
-  enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
  
@@ -24,7 +23,7 @@ function test()
 
 // =====
 
-  (function(){function x(){} function x()y})();
+  (function(){function x(){} function x() { return y; }})();
 
 // Assertion failure: JOF_OPTYPE(op) == JOF_ATOM, at ../jsemit.cpp:1710
 
@@ -61,8 +60,6 @@ function test()
 // =====
 
   reportCompare(expect, actual, summary);
-
-  exitFunc ('test');
 }
 
 

@@ -81,8 +81,8 @@
 <!ENTITY boolean.accesskey "B">
 
 <!ENTITY aboutWarningButton2.label "I accept the risk!">
+<!ENTITY searchPrefs.label "Search:">
+<!ENTITY searchPrefs.accesskey "r">
 <!ENTITY focusSearch.key "r">
 <!ENTITY focusSearch2.key "f">
-<!ENTITY searchPrefs.accesskey "r">
 
-<!ENTITY searchPrefs.label "Search:">

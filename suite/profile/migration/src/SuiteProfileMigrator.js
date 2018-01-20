@@ -21,9 +21,9 @@ ProfileMigrator.prototype = {
 
     let params = Components.classes["@mozilla.org/array;1"]
                            .createInstance(Components.interfaces.nsIMutableArray);
-    params.appendElement(this._toString(key), false);
-    params.appendElement(migrator, false);
-    params.appendElement(aStartup, false);
+    params.appendElement(this._toString(key));
+    params.appendElement(migrator);
+    params.appendElement(aStartup);
 
     Services.ww.openWindow(null,
                            "chrome://communicator/content/migration/migration.xul",
@@ -56,7 +56,7 @@ ProfileMigrator.prototype = {
      ["thunderbird"],
 
   _getDefaultMigrator: function PM__getDefaultMigrator() {
-    let migratorsOrdered = Array.slice(this._PLATFORM_FALLBACK_LIST);
+    let migratorsOrdered = Array.from(this._PLATFORM_FALLBACK_LIST);
 #if 0
     let defaultBrowser = "";
 #ifdef XP_WIN

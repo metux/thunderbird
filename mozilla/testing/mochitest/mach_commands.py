@@ -6,7 +6,6 @@ from __future__ import absolute_import, unicode_literals
 
 from argparse import Namespace
 from collections import defaultdict
-from itertools import chain
 import logging
 import os
 import sys
@@ -76,61 +75,7 @@ NOW_RUNNING = '''
 '''
 
 
-# Maps test flavors to data needed to run them
-ALL_FLAVORS = {
-    'mochitest': {
-        'suite': 'plain',
-        'aliases': ('plain', 'mochitest'),
-        'enabled_apps': ('firefox', 'android'),
-        'extra_args': {
-            'flavor': 'plain',
-        }
-    },
-    'chrome': {
-        'suite': 'chrome',
-        'aliases': ('chrome', 'mochitest-chrome'),
-        'enabled_apps': ('firefox', 'android'),
-        'extra_args': {
-            'flavor': 'chrome',
-        }
-    },
-    'browser-chrome': {
-        'suite': 'browser',
-        'aliases': ('browser', 'browser-chrome', 'mochitest-browser-chrome', 'bc'),
-        'enabled_apps': ('firefox',),
-        'extra_args': {
-            'flavor': 'browser',
-        }
-    },
-    'jetpack-package': {
-        'suite': 'jetpack-package',
-        'aliases': ('jetpack-package', 'mochitest-jetpack-package', 'jpp'),
-        'enabled_apps': ('firefox',),
-        'extra_args': {
-            'flavor': 'jetpack-package',
-        }
-    },
-    'jetpack-addon': {
-        'suite': 'jetpack-addon',
-        'aliases': ('jetpack-addon', 'mochitest-jetpack-addon', 'jpa'),
-        'enabled_apps': ('firefox',),
-        'extra_args': {
-            'flavor': 'jetpack-addon',
-        }
-    },
-    'a11y': {
-        'suite': 'a11y',
-        'aliases': ('a11y', 'mochitest-a11y', 'accessibility'),
-        'enabled_apps': ('firefox',),
-        'extra_args': {
-            'flavor': 'a11y',
-        }
-    },
-}
-
 SUPPORTED_APPS = ['firefox', 'android']
-SUPPORTED_FLAVORS = list(chain.from_iterable([f['aliases'] for f in ALL_FLAVORS.values()]))
-CANONICAL_FLAVORS = sorted([f['aliases'][0] for f in ALL_FLAVORS.values()])
 
 parser = None
 
@@ -162,7 +107,7 @@ class MochitestRunner(MozbuildObject):
         if test_objects:
             return test_objects
 
-        from mozbuild.testing import TestResolver
+        from moztest.resolve import TestResolver
         resolver = self._spawn(TestResolver)
         tests = list(resolver.resolve_tests(paths=test_paths, cwd=cwd))
         return tests
@@ -171,7 +116,7 @@ class MochitestRunner(MozbuildObject):
         """Runs a mochitest.
 
         suite is the type of mochitest to run. It can be one of ('plain',
-        'chrome', 'browser', 'a11y', 'jetpack-package', 'jetpack-addon').
+        'chrome', 'browser', 'a11y').
         """
         # runtests.py is ambiguous, so we load the file/module manually.
         if 'mochitest' not in sys.modules:
@@ -194,6 +139,7 @@ class MochitestRunner(MozbuildObject):
             logging.getLogger().removeHandler(handler)
 
         options = Namespace(**kwargs)
+        options.topsrcdir = self.topsrcdir
 
         from manifestparser import TestManifest
         if tests and not options.manifestFile:
@@ -225,6 +171,10 @@ class MochitestRunner(MozbuildObject):
             imp.load_module('runtestsremote', fh, path,
                             ('.py', 'r', imp.PY_SOURCE))
         import runtestsremote
+
+        from mozrunner.devices.android_device import get_adb_path
+        if not kwargs['adbPath']:
+            kwargs['adbPath'] = get_adb_path(self)
 
         options = Namespace(**kwargs)
 
@@ -275,6 +225,9 @@ def setup_argument_parser():
 
         import imp
         path = os.path.join(build_obj.topobjdir, mochitest_dir, 'runtests.py')
+        if not os.path.exists(path):
+            path = os.path.join(here, "runtests.py")
+
         with open(path, 'r') as fh:
             imp.load_module('mochitest', fh, path,
                             ('.py', 'r', imp.PY_SOURCE))
@@ -331,11 +284,9 @@ class MachCommands(MachCommandBase):
              conditions=[is_buildapp_in(*SUPPORTED_APPS)],
              description='Run any flavor of mochitest (integration test).',
              parser=setup_argument_parser)
-    @CommandArgument('-f', '--flavor',
-                     metavar='{{{}}}'.format(', '.join(CANONICAL_FLAVORS)),
-                     choices=SUPPORTED_FLAVORS,
-                     help='Only run tests of this flavor.')
     def run_mochitest_general(self, flavor=None, test_objects=None, resolve_tests=True, **kwargs):
+        from mochitest_options import ALL_FLAVORS
+
         buildapp = None
         for app in SUPPORTED_APPS:
             if is_buildapp_in(app)(self):
@@ -464,6 +415,10 @@ class MachCommands(MachCommandBase):
             if result:
                 overall = result
 
+            # Halt tests on keyboard interrupt
+            if result == -1:
+                break
+
         # TODO consolidate summaries from all suites
         return overall
 
@@ -486,18 +441,13 @@ class RobocopCommands(MachCommandBase):
             kwargs['robocopIni'] = os.path.join(self.topobjdir, '_tests', 'testing',
                                                 'mochitest', 'robocop.ini')
 
-        if not kwargs.get('robocopApk'):
-            kwargs['robocopApk'] = os.path.join(self.topobjdir, 'mobile', 'android',
-                                                'tests', 'browser', 'robocop',
-                                                'robocop-debug.apk')
-
         from mozbuild.controller.building import BuildDriver
         self._ensure_state_subdir_exists('.')
 
         test_paths = kwargs['test_paths']
         kwargs['test_paths'] = []
 
-        from mozbuild.testing import TestResolver
+        from moztest.resolve import TestResolver
         resolver = self._spawn(TestResolver)
         tests = list(resolver.resolve_tests(paths=test_paths, cwd=self._mach_context.cwd,
                                             flavor='instrumentation', subsuite='robocop'))
@@ -509,8 +459,11 @@ class RobocopCommands(MachCommandBase):
                 sorted(list(test_paths)))))
             return 1
 
-        from mozrunner.devices.android_device import grant_runtime_permissions
+        from mozrunner.devices.android_device import grant_runtime_permissions, get_adb_path
         grant_runtime_permissions(self)
+
+        if not kwargs['adbPath']:
+            kwargs['adbPath'] = get_adb_path(self)
 
         mochitest = self._spawn(MochitestRunner)
         return mochitest.run_robocop_test(self._mach_context, tests, 'robocop', **kwargs)
@@ -556,12 +509,4 @@ class DeprecatedCommands(MachCommandBase):
 
     @Command('mochitest-a11y', category='testing', conditions=[REMOVED])
     def mochitest_a11y(self):
-        pass
-
-    @Command('jetpack-addon', category='testing', conditions=[REMOVED])
-    def jetpack_addon(self):
-        pass
-
-    @Command('jetpack-package', category='testing', conditions=[REMOVED])
-    def jetpack_package(self):
         pass

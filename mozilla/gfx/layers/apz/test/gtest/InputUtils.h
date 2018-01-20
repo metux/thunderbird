@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set sw=2 ts=8 et tw=80 : */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -13,6 +13,7 @@
  */
 
 #include "APZTestCommon.h"
+#include "gfxPrefs.h"
 
 /* The InputReceiver template parameter used in the helper functions below needs
  * to be a class that implements functions with the signatures:
@@ -137,7 +138,7 @@ PinchWithPinchInput(const RefPtr<InputReceiver>& aTarget,
       CreatePinchGestureInput(PinchGestureInput::PINCHGESTURE_END,
                               // note: negative values here tell APZC
                               //       not to turn the pinch into a pan
-                              aFocus, -1.0, -1.0),
+                              ScreenIntPoint(-1, -1), 10.0 * aScale, 10.0 * aScale),
       nullptr);
   if (aOutEventStatuses) {
     (*aOutEventStatuses)[2] = actualStatus;

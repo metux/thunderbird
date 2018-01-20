@@ -65,7 +65,6 @@ sftk_Null(void *data, PRBool freeit)
     return;
 }
 
-#ifndef NSS_DISABLE_ECC
 #ifdef EC_DEBUG
 #define SEC_PRINT(str1, str2, num, sitem)             \
     printf("pkcs11c.c:%s:%s (keytype=%d) [len=%d]\n", \
@@ -78,7 +77,6 @@ sftk_Null(void *data, PRBool freeit)
 #undef EC_DEBUG
 #define SEC_PRINT(a, b, c, d)
 #endif
-#endif /* NSS_DISABLE_ECC */
 
 /*
  * free routines.... Free local type  allocated data, and convert
@@ -124,7 +122,6 @@ sftk_MapCryptError(int error)
             return CKR_KEY_SIZE_RANGE; /* the closest error code */
         case SEC_ERROR_UNSUPPORTED_EC_POINT_FORM:
             return CKR_TEMPLATE_INCONSISTENT;
-        /* EC functions set this error if NSS_DISABLE_ECC is defined */
         case SEC_ERROR_UNSUPPORTED_KEYALG:
             return CKR_MECHANISM_INVALID;
         case SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE:
@@ -2417,7 +2414,6 @@ nsc_DSA_Sign_Stub(void *ctx, void *sigBuf,
     return rv;
 }
 
-#ifndef NSS_DISABLE_ECC
 static SECStatus
 nsc_ECDSAVerifyStub(void *ctx, void *sigBuf, unsigned int sigLen,
                     void *dataBuf, unsigned int dataLen)
@@ -2452,7 +2448,6 @@ nsc_ECDSASignStub(void *ctx, void *sigBuf,
     *sigLen = signature.len;
     return rv;
 }
-#endif /* NSS_DISABLE_ECC */
 
 /* NSC_SignInit setups up the signing operations. There are three basic
  * types of signing:
@@ -2612,7 +2607,6 @@ NSC_SignInit(CK_SESSION_HANDLE hSession,
 
             break;
 
-#ifndef NSS_DISABLE_ECC
         case CKM_ECDSA_SHA1:
             context->multi = PR_TRUE;
             crv = sftk_doSubSHA1(context);
@@ -2635,10 +2629,14 @@ NSC_SignInit(CK_SESSION_HANDLE hSession,
             context->maxLen = MAX_ECKEY_LEN * 2;
 
             break;
-#endif /* NSS_DISABLE_ECC */
 
 #define INIT_HMAC_MECH(mmm)                                               \
     case CKM_##mmm##_HMAC_GENERAL:                                        \
+        PORT_Assert(pMechanism->pParameter);                              \
+        if (!pMechanism->pParameter) {                                    \
+            crv = CKR_MECHANISM_PARAM_INVALID;                            \
+            break;                                                        \
+        }                                                                 \
         crv = sftk_doHMACInit(context, HASH_Alg##mmm, key,                \
                               *(CK_ULONG *)pMechanism->pParameter);       \
         break;                                                            \
@@ -2654,6 +2652,11 @@ NSC_SignInit(CK_SESSION_HANDLE hSession,
             INIT_HMAC_MECH(SHA512)
 
         case CKM_SHA_1_HMAC_GENERAL:
+            PORT_Assert(pMechanism->pParameter);
+            if (!pMechanism->pParameter) {
+                crv = CKR_MECHANISM_PARAM_INVALID;
+                break;
+            }
             crv = sftk_doHMACInit(context, HASH_AlgSHA1, key,
                                   *(CK_ULONG *)pMechanism->pParameter);
             break;
@@ -2662,10 +2665,20 @@ NSC_SignInit(CK_SESSION_HANDLE hSession,
             break;
 
         case CKM_SSL3_MD5_MAC:
+            PORT_Assert(pMechanism->pParameter);
+            if (!pMechanism->pParameter) {
+                crv = CKR_MECHANISM_PARAM_INVALID;
+                break;
+            }
             crv = sftk_doSSLMACInit(context, SEC_OID_MD5, key,
                                     *(CK_ULONG *)pMechanism->pParameter);
             break;
         case CKM_SSL3_SHA1_MAC:
+            PORT_Assert(pMechanism->pParameter);
+            if (!pMechanism->pParameter) {
+                crv = CKR_MECHANISM_PARAM_INVALID;
+                break;
+            }
             crv = sftk_doSSLMACInit(context, SEC_OID_SHA1, key,
                                     *(CK_ULONG *)pMechanism->pParameter);
             break;
@@ -3283,7 +3296,6 @@ NSC_VerifyInit(CK_SESSION_HANDLE hSession,
             context->verify = (SFTKVerify)nsc_DSA_Verify_Stub;
             context->destroy = sftk_Null;
             break;
-#ifndef NSS_DISABLE_ECC
         case CKM_ECDSA_SHA1:
             context->multi = PR_TRUE;
             crv = sftk_doSubSHA1(context);
@@ -3304,7 +3316,6 @@ NSC_VerifyInit(CK_SESSION_HANDLE hSession,
             context->verify = (SFTKVerify)nsc_ECDSAVerifyStub;
             context->destroy = sftk_Null;
             break;
-#endif /* NSS_DISABLE_ECC */
 
             INIT_HMAC_MECH(MD2)
             INIT_HMAC_MECH(MD5)
@@ -3314,6 +3325,11 @@ NSC_VerifyInit(CK_SESSION_HANDLE hSession,
             INIT_HMAC_MECH(SHA512)
 
         case CKM_SHA_1_HMAC_GENERAL:
+            PORT_Assert(pMechanism->pParameter);
+            if (!pMechanism->pParameter) {
+                crv = CKR_MECHANISM_PARAM_INVALID;
+                break;
+            }
             crv = sftk_doHMACInit(context, HASH_AlgSHA1, key,
                                   *(CK_ULONG *)pMechanism->pParameter);
             break;
@@ -3322,10 +3338,20 @@ NSC_VerifyInit(CK_SESSION_HANDLE hSession,
             break;
 
         case CKM_SSL3_MD5_MAC:
+            PORT_Assert(pMechanism->pParameter);
+            if (!pMechanism->pParameter) {
+                crv = CKR_MECHANISM_PARAM_INVALID;
+                break;
+            }
             crv = sftk_doSSLMACInit(context, SEC_OID_MD5, key,
                                     *(CK_ULONG *)pMechanism->pParameter);
             break;
         case CKM_SSL3_SHA1_MAC:
+            PORT_Assert(pMechanism->pParameter);
+            if (!pMechanism->pParameter) {
+                crv = CKR_MECHANISM_PARAM_INVALID;
+                break;
+            }
             crv = sftk_doSSLMACInit(context, SEC_OID_SHA1, key,
                                     *(CK_ULONG *)pMechanism->pParameter);
             break;
@@ -3971,6 +3997,22 @@ nsc_SetupHMACKeyGen(CK_MECHANISM_PTR pMechanism, NSSPKCS5PBEParameter **pbe)
             params->hashType = HASH_AlgMD2;
             params->keyLen = 16;
             break;
+        case CKM_NSS_PKCS12_PBE_SHA224_HMAC_KEY_GEN:
+            params->hashType = HASH_AlgSHA224;
+            params->keyLen = 28;
+            break;
+        case CKM_NSS_PKCS12_PBE_SHA256_HMAC_KEY_GEN:
+            params->hashType = HASH_AlgSHA256;
+            params->keyLen = 32;
+            break;
+        case CKM_NSS_PKCS12_PBE_SHA384_HMAC_KEY_GEN:
+            params->hashType = HASH_AlgSHA384;
+            params->keyLen = 48;
+            break;
+        case CKM_NSS_PKCS12_PBE_SHA512_HMAC_KEY_GEN:
+            params->hashType = HASH_AlgSHA512;
+            params->keyLen = 64;
+            break;
         default:
             PORT_FreeArena(arena, PR_TRUE);
             return CKR_MECHANISM_INVALID;
@@ -4189,6 +4231,10 @@ NSC_GenerateKey(CK_SESSION_HANDLE hSession,
         case CKM_NETSCAPE_PBE_SHA1_HMAC_KEY_GEN:
         case CKM_NETSCAPE_PBE_MD5_HMAC_KEY_GEN:
         case CKM_NETSCAPE_PBE_MD2_HMAC_KEY_GEN:
+        case CKM_NSS_PKCS12_PBE_SHA224_HMAC_KEY_GEN:
+        case CKM_NSS_PKCS12_PBE_SHA256_HMAC_KEY_GEN:
+        case CKM_NSS_PKCS12_PBE_SHA384_HMAC_KEY_GEN:
+        case CKM_NSS_PKCS12_PBE_SHA512_HMAC_KEY_GEN:
             key_gen_type = nsc_pbe;
             key_type = CKK_GENERIC_SECRET;
             crv = nsc_SetupHMACKeyGen(pMechanism, &pbe_param);
@@ -4569,12 +4615,10 @@ sftk_PairwiseConsistencyCheck(CK_SESSION_HANDLE hSession,
                 pairwise_digest_length = subPrimeLen;
                 mech.mechanism = CKM_DSA;
                 break;
-#ifndef NSS_DISABLE_ECC
             case CKK_EC:
                 signature_length = MAX_ECKEY_LEN * 2;
                 mech.mechanism = CKM_ECDSA;
                 break;
-#endif
             default:
                 return CKR_DEVICE_ERROR;
         }
@@ -4691,12 +4735,10 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
     /* Diffie Hellman */
     DHPrivateKey *dhPriv;
 
-#ifndef NSS_DISABLE_ECC
     /* Elliptic Curve Cryptography */
     SECItem ecEncodedParams; /* DER Encoded parameters */
     ECPrivateKey *ecPriv;
     ECParams *ecParams;
-#endif /* NSS_DISABLE_ECC */
 
     CHECK_FORK();
 
@@ -5042,7 +5084,6 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
             PORT_FreeArena(dhPriv->arena, PR_TRUE);
             break;
 
-#ifndef NSS_DISABLE_ECC
         case CKM_EC_KEY_PAIR_GEN:
             sftk_DeleteAttributeType(privateKey, CKA_EC_PARAMS);
             sftk_DeleteAttributeType(privateKey, CKA_VALUE);
@@ -5111,7 +5152,6 @@ NSC_GenerateKeyPair(CK_SESSION_HANDLE hSession,
             /* should zeroize, since this function doesn't. */
             PORT_FreeArena(ecPriv->ecParams.arena, PR_TRUE);
             break;
-#endif /* NSS_DISABLE_ECC */
 
         default:
             crv = CKR_MECHANISM_INVALID;
@@ -5241,12 +5281,10 @@ sftk_PackagePrivateKey(SFTKObject *key, CK_RV *crvp)
     void *dummy, *param = NULL;
     SECStatus rv = SECSuccess;
     SECItem *encodedKey = NULL;
-#ifndef NSS_DISABLE_ECC
 #ifdef EC_DEBUG
     SECItem *fordebug;
 #endif
     int savelen;
-#endif
 
     if (!key) {
         *crvp = CKR_KEY_HANDLE_INVALID; /* really can't happen */
@@ -5298,7 +5336,6 @@ sftk_PackagePrivateKey(SFTKObject *key, CK_RV *crvp)
                                        nsslowkey_PQGParamsTemplate);
             algorithm = SEC_OID_ANSIX9_DSA_SIGNATURE;
             break;
-#ifndef NSS_DISABLE_ECC
         case NSSLOWKEYECKey:
             prepare_low_ec_priv_key_for_asn1(lk);
             /* Public value is encoded as a bit string so adjust length
@@ -5327,7 +5364,6 @@ sftk_PackagePrivateKey(SFTKObject *key, CK_RV *crvp)
 
             algorithm = SEC_OID_ANSIX962_EC_PUBLIC_KEY;
             break;
-#endif /* NSS_DISABLE_ECC */
         case NSSLOWKEYDHKey:
         default:
             dummy = NULL;
@@ -5571,6 +5607,7 @@ sftk_unwrapPrivateKey(SFTKObject *key, SECItem *bpki)
 
     switch (SECOID_GetAlgorithmTag(&pki->algorithm)) {
         case SEC_OID_PKCS1_RSA_ENCRYPTION:
+        case SEC_OID_PKCS1_RSA_PSS_SIGNATURE:
             keyTemplate = nsslowkey_RSAPrivateKeyTemplate;
             paramTemplate = NULL;
             paramDest = NULL;
@@ -5585,8 +5622,7 @@ sftk_unwrapPrivateKey(SFTKObject *key, SECItem *bpki)
             prepare_low_dsa_priv_key_export_for_asn1(lpk);
             prepare_low_pqg_params_for_asn1(&lpk->u.dsa.params);
             break;
-/* case NSSLOWKEYDHKey: */
-#ifndef NSS_DISABLE_ECC
+        /* case NSSLOWKEYDHKey: */
         case SEC_OID_ANSIX962_EC_PUBLIC_KEY:
             keyTemplate = nsslowkey_ECPrivateKeyTemplate;
             paramTemplate = NULL;
@@ -5595,7 +5631,6 @@ sftk_unwrapPrivateKey(SFTKObject *key, SECItem *bpki)
             prepare_low_ec_priv_key_for_asn1(lpk);
             prepare_low_ecparams_for_asn1(&lpk->u.ec.ecParams);
             break;
-#endif /* NSS_DISABLE_ECC */
         default:
             keyTemplate = NULL;
             paramTemplate = NULL;
@@ -5610,7 +5645,6 @@ sftk_unwrapPrivateKey(SFTKObject *key, SECItem *bpki)
     /* decode the private key and any algorithm parameters */
     rv = SEC_QuickDERDecodeItem(arena, lpk, keyTemplate, &pki->privateKey);
 
-#ifndef NSS_DISABLE_ECC
     if (lpk->keyType == NSSLOWKEYECKey) {
         /* convert length in bits to length in bytes */
         lpk->u.ec.publicValue.len >>= 3;
@@ -5621,7 +5655,6 @@ sftk_unwrapPrivateKey(SFTKObject *key, SECItem *bpki)
             goto loser;
         }
     }
-#endif /* NSS_DISABLE_ECC */
 
     if (rv != SECSuccess) {
         goto loser;
@@ -5734,8 +5767,7 @@ sftk_unwrapPrivateKey(SFTKObject *key, SECItem *bpki)
             keyType = CKK_DH;
             break;
 #endif
-/* what about fortezza??? */
-#ifndef NSS_DISABLE_ECC
+        /* what about fortezza??? */
         case NSSLOWKEYECKey:
             keyType = CKK_EC;
             crv = (sftk_hasAttribute(key, CKA_NETSCAPE_DB)) ? CKR_OK : CKR_KEY_TYPE_INCONSISTENT;
@@ -5767,7 +5799,6 @@ sftk_unwrapPrivateKey(SFTKObject *key, SECItem *bpki)
                 break;
             /* XXX Do we need to decode the EC Params here ?? */
             break;
-#endif /* NSS_DISABLE_ECC */
         default:
             crv = CKR_KEY_TYPE_INCONSISTENT;
             break;
@@ -6097,7 +6128,6 @@ sftk_MapKeySize(CK_KEY_TYPE keyType)
     return 0;
 }
 
-#ifndef NSS_DISABLE_ECC
 /* Inputs:
  *  key_len: Length of derived key to be generated.
  *  SharedSecret: a shared secret that is the output of a key agreement primitive.
@@ -6210,7 +6240,6 @@ sftk_ANSI_X9_63_kdf(CK_BYTE **key, CK_ULONG key_len,
     else
         return CKR_MECHANISM_INVALID;
 }
-#endif /* NSS_DISABLE_ECC */
 
 /*
  * SSL Key generation given pre master secret
@@ -7186,7 +7215,6 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
             break;
         }
 
-#ifndef NSS_DISABLE_ECC
         case CKM_ECDH1_DERIVE:
         case CKM_ECDH1_COFACTOR_DERIVE: {
             SECItem ecScalar, ecPoint;
@@ -7222,12 +7250,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
 
             pubKeyLen = EC_GetPointSize(&privKey->u.ec.ecParams);
 
-            /* if the len is too small, can't be a valid point */
-            if (ecPoint.len < pubKeyLen) {
-                goto ec_loser;
-            }
-            /* if the len is too large, must be an encoded point (length is
-             * equal case just falls through */
+            /* if the len is too large, might be an encoded point */
             if (ecPoint.len > pubKeyLen) {
                 SECItem newPoint;
 
@@ -7247,14 +7270,6 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
 
             if (mechanism == CKM_ECDH1_COFACTOR_DERIVE) {
                 withCofactor = PR_TRUE;
-            } else {
-                /* When not using cofactor derivation, one should
-                 * validate the public key to avoid small subgroup
-                 * attacks.
-                 */
-                if (EC_ValidatePublicKey(&privKey->u.ec.ecParams, &ecPoint) != SECSuccess) {
-                    goto ec_loser;
-                }
             }
 
             rv = ECDH_Derive(&ecPoint, &privKey->u.ec.ecParams, &ecScalar,
@@ -7339,7 +7354,6 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
             }
             break;
         }
-#endif /* NSS_DISABLE_ECC */
 
         /* See RFC 5869 and CK_NSS_HKDFParams for documentation. */
         case CKM_NSS_HKDF_SHA1:

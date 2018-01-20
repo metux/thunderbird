@@ -15,8 +15,8 @@
  * view of the visualization is drawn onto this canvas, providing a crisp zoomed
  * in view of the tree map.
  */
-const { debounce } = require("sdk/lang/functional");
-const EventEmitter = require("devtools/shared/event-emitter");
+const { debounce } = require("devtools/shared/debounce");
+const EventEmitter = require("devtools/shared/old-event-emitter");
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const FULLSCREEN_STYLE = {
@@ -51,7 +51,7 @@ Canvases.prototype = {
    *
    * @return {type}  description
    */
-  destroy : function () {
+  destroy: function () {
     this.removeHandlers();
     this.container.removeChild(this.main.canvas);
     this.container.removeChild(this.zoom.canvas);
@@ -125,10 +125,10 @@ function handleResizes(canvases, debounceRate) {
     ? debounce(resize, debounceRate)
     : resize;
 
-  window.addEventListener("resize", debouncedResize, false);
+  window.addEventListener("resize", debouncedResize);
   resize();
 
   return function removeResizeHandlers() {
-    window.removeEventListener("resize", debouncedResize, false);
+    window.removeEventListener("resize", debouncedResize);
   };
 }

@@ -28,11 +28,11 @@ function getTestPlugin(pluginName) {
 function setTestPluginEnabledState(newEnabledState, pluginName) {
   var oldEnabledState = SpecialPowers.setTestPluginEnabledState(newEnabledState, pluginName);
   var plugin = getTestPlugin(pluginName);
-  while (plugin.enabledState != newEnabledState) {
-    // Run a nested event loop to wait for the preference change to
-    // propagate to the child. Yuck!
-    SpecialPowers.Services.tm.currentThread.processNextEvent(true);
-  }
+  // Run a nested event loop to wait for the preference change to
+  // propagate to the child. Yuck!
+  SpecialPowers.Services.tm.spinEventLoopUntil(() => {
+    return plugin.enabledState == newEnabledState;
+  });
   SimpleTest.registerCleanupFunction(function() {
     SpecialPowers.setTestPluginEnabledState(oldEnabledState, pluginName);
   });
@@ -91,5 +91,33 @@ function crashAndGetCrashServiceRecord(crashMethodName, callback) {
   }, function () {
     ok(false, "pruneOldCrashes error");
     SimpleTest.finish();
+  });
+}
+
+/**
+ * Returns a promise which resolves on `mozFullScreenChange`.
+ */
+function promiseFullScreenChange(){
+  return new Promise(resolve => {
+    document.addEventListener("fullscreenchange", function(e) {
+      resolve();
+    }, {once: true});
+  });
+}
+
+/**
+ * Crashes target plugin. Returns a promise; resolves on successful crash,
+ * rejects otherwise.
+ * @param plugin  Target plugin to attempt to crash.
+ */
+function crashPlugin(plugin) {
+  return new Promise( (resolve, reject) => {
+    try {
+      plugin.crash();
+      reject();
+    }
+    catch (e) {
+      resolve();
+    }
   });
 }

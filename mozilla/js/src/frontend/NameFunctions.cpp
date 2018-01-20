@@ -25,8 +25,9 @@ class NameResolver
 {
     static const size_t MaxParents = 100;
 
-    ExclusiveContext* cx;
+    JSContext* cx;
     size_t nparents;                /* number of parents in the parents array */
+    MOZ_INIT_OUTSIDE_CTOR
     ParseNode* parents[MaxParents]; /* history of ParseNodes we've been looking at */
     StringBuffer* buf;              /* when resolving, buffer to append to */
 
@@ -316,7 +317,8 @@ class NameResolver
             return false;
 
         // Next is the callsite object node.  This node only contains
-        // internal strings and an array -- no user-controlled expressions.
+        // internal strings or undefined and an array -- no user-controlled
+        // expressions.
         element = element->pn_next;
 #ifdef DEBUG
         {
@@ -326,7 +328,7 @@ class NameResolver
             for (ParseNode* kid = array->pn_head; kid; kid = kid->pn_next)
                 MOZ_ASSERT(kid->isKind(PNK_TEMPLATE_STRING));
             for (ParseNode* next = array->pn_next; next; next = next->pn_next)
-                MOZ_ASSERT(next->isKind(PNK_TEMPLATE_STRING));
+                MOZ_ASSERT(next->isKind(PNK_TEMPLATE_STRING) || next->isKind(PNK_RAW_UNDEFINED));
         }
 #endif
 
@@ -341,7 +343,7 @@ class NameResolver
     }
 
   public:
-    explicit NameResolver(ExclusiveContext* cx) : cx(cx), nparents(0), buf(nullptr) {}
+    explicit NameResolver(JSContext* cx) : cx(cx), nparents(0), buf(nullptr) {}
 
     /*
      * Resolve all names for anonymous functions recursively within the
@@ -382,6 +384,7 @@ class NameResolver
           case PNK_TRUE:
           case PNK_FALSE:
           case PNK_NULL:
+          case PNK_RAW_UNDEFINED:
           case PNK_ELISION:
           case PNK_GENERATOR:
           case PNK_NUMBER:
@@ -424,7 +427,6 @@ class NameResolver
           case PNK_PREDECREMENT:
           case PNK_POSTDECREMENT:
           case PNK_COMPUTED_NAME:
-          case PNK_ARRAYPUSH:
           case PNK_SPREAD:
           case PNK_MUTATEPROTO:
           case PNK_EXPORT:
@@ -463,7 +465,6 @@ class NameResolver
           case PNK_WHILE:
           case PNK_SWITCH:
           case PNK_FOR:
-          case PNK_COMPREHENSIONFOR:
           case PNK_CLASSMETHOD:
           case PNK_SETTHIS:
             MOZ_ASSERT(cur->isArity(PN_BINARY));
@@ -499,24 +500,25 @@ class NameResolver
                 return false;
             break;
 
+          case PNK_INITIALYIELD:
+            MOZ_ASSERT(cur->pn_kid->isKind(PNK_ASSIGN) &&
+                       cur->pn_kid->pn_left->isKind(PNK_NAME) &&
+                       cur->pn_kid->pn_right->isKind(PNK_GENERATOR));
+            break;
+
           case PNK_YIELD_STAR:
-            MOZ_ASSERT(cur->isArity(PN_BINARY));
-            MOZ_ASSERT(cur->pn_right->isKind(PNK_NAME));
-            if (!resolve(cur->pn_left, prefix))
+            MOZ_ASSERT(cur->isArity(PN_UNARY));
+            if (!resolve(cur->pn_kid, prefix))
                 return false;
             break;
 
           case PNK_YIELD:
           case PNK_AWAIT:
-            MOZ_ASSERT(cur->isArity(PN_BINARY));
-            if (cur->pn_left) {
-                if (!resolve(cur->pn_left, prefix))
+            MOZ_ASSERT(cur->isArity(PN_UNARY));
+            if (cur->pn_kid) {
+                if (!resolve(cur->pn_kid, prefix))
                     return false;
             }
-            MOZ_ASSERT(cur->pn_right->isKind(PNK_NAME) ||
-                       (cur->pn_right->isKind(PNK_ASSIGN) &&
-                        cur->pn_right->pn_left->isKind(PNK_NAME) &&
-                        cur->pn_right->pn_right->isKind(PNK_GENERATOR)));
             break;
 
           case PNK_RETURN:
@@ -648,8 +650,10 @@ class NameResolver
           // contain arbitrary expressions.
           case PNK_CATCH:
             MOZ_ASSERT(cur->isArity(PN_TERNARY));
-            if (!resolve(cur->pn_kid1, prefix))
-                return false;
+            if (cur->pn_kid1) {
+              if (!resolve(cur->pn_kid1, prefix))
+                  return false;
+            }
             if (cur->pn_kid2) {
                 if (!resolve(cur->pn_kid2, prefix))
                     return false;
@@ -683,11 +687,11 @@ class NameResolver
           case PNK_DIV:
           case PNK_MOD:
           case PNK_POW:
+          case PNK_PIPELINE:
           case PNK_COMMA:
           case PNK_NEW:
           case PNK_CALL:
           case PNK_SUPERCALL:
-          case PNK_GENEXP:
           case PNK_ARRAY:
           case PNK_STATEMENTLIST:
           case PNK_PARAMSBODY:
@@ -701,19 +705,6 @@ class NameResolver
                 if (!resolve(element, prefix))
                     return false;
             }
-            break;
-
-          // Array comprehension nodes are lists with a single child:
-          // PNK_COMPREHENSIONFOR for comprehensions, PNK_LEXICALSCOPE for
-          // legacy comprehensions.  Probably this should be a non-list
-          // eventually.
-          case PNK_ARRAYCOMP:
-            MOZ_ASSERT(cur->isArity(PN_LIST));
-            MOZ_ASSERT(cur->pn_count == 1);
-            MOZ_ASSERT(cur->pn_head->isKind(PNK_LEXICALSCOPE) ||
-                       cur->pn_head->isKind(PNK_COMPREHENSIONFOR));
-            if (!resolve(cur->pn_head, prefix))
-                return false;
             break;
 
           case PNK_OBJECT:
@@ -831,8 +822,9 @@ class NameResolver
 } /* anonymous namespace */
 
 bool
-frontend::NameFunctions(ExclusiveContext* cx, ParseNode* pn)
+frontend::NameFunctions(JSContext* cx, ParseNode* pn)
 {
+    AutoTraceLog traceLog(TraceLoggerForCurrentThread(cx), TraceLogger_BytecodeNameFunctions);
     NameResolver nr(cx);
     return nr.resolve(pn);
 }

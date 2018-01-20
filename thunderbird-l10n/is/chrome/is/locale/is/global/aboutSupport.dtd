@@ -21,6 +21,11 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Útgáfa">
 <!ENTITY aboutSupport.extensionId "Auðkenni">
 
+<!ENTITY aboutSupport.featuresTitle "&brandShortName; eiginleikar">
+<!ENTITY aboutSupport.featureName "Nafn">
+<!ENTITY aboutSupport.featureVersion "Útgáfa">
+<!ENTITY aboutSupport.featureId "Auðkenni">
+
 <!ENTITY aboutSupport.experimentsTitle "Tilraunakenndir eiginleikar">
 <!ENTITY aboutSupport.experimentName "Nafn">
 <!ENTITY aboutSupport.experimentId "Auðkenni">
@@ -61,6 +66,11 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Margþráða gluggi">
 
+<!ENTITY aboutSupport.appBasicsProcessCount "Ferlar vefinnihalds">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Google lykill">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla Location Service lykill">
+
 <!ENTITY aboutSupport.appBasicsSafeMode "Öryggishamur">
 
 <!ENTITY aboutSupport.showDir.label "Opna möppu">
@@ -96,6 +106,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "Auðveldað aðgengi">
 <!ENTITY aboutSupport.a11yActivated "Virkt">
 <!ENTITY aboutSupport.a11yForceDisabled "Koma í veg fyrir aðgengi">
+<!ENTITY aboutSupport.a11yHandlerUsed "Aðgengishjálpari notaður">
+<!ENTITY aboutSupport.a11yInstantiator "Accessibility Instantiator">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Útgáfa forritasafns">
 
@@ -106,6 +118,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Afrita hrá gögn á klemmuspjald">
 
 <!ENTITY aboutSupport.sandboxTitle "Sandbox">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Hunsuð kerfisköll">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "Fyrir nokkrum sekúndum">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Tegund ferlis">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Syscall">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Breytur">
 
 <!ENTITY aboutSupport.safeModeTitle "Prófaðu öryggisham">
 <!ENTITY aboutSupport.restartInSafeMode.label "Endurræsa með viðbætur óvirkar…">
@@ -118,3 +138,26 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Atburðaskrá fyrir ákvarðanir">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Óvirkar stillingar fyrir hrunvara">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Leiðir framhjá villum">
+
+<!ENTITY aboutSupport.mediaTitle "Gögn">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Útakstæki">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Inntakstæki">
+<!ENTITY aboutSupport.mediaDeviceName "Nafn">
+<!ENTITY aboutSupport.mediaDeviceGroup "Hópur">
+<!ENTITY aboutSupport.mediaDeviceVendor "Hugbúnaðarsali">
+<!ENTITY aboutSupport.mediaDeviceState "Staða">
+<!ENTITY aboutSupport.mediaDevicePreferred "Kjörstilling">
+<!ENTITY aboutSupport.mediaDeviceFormat "Snið">
+<!ENTITY aboutSupport.mediaDeviceChannels "Rásir">
+<!ENTITY aboutSupport.mediaDeviceRate "Hraði">
+<!ENTITY aboutSupport.mediaDeviceLatency "Biðtími">
+
+<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
+<!ENTITY aboutSupport.intlAppTitle "Application Settings">
+<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
+<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
+<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
+<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
+<!ENTITY aboutSupport.intlOSTitle "Operating System">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">

@@ -29,3 +29,5 @@
 <!ENTITY plugin.file                                         "Ficheru">
 <!ENTITY plugin.mimeTypes                                    "Tribes MIME">
 <!ENTITY plugin.flashProtectedMode.label                     "Habilitar mou protexíu d'Adobe Flash">
+
+<!ENTITY plugin.enableBlocklists.label                       "Block dangerous and intrusive Flash content">

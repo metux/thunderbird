@@ -87,3 +87,11 @@
 <!ENTITY insecureSelfSigned.description  "O servidor usa un certificado no que non se pode confiar, de maneira que non se pode asegurar
 que ninguén estea a interceptar o tráfico entre &brandShortName; e o seu servidor. &brandShortName; permitiralle recibir o seu correo, pero debería conseguir que o seu fornecedor configure o servidor cun certificado confiábel.">
 <!ENTITY secureServer.description        "Parabéns! Este é un servidor seguro.">
+
+<!ENTITY autoconfigWizard2.title         "Set Up an Existing Email Account">
+<!ENTITY email2.placeholder              "you@example.com">
+<!ENTITY email.text                      "Your existing email address">
+<!ENTITY open-provisioner.label          "Get a new email address…">
+<!ENTITY open-provisioner.accesskey      "g">
+
+

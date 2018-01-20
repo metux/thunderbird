@@ -3,6 +3,8 @@
  * Generally it just delegates to EventUtils.js.
  */
 
+Components.utils.import("resource://gre/modules/Services.jsm");
+
 // Set up a dummy environment so that EventUtils works. We need to be careful to
 // pass a window object into each EventUtils method we call rather than having
 // it rely on the |window| global.
@@ -41,7 +43,7 @@ addMessageListener("Test:SynthesizeMouse", (message) => {
       // Account for nodes found in iframes.
       let cur = target;
       do {
-        let frame = cur.ownerDocument.defaultView.frameElement;
+        let frame = cur.ownerGlobal.frameElement;
         let rect = frame.getBoundingClientRect();
 
         left += rect.left;

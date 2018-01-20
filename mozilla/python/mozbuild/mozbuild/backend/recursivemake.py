@@ -33,8 +33,10 @@ from ..frontend.data import (
     AndroidResDirs,
     AndroidExtraResDirs,
     AndroidExtraPackages,
-    AndroidEclipseProjectData,
+    BaseLibrary,
+    BaseProgram,
     ChromeManifestEntry,
+    ComputedFlags,
     ConfigFileSubstitution,
     ContextDerived,
     ContextWrapped,
@@ -48,18 +50,23 @@ from ..frontend.data import (
     HostDefines,
     HostLibrary,
     HostProgram,
+    HostRustProgram,
     HostSimpleProgram,
     HostSources,
     InstallationTarget,
     JARManifest,
     JavaJarData,
     Library,
+    Linkable,
     LocalInclude,
     ObjdirFiles,
     ObjdirPreprocessedFiles,
     PerSourceFlag,
     Program,
     RustLibrary,
+    HostRustLibrary,
+    RustProgram,
+    RustTest,
     SharedLibrary,
     SimpleProgram,
     Sources,
@@ -71,6 +78,7 @@ from ..frontend.data import (
 from ..util import (
     ensureParentDir,
     FileAvoidWrite,
+    OrderedDefaultDict,
 )
 from ..makeutil import Makefile
 from mozbuild.shellutil import quote as shell_quote
@@ -104,10 +112,8 @@ MOZBUILD_VARIABLES = [
     b'HOST_LIBRARY_NAME',
     b'HOST_PROGRAM',
     b'HOST_SIMPLE_PROGRAMS',
-    b'IS_COMPONENT',
     b'JAR_MANIFEST',
     b'JAVA_JAR_TARGETS',
-    b'LD_VERSION_SCRIPT',
     b'LIBRARY_NAME',
     b'LIBS',
     b'MAKE_FRAMEWORK',
@@ -120,10 +126,7 @@ MOZBUILD_VARIABLES = [
     b'PARALLEL_DIRS',
     b'PREF_JS_EXPORTS',
     b'PROGRAM',
-    b'PYTHON_UNIT_TESTS',
     b'RESOURCE_FILES',
-    b'SDK_HEADERS',
-    b'SDK_LIBRARY',
     b'SHARED_LIBRARY_LIBS',
     b'SHARED_LIBRARY_NAME',
     b'SIMPLE_PROGRAMS',
@@ -259,6 +262,7 @@ class RecursiveMakeTraversal(object):
 
     def __init__(self):
         self._traversal = {}
+        self._attached = set()
 
     def add(self, dir, dirs=[], tests=[]):
         """
@@ -269,7 +273,10 @@ class RecursiveMakeTraversal(object):
         subdirs = self._traversal.setdefault(dir, self.SubDirectories())
         for key, value in (('dirs', dirs), ('tests', tests)):
             assert(key in self.SubDirectoryCategories)
+            # Callers give us generators
+            value = list(value)
             getattr(subdirs, key).extend(value)
+            self._attached |= set(value)
 
     @staticmethod
     def default_filter(current, subdirs):
@@ -283,8 +290,7 @@ class RecursiveMakeTraversal(object):
         Helper function to call a filter from compute_dependencies and
         traverse.
         """
-        return filter(current, self._traversal.get(current,
-            self.SubDirectories()))
+        return filter(current, self.get_subdirs(current))
 
     def compute_dependencies(self, filter=None):
         """
@@ -353,7 +359,16 @@ class RecursiveMakeTraversal(object):
         """
         Returns all direct subdirectories under the given directory.
         """
-        return self._traversal.get(dir, self.SubDirectories())
+        result = self._traversal.get(dir, self.SubDirectories())
+        if dir == '':
+            unattached = set(self._traversal) - self._attached - set([''])
+            if unattached:
+                new_result = self.SubDirectories()
+                new_result.dirs.extend(result.dirs)
+                new_result.dirs.extend(sorted(unattached))
+                new_result.tests.extend(result.tests)
+                result = new_result
+        return result
 
 
 class RecursiveMakeBackend(CommonBackend):
@@ -392,16 +407,17 @@ class RecursiveMakeBackend(CommonBackend):
         # used for a "magic" rm -rf.
         self._install_manifests['dist_public']
         self._install_manifests['dist_private']
-        self._install_manifests['dist_sdk']
 
         self._traversal = RecursiveMakeTraversal()
-        self._compile_graph = defaultdict(set)
+        self._compile_graph = OrderedDefaultDict(set)
 
         self._no_skip = {
             'export': set(),
             'libs': set(),
             'misc': set(),
             'tools': set(),
+            'check': set(),
+            'syms': set(),
         }
 
     def summary(self):
@@ -428,14 +444,11 @@ class RecursiveMakeBackend(CommonBackend):
 
         consumed = CommonBackend.consume_object(self, obj)
 
-        # CommonBackend handles XPIDLFile and TestManifest, but we want to do
+        # CommonBackend handles XPIDLFile, but we want to do
         # some extra things for them.
         if isinstance(obj, XPIDLFile):
             backend_file.xpt_name = '%s.xpt' % obj.module
             self._idl_dirs.add(obj.relobjdir)
-
-        elif isinstance(obj, TestManifest):
-            self._process_test_manifest(obj, backend_file)
 
         # If CommonBackend acknowledged the object, we're done with it.
         if consumed:
@@ -443,6 +456,9 @@ class RecursiveMakeBackend(CommonBackend):
 
         if not isinstance(obj, Defines):
             self.consume_object(obj.defines)
+
+        if isinstance(obj, Linkable):
+            self._process_test_support_file(obj)
 
         if isinstance(obj, DirectoryTraversal):
             self._process_directory_traversal(obj, backend_file)
@@ -508,12 +524,20 @@ class RecursiveMakeBackend(CommonBackend):
                 '.h',
                 '.inc',
                 '.py',
+                '.rs',
+                'new', # 'new' is an output from make-stl-wrappers.py
             )
             tier = 'export' if any(f.endswith(export_suffixes) for f in obj.outputs) else 'misc'
             self._no_skip[tier].add(backend_file.relobjdir)
             first_output = obj.outputs[0]
             dep_file = "%s.pp" % first_output
-            backend_file.write('%s:: %s\n' % (tier, first_output))
+
+            # If we're doing this during export that means we need it during
+            # compile, but if we have an artifact build we don't run compile,
+            # so we can skip it altogether or let the rule run as the result of
+            # something depending on it.
+            if tier == 'misc' or not self.environment.is_artifact_build:
+                backend_file.write('%s:: %s\n' % (tier, first_output))
             for output in obj.outputs:
                 if output != first_output:
                     backend_file.write('%s: %s ;\n' % (output, first_output))
@@ -527,7 +551,7 @@ class RecursiveMakeBackend(CommonBackend):
 """.format(output=first_output,
            dep_file=dep_file,
            inputs=' ' + ' '.join([self._pretty_path(f, backend_file) for f in obj.inputs]) if obj.inputs else '',
-           flags=' ' + ' '.join(obj.flags) if obj.flags else '',
+           flags=' ' + ' '.join(shell_quote(f) for f in obj.flags) if obj.flags else '',
            backend=' backend.mk' if obj.flags else '',
            script=obj.script,
            method=obj.method))
@@ -536,9 +560,25 @@ class RecursiveMakeBackend(CommonBackend):
             self._no_skip['libs'].add(backend_file.relobjdir)
             backend_file.write('JAR_MANIFEST := %s\n' % obj.path.full_path)
 
+        elif isinstance(obj, RustProgram):
+            self._process_rust_program(obj, backend_file)
+            # Hook the program into the compile graph.
+            build_target = self._build_target_for_obj(obj)
+            self._compile_graph[build_target]
+
+        elif isinstance(obj, HostRustProgram):
+            self._process_host_rust_program(obj, backend_file)
+            # Hook the program into the compile graph.
+            build_target = self._build_target_for_obj(obj)
+            self._compile_graph[build_target]
+
+        elif isinstance(obj, RustTest):
+            self._process_rust_test(obj, backend_file)
+
         elif isinstance(obj, Program):
-            self._process_program(obj.program, backend_file)
+            self._process_program(obj, backend_file)
             self._process_linked_libraries(obj, backend_file)
+            self._no_skip['syms'].add(backend_file.relobjdir)
 
         elif isinstance(obj, HostProgram):
             self._process_host_program(obj.program, backend_file)
@@ -547,6 +587,7 @@ class RecursiveMakeBackend(CommonBackend):
         elif isinstance(obj, SimpleProgram):
             self._process_simple_program(obj, backend_file)
             self._process_linked_libraries(obj, backend_file)
+            self._no_skip['syms'].add(backend_file.relobjdir)
 
         elif isinstance(obj, HostSimpleProgram):
             self._process_host_simple_program(obj.program, backend_file)
@@ -557,6 +598,9 @@ class RecursiveMakeBackend(CommonBackend):
 
         elif isinstance(obj, PerSourceFlag):
             self._process_per_source_flag(obj, backend_file)
+
+        elif isinstance(obj, ComputedFlags):
+            self._process_computed_flags(obj, backend_file)
 
         elif isinstance(obj, InstallationTarget):
             self._process_installation_target(obj, backend_file)
@@ -569,8 +613,6 @@ class RecursiveMakeBackend(CommonBackend):
             # automated.
             if isinstance(obj.wrapped, JavaJarData):
                 self._process_java_jar_data(obj.wrapped, backend_file)
-            elif isinstance(obj.wrapped, AndroidEclipseProjectData):
-                self._process_android_eclipse_project_data(obj.wrapped, backend_file)
             else:
                 return False
 
@@ -580,9 +622,14 @@ class RecursiveMakeBackend(CommonBackend):
             # No need to call _process_linked_libraries, because Rust
             # libraries are self-contained objects at this point.
 
+            # Hook the library into the compile graph.
+            build_target = self._build_target_for_obj(obj)
+            self._compile_graph[build_target]
+
         elif isinstance(obj, SharedLibrary):
             self._process_shared_library(obj, backend_file)
             self._process_linked_libraries(obj, backend_file)
+            self._no_skip['syms'].add(backend_file.relobjdir)
 
         elif isinstance(obj, StaticLibrary):
             self._process_static_library(obj, backend_file)
@@ -592,17 +639,17 @@ class RecursiveMakeBackend(CommonBackend):
             self._process_host_library(obj, backend_file)
             self._process_linked_libraries(obj, backend_file)
 
-        elif isinstance(obj, FinalTargetFiles):
-            self._process_final_target_files(obj, obj.files, backend_file)
-
-        elif isinstance(obj, FinalTargetPreprocessedFiles):
-            self._process_final_target_pp_files(obj, obj.files, backend_file, 'DIST_FILES')
-
         elif isinstance(obj, ObjdirFiles):
             self._process_objdir_files(obj, obj.files, backend_file)
 
         elif isinstance(obj, ObjdirPreprocessedFiles):
             self._process_final_target_pp_files(obj, obj.files, backend_file, 'OBJDIR_PP_FILES')
+
+        elif isinstance(obj, FinalTargetFiles):
+            self._process_final_target_files(obj, obj.files, backend_file)
+
+        elif isinstance(obj, FinalTargetPreprocessedFiles):
+            self._process_final_target_pp_files(obj, obj.files, backend_file, 'DIST_FILES')
 
         elif isinstance(obj, AndroidResDirs):
             # Order matters.
@@ -626,6 +673,9 @@ class RecursiveMakeBackend(CommonBackend):
 
         elif isinstance(obj, ChromeManifestEntry):
             self._process_chrome_manifest_entry(obj, backend_file)
+
+        elif isinstance(obj, TestManifest):
+            self._process_test_manifest(obj, backend_file)
 
         else:
             return False
@@ -676,6 +726,7 @@ class RecursiveMakeBackend(CommonBackend):
             ('libs', libs_filter),
             ('misc', parallel_filter),
             ('tools', tools_filter),
+            ('check', parallel_filter),
         ]
 
         root_deps_mk = Makefile()
@@ -698,7 +749,20 @@ class RecursiveMakeBackend(CommonBackend):
 
         all_compile_deps = reduce(lambda x,y: x|y,
             self._compile_graph.values()) if self._compile_graph else set()
-        compile_roots = set(self._compile_graph.keys()) - all_compile_deps
+        # Include the following as dependencies of the top recursion target for
+        # compilation:
+        # - nodes that are not dependended upon by anything. Typically, this
+        #   would include programs, that need to be recursed, but that nothing
+        #   depends on.
+        # - nodes that have no dependencies of their own. Technically, this is
+        #   not necessary, because other things have dependencies on them, and
+        #   they all end up rooting to nodes from the above category. But the
+        #   way make works[1] is such that there can be benefits listing them
+        #   as direct dependencies of the top recursion target, to somehow
+        #   prioritize them.
+        #   1. See bug 1262241 comment 5.
+        compile_roots = [t for t, deps in self._compile_graph.iteritems()
+                         if not deps or t not in all_compile_deps]
 
         rule = root_deps_mk.create_rule(['recurse_compile'])
         rule.add_dependencies(compile_roots)
@@ -718,6 +782,8 @@ class RecursiveMakeBackend(CommonBackend):
         # https://savannah.gnu.org/bugs/index.php?42833
         root_mk.add_statement('compile_targets := %s' % ' '.join(sorted(
             set(self._compile_graph.keys()) | all_compile_deps)))
+        root_mk.add_statement('syms_targets := %s' % ' '.join(sorted(
+            set('%s/syms' % d for d in self._no_skip['syms']))))
 
         root_mk.add_statement('include root-deps.mk')
 
@@ -818,9 +884,9 @@ class RecursiveMakeBackend(CommonBackend):
                 self._create_makefile(obj, stub=stub)
                 with open(obj.output_path) as fh:
                     content = fh.read()
-                    # Skip every directory but those with a Makefile
-                    # containing a tools target, or XPI_PKGNAME or
-                    # INSTALL_EXTENSION_ID.
+                    # Directories with a Makefile containing a tools target, or
+                    # XPI_PKGNAME or INSTALL_EXTENSION_ID can't be skipped and
+                    # must run during the 'tools' tier.
                     for t in (b'XPI_PKGNAME', b'INSTALL_EXTENSION_ID',
                             b'tools'):
                         if t not in content:
@@ -830,6 +896,12 @@ class RecursiveMakeBackend(CommonBackend):
                         if objdir == self.environment.topobjdir:
                             continue
                         self._no_skip['tools'].add(mozpath.relpath(objdir,
+                            self.environment.topobjdir))
+
+                    # Directories with a Makefile containing a check target
+                    # can't be skipped and must run during the 'check' tier.
+                    if re.search('(?:^|\s)check.*::', content, re.M):
+                        self._no_skip['check'].add(mozpath.relpath(objdir,
                             self.environment.topobjdir))
 
                     # Detect any Makefile.ins that contain variables on the
@@ -946,7 +1018,7 @@ class RecursiveMakeBackend(CommonBackend):
             build_files.add_optional_exists(p)
 
         for idl in manager.idls.values():
-            self._install_manifests['dist_idl'].add_symlink(idl['source'],
+            self._install_manifests['dist_idl'].add_link(idl['source'],
                 idl['basename'])
             self._install_manifests['dist_include'].add_optional_exists('%s.h'
                 % idl['root'])
@@ -1029,39 +1101,87 @@ class RecursiveMakeBackend(CommonBackend):
             registered_xpt_files=' '.join(sorted(registered_xpt_files)),
         ))
 
-    def _process_program(self, program, backend_file):
-        backend_file.write('PROGRAM = %s\n' % program)
+    def _process_program(self, obj, backend_file):
+        backend_file.write('PROGRAM = %s\n' % obj.program)
+        if not obj.cxx_link and not self.environment.bin_suffix:
+            backend_file.write('PROG_IS_C_ONLY_%s := 1\n' % obj.program)
 
     def _process_host_program(self, program, backend_file):
         backend_file.write('HOST_PROGRAM = %s\n' % program)
 
+    def _process_rust_program_base(self, obj, backend_file,
+                                   target_variable,
+                                   target_cargo_variable):
+        backend_file.write_once('CARGO_FILE := %s\n' % obj.cargo_file)
+        backend_file.write_once('CARGO_TARGET_DIR := .\n')
+        backend_file.write('%s += %s\n' % (target_variable, obj.location))
+        backend_file.write('%s += %s\n' % (target_cargo_variable, obj.name))
+
+    def _process_rust_program(self, obj, backend_file):
+        self._process_rust_program_base(obj, backend_file,
+                                        'RUST_PROGRAMS',
+                                        'RUST_CARGO_PROGRAMS')
+
+    def _process_host_rust_program(self, obj, backend_file):
+        self._process_rust_program_base(obj, backend_file,
+                                        'HOST_RUST_PROGRAMS',
+                                        'HOST_RUST_CARGO_PROGRAMS')
+
+    def _process_rust_test(self, obj, backend_file):
+        self._no_skip['check'].add(backend_file.relobjdir)
+        backend_file.write_once('CARGO_FILE := $(srcdir)/Cargo.toml\n')
+        backend_file.write_once('RUST_TEST := %s\n' % obj.name)
+        backend_file.write_once('RUST_TEST_FEATURES := %s\n' % ' '.join(obj.features))
+
     def _process_simple_program(self, obj, backend_file):
         if obj.is_unit_test:
             backend_file.write('CPP_UNIT_TESTS += %s\n' % obj.program)
+            assert obj.cxx_link
         else:
             backend_file.write('SIMPLE_PROGRAMS += %s\n' % obj.program)
+            if not obj.cxx_link and not self.environment.bin_suffix:
+                backend_file.write('PROG_IS_C_ONLY_%s := 1\n' % obj.program)
 
     def _process_host_simple_program(self, program, backend_file):
         backend_file.write('HOST_SIMPLE_PROGRAMS += %s\n' % program)
 
+    def _process_test_support_file(self, obj):
+        # Ensure test support programs and libraries are tracked by an
+        # install manifest for the benefit of the test packager.
+        if not obj.install_target.startswith('_tests'):
+            return
+
+        dest_basename = None
+        if isinstance(obj, BaseLibrary):
+            dest_basename = obj.lib_name
+        elif isinstance(obj, BaseProgram):
+            dest_basename = obj.program
+        if dest_basename is None:
+            return
+
+        self._install_manifests['_tests'].add_optional_exists(
+            mozpath.join(obj.install_target[len('_tests') + 1:],
+                         dest_basename))
+
     def _process_test_manifest(self, obj, backend_file):
         # Much of the logic in this function could be moved to CommonBackend.
-        self.backend_input_files.add(mozpath.join(obj.topsrcdir,
-            obj.manifest_relpath))
+        for source in obj.source_relpaths:
+            self.backend_input_files.add(mozpath.join(obj.topsrcdir,
+                source))
 
         # Don't allow files to be defined multiple times unless it is allowed.
         # We currently allow duplicates for non-test files or test files if
         # the manifest is listed as a duplicate.
         for source, (dest, is_test) in obj.installs.items():
             try:
-                self._install_manifests['_test_files'].add_symlink(source, dest)
+                self._install_manifests['_test_files'].add_link(source, dest)
             except ValueError:
                 if not obj.dupe_manifest and is_test:
                     raise
 
         for base, pattern, dest in obj.pattern_installs:
             try:
-                self._install_manifests['_test_files'].add_pattern_symlink(base,
+                self._install_manifests['_test_files'].add_pattern_link(base,
                     pattern, dest)
             except ValueError:
                 if not obj.dupe_manifest:
@@ -1108,6 +1228,11 @@ class RecursiveMakeBackend(CommonBackend):
         for flag in per_source_flag.flags:
             backend_file.write('%s_FLAGS += %s\n' % (mozpath.basename(per_source_flag.file_name), flag))
 
+    def _process_computed_flags(self, computed_flags, backend_file):
+        for var, flags in computed_flags.get_flags():
+            backend_file.write('COMPUTED_%s += %s\n' % (var,
+                                                        ' '.join(make_quote(shell_quote(f)) for f in flags)))
+
     def _process_java_jar_data(self, jar, backend_file):
         target = jar.name
         backend_file.write('JAVA_JAR_TARGETS += %s\n' % target)
@@ -1117,7 +1242,7 @@ class RecursiveMakeBackend(CommonBackend):
                 (target, ' '.join(jar.sources)))
         if jar.generated_sources:
             backend_file.write('%s_PP_JAVAFILES := %s\n' %
-                (target, ' '.join(mozpath.join('generated', f) for f in jar.generated_sources)))
+                (target, ' '.join(jar.generated_sources)))
         if jar.extra_jars:
             backend_file.write('%s_EXTRA_JARS := %s\n' %
                 (target, ' '.join(sorted(set(jar.extra_jars)))))
@@ -1125,39 +1250,13 @@ class RecursiveMakeBackend(CommonBackend):
             backend_file.write('%s_JAVAC_FLAGS := %s\n' %
                 (target, ' '.join(jar.javac_flags)))
 
-    def _process_android_eclipse_project_data(self, project, backend_file):
-        # We add a single target to the backend.mk corresponding to
-        # the moz.build defining the Android Eclipse project. This
-        # target depends on some targets to be fresh, and installs a
-        # manifest generated by the Android Eclipse build backend. The
-        # manifests for all projects live in $TOPOBJDIR/android_eclipse
-        # and are installed into subdirectories thereof.
-
-        project_directory = mozpath.join(self.environment.topobjdir, 'android_eclipse', project.name)
-        manifest_path = mozpath.join(self.environment.topobjdir, 'android_eclipse', '%s.manifest' % project.name)
-
-        fragment = Makefile()
-        rule = fragment.create_rule(targets=['ANDROID_ECLIPSE_PROJECT_%s' % project.name])
-        rule.add_dependencies(project.recursive_make_targets)
-        args = ['--no-remove',
-            '--no-remove-all-directory-symlinks',
-            '--no-remove-empty-directories',
-            project_directory,
-            manifest_path]
-        rule.add_commands(['$(call py_action,process_install_manifest,%s)' % ' '.join(args)])
-        fragment.dump(backend_file.fh, removal_guard=False)
-
     def _process_shared_library(self, libdef, backend_file):
         backend_file.write_once('LIBRARY_NAME := %s\n' % libdef.basename)
         backend_file.write('FORCE_SHARED_LIB := 1\n')
         backend_file.write('IMPORT_LIBRARY := %s\n' % libdef.import_name)
         backend_file.write('SHARED_LIBRARY := %s\n' % libdef.lib_name)
-        if libdef.variant == libdef.COMPONENT:
-            backend_file.write('IS_COMPONENT := 1\n')
         if libdef.soname:
             backend_file.write('DSO_SONAME := %s\n' % libdef.soname)
-        if libdef.is_sdk:
-            backend_file.write('SDK_LIBRARY := %s\n' % libdef.import_name)
         if libdef.symbols_file:
             backend_file.write('SYMBOLS_FILE := %s\n' % libdef.symbols_file)
         if not libdef.cxx_link:
@@ -1167,14 +1266,21 @@ class RecursiveMakeBackend(CommonBackend):
         backend_file.write_once('LIBRARY_NAME := %s\n' % libdef.basename)
         backend_file.write('FORCE_STATIC_LIB := 1\n')
         backend_file.write('REAL_LIBRARY := %s\n' % libdef.lib_name)
-        if libdef.is_sdk:
-            backend_file.write('SDK_LIBRARY := %s\n' % libdef.import_name)
         if libdef.no_expand_lib:
             backend_file.write('NO_EXPAND_LIBS := 1\n')
 
     def _process_rust_library(self, libdef, backend_file):
-        backend_file.write_once('RUST_LIBRARY_FILE := %s\n' % libdef.import_name)
-        backend_file.write('CARGO_FILE := $(srcdir)/Cargo.toml')
+        backend_file.write_once('%s := %s\n' % (libdef.LIB_FILE_VAR, libdef.import_name))
+        backend_file.write_once('CARGO_FILE := $(srcdir)/Cargo.toml\n')
+        # Need to normalize the path so Cargo sees the same paths from all
+        # possible invocations of Cargo with this CARGO_TARGET_DIR.  Otherwise,
+        # Cargo's dependency calculations don't work as we expect and we wind
+        # up recompiling lots of things.
+        target_dir = mozpath.join(backend_file.objdir, libdef.target_dir)
+        target_dir = mozpath.normpath(target_dir)
+        backend_file.write('CARGO_TARGET_DIR := %s\n' % target_dir)
+        if libdef.features:
+            backend_file.write('%s := %s\n' % (libdef.FEATURES_VAR, ' '.join(libdef.features)))
 
     def _process_host_library(self, libdef, backend_file):
         backend_file.write('HOST_LIBRARY_NAME = %s\n' % libdef.basename)
@@ -1218,7 +1324,6 @@ class RecursiveMakeBackend(CommonBackend):
                     if isinstance(obj, SharedLibrary):
                         write_shared_and_system_libs(lib)
                 elif isinstance(obj, SharedLibrary):
-                    assert lib.variant != lib.COMPONENT
                     backend_file.write_once('SHARED_LIBS += %s/%s\n'
                                         % (relpath, lib.import_name))
             elif isinstance(obj, (Program, SimpleProgram)):
@@ -1227,11 +1332,10 @@ class RecursiveMakeBackend(CommonBackend):
                                         % (relpath, lib.import_name))
                     write_shared_and_system_libs(lib)
                 else:
-                    assert lib.variant != lib.COMPONENT
                     backend_file.write_once('SHARED_LIBS += %s/%s\n'
                                         % (relpath, lib.import_name))
             elif isinstance(obj, (HostLibrary, HostProgram, HostSimpleProgram)):
-                assert isinstance(lib, HostLibrary)
+                assert isinstance(lib, (HostLibrary, HostRustLibrary))
                 backend_file.write_once('HOST_LIBS += %s/%s\n'
                                    % (relpath, lib.import_name))
 
@@ -1275,10 +1379,13 @@ class RecursiveMakeBackend(CommonBackend):
             '_tests',
             'dist/include',
             'dist/branding',
-            'dist/sdk',
         ))
         if not path:
             raise Exception("Cannot install to " + target)
+
+        # Exports are not interesting to artifact builds.
+        if path == 'dist/include' and self.environment.is_artifact_build:
+            return
 
         manifest = path.replace('/', '_')
         install_manifest = self._install_manifests[manifest]
@@ -1307,11 +1414,11 @@ class RecursiveMakeBackend(CommonBackend):
                                 raise Exception("Wildcards are only supported in the filename part of "
                                                 "srcdir-relative or absolute paths.")
 
-                            install_manifest.add_pattern_symlink(basepath, wild, path)
+                            install_manifest.add_pattern_link(basepath, wild, path)
                         else:
-                            install_manifest.add_pattern_symlink(f.srcdir, f, path)
+                            install_manifest.add_pattern_link(f.srcdir, f, path)
                     else:
-                        install_manifest.add_symlink(f.full_path, dest)
+                        install_manifest.add_link(f.full_path, dest)
                 else:
                     install_manifest.add_optional_exists(dest)
                     backend_file.write('%s_FILES += %s\n' % (
@@ -1393,7 +1500,7 @@ class RecursiveMakeBackend(CommonBackend):
     def _write_master_test_manifest(self, path, manifests):
         with self._write_file(path) as master:
             master.write(
-                '; THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT MODIFY BY HAND.\n\n')
+                '# THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT MODIFY BY HAND.\n\n')
 
             for manifest in sorted(manifests):
                 master.write('[include:%s]\n' % manifest)

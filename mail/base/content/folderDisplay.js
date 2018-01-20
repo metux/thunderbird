@@ -1160,7 +1160,7 @@ FolderDisplayWidget.prototype = {
     //  is backed by a single underlying folder (the only way having just a
     //  message key works out), try that
     if (Services.prefs.getBoolPref("mailnews.remember_selected_message") &&
-        this.view.isSingleFolder) {
+        this.view.isSingleFolder && this.view.displayedFolder) {
       // use the displayed folder; nsMsgDBView goes to the effort to save the
       //  state to the viewFolder, so this is the correct course of action.
       let lastLoadedMessageKey = this.view.displayedFolder.lastMessageLoaded;
@@ -2162,7 +2162,7 @@ FolderDisplayWidget.prototype = {
 
         const nsIMsgIdentity = Components.interfaces.nsIMsgIdentity;
         let allEnabled = undefined;
-        for (let identity in fixIterator(serverIdentities, nsIMsgIdentity)) {
+        for (let identity of fixIterator(serverIdentities, nsIMsgIdentity)) {
           if (allEnabled === undefined) {
             allEnabled = identity.archiveEnabled;
           }
@@ -2510,7 +2510,7 @@ FolderDisplayWidget.prototype = {
     // try and trigger a reflow...
     treeBox.height;
 
-    let maxIndex = this.view.dbView.rowCount - 1;
+    let maxIndex = treeBox.view.rowCount - 1;
 
     let first = treeBox.getFirstVisibleRow();
     // Assume the bottom row is half-visible and should generally be ignored.

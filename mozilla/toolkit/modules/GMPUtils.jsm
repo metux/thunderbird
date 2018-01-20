@@ -7,22 +7,19 @@
 const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu, manager: Cm} =
   Components;
 
-this.EXPORTED_SYMBOLS = [ "EME_ADOBE_ID",
-                          "GMP_PLUGIN_IDS",
+this.EXPORTED_SYMBOLS = [ "GMP_PLUGIN_IDS",
                           "GMPPrefs",
                           "GMPUtils",
                           "OPEN_H264_ID",
                           "WIDEVINE_ID" ];
 
-Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/AppConstants.jsm");
 
 // GMP IDs
 const OPEN_H264_ID  = "gmp-gmpopenh264";
-const EME_ADOBE_ID  = "gmp-eme-adobe";
 const WIDEVINE_ID   = "gmp-widevinecdm";
-const GMP_PLUGIN_IDS = [ OPEN_H264_ID, EME_ADOBE_ID, WIDEVINE_ID ];
+const GMP_PLUGIN_IDS = [ OPEN_H264_ID, WIDEVINE_ID ];
 
 var GMPPluginUnsupportedReason = {
   NOT_WINDOWS: 1,
@@ -41,7 +38,7 @@ this.GMPUtils = {
    * @param   aPlugin
    *          The plugin to check.
    */
-  isPluginHidden: function(aPlugin) {
+  isPluginHidden(aPlugin) {
     if (this._is32bitModeMacOS()) {
       // GMPs are hidden on MacOS when running in 32 bit mode.
       // See bug 1291537.
@@ -56,7 +53,7 @@ this.GMPUtils = {
       return true;
     }
 
-    if (!GMPPrefs.get(GMPPrefs.KEY_EME_ENABLED, true)) {
+    if (!GMPPrefs.getBool(GMPPrefs.KEY_EME_ENABLED, true)) {
       return true;
     }
 
@@ -68,14 +65,11 @@ this.GMPUtils = {
    * @param   aPlugin
    *          The plugin to check.
    */
-  _isPluginSupported: function(aPlugin) {
+  _isPluginSupported(aPlugin) {
     if (this._isPluginForceSupported(aPlugin)) {
       return true;
     }
-    if (aPlugin.id == EME_ADOBE_ID) {
-      // Windows Vista and later only supported by Adobe EME.
-      return AppConstants.isPlatformAndVersionAtLeast("win", "6");
-    } else if (aPlugin.id == WIDEVINE_ID) {
+    if (aPlugin.id == WIDEVINE_ID) {
       // The Widevine plugin is available for Windows versions Vista and later,
       // Mac OSX, and Linux.
       return AppConstants.isPlatformAndVersionAtLeast("win", "6") ||
@@ -86,7 +80,7 @@ this.GMPUtils = {
     return true;
   },
 
-  _is32bitModeMacOS: function() {
+  _is32bitModeMacOS() {
     if (AppConstants.platform != "macosx") {
       return false;
     }
@@ -100,8 +94,8 @@ this.GMPUtils = {
    * @param   aPlugin
    *          The plugin to check.
    */
-  _isPluginVisible: function(aPlugin) {
-    return GMPPrefs.get(GMPPrefs.KEY_PLUGIN_VISIBLE, false, aPlugin.id);
+  _isPluginVisible(aPlugin) {
+    return GMPPrefs.getBool(GMPPrefs.KEY_PLUGIN_VISIBLE, false, aPlugin.id);
   },
 
   /**
@@ -111,8 +105,8 @@ this.GMPUtils = {
    * @param   aPlugin
    *          The plugin to check.
    */
-  _isPluginForceSupported: function(aPlugin) {
-    return GMPPrefs.get(GMPPrefs.KEY_PLUGIN_FORCE_SUPPORTED, false, aPlugin.id);
+  _isPluginForceSupported(aPlugin) {
+    return GMPPrefs.getBool(GMPPrefs.KEY_PLUGIN_FORCE_SUPPORTED, false, aPlugin.id);
   },
 };
 
@@ -145,34 +139,70 @@ this.GMPPrefs = {
   KEY_LOGGING_DUMP:             "media.gmp.log.dump",
 
   /**
-   * Obtains the specified preference in relation to the specified plugin.
+   * Obtains the specified string preference in relation to the specified plugin.
    * @param aKey The preference key value to use.
    * @param aDefaultValue The default value if no preference exists.
    * @param aPlugin The plugin to scope the preference to.
    * @return The obtained preference value, or the defaultValue if none exists.
    */
-  get: function(aKey, aDefaultValue, aPlugin) {
+  getString(aKey, aDefaultValue, aPlugin) {
     if (aKey === this.KEY_APP_DISTRIBUTION ||
         aKey === this.KEY_APP_DISTRIBUTION_VERSION) {
-      let prefValue = "default";
-      try {
-        prefValue = Services.prefs.getDefaultBranch(null).getCharPref(aKey);
-      } catch (e) {
-        // use default when pref not found
-      }
-      return prefValue;
+      return Services.prefs.getDefaultBranch(null).getCharPref(aKey, "default");
     }
-    return Preferences.get(this.getPrefKey(aKey, aPlugin), aDefaultValue);
+    return Services.prefs.getStringPref(this.getPrefKey(aKey, aPlugin), aDefaultValue);
   },
 
   /**
-   * Sets the specified preference in relation to the specified plugin.
+   * Obtains the specified int preference in relation to the specified plugin.
+   * @param aKey The preference key value to use.
+   * @param aDefaultValue The default value if no preference exists.
+   * @param aPlugin The plugin to scope the preference to.
+   * @return The obtained preference value, or the defaultValue if none exists.
+   */
+  getInt(aKey, aDefaultValue, aPlugin) {
+    return Services.prefs.getIntPref(this.getPrefKey(aKey, aPlugin), aDefaultValue);
+  },
+
+  /**
+   * Obtains the specified bool preference in relation to the specified plugin.
+   * @param aKey The preference key value to use.
+   * @param aDefaultValue The default value if no preference exists.
+   * @param aPlugin The plugin to scope the preference to.
+   * @return The obtained preference value, or the defaultValue if none exists.
+   */
+  getBool(aKey, aDefaultValue, aPlugin) {
+    return Services.prefs.getBoolPref(this.getPrefKey(aKey, aPlugin), aDefaultValue);
+  },
+
+  /**
+   * Sets the specified string preference in relation to the specified plugin.
    * @param aKey The preference key value to use.
    * @param aVal The value to set.
    * @param aPlugin The plugin to scope the preference to.
    */
-  set: function(aKey, aVal, aPlugin) {
-    Preferences.set(this.getPrefKey(aKey, aPlugin), aVal);
+  setString(aKey, aVal, aPlugin) {
+    Services.prefs.setStringPref(this.getPrefKey(aKey, aPlugin), aVal);
+  },
+
+  /**
+   * Sets the specified bool preference in relation to the specified plugin.
+   * @param aKey The preference key value to use.
+   * @param aVal The value to set.
+   * @param aPlugin The plugin to scope the preference to.
+   */
+  setBool(aKey, aVal, aPlugin) {
+    Services.prefs.setBoolPref(this.getPrefKey(aKey, aPlugin), aVal);
+  },
+
+  /**
+   * Sets the specified int preference in relation to the specified plugin.
+   * @param aKey The preference key value to use.
+   * @param aVal The value to set.
+   * @param aPlugin The plugin to scope the preference to.
+   */
+  setInt(aKey, aVal, aPlugin) {
+    Services.prefs.setIntPref(this.getPrefKey(aKey, aPlugin), aVal);
   },
 
   /**
@@ -182,8 +212,8 @@ this.GMPPrefs = {
    * @param aPlugin The plugin to scope the preference to.
    * @return true if the preference is set, false otherwise.
    */
-  isSet: function(aKey, aPlugin) {
-    return Preferences.isSet(this.getPrefKey(aKey, aPlugin));
+  isSet(aKey, aPlugin) {
+    return Services.prefs.prefHasUserValue(this.getPrefKey(aKey, aPlugin));
   },
 
   /**
@@ -192,8 +222,8 @@ this.GMPPrefs = {
    * @param aKey The preference key value to use.
    * @param aPlugin The plugin to scope the preference to.
    */
-  reset: function(aKey, aPlugin) {
-    Preferences.reset(this.getPrefKey(aKey, aPlugin));
+  reset(aKey, aPlugin) {
+    Services.prefs.clearUserPref(this.getPrefKey(aKey, aPlugin));
   },
 
   /**
@@ -202,7 +232,7 @@ this.GMPPrefs = {
    * @param aPlugin The plugin to scope the preference to.
    * @return A preference key scoped to the specified plugin.
    */
-  getPrefKey: function(aKey, aPlugin) {
+  getPrefKey(aKey, aPlugin) {
     return aKey.replace("{0}", aPlugin || "");
   },
 };

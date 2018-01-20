@@ -13,6 +13,7 @@
 #include "nsMemory.h"
 #include "nsMsgUtils.h"
 #include "nsUnicharUtils.h"
+#include "nsNativeCharsetUtils.h"
 
 int      CMapiApi::m_clients = 0;
 BOOL    CMapiApi::m_initialized = false;
@@ -20,8 +21,6 @@ nsTArray<CMsgStore*>  *CMapiApi::m_pStores = NULL;
 LPMAPISESSION CMapiApi::m_lpSession = NULL;
 LPMDB    CMapiApi::m_lpMdb = NULL;
 HRESULT    CMapiApi::m_lastError;
-char16_t *  CMapiApi::m_pUniBuff = NULL;
-int      CMapiApi::m_uniBuffLen = 0;
 /*
 Type: 1, name: Calendar, class: IPF.Appointment
 Type: 1, name: Contacts, class: IPF.Contact
@@ -285,28 +284,12 @@ CMapiApi::~CMapiApi()
     }
 
     UnloadMapi();
-
-    if (m_pUniBuff)
-      delete [] m_pUniBuff;
-    m_pUniBuff = NULL;
-    m_uniBuffLen = 0;
   }
 }
 
 void CMapiApi::CStrToUnicode(const char *pStr, nsString& result)
 {
-  result.Truncate();
-  int wLen = MultiByteToWideChar(CP_ACP, 0, pStr, -1, wwc(m_pUniBuff), 0);
-  if (wLen >= m_uniBuffLen) {
-    if (m_pUniBuff)
-      delete [] m_pUniBuff;
-    m_pUniBuff = new char16_t[wLen + 64];
-    m_uniBuffLen = wLen + 64;
-  }
-  if (wLen) {
-    MultiByteToWideChar(CP_ACP, 0, pStr, -1, wwc(m_pUniBuff), m_uniBuffLen);
-    result = m_pUniBuff;
-  }
+  NS_CopyNativeToUnicode(nsDependentCString(pStr), result);
 }
 
 BOOL CMapiApi::Initialize(void)
@@ -994,7 +977,8 @@ BOOL CMapiApi::IterateStores(CMapiFolderList& stores)
           lpTable->Release();
           return FALSE;
         }
-        ::MultiByteToWideChar(CP_ACP, 0, lpStr, strlen(lpStr) + 1, wwc(pwszStr), (strLen + 1) * sizeof(WCHAR));
+        ::MultiByteToWideChar(CP_ACP, 0, lpStr, strlen(lpStr) + 1,
+          reinterpret_cast<wchar_t*>(pwszStr), (strLen + 1) * sizeof(WCHAR));
         CMapiFolder *pFolder = new CMapiFolder(pwszStr, cbEID, lpEID, 0, MAPI_STORE);
         free(pwszStr);
 
@@ -1376,7 +1360,7 @@ void CMapiApi::ReportUIDProp(const char *pTag, LPSPropValue pVal)
       char *  pStr = uid.ToString();
       if (pStr) {
         MAPI_TRACE2("%s %s\n", pTag, (const char *)pStr);
-        NS_Free(pStr);
+        free(pStr);
       }
     }
   }
@@ -1551,7 +1535,7 @@ void CMapiFolderList::AddItem(CMapiFolder *pFolder)
 void CMapiFolderList::ChangeName(nsString& name)
 {
   if (name.IsEmpty()) {
-    name.AssignLiteral("1");
+    name.Assign('1');
     return;
   }
   char16_t lastC = name.Last();
@@ -1560,7 +1544,7 @@ void CMapiFolderList::ChangeName(nsString& name)
     if (lastC > '9') {
       lastC = '1';
       name.SetCharAt(lastC, name.Length() - 1);
-      name.AppendLiteral("0");
+      name.Append('0');
     }
     else {
       name.SetCharAt(lastC, name.Length() - 1);
@@ -1662,13 +1646,13 @@ void CMapiFolderList::DumpList(void)
 #ifdef MAPI_DEBUG
         char *ansiStr = ToNewCString(str);
     MAPI_TRACE2("%s%s: ", prefix, ansiStr);
-    NS_Free(ansiStr);
+    free(ansiStr);
 #endif
     pFolder->GetFilePath(str);
 #ifdef MAPI_DEBUG
         ansiStr = ToNewCString(str);
     MAPI_TRACE2("depth=%d, filePath=%s\n", pFolder->GetDepth(), ansiStr);
-    NS_Free(ansiStr);
+    free(ansiStr);
 #endif
   }
   MAPI_TRACE0("---------------------------------------------\n");

@@ -12,6 +12,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/MessagePort.h"
 #include "mozilla/dom/SharedWorkerBinding.h"
+#include "mozilla/dom/WorkerBinding.h"
 #include "mozilla/Telemetry.h"
 #include "nsContentUtils.h"
 #include "nsIClassInfoImpl.h"
@@ -47,9 +48,9 @@ SharedWorker::~SharedWorker()
 
 // static
 already_AddRefed<SharedWorker>
-SharedWorker::Constructor(const GlobalObject& aGlobal, JSContext* aCx,
+SharedWorker::Constructor(const GlobalObject& aGlobal,
                           const nsAString& aScriptURL,
-                          const mozilla::dom::Optional<nsAString>& aName,
+                          const StringOrWorkerOptions& aOptions,
                           ErrorResult& aRv)
 {
   AssertIsOnMainThread();
@@ -60,9 +61,12 @@ SharedWorker::Constructor(const GlobalObject& aGlobal, JSContext* aCx,
     return nullptr;
   }
 
-  nsCString name;
-  if (aName.WasPassed()) {
-    name = NS_ConvertUTF16toUTF8(aName.Value());
+  nsAutoString name;
+  if (aOptions.IsString()) {
+    name = aOptions.GetAsString();
+  } else {
+    MOZ_ASSERT(aOptions.IsWorkerOptions());
+    name = aOptions.GetAsWorkerOptions().mName;
   }
 
   RefPtr<SharedWorker> sharedWorker;
@@ -72,8 +76,6 @@ SharedWorker::Constructor(const GlobalObject& aGlobal, JSContext* aCx,
     aRv = rv;
     return nullptr;
   }
-
-  Telemetry::Accumulate(Telemetry::SHARED_WORKER_COUNT, 1);
 
   return sharedWorker.forget();
 }
@@ -145,7 +147,7 @@ SharedWorker::Close()
 
 void
 SharedWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
-                          const Optional<Sequence<JS::Value>>& aTransferable,
+                          const Sequence<JSObject*>& aTransferable,
                           ErrorResult& aRv)
 {
   AssertIsOnMainThread();
@@ -158,7 +160,7 @@ SharedWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
 NS_IMPL_ADDREF_INHERITED(SharedWorker, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(SharedWorker, DOMEventTargetHelper)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(SharedWorker)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(SharedWorker)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(SharedWorker)
@@ -184,7 +186,7 @@ SharedWorker::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 }
 
 nsresult
-SharedWorker::PreHandleEvent(EventChainPreVisitor& aVisitor)
+SharedWorker::GetEventTargetParent(EventChainPreVisitor& aVisitor)
 {
   AssertIsOnMainThread();
 
@@ -203,5 +205,5 @@ SharedWorker::PreHandleEvent(EventChainPreVisitor& aVisitor)
     return NS_OK;
   }
 
-  return DOMEventTargetHelper::PreHandleEvent(aVisitor);
+  return DOMEventTargetHelper::GetEventTargetParent(aVisitor);
 }

@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "el": {
+      "chrome_resources": {
+        "necko": "chrome/el/locale/el/necko/", 
+        "global": "chrome/el/locale/el/global/", 
+        "messenger-region": "chrome/el/locale/el/messenger-region/", 
+        "chat": "chrome/el/locale/el/chat/", 
+        "devtools": "chrome/el/locale/el/devtools/client/", 
+        "pipnss": "chrome/el/locale/el/pipnss/", 
+        "messenger-smime": "chrome/el/locale/el/messenger-smime/", 
+        "messenger-newsblog": "chrome/el/locale/el/messenger-newsblog/", 
+        "devtools-shim": "chrome/el/locale/el/devtools/shim/", 
+        "alerts": "chrome/el/locale/el/alerts/", 
+        "messenger": "chrome/el/locale/el/messenger/", 
+        "editor": "chrome/el/locale/el/editor/", 
+        "branding": "chrome/el/locale/el/branding/", 
+        "mozldap": "chrome/el/locale/el/mozldap/", 
+        "autoconfig": "chrome/el/locale/el/autoconfig/", 
+        "devtools-shared": "chrome/el/locale/el/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/el/locale/el/global-platform/win/", 
+          "android": "chrome/el/locale/el/global-platform/unix/", 
+          "macosx": "chrome/el/locale/el/global-platform/mac/", 
+          "linux": "chrome/el/locale/el/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/el/locale/el/mozapps/", 
+        "pluginproblem": "chrome/el/locale/el/pluginproblem/", 
+        "communicator": "chrome/el/locale/el/communicator/", 
+        "messenger-mapi": "chrome/el/locale/el/messenger-mapi/", 
+        "places": "chrome/el/locale/el/places/", 
+        "passwordmgr": "chrome/el/locale/el/passwordmgr/", 
+        "pippki": "chrome/el/locale/el/pippki/"
+      }, 
+      "version": "20171102104410"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "58.0", 
+      "id": "langpack-el@firefox.mozilla.org", 
+      "strict_max_version": "58.*"
+    }
+  }, 
+  "langpack_id": "el", 
+  "version": "58.0", 
+  "name": "Ελληνικά Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "Kostas Papadimas (contributors: Λούρδας Βασίλης, Jim Spentzos)", 
+  "description": "Language pack for Thunderbird for el"
+}

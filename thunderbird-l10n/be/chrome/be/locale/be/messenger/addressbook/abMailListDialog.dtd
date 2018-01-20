@@ -15,7 +15,6 @@
 <!ENTITY ListNickName.accesskey "М">
 <!ENTITY ListDescription.accesskey "п">
 
-
-
-<!-- Title -->
 <!ENTITY mailListWindowAdd.title        "New Mailing List">
+
+<!ENTITY AddressTitle.accesskey         "m">

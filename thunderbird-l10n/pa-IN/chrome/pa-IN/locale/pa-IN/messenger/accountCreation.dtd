@@ -82,10 +82,12 @@
 <!ENTITY secureServer.description        "ਵਧਾਈਆਂ! ਇਹ ਸੁਰੱਖਿਅਤ ਸਰਵਰ ਹੈ।">
 
 
-<!ENTITY doneAccount.accesskey           "D">
-<!-- LOCALIZATION NOTE (doneAccount.label): If there is a security warning
-     on the incoming or outgoing servers, then the page that pops up will
-     have this text in a button to continue by creating the account. -->
+<!ENTITY autoconfigWizard2.title         "Set Up an Existing Email Account">
+<!ENTITY email2.placeholder              "you@example.com">
+<!ENTITY email.text                      "Your existing email address">
+<!ENTITY open-provisioner.label          "Get a new email address…">
+<!ENTITY open-provisioner.accesskey      "g">
+
+
 <!ENTITY doneAccount.label               "Done">
-<!ENTITY switch-to-provisioner.accesskey "G">
-<!ENTITY switch-to-provisioner.label     "Get a new account">
+<!ENTITY doneAccount.accesskey           "D">

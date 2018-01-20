@@ -4,52 +4,103 @@
 
 "use strict";
 
-const Services = require("Services");
 const { createFactory, createElement } = require("devtools/client/shared/vendor/react");
 const { Provider } = require("devtools/client/shared/vendor/react-redux");
 
-const App = createFactory(require("./components/App"));
-const Store = require("./store");
+const LayoutApp = createFactory(require("./components/LayoutApp"));
 
 const { LocalizationHelper } = require("devtools/shared/l10n");
 const INSPECTOR_L10N =
-      new LocalizationHelper("devtools/client/locales/inspector.properties");
+  new LocalizationHelper("devtools/client/locales/inspector.properties");
 
-function LayoutView(inspector, window) {
-  this.inspector = inspector;
-  this.document = window.document;
-  this.store = null;
+loader.lazyRequireGetter(this, "FlexboxInspector", "devtools/client/inspector/flexbox/flexbox");
+loader.lazyRequireGetter(this, "GridInspector", "devtools/client/inspector/grids/grid-inspector");
 
-  this.init();
-}
+class LayoutView {
 
-LayoutView.prototype = {
+  constructor(inspector, window) {
+    this.document = window.document;
+    this.inspector = inspector;
+    this.store = inspector.store;
+
+    this.init();
+  }
 
   init() {
-    let store = this.store = Store();
+    if (!this.inspector) {
+      return;
+    }
+
+    let {
+      setSelectedNode,
+      onShowBoxModelHighlighterForNode,
+    } = this.inspector.getCommonComponentProps();
+
+    let {
+      onHideBoxModelHighlighter,
+      onShowBoxModelEditor,
+      onShowBoxModelHighlighter,
+      onToggleGeometryEditor,
+    } = this.inspector.getPanel("boxmodel").getComponentProps();
+
+    this.gridInspector = new GridInspector(this.inspector, this.inspector.panelWin);
+    let {
+      getSwatchColorPickerTooltip,
+      onSetGridOverlayColor,
+      onShowGridAreaHighlight,
+      onShowGridCellHighlight,
+      onShowGridLineNamesHighlight,
+      onToggleGridHighlighter,
+      onToggleShowGridAreas,
+      onToggleShowGridLineNumbers,
+      onToggleShowInfiniteLines,
+    } = this.gridInspector.getComponentProps();
+
+    let layoutApp = LayoutApp({
+      getSwatchColorPickerTooltip,
+      setSelectedNode,
+      /**
+       * Shows the box model properties under the box model if true, otherwise, hidden by
+       * default.
+       */
+      showBoxModelProperties: true,
+      onHideBoxModelHighlighter,
+      onSetGridOverlayColor,
+      onShowBoxModelEditor,
+      onShowBoxModelHighlighter,
+      onShowBoxModelHighlighterForNode,
+      onShowGridAreaHighlight,
+      onShowGridCellHighlight,
+      onShowGridLineNamesHighlight,
+      onToggleGeometryEditor,
+      onToggleGridHighlighter,
+      onToggleShowGridAreas,
+      onToggleShowGridLineNumbers,
+      onToggleShowInfiniteLines,
+    });
+
     let provider = createElement(Provider, {
-      store,
       id: "layoutview",
-      title: INSPECTOR_L10N.getStr("inspector.sidebar.layoutViewTitle"),
       key: "layoutview",
-    }, App());
+      store: this.store,
+      title: INSPECTOR_L10N.getStr("inspector.sidebar.layoutViewTitle2"),
+    }, layoutApp);
 
-    let defaultTab = Services.prefs.getCharPref("devtools.inspector.activeSidebar");
+    // Expose the provider to let inspector.js use it in setupSidebar.
+    this.provider = provider;
+  }
 
-    this.inspector.addSidebarTab(
-      "layoutview",
-      INSPECTOR_L10N.getStr("inspector.sidebar.layoutViewTitle"),
-      provider,
-      defaultTab == "layoutview"
-    );
-  },
-
+  /**
+   * Destruction function called when the inspector is destroyed. Cleans up references.
+   */
   destroy() {
-    this.inspector = null;
+    this.gridInspector.destroy();
+
     this.document = null;
+    this.inspector = null;
     this.store = null;
-  },
-};
+  }
 
-exports.LayoutView = LayoutView;
+}
 
+module.exports = LayoutView;

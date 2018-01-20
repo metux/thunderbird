@@ -18,14 +18,8 @@ MainProcessSingleton.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                          Ci.nsISupportsWeakReference]),
 
-  logConsoleMessage: function(message) {
-    let logMsg = message.data;
-    logMsg.wrappedJSObject = logMsg;
-    Services.obs.notifyObservers(logMsg, "console-api-log-event", null);
-  },
-
   // Called when a webpage calls window.external.AddSearchProvider
-  addSearchEngine: function({ target: browser, data: { pageURL, engineURL } }) {
+  addSearchEngine({ target: browser, data: { pageURL, engineURL } }) {
     pageURL = NetUtil.newURI(pageURL);
     engineURL = NetUtil.newURI(engineURL, null, pageURL);
 
@@ -43,17 +37,16 @@ MainProcessSingleton.prototype = {
 
       if (iconURL && isWeb.indexOf(iconURL.scheme) < 0)
         throw "Unsupported search icon URL: " + iconURL;
-    }
-    catch (ex) {
+    } catch (ex) {
       Cu.reportError("Invalid argument passed to window.external.AddSearchProvider: " + ex);
 
       var searchBundle = Services.strings.createBundle("chrome://global/locale/search/search.properties");
       var brandBundle = Services.strings.createBundle("chrome://branding/locale/brand.properties");
       var brandName = brandBundle.GetStringFromName("brandShortName");
-      var title = searchBundle.GetStringFromName("error_invalid_engine_title");
-      var msg = searchBundle.formatStringFromName("error_invalid_engine_msg",
-                                                  [brandName], 1);
-      Services.ww.getNewPrompter(browser.ownerDocument.defaultView).alert(title, msg);
+      var title = searchBundle.GetStringFromName("error_invalid_format_title");
+      var msg = searchBundle.formatStringFromName("error_invalid_engine_msg2",
+                                                  [brandName, engineURL.spec], 2);
+      Services.ww.getNewPrompter(browser.ownerGlobal).alert(title, msg);
       return;
     }
 
@@ -62,25 +55,24 @@ MainProcessSingleton.prototype = {
         return;
 
       Services.search.addEngine(engineURL.spec, null, iconURL ? iconURL.spec : null, true);
-    })
+    });
   },
 
-  observe: function(subject, topic, data) {
+  observe(subject, topic, data) {
     switch (topic) {
     case "app-startup": {
-      Services.obs.addObserver(this, "xpcom-shutdown", false);
+      Services.obs.addObserver(this, "xpcom-shutdown");
 
       // Load this script early so that console.* is initialized
       // before other frame scripts.
       Services.mm.loadFrameScript("chrome://global/content/browser-content.js", true);
       Services.ppmm.loadProcessScript("chrome://global/content/process-content.js", true);
-      Services.ppmm.addMessageListener("Console:Log", this.logConsoleMessage);
       Services.mm.addMessageListener("Search:AddEngine", this.addSearchEngine);
+      Services.ppmm.loadProcessScript("resource:///modules/ContentObservers.js", true);
       break;
     }
 
     case "xpcom-shutdown":
-      Services.ppmm.removeMessageListener("Console:Log", this.logConsoleMessage);
       Services.mm.removeMessageListener("Search:AddEngine", this.addSearchEngine);
       break;
     }

@@ -20,6 +20,9 @@
 <!ENTITY installAddonFromFile.accesskey       "d">
 <!ENTITY toolsMenu.tooltip                    "Visiems priedams taikomos priemonės">
 
+<!ENTITY getThemes.description                "Norite suasmeninti savo naršyklę?">
+<!ENTITY getThemes.learnMore                  "Rinkitės iš tūkstančių grafinių apvalkalų.">
+
 <!ENTITY cmd.back.tooltip                     "Vienu tinklalapiu atgal">
 <!ENTITY cmd.forward.tooltip                  "Vienu tinklalapiu pirmyn">
 
@@ -115,6 +118,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "Parodyti šio naujinimo laidos apžvalgą">
 <!ENTITY cmd.hideReleaseNotes.label           "Nerodyti laidos apžvalgos">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Nerodyti šio naujinimo laidos apžvalgos">
+<!ENTITY cmd.findReplacement.label            "Rasti pakaitalą">
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
      Displayed in the center of the Get Add-ons view, see bug 601143 for mockups. -->
@@ -182,6 +186,10 @@
 <!ENTITY addon.details.label                  "Išsamiau">
 <!ENTITY addon.details.tooltip                "Parodyti išsamesnę informaciją apie šį priedą">
 <!ENTITY addon.unknownDate                    "Nežinoma">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "PASENĘS">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -246,3 +254,9 @@
 
 <!ENTITY pluginDeprecation.description "Kažko trūksta? Kai kurie papildiniai daugiau nepalaikomi „&brandShortName;“.">
 <!ENTITY pluginDeprecation.learnMore "Sužinoti daugiau.">
+
+<!ENTITY legacyWarning.description "Kažko trūksta? Kai kurių plėtinių „&brandShortName;“ nebepalaiko.">
+<!ENTITY legacyWarning.showLegacy "Rodyti pasenusius plėtinius">
+<!ENTITY legacyExtensions.title "Pasenę plėtiniai">
+<!ENTITY legacyExtensions.description "Šie plėtiniai neatitinka esamų „&brandShortName;“ standartų, tad buvo išjungti.">
+<!ENTITY legacyExtensions.learnMore "Sužinokite apie priedų pokyčius">

@@ -20,6 +20,9 @@
 <!ENTITY installAddonFromFile.accesskey       "I">
 <!ENTITY toolsMenu.tooltip                    "Verktøy for alle utvidelser">
 
+<!ENTITY getThemes.description                "Ønsker du å tilpasse nettleseren din?">
+<!ENTITY getThemes.learnMore                  "Velg blant tusenvis av temaer.">
+
 <!ENTITY cmd.back.tooltip                     "Gå tilbake en side">
 <!ENTITY cmd.forward.tooltip                  "Gå frem en side">
 
@@ -27,8 +30,8 @@
 <!ENTITY showAllExtensions.button.label       "Vis alle utvidelser">
 <!ENTITY debugAddons.label                    "Debug-utvidelser">
 <!ENTITY debugAddons.accesskey                "D">
-<!-- global warnings -->
 
+<!-- global warnings -->
 <!ENTITY warning.safemode.label                    "Alle utvidelser er avslått av sikker modus.">
 <!ENTITY warning.checkcompatibility.label          "Kompatibilitetskontroll er avslått. Du har kanskje ukompatible utvidelser.">
 <!ENTITY warning.checkcompatibility.enable.label   "Slå på">
@@ -36,14 +39,14 @@
 <!ENTITY warning.updatesecurity.label              "Sikkerhetskontroll av utvidelsesoppdateringer er avslått. Sikkerheten din kan bli satt i fare av oppdateringer.">
 <!ENTITY warning.updatesecurity.enable.label       "Slå på">
 <!ENTITY warning.updatesecurity.enable.tooltip     "Slå på sikkerhetskontroll av utvidelsesoppdateringer">
-<!-- categories / views -->
 
+<!-- categories / views -->
 <!ENTITY view.search.label                    "Søk">
 <!ENTITY view.discover.label                  "Last ned utvidelser">
 <!ENTITY view.recentUpdates.label             "Nylig oppdatert">
 <!ENTITY view.availableUpdates.label          "Tilgjengelige oppdateringer">
-<!-- addon updates -->
 
+<!-- addon updates -->
 <!ENTITY updates.checkForUpdates.label        "Søk etter oppdateringer nå">
 <!ENTITY updates.checkForUpdates.accesskey    "S">
 <!ENTITY updates.viewUpdates.label            "Vis nylig oppdaterte">
@@ -71,8 +74,8 @@
 <!ENTITY updates.manualUpdatesFound.label     "Vis tilgjengelige oppdateringer">
 <!ENTITY updates.updateSelected.label         "Installer oppdateringer">
 <!ENTITY updates.updateSelected.tooltip       "Installer tilgjengelige oppdateringer i denne listen">
-<!-- addon actions -->
 
+<!-- addon actions -->
 <!ENTITY cmd.showDetails.label                "Vis detaljer">
 <!ENTITY cmd.showDetails.accesskey            "V">
 <!ENTITY cmd.findUpdates.label                "Søk etter oppdateringer">
@@ -115,15 +118,16 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "Vis versjonsnotatet for denne oppdateringen">
 <!ENTITY cmd.hideReleaseNotes.label           "Skjul versjonsnotat">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Skjuler versjonsnotatet for denne versjonen">
+<!ENTITY cmd.findReplacement.label            "Finn en erstatning">
+
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
      Displayed in the center of the Get Add-ons view, see bug 601143 for mockups. -->
-
 <!ENTITY discover.title                       "Hva er utvidelser?">
 <!ENTITY discover.description2                "Utvidelser er programmer som lar deg tilpasse &brandShortName; med ekstra funksjonalitet eller annen stil. Prøv en sidestolpe som sparer deg tid, værvarsling, eller et tema som får &brandShortName; til å se ut akkurat som din.">
 <!ENTITY discover.footer                      "Når du er koblet til nettet vil dette vinduet inneholde noen av de beste og mest populære utvidelsene som du kan prøve ut.">
-<!-- detail view -->
 
+<!-- detail view -->
 <!ENTITY detail.version.label                 "Versjon">
 <!ENTITY detail.lastupdated.label             "Sist oppdatert">
 <!ENTITY detail.creator.label                 "Utvikler">
@@ -152,17 +156,17 @@
 <!ENTITY detail.showPreferencesUnix.label     "Innstillinger">
 <!ENTITY detail.showPreferencesUnix.accesskey "I">
 <!ENTITY detail.showPreferencesUnix.tooltip   "Endre denne utvidelsens innstillinger">
+
+
 <!-- ratings -->
-
-
 <!ENTITY rating2.label                        "Vurdering">
-<!-- download/install progress -->
 
+<!-- download/install progress -->
 <!ENTITY progress.pause.tooltip               "Pause">
 <!ENTITY progress.cancel.tooltip              "Avbryt">
+
+
 <!-- list sorting -->
-
-
 <!ENTITY sort.name.label                      "Navn">
 <!ENTITY sort.name.tooltip                    "Sorter etter navn">
 <!ENTITY sort.dateUpdated.label               "Sist oppdatert">
@@ -182,6 +186,10 @@
 <!ENTITY addon.details.label                  "Mer">
 <!ENTITY addon.details.tooltip                "Vis mer informasjon om denne utvidelsen">
 <!ENTITY addon.unknownDate                    "Ukjent">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "FORELDET">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -215,12 +223,12 @@
 <!ENTITY eula.accept                          "Godta og installer …">
 
 <!ENTITY settings.path.button.label           "Bla gjennom …">
+
 <!-- LOCALIZATION NOTE (experiment.info.label): The strings related to
      experiments are present on the "Experiments" tab of the add-ons manager.
      This tab won't be displayed unless an Experiment add-on is installed.
      Install https://people.mozilla.org/~gszorc/dummy-experiment-addon.xpi
      to cause this tab to appear. -->
-
 <!ENTITY experiment.info.label "Hva er dette? Telemetry kan installere og kjøre eksperimenter med jevne mellomrom.">
 <!ENTITY experiment.info.learnmore "Les mer">
 <!ENTITY experiment.info.learnmore.accesskey "L">
@@ -246,3 +254,9 @@
 
 <!ENTITY pluginDeprecation.description "Savner du noe? Noen programtillegg støttes ikke lenger av &brandShortName;.">
 <!ENTITY pluginDeprecation.learnMore "Les mer">
+
+<!ENTITY legacyWarning.description "Savner du noe? Enkelte utvidelser er ikke lenger støttet av &brandShortName;.">
+<!ENTITY legacyWarning.showLegacy "Vis foreldete utvidelser">
+<!ENTITY legacyExtensions.title "Foreldete utvidelser">
+<!ENTITY legacyExtensions.description "Disse utvidelsene oppfyller ikke gjeldende standarder i &brandShortName; og er derfor slått av.">
+<!ENTITY legacyExtensions.learnMore "Les mer om endringer av utvidelser">

@@ -51,8 +51,8 @@
 <!ENTITY getAllNewMsgCmdPopupMenu.accesskey "В">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.label "Поточного облікового запису">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.accesskey "П">
-<!ENTITY getNextNMsgCmd.label "Отримати наступні 500 листів">
-<!ENTITY getNextNMsgCmd.accesskey "5">
+<!ENTITY getNextNMsgCmd2.label "Отримати наступні листи">
+<!ENTITY getNextNMsgCmd2.accesskey "т">
 <!ENTITY sendUnsentCmd.label "Відіслати невідіслані листи">
 <!ENTITY sendUnsentCmd.accesskey "л">
 <!ENTITY subscribeCmd.label "Підписатися…">
@@ -634,6 +634,9 @@
 <!-- Folder Pane Context Menu -->
 <!ENTITY folderContextGetMessages.label "Отримати листи">
 <!ENTITY folderContextGetMessages.accesskey "О">
+<!ENTITY folderContextPauseAllUpdates.label "Призупинити всі оновлення">
+<!ENTITY folderContextPauseUpdates.label "Призупинити оновлення">
+<!ENTITY folderContextPauseUpdates.accesskey "П">
 <!ENTITY folderContextOpenInNewWindow.label "Відкрити в новому вікні">
 <!ENTITY folderContextOpenInNewWindow.accesskey "н">
 <!ENTITY folderContextOpenNewTab.label "Відкрити в новій вкладці">
@@ -949,3 +952,10 @@
 
 <!-- Mac OS X Dock Icon pop-up menu -->
 <!ENTITY dockOptions.label              "Параметри піктограми програми…">
+<!ENTITY writeNewMessageDock.label      "Написати нового листа">
+<!ENTITY openAddressBookDock.label      "Відкрити адресну книгу">
+
+<!ENTITY goChatCmd2.key "H">
+<!ENTITY newMsgFromTemplateCmd.label "New Message from Template">
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN">
+<!ENTITY contextNewMsgFromTemplate.label "New Message from Template">

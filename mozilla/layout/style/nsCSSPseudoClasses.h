@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,6 +10,8 @@
 #define nsCSSPseudoClasses_h___
 
 #include "nsStringFwd.h"
+#include "mozilla/CSSEnabledState.h"
+#include "mozilla/Maybe.h"
 
 // The following two flags along with the pref defines where this pseudo
 // class can be used:
@@ -25,9 +28,12 @@
 #define CSS_PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME \
   (CSS_PSEUDO_CLASS_ENABLED_IN_UA_SHEETS | CSS_PSEUDO_CLASS_ENABLED_IN_CHROME)
 
-class nsIAtom;
+class nsAtom;
 
 namespace mozilla {
+namespace dom {
+class Element;
+} // namespace dom
 
 // The total count of CSSPseudoClassType is less than 256,
 // so use uint8_t as its underlying type.
@@ -53,7 +59,7 @@ class nsCSSPseudoClasses
 public:
   static void AddRefAtoms();
 
-  static Type GetPseudoType(nsIAtom* aAtom, EnabledState aEnabledState);
+  static Type GetPseudoType(nsAtom* aAtom, EnabledState aEnabledState);
   static bool HasStringArg(Type aType);
   static bool HasNthPairArg(Type aType);
   static bool HasSelectorListArg(Type aType) {
@@ -81,6 +87,12 @@ public:
     }
     return false;
   }
+
+  // Checks whether the given pseudo class matches the element.
+  // It returns Some(result) if this function is able to check
+  // the pseudo-class, Nothing() otherwise.
+  static mozilla::Maybe<bool>
+    MatchesElement(Type aType, const mozilla::dom::Element* aElement);
 
 private:
   static const uint32_t kPseudoClassFlags[size_t(Type::Count)];

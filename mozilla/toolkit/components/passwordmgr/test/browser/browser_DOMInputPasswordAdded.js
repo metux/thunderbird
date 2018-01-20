@@ -24,7 +24,7 @@ function task(contentConsts) {
     removeEventListener("load", tabLoad, true);
     gDoc = content.document;
     // These events shouldn't escape to content.
-    gDoc.addEventListener("DOMInputPasswordAdded", unexpectedContentEvent, false);
+    gDoc.addEventListener("DOMInputPasswordAdded", unexpectedContentEvent);
     gDoc.defaultView.setTimeout(test_inputAdd, 0);
   }
 
@@ -77,23 +77,23 @@ function task(contentConsts) {
 
   function completeTest() {
     Assert.ok(true, "Test completed");
-    gDoc.removeEventListener("DOMInputPasswordAdded", unexpectedContentEvent, false);
+    gDoc.removeEventListener("DOMInputPasswordAdded", unexpectedContentEvent);
     resolve();
   }
 
   return promise;
 }
 
-add_task(function* () {
-  let tab = gBrowser.selectedTab = gBrowser.addTab();
+add_task(async function() {
+  let tab = gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser);
   let promise = ContentTask.spawn(tab.linkedBrowser, consts, task);
   tab.linkedBrowser.loadURI("data:text/html;charset=utf-8," +
-			    "<html><body>" +
-			    "<form id='" + consts.FORM1_ID + "'>" +
+                            "<html><body>" +
+                            "<form id='" + consts.FORM1_ID + "'>" +
                             "<input id='" + consts.CHANGE_INPUT_ID + "'></form>" +
-			    "<form id='" + consts.FORM2_ID + "'></form>" +
-			    "</body></html>");
-  yield promise;
+                            "<form id='" + consts.FORM2_ID + "'></form>" +
+                            "</body></html>");
+  await promise;
   gBrowser.removeCurrentTab();
 });
 

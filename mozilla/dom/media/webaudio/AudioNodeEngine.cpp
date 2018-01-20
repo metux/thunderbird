@@ -5,6 +5,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "AudioNodeEngine.h"
+
+#include "mozilla/AbstractThread.h"
 #ifdef BUILD_ARM_NEON
 #include "mozilla/arm.h"
 #include "AudioNodeEngineNEON.h"
@@ -14,6 +16,7 @@
 #include "AlignmentUtils.h"
 #include "AudioNodeEngineSSE2.h"
 #endif
+#include "AudioBlock.h"
 
 namespace mozilla {
 
@@ -351,19 +354,23 @@ AudioBufferSumOfSquares(const float* aInput, uint32_t aLength)
 #ifdef USE_SSE2
   if (mozilla::supports_sse()) {
     const float* alignedInput = ALIGNED16(aInput);
-    float vLength = (aLength >> 4) << 4;
 
     // use scalar operations for any unaligned data at the beginning
     while (aInput != alignedInput) {
-        sum += *aInput * *aInput;
-        ++aInput;
+      if (!aLength) {
+        return sum;
+      }
+      sum += *aInput * *aInput;
+      ++aInput;
+      --aLength;
     }
 
+    uint32_t vLength = (aLength >> 4) << 4;
     sum += AudioBufferSumOfSquares_SSE(alignedInput, vLength);
 
     // adjust aInput and aLength to use scalar operations for any
     // remaining values
-    aInput = alignedInput + 1;
+    aInput = alignedInput + vLength;
     aLength -= vLength;
   }
 #endif
@@ -373,6 +380,18 @@ AudioBufferSumOfSquares(const float* aInput, uint32_t aLength)
     ++aInput;
   }
   return sum;
+}
+
+AudioNodeEngine::AudioNodeEngine(dom::AudioNode* aNode)
+  : mNode(aNode)
+  , mNodeType(aNode ? aNode->NodeType() : nullptr)
+  , mInputCount(aNode ? aNode->NumberOfInputs() : 1)
+  , mOutputCount(aNode ? aNode->NumberOfOutputs() : 0)
+  , mAbstractMainThread(
+      aNode ? aNode->AbstractMainThread() : AbstractThread::MainThread())
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_COUNT_CTOR(AudioNodeEngine);
 }
 
 void

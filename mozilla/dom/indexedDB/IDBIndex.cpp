@@ -26,6 +26,8 @@
 namespace mozilla {
 namespace dom {
 
+using namespace mozilla::dom::indexedDB;
+
 namespace {
 
 already_AddRefed<IDBRequest>
@@ -251,7 +253,7 @@ IDBIndex::GetLocale(nsString& aLocale) const
   if (mMetadata->locale().IsEmpty()) {
     SetDOMStringToNull(aLocale);
   } else {
-    aLocale.AssignWithConversion(mMetadata->locale());
+    CopyASCIItoUTF16(mMetadata->locale(), aLocale);
   }
 }
 
@@ -652,7 +654,6 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(IDBIndex)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(IDBIndex)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mObjectStore)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 

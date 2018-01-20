@@ -1,9 +1,12 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ScaledFontBase.h"
+
+#include "gfxPrefs.h"
 
 #ifdef USE_SKIA
 #include "PathSkia.h"
@@ -24,6 +27,30 @@ using namespace std;
 namespace mozilla {
 namespace gfx {
 
+Atomic<uint32_t> UnscaledFont::sDeletionCounter(0);
+
+UnscaledFont::~UnscaledFont()
+{
+  sDeletionCounter++;
+}
+
+Atomic<uint32_t> ScaledFont::sDeletionCounter(0);
+
+ScaledFont::~ScaledFont()
+{
+  sDeletionCounter++;
+}
+
+AntialiasMode
+ScaledFont::GetDefaultAAMode()
+{
+  if (gfxPrefs::DisableAllTextAA()) {
+    return AntialiasMode::NONE;
+  }
+
+  return AntialiasMode::DEFAULT;
+}
+
 ScaledFontBase::~ScaledFontBase()
 {
 #ifdef USE_SKIA
@@ -34,8 +61,10 @@ ScaledFontBase::~ScaledFontBase()
 #endif
 }
 
-ScaledFontBase::ScaledFontBase(Float aSize)
-  : mSize(aSize)
+ScaledFontBase::ScaledFontBase(const RefPtr<UnscaledFont>& aUnscaledFont,
+                               Float aSize)
+  : ScaledFont(aUnscaledFont)
+  , mSize(aSize)
 {
 #ifdef USE_SKIA
   mTypeface = nullptr;
@@ -147,6 +176,13 @@ ScaledFontBase::GetPathForGlyphs(const GlyphBuffer &aBuffer, const DrawTarget *a
     return newPath.forget();
   }
 #endif
+#ifdef USE_SKIA
+  RefPtr<PathBuilder> builder = aTarget->CreatePathBuilder();
+  SkPath skPath = GetSkiaPathForGlyphs(aBuffer);
+  RefPtr<Path> path = MakeAndAddRef<PathSkia>(skPath, FillRule::FILL_WINDING);
+  path->StreamToSink(builder);
+  return builder->Finish();
+#endif
   return nullptr;
 }
 
@@ -192,6 +228,15 @@ ScaledFontBase::CopyGlyphsToBuilder(const GlyphBuffer &aBuffer, PathBuilder *aBu
     return;
   }
 #endif
+#ifdef USE_SKIA
+  if (backendType == BackendType::RECORDING) {
+    SkPath skPath = GetSkiaPathForGlyphs(aBuffer);
+    RefPtr<Path> path = MakeAndAddRef<PathSkia>(skPath, FillRule::FILL_WINDING);
+    path->StreamToSink(aBuilder);
+    return;
+  }
+#endif
+  MOZ_ASSERT(false, "Path not being copied");
 }
 
 void
@@ -253,7 +298,7 @@ ScaledFontBase::SetCairoScaledFont(cairo_scaled_font_t* font)
 
   if (font == mScaledFont)
     return;
- 
+
   if (mScaledFont)
     cairo_scaled_font_destroy(mScaledFont);
 

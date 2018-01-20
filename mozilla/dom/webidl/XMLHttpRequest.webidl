@@ -4,7 +4,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * www.w3.org/TR/2012/WD-XMLHttpRequest-20120117/
+ * https://xhr.spec.whatwg.org/#interface-xmlhttprequest
  *
  * Copyright © 2012 W3C® (MIT, ERCIM, Keio), All Rights Reserved. W3C
  * liability, trademark and document use rules apply.
@@ -23,9 +23,7 @@ enum XMLHttpRequestResponseType {
   "text",
 
   // Mozilla-specific stuff
-  "moz-chunked-text",
   "moz-chunked-arraybuffer",
-  "moz-blob"
 };
 
 /**
@@ -70,10 +68,10 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
 
   // request
   [Throws]
-  void open(ByteString method, DOMString url);
+  void open(ByteString method, USVString url);
   [Throws]
-  void open(ByteString method, DOMString url, boolean async,
-            optional DOMString? user=null, optional DOMString? password=null);
+  void open(ByteString method, USVString url, boolean async,
+            optional USVString? user=null, optional USVString? password=null);
   [Throws]
   void setRequestHeader(ByteString header, ByteString value);
 
@@ -87,29 +85,13 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   readonly attribute XMLHttpRequestUpload upload;
 
   [Throws]
-  void send();
-  [Throws]
-  void send(ArrayBuffer data);
-  [Throws]
-  void send(ArrayBufferView data);
-  [Throws]
-  void send(Blob data);
-  [Throws]
-  void send(Document data);
-  [Throws]
-  void send(DOMString? data);
-  [Throws]
-  void send(FormData data);
-  [Throws]
-  void send(InputStream data);
-  [Throws]
-  void send(URLSearchParams data);
+  void send(optional (Document or BodyInit)? body = null);
 
   [Throws]
   void abort();
 
   // response
-  readonly attribute DOMString responseURL;
+  readonly attribute USVString responseURL;
 
   [Throws]
   readonly attribute unsigned short status;
@@ -131,7 +113,7 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   [Throws]
   readonly attribute any response;
   [Cached, Pure, Throws]
-  readonly attribute DOMString? responseText;
+  readonly attribute USVString? responseText;
 
   [Throws, Exposed=Window]
   readonly attribute Document? responseXML;
@@ -154,6 +136,14 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
 
   [ChromeOnly, Exposed=Window]
   void setOriginAttributes(optional OriginAttributesDictionary originAttributes);
+
+  [ChromeOnly, Throws]
+  void sendInputStream(InputStream body);
+
+  // Only works on MainThread.
+  // Its permanence is to be evaluated in bug 1368540 for Firefox 60.
+  [ChromeOnly]
+  readonly attribute unsigned short errorCode;
 
   readonly attribute boolean mozAnon;
   readonly attribute boolean mozSystem;

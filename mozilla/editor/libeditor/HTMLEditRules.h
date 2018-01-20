@@ -7,6 +7,7 @@
 #define HTMLEditRules_h
 
 #include "TypeInState.h"
+#include "mozilla/EditorDOMPoint.h" // for EditorDOMPoint
 #include "mozilla/SelectionState.h"
 #include "mozilla/TextEditRules.h"
 #include "nsCOMPtr.h"
@@ -17,7 +18,7 @@
 #include "nsTArray.h"
 #include "nscore.h"
 
-class nsIAtom;
+class nsAtom;
 class nsIDOMCharacterData;
 class nsIDOMDocument;
 class nsIDOMElement;
@@ -28,10 +29,10 @@ class nsRange;
 
 namespace mozilla {
 
+class EditActionResult;
 class HTMLEditor;
 class RulesInfo;
 class TextEditor;
-struct EditorDOMPoint;
 namespace dom {
 class Element;
 class Selection;
@@ -48,10 +49,18 @@ struct StyleCache final : public PropItem
     MOZ_COUNT_CTOR(StyleCache);
   }
 
-  StyleCache(nsIAtom* aTag,
+  StyleCache(nsAtom* aTag,
              const nsAString& aAttr,
              const nsAString& aValue)
     : PropItem(aTag, aAttr, aValue)
+    , mPresent(false)
+  {
+    MOZ_COUNT_CTOR(StyleCache);
+  }
+
+  StyleCache(nsAtom* aTag,
+             const nsAString& aAttr)
+    : PropItem(aTag, aAttr, EmptyString())
     , mPresent(false)
   {
     MOZ_COUNT_CTOR(StyleCache);
@@ -85,6 +94,7 @@ public:
                           bool* aCancel, bool* aHandled) override;
   NS_IMETHOD DidDoAction(Selection* aSelection, RulesInfo* aInfo,
                          nsresult aResult) override;
+  NS_IMETHOD_(bool) DocumentIsEmpty() override;
   NS_IMETHOD DocumentModified() override;
 
   nsresult GetListState(bool* aMixed, bool* aOL, bool* aUL, bool* aDL);
@@ -92,14 +102,13 @@ public:
   nsresult GetIndentState(bool* aCanIndent, bool* aCanOutdent);
   nsresult GetAlignment(bool* aMixed, nsIHTMLEditor::EAlignment* aAlign);
   nsresult GetParagraphState(bool* aMixed, nsAString& outFormat);
-  nsresult MakeSureElemStartsOrEndsOnCR(nsIDOMNode* aNode);
+  nsresult MakeSureElemStartsOrEndsOnCR(nsINode& aNode);
 
   // nsIEditActionListener methods
 
-  NS_IMETHOD WillCreateNode(const nsAString& aTag, nsIDOMNode* aParent,
-                            int32_t aPosition) override;
-  NS_IMETHOD DidCreateNode(const nsAString& aTag, nsIDOMNode* aNode,
-                           nsIDOMNode* aParent, int32_t aPosition,
+  NS_IMETHOD WillCreateNode(const nsAString& aTag,
+                            nsIDOMNode* aNextSiblingOfNewNode) override;
+  NS_IMETHOD DidCreateNode(const nsAString& aTag, nsIDOMNode* aNewNode,
                            nsresult aResult) override;
   NS_IMETHOD WillInsertNode(nsIDOMNode* aNode, nsIDOMNode* aParent,
                             int32_t aPosition) override;
@@ -161,16 +170,83 @@ protected:
                               nsIEditor::EDirection aDir,
                               nsresult aResult);
   nsresult InsertBRIfNeeded(Selection* aSelection);
-  mozilla::EditorDOMPoint GetGoodSelPointForNode(nsINode& aNode,
-                                                 nsIEditor::EDirection aAction);
-  nsresult JoinBlocks(nsIContent& aLeftNode, nsIContent& aRightNode,
-                      bool* aCanceled);
-  nsresult MoveBlock(Element& aLeftBlock, Element& aRightBlock,
-                     int32_t aLeftOffset, int32_t aRightOffset);
-  nsresult MoveNodeSmart(nsIContent& aNode, Element& aDestElement,
-                         int32_t* aOffset);
-  nsresult MoveContents(Element& aElement, Element& aDestElement,
-                        int32_t* aOffset);
+
+  /**
+   * CanContainParagraph() returns true if aElement can have a <p> element as
+   * its child or its descendant.
+   */
+  bool CanContainParagraph(Element& aElement) const;
+
+  /**
+   * Insert a normal <br> element or a moz-<br> element to aNode when
+   * aNode is a block and it has no children.
+   *
+   * @param aNode           Reference to a block parent.
+   * @param aInsertMozBR    true if this should insert a moz-<br> element.
+   *                        Otherwise, i.e., this should insert a normal <br>
+   *                        element, false.
+   */
+  nsresult InsertBRIfNeededInternal(nsINode& aNode, bool aInsertMozBR);
+
+  EditorDOMPoint GetGoodSelPointForNode(nsINode& aNode,
+                                        nsIEditor::EDirection aAction);
+
+  /**
+   * TryToJoinBlocks() tries to join two block elements.  The right element is
+   * always joined to the left element.  If the elements are the same type and
+   * not nested within each other, JoinNodesSmart() is called (example, joining
+   * two list items together into one).  If the elements are not the same type,
+   * or one is a descendant of the other, we instead destroy the right block
+   * placing its children into leftblock.  DTD containment rules are followed
+   * throughout.
+   *
+   * @return            Sets canceled to true if the operation should do
+   *                    nothing anymore even if this doesn't join the blocks.
+   *                    Sets handled to true if this actually handles the
+   *                    request.  Note that this may set it to true even if this
+   *                    does not join the block.  E.g., if the blocks shouldn't
+   *                    be joined or it's impossible to join them but it's not
+   *                    unexpected case, this returns true with this.
+   */
+  EditActionResult TryToJoinBlocks(nsIContent& aLeftNode,
+                                   nsIContent& aRightNode);
+
+  /**
+   * MoveBlock() moves the content from aRightBlock starting from aRightOffset
+   * into aLeftBlock at aLeftOffset. Note that the "block" can be inline nodes
+   * between <br>s, or between blocks, etc.  DTD containment rules are followed
+   * throughout.
+   *
+   * @return            Sets handled to true if this actually joins the nodes.
+   *                    canceled is always false.
+   */
+  EditActionResult MoveBlock(Element& aLeftBlock, Element& aRightBlock,
+                             int32_t aLeftOffset, int32_t aRightOffset);
+
+  /**
+   * MoveNodeSmart() moves aNode to (aDestElement, aInOutDestOffset).
+   * DTD containment rules are followed throughout.
+   *
+   * @param aOffset                 returns the point after inserted content.
+   * @return                        Sets true to handled if this actually moves
+   *                                the nodes.
+   *                                canceled is always false.
+   */
+  EditActionResult MoveNodeSmart(nsIContent& aNode, Element& aDestElement,
+                                 int32_t* aInOutDestOffset);
+
+  /**
+   * MoveContents() moves the contents of aElement to (aDestElement,
+   * aInOutDestOffset).  DTD containment rules are followed throughout.
+   *
+   * @param aInOutDestOffset        updated to point after inserted content.
+   * @return                        Sets true to handled if this actually moves
+   *                                the nodes.
+   *                                canceled is always false.
+   */
+  EditActionResult MoveContents(Element& aElement, Element& aDestElement,
+                                int32_t* aInOutDestOffset);
+
   nsresult DeleteNonTableElements(nsINode* aNode);
   nsresult WillMakeList(Selection* aSelection,
                         const nsAString* aListType,
@@ -199,6 +275,7 @@ protected:
   nsresult WillMakeBasicBlock(Selection& aSelection,
                               const nsAString& aBlockType,
                               bool* aCancel, bool* aHandled);
+  nsresult MakeBasicBlock(Selection& aSelection, nsAtom& aBlockType);
   nsresult DidMakeBasicBlock(Selection* aSelection, RulesInfo* aInfo,
                              nsresult aResult);
   nsresult DidAbsolutePosition();
@@ -214,11 +291,13 @@ protected:
                        int32_t* aIndex, Lists aLists = Lists::yes,
                        Tables aTables = Tables::yes);
   Element* IsInListItem(nsINode* aNode);
+  nsAtom& DefaultParagraphSeparator();
   nsresult ReturnInHeader(Selection& aSelection, Element& aHeader,
                           nsINode& aNode, int32_t aOffset);
-  nsresult ReturnInParagraph(Selection* aSelection, nsIDOMNode* aHeader,
-                             nsIDOMNode* aTextNode, int32_t aOffset,
-                             bool* aCancel, bool* aHandled);
+  nsresult ReturnInParagraph(Selection* aSelection, nsINode* aHeader,
+                             nsINode* aTextNode, int32_t aOffset,
+                             nsIContent* aChildAtOffset, bool* aCancel,
+                             bool* aHandled);
   nsresult SplitParagraph(nsIDOMNode* aPara,
                           nsIContent* aBRNode,
                           Selection* aSelection,
@@ -243,8 +322,8 @@ protected:
                               nsIContent** aOutLeftNode,
                               nsIContent** aOutRightNode);
 
-  nsresult ConvertListType(Element* aList, Element** aOutList,
-                           nsIAtom* aListType, nsIAtom* aItemType);
+  already_AddRefed<Element> ConvertListType(Element* aList, nsAtom* aListType,
+                                            nsAtom* aItemType);
 
   nsresult CreateStyleForInsertText(Selection& aSelection, nsIDocument& aDoc);
   enum class MozBRCounts { yes, no };
@@ -260,9 +339,8 @@ protected:
   bool IsFirstNode(nsIDOMNode* aNode);
   bool IsLastNode(nsIDOMNode* aNode);
   nsresult NormalizeSelection(Selection* aSelection);
-  void GetPromotedPoint(RulesEndpoint aWhere, nsIDOMNode* aNode,
-                        int32_t aOffset, EditAction actionID,
-                        nsCOMPtr<nsIDOMNode>* outNode, int32_t* outOffset);
+  EditorDOMPoint GetPromotedPoint(RulesEndpoint aWhere, nsINode& aNode,
+                                  int32_t aOffset, EditAction actionID);
   void GetPromotedRanges(Selection& aSelection,
                          nsTArray<RefPtr<nsRange>>& outArrayOfRanges,
                          EditAction inOperationType);
@@ -276,7 +354,7 @@ protected:
   void GetChildNodesForOperation(
          nsINode& aNode,
          nsTArray<OwningNonNull<nsINode>>& outArrayOfNodes);
-  nsresult GetNodesFromPoint(EditorDOMPoint aPoint,
+  nsresult GetNodesFromPoint(const EditorDOMPoint& aPoint,
                              EditAction aOperation,
                              nsTArray<OwningNonNull<nsINode>>& outArrayOfNodes,
                              TouchContent aTouchContent);
@@ -299,24 +377,31 @@ protected:
   nsresult BustUpInlinesAtBRs(
              nsIContent& aNode,
              nsTArray<OwningNonNull<nsINode>>& aOutArrayOfNodes);
+  /**
+   * GetHiestInlineParent() returns the highest inline node parent between
+   * aNode and the editing host.  Even if the editing host is an inline
+   * element, this method never returns the editing host as the result.
+   */
   nsIContent* GetHighestInlineParent(nsINode& aNode);
   void MakeTransitionList(nsTArray<OwningNonNull<nsINode>>& aNodeArray,
                           nsTArray<bool>& aTransitionArray);
   nsresult RemoveBlockStyle(nsTArray<OwningNonNull<nsINode>>& aNodeArray);
   nsresult ApplyBlockStyle(nsTArray<OwningNonNull<nsINode>>& aNodeArray,
-                           nsIAtom& aBlockTag);
+                           nsAtom& aBlockTag);
   nsresult MakeBlockquote(nsTArray<OwningNonNull<nsINode>>& aNodeArray);
-  nsresult SplitAsNeeded(nsIAtom& aTag, OwningNonNull<nsINode>& inOutParent,
-                         int32_t& inOutOffset);
-  nsresult SplitAsNeeded(nsIAtom& aTag, nsCOMPtr<nsINode>& inOutParent,
-                         int32_t& inOutOffset);
+  nsresult SplitAsNeeded(nsAtom& aTag, OwningNonNull<nsINode>& inOutParent,
+                         int32_t& inOutOffset,
+                         nsCOMPtr<nsIContent>* inOutChildAtOffset = nullptr);
+  nsresult SplitAsNeeded(nsAtom& aTag, nsCOMPtr<nsINode>& inOutParent,
+                         int32_t& inOutOffset,
+                         nsCOMPtr<nsIContent>* inOutChildAtOffset = nullptr);
   nsresult AddTerminatingBR(nsIDOMNode *aBlock);
   EditorDOMPoint JoinNodesSmart(nsIContent& aNodeLeft,
                                 nsIContent& aNodeRight);
   Element* GetTopEnclosingMailCite(nsINode& aNode);
-  nsresult PopListItem(nsIDOMNode* aListItem, bool* aOutOfList);
+  nsresult PopListItem(nsIContent& aListItem, bool* aOutOfList = nullptr);
   nsresult RemoveListStructure(Element& aList);
-  nsresult CacheInlineStyles(nsIDOMNode* aNode);
+  nsresult CacheInlineStyles(nsINode* aNode);
   nsresult ReapplyCachedStyles();
   void ClearCachedStyles();
   void AdjustSpecialBreaks();
@@ -325,10 +410,22 @@ protected:
   void CheckInterlinePosition(Selection& aSelection);
   nsresult AdjustSelection(Selection* aSelection,
                            nsIEditor::EDirection aAction);
-  nsresult FindNearSelectableNode(nsIDOMNode* aSelNode,
-                                  int32_t aSelOffset,
-                                  nsIEditor::EDirection& aDirection,
-                                  nsCOMPtr<nsIDOMNode>* outSelectableNode);
+
+  /**
+   * FindNearEditableNode() tries to find an editable node near aPoint.
+   *
+   * @param aPoint      The DOM point where to start to search from.
+   * @param aDirection  If nsIEditor::ePrevious is set, this searches an
+   *                    editable node from next nodes.  Otherwise, from
+   *                    previous nodes.
+   * @return            If found, returns non-nullptr.  Otherwise, nullptr.
+   *                    Note that if found node is in different table element,
+   *                    this returns nullptr.
+   *                    And also if aDirection is not nsIEditor::ePrevious,
+   *                    the result may be the node pointed by aPoint.
+   */
+  nsIContent* FindNearEditableNode(const EditorRawDOMPoint& aPoint,
+                                   nsIEditor::EDirection aDirection);
   /**
    * Returns true if aNode1 or aNode2 or both is the descendant of some type of
    * table element, but their nearest table element ancestors differ.  "Table
@@ -342,18 +439,49 @@ protected:
   nsresult SelectionEndpointInNode(nsINode* aNode, bool* aResult);
   nsresult UpdateDocChangeRange(nsRange* aRange);
   nsresult ConfirmSelectionInBody();
-  nsresult InsertMozBRIfNeeded(nsINode& aNode);
+
+  /**
+   * Insert normal <br> element into aNode when aNode is a block and it has
+   * no children.
+   */
+  nsresult InsertBRIfNeeded(nsINode& aNode)
+  {
+    return InsertBRIfNeededInternal(aNode, false);
+  }
+
+  /**
+   * Insert moz-<br> element (<br type="_moz">) into aNode when aNode is a
+   * block and it has no children.
+   */
+  nsresult InsertMozBRIfNeeded(nsINode& aNode)
+  {
+    return InsertBRIfNeededInternal(aNode, true);
+  }
+
   bool IsEmptyInline(nsINode& aNode);
   bool ListIsEmptyLine(nsTArray<OwningNonNull<nsINode>>& arrayOfNodes);
-  nsresult RemoveAlignment(nsIDOMNode* aNode, const nsAString& aAlignType,
+  nsresult RemoveAlignment(nsINode& aNode, const nsAString& aAlignType,
                            bool aChildrenOnly);
-  nsresult MakeSureElemStartsOrEndsOnCR(nsIDOMNode* aNode, bool aStarts);
+  nsresult MakeSureElemStartsOrEndsOnCR(nsINode& aNode, bool aStarts);
   enum class ContentsOnly { no, yes };
   nsresult AlignBlock(Element& aElement,
                       const nsAString& aAlignType, ContentsOnly aContentsOnly);
   enum class Change { minus, plus };
   nsresult ChangeIndentation(Element& aElement, Change aChange);
   void DocumentModifiedWorker();
+
+  /**
+   * InitStyleCacheArray() initializes aStyleCache for usable with
+   * GetInlineStyles().
+   */
+  void InitStyleCacheArray(StyleCache aStyleCache[SIZE_STYLE_TABLE]);
+
+  /**
+   * GetInlineStyles() retrieves the style of aNode and modifies each item of
+   * aStyleCache.
+   */
+  nsresult GetInlineStyles(nsINode* aNode,
+                           StyleCache aStyleCache[SIZE_STYLE_TABLE]);
 
 protected:
   HTMLEditor* mHTMLEditor;
@@ -368,6 +496,11 @@ protected:
   uint32_t mJoinOffset;
   nsCOMPtr<Element> mNewBlock;
   RefPtr<RangeItem> mRangeItem;
+
+  // XXX In strict speaking, mCachedStyles isn't enough to cache inline styles
+  //     because inline style can be specified with "style" attribute and/or
+  //     CSS in <style> elements or CSS files.  So, we need to look for better
+  //     implementation about this.
   StyleCache mCachedStyles[SIZE_STYLE_TABLE];
 };
 

@@ -59,7 +59,7 @@ Log(const char* aMessageType,
     if (sStackTraceDepth) {
       msgStream << std::endl << "Stack Trace:";
       MozStackWalk(StackFrameToOStringStream, aFramesToSkip, sStackTraceDepth,
-                   &msgStream, 0, nullptr);
+                   &msgStream);
     }
   }
 
@@ -86,8 +86,8 @@ InitLoggingIfRequired(ProvideLogFunctionCb aProvideLogFunctionCb)
     return;
   }
 
-  if (Preferences::GetBool("security.sandbox.windows.log") ||
-      PR_GetEnv("MOZ_WIN_SANDBOX_LOGGING")) {
+  if (Preferences::GetBool("security.sandbox.logging.enabled") ||
+      PR_GetEnv("MOZ_SANDBOX_LOGGING")) {
     aProvideLogFunctionCb(Log);
 
 #if defined(MOZ_CONTENT_SANDBOX)

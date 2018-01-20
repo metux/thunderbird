@@ -25,6 +25,11 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Издање">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.featuresTitle "&brandShortName; могућности">
+<!ENTITY aboutSupport.featureName "Назив">
+<!ENTITY aboutSupport.featureVersion "Издање">
+<!ENTITY aboutSupport.featureId "ID">
+
 <!ENTITY aboutSupport.experimentsTitle "Експерименталне могућности">
 <!ENTITY aboutSupport.experimentName "Име">
 <!ENTITY aboutSupport.experimentId "ID">
@@ -43,7 +48,7 @@ This is likely the same like id.heading in crashes.dtd. -->
 "Update" is a noun here, not a verb. -->
 <!ENTITY aboutSupport.appBasicsUpdateChannel "Канал за ажурирање">
 <!ENTITY aboutSupport.appBasicsUpdateHistory "Историја ажурирања">
-<!ENTITY aboutSupport.appBasicsShowUpdateHistory "Прикажи историју ажурирања">
+<!ENTITY aboutSupport.appBasicsShowUpdateHistory "Прикажи историјат ажурирања">
 
 <!ENTITY aboutSupport.appBasicsProfileDir "Фасцикла профила">
 <!-- LOCALIZATION NOTE (aboutSupport.appBasicsProfileDirWinMac):
@@ -64,6 +69,11 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsProfiles "Профили">
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Вишепроцесорски прозори">
+
+<!ENTITY aboutSupport.appBasicsProcessCount "Процеси веб садржаја">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Google кључ">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Кључ Mozilla сервиса за локацију">
 
 <!ENTITY aboutSupport.appBasicsSafeMode "Безбедни режим">
 
@@ -100,6 +110,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "Приступачност">
 <!ENTITY aboutSupport.a11yActivated "Активирана">
 <!ENTITY aboutSupport.a11yForceDisabled "Спречи приступачност">
+<!ENTITY aboutSupport.a11yHandlerUsed "Приступни управљач искоришћен">
+<!ENTITY aboutSupport.a11yInstantiator "Приступачност инстантиатору">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Издања библиотека">
 
@@ -110,6 +122,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Копирај податке у бележницу">
 
 <!ENTITY aboutSupport.sandboxTitle "Sandbox">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Одбијени системски позиви">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "Пре неколико секунди">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Тип процеса">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Системски позив">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Аргументи">
 
 <!ENTITY aboutSupport.safeModeTitle "Покушај безбедни режим">
 <!ENTITY aboutSupport.restartInSafeMode.label "Рестартуј са онемогућеним додацима…">
@@ -122,3 +142,26 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Дневник одлука">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Онемогућене могућности чувара рушења">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Алтернативна решења">
+
+<!ENTITY aboutSupport.mediaTitle "Медиј">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Излазни уређаји">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Улазни уређаји">
+<!ENTITY aboutSupport.mediaDeviceName "Име">
+<!ENTITY aboutSupport.mediaDeviceGroup "Група">
+<!ENTITY aboutSupport.mediaDeviceVendor "Произвођач">
+<!ENTITY aboutSupport.mediaDeviceState "Стање">
+<!ENTITY aboutSupport.mediaDevicePreferred "Жељено">
+<!ENTITY aboutSupport.mediaDeviceFormat "Формат">
+<!ENTITY aboutSupport.mediaDeviceChannels "Канали">
+<!ENTITY aboutSupport.mediaDeviceRate "Стопа">
+<!ENTITY aboutSupport.mediaDeviceLatency "Латентност">
+
+<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
+<!ENTITY aboutSupport.intlAppTitle "Application Settings">
+<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
+<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
+<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
+<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
+<!ENTITY aboutSupport.intlOSTitle "Operating System">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">

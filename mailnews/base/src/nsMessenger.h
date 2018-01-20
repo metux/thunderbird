@@ -12,8 +12,10 @@
 #include "nsITransactionManager.h"
 #include "nsIFile.h"
 #include "nsIDocShell.h"
+#include "nsString.h"
 #include "nsIStringBundle.h"
 #include "nsIFile.h"
+#include "nsIFilePicker.h"
 #include "nsWeakReference.h"
 #include "mozIDOMWindow.h"
 #include "nsTArray.h"
@@ -25,14 +27,14 @@ class nsMessenger : public nsIMessenger, public nsSupportsWeakReference, public 
 public:
   nsMessenger();
 
-  NS_DECL_ISUPPORTS  
+  NS_DECL_ISUPPORTS
   NS_DECL_NSIMESSENGER
   NS_DECL_NSIFOLDERLISTENER
 
   nsresult Alert(const char * stringName);
 
   nsresult SaveAttachment(nsIFile *file, const nsACString& unescapedUrl,
-                          const nsACString& messageUri, const nsACString& contentType, 
+                          const nsACString& messageUri, const nsACString& contentType,
                           void *closure, nsIUrlListener *aListener);
   nsresult PromptIfFileExists(nsIFile *file);
   nsresult DetachAttachments(uint32_t aCount,
@@ -72,6 +74,24 @@ private:
                          nsIFile **aSaveAsFile);
 
   nsresult GetSaveToDir(nsIFile **aSaveToDir);
+  nsresult ShowPicker(nsIFilePicker *aPicker, int16_t *aResult);
+
+  class nsFilePickerShownCallback
+    : public nsIFilePickerShownCallback
+  {
+    virtual ~nsFilePickerShownCallback()
+    { }
+
+  public:
+    nsFilePickerShownCallback();
+    NS_DECL_ISUPPORTS
+
+    NS_IMETHOD Done(int16_t aResult) override;
+
+  public:
+    bool mPickerDone;
+    int16_t mResult;
+  };
 
   nsString mId;
   nsCOMPtr<nsITransactionManager> mTxnMgr;

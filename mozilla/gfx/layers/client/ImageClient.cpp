@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -84,8 +85,6 @@ TextureInfo ImageClientSingle::GetTextureInfo() const
 void
 ImageClientSingle::FlushAllImages()
 {
-  MOZ_ASSERT(GetForwarder()->GetTextureForwarder()->UsesImageBridge());
-
   for (auto& b : mBuffers) {
     RemoveTexture(b.mTextureClient);
   }
@@ -103,8 +102,11 @@ ImageClient::CreateTextureClientForImage(Image* aImage, KnowsCompositor* aForwar
       return nullptr;
     }
     texture = TextureClient::CreateForYCbCr(aForwarder,
-                                            data->mYSize, data->mCbCrSize, data->mStereoMode,
+                                            data->mYSize, data->mYStride,
+                                            data->mCbCrSize, data->mCbCrStride,
+                                            data->mStereoMode,
                                             data->mYUVColorSpace,
+                                            data->mBitDepth,
                                             TextureFlags::DEFAULT);
     if (!texture) {
       return nullptr;
@@ -120,24 +122,14 @@ ImageClient::CreateTextureClientForImage(Image* aImage, KnowsCompositor* aForwar
     if (!status) {
       return nullptr;
     }
-  } else if (aImage->GetFormat() == ImageFormat::SURFACE_TEXTURE ||
-             aImage->GetFormat() == ImageFormat::EGLIMAGE) {
-    gfx::IntSize size = aImage->GetSize();
-
-    if (aImage->GetFormat() == ImageFormat::EGLIMAGE) {
-      EGLImageImage* typedImage = aImage->AsEGLImageImage();
-      texture = EGLImageTextureData::CreateTextureClient(
-        typedImage, size, aForwarder->GetTextureForwarder(), TextureFlags::DEFAULT);
 #ifdef MOZ_WIDGET_ANDROID
-    } else if (aImage->GetFormat() == ImageFormat::SURFACE_TEXTURE) {
-      SurfaceTextureImage* typedImage = aImage->AsSurfaceTextureImage();
-      texture = AndroidSurfaceTextureData::CreateTextureClient(
-        typedImage->GetSurfaceTexture(), size, typedImage->GetOriginPos(),
-        aForwarder->GetTextureForwarder(), TextureFlags::DEFAULT);
+  } else if (aImage->GetFormat() == ImageFormat::SURFACE_TEXTURE) {
+    gfx::IntSize size = aImage->GetSize();
+    SurfaceTextureImage* typedImage = aImage->AsSurfaceTextureImage();
+    texture = AndroidSurfaceTextureData::CreateTextureClient(
+      typedImage->GetHandle(), size, typedImage->GetContinuous(), typedImage->GetOriginPos(),
+      aForwarder->GetTextureForwarder(), TextureFlags::DEFAULT);
 #endif
-    } else {
-      MOZ_ASSERT(false, "Bad ImageFormat.");
-    }
   } else {
     RefPtr<gfx::SourceSurface> surface = aImage->GetAsSourceSurface();
     MOZ_ASSERT(surface);
@@ -194,6 +186,10 @@ ImageClientSingle::UpdateImage(ImageContainer* aContainer, uint32_t aContentFlag
     // This can also happen if all images in the list are invalid.
     // We return true because the caller would attempt to recreate the
     // ImageClient otherwise, and that isn't going to help.
+    for (auto& b : mBuffers) {
+      RemoveTexture(b.mTextureClient);
+    }
+    mBuffers.Clear();
     return true;
   }
 
@@ -225,10 +221,20 @@ ImageClientSingle::UpdateImage(ImageContainer* aContainer, uint32_t aContentFlag
       // should fix it.
       texture = CreateTextureClientForImage(image, GetForwarder());
     }
-    if (!texture || !AddTextureClient(texture)) {
+
+    if (!texture) {
       return false;
     }
 
+    // We check if the texture's allocator is still open, since in between media
+    // decoding a frame and adding it to the compositable, we could have
+    // restarted the GPU process.
+    if (!texture->GetAllocator()->IPCOpen()) {
+      continue;
+    }
+    if (!AddTextureClient(texture)) {
+      return false;
+    }
 
     CompositableForwarder::TimedTextureClient* t = textures.AppendElement();
     t->mTextureClient = texture;
@@ -278,7 +284,6 @@ ImageClient::ImageClient(CompositableForwarder* aFwd, TextureFlags aFlags,
 ImageClientBridge::ImageClientBridge(CompositableForwarder* aFwd,
                                      TextureFlags aFlags)
 : ImageClient(aFwd, aFlags, CompositableType::IMAGE_BRIDGE)
-, mAsyncContainerID(0)
 {
 }
 
@@ -288,11 +293,17 @@ ImageClientBridge::UpdateImage(ImageContainer* aContainer, uint32_t aContentFlag
   if (!GetForwarder() || !mLayer) {
     return false;
   }
-  if (mAsyncContainerID == aContainer->GetAsyncContainerID()) {
+  if (mAsyncContainerHandle == aContainer->GetAsyncContainerHandle()) {
     return true;
   }
-  mAsyncContainerID = aContainer->GetAsyncContainerID();
-  static_cast<ShadowLayerForwarder*>(GetForwarder())->AttachAsyncCompositable(mAsyncContainerID, mLayer);
+
+  mAsyncContainerHandle = aContainer->GetAsyncContainerHandle();
+  if (!mAsyncContainerHandle) {
+    // If we couldn't contact a working ImageBridgeParent, just return.
+    return true;
+  }
+
+  static_cast<ShadowLayerForwarder*>(GetForwarder())->AttachAsyncCompositable(mAsyncContainerHandle, mLayer);
   return true;
 }
 

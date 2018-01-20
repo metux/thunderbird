@@ -61,9 +61,10 @@ var pop3DownloadModule =
   onDownloadStarted : function(aFolder) {
     this.log.info("in onDownloadStarted");
 
-    let displayText = this.bundle
-                          .formatStringFromName("pop3EventStartDisplayText",
-                                               [aFolder.prettiestName], 1);
+    let displayText =
+      this.bundle.formatStringFromName("pop3EventStartDisplayText2",
+                                       [aFolder.server.prettyName, // account name
+                                        aFolder.prettyName], 2);   // folder name
     // remember the prev activity for this folder, if any.
     this._prevActivityForFolder.set(aFolder.URI,
       this._mostRecentActivityForFolder.get(aFolder.URI));
@@ -90,8 +91,13 @@ var pop3DownloadModule =
   onDownloadCompleted : function(aFolder, aNumMsgsDownloaded) {
     this.log.info("in onDownloadCompleted");
 
-    this.activityMgr.removeActivity(this._mostRecentActivityForFolder
-                                        .get(aFolder.URI).eventID);
+    // Remove activity if there was any.
+    // It can happen that download never started (e.g. couldn't connect to server),
+    // with onDownloadStarted, but we still get a onDownloadCompleted event
+    // when the connection is given up.
+    let recentActivity = this._mostRecentActivityForFolder.get(aFolder.URI);
+    if (recentActivity)
+      this.activityMgr.removeActivity(recentActivity.eventID);
 
     let displayText;
     if (aNumMsgsDownloaded > 0)

@@ -70,8 +70,8 @@ PR_END_MACRO
 #define LOG_ERROR(params) \
   _LOG_OUTPUT(LEVEL_ERROR, eprintf, params)
 
-// Same as LOG_ERROR, but when logging is set to LEVEL_DEBUG, the message 
-// will be put to the stdout instead of stderr to keep continuity with other 
+// Same as LOG_ERROR, but when logging is set to LEVEL_DEBUG, the message
+// will be put to the stdout instead of stderr to keep continuity with other
 // LOG_DEBUG message output
 #define LOG_ERRORD(params) \
 PR_BEGIN_MACRO \
@@ -107,25 +107,25 @@ int eprintf(const char* str, ...)
 char* strtok2(char* string, const char* delims, char* *newStr)
 {
   PR_ASSERT(string);
-  
+
   char delimTable[DELIM_TABLE_SIZE];
   uint32_t i;
   char* result;
   char* str = string;
-  
+
   for (i = 0; i < DELIM_TABLE_SIZE; i++)
     delimTable[i] = '\0';
-  
+
   for (i = 0; delims[i]; i++) {
     SET_DELIM(delimTable, static_cast<uint8_t>(delims[i]));
   }
-  
+
   // skip to beginning
   while (*str && IS_DELIM(delimTable, static_cast<uint8_t>(*str))) {
     str++;
   }
   result = str;
-  
+
   // fix up the end of the token
   while (*str) {
     if (IS_DELIM(delimTable, static_cast<uint8_t>(*str))) {
@@ -135,7 +135,7 @@ char* strtok2(char* string, const char* delims, char* *newStr)
     str++;
   }
   *newStr = str;
-  
+
   return str == result ? nullptr : result;
 }
 
@@ -240,8 +240,8 @@ int ClientAuthValueComparator(const void *v1, const void *v2)
     return 0;
   if (a > 0)
     return 1;
-  else // (a < 0)
-    return -1;
+  // (a < 0)
+  return -1;
 }
 
 static int match_hostname(PLHashEntry *he, int index, void* arg)
@@ -270,7 +270,7 @@ enum {
   USE_TLS1 = 1 << 4
 };
 
-bool ReadConnectRequest(server_info_t* server_info, 
+bool ReadConnectRequest(server_info_t* server_info,
     relayBuffer& buffer, int32_t* result, string& certificate,
     client_auth_option* clientauth, string& host, string& location,
     int32_t* flags)
@@ -280,7 +280,7 @@ bool ReadConnectRequest(server_info_t* server_info,
     return false;
   }
   if (strncmp(buffer.buffertail-4, "\r\n\r\n", 4)) {
-    LOG_ERRORD((" !! request is not tailed with CRLFCRLF but with %x %x %x %x", 
+    LOG_ERRORD((" !! request is not tailed with CRLFCRLF but with %x %x %x %x",
                *(buffer.buffertail-4),
                *(buffer.buffertail-3),
                *(buffer.buffertail-2),
@@ -339,7 +339,7 @@ bool ReadConnectRequest(server_info_t* server_info,
   }
 
   token = strtok2(_caret, "/", &_caret);
-  if (strcmp(token, "HTTP")) {  
+  if (strcmp(token, "HTTP")) {
     LOG_ERRORD((" not tailed with HTTP but with %s", token));
     return true;
   }
@@ -431,7 +431,7 @@ bool ConfigureSSLServerSocket(PRFileDesc* socket, server_info_t* si, const strin
 }
 
 /**
- * This function examines the buffer for a Sec-WebSocket-Location: field, 
+ * This function examines the buffer for a Sec-WebSocket-Location: field,
  * and if it's present, it replaces the hostname in that field with the
  * value in the server's original_host field.  This function works
  * in the reverse direction as AdjustWebSocketHost(), replacing the real
@@ -709,7 +709,7 @@ void HandleConnection(void* data)
         if (out_flags & PR_POLL_READ && buffers[s].areafree())
         {
           LOG_DEBUG((" :reading"));
-          int32_t bytesRead = PR_Recv(sockets[s].fd, buffers[s].buffertail, 
+          int32_t bytesRead = PR_Recv(sockets[s].fd, buffers[s].buffertail,
               buffers[s].areafree(), 0, PR_INTERVAL_NO_TIMEOUT);
 
           if (bytesRead == 0)
@@ -723,7 +723,7 @@ void HandleConnection(void* data)
             if (PR_GetError() != PR_WOULD_BLOCK_ERROR)
             {
               LOG_DEBUG((" error=%d", PR_GetError()));
-              // We are in error state, indicate that the connection was 
+              // We are in error state, indicate that the connection was
               // not closed gracefully
               client_error = true;
               socketErrorState[s] = true;
@@ -760,20 +760,20 @@ void HandleConnection(void* data)
                 server_match_t match;
                 match.fullHost = fullHost;
                 match.matched = false;
-                PL_HashTableEnumerateEntries(ci->server_info->host_cert_table, 
-                                             match_hostname, 
+                PL_HashTableEnumerateEntries(ci->server_info->host_cert_table,
+                                             match_hostname,
                                              &match);
-                PL_HashTableEnumerateEntries(ci->server_info->host_clientauth_table, 
-                                             match_hostname, 
+                PL_HashTableEnumerateEntries(ci->server_info->host_clientauth_table,
+                                             match_hostname,
                                              &match);
-                PL_HashTableEnumerateEntries(ci->server_info->host_ssl3_table, 
-                                             match_hostname, 
+                PL_HashTableEnumerateEntries(ci->server_info->host_ssl3_table,
+                                             match_hostname,
                                              &match);
                 PL_HashTableEnumerateEntries(ci->server_info->host_tls1_table,
                                              match_hostname,
                                              &match);
-                PL_HashTableEnumerateEntries(ci->server_info->host_rc4_table, 
-                                             match_hostname, 
+                PL_HashTableEnumerateEntries(ci->server_info->host_rc4_table,
+                                             match_hostname,
                                              &match);
                 PL_HashTableEnumerateEntries(ci->server_info->host_failhandshake_table,
                                              match_hostname,
@@ -834,30 +834,27 @@ void HandleConnection(void* data)
 
             if (ssl_updated)
             {
-              if (s == 0 && expect_request_start) 
+              if (s == 0 && expect_request_start)
               {
                 if (!strstr(buffers[s].bufferhead, "\r\n\r\n"))
                 {
                   // We haven't received the complete header yet, so wait.
                   continue;
                 }
-                else
+                ci->iswebsocket = AdjustWebSocketHost(buffers[s], ci);
+                expect_request_start = !(ci->iswebsocket ||
+                                         AdjustRequestURI(buffers[s], &fullHost));
+                PRNetAddr* addr = &remote_addr;
+                if (ci->iswebsocket && websocket_server.inet.port)
+                  addr = &websocket_server;
+                if (!ConnectSocket(other_sock, addr, connect_timeout))
                 {
-                  ci->iswebsocket = AdjustWebSocketHost(buffers[s], ci);
-                  expect_request_start = !(ci->iswebsocket || 
-                                           AdjustRequestURI(buffers[s], &fullHost));
-                  PRNetAddr* addr = &remote_addr;
-                  if (ci->iswebsocket && websocket_server.inet.port)
-                    addr = &websocket_server;
-                  if (!ConnectSocket(other_sock, addr, connect_timeout))
-                  {
-                    LOG_ERRORD((" could not open connection to the real server\n"));
-                    client_error = true;
-                    break;
-                  }
-                  LOG_DEBUG(("\n connected to remote server\n"));
-                  numberOfSockets = 2;
+                  LOG_ERRORD((" could not open connection to the real server\n"));
+                  client_error = true;
+                  break;
                 }
+                LOG_DEBUG(("\n connected to remote server\n"));
+                numberOfSockets = 2;
               }
               else if (s == 1 && ci->iswebsocket)
               {
@@ -876,7 +873,7 @@ void HandleConnection(void* data)
         if (out_flags & PR_POLL_WRITE)
         {
           LOG_DEBUG((" :writing"));
-          int32_t bytesWrite = PR_Send(sockets[s].fd, buffers[s2].bufferhead, 
+          int32_t bytesWrite = PR_Send(sockets[s].fd, buffers[s2].bufferhead,
               buffers[s2].present(), 0, PR_INTERVAL_NO_TIMEOUT);
 
           if (bytesWrite < 0)
@@ -897,13 +894,13 @@ void HandleConnection(void* data)
             LOG_DEBUG((", written %d bytes", bytesWrite));
             buffers[s2].buffertail[1] = '\0';
             LOG_DEBUG((" dump:\n%.*s\n", bytesWrite, buffers[s2].bufferhead));
-            
+
             buffers[s2].bufferhead += bytesWrite;
             if (buffers[s2].present())
             {
               LOG_DEBUG((" still have to write %d bytes", (int)buffers[s2].present()));
               in_flags |= PR_POLL_WRITE;
-            }              
+            }
             else
             {
               if (!ssl_updated)
@@ -915,7 +912,7 @@ void HandleConnection(void* data)
                 {
                   LOG_DEBUG((" not updating to SSL based on http_proxy_only for this socket"));
                 }
-                else if (!ConfigureSSLServerSocket(ci->client_sock, ci->server_info, 
+                else if (!ConfigureSSLServerSocket(ci->client_sock, ci->server_info,
                                                    certificateToUse, clientAuth, flags))
                 {
                   LOG_ERRORD((" failed to config server socket\n"));
@@ -1028,11 +1025,10 @@ char* password_func(PK11SlotInfo* slot, PRBool retry, void* arg)
 
 server_info_t* findServerInfo(int portnumber)
 {
-  for (vector<server_info_t>::iterator it = servers.begin();
-       it != servers.end(); it++) 
+  for (auto & server : servers)
   {
-    if (it->listen_port == portnumber)
-      return &(*it);
+    if (server.listen_port == portnumber)
+      return &server;
   }
 
   return nullptr;
@@ -1254,7 +1250,7 @@ int processConfigLine(char* configLine)
 
     return 0;
   }
-  
+
   if (!strcmp(keyword, "clientauth"))
   {
     char* hostname = strtok2(_caret, ":", &_caret);
@@ -1485,10 +1481,10 @@ int freeRC4HashItems(PLHashEntry *he, int i, void *arg)
 int main(int argc, char** argv)
 {
   const char* configFilePath;
-  
+
   const char* logLevelEnv = PR_GetEnv("SSLTUNNEL_LOG_LEVEL");
   gLogLevel = logLevelEnv ? (LogLevel)atoi(logLevelEnv) : LEVEL_INFO;
-  
+
   if (argc == 1)
     configFilePath = "ssltunnel.cfg";
   else
@@ -1590,11 +1586,10 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  for (vector<server_info_t>::iterator it = servers.begin();
-       it != servers.end(); it++) {
+  for (auto & server : servers) {
     // Not actually using this PRJob*...
     // PRJob* server_job =
-    PR_QueueJob(threads, StartServer, &(*it), true);
+    PR_QueueJob(threads, StartServer, &server, true);
   }
   // now wait for someone to tell us to quit
   PR_Lock(shutdown_lock);
@@ -1610,24 +1605,23 @@ int main(int argc, char** argv)
   if (NSS_Shutdown() == SECFailure) {
     LOG_DEBUG(("Leaked NSS objects!\n"));
   }
-  
-  for (vector<server_info_t>::iterator it = servers.begin();
-       it != servers.end(); it++) 
+
+  for (auto & server : servers)
   {
-    PL_HashTableEnumerateEntries(it->host_cert_table, freeHostCertHashItems, nullptr);
-    PL_HashTableEnumerateEntries(it->host_clientauth_table, freeClientAuthHashItems, nullptr);
-    PL_HashTableEnumerateEntries(it->host_redir_table, freeHostRedirHashItems, nullptr);
-    PL_HashTableEnumerateEntries(it->host_ssl3_table, freeSSL3HashItems, nullptr);
-    PL_HashTableEnumerateEntries(it->host_tls1_table, freeTLS1HashItems, nullptr);
-    PL_HashTableEnumerateEntries(it->host_rc4_table, freeRC4HashItems, nullptr);
-    PL_HashTableEnumerateEntries(it->host_failhandshake_table, freeRC4HashItems, nullptr);
-    PL_HashTableDestroy(it->host_cert_table);
-    PL_HashTableDestroy(it->host_clientauth_table);
-    PL_HashTableDestroy(it->host_redir_table);
-    PL_HashTableDestroy(it->host_ssl3_table);
-    PL_HashTableDestroy(it->host_tls1_table);
-    PL_HashTableDestroy(it->host_rc4_table);
-    PL_HashTableDestroy(it->host_failhandshake_table);
+    PL_HashTableEnumerateEntries(server.host_cert_table, freeHostCertHashItems, nullptr);
+    PL_HashTableEnumerateEntries(server.host_clientauth_table, freeClientAuthHashItems, nullptr);
+    PL_HashTableEnumerateEntries(server.host_redir_table, freeHostRedirHashItems, nullptr);
+    PL_HashTableEnumerateEntries(server.host_ssl3_table, freeSSL3HashItems, nullptr);
+    PL_HashTableEnumerateEntries(server.host_tls1_table, freeTLS1HashItems, nullptr);
+    PL_HashTableEnumerateEntries(server.host_rc4_table, freeRC4HashItems, nullptr);
+    PL_HashTableEnumerateEntries(server.host_failhandshake_table, freeRC4HashItems, nullptr);
+    PL_HashTableDestroy(server.host_cert_table);
+    PL_HashTableDestroy(server.host_clientauth_table);
+    PL_HashTableDestroy(server.host_redir_table);
+    PL_HashTableDestroy(server.host_ssl3_table);
+    PL_HashTableDestroy(server.host_tls1_table);
+    PL_HashTableDestroy(server.host_rc4_table);
+    PL_HashTableDestroy(server.host_failhandshake_table);
   }
 
   PR_Cleanup();

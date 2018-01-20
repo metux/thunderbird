@@ -33,6 +33,7 @@ struct MemoryCounter
     : mSource(0)
     , mDecodedHeap(0)
     , mDecodedNonHeap(0)
+    , mSharedHandles(0)
   { }
 
   void SetSource(size_t aCount) { mSource = aCount; }
@@ -41,12 +42,15 @@ struct MemoryCounter
   size_t DecodedHeap() const { return mDecodedHeap; }
   void SetDecodedNonHeap(size_t aCount) { mDecodedNonHeap = aCount; }
   size_t DecodedNonHeap() const { return mDecodedNonHeap; }
+  void SetSharedHandles(size_t aCount) { mSharedHandles = aCount; }
+  size_t SharedHandles() const { return mSharedHandles; }
 
   MemoryCounter& operator+=(const MemoryCounter& aOther)
   {
     mSource += aOther.mSource;
     mDecodedHeap += aOther.mDecodedHeap;
     mDecodedNonHeap += aOther.mDecodedNonHeap;
+    mSharedHandles += aOther.mSharedHandles;
     return *this;
   }
 
@@ -54,6 +58,7 @@ private:
   size_t mSource;
   size_t mDecodedHeap;
   size_t mDecodedNonHeap;
+  size_t mSharedHandles;
 };
 
 enum class SurfaceMemoryCounterType
@@ -67,11 +72,15 @@ struct SurfaceMemoryCounter
 {
   SurfaceMemoryCounter(const SurfaceKey& aKey,
                        bool aIsLocked,
+                       bool aCannotSubstitute,
+                       bool aIsFactor2,
                        SurfaceMemoryCounterType aType =
                          SurfaceMemoryCounterType::NORMAL)
     : mKey(aKey)
     , mType(aType)
     , mIsLocked(aIsLocked)
+    , mCannotSubstitute(aCannotSubstitute)
+    , mIsFactor2(aIsFactor2)
   { }
 
   const SurfaceKey& Key() const { return mKey; }
@@ -79,19 +88,21 @@ struct SurfaceMemoryCounter
   const MemoryCounter& Values() const { return mValues; }
   SurfaceMemoryCounterType Type() const { return mType; }
   bool IsLocked() const { return mIsLocked; }
+  bool CannotSubstitute() const { return mCannotSubstitute; }
+  bool IsFactor2() const { return mIsFactor2; }
 
 private:
   const SurfaceKey mKey;
   MemoryCounter mValues;
   const SurfaceMemoryCounterType mType;
   const bool mIsLocked;
+  const bool mCannotSubstitute;
+  const bool mIsFactor2;
 };
 
 struct ImageMemoryCounter
 {
-  ImageMemoryCounter(Image* aImage,
-                     MallocSizeOf aMallocSizeOf,
-                     bool aIsUsed);
+  ImageMemoryCounter(Image* aImage, SizeOfState& aState, bool aIsUsed);
 
   nsCString& URI() { return mURI; }
   const nsCString& URI() const { return mURI; }
@@ -162,7 +173,7 @@ public:
    * ensure that something reasonable is always returned.
    */
   virtual size_t
-    SizeOfSourceWithComputedFallback(MallocSizeOf aMallocSizeOf) const = 0;
+    SizeOfSourceWithComputedFallback(SizeOfState& aState) const = 0;
 
   /**
    * Collect an accounting of the memory occupied by the image's surfaces (which
@@ -211,7 +222,7 @@ public:
   /**
    * Called when the SurfaceCache discards a surface belonging to this image.
    */
-  virtual void OnSurfaceDiscarded() = 0;
+  virtual void OnSurfaceDiscarded(const SurfaceKey& aSurfaceKey) = 0;
 
   virtual void SetInnerWindowID(uint64_t aInnerWindowId) = 0;
   virtual uint64_t InnerWindowID() const = 0;
@@ -251,7 +262,7 @@ public:
   }
 #endif
 
-  virtual void OnSurfaceDiscarded() override { }
+  virtual void OnSurfaceDiscarded(const SurfaceKey& aSurfaceKey) override { }
 
   virtual void SetInnerWindowID(uint64_t aInnerWindowId) override
   {
@@ -304,6 +315,8 @@ protected:
 
   virtual nsresult StartAnimation() = 0;
   virtual nsresult StopAnimation() = 0;
+
+  void SendOnUnlockedDraw(uint32_t aFlags);
 
   // Member data shared by all implementations of this abstract class
   RefPtr<ProgressTracker>     mProgressTracker;

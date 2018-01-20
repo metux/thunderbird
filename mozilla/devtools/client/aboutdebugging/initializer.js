@@ -11,9 +11,11 @@ const { loader } = Components.utils.import(
   "resource://devtools/shared/Loader.jsm", {});
 const { BrowserLoader } = Components.utils.import(
   "resource://devtools/client/shared/browser-loader.js", {});
+const { Services } = Components.utils.import(
+  "resource://gre/modules/Services.jsm", {});
 
 loader.lazyRequireGetter(this, "DebuggerClient",
-  "devtools/shared/client/main", true);
+  "devtools/shared/client/debugger-client", true);
 loader.lazyRequireGetter(this, "DebuggerServer",
   "devtools/server/main", true);
 loader.lazyRequireGetter(this, "Telemetry",
@@ -27,15 +29,23 @@ const { require } = BrowserLoader({
 const { createFactory } = require("devtools/client/shared/vendor/react");
 const { render, unmountComponentAtNode } = require("devtools/client/shared/vendor/react-dom");
 
-const AboutDebuggingApp = createFactory(require("./components/aboutdebugging"));
+const AboutDebuggingApp = createFactory(require("./components/Aboutdebugging"));
 
 var AboutDebugging = {
   init() {
+    if (!Services.prefs.getBoolPref("devtools.enabled", true)) {
+      // If DevTools are disabled, navigate to about:devtools.
+      window.location = "about:devtools?reason=AboutDebugging";
+      return;
+    }
+
     if (!DebuggerServer.initialized) {
       DebuggerServer.init();
-      DebuggerServer.addBrowserActors();
     }
     DebuggerServer.allowChromeProcess = true;
+    // We want a full featured server for about:debugging. Especially the
+    // "browser actors" like addons.
+    DebuggerServer.registerActors({ root: true, browser: true, tab: true });
 
     this.client = new DebuggerClient(DebuggerServer.connectPipe());
 
@@ -51,17 +61,17 @@ var AboutDebugging = {
   destroy() {
     unmountComponentAtNode(document.querySelector("#body"));
 
-    this.client.close();
-    this.client = null;
+    if (this.client) {
+      this.client.close();
+      this.client = null;
+    }
   },
 };
 
-window.addEventListener("DOMContentLoaded", function load() {
-  window.removeEventListener("DOMContentLoaded", load);
+window.addEventListener("DOMContentLoaded", function () {
   AboutDebugging.init();
-});
+}, {once: true});
 
-window.addEventListener("unload", function unload() {
-  window.removeEventListener("unload", unload);
+window.addEventListener("unload", function () {
   AboutDebugging.destroy();
-});
+}, {once: true});

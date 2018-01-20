@@ -7,15 +7,24 @@
 
 const actionTypes = {
   BATCH_ACTIONS: "BATCH_ACTIONS",
-  MESSAGE_ADD: "MESSAGE_ADD",
-  MESSAGES_CLEAR: "MESSAGES_CLEAR",
-  MESSAGE_OPEN: "MESSAGE_OPEN",
-  MESSAGE_CLOSE: "MESSAGE_CLOSE",
-  MESSAGE_TABLE_RECEIVE: "MESSAGE_TABLE_RECEIVE",
-  FILTER_TOGGLE: "FILTER_TOGGLE",
-  FILTER_TEXT_SET: "FILTER_TEXT_SET",
-  FILTERS_CLEAR: "FILTERS_CLEAR",
+  DEFAULT_FILTERS_RESET: "DEFAULT_FILTERS_RESET",
   FILTER_BAR_TOGGLE: "FILTER_BAR_TOGGLE",
+  FILTER_TEXT_SET: "FILTER_TEXT_SET",
+  FILTER_TOGGLE: "FILTER_TOGGLE",
+  FILTERS_CLEAR: "FILTERS_CLEAR",
+  INITIALIZE: "INITIALIZE",
+  MESSAGE_ADD: "MESSAGE_ADD",
+  MESSAGE_CLOSE: "MESSAGE_CLOSE",
+  MESSAGE_OPEN: "MESSAGE_OPEN",
+  MESSAGE_TABLE_RECEIVE: "MESSAGE_TABLE_RECEIVE",
+  MESSAGES_ADD: "MESSAGES_ADD",
+  MESSAGES_CLEAR: "MESSAGES_CLEAR",
+  NETWORK_MESSAGE_UPDATE: "NETWORK_MESSAGE_UPDATE",
+  NETWORK_UPDATE_REQUEST: "NETWORK_UPDATE_REQUEST",
+  PERSIST_TOGGLE: "PERSIST_TOGGLE",
+  REMOVED_ACTORS_CLEAR: "REMOVED_ACTORS_CLEAR",
+  SELECT_NETWORK_MESSAGE_TAB: "SELECT_NETWORK_MESSAGE_TAB",
+  TIMESTAMPS_TOGGLE: "TIMESTAMPS_TOGGLE",
 };
 
 const prefs = {
@@ -26,18 +35,48 @@ const prefs = {
       INFO: "devtools.webconsole.filter.info",
       LOG: "devtools.webconsole.filter.log",
       DEBUG: "devtools.webconsole.filter.debug",
+      CSS: "devtools.webconsole.filter.css",
       NET: "devtools.webconsole.filter.net",
       NETXHR: "devtools.webconsole.filter.netxhr",
     },
     UI: {
-      FILTER_BAR: "devtools.webconsole.ui.filterbar"
+      FILTER_BAR: "devtools.webconsole.ui.filterbar",
+      PERSIST: "devtools.webconsole.persistlog",
     }
   }
 };
 
+const FILTERS = {
+  CSS: "css",
+  DEBUG: "debug",
+  ERROR: "error",
+  INFO: "info",
+  LOG: "log",
+  NET: "net",
+  NETXHR: "netxhr",
+  TEXT: "text",
+  WARN: "warn",
+};
+
+const DEFAULT_FILTERS_VALUES = {
+  [FILTERS.TEXT]: "",
+  [FILTERS.ERROR]: true,
+  [FILTERS.WARN]: true,
+  [FILTERS.LOG]: true,
+  [FILTERS.INFO]: true,
+  [FILTERS.DEBUG]: true,
+  [FILTERS.CSS]: false,
+  [FILTERS.NET]: false,
+  [FILTERS.NETXHR]: false,
+};
+
+const DEFAULT_FILTERS = Object.keys(DEFAULT_FILTERS_VALUES)
+  .filter(filter => DEFAULT_FILTERS_VALUES[filter] !== false);
+
 const chromeRDPEnums = {
   MESSAGE_SOURCE: {
     XML: "xml",
+    CSS: "css",
     JAVASCRIPT: "javascript",
     NETWORK: "network",
     CONSOLE_API: "console-api",
@@ -58,6 +97,7 @@ const chromeRDPEnums = {
     START_GROUP_COLLAPSED: "startGroupCollapsed",
     END_GROUP: "endGroup",
     ASSERT: "assert",
+    DEBUG: "debug",
     PROFILE: "profile",
     PROFILE_END: "profileEnd",
     // Undocumented in Chrome RDP, but is used for evaluation results.
@@ -77,5 +117,20 @@ const chromeRDPEnums = {
   }
 };
 
+const jstermCommands = {
+  JSTERM_COMMANDS: {
+    INSPECT: "inspectObject"
+  }
+};
+
 // Combine into a single constants object
-module.exports = Object.assign({}, actionTypes, prefs, chromeRDPEnums);
+module.exports = Object.assign({
+  FILTERS,
+  DEFAULT_FILTERS,
+  DEFAULT_FILTERS_VALUES,
+},
+  actionTypes,
+  chromeRDPEnums,
+  jstermCommands,
+  prefs,
+);

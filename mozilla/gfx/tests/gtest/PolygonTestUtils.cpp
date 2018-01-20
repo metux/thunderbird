@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -7,15 +8,27 @@
 
 #include <cmath>
 
+typedef mozilla::gfx::Polygon MozPolygon;
+
 namespace mozilla {
 namespace gfx {
 
 const float kEpsilon = 0.001f;
 
 // Compares two points while allowing some numerical inaccuracy.
+bool FuzzyEquals(const Point4D& lhs, const Point4D& rhs)
+{
+  const auto d = lhs - rhs;
+
+  return std::abs(d.x) < kEpsilon &&
+         std::abs(d.y) < kEpsilon &&
+         std::abs(d.z) < kEpsilon &&
+         std::abs(d.w) < kEpsilon;
+}
+
 bool FuzzyEquals(const Point3D& lhs, const Point3D& rhs)
 {
-  const Point3D d = lhs - rhs;
+  const auto d = lhs - rhs;
 
   return std::abs(d.x) < kEpsilon &&
          std::abs(d.y) < kEpsilon &&
@@ -24,7 +37,7 @@ bool FuzzyEquals(const Point3D& lhs, const Point3D& rhs)
 
 bool FuzzyEquals(const Point& lhs, const Point& rhs)
 {
-  const Point d = lhs - rhs;
+  const auto d = lhs - rhs;
 
   return std::abs(d.x) < kEpsilon &&
          std::abs(d.y) < kEpsilon;
@@ -39,10 +52,10 @@ bool operator==(const Triangle& lhs, const Triangle& rhs)
 
 // Compares the points of two polygons and ensures
 // that the points are in the same winding order.
-bool operator==(const Polygon3D& lhs, const Polygon3D& rhs)
+bool operator==(const MozPolygon& lhs, const MozPolygon& rhs)
 {
-  const nsTArray<Point3D>& left = lhs.GetPoints();
-  const nsTArray<Point3D>& right = rhs.GetPoints();
+  const auto& left = lhs.GetPoints();
+  const auto& right = rhs.GetPoints();
 
   // Polygons do not have the same amount of points.
   if (left.Length() != right.Length()) {
@@ -84,48 +97,48 @@ bool operator==(const Polygon3D& lhs, const Polygon3D& rhs)
 
 TEST(PolygonTestUtils, TestSanity)
 {
-  EXPECT_TRUE(FuzzyEquals(Point3D(0.0f, 0.0f, 0.0f),
-                          Point3D(0.0f, 0.0f, 0.0f)));
+  EXPECT_TRUE(FuzzyEquals(Point4D(0.0f, 0.0f, 0.0f, 1.0f),
+                          Point4D(0.0f, 0.0f, 0.0f, 1.0f)));
 
-  EXPECT_TRUE(FuzzyEquals(Point3D(0.0f, 0.0f, 0.0f),
-                          Point3D(0.00001f, 0.00001f, 0.00001f)));
+  EXPECT_TRUE(FuzzyEquals(Point4D(0.0f, 0.0f, 0.0f, 1.0f),
+                          Point4D(0.00001f, 0.00001f, 0.00001f, 1.0f)));
 
-  EXPECT_TRUE(FuzzyEquals(Point3D(0.00001f, 0.00001f, 0.00001f),
-                          Point3D(0.0f, 0.0f, 0.0f)));
+  EXPECT_TRUE(FuzzyEquals(Point4D(0.00001f, 0.00001f, 0.00001f, 1.0f),
+                          Point4D(0.0f, 0.0f, 0.0f, 1.0f)));
 
-  EXPECT_FALSE(FuzzyEquals(Point3D(0.0f, 0.0f, 0.0f),
-                           Point3D(0.01f, 0.01f, 0.01f)));
+  EXPECT_FALSE(FuzzyEquals(Point4D(0.0f, 0.0f, 0.0f, 1.0f),
+                           Point4D(0.01f, 0.01f, 0.01f, 1.0f)));
 
-  EXPECT_FALSE(FuzzyEquals(Point3D(0.01f, 0.01f, 0.01f),
-                           Point3D(0.0f, 0.0f, 0.0f)));
+  EXPECT_FALSE(FuzzyEquals(Point4D(0.01f, 0.01f, 0.01f, 1.0f),
+                           Point4D(0.0f, 0.0f, 0.0f, 1.0f)));
 
-  Polygon3D p1 {
-    Point3D(0.0f, 0.0f, 1.0f),
-    Point3D(1.0f, 0.0f, 1.0f),
-    Point3D(1.0f, 1.0f, 1.0f),
-    Point3D(0.0f, 1.0f, 1.0f)
+  MozPolygon p1 {
+    Point4D(0.0f, 0.0f, 1.0f, 1.0f),
+    Point4D(1.0f, 0.0f, 1.0f, 1.0f),
+    Point4D(1.0f, 1.0f, 1.0f, 1.0f),
+    Point4D(0.0f, 1.0f, 1.0f, 1.0f)
   };
 
   // Same points as above shifted forward by one position.
-  Polygon3D shifted {
-    Point3D(0.0f, 1.0f, 1.0f),
-    Point3D(0.0f, 0.0f, 1.0f),
-    Point3D(1.0f, 0.0f, 1.0f),
-    Point3D(1.0f, 1.0f, 1.0f)
+  MozPolygon shifted {
+    Point4D(0.0f, 1.0f, 1.0f, 1.0f),
+    Point4D(0.0f, 0.0f, 1.0f, 1.0f),
+    Point4D(1.0f, 0.0f, 1.0f, 1.0f),
+    Point4D(1.0f, 1.0f, 1.0f, 1.0f)
   };
 
-  Polygon3D p2 {
-    Point3D(0.00001f, 0.00001f, 1.00001f),
-    Point3D(1.00001f, 0.00001f, 1.00001f),
-    Point3D(1.00001f, 1.00001f, 1.00001f),
-    Point3D(0.00001f, 1.00001f, 1.00001f)
+  MozPolygon p2 {
+    Point4D(0.00001f, 0.00001f, 1.00001f, 1.0f),
+    Point4D(1.00001f, 0.00001f, 1.00001f, 1.0f),
+    Point4D(1.00001f, 1.00001f, 1.00001f, 1.0f),
+    Point4D(0.00001f, 1.00001f, 1.00001f, 1.0f)
   };
 
-  Polygon3D p3 {
-    Point3D(0.01f, 0.01f, 1.01f),
-    Point3D(1.01f, 0.01f, 1.01f),
-    Point3D(1.01f, 1.01f, 1.01f),
-    Point3D(0.01f, 1.01f, 1.01f)
+  MozPolygon p3 {
+    Point4D(0.01f, 0.01f, 1.01f, 1.0f),
+    Point4D(1.01f, 0.01f, 1.01f, 1.0f),
+    Point4D(1.01f, 1.01f, 1.01f, 1.0f),
+    Point4D(0.01f, 1.01f, 1.01f, 1.0f)
   };
 
   // Trivial equals

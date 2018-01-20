@@ -4,40 +4,35 @@
 
 "use strict";
 
+/* import-globals-from aboutDialog-appUpdater.js */
+
 // Services = object with smart getters for common XPCOM services
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/AppConstants.jsm");
 
-function init(aEvent)
-{
+function init(aEvent) {
   if (aEvent.target != document)
     return;
 
-  try {
-    var distroId = Services.prefs.getCharPref("distribution.id");
-    if (distroId) {
-      var distroVersion = Services.prefs.getCharPref("distribution.version");
+  var distroId = Services.prefs.getCharPref("distribution.id", "");
+  if (distroId) {
+    var distroString = distroId;
 
-      var distroIdField = document.getElementById("distributionId");
-      distroIdField.value = distroId + " - " + distroVersion;
-      distroIdField.style.display = "block";
-
-      try {
-        // This is in its own try catch due to bug 895473 and bug 900925.
-        var distroAbout = Services.prefs.getComplexValue("distribution.about",
-          Components.interfaces.nsISupportsString);
-        var distroField = document.getElementById("distribution");
-        distroField.value = distroAbout;
-        distroField.style.display = "block";
-      }
-      catch (ex) {
-        // Pref is unset
-        Components.utils.reportError(ex);
-      }
+    var distroVersion = Services.prefs.getCharPref("distribution.version", "");
+    if (distroVersion) {
+      distroString += " - " + distroVersion;
     }
-  }
-  catch (e) {
-    // Pref is unset
+
+    var distroIdField = document.getElementById("distributionId");
+    distroIdField.value = distroString;
+    distroIdField.style.display = "block";
+
+    var distroAbout = Services.prefs.getStringPref("distribution.about", "");
+    if (distroAbout) {
+      var distroField = document.getElementById("distribution");
+      distroField.value = distroAbout;
+      distroField.style.display = "block";
+    }
   }
 
   // Include the build ID and display warning if this is an "a#" (nightly or aurora) build
@@ -62,8 +57,19 @@ function init(aEvent)
   let arch = bundle.GetStringFromName(archResource);
   versionField.textContent += ` (${arch})`;
 
+  // Show a release notes link if we have a URL.
+  let relNotesLink = document.getElementById("releasenotes");
+  let relNotesPrefType = Services.prefs.getPrefType("app.releaseNotesURL");
+  if (relNotesPrefType != Services.prefs.PREF_INVALID) {
+    let relNotesURL = Services.urlFormatter.formatURLPref("app.releaseNotesURL");
+    if (relNotesURL != "about:blank") {
+      relNotesLink.href = relNotesURL;
+      relNotesLink.hidden = false;
+    }
+  }
+
   if (AppConstants.MOZ_UPDATER) {
-    gAppUpdater = new appUpdater();
+    gAppUpdater = new appUpdater({ buttonAutoFocus: true });
 
     let channelLabel = document.getElementById("currentChannel");
     let currentChannelText = document.getElementById("currentChannelText");

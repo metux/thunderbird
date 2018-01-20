@@ -24,7 +24,7 @@ public:
                   InternalScrollAreaEvent* aEvent);
 
   NS_DECL_ISUPPORTS_INHERITED
-
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ScrollAreaEvent, UIEvent)
   NS_FORWARD_NSIDOMUIEVENT(UIEvent::)
 
   NS_FORWARD_TO_EVENT_NO_SERIALIZATION_NO_DUPLICATION
@@ -63,7 +63,7 @@ public:
   void InitScrollAreaEvent(const nsAString& aType,
                            bool aCanBubble,
                            bool aCancelable,
-                           nsGlobalWindow* aView,
+                           nsGlobalWindowInner* aView,
                            int32_t aDetail,
                            float aX, float aY,
                            float aWidth, float aHeight);

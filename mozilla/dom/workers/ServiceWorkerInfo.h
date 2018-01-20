@@ -8,6 +8,7 @@
 #define mozilla_dom_workers_serviceworkerinfo_h
 
 #include "mozilla/dom/ServiceWorkerBinding.h" // For ServiceWorkerState
+#include "mozilla/dom/workers/Workers.h"
 #include "nsIServiceWorkerManager.h"
 
 namespace mozilla {
@@ -27,15 +28,30 @@ class ServiceWorkerInfo final : public nsIServiceWorkerInfo
 {
 private:
   nsCOMPtr<nsIPrincipal> mPrincipal;
-  const nsCString mScope;
+  ServiceWorkerDescriptor mDescriptor;
   const nsCString mScriptSpec;
   const nsString mCacheName;
-  ServiceWorkerState mState;
-  PrincipalOriginAttributes mOriginAttributes;
+  OriginAttributes mOriginAttributes;
 
-  // This id is shared with WorkerPrivate to match requests issued by service
-  // workers to their corresponding serviceWorkerInfo.
-  uint64_t mServiceWorkerID;
+  // This LoadFlags is only applied to imported scripts, since the main script
+  // has already been downloaded when performing the bytecheck. This LoadFlag is
+  // composed of three parts:
+  //   1. nsIChannel::LOAD_BYPASS_SERVICE_WORKER
+  //   2. (Optional) nsIRequest::VALIDATE_ALWAYS
+  //      depends on ServiceWorkerUpdateViaCache of its registration.
+  //   3. (optional) nsIRequest::LOAD_BYPASS_CACHE
+  //      depends on whether the update timer is expired.
+  const nsLoadFlags mImportsLoadFlags;
+
+  // Timestamp to track SW's state
+  PRTime mCreationTime;
+  TimeStamp mCreationTimeStamp;
+
+  // The time of states are 0, if SW has not reached that state yet. Besides, we
+  // update each of them after UpdateState() is called in SWRegistrationInfo.
+  PRTime mInstalledTime;
+  PRTime mActivatedTime;
+  PRTime mRedundantTime;
 
   // We hold rawptrs since the ServiceWorker constructor and destructor ensure
   // addition and removal.
@@ -45,6 +61,12 @@ private:
 
   RefPtr<ServiceWorkerPrivate> mServiceWorkerPrivate;
   bool mSkipWaitingFlag;
+
+  enum {
+    Unknown,
+    Enabled,
+    Disabled
+  } mHandlesFetch;
 
   ~ServiceWorkerInfo();
 
@@ -65,7 +87,7 @@ public:
   }
 
   nsIPrincipal*
-  GetPrincipal() const
+  Principal() const
   {
     return mPrincipal;
   }
@@ -79,7 +101,7 @@ public:
   const nsCString&
   Scope() const
   {
-    return mScope;
+    return mDescriptor.Scope();
   }
 
   bool SkipWaitingFlag() const
@@ -97,15 +119,16 @@ public:
   ServiceWorkerInfo(nsIPrincipal* aPrincipal,
                     const nsACString& aScope,
                     const nsACString& aScriptSpec,
-                    const nsAString& aCacheName);
+                    const nsAString& aCacheName,
+                    nsLoadFlags aLoadFlags);
 
   ServiceWorkerState
   State() const
   {
-    return mState;
+    return mDescriptor.State();
   }
 
-  const PrincipalOriginAttributes&
+  const OriginAttributes&
   GetOriginAttributes() const
   {
     return mOriginAttributes;
@@ -117,10 +140,22 @@ public:
     return mCacheName;
   }
 
+  nsLoadFlags
+  GetImportsLoadFlags() const
+  {
+    return mImportsLoadFlags;
+  }
+
   uint64_t
   ID() const
   {
-    return mServiceWorkerID;
+    return mDescriptor.Id();
+  }
+
+  const ServiceWorkerDescriptor&
+  Descriptor() const
+  {
+    return mDescriptor;
   }
 
   void
@@ -131,7 +166,23 @@ public:
   SetActivateStateUncheckedWithoutEvent(ServiceWorkerState aState)
   {
     AssertIsOnMainThread();
-    mState = aState;
+    mDescriptor.SetState(aState);
+  }
+
+  void
+  SetHandlesFetch(bool aHandlesFetch)
+  {
+    AssertIsOnMainThread();
+    MOZ_DIAGNOSTIC_ASSERT(mHandlesFetch == Unknown);
+    mHandlesFetch = aHandlesFetch ? Enabled : Disabled;
+  }
+
+  bool
+  HandlesFetch() const
+  {
+    AssertIsOnMainThread();
+    MOZ_DIAGNOSTIC_ASSERT(mHandlesFetch != Unknown);
+    return mHandlesFetch != Disabled;
   }
 
   void
@@ -142,6 +193,47 @@ public:
 
   already_AddRefed<ServiceWorker>
   GetOrCreateInstance(nsPIDOMWindowInner* aWindow);
+
+  void
+  UpdateInstalledTime();
+
+  void
+  UpdateActivatedTime();
+
+  void
+  UpdateRedundantTime();
+
+  int64_t
+  GetInstalledTime() const
+  {
+    return mInstalledTime;
+  }
+
+  void
+  SetInstalledTime(const int64_t aTime)
+  {
+    if (aTime == 0) {
+      return;
+    }
+
+    mInstalledTime = aTime;
+  }
+
+  int64_t
+  GetActivatedTime() const
+  {
+    return mActivatedTime;
+  }
+
+  void
+  SetActivatedTime(const int64_t aTime)
+  {
+    if (aTime == 0) {
+      return;
+    }
+
+    mActivatedTime = aTime;
+  }
 };
 
 } // namespace workers

@@ -30,11 +30,11 @@ class RuntimeService final : public nsIObserver
   {
     WorkerPrivate* mWorkerPrivate;
     nsCString mScriptSpec;
-    nsCString mName;
+    nsString mName;
 
     SharedWorkerInfo(WorkerPrivate* aWorkerPrivate,
                      const nsACString& aScriptSpec,
-                     const nsACString& aName)
+                     const nsAString& aName)
     : mWorkerPrivate(aWorkerPrivate), mScriptSpec(aScriptSpec), mName(aName)
     { }
   };
@@ -45,7 +45,7 @@ class RuntimeService final : public nsIObserver
     nsTArray<WorkerPrivate*> mActiveWorkers;
     nsTArray<WorkerPrivate*> mActiveServiceWorkers;
     nsTArray<WorkerPrivate*> mQueuedWorkers;
-    nsClassHashtable<nsCStringHashKey, SharedWorkerInfo> mSharedWorkerInfos;
+    nsTArray<UniquePtr<SharedWorkerInfo>> mSharedWorkerInfos;
     uint32_t mChildWorkerCount;
 
     WorkerDomainInfo()
@@ -151,7 +151,7 @@ public:
   nsresult
   CreateSharedWorker(const GlobalObject& aGlobal,
                      const nsAString& aScriptURL,
-                     const nsACString& aName,
+                     const nsAString& aName,
                      SharedWorker** aSharedWorker);
 
   void
@@ -271,14 +271,11 @@ private:
   static void
   WorkerPrefChanged(const char* aPrefName, void* aClosure);
 
-  static void
-  JSVersionChanged(const char* aPrefName, void* aClosure);
-
   nsresult
   CreateSharedWorkerFromLoadInfo(JSContext* aCx,
                                  WorkerLoadInfo* aLoadInfo,
                                  const nsAString& aScriptURL,
-                                 const nsACString& aName,
+                                 const nsAString& aName,
                                  SharedWorker** aSharedWorker);
 };
 

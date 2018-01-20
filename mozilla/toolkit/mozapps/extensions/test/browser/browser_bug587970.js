@@ -1,6 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
+/* eslint-disable mozilla/no-arbitrary-setTimeout */
 
 // Bug 587970 - Provide ability "Update all now" within 'Available Updates' screen
 
@@ -132,11 +133,11 @@ add_test(function() {
 
   var installCount = 0;
   var listener = {
-    onDownloadStarted: function(aInstall) {
+    onDownloadStarted(aInstall) {
       isnot(aInstall.existingAddon.id, "addon1@tests.mozilla.org", "Should not have seen a download start for addon1");
     },
 
-    onInstallEnded: function(aInstall) {
+    onInstallEnded(aInstall) {
       if (++installCount < 2)
         return;
 
@@ -154,7 +155,7 @@ add_test(function() {
         run_next_test();
       });
     }
-  }
+  };
   gProvider.installs[0].addTestListener(listener);
   gProvider.installs[1].addTestListener(listener);
   gProvider.installs[2].addTestListener(listener);

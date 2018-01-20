@@ -5,6 +5,7 @@
 
 package org.mozilla.gecko.customtabs;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.customtabs.CustomTabsService;
@@ -13,6 +14,9 @@ import android.util.Log;
 
 import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.GeckoService;
+import org.mozilla.gecko.GeckoThread;
+import org.mozilla.gecko.Telemetry;
+import org.mozilla.gecko.TelemetryContract;
 
 import java.util.List;
 
@@ -22,6 +26,7 @@ import java.util.List;
 public class GeckoCustomTabsService extends CustomTabsService {
     private static final String LOGTAG = "GeckoCustomTabsService";
     private static final boolean DEBUG = false;
+    private static final int MAX_SPECULATIVE_URLS = 50;
 
     @Override
     protected boolean updateVisuals(CustomTabsSessionToken sessionToken, Bundle bundle) {
@@ -32,12 +37,22 @@ public class GeckoCustomTabsService extends CustomTabsService {
 
     @Override
     protected boolean warmup(long flags) {
+
+        Telemetry.sendUIEvent(TelemetryContract.Event.ACTION, TelemetryContract.Method.SERVICE, "customtab-warmup");
+
         if (DEBUG) {
             Log.v(LOGTAG, "warming up...");
         }
 
-        GeckoService.startGecko(GeckoProfile.initFromArgs(this, null), null, getApplicationContext());
+        if (GeckoThread.isRunning()) {
+            return true;
+        }
 
+        final Intent intent = GeckoService.getIntentToStartGecko(this);
+        // Use a default profile for warming up Gecko.
+        final GeckoProfile profile = GeckoProfile.get(this);
+        GeckoService.setIntentProfile(intent, profile.getName(), profile.getDir().getAbsolutePath());
+        startService(intent);
         return true;
     }
 
@@ -51,9 +66,35 @@ public class GeckoCustomTabsService extends CustomTabsService {
 
     @Override
     protected boolean mayLaunchUrl(CustomTabsSessionToken sessionToken, Uri uri, Bundle bundle, List<Bundle> list) {
-        Log.v(LOGTAG, "mayLaunchUrl()");
+        if (DEBUG) {
+            Log.v(LOGTAG, "opening speculative connections...");
+        }
 
-        return false;
+        if (uri == null) {
+            return false;
+        }
+
+        GeckoThread.speculativeConnect(uri.toString());
+
+        if (list == null) {
+            return true;
+        }
+
+        for (int i = 0; i < list.size() && i < MAX_SPECULATIVE_URLS; i++) {
+            Bundle listItem = list.get(i);
+            if (listItem == null) {
+                continue;
+            }
+
+            Uri listUri = listItem.getParcelable(KEY_URL);
+            if (listUri == null) {
+                continue;
+            }
+
+            GeckoThread.speculativeConnect(listUri.toString());
+        }
+
+        return true;
     }
 
     @Override

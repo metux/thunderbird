@@ -20,15 +20,11 @@ try {
 
     if (!DebuggerServer.initialized) {
       DebuggerServer.init();
-      // For non-e10s mode, there is only one server instance, so be sure the browser
-      // actors get loaded.
-      DebuggerServer.addBrowserActors();
     }
-
-    // In case of apps being loaded in parent process, DebuggerServer is already
-    // initialized, but child specific actors are not registered. Otherwise, for apps in
-    // child process, we need to load actors the first time we load child.js.
-    DebuggerServer.addChildActors();
+    // We want a special server without any root actor and only tab actors.
+    // We are going to spawn a ContentActor instance in the next few lines,
+    // it is going to act like a root actor without being one.
+    DebuggerServer.registerActors({ root: false, browser: false, tab: true });
 
     let connections = new Map();
 
@@ -37,17 +33,36 @@ try {
 
       let mm = msg.target;
       let prefix = msg.data.prefix;
+      let addonId = msg.data.addonId;
 
-      let conn = DebuggerServer.connectToParent(prefix, mm);
-      conn.parentMessageManager = mm;
-      connections.set(prefix, conn);
+      // Using the JS debugger causes problems when we're trying to
+      // schedule those zone groups across different threads. Calling
+      // blockThreadedExecution causes Gecko to switch to a simpler
+      // single-threaded model until unblockThreadedExecution is
+      // called later. We cannot start the debugger until the callback
+      // passed to blockThreadedExecution has run, signaling that
+      // we're running single-threaded.
+      Cu.blockThreadedExecution(() => {
+        let conn = DebuggerServer.connectToParent(prefix, mm);
+        conn.parentMessageManager = mm;
+        connections.set(prefix, conn);
 
-      let actor = new DebuggerServer.ContentActor(conn, chromeGlobal, prefix);
-      let actorPool = new ActorPool(conn);
-      actorPool.addActor(actor);
-      conn.addActorPool(actorPool);
+        let actor;
 
-      sendAsyncMessage("debug:actor", {actor: actor.form(), prefix: prefix});
+        if (addonId) {
+          const { WebExtensionChildActor } = require("devtools/server/actors/webextension");
+          actor = new WebExtensionChildActor(conn, chromeGlobal, prefix, addonId);
+        } else {
+          const { ContentActor } = require("devtools/server/actors/childtab");
+          actor = new ContentActor(conn, chromeGlobal, prefix);
+        }
+
+        let actorPool = new ActorPool(conn);
+        actorPool.addActor(actor);
+        conn.addActorPool(actorPool);
+
+        sendAsyncMessage("debug:actor", {actor: actor.form(), prefix: prefix});
+      });
     });
 
     addMessageListener("debug:connect", onConnect);
@@ -61,7 +76,7 @@ try {
       try {
         m = require(module);
 
-        if (!setupChild in m) {
+        if (!(setupChild in m)) {
           dumpn(`ERROR: module '${module}' does not export '${setupChild}'`);
           return false;
         }
@@ -94,6 +109,8 @@ try {
         return;
       }
 
+      Cu.unblockThreadedExecution();
+
       removeMessageListener("debug:disconnect", onDisconnect);
       // Call DebuggerServerConnection.close to destroy all child actors. It should end up
       // calling DebuggerServerConnection.onClosed that would actually cleanup all actor
@@ -112,15 +129,6 @@ try {
       }
       connections.clear();
     });
-
-    let onInspect = DevToolsUtils.makeInfallible(function (msg) {
-      // Store the node to be inspected in a global variable (gInspectingNode). Later
-      // we'll fetch this variable again using the findInspectingNode request over the
-      // remote debugging protocol.
-      let inspector = require("devtools/server/actors/inspector");
-      inspector.setInspectingNode(msg.objects.node);
-    });
-    addMessageListener("debug:inspect", onInspect);
   })();
 } catch (e) {
   dump(`Exception in app child process: ${e}\n`);

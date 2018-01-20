@@ -163,12 +163,13 @@ SourceBufferList::QueueAsyncSimpleEvent(const char* aName)
 {
   MSE_DEBUG("Queue event '%s'", aName);
   nsCOMPtr<nsIRunnable> event = new AsyncEventRunner<SourceBufferList>(this, aName);
-  NS_DispatchToMainThread(event);
+  mAbstractMainThread->Dispatch(event.forget());
 }
 
 SourceBufferList::SourceBufferList(MediaSource* aMediaSource)
   : DOMEventTargetHelper(aMediaSource->GetParentObject())
   , mMediaSource(aMediaSource)
+  , mAbstractMainThread(mMediaSource->AbstractMainThread())
 {
   MOZ_ASSERT(aMediaSource);
 }
@@ -215,7 +216,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(SourceBufferList, DOMEventTargetHelper,
 NS_IMPL_ADDREF_INHERITED(SourceBufferList, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(SourceBufferList, DOMEventTargetHelper)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(SourceBufferList)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(SourceBufferList)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 #undef MSE_API

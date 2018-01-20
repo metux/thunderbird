@@ -7,7 +7,7 @@
 #include "MailNewsDLF.h"
 #include "nsIChannel.h"
 #include "plstr.h"
-#include "nsStringGlue.h"
+#include "nsString.h"
 #include "nsICategoryManager.h"
 #include "nsIServiceManager.h"
 #include "nsIStreamConverterService.h"
@@ -85,14 +85,6 @@ MailNewsDLF::CreateInstanceForDocument(nsISupports* aContainer,
                                        nsIDocument* aDocument,
                                        const char* aCommand,
                                        nsIContentViewer** aDocViewer)
-{
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-MailNewsDLF::CreateBlankDocument(nsILoadGroup* aLoadGroup,
-                                 nsIPrincipal* aPrincipal,
-                                 nsIDocument** aDocument)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }

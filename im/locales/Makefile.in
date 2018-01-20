@@ -2,9 +2,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-include $(topsrcdir)/config/config.mk
+include $(moztopsrcdir)/config/config.mk
 
-_ABS_SRCDIR := $(abspath $(topsrcdir))
+_ABS_SRCDIR := $(abspath $(commtopsrcdir))
 
 ifndef MOZ_BRANDING_DIRECTORY
 MOZ_BRANDING_DIRECTORY = im/branding/nightly
@@ -21,9 +21,7 @@ SUBMAKEFILES += \
 PWD := $(CURDIR)
 
 # These are defaulted to be compatible with the files the wget-en-US target
-# pulls. You may override them if you provide your own files. You _must_
-# override them when MOZ_PKG_PRETTYNAMES is defined - the defaults will not
-# work in that case.
+# pulls. You may override them if you provide your own files.
 ZIP_IN ?= $(ABS_DIST)/$(PACKAGE)
 WIN32_INSTALLER_IN ?= $(ABS_DIST)/$(PKG_INST_PATH)$(PKG_INST_BASENAME).exe
 RETRIEVE_WINDOWS_INSTALLER = 1
@@ -41,6 +39,9 @@ MOZ_PKG_MAC_BACKGROUND=$(ABS_DIST)/branding/background.png
 MOZ_PKG_MAC_ICON=$(ABS_DIST)/branding/disk.icns
 MOZ_PKG_MAC_EXTRA=--symlink "/Applications:/ "
 endif
+
+MOZ_SFX_PACKAGE=$(commtopsrcdir)/other-licenses/7zstub/instantbird/7zSD.sfx
+MOZ_INSTALLER_PATH=$(commtopsrcdir)/im/installer/windows
 
 ifeq (WINNT,$(OS_ARCH))
 UNINSTALLER_PACKAGE_HOOK = $(RM) -r $(STAGEDIST)/uninstall; \
@@ -66,9 +67,9 @@ GARBAGE += $(list-txt)
 
 libs:: searchplugins
 
-include $(topsrcdir)/config/rules.mk
+include $(moztopsrcdir)/config/rules.mk
 
-include $(topsrcdir)/mozilla/toolkit/locales/l10n.mk
+include $(moztopsrcdir)/toolkit/locales/l10n.mk
 
 $(list-txt): $(call mkdir_deps,$(SEARCHPLUGINS_PATH)) $(if $(IS_LANGUAGE_REPACK),FORCE)
 	$(RM) $(list-txt)
@@ -78,8 +79,6 @@ searchplugins:: $(list-txt)
 # Remove installer/sea/ from installer paths.
 PKG_INST_PATH =
 
-$(STAGEDIST): $(DIST)/branding
-
 $(DIST)/branding:
 	$(NSINSTALL) -D $@
 
@@ -88,7 +87,6 @@ libs-%:
 	@$(MAKE) -C $(DEPTH)/toolkit/locales libs-$*
 	@$(MAKE) -C ../../chat/locales AB_CD=$* XPI_NAME=locale-$*
 	@$(MAKE) -C $(DEPTH)/extensions/spellcheck/locales AB_CD=$* XPI_NAME=locale-$*
-	@$(MAKE) -C $(DEPTH)/intl/locales AB_CD=$* XPI_NAME=locale-$*
 	@$(MAKE) -B searchplugins AB_CD=$* XPI_NAME=locale-$*
 	@$(MAKE) libs AB_CD=$* XPI_NAME=locale-$* PREF_DIR=defaults/pref
 	@$(MAKE) -C $(DEPTH)/$(MOZ_BRANDING_DIRECTORY)/locales AB_CD=$* XPI_NAME=locale-$*
@@ -111,7 +109,7 @@ repackage-win32-installer: $(WIN32_INSTALLER_IN) $(SUBMAKEFILES)
 	              $(_ABS_SRCDIR)/im/installer/windows/app.tag"
 
 ifeq (WINNT,$(OS_ARCH))
-repackage-win32-installer-%: $(WIN32_INSTALLER_IN) libs-%
+repackage-win32-installer-%: $(WIN32_INSTALLER_IN) libs-% unpack
 	@$(MAKE) repackage-win32-installer AB_CD=$* WIN32_INSTALLER_IN=$(WIN32_INSTALLER_IN)
 else
 repackage-win32-installer-%: ;
@@ -125,15 +123,6 @@ endif
 
 # During repackaging, we never have an universal/ subfolder.
 STAGEPATH =
-
-clobber-zip:
-	$(RM) $(STAGEDIST)/chrome/$(AB_CD).jar \
-	  $(STAGEDIST)/chrome/$(AB_CD).manifest \
-	  $(STAGEDIST)/defaults/pref/all-l10n.js
-	$(RM) -rf $(STAGEDIST)/dictionaries \
-	  $(STAGEDIST)/hyphenation/$(AB_CD) \
-	  $(STAGEDIST)/isp/$(AB_CD) \
-	  $(STAGEDIST)/chrome/$(AB_CD)
 
 langpack: langpack-$(AB_CD)
 
@@ -161,13 +150,13 @@ endif
 
 ident:
 	@printf "ib_revision "
-	@$(PYTHON) $(MOZILLA_SRCDIR)/config/printconfigsetting.py \
+	@$(PYTHON) $(moztopsrcdir)/config/printconfigsetting.py \
 	    $(STAGEDIST)/application.ini App SourceStamp
 	@printf "moz_revision "
-	@$(PYTHON) $(MOZILLA_SRCDIR)/config/printconfigsetting.py \
+	@$(PYTHON) $(moztopsrcdir)/config/printconfigsetting.py \
 	    $(STAGEDIST)/platform.ini Build SourceStamp
 	@printf "buildid "
-	@$(PYTHON) $(MOZILLA_SRCDIR)/config/printconfigsetting.py \
+	@$(PYTHON) $(moztopsrcdir)/config/printconfigsetting.py \
 	    $(STAGEDIST)/application.ini App BuildID
 
 #These make targets call prepare-repackages by setting different UPLOAD_DIR
@@ -212,12 +201,12 @@ endif
 	@echo
 
 IB_L10N_REPO_BASE = https://hg.instantbird.org/l10n
-MOZ_L10N_REPO_BASE = http://hg.mozilla.org/releases/l10n-mozilla-2.0
+MOZ_L10N_REPO_BASE = https://hg.mozilla.org/releases/l10n-mozilla-2.0
 
 checkout-%: AB_CD=$*
 checkout-%:
-	mkdir -p $(topsrcdir)/$(L10NBASEDIR)
-	$(PYTHON) $(topsrcdir)/client.py checkout-l10n --skip-instantbird --clean --l10n-base-dir $(L10NBASEDIR) --locale $(AB_CD)
+	mkdir -p $(commtopsrcdir)/$(L10NBASEDIR)
+	$(PYTHON) $(commtopsrcdir)/client.py checkout-l10n --skip-instantbird --clean --l10n-base-dir $(L10NBASEDIR) --locale $(AB_CD)
 
 repack-%: AB_CD=$*
 repack-%:

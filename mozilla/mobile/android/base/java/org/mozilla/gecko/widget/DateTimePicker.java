@@ -287,6 +287,16 @@ public class DateTimePicker extends FrameLayout {
             mCalendar = new CalendarView(context);
             mCalendar.setVisibility(GONE);
 
+            // Modify the time of mMaxDate and mMinDate to the end of the date and the beginning of the date. (Bug 1339884)
+            mMaxDate.set(Calendar.HOUR, 23);
+            mMaxDate.set(Calendar.MINUTE, 59);
+            mMaxDate.set(Calendar.SECOND, 59);
+            mMaxDate.set(Calendar.MILLISECOND, 999);
+            mMinDate.set(Calendar.HOUR, 0);
+            mMinDate.set(Calendar.MINUTE, 0);
+            mMinDate.set(Calendar.SECOND, 0);
+            mMinDate.set(Calendar.MILLISECOND, 0);
+
             mCalendar.setFocusable(true);
             mCalendar.setFocusableInTouchMode(true);
             mCalendar.setMaxDate(mMaxDate.getTimeInMillis());
@@ -304,8 +314,8 @@ public class DateTimePicker extends FrameLayout {
             });
 
             final int height;
-            if (Versions.preLollipop) {
-                // The 4.X version of CalendarView doesn't request any height, resulting in
+            if (Versions.preLollipopMR1) {
+                // Older versions of CalendarView don't request any height, resulting in
                 // the whole dialog not appearing unless we manually request height.
                 height =  (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 200, getResources().getDisplayMetrics());;
             } else {

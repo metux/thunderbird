@@ -10,6 +10,7 @@
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/dom/ServiceWorkerBinding.h"
 #include "mozilla/dom/ServiceWorkerCommon.h"
+#include "mozilla/dom/ServiceWorkerRegistrationBinding.h"
 #include "mozilla/dom/workers/bindings/WorkerHolder.h"
 #include "nsContentUtils.h" // Required for nsContentUtils::PushEnabled
 
@@ -35,14 +36,16 @@ class WorkerPrivate;
 class ServiceWorkerRegistrationListener
 {
 public:
-  NS_IMETHOD_(MozExternalRefCountType) AddRef() = 0;
-  NS_IMETHOD_(MozExternalRefCountType) Release() = 0;
+  NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
 
   virtual void
   UpdateFound() = 0;
 
   virtual void
   InvalidateWorkers(WhichServiceWorker aWhichOnes) = 0;
+
+  virtual void
+  TransitionWorker(WhichServiceWorker aWhichOne) = 0;
 
   virtual void
   RegistrationRemoved() = 0;
@@ -87,6 +90,9 @@ public:
 
   virtual void
   GetScope(nsAString& aScope) const = 0;
+
+  virtual ServiceWorkerUpdateViaCache
+  GetUpdateViaCache(ErrorResult& aRv) const = 0;
 
   virtual already_AddRefed<Promise>
   Update(ErrorResult& aRv) = 0;

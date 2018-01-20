@@ -17,6 +17,50 @@ types.addDictType("imageData", {
   size: "json"
 });
 
+/**
+ * Returned from any call that might return a node that isn't connected to root
+ * by nodes the child has seen, such as querySelector.
+ */
+types.addDictType("disconnectedNode", {
+  // The actual node to return
+  node: "domnode",
+
+  // Nodes that are needed to connect the node to a node the client has already
+  // seen
+  newParents: "array:domnode"
+});
+
+types.addDictType("disconnectedNodeArray", {
+  // The actual node list to return
+  nodes: "array:domnode",
+
+  // Nodes that are needed to connect those nodes to the root.
+  newParents: "array:domnode"
+});
+
+const nodeListSpec = generateActorSpec({
+  typeName: "domnodelist",
+
+  methods: {
+    item: {
+      request: { item: Arg(0) },
+      response: RetVal("disconnectedNode")
+    },
+    items: {
+      request: {
+        start: Arg(0, "nullable:number"),
+        end: Arg(1, "nullable:number")
+      },
+      response: RetVal("disconnectedNodeArray")
+    },
+    release: {
+      release: true
+    }
+  }
+});
+
+exports.nodeListSpec = nodeListSpec;
+
 const nodeSpec = generateActorSpec({
   typeName: "domnode",
 
@@ -32,6 +76,18 @@ const nodeSpec = generateActorSpec({
       response: {}
     },
     getUniqueSelector: {
+      request: {},
+      response: {
+        value: RetVal("string")
+      }
+    },
+    getCssPath: {
+      request: {},
+      response: {
+        value: RetVal("string")
+      }
+    },
+    getXPath: {
       request: {},
       response: {
         value: RetVal("string")
@@ -60,7 +116,13 @@ const nodeSpec = generateActorSpec({
     getFontFamilyDataURL: {
       request: {font: Arg(0, "string"), fillStyle: Arg(1, "nullable:string")},
       response: RetVal("imageData")
-    }
+    },
+    getClosestBackgroundColor: {
+      request: {},
+      response: {
+        value: RetVal("string")
+      }
+    },
   }
 });
 

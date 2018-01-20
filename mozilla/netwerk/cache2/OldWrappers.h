@@ -115,6 +115,11 @@ public:
   {
     return mOldInfo->GetKey(aKey);
   }
+  NS_IMETHOD GetCacheEntryId(uint64_t *aCacheEntryId) override
+  {
+    *aCacheEntryId = mCacheEntryId;
+    return NS_OK;
+  }
   NS_IMETHOD GetFetchCount(int32_t *aFetchCount) override
   {
     return mOldInfo->GetFetchCount(aFetchCount);
@@ -134,6 +139,22 @@ public:
   nsresult GetDataSize(uint32_t *aDataSize)
   {
     return mOldInfo->GetDataSize(aDataSize);
+  }
+  NS_IMETHOD GetOnStartTime(uint64_t *aTime) override
+  {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+  NS_IMETHOD GetOnStopTime(uint64_t *aTime) override
+  {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+  NS_IMETHOD SetNetworkTimes(uint64_t aOnStartTime, uint64_t aOnStopTime) override
+  {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+  NS_IMETHOD GetLoadContextInfo(nsILoadContextInfo** aInfo) override
+  {
+    return NS_ERROR_NOT_IMPLEMENTED;
   }
 
   NS_IMETHOD AsyncDoom(nsICacheEntryDoomCallback* listener) override;
@@ -160,6 +181,8 @@ private:
   _OldCacheEntryWrapper() = delete;
   nsICacheEntryDescriptor* mOldDesc; // ref holded in mOldInfo
   nsCOMPtr<nsICacheEntryInfo> mOldInfo;
+
+  const uint64_t mCacheEntryId;
 };
 
 
@@ -171,8 +194,8 @@ public:
   NS_DECL_NSIRUNNABLE
   NS_DECL_NSICACHELISTENER
 
-  _OldCacheLoad(nsCSubstring const& aScheme,
-                nsCSubstring const& aCacheKey,
+  _OldCacheLoad(const nsACString& aScheme,
+                const nsACString& aCacheKey,
                 nsICacheEntryOpenCallback* aCallback,
                 nsIApplicationCache* aAppCache,
                 nsILoadContextInfo* aLoadInfo,
@@ -225,7 +248,7 @@ private:
   virtual ~_OldStorage();
   nsresult AssembleCacheKey(nsIURI *aURI, nsACString const & aIdExtension,
                             nsACString & aCacheKey, nsACString & aScheme);
-  nsresult ChooseApplicationCache(nsCSubstring const &cacheKey, nsIApplicationCache** aCache);
+  nsresult ChooseApplicationCache(const nsACString& cacheKey, nsIApplicationCache** aCache);
 
   nsCOMPtr<nsILoadContextInfo> mLoadInfo;
   nsCOMPtr<nsIApplicationCache> mAppCache;
@@ -249,7 +272,6 @@ class _OldVisitCallbackWrapper : public nsICacheVisitor
   , mLoadInfo(aInfo)
   , mHit(false)
   {
-    MOZ_COUNT_CTOR(_OldVisitCallbackWrapper);
   }
 
 private:

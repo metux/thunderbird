@@ -40,7 +40,7 @@ function getBestIdentity(identities, optionalHint)
     let hints = optionalHint.toLowerCase().split(",");
 
     for (let i = 0 ; i < hints.length; i++) {
-      for (let identity in fixIterator(identities,
+      for (let identity of fixIterator(identities,
                   Components.interfaces.nsIMsgIdentity)) {
         if (!identity.email)
           continue;
@@ -82,7 +82,7 @@ function GetIdentityForHeader(aMsgHdr, aType)
     // Reverse the array so that the last delivered-to header will show at front.
     deliveredTos.reverse();
     for (let i = 0; i < deliveredTos.length; i++) {
-      for (let identity in fixIterator(accountManager.allIdentities,
+      for (let identity of fixIterator(accountManager.allIdentities,
                                   Components.interfaces.nsIMsgIdentity)) {
         if (!identity.email)
           continue;
@@ -187,7 +187,6 @@ function ComposeMessage(type, format, folder, messageArray)
   {
     case msgComposeType.New: //new message
       // dump("OpenComposeWindow with " + identity + "\n");
-
       // If the addressbook sidebar panel is open and has focus, get
       // the selected addresses from it.
       if (document.commandDispatcher.focusedWindow &&
@@ -252,11 +251,12 @@ function NewMessageToSelectedAddresses(type, format, identity) {
     params.identity = identity;
     var composeFields = Components.classes["@mozilla.org/messengercompose/composefields;1"].createInstance(Components.interfaces.nsIMsgCompFields);
     if (composeFields) {
-      var addressList = "";
-      for (var i = 0; i < addresses.Count(); i++) {
-        addressList = addressList + (i > 0 ? ",":"") + addresses.QueryElementAt(i,Components.interfaces.nsISupportsString).data;
+      let addressList = [];
+      const nsISupportsString = Components.interfaces.nsISupportsString;
+      for (let i = 0; i < addresses.length; i++) {
+        addressList.push(addresses.queryElementAt(i, nsISupportsString).data);
       }
-      composeFields.to = addressList;
+      composeFields.to = addressList.join(",");
       params.composeFields = composeFields;
       msgComposeService.OpenComposeWindowWithParams(null, params);
     }
@@ -504,7 +504,7 @@ function deleteAllInFolder(commandName)
   // Delete messages.
   iter = folder.messages;
   while (iter.hasMoreElements()) {
-    children.appendElement(iter.getNext(), false);
+    children.appendElement(iter.getNext());
   }
   folder.deleteMessages(children, msgWindow, true, false, null, false);
   children.clear();

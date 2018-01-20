@@ -4,18 +4,16 @@
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://services-common/async.js");
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 // Load DownloadUtils module for convertByteUnits
 Components.utils.import("resource://gre/modules/DownloadUtils.jsm");
-Components.utils.import("resource://gre/modules/AppConstants.jsm");
 
 // locally loaded services
 var gLocSvc = {};
-XPCOMUtils.defineLazyServiceGetter(gLocSvc, "date",
-                                   "@mozilla.org/intl/scriptabledateformat;1",
-                                   "nsIScriptableDateFormat");
-XPCOMUtils.defineLazyServiceGetter(gLocSvc, "fhist",
-                                   "@mozilla.org/satchel/form-history;1",
-                                   "nsIFormHistory2");
+XPCOMUtils.defineLazyModuleGetter(gLocSvc, "FormHistory",
+                                  "resource://gre/modules/FormHistory.jsm",
+                                  "FormHistory");
 XPCOMUtils.defineLazyServiceGetter(gLocSvc, "url",
                                    "@mozilla.org/network/url-parser;1?auth=maybe",
                                    "nsIURLParser");
@@ -58,7 +56,7 @@ var gDataman = {
     Services.obs.addObserver(this, "cookie-changed", false);
     Services.obs.addObserver(this, "perm-changed", false);
     Services.obs.addObserver(this, "passwordmgr-storage-changed", false);
-    Services.contentPrefs.addObserver(null, this);
+    // Services.contentPrefs.addObserver(null, this);
     Services.obs.addObserver(this, "satchel-storage-changed", false);
     Services.obs.addObserver(this, "dom-storage-changed", false);
     Services.obs.addObserver(this, "dom-storage2-changed", false);
@@ -80,7 +78,7 @@ var gDataman = {
     Services.obs.removeObserver(this, "cookie-changed");
     Services.obs.removeObserver(this, "perm-changed");
     Services.obs.removeObserver(this, "passwordmgr-storage-changed");
-    Services.contentPrefs.removeObserver(null, this);
+    // Services.contentPrefs.removeObserver(null, this);
     Services.obs.removeObserver(this, "satchel-storage-changed");
     Services.obs.removeObserver(this, "dom-storage-changed");
     Services.obs.removeObserver(this, "dom-storage2-changed");
@@ -262,7 +260,7 @@ var gDomains = {
     this.domainObjects["*"] = {title: "*",
                                displayTitle: "*",
                                hasPermissions: true,
-                               hasPreferences: Services.contentPrefs.getPrefs(null, null).enumerator.hasMoreElements(),
+//                               hasPreferences: Services.contentPrefs.getPrefs(null, null).enumerator.hasMoreElements(),
                                hasFormData: true};
     this.search("");
     if (!gDataman.viewToLoad.length)
@@ -274,7 +272,7 @@ var gDomains = {
       loaderInstance.next();
     }
 
-    function loader() {
+    function* loader() {
       // Add domains for all cookies we find.
       gDataman.debugMsg("Add cookies to domain list: " + Date.now()/1000);
       gDomains.ignoreUpdate = true;
@@ -353,6 +351,7 @@ var gDomains = {
       gDomains.loadView();
       yield undefined;
     }
+
     loaderInstance = loader();
     setTimeout(nextStep, 0);
   },
@@ -370,7 +369,8 @@ var gDomains = {
     function nextStep() {
       loaderInstance.next();
     }
-    function loader() {
+
+    function* loader() {
       if (gDataman.viewToLoad.length) {
         if (gDataman.viewToLoad[0] == "" && gDataman.viewToLoad.length > 1) {
           let sType = gDataman.viewToLoad[1].substr(0,1).toUpperCase() +
@@ -463,6 +463,7 @@ var gDomains = {
       Services.obs.notifyObservers(window, "dataman-loaded", null);
       yield undefined;
     }
+
     loaderInstance = loader();
     setTimeout(nextStep, 0);
   },
@@ -984,11 +985,9 @@ var gCookies = {
       // See bug 238045 for details.
       let expiry = "";
       try {
-        expiry = gLocSvc.date.FormatDateTime("", gLocSvc.date.dateFormatLong,
-                                             gLocSvc.date.timeFormatSeconds,
-                                             date.getFullYear(), date.getMonth()+1,
-                                             date.getDate(), date.getHours(),
-                                             date.getMinutes(), date.getSeconds());
+        const dateTimeFormatter = Services.intl.createDateTimeFormat(undefined, {
+                                  dateStyle: "full", timeStyle: "long" });
+        expiry = dateTimeFormatter.format(date);
       }
       catch (e) {}
       return expiry;
@@ -1412,7 +1411,7 @@ var gPerms = {
       // This can currently fail for some schemes like 'file://'.
       // Maybe fix it later if needed.
       try {
-        let uri = Services.io.newURI(new URL(aOrigin), null, null);
+        let uri = Services.io.newURI(new URL(aOrigin));
         Services.perms.add(uri, aType, aValue);
       }
       catch (e) {
@@ -2449,7 +2448,7 @@ var gStorage = {
     let groups = gLocSvc.appcache.getGroups();
     gDataman.debugMsg("Loading " + groups.length + " appcache entries");
     for (let lGroup of groups) {
-      let uri = Services.io.newURI(lGroup, null, null);
+      let uri = Services.io.newURI(lGroup);
       let cache = gLocSvc.appcache.getActiveCache(lGroup);
       this.storages.push({host: uri.host,
                           rawHost: uri.host,
@@ -2548,7 +2547,7 @@ var gStorage = {
         let file = files.nextFile;
         // Convert directory name to a URI.
         let host = file.leafName.replace(/\+\+\+/, "://").replace(/\+(\d+)$/, ":$1");
-        let uri = Services.io.newURI(host, null, null);
+        let uri = Services.io.newURI(host);
         this.storages.push({host: host,
                             rawHost: uri.host,
                             type: "indexedDB",
@@ -2691,15 +2690,14 @@ var gStorage = {
         let testHost = aStorageItem.host;
         if (!/:/.test(testHost))
           testHost = "http://" + testHost;
-        let uri = Services.io.newURI(testHost, null, null);
-        let principal = gLocSvc.ssm.getCodebasePrincipal(uri);
-        let storage = gLocSvc.domstoremgr
-                             .getLocalStorageForPrincipal(principal, "");
+        let uri = Services.io.newURI(testHost);
+        let principal = gLocSvc.ssm.createCodebasePrincipal(uri, {});
+        let storage = gLocSvc.domstoremgr.createStorage(null, principal, "");
         storage.clear();
         break;
       case "indexedDB":
         gLocSvc.idxdbmgr.clearDatabasesForURI(
-            Services.io.newURI(aStorageItem.host, null, null));
+            Services.io.newURI(aStorageItem.host));
         break;
     }
   },
@@ -2822,26 +2820,37 @@ var gFormdata = {
     this.displayedFormdata = [];
   },
 
+  _promiseLoadFormHistory: function formdata_promiseLoadFormHistory() {
+    return new Promise(resolve => {
+      let callbacks = {
+        handleResult(result) {
+          gFormdata.formdata.push({fieldname: result.fieldname,
+                                   value: result.value,
+                                   timesUsed: result.timesUsed,
+                                   firstUsed: gFormdata._getTimeString(result.firstUsed),
+                                   firstUsedSortValue: result.firstUsed,
+                                   lastUsed: gFormdata._getTimeString(result.lastUsed),
+                                   lastUsedSortValue: result.lastUsed,
+                                   guid: result.guid});
+        },
+        handleError(aError) {
+          Components.utils.reportError(aError);
+        },
+        handleCompletion(aReason) {
+          // This needs to stay in or Async.promiseSpinningly will fail.
+          resolve();
+        }
+      };
+      gLocSvc.FormHistory.search(["fieldname", "value", "timesUsed", "firstUsed", "lastUsed", "guid"],
+                                 {},
+                                 callbacks);
+   });
+  },
+
   loadList: function formdata_loadList() {
     this.formdata = [];
-    try {
-      let sql = "SELECT fieldname, value, timesUsed, firstUsed, lastUsed, guid FROM moz_formhistory";
-      var statement = gLocSvc.fhist.DBConnection.createStatement(sql);
-      while (statement.executeStep()) {
-        this.formdata.push({fieldname: statement.row["fieldname"],
-                            value: statement.row["value"],
-                            timesUsed: statement.row["timesUsed"],
-                            firstUsed: this._getTimeString(statement.row["firstUsed"]),
-                            firstUsedSortValue: statement.row["firstUsed"],
-                            lastUsed: this._getTimeString(statement.row["lastUsed"]),
-                            lastUsedSortValue: statement.row["lastUsed"],
-                            guid: statement.row["guid"]}
-                          );
-      }
-    }
-    finally {
-      statement.reset();
-    }
+    // Use Async.promiseSpinningly to Sync the call.
+    Async.promiseSpinningly(this._promiseLoadFormHistory());
   },
 
   _getTimeString: function formdata__getTimeString(aTimestamp) {
@@ -2853,11 +2862,9 @@ var gFormdata = {
       // See bug 238045 for details.
       let dtString = "";
       try {
-        dtString = gLocSvc.date.FormatDateTime("", gLocSvc.date.dateFormatLong,
-                                               gLocSvc.date.timeFormatSeconds,
-                                               date.getFullYear(), date.getMonth()+1,
-                                               date.getDate(), date.getHours(),
-                                               date.getMinutes(), date.getSeconds());
+        const dateTimeFormatter = Services.intl.createDateTimeFormat(undefined, {
+                                  dateStyle: "full", timeStyle: "long" });
+        dtString = dateTimeFormatter.format(date);
       }
       catch (e) {}
       return dtString;
@@ -2972,7 +2979,12 @@ var gFormdata = {
       this.formdata.splice(this.formdata.indexOf(this.displayedFormdata[selections[i]]), 1);
       this.displayedFormdata.splice(selections[i], 1);
       this.tree.treeBoxObject.rowCountChanged(selections[i], -1);
-      gLocSvc.fhist.removeEntry(delFData.fieldname, delFData.value);
+      let changes = [{op: "remove",
+                      fieldname: delFData.fieldname,
+                      value: delFData.value}];
+      // Async call but we don't care about the completion just now and remove the entry from the panel.
+      // If the call fails the entry will just reappear the next time the form panel is opened.
+      gLocSvc.FormHistory.update(changes);
     }
     // Select the entry after the first deleted one or the last of all entries.
     if (selections.length && this.displayedFormdata.length)
@@ -3007,19 +3019,62 @@ var gFormdata = {
       this.tree.view.selection.count >= this.tree.view.rowCount;
   },
 
+  /**
+   * _promiseReadFormHistory
+   *
+   * Retrieves the formddata from the data for the given guid.
+   *
+   * @param aGuid guid for which form data should be returned.
+   * @return Promise<null if no row is found with the specified guid,
+   *         or an object containing the row full content values>
+   */
+  _promiseReadFormHistory: function formdata_promiseReadFormHistory(aGuid) {
+
+    return new Promise((resolve, reject) => {
+      var entry = null;
+      let callbacks = {
+        handleResult(result) {
+          // There can be only one entry for a given guid.
+          // If there are more we will not behead it but instead 
+          // only keep the last returned result.
+          entry = result;
+        },
+        handleError(aError) {
+          Components.utils.reportError(aError);
+          reject(error);
+        },
+        handleCompletion(aReason) {
+          resolve(entry);
+        }
+      };
+
+      gLocSvc.FormHistory.search(["fieldname", "value", "timesUsed", "firstUsed", "lastUsed", "guid"],
+                                 {guid :aGuid},
+                                 callbacks);
+   });
+  },
+
+  // Updates the form data panel when receiving a notification.
+  //
+  // The notification type is passed in aData.
+  //
+  // The following types are supported:
+  //   formhistory-add  formhistory-update  formhistory-remove
+  //   formhistory-expireoldentries
+  //
+  // The following types will be ignored:
+  //   formhistory-shutdown  formhistory-beforeexpireoldentries
   reactToChange: function formdata_reactToChange(aSubject, aData) {
-    // aData: addEntry, modifyEntry, removeEntry, removeAllEntries,
-    // removeEntriesForName, removeEntriesByTimeframe, expireOldEntries,
-    // before-removeEntry, before-removeAllEntries, before-removeEntriesForName,
-    // before-removeEntriesByTimeframe, before-expireOldEntries
 
     // Ignore changes when no form data pane is loaded
-    // or if we caught a before-* notification.
-    if (!this.displayedFormdata.length || /^before-/.test(aData))
+    // or if we caught an unsupported notification.
+    if (!this.displayedFormdata.length ||
+        aData == "formhistory-shutdown" ||
+        aData == "formhistory-beforeexpireoldentries") {
       return;
+    }
 
-    if (aData == "removeAllEntries" || aData == "removeEntriesForName" ||
-        aData == "removeEntriesByTimeframe" || aData == "expireOldEntries") {
+    if (aData == "formhistory-expireoldentries") {
       // Go for re-parsing the whole thing.
       this.tree.treeBoxObject.beginUpdateBatch();
       this.tree.view.selection.clearSelection();
@@ -3031,43 +3086,38 @@ var gFormdata = {
       return;
     }
 
-    // Usual notifications for addEntry, modifyEntry, removeEntry - do "surgical" updates.
-    let subjectData = []; // Those notifications all have: name, value, guid.
-    if (aSubject instanceof Components.interfaces.nsIArray) {
-      let enumerator = aSubject.enumerate();
-      while (enumerator.hasMoreElements()) {
-        let nextElem = enumerator.getNext();
-        if (nextElem instanceof Components.interfaces.nsISupportsString ||
-            nextElem instanceof Components.interfaces.nsISupportsPRInt64) {
-          subjectData.push(nextElem.data);
-        }
-      }
-    }
-    else {
+    if (aData != "formhistory-add" && aData != "formhistory-change" &&
+        aData != "formhistory-remove") {
       Components.utils.reportError("Observed an unrecognized formdata change of type " + aData);
       return;
     }
 
-    let entryData = null;
-    if (aData == "addEntry" || aData == "modifyEntry") {
-      try {
-        let sql = "SELECT fieldname, value, timesUsed, firstUsed, lastUsed, guid FROM moz_formhistory WHERE guid = :guid";
-        var statement = gLocSvc.fhist.DBConnection.createStatement(sql);
-        statement.params.guid = subjectData[2];
-        while (statement.executeStep()) {
-          entryData = {fieldname: statement.row["fieldname"],
-                       value: statement.row["value"],
-                       timesUsed: statement.row["timesUsed"],
-                       firstUsed: this._getTimeString(statement.row["firstUsed"]),
-                       firstUsedSortValue: statement.row["firstUsed"],
-                       lastUsed: this._getTimeString(statement.row["lastUsed"]),
-                       lastUsedSortValue: statement.row["lastUsed"],
-                       guid: statement.row["guid"]};
+    var cGuid = null;
+
+    if (aSubject instanceof Components.interfaces.nsISupportsString) {
+      cGuid = aSubject.toString();
+    }
+
+    if (!cGuid) {
+      // See bug 1346850. Remove has a problem and always sends a null guid.
+      // We just let the panel stay the same which might cause minor problems
+      // because there is no longer a notification when removing all entries.
+      if (aData != "formhistory-remove") {
+        Components.utils.reportError("FormHistory guid is null for " + aData);
+      }
+      return;
+    }
+
+    var entryData = null;
+
+    if (aData == "formhistory-add" || aData == "formhistory-change") {
+      // Use Async.promiseSpinningly to Sync the call.
+      Async.promiseSpinningly(this._promiseReadFormHistory(cGuid).then(entry => {
+        if (entry) {
+          entryData = entry;
         }
-      }
-      finally {
-        statement.reset();
-      }
+        return;
+      }));
 
       if (!entryData) {
         Components.utils.reportError("Could not find added/modifed formdata entry");
@@ -3075,9 +3125,8 @@ var gFormdata = {
       }
     }
 
-    if (aData == "addEntry") {
+    if (aData == "formhistory-add") {
       this.formdata.push(entryData);
-
       this.displayedFormdata.push(this.formdata[this.formdata.length - 1]);
       this.tree.treeBoxObject.rowCountChanged(this.formdata.length - 1, 1);
       this.search("");
@@ -3086,18 +3135,18 @@ var gFormdata = {
       let idx = -1, disp_idx = -1;
       for (let i = 0; i < this.displayedFormdata.length; i++) {
         let fdata = this.displayedFormdata[i];
-        if (fdata && fdata.guid == subjectData[2]) {
+        if (fdata && fdata.guid == cGuid) {
           idx = this.formdata.indexOf(this.displayedFormdata[i]);
           disp_idx = i;
           break;
         }
       }
       if (idx >= 0) {
-        if (aData == "modifyEntry") {
+        if (aData == "formhistory-change") {
           this.formdata[idx] = entryData;
           this.tree.treeBoxObject.invalidateRow(disp_idx);
         }
-        else if (aData == "removeEntry") {
+        else if (aData == "formhistory-remove") {
           this.formdata.splice(idx, 1);
           this.displayedFormdata.splice(disp_idx, 1);
           this.tree.treeBoxObject.rowCountChanged(disp_idx, -1);
@@ -3107,7 +3156,7 @@ var gFormdata = {
   },
 
   forget: function formdata_forget() {
-    gLocSvc.fhist.removeAllEntries();
+    gLocSvc.FormHistory.update({ op: "remove" });
   },
 
   // nsITreeView

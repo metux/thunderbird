@@ -14,7 +14,7 @@
 <!ENTITY aboutNetworking.autoRefresh           "Om de 3 seconden automatisch vernieuwen">
 <!ENTITY aboutNetworking.hostname              "Hostnaam">
 <!ENTITY aboutNetworking.port                  "Poort">
-<!ENTITY aboutNetworking.spdy                  "SPDY">
+<!ENTITY aboutNetworking.http2                 "HTTP/2">
 <!ENTITY aboutNetworking.ssl                   "SSL">
 <!ENTITY aboutNetworking.active                "Actief">
 <!ENTITY aboutNetworking.idle                  "Niet actief">
@@ -41,3 +41,18 @@
 <!ENTITY aboutNetworking.dnsLookupButton       "Omzetten">
 <!ENTITY aboutNetworking.dnsDomain             "Domein">
 <!ENTITY aboutNetworking.dnsLookupTableColumn  "IP-adressen">
+<!ENTITY aboutNetworking.rcwn                  "RCWN-statistieken">
+<!ENTITY aboutNetworking.rcwnStatus            "RCWN-status">
+<!ENTITY aboutNetworking.rcwnCacheWonCount     "Aantal gewonnen door buffer">
+<!ENTITY aboutNetworking.rcwnNetWonCount       "Aantal gewonnen door netwerk">
+<!ENTITY aboutNetworking.totalNetworkRequests  "Totale aantal netwerkaanvragen">
+<!ENTITY aboutNetworking.rcwnOperation         "Bufferbewerking">
+<!ENTITY aboutNetworking.rcwnPerfOpen          "Openen">
+<!ENTITY aboutNetworking.rcwnPerfRead          "Lezen">
+<!ENTITY aboutNetworking.rcwnPerfWrite         "Schrijven">
+<!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Vermelding openen">
+<!ENTITY aboutNetworking.rcwnAvgShort          "Kort gemiddelde">
+<!ENTITY aboutNetworking.rcwnAvgLong           "Lang gemiddelde">
+<!ENTITY aboutNetworking.rcwnStddevLong        "Lange standaarddeviatie">
+<!ENTITY aboutNetworking.rcwnCacheSlow         "Aantal trage buffers">
+<!ENTITY aboutNetworking.rcwnCacheNotSlow      "Aantal niet-trage buffers">

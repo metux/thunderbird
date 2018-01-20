@@ -92,7 +92,7 @@ NS_IMETHODIMP nsMsgFolderNotificationService::NotifyMsgsMoveCopyCompleted(
   nsIArray *aDestMsgs)
 {
   uint32_t count = mListeners.Length();
-  
+
   // IMAP delete model means that a "move" isn't really a move, it is a copy,
   // followed by storing the IMAP deleted flag on the message.
   bool isReallyMove = aMove;
@@ -106,7 +106,7 @@ NS_IMETHODIMP nsMsgFolderNotificationService::NotifyMsgsMoveCopyCompleted(
     nsCOMPtr<nsIMsgFolder> msgFolder;
     rv = message->GetFolder(getter_AddRefs(msgFolder));
     NS_ENSURE_SUCCESS(rv, rv);
-    
+
     nsCOMPtr<nsIMsgImapMailFolder> imapFolder(do_QueryInterface(msgFolder));
     if (imapFolder)
     {
@@ -164,9 +164,9 @@ NS_IMETHODIMP nsMsgFolderNotificationService::NotifyFolderRenamed(nsIMsgFolder *
   return NS_OK;
 }
 
-/* void notifyItemEvent (in nsISupports aItem, in string aEvent, in nsISupports aData); */
-NS_IMETHODIMP nsMsgFolderNotificationService::NotifyItemEvent(nsISupports *aItem, const nsACString &aEvent, nsISupports *aData)
+/* void notifyItemEvent (in nsISupports aItem, in string aEvent, in nsISupports aData, in AUTF8String aString); */
+NS_IMETHODIMP nsMsgFolderNotificationService::NotifyItemEvent(nsISupports *aItem, const nsACString &aEvent, nsISupports *aData, const nsACString &aString)
 {
-  NOTIFY_MSGFOLDER_LISTENERS(itemEvent, ItemEvent, (aItem, aEvent, aData));
+  NOTIFY_MSGFOLDER_LISTENERS(itemEvent, ItemEvent, (aItem, aEvent, aData, aString));
   return NS_OK;
 }

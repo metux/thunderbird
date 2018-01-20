@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,18 +7,15 @@
 #include "mozilla/layers/CompositableClient.h"
 #include <stdint.h>                     // for uint64_t, uint32_t
 #include "gfxPlatform.h"                // for gfxPlatform
-#include "mozilla/layers/CompositableChild.h"
 #include "mozilla/layers/CompositableForwarder.h"
 #include "mozilla/layers/ImageBridgeChild.h"
 #include "mozilla/layers/TextureClient.h"  // for TextureClient, etc
 #include "mozilla/layers/TextureClientOGL.h"
 #include "mozilla/mozalloc.h"           // for operator delete, etc
-#include "mozilla/layers/PCompositableChild.h"
 #include "mozilla/layers/TextureClientRecycleAllocator.h"
 #ifdef XP_WIN
 #include "gfxWindowsPlatform.h"         // for gfxWindowsPlatform
 #include "mozilla/layers/TextureD3D11.h"
-#include "mozilla/layers/TextureD3D9.h"
 #endif
 #include "gfxUtils.h"
 #include "IPDLActor.h"
@@ -28,41 +26,26 @@ namespace layers {
 using namespace mozilla::gfx;
 
 void
-CompositableClient::InitIPDLActor(PCompositableChild* aActor, uint64_t aAsyncID)
+CompositableClient::InitIPDL(const CompositableHandle& aHandle)
 {
-  MOZ_ASSERT(aActor);
+  MOZ_ASSERT(aHandle);
 
   mForwarder->AssertInForwarderThread();
 
-  mCompositableChild = static_cast<CompositableChild*>(aActor);
-  mCompositableChild->Init(this, aAsyncID);
-}
-
-/* static */ RefPtr<CompositableClient>
-CompositableClient::FromIPDLActor(PCompositableChild* aActor)
-{
-  MOZ_ASSERT(aActor);
-
-  RefPtr<CompositableClient> client = static_cast<CompositableChild*>(aActor)->GetCompositableClient();
-  if (!client) {
-    return nullptr;
-  }
-
-  client->mForwarder->AssertInForwarderThread();
-  return client;
+  mHandle = aHandle;
+  mIsAsync = !NS_IsMainThread();
 }
 
 CompositableClient::CompositableClient(CompositableForwarder* aForwarder,
                                        TextureFlags aTextureFlags)
 : mForwarder(aForwarder)
 , mTextureFlags(aTextureFlags)
+, mIsAsync(false)
 {
-  MOZ_COUNT_CTOR(CompositableClient);
 }
 
 CompositableClient::~CompositableClient()
 {
-  MOZ_COUNT_DTOR(CompositableClient);
   Destroy();
 }
 
@@ -72,17 +55,11 @@ CompositableClient::GetCompositorBackendType() const
   return mForwarder->GetCompositorBackendType();
 }
 
-PCompositableChild*
-CompositableClient::GetIPDLActor() const
-{
-  return mCompositableChild;
-}
-
 bool
 CompositableClient::Connect(ImageContainer* aImageContainer)
 {
-  MOZ_ASSERT(!mCompositableChild);
-  if (!GetForwarder() || GetIPDLActor()) {
+  MOZ_ASSERT(!mHandle);
+  if (!GetForwarder() || mHandle) {
     return false;
   }
 
@@ -96,35 +73,29 @@ CompositableClient::IsConnected() const
 {
   // CanSend() is only reliable in the same thread as the IPDL channel.
   mForwarder->AssertInForwarderThread();
-  return mCompositableChild && mCompositableChild->IsConnected();
+  return !!mHandle;
 }
 
 void
 CompositableClient::Destroy()
 {
-  if (!mCompositableChild) {
-    return;
-  }
-
   if (mTextureClientRecycler) {
     mTextureClientRecycler->Destroy();
   }
 
-  // Take away our IPDL's actor reference back to us.
-  mCompositableChild->RevokeCompositableClient();
-
-  // Schedule the IPDL actor to be destroyed on the forwarder's thread.
-  mForwarder->Destroy(mCompositableChild);
-  mCompositableChild = nullptr;
+  if (mHandle) {
+    mForwarder->ReleaseCompositable(mHandle);
+    mHandle = CompositableHandle();
+  }
 }
 
-uint64_t
-CompositableClient::GetAsyncID() const
+CompositableHandle
+CompositableClient::GetAsyncHandle() const
 {
-  if (mCompositableChild) {
-    return mCompositableChild->GetAsyncID();
+  if (mIsAsync) {
+    return mHandle;
   }
-  return 0; // zero is always an invalid async ID
+  return CompositableHandle();
 }
 
 already_AddRefed<TextureClient>
@@ -224,8 +195,8 @@ CompositableClient::GetTextureClientRecycler()
   ReentrantMonitorAutoEnter mainThreadAutoMon(barrier);
   bool done = false;
 
-  RefPtr<Runnable> runnable =
-    NS_NewRunnableFunction([&]() {
+  RefPtr<Runnable> runnable = NS_NewRunnableFunction(
+    "layers::CompositableClient::GetTextureClientRecycler", [&]() {
       if (!mTextureClientRecycler) {
         mTextureClientRecycler = new layers::TextureClientRecycleAllocator(mForwarder);
       }

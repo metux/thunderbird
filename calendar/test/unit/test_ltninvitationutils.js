@@ -113,10 +113,12 @@ add_task(function* getItipHeader_test() {
     }, {
         input: {
             method: "METHOD:REPLY\r\n",
-            attendees: ["ATTENDEE;RSVP=TRUE;CN=Attendee1;PARTSTAT=ACCEPTED;" +
-                        "ROLE=REQ-PARTICIPANT:mailto:attendee1@example.net",
-                        "ATTENDEE;RSVP=TRUE;CN=Attendee2;PARTSTAT=DECLINED;" +
-                        "ROLE=REQ-PARTICIPANT:mailto:attendee2@example.net"]
+            attendees: [
+                "ATTENDEE;RSVP=TRUE;CN=Attendee1;PARTSTAT=ACCEPTED;" +
+                "ROLE=REQ-PARTICIPANT:mailto:attendee1@example.net",
+                "ATTENDEE;RSVP=TRUE;CN=Attendee2;PARTSTAT=DECLINED;" +
+                "ROLE=REQ-PARTICIPANT:mailto:attendee2@example.net"
+            ]
         },
         expected: "Attendee1 <attendee1@example.net> has accepted your event invitation."
     }, {
@@ -215,12 +217,12 @@ add_task(function* createInvitationOverlay_test() {
     }, {
         input: {
             description: "DESCRIPTION:Or we can try: <img src=\"document.getElementById(\"imipHtm" +
-                         "l-description-descr\").innerText\" \>\r\n"
+                         "l-description-descr\").innerText\" >\r\n"
         },
         expected: {
             node: "imipHtml-description-content",
             value: "Or we can try: &lt;img src=\"document.getElementById(\"imipHtml-description-d" +
-                   "escr\").innerText\" \&gt;"
+                   "escr\").innerText\" &gt;"
         }
     }, {
         input: { url: "URL:http://www.example.org/event.ics\r\n" },
@@ -443,40 +445,28 @@ add_task(function* compareInvitationOverlay_test() {
             ignore: ""
         },
         expected: {
-            // time format is platform dependent, so we use alternative result sets here
-            // the first three are to meet configurations running for automated tests, the
-            // following are some flavours that may occur - if you get a failure for this test,
-            // add your pattern here
+            // Time format is platform dependent, so we use alternative result sets here.
+            // The first two are configurations running for automated tests.
+            // If you get a failure for this test, add your pattern here.
             node: "imipHtml-when-content",
-            some: ["<span xmlns=\"\" class=\"added\">Wed 9 Sep 2015 02:00 PM – 03:00 PM</span>" +
-                   "<br xmlns=\"\"/>" +
-                   "<span xmlns=\"\" class=\"removed\">Wed 9 Sep 2015 01:00 PM – 02:00 PM</span>",
+            some: [ // For Windows.
+                "<span xmlns=\"\" class=\"added\">Wednesday, September 09, 2015 2:00 PM – 3:00 PM</span>" +
+                "<br xmlns=\"\"/>" +
+                "<span xmlns=\"\" class=\"removed\">Wednesday, September 09, 2015 1:00 PM – 2:00 PM</span>",
 
-                   "<span xmlns=\"\" class=\"added\">Wed 9 Sep 2015 2:00 PM – 3:00 PM</span>" +
-                   "<br xmlns=\"\"/>" +
-                   "<span xmlns=\"\" class=\"removed\">Wed 9 Sep 2015 1:00 PM – 2:00 PM</span>",
+                "<span xmlns=\"\" class=\"added\">Wednesday, September 09, 2015 14:00 – 15:00</span>" +
+                "<br xmlns=\"\"/>" +
+                "<span xmlns=\"\" class=\"removed\">Wednesday, September 09, 2015 13:00 – 14:00</span>",
 
-                   "<span xmlns=\"\" class=\"added\">Wednesday, September 09, 2015 2:00 PM – 3:00 PM</span>" +
-                   "<br xmlns=\"\"/>" +
-                   "<span xmlns=\"\" class=\"removed\">Wednesday, September 09, 2015 1:00 PM – 2:00 PM</span>",
+                // For Linux and Mac: The same but without 2-digit day.
+                "<span xmlns=\"\" class=\"added\">Wednesday, September 9, 2015 2:00 PM – 3:00 PM</span>" +
+                "<br xmlns=\"\"/>" +
+                "<span xmlns=\"\" class=\"removed\">Wednesday, September 9, 2015 1:00 PM – 2:00 PM</span>",
 
-                   // do not change the patterns above unless there are related test failures when
-                   // running automated tests
-                   "<span xmlns=\"\" class=\"added\">Wed 09 Sep 2015 2:00 PM – 3:00 PM</span>" +
-                   "<br xmlns=\"\"/>" +
-                   "<span xmlns=\"\" class=\"removed\">Wed 09 Sep 2015 1:00 PM – 2:00 PM</span>",
-
-                   "<span xmlns=\"\" class=\"added\">Wednesday, 09 September, 2015 2:00 PM – 3:00 PM</span>" +
-                   "<br xmlns=\"\"/>" +
-                   "<span xmlns=\"\" class=\"removed\">Wednesday, 09 September, 2015 1:00 PM – 2:00 PM</span>",
-
-                   "<span xmlns=\"\" class=\"added\">Wed 9 Sep 2015 14:00 – 15:00</span>" +
-                   "<br xmlns=\"\"/>" +
-                   "<span xmlns=\"\" class=\"removed\">Wed 9 Sep 2015 13:00 – 14:00</span>",
-
-                   "<span xmlns=\"\" class=\"added\">Wed 09 Sep 2015 14:00 – 15:00</span>" +
-                   "<br xmlns=\"\"/>" +
-                   "<span xmlns=\"\" class=\"removed\">Wed 09 Sep 2015 13:00 – 14:00</span>"]
+                "<span xmlns=\"\" class=\"added\">Wednesday, September 9, 2015 14:00 – 15:00</span>" +
+                "<br xmlns=\"\"/>" +
+                "<span xmlns=\"\" class=\"removed\">Wednesday, September 9, 2015 13:00 – 14:00</span>"
+            ]
         }
     }, {
         input: {
@@ -486,8 +476,10 @@ add_task(function* compareInvitationOverlay_test() {
         },
         expected: {
             node: "organizer-table",
-            each: ["<span xmlns=\"\" class=\"added\">organizer2@example.net</span>",
-                   "<span xmlns=\"\" class=\"removed\">organizer1@example.net</span>"]
+            each: [
+                "<span xmlns=\"\" class=\"added\">organizer2@example.net</span>",
+                "<span xmlns=\"\" class=\"removed\">organizer1@example.net</span>"
+            ]
         }
     }, {
         input: {
@@ -511,10 +503,12 @@ add_task(function* compareInvitationOverlay_test() {
         },
         expected: {
             node: "attendee-table",
-            each: ["<span xmlns=\"\" class=\"modified\">attendee2@example.net</span>",
-                   "attendee3@example.net",
-                   "<span xmlns=\"\" class=\"added\">attendee4@example.net</span>",
-                   "<span xmlns=\"\" class=\"removed\">attendee1@example.net</span>"]
+            each: [
+                "<span xmlns=\"\" class=\"modified\">attendee2@example.net</span>",
+                "attendee3@example.net",
+                "<span xmlns=\"\" class=\"added\">attendee4@example.net</span>",
+                "<span xmlns=\"\" class=\"removed\">attendee1@example.net</span>"
+            ]
         }
     }];
     // we make sure that the Europe/Berlin timezone and long datetime format is set
@@ -801,6 +795,8 @@ add_task(function* getRfc5322FormattedDate_test() {
 });
 
 add_task(function* parseCounter_test() {
+    // We are disabling this rule for a more consistent display of this data
+    /* eslint-disable object-curly-newline */
     let data = [{
         // #1: basic test to check all currently supported properties
         input: {
@@ -822,11 +818,14 @@ add_task(function* parseCounter_test() {
                 }, {
                     dtStamp: "DTSTAMP:20150909T182048Z"
                 }, {
-                    attach: "COMMENT:Sorry\, I cannot make it that time."
+                    attach: "COMMENT:Sorry, I cannot make it that time."
                 }
             ]
         },
         expected: {
+            // Time format is platform dependent, so we use alternative result sets here.
+            // The first two are configurations running for automated tests.
+            // If you get a failure for this test, add your pattern here.
             result: { descr: "", type: "OK" },
             differences: [{
                 property: "SUMMARY",
@@ -838,25 +837,31 @@ add_task(function* parseCounter_test() {
                 original: "Room 1"
             }, {
                 property: "DTSTART",
-                proposed: ["Thursday, September 10, 2015 9:00 PM Europe/Berlin", // Automation Win
-                           "Thu 10 Sep 2015 9:00 PM Europe/Berlin", // Automation OSX
-                           "Thu 10 Sep 2015 09:00 PM Europe/Berlin", // Automation Linux
-                           "Thu 10 Sep 2015 21:00 Europe/Berlin"], // Local Win 24h
-                original: ["Wednesday, September 09, 2015 9:00 PM Europe/Berlin",
-                           "Wed 9 Sep 2015 9:00 PM Europe/Berlin",
-                           "Wed 9 Sep 2015 09:00 PM Europe/Berlin",
-                           "Wed 9 Sep 2015 21:00 Europe/Berlin"]
+                proposed: [
+                    "Thursday, September 10, 2015 9:00 PM Europe/Berlin",
+                    "Thursday, September 10, 2015 21:00 Europe/Berlin"
+                ],
+                original: [
+                    "Wednesday, September 09, 2015 9:00 PM Europe/Berlin", // Windows
+                    "Wednesday, September 09, 2015 21:00 Europe/Berlin",
+                    "Wednesday, September 9, 2015 9:00 PM Europe/Berlin",  // Linux and Mac
+                    "Wednesday, September 9, 2015 21:00 Europe/Berlin"
+                ]
             }, {
                 property: "DTEND",
-                proposed: ["Thursday, September 10, 2015 10:00 PM Europe/Berlin",
-                           "Thu 10 Sep 2015 10:00 PM Europe/Berlin",
-                           "Thu 10 Sep 2015 22:00 Europe/Berlin"],
-                original: ["Wednesday, September 09, 2015 10:00 PM Europe/Berlin",
-                           "Wed 9 Sep 2015 10:00 PM Europe/Berlin",
-                           "Wed 9 Sep 2015 22:00 Europe/Berlin"]
+                proposed: [
+                    "Thursday, September 10, 2015 10:00 PM Europe/Berlin",
+                    "Thursday, September 10, 2015 22:00 Europe/Berlin"
+                ],
+                original: [
+                    "Wednesday, September 09, 2015 10:00 PM Europe/Berlin", // Windows
+                    "Wednesday, September 09, 2015 22:00 Europe/Berlin",
+                    "Wednesday, September 9, 2015 10:00 PM Europe/Berlin",  // Linux and Mac
+                    "Wednesday, September 9, 2015 22:00 Europe/Berlin"
+                ]
             }, {
                 property: "COMMENT",
-                proposed: "Sorry\, I cannot make it that time.",
+                proposed: "Sorry, I cannot make it that time.",
                 original: null
             }]
         }
@@ -874,9 +879,10 @@ add_task(function* parseCounter_test() {
                     location: "LOCATION:Room 2"
                 }, {
                     attach: "ATTACH:http://www.example2.com"
-                } ,{
+                }, {
                     dtStamp: "DTSTAMP:20150909T182048Z"
-                }]
+                }
+            ]
         },
         expected: {
             result: { descr: "", type: "OK" },
@@ -1013,7 +1019,8 @@ add_task(function* parseCounter_test() {
         // #8:counterproposal without any difference
         input: {
             existing: [],
-            proposed: [{ method: "METHOD:COUNTER" }] },
+            proposed: [{ method: "METHOD:COUNTER" }]
+        },
         expected: {
             result: {
                 descr: "No difference in counterproposal detected.",
@@ -1022,6 +1029,7 @@ add_task(function* parseCounter_test() {
             differences: []
         }
     }];
+    /* eslint-enable object-curly-newline */
 
     let getItem = function(aProperties) {
         let item = getIcs(true);
@@ -1073,9 +1081,9 @@ add_task(function* parseCounter_test() {
         return createEventFromIcalString(item);
     };
 
-    let formatDt = function (aDateTime) {
-        let datetime = getDateFormatter().formatDateTime(aDateTime);
-        return datetime += " " + aDateTime.timezone.displayName;
+    let formatDt = function(aDateTime) {
+        let datetime = cal.getDateFormatter().formatDateTime(aDateTime);
+        return datetime + " " + aDateTime.timezone.displayName;
     };
 
     for (let i = 1; i <= data.length; i++) {
@@ -1098,7 +1106,7 @@ add_task(function* parseCounter_test() {
                         prop && expected[0].proposed.includes(prop),
                         "(test #" + i + ": difference " + aDiff.property + ": proposed '" + prop + "')"
                     );
-                    prop = aDiff.original ? formatDt(aDiff.original) : null
+                    prop = aDiff.original ? formatDt(aDiff.original) : null;
                     ok(
                         prop && expected[0].original.includes(prop),
                         "(test #" + i + ": difference " + aDiff.property + ": original '" + prop + "')"

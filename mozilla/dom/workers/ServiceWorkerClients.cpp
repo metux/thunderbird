@@ -8,6 +8,7 @@
 
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/PromiseWorkerProxy.h"
+#include "mozilla/JSObjectHolder.h"
 
 #include "ServiceWorkerClient.h"
 #include "ServiceWorkerManager.h"
@@ -34,7 +35,7 @@
 #include "nsWeakReference.h"
 
 #ifdef MOZ_WIDGET_ANDROID
-#include "AndroidBridge.h"
+#include "FennecJNIWrappers.h"
 #endif
 
 using namespace mozilla;
@@ -111,10 +112,10 @@ class GetRunnable final : public Runnable
   RefPtr<PromiseWorkerProxy> mPromiseProxy;
   nsString mClientId;
 public:
-  GetRunnable(PromiseWorkerProxy* aPromiseProxy,
-              const nsAString& aClientId)
-    : mPromiseProxy(aPromiseProxy),
-      mClientId(aClientId)
+  GetRunnable(PromiseWorkerProxy* aPromiseProxy, const nsAString& aClientId)
+    : mozilla::Runnable("GetRunnable")
+    , mPromiseProxy(aPromiseProxy)
+    , mClientId(aClientId)
   {
   }
 
@@ -193,15 +194,19 @@ class MatchAllRunnable final : public Runnable
   };
 
   RefPtr<PromiseWorkerProxy> mPromiseProxy;
-  nsCString mScope;
-  bool mIncludeUncontrolled;
+  const nsCString mScope;
+  const uint64_t mServiceWorkerID;
+  const bool mIncludeUncontrolled;
 public:
   MatchAllRunnable(PromiseWorkerProxy* aPromiseProxy,
                    const nsCString& aScope,
+                   uint64_t aServiceWorkerID,
                    bool aIncludeUncontrolled)
-    : mPromiseProxy(aPromiseProxy),
-      mScope(aScope),
-      mIncludeUncontrolled(aIncludeUncontrolled)
+    : mozilla::Runnable("MatchAllRunnable")
+    , mPromiseProxy(aPromiseProxy)
+    , mScope(aScope)
+    , mServiceWorkerID(aServiceWorkerID)
+    , mIncludeUncontrolled(aIncludeUncontrolled)
   {
     MOZ_ASSERT(mPromiseProxy);
   }
@@ -220,7 +225,8 @@ public:
     RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
     if (swm) {
       swm->GetAllClients(mPromiseProxy->GetWorkerPrivate()->GetPrincipal(),
-                         mScope, mIncludeUncontrolled, result);
+                         mScope, mServiceWorkerID, mIncludeUncontrolled,
+                         result);
     }
     RefPtr<ResolvePromiseWorkerRunnable> r =
       new ResolvePromiseWorkerRunnable(mPromiseProxy->GetWorkerPrivate(),
@@ -275,7 +281,8 @@ class ClaimRunnable final : public Runnable
 
 public:
   ClaimRunnable(PromiseWorkerProxy* aPromiseProxy, const nsCString& aScope)
-    : mPromiseProxy(aPromiseProxy)
+    : mozilla::Runnable("ClaimRunnable")
+    , mPromiseProxy(aPromiseProxy)
     , mScope(aScope)
     // Safe to call GetWorkerPrivate() since we are being called on the worker
     // thread via script (so no clean up has occured yet).
@@ -485,22 +492,57 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(WebProgressListener)
 NS_INTERFACE_MAP_END
 
 class OpenWindowRunnable final : public Runnable
+                               , public nsIObserver
+                               , public nsSupportsWeakReference
 {
   RefPtr<PromiseWorkerProxy> mPromiseProxy;
   nsString mUrl;
   nsString mScope;
 
 public:
+  NS_DECL_ISUPPORTS_INHERITED
+  // Note: |OpenWindowRunnable| cannot be cycle collected because it inherits
+  // thread safe reference counting from |mozilla::Runnable|. On Fennec, we
+  // might use |ServiceWorkerPrivate::StoreISupports| to keep this object alive
+  // while waiting for an event from the observer service. As such, to avoid
+  // creating a cycle that will leak, |OpenWindowRunnable| must not hold a strong
+  // reference to |ServiceWorkerPrivate|.
+
   OpenWindowRunnable(PromiseWorkerProxy* aPromiseProxy,
                      const nsAString& aUrl,
                      const nsAString& aScope)
-    : mPromiseProxy(aPromiseProxy)
+    : mozilla::Runnable("OpenWindowRunnable")
+    , mPromiseProxy(aPromiseProxy)
     , mUrl(aUrl)
     , mScope(aScope)
   {
     MOZ_ASSERT(aPromiseProxy);
     MOZ_ASSERT(aPromiseProxy->GetWorkerPrivate());
     aPromiseProxy->GetWorkerPrivate()->AssertIsOnWorkerThread();
+  }
+
+  NS_IMETHOD
+  Observe(nsISupports* aSubject, const char* aTopic, const char16_t* /* aData */) override
+  {
+    AssertIsOnMainThread();
+
+    nsCString topic(aTopic);
+    if (!topic.EqualsLiteral("BrowserChrome:Ready")) {
+      MOZ_ASSERT(false, "Unexpected topic.");
+      return NS_ERROR_FAILURE;
+    }
+
+    nsCOMPtr<nsIObserverService> os = services::GetObserverService();
+    NS_ENSURE_STATE(os);
+    os->RemoveObserver(this, "BrowserChrome:Ready");
+
+    RefPtr<ServiceWorkerPrivate> swp = GetServiceWorkerPrivate();
+    NS_ENSURE_STATE(swp);
+
+    MOZ_ALWAYS_SUCCEEDS(NS_DispatchToMainThread(this));
+    swp->RemoveISupports(static_cast<nsIObserver*>(this));
+
+    return NS_OK;
   }
 
   NS_IMETHOD
@@ -516,7 +558,9 @@ public:
 #ifdef MOZ_WIDGET_ANDROID
     // This fires an intent that will start launching Fennec and foreground it,
     // if necessary.
-    java::GeckoAppShell::OpenWindowForNotification();
+    if (jni::IsFennec()) {
+      java::GeckoApp::LaunchOrBringToFront();
+    }
 #endif
 
     nsCOMPtr<nsPIDOMWindowOuter> window;
@@ -546,28 +590,11 @@ public:
         return NS_ERROR_FAILURE;
       }
 
-      RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
-      if (!swm) {
-        // browser shutdown
-        return NS_ERROR_FAILURE;
-      }
-
-      nsCOMPtr<nsIPrincipal> principal = workerPrivate->GetPrincipal();
-      MOZ_ASSERT(principal);
-      RefPtr<ServiceWorkerRegistrationInfo> registration =
-        swm->GetRegistration(principal, NS_ConvertUTF16toUTF8(mScope));
-      if (NS_WARN_IF(!registration)) {
-        return NS_ERROR_FAILURE;
-      }
-      RefPtr<ServiceWorkerInfo> serviceWorkerInfo =
-        registration->GetServiceWorkerInfoById(workerPrivate->ServiceWorkerID());
-      if (NS_WARN_IF(!serviceWorkerInfo)) {
-        return NS_ERROR_FAILURE;
-      }
+      RefPtr<ServiceWorkerPrivate> swp = GetServiceWorkerPrivate();
+      NS_ENSURE_STATE(swp);
 
       nsCOMPtr<nsIWebProgressListener> listener =
-        new WebProgressListener(mPromiseProxy, serviceWorkerInfo->WorkerPrivate(),
-                                window, baseURI);
+        new WebProgressListener(mPromiseProxy, swp, window, baseURI);
 
       rv = webProgress->AddProgressListener(listener,
                                             nsIWebProgress::NOTIFY_STATE_DOCUMENT);
@@ -575,40 +602,21 @@ public:
       return NS_OK;
     }
 #ifdef MOZ_WIDGET_ANDROID
-    else if (rv == NS_ERROR_NOT_AVAILABLE) {
+    else if (rv == NS_ERROR_NOT_AVAILABLE && jni::IsFennec()) {
       // We couldn't get a browser window, so Fennec must not be running.
       // Send an Intent to launch Fennec and wait for "BrowserChrome:Ready"
       // to try opening a window again.
+      RefPtr<ServiceWorkerPrivate> swp = GetServiceWorkerPrivate();
+      NS_ENSURE_STATE(swp);
+
       nsCOMPtr<nsIObserverService> os = services::GetObserverService();
       NS_ENSURE_STATE(os);
 
-      WorkerPrivate* workerPrivate = mPromiseProxy->GetWorkerPrivate();
-      MOZ_ASSERT(workerPrivate);
+      rv = os->AddObserver(this, "BrowserChrome:Ready", /* weakRef */ true);
+      NS_ENSURE_SUCCESS(rv, rv);
 
-      RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
-      if (!swm) {
-        // browser shutdown
-        return NS_ERROR_FAILURE;
-      }
+      swp->StoreISupports(static_cast<nsIObserver*>(this));
 
-      nsCOMPtr<nsIPrincipal> principal = workerPrivate->GetPrincipal();
-      MOZ_ASSERT(principal);
-
-      RefPtr<ServiceWorkerRegistrationInfo> registration =
-        swm->GetRegistration(principal, NS_ConvertUTF16toUTF8(mScope));
-      if (NS_WARN_IF(!registration)) {
-        return NS_ERROR_FAILURE;
-      }
-
-      RefPtr<ServiceWorkerInfo> serviceWorkerInfo =
-        registration->GetServiceWorkerInfoById(workerPrivate->ServiceWorkerID());
-      if (NS_WARN_IF(!serviceWorkerInfo)) {
-        return NS_ERROR_FAILURE;
-      }
-
-      os->AddObserver(static_cast<nsIObserver*>(serviceWorkerInfo->WorkerPrivate()),
-                      "BrowserChrome:Ready", true);
-      serviceWorkerInfo->WorkerPrivate()->AddPendingWindow(this);
       return NS_OK;
     }
 #endif
@@ -622,11 +630,49 @@ public:
   }
 
 private:
+  ~OpenWindowRunnable()
+  { }
+
+  ServiceWorkerPrivate*
+  GetServiceWorkerPrivate() const
+  {
+    AssertIsOnMainThread();
+
+    RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
+    if (!swm) {
+      // browser shutdown
+      return nullptr;
+    }
+
+    WorkerPrivate* workerPrivate = mPromiseProxy->GetWorkerPrivate();
+    MOZ_ASSERT(workerPrivate);
+
+    nsCOMPtr<nsIPrincipal> principal = workerPrivate->GetPrincipal();
+    MOZ_DIAGNOSTIC_ASSERT(principal);
+
+    RefPtr<ServiceWorkerRegistrationInfo> registration =
+      swm->GetRegistration(principal, NS_ConvertUTF16toUTF8(mScope));
+    if (NS_WARN_IF(!registration)) {
+      return nullptr;
+    }
+
+    RefPtr<ServiceWorkerInfo> serviceWorkerInfo =
+      registration->GetServiceWorkerInfoById(workerPrivate->ServiceWorkerID());
+    if (NS_WARN_IF(!serviceWorkerInfo)) {
+      return nullptr;
+    }
+
+    return serviceWorkerInfo->WorkerPrivate();
+  }
+
   nsresult
   OpenWindow(nsPIDOMWindowOuter** aWindow)
   {
     MOZ_DIAGNOSTIC_ASSERT(aWindow);
     WorkerPrivate* workerPrivate = mPromiseProxy->GetWorkerPrivate();
+
+    nsCOMPtr<nsIPrincipal> triggeringPrincipal = workerPrivate->GetPrincipal();
+    MOZ_DIAGNOSTIC_ASSERT(triggeringPrincipal);
 
     // [[1. Let url be the result of parsing url with entry settings object's API
     //   base URL.]]
@@ -652,6 +698,25 @@ private:
     }
 
     if (XRE_IsContentProcess()) {
+
+      // Let's create a sandbox in order to have a valid JSContext and correctly
+      // propagate the SubjectPrincipal.
+      AutoJSAPI jsapi;
+      jsapi.Init();
+
+      JSContext* cx = jsapi.cx();
+
+      nsIXPConnect* xpc = nsContentUtils::XPConnect();
+      MOZ_ASSERT(xpc, "This should never be null!");
+
+      JS::Rooted<JSObject*> sandbox(cx);
+      rv = xpc->CreateSandbox(cx, triggeringPrincipal, sandbox.address());
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+      }
+
+      JSAutoCompartment ac(cx, sandbox);
+
       // ContentProcess
       nsCOMPtr<nsIWindowWatcher> wwatch =
         do_GetService(NS_WINDOWWATCHER_CONTRACTID, &rv);
@@ -716,6 +781,7 @@ private:
     rv = bwin->OpenURI(uri, nullptr,
                        nsIBrowserDOMWindow::OPEN_DEFAULTWINDOW,
                        nsIBrowserDOMWindow::OPEN_NEW,
+                       triggeringPrincipal,
                        getter_AddRefs(win));
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
@@ -729,6 +795,16 @@ private:
     return NS_OK;
   }
 };
+
+NS_IMPL_ADDREF_INHERITED(OpenWindowRunnable, Runnable)                                    \
+NS_IMPL_RELEASE_INHERITED(OpenWindowRunnable, Runnable)
+
+NS_INTERFACE_MAP_BEGIN(OpenWindowRunnable)
+NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
+NS_INTERFACE_MAP_ENTRY(nsIObserver)
+NS_INTERFACE_MAP_ENTRY(nsIRunnable)
+NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIObserver)
+NS_INTERFACE_MAP_END
 
 } // namespace
 
@@ -788,6 +864,7 @@ ServiceWorkerClients::MatchAll(const ClientQueryOptions& aOptions,
   RefPtr<MatchAllRunnable> r =
     new MatchAllRunnable(promiseProxy,
                          NS_ConvertUTF16toUTF8(scope),
+                         workerPrivate->ServiceWorkerID(),
                          aOptions.mIncludeUncontrolled);
   MOZ_ALWAYS_SUCCEEDS(workerPrivate->DispatchToMainThread(r.forget()));
   return promise.forget();

@@ -20,6 +20,9 @@
 <!ENTITY installAddonFromFile.accesskey       "I">
 <!ENTITY toolsMenu.tooltip                    "Tresnak gehigarri guztientzat">
 
+<!ENTITY getThemes.description                "Nabigatzailea pertsonalizatu nahi duzu?">
+<!ENTITY getThemes.learnMore                  "Aukeratu milaka itxuren artetik.">
+
 <!ENTITY cmd.back.tooltip                     "Joan orri bat atzera">
 <!ENTITY cmd.forward.tooltip                  "Joan orri bat aurrera">
 
@@ -115,6 +118,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "Erakutsi eguneraketa honen bertsio-oharrak">
 <!ENTITY cmd.hideReleaseNotes.label           "Ezkutatu bertsio-oharrak">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Ezkutatu eguneraketa honen bertsio-oharrak">
+<!ENTITY cmd.findReplacement.label            "Bilatu ordezkoa">
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
      Displayed in the center of the Get Add-ons view, see bug 601143 for mockups. -->
@@ -182,6 +186,10 @@
 <!ENTITY addon.details.label                  "Gehiago">
 <!ENTITY addon.details.tooltip                "Erakutsi gehigarri honi buruzko xehetasun gehiago">
 <!ENTITY addon.unknownDate                    "Ezezaguna">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "LEGATUA">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -246,3 +254,9 @@
 
 <!ENTITY pluginDeprecation.description "Zerbait falta da? &brandShortName;(e)k ez ditu dagoeneko zenbait plugin onartzen.">
 <!ENTITY pluginDeprecation.learnMore "Argibide gehiago.">
+
+<!ENTITY legacyWarning.description "Zerbait falta da? &brandShortName;(e)k ez ditu dagoeneko zenbait hedapen onartzen.">
+<!ENTITY legacyWarning.showLegacy "Erakutsi legatu-hedapenak">
+<!ENTITY legacyExtensions.title "Legatu-hedapenak">
+<!ENTITY legacyExtensions.description "Hedapen hauek ez dira &brandShortName;(r)en gutxieneko kalitatera heltzen eta desaktibatu egin dira.">
+<!ENTITY legacyExtensions.learnMore "Gehigarrien aldaketei buruzko argibide gehiago">

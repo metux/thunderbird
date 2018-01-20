@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
+const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "FormHistory",
                                   "resource://gre/modules/FormHistory.jsm");
@@ -19,10 +18,10 @@ FormHistoryStartup.prototype = {
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsIObserver,
     Ci.nsISupportsWeakReference,
-    Ci.nsIFrameMessageListener
+    Ci.nsIFrameMessageListener,
   ]),
 
-  observe: function(subject, topic, data) {
+  observe(subject, topic, data) {
     switch (topic) {
       case "nsPref:changed":
         FormHistory.updatePrefs();
@@ -36,7 +35,6 @@ FormHistoryStartup.prototype = {
         break;
       case "profile-after-change":
         this.init();
-      default:
         break;
     }
   },
@@ -44,23 +42,24 @@ FormHistoryStartup.prototype = {
   inited: false,
   pendingQuery: null,
 
-  init: function()
-  {
-    if (this.inited)
+  init() {
+    if (this.inited) {
       return;
+    }
     this.inited = true;
 
     Services.prefs.addObserver("browser.formfill.", this, true);
 
     // triggers needed service cleanup and db shutdown
     Services.obs.addObserver(this, "profile-before-change", true);
+    Services.obs.addObserver(this, "idle-daily", true);
     Services.obs.addObserver(this, "formhistory-expire-now", true);
 
-    let messageManager = Cc["@mozilla.org/globalmessagemanager;1"].
-                         getService(Ci.nsIMessageListenerManager);
-    messageManager.loadFrameScript("chrome://satchel/content/formSubmitListener.js", true);
-    messageManager.addMessageListener("FormHistory:FormSubmitEntries", this);
+    Services.ppmm.loadProcessScript("chrome://satchel/content/formSubmitListener.js", true);
+    Services.ppmm.addMessageListener("FormHistory:FormSubmitEntries", this);
 
+    let messageManager = Cc["@mozilla.org/globalmessagemanager;1"]
+                         .getService(Ci.nsIMessageListenerManager);
     // For each of these messages, we could receive them from content,
     // or we might receive them from the ppmm if the searchbar is
     // having its history queried.
@@ -70,17 +69,15 @@ FormHistoryStartup.prototype = {
     }
   },
 
-  receiveMessage: function(message) {
+  receiveMessage(message) {
     switch (message.name) {
       case "FormHistory:FormSubmitEntries": {
         let entries = message.data;
-        let changes = entries.map(function(entry) {
-          return {
-            op : "bump",
-            fieldname : entry.name,
-            value : entry.value,
-          }
-        });
+        let changes = entries.map(entry => ({
+          op: "bump",
+          fieldname: entry.name,
+          value: entry.value,
+        }));
 
         FormHistory.update(changes);
         break;
@@ -95,6 +92,7 @@ FormHistoryStartup.prototype = {
         }
 
         let mm;
+        let query = null;
         if (message.target instanceof Ci.nsIMessageListenerManager) {
           // The target is the PPMM, meaning that the parent process
           // is requesting FormHistory data on the searchbar.
@@ -113,34 +111,33 @@ FormHistoryStartup.prototype = {
             // Check that the current query is still the one we created. Our
             // query might have been canceled shortly before completing, in
             // that case we don't want to call the callback anymore.
-            if (query == this.pendingQuery) {
+            if (query === this.pendingQuery) {
               this.pendingQuery = null;
               if (!aReason) {
                 mm.sendAsyncMessage("FormHistory:AutoCompleteSearchResults",
                                     { id, results });
               }
             }
-          }
+          },
         };
 
-        let query = FormHistory.getAutoCompleteResults(searchString, params,
-                                                       processResults);
+        query = FormHistory.getAutoCompleteResults(searchString, params, processResults);
         this.pendingQuery = query;
         break;
       }
 
       case "FormHistory:RemoveEntry": {
-        let { inputName, value } = message.data;
+        let { inputName, value, guid } = message.data;
         FormHistory.update({
           op: "remove",
           fieldname: inputName,
           value,
+          guid,
         });
         break;
       }
-
     }
-  }
+  },
 };
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([FormHistoryStartup]);

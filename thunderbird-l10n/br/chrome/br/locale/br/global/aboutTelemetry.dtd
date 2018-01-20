@@ -4,27 +4,14 @@
 
 <!ENTITY aboutTelemetry.pageTitle "Roadennoù Telemetry">
 
-<!ENTITY aboutTelemetry.changeDataChoices "  Kemmañ">
-
-<!ENTITY aboutTelemetry.uploadEnabled "  <span>Gweredekaet</span> eo kas ar roadennoù FHR.">
-
-<!ENTITY aboutTelemetry.uploadDisabled "  <span>Diweredekaet</span> eo kas ar roadennoù FHR. ">
-
-<!ENTITY aboutTelemetry.extendedRecordingEnabled "  <span>Gweredekaet</span> eo enrolladenn an Telemetry hiraet.">
-
-<!ENTITY aboutTelemetry.extendedRecordingDisabled "  <span>Diweredekaet</span> eo enrolladenn an Telemetry hiraet. ">
-
 <!ENTITY aboutTelemetry.pingDataSource "Mammenn roadennoù ping :">
 
 <!ENTITY aboutTelemetry.showCurrentPingData "Roadennoù ping bremanel">
 
 <!ENTITY aboutTelemetry.showArchivedPingData "Roadennoù ping diellet">
 
-<!ENTITY aboutTelemetry.pingDataDisplay "Skrammañ ar roadennoù ping:">
-
-<!ENTITY aboutTelemetry.structured "Frammet">
-
 <!ENTITY aboutTelemetry.raw "JSON diaoz">
+
 
 <!ENTITY aboutTelemetry.showSubsessionData "Diskouez ar roadennoù iz-estez">
 
@@ -34,11 +21,13 @@
 
 <!ENTITY aboutTelemetry.showOlderPing "Ping kozhoc'h &gt;&gt;">
 
-<!ENTITY aboutTelemetry.rawPingData "Roadennoù ping diaoz...">
-
 <!ENTITY aboutTelemetry.archiveWeekHeader "Sizhun">
 
+
 <!ENTITY aboutTelemetry.archivePingHeader "Ping">
+
+
+
 
 <!ENTITY aboutTelemetry.generalDataSection "  Roadennoù hollek">
 
@@ -52,6 +41,8 @@
 
 <!ENTITY aboutTelemetry.threadHangStatsSection "  Sac'hadennoù neudennoù">
 
+<!ENTITY aboutTelemetry.capturedStacksSection "  Bernioù euvret">
+
 <!ENTITY aboutTelemetry.scalarsSection "  Skeuliadoù">
 
 <!ENTITY aboutTelemetry.keyedScalarsSection "  Skeuliadelloù alc'hwez">
@@ -60,28 +51,40 @@
 
 <!ENTITY aboutTelemetry.keyedHistogramsSection "  Tellunioù gant alc'hwezioù">
 
+<!ENTITY aboutTelemetry.eventsSection "  Darvoudoù">
+
 <!ENTITY aboutTelemetry.simpleMeasurementsSection "  Muzulioù eeun">
 
 <!ENTITY aboutTelemetry.addonDetailsSection "  Munudoù an askouezh">
 
 <!ENTITY aboutTelemetry.lateWritesSection "  Skrivadurioù diwezhat">
 
+
 <!ENTITY aboutTelemetry.sessionInfoSection "  Titouroù an estez">
-
-<!ENTITY aboutTelemetry.addonHistogramsSection "  Tellunioù dastumet gant an askouezhioù">
-
-<!ENTITY aboutTelemetry.toggle "  Klikit evit astennañ / bihanaat ar gevrenn">
-
-<!ENTITY aboutTelemetry.emptySection "  (Roadenn ebet bet dastumet)">
 
 <!ENTITY aboutTelemetry.fullSqlWarning "  NOTENN : Gweredekaet eo diveugañ an azgoulennoù SQL gorrek. Azgoulennoù SQL klok a c'hell bezañ diskouezet amañ dindan met ne vint ket kaset da Delemetry.">
 
-<!ENTITY aboutTelemetry.fetchSymbols "  Atoriñ an anvioù arc'hwel evit tornioù ar sac'hadennoù">
+<!ENTITY aboutTelemetry.fetchStackSymbols "  Atoriñ an anvioù arc'hwel evit an tornioù">
 
-<!ENTITY aboutTelemetry.hideSymbols "  Diskouez roadennoù diaoz ar sac'hadennoù">
+<!ENTITY aboutTelemetry.hideStackSymbols "  Diskouez ar roadennoù tornioù diaoz">
 
 <!ENTITY aboutTelemetry.filterText "  Sil (hedadoù pe /riñvenn reoliek/)">
 
 <!ENTITY aboutTelemetry.payloadChoiceHeader "  Payload">
 
-<!ENTITY aboutTelemetry.rawPayload "  Karg diaoz">
+<!ENTITY aboutTelemetry.archivePingType "Ping Type">
+<!ENTITY aboutTelemetry.optionGroupToday "Today">
+<!ENTITY aboutTelemetry.optionGroupYesterday "Yesterday">
+<!ENTITY aboutTelemetry.optionGroupOlder "Older">
+<!ENTITY aboutTelemetry.previousPing "&lt;&lt;">
+<!ENTITY aboutTelemetry.nextPing "&gt;&gt;">
+
+<!ENTITY aboutTelemetry.moreInformations "Looking for more information?">
+<!ENTITY aboutTelemetry.firefoxDataDoc "The <a>Firefox Data Documentation</a> contains guides about how to work with our data tools.">
+<!ENTITY aboutTelemetry.telemetryClientDoc "The <a>Firefox Telemetry client documentation</a> includes definitions for concepts, API documentation and data references.">
+<!ENTITY aboutTelemetry.telemetryDashboard "The <a>Telemetry dashboards</a> allow you to visualize the data Mozilla receives via Telemetry.">
+
+<!ENTITY aboutTelemetry.showInFirefoxJsonViewer "Open in the JSON viewer">
+
+<!ENTITY aboutTelemetry.homeSection "Home">
+<!ENTITY aboutTelemetry.rawPayloadSection "Raw Payload">

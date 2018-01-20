@@ -38,7 +38,7 @@ function end_test() {
 function install_locale(aCallback) {
   gInstall = gProvider.createInstalls(gInstallProperties)[0];
   gInstall.addTestListener({
-    onInstallEnded: function(aInstall) {
+    onInstallEnded(aInstall) {
       gInstall.removeTestListener(this);
       executeSoon(aCallback);
     }
@@ -100,7 +100,7 @@ add_test(function() {
 // causes the locale category to be hidden with an acceptable delay
 add_test(function() {
   gInstall.cancel();
-  run_open_test(null, false, true)
+  run_open_test(null, false, true);
 });
 
 // Tests that the locale category is hidden with no delay when restarting

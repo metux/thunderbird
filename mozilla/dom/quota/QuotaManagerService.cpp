@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -17,7 +17,6 @@
 #include "mozilla/ipc/BackgroundUtils.h"
 #include "mozilla/ipc/PBackgroundChild.h"
 #include "nsIIdleService.h"
-#include "nsIIPCBackgroundChildCreateCallback.h"
 #include "nsIObserverService.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsXULAppAPI.h"
@@ -60,6 +59,25 @@ TestingPrefChangedCallback(const char* aPrefName,
   gTestingMode = Preferences::GetBool(aPrefName);
 }
 
+nsresult
+CheckedPrincipalToPrincipalInfo(nsIPrincipal* aPrincipal,
+                                PrincipalInfo& aPrincipalInfo)
+{
+  MOZ_ASSERT(aPrincipal);
+
+  nsresult rv = PrincipalToPrincipalInfo(aPrincipal, &aPrincipalInfo);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  if (aPrincipalInfo.type() != PrincipalInfo::TContentPrincipalInfo &&
+      aPrincipalInfo.type() != PrincipalInfo::TSystemPrincipalInfo) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  return NS_OK;
+}
+
 class AbortOperationsRunnable final
   : public Runnable
 {
@@ -67,7 +85,8 @@ class AbortOperationsRunnable final
 
 public:
   explicit AbortOperationsRunnable(ContentParentId aContentParentId)
-    : mContentParentId(aContentParentId)
+    : Runnable("dom::quota::AbortOperationsRunnable")
+    , mContentParentId(aContentParentId)
   { }
 
 private:
@@ -75,28 +94,6 @@ private:
 };
 
 } // namespace
-
-class QuotaManagerService::BackgroundCreateCallback final
-  : public nsIIPCBackgroundChildCreateCallback
-{
-  RefPtr<QuotaManagerService> mService;
-
-public:
-  explicit
-  BackgroundCreateCallback(QuotaManagerService* aService)
-    : mService(aService)
-  {
-    MOZ_ASSERT(aService);
-  }
-
-  NS_DECL_ISUPPORTS
-
-private:
-  ~BackgroundCreateCallback()
-  { }
-
-  NS_DECL_NSIIPCBACKGROUNDCHILDCREATECALLBACK
-};
 
 class QuotaManagerService::PendingRequestInfo
 {
@@ -228,14 +225,11 @@ QuotaManagerService::Get()
 }
 
 // static
-QuotaManagerService*
+already_AddRefed<QuotaManagerService>
 QuotaManagerService::FactoryCreate()
 {
-  // Returns a raw pointer that carries an owning reference! Lame, but the
-  // singleton factory macros force this.
-  QuotaManagerService* quotaManagerService = GetOrCreate();
-  NS_IF_ADDREF(quotaManagerService);
-  return quotaManagerService;
+  RefPtr<QuotaManagerService> quotaManagerService = GetOrCreate();
+  return quotaManagerService.forget();
 }
 
 void
@@ -332,95 +326,34 @@ QuotaManagerService::InitiateRequest(nsAutoPtr<PendingRequestInfo>& aInfo)
     return NS_ERROR_FAILURE;
   }
 
-  if (!mBackgroundActor && mPendingRequests.IsEmpty()) {
-    if (PBackgroundChild* actor = BackgroundChild::GetForCurrentThread()) {
-      BackgroundActorCreated(actor);
-    } else {
-      // We need to start the sequence to create a background actor for this
-      // thread.
-      RefPtr<BackgroundCreateCallback> cb = new BackgroundCreateCallback(this);
-      if (NS_WARN_IF(!BackgroundChild::GetOrCreateForCurrentThread(cb))) {
-        return NS_ERROR_FAILURE;
-      }
+  if (!mBackgroundActor) {
+    PBackgroundChild* backgroundActor =
+      BackgroundChild::GetOrCreateForCurrentThread();
+    if (NS_WARN_IF(!backgroundActor)) {
+      mBackgroundActorFailed = true;
+      return NS_ERROR_FAILURE;
+    }
+
+    {
+      QuotaChild* actor = new QuotaChild(this);
+
+      mBackgroundActor =
+        static_cast<QuotaChild*>(backgroundActor->SendPQuotaConstructor(actor));
     }
   }
 
-  // If we already have a background actor then we can start this request now.
-  if (mBackgroundActor) {
-    nsresult rv = aInfo->InitiateRequest(mBackgroundActor);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-  } else {
-    mPendingRequests.AppendElement(aInfo.forget());
-  }
-
-  return NS_OK;
-}
-
-nsresult
-QuotaManagerService::BackgroundActorCreated(PBackgroundChild* aBackgroundActor)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(aBackgroundActor);
-  MOZ_ASSERT(!mBackgroundActor);
-  MOZ_ASSERT(!mBackgroundActorFailed);
-
-  {
-    QuotaChild* actor = new QuotaChild(this);
-
-    mBackgroundActor =
-      static_cast<QuotaChild*>(aBackgroundActor->SendPQuotaConstructor(actor));
-  }
-
-  if (NS_WARN_IF(!mBackgroundActor)) {
-    BackgroundActorFailed();
+  if (!mBackgroundActor) {
+    mBackgroundActorFailed = true;
     return NS_ERROR_FAILURE;
   }
 
-  nsresult rv = NS_OK;
-
-  for (uint32_t index = 0, count = mPendingRequests.Length();
-       index < count;
-       index++) {
-    nsAutoPtr<PendingRequestInfo> info(mPendingRequests[index].forget());
-
-    nsresult rv2 = info->InitiateRequest(mBackgroundActor);
-
-    // Warn for every failure, but just return the first failure if there are
-    // multiple failures.
-    if (NS_WARN_IF(NS_FAILED(rv2)) && NS_SUCCEEDED(rv)) {
-      rv = rv2;
-    }
+  // If we already have a background actor then we can start this request now.
+  nsresult rv = aInfo->InitiateRequest(mBackgroundActor);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
   }
 
-  mPendingRequests.Clear();
-
-  return rv;
-}
-
-void
-QuotaManagerService::BackgroundActorFailed()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(!mPendingRequests.IsEmpty());
-  MOZ_ASSERT(!mBackgroundActor);
-  MOZ_ASSERT(!mBackgroundActorFailed);
-
-  mBackgroundActorFailed = true;
-
-  for (uint32_t index = 0, count = mPendingRequests.Length();
-       index < count;
-       index++) {
-    nsAutoPtr<PendingRequestInfo> info(mPendingRequests[index].forget());
-
-    RequestBase* request = info->GetRequest();
-    if (request) {
-      request->SetError(NS_ERROR_FAILURE);
-    }
-  }
-
-  mPendingRequests.Clear();
+  return NS_OK;
 }
 
 void
@@ -441,7 +374,11 @@ QuotaManagerService::PerformIdleMaintenance()
   if (!QuotaManager::IsRunningXPCShellTests())
 #endif
   {
+    // In order to give the correct battery level, hal must have registered
+    // battery observers.
+    RegisterBatteryObserver(this);
     GetCurrentBatteryInformation(&batteryInfo);
+    UnregisterBatteryObserver(this);
   }
 
   // If we're running XPCShell because we always want to be able to test this
@@ -481,8 +418,10 @@ QuotaManagerService::RemoveIdleObserver()
       do_GetService(kIdleServiceContractId);
     MOZ_ASSERT(idleService);
 
-    MOZ_ALWAYS_SUCCEEDS(
-      idleService->RemoveIdleObserver(this, kIdleObserverTimeSec));
+    // Ignore the return value of RemoveIdleObserver, it may fail if the
+    // observer has already been unregistered during shutdown.
+    Unused <<
+      idleService->RemoveIdleObserver(this, kIdleObserverTimeSec);
 
     mIdleObserverRegistered = false;
   }
@@ -493,6 +432,73 @@ NS_IMPL_RELEASE_WITH_DESTROY(QuotaManagerService, Destroy())
 NS_IMPL_QUERY_INTERFACE(QuotaManagerService,
                         nsIQuotaManagerService,
                         nsIObserver)
+
+NS_IMETHODIMP
+QuotaManagerService::Init(nsIQuotaRequest** _retval)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(nsContentUtils::IsCallerChrome());
+
+  if (NS_WARN_IF(!gTestingMode)) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  RefPtr<Request> request = new Request();
+
+  InitParams params;
+
+  nsAutoPtr<PendingRequestInfo> info(new RequestInfo(request, params));
+
+  nsresult rv = InitiateRequest(info);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  request.forget(_retval);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+QuotaManagerService::InitStoragesForPrincipal(
+                                             nsIPrincipal* aPrincipal,
+                                             const nsACString& aPersistenceType,
+                                             nsIQuotaRequest** _retval)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(nsContentUtils::IsCallerChrome());
+
+  if (NS_WARN_IF(!gTestingMode)) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  RefPtr<Request> request = new Request();
+
+  InitOriginParams params;
+
+  nsresult rv = CheckedPrincipalToPrincipalInfo(aPrincipal,
+                                                params.principalInfo());
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  Nullable<PersistenceType> persistenceType;
+  rv = NullablePersistenceTypeFromText(aPersistenceType, &persistenceType);
+  if (NS_WARN_IF(NS_FAILED(rv)) || persistenceType.IsNull()) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  params.persistenceType() = persistenceType.Value();
+
+  nsAutoPtr<PendingRequestInfo> info(new RequestInfo(request, params));
+
+  rv = InitiateRequest(info);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  request.forget(_retval);
+  return NS_OK;
+}
 
 NS_IMETHODIMP
 QuotaManagerService::GetUsage(nsIQuotaUsageCallback* aCallback,
@@ -533,15 +539,10 @@ QuotaManagerService::GetUsageForPrincipal(nsIPrincipal* aPrincipal,
 
   OriginUsageParams params;
 
-  PrincipalInfo& principalInfo = params.principalInfo();
-  nsresult rv = PrincipalToPrincipalInfo(aPrincipal, &principalInfo);
+  nsresult rv = CheckedPrincipalToPrincipalInfo(aPrincipal,
+                                                params.principalInfo());
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
-  }
-
-  if (principalInfo.type() != PrincipalInfo::TContentPrincipalInfo &&
-      principalInfo.type() != PrincipalInfo::TSystemPrincipalInfo) {
-    return NS_ERROR_UNEXPECTED;
   }
 
   params.getGroupUsage() = aGetGroupUsage;
@@ -561,7 +562,6 @@ NS_IMETHODIMP
 QuotaManagerService::Clear(nsIQuotaRequest** _retval)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(nsContentUtils::IsCallerChrome());
 
   if (NS_WARN_IF(!gTestingMode)) {
     return NS_ERROR_UNEXPECTED;
@@ -590,10 +590,9 @@ QuotaManagerService::ClearStoragesForPrincipal(nsIPrincipal* aPrincipal,
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aPrincipal);
-  MOZ_ASSERT(nsContentUtils::IsCallerChrome());
 
   nsCString suffix;
-  BasePrincipal::Cast(aPrincipal)->OriginAttributesRef().CreateSuffix(suffix);
+  aPrincipal->OriginAttributesRef().CreateSuffix(suffix);
 
   if (NS_WARN_IF(aClearAll && !suffix.IsEmpty())) {
     // The originAttributes should be default originAttributes when the
@@ -605,16 +604,10 @@ QuotaManagerService::ClearStoragesForPrincipal(nsIPrincipal* aPrincipal,
 
   ClearOriginParams params;
 
-  PrincipalInfo& principalInfo = params.principalInfo();
-
-  nsresult rv = PrincipalToPrincipalInfo(aPrincipal, &principalInfo);
+  nsresult rv = CheckedPrincipalToPrincipalInfo(aPrincipal,
+                                                params.principalInfo());
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
-  }
-
-  if (principalInfo.type() != PrincipalInfo::TContentPrincipalInfo &&
-      principalInfo.type() != PrincipalInfo::TSystemPrincipalInfo) {
-    return NS_ERROR_UNEXPECTED;
   }
 
   Nullable<PersistenceType> persistenceType;
@@ -647,7 +640,6 @@ NS_IMETHODIMP
 QuotaManagerService::Reset(nsIQuotaRequest** _retval)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(nsContentUtils::IsCallerChrome());
 
   if (NS_WARN_IF(!gTestingMode)) {
     return NS_ERROR_UNEXPECTED;
@@ -660,6 +652,64 @@ QuotaManagerService::Reset(nsIQuotaRequest** _retval)
   nsAutoPtr<PendingRequestInfo> info(new RequestInfo(request, params));
 
   nsresult rv = InitiateRequest(info);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  request.forget(_retval);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+QuotaManagerService::Persisted(nsIPrincipal* aPrincipal,
+                               nsIQuotaRequest** _retval)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aPrincipal);
+  MOZ_ASSERT(_retval);
+
+  RefPtr<Request> request = new Request(aPrincipal);
+
+  PersistedParams params;
+
+  nsresult rv = CheckedPrincipalToPrincipalInfo(aPrincipal,
+                                                params.principalInfo());
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  nsAutoPtr<PendingRequestInfo> info(new RequestInfo(request, params));
+
+  rv = InitiateRequest(info);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  request.forget(_retval);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+QuotaManagerService::Persist(nsIPrincipal* aPrincipal,
+                             nsIQuotaRequest** _retval)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aPrincipal);
+  MOZ_ASSERT(_retval);
+
+  RefPtr<Request> request = new Request(aPrincipal);
+
+  PersistParams params;
+
+  nsresult rv = CheckedPrincipalToPrincipalInfo(aPrincipal,
+                                                params.principalInfo());
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  nsAutoPtr<PendingRequestInfo> info(new RequestInfo(request, params));
+
+  rv = InitiateRequest(info);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -684,10 +734,10 @@ QuotaManagerService::Observe(nsISupports* aSubject,
   if (!strcmp(aTopic, "clear-origin-attributes-data")) {
     RefPtr<Request> request = new Request();
 
-    ClearOriginsParams requestParams;
-    requestParams.pattern() = nsDependentString(aData);
+    ClearDataParams params;
+    params.pattern() = nsDependentString(aData);
 
-    nsAutoPtr<PendingRequestInfo> info(new RequestInfo(request, requestParams));
+    nsAutoPtr<PendingRequestInfo> info(new RequestInfo(request, params));
 
     nsresult rv = InitiateRequest(info);
     if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -732,6 +782,13 @@ QuotaManagerService::Observe(nsISupports* aSubject,
   return NS_OK;
 }
 
+void
+QuotaManagerService::Notify(const hal::BatteryInformation& aBatteryInfo)
+{
+  // This notification is received when battery data changes. We don't need to
+  // deal with this notification.
+}
+
 NS_IMETHODIMP
 AbortOperationsRunnable::Run()
 {
@@ -749,36 +806,6 @@ AbortOperationsRunnable::Run()
   quotaManager->AbortOperationsForProcess(mContentParentId);
 
   return NS_OK;
-}
-
-NS_IMPL_ISUPPORTS(QuotaManagerService::BackgroundCreateCallback,
-                  nsIIPCBackgroundChildCreateCallback)
-
-void
-QuotaManagerService::
-BackgroundCreateCallback::ActorCreated(PBackgroundChild* aActor)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(aActor);
-  MOZ_ASSERT(mService);
-
-  RefPtr<QuotaManagerService> service;
-  mService.swap(service);
-
-  service->BackgroundActorCreated(aActor);
-}
-
-void
-QuotaManagerService::
-BackgroundCreateCallback::ActorFailed()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mService);
-
-  RefPtr<QuotaManagerService> service;
-  mService.swap(service);
-
-  service->BackgroundActorFailed();
 }
 
 nsresult

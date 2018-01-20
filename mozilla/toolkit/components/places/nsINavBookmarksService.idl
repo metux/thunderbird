@@ -13,7 +13,7 @@ interface nsINavHistoryBatchCallback;
 /**
  * Observer for bookmarks changes.
  */
-[scriptable, uuid(c06b4e7d-15b1-4d4f-bdf7-147d2be9084a)]
+[scriptable, uuid(4d00c221-2c4a-47ab-a617-abb324110492)]
 interface nsINavBookmarkObserver : nsISupports
 {
   /*
@@ -151,6 +151,7 @@ interface nsINavBookmarkObserver : nsISupports
    * @note List of values that may be associated with properties:
    *       aProperty     | aNewValue
    *       =====================================================================
+   *       guid          | The new bookmark guid.
    *       cleartime     | Empty string (all visits to this item were removed).
    *       title         | The new title.
    *       favicon       | The "moz-anno" URL of the new favicon.
@@ -161,6 +162,7 @@ interface nsINavBookmarkObserver : nsISupports
    *
    *       aProperty     | aOldValue
    *       =====================================================================
+   *       guid          | The old bookmark guid.
    *       cleartime     | Empty string (currently unused).
    *       title         | Empty string (currently unused).
    *       favicon       | Empty string (currently unused).
@@ -318,6 +320,23 @@ interface nsINavBookmarksService : nsISupports
   const unsigned short SOURCE_SYNC = 1;
   const unsigned short SOURCE_IMPORT = 2;
   const unsigned short SOURCE_IMPORT_REPLACE = 3;
+  const unsigned short SOURCE_SYNC_REPARENT_REMOVED_FOLDER_CHILDREN = 4;
+
+  /**
+   * Sync status flags.
+   */
+  // "UNKNOWN" means sync tracking information was lost because the item
+  // was restored from a backup, and needs to be reconciled with the server.
+  // This is set for migrated and restored bookmarks, and changed to "NORMAL"
+  // before upload.
+  const unsigned short SYNC_STATUS_UNKNOWN = 0;
+  // "NEW" means the item has never been synced, so we don't need to write
+  // a tombstone if it's deleted. This is set for all new local bookmarks, and
+  // changed to "NORMAL" before upload.
+  const unsigned short SYNC_STATUS_NEW = 1;
+  // "NORMAL" means the item has been uploaded to the server, and needs a
+  // tombstone if it's deleted.
+  const unsigned short SYNC_STATUS_NORMAL = 2;
 
   /**
    * Inserts a child bookmark into the given folder.
@@ -593,27 +612,6 @@ interface nsINavBookmarksService : nsISupports
   unsigned short getItemType(in long long aItemId);
 
   /**
-   * Returns true if the given URI is in any bookmark folder. If you want the
-   * results to be redirect-aware, use getBookmarkedURIFor()
-   */
-  boolean isBookmarked(in nsIURI aURI);
-
-  /**
-   * Used to see if the given URI is bookmarked, or any page that redirected to
-   * it is bookmarked. For example, if I bookmark "mozilla.org" by manually
-   * typing it in, and follow the bookmark, I will get redirected to
-   * "www.mozilla.org". Logically, this new page is also bookmarked. This
-   * function, if given "www.mozilla.org", will return the URI of the bookmark,
-   * in this case "mozilla.org".
-   *
-   * If there is no bookmarked page found, it will return NULL.
-   *
-   * @note The function will only return bookmarks in the first 2 levels of
-   *       redirection (1 -> 2 -> aURI).
-   */
-  nsIURI getBookmarkedURIFor(in nsIURI aURI);
-
-  /**
    * Change the bookmarked URI for a bookmark.
    * This changes which "place" the bookmark points at,
    * which means all annotations, etc are carried along.
@@ -652,22 +650,14 @@ interface nsINavBookmarksService : nsISupports
    * @deprecated Use PlacesUtils.keywords.fetch() API instead.
    */
   AString getKeywordForBookmark(in long long aItemId);
-
-  /**
-   * Returns the URI associated with the given keyword. Empty if no such
-   * keyword is found.
-   *
-   * @deprecated Use PlacesUtils.keywords.fetch() API instead.
-   */
-  nsIURI getURIForKeyword(in AString keyword);
-
   /**
    * Adds a bookmark observer. If ownsWeak is false, the bookmark service will
    * keep an owning reference to the observer.  If ownsWeak is true, then
    * aObserver must implement nsISupportsWeakReference, and the bookmark
    * service will keep a weak reference to the observer.
    */
-  void addObserver(in nsINavBookmarkObserver observer, in boolean ownsWeak);
+  void addObserver(in nsINavBookmarkObserver observer,
+                   [optional] in boolean ownsWeak);
 
   /**
    * Removes a bookmark observer.

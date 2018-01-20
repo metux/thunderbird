@@ -14,6 +14,7 @@
 #include "nsIFormProcessor.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsNSSShutDown.h"
+#include "nsString.h"
 #include "nsTArray.h"
 #include "secmodt.h"
 
@@ -63,7 +64,7 @@ protected:
   virtual ~nsKeygenFormProcessor();
 
   nsresult GetPublicKey(const nsAString& aValue, const nsAString& aChallenge,
-                        const nsAFlatString& akeyType, nsAString& aOutPublicKey,
+                        const nsString& akeyType, nsAString& aOutPublicKey,
                         const nsAString& aPqg);
   nsresult GetSlot(uint32_t aMechanism, PK11SlotInfo** aSlot);
 private:

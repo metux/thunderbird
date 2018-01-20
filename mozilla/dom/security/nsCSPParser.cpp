@@ -42,8 +42,6 @@ static const char16_t UNDERLINE    = '_';
 static const char16_t TILDE        = '~';
 static const char16_t WILDCARD     = '*';
 static const char16_t SINGLEQUOTE  = '\'';
-static const char16_t OPEN_CURL    = '{';
-static const char16_t CLOSE_CURL   = '}';
 static const char16_t NUMBER_SIGN  = '#';
 static const char16_t QUESTIONMARK = '?';
 static const char16_t PERCENT_SIGN = '%';
@@ -136,6 +134,9 @@ nsCSPParser::nsCSPParser(cspTokens& aTokens,
  , mUnsafeInlineKeywordSrc(nullptr)
  , mChildSrc(nullptr)
  , mFrameSrc(nullptr)
+ , mWorkerSrc(nullptr)
+ , mScriptSrc(nullptr)
+ , mParsingFrameAncestorsDir(false)
  , mTokens(aTokens)
  , mSelfURI(aSelfURI)
  , mPolicy(nullptr)
@@ -175,6 +176,32 @@ isValidHexDig(char16_t aHexDig)
   return (isNumberToken(aHexDig) ||
           (aHexDig >= 'A' && aHexDig <= 'F') ||
           (aHexDig >= 'a' && aHexDig <= 'f'));
+}
+
+static bool
+isValidBase64Value(const char16_t* cur, const char16_t* end)
+{
+  // Using grammar at https://w3c.github.io/webappsec-csp/#grammardef-nonce-source
+
+  // May end with one or two =
+  if (end > cur && *(end-1) == EQUALS) end--;
+  if (end > cur && *(end-1) == EQUALS) end--;
+
+  // Must have at least one character aside from any =
+  if (end == cur) {
+    return false;
+  }
+
+  // Rest must all be A-Za-z0-9+/-_
+  for (; cur < end; ++cur) {
+    if (!(isCharacterToken(*cur) || isNumberToken(*cur) ||
+          *cur == PLUS || *cur == SLASH ||
+          *cur == DASH || *cur == UNDERLINE)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 void
@@ -258,7 +285,7 @@ nsCSPParser::logWarningErrorToConsole(uint32_t aSeverityFlag,
   CSPPARSERLOG(("nsCSPParser::logWarningErrorToConsole: %s", aProperty));
   // send console messages off to the context and let the context
   // deal with it (potentially messages need to be queued up)
-  mCSPContext->logToConsole(NS_ConvertUTF8toUTF16(aProperty).get(),
+  mCSPContext->logToConsole(aProperty,
                             aParams,
                             aParamsLength,
                             EmptyString(), // aSourceName
@@ -500,26 +527,6 @@ nsCSPParser::host()
   return new nsCSPHostSrc(mCurValue);
 }
 
-// apps use special hosts; "app://{app-host-is-uid}""
-nsCSPHostSrc*
-nsCSPParser::appHost()
-{
-  CSPPARSERLOG(("nsCSPParser::appHost, mCurToken: %s, mCurValue: %s",
-               NS_ConvertUTF16toUTF8(mCurToken).get(),
-               NS_ConvertUTF16toUTF8(mCurValue).get()));
-
-  while (hostChar()) { /* consume */ }
-
-  // appHosts have to end with "}", otherwise we have to report an error
-  if (!accept(CLOSE_CURL)) {
-    const char16_t* params[] = { mCurToken.get() };
-    logWarningErrorToConsole(nsIScriptError::warningFlag, "couldntParseInvalidSource",
-                             params, ArrayLength(params));
-    return nullptr;
-  }
-  return new nsCSPHostSrc(mCurValue);
-}
-
 // keyword-source = "'self'" / "'unsafe-inline'" / "'unsafe-eval'"
 nsCSPBaseSrc*
 nsCSPParser::keywordSource()
@@ -531,7 +538,7 @@ nsCSPParser::keywordSource()
   // Special case handling for 'self' which is not stored internally as a keyword,
   // but rather creates a nsCSPHostSrc using the selfURI
   if (CSP_IsKeyword(mCurToken, CSP_SELF)) {
-    return CSP_CreateHostSrcFromURI(mSelfURI);
+    return CSP_CreateHostSrcFromSelfURI(mSelfURI);
   }
 
   if (CSP_IsKeyword(mCurToken, CSP_STRICT_DYNAMIC)) {
@@ -547,7 +554,7 @@ nsCSPParser::keywordSource()
       return nullptr;
     }
     mStrictDynamic = true;
-    return new nsCSPKeywordSrc(CSP_KeywordToEnum(mCurToken));
+    return new nsCSPKeywordSrc(CSP_UTF16KeywordToEnum(mCurToken));
   }
 
   if (CSP_IsKeyword(mCurToken, CSP_UNSAFE_INLINE)) {
@@ -566,7 +573,8 @@ nsCSPParser::keywordSource()
     }
     // cache if we encounter 'unsafe-inline' so we can invalidate (ignore) it in
     // case that script-src directive also contains hash- or nonce-.
-    mUnsafeInlineKeywordSrc = new nsCSPKeywordSrc(CSP_KeywordToEnum(mCurToken));
+    mUnsafeInlineKeywordSrc =
+      new nsCSPKeywordSrc(CSP_UTF16KeywordToEnum(mCurToken));
     return mUnsafeInlineKeywordSrc;
   }
 
@@ -576,7 +584,7 @@ nsCSPParser::keywordSource()
     if (doc) {
       doc->SetHasUnsafeEvalCSP(true);
     }
-    return new nsCSPKeywordSrc(CSP_KeywordToEnum(mCurToken));
+    return new nsCSPKeywordSrc(CSP_UTF16KeywordToEnum(mCurToken));
   }
   return nullptr;
 }
@@ -588,13 +596,6 @@ nsCSPParser::hostSource()
   CSPPARSERLOG(("nsCSPParser::hostSource, mCurToken: %s, mCurValue: %s",
                NS_ConvertUTF16toUTF8(mCurToken).get(),
                NS_ConvertUTF16toUTF8(mCurValue).get()));
-
-  // Special case handling for app specific hosts
-  if (accept(OPEN_CURL)) {
-    // If appHost() returns null, the error was handled in appHost().
-    // appHosts can not have a port, or path, we can return.
-    return appHost();
-  }
 
   nsCSPHostSrc* cspHost = host();
   if (!cspHost) {
@@ -667,7 +668,8 @@ nsCSPParser::nonceSource()
                NS_ConvertUTF16toUTF8(mCurValue).get()));
 
   // Check if mCurToken begins with "'nonce-" and ends with "'"
-  if (!StringBeginsWith(mCurToken, NS_ConvertUTF8toUTF16(CSP_EnumToKeyword(CSP_NONCE)),
+  if (!StringBeginsWith(mCurToken,
+                        nsDependentString(CSP_EnumToUTF16Keyword(CSP_NONCE)),
                         nsASCIICaseInsensitiveStringComparator()) ||
       mCurToken.Last() != SINGLEQUOTE) {
     return nullptr;
@@ -680,6 +682,10 @@ nsCSPParser::nonceSource()
   if (dashIndex < 0) {
     return nullptr;
   }
+  if (!isValidBase64Value(expr.BeginReading() + dashIndex + 1, expr.EndReading())) {
+    return nullptr;
+  }
+
   // cache if encountering hash or nonce to invalidate unsafe-inline
   mHasHashOrNonce = true;
   return new nsCSPNonceSrc(Substring(expr,
@@ -706,6 +712,10 @@ nsCSPParser::hashSource()
 
   int32_t dashIndex = expr.FindChar(DASH);
   if (dashIndex < 0) {
+    return nullptr;
+  }
+
+  if (!isValidBase64Value(expr.BeginReading() + dashIndex + 1, expr.EndReading())) {
     return nullptr;
   }
 
@@ -807,6 +817,7 @@ nsCSPParser::sourceExpression()
   if (nsCSPHostSrc *cspHost = hostSource()) {
     // Do not forget to set the parsed scheme.
     cspHost->setScheme(parsedScheme);
+    cspHost->setWithinFrameAncestorsDir(mParsingFrameAncestorsDir);
     return cspHost;
   }
   // Error was reported in hostSource()
@@ -854,8 +865,7 @@ nsCSPParser::sourceList(nsTArray<nsCSPBaseSrc*>& outSrcs)
     }
     // Otherwise, we ignore 'none' and report a warning
     else {
-      NS_ConvertUTF8toUTF16 unicodeNone(CSP_EnumToKeyword(CSP_NONE));
-      const char16_t* params[] = { unicodeNone.get() };
+      const char16_t* params[] = { CSP_EnumToUTF16Keyword(CSP_NONE) };
       logWarningErrorToConsole(nsIScriptError::warningFlag, "ignoringUnknownOption",
                                params, ArrayLength(params));
     }
@@ -871,7 +881,7 @@ nsCSPParser::referrerDirectiveValue(nsCSPDirective* aDir)
   CSPPARSERLOG(("nsCSPParser::referrerDirectiveValue"));
 
   if (mCurDir.Length() != 2) {
-    CSPPARSERLOG(("Incorrect number of tokens in referrer directive, got %d expected 1",
+    CSPPARSERLOG(("Incorrect number of tokens in referrer directive, got %zu expected 1",
                  mCurDir.Length() - 1));
     delete aDir;
     return;
@@ -890,6 +900,11 @@ nsCSPParser::referrerDirectiveValue(nsCSPDirective* aDir)
                              params, ArrayLength(params));
 
   // the referrer policy is valid, so go ahead and use it.
+  nsWeakPtr ctx = mCSPContext->GetLoadingContext();
+  nsCOMPtr<nsIDocument> doc = do_QueryReferent(ctx);
+  if (doc) {
+    doc->SetHasReferrerPolicyCSP(true);
+  }
   mPolicy->setReferrerPolicy(&mCurDir[1]);
   mPolicy->addDirective(aDir);
 }
@@ -935,7 +950,7 @@ nsCSPParser::requireSRIForDirectiveValue(nsRequireSRIForDirective* aDir)
     delete aDir;
     return;
   }
-  
+
   mPolicy->addDirective(aDir);
 }
 
@@ -1097,19 +1112,35 @@ nsCSPParser::directiveName()
     return new nsUpgradeInsecureDirective(CSP_StringToCSPDirective(mCurToken));
   }
 
-  // child-src has it's own class to handle frame-src if necessary
+  // child-src by itself is deprecatd but will be enforced
+  //   * for workers (if worker-src is not explicitly specified)
+  //   * for frames  (if frame-src is not explicitly specified)
   if (CSP_IsDirective(mCurToken, nsIContentSecurityPolicy::CHILD_SRC_DIRECTIVE)) {
+    const char16_t* params[] = { mCurToken.get() };
+    logWarningErrorToConsole(nsIScriptError::warningFlag,
+                             "deprecatedChildSrcDirective",
+                             params, ArrayLength(params));
     mChildSrc = new nsCSPChildSrcDirective(CSP_StringToCSPDirective(mCurToken));
     return mChildSrc;
   }
 
-  // if we have a frame-src, cache it so we can decide whether to use child-src
+  // if we have a frame-src, cache it so we can discard child-src for frames
   if (CSP_IsDirective(mCurToken, nsIContentSecurityPolicy::FRAME_SRC_DIRECTIVE)) {
-    const char16_t* params[] = { mCurToken.get(), NS_LITERAL_STRING("child-src").get() };
-    logWarningErrorToConsole(nsIScriptError::warningFlag, "deprecatedDirective",
-                             params, ArrayLength(params));
     mFrameSrc = new nsCSPDirective(CSP_StringToCSPDirective(mCurToken));
     return mFrameSrc;
+  }
+
+  // if we have a worker-src, cache it so we can discard child-src for workers
+  if (CSP_IsDirective(mCurToken, nsIContentSecurityPolicy::WORKER_SRC_DIRECTIVE)) {
+    mWorkerSrc = new nsCSPDirective(CSP_StringToCSPDirective(mCurToken));
+    return mWorkerSrc;
+  }
+
+  // if we have a script-src, cache it as a fallback for worker-src
+  // in case child-src is not present
+  if (CSP_IsDirective(mCurToken, nsIContentSecurityPolicy::SCRIPT_SRC_DIRECTIVE)) {
+    mScriptSrc = new nsCSPScriptSrcDirective(CSP_StringToCSPDirective(mCurToken));
+    return mScriptSrc;
   }
 
   if (CSP_IsDirective(mCurToken, nsIContentSecurityPolicy::REQUIRE_SRI_FOR)) {
@@ -1209,6 +1240,9 @@ nsCSPParser::directive()
   mStrictDynamic = false;
   mUnsafeInlineKeywordSrc = nullptr;
 
+  mParsingFrameAncestorsDir =
+    CSP_IsDirective(mCurDir[0], nsIContentSecurityPolicy::FRAME_ANCESTORS_DIRECTIVE);
+
   // Try to parse all the srcs by handing the array off to directiveValue
   nsTArray<nsCSPBaseSrc*> srcs;
   directiveValue(srcs);
@@ -1237,10 +1271,10 @@ nsCSPParser::directive()
       // Even though we invalidate all of the srcs internally, we don't want to log
       // messages for the srcs: (1) strict-dynamic, (2) unsafe-inline,
       // (3) nonces, and (4) hashes
-      if (!srcStr.EqualsASCII(CSP_EnumToKeyword(CSP_STRICT_DYNAMIC)) &&
-          !srcStr.EqualsASCII(CSP_EnumToKeyword(CSP_UNSAFE_EVAL)) &&
-          !StringBeginsWith(NS_ConvertUTF16toUTF8(srcStr), NS_LITERAL_CSTRING("'nonce-")) &&
-          !StringBeginsWith(NS_ConvertUTF16toUTF8(srcStr), NS_LITERAL_CSTRING("'sha")))
+      if (!srcStr.EqualsASCII(CSP_EnumToUTF8Keyword(CSP_STRICT_DYNAMIC)) &&
+          !srcStr.EqualsASCII(CSP_EnumToUTF8Keyword(CSP_UNSAFE_EVAL)) &&
+          !StringBeginsWith(srcStr, nsDependentString(CSP_EnumToUTF16Keyword(CSP_NONCE))) &&
+          !StringBeginsWith(srcStr, NS_LITERAL_STRING("'sha")))
       {
         const char16_t* params[] = { srcStr.get() };
         logWarningErrorToConsole(nsIScriptError::warningFlag, "ignoringSrcForStrictDynamic",
@@ -1285,9 +1319,22 @@ nsCSPParser::policy()
     directive();
   }
 
-  if (mChildSrc && !mFrameSrc) {
-    // if we have a child-src, it handles frame-src too, unless frame-src is set
-    mChildSrc->setHandleFrameSrc();
+  if (mChildSrc) {
+    if (!mFrameSrc) {
+      // if frame-src is specified explicitly for that policy than child-src should
+      // not restrict frames; if not, than child-src needs to restrict frames.
+      mChildSrc->setRestrictFrames();
+    }
+    if (!mWorkerSrc) {
+      // if worker-src is specified explicitly for that policy than child-src should
+      // not restrict workers; if not, than child-src needs to restrict workers.
+      mChildSrc->setRestrictWorkers();
+    }
+  }
+  // if script-src is specified, but not worker-src and also no child-src, then
+  // script-src has to govern workers.
+  if (mScriptSrc && !mWorkerSrc && !mChildSrc) {
+    mScriptSrc->setRestrictWorkers();
   }
 
   return mPolicy;

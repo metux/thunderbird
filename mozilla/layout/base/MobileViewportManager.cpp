@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,10 +8,10 @@
 
 #include "gfxPrefs.h"
 #include "LayersLogging.h"
+#include "mozilla/PresShell.h"
 #include "nsIDOMEvent.h"
 #include "nsIFrame.h"
 #include "nsLayoutUtils.h"
-#include "nsPresShell.h"
 #include "nsViewManager.h"
 #include "nsViewportInfo.h"
 #include "UnitTransforms.h"
@@ -88,10 +89,16 @@ void
 MobileViewportManager::SetRestoreResolution(float aResolution,
                                             LayoutDeviceIntSize aDisplaySize)
 {
-  mRestoreResolution = Some(aResolution);
+  SetRestoreResolution(aResolution);
   ScreenIntSize restoreDisplaySize = ViewAs<ScreenPixel>(aDisplaySize,
     PixelCastJustification::LayoutDeviceIsScreenForBounds);
   mRestoreDisplaySize = Some(restoreDisplaySize);
+}
+
+void
+MobileViewportManager::SetRestoreResolution(float aResolution)
+{
+  mRestoreResolution = Some(aResolution);
 }
 
 void
@@ -105,6 +112,11 @@ void
 MobileViewportManager::ResolutionUpdated()
 {
   MVM_LOG("%p: resolution updated\n", this);
+  if (!mPainted) {
+    // Save the value, so our default zoom calculation
+    // can take it into account later on.
+    SetRestoreResolution(mPresShell->GetResolution());
+  }
   RefreshSPCSPS();
 }
 
@@ -199,7 +211,7 @@ MobileViewportManager::UpdateResolution(const nsViewportInfo& aViewportInfo,
   if (mIsFirstPaint) {
     CSSToScreenScale defaultZoom;
     if (mRestoreResolution) {
-    LayoutDeviceToLayerScale restoreResolution(mRestoreResolution.value());
+      LayoutDeviceToLayerScale restoreResolution(mRestoreResolution.value());
       if (mRestoreDisplaySize) {
         CSSSize prevViewport = mDocument->GetViewportInfo(mRestoreDisplaySize.value()).GetSize();
         float restoreDisplayWidthChangeRatio = (mRestoreDisplaySize.value().width > 0)
@@ -305,6 +317,13 @@ MobileViewportManager::UpdateDisplayPortMargins()
       // comment 1).
       return;
     }
+    nsRect displayportBase =
+      nsRect(nsPoint(0, 0), nsLayoutUtils::CalculateCompositionSizeForFrame(root));
+    // We only create MobileViewportManager for root content documents. If that ever changes
+    // we'd need to limit the size of this displayport base rect because non-toplevel documents
+    // have no limit on their size.
+    MOZ_ASSERT(mPresShell->GetPresContext()->IsRootContentDocument());
+    nsLayoutUtils::SetDisplayPortBaseIfNotSet(root->GetContent(), displayportBase);
     nsIScrollableFrame* scrollable = do_QueryFrame(root);
     nsLayoutUtils::CalculateAndSetDisplayPortMargins(scrollable,
       nsLayoutUtils::RepaintMode::DoNotRepaint);

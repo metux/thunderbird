@@ -35,5 +35,5 @@
 <!ENTITY languagePopup.label "Мова:">
 <!ENTITY languagePopup.accessKey "М">
 
-<!ENTITY recheckButton2.accessKey "T">
 <!ENTITY recheckButton2.label "Recheck Text">
+<!ENTITY recheckButton2.accessKey "T">

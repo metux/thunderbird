@@ -14,7 +14,7 @@
 <!ENTITY aboutNetworking.autoRefresh           "Endurnýja sjálfkrafa á 3 sekúndna fresti">
 <!ENTITY aboutNetworking.hostname              "Hýsitölva">
 <!ENTITY aboutNetworking.port                  "Gátt">
-<!ENTITY aboutNetworking.spdy                  "SPDY">
+<!ENTITY aboutNetworking.http2                 "HTTP/2">
 <!ENTITY aboutNetworking.ssl                   "SSL">
 <!ENTITY aboutNetworking.active                "Virkur">
 <!ENTITY aboutNetworking.idle                  "Aðgerðalaus">
@@ -41,3 +41,18 @@
 <!ENTITY aboutNetworking.dnsLookupButton       "Finna">
 <!ENTITY aboutNetworking.dnsDomain             "Lén">
 <!ENTITY aboutNetworking.dnsLookupTableColumn  "IP tölur">
+<!ENTITY aboutNetworking.rcwn                  "RCWN upplýsingar">
+<!ENTITY aboutNetworking.rcwnStatus            "RCWN staða">
+<!ENTITY aboutNetworking.rcwnCacheWonCount     "Skyndiminni vann talninguna">
+<!ENTITY aboutNetworking.rcwnNetWonCount       "Netið vann talninguna">
+<!ENTITY aboutNetworking.totalNetworkRequests  "Heildarfjöldi net beiðna">
+<!ENTITY aboutNetworking.rcwnOperation         "Aðgerð skyndiminnis">
+<!ENTITY aboutNetworking.rcwnPerfOpen          "Opna">
+<!ENTITY aboutNetworking.rcwnPerfRead          "Lesa">
+<!ENTITY aboutNetworking.rcwnPerfWrite         "Skrifa">
+<!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Færsla opin">
+<!ENTITY aboutNetworking.rcwnAvgShort          "Short Average">
+<!ENTITY aboutNetworking.rcwnAvgLong           "Long Average">
+<!ENTITY aboutNetworking.rcwnStddevLong        "Long Standard Deviation">
+<!ENTITY aboutNetworking.rcwnCacheSlow         "Fjöldi þar sem skyndiminnis var hægt">
+<!ENTITY aboutNetworking.rcwnCacheNotSlow      "Fjöldi þar sem skyndiminnis var ekki hægt">

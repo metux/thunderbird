@@ -79,6 +79,24 @@ typedef struct OffsetTable
     if (unlikely (i >= numTables)) return Null(TableRecord);
     return tables[i];
   }
+  inline unsigned int get_table_tags (unsigned int start_offset,
+				      unsigned int *table_count, /* IN/OUT */
+				      hb_tag_t     *table_tags /* OUT */) const
+  {
+    if (table_count)
+    {
+      if (start_offset >= numTables)
+        *table_count = 0;
+      else
+        *table_count = MIN (*table_count, numTables - start_offset);
+
+      const TableRecord *sub_tables = tables + start_offset;
+      unsigned int count = *table_count;
+      for (unsigned int i = 0; i < count; i++)
+	table_tags[i] = sub_tables[i].tag;
+    }
+    return numTables;
+  }
   inline bool find_table_index (hb_tag_t tag, unsigned int *table_index) const
   {
     Tag t;
@@ -142,7 +160,7 @@ struct TTCHeaderVersion1
   Tag		ttcTag;		/* TrueType Collection ID string: 'ttcf' */
   FixedVersion<>version;	/* Version of the TTC Header (1.0),
 				 * 0x00010000u */
-  ArrayOf<OffsetTo<OffsetTable, ULONG>, ULONG>
+  ArrayOf<LOffsetTo<OffsetTable>, ULONG>
 		table;		/* Array of offsets to the OffsetTable for each font
 				 * from the beginning of the file */
   public:

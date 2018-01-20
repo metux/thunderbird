@@ -14,10 +14,10 @@ Test sidebar toggle button
 </head>
 <body>
 <pre id="test">
-<script src="head.js" type="application/javascript;version=1.8"></script>
-<script type="application/javascript;version=1.8">
+<script src="head.js" type="application/javascript"></script>
+<script type="application/javascript">
 window.onload = Task.async(function* () {
-  let SidebarToggle = browserRequire("devtools/client/shared/components/sidebar-toggle.js");
+  let SidebarToggle = browserRequire("devtools/client/shared/components/SidebarToggle.js");
 
   try {
     yield test();
