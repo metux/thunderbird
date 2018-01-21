@@ -1,3 +1,88 @@
+thunderbird (1:58.0~b3-1) experimental; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [d114338] d/source.filter: update due upstream changes
+     Update the filtering list for excluding some unwanted source files as
+     usual while preparing new major upstream versions.
+  * [91d23a9] New upstream version 58.0~b3
+  * [f34e555] rebuild patch queue from patch-queue branch
+     added patches:
+      debian-hacks/Allow-usage-of-libnspr4-dev-4.16.patch
+      debian-hacks/icu-use-locale.h-instead-of-xlocale.h.patch
+      debian-hacks/shellutil.py-ignore-tilde-as-special-character.patch
+      fixes/Bug-1418598-Make-cargo-linker-properly-handle-quoted-stri.patch
+
+     modified patches:
+      debian-hacks/Build-against-system-libjsoncpp.patch
+      debian-hacks/Don-t-build-testing-suites-and-stuff.patch
+      porting-kfreebsd-hurd/FTBFS-hurd-fixing-unsupported-platform-Hurd.patch
+      porting-kfreebsd-hurd/adding-missed-HURD-adoptions.patch
+      porting-m68k/Add-m68k-support-to-Thunderbird.patch
+      porting-sh4/Add-sh4-support-to-Thunderbird.patch
+      porting/Disable-optimization-on-alpha-for-the-url-classifier.patch
+      prefs/Don-t-auto-disable-extensions-in-system-directories.patch
+      prefs/Set-javascript.options.showInConsole.patch
+
+     obsolete patches (included somehow or fixed upstream):
+      debian-hacks/Force-use-the-i686-rust-target.patch
+      porting-alpha/FTBFS-alpha-adjust-some-source-to-prevent-build-issues.patch
+      patches/porting-alpha/fix-FTBFS-on-alpha.patch
+      patches/porting-arm64/Bug-1257055-Use-jit-arm64-Architecture-arm64.h-on-non-JIT.patch
+      patches/porting-hppa/FTBFS-hppa-xpcshell-segfaulting-during-make-install.patch
+      porting-kfreebsd-hurd/FTBFS-hurd-adding-GNU-Hurd-to-the-list-of-OS-systems.patch
+      porting-mips/FTBFS-mips-add-missing-char-variable.patch
+      porting/ppc-fix-divide-page-size-in-jemalloc.patch
+      thunderbird-l10n/thunderbird-l10n-disable-external-extension-update.patch
+  * [bd45d47] debian/control: adding new Build-Depends
+     Since this is the first version > 52 we need now cargo, clang, rustc and
+     llvm development files.
+  * [c63a03f] d/mozconfig.default: remove no longer alive options
+     Some old options like --disable-gnomeui, --enable-gio, and
+     --with-default-mozilla-five-home are history now.
+  * [609dbbe] l10n lightning: modify script to work with recent version
+     We still need to use the shellscript create-lightning-l10n-tarball.sh
+     (and also *-thunderbird-l10n-*) to create the additional tarballs.
+  * [2f276b7] thunderbird-l10n: change tb-l10n package installation
+     Due the changed structure from upstream for the thunderbird l10n files
+     the packaging needs also to be adopted.
+  * [ee476f8] d/thunderbird.install: update install sequencer file
+     Also small adjustments are needed for the installation of the thunderbird
+     binary files. The old script run-mozilla.sh (which we didn't have used
+     within the Debian packaging) isn't shipped now, and there is now a new
+     folder gtk2 which includes the libmozgtk library linked against GTK2.
+  * [ced9d18] thunderbird-dev: remove the package and adjustments on this
+     The complete content that was packaged previously in thunderbird-dev
+     isn't created and installed now. Thus makes the old package
+     thunderbird-dev obsolete.
+  * [484a142] autopkgtests: disable tests around thunderbird-dev
+     Disable all autopkgtests which have used thunderbird-dev.
+  * [0aa2546] switch to system libraries back
+     We can now use the system libararies libnspr4, libnss3 and libsqlite3
+     again, the version of libicu is still to old for usage within the
+     package build.
+  * [858ae82] d/control: thunderbird, remove variable ${gnome:Depends}
+  * [7c3a258] d/control: lightning, remove variable ${shlibs:Depends}
+  * [aabf0d4] debian/source/lintian-overrides: update entries
+  * [94b00db] debian/control: increase Standards-Version to 4.1.3
+     No further changes needed.
+  * [245e8c2] debian/copyright: update after upstream changes
+     Also almost needed with new major upstream versions reflect the
+     changes from upstream in the copyright file.
+  * [72507b2] d/control: enigmail < 1.9.9 isn't working with TB > 55
+     Due the new plugin interface some old plugins doesn't work with this
+     thunderbird version anymore, or behaving unexpected. Enigmal is one of
+     the this (known) plugins which needs to be at least in version 2.0a2pre
+     installed to work with Thunderbird.
+  * [6cf0133] lightning-l1on: change l10n installation
+     Related to [4abc7f2] the various thunderbird-l10n packages need to be
+     installed differently to old package installations.
+  * [6af7054] calendar-google-provider: tweak installation a bit
+     More a hack but the Mozilla plugin installation by mozilla-devscripts
+     isn't prepared for the new webextension logic by Mozilla. Symlinking the
+     c-g-p plugin for now directly from the thunderbird extension folder.
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sun, 21 Jan 2018 14:03:39 +0100
+
 thunderbird (1:52.5.2-2) unstable; urgency=medium
 
   [ Carsten Schoenert ]
