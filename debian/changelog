@@ -1,3 +1,37 @@
+thunderbird (1:52.6.0-1) unstable; urgency=high
+
+  * [97e1cd7] New upstream version 52.6.0
+    Fixed CVE issues in upstream version 52.6 (MFSA 2018-04)
+    CVE-2018-5095: Integer overflow in Skia library during edge builder
+                   allocation
+    CVE-2018-5096: Use-after-free while editing form elements
+    CVE-2018-5097: Use-after-free when source document is manipulated
+                   during XSLT
+    CVE-2018-5098: Use-after-free while manipulating form input elements
+    CVE-2018-5099: Use-after-free with widget listener
+    CVE-2018-5102: Use-after-free in HTML media elements
+    CVE-2018-5103: Use-after-free during mouse event handling
+    CVE-2018-5104: Use-after-free during font face manipulation
+    CVE-2018-5117: URL spoofing with right-to-left text aligned left-to-right
+    CVE-2018-5089: Memory safety bugs fixed in Firefox 58, Firefox ESR 52.6,
+                   and Thunderbird 52.6
+  * [0300242] rebuild patch queue from patch-queue branch
+     Added patch debian-hacks/icu-use-locale.h-instead-of-xlocale.h.patch
+     that fixes the build of the included ICU source against glibc 2.26.
+     (Closes: #887766)
+  * [4bf22e0] debian/control: increase Standards-Version to 4.1.3
+     No further changes needed.
+  * [3616443] adjust Vcs fields to salsa.debian.org
+     The Vcs for Thunderbird packaging live now on Salsa as Alioth will be
+     shutdown in the future.
+  * [c2f3e14] lintian: ignore non multiarch install folder for thunderbird.pc
+     Ignore a lintian warning about unavailable pkg-config file thunderbird.pc
+      as the ESR versions 52.x are the last series which will have a
+      thunderbird-dev. The next ESR version will be 60.x which uses
+      webextension and makes thunderbird-dev obsolete.
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Thu, 25 Jan 2018 20:21:10 +0100
+
 thunderbird (1:52.5.2-2) unstable; urgency=medium
 
   [ Carsten Schoenert ]
