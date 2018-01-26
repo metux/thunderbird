@@ -1,0 +1,2 @@
+# ignore this for now, thunderbird-dev will die with next ESR version
+thunderbird-dev: pkg-config-unavailable-for-cross-compilation
