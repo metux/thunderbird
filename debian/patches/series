@@ -40,3 +40,4 @@ porting-s390x/FTBFS-s390x-Use-jit-none-AtomicOperations-sparc.h-on-s390.patch
 porting-mips/Fix-CPU_ARCH-test-for-libjpeg-on-mips.patch
 porting-mips/FTBFS-mips-add-missing-char-variable.patch
 porting-alpha/FTBFS-alpha-adjust-some-source-to-prevent-build-issues.patch
+debian-hacks/icu-use-locale.h-instead-of-xlocale.h.patch

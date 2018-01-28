@@ -60,9 +60,10 @@ classic.jar:
   skin/classic/communicator/aboutPrivateBrowsing.css                    (communicator/aboutPrivateBrowsing.css)
   skin/classic/communicator/aboutSessionRestore.css                     (communicator/aboutSessionRestore.css)
   skin/classic/communicator/button.css                                  (communicator/button.css)
-  skin/classic/communicator/communicator.css                            (communicator/communicator.css)
+* skin/classic/communicator/communicator.css                            (communicator/communicator.css)
   skin/classic/communicator/config.css                                  (communicator/config.css)
   skin/classic/communicator/toolbar.css                                 (communicator/toolbar.css)
+  skin/classic/communicator/scrollbars.css                              (communicator/scrollbars.css)
   skin/classic/communicator/viewSourceOverlay.css                       (communicator/viewSourceOverlay.css)
   skin/classic/communicator/bookmarks/bookmark-folder-closed.png        (communicator/bookmarks/bookmark-folder-closed.png)
   skin/classic/communicator/bookmarks/bookmark-folder-dis.png           (communicator/bookmarks/bookmark-folder-dis.png)
@@ -499,4 +500,8 @@ classic.jar:
 
 #ifdef XP_WIN
 % override chrome://communicator/skin/console/console-toolbar.png   chrome://communicator/skin/console/console-toolbar-XP.png      osversion<6
+#endif
+
+#ifdef MOZ_WIDGET_GTK
+% override chrome://global/skin/scrollbars.css                    chrome://communicator/skin/scrollbars.css
 #endif
