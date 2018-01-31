@@ -23,7 +23,7 @@ using namespace mozilla;
 static PLDHashNumber
 HashIIDPtrKey(const void* key)
 {
-    return HashGeneric(*((uintptr_t*)key));
+    return HashGeneric(((nsID*)key)->m0);
 }
 
 static bool
