@@ -156,7 +156,7 @@ index 46cb7e6..9bd29a6 100644
  DIRS += [
      'content',
 diff --git a/mozilla/devtools/client/framework/moz.build b/mozilla/devtools/client/framework/moz.build
-index e503b46..f940e19 100644
+index 1ac4703..0959e11 100644
 --- a/mozilla/devtools/client/framework/moz.build
 +++ b/mozilla/devtools/client/framework/moz.build
 @@ -4,10 +4,12 @@
@@ -422,10 +422,10 @@ index 4abf3dd..bfd6800 100644
  DIRS += [
      'components',
 diff --git a/mozilla/devtools/client/sourceeditor/moz.build b/mozilla/devtools/client/sourceeditor/moz.build
-index 39fbbe1..db36b63 100644
+index 846917b..edbc2c0 100644
 --- a/mozilla/devtools/client/sourceeditor/moz.build
 +++ b/mozilla/devtools/client/sourceeditor/moz.build
-@@ -16,7 +16,9 @@ DevToolsModules(
+@@ -17,7 +17,9 @@ DevToolsModules(
      'wasm.js'
  )
  

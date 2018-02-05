@@ -1,5 +1,4 @@
 thunderbird-l10n/sl-change-Edit-Uredi-to-CTRL-E.patch
-thunderbird/Thunderbird-fix-installdir-for-icons.patch
 debian-hacks/Strip-version-number-from-application-before-installation.patch
 debian-hacks/Add-another-preferences-directory-for-applications-p.patch
 fixes/Allow-.js-preference-files-to-set-locked-prefs-with-lockP.patch
@@ -32,5 +31,5 @@ porting-s390x/FTBFS-s390x-Use-jit-none-AtomicOperations-sparc.h-on-s390.patch
 porting-mips/Fix-CPU_ARCH-test-for-libjpeg-on-mips.patch
 debian-hacks/icu-use-locale.h-instead-of-xlocale.h.patch
 debian-hacks/shellutil.py-ignore-tilde-as-special-character.patch
-fixes/Bug-1418598-Make-cargo-linker-properly-handle-quoted-stri.patch
-debian-hacks/Allow-usage-of-libnspr4-dev-4.16.patch
+fixes/Fix-build-against-libcairo2-dev-1.15.10.patch
+fixes/Fix-big-endian-build-for-SKIA.patch

@@ -7,15 +7,15 @@ Subject: icu: use locale.h instead of xlocale.h
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/mozilla/intl/icu/source/i18n/digitlst.cpp b/mozilla/intl/icu/source/i18n/digitlst.cpp
-index 4d7c3f4..2292c01 100644
+index 8e86fa7..74939b2 100644
 --- a/mozilla/intl/icu/source/i18n/digitlst.cpp
 +++ b/mozilla/intl/icu/source/i18n/digitlst.cpp
-@@ -64,7 +64,7 @@
- # if U_PLATFORM_USES_ONLY_WIN32_API || U_PLATFORM == U_PF_CYGWIN
- #   include <locale.h>
- # else
+@@ -63,7 +63,7 @@
+ 
+ #if U_USE_STRTOD_L
+ # if U_HAVE_XLOCALE_H
 -#   include <xlocale.h>
 +#   include <locale.h>
+ # else
+ #   include <locale.h>
  # endif
- #endif
- 

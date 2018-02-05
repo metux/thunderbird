@@ -57,7 +57,7 @@ Additional changes:
  11 files changed, 36 insertions(+), 6 deletions(-)
 
 diff --git a/mozilla/build/moz.configure/init.configure b/mozilla/build/moz.configure/init.configure
-index 49af6e5..e917eac 100644
+index a8a730f..cbe3a3f 100644
 --- a/mozilla/build/moz.configure/init.configure
 +++ b/mozilla/build/moz.configure/init.configure
 @@ -667,6 +667,9 @@ def split_triplet(triplet, allow_unknown=False):
@@ -85,10 +85,10 @@ index f695444..23810b9 100644
  #define ARCH_CPU_PPC64 1
  #define ARCH_CPU_64_BITS 1
 diff --git a/mozilla/js/src/jsfriendapi.h b/mozilla/js/src/jsfriendapi.h
-index 79a87f8..62a5f44 100644
+index 26b76f9..f8c3339 100644
 --- a/mozilla/js/src/jsfriendapi.h
 +++ b/mozilla/js/src/jsfriendapi.h
-@@ -573,7 +573,7 @@ public:
+@@ -572,7 +572,7 @@ public:
      uint32_t          slotInfo;
  
      static const uint32_t FIXED_SLOTS_SHIFT = 27;
@@ -98,10 +98,10 @@ index 79a87f8..62a5f44 100644
  /**
   * This layout is shared by all native objects. For non-native objects, the
 diff --git a/mozilla/layout/style/nsCSSValue.h b/mozilla/layout/style/nsCSSValue.h
-index 3c3c548..2f664f8 100644
+index ada6137..82931be 100644
 --- a/mozilla/layout/style/nsCSSValue.h
 +++ b/mozilla/layout/style/nsCSSValue.h
-@@ -1043,7 +1043,7 @@ protected:
+@@ -1042,7 +1042,7 @@ protected:
      mozilla::SharedFontList* MOZ_OWNING_REF mFontFamilyList;
      mozilla::css::ComplexColorValue* MOZ_OWNING_REF mComplexColor;
    } mValue;
@@ -111,7 +111,7 @@ index 3c3c548..2f664f8 100644
  struct nsCSSValue::Array final {
  
 diff --git a/mozilla/media/webrtc/trunk/build/build_config.h b/mozilla/media/webrtc/trunk/build/build_config.h
-index 97d44f3..e4e95be 100644
+index 312674b..e10a234 100644
 --- a/mozilla/media/webrtc/trunk/build/build_config.h
 +++ b/mozilla/media/webrtc/trunk/build/build_config.h
 @@ -118,6 +118,16 @@
@@ -192,10 +192,10 @@ index 33ae5a4..a67ab80 100644
  
  assert sorted(CPU_preprocessor_checks.keys()) == sorted(CPU.POSSIBLE_VALUES)
 diff --git a/mozilla/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py b/mozilla/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
-index 33fcc11..32283ad 100755
+index c64f770..f904120 100755
 --- a/mozilla/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
 +++ b/mozilla/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
-@@ -1161,6 +1161,9 @@ class LinuxCrossCompileToolchainTest(BaseToolchainTest):
+@@ -1165,6 +1165,9 @@ class LinuxCrossCompileToolchainTest(BaseToolchainTest):
          'sh4-unknown-linux-gnu': little_endian + {
              '__sh__': 1,
          },

@@ -7,10 +7,10 @@ Subject: Set javascript.options.showInConsole
  1 file changed, 5 insertions(+)
 
 diff --git a/mozilla/modules/libpref/init/all.js b/mozilla/modules/libpref/init/all.js
-index c06f1d8..afd366d 100644
+index c1149aa..c755fe9 100644
 --- a/mozilla/modules/libpref/init/all.js
 +++ b/mozilla/modules/libpref/init/all.js
-@@ -1465,6 +1465,7 @@ pref("javascript.options.jit.full_debug_checks", false);
+@@ -1443,6 +1443,7 @@ pref("javascript.options.jit.full_debug_checks", false);
  // memory, but makes things like Function.prototype.toSource()
  // fail.
  pref("javascript.options.discardSystemSource", false);
@@ -18,7 +18,7 @@ index c06f1d8..afd366d 100644
  
  // Many of the the following preferences tune the SpiderMonkey GC, if you
  // change the defaults here please also consider changing them in
-@@ -1472,6 +1473,10 @@ pref("javascript.options.discardSystemSource", false);
+@@ -1450,6 +1451,10 @@ pref("javascript.options.discardSystemSource", false);
  
  // JSGC_MAX_MALLOC_BYTES
  // How much malloc memory can be allocated before triggering a GC, in MB.

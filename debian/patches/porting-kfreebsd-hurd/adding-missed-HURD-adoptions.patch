@@ -69,7 +69,7 @@ index d206d25..13a90bf 100644
  #endif
  
 diff --git a/mozilla/ipc/chromium/src/base/process_util.h b/mozilla/ipc/chromium/src/base/process_util.h
-index 77388d3..a13ed91 100644
+index 0764c6e..93d23eb 100644
 --- a/mozilla/ipc/chromium/src/base/process_util.h
 +++ b/mozilla/ipc/chromium/src/base/process_util.h
 @@ -19,7 +19,7 @@
@@ -82,10 +82,10 @@ index 77388d3..a13ed91 100644
  #include <limits.h>
  #include <sys/types.h>
 diff --git a/mozilla/ipc/chromium/src/base/process_util_posix.cc b/mozilla/ipc/chromium/src/base/process_util_posix.cc
-index b80eee1..285c653 100644
+index 4475b3e..e8ca219 100644
 --- a/mozilla/ipc/chromium/src/base/process_util_posix.cc
 +++ b/mozilla/ipc/chromium/src/base/process_util_posix.cc
-@@ -139,6 +139,10 @@ void CloseSuperfluousFds(const base::InjectiveMultimap& saved_mapping) {
+@@ -138,6 +138,10 @@ void CloseSuperfluousFds(const base::InjectiveMultimap& saved_mapping) {
    static const rlim_t kSystemDefaultMaxFds = 1024;
    // at least /dev/fd will exist
    static const char kFDDir[] = "/dev/fd";
@@ -96,7 +96,7 @@ index b80eee1..285c653 100644
  #endif
  
    // Get the maximum number of FDs possible.
-@@ -222,7 +226,7 @@ void CloseSuperfluousFds(const base::InjectiveMultimap& saved_mapping) {
+@@ -221,7 +225,7 @@ void CloseSuperfluousFds(const base::InjectiveMultimap& saved_mapping) {
  void SetAllFDsToCloseOnExec() {
  #if defined(OS_LINUX) || defined(OS_SOLARIS)
    const char fd_dir[] = "/proc/self/fd";
@@ -119,7 +119,7 @@ index f048e72..8bb0b59 100644
  #elif defined SIP_OS_WINDOWS
  #include "cpr_win_types.h"
 diff --git a/mozilla/media/webrtc/trunk/build/build_config.h b/mozilla/media/webrtc/trunk/build/build_config.h
-index 70284f8..97d44f3 100644
+index 168fbd6..312674b 100644
 --- a/mozilla/media/webrtc/trunk/build/build_config.h
 +++ b/mozilla/media/webrtc/trunk/build/build_config.h
 @@ -37,6 +37,9 @@
@@ -174,10 +174,10 @@ index f376dfa..0f702eb 100644
  # include <vector>  // NOLINT
  #endif
 diff --git a/mozilla/security/sandbox/chromium/build/build_config.h b/mozilla/security/sandbox/chromium/build/build_config.h
-index d185c14..c5dfc19 100644
+index 8e5fcd7..9172091 100644
 --- a/mozilla/security/sandbox/chromium/build/build_config.h
 +++ b/mozilla/security/sandbox/chromium/build/build_config.h
-@@ -46,6 +46,8 @@
+@@ -47,6 +47,8 @@
  // we really are using glibc, not uClibc pretending to be glibc
  #define LIBC_GLIBC 1
  #endif
@@ -185,13 +185,13 @@ index d185c14..c5dfc19 100644
 +#define OS_HURD 1
  #elif defined(_WIN32)
  #define OS_WIN 1
- #elif defined(__FreeBSD__)
-@@ -77,7 +79,7 @@
- #if defined(OS_MACOSX) || defined(OS_LINUX) || defined(OS_FREEBSD) ||     \
-     defined(OS_NETBSD) || defined(OS_OPENBSD) || defined(OS_SOLARIS) ||   \
-     defined(OS_ANDROID) || defined(OS_OPENBSD) || defined(OS_SOLARIS) ||  \
--    defined(OS_ANDROID) || defined(OS_NACL) || defined(OS_QNX)
-+    defined(OS_ANDROID) || defined(OS_NACL) || defined(OS_QNX) || defined(OS_HURD)
+ #elif defined(__Fuchsia__)
+@@ -84,7 +86,7 @@
+ #if defined(OS_AIX) || defined(OS_ANDROID) || defined(OS_FREEBSD) ||  \
+     defined(OS_FUCHSIA) || defined(OS_LINUX) || defined(OS_MACOSX) || \
+     defined(OS_NACL) || defined(OS_NETBSD) || defined(OS_OPENBSD) ||  \
+-    defined(OS_QNX) || defined(OS_SOLARIS)
++    defined(OS_QNX) || defined(OS_SOLARIS) || defined(OS_HURD)
  #define OS_POSIX 1
  #endif
  

@@ -44,10 +44,10 @@ index a67ab80..c31464b 100644
  
  assert sorted(CPU_preprocessor_checks.keys()) == sorted(CPU.POSSIBLE_VALUES)
 diff --git a/mozilla/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py b/mozilla/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
-index 32283ad..070f29b 100755
+index f904120..aea0ea6 100755
 --- a/mozilla/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
 +++ b/mozilla/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
-@@ -1164,6 +1164,9 @@ class LinuxCrossCompileToolchainTest(BaseToolchainTest):
+@@ -1168,6 +1168,9 @@ class LinuxCrossCompileToolchainTest(BaseToolchainTest):
          'm68k-unknown-linux-gnu': big_endian + {
              '__m68k__': 1,
          },
@@ -58,7 +58,7 @@ index 32283ad..070f29b 100755
  
      PLATFORMS['powerpc64le-unknown-linux-gnu'] = \
 diff --git a/mozilla/xpcom/reflect/xptcall/md/unix/moz.build b/mozilla/xpcom/reflect/xptcall/md/unix/moz.build
-index 73ec27a..5708157 100644
+index 4c2c35f..ff916d2 100644
 --- a/mozilla/xpcom/reflect/xptcall/md/unix/moz.build
 +++ b/mozilla/xpcom/reflect/xptcall/md/unix/moz.build
 @@ -325,6 +325,11 @@ if CONFIG['OS_ARCH'] == 'Linux':

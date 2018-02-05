@@ -8,14 +8,14 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=440908
  1 file changed, 1 insertion(+)
 
 diff --git a/mozilla/modules/libpref/Preferences.cpp b/mozilla/modules/libpref/Preferences.cpp
-index e3c8ce5..5bb3dbf 100644
+index 9de57c0..b632584 100644
 --- a/mozilla/modules/libpref/Preferences.cpp
 +++ b/mozilla/modules/libpref/Preferences.cpp
-@@ -1275,6 +1275,7 @@ enum
- #define BITS_PER_HEX_DIGIT 4
+@@ -996,6 +996,7 @@ private:
+   static const int KBitsPerHexDigit = 4;
  
- static const char kUserPref[] = "user_pref";
-+static const char kLockPref[] = "lockPref";
- static const char kPref[] = "pref";
- static const char kPrefSticky[] = "sticky_pref";
- static const char kTrue[] = "true";
+   static constexpr const char* kUserPref = "user_pref";
++  static constexpr const char* kLockPref = "lockPref";
+   static constexpr const char* kPref = "pref";
+   static constexpr const char* kStickyPref = "sticky_pref";
+   static constexpr const char* kTrue = "true";
