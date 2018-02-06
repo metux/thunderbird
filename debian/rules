@@ -193,7 +193,7 @@ override_dh_install-indep:
 		unzip -d debian/calendar-google-provider/usr/share/xul-ext/calendar-google-provider/ $(CURDIR)/$$GDATA_PROVIDER
 	find debian/calendar-google-provider/usr/share/xul-ext/calendar-google-provider -newermt '$(BUILD_DATE)' -print0 | \
 		xargs -0r touch --no-dereference --date='$(BUILD_DATE)'
-	ID=`greo "em:id" $(CURDIR)/debian/calendar-google-provider/usr/share/xul-ext/calendar-google-provider/install.rdf | sed -e s"/<em:id>"// -e s",</em:id>",, -e 's/^[ ]*//' | head -n1` ;\
+	ID=`grep "em:id" $(CURDIR)/debian/calendar-google-provider/usr/share/xul-ext/calendar-google-provider/install.rdf | sed -e s"/<em:id>"// -e s",</em:id>",, -e 's/^[ ]*//' | head -n1` ;\
 	mkdir -p mkdir -p $(CURDIR)/debian/calendar-google-provider/usr/lib/thunderbird/extensions/ ;\
 	ln -sf /usr/share/xul-ext/calendar-google-provider $(CURDIR)/debian/calendar-google-provider/usr/lib/thunderbird/extensions/$$ID
 	# sometimes there are temporary build files in calendar-google-provider
