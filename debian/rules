@@ -89,9 +89,9 @@ override_dh_auto_configure:
 	echo 'mk_add_options MOZ_OBJDIR=$(CURDIR)/obj-thunderbird' >> mozconfig.thunderbird
 	@echo "rebuild ICU data file needed: $(ICU_BUILD)"
 ifeq ($(ICU_BUILD),YES)
-	#####################################################################
-	# (re)build upstream icudt5*.dat due disabled usage of system files #
-	#####################################################################
+	####################################################################
+	# (re)build upstream icudt*.dat due disabled usage of system files #
+	####################################################################
 	rm -f $(CURDIR)/mozilla/config/external/icu/data/$(ICU_DATA_FILE)
 	mkdir -p $(ICU_BUILD_DIR)
 	cd $(ICU_BUILD_DIR) ;\
