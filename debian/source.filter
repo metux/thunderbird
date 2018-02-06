@@ -6,12 +6,21 @@ mail/test/resources/mozmill/mozmill/extension/content/editor/bespin/BespinWorker
 mailnews/base/test/unit/test_compactColumnSave.js
 # don't filter out the following JS file, it's needed later while building
 #mozilla/testing/marionette/atoms/atoms.js
+mozilla/browser/extensions/activity-stream/prerendered/locales/ka/activity-stream-strings.js
+mozilla/browser/extensions/activity-stream/prerendered/locales/km/activity-stream-strings.js
+mozilla/browser/extensions/activity-stream/prerendered/locales/ml/activity-stream-strings.js
+mozilla/browser/extensions/activity-stream/prerendered/locales/ne-NP/activity-stream-strings.js
+mozilla/browser/extensions/activity-stream/prerendered/locales/ta/activity-stream-strings.js
+mozilla/browser/extensions/activity-stream/prerendered/locales/th/activity-stream-strings.js
 mozilla/browser/components/translation/cld2/cld-worker.js
 mozilla/browser/extensions/activity-stream/data/content/activity-stream.bundle.js
 mozilla/browser/extensions/activity-stream/vendor
 mozilla/browser/extensions/formautofill/content/*.js
+mozilla/browser/extensions/formautofill/addressmetadata/*.js
+mozilla/browser/extensions/pdfjs/content/build/*.js
+mozilla/browser/extensions/pdfjs/content/web/*.js
 mozilla/browser/extensions/pocket/content/panels/js/vendor/jquery*.js
-mozilla/browser/extensions/shield-recipe-client/vendor
+mozilla/browser/extensions/screenshots/webextension/build/inlineSelectionCss.js
 mozilla/build/pgo/blueprint/valid.png
 mozilla/devtools/client/shared/test
 # don't filter out the following JS files, they needed later while building
@@ -28,10 +37,6 @@ mozilla/devtools/client/shared/test
 #mozilla/dom/imptests/html/js/builtins/Math.maxmin.js
 #mozilla/dom/json/test/unit/test_decode_long_input.js
 mozilla/dom/html/reftests/toblob-todataurl/sample.js
-mozilla/gfx/angle/src/libEGL/libEGL.rc
-mozilla/gfx/angle/src/libEGL/resource.h
-mozilla/gfx/angle/src/libGLESv2/libGLESv2.rc
-mozilla/gfx/angle/src/libGLESv2/resource.h
 mozilla/image/test/reftest/pngsuite-transparency
 mozilla/image/test/reftest/reftest.list /pngsuite-transparency/d
 mozilla/intl/uconv/tests/unit
@@ -39,16 +44,6 @@ mozilla/js/src/jit-test/lib/mandelbrot-results.js
 mozilla/js/src/jit-test/tests
 mozilla/js/src/octane/box2d.js
 mozilla/js/src/octane/typescript-input.js
-mozilla/js/src/tests/ecma/ObjectObjects/15.2.1.1.js
-mozilla/js/src/tests/ecma/String/15.5.2.js
-mozilla/js/src/tests/ecma/String/15.5.4.4-4.js
-mozilla/js/src/tests/ecma_3/RegExp/regress-209067.js
-mozilla/js/src/tests/ecma_3/RegExp/regress-307456.js
-mozilla/js/src/tests/js1_5/Regress/regress-243174.js
-mozilla/js/src/tests/js1_5/Regress/regress-274888.js
-mozilla/js/src/tests/js1_5/Regress/regress-280769.js
-mozilla/js/src/tests/js1_5/Regress/regress-311629.js
-mozilla/js/src/tests/js1_8_1/jit/regress-452498-01.js
 mozilla/layout/doc
 mozilla/layout/generic/crashtests/simple_blank.swf
 mozilla/netwerk/protocol/ftp/doc/rfc959.txt
@@ -65,13 +60,18 @@ mozilla/testing/talos/talos/scripts/jszip.min.js
 mozilla/testing/talos/talos/startup_test/sessionrestore/profile/sessionstore.js
 mozilla/testing/talos/talos/tests/dromaeo/lib/ext-base.js
 mozilla/testing/talos/talos/tests/dromaeo/lib/ext-core.js
+mozilla/third_party/python/mock-1.0.0/html/_static/*.js
 mozilla/third_party/python/psutil/build/lib.linux-x86_64-2.7/psutil/*.so
 mozilla/third_party/python/psutil/build/temp.linux-x86_64-2.7/psutil/*.o
-mozilla/third_party/rust/lazy_static-0.1.16/src/liblib.so
+mozilla/third_party/python/psutil/tmp/*
 mozilla/third_party/rust/libz-sys/src/zlib-1.2.8/contrib/dotzlib/DotZLib.chm
+mozilla/third_party/webkit/PerformanceTests/MotionMark/resources/debug-runner/d3.min.js
 mozilla/third_party/webkit/PerformanceTests/Speedometer/resources/todomvc
+mozilla/third_party/webkit/PerformanceTests/ARES-6/*
+mozilla/toolkit/components/normandy/vendor/*.js
 mozilla/toolkit/components/maintenanceservice/maintenanceservice.rc
 mozilla/toolkit/components/maintenanceservice/resource.h
+mozilla/toolkit/components/payments/res/vendor/*.js
 mozilla/toolkit/crashreporter/client/crashreporter.rc
 mozilla/toolkit/crashreporter/client/resource.h
 mozilla/toolkit/crashreporter/google-breakpad/autotools/compile
