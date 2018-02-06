@@ -86,7 +86,7 @@ Provides:
 Xb-Xul-AppId: {3550f703-e582-4d05-9a08-453d09bdfdc6}
 Breaks:
  calendar-exchange-provider (<< 4.0.0~beta4-1~),
- enigmail (<< 2:1.9.9-1~),
+ enigmail (<< 2:2~),
  hunspell-ar (<< 0.0.0+20080110-1.1),
  hunspell-da (<< 1:3.1.0-3),
  hunspell-de-at (<< 20071211-2),
