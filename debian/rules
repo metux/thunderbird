@@ -140,7 +140,7 @@ endif
 		echo "preparing and working on 'lightning-l10n-$${lowercase_locale}'   (langpack-$${locale}@lightning.debian.org)" ;\
 		mkdir -p $(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org ;\
 		cp -a $${locale}/* $(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/ ;\
-		rm $(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/app.ini ;\
+		rm -f $(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/app.ini ;\
 	done
 	# symlink lightning-l10n packages for Thunderbird and Lightning
 	#   /u/l/lightning/extensions/$(langpack)   -> /u/s/lightning/extensions/$(langpack)
