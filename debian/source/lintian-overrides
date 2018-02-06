@@ -28,7 +28,3 @@ source: source-is-missing mozilla/browser/app/profile/firefox.js *
 
 # needed by TB, some various long lines
 source: source-is-missing mail/app/profile/all-thunderbird.js *
-
-# this is no brace expansion
-source: brace-expansion-in-debhelper-config-file debian/calendar-google-provider.links
-source: brace-expansion-in-debhelper-config-file debian/lightning.links
