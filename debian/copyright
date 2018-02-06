@@ -445,9 +445,6 @@ Copyright: 2005-2007, Thomas Fuchs (http://script.aculo.us, http://mir.aculo.us)
 License: Expat
 
 Files: mozilla/dom/xul/nsXULElement.cpp
-       mozilla/dom/xul/templates/nsXULContentUtils.cpp
-       mozilla/dom/xul/templates/nsXULSortService.cpp
-       mozilla/dom/xul/templates/nsXULSortService.h
 Copyright: 2000, International Business Machines (IBM)
 License: MPL-2.0
 
@@ -1175,10 +1172,6 @@ Files: mozilla/intl/icu/source/tools/tzcode/*
 Copyright: no-info-found
 License: public-domain
 
-Files: mozilla/intl/lwbrk/nsSampleWordBreaker.cpp
-Copyright: no-info-found
-License: MPL-2.0
-
 Files: mozilla/intl/unicharutil/util/nsBidiUtils.cpp
        mozilla/intl/unicharutil/util/nsUnicharUtils.h
 Copyright: 2000-2002, Japan Network Information Center
@@ -1640,29 +1633,7 @@ Files: mozilla/js/src/octane/typescript.js
 Copyright: 2013, the Octane Benchmark project authors
 License: BSD-3-clause
 
-Files: mozilla/js/src/tests/ecma/Array/15.4.4.5-1.js
-       mozilla/js/src/tests/ecma/Array/15.4.4.5-2.js
-       mozilla/js/src/tests/ecma_3/FunExpr/fe-001-n.js
-       mozilla/js/src/tests/ecma_3/FunExpr/fe-001.js
-       mozilla/js/src/tests/ecma_3/FunExpr/fe-002.js
-       mozilla/js/src/tests/ecma_5/Date/15.9.4.2.js
-       mozilla/js/src/tests/ecma_5/Object/15.2.3.3-01.js
-       mozilla/js/src/tests/ecma_5/RegExp/regexp-space-character-class.js
-       mozilla/js/src/tests/ecma_5/RegExp/regress-429241.js
-       mozilla/js/src/tests/ecma_5/extensions/15.9.4.2.js
-       mozilla/js/src/tests/ecma_5/misc/unnamed-function.js
-       mozilla/js/src/tests/ecma_6/Array/find_findindex.js
-       mozilla/js/src/tests/ecma_6/Generators/shell.js
-       mozilla/js/src/tests/ecma_6/Object/assign.js
-       mozilla/js/src/tests/ecma_6/TemplateStrings/*
-       mozilla/js/src/tests/ecma_6/shell.js
-       mozilla/js/src/tests/ecma_7/shell.js
-       mozilla/js/src/tests/js1_6/extensions/regress-456826.js
-       mozilla/js/src/tests/js1_8/extensions/regress-476414-01.js
-       mozilla/js/src/tests/js1_8/extensions/regress-476414-02.js
-       mozilla/js/src/tests/js1_8_5/regress/regress-355569.js
-       mozilla/js/src/tests/js1_8_5/regress/regress-477053.js
-       mozilla/js/src/tests/lib/jittests.py
+Files: mozilla/js/src/tests/lib/jittests.py
        mozilla/js/src/tests/shell/shell.js
        mozilla/js/src/tests/test262/browser.js
        mozilla/js/src/tests/test262/intl402/shell.js
@@ -1713,10 +1684,6 @@ Files: mozilla/js/src/tests/ecma/Array/15.4.4.5-1.js
        mozilla/media/libcubeb/src/cubeb_osx_run_loop.c
 Copyright: no-info-found
 License: MPL-2.0
-
-Files: mozilla/js/src/tests/ecma_5/String/split-xregexp.js
-Copyright: 2007, Steven Levithan <stevenlevithan.com>
-License: Expat
 
 Files: mozilla/js/src/tests/test262/intl402/browser.js
 Copyright: 2012, Mozilla Corporation
@@ -1983,19 +1950,9 @@ License: BSD-3-clause
 
 Files: mozilla/media/libspeex_resampler/src/simd_detect.cpp
        mozilla/media/libspeex_resampler/src/simd_detect.h
-       mozilla/media/libstagefright/binding/*
-       mozilla/media/libstagefright/gtest/*
        mozilla/media/libvpx/update.py
 Copyright: no-info-found
 License: MPL-2.0
-
-Files: mozilla/media/libstagefright/frameworks/*
-Copyright: 2005-2013, The Android Open Source Project
-License: Apache-2.0
-
-Files: mozilla/media/libstagefright/system/*
-Copyright: 2005-2013, The Android Open Source Project
-License: Apache-2.0
 
 Files: mozilla/media/libtheora/*
 Copyright: 2002-2007 Xiph.org Foundation
@@ -2399,14 +2356,6 @@ License: BSD-2-clause
 
 Files: mozilla/netwerk/srtp/src/*
 Copyright: 2001-2006, Cisco Systems, Inc.
-License: BSD-3-clause
-
-Files: mozilla/netwerk/srtp/src/crypto/include/kernel_compat.h
-Copyright: 2005, Ingate Systems AB
-License: BSD-3-clause
-
-Files: mozilla/netwerk/srtp/src/crypto/rng/rand_linux_kernel.c
-Copyright: 2005, Ingate Systems AB
 License: BSD-3-clause
 
 Files: mozilla/netwerk/srtp/src/include/config.h
@@ -2871,7 +2820,6 @@ Files: mozilla/toolkit/locales/compare-locales.pl
        mozilla/toolkit/mozapps/extensions/test/xpcshell/test_bug394300.js
        mozilla/toolkit/mozapps/extensions/test/xpcshell/test_bug397778.js
        mozilla/toolkit/mozapps/extensions/test/xpcshell/test_bug406118.js
-       mozilla/toolkit/mozapps/extensions/test/xpcshell/test_bug424262.js
        mozilla/toolkit/mozapps/extensions/test/xpcshell/test_bug425657.js
        mozilla/toolkit/mozapps/extensions/test/xpcshell/test_bug430120.js
        mozilla/toolkit/mozapps/extensions/test/xpcshell/test_bug449027.js
