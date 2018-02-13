@@ -896,7 +896,6 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY folderPaneBar.label "Folder Pane Toolbar">
 <!ENTITY folderPaneBar.accesskey "F">
 <!ENTITY folderModeSelector.label "Folder Views">
-
 <!ENTITY sortByCorrespondentCmd.label "Correspondents">
 <!ENTITY sortByCorrespondentCmd.accesskey "n">
 <!ENTITY goChatCmd.label "Chat">
@@ -910,6 +909,8 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Edit Draft Message">
 <!ENTITY editDraftMsgCmd.accesskey "D">
+<!ENTITY editTemplateMsgCmd.label "Edit Template">
+<!ENTITY editTemplateMsgCmd.accesskey "T">
 <!ENTITY newMsgFromTemplateCmd.label "New Message from Template">
 <!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN">
 <!ENTITY openAttachmentListCmd.label "Attachments">
@@ -920,6 +921,11 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY openFeedWebPage.accesskey "W">
 <!ENTITY openFeedSummary.label "Open as Summary">
 <!ENTITY openFeedSummary.accesskey "S">
+<!ENTITY addonPrefs.label "Add-on Options">
+<!ENTITY addonPrefs.accesskey "O">
+<!ENTITY addonPrefsUnix.label "Add-on Preferences">
+<!ENTITY addonPrefsUnix.accesskey "P">
+<!ENTITY addonNoPrefs.label "No Add-on settings found.">
 <!ENTITY imAccountsStatus.label "Chat status">
 <!ENTITY imAccountsStatus.accesskey "C">
 <!ENTITY imStatus.available          "Available">
@@ -935,23 +941,20 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY accountManagerCmd2.label "Account Settings">
 <!ENTITY accountManagerCmd2.accesskey "S">
 <!ENTITY accountManagerCmdUnix2.accesskey "A">
-
 <!ENTITY devtoolsMenu.label "Developer Tools">
 <!ENTITY devtoolsMenu.accesskey "e">
 <!ENTITY devToolboxCmd.label "Developer Toolbox">
 <!ENTITY devToolboxCmd.accesskey "T">
 <!ENTITY devToolboxCmd.commandkey "i">
-<!ENTITY addonDebugCmd.label "Add-on Debugger">
-<!ENTITY addonDebugCmd.accesskey "A">
+<!ENTITY debugAddonsCmd.label "Debug Add-ons">
+<!ENTITY debugAddonsCmd.accesskey "A">
 <!ENTITY tabsDebugCmd.label "Content Frame Debugger">
 <!ENTITY tabsDebugCmd.accesskey "C">
 <!ENTITY errorConsoleCmd.commandkey "j">
 <!ENTITY scratchpadCmd.label "Scratchpad">
 <!ENTITY scratchpadCmd.accesskey "S">
-
 <!ENTITY scratchpadCmd.keycode "VK_F4">
 <!ENTITY scratchpadCmd.keytext "F4">
-
 <!ENTITY getMsgButton1.label "Get Messages">
 <!ENTITY openConversationButton.label "Conversation">
 <!ENTITY nextButtonToolbarItem.label "Next Unread">
@@ -960,7 +963,6 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY previousMsgButton.label "Previous">
 <!ENTITY chatButton.label "Chat">
 <!ENTITY appmenuButton.label "AppMenu">
-
 <!ENTITY forwardAsInline.tooltip "Forward selected message as inline text">
 <!ENTITY forwardAsAttachment.tooltip "Forward selected message as an attachment">
 <!ENTITY openConversationButton.tooltip "Show conversation of selected message">
@@ -968,34 +970,28 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY previousMsgButton.tooltip "Move to the previous message">
 <!ENTITY chatButton.tooltip "Show the Chat tab">
 <!ENTITY appmenuButton1.tooltip "Display the &brandShortName; Menu">
-
 <!ENTITY buttonMenuForwardAsInline.label "Forward Inline">
 <!ENTITY buttonMenuForwardAsAttachment.label "Forward As Attachment">
-
 <!ENTITY remoteContentOptionsAllowForMsg.label "Show remote content in this message">
 <!ENTITY remoteContentOptionsAllowForMsg.accesskey "S">
 <!ENTITY editRemoteContentSettings.label "Edit remote content options…">
 <!ENTITY editRemoteContentSettings.accesskey "E">
 <!ENTITY editRemoteContentSettingsUnix.label "Edit remote content preferences…">
 <!ENTITY editRemoteContentSettingsUnix.accesskey "E">
-
 <!ENTITY phishingOptionIgnore.label "Ignore warning for this message">
 <!ENTITY phishingOptionIgnore.accesskey "n">
 <!ENTITY phishingOptionSettings.label "Edit scam detection options…">
 <!ENTITY phishingOptionSettings.accesskey "d">
 <!ENTITY phishingOptionSettingsUnix.label "Edit scam detection preferences…">
 <!ENTITY phishingOptionSettingsUnix.accesskey "d">
-
 <!ENTITY appmenuNewMsgCmd.label "New Message">
 <!ENTITY appmenuNewContactCmd.label "Address Book Contact…">
 <!ENTITY appmenuEditMenu.label "Edit">
 <!ENTITY appmenuToolbarLayout.label "Toolbar Layout…">
 <!ENTITY appmenuSelectThread.label "Select Thread">
 <!ENTITY appmenuSelectFlagged.label "Select Starred Messages">
-
 <!ENTITY manageTags.label "Manage Tags…">
 <!ENTITY manageTags.accesskey "M">
-
 <!ENTITY folderNameColumn.label "Name">
 <!ENTITY folderUnreadColumn.label "Unread">
 <!ENTITY folderTotalColumn.label "Total">
@@ -1010,7 +1006,6 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY folderContextProperties2.accesskey "P">
 <!ENTITY folderContextSettings2.label "Settings">
 <!ENTITY folderContextSettings2.accesskey "e">
-
 <!ENTITY correspondentColumn.label "Correspondents">
 <!ENTITY columnChooser2.tooltip "Select columns to display">
 <!ENTITY threadColumn2.tooltip "Display message threads">
@@ -1033,13 +1028,14 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY locationColumn2.tooltip "Sort by location">
 <!ENTITY idColumn2.tooltip "Sort by order received">
 <!ENTITY attachmentColumn2.tooltip "Sort by attachments">
-
 <!ENTITY contextNewMsgFromTemplate.label "New Message from Template">
 <!ENTITY contextOpenContainingFolder.label "Open Message in Containing Folder">
 <!ENTITY contextOpenContainingFolder.accesskey "n">
 <!ENTITY contextEditMsgAsNew.label "Edit As New Message">
 <!ENTITY contextEditMsgAsNew.accesskey "E">
 <!ENTITY contextEditDraftMsg.label "Edit Draft Message">
+<!ENTITY contextEditTemplate.label "Edit Template">
+<!ENTITY contextEditTemplate.accesskey "T">
 <!ENTITY contextReplyNewsgroup2.label "Followup to Newsgroup">
 <!ENTITY contextReplyNewsgroup2.accesskey "u">
 <!ENTITY contextForwardAsMenu.label "Forward As">
@@ -1059,7 +1055,6 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY search.label.base1 "Search #1">
 <!ENTITY search.keyLabel.nonmac "&lt;Ctrl+K&gt;">
 <!ENTITY search.keyLabel.mac "&lt;&#x2318;K&gt;">
-
 <!ENTITY EditContact1.label "Edit Contact">
 <!ENTITY EditContact1.accesskey "E">
 <!ENTITY CopyNameAndEmailAddress.label "Copy Name and Email Address">

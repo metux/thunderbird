@@ -58,3 +58,8 @@ sentence. -->
 <!ENTITY messageStyleShowHeader.accesskey  "o">
 <!ENTITY messageStyleNoPreview.title       "Ingen forhåndsvisning tilgjengelig">
 <!ENTITY messageStyleNoPreview.description "Dette temaet er ikke gyldig eller er for øyeblikket utilgjengelig (deaktivert utvidelse, sikker modus, ...).">
+
+<!ENTITY  getAttention.label                  "Flash the taskbar item">
+<!ENTITY  getAttention.accesskey              "F">
+<!ENTITY  getAttentionMac.label               "Animate dock icon">
+<!ENTITY  getAttentionMac.accesskey           "o">

@@ -32,6 +32,7 @@
 
 <!ENTITY aboutUrlClassifier.debugFile                   "Fitxer de registre actual">
 
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">
 <!ENTITY aboutUrlClassifier.providerBackOffTime         "Back-off time">
 <!ENTITY aboutUrlClassifier.cacheNCacheEntries          "Number of negative cache entries">
 <!ENTITY aboutUrlClassifier.cachePCacheEntries          "Number of positive cache entries">

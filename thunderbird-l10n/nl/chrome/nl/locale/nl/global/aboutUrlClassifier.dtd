@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Huidige logmodules">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "JS-registratie van Safe Browsing">
 <!ENTITY aboutUrlClassifier.debugFile                   "Huidige logbestand">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

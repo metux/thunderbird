@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "현재 로그 모듈">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "안전한 브라우징 JS 로그">
 <!ENTITY aboutUrlClassifier.debugFile                   "현재 로그 파일">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

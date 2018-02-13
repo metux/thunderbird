@@ -23,7 +23,6 @@ SOURCES += [
     '!HandlerData_p.c',
     'AccessibleHandler.cpp',
     'AccessibleHandlerControl.cpp',
-    'AccessibleTextTearoff.cpp',
 ]
 
 GENERATED_FILES += [

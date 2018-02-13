@@ -23,6 +23,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   setTimeout: "resource://gre/modules/Timer.jsm",
   clearTimeout: "resource://gre/modules/Timer.jsm",
   Lz4: "resource://gre/modules/lz4.js",
+  NetUtil: "resource://gre/modules/NetUtil.jsm",
 });
 
 XPCOMUtils.defineLazyServiceGetters(this, {
@@ -31,9 +32,6 @@ XPCOMUtils.defineLazyServiceGetters(this, {
   gChromeReg: ["@mozilla.org/chrome/chrome-registry;1", "nsIChromeRegistry"],
 });
 
-const ArrayBufferInputStream = Components.Constructor(
-  "@mozilla.org/io/arraybuffer-input-stream;1",
-  "nsIArrayBufferInputStream", "setData");
 const BinaryInputStream = Components.Constructor(
   "@mozilla.org/binaryinputstream;1",
   "nsIBinaryInputStream", "setInputStream");
@@ -45,6 +43,7 @@ XPCOMUtils.defineLazyGetter(this, "gEncoder",
                             function() {
                               return new TextEncoder();
                             });
+
 
 const MODE_RDONLY   = 0x01;
 const MODE_WRONLY   = 0x02;
@@ -355,10 +354,10 @@ loadListener.prototype = {
 function rescaleIcon(aByteArray, aContentType, aSize = 32) {
   if (aContentType == "image/svg+xml")
     throw new Error("Cannot rescale SVG image");
-  let buffer = Uint8Array.from(aByteArray).buffer;
+
   let imgTools = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools);
-  let input = new ArrayBufferInputStream(buffer, 0, buffer.byteLength);
-  let container = imgTools.decodeImage(input, aContentType);
+  let arrayBuffer = (new Int8Array(aByteArray)).buffer;
+  let container = imgTools.decodeImageFromArrayBuffer(arrayBuffer, aContentType);
   let stream = imgTools.encodeScaledImage(container, "image/png", aSize, aSize);
   let size = stream.available();
   if (size > MAX_ICON_SIZE)
@@ -949,9 +948,8 @@ function notifyAction(aEngine, aVerb) {
 }
 
 function parseJsonFromStream(aInputStream) {
-  const json = Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON);
-  const data = json.decodeFromStream(aInputStream, aInputStream.available());
-  return data;
+  let bytes = NetUtil.readInputStream(aInputStream, aInputStream.available());
+  return JSON.parse(new TextDecoder().decode(bytes));
 }
 
 /**
@@ -2835,7 +2833,9 @@ SearchService.prototype = {
   },
 
   resetToOriginalDefaultEngine: function SRCH_SVC__resetToOriginalDefaultEngine() {
-    this.currentEngine = this.originalDefaultEngine;
+    let originalDefaultEngine = this.originalDefaultEngine;
+    originalDefaultEngine.hidden = false;
+    this.currentEngine = originalDefaultEngine;
   },
 
   _buildCache: function SRCH_SVC__buildCache() {
@@ -3876,6 +3876,7 @@ SearchService.prototype = {
   addEngineWithDetails: function SRCH_SVC_addEWD(aName, iconURL, alias,
                                                  description, method,
                                                  template, extensionID) {
+    let isCurrent = false;
     var params;
 
     if (iconURL && typeof iconURL == "object") {
@@ -3896,16 +3897,28 @@ SearchService.prototype = {
       FAIL("Invalid name passed to addEngineWithDetails!");
     if (!params.template)
       FAIL("Invalid template passed to addEngineWithDetails!");
-    if (this._engines[aName])
-      FAIL("An engine with that name already exists!", Cr.NS_ERROR_FILE_ALREADY_EXISTS);
-
-    var engine = new Engine(sanitizeName(aName), false);
-    engine._initFromMetadata(aName, params);
-    engine._loadPath = "[other]addEngineWithDetails";
-    if (params.extensionID) {
-      engine._loadPath += ":" + params.extensionID;
+    let existingEngine = this._engines[aName];
+    if (existingEngine) {
+      if (params.extensionID &&
+          existingEngine._loadPath.startsWith(`jar:[profile]/extensions/${params.extensionID}`)) {
+        // This is a legacy extension engine that needs to be migrated to WebExtensions.
+        isCurrent = this.currentEngine == existingEngine;
+        this.removeEngine(existingEngine);
+      } else {
+        FAIL("An engine with that name already exists!", Cr.NS_ERROR_FILE_ALREADY_EXISTS);
+      }
     }
-    this._addEngineToStore(engine);
+
+    let newEngine = new Engine(sanitizeName(aName), false);
+    newEngine._initFromMetadata(aName, params);
+    newEngine._loadPath = "[other]addEngineWithDetails";
+    if (params.extensionID) {
+      newEngine._loadPath += ":" + params.extensionID;
+    }
+    this._addEngineToStore(newEngine);
+    if (isCurrent) {
+      this.currentEngine = newEngine;
+    }
   },
 
   addEngine: function SRCH_SVC_addEngine(aEngineURL, aDataType, aIconURL,

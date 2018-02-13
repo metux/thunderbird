@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Módulos de registo atuais">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Registo JS do Safe Browsing">
 <!ENTITY aboutUrlClassifier.debugFile                   "Ficheiro de registo atual">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Izegrar iɣmisen imiranen">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Aγmis n tunigin taɣelsant">
 <!ENTITY aboutUrlClassifier.debugFile                   "Afaylu aɣmis amiran">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

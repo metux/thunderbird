@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "Seaneisínteachtaí">
 <!ENTITY legacyExtensions.description "Ní chloíonn na heisínteachtaí seo le caighdeáin &brandShortName; a thuilleadh agus dhíchumasaíomar iad.">
 <!ENTITY legacyExtensions.learnMore "Foghlaim faoi na hathruithe ar bhreiseáin">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

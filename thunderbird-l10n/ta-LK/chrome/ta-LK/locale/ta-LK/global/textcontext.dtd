@@ -24,7 +24,6 @@
 <!ENTITY spellCheckToggle.label "Check Spelling">
 <!ENTITY spellCheckToggle.accesskey "g">
 <!ENTITY searchTextBox.clear.label "Clear">
-
 <!ENTITY fillLoginMenu.label          "Fill Login">
 <!ENTITY fillLoginMenu.accesskey      "F">
 <!ENTITY fillPasswordMenu.label       "Fill Password">

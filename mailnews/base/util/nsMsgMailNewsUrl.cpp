@@ -25,7 +25,6 @@
 #include <time.h>
 #include "nsMsgUtils.h"
 #include "mozilla/Services.h"
-#include <algorithm>
 #include "nsProxyRelease.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/Encoding.h"
@@ -208,7 +207,7 @@ NS_IMETHODIMP nsMsgMailNewsUrl::GetServer(nsIMsgIncomingServer ** aIncomingServe
 
   rv = m_baseURL->GetSpec(urlstr);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = url->SetSpec(urlstr);
+  rv = url->SetSpecInternal(urlstr);
   if (NS_FAILED(rv)) return rv;
   rv = GetScheme(scheme);
     if (NS_SUCCEEDED(rv))
@@ -399,7 +398,7 @@ NS_IMETHODIMP nsMsgMailNewsUrl::GetSpec(nsACString &aSpec)
 
 #define FILENAME_PART_LEN 10
 
-NS_IMETHODIMP nsMsgMailNewsUrl::SetSpec(const nsACString &aSpec)
+nsresult nsMsgMailNewsUrl::SetSpecInternal(const nsACString &aSpec)
 {
   nsAutoCString spec(aSpec);
   // Parse out "filename" attribute if present.
@@ -421,7 +420,7 @@ NS_IMETHODIMP nsMsgMailNewsUrl::SetSpec(const nsACString &aSpec)
   }
 
   // Now, set the rest.
-  nsresult rv = m_baseURL->SetSpec(aSpec);
+  nsresult rv = m_baseURL->SetSpecInternal(aSpec);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Check whether the URL is in normalised form.
@@ -1081,5 +1080,19 @@ NS_IMETHODIMP nsMsgMailNewsUrl::GetIsMessageUri(bool *aIsMessageUri)
   nsAutoCString scheme;
   m_baseURL->GetScheme(scheme);
   *aIsMessageUri = StringEndsWith(scheme, NS_LITERAL_CSTRING("-message"));
+  return NS_OK;
+}
+
+NS_IMPL_ISUPPORTS(nsMsgMailNewsUrl::Mutator, nsIURISetters, nsIURIMutator)
+
+NS_IMETHODIMP
+nsMsgMailNewsUrl::Mutate(nsIURIMutator** aMutator)
+{
+  RefPtr<nsMsgMailNewsUrl::Mutator> mutator = new nsMsgMailNewsUrl::Mutator();
+  nsresult rv = mutator->InitFromURI(this);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  mutator.forget(aMutator);
   return NS_OK;
 }

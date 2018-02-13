@@ -45,8 +45,7 @@
 #include "nsContentCID.h"
 #include "nsISelection.h"
 #include "nsUTF8Utils.h"
-#include "nsILineBreaker.h"
-#include "nsLWBrkCIID.h"
+#include "mozilla/intl/LineBreaker.h"
 #include "mozilla/Services.h"
 #include "mimemoz2.h"
 #include "nsIArray.h"
@@ -85,7 +84,7 @@
 #define DOMAIN_DELIMITER                           ','
 
 #ifdef MSGCOMP_TRACE_PERFORMANCE
-static mozilla::LazyLogModule MsgComposeLogModule("msgcompose");
+static mozilla::LazyLogModule MsgComposeLogModule("MsgCompose");
 
 static uint32_t GetMessageSizeFromURI(const char * originalMsgURI)
 {
@@ -296,7 +295,7 @@ nsMsgComposeService::GetOrigWindowSelection(MSG_ComposeType type, nsIMsgWindow *
       if (selPlain.IsEmpty())
         return NS_ERROR_ABORT;
 
-      nsCOMPtr<nsILineBreaker> lineBreaker = do_GetService(NS_LBRK_CONTRACTID, &rv);
+      RefPtr<mozilla::intl::LineBreaker> lineBreaker = mozilla::intl::LineBreaker::Create();
 
       if (NS_SUCCEEDED(rv))
       {
@@ -310,7 +309,7 @@ nsMsgComposeService::GetOrigWindowSelection(MSG_ComposeType type, nsIMsgWindow *
 
         // If after the first word is only space, then there's not multiple words
         const char16_t* end;
-        for (end = unicodeStr + endWordPos; NS_IsSpace(*end); end++)
+        for (end = unicodeStr + endWordPos; mozilla::intl::NS_IsSpace(*end); end++)
           ;
         if (!*end)
           return NS_ERROR_ABORT;
@@ -385,6 +384,7 @@ nsMsgComposeService::OpenComposeWindow(const char *msgComposeWindowURL, nsIMsgDB
      Maybe one day when we will have more time we can change that
   */
   if (type == nsIMsgCompType::ForwardInline || type == nsIMsgCompType::Draft ||
+      type == nsIMsgCompType::EditTemplate ||
       type == nsIMsgCompType::Template || type == nsIMsgCompType::ReplyWithTemplate ||
       type == nsIMsgCompType::Redirect || type == nsIMsgCompType::EditAsNew)
   {
@@ -398,6 +398,8 @@ nsMsgComposeService::OpenComposeWindow(const char *msgComposeWindowURL, nsIMsgDB
       uriToOpen.AppendLiteral("&redirect=true");
     else if (type == nsIMsgCompType::EditAsNew)
       uriToOpen.AppendLiteral("&editasnew=true");
+    else if (type == nsIMsgCompType::EditTemplate)
+      uriToOpen.AppendLiteral("&edittempl=true");
 
     return LoadDraftOrTemplate(uriToOpen, type == nsIMsgCompType::ForwardInline || type == nsIMsgCompType::Draft ?
                                nsMimeOutput::nsMimeMessageDraftOrTemplate : nsMimeOutput::nsMimeMessageEditorTemplate,
@@ -749,7 +751,7 @@ NS_IMETHODIMP nsMsgTemplateReplyHelper::OnStopRunningUrl(nsIURI *aUrl, nsresult 
   rv = mTemplateHdr->GetCharset(getter_Copies(charset));
   NS_ENSURE_SUCCESS(rv, rv);
   compFields->SetCharacterSet(charset.get());
-  rv = nsMsgI18NConvertToUnicode(charset.get(), mTemplateBody, body);
+  rv = nsMsgI18NConvertToUnicode(charset, mTemplateBody, body);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "couldn't convert templ body to unicode");
   compFields->SetBody(body);
 
@@ -1331,7 +1333,7 @@ nsMsgComposeService::RunMessageThroughMimeDraft(
 
   // ignore errors here - it's not fatal, and in the case of mailbox messages,
   // we're always passing in an invalid spec...
-  (void )url->SetSpec(mailboxUri);
+  (void)url->SetSpecInternal(mailboxUri);
 
   // if we are forwarding a message and that message used a charset over ride
   // then use that over ride charset instead of the charset specified in the message

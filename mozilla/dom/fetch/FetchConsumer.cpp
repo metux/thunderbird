@@ -7,6 +7,7 @@
 #include "Fetch.h"
 #include "FetchConsumer.h"
 
+#include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "nsIInputStreamPump.h"
 #include "nsProxyRelease.h"
 #include "WorkerPrivate.h"
@@ -29,7 +30,8 @@ class FetchBodyWorkerHolder final : public workers::WorkerHolder
 
 public:
   explicit FetchBodyWorkerHolder(FetchBodyConsumer<Derived>* aConsumer)
-    : mConsumer(aConsumer)
+    : workers::WorkerHolder("FetchBodyWorkerHolder")
+    , mConsumer(aConsumer)
     , mWasNotified(false)
   {
     MOZ_ASSERT(aConsumer);
@@ -472,7 +474,7 @@ FetchBodyConsumer<Derived>::BeginConsumeBodyMainThread()
 
   nsCOMPtr<nsIInputStreamPump> pump;
   nsresult rv = NS_NewInputStreamPump(getter_AddRefs(pump),
-                                      mBodyStream, 0, 0, false,
+                                      mBodyStream.forget(), 0, 0, false,
                                       mMainThreadEventTarget);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;

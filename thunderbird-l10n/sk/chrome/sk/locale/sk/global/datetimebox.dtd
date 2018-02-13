@@ -15,3 +15,13 @@
 <!ENTITY date.year.placeholder "rrrr">
 <!ENTITY date.month.placeholder "mm">
 <!ENTITY date.day.placeholder "dd">
+
+<!ENTITY time.hour.label "Hours">
+<!ENTITY time.minute.label "Minutes">
+<!ENTITY time.second.label "Seconds">
+<!ENTITY time.millisecond.label "Milliseconds">
+<!ENTITY time.dayperiod.label "AM/PM">
+<!ENTITY date.year.label "Year">
+<!ENTITY date.month.label "Month">
+<!ENTITY date.day.label "Day">
+<!ENTITY datetime.reset.label "Clear">

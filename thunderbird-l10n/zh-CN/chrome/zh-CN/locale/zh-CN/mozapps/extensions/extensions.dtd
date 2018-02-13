@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "旧式扩展">
 <!ENTITY legacyExtensions.description "这些扩展不符合现今的 &brandShortName; 标准，因此已被停用。">
 <!ENTITY legacyExtensions.learnMore "了解附加组件的变化">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

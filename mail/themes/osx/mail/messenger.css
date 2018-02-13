@@ -20,6 +20,7 @@
   --toolbar-non-lwt-bgimage: none;
   --toolbar-bgcolor: var(--toolbar-non-lwt-bgcolor);
   --toolbar-bgimage: var(--toolbar-non-lwt-bgimage);
+  --toolbox-border-bottom-color: hsl(0, 0%, 60%);
 
   --toolbarbutton-border-radius: 3px;
   --toolbarbutton-icon-fill-opacity: .85;
@@ -70,9 +71,11 @@ toolbar[brighttext] {
 @media (-moz-mac-yosemite-theme) {
   :root:not(:-moz-lwtheme) {
     --tabs-border-color: rgba(0,0,0,.2);
+    --toolbox-border-bottom-color: hsl(0, 0%, 68%);
   }
   :root:not(:-moz-lwtheme):-moz-window-inactive {
     --tabs-border-color: rgba(0,0,0,.05);
+    --toolbox-border-bottom-color: hsl(0, 0%, 85%);
   }
 }
 
@@ -187,7 +190,7 @@ toolbox[labelalign="end"] toolbarpaletteitem .toolbarbutton-1[type="menu"] {
 }
 
 .toolbarbutton-1 {
-  margin: 4px 2px;
+  margin: 5px 2px;
   -moz-context-properties: fill, fill-opacity;
   fill: currentColor;
   fill-opacity: var(--toolbarbutton-icon-fill-opacity);
@@ -319,6 +322,13 @@ toolbar[mode="icons"] .toolbarbutton-1 > menupopup {
   margin-top: 1px;
 }
 
+#alltabs-button,
+#tabbar-toolbar .toolbarbutton-1,
+#tabbar-toolbar .toolbarbutton-1[type="menu-button"] {
+  margin-top: 3px;
+  margin-bottom: 3px;
+}
+
 /* :::::: throbber :::::::::: */
 
 #throbber-box {
@@ -356,7 +366,7 @@ toolbar[mode="icons"] .toolbarbutton-1 > menupopup {
     list-style-image: url("chrome://messenger/skin/icons/online@2x.png");
   }
 
-  #offline-status > .statusbarpanel-icon {
+  #offline-status > .toolbarbutton-icon {
     width: 16px;
     height: 16px;
   }
@@ -433,10 +443,6 @@ notification[value="addon-install-complete"] > button:active:hover {
   -moz-appearance: -moz-window-titlebar;
 }
 
-#titlebar-spacer {
-  pointer-events: none;
-}
-
 #messengerWindow:not([tabsintitlebar]) .titlebar-placeholder {
   visibility: collapse;
 }
@@ -445,8 +451,8 @@ notification[value="addon-install-complete"] > button:active:hover {
  * doesn't reverse the order of the items in the titlebar in RTL mode. */
 .titlebar-placeholder[type="caption-buttons"],
 #titlebar-buttonbox {
-  margin-right: 7px;
-  margin-left: 7px;
+  margin-right: 12px;
+  margin-left: 12px;
 }
 
 .titlebar-placeholder[type="fullscreen-button"],
@@ -499,7 +505,37 @@ button[type="menu-button"] > dropmarker {
   margin-inline-end: -2px;
 }
 
+/* Status bar */
+
+statusbar {
+  min-width: 1px; /* DON'T DELETE!
+  Prevents hiding of scrollbars in browser when window is made smaller.*/
+  min-height: 15px !important;
+  margin: 0 !important;
+  /* need to use padding-inline-end when/if bug 631729 gets fixed: */
+  padding: 0 16px 1px 1px;
+  -moz-appearance: statusbar;
+  text-shadow: rgba(255, 255, 255, 0.4) 0 1px;
+}
+
+statusbarpanel {
+  -moz-box-align: center;
+  -moz-box-pack: center;
+  padding: 0 4px;
+}
+
+statusbar:-moz-lwtheme {
+  -moz-appearance: none;
+  background: none;
+  border-style: none;
+  text-shadow: inherit;
+}
+
 /* Status panel */
+
+.statusbarpanel-iconic {
+  padding: 0;
+}
 
 .statuspanel-label {
   margin: 0;

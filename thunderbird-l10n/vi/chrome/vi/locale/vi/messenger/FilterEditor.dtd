@@ -49,13 +49,10 @@
 <!ENTITY contextOutgoing.accesskey "S">
 <!ENTITY contextArchive.label "Archiving">
 <!ENTITY contextArchive.accesskey "A">
-
 <!ENTITY filterActionOrderWarning.label "Note: Filter actions will be run in a different order.">
 <!ENTITY filterActionOrder.label "See execution order">
-
 <!ENTITY markMessageUnread.label "Mark As Unread">
 <!ENTITY addAction.tooltip "Add a new action">
 <!ENTITY removeAction.tooltip "Remove this action">
-
 <!ENTITY filterActionTypeFlexValue "1">
 <!ENTITY filterActionTargetFlexValue "4">

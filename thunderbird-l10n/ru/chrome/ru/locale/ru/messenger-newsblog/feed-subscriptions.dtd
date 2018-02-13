@@ -40,3 +40,7 @@
 <!ENTITY button.exportOPML.tooltip "Экспорт лент новостей со структурой папок; ctrl щелчок или ctrl enter экспортирует ленты в виде списка">
 <!ENTITY cmd.close.commandKey "w">
 <!ENTITY button.close.label "Закрыть">
+
+<!ENTITY feedLocation2.placeholder   "Enter a valid feed url">
+<!ENTITY button.verifyFeed.label     "Verify">
+<!ENTITY button.verifyFeed.accesskey "V">

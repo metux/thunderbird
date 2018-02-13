@@ -5,3 +5,6 @@
 <!ENTITY virtualFolderListTitle.title        "Fren akaram(i-en)">
 <!ENTITY virtualFolderDesc.label       "Fren ikaramen ara tnadiḍ:">
 
+
+<!ENTITY folderName.label "Folder name">
+<!ENTITY folderSearch.label "Search">

@@ -5,3 +5,6 @@
 <!ENTITY virtualFolderListTitle.title        "Diuzañ teuliad(où)">
 <!ENTITY virtualFolderDesc.label       "Diuzit an teuliadoù ma vo graet ar c'hlask enno :">
 
+
+<!ENTITY folderName.label "Folder name">
+<!ENTITY folderSearch.label "Search">

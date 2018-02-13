@@ -45,8 +45,6 @@
 
 
 <!ENTITY csscoverage.optimize.body3 "element with the styles needed before the ‘load’ event to the top. Here are the style blocks you need:">
-
 <!ENTITY csscoverage.optimize.bodyX "All rules are inlined.">
-
 <!ENTITY csscoverage.footer3 "the MDN article on the CSS Coverage Tool">
 <!ENTITY csscoverage.footer4 "for caveats in the generation of this report.">

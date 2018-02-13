@@ -126,19 +126,13 @@
 <!ENTITY performanceUI.console.stopCommandEnd   "לתוך המסוף.">
 
 <!ENTITY performanceUI.bufferStatusTooltip "The profiler stores samples in a circular buffer, and once the buffer reaches the limit for a recording, newer samples begin to overwrite samples at the beginning of the recording.">
-
 <!ENTITY performanceUI.disabledRealTime.disabledE10S "Enable multiprocess Firefox in preferences for rendering recording data in realtime.">
-
 <!ENTITY performanceUI.toolbar.waterfall.tooltiptext "Shows the different operations the browser is performing during the recording, laid out sequentially as a waterfall.">
 <!ENTITY performanceUI.table.samples.tooltip          "The number of times this function was on the stack when the profiler took a sample.">
 <!ENTITY performanceUI.table.totalAlloc               "Total Sampled Allocations">
 <!ENTITY performanceUI.table.totalAlloc.tooltip       "The total number of Object allocations sampled at this location and in callees.">
 <!ENTITY performanceUI.table.selfAlloc                "Self Sampled Allocations">
 <!ENTITY performanceUI.table.selfAlloc.tooltip        "The number of Object allocations sampled at this location.">
-
 <!ENTITY performanceUI.invertTree.tooltiptext "Inverting the call tree displays the profiled call paths starting from the youngest frames and expanding out to the older frames.">
-
 <!ENTITY performanceUI.invertFlameGraph.tooltiptext "Inverting the flame chart displays the profiled call paths starting from the youngest frames and expanding out to the older frames.">
-
 <!ENTITY performanceUI.showPlatformData.tooltiptext "Showing platform data enables the JavaScript Profiler reports to include Gecko platform symbols.">
-

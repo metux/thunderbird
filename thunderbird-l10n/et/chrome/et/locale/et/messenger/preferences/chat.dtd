@@ -58,3 +58,8 @@ sentence. -->
 <!ENTITY messageStyleShowHeader.accesskey  "K">
 <!ENTITY messageStyleNoPreview.title       "Eelvaade pole saadaval">
 <!ENTITY messageStyleNoPreview.description "See teema pole korrektne või pole praegu saadaval (keelatud lisa, ohutu režiim, …).">
+
+<!ENTITY  getAttention.label                  "Flash the taskbar item">
+<!ENTITY  getAttention.accesskey              "F">
+<!ENTITY  getAttentionMac.label               "Animate dock icon">
+<!ENTITY  getAttentionMac.accesskey           "o">

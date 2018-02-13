@@ -8,6 +8,7 @@
 
 /* all localizable skin settings shall live here */
 @import url("chrome://global/locale/intl.css");
+@import url("chrome://global/skin/menu.css");
 
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 
@@ -86,50 +87,6 @@ iframe {
   height: 100px;
   min-width: 10px;
   min-height: 10px;
-}
-
-/* ::::: statusbar ::::: */
-
-statusbar {
-  border-top: 1px solid #C7D0D9;
-  min-height: 15px;
-  min-width: 1px; /* DON'T DELETE!
-    Prevents hiding of scrollbars in browser when window is made smaller.*/
-  background-color: #C7D0D9;
-  color: #22262F;
-  font-size: 83.3333%;
-}
-
-statusbarpanel {
-  -moz-box-align: center;
-  -moz-box-pack: center;
-  border-top: 1px solid #E0ECF6;
-  border-right: 1px solid #8997A1;
-  border-left: 1px solid #E0ECF6;
-  padding: 0px 4px;
-}
-
-.statusbar-resizerpanel 
-{
-  border: 0px;
-  -moz-box-align: end;
-  -moz-box-pack: end;
-  padding: 0px;
-}
-
-.statusbarpanel-progress {
-  -moz-box-align: stretch;
-  border: 0px;
-  margin: 0px;
-  padding: 0px;
-}
-
-.statusbarpanel-iconic {
-  padding: 0px;
-}
-
-.statusbarpanel-text {
-  margin: 0px !important;
 }
 
 /* Override resizer.css for "normal" resizers */
@@ -325,10 +282,6 @@ label[disabled="true"] {
 
 .spaced {
   margin: 3px 5px 4px 5px;
-}
-
-.wizard-box {
-  padding: 20px 44px 10px;
 }
 
 /* class for text with a 'link' appearance */

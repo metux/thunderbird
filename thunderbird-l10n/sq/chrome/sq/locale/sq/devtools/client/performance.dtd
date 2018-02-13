@@ -138,4 +138,3 @@
 
 <!ENTITY performanceUI.flattenTreeRecursion             "Flatten Tree Recursion">
 <!ENTITY performanceUI.flattenTreeRecursion.tooltiptext "Flatten recursion when inspecting functions.">
-

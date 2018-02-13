@@ -20,11 +20,7 @@
   -  while the page is refreshing and the tool waits for a WebGL context. -->
 
 <!ENTITY shaderEditorUI.vertexShader    "Vertex Shader">
-
 <!ENTITY shaderEditorUI.fragmentShader  "Fragment Shader">
-
 <!ENTITY shaderEditorUI.reloadNotice1   "Reload">
-
 <!ENTITY shaderEditorUI.reloadNotice2   "the page to be able to edit GLSL code.">
-
 <!ENTITY shaderEditorUI.emptyNotice     "Waiting for a WebGL context to be created…">

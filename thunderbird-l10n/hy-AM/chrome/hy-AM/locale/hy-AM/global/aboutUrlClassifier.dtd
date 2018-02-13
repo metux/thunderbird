@@ -32,6 +32,7 @@
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Անվտանգ դիտարկման JS մատյան">
 <!ENTITY aboutUrlClassifier.debugFile                   "Ընթացիկ մատյանի ֆայլ">
 
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">
 <!ENTITY aboutUrlClassifier.providerBackOffTime         "Back-off time">
 <!ENTITY aboutUrlClassifier.cacheRefreshBtn             "Refresh">
 <!ENTITY aboutUrlClassifier.cacheClearBtn               "Clear">

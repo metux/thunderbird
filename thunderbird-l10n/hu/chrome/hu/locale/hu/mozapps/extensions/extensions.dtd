@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "Örökölt kiegészítők">
 <!ENTITY legacyExtensions.description "Ezek a kiegészítők nem felelnek meg a &brandShortName; aktuális elvárásainak, emiatt le lettek tiltva.">
 <!ENTITY legacyExtensions.learnMore "További tudnivalók a kiegészítők módosulásáról">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

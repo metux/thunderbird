@@ -12,13 +12,10 @@
 
 
 <!ENTITY captionMailContent.label "Mail Content">
-
 <!ENTITY acceptRemoteContent.accesskey "m">
 <!ENTITY remoteContentExceptions.accesskey "x">
 <!ENTITY acceptRemoteContentInfo.label "Learn more about the privacy issues of remote content">
-
 <!ENTITY captionWebContent.label "Web Content">
-
 <!ENTITY keepHistory.label "Remember websites and links I've visited">
 <!ENTITY keepHistory.accesskey "R">
 <!ENTITY acceptCookies.label "Accept cookies from sites">
@@ -37,7 +34,6 @@
 <!ENTITY cookieExceptions.accesskey "E">
 <!ENTITY showCookies.label "Show Cookies…">
 <!ENTITY showCookies.accesskey "S">
-
 <!ENTITY dntTrackingNotOkay.label2 "Tell sites that I do not want to be tracked">
 <!ENTITY dntTrackingNotOkay.accesskey "n">
 <!ENTITY doNotTrackInfo.label "Learn more about Do Not Track">

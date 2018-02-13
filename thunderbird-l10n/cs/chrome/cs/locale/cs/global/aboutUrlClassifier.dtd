@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Současné moduly protokolu">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Protokol JS pro službu Safe Browsing">
 <!ENTITY aboutUrlClassifier.debugFile                   "Současný soubor protokolu">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

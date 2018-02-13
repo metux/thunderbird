@@ -29,6 +29,5 @@
 <!ENTITY done.label                     "নিম্নলিখিত আইটেম সফলভাবে ইমপোর্ট করা হয়েছে:">
 
 <!ENTITY importSourceNotFound.label     "No application to import data from found.">
-
 <!ENTITY importFromSeamonkey3.label     "SeaMonkey 2 or later">
 <!ENTITY importFromSeamonkey3.accesskey "S">

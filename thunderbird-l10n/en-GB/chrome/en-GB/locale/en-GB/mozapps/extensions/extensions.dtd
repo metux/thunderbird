@@ -262,3 +262,5 @@ some of the best and most popular add-ons for you to try out.">
 <!ENTITY legacyExtensions.title "Legacy Extensions">
 <!ENTITY legacyExtensions.description "These extensions do not meet current &brandShortName; standards so they have been deactivated.">
 <!ENTITY legacyExtensions.learnMore "Learn about the changes to add-ons">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

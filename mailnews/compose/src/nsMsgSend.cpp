@@ -1583,7 +1583,10 @@ nsMsgComposeAndSend::GetBodyFromEditor()
 
   if (aCharset && *aCharset)
   {
-    rv = nsMsgI18NConvertFromUnicode(aCharset, nsDependentString(bodyText), outCString, true);
+    rv = nsMsgI18NConvertFromUnicode(nsDependentCString(aCharset),
+                                     nsDependentString(bodyText),
+                                     outCString,
+                                     true);
     bool isAsciiOnly = NS_IsAscii(outCString.get()) &&
       !nsMsgI18Nstateful_charset(mCompFields->GetCharacterSet());
     if (mCompFields->GetForceMsgEncoding())
@@ -1625,8 +1628,10 @@ nsMsgComposeAndSend::GetBodyFromEditor()
     if (origHTMLBody)
     {
       nsCString newBody;
-      rv = nsMsgI18NConvertFromUnicode(aCharset,
-        nsDependentString(origHTMLBody), newBody, true);
+      rv = nsMsgI18NConvertFromUnicode(nsDependentCString(aCharset),
+                                       nsDependentString(origHTMLBody),
+                                       newBody,
+                                       true);
       if (NS_SUCCEEDED(rv))
       {
         mOriginalHTMLBody = ToNewCString(newBody);
@@ -2095,7 +2100,7 @@ nsMsgComposeAndSend::AddCompFieldLocalAttachments()
                 //Then try using the url if we still haven't figured out the content type
                 if (m_attachments[newLoc]->m_type.IsEmpty())
                 {
-                  rv = fileUrl->SetSpec(url);
+                  rv = fileUrl->SetSpecInternal(url);
                   if (NS_SUCCEEDED(rv))
                   {
                     rv = fileUrl->GetFileExtension(fileExt);
@@ -2196,7 +2201,7 @@ nsMsgComposeAndSend::AddCompFieldRemoteAttachments(uint32_t   aStartLocation,
           // Check for message attachment, see nsMsgMailNewsUrl::GetIsMessageUri.
           nsCOMPtr<nsIURI> nsiuri = do_CreateInstance(NS_STANDARDURL_CONTRACTID);
           NS_ENSURE_STATE(nsiuri);
-          nsiuri->SetSpec(url);
+          nsiuri->SetSpecInternal(url);
           nsAutoCString scheme;
           nsiuri->GetScheme(scheme);
           bool isAMessageAttachment =
@@ -2530,7 +2535,9 @@ nsMsgComposeAndSend::HackAttachments(nsIArray *attachments,
       if (NS_FAILED(status))
       {
         nsString errorMsg;
-        nsresult rv = ConvertToUnicode(nsMsgI18NFileSystemCharset(), m_attachments[i]->m_realName, attachmentFileName);
+        nsresult rv = nsMsgI18NConvertToUnicode(nsMsgI18NFileSystemCharset(),
+                                                m_attachments[i]->m_realName,
+                                                attachmentFileName);
         if (attachmentFileName.IsEmpty() && m_attachments[i]->mURL) {
           nsCString asciiSpec;
           m_attachments[i]->mURL->GetAsciiSpec(asciiSpec);
@@ -3403,7 +3410,7 @@ nsMsgComposeAndSend::DeliverFileAsMail()
       msgStatus = do_QueryInterface(mStatusFeedback);
 
     nsCOMPtr<nsIURI> runningUrl;
-    rv = smtpService->SendMailMessage(mTempFile, buf, mUserIdentity,
+    rv = smtpService->SendMailMessage(mTempFile, buf, mUserIdentity, mCompFields->GetFrom(),
                                       mSmtpPassword, deliveryListener, msgStatus,
                                       callbacks, mCompFields->GetDSN(),
                                       getter_AddRefs(runningUrl),
@@ -3883,17 +3890,17 @@ nsMsgComposeAndSend::NotifyListenerOnStopCopy(nsresult aStatus)
     {
       case nsMsgDeliverNow:
       case nsMsgSendUnsent:
-        rv = bundle->FormatStringFromName("promptToSaveSentLocally",
+        rv = bundle->FormatStringFromName("promptToSaveSentLocally2",
                                           formatStrings, 3,
                                           msg);
         break;
       case nsMsgSaveAsDraft:
-        rv = bundle->FormatStringFromName("promptToSaveDraftLocally",
+        rv = bundle->FormatStringFromName("promptToSaveDraftLocally2",
                                           formatStrings, 3,
                                           msg);
         break;
       case nsMsgSaveAsTemplate:
-        rv = bundle->FormatStringFromName("promptToSaveTemplateLocally",
+        rv = bundle->FormatStringFromName("promptToSaveTemplateLocally2",
                                           formatStrings, 3,
                                           msg);
         break;
@@ -3904,11 +3911,11 @@ nsMsgComposeAndSend::NotifyListenerOnStopCopy(nsresult aStatus)
     int32_t buttonPressed = 0;
     bool showCheckBox = false;
     uint32_t buttonFlags = (nsIPrompt::BUTTON_POS_0 * nsIPrompt::BUTTON_TITLE_IS_STRING) +
-                           (nsIPrompt::BUTTON_POS_1 * nsIPrompt::BUTTON_TITLE_CANCEL) +
+                           (nsIPrompt::BUTTON_POS_1 * nsIPrompt::BUTTON_TITLE_DONT_SAVE) +
                            (nsIPrompt::BUTTON_POS_2 * nsIPrompt::BUTTON_TITLE_SAVE);
     nsString dialogTitle, buttonLabelRetry;
     bundle->GetStringFromName("SaveDialogTitle", dialogTitle);
-    bundle->GetStringFromName("buttonLabelRetry", buttonLabelRetry);
+    bundle->GetStringFromName("buttonLabelRetry2", buttonLabelRetry);
     prompt->ConfirmEx(dialogTitle.get(), msg.get(), buttonFlags, buttonLabelRetry.get(),
                       nullptr, nullptr, nullptr, &showCheckBox, &buttonPressed);
     if (buttonPressed == 0)
@@ -5021,7 +5028,9 @@ nsMsgComposeAndSend::GetSendBody(nsAString& aBody)
     aBody.Truncate();
     return NS_OK;
   }
-  return ConvertToUnicode(charSet.get(), m_attachment1_body, aBody);
+  return nsMsgI18NConvertToUnicode(charSet,
+                                   nsDependentCString(m_attachment1_body),
+                                   aBody);
 }
 
 NS_IMETHODIMP

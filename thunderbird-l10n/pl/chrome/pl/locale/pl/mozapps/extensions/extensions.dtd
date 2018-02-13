@@ -218,3 +218,5 @@
 <!ENTITY legacyExtensions.title "Przestarzałe rozszerzenia">
 <!ENTITY legacyExtensions.description "Te rozszerzenia nie spełniają obecnych standardów programu &brandShortName; i z tego powodu zostały wyłączone.">
 <!ENTITY legacyExtensions.learnMore "Więcej informacji o zmianach w dodatkach">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

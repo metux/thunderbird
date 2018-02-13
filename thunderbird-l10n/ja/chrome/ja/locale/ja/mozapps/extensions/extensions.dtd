@@ -262,3 +262,5 @@
 <!ENTITY legacyExtensions.title 		"旧式の拡張機能">
 <!ENTITY legacyExtensions.description		"これらの拡張機能は、現在の &brandShortName; 標準に適さないため無効化されています。">
 <!ENTITY legacyExtensions.learnMore		"アドオンシステムの変更についての詳細">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

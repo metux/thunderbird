@@ -22,3 +22,7 @@
 <!ENTITY openHelpMac2.modifiers "accel">
 <!ENTITY aboutMenuCmd.label "Пра &brandShortName;">
 <!ENTITY aboutMenuCmd.accesskey "П">
+
+<!ENTITY openHelpMac2.label "&brandFullName; Help">
+<!ENTITY aboutMenuCmd2.label "About &brandFullName;">
+<!ENTITY aboutMenuCmd2.accesskey "A">

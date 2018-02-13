@@ -263,3 +263,5 @@
 <!ENTITY legacyExtensions.title "Застарілі розширення">
 <!ENTITY legacyExtensions.description "Ці розширення не відповідають поточним стандартам &brandShortName;, тому вони були вимкнені.">
 <!ENTITY legacyExtensions.learnMore "Дізнайтеся про зміни, що стосуються додатків">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

@@ -17,8 +17,8 @@ var OfflineAppsObserver = {
 
   init: function offlineAppsInit() {
     this.update();
-    Services.obs.addObserver(this, "perm-changed", false);
-    window.addEventListener("unload", this, false);
+    Services.obs.addObserver(this, "perm-changed");
+    window.addEventListener("unload", this);
   },
 
   update: function offlineAppsUpdate() {
@@ -33,7 +33,7 @@ var OfflineAppsObserver = {
 
   handleEvent: function offlineAppsEvent(aEvent) {
     if (aEvent.type == "unload") {
-      window.removeEventListener("unload", this, false);
+      window.removeEventListener("unload", this);
       Services.obs.removeObserver(this, "perm-changed");
     }
   }

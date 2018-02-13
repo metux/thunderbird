@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Logmhodúil reatha">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Logchomhad JS: Slánbhrabhsáil">
 <!ENTITY aboutUrlClassifier.debugFile                   "An logchomhad reatha">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

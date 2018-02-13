@@ -263,3 +263,5 @@
 <!ENTITY legacyExtensions.title "Perinteiset laajennukset">
 <!ENTITY legacyExtensions.description "Nämä laajennukset eivät täytä &brandShortName;in nykyisiä vaatimuksia, joten ne on poistettu käytöstä.">
 <!ENTITY legacyExtensions.learnMore "Lue lisää muutoksista lisäosiin">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

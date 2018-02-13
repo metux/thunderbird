@@ -14,6 +14,10 @@
 
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 
+.wizard-box {
+  padding: 20px 44px 10px;
+}
+
 #titlebar:not(:-moz-lwtheme) {
   display: none;
 }
@@ -206,4 +210,62 @@ treecols:-moz-lwtheme {
 
 .messageImage[value="blocked-badware-page"] {
   list-style-image: url("chrome://global/skin/icons/blacklist_favicon.png");
+}
+
+/* ::::: dialog header ::::: */
+
+dialogheader {
+  margin: 0 5px 5px;
+  padding: 5px 8px;
+}
+
+.dialogheader-title {
+  margin: 0 !important;
+  font-size: larger;
+  font-weight: bold;
+  display: none;
+}
+
+.dialogheader-description {
+  font-weight: bold !important;
+}
+
+/* ::::: statusbar ::::: */
+
+statusbar {
+  min-width: 1px; /* DON'T DELETE!
+  Prevents hiding of scrollbars in browser when window is made smaller.*/
+  min-height: 15px !important;
+  margin: 0px !important;
+  /* need to use padding-inline-end when/if bug 631729 gets fixed: */
+  padding: 0px 16px 1px 1px;
+  -moz-appearance: statusbar;
+  text-shadow: rgba(255, 255, 255, 0.4) 0 1px;
+}
+
+statusbar:-moz-lwtheme {
+  -moz-appearance: none;
+  background: none;
+  border-style: none;
+  text-shadow: inherit;
+}
+
+statusbarpanel {
+  -moz-box-align: center;
+  -moz-box-pack: center;
+  padding: 0 4px;
+}
+
+.statusbarpanel-iconic {
+  padding: 0px;
+}
+
+.statusbarpanel-backgroundbox {
+  -moz-box-align: stretch;
+  padding: 0px;
+}
+
+.statusbarpanel-backgroundbox > .statusbarpanel-contentbox {
+  padding: 0px 1px;
+  -moz-box-align: center;
 }

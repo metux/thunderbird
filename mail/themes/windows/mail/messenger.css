@@ -21,6 +21,8 @@
   --toolbar-non-lwt-bgimage: linear-gradient(rgba(255,255,255,.15), rgba(255,255,255,.15));
   --toolbar-bgcolor: var(--toolbar-non-lwt-bgcolor);
   --toolbar-bgimage: var(--toolbar-non-lwt-bgimage);
+  --toolbox-border-bottom-color: ThreeDShadow;
+
   --toolbarbutton-border-radius: 2px;
   --toolbarbutton-icon-fill-opacity: .85;
   --toolbarbutton-hover-background: rgba(0, 0, 0, .1);
@@ -62,10 +64,6 @@
 
 toolbar[brighttext] {
   --toolbarbutton-icon-fill-attention: #45a1ff;
-}
-
-.toolbar-primary {
-  -moz-appearance: none;
 }
 
 .menu-iconic > .menu-iconic-left,
@@ -194,7 +192,6 @@ treechildren::-moz-tree-cell-text {
 /* Give menupopup[type="folder"] a menu look */
 menupopup[type="folder"] {
   -moz-appearance: menupopup;
-  background-color: menu;
 }
 
 menupopup[type="folder"] menu[_moz-menuactive="true"],
@@ -355,7 +352,7 @@ toolbox[labelalign="end"] > toolbar[mode="full"] .toolbarbutton-1
 
 .toolbarbutton-1,
 .toolbarbutton-1[type="menu-button"] {
-  margin: 1px;
+  margin: 4px 1px;
 }
 
 toolbar[mode="icons"] .toolbarbutton-menubutton-button,
@@ -456,7 +453,60 @@ menulist > menupopup:not([type="folder"]) > menuseparator {
   }
 }
 
+/* Status bar */
+
+statusbar {
+  -moz-appearance: statusbar;
+  border-top: 1px solid ThreeDLightShadow;
+  border-left: 1px solid ThreeDShadow;
+  border-right: 1px solid ThreeDHighlight;
+  border-bottom: 1px solid ThreeDHighlight;
+  background-color: -moz-Dialog;
+  min-height: 22px;
+}
+
+statusbarpanel {
+  -moz-appearance: statusbarpanel;
+  -moz-box-align: center;
+  -moz-box-pack: center;
+  border-left: 1px solid ThreeDHighlight;
+  border-top: 1px solid ThreeDHighlight;
+  border-right: 1px solid ThreeDShadow;
+  border-bottom: 1px solid ThreeDShadow;
+  padding: 0 4px;
+}
+
+statusbarpanel:not(.statusbar-resizerpanel):-moz-lwtheme {
+  -moz-appearance: none;
+  border-top-style: none;
+  border-bottom-style: none;
+  border-inline-start-style: none;
+}
+
+.statusbar-resizerpanel {
+  -moz-box-align: end;
+  -moz-box-pack: end;
+  -moz-appearance: resizerpanel;
+  padding: 0;
+  border: none;
+}
+
+statusbar:-moz-lwtheme {
+  -moz-appearance: none;
+  background: none;
+  border-style: none;
+}
+
+statusbarpanel label {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 /* Status panel */
+
+.statusbarpanel-iconic {
+  padding: 0 1px;
+}
 
 .statuspanel-label {
   margin: 0;

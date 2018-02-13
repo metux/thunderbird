@@ -6,3 +6,6 @@
 <!ENTITY virtualFolderDesc.label       "Επιλογή φακέλων για αναζήτηση:">
 
 
+
+<!ENTITY folderName.label "Folder name">
+<!ENTITY folderSearch.label "Search">

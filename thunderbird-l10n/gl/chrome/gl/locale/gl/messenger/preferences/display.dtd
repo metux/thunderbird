@@ -50,7 +50,6 @@
 <!ENTITY fontOptions.label       "Tipos de letra…">
 
 <!ENTITY itemAdvanced.label               "Advanced">
-
 <!ENTITY quotedTextColor.label            "Color:">
 <!ENTITY quotedTextColor.accesskey        "o">
 <!ENTITY newTagButton.label        "New…">
@@ -60,12 +59,10 @@
 <!ENTITY fontsAndColors1.label   "Fonts &amp; Colors">
 <!ENTITY colorButton.label       "Colors…">
 <!ENTITY colorButton.accesskey   "C">
-
 <!ENTITY reading.caption                  "Reading">
 <!ENTITY display.caption                  "Display">
 <!ENTITY showCondensedAddresses.label     "Show only display name for people in my address book">
 <!ENTITY showCondensedAddresses.accesskey "S">
-
 <!ENTITY autoMarkAsRead.label             "Automatically mark messages as read">
 <!ENTITY autoMarkAsRead.accesskey         "A">
 <!ENTITY markAsReadNoDelay.label          "Immediately on display">

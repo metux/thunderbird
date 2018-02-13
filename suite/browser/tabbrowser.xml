@@ -2305,7 +2305,7 @@
             // autoscroll the tab strip if we drag over the scroll buttons,
             // even if we aren't dragging a tab
             var pixelsToScroll = 0;
-            var tabStrip = this.mTabContainer.mTabstrip;
+            var tabStrip = this.mTabContainer.arrowScrollbox;
             var ltr = window.getComputedStyle(this, null).direction == "ltr";
             if (this.mTabContainer.getAttribute("overflow") == "true") {
               var targetAnonid = aEvent.originalTarget.getAttribute("anonid");
@@ -2505,7 +2505,7 @@
             var tab = this.tabContainer.insertBefore(this.tabs[aSrcIndex], this.tabs.item(aDestIndex));
 
             this.mCurrentTab._selected = true;
-            this.tabContainer.mTabstrip.ensureElementIsVisible(this.mCurrentTab, false);
+            this.tabContainer.arrowScrollbox.ensureElementIsVisible(this.mCurrentTab, false);
 
             tab.dispatchEvent(new UIEvent("TabMove",
               { bubbles: true, cancelable: false, view: window,
@@ -3072,7 +3072,7 @@
 
       <constructor>
         <![CDATA[
-          document.addEventListener("keypress", this._keyEventHandler, false);
+          document.addEventListener("keypress", this._keyEventHandler);
           this.arrowKeysShouldWrap = /Mac/.test(navigator.platform);
           // Bail out early if we are in tabmail. See Bug 521803.
           if (!this.mPanelContainer)
@@ -3127,8 +3127,8 @@
 
           var os = Components.classes["@mozilla.org/observer-service;1"]
                              .getService(Components.interfaces.nsIObserverService);
-          os.addObserver(this, "browser:purge-session-history", false);
-          this.mPrefs.addObserver("browser.tabs.max_tabs_undo", this, false);
+          os.addObserver(this, "browser:purge-session-history");
+          this.mPrefs.addObserver("browser.tabs.max_tabs_undo", this);
 
           var onclick = this.getAttribute("oncontentclick");
           if (onclick)
@@ -3138,7 +3138,7 @@
 
       <destructor>
         <![CDATA[
-          document.removeEventListener("keypress", this._keyEventHandler, false);
+          document.removeEventListener("keypress", this._keyEventHandler);
           // Bail out early if we are in tabmail. See Bug 521803.
           if (!this.mPanelContainer)
             return;
@@ -3329,16 +3329,16 @@
         <![CDATA[
           var tab = this.firstChild;
           // set the tabstrip's minWidth too, otherwise it immediately overflows
-          this.mTabstrip.style.minWidth =
+          this.arrowScrollbox.style.minWidth =
           tab.style.minWidth = this.mPrefs.getIntPref("browser.tabs.tabMinWidth") + "px";
           tab.style.maxWidth = this.mPrefs.getIntPref("browser.tabs.tabMaxWidth") + "px";
-          window.addEventListener("resize", this, false);
+          window.addEventListener("resize", this);
         ]]>
       </constructor>
 
       <destructor>
         <![CDATA[
-          window.removeEventListener("resize", this, false);
+          window.removeEventListener("resize", this);
         ]]>
       </destructor>
 
@@ -3347,16 +3347,16 @@
                   .getService(Components.interfaces.nsIPrefBranch);
       </field>
 
-      <field name="mTabstripWidth">0</field>
+      <field name="arrowScrollboxWidth">0</field>
 
-      <field name="mTabstrip">
+      <field name="arrowScrollbox">
         document.getAnonymousElementByAttribute(this, "anonid", "arrowscrollbox");
       </field>
 
       <method name="_handleTabSelect">
         <body>
           <![CDATA[
-            this.mTabstrip.ensureElementIsVisible(this.selectedItem);
+            this.arrowScrollbox.ensureElementIsVisible(this.selectedItem);
           ]]>
         </body>
       </method>
@@ -3370,11 +3370,11 @@
               case "resize":
                 if (aEvent.target != window)
                   break;
-                var width = this.mTabstrip.boxObject.width;
-                if (width != this.mTabstripWidth)
+                var width = this.arrowScrollbox.boxObject.width;
+                if (width != this.arrowScrollboxWidth)
                 {
                   this._handleTabSelect();
-                  this.mTabstripWidth = width;
+                  this.arrowScrollboxWidth = width;
                 }
                 break;
             }
@@ -3387,32 +3387,32 @@
       </field>
 
       <field name="_animateElement">
-        this.mTabstrip._scrollButtonDown;
+        this.arrowScrollbox._scrollButtonDown;
       </field>
 
       <method name="_notifyBackgroundTab">
         <parameter name="aTab"/>
         <body>
           <![CDATA[
-            var scrollRect = this.mTabstrip.scrollClientRect;
+            var scrollRect = this.arrowScrollbox.scrollClientRect;
             var tab = aTab.getBoundingClientRect();
 
             // Is the new tab already completely visible?
             if (scrollRect.left <= tab.left && tab.right <= scrollRect.right)
               return;
 
-            if (this.mTabstrip.smoothScroll) {
+            if (this.arrowScrollbox.smoothScroll) {
               let selected = this.selectedItem.getBoundingClientRect();
 
               /* Can we make both the new tab and the selected tab completely
                  visible? */
               if (!selected ||
                   Math.max(tab.right - selected.left, selected.right - tab.left) <= scrollRect.width) {
-                this.mTabstrip.ensureElementIsVisible(aTab);
+                this.arrowScrollbox.ensureElementIsVisible(aTab);
                 return;
               }
 
-              this.mTabstrip._smoothScrollByPixels(this.mTabstrip._isRTLScrollbox ?
+              this.arrowScrollbox._smoothScrollByPixels(this.arrowScrollbox._isRTLScrollbox ?
                                                    selected.right - scrollRect.right :
                                                    selected.left - scrollRect.left);
             }
@@ -3446,7 +3446,7 @@
              * without any scrolling and when the tabbar has already
              * overflowed.
              */
-            this.mTabstrip._updateScrollButtonsDisabledState();
+            this.arrowScrollbox._updateScrollButtonsDisabledState();
           ]]>
         </body>
       </method>
@@ -3521,7 +3521,7 @@
         <body>
           <![CDATA[
             let tabContainer = document.getBindingParent(this);
-            let tabstripBO = tabContainer.mTabstrip.scrollBoxObject;
+            let tabstripBO = tabContainer.arrowScrollbox.scrollBoxObject;
 
             for (let i = 0; i < this.childNodes.length; i++)
             {
@@ -3565,7 +3565,7 @@
             document.addBroadcastListenerFor(aTabNode, menuItem, "image");
             document.addBroadcastListenerFor(aTabNode, menuItem, "busy");
             document.addBroadcastListenerFor(aTabNode, menuItem, "selected");
-            aTabNode.addEventListener("TabClose", this, false);
+            aTabNode.addEventListener("TabClose", this);
             menuItem.tab = aTabNode;
             this.appendChild(menuItem);
             return menuItem;
@@ -3583,8 +3583,8 @@
 
           // Listen for changes in the tab bar.
           let tabbrowser = document.getBindingParent(tabcontainer);
-          tabbrowser.addEventListener("TabOpen", this, false);
-          tabcontainer.mTabstrip.addEventListener("scroll", this, false);
+          tabbrowser.addEventListener("TabOpen", this);
+          tabcontainer.arrowScrollbox.addEventListener("scroll", this);
 
           for (let i = 0; i < tabs.length; i++)
             this._createTabMenuItem(tabs[i]);
@@ -3603,14 +3603,14 @@
             document.removeBroadcastListenerFor(menuItem.tab, menuItem, "image");
             document.removeBroadcastListenerFor(menuItem.tab, menuItem, "busy");
             document.removeBroadcastListenerFor(menuItem.tab, menuItem, "selected");
-            menuItem.tab.removeEventListener("TabClose", this, false);
+            menuItem.tab.removeEventListener("TabClose", this);
             menuItem.tab.mCorrespondingMenuitem = null;
             menuItem.tab = null;
             menuItem.remove();
           }
           let tabcontainer = document.getBindingParent(this);
-          tabcontainer.mTabstrip.removeEventListener("scroll", this, false);
-          document.getBindingParent(tabcontainer).removeEventListener("TabOpen", this, false);
+          tabcontainer.arrowScrollbox.removeEventListener("scroll", this);
+          document.getBindingParent(tabcontainer).removeEventListener("TabOpen", this);
         ]]>
       </handler>
 

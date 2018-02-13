@@ -31,4 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "רישום JS לגלישה בטוחה">
 <!ENTITY aboutUrlClassifier.debugFile                   "קובץ הרישום הנוכחי">
 
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">
 <!ENTITY aboutUrlClassifier.providerBackOffTime         "Back-off time">

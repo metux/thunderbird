@@ -26,3 +26,7 @@
 
 <!ENTITY aboutMenuCmd.label "О &brandShortName;">
 <!ENTITY aboutMenuCmd.accesskey "О">
+
+<!ENTITY openHelpMac2.label "&brandFullName; Help">
+<!ENTITY aboutMenuCmd2.label "About &brandFullName;">
+<!ENTITY aboutMenuCmd2.accesskey "A">

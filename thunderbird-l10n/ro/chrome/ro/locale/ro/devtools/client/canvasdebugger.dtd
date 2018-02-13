@@ -31,16 +31,10 @@
   -  as a placeholder of the search box that filters the calls list. -->
 
 <!ENTITY canvasDebuggerUI.reloadNotice2   "the page to be able to debug &lt;canvas&gt; contexts.">
-
 <!ENTITY canvasDebuggerUI.emptyNotice1    "Click on the">
 <!ENTITY canvasDebuggerUI.emptyNotice2    "button to record an animation frame’s call stack.">
-
 <!ENTITY canvasDebuggerUI.waitingNotice   "Recording an animation cycle…">
-
 <!ENTITY canvasDebuggerUI.recordSnapshot.tooltip "Record the next frame in the animation loop.">
-
 <!ENTITY canvasDebuggerUI.importSnapshot "Import…">
-
 <!ENTITY canvasDebuggerUI.clearSnapshots "Clear">
-
 <!ENTITY canvasDebuggerUI.searchboxPlaceholder "Filter calls">

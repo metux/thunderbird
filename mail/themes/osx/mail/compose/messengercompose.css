@@ -29,6 +29,20 @@
   padding: 1px;
 }
 
+#attachmentBucket attachmentitem {
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid #fff;
+}
+
+#attachmentBucket attachmentitem[dropOn="top"] {
+  border-top-color: #000;
+  outline-color: transparent;
+}
+
+#attachmentBucket attachmentitem[dropOn="bottom"] {
+  border-bottom-color: #000;
+}
+
 #compose-toolbox toolbarbutton[checked="true"] {
   background-color: transparent;
 }
@@ -270,18 +284,12 @@ toolbar[nowindowdrag="true"] {
   margin-inline-start: 0;
   margin-inline-end: 1px;
   background-color: inherit;
-  -moz-appearance: none !important;
+  -moz-appearance: none;
   border: 1px solid transparent;
   border-bottom-color: #C6C6C6;
-  border-bottom-left-radius: 0px;
-  border-top-right-radius: 0px;
-  -moz-border-top-colors: none;
-  -moz-border-left-colors: none;
-  -moz-border-right-colors: none;
-  -moz-border-bottom-colors: none;
   border-radius: 2px;
   padding: 1px 2px;
-  padding-inline-start: 5px !important;
+  padding-inline-start: 5px;
   transition: border .2s, background-color .2s;
 }
 
@@ -1254,6 +1262,6 @@ toolbarbutton.toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker > .dropmark
   list-style-image: url("chrome://messenger/skin/icons/sort.svg");
 }
 
-#btn_sortAttachmentsToggle[data-sortdirection="descending"] > .toolbarbutton-icon {
+#btn_sortAttachmentsToggle[sortdirection="descending"] > .toolbarbutton-icon {
   transform: scaleY(-1);
 }

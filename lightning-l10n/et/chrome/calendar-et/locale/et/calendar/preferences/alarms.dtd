@@ -34,3 +34,5 @@
 
 <!ENTITY pref.defaultsnoozelength.label "Vaikimisi edasilükkamise kestus:" >
 <!ENTITY pref.defaultsnoozelength.accesskey "d">
+
+<!ENTITY pref.missedalarms2 "Show missed reminders for writable calendars">

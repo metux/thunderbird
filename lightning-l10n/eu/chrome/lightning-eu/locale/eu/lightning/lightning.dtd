@@ -95,7 +95,6 @@
 <!ENTITY lightning.calendarproperties.forceEmailScheduling.label            "Prefer client-side email scheduling">
 <!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext1     "For now, you can only enable this after setting up this calendar in its property dialog if the calendar server takes care of scheduling.">
 <!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext2     "This option is only available if the calendar server handles scheduling. Enabling will allow to fall back to the standard email based scheduling instead of leaving it to the server.">
-
 <!ENTITY lightning.imipbar.btnDecline.label                                 "Decline">
 <!ENTITY lightning.imipbar.btnDeclineCounter.label                          "Decline">
 <!ENTITY lightning.imipbar.btnDeclineCounter.tooltiptext                    "Decline the counter proposal">

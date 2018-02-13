@@ -56,6 +56,10 @@ sentence. -->
 <!ENTITY messageStyleShowHeader.accesskey  "H">
 <!ENTITY messageStyleNoPreview.title       "Ulac taskant">
 
+<!ENTITY  getAttention.label                  "Flash the taskbar item">
+<!ENTITY  getAttention.accesskey              "F">
+<!ENTITY  getAttentionMac.label               "Animate dock icon">
+<!ENTITY  getAttentionMac.accesskey           "o">
 <!ENTITY messageStyleBubblesTheme.label    "Bubbles">
 <!ENTITY messageStyleVariant.label         "Variant:">
 <!ENTITY messageStyleNoPreview.description "This theme is not valid or is currently unavailable (disabled addon, safe-mode, …).">

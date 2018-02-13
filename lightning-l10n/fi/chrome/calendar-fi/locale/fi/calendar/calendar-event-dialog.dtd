@@ -409,14 +409,11 @@
 <!ENTITY event.attendees.disallowcounter.label       "Disallow counter">
 <!ENTITY event.attendees.disallowcounter.accesskey   "a">
 <!ENTITY  event.menu.item.save.tab.accesskey              "a">
-
 <!ENTITY  event.menu.item.saveandclose.tab.accesskey      "z">
-
 <!ENTITY counter.button.proposal.label                    "Apply proposal">
 <!ENTITY counter.button.proposal.accesskey                "p">
 <!ENTITY counter.button.proposal.tooltip2                 "Event fields will be filled in using the values from the counterproposal, only saving with or without additional changes will notify all attendees accordingly">
 <!ENTITY counter.button.original.label                    "Apply original data">
 <!ENTITY counter.button.original.accesskey                "r">
 <!ENTITY counter.button.original.tooltip2                 "The fields will be set to the values from the original event, before the counterproposal was made">
-
 <!ENTITY event.recurrence.pattern.yearly.day.label           "day" >

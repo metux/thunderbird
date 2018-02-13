@@ -61,7 +61,6 @@
 #include "nsIPK11TokenDB.h"
 #include "nsIPK11Token.h"
 #include "nsMsgLocalFolderHdrs.h"
-#include <algorithm>
 #define oneHour 3600000000U
 #include "nsMsgUtils.h"
 #include "nsIMsgFilterService.h"
@@ -109,7 +108,6 @@ NS_NAMED_LITERAL_CSTRING(kDefaultServer, "DefaultServer");
 NS_NAMED_LITERAL_CSTRING(kFlagged, "Flagged");
 NS_NAMED_LITERAL_CSTRING(kFolderFlag, "FolderFlag");
 NS_NAMED_LITERAL_CSTRING(kFolderSize, "FolderSize");
-NS_NAMED_LITERAL_CSTRING(kInVFEditSearchScope, "inVFEditSearchScope");
 NS_NAMED_LITERAL_CSTRING(kIsDeferred, "isDeferred");
 NS_NAMED_LITERAL_CSTRING(kIsSecure, "isSecure");
 NS_NAMED_LITERAL_CSTRING(kJunkStatusChanged, "JunkStatusChanged");
@@ -162,8 +160,7 @@ nsMsgDBFolder::nsMsgDBFolder(void)
   mNumNewBiffMessages(0),
   mHaveParsedURI(false),
   mIsServerIsValid(false),
-  mIsServer(false),
-  mInVFEditSearchScope (false)
+  mIsServer(false)
 {
   if (mInstanceCount++ <=0) {
     initializeStrings();
@@ -3136,7 +3133,7 @@ nsMsgDBFolder::parseURI(bool needServer)
   url = do_CreateInstance(NS_STANDARDURL_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = url->SetSpec(mURI);
+  rv = url->SetSpecInternal(mURI);
   NS_ENSURE_SUCCESS(rv, rv);
   // empty path tells us it's a server.
   if (!mIsServerIsValid)
@@ -5440,20 +5437,6 @@ NS_IMETHODIMP nsMsgDBFolder::CompareSortKeys(nsIMsgFolder *aFolder, int32_t *sor
   return rv;
 }
 
-NS_IMETHODIMP nsMsgDBFolder::GetInVFEditSearchScope (bool *aInVFEditSearchScope)
-{
-  *aInVFEditSearchScope = mInVFEditSearchScope;
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsMsgDBFolder::SetInVFEditSearchScope (bool aInVFEditSearchScope, bool aSetOnSubFolders)
-{
-  bool oldInVFEditSearchScope = mInVFEditSearchScope;
-  mInVFEditSearchScope = aInVFEditSearchScope;
-  NotifyBoolPropertyChanged(kInVFEditSearchScope, oldInVFEditSearchScope, mInVFEditSearchScope);
-  return NS_OK;
-}
-
 NS_IMETHODIMP nsMsgDBFolder::FetchMsgPreviewText(nsMsgKey *aKeysToFetch, uint32_t aNumKeys,
                                                  bool aLocalOnly, nsIUrlListener *aUrlListener,
                                                  bool *aAsyncResults)
@@ -5645,7 +5628,7 @@ NS_IMETHODIMP nsMsgDBFolder::GetMsgTextFromStream(nsIInputStream *stream, const 
   // In order to turn our snippet into unicode, we need to convert it from the charset we
   // detected earlier.
   nsString unicodeMsgBodyStr;
-  ConvertToUnicode(charset.get(), msgText, unicodeMsgBodyStr);
+  nsMsgI18NConvertToUnicode(charset, msgText, unicodeMsgBodyStr);
 
   // now we've got a msg body. If it's html, convert it to plain text.
   if (msgBodyIsHtml && aStripHTMLTags)

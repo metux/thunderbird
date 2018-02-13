@@ -873,8 +873,7 @@
                                         if (callbackArgs.length == 0)
                                           callbackArgs = [ aEvent ];
                                         callback.apply(this, callbackArgs);
-                                      }.bind(this),
-                                      false);
+                                      }.bind(this));
 
             linkNode.addEventListener("keydown",
                                       function(aEvent) {
@@ -887,8 +886,7 @@
                                         if (callbackArgs.length == 0)
                                           callbackArgs = [ aEvent ];
                                         callback.apply(this, callbackArgs);
-                                      }.bind(this),
-                                      false);
+                                      }.bind(this));
           ]]>
         </body>
       </method>
@@ -1999,23 +1997,23 @@
 
           var os = Components.classes["@mozilla.org/observer-service;1"]
                              .getService(Components.interfaces.nsIObserverService);
-          os.addObserver(this, "indexedDB-permissions-prompt", false);
-          os.addObserver(this, "indexedDB-quota-prompt", false);
-          os.addObserver(this, "indexedDB-quota-cancel", false);
-          os.addObserver(this, "addon-install-blocked", false);
-          os.addObserver(this, "addon-install-complete", false);
-          os.addObserver(this, "addon-install-disabled", false);
-          os.addObserver(this, "addon-install-failed", false);
-          os.addObserver(this, "addon-install-started", false);
-          os.addObserver(this, "offline-cache-update-completed", false);
-          os.addObserver(this, "perm-changed", false);
-          os.addObserver(this, "formsubmit", false);
+          os.addObserver(this, "indexedDB-permissions-prompt");
+          os.addObserver(this, "indexedDB-quota-prompt");
+          os.addObserver(this, "indexedDB-quota-cancel");
+          os.addObserver(this, "addon-install-blocked");
+          os.addObserver(this, "addon-install-complete");
+          os.addObserver(this, "addon-install-disabled");
+          os.addObserver(this, "addon-install-failed");
+          os.addObserver(this, "addon-install-started");
+          os.addObserver(this, "offline-cache-update-completed");
+          os.addObserver(this, "perm-changed");
+          os.addObserver(this, "formsubmit");
 
-          this._prefs.addObserver("plugins.hide_infobar_for_outdated_plugin", this, false);
-          this._prefs.addObserver("plugins.hide_infobar_for_carbon_failure_plugin", this, false);
-          this._prefs.addObserver("plugins.hide_infobar_for_missing_plugin", this, false);
-          this._prefs.addObserver("privacy.popups.showBrowserMessage", this, false);
-          this._prefs.addObserver("dom.disable_open_during_load", this, false);
+          this._prefs.addObserver("plugins.hide_infobar_for_outdated_plugin", this);
+          this._prefs.addObserver("plugins.hide_infobar_for_carbon_failure_plugin", this);
+          this._prefs.addObserver("plugins.hide_infobar_for_missing_plugin", this);
+          this._prefs.addObserver("privacy.popups.showBrowserMessage", this);
+          this._prefs.addObserver("dom.disable_open_during_load", this);
 
           this.addProgressListener();
 
@@ -2342,7 +2340,7 @@
               // lifetime (which should be no greater than the page).
               // Clever solution? Use a closure with an event listener on the statusDiv.
               // When it goes away, so do the listener references and the closure.
-              statusDiv.addEventListener("mozCleverClosureHack", observer, false);
+              statusDiv.addEventListener("mozCleverClosureHack", observer);
             }
           }
 
@@ -2406,7 +2404,7 @@
                                        .createInstance(Components.interfaces.nsISupportsPRBool);
             var os = Components.classes["@mozilla.org/observer-service;1"]
                                .getService(Components.interfaces.nsIObserverService);
-            os.notifyObservers(cancelQuit, "quit-application-requested", null);
+            os.notifyObservers(cancelQuit, "quit-application-requested");
 
             // Something aborted the quit process.
             if (cancelQuit.data)

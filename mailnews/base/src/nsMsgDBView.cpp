@@ -42,7 +42,6 @@
 #include "nsServiceManagerUtils.h"
 #include "nsComponentManagerUtils.h"
 #include "nsMemory.h"
-#include "nsAlgorithm.h"
 #include "nsIAbManager.h"
 #include "nsIAbDirectory.h"
 #include "nsIAbCard.h"
@@ -50,7 +49,6 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/mailnews/MimeHeaderParser.h"
 #include "nsTArray.h"
-#include <algorithm>
 
 using namespace mozilla::mailnews;
 nsrefcnt nsMsgDBView::gInstanceCount  = 0;
@@ -424,10 +422,21 @@ nsMsgDBView::FetchAuthor(nsIMsgDBHdr * aHdr,
   {
     // We can't use the display name in the card; use the name contained in
     // the header or email address.
-    if (!name.IsEmpty())
-      aSenderString = name;
-    else
+    if (name.IsEmpty()) {
       CopyUTF8toUTF16(emailAddress, aSenderString);
+    } else {
+      int32_t atPos;
+      if ((atPos = name.FindChar('@')) == kNotFound ||
+          name.FindChar('.', atPos) == kNotFound) {
+        aSenderString = name;
+      } else {
+        // Found @ followed by a dot, so this looks like a spoofing case.
+        aSenderString = name;
+        aSenderString.AppendLiteral(" <");
+        AppendUTF8toUTF16(emailAddress, aSenderString);
+        aSenderString.Append('>');
+      }
+    }
   }
 
   UpdateCachedName(aHdr, "sender_name", aSenderString);
@@ -1869,14 +1878,6 @@ nsMsgDBView::GetImageSrc(int32_t aRow,
     return NS_OK;
   }
 
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsMsgDBView::GetProgressMode(int32_t aRow,
-                             nsITreeColumn* aCol,
-                             int32_t* _retval)
-{
   return NS_OK;
 }
 
@@ -3459,12 +3460,12 @@ nsMsgDBView::ApplyCommandToIndices(nsMsgViewCommandTypeValue command,
                                      imapUids.Length(),
                                      nullptr);
 
-          return imapFolder->StoreCustomKeywords(msgWindow,
-                                                 NS_LITERAL_CSTRING("NonJunk"),
-                                                 NS_LITERAL_CSTRING("Junk"),
-                                                 imapUids.Elements(),
-                                                 imapUids.Length(),
-                                                 nullptr);
+        return imapFolder->StoreCustomKeywords(msgWindow,
+                                               NS_LITERAL_CSTRING("NonJunk"),
+                                               NS_LITERAL_CSTRING("Junk"),
+                                               imapUids.Elements(),
+                                               imapUids.Length(),
+                                               nullptr);
       }
       default:
         break;

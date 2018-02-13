@@ -50,4 +50,3 @@ LOCALIZATION NOTE : Do not translate any of the occurrences of the word
 <!ENTITY selectDescriptionB.label "Please select an existing account or create a new account:">
 <!ENTITY acctName.accesskey       "N">
 <!ENTITY noModulesFound.label     "No application or file to import data from was found.">
-

@@ -261,3 +261,5 @@
 <!ENTITY legacyExtensions.title "הרחבות מדור קודם">
 <!ENTITY legacyExtensions.description "הרחבות אלו לא עומדות בתקנים הנוכחיים של &brandShortName; ולכן כובו.">
 <!ENTITY legacyExtensions.learnMore "מידע נוסף על השינויים בתוספות">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

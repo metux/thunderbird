@@ -33,7 +33,6 @@
 #include "nsContentUtils.h"
 
 #include "prprf.h"
-#include <algorithm>
 
 /* include event sink interfaces for news */
 
@@ -659,7 +658,7 @@ nsresult nsNNTPProtocol::ReadFromMemCache(nsICacheEntry *entry)
   if (NS_SUCCEEDED(rv))
   {
     nsCOMPtr<nsIInputStreamPump> pump;
-    rv = NS_NewInputStreamPump(getter_AddRefs(pump), cacheStream);
+    rv = NS_NewInputStreamPump(getter_AddRefs(pump), cacheStream.forget());
     if (NS_FAILED(rv)) return rv;
 
     nsCString group;
@@ -743,7 +742,7 @@ bool nsNNTPProtocol::ReadFromLocalCache()
         RefPtr<SlicedInputStream> slicedStream =
           new SlicedInputStream(fileStream.forget(), uint64_t(offset), uint64_t(size));
         nsCOMPtr<nsIInputStreamPump> pump;
-        rv = NS_NewInputStreamPump(getter_AddRefs(pump), slicedStream);
+        rv = NS_NewInputStreamPump(getter_AddRefs(pump), slicedStream.forget());
         if (NS_SUCCEEDED(rv))
           rv = pump->AsyncRead(cacheListener, m_channelContext);
 
@@ -1557,7 +1556,7 @@ nsresult nsNNTPProtocol::SendListSearchesResponse(nsIInputStream * inputStream, 
         nsAutoCString charset;
         nsAutoString lineUtf16;
         if (NS_FAILED(m_nntpServer->GetCharset(charset)) ||
-            NS_FAILED(nsMsgI18NConvertToUnicode(charset.get(),
+            NS_FAILED(nsMsgI18NConvertToUnicode(charset,
                                                 nsDependentCString(line),
                                                 lineUtf16)))
             CopyUTF8toUTF16(nsDependentCString(line), lineUtf16);
@@ -2662,7 +2661,7 @@ nsresult nsNNTPProtocol::ProcessNewsgroups(nsIInputStream * inputStream, uint32_
     nsAutoCString charset;
     nsAutoString lineUtf16;
     if (NS_SUCCEEDED(m_nntpServer->GetCharset(charset)) &&
-        NS_SUCCEEDED(nsMsgI18NConvertToUnicode(charset.get(),
+        NS_SUCCEEDED(nsMsgI18NConvertToUnicode(charset,
                                                nsDependentCString(line),
                                                lineUtf16)))
       m_nntpServer->SetGroupNeedsExtraInfo(NS_ConvertUTF16toUTF8(lineUtf16),

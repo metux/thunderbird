@@ -263,3 +263,5 @@
 <!ENTITY legacyExtensions.title "Extensiuns obsoletas">
 <!ENTITY legacyExtensions.description "Questas extensiuns na correspundan betg als standards actuals da &brandShortName; ed èn perquai deactivadas.">
 <!ENTITY legacyExtensions.learnMore "Vegnir a savair dapli davart las midadas per supplements">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

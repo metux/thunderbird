@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "Zestarjene rozšěrjenja">
 <!ENTITY legacyExtensions.description "Tute rozšěrjenja su so znjemóžnili, dokelž standardam &brandShortName; njewotpowěduja.">
 <!ENTITY legacyExtensions.learnMore "Dalše informacije wo změnach tutych přidatkow">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

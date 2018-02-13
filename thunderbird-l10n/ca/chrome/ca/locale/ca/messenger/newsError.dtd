@@ -27,6 +27,4 @@
 <!ENTITY removeExpiredArticles.title "Elimina tots els articles caducats">
 
 <!ENTITY articleNotFound.desc "The newsgroup server reports that it can't find the article.">
-
 <!ENTITY serverResponded.title "Newsgroup server responded:">
-

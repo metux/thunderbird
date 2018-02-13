@@ -114,7 +114,6 @@
 <!ENTITY author.label "Author">
 <!ENTITY organizationField4.label "Organization">
 <!ENTITY replyToField4.label "Reply to">
-
 <!ENTITY subjectField4.label "Subject">
 <!ENTITY ccField4.label "Cc">
 <!ENTITY bccField4.label "Bcc">
@@ -127,7 +126,6 @@
 <!ENTITY messageIdField4.label "Message ID">
 <!ENTITY inReplyToField4.label "In reply to">
 <!ENTITY originalWebsite4.label "Website">
-
 <!ENTITY hdrOpenConversationButton1.label "Conversation">
 <!ENTITY hdrOpenConversationButton1.tooltip "Show conversation of this message">
 <!ENTITY hdrMenuForwardButton.label "Forward As">

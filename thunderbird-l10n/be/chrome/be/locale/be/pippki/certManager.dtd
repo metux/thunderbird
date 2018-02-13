@@ -104,6 +104,5 @@
 <!ENTITY certmgr.websites3                    "You have certificates on file that identify these servers">
 <!ENTITY certmgr.cas2                         "You have certificates on file that identify these certificate authorities">
 <!ENTITY certmgr.orphans2                     "You have certificates on file that do not fit in any of the other categories">
-
 <!ENTITY certmgr.certdetail.sha256fingerprint "SHA-256 Fingerprint">
 <!ENTITY certmgr.hierarchy.accesskey2         "H">

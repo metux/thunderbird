@@ -564,7 +564,7 @@ var buddyList = {
     elt.removeAttribute("editing");
     elt.setAttribute("role", "button");
     elt.setAttribute("aria-haspopup", "true");
-    elt.removeEventListener("blur", this.statusMessageBlur, false);
+    elt.removeEventListener("blur", this.statusMessageBlur);
     if (!elt.getAttribute("focused"))
       return;
     // Force layout to remove input binding.
@@ -780,7 +780,7 @@ var buddyList = {
 
     elt.removeAttribute("editing");
     elt.setAttribute("role", "button");
-    elt.removeEventListener("blur", this.displayNameBlur, false);
+    elt.removeEventListener("blur", this.displayNameBlur);
     if (!elt.getAttribute("focused"))
       return;
     // Force layout to remove input binding.
@@ -873,9 +873,9 @@ var buddyList = {
     new MutationObserver(buddyList.convBox._updateListConvCount)
       .observe(buddyList.convBox, {childList: true});
 
-    prefBranch.addObserver(showOfflineBuddiesPref, buddyList, false);
+    prefBranch.addObserver(showOfflineBuddiesPref, buddyList);
     for (let event of events)
-      Services.obs.addObserver(buddyList, event, false);
+      Services.obs.addObserver(buddyList, event);
 
     this.addEventListener("unload", buddyList.unload);
   },

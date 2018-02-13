@@ -134,15 +134,18 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Շրջանցիկներ">
 
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
+<!ENTITY aboutSupport.securitySoftwareType "Type">
+<!ENTITY aboutSupport.securitySoftwareName "Name">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
 <!ENTITY aboutSupport.featureName "Name">
 <!ENTITY aboutSupport.featureVersion "Version">
 <!ENTITY aboutSupport.featureId "ID">
-
 <!ENTITY aboutSupport.appBasicsProcessCount "Web Content Processes">
-
 <!ENTITY aboutSupport.a11yHandlerUsed "Accessible Handler Used">
 <!ENTITY aboutSupport.a11yInstantiator "Accessibility Instantiator">
-
 <!ENTITY aboutSupport.mediaTitle "Media">
 <!ENTITY aboutSupport.mediaOutputDevicesTitle "Output Devices">
 <!ENTITY aboutSupport.mediaInputDevicesTitle "Input Devices">
@@ -155,7 +158,6 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceChannels "Channels">
 <!ENTITY aboutSupport.mediaDeviceRate "Rate">
 <!ENTITY aboutSupport.mediaDeviceLatency "Latency">
-
 <!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
 <!ENTITY aboutSupport.intlAppTitle "Application Settings">
 <!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">

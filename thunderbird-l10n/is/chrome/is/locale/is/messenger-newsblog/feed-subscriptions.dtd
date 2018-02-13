@@ -35,6 +35,7 @@
 <!ENTITY cmd.close.commandKey "w">
 <!ENTITY button.close.label "Loka">
 
+<!ENTITY feedLocation2.placeholder   "Enter a valid feed url">
 <!ENTITY biffStart.label             "Check for new articles every ">
 <!ENTITY biffStart.accesskey         "k">
 <!ENTITY biffMinutes.label           "minutes">
@@ -42,4 +43,5 @@
 <!ENTITY biffDays.label              "days">
 <!ENTITY biffDays.accesskey          "d">
 <!ENTITY recommendedUnits.label      "Publisher recommends:">
-
+<!ENTITY button.verifyFeed.label     "Verify">
+<!ENTITY button.verifyFeed.accesskey "V">

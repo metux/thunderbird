@@ -9,5 +9,4 @@
 <!-- LOCALIZATION NOTE : Label of popup menu action to delete all storage items. -->
 
 <!ENTITY storage.popupMenu.deleteAllLabel "Delete All">
-
 <!ENTITY storage.popupMenu.deleteAllSessionCookiesLabel "Delete All Session Cookies">

@@ -212,7 +212,7 @@
          if (!aAccount.prplAccount.wrappedJSObject)
            return;
          this.observedUserInfo = aObservedName;
-         Services.obs.addObserver(this, "user-info-received", false);
+         Services.obs.addObserver(this, "user-info-received");
          aAccount.requestBuddyInfo(aObservedName);
        ]]>
        </body>
@@ -487,13 +487,13 @@
            let date = new Date(node._originalMsg.time * 1000);
            let text;
            if ((new Date()).toDateString() == date.toDateString()) {
-             const dateTimeFormatter = Services.intl.createDateTimeFormat(undefined, {
+             const dateTimeFormatter = new Services.intl.DateTimeFormat(undefined, {
                timeStyle: "long"
              });
              text = dateTimeFormatter.format(date);
            }
            else {
-             const dateTimeFormatter = Services.intl.createDateTimeFormat(undefined, {
+             const dateTimeFormatter = new Services.intl.DateTimeFormat(undefined, {
                dateStyle: "short", timeStyle: "long"
              });
              text = dateTimeFormatter.format(date);

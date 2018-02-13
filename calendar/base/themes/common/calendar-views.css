@@ -792,6 +792,11 @@ calendar-event-box[gripBars="both"]:not([readonly="true"]):hover .calendar-event
     margin: 0pt;
 }
 
+#conflicts-vbox .tooltipBody {
+    overflow: auto;
+    min-height: 250px;
+}
+
 #calendar-view-context-menu[type="event"] .todo-only,
 #calendar-view-context-menu[type="todo"] .event-only,
 #calendar-view-context-menu[type="mixed"] .event-only,
@@ -857,12 +862,6 @@ agenda-richlist-item[status="CANCELLED"] .agenda-container-box {
 /* Navigation controls for the views */
 #view-deck {
     border: solid ThreeDShadow;
-}
-
-#view-tabs .tabs-left,
-#view-tabs .tabs-right {
-    border-bottom: 1px solid ThreeDShadow;
-    -moz-border-bottom-colors: none;
 }
 
 tab[calview] {

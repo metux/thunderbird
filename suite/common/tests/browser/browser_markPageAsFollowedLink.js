@@ -35,7 +35,7 @@ var observer = {
   },
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver])
 };
-Services.obs.addObserver(observer, "uri-visit-saved", false);
+Services.obs.addObserver(observer, "uri-visit-saved");
 
 function test()
 {
@@ -49,10 +49,10 @@ function test()
       if (frameCount++ < 2)
         return;
       gBrowser.selectedTab.linkedBrowser.removeEventListener("DOMContentLoaded",
-        gBrowserDOMContentLoaded, false)
+        gBrowserDOMContentLoaded)
       gTabLoaded = true;
       maybeClickLink();
-    }, false
+    }
   );
 }
 

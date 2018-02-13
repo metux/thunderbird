@@ -37,8 +37,8 @@ var streamListener =
   onStartRequest: function(aRequest, aContext) {
   },
   onStopRequest: function(aRequest, aContext, aStatusCode) {
-    do_check_eq(aStatusCode, 0);
-    do_check_true(this._data.includes("Content-Type"));
+    Assert.equal(aStatusCode, 0);
+    Assert.ok(this._data.includes("Content-Type"));
     async_driver();
   },
 
@@ -56,17 +56,18 @@ var streamListener =
 function addMessagesToServer(messages, mailbox)
 {
   // For every message we have, we need to convert it to a file:/// URI
+  let specs = [];
   messages.forEach(function (message)
   {
     let URI =
       Services.io.newFileURI(message.file).QueryInterface(Ci.nsIFileURL);
-    message.spec = URI.spec;
+    specs.push(URI.spec);
   });
 
   // Create the imapMessages and store them on the mailbox
-  messages.forEach(function (message)
+  specs.forEach(function (spec)
   {
-    mailbox.addMessage(new imapMessage(message.spec, mailbox.uidnext++, []));
+    mailbox.addMessage(new imapMessage(spec, mailbox.uidnext++, []));
   });
 }
 

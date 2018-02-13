@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "Gamlar viðbætur">
 <!ENTITY legacyExtensions.description "Þessar viðbætur standast ekki núverandi staðla í &brandShortName; þannig að þær hafa verið gerðar óvirkar.">
 <!ENTITY legacyExtensions.learnMore "Fræðast um breytingar á viðbótum">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

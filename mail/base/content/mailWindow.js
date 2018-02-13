@@ -147,8 +147,8 @@ function CreateMailWindowGlobals()
   messenger = Components.classes["@mozilla.org/messenger;1"]
                         .createInstance(Components.interfaces.nsIMessenger);
 
-  window.addEventListener("blur", appIdleManager.onBlur, false);
-  window.addEventListener("focus", appIdleManager.onFocus, false);
+  window.addEventListener("blur", appIdleManager.onBlur);
+  window.addEventListener("focus", appIdleManager.onFocus);
 
   //Create windows status feedback
   // set the JS implementation of status feedback before creating the c++ one..
@@ -743,4 +743,45 @@ function MailSetCharacterSet(aEvent) {
        gMessageDisplay.displayedMessage.messageKey : null);
   }
   messenger.setDocumentCharset(msgWindow.mailCharacterSet);
+}
+
+/**
+ * Called from the extensions manager to open an add-on options XUL document.
+ * Only the "open in tab" option is supported, so that's what we'll do here.
+ */
+function switchToTabHavingURI(aURI, aOpenNew, aOpenParams) {
+  let tabmail = document.getElementById("tabmail");
+  let matchingIndex = -1;
+  if (tabmail) {
+    let openURI = makeURI(aURI);
+    let tabInfo = tabmail.tabInfo;
+
+    // Check if we already have the same URL open in a content tab.
+    for (let tabIndex = 0; tabIndex < tabInfo.length; tabIndex++) {
+      if (tabInfo[tabIndex].mode.name == "contentTab") {
+        let browserFunc = tabInfo[tabIndex].mode.getBrowser ||
+                          tabInfo[tabIndex].mode.tabType.getBrowser;
+        if (browserFunc) {
+          let browser = browserFunc.call(tabInfo[tabIndex].mode.tabType, tabInfo[tabIndex]);
+          if (browser.currentURI.equals(openURI)) {
+            matchingIndex = tabIndex;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // Open the found matching tab.
+  if (tabmail && matchingIndex > -1) {
+    tabmail.switchToTab(matchingIndex);
+    return true;
+  }
+
+  if (aOpenNew) {
+    // Open a new tab.
+    openContentTab(aURI, "tab");
+  }
+
+  return false;
 }

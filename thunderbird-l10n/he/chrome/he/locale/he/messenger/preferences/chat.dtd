@@ -16,27 +16,26 @@ sentence. -->
 
 
 <!ENTITY  generalTab.label            "General">
-
 <!ENTITY  startupAction.accesskey     "s">
 <!ENTITY  startupOffline.label        "Keep my Chat Accounts offline">
 <!ENTITY  startupConnectAuto.label    "Connect my chat accounts automatically">
-
 <!ENTITY  reportIdleAfter.label         "Let my contacts know that I am Idle after">
 <!ENTITY  reportIdleAfter.accesskey     "I">
 <!ENTITY  idleTime                      "minutes of inactivity">
-
 <!ENTITY  andSetStatusToAway.label      "and set my status to Away with this status message:">
 <!ENTITY  andSetStatusToAway.accesskey  "A">
-
 <!ENTITY  sendTyping.label              "Send typing notifications in conversations">
 <!ENTITY  sendTyping.accesskey          "t">
-
 <!ENTITY  chatNotifications.label             "When messages directed at you arrive:">
 <!ENTITY  desktopChatNotifications.label      "Show a notification:">
 <!ENTITY  desktopChatNotifications.accesskey  "c">
 <!ENTITY  completeNotification.label          "with sender's name and message preview">
 <!ENTITY  buddyInfoOnly.label                 "with sender's name only">
 <!ENTITY  dummyNotification.label             "without any info">
+<!ENTITY  getAttention.label                  "Flash the taskbar item">
+<!ENTITY  getAttention.accesskey              "F">
+<!ENTITY  getAttentionMac.label               "Animate dock icon">
+<!ENTITY  getAttentionMac.accesskey           "o">
 <!ENTITY  chatSound.accesskey                 "d">
 <!ENTITY  chatSound.label                     "Play a sound">
 <!ENTITY  play.label                          "Play">
@@ -47,7 +46,6 @@ sentence. -->
 <!ENTITY  customsound.accesskey               "U">
 <!ENTITY  browse.label                        "Browse…">
 <!ENTITY  browse.accesskey                    "B">
-
 <!ENTITY messageStyleTab.title             "Message Styles">
 <!ENTITY messageStylePreview.label         "Preview:">
 <!ENTITY messageStyleTheme.label           "Theme:">

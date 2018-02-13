@@ -36,13 +36,10 @@
 #include "nsCollationCID.h"
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
-#include "nsIMsgPluggableStore.h"
-#include "nsAlgorithm.h"
 #include "nsArrayEnumerator.h"
 #include "nsIMemoryReporter.h"
 #include "mozilla/mailnews/MimeHeaderParser.h"
 #include "mozilla/mailnews/Services.h"
-#include <algorithm>
 
 using namespace mozilla::mailnews;
 using namespace mozilla;
@@ -64,7 +61,7 @@ static const nsMsgKey kFirstPseudoKey = 0xfffffff0;
 static const nsMsgKey kIdStartOfFake = 0xffffff80;
 static const nsMsgKey kForceReparseKey = 0xfffffff0;
 
-static LazyLogModule DBLog("MSGDB");
+static LazyLogModule DBLog("MsgDB");
 
 PRTime nsMsgDatabase::gLastUseTime;
 

@@ -761,9 +761,9 @@ var messageComposeOfflineQuitObserver = {
 function AddMessageComposeOfflineQuitObserver()
 {
   Services.obs.addObserver(messageComposeOfflineQuitObserver,
-                           "network:offline-status-changed", false);
+                           "network:offline-status-changed");
   Services.obs.addObserver(messageComposeOfflineQuitObserver,
-                           "quit-application-requested", false);
+                           "quit-application-requested");
 
   // set the initial state of the send button
   MessageComposeOfflineStateChanged(Services.io.offline);
@@ -1173,8 +1173,8 @@ function ComposeStartup(aParams)
 
   var identityList = GetMsgIdentityElement();
 
-  document.addEventListener("paste", onPasteOrDrop, false);
-  document.addEventListener("drop", onPasteOrDrop, false);
+  document.addEventListener("paste", onPasteOrDrop);
+  document.addEventListener("drop", onPasteOrDrop);
 
   if (identityList)
     FillIdentityList(identityList);
@@ -1714,7 +1714,7 @@ function GenericSendMessage( msgType )
       }
 
       // hook for extra compose pre-processing
-      Services.obs.notifyObservers(window, "mail:composeOnSend", null);
+      Services.obs.notifyObservers(window, "mail:composeOnSend");
 
       var originalCharset = gMsgCompose.compFields.characterSet;
       // Check if the headers of composing mail can be converted to a mail charset.
@@ -2040,7 +2040,7 @@ function addRecipientsToIgnoreList(aAddressesToAdd)
           Services.obs.removeObserver(observe, topic);
           InlineSpellCheckerUI.mInlineSpellChecker.ignoreWords(tokenizedNames, tokenizedNames.length);
         }
-      }, "inlineSpellChecker-spellCheck-ended", false);
+      }, "inlineSpellChecker-spellCheck-ended");
     }
     else
     {
@@ -2321,11 +2321,14 @@ function ComposeCanClose()
     let draftFolderName = MailUtils.getFolderForURI(draftFolderURI).prettyName;
     switch (Services.prompt.confirmEx(window,
               sComposeMsgsBundle.getString("saveDlogTitle"),
-              sComposeMsgsBundle.getFormattedString("saveDlogMessages2", [draftFolderName]),
+              sComposeMsgsBundle.getFormattedString("saveDlogMessages3", [draftFolderName]),
               (Services.prompt.BUTTON_TITLE_SAVE * Services.prompt.BUTTON_POS_0) +
               (Services.prompt.BUTTON_TITLE_CANCEL * Services.prompt.BUTTON_POS_1) +
-              (Services.prompt.BUTTON_TITLE_DONT_SAVE * Services.prompt.BUTTON_POS_2),
-              null, null, null, null, {value:0}))
+              (Services.prompt.BUTTON_TITLE_IS_STRING * Services.prompt.BUTTON_POS_2),
+              null,
+              null,
+              getComposeBundle().getString("discardButtonLabel"),
+              null, {value:0}))
     {
       case 0: //Save
         // we can close immediately if we already autosaved the draft

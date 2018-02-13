@@ -202,18 +202,12 @@
 <!ENTITY debuggerUI.context.copyUrl.key "C">
 
 <!ENTITY debuggerUI.blackBoxMessage.label "This source is black boxed: its breakpoints are disabled, and stepping skips through it.">
-
 <!ENTITY debuggerUI.blackBoxMessage.unBlackBoxButton "Stop black boxing this source">
-
 <!ENTITY debuggerUI.sources.blackBoxTooltip "Toggle Black Boxing">
-
 <!ENTITY debuggerUI.ignoreCaughtExceptions           "Ignore Caught Exceptions">
 <!ENTITY debuggerUI.ignoreCaughtExceptions.accesskey "C">
-
 <!ENTITY debuggerUI.autoBlackBox           "Automatically Black Box Minified Sources">
 <!ENTITY debuggerUI.autoBlackBox.accesskey "B">
-
 <!ENTITY debuggerUI.searchFile.altkey    "O">
 <!ENTITY debuggerUI.searchFile.accesskey "P">
-
 <!ENTITY debuggerUI.tabs.traces         "Traces">

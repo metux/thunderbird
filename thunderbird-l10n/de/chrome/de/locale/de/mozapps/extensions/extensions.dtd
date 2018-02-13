@@ -262,3 +262,5 @@ einige der besten und populärsten Add-ons zum Ausprobieren anbieten.">
 <!ENTITY legacyExtensions.title "Alter Add-on-Typ">
 <!ENTITY legacyExtensions.description "Diese Erweiterungen erfüllen nicht die Firefox-Standards und wurden deshalb deaktiviert.">
 <!ENTITY legacyExtensions.learnMore "Weitere Informationen über Änderungen bei der Unterstützung von Add-ons für Firefox">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

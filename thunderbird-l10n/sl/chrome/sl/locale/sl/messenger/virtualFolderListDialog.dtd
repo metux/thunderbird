@@ -6,3 +6,6 @@
 <!ENTITY virtualFolderDesc.label       "Izberite mape za iskanje:">
 
 
+
+<!ENTITY folderName.label "Folder name">
+<!ENTITY folderSearch.label "Search">

@@ -337,7 +337,7 @@ function onLoadPageInfo()
   /* Select the requested tab, if the name is specified */
   var initialTab = (args && args.initialTab) || "generalTab";
   showTab(initialTab);
-  Services.obs.notifyObservers(window, "page-info-dialog-loaded", null);
+  Services.obs.notifyObservers(window, "page-info-dialog-loaded");
 }
 
 function loadPageInfo()
@@ -395,7 +395,7 @@ function resetPageInfo(args)
 
   if (args && args.initialTab)
     showTab(args.initialTab);
-  Services.obs.notifyObservers(window, "page-info-dialog-reset", null);
+  Services.obs.notifyObservers(window, "page-info-dialog-reset");
 }
 
 function onUnloadPageInfo()
@@ -607,7 +607,7 @@ function onCacheEntryAvailable(cacheEntryDescriptor) {
 
     // Add the observer, only once.
     if (gImageView.data.length == 1) {
-      Services.obs.addObserver(imagePermissionObserver, "perm-changed", false);
+      Services.obs.addObserver(imagePermissionObserver, "perm-changed");
     }
   }
   else {

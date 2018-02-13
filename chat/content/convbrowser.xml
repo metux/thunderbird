@@ -232,7 +232,7 @@
           <![CDATA[
           if (this.magicCopyInitialized)
             return;
-          Services.prefs.addObserver(this.magicCopyPref, this, false);
+          Services.prefs.addObserver(this.magicCopyPref, this);
           this.magicCopyInitialized = true;
           if (this.magicCopyEnabled)
             this.enableMagicCopy();
@@ -961,7 +961,7 @@
               this.contentChatNode
                   .addEventListener("load", this.onContentElementLoad, true);
 
-              Services.obs.notifyObservers(this, "conversation-loaded", null);
+              Services.obs.notifyObservers(this, "conversation-loaded");
             }
           ]]>
         </body>

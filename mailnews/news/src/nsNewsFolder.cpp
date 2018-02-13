@@ -65,6 +65,7 @@
 #include "mozilla/Services.h"
 #include "nsAutoPtr.h"
 #include "nsIInputStream.h"
+#include "nsMemory.h"
 
 static NS_DEFINE_CID(kRDFServiceCID, NS_RDFSERVICE_CID);
 
@@ -1106,12 +1107,12 @@ nsresult nsMsgNewsFolder::CreateNewsgroupUrlForSignon(const char *ref,
     rv = server->GetServerURI(serverURI);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = url->SetSpec(serverURI);
+    rv = url->SetSpecInternal(serverURI);
     NS_ENSURE_SUCCESS(rv, rv);
   }
   else
   {
-    rv = url->SetSpec(mURI);
+    rv = url->SetSpecInternal(mURI);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -1494,7 +1495,7 @@ nsMsgNewsFolder::GetRawName(nsACString & aRawName)
     nsAutoCString dataCharset;
     rv = nntpServer->GetCharset(dataCharset);
     NS_ENSURE_SUCCESS(rv,rv);
-    rv = nsMsgI18NConvertFromUnicode(dataCharset.get(), name, mRawName);
+    rv = nsMsgI18NConvertFromUnicode(dataCharset, name, mRawName);
 
     if (NS_FAILED(rv))
       LossyCopyUTF16toASCII(name, mRawName);

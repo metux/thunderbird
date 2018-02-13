@@ -11,10 +11,6 @@ Components.utils.import("resource://gre/modules/Preferences.jsm");
 Components.utils.import("resource://calendar/modules/ical.js");
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
 
-/* exported g_stringBundle */
-
-var g_stringBundle = null;
-
 function calStringEnumerator(stringArray) {
     this.mIndex = 0;
     this.mStringArray = stringArray;
@@ -126,7 +122,7 @@ calTimezoneService.prototype = {
             cal.LOG("[calTimezoneService] Timezones version " + this.version + " loaded");
 
             let bundleURL = "chrome://" + resNamespace + "/locale/timezones.properties";
-            g_stringBundle = ICAL.Timezone.cal_tz_bundle = Services.strings.createBundle(bundleURL);
+            this.stringBundle = ICAL.Timezone.cal_tz_bundle = Services.strings.createBundle(bundleURL);
 
             // Make sure UTC and floating are cached by calling their getters
             this.UTC; // eslint-disable-line no-unused-expressions
@@ -448,7 +444,7 @@ function guessSystemTimezone() {
         return 0;
     }
 
-    const todayUTC = cal.jsDateToDateTime(new Date());
+    const todayUTC = cal.dtz.jsDateToDateTime(new Date());
     const oneYrUTC = todayUTC.clone(); oneYrUTC.year += 1;
     const periodStartCalDate = cal.createDateTime();
     const periodUntilCalDate = cal.createDateTime(); // until timezone is UTC
@@ -489,7 +485,7 @@ function guessSystemTimezone() {
             } else if (todayUTC.nativeTime < periodStartCalDate.nativeTime) {
                 // already know periodStartCalDate < oneYr from now,
                 // and transitions are at most once per year, so it is next.
-                return cal.dateTimeToJsDate(periodStartCalDate);
+                return cal.dtz.dateTimeToJsDate(periodStartCalDate);
             } else if (rrule) {
                 // find next occurrence after today
                 periodCalRule.icalProperty = rrule;
@@ -498,7 +494,7 @@ function guessSystemTimezone() {
                                                     todayUTC);
                 // make sure rule doesn't end before next transition date.
                 if (nextTransitionDate) {
-                    return cal.dateTimeToJsDate(nextTransitionDate);
+                    return cal.dtz.dateTimeToJsDate(nextTransitionDate);
                 }
             }
         }
@@ -570,7 +566,7 @@ function guessSystemTimezone() {
     function weekday(icsDate, timezone) {
         let calDate = cal.createDateTime(icsDate);
         calDate.timezone = timezone;
-        return cal.dateTimeToJsDate(calDate).toLocaleString(undefined, { weekday: "short" });
+        return cal.dtz.dateTimeToJsDate(calDate).toLocaleString(undefined, { weekday: "short" });
     }
 
     // Try to find a tz that matches OS/JSDate timezone.  If no name match,

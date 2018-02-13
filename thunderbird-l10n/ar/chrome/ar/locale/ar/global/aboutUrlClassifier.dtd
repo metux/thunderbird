@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "وحدات السجل الحالية">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "سجل جافاسكربت التصفح الآمن">
 <!ENTITY aboutUrlClassifier.debugFile                   "ملف السجل الحالي">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

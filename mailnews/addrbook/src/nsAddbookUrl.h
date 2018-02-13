@@ -9,6 +9,7 @@
 #include "nsIURI.h"
 #include "nsCOMPtr.h"
 #include "nsIAddbookUrl.h"
+#include "nsIURIMutator.h"
 
 class nsAddbookUrl : public nsIAddbookUrl
 {
@@ -18,6 +19,43 @@ public:
     NS_DECL_NSIADDBOOKURL
 
     nsAddbookUrl();
+
+public:
+  class Mutator
+      : public nsIURIMutator
+      , public BaseURIMutator<nsAddbookUrl>
+  {
+    NS_DECL_ISUPPORTS
+    NS_FORWARD_SAFE_NSIURISETTERS_RET(mURI)
+
+    NS_IMETHOD Deserialize(const mozilla::ipc::URIParams& aParams) override
+    {
+      return NS_ERROR_NOT_IMPLEMENTED;
+    }
+
+    NS_IMETHOD Read(nsIObjectInputStream* aStream) override
+    {
+      return NS_ERROR_NOT_IMPLEMENTED;
+    }
+
+    NS_IMETHOD Finalize(nsIURI** aURI) override
+    {
+      mURI.forget(aURI);
+      return NS_OK;
+    }
+
+    NS_IMETHOD SetSpec(const nsACString & aSpec, nsIURIMutator** aMutator) override
+    {
+      NS_ADDREF(*aMutator = this);
+      return InitFromSpec(aSpec);
+    }
+
+    explicit Mutator() { }
+  private:
+    virtual ~Mutator() { }
+
+    friend class nsAddbookUrl;
+  };
 
 protected:
   enum RefHandlingEnum {

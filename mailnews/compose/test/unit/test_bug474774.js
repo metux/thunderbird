@@ -14,10 +14,13 @@ var sentFolder;
 var originalData;
 var finished = false;
 var identity = null;
+
 var testFile = do_get_file("data/429891_testcase.eml");
 
-var kSender = "from@foo.invalid";
-var kTo = "to@foo.invalid";
+var kTestFileSender = "from_A@foo.invalid";
+var kTestFileRecipient = "to_A@foo.invalid";
+
+var kIdentityMail = "identity@foo.invalid";
 
 var msgSendLater = Cc["@mozilla.org/messengercompose/sendlater;1"]
   .getService(Ci.nsIMsgSendLater);
@@ -33,7 +36,7 @@ msll.prototype = {
   // nsIMsgSendLaterListener
   onStartSending: function (aTotalMessageCount) {
     this._initialTotal = 1;
-    do_check_eq(msgSendLater.sendingMessages, true);
+    Assert.equal(msgSendLater.sendingMessages, true);
   },
   onMessageStartSending: function (aCurrentMessage, aTotalMessageCount,
                                    aMessageHeader, aIdentity) {
@@ -49,20 +52,21 @@ msll.prototype = {
   onStopSending: function (aStatus, aMsg, aTotalTried, aSuccessful) {
     print("msll onStopSending\n");
     try {
-      do_check_eq(aSuccessful, 1);
-      do_check_eq(aStatus, 0);
-      do_check_eq(aTotalTried, 1);
-      do_check_eq(this._initialTotal, 1);
-      do_check_eq(msgSendLater.sendingMessages, false);
+      Assert.equal(aSuccessful, 1);
+      Assert.equal(aStatus, 0);
+      Assert.equal(aTotalTried, 1);
+      Assert.equal(this._initialTotal, 1);
+      Assert.equal(msgSendLater.sendingMessages, false);
 
       do_check_transaction(server.playTransaction(),
                            ["EHLO test",
-                            "MAIL FROM:<" + kSender + "> BODY=8BITMIME SIZE=" + originalData.length,
-                            "RCPT TO:<" + kTo + ">",
+                            "MAIL FROM:<" + kTestFileSender +
+                            "> BODY=8BITMIME SIZE=" + originalData.length,
+                            "RCPT TO:<" + kTestFileRecipient + ">",
                             "DATA"]);
 
       // Compare data file to what the server received
-      do_check_eq(originalData, server._daemon.post);
+      Assert.equal(originalData, server._daemon.post);
 
       // Now wait till the copy is finished for the sent message
       do_test_pending();
@@ -84,15 +88,15 @@ function OnStopCopy(aStatus)
   do_test_finished();
 
   try {
-    do_check_eq(aStatus, 0);
+    Assert.equal(aStatus, 0);
 
     // Check this is false before we start sending
-    do_check_eq(msgSendLater.sendingMessages, false);
+    Assert.equal(msgSendLater.sendingMessages, false);
 
     let folder = msgSendLater.getUnsentMessagesFolder(identity);
 
     // Check we have a message in the unsent message folder
-    do_check_eq(folder.getTotalMessages(false), 1);
+    Assert.equal(folder.getTotalMessages(false), 1);
 
     // Now do a comparison of what is in the sent mail folder
     let msgData = mailTestUtils
@@ -100,12 +104,12 @@ function OnStopCopy(aStatus)
 
     // Skip the headers etc that mailnews adds
     var pos = msgData.indexOf("From:");
-    do_check_neq(pos, -1);
+    Assert.notEqual(pos, -1);
 
     msgData = msgData.substr(pos);
 
     // Check the data is matching.
-    do_check_eq(originalData, msgData);
+    Assert.equal(originalData, msgData);
 
     do_test_pending();
     sendMessageLater();
@@ -183,7 +187,7 @@ function run_test() {
   let incomingServer = MailServices.accounts.createIncomingServer("test", "localhost", "pop3");
 
   smtpServer = getBasicSmtpServer(0);
-  identity = getSmtpIdentity(kSender, smtpServer);
+  identity = getSmtpIdentity(kIdentityMail, smtpServer);
 
   account.addIdentity(identity);
   account.defaultIdentity = identity;
@@ -199,8 +203,12 @@ function run_test() {
   var compFields = Cc["@mozilla.org/messengercompose/composefields;1"]
                      .createInstance(Ci.nsIMsgCompFields);
 
-  compFields.from = identity.email;
-  compFields.to = kTo;
+  // Setting the compFields sender and recipient to any value is required to
+  // survive mime_sanity_check_fields in nsMsgCompUtils.cpp.
+  // Sender and recipient are required for sendMessageFile but SMTP
+  // transaction values will be used directly from mail body.
+  compFields.from = "irrelevant@foo.invalid";
+  compFields.to = "irrelevant@foo.invalid";
 
   var msgSend = Cc["@mozilla.org/messengercompose/send;1"]
                   .createInstance(Ci.nsIMsgSend);

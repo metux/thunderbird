@@ -51,3 +51,7 @@ Entities below were automatically added by compare-locales,
 <!ENTITY ageAutosyncBefore.label "மிகவும் அண்மையானதை ஒத்திசைவாக்குக">
 <!ENTITY dayAgeInterval.label "நாட்கள்">
 <!ENTITY doNotDownloadNntp.label "தட்டு இடைவெளியில் சேமிக்க, இணைப்பில்லா நிலை பாவனைக்கு பதிவிறக்கவேண்டாம்:">
+
+<!ENTITY allFoldersOffline2.label "Keep messages in all folders for this account on this computer">
+<!ENTITY allFoldersOffline2.accesskey "o">
+<!ENTITY allFoldersOfflineNote.label "Note: Changing this affects all folders in this account. To set individual folders, use the Advanced… button.">

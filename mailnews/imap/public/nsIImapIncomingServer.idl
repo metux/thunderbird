@@ -64,6 +64,11 @@ interface nsIImapIncomingServer : nsISupports {
    */
   attribute boolean useCompressDeflate;
 
+  /**
+   * This contains a folder path, for example INBOX/Trash. Note that the
+   * account manager sets this attribute to the path of the trash folder the
+   * user has chosen.
+   */
   attribute AString trashFolderName;
 
   attribute boolean downloadBodiesOnGetNewMail;
@@ -88,7 +93,7 @@ interface nsIImapIncomingServer : nsISupports {
                                         in boolean performingBiff);
   /**
    * Get the password from the nsIMsgIncomingServer. May prompt the user
-   * if there's no password in the password manager or cached in the 
+   * if there's no password in the password manager or cached in the
    * server object.
    * @param aWindow  msgWindow to associate the password prompt with
    * @return Password string.

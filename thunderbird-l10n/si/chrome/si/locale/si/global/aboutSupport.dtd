@@ -113,27 +113,26 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsGPU1Title "GPU #1">
 <!ENTITY aboutSupport.graphicsGPU2Title "GPU #2">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
+<!ENTITY aboutSupport.securitySoftwareType "Type">
+<!ENTITY aboutSupport.securitySoftwareName "Name">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
 <!ENTITY aboutSupport.featuresTitle "&brandShortName; Features">
 <!ENTITY aboutSupport.featureName "Name">
 <!ENTITY aboutSupport.featureVersion "Version">
 <!ENTITY aboutSupport.featureId "ID">
-
 <!ENTITY aboutSupport.appBasicsPerformance "Performance">
-
 <!ENTITY aboutSupport.appBasicsProcessCount "Web Content Processes">
-
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Google Key">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla Location Service Key">
-
 <!ENTITY aboutSupport.showWin2.label "Open Folder">
-
 <!ENTITY aboutSupport.placeDatabaseTitle "Places Database">
 <!ENTITY aboutSupport.placeDatabaseIntegrity "Integrity">
 <!ENTITY aboutSupport.placeDatabaseVerifyIntegrity "Verify Integrity">
-
 <!ENTITY aboutSupport.a11yHandlerUsed "Accessible Handler Used">
 <!ENTITY aboutSupport.a11yInstantiator "Accessibility Instantiator">
-
 <!ENTITY aboutSupport.sandboxSyscallLogTitle "Rejected System Calls">
 <!ENTITY aboutSupport.sandboxSyscallIndex "#">
 <!ENTITY aboutSupport.sandboxSyscallAge "Seconds Ago">
@@ -142,11 +141,9 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.sandboxSyscallProcType "Process Type">
 <!ENTITY aboutSupport.sandboxSyscallNumber "Syscall">
 <!ENTITY aboutSupport.sandboxSyscallArgs "Arguments">
-
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Decision Log">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Crash Guard Disabled Features">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Workarounds">
-
 <!ENTITY aboutSupport.mediaTitle "Media">
 <!ENTITY aboutSupport.mediaOutputDevicesTitle "Output Devices">
 <!ENTITY aboutSupport.mediaInputDevicesTitle "Input Devices">
@@ -159,7 +156,6 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceChannels "Channels">
 <!ENTITY aboutSupport.mediaDeviceRate "Rate">
 <!ENTITY aboutSupport.mediaDeviceLatency "Latency">
-
 <!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
 <!ENTITY aboutSupport.intlAppTitle "Application Settings">
 <!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">

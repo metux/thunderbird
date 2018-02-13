@@ -49,6 +49,3 @@
 <!ENTITY reorderBottomButton.accessKey "B">
 <!ENTITY reorderBottomButton.toolTip "Rearrange filter so it executes after all others">
 <!ENTITY searchBox.emptyText "Search filters by name…">
-
-
-

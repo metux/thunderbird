@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Trenutni dnevniški moduli">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Dnevnik JS varnega brskanja">
 <!ENTITY aboutUrlClassifier.debugFile                   "Trenutna dnevniška datoteka">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

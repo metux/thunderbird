@@ -20,7 +20,7 @@
 #include "nsABBaseCID.h"
 #include "nsIAbCard.h"
 #include "mdb.h"
-#include "OutlookDebugLog.h"
+#include "ImportDebug.h"
 #include "nsOutlookMail.h"
 #include "nsUnicharUtils.h"
 #include "nsIInputStream.h"
@@ -338,14 +338,14 @@ ImportMailboxRunnable::ImportMailboxRunnable(uint32_t *pDoneSoFar, bool *pAbort,
                                              int32_t *pMsgCount,
                                              nsOutlookMail *aCaller) :
   mozilla::Runnable("ImportMailboxRunnable"),
+  mResult(NS_OK),
+  mCaller(aCaller),
   mDoneSoFar(pDoneSoFar),
   mAbort(pAbort),
-  mResult(NS_OK),
   mIndex(index),
   mName(pName),
   mDstFolder(dstFolder),
-  mMsgCount(pMsgCount),
-  mCaller(aCaller)
+  mMsgCount(pMsgCount)
 {
 }
 NS_IMETHODIMP ImportMailboxRunnable::Run()

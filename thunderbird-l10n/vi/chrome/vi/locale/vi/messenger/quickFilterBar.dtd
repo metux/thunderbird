@@ -239,29 +239,18 @@
 
 <!ENTITY quickFilterBar.qfbShowFilterBar.label
          "Quick Filter">
-
 <!ENTITY quickFilterBar.toggleBarVisibility.appmenu.label
          "Quick Filter Bar">
-
 <!ENTITY quickFilterBar.textbox.emptyText.base1
          "Filter these messages #1">
-
 <!ENTITY quickFilterBar.show.key2
          "k">
-
 <!ENTITY quickFilterBar.textbox.emptyText.keyLabel2.nonmac
          "&lt;Ctrl+Shift+K&gt;">
-
 <!ENTITY quickFilterBar.textbox.emptyText.keyLabel2.mac
          "&lt;&#x21E7;&#x2318;K&gt;">
-
 <!ENTITY quickFilterBar.booleanMode.tooltip "Tag filtering mode">
-
 <!ENTITY quickFilterBar.booleanModeAny.label "Any of">
-
 <!ENTITY quickFilterBar.booleanModeAny.tooltip "At least one of the selected tag criteria should match">
-
 <!ENTITY quickFilterBar.booleanModeAll.label "All of">
-
 <!ENTITY quickFilterBar.booleanModeAll.tooltip "All of the selected tag criteria must match">
-

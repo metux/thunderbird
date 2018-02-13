@@ -40,3 +40,7 @@
 <!ENTITY button.exportOPML.tooltip "Exportar canales con la estructura de canales; ctrl clic o ctrl enter para exportar los canales como una lista">
 <!ENTITY cmd.close.commandKey "w">
 <!ENTITY button.close.label "Cerrar">
+
+<!ENTITY feedLocation2.placeholder   "Enter a valid feed url">
+<!ENTITY button.verifyFeed.label     "Verify">
+<!ENTITY button.verifyFeed.accesskey "V">

@@ -27,14 +27,13 @@ function test() {
 
   let tab = gBrowser.loadOneTab("about:blank", { inBackground: false });
   let browser = tab.linkedBrowser;
-  browser.addEventListener("PluginCrashed", onCrash, false);
-  Services.obs.addObserver(onSubmitStatus, "crash-report-status", false);
+  browser.addEventListener("PluginCrashed", onCrash);
+  Services.obs.addObserver(onSubmitStatus, "crash-report-status");
 
   registerCleanupFunction(function cleanUp() {
     env.set("MOZ_CRASHREPORTER_NO_REPORT", noReport);
     env.set("MOZ_CRASHREPORTER_URL", serverURL);
-    gBrowser.selectedBrowser.removeEventListener("PluginCrashed", onCrash,
-                                                 false);
+    gBrowser.selectedBrowser.removeEventListener("PluginCrashed", onCrash);
     Services.obs.removeObserver(onSubmitStatus, "crash-report-status");
     gBrowser.removeCurrentTab();
   });
@@ -145,7 +144,11 @@ function getPropertyBagValue(bag, key) {
   try {
     var val = bag.getProperty(key);
   }
-  catch (e if e.result == Components.results.NS_ERROR_FAILURE) {}
+  catch (e) {
+    if (e.result != Components.results.NS_ERROR_FAILURE) {
+      throw e;
+    }
+  }
   return val;
 }
 

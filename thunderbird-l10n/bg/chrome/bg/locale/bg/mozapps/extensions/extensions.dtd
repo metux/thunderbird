@@ -259,3 +259,5 @@
 <!ENTITY legacyExtensions.title "Остарели разширения">
 <!ENTITY legacyExtensions.description "Тези разширения не отговарят на текущите стандарти на &brandShortName; и затова са изключени.">
 <!ENTITY legacyExtensions.learnMore "Научете повече за промените при добавките">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

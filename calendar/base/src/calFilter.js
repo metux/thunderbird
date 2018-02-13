@@ -208,7 +208,6 @@ calFilter.prototype = {
         }
 
         switch (aFilter) {
-
             // Predefined Task filters
             case "notstarted":
                 props.status = props.FILTER_STATUS_INCOMPLETE;
@@ -397,7 +396,7 @@ calFilter.prototype = {
         // for better performance when filtering batches of items.
         let today = this.mToday;
         if (!today) {
-            today = cal.now();
+            today = cal.dtz.now();
             today.isDate = true;
         }
 
@@ -442,7 +441,7 @@ calFilter.prototype = {
         // test the due property. Only applies to tasks.
         if (result && props.due != null && cal.isToDo(aItem)) {
             let due = aItem.dueDate;
-            let now = cal.now();
+            let now = cal.dtz.now();
 
             result = ((props.due & props.FILTER_DUE_PAST) ||
                       !(due && (due.compare(now) < 0))) &&
@@ -477,8 +476,8 @@ calFilter.prototype = {
     getDateForProperty: function(prop, start) {
         let props = this.mFilterProperties || new calFilterProperties();
         let result = null;
-        let selectedDate = this.mSelectedDate || currentView().selectedDay || cal.now();
-        let nowDate = cal.now();
+        let selectedDate = this.mSelectedDate || currentView().selectedDay || cal.dtz.now();
+        let nowDate = cal.dtz.now();
 
         if (typeof prop == "string") {
             let duration = cal.createDuration(prop);
@@ -501,8 +500,8 @@ calFilter.prototype = {
                     break;
                 case props.FILTER_DATE_SELECTED_OR_NOW: {
                     result = selectedDate.clone();
-                    let resultJSDate = cal.dateTimeToJsDate(result);
-                    let nowJSDate = cal.dateTimeToJsDate(nowDate);
+                    let resultJSDate = cal.dtz.dateTimeToJsDate(result);
+                    let nowJSDate = cal.dtz.dateTimeToJsDate(nowDate);
                     if ((start && resultJSDate > nowJSDate) ||
                         (!start && resultJSDate < nowJSDate)) {
                         result = nowDate;
@@ -707,7 +706,7 @@ calFilter.prototype = {
 
         // the today and tomorrow properties are precalculated here
         // for better performance when filtering batches of items.
-        this.mToday = cal.now();
+        this.mToday = cal.dtz.now();
         this.mToday.isDate = true;
 
         this.mTomorrow = this.mToday.clone();
@@ -767,7 +766,7 @@ calFilter.prototype = {
         }
 
         let count = 0;
-        let start = cal.now();
+        let start = cal.dtz.now();
 
         // If the base item matches the filter, we need to check each future occurrence.
         // Otherwise, we only need to check the exceptions.
@@ -793,7 +792,7 @@ calFilter.prototype = {
             let exMatch = null;
             aItem.recurrenceInfo.getExceptionIds({}).forEach(function(rID) {
                 let ex = aItem.recurrenceInfo.getExceptionFor(rID);
-                if (ex && cal.now().compare(ex.startDate || ex.entryDate) < 0 &&
+                if (ex && cal.dtz.now().compare(ex.startDate || ex.entryDate) < 0 &&
                     this.isItemInFilters(ex)) {
                     exMatch = ex;
                 }
@@ -826,7 +825,7 @@ calFilter.prototype = {
             occs = [aItem];
         } else {
             occs = aItem.getOccurrencesBetween(this.mStartDate || cal.createDateTime(),
-                                               this.mEndDate || cal.now(), {});
+                                               this.mEndDate || cal.dtz.now(), {});
             if ((props.occurrences == props.FILTER_OCCURRENCES_PAST_AND_NEXT) &&
                 !this.mEndDate) {
                 // we have an unbound date range and the occurrence filter specifies
@@ -905,7 +904,7 @@ calFilter.prototype = {
         if (!props.occurrences && this.endDate) {
             filter |= aCalendar.ITEM_FILTER_CLASS_OCCURRENCES;
             startDate = startDate || cal.createDateTime();
-            endDate = endDate || cal.now();
+            endDate = endDate || cal.dtz.now();
         }
 
         return aCalendar.getItems(filter, 0, startDate, endDate, listener);

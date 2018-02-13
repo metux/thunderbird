@@ -260,5 +260,5 @@
 <!ENTITY legacyExtensions.description "Այս ընդլայնումները չեն համապատասխանում &brandShortName;-ի պահանջներին և ապաակտիվացվել են:">
 <!ENTITY legacyExtensions.learnMore "Իմանալ ավելին հավելումների փոփոխությունների մասին">
 
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">
 <!ENTITY cmd.findReplacement.label            "Find a Replacement">
-

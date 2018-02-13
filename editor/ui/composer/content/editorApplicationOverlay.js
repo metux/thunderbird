@@ -21,7 +21,7 @@ function initEditorContextMenuListener(aEvent)
 {
   var popup = document.getElementById("contentAreaContextMenu");
   if (popup)
-    popup.addEventListener("popupshowing", initEditorContextMenuItems, false);
+    popup.addEventListener("popupshowing", initEditorContextMenuItems);
 }
 
 addEventListener("load", initEditorContextMenuListener, false);
@@ -45,8 +45,12 @@ function editPageOrFrame()
 
 function getContentFrameURI(aFocusedWindow)
 {
-  var contentFrame = isContentFrame(aFocusedWindow) ?
+  let isContentFrame = aFocusedWindow ?
+                         (aFocusedWindow.top == window.content) : false;
+
+  let contentFrame = isContentFrame ?
                        aFocusedWindow : window.content;
+
   return contentFrame.location.href;
 }
 

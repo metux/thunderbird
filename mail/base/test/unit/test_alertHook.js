@@ -35,25 +35,25 @@ var mailnewsURL = {
 function run_test() {
   // First register the mock alerts service
   let uuid = MockFactory.register("@mozilla.org/alerts-service;1", mockAlertsService);
-  do_register_cleanup(function() {
+  registerCleanupFunction(function() {
     MockFactory.unregister(uuid);
   });
 
   // Just text, no url or window => expect no error shown to user
   gAlertShown = false;
   MailServices.mailSession.alertUser("test error");
-  do_check_false(gAlertShown);
+  Assert.ok(!gAlertShown);
 
   // Text, url and window => expect error shown to user
   gAlertShown = false;
   MailServices.mailSession.alertUser("test error 2", mailnewsURL);
-  do_check_true(gAlertShown);
+  Assert.ok(gAlertShown);
 
   // Text, url and no window => export no error shown to user
   gAlertShown = false;
   gMsgWindow = null;
   MailServices.mailSession.alertUser("test error 2", mailnewsURL);
-  do_check_false(gAlertShown);
+  Assert.ok(!gAlertShown);
 
   // XXX There appears to be a shutdown leak within the activity manager when
   // unless it is cleaned up, however as it is only shutdown, it doesn't really

@@ -53,13 +53,13 @@ var gDataman = {
     catch (e) {}
     this.bundle = document.getElementById("datamanBundle");
 
-    Services.obs.addObserver(this, "cookie-changed", false);
-    Services.obs.addObserver(this, "perm-changed", false);
-    Services.obs.addObserver(this, "passwordmgr-storage-changed", false);
+    Services.obs.addObserver(this, "cookie-changed");
+    Services.obs.addObserver(this, "perm-changed");
+    Services.obs.addObserver(this, "passwordmgr-storage-changed");
     // Services.contentPrefs.addObserver(null, this);
-    Services.obs.addObserver(this, "satchel-storage-changed", false);
-    Services.obs.addObserver(this, "dom-storage-changed", false);
-    Services.obs.addObserver(this, "dom-storage2-changed", false);
+    Services.obs.addObserver(this, "satchel-storage-changed");
+    Services.obs.addObserver(this, "dom-storage-changed");
+    Services.obs.addObserver(this, "dom-storage2-changed");
 
     this.timer = Components.classes["@mozilla.org/timer;1"]
                            .createInstance(Components.interfaces.nsITimer);
@@ -333,7 +333,7 @@ var gDomains = {
       // Add domains for web storages.
       gDataman.debugMsg("Add storages to domain list: " + Date.now()/1000);
       // Force DOM Storage to write its data to the disk.
-      Services.obs.notifyObservers(window, "domstorage-flush-timer", "");
+      Services.obs.notifyObservers(window, "domstorage-flush-timer");
       yield setTimeout(nextStep, 0);
       gStorage.loadList();
       for (let sStorage of gStorage.storages) {
@@ -460,7 +460,7 @@ var gDomains = {
       yield setTimeout(nextStep, 0);
 
       // Send a notification that we have finished.
-      Services.obs.notifyObservers(window, "dataman-loaded", null);
+      Services.obs.notifyObservers(window, "dataman-loaded");
       yield undefined;
     }
 

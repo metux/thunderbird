@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Uneko erregistro-moduluak">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Nabigatze seguruko JS erregistroa">
 <!ENTITY aboutUrlClassifier.debugFile                   "Uneko erregistro-fitxategia">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

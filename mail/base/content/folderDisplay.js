@@ -174,7 +174,7 @@ function FolderDisplayWidget(aTabInfo, aMessageDisplayWidget) {
   let self = this;
   domNode.addEventListener("select", function () {
     self.view.dbView.selectionChanged();
-  }, false);
+  });
 
   /**
    * Create a fake tree box object for if/when this folder is in the background.
@@ -967,7 +967,7 @@ FolderDisplayWidget.prototype = {
     //  valid at the time we generate the notification.  In such a case, you
     //  can easily get that information from the gDBView.  (The documentation
     //  on creating a custom column assumes gDBView.)
-    Services.obs.notifyObservers(this.displayedFolder, "MsgCreateDBView", "");
+    Services.obs.notifyObservers(this.displayedFolder, "MsgCreateDBView");
   },
 
   /**
@@ -2504,7 +2504,7 @@ FolderDisplayWidget.prototype = {
     }
 
     let treeBox = this.treeBox;
-    if (!treeBox)
+    if (!treeBox || !treeBox.view)
       return;
 
     // try and trigger a reflow...

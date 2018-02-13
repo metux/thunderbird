@@ -5,3 +5,6 @@
 <!ENTITY virtualFolderListTitle.title        "Pilih Folder">
 <!ENTITY virtualFolderDesc.label       "Pilih folder untuk dicari:">
 
+
+<!ENTITY folderName.label "Folder name">
+<!ENTITY folderSearch.label "Search">

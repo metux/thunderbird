@@ -12,6 +12,11 @@ const {interfaces: Ci, utils: Cu, classes: Cc} = Components;
 
 Cu.import("chrome://marionette/content/element.js");
 
+const dblclickTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+
+//  Max interval between two clicks that should result in a dblclick (in ms)
+const DBLCLICK_INTERVAL = 640;
+
 this.EXPORTED_SYMBOLS = ["event"];
 
 // TODO(ato): Document!
@@ -55,6 +60,30 @@ event.MouseButton = {
   },
   isSecondary(button) {
     return button === 2;
+  },
+};
+
+event.DoubleClickTracker = {
+  firstClick: false,
+  isClicked() {
+    return event.DoubleClickTracker.firstClick;
+  },
+  setClick() {
+    if (!event.DoubleClickTracker.firstClick) {
+      event.DoubleClickTracker.firstClick = true;
+      event.DoubleClickTracker.startTimer();
+    }
+  },
+  resetClick() {
+    event.DoubleClickTracker.firstClick = false;
+    event.DoubleClickTracker.cancelTimer();
+  },
+  startTimer() {
+    dblclickTimer.initWithCallback(event.DoubleClickTracker.resetClick,
+        DBLCLICK_INTERVAL, Ci.nsITimer.TYPE_ONE_SHOT);
+  },
+  cancelTimer() {
+    dblclickTimer.cancel();
   },
 };
 
@@ -1358,6 +1387,15 @@ event.focus = function(el, opts = {}) {
 
   let ev = new win.FocusEvent(el);
   ev.initEvent("focus", opts.canBubble, true);
+  el.dispatchEvent(ev);
+};
+
+event.blur = function(el, {canBubble = true} = {}) {
+  let doc = el.ownerDocument || el.document;
+  let win = doc.defaultView;
+
+  let ev = new win.FocusEvent(el);
+  ev.initEvent("blur", canBubble, true);
   el.dispatchEvent(ev);
 };
 

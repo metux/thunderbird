@@ -2,3 +2,6 @@
 <!ENTITY virtualFolderDesc.label       "ਖੋਜ ਲਈ ਫੋਲਡਰਾਂ ਦੀ ਚੋਣ ਕਰੋ:">
 
 
+
+<!ENTITY folderName.label "Folder name">
+<!ENTITY folderSearch.label "Search">

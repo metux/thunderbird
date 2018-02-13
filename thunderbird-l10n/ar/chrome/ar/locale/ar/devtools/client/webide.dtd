@@ -160,17 +160,14 @@
 <!ENTITY runtimeMenu_accesskey "R">
 <!ENTITY runtimeMenu_showMonitor_label "Monitor">
 <!ENTITY runtimeMenu_showSettings_accesskey "s">
-
 <!ENTITY viewMenu_zoomin_accesskey "I">
 <!ENTITY viewMenu_resetzoom_accesskey "R">
-
 <!ENTITY key_quit "W">
 <!ENTITY key_showProjectPanel "O">
 <!ENTITY key_play "R">
 <!ENTITY key_zoomin "+">
 <!ENTITY key_zoomin2 "=">
 <!ENTITY key_resetzoom "0">
-
 <!ENTITY prefs_options_rememberlastproject_tooltip "Restore previous project when WebIDE starts">
 <!ENTITY runtimedetails_summonADBRoot "root device">
 <!ENTITY runtimedetails_unrestrictedPrivileges "Unrestricted DevTools privileges: ">

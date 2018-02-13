@@ -16,8 +16,8 @@ var gCookiesWindow = {
 
   init: function ()
   {
-    Services.obs.addObserver(this, "cookie-changed", false);
-    Services.obs.addObserver(this, "perm-changed", false);
+    Services.obs.addObserver(this, "cookie-changed");
+    Services.obs.addObserver(this, "perm-changed");
 
     this._bundle = document.getElementById("bundlePreferences");
     this._tree = document.getElementById("cookiesList");
@@ -515,7 +515,7 @@ var gCookiesWindow = {
   {
     if (aExpires) {
       var date = new Date(1000 * aExpires);
-      const dateTimeFormatter = Services.intl.createDateTimeFormat(undefined, {
+      const dateTimeFormatter = new Services.intl.DateTimeFormat(undefined, {
               dateStyle: "long", timeStyle: "long"
       });
       return dateTimeFormatter.format(date);

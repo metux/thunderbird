@@ -152,7 +152,6 @@
 <!ENTITY author.label "Author">
 <!ENTITY organizationField4.label "Organization">
 <!ENTITY replyToField4.label "Reply to">
-
 <!ENTITY subjectField4.label "Subject">
 <!ENTITY ccField4.label "Cc">
 <!ENTITY bccField4.label "Bcc">
@@ -165,7 +164,6 @@
 <!ENTITY messageIdField4.label "Message ID">
 <!ENTITY inReplyToField4.label "In reply to">
 <!ENTITY originalWebsite4.label "Website">
-
 <!ENTITY hdrArchiveButton1.label "Archive">
 <!ENTITY hdrArchiveButton1.tooltip "Archive this message">
 <!ENTITY hdrOpenConversationButton1.label "Conversation">
@@ -186,7 +184,6 @@
 <!ENTITY hdrJunkButton1.tooltip "Mark this message as junk">
 <!ENTITY hdrTrashButton1.label "Delete">
 <!ENTITY hdrTrashButton1.tooltip "Delete this message">
-
 <!ENTITY otherActionsButton2.label "More">
 <!ENTITY otherActionsButton.tooltip "More actions">
 <!ENTITY otherActionsOpenConversation1.label "Open in Conversation">
@@ -205,17 +202,13 @@
 <!ENTITY viewSourceMenuItem1.accesskey "V">
 <!ENTITY otherActionsPrint1.label "Print…">
 <!ENTITY otherActionsPrint1.accesskey "P">
-
 <!ENTITY startExpandedCmd.label    "Initially Show Attachment Pane">
 <!ENTITY startExpandedCmd.accesskey    "S">
-
 <!ENTITY openAttachment.tooltip "Open the attached file">
-
 <!ENTITY saveAttachmentButton1.label       "Save">
 <!ENTITY saveAttachmentButton1.tooltip     "Save the attached file">
 <!ENTITY saveAllAttachmentsButton1.label   "Save All">
 <!ENTITY saveAllAttachmentsButton1.tooltip "Save all the attached files">
-
 <!ENTITY CopyMessageId.accesskey "C">
 <!ENTITY OpenMessageForMsgId.accesskey "O">
 <!ENTITY OpenBrowserWithMsgId.accesskey "B">

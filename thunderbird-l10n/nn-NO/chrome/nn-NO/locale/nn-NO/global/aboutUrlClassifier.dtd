@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Aktuelle loggmodular">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "JS-logg for trygg nettlesing">
 <!ENTITY aboutUrlClassifier.debugFile                   "Gjeldande loggfil">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

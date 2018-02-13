@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "امتدادات عتيقة">
 <!ENTITY legacyExtensions.description "لا تحقق هذه الامتدادات معايير &brandShortName; الحالية، لذا عُطّلت.">
 <!ENTITY legacyExtensions.learnMore "تعرّف على التغييرات على الإضافات">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

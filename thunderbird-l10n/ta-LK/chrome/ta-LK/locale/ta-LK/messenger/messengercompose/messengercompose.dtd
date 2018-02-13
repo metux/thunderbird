@@ -278,6 +278,7 @@ Entities below were automatically added by compare-locales,
 <!ENTITY spellAddDictionaries.accesskey "A">
 <!ENTITY removeAttachment.label "உடனிணைப்புகளை நீக்குக">
 <!ENTITY removeAttachment.accesskey "M">
+
 <!ENTITY pasteAsQuotationCmd.key "o">
 <!ENTITY spellingButton.tooltip "தெரிவுசெய்யப்பட்ட அல்லது முழுச்செய்தியிலும் எழுத்துக்கோர்வைகளை சரிபார்க்க">
 
@@ -301,20 +302,15 @@ Entities below were automatically added by compare-locales,
 <!ENTITY findReplaceCmd.key "H">
 <!ENTITY reorderAttachmentsPanel.label "Reorder Attachments">
 <!ENTITY moveAttachmentTopPanelBtn.label "Move to Top">
-<!ENTITY moveAttachmentTopPanelBtn.accesskey "T">
 <!ENTITY moveAttachmentUpPanelBtn.label "Move Up">
-<!ENTITY moveAttachmentUpPanelBtn.accesskey "U">
 <!ENTITY moveAttachmentBundleUpPanelBtn.label "Move together">
-<!ENTITY moveAttachmentBundleUpPanelBtn.accesskey "v">
 <!ENTITY moveAttachmentDownPanelBtn.label "Move Down">
-<!ENTITY moveAttachmentDownPanelBtn.accesskey "D">
 <!ENTITY moveAttachmentBottomPanelBtn.label "Move to Bottom">
-<!ENTITY moveAttachmentBottomPanelBtn.accesskey "B">
-<!ENTITY sortAttachmentsTogglePanelBtn.AZ.label "Sort Selection: A - Z">
-<!ENTITY sortAttachmentsTogglePanelBtn.AZ.accesskey "o">
-<!ENTITY sortAttachmentsTogglePanelBtn.ZA.label "Sort Selection: Z - A">
-<!ENTITY sortAttachmentsTogglePanelBtn.ZA.accesskey "o">
-
+<!ENTITY sortAttachmentsPanelBtn.Sort.AZ.label "Sort: A - Z">
+<!ENTITY sortAttachmentsPanelBtn.Sort.ZA.label "Sort: Z - A">
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.AZ.label "Sort Selection: A - Z">
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.ZA.label "Sort Selection: Z - A">
+<!ENTITY sortAttachmentsPanelBtn.key "y">
 <!ENTITY deliveryFormatMenu.label "Delivery Format">
 <!ENTITY deliveryFormatMenu.accesskey "F">
 <!ENTITY priorityButton.title "Priority">
@@ -325,9 +321,7 @@ Entities below were automatically added by compare-locales,
 <!ENTITY preferencesCmd2.label "Options">
 <!ENTITY preferencesCmd2.accesskey "O">
 <!ENTITY printButton.label "Print">
-
 <!ENTITY printButton.tooltip "Print this message">
-
 <!ENTITY reorderAttachments.label "Reorder Attachments…">
 <!ENTITY reorderAttachments.accesskey "s">
 <!ENTITY attachCloud.label "Filelink…">
@@ -340,7 +334,6 @@ Entities below were automatically added by compare-locales,
 <!ENTITY convertRegularAttachment.accesskey "A">
 <!ENTITY customizeFromAddress.label "Customize From Address…">
 <!ENTITY customizeFromAddress.accesskey "A">
-
 <!ENTITY languageStatusButton.tooltip "Spellcheck language">
 <!ENTITY encodingStatusPanel.tooltip "Text encoding">
 <!ENTITY headersSpace.style "width: 9em;">

@@ -25,6 +25,7 @@
 #include "nsIMimeMiscStatus.h"
 #include "nsWeakReference.h"
 #include "nsString.h"
+#include "nsIURIMutator.h"
 
 ///////////////////////////////////////////////////////////////////////////////////
 // Okay, I found that all of the mail and news url interfaces needed to support
@@ -48,6 +49,43 @@ public:
     NS_DECL_NSIURI
     NS_DECL_NSIURL
     NS_DECL_NSIURIWITHPRINCIPAL
+
+public:
+  class Mutator
+      : public nsIURIMutator
+      , public BaseURIMutator<nsMsgMailNewsUrl>
+  {
+    NS_DECL_ISUPPORTS
+    NS_FORWARD_SAFE_NSIURISETTERS_RET(mURI)
+
+    NS_IMETHOD Deserialize(const mozilla::ipc::URIParams& aParams) override
+    {
+      return NS_ERROR_NOT_IMPLEMENTED;
+    }
+
+    NS_IMETHOD Read(nsIObjectInputStream* aStream) override
+    {
+      return NS_ERROR_NOT_IMPLEMENTED;
+    }
+
+    NS_IMETHOD Finalize(nsIURI** aURI) override
+    {
+      mURI.forget(aURI);
+      return NS_OK;
+    }
+
+    NS_IMETHOD SetSpec(const nsACString & aSpec, nsIURIMutator** aMutator) override
+    {
+      NS_ADDREF(*aMutator = this);
+      return InitFromSpec(aSpec);
+    }
+
+    explicit Mutator() { }
+  private:
+    virtual ~Mutator() { }
+
+    friend class nsMsgMailNewsUrl;
+  };
 
 protected:
   virtual ~nsMsgMailNewsUrl();

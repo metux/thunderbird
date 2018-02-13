@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Nuværende logmoduler">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Safe Browsing-JS-log">
 <!ENTITY aboutUrlClassifier.debugFile                   "Nuværende logfil">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

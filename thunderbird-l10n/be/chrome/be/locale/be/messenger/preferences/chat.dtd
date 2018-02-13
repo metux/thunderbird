@@ -28,10 +28,13 @@
 <!ENTITY browse.accesskey "г">
 
 <!ENTITY  generalTab.label            "General">
-
 <!ENTITY  completeNotification.label          "with sender's name and message preview">
 <!ENTITY  buddyInfoOnly.label                 "with sender's name only">
 <!ENTITY  dummyNotification.label             "without any info">
+<!ENTITY  getAttention.label                  "Flash the taskbar item">
+<!ENTITY  getAttention.accesskey              "F">
+<!ENTITY  getAttentionMac.label               "Animate dock icon">
+<!ENTITY  getAttentionMac.accesskey           "o">
 <!ENTITY messageStyleTab.title             "Message Styles">
 <!ENTITY messageStylePreview.label         "Preview:">
 <!ENTITY messageStyleTheme.label           "Theme:">

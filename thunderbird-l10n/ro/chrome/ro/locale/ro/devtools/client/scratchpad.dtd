@@ -87,100 +87,71 @@
   -->
 
 <!ENTITY window.title                 "Scratchpad">
-
 <!ENTITY newWindowCmd.label           "New Window">
 <!ENTITY newWindowCmd.accesskey       "N">
 <!ENTITY newWindowCmd.commandkey      "n">
-
 <!ENTITY openFileCmd.label            "Open File…">
 <!ENTITY openFileCmd.accesskey        "O">
 <!ENTITY openFileCmd.commandkey       "o">
-
 <!ENTITY openRecentMenu.label         "Open Recent">
 <!ENTITY openRecentMenu.accesskey     "R">
-
 <!ENTITY revertCmd.label              "Revert…">
 <!ENTITY revertCmd.accesskey          "t">
-
 <!ENTITY saveFileCmd.label            "Save">
 <!ENTITY saveFileCmd.accesskey        "S">
 <!ENTITY saveFileCmd.commandkey       "s">
-
 <!ENTITY saveFileAsCmd.label          "Save As…">
 <!ENTITY saveFileAsCmd.accesskey      "A">
-
 <!ENTITY closeCmd.label               "Close">
 <!ENTITY closeCmd.key                 "W">
 <!ENTITY closeCmd.accesskey           "C">
-
 <!ENTITY viewMenu.label               "View">
 <!ENTITY viewMenu.accesskey           "V">
-
 <!ENTITY lineNumbers.label             "Show Line Numbers">
 <!ENTITY lineNumbers.accesskey         "L">
-
 <!ENTITY wordWrap.label                "Wrap Text">
 <!ENTITY wordWrap.accesskey            "W">
-
 <!ENTITY highlightTrailingSpace.label     "Highlight Trailing Space">
 <!ENTITY highlightTrailingSpace.accesskey "H">
-
 <!ENTITY largerFont.label             "Larger Font">
 <!ENTITY largerFont.accesskey         "a">
 <!ENTITY largerFont.commandkey        "+">
-<!ENTITY largerFont.commandkey2       "="> 
+<!ENTITY largerFont.commandkey2       "=">
 <!ENTITY smallerFont.label            "Smaller Font">
 <!ENTITY smallerFont.accesskey        "M">
 <!ENTITY smallerFont.commandkey       "-">
-
 <!ENTITY normalSize.accesskey         "N">
 <!ENTITY normalSize.commandkey        "0">
-
 <!ENTITY editMenu.label               "Edit">
 <!ENTITY editMenu.accesskey           "E">
-
 <!ENTITY run.label                    "Run">
 <!ENTITY run.accesskey                "R">
 <!ENTITY run.key                      "r">
-
 <!ENTITY inspect.label                "Inspect">
 <!ENTITY inspect.accesskey            "I">
 <!ENTITY inspect.key                  "i">
-
 <!ENTITY display.label                "Display">
 <!ENTITY display.accesskey            "D">
 <!ENTITY display.key                  "l">
-
 <!ENTITY pprint.label                 "Pretty Print">
 <!ENTITY pprint.key                   "p">
 <!ENTITY pprint.accesskey             "P">
-
 <!ENTITY environmentMenu.label        "Environment">
 <!ENTITY environmentMenu.accesskey    "N">
-
-
 <!ENTITY contentContext.label         "Content">
 <!ENTITY contentContext.accesskey     "C">
-
 <!ENTITY browserContext.label         "Browser">
 <!ENTITY browserContext.accesskey     "B">
-
 <!ENTITY documentationLink.label      "Scratchpad Help on MDN">
 <!ENTITY documentationLink.accesskey  "D">
-
-
 <!ENTITY resetContext2.label          "Reset Variables">
 <!ENTITY resetContext2.accesskey      "T">
-
 <!ENTITY reloadAndRun.label           "Reload And Run">
 <!ENTITY reloadAndRun.accesskey       "E">
 <!ENTITY reloadAndRun.key             "r">
-
 <!ENTITY executeMenu.label            "Execute">
 <!ENTITY executeMenu.accesskey        "X">
-
 <!ENTITY errorConsoleCmd.commandkey   "j">
-
 <!ENTITY evalFunction.label "Evaluate Current Function">
 <!ENTITY evalFunction.accesskey "v">
 <!ENTITY evalFunction.key "e">

@@ -203,7 +203,7 @@ function test_properDownloadData(aWin)
     is(view.getCellText(i, colState), stateString,
        "Download states match up");
 
-    var filePath = ioSvc.newURI(DownloadData[i].target, null, null)
+    var filePath = ioSvc.newURI(DownloadData[i].target)
                         .QueryInterface(Components.interfaces.nsIFileURL)
                         .file.clone()
                         .QueryInterface(Components.interfaces.nsIFile)
@@ -270,7 +270,7 @@ function test()
   };
 
   // Register with the observer service
-  os.addObserver(testObs, DLMGR_UI_DONE, false);
+  os.addObserver(testObs, DLMGR_UI_DONE);
 
   // Show the Download Manager UI
   Components.classes["@mozilla.org/download-manager-ui;1"]

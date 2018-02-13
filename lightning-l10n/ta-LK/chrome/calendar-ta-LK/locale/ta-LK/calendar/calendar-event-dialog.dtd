@@ -383,7 +383,6 @@
 
 <!ENTITY event.dialog.keepDurationButton.tooltip   "Keep the duration when changing the end date">
 <!ENTITY event.dialog.keepDurationButton.accesskey "K">
-
 <!ENTITY newevent.eventStatus.none.label          "Not specified" >
 <!ENTITY newevent.eventStatus.none.accesskey      "o" >
 <!ENTITY newevent.todoStatus.none.label           "Not specified" >
@@ -398,7 +397,6 @@
 <!ENTITY event.attendees.disallowcounter.label       "Disallow counter">
 <!ENTITY event.attendees.disallowcounter.accesskey   "a">
 <!ENTITY event.attendees.disallowcounter.tooltip     "Indicates that you will not accept counterproposals">
-
 <!ENTITY event.dialog.new.event.key2              "I">
 <!ENTITY event.dialog.new.task.key2               "D">
 <!ENTITY event.dialog.new.message.key2            "N">
@@ -412,7 +410,6 @@
 <!ENTITY event.dialog.copy.key                    "C">
 <!ENTITY event.dialog.paste.key                   "V">
 <!ENTITY event.dialog.select.all.key              "A">
-
 <!ENTITY  event.menu.item.new.label                       "New">
 <!ENTITY  event.menu.item.new.accesskey                   "N">
 <!ENTITY  event.menu.item.new.event.label                 "Event">
@@ -425,27 +422,22 @@
 <!ENTITY  event.menu.item.new.contact.accesskey           "C">
 <!ENTITY  event.menu.item.close.label                     "Close">
 <!ENTITY  event.menu.item.close.accesskey                 "C">
-
 <!ENTITY  event.menu.item.save.label                      "Save">
 <!ENTITY  event.menu.item.save.accesskey                  "S">
 <!ENTITY  event.menu.item.save.tab.accesskey              "a">
-
 <!ENTITY  event.menu.item.saveandclose.label              "Save and Close">
 <!ENTITY  event.menu.item.saveandclose.accesskey          "l">
 <!ENTITY  event.menu.item.saveandclose.tab.accesskey      "z">
-
 <!ENTITY  event.menu.item.page.setup.label                "Page Setup">
 <!ENTITY  event.menu.item.page.setup.accesskey            "u">
 <!ENTITY  event.menu.item.print.label                     "Print">
 <!ENTITY  event.menu.item.print.accesskey                 "P">
-
 <!ENTITY  event.menu.options.timezone2.label                  "Show Timezones">
 <!ENTITY  event.menu.options.timezone2.accesskey              "z">
 <!ENTITY event.remove.attendees.label2                    "Remove all attendees">
 <!ENTITY event.remove.attendees.accesskey                 "r">
 <!ENTITY event.remove.attendee.label                      "Remove attendee">
 <!ENTITY event.remove.attendee.accesskey                  "e">
-
 <!ENTITY  event.toolbar.save.label2                       "Save">
 <!ENTITY  event.toolbar.saveandclose.label                "Save and Close">
 <!ENTITY  event.toolbar.save.tooltip2                     "Save">
@@ -457,14 +449,12 @@
 <!ENTITY  event.toolbar.priority.tooltip                  "Change Priority">
 <!ENTITY  event.toolbar.status.tooltip                    "Change Status">
 <!ENTITY  event.toolbar.freebusy.tooltip                  "Change Free/Busy time">
-
 <!ENTITY counter.button.proposal.label                    "Apply proposal">
 <!ENTITY counter.button.proposal.accesskey                "p">
 <!ENTITY counter.button.proposal.tooltip2                 "Event fields will be filled in using the values from the counterproposal, only saving with or without additional changes will notify all attendees accordingly">
 <!ENTITY counter.button.original.label                    "Apply original data">
 <!ENTITY counter.button.original.accesskey                "r">
 <!ENTITY counter.button.original.tooltip2                 "The fields will be set to the values from the original event, before the counterproposal was made">
-
 <!ENTITY event.categories.textbox.label                   "Add a new category" >
 <!ENTITY event.until.label                                "Until:">
 <!ENTITY event.until.accesskey                            "B">
@@ -476,7 +466,6 @@
 <!ENTITY event.reminder.12hours.before.label              "12 hours before" >
 <!ENTITY event.statusbarpanel.freebusy.label              "Time as:">
 <!ENTITY event.statusbarpanel.privacy.label               "Privacy:">
-
 <!ENTITY event.recurrence.pattern.yearly.day.label           "day" >
 <!ENTITY event.freebusy.button.next.slot        "Next slot">
 <!ENTITY event.freebusy.button.previous.slot    "Previous slot">
@@ -486,9 +475,7 @@
 <!ENTITY event.attendee.usertype.resource       "Resource">
 <!ENTITY event.attendee.usertype.room           "Room">
 <!ENTITY event.attendee.usertype.unknown        "Unknown">
-
 <!ENTITY event.timezone.custom.label     "More Timezones…">
-
 <!ENTITY read.only.event.start.label     "Start Date:">
 <!ENTITY read.only.task.start.label      "Start Date:">
 <!ENTITY read.only.event.end.label       "End Date:">

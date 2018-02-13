@@ -17,7 +17,7 @@
 
 #include "mozilla/Logging.h"
 
-static mozilla::LazyLogModule gAbWinHelperLog("nsAbWinHelperLog");
+static mozilla::LazyLogModule gAbWinHelperLog("AbWinHelper");
 
 #define PRINTF(args) MOZ_LOG(gAbWinHelperLog, mozilla::LogLevel::Debug, args)
 
@@ -240,7 +240,8 @@ uint32_t nsAbWinHelper::mUseCount = 0;
 // same protection (MAPI is supposed to be thread-safe).
 
 nsAbWinHelper::nsAbWinHelper(void)
-: mAddressBook(NULL), mLastError(S_OK)
+  : mLastError(S_OK)
+  , mAddressBook(NULL)
 {
   if (!mUseCount++)
     mMutex = new mozilla::Mutex("nsAbWinHelper.mMutex");

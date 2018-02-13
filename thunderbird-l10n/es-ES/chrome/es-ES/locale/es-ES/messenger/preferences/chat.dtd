@@ -46,3 +46,8 @@
 <!ENTITY messageStyleShowHeader.accesskey "z">
 <!ENTITY messageStyleNoPreview.title "No está disponible la vista preliminar">
 <!ENTITY messageStyleNoPreview.description "Este tema no es válido o no está actualmente disponible (complemento desactivado, modo seguro…).">
+
+<!ENTITY  getAttention.label                  "Flash the taskbar item">
+<!ENTITY  getAttention.accesskey              "F">
+<!ENTITY  getAttentionMac.label               "Animate dock icon">
+<!ENTITY  getAttentionMac.accesskey           "o">

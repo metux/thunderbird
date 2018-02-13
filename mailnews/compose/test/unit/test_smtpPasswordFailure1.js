@@ -20,6 +20,7 @@ load("../../../resources/passwordStorage.js");
 var server;
 var attempt = 0;
 
+var kIdentityMail = "identity@foo.invalid";
 var kSender = "from@foo.invalid";
 var kTo = "to@foo.invalid";
 var kUsername = "testsmtp";
@@ -32,7 +33,7 @@ function alert(aDialogText, aText)
 {
   // The first few attempts may prompt about the password problem, the last
   // attempt shouldn't.
-  do_check_true(attempt < 4);
+  Assert.ok(attempt < 4);
 
   // Log the fact we've got an alert, but we don't need to test anything here.
   dump("Alert Title: " + aDialogText + "\nAlert Text: " + aText + "\n");
@@ -80,7 +81,7 @@ add_task(function *() {
 
   server.start();
   var smtpServer = getBasicSmtpServer(server.port);
-  var identity = getSmtpIdentity(kSender, smtpServer);
+  var identity = getSmtpIdentity(kIdentityMail, smtpServer);
 
   // Handle the server in a try/catch/finally loop so that we always will stop
   // the server if something fails.
@@ -94,7 +95,7 @@ add_task(function *() {
 
     dump("Send\n");
 
-    MailServices.smtp.sendMailMessage(testFile, kTo, identity,
+    MailServices.smtp.sendMailMessage(testFile, kTo, identity, kSender,
                                       null, null, null, null,
                                       false, {}, {});
 
@@ -102,7 +103,7 @@ add_task(function *() {
 
     dump("End Send\n");
 
-    do_check_eq(attempt, 2);
+    Assert.equal(attempt, 2);
 
     // Check that we haven't forgetton the login even though we've retried and
     // canceled.
@@ -111,9 +112,9 @@ add_task(function *() {
                          .findLogins(count, "smtp://localhost", null,
                                      "smtp://localhost");
 
-    do_check_eq(count.value, 1);
-    do_check_eq(logins[0].username, kUsername);
-    do_check_eq(logins[0].password, kInvalidPassword);
+    Assert.equal(count.value, 1);
+    Assert.equal(logins[0].username, kUsername);
+    Assert.equal(logins[0].password, kInvalidPassword);
   } catch (e) {
     do_throw(e);
   } finally {

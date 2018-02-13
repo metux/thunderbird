@@ -53,6 +53,10 @@ sentence. -->
 <!ENTITY messageStyleDefaultTheme.label    "Προεπιλογή">
 <!ENTITY messageStyleShowHeader.accesskey  "Ε">
 
+<!ENTITY  getAttention.label                  "Flash the taskbar item">
+<!ENTITY  getAttention.accesskey              "F">
+<!ENTITY  getAttentionMac.label               "Animate dock icon">
+<!ENTITY  getAttentionMac.accesskey           "o">
 <!ENTITY messageStylePaperSheetsTheme.label "Paper Sheets">
 <!ENTITY messageStyleVariant.label         "Variant:">
 <!ENTITY messageStyleVariant.accesskey     "V">

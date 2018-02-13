@@ -263,3 +263,5 @@
 <!ENTITY legacyExtensions.title "Ferâldere útwreidingen">
 <!ENTITY legacyExtensions.description "Dizze útwreidingen foldogge op dit stuit net oan de &brandShortName;-standerts binne dêrom de-aktivearre.">
 <!ENTITY legacyExtensions.learnMore "Lear mear oer de wizigingen oan add-ons">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

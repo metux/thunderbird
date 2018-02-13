@@ -293,19 +293,14 @@
 <!ENTITY reorderAttachmentsCmd.key "x">
 <!ENTITY reorderAttachmentsPanel.label "Reorder Attachments">
 <!ENTITY moveAttachmentTopPanelBtn.label "Move to Top">
-<!ENTITY moveAttachmentTopPanelBtn.accesskey "T">
 <!ENTITY moveAttachmentUpPanelBtn.label "Move Up">
-<!ENTITY moveAttachmentUpPanelBtn.accesskey "U">
 <!ENTITY moveAttachmentBundleUpPanelBtn.label "Move together">
-<!ENTITY moveAttachmentBundleUpPanelBtn.accesskey "v">
 <!ENTITY moveAttachmentDownPanelBtn.label "Move Down">
-<!ENTITY moveAttachmentDownPanelBtn.accesskey "D">
 <!ENTITY moveAttachmentBottomPanelBtn.label "Move to Bottom">
-<!ENTITY moveAttachmentBottomPanelBtn.accesskey "B">
-<!ENTITY sortAttachmentsTogglePanelBtn.AZ.label "Sort Selection: A - Z">
-<!ENTITY sortAttachmentsTogglePanelBtn.AZ.accesskey "o">
-<!ENTITY sortAttachmentsTogglePanelBtn.ZA.label "Sort Selection: Z - A">
-<!ENTITY sortAttachmentsTogglePanelBtn.ZA.accesskey "o">
-
+<!ENTITY sortAttachmentsPanelBtn.Sort.AZ.label "Sort: A - Z">
+<!ENTITY sortAttachmentsPanelBtn.Sort.ZA.label "Sort: Z - A">
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.AZ.label "Sort Selection: A - Z">
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.ZA.label "Sort Selection: Z - A">
+<!ENTITY sortAttachmentsPanelBtn.key "y">
 <!ENTITY reorderAttachments.label "Reorder Attachments…">
 <!ENTITY reorderAttachments.accesskey "s">

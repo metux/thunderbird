@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Dabartiniai žurnalo moduliai">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Saugaus naršymo JS žurnalas">
 <!ENTITY aboutUrlClassifier.debugFile                   "Dabartinis žurnalo failas">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

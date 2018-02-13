@@ -55,6 +55,7 @@ NS_MsgBuildSmtpUrl(nsIFile * aFilePath,
                    nsISmtpServer *aServer,
                    const char* aRecipients,
                    nsIMsgIdentity * aSenderIdentity,
+                   const char * aSender,
                    nsIUrlListener * aUrlListener,
                    nsIMsgStatusFeedback *aStatusFeedback,
                    nsIInterfaceRequestor* aNotificationCallbacks,
@@ -80,6 +81,7 @@ NS_IMPL_ISUPPORTS(nsSmtpService, nsISmtpService, nsIProtocolHandler)
 NS_IMETHODIMP nsSmtpService::SendMailMessage(nsIFile * aFilePath,
                                         const char * aRecipients,
                                         nsIMsgIdentity * aSenderIdentity,
+                                        const char * aSender,
                                         const nsAString & aPassword,
                                         nsIUrlListener * aUrlListener,
                                         nsIMsgStatusFeedback *aStatusFeedback,
@@ -100,7 +102,7 @@ NS_IMETHODIMP nsSmtpService::SendMailMessage(nsIFile * aFilePath,
       smtpServer->SetPassword(aPassword);
 
     // this ref counts urlToRun
-    rv = NS_MsgBuildSmtpUrl(aFilePath, smtpServer, aRecipients, aSenderIdentity,
+    rv = NS_MsgBuildSmtpUrl(aFilePath, smtpServer, aRecipients, aSenderIdentity, aSender,
                             aUrlListener, aStatusFeedback,
                             aNotificationCallbacks, &urlToRun, aRequestDSN);
     if (NS_SUCCEEDED(rv) && urlToRun)	
@@ -123,6 +125,7 @@ nsresult NS_MsgBuildSmtpUrl(nsIFile * aFilePath,
                             nsISmtpServer *aSmtpServer,
                             const char * aRecipients,
                             nsIMsgIdentity * aSenderIdentity,
+                            const char * aSender,
                             nsIUrlListener * aUrlListener,
                             nsIMsgStatusFeedback *aStatusFeedback,
                             nsIInterfaceRequestor* aNotificationCallbacks,
@@ -173,9 +176,10 @@ nsresult NS_MsgBuildSmtpUrl(nsIFile * aFilePath,
   nsCOMPtr<nsIMsgMailNewsUrl> url(do_QueryInterface(smtpUrl, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = url->SetSpec(urlSpec);
+  rv = url->SetSpecInternal(urlSpec);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  smtpUrl->SetSender(aSender);
   smtpUrl->SetRecipients(aRecipients);
   smtpUrl->SetRequestDSN(aRequestDSN);
   smtpUrl->SetPostMessageFile(aFilePath);
@@ -240,7 +244,7 @@ NS_IMETHODIMP nsSmtpService::VerifyLogon(nsISmtpServer *aServer,
   nsCOMPtr <nsIURI> urlToRun;
 
   nsresult rv = NS_MsgBuildSmtpUrl(nullptr, aServer,
-                          nullptr, nullptr, aUrlListener, nullptr,
+                          nullptr, nullptr, nullptr, aUrlListener, nullptr,
                           nullptr , getter_AddRefs(urlToRun), false);
   if (NS_SUCCEEDED(rv) && urlToRun)
   {
@@ -310,9 +314,9 @@ NS_IMETHODIMP nsSmtpService::NewURI(const nsACString &aSpec,
   // utf8Spec is filled up only when aOriginCharset is specified and
   // the conversion is successful. Otherwise, fall back to aSpec.
   if (aOriginCharset && NS_SUCCEEDED(rv))
-    rv = mailtoUrl->SetSpec(utf8Spec);
+    rv = mailtoUrl->SetSpecInternal(utf8Spec);
   else
-    rv = mailtoUrl->SetSpec(aSpec);
+    rv = mailtoUrl->SetSpecInternal(aSpec);
   NS_ENSURE_SUCCESS(rv, rv);
 
   mailtoUrl.forget(_retval);
@@ -345,7 +349,7 @@ NS_IMETHODIMP nsSmtpService::NewChannel2(nsIURI *aURI,
   if (aLoadInfo) {
     return NS_NewInputStreamChannelInternal(_retval,
                                             aURI,
-                                            pipeIn,
+                                            pipeIn.forget(),
                                             NS_LITERAL_CSTRING("application/x-mailto"),
                                             EmptyCString(),
                                             aLoadInfo);
@@ -359,7 +363,7 @@ NS_IMETHODIMP nsSmtpService::NewChannel2(nsIURI *aURI,
 
   return NS_NewInputStreamChannel(_retval,
                                   aURI,
-                                  pipeIn,
+                                  pipeIn.forget(),
                                   nullPrincipal,
                                   nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                   nsIContentPolicy::TYPE_OTHER,

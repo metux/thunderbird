@@ -30,6 +30,4 @@
 <!ENTITY shaderEditorUI.emptyNotice     "ينتظر إنشاء سياق WebGL…">
 
 <!ENTITY shaderEditorUI.vertexShader    "Vertex Shader">
-
 <!ENTITY shaderEditorUI.fragmentShader  "Fragment Shader">
-

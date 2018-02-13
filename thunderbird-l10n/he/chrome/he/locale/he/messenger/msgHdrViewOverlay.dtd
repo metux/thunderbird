@@ -90,7 +90,6 @@
 
 <!ENTITY author.label "Author">
 <!ENTITY replyToField4.label "Reply to">
-
 <!ENTITY ccField4.label "Cc">
 <!ENTITY bccField4.label "Bcc">
 <!ENTITY newsgroupsField4.label "Newsgroups">
@@ -102,7 +101,6 @@
 <!ENTITY messageIdField4.label "Message ID">
 <!ENTITY inReplyToField4.label "In reply to">
 <!ENTITY originalWebsite4.label "Website">
-
 <!ENTITY hdrOpenConversationButton1.label "Conversation">
 <!ENTITY hdrOpenConversationButton1.tooltip "Show conversation of this message">
 <!ENTITY hdrReplyButton2.tooltip "Reply to the sender of this message">
@@ -113,4 +111,3 @@
 <!ENTITY otherActionsButton.tooltip "More actions">
 <!ENTITY startExpandedCmd.label    "Initially Show Attachment Pane">
 <!ENTITY startExpandedCmd.accesskey    "S">
-

@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "Pasenę plėtiniai">
 <!ENTITY legacyExtensions.description "Šie plėtiniai neatitinka esamų „&brandShortName;“ standartų, tad buvo išjungti.">
 <!ENTITY legacyExtensions.learnMore "Sužinokite apie priedų pokyčius">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

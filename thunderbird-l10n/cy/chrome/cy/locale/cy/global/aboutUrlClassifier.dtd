@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Y modiwlau cofnodi cyfredol">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Cofnod Pori Diogel JS">
 <!ENTITY aboutUrlClassifier.debugFile                   "Ffeil cofnod cyfredol">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

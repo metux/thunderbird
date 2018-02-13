@@ -51,20 +51,20 @@
 
     <implementation implements="nsIDOMEventListener">
       <constructor><![CDATA[
-        this.mPrefs.addObserver("browser.urlbar", this.mPrefObserver, false);
+        this.mPrefs.addObserver("browser.urlbar", this.mPrefObserver);
 
         this.updatePref("browser.urlbar.showPopup");
         this.updatePref("browser.urlbar.autoFill");
         this.updatePref("browser.urlbar.showSearch");
         this.updatePref("browser.urlbar.formatting.enabled");
         this.inputField.controllers.insertControllerAt(0, this._editItemsController);
-        this.inputField.addEventListener("overflow", this, false);
-        this.inputField.addEventListener("underflow", this, false);
+        this.inputField.addEventListener("overflow", this);
+        this.inputField.addEventListener("underflow", this);
       ]]></constructor>
 
       <destructor><![CDATA[
-        this.inputField.removeEventListener("underflow", this, false);
-        this.inputField.removeEventListener("overflow", this, false);
+        this.inputField.removeEventListener("underflow", this);
+        this.inputField.removeEventListener("overflow", this);
         this.inputField.controllers.removeController(this._editItemsController);
         this.mPrefs.removeObserver("browser.urlbar", this.mPrefObserver);
       ]]></destructor>
@@ -350,10 +350,10 @@
     <implementation>
       <constructor><![CDATA[
         // listen for changes to default search engine
-        this.mPrefs.addObserver("browser.search", this.mObserver, false);
-        this.mPrefs.addObserver("browser.urlbar", this.mObserver, false);
+        this.mPrefs.addObserver("browser.search", this.mObserver);
+        this.mPrefs.addObserver("browser.urlbar", this.mObserver);
         this.mObSvc.addObserver(this.mObserver,
-                                "browser-search-engine-modified", false);
+                                "browser-search-engine-modified");
         this.updateEngines();
       ]]></constructor>
 
@@ -495,16 +495,6 @@
         ]]></body>
       </method>
 
-      <method name="readRDFString">
-        <parameter name="aDS"/>
-        <parameter name="aRes"/>
-        <parameter name="aProp"/>
-        <body><![CDATA[
-          var n = aDS.GetTarget(aRes, aProp, true);
-          return n ? n.QueryInterface(Components.interfaces.nsIRDFLiteral).Value : null;
-        ]]></body>
-      </method>
-
       <method name="clearSelection">
         <body>
           this.view.selection.clearSelection();
@@ -550,7 +540,7 @@
 
         if (this.mShowSearch) {
           this.textbox.mSearchInputTO = 0;
-          this.textbox.addEventListener("input", this.mInputListener, false);
+          this.textbox.addEventListener("input", this.mInputListener);
           if ("searchValue" in this.mSearchBox)
             this.mSearchBox.searchValue = this.textbox.currentSearchString;
           else
@@ -560,7 +550,7 @@
 
       <handler event="popuphiding"><![CDATA[
         if (this.mShowSearch)
-          this.textbox.removeEventListener("input", this.mInputListener, false);
+          this.textbox.removeEventListener("input", this.mInputListener);
       ]]></handler>
     </handlers>
   </binding>

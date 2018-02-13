@@ -58,3 +58,8 @@ sentence. -->
 <!ENTITY messageStyleShowHeader.accesskey  "г">
 <!ENTITY messageStyleNoPreview.title       "Нема претпрегледа">
 <!ENTITY messageStyleNoPreview.description "Ова тема није исправна или није тренутно доступна (онемогућен додатак, безбедни режим, …).">
+
+<!ENTITY  getAttention.label                  "Flash the taskbar item">
+<!ENTITY  getAttention.accesskey              "F">
+<!ENTITY  getAttentionMac.label               "Animate dock icon">
+<!ENTITY  getAttentionMac.accesskey           "o">

@@ -29,6 +29,5 @@
 <!ENTITY done.label "கீழ்கண்ட உருப்படிகள் வெற்றிகரமாக இறக்கப்பட்டது:">
 
 <!ENTITY importSourceNotFound.label     "No application to import data from found.">
-
 <!ENTITY importFromSeamonkey3.label     "SeaMonkey 2 or later">
 <!ENTITY importFromSeamonkey3.accesskey "S">

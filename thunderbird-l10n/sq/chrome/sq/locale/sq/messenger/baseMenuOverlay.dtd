@@ -25,3 +25,7 @@
 <!ENTITY whatsNewCmd.accesskey "Ç">
 <!ENTITY aboutMenuCmd.label "Mbi &brandShortName;-in">
 <!ENTITY aboutMenuCmd.accesskey "M">
+
+<!ENTITY openHelpMac2.label "&brandFullName; Help">
+<!ENTITY aboutMenuCmd2.label "About &brandFullName;">
+<!ENTITY aboutMenuCmd2.accesskey "A">

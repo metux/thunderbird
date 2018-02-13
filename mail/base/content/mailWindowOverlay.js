@@ -494,8 +494,9 @@ function InitMessageMenu()
   // Show "Edit Draft Message" menus only in a drafts folder; otherwise hide them.
   showCommandInSpecialFolder("cmd_editDraftMsg",
                              Components.interfaces.nsMsgFolderFlags.Drafts);
-  // Show "New Message from Template" menus only in a templates folder; otherwise hide them.
-  showCommandInSpecialFolder("cmd_newMsgFromTemplate",
+  // Show "New Message from Template" and "Edit Template" menus only in a
+  // templates folder; otherwise hide them.
+  showCommandInSpecialFolder(["cmd_newMsgFromTemplate", "cmd_editTemplateMsg"],
                              Components.interfaces.nsMsgFolderFlags.Templates);
 
   // Initialize the Open Message menuitem
@@ -559,8 +560,9 @@ function InitAppMessageMenu()
   // Show "Edit Draft Message" menus only in a drafts folder; otherwise hide them.
   showCommandInSpecialFolder("cmd_editDraftMsg",
                              Components.interfaces.nsMsgFolderFlags.Drafts);
-  // Show "New Message from Template" menus only in a templates folder; otherwise hide them.
-  showCommandInSpecialFolder("cmd_newMsgFromTemplate",
+  // Show "New Message from Template" and "Edit Template" menus only in a
+  // templates folder; otherwise hide them.
+  showCommandInSpecialFolder(["cmd_newMsgFromTemplate", "cmd_editTemplateMsg"],
                              Components.interfaces.nsMsgFolderFlags.Templates);
 
   // Initialize the Open Message menuitem
@@ -589,10 +591,11 @@ function InitAppMessageMenu()
  * show 'cmd_editDraftMsg' in Drafts folder, or
  * show 'cmd_newMsgFromTemplate' in Templates folder.
  *
- * aCommandId   the ID of a command to be shown in folders having aFolderFlag
+ * aCommandIds  single ID string of command or array of IDs of commands
+ *              to be shown in folders having aFolderFlag
  * aFolderFlag  the nsMsgFolderFlag that the folder must have to show the command
  */
-function showCommandInSpecialFolder(aCommandId, aFolderFlag)
+function showCommandInSpecialFolder(aCommandIds, aFolderFlag)
 {
   let msg = gFolderDisplay.selectedMessage;
   let folder = gFolderDisplay.displayedFolder;
@@ -600,7 +603,12 @@ function showCommandInSpecialFolder(aCommandId, aFolderFlag)
                          msg.folder &&  // Check folder as messages opened from file have none.
                          msg.folder.isSpecialFolder(aFolderFlag, true)) ||
                         (folder && folder.getFlag(aFolderFlag));
-  document.getElementById(aCommandId).setAttribute("hidden", !inSpecialFolder);
+  if (typeof aCommandIds === "string")
+    aCommandIds = [aCommandIds];
+
+  aCommandIds.forEach(cmdId =>
+    document.getElementById(cmdId).setAttribute("hidden", !inSpecialFolder)
+  );
 }
 
 /**
@@ -2007,6 +2015,11 @@ function MsgEditDraftMessage(aEvent)
 function MsgNewMessageFromTemplate(aEvent)
 {
   composeMsgByType(Components.interfaces.nsIMsgCompType.Template, aEvent);
+}
+
+function MsgEditTemplateMessage(aEvent)
+{
+  composeMsgByType(Components.interfaces.nsIMsgCompType.EditTemplate, aEvent);
 }
 
 function MsgComposeDraftMessage()
@@ -3707,4 +3720,52 @@ function initAppMenuPopup(aMenuPopup, aEvent)
   // up it's popupmenu.
   if (aEvent.target.parentNode.parentNode.parentNode.parentNode == aMenuPopup)
     aMenuPopup._currentPopup = aEvent.target;
+}
+
+/**
+ *  Generates menu items for opening preferences dialog/tab for each installed addon.
+ *
+ *  @option aMenupopup  The menupopup element to populate.
+ */
+function initAddonPrefsMenu(aMenupopup) {
+  // Starting at the bottom, clear all menu items until we hit
+  // "no add-on prefs", which is the only disabled element. Above this element
+  // there may be further items that we want to preserve.
+  let noPrefsElem = aMenupopup.querySelector('[disabled="true"]');
+  while (aMenupopup.lastChild != noPrefsElem) {
+    aMenupopup.lastChild.remove();
+  }
+
+  // Enumerate all enabled addons with URL to XUL document with prefs.
+  AddonManager.getAddonsByTypes(["extension"], (addons) => {
+    let addonsFound = [];
+    for (let addon of addons) {
+      if (!addon.userDisabled && !addon.appDisabled && !addon.softDisabled &&
+          addon.optionsURL && (addon.optionsType === null || addon.optionsType == 3)) {
+        addonsFound.push(addon);
+      }
+    }
+
+    // Populate the menu with addon names and icons
+    if (addonsFound.length > 0) {
+      addonsFound.sort((a,b) => a.name.localeCompare(b.name));
+      for (let addon of addonsFound) {
+        let newItem = document.createElement("menuitem");
+        newItem.setAttribute("label", addon.name);
+        newItem.setAttribute("value", addon.optionsURL);
+        if (addon.optionsType)
+          newItem.setAttribute("optionsType", addon.optionsType);
+        let iconURL = addon.iconURL || addon.icon64URL;
+        if (iconURL) {
+          newItem.setAttribute("class", "menuitem-iconic");
+          newItem.setAttribute("image", iconURL);
+        }
+        aMenupopup.appendChild(newItem);
+      }
+      noPrefsElem.setAttribute("collapsed", "true");
+    } else {
+      // Only show message that there are no addons with prefs.
+      noPrefsElem.setAttribute("collapsed", "false");
+    }
+  });
 }

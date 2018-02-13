@@ -332,7 +332,7 @@ var calendarItemTabType = {
         // and never meant to be persisted or restored. See persistTab.
         if (aState.args && aState.calendarId && aState.itemId) {
             aState.args.initialStartDateValue = aState.initialStartDate
-                ? cal.createDateTime(aState.initialStartDate) : cal.getDefaultStartDate();
+                ? cal.createDateTime(aState.initialStartDate) : cal.dtz.getDefaultStartDate();
 
             aState.args.onOk = doTransaction.bind(null, "modify");
 
@@ -554,7 +554,7 @@ function refreshUIBits() {
         }
 
         if (!TodayPane.showsToday()) {
-            TodayPane.setDay(cal.now());
+            TodayPane.setDay(cal.dtz.now());
         }
 
         // update the unifinder
@@ -586,7 +586,6 @@ function switchCalendarView(aType, aShow) {
         return;
     }
 
-    // Sunbird/Lightning common view switching code
     switchToView(aType);
 }
 

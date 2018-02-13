@@ -362,5 +362,4 @@
 <!ENTITY size-extraLargeCmd.accesskey "x">
 <!ENTITY size-hugeCmd.label "Huge">
 <!ENTITY size-hugeCmd.accesskey "H">
-
 <!ENTITY absoluteFontSizeToolbarCmd.tooltip "Set font size">

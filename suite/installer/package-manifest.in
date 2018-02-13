@@ -74,9 +74,6 @@
 #ifndef MOZ_STATIC_JS
 @BINPATH@/@DLL_PREFIX@mozjs@DLL_SUFFIX@
 #endif
-#ifdef MOZ_DMD
-@BINPATH@/@DLL_PREFIX@dmd@DLL_SUFFIX@
-#endif
 #ifndef MOZ_SYSTEM_NSPR
 #ifndef MOZ_FOLD_LIBS
 @BINPATH@/@DLL_PREFIX@nspr4@DLL_SUFFIX@
@@ -103,6 +100,10 @@
 @BINPATH@/@MOZ_D3DCOMPILER_VISTA_DLL@
 #endif
 #endif # MOZ_ANGLE_RENDERER
+
+#if defined(XP_WIN) && defined(MOZ_ENABLE_SKIA_PDF)
+@BINPATH@/pdfium.dll
+#endif
 
 #ifdef XP_WIN
 @BINPATH@/plugin-hang-ui@BIN_SUFFIX@
@@ -144,6 +145,9 @@
 #ifdef MOZ_GTK3
 @BINPATH@/@DLL_PREFIX@mozgtk@DLL_SUFFIX@
 @BINPATH@/gtk2/@DLL_PREFIX@mozgtk@DLL_SUFFIX@
+#ifdef MOZ_WAYLAND
+@BINPATH@/@DLL_PREFIX@mozwayland@DLL_SUFFIX@
+#endif
 #endif
 @RESPATH@/license.txt
 @RESPATH@/blocklist.xml
@@ -192,12 +196,10 @@
 @RESPATH@/components/dom_bindings.xpt
 @RESPATH@/components/dom_canvas.xpt
 @RESPATH@/components/dom_core.xpt
-@RESPATH@/components/dom_css.xpt
 @RESPATH@/components/dom_events.xpt
 @RESPATH@/components/dom_file.xpt
 @RESPATH@/components/dom_geolocation.xpt
 @RESPATH@/components/dom_html.xpt
-@RESPATH@/components/dom_json.xpt
 @RESPATH@/components/dom_media.xpt
 @RESPATH@/components/dom_network.xpt
 @RESPATH@/components/dom_notification.xpt
@@ -211,7 +213,6 @@
 @RESPATH@/components/dom_sidebar.xpt
 @RESPATH@/components/dom_smil.xpt
 @RESPATH@/components/dom_storage.xpt
-@RESPATH@/components/dom_stylesheets.xpt
 @RESPATH@/components/dom_svg.xpt
 @RESPATH@/components/dom_system.xpt
 @RESPATH@/components/dom_traversal.xpt
@@ -232,9 +233,6 @@
 @RESPATH@/components/exthelper.xpt
 @RESPATH@/components/fastfind.xpt
 @RESPATH@/components/feeds.xpt
-#ifdef MOZ_GTK
-@RESPATH@/components/filepicker.xpt
-#endif
 @RESPATH@/components/gfx.xpt
 @RESPATH@/components/html5.xpt
 @RESPATH@/components/htmlparser.xpt
@@ -340,7 +338,6 @@
 @RESPATH@/components/widget_cocoa.xpt
 #endif
 @RESPATH@/components/windowcreator.xpt
-@RESPATH@/components/windowds.xpt
 @RESPATH@/components/windowwatcher.xpt
 @RESPATH@/components/xpcom_base.xpt
 @RESPATH@/components/xpcom_components.xpt
@@ -352,7 +349,6 @@
 @RESPATH@/components/xpconnect.xpt
 @RESPATH@/components/xulapp.xpt
 @RESPATH@/components/xul.xpt
-@RESPATH@/components/xultmpl.xpt
 @RESPATH@/components/zipwriter.xpt
 
 ; JavaScript components
@@ -376,6 +372,8 @@
 @RESPATH@/components/aboutdebugging.manifest
 @RESPATH@/components/aboutdevtools-registration.js
 @RESPATH@/components/aboutdevtools.manifest
+@RESPATH@/components/aboutdevtoolstoolbox-registration.js
+@RESPATH@/components/aboutdevtoolstoolbox.manifest
 @RESPATH@/components/Downloads.manifest
 @RESPATH@/components/DownloadLegacy.js
 @RESPATH@/components/EditorUtils.manifest
@@ -421,10 +419,6 @@
 @RESPATH@/components/crashmonitor.manifest
 @RESPATH@/components/nsDefaultCLH.js
 @RESPATH@/components/nsDefaultCLH.manifest
-#ifdef MOZ_GTK
-@RESPATH@/components/nsFilePicker.js
-@RESPATH@/components/nsFilePicker.manifest
-#endif
 @RESPATH@/components/nsFormAutoComplete.js
 @RESPATH@/components/FormHistoryStartup.js
 @RESPATH@/components/nsGopherProtocolStubHandler.js
@@ -681,7 +675,6 @@
 #endif
 @RESPATH@/res/fonts/*
 @RESPATH@/res/dtd/*
-@RESPATH@/res/html/*
 #ifdef XP_MACOSX
 @RESPATH@/res/MainMenu.nib/
 #endif

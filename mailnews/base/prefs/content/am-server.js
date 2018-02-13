@@ -318,7 +318,7 @@ function setupImapDeleteUI(aServerId)
   var deleteModel = document.getElementById("imap.deleteModel").getAttribute("value");
   selectImapDeleteModel(deleteModel);
 
-  // read trash_folder_name preference
+  // read trash folder path preference
   var trashFolderName = getTrashFolderName();
 
   // set folderPicker menulist
@@ -327,9 +327,14 @@ function setupImapDeleteUI(aServerId)
   trashPopup._parentFolder = MailUtils.getFolderForURI(aServerId);
   trashPopup._ensureInitialized();
 
+  // Convert the folder path in Unicode to MUTF-7.
+  let manager = Components.classes['@mozilla.org/charset-converter-manager;1']
+                  .getService(Components.interfaces.nsICharsetConverterManager);
+  // Escape backslash and double-quote with another backslash before encoding.
+  let trashMutf7 = manager.unicodeToMutf7(trashFolderName.replace(/([\\"])/g, '\\$1'));
   // TODO: There is something wrong here, selectFolder() fails even if the
   // folder does exist. Try to fix in bug 802609.
-  let trashFolder = MailUtils.getFolderForURI(aServerId + "/" + trashFolderName, false);
+  let trashFolder = MailUtils.getFolderForURI(aServerId + "/" + trashMutf7, false);
   try {
     trashPopup.selectFolder(trashFolder);
   } catch(ex) {
@@ -367,37 +372,35 @@ function selectImapDeleteModel(choice)
 function folderPickerChange(aEvent)
 {
   var folder = aEvent.target._folder;
-  var folderPath = getFolderPathFromRoot(folder);
+  // Since we need to deal with localised folder names, we simply use
+  // the path of the URI like we do in nsImapIncomingServer::DiscoveryDone().
+  // Note that the path is returned with a leading slash which we need to remove.
+  var folderPath = Services.io.newURI(folder.URI).pathQueryRef.substring(1);
+  // We need to convert that from MUTF-7 to Unicode.
+  var manager = Components.classes['@mozilla.org/charset-converter-manager;1']
+                  .getService(Components.interfaces.nsICharsetConverterManager);
+  var util = Components.classes["@mozilla.org/network/util;1"]
+                               .getService(Components.interfaces.nsINetUtil);
+  var trashUnicode = manager.mutf7ToUnicode(
+    util.unescapeString(folderPath, Components.interfaces.nsINetUtil.ESCAPE_URL_PATH));
 
   // Set the value to be persisted.
   document.getElementById("imap.trashFolderName")
-          .setAttribute("value", folderPath);
+          .setAttribute("value", trashUnicode);
 
   // Update the widget to show/do correct things even for subfolders.
   var trashFolderPicker = document.getElementById("msgTrashFolderPicker");
   trashFolderPicker.menupopup.selectFolder(folder);
 }
 
-/** Generate the relative folder path from the root. */
-function getFolderPathFromRoot(folder)
-{
-  var path = folder.name;
-  var parentFolder = folder.parent;
-  while (parentFolder && parentFolder != folder.rootFolder) {
-    path = parentFolder.name + "/" + path;
-    parentFolder = parentFolder.parent;
-  }
-  // IMAP Inbox URI's start with INBOX, not Inbox.
-  return path.replace(/^Inbox/, "INBOX");
-}
-
-// Get trash_folder_name from prefs
+// Get trash_folder_name from prefs. Despite its name this returns
+// a folder path, for example INBOX/Trash.
 function getTrashFolderName()
 {
   var trashFolderName = document.getElementById("imap.trashFolderName").getAttribute("value");
   // if the preference hasn't been set, set it to a sane default
   if (!trashFolderName) {
-    trashFolderName = "Trash";
+    trashFolderName = "Trash";  // XXX Is this a useful default?
     document.getElementById("imap.trashFolderName").setAttribute("value",trashFolderName);
   }
   return trashFolderName;

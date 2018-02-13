@@ -76,8 +76,8 @@ calDateTimeFormatter.prototype = {
             aOptions.timeZone = timezone.tzid;
         }
 
-        let formatter = Services.intl.createDateTimeFormat(undefined, aOptions);
-        return formatter.format(cal.dateTimeToJsDate(aDate));
+        let formatter = new Services.intl.DateTimeFormat(undefined, aOptions);
+        return formatter.format(cal.dtz.dateTimeToJsDate(aDate));
     },
 
     formatTimeInterval: function(aStartDate, aEndDate) {
@@ -171,9 +171,9 @@ calDateTimeFormatter.prototype = {
     },
 
     _getItemDates: function(aItem) {
-        let start = aItem[cal.calGetStartDateProp(aItem)];
-        let end = aItem[cal.calGetEndDateProp(aItem)];
-        let kDefaultTimezone = cal.calendarDefaultTimezone();
+        let start = aItem[cal.dtz.startDateProp(aItem)];
+        let end = aItem[cal.dtz.endDateProp(aItem)];
+        let kDefaultTimezone = cal.dtz.defaultTimezone;
         // Check for tasks without start and/or due date
         if (start) {
             start = start.getInTimezone(kDefaultTimezone);

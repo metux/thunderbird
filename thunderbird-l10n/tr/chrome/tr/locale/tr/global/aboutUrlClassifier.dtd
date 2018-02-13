@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Geçerli log modülleri">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Safe Browsing JS logu">
 <!ENTITY aboutUrlClassifier.debugFile                   "Geçerli log dosyası">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

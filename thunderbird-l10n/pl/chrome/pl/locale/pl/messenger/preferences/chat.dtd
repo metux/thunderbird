@@ -52,3 +52,8 @@
 <!ENTITY messageStyleShowHeader.accesskey "n">
 <!ENTITY messageStyleNoPreview.title "Podgląd jest niedostępny">
 <!ENTITY messageStyleNoPreview.description "Ten motyw jest nieprawidłowy lub obecnie niedostępny (wyłączony dodatek, tryb awaryjny itp.).">
+
+<!ENTITY  getAttention.label                  "Flash the taskbar item">
+<!ENTITY  getAttention.accesskey              "F">
+<!ENTITY  getAttentionMac.label               "Animate dock icon">
+<!ENTITY  getAttentionMac.accesskey           "o">

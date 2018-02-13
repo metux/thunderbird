@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules		"現在のログモジュール">
 <!ENTITY aboutUrlClassifier.debugSBJSModules		"セーフブラウジングの JS ログ">
 <!ENTITY aboutUrlClassifier.debugFile			"現在のログファイル">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

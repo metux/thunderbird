@@ -6,7 +6,6 @@
 #include "nsAbManager.h"
 #include "nsAbBaseCID.h"
 #include "nsAddrDatabase.h"
-#include "nsIAbMDBDirectory.h"
 #include "nsIOutputStream.h"
 #include "nsNetUtil.h"
 #include "nsMsgI18N.h"
@@ -15,7 +14,6 @@
 #include "nsAppDirectoryServiceDefs.h"
 #include "plstr.h"
 #include "prmem.h"
-#include "nsIServiceManager.h"
 #include "mozIDOMWindow.h"
 #include "plbase64.h"
 #include "nsIWindowWatcher.h"
@@ -31,9 +29,7 @@
 #include "nsIObserverService.h"
 #include "nsDirPrefs.h"
 #include "nsThreadUtils.h"
-#include "nsIAbDirFactory.h"
 #include "nsComponentManagerUtils.h"
-#include "nsIIOService.h"
 #include "nsAbQueryStringToExpression.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Services.h"
@@ -734,8 +730,10 @@ nsAbManager::ExportDirectoryToDelimitedText(nsIAbDirectory *aDirectory,
       if (NS_FAILED(bundle->GetStringFromID(EXPORT_ATTRIBUTES_TABLE[i].plainTextStringID, columnName)))
         columnName.AppendInt(EXPORT_ATTRIBUTES_TABLE[i].plainTextStringID);
 
-      rv = nsMsgI18NConvertFromUnicode(useUTF8 ? "UTF-8" : nsMsgI18NFileSystemCharset(),
-                                       columnName, revisedName);
+      rv = nsMsgI18NConvertFromUnicode(useUTF8 ? NS_LITERAL_CSTRING("UTF-8") :
+                                                 nsMsgI18NFileSystemCharset(),
+                                       columnName,
+                                       revisedName);
       NS_ENSURE_SUCCESS(rv,rv);
 
       rv = outputStream->Write(revisedName.get(),
@@ -825,8 +823,10 @@ nsAbManager::ExportDirectoryToDelimitedText(nsIAbDirectory *aDirectory,
                 newValue.Append(u'"');
               }
 
-              rv = nsMsgI18NConvertFromUnicode(useUTF8 ? "UTF-8" : nsMsgI18NFileSystemCharset(),
-                                               newValue, valueCStr);
+              rv = nsMsgI18NConvertFromUnicode(useUTF8 ? NS_LITERAL_CSTRING("UTF-8") :
+                                                         nsMsgI18NFileSystemCharset(),
+                                               newValue,
+                                               valueCStr);
               NS_ENSURE_SUCCESS(rv,rv);
 
               if (NS_FAILED(rv)) {

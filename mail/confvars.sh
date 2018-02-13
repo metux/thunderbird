@@ -8,9 +8,6 @@
 MOZ_APP_BASENAME=Thunderbird
 MOZ_APP_NAME=thunderbird
 MOZ_UPDATER=1
-MOZ_THUNDERBIRD=1
-MOZ_LDAP_XPCOM=1
-MOZ_COMPOSER=1
 
 if test "$OS_ARCH" = "WINNT" -o \
         "$OS_ARCH" = "Linux"; then
@@ -23,8 +20,6 @@ if test "$OS_ARCH" = "WINNT"; then
     MOZ_VERIFY_MAR_SIGNATURE=1
   fi
 fi
-
-MOZ_MORK=1
 
 MOZ_APP_VERSION_TXT=${_topsrcdir}/$MOZ_BUILD_APP/config/version.txt
 MOZ_APP_VERSION=`cat $MOZ_APP_VERSION_TXT`

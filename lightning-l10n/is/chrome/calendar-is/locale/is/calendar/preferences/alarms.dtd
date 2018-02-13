@@ -33,3 +33,5 @@
 <!ENTITY pref.defalarmlen4todos.accesskey "f">
 <!ENTITY pref.defaultsnoozelength.label "Sjálfgefin lengd blunds:">
 <!ENTITY pref.defaultsnoozelength.accesskey "S">
+
+<!ENTITY pref.missedalarms2 "Show missed reminders for writable calendars">

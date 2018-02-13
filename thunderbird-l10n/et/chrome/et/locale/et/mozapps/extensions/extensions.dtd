@@ -263,3 +263,5 @@
 <!ENTITY legacyExtensions.title "Aegunud laiendused">
 <!ENTITY legacyExtensions.description "Need laiendused ei vasta tänapäevastele &brandShortName;i standarditele ja need keelati.">
 <!ENTITY legacyExtensions.learnMore "Vaata rohkem teavet lisadega toimunud muudatuste kohta">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

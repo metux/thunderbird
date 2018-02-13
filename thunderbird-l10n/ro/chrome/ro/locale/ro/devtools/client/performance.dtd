@@ -95,15 +95,10 @@
 
 
 <!ENTITY performanceUI.bufferStatusTooltip "The profiler stores samples in a circular buffer, and once the buffer reaches the limit for a recording, newer samples begin to overwrite samples at the beginning of the recording.">
-
 <!ENTITY performanceUI.disabledRealTime.disabledE10S "Enable multiprocess Firefox in preferences for rendering recording data in realtime.">
-
 <!ENTITY performanceUI.bufferStatusFull "The buffer is full. Older samples are now being overwritten.">
-
 <!ENTITY performanceUI.unavailableNoticePB "Recording a profile is currently unavailable. Please close all private browsing windows and try again.">
-
 <!ENTITY performanceUI.loadingNotice "Loading…">
-
 <!ENTITY performanceUI.toolbar.waterfall "Waterfall">
 <!ENTITY performanceUI.toolbar.waterfall.tooltiptext "Shows the different operations the browser is performing during the recording, laid out sequentially as a waterfall.">
 <!ENTITY performanceUI.toolbar.js-calltree "Call Tree">
@@ -113,7 +108,6 @@
 <!ENTITY performanceUI.toolbar.js-flamegraph "JS Flame Chart">
 <!ENTITY performanceUI.toolbar.js-flamegraph.tooltiptext "Shows the JavaScript call stack over the course of the recording.">
 <!ENTITY performanceUI.toolbar.memory-flamegraph "Allocations Flame Chart">
-
 <!ENTITY performanceUI.table.totalDuration            "Total Time">
 <!ENTITY performanceUI.table.totalDuration.tooltip    "The amount of time spent in this function and functions it calls.">
 <!ENTITY performanceUI.table.selfDuration             "Self Time">
@@ -130,35 +124,24 @@
 <!ENTITY performanceUI.table.totalAlloc.tooltip       "The total number of Object allocations sampled at this location and in callees.">
 <!ENTITY performanceUI.table.selfAlloc                "Self Sampled Allocations">
 <!ENTITY performanceUI.table.selfAlloc.tooltip        "The number of Object allocations sampled at this location.">
-
 <!ENTITY performanceUI.options.filter.tooltiptext "Select what data to display in the timeline">
-
 <!ENTITY performanceUI.options.gear.tooltiptext "Configure performance preferences.">
-
 <!ENTITY performanceUI.invertTree             "Invert Call Tree">
 <!ENTITY performanceUI.invertTree.tooltiptext "Inverting the call tree displays the profiled call paths starting from the youngest frames and expanding out to the older frames.">
-
 <!ENTITY performanceUI.invertFlameGraph             "Invert Flame Chart">
 <!ENTITY performanceUI.invertFlameGraph.tooltiptext "Inverting the flame chart displays the profiled call paths starting from the youngest frames and expanding out to the older frames.">
-
 <!ENTITY performanceUI.showPlatformData             "Show Gecko Platform Data">
 <!ENTITY performanceUI.showPlatformData.tooltiptext "Showing platform data enables the JavaScript Profiler reports to include Gecko platform symbols.">
-
 <!ENTITY performanceUI.showJITOptimizations             "Show JIT Optimizations">
 <!ENTITY performanceUI.showJITOptimizations.tooltiptext "Show JIT optimization data sampled in each JavaScript frame.">
-
 <!ENTITY performanceUI.flattenTreeRecursion             "Flatten Tree Recursion">
 <!ENTITY performanceUI.flattenTreeRecursion.tooltiptext "Flatten recursion when inspecting functions.">
-
 <!ENTITY performanceUI.enableMemory             "Record Memory">
 <!ENTITY performanceUI.enableMemory.tooltiptext "Record memory consumption while profiling.">
-
 <!ENTITY performanceUI.enableAllocations             "Record Allocations">
 <!ENTITY performanceUI.enableAllocations.tooltiptext "Record Object allocations while profiling.">
-
 <!ENTITY performanceUI.enableFramerate             "Record Framerate">
 <!ENTITY performanceUI.enableFramerate.tooltiptext "Record framerate while profiling.">
-
 <!ENTITY performanceUI.console.recordingNoticeStart "Currently recording via">
 <!ENTITY performanceUI.console.stopCommandStart "Stop recording by entering">
 <!ENTITY performanceUI.console.stopCommandEnd   "into the console.">

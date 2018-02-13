@@ -34,12 +34,16 @@ Entities below were automatically added by compare-locales,based on en-US entiti
 <!ENTITY aboutSupport.crashes.sendDate "Submitted">
 <!ENTITY aboutSupport.crashes.allReports "All Crash Reports">
 <!ENTITY aboutSupport.crashes.noConfig "This application has not been configured to display crash reports.">
-
+<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
+<!ENTITY aboutSupport.securitySoftwareType "Type">
+<!ENTITY aboutSupport.securitySoftwareName "Name">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
 <!ENTITY aboutSupport.featuresTitle "&brandShortName; Features">
 <!ENTITY aboutSupport.featureName "Name">
 <!ENTITY aboutSupport.featureVersion "Version">
 <!ENTITY aboutSupport.featureId "ID">
-
 <!ENTITY aboutSupport.experimentsTitle "Experimental Features">
 <!ENTITY aboutSupport.experimentName "Name">
 <!ENTITY aboutSupport.experimentId "ID">
@@ -48,60 +52,41 @@ Entities below were automatically added by compare-locales,based on en-US entiti
 <!ENTITY aboutSupport.experimentEndDate "End Date">
 <!ENTITY aboutSupport.experimentHomepage "Homepage">
 <!ENTITY aboutSupport.experimentBranch "Branch">
-
 <!ENTITY aboutSupport.appBasicsBuildID "Build ID">
-
 <!ENTITY aboutSupport.appBasicsUpdateChannel "Update Channel">
 <!ENTITY aboutSupport.appBasicsUpdateHistory "Update History">
 <!ENTITY aboutSupport.appBasicsShowUpdateHistory "Show Update History">
-
 <!ENTITY aboutSupport.appBasicsProfileDirWinMac "Profile Folder">
-
 <!ENTITY aboutSupport.appBasicsOS "OS">
 <!ENTITY aboutSupport.appBasicsPerformance "Performance">
-
 <!ENTITY aboutSupport.appBasicsServiceWorkers "Registered Service Workers">
-
 <!ENTITY aboutSupport.appBasicsProfiles "Profiles">
-
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Multiprocess Windows">
-
 <!ENTITY aboutSupport.appBasicsProcessCount "Web Content Processes">
-
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Google Key">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla Location Service Key">
-
 <!ENTITY aboutSupport.appBasicsSafeMode "Safe Mode">
-
 <!ENTITY aboutSupport.showDir.label "Open Directory">
 <!ENTITY aboutSupport.showWin2.label "Open Folder">
-
 <!ENTITY aboutSupport.modifiedKeyPrefsTitle "Important Modified Preferences">
 <!ENTITY aboutSupport.userJSTitle "user.js Preferences">
 <!ENTITY aboutSupport.userJSDescription "Your profile folder contains a <a id='prefs-user-js-link'>user.js file</a>, which includes preferences that were not created by &brandShortName;.">
-
 <!ENTITY aboutSupport.lockedKeyPrefsTitle "Important Locked Preferences">
 <!ENTITY aboutSupport.lockedPrefsName "Name">
 <!ENTITY aboutSupport.lockedPrefsValue "Value">
-
 <!ENTITY aboutSupport.placeDatabaseTitle "Places Database">
 <!ENTITY aboutSupport.placeDatabaseIntegrity "Integrity">
 <!ENTITY aboutSupport.placeDatabaseVerifyIntegrity "Verify Integrity">
-
 <!ENTITY aboutSupport.jsTitle "JavaScript">
 <!ENTITY aboutSupport.jsIncrementalGC "Incremental GC">
-
 <!ENTITY aboutSupport.a11yTitle "Accessibility">
 <!ENTITY aboutSupport.a11yActivated "Activated">
 <!ENTITY aboutSupport.a11yForceDisabled "Prevent Accessibility">
 <!ENTITY aboutSupport.a11yHandlerUsed "Accessible Handler Used">
 <!ENTITY aboutSupport.a11yInstantiator "Accessibility Instantiator">
-
 <!ENTITY aboutSupport.libraryVersionsTitle "Library Versions">
-
 <!ENTITY aboutSupport.copyTextToClipboard.label "Copy text to clipboard">
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Copy raw data to clipboard">
-
 <!ENTITY aboutSupport.sandboxTitle "Sandbox">
 <!ENTITY aboutSupport.sandboxSyscallLogTitle "Rejected System Calls">
 <!ENTITY aboutSupport.sandboxSyscallIndex "#">
@@ -111,10 +96,8 @@ Entities below were automatically added by compare-locales,based on en-US entiti
 <!ENTITY aboutSupport.sandboxSyscallProcType "Process Type">
 <!ENTITY aboutSupport.sandboxSyscallNumber "Syscall">
 <!ENTITY aboutSupport.sandboxSyscallArgs "Arguments">
-
 <!ENTITY aboutSupport.safeModeTitle "Try Safe Mode">
 <!ENTITY aboutSupport.restartInSafeMode.label "Restart with Add-ons Disabled…">
-
 <!ENTITY aboutSupport.graphicsFeaturesTitle "Features">
 <!ENTITY aboutSupport.graphicsDiagnosticsTitle "Diagnostics">
 <!ENTITY aboutSupport.graphicsFailureLogTitle "Failure Log">
@@ -123,7 +106,6 @@ Entities below were automatically added by compare-locales,based on en-US entiti
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Decision Log">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Crash Guard Disabled Features">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Workarounds">
-
 <!ENTITY aboutSupport.mediaTitle "Media">
 <!ENTITY aboutSupport.mediaOutputDevicesTitle "Output Devices">
 <!ENTITY aboutSupport.mediaInputDevicesTitle "Input Devices">
@@ -136,7 +118,6 @@ Entities below were automatically added by compare-locales,based on en-US entiti
 <!ENTITY aboutSupport.mediaDeviceChannels "Channels">
 <!ENTITY aboutSupport.mediaDeviceRate "Rate">
 <!ENTITY aboutSupport.mediaDeviceLatency "Latency">
-
 <!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
 <!ENTITY aboutSupport.intlAppTitle "Application Settings">
 <!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">

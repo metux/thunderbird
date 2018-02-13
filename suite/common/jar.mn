@@ -1,5 +1,8 @@
 #filter substitution
 
+toolkit.jar:
+   content/global/autocomplete.xml                                  (autocomplete/autocomplete.xml)
+
 comm.jar:
 % content communicator %content/communicator/ contentaccessible=yes
 % content help %content/communicator/helpviewer/
@@ -38,7 +41,7 @@ comm.jar:
 % overlay chrome://messenger/content/AccountManager.xul chrome://communicator/content/helpMessengerOverlay.xul
 % overlay chrome://messenger/content/FilterEditor.xul chrome://communicator/content/helpMessengerOverlay.xul
 % overlay chrome://messenger/content/junkMailInfo.xul chrome://communicator/content/helpMessengerOverlay.xul
-% overlay chrome://messenger/content/msgSelectOffline.xul chrome://communicator/content/helpMessengerOverlay.xul
+% overlay chrome://messenger/content/msgSelectOfflineFolders.xul chrome://communicator/content/helpMessengerOverlay.xul
 % overlay chrome://messenger/content/subscribe.xul chrome://communicator/content/helpMessengerOverlay.xul
 % overlay chrome://messenger/content/mailViewList.xul chrome://communicator/content/helpMessengerOverlay.xul
 % overlay chrome://messenger/content/mailViewSetup.xul chrome://communicator/content/helpMessengerOverlay.xul
@@ -62,7 +65,7 @@ comm.jar:
    content/communicator/certError.xhtml
    content/communicator/certError.xml
    content/communicator/charsetOverlay.xul
-   content/communicator/communicator.css
+*  content/communicator/communicator.css
    content/communicator/contentAreaClick.js
    content/communicator/contentAreaContextOverlay.xul
    content/communicator/defaultClientDialog.js
@@ -104,9 +107,13 @@ comm.jar:
    content/communicator/platformCommunicatorOverlay.xul             (unix/platformCommunicatorOverlay.xul)
 #endif
 #endif
+   content/communicator/autocomplete.css                            (autocomplete/autocomplete.css)
+*  content/communicator/bindings/datetimepicker.xml                 (../../common/bindings/datetimepicker.xml)
    content/communicator/bindings/findbar.xml                        (bindings/findbar.xml)
    content/communicator/bindings/general.xml                        (bindings/general.xml)
+   content/communicator/bindings/generalBindings.xml                (../../common/bindings/generalBindings.xml)
    content/communicator/bindings/notification.xml                   (bindings/notification.xml)
+*  content/communicator/bindings/preferences.xml                    (../../common/bindings/preferences.xml)
    content/communicator/bindings/toolbar.xml                        (bindings/toolbar.xml)
 *  content/communicator/bindings/prefwindow.xml                     (bindings/prefwindow.xml)
    content/communicator/bookmarks/bm-panel.js                       (bookmarks/bm-panel.js)
@@ -137,9 +144,6 @@ comm.jar:
 *  content/communicator/helpviewer/help.js                          (helpviewer/help.js)
 *  content/communicator/helpviewer/helpContextOverlay.xul           (helpviewer/helpContextOverlay.xul)
 *  content/communicator/helpviewer/platformClasses.css              (helpviewer/platformClasses.css)
-   content/communicator/directory/directory.html                    (directory/directory.html)
-   content/communicator/directory/directory.js                      (directory/directory.js)
-   content/communicator/directory/directory.xul                     (directory/directory.xul)
    content/communicator/downloads/downloadmanager.js                (downloads/downloadmanager.js)
    content/communicator/downloads/downloadmanager.xul               (downloads/downloadmanager.xul)
    content/communicator/downloads/DownloadProgressListener.js       (downloads/DownloadProgressListener.js)

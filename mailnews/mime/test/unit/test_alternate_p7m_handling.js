@@ -29,8 +29,8 @@ var messages = [{
 var msgWindow = Cc["@mozilla.org/messenger/msgwindow;1"]
                   .createInstance(Ci.nsIMsgWindow);
 
-function* thunderbird_default(info) {
-  let synMsg = gMessageGenerator.makeMessage(info);
+function* thunderbird_default(messageInfo) {
+  let synMsg = gMessageGenerator.makeMessage(messageInfo);
   let synSet = new SyntheticMessageSet([synMsg]);
   yield add_sets_to_folder(gInbox, [synSet]);
 
@@ -38,8 +38,8 @@ function* thunderbird_default(info) {
 
   MsgHdrToMimeMessage(msgHdr, null, function (aMsgHdr, aMimeMsg) {
     try {
-      do_check_true(aMimeMsg.allUserAttachments.length == 0);
-      do_print("Strange p7m is discarded, so attachment number is 0 (thunderbird default behaviour)");
+      Assert.ok(aMimeMsg.allUserAttachments.length == 0);
+      info("Strange p7m is discarded, so attachment number is 0 (thunderbird default behaviour)");
       async_driver();
     } catch (err) {
       do_throw(err);
@@ -49,8 +49,8 @@ function* thunderbird_default(info) {
   yield false;
 }
 
-function* set_preference_to_true(info) {
-  let synMsg = gMessageGenerator.makeMessage(info);
+function* set_preference_to_true(messageInfo) {
+  let synMsg = gMessageGenerator.makeMessage(messageInfo);
   let synSet = new SyntheticMessageSet([synMsg]);
   yield add_sets_to_folder(gInbox, [synSet]);
 
@@ -60,9 +60,9 @@ function* set_preference_to_true(info) {
 
   MsgHdrToMimeMessage(msgHdr, null, function (aMsgHdr, aMimeMsg) {
     try {
-      do_check_true(aMimeMsg.allUserAttachments.length == 1);
-      do_print("Setting preference mailnews.p7m_external to true");
-      do_print("Strange p7m is presented to the end user as attachment (attachment number = 1)");
+      Assert.ok(aMimeMsg.allUserAttachments.length == 1);
+      info("Setting preference mailnews.p7m_external to true");
+      info("Strange p7m is presented to the end user as attachment (attachment number = 1)");
       async_driver();
     } catch (err) {
       do_throw(err);
@@ -72,8 +72,8 @@ function* set_preference_to_true(info) {
   yield false;
 }
 
-function* set_preference_to_false(info) {
-  let synMsg = gMessageGenerator.makeMessage(info);
+function* set_preference_to_false(messageInfo) {
+  let synMsg = gMessageGenerator.makeMessage(messageInfo);
   let synSet = new SyntheticMessageSet([synMsg]);
   yield add_sets_to_folder(gInbox, [synSet]);
 
@@ -83,9 +83,9 @@ function* set_preference_to_false(info) {
 
   MsgHdrToMimeMessage(msgHdr, null, function (aMsgHdr, aMimeMsg) {
     try {
-      do_check_true(aMimeMsg.allUserAttachments.length == 0);
-      do_print("Setting preference mailnews.p7m_external to false");
-      do_print("Strange p7m is discarded, so attachment number is 0 (thunderbird default behaviour)");
+      Assert.ok(aMimeMsg.allUserAttachments.length == 0);
+      info("Setting preference mailnews.p7m_external to false");
+      info("Strange p7m is discarded, so attachment number is 0 (thunderbird default behaviour)");
       async_driver();
     } catch (err) {
       do_throw(err);

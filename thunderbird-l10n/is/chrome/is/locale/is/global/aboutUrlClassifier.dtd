@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Núverandi skráningareiningar">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "JS skráning fyrir örugga vöfrun">
 <!ENTITY aboutUrlClassifier.debugFile                   "Núverandi skráningarskrá">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

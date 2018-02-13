@@ -55,6 +55,9 @@ pref("browser.send_pings", false);
 pref("browser.chrome.site_icons", true);
 pref("browser.chrome.favicons", true);
 
+// 0 = Pictures Only, 1 = Text Only, 2 = Pictures and Text
+pref("browser.chrome.toolbar_style", 2);
+
 pref("browser.download.finished_download_sound", false);
 pref("browser.download.finished_sound_url", "");
 pref("browser.download.useDownloadDir", false);
@@ -748,6 +751,10 @@ pref("plugin.disable", false);
 
 // Digital Rights Management, Encrypted Media Extensions
 pref("media.eme.enabled", false);
+ 
+// Turn off WebRTC by default (bug 1419507)
+pref("media.navigator.enabled", false);
+pref("media.peerconnection.enabled", false);
 
 #ifndef XP_MACOSX
 // Restore the spinner that was removed in bug 481359

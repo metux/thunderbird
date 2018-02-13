@@ -261,3 +261,5 @@
 <!ENTITY legacyExtensions.title "Extensions obsolètes">
 <!ENTITY legacyExtensions.description "Ces extensions ne répondent pas aux exigences actuelles de &brandShortName;. Elles ont été désactivées.">
 <!ENTITY legacyExtensions.learnMore "En savoir plus sur les changements apportés aux modules">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

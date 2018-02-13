@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Modules de journalisation actuels">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Journal JS du blocage de sites malveillants">
 <!ENTITY aboutUrlClassifier.debugFile                   "Fichier de journalisation actuel">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">
