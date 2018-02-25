@@ -85,6 +85,7 @@ profile thunderbird @{thunderbird_executable} {
   /etc/xdg/*buntu/applications/defaults.list    r, # for all derivatives
   /etc/xfce4/defaults.list r,
   /usr/share/xubuntu/applications/defaults.list r,
+  owner /dev/shm/org.chromium.* rw, # for Chromium IPC
   owner @{HOME}/.local/share/applications/defaults.list r,
   owner @{HOME}/.local/share/applications/mimeapps.list r,
   owner @{HOME}/.local/share/applications/mimeinfo.cache r,
