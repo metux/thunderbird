@@ -412,12 +412,23 @@ nsresult nsMsgDBView::FetchAuthor(nsIMsgDBHdr * aHdr, nsAString &aSenderString)
 
   if (aSenderString.IsEmpty())
   {
-    // we can't use the display name in the card,
-    // use the name contained in the header or email address.
-    if (!name.IsEmpty())
-      aSenderString = name;
-    else
+     // We can't use the display name in the card; use the name contained in
+     // the header or email address.
+    if (name.IsEmpty()) {
       CopyUTF8toUTF16(emailAddress, aSenderString);
+    } else {
+      int32_t atPos;
+      if ((atPos = name.FindChar('@')) == kNotFound ||
+          name.FindChar('.', atPos) == kNotFound) {
+        aSenderString = name;
+      } else {
+        // Found @ followed by a dot, so this looks like a spoofing case.
+        aSenderString = name;
+        aSenderString.AppendLiteral(" <");
+        AppendUTF8toUTF16(emailAddress, aSenderString);
+        aSenderString.Append('>');
+      }
+    }
   }
 
   UpdateCachedName(aHdr, "sender_name", aSenderString);
@@ -518,10 +529,21 @@ nsresult nsMsgDBView::FetchRecipients(nsIMsgDBHdr * aHdr, nsAString &aRecipients
     {
       // we can't use the display name in the card,
       // use the name contained in the header or email address.
-      if (!curName.IsEmpty())
-        recipient = curName;
-      else
+      if (curName.IsEmpty()) {
         CopyUTF8toUTF16(curAddress, recipient);
+      } else {
+        int32_t atPos;
+        if ((atPos = curName.FindChar('@')) == kNotFound ||
+            curName.FindChar('.', atPos) == kNotFound) {
+          recipient = curName;
+        } else {
+          // Found @ followed by a dot, so this looks like a spoofing case.
+          recipient = curName;
+          recipient.AppendLiteral(" <");
+          AppendUTF8toUTF16(curAddress, recipient);
+          recipient.Append('>');
+        }
+      }
     }
 
     // add ', ' between each recipient
