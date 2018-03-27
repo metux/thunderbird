@@ -1,3 +1,22 @@
+thunderbird (1:52.7.0-1) unstable; urgency=medium
+
+  * [9eb2692] New upstream version 52.7.0
+    Fixed CVE issues in upstream version 52.7 (MFSA 2018-09)
+    CVE-2018-5127: Buffer overflow manipulating SVG animatedPathSegList
+    CVE-2018-5129: Out-of-bounds write with malformed IPC messages
+    CVE-2018-5144: Integer overflow during Unicode conversion
+    CVE-2018-5146: Out of bounds memory write in libvorbis
+    CVE-2018-5125: Memory safety bugs fixed in Firefox 59, Firefox ESR 52.7,
+                   and Thunderbird 52.7
+    CVE-2018-5145: Memory safety bugs fixed in Firefox ESR 52.7 and
+                   Thunderbird 52.7
+  * [a01cf4b] Revert "Use gcc-6 and g++-6 due broken GUI with GCC-7"
+     Switching now back to GCC7 as we don't have any longer issues with
+     broken visuals in the GUI.
+     (Closes: #892404)
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Mon, 26 Mar 2018 17:21:40 +0200
+
 thunderbird (1:52.6.0-1~deb9u1) stretch-security; urgency=medium
 
   [ Carsten Schoenert ]

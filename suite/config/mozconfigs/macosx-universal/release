@@ -26,4 +26,9 @@ MOZ_ADDON_SIGNING=0
 # Disable enforcing that add-ons are signed by the trusted root
 MOZ_REQUIRE_SIGNING=0
 
+# Post bug 1422735, we send symbols to Tecken.  See bug 1422737.
+# The tokens on the slaves were already replaced by the Tecken
+# symbol.  We need to specify MOZ_SCM_LEVEL=3 to use Tecken.
+mk_add_options "export MOZ_SCM_LEVEL=3"
+
 . "$topsrcdir/build/mozconfig.rust"
