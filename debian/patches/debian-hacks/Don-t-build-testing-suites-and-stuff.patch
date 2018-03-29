@@ -13,7 +13,7 @@ folder out before.
  mozilla/devtools/client/commandline/moz.build              |  4 +++-
  mozilla/devtools/client/debugger/moz.build                 | 12 +++++++-----
  mozilla/devtools/client/dom/moz.build                      |  4 +++-
- mozilla/devtools/client/framework/moz.build                | 10 ++++++----
+ mozilla/devtools/client/framework/moz.build                |  4 +++-
  mozilla/devtools/client/inspector/animation/moz.build      |  4 +++-
  mozilla/devtools/client/inspector/boxmodel/moz.build       |  2 +-
  mozilla/devtools/client/inspector/computed/moz.build       |  4 +++-
@@ -25,13 +25,15 @@ folder out before.
  mozilla/devtools/client/inspector/rules/moz.build          |  4 +++-
  mozilla/devtools/client/inspector/shared/moz.build         |  4 +++-
  mozilla/devtools/client/jsonview/moz.build                 |  4 +++-
+ mozilla/devtools/client/memory/moz.build                   |  8 +++++---
  mozilla/devtools/client/netmonitor/moz.build               |  4 +++-
  mozilla/devtools/client/netmonitor/src/har/moz.build       |  4 +++-
  mozilla/devtools/client/performance/moz.build              |  6 ++++--
  mozilla/devtools/client/responsive.html/moz.build          |  6 ++++--
  mozilla/devtools/client/scratchpad/moz.build               |  4 +++-
  mozilla/devtools/client/shadereditor/moz.build             |  4 +++-
- mozilla/devtools/client/shared/moz.build                   |  6 ++++--
+ mozilla/devtools/client/shared/components/moz.build        |  6 ++++--
+ mozilla/devtools/client/shared/moz.build                   | 12 +++++++-----
  mozilla/devtools/client/sourceeditor/moz.build             |  4 +++-
  mozilla/devtools/client/storage/moz.build                  |  4 +++-
  mozilla/devtools/client/styleeditor/moz.build              |  4 +++-
@@ -40,7 +42,8 @@ folder out before.
  mozilla/devtools/client/webconsole/net/moz.build           |  6 ++++--
  .../client/webconsole/new-console-output/test/moz.build    | 10 ++++++----
  mozilla/devtools/client/webide/moz.build                   | 14 ++++++++------
- 34 files changed, 120 insertions(+), 56 deletions(-)
+ mozilla/devtools/server/moz.build                          |  8 +++++---
+ 37 files changed, 134 insertions(+), 64 deletions(-)
 
 diff --git a/mozilla/accessible/windows/moz.build b/mozilla/accessible/windows/moz.build
 index 4bfa4f3..8e63609 100644
@@ -156,23 +159,17 @@ index 46cb7e6..9bd29a6 100644
  DIRS += [
      'content',
 diff --git a/mozilla/devtools/client/framework/moz.build b/mozilla/devtools/client/framework/moz.build
-index 1ac4703..0959e11 100644
+index 986a6d8..59f1997 100644
 --- a/mozilla/devtools/client/framework/moz.build
 +++ b/mozilla/devtools/client/framework/moz.build
-@@ -4,10 +4,12 @@
+@@ -4,7 +4,9 @@
  # License, v. 2.0. If a copy of the MPL was not distributed with this
  # file, You can obtain one at http://mozilla.org/MPL/2.0/.
  
 -BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
--TEST_HARNESS_FILES.xpcshell.devtools.client.framework.test += [
--    'test/shared-redux-head.js',
--]
 +# Don't build any testsuites. We have filteres out some needed content for
 +# this as some files are not DFSG clean.
 +#BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
-+#TEST_HARNESS_FILES.xpcshell.devtools.client.framework.test += [
-+#    'test/shared-redux-head.js',
-+#]
  
  DIRS += [
      'components',
@@ -214,11 +211,11 @@ index 5ce9503..930a13e 100644
 +# this as some files are not DFSG clean.
 +#BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
 diff --git a/mozilla/devtools/client/inspector/extensions/moz.build b/mozilla/devtools/client/inspector/extensions/moz.build
-index 4ef5f1e..6d86a08 100644
+index dae7e8e..f016152 100644
 --- a/mozilla/devtools/client/inspector/extensions/moz.build
 +++ b/mozilla/devtools/client/inspector/extensions/moz.build
-@@ -14,4 +14,4 @@ DevToolsModules(
-     'extension-sidebar.js',
+@@ -15,4 +15,4 @@ DevToolsModules(
+     'types.js',
  )
  
 -BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
@@ -313,13 +310,29 @@ index abaf2a6..e121e99 100644
  
  with Files('**'):
      BUG_COMPONENT = ('Firefox', 'Developer Tools: JSON Viewer')
+diff --git a/mozilla/devtools/client/memory/moz.build b/mozilla/devtools/client/memory/moz.build
+index ad173d0..423e94c 100644
+--- a/mozilla/devtools/client/memory/moz.build
++++ b/mozilla/devtools/client/memory/moz.build
+@@ -23,6 +23,8 @@ DevToolsModules(
+     'utils.js',
+ )
+ 
+-BROWSER_CHROME_MANIFESTS += ['test/browser/browser.ini']
+-XPCSHELL_TESTS_MANIFESTS += ['test/unit/xpcshell.ini']
+-MOCHITEST_CHROME_MANIFESTS += ['test/chrome/chrome.ini']
++# Don't build any testsuites. We have filteres out some needed content for
++# this as some files are not DFSG clean.
++#BROWSER_CHROME_MANIFESTS += ['test/browser/browser.ini']
++#XPCSHELL_TESTS_MANIFESTS += ['test/unit/xpcshell.ini']
++#MOCHITEST_CHROME_MANIFESTS += ['test/chrome/chrome.ini']
 diff --git a/mozilla/devtools/client/netmonitor/moz.build b/mozilla/devtools/client/netmonitor/moz.build
-index 0b5be06..c1b67e7 100644
+index faa676d..5e0a86b 100644
 --- a/mozilla/devtools/client/netmonitor/moz.build
 +++ b/mozilla/devtools/client/netmonitor/moz.build
-@@ -10,7 +10,9 @@ DevToolsModules(
-     'panel.js'
- )
+@@ -12,7 +12,9 @@ DevToolsModules(
+ 
+ XPCSHELL_TESTS_MANIFESTS += ['test/unit/xpcshell.ini']
  
 -BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
 +# Don't build any testsuites. We have filteres out some needed content for
@@ -329,10 +342,10 @@ index 0b5be06..c1b67e7 100644
  with Files('**'):
      BUG_COMPONENT = ('Firefox', 'Developer Tools: Netmonitor')
 diff --git a/mozilla/devtools/client/netmonitor/src/har/moz.build b/mozilla/devtools/client/netmonitor/src/har/moz.build
-index a4ebea4..86dd94b 100644
+index c8b3847..df95fd8 100644
 --- a/mozilla/devtools/client/netmonitor/src/har/moz.build
 +++ b/mozilla/devtools/client/netmonitor/src/har/moz.build
-@@ -11,4 +11,6 @@ DevToolsModules(
+@@ -13,4 +13,6 @@ DevToolsModules(
      'toolbox-overlay.js',
  )
  
@@ -404,20 +417,40 @@ index 4e8337d..c53ea4c 100644
  
  with Files('**'):
      BUG_COMPONENT = ('Firefox', 'Developer Tools: WebGL Shader Editor')
+diff --git a/mozilla/devtools/client/shared/components/moz.build b/mozilla/devtools/client/shared/components/moz.build
+index 8b31a61..607a837 100644
+--- a/mozilla/devtools/client/shared/components/moz.build
++++ b/mozilla/devtools/client/shared/components/moz.build
+@@ -25,5 +25,7 @@ DevToolsModules(
+     'VisibilityHandler.js',
+ )
+ 
+-MOCHITEST_CHROME_MANIFESTS += ['test/mochitest/chrome.ini']
+-BROWSER_CHROME_MANIFESTS += ['test/browser/browser.ini']
++# Don't build any testsuites. We have filteres out some needed content for
++# this as some files are not DFSG clean.
++#MOCHITEST_CHROME_MANIFESTS += ['test/mochitest/chrome.ini']
++#BROWSER_CHROME_MANIFESTS += ['test/browser/browser.ini']
 diff --git a/mozilla/devtools/client/shared/moz.build b/mozilla/devtools/client/shared/moz.build
-index 4abf3dd..bfd6800 100644
+index ecfac45..5a08e1d 100644
 --- a/mozilla/devtools/client/shared/moz.build
 +++ b/mozilla/devtools/client/shared/moz.build
-@@ -4,8 +4,10 @@
+@@ -4,11 +4,13 @@
  # License, v. 2.0. If a copy of the MPL was not distributed with this
  # file, You can obtain one at http://mozilla.org/MPL/2.0/.
  
 -BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
 -XPCSHELL_TESTS_MANIFESTS += ['test/unit/xpcshell.ini']
+-TEST_HARNESS_FILES.xpcshell.devtools.client.shared.test += [
+-    'test/shared-redux-head.js',
+-]
 +# Don't build any testsuites. We have filteres out some needed content for
 +# this as some files are not DFSG clean.
 +#BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
 +#XPCSHELL_TESTS_MANIFESTS += ['test/unit/xpcshell.ini']
++#TEST_HARNESS_FILES.xpcshell.devtools.client.shared.test += [
++#    'test/shared-redux-head.js',
++#]
  
  DIRS += [
      'components',
@@ -511,7 +544,7 @@ index 1b9eca7..debfa26 100644
 +#XPCSHELL_TESTS_MANIFESTS += ['test/unit/xpcshell.ini']
 +#BROWSER_CHROME_MANIFESTS += ['test/mochitest/browser.ini']
 diff --git a/mozilla/devtools/client/webconsole/new-console-output/test/moz.build b/mozilla/devtools/client/webconsole/new-console-output/test/moz.build
-index da06c31..25a95b2 100644
+index e91e7e2..c19fb39 100644
 --- a/mozilla/devtools/client/webconsole/new-console-output/test/moz.build
 +++ b/mozilla/devtools/client/webconsole/new-console-output/test/moz.build
 @@ -3,10 +3,12 @@
@@ -556,3 +589,22 @@ index 42e0484..f4aef95 100644
  
  JS_PREFERENCE_FILES += [
      'webide-prefs.js',
+diff --git a/mozilla/devtools/server/moz.build b/mozilla/devtools/server/moz.build
+index 65bba17..421e8be 100644
+--- a/mozilla/devtools/server/moz.build
++++ b/mozilla/devtools/server/moz.build
+@@ -11,9 +11,11 @@ DIRS += [
+     'performance',
+ ]
+ 
+-BROWSER_CHROME_MANIFESTS += ['tests/browser/browser.ini']
+-MOCHITEST_CHROME_MANIFESTS += ['tests/mochitest/chrome.ini']
+-XPCSHELL_TESTS_MANIFESTS += ['tests/unit/xpcshell.ini']
++# Don't build any testsuites. We have filteres out some needed content for
++# this as some files are not DFSG clean.
++#BROWSER_CHROME_MANIFESTS += ['tests/browser/browser.ini']
++#MOCHITEST_CHROME_MANIFESTS += ['tests/mochitest/chrome.ini']
++#XPCSHELL_TESTS_MANIFESTS += ['tests/unit/xpcshell.ini']
+ 
+ DevToolsModules(
+     'child.js',

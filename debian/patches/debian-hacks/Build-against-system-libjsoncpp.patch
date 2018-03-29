@@ -9,7 +9,7 @@ Subject: Build against system libjsoncpp
  3 files changed, 3 insertions(+), 46 deletions(-)
 
 diff --git a/mozilla/config/system-headers.mozbuild b/mozilla/config/system-headers.mozbuild
-index 5cc03c1..7874434 100644
+index 0872969..ac7c268 100644
 --- a/mozilla/config/system-headers.mozbuild
 +++ b/mozilla/config/system-headers.mozbuild
 @@ -363,6 +363,7 @@ system_headers = [
@@ -77,15 +77,15 @@ index 6920229..5e20a3d 100644
 -    ]
 +OS_LIBS += ['jsoncpp']
 diff --git a/mozilla/toolkit/crashreporter/minidump-analyzer/moz.build b/mozilla/toolkit/crashreporter/minidump-analyzer/moz.build
-index f40d1c1..b7ec0b1 100644
+index 50852ba..df8e415 100644
 --- a/mozilla/toolkit/crashreporter/minidump-analyzer/moz.build
 +++ b/mozilla/toolkit/crashreporter/minidump-analyzer/moz.build
-@@ -20,7 +20,7 @@ if CONFIG['OS_TARGET'] != 'Android':
-     ]
+@@ -52,7 +52,7 @@ USE_LIBS += [
+ ]
  
-     LOCAL_INCLUDES += [
--        '/toolkit/components/jsoncpp/include',
-+        '%/usr/include/jsoncpp',
-     ]
+ LOCAL_INCLUDES += [
+-    '/toolkit/components/jsoncpp/include',
++    '%/usr/include/jsoncpp',
+ ]
  
- 
+ if CONFIG['OS_TARGET'] != 'WINNT':

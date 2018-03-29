@@ -9,18 +9,18 @@ This can be used to symlink to /etc/ice*/pref.
  1 file changed, 2 insertions(+)
 
 diff --git a/mozilla/toolkit/xre/nsXREDirProvider.cpp b/mozilla/toolkit/xre/nsXREDirProvider.cpp
-index 84a3b78..d08d560 100644
+index 54e3410..aa05914 100644
 --- a/mozilla/toolkit/xre/nsXREDirProvider.cpp
 +++ b/mozilla/toolkit/xre/nsXREDirProvider.cpp
-@@ -846,6 +846,7 @@ DeleteDirIfExists(nsIFile* dir)
-   // defined(MOZ_CONTENT_SANDBOX)
+@@ -837,6 +837,7 @@ DeleteDirIfExists(nsIFile* dir)
+ #endif // defined(MOZ_CONTENT_SANDBOX)
  
  static const char *const kAppendPrefDir[] = { "defaults", "preferences", nullptr };
 +static const char *const kAppendSysPrefDir[] = { "defaults", "syspref", nullptr };
  
  #ifdef DEBUG_bsmedberg
  static void
-@@ -887,6 +888,7 @@ nsXREDirProvider::GetFilesInternal(const char* aProperty,
+@@ -878,6 +879,7 @@ nsXREDirProvider::GetFilesInternal(const char* aProperty,
      LoadDirIntoArray(mXULAppDir, kAppendPrefDir, directories);
      LoadDirsIntoArray(mAppBundleDirectories,
                        kAppendPrefDir, directories);

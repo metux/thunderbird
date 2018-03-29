@@ -9,10 +9,10 @@ used on sparc as they are generic enough.
  1 file changed, 3 insertions(+)
 
 diff --git a/mozilla/js/src/jit/AtomicOperations.h b/mozilla/js/src/jit/AtomicOperations.h
-index 3a14749..7f160ec 100644
+index a8970b0..1cf22bf 100644
 --- a/mozilla/js/src/jit/AtomicOperations.h
 +++ b/mozilla/js/src/jit/AtomicOperations.h
-@@ -358,6 +358,9 @@ AtomicOperations::isLockfreeJS(int32_t size)
+@@ -364,6 +364,9 @@ AtomicOperations::isLockfreeJS(int32_t size)
  #elif defined(__aarch64__)
  # if defined(__clang__) || defined(__GNUC__)
  #  include "jit/arm64/AtomicOperations-arm64.h"

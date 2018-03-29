@@ -25,39 +25,39 @@ architectures with big endianness in Debian was choosen.
  1 file changed, 25 insertions(+), 1 deletion(-)
 
 diff --git a/mozilla/build/autoconf/icu.m4 b/mozilla/build/autoconf/icu.m4
-index 702317b..83225e9 100644
+index 76c9df1..bb27b71 100644
 --- a/mozilla/build/autoconf/icu.m4
 +++ b/mozilla/build/autoconf/icu.m4
-@@ -79,7 +79,31 @@ if test -n "$USE_ICU"; then
+@@ -78,7 +78,31 @@ if test -n "$USE_ICU"; then
+     # TODO: the l is actually endian-dependent
      # We could make this set as 'l' or 'b' for little or big, respectively,
      # but we'd need to check in a big-endian version of the file.
-     if test -z "$ICU_DATA_FILE"; then
--        ICU_DATA_FILE="icudt${version}l.dat"
-+        case $host in
-+            dnl big endian architectures
-+            hppa-*)
-+                ICU_DATA_FILE="icudt${version}b.dat"
-+                ;;
-+            m68k-*)
-+                ICU_DATA_FILE="icudt${version}b.dat"
-+                ;;
-+            mips-*)
-+                ICU_DATA_FILE="icudt${version}b.dat"
-+                ;;
-+            powerpc-* | powerpc64-*)
-+                ICU_DATA_FILE="icudt${version}b.dat"
-+                ;;
-+            s390*-*)
-+                ICU_DATA_FILE="icudt${version}b.dat"
-+                ;;
-+            sparc*-*)
-+                ICU_DATA_FILE="icudt${version}b.dat"
-+                ;;
-+            dnl assume little endian by default
-+            *)
-+                ICU_DATA_FILE="icudt${version}l.dat"
-+                ;;
-+        esac
-     fi
+-    ICU_DATA_FILE="icudt${version}l.dat"
++    case $host in
++        dnl big endian architectures
++        hppa-*)
++            ICU_DATA_FILE="icudt${version}b.dat"
++            ;;
++        m68k-*)
++            ICU_DATA_FILE="icudt${version}b.dat"
++            ;;
++        mips-*)
++            ICU_DATA_FILE="icudt${version}b.dat"
++            ;;
++        powerpc-* | powerpc64-*)
++            ICU_DATA_FILE="icudt${version}b.dat"
++            ;;
++        s390*-*)
++            ICU_DATA_FILE="icudt${version}b.dat"
++            ;;
++        sparc*-*)
++            ICU_DATA_FILE="icudt${version}b.dat"
++            ;;
++        dnl assume little endian by default
++        *)
++            ICU_DATA_FILE="icudt${version}l.dat"
++            ;;
++    esac
  
      dnl We won't build ICU data as a separate file when building
+     dnl JS standalone so that embedders don't have to deal with it.

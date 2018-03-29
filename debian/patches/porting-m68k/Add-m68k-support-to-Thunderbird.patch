@@ -85,10 +85,10 @@ index f695444..23810b9 100644
  #define ARCH_CPU_PPC64 1
  #define ARCH_CPU_64_BITS 1
 diff --git a/mozilla/js/src/jsfriendapi.h b/mozilla/js/src/jsfriendapi.h
-index 26b76f9..f8c3339 100644
+index 3bcf1dd..08b38b4 100644
 --- a/mozilla/js/src/jsfriendapi.h
 +++ b/mozilla/js/src/jsfriendapi.h
-@@ -572,7 +572,7 @@ public:
+@@ -593,7 +593,7 @@ public:
      uint32_t          slotInfo;
  
      static const uint32_t FIXED_SLOTS_SHIFT = 27;
@@ -98,10 +98,10 @@ index 26b76f9..f8c3339 100644
  /**
   * This layout is shared by all native objects. For non-native objects, the
 diff --git a/mozilla/layout/style/nsCSSValue.h b/mozilla/layout/style/nsCSSValue.h
-index ada6137..82931be 100644
+index e3030ed..8a240aa 100644
 --- a/mozilla/layout/style/nsCSSValue.h
 +++ b/mozilla/layout/style/nsCSSValue.h
-@@ -1042,7 +1042,7 @@ protected:
+@@ -1056,7 +1056,7 @@ protected:
      mozilla::SharedFontList* MOZ_OWNING_REF mFontFamilyList;
      mozilla::css::ComplexColorValue* MOZ_OWNING_REF mComplexColor;
    } mValue;

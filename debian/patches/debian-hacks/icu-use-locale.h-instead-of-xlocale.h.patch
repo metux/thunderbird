@@ -7,7 +7,7 @@ Subject: icu: use locale.h instead of xlocale.h
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/mozilla/intl/icu/source/i18n/digitlst.cpp b/mozilla/intl/icu/source/i18n/digitlst.cpp
-index 8e86fa7..74939b2 100644
+index 39da904..9276f2a 100644
 --- a/mozilla/intl/icu/source/i18n/digitlst.cpp
 +++ b/mozilla/intl/icu/source/i18n/digitlst.cpp
 @@ -63,7 +63,7 @@

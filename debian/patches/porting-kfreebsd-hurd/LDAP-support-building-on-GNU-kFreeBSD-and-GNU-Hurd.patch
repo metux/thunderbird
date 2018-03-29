@@ -16,7 +16,7 @@ Squashed kFreeBSD/Hurd related fixes:
  4 files changed, 47 insertions(+), 14 deletions(-)
 
 diff --git a/ldap/c-sdk/include/portable.h b/ldap/c-sdk/include/portable.h
-index 1ecbd38..660bbb9 100644
+index 1572e73..3dd033f 100644
 --- a/ldap/c-sdk/include/portable.h
 +++ b/ldap/c-sdk/include/portable.h
 @@ -122,7 +122,7 @@
@@ -43,7 +43,7 @@ index 1ecbd38..660bbb9 100644
 +#endif
  
  /*
-  * Async IO.  Use a non blocking implementation of connect() and 
+  * Async IO.  Use a non blocking implementation of connect() and
 @@ -169,7 +173,7 @@
   * for select()
   */

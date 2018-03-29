@@ -7,8 +7,8 @@ the correct needed headers.
 Depended on this some minor changes to call the correct functions
 also needed. Also the list of the cpp source file for the chromium
 things needs to expanded.
-The changes is an adoption of the previous droped patch 'Fix
-ipc/chromium on kFreeBSD and Hurd' from the the version 17.
+The changes is an adoption of the previous dropped patch 'Fix
+ipc/chromium on kFreeBSD and Hurd' from the version 17.
 ---
  mozilla/ipc/chromium/src/base/platform_thread_posix.cc | 9 ++++++---
  1 file changed, 6 insertions(+), 3 deletions(-)

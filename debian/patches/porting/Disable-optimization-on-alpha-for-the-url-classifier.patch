@@ -4,28 +4,17 @@ Subject: Disable optimization on alpha for the url-classifier component
 
 The use of this component leads to crashes when built with optimizations.
 ---
- mozilla/mobile/android/stumbler/Makefile.in | 12 +++++++++++-
- 1 file changed, 11 insertions(+), 1 deletion(-)
+ mozilla/browser/components/build/Makefile.in | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/mozilla/mobile/android/stumbler/Makefile.in b/mozilla/mobile/android/stumbler/Makefile.in
-index 958d503..32e267b 100644
---- a/mozilla/mobile/android/stumbler/Makefile.in
-+++ b/mozilla/mobile/android/stumbler/Makefile.in
-@@ -3,7 +3,17 @@
- # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+diff --git a/mozilla/browser/components/build/Makefile.in b/mozilla/browser/components/build/Makefile.in
+index 2387227..d5ca1ba 100644
+--- a/mozilla/browser/components/build/Makefile.in
++++ b/mozilla/browser/components/build/Makefile.in
+@@ -6,3 +6,7 @@ include $(topsrcdir)/config/rules.mk
  
- include $(topsrcdir)/config/rules.mk
--
- include $(topsrcdir)/config/android-common.mk
- 
- libs:: stumbler.jar
-+include $(topsrcdir)/testing/testsuite-targets.mk
-+
-+ABS_SRCDIR := $(abspath $(srcdir))
-+
-+CXXFLAGS += \
-+  $(SQLITE_CFLAGS) \
-+  $(NULL)
+ # Ensure that we don't embed a manifest referencing the CRT.
+ EMBED_MANIFEST_AT =
 +
 +ifeq ($(OS_TEST),alpha)
 +MOZ_OPTIMIZE_FLAGS := -O0
