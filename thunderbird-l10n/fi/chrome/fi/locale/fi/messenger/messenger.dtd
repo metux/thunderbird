@@ -936,29 +936,36 @@
 <!ENTITY getNextNMsgCmd2.accesskey "t">
 <!ENTITY folderPaneBar.accesskey "F">
 <!ENTITY goChatCmd2.key "H">
+<!ENTITY editTemplateMsgCmd.label "Edit Template">
+<!ENTITY editTemplateMsgCmd.accesskey "T">
 <!ENTITY newMsgFromTemplateCmd.label "New Message from Template">
 <!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN">
+<!ENTITY addonPrefs.label "Add-on Options">
+<!ENTITY addonPrefs.accesskey "O">
+<!ENTITY addonPrefsUnix.label "Add-on Preferences">
+<!ENTITY addonPrefsUnix.accesskey "P">
+<!ENTITY addonNoPrefs.label "No Add-on settings found.">
 <!ENTITY devtoolsMenu.label "Developer Tools">
 <!ENTITY devtoolsMenu.accesskey "e">
 <!ENTITY devToolboxCmd.label "Developer Toolbox">
 <!ENTITY devToolboxCmd.accesskey "T">
 <!ENTITY devToolboxCmd.commandkey "i">
-<!ENTITY addonDebugCmd.label "Add-on Debugger">
-<!ENTITY addonDebugCmd.accesskey "A">
+<!ENTITY debugAddonsCmd.label "Debug Add-ons">
+<!ENTITY debugAddonsCmd.accesskey "A">
 <!ENTITY tabsDebugCmd.label "Content Frame Debugger">
 <!ENTITY tabsDebugCmd.accesskey "C">
 <!ENTITY scratchpadCmd.label "Scratchpad">
 <!ENTITY scratchpadCmd.accesskey "S">
-
 <!ENTITY scratchpadCmd.keycode "VK_F4">
 <!ENTITY scratchpadCmd.keytext "F4">
-
 <!ENTITY openConversationButton.label "Conversation">
 <!ENTITY openConversationButton.tooltip "Show conversation of selected message">
 <!ENTITY folderContextPauseAllUpdates.label "Pause All Updates">
 <!ENTITY folderContextPauseUpdates.label "Pause Updates">
 <!ENTITY folderContextPauseUpdates.accesskey "U">
 <!ENTITY contextNewMsgFromTemplate.label "New Message from Template">
+<!ENTITY contextEditTemplate.label "Edit Template">
+<!ENTITY contextEditTemplate.accesskey "T">
 <!ENTITY contextKillSubthreadMenu.accesskey "b">
 <!ENTITY contextWatchThreadMenu.accesskey "">
 <!ENTITY writeNewMessageDock.label      "Write New Message">

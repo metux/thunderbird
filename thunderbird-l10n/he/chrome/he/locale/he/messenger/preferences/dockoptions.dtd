@@ -7,7 +7,6 @@
 <!ENTITY bounceSystemDockIcon.label            "הנפשת סמל היישום כשהודעה חדשה מגיעה">
 
 <!ENTITY window.macWidth                       "35em">
-
 <!ENTITY bounceSystemDockIcon.accesskey        "i">
 <!ENTITY newMessagesCountDock.label            "Count of new messages">
 <!ENTITY newMessagesCountDock.accesskey        "n">

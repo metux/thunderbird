@@ -250,8 +250,8 @@
 <!ENTITY pluginDeprecation.description "¿Fáltate daqué? Dalgunos complementos yá nun tienen sofitu de &brandShortName;.">
 <!ENTITY pluginDeprecation.learnMore "Deprendi más">
 
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">
 <!ENTITY cmd.findReplacement.label            "Find a Replacement">
-
 <!ENTITY addon.legacy.label                   "LEGACY">
 <!ENTITY legacyWarning.showLegacy "Show legacy extensions">
 <!ENTITY legacyExtensions.title "Legacy Extensions">

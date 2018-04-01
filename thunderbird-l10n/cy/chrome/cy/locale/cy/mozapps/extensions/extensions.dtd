@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "Hen Estyniadau">
 <!ENTITY legacyExtensions.description "Nid yw'r estyniadau hyn yn cyrraedd safonau cyfredol &brandShortName; ac mae nhw wedi cael eu diffodd.">
 <!ENTITY legacyExtensions.learnMore "Dysgu am y newidiadau i ychwanegion">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

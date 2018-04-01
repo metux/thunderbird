@@ -197,7 +197,7 @@ LogWriter.prototype = {
       header = JSON.stringify(header) + "\n";
     }
     else {
-      const dateTimeFormatter = Services.intl.createDateTimeFormat("en-US", {
+      const dateTimeFormatter = new Services.intl.DateTimeFormat("en-US", {
         dateStyle: "full", timeStyle: "long"
       });
       header = "Conversation with " + this._conv.name +
@@ -335,7 +335,7 @@ function SystemLogWriter(aAccount) {
   this._account = aAccount;
   this.path = OS.Path.join(getLogFolderPathForAccount(aAccount), ".system",
                            getNewLogFileName());
-  const dateTimeFormatter = Services.intl.createDateTimeFormat("en-US", {
+  const dateTimeFormatter = new Services.intl.DateTimeFormat("en-US", {
     dateStyle: "full", timeStyle: "long"
   });
   let header = "System log for account " + aAccount.name +
@@ -889,14 +889,14 @@ Logger.prototype = {
   observe: function logger_observe(aSubject, aTopic, aData) {
     switch (aTopic) {
     case "profile-after-change":
-      Services.obs.addObserver(this, "final-ui-startup", false);
+      Services.obs.addObserver(this, "final-ui-startup");
       break;
     case "final-ui-startup":
       Services.obs.removeObserver(this, "final-ui-startup");
       ["new-text", "conversation-closed", "conversation-left-chat",
        "account-connected", "account-disconnected",
        "account-buddy-status-changed"].forEach(function(aEvent) {
-        Services.obs.addObserver(this, aEvent, false);
+        Services.obs.addObserver(this, aEvent);
       }, this);
       break;
     case "new-text":

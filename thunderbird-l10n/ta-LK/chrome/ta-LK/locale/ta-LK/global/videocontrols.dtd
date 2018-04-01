@@ -16,7 +16,6 @@ would be "5:00 of 6:00:00 elapsed".
 <!ENTITY fullscreenButton.exitfullscreenlabel "Exit Full Screen">
 <!ENTITY castingButton.castingLabel "Cast to Screen">
 <!ENTITY closedCaption.off "Off">
-
 <!ENTITY stats.media "Media">
 <!ENTITY stats.size "Size">
 <!ENTITY stats.activity "Activity">
@@ -29,12 +28,10 @@ would be "5:00 of 6:00:00 elapsed".
 <!ENTITY stats.framesDecoded "Frames decoded">
 <!ENTITY stats.framesPresented "Frames presented">
 <!ENTITY stats.framesPainted "Frames painted">
-
 <!ENTITY error.aborted "Video loading stopped.">
 <!ENTITY error.network "Video playback aborted due to a network error.">
 <!ENTITY error.decode "Video can’t be played because the file is corrupt.">
 <!ENTITY error.srcNotSupported "Video format or MIME type is not supported.">
 <!ENTITY error.noSource2 "No video with supported format and MIME type found.">
 <!ENTITY error.generic "Video playback aborted due to an unknown error.">
-
 <!ENTITY positionAndDuration.nameFormat "#1<span> / #2</span>">

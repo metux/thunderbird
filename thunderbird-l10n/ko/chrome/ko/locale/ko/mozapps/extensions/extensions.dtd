@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "오래된 확장 기능">
 <!ENTITY legacyExtensions.description "이 확장 기능들은 현재 &brandShortName; 표준에 맞지 않으므로 비활성화되었습니다.">
 <!ENTITY legacyExtensions.learnMore "부가 기능의 변경 내용 알아보기">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

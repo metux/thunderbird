@@ -4,6 +4,8 @@
 
 <!ENTITY  connectionsDialog.title       "Iɣewwaṛen n tuqqna">
 <!ENTITY  window.width                  "49em">
+
+
 <!ENTITY  proxyTitle.label              "Tawila n uqeddac apṛuksi n unekcum ar Internet">
 <!ENTITY  noProxyTypeRadio.label        "Ulac apṛuksi">
 <!ENTITY  noProxyTypeRadio.accesskey    "l">
@@ -45,4 +47,3 @@
 <!ENTITY  socksRemoteDNS.accesskey      "z">
 
 <!ENTITY  window.macWidth               "44em">
-

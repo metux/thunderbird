@@ -155,6 +155,12 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "采样率">
 <!ENTITY aboutSupport.mediaDeviceLatency "延迟">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
+<!ENTITY aboutSupport.securitySoftwareType "Type">
+<!ENTITY aboutSupport.securitySoftwareName "Name">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
 <!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
 <!ENTITY aboutSupport.intlAppTitle "Application Settings">
 <!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">

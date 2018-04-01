@@ -79,8 +79,7 @@ function* streamMessages() {
 
     for (let i = 1; i < inbox.uidnext ; i++) {
       let uri = {};
-      imapS.GetUrlForUri("imap-message://user@localhost/INBOX#" + i,uri,null);
-      uri.value.spec += "?header=quotebody";
+      imapS.GetUrlForUri("imap-message://user@localhost/INBOX#" + i, uri, null);
       let channel = Services.io.newChannelFromURI2(uri.value,
                                                    null,
                                                    Services.scriptSecurityManager.getSystemPrincipal(),
@@ -96,7 +95,7 @@ function* streamMessages() {
            "##########\nTesting--->" + fileNames[i-1] +
            "; 'prefer plain text': " + isPlain + "\n");
       try {
-        do_check_true(buf.includes(marker));
+        Assert.ok(buf.includes(marker));
       }
       catch(e){}
     }

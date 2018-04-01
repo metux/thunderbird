@@ -58,3 +58,8 @@ sentence. -->
 <!ENTITY messageStyleShowHeader.accesskey  "F">
 <!ENTITY messageStyleNoPreview.title       "Nem érhető el előnézet">
 <!ENTITY messageStyleNoPreview.description "Ez a téma nem érvényes, vagy jelenleg nem érhető el (letiltott kiegészítő, biztonságos mód, …).">
+
+<!ENTITY  getAttention.label                  "Flash the taskbar item">
+<!ENTITY  getAttention.accesskey              "F">
+<!ENTITY  getAttentionMac.label               "Animate dock icon">
+<!ENTITY  getAttentionMac.accesskey           "o">

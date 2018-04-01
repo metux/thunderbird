@@ -19,7 +19,6 @@
 
 
 <!ENTITY mailListWindowAdd.title        "New Mailing List">
-
 <!ENTITY ListDescription.label          "Description: ">
 <!ENTITY ListDescription.accesskey      "D">
 <!ENTITY AddressTitle.label             "Type email addresses to add them to the mailing list:">

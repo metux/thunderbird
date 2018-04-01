@@ -345,7 +345,7 @@ function OnLoadMessenger()
     // On Win8 set an attribute when the window frame color is too dark for black text.
     if (window.matchMedia("(-moz-os-version: windows-win8)").matches &&
         window.matchMedia("(-moz-windows-default-theme)").matches) {
-      let windowFrameColor = new Color(...Cu.import("resource:///modules/Windows8WindowFrameColor.jsm", {})
+      let windowFrameColor = new Color(...Components.utils.import("resource:///modules/Windows8WindowFrameColor.jsm", {})
                                             .Windows8WindowFrameColor.get());
       // Default to black for foreground text.
       if (!windowFrameColor.isContrastRatioAcceptable(new Color(0, 0, 0))) {
@@ -375,9 +375,8 @@ function OnLoadMessenger()
     document.documentElement.setAttribute("screenY", screen.availTop);
   }
 
-  Services.prefs.addObserver("mail.pane_config.dynamic", MailPrefObserver, false);
-  Services.prefs.addObserver("mail.showCondensedAddresses", MailPrefObserver,
-                             false);
+  Services.prefs.addObserver("mail.pane_config.dynamic", MailPrefObserver);
+  Services.prefs.addObserver("mail.showCondensedAddresses", MailPrefObserver);
 
   MailOfflineMgr.init();
   CreateMailWindowGlobals();
@@ -420,7 +419,7 @@ function OnLoadMessenger()
                                     LightWeightThemeWebInstaller, false, true);
   }
 
-  Services.obs.addObserver(gPluginHandler.pluginCrashed, "plugin-crashed", false);
+  Services.obs.addObserver(gPluginHandler.pluginCrashed, "plugin-crashed");
 
   // This also registers the contentTabType ("contentTab")
   specialTabs.openSpecialTabsOnStartup();
@@ -528,11 +527,11 @@ function LoadPostAccountWizard()
         // On windows, there seems to be a delay between setting TB as the
         // default client, and the isDefaultClient check succeeding.
         if (shellService.isDefaultClient(true, nsIShellService.MAIL))
-          Services.obs.notifyObservers(window, "mail:setAsDefault", null);
+          Services.obs.notifyObservers(window, "mail:setAsDefault");
       }
     }
     // All core modal dialogs are done, the user can now interact with the 3-pane window
-    Services.obs.notifyObservers(window, "mail-startup-done", null);
+    Services.obs.notifyObservers(window, "mail-startup-done");
   }
 
   setTimeout(completeStartup, 0);
@@ -610,7 +609,7 @@ function FindOther3PaneWindow()
  */
 function OnUnloadMessenger()
 {
-  Services.obs.notifyObservers(window, "mail-unloading-messenger", null);
+  Services.obs.notifyObservers(window, "mail-unloading-messenger");
   accountManager.removeIncomingServerListener(gThreePaneIncomingServerListener);
   Services.prefs.removeObserver("mail.pane_config.dynamic", MailPrefObserver);
   Services.prefs.removeObserver("mail.showCondensedAddresses", MailPrefObserver);
@@ -680,7 +679,7 @@ async function atStartupRestoreTabs(aDontRestoreFirstTab) {
   // it's now safe to load extra Tabs.
   setTimeout(loadExtraTabs, 0);
   sessionStoreManager._restored = true;
-  Services.obs.notifyObservers(window, "mail-tabs-session-restored", null);
+  Services.obs.notifyObservers(window, "mail-tabs-session-restored");
   return state ? true : false;
 }
 
@@ -1651,15 +1650,15 @@ var TabsInTitlebar = {
       // Don't trust the initial value of the sizemode attribute; wait for the
       // resize event.
       this._readPref();
-      Services.prefs.addObserver(this._drawInTitlePref, this, false);
-      Services.prefs.addObserver(this._autoHidePref, this, false);
+      Services.prefs.addObserver(this._drawInTitlePref, this);
+      Services.prefs.addObserver(this._autoHidePref, this);
 
       this.allowedBy("sizemode", false);
       window.addEventListener("resize", function (event) {
         if (event.target != window)
           return;
         TabsInTitlebar.allowedBy("sizemode", true);
-      }, false);
+      });
 
       // Always disable on unsupported GTK versions.
       if (AppConstants.MOZ_WIDGET_TOOLKIT == "gtk3") {

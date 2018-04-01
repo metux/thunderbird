@@ -351,7 +351,6 @@
 
 
 <!ENTITY calendar.upcoming.button.label       "Upcoming">
-
 <!ENTITY calendar.unifinder.tree.done.tooltip2             "Sort by completion">
 <!ENTITY calendar.unifinder.tree.priority.tooltip2         "Sort by priority">
 <!ENTITY calendar.unifinder.tree.title.tooltip2            "Sort by title">
@@ -366,23 +365,18 @@
 <!ENTITY calendar.unifinder.tree.calendarname.tooltip2     "Sort by calendar name">
 <!ENTITY calendar.unifinder.tree.duration.tooltip2         "Sort by time until due">
 <!ENTITY calendar.print.button.accesskey        "P">
-
 <!ENTITY calendar.task.text-filter.textbox.emptytext.base1           "Filter tasks #1">
 <!ENTITY calendar.context.deleteserver2.label          "Delete Calendar…">
 <!ENTITY calendar.context.deleteserver2.accesskey      "D">
-
 <!ENTITY calendar.context.removeserver.label           "Remove Calendar…">
 <!ENTITY calendar.context.removeserver.accesskey       "R">
 <!ENTITY calendar.context.unsubscribeserver.label      "Unsubscribe Calendar…">
 <!ENTITY calendar.context.unsubscribeserver.accesskey  "U">
 <!ENTITY calendar.context.showcalendar.accesskey      "h">
-
 <!ENTITY calendar.context.hidecalendar.accesskey      "H">
-
 <!ENTITY calendar.context.showonly.accesskey           "O">
 <!ENTITY calendar.context.showall.label                "Show All Calendars">
 <!ENTITY calendar.context.showall.accesskey            "A">
-
 <!ENTITY calendarproperties.cache3.label                   "Offline Support">
 <!ENTITY calendar.extract.event.button         "Add as event">
 <!ENTITY calendar.extract.task.button          "Add as task">

@@ -296,7 +296,7 @@ var FeedUtils = {
       // Add the base folder; it does not get returned by ListDescendants. Do not
       // add the account folder as it doesn't have the feedUrl property or even
       // a msgDatabase necessarily.
-      allFolders.appendElement(aFolder, false);
+      allFolders.appendElement(aFolder);
     }
 
     aFolder.ListDescendants(allFolders);
@@ -1320,9 +1320,6 @@ var FeedUtils = {
   },
 
   getSubscriptionsDS: function(aServer) {
-    if (this[aServer.serverURI] && this[aServer.serverURI]["FeedsDS"])
-      return this[aServer.serverURI]["FeedsDS"];
-
     let file = this.getSubscriptionsFile(aServer);
     let url = Services.io.getProtocolHandler("file").
                           QueryInterface(Ci.nsIFileProtocolHandler).
@@ -1336,10 +1333,7 @@ var FeedUtils = {
       throw new Error("FeedUtils.getSubscriptionsDS: can't get feed " +
                       "subscriptions data source - " + url);
 
-    if (!this[aServer.serverURI])
-      this[aServer.serverURI] = {};
-    return this[aServer.serverURI]["FeedsDS"] =
-             ds.QueryInterface(Ci.nsIRDFRemoteDataSource);
+    return ds.QueryInterface(Ci.nsIRDFRemoteDataSource);
   },
 
   getSubscriptionsList: function(aDataSource) {
@@ -1373,9 +1367,6 @@ var FeedUtils = {
     '</RDF:RDF>\n',
 
   getItemsDS: function(aServer) {
-    if (this[aServer.serverURI] && this[aServer.serverURI]["FeedItemsDS"])
-      return this[aServer.serverURI]["FeedItemsDS"];
-
     let file = this.getItemsFile(aServer);
     let url = Services.io.getProtocolHandler("file").
                           QueryInterface(Ci.nsIFileProtocolHandler).
@@ -1392,10 +1383,7 @@ var FeedUtils = {
     // You have to QueryInterface it to nsIRDFRemoteDataSource and check
     // its "loaded" property to be sure.  You can also attach an observer
     // which will get notified when the load is complete.
-    if (!this[aServer.serverURI])
-      this[aServer.serverURI] = {};
-    return this[aServer.serverURI]["FeedItemsDS"] =
-             ds.QueryInterface(Ci.nsIRDFRemoteDataSource);
+    return ds.QueryInterface(Ci.nsIRDFRemoteDataSource);
   },
 
   getItemsFile: function(aServer) {
@@ -1506,13 +1494,12 @@ var FeedUtils = {
     let dt = aDataTransfer;
     let types = ["text/x-moz-url-data", "text/x-moz-url"];
     let validUri = false;
-    let uri = Cc["@mozilla.org/network/standard-url;1"].
-              createInstance(Ci.nsIURI);
+    let uri;
 
     if (dt.getData(types[0]))
     {
       // The url is the data.
-      uri.spec = dt.mozGetDataAt(types[0], 0);
+      uri = Services.io.newURI(dt.mozGetDataAt(types[0], 0));
       validUri = this.isValidScheme(uri);
       this.log.trace("getFeedUriFromDataTransfer: dropEffect:type:value - " +
                      dt.dropEffect + " : " + types[0] + " : " + uri.spec);
@@ -1520,7 +1507,7 @@ var FeedUtils = {
     else if (dt.getData(types[1]))
     {
       // The url is the first part of the data, the second part is random.
-      uri.spec = dt.mozGetDataAt(types[1], 0).split("\n")[0];
+      uri = Services.io.newURI(dt.mozGetDataAt(types[1], 0).split("\n")[0]);
       validUri = this.isValidScheme(uri);
       this.log.trace("getFeedUriFromDataTransfer: dropEffect:type:value - " +
                      dt.dropEffect + " : " + types[0] + " : " + uri.spec);
@@ -1533,7 +1520,7 @@ var FeedUtils = {
         this.log.trace("getFeedUriFromDataTransfer: dropEffect:index:type:value - " +
                        dt.dropEffect + " : " + i + " : " + dt.types[i] + " : "+spec);
         try {
-          uri.spec = spec;
+          uri = Services.io.newURI(spec);
           validUri = this.isValidScheme(uri);
         }
         catch(ex) {}
@@ -1858,14 +1845,26 @@ var FeedUtils = {
           if (feed.itemsStored)
             options.updates.lastDownloadTime = now;
 
+          // If a previously disabled due to error feed is successful, set
+          // enabled state on, as that was the desired user setting.
+          if (options.updates.enabled == null)
+          {
+            options.updates.enabled = true;
+            FeedUtils.setStatus(feed.folder, feed.url, "enabled", true);
+          }
+
           feed.options = options;
           FeedUtils.setStatus(feed.folder, feed.url, "lastUpdateTime", now);
         }
         else if (aDisable)
         {
-          // Do not keep retrying feeds with error states.
+          // Do not keep retrying feeds with error states. Set persisted state
+          // to |null| to indicate error disable (and not user disable), but
+          // only if the feed is user enabled.
           let options = feed.options;
-          options.updates.enabled = false;
+          if (options.updates.enabled)
+            options.updates.enabled = null;
+
           feed.options = options;
           FeedUtils.setStatus(feed.folder, feed.url, "enabled", false);
           FeedUtils.log.warn("downloaded: udpates disabled due to error, " +

@@ -38,7 +38,6 @@
 #include "nsTextFormatter.h"
 #include "nsIMsgHdr.h"
 #include "nsMsgI18N.h"
-#include <algorithm>
 // for the memory cache...
 #include "nsICacheEntry.h"
 #include "nsICacheStorage.h"
@@ -58,8 +57,6 @@
 #include "nsIXULAppInfo.h"
 #include "nsSyncRunnableHelpers.h"
 
-static mozilla::LazyLogModule IMAP("IMAP");
-
 // netlib required files
 #include "nsIStreamListener.h"
 #include "nsIMsgIncomingServer.h"
@@ -75,7 +72,6 @@ static mozilla::LazyLogModule IMAP("IMAP");
 #include "nsDebug.h"
 #include "nsMsgCompressIStream.h"
 #include "nsMsgCompressOStream.h"
-#include "nsAlgorithm.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/SlicedInputStream.h"
@@ -83,6 +79,8 @@ static mozilla::LazyLogModule IMAP("IMAP");
 #include "nsContentSecurityManager.h"
 
 using namespace mozilla;
+
+LazyLogModule IMAP("IMAP");
 
 #define ONE_SECOND ((uint32_t)1000)    // one second
 
@@ -800,9 +798,9 @@ nsresult nsImapProtocol::SetupWithUrl(nsIURI * aURL, nsISupports* aConsumer)
     imapServer->GetFetchByChunks(&m_fetchByChunks);
     imapServer->GetSendID(&m_sendID);
 
-    nsAutoString trashFolderName;
-    if (NS_SUCCEEDED(imapServer->GetTrashFolderName(trashFolderName)))
-      CopyUTF16toMUTF7(trashFolderName, m_trashFolderName);
+    nsAutoString trashFolderPath;
+    if (NS_SUCCEEDED(imapServer->GetTrashFolderName(trashFolderPath)))
+      CopyUTF16toMUTF7(trashFolderPath, m_trashFolderPath);
 
     nsCOMPtr<nsIPrefBranch> prefBranch(do_GetService(NS_PREFSERVICE_CONTRACTID));
     if (prefBranch)
@@ -4998,27 +4996,22 @@ nsImapProtocol::DiscoverMailboxSpec(nsImapMailboxSpec * adoptedBoxSpec)
 
         // Don't set the Trash flag if not using the Trash model
         if (GetDeleteIsMoveToTrash() && !onlineTrashFolderExists &&
-            adoptedBoxSpec->mAllocatedPathName.Find(m_trashFolderName, /* ignoreCase = */ true) != -1)
+            adoptedBoxSpec->mAllocatedPathName.Find(m_trashFolderPath, /* ignoreCase = */ true) != -1)
         {
           bool trashExists = false;
-          nsCString trashMatch(CreatePossibleTrashName(nsPrefix));
-          nsCString serverTrashName;
-          m_runningUrl->AllocateCanonicalPath(trashMatch.get(),
-                                              ns->GetDelimiter(),
-                                              getter_Copies(serverTrashName));
-          if (StringBeginsWith(serverTrashName,
+          if (StringBeginsWith(m_trashFolderPath,
                                NS_LITERAL_CSTRING("INBOX/"),
                                nsCaseInsensitiveCStringComparator()))
           {
             nsAutoCString pathName(adoptedBoxSpec->mAllocatedPathName.get() + 6);
             trashExists =
               StringBeginsWith(adoptedBoxSpec->mAllocatedPathName,
-                               serverTrashName,
+                               m_trashFolderPath,
                                nsCaseInsensitiveCStringComparator()) && /* "INBOX/" */
-              pathName.Equals(Substring(serverTrashName, 6), nsCaseInsensitiveCStringComparator());
+              pathName.Equals(Substring(m_trashFolderPath, 6), nsCaseInsensitiveCStringComparator());
           }
           else
-            trashExists = adoptedBoxSpec->mAllocatedPathName.Equals(serverTrashName, nsCaseInsensitiveCStringComparator());
+            trashExists = adoptedBoxSpec->mAllocatedPathName.Equals(m_trashFolderPath, nsCaseInsensitiveCStringComparator());
 
           if (m_hostSessionList)
             m_hostSessionList->SetOnlineTrashFolderExistsForHost(GetImapServerKey(), trashExists);
@@ -5689,7 +5682,7 @@ nsresult nsImapProtocol::ChooseAuthMethod()
         serverCaps, m_prefAuthMethods, m_failedAuthMethods, availCaps));
   MOZ_LOG(IMAP, LogLevel::Debug, ("(GSSAPI = 0x%" PRIx64 ", CRAM = 0x%" PRIx64
         ", NTLM = 0x%" PRIx64 ", MSN = 0x%" PRIx64 ", PLAIN = 0x%" PRIx64
-        ",\n  LOGIN = 0x%" PRIx64 ", old-style IMAP login = 0x%" PRIx64
+        ", LOGIN = 0x%" PRIx64 ", old-style IMAP login = 0x%" PRIx64
         ", auth external IMAP login = 0x%" PRIx64 ", OAUTH2 = 0x%" PRIx64 ")",
         kHasAuthGssApiCapability, kHasCRAMCapability, kHasAuthNTLMCapability,
         kHasAuthMSNCapability, kHasAuthPlainCapability, kHasAuthLoginCapability,
@@ -7311,38 +7304,13 @@ void nsImapProtocol::DiscoverAllAndSubscribedBoxes()
         nsAutoCString allPattern(prefix);
         allPattern += '*';
 
-        nsAutoCString topLevelPattern(prefix);
-        topLevelPattern += '%';
-
-        nsAutoCString secondLevelPattern;
-
-        char delimiter = ns->GetDelimiter();
-        if (delimiter)
-        {
-          // Hierarchy delimiter might be NIL, in which case there's no hierarchy anyway
-          secondLevelPattern = prefix;
-          secondLevelPattern += '%';
-          secondLevelPattern += delimiter;
-          secondLevelPattern += '%';
-        }
-
         if (!m_imapServerSink) return;
 
-        if (!allPattern.IsEmpty())
-        {
-          m_imapServerSink->SetServerDoingLsub(true);
-          Lsub(allPattern.get(), true);	// LSUB all the subscribed
-        }
-        if (!topLevelPattern.IsEmpty())
-        {
-          m_imapServerSink->SetServerDoingLsub(false);
-          List(topLevelPattern.get(), true);	// LIST the top level
-        }
-        if (!secondLevelPattern.IsEmpty())
-        {
-          m_imapServerSink->SetServerDoingLsub(false);
-          List(secondLevelPattern.get(), true);	// LIST the second level
-        }
+        m_imapServerSink->SetServerDoingLsub(true);
+        Lsub(allPattern.get(), true);	// LSUB all the subscribed
+
+        m_imapServerSink->SetServerDoingLsub(false);
+        List(allPattern.get(), true); // LIST all folders
       }
     }
   }
@@ -7571,9 +7539,8 @@ void nsImapProtocol::MailboxDiscoveryFinished()
       // maybe we're not subscribed to the Trash folder
       if (personalDir)
       {
-        nsCString originalTrashName(CreatePossibleTrashName(personalDir));
         m_hierarchyNameState = kDiscoverTrashFolderInProgress;
-        List(originalTrashName.get(), true);
+        List(m_trashFolderPath.get(), true);
         m_hierarchyNameState = kNoOperationInProgress;
       }
     }
@@ -7582,9 +7549,8 @@ void nsImapProtocol::MailboxDiscoveryFinished()
     // Delete-is-move-to-Trash model, and there is a personal namespace
     if (!trashFolderExists && GetDeleteIsMoveToTrash() && ns)
     {
-      nsCString trashName(CreatePossibleTrashName(ns->GetPrefix()));
       nsCString onlineTrashName;
-      m_runningUrl->AllocateServerPath(trashName.get(), ns->GetDelimiter(),
+      m_runningUrl->AllocateServerPath(m_trashFolderPath.get(), ns->GetDelimiter(),
                                        getter_Copies(onlineTrashName));
 
       GetServerStateParser().SetReportingErrors(false);
@@ -7725,13 +7691,6 @@ void nsImapProtocol::RenameMailbox(const char *existingName,
   nsresult rv = SendData(command.get());
   if (NS_SUCCEEDED(rv))
     ParseIMAPandCheckForNewMail();
-}
-
-nsCString nsImapProtocol::CreatePossibleTrashName(const char *prefix)
-{
-  nsCString returnTrash(prefix);
-  returnTrash += m_trashFolderName;
-  return returnTrash;
 }
 
 bool nsImapProtocol::GetListSubscribedIsBrokenOnServer()
@@ -9529,7 +9488,7 @@ nsresult nsImapMockChannel::ReadFromMemCache(nsICacheEntry *entry)
       return NS_ERROR_FAILURE;
 
     nsCOMPtr<nsIInputStreamPump> pump;
-    rv = NS_NewInputStreamPump(getter_AddRefs(pump), in);
+    rv = NS_NewInputStreamPump(getter_AddRefs(pump), in.forget());
     NS_ENSURE_SUCCESS(rv, rv);
 
     // if we are going to read from the cache, then create a mock stream listener class and use it
@@ -9679,7 +9638,7 @@ bool nsImapMockChannel::ReadFromLocalCache()
         RefPtr<SlicedInputStream> slicedStream =
           new SlicedInputStream(fileStream.forget(), uint64_t(offset), uint64_t(size));
         nsCOMPtr<nsIInputStreamPump> pump;
-        rv = NS_NewInputStreamPump(getter_AddRefs(pump), slicedStream);
+        rv = NS_NewInputStreamPump(getter_AddRefs(pump), slicedStream.forget());
         if (NS_SUCCEEDED(rv))
           rv = pump->AsyncRead(cacheListener, m_channelContext);
 

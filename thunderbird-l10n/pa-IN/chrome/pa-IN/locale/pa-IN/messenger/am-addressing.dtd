@@ -37,6 +37,5 @@
 <!ENTITY includeSigOnForward.accesskey        "w">
 <!ENTITY globalComposingPrefs.label           "Global Composing Preferences…">
 <!ENTITY globalComposingPrefs.accesskey       "G">
-
 <!ENTITY globalAddressingPrefs.label          "Global Addressing Preferences…">
 <!ENTITY globalAddressingPrefs.accesskey      "P">

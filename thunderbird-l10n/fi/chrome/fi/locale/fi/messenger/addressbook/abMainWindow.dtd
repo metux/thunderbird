@@ -227,7 +227,6 @@ because displayed names don't have the comma in between. -->
 <!ENTITY contactPropertiesMenu.accesskey                "i">
 <!ENTITY mailingListPropertiesMenu.label                "Mailing List Properties">
 <!ENTITY mailingListPropertiesMenu.accesskey            "i">
-
 <!ENTITY showAsDefault.label                            "Default startup directory">
 <!ENTITY showAsDefault.accesskey                        "S">
 <!ENTITY editPropertiesButton.label                     "Edit">

@@ -4,3 +4,6 @@
 
 <!ENTITY virtualFolderListTitle.title "Map(pen) selektearje">
 <!ENTITY virtualFolderDesc.label "Selektearje de mappen om troch te sykjen:">
+
+<!ENTITY folderName.label "Folder name">
+<!ENTITY folderSearch.label "Search">

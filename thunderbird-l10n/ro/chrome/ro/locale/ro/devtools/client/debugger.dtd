@@ -146,110 +146,76 @@
 
 
 <!ENTITY debuggerUI.blackBoxMessage.label "This source is black boxed: its breakpoints are disabled, and stepping skips through it.">
-
 <!ENTITY debuggerUI.blackBoxMessage.unBlackBoxButton "Stop black boxing this source">
-
 <!ENTITY debuggerUI.optsButton.tooltip  "Debugger Options">
-
 <!ENTITY debuggerUI.sources.blackBoxTooltip "Toggle Black Boxing">
-
 <!ENTITY debuggerUI.sources.prettyPrint "Prettify Source">
-
 <!ENTITY debuggerUI.autoPrettyPrint     "Auto Prettify Minified Sources">
 <!ENTITY debuggerUI.autoPrettyPrint.accesskey "P">
-
 <!ENTITY debuggerUI.sources.toggleBreakpoints "Enable/disable all breakpoints">
-
 <!ENTITY debuggerUI.clearButton "Clear">
-
 <!ENTITY debuggerUI.clearButton.tooltip "Clear the collected traces">
-
 <!ENTITY debuggerUI.pauseExceptions           "Pause on Exceptions">
 <!ENTITY debuggerUI.pauseExceptions.accesskey "E">
-
 <!ENTITY debuggerUI.ignoreCaughtExceptions           "Ignore Caught Exceptions">
 <!ENTITY debuggerUI.ignoreCaughtExceptions.accesskey "C">
-
 <!ENTITY debuggerUI.showPanesOnInit           "Show Panes on Startup">
 <!ENTITY debuggerUI.showPanesOnInit.accesskey "S">
-
 <!ENTITY debuggerUI.showVarsFilter           "Show Variables Filter Box">
 <!ENTITY debuggerUI.showVarsFilter.accesskey "V">
-
 <!ENTITY debuggerUI.showOnlyEnum           "Show Only Enumerable Properties">
 <!ENTITY debuggerUI.showOnlyEnum.accesskey "P">
-
 <!ENTITY debuggerUI.showOriginalSource           "Show Original Sources">
 <!ENTITY debuggerUI.showOriginalSource.accesskey "O">
-
 <!ENTITY debuggerUI.autoBlackBox           "Automatically Black Box Minified Sources">
 <!ENTITY debuggerUI.autoBlackBox.accesskey "B">
-
 <!ENTITY debuggerUI.searchPanelOperators    "Operators:">
-
 <!ENTITY debuggerUI.searchFile           "Filter Scripts">
 <!ENTITY debuggerUI.searchFile.key       "P">
 <!ENTITY debuggerUI.searchFile.altkey    "O">
 <!ENTITY debuggerUI.searchFile.accesskey "P">
-
 <!ENTITY debuggerUI.searchGlobal           "Search in All Files">
 <!ENTITY debuggerUI.searchGlobal.key       "F">
 <!ENTITY debuggerUI.searchGlobal.accesskey "F">
-
 <!ENTITY debuggerUI.searchFunction           "Search for Function Definition">
 <!ENTITY debuggerUI.searchFunction.key       "D">
 <!ENTITY debuggerUI.searchFunction.accesskey "D">
-
 <!ENTITY debuggerUI.searchToken           "Find">
 <!ENTITY debuggerUI.searchToken.key       "F">
 <!ENTITY debuggerUI.searchToken.accesskey "F">
-
 <!ENTITY debuggerUI.searchGoToLine           "Go to Line…">
 <!ENTITY debuggerUI.searchGoToLine.key       "L">
 <!ENTITY debuggerUI.searchGoToLine.accesskey "L">
-
 <!ENTITY debuggerUI.searchVariable           "Filter Variables">
 <!ENTITY debuggerUI.searchVariable.key       "V">
 <!ENTITY debuggerUI.searchVariable.accesskey "V">
-
 <!ENTITY debuggerUI.focusVariables           "Focus Variables Tree">
 <!ENTITY debuggerUI.focusVariables.key       "V">
 <!ENTITY debuggerUI.focusVariables.accesskey "V">
-
 <!ENTITY debuggerUI.condBreakPanelTitle "This breakpoint will stop execution only if the following expression is true">
-
 <!ENTITY debuggerUI.seMenuBreak     "Add Breakpoint">
 <!ENTITY debuggerUI.seMenuBreak.key "B">
-
 <!ENTITY debuggerUI.seMenuCondBreak     "Add Conditional Breakpoint">
 <!ENTITY debuggerUI.seMenuCondBreak.key "B">
-
 <!ENTITY debuggerUI.seEditMenuCondBreak     "Edit Conditional Breakpoint">
 <!ENTITY debuggerUI.seEditMenuCondBreak.key "B">
-
 <!ENTITY debuggerUI.tabs.workers        "Workers">
 <!ENTITY debuggerUI.tabs.sources        "Sources">
 <!ENTITY debuggerUI.tabs.traces         "Traces">
 <!ENTITY debuggerUI.tabs.callstack      "Call Stack">
 <!ENTITY debuggerUI.tabs.variables      "Variables">
 <!ENTITY debuggerUI.tabs.events         "Events">
-
 <!ENTITY debuggerUI.seMenuAddWatch      "Selection to Watch Expression">
 <!ENTITY debuggerUI.seMenuAddWatch.key  "E">
-
 <!ENTITY debuggerUI.addWatch            "Add Watch Expression">
 <!ENTITY debuggerUI.addWatch.accesskey  "E">
-
 <!ENTITY debuggerUI.removeAllWatch           "Remove All Watch Expressions">
 <!ENTITY debuggerUI.removeAllWatch.key       "E">
 <!ENTITY debuggerUI.removeAllWatch.accesskey "E">
-
 <!ENTITY debuggerUI.stepping.resume1    "VK_F8">
 <!ENTITY debuggerUI.stepping.stepOver1  "VK_F10">
 <!ENTITY debuggerUI.stepping.stepIn1    "VK_F11">
 <!ENTITY debuggerUI.stepping.stepOut1   "VK_F11">
-
 <!ENTITY debuggerUI.context.newTab.accesskey "O">
-
 <!ENTITY debuggerUI.context.copyUrl.accesskey "C">
 <!ENTITY debuggerUI.context.copyUrl.key "C">

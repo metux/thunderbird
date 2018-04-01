@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "Zastaralá rozšíření">
 <!ENTITY legacyExtensions.description "Tato rozšíření byla zakázána, protože neodpovídají současným standardům aplikace &brandShortName;.">
 <!ENTITY legacyExtensions.learnMore "Zjistit více o změnách pro doplňky">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

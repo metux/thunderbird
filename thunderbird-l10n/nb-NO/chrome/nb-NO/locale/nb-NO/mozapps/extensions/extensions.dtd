@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "Foreldete utvidelser">
 <!ENTITY legacyExtensions.description "Disse utvidelsene oppfyller ikke gjeldende standarder i &brandShortName; og er derfor slått av.">
 <!ENTITY legacyExtensions.learnMore "Les mer om endringer av utvidelser">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

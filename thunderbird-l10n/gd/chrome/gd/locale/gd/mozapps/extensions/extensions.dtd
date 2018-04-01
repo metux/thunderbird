@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "Leudachain dhìleabach">
 <!ENTITY legacyExtensions.description "Chan eil na leudachain seo a’ coileanadh stannardan &brandShortName; agus chaidh an cur às comas ri linn sin.">
 <!ENTITY legacyExtensions.learnMore "Fiosraich na tha ùr a thaobh leudachan">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

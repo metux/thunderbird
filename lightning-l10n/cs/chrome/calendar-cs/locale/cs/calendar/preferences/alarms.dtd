@@ -34,3 +34,5 @@
 
 <!ENTITY pref.defaultsnoozelength.label "Opakovat upozornění každých:" >
 <!ENTITY pref.defaultsnoozelength.accesskey "O">
+
+<!ENTITY pref.missedalarms2 "Show missed reminders for writable calendars">

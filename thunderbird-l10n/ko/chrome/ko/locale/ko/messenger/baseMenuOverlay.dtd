@@ -27,3 +27,7 @@
 
 <!ENTITY aboutMenuCmd.label "&brandShortName; 정보">
 <!ENTITY aboutMenuCmd.accesskey "A">
+
+<!ENTITY openHelpMac2.label "&brandFullName; Help">
+<!ENTITY aboutMenuCmd2.label "About &brandFullName;">
+<!ENTITY aboutMenuCmd2.accesskey "A">

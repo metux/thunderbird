@@ -12,7 +12,6 @@
 
 #include "AccessibleHandler.h"
 #include "AccessibleHandlerControl.h"
-#include "AccessibleTextTearoff.h"
 
 #include "Factory.h"
 #include "HandlerData.h"
@@ -32,9 +31,12 @@
 #include "Accessible2_3_i.c"
 #include "AccessibleAction_i.c"
 #include "AccessibleHyperlink_i.c"
+#include "AccessibleHypertext_i.c"
+#include "AccessibleHypertext2_i.c"
 #include "AccessibleTable_i.c"
 #include "AccessibleTable2_i.c"
 #include "AccessibleTableCell_i.c"
+#include "AccessibleText_i.c"
 
 namespace mozilla {
 namespace a11y {
@@ -69,8 +71,13 @@ AccessibleHandler::AccessibleHandler(IUnknown* aOuter, HRESULT* aResult)
   , mServProvPassThru(nullptr)
   , mIAHyperlinkPassThru(nullptr)
   , mIATableCellPassThru(nullptr)
+  , mIAHypertextPassThru(nullptr)
   , mCachedData()
   , mCacheGen(0)
+  , mCachedHyperlinks(nullptr)
+  , mCachedNHyperlinks(-1)
+  , mCachedTextAttribRuns(nullptr)
+  , mCachedNTextAttribRuns(-1)
 {
   RefPtr<AccessibleHandlerControl> ctl(gControlFactory.GetOrCreateSingleton());
   MOZ_ASSERT(ctl);
@@ -91,6 +98,7 @@ AccessibleHandler::~AccessibleHandler()
   if (mCachedData.mGeckoBackChannel) {
     mCachedData.mGeckoBackChannel->Release();
   }
+  ClearTextCache();
 }
 
 HRESULT
@@ -162,6 +170,29 @@ AccessibleHandler::ResolveIATableCell()
 }
 
 HRESULT
+AccessibleHandler::ResolveIAHypertext()
+{
+  if (mIAHypertextPassThru) {
+    return S_OK;
+  }
+
+  RefPtr<IUnknown> proxy(GetProxy());
+  if (!proxy) {
+    return E_UNEXPECTED;
+  }
+
+  HRESULT hr = proxy->QueryInterface(IID_IAccessibleHypertext2,
+    reinterpret_cast<void**>(&mIAHypertextPassThru));
+  if (SUCCEEDED(hr)) {
+    // mIAHypertextPassThru is a weak reference
+    // (see comments in AccessibleHandler.h)
+    mIAHypertextPassThru->Release();
+  }
+
+  return hr;
+}
+
+HRESULT
 AccessibleHandler::MaybeUpdateCachedData()
 {
   RefPtr<AccessibleHandlerControl> ctl(gControlFactory.GetOrCreateSingleton());
@@ -179,6 +210,48 @@ AccessibleHandler::MaybeUpdateCachedData()
   }
 
   return mCachedData.mGeckoBackChannel->Refresh(&mCachedData.mDynamicData);
+}
+
+HRESULT
+AccessibleHandler::GetAllTextInfo(BSTR* aText)
+{
+  MOZ_ASSERT(mCachedData.mGeckoBackChannel);
+
+  ClearTextCache();
+
+  return mCachedData.mGeckoBackChannel->get_AllTextInfo(aText,
+    &mCachedHyperlinks, &mCachedNHyperlinks,
+    &mCachedTextAttribRuns, &mCachedNTextAttribRuns);
+}
+
+void
+AccessibleHandler::ClearTextCache()
+{
+  if (mCachedNHyperlinks >= 0) {
+    // We cached hyperlinks, but the caller never retrieved them.
+    for (long index = 0; index < mCachedNHyperlinks; ++index) {
+      mCachedHyperlinks[index]->Release();
+    }
+    // mCachedHyperlinks might already be null if there are no hyperlinks.
+    if (mCachedHyperlinks) {
+      ::CoTaskMemFree(mCachedHyperlinks);
+      mCachedHyperlinks = nullptr;
+    }
+    mCachedNHyperlinks = -1;
+  }
+
+  if (mCachedTextAttribRuns) {
+    for (long index = 0; index < mCachedNTextAttribRuns; ++index) {
+      if (mCachedTextAttribRuns[index].text) {
+        // The caller never requested this attribute run.
+        ::SysFreeString(mCachedTextAttribRuns[index].text);
+      }
+    }
+    // This array is internal to us, so we must always free it.
+    ::CoTaskMemFree(mCachedTextAttribRuns);
+    mCachedTextAttribRuns = nullptr;
+    mCachedNTextAttribRuns = -1;
+  }
 }
 
 HRESULT
@@ -283,8 +356,9 @@ AccessibleHandler::QueryHandlerInterface(IUnknown* aProxyUnknown, REFIID aIid,
 
   if (aIid == IID_IAccessibleText || aIid == IID_IAccessibleHypertext ||
       aIid == IID_IAccessibleHypertext2) {
-    RefPtr<IAccessibleHypertext2> textTearoff(new AccessibleTextTearoff(this));
-    textTearoff.forget(aOutInterface);
+    RefPtr<IAccessibleHypertext2> iaHt(
+      static_cast<IAccessibleHypertext2*>(this));
+    iaHt.forget(aOutInterface);
     return S_OK;
   }
 
@@ -336,27 +410,7 @@ AccessibleHandler::ReadHandlerPayload(IStream* aStream, REFIID aIid)
   // Note that if pointers to other objects (in contrast to
   // interfaces of *this* object) are added in future, we should not release
   // those pointers.
-  if (mCachedData.mStaticData.mIA2) {
-    mCachedData.mStaticData.mIA2->Release();
-  }
-  if (mCachedData.mStaticData.mIEnumVARIANT) {
-    mCachedData.mStaticData.mIEnumVARIANT->Release();
-  }
-  if (mCachedData.mStaticData.mIAHypertext) {
-    mCachedData.mStaticData.mIAHypertext->Release();
-  }
-  if (mCachedData.mStaticData.mIAHyperlink) {
-    mCachedData.mStaticData.mIAHyperlink->Release();
-  }
-  if (mCachedData.mStaticData.mIATable) {
-    mCachedData.mStaticData.mIATable->Release();
-  }
-  if (mCachedData.mStaticData.mIATable2) {
-    mCachedData.mStaticData.mIATable2->Release();
-  }
-  if (mCachedData.mStaticData.mIATableCell) {
-    mCachedData.mStaticData.mIATableCell->Release();
-  }
+  ReleaseStaticIA2DataInterfaces(mCachedData.mStaticData);
 
   if (!mCachedData.mGeckoBackChannel) {
     return S_OK;
@@ -1167,8 +1221,12 @@ static const GUID kUnsupportedServices[] = {
   {0x8EDAA462, 0x21F4, 0x4C87, { 0xA0, 0x12, 0xB3, 0xCD, 0xA3, 0xAB, 0x01, 0xFC }},
   // Unknown, queried by Windows
   {0xacd46652, 0x829d, 0x41cb, { 0xa5, 0xfc, 0x17, 0xac, 0xf4, 0x36, 0x61, 0xac }},
-  // Unknown, queried by Windows
-  {0xb96fdb85, 0x7204, 0x4724, { 0x84, 0x2b, 0xc7, 0x05, 0x9d, 0xed, 0xb9, 0xd0 }}
+  // SID_IsUIAutomationObject (undocumented), queried by Windows
+  {0xb96fdb85, 0x7204, 0x4724, { 0x84, 0x2b, 0xc7, 0x05, 0x9d, 0xed, 0xb9, 0xd0 }},
+  // IIS_IsOleaccProxy (undocumented), queried by Windows
+  {0x902697FA, 0x80E4, 0x4560, {0x80, 0x2A, 0xA1, 0x3F, 0x22, 0xA6, 0x47, 0x09}},
+  // IID_IHTMLElement, queried by JAWS
+  {0x3050F1FF, 0x98B5, 0x11CF, {0xBB, 0x82, 0x00, 0xAA, 0x00, 0xBD, 0xCE, 0x0B}}
 };
 
 /*** IServiceProvider ***/
@@ -1186,6 +1244,13 @@ AccessibleHandler::QueryService(REFGUID aServiceId, REFIID aIid,
     RefPtr<NEWEST_IA2_INTERFACE> ia2(this);
     ia2.forget(aOutInterface);
     return S_OK;
+  }
+
+  // JAWS uses QueryService for these, but QI will work just fine and we can
+  // thus avoid a cross-process call. More importantly, if QS is used, the
+  // handler won't get used for that object, so our caching won't be used.
+  if (aIid == IID_IAccessibleAction || aIid == IID_IAccessibleText) {
+    return InternalQueryInterface(aIid, aOutInterface);
   }
 
   for (uint32_t i = 0; i < ArrayLength(kUnsupportedServices); ++i) {
@@ -1537,6 +1602,372 @@ AccessibleHandler::get_table(IUnknown** table)
   }
 
   return mIATableCellPassThru->get_table(table);
+}
+
+/*** IAccessibleText ***/
+
+HRESULT
+AccessibleHandler::addSelection(long startOffset, long endOffset)
+{
+  HRESULT hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->addSelection(startOffset, endOffset);
+}
+
+HRESULT
+AccessibleHandler::get_attributes(long offset, long *startOffset,
+                                  long *endOffset, BSTR *textAttributes)
+{
+  if (!startOffset || !endOffset || !textAttributes) {
+    return E_INVALIDARG;
+  }
+
+  if (mCachedNTextAttribRuns >= 0) {
+    // We have cached attributes.
+    for (long index = 0; index < mCachedNTextAttribRuns; ++index) {
+      auto& attribRun = mCachedTextAttribRuns[index];
+      if (attribRun.start <= offset && offset < attribRun.end) {
+        *startOffset = attribRun.start;
+        *endOffset = attribRun.end;
+        *textAttributes = attribRun.text;
+        // The caller will clean this up.
+        // (We only keep each cached attribute run for one call.)
+        attribRun.text = nullptr;
+        // The cache for this run is now invalid, so don't visit it again.
+        attribRun.end = 0;
+        return S_OK;
+      }
+    }
+  }
+
+  HRESULT hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->get_attributes(offset, startOffset, endOffset,
+                                              textAttributes);
+}
+
+HRESULT
+AccessibleHandler::get_caretOffset(long *offset)
+{
+  HRESULT hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->get_caretOffset(offset);
+}
+
+HRESULT
+AccessibleHandler::get_characterExtents(long offset,
+                                        enum IA2CoordinateType coordType,
+                                        long *x, long *y, long *width,
+                                        long *height)
+{
+  HRESULT hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->get_characterExtents(offset, coordType, x, y,
+                                                    width, height);
+}
+
+HRESULT
+AccessibleHandler::get_nSelections(long *nSelections)
+{
+  HRESULT hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->get_nSelections(nSelections);
+}
+
+HRESULT
+AccessibleHandler::get_offsetAtPoint(long x, long y,
+                                     enum IA2CoordinateType coordType,
+                                     long *offset)
+{
+  HRESULT hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->get_offsetAtPoint(x, y, coordType, offset);
+}
+
+HRESULT
+AccessibleHandler::get_selection(long selectionIndex, long *startOffset,
+                                 long *endOffset)
+{
+  HRESULT hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->get_selection(selectionIndex, startOffset,
+                                             endOffset);
+}
+
+HRESULT
+AccessibleHandler::get_text(long startOffset, long endOffset, BSTR *text)
+{
+  if (!text) {
+    return E_INVALIDARG;
+  }
+
+  HRESULT hr;
+  if (mCachedData.mGeckoBackChannel &&
+      startOffset == 0 && endOffset == IA2_TEXT_OFFSET_LENGTH) {
+    // If the caller is retrieving all text, they will probably want all
+    // hyperlinks and attributes as well.
+    hr = GetAllTextInfo(text);
+    if (SUCCEEDED(hr)) {
+      return hr;
+    }
+    // We fall back to a normal call if this fails.
+  }
+
+  hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->get_text(startOffset, endOffset, text);
+}
+
+HRESULT
+AccessibleHandler::get_textBeforeOffset(long offset,
+                                        enum IA2TextBoundaryType boundaryType,
+                                        long *startOffset, long *endOffset,
+                                        BSTR *text)
+{
+  HRESULT hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->get_textBeforeOffset(offset, boundaryType,
+                                                    startOffset, endOffset,
+                                                    text);
+}
+
+HRESULT
+AccessibleHandler::get_textAfterOffset(long offset,
+                                       enum IA2TextBoundaryType boundaryType,
+                                       long *startOffset, long *endOffset,
+                                       BSTR *text)
+{
+  HRESULT hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->get_textAfterOffset(offset, boundaryType,
+                                                   startOffset, endOffset,
+                                                   text);
+}
+
+HRESULT
+AccessibleHandler::get_textAtOffset(long offset,
+                                    enum IA2TextBoundaryType boundaryType,
+                                    long *startOffset, long *endOffset,
+                                    BSTR *text)
+{
+  HRESULT hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->get_textAtOffset(offset, boundaryType,
+                                                 startOffset, endOffset, text);
+}
+
+HRESULT
+AccessibleHandler::removeSelection(long selectionIndex)
+{
+  HRESULT hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->removeSelection(selectionIndex);
+}
+
+HRESULT
+AccessibleHandler::setCaretOffset(long offset)
+{
+  HRESULT hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->setCaretOffset(offset);
+}
+
+HRESULT
+AccessibleHandler::setSelection(long selectionIndex, long startOffset,
+                                long endOffset)
+{
+  HRESULT hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->setSelection(selectionIndex, startOffset,
+                                            endOffset);
+}
+
+HRESULT
+AccessibleHandler::get_nCharacters(long *nCharacters)
+{
+  HRESULT hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->get_nCharacters(nCharacters);
+}
+
+HRESULT
+AccessibleHandler::scrollSubstringTo(long startIndex, long endIndex,
+                                     enum IA2ScrollType scrollType)
+{
+  HRESULT hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->scrollSubstringTo(startIndex, endIndex,
+                                                 scrollType);
+}
+
+HRESULT
+AccessibleHandler::scrollSubstringToPoint(long startIndex, long endIndex,
+                                          enum IA2CoordinateType coordinateType,
+                                          long x, long y)
+{
+  HRESULT hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->scrollSubstringToPoint(startIndex, endIndex,
+                                                      coordinateType, x, y);
+}
+
+HRESULT
+AccessibleHandler::get_newText(IA2TextSegment *newText)
+{
+  if (!newText) {
+    return E_INVALIDARG;
+  }
+
+  RefPtr<AccessibleHandlerControl> ctl(gControlFactory.GetSingleton());
+  MOZ_ASSERT(ctl);
+  if (!ctl) {
+    return S_OK;
+  }
+
+  long id;
+  HRESULT hr = this->get_uniqueID(&id);
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return ctl->GetNewText(id, WrapNotNull(newText));
+}
+
+HRESULT
+AccessibleHandler::get_oldText(IA2TextSegment *oldText)
+{
+  if (!oldText) {
+    return E_INVALIDARG;
+  }
+
+  RefPtr<AccessibleHandlerControl> ctl(gControlFactory.GetSingleton());
+  MOZ_ASSERT(ctl);
+  if (!ctl) {
+    return S_OK;
+  }
+
+  long id;
+  HRESULT hr = this->get_uniqueID(&id);
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return ctl->GetOldText(id, WrapNotNull(oldText));
+}
+
+/*** IAccessibleHypertext ***/
+
+HRESULT
+AccessibleHandler::get_nHyperlinks(long *hyperlinkCount)
+{
+  HRESULT hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->get_nHyperlinks(hyperlinkCount);
+}
+
+HRESULT
+AccessibleHandler::get_hyperlink(long index,
+                                 IAccessibleHyperlink **hyperlink)
+{
+  HRESULT hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->get_hyperlink(index, hyperlink);
+}
+
+HRESULT
+AccessibleHandler::get_hyperlinkIndex(long charIndex, long *hyperlinkIndex)
+{
+  HRESULT hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->get_hyperlinkIndex(charIndex, hyperlinkIndex);
+}
+
+/*** IAccessibleHypertext2 ***/
+
+HRESULT
+AccessibleHandler::get_hyperlinks(IAccessibleHyperlink*** hyperlinks,
+                                  long* nHyperlinks)
+{
+  if (!hyperlinks || !nHyperlinks) {
+    return E_INVALIDARG;
+  }
+
+  if (mCachedNHyperlinks >= 0) {
+    // We have cached hyperlinks.
+    *hyperlinks = mCachedHyperlinks;
+    *nHyperlinks = mCachedNHyperlinks;
+    // The client will clean these up. (We only keep the cache for one call.)
+    mCachedHyperlinks = nullptr;
+    mCachedNHyperlinks = -1;
+    return mCachedNHyperlinks == 0 ? S_FALSE : S_OK;
+  }
+
+  HRESULT hr = ResolveIAHypertext();
+  if (FAILED(hr)) {
+    return hr;
+  }
+
+  return mIAHypertextPassThru->get_hyperlinks(hyperlinks, nHyperlinks);
 }
 
 } // namespace a11y

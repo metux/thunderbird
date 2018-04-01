@@ -4,9 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "msgCore.h"    // precompiled header...
 #include "nsString.h"
-#include "nsIIOService.h"
 
-#include "nsIStreamListener.h"
 #include "nsAddbookProtocolHandler.h"
 
 #include "nsAddbookUrl.h"
@@ -21,7 +19,6 @@
 #include "nsIAbView.h"
 #include "nsITreeView.h"
 #include "nsIStringBundle.h"
-#include "nsIServiceManager.h"
 #include "mozilla/Services.h"
 #include "nsIAsyncInputStream.h"
 #include "nsIAsyncOutputStream.h"
@@ -66,7 +63,7 @@ NS_IMETHODIMP nsAddbookProtocolHandler::NewURI(const nsACString &aSpec,
   nsCOMPtr<nsIAddbookUrl> addbookUrl = do_CreateInstance(NS_ADDBOOKURL_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv,rv);
 
-  rv = addbookUrl->SetSpec(aSpec);
+  rv = addbookUrl->SetSpecInternal(aSpec);
   NS_ENSURE_SUCCESS(rv,rv);
 
   nsCOMPtr<nsIURI> uri = do_QueryInterface(addbookUrl, &rv);
@@ -104,7 +101,7 @@ nsAddbookProtocolHandler::GenerateXMLOutputChannel( nsString &aOutput,
   if (aLoadInfo) {
     return NS_NewInputStreamChannelInternal(_retval,
                                             aURI,
-                                            stream,
+                                            stream.forget(),
                                             NS_LITERAL_CSTRING("text/xml"),
                                             EmptyCString(),
                                             aLoadInfo);
@@ -118,7 +115,7 @@ nsAddbookProtocolHandler::GenerateXMLOutputChannel( nsString &aOutput,
 
   return NS_NewInputStreamChannel(_retval,
                                   aURI,
-                                  stream,
+                                  stream.forget(),
                                   nullPrincipal,
                                   nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                   nsIContentPolicy::TYPE_OTHER,
@@ -173,7 +170,7 @@ nsAddbookProtocolHandler::NewChannel2(nsIURI *aURI,
       if (aLoadInfo) {
         return NS_NewInputStreamChannelInternal(_retval,
                                                 aURI,
-                                                pipeIn,
+                                                pipeIn.forget(),
                                                 NS_LITERAL_CSTRING("application/x-addvcard"),
                                                 EmptyCString(),
                                                 aLoadInfo);
@@ -187,7 +184,7 @@ nsAddbookProtocolHandler::NewChannel2(nsIURI *aURI,
 
       return NS_NewInputStreamChannel(_retval,
                                       aURI,
-                                      pipeIn,
+                                      pipeIn.forget(),
                                       nullPrincipal,
                                       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                       nsIContentPolicy::TYPE_OTHER,

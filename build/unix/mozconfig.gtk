@@ -1,7 +1,3 @@
-# To do try builds with Gtk+2, uncomment the following line, and remove
-# everything after that.
-#ac_add_options --enable-default-toolkit=cairo-gtk2
-
 TOOLTOOL_DIR=${TOOLTOOL_DIR:-$topsrcdir}
 
 # $TOOLTOOL_DIR/gtk3 comes from tooltool, and must be included in the tooltool manifest.

@@ -1,6 +1,10 @@
 
 <!ENTITY prefWindow.titleWin "விருப்பங்கள்">
 <!ENTITY prefWindow.titleGNOME "&brandShortName; விருப்பத்தேர்வுகள்">
+
+
+
+
 <!ENTITY paneGeneral.title "பொது">
 <!ENTITY paneDisplay.title "காண்பிக்கவும்">
 <!ENTITY paneComposition.title "கலவை">
@@ -12,10 +16,8 @@
 <!ENTITY paneChat.title           "Chat">
 <!ENTITY panePrivacy.title        "Privacy">
 <!ENTITY paneAccount.title        "Accounts">
-
 <!ENTITY okButton.title           "OK">
 <!ENTITY okButton.accesskey       "O">
 <!ENTITY  prefWindow.styleWindows "width: 48em; min-height: 38.5em;">
 <!ENTITY  prefWindow.styleMac     "width: 52em;">
 <!ENTITY  prefWindow.styleGNOME   "width: 47em; min-height: 38em;">
-

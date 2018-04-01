@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Aktualne protokolowe module">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Javaskriptowy protokol wěstego pśeglědowanja">
 <!ENTITY aboutUrlClassifier.debugFile                   "Aktualna protokolowa dataja">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

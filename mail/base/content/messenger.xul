@@ -7,6 +7,7 @@
 
 <?xml-stylesheet href="chrome://messenger/skin/mailWindow1.css" type="text/css"?>
 <?xml-stylesheet href="chrome://gloda/content/glodacomplete.css" type="text/css"?>
+<?xml-stylesheet href="chrome://messenger/content/bindings.css" type="text/css"?>
 <?xml-stylesheet href="chrome://messenger/content/tabmail.css" type="text/css"?>
 <?xml-stylesheet href="chrome://messenger/skin/tabmail.css" type="text/css"?>
 
@@ -28,7 +29,7 @@
 %brandDTD;
 <!ENTITY % messengerDTD SYSTEM "chrome://messenger/locale/messenger.dtd" >
 %messengerDTD;
-<!ENTITY % customizeToolbarDTD SYSTEM "chrome://global/locale/customizeToolbar.dtd">
+<!ENTITY % customizeToolbarDTD SYSTEM "chrome://messenger/locale/customizeToolbar.dtd">
 %customizeToolbarDTD;
 <!ENTITY % textcontextDTD SYSTEM "chrome://global/locale/textcontext.dtd">
 %textcontextDTD;
@@ -239,10 +240,10 @@
   <!-- navigation-toolbox is augmented by mailWindowOverlay.xul -->
   <toolbox id="navigation-toolbox" class="toolbox-top">
 
-    <toolbar id="tabs-toolbar" class="toolbar-primary">
-
+    <toolbar id="tabs-toolbar">
+      <!-- class tabmail-tabs is unused and only maintained for add-ons. -->
       <tabs flex="1"
-            id="tabcontainer"
+            id="tabmail-tabs"
             align="end"
             setfocus="false"
             onclick="document.getElementById('tabmail').onTabClick(event);"
@@ -275,7 +276,7 @@
                      tooltiptext="&listAllTabs.label;">
         <menupopup class="tabs-alltabs-popup"
                    id="alltabs-popup" position="after_end"
-                   tabcontainer="tabcontainer"/>
+                   tabcontainer="tabmail-tabs"/>
       </toolbarbutton>
 #ifdef CAN_DRAW_IN_TITLEBAR
       <hbox class="titlebar-placeholder" type="caption-buttons"
@@ -302,7 +303,7 @@
          of tabmail is OK though).  This will break Ctrl-tab switching because
          the XBL binding will choke when it finds a child of tabmail that is
          not a tabpanels node. -->
-    <tabmail id="tabmail" flex="1" panelcontainer="tabpanelcontainer" tabcontainer="tabcontainer">
+    <tabmail id="tabmail" flex="1" panelcontainer="tabpanelcontainer" tabcontainer="tabmail-tabs">
       <tabpanels id="tabpanelcontainer" flex="1" class="plain" selectedIndex="0">
 
         <!-- mailContent is the container used for the "wide" layout. Normally,

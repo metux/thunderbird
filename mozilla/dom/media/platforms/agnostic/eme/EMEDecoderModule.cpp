@@ -25,7 +25,11 @@ namespace mozilla {
 typedef MozPromiseRequestHolder<DecryptPromise> DecryptPromiseRequestHolder;
 extern already_AddRefed<PlatformDecoderModule> CreateBlankDecoderModule();
 
-class EMEDecryptor : public MediaDataDecoder
+DDLoggedTypeDeclNameAndBase(EMEDecryptor, MediaDataDecoder);
+
+class EMEDecryptor
+  : public MediaDataDecoder
+  , public DecoderDoctorLifeLogger<EMEDecryptor>
 {
 public:
   EMEDecryptor(MediaDataDecoder* aDecoder, CDMProxy* aProxy,
@@ -39,6 +43,7 @@ public:
     , mThroughputLimiter(aDecodeTaskQueue)
     , mIsShutdown(false)
   {
+    DDLINKCHILD("decoder", mDecoder.get());
   }
 
   RefPtr<InitPromise> Init() override
@@ -92,10 +97,6 @@ public:
       mDecodePromise.RejectIfExists(NS_ERROR_DOM_MEDIA_CANCELED, __func__);
       return;
     }
-
-    nsAutoPtr<MediaRawDataWriter> writer(aSample->CreateWriter());
-    mProxy->GetSessionIdsForKeyId(aSample->mCrypto.mKeyId,
-                                  writer->mCrypto.mSessionIds);
 
     mDecrypts.Put(aSample, new DecryptPromiseRequestHolder());
     mProxy->Decrypt(aSample)
@@ -271,9 +272,6 @@ EMEMediaDataDecoderProxy::Decode(MediaRawData* aSample)
            [self, this](RefPtr<MediaRawData> aSample) {
              mKeyRequest.Complete();
 
-             nsAutoPtr<MediaRawDataWriter> writer(aSample->CreateWriter());
-             mProxy->GetSessionIdsForKeyId(aSample->mCrypto.mKeyId,
-                                           writer->mCrypto.mSessionIds);
              MediaDataDecoderProxy::Decode(aSample)
                ->Then(mTaskQueue, __func__,
                       [self, this](const DecodedData& aResults) {

@@ -52,7 +52,6 @@
 <!ENTITY lightning.toolbar.gototoday.tooltip "Go to Today">
 <!ENTITY lightning.toolbar.task.label         "Tasks">
 <!ENTITY lightning.toolbar.task.accesskey     "T">
-
 <!ENTITY lightning.toolbar.day.label                 "Day">
 <!ENTITY lightning.toolbar.day.accesskey             "D">
 <!ENTITY lightning.toolbar.week.label                "Week">

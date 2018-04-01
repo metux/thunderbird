@@ -6,3 +6,6 @@
 <!ENTITY virtualFolderDesc.label        "Valitse kansiot, joista haetaan:">
 
 
+
+<!ENTITY folderName.label "Folder name">
+<!ENTITY folderSearch.label "Search">

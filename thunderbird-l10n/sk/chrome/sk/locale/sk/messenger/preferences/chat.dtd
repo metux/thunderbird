@@ -58,3 +58,8 @@ sentence. -->
 <!ENTITY messageStyleShowHeader.accesskey  "h">
 <!ENTITY messageStyleNoPreview.title       "K dispozícii nie je žiadny náhľad">
 <!ENTITY messageStyleNoPreview.description "Táto téma vzhľadu nie je platná alebo je momentálne nedostupná (zakázaný doplnok, núdzový režim…).">
+
+<!ENTITY  getAttention.label                  "Flash the taskbar item">
+<!ENTITY  getAttention.accesskey              "F">
+<!ENTITY  getAttentionMac.label               "Animate dock icon">
+<!ENTITY  getAttentionMac.accesskey           "o">

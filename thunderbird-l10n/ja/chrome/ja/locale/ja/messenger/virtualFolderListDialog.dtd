@@ -5,3 +5,6 @@
 <!ENTITY virtualFolderListTitle.title	"フォルダーを選択">
 <!ENTITY virtualFolderDesc.label	"検索するフォルダーを選択する:">
 
+
+<!ENTITY folderName.label "Folder name">
+<!ENTITY folderSearch.label "Search">

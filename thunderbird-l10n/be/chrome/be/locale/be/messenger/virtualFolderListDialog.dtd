@@ -4,3 +4,6 @@
 
 <!ENTITY virtualFolderListTitle.title "Выбар папкі(ак)">
 <!ENTITY virtualFolderDesc.label "Выберыце папкі для пошуку:">
+
+<!ENTITY folderName.label "Folder name">
+<!ENTITY folderSearch.label "Search">

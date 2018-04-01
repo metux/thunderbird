@@ -8,14 +8,12 @@
 #include "nsAbView.h"
 #include "nsISupports.h"
 #include "nsCOMPtr.h"
-#include "nsIServiceManager.h"
 #include "nsIAbCard.h"
 #include "prmem.h"
 #include "nsCollationCID.h"
 #include "nsIAbManager.h"
 #include "nsAbBaseCID.h"
 #include "nsXPCOM.h"
-#include "nsISupportsPrimitives.h"
 #include "nsITreeColumns.h"
 #include "nsCRTGlue.h"
 #include "nsIMutableArray.h"
@@ -24,7 +22,7 @@
 #include "nsIStringBundle.h"
 #include "nsIPrefLocalizedString.h"
 #include "nsArrayUtils.h"
-#include "nsIAddrDatabase.h" // for kPriEmailColumn
+#include "nsIAddrDatabase.h" // for kPhoneticNameColumn
 #include "nsMsgUtils.h"
 #include "mozilla/Services.h"
 
@@ -438,11 +436,6 @@ NS_IMETHODIMP nsAbView::GetLevel(int32_t index, int32_t *_retval)
 }
 
 NS_IMETHODIMP nsAbView::GetImageSrc(int32_t row, nsITreeColumn* col, nsAString& _retval)
-{
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsAbView::GetProgressMode(int32_t row, nsITreeColumn* col, int32_t* _retval)
 {
   return NS_OK;
 }

@@ -31,3 +31,7 @@ Entities below were automatically added by compare-locales,
 <!ENTITY helpSafeMode.accesskey "R">
 <!ENTITY helpTroubleshootingInfo.label "Troubleshooting தகவல்கள்">
 <!ENTITY featureConfiguratorCmd.label "குடிபெயர்வு உதவியாளர்">
+
+<!ENTITY openHelpMac2.label "&brandFullName; Help">
+<!ENTITY aboutMenuCmd2.label "About &brandFullName;">
+<!ENTITY aboutMenuCmd2.accesskey "A">

@@ -29,6 +29,5 @@
 <!ENTITY done.label                     "ਹੇਠ ਦਿੱਤੀਆਂ ਆਈਟਮਾਂ ਠੀਕ ਤਰ੍ਹਾਂ ਇੰਪੋਰਟ ਕੀਤੀਆਂ ਗਈਆਂ ਹਨ:">
 
 <!ENTITY importSourceNotFound.label     "No application to import data from found.">
-
 <!ENTITY importFromSeamonkey3.label     "SeaMonkey 2 or later">
 <!ENTITY importFromSeamonkey3.accesskey "S">

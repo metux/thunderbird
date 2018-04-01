@@ -58,3 +58,8 @@ sentence. -->
 <!ENTITY messageStyleShowHeader.accesskey  "e">
 <!ENTITY messageStyleNoPreview.title       "Sin vista previa">
 <!ENTITY messageStyleNoPreview.description "Este tema no es válido o actualmente no está disponible (complemento deshabilitado, modo seguro, …).">
+
+<!ENTITY  getAttention.label                  "Flash the taskbar item">
+<!ENTITY  getAttention.accesskey              "F">
+<!ENTITY  getAttentionMac.label               "Animate dock icon">
+<!ENTITY  getAttentionMac.accesskey           "o">

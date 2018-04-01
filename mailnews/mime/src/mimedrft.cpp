@@ -188,7 +188,9 @@ nsresult CreateComposeParams(nsCOMPtr<nsIMsgComposeParams> &pMsgComposeParams,
         if (NS_SUCCEEDED(rv) && attachment)
         {
           nsAutoString nameStr;
-          rv = ConvertToUnicode("UTF-8", curAttachment->m_realName.get(), nameStr);
+          rv = nsMsgI18NConvertToUnicode(NS_LITERAL_CSTRING("UTF-8"),
+                                         curAttachment->m_realName,
+                                         nameStr);
           if (NS_FAILED(rv))
             CopyASCIItoUTF16(curAttachment->m_realName, nameStr);
           attachment->SetName(nameStr);
@@ -347,7 +349,9 @@ CreateCompositionFields(const char        *from,
   nsAutoString outString;
 
   if (from) {
-    ConvertRawBytesToUTF16(from, charset, outString);
+    nsMsgI18NConvertRawBytesToUTF16(nsDependentCString(from),
+                                    nsDependentCString(charset),
+                                    outString);
     cFields->SetFrom(outString);
   }
 
@@ -357,22 +361,30 @@ CreateCompositionFields(const char        *from,
   }
 
   if (reply_to) {
-    ConvertRawBytesToUTF16(reply_to, charset, outString);
+    nsMsgI18NConvertRawBytesToUTF16(nsDependentCString(reply_to),
+                                    nsDependentCString(charset),
+                                    outString);
     cFields->SetReplyTo(outString);
   }
 
   if (to) {
-    ConvertRawBytesToUTF16(to, charset, outString);
+    nsMsgI18NConvertRawBytesToUTF16(nsDependentCString(to),
+                                    nsDependentCString(charset),
+                                    outString);
     cFields->SetTo(outString);
   }
 
   if (cc) {
-    ConvertRawBytesToUTF16(cc, charset, outString);
+    nsMsgI18NConvertRawBytesToUTF16(nsDependentCString(cc),
+                                    nsDependentCString(charset),
+                                    outString);
     cFields->SetCc(outString);
   }
 
   if (bcc) {
-    ConvertRawBytesToUTF16(bcc, charset, outString);
+    nsMsgI18NConvertRawBytesToUTF16(nsDependentCString(bcc),
+                                    nsDependentCString(charset),
+                                    outString);
     cFields->SetBcc(outString);
   }
 
@@ -1390,12 +1402,22 @@ mime_parse_stream_complete(nsMIMESession *stream)
 
     draftInfo = MimeHeaders_get(mdd->headers, HEADER_X_MOZILLA_DRAFT_INFO, false, false);
 
-    // Keep the same message id when editing a draft unless we're
-    // editing a message "as new message" (template) or forwarding inline.
-    if (mdd->format_out != nsMimeOutput::nsMimeMessageEditorTemplate &&
-        fields && !forward_inline) {
+    // We always preserve an existing message ID, if present, apart from some exceptions.
+    bool keepID = fields != nullptr;
+
+    // Don't keep ID when forwarding inline.
+    if (forward_inline)
+      keepID = false;
+
+    // nsMimeOutput::nsMimeMessageEditorTemplate is used for editing a message
+    // "as new", creating a message from a template or editing a template.
+    // Only in the latter case we want to preserve the ID.
+    if (mdd->format_out == nsMimeOutput::nsMimeMessageEditorTemplate &&
+        !PL_strstr(mdd->url_name, "&edittempl=true"))
+      keepID = false;
+
+    if (keepID)
       fields->SetMessageId(id);
-    }
 
     if (draftInfo && fields && !forward_inline)
     {
@@ -1526,7 +1548,9 @@ mime_parse_stream_complete(nsMIMESession *stream)
           if (bodyCharset)
           {
             nsAutoString tmpUnicodeBody;
-            rv = ConvertToUnicode(bodyCharset, body, tmpUnicodeBody);
+            rv = nsMsgI18NConvertToUnicode(nsDependentCString(bodyCharset),
+                                           nsDependentCString(body),
+                                           tmpUnicodeBody);
             if (NS_FAILED(rv)) // Tough luck, ASCII/ISO-8859-1 then...
               CopyASCIItoUTF16(nsDependentCString(body), tmpUnicodeBody);
 
@@ -1588,6 +1612,8 @@ mime_parse_stream_complete(nsMIMESession *stream)
           msgComposeType = nsIMsgCompType::Redirect;
         else if (PL_strstr(mdd->url_name, "&editasnew=true"))
           msgComposeType = nsIMsgCompType::EditAsNew;
+        else if (PL_strstr(mdd->url_name, "&edittempl=true"))
+          msgComposeType = nsIMsgCompType::EditTemplate;
         else
           msgComposeType = nsIMsgCompType::Template;
       }
@@ -1625,6 +1651,7 @@ mime_parse_stream_complete(nsMIMESession *stream)
       }
       else if (body && mdd->overrideComposeFormat &&
                (msgComposeType == nsIMsgCompType::Template ||
+                msgComposeType == nsIMsgCompType::EditTemplate ||
                 !mdd->forwardInline)) // Draft processing.
       {
         // When using a template and overriding, the user gets the
@@ -1656,6 +1683,13 @@ mime_parse_stream_complete(nsMIMESession *stream)
       //
       if (mdd->format_out == nsMimeOutput::nsMimeMessageEditorTemplate)
       {
+        // Set the draft ID when editing a template so the original is
+        // overwritten when saving the template again.
+        // Note that always setting the draft ID here would cause drafts to be
+        // overwritten when edited "as new", which is undesired.
+        if (msgComposeType == nsIMsgCompType::EditTemplate)
+          fields->SetDraftId(mdd->url_name);
+
         if (convertToPlainText)
           fields->ConvertBodyToPlainText();
 

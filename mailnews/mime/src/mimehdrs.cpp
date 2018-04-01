@@ -25,6 +25,7 @@
 #include "nsMemory.h"
 #include <ctype.h>
 #include "nsMsgUtils.h"
+#include "mozilla/Unused.h"
 
 // Forward declares...
 int32_t MimeHeaders_build_heads_list(MimeHeaders *hdrs);
@@ -39,7 +40,9 @@ MimeHeaders_convert_header_value(MimeDisplayOptions *opt, nsCString &value,
   if (convert_charset_only)
   {
     nsAutoCString output;
-    ConvertRawBytesToUTF8(value, opt->default_charset, output);
+    nsMsgI18NConvertRawBytesToUTF8(value,
+                                   nsDependentCString(opt->default_charset),
+                                   output);
     value.Assign(output);
     return;
   }
@@ -605,7 +608,8 @@ MimeHeaders_write_all_headers (MimeHeaders *hdrs, MimeDisplayOptions *opt, bool 
     if (opt->format_out == nsMimeOutput::nsMimeMessageSaveAs && charset)
     {
       nsAutoCString convertedStr;
-      if (NS_SUCCEEDED(ConvertFromUnicode(charset, NS_ConvertUTF8toUTF16(hdr_value),
+      if (NS_SUCCEEDED(nsMsgI18NConvertFromUnicode(nsDependentCString(charset),
+                       NS_ConvertUTF8toUTF16(hdr_value),
                        convertedStr)))
       {
         hdr_value = convertedStr;
@@ -776,7 +780,7 @@ MimeHeaders_do_unix_display_hook_hack(MimeHeaders *hdrs)
     FILE *fp = popen(cmd, "w");
     if (fp)
     {
-      fwrite(hdrs->all_headers, 1, hdrs->all_headers_fp, fp);
+      mozilla::Unused << fwrite(hdrs->all_headers, 1, hdrs->all_headers_fp, fp);
       pclose(fp);
     }
   }

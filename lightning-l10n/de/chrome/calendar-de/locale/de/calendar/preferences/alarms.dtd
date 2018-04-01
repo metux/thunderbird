@@ -34,3 +34,5 @@
 
 <!ENTITY pref.defaultsnoozelength.label "Standardintervall für erneutes Erinnern:">
 <!ENTITY pref.defaultsnoozelength.accesskey "R">
+
+<!ENTITY pref.missedalarms2 "Show missed reminders for writable calendars">

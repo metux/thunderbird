@@ -34,3 +34,5 @@
 
 <!ENTITY pref.defaultsnoozelength.label "Lykkäyksen oletuspituus:" >
 <!ENTITY pref.defaultsnoozelength.accesskey "L">
+
+<!ENTITY pref.missedalarms2 "Show missed reminders for writable calendars">

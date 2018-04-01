@@ -3,6 +3,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+<?xml-stylesheet href="chrome://messenger/content/bindings.css" type="text/css"?>
 <?xml-stylesheet href="chrome://messenger/skin/messengercompose/messengercompose.css" type="text/css"?>
 <?xml-stylesheet href="chrome://messenger/skin/folderMenus.css" type="text/css"?>
 <?xml-stylesheet href="chrome://messenger/skin/attachmentList.css" type="text/css"?>
@@ -20,7 +21,7 @@
   %brandDTD;
   <!ENTITY % charsetDTD SYSTEM "chrome://global/locale/charsetMenu.dtd" >
   %charsetDTD;
-  <!ENTITY % customizeToolbarDTD SYSTEM "chrome://global/locale/customizeToolbar.dtd">
+  <!ENTITY % customizeToolbarDTD SYSTEM "chrome://messenger/locale/customizeToolbar.dtd">
   %customizeToolbarDTD;
   <!ENTITY % textcontextDTD SYSTEM "chrome://global/locale/textcontext.dtd">
   %textcontextDTD;
@@ -160,7 +161,7 @@
   <command id="cmd_moveAttachmentBottom"
            oncommand="goDoCommand('cmd_moveAttachmentBottom')" disabled="true"/>
   <command id="cmd_sortAttachmentsToggle"
-           data-sortdirection="ascending"
+           sortdirection="ascending"
            oncommand="goDoCommand('cmd_sortAttachmentsToggle')" disabled="true"/>
 
   <!-- View Menu -->
@@ -275,20 +276,6 @@
   <key keycode="&findPrevCmd.key2;"  command="cmd_findPrev" modifiers="shift"/>
 
   <!-- Reorder Attachments Panel -->
-#ifdef XP_MACOSX
-  <key id="key_moveAttachmentUp" keycode="VK_UP" modifiers="accel"
-       command="cmd_moveAttachmentUp"/>
-  <key id="key_moveAttachmentDown" keycode="VK_DOWN" modifiers="accel"
-       command="cmd_moveAttachmentDown"/>
-  <key id="key_moveAttachmentBundleUp" keycode="VK_LEFT" modifiers="accel alt"
-       command="cmd_moveAttachmentBundleUp"/>
-  <key id="key_moveAttachmentBundleDown" keycode="VK_RIGHT" modifiers="accel alt"
-       command="cmd_moveAttachmentBundleDown"/>
-  <key id="key_moveAttachmentTop" keycode="VK_UP" modifiers="accel alt"
-       command="cmd_moveAttachmentTop"/>
-  <key id="key_moveAttachmentBottom" keycode="VK_DOWN" modifiers="accel alt"
-       command="cmd_moveAttachmentBottom"/>
-#else
   <key id="key_moveAttachmentUp" keycode="VK_UP" modifiers="alt"
        command="cmd_moveAttachmentUp"/>
   <key id="key_moveAttachmentDown" keycode="VK_DOWN" modifiers="alt"
@@ -297,11 +284,23 @@
        command="cmd_moveAttachmentBundleUp"/>
   <key id="key_moveAttachmentBundleDown" keycode="VK_RIGHT" modifiers="alt"
        command="cmd_moveAttachmentBundleDown"/>
+#ifdef XP_MACOSX
+  <key id="key_moveAttachmentTop" keycode="VK_UP" modifiers="accel alt"
+       command="cmd_moveAttachmentTop"/>
+  <key id="key_moveAttachmentBottom" keycode="VK_DOWN" modifiers="accel alt"
+       command="cmd_moveAttachmentBottom"/>
+  <key id="key_moveAttachmentTop2" keycode="VK_Home" modifiers="alt"
+       command="cmd_moveAttachmentTop"/>
+  <key id="key_moveAttachmentBottom2" keycode="VK_End" modifiers="alt"
+       command="cmd_moveAttachmentBottom"/>
+#else
   <key id="key_moveAttachmentTop" keycode="VK_Home" modifiers="alt"
        command="cmd_moveAttachmentTop"/>
   <key id="key_moveAttachmentBottom" keycode="VK_End" modifiers="alt"
        command="cmd_moveAttachmentBottom"/>
 #endif
+  <key id="key_sortAttachmentsToggle" key="&sortAttachmentsPanelBtn.key;"
+       modifiers="alt" command="cmd_sortAttachmentsToggle"/>
 
   <!-- View Menu -->
   <key id="key_addressSidebar" keycode="VK_F9" oncommand="toggleAddressPicker();"/>
@@ -370,41 +369,36 @@
   <toolbarbutton id="btn_moveAttachmentTop"
                  class="panelButton"
                  label="&moveAttachmentTopPanelBtn.label;"
-                 accesskey="&moveAttachmentTopPanelBtn.accesskey;"
                  key="key_moveAttachmentTop"
                  command="cmd_moveAttachmentTop"/>
   <toolbarbutton id="btn_moveAttachmentUp"
                  class="panelButton"
                  label="&moveAttachmentUpPanelBtn.label;"
-                 accesskey="&moveAttachmentUpPanelBtn.accesskey;"
                  key="key_moveAttachmentUp"
                  command="cmd_moveAttachmentUp"/>
   <toolbarbutton id="btn_moveAttachmentBundleUp"
                  class="panelButton"
                  label="&moveAttachmentBundleUpPanelBtn.label;"
-                 accesskey="&moveAttachmentBundleUpPanelBtn.accesskey;"
                  key="key_moveAttachmentBundleUp"
                  command="cmd_moveAttachmentBundleUp"/>
   <toolbarbutton id="btn_moveAttachmentDown"
                  class="panelButton"
                  label="&moveAttachmentDownPanelBtn.label;"
-                 accesskey="&moveAttachmentDownPanelBtn.accesskey;"
                  key="key_moveAttachmentDown"
                  command="cmd_moveAttachmentDown"/>
   <toolbarbutton id="btn_moveAttachmentBottom"
                  class="panelButton"
                  label="&moveAttachmentBottomPanelBtn.label;"
-                 accesskey="&moveAttachmentBottomPanelBtn.accesskey;"
                  key="key_moveAttachmentBottom"
                  command="cmd_moveAttachmentBottom"/>
   <toolbarbutton id="btn_sortAttachmentsToggle"
                  class="panelButton"
-                 label="&sortAttachmentsTogglePanelBtn.AZ.label;"
-                 accesskey="&sortAttachmentsTogglePanelBtn.AZ.accesskey;"
-                 data-labelAZ="&sortAttachmentsTogglePanelBtn.AZ.label;"
-                 data-accesskeyAZ="&sortAttachmentsTogglePanelBtn.AZ.accesskey;"
-                 data-labelZA="&sortAttachmentsTogglePanelBtn.ZA.label;"
-                 data-accesskeyZA="&sortAttachmentsTogglePanelBtn.ZA.accesskey;"
+                 label="&sortAttachmentsPanelBtn.Sort.AZ.label;"
+                 label-AZ="&sortAttachmentsPanelBtn.Sort.AZ.label;"
+                 label-ZA="&sortAttachmentsPanelBtn.Sort.ZA.label;"
+                 label-selection-AZ="&sortAttachmentsPanelBtn.SortSelection.AZ.label;"
+                 label-selection-ZA="&sortAttachmentsPanelBtn.SortSelection.ZA.label;"
+                 key="key_sortAttachmentsToggle"
                  command="cmd_sortAttachmentsToggle"/>
 </panel>
 
@@ -944,7 +938,8 @@
                command="cmd_spelling">
       <!-- workaround for the bug that split menu doesn't take popup="popupID" -->
       <menupopup onpopupshowing="event.preventDefault();
-                                 showLanguagePopup('spellingButton');"/>
+                                 showPopupById('languageMenuList',
+                                               'spellingButton');"/>
     </toolbarbutton>
 
     <toolbarbutton class="toolbarbutton-1" type="menu-button"
@@ -1028,7 +1023,7 @@
     </toolbaritem>
 
   </toolbarpalette>
-  <toolbar id="composeToolbar2" class="toolbar-primary chromeclass-toolbar"
+  <toolbar id="composeToolbar2" class="chromeclass-toolbar"
            toolbarname="&showCompositionToolbarCmd.label;"
            accesskey="&showCompositionToolbarCmd.accesskey;"
            fullscreentoolbar="true" mode="full"
@@ -1260,7 +1255,9 @@
     <statusbarpanel id="spellCheckStatusPanel">
       <toolbarbutton id="languageStatusButton"
                      tooltiptext="&languageStatusButton.tooltip;"
-                     oncommand="showLanguagePopup('languageStatusButton','before_start');">
+                     oncommand="showPopupById('languageMenuList',
+                                              'languageStatusButton',
+                                              'before_start');">
       </toolbarbutton>
     </statusbarpanel>
   </statusbar>

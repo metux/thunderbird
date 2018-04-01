@@ -43,7 +43,7 @@ var gAccountManager = {
           defaultID = acc.id;
       }
       for (let event of events)
-        Services.obs.addObserver(this, event, false);
+        Services.obs.addObserver(this, event);
       if (!this.accountList.getRowCount())
         // This is horrible, but it works. Otherwise (at least on mac)
         // the wizard is not centered relatively to the account manager
@@ -236,7 +236,7 @@ var gAccountManager = {
     let text = account.getDebugMessages().map(function(dbgMsg) {
       let m = dbgMsg.message;
       let time = new Date(m.timeStamp);
-      const dateTimeFormatter = Services.intl.createDateTimeFormat(undefined, {
+      const dateTimeFormatter = new Services.intl.DateTimeFormat(undefined, {
         dateStyle: "short", timeStyle: "long"
       });
       time = dateTimeFormatter.format(time);

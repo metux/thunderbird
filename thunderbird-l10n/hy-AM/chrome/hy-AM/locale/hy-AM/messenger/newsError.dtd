@@ -26,11 +26,7 @@
      to remove all expired articles from the newsgroup. -->
 
 <!ENTITY articleNotFound.desc "The newsgroup server reports that it can't find the article.">
-
 <!ENTITY serverResponded.title "Newsgroup server responded:">
-
 <!ENTITY articleExpired.title "Perhaps the article has expired?">
-
 <!ENTITY trySearching.title "Try searching for article:">
-
 <!ENTITY removeExpiredArticles.title "Remove All Expired Articles">

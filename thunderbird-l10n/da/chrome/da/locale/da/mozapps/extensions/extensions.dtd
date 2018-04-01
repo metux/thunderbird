@@ -262,3 +262,5 @@
 <!ENTITY legacyExtensions.title "Forældede udvidelser">
 <!ENTITY legacyExtensions.description "Disse udvidelser møder ikke de nuværende &brandShortName;- standarder, så de er blevet deaktiveret.">
 <!ENTITY legacyExtensions.learnMore "Læs mere om ændringerne af tilføjelser">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

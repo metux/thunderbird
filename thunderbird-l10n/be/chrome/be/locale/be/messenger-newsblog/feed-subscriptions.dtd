@@ -35,7 +35,7 @@
 <!ENTITY button.close.label "Зачыніць">
 
 <!ENTITY learnMore.label             "Learn more about Feeds">
-
+<!ENTITY feedLocation2.placeholder   "Enter a valid feed url">
 <!ENTITY biffStart.label             "Check for new articles every ">
 <!ENTITY biffStart.accesskey         "k">
 <!ENTITY biffMinutes.label           "minutes">
@@ -43,6 +43,7 @@
 <!ENTITY biffDays.label              "days">
 <!ENTITY biffDays.accesskey          "d">
 <!ENTITY recommendedUnits.label      "Publisher recommends:">
-
+<!ENTITY button.verifyFeed.label     "Verify">
+<!ENTITY button.verifyFeed.accesskey "V">
 <!ENTITY button.updateFeed.label     "Update">
 <!ENTITY button.updateFeed.accesskey "U">

@@ -149,13 +149,16 @@ variant of aboutSupport.showDir.label. -->
 
 <!ENTITY aboutSupport.mediaDeviceLatency "Latència">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
+<!ENTITY aboutSupport.securitySoftwareType "Type">
+<!ENTITY aboutSupport.securitySoftwareName "Name">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
 <!ENTITY aboutSupport.appBasicsProcessCount "Web Content Processes">
-
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla Location Service Key">
-
 <!ENTITY aboutSupport.a11yHandlerUsed "Accessible Handler Used">
 <!ENTITY aboutSupport.a11yInstantiator "Accessibility Instantiator">
-
 <!ENTITY aboutSupport.mediaTitle "Media">
 <!ENTITY aboutSupport.mediaOutputDevicesTitle "Output Devices">
 <!ENTITY aboutSupport.mediaInputDevicesTitle "Input Devices">

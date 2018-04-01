@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "Zgjerime të Dikurshme">
 <!ENTITY legacyExtensions.description "Këto zgjerime nuk i plotësojnë standardet e tanishme të &brandShortName;-it, ndaj janë çaktivizuar.">
 <!ENTITY legacyExtensions.learnMore "Mësoni mbi ndryshimet te shtesat">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

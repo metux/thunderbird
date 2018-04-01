@@ -56,11 +56,8 @@
 <!ENTITY attachmentReminderOptions.label       "ਸ਼ਬਦ…">
 <!ENTITY attachmentReminderOptions.accesskey   "K">
 <!ENTITY dialogCompose.title                 "Composing">
-
 <!ENTITY defaultToParagraph.label             "Use Paragraph format instead of Body Text by default">
 <!ENTITY defaultToParagraph.accesskey         "P">
-
 <!ENTITY showAsDefault.label                   "Default startup directory in the address book window:">
 <!ENTITY showAsDefault.accesskey               "S">
 <!ENTITY showAsDefaultLast.label               "Last used directory">
-

@@ -1,0 +1,41 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+toolbox {
+  -moz-binding: url("chrome://messenger/content/toolbar.xml#toolbox");
+}
+
+toolbar {
+  -moz-binding: url("chrome://messenger/content/toolbar.xml#toolbar");
+}
+
+@media (-moz-menubar-drag) {
+  toolbar[type="menubar"]:not([autohide="true"]):not(:-moz-lwtheme) {
+    -moz-binding: url("chrome://messenger/content/toolbar.xml#toolbar-drag");
+  }
+}
+
+%ifndef XP_MACOSX
+toolbar[type="menubar"][autohide="true"] {
+  -moz-binding: url("chrome://messenger/content/toolbar.xml#toolbar-menubar-autohide");
+}
+%endif
+
+datepicker[type="popup"] {
+  -moz-binding: url('chrome://messenger/content/datetimepicker.xml#datepicker-popup');
+}
+
+datepicker[type="grid"] {
+  -moz-binding: url('chrome://messenger/content/datetimepicker.xml#datepicker-grid');
+}
+
+statusbar {
+  -moz-binding: url("chrome://messenger/content/generalBindings.xml#statusbar");
+}
+
+statusbarpanel {
+  -moz-binding: url("chrome://messenger/content/generalBindings.xml#statusbarpanel");
+}

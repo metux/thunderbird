@@ -34,15 +34,12 @@
 <!ENTITY chat.noConnectedAccount.title             "Your chat accounts are not connected.">
 <!ENTITY chat.noConnectedAccount.description       "You can connect them from the 'Chat status' dialog:">
 <!ENTITY chat.showAccountManager.button       "Show chat status">
-
 <!ENTITY chat.ongoingConversation      "Ongoing conversation">
-
 <!ENTITY openConversationCmd.label     "Start a Conversation">
 <!ENTITY openConversationCmd.accesskey "c">
 <!ENTITY closeConversationCmd.accesskey "C">
 <!ENTITY aliasCmd.accesskey            "R">
 <!ENTITY deleteCmd.accesskey           "v">
-
 <!ENTITY openConversationButton.tooltip  "Start a conversation">
 <!ENTITY joinChatButton.label          "Join Chat">
 <!ENTITY openLinkCmd.accesskey        "O">

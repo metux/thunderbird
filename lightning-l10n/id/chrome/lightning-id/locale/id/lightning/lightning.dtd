@@ -90,11 +90,9 @@
 <!ENTITY todaypane.statusButton.label "Panel Hari Ini">
 
 <!ENTITY lightning.preferencesLabel "Calendar">
-
 <!ENTITY lightning.calendarproperties.forceEmailScheduling.label            "Prefer client-side email scheduling">
 <!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext1     "For now, you can only enable this after setting up this calendar in its property dialog if the calendar server takes care of scheduling.">
 <!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext2     "This option is only available if the calendar server handles scheduling. Enabling will allow to fall back to the standard email based scheduling instead of leaving it to the server.">
-
 <!ENTITY lightning.imipbar.btnAccept2.tooltiptext                           "Accept event invitation">
 <!ENTITY lightning.imipbar.btnAcceptRecurrences.label                       "Accept all">
 <!ENTITY lightning.imipbar.btnAcceptRecurrences2.tooltiptext                "Accept event invitation for all occurrences of the event">

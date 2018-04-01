@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "Устаревшие расширения">
 <!ENTITY legacyExtensions.description "Эти расширения не соответствуют текущим стандартам &brandShortName;, поэтому они были отключены.">
 <!ENTITY legacyExtensions.learnMore "Узнайте об изменениях в дополнениях">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

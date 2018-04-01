@@ -69,5 +69,6 @@
 
 <!ENTITY pref.calendar.alarms.sound.play.label "Play">
 <!ENTITY pref.calendar.alarms.sound.play.accessKey "P">
+<!ENTITY pref.missedalarms2 "Show missed reminders for writable calendars">
 <!ENTITY pref.defaultsnoozelength.label "Default Snooze Length:" >
 <!ENTITY pref.defaultsnoozelength.accesskey "S">

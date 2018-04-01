@@ -34,3 +34,5 @@
 
 <!ENTITY pref.defaultsnoozelength.label "Zadano trajanje odgode:" >
 <!ENTITY pref.defaultsnoozelength.accesskey "a">
+
+<!ENTITY pref.missedalarms2 "Show missed reminders for writable calendars">

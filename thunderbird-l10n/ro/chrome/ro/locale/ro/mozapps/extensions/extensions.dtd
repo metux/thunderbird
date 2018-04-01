@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "Extensii obsolete">
 <!ENTITY legacyExtensions.description "Aceste extensii nu îndeplinesc standardele actuale ale &brandShortName; astfel încât au fost dezactivate.">
 <!ENTITY legacyExtensions.learnMore "Află despre schimbările aduse suplimentelor">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

@@ -14,37 +14,6 @@
 @import url("chrome://messenger/skin/messageIcons.css");
 @import url("chrome://messenger/skin/shared/mailWindow1.css");
 
-/* give the toolbox a min-height of 42px for Australis theme */
-@media (-moz-os-version: windows-win7),
-       (-moz-os-version: windows-win8) {
-  .mail-toolbox:not([mode="full"]) > toolbar:only-of-type,
-  .mail-toolbox[mode="full"][labelalign="end"] > toolbar:only-of-type {
-    margin-top: 7px;
-    margin-bottom: 7px;
-  }
-}
-
-@media (-moz-os-version: windows-win10) {
-  .mail-toolbox:not([mode="full"]) > toolbar:only-of-type,
-  .mail-toolbox[mode="full"][labelalign="end"] > toolbar:only-of-type {
-    margin-top: 6px;
-    margin-bottom: 6px;
-  }
-}
-
-.mail-toolbox[mode="text"]:not([mode="full"]) > toolbar:only-of-type {
-  margin-top: 5px;
-  margin-bottom: 5px;
-}
-
-/* Don't use the listbox appearance as that gives us a blue-grey top border
-   that collides with the primary toolbar border */
-#threadTree, #folderTree {
-  -moz-appearance:  none;
-  background-color: -moz-Field;
-  color: -moz-FieldText;
-}
-
 #folderPane-toolbar {
   border-top-style: none;
   border-bottom: 1px solid ThreeDShadow;
@@ -53,13 +22,6 @@
 /* Give viewPickerPopup a menu look */
 #viewPickerPopup {
   background-color: menu;
-}
-
-#viewPickerPopup {
-  -moz-border-top-colors: ThreeDShadow;
-  -moz-border-left-colors: ThreeDShadow;
-  -moz-border-right-colors: ThreeDShadow;
-  -moz-border-bottom-colors: ThreeDShadow;
 }
 
 #viewPickerPopup > menu,
@@ -97,54 +59,7 @@ treechildren::-moz-tree-cell-text(imapdeleted) {
   padding-inline-start: 20px;
 }
 
-/* ..... splitter adjustments ..... */
-
-#mailContent[layout="standard"] #threadpane-splitter {
-  /* Overlap the folder pane splitter to make the splitters appear unified. */
-  margin-inline-start: -1px;
-}
-
-#mailContent[layout="standard"] #folderpane_splitter:-moz-locale-dir(rtl) {
-  /* Don't draw the splitter's border here... */
-  border-left: 0;
-}
-
-#mailContent[layout="standard"] #threadPaneBox:-moz-locale-dir(rtl),
-#mailContent[layout="standard"] #messagepanebox:-moz-locale-dir(rtl){
-  /* ... draw it here instead! (This removes the white highlight just to the
-     right of the thread pane splitter so everything looks pretty.) */
-  margin-right: -2px;
-  border-right: 2px solid;
-  -moz-border-right-colors: ThreeDHighlight ThreeDShadow;
-}
-
-#mailContent[layout="standard"] #threadPaneBox:-moz-locale-dir(rtl) {
-  /* Make sure we have a white dot in the top-left corner where the splitters
-     meet. */
-  margin-bottom: -2px;
-  padding-bottom: 2px;
-}
-
-#mailContent[layout="wide"] #folderpane_splitter {
-  /* Make this draw above the thread pane splitter so that we overlap its top
-     border. This will make the splitters appear unified. */
-  position: relative;
-  z-index: 2;
-  margin-bottom: -1px;
-}
-
-#mailContent[layout="wide"] #threadpane-splitter {
-  /* Don't draw the splitter's border here... */
-  border-top: 0;
-}
-
-#mailContent[layout="wide"] #folderPaneBox:-moz-locale-dir(ltr),
-#mailContent[layout="wide"] #threadPaneBox:-moz-locale-dir(rtl) {
-  /* Make sure we have a white dot in the top-left corner where the splitters
-     meet. */
-  margin-right: -2px;
-  padding-right: 2px;
-}
+/* ..... tabs ..... */
 
 .tabmail-tab[type="message"][IsFeedMessage] {
   list-style-image: url("chrome://messenger-newsblog/skin/icons/rss-feed.png");
@@ -152,8 +67,6 @@ treechildren::-moz-tree-cell-text(imapdeleted) {
   width: 16px;
   height: 16px;
 }
-
-/* ..... tabs ..... */
 
 #tabpanelcontainer {
   -moz-appearance: none;
@@ -199,10 +112,6 @@ treechildren::-moz-tree-cell-text(imapdeleted) {
   visibility: collapse;
 }
 
-#titlebar-spacer {
-  pointer-events: none;
-}
-
 #titlebar-buttonbox {
   -moz-appearance: -moz-window-button-box;
   position: relative;
@@ -235,7 +144,7 @@ treechildren::-moz-tree-cell-text(imapdeleted) {
 }
 
 #messengerWindow[tabsintitlebar] .titlebar-placeholder[type="caption-buttons"] {
-  margin-left: 10px; /* additional space for Aero Snap */
+  margin-inline-start: 10px; /* additional space for Aero Snap */
 }
 
 #messengerWindow:not([tabsintitlebar]) .titlebar-placeholder {
@@ -269,13 +178,15 @@ treechildren::-moz-tree-cell-text(imapdeleted) {
   @media (-moz-os-version: windows-win7) {
     #messengerWindow[sizemode="normal"] > #titlebar >
     #titlebar-content:-moz-lwtheme {
-      border-top: 2px solid;
-      -moz-border-top-colors: rgb(37, 44, 51) rgba(255, 255, 255, 0.6);
+      border-top: 1px solid;
+      padding-top: 1px;
+      border-top-color: rgb(37, 44, 51);
+      box-shadow: 0 1px 0 rgba(255,255,255,.6) inset;
     }
 
     #messengerWindow[sizemode="normal"] > #titlebar >
     #titlebar-content:-moz-lwtheme:-moz-window-inactive {
-      -moz-border-top-colors: rgb(102, 102, 102) rgba(255, 255, 255, 0.6);
+      border-top-color: rgb(102, 102, 102);
     }
   }
 
@@ -506,7 +417,7 @@ treechildren::-moz-tree-cell-text(imapdeleted) {
 
 #folderpane_splitter,
 #threadpane-splitter:not([orient="vertical"]) {
-  border: none;
+  border-width: 0;
   min-width: 0;
   width: 5px;
   background-color: transparent;
@@ -536,14 +447,10 @@ treechildren::-moz-tree-cell-text(imapdeleted) {
   border-inline-end: 4px solid highlight;
 }
 
-#mailContent[layout="wide"] #folderpane_splitter {
-  margin-bottom: 0;
-}
-
 #threadpane-splitter,
 #attachment-splitter {
-  border: none;
-  border-bottom: 1px solid #A9B7C9;
+  border-width: 0;
+  border-bottom: 1px solid #a9b7c9;
   min-height: 0;
   height: 5px;
   background-color: transparent;
@@ -567,13 +474,8 @@ treechildren::-moz-tree-cell-text(imapdeleted) {
   border-bottom: 4px solid highlight;
 }
 
-#accountCentralBox,
-#threadTree {
-  border-inline-end: none;
-}
-
 #messagepanebox {
-  border-top-width: 0px;
+  border-top-width: 0;
   border-inline-start: none;
 }
 
@@ -587,11 +489,11 @@ treechildren::-moz-tree-cell-text(imapdeleted) {
     -moz-appearance: none;
     min-height: 24px;
     color: inherit;
-    margin: 1px 4px;
+    margin-top: 4px;
+    margin-bottom: 4px;
     padding: 0 5px 1px !important;
-    border: 1px solid;
+    border: 1px solid var(--toolbarbutton-hover-bordercolor);
     background: var(--toolbarbutton-hover-background);
-    border-color: var(--toolbarbutton-hover-bordercolor);
     box-shadow: var(--toolbarbutton-hover-boxshadow);
     transition-property: background-color, border-color, box-shadow;
     transition-duration: 150ms;
@@ -632,8 +534,6 @@ treechildren::-moz-tree-cell-text(imapdeleted) {
 
   #folderTree {
     background-color: #fafafa;
-    border-bottom: none;
-    border-left: none;
   }
 
   #folderTree treechildren::-moz-tree-cell(dropOn) {
@@ -804,15 +704,6 @@ treechildren::-moz-tree-cell-text(imapdeleted) {
     }
     #messengerWindow:not(:-moz-lwtheme):-moz-window-inactive {
       background-color: rgb(215, 228, 242);
-    }
-
-    #messengerWindow[sizemode="normal"] > #titlebar > #titlebar-content {
-      border-top-width: 2px;
-      -moz-border-top-colors: #4D4D4D #E9ECF3;
-    }
-
-    #messengerWindow[sizemode="normal"] #titlebar-buttonbox {
-      margin-top: -2px;
     }
   }
 }

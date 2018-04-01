@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Derzeit protokollierte Module">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "JS-Protokoll im Abgesicherten Modus">
 <!ENTITY aboutUrlClassifier.debugFile                   "Derzeitige Protokolldatei">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

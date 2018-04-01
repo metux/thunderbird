@@ -170,7 +170,7 @@ function initGlobalRuleset()
 {
   gGlobalRuleset = newRuleset();
 
-  Services.prefs.addObserver(kModePref, styleObserver, false);
+  Services.prefs.addObserver(kModePref, styleObserver);
 }
 
 var styleObserver = {
@@ -302,6 +302,18 @@ function cleanupNode(aNode, aRules, aTextModifiers)
           style.removeProperty(style[j]);
           --j;
         }
+      }
+      // Sort the style attributes for easier checking/comparing later.
+      if (node.hasAttribute("style")) {
+        let trailingSemi = false;
+        let attrs = node.getAttribute("style").trim();
+        if (attrs.endsWith(";")) {
+          attrs = attrs.slice(0, -1);
+          trailingSemi = true;
+        }
+        attrs = attrs.split(";").map(a => a.trim());
+        attrs.sort();
+        node.setAttribute("style", attrs.join("; ") + (trailingSemi?";":""));
       }
     }
     else {

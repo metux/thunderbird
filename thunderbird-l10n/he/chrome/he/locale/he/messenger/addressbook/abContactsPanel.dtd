@@ -36,7 +36,6 @@
 <!ENTITY abPropertiesMenu.accesskey         "i">
 <!ENTITY contactPropertiesMenu.accesskey    "i">
 <!ENTITY mailingListPropertiesMenu.accesskey "i">
-
 <!ENTITY abContextMenuButton.tooltip        "Display Address Book Context Menu">
 <!ENTITY searchContacts.label               "Search Contacts:">
 <!ENTITY searchContacts.accesskey           "n">
@@ -44,9 +43,7 @@
 <!ENTITY abPropertiesContext.accesskey      "i">
 <!ENTITY editContactContext.accesskey       "E">
 <!ENTITY editMailingListContext.accesskey   "E">
-
 <!ENTITY newContactAbContext.label          "New Contact">
 <!ENTITY newContactAbContext.accesskey      "C">
 <!ENTITY newListAbContext.label             "New List">
 <!ENTITY newListAbContext.accesskey         "L">
-

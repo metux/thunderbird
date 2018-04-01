@@ -48,7 +48,6 @@
      using (markAsReadDelay.label) and a number (secondsLabel.label). -->
 
 <!ENTITY itemAdvanced.label               "Advanced">
-
 <!ENTITY newTagButton.label        "New…">
 <!ENTITY newTagButton.accesskey    "N">
 <!ENTITY editTagButton1.label      "Edit…">
@@ -57,7 +56,6 @@
 <!ENTITY display.caption                  "Display">
 <!ENTITY showCondensedAddresses.label     "Show only display name for people in my address book">
 <!ENTITY showCondensedAddresses.accesskey "S">
-
 <!ENTITY autoMarkAsRead.label             "Automatically mark messages as read">
 <!ENTITY autoMarkAsRead.accesskey         "A">
 <!ENTITY markAsReadNoDelay.label          "Immediately on display">

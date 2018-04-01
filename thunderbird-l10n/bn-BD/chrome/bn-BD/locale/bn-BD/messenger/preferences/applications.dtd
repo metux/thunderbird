@@ -20,7 +20,6 @@
 
 <!ENTITY attachments.incoming.label   "Incoming">
 <!ENTITY attachments.outgoing.label   "Outgoing">
-
 <!ENTITY addCloudFileAccount1.label       "Add…">
 <!ENTITY addCloudFileAccount1.accesskey   "A">
 <!ENTITY addCloudFileAccount.description  "Add a new Filelink storage service">
@@ -29,6 +28,5 @@
 <!ENTITY authRequired.description         "Your authorization is required in order to see the settings for this storage service.">
 <!ENTITY authRequired.button.label        "Authorize">
 <!ENTITY authRequired.button.accesskey    "U">
-
 <!ENTITY enableCloudFileAccountOffer.label "Offer to share for files larger than">
 <!ENTITY enableCloudFileAccountOffer.mb "MB">

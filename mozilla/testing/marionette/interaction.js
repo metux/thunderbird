@@ -10,15 +10,16 @@ Cu.import("resource://gre/modules/Preferences.jsm");
 
 Cu.import("chrome://marionette/content/accessibility.js");
 Cu.import("chrome://marionette/content/atom.js");
+Cu.import("chrome://marionette/content/element.js");
 const {
   ElementClickInterceptedError,
   ElementNotInteractableError,
   InvalidArgumentError,
   InvalidElementStateError,
 } = Cu.import("chrome://marionette/content/error.js", {});
-Cu.import("chrome://marionette/content/element.js");
-const {pprint} = Cu.import("chrome://marionette/content/format.js", {});
 Cu.import("chrome://marionette/content/event.js");
+const {pprint} = Cu.import("chrome://marionette/content/format.js", {});
+const {TimedPromise} = Cu.import("chrome://marionette/content/sync.js", {});
 
 Cu.importGlobalProperties(["File"]);
 
@@ -31,7 +32,6 @@ const DISABLED_ATTRIBUTE_SUPPORTED_XUL = new Set([
   "CHECKBOX",
   "COLORPICKER",
   "COMMAND",
-  "DATEPICKER",
   "DESCRIPTION",
   "KEY",
   "KEYSET",
@@ -54,7 +54,6 @@ const DISABLED_ATTRIBUTE_SUPPORTED_XUL = new Set([
   "TAB",
   "TABS",
   "TEXTBOX",
-  "TIMEPICKER",
   "TOOLBARBUTTON",
   "TREE",
 ]);
@@ -179,11 +178,11 @@ async function webdriverClickElement(el, a11y) {
   if (el.localName == "option") {
     interaction.selectOption(el);
   } else {
+    // step 9
+    let clicked = interaction.flushEventLoop(containerEl);
     event.synthesizeMouseAtPoint(clickPoint.x, clickPoint.y, {}, win);
+    await clicked;
   }
-
-  // step 9
-  await interaction.flushEventLoop(win);
 
   // step 10
   // if the click causes navigation, the post-navigation checks are
@@ -272,54 +271,145 @@ interaction.selectOption = function(el) {
   event.mousemove(containerEl);
   event.mousedown(containerEl);
   event.focus(containerEl);
-  event.input(containerEl);
 
-  // Clicking <option> in <select> should not be deselected if selected.
-  // However, clicking one in a <select multiple> should toggle
-  // selectedness the way holding down Control works.
-  if (containerEl.multiple) {
-    el.selected = !el.selected;
-  } else if (!el.selected) {
-    el.selected = true;
+  if (!el.disabled) {
+    // Clicking <option> in <select> should not be deselected if selected.
+    // However, clicking one in a <select multiple> should toggle
+    // selectedness the way holding down Control works.
+    if (containerEl.multiple) {
+      el.selected = !el.selected;
+    } else if (!el.selected) {
+      el.selected = true;
+    }
+    event.input(containerEl);
+    event.change(containerEl);
   }
 
-  event.change(containerEl);
   event.mouseup(containerEl);
   event.click(containerEl);
 };
 
 /**
- * Flushes the event loop by requesting an animation frame.
+ * Clears the form control or the editable element, if required.
  *
- * This will wait for the browser to repaint before returning, typically
- * flushing any queued events.
+ * Before clearing the element, it will attempt to scroll it into
+ * view if it is not already in the viewport.  An error is raised
+ * if the element cannot be brought into view.
  *
- * If the document is unloaded during this request, the promise is
- * rejected.
+ * If the element is a submittable form control and it is empty
+ * (it has no value or it has no files associated with it, in the
+ * case it is a <code>&lt;input type=file&gt;</code> element) or
+ * it is an editing host and its <code>innerHTML</code> content IDL
+ * attribute is empty, this function acts as a no-op.
  *
- * @param {Window} win
- *     Associated window.
+ * @param {Element} el
+ *     Element to clear.
+ *
+ * @throws {InvalidElementStateError}
+ *     If element is disabled, read-only, non-editable, not a submittable
+ *     element or not an editing host, or cannot be scrolled into view.
+ */
+interaction.clearElement = function(el) {
+  if (element.isDisabled(el)) {
+    throw new InvalidElementStateError(pprint`Element is disabled: ${el}`);
+  }
+  if (element.isReadOnly(el)) {
+    throw new InvalidElementStateError(pprint`Element is read-only: ${el}`);
+  }
+  if (!element.isEditable(el)) {
+    throw new InvalidElementStateError(
+        pprint`Unable to clear element that cannot be edited: ${el}`);
+  }
+
+  if (!element.isInView(el)) {
+    element.scrollIntoView(el);
+  }
+  if (!element.isInView(el)) {
+    throw new ElementNotInteractableError(
+        pprint`Element ${el} could not be scrolled into view`);
+  }
+
+  if (element.isEditingHost(el)) {
+    clearContentEditableElement(el);
+  } else {
+    clearResettableElement(el);
+  }
+};
+
+function clearContentEditableElement(el) {
+  if (el.innerHTML === "") {
+    return;
+  }
+  event.focus(el);
+  el.innerHTML = "";
+  event.change(el);
+  event.blur(el);
+}
+
+function clearResettableElement(el) {
+  if (!element.isMutableFormControl(el)) {
+    throw new InvalidElementStateError(pprint`Not an editable form control: ${el}`);
+  }
+
+  let isEmpty;
+  switch (el.type) {
+    case "file":
+      isEmpty = el.files.length == 0;
+      break;
+
+    default:
+      isEmpty = el.value === "";
+      break;
+  }
+
+  if (el.validity.valid && isEmpty) {
+    return;
+  }
+
+  event.focus(el);
+  el.value = "";
+  event.change(el);
+  event.blur(el);
+}
+
+/**
+ * Waits until the event loop has spun enough times to process the
+ * DOM events generated by clicking an element, or until the document
+ * is unloaded.
+ *
+ * @param {Element} el
+ *     Element that is expected to receive the click.
  *
  * @return {Promise}
- *     Promise is accepted once event queue is flushed, or rejected if
- *     <var>win</var> has closed or been unloaded before the queue can
- *     be flushed.
+ *     Promise is resolved once <var>el</var> has been clicked
+ *     (its <code>click</code> event fires), the document is unloaded,
+ *     or a 500 ms timeout is reached.
  */
-interaction.flushEventLoop = async function(win) {
-  return new Promise(resolve => {
-    let handleEvent = () => {
-      win.removeEventListener("beforeunload", this);
-      resolve();
+interaction.flushEventLoop = async function(el) {
+  const win = el.ownerGlobal;
+  let unloadEv, clickEv;
+
+  let spinEventLoop = resolve => {
+    unloadEv = resolve;
+    clickEv = () => {
+      if (win.closed) {
+        resolve();
+      } else {
+        win.setTimeout(resolve, 0);
+      }
     };
 
-    if (win.closed) {
-      resolve();
-      return;
-    }
+    win.addEventListener("unload", unloadEv, {mozSystemGroup: true});
+    el.addEventListener("click", clickEv, {mozSystemGroup: true});
+  };
+  let removeListeners = () => {
+    // only one event fires
+    win.removeEventListener("unload", unloadEv);
+    el.removeEventListener("click", clickEv);
+  };
 
-    win.addEventListener("beforeunload", handleEvent);
-    win.requestAnimationFrame(handleEvent);
-  });
+  return new TimedPromise(spinEventLoop, {timeout: 500, throws: null})
+      .then(removeListeners);
 };
 
 /**

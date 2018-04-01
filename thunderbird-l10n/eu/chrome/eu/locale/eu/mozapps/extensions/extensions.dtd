@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "Legatu-hedapenak">
 <!ENTITY legacyExtensions.description "Hedapen hauek ez dira &brandShortName;(r)en gutxieneko kalitatera heltzen eta desaktibatu egin dira.">
 <!ENTITY legacyExtensions.learnMore "Gehigarrien aldaketei buruzko argibide gehiago">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

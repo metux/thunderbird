@@ -18,6 +18,7 @@ load("../../../resources/passwordStorage.js");
 var server;
 var attempt = 0;
 
+var kIdentityMail = "identity@foo.invalid";
 var kSender = "from@foo.invalid";
 var kTo = "to@foo.invalid";
 var kUsername = "testsmtp";
@@ -30,7 +31,7 @@ function alert(aDialogText, aText)
 {
   // The first few attempts may prompt about the password problem, the last
   // attempt shouldn't.
-  do_check_true(attempt < 4);
+  Assert.ok(attempt < 4);
 
   // Log the fact we've got an alert, but we don't need to test anything here.
   dump("Alert Title: " + aDialogText + "\nAlert Text: " + aText + "\n");
@@ -91,7 +92,7 @@ add_task(function *() {
   // Start the fake SMTP server
   server.start();
   var smtpServer = getBasicSmtpServer(server.port);
-  var identity = getSmtpIdentity(kSender, smtpServer);
+  var identity = getSmtpIdentity(kIdentityMail, smtpServer);
 
   // This time with auth
   test = "Auth sendMailMessage";
@@ -102,7 +103,7 @@ add_task(function *() {
 
   do_test_pending();
 
-  MailServices.smtp.sendMailMessage(testFile, kTo, identity,
+  MailServices.smtp.sendMailMessage(testFile, kTo, identity, kSender,
                                     null, URLListener, null, null,
                                     false, {}, {});
 
@@ -114,16 +115,16 @@ var URLListener = {
   OnStopRunningUrl: function(url, rc)
   {
     // Check for ok status.
-    do_check_eq(rc, 0);
+    Assert.equal(rc, 0);
     // Now check the new password has been saved.
     let count = {};
     let logins = Services.logins
                          .findLogins(count, "smtp://localhost", null,
                                      "smtp://localhost");
 
-    do_check_eq(count.value, 1);
-    do_check_eq(logins[0].username, kUsername);
-    do_check_eq(logins[0].password, kValidPassword);
+    Assert.equal(count.value, 1);
+    Assert.equal(logins[0].username, kUsername);
+    Assert.equal(logins[0].password, kValidPassword);
 
     server.stop();
 

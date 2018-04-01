@@ -96,27 +96,32 @@ function getDBConnection()
 // commited automatically at the end of the event loop spin so that
 // we flush buddy list data to disk only once per event loop spin.
 var gDBConnWithPendingTransaction = null;
-this.__defineGetter__("DBConn", function() {
-  if (gDBConnWithPendingTransaction)
-    return gDBConnWithPendingTransaction;
+Object.defineProperty(this, "DBConn", {
+  configurable: true,
+  enumerable: true,
 
-  if (!gDBConnection) {
-    gDBConnection = getDBConnection();
-    Services.obs.addObserver(function dbClose(aSubject, aTopic, aData) {
-      Services.obs.removeObserver(dbClose, aTopic);
-      if (gDBConnection) {
-        gDBConnection.asyncClose();
-        gDBConnection = null;
-      }
-    }, "profile-before-change", false);
+  get() {
+    if (gDBConnWithPendingTransaction)
+      return gDBConnWithPendingTransaction;
+
+    if (!gDBConnection) {
+      gDBConnection = getDBConnection();
+      Services.obs.addObserver(function dbClose(aSubject, aTopic, aData) {
+        Services.obs.removeObserver(dbClose, aTopic);
+        if (gDBConnection) {
+          gDBConnection.asyncClose();
+          gDBConnection = null;
+        }
+      }, "profile-before-change");
+    }
+    gDBConnWithPendingTransaction = gDBConnection;
+    gDBConnection.beginTransaction();
+    executeSoon(function() {
+      gDBConnWithPendingTransaction.commitTransaction();
+      gDBConnWithPendingTransaction = null;
+    });
+    return gDBConnection;
   }
-  gDBConnWithPendingTransaction = gDBConnection;
-  gDBConnection.beginTransaction();
-  executeSoon(function() {
-    gDBConnWithPendingTransaction.commitTransaction();
-    gDBConnWithPendingTransaction = null;
-  });
-  return gDBConnection;
 });
 
 function TagsService() { }
@@ -264,8 +269,8 @@ var otherContactsTag = {
       if (contact.getTags().some(t => t.id == id))
         this._removeContact(contact);
 
-    aTag.notifyObservers(aTag, "tag-shown", null);
-    Services.obs.notifyObservers(aTag, "tag-shown", null);
+    aTag.notifyObservers(aTag, "tag-shown");
+    Services.obs.notifyObservers(aTag, "tag-shown");
     this._saveHiddenTagsPref();
   },
   hideTag: function(aTag) {
@@ -276,8 +281,8 @@ var otherContactsTag = {
     if (this._contactsInitialized)
       this._hideTag(aTag);
 
-    aTag.notifyObservers(aTag, "tag-hidden", null);
-    Services.obs.notifyObservers(aTag, "tag-hidden", null);
+    aTag.notifyObservers(aTag, "tag-hidden");
+    Services.obs.notifyObservers(aTag, "tag-hidden");
     this._saveHiddenTagsPref();
   },
   _hideTag: function(aTag) {
@@ -327,10 +332,10 @@ var otherContactsTag = {
       let tag = this._hiddenTags[id];
       this._hideTag(tag);
     }
-    Services.obs.addObserver(this, "contact-tag-added", false);
-    Services.obs.addObserver(this, "contact-tag-removed", false);
-    Services.obs.addObserver(this, "contact-added", false);
-    Services.obs.addObserver(this, "contact-removed", false);
+    Services.obs.addObserver(this, "contact-tag-added");
+    Services.obs.addObserver(this, "contact-tag-removed");
+    Services.obs.addObserver(this, "contact-added");
+    Services.obs.addObserver(this, "contact-removed");
   },
 
   // imITag implementation
@@ -583,7 +588,7 @@ Contact.prototype = {
         observer.observe(aNewTag, "contact-moved-in", null);
       Services.obs.notifyObservers(this, "contact-tag-added", aNewTag.id);
     }
-    Services.obs.notifyObservers(this, "contact-moved", null);
+    Services.obs.notifyObservers(this, "contact-moved");
   },
 
   getBuddies: function(aBuddyCount) {

@@ -5,3 +5,6 @@
 <!ENTITY virtualFolderListTitle.title "Kausta(de) valimine">
 <!ENTITY virtualFolderDesc.label      "Kaustad, millest otsida:">
 
+
+<!ENTITY folderName.label "Folder name">
+<!ENTITY folderSearch.label "Search">

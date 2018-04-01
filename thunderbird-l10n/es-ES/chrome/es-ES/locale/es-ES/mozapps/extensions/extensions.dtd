@@ -186,3 +186,5 @@
 <!ENTITY legacyExtensions.title "Extensiones clásicas">
 <!ENTITY legacyExtensions.description "Estas extensiones no cumplen los estándares actuales de &brandShortName; por lo que han sido desactivadas.">
 <!ENTITY legacyExtensions.learnMore "Conozca sobre los cambios a los complementos">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

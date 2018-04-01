@@ -263,3 +263,5 @@
 <!ENTITY legacyExtensions.title "Застареле екстензије">
 <!ENTITY legacyExtensions.description "Ове екстензије не подржавају тренутни &brandShortName; стандард тако да су онемогућене.">
 <!ENTITY legacyExtensions.learnMore "Сазнајте више о променама додатака">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

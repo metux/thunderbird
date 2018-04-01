@@ -5,3 +5,6 @@
 <!ENTITY virtualFolderListTitle.title        "Roghnaigh Fillteá(i)n">
 <!ENTITY virtualFolderDesc.label       "Roghnaigh na fillteáin atá le cuardach:">
 
+
+<!ENTITY folderName.label "Folder name">
+<!ENTITY folderSearch.label "Search">

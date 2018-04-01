@@ -58,3 +58,8 @@ sentence. -->
 <!ENTITY messageStyleShowHeader.accesskey  "з">
 <!ENTITY messageStyleNoPreview.title       "Няма преглед">
 <!ENTITY messageStyleNoPreview.description "Темата е непълна или временно недостъпна (изключена добавка, надежден режим и т.н).">
+
+<!ENTITY  getAttention.label                  "Flash the taskbar item">
+<!ENTITY  getAttention.accesskey              "F">
+<!ENTITY  getAttentionMac.label               "Animate dock icon">
+<!ENTITY  getAttentionMac.accesskey           "o">

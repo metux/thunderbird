@@ -50,6 +50,11 @@ pref("mailnews.filters.confirm_delete", true);
 // space-delimited list of extra headers to show in msg header display area.
 pref("mailnews.headers.extraExpandedHeaders", "");
 
+// Space-delimited list of extra headers that will be pushed to
+// currentHeaderData for processing in add-ons (without being displayed).
+// Use a value of "*" to get all headers (other wildcards not supported).
+pref("mailnews.headers.extraAddonHeaders", "");
+
 // default sort order settings (when creating new folder views)
 // sort_order is an int value reflecting nsMsgViewSortOrder values
 //   as defined in nsIMsgDBView.idl (ascending = 1, descending = 2)
@@ -576,6 +581,11 @@ pref("mail.smtp.useMatchingDomainServer", false);
 // if true, we'll use the password from an incoming server with
 // matching username and host name
 pref("mail.smtp.useMatchingHostNameServer", false);
+
+// if true, we'll use the email sender's address for the smtp
+// MAIL FROM, which might become the return-path. If false
+// we use the identity email address, which is the old behaviour
+pref("mail.smtp.useSenderForSmtpMailFrom", true);
 
 pref("mail.smtpserver.default.authMethod", 3); // cleartext password. @see nsIMsgIncomingServer.authMethod.
 pref("mail.smtpserver.default.try_ssl", 0); // @see nsISmtpServer.socketType

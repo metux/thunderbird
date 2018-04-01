@@ -4,6 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+<?xml-stylesheet href="chrome://messenger/content/bindings.css" type="text/css"?>
 <?xml-stylesheet href="chrome://messenger/skin/searchBox.css" type="text/css"?>
 <?xml-stylesheet href="chrome://messenger/skin/addressbook/addressbook.css" type="text/css"?>
 
@@ -17,7 +18,7 @@
 %abMainWindowDTD;
 <!ENTITY % brandDTD SYSTEM "chrome://branding/locale/brand.dtd" >
 %brandDTD;
-<!ENTITY % customizeToolbarDTD SYSTEM "chrome://global/locale/customizeToolbar.dtd">
+<!ENTITY % customizeToolbarDTD SYSTEM "chrome://messenger/locale/customizeToolbar.dtd">
 %customizeToolbarDTD;
 ]>
 
@@ -638,7 +639,7 @@
       </toolbaritem>
   </toolbarpalette>
   <!-- toolbar -->
-  <toolbar id="ab-bar2" class="toolbar-primary chromeclass-toolbar"
+  <toolbar id="ab-bar2" class="chromeclass-toolbar"
            toolbarname="&showAbToolbarCmd.label;"
            accesskey="&showAbToolbarCmd.accesskey;"
            fullscreentoolbar="true" mode="full"

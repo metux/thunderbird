@@ -21,6 +21,7 @@
 #include "prthread.h"
 #include "plstr.h"
 #include "nsString.h"
+#include "nsMemory.h"
 #include "nsUnicharUtils.h"
 #include "nscore.h"
 #include "prprf.h"
@@ -65,7 +66,6 @@
 #include "nsIMsgFilterList.h"
 #include "nsDirectoryServiceUtils.h"
 #include "mozilla/Services.h"
-#include <algorithm>
 #include "nsIFileStreams.h"
 #include "nsIOutputStream.h"
 #include "nsISafeOutputStream.h"

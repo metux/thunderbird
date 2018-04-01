@@ -89,7 +89,6 @@
 <!ENTITY btnConsoleSharedWorkers "Shared Workers">
 <!ENTITY btnConsoleServiceWorkers "Service Workers">
 <!ENTITY btnConsoleWindowlessWorkers "Add-on or Chrome Workers">
-
 <!ENTITY filterOutput.placeholder "Filter output">
 <!ENTITY closeCmd.key         "W">
 <!ENTITY openInVarViewCmd.label "Open in Variables View">

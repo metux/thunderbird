@@ -956,6 +956,17 @@
 <!ENTITY openAddressBookDock.label      "Obre la llibreta d'adreces">
 
 <!ENTITY goChatCmd2.key "H">
+<!ENTITY editTemplateMsgCmd.label "Edit Template">
+<!ENTITY editTemplateMsgCmd.accesskey "T">
 <!ENTITY newMsgFromTemplateCmd.label "New Message from Template">
 <!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN">
+<!ENTITY addonPrefs.label "Add-on Options">
+<!ENTITY addonPrefs.accesskey "O">
+<!ENTITY addonPrefsUnix.label "Add-on Preferences">
+<!ENTITY addonPrefsUnix.accesskey "P">
+<!ENTITY addonNoPrefs.label "No Add-on settings found.">
+<!ENTITY debugAddonsCmd.label "Debug Add-ons">
+<!ENTITY debugAddonsCmd.accesskey "A">
 <!ENTITY contextNewMsgFromTemplate.label "New Message from Template">
+<!ENTITY contextEditTemplate.label "Edit Template">
+<!ENTITY contextEditTemplate.accesskey "T">

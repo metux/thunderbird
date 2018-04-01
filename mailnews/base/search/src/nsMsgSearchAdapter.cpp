@@ -26,8 +26,6 @@
 #include "nsMsgMessageFlags.h"
 #include "nsIArray.h"
 #include "nsArrayUtils.h"
-#include "nsAlgorithm.h"
-#include <algorithm>
 #include "mozilla/Attributes.h"
 
 // This stuff lives in the base class because the IMAP search syntax
@@ -549,7 +547,8 @@ nsresult nsMsgSearchAdapter::EncodeImapTerm (nsIMsgSearchTerm *term, bool really
            (attrib != nsMsgSearchAttrib::Keywords));
         // now convert to char* and escape quoted_specials
         nsAutoCString valueStr;
-        nsresult rv = ConvertFromUnicode(NS_LossyConvertUTF16toASCII(destCharset).get(),
+        nsresult rv = nsMsgI18NConvertFromUnicode(
+          NS_LossyConvertUTF16toASCII(destCharset),
           nsDependentString(convertedValue), valueStr);
         if (NS_SUCCEEDED(rv))
         {

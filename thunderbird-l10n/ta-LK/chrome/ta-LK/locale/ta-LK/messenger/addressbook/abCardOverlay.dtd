@@ -184,7 +184,6 @@ Entities below were automatically added by compare-locales,
 <!ENTITY preferDisplayName.label "எப்பொழுதிம் செய்தியின் தலையொட்டில் பெயர் காட்சிப்படுத்தப்படுவது விரும்பத்தக்கது.">
 
 <!ENTITY chatName.label                 "Chat Name:">
-
 <!ENTITY Chat.tab                       "Chat">
 <!ENTITY Chat.accesskey                 "a">
 <!ENTITY Gtalk.label                    "Google Talk:">
@@ -205,4 +204,3 @@ Entities below were automatically added by compare-locales,
 <!ENTITY XMPP.accesskey                 "J">
 <!ENTITY IRC.label                      "IRC Nick:">
 <!ENTITY IRC.accesskey                  "R">
-

@@ -50,6 +50,7 @@
 
 <!ENTITY feedLocation.label          "Feed URL:">
 <!ENTITY feedLocation.accesskey      "F">
+<!ENTITY feedLocation2.placeholder   "Enter a valid feed url">
 <!ENTITY biffStart.label             "Check for new articles every ">
 <!ENTITY biffStart.accesskey         "k">
 <!ENTITY biffMinutes.label           "minutes">
@@ -57,6 +58,7 @@
 <!ENTITY biffDays.label              "days">
 <!ENTITY biffDays.accesskey          "d">
 <!ENTITY recommendedUnits.label      "Publisher recommends:">
-
 <!ENTITY autotagEnable.label         "Automatically create tags from feed &lt;category&gt; names">
 <!ENTITY autotagEnable.accesskey     "o">
+<!ENTITY button.verifyFeed.label     "Verify">
+<!ENTITY button.verifyFeed.accesskey "V">

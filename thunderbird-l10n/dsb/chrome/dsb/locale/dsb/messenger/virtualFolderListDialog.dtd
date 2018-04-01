@@ -5,3 +5,6 @@
 <!ENTITY virtualFolderListTitle.title        "Zarědniki wubraś">
 <!ENTITY virtualFolderDesc.label       "Zarědniki za pytanje wubraś:">
 
+
+<!ENTITY folderName.label "Folder name">
+<!ENTITY folderSearch.label "Search">

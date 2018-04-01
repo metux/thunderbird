@@ -138,7 +138,6 @@
 <!ENTITY UpdatePhoto.accesskey          "u">
 
 <!ENTITY chatName.label                 "Chat Name:">
-
 <!ENTITY Chat.accesskey                 "a">
 <!ENTITY Gtalk.accesskey                "G">
 <!ENTITY AIM.label                      "AIM:">
@@ -156,4 +155,3 @@
 <!ENTITY XMPP.accesskey                 "J">
 <!ENTITY IRC.label                      "IRC Nick:">
 <!ENTITY IRC.accesskey                  "R">
-

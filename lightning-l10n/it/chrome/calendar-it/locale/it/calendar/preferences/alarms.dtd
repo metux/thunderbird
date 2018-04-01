@@ -28,3 +28,5 @@
 <!ENTITY pref.defalarmlen4todos.accesskey "o">
 <!ENTITY pref.defaultsnoozelength.label "Lunghezza predefinita snooze:">
 <!ENTITY pref.defaultsnoozelength.accesskey "s">
+
+<!ENTITY pref.missedalarms2 "Show missed reminders for writable calendars">

@@ -122,13 +122,11 @@
 <!ENTITY storeType.accesskey           "T">
 <!ENTITY mboxStore2.label              "File per folder (mbox)">
 <!ENTITY maildirStore.label            "File per message (maildir)">
-
 <!ENTITY scrolling.label               "Scrolling">
 <!ENTITY useAutoScroll.label           "Use autoscrolling">
 <!ENTITY useAutoScroll.accesskey       "U">
 <!ENTITY useSmoothScrolling.label      "Use smooth scrolling">
 <!ENTITY useSmoothScrolling.accesskey  "m">
-
 <!ENTITY checkDefaultsNow.label        "Check Now…">
 <!ENTITY checkDefaultsNow.accesskey    "N">
 <!ENTITY telemetrySection.label          "Telemetry">
@@ -136,13 +134,11 @@
 <!ENTITY enableTelemetry.label           "Enable Telemetry">
 <!ENTITY enableTelemetry.accesskey       "T">
 <!ENTITY telemetryLearnMore.label        "Learn More">
-
 <!ENTITY crashReporterSection.label      "Crash Reporter">
 <!ENTITY crashReporterDesc.label         "&brandShortName; submits crash reports to help &vendorShortName; make your e-mail client more stable and secure">
 <!ENTITY enableCrashReporter.label       "Enable Crash Reporter">
 <!ENTITY enableCrashReporter.accesskey   "C">
 <!ENTITY crashReporterLearnMore.label    "Learn More">
-
 <!ENTITY updateApp2.label                "&brandShortName; Updates">
 <!ENTITY updateApp.version.pre           "Version ">
 <!ENTITY updateApp.version.post          "">
@@ -154,18 +150,14 @@
 <!ENTITY updateManual.accesskey          "N">
 <!ENTITY updateHistory.label             "Show Update History">
 <!ENTITY updateHistory.accesskey         "p">
-
 <!ENTITY useService.label                "Use a background service to install updates">
 <!ENTITY useService.accesskey            "b">
-
 <!ENTITY offlineCompactFolders.label     "Compact all folders when it will save over">
 <!ENTITY offlineCompactFolders.accesskey "a">
 <!ENTITY offlineCompactFoldersMB.label   "MB in total">
-
 <!ENTITY overrideSmartCacheSize.label    "Override automatic cache management">
 <!ENTITY overrideSmartCacheSize.accesskey "v">
 <!ENTITY enableOCSP.label                "Query OCSP responder servers to confirm the current validity of certificates">
 <!ENTITY enableOCSP.accesskey            "Q">
-
 <!ENTITY manageCertificates.label "Manage Certificates">
 <!ENTITY manageCertificates.accesskey "M">

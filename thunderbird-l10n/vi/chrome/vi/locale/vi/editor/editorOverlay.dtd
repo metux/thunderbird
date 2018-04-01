@@ -460,18 +460,16 @@
 <!ENTITY insertMathCmd.label "Math…">
 <!ENTITY insertMathCmd.accesskey "M">
 <!ENTITY decrementFontSize.key "&lt;">
-<!ENTITY decrementFontSize.key2 ","> 
+<!ENTITY decrementFontSize.key2 ",">
 <!ENTITY incrementFontSize.key "&gt;">
-<!ENTITY incrementFontSize.key2 "."> 
+<!ENTITY incrementFontSize.key2 ".">
 <!ENTITY size-tinyCmd.label "Tiny">
 <!ENTITY size-tinyCmd.accesskey "T">
 <!ENTITY size-extraLargeCmd.label "Extra Large">
 <!ENTITY size-extraLargeCmd.accesskey "x">
 <!ENTITY size-hugeCmd.label "Huge">
 <!ENTITY size-hugeCmd.accesskey "H">
-
 <!ENTITY formatRemoveNamedAnchors2.key "R">
-
 <!ENTITY cutToolbarCmd.tooltip "Cut">
 <!ENTITY copyToolbarCmd.tooltip "Copy">
 <!ENTITY pasteToolbarCmd.tooltip "Paste">

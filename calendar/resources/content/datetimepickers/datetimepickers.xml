@@ -160,13 +160,13 @@
                         continue;
                     }
                     // Figure out what day of the week today is.
-                    let today = cal.now();
+                    let today = cal.dtz.now();
 
                     // i-weekday gets the offset. Add 7 to ensure that the %
                     // operation stays positive.
                     let offset = (i - today.weekday + 7) % 7;
                     today.day = today.day + offset;
-                    return cal.dateTimeToJsDate(today);
+                    return cal.dtz.dateTimeToJsDate(today);
                 }
                 return null;
             }
@@ -562,7 +562,7 @@
               // Find the locale strings for the AM/PM prefix/suffix.
               let amTime = new Date(2000, 0, 1, 6, 12, 34);
               let pmTime = new Date(2000, 0, 1, 18, 12, 34);
-              let formatter = Services.intl.createDateTimeFormat(undefined, this.kTimeFormatObject);
+              let formatter = new Services.intl.DateTimeFormat(undefined, this.kTimeFormatObject);
               amTime = formatter.format(amTime);
               pmTime = formatter.format(pmTime);
               let amLabel = this.parseTimeRegExp.exec(amTime)[this.ampmIndex] || "AM";
@@ -1603,15 +1603,17 @@
       <method name="parseTime">
         <parameter name="aValue"/>
         <body><![CDATA[
+            let now = new Date();
+
             try {
                 let noon = cal.calGetString("dateFormat", "noon");
                 if (aValue.toLowerCase() == noon.toLowerCase()) {
-                    return new Date(0, 0, 0, 12, 0, 0, 0);
+                    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0);
                 }
 
                 let midnight = cal.calGetString("dateFormat", "midnight");
                 if (aValue.toLowerCase() == midnight.toLowerCase()) {
-                    return new Date(0, 0, 0, 0, 0, 0, 0);
+                    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
                 }
             } catch (ex) {
                 // Try/catch this, since some people are apparently
@@ -1675,7 +1677,7 @@
                         hours += 12;
                     }
                 }
-                time = new Date(0, 0, 0, hours, minutes, seconds, 0);
+                time = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, seconds, 0);
             }  // else did not match regex, not valid time
             return time;
         ]]></body>
@@ -1782,7 +1784,7 @@
             const PRE_INDEX = 1, HR_INDEX = 2, MIN_INDEX = 4, SEC_INDEX = 6, POST_INDEX = 8; // eslint-disable-line no-unused-vars
             let amProbeTime = new Date(2000, 0, 1, 6, 12, 34);
             let pmProbeTime = new Date(2000, 0, 1, 18, 12, 34);
-            let formatter = Services.intl.createDateTimeFormat(undefined, this.kTimeFormatObject);
+            let formatter = new Services.intl.DateTimeFormat(undefined, this.kTimeFormatObject);
             let amProbeString = formatter.format(amProbeTime);
             let pmProbeString = formatter.format(pmProbeTime);
             let amFormatExpr = null, pmFormatExpr = null;
@@ -1867,14 +1869,14 @@
       <method name="formatDate">
         <parameter name="aDate"/>
         <body><![CDATA[
-            return cal.getDateFormatter().formatDateShort(cal.jsDateToDateTime(aDate, cal.floating()));
+            return cal.getDateFormatter().formatDateShort(cal.dtz.jsDateToDateTime(aDate, cal.dtz.floating));
         ]]></body>
       </method>
 
       <method name="formatTime">
         <parameter name="aValue"/>
         <body><![CDATA[
-            let formatter = Services.intl.createDateTimeFormat(undefined, this.kTimeFormatObject);
+            let formatter = new Services.intl.DateTimeFormat(undefined, this.kTimeFormatObject);
             return formatter.format(aValue);
         ]]></body>
       </method>

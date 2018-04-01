@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Jelenlegi naplómodulok">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Biztonságos böngészés JS napló">
 <!ENTITY aboutUrlClassifier.debugFile                   "Jelenlegi naplófájl">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

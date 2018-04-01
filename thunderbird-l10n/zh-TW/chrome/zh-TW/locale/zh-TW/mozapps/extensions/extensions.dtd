@@ -262,3 +262,5 @@
 <!ENTITY legacyExtensions.title "傳統擴充套件">
 <!ENTITY legacyExtensions.description "這些擴充套件不符合 &brandShortName; 目前的標準，已被停用。">
 <!ENTITY legacyExtensions.learnMore "了解附加元件有什麼變動">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

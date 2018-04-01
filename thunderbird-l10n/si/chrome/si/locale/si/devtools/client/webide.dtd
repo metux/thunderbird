@@ -118,39 +118,32 @@
 <!ENTITY projectMenu_debug_label "Debug App">
 <!ENTITY projectMenu_manageComponents_label "Manage Extra Components">
 <!ENTITY projectMenu_refreshTabs_label "Refresh Tabs">
-
 <!ENTITY runtimeMenu_label "Runtime">
 <!ENTITY runtimeMenu_showDevicePrefs_label "Device Preferences">
 <!ENTITY runtimeMenu_showDevicePrefs_accesskey "D">
 <!ENTITY runtimeMenu_showSettings_label "Device Settings">
 <!ENTITY runtimeMenu_showSettings_accesskey "s">
-
 <!ENTITY viewMenu_zoomin_accesskey "I">
 <!ENTITY viewMenu_zoomout_accesskey "O">
 <!ENTITY viewMenu_resetzoom_label "Reset Zoom">
 <!ENTITY viewMenu_resetzoom_accesskey "R">
-
 <!ENTITY projectButton_label "Open App">
 <!ENTITY key_zoomin "+">
 <!ENTITY key_zoomin2 "=">
 <!ENTITY key_zoomout "-">
 <!ENTITY key_resetzoom "0">
-
 <!ENTITY projectPanel_runtimeApps "Runtime Apps">
 <!ENTITY runtimePanel_usb "USB Devices">
 <!ENTITY runtimePanel_wifi "Wi-Fi Devices">
 <!ENTITY runtimePanel_noadbhelper "Install ADB Helper">
 <!ENTITY runtimePanel_nousbdevice "Can’t see your device?">
 <!ENTITY runtimePanel_refreshDevices_label "Refresh Devices">
-
 <!ENTITY details_valid_header "valid">
 <!ENTITY details_manifestURL "App ID">
 <!ENTITY newAppWindowTitle "New App">
 <!ENTITY newAppHeader "Select template">
 <!ENTITY newAppLoadingTemplate "Loading templates…">
 <!ENTITY newAppProjectName "Project Name:">
-
-
 <!ENTITY addons_title "Extra Components">
 <!ENTITY prefs_title "Preferences">
 <!ENTITY prefs_editor_title "Editor">
@@ -162,7 +155,6 @@
 <!ENTITY prefs_options_rememberlastproject_tooltip "Restore previous project when WebIDE starts">
 <!ENTITY prefs_options_templatesurl "Templates URL">
 <!ENTITY prefs_options_templatesurl_tooltip "Index of available templates">
-
 <!ENTITY runtimedetails_title "Runtime Info">
 <!ENTITY runtimedetails_adbIsRoot "ADB is root: ">
 <!ENTITY runtimedetails_summonADBRoot "root device">
@@ -170,24 +162,20 @@
 <!ENTITY runtimedetails_unrestrictedPrivileges "Unrestricted DevTools privileges: ">
 <!ENTITY runtimedetails_requestPrivileges "request higher privileges">
 <!ENTITY runtimedetails_privilegesWarning "(Will reboot device. Requires root access.)">
-
 <!ENTITY device_typeboolean "Boolean">
 <!ENTITY device_typenumber "Integer">
 <!ENTITY device_typestring "String">
 <!ENTITY device_typenone "Select a type">
-
 <!ENTITY devicepreference_title "Device Preferences">
 <!ENTITY devicepreference_search "Search preferences">
 <!ENTITY devicepreference_newname "New preference name">
 <!ENTITY devicepreference_newtext "Preference value">
 <!ENTITY devicepreference_addnew "Add new preference">
-
 <!ENTITY devicesetting_title "Device Settings">
 <!ENTITY devicesetting_search "Search settings">
 <!ENTITY devicesetting_newname "New setting name">
 <!ENTITY devicesetting_newtext "Setting value">
 <!ENTITY devicesetting_addnew "Add new setting">
-
 <!ENTITY monitor_title "Monitor">
 <!ENTITY wifi_auth_header "Client Identification">
 <!ENTITY wifi_auth_scan_request "The endpoint you are connecting to needs more information to authenticate this connection.  Please scan the QR code below via the prompt on your other device.">
@@ -195,5 +183,4 @@
 <!ENTITY wifi_auth_yes_scanner "Have a QR scanner prompt?">
 <!ENTITY wifi_auth_token_request "If your other device asks for a token instead of scanning a QR code, please copy the value below to the other device:">
 <!ENTITY wifi_auth_qr_size_note "If the QR code appears too small for the connection to be successfully established, try zooming or enlarging the window.">
-
 <!ENTITY logs_title "Pre-packaging Command Logs">

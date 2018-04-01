@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "当前日志模块">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "安全浏览 JS 日志">
 <!ENTITY aboutUrlClassifier.debugFile                   "当前日志文件">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

@@ -68,7 +68,6 @@
 #include "nsICharsetDetectionObserver.h"
 #include "nsICharsetDetector.h"
 #include "nsILineInputStream.h"
-#include "nsIPlatformCharset.h"
 #include "nsIParserUtils.h"
 #include "nsICharsetConverterManager.h"
 #include "nsIDocumentEncoder.h"
@@ -202,7 +201,7 @@ nsresult CreateStartupUrl(const char *uri, nsIURI** aUrl)
       (void**) aUrl);
   }
   if (*aUrl) // SetSpec can fail, for mailbox urls, but we still have a url.
-    (void) (*aUrl)->SetSpec(nsDependentCString(uri));
+    (void)(*aUrl)->SetSpecInternal(nsDependentCString(uri));
   return rv;
 }
 
@@ -1930,7 +1929,7 @@ MsgStreamMsgHeaders(nsIInputStream *aInputStream, nsIStreamListener *aConsumer)
   nsCOMPtr<nsIInputStream> stream(do_QueryInterface(hdrsStream));
 
   nsCOMPtr<nsIInputStreamPump> pump;
-  rv = NS_NewInputStreamPump(getter_AddRefs(pump), stream);
+  rv = NS_NewInputStreamPump(getter_AddRefs(pump), stream.forget());
   NS_ENSURE_SUCCESS(rv, rv);
 
   return pump->AsyncRead(aConsumer, nullptr);

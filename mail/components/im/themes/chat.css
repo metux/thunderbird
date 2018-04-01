@@ -54,10 +54,6 @@
   min-height: 30px;
   color: -moz-FieldText;
   border: 1px solid -moz-FieldText;
-  -moz-border-top-colors: none !important;
-  -moz-border-right-colors: none !important;
-  -moz-border-bottom-colors: none !important;
-  -moz-border-left-colors: none !important;
   border-radius: 2px;
   background-color: -moz-Field;
 }
@@ -142,7 +138,6 @@ imcontact[aliasing] .contactDisplayName {
   padding: 0;
   border: none;
   background: transparent;
-  -moz-binding: url('chrome://global/content/bindings/button.xml#button-image');
   -moz-appearance: none;
   width: 16px;
   height: 16px;
@@ -159,11 +154,15 @@ imcontact[aliasing] .contactDisplayName {
   -moz-stack-sizing: ignore;
 }
 
-.closeConversationButton > .button-image-icon {
+.startChatBubble > .button-box,
+.closeConversationButton > .button-box {
+  padding: 0;
+}
+
+.closeConversationButton > .button-box > .button-icon {
   width: 16px;
   height: 16px;
 }
-
 
 /* From im/themes/conversation.css */
 .browser {
@@ -599,18 +598,10 @@ imgroup[closed] .twisty {
 }
 
 #searchResultConv > .prplBuddyIcon > .protoIcon {
-%ifdef XP_MACOSX
-  list-style-image: url("chrome://global/skin/icons/search-textbox.png");
-%else
-%ifdef XP_WIN
-  list-style-image: url(chrome://global/skin/icons/Search-glass.png);
-  -moz-image-region: rect(0, 16px, 16px, 0);
-%else
-  list-style-image: url(moz-icon://stock/gtk-find?size=menu);
-  width: 16px;
-  height: 16px;
-%endif
-%endif
+  list-style-image: url(chrome://messenger/skin/icons/search-glass.svg);
+  -moz-context-properties: fill;
+  fill: currentColor;
+  opacity: 0.54;
 }
 
 #statusTypeIcon {
@@ -653,10 +644,14 @@ toolbar[mode="text"] #statusTypeIcon > .toolbarbutton-icon {
   background-color: -moz-field;
 }
 
-.tabmail-tab[type="chat"],
-.alltabs-item[type="chat"] {
+.tabmail-tab[type="chat"] {
   list-style-image: url("chrome://messenger/skin/icons/chat.svg");
-  -moz-context-properties: fill;
+}
+
+.alltabs-item[style*="chat.svg"],
+.tabmail-tab[type="chat"] > .tab-stack > .tab-content > .tab-icon-image {
+  -moz-context-properties: fill, stroke-opacity;
+  stroke-opacity: 0;
   fill: currentColor;
 }
 

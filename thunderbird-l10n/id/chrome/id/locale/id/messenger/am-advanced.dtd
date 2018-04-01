@@ -25,5 +25,4 @@
 <!ENTITY authMethod.label   "Metode autentikasi: ">
 
 <!ENTITY smtpDescription.label "When managing your identities you can use a server from this list by selecting it as the Outgoing Server (SMTP), or you can use the default server from this list by selecting &quot;Use Default Server&quot;.">
-
 <!ENTITY serverDetails.label "Details of selected server:">

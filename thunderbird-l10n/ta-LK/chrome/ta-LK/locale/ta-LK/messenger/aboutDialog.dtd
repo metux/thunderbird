@@ -39,32 +39,22 @@ Entities below were automatically added by compare-locales,
 <!ENTITY update.checkForUpdatesButton.accesskey   "C">
 <!ENTITY update.updateButton.label3               "Restart to update &brandShorterName;">
 <!ENTITY update.updateButton.accesskey            "R">
-
-
 <!ENTITY warningDesc.version        "&brandShortName; is experimental and may be unstable.">
 <!ENTITY warningDesc.telemetryDesc  "It automatically sends information about performance, hardware, usage and customizations back to &vendorShortName; to help make &brandShortName; better.">
-
 <!ENTITY community.exp.start        "">
 <!ENTITY community.exp.mozillaLink  "&vendorShortName;">
 <!ENTITY community.exp.middle       " is a ">
 <!ENTITY community.exp.creditsLink  "global community">
 <!ENTITY community.exp.end          " working together to keep the Web open, public and accessible to all.">
-
 <!ENTITY community.end3             " working together to keep the Web open, public and accessible to all.">
-
 <!ENTITY helpus.start               "Want to help? ">
 <!ENTITY helpus.donateLink          "Make a donation">
 <!ENTITY helpus.middle              " or ">
 <!ENTITY helpus.getInvolvedLink     "get involved!">
 <!ENTITY helpus.end                 "">
-
 <!ENTITY releaseNotes.link          "Release notes">
-
 <!ENTITY update.otherInstanceHandlingUpdates "&brandShortName; is being updated by another instance">
-
 <!ENTITY update.unsupported.start    "You can not perform further updates on this system. ">
 <!ENTITY update.unsupported.linkText "Learn more">
 <!ENTITY update.unsupported.end      "">
-
 <!ENTITY update.applying            "Applying update…">
-

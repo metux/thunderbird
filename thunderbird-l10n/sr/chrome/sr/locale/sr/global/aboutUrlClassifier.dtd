@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Тренутни модули записника">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "JS запис безбедног прегледања">
 <!ENTITY aboutUrlClassifier.debugFile                   "Тренутни запис података">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

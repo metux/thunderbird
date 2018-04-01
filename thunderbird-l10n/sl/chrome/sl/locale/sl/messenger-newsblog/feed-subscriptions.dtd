@@ -51,3 +51,7 @@
 
 <!ENTITY cmd.close.commandKey        "w">
 <!ENTITY button.close.label          "Zapri">
+
+<!ENTITY feedLocation2.placeholder   "Enter a valid feed url">
+<!ENTITY button.verifyFeed.label     "Verify">
+<!ENTITY button.verifyFeed.accesskey "V">

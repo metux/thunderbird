@@ -123,4 +123,3 @@
 <!ENTITY outgoingUsername.description "Enter the outgoing user name given to you by your email provider (this is typically the same as your incoming user name).">
 <!ENTITY outgoingUsername.label "Outgoing User Name:">
 <!ENTITY outgoingUsername.accesskey "U">
-

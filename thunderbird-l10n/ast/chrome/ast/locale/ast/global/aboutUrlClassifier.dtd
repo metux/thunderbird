@@ -6,7 +6,7 @@
 <!ENTITY aboutUrlClassifier.providerTitle               "Fornidor">
 <!ENTITY aboutUrlClassifier.provider                    "Fornidor">
 
-<!ENTITY aboutUrlClassifier.pageTitle                   "Information about the url-classifier">
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">
 <!ENTITY aboutUrlClassifier.providerLastUpdateTime      "Last update time">
 <!ENTITY aboutUrlClassifier.providerNextUpdateTime      "Next update time">
 <!ENTITY aboutUrlClassifier.providerBackOffTime         "Back-off time">

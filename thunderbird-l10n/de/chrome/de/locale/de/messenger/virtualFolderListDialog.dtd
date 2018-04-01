@@ -2,3 +2,6 @@
 <!ENTITY virtualFolderDesc.label       "Diese Ordner durchsuchen:">
 
 
+
+<!ENTITY folderName.label "Folder name">
+<!ENTITY folderSearch.label "Search">

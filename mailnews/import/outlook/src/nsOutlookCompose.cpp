@@ -33,7 +33,7 @@
 #include "nsCRT.h"
 #include "nsOutlookCompose.h"
 
-#include "OutlookDebugLog.h"
+#include "ImportDebug.h"
 
 #include "nsMimeTypes.h"
 #include "nsMsgUtils.h"
@@ -44,8 +44,6 @@
 
 #include "nsMsgMessageFlags.h"
 #include "nsMsgLocalFolderHdrs.h"
-
-#include <algorithm>
 
 static NS_DEFINE_CID(kMsgSendCID, NS_MSGSEND_CID);
 static NS_DEFINE_CID(kMsgCompFieldsCID, NS_MSGCOMPFIELDS_CID);
@@ -287,7 +285,7 @@ nsresult nsOutlookCompose::ComposeTheMessage(nsMsgDeliverMode mode, CMapiMessage
   }
 
   nsCString bodyA;
-  nsMsgI18NConvertFromUnicode(msg.GetBodyCharset(), bodyW, bodyA);
+  nsMsgI18NConvertFromUnicode(nsDependentCString(msg.GetBodyCharset()), bodyW, bodyA);
 
   nsCOMPtr<nsIImportService> impService(do_GetService(NS_IMPORTSERVICE_CONTRACTID, &rv));
   NS_ENSURE_SUCCESS(rv, rv);

@@ -58,3 +58,7 @@
 <!ENTITY autosyncNotDownload.accesskey "M">
 <!ENTITY doNotDownloadImap.label "Për të kursyer vend në disk, shkarkimi i mesazheve prej shërbyesit dhe mbajtja e kopjeve vendore për përdorim jashtë linje mund të kufizohet sipas moshës ose madhësisë.">
 <!ENTITY doNotDownloadNntp.label "Për të kursyer vend në disk, mos i shkarko për përdorim jashtë linje:">
+
+<!ENTITY allFoldersOffline2.label "Keep messages in all folders for this account on this computer">
+<!ENTITY allFoldersOffline2.accesskey "o">
+<!ENTITY allFoldersOfflineNote.label "Note: Changing this affects all folders in this account. To set individual folders, use the Advanced… button.">

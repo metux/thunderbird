@@ -36,9 +36,6 @@ impl ToComputedValue for specified::NoCalcLength {
                 length.to_computed_value(context.viewport_size_for_viewport_unit_resolution()),
             specified::NoCalcLength::ServoCharacterWidth(length) =>
                 length.to_computed_value(context.style().get_font().clone_font_size().size()),
-            #[cfg(feature = "gecko")]
-            specified::NoCalcLength::Physical(length) =>
-                length.to_computed_value(context),
         }
     }
 
@@ -95,15 +92,12 @@ impl CalcLengthOrPercentage {
 
     /// Returns a new `CalcLengthOrPercentage` with a specific clamping mode.
     #[inline]
-    pub fn with_clamping_mode(length: Length,
-                              percentage: Option<Percentage>,
-                              clamping_mode: AllowedNumericType)
-                              -> Self {
-        Self {
-            clamping_mode: clamping_mode,
-            length: length,
-            percentage: percentage,
-        }
+    pub fn with_clamping_mode(
+        length: Length,
+        percentage: Option<Percentage>,
+        clamping_mode: AllowedNumericType,
+    ) -> Self {
+        Self { clamping_mode, length, percentage, }
     }
 
     /// Returns this `calc()` as a `<length>`.
@@ -139,8 +133,9 @@ impl CalcLengthOrPercentage {
         self.to_pixel_length(container_len).map(Au::from)
     }
 
-    /// If there are special rules for computing percentages in a value (e.g. the height property),
-    /// they apply whenever a calc() expression contains percentages.
+    /// If there are special rules for computing percentages in a value (e.g.
+    /// the height property), they apply whenever a calc() expression contains
+    /// percentages.
     pub fn to_pixel_length(&self, container_len: Option<Au>) -> Option<Length> {
         match (container_len, self.percentage) {
             (Some(len), Some(percent)) => {
@@ -229,9 +224,15 @@ impl ToCss for CalcLengthOrPercentage {
 
 impl specified::CalcLengthOrPercentage {
     /// Compute the value, zooming any absolute units by the zoom function.
-    fn to_computed_value_with_zoom<F>(&self, context: &Context, zoom_fn: F,
-                                      base_size: FontBaseSize) -> CalcLengthOrPercentage
-        where F: Fn(Length) -> Length {
+    fn to_computed_value_with_zoom<F>(
+        &self,
+        context: &Context,
+        zoom_fn: F,
+        base_size: FontBaseSize,
+    ) -> CalcLengthOrPercentage
+    where
+        F: Fn(Length) -> Length,
+    {
         use std::f32;
         let mut length = 0.;
 
@@ -266,8 +267,30 @@ impl specified::CalcLengthOrPercentage {
     }
 
     /// Compute font-size or line-height taking into account text-zoom if necessary.
-    pub fn to_computed_value_zoomed(&self, context: &Context, base_size: FontBaseSize) -> CalcLengthOrPercentage {
+    pub fn to_computed_value_zoomed(
+        &self,
+        context: &Context,
+        base_size: FontBaseSize,
+    ) -> CalcLengthOrPercentage {
         self.to_computed_value_with_zoom(context, |abs| context.maybe_zoom_text(abs.into()).0, base_size)
+    }
+
+    /// Compute the value into pixel length as CSSFloat without context,
+    /// so it returns Err(()) if there is any non-absolute unit.
+    pub fn to_computed_pixel_length_without_context(&self) -> Result<CSSFloat, ()> {
+        if self.vw.is_some() || self.vh.is_some() || self.vmin.is_some() || self.vmax.is_some() ||
+           self.em.is_some() || self.ex.is_some() || self.ch.is_some() || self.rem.is_some() ||
+           self.percentage.is_some() {
+            return Err(());
+        }
+
+        match self.absolute {
+            Some(abs) => Ok(abs.to_px()),
+            None => {
+                debug_assert!(false, "Someone forgot to handle an unit here: {:?}", self);
+                Err(())
+            }
+        }
     }
 }
 

@@ -50,9 +50,9 @@ function whenNewWindowLoaded(aOptions, aCallback) {
   var win = window.openDialog(getBrowserURL(), "_blank", features,
                               "about:blank");
   win.addEventListener("load", function onLoad() {
-    win.removeEventListener("load", onLoad, false);
+    win.removeEventListener("load", onLoad);
     aCallback(win);
-  }, false);
+  });
 }
 
 function updateBlocklist(aCallback) {
@@ -62,7 +62,7 @@ function updateBlocklist(aCallback) {
     Services.obs.removeObserver(observer, "blocklist-updated");
     SimpleTest.executeSoon(aCallback);
   };
-  Services.obs.addObserver(observer, "blocklist-updated", false);
+  Services.obs.addObserver(observer, "blocklist-updated");
   blocklistNotifier.notify(null);
 }
 

@@ -314,9 +314,9 @@ function goCustomizeToolbar(toolbox)
     // that the user doesn't see a white flash.
     panel.style.visibility = "hidden";
     toolbox.addEventListener("beforecustomization", function toolboxBeforeCustom() {
-      toolbox.removeEventListener("beforecustomization", toolboxBeforeCustom, false);
+      toolbox.removeEventListener("beforecustomization", toolboxBeforeCustom);
       panel.style.removeProperty("visibility");
-    }, false);
+    });
     panel.openPopup(toolbox, "after_start", 0, 0);
     return sheetFrame.contentWindow;
   }
@@ -887,9 +887,9 @@ function utilityOnLoad(aEvent)
   var broadcaster = document.getElementById("Communicator:WorkMode");
   if (!broadcaster) return;
 
-  Services.obs.addObserver(offlineObserver, "network:offline-status-changed", false);
+  Services.obs.addObserver(offlineObserver, "network:offline-status-changed");
   // make sure we remove this observer later
-  Services.prefs.addObserver("network.proxy.type", proxyTypeObserver, false);
+  Services.prefs.addObserver("network.proxy.type", proxyTypeObserver);
 
   addEventListener("unload", utilityOnUnload, false);
 
@@ -1348,11 +1348,13 @@ function checkForMiddleClick(node, event) {
 }
 
 // Closes all popups that are ancestors of the node.
-function closeMenus(node)
-{
-  for (; node; node = node.parentNode) {
-    if (node instanceof Components.interfaces.nsIDOMXULPopupElement)
+function closeMenus(node) {
+  if ("tagName" in node) {
+    if (node.namespaceURI == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+    && (node.tagName == "menupopup" || node.tagName == "popup"))
       node.hidePopup();
+
+    closeMenus(node.parentNode);
   }
 }
 
@@ -1935,4 +1937,39 @@ function CopyImage()
   document.commandDispatcher.getControllerForCommand("cmd_copyImage")
           .QueryInterface(Components.interfaces.nsICommandController)
           .doCommandWithParams("cmd_copyImage", param);
+}
+
+/**
+ * Moved from toolkit/content/globalOverlay.js
+ */
+function goSetMenuValue(aCommand, aLabelAttribute) {
+  var commandNode = top.document.getElementById(aCommand);
+  if (commandNode) {
+    var label = commandNode.getAttribute(aLabelAttribute);
+    if (label)
+      commandNode.setAttribute("label", label);
+  }
+}
+
+function goSetAccessKey(aCommand, aValueAttribute) {
+  var commandNode = top.document.getElementById(aCommand);
+  if (commandNode) {
+    var value = commandNode.getAttribute(aValueAttribute);
+    if (value)
+      commandNode.setAttribute("accesskey", value);
+  }
+}
+
+// this function is used to inform all the controllers attached to a node that an event has occurred
+// (e.g. the tree controllers need to be informed of blur events so that they can change some of the
+// menu items back to their default values)
+function goOnEvent(aNode, aEvent) {
+  var numControllers = aNode.controllers.getControllerCount();
+  var controller;
+
+  for (var controllerIndex = 0; controllerIndex < numControllers; controllerIndex++) {
+    controller = aNode.controllers.getControllerAt(controllerIndex);
+    if (controller)
+      controller.onEvent(aEvent);
+  }
 }

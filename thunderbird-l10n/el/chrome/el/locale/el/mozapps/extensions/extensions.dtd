@@ -263,3 +263,5 @@
 <!ENTITY legacyExtensions.title "Επεκτάσεις παλαιού τύπου">
 <!ENTITY legacyExtensions.description "Αυτές οι επεκτάσεις δεν πληρούν τα τρέχοντα κριτήρια του &brandShortName;, επομένως έχουν απενεργοποιηθεί.">
 <!ENTITY legacyExtensions.learnMore "Μάθετε σχετικά με τις αλλαγές στα πρόσθετα">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

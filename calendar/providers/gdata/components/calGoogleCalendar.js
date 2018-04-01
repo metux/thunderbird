@@ -11,6 +11,7 @@ Components.utils.import("resource://calendar/modules/calAsyncUtils.jsm");
 Components.utils.import("resource://calendar/modules/calProviderUtils.jsm");
 Components.utils.import("resource://calendar/modules/calUtils.jsm");
 
+Components.utils.import("resource://gdata-provider/modules/calUtilsShim.jsm");
 Components.utils.import("resource://gdata-provider/modules/gdataLogging.jsm");
 Components.utils.import("resource://gdata-provider/modules/gdataRequest.jsm");
 Components.utils.import("resource://gdata-provider/modules/gdataSession.jsm");
@@ -215,7 +216,7 @@ calGoogleCalendar.prototype = {
         let lastUpdated = this.getProperty("lastUpdated." + aWhich);
         if (lastUpdated) {
             updatedMin = cal.createDateTime(lastUpdated);
-            let lastWeek = cal.now();
+            let lastWeek = cal.dtz.now();
             lastWeek.day -= 7;
             if (updatedMin.compare(lastWeek) <= 0) {
                 cal.LOG("[calGoogleCalendar] Last updated time for " + aWhich +

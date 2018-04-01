@@ -133,9 +133,7 @@
 <!ENTITY outgoingUsername.description "Enter the outgoing user name given to you by your email provider (this is typically the same as your incoming user name).">
 <!ENTITY outgoingUsername.label "Outgoing User Name:">
 <!ENTITY outgoingUsername.accesskey "U">
-
 <!ENTITY modifyOutgoing.suffix "You can change outgoing servers in the account settings.">
 <!ENTITY haveSmtp1.suffix3 "&quot;, will be used.">
 <!ENTITY haveSmtp2.suffix3 "&quot;, will be used.">
 <!ENTITY haveSmtp3.suffix3 "&quot;, is identical to your incoming server, your incoming user name will be used to access it.">
-

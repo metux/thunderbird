@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "Zastarjeli dodaci">
 <!ENTITY legacyExtensions.description "Ovi dodaci ne zadovoljavaju trenutne &brandShortName; standarde te se isključeni.">
 <!ENTITY legacyExtensions.learnMore "Saznajte o promjenama u dodacima">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

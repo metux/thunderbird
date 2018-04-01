@@ -40,7 +40,7 @@ var notificationsObserver = {
     // example in case of sync, we allow that.
     if (EXPECTED_NOTIFICATIONS[notificationIndex] != aTopic)
       notificationIndex++;
-    do_check_eq(EXPECTED_NOTIFICATIONS[notificationIndex], aTopic);
+    Assert.equal(EXPECTED_NOTIFICATIONS[notificationIndex], aTopic);
 
     if (aTopic != TOPIC_CONNECTION_CLOSED)
       return;
@@ -58,7 +58,7 @@ var notificationsObserver = {
     try {
       URIS.forEach(function(aUrl) {
         stmt.params.page_url = aUrl;
-        do_check_false(stmt.executeStep());
+        Assert.ok(!stmt.executeStep());
         stmt.reset();
       });
     } finally {
@@ -113,17 +113,17 @@ function run_test_continue()
   print("Simulate and wait shutdown.");
   getDistinctNotifications().forEach(
     topic =>
-      Services.obs.addObserver(notificationsObserver, topic, false)
+      Services.obs.addObserver(notificationsObserver, topic)
   );
 
   // Simulate an exit so that Sanitizer's init method checkSettings() is called.
   print("Simulate 'quit-application-granted' too for SeaMonkey.");
-  Services.obs.notifyObservers(null, "quit-application-granted", null);
+  Services.obs.notifyObservers(null, "quit-application-granted");
 
   shutdownPlaces();
 
   // Shutdown the download manager.
-  Services.obs.notifyObservers(null, "quit-application", null);
+  Services.obs.notifyObservers(null, "quit-application");
 }
 
 function getDistinctNotifications() {
@@ -140,7 +140,7 @@ function storeCache(aURL, aContent) {
 
   var storeCacheListener = {
     onCacheEntryAvailable: function (entry, access, status) {
-      do_check_eq(status, Cr.NS_OK);
+      Assert.equal(status, Cr.NS_OK);
 
       entry.setMetaDataElement("servertype", "0");
       var os = entry.openOutputStream(0);
@@ -153,7 +153,7 @@ function storeCache(aURL, aContent) {
       }
       os.close();
       entry.close();
-      do_execute_soon(run_test_continue);
+      executeSoon(run_test_continue);
     }
   };
 
@@ -170,7 +170,7 @@ function checkCache(aURL) {
 
   var checkCacheListener = {
     onCacheEntryAvailable: function (entry, access, status) {
-      do_check_eq(status, Cr.NS_ERROR_CACHE_KEY_NOT_FOUND);
+      Assert.equal(status, Cr.NS_ERROR_CACHE_KEY_NOT_FOUND);
       do_test_finished();
     }
   };

@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Aktuele lochmodules">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "JS-registraasje fan Safe Browsing">
 <!ENTITY aboutUrlClassifier.debugFile                   "Aktuele lochbestân">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

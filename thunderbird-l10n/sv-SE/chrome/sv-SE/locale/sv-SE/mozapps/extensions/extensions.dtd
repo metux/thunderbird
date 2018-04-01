@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "Äldre tillägg">
 <!ENTITY legacyExtensions.description "Dessa tillägg uppfyller inte nuvarande standarder i &brandShortName; så de har inaktiverats.">
 <!ENTITY legacyExtensions.learnMore "Läs mer om ändringar av tillägg">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

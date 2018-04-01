@@ -51,5 +51,4 @@
   -  events. -->
 
 <!ENTITY webAudioEditorUI.automationEmpty "Node does not have any AudioParams.">
-
 <!ENTITY webAudioEditorUI.automationNoEvents "AudioParam does not have any automation events.">

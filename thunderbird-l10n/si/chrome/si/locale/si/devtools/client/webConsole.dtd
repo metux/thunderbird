@@ -95,10 +95,8 @@
 <!ENTITY btnServerInfo                "Info">
 <!ENTITY btnServerWarnings            "Warnings">
 <!ENTITY btnServerLog                 "Log">
-
 <!ENTITY btnConsoleSharedWorkers "Shared Workers">
 <!ENTITY btnConsoleServiceWorkers "Service Workers">
 <!ENTITY btnConsoleWindowlessWorkers "Add-on or Chrome Workers">
-
 <!ENTITY openInVarViewCmd.label "Open in Variables View">
 <!ENTITY storeAsGlobalVar.label "Store as global variable">

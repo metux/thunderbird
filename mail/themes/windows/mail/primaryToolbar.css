@@ -61,7 +61,7 @@
  */
 @media (-moz-windows-classic) {
   #messengerWindow[tabsintitlebar]:not([sizemode=fullscreen])
-  .tabmail-tabs:not(:-moz-lwtheme) {
+  #tabmail-tabs:not(:-moz-lwtheme) {
     position: relative;
     z-index: 2;
   }
@@ -158,7 +158,7 @@
   content: "";
   display: -moz-box;
   height: 1px;
-  border-bottom: 1px solid ThreeDShadow;
+  border-bottom: 1px solid var(--toolbox-border-bottom-color);
 }
 
 .mail-toolbox > toolbar:-moz-lwtheme,
@@ -389,6 +389,13 @@ toolbar[mode="text"] .button-appmenu .toolbarbutton-icon {
 
 /* ::::: toolbar buttons on tabbar toolbar ::::: */
 
+#alltabs-button,
+#tabbar-toolbar .toolbarbutton-1,
+#tabbar-toolbar .toolbarbutton-1[type="menu-button"] {
+  margin-top: 2px;
+  margin-bottom: 2px;
+}
+
 @media (-moz-windows-glass: 0) {
   #tabbar-toolbar .toolbarbutton-1,
   #tabbar-toolbar .toolbarbutton-menubutton-button {
@@ -524,6 +531,8 @@ toolbar[mode="text"] .button-appmenu .toolbarbutton-icon {
 }
 
 #button-chat {
+  -moz-context-properties: fill, fill-opacity, stroke-opacity;
+  stroke-opacity: 0;
   list-style-image: url("chrome://messenger/skin/icons/chat.svg");
 }
 
@@ -552,6 +561,7 @@ toolbar[mode="text"] .button-appmenu .toolbarbutton-icon {
 
 #button-chat[unreadMessages="true"] {
   fill: var(--toolbarbutton-icon-fill-attention);
+  stroke-opacity: 0.5;
 }
 
 toolbar:not([mode="text"]) > #button-chat > stack,
@@ -655,11 +665,8 @@ toolbar:not([mode="text"]) > toolbarpaletteitem > #button-chat > stack {
     background-image: linear-gradient(to right, white 26px, ThreeDLightShadow 26px,
                                       ThreeDLightShadow 27px, ThreeDHighlight 27px,
                                       ThreeDHighlight 28px, white 28px);
-    border: 3px solid;
-    -moz-border-top-colors: ThreeDShadow white;
-    -moz-border-bottom-colors: ThreeDShadow white;
-    -moz-border-left-colors: ThreeDShadow white;
-    -moz-border-right-colors: ThreeDShadow white;
+    border: 1px solid ThreeDShadow;
+    padding: 2px;
   }
 
   #appmenuSecondaryPane menupopup {
@@ -668,11 +675,8 @@ toolbar:not([mode="text"]) > toolbarpaletteitem > #button-chat > stack {
                                       ThreeDLightShadow 26px, ThreeDLightShadow 27px,
                                       ThreeDHighlight 27px, ThreeDHighlight 28px,
                                       var(--appMenu-bg-color) 28px);
-    border: 3px solid;
-    -moz-border-top-colors: ThreeDShadow var(--appMenu-bg-color);
-    -moz-border-bottom-colors: ThreeDShadow var(--appMenu-bg-color);
-    -moz-border-left-colors: ThreeDShadow var(--appMenu-bg-color);
-    -moz-border-right-colors: ThreeDShadow var(--appMenu-bg-color);
+    border: 1px solid ThreeDShadow;
+    padding: 2px;
   }
 
   #appmenuPrimaryPane menupopup:-moz-locale-dir(rtl) {
@@ -814,9 +818,9 @@ toolbar:not([mode="text"]) > toolbarpaletteitem > #button-chat > stack {
 }
 
 @media (-moz-windows-glass) {
-  .mail-toolbox::after,
-  .contentTabToolbox::after {
-    border-bottom-color: #aabccf;
+  .mail-toolbox:not(:-moz-lwtheme)::after,
+  .contentTabToolbox:not(:-moz-lwtheme)::after {
+    --toolbox-border-bottom-color: #aabccf;
   }
 
   #tabs-toolbar {
@@ -923,8 +927,8 @@ toolbar:not([mode="text"]) > toolbarpaletteitem > #button-chat > stack {
     padding-bottom: 0 !important;
   }
 
-  .mail-toolbox::after,
-  .contentTabToolbox::after {
-    border-bottom-color: #c2c2c2;
+  .mail-toolbox:not(:-moz-lwtheme)::after,
+  .contentTabToolbox:not(:-moz-lwtheme)::after {
+    --toolbox-border-bottom-color: #c2c2c2;
   }
 }

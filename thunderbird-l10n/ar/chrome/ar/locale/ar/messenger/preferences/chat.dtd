@@ -47,7 +47,10 @@ sentence. -->
 <!ENTITY messageStyleThunderbirdTheme.label "ثنْدَربِرد">
 
 <!ENTITY  generalTab.label            "General">
-
+<!ENTITY  getAttention.label                  "Flash the taskbar item">
+<!ENTITY  getAttention.accesskey              "F">
+<!ENTITY  getAttentionMac.label               "Animate dock icon">
+<!ENTITY  getAttentionMac.accesskey           "o">
 <!ENTITY messageStylePreview.label         "Preview:">
 <!ENTITY messageStyleBubblesTheme.label    "Bubbles">
 <!ENTITY messageStyleDarkTheme.label       "Dark">

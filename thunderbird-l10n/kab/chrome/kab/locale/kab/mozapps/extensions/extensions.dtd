@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "Iseγzaf iqburen">
 <!ENTITY legacyExtensions.description "Iseγzaf-agi ur sεin ara ilugan n &brandShortName; imiranen γef aya ittwasensen.">
 <!ENTITY legacyExtensions.learnMore "Issin ugar ɣef usnifel ɣer izegrar">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

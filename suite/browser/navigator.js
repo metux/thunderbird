@@ -166,15 +166,15 @@ const gFormSubmitObserver = {
         }
       }
     }
-    element.addEventListener("input", inputHandler, false);
-    element.addEventListener("blur", blurHandler, false);
+    element.addEventListener("input", inputHandler);
+    element.addEventListener("blur", blurHandler);
 
     // One event to bring them all and in the darkness bind them.
     this.panel.addEventListener("popuphiding", function popupHidingHandler(aEvent) {
-      aEvent.target.removeEventListener("popuphiding", popupHidingHandler, false);
-      element.removeEventListener("input", inputHandler, false);
-      element.removeEventListener("blur", blurHandler, false);
-    }, false);
+      aEvent.target.removeEventListener("popuphiding", popupHidingHandler);
+      element.removeEventListener("input", inputHandler);
+      element.removeEventListener("blur", blurHandler);
+    });
 
     this.panel.hidden = false;
 
@@ -202,7 +202,7 @@ const gFormSubmitObserver = {
 function addPrefListener(observer)
 {
   try {
-    Services.prefs.addObserver(observer.domain, observer, false);
+    Services.prefs.addObserver(observer.domain, observer);
   } catch(ex) {
     dump("Failed to observe prefs: " + ex + "\n");
   }
@@ -219,7 +219,7 @@ function removePrefListener(observer)
 
 function addPopupPermListener(observer)
 {
-  Services.obs.addObserver(observer, "popup-perm-close", false);
+  Services.obs.addObserver(observer, "popup-perm-close");
 }
 
 function removePopupPermListener(observer)
@@ -230,7 +230,7 @@ function removePopupPermListener(observer)
 function addFormSubmitObserver(observer)
 {
   observer.init();
-  Services.obs.addObserver(observer, "invalidformsubmit", false);
+  Services.obs.addObserver(observer, "invalidformsubmit");
 }
 
 function removeFormSubmitObserver(observer)
@@ -598,7 +598,7 @@ function Startup()
   // hook up UI through progress listener
   getBrowser().addProgressListener(window.XULBrowserWindow);
   // setup the search service DOMLinkAdded listener
-  getBrowser().addEventListener("DOMLinkAdded", BrowserSearch, false);
+  getBrowser().addEventListener("DOMLinkAdded", BrowserSearch);
   // hook up drag'n'drop
   getBrowser().droppedLinkHandler = handleDroppedLink;
 
@@ -757,7 +757,7 @@ function Startup()
     setTimeout(InitSessionStoreCallback, 0);
   }
 
-  window.addEventListener("MozAfterPaint", DelayedStartup, false);
+  window.addEventListener("MozAfterPaint", DelayedStartup);
 }
 
 // Minimal gBrowserInit shim to keep the Addon-SDK happy.
@@ -772,7 +772,7 @@ function DelayedStartup() {
   setTimeout(function() { SafeBrowsing.init(); }, 2000);
 
   gBrowserInit.delayedStartupFinished = true;
-  Services.obs.notifyObservers(window, "browser-delayed-startup-finished", "");
+  Services.obs.notifyObservers(window, "browser-delayed-startup-finished");
 }
 
 function UpdateNavBar()
@@ -874,7 +874,7 @@ function Shutdown()
   // shut down browser access support
   window.browserDOMWindow = null;
 
-  getBrowser().removeEventListener("DOMLinkAdded", BrowserSearch, false);
+  getBrowser().removeEventListener("DOMLinkAdded", BrowserSearch);
 
   try {
     getBrowser().removeProgressListener(window.XULBrowserWindow);
@@ -1272,7 +1272,7 @@ var BrowserSearch = {
 
       win = window.openDialog(getBrowserURL(), "_blank",
                               "chrome,all,dialog=no", "about:blank");
-      win.addEventListener("load", webSearchCallback, false);
+      win.addEventListener("load", webSearchCallback);
       return;
     }
 
@@ -2418,7 +2418,7 @@ function SetPageProxyState(aState, aURI)
 
   if (aState == "valid") {
     gLastValidURLStr = gURLBar.value;
-    gURLBar.addEventListener("input", UpdatePageProxyState, false);
+    gURLBar.addEventListener("input", UpdatePageProxyState);
     if (gBrowser.shouldLoadFavIcon(aURI)) {
       var favStr = gBrowser.buildFavIconString(aURI);
       if (favStr != gProxyFavIcon.src) {
@@ -2432,7 +2432,7 @@ function SetPageProxyState(aState, aURI)
       gProxyFavIcon.removeAttribute("src");
     }
   } else if (aState == "invalid") {
-    gURLBar.removeEventListener("input", UpdatePageProxyState, false);
+    gURLBar.removeEventListener("input", UpdatePageProxyState);
     gProxyDeck.selectedIndex = 0;
     gProxyFavIcon.removeAttribute("src");
   }
@@ -2569,11 +2569,11 @@ function WindowIsClosing()
   if (!gPrivate && !/Mac/.test(navigator.platform) && isClosingLastBrowser()) {
     let closingCanceled = Components.classes["@mozilla.org/supports-PRBool;1"]
                                     .createInstance(Components.interfaces.nsISupportsPRBool);
-    Services.obs.notifyObservers(closingCanceled, "browser-lastwindow-close-requested", null);
+    Services.obs.notifyObservers(closingCanceled, "browser-lastwindow-close-requested");
     if (closingCanceled.data)
       return false;
 
-    Services.obs.notifyObservers(null, "browser-lastwindow-close-granted", null);
+    Services.obs.notifyObservers(null, "browser-lastwindow-close-granted");
 
     return true;
   }
@@ -2866,7 +2866,7 @@ var LightWeightThemeWebInstaller = {
 
     this._previewWindow = event.target.ownerDocument.defaultView;
     this._previewWindow.addEventListener("pagehide", this, true);
-    gBrowser.tabContainer.addEventListener("TabSelect", this, false);
+    gBrowser.tabContainer.addEventListener("TabSelect", this);
 
     this._manager.previewTheme(data);
   },
@@ -2878,7 +2878,7 @@ var LightWeightThemeWebInstaller = {
 
     this._previewWindow.removeEventListener("pagehide", this, true);
     this._previewWindow = null;
-    gBrowser.tabContainer.removeEventListener("TabSelect", this, false);
+    gBrowser.tabContainer.removeEventListener("TabSelect", this);
 
     this._manager.resetPreview();
   },
@@ -2979,6 +2979,16 @@ function openCertManager()
 function onViewSecurityContextMenu()
 {
   document.getElementById("viewCertificate").disabled = !getCert();
+}
+
+/**
+ * Determine whether or not a given focused DOMWindow is in the content area.
+ **/
+function isContentFrame(aFocusedWindow) {
+  if (!aFocusedWindow)
+    return false;
+
+  return (aFocusedWindow.top == window.content);
 }
 
 var browserDragAndDrop = {

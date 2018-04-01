@@ -56,3 +56,7 @@
 <!ENTITY monthAgeInterval.label          "Meses">
 <!ENTITY yearAgeInterval.label           "Anos">
 <!ENTITY ageAutosyncAfter.label          "">
+
+<!ENTITY allFoldersOffline2.label "Keep messages in all folders for this account on this computer">
+<!ENTITY allFoldersOffline2.accesskey "o">
+<!ENTITY allFoldersOfflineNote.label "Note: Changing this affects all folders in this account. To set individual folders, use the Advanced… button.">

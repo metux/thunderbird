@@ -263,3 +263,5 @@
 <!ENTITY legacyExtensions.title "Extensiones heredadas">
 <!ENTITY legacyExtensions.description "Estas extensiones no cumplen los estándares actuales de &brandShortName; por lo que han sido desactivadas.">
 <!ENTITY legacyExtensions.learnMore "Conocer sobre los cambios en los complementos">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

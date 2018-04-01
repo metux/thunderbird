@@ -42,7 +42,10 @@ sentence. -->
 
 
 <!ENTITY  generalTab.label            "General">
-
+<!ENTITY  getAttention.label                  "Flash the taskbar item">
+<!ENTITY  getAttention.accesskey              "F">
+<!ENTITY  getAttentionMac.label               "Animate dock icon">
+<!ENTITY  getAttentionMac.accesskey           "o">
 <!ENTITY messageStyleTab.title             "Message Styles">
 <!ENTITY messageStylePreview.label         "Preview:">
 <!ENTITY messageStyleTheme.label           "Theme:">

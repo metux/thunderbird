@@ -129,9 +129,6 @@ nsGenericHTMLFrameElement::GetContentWindow()
     return nullptr;
   }
 
-  NS_ASSERTION(win->IsOuterWindow(),
-               "Uh, this window should always be an outer window!");
-
   return win.forget();
 }
 
@@ -148,9 +145,6 @@ nsGenericHTMLFrameElement::EnsureFrameLoader()
   mFrameLoader = nsFrameLoader::Create(this,
                                        nsPIDOMWindowOuter::From(mOpenerWindow),
                                        mNetworkCreated);
-  if (mIsPrerendered) {
-    mFrameLoader->SetIsPrerendered();
-  }
 }
 
 nsresult
@@ -231,14 +225,6 @@ nsGenericHTMLFrameElement::SwapFrameLoaders(nsIFrameLoaderOwner* aOtherLoaderOwn
   rv = loader->SwapWithOtherLoader(otherLoader, this, aOtherLoaderOwner);
 }
 
-NS_IMETHODIMP
-nsGenericHTMLFrameElement::SetIsPrerendered()
-{
-  MOZ_ASSERT(!mFrameLoader, "Please call SetIsPrerendered before frameLoader is created");
-  mIsPrerendered = true;
-  return NS_OK;
-}
-
 nsresult
 nsGenericHTMLFrameElement::LoadSrc()
 {
@@ -248,7 +234,9 @@ nsGenericHTMLFrameElement::LoadSrc()
     return NS_OK;
   }
 
-  nsresult rv = mFrameLoader->LoadFrame();
+  bool origSrc = !mSrcLoadHappened;
+  mSrcLoadHappened = true;
+  nsresult rv = mFrameLoader->LoadFrame(origSrc);
 #ifdef DEBUG
   if (NS_FAILED(rv)) {
     NS_WARNING("failed to load URL");

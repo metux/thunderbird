@@ -1,5 +1,9 @@
-. $topsrcdir/build/macosx/mozconfig.common
-. $topsrcdir/suite/config/mozconfigs/common
+. "$topsrcdir/build/mozconfig.comm-support"
+
+TOOLTOOL_DIR=${TOOLTOOL_DIR:-$topsrcdir/$commreltopsrcdir}
+
+. $TOOLTOOL_DIR/build/macosx/mozconfig.common
+. $TOOLTOOL_DIR/suite/config/mozconfigs/common
 
 ac_add_options --with-l10n-base=../../l10n
 ac_add_options --enable-application=suite
@@ -8,9 +12,6 @@ ac_add_options --disable-install-strip
 
 # Build lightning locales
 ac_add_options --enable-calendar
-
-# Disabling is needed, see bug 1345422 comment #58.
-ac_add_options --disable-compile-environment
 
 # Needed to enable breakpad in application.ini
 export MOZILLA_OFFICIAL=1

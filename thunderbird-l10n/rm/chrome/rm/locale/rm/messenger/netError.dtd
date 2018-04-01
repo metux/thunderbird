@@ -137,7 +137,6 @@ functionality specific to thunderbird. -->
     that &brandShortName; is permitted to access the Web.</li>
 </ul>
 ">
-
 <!ENTITY proxyResolveFailure.longDesc "
 <ul>
   <li>Check the proxy settings to make sure that they are correct.</li>
@@ -146,4 +145,3 @@ functionality specific to thunderbird. -->
     that &brandShortName; is permitted to access the Web.</li>
 </ul>
 ">
-

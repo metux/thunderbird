@@ -252,6 +252,7 @@
   <command id="cmd_editAsNew" oncommand="MsgEditMessageAsNew(event);"/>
   <command id="cmd_editDraftMsg" oncommand="MsgEditDraftMessage(event);"/>
   <command id="cmd_newMsgFromTemplate" oncommand="MsgNewMessageFromTemplate(event);"/>
+  <command id="cmd_editTemplateMsg" oncommand="MsgEditTemplateMessage(event);"/>
   <command id="cmd_openMessage" oncommand="goDoCommand('cmd_openMessage')"/>
   <command id="cmd_openConversation" oncommand="goDoCommand('cmd_openConversation')"/>
   <command id="cmd_moveToFolderAgain" oncommand="goDoCommand('cmd_moveToFolderAgain')"/>
@@ -765,6 +766,10 @@
               label="&contextEditMsgAsNew.label;"
               accesskey="&contextEditMsgAsNew.accesskey;"
               oncommand="MsgEditMessageAsNew(event);"/>
+    <menuitem id="mailContext-editTemplateMsg"
+              label="&contextEditTemplate.label;"
+              accesskey="&contextEditTemplate.accesskey;"
+              oncommand="MsgEditTemplateMessage(event);"/>
     <menuseparator id="mailContext-sep-reply"/>
     <menu id="mailContext-tags" label="&tagMenu.label;" accesskey="&tagMenu.accesskey;">
       <menupopup id="mailContext-tagpopup"
@@ -1343,10 +1348,18 @@
           </menupopup>
         </splitmenu>
         <spacer class="appmenuPane-spacer"/>
-        <menuitem id="appmenu_addons"
-                  class="menuitem-iconic"
-                  label="&addons.label;"
-                  oncommand="openAddonsMgr();"/>
+        <splitmenu id="appmenu_addons"
+                   class="menuitem-iconic"
+                   label="&addons.label;"
+                   oncommand="openAddonsMgr();">
+          <menupopup id="appmenu_addonPrefs"
+                     onpopupshowing="initAddonPrefsMenu(this);"
+                     oncommand="openAddonPrefs(event.target.value, event.target.getAttribute('optionsType'));">
+            <menuitem label="&addons.label;" oncommand="openAddonsMgr(); event.stopPropagation();"/>
+            <menuseparator class="appmenu-menuseparator"/>
+            <menuitem label="&addonNoPrefs.label;" disabled="true"/>
+          </menupopup>
+        </splitmenu>
         <splitmenu id="appmenu_customize"
 #ifdef XP_WIN
                    label="&preferencesCmd2.label;"
@@ -1945,12 +1958,14 @@
                       command="cmd_editAsNew"/>
             <menuitem id="appmenu_editDraftMsg"
                       label="&editDraftMsgCmd.label;"
-                      accesskey="&editDraftMsgCmd.accesskey;"
                       command="cmd_editDraftMsg"/>
             <menuitem id="appmenu_newMsgFromTemplateCmd"
                       label="&newMsgFromTemplateCmd.label;"
                       key="key_newMsgFromTemplate"
                       command="cmd_newMsgFromTemplate"/>
+            <menuitem id="appmenu_editTemplateMsgCmd"
+                      label="&editTemplateMsgCmd.label;"
+                      command="cmd_editTemplate"/>
             <menuseparator id="appmenu_messageMenuAfterCompositionCommandsSeparator"/>
             <menuitem id="appmenu_openMessageWindowMenuitem"
                       label="&openMessageWindowCmd.label;"
@@ -2157,8 +2172,8 @@
                           key="key_devtoolsToolbox"
                           oncommand="BrowserToolboxProcess.init();"/>
                 <menuitem id="appmenu_addonDebugging"
-                          label="&addonDebugCmd.label;"
-                          accesskey="&addonDebugCmd.accesskey;"
+                          label="&debugAddonsCmd.label;"
+                          accesskey="&debugAddonsCmd.accesskey;"
                           oncommand="openAboutDebugging('addons')"/>
                 <menuitem id="appmenu_tabsDebugging"
                           label="&tabsDebugCmd.label;"
@@ -2208,7 +2223,7 @@
                   oncommand="safeModeRestart();"/>
               <menuseparator/>
               <menuitem id="appmenu_about"
-                  label="&aboutMenuCmd.label;"
+                  label="&aboutMenuCmd2.label;"
                   oncommand="openAboutDialog();"/>
             </menupopup>
         </splitmenu>
@@ -2850,6 +2865,10 @@
                       label="&newMsgFromTemplateCmd.label;"
                       key="key_newMsgFromTemplate"
                       command="cmd_newMsgFromTemplate"/>
+            <menuitem id="menu_editTemplate"
+                      label="&editTemplateMsgCmd.label;"
+                      accesskey="&editTemplateMsgCmd.accesskey;"
+                      command="cmd_editTemplateMsg"/>
             <menuseparator id="messageMenuAfterCompositionCommandsSeparator"/>
             <menuitem id="openMessageWindowMenuitem" label="&openMessageWindowCmd.label;"
                       command="cmd_openMessage"
@@ -3018,6 +3037,20 @@
                   oncommand="openSavedFilesWnd();"/>
         <menuitem id="addonsManager" label="&addons.label;" accesskey="&addons.accesskey;"
                   oncommand="openAddonsMgr();"/>
+        <menu id="addonsManager_prefs"
+#ifdef XP_UNIX
+              label="&addonPrefsUnix.label;"
+              accesskey="&addonPrefsUnix.accesskey;">
+#else
+              label="&addonPrefs.label;"
+              accesskey="&addonPrefs.accesskey;">
+#endif
+          <menupopup id="addonPrefs"
+                     onpopupshowing="initAddonPrefsMenu(this);"
+                     oncommand="openAddonPrefs(event.target.value, event.target.getAttribute('optionsType'));">
+            <menuitem label="&addonNoPrefs.label;" disabled="true"/>
+          </menupopup>
+        </menu>
         <menuitem id="activityManager" label="&activitymanager.label;"
                   accesskey="&activitymanager.accesskey;"
                   oncommand="openActivityMgr();"/>
@@ -3071,8 +3104,8 @@
                       key="key_devtoolsToolbox"
                       oncommand="BrowserToolboxProcess.init();"/>
             <menuitem id="addonDebugging"
-                      label="&addonDebugCmd.label;"
-                      accesskey="&addonDebugCmd.accesskey;"
+                      label="&debugAddonsCmd.label;"
+                      accesskey="&debugAddonsCmd.accesskey;"
                       oncommand="openAboutDebugging('addons')"/>
             <menuitem id="tabsDebugging"
                       label="&tabsDebugCmd.label;"
@@ -3487,7 +3520,9 @@
 
 <statusbar class="chromeclass-status" id="status-bar">
   <hbox insertbefore="unreadMessageCount"  id="statusTextBox" ondblclick="openActivityMgr();" flex="1">
-    <statusbarpanel id="offline-status" class="statusbarpanel-iconic" oncommand="MailOfflineMgr.toggleOfflineStatus();"/>
+    <statusbarpanel>
+      <toolbarbutton id="offline-status" oncommand="MailOfflineMgr.toggleOfflineStatus();"/>
+    </statusbarpanel>
     <statusbarpanel id="statusText" label="&statusText.label;" flex="1"/>
     <statusbarpanel class="statusbarpanel-progress" collapsed="true" id="statusbar-progresspanel">
       <progressmeter class="progressmeter-statusbar" id="statusbar-icon" mode="normal" value="0"/>

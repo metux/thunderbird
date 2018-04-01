@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "目前的記錄模組">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Safe Browsing JS 記錄">
 <!ENTITY aboutUrlClassifier.debugFile                   "目前記錄檔">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

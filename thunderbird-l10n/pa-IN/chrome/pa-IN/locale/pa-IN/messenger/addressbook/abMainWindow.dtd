@@ -209,7 +209,6 @@
 
 <!ENTITY blankResultsPaneMessage.label                  "This address book shows contacts only after a search">
 <!ENTITY localResultsOnlyMessage.label                  "Contacts from remote address books are not shown until you search">
-
 <!ENTITY propertiesMenu.label                           "Properties">
 <!ENTITY propertiesMenu.accesskey                       "i">
 <!ENTITY abPropertiesMenu.label                         "Address Book Properties">
@@ -218,7 +217,6 @@
 <!ENTITY contactPropertiesMenu.accesskey                "i">
 <!ENTITY mailingListPropertiesMenu.label                "Mailing List Properties">
 <!ENTITY mailingListPropertiesMenu.accesskey            "i">
-
 <!ENTITY layoutMenu.label                               "Layout">
 <!ENTITY layoutMenu.accesskey                           "L">
 <!ENTITY showDirectoryPane.label                        "Directory Pane">

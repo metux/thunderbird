@@ -186,3 +186,5 @@
 <!ENTITY legacyExtensions.title "Estensioni obsolete">
 <!ENTITY legacyExtensions.description "Queste estensioni non soddisfano gli standard attualmente richiesti da &brandShortName; e sono state disattivate.">
 <!ENTITY legacyExtensions.learnMore "Ulteriori informazioni sui cambiamenti riguardanti le estensioni in &brandShortName;">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

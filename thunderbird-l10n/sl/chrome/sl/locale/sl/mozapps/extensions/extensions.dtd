@@ -262,3 +262,5 @@
 <!ENTITY legacyExtensions.title "Zastarele razširitve">
 <!ENTITY legacyExtensions.description "Te razširitve ne ustrezajo trenutnim standardom &brandShortName;a, zato so bile onemogočene.">
 <!ENTITY legacyExtensions.learnMore "Več o spremembah dodatkov">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

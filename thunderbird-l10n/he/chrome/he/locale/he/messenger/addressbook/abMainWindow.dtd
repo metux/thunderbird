@@ -226,12 +226,10 @@ because displayed names don't have the comma in between. -->
 <!ENTITY zoomWindow.label                               "הגדל חלון">
 
 <!ENTITY localResultsOnlyMessage.label                  "Contacts from remote address books are not shown until you search">
-
 <!ENTITY propertiesMenu.accesskey                       "i">
 <!ENTITY abPropertiesMenu.accesskey                     "i">
 <!ENTITY contactPropertiesMenu.accesskey                "i">
 <!ENTITY mailingListPropertiesMenu.accesskey            "i">
-
 <!ENTITY preferencesCmd2.accesskey                      "O">
 <!ENTITY showAsDefault.label                            "Default startup directory">
 <!ENTITY showAsDefault.accesskey                        "S">

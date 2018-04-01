@@ -145,8 +145,13 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "Rată">
 <!ENTITY aboutSupport.mediaDeviceLatency "Latență">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
+<!ENTITY aboutSupport.securitySoftwareType "Type">
+<!ENTITY aboutSupport.securitySoftwareName "Name">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
 <!ENTITY aboutSupport.a11yInstantiator "Accessibility Instantiator">
-
 <!ENTITY aboutSupport.sandboxSyscallLogTitle "Rejected System Calls">
 <!ENTITY aboutSupport.sandboxSyscallIndex "#">
 <!ENTITY aboutSupport.sandboxSyscallAge "Seconds Ago">

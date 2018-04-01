@@ -38,7 +38,7 @@ function isAccel (event) { return isOSX && event.metaKey || event.ctrlKey; }
 function getLocalStorage(page) {
   var url = "chrome://content/messenger/accountProvisionerStorage/" + page;
 
-  var uri = Services.io.newURI(url, "");
+  var uri = Services.io.newURI(url);
   var principal = Services.scriptSecurityManager.createCodebasePrincipal(uri, {});
   return Services.domStorageManager.createStorage(null, principal, url);
 }
@@ -215,6 +215,9 @@ var EmailAccountProvisioner = {
     // We can only init once, so bail out if we've been called again.
     if (EmailAccountProvisioner._inited)
       return;
+
+    // See bug 1433405 for details.
+    document.allowUnsafeHTML = true;
 
     gLog.info("Initializing Email Account Provisioner");
 

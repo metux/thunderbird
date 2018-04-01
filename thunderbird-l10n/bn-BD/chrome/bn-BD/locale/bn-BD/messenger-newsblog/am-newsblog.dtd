@@ -21,7 +21,5 @@
 
 <!ENTITY biffAll.label                 "Enable updates for all feeds">
 <!ENTITY biffAll.accesskey             "E">
-
 <!ENTITY newFeedSettings.label         "Default Settings for New Feeds">
-
 <!ENTITY feedWindowTitle.label         "Feed Account Wizard">

@@ -73,7 +73,6 @@
 <!ENTITY closeMsgOnMoveOrDelete.accesskey "I">
 
 <!ENTITY itemAdvanced.label               "Advanced">
-
 <!ENTITY newTagButton.label        "New…">
 <!ENTITY newTagButton.accesskey    "N">
 <!ENTITY editTagButton1.label      "Edit…">

@@ -58,3 +58,8 @@ sentence. -->
 <!ENTITY messageStyleShowHeader.accesskey  "H">
 <!ENTITY messageStyleNoPreview.title       "沒有可用預覽">
 <!ENTITY messageStyleNoPreview.description "此佈景主題無效，或無法使用（停用了附加元件、處於安全模式等等）。">
+
+<!ENTITY  getAttention.label                  "Flash the taskbar item">
+<!ENTITY  getAttention.accesskey              "F">
+<!ENTITY  getAttentionMac.label               "Animate dock icon">
+<!ENTITY  getAttentionMac.accesskey           "o">

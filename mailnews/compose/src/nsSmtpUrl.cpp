@@ -263,9 +263,9 @@ nsresult nsMailtoUrl::ParseMailtoUrl(char * searchPart)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsMailtoUrl::SetSpec(const nsACString &aSpec)
+nsresult nsMailtoUrl::SetSpecInternal(const nsACString &aSpec)
 {
-  nsresult rv = m_baseURL->SetSpec(aSpec);
+  nsresult rv = m_baseURL->SetSpecInternal(aSpec);
   NS_ENSURE_SUCCESS(rv, rv);
   return ParseUrl();
 }
@@ -655,6 +655,20 @@ nsMailtoUrl::SetQueryWithEncoding(const nsACString &aQuery, const mozilla::Encod
   return m_baseURL->SetQueryWithEncoding(aQuery, aEncoding);
 }
 
+NS_IMPL_ISUPPORTS(nsMailtoUrl::Mutator, nsIURISetters, nsIURIMutator)
+
+NS_IMETHODIMP
+nsMailtoUrl::Mutate(nsIURIMutator** aMutator)
+{
+  RefPtr<nsMailtoUrl::Mutator> mutator = new nsMailtoUrl::Mutator();
+  nsresult rv = mutator->InitFromURI(this);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  mutator.forget(aMutator);
+  return NS_OK;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////
 // smtp url definition
 /////////////////////////////////////////////////////////////////////////////////////
@@ -670,6 +684,13 @@ nsSmtpUrl::nsSmtpUrl() : nsMsgMailNewsUrl()
 
 nsSmtpUrl::~nsSmtpUrl()
 {
+}
+
+NS_IMETHODIMP
+nsSmtpUrl::Init(const nsACString &aSpec)
+{
+  SetSpecInternal(aSpec);
+  return NS_OK;
 }
 
 NS_IMPL_ISUPPORTS_INHERITED(nsSmtpUrl, nsMsgMailNewsUrl, nsISmtpUrl)
@@ -693,6 +714,23 @@ nsSmtpUrl::GetRecipients(char ** aRecipientsList)
   NS_ENSURE_ARG_POINTER(aRecipientsList);
   if (aRecipientsList)
     *aRecipientsList = ToNewCString(m_toPart);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsSmtpUrl::SetSender(const char * aSender)
+{
+  NS_ENSURE_ARG(aSender);
+  MsgUnescapeString(nsDependentCString(aSender), 0, m_fromPart);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsSmtpUrl::GetSender(char ** aSender)
+{
+  NS_ENSURE_ARG_POINTER(aSender);
+  if (aSender)
+    *aSender = ToNewCString(m_fromPart);
   return NS_OK;
 }
 

@@ -323,3 +323,47 @@ function openPrivacyPolicy(where) {
   let url = Services.prefs.getCharPref(kTelemetryInfoUrl);
   openContentTab(url, where, "^http://www.mozilla.org/");
 }
+
+/* Used by the Add-on manager's search box */
+function openLinkIn(aURL, aWhere, aOpenParams) {
+  if (!aURL)
+    return;
+  // Open a new tab.
+  switchToTabHavingURI(aURL, true);
+}
+
+/**
+ * Moved from toolkit/content/globalOverlay.js.
+ * For details see bug 1422720 and bug 1422721.
+ */
+function goSetMenuValue(aCommand, aLabelAttribute) {
+  var commandNode = top.document.getElementById(aCommand);
+  if (commandNode) {
+    var label = commandNode.getAttribute(aLabelAttribute);
+    if (label)
+      commandNode.setAttribute("label", label);
+  }
+}
+
+function goSetAccessKey(aCommand, aValueAttribute) {
+  var commandNode = top.document.getElementById(aCommand);
+  if (commandNode) {
+    var value = commandNode.getAttribute(aValueAttribute);
+    if (value)
+      commandNode.setAttribute("accesskey", value);
+  }
+}
+
+// this function is used to inform all the controllers attached to a node that an event has occurred
+// (e.g. the tree controllers need to be informed of blur events so that they can change some of the
+// menu items back to their default values)
+function goOnEvent(aNode, aEvent) {
+  var numControllers = aNode.controllers.getControllerCount();
+  var controller;
+
+  for (var controllerIndex = 0; controllerIndex < numControllers; controllerIndex++) {
+    controller = aNode.controllers.getControllerAt(controllerIndex);
+    if (controller)
+      controller.onEvent(aEvent);
+  }
+}

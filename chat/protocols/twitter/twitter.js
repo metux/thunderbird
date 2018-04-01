@@ -380,7 +380,7 @@ TimelineConversation.prototype = {
   sendTyping: function(aString) {
     if (aString.length == 0 && this.inReplyToStatusId) {
       delete this.inReplyToStatusId;
-      this.notifyObservers(null, "status-text-changed", "");
+      this.notifyObservers(null, "status-text-changed");
       return kMaxMessageLength;
     }
     return kMaxMessageLength - this.getTweetLength(aString);
@@ -794,7 +794,7 @@ Account.prototype = {
     this._streamingRequest.responseType = "moz-chunked-text";
     this._streamingRequest.onprogress = this.onDataAvailable.bind(this);
     this.resetStreamTimeout();
-    this.prefs.addObserver("track", this, false);
+    this.prefs.addObserver("track", this);
   },
   _streamTimeout: null,
   resetStreamTimeout: function() {
@@ -970,7 +970,7 @@ Account.prototype = {
       },
       QueryInterface: XPCOMUtils.generateQI([Ci.prplIRequestBrowser])
     };
-    Services.obs.notifyObservers(this._browserRequest, "browser-request", null);
+    Services.obs.notifyObservers(this._browserRequest, "browser-request");
   },
   finishAuthorizationRequest: function() {
     // Clean up the cookies, so that several twitter OAuth dialogs can work
@@ -1150,7 +1150,7 @@ Account.prototype = {
       time_zone: null,
       protected: normalizeBool,
       created_at: function(aDate) {
-        const dateFormatter = Services.intl.createDateTimeFormat(undefined, {
+        const dateFormatter = new Services.intl.DateTimeFormat(undefined, {
           dateStyle: "short"
         });
         return dateFormatter.format(new Date(aDate));

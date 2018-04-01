@@ -20,8 +20,6 @@
 <!ENTITY refreshProfile.dialog.items.label1  "Remove your add-ons and customizations">
 <!ENTITY refreshProfile.dialog.items.label2  "Restore your browser settings to their defaults">
 <!ENTITY refreshProfile.dialog.button.label  "Refresh &brandShortName;">
-
 <!ENTITY refreshProfile.title                "Give &brandShortName; a tune up">
 <!ENTITY refreshProfile.button.label         "Refresh &brandShortName;…">
-
 <!ENTITY refreshProfile.cleaning.description "Almost done…">

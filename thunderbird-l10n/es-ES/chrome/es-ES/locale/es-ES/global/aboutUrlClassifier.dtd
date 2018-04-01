@@ -30,3 +30,5 @@
 <!ENTITY aboutUrlClassifier.debugModules "Módulos actuales de registro">
 <!ENTITY aboutUrlClassifier.debugSBJSModules "Registro JS de navegación segura">
 <!ENTITY aboutUrlClassifier.debugFile "Archivo actual de registro">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

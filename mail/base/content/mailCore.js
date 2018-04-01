@@ -145,7 +145,7 @@ function CustomizeMailToolbar(toolboxId, customizePopupId)
 
   var toolbox = document.getElementById(toolboxId);
 
-  var customizeURL = "chrome://global/content/customizeToolbar.xul";
+  var customizeURL = "chrome://messenger/content/customizeToolbar.xul";
   gCustomizeSheet = Services.prefs.getBoolPref("toolbar.customization.usesheet");
 
   if (gCustomizeSheet) {
@@ -315,7 +315,7 @@ function onViewToolbarsPopupShowing(aEvent, toolboxIds, aInsertPoint)
           document.persist(toolbar.id, hidingAttribute);
         }
 
-        menuItem.addEventListener("command", onMenuItemCommand, false);
+        menuItem.addEventListener("command", onMenuItemCommand);
       }
     }
   }
@@ -424,8 +424,8 @@ function openOptionsDialog(aPaneID, aTabID, aOtherArgs)
       let features = "chrome,titlebar,toolbar,centerscreen" +
                      (instantApply ? ",dialog=no" : ",modal");
 
-      openDialog("chrome://messenger/content/preferences/preferences.xul",
-                 "Preferences", features, aPaneID, aTabID, aOtherArgs);
+      window.openDialog("chrome://messenger/content/preferences/preferences.xul",
+                        "Preferences", features, aPaneID, aTabID, aOtherArgs);
     }
   }
 }
@@ -448,8 +448,8 @@ function openAddonsMgr(aView)
         browserWindow = browserWin;
       }
     }
-    Services.obs.addObserver(receivePong, "EM-pong", false);
-    Services.obs.notifyObservers(null, "EM-ping", "");
+    Services.obs.addObserver(receivePong, "EM-pong");
+    Services.obs.notifyObservers(null, "EM-ping");
     Services.obs.removeObserver(receivePong, "EM-pong");
 
     if (emWindow) {
@@ -470,7 +470,25 @@ function openAddonsMgr(aView)
     Services.obs.addObserver(function loadViewOnLoad(aSubject, aTopic, aData) {
       Services.obs.removeObserver(loadViewOnLoad, aTopic);
       aSubject.loadView(aView);
-    }, "EM-loaded", false);
+    }, "EM-loaded");
+  }
+}
+
+/**
+ * Open a dialog with addon preferences.
+ *
+ * @option aURL  Chrome URL for the preferences XUL file of the addon.
+ */
+function openAddonPrefs(aURL, aOptionsType) {
+  if (aOptionsType == 3) {
+    switchToTabHavingURI(aURL, true);
+  } else {
+    let instantApply = Services.prefs
+                               .getBoolPref("browser.preferences.instantApply");
+    let features = "chrome,titlebar,toolbar,centerscreen" +
+                   (instantApply ? ",dialog=no" : ",modal");
+
+    window.openDialog(aURL, "addonPrefs", features);
   }
 }
 

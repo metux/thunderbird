@@ -31,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Поточні модулі журналу">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Журнал Safe Browsing JS">
 <!ENTITY aboutUrlClassifier.debugFile                   "Поточний файл журналу">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

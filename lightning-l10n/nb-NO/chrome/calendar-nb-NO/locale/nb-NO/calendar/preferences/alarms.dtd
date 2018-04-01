@@ -34,3 +34,5 @@
 
 <!ENTITY pref.defaultsnoozelength.label "Standard pause-lengde:" >
 <!ENTITY pref.defaultsnoozelength.accesskey "S">
+
+<!ENTITY pref.missedalarms2 "Show missed reminders for writable calendars">

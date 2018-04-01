@@ -62,10 +62,6 @@
 
 <!ENTITY calendar.unsubscribecalendar.label     "Unsubscribe Selected Calendar…">
 <!ENTITY calendar.unsubscribecalendar.accesskey "U">
-
 <!ENTITY calendar.removecalendar.label          "Remove Selected Calendar…">
 <!ENTITY calendar.removecalendar.accesskey      "R">
-
-
 <!ENTITY showUnifinderCmd.tooltip               "Toggle the find events pane">
-

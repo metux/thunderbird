@@ -34,3 +34,5 @@
 
 <!ENTITY pref.defaultsnoozelength.label "Kohëzgjatje Parazgjedhje Dremitjeje:" >
 <!ENTITY pref.defaultsnoozelength.accesskey "K">
+
+<!ENTITY pref.missedalarms2 "Show missed reminders for writable calendars">

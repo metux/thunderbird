@@ -100,19 +100,16 @@
 <!ENTITY storeType.accesskey           "T">
 <!ENTITY mboxStore2.label              "File per folder (mbox)">
 <!ENTITY maildirStore.label            "File per message (maildir)">
-
 <!ENTITY telemetrySection.label          "Telemetry">
 <!ENTITY telemetryDesc.label             "Shares performance, usage, hardware and customization data about your e-mail client with &vendorShortName; to help us make &brandShortName; better">
 <!ENTITY enableTelemetry.label           "Enable Telemetry">
 <!ENTITY enableTelemetry.accesskey       "T">
 <!ENTITY telemetryLearnMore.label        "Learn More">
-
 <!ENTITY crashReporterSection.label      "Crash Reporter">
 <!ENTITY crashReporterDesc.label         "&brandShortName; submits crash reports to help &vendorShortName; make your e-mail client more stable and secure">
 <!ENTITY enableCrashReporter.label       "Enable Crash Reporter">
 <!ENTITY enableCrashReporter.accesskey   "C">
 <!ENTITY crashReporterLearnMore.label    "Learn More">
-
 <!ENTITY updateApp2.label                "&brandShortName; Updates">
 <!ENTITY updateApp.version.pre           "Version ">
 <!ENTITY updateApp.version.post          "">
@@ -120,6 +117,5 @@
 <!ENTITY overrideSmartCacheSize.accesskey "v">
 <!ENTITY enableOCSP.label                "Query OCSP responder servers to confirm the current validity of certificates">
 <!ENTITY enableOCSP.accesskey            "Q">
-
 <!ENTITY manageCertificates.label "Manage Certificates">
 <!ENTITY manageCertificates.accesskey "M">

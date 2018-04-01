@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "Ekstensi Peninggalan">
 <!ENTITY legacyExtensions.description "Ekstensi ini tidak memenuhi standar &brandShortName; saat ini sehingga telah dinonaktifkan.">
 <!ENTITY legacyExtensions.learnMore "Pelajari tentang perubahan terhadap pengaya">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

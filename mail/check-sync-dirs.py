@@ -10,7 +10,7 @@
 # copies of their counterparts in the directory tree ORIGINAL.  COPY
 # need not have all the files in ORIGINAL, but COPY may not have files
 # absent from ORIGINAL.
-# 
+#
 # Each directory in COPY may have a file named
 # 'check-sync-exceptions', which lists files in COPY that need not be
 # the same as the corresponding file in ORIGINAL, or exist at all in
@@ -20,89 +20,126 @@
 
 import sys
 import os
-from os.path import join
+from os.path import join, relpath
 import filecmp
-import textwrap
 import fnmatch
+import argparse
 
-if len(sys.argv) != 3:
-    print >> sys.stderr, 'TEST-UNEXPECTED-FAIL | check-sync-dirs.py | Usage: %s COPY ORIGINAL' % sys.argv[0]
-    sys.exit(1)
 
-copy = os.path.abspath(sys.argv[1])
-original = os.path.abspath(sys.argv[2])
+from mozlog import commandline
 
-# Return the contents of FILENAME, a 'check-sync-exceptions' file, as
-# a dictionary whose keys are exactly the list of filenames, along
-# with the basename of FILENAME itself.  If FILENAME does not exist,
-# return the empty dictionary.
+
 def read_exceptions(filename):
+    """
+    Return the contents of ``filename``, a 'check-sync-exceptions' file, as a
+    set of filenames, along with the basename of ``filename`` itself.  If
+    ``filename`` does not exist, return the empty set.
+    """
     if (os.path.exists(filename)):
         f = file(filename)
-        exceptions = {}
+        exceptions = set()
         for line in f:
             line = line.strip()
             if line != '' and line[0] != '#':
-                exceptions[line] = None
-        exceptions[os.path.basename (filename)] = None
+                exceptions.add(line)
+        exceptions.add(os.path.basename(filename))
         f.close()
         return exceptions
     else:
-        return {}
+        return set()
 
-# Return true if FILENAME matches any pattern in the list of filename
-# patterns PATTERNS.
+
 def fnmatch_any(filename, patterns):
+    """
+    Return ``True`` if ``filename`` matches any pattern in the list of filename
+    patterns ``patterns``.
+    """
     for pattern in patterns:
         if fnmatch.fnmatch(filename, pattern):
             return True
     return False
 
-# Check the contents of the directory tree COPY against ORIGINAL.  For each
-# file that differs, apply REPORT to COPY, ORIGINAL, and the file's
-# relative path.  COPY and ORIGINAL should be absolute.  Ignore files 
-# that match patterns given in the list IGNORE.
-def check(copy, original):
-    os.chdir(copy)
-    for (dirpath, dirnames, filenames) in os.walk('.'):
+
+def check(logger, copy, original):
+    """
+    Check the contents of the directory tree ``copy`` against ``original``.  For each
+    file that differs, apply REPORT to ``copy``, ``original``, and the file's
+    relative path.  ``copy`` and ``original`` should be absolute.  Ignore files
+    that match patterns given in files named ``check-sync-exceptions``.
+    """
+    test_name = "check-sync-dirs.py::{copy}".format(copy=copy)
+
+    def report(relative_name, status='FAIL', message=None):
+        logger.test_status(
+            test=test_name,
+            subtest=relative_name,
+            status=status,
+            message=message,
+        )
+
+    logger.test_start(test=test_name)
+    differences_found = False
+    for (dirpath, dirnames, filenames) in os.walk(copy):
         exceptions = read_exceptions(join(dirpath, 'check-sync-exceptions'))
         for dirname in dirnames:
             if fnmatch_any(dirname, exceptions):
                 dirnames.remove(dirname)
                 break
         for filename in filenames:
-            if fnmatch_any(filename, exceptions):
-                continue
-            relative_name = join(dirpath, filename)
+            copy_name = join(dirpath, filename)
+            relative_name = relpath(copy_name, copy)
             original_name = join(original, relative_name)
-            if (os.path.exists(original_name)
-                and filecmp.cmp(relative_name, original_name, False)):
-                continue
-            report(copy, original, relative_name)
 
-differences_found = False
+            if fnmatch_any(filename, exceptions):
+                report(relative_name, 'SKIP')
+            elif (os.path.exists(original_name)
+                  and filecmp.cmp(copy_name, original_name, False)):
+                report(relative_name, 'PASS')
+            else:
+                report(relative_name, 'FAIL',
+                       message="differs from: {file}".format(file=join(original, relative_name)),
+                       )
+                differences_found = True
 
-# Print an error message for DIFFERING, which was found to differ
-# between COPY and ORIGINAL.  Set the global variable differences_found.
-def report(copy, original, differing):
-    global differences_found
-    if not differences_found:
-        print >> sys.stderr, 'TEST-UNEXPECTED-FAIL | check-sync-dirs.py | build file copies are not in sync\n' \
-                             'TEST-INFO | check-sync-dirs.py | file(s) found in:               %s\n' \
-                             'TEST-INFO | check-sync-dirs.py | differ from their originals in: %s' \
-                             % (copy, original)
-    print >> sys.stderr, 'TEST-INFO | check-sync-dirs.py | differing file:                 %s' % differing
-    differences_found = True
+    logger.test_end(
+        test=test_name,
+        status='FAIL' if differences_found else 'PASS',
+        expected='PASS',
+    )
+    return differences_found
 
-check(copy, original)
 
-if differences_found:
-    msg = '''In general, the files in '%s' should always be exact copies of
-originals in '%s'.  A change made to one should also be made to the
-other.  See 'check-sync-dirs.py' for more details.''' \
-         % (copy, original)
-    print >> sys.stderr, textwrap.fill(msg, 75)
-    sys.exit(1)
+def test_build(logger):
+    return check(logger, "comm/build", "build")
 
-print >> sys.stderr, 'TEST-PASS | check-sync-dirs.py | %s <= %s' % (copy, original)
-sys.exit(0)
+
+def test_tooltool(logger):
+    return check(
+        logger,
+        "comm/mail/config/tooltool-manifests/", "browser/config/tooltool-manifests/",
+    )
+
+
+def get_parser():
+    parser = argparse.ArgumentParser()
+    return parser
+
+
+def main():
+    parser = get_parser()
+    commandline.add_logging_group(parser)
+
+    args = parser.parse_args()
+
+    logger = commandline.setup_logging("check-sync-dirs", args, {"tbpl": sys.stdout})
+
+    result = False
+    logger.suite_start(tests=[])
+    result |= test_build(logger)
+    result |= test_tooltool(logger)
+    logger.suite_end()
+    return result
+
+
+if __name__ == '__main__':
+    sys.exit(main())

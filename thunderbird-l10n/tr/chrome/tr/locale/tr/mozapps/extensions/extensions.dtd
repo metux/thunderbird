@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "Eski teknoloji eklentiler">
 <!ENTITY legacyExtensions.description "Bu eklentiler yeni &brandShortName; standartlarını karşılamadığı için etkisiz hale getirilmiştir.">
 <!ENTITY legacyExtensions.learnMore "Eklentilerde yaptığımız değişiklikler hakkında bilgi alın">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

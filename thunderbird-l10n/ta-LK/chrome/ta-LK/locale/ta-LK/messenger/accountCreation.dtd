@@ -90,7 +90,5 @@ Entities below were automatically added by compare-locales,
 <!ENTITY email.text                      "Your existing email address">
 <!ENTITY open-provisioner.label          "Get a new email address…">
 <!ENTITY open-provisioner.accesskey      "g">
-
-
 <!ENTITY doneAccount.label               "Done">
 <!ENTITY doneAccount.accesskey           "D">

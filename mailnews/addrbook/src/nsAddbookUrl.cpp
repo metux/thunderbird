@@ -28,10 +28,10 @@ nsAddbookUrl::~nsAddbookUrl()
 
 NS_IMPL_ISUPPORTS(nsAddbookUrl, nsIAddbookUrl, nsIURI)
 
-NS_IMETHODIMP
-nsAddbookUrl::SetSpec(const nsACString &aSpec)
+nsresult
+nsAddbookUrl::SetSpecInternal(const nsACString &aSpec)
 {
-  nsresult rv = m_baseURL->SetSpec(aSpec);
+  nsresult rv = m_baseURL->SetSpecInternal(aSpec);
   NS_ENSURE_SUCCESS(rv, rv);
   return ParseUrl();
 }
@@ -328,5 +328,19 @@ NS_IMETHODIMP
 nsAddbookUrl::GetAddbookOperation(int32_t *_retval)
 {
   *_retval = mOperationType;
+  return NS_OK;
+}
+
+NS_IMPL_ISUPPORTS(nsAddbookUrl::Mutator, nsIURISetters, nsIURIMutator)
+
+NS_IMETHODIMP
+nsAddbookUrl::Mutate(nsIURIMutator** aMutator)
+{
+  RefPtr<nsAddbookUrl::Mutator> mutator = new nsAddbookUrl::Mutator();
+  nsresult rv = mutator->InitFromURI(this);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  mutator.forget(aMutator);
   return NS_OK;
 }

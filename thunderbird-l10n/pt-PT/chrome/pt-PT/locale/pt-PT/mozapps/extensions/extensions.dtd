@@ -260,3 +260,5 @@
 <!ENTITY legacyExtensions.title "Extensões de legado">
 <!ENTITY legacyExtensions.description "Estas extensões não atendem aos padrões atuais do &brandShortName; por isso foram desativadas">
 <!ENTITY legacyExtensions.learnMore "Saber acerca das alterações aos extras">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

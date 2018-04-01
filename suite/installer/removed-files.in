@@ -1276,17 +1276,14 @@ components/xpautoc.dll
 @DIR_MACOS@components/dom_base.xpt
 @DIR_MACOS@components/dom_canvas.xpt
 @DIR_MACOS@components/dom_core.xpt
-@DIR_MACOS@components/dom_css.xpt
 @DIR_MACOS@components/dom_events.xpt
 @DIR_MACOS@components/dom_geolocation.xpt
 @DIR_MACOS@components/dom_html.xpt
-@DIR_MACOS@components/dom_json.xpt
 @DIR_MACOS@components/dom_offline.xpt
 @DIR_MACOS@components/dom_range.xpt
 @DIR_MACOS@components/dom_sidebar.xpt
 @DIR_MACOS@components/dom_smil.xpt
 @DIR_MACOS@components/dom_storage.xpt
-@DIR_MACOS@components/dom_stylesheets.xpt
 @DIR_MACOS@components/dom_svg.xpt
 @DIR_MACOS@components/dom_threads.xpt
 @DIR_MACOS@components/dom_traversal.xpt
@@ -1378,7 +1375,6 @@ components/xpautoc.dll
 @DIR_MACOS@components/webshell_idls.xpt
 @DIR_MACOS@components/widget.xpt
 @DIR_MACOS@components/widget_cocoa.xpt
-@DIR_MACOS@components/windowds.xpt
 @DIR_MACOS@components/windowwatcher.xpt
 @DIR_MACOS@components/xpautocomplete.xpt
 @DIR_MACOS@components/xpcom_base.xpt

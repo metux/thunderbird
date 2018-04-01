@@ -71,7 +71,6 @@
 <!ENTITY closeMsgOnMoveOrDelete.accesskey "T">
 
 <!ENTITY itemAdvanced.label               "Advanced">
-
 <!ENTITY quotedTextColor.label            "Color:">
 <!ENTITY quotedTextColor.accesskey        "o">
 <!ENTITY newTagButton.label        "New…">
@@ -81,4 +80,3 @@
 <!ENTITY fontsAndColors1.label   "Fonts &amp; Colors">
 <!ENTITY colorButton.label       "Colors…">
 <!ENTITY colorButton.accesskey   "C">
-

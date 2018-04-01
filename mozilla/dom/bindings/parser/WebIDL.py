@@ -1724,7 +1724,6 @@ class IDLInterface(IDLInterfaceOrNamespace):
                   identifier == "OverrideBuiltins" or
                   identifier == "ChromeOnly" or
                   identifier == "Unforgeable" or
-                  identifier == "UnsafeInPrerendering" or
                   identifier == "LegacyEventInit" or
                   identifier == "ProbablyShortLivingWrapper" or
                   identifier == "LegacyUnenumerableNamedProperties" or
@@ -4150,7 +4149,8 @@ class IDLAttribute(IDLInterfaceMember):
 
     def handleExtendedAttribute(self, attr):
         identifier = attr.identifier()
-        if ((identifier == "SetterThrows" or identifier == "SetterCanOOM")
+        if ((identifier == "SetterThrows" or identifier == "SetterCanOOM" or
+             identifier == "SetterNeedsSubjectPrincipal")
             and self.readonly):
             raise WebIDLError("Readonly attributes must not be flagged as "
                               "[%s]" % identifier,
@@ -4350,8 +4350,9 @@ class IDLAttribute(IDLInterfaceMember):
               identifier == "SecureContext" or
               identifier == "Frozen" or
               identifier == "NewObject" or
-              identifier == "UnsafeInPrerendering" or
               identifier == "NeedsSubjectPrincipal" or
+              identifier == "SetterNeedsSubjectPrincipal" or
+              identifier == "GetterNeedsSubjectPrincipal" or
               identifier == "NeedsCallerType" or
               identifier == "ReturnValueNeedsContainsHack" or
               identifier == "BinaryName" or
@@ -4988,7 +4989,9 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
         if (identifier == "GetterThrows" or
             identifier == "SetterThrows" or
             identifier == "GetterCanOOM" or
-            identifier == "SetterCanOOM"):
+            identifier == "SetterCanOOM" or
+            identifier == "SetterNeedsSubjectPrincipal" or
+            identifier == "GetterNeedsSubjectPrincipal"):
             raise WebIDLError("Methods must not be flagged as "
                               "[%s]" % identifier,
                               [attr.location, self.location])
@@ -5075,7 +5078,6 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
               identifier == "CanOOM" or
               identifier == "NewObject" or
               identifier == "ChromeOnly" or
-              identifier == "UnsafeInPrerendering" or
               identifier == "Pref" or
               identifier == "Deprecated" or
               identifier == "Func" or

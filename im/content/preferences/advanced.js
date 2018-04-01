@@ -33,18 +33,18 @@ var gAdvancedPane = {
     this.updateConnectionGroupbox();
 #ifdef MOZ_UPDATER
     let onUnload = function () {
-      window.removeEventListener("unload", onUnload, false);
+      window.removeEventListener("unload", onUnload);
       Services.prefs.removeObserver("app.update.", this);
     }.bind(this);
-    window.addEventListener("unload", onUnload, false);
-    Services.prefs.addObserver("app.update.", this, false);
+    window.addEventListener("unload", onUnload);
+    Services.prefs.addObserver("app.update.", this);
     this.updateReadPrefs();
 #endif
 
     let bundlePrefs = document.getElementById("bundlePreferences");
 
     // Notify observers that the UI is now ready
-    Services.obs.notifyObservers(window, "advanced-pane-loaded", null);
+    Services.obs.notifyObservers(window, "advanced-pane-loaded");
   },
 
   /**

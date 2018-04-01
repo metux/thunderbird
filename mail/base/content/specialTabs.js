@@ -277,7 +277,7 @@ var contentTabBaseType = {
                                      aTab.titleListener, true);
     aTab.browser.removeEventListener("DOMWindowClose",
                                      aTab.closeListener, true);
-    aTab.browser.removeEventListener("DOMLinkAdded", DOMLinkHandler, false);
+    aTab.browser.removeEventListener("DOMLinkAdded", DOMLinkHandler);
     gPluginHandler.removeEventListeners(aTab.browser);
     aTab.browser.webProgress.removeProgressListener(aTab.filter);
     aTab.filter.removeProgressListener(aTab.progressListener);
@@ -561,7 +561,7 @@ var specialTabs = {
 
   // This will open any special tabs if necessary on startup.
   openSpecialTabsOnStartup: function() {
-    window.addEventListener("unload", specialTabs.onunload, false);
+    window.addEventListener("unload", specialTabs.onunload);
 
     let browser = document.getElementById("dummycontentbrowser");
 
@@ -573,7 +573,7 @@ var specialTabs = {
     browser.webNavigation.sessionHistory =
       Components.classes["@mozilla.org/browser/shistory;1"]
                 .createInstance(Components.interfaces.nsISHistory);
-    Services.obs.addObserver(browser, "browser:purge-session-history", false);
+    Services.obs.addObserver(browser, "browser:purge-session-history");
 
     // remove the disablehistory attribute so the browser cleans up, as
     // though it had done this work itself
@@ -586,7 +586,7 @@ var specialTabs = {
       Components.utils.reportError("Places database may be locked: " + ex);
     }
 
-    Services.obs.addObserver(specialTabs, "mail-startup-done", false);
+    Services.obs.addObserver(specialTabs, "mail-startup-done");
 
     let tabmail = document.getElementById('tabmail');
 
@@ -695,7 +695,7 @@ var specialTabs = {
       // image attribute and just show the default tab icon.
       aTab.tabNode.setAttribute("onerror", "this.removeAttribute('image');");
 
-      aTab.browser.addEventListener("DOMLinkAdded", DOMLinkHandler, false);
+      aTab.browser.addEventListener("DOMLinkAdded", DOMLinkHandler);
       gPluginHandler.addEventListeners(aTab.browser);
 
       // Now initialise the find bar.
@@ -918,7 +918,7 @@ var specialTabs = {
       notification.parentNode.removeNotification(notification, true);
       // Add a new notification to that tab, with no "Learn more" link
       notifyBox.appendNotification(telemetryText, "telemetry", null, notifyBox.PRIORITY_INFO_LOW, buttons);
-    }, false);
+    });
 
     let description = notification.ownerDocument.getAnonymousElementByAttribute(notification, "anonid", "messageText");
     description.appendChild(link);
@@ -1142,7 +1142,7 @@ var specialTabs = {
       // image attribute and just show the default tab icon.
       aTab.tabNode.setAttribute("onerror", "this.removeAttribute('image');");
 
-      aTab.browser.addEventListener("DOMLinkAdded", DOMLinkHandler, false);
+      aTab.browser.addEventListener("DOMLinkAdded", DOMLinkHandler);
 
 
       aTab.browser.setAttribute("id", "chromeTabBrowser" + this.lastBrowserId);
@@ -1177,7 +1177,7 @@ var specialTabs = {
                                        aTab.titleListener, true);
       aTab.browser.removeEventListener("DOMWindowClose",
                                        aTab.closeListener, true);
-      aTab.browser.removeEventListener("DOMLinkAdded", DOMLinkHandler, false);
+      aTab.browser.removeEventListener("DOMLinkAdded", DOMLinkHandler);
       aTab.browser.destroy();
     },
     saveTabState: function onSaveTabState(aTab) {
@@ -1307,18 +1307,14 @@ var specialTabs = {
       return;
 
     Services.obs.removeObserver(specialTabs, "mail-startup-done");
-    Services.obs.addObserver(this.xpInstallObserver, "addon-install-disabled",
-                             false);
-    Services.obs.addObserver(this.xpInstallObserver, "addon-install-blocked",
-                             false);
-    Services.obs.addObserver(this.xpInstallObserver, "addon-install-failed",
-                             false);
-    Services.obs.addObserver(this.xpInstallObserver, "addon-install-complete",
-                             false);
+    Services.obs.addObserver(this.xpInstallObserver, "addon-install-disabled");
+    Services.obs.addObserver(this.xpInstallObserver, "addon-install-blocked");
+    Services.obs.addObserver(this.xpInstallObserver, "addon-install-failed");
+    Services.obs.addObserver(this.xpInstallObserver, "addon-install-complete");
   },
 
   onunload: function () {
-    window.removeEventListener("unload", specialTabs.onunload, false);
+    window.removeEventListener("unload", specialTabs.onunload);
 
     Services.obs.removeObserver(specialTabs.xpInstallObserver,
                                 "addon-install-disabled");

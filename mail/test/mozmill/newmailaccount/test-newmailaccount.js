@@ -1166,7 +1166,7 @@ function subtest_search_button_enabled_state_on_init(aController) {
  */
 function test_provider_language_wildcard() {
   let originalReqLocales = Services.locale.getRequestedLocales();
-  Services.locale.setRequestedLocales(["foo-bar"]);
+  Services.locale.setRequestedLocales(["foo-ba"]);
 
   let original = Services.prefs.getCharPref(kProviderListPref);
   Services.prefs.setCharPref(kProviderListPref, url + "providerListWildcard");
@@ -1206,7 +1206,7 @@ function test_search_button_disabled_if_no_query_on_init() {
   let url = "chrome://content/messenger/accountProvisionerStorage/accountProvisioner";
   let dsm = Services.domStorageManager;
 
-  let uri = Services.io.newURI(url, "");
+  let uri = Services.io.newURI(url);
   let principal = Services.scriptSecurityManager.createCodebasePrincipal(uri, {});
   let storage = dsm.createStorage(null, principal, url);
 

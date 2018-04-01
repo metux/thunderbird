@@ -263,3 +263,5 @@ funcionalidades ou estilos extras. Experimente um painel que otimiza seu tempo, 
 <!ENTITY legacyExtensions.title "Extensões legadas">
 <!ENTITY legacyExtensions.description "Estas extensões não cumprem os padrões atuais do &brandShortName;, então eles foram desativados.">
 <!ENTITY legacyExtensions.learnMore "Saiba mais sobre as alterações das extensões">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

@@ -4,3 +4,6 @@
 
 <!ENTITY virtualFolderListTitle.title "Selezionare la/e cartella/e">
 <!ENTITY virtualFolderDesc.label "Selezionare le cartelle in cui cercare:">
+
+<!ENTITY folderName.label "Folder name">
+<!ENTITY folderSearch.label "Search">

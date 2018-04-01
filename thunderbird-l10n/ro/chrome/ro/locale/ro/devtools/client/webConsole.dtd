@@ -61,7 +61,6 @@
 <!ENTITY btnPageSecurity.label "Security">
 <!ENTITY btnPageSecurity.tooltip "Log security errors and warnings">
 <!ENTITY btnPageSecurity.accesskey "u">
-
 <!ENTITY btnPageLogging.label   "Logging">
 <!ENTITY btnPageLogging.tooltip "Log messages sent to the window.console object">
 <!ENTITY btnPageLogging.accesskey3 "L">
@@ -71,7 +70,6 @@
 <!ENTITY btnConsoleLog          "Log">
 <!ENTITY btnConsoleXhr          "XHR">
 <!ENTITY btnConsoleReflows      "Reflows">
-
 <!ENTITY btnServerLogging.label       "Server">
 <!ENTITY btnServerLogging.tooltip     "Log messages received from a web server">
 <!ENTITY btnServerLogging.accesskey   "S">
@@ -79,22 +77,18 @@
 <!ENTITY btnServerInfo                "Info">
 <!ENTITY btnServerWarnings            "Warnings">
 <!ENTITY btnServerLog                 "Log">
-
 <!ENTITY btnConsoleSharedWorkers "Shared Workers">
 <!ENTITY btnConsoleServiceWorkers "Service Workers">
 <!ENTITY btnConsoleWindowlessWorkers "Add-on or Chrome Workers">
-
 <!ENTITY filterOutput.placeholder "Filter output">
 <!ENTITY btnClear.label        "Clear">
 <!ENTITY btnClear.tooltip      "Clear the Web Console output">
 <!ENTITY btnClear.accesskey    "r">
-
 <!ENTITY fullZoomEnlargeCmd.commandkey  "+">
-<!ENTITY fullZoomEnlargeCmd.commandkey2 "="> 
+<!ENTITY fullZoomEnlargeCmd.commandkey2 "=">
 <!ENTITY fullZoomReduceCmd.commandkey   "-">
 <!ENTITY fullZoomResetCmd.commandkey    "0">
 <!ENTITY copyURLCmd.accesskey "a">
-
 <!ENTITY closeCmd.key         "W">
 <!ENTITY findCmd.key          "F">
 <!ENTITY clearOutputCtrl.key  "L">

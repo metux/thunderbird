@@ -34,3 +34,5 @@
 
 <!ENTITY pref.defaultsnoozelength.label "Čas před nowym dopomnjećom:" >
 <!ENTITY pref.defaultsnoozelength.accesskey "n">
+
+<!ENTITY pref.missedalarms2 "Show missed reminders for writable calendars">

@@ -183,47 +183,31 @@
 <!ENTITY options.sourceeditor.keybinding.default.label  "Լռելյայն">
 
 <!ENTITY options.showUserAgentStyles.tooltip "Turning this on will show default styles that are loaded by the browser.">
-
 <!ENTITY options.collapseAttrs.label "Truncate DOM attributes">
 <!ENTITY options.collapseAttrs.tooltip "Truncate long attributes in the inspector">
-
 <!ENTITY options.defaultColorUnit.authored "As Authored">
-
 <!ENTITY options.enableChrome.label5    "Enable browser chrome and add-on debugging toolboxes">
 <!ENTITY options.enableChrome.tooltip3  "Turning this option on will allow you to use various developer tools in browser context (via Tools > Web Developer > Browser Toolbox) and debug add-ons from the Add-ons Manager">
-
 <!ENTITY options.disableHTTPCache.label     "Disable HTTP Cache (when toolbox is open)">
 <!ENTITY options.disableHTTPCache.tooltip   "Turning this option on will disable the HTTP cache for all tabs that have the toolbox open. Service Workers are not affected by this option.">
-
 <!ENTITY options.enableServiceWorkersHTTP.label     "Enable Service Workers over HTTP (when toolbox is open)">
 <!ENTITY options.enableServiceWorkersHTTP.tooltip   "Turning this option on will enable the service workers over HTTP for all tabs that have the toolbox open.">
-
 <!ENTITY options.selectDefaultTools.label2    "Default Developer Tools">
-
 <!ENTITY options.selectEnabledToolboxButtons.label     "Available Toolbox Buttons">
-
 <!ENTITY options.usedeveditiontheme.label   "Use Developer Edition browser theme">
 <!ENTITY options.usedeveditiontheme.tooltip "Toggles the Developer Edition browser theme.">
-
 <!ENTITY options.timestampMessages.label      "Enable timestamps">
 <!ENTITY options.timestampMessages.tooltip    "If you enable this option commands and output in the Web Console will display a timestamp">
-
 <!ENTITY options.debugger.label            "Debugger">
-
 <!ENTITY options.sourceMaps.label      "Enable Source Maps">
 <!ENTITY options.sourceMaps.tooltip1   "If you enable this option sources will be mapped in the tools.">
-
 <!ENTITY options.stylesheetAutocompletion.label      "Autocomplete CSS">
 <!ENTITY options.stylesheetAutocompletion.tooltip    "Autocomplete CSS properties, values and selectors in Style Editor as you type">
-
 <!ENTITY options.screenshot.label            "Screenshot Behavior">
-
 <!ENTITY options.screenshot.clipboard.label      "Screenshot to clipboard">
 <!ENTITY options.screenshot.clipboard.tooltip    "Saves to the screenshot directly to the clipboard">
-
 <!ENTITY options.screenshot.audio.label      "Play camera shutter sound">
 <!ENTITY options.screenshot.audio.tooltip    "Enables the camera audio sound when taking screenshot">
-
 <!ENTITY options.sourceeditor.detectindentation.label   "Detect indentation">
 <!ENTITY options.sourceeditor.autoclosebrackets.label   "Autoclose brackets">
 <!ENTITY options.sourceeditor.autoclosebrackets.tooltip "Automatically insert closing brackets">

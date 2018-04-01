@@ -4,3 +4,6 @@
 
 <!ENTITY virtualFolderListTitle.title "Seleicionar carpeta(es)">
 <!ENTITY virtualFolderDesc.label "Seleicionar les carpetes nes que facer la gueta:">
+
+<!ENTITY folderName.label "Folder name">
+<!ENTITY folderSearch.label "Search">

@@ -94,7 +94,7 @@ var logWindow = {
         }
         browser.init(aConv);
         this.pendingLoad = true;
-        Services.obs.addObserver(this, "conversation-loaded", false);
+        Services.obs.addObserver(this, "conversation-loaded");
       });
     }
     else {
@@ -235,9 +235,9 @@ chatLogTreeView.prototype = {
     let chatBundle = document.getElementById("bundle_instantbird");
     let dateFormatBundle = document.getElementById("bundle_dateformat");
     let placesBundle = document.getElementById("bundle_places");
-    const dateFormatter = Services.intl.createDateTimeFormat(undefined,
+    const dateFormatter = new Services.intl.DateTimeFormat(undefined,
       { dateStyle: "short" });
-    const dateTimeFormatter = Services.intl.createDateTimeFormat(undefined, {
+    const dateTimeFormatter = new Services.intl.DateTimeFormat(undefined, {
       dateStyle: "short", timeStyle: "short"
     });
     let formatDate = function(aDate) {
