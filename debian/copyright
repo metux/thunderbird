@@ -426,10 +426,6 @@ Files: mozilla/dom/plugins/test/testplugin/secondplugin/*
 Copyright: no-info-found
 License: MPL-2.0
 
-Files: mozilla/dom/secureelement/DOMSecureElement.js
-Copyright: 2013-2014, Deutsche Telekom, Inc.
-License: MPL-2.0
-
 Files: mozilla/dom/tests/mochitest/ajax/jquery/dist/*
 Copyright: 2006-2008, John Resig (jquery.com)
 License: GPL-2 or Expat
@@ -489,22 +485,6 @@ Copyright: various contributors
 License: other-2
  The complete text of the hunspell License can be found in the
  `README_en_US.txt' file in the same directory as this file.
-
-Files: mozilla/gfx/angle/include/EGL/*
-       mozilla/gfx/angle/include/GLES3/gl3.h
-       mozilla/gfx/angle/include/KHR/*
-Copyright: 2007-2014, The Khronos Group Inc
-License: Expat
-
-Files: mozilla/gfx/angle/src/compiler/preprocessor/ExpressionParser.cpp
-       mozilla/gfx/angle/src/compiler/translator/glslang_tab.cpp
-       mozilla/gfx/angle/src/compiler/translator/glslang_tab.h
-Copyright: 1984, 1989, 1990, 2000-2013, Free Software Foundation, Inc
-License: GPL-3+
-
-Files: mozilla/gfx/angle/src/third_party/*
-Copyright: 2006-2009, 2012, Apple Inc.
-License: BSD-2-clause
 
 Files: mozilla/gfx/cairo/cairo/*
 Copyright: 2005-2008, RedHat, Inc.
@@ -1351,10 +1331,6 @@ Files: mozilla/ipc/ipdl/test/cxx/IPDLUnitTestProcessChild.cpp
 Copyright: no-info-found
 License: MPL-2.0
 
-Files: mozilla/js/src/builtin/Intl.js
-Copyright: 2011-2012, Norbert Lindenberg
-License: MPL-2.0
-
 Files: mozilla/js/src/builtin/embedjs.py
 Copyright: 2012, the V8 project authors
 License: MPL-2.0 or BSD-3-clause
@@ -1689,17 +1665,12 @@ Files: mozilla/js/src/tests/test262/intl402/browser.js
 Copyright: 2012, Mozilla Corporation
 License: MPL-2.0
 
-Files: mozilla/js/src/vm/make_unicode.py
-Copyright: 2011, Tom Schuster <evilpies@gmail.com>
-License: GPL-3+
-
 Files: mozilla/js/src/vtune/*
 Copyright: 2005-2013, Intel Corporation
 License: BSD-3-clause or GPL-2
 
 Files: mozilla/layout/base/nsFrameManager.cpp
        mozilla/layout/base/nsFrameManager.h
-       mozilla/layout/base/nsFrameManagerBase.h
        mozilla/layout/base/nsIPresShell.h
        mozilla/layout/generic/nsLineLayout.h
        mozilla/layout/style/nsHTMLStyleSheet.cpp
@@ -2671,9 +2642,6 @@ Files: mozilla/testing/mochitest/tests/SimpleTest/ChromePowers.js
        mozilla/testing/mozbase/manifestparser/tests/test_manifestparser.py
        mozilla/testing/mozbase/mozfile/tests/test_tempdir.py
        mozilla/testing/mozbase/mozfile/tests/test_tempfile.py
-       mozilla/testing/mozbase/mozprocess/tests/proclaunch.c
-       mozilla/testing/mozbase/mozprocess/tests/test_mozprocess.py
-       mozilla/testing/mozbase/mozprocess/tests/test_mozprocess_params.py
        mozilla/testing/web-platform/tests/resources/testharnessreport.js
        mozilla/toolkit/components/ctypes/tests/unit/test_jsctypes.js
        mozilla/toolkit/components/mediasniffer/mp3sniff.c
@@ -2836,8 +2804,6 @@ Files: mozilla/toolkit/locales/compare-locales.pl
        mozilla/toolkit/mozapps/extensions/test/xpcshell/test_bug514327_2.js
        mozilla/toolkit/mozapps/extensions/test/xpcshell/test_bug514327_3.js
        mozilla/toolkit/mozapps/extensions/test/xpcshell/test_bug521905.js
-       mozilla/toolkit/mozapps/extensions/test/xpcshell/test_bug526598.js
-       mozilla/toolkit/mozapps/extensions/test/xpcshell/test_bug541420.js
        mozilla/toolkit/mozapps/extensions/test/xpcshell/test_dataDirectory.js
        mozilla/toolkit/mozapps/extensions/test/xpcshell/test_isDebuggable.js
        mozilla/toolkit/mozapps/extensions/test/xpcshell/test_pluginBlocklistCtp.js
@@ -2908,7 +2874,6 @@ Files: mozilla/xpcom/tests/unit/data/*
        mozilla/xpcom/tests/unit/test_storagestream.js
        mozilla/xpcom/tests/unit/test_stringstream.js
        mozilla/xpcom/tests/unit/test_systemInfo.js
-       mozilla/xpcom/tests/unit/test_windows_shortcut.js
        mozilla/xpcom/tests/unit/test_streams.js
        suite/browser/test/browser/browser_bug409624.js
        suite/browser/test/browser/browser_bug427559.js
@@ -3118,15 +3083,6 @@ License: GPL-3
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation; version 3 dated June, 2007.
- .
- On Debian systems, the complete text of version 3 of the GNU General
- Public License can be found in '/usr/share/common-licenses/GPL-3'.
-
-License: GPL-3+
- This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation; version 3 dated June, 2007, or (at
- your option) any later version.
  .
  On Debian systems, the complete text of version 3 of the GNU General
  Public License can be found in '/usr/share/common-licenses/GPL-3'.
