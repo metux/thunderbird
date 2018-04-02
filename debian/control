@@ -205,7 +205,6 @@ Depends:
  thunderbird-l10n-ast (>= ${binary:Version}),
  thunderbird-l10n-be (>= ${binary:Version}),
  thunderbird-l10n-bg (>= ${binary:Version}),
- thunderbird-l10n-bn-bd (>= ${binary:Version}),
  thunderbird-l10n-br (>= ${binary:Version}),
  thunderbird-l10n-ca (>= ${binary:Version}),
  thunderbird-l10n-cs (>= ${binary:Version}),
@@ -332,23 +331,6 @@ Description: Bulgarian language package for Thunderbird
  the XUL user interface language.
  .
  This package contains the localization of Thunderbird in Bulgarian.
-
-Package: thunderbird-l10n-bn-bd
-Architecture: all
-Section: localization
-Depends:
- thunderbird (<< ${source:Version}.1~),
- thunderbird (>= ${source:Version}),
- ${misc:Depends},
-Homepage: https://wiki.mozilla.org/L10n:Teams:bd-BD
-Recommends:
- hunspell-bn,
-Description: Bengali language package for Thunderbird
- Thunderbird is an mail client suitable for free distribution. The goal of
- Thunderbird is to produce a cross platform stand-alone mail application using
- the XUL user interface language.
- .
- This package contains the localization of Thunderbird in Bengali.
 
 Package: thunderbird-l10n-br
 Architecture: all
