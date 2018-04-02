@@ -1992,20 +1992,6 @@ Description: Swedish language package for lightning
  .
  This package contains the localization of lightning in Swedish (Sweden).
 
-Package: lightning-l10n-ta-lk
-Architecture: all
-Section: localization
-Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
- ${misc:Depends},
-Description: Tamil language package for lightning
- Lightning is a Mozilla based calendar extension for Thunderbird.
- It's goal is to integrate a Calendar and Task application using the XUL
- user interface language.
- .
- This package contains the localization of lightning in Tamil (Sri Lanka).
-
 Package: lightning-l10n-tr
 Architecture: all
 Section: localization
