@@ -238,7 +238,6 @@ Depends:
  thunderbird-l10n-nb-no (>= ${binary:Version}),
  thunderbird-l10n-nl (>= ${binary:Version}),
  thunderbird-l10n-nn-no (>= ${binary:Version}),
- thunderbird-l10n-pa-in (>= ${binary:Version}),
  thunderbird-l10n-pl (>= ${binary:Version}),
  thunderbird-l10n-pt-br (>= ${binary:Version}),
  thunderbird-l10n-pt-pt (>= ${binary:Version}),
@@ -883,21 +882,6 @@ Description: Nynorsk (Norway) language package for Thunderbird
  the XUL user interface language.
  .
  This package contains the localization of Thunderbird in Nynorsk (Norway).
-
-Package: thunderbird-l10n-pa-in
-Architecture: all
-Section: localization
-Depends:
- thunderbird (<< ${source:Version}.1~),
- thunderbird (>= ${source:Version}),
- ${misc:Depends},
-Homepage: https://wiki.mozilla.org/L10n:Teams:pa
-Description: Punjabi (India) language package for Thunderbird
- Thunderbird is an mail client suitable for free distribution. The goal of
- Thunderbird is to produce a cross platform stand-alone mail application using
- the XUL user interface language.
- .
- This package contains the localization of Thunderbird in Punjabi (India).
 
 Package: thunderbird-l10n-pl
 Architecture: all
