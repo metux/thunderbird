@@ -1804,20 +1804,6 @@ Description: Nynorsk (Norway) language package for lightning
  .
  This package contains the localization of lightning in Nynorsk (Norway).
 
-Package: lightning-l10n-pa-in
-Architecture: all
-Section: localization
-Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
- ${misc:Depends},
-Description: Punjabi language package for lightning
- Lightning is a Mozilla based calendar extension for Thunderbird.
- It's goal is to integrate a Calendar and Task application using the XUL
- user interface language.
- .
- This package contains the localization of lightning in Punjabi (India).
-
 Package: lightning-l10n-pl
 Architecture: all
 Section: localization
