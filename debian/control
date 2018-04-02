@@ -1273,22 +1273,6 @@ Description: Bulgarian language package for lightning
  .
  This package contains the localization of lightning in Bulgarian.
 
-Package: lightning-l10n-bn-bd
-Architecture: all
-Section: localization
-Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
- ${misc:Depends},
-Recommends:
- hunspell-bn,
-Description: Bengali (Bangladesh) language package for lightning
- Lightning is a Mozilla based calendar extension for Thunderbird.
- It's goal is to integrate a Calendar and Task application using the XUL
- user interface language.
- .
- This package contains the localization of lightning in Bengali/Bangladesh.
-
 Package: lightning-l10n-br
 Architecture: all
 Section: localization
