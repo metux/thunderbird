@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/Preferences.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 
 /**
  * Object that contains a set of filter properties that may be used by a calFilter object
@@ -374,7 +374,7 @@ calFilter.prototype = {
      *                            specified by mStartDate and mEndDate, false otherwise.
      */
     dateRangeFilter: function(aItem) {
-        return cal.checkIfInRange(aItem, this.mStartDate, this.mEndDate);
+        return cal.item.checkIfInRange(aItem, this.mStartDate, this.mEndDate);
     },
 
     /**
@@ -423,7 +423,7 @@ calFilter.prototype = {
         }
 
         // test the status property. Only applies to tasks.
-        if (result && props.status != null && cal.isToDo(aItem)) {
+        if (result && props.status != null && cal.item.isToDo(aItem)) {
             let completed = aItem.isCompleted;
             let current = !aItem.completedDate || today.compare(aItem.completedDate) <= 0;
             let percent = aItem.percentComplete || 0;
@@ -439,7 +439,7 @@ calFilter.prototype = {
         }
 
         // test the due property. Only applies to tasks.
-        if (result && props.due != null && cal.isToDo(aItem)) {
+        if (result && props.due != null && cal.item.isToDo(aItem)) {
             let due = aItem.dueDate;
             let now = cal.dtz.now();
 

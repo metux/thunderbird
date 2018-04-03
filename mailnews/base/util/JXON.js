@@ -20,7 +20,7 @@ var JXON = new (function() {
   function parseText(sValue) {
     //if (rIsNull.test(sValue))
     //  return null;
-    if (rIsBool.test(sValue)) 
+    if (rIsBool.test(sValue))
       return sValue.toLowerCase() === "true";
     if (isFinite(sValue))
       return parseFloat(sValue);
@@ -66,7 +66,7 @@ var JXON = new (function() {
       for (var oNode, nItem = 0; nItem < oParentNode.childNodes.length; nItem++) {
         oNode = oParentNode.childNodes.item(nItem);
         if (oNode.nodeType === 4) // CDATASection
-          sCollectedTxt += oNode.nodeValue; 
+          sCollectedTxt += oNode.nodeValue;
         else if (oNode.nodeType === 3) // Text
           sCollectedTxt += oNode.nodeValue;
         else if (oNode.nodeType === 1) // Element
@@ -165,11 +165,11 @@ var JXON = new (function() {
   };
 
   this.build = function(oXMLParent, nVerbosity /* optional */, bFreeze /* optional */, bNesteAttributes /* optional */) {
-    const _nVerb = arguments.length > 1 &&
+    const _nVerb =
         typeof nVerbosity === "number" ? nVerbosity & 3 :
         /* put here the default verbosity level: */ 1;
     return createObjTree(oXMLParent, _nVerb, bFreeze || false,
-        arguments.length > 3 ? bNesteAttributes : _nVerb === 3);
+        (bNesteAttributes !== undefined) ? bNesteAttributes : _nVerb === 3);
   };
 
   this.unbuild = function(oObjTree) {

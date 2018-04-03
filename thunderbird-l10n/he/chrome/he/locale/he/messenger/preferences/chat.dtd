@@ -2,6 +2,7 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+
 <!ENTITY  startupAction.label         "כאשר &brandShortName; מופעל:">
 
 <!-- LOCALIZATION NOTE: reportIdleAfter.label is displayed first, then
@@ -11,8 +12,20 @@ reportIdleAfter.label and idleTime parts don't have to mean the exact
 same thing as in English; please try instead to translate the whole
 sentence. -->
 
+<!ENTITY  andSetStatusToAway.accesskey  "ר">
 
+<!ENTITY  sendTyping.label              "שליחת התרעת הקלדה בדיונים">
+<!ENTITY  sendTyping.accesskey          "ק">
 
+<!ENTITY  chatNotifications.label             "כשמגיעות הודעות שמיועדות אליך:">
+<!ENTITY  desktopChatNotifications.label      "הצגת התרעה:">
+<!ENTITY  desktopChatNotifications.accesskey  "ר">
+<!ENTITY  completeNotification.label          "עם שם השולח ותצוגה מקדימה של הודעה">
+<!ENTITY  buddyInfoOnly.label                 "עם שם השולח בלבד">
+<!ENTITY  dummyNotification.label             "ללא כל מידע">
+<!ENTITY  getAttention.label                  "הבהוב הפריט בשורת המשימות">
+<!ENTITY  getAttention.accesskey              "ב">
+<!ENTITY  getAttentionMac.label               "הנפשת הסמל במעגן">
 
 
 <!ENTITY  generalTab.label            "General">
@@ -23,18 +36,6 @@ sentence. -->
 <!ENTITY  reportIdleAfter.accesskey     "I">
 <!ENTITY  idleTime                      "minutes of inactivity">
 <!ENTITY  andSetStatusToAway.label      "and set my status to Away with this status message:">
-<!ENTITY  andSetStatusToAway.accesskey  "A">
-<!ENTITY  sendTyping.label              "Send typing notifications in conversations">
-<!ENTITY  sendTyping.accesskey          "t">
-<!ENTITY  chatNotifications.label             "When messages directed at you arrive:">
-<!ENTITY  desktopChatNotifications.label      "Show a notification:">
-<!ENTITY  desktopChatNotifications.accesskey  "c">
-<!ENTITY  completeNotification.label          "with sender's name and message preview">
-<!ENTITY  buddyInfoOnly.label                 "with sender's name only">
-<!ENTITY  dummyNotification.label             "without any info">
-<!ENTITY  getAttention.label                  "Flash the taskbar item">
-<!ENTITY  getAttention.accesskey              "F">
-<!ENTITY  getAttentionMac.label               "Animate dock icon">
 <!ENTITY  getAttentionMac.accesskey           "o">
 <!ENTITY  chatSound.accesskey                 "d">
 <!ENTITY  chatSound.label                     "Play a sound">

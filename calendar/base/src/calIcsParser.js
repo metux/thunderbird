@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://calendar/modules/calIteratorUtils.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calIteratorUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 function calIcsParser() {
     this.wrappedJSObject = this;
@@ -75,7 +75,7 @@ calIcsParser.prototype = {
                 let parent = state.uid2parent[item.id];
 
                 if (!parent) { // a parentless one, fake a master and override it's occurrence
-                    parent = cal.isEvent(item) ? cal.createEvent() : cal.createTodo();
+                    parent = cal.item.isEvent(item) ? cal.createEvent() : cal.createTodo();
                     parent.id = item.id;
                     parent.setProperty("DTSTART", item.recurrenceId);
                     parent.setProperty("X-MOZ-FAKED-MASTER", "1"); // this tag might be useful in the future

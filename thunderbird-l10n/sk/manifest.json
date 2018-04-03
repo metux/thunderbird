@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/sk/locale/sk/passwordmgr/", 
         "pippki": "chrome/sk/locale/sk/pippki/"
       }, 
-      "version": "20171104175232"
+      "version": "20180312194045"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-sk@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "sk", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Slovak (SK) Language Pack", 
   "manifest_version": 2, 
   "sources": {

@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
-Cu.import("resource:///modules/imServices.jsm");
-Cu.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/imServices.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 var PREF_EXTENSIONS_GETMOREPROTOCOLSURL = "extensions.getMoreProtocolsURL";
 
@@ -395,7 +394,7 @@ var accountWizard = {
     let prefURL = PREF_EXTENSIONS_GETMOREPROTOCOLSURL;
     var getMore = document.getElementById("getMoreProtocols");
     var showGetMore = false;
-    const nsIPrefBranch = Components.interfaces.nsIPrefBranch;
+    const nsIPrefBranch = Ci.nsIPrefBranch;
 
     if (Services.prefs.getPrefType(prefURL) != nsIPrefBranch.PREF_INVALID) {
       try {
@@ -409,8 +408,8 @@ var accountWizard = {
   },
 
   openURL: function (aURL) {
-    Components.classes["@mozilla.org/uriloader/external-protocol-service;1"]
-              .getService(Components.interfaces.nsIExternalProtocolService)
-              .loadURI(Services.io.newURI(aURL));
+    Cc["@mozilla.org/uriloader/external-protocol-service;1"]
+      .getService(Ci.nsIExternalProtocolService)
+      .loadURI(Services.io.newURI(aURL));
   }
 };

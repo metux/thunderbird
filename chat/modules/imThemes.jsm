@@ -14,11 +14,9 @@ this.EXPORTED_SYMBOLS = [
   "serializeSelection"
 ];
 
-var {classes: Cc, interfaces: Ci, utils: Cu} = Components;
-
-Cu.import("resource:///modules/imServices.jsm");
-Cu.import("resource://gre/modules/DownloadUtils.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource:///modules/imServices.jsm");
+ChromeUtils.import("resource://gre/modules/DownloadUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 var kMessagesStylePrefBranch = "messenger.options.messagesStyle.";
 var kThemePref = "theme";
@@ -41,7 +39,15 @@ XPCOMUtils.defineLazyGetter(this, "TXTToHTML", function() {
   return aTXT => cs.scanTXT(aTXT, cs.kEntities);
 });
 
-XPCOMUtils.defineLazyModuleGetter(this,
+XPCOMUtils.defineLazyGetter(this, "gTimeFormatter", () => {
+  return new Services.intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+});
+
+ChromeUtils.defineModuleGetter(this,
   "ToLocaleFormat", "resource:///modules/ToLocaleFormat.jsm");
 
 var gCurrentTheme = null;
@@ -55,14 +61,14 @@ function getChromeFile(aURI)
                                           Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                           Ci.nsIContentPolicy.TYPE_OTHER);
     let stream = channel.open();
-    let sstream = Components.classes["@mozilla.org/scriptableinputstream;1"]
-                            .createInstance(Ci.nsIScriptableInputStream);
+    let sstream = Cc["@mozilla.org/scriptableinputstream;1"]
+                    .createInstance(Ci.nsIScriptableInputStream);
     sstream.init(stream);
     let text = sstream.read(sstream.available());
     sstream.close();
     return text;
   } catch (e) {
-    if (e.result != Components.results.NS_ERROR_FILE_NOT_FOUND)
+    if (e.result != Cr.NS_ERROR_FILE_NOT_FOUND)
       dump("Getting " + aURI + ": " + e + "\n");
     return null;
   }
@@ -164,8 +170,8 @@ function getInfoPlistContent(aBaseURI)
                                           Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                           Ci.nsIContentPolicy.TYPE_OTHER);
     let stream = channel.open();
-    let parser = Components.classes["@mozilla.org/xmlextras/domparser;1"]
-                           .createInstance(Ci.nsIDOMParser);
+    let parser = Cc["@mozilla.org/xmlextras/domparser;1"]
+                   .createInstance(Ci.nsIDOMParser);
     let doc = parser.parseFromStream(stream, null, stream.available(), "text/xml");
     if (doc.documentElement.localName != "plist")
       throw "Invalid Info.plist file";
@@ -176,7 +182,7 @@ function getInfoPlistContent(aBaseURI)
       throw "Empty or invalid Info.plist file";
     return plistToJSON(node);
   } catch(e) {
-    Components.utils.reportError(e);
+    Cu.reportError(e);
     return null;
   }
 }
@@ -219,7 +225,7 @@ function getCurrentTheme()
     gCurrentTheme = getThemeByName(name);
     gCurrentTheme.variant = variant;
   } catch(e) {
-    Components.utils.reportError(e);
+    Cu.reportError(e);
     gCurrentTheme = getThemeByName(DEFAULT_THEME);
     gCurrentTheme.variant = "default";
   }
@@ -231,8 +237,8 @@ function getDirectoryEntries(aDir)
 {
   let ios = Services.io;
   let uri = ios.newURI(aDir);
-  let cr = Components.classes["@mozilla.org/chrome/chrome-registry;1"]
-                     .getService(Ci.nsIXULChromeRegistry);
+  let cr = Cc["@mozilla.org/chrome/chrome-registry;1"]
+             .getService(Ci.nsIXULChromeRegistry);
   while (uri.scheme == "chrome")
     uri = cr.convertChromeURL(uri);
 
@@ -247,12 +253,12 @@ function getDirectoryEntries(aDir)
     if (!strEntry)
       return [];
 
-    let zr = Components.classes["@mozilla.org/libjar/zip-reader;1"]
-                       .createInstance(Ci.nsIZipReader);
+    let zr = Cc["@mozilla.org/libjar/zip-reader;1"]
+               .createInstance(Ci.nsIZipReader);
     let jarFile = uri.JARFile;
     if (jarFile instanceof Ci.nsIJARURI) {
-      let innerZr = Components.classes["@mozilla.org/libjar/zip-reader;1"]
-                              .createInstance(Ci.nsIZipReader);
+      let innerZr = Cc["@mozilla.org/libjar/zip-reader;1"]
+                      .createInstance(Ci.nsIZipReader);
       innerZr.open(jarFile.JARFile.QueryInterface(Ci.nsIFileURL).file);
       zr.openInner(innerZr, jarFile.JAREntry);
     }
@@ -342,10 +348,7 @@ var headerFooterReplacements = {
     let date = new Date(aConv.startDate / 1000);
     if (aFormat)
       return ToLocaleFormat(aFormat, date);
-    const timeFormatter = new Services.intl.DateTimeFormat(undefined, {
-      timeStyle: "long"
-    });
-    return timeFormatter.format(date);
+    return gTimeFormatter.format(date);
   }
 };
 
@@ -363,17 +366,11 @@ var statusMessageReplacements = {
     let date = new Date(aMsg.time * 1000);
     if (aFormat)
       return ToLocaleFormat(aFormat, date);
-    const timeFormatter = new Services.intl.DateTimeFormat(undefined, {
-      timeStyle: "long"
-    });
-    return timeFormatter.format(date);
+    return gTimeFormatter.format(date);
   },
   timestamp: aMsg => aMsg.time,
   shortTime: function(aMsg) {
-    const timeFormatter = new Services.intl.DateTimeFormat(undefined, {
-      timeStyle: "long"
-    });
-    return timeFormatter.format(new Date(aMsg.time * 1000));
+    return gTimeFormatter.format(new Date(aMsg.time * 1000));
   },
   messageClasses: function(aMsg) {
     let msgClass = [];
@@ -468,8 +465,8 @@ function replaceKeywordsInHTML(aHTML, aReplacements, aReplacementArg)
     if (match[1] in aReplacements)
       content = aReplacements[match[1]](aReplacementArg, match[3]);
     else
-      Components.utils.reportError("Unknown replacement string %" +
-                                   match[1] + "% in message styles.");
+      Cu.reportError("Unknown replacement string %" +
+                     match[1] + "% in message styles.");
     result += aHTML.substring(previousIndex, match.index) + content;
     previousIndex = kReplacementRegExp.lastIndex;
   }
@@ -542,7 +539,9 @@ function insertHTMLForMessage(aMsg, aHTML, aDoc, aIsNext)
   let range = aDoc.createRange();
   let parent = insert ? insert.parentNode : aDoc.getElementById("Chat");
   range.selectNode(parent);
+  aDoc.allowUnsafeHTML = true;
   let documentFragment = range.createContextualFragment(aHTML);
+  aDoc.allowUnsafeHTML = false;
   let result = documentFragment.firstChild;
 
   // store the prplIMessage object in each of the "root" node that
@@ -552,8 +551,10 @@ function insertHTMLForMessage(aMsg, aHTML, aDoc, aIsNext)
   for (let root = result; root; root = root.nextSibling)
     root._originalMsg = aMsg;
 
-  // make sure the result is an HTMLElement and not some whitespace...
-  while (result && !(result instanceof Ci.nsIDOMHTMLElement))
+  // make sure the result is an HTMLElement and not some text (whitespace)...
+  while (result &&
+         !(result.nodeType == result.ELEMENT_NODE &&
+           result.namespaceURI == "http://www.w3.org/1999/xhtml"))
     result = result.nextSibling;
   if (insert)
     parent.replaceChild(documentFragment, insert);
@@ -655,8 +656,8 @@ function _serializeDOMObject(aDocument, aInitFunction)
   const type = "text/plain";
 
   let encoder =
-    Components.classes["@mozilla.org/layout/documentEncoder;1?type=" + type]
-              .createInstance(Ci.nsIDocumentEncoder);
+    Cc["@mozilla.org/layout/documentEncoder;1?type=" + type]
+      .createInstance(Ci.nsIDocumentEncoder);
   encoder.init(aDocument, type, Ci.nsIDocumentEncoder.OutputPreformatted);
   aInitFunction(encoder);
   let result = encoder.encodeToString();
@@ -780,7 +781,9 @@ SelectedMessage.prototype = {
       return this._spanNode;
 
     let spanNode = null;
-    const NodeFilter = Ci.nsIDOMNodeFilter;
+    // If we could use NodeFilter.webidl, we wouldn't have to make up our own
+    // object. FILTER_REJECT is not used here, but included for completeness.
+    const NodeFilter = { SHOW_ELEMENT: 0x1, FILTER_ACCEPT: 1, FILTER_REJECT: 2, FILTER_SKIP: 3 };
     // helper filter function for the tree walker
     let filter = function(node) {
       return node.className == "ib-msg-txt" ? NodeFilter.FILTER_ACCEPT
@@ -977,7 +980,8 @@ function getMessagesForRange(aRange)
       return true;
 
     // recurse through children
-    if (aNode instanceof Ci.nsIDOMHTMLElement) {
+    if (aNode.nodeType == aNode.ELEMENT_NODE &&
+        aNode.namespaceURI == "http://www.w3.org/1999/xhtml") {
       for (let i = 0; i < aNode.childNodes.length; ++i)
         if (processSubtree(aNode.childNodes[i]))
           return true;
@@ -987,7 +991,8 @@ function getMessagesForRange(aRange)
   };
 
   let currentNode = aRange.commonAncestorContainer;
-  if (currentNode instanceof Ci.nsIDOMHTMLElement) {
+  if (currentNode.nodeType == currentNode.ELEMENT_NODE &&
+      currentNode.namespaceURI == "http://www.w3.org/1999/xhtml") {
     // Determine the index of the first and last children of currentNode
     // that we should process.
     let found = false;

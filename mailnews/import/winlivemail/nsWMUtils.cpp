@@ -9,13 +9,17 @@
 #include "nsString.h"
 #include "nsWMUtils.h"
 #include "nsIDOMDocument.h"
-#include "nsIDOMNodeList.h"
+#include "nsIDocument.h"
+#include "nsINodeList.h"
+#include "nsContentList.h"
 #include "nsIDOMParser.h"
+#include "nsINode.h"
 #include "nsIFileStreams.h"
 #include "nsIFile.h"
 #include "nsISimpleEnumerator.h"
 #include "ImportDebug.h"
 #include "prio.h"
+#include "mozilla/ErrorResult.h"
 
 nsresult
 nsWMUtils::FindWMKey(nsIWindowsRegKey **aKey)
@@ -152,13 +156,13 @@ nsWMUtils::GetValueForTag(nsIDOMDocument *aXmlDoc,
 {
   nsAutoString tagName;
   tagName.AssignASCII(aTagName);
-  nsCOMPtr<nsIDOMNodeList> list;
-  if (NS_FAILED(aXmlDoc->GetElementsByTagName(tagName, getter_AddRefs(list))))
+  nsCOMPtr<nsIDocument> domDocument = do_QueryInterface(aXmlDoc);
+  nsCOMPtr<nsINodeList> list = domDocument->GetElementsByTagName(tagName);
+  nsCOMPtr<nsINode> node = list->Item(0);
+  if (!node)
     return NS_ERROR_FAILURE;
-  nsCOMPtr<nsIDOMNode> domNode;
-  list->Item(0, getter_AddRefs(domNode));
-  if (!domNode)
-    return NS_ERROR_FAILURE;
-  return domNode->GetTextContent(aValue);
+  mozilla::ErrorResult rv2;
+  node->GetTextContent(aValue, rv2);
+  return rv2.StealNSResult();
 }
 

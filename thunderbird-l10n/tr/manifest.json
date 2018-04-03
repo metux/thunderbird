@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/tr/locale/tr/passwordmgr/", 
         "pippki": "chrome/tr/locale/tr/pippki/"
       }, 
-      "version": "20171104131141"
+      "version": "20180312194309"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-tr@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "tr", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Türkçe (TR) Language Pack", 
   "manifest_version": 2, 
   "sources": {

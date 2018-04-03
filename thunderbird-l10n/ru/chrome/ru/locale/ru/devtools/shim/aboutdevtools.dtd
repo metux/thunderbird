@@ -12,67 +12,74 @@
   - -->
 
 <!-- LOCALIZATION NOTE (aboutDevtools.headTitle): Text of the title tag for about:devtools -->
-<!ENTITY  aboutDevtools.headTitle "About Developer Tools">
+<!ENTITY  aboutDevtools.headTitle "Об Инструментах разработчика">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.title): Title of the top about:devtools
   -  section displayed when DevTools are disabled. -->
-<!ENTITY  aboutDevtools.enable.title "Enable Firefox Developer Tools">
+<!ENTITY  aboutDevtools.enable.title "Включить Инструменты разработчика">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.inspectElementTitle): Title of the top
   -  section displayed when devtools are disabled and the user triggered DevTools by using
   -  the Inspect Element menu item. -->
-<!ENTITY  aboutDevtools.enable.inspectElementTitle "Enable Firefox Developer Tools to use Inspect Element">
+<!ENTITY  aboutDevtools.enable.inspectElementTitle "Включить Инструменты разработчика для использования Инспектора элементов">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.inspectElementMessage): Message displayed
   -  when users come from using the Inspect Element menu item. -->
 <!ENTITY  aboutDevtools.enable.inspectElementMessage
-          "Examine and edit HTML and CSS with the Developer Tools’ Inspector.">
+          "Просмотр и редактирование HTML и CSS помощью Инспектора из Инструментов разработчика.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.aboutDebuggingMessage): Message displayed
   -  when users come from about:debugging. -->
 <!ENTITY  aboutDevtools.enable.aboutDebuggingMessage
-          "Develop and debug WebExtensions, web workers, service workers and more with Firefox Developer Tools.">
+          "Разработка и отладка WebExtensions, Web workers, Service workers и много другого в Инструментах разработчика.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.keyShortcutMessage): Message displayed when
   -  users pressed a DevTools key shortcut. -->
 <!ENTITY  aboutDevtools.enable.keyShortcutMessage
-          "You activated a Developer Tools shortcut. If that was a mistake, you can close this Tab.">
+          "Вы активировали ярлык Инструментов разработчика. Если вы ошиблись, то можете закрыть эту вкладку.">
+
+<!-- LOCALIZATION NOTE (aboutDevtools.enable.menuMessage): Message displayed when users
+  -  clicked on a "Enable Developer Tools" menu item. -->
+<!ENTITY  aboutDevtools.enable.menuMessage
+          "Просмотр, изменение и отладка HTML, CSS и JavaScript, используя инструменты, такие как Инспектор и Отладчик.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.menuMessage2): Message displayed when users
   -  clicked on a "Enable Developer Tools" menu item. -->
 <!ENTITY  aboutDevtools.enable.menuMessage2
-          "Perfect your website’s HTML, CSS, and JavaScript with tools like Inspector and Debugger.">
+          "Улучшите HTML, CSS и JavaScript своего веб-сайта, используя инструменты, такие как Инспектор и Отладчик.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.commonMessage): Generic message displayed for
   -  all possible entry points (keyshortcut, menu item etc…). -->
 <!ENTITY  aboutDevtools.enable.commonMessage
-          "Firefox Developer Tools are disabled by default to give you more control over your browser.">
+          "Инструменты разработчика по умолчанию отключены, что даёт вам лучший контроль над браузером.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.learnMoreLink): Text for the link to
   -  https://developer.mozilla.org/docs/Tools displayed in the top section when DevTools
   -  are disabled. -->
-<!ENTITY  aboutDevtools.enable.learnMoreLink "Learn more about Developer Tools">
+<!ENTITY  aboutDevtools.enable.learnMoreLink "Подробнее об Инструментах разработчика">
 
-<!ENTITY  aboutDevtools.enable.enableButton "Enable Developer Tools">
-<!ENTITY  aboutDevtools.enable.closeButton2 "Close this Tab">
+<!ENTITY  aboutDevtools.enable.enableButton "Включить Инструменты разработчика">
+<!ENTITY  aboutDevtools.enable.closeButton "Закрыть эту страницу">
 
-<!ENTITY  aboutDevtools.welcome.title "Welcome to Firefox Developer Tools!">
+<!ENTITY  aboutDevtools.enable.closeButton2 "Закрыть эту вкладку">
 
-<!ENTITY  aboutDevtools.newsletter.title "Mozilla Developer Newsletter">
+<!ENTITY  aboutDevtools.welcome.title "Добро пожаловать в Инструменты разработчика!">
+
+<!ENTITY  aboutDevtools.newsletter.title "Новостная рассылка для разработчиков от Mozilla">
 <!-- LOCALIZATION NOTE (aboutDevtools.newsletter.message): Subscribe form message.
   -  The newsletter is only available in english at the moment.
   -  See Bug 1415273 for support of additional languages.-->
-<!ENTITY  aboutDevtools.newsletter.message "Get developer news, tricks and resources sent straight to your inbox.">
-<!ENTITY  aboutDevtools.newsletter.email.placeholder "Email">
-<!ENTITY  aboutDevtools.newsletter.privacy.label "I’m okay with Mozilla handling my info as explained in this <a class='external' href='https://www.mozilla.org/privacy/'>Privacy Policy</a>.">
-<!ENTITY  aboutDevtools.newsletter.subscribeButton "Subscribe">
-<!ENTITY  aboutDevtools.newsletter.thanks.title "Thanks!">
-<!ENTITY  aboutDevtools.newsletter.thanks.message "If you haven’t previously confirmed a subscription to a Mozilla-related newsletter you may have to do so. Please check your inbox or your spam filter for an email from us.">
+<!ENTITY  aboutDevtools.newsletter.message "Получайте новости от разработчиков, советы и ресурсы, отправляемые прямо к вам в почтовый ящик.">
+<!ENTITY  aboutDevtools.newsletter.email.placeholder "Эл. почта">
+<!ENTITY  aboutDevtools.newsletter.privacy.label "Я согласен с тем, как Mozilla обращается с моей информацией, согласно <a class='external' href='https://www.mozilla.org/privacy/'>Политике приватности</a>.">
+<!ENTITY  aboutDevtools.newsletter.subscribeButton "Подписаться">
+<!ENTITY  aboutDevtools.newsletter.thanks.title "Спасибо!">
+<!ENTITY  aboutDevtools.newsletter.thanks.message 'Если вы ранее не подтверждали подписку на новостные рассылки Mozilla, то вам может понадобится сделать это. Пожалуйста, проверьте вашу папку "Входящие" или "Спам" на наличие письма от нас.'>
 
 <!ENTITY  aboutDevtools.footer.title "Firefox Developer Edition">
-<!ENTITY  aboutDevtools.footer.message "Looking for more than just Developer Tools? Check out the Firefox browser that is built specifically for developers and modern workflows.">
+<!ENTITY  aboutDevtools.footer.message "Ищете не только Инструменты разработчика? Испытайте браузер Firefox, построенный специально для разработчиков и современных рабочих процессов.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.footer.learnMoreLink): Text for the link to
   -  https://www.mozilla.org/firefox/developer/ displayed in the footer. -->
-<!ENTITY  aboutDevtools.footer.learnMoreLink "Learn more">
+<!ENTITY  aboutDevtools.footer.learnMoreLink "Подробнее">
 

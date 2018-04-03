@@ -157,3 +157,5 @@ functionality specific to thunderbird. -->
 <!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
      "NS_ERROR_NET_INADEQUATE_SECURITY". -->
 <!ENTITY inadequateSecurityError.longDesc "<p><span class='hostname'></span> notar öryggistækni sem er úrelt og er ekki örugg. Árásaraðili gæti auðveldlega náð í upplýsingar sem þú gætir talið að væru öruggar. Kerfisstjóri þarf að lagfæra netþjóninn áður áður en þú getur heimsótt vefsvæðið.</p><p>Villukóði: NS_ERROR_NET_INADEQUATE_SECURITY</p>">
+
+<!ENTITY blockedByPolicy.title "Blocked Page">

@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://calendar/modules/calXMLUtils.jsm");
-Components.utils.import("resource://calendar/modules/calRecurrenceUtils.jsm");
-Components.utils.import("resource://gre/modules/Preferences.jsm");
-Components.utils.import("resource://calendar/modules/ltnUtils.jsm");
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calXMLUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calRecurrenceUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://calendar/modules/ltnUtils.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 this.EXPORTED_SYMBOLS = ["ltn"]; // even though it's defined in ltnUtils.jsm, import needs this
 ltn.invitation = {
@@ -163,7 +163,7 @@ ltn.invitation = {
                     } else {
                         // This is an RDATE, close enough to a modified occurrence
                         let excItem = aEvent.recurrenceInfo.getOccurrenceFor(exc.date);
-                        cal.binaryInsert(modifiedOccurrences, excItem, dateComptor, true);
+                        cal.data.binaryInsert(modifiedOccurrences, excItem, dateComptor, true);
                     }
                 }
             }
@@ -181,7 +181,7 @@ ltn.invitation = {
                 if (exc.startDate.compare(exc.recurrenceId) != 0 ||
                     exc.duration.compare(aEvent.duration) != 0 ||
                     excLocation != aEvent.getProperty("LOCATION")) {
-                    cal.binaryInsert(modifiedOccurrences, exc, dateComptor, true);
+                    cal.data.binaryInsert(modifiedOccurrences, exc, dateComptor, true);
                 }
             }
 
@@ -534,7 +534,7 @@ ltn.invitation = {
      * @return {String} JsObject.comment           A comment of the attendee, if any
      */
     parseCounter: function(aProposedItem, aExistingItem) {
-        let isEvent = cal.isEvent(aProposedItem);
+        let isEvent = cal.item.isEvent(aProposedItem);
         // atm we only support a subset of properties, for a full list see RfC 5546 section 3.2.7
         let properties = ["SUMMARY", "LOCATION", "DTSTART", "DTEND", "COMMENT"];
         if (!isEvent) {

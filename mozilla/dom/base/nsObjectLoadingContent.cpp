@@ -2509,6 +2509,7 @@ nsObjectLoadingContent::OpenChannel()
                      thisContent,
                      securityFlags,
                      contentPolicyType,
+                     nullptr, // aPerformanceStorage
                      group, // aLoadGroup
                      shim,  // aCallbacks
                      nsIChannel::LOAD_CALL_CONTENT_SNIFFERS |
@@ -2968,7 +2969,7 @@ nsObjectLoadingContent::LoadFallback(FallbackType aType, bool aNotify) {
       bool skipChildDescendants = false;
       if (aType != eFallbackAlternate &&
           !child->IsHTMLElement(nsGkAtoms::param) &&
-          nsStyleUtil::IsSignificantChild(child, true, false)) {
+          nsStyleUtil::IsSignificantChild(child, false)) {
         aType = eFallbackAlternate;
       }
       if (thisIsObject) {

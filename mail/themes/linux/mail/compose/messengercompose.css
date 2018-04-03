@@ -9,13 +9,14 @@
 @import url("chrome://messenger/skin/");
 
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+@namespace html url("http://www.w3.org/1999/xhtml");
 
 #attachmentBucket {
   width: 15em;
   min-width: 15em;
 }
 
-#attachmentBucket:focus {
+#attachmentBucket[empty]:focus {
   box-shadow: 0 0 2px Highlight inset, 0 0 2px Highlight inset;
 }
 
@@ -193,20 +194,16 @@ menulist:-moz-locale-dir(rtl) > .menulist-label-box {
 }
 
 #attachments-header-box {
-  height: 24px;
-  margin-top: 1px;
-}
-
-#attachmentBucketCount {
-  margin-top: 0;
-  margin-bottom: 0;
+  min-height: 28px;
 }
 
 #attachmentBucketSize {
   color: GrayText;
-  margin-top: 0;
-  margin-bottom: 0;
-  padding-inline-end: 1px;
+  padding-inline-end: 2px;
+}
+
+#attachmentBucketCloseButton {
+  padding: 0 1px;
 }
 
 /* ::::: attachment reminder ::::: */
@@ -220,13 +217,13 @@ menulist:-moz-locale-dir(rtl) > .menulist-label-box {
 }
 
 #attachmentReminderText {
-  margin-inline-start: 0px;
+  margin-inline-start: 0;
   cursor: pointer;
 }
 
 #attachmentKeywords {
   font-weight: bold;
-  margin-inline-start: 0px;
+  margin-inline-start: 0;
   text-decoration: underline;
   cursor: pointer;
 }
@@ -266,38 +263,61 @@ menulist:-moz-locale-dir(rtl) > .menulist-label-box {
   border-color: var(--toolbarbutton-hover-bordercolor);
 }
 
+.autocomplete-richlistitem:hover {
+  background-color: var(--arrowpanel-dimmed);
+}
+
+.autocomplete-richlistitem[selected] {
+  background-color: Highlight;
+  color: HighlightText;
+}
+
 /* ::::: autocomplete icons ::::: */
 
-treechildren::-moz-tree-image(local-abook) {
-  margin-inline-start: 3px;
-  margin-inline-end: 2px;
+html|span.ac-emphasize-text {
+  font-weight: bold;
+}
+
+.autocomplete-richlistitem:not([ac-comment=""]) > .ac-url,
+.autocomplete-richlistitem:not([ac-comment=""]) > .ac-separator {
+  display: -moz-box;
+}
+
+.autocomplete-richlistitem:not([ac-comment=""]) > .ac-url {
+  -moz-box-ordinal-group: 1;
+}
+
+.autocomplete-richlistitem:not([ac-comment=""]) > .ac-separator {
+  -moz-box-ordinal-group: 2;
+}
+
+.autocomplete-richlistitem:not([ac-comment=""]) > .ac-title {
+  -moz-box-ordinal-group: 3;
+}
+
+.ac-site-icon {
+  display: -moz-box;
+  margin: 1px 5px;
+}
+
+.autocomplete-richlistitem[type="local-abook"] > .ac-site-icon {
   list-style-image: url("chrome://messenger/skin/addressbook/icons/addrbook.png");
 }
 
-treechildren::-moz-tree-image(remote-abook) {
-  margin-inline-start: 3px;
-  margin-inline-end: 2px;
+.autocomplete-richlistitem[type="remote-abook"] > .ac-site-icon {
   list-style-image: url("chrome://messenger/skin/addressbook/icons/remote-addrbook.png");
 }
 
-treechildren::-moz-tree-image(remote-err) {
-  margin-inline-start: 3px;
-  margin-inline-end: 2px;
+.autocomplete-richlistitem[type="remote-err"] > .ac-site-icon {
   list-style-image: url("chrome://messenger/skin/addressbook/icons/remote-addrbook-error.png");
 }
 
-treechildren::-moz-tree-image(subscribed-news) {
-  margin-inline-start: 3px;
-  margin-inline-end: 2px;
+.autocomplete-richlistitem[type="subscribed-news"] > .ac-site-icon {
   list-style-image: url("chrome://messenger/skin/icons/folder-pane.png");
   -moz-image-region: rect(208px 16px 224px 0px);
 }
 
 /* ::::: addressing widget ::::: */
-
-.autocomplete-treebody::-moz-tree-cell-text(comment) {
-  color: #555566;
-}
 
 #addressingWidget {
   -moz-user-focus: none;
@@ -323,6 +343,7 @@ treechildren::-moz-tree-image(subscribed-news) {
 .textbox-addressingWidget,
 .dummy-row-cell:not(:first-child) {
   padding: 4px 2px !important;
+  padding-inline-start: 5px !important;
   border: solid 1px transparent !important;
   border-bottom-color: var(--toolbarbutton-hover-bordercolor) !important;
   transition: border .2s, background-color .2s;
@@ -337,6 +358,23 @@ treechildren::-moz-tree-image(subscribed-news) {
 .textbox-addressingWidget:hover {
   background-color: -moz-field;
   border-color: var(--toolbarbutton-hover-bordercolor) !important;
+}
+
+.deleteAddress {
+  -moz-box-ordinal-group: 0;
+  cursor: default;
+  margin-inline-start: 0;
+  margin-bottom: 1px;
+  width: 0;
+  height: 18px;
+  transition-property: width, margin-inline-start;
+  transition-duration: 50ms, 50ms;
+  transition-timing-function: ease-in-out, ease-in-out;
+}
+
+.addressingWidgetCell:hover > .aw-menulist:not([open="true"]) + .deleteAddress {
+  margin-inline-start: 5px;
+  width: 18px;
 }
 
 .aw-menulist {
@@ -414,6 +452,10 @@ treechildren::-moz-tree-image(subscribed-news) {
   padding-top: 3px;
 }
 
+#addresses-box {
+  padding-top: 4px;
+}
+
 #identityLabel-box {
   margin-top: 1px;
 }
@@ -467,6 +509,18 @@ treechildren::-moz-tree-image(subscribed-news) {
 #msgIdentityPopup > menuitem[_moz-menuactive="true"] > .menu-description {
   color: HighlightText;
   opacity: .7;
+}
+
+.menu-description {
+  font-style: italic;
+  color: GrayText;
+  margin-inline-start: 1ex !important;
+}
+
+.menulist-description {
+  font-style: italic;
+  color: GrayText;
+  margin-inline-start: 1ex !important;
 }
 
 /* ::::: format toolbar ::::: */
@@ -813,10 +867,6 @@ toolbarbutton.formatting-button {
 
 #menu_checkspelling {
   list-style-image: url("moz-icon://stock/gtk-spell-check?size=menu");
-}
-
-#msgIdentityPopup > menuitem {
-  -moz-binding: url("chrome://global/content/bindings/menu.xml#menuitem-iconic-desc-noaccel");
 }
 
 #tasksMenuAddressBook {

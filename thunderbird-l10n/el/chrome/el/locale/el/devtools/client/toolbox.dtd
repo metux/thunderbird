@@ -214,4 +214,5 @@
 <!ENTITY options.sourceeditor.keybinding.accesskey      "Σ">
 <!ENTITY options.sourceeditor.keybinding.default.label  "Προεπιλογή">
 
+<!ENTITY browserToolboxStatusMessage "Browser Toolbox connection status:">
 <!ENTITY options.sourceMaps.tooltip1   "If you enable this option sources will be mapped in the tools.">

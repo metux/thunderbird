@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/he/locale/he/passwordmgr/", 
         "pippki": "chrome/he/locale/he/pippki/"
       }, 
-      "version": "20171105175226"
+      "version": "20180312193044"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-he@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "he", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Hebrew (IL) Language Pack", 
   "manifest_version": 2, 
   "sources": {

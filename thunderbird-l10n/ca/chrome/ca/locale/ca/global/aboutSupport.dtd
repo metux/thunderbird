@@ -156,6 +156,7 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
 <!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
 <!ENTITY aboutSupport.appBasicsProcessCount "Web Content Processes">
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla Location Service Key">
 <!ENTITY aboutSupport.a11yHandlerUsed "Accessible Handler Used">
 <!ENTITY aboutSupport.a11yInstantiator "Accessibility Instantiator">

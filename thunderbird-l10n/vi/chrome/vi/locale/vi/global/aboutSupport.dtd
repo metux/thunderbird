@@ -74,6 +74,7 @@ variant of aboutSupport.show.label.  This allows us to use the preferred
 <!ENTITY aboutSupport.appBasicsProfiles "Profiles">
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Multiprocess Windows">
 <!ENTITY aboutSupport.appBasicsProcessCount "Web Content Processes">
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Google Key">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla Location Service Key">
 <!ENTITY aboutSupport.appBasicsSafeMode "Safe Mode">

@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/hsb/locale/hsb/passwordmgr/", 
         "pippki": "chrome/hsb/locale/hsb/pippki/"
       }, 
-      "version": "20171103145619"
+      "version": "20180314063303"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-hsb@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "hsb", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Hornjoserbšćina Language Pack", 
   "manifest_version": 2, 
   "sources": {

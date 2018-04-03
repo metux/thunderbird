@@ -33,7 +33,7 @@
 <!ENTITY fullnameLabel.label "Вашето име:">
 <!ENTITY fullnameLabel.accesskey "В">
 
-<!ENTITY emailLabel.label "Адрес на е-поща:">
+<!ENTITY emailLabel.label "Адрес на ел. поща:">
 <!ENTITY emailLabel.accesskey "А">
 
 <!-- Entities for Incoming Server page -->
@@ -46,8 +46,8 @@
 <!-- LOCALIZATION NOTE (popType.label) : Do not translate "POP" in below line -->
 <!ENTITY popType.label "POP">
 <!ENTITY popType.accesskey "P">
-<!ENTITY leaveMsgsOnSrvr.label "Запазване съобщенията на сървъра">
-<!ENTITY leaveMsgsOnSrvr.accesskey "З">
+<!ENTITY leaveMsgsOnSrvr.label "Оставяне на копие от писмата на сървъра">
+<!ENTITY leaveMsgsOnSrvr.accesskey "о">
 <!ENTITY portNum.label "Порт:">
 <!ENTITY portNum.accesskey "о">
 <!ENTITY defaultPortLabel.label "По подразбиране:">

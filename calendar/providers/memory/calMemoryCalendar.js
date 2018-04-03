@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-Components.utils.import("resource://calendar/modules/calProviderUtils.jsm");
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://calendar/modules/calIteratorUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calProviderUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calIteratorUtils.jsm");
 
 //
 // calMemoryCalendar.js
@@ -44,10 +44,10 @@ calMemoryCalendar.prototype = {
     mMetaData: null,
 
     initMemoryCalendar: function() {
-        this.mObservers = new cal.ObserverBag(Components.interfaces.calIObserver);
+        this.mObservers = new cal.data.ObserverSet(Components.interfaces.calIObserver);
         this.mItems = {};
         this.mOfflineFlags = {};
-        this.mMetaData = new cal.calPropertyBag();
+        this.mMetaData = new cal.data.PropertyMap();
     },
 
     //
@@ -68,7 +68,7 @@ calMemoryCalendar.prototype = {
     deleteCalendar: function(calendar, listener) {
         calendar = calendar.wrappedJSObject;
         calendar.mItems = {};
-        calendar.mMetaData = new cal.calPropertyBag();
+        calendar.mMetaData = new cal.data.PropertyMap();
 
         try {
             listener.onDeleteCalendar(calendar, Components.results.NS_OK, null);
@@ -226,7 +226,7 @@ calMemoryCalendar.prototype = {
 
             // compareItems is not suitable here. See bug 418805.
             // Cannot compare here due to bug 380060
-            if (!cal.compareItemContent(storedOldItem, aOldItem)) {
+            if (!cal.item.compareContent(storedOldItem, aOldItem)) {
                 return reportError("old item mismatch in modifyItem. storedId:" + storedOldItem.icalComponent + " old item:" + aOldItem.icalComponent);
             }
             // offline bug
@@ -292,7 +292,7 @@ calMemoryCalendar.prototype = {
 
 
         delete this.mItems[aItem.id];
-        this.mMetaData.deleteProperty(aItem.id);
+        this.mMetaData.delete(aItem.id);
 
         this.notifyOperationComplete(aListener,
                                      Components.results.NS_OK,
@@ -322,9 +322,9 @@ calMemoryCalendar.prototype = {
         let item = this.mItems[aId];
         let iid = null;
 
-        if (cal.isEvent(item)) {
+        if (cal.item.isEvent(item)) {
             iid = Components.interfaces.calIEvent;
-        } else if (cal.isToDo(item)) {
+        } else if (cal.item.isToDo(item)) {
             iid = Components.interfaces.calITodo;
         } else {
             this.notifyOperationComplete(aListener,
@@ -446,7 +446,7 @@ calMemoryCalendar.prototype = {
         };
 
         cal.forEach(this.mItems, ([id, item]) => {
-            let isEvent_ = cal.isEvent(item);
+            let isEvent_ = cal.item.isEvent(item);
             if (isEvent_) {
                 if (!wantEvents) {
                     return cal.forEach.CONTINUE;
@@ -465,7 +465,7 @@ calMemoryCalendar.prototype = {
 
             if (itemReturnOccurrences && item.recurrenceInfo) {
                 let startDate = aRangeStart;
-                if (!aRangeStart && cal.isToDo(item)) {
+                if (!aRangeStart && cal.item.isToDo(item)) {
                     startDate = item.entryDate;
                 }
                 let occurrences = item.recurrenceInfo.getOccurrences(
@@ -479,7 +479,7 @@ calMemoryCalendar.prototype = {
                 itemsFound = itemsFound.concat(occurrences);
             } else if ((!wantUnrespondedInvitations || checkUnrespondedInvitation(item)) &&
                        (isEvent_ || checkCompleted(item)) &&
-                       cal.checkIfInRange(item, aRangeStart, aRangeEnd)) {
+                       cal.item.checkIfInRange(item, aRangeStart, aRangeEnd)) {
                 // This needs fixing for recurring items, e.g. DTSTART of parent may occur before aRangeStart.
                 // This will be changed with bug 416975.
                 itemsFound.push(item);
@@ -565,16 +565,17 @@ calMemoryCalendar.prototype = {
     // calISyncWriteCalendar interface
     //
     setMetaData: function(id, value) {
-        this.mMetaData.setProperty(id, value);
+        this.mMetaData.set(id, value);
     },
     deleteMetaData: function(id) {
-        this.mMetaData.deleteProperty(id);
+        this.mMetaData.delete(id);
     },
     getMetaData: function(id) {
-        return this.mMetaData.getProperty(id);
+        return this.mMetaData.get(id);
     },
     getAllMetaData: function(out_count, out_ids, out_values) {
-        this.mMetaData.getAllProperties(out_ids, out_values);
+        out_ids.value = [...this.mMetaData.keys()];
+        out_values.value = [...this.mMetaData.values()];
         out_count.value = out_ids.value.length;
     }
 };

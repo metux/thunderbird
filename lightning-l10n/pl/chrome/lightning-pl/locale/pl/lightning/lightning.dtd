@@ -26,7 +26,11 @@
 <!ENTITY lightning.menu.eventtask.label       "Wydarzenia i zadania">
 <!ENTITY lightning.menu.eventtask.accesskey   "a">
 
-<!ENTITY lightning.calendarproperties.email.label               "E-mail:">
+<!ENTITY lightning.calendarproperties.email.label "E-mail:">
+
+<!ENTITY lightning.calendarproperties.forceEmailScheduling.label "Preferuj harmonogram pocztowy po stronie klienta">
+<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext1 "Na razie można włączyć tę opcję tylko po ustawieniu tego kalendarza w jego oknie właściwości, jeśli serwer kalendarza obsługuje harmonogram.">
+<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext2 "Ta opcja jest dostępna tylko, jeśli serwer kalendarza obsługuje harmonogram. Włączenie umożliwi użycie standardowego harmonogramu pocztowego, zamiast pozostawiać to serwerowi.">
 
 <!ENTITY lightning.imipbar.btnAccept.label "Zaakceptuj">
 <!ENTITY lightning.imipbar.btnAccept2.tooltiptext "Zaakceptuj zaproszenie na wydarzenie">
@@ -77,6 +81,9 @@
 <!ENTITY todaypane.showTodayPane.accesskey  "o">
 <!ENTITY todaypane.statusButton.label       "Bieżące">
 
-<!ENTITY lightning.calendarproperties.forceEmailScheduling.label            "Prefer client-side email scheduling">
-<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext1     "For now, you can only enable this after setting up this calendar in its property dialog if the calendar server takes care of scheduling.">
-<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext2     "This option is only available if the calendar server handles scheduling. Enabling will allow to fall back to the standard email based scheduling instead of leaving it to the server.">
+<!ENTITY lightning.imipbar.btnSend.label                                    "Send a response now">
+<!ENTITY lightning.imipbar.btnSend.tooltiptext                              "Send a response to the organizer">
+<!ENTITY lightning.imipbar.btnSendSeries.tooltiptext                        "Send a response for the entire series to the organizer">
+<!ENTITY lightning.imipbar.btnDontSend.label                                "Do not send a response">
+<!ENTITY lightning.imipbar.btnDontSend.tooltiptext                          "Change your participation status without sending a response to the organizer">
+<!ENTITY lightning.imipbar.btnDontSendSeries.tooltiptext                    "Change your participation status for the series without sending a response to the organizer">

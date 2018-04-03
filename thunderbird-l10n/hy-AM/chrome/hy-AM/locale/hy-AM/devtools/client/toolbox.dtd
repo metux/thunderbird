@@ -182,6 +182,7 @@
 
 <!ENTITY options.sourceeditor.keybinding.default.label  "Լռելյայն">
 
+<!ENTITY browserToolboxStatusMessage "Browser Toolbox connection status:">
 <!ENTITY options.showUserAgentStyles.tooltip "Turning this on will show default styles that are loaded by the browser.">
 <!ENTITY options.collapseAttrs.label "Truncate DOM attributes">
 <!ENTITY options.collapseAttrs.tooltip "Truncate long attributes in the inspector">

@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://calendar/modules/calAlarmUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/Preferences.jsm");
-Components.utils.import("resource://gre/modules/PromiseUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calAlarmUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://gre/modules/PromiseUtils.jsm");
 
 var kHoursBetweenUpdates = 6;
 
@@ -30,7 +30,7 @@ function calAlarmService() {
 
     this.mLoadedCalendars = {};
     this.mTimerMap = {};
-    this.mObservers = new cal.calListenerBag(Components.interfaces.calIAlarmServiceObserver);
+    this.mObservers = new cal.data.ListenerSet(Components.interfaces.calIAlarmServiceObserver);
 
     this.calendarObserver = {
         alarmService: this,
@@ -182,8 +182,8 @@ calAlarmService.prototype = {
 
     dismissAlarm: function(aItem, aAlarm) {
         let rv;
-        if (cal.isCalendarWritable(aItem.calendar) &&
-            cal.userCanModifyItem(aItem)) {
+        if (cal.acl.isCalendarWritable(aItem.calendar) &&
+            cal.acl.userCanModifyItem(aItem)) {
             let now = nowUTC();
             // We want the parent item, otherwise we're going to accidentally
             // create an exception.  We've relnoted (for 0.1) the slightly odd
@@ -216,7 +216,7 @@ calAlarmService.prototype = {
     },
 
     removeObserver: function(aObserver) {
-        this.mObservers.remove(aObserver);
+        this.mObservers.delete(aObserver);
     },
 
     startup: function() {
@@ -320,7 +320,7 @@ calAlarmService.prototype = {
     },
 
     addAlarmsForItem: function(aItem) {
-        if (cal.isToDo(aItem) && aItem.isCompleted) {
+        if (cal.item.isToDo(aItem) && aItem.isCompleted) {
             // If this is a task and it is completed, don't add the alarm.
             return;
         }
@@ -383,8 +383,8 @@ calAlarmService.prototype = {
 
                 this.addTimer(aItem, alarm, timeout);
             } else if (showMissed &&
-                       cal.isCalendarWritable(aItem.calendar) &&
-                       cal.userCanModifyItem(aItem)) {
+                       cal.acl.isCalendarWritable(aItem.calendar) &&
+                       cal.acl.userCanModifyItem(aItem)) {
                 // This alarm is in the past and the calendar is writable, so we
                 // could snooze or dismiss alarms. See if it has been previously
                 // ack'd.
@@ -419,7 +419,7 @@ calAlarmService.prototype = {
         if (aItem && aItem.recurrenceInfo) {
             return aItem.recurrenceInfo.getOccurrences(this.mRangeStart, until, 0, {});
         } else {
-            return cal.checkIfInRange(aItem, this.mRangeStart, until) ? [aItem] : [];
+            return cal.item.checkIfInRange(aItem, this.mRangeStart, until) ? [aItem] : [];
         }
     },
 

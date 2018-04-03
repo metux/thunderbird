@@ -3,8 +3,8 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY aboutSupport.pageTitle "Informacije za rozrisowanje problemow">
-<!-- LOCALIZATION NOTE (aboutSupport.pageSubtitle): don't change the 'supportLink' id. -->
 
+<!-- LOCALIZATION NOTE (aboutSupport.pageSubtitle): don't change the 'supportLink' id. -->
 <!ENTITY aboutSupport.pageSubtitle "  Tuta strona wobsahuje techniske informacije, kotrež móhli wužitne być, hdyž pospytujeće problem rozrisać. Jeli za wotmołwami za zwučene prašenja wo &brandShortName; pytaće, wopytajće našu <a id='supportLink'>podpěranske websydło</a>.">
 
 <!ENTITY aboutSupport.crashes.title "Rozprawy wo spadach">
@@ -20,6 +20,13 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionEnabled "Zmóžnjeny">
 <!ENTITY aboutSupport.extensionVersion "Wersija">
 <!ENTITY aboutSupport.extensionId "ID">
+
+<!ENTITY aboutSupport.securitySoftwareTitle "Wěstotna softwara">
+<!ENTITY aboutSupport.securitySoftwareType "Typ">
+<!ENTITY aboutSupport.securitySoftwareName "Mjeno">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antiwirusowy program">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Program přećiwo spionažnej softwarje">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Wohnjomurja">
 
 <!ENTITY aboutSupport.featuresTitle "Funkcije &brandShortName;">
 <!ENTITY aboutSupport.featureName "Mjeno">
@@ -39,9 +46,9 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.appBasicsName "Mjeno">
 <!ENTITY aboutSupport.appBasicsVersion "Wersija">
 <!ENTITY aboutSupport.appBasicsBuildID "Wersijowy ID">
+
 <!-- LOCALIZATION NOTE (aboutSupport.appBasicsUpdateChannel, aboutSupport.appBasicsUpdateHistory, aboutSupport.appBasicsShowUpdateHistory):
 "Update" is a noun here, not a verb. -->
-
 <!ENTITY aboutSupport.appBasicsUpdateChannel "Aktualizowanski kanal">
 <!ENTITY aboutSupport.appBasicsUpdateHistory "Aktualizaciska historija">
 <!ENTITY aboutSupport.appBasicsShowUpdateHistory "Aktualizacisku historiju pokazać">
@@ -58,8 +65,8 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsOS "Dźěłowy system">
 <!ENTITY aboutSupport.appBasicsMemoryUse "Wužity składowak">
 <!ENTITY aboutSupport.appBasicsPerformance "Wukon">
-<!-- LOCALIZATION NOTE the term "Service Workers" should not be translated. -->
 
+<!-- LOCALIZATION NOTE the term "Service Workers" should not be translated. -->
 <!ENTITY aboutSupport.appBasicsServiceWorkers "Zregistrowane service workers">
 
 <!ENTITY aboutSupport.appBasicsProfiles "Profile">
@@ -67,6 +74,8 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Multiprocesowe wokna">
 
 <!ENTITY aboutSupport.appBasicsProcessCount "Webwobsahowe procesy">
+
+<!ENTITY aboutSupport.enterprisePolicies "Předewzaćelske prawidła">
 
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Kluč Google">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Kluč słužby postajenja stejnišća Mozilla">
@@ -85,8 +94,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.modifiedKeyPrefsTitle "Wažne změnjene nastajenja">
 <!ENTITY aboutSupport.modifiedPrefsName "Mjeno">
 <!ENTITY aboutSupport.modifiedPrefsValue "Hódnota">
-<!-- LOCALIZATION NOTE (aboutSupport.userJSTitle, aboutSupport.userJSDescription): user.js is the name of the preference override file being checked. -->
 
+<!-- LOCALIZATION NOTE (aboutSupport.userJSTitle, aboutSupport.userJSDescription): user.js is the name of the preference override file being checked. -->
 <!ENTITY aboutSupport.userJSTitle "Nastajenja w user.js">
 <!ENTITY aboutSupport.userJSDescription "Waš profilowy rjadowak wobsahuje <a id='prefs-user-js-link'>dataju user.js</a>, kotraž nastajenja wobsahuje, kotrež njejsu so přez &brandShortName; wutworili.">
 
@@ -152,18 +161,12 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "Rata">
 <!ENTITY aboutSupport.mediaDeviceLatency "Latenca">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.intlTitle "Internacionalizacija a lokalizacija">
+<!ENTITY aboutSupport.intlAppTitle "Nastajenja nałoženja">
+<!ENTITY aboutSupport.intlLocalesRequested "Požadane rěče">
+<!ENTITY aboutSupport.intlLocalesAvailable "K dispoziciji stejace reče">
+<!ENTITY aboutSupport.intlLocalesSupported "Rěče nałoženja">
+<!ENTITY aboutSupport.intlLocalesDefault "Standardna rěč">
+<!ENTITY aboutSupport.intlOSTitle "Dźěłowy system">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Systemowe rěče">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regionalne nastajenja">

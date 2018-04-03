@@ -6,7 +6,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 function getMessageHeaderFromUrl(aUrl) {
   let msgUrl = MailServices.nntp
@@ -23,8 +23,8 @@ function run_test() {
     // msgkey is invalid for news:// protocol
     let hdr = getMessageHeaderFromUrl("news://localhost:119" +
                                       "/123@example.invalid?group=test.subscribe.simple&key=abcdefghijk");
-    Assert.ok(false); 
+    Assert.ok(false);
   } catch (e) {
-    Assert.equal(e.result, Components.results.NS_ERROR_MALFORMED_URI);
+    Assert.equal(e.result, Cr.NS_ERROR_MALFORMED_URI);
   }
 }

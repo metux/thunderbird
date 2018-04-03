@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 /** Constructor for webcal: protocol handler */
 function calProtocolHandlerWebcal() {
@@ -31,11 +31,13 @@ calProtocolHandler.prototype = {
     get protocolFlags() { return this.mHttpProtocol.protocolFlags; },
 
     newURI: function(aSpec, anOriginalCharset, aBaseURI) {
-        let uri = Components.classes["@mozilla.org/network/standard-url;1"]
-                            .createInstance(Components.interfaces.nsIStandardURL);
-        uri.init(Components.interfaces.nsIStandardURL.URLTYPE_STANDARD,
-                 this.mHttpProtocol.defaultPort, aSpec, anOriginalCharset, aBaseURI);
-        return uri;
+        return Components.classes["@mozilla.org/network/standard-url-mutator;1"]
+                         .createInstance(Components.interfaces.nsIStandardURLMutator)
+                         .init(Components.interfaces.nsIStandardURL.URLTYPE_STANDARD,
+                               this.mHttpProtocol.defaultPort,
+                               aSpec, anOriginalCharset, aBaseURI)
+                         .finalize()
+                         .QueryInterface(Components.interfaces.nsIStandardURL);
     },
 
     newChannel: function(aUri) {
@@ -43,10 +45,7 @@ calProtocolHandler.prototype = {
     },
 
     newChannel2: function(aUri, aLoadInfo) {
-        // make sure to clone the uri, because we are about to change
-        // it, and we don't want to change the original uri.
-        let uri = aUri.clone();
-        uri.scheme = this.mHttpProtocol.scheme;
+        let uri = aUri.mutate().setScheme(this.mHttpProtocol.scheme).finalize();
 
         let channel;
         if (aLoadInfo) {

@@ -11,13 +11,14 @@
 #include "builtin/SelfHostingDefines.h"
 #include "frontend/ParseNode.h"
 #include "frontend/SharedContext.h"
+#include "gc/FreeOp.h"
 #include "gc/Policy.h"
 #include "gc/Tracer.h"
 #include "vm/AsyncFunction.h"
 #include "vm/AsyncIteration.h"
 
-#include "jsobjinlines.h"
-#include "jsscriptinlines.h"
+#include "vm/JSObject-inl.h"
+#include "vm/JSScript-inl.h"
 
 using namespace js;
 using namespace js::frontend;
@@ -79,8 +80,10 @@ ModuleValueGetter(JSContext* cx, unsigned argc, Value* vp)
     cls::name() const                                                         \
     {                                                                         \
         Value value = cls##_##name##Value(this);                              \
-        MOZ_ASSERT(value.toInt32() >= 0);                                     \
-        return value.toInt32();                                               \
+        MOZ_ASSERT(value.toNumber() >= 0);                                    \
+        if (value.isInt32())                                                  \
+            return value.toInt32();                                           \
+        return JS::ToUint32(value.toDouble());                                \
     }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -142,9 +145,10 @@ ImportEntryObject::create(JSContext* cx,
                           uint32_t lineNumber,
                           uint32_t columnNumber)
 {
-    MOZ_ASSERT(lineNumber > 0);
+    RootedObject proto(cx, GlobalObject::getOrCreateImportEntryPrototype(cx, cx->global()));
+    if (!proto)
+        return nullptr;
 
-    RootedObject proto(cx, cx->global()->getImportEntryPrototype());
     RootedObject obj(cx, NewObjectWithGivenProto(cx, &class_, proto));
     if (!obj)
         return nullptr;
@@ -153,8 +157,8 @@ ImportEntryObject::create(JSContext* cx,
     self->initReservedSlot(ModuleRequestSlot, StringValue(moduleRequest));
     self->initReservedSlot(ImportNameSlot, StringValue(importName));
     self->initReservedSlot(LocalNameSlot, StringValue(localName));
-    self->initReservedSlot(LineNumberSlot, Int32Value(lineNumber));
-    self->initReservedSlot(ColumnNumberSlot, Int32Value(columnNumber));
+    self->initReservedSlot(LineNumberSlot, NumberValue(lineNumber));
+    self->initReservedSlot(ColumnNumberSlot, NumberValue(columnNumber));
     return self;
 }
 
@@ -230,7 +234,10 @@ ExportEntryObject::create(JSContext* cx,
     // Line and column numbers are optional for export entries since direct
     // entries are checked at parse time.
 
-    RootedObject proto(cx, cx->global()->getExportEntryPrototype());
+    RootedObject proto(cx, GlobalObject::getOrCreateExportEntryPrototype(cx, cx->global()));
+    if (!proto)
+        return nullptr;
+
     RootedObject obj(cx, NewObjectWithGivenProto(cx, &class_, proto));
     if (!obj)
         return nullptr;
@@ -240,8 +247,8 @@ ExportEntryObject::create(JSContext* cx,
     self->initReservedSlot(ModuleRequestSlot, StringOrNullValue(maybeModuleRequest));
     self->initReservedSlot(ImportNameSlot, StringOrNullValue(maybeImportName));
     self->initReservedSlot(LocalNameSlot, StringOrNullValue(maybeLocalName));
-    self->initReservedSlot(LineNumberSlot, Int32Value(lineNumber));
-    self->initReservedSlot(ColumnNumberSlot, Int32Value(columnNumber));
+    self->initReservedSlot(LineNumberSlot, NumberValue(lineNumber));
+    self->initReservedSlot(ColumnNumberSlot, NumberValue(columnNumber));
     return self;
 }
 
@@ -296,17 +303,18 @@ RequestedModuleObject::create(JSContext* cx,
                               uint32_t lineNumber,
                               uint32_t columnNumber)
 {
-    MOZ_ASSERT(lineNumber > 0);
+    RootedObject proto(cx, GlobalObject::getOrCreateRequestedModulePrototype(cx, cx->global()));
+    if (!proto)
+        return nullptr;
 
-    RootedObject proto(cx, cx->global()->getRequestedModulePrototype());
     RootedObject obj(cx, NewObjectWithGivenProto(cx, &class_, proto));
     if (!obj)
         return nullptr;
 
     RootedRequestedModuleObject self(cx, &obj->as<RequestedModuleObject>());
     self->initReservedSlot(ModuleSpecifierSlot, StringValue(moduleSpecifier));
-    self->initReservedSlot(LineNumberSlot, Int32Value(lineNumber));
-    self->initReservedSlot(ColumnNumberSlot, Int32Value(columnNumber));
+    self->initReservedSlot(LineNumberSlot, NumberValue(lineNumber));
+    self->initReservedSlot(ColumnNumberSlot, NumberValue(columnNumber));
     return self;
 }
 
@@ -759,7 +767,10 @@ ModuleObject::isInstance(HandleValue value)
 /* static */ ModuleObject*
 ModuleObject::create(JSContext* cx)
 {
-    RootedObject proto(cx, cx->global()->getModulePrototype());
+    RootedObject proto(cx, GlobalObject::getOrCreateModulePrototype(cx, cx->global()));
+    if (!proto)
+        return nullptr;
+
     RootedObject obj(cx, NewObjectWithGivenProto(cx, &class_, proto));
     if (!obj)
         return nullptr;
@@ -851,7 +862,7 @@ ModuleObject::functionDeclarations()
 void
 ModuleObject::init(HandleScript script)
 {
-    initReservedSlot(ScriptSlot, PrivateValue(script));
+    initReservedSlot(ScriptSlot, PrivateGCThingValue(script));
     initReservedSlot(StatusSlot, Int32Value(MODULE_STATUS_UNINSTANTIATED));
 }
 
@@ -962,7 +973,7 @@ ModuleObject::hasScript() const
 JSScript*
 ModuleObject::script() const
 {
-    return static_cast<JSScript*>(getReservedSlot(ScriptSlot).toPrivate());
+    return getReservedSlot(ScriptSlot).toGCThing()->as<JSScript>();
 }
 
 static inline void
@@ -1015,11 +1026,6 @@ ModuleObject::enclosingScope() const
 ModuleObject::trace(JSTracer* trc, JSObject* obj)
 {
     ModuleObject& module = obj->as<ModuleObject>();
-    if (module.hasScript()) {
-        JSScript* script = module.script();
-        TraceManuallyBarrieredEdge(trc, &script, "Module script");
-        module.setReservedSlot(ScriptSlot, PrivateValue(script));
-    }
 
     if (module.hasImportBindings())
         module.importBindings().trace(trc);
@@ -1239,7 +1245,6 @@ ModuleBuilder::buildTables()
                     if (!localExportEntries_.append(exp))
                         return false;
                 } else {
-                    MOZ_ASSERT(exp->lineNumber());
                     RootedAtom exportName(cx_, exp->exportName());
                     RootedAtom moduleRequest(cx_, importEntry->moduleRequest());
                     RootedAtom importName(cx_, importEntry->importName());
@@ -1259,7 +1264,6 @@ ModuleBuilder::buildTables()
             if (!starExportEntries_.append(exp))
                 return false;
         } else {
-            MOZ_ASSERT(exp->lineNumber());
             if (!indirectExportEntries_.append(exp))
                 return false;
         }

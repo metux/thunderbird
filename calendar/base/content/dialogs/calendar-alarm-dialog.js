@@ -6,9 +6,9 @@
  *         removeWidgetFor, onSelectAlarm, ensureCalendarVisible
  */
 
-Components.utils.import("resource://gre/modules/PluralForm.jsm");
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://gre/modules/PluralForm.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 
 /**
  * Helper function to get the alarm service and cache it.
@@ -82,7 +82,7 @@ function onDismissAllAlarms() {
 function onItemDetails(event) {
     // We want this to happen in a calendar window if possible. Otherwise open
     // it using our window.
-    let calWindow = cal.getCalendarWindow();
+    let calWindow = cal.window.getCalendarWindow();
     if (calWindow) {
         calWindow.modifyEventWithDialog(event.target.item, null, true);
     } else {
@@ -176,8 +176,8 @@ function snoozeAllItems(aDurationMinutes) {
     for (let node of alarmRichlist.childNodes) {
         // Check if the node is a valid alarm and is still part of DOM
         if (node.parentNode && node.item && node.alarm &&
-            cal.isCalendarWritable(node.item.calendar) &&
-            cal.userCanModifyItem(node.item) &&
+            cal.acl.isCalendarWritable(node.item.calendar) &&
+            cal.acl.userCanModifyItem(node.item) &&
             !(node.item.parentItem.hashId in parentItems)) {
             // We only need to acknowledge one occurrence for repeating items
             parentItems[node.item.parentItem.hashId] = node.item.parentItem;
@@ -276,7 +276,7 @@ function addWidgetFor(aItem, aAlarm) {
     let alarmRichlist = document.getElementById("alarm-richlist");
 
     // Add widgets sorted by start date ascending
-    cal.binaryInsertNode(alarmRichlist, widget, aItem, widgetAlarmComptor, false);
+    cal.data.binaryInsertNode(alarmRichlist, widget, aItem, widgetAlarmComptor, false);
 
     widget.item = aItem;
     widget.alarm = aAlarm;
@@ -346,8 +346,8 @@ function doReadOnlyChecks() {
     let countRO = 0;
     let alarmRichlist = document.getElementById("alarm-richlist");
     for (let node of alarmRichlist.childNodes) {
-        if (!cal.isCalendarWritable(node.item.calendar) ||
-            !cal.userCanModifyItem(node.item)) {
+        if (!cal.acl.isCalendarWritable(node.item.calendar) ||
+            !cal.acl.userCanModifyItem(node.item)) {
             countRO++;
         }
     }

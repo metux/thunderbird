@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/is/locale/is/passwordmgr/", 
         "pippki": "chrome/is/locale/is/pippki/"
       }, 
-      "version": "20171102110040"
+      "version": "20180313105224"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-is@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "is", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Icelandic (IS) Language Pack", 
   "manifest_version": 2, 
   "sources": {

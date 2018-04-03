@@ -37,6 +37,14 @@
 <!ENTITY pref.soondays.label "The upcoming section shows:">
 <!ENTITY pref.soondays.accesskey "u">
 
+<!-- LOCALIZATION NOTE (pref.soondays2.label):
+     "Upcoming" is the name of a section and the translation must match the
+     translation of that section name (calendar.upcoming.button.label). Also,
+     it should be upper case (as a proper name) if the target language permits.
+  -->
+<!ENTITY pref.soondays2.label "The Upcoming section shows:">
+<!ENTITY pref.soondays2.accesskey "U">
+
 <!ENTITY pref.accessibility.label "Accessibility" >
 <!ENTITY pref.systemcolors.label "Optimise colours for accessibility" >
 <!ENTITY pref.systemcolors.accesskey "c">
@@ -44,6 +52,3 @@
 <!ENTITY pref.eventsandtasks.label "Events and Tasks" >
 <!ENTITY pref.editInTab.label "Edit events and tasks in a tab instead of in a dialog window." >
 <!ENTITY pref.editInTab.accesskey "t">
-
-<!ENTITY pref.soondays2.label "The Upcoming section shows:">
-<!ENTITY pref.soondays2.accesskey "U">

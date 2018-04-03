@@ -17,7 +17,7 @@
 
 load("../../../resources/msgFolderListenerSetup.js");
 
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 // Globals
 var gRootFolder;
@@ -36,7 +36,7 @@ var gMsgId3 = "4849BF7B.2030800@example.com";
 var gMsgId4 = "bugmail7.m47LtAEf007542@mrapp51.mozilla.org";
 var gMsgId5 = "bugmail6.m47LtAEf007542@mrapp51.mozilla.org";
 var gMsgWindow = Cc["@mozilla.org/messenger/msgwindow;1"]
-                  .createInstance(Components.interfaces.nsIMsgWindow);
+                  .createInstance(Ci.nsIMsgWindow);
 
 
 function addFolder(parent, folderName, storeIn)
@@ -97,24 +97,17 @@ function doUpdateFolder(test)
 function addMessagesToServer(messages, mailbox, localFolder)
 {
   // For every message we have, we need to convert it to a file:/// URI
-  let specs = [];
   messages.forEach(function (message)
   {
-    let URI =
-      Services.io.newFileURI(message.file).QueryInterface(Ci.nsIFileURL);
-    specs.push(URI.spec);
+    let URI = Services.io.newFileURI(message.file).QueryInterface(Ci.nsIFileURL);
+    // Create the imapMessage and store it on the mailbox.
+    mailbox.addMessage(new imapMessage(URI.spec, mailbox.uidnext++, []));
     // We can't get the headers again, so just pass on the message id
     gExpectedEvents.push([gMFNService.msgAdded, {expectedMessageId: message.messageId}]);
   });
   gExpectedEvents.push([gMFNService.msgsClassified,
                         messages.map(hdr => hdr.messageId),
                         false, false]);
-
-  // Create the imapMessages and store them on the mailbox
-  specs.forEach(function (spec)
-  {
-    mailbox.addMessage(new imapMessage(spec, mailbox.uidnext++, []));
-  });
 
   // No copy listener notification for this
   gCurrStatus |= kStatus.functionCallDone | kStatus.onStopCopyDone;
@@ -260,7 +253,7 @@ function doTest(test)
     // Set a limit of ten seconds; if the notifications haven't arrived by then there's a problem.
     do_timeout(10000, function(){
         if (gTest == test)
-          do_throw("Notifications not received in 10000 ms for operation " + testFn.name + 
+          do_throw("Notifications not received in 10000 ms for operation " + testFn.name +
             ", current status is " + gCurrStatus);
         }
       );

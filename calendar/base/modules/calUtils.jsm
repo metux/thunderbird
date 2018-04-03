@@ -4,9 +4,9 @@
 
 var gCalThreadingEnabled;
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 
 // Usually the backend loader gets loaded via profile-after-change, but in case
 // a calendar component hooks in earlier, its very likely it will use calUtils.
@@ -186,56 +186,6 @@ var cal = {
         return gCalThreadingEnabled;
     },
 
-    /*
-     * Checks whether a calendar supports events
-     *
-     * @param aCalendar
-     */
-    isEventCalendar: function(aCalendar) {
-        return (aCalendar.getProperty("capabilities.events.supported") !== false);
-    },
-
-    /*
-     * Checks whether a calendar supports tasks
-     *
-     * @param aCalendar
-     */
-    isTaskCalendar: function(aCalendar) {
-        return (aCalendar.getProperty("capabilities.tasks.supported") !== false);
-    },
-
-    /**
-     * Shifts an item by the given timely offset.
-     *
-     * @param item an item
-     * @param offset an offset (calIDuration)
-     */
-    shiftItem: function(item, offset) {
-        // When modifying dates explicitly using the setters is important
-        // since those may triggers e.g. calIRecurrenceInfo::onStartDateChange
-        // or invalidate other properties. Moreover don't modify the date-time objects
-        // without cloning, because changes cannot be calculated if doing so.
-        if (cal.isEvent(item)) {
-            let date = item.startDate.clone();
-            date.addDuration(offset);
-            item.startDate = date;
-            date = item.endDate.clone();
-            date.addDuration(offset);
-            item.endDate = date;
-        } else /* cal.isToDo */ {
-            if (item.entryDate) {
-                let date = item.entryDate.clone();
-                date.addDuration(offset);
-                item.entryDate = date;
-            }
-            if (item.dueDate) {
-                let date = item.dueDate.clone();
-                date.addDuration(offset);
-                item.dueDate = date;
-            }
-        }
-    },
-
     /**
      * Returns a copy of an event that
      * - has a relation set to the original event
@@ -263,16 +213,6 @@ var cal = {
             item = item.makeImmutable();
         }
         return item;
-    },
-
-    /**
-     * Shortcut function to serialize an item (including all overridden items).
-     */
-    getSerializedItem: function(aItem) {
-        let serializer = Components.classes["@mozilla.org/calendar/ics-serializer;1"]
-                                   .createInstance(Components.interfaces.calIIcsSerializer);
-        serializer.addItems([aItem], 1);
-        return serializer.serializeToString();
     },
 
     /**
@@ -510,25 +450,6 @@ var cal = {
                          .join(", ");
     },
 
-    /**
-     * Returns the default transparency to apply for an event depending on whether its an all-day event
-     *
-     * @param aIsAllDay      If true, the default transparency for all-day events is returned
-     */
-    getEventDefaultTransparency: function(aIsAllDay) {
-        let transp = null;
-        if (aIsAllDay) {
-            transp = Preferences.get("calendar.events.defaultTransparency.allday.transparent", false)
-                     ? "TRANSPARENT"
-                     : "OPAQUE";
-        } else {
-            transp = Preferences.get("calendar.events.defaultTransparency.standard.transparent", false)
-                     ? "TRANSPARENT"
-                     : "OPAQUE";
-        }
-        return transp;
-    },
-
     // The below functions will move to some different place once the
     // unifinder tress are consolidated.
 
@@ -671,7 +592,7 @@ var cal = {
                 return aItem.getProperty("LOCATION") || "";
 
             case "status":
-                if (cal.isToDo(aItem)) {
+                if (cal.item.isToDo(aItem)) {
                     return ["NEEDS-ACTION", "IN-PROCESS", "COMPLETED", "CANCELLED"].indexOf(aItem.status);
                 } else {
                     return ["TENTATIVE", "CONFIRMED", "CANCELLED"].indexOf(aItem.status);
@@ -758,120 +679,6 @@ var cal = {
     },
 
     /**
-     * moves an item to another startDate
-     *
-     * @param aOldItem             The Item to be modified
-     * @param aNewDate             The date at which the new item is going to start
-     * @return                     The modified item
-     */
-    moveItem: function(aOldItem, aNewDate) {
-        let newItem = aOldItem.clone();
-        let start = (aOldItem[cal.dtz.startDateProp(aOldItem)] ||
-                     aOldItem[cal.dtz.endDateProp(aOldItem)]).clone();
-        let isDate = start.isDate;
-        start.resetTo(aNewDate.year, aNewDate.month, aNewDate.day,
-                      start.hour, start.minute, start.second,
-                      start.timezone);
-        start.isDate = isDate;
-        if (newItem[cal.dtz.startDateProp(newItem)]) {
-            newItem[cal.dtz.startDateProp(newItem)] = start;
-            let oldDuration = aOldItem.duration;
-            if (oldDuration) {
-                let oldEnd = aOldItem[cal.dtz.endDateProp(aOldItem)];
-                let newEnd = start.clone();
-                newEnd.addDuration(oldDuration);
-                newEnd = newEnd.getInTimezone(oldEnd.timezone);
-                newItem[cal.dtz.endDateProp(newItem)] = newEnd;
-            }
-        } else if (newItem[cal.dtz.endDateProp(newItem)]) {
-            newItem[cal.dtz.endDateProp(newItem)] = start;
-        }
-        return newItem;
-    },
-
-    /**
-     * sets the 'isDate' property of an item
-     *
-     * @param aItem         The Item to be modified
-     * @param aIsDate       True or false indicating the new value of 'isDate'
-     * @return              The modified item
-     */
-    setItemToAllDay: function(aItem, aIsDate) {
-        let start = aItem[cal.dtz.startDateProp(aItem)];
-        let end = aItem[cal.dtz.endDateProp(aItem)];
-        if (start || end) {
-            let item = aItem.clone();
-            if (start && (start.isDate != aIsDate)) {
-                start = start.clone();
-                start.isDate = aIsDate;
-                item[cal.dtz.startDateProp(item)] = start;
-            }
-            if (end && (end.isDate != aIsDate)) {
-                end = end.clone();
-                end.isDate = aIsDate;
-                item[cal.dtz.endDateProp(item)] = end;
-            }
-            return item;
-        } else {
-            return aItem;
-        }
-    },
-
-    /**
-     * checks if the mousepointer of an event resides over a XULBox during an event
-     *
-     * @param aMouseEvent   The event eg. a 'mouseout' or 'mousedown' event
-     * @param aXULBox       The xul element
-     * @return              true or false depending on whether the mouse pointer
-     *                      resides over the xulelement
-     */
-    isMouseOverBox: function(aMouseEvent, aXULElement) {
-        let boxObject = aXULElement.boxObject;
-        let boxWidth = boxObject.width;
-        let boxHeight = boxObject.height;
-        let boxScreenX = boxObject.screenX;
-        let boxScreenY = boxObject.screenY;
-        let mouseX = aMouseEvent.screenX;
-        let mouseY = aMouseEvent.screenY;
-        let xIsWithin = (mouseX >= boxScreenX) &&
-                        (mouseX <= (boxScreenX + boxWidth));
-        let yIsWithin = (mouseY >= boxScreenY) &&
-                        (mouseY <= (boxScreenY + boxHeight));
-        return (xIsWithin && yIsWithin);
-    },
-
-    /**
-     * removes those childnodes from a node that contain a specified attribute
-     * and where the value of this attribute matches a passed value
-     * @param aParentNode   The parent node that contains the child nodes in question
-     * @param aAttribute    The name of the attribute
-     * @param aAttribute    The value of the attribute
-     */
-    removeChildElementsByAttribute: function(aParentNode, aAttribute, aValue) {
-        let childNode = aParentNode.lastChild;
-        while (childNode) {
-            let prevChildNode = childNode.previousSibling;
-            if (!aAttribute || aAttribute === undefined) {
-                childNode.remove();
-            } else if (!aValue || aValue === undefined) {
-                childNode.remove();
-            } else if (childNode && childNode.hasAttribute(aAttribute) &&
-                       childNode.getAttribute(aAttribute) == aValue) {
-                childNode.remove();
-            }
-            childNode = prevChildNode;
-        }
-    },
-
-    /**
-     * Returns the most recent calendar window in an application independent way
-     */
-    getCalendarWindow: function() {
-        return Services.wm.getMostRecentWindow("calendarMainWindow") ||
-               Services.wm.getMostRecentWindow("mail:3pane");
-    },
-
-    /**
      * Adds an observer listening for the topic.
      *
      * @param func function to execute on topic
@@ -945,7 +752,13 @@ var cal = {
 };
 
 // Sub-modules for calUtils
+XPCOMUtils.defineLazyModuleGetter(cal, "data", "resource://calendar/modules/calDataUtils.jsm", "caldata");
 XPCOMUtils.defineLazyModuleGetter(cal, "dtz", "resource://calendar/modules/calDateTimeUtils.jsm", "caldtz");
+XPCOMUtils.defineLazyModuleGetter(cal, "acl", "resource://calendar/modules/calACLUtils.jsm", "calacl");
+XPCOMUtils.defineLazyModuleGetter(cal, "category", "resource://calendar/modules/calCategoryUtils.jsm", "calcategory");
+XPCOMUtils.defineLazyModuleGetter(cal, "item", "resource://calendar/modules/calItemUtils.jsm", "calitem");
+XPCOMUtils.defineLazyModuleGetter(cal, "view", "resource://calendar/modules/calViewUtils.jsm", "calview");
+XPCOMUtils.defineLazyModuleGetter(cal, "window", "resource://calendar/modules/calWindowUtils.jsm", "calwindow");
 
 /**
  * Returns a function that provides access to the given service.
@@ -1008,5 +821,5 @@ cal.loadScripts(["calUtils.js"], cal);
 cal.loadScripts(["calUtils.js"], Components.utils.getGlobalForObject(cal));
 
 // Backwards compatibility for bug 905097. Please remove with Thunderbird 61.
-Components.utils.import("resource://calendar/modules/calUtilsCompat.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtilsCompat.jsm");
 injectCalUtilsCompat(cal);

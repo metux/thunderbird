@@ -1,7 +1,7 @@
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* Tests that an empty cache entry doesn't return an empty message for news. */
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 // The basic daemon to use for testing nntpd.js implementations
 var daemon = setupNNTPDaemon();
@@ -68,7 +68,7 @@ function run_test() {
                 .cacheStorage
                 .asyncOpenURI(uri, "", Ci.nsICacheStorage.OPEN_NORMALLY, {
       onCacheEntryAvailable: function(cacheEntry, isNew, appCache, status) {
-        Assert.equal(status, Components.results.NS_OK);
+        Assert.equal(status, Cr.NS_OK);
 
         cacheEntry.markValid();
 

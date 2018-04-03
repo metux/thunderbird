@@ -196,3 +196,5 @@
 <!ENTITY options.sourceeditor.keybinding.label          "Fluchtoetsen">
 <!ENTITY options.sourceeditor.keybinding.accesskey      "F">
 <!ENTITY options.sourceeditor.keybinding.default.label  "Standert">
+
+<!ENTITY browserToolboxStatusMessage "Browser Toolbox connection status:">

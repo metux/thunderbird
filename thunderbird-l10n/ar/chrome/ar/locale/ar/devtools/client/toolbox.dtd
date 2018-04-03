@@ -179,6 +179,7 @@
 <!ENTITY options.sourceeditor.keybinding.default.label  "المبدئي">
 
 <!ENTITY toggleToolbox.key  "I">
+<!ENTITY browserToolboxStatusMessage "Browser Toolbox connection status:">
 <!ENTITY options.defaultColorUnit.label "Default color unit">
 <!ENTITY options.defaultColorUnit.accesskey "U">
 <!ENTITY options.defaultColorUnit.authored "As Authored">

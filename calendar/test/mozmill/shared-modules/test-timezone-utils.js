@@ -6,7 +6,7 @@ var MODULE_NAME = "timezone-utils";
 var RELATIVE_ROOT = "../shared-modules";
 var MODULE_REQUIRES = ["calendar-utils"];
 
-Cu.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 
 var DATES = [
     [2009, 1, 1], [2009, 4, 2], [2009, 4, 16], [2009, 4, 30],
@@ -122,7 +122,7 @@ function verify(controller, dates, timezones, times) {
             if (day != undefined && day == -1) {
                 viewForward(controller, 1);
             }
-            controller.assertJS(found == true);
+            controller.assertJS(found);
         }
     }
 }

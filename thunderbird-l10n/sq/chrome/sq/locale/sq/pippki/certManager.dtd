@@ -30,7 +30,7 @@
 <!ENTITY certmgr.certdetail.cn                "Emër i Rëndomtë (ER)">
 <!ENTITY certmgr.certdetail.o                 "Organizëm (O)">
 <!ENTITY certmgr.certdetail.ou                "Njësi Organizative (OU)">
-<!ENTITY certmgr.certdetail.serialnumber      "Numër Serie">
+<!ENTITY certmgr.certdetail.serialnumber      "Numër Serial">
 <!ENTITY certmgr.certdetail.sha256fingerprint "Shenja gishtash SHA-256">
 <!ENTITY certmgr.certdetail.sha1fingerprint   "Shenja gishtash SHA1">
 
@@ -38,7 +38,6 @@
 <!ENTITY certmgr.editcert.edittrust           "Përpunoni rregullime besueshmërie:">
 <!ENTITY certmgr.editcert.trustssl            "Kjo dëshmi mund të identifikojë sajte.">
 <!ENTITY certmgr.editcert.trustemail          "Kjo dëshmi mund të identifikojë përdorues poste.">
-<!ENTITY certmgr.editcert.trustobjsign        "Kjo dëshmi mund të identifikojë prodhues programesh.">
 
 <!ENTITY certmgr.deletecert.title             "Fshini Dëshmi">
 
@@ -49,9 +48,9 @@
 <!ENTITY certmgr.begins                       "Fillon Më">
 <!ENTITY certmgr.expires                      "Skadon Më">
 <!ENTITY certmgr.email                        "Adresë Email">
-<!ENTITY certmgr.serial                       "Numër Serie">
+<!ENTITY certmgr.serial                       "Numër Serial">
 
-<!ENTITY certmgr.close.label                  "Mbylle">
+<!ENTITY certmgr.close.label                  "Mbylleni">
 <!ENTITY certmgr.close.accesskey              "M">
 <!ENTITY certmgr.view2.label                  "Shihni…">
 <!ENTITY certmgr.view2.accesskey              "s">
@@ -83,7 +82,7 @@
 <!ENTITY exceptionMgr.exceptionButton.accesskey "R">
 <!ENTITY exceptionMgr.supplementalWarning     "Banka, dyqane të ligjshme, dhe sajte të tjerë publikë nuk do t&apos;ju kërkojnë ta bëni këtë.">
 <!ENTITY exceptionMgr.certlocation.caption2   "Shërbyes">
-<!ENTITY exceptionMgr.certlocation.url        "Vend:">
+<!ENTITY exceptionMgr.certlocation.url        "Vendndodhje:">
 <!ENTITY exceptionMgr.certlocation.download   "Merrni Dëshmi">
 <!ENTITY exceptionMgr.certlocation.accesskey  "b">
 <!ENTITY exceptionMgr.certstatus.caption      "Gjendje Dëshmie">

@@ -5,11 +5,6 @@
 
 this.EXPORTED_SYMBOLS = ["glodaIndexerActivity"];
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
-var Cu = Components.utils;
-
 var nsActProcess = Components.Constructor("@mozilla.org/activity-process;1",
                                             "nsIActivityProcess", "init");
 var nsActEvent   = Components.Constructor("@mozilla.org/activity-event;1",
@@ -17,12 +12,12 @@ var nsActEvent   = Components.Constructor("@mozilla.org/activity-event;1",
 var nsActWarning = Components.Constructor("@mozilla.org/activity-warning;1",
                                             "nsIActivityWarning", "init");
 
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/PluralForm.jsm");
-Cu.import("resource:///modules/gloda/log4moz.js");
-Cu.import("resource:///modules/gloda/public.js");
-Cu.import("resource:///modules/gloda/indexer.js");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/PluralForm.jsm");
+ChromeUtils.import("resource:///modules/gloda/log4moz.js");
+ChromeUtils.import("resource:///modules/gloda/public.js");
+ChromeUtils.import("resource:///modules/gloda/indexer.js");
 
 /**
  * Gloda message indexer feedback.
@@ -59,9 +54,9 @@ var glodaIndexerActivity =
     // Register a listener with the Gloda indexer that receives notifications
     // about Gloda indexing status.  We wrap the listener in this function so we
     // can set |this| to the GlodaIndexerActivity object inside the listener.
-    function listenerWrapper()
+    function listenerWrapper(...aArgs)
     {
-      glodaIndexerActivity.listener.apply(glodaIndexerActivity, arguments);
+      glodaIndexerActivity.listener(...aArgs);
     };
     GlodaIndexer.addListener(listenerWrapper);
   },

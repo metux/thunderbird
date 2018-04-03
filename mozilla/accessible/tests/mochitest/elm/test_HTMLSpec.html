@@ -543,9 +543,18 @@
       // HTML:form
 
       obj = {
-        role: ROLE_FORM
+        role: ROLE_FORM,
+        absentAttributes: { "xml-roles": "form" }
       };
       testElm("form", obj);
+
+      // HTML:form with an accessible name
+
+      obj = {
+        role: ROLE_FORM,
+        attributes: { "xml-roles": "form" }
+      };
+      testElm("named_form", obj);
 
       // ////////////////////////////////////////////////////////////////////////
       // // HTML:frameset, HTML:frame and HTML:iframe
@@ -1510,10 +1519,11 @@
     <input />
   </fieldset>
 
-  <figure id="figure">
-    <img src="../moz.png" alt="An awesome picture">
-    <figcaption id="figcaption">Caption for the awesome picture</figcaption>
-  </figure>
+  <!-- Depending on whether or not the image is cached, layout may be able to
+       optimize away spaces between the figure, img and figcaption tags. As
+       such, we should keep everything on one line to get consistent results.
+  -->
+  <figure id="figure"><img src="../moz.png" alt="An awesome picture"><figcaption id="figcaption">Caption for the awesome picture</figcaption></figure>
 
   <footer id="footer">Some copyright info</footer>
   <article>
@@ -1548,6 +1558,7 @@
   </td></tr></table>
 
   <form id="form"></form>
+  <form id="named_form" aria-label="New form"></form>
 
   <iframe id="frameset_container"
           src="data:text/html,<html><frameset><frame src='data:text/html,hi'></frame></frameset></html>">

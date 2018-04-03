@@ -32,8 +32,10 @@ LOCALIZATION NOTE : Do not translate any of the occurrences of the word
 <!ENTITY importDescription2.label "לאחר שהם ייובאו, תוכל לגשת אליהם מתוך הדואר ו/או פנקס הכתובות של &brandShortName;.">
 
 <!ENTITY selectDescription.label  "אנא בחר את התוכנה שמתוכה ברצונך לייבא:">
+<!ENTITY selectDescriptionB.label "נא לבחור בחשבון קיים או ליצור אחד חדש:">
 <!ENTITY selectDescription.accesskey "ב">
 <!ENTITY acctName.label           "שם:">
+<!ENTITY noModulesFound.label     "לא נמצאו יישום או קובץ לייבא מהם נתונים.">
 
 <!ENTITY back.label               "&lt; הקודם">
 <!ENTITY forward.label            "הבא &gt;">
@@ -47,6 +49,4 @@ LOCALIZATION NOTE : Do not translate any of the occurrences of the word
 
 <!ENTITY importFeeds.label        "Feed Subscriptions">
 <!ENTITY importFeeds.accesskey    "d">
-<!ENTITY selectDescriptionB.label "Please select an existing account or create a new account:">
 <!ENTITY acctName.accesskey       "N">
-<!ENTITY noModulesFound.label     "No application or file to import data from was found.">

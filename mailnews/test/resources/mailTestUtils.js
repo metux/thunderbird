@@ -4,14 +4,11 @@
 
 this.EXPORTED_SYMBOLS = ['mailTestUtils'];
 
-Components.utils.import("resource://gre/modules/ctypes.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource:///modules/mailServices.js");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/ctypes.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
 var CC = Components.Constructor;
 
 // See Bug 903946
@@ -416,8 +413,8 @@ var mailTestUtils = {
    */
   _timer: null,
   do_timeout_function: function(aDelayInMS, aFunc, aFuncThis, aFuncArgs) {
-    this._timer = Components.classes["@mozilla.org/timer;1"]
-                            .createInstance(Components.interfaces.nsITimer);
+    this._timer = Cc["@mozilla.org/timer;1"]
+                    .createInstance(Ci.nsITimer);
     let wrappedFunc = function() {
       try {
         aFunc.apply(aFuncThis, aFuncArgs);
@@ -429,7 +426,7 @@ var mailTestUtils = {
       }
     };
     this._timer.initWithCallback(wrappedFunc, aDelayInMS,
-      Components.interfaces.nsITimer.TYPE_ONE_SHOT);
+      Ci.nsITimer.TYPE_ONE_SHOT);
   },
 
   /**
@@ -496,7 +493,7 @@ var mailTestUtils = {
           mimeTypes.append("mimeTypes.rdf");
           return mimeTypes;
         }
-        throw Components.results.NS_ERROR_FAILURE;
+        throw Cr.NS_ERROR_FAILURE;
       },
 
       QueryInterface:

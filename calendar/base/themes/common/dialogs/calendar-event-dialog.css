@@ -42,8 +42,17 @@ dialog[systemcolors] {
     list-style-image: url(chrome://calendar-common/skin/icons/save.svg);
 }
 
+#button-save[mode="send"] {
+    list-style-image: url("chrome://messenger/skin/icons/send.svg");
+}
+
+#saveandcloseButton,
 #button-saveandclose {
     list-style-image: url(chrome://calendar-common/skin/icons/save-close.svg);
+}
+
+#button-saveandclose[mode="send"] {
+    list-style-image: url("chrome://messenger/skin/icons/send.svg");
 }
 
 #button-attendees {
@@ -58,6 +67,7 @@ dialog[systemcolors] {
     list-style-image: url(chrome://calendar-common/skin/icons/attach.svg);
 }
 
+#deleteButton,
 #button-delete.cal-event-toolbarbutton {
     /* !important to override the SM #button-delete states */
     list-style-image: url(chrome://calendar-common/skin/icons/delete.svg) !important;
@@ -78,6 +88,18 @@ dialog[systemcolors] {
 
 #button-timezones {
     list-style-image: url(chrome://calendar-common/skin/icons/timezones.svg);
+}
+
+#acceptButton {
+    list-style-image: url(chrome://calendar-common/skin/icons/complete.svg);
+}
+
+#tentativeButton {
+    list-style-image: url(chrome://calendar-common/skin/icons/tentative.svg);
+}
+
+#declineButton {
+    list-style-image: url(chrome://calendar-common/skin/icons/decline.svg);
 }
 
 /*--------------------------------------------------------------------
@@ -136,7 +158,7 @@ label.label {
  *-------------------------------------------------------------------*/
 
 #event-grid-tabbox {
-    margin: 5px 0px;
+    margin: 5px 0;
 }
 
 /*--------------------------------------------------------------------
@@ -144,26 +166,24 @@ label.label {
  *-------------------------------------------------------------------*/
 
 #keepduration-button {
-    list-style-image: url(chrome://calendar-common/skin/calendar-event-dialog.png);
-    -moz-image-region: rect(0px 147px 24px 140px);
+    list-style-image: url(chrome://calendar-common/skin/chain-unlock.svg);
     padding-top: 3px;
     padding-bottom: 3px;
     margin-inline-start: -3px;
     margin-bottom: -15px;
     position: relative;
     -moz-user-focus: normal;
+    -moz-context-properties: fill;
+    fill: CurrentColor;
 }
 
 #keepduration-button[keep="true"] {
-    -moz-image-region: rect(0px 139px 24px 132px);
+    list-style-image: url(chrome://calendar-common/skin/chain-lock.svg);
+    fill: Highlight;
 }
 
 #keepduration-button[disabled="true"] {
-    -moz-image-region: rect(0px 163px 24px 156px);
-}
-
-#keepduration-button[keep="true"][disabled="true"] {
-    -moz-image-region: rect(0px 155px 24px 148px);
+    fill: GrayText;
 }
 
 #keepduration-button > label {
@@ -171,21 +191,25 @@ label.label {
 }
 
 .keepduration-link-image {
-    list-style-image: url(chrome://calendar-common/skin/calendar-event-dialog.png);
     margin-inline-start: -1px;
+    -moz-context-properties: fill, stroke-opacity;
+    fill: CurrentColor;
+    stroke-opacity: 0;
 }
 
 #link-image-top {
-    -moz-image-region: rect(7px 174px 14px 164px);
+    list-style-image: url(chrome://calendar-common/skin/link-image-top.svg);
     margin-top: 0.6em;
+    margin-bottom: -0.6em;
 }
 
-#link-image-top[keep="true"]{
-    -moz-image-region: rect(0px 174px 7px 164px);
+#link-image-top[keep="true"] {
+    stroke-opacity: 1;
 }
 
 #link-image-bottom {
-    -moz-image-region: rect(0px 184px 7px 174px);
+    list-style-image: url(chrome://calendar-common/skin/link-image-bottom.svg);
+    margin-top: -0.6em;
     margin-bottom: 0.6em;
 }
 
@@ -574,6 +598,13 @@ freebusy-day > box {
 /*--------------------------------------------------------------------
  *   Event summary dialog
  *-------------------------------------------------------------------*/
+
+#summary-toolbox {
+    margin-top: -8px;
+    margin-inline-start: -8px;
+    margin-inline-end: -10px;
+    margin-bottom: 10px;
+}
 
 #calendar-summary-dialog,
 #calendar-event-summary-dialog,

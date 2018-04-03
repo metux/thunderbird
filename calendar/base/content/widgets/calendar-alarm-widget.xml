@@ -59,7 +59,7 @@
 
     <implementation>
       <constructor><![CDATA[
-          Components.utils.import("resource://calendar/modules/calUtils.jsm");
+          ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
       ]]></constructor>
 
       <field name="mItem">null</field>
@@ -85,9 +85,9 @@
             let dateLabel = document.getAnonymousElementByAttribute(this, "anonid", "alarm-date-label");
 
             // Dates
-            if (cal.isEvent(this.mItem)) {
+            if (cal.item.isEvent(this.mItem)) {
                 dateLabel.textContent = formatter.formatItemInterval(this.mItem);
-            } else if (cal.isToDo(this.mItem)) {
+            } else if (cal.item.isToDo(this.mItem)) {
                 let startDate = this.mItem.entryDate || this.mItem.dueDate;
                 if (startDate) {
                     // A Task with a start or due date, show with label
@@ -120,8 +120,8 @@
                 "anonid",
                 "alarm-snooze-button"
             );
-            if (!cal.isCalendarWritable(this.mItem.calendar) ||
-                !cal.userCanModifyItem(this.mItem)) {
+            if (!cal.acl.isCalendarWritable(this.mItem.calendar) ||
+                !cal.acl.userCanModifyItem(this.mItem)) {
                 let tooltip = "reminderDisabledSnoozeButtonTooltip";
                 snoozeButton.disabled = true;
                 snoozeButton.setAttribute("tooltiptext",
@@ -185,7 +185,7 @@
         <body><![CDATA[
             if (event.type == "click" ||
                 (event.type == "keypress" &&
-                 event.keyCode == event.DOM_VK_RETURN)) {
+                 event.key == "Enter")) {
                 let detailsEvent = document.createEvent("Events");
                 detailsEvent.initEvent("itemdetails", true, false);
                 this.dispatchEvent(detailsEvent);
@@ -238,7 +238,7 @@
                      type="number"
                      size="3"/>
         <xul:menulist anonid="snooze-unit-menulist"
-                      class="snooze-unit-menulist menuitem-non-iconic"
+                      class="snooze-unit-menulist"
                       allowevents="true">
          <xul:menupopup anonid="snooze-unit-menupopup"
                         position="after_start"
@@ -260,8 +260,8 @@
     </content>
     <implementation>
       <constructor><![CDATA[
-          Components.utils.import("resource://gre/modules/Preferences.jsm");
-          Components.utils.import("resource://calendar/modules/calUtils.jsm");
+          ChromeUtils.import("resource://gre/modules/Preferences.jsm");
+          ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 
           let snoozePref = Preferences.get("calendar.alarms.defaultsnoozelength", 0);
           if (snoozePref <= 0) {

@@ -5,7 +5,7 @@
 
 // "about:bloat" is available only when
 // (the application is) compiled with |--enable-logrefcnt|.
-if ("@mozilla.org/network/protocol/about;1?what=bloat" in Components.classes)
+if ("@mozilla.org/network/protocol/about;1?what=bloat" in Cc)
   window.addEventListener("load", onLoadBloat);
 
 // Unhide (and enable) the Bloat menu and its associated separator.
@@ -18,8 +18,8 @@ function onLoadBloat()
     return;
 
   // Enable the menu, only if its feature is currently active.
-  var envSvc = Components.classes["@mozilla.org/process/environment;1"]
-                         .getService(Components.interfaces.nsIEnvironment);
+  var envSvc = Cc["@mozilla.org/process/environment;1"]
+                 .getService(Ci.nsIEnvironment);
   // Checking the environment variables is good enough,
   // as the Bloat service doesn't report the status of its statistics feature.
   if (envSvc.exists("XPCOM_MEM_BLOAT_LOG") ||

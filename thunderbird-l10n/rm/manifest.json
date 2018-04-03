@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/rm/locale/rm/passwordmgr/", 
         "pippki": "chrome/rm/locale/rm/pippki/"
       }, 
-      "version": "20171102110757"
+      "version": "20180312193928"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-rm@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "rm", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Rumantsch Language Pack", 
   "manifest_version": 2, 
   "sources": {

@@ -23,6 +23,13 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "版本">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "安全軟體">
+<!ENTITY aboutSupport.securitySoftwareType "類型">
+<!ENTITY aboutSupport.securitySoftwareName "名稱">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "防毒軟體">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "防間諜軟體">
+<!ENTITY aboutSupport.securitySoftwareFirewall "防火牆">
+
 <!ENTITY aboutSupport.featuresTitle "&brandShortName; 功能">
 <!ENTITY aboutSupport.featureName "名稱">
 <!ENTITY aboutSupport.featureVersion "版本">
@@ -69,6 +76,8 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "多程序視窗">
 
 <!ENTITY aboutSupport.appBasicsProcessCount "網頁內容處理程序">
+
+<!ENTITY aboutSupport.enterprisePolicies "企業政策">
 
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Google 金鑰">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla Location Service 金鑰">
@@ -154,18 +163,12 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "取樣率">
 <!ENTITY aboutSupport.mediaDeviceLatency "Latency">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.intlTitle "國際化與在地化">
+<!ENTITY aboutSupport.intlAppTitle "應用程式設定">
+<!ENTITY aboutSupport.intlLocalesRequested "要求使用的語系">
+<!ENTITY aboutSupport.intlLocalesAvailable "可用的語系">
+<!ENTITY aboutSupport.intlLocalesSupported "應用程式語系">
+<!ENTITY aboutSupport.intlLocalesDefault "預設語系">
+<!ENTITY aboutSupport.intlOSTitle "作業系統">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "系統語系">
+<!ENTITY aboutSupport.intlRegionalPrefs "區域偏好設定">

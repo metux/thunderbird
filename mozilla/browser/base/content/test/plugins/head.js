@@ -1,8 +1,8 @@
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
+ChromeUtils.defineModuleGetter(this, "PlacesUtils",
   "resource://gre/modules/PlacesUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PromiseUtils",
+ChromeUtils.defineModuleGetter(this, "PromiseUtils",
   "resource://gre/modules/PromiseUtils.jsm");
 
 // Various tests in this directory may define gTestBrowser, to use as the
@@ -172,7 +172,7 @@ function promiseCrashObject(aId, aBrowser) {
   let browser = aBrowser || gTestBrowser;
   return ContentTask.spawn(browser, aId, async function(contentId) {
     let plugin = content.document.getElementById(contentId);
-    Components.utils.waiveXrays(plugin).crash();
+    Cu.waiveXrays(plugin).crash();
   });
 }
 
@@ -181,7 +181,7 @@ function promiseObjectValueResult(aId, aBrowser) {
   let browser = aBrowser || gTestBrowser;
   return ContentTask.spawn(browser, aId, async function(contentId) {
     let plugin = content.document.getElementById(contentId);
-    return Components.utils.waiveXrays(plugin).getObjectValue();
+    return Cu.waiveXrays(plugin).getObjectValue();
   });
 }
 

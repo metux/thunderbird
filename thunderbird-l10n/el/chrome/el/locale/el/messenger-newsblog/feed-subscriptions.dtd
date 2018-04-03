@@ -12,6 +12,7 @@
 <!ENTITY feedLocation.label          "URL ροής:">
 <!ENTITY feedLocation.accesskey      "U">
 <!ENTITY feedLocation.placeholder    "Εισάγετε ένα έγκυρο url ροής για προσθήκη">
+<!ENTITY feedLocation2.placeholder   "Εισάγετε ένα έγκυρο URL ροής">
 <!ENTITY locationValidate.label      "Επαλήθευση">
 <!ENTITY validateText.label          "Έλεγχος επαλήθευσης και ανάκτηση έγκυρου url.">
 
@@ -39,6 +40,8 @@
 <!-- Subscription Dialog -->
 <!ENTITY button.addFeed.label        "Προσθήκη">
 <!ENTITY button.addFeed.accesskey    "θ">
+<!ENTITY button.verifyFeed.label     "Επαλήθευση">
+<!ENTITY button.verifyFeed.accesskey "Ε">
 <!ENTITY button.updateFeed.label     "Ενημέρωση">
 <!ENTITY button.updateFeed.accesskey "Ε">
 <!ENTITY button.removeFeed.label     "Απομάκρυνση">
@@ -51,7 +54,3 @@
 
 <!ENTITY cmd.close.commandKey        "w">
 <!ENTITY button.close.label          "Κλείσιμο">
-
-<!ENTITY feedLocation2.placeholder   "Enter a valid feed url">
-<!ENTITY button.verifyFeed.label     "Verify">
-<!ENTITY button.verifyFeed.accesskey "V">

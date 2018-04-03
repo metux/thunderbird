@@ -7,7 +7,7 @@
 "use strict";
 
 const {Cc, Ci, Cu, CC} = require("chrome");
-const { XPCOMUtils } = Cu.import("resource://gre/modules/XPCOMUtils.jsm", {});
+const { XPCOMUtils } = require("resource://gre/modules/XPCOMUtils.jsm");
 const Services = require("Services");
 
 loader.lazyRequireGetter(this, "NetworkHelper",
@@ -93,6 +93,10 @@ Converter.prototype = {
     // force setting it to a null principal to avoid it being same-
     // origin with (other) content.
     request.loadInfo.resetPrincipalToInheritToNullPrincipal();
+
+    // Because the JSON might be served with a CSP, we instrument
+    // the loadinfo so the Document can discard such a CSP.
+    request.loadInfo.allowDocumentToBeAgnosticToCSP = true;
 
     // Start the request.
     this.listener.onStartRequest(request, context);
@@ -227,8 +231,6 @@ function initialHTML(doc) {
     os = "linux";
   }
 
-  // The base URI is prepended to all URIs instead of using a <base> element
-  // because the latter can be blocked by a CSP base-uri directive (bug 1316393)
   let baseURI = "resource://devtools-client-jsonview/";
 
   return "<!DOCTYPE html>\n" +

@@ -6,14 +6,14 @@
 %brandDTD;
 
 <!ENTITY loadError.label "مشكلة في تحميل الصفحة">
-<!ENTITY retry.label "حاول مرة أخرى">
+<!ENTITY retry.label "حاول مجددًا">
 
 <!-- Specific error messages -->
 
 <!ENTITY connectionFailure.title "تعذر الاتصال">
 <!ENTITY connectionFailure.longDesc "&sharedLongDesc;">
 
-<!ENTITY deniedPortAccess.title "العنوان ممنوع">
+<!ENTITY deniedPortAccess.title "هذا العنوان غير مسموح به">
 <!ENTITY deniedPortAccess.longDesc "">
 
 <!ENTITY dnsNotFound.title "الخادوم غير موجود">
@@ -55,7 +55,7 @@
 <!ENTITY unknownProtocolFound.title "لم يُفهم العنوان">
 <!ENTITY unknownProtocolFound.longDesc "<ul> <li>قد تحتاج تنصيب برمجيات أخرى لفتح هذا العنوان.</li> </ul>">
 
-<!ENTITY proxyConnectFailure.title "يرفض الخادوم الوسيط الاتصال">
+<!ENTITY proxyConnectFailure.title "يرفض الخادوم الوسيط الاتصالات">
 <!ENTITY proxyConnectFailure.longDesc "<ul> <li>افحص إعدادات الوسيط لتتأكد أنها صحيحة.</li> <li>اتصل بمدير الشبكة لتتأكد أن الخادوم الوسيط يعمل.</li> </ul>">
 
 <!ENTITY proxyResolveFailure.title "تعذر العثور على الخادوم الوسيط">
@@ -76,7 +76,7 @@
 <!ENTITY sharedLongDesc "<ul> <li>قد يكون الموقع متوقفًا مؤقتًا أو مشغولًا جدًا. حاول ثانية بعد عدّة دقائق.</li> <li>إذا كنت غير قادر على تحميل أي صفحة، افحص اتصال الحاسوب بالشبكة.</li> <li>إذا كانحاسوبك محميًا بجدار ناري أو وسيط، تأكد من السماح ل‍&brandShortName; بالنفاذ إلى الوِب.</li> </ul>">
 
 <!ENTITY cspBlocked.title "حجبتها سياسة أمن المحتوى">
-<!ENTITY cspBlocked.longDesc "<p>منع &brandShortName; هذه الصفحة من التحميل بهذه الطريقة لأن الصفحة تحتوي سياسة أمن محتوى تمنع ذلك.</p>">
+<!ENTITY cspBlocked.longDesc "<p>منع &brandShortName; هذه الصفحة من التحميل بهذه الطريقة لأن للصفحة سياسة أمن محتوى تمنع ذلك.</p>">
 
 <!ENTITY corruptedContentErrorv2.title "خطأ محتوى فاسد">
 <!ENTITY corruptedContentErrorv2.longDesc "<p>تعذر عرض الصفحة التي تريد مشاهدتها بسبب خطأ أثناء نقل البيانات.</p><ul><li>الرجاء التواصل مع مالك الموقع لإبلاغه بهذه المشكلة.</li></ul>">
@@ -99,3 +99,7 @@ functionality specific to thunderbird. -->
 <!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
      "NS_ERROR_NET_INADEQUATE_SECURITY". -->
 <!ENTITY inadequateSecurityError.longDesc "<p>يستخدم <span class='hostname'></span> تقنية أمنية عتيقة و عرضة للهجوم. يمكن لمهاجم بسهولة الاطلاع على معلومات تظنها بمأمن. على مدير الموقع إصلاح الخادوم قبل أن يمكنك زيارة الموقع.</p><p>رمز العطل: NS_ERROR_NET_INADEQUATE_SECURITY</p>">
+<!ENTITY blockedByPolicyTemp.title "الصفحة محجوبة">
+<!ENTITY blockedByPolicyTemp.longDesc "<p>عطّل المدير الوصول.</p>">
+
+<!ENTITY blockedByPolicy.title "Blocked Page">

@@ -75,3 +75,5 @@
 
 <!ENTITY pref.calendar.view-minimonth.showweeknumber.label "Show week number in views and minimonth">
 <!ENTITY pref.calendar.view-minimonth.showweeknumber.accesskey "n">
+<!ENTITY pref.showlocation.label "Show location">
+<!ENTITY pref.showlocation.accesskey "L">

@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://calendar/modules/calAlarmUtils.jsm");
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://calendar/modules/calAlarmUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 
 var localeEn = {
     headTitle:       "Subject",
@@ -343,7 +343,7 @@ calOutlookCSVImporter.prototype = {
                 if ("categoriesIndex" in args) {
                     txt = this.parseTextField(eventFields[args.categoriesIndex]);
                     if (txt) {
-                        let categories = cal.categoriesStringToArray(txt);
+                        let categories = cal.category.stringToArray(txt);
                         event.setCategories(categories.length, categories);
                     }
                 }
@@ -458,7 +458,7 @@ calOutlookCSVExporter.prototype = {
         aStream.write(str, str.length);
 
         for (let item of aItems) {
-            if (!cal.isEvent(item)) {
+            if (!cal.item.isEvent(item)) {
                 // XXX TODO: warn the user (once) that tasks are not supported
                 // (bug 336175)
                 continue;
@@ -478,7 +478,7 @@ calOutlookCSVExporter.prototype = {
             line.push(alarmDate ? localeEn.valueTrue : localeEn.valueFalse);
             line.push(alarmDate ? dateString(alarmDate) : "");
             line.push(alarmDate ? timeString(alarmDate) : "");
-            line.push(txtString(cal.categoriesArrayToString(item.getCategories({})))); // xxx todo: what's the correct way to encode ',' in csv?, how are multi-values expressed?
+            line.push(txtString(cal.category.arrayToString(item.getCategories({})))); // xxx todo: what's the correct way to encode ',' in csv?, how are multi-values expressed?
             line.push(txtString(item.getProperty("DESCRIPTION")));
             line.push(txtString(item.getProperty("LOCATION")));
             line.push(item.privacy == "PRIVATE" ? localeEn.valueTrue : localeEn.valueFalse);

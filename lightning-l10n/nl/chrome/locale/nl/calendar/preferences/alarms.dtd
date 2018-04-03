@@ -18,7 +18,7 @@
 <!ENTITY pref.calendar.alarms.sound.play.accessKey "A">
 <!ENTITY pref.showalarmbox "Het herinneringsvenster tonen">
 <!ENTITY pref.calendar.alarms.showAlarmBox.accessKey "r">
-<!ENTITY pref.missedalarms "Gemiste herinneringen tonen">
+<!ENTITY pref.missedalarms2 "Gemiste herinneringen voor schrijfbare agenda’s tonen">
 <!ENTITY pref.calendar.alarms.missedAlarms.accessKey "G">
 <!ENTITY pref.calendar.alarms.defaults.label "Standaard herinneringsinstellingen">
 <!ENTITY pref.defalarm4events.label "Standaard herinneringsinstelling voor gebeurtenissen:">
@@ -34,5 +34,3 @@
 
 <!ENTITY pref.defaultsnoozelength.label "Standaard sluimerduur:" >
 <!ENTITY pref.defaultsnoozelength.accesskey "d">
-
-<!ENTITY pref.missedalarms2 "Show missed reminders for writable calendars">

@@ -6,14 +6,14 @@
 
 use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
-use std::fmt;
-use style_traits::{ParseError, StyleParseErrorKind, ToCss};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::{Either, None_};
 #[cfg(feature = "gecko")]
 use values::CustomIdent;
 #[cfg(feature = "gecko")]
 use values::generics::CounterStyleOrNone;
-use values::specified::UrlOrNone;
+use values::specified::ImageUrlOrNone;
 
 /// Specified and computed `list-style-type` property.
 #[cfg(feature = "gecko")]
@@ -75,7 +75,7 @@ impl Parse for ListStyleType {
 
 /// Specified and computed `list-style-image` property.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
-pub struct ListStyleImage(pub UrlOrNone);
+pub struct ListStyleImage(pub ImageUrlOrNone);
 
 // FIXME(nox): This is wrong, there are different types for specified
 // and computed URLs in Servo.
@@ -90,19 +90,11 @@ impl ListStyleImage {
 }
 
 impl Parse for ListStyleImage {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<ListStyleImage, ParseError<'i>> {
-        #[allow(unused_mut)]
-        let mut value = input.try(|input| UrlOrNone::parse(context, input))?;
-
-        #[cfg(feature = "gecko")]
-        {
-            if let Either::First(ref mut url) = value {
-                url.build_image_value();
-            }
-        }
-
-        return Ok(ListStyleImage(value));
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<ListStyleImage, ParseError<'i>> {
+        ImageUrlOrNone::parse(context, input).map(ListStyleImage)
     }
 }
 
@@ -114,7 +106,10 @@ impl Parse for ListStyleImage {
 pub struct Quotes(pub Box<[(Box<str>, Box<str>)]>);
 
 impl ToCss for Quotes {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         let mut iter = self.0.iter();
 
         match iter.next() {

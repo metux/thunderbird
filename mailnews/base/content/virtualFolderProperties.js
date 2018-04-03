@@ -10,14 +10,14 @@ var gSearchTermSession; // really an in memory temporary filter we use to read i
 var gSearchFolderURIs = "";
 var gMessengerBundle = null;
 
-var nsMsgSearchScope = Components.interfaces.nsMsgSearchScope;
+var nsMsgSearchScope = Ci.nsMsgSearchScope;
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/PluralForm.jsm");
-Components.utils.import("resource:///modules/mailServices.js");
-Components.utils.import("resource:///modules/virtualFolderWrapper.js");
-Components.utils.import("resource:///modules/iteratorUtils.jsm");
-Components.utils.import("resource:///modules/MailUtils.js");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/PluralForm.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/virtualFolderWrapper.js");
+ChromeUtils.import("resource:///modules/iteratorUtils.jsm");
+ChromeUtils.import("resource:///modules/MailUtils.js");
 
 function onLoad()
 {
@@ -34,26 +34,26 @@ function onLoad()
   setSearchScope(nsMsgSearchScope.offlineMail);
   if (windowArgs.editExistingFolder)
   {
-    acceptButton.label = 
+    acceptButton.label =
         document.documentElement.getAttribute("editFolderAcceptButtonLabel");
-    acceptButton.accesskey = 
+    acceptButton.accesskey =
         document.documentElement.getAttribute("editFolderAcceptButtonAccessKey");
     InitDialogWithVirtualFolder(windowArgs.folder);
   }
   else // we are creating a new virtual folder
   {
-    acceptButton.label = 
+    acceptButton.label =
         document.documentElement.getAttribute("newFolderAcceptButtonLabel");
-    acceptButton.accesskey = 
+    acceptButton.accesskey =
         document.documentElement.getAttribute("newFolderAcceptButtonAccessKey");
     // it is possible that we were given arguments to pre-fill the dialog with...
-    gSearchTermSession = Components.classes["@mozilla.org/messenger/searchSession;1"]
-                                   .createInstance(Components.interfaces.nsIMsgSearchSession);
+    gSearchTermSession = Cc["@mozilla.org/messenger/searchSession;1"]
+                           .createInstance(Ci.nsIMsgSearchSession);
 
     if (windowArgs.searchTerms) // then add them to our search session
     {
       for (let searchTerm of fixIterator(windowArgs.searchTerms,
-                                         Components.interfaces.nsIMsgSearchTerm))
+                                         Ci.nsIMsgSearchTerm))
         gSearchTermSession.appendTerm(searchTerm);
     }
     if (windowArgs.folder)

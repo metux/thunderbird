@@ -10,18 +10,26 @@
 <!ENTITY time.millisecond.placeholder "--">
 <!ENTITY time.dayperiod.placeholder "--">
 
+<!-- Field labels for input type=time -->
+
+<!ENTITY time.hour.label "Hodiny">
+<!ENTITY time.minute.label "Minúty">
+<!ENTITY time.second.label "Sekundy">
+<!ENTITY time.millisecond.label "Milisekundy">
+<!ENTITY time.dayperiod.label "doobeda/poobede">
+
 <!-- Placeholders for input type=date -->
 
 <!ENTITY date.year.placeholder "rrrr">
 <!ENTITY date.month.placeholder "mm">
 <!ENTITY date.day.placeholder "dd">
 
-<!ENTITY time.hour.label "Hours">
-<!ENTITY time.minute.label "Minutes">
-<!ENTITY time.second.label "Seconds">
-<!ENTITY time.millisecond.label "Milliseconds">
-<!ENTITY time.dayperiod.label "AM/PM">
-<!ENTITY date.year.label "Year">
-<!ENTITY date.month.label "Month">
-<!ENTITY date.day.label "Day">
-<!ENTITY datetime.reset.label "Clear">
+<!-- Field labels for input type=date -->
+
+<!ENTITY date.year.label "Rok">
+<!ENTITY date.month.label "Mesiac">
+<!ENTITY date.day.label "Deň">
+
+<!-- Date/time clear button -->
+
+<!ENTITY datetime.reset.label "Vymazať">

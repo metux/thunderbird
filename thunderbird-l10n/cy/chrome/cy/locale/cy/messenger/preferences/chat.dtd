@@ -31,6 +31,10 @@ sentence. -->
 <!ENTITY  completeNotification.label          "gydag enw'r anfonwr a rhagolwg o'r neges">
 <!ENTITY  buddyInfoOnly.label                 "gydag enw'r anfonwr yn unig">
 <!ENTITY  dummyNotification.label             "heb unrhyw wybodaeth">
+<!ENTITY  getAttention.label                  "Fflachio'r eitem bar tasgau">
+<!ENTITY  getAttention.accesskey              "F">
+<!ENTITY  getAttentionMac.label               "Animeiddio eitem docio">
+<!ENTITY  getAttentionMac.accesskey           "o">
 <!ENTITY  chatSound.accesskey                 "C">
 <!ENTITY  chatSound.label                     "Canu nodyn">
 <!ENTITY  play.label                          "Chwarae">
@@ -58,8 +62,3 @@ sentence. -->
 <!ENTITY messageStyleShowHeader.accesskey  "P">
 <!ENTITY messageStyleNoPreview.title       "Dim rhagolwg ar gael">
 <!ENTITY messageStyleNoPreview.description "Nid yw'r thema yma'n ddilys nac ar gael ar hyn o bryd (ychwanegyn wedi ei analluogi, modd diogel, …).">
-
-<!ENTITY  getAttention.label                  "Flash the taskbar item">
-<!ENTITY  getAttention.accesskey              "F">
-<!ENTITY  getAttentionMac.label               "Animate dock icon">
-<!ENTITY  getAttentionMac.accesskey           "o">

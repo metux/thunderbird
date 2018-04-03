@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/nl/locale/nl/passwordmgr/", 
         "pippki": "chrome/nl/locale/nl/pippki/"
       }, 
-      "version": "20171102110541"
+      "version": "20180314121740"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-nl@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "nl", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Nederlands (NL) Language Pack", 
   "manifest_version": 2, 
   "sources": {

@@ -37,7 +37,18 @@
 <!ENTITY lightning.menu.eventtask.accesskey            "Σ">
 
 <!-- properties dialog, calendar creation wizard -->
-<!ENTITY lightning.calendarproperties.email.label               "Διεύθυνση ηλεκτρονικού ταχυδρομείου:">
+<!-- LOCALIZATON NOTE(lightning.calendarproperties.email.label,
+     lightning.calendarproperties.forceEmailScheduling.label)
+     These strings are used in the calendar wizard and the calendar properties dialog, but are only
+     displayed when setting/using a caldav calendar -->
+<!ENTITY lightning.calendarproperties.email.label                           "Διεύθυνση ηλεκτρονικού ταχυδρομείου:">
+<!ENTITY lightning.calendarproperties.forceEmailScheduling.label            "Να προτιμάται ο προγραμματισμός με ηλεκτρονικό ταχυδρομείο">
+<!-- LOCALIZATON NOTE(lightning.calendarproperties.forceEmailScheduling.tooltiptext1,
+     lightning.calendarproperties.forceEmailScheduling.tooltiptext2)
+     - tooltiptext1 is used in the calendar wizard when setting a new caldav calendar
+     - tooltiptext2 is used in the calendar properties dialog for caldav calendars -->
+<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext1     "Προς το παρόν, μπορείτε να το ενεργοποιήσετε μόνο αφού ρυθμίσετε αυτό το ημερολόγιο στο παράθυρο ιδιοτήτων, αν ο διακομιστής ημερολογίων διαχειρίζεται τον προγραμματισμό.">
+<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext2     "Η επιλογή είναι διαθέσιμη αν ο διακομιστής ημερολογίου διαχειρίζεται τον προγραμματισμό. Η ενεργοποίησή του θα επιτρέψει την εναλλακτική ο προγραμματισμός να γίνεται βάσει του ηλεκτρονικού ταχυδρομείου αντί να το αφήνει στον διακομιστή.">
 
 <!-- iMIP Bar (meeting support) -->
 <!ENTITY lightning.imipbar.btnAccept.label                                  "Αποδοχή">
@@ -72,6 +83,13 @@
 <!ENTITY lightning.imipbar.btnUpdate.tooltiptext                            "Ενημέρωση του συμβάντος στο ημερολόγιο">
 <!ENTITY lightning.imipbar.description                                      "Αυτό το μήνυμα περιέχει πρόσκληση σε συμβάν.">
 
+<!ENTITY lightning.imipbar.btnSend.label                                    "Αποστολή μιας απάντησης τώρα">
+<!ENTITY lightning.imipbar.btnSend.tooltiptext                              "Αποστολή μιας απάντησης στον οργανωτή">
+<!ENTITY lightning.imipbar.btnSendSeries.tooltiptext                        "Αποστολή μιας απάντησης σε όλη τη σειρά των οργανωτών">
+<!ENTITY lightning.imipbar.btnDontSend.label                                "Να μην αποσταλεί απάντηση">
+<!ENTITY lightning.imipbar.btnDontSend.tooltiptext                          "Αλλαγή της κατάστασης συμμετοχής χωρίς αποστολή απάντησης στον οργανωτή">
+<!ENTITY lightning.imipbar.btnDontSendSeries.tooltiptext                    "Αλλάξτε την κατάσταση συμμετοχής σας για τη σειρά χωρίς αποστολή απόκρισης στον οργανωτή">
+
 <!-- Lightning specific keybindings -->
 <!ENTITY lightning.keys.event.showCalendar.key "Η">
 <!ENTITY lightning.keys.event.showTasks.key "Ε">
@@ -91,7 +109,3 @@
 <!ENTITY todaypane.showTodayPane.label "Εμφάνιση παραθύρου ημέρας">
 <!ENTITY todaypane.showTodayPane.accesskey "π">
 <!ENTITY todaypane.statusButton.label "Παράθυρο ημέρας">
-
-<!ENTITY lightning.calendarproperties.forceEmailScheduling.label            "Prefer client-side email scheduling">
-<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext1     "For now, you can only enable this after setting up this calendar in its property dialog if the calendar server takes care of scheduling.">
-<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext2     "This option is only available if the calendar server handles scheduling. Enabling will allow to fall back to the standard email based scheduling instead of leaving it to the server.">

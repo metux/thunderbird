@@ -8,8 +8,8 @@
  * mozilla/browser/base/content/browser.js
  */
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/AppConstants.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
 
 if (AppConstants.MOZ_CRASHREPORTER) {
   XPCOMUtils.defineLazyServiceGetter(this, "gCrashReporter",
@@ -41,7 +41,7 @@ function getPluginInfo(pluginElement)
       }
     }
 
-    tagMimetype = pluginElement.QueryInterface(Components.interfaces.nsIObjectLoadingContent)
+    tagMimetype = pluginElement.QueryInterface(Ci.nsIObjectLoadingContent)
                  .actualType;
 
     if (tagMimetype == "") {
@@ -87,7 +87,7 @@ var gPluginHandler = {
 
   get CrashSubmit() {
     delete this.CrashSubmit;
-    Components.utils.import("resource://gre/modules/CrashSubmit.jsm", this);
+    ChromeUtils.import("resource://gre/modules/CrashSubmit.jsm", this);
     return this.CrashSubmit;
   },
 
@@ -192,8 +192,6 @@ var gPluginHandler = {
 
   // Helper to get the binding handler type from a plugin object
   _getBindingType : function(plugin) {
-    let Ci = Components.interfaces;
-
     if (!(plugin instanceof Ci.nsIObjectLoadingContent))
       return null;
 
@@ -226,7 +224,7 @@ var gPluginHandler = {
     let doc = plugin.ownerDocument;
 
     // We're expecting the target to be a plugin.
-    if (!(plugin instanceof Components.interfaces.nsIObjectLoadingContent))
+    if (!(plugin instanceof Ci.nsIObjectLoadingContent))
       return;
 
     let eventType = event.type;
@@ -332,8 +330,6 @@ var gPluginHandler = {
 
   // Event listener for blocklisted/outdated/carbonFailure plugins.
   pluginUnavailable: function(plugin, eventType) {
-    let Cc = Components.classes;
-    let Ci = Components.interfaces;
     var tabmail = document.getElementById('tabmail');
     let browser = tabmail.getBrowserForDocument(plugin.ownerDocument
                                                 .defaultView).browser;
@@ -469,8 +465,8 @@ var gPluginHandler = {
   // are dispatched to individual plugin instances.
   pluginCrashed : function(subject, topic, data) {
     let propertyBag = subject;
-    if (!(propertyBag instanceof Components.interfaces.nsIPropertyBag2) ||
-        !(propertyBag instanceof Components.interfaces.nsIWritablePropertyBag2))
+    if (!(propertyBag instanceof Ci.nsIPropertyBag2) ||
+        !(propertyBag instanceof Ci.nsIWritablePropertyBag2))
      return;
 
     if (AppConstants.MOZ_CRASHREPORTER) {
@@ -562,11 +558,11 @@ var gPluginHandler = {
       // show an updated message when a report is submitted.
       if (doPrompt) {
         let observer = {
-          QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsIObserver,
-                                                 Components.interfaces.nsISupportsWeakReference]),
+          QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
+                                                 Ci.nsISupportsWeakReference]),
           observe : function(subject, topic, data) {
             let propertyBag = subject;
-            if (!(propertyBag instanceof Components.interfaces.nsIPropertyBag2))
+            if (!(propertyBag instanceof Ci.nsIPropertyBag2))
               return;
             // Ignore notifications for other crashes.
             if (propertyBag.get("minidumpID") != pluginDumpID)

@@ -3,7 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <!ENTITY addons.windowTitle                   "Add-onbeheerder">
 
-<!ENTITY search.placeholder                   "Alle add-ons doorzoeken">
+<!ENTITY search.placeholder2                  "Zoeken op addons.mozilla.org">
 <!ENTITY search.buttonlabel                   "Zoeken">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
@@ -14,7 +14,6 @@
 <!ENTITY listEmpty.availableUpdates.label     "Geen updates gevonden">
 <!ENTITY listEmpty.recentUpdates.label        "U hebt uw add-ons niet recentelijk bijgewerkt">
 <!ENTITY listEmpty.findUpdates.label          "Controleren op updates">
-<!ENTITY listEmpty.search.label               "Geen overeenkomende add-ons gevonden">
 <!ENTITY listEmpty.button.label               "Meer info over add-ons">
 <!ENTITY installAddonFromFile.label           "Add-on installeren via bestand…">
 <!ENTITY installAddonFromFile.accesskey       "s">
@@ -23,8 +22,6 @@
 <!ENTITY getThemes.description                "Zoekt u een manier om uw browser te personaliseren?">
 <!ENTITY getThemes.learnMore                  "Maak een keuze uit duizenden thema’s.">
 
-<!ENTITY cmd.back.tooltip                     "Een pagina terug gaan">
-<!ENTITY cmd.forward.tooltip                  "Een pagina vooruit gaan">
 
 <!ENTITY showUnsignedExtensions.button.label  "Sommige extensies konden niet worden geverifieerd">
 <!ENTITY showAllExtensions.button.label       "Alle extensies tonen">
@@ -41,7 +38,6 @@
 <!ENTITY warning.updatesecurity.enable.tooltip     "Add-on-veiligheidscontrole inschakelen">
 
 <!-- categories / views -->
-<!ENTITY view.search.label                    "Doorzoeken">
 <!ENTITY view.discover.label                  "Add-ons verkrijgen">
 <!ENTITY view.recentUpdates.label             "Recente updates">
 <!ENTITY view.availableUpdates.label          "Beschikbare updates">
@@ -68,7 +64,7 @@
 <!ENTITY updates.resetUpdatesToManual.accesskey      "t">
 <!ENTITY updates.updating.label               "Add-ons worden bijgewerkt">
 <!ENTITY updates.installed.label              "Uw add-ons zijn bijgewerkt.">
-<!ENTITY updates.downloaded.label             "Uw add-on updates zijn gedownload.">
+<!ENTITY updates.downloaded.label             "Uw add-on-updates zijn gedownload.">
 <!ENTITY updates.restart.label                "Herstart nu om de installatie te voltooien.">
 <!ENTITY updates.noneFound.label              "Geen updates gevonden">
 <!ENTITY updates.manualUpdatesFound.label     "Beschikbare updates bekijken">
@@ -79,7 +75,7 @@
 <!ENTITY cmd.showDetails.label                "Meer informatie tonen">
 <!ENTITY cmd.showDetails.accesskey            "M">
 <!ENTITY cmd.findUpdates.label                "Updates zoeken">
-<!ENTITY cmd.findUpdates.accesskey            "U">
+<!ENTITY cmd.findUpdates.accesskey            "z">
 <!ENTITY cmd.preferencesWin.label             "Opties">
 <!ENTITY cmd.preferencesWin.accesskey         "O">
 <!ENTITY cmd.preferencesUnix.label            "Voorkeuren">
@@ -174,16 +170,6 @@
 <!ENTITY sort.name.tooltip                    "Sorteren op naam">
 <!ENTITY sort.dateUpdated.label               "Laatst bijgewerkt">
 <!ENTITY sort.dateUpdated.tooltip             "Sorteren op updatedatum">
-<!ENTITY sort.relevance.label                 "Beste overeenkomst">
-<!ENTITY sort.relevance.tooltip               "Sorteren op relevantie">
-<!ENTITY sort.price.label                     "Prijs">
-<!ENTITY sort.price.tooltip                   "Sorteren op prijs">
-
-<!ENTITY search.filter2.label                 "Zoeken:">
-<!ENTITY search.filter2.installed.label       "Mijn add-ons">
-<!ENTITY search.filter2.installed.tooltip     "Geïnstalleerde add-ons tonen">
-<!ENTITY search.filter2.available.label       "Beschikbare add-ons">
-<!ENTITY search.filter2.available.tooltip     "Add-ons tonen die beschikbaar zijn voor installatie">
 
 <!ENTITY addon.homepage                       "Homepage">
 <!ENTITY addon.details.label                  "Meer">
@@ -262,5 +248,3 @@
 <!ENTITY legacyExtensions.title "Verouderde extensies">
 <!ENTITY legacyExtensions.description "Deze extensies voldoen niet aan huidige &brandShortName;-standaarden en zijn daarom gedeactiveerd.">
 <!ENTITY legacyExtensions.learnMore "Meer info over de wijzigingen omtrent add-ons">
-
-<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

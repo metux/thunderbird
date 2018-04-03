@@ -5,6 +5,7 @@
 <!ENTITY addons.windowTitle                   "Dodatki">
 
 <!ENTITY search.placeholder                   "Szukaj we wszystkich dodatkach">
+<!ENTITY search.placeholder2 "Szukaj na stronie addons.mozilla.org">
 <!ENTITY search.buttonlabel "Szukaj">
 <!ENTITY search.commandkey                    "f">
 
@@ -24,9 +25,6 @@
 
 <!ENTITY getThemes.description "Szukasz sposobu na personalizację przeglądarki?">
 <!ENTITY getThemes.learnMore "Wybieraj spośród tysięcy motywów.">
-
-<!ENTITY cmd.back.tooltip                     "Przejdź jedną stronę do przodu">
-<!ENTITY cmd.forward.tooltip                  "Przejdź jedną stronę wstecz">
 
 <!ENTITY showUnsignedExtensions.button.label "Niektóre rozszerzenia nie mogły zostać zweryfikowane">
 <!ENTITY showAllExtensions.button.label "Pokaż wszystkie rozszerzenia">
@@ -218,5 +216,3 @@
 <!ENTITY legacyExtensions.title "Przestarzałe rozszerzenia">
 <!ENTITY legacyExtensions.description "Te rozszerzenia nie spełniają obecnych standardów programu &brandShortName; i z tego powodu zostały wyłączone.">
 <!ENTITY legacyExtensions.learnMore "Więcej informacji o zmianach w dodatkach">
-
-<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

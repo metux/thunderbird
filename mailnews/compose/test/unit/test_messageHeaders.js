@@ -2,9 +2,9 @@
  * Test suite for ensuring that the headers of messages are set properly.
  */
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource:///modules/mailServices.js");
-Components.utils.import("resource:///modules/mimeParser.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mimeParser.jsm");
 
 var CompFields = CC("@mozilla.org/messengercompose/composefields;1",
                     Ci.nsIMsgCompFields);
@@ -123,7 +123,7 @@ function* testI18NEnvelope() {
     "Cc": "=?UTF-8?Q?Andr=c3=a9_Chopin?= <alex@tinderbox.invalid>",
     "Bcc": "=?UTF-8?Q?=c3=89tienne?= <boris@tinderbox.invalid>",
     "Reply-To": "=?UTF-8?B?RnLDqWTDqXJpYw==?= <charles@tinderbox.invalid>",
-    "Subject": "=?UTF-8?Q?Ceci_n'est_pas_un_r=c3=a9f=c3=a9rence_obscure?=",
+    "Subject": "=?UTF-8?Q?Ceci_n=27est_pas_un_r=c3=a9f=c3=a9rence_obscure?=",
   });
 }
 
@@ -194,7 +194,7 @@ function* testDraftInfo() {
       "vcard=1; receipt=1; DSN=1; uuencode=0; attachmentreminder=1; deliveryformat=4",
   });
 
-  fields.deliveryFormat = Components.interfaces.nsIMsgCompSendFormat.Both;
+  fields.deliveryFormat = Ci.nsIMsgCompSendFormat.Both;
   yield richCreateMessage(fields, [], identity);
   checkDraftHeaders({
     "X-Mozilla-Draft-Info": "internal/draft; " +

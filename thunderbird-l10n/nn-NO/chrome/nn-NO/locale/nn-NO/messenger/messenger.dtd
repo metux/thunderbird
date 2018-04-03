@@ -318,6 +318,7 @@
 <!ENTITY goChatCmd.label "Nettprat">
 <!ENTITY goChatCmd.accesskey "e">
 <!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Melding med stjerne">
 <!ENTITY prevStarredMsgCmd.accesskey "M">
 <!ENTITY folderMenu.label "Mappe">
@@ -459,6 +460,11 @@
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "Utvidingar">
 <!ENTITY addons.accesskey "U">
+<!ENTITY addonPrefs.label "Innstillingar for utviding">
+<!ENTITY addonPrefs.accesskey "o">
+<!ENTITY addonPrefsUnix.label "Innstillingar for utviding">
+<!ENTITY addonPrefsUnix.accesskey "o">
+<!ENTITY addonNoPrefs.label "Fann ingen innstillingar for utvidinga.">
 <!ENTITY activitymanager.label "Aktivitetar">
 <!ENTITY activitymanager.accesskey "v">
 <!ENTITY imAccountsStatus.label "Nettpratstatus">
@@ -504,6 +510,8 @@
 <!ENTITY devToolboxCmd.commandkey "i">
 <!ENTITY addonDebugCmd.label "Feilsøking for utvidingar">
 <!ENTITY addonDebugCmd.accesskey "F">
+<!ENTITY debugAddonsCmd.label "Feilsøk utvidingar">
+<!ENTITY debugAddonsCmd.accesskey "F">
 <!ENTITY tabsDebugCmd.label "Feilsøking for innhaldsramme">
 <!ENTITY tabsDebugCmd.accesskey "F">
 <!ENTITY errorConsoleCmd.label "Feilmeldingar">
@@ -958,15 +966,7 @@
 <!ENTITY writeNewMessageDock.label      "Skriv ny melding">
 <!ENTITY openAddressBookDock.label      "Opne Adresseboka">
 
-<!ENTITY goChatCmd2.key "H">
 <!ENTITY editTemplateMsgCmd.label "Edit Template">
 <!ENTITY editTemplateMsgCmd.accesskey "T">
-<!ENTITY addonPrefs.label "Add-on Options">
-<!ENTITY addonPrefs.accesskey "O">
-<!ENTITY addonPrefsUnix.label "Add-on Preferences">
-<!ENTITY addonPrefsUnix.accesskey "P">
-<!ENTITY addonNoPrefs.label "No Add-on settings found.">
-<!ENTITY debugAddonsCmd.label "Debug Add-ons">
-<!ENTITY debugAddonsCmd.accesskey "A">
 <!ENTITY contextEditTemplate.label "Edit Template">
 <!ENTITY contextEditTemplate.accesskey "T">

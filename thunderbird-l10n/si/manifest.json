@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/si/locale/si/passwordmgr/", 
         "pippki": "chrome/si/locale/si/pippki/"
       }, 
-      "version": "20161114165302"
+      "version": "20180312194035"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-si@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "si", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Sinhala (si-LK) Language Pack", 
   "manifest_version": 2, 
   "sources": {

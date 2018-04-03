@@ -318,6 +318,7 @@
 <!ENTITY goChatCmd.label "Klepet">
 <!ENTITY goChatCmd.accesskey "K">
 <!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Sporočilo z zvezdico">
 <!ENTITY prevStarredMsgCmd.accesskey "z">
 <!ENTITY folderMenu.label "Mapa">
@@ -366,6 +367,8 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Uredi osnutek">
 <!ENTITY editDraftMsgCmd.accesskey "U">
+<!ENTITY editTemplateMsgCmd.label "Uredi predlogo">
+<!ENTITY editTemplateMsgCmd.accesskey "P">
 <!ENTITY newMsgFromTemplateCmd.label "Novo sporočilo iz predloge">
 <!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Ustvari filter iz sporočila …">
@@ -459,6 +462,11 @@
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "Dodatki">
 <!ENTITY addons.accesskey "D">
+<!ENTITY addonPrefs.label "Možnosti dodatka">
+<!ENTITY addonPrefs.accesskey "M">
+<!ENTITY addonPrefsUnix.label "Nastavitve dodatka">
+<!ENTITY addonPrefsUnix.accesskey "N">
+<!ENTITY addonNoPrefs.label "Ni najdenih nastavitev dodatka.">
 <!ENTITY activitymanager.label "Upravitelj dejavnosti">
 <!ENTITY activitymanager.accesskey "v">
 <!ENTITY imAccountsStatus.label "Stanje klepeta">
@@ -504,6 +512,8 @@
 <!ENTITY devToolboxCmd.commandkey "i">
 <!ENTITY addonDebugCmd.label "Razhroščevalnik dodatkov">
 <!ENTITY addonDebugCmd.accesskey "d">
+<!ENTITY debugAddonsCmd.label "Razhrošči dodatke">
+<!ENTITY debugAddonsCmd.accesskey "R">
 <!ENTITY tabsDebugCmd.label "Razhroščevalnik vsebinskega okvirja">
 <!ENTITY tabsDebugCmd.accesskey "v">
 <!ENTITY errorConsoleCmd.label "Konzola napak">
@@ -752,6 +762,8 @@
 <!ENTITY contextEditMsgAsNew.label "Uredi kot novo sporočilo">
 <!ENTITY contextEditMsgAsNew.accesskey "U">
 <!ENTITY contextEditDraftMsg.label "Uredi osnutek">
+<!ENTITY contextEditTemplate.label "Uredi predlogo">
+<!ENTITY contextEditTemplate.accesskey "P">
 <!ENTITY contextArchive.label "Arhiviraj">
 <!ENTITY contextArchive.accesskey "h">
 <!ENTITY contextReplySender.label "Odgovori samo pošiljatelju">
@@ -900,7 +912,7 @@
 <!ENTITY CopyNameAndEmailAddress.accesskey "m">
 <!ENTITY CopyNewsgroupName.label "Kopiraj ime novičarske skupine">
 <!ENTITY CopyNewsgroupName.accesskey "n">
-<!ENTITY CopyNewsgroupURL.label "Kopiraj URL novičarske skupine">
+<!ENTITY CopyNewsgroupURL.label "Kopiraj spletni naslov novičarske skupine">
 <!ENTITY CopyNewsgroupURL.accesskey "U">
 <!ENTITY CreateFilterFrom.label "Ustvari filter iz …">
 <!ENTITY CreateFilterFrom.accesskey "U">
@@ -957,16 +969,3 @@
 <!ENTITY dockOptions.label              "Možnosti ikone programa …">
 <!ENTITY writeNewMessageDock.label      "Sestavi novo sporočilo">
 <!ENTITY openAddressBookDock.label      "Odpri imenik">
-
-<!ENTITY goChatCmd2.key "H">
-<!ENTITY editTemplateMsgCmd.label "Edit Template">
-<!ENTITY editTemplateMsgCmd.accesskey "T">
-<!ENTITY addonPrefs.label "Add-on Options">
-<!ENTITY addonPrefs.accesskey "O">
-<!ENTITY addonPrefsUnix.label "Add-on Preferences">
-<!ENTITY addonPrefsUnix.accesskey "P">
-<!ENTITY addonNoPrefs.label "No Add-on settings found.">
-<!ENTITY debugAddonsCmd.label "Debug Add-ons">
-<!ENTITY debugAddonsCmd.accesskey "A">
-<!ENTITY contextEditTemplate.label "Edit Template">
-<!ENTITY contextEditTemplate.accesskey "T">

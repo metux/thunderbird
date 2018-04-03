@@ -4,11 +4,11 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 // Load DownloadUtils module for convertByteUnits
-Components.utils.import("resource://gre/modules/DownloadUtils.jsm");
-Components.utils.import("resource://gre/modules/ctypes.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/LoadContextInfo.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/DownloadUtils.jsm");
+ChromeUtils.import("resource://gre/modules/ctypes.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/LoadContextInfo.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 var gAdvancedPane = {
   _inited: false,
@@ -206,7 +206,7 @@ var gAdvancedPane = {
    */
   updateConnectionGroupbox: function ()
   {
-    let hasLibpurple = "@instantbird.org/libpurple/core;1" in Components.classes;
+    let hasLibpurple = "@instantbird.org/libpurple/core;1" in Cc;
     // Hide explanatory header and libpurple section.
     document.getElementById("connectionGroupHeader").hidden = !hasLibpurple;
     document.getElementById("connectionGroupSeparator").hidden = !hasLibpurple;
@@ -281,8 +281,8 @@ var gAdvancedPane = {
     else                      // enabledPref.value && !autoPref.value
       radiogroup.value="checkOnly"; // 2. Check, but let me choose
 
-    var canCheck = Components.classes["@mozilla.org/updates/update-service;1"].
-                     getService(Components.interfaces.nsIApplicationUpdateService).
+    var canCheck = Cc["@mozilla.org/updates/update-service;1"].
+                     getService(Ci.nsIApplicationUpdateService).
                      canCheckForUpdates;
     // canCheck is false if the enabledPref is false and locked,
     // or the binary platform or OS version is not known.
@@ -300,8 +300,8 @@ var gAdvancedPane = {
     // If it is don't show the preference at all.
     var installed;
     try {
-      var wrk = Components.classes["@mozilla.org/windows-registry-key;1"]
-                .createInstance(Components.interfaces.nsIWindowsRegKey);
+      var wrk = Cc["@mozilla.org/windows-registry-key;1"]
+                .createInstance(Ci.nsIWindowsRegKey);
       wrk.open(wrk.ROOT_KEY_LOCAL_MACHINE,
                "SOFTWARE\\Mozilla\\MaintenanceService",
                wrk.ACCESS_READ | wrk.WOW64_64);
@@ -318,8 +318,8 @@ var gAdvancedPane = {
       const UINT = ctypes.uint32_t;
       let kernel32 = ctypes.open("kernel32");
       let GetDriveType = kernel32.declare("GetDriveTypeW", ctypes.default_abi, UINT, LPCWSTR);
-      var UpdatesDir = Components.classes["@mozilla.org/updates/update-service;1"].
-                       getService(Components.interfaces.nsIApplicationUpdateService);
+      var UpdatesDir = Cc["@mozilla.org/updates/update-service;1"].
+                       getService(Ci.nsIApplicationUpdateService);
       let rootPath = UpdatesDir.getUpdatesDirectory();
       while (rootPath.parent != null) {
         rootPath = rootPath.parent;
@@ -409,8 +409,8 @@ var gAdvancedPane = {
    */
   showUpdates: function ()
   {
-    var prompter = Components.classes["@mozilla.org/updates/update-prompt;1"]
-                             .createInstance(Components.interfaces.nsIUpdatePrompt);
+    var prompter = Cc["@mozilla.org/updates/update-prompt;1"]
+                     .createInstance(Ci.nsIUpdatePrompt);
     prompter.showUpdateHistory(window);
   },
 #endif

@@ -7,6 +7,7 @@
 
 #include "nscore.h"
 #include "msgCore.h"
+#include "nsIFile.h"
 #include "nsMailDatabase.h"
 #include "nsDBFolderInfo.h"
 #include "nsMsgKeySet.h"
@@ -82,7 +83,7 @@ nsMsgDBService::~nsMsgDBService()
   {
     nsMsgDatabase* pMessageDB = m_dbCache.ElementAt(i);
     if (pMessageDB)
-      printf("db left open %s\n", (const char *) pMessageDB->m_dbName.get());
+      printf("db left open %s\n", pMessageDB->m_dbFile->HumanReadablePath().get());
   }
 #endif
 }
@@ -546,17 +547,13 @@ NS_IMETHODIMP nsMsgDatabase::GetDatabaseSize(int64_t *_retval)
   NS_ENSURE_ARG_POINTER(_retval);
 
   nsresult rv;
-  nsCOMPtr<nsIFile> summaryFilePath = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = summaryFilePath->InitWithNativePath(m_dbName);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   bool exists;
-  rv = summaryFilePath->Exists(&exists);
+  NS_ENSURE_TRUE(m_dbFile, NS_ERROR_NULL_POINTER);
+  rv = m_dbFile->Exists(&exists);
   if (NS_SUCCEEDED(rv))
   {
     if (exists)
-      rv = summaryFilePath->GetFileSize(_retval);
+      rv = m_dbFile->GetFileSize(_retval);
     else
       *_retval = 0;
   }
@@ -616,7 +613,8 @@ void nsMsgDatabase::ClearCachedObjects(bool dbGoingAway)
   if (m_headersInUse && m_headersInUse->EntryCount() > 0)
   {
     NS_ASSERTION(false, "leaking headers");
-    printf("leaking %d headers in %s\n", m_headersInUse->EntryCount(), (const char *) m_dbName);
+    printf("leaking %d headers in %s\n", m_headersInUse->EntryCount(),
+           m_dbFile->HumanReadablePath().get());
   }
 #endif
   m_cachedThread = nullptr;
@@ -934,11 +932,10 @@ NS_IMETHODIMP nsMsgDatabase::NotifyAnnouncerGoingAway(void)
   return NS_OK;
 }
 
-bool nsMsgDatabase::MatchDbName(nsIFile *dbName)  // returns true if they match
+bool nsMsgDatabase::MatchDbName(nsIFile *dbFile)  // returns true if they match
 {
-  nsCString dbPath;
-  dbName->GetNativePath(dbPath);
-  return dbPath.Equals(m_dbName);
+  NS_ENSURE_TRUE(m_dbFile, false);
+  return dbFile->NativePath().Equals(m_dbFile->NativePath());
 }
 
 void nsMsgDBService::AddToCache(nsMsgDatabase* pMessageDB)
@@ -968,7 +965,7 @@ void nsMsgDBService::DumpCache()
   {
     db = m_dbCache.ElementAt(i);
     MOZ_LOG(DBLog, LogLevel::Info, ("%s - %" PRIu32 " hdrs in use\n",
-      db->m_dbName.get(),
+      db->m_dbFile->HumanReadablePath().get(),
       db->m_headersInUse ? db->m_headersInUse->EntryCount() : 0));
   }
 }
@@ -1079,7 +1076,6 @@ nsMsgDatabase::nsMsgDatabase()
         m_mdbAllMsgHeadersTable(nullptr), m_mdbAllThreadsTable(nullptr),
         m_create(false),
         m_leaveInvalidDB(false),
-        m_dbName(""),
         m_mdbTokensInitialized(false),
         m_hdrRowScopeToken(0),
         m_hdrTableKindToken(0),
@@ -1136,7 +1132,7 @@ nsMsgDatabase::~nsMsgDatabase()
     m_msgReferences = nullptr;
   }
 
-  MOZ_LOG(DBLog, LogLevel::Info, ("closing database    %s\n", m_dbName.get()));
+  MOZ_LOG(DBLog, LogLevel::Info, ("closing database    %s\n", m_dbFile->HumanReadablePath().get()));
 
   nsCOMPtr<nsIMsgDBService> serv(do_GetService(NS_MSGDB_SERVICE_CONTRACTID));
   if (serv)
@@ -1193,15 +1189,11 @@ nsresult nsMsgDatabase::OpenInternal(nsMsgDBService *aDBService,
                                      nsIFile *summaryFile, bool aCreate,
                                      bool aLeaveInvalidDB, bool sync)
 {
-  nsAutoCString summaryFilePath;
-  summaryFile->GetNativePath(summaryFilePath);
-
   MOZ_LOG(DBLog, LogLevel::Info, ("nsMsgDatabase::Open(%s, %s, %p, %s)\n",
-    (const char*)summaryFilePath.get(), aCreate ? "TRUE":"FALSE",
+    summaryFile->HumanReadablePath().get(), aCreate ? "TRUE":"FALSE",
     this, aLeaveInvalidDB ? "TRUE":"FALSE"));
 
-
-  nsresult rv = OpenMDB(summaryFilePath.get(), aCreate, sync);
+  nsresult rv = OpenMDB(summaryFile, aCreate, sync);
   if (NS_FAILED(rv))
     MOZ_LOG(DBLog, LogLevel::Info, ("error opening db %" PRIx32, static_cast<uint32_t>(rv)));
 
@@ -1314,7 +1306,7 @@ nsresult nsMsgDatabase::CheckForErrors(nsresult err, bool sync,
  * If successful, this routine will set up the m_mdbStore and m_mdbEnv of
  * the database object so other database calls can work.
  */
-nsresult nsMsgDatabase::OpenMDB(const char *dbName, bool create, bool sync)
+nsresult nsMsgDatabase::OpenMDB(nsIFile *dbFile, bool create, bool sync)
 {
   nsresult ret = NS_OK;
   nsCOMPtr<nsIMdbFactory> mdbFactory;
@@ -1328,14 +1320,11 @@ nsresult nsMsgDatabase::OpenMDB(const char *dbName, bool create, bool sync)
 
       if (m_mdbEnv)
         m_mdbEnv->SetAutoClear(true);
-      m_dbName = dbName;
+      PathString dbName = dbFile->NativePath();
+      ret = dbFile->Clone(getter_AddRefs(m_dbFile));
+      NS_ENSURE_SUCCESS(ret, ret);
       bool exists = false;
-      nsCOMPtr<nsIFile> dbFile = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &ret);
-      if (NS_SUCCEEDED(ret) && dbFile) {
-        ret = dbFile->InitWithNativePath(m_dbName);
-        if (NS_SUCCEEDED(ret))
-          ret = dbFile->Exists(&exists);
-      }
+      ret = dbFile->Exists(&exists);
       if (!exists)
       {
         ret = NS_MSG_ERROR_FOLDER_SUMMARY_MISSING;
@@ -1348,7 +1337,7 @@ nsresult nsMsgDatabase::OpenMDB(const char *dbName, bool create, bool sync)
         mdbYarn    outFormatVersion;
 
         nsIMdbFile* oldFile = nullptr;
-        ret = mdbFactory->OpenOldFile(m_mdbEnv, dbHeap, dbName,
+        ret = mdbFactory->OpenOldFile(m_mdbEnv, dbHeap, dbName.get(),
                                       mdbBool_kFalse, // not readonly, we want modifiable
                                       &oldFile);
         if (oldFile)
@@ -1404,7 +1393,7 @@ nsresult nsMsgDatabase::OpenMDB(const char *dbName, bool create, bool sync)
       else if (create)  // ### need error code saying why open file store failed
       {
         nsIMdbFile* newFile = 0;
-        ret = mdbFactory->CreateNewFile(m_mdbEnv, dbHeap, dbName, &newFile);
+        ret = mdbFactory->CreateNewFile(m_mdbEnv, dbHeap, dbName.get(), &newFile);
         if (NS_FAILED(ret))
           ret = NS_ERROR_FILE_TARGET_DOES_NOT_EXIST;
         if ( newFile )
@@ -1560,7 +1549,11 @@ NS_IMETHODIMP nsMsgDatabase::Commit(nsMsgDBCommit commitType)
     if (NS_SUCCEEDED(rv) && folderCache)
     {
       nsCOMPtr <nsIMsgFolderCacheElement> cacheElement;
-      rv = folderCache->GetCacheElement(m_dbName, false, getter_AddRefs(cacheElement));
+      nsCString persistentPath;
+      NS_ENSURE_TRUE(m_dbFile, NS_ERROR_NULL_POINTER);
+      rv = m_dbFile->GetPersistentDescriptor(persistentPath);
+      NS_ENSURE_SUCCESS(rv, err);
+      rv = folderCache->GetCacheElement(persistentPath, false, getter_AddRefs(cacheElement));
       if (NS_SUCCEEDED(rv) && cacheElement && m_dbFolderInfo)
       {
         int32_t totalMessages, unreadMessages, pendingMessages, pendingUnreadMessages;

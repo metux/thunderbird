@@ -23,6 +23,7 @@
 <!ENTITY aboutNetworking.sent                  "Kaset">
 <!ENTITY aboutNetworking.received              "Degemeret">
 <!ENTITY aboutNetworking.family                "Familh">
+<!ENTITY aboutNetworking.trr                   "TRR">
 <!ENTITY aboutNetworking.addresses             "Chomlec'hioù">
 <!ENTITY aboutNetworking.expires               "Deiziad termen (eilennoù)">
 <!ENTITY aboutNetworking.messagesSent          "Kemennadennoù kaset">
@@ -45,26 +46,14 @@
 <!ENTITY aboutNetworking.rcwnStatus            "Satud RCWN">
 <!ENTITY aboutNetworking.rcwnCacheWonCount     "Konter berzhioù ar c'hrubuilh">
 <!ENTITY aboutNetworking.rcwnNetWonCount       "Konter berzhioù web">
-
-
-
-
-
-
-
-
-
-
-
-
-<!ENTITY aboutNetworking.totalNetworkRequests  "Total network request count">
-<!ENTITY aboutNetworking.rcwnOperation         "Cache Operation">
-<!ENTITY aboutNetworking.rcwnPerfOpen          "Open">
-<!ENTITY aboutNetworking.rcwnPerfRead          "Read">
-<!ENTITY aboutNetworking.rcwnPerfWrite         "Write">
-<!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Entry Open">
-<!ENTITY aboutNetworking.rcwnAvgShort          "Short Average">
-<!ENTITY aboutNetworking.rcwnAvgLong           "Long Average">
-<!ENTITY aboutNetworking.rcwnStddevLong        "Long Standard Deviation">
-<!ENTITY aboutNetworking.rcwnCacheSlow         "Cache slow count">
-<!ENTITY aboutNetworking.rcwnCacheNotSlow      "Cache not slow count">
+<!ENTITY aboutNetworking.totalNetworkRequests  "Niver hollek a azgoulennoù rouedad">
+<!ENTITY aboutNetworking.rcwnOperation         "Obererezhioù ar c'hrubuilh">
+<!ENTITY aboutNetworking.rcwnPerfOpen          "Digoradurioù">
+<!ENTITY aboutNetworking.rcwnPerfRead          "Lenn">
+<!ENTITY aboutNetworking.rcwnPerfWrite         "Skrivañ">
+<!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Digoradur enankad">
+<!ENTITY aboutNetworking.rcwnAvgShort          "Keidenn vihan">
+<!ENTITY aboutNetworking.rcwnAvgLong           "Keidenn vras">
+<!ENTITY aboutNetworking.rcwnStddevLong        "Forc'had rizh bras">
+<!ENTITY aboutNetworking.rcwnCacheSlow         "Niver a grubuilh gorrek">
+<!ENTITY aboutNetworking.rcwnCacheNotSlow      "Niver a grubuilh prim">

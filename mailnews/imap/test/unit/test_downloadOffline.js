@@ -37,7 +37,7 @@ function *setup() {
   let imapMsg = new imapMessage(dataUri.spec, IMAPPump.mailbox.uidnext++, []);
   imapMsg.setSize(5000);
   IMAPPump.mailbox.addMessage(imapMsg);
-  
+
   // ...and download for offline use.
   let promiseUrlListener = new PromiseTestUtils.PromiseUrlListener();
   IMAPPump.inbox.downloadAllForOffline(promiseUrlListener, null);
@@ -58,7 +58,7 @@ function verifyDownloaded() {
   while (msgEnumerator.hasMoreElements()) {
     let header = msgEnumerator.getNext();
     // Verify that each message has been downloaded and looks OK.
-    if (header instanceof Components.interfaces.nsIMsgDBHdr &&
+    if (header instanceof Ci.nsIMsgDBHdr &&
         (header.flags & Ci.nsMsgMessageFlags.Offline))
       IMAPPump.inbox.getOfflineFileStream(header.messageKey, offset, size).close();
     else

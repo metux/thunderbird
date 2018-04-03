@@ -25,6 +25,10 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Versioon">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareName "Nimi">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Viirusetõrje">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Tulemüür">
+
 <!ENTITY aboutSupport.featuresTitle "&brandShortName;i erifunktsioonid">
 <!ENTITY aboutSupport.featureName "Nimi">
 <!ENTITY aboutSupport.featureVersion "Versioon">
@@ -71,6 +75,7 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Mitme protsessiga aknad">
 
 <!ENTITY aboutSupport.appBasicsProcessCount "Veebisisu protsessid">
+
 
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Google võti">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla asukohateenuse võti">
@@ -157,14 +162,13 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "Sagedus">
 <!ENTITY aboutSupport.mediaDeviceLatency "Latentsus">
 
+<!ENTITY aboutSupport.intlAppTitle "Rakenduse sätted">
+
 <!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
 <!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
 <!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">
 <!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
 <!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
 <!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
 <!ENTITY aboutSupport.intlLocalesSupported "App Locales">

@@ -95,3 +95,9 @@
 <!ENTITY lightning.imipbar.btnDeclineCounter.tooltiptext                    "Decline the counter proposal">
 <!ENTITY lightning.imipbar.btnReschedule.label                              "Reschedule">
 <!ENTITY lightning.imipbar.btnReschedule.tooltiptext                        "Reschedule the event">
+<!ENTITY lightning.imipbar.btnSend.label                                    "Send a response now">
+<!ENTITY lightning.imipbar.btnSend.tooltiptext                              "Send a response to the organizer">
+<!ENTITY lightning.imipbar.btnSendSeries.tooltiptext                        "Send a response for the entire series to the organizer">
+<!ENTITY lightning.imipbar.btnDontSend.label                                "Do not send a response">
+<!ENTITY lightning.imipbar.btnDontSend.tooltiptext                          "Change your participation status without sending a response to the organizer">
+<!ENTITY lightning.imipbar.btnDontSendSeries.tooltiptext                    "Change your participation status for the series without sending a response to the organizer">

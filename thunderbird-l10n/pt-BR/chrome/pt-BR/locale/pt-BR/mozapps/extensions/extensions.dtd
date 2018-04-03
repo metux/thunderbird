@@ -4,6 +4,8 @@
 <!ENTITY addons.windowTitle                   "Gerenciador de extensões">
 
 <!ENTITY search.placeholder                   "Pesquisar todas as extensões">
+
+<!ENTITY search.placeholder2                  "Pesquisar em addons.mozilla.org">
 <!ENTITY search.buttonlabel                   "Pesquisar">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
@@ -25,6 +27,7 @@
 
 <!ENTITY cmd.back.tooltip                     "Voltar uma página">
 <!ENTITY cmd.forward.tooltip                  "Avançar uma página">
+
 
 <!ENTITY showUnsignedExtensions.button.label  "Algumas extensões não puderam ser verificadas">
 <!ENTITY showAllExtensions.button.label       "Mostrar todas as extensões">
@@ -247,7 +250,7 @@ funcionalidades ou estilos extras. Experimente um painel que otimiza seu tempo, 
 <!ENTITY disabledUnsigned.description.start "As seguintes extensões não foram verificadas para uso no &brandShortName;. Você pode ">
 <!ENTITY disabledUnsigned.description.findAddonsLink "localizar substitutos">
 <!ENTITY disabledUnsigned.description.end " ou solicitar que o desenvolvedor peça a sua verificação.">
-<!ENTITY disabledUnsigned.learnMore "Saber mais sobre os nossos esforços para manter os usuários seguros.">
+<!ENTITY disabledUnsigned.learnMore "Saber mais sobre os nossos esforços para ajudar a manter os usuários seguros.">
 <!-- LOCALIZATION NOTE (disabledUnsigned.devInfo.start, disabledUnsigned.devInfo.linkToManual, disabledUnsigned.devInfo.end):
      These entities form a sentence, with disabledUnsigned.devInfo.linkToManual
      being a link to an external site. -->
@@ -258,10 +261,7 @@ funcionalidades ou estilos extras. Experimente um painel que otimiza seu tempo, 
 <!ENTITY pluginDeprecation.description "Faltando alguma coisa? Alguns plugins não são mais suportados pelo &brandShortName;.">
 <!ENTITY pluginDeprecation.learnMore "Saber mais.">
 
-<!ENTITY legacyWarning.description "Faltando alguma coisa? Algumas extensões não são mais suportadas pelo &brandShortName;.">
 <!ENTITY legacyWarning.showLegacy "Mostrar extensões legadas">
 <!ENTITY legacyExtensions.title "Extensões legadas">
 <!ENTITY legacyExtensions.description "Estas extensões não cumprem os padrões atuais do &brandShortName;, então eles foram desativados.">
 <!ENTITY legacyExtensions.learnMore "Saiba mais sobre as alterações das extensões">
-
-<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

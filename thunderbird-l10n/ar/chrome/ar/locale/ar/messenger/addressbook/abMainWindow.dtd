@@ -50,7 +50,7 @@
 <!ENTITY redoCmd.label                                  "أعِد">
 <!ENTITY redoCmd.key                                    "Y">
 <!ENTITY redoCmd.accesskey                              "ع">
-<!ENTITY cutCmd.label                                   "قص">
+<!ENTITY cutCmd.label                                   "قصّ">
 <!ENTITY cutCmd.key                                     "X">
 <!ENTITY cutCmd.accesskey                               "ق">
 <!ENTITY copyCmd.label                                  "انسخ">
@@ -241,3 +241,7 @@ because displayed names don't have the comma in between. -->
 <!ENTITY minimizeWindow.key                             "m">
 <!ENTITY bringAllToFront.label                          "اجلب الكل للمقدمة">
 <!ENTITY zoomWindow.label                               "قرّب">
+
+<!ENTITY addressBookCmd.label                           "Address Book">
+<!ENTITY addressBookCmd.accesskey                       "a">
+<!ENTITY addressBookCmd.key                             "B">

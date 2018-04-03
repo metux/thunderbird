@@ -6,7 +6,6 @@
 
 #include "jit/IonAnalysis.h"
 
-
 #include "jit/AliasAnalysis.h"
 #include "jit/BaselineInspector.h"
 #include "jit/BaselineJIT.h"
@@ -20,11 +19,10 @@
 #include "vm/RegExpObject.h"
 #include "vm/SelfHosting.h"
 
-#include "jsobjinlines.h"
-#include "jsopcodeinlines.h"
-#include "jsscriptinlines.h"
-
 #include "jit/shared/Lowering-shared-inl.h"
+#include "vm/BytecodeUtil-inl.h"
+#include "vm/JSObject-inl.h"
+#include "vm/JSScript-inl.h"
 
 using namespace js;
 using namespace js::jit;
@@ -2231,6 +2229,12 @@ IsRegExpHoistable(MIRGenerator* mir, MDefinition* regexp, MDefinitionVector& wor
 bool
 jit::MakeMRegExpHoistable(MIRGenerator* mir, MIRGraph& graph)
 {
+    // If we are compiling try blocks, regular expressions may be observable
+    // from catch blocks (which Ion does not compile). For now just disable the
+    // pass in this case.
+    if (graph.hasTryBlock())
+        return true;
+
     MDefinitionVector worklist(graph.alloc());
 
     for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++) {
@@ -3538,8 +3542,12 @@ PassthroughOperand(MDefinition* def)
         return def->toConvertElementsToDoubles()->elements();
     if (def->isMaybeCopyElementsForWrite())
         return def->toMaybeCopyElementsForWrite()->object();
-    if (def->isConvertUnboxedObjectToNative())
-        return def->toConvertUnboxedObjectToNative()->object();
+    if (!JitOptions.spectreObjectMitigationsMisc) {
+        // If Spectre mitigations are enabled, LConvertUnboxedObjectToNative
+        // needs to have its own def.
+        if (def->isConvertUnboxedObjectToNative())
+            return def->toConvertUnboxedObjectToNative()->object();
+    }
     return nullptr;
 }
 

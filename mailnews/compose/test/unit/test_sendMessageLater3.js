@@ -10,7 +10,7 @@
 
 load("../../../resources/alertTestUtils.js");
 
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 var type = null;
 var test = null;
@@ -87,7 +87,7 @@ function OnStopCopy(aStatus) {
   // Check we have a message in the unsent message folder
   Assert.equal(folder.getTotalMessages(false), 1);
 
-  
+
   // Now do a comparison of what is in the unsent mail folder
   let msgData = mailTestUtils
     .loadMessageToString(folder, mailTestUtils.firstMsgHdr(folder));

@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 var gConnectionsDialog = {
   beforeAccept: function ()
@@ -42,7 +42,7 @@ var gConnectionsDialog = {
 
   checkForSystemProxy: function ()
   {
-    if ("@mozilla.org/system-proxy-settings;1" in Components.classes)
+    if ("@mozilla.org/system-proxy-settings;1" in Cc)
       document.getElementById("systemPref").removeAttribute("hidden");
   },
 
@@ -144,7 +144,7 @@ var gConnectionsDialog = {
 
   reloadPAC: function ()
   {
-    Components.classes["@mozilla.org/network/protocol-proxy-service;1"].
+    Cc["@mozilla.org/network/protocol-proxy-service;1"].
         getService().reloadPAC();
   },
 

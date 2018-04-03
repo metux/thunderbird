@@ -21,6 +21,13 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion		"バージョン">
 <!ENTITY aboutSupport.extensionId		"ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle	"セキュリティソフトウェア">
+<!ENTITY aboutSupport.securitySoftwareType	"種類">
+<!ENTITY aboutSupport.securitySoftwareName	"名前">
+<!ENTITY aboutSupport.securitySoftwareAntivirus	"アンチウイルス">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware	"アンチスパイウェア">
+<!ENTITY aboutSupport.securitySoftwareFirewall	"ファイアウォール">
+
 <!ENTITY aboutSupport.featuresTitle		"&brandShortName; の機能">
 <!ENTITY aboutSupport.featureName		"名前">
 <!ENTITY aboutSupport.featureVersion		"バージョン">
@@ -153,18 +160,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate		"レート">
 <!ENTITY aboutSupport.mediaDeviceLatency	"遅延">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.intlTitle			"国際化とローカライズ">
+<!ENTITY aboutSupport.intlAppTitle		"アプリケーションの設定">
+<!ENTITY aboutSupport.intlLocalesRequested	"要求されたロケール">
+<!ENTITY aboutSupport.intlLocalesAvailable	"利用可能なロケール">
+<!ENTITY aboutSupport.intlLocalesSupported	"アプリケーションのロケール">
+<!ENTITY aboutSupport.intlLocalesDefault	"既定のロケール">
+<!ENTITY aboutSupport.intlOSTitle		"オペレーティングシステム">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales	"システムのロケール">
+<!ENTITY aboutSupport.intlRegionalPrefs		"地域設定">
+
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">

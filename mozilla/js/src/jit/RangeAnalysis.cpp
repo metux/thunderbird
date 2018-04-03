@@ -18,7 +18,7 @@
 #include "vm/ArgumentsObject.h"
 #include "vm/TypedArrayObject.h"
 
-#include "jsopcodeinlines.h"
+#include "vm/BytecodeUtil-inl.h"
 
 using namespace js;
 using namespace js::jit;
@@ -30,7 +30,6 @@ using mozilla::ExponentComponent;
 using mozilla::FloorLog2;
 using mozilla::IsInfinite;
 using mozilla::IsNaN;
-using mozilla::IsNegative;
 using mozilla::IsNegativeZero;
 using mozilla::NegativeInfinity;
 using mozilla::PositiveInfinity;
@@ -599,8 +598,8 @@ Range::Range(const MDefinition* def)
         // mimick a possible truncation.
         switch (def->type()) {
           case MIRType::Int32:
-            // MToInt32 cannot truncate. So we can safely clamp.
-            if (def->isToInt32())
+            // MToNumberInt32 cannot truncate. So we can safely clamp.
+            if (def->isToNumberInt32())
                 clampToInt32();
             else
                 wrapAroundToInt32();
@@ -1743,7 +1742,7 @@ MTruncateToInt32::computeRange(TempAllocator& alloc)
 }
 
 void
-MToInt32::computeRange(TempAllocator& alloc)
+MToNumberInt32::computeRange(TempAllocator& alloc)
 {
     // No clamping since this computes the range *before* bailouts.
     setRange(new(alloc) Range(getOperand(0)));
@@ -1984,7 +1983,7 @@ RangeAnalysis::analyzeLoop(MBasicBlock* header)
     // loop, expressed in terms of the iteration bound just computed.
 
     for (MPhiIterator iter(header->phisBegin()); iter != header->phisEnd(); iter++)
-        analyzeLoopPhi(header, iterationBound, *iter);
+        analyzeLoopPhi(iterationBound, *iter);
 
     if (!mir->compilingWasm()) {
         // Try to hoist any bounds checks from the loop using symbolic bounds.
@@ -2159,7 +2158,7 @@ RangeAnalysis::analyzeLoopIterationCount(MBasicBlock* header,
 }
 
 void
-RangeAnalysis::analyzeLoopPhi(MBasicBlock* header, LoopIterationBound* loopBound, MPhi* phi)
+RangeAnalysis::analyzeLoopPhi(LoopIterationBound* loopBound, MPhi* phi)
 {
     // Given a bound on the number of backedges taken, compute an upper and
     // lower bound for a phi node that may change by a constant amount each
@@ -2861,7 +2860,7 @@ TruncateTest(TempAllocator& alloc, MTest* test)
             if (!alloc.ensureBallast())
                 return false;
             MBasicBlock* block = inner->block();
-            inner = MToInt32::New(alloc, inner);
+            inner = MToNumberInt32::New(alloc, inner);
             block->insertBefore(block->lastIns(), inner->toInstruction());
         }
         MOZ_ASSERT(inner->type() == MIRType::Int32);
@@ -3049,7 +3048,7 @@ RemoveTruncatesOnOutput(MDefinition* truncated)
 
     for (MUseDefIterator use(truncated); use; use++) {
         MDefinition* def = use.def();
-        if (!def->isTruncateToInt32() || !def->isToInt32())
+        if (!def->isTruncateToInt32() || !def->isToNumberInt32())
             continue;
 
         def->replaceAllUsesWith(truncated);
@@ -3074,7 +3073,7 @@ AdjustTruncatedInputs(TempAllocator& alloc, MDefinition* truncated)
         } else {
             MInstruction* op;
             if (kind == MDefinition::TruncateAfterBailouts)
-                op = MToInt32::New(alloc, truncated->getOperand(i));
+                op = MToNumberInt32::New(alloc, truncated->getOperand(i));
             else
                 op = MTruncateToInt32::New(alloc, truncated->getOperand(i));
 
@@ -3385,7 +3384,7 @@ MMod::collectRangeInfoPreTrunc()
 }
 
 void
-MToInt32::collectRangeInfoPreTrunc()
+MToNumberInt32::collectRangeInfoPreTrunc()
 {
     Range inputRange(input());
     if (!inputRange.canBeNegativeZero())

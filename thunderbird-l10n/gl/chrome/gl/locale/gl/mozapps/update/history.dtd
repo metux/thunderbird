@@ -4,9 +4,9 @@
 
 
 <!ENTITY  history.title             "Historial de actualizacións">
-<!ENTITY  history.intro             "Instaláronse as seguintes actualizacións:">
+<!ENTITY  history2.intro            "Instaláronse as seguintes actualizacións">
 <!ENTITY  closebutton.label         "Pechar">
-                                     
+
 <!ENTITY  noupdates.label           "Aínda non se instalou ningunha actualización">
 
 <!ENTITY  name.header               "Nome da actualización">
@@ -14,5 +14,3 @@
 <!ENTITY  type.header               "Tipo">
 <!ENTITY  state.header              "Estado">
 
-
-<!ENTITY  history2.intro            "The following updates have been installed">

@@ -2,13 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/Task.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource:///modules/gloda/log4moz.js");
-
-var Ci = Components.interfaces;
-var Cc = Components.classes;
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Task.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource:///modules/gloda/log4moz.js");
 
 function runnablePrompter(asyncPrompter, hashKey) {
   this._asyncPrompter = asyncPrompter;
@@ -28,7 +25,7 @@ runnablePrompter.prototype = {
       ok = prompter.first.onPromptStart();
     }
     catch (ex) {
-      Components.utils.reportError("runnablePrompter:run: " + ex + "\n");
+      Cu.reportError("runnablePrompter:run: " + ex + "\n");
     }
 
     delete this._asyncPrompter._pendingPrompts[this._hashKey];
@@ -42,7 +39,7 @@ runnablePrompter.prototype = {
       }
       catch (ex) {
         // Log the error for extension devs and others to pick up.
-        Components.utils.reportError("runnablePrompter:run: consumer.onPrompt* reported an exception: " + ex + "\n");
+        Cu.reportError("runnablePrompter:run: consumer.onPrompt* reported an exception: " + ex + "\n");
       }
     }
     this._asyncPrompter._asyncPromptInProgress--;

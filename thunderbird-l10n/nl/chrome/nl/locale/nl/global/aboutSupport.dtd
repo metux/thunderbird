@@ -25,6 +25,13 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Versie">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Beveiligingssoftware">
+<!ENTITY aboutSupport.securitySoftwareType "Type">
+<!ENTITY aboutSupport.securitySoftwareName "Naam">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
+
 <!ENTITY aboutSupport.featuresTitle "&brandShortName;-functies">
 <!ENTITY aboutSupport.featureName "Naam">
 <!ENTITY aboutSupport.featureVersion "Versie">
@@ -71,6 +78,8 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Multiprocess-vensters">
 
 <!ENTITY aboutSupport.appBasicsProcessCount "Webinhoudsprocessen">
+
+<!ENTITY aboutSupport.enterprisePolicies "Bedrijfsbeleidsregels">
 
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Google-sleutel">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla-locatieservicesleutel">
@@ -156,18 +165,12 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "Frequentie">
 <!ENTITY aboutSupport.mediaDeviceLatency "Latentie">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.intlTitle "Internationalisatie &amp; lokalisatie">
+<!ENTITY aboutSupport.intlAppTitle "Toepassingsinstellingen">
+<!ENTITY aboutSupport.intlLocalesRequested "Gevraagde locales">
+<!ENTITY aboutSupport.intlLocalesAvailable "Beschikbare locales">
+<!ENTITY aboutSupport.intlLocalesSupported "App-locales">
+<!ENTITY aboutSupport.intlLocalesDefault "Standaardlocale">
+<!ENTITY aboutSupport.intlOSTitle "Besturingssysteem">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Systeemlocales">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regionale voorkeuren">

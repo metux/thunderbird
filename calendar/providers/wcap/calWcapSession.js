@@ -4,11 +4,11 @@
 
 /* exported getWcapSessionFor */
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://calendar/modules/calIteratorUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calIteratorUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 
 function calWcapTimezone(tzProvider, tzid_, component_) {
     this.wrappedJSObject = this;
@@ -566,9 +566,8 @@ calWcapSession.prototype = {
                         let calendar = cals[calId];
                         if (calendar === null) {
                             calendar = new calWcapCalendar(this);
-                            let uri = this.uri.clone();
-                            uri.pathQueryRef += "?calid=" + encodeURIComponent(calId);
-                            calendar.uri = uri;
+                            let newPath = this.uri.pathQueryRef + "?calid=" + encodeURIComponent(calId);
+                            calendar.uri = this.uri.mutate().setPathQueryRef(newPath).finalize();
                         }
                         if (calendar) {
                             calendar.m_calProps = node;
@@ -894,9 +893,8 @@ calWcapSession.prototype = {
                                     calendar.m_calProps = node; // update calprops
                                 } else {
                                     calendar = new calWcapCalendar(this, node);
-                                    let uri = this.uri.clone();
-                                    uri.pathQueryRef += "?calid=" + encodeURIComponent(calId);
-                                    calendar.uri = uri;
+                                    let newPath = this.uri.pathQueryRef + "?calid=" + encodeURIComponent(calId);
+                                    calendar.uri = this.uri.mutate().setPathQueryRef(newPath).finalize();
                                 }
                                 ret.push(calendar);
                             }

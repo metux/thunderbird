@@ -2,6 +2,7 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<!ENTITY  generalTab.label            "عام">
 
 <!ENTITY  startupAction.label         "عند بدء &brandShortName;:">
 <!ENTITY  startupAction.accesskey     "ب">
@@ -30,6 +31,10 @@ sentence. -->
 <!ENTITY  completeNotification.label          "باسم المرسل و معاينة للرسالة">
 <!ENTITY  buddyInfoOnly.label                 "باسم المرسل فقط">
 <!ENTITY  dummyNotification.label             "بدون أي بيانات">
+<!ENTITY  getAttention.label                  "ألمع عنصر شريط المهام">
+<!ENTITY  getAttention.accesskey              "م">
+<!ENTITY  getAttentionMac.label               "حرك أيقونة اللوحة">
+<!ENTITY  getAttentionMac.accesskey           "و">
 <!ENTITY  chatSound.accesskey                 "ع">
 <!ENTITY  chatSound.label                     "اعزف صوتًا">
 <!ENTITY  play.label                          "شغّل">
@@ -42,24 +47,18 @@ sentence. -->
 <!ENTITY  browse.accesskey                    "ف">
 
 <!ENTITY messageStyleTab.title             "أنماط الرسائل">
+<!ENTITY messageStylePreview.label         "المعاينة:">
 <!ENTITY messageStyleTheme.label           "السمة:">
 <!ENTITY messageStyleTheme.accesskey       "س">
 <!ENTITY messageStyleThunderbirdTheme.label "ثنْدَربِرد">
-
-<!ENTITY  generalTab.label            "General">
-<!ENTITY  getAttention.label                  "Flash the taskbar item">
-<!ENTITY  getAttention.accesskey              "F">
-<!ENTITY  getAttentionMac.label               "Animate dock icon">
-<!ENTITY  getAttentionMac.accesskey           "o">
-<!ENTITY messageStylePreview.label         "Preview:">
-<!ENTITY messageStyleBubblesTheme.label    "Bubbles">
-<!ENTITY messageStyleDarkTheme.label       "Dark">
-<!ENTITY messageStylePaperSheetsTheme.label "Paper Sheets">
-<!ENTITY messageStyleSimpleTheme.label     "Simple">
-<!ENTITY messageStyleDefaultTheme.label    "Default">
-<!ENTITY messageStyleVariant.label         "Variant:">
-<!ENTITY messageStyleVariant.accesskey     "V">
-<!ENTITY messageStyleShowHeader.label      "Show Header">
-<!ENTITY messageStyleShowHeader.accesskey  "H">
-<!ENTITY messageStyleNoPreview.title       "No preview available">
-<!ENTITY messageStyleNoPreview.description "This theme is not valid or is currently unavailable (disabled addon, safe-mode, …).">
+<!ENTITY messageStyleBubblesTheme.label    "فقاعات">
+<!ENTITY messageStyleDarkTheme.label       "داكن">
+<!ENTITY messageStylePaperSheetsTheme.label "صفحات ورقية">
+<!ENTITY messageStyleSimpleTheme.label     "بسيط">
+<!ENTITY messageStyleDefaultTheme.label    "المبدئي">
+<!ENTITY messageStyleVariant.label         "التنويعة:">
+<!ENTITY messageStyleVariant.accesskey     "ع">
+<!ENTITY messageStyleShowHeader.label      "اعرض الترويسة">
+<!ENTITY messageStyleShowHeader.accesskey  "ت">
+<!ENTITY messageStyleNoPreview.title       "لا معاينة متوفرة">
+<!ENTITY messageStyleNoPreview.description "ليست هذه السمة صحيحة أو ربما غير متاحة حاليًا (إضافة معطلة، صنعتها بنفسك، …).">

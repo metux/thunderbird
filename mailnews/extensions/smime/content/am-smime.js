@@ -3,11 +3,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-var nsIX509CertDB = Components.interfaces.nsIX509CertDB;
+var nsIX509CertDB = Ci.nsIX509CertDB;
 var nsX509CertDBContractID = "@mozilla.org/security/x509certdb;1";
-var nsIX509Cert = Components.interfaces.nsIX509Cert;
+var nsIX509Cert = Ci.nsIX509Cert;
 
 var email_signing_cert_usage = 4; // SECCertUsage.certUsageEmailSigner
 var email_recipient_cert_usage = 5; // SECCertUsage.certUsageEmailRecipient
@@ -29,7 +29,7 @@ var gSigningChoicesLocked;
 var kEncryptionCertPref = "identity.encryption_cert_name";
 var kSigningCertPref = "identity.signing_cert_name";
 
-function onInit() 
+function onInit()
 {
   smimeInitializeFields();
 }
@@ -72,7 +72,7 @@ function smimeInitializeFields()
     gEncryptionChoices.value = 0;
   }
   else {
-    var certdb = Components.classes[nsX509CertDBContractID].getService(nsIX509CertDB);
+    var certdb = Cc[nsX509CertDBContractID].getService(nsIX509CertDB);
     var x509cert = null;
 
     gEncryptionCertName.value = gIdentity.getUnicharAttribute("encryption_cert_name");
@@ -198,8 +198,8 @@ function disableIfLocked( prefstrArray )
     var id = prefstrArray[i].id;
     var element = document.getElementById(id);
     if (gSmimePrefbranch.prefIsLocked(prefstrArray[i].prefstring)) {
-      // If encryption choices radio group is locked, make sure the individual 
-      // choices in the group are locked. Set a global (gEncryptionChoicesLocked) 
+      // If encryption choices radio group is locked, make sure the individual
+      // choices in the group are locked. Set a global (gEncryptionChoicesLocked)
       // indicating the status so that locking can be maintained further.
       if (id == "encryptionChoices") {
         document.getElementById("encrypt_mail_never").setAttribute("disabled", "true");
@@ -208,7 +208,7 @@ function disableIfLocked( prefstrArray )
       }
       // If option to sign mail is locked (with true/false set in config file), disable
       // the corresponding checkbox and set a global (gSigningChoicesLocked) in order to
-      // honor the locking as user changes other elements on the panel. 
+      // honor the locking as user changes other elements on the panel.
       if (id == "identity.sign_mail") {
         document.getElementById("identity.sign_mail").setAttribute("disabled", "true");
         gSigningChoicesLocked = true;
@@ -257,8 +257,8 @@ function checkOtherCert(cert, pref, usage, msgNeedCertWantSame, msgWantSame, msg
     return;
   }
 
-  var secMsg = Components.classes["@mozilla.org/nsCMSSecureMessage;1"]
-    .getService(Components.interfaces.nsICMSSecureMessage);
+  var secMsg = Cc["@mozilla.org/nsCMSSecureMessage;1"]
+    .getService(Ci.nsICMSSecureMessage);
 
   var matchingOtherCert;
   if (email_recipient_cert_usage == usage) {
@@ -306,8 +306,8 @@ function smimeSelectCert(smime_cert)
   if (!certInfo)
     return;
 
-  var picker = Components.classes["@mozilla.org/user_cert_picker;1"]
-               .createInstance(Components.interfaces.nsIUserCertPicker);
+  var picker = Cc["@mozilla.org/user_cert_picker;1"]
+               .createInstance(Ci.nsIUserCertPicker);
   var canceled = new Object;
   var x509cert = 0;
   var certUsage;
@@ -355,18 +355,18 @@ function smimeSelectCert(smime_cert)
         enableEncryptionControls(true);
 
         checkOtherCert(x509cert,
-          kSigningCertPref, email_signing_cert_usage, 
-          "signing_needCertWantSame", 
-          "signing_wantSame", 
+          kSigningCertPref, email_signing_cert_usage,
+          "signing_needCertWantSame",
+          "signing_wantSame",
           "signing_needCertWantToSelect",
           enableSigningControls);
       } else {
         enableSigningControls(true);
 
         checkOtherCert(x509cert,
-          kEncryptionCertPref, email_recipient_cert_usage, 
-          "encryption_needCertWantSame", 
-          "encryption_wantSame", 
+          kEncryptionCertPref, email_recipient_cert_usage,
+          "encryption_needCertWantSame",
+          "encryption_wantSame",
           "encryption_needCertWantToSelect",
           enableEncryptionControls);
       }

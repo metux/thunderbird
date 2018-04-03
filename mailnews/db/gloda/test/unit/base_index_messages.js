@@ -17,9 +17,9 @@
 
 load("resources/glodaTestHelper.js");
 
-Components.utils.import("resource:///modules/MailUtils.js");
-Components.utils.import("resource://gre/modules/NetUtil.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource:///modules/MailUtils.js");
+ChromeUtils.import("resource://gre/modules/NetUtil.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 // Whether we can expect fulltext results
 var expectFulltextResults = true;
@@ -92,7 +92,7 @@ function* test_pending_commit_causes_msgdb_commit() {
   yield wait_for_gloda_db_flush();
   // Force a GC.  this will kill off the header and the database, losing data
   //  if we are not protecting it.
-  Components.utils.forceGC();
+  Cu.forceGC();
 
   // now retrieve the header and make sure it has the gloda id set!
   let msgHdr = msgSet.getMsgHdr(0);
@@ -686,7 +686,7 @@ function* test_attributes_cant_query() {
 function* test_people_in_addressbook() {
   var senderPair = msgGen.makeNameAndAddress(),
       recipPair = msgGen.makeNameAndAddress();
-  
+
   // - add both people to the address book
   makeABCardForAddressPair(senderPair);
   makeABCardForAddressPair(recipPair);
@@ -1059,7 +1059,7 @@ function* test_folder_deletion_nested() {
   let glodaFolder1 = Gloda.getFolderForFolder(newFolder1);
   let glodaFolder2 = Gloda.getFolderForFolder(newFolder2);
 
-  // verify that Gloda properly marked this folder as not to be indexed anymore 
+  // verify that Gloda properly marked this folder as not to be indexed anymore
   Assert.equal(glodaFolder1.indexingPriority, glodaFolder1.kIndexingNeverPriority);
 
   // check that existing message is marked as deleted

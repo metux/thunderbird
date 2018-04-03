@@ -25,6 +25,13 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Različica">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Varnostna programska oprema">
+<!ENTITY aboutSupport.securitySoftwareType "Vrsta">
+<!ENTITY aboutSupport.securitySoftwareName "Ime">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Protivirusna zaščita">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Protivohunska programska oprema">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Požarni zid">
+
 <!ENTITY aboutSupport.featuresTitle "Zmogljivosti &brandShortName;a">
 <!ENTITY aboutSupport.featureName "Ime">
 <!ENTITY aboutSupport.featureVersion "Različica">
@@ -156,18 +163,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "Hitrost">
 <!ENTITY aboutSupport.mediaDeviceLatency "Zakasnitev">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
+<!ENTITY aboutSupport.intlAppTitle "Nastavitve programa">
+<!ENTITY aboutSupport.intlOSTitle "Operacijski sistem">
+<!ENTITY aboutSupport.intlRegionalPrefs "Območne nastavitve">
+
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">
 <!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
 <!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
 <!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
 <!ENTITY aboutSupport.intlLocalesSupported "App Locales">
 <!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
 <!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">

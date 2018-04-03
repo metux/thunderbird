@@ -12,67 +12,74 @@
   - -->
 
 <!-- LOCALIZATION NOTE (aboutDevtools.headTitle): Text of the title tag for about:devtools -->
-<!ENTITY  aboutDevtools.headTitle "About Developer Tools">
+<!ENTITY  aboutDevtools.headTitle "Rreth Mjeteve të Zhvilluesit">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.title): Title of the top about:devtools
   -  section displayed when DevTools are disabled. -->
-<!ENTITY  aboutDevtools.enable.title "Enable Firefox Developer Tools">
+<!ENTITY  aboutDevtools.enable.title "Aktivizoni Mjete Zhvilluesi Firefox">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.inspectElementTitle): Title of the top
   -  section displayed when devtools are disabled and the user triggered DevTools by using
   -  the Inspect Element menu item. -->
-<!ENTITY  aboutDevtools.enable.inspectElementTitle "Enable Firefox Developer Tools to use Inspect Element">
+<!ENTITY  aboutDevtools.enable.inspectElementTitle "Që të përdorni Inspekto Element, aktivizoni Mjete Zhvilluesi Firefox">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.inspectElementMessage): Message displayed
   -  when users come from using the Inspect Element menu item. -->
 <!ENTITY  aboutDevtools.enable.inspectElementMessage
-          "Examine and edit HTML and CSS with the Developer Tools’ Inspector.">
+          "Ekzaminoni dhe përpunoni HTML dhe CSS me mbikëqërysin e Mjeteve të Zhvilluesit.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.aboutDebuggingMessage): Message displayed
   -  when users come from about:debugging. -->
 <!ENTITY  aboutDevtools.enable.aboutDebuggingMessage
-          "Develop and debug WebExtensions, web workers, service workers and more with Firefox Developer Tools.">
+          "Zhvilloni dhe diagnostikoni WebExtensions, web workers, service workers, etj me Mjete Zhvilluesi Firefox.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.keyShortcutMessage): Message displayed when
   -  users pressed a DevTools key shortcut. -->
 <!ENTITY  aboutDevtools.enable.keyShortcutMessage
-          "You activated a Developer Tools shortcut. If that was a mistake, you can close this Tab.">
+          "Aktivizuat një shkurtore Mjetesh Zhvilluesi. Nëse kjo qe gabim, mund ta mbyllni këtë Skedë.">
+
+<!-- LOCALIZATION NOTE (aboutDevtools.enable.menuMessage): Message displayed when users
+  -  clicked on a "Enable Developer Tools" menu item. -->
+<!ENTITY  aboutDevtools.enable.menuMessage
+          "Ekzaminoni, përpunoni dhe diagnostikoni HTML, CSS, dhe JavaScript me mjete si Mbikëqyrësi dhe Diagnostikuesi.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.menuMessage2): Message displayed when users
   -  clicked on a "Enable Developer Tools" menu item. -->
 <!ENTITY  aboutDevtools.enable.menuMessage2
-          "Perfect your website’s HTML, CSS, and JavaScript with tools like Inspector and Debugger.">
+          "Përsosni HTML-në, CSS-në, dhe JavaScript-in e sajtit tuaj me mjete si Mbikëqyrësi dhe Diagnostikuesi.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.commonMessage): Generic message displayed for
   -  all possible entry points (keyshortcut, menu item etc…). -->
 <!ENTITY  aboutDevtools.enable.commonMessage
-          "Firefox Developer Tools are disabled by default to give you more control over your browser.">
+          "Mjetet e Zhvilluesit Firefox, si parazgjedhje, janë të çaktivizuara, për t’ju dhënë më tepër kontroll mbi shfletuesin tuaj.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.learnMoreLink): Text for the link to
   -  https://developer.mozilla.org/docs/Tools displayed in the top section when DevTools
   -  are disabled. -->
-<!ENTITY  aboutDevtools.enable.learnMoreLink "Learn more about Developer Tools">
+<!ENTITY  aboutDevtools.enable.learnMoreLink "Mësoni më tepër rreth Mjetesh Zhvilluesi">
 
-<!ENTITY  aboutDevtools.enable.enableButton "Enable Developer Tools">
-<!ENTITY  aboutDevtools.enable.closeButton2 "Close this Tab">
+<!ENTITY  aboutDevtools.enable.enableButton "Aktivizoni Mjete Zhvilluesi">
+<!ENTITY  aboutDevtools.enable.closeButton "Mbylle këtë faqe">
 
-<!ENTITY  aboutDevtools.welcome.title "Welcome to Firefox Developer Tools!">
+<!ENTITY  aboutDevtools.enable.closeButton2 "Mbylle këtë Skedë">
 
-<!ENTITY  aboutDevtools.newsletter.title "Mozilla Developer Newsletter">
+<!ENTITY  aboutDevtools.welcome.title "Mirë se vini te Mjete Zhvilluesi Firefox!">
+
+<!ENTITY  aboutDevtools.newsletter.title "Buletini i Zhvilluesve Mozilla">
 <!-- LOCALIZATION NOTE (aboutDevtools.newsletter.message): Subscribe form message.
   -  The newsletter is only available in english at the moment.
   -  See Bug 1415273 for support of additional languages.-->
-<!ENTITY  aboutDevtools.newsletter.message "Get developer news, tricks and resources sent straight to your inbox.">
+<!ENTITY  aboutDevtools.newsletter.message "Merrni lajme, marifete dhe burime zhvilluesish drejt e te email-i juaj.">
 <!ENTITY  aboutDevtools.newsletter.email.placeholder "Email">
-<!ENTITY  aboutDevtools.newsletter.privacy.label "I’m okay with Mozilla handling my info as explained in this <a class='external' href='https://www.mozilla.org/privacy/'>Privacy Policy</a>.">
-<!ENTITY  aboutDevtools.newsletter.subscribeButton "Subscribe">
-<!ENTITY  aboutDevtools.newsletter.thanks.title "Thanks!">
-<!ENTITY  aboutDevtools.newsletter.thanks.message "If you haven’t previously confirmed a subscription to a Mozilla-related newsletter you may have to do so. Please check your inbox or your spam filter for an email from us.">
+<!ENTITY  aboutDevtools.newsletter.privacy.label "Nuk e kam problem trajtimin e këtyre të dhënave nga Mozilla ashtu si shpjegohet te këto <a class='external' href='https://www.mozilla.org/privacy/'>Rregulla Privatësie</a>.">
+<!ENTITY  aboutDevtools.newsletter.subscribeButton "Pajtohuni">
+<!ENTITY  aboutDevtools.newsletter.thanks.title "Faleminderit!">
+<!ENTITY  aboutDevtools.newsletter.thanks.message "Nëse s’e keni ripohuar më parë pajtimin te një buletin i Mozilla-s, mund t’ju duhet ta bëni. Ju lutemi, kontrolloni email-et e marrë ose filtrin tuaj për mesazhe të padëshiruar për një email prej nesh.">
 
 <!ENTITY  aboutDevtools.footer.title "Firefox Developer Edition">
-<!ENTITY  aboutDevtools.footer.message "Looking for more than just Developer Tools? Check out the Firefox browser that is built specifically for developers and modern workflows.">
+<!ENTITY  aboutDevtools.footer.message "Po kërkoni për më tepër se thjesht Mjete Zhvilluesi? Shihni shfletuesin tonë Firefox të ndërtuar posaçërisht për zhvillues dhe rrjedha pune moderne.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.footer.learnMoreLink): Text for the link to
   -  https://www.mozilla.org/firefox/developer/ displayed in the footer. -->
-<!ENTITY  aboutDevtools.footer.learnMoreLink "Learn more">
+<!ENTITY  aboutDevtools.footer.learnMoreLink "Mësoni më tepër">
 

@@ -56,3 +56,5 @@
 <!ENTITY aboutNetworking.rcwnStddevLong        "الانحراف المعياري الطويل">
 <!ENTITY aboutNetworking.rcwnCacheSlow         "مرات بطء الخبيئة">
 <!ENTITY aboutNetworking.rcwnCacheNotSlow      "مرات عدم بطء الخبيئة">
+
+<!ENTITY aboutNetworking.trr                   "TRR">

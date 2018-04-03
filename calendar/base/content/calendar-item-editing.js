@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://calendar/modules/calAlarmUtils.jsm");
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://calendar/modules/calAlarmUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 
 /* exported modifyEventWithDialog, undo, redo, setContextPartstat */
 
@@ -51,7 +51,7 @@ function setDefaultItemValues(aItem, aCalendar=null, aStartDate=null, aEndDate=n
     let initialDate = aInitialDate ? aInitialDate.clone() : cal.dtz.now();
     initialDate.isDate = true;
 
-    if (cal.isEvent(aItem)) {
+    if (cal.item.isEvent(aItem)) {
         if (aStartDate) {
             aItem.startDate = aStartDate.clone();
             if (aStartDate.isDate && !aForceAllday) {
@@ -93,8 +93,8 @@ function setDefaultItemValues(aItem, aCalendar=null, aStartDate=null, aEndDate=n
         }
 
         // Free/busy status is only valid for events, must not be set for tasks.
-        aItem.setProperty("TRANSP", cal.getEventDefaultTransparency(aForceAllday));
-    } else if (cal.isToDo(aItem)) {
+        aItem.setProperty("TRANSP", cal.item.getEventDefaultTransparency(aForceAllday));
+    } else if (cal.item.isToDo(aItem)) {
         let now = cal.dtz.now();
         let initDate = initialDate ? initialDate.clone() : now;
         initDate.isDate = false;
@@ -227,14 +227,14 @@ function setDefaultItemValues(aItem, aCalendar=null, aStartDate=null, aEndDate=n
  *                                   allday event.
  */
 function createEventWithDialog(calendar, startDate, endDate, summary, event, aForceAllday) {
-    let onNewEvent = function(item, opcalendar, originalItem, listener) {
+    let onNewEvent = function(item, opcalendar, originalItem, listener, extresponse=null) {
         if (item.id) {
             // If the item already has an id, then this is the result of
             // saving the item without closing, and then saving again.
-            doTransaction("modify", item, opcalendar, originalItem, listener);
+            doTransaction("modify", item, opcalendar, originalItem, listener, extresponse);
         } else {
             // Otherwise, this is an addition
-            doTransaction("add", item, opcalendar, null, listener);
+            doTransaction("add", item, opcalendar, null, listener, extresponse);
         }
     };
 
@@ -282,14 +282,14 @@ function createEventWithDialog(calendar, startDate, endDate, summary, event, aFo
  * @param initialDate   (optional) The initial date for new task datepickers
  */
 function createTodoWithDialog(calendar, dueDate, summary, todo, initialDate) {
-    let onNewItem = function(item, opcalendar, originalItem, listener) {
+    let onNewItem = function(item, opcalendar, originalItem, listener, extresponse=null) {
         if (item.id) {
             // If the item already has an id, then this is the result of
             // saving the item without closing, and then saving again.
-            doTransaction("modify", item, opcalendar, originalItem, listener);
+            doTransaction("modify", item, opcalendar, originalItem, listener, extresponse);
         } else {
             // Otherwise, this is an addition
-            doTransaction("add", item, opcalendar, null, listener);
+            doTransaction("add", item, opcalendar, null, listener, extresponse);
         }
     };
 
@@ -341,15 +341,15 @@ function createTodoWithDialog(calendar, dueDate, summary, todo, initialDate) {
  *        }
  */
 function modifyEventWithDialog(aItem, job=null, aPromptOccurrence, initialDate=null, aCounterProposal) {
-    let dlg = cal.findItemWindow(aItem);
+    let dlg = cal.item.findWindow(aItem);
     if (dlg) {
         dlg.focus();
         disposeJob(job);
         return;
     }
 
-    let onModifyItem = function(item, calendar, originalItem, listener) {
-        doTransaction("modify", item, calendar, originalItem, listener);
+    let onModifyItem = function(item, calendar, originalItem, listener, extresponse=null) {
+        doTransaction("modify", item, calendar, originalItem, listener, extresponse);
     };
 
     let item = aItem;
@@ -379,7 +379,7 @@ function modifyEventWithDialog(aItem, job=null, aPromptOccurrence, initialDate=n
  *                                     description for modifyEventWithDialog()
  */
 function openEventDialog(calendarItem, calendar, mode, callback, job=null, initialDate=null, counterProposal) {
-    let dlg = cal.findItemWindow(calendarItem);
+    let dlg = cal.item.findWindow(calendarItem);
     if (dlg) {
         dlg.focus();
         disposeJob(job);
@@ -390,14 +390,14 @@ function openEventDialog(calendarItem, calendar, mode, callback, job=null, initi
     mode = mode || "new";
     calendar = calendar || getSelectedCalendar();
     let calendars = cal.getCalendarManager().getCalendars({});
-    calendars = calendars.filter(cal.isCalendarWritable);
+    calendars = calendars.filter(cal.acl.isCalendarWritable);
 
     let isItemSupported;
-    if (cal.isToDo(calendarItem)) {
+    if (cal.item.isToDo(calendarItem)) {
         isItemSupported = function(aCalendar) {
             return (aCalendar.getProperty("capabilities.tasks.supported") !== false);
         };
-    } else if (cal.isEvent(calendarItem)) {
+    } else if (cal.item.isEvent(calendarItem)) {
         isItemSupported = function(aCalendar) {
             return (aCalendar.getProperty("capabilities.events.supported") !== false);
         };
@@ -408,7 +408,7 @@ function openEventDialog(calendarItem, calendar, mode, callback, job=null, initi
 
     // Filter out calendar/items that we cannot write to/modify
     if (mode == "new") {
-        calendars = calendars.filter(cal.userCanAddItemsToCalendar);
+        calendars = calendars.filter(cal.acl.userCanAddItemsToCalendar);
     } else { /* modify */
         calendars = calendars.filter((aCalendar) => {
             /* If the calendar is the item calendar, we check that the item
@@ -417,17 +417,17 @@ function openEventDialog(calendarItem, calendar, mode, callback, job=null, initi
              * add items to the current one.
              */
             let isSameCalendar = calendarItem.calendar == aCalendar;
-            let canModify = cal.userCanModifyItem(calendarItem);
-            let canMoveItems = cal.userCanDeleteItemsFromCalendar(calendarItem.calendar) &&
-                               cal.userCanAddItemsToCalendar(aCalendar);
+            let canModify = cal.acl.userCanModifyItem(calendarItem);
+            let canMoveItems = cal.acl.userCanDeleteItemsFromCalendar(calendarItem.calendar) &&
+                               cal.acl.userCanAddItemsToCalendar(aCalendar);
 
             return isSameCalendar ? canModify : canMoveItems;
         });
     }
 
     if (mode == "new" &&
-        (!cal.isCalendarWritable(calendar) ||
-         !cal.userCanAddItemsToCalendar(calendar) ||
+        (!cal.acl.isCalendarWritable(calendar) ||
+         !cal.acl.userCanAddItemsToCalendar(calendar) ||
          !isItemSupported(calendar))) {
         if (calendars.length < 1) {
             // There are no writable calendars or no calendar supports the given
@@ -477,8 +477,8 @@ function openEventDialog(calendarItem, calendar, mode, callback, job=null, initi
 
     // open the dialog modeless
     let url;
-    let isEditable = mode == "modify" && !isInvitation && cal.userCanModifyItem(calendarItem);
-    if (cal.isCalendarWritable(calendar) && (mode == "new" || isEditable)) {
+    let isEditable = mode == "modify" && !isInvitation && cal.acl.userCanModifyItem(calendarItem);
+    if (cal.acl.isCalendarWritable(calendar) && (mode == "new" || isEditable)) {
         if (args.inTab) {
             url = args.useNewItemUI ? "chrome://lightning/content/html-item-editing/lightning-item-iframe.html"
                                     : "chrome://lightning/content/lightning-item-iframe.xul";
@@ -495,7 +495,7 @@ function openEventDialog(calendarItem, calendar, mode, callback, job=null, initi
         // never opened in a tab
         args.url = url;
         let tabmail = document.getElementById("tabmail");
-        let tabtype = cal.isEvent(args.calendarEvent) ? "calendarEvent" : "calendarTask";
+        let tabtype = cal.item.isEvent(args.calendarEvent) ? "calendarEvent" : "calendarTask";
         tabmail.openTab(tabtype, args);
     } else {
         // open in a window
@@ -529,14 +529,17 @@ function openEventDialog(calendarItem, calendar, mode, callback, job=null, initi
  * the modified item or the future item only consist of a single occurrence,
  * they are changed to be single items.
  *
- * @param aItem                         The item to check.
+ * @param aItem                         The item or array of items to check.
  * @param aNeedsFuture                  If true, the future item is parsed.
  *                                        This parameter can for example be
  *                                        false if a deletion is being made.
  * @param aAction                       Either "edit" or "delete". Sets up
  *                                          the labels in the occurrence prompt
  * @return [modifiedItem, futureItem, promptResponse]
- *                                      If "this and all following" was chosen,
+ *                                      modifiedItem is a single item or array
+ *                                        of items depending on the past aItem
+ *
+ *                                        If "this and all following" was chosen,
  *                                        an array containing the item *until*
  *                                        the given occurrence (modifiedItem),
  *                                        and the item *after* the given
@@ -557,22 +560,24 @@ function promptOccurrenceModification(aItem, aNeedsFuture, aAction) {
     const MODIFY_FOLLOWING = 2;
     const MODIFY_PARENT = 3;
 
-    let futureItem = false;
-    let pastItem;
+    let futureItems = false;
+    let pastItems = [];
+    let returnItem = null;
     let type = CANCEL;
+    let items = Array.isArray(aItem) ? aItem : [aItem];
 
     // Check if this actually is an instance of a recurring event
-    if (aItem == aItem.parentItem) {
+    if (items.every(item => item == item.parentItem)) {
         type = MODIFY_PARENT;
-    } else if (aItem.parentItem.recurrenceInfo.getExceptionFor(aItem.recurrenceId)) {
+    } else if (items.every(item => item.parentItem.recurrenceInfo.getExceptionFor(item.recurrenceId))) {
         // If the user wants to edit an occurrence which is already an exception
         // always edit this single item.
         // XXX  Why? I think its ok to ask also for exceptions.
         type = MODIFY_OCCURRENCE;
-    } else {
+    } else if (aItem && items.length) {
         // Prompt the user. Setting modal blocks the dialog until it is closed. We
         // use rv to pass our return value.
-        let rv = { value: CANCEL, item: aItem, action: aAction };
+        let rv = { value: CANCEL, items: items, action: aAction };
         window.openDialog("chrome://calendar/content/calendar-occurrence-prompt.xul",
                           "PromptOccurrenceModification",
                           "centerscreen,chrome,modal,titlebar",
@@ -582,21 +587,23 @@ function promptOccurrenceModification(aItem, aNeedsFuture, aAction) {
 
     switch (type) {
         case MODIFY_PARENT:
-            pastItem = aItem.parentItem;
+            pastItems = items.map(item => item.parentItem);
             break;
         case MODIFY_FOLLOWING:
             // TODO tbd in a different bug
             throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
         case MODIFY_OCCURRENCE:
-            pastItem = aItem;
+            pastItems = items;
             break;
         case CANCEL:
             // Since we have not set past or futureItem, the return below will
             // take care.
             break;
     }
-
-    return [pastItem, futureItem, type];
+    if (aItem) {
+        returnItem = Array.isArray(aItem) ? pastItems : pastItems[0];
+    }
+    return [returnItem, futureItems, type];
 }
 
 // Undo/Redo code
@@ -622,8 +629,10 @@ function getTransactionMgr() {
  * @param aCalendar     The calendar to do the transaction on
  * @param aOldItem      (optional) some actions require an old item
  * @param aListener     (optional) the listener to call when complete.
+ * @param aExtResponse  (optional) JS object with additional parameters for sending itip messages
+ *                                 (see also description of checkAndSend in calItipUtils.jsm)
  */
-function doTransaction(aAction, aItem, aCalendar, aOldItem, aListener) {
+function doTransaction(aAction, aItem, aCalendar, aOldItem, aListener, aExtResponse=null) {
     // This is usually a user-initiated transaction, so make sure the calendar
     // this transaction is happening on is visible.
     ensureCalendarVisible(aCalendar);
@@ -633,7 +642,8 @@ function doTransaction(aAction, aItem, aCalendar, aOldItem, aListener) {
                                            aItem,
                                            aCalendar,
                                            aOldItem,
-                                           aListener ? aListener : null);
+                                           aListener ? aListener : null,
+                                           aExtResponse);
     updateUndoRedoMenu();
 }
 
@@ -698,34 +708,67 @@ function updateUndoRedoMenu() {
     goUpdateCommand("cmd_redo");
 }
 
-function setContextPartstat(value, scope, items) {
+/**
+ * Updates the partstat of the calendar owner for specified items triggered by a
+ * context menu operation
+ *
+ * For a documentation of the expected bahaviours for  different use cases of
+ * dealing with context menu partstat actions, see also setupAttendanceMenu(...)
+ * in calendar-ui-utils.js
+ *
+ * @param {EventTarget}  aTarget   the target of the triggering event
+ * @param {Array}        aItems    an array of calEvent or calIToDo items
+ */
+function setContextPartstat(aTarget, aItems) {
+    /**
+     * Provides the participation representing the user for a provided item
+     *
+     * @param   {calEvent|calTodo}  aItem  The calendar item to inspect
+     * @returns {?calIAttendee}            An calIAttendee object or null if no
+     *                                       participant was detected
+     */
+    function getParticipant(aItem) {
+        let party = null;
+        if (cal.isInvitation(aItem)) {
+            party = cal.getInvitedAttendee(aItem);
+        } else if (aItem.organizer && aItem.getAttendees({}).length) {
+            let calOrgId = aItem.calendar.getProperty("organizerId");
+            if (calOrgId.toLowerCase() == aItem.organizer.id.toLowerCase()) {
+                party = aItem.organizer;
+            }
+        }
+        return party;
+    }
+
     startBatchTransaction();
     try {
-        for (let oldItem of items) {
+        // TODO: make sure we overwrite the partstat of all occurrences in
+        // the selection, if the partstat of the respective master item is
+        // changed - see matrix in the doc block of setupAttendanceMenu(...)
+        // in calendar-ui-utils.js
+
+        for (let oldItem of aItems) {
             // Skip this item if its calendar is read only.
             if (oldItem.calendar.readOnly) {
                 continue;
             }
-            if (scope == "all-occurrences") {
+            if (aTarget.getAttribute("scope") == "all-occurrences") {
                 oldItem = oldItem.parentItem;
             }
-            let attendee = null;
-            if (cal.isInvitation(oldItem)) {
-                // Check for the invited attendee first, this is more important
-                attendee = cal.getInvitedAttendee(oldItem);
-            } else if (oldItem.organizer && oldItem.getAttendees({}).length) {
-                // Now check the organizer. This should be done last.
-                let calOrgId = oldItem.calendar.getProperty("organizerId");
-                if (calOrgId == oldItem.organizer.id) {
-                    attendee = oldItem.organizer;
-                }
-            }
-
+            let attendee = getParticipant(oldItem);
             if (attendee) {
+                // skip this item if the partstat for the participant hasn't
+                // changed. otherwise we would allways perfom updade operations
+                // for recurring events on both, the master and the occurrence
+                // item
+                let partStat = aTarget.getAttribute("respvalue");
+                if (attendee.participationStatus == partStat) {
+                    continue;
+                }
+
                 let newItem = oldItem.clone();
                 let newAttendee = attendee.clone();
-
-                newAttendee.participationStatus = value;
+                newAttendee.participationStatus = partStat;
                 if (newAttendee.isOrganizer) {
                     newItem.organizer = newAttendee;
                 } else {
@@ -733,11 +776,21 @@ function setContextPartstat(value, scope, items) {
                     newItem.addAttendee(newAttendee);
                 }
 
-                doTransaction("modify", newItem, newItem.calendar, oldItem, null);
+                let extResponse = null;
+                if (aTarget.hasAttribute("respmode")) {
+                    let mode = aTarget.getAttribute("respmode");
+                    let itipMode = Ci.calIItipItem[mode];
+                    extResponse = { responseMode: itipMode };
+                }
+
+                doTransaction(
+                    "modify", newItem, newItem.calendar,
+                    oldItem, null, extResponse
+                );
             }
         }
     } catch (e) {
-        cal.ERROR("Error setting partstat: " + e);
+        cal.ERROR("Error setting partstat: " + e + "\r\n");
     } finally {
         endBatchTransaction();
     }

@@ -24,5 +24,4 @@
 <!ENTITY replaceAllButton.label "Remplazzar tut">
 <!ENTITY replaceAllButton.accesskey "u">
 <!ENTITY closeButton.label "Serrar">
-
-<!ENTITY closeButton.accesskey "C">
+<!ENTITY closeButton.accesskey "a">

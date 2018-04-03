@@ -11,7 +11,10 @@ const PT       = PlacesTransactions;
 const rootGuid = PlacesUtils.bookmarks.rootGuid;
 const menuGuid = PlacesUtils.bookmarks.menuGuid;
 
-Components.utils.importGlobalProperties(["URL"]);
+Cu.importGlobalProperties(["URL"]);
+ChromeUtils.defineModuleGetter(this, "Preferences",
+                               "resource://gre/modules/Preferences.jsm");
+
 
 // Create and add bookmarks observer.
 var observer = {
@@ -1158,6 +1161,50 @@ add_task(async function test_edit_keyword() {
   ensureUndoState();
 });
 
+add_task(async function test_edit_keyword_null_postData() {
+  let bm_info = { parentGuid: rootGuid,
+                  url: NetUtil.newURI("http://test.edit.keyword") };
+  const KEYWORD = "test_keyword";
+  bm_info.guid = await PT.NewBookmark(bm_info).transact();
+  function ensureKeywordChange(aCurrentKeyword = "") {
+    ensureItemsChanged({ guid: bm_info.guid,
+                         property: "keyword",
+                         newValue: aCurrentKeyword });
+  }
+
+  bm_info.guid = await PT.NewBookmark(bm_info).transact();
+
+  observer.reset();
+  await PT.EditKeyword({ guid: bm_info.guid, keyword: KEYWORD, postData: null }).transact();
+  ensureKeywordChange(KEYWORD);
+  let entry = await PlacesUtils.keywords.fetch(KEYWORD);
+  Assert.equal(entry.url.href, bm_info.url.spec);
+  Assert.equal(entry.postData, null);
+
+  observer.reset();
+  await PT.undo();
+  ensureKeywordChange();
+  entry = await PlacesUtils.keywords.fetch(KEYWORD);
+  Assert.equal(entry, null);
+
+  observer.reset();
+  await PT.redo();
+  ensureKeywordChange(KEYWORD);
+  entry = await PlacesUtils.keywords.fetch(KEYWORD);
+  Assert.equal(entry.url.href, bm_info.url.spec);
+  Assert.equal(entry.postData, null);
+
+  // Cleanup
+  observer.reset();
+  await PT.undo();
+  ensureKeywordChange();
+  await PT.undo();
+  ensureItemsRemoved(bm_info);
+
+  await PT.clearTransactionsHistory();
+  ensureUndoState();
+});
+
 add_task(async function test_edit_specific_keyword() {
   let bm_info = { parentGuid: rootGuid,
                   url: NetUtil.newURI("http://test.edit.keyword") };
@@ -1588,6 +1635,13 @@ add_task(async function test_copy() {
     observer.reset();
     await PT.clearTransactionsHistory();
   }
+
+  let timerPrecision = Preferences.get("privacy.reduceTimerPrecision");
+  Preferences.set("privacy.reduceTimerPrecision", false);
+
+  registerCleanupFunction(function() {
+    Preferences.set("privacy.reduceTimerPrecision", timerPrecision);
+  });
 
   // Test duplicating leafs (bookmark, separator, empty folder)
   PT.NewBookmark({ url: new URL("http://test.item.duplicate"),

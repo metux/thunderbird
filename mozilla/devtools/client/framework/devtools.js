@@ -7,7 +7,7 @@
 const {Cu} = require("chrome");
 const Services = require("Services");
 
-const {DevToolsShim} = Cu.import("chrome://devtools-shim/content/DevToolsShim.jsm", {});
+const {DevToolsShim} = require("chrome://devtools-shim/content/DevToolsShim.jsm");
 
 // Load gDevToolsBrowser toolbox lazily as they need gDevTools to be fully initialized
 loader.lazyRequireGetter(this, "TargetFactory", "devtools/client/framework/target", true);
@@ -17,6 +17,7 @@ loader.lazyRequireGetter(this, "ToolboxHostManager", "devtools/client/framework/
 loader.lazyRequireGetter(this, "gDevToolsBrowser", "devtools/client/framework/devtools-browser", true);
 loader.lazyRequireGetter(this, "HUDService", "devtools/client/webconsole/hudservice", true);
 loader.lazyImporter(this, "ScratchpadManager", "resource://devtools/client/scratchpad/scratchpad-manager.jsm");
+loader.lazyImporter(this, "BrowserToolboxProcess", "resource://devtools/client/framework/ToolboxProcess.jsm");
 
 loader.lazyRequireGetter(this, "WebExtensionInspectedWindowFront",
       "devtools/shared/fronts/webextension-inspected-window", true);
@@ -117,7 +118,7 @@ DevTools.prototype = {
     // Make sure that additional tools will always be able to be hidden.
     // When being called from main.js, defaultTools has not yet been exported.
     // But, we can assume that in this case, it is a default tool.
-    if (DefaultTools.indexOf(toolDefinition) == -1) {
+    if (!DefaultTools.includes(toolDefinition)) {
       toolDefinition.visibilityswitch = "devtools." + toolId + ".enabled";
     }
 
@@ -143,7 +144,7 @@ DevTools.prototype = {
       toolId = tool;
       tool = this._tools.get(tool);
     } else {
-      let {Deprecated} = Cu.import("resource://gre/modules/Deprecated.jsm", {});
+      let {Deprecated} = require("resource://gre/modules/Deprecated.jsm");
       Deprecated.warning("Deprecation WARNING: gDevTools.unregisterTool(tool) is " +
         "deprecated. You should unregister a tool using its toolId: " +
         "gDevTools.unregisterTool(toolId).");
@@ -172,7 +173,7 @@ DevTools.prototype = {
   getAdditionalTools() {
     let tools = [];
     for (let [, value] of this._tools) {
-      if (DefaultTools.indexOf(value) == -1) {
+      if (!DefaultTools.includes(value)) {
         tools.push(value);
       }
     }
@@ -397,6 +398,7 @@ DevTools.prototype = {
    */
   saveDevToolsSession: function (state) {
     state.browserConsole = HUDService.getBrowserConsoleSessionState();
+    state.browserToolbox = BrowserToolboxProcess.getBrowserToolboxSessionState();
 
     // Check if the module is loaded to avoid loading ScratchpadManager for no reason.
     state.scratchpads = [];
@@ -408,9 +410,13 @@ DevTools.prototype = {
   /**
    * Restore the devtools session state as provided by SessionStore.
    */
-  restoreDevToolsSession: function ({scratchpads, browserConsole}) {
+  restoreDevToolsSession: function ({scratchpads, browserConsole, browserToolbox}) {
     if (scratchpads) {
       ScratchpadManager.restoreSession(scratchpads);
+    }
+
+    if (browserToolbox) {
+      BrowserToolboxProcess.init();
     }
 
     if (browserConsole && !HUDService.getBrowserConsole()) {

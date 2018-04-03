@@ -38,12 +38,8 @@ this.EXPORTED_SYMBOLS = [
   "HttpServer",
 ];
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
-var Cu = Components.utils;
 var CC = Components.Constructor;
 
 var PR_UINT32_MAX = Math.pow(2, 32) - 1;
@@ -790,7 +786,7 @@ nsHttpServer.prototype =
     // Bug 508125: Add a GC here else we'll use gigabytes of memory running
     // mochitests. We can't rely on xpcshell doing an automated GC, as that
     // would interfere with testing GC stuff...
-    Components.utils.forceGC();
+    Cu.forceGC();
   },
 
   /**

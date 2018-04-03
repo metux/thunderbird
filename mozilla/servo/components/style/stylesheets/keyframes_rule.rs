@@ -5,7 +5,7 @@
 //! Keyframes: https://drafts.csswg.org/css-animations/#keyframes
 
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser, ParserInput, CowRcStr};
-use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule, SourceLocation};
+use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule, SourceLocation, Token};
 use error_reporting::{NullReporter, ContextualParseError, ParseErrorReporter};
 use parser::{ParserContext, ParserErrorContext};
 use properties::{DeclarationSource, Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
@@ -14,8 +14,9 @@ use properties::LonghandIdSet;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard, Locked, ToCssWithGuard};
-use std::fmt;
-use style_traits::{ParsingMode, ToCss, ParseError, StyleParseErrorKind};
+use std::fmt::{self, Write};
+use str::CssStringWriter;
+use style_traits::{CssWriter, ParseError, ParsingMode, StyleParseErrorKind, ToCss};
 use stylesheets::{CssRuleType, StylesheetContents};
 use stylesheets::rule_parser::VendorPrefix;
 use values::{KeyframesName, serialize_percentage};
@@ -37,11 +38,9 @@ pub struct KeyframesRule {
 
 impl ToCssWithGuard for KeyframesRule {
     // Serialization of KeyframesRule is not specced.
-    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
+    fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         dest.write_str("@keyframes ")?;
-        self.name.to_css(dest)?;
+        self.name.to_css(&mut CssWriter::new(dest))?;
         dest.write_str(" {")?;
         let iter = self.keyframes.iter();
         for lock in iter {
@@ -110,7 +109,10 @@ impl ::std::cmp::Ord for KeyframePercentage {
 impl ::std::cmp::Eq for KeyframePercentage { }
 
 impl ToCss for KeyframePercentage {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         serialize_percentage(self.0, dest)
     }
 }
@@ -124,39 +126,29 @@ impl KeyframePercentage {
     }
 
     fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<KeyframePercentage, ParseError<'i>> {
-        let percentage = if input.try(|input| input.expect_ident_matching("from")).is_ok() {
-            KeyframePercentage::new(0.)
-        } else if input.try(|input| input.expect_ident_matching("to")).is_ok() {
-            KeyframePercentage::new(1.)
-        } else {
-            let percentage = input.expect_percentage()?;
-            if percentage >= 0. && percentage <= 1. {
-                KeyframePercentage::new(percentage)
-            } else {
-                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-            }
-        };
-
-        Ok(percentage)
+        let token = input.next()?.clone();
+        match token {
+            Token::Ident(ref identifier) if identifier.as_ref().eq_ignore_ascii_case("from") => {
+                Ok(KeyframePercentage::new(0.))
+            },
+            Token::Ident(ref identifier) if identifier.as_ref().eq_ignore_ascii_case("to") => {
+                Ok(KeyframePercentage::new(1.))
+            },
+            Token::Percentage { unit_value: percentage, .. } if percentage >= 0. && percentage <= 1. => {
+                Ok(KeyframePercentage::new(percentage))
+            },
+            _ => {
+                Err(input.new_unexpected_token_error(token))
+            },
+        }
     }
 }
 
 /// A keyframes selector is a list of percentages or from/to symbols, which are
 /// converted at parse time to percentages.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct KeyframeSelector(Vec<KeyframePercentage>);
-
-impl ToCss for KeyframeSelector {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        let mut iter = self.0.iter();
-        iter.next().unwrap().to_css(dest)?;
-        for percentage in iter {
-            dest.write_str(", ")?;
-            percentage.to_css(dest)?;
-        }
-        Ok(())
-    }
-}
+#[css(comma)]
+#[derive(Clone, Debug, Eq, PartialEq, ToCss)]
+pub struct KeyframeSelector(#[css(iterable)] Vec<KeyframePercentage>);
 
 impl KeyframeSelector {
     /// Return the list of percentages this selector contains.
@@ -194,9 +186,8 @@ pub struct Keyframe {
 }
 
 impl ToCssWithGuard for Keyframe {
-    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
-    where W: fmt::Write {
-        self.selector.to_css(dest)?;
+    fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
+        self.selector.to_css(&mut CssWriter::new(dest))?;
         dest.write_str(" { ")?;
         self.block.read_with(guard).to_css(dest)?;
         dest.write_str(" }")?;

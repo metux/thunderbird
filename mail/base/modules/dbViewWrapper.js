@@ -4,15 +4,10 @@
 
 this.EXPORTED_SYMBOLS = ['DBViewWrapper', 'IDBViewWrapperListener'];
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
-var Cu = Components.utils;
-
-Cu.import("resource:///modules/mailServices.js");
-Cu.import("resource:///modules/mailViewManager.js");
-Cu.import("resource:///modules/searchSpec.js");
-Cu.import("resource:///modules/virtualFolderWrapper.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mailViewManager.js");
+ChromeUtils.import("resource:///modules/searchSpec.js");
+ChromeUtils.import("resource:///modules/virtualFolderWrapper.js");
 
 var nsMsgFolderFlags = Ci.nsMsgFolderFlags;
 var nsMsgViewType = Ci.nsMsgViewType;
@@ -662,7 +657,7 @@ DBViewWrapper.prototype = {
       doppel.dbView = this.dbView.cloneDBView(aListener.messenger,
                                               aListener.msgWindow,
                                               aListener.threadPaneCommandUpdater)
-                          .QueryInterface(Components.interfaces.nsITreeView);
+                          .QueryInterface(Ci.nsITreeView);
     // -- clone the search
     if (this.search)
       doppel.search = this.search.clone(doppel);

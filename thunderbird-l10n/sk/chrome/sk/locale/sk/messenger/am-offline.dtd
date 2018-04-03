@@ -7,6 +7,9 @@
 <!ENTITY doNotDownloadImap.label "Kvôli úspore miesta je možné preberanie správ zo servera a ukladanie ich lokálnych kópii pre použitie v režime offline obmedziť podľa veku alebo veľkosti správ.">
 <!ENTITY allFoldersOffline.label "Ponechať správy tohto účtu v tomto počítači">
 <!ENTITY allFoldersOffline.accesskey "P">
+<!ENTITY allFoldersOffline2.label "Ponechať správy vo všetkých priečinkoch tohto účtu v tomto počítači.">
+<!ENTITY allFoldersOffline2.accesskey "o">
+<!ENTITY allFoldersOfflineNote.label "Poznámka: táto zmena ovplyvní všetky súbory tohto účtu. Ak chcete nastaviť jednotlivé priečinky, použite tlačidlo Rozšírené….">
 <!ENTITY offlineNotDownload.label "Správy väčšie ako ">
 <!ENTITY offlineNotDownload.accesskey "S">
 <!ENTITY autosyncNotDownload.label "Nepreberať správy väčšie ako">
@@ -54,7 +57,3 @@
 <!ENTITY monthAgeInterval.label          "mesiacov">
 <!ENTITY yearAgeInterval.label           "rokov">
 <!ENTITY ageAutosyncAfter.label          "">
-
-<!ENTITY allFoldersOffline2.label "Keep messages in all folders for this account on this computer">
-<!ENTITY allFoldersOffline2.accesskey "o">
-<!ENTITY allFoldersOfflineNote.label "Note: Changing this affects all folders in this account. To set individual folders, use the Advanced… button.">

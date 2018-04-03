@@ -7,37 +7,37 @@
  */
 
 // Ensure the activity modules are loaded for this window.
-Components.utils.import("resource:///modules/activity/activityModules.js");
-Components.utils.import("resource:///modules/attachmentChecker.js");
-Components.utils.import("resource:///modules/cloudFileAccounts.js");
-Components.utils.import("resource:///modules/mimeParser.jsm");
-Components.utils.import("resource:///modules/errUtils.js");
-Components.utils.import("resource:///modules/folderUtils.jsm");
-Components.utils.import("resource:///modules/iteratorUtils.jsm");
-Components.utils.import("resource:///modules/mailServices.js");
-Components.utils.import("resource:///modules/MailUtils.js");
-Components.utils.import("resource://gre/modules/InlineSpellChecker.jsm");
-Components.utils.import("resource://gre/modules/PluralForm.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/AppConstants.jsm");
+ChromeUtils.import("resource:///modules/activity/activityModules.js");
+ChromeUtils.import("resource:///modules/attachmentChecker.js");
+ChromeUtils.import("resource:///modules/cloudFileAccounts.js");
+ChromeUtils.import("resource:///modules/mimeParser.jsm");
+ChromeUtils.import("resource:///modules/errUtils.js");
+ChromeUtils.import("resource:///modules/folderUtils.jsm");
+ChromeUtils.import("resource:///modules/iteratorUtils.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/MailUtils.js");
+ChromeUtils.import("resource://gre/modules/InlineSpellChecker.jsm");
+ChromeUtils.import("resource://gre/modules/PluralForm.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "ShortcutUtils",
-                                  "resource://gre/modules/ShortcutUtils.jsm");
+ChromeUtils.defineModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
+ChromeUtils.defineModuleGetter(this, "ShortcutUtils",
+                               "resource://gre/modules/ShortcutUtils.jsm");
 
 /**
  * interfaces
  */
-var nsIMsgCompDeliverMode = Components.interfaces.nsIMsgCompDeliverMode;
-var nsIMsgCompSendFormat = Components.interfaces.nsIMsgCompSendFormat;
-var nsIMsgCompConvertible = Components.interfaces.nsIMsgCompConvertible;
-var nsIMsgCompType = Components.interfaces.nsIMsgCompType;
-var nsIMsgCompFormat = Components.interfaces.nsIMsgCompFormat;
-var nsIAbPreferMailFormat = Components.interfaces.nsIAbPreferMailFormat;
-var nsIPlaintextEditorMail = Components.interfaces.nsIPlaintextEditor;
-var nsISupportsString = Components.interfaces.nsISupportsString;
-var mozISpellCheckingEngine = Components.interfaces.mozISpellCheckingEngine;
+var nsIMsgCompDeliverMode = Ci.nsIMsgCompDeliverMode;
+var nsIMsgCompSendFormat = Ci.nsIMsgCompSendFormat;
+var nsIMsgCompConvertible = Ci.nsIMsgCompConvertible;
+var nsIMsgCompType = Ci.nsIMsgCompType;
+var nsIMsgCompFormat = Ci.nsIMsgCompFormat;
+var nsIAbPreferMailFormat = Ci.nsIAbPreferMailFormat;
+var nsIPlaintextEditorMail = Ci.nsIPlaintextEditor;
+var nsISupportsString = Ci.nsISupportsString;
+var mozISpellCheckingEngine = Ci.mozISpellCheckingEngine;
 
 var sDictCount = 0;
 
@@ -84,7 +84,6 @@ var gComposeType;
 var gLanguageObserver;
 var gBodyFromArgs;
 
-
 // i18n globals
 var gCharsetConvertManager;
 var _gComposeBundle;
@@ -117,8 +116,8 @@ var kComposeAttachDirPrefName = "mail.compose.attach.dir";
 
 function InitializeGlobalVariables()
 {
-  gMessenger = Components.classes["@mozilla.org/messenger;1"]
-                         .createInstance(Components.interfaces.nsIMessenger);
+  gMessenger = Cc["@mozilla.org/messenger;1"]
+                 .createInstance(Ci.nsIMessenger);
 
   gMsgCompose = null;
   gOriginalMsgURI = null;
@@ -133,7 +132,7 @@ function InitializeGlobalVariables()
   gCloseWindowAfterSave = false;
   gSavedSendNowKey = null;
   gSendFormat = nsIMsgCompSendFormat.AskUser;
-  gCharsetConvertManager = Components.classes['@mozilla.org/charset-converter-manager;1'].getService(Components.interfaces.nsICharsetConverterManager);
+  gCharsetConvertManager = Cc['@mozilla.org/charset-converter-manager;1'].getService(Ci.nsICharsetConverterManager);
   gManualAttachmentReminder = false;
   gDisableAttachmentReminder = false;
   gLanguageObserver = null;
@@ -144,8 +143,8 @@ function InitializeGlobalVariables()
   gAttachVCardOptionChanged = false;
   gAttachmentsSize = 0;
   gNumUploadingAttachments = 0;
-  msgWindow = Components.classes["@mozilla.org/messenger/msgwindow;1"]
-                        .createInstance(Components.interfaces.nsIMsgWindow);
+  msgWindow = Cc["@mozilla.org/messenger/msgwindow;1"]
+                .createInstance(Ci.nsIMsgWindow);
   MailServices.mailSession.AddMsgWindow(msgWindow);
 }
 InitializeGlobalVariables();
@@ -229,14 +228,14 @@ var PrintPreviewListener = {
 }
 
 function sidebar_is_hidden() {
-  var sidebar_box = document.getElementById('sidebar-box');
-  return sidebar_box.getAttribute('hidden') == 'true';
+  let sidebar_box = document.getElementById("sidebar-box");
+  return sidebar_box.getAttribute("hidden") == "true";
 }
 
 function sidebar_is_collapsed() {
-  var sidebar_splitter = document.getElementById('sidebar-splitter');
+  let sidebar_splitter = document.getElementById("sidebar-splitter");
   return (sidebar_splitter &&
-          sidebar_splitter.getAttribute('state') == 'collapsed');
+          sidebar_splitter.getAttribute("state") == "collapsed");
 }
 
 function SidebarSetState(aState) {
@@ -344,34 +343,34 @@ var stateListener = {
     // Look all the possible compose types (nsIMsgComposeParams.idl):
     switch (gComposeType) {
 
-    case Components.interfaces.nsIMsgCompType.MailToUrl:
+    case Ci.nsIMsgCompType.MailToUrl:
       gBodyFromArgs = true;
-    case Components.interfaces.nsIMsgCompType.New:
-    case Components.interfaces.nsIMsgCompType.NewsPost:
-    case Components.interfaces.nsIMsgCompType.ForwardAsAttachment:
+    case Ci.nsIMsgCompType.New:
+    case Ci.nsIMsgCompType.NewsPost:
+    case Ci.nsIMsgCompType.ForwardAsAttachment:
       this.NotifyComposeBodyReadyNew();
       break;
 
-    case Components.interfaces.nsIMsgCompType.Reply:
-    case Components.interfaces.nsIMsgCompType.ReplyAll:
-    case Components.interfaces.nsIMsgCompType.ReplyToSender:
-    case Components.interfaces.nsIMsgCompType.ReplyToGroup:
-    case Components.interfaces.nsIMsgCompType.ReplyToSenderAndGroup:
-    case Components.interfaces.nsIMsgCompType.ReplyWithTemplate:
-    case Components.interfaces.nsIMsgCompType.ReplyToList:
+    case Ci.nsIMsgCompType.Reply:
+    case Ci.nsIMsgCompType.ReplyAll:
+    case Ci.nsIMsgCompType.ReplyToSender:
+    case Ci.nsIMsgCompType.ReplyToGroup:
+    case Ci.nsIMsgCompType.ReplyToSenderAndGroup:
+    case Ci.nsIMsgCompType.ReplyWithTemplate:
+    case Ci.nsIMsgCompType.ReplyToList:
       this.NotifyComposeBodyReadyReply();
       break;
 
-    case Components.interfaces.nsIMsgCompType.ForwardInline:
+    case Ci.nsIMsgCompType.ForwardInline:
       this.NotifyComposeBodyReadyForwardInline();
       break;
 
-    case Components.interfaces.nsIMsgCompType.EditTemplate:
+    case Ci.nsIMsgCompType.EditTemplate:
       defaultSaveOperation = "template";
-    case Components.interfaces.nsIMsgCompType.Draft:
-    case Components.interfaces.nsIMsgCompType.Template:
-    case Components.interfaces.nsIMsgCompType.Redirect:
-    case Components.interfaces.nsIMsgCompType.EditAsNew:
+    case Ci.nsIMsgCompType.Draft:
+    case Ci.nsIMsgCompType.Template:
+    case Ci.nsIMsgCompType.Redirect:
+    case Ci.nsIMsgCompType.EditAsNew:
       break;
 
     default:
@@ -522,7 +521,7 @@ var stateListener = {
   ComposeProcessDone: function(aResult) {
     ToggleWindowLock(false);
 
-    if (aResult== Components.results.NS_OK)
+    if (aResult== Cr.NS_OK)
     {
       if (!gAutoSaving)
         SetContentAndBodyAsUnmodified();
@@ -531,7 +530,7 @@ var stateListener = {
       {
         // Notify the SendListener that Send has been aborted and Stopped
         if (gMsgCompose)
-          gMsgCompose.onSendNotPerformed(null, Components.results.NS_ERROR_ABORT);
+          gMsgCompose.onSendNotPerformed(null, Cr.NS_ERROR_ABORT);
 
         MsgComposeCloseWindow();
       }
@@ -569,13 +568,13 @@ var gSendListener = {
 var progressListener = {
     onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus)
     {
-      if (aStateFlags & Components.interfaces.nsIWebProgressListener.STATE_START)
+      if (aStateFlags & Ci.nsIWebProgressListener.STATE_START)
       {
         document.getElementById('compose-progressmeter').setAttribute( "mode", "undetermined" );
         document.getElementById("statusbar-progresspanel").collapsed = false;
       }
 
-      if (aStateFlags & Components.interfaces.nsIWebProgressListener.STATE_STOP)
+      if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP)
       {
         gSendOperationInProgress = false;
         gSaveOperationInProgress = false;
@@ -631,12 +630,12 @@ var progressListener = {
 
     QueryInterface : function(iid)
     {
-      if (iid.equals(Components.interfaces.nsIWebProgressListener) ||
-          iid.equals(Components.interfaces.nsISupportsWeakReference) ||
-          iid.equals(Components.interfaces.nsISupports))
+      if (iid.equals(Ci.nsIWebProgressListener) ||
+          iid.equals(Ci.nsISupportsWeakReference) ||
+          iid.equals(Ci.nsISupports))
         return this;
 
-      throw Components.results.NS_NOINTERFACE;
+      throw Cr.NS_NOINTERFACE;
     }
 };
 
@@ -676,6 +675,28 @@ var defaultController = {
       }
     },
 
+    cmd_toggleAttachmentPane: {
+      isEnabled: function() {
+        let cmdToggleAttachmentPane =
+          document.getElementById("cmd_toggleAttachmentPane");
+        let bucket = GetMsgAttachmentElement();
+        let paneShown = !document.getElementById("attachments-box").collapsed;
+        if (!paneShown) {
+          cmdToggleAttachmentPane.setAttribute("checked", "false");
+        } else {
+          cmdToggleAttachmentPane.setAttribute("checked", "true");
+        }
+
+        // Enable this command when the compose window isn't locked;
+        // disable for full, visible bucket (effective for menu only; command's
+        // shortcut key will still work via bucket's identical access key).
+        return (!gWindowLocked && !(bucket.itemCount > 0 && paneShown))
+      },
+      doCommand: function() {
+        toggleAttachmentPane();
+      }
+    },
+
     cmd_reorderAttachments: {
       isEnabled: function() {
         if (attachmentsCount() == 0) {
@@ -691,6 +712,15 @@ var defaultController = {
       },
       doCommand: function() {
         showReorderAttachmentsPanel();
+      }
+    },
+
+    cmd_removeAllAttachments: {
+      isEnabled: function() {
+        return !gWindowLocked && attachmentsCount() > 0;
+      },
+      doCommand: function() {
+        RemoveAllAttachments();
       }
     },
 
@@ -1033,6 +1063,7 @@ var attachmentBucketController = {
 
     cmd_sortAttachmentsToggle: {
       isEnabled: function() {
+        let attachmentsSelCount = attachmentsSelectedCount();
         let sortSelection;
         let currSortOrder;
         let isBlock;
@@ -1042,8 +1073,10 @@ var attachmentBucketController = {
         let sortDirection;
         let btnLabelAttr;
 
-        if (attachmentsSelectedCount() > 1) {
-          // Sort selected attachments only.
+        if (attachmentsSelCount > 1 &&
+            attachmentsSelCount < attachmentsCount()) {
+          // Sort selected attachments only, which needs at least 2 of them,
+          // but not all.
           sortSelection = true;
           currSortOrder = attachmentsSelectionGetSortOrder();
           isBlock = attachmentsSelectionIsBlock();
@@ -1061,7 +1094,7 @@ var attachmentBucketController = {
             sortDirection = "descending";
             btnLabelAttr = "label-selection-ZA";
           }
-        } else { // attachmentsSelectedCount() <= 1
+        } else { // attachmentsSelectedCount() <= 1 or all attachments selected
           // Sort all attachments.
           sortSelection = false;
           currSortOrder = attachmentsGetSortOrder();
@@ -1159,7 +1192,7 @@ var attachmentBucketController = {
       },
       doCommand: function() {
         let fileHandler = Services.io.getProtocolHandler("file")
-                                  .QueryInterface(Components.interfaces.nsIFileProtocolHandler);
+                                  .QueryInterface(Ci.nsIFileProtocolHandler);
 
         let bucket = document.getElementById("attachmentBucket");
         for (let item of bucket.selectedItems) {
@@ -1202,12 +1235,12 @@ function goOpenNewMessage(aEvent)
   // If aEvent is passed, check if Shift key was pressed for composition in
   // non-default format (HTML vs. plaintext).
   let msgCompFormat = (aEvent && aEvent.shiftKey) ?
-    Components.interfaces.nsIMsgCompFormat.OppositeOfDefault :
-    Components.interfaces.nsIMsgCompFormat.Default;
+    Ci.nsIMsgCompFormat.OppositeOfDefault :
+    Ci.nsIMsgCompFormat.Default;
 
   let identity = getCurrentIdentity();
   MailServices.compose.OpenComposeWindow(null, null, null,
-    Components.interfaces.nsIMsgCompType.New,
+    Ci.nsIMsgCompType.New,
     msgCompFormat, identity, null);
 }
 
@@ -1411,13 +1444,20 @@ function updateEditItems()
   goUpdateCommand("cmd_findPrev");
 }
 
+function updateViewItems()
+{
+  goUpdateCommand("cmd_toggleAttachmentPane");
+}
+
 function updateAttachmentItems()
 {
+  goUpdateCommand("cmd_toggleAttachmentPane");
   goUpdateCommand("cmd_attachCloud");
   goUpdateCommand("cmd_convertCloud");
   goUpdateCommand("cmd_convertAttachment");
   goUpdateCommand("cmd_cancelUpload");
   goUpdateCommand("cmd_delete");
+  goUpdateCommand("cmd_removeAllAttachments");
   goUpdateCommand("cmd_renameAttachment");
   updateReorderAttachmentsItems();
   goUpdateCommand("cmd_selectAll");
@@ -1652,8 +1692,8 @@ uploadListener.prototype = {
     updateSendCommands(true);
   },
 
-  QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsIRequestObserver,
-                                         Components.interfaces.nsISupportsWeakReference])
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIRequestObserver,
+                                         Ci.nsISupportsWeakReference])
 };
 
 function deletionListener(aAttachment, aCloudProvider)
@@ -1678,8 +1718,8 @@ deletionListener.prototype = {
     }
   },
 
-  QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsIRequestObserver,
-                                         Components.interfaces.nsISupportsWeakReference])
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIRequestObserver,
+                                         Ci.nsISupportsWeakReference])
 };
 
 /**
@@ -1691,8 +1731,8 @@ function attachToCloud(aProvider)
 {
   // We need to let the user pick local file(s) to upload to the cloud and
   // gather url(s) to those files.
-  var fp = Components.classes["@mozilla.org/filepicker;1"]
-                     .createInstance(nsIFilePicker);
+  var fp = Cc["@mozilla.org/filepicker;1"]
+             .createInstance(nsIFilePicker);
   fp.init(window, getComposeBundle().getFormattedString(
             "chooseFileToAttachViaCloud",
             [cloudFileAccounts.getDisplayName(aProvider)]),
@@ -1711,7 +1751,7 @@ function attachToCloud(aProvider)
     }
 
     let files = Array.from(fixIterator(fp.files,
-                             Components.interfaces.nsIFile))
+                             Ci.nsIFile))
     let attachments = files.map(f => FileToAttachment(f));
 
     let i = 0;
@@ -1746,9 +1786,9 @@ function convertListItemsToCloudAttachment(aItems, aProvider)
     return;
 
   let fileHandler = Services.io.getProtocolHandler("file")
-                            .QueryInterface(Components.interfaces.nsIFileProtocolHandler);
-  let convertedAttachments = Components.classes["@mozilla.org/array;1"]
-                                       .createInstance(Components.interfaces.nsIMutableArray);
+                            .QueryInterface(Ci.nsIFileProtocolHandler);
+  let convertedAttachments = Cc["@mozilla.org/array;1"]
+                               .createInstance(Ci.nsIMutableArray);
 
   for (let item of aItems) {
     let url = item.attachment.url;
@@ -1823,9 +1863,9 @@ function convertToCloudAttachment(aAttachments, aProvider)
 function convertListItemsToRegularAttachment(aItems)
 {
   let fileHandler = Services.io.getProtocolHandler("file")
-                            .QueryInterface(Components.interfaces.nsIFileProtocolHandler);
-  let convertedAttachments = Components.classes["@mozilla.org/array;1"]
-                                       .createInstance(Components.interfaces.nsIMutableArray);
+                            .QueryInterface(Ci.nsIFileProtocolHandler);
+  let convertedAttachments = Cc["@mozilla.org/array;1"]
+                               .createInstance(Ci.nsIMutableArray);
 
   for (let item of aItems) {
     if (!item.attachment.sendViaCloud || !item.cloudProvider)
@@ -1839,7 +1879,7 @@ function convertListItemsToRegularAttachment(aItems)
         file, new deletionListener(item.attachment, item.cloudProvider));
     }
     catch (ex) {
-       Components.utils.reportError(ex);
+       Cu.reportError(ex);
     }
 
     item.attachment.url = item.originalUrl;
@@ -1911,7 +1951,7 @@ var messageComposeOfflineQuitObserver =
     // check whether to veto the quit request (unless another observer already
     // did)
     else if (aTopic == "quit-application-requested"
-        && (aSubject instanceof Components.interfaces.nsISupportsPRBool)
+        && (aSubject instanceof Ci.nsISupportsPRBool)
         && !aSubject.data)
       aSubject.data = !ComposeCanClose();
   }
@@ -1973,7 +2013,7 @@ function DoCommandClose()
 
     // Notify the SendListener that Send has been aborted and Stopped
     if (gMsgCompose)
-      gMsgCompose.onSendNotPerformed(null, Components.results.NS_ERROR_ABORT);
+      gMsgCompose.onSendNotPerformed(null, Cr.NS_ERROR_ABORT);
 
     // This destroys the window for us.
     MsgComposeCloseWindow();
@@ -1994,7 +2034,7 @@ function DoCommandPrintPreview()
 {
   try {
     PrintUtils.printPreview(PrintPreviewListener);
-    } catch(ex) { Components.utils.reportError(ex); }
+    } catch(ex) { Cu.reportError(ex); }
 }
 
 /**
@@ -2311,7 +2351,7 @@ attachmentWorker.lastMessage = null;
 
 attachmentWorker.onerror = function(error)
 {
-  Components.utils.reportError("Attachment Notification Worker error!!! " + error.message);
+  Cu.reportError("Attachment Notification Worker error!!! " + error.message);
   throw error;
 };
 
@@ -2343,6 +2383,7 @@ attachmentWorker.onmessage = function(event, aManage = true)
  * Called when number of attachments changes.
  */
 function AttachmentsChanged() {
+  attachmentBucketMarkEmptyBucket();
   manageAttachmentNotification(true);
   updateAttachmentItems();
 }
@@ -2365,8 +2406,8 @@ function AttachmentsChanged() {
  */
 function getValidSpellcheckerDictionary(draftLanguage) {
   let prefValue = Services.prefs.getCharPref("spellchecker.dictionary");
-  let spellChecker = Components.classes["@mozilla.org/spellchecker/engine;1"]
-                               .getService(mozISpellCheckingEngine);
+  let spellChecker = Cc["@mozilla.org/spellchecker/engine;1"]
+                       .getService(mozISpellCheckingEngine);
   let o1 = {};
   let o2 = {};
   spellChecker.getDictionaryList(o1, o2);
@@ -2400,8 +2441,8 @@ var dictionaryRemovalObserver =
       return;
     }
     let language = document.documentElement.getAttribute("lang");
-    let spellChecker = Components.classes["@mozilla.org/spellchecker/engine;1"]
-                                 .getService(mozISpellCheckingEngine);
+    let spellChecker = Cc["@mozilla.org/spellchecker/engine;1"]
+                         .getService(mozISpellCheckingEngine);
     let o1 = {};
     let o2 = {};
     spellChecker.getDictionaryList(o1, o2);
@@ -2459,7 +2500,7 @@ function onPasteOrDrop(e) {
 
   let html = dataTransfer.getData("text/html");
   let doc = (new DOMParser()).parseFromString(html, "text/html");
-  let tmpD = Services.dirsvc.get("TmpD", Components.interfaces.nsIFile);
+  let tmpD = Services.dirsvc.get("TmpD", Ci.nsIFile);
   let pendingConversions = 0;
   let needToPreventDefault = true;
   for (let img of doc.images) {
@@ -2472,7 +2513,7 @@ function onPasteOrDrop(e) {
     let nsFile;
     try {
       nsFile = Services.io.getProtocolHandler("file")
-        .QueryInterface(Components.interfaces.nsIFileProtocolHandler)
+        .QueryInterface(Ci.nsIFileProtocolHandler)
         .getFileFromURLSpec(img.src);
     } catch (ex) {
       continue;
@@ -2487,8 +2528,8 @@ function onPasteOrDrop(e) {
       continue;
     }
 
-    let contentType = Components.classes["@mozilla.org/mime;1"]
-      .getService(Components.interfaces.nsIMIMEService)
+    let contentType = Cc["@mozilla.org/mime;1"]
+      .getService(Ci.nsIMIMEService)
       .getTypeFromFile(nsFile);
     if (!contentType.startsWith("image/")) {
       continue;
@@ -2511,8 +2552,8 @@ function onPasteOrDrop(e) {
       let doTheInsert = function() {
         // Now run it through sanitation to make sure there wasn't any
         // unwanted things in the content.
-        let ParserUtils = Components.classes["@mozilla.org/parserutils;1"]
-          .getService(Components.interfaces.nsIParserUtils);
+        let ParserUtils = Cc["@mozilla.org/parserutils;1"]
+          .getService(Ci.nsIParserUtils);
         let html2 = ParserUtils.sanitize(doc.documentElement.innerHTML,
                                        ParserUtils.SanitizerAllowStyle);
         getBrowser().contentDocument.execCommand("insertHTML", false, html2);
@@ -2569,7 +2610,7 @@ function ComposeStartup(aParams)
     params = aParams;
   else if (window.arguments && window.arguments[0]) {
     try {
-      if (window.arguments[0] instanceof Components.interfaces.nsIMsgComposeParams)
+      if (window.arguments[0] instanceof Ci.nsIMsgComposeParams)
         params = window.arguments[0];
       else
         params = handleMailtoArgs(window.arguments[0]);
@@ -2636,8 +2677,8 @@ function ComposeStartup(aParams)
   if (!params) {
     // This code will go away soon as now arguments are passed to the window using a object of type nsMsgComposeParams instead of a string
 
-    params = Components.classes["@mozilla.org/messengercompose/composeparams;1"].createInstance(Components.interfaces.nsIMsgComposeParams);
-    params.composeFields = Components.classes["@mozilla.org/messengercompose/composefields;1"].createInstance(Components.interfaces.nsIMsgCompFields);
+    params = Cc["@mozilla.org/messengercompose/composeparams;1"].createInstance(Ci.nsIMsgComposeParams);
+    params.composeFields = Cc["@mozilla.org/messengercompose/composefields;1"].createInstance(Ci.nsIMsgCompFields);
 
     if (args) { //Convert old fashion arguments into params
       var composeFields = params.composeFields;
@@ -2648,14 +2689,14 @@ function ComposeStartup(aParams)
       if (args.format)
       {
         // Only use valid values.
-        if (args.format == Components.interfaces.nsIMsgCompFormat.PlainText ||
-            args.format == Components.interfaces.nsIMsgCompFormat.HTML ||
-            args.format == Components.interfaces.nsIMsgCompFormat.OppositeOfDefault)
+        if (args.format == Ci.nsIMsgCompFormat.PlainText ||
+            args.format == Ci.nsIMsgCompFormat.HTML ||
+            args.format == Ci.nsIMsgCompFormat.OppositeOfDefault)
           params.format = args.format;
         else if (args.format.toLowerCase().trim() == "html")
-          params.format = Components.interfaces.nsIMsgCompFormat.HTML;
+          params.format = Ci.nsIMsgCompFormat.HTML;
         else if (args.format.toLowerCase().trim() == "text")
-          params.format = Components.interfaces.nsIMsgCompFormat.PlainText;
+          params.format = Ci.nsIMsgCompFormat.PlainText;
       }
       if (args.originalMsgURI)
         params.originalMsgURI = args.originalMsgURI;
@@ -2676,17 +2717,17 @@ function ComposeStartup(aParams)
       if (args.attachment)
       {
         let attachmentList = args.attachment.split(",");
-        let commandLine = Components.classes["@mozilla.org/toolkit/command-line;1"]
-                                    .createInstance();
+        let commandLine = Cc["@mozilla.org/toolkit/command-line;1"]
+                            .createInstance();
         for (let attachmentName of attachmentList)
         {
           // resolveURI does all the magic around working out what the
           // attachment is, including web pages, and generating the correct uri.
           let uri = commandLine.resolveURI(attachmentName);
-          let attachment = Components.classes["@mozilla.org/messengercompose/attachment;1"]
-                                     .createInstance(Components.interfaces.nsIMsgAttachment);
+          let attachment = Cc["@mozilla.org/messengercompose/attachment;1"]
+                             .createInstance(Ci.nsIMsgAttachment);
           // If uri is for a file and it exists set the attachment size.
-          if (uri instanceof Components.interfaces.nsIFileURL)
+          if (uri instanceof Ci.nsIFileURL)
           {
             if (uri.file.exists())
               attachment.size = uri.file.fileSize;
@@ -2712,10 +2753,10 @@ function ComposeStartup(aParams)
       if (args.newshost)
         composeFields.newshost = args.newshost;
       if (args.message) {
-        let msgFile = Components.classes["@mozilla.org/file/local;1"]
-                        .createInstance(Components.interfaces.nsIFile);
+        let msgFile = Cc["@mozilla.org/file/local;1"]
+                        .createInstance(Ci.nsIFile);
         if (OS.Path.dirname(args.message) == ".") {
-          let workingDir = Services.dirsvc.get("CurWorkD", Components.interfaces.nsIFile);
+          let workingDir = Services.dirsvc.get("CurWorkD", Ci.nsIFile);
           args.message = OS.Path.join(workingDir.path, OS.Path.basename(args.message));
         }
         msgFile.initWithPath(args.message);
@@ -2732,10 +2773,10 @@ function ComposeStartup(aParams)
           let cstream = null;
 
           try {
-            fstream = Components.classes["@mozilla.org/network/file-input-stream;1"]
-                        .createInstance(Components.interfaces.nsIFileInputStream);
-            cstream = Components.classes["@mozilla.org/intl/converter-input-stream;1"]
-                        .createInstance(Components.interfaces.nsIConverterInputStream);
+            fstream = Cc["@mozilla.org/network/file-input-stream;1"]
+                        .createInstance(Ci.nsIFileInputStream);
+            cstream = Cc["@mozilla.org/intl/converter-input-stream;1"]
+                        .createInstance(Ci.nsIConverterInputStream);
             fstream.init(msgFile, -1, 0, 0); // Open file in default/read-only mode.
             cstream.init(fstream, "UTF-8", 0, 0);
 
@@ -2763,7 +2804,7 @@ function ComposeStartup(aParams)
           if (data) {
             let pos = data.search(/\S/); // Find first non-whitespace character.
 
-            if (params.format != Components.interfaces.nsIMsgCompFormat.PlainText &&
+            if (params.format != Ci.nsIMsgCompFormat.PlainText &&
                 (args.message.endsWith(".htm") || args.message.endsWith(".html") ||
                  data.substr(pos, 14).toLowerCase() == "<!doctype html" ||
                  data.substr(pos, 5).toLowerCase() == "<html")) {
@@ -2809,7 +2850,7 @@ function ComposeStartup(aParams)
 
     // Search for a matching identity.
     if (from) {
-      for (let ident of fixIterator(identities, Components.interfaces.nsIMsgIdentity)) {
+      for (let ident of fixIterator(identities, Ci.nsIMsgIdentity)) {
         if (from == ident.email.toLowerCase()) {
           if (suitableCount == 0)
             params.identity = ident;
@@ -2826,7 +2867,7 @@ function ComposeStartup(aParams)
       if (!identity) {
         let identities = MailServices.accounts.allIdentities;
         if (identities.length > 0)
-          identity = identities.queryElementAt(0, Components.interfaces.nsIMsgIdentity);
+          identity = identities.queryElementAt(0, Ci.nsIMsgIdentity);
       }
       params.identity = identity;
     }
@@ -2948,7 +2989,7 @@ function ComposeStartup(aParams)
     // Load empty page to create the editor.
     editorElement.webNavigation.loadURI("about:blank", 0, null, null, null);
   } catch (e) {
-    Components.utils.reportError(e);
+    Cu.reportError(e);
   }
 
   gEditingDraft = gMsgCompose.compFields.draftId;
@@ -2994,7 +3035,7 @@ var gMsgEditorCreationObserver =
       var editor = GetCurrentEditor();
       if (editor && GetCurrentCommandManager() == aSubject)
       {
-        var editorStyle = editor.QueryInterface(Components.interfaces.nsIEditorStyleSheets);
+        var editorStyle = editor.QueryInterface(Ci.nsIEditorStyleSheets);
         // We use addOverrideStyleSheet rather than addStyleSheet so that we get
         // a synchronous load, rather than having a late-finishing async load
         // mark our editor as modified when the user hasn't typed anything yet,
@@ -3055,7 +3096,7 @@ function ComposeLoad()
       ComposeStartup(null);
   }
   catch (ex) {
-    Components.utils.reportError(ex);
+    Cu.reportError(ex);
     Services.prompt.alert(window, getComposeBundle().getString("initErrorDlogTitle"),
                           getComposeBundle().getString("initErrorDlgMessage"));
 
@@ -3073,6 +3114,8 @@ function ComposeLoad()
   toolbox.toolbarset = toolbarset;
 
   awInitializeNumberOfRowsShown();
+  updateAttachmentPane();
+  attachmentBucketMarkEmptyBucket();
 }
 
 function ComposeUnload()
@@ -3144,7 +3187,7 @@ function GetCharsetUIString()
       return gCharsetConvertManager.getCharsetTitle(charset);
     }
     catch(e) { // Not a canonical charset after all...
-      Components.utils.reportError("No charset title for charset=" + charset);
+      Cu.reportError("No charset title for charset=" + charset);
       return charset;
     }
   }
@@ -3382,7 +3425,7 @@ function GenericSendMessage(msgType)
     msgcomposeWindow.setAttribute("msgtype", msgType);
     msgcomposeWindow.dispatchEvent(event);
     if (event.defaultPrevented)
-      throw Components.results.NS_ERROR_ABORT;
+      throw Cr.NS_ERROR_ABORT;
 
     gAutoSaving = (msgType == nsIMsgCompDeliverMode.AutoSaveAsDraft);
 
@@ -3398,8 +3441,8 @@ function GenericSendMessage(msgType)
       SetContentAndBodyAsUnmodified();
     }
 
-    var progress = Components.classes["@mozilla.org/messenger/progress;1"]
-                             .createInstance(Components.interfaces.nsIMsgProgress);
+    var progress = Cc["@mozilla.org/messenger/progress;1"]
+                     .createInstance(Ci.nsIMsgProgress);
     if (progress)
     {
       progress.registerListener(progressListener);
@@ -3417,7 +3460,7 @@ function GenericSendMessage(msgType)
                         getCurrentAccountKey(), msgWindow, progress);
   }
   catch (ex) {
-    Components.utils.reportError("GenericSendMessage FAILED: " + ex);
+    Cu.reportError("GenericSendMessage FAILED: " + ex);
     ToggleWindowLock(false);
   }
   if (gMsgCompose && originalCharset != gMsgCompose.compFields.characterSet)
@@ -3904,8 +3947,8 @@ function InitLanguageMenu()
   if (!languageMenuList)
     return;
 
-  var spellChecker = Components.classes['@mozilla.org/spellchecker/engine;1']
-                               .getService(mozISpellCheckingEngine);
+  var spellChecker = Cc['@mozilla.org/spellchecker/engine;1']
+                       .getService(mozISpellCheckingEngine);
   var o1 = {};
   var o2 = {};
 
@@ -4106,7 +4149,7 @@ function FillIdentityList(menulist)
   for (let acc = 0; acc < accounts.length; acc++) {
     let account = accounts[acc];
     let identities = toArray(fixIterator(account.identities,
-                                         Components.interfaces.nsIMsgIdentity));
+                                         Ci.nsIMsgIdentity));
 
     if (identities.length == 0)
       continue;
@@ -4284,7 +4327,7 @@ function ComposeCanClose()
           GenericSendMessage(nsIMsgCompDeliverMode.AutoSaveAsDraft);
         }
         catch (ex) {
-          Components.utils.reportError(ex);
+          Cu.reportError(ex);
         }
         return false;
       case 1: //Cancel
@@ -4307,23 +4350,23 @@ function RemoveDraft()
   {
     var draftUri = gMsgCompose.compFields.draftId;
     var msgKey = draftUri.substr(draftUri.indexOf('#') + 1);
-    var rdf = Components.classes['@mozilla.org/rdf/rdf-service;1']
-                        .getService(Components.interfaces.nsIRDFService);
+    var rdf = Cc['@mozilla.org/rdf/rdf-service;1']
+                .getService(Ci.nsIRDFService);
 
     var folder = rdf.GetResource(gMsgCompose.savedFolderURI)
-                    .QueryInterface(Components.interfaces.nsIMsgFolder);
+                    .QueryInterface(Ci.nsIMsgFolder);
     try {
-      if (folder.flags & Components.interfaces.nsMsgFolderFlags.Drafts)
+      if (folder.flags & Ci.nsMsgFolderFlags.Drafts)
       {
-        var msgs = Components.classes["@mozilla.org/array;1"].
-            createInstance(Components.interfaces.nsIMutableArray);
+        var msgs = Cc["@mozilla.org/array;1"].
+            createInstance(Ci.nsIMutableArray);
         msgs.appendElement(folder.GetMessageHeader(msgKey));
         folder.deleteMessages(msgs, null, true, false, null, false);
       }
     }
     catch (ex) // couldn't find header - perhaps an imap folder.
     {
-      var imapFolder = folder.QueryInterface(Components.interfaces.nsIMsgImapMailFolder);
+      var imapFolder = folder.QueryInterface(Ci.nsIMsgImapMailFolder);
       var keyArray = new Array;
       keyArray[0] = msgKey;
       imapFolder.storeImapFlags(8, true, keyArray, 1, null);
@@ -4352,7 +4395,7 @@ function GetLastAttachDirectory()
   try {
     lastDirectory = Services.prefs
                             .getComplexValue(kComposeAttachDirPrefName,
-                                             Components.interfaces.nsIFile);
+                                             Ci.nsIFile);
   }
   catch (ex) {
     // this will fail the first time we attach a file
@@ -4367,11 +4410,11 @@ function GetLastAttachDirectory()
 function SetLastAttachDirectory(attachedLocalFile)
 {
   try {
-    let file = attachedLocalFile.QueryInterface(Components.interfaces.nsIFile);
-    let parent = file.parent.QueryInterface(Components.interfaces.nsIFile);
+    let file = attachedLocalFile.QueryInterface(Ci.nsIFile);
+    let parent = file.parent.QueryInterface(Ci.nsIFile);
 
     Services.prefs.setComplexValue(kComposeAttachDirPrefName,
-                                   Components.interfaces.nsIFile, parent);
+                                   Ci.nsIFile, parent);
   }
   catch (ex) {
     dump("error: SetLastAttachDirectory failed: " + ex + "\n");
@@ -4381,8 +4424,8 @@ function SetLastAttachDirectory(attachedLocalFile)
 function AttachFile()
 {
   //Get file using nsIFilePicker and convert to URL
-  var fp = Components.classes["@mozilla.org/filepicker;1"]
-                     .createInstance(nsIFilePicker);
+  var fp = Cc["@mozilla.org/filepicker;1"]
+             .createInstance(nsIFilePicker);
   fp.init(window, getComposeBundle().getString("chooseFileToAttach"),
           nsIFilePicker.modeOpenMultiple);
 
@@ -4392,13 +4435,13 @@ function AttachFile()
 
   fp.appendFilters(nsIFilePicker.filterAll);
   fp.open(rv => {
-    if (rv != Components.interfaces.nsIFilePicker.returnOK || !fp.files)
+    if (rv != Ci.nsIFilePicker.returnOK || !fp.files)
       return;
 
     let file;
     let attachments = [];
 
-    for (file of fixIterator(fp.files, Components.interfaces.nsIFile))
+    for (file of fixIterator(fp.files, Ci.nsIFile))
       attachments.push(FileToAttachment(file));
 
     AddAttachments(attachments);
@@ -4415,9 +4458,9 @@ function AttachFile()
 function FileToAttachment(file)
 {
   let fileHandler = Services.io.getProtocolHandler("file")
-                            .QueryInterface(Components.interfaces.nsIFileProtocolHandler);
-  let attachment = Components.classes["@mozilla.org/messengercompose/attachment;1"]
-                             .createInstance(Components.interfaces.nsIMsgAttachment);
+                            .QueryInterface(Ci.nsIFileProtocolHandler);
+  let attachment = Cc["@mozilla.org/messengercompose/attachment;1"]
+                     .createInstance(Ci.nsIMsgAttachment);
 
   attachment.url = fileHandler.getURLSpecFromFile(file);
   attachment.size = file.fileSize;
@@ -4437,12 +4480,12 @@ function FileToAttachment(file)
 function AddAttachments(aAttachments, aCallback)
 {
   let bucket = document.getElementById("attachmentBucket");
-  let addedAttachments = Components.classes["@mozilla.org/array;1"]
-                                   .createInstance(Components.interfaces.nsIMutableArray);
+  let addedAttachments = Cc["@mozilla.org/array;1"]
+                           .createInstance(Ci.nsIMutableArray);
   let items = [];
 
   for (let attachment of fixIterator(aAttachments,
-                                     Components.interfaces.nsIMsgAttachment)) {
+                                     Ci.nsIMsgAttachment)) {
     if (!(attachment && attachment.url) ||
         DuplicateFileAlreadyAttached(attachment.url))
       continue;
@@ -4490,7 +4533,7 @@ function AddAttachments(aAttachments, aCallback)
       // mailnews urls where the filename is hidden in the url as a &filename=
       // part.
       let url = Services.io.newURI(attachment.url);
-      if (url instanceof Components.interfaces.nsIURL &&
+      if (url instanceof Ci.nsIURL &&
           url.fileName && !url.schemeIs("file")) {
         item.image = "moz-icon://" + url.fileName;
       } else if (/^mailbox-message:|^imap-message:|^news-message:/i.test(attachment.url)) {
@@ -4509,11 +4552,26 @@ function AddAttachments(aAttachments, aCallback)
   }
 
   if (addedAttachments.length > 0) {
+    // If no attachment item has had focus yet (currentIndex == -1, or undefined
+    // on some platforms according to spec), make sure there's at least one item
+    // set as currentItem which will be focused when listbox gets focus, because
+    // currently we don't indicate focus on the listbox itself when there are
+    // attachments, assuming that one of them has focus.
+    if (!(bucket.currentIndex >= 0)) {
+      bucket.currentIndex = bucket.getIndexOfItem(items[0]);
+    }
+
     gContentChanged = true;
 
-    UpdateAttachmentBucket(true);
+    updateAttachmentPane("show");
     dispatchAttachmentBucketEvent("attachments-added", addedAttachments);
     AttachmentsChanged();
+  } else if (attachmentsCount() > 0) {
+    // We didn't succeed to add attachments (e.g. duplicate files),
+    // but user was trying to; so we must at least react by ensuring the panel
+    // is shown, which might be hidden by user with existing attachments.
+    // XXX To do: don't allow traceless hiding of pane with attachments.
+    toggleAttachmentPane("show");
   }
 
   return items;
@@ -4664,8 +4722,8 @@ function AttachPage()
       return;
     }
 
-    let attachment = Components.classes["@mozilla.org/messengercompose/attachment;1"]
-                               .createInstance(Components.interfaces.nsIMsgAttachment);
+    let attachment = Cc["@mozilla.org/messengercompose/attachment;1"]
+                       .createInstance(Ci.nsIMsgAttachment);
     attachment.url = result.value;
     AddAttachments([attachment]);
   }
@@ -4708,104 +4766,147 @@ function Attachments2CompFields(compFields)
 function RemoveAllAttachments()
 {
   let bucket = document.getElementById("attachmentBucket");
-  let removedAttachments = Components.classes["@mozilla.org/array;1"]
-                                     .createInstance(Components.interfaces.nsIMutableArray);
+  if (bucket.itemCount == 0)
+    return;
 
-  while (bucket.getRowCount())
-  {
-    let child = bucket.removeItemAt(bucket.getRowCount() - 1);
+  let fileHandler = Services.io.getProtocolHandler("file")
+                            .QueryInterface(Ci.nsIFileProtocolHandler);
+  let removedAttachments = Cc["@mozilla.org/array;1"]
+                             .createInstance(Ci.nsIMutableArray);
 
-    removedAttachments.appendElement(child.attachment);
+  while (bucket.itemCount > 0) {
+    let item = bucket.removeItemAt(bucket.itemCount - 1);
+    if (item.attachment.size != -1) {
+      gAttachmentsSize -= item.attachment.size;
+    }
+
+    if (item.attachment.sendViaCloud && item.cloudProvider) {
+      let originalUrl = item.originalUrl;
+      if (!originalUrl)
+        originalUrl = item.attachment.url;
+      let file = fileHandler.getFileFromURLSpec(originalUrl);
+      if (item.uploading)
+        item.cloudProvider.cancelFileUpload(file);
+      else
+        item.cloudProvider.deleteFile(file,
+          new deletionListener(item.attachment, item.cloudProvider));
+    }
+
+    removedAttachments.appendElement(item.attachment);
     // Let's release the attachment object hold by the node else it won't go
-    // away until the window is destroyed
-    child.attachment = null;
+    // away until the window is destroyed.
+    item.attachment = null;
   }
 
   if (removedAttachments.length > 0) {
     // Bug workaround: Force update of selectedCount and selectedItem.
     bucket.clearSelection();
-
+    updateAttachmentPane("show");
     gContentChanged = true;
-
     dispatchAttachmentBucketEvent("attachments-removed", removedAttachments);
-    UpdateAttachmentBucket(false);
     AttachmentsChanged();
   }
 }
 
 /**
- * Show or hide the attachment pane after updating its header bar information
- * (number and total file size of attachments).
+ * Display/hide and update the content of the attachment bucket (specifically
+ * the total file size of the attachments and the number of current attachments).
  *
- * @param aShowPane {boolean} true:  show the attachment pane
- *                            false: hide the attachment pane
+ * @param aShowBucket true if the bucket should be shown, false otherwise
+ *
+ * Note: This is needed for add-on compatibility, for example in Enigmail.
  */
-function UpdateAttachmentBucket(aShowPane)
+function UpdateAttachmentBucket(aShowBucket)
 {
-  let count = document.getElementById("attachmentBucket").getRowCount();
+  updateAttachmentPane(aShowBucket ? "show" : "hide");
+}
+
+/**
+ * Update the header bar information (number and total file size of attachments)
+ * and tooltip of attachment pane, then (optionally) show or hide the pane.
+ *
+ * @param aShowPane {string} "show":  show the attachment pane
+ *                           "hide":  hide the attachment pane
+ *                           omitted: just update without changing pane visibility
+ */
+function updateAttachmentPane(aShowPane)
+{
+  let bucket = GetMsgAttachmentElement();
+  let bucketCountLabel = document.getElementById("attachmentBucketCount");
   let words = getComposeBundle().getString("attachmentCount");
+  let count = bucket.itemCount;
   let countStr = PluralForm.get(count, words).replace("#1", count);
 
-  document.getElementById("attachmentBucketCount").value = countStr;
+  bucketCountLabel.value = countStr;
   document.getElementById("attachmentBucketSize").value =
-    gMessenger.formatFileSize(gAttachmentsSize);
+    (count > 0) ? gMessenger.formatFileSize(gAttachmentsSize)
+                : "";
+  document.getElementById("attachmentBucketCloseButton").collapsed = count > 0;
 
+  attachmentBucketUpdateTooltips();
+
+  // If aShowPane argument is omitted, it's just updating, so we're done.
+  if (aShowPane === undefined)
+    return;
+
+  // Otherwise, show or hide the panel per aShowPane argument.
   toggleAttachmentPane(aShowPane);
 }
 
 function RemoveSelectedAttachment()
 {
-  let bucket = document.getElementById("attachmentBucket");
-  if (bucket.selectedItems.length > 0) {
-    // Remember the current focus index so we can try to restore it when done.
-    let focusIndex = bucket.currentIndex;
+  let bucket = GetMsgAttachmentElement();
+  if (bucket.selectedCount == 0)
+    return;
 
-    let fileHandler = Services.io.getProtocolHandler("file")
-                              .QueryInterface(Components.interfaces.nsIFileProtocolHandler);
-    let removedAttachments = Components.classes["@mozilla.org/array;1"]
-                                       .createInstance(Components.interfaces.nsIMutableArray);
+  // Remember the current focus index so we can try to restore it when done.
+  let focusIndex = bucket.currentIndex;
 
-    for (let i = bucket.selectedCount - 1; i >= 0; i--) {
-      let item = bucket.removeItemAt(bucket.getIndexOfItem(bucket.getSelectedItem(i)));
-      if (item.attachment.size != -1) {
-        gAttachmentsSize -= item.attachment.size;
-        UpdateAttachmentBucket(true);
-      }
+  let fileHandler = Services.io.getProtocolHandler("file")
+                            .QueryInterface(Ci.nsIFileProtocolHandler);
+  let removedAttachments = Cc["@mozilla.org/array;1"]
+                             .createInstance(Ci.nsIMutableArray);
 
-      if (item.attachment.sendViaCloud && item.cloudProvider) {
-        let originalUrl = item.originalUrl;
-        if (!originalUrl)
-          originalUrl = item.attachment.url;
-        let file = fileHandler.getFileFromURLSpec(originalUrl);
-        if (item.uploading)
-          item.cloudProvider.cancelFileUpload(file);
-        else
-          item.cloudProvider.deleteFile(file,
-            new deletionListener(item.attachment, item.cloudProvider));
-      }
-
-      removedAttachments.appendElement(item.attachment);
-      // Let's release the attachment object held by the node else it won't go
-      // away until the window is destroyed
-      item.attachment = null;
+  for (let i = bucket.selectedCount - 1; i >= 0; i--) {
+    let item = bucket.removeItemAt(bucket.getIndexOfItem(bucket.getSelectedItem(i)));
+    if (item.attachment.size != -1) {
+      gAttachmentsSize -= item.attachment.size;
     }
 
-    // Bug workaround: Force update of selectedCount and selectedItem, both wrong
-    // after item removal, to avoid confusion for listening command controllers.
-    bucket.clearSelection();
+    if (item.attachment.sendViaCloud && item.cloudProvider) {
+      let originalUrl = item.originalUrl;
+      if (!originalUrl)
+        originalUrl = item.attachment.url;
+      let file = fileHandler.getFileFromURLSpec(originalUrl);
+      if (item.uploading)
+        item.cloudProvider.cancelFileUpload(file);
+      else
+        item.cloudProvider.deleteFile(file,
+          new deletionListener(item.attachment, item.cloudProvider));
+    }
 
-    // Try to restore original focus or somewhere close by.
-    bucket.currentIndex = (focusIndex < bucket.itemCount) ?   // If possible,
-                          focusIndex   // restore focus at original position;
-                        : ( (bucket.itemCount > 0) ? // else: if attachments exist,
-                            (bucket.itemCount - 1)   // focus last item;
-                          : -1)                      // else: nothing to focus.
-
-    gContentChanged = true;
-
-    dispatchAttachmentBucketEvent("attachments-removed", removedAttachments);
-    AttachmentsChanged();
+    removedAttachments.appendElement(item.attachment);
+    // Let's release the attachment object held by the node else it won't go
+    // away until the window is destroyed
+    item.attachment = null;
   }
+
+  updateAttachmentPane();
+
+  // Bug workaround: Force update of selectedCount and selectedItem, both wrong
+  // after item removal, to avoid confusion for listening command controllers.
+  bucket.clearSelection();
+
+  // Try to restore original focus or somewhere close by.
+  bucket.currentIndex = (focusIndex < bucket.itemCount) ?   // If possible,
+                        focusIndex   // restore focus at original position;
+                      : ( (bucket.itemCount > 0) ? // else: if attachments exist,
+                          (bucket.itemCount - 1)   // focus last item;
+                        : -1)                      // else: nothing to focus.
+
+  gContentChanged = true;
+  dispatchAttachmentBucketEvent("attachments-removed", removedAttachments);
+  AttachmentsChanged();
 }
 
 function RenameSelectedAttachment()
@@ -5082,19 +5183,60 @@ function moveSelectedAttachments(aDirection)
 }
 
 /**
- * Show or hide the attachment pane.
+ * Toggle attachment pane view state: show or hide it (only if bucket is empty).
+ * If aAction parameter is omitted, auto-cycling of view states, bias for "show".
+ * Note: In the current UI layout, forcing "hide" is not recommended for full
+ *       bucket as it may violate ux-error-prevention.
  *
- * @param aShow {boolean} true:  show the attachment pane
- *                        false: hide the attachment pane
+ * @param aAction {string} "show":  show attachment pane
+ *                         "hide":  hide attachment pane
+ *                         "focus": focus the attachment pane
+ *                         "toggle": toggle attachment pane visibility
  */
-function toggleAttachmentPane(aShow) {
-  document.getElementById("attachments-box").collapsed = !aShow;
-  document.getElementById("attachmentbucket-sizer").collapsed = !aShow;
+function toggleAttachmentPane(aAction = "toggle") {
+  let bucket = GetMsgAttachmentElement();
+  let attachmentsBox = document.getElementById("attachments-box");
+  let emptyBucket = (bucket.itemCount == 0);
+  let bucketHasFocus = (document.activeElement == bucket);
+  let attachmentBucketSizer = document.getElementById("attachmentbucket-sizer");
+
+  if (aAction == "toggle") {
+    if (!attachmentsBox.collapsed && bucket.itemCount == 0) {
+      // Menu click (View > Attachment Pane) with empty, shown bucket: Hide it.
+      aAction = "hide"
+    } else {
+      // Menu click with hidden bucket (empty or full)
+      // or cmd_toggleAttachmentPane via shortcut key;
+      // we disable the menu to prevent hiding full and shown bucket.
+      aAction = "show";
+    }
+  }
+
+  switch (aAction) {
+    case "show":
+      attachmentsBox.collapsed = false;
+      attachmentBucketSizer.collapsed = false;
+      if (!bucketHasFocus)
+        bucket.focus();
+      break;
+
+    case "hide":
+      if (bucketHasFocus)
+        SetMsgBodyFrameFocus();
+      attachmentsBox.collapsed = true;
+      attachmentBucketSizer.collapsed = true;
+      break;
+
+    case "focus":
+      bucket.focus();
+  }
+
+  goUpdateCommand("cmd_toggleAttachmentPane");
 }
 
 function showReorderAttachmentsPanel() {
   // Ensure attachment pane visibility as it might be collapsed.
-  toggleAttachmentPane(true);
+  toggleAttachmentPane("show");
   showPopupById("reorderAttachmentsPanel", "attachmentBucket",
                 "after_start", 15, 0);
   // After the panel is shown, focus attachmentBucket so that keyboard
@@ -5213,13 +5355,81 @@ function attachmentBucketOnBlur() {
     reorderAttachmentsPanel.hidePopup();
 }
 
-function attachmentBucketOnKeyUp(aEvent) {
-  // When ESC is pressed, close reorderAttachmentsPanel.
+function attachmentBucketOnKeyPress(aEvent) {
+  let bucket = GetMsgAttachmentElement();
+
+  // When ESC is pressed ...
   if (aEvent.key == "Escape") {
     let reorderAttachmentsPanel = document.getElementById("reorderAttachmentsPanel");
     if (reorderAttachmentsPanel.state == "open") {
+      // First close reorderAttachmentsPanel if open.
       reorderAttachmentsPanel.hidePopup();
+    } else if (bucket.itemCount > 0) {
+      if (bucket.selectedCount > 0) {
+        // Then deselect selected items in full bucket if any.
+        bucket.clearSelection();
+      } else {
+        // Then unfocus full bucket to continue with msg body.
+        SetMsgBodyFrameFocus();
+      }
+    } else {  // (bucket.itemCount == 0)
+      // Otherwise close empty bucket.
+      toggleAttachmentPane("hide");
     }
+  }
+
+  if (aEvent.key == "Enter" && bucket.itemCount == 0) {
+    // Enter on empty bucket to add file attachments, convenience
+    // keyboard equivalent of single-click on bucket whitespace.
+    goDoCommand("cmd_attachFile");
+  }
+
+  if (aEvent.key == "m" && aEvent.altKey) {
+    toggleAttachmentPane();
+  }
+}
+
+function attachmentBucketOnClick(aEvent)
+{
+  // Handle click on attachment pane whitespace:
+  // - With selected attachments, clear selection first.
+  // - Otherwise, e.g. on a plain empty bucket, show 'Attach File(s)' dialog.
+  if (attachmentsSelectedCount() == 0) {
+    let boundTarget = document.getBindingParent(aEvent.originalTarget);
+    if (aEvent.button == 0 && boundTarget && boundTarget.localName == "scrollbox")
+      goDoCommand("cmd_attachFile");
+  }
+}
+
+function attachmentBucketOnSelect() {
+  attachmentBucketUpdateTooltips();
+  updateAttachmentItems();
+}
+
+
+function attachmentBucketUpdateTooltips() {
+  let bucket = GetMsgAttachmentElement();
+  let bucketHeader = document.getElementById("attachments-header-box");
+
+  // Attachment pane whitespace tooltip
+  if (attachmentsSelectedCount() > 0) {
+    bucket.tooltipText=
+      getComposeBundle().getString("attachmentBucketClearSelectionTooltip");
+  } else {
+    bucket.tooltipText=
+      getComposeBundle().getString("attachmentBucketAttachFilesTooltip");
+  }
+}
+
+function attachmentBucketHeaderOnClick() {
+  toggleAttachmentPane("focus");
+}
+
+function attachmentBucketSizerOnMouseUp() {
+  updateViewItems();
+  if (document.getElementById("attachments-box").collapsed) {
+    // If user collapsed the attachment pane, move focus to message body.
+    SetMsgBodyFrameFocus();
   }
 }
 
@@ -5227,6 +5437,16 @@ function AttachmentElementHasItems()
 {
   var element = document.getElementById("attachmentBucket");
   return element ? (element.getRowCount() > 0) : false;
+}
+
+function attachmentBucketMarkEmptyBucket() {
+  let attachmentBucket = GetMsgAttachmentElement();
+  let bucketSizer = document.getElementById("attachmentbucket-sizer");
+  if (attachmentBucket.itemCount > 0) {
+    attachmentBucket.removeAttribute("empty");
+  } else {
+    attachmentBucket.setAttribute("empty", "true");
+  }
 }
 
 function OpenSelectedAttachment()
@@ -5254,11 +5474,11 @@ function OpenSelectedAttachment()
                                                      null,
                                                      Services.scriptSecurityManager.getSystemPrincipal(),
                                                      null,
-                                                     Components.interfaces.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
-                                                     Components.interfaces.nsIContentPolicy.TYPE_OTHER);
+                                                     Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                                                     Ci.nsIContentPolicy.TYPE_OTHER);
         if (channel)
         {
-          let uriLoader = Components.classes["@mozilla.org/uriloader;1"].getService(Components.interfaces.nsIURILoader);
+          let uriLoader = Cc["@mozilla.org/uriloader;1"].getService(Ci.nsIURILoader);
           uriLoader.openURI(channel, true, new nsAttachmentOpener());
         }
       }
@@ -5274,11 +5494,11 @@ nsAttachmentOpener.prototype =
 {
   QueryInterface: function(iid)
   {
-    if (iid.equals(Components.interfaces.nsIURIContentListener) ||
-        iid.equals(Components.interfaces.nsIInterfaceRequestor) ||
-        iid.equals(Components.interfaces.nsISupports))
+    if (iid.equals(Ci.nsIURIContentListener) ||
+        iid.equals(Ci.nsIInterfaceRequestor) ||
+        iid.equals(Ci.nsISupports))
         return this;
-    throw Components.results.NS_NOINTERFACE;
+    throw Cr.NS_NOINTERFACE;
   },
 
   onStartURIOpen: function(uri)
@@ -5288,11 +5508,21 @@ nsAttachmentOpener.prototype =
 
   doContent: function(contentType, isContentPreferred, request, contentHandler)
   {
-    return false;
+    // If we came here to display an attached message, make sure we provide a type.
+    if (/[?&]part=/i.test(request.URI.query)) {
+      let newQuery = request.URI.query + "&type=message/rfc822";
+      request.URI = request.URI.mutate().setQuery(newQuery).finalize();
+    }
+    let newHandler = Cc["@mozilla.org/uriloader/content-handler;1?type=application/x-message-display"]
+                       .createInstance(Ci.nsIContentHandler);
+    newHandler.handleContent("application/x-message-display", this, request);
+    return true;
   },
 
   isPreferred: function(contentType, desiredContentType)
   {
+    if (contentType == "message/rfc822")
+      return true;
     return false;
   },
 
@@ -5303,12 +5533,12 @@ nsAttachmentOpener.prototype =
 
   getInterface: function(iid)
   {
-    if (iid.equals(Components.interfaces.nsIDOMWindow)) {
+    if (iid.equals(Ci.nsIDOMWindow)) {
       return window;
-    } else if (iid.equals(Components.interfaces.nsIDocShell)) {
-      return window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-                   .getInterface(Components.interfaces.nsIWebNavigation)
-                   .QueryInterface(Components.interfaces.nsIDocShell);
+    } else if (iid.equals(Ci.nsIDocShell)) {
+      return window.QueryInterface(Ci.nsIInterfaceRequestor)
+                   .getInterface(Ci.nsIWebNavigation)
+                   .QueryInterface(Ci.nsIDocShell);
     } else {
       return this.QueryInterface(iid);
     }
@@ -5366,7 +5596,7 @@ function hideIrrelevantAddressingOptions(aAccountKey)
 {
   let hideNews = true;
   for (let account of fixIterator(MailServices.accounts.accounts,
-                                  Components.interfaces.nsIMsgAccount)) {
+                                  Ci.nsIMsgAccount)) {
     if (account.incomingServer.type == "nntp")
       hideNews = false;
   }
@@ -5569,23 +5799,13 @@ function MakeFromFieldEditable(ignoreWarning)
 function setupAutocomplete()
 {
   var autoCompleteWidget = document.getElementById("addressCol2#1");
-
-  // if the pref is set to turn on the comment column, honor it here.
-  // this element then gets cloned for subsequent rows, so they should
-  // honor it as well
-  //
-  try
-  {
+  try {
+    // Request that input that isn't matched be highlighted.
+    // This element then gets cloned for subsequent rows, so they should
+    // honor it as well.
     if (getPref("mail.autoComplete.highlightNonMatches"))
       autoCompleteWidget.highlightNonMatches = true;
-
-    if (getPref("mail.autoComplete.commentColumn"))
-      autoCompleteWidget.showCommentColumn = true;
-  } catch (ex)
-  {
-      // if we can't get this pref, then don't show the columns (which is
-      // what the XUL defaults to)
-  }
+  } catch (ex) {}
 }
 
 function fromKeyPress(event)
@@ -5599,13 +5819,6 @@ function subjectKeyPress(event)
   gSubjectChanged = true;
   if (event.keyCode == KeyEvent.DOM_VK_RETURN)
     SetMsgBodyFrameFocus();
-}
-
-function AttachmentBucketDoubleClicked(event)
-{
-  let boundTarget = document.getBindingParent(event.originalTarget);
-  if (event.button == 0 && boundTarget && boundTarget.localName == "scrollbox")
-    goDoCommand('cmd_attachFile');
 }
 
 // we can drag and drop addresses, files, messages and urls into the compose envelope
@@ -5817,7 +6030,7 @@ var envelopeDragObserver = {
           isValidAttachment = true;
           let fileHandler = Services.io
                                     .getProtocolHandler("file")
-                                    .QueryInterface(Components.interfaces.nsIFileProtocolHandler);
+                                    .QueryInterface(Ci.nsIFileProtocolHandler);
 
           size = rawData.fileSize;
           rawData = fileHandler.getURLSpecFromFile(rawData);
@@ -5871,8 +6084,8 @@ var envelopeDragObserver = {
 
       // Create the attachment and add it to attachments array.
       if (isValidAttachment) {
-        let attachment = Components.classes["@mozilla.org/messengercompose/attachment;1"]
-                                   .createInstance(Components.interfaces.nsIMsgAttachment);
+        let attachment = Cc["@mozilla.org/messengercompose/attachment;1"]
+                           .createInstance(Ci.nsIMsgAttachment);
         attachment.url = rawData;
         attachment.name = prettyName;
 
@@ -5911,12 +6124,10 @@ var envelopeDragObserver = {
     }
 
     if (aFlavour.contentType != "text/x-moz-address") {
-      // make sure the attachment box is visible during drag over
-      let attachmentBox = document.getElementById("attachments-box");
-      UpdateAttachmentBucket(true);
-    }
-    else {
-        DragAddressOverTargetControl(aEvent);
+      // Make sure the attachment pane is visible during drag over.
+      updateAttachmentPane("show");
+    } else {
+      DragAddressOverTargetControl(aEvent);
     }
   },
 
@@ -5988,8 +6199,8 @@ function DisplaySaveFolderDlg(folderURI)
 
 function SetMsgAddressingWidgetTreeElementFocus()
 {
-  var element = awGetInputElement(awGetNumberOfRecipients());
-  awSetFocus(awGetNumberOfRecipients(), element);
+  let lastRecipientInputElement = awGetInputElement(awGetNumberOfRecipients());
+  awSetFocus(awGetNumberOfRecipients(), lastRecipientInputElement);
 }
 
 function SetMsgIdentityElementFocus()
@@ -6004,7 +6215,16 @@ function SetMsgSubjectElementFocus()
 
 function SetMsgAttachmentElementFocus()
 {
+  // Caveat: Callers must ensure that attachment pane is visible.
   GetMsgAttachmentElement().focus();
+}
+
+/**
+ * Focus the people search input in contacts side bar.
+ */
+function focusContactsSidebarSearchInput() {
+  // Caveat: Callers must ensure that contacts side bar is visible.
+  sidebarDocumentGetElementById("peopleSearchInput", "abContactsPanel").focus();
 }
 
 function SetMsgBodyFrameFocus()
@@ -6046,6 +6266,30 @@ function GetMsgAttachmentElement()
   return gMsgAttachmentElement;
 }
 
+/**
+ * Get an element by ID in the current sidebar browser document.
+ *
+ * @param aId {string}     the ID of the element to get
+ * @param aPageId {string} the ID of a <page> in the sidebar <browser>;
+ *                         only return the element if the page exists.
+ *                         Assuming unique page ids and that there there can
+ *                         only ever be one <page> in a <browser>'s src.xul
+ *                         (documentation is pretty poor), that means that the
+ *                         element will only be returned if it is found in the
+ *                         same src.xul as the page (as opposed to any src.xul /
+ *                         page currently displayed in the sidebar browser).
+ */
+function sidebarDocumentGetElementById(aId, aPageId) {
+  let sidebarDocument = document.getElementById("sidebar").contentDocument;
+  if (aPageId) {
+    if (sidebarDocument.getElementById(aPageId)) {
+      return sidebarDocument.getElementById(aId);
+    }
+    return null;
+  }
+  return sidebarDocument.getElementById(aId);
+}
+
 function GetMsgHeadersToolbarElement()
 {
   if (!gMsgHeadersToolbarElement)
@@ -6054,112 +6298,160 @@ function GetMsgHeadersToolbarElement()
   return gMsgHeadersToolbarElement;
 }
 
+/**
+ * Determine which element of the fast-track focus ring has focus.
+ * Note that only elements of the fast-track focus ring will be returned.
+ *
+ * @return an element node of the fast-track focus ring if the node or one of
+ *         its descendants has focus, otherwise null.
+ */
 function WhichElementHasFocus()
 {
-  var msgIdentityElement             = GetMsgIdentityElement();
-  var msgAddressingWidgetTreeElement = GetMsgAddressingWidgetTreeElement();
-  var msgSubjectElement              = GetMsgSubjectElement();
-  var msgAttachmentElement           = GetMsgAttachmentElement();
+  let msgIdentityElement = GetMsgIdentityElement();
+  let msgAddressingWidgetTreeElement = GetMsgAddressingWidgetTreeElement();
+  let msgSubjectElement = GetMsgSubjectElement();
+  let msgAttachmentElement = GetMsgAttachmentElement();
+  let abContactsPanelElement = sidebarDocumentGetElementById("abContactsPanel");
 
   if (top.document.commandDispatcher.focusedWindow == content)
     return content;
 
-  var currentNode = top.document.commandDispatcher.focusedElement;
-  while (currentNode)
-  {
+  let currentNode = top.document.commandDispatcher.focusedElement;
+  while (currentNode) {
     if (currentNode == msgIdentityElement ||
         currentNode == msgAddressingWidgetTreeElement ||
         currentNode == msgSubjectElement ||
-        currentNode == msgAttachmentElement)
+        currentNode == msgAttachmentElement ||
+        currentNode == abContactsPanelElement) {
       return currentNode;
-
+    }
     currentNode = currentNode.parentNode;
   }
 
   return null;
 }
 
-// Function that performs the logic of switching focus from
-// one element to another in the mail compose window.
-// The default element to switch to when going in either
-// direction (shift or no shift key pressed), is the
-// AddressingWidgetTreeElement.
-//
-// The only exception is when the MsgHeadersToolbar is
-// collapsed, then the focus will always be on the body of
-// the message.
+/**
+ * Fast-track focus ring: Switch focus between important (not all) elements
+ * in the message compose window. Ctrl+[Shift+]Tab | [Shift+]F6 on Windows.
+ *
+ * The default element to switch to when going in either direction (with or
+ * without shift key pressed) is the AddressingWidgetTreeElement.
+ *
+ * The only exception is when the MsgHeadersToolbar is collapsed,
+ * then the focus will always be on the body of the message.
+ */
 function SwitchElementFocus(event)
 {
-  var focusedElement = WhichElementHasFocus();
+  let focusedElement = WhichElementHasFocus();
 
-  if (event && event.shiftKey)
-  {
-    if (focusedElement == gMsgAddressingWidgetTreeElement)
-      SetMsgIdentityElementFocus();
-    else if (focusedElement == gMsgIdentityElement)
-      SetMsgBodyFrameFocus();
-    else if (focusedElement == content)
-    {
-      // only set focus to the attachment element if there
-      // are any attachments.
-      if (AttachmentElementHasItems())
-        SetMsgAttachmentElementFocus();
-      else
-        SetMsgSubjectElementFocus();
-    }
-    else if (focusedElement == gMsgAttachmentElement)
-      SetMsgSubjectElementFocus();
-    else
-      SetMsgAddressingWidgetTreeElementFocus();
+  if (!focusedElement) {
+    // None of the pre-defined focus ring elements has focus: This should never
+    // happen with the default installation, but might happen with add-ons.
+    // In that case, default to focusing the address widget as the first element
+    // of the focus ring.
+    SetMsgAddressingWidgetTreeElementFocus();
+    return;
   }
-  else
-  {
-    if (focusedElement == gMsgAddressingWidgetTreeElement)
-      SetMsgSubjectElementFocus();
-    else if (focusedElement == gMsgSubjectElement)
-    {
-      // only set focus to the attachment element if there
-      // are any attachments.
-      if (AttachmentElementHasItems())
-        SetMsgAttachmentElementFocus();
-      else
+
+  if (event && event.shiftKey) {
+    // Backwards focus ring: e.g. Ctrl+Shift+Tab | Shift+F6
+    switch (focusedElement) {
+      case gMsgAddressingWidgetTreeElement:
+        SetMsgIdentityElementFocus();
+        break;
+      case gMsgIdentityElement:
+        // Only set focus to the contacts side bar (search box) if it is shown.
+        if (!sidebar_is_hidden() &&
+            sidebarDocumentGetElementById("abContactsPanel"))
+          focusContactsSidebarSearchInput();
+        else
+          SetMsgBodyFrameFocus();
+        break;
+      case sidebarDocumentGetElementById("abContactsPanel"):
         SetMsgBodyFrameFocus();
+        break;
+      case content: // message body
+        // Only set focus to the attachment element if it is shown.
+        if (!document.getElementById("attachments-box").collapsed)
+          SetMsgAttachmentElementFocus();
+        else
+          SetMsgSubjectElementFocus();
+        break;
+      case gMsgAttachmentElement:
+        SetMsgSubjectElementFocus();
+        break;
+      default: // gMsgSubjectElement
+        SetMsgAddressingWidgetTreeElementFocus();
+        break;
     }
-    else if (focusedElement == gMsgAttachmentElement)
-      SetMsgBodyFrameFocus();
-    else if (focusedElement == content)
-      SetMsgIdentityElementFocus();
-    else
-      SetMsgAddressingWidgetTreeElementFocus();
+  } else {
+    // Forwards focus ring: e.g. Ctrl+Tab | F6
+    switch (focusedElement) {
+      case gMsgAddressingWidgetTreeElement:
+        SetMsgSubjectElementFocus();
+        break;
+      case gMsgSubjectElement:
+        // Only set focus to the attachment element if it is shown.
+        if (!document.getElementById("attachments-box").collapsed)
+          SetMsgAttachmentElementFocus();
+        else
+          SetMsgBodyFrameFocus();
+        break;
+      case gMsgAttachmentElement:
+        SetMsgBodyFrameFocus();
+        break;
+      case content:
+        // Only set focus to the contacts side bar (search box) if it is shown.
+        if (!sidebar_is_hidden() &&
+            sidebarDocumentGetElementById("abContactsPanel"))
+          focusContactsSidebarSearchInput();
+        else
+          SetMsgIdentityElementFocus();
+        break;
+      case sidebarDocumentGetElementById("abContactsPanel"):
+        SetMsgIdentityElementFocus();
+        break;
+      default: // gMsgIdentityElement
+        SetMsgAddressingWidgetTreeElementFocus();
+        break;
+    }
   }
 }
 
 function toggleAddressPicker()
 {
-  var sidebarBox = document.getElementById("sidebar-box");
-  var sidebarSplitter = document.getElementById("sidebar-splitter");
-  var elt = document.getElementById("viewAddressPicker");
-  if (sidebarBox.hidden)
-  {
+  // Caveat: This function erroneously assumes that only abContactsPanel can
+  // be shown in the sidebar browser, so it will fail if any other src is shown
+  // as we do not reliably enforce abContactsPanel.xul as src of the sidebar
+  // <browser>. Currently we don't show anything else in the sidebar, but
+  // add-ons might.
+  let sidebarBox = document.getElementById("sidebar-box");
+  let sidebarSplitter = document.getElementById("sidebar-splitter");
+  let sidebar = document.getElementById("sidebar");
+  let viewAddressPicker = document.getElementById("viewAddressPicker");
+
+  if (sidebarBox.hidden) {
+    // Show contacts sidebar.
     sidebarBox.hidden = false;
     sidebarSplitter.hidden = false;
-    elt.setAttribute("checked","true");
+    viewAddressPicker.setAttribute("checked","true");
 
-    var sidebar = document.getElementById("sidebar");
-    var sidebarUrl = sidebar.getAttribute("src");
-    // if we have yet to initialize the src url on the sidebar than go ahead and do so now...
-    // we do this lazily here, so we don't spend time when bringing up the compose window loading the address book
-    // data sources. Only when the user opens the address picker do we set the src url for the sidebar...
+    let sidebarUrl = sidebar.getAttribute("src");
+    // If we have yet to initialize the src URL on the sidebar, then go ahead
+    // and do so now... We do this lazily here, so we don't spend time when
+    // bringing up the compose window loading the address book data sources.
+    // Only when the user opens the address picker, do we set the src URL
+    // for the sidebar.
     if (sidebarUrl == "")
       sidebar.setAttribute("src", "chrome://messenger/content/addressbook/abContactsPanel.xul");
 
     sidebarBox.setAttribute("sidebarVisible", "true");
-  }
-  else
-  {
+  } else {
+    // Hide contacts sidebar.
     // If something in the sidebar was left marked focused,
     // clear out the attribute so that it does not keep focus in a hidden element.
-    let sidebarContent = document.getElementById("sidebar").contentDocument;
+    let sidebarContent = sidebar.contentDocument;
     let sideFocused = Array.from(sidebarContent.querySelectorAll('[focused="true"]'))
                            .concat(Array.from(sidebarContent.querySelectorAll(":focus")));
     for (let elem of sideFocused) {
@@ -6171,7 +6463,7 @@ function toggleAddressPicker()
     sidebarBox.hidden = true;
     sidebarSplitter.hidden = true;
     sidebarBox.setAttribute("sidebarVisible", "false");
-    elt.removeAttribute("checked");
+    viewAddressPicker.removeAttribute("checked");
 
     // If nothing is focused in the main compose frame, focus subject if empty
     // otherwise the body. If we didn't do that, focus may stay inside the closed
@@ -6277,7 +6569,7 @@ var gAttachmentNotifier =
     this._obs = new MutationObserver(function gAN_handleMutations(aMutations) {
       gAttachmentNotifier.timer.cancel();
       gAttachmentNotifier.timer.initWithCallback(gAttachmentNotifier.event, 500,
-                                                 Components.interfaces.nsITimer.TYPE_ONE_SHOT);
+                                                 Ci.nsITimer.TYPE_ONE_SHOT);
     });
 
     this._obs.observe(aDocument, {
@@ -6302,7 +6594,7 @@ var gAttachmentNotifier =
   subjectObserver: function handleEvent() {
     gAttachmentNotifier.timer.cancel();
     gAttachmentNotifier.timer.initWithCallback(gAttachmentNotifier.event, 500,
-                                               Components.interfaces.nsITimer.TYPE_ONE_SHOT);
+                                               Ci.nsITimer.TYPE_ONE_SHOT);
   },
 
   /**
@@ -6341,7 +6633,7 @@ var gAttachmentNotifier =
 
     let keywordsInCsv = Services.prefs.getComplexValue(
       "mail.compose.attachment_reminder_keywords",
-      Components.interfaces.nsIPrefLocalizedString).data;
+      Ci.nsIPrefLocalizedString).data;
     let mailBody = getBrowser().contentDocument.querySelector("body");
 
     // We use a new document and import the body into it. We do that to avoid
@@ -6436,8 +6728,8 @@ var gAttachmentNotifier =
     }
   },
 
-  timer: Components.classes["@mozilla.org/timer;1"]
-                   .createInstance(Components.interfaces.nsITimer)
+  timer: Cc["@mozilla.org/timer;1"]
+           .createInstance(Ci.nsITimer)
 };
 
 /**
@@ -6473,7 +6765,7 @@ function InitEditor()
   // Set eEditorMailMask flag to avoid using content prefs for spell checker,
   // otherwise dictionary setting in preferences is ignored and dictionary is
   // inconsistent in subject and message body.
-  let eEditorMailMask = Components.interfaces.nsIPlaintextEditor.eEditorMailMask;
+  let eEditorMailMask = Ci.nsIPlaintextEditor.eEditorMailMask;
   editor.flags |= eEditorMailMask;
   GetMsgSubjectElement().editor.flags |= eEditorMailMask;
 
@@ -6531,7 +6823,7 @@ function InitEditor()
       // Check if this is a protocol that can fetch parts.
       let protocol = src.substr(0, src.indexOf(":")).toLowerCase();
       if (!(Services.io.getProtocolHandler(protocol) instanceof
-            Components.interfaces.nsIMsgMessageFetchPartService)) {
+            Ci.nsIMsgMessageFetchPartService)) {
         // Can't fetch parts, don't try to load.
         return;
       }
@@ -6542,8 +6834,8 @@ function InitEditor()
       return;
     }
     if (gOriginalMsgURI) {
-      let msgSvc = Components.classes["@mozilla.org/messenger;1"]
-        .createInstance(Components.interfaces.nsIMessenger)
+      let msgSvc = Cc["@mozilla.org/messenger;1"]
+        .createInstance(Ci.nsIMessenger)
         .messageServiceFromURI(gOriginalMsgURI);
       let originalMsgNeckoURI = {};
       msgSvc.GetUrlForUri(gOriginalMsgURI, originalMsgNeckoURI, null);
@@ -6557,7 +6849,7 @@ function InitEditor()
           loadBlockedImage(src);
         } catch (e) {
           // Couldn't load the referenced image.
-          Components.utils.reportError(e);
+          Cu.reportError(e);
         }
       }
       else {
@@ -6576,8 +6868,8 @@ function InitEditor()
   let background = editor.document.body.background;
   if (background && gOriginalMsgURI) {
     // Check that background has the same URL as the message itself.
-    let msgSvc = Components.classes["@mozilla.org/messenger;1"]
-      .createInstance(Components.interfaces.nsIMessenger)
+    let msgSvc = Cc["@mozilla.org/messenger;1"]
+      .createInstance(Ci.nsIMessenger)
       .messageServiceFromURI(gOriginalMsgURI);
     let originalMsgNeckoURI = {};
     msgSvc.GetUrlForUri(gOriginalMsgURI, originalMsgNeckoURI, null);
@@ -6588,7 +6880,7 @@ function InitEditor()
         editor.document.body.background = loadBlockedImage(background, true);
       } catch (e) {
         // Couldn't load the referenced image.
-        Components.utils.reportError(e);
+        Cu.reportError(e);
       }
     }
   }
@@ -6627,7 +6919,6 @@ function getMailToolbox()
 }
 
 function getPref(aPrefName, aIsComplex) {
-  const Ci = Components.interfaces;
   if (aIsComplex) {
     return Services.prefs.getStringPref(aPrefName);
   }
@@ -6804,7 +7095,7 @@ function onUnblockResource(aURL, aNode) {
     loadBlockedImage(aURL);
   } catch (e) {
     // Couldn't load the referenced image.
-    Components.utils.reportError(e);
+    Cu.reportError(e);
   } finally {
     // Remove it from the list on success and failure.
     let urls = aNode.value.split(" ");
@@ -6844,8 +7135,8 @@ function loadBlockedImage(aURL, aReturnDataURL = false) {
   let contentType;
   if (filename) {
     try {
-      contentType = Components.classes["@mozilla.org/mime;1"]
-        .getService(Components.interfaces.nsIMIMEService)
+      contentType = Cc["@mozilla.org/mime;1"]
+        .getService(Ci.nsIMIMEService)
         .getTypeFromURI(uri);
     } catch (ex) {
       contentType = "image/png";
@@ -6865,11 +7156,11 @@ function loadBlockedImage(aURL, aReturnDataURL = false) {
     null,
     Services.scriptSecurityManager.getSystemPrincipal(),
     null,
-    Components.interfaces.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
-    Components.interfaces.nsIContentPolicy.TYPE_OTHER);
+    Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+    Ci.nsIContentPolicy.TYPE_OTHER);
   let inputStream = channel.open();
-  let stream = Components.classes["@mozilla.org/binaryinputstream;1"]
-    .createInstance(Components.interfaces.nsIBinaryInputStream);
+  let stream = Cc["@mozilla.org/binaryinputstream;1"]
+    .createInstance(Ci.nsIBinaryInputStream);
   stream.setInputStream(inputStream);
   let streamData = "";
   try {

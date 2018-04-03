@@ -30,10 +30,8 @@
 <!ENTITY manageCerts2.accesskey "G">
 <!ENTITY manageDevices.label "Dispozitive de securitate">
 <!ENTITY manageDevices.accesskey "D">
+
 <!-- Strings for the cert picker dialog -->
-
-
-
-<!ENTITY certPicker.title "Select Certificate">
-<!ENTITY certPicker.info  "Certificate:">
-<!ENTITY certPicker.detailsLabel "Details of selected certificate:">
+<!ENTITY certPicker.title "Selectează certificatul">
+<!ENTITY certPicker.info  "Certificat:">
+<!ENTITY certPicker.detailsLabel "Detalii ale certificatului selectat:">

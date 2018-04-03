@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/ast/locale/ast/passwordmgr/", 
         "pippki": "chrome/ast/locale/ast/pippki/"
       }, 
-      "version": "20171102104118"
+      "version": "20180312184233"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-ast@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "ast", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Asturianu Language Pack", 
   "manifest_version": 2, 
   "sources": {

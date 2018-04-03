@@ -317,7 +317,7 @@
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goChatCmd.label "Sohbet">
 <!ENTITY goChatCmd.accesskey "b">
-<!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Yıldızlı ileti">
 <!ENTITY prevStarredMsgCmd.accesskey "d">
 <!ENTITY folderMenu.label "Dizin">
@@ -366,6 +366,8 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Taslak iletiyi düzenle">
 <!ENTITY editDraftMsgCmd.accesskey "d">
+<!ENTITY editTemplateMsgCmd.label "Şablonu düzenle">
+<!ENTITY editTemplateMsgCmd.accesskey "b">
 <!ENTITY newMsgFromTemplateCmd.label "Taslak kullanarak yeni ileti yaz">
 <!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "İletiden süzgeç oluştur…">
@@ -459,6 +461,11 @@
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "Eklentiler">
 <!ENTITY addons.accesskey "E">
+<!ENTITY addonPrefs.label "Eklenti seçenekleri">
+<!ENTITY addonPrefs.accesskey "E">
+<!ENTITY addonPrefsUnix.label "Eklenti tercihleri">
+<!ENTITY addonPrefsUnix.accesskey "t">
+<!ENTITY addonNoPrefs.label "Hiç eklenti ayarı bulunamadı.">
 <!ENTITY activitymanager.label "Etkinlik yöneticisi">
 <!ENTITY activitymanager.accesskey "Y">
 <!ENTITY imAccountsStatus.label "Sohbet durumu">
@@ -504,6 +511,8 @@
 <!ENTITY devToolboxCmd.commandkey "i">
 <!ENTITY addonDebugCmd.label "Eklenti hata ayıklayıcısı">
 <!ENTITY addonDebugCmd.accesskey "E">
+<!ENTITY debugAddonsCmd.label "Eklentilerde hata ayıkla">
+<!ENTITY debugAddonsCmd.accesskey "h">
 <!ENTITY tabsDebugCmd.label "İçerik çerçevesi hata ayıklayıcısı">
 <!ENTITY tabsDebugCmd.accesskey "e">
 <!ENTITY errorConsoleCmd.label "Hata konsolu">
@@ -752,6 +761,8 @@
 <!ENTITY contextEditMsgAsNew.label "Yeni ileti olarak düzenle">
 <!ENTITY contextEditMsgAsNew.accesskey "o">
 <!ENTITY contextEditDraftMsg.label "Taslak iletiyi düzenle">
+<!ENTITY contextEditTemplate.label "Şablonu düzenle">
+<!ENTITY contextEditTemplate.accesskey "b">
 <!ENTITY contextArchive.label "Arşivle">
 <!ENTITY contextArchive.accesskey "A">
 <!ENTITY contextReplySender.label "Yalnızca göndereni yanıtla">
@@ -957,16 +968,3 @@
 <!ENTITY dockOptions.label              "Uygulama simgesi seçenekleri…">
 <!ENTITY writeNewMessageDock.label      "Yeni ileti yaz">
 <!ENTITY openAddressBookDock.label      "Adres defterini aç">
-
-<!ENTITY goChatCmd2.key "H">
-<!ENTITY editTemplateMsgCmd.label "Edit Template">
-<!ENTITY editTemplateMsgCmd.accesskey "T">
-<!ENTITY addonPrefs.label "Add-on Options">
-<!ENTITY addonPrefs.accesskey "O">
-<!ENTITY addonPrefsUnix.label "Add-on Preferences">
-<!ENTITY addonPrefsUnix.accesskey "P">
-<!ENTITY addonNoPrefs.label "No Add-on settings found.">
-<!ENTITY debugAddonsCmd.label "Debug Add-ons">
-<!ENTITY debugAddonsCmd.accesskey "A">
-<!ENTITY contextEditTemplate.label "Edit Template">
-<!ENTITY contextEditTemplate.accesskey "T">

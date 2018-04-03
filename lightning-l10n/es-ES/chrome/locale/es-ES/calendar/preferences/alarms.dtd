@@ -14,6 +14,7 @@
 <!ENTITY pref.showalarmbox "Mostrar la ventana de aviso">
 <!ENTITY pref.calendar.alarms.showAlarmBox.accessKey "M">
 <!ENTITY pref.missedalarms "Mostrar avisos vencidos">
+<!ENTITY pref.missedalarms2 "Mostrar recordatorios ocultados en calendarios escribibles">
 <!ENTITY pref.calendar.alarms.missedAlarms.accessKey "o">
 <!ENTITY pref.calendar.alarms.defaults.label "Valores predeterminados para avisos">
 <!ENTITY pref.defalarm4events.label "Config. predet. de aviso para eventos:">
@@ -28,5 +29,3 @@
 <!ENTITY pref.defalarmlen4todos.accesskey "v">
 <!ENTITY pref.defaultsnoozelength.label "Duración predeterminada del retardo:">
 <!ENTITY pref.defaultsnoozelength.accesskey "u">
-
-<!ENTITY pref.missedalarms2 "Show missed reminders for writable calendars">

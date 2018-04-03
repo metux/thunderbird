@@ -31,6 +31,10 @@ sentence. -->
 <!ENTITY  completeNotification.label          "s yisem n umazan akked teskant n yizen">
 <!ENTITY  buddyInfoOnly.label                 "S yisem n umazan kan">
 <!ENTITY  dummyNotification.label             "swar talɣut">
+<!ENTITY  getAttention.label                  "Sebrureq aferdis deg ufeggag n yirmuden">
+<!ENTITY  getAttention.accesskey              "F">
+<!ENTITY  getAttentionMac.label               "Ḥerrek tignit n tacirra">
+<!ENTITY  getAttentionMac.accesskey           "o">
 <!ENTITY  chatSound.accesskey                 "l">
 <!ENTITY  chatSound.label                     "Urar imesli">
 <!ENTITY  play.label                          "Urar">
@@ -47,19 +51,14 @@ sentence. -->
 <!ENTITY messageStyleTheme.label           "Asentel:">
 <!ENTITY messageStyleTheme.accesskey       "T">
 <!ENTITY messageStyleThunderbirdTheme.label "Thunderbird">
+<!ENTITY messageStyleBubblesTheme.label    "Tililac">
 <!ENTITY messageStyleDarkTheme.label       "Aberkan">
 <!ENTITY messageStylePaperSheetsTheme.label "Tawriqt">
 <!ENTITY messageStyleSimpleTheme.label     "Aḥerfi">
 <!ENTITY messageStyleDefaultTheme.label    "Amezwer">
+<!ENTITY messageStyleVariant.label         "Talmest:">
 <!ENTITY messageStyleVariant.accesskey     "V">
 <!ENTITY messageStyleShowHeader.label      "Sken-d aqeṛṛu">
 <!ENTITY messageStyleShowHeader.accesskey  "H">
 <!ENTITY messageStyleNoPreview.title       "Ulac taskant">
-
-<!ENTITY  getAttention.label                  "Flash the taskbar item">
-<!ENTITY  getAttention.accesskey              "F">
-<!ENTITY  getAttentionMac.label               "Animate dock icon">
-<!ENTITY  getAttentionMac.accesskey           "o">
-<!ENTITY messageStyleBubblesTheme.label    "Bubbles">
-<!ENTITY messageStyleVariant.label         "Variant:">
-<!ENTITY messageStyleNoPreview.description "This theme is not valid or is currently unavailable (disabled addon, safe-mode, …).">
+<!ENTITY messageStyleNoPreview.description "Asentel-agi mačči d ameɣtu neɣ ulac-it akka tura (azegrir yettwasens, askar war taruẓi, ...).">

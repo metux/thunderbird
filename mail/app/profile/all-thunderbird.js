@@ -28,13 +28,6 @@ pref("mail.rights.override", true);
 pref("mail.rights.override", true);
 #endif
 
-// gtk2 (*nix) lacks transparent/translucent drag support (bug 376238), so we
-// want to disable it so people can see where they are dragging things.
-// (Stock gtk drag icons will be used instead.)
-#ifdef MOZ_WIDGET_GTK
-pref("nglayout.enable_drag_images", false);
-#endif
-
 // The minimum delay in seconds for the timer to fire between the notification
 // of each consumer of the timer manager.
 // minimum=30 seconds, default=120 seconds, and maximum=300 seconds
@@ -122,7 +115,7 @@ pref("app.releaseNotesURL", "https://live.mozillamessaging.com/%APP%/releasenote
 
 // URL for "Learn More" for Crash Reporter.
 pref("toolkit.crashreporter.infoURL",
-     "https://www.mozilla.org/thunderbird/legal/privacy/#crash-reporter");");
+     "https://www.mozilla.org/thunderbird/legal/privacy/#crash-reporter");
 
 // Base URL for web-based support pages.
 pref("app.support.baseURL", "https://support.live.mozillamessaging.com/%LOCALE%/%APP%/%APPBUILDID%/");
@@ -166,8 +159,8 @@ pref("extensions.legacy.enabled", true);
 // Preferences for AMO integration
 pref("extensions.getAddons.cache.enabled", true);
 pref("extensions.getAddons.maxResults", 15);
-pref("extensions.getAddons.get.url", "https://services.addons.mozilla.org/%LOCALE%/%APP%/api/%API_VERSION%/search/guid:%IDS%?src=thunderbird&appOS=%OS%&appVersion=%VERSION%");
-pref("extensions.getAddons.getWithPerformance.url", "https://services.addons.mozilla.org/%LOCALE%/%APP%/api/%API_VERSION%/search/guid:%IDS%?src=thunderbird&appOS=%OS%&appVersion=%VERSION%&tMain=%TIME_MAIN%&tFirstPaint=%TIME_FIRST_PAINT%&tSessionRestored=%TIME_SESSION_RESTORED%");
+pref("extensions.getAddons.get.url", "https://services.addons.mozilla.org/api/v3/addons/search/?guid=%IDS%&lang=%LOCALE%");
+pref("extensions.getAddons.compatOverides.url", "https://services.addons.mozilla.org/api/v3/addons/compat-override/?guid=%IDS%&lang=%LOCALE%");
 pref("extensions.getAddons.link.url", "https://addons.mozilla.org/%LOCALE%/%APP%/");
 pref("extensions.getAddons.recommended.url", "https://services.addons.mozilla.org/%LOCALE%/%APP%/api/%API_VERSION%/list/recommended/all/%MAX_RESULTS%/%OS%/%VERSION%?src=thunderbird");
 pref("extensions.getAddons.search.browseURL", "https://addons.mozilla.org/%LOCALE%/%APP%/search/?q=%TERMS%");
@@ -374,6 +367,10 @@ pref("offline.download.download_messages",  0);
 // All platforms can automatically move the user offline or online based on
 // the network connection.
 pref("offline.autoDetect", true);
+
+// Disable preconnect and friends due to privacy concerns. They are not
+// sent through content policies.
+pref("network.http.speculative-parallel-limit", 0);
 
 // Expose only select protocol handlers. All others should go
 // through the external protocol handler route.
@@ -687,20 +684,6 @@ pref("browser.chrome.favicons", true);
 // Below we define reasonable defaults as copied from Firefox so that we have
 // something sensible.
 pref("places.history.enabled", true);
-
-// With places disabled by default, the default growth increment is set to zero
-// as it would otherwise default to 10MB as the minimum space occupied by the
-// places.sqlite database in the profile.
-pref("places.database.growthIncrementKiB", 0);
-
-// The percentage of system memory that the Places database can use.  Out of the
-// allowed cache size it will at most use the size of the database file.
-// Changes to this value are effective after an application restart.
-// Acceptable values are between 0 and 50.
-// In Thunderbird, we're not exercising places much, so it makes sense to make
-// it use a lower percentage of the cache. Plus, we have another more important
-// sqlite database (gloda) that deserves to use cache.
-pref("places.database.cache_to_memory_percentage", 1);
 
 // the (maximum) number of the recent visits to sample
 // when calculating frecency

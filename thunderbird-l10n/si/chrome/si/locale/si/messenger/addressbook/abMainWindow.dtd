@@ -226,6 +226,9 @@
 <!ENTITY contactPropertiesMenu.accesskey                "i">
 <!ENTITY mailingListPropertiesMenu.label                "Mailing List Properties">
 <!ENTITY mailingListPropertiesMenu.accesskey            "i">
+<!ENTITY addressBookCmd.label                           "Address Book">
+<!ENTITY addressBookCmd.accesskey                       "a">
+<!ENTITY addressBookCmd.key                             "B">
 <!ENTITY preferencesCmd2.label                          "Options">
 <!ENTITY preferencesCmd2.accesskey                      "O">
 <!ENTITY showAsDefault.label                            "Default startup directory">

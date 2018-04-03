@@ -313,6 +313,9 @@
 <!ENTITY reorderAttachmentsCmd.label "Reorder Attachments…">
 <!ENTITY reorderAttachmentsCmd.accesskey "s">
 <!ENTITY reorderAttachmentsCmd.key "x">
+<!ENTITY toggleAttachmentPaneCmd.label "Attachment Pane">
+<!ENTITY toggleAttachmentPaneCmd.accesskey "m">
+<!ENTITY toggleAttachmentPaneCmd.key "m">
 <!ENTITY reorderAttachmentsPanel.label "Reorder Attachments">
 <!ENTITY moveAttachmentTopPanelBtn.label "Move to Top">
 <!ENTITY moveAttachmentUpPanelBtn.label "Move Up">
@@ -324,7 +327,12 @@
 <!ENTITY sortAttachmentsPanelBtn.SortSelection.AZ.label "Sort Selection: A - Z">
 <!ENTITY sortAttachmentsPanelBtn.SortSelection.ZA.label "Sort Selection: Z - A">
 <!ENTITY sortAttachmentsPanelBtn.key "y">
+<!ENTITY attachButton.tooltip2 "Add an attachment">
+<!ENTITY attachmentBucketHeader.tooltip "Attachment Pane">
+<!ENTITY attachmentBucketCloseButton.tooltip "Hide the attachment pane">
 <!ENTITY reorderAttachments.label "Reorder Attachments…">
 <!ENTITY reorderAttachments.accesskey "s">
+<!ENTITY removeAllAttachments.label "Remove All Attachments">
+<!ENTITY removeAllAttachments.accesskey "v">
 <!ENTITY languageStatusButton.tooltip "Spellcheck language">
 <!ENTITY encodingStatusPanel.tooltip "Text encoding">

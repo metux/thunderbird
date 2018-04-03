@@ -318,6 +318,7 @@
 <!ENTITY goChatCmd.label "Nettprat">
 <!ENTITY goChatCmd.accesskey "e">
 <!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Melding med stjerne">
 <!ENTITY prevStarredMsgCmd.accesskey "M">
 <!ENTITY folderMenu.label "Mappe">
@@ -366,6 +367,8 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Rediger meldingskladd">
 <!ENTITY editDraftMsgCmd.accesskey "m">
+<!ENTITY editTemplateMsgCmd.label "Rediger mal">
+<!ENTITY editTemplateMsgCmd.accesskey "m">
 <!ENTITY newMsgFromTemplateCmd.label "Ny melding fra mal">
 <!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Lag filter fra melding">
@@ -459,6 +462,11 @@
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "Utvidelser">
 <!ENTITY addons.accesskey "U">
+<!ENTITY addonPrefs.label "Innstillinger for utvidelse">
+<!ENTITY addonPrefs.accesskey "o">
+<!ENTITY addonPrefsUnix.label "Innstillinger for utvidelse">
+<!ENTITY addonPrefsUnix.accesskey "o">
+<!ENTITY addonNoPrefs.label "Ingen innstillinger for utvidelse funnet.">
 <!ENTITY activitymanager.label "Aktiviteter">
 <!ENTITY activitymanager.accesskey "v">
 <!ENTITY imAccountsStatus.label "Nettpratstatus">
@@ -504,6 +512,8 @@
 <!ENTITY devToolboxCmd.commandkey "i">
 <!ENTITY addonDebugCmd.label "Feilsøking for utvidelser">
 <!ENTITY addonDebugCmd.accesskey "F">
+<!ENTITY debugAddonsCmd.label "Feilsøk utvidelser">
+<!ENTITY debugAddonsCmd.accesskey "F">
 <!ENTITY tabsDebugCmd.label "Feilsøking for innholdsramme">
 <!ENTITY tabsDebugCmd.accesskey "i">
 <!ENTITY errorConsoleCmd.label "Feilmeldinger">
@@ -752,6 +762,8 @@
 <!ENTITY contextEditMsgAsNew.label "Rediger som ny melding">
 <!ENTITY contextEditMsgAsNew.accesskey "R">
 <!ENTITY contextEditDraftMsg.label "Rediger meldingskladd">
+<!ENTITY contextEditTemplate.label "Rediger mal">
+<!ENTITY contextEditTemplate.accesskey "R">
 <!ENTITY contextArchive.label "Arkiver">
 <!ENTITY contextArchive.accesskey "A">
 <!ENTITY contextReplySender.label "Svar til avsender">
@@ -957,16 +969,3 @@
 <!ENTITY dockOptions.label              "Innstillinger for app-ikon …">
 <!ENTITY writeNewMessageDock.label      "Skriv ny melding">
 <!ENTITY openAddressBookDock.label      "Åpne adressebok">
-
-<!ENTITY goChatCmd2.key "H">
-<!ENTITY editTemplateMsgCmd.label "Edit Template">
-<!ENTITY editTemplateMsgCmd.accesskey "T">
-<!ENTITY addonPrefs.label "Add-on Options">
-<!ENTITY addonPrefs.accesskey "O">
-<!ENTITY addonPrefsUnix.label "Add-on Preferences">
-<!ENTITY addonPrefsUnix.accesskey "P">
-<!ENTITY addonNoPrefs.label "No Add-on settings found.">
-<!ENTITY debugAddonsCmd.label "Debug Add-ons">
-<!ENTITY debugAddonsCmd.accesskey "A">
-<!ENTITY contextEditTemplate.label "Edit Template">
-<!ENTITY contextEditTemplate.accesskey "T">

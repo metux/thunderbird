@@ -3,7 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <!ENTITY addons.windowTitle                   "Përgjegjësi i Shtesave">
 
-<!ENTITY search.placeholder                   "Kërko në tërë shtesat">
+<!ENTITY search.placeholder2                  "Kërkoni te addons.mozilla.org">
 <!ENTITY search.buttonlabel                   "Kërko">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
@@ -14,7 +14,6 @@
 <!ENTITY listEmpty.availableUpdates.label     "Nuk u gjetën përditësime">
 <!ENTITY listEmpty.recentUpdates.label        "Nuk keni përditësuar së fundi ndonjë shtesë">
 <!ENTITY listEmpty.findUpdates.label          "Kontrollo Për Përditësime">
-<!ENTITY listEmpty.search.label               "Nuk u gjet dot ndonjë shtesë me përputhje">
 <!ENTITY listEmpty.button.label               "Mësoni më tepër rreth shtesave">
 <!ENTITY installAddonFromFile.label           "Instaloni Shtesë Prej Kartele…">
 <!ENTITY installAddonFromFile.accesskey       "I">
@@ -23,8 +22,6 @@
 <!ENTITY getThemes.description                "Po kërkoni si të personalizoni shfletuesin tuaj?">
 <!ENTITY getThemes.learnMore                  "Zgjidhni prej mijëra temash.">
 
-<!ENTITY cmd.back.tooltip                     "Shkoni mbrapsht një faqe">
-<!ENTITY cmd.forward.tooltip                  "Shkoni përpara një faqe">
 
 <!ENTITY showUnsignedExtensions.button.label  "Disa nga shtesat nuk u verifikuan dot">
 <!ENTITY showAllExtensions.button.label       "Shfaqi krejt zgjerimet">
@@ -41,7 +38,6 @@
 <!ENTITY warning.updatesecurity.enable.tooltip     "Aktivizoni kontrollin e përditësimit të shtesave">
 
 <!-- categories / views -->
-<!ENTITY view.search.label                    "Kërko">
 <!ENTITY view.discover.label                  "Merrni Shtesa">
 <!ENTITY view.recentUpdates.label             "Përditësime Së Fundi">
 <!ENTITY view.availableUpdates.label          "Përditësime të Passhme">
@@ -92,9 +88,9 @@
 <!ENTITY cmd.disableAddon.label               "Çaktivizoje">
 <!ENTITY cmd.disableAddon.accesskey           "Ç">
 <!ENTITY cmd.enableTheme.label                "Vishja Temën">
-<!ENTITY cmd.enableTheme.accesskey            "W">
+<!ENTITY cmd.enableTheme.accesskey            "V">
 <!ENTITY cmd.disableTheme.label               "Hiqja Temën">
-<!ENTITY cmd.disableTheme.accesskey           "W">
+<!ENTITY cmd.disableTheme.accesskey           "H">
 <!ENTITY cmd.askToActivate.label              "Pyet për Aktivizim">
 <!ENTITY cmd.askToActivate.tooltip            "Pyet çdo herë për përdorimin e kësaj shtese">
 <!ENTITY cmd.alwaysActivate.label             "Aktivizoje Përherë">
@@ -129,7 +125,7 @@
 
 <!-- detail view -->
 <!ENTITY detail.version.label                 "Version">
-<!ENTITY detail.lastupdated.label             "Përditësuar Së Fundi">
+<!ENTITY detail.lastupdated.label             "Përditësuar Së Fundi Më">
 <!ENTITY detail.creator.label                 "Zhvillues">
 <!ENTITY detail.homepage.label                "Kreu">
 <!ENTITY detail.numberOfDownloads.label       "Shkarkime">
@@ -162,25 +158,15 @@
 <!ENTITY rating2.label                        "Vlerësim">
 
 <!-- download/install progress -->
-<!ENTITY progress.pause.tooltip               "Pushim">
+<!ENTITY progress.pause.tooltip               "Ndalesë">
 <!ENTITY progress.cancel.tooltip              "Anulim">
 
 
 <!-- list sorting -->
 <!ENTITY sort.name.label                      "Emër">
 <!ENTITY sort.name.tooltip                    "Renditini sipas emrave">
-<!ENTITY sort.dateUpdated.label               "Përditësuar Së Fundi">
+<!ENTITY sort.dateUpdated.label               "Përditësuar Së Fundi Më">
 <!ENTITY sort.dateUpdated.tooltip             "Renditini sipas datës së përditësimit">
-<!ENTITY sort.relevance.label                 "Më e afërta">
-<!ENTITY sort.relevance.tooltip               "Renditini sipas rëndësisë">
-<!ENTITY sort.price.label                     "Çmim">
-<!ENTITY sort.price.tooltip                   "Renditini sipas çmimit">
-
-<!ENTITY search.filter2.label                 "Kërkim:">
-<!ENTITY search.filter2.installed.label       "Shtesat e Mia">
-<!ENTITY search.filter2.installed.tooltip     "Shfaqni shtesat e instaluara">
-<!ENTITY search.filter2.available.label       "Shtesa të Mundshme">
-<!ENTITY search.filter2.available.tooltip     "Shfaqni shtesa të mundshme për instalim">
 
 <!ENTITY addon.homepage                       "Kreu">
 <!ENTITY addon.details.label                  "Më Tepër">
@@ -255,10 +241,7 @@
 <!ENTITY pluginDeprecation.description "Mos mungon gjë? Disa shtojca nuk mbulohen më nga &brandShortName;-i.">
 <!ENTITY pluginDeprecation.learnMore "Mësoni Më Tepër.">
 
-<!ENTITY legacyWarning.description "S&apos;po gjeni ndonjë gjë? Disa zgjerime nuk mbulohen më nga &brandShortName;-i.">
 <!ENTITY legacyWarning.showLegacy "Shfaq zgjerime të dikurshme">
 <!ENTITY legacyExtensions.title "Zgjerime të Dikurshme">
 <!ENTITY legacyExtensions.description "Këto zgjerime nuk i plotësojnë standardet e tanishme të &brandShortName;-it, ndaj janë çaktivizuar.">
 <!ENTITY legacyExtensions.learnMore "Mësoni mbi ndryshimet te shtesat">
-
-<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

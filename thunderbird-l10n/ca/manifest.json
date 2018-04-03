@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/ca/locale/ca/passwordmgr/", 
         "pippki": "chrome/ca/locale/ca/pippki/"
       }, 
-      "version": "20171102083432"
+      "version": "20180312184408"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-ca@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "ca", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Català Language Pack", 
   "manifest_version": 2, 
   "sources": {

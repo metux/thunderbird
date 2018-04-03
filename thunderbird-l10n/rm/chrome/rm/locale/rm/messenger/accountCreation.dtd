@@ -2,14 +2,16 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY autoconfigWizard.title          "Installaziun d'in conto dad e-mail">
+<!ENTITY autoconfigWizard2.title         "Configurar in conto dad e-mail existent">
 <!ENTITY name.label                      "Tes num:">
 <!ENTITY name.accesskey                  "n">
 <!ENTITY name.placeholder                "Prenum Num">
 <!ENTITY name.text                       "Tes num, uschia co el duai vegnir mussà ad auters">
 <!ENTITY email.label                     "Adressa dad e-mail:">
 <!ENTITY email.accesskey                 "a">
-<!ENTITY email.placeholder               "email@example.com">
+<!-- LOCALIZATION NOTE(email.placeholder): Domain @example.com must stay in English -->
+<!ENTITY email2.placeholder              "ti@example.com">
+<!ENTITY email.text                      "Tia adressa dad e-mail existenta">
 <!ENTITY password.label                  "Pled-clav:">
 <!ENTITY password.accesskey              "P">
 <!ENTITY password.placeholder            "Pled-clav">
@@ -53,8 +55,8 @@
 <!ENTITY half-manual-test.accesskey      "t">
 <!ENTITY manual-edit.label               "Configuraziun manuala">
 <!ENTITY manual-edit.accesskey           "M">
-<!ENTITY switch-to-provisioner.label     "Ir per in nov conto">
-<!ENTITY switch-to-provisioner.accesskey "O">
+<!ENTITY open-provisioner.label          "Ir per ina nova adressa dad e-mail…">
+<!ENTITY open-provisioner.accesskey      "o">
 
 
 <!ENTITY warning.label                   "Attenziun!">
@@ -86,9 +88,3 @@
 <!ENTITY insecureUnencrypted.description "Tes e-mail e l'autentificaziun vegnan tramess a moda betg criptada, uschia che tes pled-clav (e tes messadi) pudessan vegnir legids facilmain dad autras persunas. Igl è pussaivel da retschaiver e-mails cun &brandShortName; en quella moda, ma ti stuessas contactar tes purschider da servetschs dad e-mail areguard la configuraziun da ses server cun ina connexiun segira.">
 <!ENTITY insecureSelfSigned.description  "Il server utilisescha in certificat betg fidà. Per quest motiv na po betg vegnir garantì che nagin intercepteschia la communicaziun tranter &brandShortName; e tes server. Igl è pussaivel da retschaiver e-mails cun &brandShortName; en quella moda, ma ti stuessas infurmar tes purschider da servetschs dad e-mail per ch'el possia configurar ses server cun in certificat fidà.">
 <!ENTITY secureServer.description        "Gratulaziun! Quai è in server segir.">
-
-<!ENTITY autoconfigWizard2.title         "Set Up an Existing Email Account">
-<!ENTITY email2.placeholder              "you@example.com">
-<!ENTITY email.text                      "Your existing email address">
-<!ENTITY open-provisioner.label          "Get a new email address…">
-<!ENTITY open-provisioner.accesskey      "g">

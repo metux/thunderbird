@@ -4,16 +4,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cu = Components.utils;
-var Cr = Components.results;
-
 var kFormId = "provider-form";
 
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource:///modules/cloudFileAccounts.js");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource:///modules/cloudFileAccounts.js");
 
 function createAccountObserver() {};
 
@@ -37,8 +32,8 @@ createAccountObserver.prototype = {
       }
       else {
         // Something went seriously wrong here...
-        Components.utils.reportError("Cloud account creation failed, and " +
-                                     "provider instance missing!");
+        Cu.reportError("Cloud account creation failed, and " +
+                       "provider instance missing!");
       }
 
       addAccountDialog._accept.disabled = false;

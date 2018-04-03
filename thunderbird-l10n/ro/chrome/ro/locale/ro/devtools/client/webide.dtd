@@ -15,12 +15,24 @@
 <!-- reload app -->
 <!-- show toolbox -->
 <!-- zoom -->
+<!ENTITY key_zoomin "+">
+<!ENTITY key_zoomin2 "=">
+<!ENTITY key_zoomout "-">
+<!ENTITY key_resetzoom "0">
 
+<!ENTITY projectPanel_myProjects "Proiectele mele">
+<!ENTITY runtimePanel_usb "Dispozitive USB">
+<!ENTITY runtimePanel_wifi "Dispozitive Wi-Fi">
 <!ENTITY runtimePanel_refreshDevices_label "Reîmprospătează dispozitivele">
 
 <!-- Lense -->
+<!ENTITY details_error_header "erori">
+<!ENTITY details_description "Descriere">
+<!ENTITY details_location "Locație">
+<!ENTITY details_manifestURL "ID-ul aplicației">
 
 <!-- New App -->
+<!ENTITY newAppWindowTitle "Aplicație nouă">
 
 
 <!-- Decks -->
@@ -29,7 +41,8 @@
 <!-- Addons -->
 
 <!-- Prefs -->
-<!ENTITY prefs_restore "Restaurează valorile implicite">
+<!ENTITY prefs_title "Preferințe">
+<!ENTITY prefs_restore "Restabilește la valorile implicite">
 
 <!-- Runtime Details -->
 
@@ -56,10 +69,6 @@
      user to transfer authentication info by transferring a token. -->
 
 <!-- Logs panel -->
-
-<!-- Simulator Options -->
-<!ENTITY simulator_reset "Restaurează valorile implicite">
-<!ENTITY simulator_screenSize "Ecran">
 
 <!ENTITY projectMenu_label "Project">
 <!ENTITY projectMenu_accesskey "P">
@@ -91,8 +100,6 @@
 <!ENTITY runtimeMenu_takeScreenshot_accesskey "S">
 <!ENTITY runtimeMenu_showDetails_label "Runtime Info">
 <!ENTITY runtimeMenu_showDetails_accesskey "E">
-<!ENTITY runtimeMenu_showMonitor_label "Monitor">
-<!ENTITY runtimeMenu_showMonitor_accesskey "M">
 <!ENTITY runtimeMenu_showDevicePrefs_label "Device Preferences">
 <!ENTITY runtimeMenu_showDevicePrefs_accesskey "D">
 <!ENTITY runtimeMenu_showSettings_label "Device Settings">
@@ -111,33 +118,20 @@
 <!ENTITY key_showProjectPanel "O">
 <!ENTITY key_play "R">
 <!ENTITY key_toggleToolbox "VK_F12">
-<!ENTITY key_zoomin "+">
-<!ENTITY key_zoomin2 "=">
-<!ENTITY key_zoomout "-">
-<!ENTITY key_resetzoom "0">
-<!ENTITY projectPanel_myProjects "My Projects">
 <!ENTITY projectPanel_runtimeApps "Runtime Apps">
 <!ENTITY projectPanel_tabs "Tabs">
-<!ENTITY runtimePanel_usb "USB Devices">
-<!ENTITY runtimePanel_wifi "Wi-Fi Devices">
 <!ENTITY runtimePanel_other "Other">
 <!ENTITY runtimePanel_noadbhelper "Install ADB Helper">
 <!ENTITY runtimePanel_nousbdevice "Can’t see your device?">
 <!ENTITY details_valid_header "valid">
 <!ENTITY details_warning_header "warnings">
-<!ENTITY details_error_header "errors">
-<!ENTITY details_description "Description">
-<!ENTITY details_location "Location">
-<!ENTITY details_manifestURL "App ID">
 <!ENTITY details_removeProject_button "Remove Project">
-<!ENTITY newAppWindowTitle "New App">
 <!ENTITY newAppHeader "Select template">
 <!ENTITY newAppLoadingTemplate "Loading templates…">
 <!ENTITY newAppProjectName "Project Name:">
 <!ENTITY deck_close "Close">
 <!ENTITY addons_title "Extra Components">
 <!ENTITY addons_aboutaddons "Open Add-ons Manager">
-<!ENTITY prefs_title "Preferences">
 <!ENTITY prefs_editor_title "Editor">
 <!ENTITY prefs_general_title "General">
 <!ENTITY prefs_manage_components "Manage Extra Components">
@@ -169,7 +163,6 @@
 <!ENTITY devicesetting_newname "New setting name">
 <!ENTITY devicesetting_newtext "Setting value">
 <!ENTITY devicesetting_addnew "Add new setting">
-<!ENTITY monitor_title "Monitor">
 <!ENTITY wifi_auth_header "Client Identification">
 <!ENTITY wifi_auth_scan_request "The endpoint you are connecting to needs more information to authenticate this connection.  Please scan the QR code below via the prompt on your other device.">
 <!ENTITY wifi_auth_no_scanner "No QR scanner prompt?">

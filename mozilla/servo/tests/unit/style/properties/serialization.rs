@@ -5,6 +5,7 @@
 use properties::{parse, parse_input};
 use style::computed_values::display::T as Display;
 use style::properties::{PropertyDeclaration, Importance};
+use style::properties::declaration_block::PropertyDeclarationBlock;
 use style::properties::parse_property_declaration_list;
 use style::values::{CustomIdent, RGBA};
 use style::values::generics::flex::FlexBasis;
@@ -14,6 +15,18 @@ use style::values::specified::NoCalcLength;
 use style::values::specified::url::SpecifiedUrl;
 use style_traits::ToCss;
 use stylesheets::block_from;
+
+trait ToCssString {
+    fn to_css_string(&self) -> String;
+}
+
+impl ToCssString for PropertyDeclarationBlock {
+    fn to_css_string(&self) -> String {
+        let mut css = String::new();
+        self.to_css(&mut css).unwrap();
+        css
+    }
+}
 
 #[test]
 fn property_declaration_block_should_serialize_correctly() {
@@ -547,22 +560,6 @@ mod shorthand_serialization {
     }
 
     #[test]
-    fn columns_should_serialize_correctly() {
-        use style::values::{Auto, Either};
-
-        let mut properties = Vec::new();
-
-        let width = Either::Second(Auto);
-        let count = Either::Second(Auto);
-
-        properties.push(PropertyDeclaration::ColumnWidth(width));
-        properties.push(PropertyDeclaration::ColumnCount(count));
-
-        let serialization = shorthand_properties_to_string(properties);
-        assert_eq!(serialization, "columns: auto auto;");
-    }
-
-    #[test]
     fn flex_should_serialize_all_available_properties() {
         use style::values::specified::{NonNegativeNumber, Percentage};
 
@@ -1014,7 +1011,7 @@ mod shorthand_serialization {
             properties.push((CustomIdent("counter1".into()), Integer::new(1)));
             properties.push((CustomIdent("counter2".into()), Integer::new(-4)));
 
-            let counter_increment = CounterIncrement(properties);
+            let counter_increment = CounterIncrement::new(properties);
             let counter_increment_css = "counter1 1 counter2 -4";
 
             assert_eq!(counter_increment.to_css_string(), counter_increment_css);
@@ -1022,7 +1019,7 @@ mod shorthand_serialization {
 
         #[test]
         fn counter_increment_without_properties_should_serialize_correctly() {
-            let counter_increment = CounterIncrement(Vec::new());
+            let counter_increment = CounterIncrement::new(Vec::new());
             let counter_increment_css = "none";
 
             assert_eq!(counter_increment.to_css_string(), counter_increment_css);

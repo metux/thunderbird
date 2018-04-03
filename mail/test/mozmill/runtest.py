@@ -104,7 +104,7 @@ class ThunderTestProfile(mozprofile.ThunderbirdProfile):
         # Do not allow check new mail to be set
         'mail.startup.enabledMailCheckOnce' :  True,
         # Disable compatibility checking
-        'extensions.checkCompatibility.59': False,
+        'extensions.checkCompatibility.60': False,
         # Stop any pings to AMO on add-on install
         'extensions.getAddons.cache.enabled': False,
         # In case a developer is working on a laptop without a network
@@ -307,7 +307,7 @@ class ThunderTestMozmill(mozmill.MozMill):
 
 def monkeypatched_15_run_tests(self, tests, sleeptime=0):
     frame = mozmill.jsbridge.JSObject(self.bridge,
-                "Components.utils.import('resource://mozmill/modules/frame.js')")
+                "ChromeUtils.import('resource://mozmill/modules/frame.js')")
     sleep(sleeptime)
 
     # transfer persisted data

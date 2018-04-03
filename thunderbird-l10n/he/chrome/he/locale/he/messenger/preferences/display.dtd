@@ -17,6 +17,8 @@
 <!ENTITY regularSize.label                "רגיל">
 <!ENTITY bigger.label                     "גדול יותר">
 <!ENTITY smaller.label                    "קטן יותר">
+<!ENTITY quotedTextColor.label            "צבע:">
+<!ENTITY quotedTextColor.accesskey        "ב">
 <!ENTITY displayWidth.label               "הודעות טקסט פשוט">
 <!ENTITY displayText.label                "בעת הצגת הודעות טקסט פשוט מצוטט:">
 
@@ -26,44 +28,42 @@
 
 <!-- labels -->
 <!ENTITY displayTagsText.label     "תוויות משמשות לחלוקה לקטגוריות ותיעדוף ההודעות שלך.">
+<!ENTITY newTagButton.label        "חדש…">
+<!ENTITY newTagButton.accesskey    "ח">
+<!ENTITY editTagButton1.label      "עריכה…">
+<!ENTITY editTagButton1.accesskey  "ע">
 <!ENTITY removeTagButton.label     "מחק">
 <!ENTITY removeTagButton.accesskey "מ">
 
 <!-- Fonts and Colors -->
+<!ENTITY fontsAndColors1.label   "גופנים וצבעים">
 <!ENTITY defaultFont.label       "גופן ברירת מחדל:">
 <!ENTITY defaultFont.accesskey   "ב">
 <!ENTITY defaultSize.label       "גודל:">
 <!ENTITY defaultSize.accesskey   "ג">
 <!ENTITY fontOptions.accesskey   "מ">
 <!ENTITY fontOptions.label       "מתקדם…">
+<!ENTITY colorButton.label       "צבעים…">
+<!ENTITY colorButton.accesskey   "צ">
 
 <!-- Advanced -->
+<!ENTITY reading.caption                  "קריאה">
+<!ENTITY display.caption                  "תצוגה">
+<!ENTITY showCondensedAddresses.label     "הצגת שמות תצוגה בלבד עבור אנשים בפנקס הכתובת שלי">
+<!ENTITY showCondensedAddresses.accesskey "צ">
 
+<!ENTITY autoMarkAsRead.label             "סימון הודעות כנקראו אוטומטית">
+<!ENTITY autoMarkAsRead.accesskey         "ק">
+<!ENTITY markAsReadNoDelay.label          "מיד עם ההצגה">
+<!ENTITY markAsReadNoDelay.accesskey      "מ">
 <!-- LOCALIZATION NOTE (markAsReadDelay.label): This will concatenate to
      "After displaying for [___] seconds",
      using (markAsReadDelay.label) and a number (secondsLabel.label). -->
+<!ENTITY markAsReadDelay.label            "לאחר הצגה למשך">
+<!ENTITY markAsReadDelay.accesskey        "א">
+<!ENTITY secondsLabel.label               "שניות">
+<!ENTITY openMsgIn.label                  "פתיחת הודעות בתוך:">
 
-<!ENTITY quotedTextColor.label            "Color:">
-<!ENTITY quotedTextColor.accesskey        "o">
-<!ENTITY newTagButton.label        "New…">
-<!ENTITY newTagButton.accesskey    "N">
-<!ENTITY editTagButton1.label      "Edit…">
-<!ENTITY editTagButton1.accesskey  "E">
-<!ENTITY fontsAndColors1.label   "Fonts &amp; Colors">
-<!ENTITY colorButton.label       "Colors…">
-<!ENTITY colorButton.accesskey   "C">
-<!ENTITY reading.caption                  "Reading">
-<!ENTITY display.caption                  "Display">
-<!ENTITY showCondensedAddresses.label     "Show only display name for people in my address book">
-<!ENTITY showCondensedAddresses.accesskey "S">
-<!ENTITY autoMarkAsRead.label             "Automatically mark messages as read">
-<!ENTITY autoMarkAsRead.accesskey         "A">
-<!ENTITY markAsReadNoDelay.label          "Immediately on display">
-<!ENTITY markAsReadNoDelay.accesskey      "o">
-<!ENTITY markAsReadDelay.label            "After displaying for">
-<!ENTITY markAsReadDelay.accesskey        "d">
-<!ENTITY secondsLabel.label               "seconds">
-<!ENTITY openMsgIn.label                  "Open messages in:">
 <!ENTITY openMsgInNewTab.label            "A new tab">
 <!ENTITY openMsgInNewTab.accesskey        "t">
 <!ENTITY reuseExpRadio0.label             "A new message window">

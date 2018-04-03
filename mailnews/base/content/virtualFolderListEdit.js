@@ -7,9 +7,8 @@ var gSelectVirtual = {
   _selectedList: new Set(),
 
   load: function() {
-    let Ci = Components.interfaces;
-    let folderLookup = Components.classes["@mozilla.org/mail/folder-lookup;1"]
-                                 .getService(Ci.nsIFolderLookupService);
+    let folderLookup = Cc["@mozilla.org/mail/folder-lookup;1"]
+                         .getService(Ci.nsIFolderLookupService);
     if (window.arguments[0].searchFolderURIs) {
       let srchFolderUriArray = window.arguments[0].searchFolderURIs.split('|');
       for (let uri of srchFolderUriArray) {
@@ -53,7 +52,7 @@ var gSelectVirtual = {
 
   onKeyPress: function(aEvent) {
     // For now, only do something on space key.
-    if (aEvent.charCode != Components.interfaces.nsIDOMKeyEvent.DOM_VK_SPACE)
+    if (aEvent.charCode != aEvent.DOM_VK_SPACE)
       return;
 
     let selection = this._treeElement.view.selection;

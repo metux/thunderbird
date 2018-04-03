@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-var {classes: Cc, interfaces: Ci, utils: Cu, Constructor: CC} = Components;
+var CC = Components.Constructor;
 
-Cu.import("resource:///modules/hiddenWindow.jsm");
-Cu.import("resource:///modules/imServices.jsm");
-Cu.import("resource:///modules/imXPCOMUtils.jsm");
-Cu.import("resource:///modules/jsProtoHelper.jsm");
-Cu.import("resource:///modules/ToLocaleFormat.jsm");
+ChromeUtils.import("resource:///modules/hiddenWindow.jsm");
+ChromeUtils.import("resource:///modules/imServices.jsm");
+ChromeUtils.import("resource:///modules/imXPCOMUtils.jsm");
+ChromeUtils.import("resource:///modules/jsProtoHelper.jsm");
+ChromeUtils.import("resource:///modules/ToLocaleFormat.jsm");
 
-Cu.import("resource://gre/modules/Task.jsm")
-XPCOMUtils.defineLazyModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
+ChromeUtils.import("resource://gre/modules/Task.jsm")
+ChromeUtils.defineModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "_", () =>
   l10nHelper("chrome://chat/locale/logger.properties")
@@ -219,8 +219,8 @@ LogWriter.prototype = {
     div.innerHTML = aString.replace(/\r?\n/g, "<br/>").replace(/<br>/gi, "<br/>");
     const type = "text/plain";
     let encoder =
-      Components.classes["@mozilla.org/layout/documentEncoder;1?type=" + type]
-                .createInstance(Components.interfaces.nsIDocumentEncoder);
+      Cc["@mozilla.org/layout/documentEncoder;1?type=" + type]
+        .createInstance(Ci.nsIDocumentEncoder);
     encoder.init(doc, type, 0);
     encoder.setContainerNode(div);
     encoder.setNodeFixup({fixupNode: function(aNode, aSerializeKids) {

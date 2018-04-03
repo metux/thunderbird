@@ -10,7 +10,7 @@ var kLDAPTestSpec = "ldap://invalidhost//dc=intranet??sub?(objectclass=*)";
 function run_test() {
   // If nsIAbLDAPDirectory doesn't exist in our build options, someone has
   // specified --disable-ldap
-  if (!("nsIAbLDAPDirectory" in Components.interfaces))
+  if (!("nsIAbLDAPDirectory" in Ci))
     return;
 
   // Test - Create an LDAP directory
@@ -18,7 +18,7 @@ function run_test() {
 
   // Test - Check we have the directory.
   let abDir = MailServices.ab.getDirectory(kLDAPUriPrefix + abUri)
-                             .QueryInterface(Components.interfaces.nsIAbLDAPDirectory);
+                             .QueryInterface(Ci.nsIAbLDAPDirectory);
 
   // Test - Check various fields
   Assert.equal(abDir.dirName, "test");

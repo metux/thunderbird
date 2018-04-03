@@ -41,18 +41,18 @@
 var EXPORTED_SYMBOLS = ["MozMillController", "waitForEval", "MozMillAsyncTest",
                         "globalEventRegistry", "sleep", "windowMap"];
 
-var EventUtils = {}; Components.utils.import('resource://mozmill/stdlib/EventUtils.js', EventUtils);
+var EventUtils = {}; ChromeUtils.import('resource://mozmill/stdlib/EventUtils.js', EventUtils);
 
-var events = {}; Components.utils.import('resource://mozmill/modules/events.js', events);
-var utils = {}; Components.utils.import('resource://mozmill/modules/utils.js', utils);
-var elementslib = {}; Components.utils.import('resource://mozmill/modules/elementslib.js', elementslib);
-var frame = {}; Components.utils.import('resource://mozmill/modules/frame.js', frame);
+var events = {}; ChromeUtils.import('resource://mozmill/modules/events.js', events);
+var utils = {}; ChromeUtils.import('resource://mozmill/modules/utils.js', utils);
+var elementslib = {}; ChromeUtils.import('resource://mozmill/modules/elementslib.js', elementslib);
+var frame = {}; ChromeUtils.import('resource://mozmill/modules/frame.js', frame);
 
-var hwindow = Components.classes["@mozilla.org/appshell/appShellService;1"]
-                .getService(Components.interfaces.nsIAppShellService)
+var hwindow = Cc["@mozilla.org/appshell/appShellService;1"]
+                .getService(Ci.nsIAppShellService)
                 .hiddenDOMWindow;
-var aConsoleService = Components.classes["@mozilla.org/consoleservice;1"].
-     getService(Components.interfaces.nsIConsoleService);
+var aConsoleService = Cc["@mozilla.org/consoleservice;1"].
+     getService(Ci.nsIConsoleService);
 
 // The window map which is used to store information e.g. loaded state of each
 // open chrome and content window.
@@ -343,7 +343,7 @@ var MozMillController = function (window) {
   this.window = window;
 
   this.mozmillModule = {};
-  Components.utils.import('resource://mozmill/modules/mozmill.js', this.mozmillModule);
+  ChromeUtils.import('resource://mozmill/modules/mozmill.js', this.mozmillModule);
 
   utils.waitFor(function() {
     return window != null && this.isLoaded();
@@ -481,7 +481,7 @@ MozMillController.prototype.mouseEvent = function(aTarget, aOffsetX, aOffsetY,
 
   var element = aTarget.getNode();
   if (!element) {
-    throw new Error(arguments.callee.name + ": could not find element " +
+    throw new Error("mouseEvent: could not find element " +
                     aTarget.getInfo());
   }
 
@@ -499,12 +499,12 @@ MozMillController.prototype.mouseEvent = function(aTarget, aOffsetX, aOffsetY,
   if (aExpectedEvent) {
     // The expected event type has to be set
     if (!aExpectedEvent.type)
-      throw new Error(arguments.callee.name + ": Expected event type not specified");
+      throw new Error("mouseEvent: Expected event type not specified");
 
     // If no target has been specified use the specified element
     var target = aExpectedEvent.target ? aExpectedEvent.target.getNode() : element;
     if (!target) {
-      throw new Error(arguments.callee.name + ": could not find element " +
+      throw new Error("mouseEvent: could not find element " +
                       aExpectedEvent.target.getInfo());
     }
 
@@ -609,9 +609,9 @@ MozMillController.prototype.rightClick = function(elem, left, top, expectedEvent
 /**
  * Synthesize a mouse right click event on the given element (deprecated)
  */
-MozMillController.prototype.rightclick = function(){
+MozMillController.prototype.rightclick = function(...aArgs){
   frame.log({function:'rightclick - Deprecation Warning', message:'Controller.rightclick should be renamed to Controller.rightClick'});
-  this.rightClick.apply(this, arguments);
+  this.rightClick(...aArgs);
 }
 
 /**
@@ -1338,7 +1338,7 @@ var controllerAdditions = {
   'navigator:browser'  :browserAdditions,
 }
 
-var withs = {}; Components.utils.import('resource://mozmill/stdlib/withs.js', withs);
+var withs = {}; ChromeUtils.import('resource://mozmill/stdlib/withs.js', withs);
 
 var MozMillAsyncTest = function (timeout) {
   if (timeout == undefined) {

@@ -37,7 +37,18 @@
 <!ENTITY lightning.menu.eventtask.accesskey            "n">
 
 <!-- properties dialog, calendar creation wizard -->
-<!ENTITY lightning.calendarproperties.email.label               "電子郵件:">
+<!-- LOCALIZATON NOTE(lightning.calendarproperties.email.label,
+     lightning.calendarproperties.forceEmailScheduling.label)
+     These strings are used in the calendar wizard and the calendar properties dialog, but are only
+     displayed when setting/using a caldav calendar -->
+<!ENTITY lightning.calendarproperties.email.label                           "電子郵件:">
+<!ENTITY lightning.calendarproperties.forceEmailScheduling.label            "偏好由客戶端郵件進行排程">
+<!-- LOCALIZATON NOTE(lightning.calendarproperties.forceEmailScheduling.tooltiptext1,
+     lightning.calendarproperties.forceEmailScheduling.tooltiptext2)
+     - tooltiptext1 is used in the calendar wizard when setting a new caldav calendar
+     - tooltiptext2 is used in the calendar properties dialog for caldav calendars -->
+<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext1     "現在起，您只能在行事曆伺服器會安排行程時，才可以在屬性對話框設定好這本行事曆後，啟用此設定。">
+<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext2     "此選項僅在行事曆伺服器安排行程時可以使用。開啟後，將允許透過電子郵件來進行排程，而不經由伺服器管理。">
 
 <!-- iMIP Bar (meeting support) -->
 <!ENTITY lightning.imipbar.btnAccept.label                                  "接受">
@@ -72,6 +83,13 @@
 <!ENTITY lightning.imipbar.btnUpdate.tooltiptext                            "更新行事曆中的活動">
 <!ENTITY lightning.imipbar.description                                      "此郵件包含事件的邀請。">
 
+<!ENTITY lightning.imipbar.btnSend.label                                    "立刻傳送回覆">
+<!ENTITY lightning.imipbar.btnSend.tooltiptext                              "立刻傳送回覆給主辦人">
+<!ENTITY lightning.imipbar.btnSendSeries.tooltiptext                        "立刻傳送整個系列的回覆給主辦人">
+<!ENTITY lightning.imipbar.btnDontSend.label                                "不要傳送回覆">
+<!ENTITY lightning.imipbar.btnDontSend.tooltiptext                          "變更您的參與狀態，而不傳送回覆給主辦人">
+<!ENTITY lightning.imipbar.btnDontSendSeries.tooltiptext                    "變更您整個系列活動的參與狀態，而不傳送回覆給主辦人">
+
 <!-- Lightning specific keybindings -->
 <!ENTITY lightning.keys.event.showCalendar.key "C">
 <!ENTITY lightning.keys.event.showTasks.key "D">
@@ -91,7 +109,3 @@
 <!ENTITY todaypane.showTodayPane.label "前往今日窗格">
 <!ENTITY todaypane.showTodayPane.accesskey "o">
 <!ENTITY todaypane.statusButton.label "今日窗格">
-
-<!ENTITY lightning.calendarproperties.forceEmailScheduling.label            "Prefer client-side email scheduling">
-<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext1     "For now, you can only enable this after setting up this calendar in its property dialog if the calendar server takes care of scheduling.">
-<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext2     "This option is only available if the calendar server handles scheduling. Enabling will allow to fall back to the standard email based scheduling instead of leaving it to the server.">

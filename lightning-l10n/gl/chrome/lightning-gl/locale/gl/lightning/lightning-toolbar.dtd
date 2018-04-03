@@ -8,10 +8,15 @@
 <!ENTITY lightning.toolbar.task.name.accesskey "t">
 
 <!ENTITY lightning.toolbar.sync.label "Sincronizar">
+<!ENTITY lightning.toolbar.sync.tooltip "Recargar os calendarios e sincronizar os cambios">
 <!ENTITY lightning.toolbar.delete.label "Eliminar">
+<!ENTITY lightning.toolbar.delete.tooltip "Eliminar os eventos ou tarefas seleccionadas">
 <!ENTITY lightning.toolbar.edit.label "Editar">
+<!ENTITY lightning.toolbar.edit.tooltip "Editar o evento ou tarefa seleccionada">
 <!ENTITY lightning.toolbar.gototoday.label "Ir ao día actual">
+<!ENTITY lightning.toolbar.gototoday.tooltip "Ir ao día actual">
 <!ENTITY lightning.toolbar.print.label "Imprimir">
+<!ENTITY lightning.toolbar.print.tooltip "Imprimir eventos ou tarefas">
 
 <!-- Mode Toolbar -->
 <!ENTITY lightning.toolbar.calendar.label     "Calendario">
@@ -23,7 +28,9 @@
 
 <!-- Toolbar write button -->
 <!ENTITY lightning.toolbar.newevent.label     "Evento">
+<!ENTITY lightning.toolbar.newevent.tooltip   "Crear un novo evento">
 <!ENTITY lightning.toolbar.newtask.label      "Tarefa">
+<!ENTITY lightning.toolbar.newtask.tooltip    "Crear unha nova tarefa">
 
 <!-- Calendar and Task Mode Toolbar -->
 <!ENTITY lightning.toolbar.day.label                 "Día">
@@ -34,20 +41,11 @@
 <!ENTITY lightning.toolbar.multiweek.accesskey       "V">
 <!ENTITY lightning.toolbar.month.label               "Mes">
 <!ENTITY lightning.toolbar.month.accesskey           "M">
-<!-- LOCALIZATION NOTE: the same as appmenuButton.label and appmenuButton.tooltip
+<!-- LOCALIZATION NOTE: the same as appmenuButton.label and appmenuButton1.tooltip
      from messenger.dtd -->
 <!ENTITY lightning.toolbar.appmenuButton.label       "Menú do aplicativo">
-<!ENTITY lightning.toolbar.appmenuButton.tooltip     "Amosa o menú do aplicativo">
-
-<!ENTITY lightning.toolbar.sync.tooltip "Reload calendars and synchronize changes">
-<!ENTITY lightning.toolbar.delete.tooltip "Delete selected events or tasks">
-<!ENTITY lightning.toolbar.edit.tooltip "Edit selected event or task">
-<!ENTITY lightning.toolbar.gototoday.tooltip "Go to Today">
-<!ENTITY lightning.toolbar.print.tooltip "Print events or tasks">
-<!ENTITY lightning.toolbar.newevent.tooltip   "Create a new event">
-<!ENTITY lightning.toolbar.newtask.tooltip    "Create a new task">
-<!ENTITY lightning.toolbar.appmenuButton1.tooltip    "Display the &brandShortName; Menu">
-<!ENTITY lightning.toolbar.calendarmenu.label        "Calendar Pane">
+<!ENTITY lightning.toolbar.appmenuButton1.tooltip    "Amosa o menú do &brandShortName;">
+<!ENTITY lightning.toolbar.calendarmenu.label        "Panel de calendario">
 <!ENTITY lightning.toolbar.calendarmenu.accesskey    "P">
-<!ENTITY lightning.toolbar.calendarpane.label        "Show Calendar Pane">
-<!ENTITY lightning.toolbar.calendarpane.accesskey    "P">
+<!ENTITY lightning.toolbar.calendarpane.label        "Amosar panel de calendario">
+<!ENTITY lightning.toolbar.calendarpane.accesskey    "p">

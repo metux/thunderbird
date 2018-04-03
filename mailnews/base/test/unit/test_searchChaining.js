@@ -10,10 +10,10 @@
 
 load("../../../resources/messageGenerator.js");
 
-Components.utils.import("resource:///modules/mailServices.js");
-Components.utils.import("resource://testing-common/mailnews/IMAPpump.js");
-Components.utils.import("resource://testing-common/mailnews/imapd.js");
-Components.utils.import("resource://testing-common/mailnews/PromiseTestUtils.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource://testing-common/mailnews/IMAPpump.js");
+ChromeUtils.import("resource://testing-common/mailnews/imapd.js");
+ChromeUtils.import("resource://testing-common/mailnews/PromiseTestUtils.jsm");
 
 function *setupFolder()
 {
@@ -63,7 +63,7 @@ var searchListener =
 {
   numTotalMessages: 0,
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIMsgSearchNotify]),
-  onNewSearch: function() 
+  onNewSearch: function()
   {
     this.numTotalMessages = 0;
   },
@@ -72,7 +72,7 @@ var searchListener =
     this.numTotalMessages++;
   },
   onSearchDone: function(status)
-  { 
+  {
     Assert.equal(this.numTotalMessages, 1);
     return true;
   }

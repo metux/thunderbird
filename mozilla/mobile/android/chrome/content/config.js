@@ -3,8 +3,8 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-var {classes: Cc, interfaces: Ci, manager: Cm, utils: Cu} = Components;
-Cu.import("resource://gre/modules/Services.jsm");
+var Cm = Components.manager;
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 const VKB_ENTER_KEY = 13; // User press of VKB enter key
 const INITIAL_PAGE_DELAY = 500; // Initial pause on program start for scroll alignment
@@ -572,6 +572,15 @@ Pref.prototype = {
     return aValue ? aValue.test(this.name) : true;
   },
 
+  escapeHTML: function(input) {
+    return input.replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#x27;")
+                .replace(/\//g, "&#x2F;");
+  },
+
   // Get existing or create new LI node for the pref
   getOrCreateNewLINode: function AC_getOrCreateNewLINode() {
     if (!this.li) {
@@ -600,7 +609,7 @@ Pref.prototype = {
       this.li.unsafeSetInnerHTML(
         "<div class='pref-name' " +
             "onclick='AboutConfig.selectOrToggleBoolPref(event);'>" +
-            this.name +
+            this.escapeHTML(this.name) +
         "</div>" +
         "<div class='pref-item-line'>" +
           "<input class='pref-value' value='' " +

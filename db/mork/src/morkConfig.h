@@ -33,34 +33,38 @@
 // } %%%%% end platform defs peculiar to Mork %%%%%
 
 #if defined(MORK_WIN) || defined(MORK_UNIX) || defined(MORK_MAC)
-#include <stdio.h> 
-#include <ctype.h> 
-#include <errno.h> 
-#include <string.h> 
+#include <stdio.h>
+#include <ctype.h>
+#include <errno.h>
+#include <string.h>
 #ifdef HAVE_MEMORY_H
-#include <memory.h> 
+#include <memory.h>
 #endif
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>  /* for SEEK_SET, SEEK_END */
 #endif
 
-#include "nsDebug.h" 
+#include "nsDebug.h"
 
-#define MORK_ISPRINT(c) isprint(c) 
+#define MORK_ISPRINT(c) isprint(c)
 
-#define MORK_FILETELL(file) ftell(file) 
-#define MORK_FILESEEK(file, where, how) fseek(file, where, how) 
-#define MORK_FILEREAD(outbuf, insize, file) fread(outbuf, 1, insize, file) 
+#define MORK_FILETELL(file) ftell(file)
+#define MORK_FILESEEK(file, where, how) fseek(file, where, how)
+#define MORK_FILEREAD(outbuf, insize, file) fread(outbuf, 1, insize, file)
 #if defined(MORK_WIN)
 void mork_fileflush(FILE * file);
-#define MORK_FILEFLUSH(file) mork_fileflush(file) 
+#define MORK_FILEFLUSH(file) mork_fileflush(file)
 #else
-#define MORK_FILEFLUSH(file) fflush(file) 
+#define MORK_FILEFLUSH(file) fflush(file)
 #endif /*MORK_WIN*/
 
-#define MORK_FILEOPEN(file, how) fopen(file, how) 
-#define MORK_FILECLOSE(file) fclose(file) 
+#if defined(MORK_WIN)
+#define MORK_FILEOPEN(file, how) _wfopen(char16ptr_t(file), NS_ConvertASCIItoUTF16(how).get())
+#else
+#define MORK_FILEOPEN(file, how) fopen(file, how)
 #endif /*MORK_WIN*/
+#define MORK_FILECLOSE(file) fclose(file)
+#endif /*defined(MORK_WIN) || defined(MORK_UNIX) || defined(MORK_MAC)*/
 
 /* ===== separating switchable features ===== */
 
@@ -123,10 +127,18 @@ extern void mork_assertion_signal(const char* inMessage);
 #define MORK_MEMCPY(dest,src,size)   memcpy(dest,src,size)
 #define MORK_MEMMOVE(dest,src,size)  memmove(dest,src,size)
 #define MORK_MEMSET(dest,byte,size)  memset(dest,byte,size)
+#if defined(MORK_WIN)
+#define MORK_STRCPY(dest,src)        wcscpy(char16ptr_t(dest),char16ptr_t(src))
+#else
 #define MORK_STRCPY(dest,src)        strcpy(dest,src)
+#endif /*MORK_WIN*/
 #define MORK_STRCMP(one,two)         strcmp(one,two)
 #define MORK_STRNCMP(one,two,length) strncmp(one,two,length)
+#if defined(MORK_WIN)
+#define MORK_STRLEN(string)          wcslen(char16ptr_t(string))
+#else
 #define MORK_STRLEN(string)          strlen(string)
+#endif /*MORK_WIN*/
 #endif /*MORK_USE_C_STDLIB*/
 
 #ifdef MORK_PROVIDE_STDLIB

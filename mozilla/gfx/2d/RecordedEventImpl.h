@@ -146,6 +146,38 @@ private:
   MOZ_IMPLICIT RecordedCreateSimilarDrawTarget(S &aStream);
 };
 
+class RecordedCreateClippedDrawTarget : public RecordedEventDerived<RecordedCreateClippedDrawTarget> {
+public:
+  RecordedCreateClippedDrawTarget(ReferencePtr aRefPtr, const IntSize& aMaxSize, const Matrix& aTransform, SurfaceFormat aFormat)
+    : RecordedEventDerived(CREATECLIPPEDDRAWTARGET)
+    , mRefPtr(aRefPtr)
+    , mMaxSize(aMaxSize)
+    , mTransform(aTransform)
+    , mFormat(aFormat)
+  {
+  }
+
+  virtual bool PlayEvent(Translator *aTranslator) const override;
+
+  template<class S>
+  void Record(S &aStream) const;
+  virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const override;
+
+  virtual std::string GetName() const override { return "CreateClippedDrawTarget"; }
+  virtual ReferencePtr GetObjectRef() const override { return mRefPtr; }
+
+  ReferencePtr mRefPtr;
+  IntSize mMaxSize;
+  Matrix mTransform;
+  SurfaceFormat mFormat;
+
+private:
+  friend class RecordedEvent;
+
+  template<class S>
+  MOZ_IMPLICIT RecordedCreateClippedDrawTarget(S &aStream);
+};
+
 class RecordedFillRect : public RecordedDrawingEvent<RecordedFillRect> {
 public:
   RecordedFillRect(DrawTarget *aDT, const Rect &aRect, const Pattern &aPattern, const DrawOptions &aOptions)
@@ -497,6 +529,42 @@ private:
   IntRect mBounds;
   bool mCopyBackground;
 };
+
+class RecordedPushLayerWithBlend : public RecordedDrawingEvent<RecordedPushLayerWithBlend> {
+public:
+  RecordedPushLayerWithBlend(DrawTarget* aDT, bool aOpaque, Float aOpacity,
+                    SourceSurface* aMask, const Matrix& aMaskTransform,
+                    const IntRect& aBounds, bool aCopyBackground,
+                    CompositionOp aCompositionOp)
+    : RecordedDrawingEvent(PUSHLAYERWITHBLEND, aDT), mOpaque(aOpaque)
+    , mOpacity(aOpacity), mMask(aMask), mMaskTransform(aMaskTransform)
+    , mBounds(aBounds), mCopyBackground(aCopyBackground)
+    , mCompositionOp(aCompositionOp)
+  {
+  }
+
+  virtual bool PlayEvent(Translator *aTranslator) const override;
+
+  template<class S> void Record(S &aStream) const;
+  virtual void OutputSimpleEventInfo(std::stringstream &aStringStream) const override;
+
+  virtual std::string GetName() const override { return "PushLayerWithBlend"; }
+
+private:
+  friend class RecordedEvent;
+
+  template<class S>
+  MOZ_IMPLICIT RecordedPushLayerWithBlend(S &aStream);
+
+  bool mOpaque;
+  Float mOpacity;
+  ReferencePtr mMask;
+  Matrix mMaskTransform;
+  IntRect mBounds;
+  bool mCopyBackground;
+  CompositionOp mCompositionOp;
+};
+
 
 class RecordedPopLayer : public RecordedDrawingEvent<RecordedPopLayer> {
 public:
@@ -873,7 +941,7 @@ class RecordedIntoLuminanceSource : public RecordedEventDerived<RecordedIntoLumi
 public:
   RecordedIntoLuminanceSource(ReferencePtr aRefPtr, DrawTarget *aDT,
                               LuminanceType aLuminanceType, float aOpacity)
-    : RecordedEventDerived(SNAPSHOT), mRefPtr(aRefPtr), mDT(aDT),
+    : RecordedEventDerived(INTOLUMINANCE), mRefPtr(aRefPtr), mDT(aDT),
       mLuminanceType(aLuminanceType), mOpacity(aOpacity)
   {
   }
@@ -913,7 +981,7 @@ public:
     , mType(aUnscaledFont->GetType())
     , mData(nullptr)
   {
-    mGetFontFileDataSucceeded = aUnscaledFont->GetFontFileData(&FontDataProc, this);
+    mGetFontFileDataSucceeded = aUnscaledFont->GetFontFileData(&FontDataProc, this) && mData;
   }
 
   ~RecordedFontData();
@@ -1672,6 +1740,60 @@ RecordedCreateSimilarDrawTarget::OutputSimpleEventInfo(std::stringstream &aStrin
   aStringStream << "[" << mRefPtr << "] CreateSimilarDrawTarget (Size: " << mSize.width << "x" << mSize.height << ")";
 }
 
+inline bool
+RecordedCreateClippedDrawTarget::PlayEvent(Translator *aTranslator) const
+{
+  const IntRect baseRect = aTranslator->GetReferenceDrawTarget()->GetRect();
+  const IntRect transformedRect = RoundedToInt(mTransform.Inverse().TransformBounds(IntRectToRect(baseRect)));
+  const IntRect intersection = IntRect(IntPoint(0, 0), mMaxSize).Intersect(transformedRect);
+
+  RefPtr<DrawTarget> newDT = aTranslator->GetReferenceDrawTarget()->CreateSimilarDrawTarget(intersection.Size(), SurfaceFormat::A8);
+  // It's overkill to use a TiledDrawTarget for a single tile
+  // but it was the easiest way to get the offset handling working
+  gfx::TileSet tileset;
+  gfx::Tile tile;
+  tile.mDrawTarget = newDT;
+  tile.mTileOrigin = gfx::IntPoint(intersection.X(), intersection.Y());
+  tileset.mTiles = &tile;
+  tileset.mTileCount = 1;
+  newDT = gfx::Factory::CreateTiledDrawTarget(tileset);
+
+  // If we couldn't create a DrawTarget this will probably cause us to crash
+  // with nullptr later in the playback, so return false to abort.
+  if (!newDT) {
+    return false;
+  }
+
+  aTranslator->AddDrawTarget(mRefPtr, newDT);
+  return true;
+}
+
+template<class S>
+void
+RecordedCreateClippedDrawTarget::Record(S &aStream) const
+{
+  WriteElement(aStream, mRefPtr);
+  WriteElement(aStream, mMaxSize);
+  WriteElement(aStream, mTransform);
+  WriteElement(aStream, mFormat);
+}
+
+template<class S>
+RecordedCreateClippedDrawTarget::RecordedCreateClippedDrawTarget(S &aStream)
+  : RecordedEventDerived(CREATECLIPPEDDRAWTARGET)
+{
+  ReadElement(aStream, mRefPtr);
+  ReadElement(aStream, mMaxSize);
+  ReadElement(aStream, mTransform);
+  ReadElement(aStream, mFormat);
+}
+
+inline void
+RecordedCreateClippedDrawTarget::OutputSimpleEventInfo(std::stringstream &aStringStream) const
+{
+  aStringStream << "[" << mRefPtr << "] CreateClippedDrawTarget ()";
+}
+
 struct GenericPattern
 {
   GenericPattern(const PatternStorage &aStorage, Translator *aTranslator)
@@ -2182,6 +2304,51 @@ RecordedPushLayer::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 }
 
 inline bool
+RecordedPushLayerWithBlend::PlayEvent(Translator *aTranslator) const
+{
+  SourceSurface* mask = mMask ? aTranslator->LookupSourceSurface(mMask)
+                              : nullptr;
+  aTranslator->LookupDrawTarget(mDT)->
+    PushLayerWithBlend(mOpaque, mOpacity, mask, mMaskTransform, mBounds, mCopyBackground, mCompositionOp);
+  return true;
+}
+
+template<class S>
+void
+RecordedPushLayerWithBlend::Record(S &aStream) const
+{
+  RecordedDrawingEvent::Record(aStream);
+  WriteElement(aStream, mOpaque);
+  WriteElement(aStream, mOpacity);
+  WriteElement(aStream, mMask);
+  WriteElement(aStream, mMaskTransform);
+  WriteElement(aStream, mBounds);
+  WriteElement(aStream, mCopyBackground);
+  WriteElement(aStream, mCompositionOp);
+}
+
+template<class S>
+RecordedPushLayerWithBlend::RecordedPushLayerWithBlend(S &aStream)
+  : RecordedDrawingEvent(PUSHLAYERWITHBLEND, aStream)
+{
+  ReadElement(aStream, mOpaque);
+  ReadElement(aStream, mOpacity);
+  ReadElement(aStream, mMask);
+  ReadElement(aStream, mMaskTransform);
+  ReadElement(aStream, mBounds);
+  ReadElement(aStream, mCopyBackground);
+  ReadElement(aStream, mCompositionOp);
+}
+
+inline void
+RecordedPushLayerWithBlend::OutputSimpleEventInfo(std::stringstream &aStringStream) const
+{
+  aStringStream << "[" << mDT << "] PushLayerWithBlend (Opaque=" << mOpaque <<
+    ", Opacity=" << mOpacity << ", Mask Ref=" << mMask << ") ";
+}
+
+
+inline bool
 RecordedPopLayer::PlayEvent(Translator *aTranslator) const
 {
   aTranslator->LookupDrawTarget(mDT)->PopLayer();
@@ -2518,11 +2685,12 @@ RecordedSourceSurfaceCreation::RecordedSourceSurfaceCreation(S &aStream)
   ReadElement(aStream, mRefPtr);
   ReadElement(aStream, mSize);
   ReadElement(aStream, mFormat);
-  mData = (uint8_t*)new (fallible) char[mSize.width * mSize.height * BytesPerPixel(mFormat)];
+  size_t size = mSize.width * mSize.height * BytesPerPixel(mFormat);
+  mData = new (fallible) uint8_t[size];
   if (!mData) {
-    gfxWarning() << "RecordedSourceSurfaceCreation failed to allocate data";
+    gfxCriticalNote << "RecordedSourceSurfaceCreation failed to allocate data of size " << size;
   } else {
-    aStream.read((char*)mData, mSize.width * mSize.height * BytesPerPixel(mFormat));
+    aStream.read((char*)mData, size);
   }
 }
 
@@ -2714,7 +2882,7 @@ RecordedIntoLuminanceSource::Record(S &aStream) const
 
 template<class S>
 RecordedIntoLuminanceSource::RecordedIntoLuminanceSource(S &aStream)
-  : RecordedEventDerived(SNAPSHOT)
+  : RecordedEventDerived(INTOLUMINANCE)
 {
   ReadElement(aStream, mRefPtr);
   ReadElement(aStream, mDT);
@@ -2767,6 +2935,10 @@ RecordedFontData::~RecordedFontData()
 inline bool
 RecordedFontData::PlayEvent(Translator *aTranslator) const
 {
+  if (!mData) {
+    return false;
+  }
+
   RefPtr<NativeFontResource> fontResource =
     Factory::CreateNativeFontResource(mData, mFontDetails.size,
                                       aTranslator->GetReferenceDrawTarget()->GetBackendType(),
@@ -2800,8 +2972,12 @@ RecordedFontData::OutputSimpleEventInfo(std::stringstream &aStringStream) const
 inline void
 RecordedFontData::SetFontData(const uint8_t *aData, uint32_t aSize, uint32_t aIndex)
 {
-  mData = new uint8_t[aSize];
-  memcpy(mData, aData, aSize);
+  mData = new (fallible) uint8_t[aSize];
+  if (!mData) {
+    gfxCriticalNote << "RecordedFontData failed to allocate data for recording of size " << aSize;
+  } else {
+    memcpy(mData, aData, aSize);
+  }
   mFontDetails.fontDataKey =
     SFNTData::GetUniqueKey(aData, aSize, 0, nullptr);
   mFontDetails.size = aSize;
@@ -2830,8 +3006,12 @@ RecordedFontData::RecordedFontData(S &aStream)
   ReadElement(aStream, mType);
   ReadElement(aStream, mFontDetails.fontDataKey);
   ReadElement(aStream, mFontDetails.size);
-  mData = new uint8_t[mFontDetails.size];
-  aStream.read((char*)mData, mFontDetails.size);
+  mData = new (fallible) uint8_t[mFontDetails.size];
+  if (!mData) {
+    gfxCriticalNote << "RecordedFontData failed to allocate data for playback of size " << mFontDetails.size;
+  } else {
+    aStream.read((char*)mData, mFontDetails.size);
+  }
 }
 
 inline
@@ -3321,12 +3501,15 @@ RecordedFilterNodeSetInput::OutputSimpleEventInfo(std::stringstream &aStringStre
     f(FILTERNODESETATTRIBUTE, RecordedFilterNodeSetAttribute); \
     f(FILTERNODESETINPUT, RecordedFilterNodeSetInput); \
     f(CREATESIMILARDRAWTARGET, RecordedCreateSimilarDrawTarget); \
+    f(CREATECLIPPEDDRAWTARGET, RecordedCreateClippedDrawTarget); \
     f(FONTDATA, RecordedFontData); \
     f(FONTDESC, RecordedFontDescriptor); \
     f(PUSHLAYER, RecordedPushLayer); \
+    f(PUSHLAYERWITHBLEND, RecordedPushLayerWithBlend); \
     f(POPLAYER, RecordedPopLayer); \
     f(UNSCALEDFONTCREATION, RecordedUnscaledFontCreation); \
-    f(UNSCALEDFONTDESTRUCTION, RecordedUnscaledFontDestruction);
+    f(UNSCALEDFONTDESTRUCTION, RecordedUnscaledFontDestruction); \
+    f(INTOLUMINANCE, RecordedIntoLuminanceSource);
 
 template<class S>
 RecordedEvent *

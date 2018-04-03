@@ -8,7 +8,7 @@
  * then compare the date and filesize of the folder file with the
  * stored result in dbfolderinfo. If they don't match, that's bad.
  */
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 var bugmail1 = do_get_file("../../../data/bugmail1");
 var gHdr; // header of test message in local folder
@@ -35,7 +35,7 @@ function run_test()
 // step 2: copy one message into a subfolder to establish an
 //         mbox file time and size
 // nsIMsgCopyServiceListener implementation
-var step2 = 
+var step2 =
 {
   OnStartCopy: function() {},
   OnProgress: function(aProgress, aProgressMax) {},
@@ -59,7 +59,7 @@ var step2 =
 // step 3: after the copy, delay to allow copy to complete and allow possible
 //         file error time
 // nsIMsgCopyServiceListener implementation
-var step3 = 
+var step3 =
 {
   OnStartCopy: function() {},
   OnProgress: function(aProgress, aProgressMax) {},
@@ -82,7 +82,7 @@ function step4()
 
 // step 5:  actual tests of file size and date
 // nsIMsgCopyServiceListener implementation
-var step5 = 
+var step5 =
 {
   OnStartCopy: function() {},
   OnProgress: function(aProgress, aProgressMax) {},

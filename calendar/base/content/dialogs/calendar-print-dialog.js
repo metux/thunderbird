@@ -4,8 +4,8 @@
 
 /* exported loadCalendarPrintDialog, printAndClose, onDatePick */
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 /**
  * Gets the calendar view from the opening window
@@ -97,10 +97,10 @@ function getPrintSettings(receiverFunc) {
         case "selected": {
             let selectedItems = theView.getSelectedItems({});
             settings.eventList = selectedItems.filter((item) => {
-                if (cal.isEvent(item) && !settings.printEvents) {
+                if (cal.item.isEvent(item) && !settings.printEvents) {
                     return false;
                 }
-                if (cal.isToDo(item) && !settings.printTasks) {
+                if (cal.item.isToDo(item) && !settings.printTasks) {
                     return false;
                 }
                 return true;
@@ -161,7 +161,7 @@ function getPrintSettings(receiverFunc) {
         };
         let filter = getFilter(settings);
         if (filter) {
-            cal.getCompositeCalendar(window.opener).getItems(filter, 0, settings.start, settings.end, listener);
+            cal.view.getCompositeCalendar(window.opener).getItems(filter, 0, settings.start, settings.end, listener);
         } else {
             // No filter means no items, just complete with the empty list set above
             receiverFunc(settings);
@@ -304,7 +304,7 @@ function printAndClose() {
  * Called when once a date has been selected in the datepicker.
  */
 function onDatePick() {
-    cal.calRadioGroupSelectItem("view-field", "custom-range");
+    cal.view.radioGroupSelectItem("view-field", "custom-range");
     setTimeout(refreshHtml, 0);
 }
 

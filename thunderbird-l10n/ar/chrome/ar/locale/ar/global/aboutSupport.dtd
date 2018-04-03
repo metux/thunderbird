@@ -21,6 +21,13 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "النسخة">
 <!ENTITY aboutSupport.extensionId "المعرّف">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "برمجيات الحماية">
+<!ENTITY aboutSupport.securitySoftwareType "النوع">
+<!ENTITY aboutSupport.securitySoftwareName "الاسم">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "مضاد فيروسات">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "مضاد برمجيات تجسس">
+<!ENTITY aboutSupport.securitySoftwareFirewall "جدار حماية">
+
 <!ENTITY aboutSupport.featuresTitle "مميزات &brandShortName;">
 <!ENTITY aboutSupport.featureName "الاسم">
 <!ENTITY aboutSupport.featureVersion "النسخة">
@@ -77,7 +84,7 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!-- LOCALIZATION NOTE (aboutSupport.showMac.label): This is the Mac-specific
 variant of aboutSupport.showDir.label.  This allows us to use the preferred
 "Finder" terminology on Mac. -->
-<!ENTITY aboutSupport.showMac.label "أظهِر في الباحث">
+<!ENTITY aboutSupport.showMac.label "أظهِر في فايندر">
 <!-- LOCALIZATION NOTE (aboutSupport.showWin2.label): This is the Windows-specific
 variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.showWin2.label "افتح المجلد">
@@ -152,18 +159,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "المعدل">
 <!ENTITY aboutSupport.mediaDeviceLatency "الكمون">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.intlTitle "التدويل و التوطين">
+<!ENTITY aboutSupport.intlAppTitle "إعدادات التطبيق">
+<!ENTITY aboutSupport.intlLocalesRequested "المحليات المطلوبة">
+<!ENTITY aboutSupport.intlLocalesAvailable "المحليات المتاحة">
+<!ENTITY aboutSupport.intlLocalesSupported "محليات التطبيق">
+<!ENTITY aboutSupport.intlLocalesDefault "المحلية المبدئية">
+<!ENTITY aboutSupport.intlOSTitle "نظام التشغيل">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "محليات النظام">
+<!ENTITY aboutSupport.intlRegionalPrefs "التفضيلات الإقليمية">
+
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">

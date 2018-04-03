@@ -3,6 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY autoconfigWizard.title          "Konto einrichten">
+<!ENTITY autoconfigWizard2.title         "Konto für eine bestehende E-Mail-Adresse einrichten">
 <!ENTITY name.label                      "Ihr Name:">
 <!ENTITY name.accesskey                  "n">
 <!ENTITY name.placeholder                "Vorname Nachname">
@@ -10,6 +11,9 @@
 <!ENTITY email.label                     "E-Mail-Adresse:">
 <!ENTITY email.accesskey                 "E">
 <!ENTITY email.placeholder               "email@example.com">
+<!-- LOCALIZATION NOTE(email.placeholder): Domain @example.com must stay in English -->
+<!ENTITY email2.placeholder              "ich@example.com">
+<!ENTITY email.text                      "Bestehende E-Mail-Adresse">
 <!ENTITY password.label                  "Passwort:">
 <!ENTITY password.accesskey              "P">
 <!ENTITY password.placeholder            "Passwort">
@@ -55,6 +59,9 @@
 <!ENTITY manual-edit.accesskey           "M">
 <!ENTITY switch-to-provisioner.label     "Neue E-Mail-Adresse erhalten…">
 <!ENTITY switch-to-provisioner.accesskey "N">
+<!ENTITY open-provisioner.label          "Neue E-Mail-Adresse erhalten…">
+<!ENTITY open-provisioner.accesskey      "u">
+
 
 <!ENTITY warning.label                   "Warnung!">
 <!ENTITY incomingSettings.label          "Posteingangs-Einstellungen:">
@@ -85,9 +92,3 @@
 <!ENTITY insecureUnencrypted.description "Ihre E-Mails und Passwörter werden unverschlüsselt übertragen. Beides könnte daher einfach von Dritten gelesen werden. &brandShortName; kann Ihre Nachrichten abrufen, aber Sie sollten Ihren Anbieter des E-Mail-Diensts kontaktieren, ob eine gesicherte Serververbindung möglich ist.">
 <!ENTITY insecureSelfSigned.description  "Der Server verwendet ein Zertifikat, dem nicht vertraut werden kann. Daher kann man nicht sicher sein, dass niemand die Datenübertragung zwichen &brandShortName; und dem Server abfängt. &brandShortName; kann Ihre Nachrichten abrufen, aber Sie sollten Ihren Anbieter des E-Mail-Diensts dazu auffordern die Server mit einem gültigen Zertifikat zu konfigurieren.">
 <!ENTITY secureServer.description        "Glückwunsch! Dies ist eine gesicherte Serververbindung.">
-
-<!ENTITY autoconfigWizard2.title         "Set Up an Existing Email Account">
-<!ENTITY email2.placeholder              "you@example.com">
-<!ENTITY email.text                      "Your existing email address">
-<!ENTITY open-provisioner.label          "Get a new email address…">
-<!ENTITY open-provisioner.accesskey      "g">

@@ -4,10 +4,10 @@
 
 <!ENTITY closeNotification.tooltip "Pechar esta mensaxe">
 
-<!ENTITY closeNotificationItem.label "Agora non">
-
 <!ENTITY checkForUpdates "Buscar actualización…">
 
-<!ENTITY learnMore "Learn more…">
+<!ENTITY learnMore "Obter máis información…">
+
+
 <!ENTITY defaultButton.label "OK!">
 <!ENTITY defaultButton.accesskey "O">

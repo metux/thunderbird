@@ -3,9 +3,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/AppConstants.jsm");
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 var gAnyValidIdentity = false; //If there are no valid identities for any account
 // returns the first account with an invalid server or identity
@@ -18,7 +18,7 @@ function getInvalidAccounts(accounts)
     let invalidAccounts = new Array;
     let numIdentities = 0;
     for (let i = 0; i < numAccounts; i++) {
-        let account = accounts.queryElementAt(i, Components.interfaces.nsIMsgAccount);
+        let account = accounts.queryElementAt(i, Ci.nsIMsgAccount);
         try {
             if (!account.incomingServer.valid) {
                 invalidAccounts[invalidAccounts.length] = account;
@@ -34,7 +34,7 @@ function getInvalidAccounts(accounts)
         numIdentities = identities.length;
 
         for (var j = 0; j < numIdentities; j++) {
-            let identity = identities.queryElementAt(j, Components.interfaces.nsIMsgIdentity);
+            let identity = identities.queryElementAt(j, Ci.nsIMsgIdentity);
             if (identity.valid) {
               gAnyValidIdentity = true;
             }
@@ -47,16 +47,16 @@ function getInvalidAccounts(accounts)
 }
 
 function showMailIntegrationDialog() {
-  const nsIShellService = Components.interfaces.nsIShellService;
+  const nsIShellService = Ci.nsIShellService;
 
   try {
-    var shellService = Components.classes["@mozilla.org/suite/shell-service;1"]
-                                 .getService(nsIShellService);
+    var shellService = Cc["@mozilla.org/suite/shell-service;1"]
+                         .getService(nsIShellService);
     var appTypesCheck = shellService.shouldBeDefaultClientFor &
                         (nsIShellService.MAIL | nsIShellService.NEWS);
 
     // show the default client dialog only if we have at least one account,
-    // if we should check for the default client, and we want to check if we are 
+    // if we should check for the default client, and we want to check if we are
     // the default for mail/news and are not the default client for mail/news
     if (appTypesCheck && shellService.shouldCheckDefaultClient &&
         !shellService.isDefaultClient(true, appTypesCheck))
@@ -155,7 +155,7 @@ function verifyAccounts(wizardCallback, needsIdentity, wizardOpen)
 
         // This will do nothing on platforms without a shell service
         const NS_SHELLSERVICE_CID = "@mozilla.org/suite/shell-service;1"
-        if (NS_SHELLSERVICE_CID in Components.classes)
+        if (NS_SHELLSERVICE_CID in Cc)
         {
           // hack, set a time out to do this, so that the window can load first
           setTimeout(showMailIntegrationDialog, 0);
@@ -248,7 +248,7 @@ function MsgAccountManager(selectPage, aServer)
           }
           if (!aServer && (typeof GetDefaultAccountRootFolder === "function")) {
             let folder = GetDefaultAccountRootFolder();
-            if (folder instanceof Components.interfaces.nsIMsgFolder)
+            if (folder instanceof Ci.nsIMsgFolder)
               aServer = folder.server;
           }
         }
@@ -260,13 +260,13 @@ function MsgAccountManager(selectPage, aServer)
     }
 }
 
-function loadInboxForNewAccount() 
+function loadInboxForNewAccount()
 {
   // gNewAccountToLoad is set in the final screen of the Account Wizard if a POP account
   // was created, the download messages box is checked, and the wizard was opened from the 3pane
   if (gNewAccountToLoad) {
     var rootMsgFolder = gNewAccountToLoad.incomingServer.rootMsgFolder;
-    const kInboxFlag = Components.interfaces.nsMsgFolderFlags.Inbox;
+    const kInboxFlag = Ci.nsMsgFolderFlags.Inbox;
     var inboxFolder = rootMsgFolder.getFolderWithFlags(kInboxFlag);
     SelectFolder(inboxFolder.URI);
     window.focus();
@@ -276,12 +276,12 @@ function loadInboxForNewAccount()
 }
 
 // returns true if we migrated - it knows this because 4.x did not have the
-// pref mailnews.quotingPrefs.version, so if it's not set, we're either 
+// pref mailnews.quotingPrefs.version, so if it's not set, we're either
 // migrating from 4.x, or a much older version of Mozilla.
 function migrateGlobalQuotingPrefs(allIdentities)
 {
   // if reply_on_top and auto_quote exist then, if non-default
-  // migrate and delete, if default just delete.  
+  // migrate and delete, if default just delete.
   var reply_on_top = 0;
   var auto_quote = true;
   var quotingPrefs = 0;
@@ -302,7 +302,7 @@ function migrateGlobalQuotingPrefs(allIdentities)
       let numIdentities = allIdentities.length;
       var identity = null;
       for (var j = 0; j < numIdentities; j++) {
-        identity = allIdentities.queryElementAt(j, Components.interfaces.nsIMsgIdentity);
+        identity = allIdentities.queryElementAt(j, Ci.nsIMsgIdentity);
         if (identity.valid) {
           identity.autoQuote = auto_quote;
           identity.replyOnTop = reply_on_top;
@@ -362,14 +362,14 @@ function NewMailAccountProvisioner(aMsgWindow, args) {
 
   // If we couldn't find a 3pane, bail out.
   if (!mail3Pane) {
-    Components.utils.reportError("Could not find a 3pane to connect to.");
+    Cu.reportError("Could not find a 3pane to connect to.");
     return;
   }
 
   let tabmail = mail3Pane.document.getElementById("tabmail");
 
   if (!tabmail) {
-    Components.utils.reportError("Could not find a tabmail in the 3pane!");
+    Cu.reportError("Could not find a tabmail in the 3pane!");
     return;
   }
 

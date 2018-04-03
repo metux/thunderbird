@@ -11,8 +11,8 @@
  * by allowUndo == true in CopyMessages).
  */
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://testing-common/mailnews/PromiseTestUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://testing-common/mailnews/PromiseTestUtils.jsm");
 
 load("../../../resources/logHelper.js");
 
@@ -33,18 +33,11 @@ var gFolder1;
 function addMessagesToServer(messages, mailbox)
 {
   // For every message we have, we need to convert it to a file:/// URI
-  let specs = [];
   messages.forEach(function (message)
   {
-    let URI =
-      Services.io.newFileURI(message.file).QueryInterface(Ci.nsIFileURL);
-    specs.push(URI.spec);
-  });
-
-  // Create the imapMessages and store them on the mailbox
-  specs.forEach(function (spec)
-  {
-    mailbox.addMessage(new imapMessage(spec, mailbox.uidnext++, []));
+    let URI = Services.io.newFileURI(message.file).QueryInterface(Ci.nsIFileURL);
+    // Create the imapMessage and store it on the mailbox.
+    mailbox.addMessage(new imapMessage(URI.spec, mailbox.uidnext++, []));
   });
 }
 
@@ -78,7 +71,7 @@ var tests = [
     addMessagesToServer([{file: gMsgFile1, messageId: gMsgId1},
                          {file: gMsgFile2, messageId: gMsgId2},
                         ],
-                        IMAPPump.daemon.getMailbox("INBOX"), IMAPPump.inbox);
+                        IMAPPump.daemon.getMailbox("INBOX"));
   },
   function *updateFolder() {
     let promiseUrlListener = new PromiseTestUtils.PromiseUrlListener();

@@ -9,11 +9,12 @@
 <!ENTITY feedTitle.label             "Naziv:">
 <!ENTITY feedTitle.accesskey         "N">
 
-<!ENTITY feedLocation.label          "URL za vir:">
+<!ENTITY feedLocation.label          "Spletni naslov vira:">
 <!ENTITY feedLocation.accesskey      "U">
-<!ENTITY feedLocation.placeholder    "Vnesite veljaven vir URL za dodajanje">
+<!ENTITY feedLocation.placeholder    "Vnesite veljaven spletni naslov vira za dodajanje">
+<!ENTITY feedLocation2.placeholder   "Vnesite veljaven spletni naslov vira">
 <!ENTITY locationValidate.label      "Preveri">
-<!ENTITY validateText.label          "Preveri potrditev in pridobi veljaven url.">
+<!ENTITY validateText.label          "Preveri veljavnost in pridobi veljaven spletni naslov.">
 
 <!ENTITY feedFolder.label            "Shrani članke v:">
 <!ENTITY feedFolder.accesskey        "S">
@@ -25,20 +26,22 @@
 <!ENTITY biffMinutes.accesskey       "m">
 <!ENTITY biffDays.label              "dni">
 <!ENTITY biffDays.accesskey          "d">
-<!ENTITY recommendedUnits.label      "Založnik priporoča:">
+<!ENTITY recommendedUnits.label      "Objavitelj priporoča:">
 
 <!ENTITY quickMode.label             "Pokaži povzetek članka namesto nalaganja spletne strani">
-<!ENTITY quickMode.accesskey         "P">
+<!ENTITY quickMode.accesskey         "k">
 
-<!ENTITY autotagEnable.label         "Samodejno ustvari oznake iz imen &lt;category&gt; vira">
+<!ENTITY autotagEnable.label         "Samodejno ustvari oznake iz imen &lt;kategorij&gt; vira">
 <!ENTITY autotagEnable.accesskey     "S">
 <!ENTITY autotagUsePrefix.label      "Oznakam dodaj predpono:">
 <!ENTITY autotagUsePrefix.accesskey  "O">
-<!ENTITY autoTagPrefix.placeholder   "Vnes. predpono oznak">
+<!ENTITY autoTagPrefix.placeholder   "Vnesite predpono oznak">
 
 <!-- Subscription Dialog -->
 <!ENTITY button.addFeed.label        "Dodaj">
 <!ENTITY button.addFeed.accesskey    "a">
+<!ENTITY button.verifyFeed.label     "Preveri">
+<!ENTITY button.verifyFeed.accesskey "v">
 <!ENTITY button.updateFeed.label     "Posodobi">
 <!ENTITY button.updateFeed.accesskey "P">
 <!ENTITY button.removeFeed.label     "Odstrani">
@@ -51,7 +54,3 @@
 
 <!ENTITY cmd.close.commandKey        "w">
 <!ENTITY button.close.label          "Zapri">
-
-<!ENTITY feedLocation2.placeholder   "Enter a valid feed url">
-<!ENTITY button.verifyFeed.label     "Verify">
-<!ENTITY button.verifyFeed.accesskey "V">

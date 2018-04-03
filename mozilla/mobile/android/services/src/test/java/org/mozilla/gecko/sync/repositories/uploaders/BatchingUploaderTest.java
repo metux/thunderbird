@@ -141,8 +141,8 @@ public class BatchingUploaderTest {
         }
 
         @Override
-        public void onRecordStoreSucceeded(String guid) {
-            ++recordStoreSucceeded;
+        public void onRecordStoreSucceeded(int count) {
+            recordStoreSucceeded += count;
         }
 
         @Override
@@ -157,6 +157,10 @@ public class BatchingUploaderTest {
 
         @Override
         public void onRecordStoreReconciled(String guid, String oldGuid, Integer newVersion) {
+        }
+
+        @Override
+        public void onBatchCommitted() {
         }
 
         @Override

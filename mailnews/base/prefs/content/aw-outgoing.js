@@ -3,8 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource:///modules/hostnameUtils.jsm");
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/hostnameUtils.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 var gProtocolInfo = null;
 var gPrefsBundle;
@@ -137,7 +137,7 @@ function onSavePassword(target) {
     dump("savePassword changed! (" + target.checked + ")\n");
     var passwordField = document.getElementById("server.password");
     if (!passwordField) return;
-    
+
     if (target.checked) {
         passwordField.removeAttribute("disabled");
         passwordField.value = savedPassword;
@@ -147,5 +147,5 @@ function onSavePassword(target) {
         savedPassword = passwordField.value;
         passwordField.value = "";
     }
-    
+
 }

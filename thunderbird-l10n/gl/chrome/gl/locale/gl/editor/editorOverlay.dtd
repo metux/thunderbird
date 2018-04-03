@@ -4,25 +4,24 @@
 
 <!-- Attn: Localization - some of the menus in this dialog directly affect mail also. -->
 
-<!-- Attn: Localization - some of the menus in this dialog directly affect mail also. -->
-
 <!-- File menu items -->
 <!ENTITY saveCmd.key "S">
 
 <!-- Edit menu items -->
 <!ENTITY pasteNoFormatting.label "Pegar sen formato">
-<!ENTITY pasteNoFormatting.accesskey "r">
+<!ENTITY pasteNoFormatting.accesskey "n">
 <!ENTITY pasteNoFormatting.key "V">
 <!ENTITY pasteAs.label "Pegar como">
-<!ENTITY pasteAs.accesskey "o">
+<!ENTITY pasteAs.accesskey "a">
 <!ENTITY pasteAsQuotationCmd.label "Pegar como cita">
 <!ENTITY pasteAsQuotationCmd.accesskey "r">
 <!ENTITY pasteAsQuotationCmd.key "o">
-<!ENTITY findCmd.label "Localizar e substituír…">
-<!ENTITY enableInlineSpellChecker.label "Verificar ortografía mentres escribe">
-<!ENTITY enableInlineSpellChecker.accesskey "e">
-<!ENTITY checkSpellingCmd2.label "Verificación ortográfica…">
-<!ENTITY checkSpellingCmd2.accesskey "V">
+<!ENTITY findBarCmd.label "Localizar…">
+<!ENTITY findReplaceCmd.label "Localizar e substituír…">
+<!ENTITY enableInlineSpellChecker.label "Corrixir a ortografía mentres escribe">
+<!ENTITY enableInlineSpellChecker.accesskey "s">
+<!ENTITY checkSpellingCmd2.label "Corrección ortográfica…">
+<!ENTITY checkSpellingCmd2.accesskey "g">
 <!ENTITY checkSpellingCmd2.key "K">
 
 <!-- Insert menu items -->
@@ -41,6 +40,8 @@
 <!ENTITY insertTableCmd.accesskey "T">
 <!ENTITY insertHTMLCmd.label "HTML…">
 <!ENTITY insertHTMLCmd.accesskey "H">
+<!ENTITY insertMathCmd.label "Expresión matemática…">
+<!ENTITY insertMathCmd.accesskey "m">
 <!ENTITY insertCharsCmd.label "Caracteres e símbolos…">
 <!ENTITY insertCharsCmd.accesskey "C">
 <!ENTITY insertBreakAllCmd.label "Quebrar imaxes">
@@ -72,12 +73,12 @@
 <!ENTITY FontSizeSelect.tooltip "Escoller un tamaño de tipo de letra">
 <!ENTITY decreaseFontSize.label "Menor">
 <!ENTITY decreaseFontSize.accesskey "r">
-<!ENTITY decreaseFontSize.key "&lt;">
-<!ENTITY decreaseFontSize.key2 ","> <!-- < is above this key on many keyboards -->
+<!ENTITY decrementFontSize.key "&lt;">
+<!ENTITY decrementFontSize.key2 ","> <!-- < is above this key on many keyboards -->
 <!ENTITY increaseFontSize.label "Maior">
 <!ENTITY increaseFontSize.accesskey "i">
-<!ENTITY increaseFontSize.key "&gt;">
-<!ENTITY increaseFontSize.key2 "."> <!-- > is above this key on many keyboards -->
+<!ENTITY incrementFontSize.key "&gt;">
+<!ENTITY incrementFontSize.key2 "."> <!-- > is above this key on many keyboards -->
 
 <!ENTITY fontSizeMenu.label "Tamaño">
 <!ENTITY fontSizeMenu.accesskey "m">
@@ -140,8 +141,8 @@
 
 <!ENTITY formatRemoveStyles.key "y">
 <!ENTITY formatRemoveLinks.key "k">
-<!ENTITY formatRemoveNamedAnchors.label "Eliminar áncoras con nome">
-<!ENTITY formatRemoveNamedAnchors.accesskey "E">
+<!ENTITY formatRemoveNamedAnchors.label "Retirar áncoras con nome">
+<!ENTITY formatRemoveNamedAnchors.accesskey "R">
 <!ENTITY formatRemoveNamedAnchors2.key "R">
 
 <!ENTITY paragraphMenu.label "Parágrafo">
@@ -210,10 +211,10 @@
 <!ENTITY layerSendToBack.tooltip "Enviar cara a atrás">
 <!ENTITY layerBringToFront.tooltip "Traer cara a adiante">
 
-<!ENTITY increaseIndent.label "Aumentar sangría">
+<!ENTITY increaseIndent.label "Aumentar sangrado">
 <!ENTITY increaseIndent.accesskey "A">
 <!ENTITY increaseIndent.key "=">
-<!ENTITY decreaseIndent.label "Diminuír sangría">
+<!ENTITY decreaseIndent.label "Diminuír sangrado">
 <!ENTITY decreaseIndent.accesskey "D">
 <!ENTITY decreaseIndent.key "[">
 
@@ -266,8 +267,8 @@
 <!ENTITY tableCellAfter.label "Cela despois">
 <!ENTITY tableCellAfter.accesskey "d">
 <!-- Delete SubMenu -->
-<!ENTITY tableDeleteMenu.label "Borrar">
-<!ENTITY tableDeleteMenu.accesskey "o">
+<!ENTITY tableDeleteMenu.label "Eliminar">
+<!ENTITY tableDeleteMenu.accesskey "l">
 
 <!-- text for "Join Cells" is in editor.properties 
      ("JoinSelectedCells" and "JoinCellToRight")
@@ -316,10 +317,10 @@
 <!ENTITY boldToolbarCmd.tooltip "Negra">
 <!ENTITY italicToolbarCmd.tooltip "Cursiva">
 <!ENTITY underlineToolbarCmd.tooltip "Subliñado">
-<!ENTITY bulletListToolbarCmd.tooltip "Aplicar ou eliminar a lista con viñetas">
-<!ENTITY numberListToolbarCmd.tooltip "Aplicar ou eliminar a lista numerada">
-<!ENTITY outdentToolbarCmd.tooltip "Anular sangría do texto (mover cara á esquerda)">
-<!ENTITY indentToolbarCmd.tooltip "Aplicar sangría ao texto (mover cara á dereita)">
+<!ENTITY bulletListToolbarCmd.tooltip "Aplicar ou retirar a lista con viñetas">
+<!ENTITY numberListToolbarCmd.tooltip "Aplicar ou retirar a lista numerada">
+<!ENTITY outdentToolbarCmd.tooltip "Anular sangrado do texto (mover cara á esquerda)">
+<!ENTITY indentToolbarCmd.tooltip "Aplicar sangrado ao texto (mover cara á dereita)">
 <!ENTITY AlignPopupButton.tooltip "Escoller aliñamento de texto">
 <!ENTITY InsertPopupButton.tooltip "Inserir unha ligazón, áncora, imaxe, liña horizontal ou táboa">
 <!ENTITY alignLeftButton.tooltip "Aliñar texto pola marxe esquerda">
@@ -329,8 +330,8 @@
 
 <!-- Structure Toolbar Context Menu items -->
 <!ENTITY structSelect.label         "Seleccionar">
-<!ENTITY structSelect.accesskey     "S">
-<!ENTITY structRemoveTag.label      "Eliminar etiqueta">
+<!ENTITY structSelect.accesskey     "s">
+<!ENTITY structRemoveTag.label      "Retirar etiqueta">
 <!ENTITY structRemoveTag.accesskey  "r">
 <!ENTITY structChangeTag.label      "Modificar etiqueta">
 <!ENTITY structChangeTag.accesskey  "c">
@@ -340,22 +341,14 @@
 <!ENTITY insertTOC.accesskey      "I">
 <!ENTITY updateTOC.label          "Actualizar">
 <!ENTITY updateTOC.accesskey      "A">
-<!ENTITY removeTOC.label          "Eliminar">
+<!ENTITY removeTOC.label          "Retirar">
 <!ENTITY removeTOC.accesskey      "r">
 <!ENTITY tocMenu.label            "Táboa de contidos…">
 <!ENTITY tocMenu.accesskey        "b">
 
-<!ENTITY findBarCmd.label "Find…">
-<!ENTITY findReplaceCmd.label "Find and Replace…">
 <!ENTITY insertLinkCmd2.label "Link…">
 <!ENTITY insertLinkCmd2.accesskey "L">
 <!ENTITY insertLinkCmd2.key "K">
-<!ENTITY insertMathCmd.label "Math…">
-<!ENTITY insertMathCmd.accesskey "M">
-<!ENTITY decrementFontSize.key "&lt;">
-<!ENTITY decrementFontSize.key2 ",">
-<!ENTITY incrementFontSize.key "&gt;">
-<!ENTITY incrementFontSize.key2 ".">
 <!ENTITY size-tinyCmd.label "Tiny">
 <!ENTITY size-tinyCmd.accesskey "T">
 <!ENTITY size-extraLargeCmd.label "Extra Large">

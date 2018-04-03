@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://calendar/modules/calXMLUtils.jsm");
-Components.utils.import("resource://calendar/modules/ltnInvitationUtils.jsm");
-Components.utils.import("resource:///modules/mailServices.js");
-Components.utils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://calendar/modules/calXMLUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/ltnInvitationUtils.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 
 function run_test() {
     do_calendar_startup(run_next_test);
@@ -619,11 +619,11 @@ add_task(function* getHeaderSection_test() {
             }
         },
         expected: "MIME-version: 1.0\r\n" +
-                  "Return-path: =?UTF-8?Q?Max_&_Ren=c3=a9?= <no-reply@example.net>\r\n" +
+                  "Return-path: =?UTF-8?B?TWF4ICYgUmVuw6k=?= <no-reply@example.net>\r\n" +
                   "From: =?UTF-8?B?UmVuw6k=?= <sender@example.net>\r\n" +
-                  "Organization: =?UTF-8?Q?Max_&_Ren=c3=a9?=\r\n" +
+                  "Organization: =?UTF-8?B?TWF4ICYgUmVuw6k=?=\r\n" +
                   "To: =?UTF-8?Q?Max_M=c3=bcller?= <mueller@example.net>\r\n" +
-                  "Subject: =?UTF-8?Q?Invitation:_Diacritis_check_=28=c3=bc=c3=a4?=\r\n =?UTF-8?B" +
+                  "Subject: =?UTF-8?B?SW52aXRhdGlvbjogRGlhY3JpdGlzIGNoZWNrICjDvMOk?=\r\n =?UTF-8?B" +
                   "?w6kp?=\r\n" +
                   "Cc: =?UTF-8?B?UmVuw6k=?= <cc@example.net>\r\n" +
                   "Bcc: =?UTF-8?B?UmVuw6k=?= <bcc@example.net>\r\n"

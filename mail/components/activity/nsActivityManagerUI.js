@@ -2,15 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Constants
-
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
 
 var ACTIVITY_MANAGER_URL = "chrome://messenger/content/activity.xul";
 var PREF_FLASH_COUNT = "messenger.activity.manager.flashCount";

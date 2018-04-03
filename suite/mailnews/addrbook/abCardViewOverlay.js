@@ -9,7 +9,7 @@ var gProfileDirURL;
 
 var gMapItURLFormat;
 
-var gFileHandler = Services.io.getProtocolHandler("file").QueryInterface(Components.interfaces.nsIFileProtocolHandler);
+var gFileHandler = Services.io.getProtocolHandler("file").QueryInterface(Ci.nsIFileProtocolHandler);
 var gPhotoDisplayHandlers = {};
 
 var zListName;
@@ -143,9 +143,9 @@ function GetAddressesFromURI(uri)
   if (addressList) {
     var total = addressList.length;
     if (total > 0)
-      addresses = addressList.queryElementAt(0, Components.interfaces.nsIAbCard).primaryEmail;
+      addresses = addressList.queryElementAt(0, Ci.nsIAbCard).primaryEmail;
     for (var i = 1;  i < total; i++ ) {
-      addresses += ", " + addressList.queryElementAt(i, Components.interfaces.nsIAbCard).primaryEmail;
+      addresses += ", " + addressList.queryElementAt(i, Ci.nsIAbCard).primaryEmail;
     }
   }
   return addresses;
@@ -251,13 +251,13 @@ function DisplayCardViewPane(realCard)
         // due to time zone/dst discontinuity
         date = new Date(Date.UTC(year, month - 1, day));
         date.setUTCFullYear(year); // to handle two-digit years properly
-        formatter = Services.intl.createDateTimeFormat(undefined,
+        formatter = new Services.intl.DateTimeFormat(undefined,
                        { dateStyle: "long", timeZone: "UTC" });
       }
       // if the year doesn't exist, display Month DD (ex. January 1)
       else {
         date = new Date(Date.UTC(saneBirthYear(year), month - 1, day));
-        formatter = Services.intl.createDateTimeFormat(undefined,
+        formatter = new Services.intl.DateTimeFormat(undefined,
                       { month: "long", day: "numeric", timeZone: "UTC" });
       }
       dateStr = formatter.format(date);
@@ -427,7 +427,7 @@ function cvAddAddressNodes(node, uri)
         }
         for (i = 0;  i < total; i++ ) {
       	   var descNode = document.createElement("description");
-          var card = addressList.queryElementAt(i, Components.interfaces.nsIAbCard);
+          var card = addressList.queryElementAt(i, Ci.nsIAbCard);
 
           descNode.setAttribute("class", "CardViewLink");
           node.appendChild(descNode);

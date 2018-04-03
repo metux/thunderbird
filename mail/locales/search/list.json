@@ -48,6 +48,13 @@
         ]
       }
     },
+    "cak": {
+      "default": {
+        "visibleDefaultEngines": [
+          "amazondotcom", "aol-web-search", "bing", "twitter", "wikipedia", "yahoo"
+        ]
+      }
+    },
     "cs": {
       "default": {
         "visibleDefaultEngines": [
@@ -94,6 +101,13 @@
       "default": {
         "visibleDefaultEngines": [
           "google", "neti-ee", "osta-ee", "eki-ee", "wikipedia-et"
+        ]
+      }
+    },
+    "fa": {
+      "default": {
+        "visibleDefaultEngines": [
+          "google", "bing", "yahoo", "twitter"
         ]
       }
     },

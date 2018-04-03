@@ -37,7 +37,7 @@
  * alias3.eml        50             53
  */
 
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 var traitService = Cc["@mozilla.org/msg-trait-service;1"]
                        .getService(Ci.nsIMsgTraitService);
@@ -149,7 +149,7 @@ function startCommand()
     traitService.addAlias(kProTrait, proAlias);
   while ((antiAlias = gTest.antiAliases.pop()))
     traitService.addAlias(kAntiTrait, antiAlias);
-  
+
   MailServices.junk.classifyTraitsInMessage(
     getSpec(gTest.fileName), // in string aMsgURI
     proArray.length, // length of traits arrays

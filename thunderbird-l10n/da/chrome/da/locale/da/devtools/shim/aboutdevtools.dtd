@@ -12,67 +12,74 @@
   - -->
 
 <!-- LOCALIZATION NOTE (aboutDevtools.headTitle): Text of the title tag for about:devtools -->
-<!ENTITY  aboutDevtools.headTitle "About Developer Tools">
+<!ENTITY  aboutDevtools.headTitle "Om Udviklerværktøj">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.title): Title of the top about:devtools
   -  section displayed when DevTools are disabled. -->
-<!ENTITY  aboutDevtools.enable.title "Enable Firefox Developer Tools">
+<!ENTITY  aboutDevtools.enable.title "Aktiver Udviklerværktøj i Firefox">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.inspectElementTitle): Title of the top
   -  section displayed when devtools are disabled and the user triggered DevTools by using
   -  the Inspect Element menu item. -->
-<!ENTITY  aboutDevtools.enable.inspectElementTitle "Enable Firefox Developer Tools to use Inspect Element">
+<!ENTITY  aboutDevtools.enable.inspectElementTitle "Aktiver Udviklerværktøj i Firefox for at inspicere elementer">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.inspectElementMessage): Message displayed
   -  when users come from using the Inspect Element menu item. -->
 <!ENTITY  aboutDevtools.enable.inspectElementMessage
-          "Examine and edit HTML and CSS with the Developer Tools’ Inspector.">
+          "Undersøg og rediger HTML og CSS med Inspektør i Udviklerværktøj">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.aboutDebuggingMessage): Message displayed
   -  when users come from about:debugging. -->
 <!ENTITY  aboutDevtools.enable.aboutDebuggingMessage
-          "Develop and debug WebExtensions, web workers, service workers and more with Firefox Developer Tools.">
+          "Udvikl og debug WebExtensions, web-workers, service-workers og mere med Udviklerværktøj i Firefox.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.keyShortcutMessage): Message displayed when
   -  users pressed a DevTools key shortcut. -->
 <!ENTITY  aboutDevtools.enable.keyShortcutMessage
-          "You activated a Developer Tools shortcut. If that was a mistake, you can close this Tab.">
+          "Du har aktiveret en genvej i Udviklerværktøj. Hvis det var en fejl, kan du blot lukke dette faneblad.">
+
+<!-- LOCALIZATION NOTE (aboutDevtools.enable.menuMessage): Message displayed when users
+  -  clicked on a "Enable Developer Tools" menu item. -->
+<!ENTITY  aboutDevtools.enable.menuMessage
+          "Undersøg, rediger og debug HTML, CSS og JavaScript med værktøj som Inspektør og Debugger">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.menuMessage2): Message displayed when users
   -  clicked on a "Enable Developer Tools" menu item. -->
 <!ENTITY  aboutDevtools.enable.menuMessage2
-          "Perfect your website’s HTML, CSS, and JavaScript with tools like Inspector and Debugger.">
+          "Brug værktøjer som Inspektør og Debugger til at sørge for perfekt HTML, CSS og JavScript på dit websted.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.commonMessage): Generic message displayed for
   -  all possible entry points (keyshortcut, menu item etc…). -->
 <!ENTITY  aboutDevtools.enable.commonMessage
-          "Firefox Developer Tools are disabled by default to give you more control over your browser.">
+          "Udviklerværktøj i Firefox er som standard slået fra for at give dig mere kontrol over din browser.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.learnMoreLink): Text for the link to
   -  https://developer.mozilla.org/docs/Tools displayed in the top section when DevTools
   -  are disabled. -->
-<!ENTITY  aboutDevtools.enable.learnMoreLink "Learn more about Developer Tools">
+<!ENTITY  aboutDevtools.enable.learnMoreLink "Læs mere om Udviklerværktøj">
 
-<!ENTITY  aboutDevtools.enable.enableButton "Enable Developer Tools">
-<!ENTITY  aboutDevtools.enable.closeButton2 "Close this Tab">
+<!ENTITY  aboutDevtools.enable.enableButton "Aktiver Udviklerværktøj">
+<!ENTITY  aboutDevtools.enable.closeButton "Luk denne side">
 
-<!ENTITY  aboutDevtools.welcome.title "Welcome to Firefox Developer Tools!">
+<!ENTITY  aboutDevtools.enable.closeButton2 "Luk dette faneblad">
 
-<!ENTITY  aboutDevtools.newsletter.title "Mozilla Developer Newsletter">
+<!ENTITY  aboutDevtools.welcome.title "Velkommen til Udviklerværktøj i Firefox">
+
+<!ENTITY  aboutDevtools.newsletter.title "Mozillas nyhedsbrev til udviklere">
 <!-- LOCALIZATION NOTE (aboutDevtools.newsletter.message): Subscribe form message.
   -  The newsletter is only available in english at the moment.
   -  See Bug 1415273 for support of additional languages.-->
-<!ENTITY  aboutDevtools.newsletter.message "Get developer news, tricks and resources sent straight to your inbox.">
-<!ENTITY  aboutDevtools.newsletter.email.placeholder "Email">
-<!ENTITY  aboutDevtools.newsletter.privacy.label "I’m okay with Mozilla handling my info as explained in this <a class='external' href='https://www.mozilla.org/privacy/'>Privacy Policy</a>.">
-<!ENTITY  aboutDevtools.newsletter.subscribeButton "Subscribe">
-<!ENTITY  aboutDevtools.newsletter.thanks.title "Thanks!">
-<!ENTITY  aboutDevtools.newsletter.thanks.message "If you haven’t previously confirmed a subscription to a Mozilla-related newsletter you may have to do so. Please check your inbox or your spam filter for an email from us.">
+<!ENTITY  aboutDevtools.newsletter.message "Få relevante nyheder, smarte tricks og baggrundsviden direkte i din indbakke (på engelsk)">
+<!ENTITY  aboutDevtools.newsletter.email.placeholder "Mailadresse">
+<!ENTITY  aboutDevtools.newsletter.privacy.label "Jeg accepterer, at Mozilla håndterer mine informationer som forklaret i <a class='external' href='https://www.mozilla.org/privacy/'>Privatlivspolitikken</a>.">
+<!ENTITY  aboutDevtools.newsletter.subscribeButton "Abonner">
+<!ENTITY  aboutDevtools.newsletter.thanks.title "Tak!">
+<!ENTITY  aboutDevtools.newsletter.thanks.message "Hvis du ikke tidligere har bekræftet et abonnement på et Mozilla-relateret nyhedsbrev, skal du muligvis gøre det nu. Tjek din indbakke eller dit spamfilter for at se, om du har fået en mail fra os">
 
 <!ENTITY  aboutDevtools.footer.title "Firefox Developer Edition">
-<!ENTITY  aboutDevtools.footer.message "Looking for more than just Developer Tools? Check out the Firefox browser that is built specifically for developers and modern workflows.">
+<!ENTITY  aboutDevtools.footer.message "Vil du have mere end Udviklerværktøj? Så skulle du tage at kigge på Firefox Developer Edition - en browser skræddersyet til udviklere og moderne arbejdsgange.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.footer.learnMoreLink): Text for the link to
   -  https://www.mozilla.org/firefox/developer/ displayed in the footer. -->
-<!ENTITY  aboutDevtools.footer.learnMoreLink "Learn more">
+<!ENTITY  aboutDevtools.footer.learnMoreLink "Læs mere">
 

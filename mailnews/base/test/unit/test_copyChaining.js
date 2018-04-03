@@ -6,7 +6,7 @@
 
 load("../../../resources/messageGenerator.js");
 
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 var gCopySource;
 var gCopyDest;
@@ -38,7 +38,7 @@ function CopyNextMessage()
 {
   if (gMsgEnumerator.hasMoreElements()) {
     let msgHdr = gMsgEnumerator.getNext().QueryInterface(
-      Components.interfaces.nsIMsgDBHdr);
+      Ci.nsIMsgDBHdr);
     var messages = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
     messages.appendElement(msgHdr);
     MailServices.copy.CopyMessages(gCopySource, messages, gCopyDest, true,
@@ -96,7 +96,7 @@ function endTest()
 }
 
 // nsIMsgCopyServiceListener implementation
-var copyListener = 
+var copyListener =
 {
   OnStartCopy: function() {},
   OnProgress: function(aProgress, aProgressMax) {},

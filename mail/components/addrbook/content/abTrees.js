@@ -7,16 +7,14 @@
  * depends on jsTreeView.js being loaded before this script is loaded.
  */
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource:///modules/mailServices.js");
-Components.utils.import("resource:///modules/IOUtils.js");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/IOUtils.js");
 
 // Tree Sort helper methods.
 var AB_ORDER = ["aab", "pab", "mork", "ldap", "mapi+other", "anyab", "cab"];
 
 function getDirectoryValue(aDir, aKey) {
-  const Ci = Components.interfaces;
-
   if (aKey == "ab_type") {
     if (aDir._directory.URI == kAllDirectoryRoot + "?")
       return "aab";
@@ -100,7 +98,6 @@ abDirTreeItem.prototype = {
 
   _children: null,
   get children() {
-    const Ci = Components.interfaces;
     if (!this._children) {
       this._children = [];
       let myEnum;
@@ -225,7 +222,7 @@ directoryTreeView.prototype = {
 
   // nsIAbListener interfaces
   onItemAdded: function dtv_onItemAdded(aParent, aItem) {
-    if (!(aItem instanceof Components.interfaces.nsIAbDirectory))
+    if (!(aItem instanceof Ci.nsIAbDirectory))
       return;
     //xxx we can optimize this later
     this._rebuild();
@@ -243,7 +240,7 @@ directoryTreeView.prototype = {
   },
 
   onItemRemoved: function dtv_onItemRemoved(aParent, aItem) {
-    if (!(aItem instanceof Components.interfaces.nsIAbDirectory))
+    if (!(aItem instanceof Ci.nsIAbDirectory))
       return;
     //xxx we can optimize this later
     this._rebuild();
@@ -268,7 +265,7 @@ directoryTreeView.prototype = {
   },
 
   onItemPropertyChanged: function dtv_onItemProp(aItem, aProp, aOld, aNew) {
-    if (!(aItem instanceof Components.interfaces.nsIAbDirectory))
+    if (!(aItem instanceof Ci.nsIAbDirectory))
       return;
 
     for (var i in this._rowMap)  {

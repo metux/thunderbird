@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://calendar/modules/calXMLUtils.jsm");
-Components.utils.import("resource://calendar/modules/calRecurrenceUtils.jsm");
-Components.utils.import("resource://calendar/modules/ltnInvitationUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calXMLUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calRecurrenceUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/ltnInvitationUtils.jsm");
 
 function ltnMimeConverter() {
     this.wrappedJSObject = this;
@@ -34,7 +34,7 @@ ltnMimeConverter.prototype = {
         parser.parseString(data);
         let event = null;
         for (let item of parser.getItems({})) {
-            if (cal.isEvent(item)) {
+            if (cal.item.isEvent(item)) {
                 if (item.hasProperty("X-MOZ-FAKED-MASTER")) {
                     // if it's a faked master, take any overridden item to get a real occurrence:
                     let exc = item.recurrenceInfo.getExceptionFor(item.startDate);

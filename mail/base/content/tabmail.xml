@@ -278,7 +278,7 @@
       <constructor>
         window.controllers.insertControllerAt(0, this);
         this._restoringTabState = null;
-        Components.utils.import("resource://gre/modules/AppConstants.jsm");
+        ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
       </constructor>
       <destructor>
         window.controllers.removeController(this);
@@ -918,7 +918,7 @@
              // Report this so that our unit testing framework sees this
              // error and (extension) developers likewise can see when their
              // extensions are ill-behaved.
-             Components.utils.reportError(ex);
+             Cu.reportError(ex);
            }
 
            if (!tabState)
@@ -1721,7 +1721,7 @@
     <implementation implements="nsITimerCallback, nsIDOMEventListener">
       <constructor>
         <![CDATA[
-          Components.utils.import("resource://gre/modules/Services.jsm");
+          ChromeUtils.import("resource://gre/modules/Services.jsm");
 
           try {
             this.mTabMinWidth = Services.prefs.getIntPref("mail.tabs.tabMinWidth");
@@ -1767,7 +1767,7 @@
 
       <destructor>
         <![CDATA[
-          Components.utils.import("resource://gre/modules/Services.jsm");
+          ChromeUtils.import("resource://gre/modules/Services.jsm");
 
           Services.prefs.removeObserver("mail.tabs.", this._prefObserver);
 
@@ -1808,13 +1808,14 @@
         document.getElementById(this.getAttribute("collapsetoolbar"));
       </field>
 
-     <field name="_prefObserver">({
+      <field name="_prefObserver"><![CDATA[
+        ({
         tabbox: this,
 
         observe: function(subject, topic, data)
         {
           if (topic == "nsPref:changed") {
-            subject.QueryInterface(Components.interfaces.nsIPrefBranch);
+            subject.QueryInterface(Ci.nsIPrefBranch);
             switch (data) {
             case "mail.tabs.closeButtons":
               this.tabbox.mCloseButtons = subject.getIntPref("mail.tabs.closeButtons");
@@ -1829,18 +1830,17 @@
 
         QueryInterface: function(aIID)
         {
-          if (aIID.equals(Components.interfaces.nsIObserver) ||
-              aIID.equals(Components.interfaces.nsISupports))
+          if (aIID.equals(Ci.nsIObserver) || aIID.equals(Ci.nsISupports))
             return this;
-          throw Components.results.NS_NOINTERFACE;
+          throw Cr.NS_NOINTERFACE;
         }
         });
+        ]]>
       </field>
 
       <field name="_tabDropIndicator">
-        document.getAnonymousElementByAttribute(
-            this,
-            "anonid", "tab-drop-indicator");
+        document.getAnonymousElementByAttribute(this, "anonid",
+                                                "tab-drop-indicator");
       </field>
 
       <field name="_dragOverDelay">350</field>
@@ -1983,14 +1983,14 @@
 
             if (!this._animateTimer)
               this._animateTimer =
-                Components.classes["@mozilla.org/timer;1"]
-                          .createInstance(Components.interfaces.nsITimer);
+                Cc["@mozilla.org/timer;1"]
+                  .createInstance(Ci.nsITimer);
             else
                this._animateTimer.cancel();
 
             this._animateTimer.initWithCallback(this,
                          this._animateDelay,
-                         Components.interfaces.nsITimer.TYPE_REPEATING_SLACK);
+                         Ci.nsITimer.TYPE_REPEATING_SLACK);
           }
         ]]></body>
       </method>
@@ -2421,12 +2421,12 @@
         // be set after this binding is constructed.
         try {
           this._xulWindow =
-            window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-                  .getInterface(Components.interfaces.nsIWebNavigation)
-                  .QueryInterface(Components.interfaces.nsIDocShellTreeItem)
+            window.QueryInterface(Ci.nsIInterfaceRequestor)
+                  .getInterface(Ci.nsIWebNavigation)
+                  .QueryInterface(Ci.nsIDocShellTreeItem)
                   .treeOwner
-                  .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-                  .getInterface(Components.interfaces.nsIXULWindow);
+                  .QueryInterface(Ci.nsIInterfaceRequestor)
+                  .getInterface(Ci.nsIXULWindow);
         }
         catch(ex) { }
 

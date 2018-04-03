@@ -29,11 +29,11 @@
  *   The ex.message will contain a user-presentable message.
  */
 
-Components.utils.import("resource:///modules/mailServices.js");
-Components.utils.import("resource:///modules/OAuth2Providers.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/OAuth2Providers.jsm");
 
 if (typeof gEmailWizardLogger == "undefined") {
-  Cu.import("resource:///modules/gloda/log4moz.js");
+  ChromeUtils.import("resource:///modules/gloda/log4moz.js");
   var gEmailWizardLogger = Log4Moz.getConfiguredLogger("mail.wizard");
 }
 
@@ -336,11 +336,11 @@ urlListener.prototype =
 
   // nsISupports
   QueryInterface: function(iid) {
-    if (!iid.equals(Components.interfaces.nsIBadCertListener2) &&
-        !iid.equals(Components.interfaces.nsIInterfaceRequestor) &&
-        !iid.equals(Components.interfaces.nsIUrlListener) &&
-        !iid.equals(Components.interfaces.nsISupports))
-      throw Components.results.NS_ERROR_NO_INTERFACE;
+    if (!iid.equals(Ci.nsIBadCertListener2) &&
+        !iid.equals(Ci.nsIInterfaceRequestor) &&
+        !iid.equals(Ci.nsIUrlListener) &&
+        !iid.equals(Ci.nsISupports))
+      throw Cr.NS_ERROR_NO_INTERFACE;
 
     return this;
   }

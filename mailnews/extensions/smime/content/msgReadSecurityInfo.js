@@ -3,10 +3,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-var nsIDialogParamBlock = Components.interfaces.nsIDialogParamBlock;
-var nsIX509Cert = Components.interfaces.nsIX509Cert;
-var nsICMSMessageErrors = Components.interfaces.nsICMSMessageErrors;
-var nsICertificateDialogs = Components.interfaces.nsICertificateDialogs;
+var nsIDialogParamBlock = Ci.nsIDialogParamBlock;
+var nsIX509Cert = Ci.nsIX509Cert;
+var nsICMSMessageErrors = Ci.nsICMSMessageErrors;
+var nsICertificateDialogs = Ci.nsICertificateDialogs;
 var nsCertificateDialogs = "@mozilla.org/nsCertificateDialogs;1"
 
 var gSignerCert = null;
@@ -28,7 +28,7 @@ function setText(id, value) {
 function onLoad()
 {
   var paramBlock = window.arguments[0].QueryInterface(nsIDialogParamBlock);
-  paramBlock.objects.QueryInterface(Components.interfaces.nsIMutableArray);
+  paramBlock.objects.QueryInterface(Ci.nsIMutableArray);
   try {
     gSignerCert = paramBlock.objects.queryElementAt(0, nsIX509Cert);
   } catch(e) { } // maybe null
@@ -108,11 +108,11 @@ function onLoad()
         sigInfo_clueless = true;
         break;
       default:
-        Components.utils.reportError("Unexpected gSignatureStatus: " +
-                                     gSignatureStatus);
+        Cu.reportError("Unexpected gSignatureStatus: " +
+                       gSignatureStatus);
     }
 
-    document.getElementById("signatureLabel").value = 
+    document.getElementById("signatureLabel").value =
       bundle.getString(sigInfoLabel);
 
     var label;
@@ -158,11 +158,11 @@ function onLoad()
         encInfo_clueless = 1;
         break;
       default:
-        Components.utils.reportError("Unexpected gEncryptionStatus: " +
-                                     gEncryptionStatus);
+        Cu.reportError("Unexpected gEncryptionStatus: " +
+                       gEncryptionStatus);
     }
 
-    document.getElementById("encryptionLabel").value = 
+    document.getElementById("encryptionLabel").value =
       bundle.getString(encInfoLabel);
 
     if (encInfoHeader) {
@@ -208,7 +208,7 @@ function onLoad()
 }
 
 function viewCertHelper(parent, cert) {
-  var cd = Components.classes[nsCertificateDialogs].getService(nsICertificateDialogs);
+  var cd = Cc[nsCertificateDialogs].getService(nsICertificateDialogs);
   cd.viewCert(parent, cert);
 }
 

@@ -3,7 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY aboutTelemetry.pingDataSource "Ping 数据源：">
-<!ENTITY aboutTelemetry.showCurrentPingData "当前 ping 数据">
+<!ENTITY aboutTelemetry.showCurrentPingData "当前的 ping 数据">
 <!ENTITY aboutTelemetry.showArchivedPingData "存档的 ping 数据">
 <!ENTITY aboutTelemetry.showSubsessionData "显示提交数据">
 <!ENTITY aboutTelemetry.choosePing "选择 ping：">
@@ -50,15 +50,13 @@ Ping 类型
 <!ENTITY aboutTelemetry.scalarsSection "
   标量
 ">
-<!ENTITY aboutTelemetry.keyedScalarsSection "
-  键控标量
-">
+<!ENTITY aboutTelemetry.keyedScalarsSection "键索标量">
 <!ENTITY aboutTelemetry.histogramsSection "  直方图">
-<!ENTITY aboutTelemetry.keyedHistogramsSection "键控直方图">
+<!ENTITY aboutTelemetry.keyedHistogramsSection "键索直方图">
 <!ENTITY aboutTelemetry.eventsSection "事件">
 <!ENTITY aboutTelemetry.simpleMeasurementsSection "  简单测量">
 <!ENTITY aboutTelemetry.telemetryLogSection "  遥测日志">
-<!ENTITY aboutTelemetry.slowSqlSection "迟钝的 SQL 语句">
+<!ENTITY aboutTelemetry.slowSqlSection "慢 SQL 语句">
 <!ENTITY aboutTelemetry.chromeHangsSection "  浏览器挂起">
 <!ENTITY aboutTelemetry.addonDetailsSection "   附加组件详情 ">
 <!ENTITY aboutTelemetry.capturedStacksSection "捕获的堆栈">
@@ -68,7 +66,7 @@ Ping 类型
 ">
 <!ENTITY aboutTelemetry.raw "原始 JSON">
 
-<!ENTITY aboutTelemetry.fullSqlWarning "注意：针对迟钝 SQL 的排错已启用。完整的 SQL 字符串可能会在下面显示，但不会被遥测技术所提交。">
+<!ENTITY aboutTelemetry.fullSqlWarning "注意：针对慢 SQL 的排错已启用。完整的 SQL 字符串可能会在下面显示，但不会通过遥测提交。">
 <!ENTITY aboutTelemetry.fetchStackSymbols "
   从堆栈获取函数名称
 ">

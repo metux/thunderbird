@@ -8,12 +8,10 @@
  * nsIMsgCloudFileProvider interface.
  */
 
-var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
-
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource:///modules/gloda/log4moz.js");
-Cu.import("resource:///modules/cloudFileAccounts.js");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource:///modules/gloda/log4moz.js");
+ChromeUtils.import("resource:///modules/cloudFileAccounts.js");
 
 Cu.importGlobalProperties(["XMLHttpRequest"]);
 
@@ -1189,7 +1187,7 @@ nsHightailFileUploader.prototype = {
   getTempFile: function(leafName) {
     let tempfile = Services.dirsvc.get("TmpD", Ci.nsIFile);
     tempfile.append(leafName)
-    tempfile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, parseInt("0666", 8));
+    tempfile.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, parseInt("0666", 8));
     // do whatever you need to the created file
     return tempfile.clone()
   },

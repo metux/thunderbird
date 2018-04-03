@@ -4,10 +4,12 @@
 
 <!-- LOCALIZATION NOTE the term "url-classifier" should not be translated. -->
 <!ENTITY aboutUrlClassifier.pageTitle                   "מידע על ה־url-classifier">
+<!ENTITY aboutUrlClassifier.title                       "פרטי מסווג כתובות">
 <!ENTITY aboutUrlClassifier.providerTitle               "ספק">
 <!ENTITY aboutUrlClassifier.provider                    "ספק">
 <!ENTITY aboutUrlClassifier.providerLastUpdateTime      "מועד עדכון אחרון">
 <!ENTITY aboutUrlClassifier.providerNextUpdateTime      "מועד העדכון הבא">
+<!ENTITY aboutUrlClassifier.providerBackOffTime         "זמן נסיגה">
 <!ENTITY aboutUrlClassifier.providerLastUpdateStatus    "מצב העדכון האחרון">
 <!ENTITY aboutUrlClassifier.providerUpdateBtn           "עדכון">
 <!ENTITY aboutUrlClassifier.cacheTitle                  "מטמון">
@@ -30,6 +32,3 @@
 <!ENTITY aboutUrlClassifier.debugModules                "המודולים הנוכחיים לרישום">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "רישום JS לגלישה בטוחה">
 <!ENTITY aboutUrlClassifier.debugFile                   "קובץ הרישום הנוכחי">
-
-<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">
-<!ENTITY aboutUrlClassifier.providerBackOffTime         "Back-off time">

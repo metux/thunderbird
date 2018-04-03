@@ -1,10 +1,8 @@
-var Ci = Components.interfaces;
-var Cc = Components.classes;
 var CC = Components.Constructor;
 
 function CreateScriptableConverter()
 {
-  var ScriptableUnicodeConverter = 
+  var ScriptableUnicodeConverter =
     CC("@mozilla.org/intl/scriptableunicodeconverter",
        "nsIScriptableUnicodeConverter");
 

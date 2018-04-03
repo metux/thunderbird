@@ -10,7 +10,6 @@
 #include "gfxConfig.h"
 #include "gfxWindowsPlatform.h"
 #include "GfxInfo.h"
-#include "GfxInfoWebGL.h"
 #include "nsUnicharUtils.h"
 #include "prenv.h"
 #include "prprf.h"
@@ -372,6 +371,7 @@ GfxInfo::Init()
   // Unfortunately, the Device ID is nullptr, and we can't enumerate
   // it using the setup infrastructure (SetupDiGetClassDevsW below
   // will return INVALID_HANDLE_VALUE).
+  UINT flags = DIGCF_PRESENT | DIGCF_PROFILE | DIGCF_ALLCLASSES;
   if (mWindowsVersion >= kWindows8 &&
       mDeviceID[0].Length() == 0 &&
       mDeviceString[0].EqualsLiteral("RDPUDD Chained DD"))
@@ -386,12 +386,12 @@ GfxInfo::Init()
 
       // 0x1414 is Microsoft; 0xfefe is an invented (and unused) code
       mDeviceID[0].AssignLiteral("PCI\\VEN_1414&DEV_FEFE&SUBSYS_00000000");
+      flags |= DIGCF_DEVICEINTERFACE;
     }
   }
 
   /* create a device information set composed of the current display device */
-  HDEVINFO devinfo = SetupDiGetClassDevsW(nullptr, mDeviceID[0].get(), nullptr,
-                                          DIGCF_PRESENT | DIGCF_PROFILE | DIGCF_ALLCLASSES);
+  HDEVINFO devinfo = SetupDiGetClassDevsW(nullptr, mDeviceID[0].get(), nullptr, flags);
 
   if (devinfo != INVALID_HANDLE_VALUE) {
     HKEY key;
@@ -1205,6 +1205,14 @@ GfxInfo::GetGfxDriverInfo()
         (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorIntel), (GfxDeviceFamily*) GfxDriverInfo::GetDeviceFamily(IntelMobileHDGraphics),
       nsIGfxInfo::FEATURE_DIRECT2D, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
       DRIVER_LESS_THAN_OR_EQUAL, V(8,15,10,2302), "FEATURE_FAILURE_BUG_804144" );
+
+    /* Disable D2D on Win7 on Intel HD Graphics on driver == 8.15.10.2418
+     * See bug 1433790
+     */
+    APPEND_TO_DRIVER_BLOCKLIST2(OperatingSystem::Windows7,
+      (nsAString&)GfxDriverInfo::GetDeviceVendor(VendorIntel), (GfxDeviceFamily*)GfxDriverInfo::GetDeviceFamily(IntelHDGraphicsToSandyBridge),
+      nsIGfxInfo::FEATURE_DIRECT2D, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
+      DRIVER_EQUAL, V(8, 15, 10, 2418), "FEATURE_FAILURE_BUG_1433790");
 
     /* Disable D3D11 layers on Intel G41 express graphics and Intel GM965, Intel X3100, for causing device resets.
      * See bug 1116812.

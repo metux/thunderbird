@@ -230,3 +230,7 @@ because displayed names don't have the comma in between. -->
 <!ENTITY minimizeWindow.key "G">
 <!ENTITY bringAllToFront.label "Endurheimta">
 <!ENTITY zoomWindow.label "Aðdráttur">
+
+<!ENTITY addressBookCmd.label                           "Address Book">
+<!ENTITY addressBookCmd.accesskey                       "a">
+<!ENTITY addressBookCmd.key                             "B">

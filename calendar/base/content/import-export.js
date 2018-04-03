@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 
 /* exported loadEventsFromFile, exportEntireCalendar */
 
@@ -111,7 +111,7 @@ function loadEventsFromFile(aCalendar) {
         }
 
         let calendars = cal.getCalendarManager().getCalendars({});
-        calendars = calendars.filter(cal.isCalendarWritable);
+        calendars = calendars.filter(cal.acl.isCalendarWritable);
 
         if (calendars.length == 1) {
             // There's only one calendar, so it's silly to ask what calendar

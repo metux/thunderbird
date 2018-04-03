@@ -10,18 +10,26 @@
 <!ENTITY time.millisecond.placeholder "--">
 <!ENTITY time.dayperiod.placeholder "--">
 
+<!-- Field labels for input type=time -->
+
+<!ENTITY time.hour.label "Saat">
+<!ENTITY time.minute.label "Dakika">
+<!ENTITY time.second.label "Saniye">
+<!ENTITY time.millisecond.label "Milisaniye">
+<!ENTITY time.dayperiod.label "ÖÖ/ÖS">
+
 <!-- Placeholders for input type=date -->
 
 <!ENTITY date.year.placeholder "yyyy">
 <!ENTITY date.month.placeholder "aa">
 <!ENTITY date.day.placeholder "gg">
 
-<!ENTITY time.hour.label "Hours">
-<!ENTITY time.minute.label "Minutes">
-<!ENTITY time.second.label "Seconds">
-<!ENTITY time.millisecond.label "Milliseconds">
-<!ENTITY time.dayperiod.label "AM/PM">
-<!ENTITY date.year.label "Year">
-<!ENTITY date.month.label "Month">
-<!ENTITY date.day.label "Day">
-<!ENTITY datetime.reset.label "Clear">
+<!-- Field labels for input type=date -->
+
+<!ENTITY date.year.label "Yıl">
+<!ENTITY date.month.label "Ay">
+<!ENTITY date.day.label "Gün">
+
+<!-- Date/time clear button -->
+
+<!ENTITY datetime.reset.label "Temizle">

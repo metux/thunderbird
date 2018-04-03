@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://calendar/modules/calItipUtils.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calItipUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 function calTransactionManager() {
     this.wrappedJSObject = this;
@@ -15,7 +15,7 @@ function calTransactionManager() {
     }
 }
 
-var calTransactionManagerClassID = Components.ID("{40a1ccf4-5f54-4815-b842-abf06f84dbfd}");
+var calTransactionManagerClassID = Components.ID("{1d529847-d292-4222-b066-b8b17a794d62}");
 var calTransactionManagerInterfaces = [Components.interfaces.calITransactionManager];
 calTransactionManager.prototype = {
 
@@ -30,12 +30,13 @@ calTransactionManager.prototype = {
     }),
 
     transactionManager: null,
-    createAndCommitTxn: function(aAction, aItem, aCalendar, aOldItem, aListener) {
+    createAndCommitTxn: function(aAction, aItem, aCalendar, aOldItem, aListener, aExtResponse) {
         let txn = new calTransaction(aAction,
                                      aItem,
                                      aCalendar,
                                      aOldItem,
-                                     aListener);
+                                     aListener,
+                                     aExtResponse);
         this.transactionManager.doTransaction(txn);
     },
 
@@ -50,8 +51,8 @@ calTransactionManager.prototype = {
     checkWritable: function(transaction) {
         function checkItem(item) {
             return item && item.calendar &&
-                   cal.isCalendarWritable(item.calendar) &&
-                   cal.userCanAddItemsToCalendar(item.calendar);
+                   cal.acl.isCalendarWritable(item.calendar) &&
+                   cal.acl.userCanAddItemsToCalendar(item.calendar);
         }
 
         let trans = transaction && transaction.wrappedJSObject;
@@ -77,13 +78,14 @@ calTransactionManager.prototype = {
     }
 };
 
-function calTransaction(aAction, aItem, aCalendar, aOldItem, aListener) {
+function calTransaction(aAction, aItem, aCalendar, aOldItem, aListener, aExtResponse) {
     this.wrappedJSObject = this;
     this.mAction = aAction;
     this.mItem = aItem;
     this.mCalendar = aCalendar;
     this.mOldItem = aOldItem;
     this.mListener = aListener;
+    this.mExtResponse = aExtResponse;
 }
 
 var calTransactionClassID = Components.ID("{fcb54c82-2fb9-42cb-bf44-1e197a55e520}");
@@ -108,12 +110,14 @@ calTransaction.prototype = {
     mOldCalendar: null,
     mListener: null,
     mIsDoTransaction: false,
+    mExtResponse: null,
 
     onOperationComplete: function(aCalendar, aStatus, aOperationType, aId, aDetail) {
         if (Components.isSuccessCode(aStatus)) {
             cal.itip.checkAndSend(aOperationType,
                                   aDetail,
-                                  this.mIsDoTransaction ? this.mOldItem : this.mItem);
+                                  this.mIsDoTransaction ? this.mOldItem : this.mItem,
+                                  this.mExtResponse);
 
             if (aOperationType == Components.interfaces.calIOperationListener.ADD ||
                 aOperationType == Components.interfaces.calIOperationListener.MODIFY) {

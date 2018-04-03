@@ -4,16 +4,12 @@
 
 this.EXPORTED_SYMBOLS = [ "extensionDefaults" ];
 
-var Ci = Components.interfaces;
-var Cc = Components.classes;
-var Cu = Components.utils;
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+// ChromeUtils.import("resource://gre/modules/Deprecated.jsm") - needed for warning.
+ChromeUtils.import("resource://gre/modules/NetUtil.jsm");
 
-Cu.import("resource://gre/modules/Services.jsm");
-// Cu.import("resource://gre/modules/Deprecated.jsm") - needed for warning.
-Cu.import("resource://gre/modules/NetUtil.jsm");
-
-Cu.import("resource:///modules/iteratorUtils.jsm");
-Cu.import("resource:///modules/IOUtils.js");
+ChromeUtils.import("resource:///modules/iteratorUtils.jsm");
+ChromeUtils.import("resource:///modules/IOUtils.js");
 
 /**
  * Reads preferences from addon provided locations (defaults/preferences/*.js)

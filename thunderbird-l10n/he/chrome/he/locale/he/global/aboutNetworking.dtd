@@ -23,6 +23,7 @@
 <!ENTITY aboutNetworking.sent                  "נשלחו">
 <!ENTITY aboutNetworking.received              "התקבלו">
 <!ENTITY aboutNetworking.family                "משפחה">
+<!ENTITY aboutNetworking.trr                   "TRR">
 <!ENTITY aboutNetworking.addresses             "כתובות">
 <!ENTITY aboutNetworking.expires               "תפוגה (בשניות)">
 <!ENTITY aboutNetworking.messagesSent          "הודעות שנשלחו">
@@ -46,6 +47,7 @@
 <!ENTITY aboutNetworking.rcwnCacheWonCount     "ספירת ניצחונות מטמון">
 <!ENTITY aboutNetworking.rcwnNetWonCount       "ספירת ניצחונות רשת">
 <!ENTITY aboutNetworking.totalNetworkRequests  "ספירת סה״כ בקשות רשת">
+<!ENTITY aboutNetworking.rcwnOperation         "פעולת מטמון">
 <!ENTITY aboutNetworking.rcwnPerfOpen          "פתיחה">
 <!ENTITY aboutNetworking.rcwnPerfRead          "קריאה">
 <!ENTITY aboutNetworking.rcwnPerfWrite         "כתיבה">
@@ -53,7 +55,6 @@
 <!ENTITY aboutNetworking.rcwnAvgLong           "ממוצע ארוך">
 <!ENTITY aboutNetworking.rcwnStddevLong        "סטיית תקן ארוכה">
 
-<!ENTITY aboutNetworking.rcwnOperation         "Cache Operation">
 <!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Entry Open">
 <!ENTITY aboutNetworking.rcwnCacheSlow         "Cache slow count">
 <!ENTITY aboutNetworking.rcwnCacheNotSlow      "Cache not slow count">

@@ -47,7 +47,7 @@
     </content>
     <implementation>
       <constructor><![CDATA[
-          Components.utils.import("resource://calendar/modules/calUtils.jsm");
+          ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
       ]]></constructor>
 
       <field name="_maxCount">0</field>
@@ -131,7 +131,7 @@
         <parameter name="categoryListbox" />
         <parameter name="compare" />
         <body><![CDATA[
-            let newIndex = cal.binaryInsert(categories, category, compare, true);
+            let newIndex = cal.data.binaryInsert(categories, category, compare, true);
             let item = categoryListbox.childNodes[Math.min(newIndex, categoryListbox.childNodes.length - 1)];
 
             if (!item || item.getAttribute("value") != category) {
@@ -184,7 +184,7 @@
         <parameter name="aItem"/>
         <body><![CDATA[
             let categoryListbox = document.getAnonymousElementByAttribute(this, "anonid", "categories-listbox");
-            let categoryList = cal.getPrefCategoriesArray();
+            let categoryList = cal.category.fromPrefs();
 
             cal.sortArrayByLocaleCollator(categoryList);
 
@@ -238,7 +238,7 @@
 
     <implementation>
       <constructor><![CDATA[
-          Components.utils.import("resource://calendar/modules/calUtils.jsm");
+          ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
           this.setUpTodayDate();
       ]]></constructor>
 
@@ -411,7 +411,7 @@
                 modeIndex = collapsedModes.indexOf(this.currentMode);
                 collapsedInMode = modeIndex > -1;
             }
-            if (aVisible === true && pushModeCollapsedAttribute == false) {
+            if (aVisible === true && !pushModeCollapsedAttribute) {
                 display = (aVisible === true) && (!collapsedInMode);
             }
 
@@ -526,7 +526,7 @@
       <field name="mCalendarView">null</field>
 
       <constructor><![CDATA[
-          Components.utils.import("resource://calendar/modules/calUtils.jsm");
+          ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
       ]]></constructor>
 
       <!-- The ViewController that supports the interface 'calICalendarView'-->
@@ -588,7 +588,7 @@
             // method that may be overwritten by derived bindings...
             if (this.calendarView.mDropShadows) {
                 for (let shadow of this.calendarView.mDropShadows) {
-                    cal.removeChildElementsByAttribute(shadow, "class", "dropshadow");
+                    cal.view.removeChildElementsByAttribute(shadow, "class", "dropshadow");
                 }
             }
             this.calendarView.mDropShadows = null;
@@ -691,7 +691,7 @@
                                    .createInstance(Components.interfaces.nsITransferable);
           transfer.init(null);
 
-          if (cal.isEvent(item)) {
+          if (cal.item.isEvent(item)) {
               transfer.addDataFlavor("application/x-moz-cal-event");
           } else {
               transfer.addDataFlavor("application/x-moz-cal-task");

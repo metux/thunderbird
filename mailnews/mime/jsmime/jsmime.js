@@ -68,6 +68,8 @@ function decode_base64(buffer, more) {
   else
     buffer = '';
   sanitize = sanitize.substring(0, sanitize.length - excess);
+  // Delete all unnecessary '====' in padding.
+  sanitize = sanitize.replace(/(====)+$/g, '');
   // Use the atob function we (ought to) have in global scope.
   return [atob(sanitize), buffer];
 }
@@ -812,6 +814,13 @@ function parseAddressingHeader(header, doRFC2047) {
    * @param {String} addrSpec      addr-spec as per RFC 5322
    */
   function addToAddrList(displayName, addrSpec) {
+    // Keep the local-part quoted if it needs to be.
+    let lp = addrSpec.substring(0, addrSpec.lastIndexOf("@"));
+    if (/[ !()<>\[\]:;@\\,"]/.exec(lp) !== null) {
+      addrSpec = '"' + lp.replace(/([\\"])/g, "\\$1") + '"' +
+                 addrSpec.substring(addrSpec.lastIndexOf("@"));
+    }
+
     if (displayName === '' && lastComment !== '') {
       // Take last comment content as the display-name.
       let offset = lastComment[0] === ' ' ? 2 : 1;
@@ -884,9 +893,6 @@ function parseAddressingHeader(header, doRFC2047) {
         // The remainder of this mailbox is part of an addr-spec.
         inAngle = true;
       }
-      // Keep the local-part quoted if it needs to be.
-      if (/[ !()<>\[\]:;@\\,"]/.exec(address) !== null)
-        address = '"' + address.replace(/([\\"])/g, "\\$1") + '"';
       address += '@';
     } else if (token === ',') {
       // A comma ends the current name. If we have something that's kind of a
@@ -2020,9 +2026,8 @@ MimeParser.prototype.deliverEOF = function () {
  * @param funcname {String} The function name to call on the emitter.
  * @param args...           Extra arguments to pass into the emitter callback.
  */
-MimeParser.prototype._callEmitter = function (funcname) {
+MimeParser.prototype._callEmitter = function (funcname, ...args) {
   if (this._emitter && funcname in this._emitter) {
-    let args = Array.prototype.splice.call(arguments, 1);
     if (args.length > 0 && this._willIgnorePart(args[0])) {
       // partNum is always the first argument, so check to make sure that it
       // satisfies our emitter's pruneat requirement.
@@ -2869,7 +2874,7 @@ var nonAsciiRe = /[^\x20-\x7e]/;
 var b64Prelude = "=?UTF-8?B?", qpPrelude = "=?UTF-8?Q?";
 
 /// A list of ASCII characters forbidden in RFC 2047 encoded-words
-var qpForbidden = "=?_()\",";
+var qpForbidden = "\"#$%&'(),.:;<=>?@[\\]^_`{|}~";
 
 var hexString = "0123456789abcdef";
 

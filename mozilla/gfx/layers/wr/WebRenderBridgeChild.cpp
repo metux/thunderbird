@@ -129,12 +129,16 @@ WebRenderBridgeChild::UpdateResources(wr::IpcResourceUpdateQueue& aResources)
     return;
   }
 
+  if (aResources.IsEmpty()) {
+    return;
+  }
+
   nsTArray<OpUpdateResource> resourceUpdates;
   nsTArray<RefCountedShmem> smallShmems;
   nsTArray<ipc::Shmem> largeShmems;
   aResources.Flush(resourceUpdates, smallShmems, largeShmems);
 
-  this->SendUpdateResources(resourceUpdates, Move(smallShmems), Move(largeShmems));
+  this->SendUpdateResources(resourceUpdates, Move(smallShmems), largeShmems);
 }
 
 void
@@ -166,7 +170,7 @@ WebRenderBridgeChild::EndTransaction(const wr::LayoutSize& aContentSize,
   this->SendSetDisplayList(aSize, mParentCommands, mDestroyedActors,
                            GetFwdTransactionId(), aTransactionId,
                            aContentSize, dlData, aDL.dl_desc, aScrollData,
-                           Move(resourceUpdates), Move(smallShmems), Move(largeShmems),
+                           Move(resourceUpdates), Move(smallShmems), largeShmems,
                            mIdNamespace, aTxnStartTime, fwdTime);
 
   mParentCommands.Clear();
@@ -687,6 +691,12 @@ WebRenderBridgeChild::DeallocResourceShmem(RefCountedShmem& aShm)
   MOZ_ASSERT(RefCountedShm::GetReferenceCount(aShm) == 0);
 
   RefCountedShm::Dealloc(this, aShm);
+}
+
+void
+WebRenderBridgeChild::Capture()
+{
+  this->SendCapture();
 }
 
 } // namespace layers

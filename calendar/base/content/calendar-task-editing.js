@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://calendar/modules/calAlarmUtils.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calAlarmUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 /**
  * Used by the "quick add" feature for tasks, for example in the task view or
@@ -74,7 +74,7 @@ var taskEdit = {
             taskEdit.setupTaskField(edit,
                                     true,
                                     cal.calGetString("calendar", "taskEditInstructionsCapability"));
-        } else if (cal.isCalendarWritable(calendar)) {
+        } else if (cal.acl.isCalendarWritable(calendar)) {
             edit.showsInstructions = false;
             taskEdit.setupTaskField(edit, false, edit.savedValue || "");
         } else {
@@ -108,7 +108,7 @@ var taskEdit = {
             taskEdit.setupTaskField(edit,
                                     true,
                                     cal.calGetString("calendar", "taskEditInstructionsCapability"));
-        } else if (cal.isCalendarWritable(calendar)) {
+        } else if (cal.acl.isCalendarWritable(calendar)) {
             if (!edit.showsInstructions) {
                 edit.savedValue = edit.value || "";
             }
@@ -129,7 +129,7 @@ var taskEdit = {
      * @param aEvent    The DOM keypress event
      */
     onKeyPress: function(aEvent) {
-        if (aEvent.keyCode == Components.interfaces.nsIDOMKeyEvent.DOM_VK_RETURN) {
+        if (aEvent.key == "Enter") {
             let edit = aEvent.target;
             if (edit.value && edit.value.length > 0) {
                 let item = cal.createTodo();
@@ -153,7 +153,7 @@ var taskEdit = {
             taskEdit.onBlur({ target: taskEditFields[i] });
         }
 
-        cal.getCompositeCalendar(window).addObserver(taskEdit.compositeObserver);
+        cal.view.getCompositeCalendar(window).addObserver(taskEdit.compositeObserver);
         taskEdit.observedCalendar = getSelectedCalendar();
     },
 
@@ -161,7 +161,7 @@ var taskEdit = {
      * Window load function to clean up all quick-add fields.
      */
     onUnload: function() {
-        cal.getCompositeCalendar(window).removeObserver(taskEdit.compositeObserver);
+        cal.view.getCompositeCalendar(window).removeObserver(taskEdit.compositeObserver);
         taskEdit.observedCalendar = null;
     },
 

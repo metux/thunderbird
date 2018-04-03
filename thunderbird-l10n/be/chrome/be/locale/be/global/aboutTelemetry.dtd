@@ -2,87 +2,109 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY aboutTelemetry.pageTitle "Здаткі тэлеметрыі">
-<!ENTITY aboutTelemetry.telemetryEnabled "
-  Тэлеметрыя <span>дазволена</span>.
+<!ENTITY aboutTelemetry.pingDataSource "
+Крыніца дадзеных пінга:
 ">
-<!ENTITY aboutTelemetry.telemetryDisabled "
-  Тэлеметрыя <span>забаронена</span>.
+<!ENTITY aboutTelemetry.showCurrentPingData "
+Дадзеныя бягучага пінга
 ">
-<!ENTITY aboutTelemetry.slowSqlSection "
-  Паказ чыннікаў SQL
+<!ENTITY aboutTelemetry.showArchivedPingData "
+Дадзеныя архіўнага пінга
 ">
-<!ENTITY aboutTelemetry.chromeHangsSection "
-  Завісанні азіральніка
+<!ENTITY aboutTelemetry.showSubsessionData "
+Адлюстроўваць дадзеныя падсесіі
 ">
-<!ENTITY aboutTelemetry.threadHangStatsSection "
-  Нізкі завісанняў
+<!ENTITY aboutTelemetry.choosePing "
+Выберыце пінг:
 ">
-<!ENTITY aboutTelemetry.histogramsSection "
-  Гістаграмы
+<!ENTITY aboutTelemetry.archivePingType "
+Тып пінгу
 ">
-<!ENTITY aboutTelemetry.simpleMeasurementsSection "
-  Простыя вымярэнні
+<!ENTITY aboutTelemetry.archivePingHeader "
+Пінг
 ">
-<!ENTITY aboutTelemetry.addonDetailsSection "
-  Падрабязнасці дадатка
+<!ENTITY aboutTelemetry.optionGroupToday "
+Сёння
 ">
-<!ENTITY aboutTelemetry.lateWritesSection "
-  Апошнія запісы
+<!ENTITY aboutTelemetry.optionGroupYesterday "
+Учора
 ">
-<!ENTITY aboutTelemetry.systemInfoSection "
-  Звесткі пра сістэму
+<!ENTITY aboutTelemetry.optionGroupOlder "
+Раней
 ">
-<!ENTITY aboutTelemetry.addonHistogramsSection "
-  Гістаграма, пазбіраныя дадаткамі">
-<!ENTITY aboutTelemetry.toggle "
-  Пстрыкніце, каб пераключыць раздзел
+<!ENTITY aboutTelemetry.payloadChoiceHeader "
+  Нагрузка
 ">
-<!ENTITY aboutTelemetry.emptySection "
-  (Няма сабраных здаткаў)
-">
-<!ENTITY aboutTelemetry.fullSqlWarning "
-  УВАГА: дазволена марудная наладка SQL. Поўныя радкі SQL могуць адлюстроўвацца ніжэй, але яны не будуць падавацца тэлеметрыі.
-">
-<!ENTITY aboutTelemetry.fetchSymbols "
-  Даставанне назваў функцыяў для стосаў завісанняў
-">
-<!ENTITY aboutTelemetry.hideSymbols "
-  Паказ сырых здаткаў з завісанняў
-">
-<!ENTITY aboutTelemetry.filterText "
-  Сіта (радкі або /regexp/)
-">
-
-<!ENTITY aboutTelemetry.pingDataSource "Ping data source:">
-<!ENTITY aboutTelemetry.showCurrentPingData "Current ping data">
-<!ENTITY aboutTelemetry.showArchivedPingData "Archived ping data">
-<!ENTITY aboutTelemetry.showSubsessionData "Show subsession data">
-<!ENTITY aboutTelemetry.choosePing "Choose ping:">
-<!ENTITY aboutTelemetry.archivePingType "Ping Type">
-<!ENTITY aboutTelemetry.archivePingHeader "Ping">
-<!ENTITY aboutTelemetry.optionGroupToday "Today">
-<!ENTITY aboutTelemetry.optionGroupYesterday "Yesterday">
-<!ENTITY aboutTelemetry.optionGroupOlder "Older">
-<!ENTITY aboutTelemetry.payloadChoiceHeader "Payload">
+<!-- LOCALIZATION NOTE(aboutTelemetry.previousPing, aboutTelemetry.nextPing):
+	These strings are displayed when selecting Archived pings, and they’re
+	used to move to the next or previous ping. -->
 <!ENTITY aboutTelemetry.previousPing "&lt;&lt;">
 <!ENTITY aboutTelemetry.nextPing "&gt;&gt;">
-<!ENTITY aboutTelemetry.moreInformations "Looking for more information?">
-<!ENTITY aboutTelemetry.firefoxDataDoc "The <a>Firefox Data Documentation</a> contains guides about how to work with our data tools.">
-<!ENTITY aboutTelemetry.telemetryClientDoc "The <a>Firefox Telemetry client documentation</a> includes definitions for concepts, API documentation and data references.">
-<!ENTITY aboutTelemetry.telemetryDashboard "The <a>Telemetry dashboards</a> allow you to visualize the data Mozilla receives via Telemetry.">
-<!ENTITY aboutTelemetry.showInFirefoxJsonViewer "Open in the JSON viewer">
-<!ENTITY aboutTelemetry.homeSection "Home">
-<!ENTITY aboutTelemetry.generalDataSection "General Data">
-<!ENTITY aboutTelemetry.environmentDataSection "Environment Data">
-<!ENTITY aboutTelemetry.sessionInfoSection "Session Information">
-<!ENTITY aboutTelemetry.scalarsSection "Scalars">
-<!ENTITY aboutTelemetry.keyedScalarsSection "Keyed Scalars">
-<!ENTITY aboutTelemetry.keyedHistogramsSection "Keyed Histograms">
-<!ENTITY aboutTelemetry.eventsSection "Events">
-<!ENTITY aboutTelemetry.telemetryLogSection "Telemetry Log">
-<!ENTITY aboutTelemetry.capturedStacksSection "Captured Stacks">
-<!ENTITY aboutTelemetry.rawPayloadSection "Raw Payload">
-<!ENTITY aboutTelemetry.raw "Raw JSON">
-<!ENTITY aboutTelemetry.fetchStackSymbols "Fetch function names for stacks">
-<!ENTITY aboutTelemetry.hideStackSymbols "Show raw stack data">
+
+<!ENTITY aboutTelemetry.pageTitle "Дадзеныя тэлеметрыі">
+<!ENTITY aboutTelemetry.moreInformations "
+Шукаеце больш інфармацыі?
+">
+<!ENTITY aboutTelemetry.firefoxDataDoc "
+<a>Дакументацыя дадзеных Firefox</a> змяшчае кіраўніцтва па працы з нашымі інструментамі збору дадзеных.
+">
+<!ENTITY aboutTelemetry.telemetryClientDoc "
+<a>Дакументацыя кліента тэлеметрыі Firefox</a> змяшчае вызначэнні канцэпцый, дакументацыю па API і даведку па дадзеных.
+">
+<!ENTITY aboutTelemetry.telemetryDashboard "
+<a>Панэлі Тэлеметрыі</a> дазваляюць вам візуалізаваць дадзеныя, атрыманыя Mozilla праз тэлеметрыю.
+">
+
+<!ENTITY aboutTelemetry.showInFirefoxJsonViewer "
+Адкрыць у праглядальніку JSON
+">
+
+<!ENTITY aboutTelemetry.homeSection "Хатняя старонка">
+<!ENTITY aboutTelemetry.generalDataSection "
+  Агульныя дадзеныя
+">
+<!ENTITY aboutTelemetry.environmentDataSection "
+  Дадзеныя асяроддзя
+">
+<!ENTITY aboutTelemetry.sessionInfoSection "
+  Інфармацыя сесіі
+">
+<!ENTITY aboutTelemetry.scalarsSection "
+  Скаляры
+">
+<!ENTITY aboutTelemetry.keyedScalarsSection "
+  Ключавыя скаляры
+">
+<!ENTITY aboutTelemetry.histogramsSection "  Гістаграмы">
+<!ENTITY aboutTelemetry.keyedHistogramsSection "
+  Ключавыя гістаграмы
+">
+<!ENTITY aboutTelemetry.eventsSection "
+  Падзеі
+">
+<!ENTITY aboutTelemetry.simpleMeasurementsSection "  Простыя вымярэнні">
+<!ENTITY aboutTelemetry.telemetryLogSection "
+  Лог тэлеметрыі
+">
+<!ENTITY aboutTelemetry.slowSqlSection "  Паказ чыннікаў SQL">
+<!ENTITY aboutTelemetry.chromeHangsSection "
+  Завісанні браўзера
+">
+<!ENTITY aboutTelemetry.addonDetailsSection "  Падрабязнасці дадатка">
+<!ENTITY aboutTelemetry.capturedStacksSection "
+  Захопленыя стэкі
+">
+<!ENTITY aboutTelemetry.lateWritesSection "  Апошнія запісы">
+<!ENTITY aboutTelemetry.rawPayloadSection "
+Неапрацаваная нагрузка
+">
+<!ENTITY aboutTelemetry.raw "
+Неапрацаваны JSON
+">
+
+<!ENTITY aboutTelemetry.fullSqlWarning "  УВАГА: дазволена марудная наладка SQL. Поўныя радкі SQL могуць адлюстроўвацца ніжэй, але яны не будуць падавацца тэлеметрыі.">
+<!ENTITY aboutTelemetry.fetchStackSymbols "
+  Атрымаць імёны функцый для стэкаў
+">
+<!ENTITY aboutTelemetry.hideStackSymbols "
+  Паказаць сырыя дадзеныя стэка">

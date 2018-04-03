@@ -28,7 +28,7 @@ function Startup()
   gProxyType = document.getElementById("network.proxy.type");
 
   // Check for system proxy settings class and unhide UI if present
-  if ("@mozilla.org/system-proxy-settings;1" in Components.classes)
+  if ("@mozilla.org/system-proxy-settings;1" in Cc)
     document.getElementById("systemPref").hidden = false;
 
   // Calculate a sane default for network.proxy.share_proxy_settings.
@@ -128,15 +128,15 @@ function ReloadPAC() {
   // This reloads the PAC URL stored in preferences.
   // When not in instant apply mode, the button that calls this gets
   // disabled if the preference and what is showing in the UI differ.
-  Components.classes["@mozilla.org/network/protocol-proxy-service;1"]
-            .getService().reloadPAC();
+  Cc["@mozilla.org/network/protocol-proxy-service;1"]
+    .getService().reloadPAC();
 }
 
 function FixProxyURL(aURL)
 {
-  const nsIURIFixup = Components.interfaces.nsIURIFixup;
-  var URIFixup = Components.classes["@mozilla.org/docshell/urifixup;1"]
-                           .getService(nsIURIFixup);
+  const nsIURIFixup = Ci.nsIURIFixup;
+  var URIFixup = Cc["@mozilla.org/docshell/urifixup;1"]
+                   .getService(nsIURIFixup);
   try
   {
     aURL.value = URIFixup.createFixupURI(aURL.value,

@@ -8,10 +8,8 @@
 
 /* eslint-env mozilla/frame-script */
 
-var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
-
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   BrowserUtils: "resource://gre/modules/BrowserUtils.jsm",
@@ -110,7 +108,9 @@ function getSiteBlockedErrorDetails(docShell) {
 
       // Remove the query to avoid leaking sensitive data
       if (reportUri instanceof Ci.nsIURL) {
-        reportUri.query = "";
+        reportUri = reportUri.mutate()
+                             .setQuery("")
+                             .finalize();
       }
 
       blockedInfo = { list: classifiedChannel.matchedList,

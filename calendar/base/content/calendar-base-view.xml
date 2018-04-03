@@ -79,7 +79,7 @@
               },
 
               onAddItem: function(aItem) {
-                  if (cal.isToDo(aItem)) {
+                  if (cal.item.isToDo(aItem)) {
                       if (!aItem.entryDate && !aItem.dueDate) {
                           return;
                       }
@@ -100,13 +100,13 @@
               },
 
               onModifyItem: function(aNewItem, aOldItem) {
-                  if (cal.isToDo(aNewItem) && cal.isToDo(aOldItem) &&
+                  if (cal.item.isToDo(aNewItem) && cal.item.isToDo(aOldItem) &&
                       !this.calView.mTasksInView) {
                       return;
                   }
                   let occs;
 
-                  if (!cal.isToDo(aOldItem) || aOldItem.entryDate || aOldItem.dueDate) {
+                  if (!cal.item.isToDo(aOldItem) || aOldItem.entryDate || aOldItem.dueDate) {
                       occs = aOldItem.getOccurrencesBetween(this.calView.startDate,
                                                             this.calView.queryEndDate,
                                                             {});
@@ -114,7 +114,7 @@
                           this.calView.doDeleteItem(occ);
                       }
                   }
-                  if (cal.isToDo(aNewItem)) {
+                  if (cal.item.isToDo(aNewItem)) {
                       if ((!aNewItem.entryDate && !aNewItem.dueDate) || !this.calView.mTasksInView) {
                           return;
                       }
@@ -132,7 +132,7 @@
               },
 
               onDeleteItem: function(aItem) {
-                  if (cal.isToDo(aItem)) {
+                  if (cal.item.isToDo(aItem)) {
                       if (!this.calView.mTasksInView) {
                           return;
                       }
@@ -222,10 +222,10 @@
       ]]></field>
 
       <constructor><![CDATA[
-          Components.utils.import("resource://gre/modules/Services.jsm");
-          Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-          Components.utils.import("resource://gre/modules/Preferences.jsm");
-          Components.utils.import("resource:///modules/gloda/log4moz.js");
+          ChromeUtils.import("resource://gre/modules/Services.jsm");
+          ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+          ChromeUtils.import("resource://gre/modules/Preferences.jsm");
+          ChromeUtils.import("resource:///modules/gloda/log4moz.js");
 
           const kWorkdaysCommand = "calendar_toggle_workdays_only_command";
           const kTasksInViewCommand = "calendar_toggle_tasks_in_view_command";
@@ -260,7 +260,7 @@
       ]]></constructor>
 
       <destructor><![CDATA[
-          Components.utils.import("resource://gre/modules/Services.jsm");
+          ChromeUtils.import("resource://gre/modules/Services.jsm");
 
           if (this.mCalendar) {
               this.mCalendar.removeObserver(this.mObserver);
@@ -476,7 +476,7 @@
                     }
 
                     for (let item of aItems) {
-                        if (!cal.isToDo(item) || item.entryDate || item.dueDate) {
+                        if (!cal.item.isToDo(item) || item.entryDate || item.dueDate) {
                             this.calView.doAddItem(item);
                         }
                     }
@@ -643,6 +643,7 @@
                     this.weekStartOffset = aSubject.getIntPref(aPreference);
                     break;
                 case "calendar.date.format":
+                case "calendar.view.showLocation":
                     this.refreshView();
                     break;
                 default:
@@ -766,12 +767,11 @@
           this.moveView(event.detail);
       ]]></handler>
       <handler event="keypress"><![CDATA[
-          const kKE = Components.interfaces.nsIDOMKeyEvent;
-          switch (event.keyCode) {
-              case kKE.DOM_VK_PAGE_UP:
+          switch (event.key) {
+              case "PageUp":
                   this.moveView(-1);
                   break;
-              case kKE.DOM_VK_PAGE_DOWN:
+              case "PageDown":
                   this.moveView(1);
                   break;
           }

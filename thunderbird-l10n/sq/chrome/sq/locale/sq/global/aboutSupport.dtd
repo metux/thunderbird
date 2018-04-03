@@ -25,6 +25,13 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Version">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Software Sigurie">
+<!ENTITY aboutSupport.securitySoftwareType "Lloj">
+<!ENTITY aboutSupport.securitySoftwareName "Emër">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
+
 <!ENTITY aboutSupport.featuresTitle "Veçori &brandShortName;-i">
 <!ENTITY aboutSupport.featureName "Emër">
 <!ENTITY aboutSupport.featureVersion "Version">
@@ -70,6 +77,9 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Dritare Multiproces">
 
+<!ENTITY aboutSupport.appBasicsProcessCount "Procese Lënde Web">
+
+<!ENTITY aboutSupport.enterprisePolicies "Rregulla të Ndërmarrjes">
 
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Kyç Google">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Kyç Mozilla Location Service">
@@ -80,7 +90,7 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!-- LOCALIZATION NOTE (aboutSupport.showMac.label): This is the Mac-specific
 variant of aboutSupport.showDir.label.  This allows us to use the preferred
 "Finder" terminology on Mac. -->
-<!ENTITY aboutSupport.showMac.label "Shfaqe te Finder">
+<!ENTITY aboutSupport.showMac.label "Shfaqe Në Finder">
 <!-- LOCALIZATION NOTE (aboutSupport.showWin2.label): This is the Windows-specific
 variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.showWin2.label "Hape Dosjen">
@@ -110,7 +120,7 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yActivated "E aktivizuar">
 <!ENTITY aboutSupport.a11yForceDisabled "Parandaloje Përdorshmërinë">
 
-<!ENTITY aboutSupport.libraryVersionsTitle "Versione Librarie">
+<!ENTITY aboutSupport.libraryVersionsTitle "Versione Librarish">
 
 <!ENTITY aboutSupport.installationHistoryTitle "Historik Instalimesh">
 <!ENTITY aboutSupport.updateHistoryTitle "Historik Përditësimesh">
@@ -129,7 +139,7 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.sandboxSyscallArgs "Argumente">
 
 <!ENTITY aboutSupport.safeModeTitle "Provoni Mënyrën e Parrezik">
-<!ENTITY aboutSupport.restartInSafeMode.label "Riniseni me Shtesa të Çaktivizuara…">
+<!ENTITY aboutSupport.restartInSafeMode.label "Riniseni me Shtesat të Çaktivizuara…">
 
 <!ENTITY aboutSupport.graphicsFeaturesTitle "Veçori">
 <!ENTITY aboutSupport.graphicsDiagnosticsTitle "Diagnostikime">
@@ -150,24 +160,18 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDevicePreferred "E parapëlqyer">
 <!ENTITY aboutSupport.mediaDeviceFormat "Format">
 <!ENTITY aboutSupport.mediaDeviceChannels "Kanale">
+<!ENTITY aboutSupport.mediaDeviceRate "Shpeshti">
 <!ENTITY aboutSupport.mediaDeviceLatency "Vonesë">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.appBasicsProcessCount "Web Content Processes">
+<!ENTITY aboutSupport.intlTitle "Ndërkombëtarizim &amp; Përkthim">
+<!ENTITY aboutSupport.intlAppTitle "Rregullime Aplikacionesh">
+<!ENTITY aboutSupport.intlLocalesRequested "Gjuhë të Kërkuara">
+<!ENTITY aboutSupport.intlLocalesAvailable "Gjuhë të Mundshme">
+<!ENTITY aboutSupport.intlLocalesSupported "Gjuhë Aplikacioni">
+<!ENTITY aboutSupport.intlLocalesDefault "Gjuhë Parazgjedhje">
+<!ENTITY aboutSupport.intlOSTitle "Sistem Operativ">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Gjuhë Sistemi">
+<!ENTITY aboutSupport.intlRegionalPrefs "Parapëlqime Rajoni">
+
 <!ENTITY aboutSupport.a11yHandlerUsed "Accessible Handler Used">
 <!ENTITY aboutSupport.a11yInstantiator "Accessibility Instantiator">
-<!ENTITY aboutSupport.mediaDeviceRate "Rate">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">

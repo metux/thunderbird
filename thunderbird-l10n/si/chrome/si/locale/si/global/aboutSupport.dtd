@@ -62,6 +62,7 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "බහුසැකසුම් කවුළු">
 
+
 <!ENTITY aboutSupport.appBasicsSafeMode "ආරක්ෂිත ප්‍රකාරය">
 
 <!ENTITY aboutSupport.showDir.label "ඩිරෙක්ටරිය විවෘත කරන්න">
@@ -103,6 +104,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "අමු දත්ත පසුරු පුවරුවට පිටපත් කරන්න">
 
 <!ENTITY aboutSupport.sandboxTitle "සෑන්ඩ්බොක්ස්">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
 
 <!ENTITY aboutSupport.safeModeTitle "ආරක්ෂිත ප්‍රකාරය උත්සහ කරන්න">
 <!ENTITY aboutSupport.restartInSafeMode.label "ඇඩෝන අක්‍රීය කර යළි ආරම්භ කරන්න…">
@@ -125,6 +128,7 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.featureId "ID">
 <!ENTITY aboutSupport.appBasicsPerformance "Performance">
 <!ENTITY aboutSupport.appBasicsProcessCount "Web Content Processes">
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Google Key">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla Location Service Key">
 <!ENTITY aboutSupport.showWin2.label "Open Folder">
@@ -136,8 +140,6 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.sandboxSyscallLogTitle "Rejected System Calls">
 <!ENTITY aboutSupport.sandboxSyscallIndex "#">
 <!ENTITY aboutSupport.sandboxSyscallAge "Seconds Ago">
-<!ENTITY aboutSupport.sandboxSyscallPID "PID">
-<!ENTITY aboutSupport.sandboxSyscallTID "TID">
 <!ENTITY aboutSupport.sandboxSyscallProcType "Process Type">
 <!ENTITY aboutSupport.sandboxSyscallNumber "Syscall">
 <!ENTITY aboutSupport.sandboxSyscallArgs "Arguments">

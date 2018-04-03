@@ -5,7 +5,7 @@ load("../../../resources/messageGenerator.js");
 load("../../../resources/messageModifier.js");
 load("../../../resources/messageInjection.js");
 
-Components.utils.import("resource:///modules/gloda/mimemsg.js");
+ChromeUtils.import("resource:///modules/gloda/mimemsg.js");
 
 var gMessenger = Cc["@mozilla.org/messenger;1"]
                    .createInstance(Ci.nsIMessenger);
@@ -17,7 +17,7 @@ var p7mAttachment = "dGhpcyBpcyBub3QgYSByZWFsIHMvbWltZSBwN20gZW50aXR5";
 
 // create a message with a p7m attachment
 var messages = [{
-  attachments: [{ 
+  attachments: [{
     body: p7mAttachment,
     filename: 'test.txt.p7m',
     contentType: 'application/pkcs7-mime',

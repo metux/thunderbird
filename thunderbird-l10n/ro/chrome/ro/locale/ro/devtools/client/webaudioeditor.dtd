@@ -23,6 +23,7 @@
 
 <!-- LOCALIZATION NOTE (webAudioEditorUI.tab.properties2): This is the label shown
   -  for the properties tab view. -->
+<!ENTITY webAudioEditorUI.tab.properties2 "Proprietăți">
 
 <!-- LOCALIZATION NOTE (webAudioEditorUI.tab.automation): This is the label shown
   -  for the automation tab view. -->
@@ -45,7 +46,6 @@
 
 <!ENTITY webAudioEditorUI.reloadNotice2   "the page to view and edit the audio context.">
 <!ENTITY webAudioEditorUI.emptyNotice     "Waiting for an audio context to be created…">
-<!ENTITY webAudioEditorUI.tab.properties2 "Properties">
 <!ENTITY webAudioEditorUI.tab.automation  "Automation">
 <!ENTITY webAudioEditorUI.inspectorTitle  "AudioNode Inspector">
 <!ENTITY webAudioEditorUI.inspectorEmpty  "No AudioNode selected.">

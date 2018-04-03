@@ -21,6 +21,13 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Versjon">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Sikkerhetsprogramvare">
+<!ENTITY aboutSupport.securitySoftwareType "Type">
+<!ENTITY aboutSupport.securitySoftwareName "Navn">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispionprogram">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Brannvegg">
+
 <!ENTITY aboutSupport.featuresTitle "&brandShortName;-funksjoner">
 <!ENTITY aboutSupport.featureName "Navn">
 <!ENTITY aboutSupport.featureVersion "Versjon">
@@ -67,6 +74,8 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Multiprosess-vinduer">
 
 <!ENTITY aboutSupport.appBasicsProcessCount "Nettinnholdsprosesser">
+
+<!ENTITY aboutSupport.enterprisePolicies "Virksomhets-policy">
 
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Google-nøkkel">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla Location Service-nøkkel">
@@ -152,18 +161,12 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "Hastighet">
 <!ENTITY aboutSupport.mediaDeviceLatency "Forsinkelse">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.intlTitle "Internasjonalisering og lokalisering">
+<!ENTITY aboutSupport.intlAppTitle "Programinnstillinger">
+<!ENTITY aboutSupport.intlLocalesRequested "Forespurte språkversjoner">
+<!ENTITY aboutSupport.intlLocalesAvailable "Tilgjengelige språkversjoner">
+<!ENTITY aboutSupport.intlLocalesSupported "App-språkversjoner">
+<!ENTITY aboutSupport.intlLocalesDefault "Standardspråk">
+<!ENTITY aboutSupport.intlOSTitle "Operativsystem">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System-språkversjoner">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regionale innstillinger">

@@ -3,9 +3,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-
 var gSanitizePromptDialog = {
 
   get bundleBrowser()
@@ -110,7 +107,7 @@ var gSanitizePromptDialog = {
     try {
       s.sanitize();
     } catch (er) {
-      Components.utils.reportError("Exception during sanitize: " + er);
+      Cu.reportError("Exception during sanitize: " + er);
     }
     return true;
   },

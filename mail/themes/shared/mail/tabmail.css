@@ -8,7 +8,7 @@
 }
 
 #tabs-toolbar:-moz-lwtheme {
-  --tab-line-color: var(--lwt-accent-color);
+  --tabline-color: var(--tab-line-color, var(--lwt-accent-color));
 }
 
 #tabs-toolbar {
@@ -78,6 +78,8 @@
 .tab-label {
   margin-inline-end: 0;
   margin-inline-start: 0;
+  /* Maintain consistent alignment in case of font fallback for non-Latin characters. */
+  line-height: 1.7em;
 }
 
 .tab-content > .tab-close-button {
@@ -131,7 +133,7 @@
 }
 
 .tab-line[selected=true] {
-  background-color: var(--tab-line-color);
+  background-color: var(--tabline-color);
 }
 
 /*
@@ -140,14 +142,16 @@
  */
 
 /* Lightweight theme on tabs */
-.tabmail-tab > .tab-stack > .tab-background[selected=true]:-moz-lwtheme {
-  background-attachment: scroll, fixed;
+:root[lwtheme-image] .tabmail-tab > .tab-stack > .tab-background[selected=true] {
+  background-attachment: scroll, scroll, fixed;
   background-color: transparent;
-  background-image: linear-gradient(var(--toolbar-bgcolor), var(--toolbar-bgcolor)),
+  background-image: linear-gradient(var(--lwt-selected-tab-background-color, transparent),
+                    var(--lwt-selected-tab-background-color, transparent)),
+                    linear-gradient(var(--toolbar-bgcolor), var(--toolbar-bgcolor)),
                     var(--lwt-header-image);
-  background-position: 0 0, right top;
-  background-repeat: repeat-x, no-repeat;
-  background-size: auto 100%, auto auto;
+  background-position: 0 0, 0 0, right top;
+  background-repeat: repeat-x, repeat-x, no-repeat;
+  background-size: auto 100%, auto 100%, auto auto;
 }
 
 /* Tab hover */

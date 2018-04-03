@@ -291,7 +291,6 @@
 ; download progress
 @RESPATH@/components/nsHelperAppDlg.js
 @RESPATH@/components/nsHelperAppDlg.manifest
-@RESPATH@/components/downloads.xpt
 
 ; Protocol/Content handling
 @RESPATH@/components/nsContentDispatchChooser.js
@@ -466,7 +465,6 @@
 @RESPATH@/components/dom.xpt
 @RESPATH@/components/dom_base.xpt
 @RESPATH@/components/dom_bindings.xpt
-@RESPATH@/components/dom_canvas.xpt
 @RESPATH@/components/dom_core.xpt
 @RESPATH@/components/dom_events.xpt
 @RESPATH@/components/dom_file.xpt
@@ -483,16 +481,11 @@
 @RESPATH@/components/dom_range.xpt
 @RESPATH@/components/dom_security.xpt
 @RESPATH@/components/dom_sidebar.xpt
-@RESPATH@/components/dom_smil.xpt
 @RESPATH@/components/dom_storage.xpt
 @RESPATH@/components/dom_system.xpt
-@RESPATH@/components/dom_traversal.xpt
 @RESPATH@/components/dom_webspeechrecognition.xpt
 @RESPATH@/components/dom_webspeechsynth.xpt
 @RESPATH@/components/dom_workers.xpt
-@RESPATH@/components/dom_xbl.xpt
-@RESPATH@/components/dom_xhr.xpt
-@RESPATH@/components/dom_xpath.xpt
 @RESPATH@/components/dom_xul.xpt
 @RESPATH@/components/NetworkGeolocationProvider.js
 @RESPATH@/components/NetworkGeolocationProvider.manifest
@@ -607,7 +600,7 @@
 @RESPATH@/components/autocomplete.xpt
 @RESPATH@/components/alerts.xpt
 @RESPATH@/components/jsdebugger.xpt
-@RESPATH@/components/jsdownloads.xpt
+@RESPATH@/components/downloads.xpt
 @RESPATH@/components/jsinspector.xpt
 @RESPATH@/components/fastfind.xpt
 @RESPATH@/components/ConsoleAPIStorage.js
@@ -689,7 +682,6 @@
 
 ; svg
 @RESPATH@/res/svg.css
-@RESPATH@/components/dom_svg.xpt
 
 ; [Updater]
 #ifdef MOZ_UPDATER

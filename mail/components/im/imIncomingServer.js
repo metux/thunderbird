@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-var {classes: Cc, interfaces: Ci, utils: Cu} = Components;
-Cu.import("resource:///modules/imXPCOMUtils.jsm");
-Cu.import("resource:///modules/imServices.jsm");
+ChromeUtils.import("resource:///modules/imXPCOMUtils.jsm");
+ChromeUtils.import("resource:///modules/imServices.jsm");
 
 function imIncomingServer() { }
 
@@ -221,7 +220,9 @@ imIncomingServer.prototype = {
 
   // Shutdown the server instance so at least disconnect from the server.
   shutdown: function() {
-    this.imAccount.disconnect();
+    // Ensure this account has not been destroyed already.
+    if (this.imAccount.prplAccount)
+      this.imAccount.disconnect();
   },
 
   setFilterList: function() { },
@@ -263,14 +264,14 @@ imIncomingServer.prototype = {
       get abbreviatedName() { return this.server.prettyName + "abbreviatedName"; },
       AddFolderListener: function() {},
       RemoveFolderListener: function() {},
-      descendants: Components.classes["@mozilla.org/array;1"]
-                  .createInstance(Components.interfaces.nsIArray),
+      descendants: Cc["@mozilla.org/array;1"]
+                  .createInstance(Ci.nsIArray),
       ListDescendants: function(descendants) {},
       getFlag: () => false,
       getFolderWithFlags: aFlags => null,
       getFoldersWithFlags: aFlags =>
-        Components.classes["@mozilla.org/array;1"]
-                  .createInstance(Components.interfaces.nsIArray),
+        Cc["@mozilla.org/array;1"]
+          .createInstance(Ci.nsIArray),
       get subFolders() { return EmptyEnumerator; },
       getStringProperty: aPropertyName => "",
       getNumUnread: aDeep => 0,
@@ -282,8 +283,8 @@ imIncomingServer.prototype = {
   get sortOrder() { return 300000000; },
 
   get protocolInfo() {
-    return Components.classes["@mozilla.org/messenger/protocol/info;1?type=im"]
-                     .getService(Components.interfaces.nsIMsgProtocolInfo);
+    return Cc["@mozilla.org/messenger/protocol/info;1?type=im"]
+             .getService(Ci.nsIMsgProtocolInfo);
   },
 
   classDescription: "IM Msg Incoming Server implementation",

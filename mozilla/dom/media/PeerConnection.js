@@ -5,15 +5,13 @@
 
 "use strict";
 
-const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
-
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PeerConnectionIdp",
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.defineModuleGetter(this, "PeerConnectionIdp",
   "resource://gre/modules/media/PeerConnectionIdp.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "convertToRTCStatsReport",
+ChromeUtils.defineModuleGetter(this, "convertToRTCStatsReport",
   "resource://gre/modules/media/RTCStatsReport.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
+ChromeUtils.defineModuleGetter(this, "AppConstants",
   "resource://gre/modules/AppConstants.jsm");
 
 const PC_CONTRACT = "@mozilla.org/dom/peerconnection;1";
@@ -445,7 +443,6 @@ class RTCPeerConnection {
     this.makeGetterSetterEH("onicecandidate");
     this.makeGetterSetterEH("onnegotiationneeded");
     this.makeGetterSetterEH("onsignalingstatechange");
-    this.makeGetterSetterEH("onremovestream");
     this.makeGetterSetterEH("ondatachannel");
     this.makeGetterSetterEH("oniceconnectionstatechange");
     this.makeGetterSetterEH("onicegatheringstatechange");
@@ -795,10 +792,6 @@ class RTCPeerConnection {
       options = optionsOrOnSucc;
     }
 
-    // Spec language implies that this needs to happen as if it were called
-    // before createOffer, so we do this as early as possible.
-    this._ensureTransceiversForOfferToReceive(options);
-
     // This entry-point handles both new and legacy call sig. Decipher which one
     if (onSuccess) {
       return this._legacy(onSuccess, onErr, () => this._createOffer(options));
@@ -849,6 +842,8 @@ class RTCPeerConnection {
 
   async _createOffer(options) {
     this._checkClosed();
+    this._ensureTransceiversForOfferToReceive(options);
+    this._syncTransceivers();
     let origin = Cu.getWebIDLCallerPrincipal().origin;
     return this._chain(async () => {
       let haveAssertion;
@@ -880,6 +875,7 @@ class RTCPeerConnection {
 
   async _createAnswer(options) {
     this._checkClosed();
+    this._syncTransceivers();
     let origin = Cu.getWebIDLCallerPrincipal().origin;
     return this._chain(async () => {
       // We give up line-numbers in errors by doing this here, but do all
@@ -1201,9 +1197,6 @@ class RTCPeerConnection {
       return;
     }
 
-    // TODO(bug 1401983): Move to TransceiverImpl?
-    this._impl.removeTrack(sender.track);
-
     sender.setTrack(null);
     if (transceiver.direction == "sendrecv") {
       transceiver.setDirectionInternal("recvonly");
@@ -1274,7 +1267,7 @@ class RTCPeerConnection {
     // the local offset, likewise store it for reuse.
     if (cache.tsNowInRtpSourceTime !== undefined) {
       cache.tsNowInRtpSourceTime = this._impl.getNowInRtpSourceReferenceTime();
-      cache.jsTimestamp = new Date().getTime();
+      cache.jsTimestamp = this._win.performance.now() + this._win.performance.timeOrigin;
       cache.timestampOffset = cache.jsTimestamp - cache.tsNowInRtpSourceTime;
     }
     let id = receiver.track.id;
@@ -1376,8 +1369,7 @@ class RTCPeerConnection {
     return this._impl.getDTMFToneBuffer(sender.__DOM_IMPL__);
   }
 
-  _replaceTrack(transceiverImpl, withTrack) {
-    this._checkClosed();
+  _replaceTrackNoRenegotiation(transceiverImpl, withTrack) {
     this._impl.replaceTrackNoRenegotiation(transceiverImpl, withTrack);
   }
 
@@ -1838,11 +1830,6 @@ class PeerConnectionObserver {
     this._dompc._onGetStatsFailure(this.newError(message, code));
   }
 
-  onRemoveStream(stream) {
-    this.dispatchEvent(new this._dompc._win.MediaStreamEvent("removestream",
-                                                             { stream }));
-  }
-
   _getTransceiverWithRecvTrack(webrtcTrackId) {
     return this._dompc.getTransceivers().find(
         transceiver => transceiver.remoteTrackIdIs(webrtcTrackId));
@@ -1965,7 +1952,7 @@ class RTCRtpSender {
     // Updates the track on the MediaPipeline; this is needed whether or not
     // we've associated this transceiver, the spec language notwithstanding.
     // Synchronous, and will throw on failure.
-    this._pc._replaceTrack(this._transceiverImpl, withTrack);
+    this._pc._replaceTrackNoRenegotiation(this._transceiverImpl, withTrack);
 
     let setTrack = () => {
       this.track = withTrack;
@@ -2039,6 +2026,7 @@ class RTCRtpSender {
   }
 
   setTrack(track) {
+    this._pc._replaceTrackNoRenegotiation(this._transceiverImpl, track);
     this.track = track;
   }
 

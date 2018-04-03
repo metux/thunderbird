@@ -1,0 +1,271 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "BlockAboutAddons": {
+      "description": "Block access to the Add-ons Mananger (about:addons).",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    },
+
+    "BlockAboutConfig": {
+      "description": "Blocks access to the about:config page.",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    },
+
+    "BlockAboutProfiles": {
+      "description": "Blocks access to the about:profiles page.",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    },
+
+    "BlockAboutSupport": {
+      "description": "Blocks access to the about:support page.",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    },
+
+    "BlockSetDesktopBackground": {
+      "description": "Prevents usage of the \"Set Image as Desktop Background\" feature.",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    },
+
+    "Bookmarks": {
+      "description": "Allows the creation of bookmarks in the Bookmarks bar, Bookmarks menu, or a specified folder inside them.",
+      "first_available": "60.0",
+
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Title": {
+            "type": "string"
+          },
+
+          "URL": {
+            "type": "URL"
+          },
+
+          "Favicon": {
+            "type": "URLorEmpty"
+          },
+
+          "Placement": {
+            "type": "string",
+            "enum": ["toolbar", "menu"]
+          },
+
+          "Folder": {
+            "type": "string"
+          }
+        },
+        "required": ["Title", "URL"]
+      }
+    },
+
+    "Cookies": {
+      "description": "Allow or deny websites to set cookies.",
+      "first_available": "60.0",
+
+      "type": "object",
+      "properties": {
+        "Allow": {
+          "type": "array",
+          "items": {
+            "type": "origin"
+          }
+        },
+
+        "Block": {
+          "type": "array",
+          "items": {
+            "type": "origin"
+          }
+        }
+      }
+    },
+
+    "CreateMasterPassword": {
+      "description": "If false, removes access to create a master password.",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    },
+
+    "DisableAppUpdate": {
+      "description": "Prevent the browser from updating.",
+      "first_available": "60.0",
+      "enterprise_only": true,
+
+      "type": "boolean"
+    },
+
+    "DisableDeveloperTools": {
+      "description": "Prevents access to developer tools.",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    },
+
+    "DisableFirefoxAccounts": {
+      "description": "Disables Firefox Account based services, including Sync.",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    },
+
+    "DisableFirefoxScreenshots": {
+      "description": "Prevents usage of the Firefox Screenshots feature.",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    },
+
+    "DisableFirefoxStudies": {
+      "description": "Prevents Firefox from running studies.",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    },
+
+    "DisableFormHistory": {
+      "description": "Don't remember search and form history.",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    },
+
+    "DisablePocket": {
+      "description": "Prevents ability to save webpages to Pocket.",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    },
+
+    "DisablePrivateBrowsing": {
+      "description": "Disables private browsing.",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    },
+
+    "DisableSysAddonUpdate": {
+      "description": "Prevent the browser from installing and updating system addons.",
+      "first_available": "60.0",
+      "enterprise_only": true,
+
+      "type": "boolean",
+      "enum": [true]
+    },
+
+    "DisplayBookmarksToolbar": {
+      "description": "Causes the bookmarks toolbar to be displayed by default.",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    },
+
+    "DisplayMenuBar": {
+      "description": "Causes the menu bar to be displayed by default.",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    },
+
+    "DontCheckDefaultBrowser": {
+      "description": "Don't check for the default browser on startup.",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    },
+
+    "FlashPlugin": {
+      "description": "Allow or deny flash plugin usage.",
+      "first_available": "60.0",
+
+      "type": "object",
+      "properties": {
+        "Allow": {
+          "type": "array",
+          "items": {
+            "type": "origin"
+          }
+        },
+
+        "Block": {
+          "type": "array",
+          "items": {
+            "type": "origin"
+          }
+        }
+      }
+    },
+
+    "Homepage": {
+      "description": "Set and optionally lock the homepage.",
+      "first_available": "60.0",
+      "enterprise_only": true,
+
+      "type": "object",
+      "properties": {
+        "URL": {
+          "type": "URL"
+        },
+        "Locked": {
+          "type": "boolean"
+        },
+        "Additional": {
+          "type": "array",
+          "items": {
+            "type": "URL"
+          }
+        }
+      },
+      "required": ["URL"]
+    },
+
+    "InstallAddons": {
+      "description": "Allow or deny popup websites to install webextensions.",
+      "first_available": "60.0",
+
+      "type": "object",
+      "properties": {
+        "Allow": {
+          "type": "array",
+          "items": {
+            "type": "origin"
+          }
+        }
+      }
+    },
+
+    "Popups": {
+      "description": "Allow or deny popup usage.",
+      "first_available": "60.0",
+
+      "type": "object",
+      "properties": {
+        "Allow": {
+          "type": "array",
+          "items": {
+            "type": "origin"
+          }
+        }
+      }
+    },
+
+    "RememberPasswords": {
+      "description": "Enforces the setting to allow Firefox to remember saved logins and passwords. Both true and false values are accepted.",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    }
+  }
+}

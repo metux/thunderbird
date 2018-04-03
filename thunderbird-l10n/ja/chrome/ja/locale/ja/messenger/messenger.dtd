@@ -321,6 +321,7 @@
 <!ENTITY goChatCmd.label		"チャット">
 <!ENTITY goChatCmd.accesskey		"c">
 <!ENTITY goChatCmd.key			"I">
+<!ENTITY goChatCmd2.key			"H">
 <!ENTITY prevStarredMsgCmd.label	"スター付きメッセージ">
 <!ENTITY prevStarredMsgCmd.accesskey	"S">
 <!ENTITY folderMenu.label		"フォルダー">
@@ -960,7 +961,6 @@
 <!ENTITY writeNewMessageDock.label	"新しいメッセージを作成する">
 <!ENTITY openAddressBookDock.label	"アドレス帳を開く">
 
-<!ENTITY goChatCmd2.key "H">
 <!ENTITY editTemplateMsgCmd.label "Edit Template">
 <!ENTITY editTemplateMsgCmd.accesskey "T">
 <!ENTITY addonPrefs.label "Add-on Options">

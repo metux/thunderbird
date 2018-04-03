@@ -5,10 +5,6 @@
 
 this.EXPORTED_SYMBOLS = ['moveCopyModule'];
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
-
 var nsActProcess = Components.Constructor("@mozilla.org/activity-process;1",
                                             "nsIActivityProcess", "init");
 var nsActEvent = Components.Constructor("@mozilla.org/activity-event;1",
@@ -17,11 +13,11 @@ var nsActWarning = Components.Constructor("@mozilla.org/activity-warning;1",
                                             "nsIActivityWarning", "init");
 var nsMsgFolderFlags = Ci.nsMsgFolderFlags;
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource:///modules/mailServices.js");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/PluralForm.jsm");
-Components.utils.import("resource:///modules/gloda/log4moz.js");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/PluralForm.jsm");
+ChromeUtils.import("resource:///modules/gloda/log4moz.js");
 
 // This module provides a link between the move/copy code and the activity
 // manager.
@@ -68,7 +64,7 @@ var moveCopyModule =
 
     let displayCount = count;
     // get the folder of the deleted messages
-    let folder = aMsgList.queryElementAt(0, Components.interfaces.nsIMsgDBHdr).folder;
+    let folder = aMsgList.queryElementAt(0, Ci.nsIMsgDBHdr).folder;
 
     let activities = this.activityMgr.getActivities({})
     if (activities.length > 0 &&
@@ -101,7 +97,7 @@ var moveCopyModule =
 
     for (let i = 0; i < count; i++)
     {
-      let msgHdr = aMsgList.queryElementAt(i, Components.interfaces.nsIMsgDBHdr);
+      let msgHdr = aMsgList.queryElementAt(i, Ci.nsIMsgDBHdr);
       event.addSubject(msgHdr.messageId);
     }
 
@@ -117,7 +113,7 @@ var moveCopyModule =
         return;
 
       // get the folder of the moved/copied messages
-      let folder = aSrcMsgList.queryElementAt(0, Components.interfaces.nsIMsgDBHdr).folder;
+      let folder = aSrcMsgList.queryElementAt(0, Ci.nsIMsgDBHdr).folder;
       this.log.info("got folder");
 
       let displayCount = count;
@@ -172,7 +168,7 @@ var moveCopyModule =
 
       for (let i = 0; i < count; i++)
       {
-        let msgHdr = aSrcMsgList.queryElementAt(i, Components.interfaces.nsIMsgDBHdr);
+        let msgHdr = aSrcMsgList.queryElementAt(i, Ci.nsIMsgDBHdr);
         event.addSubject(msgHdr.messageId);
       }
       this.lastMessage.id = this.activityMgr.addActivity(event);
@@ -300,8 +296,8 @@ var moveCopyModule =
 
   itemEvent: function(aItem, aEvent, aData, aString) {
     if (aEvent == "UnincorporatedMessageMoved") {
-      let srcFolder = aItem.QueryInterface(Components.interfaces.nsIMsgFolder);
-      let msgHdr = aData.QueryInterface(Components.interfaces.nsIMsgDBHdr);
+      let srcFolder = aItem.QueryInterface(Ci.nsIMsgFolder);
+      let msgHdr = aData.QueryInterface(Ci.nsIMsgDBHdr);
 
       try {
         this.log.info("in UnincorporatedMessageMoved");

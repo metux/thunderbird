@@ -4,6 +4,7 @@
 
 <!-- LOCALIZATION NOTE the term "url-classifier" should not be translated. -->
 <!ENTITY aboutUrlClassifier.pageTitle                   "Informasjon om url-klassifiseraren">
+<!ENTITY aboutUrlClassifier.title                       "URL-klassifiseringsinformasjon">
 <!ENTITY aboutUrlClassifier.providerTitle               "Leverandør">
 <!ENTITY aboutUrlClassifier.provider                    "Leverandør">
 <!ENTITY aboutUrlClassifier.providerLastUpdateTime      "Sist oppdatert">
@@ -11,7 +12,7 @@
 <!ENTITY aboutUrlClassifier.providerBackOffTime         "Back-off tid">
 <!ENTITY aboutUrlClassifier.providerLastUpdateStatus    "Siste oppdateringsstatus">
 <!ENTITY aboutUrlClassifier.providerUpdateBtn           "Oppdater">
-<!ENTITY aboutUrlClassifier.cacheTitle                  "Snøgglager">
+<!ENTITY aboutUrlClassifier.cacheTitle                  "Snøgglager (Cache)">
 <!ENTITY aboutUrlClassifier.cacheRefreshBtn             "Oppdater">
 <!ENTITY aboutUrlClassifier.cacheClearBtn               "Tøm">
 <!ENTITY aboutUrlClassifier.cacheTableName              "Tabellnamn">
@@ -31,5 +32,3 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Aktuelle loggmodular">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "JS-logg for trygg nettlesing">
 <!ENTITY aboutUrlClassifier.debugFile                   "Gjeldande loggfil">
-
-<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

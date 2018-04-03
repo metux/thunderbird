@@ -6,10 +6,6 @@
  * Tests the Hightail Bigfile backend.
  */
 
-var Cu = Components.utils;
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-
 var MODULE_NAME = 'test-cloudfile-backend-hightail';
 
 var RELATIVE_ROOT = '../shared-modules';
@@ -21,7 +17,7 @@ var MODULE_REQUIRES = ['folder-display-helpers',
                          'observer-helpers',
                          'prompt-helpers',];
 
-Cu.import('resource://gre/modules/Services.jsm');
+ChromeUtils.import('resource://gre/modules/Services.jsm');
 
 var gServer, gObsManager;
 
@@ -213,7 +209,7 @@ function test_create_existing_account() {
     },
     onStopRequest: function(aRequest, aContext, aStatusCode) {
       assert_true(aContext instanceof Ci.nsIMsgCloudFileProvider);
-      assert_equals(aStatusCode, Components.results.NS_OK);
+      assert_equals(aStatusCode, Cr.NS_OK);
       done = true;
     },
   }

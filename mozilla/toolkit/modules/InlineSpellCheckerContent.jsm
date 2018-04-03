@@ -5,12 +5,10 @@
 
 "use strict";
 
-var { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
-
 var { InlineSpellChecker, SpellCheckHelper } =
-  Cu.import("resource://gre/modules/InlineSpellChecker.jsm", {});
+  ChromeUtils.import("resource://gre/modules/InlineSpellChecker.jsm", {});
 
-this.EXPORTED_SYMBOLS = [ "InlineSpellCheckerContent" ];
+var EXPORTED_SYMBOLS = [ "InlineSpellCheckerContent" ];
 
 var InlineSpellCheckerContent = {
   _spellChecker: null,

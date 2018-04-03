@@ -4,7 +4,7 @@
 
 <!ENTITY  connectionsDialog.title       "Iɣewwaṛen n tuqqna">
 <!ENTITY  window.width                  "49em">
-
+<!ENTITY  window.macWidth               "44em">
 
 <!ENTITY  proxyTitle.label              "Tawila n uqeddac apṛuksi n unekcum ar Internet">
 <!ENTITY  noProxyTypeRadio.label        "Ulac apṛuksi">
@@ -45,5 +45,3 @@
 <!ENTITY  autologinproxy.tooltip        "Aɣewwaṛ-a a k-isesteb s wudem awurman deg iqeddacen n apruksi, anda awal uffir yekles. Ticki asesteb ur yeddi ara, a k-d-nessuter awal uffir.">
 <!ENTITY  socksRemoteDNS.label          "Apṛuksi DNS ticki SOCKS v5 yettwaseqdec">
 <!ENTITY  socksRemoteDNS.accesskey      "z">
-
-<!ENTITY  window.macWidth               "44em">

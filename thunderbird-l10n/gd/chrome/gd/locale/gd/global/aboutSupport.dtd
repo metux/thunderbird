@@ -21,6 +21,13 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Tionndadh">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Bathar-bog tèarainteachd">
+<!ENTITY aboutSupport.securitySoftwareType "Seòrsa">
+<!ENTITY aboutSupport.securitySoftwareName "Ainm">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Bathar an aghaigh bhìorasan">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Bathar an aghaidh bathar-foill">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Cachaileith-theine">
+
 <!ENTITY aboutSupport.featuresTitle "Gleusan &brandShortName;">
 <!ENTITY aboutSupport.featureName "Ainm">
 <!ENTITY aboutSupport.featureVersion "Tionndadh">
@@ -67,6 +74,8 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Uinneagan ioma-phròiseasaidh">
 
 <!ENTITY aboutSupport.appBasicsProcessCount "Pròiseasan susbaint-lìn">
+
+<!ENTITY aboutSupport.enterprisePolicies "Poileasaidhean Enterprise">
 
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Google Key">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Iuchair seirbheis nan ionad aig Mozilla">
@@ -152,18 +161,12 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "Reat">
 <!ENTITY aboutSupport.mediaDeviceLatency "Latency">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.intlTitle "Eadar-nàiseantachadh ⁊ ionadaileadh">
+<!ENTITY aboutSupport.intlAppTitle "Roghainnean na h-aplacaid">
+<!ENTITY aboutSupport.intlLocalesRequested "Dreachan ionadail a chaidh iarraidh">
+<!ENTITY aboutSupport.intlLocalesAvailable "Dreachan ionadail ri am faighinn">
+<!ENTITY aboutSupport.intlLocalesSupported "Dreachan ionadail na h-aplacaid">
+<!ENTITY aboutSupport.intlLocalesDefault "An dreach ionadail tùsail">
+<!ENTITY aboutSupport.intlOSTitle "Siostam-obrachaidh">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Dreachan ionadail an t-siostaim-obrachaidh">
+<!ENTITY aboutSupport.intlRegionalPrefs "Roghainnean roinneil">

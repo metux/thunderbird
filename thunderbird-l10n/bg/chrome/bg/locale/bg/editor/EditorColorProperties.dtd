@@ -5,7 +5,7 @@
 <!-- Window title -->
 <!ENTITY windowTitle.label "Цветове и фон на страницата">
 <!ENTITY pageColors.label "Цветове за страницата">
-<!ENTITY defaultColorsRadio.label "Цветове по подразбиране на читателя (без определяне на цветове в страницата)">
+<!ENTITY defaultColorsRadio.label "Цветовете по подразбиране на читателя (без определяне на цветове в страницата)">
 <!ENTITY defaultColorsRadio.accessKey "б">
 <!ENTITY defaultColorsRadio.tooltip "Ще се използват цветовите настройки на браузъра на потребителя (читателя)">
 <!ENTITY customColorsRadio.label "Използвайте ваши цветове:">
@@ -18,7 +18,7 @@
 <!ENTITY linkText.accessKey "Т">
 <!ENTITY activeLinkText.label "Текст на активна връзка">
 <!ENTITY activeLinkText.accessKey "а">
-<!ENTITY visitedLinkText.label "Текст на посетени връзки">
+<!ENTITY visitedLinkText.label "Текст на посетена препратка">
 <!ENTITY visitedLinkText.accessKey "п">
 <!ENTITY background.label "Фон:">
 <!ENTITY background.accessKey "Ф">

@@ -8,14 +8,14 @@
  *          adaptScheduleAgent
  */
 
-Components.utils.import("resource://gre/modules/PluralForm.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource:///modules/iteratorUtils.jsm");
+ChromeUtils.import("resource://gre/modules/PluralForm.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource:///modules/iteratorUtils.jsm");
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://calendar/modules/calAlarmUtils.jsm");
-Components.utils.import("resource://calendar/modules/calIteratorUtils.jsm");
-Components.utils.import("resource://calendar/modules/calRecurrenceUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calAlarmUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calIteratorUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calRecurrenceUtils.jsm");
 
 // Variables related to whether we are in a tab or a window dialog.
 var gInTab = false;
@@ -458,7 +458,7 @@ function commonUpdateReminder(aSuppressDialogs) {
     // approach as with recurring tasks. in case the reminder is related
     // to the entry date we check the entry date automatically and disable
     // the checkbox. the same goes for end related reminder and the due date.
-    if (cal.isToDo(window.calendarItem)) {
+    if (cal.item.isToDo(window.calendarItem)) {
         // In general, (re-)enable the due/entry checkboxes. This will be
         // changed in case the alarms are related to START/END below.
         enableElementWithLock("todo-has-duedate", "reminder-lock");

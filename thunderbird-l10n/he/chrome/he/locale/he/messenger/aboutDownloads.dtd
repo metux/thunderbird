@@ -10,16 +10,16 @@
      the same access key (though the two access keys can also be different).
      -->
 <!ENTITY cmd.show.label                            "פתיחת תיקיה מכילה">
+<!ENTITY cmd.showMac.label                         "הצגה ב־Finder">
 <!ENTITY cmd.open.label                            "פתיחה">
+<!ENTITY cmd.removeFromHistory.label               "הסרה מההיסטוריה">
+<!ENTITY cmd.clearList.label                       "פינוי הרשימה">
 <!ENTITY cmd.searchDownloads.label                 "חיפוש…">
 
 <!ENTITY cmd.show.accesskey                        "F">
-<!ENTITY cmd.showMac.label                         "Show In Finder">
 <!ENTITY cmd.showMac.accesskey                     "F">
 <!ENTITY cmd.open.accesskey                        "O">
-<!ENTITY cmd.removeFromHistory.label               "Remove From History">
 <!ENTITY cmd.removeFromHistory.accesskey           "e">
-<!ENTITY cmd.clearList.label                       "Clear List">
 <!ENTITY cmd.clearList.accesskey                   "C">
 <!ENTITY cmd.clearList.tooltip                     "Remove all entries from the list of saved files, except ongoing downloads.">
 <!ENTITY cmd.searchDownloads.key                   "F">

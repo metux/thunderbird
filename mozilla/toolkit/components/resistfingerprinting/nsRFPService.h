@@ -8,6 +8,7 @@
 
 #include "mozilla/Atomics.h"
 #include "mozilla/EventForwards.h"
+#include "mozilla/Mutex.h"
 #include "nsIDocument.h"
 #include "nsIObserver.h"
 
@@ -46,6 +47,9 @@
 
 #define SPOOFED_APPNAME    "Netscape"
 #define LEGACY_BUILD_ID    "20100101"
+
+// Forward declare LRUCache, defined in nsRFPService.cpp
+class LRUCache;
 
 namespace mozilla {
 
@@ -129,15 +133,11 @@ public:
 
   static PLDHashNumber HashKey(KeyTypePointer aKey)
   {
-    nsAutoString temp;
-    temp.AppendInt(aKey->mLang);
-    temp.Append('|');
-    temp.AppendInt(aKey->mRegion);
-    temp.Append('|');
-    temp.AppendInt(aKey->mKeyIdx);
-    temp.Append('|');
-    temp.Append(aKey->mKey);
-    return mozilla::HashString(temp);
+    PLDHashNumber hash = mozilla::HashString(aKey->mKey);
+    return mozilla::AddToHash(hash,
+                              aKey->mRegion,
+                              aKey->mKeyIdx,
+                              aKey->mLang);
   }
 
   enum { ALLOW_MEMMOVE = true };
@@ -148,6 +148,11 @@ public:
   nsString mKey;
 };
 
+enum TimerPrecisionType {
+  All = 1,
+  RFPOnly = 2
+};
+
 class nsRFPService final : public nsIObserver
 {
 public:
@@ -156,12 +161,39 @@ public:
 
   static nsRFPService* GetOrCreate();
   static bool IsResistFingerprintingEnabled();
-  static bool IsTimerPrecisionReductionEnabled();
+  static bool IsTimerPrecisionReductionEnabled(TimerPrecisionType aType);
+
+  enum TimeScale {
+    Seconds      = 1,
+    MilliSeconds = 1000,
+    MicroSeconds = 1000000
+  };
 
   // The following Reduce methods can be called off main thread.
-  static double ReduceTimePrecisionAsMSecs(double aTime);
-  static double ReduceTimePrecisionAsUSecs(double aTime);
-  static double ReduceTimePrecisionAsSecs(double aTime);
+  static double ReduceTimePrecisionAsUSecs(
+    double aTime,
+    TimerPrecisionType aType = TimerPrecisionType::All);
+  static double ReduceTimePrecisionAsMSecs(
+    double aTime,
+    TimerPrecisionType aType = TimerPrecisionType::All);
+  static double ReduceTimePrecisionAsSecs(
+    double aTime,
+    TimerPrecisionType aType = TimerPrecisionType::All);
+
+  // Used by the JS Engine, as it doesn't know about the TimerPrecisionType enum
+  static double ReduceTimePrecisionAsUSecsWrapper(
+    double aTime);
+
+  // Public only for testing purposes
+  static double ReduceTimePrecisionImpl(
+    double aTime,
+    TimeScale aTimeScale,
+    double aResolutionUSec,
+    TimerPrecisionType aType);
+  static nsresult RandomMidpoint(long long aClampedTimeUSec,
+                                 long long aResolutionUSec,
+                                 long long* aMidpointOut,
+                                 uint8_t * aSecretSeed = nullptr);
 
   // This method calculates the video resolution (i.e. height x width) based
   // on the video quality (480p, 720p, etc).
@@ -236,8 +268,8 @@ private:
                                     const WidgetKeyboardEvent* aKeyboardEvent,
                                     SpoofingKeyboardCode& aOut);
 
-  static Atomic<bool, ReleaseAcquire> sPrivacyResistFingerprinting;
-  static Atomic<bool, ReleaseAcquire> sPrivacyTimerPrecisionReduction;
+  static Atomic<bool, Relaxed> sPrivacyResistFingerprinting;
+  static Atomic<bool, Relaxed> sPrivacyTimerPrecisionReduction;
 
   static nsDataHashtable<KeyboardHashKey, const SpoofingKeyboardCode*>* sSpoofingKeyboardCodes;
 

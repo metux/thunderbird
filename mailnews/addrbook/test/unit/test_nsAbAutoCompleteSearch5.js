@@ -1,10 +1,10 @@
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /*
  * This suite ensures that we can correctly read and re-set the popularity
- * indexes on a 
+ * indexes on a
  */
 
-var ACR = Components.interfaces.nsIAutoCompleteResult;
+var ACR = Ci.nsIAutoCompleteResult;
 
 var results = [ { email: "d <ema@test.invalid>", dirName: kPABData.dirName },
                   { email: "di <emai@test.invalid>", dirName: kPABData.dirName },
@@ -51,8 +51,8 @@ function run_test() {
 
   // Test - Create a new search component
 
-  let acs = Components.classes["@mozilla.org/autocomplete/search;1?name=addrbook"]
-    .getService(Components.interfaces.nsIAutoCompleteSearch);
+  let acs = Cc["@mozilla.org/autocomplete/search;1?name=addrbook"]
+    .getService(Ci.nsIAutoCompleteSearch);
 
   let obs = new acObserver();
 

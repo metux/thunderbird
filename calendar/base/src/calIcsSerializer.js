@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://calendar/modules/calIteratorUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calIteratorUtils.jsm");
 
 function calIcsSerializer() {
     this.wrappedJSObject = this;
@@ -62,7 +62,7 @@ calIcsSerializer.prototype = {
 
     getIcalComponent: function() {
         let calComp = cal.getIcsService().createIcalComponent("VCALENDAR");
-        cal.calSetProdidVersion(calComp);
+        cal.item.setStaticProps(calComp);
 
         // xxx todo: think about that the below code doesn't clone the properties/components,
         //           thus ownership is moved to returned VCALENDAR...

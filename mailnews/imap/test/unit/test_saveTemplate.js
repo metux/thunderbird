@@ -7,9 +7,9 @@
  * creation of folder.
  */
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource:///modules/mailServices.js");
-Components.utils.import("resource:///modules/MailUtils.js");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/MailUtils.js");
 
 load("../../../resources/logHelper.js");
 load("../../../resources/asyncTestUtils.js");
@@ -71,7 +71,6 @@ saveAsUrlListener.prototype = {
 function* saveAsTemplate() {
   let hdr = mailTestUtils.firstMsgHdr(IMAPPump.inbox);
   let uri = IMAPPump.inbox.getUriForMsg(hdr);
-  const Ci = Components.interfaces;
   let identity = MailServices.accounts
                   .getFirstIdentityForServer(IMAPPump.incomingServer);
   identity.stationeryFolder = IMAPPump.incomingServer.rootFolder.URI + "/Templates";

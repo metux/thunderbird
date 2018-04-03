@@ -8,16 +8,17 @@ classic.jar:
 % skin messenger classic/1.0 %skin/classic/messenger/
 % skin navigator classic/1.0 %skin/classic/navigator/
 % skin messenger-newsblog classic/1.0 %skin/classic/messenger-newsblog/
-% style chrome://global/content/customizeToolbar.xul chrome://navigator/skin/navigator.css
-% style chrome://global/content/customizeToolbar.xul chrome://messenger/skin/primaryToolbar.css
-% style chrome://global/content/customizeToolbar.xul chrome://messenger/skin/messengercompose/messengercompose.css
-% style chrome://global/content/customizeToolbar.xul chrome://messenger/skin/smime/msgCompSMIMEOverlay.css
-% style chrome://global/content/customizeToolbar.xul chrome://messenger/skin/addressbook/addressbook.css
+% style chrome://communicator/content/customizeToolbar.xul chrome://navigator/skin/navigator.css
+% style chrome://communicator/content/customizeToolbar.xul chrome://messenger/skin/primaryToolbar.css
+% style chrome://communicator/content/customizeToolbar.xul chrome://messenger/skin/messengercompose/messengercompose.css
+% style chrome://communicator/content/customizeToolbar.xul chrome://messenger/skin/smime/msgCompSMIMEOverlay.css
+% style chrome://communicator/content/customizeToolbar.xul chrome://messenger/skin/addressbook/addressbook.css
 #ifdef XP_MACOSX
   skin/classic/communicator/aboutPrivateBrowsing.css                    (mac/communicator/aboutPrivateBrowsing.css)
   skin/classic/communicator/aboutSessionRestore.css                     (mac/communicator/aboutSessionRestore.css)
   skin/classic/communicator/button.css                                  (mac/communicator/button.css)
   skin/classic/communicator/communicator.css                            (mac/communicator/communicator.css)
+  skin/classic/communicator/customizeToolbar.css                        (mac/communicator/customizeToolbar.css)
   skin/classic/communicator/config.css                                  (mac/communicator/config.css)
   skin/classic/communicator/datetimepicker.css                          (mac/communicator/datetimepicker.css)
   skin/classic/communicator/preferences.css                             (mac/communicator/preferences.css)
@@ -47,7 +48,6 @@ classic.jar:
   skin/classic/communicator/search/searchbar-dropmarker.png             (mac/communicator/search/searchbar-dropmarker.png)
   skin/classic/communicator/search/searchbar-search.png                 (mac/communicator/search/searchbar-search.png)
   skin/classic/communicator/sidebar/sidebar.css                         (mac/communicator/sidebar/sidebar.css)
-  skin/classic/communicator/sync/syncSetup.css                          (mac/communicator/sync/syncSetup.css)
   skin/classic/communicator/icons/autocomplete-dropmarker.png           (mac/communicator/icons/autocomplete-dropmarker.png)
   skin/classic/communicator/icons/communicatoricons.png                 (mac/communicator/icons/communicatoricons.png)
   skin/classic/communicator/icons/communicatoricons-small.png           (mac/communicator/icons/communicatoricons-small.png)
@@ -58,6 +58,8 @@ classic.jar:
   skin/classic/communicator/icons/key-16.png                            (mac/communicator/icons/key-16.png)
   skin/classic/communicator/icons/key-64.png                            (mac/communicator/icons/key-64.png)
   skin/classic/communicator/icons/loading.png                           (mac/communicator/icons/loading.png)
+  skin/classic/communicator/icons/panebutton-active.png                 (mac/communicator/icons/panebutton-active.png)
+  skin/classic/communicator/icons/panebutton-inactive.png               (mac/communicator/icons/panebutton-inactive.png)
   skin/classic/communicator/icons/warning-24.png                        (mac/communicator/icons/warning-24.png)
   skin/classic/communicator/toolbar/toolbar-gradient22.png              (mac/communicator/toolbar/toolbar-gradient22.png)
   skin/classic/communicator/toolbar/toolbar-gradient34.png              (mac/communicator/toolbar/toolbar-gradient34.png)
@@ -66,6 +68,7 @@ classic.jar:
   skin/classic/communicator/aboutSessionRestore.css                     (communicator/aboutSessionRestore.css)
   skin/classic/communicator/button.css                                  (communicator/button.css)
   skin/classic/communicator/config.css                                  (communicator/config.css)
+  skin/classic/communicator/customizeToolbar.css                        (communicator/customizeToolbar.css)
   skin/classic/communicator/datetimepicker.css                          (communicator/datetimepicker.css)
 #ifdef MOZ_WIDGET_GTK
   skin/classic/communicator/communicator.css                            (linux/communicator/communicator.css)
@@ -104,7 +107,6 @@ classic.jar:
   skin/classic/communicator/search/search-glass.png                     (communicator/search/search-glass.png)
   skin/classic/communicator/search/searchbar.css                        (communicator/search/searchbar.css)
   skin/classic/communicator/sidebar/sidebar.css                         (communicator/sidebar/sidebar.css)
-  skin/classic/communicator/sync/syncSetup.css                          (communicator/sync/syncSetup.css)
   skin/classic/communicator/icons/communicatoricons.png                 (communicator/icons/communicatoricons.png)
   skin/classic/communicator/icons/communicatoricons-small.png           (communicator/icons/communicatoricons-small.png)
   skin/classic/communicator/icons/geolocation-16.png                    (communicator/icons/geolocation-16.png)
@@ -203,16 +205,6 @@ classic.jar:
   skin/classic/communicator/toolbar/tbgrip-arrow.gif                    (communicator/toolbar/tbgrip-arrow.gif)
   skin/classic/communicator/toolbar/tbgrip-arrow-clps.gif               (communicator/toolbar/tbgrip-arrow-clps.gif)
   skin/classic/communicator/toolbar/tbgrip-texture.gif                  (communicator/toolbar/tbgrip-texture.gif)
-  skin/classic/communicator/aboutSyncTabs.css                           (communicator/aboutSyncTabs.css)
-  skin/classic/communicator/sync/sync-16-throbber.png                   (communicator/sync/sync-16-throbber.png)
-  skin/classic/communicator/sync/sync-16.png                            (communicator/sync/sync-16.png)
-  skin/classic/communicator/sync/sync-32-throbber.png                   (communicator/sync/sync-32-throbber.png)
-  skin/classic/communicator/sync/sync-32.png                            (communicator/sync/sync-32.png)
-  skin/classic/communicator/sync/sync-bg.png                            (communicator/sync/sync-bg.png)
-  skin/classic/communicator/sync/sync-desktopIcon.png                   (communicator/sync/sync-desktopIcon.png)
-  skin/classic/communicator/sync/sync-mobileIcon.png                    (communicator/sync/sync-mobileIcon.png)
-  skin/classic/communicator/sync/syncCommon.css                         (communicator/sync/syncCommon.css)
-  skin/classic/communicator/sync/syncQuota.css                          (communicator/sync/syncQuota.css)
 #ifdef XP_MACOSX
   skin/classic/editor/editor.css                                        (mac/editor/editor.css)
   skin/classic/editor/editorModeToolbar.css                             (mac/editor/editorModeToolbar.css)

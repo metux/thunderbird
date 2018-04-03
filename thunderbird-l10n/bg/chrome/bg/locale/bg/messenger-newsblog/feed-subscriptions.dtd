@@ -12,6 +12,7 @@
 <!ENTITY feedLocation.label          "Адрес на емисия:">
 <!ENTITY feedLocation.accesskey      "А">
 <!ENTITY feedLocation.placeholder    "Въведете валиден адрес на емисия за добавяне">
+<!ENTITY feedLocation2.placeholder   "Въведете валиден адрес на емисия">
 <!ENTITY locationValidate.label      "Проверка">
 <!ENTITY validateText.label          "Проверяване и изтегляне на валиден адрес.">
 
@@ -39,7 +40,9 @@
 <!-- Subscription Dialog -->
 <!ENTITY button.addFeed.label        "Добавяне">
 <!ENTITY button.addFeed.accesskey    "Д">
-<!ENTITY button.updateFeed.label     "Актуализиране">
+<!ENTITY button.verifyFeed.label     "Проверяване">
+<!ENTITY button.verifyFeed.accesskey "п">
+<!ENTITY button.updateFeed.label     "Обновяване">
 <!ENTITY button.updateFeed.accesskey "а">
 <!ENTITY button.removeFeed.label     "Премахване">
 <!ENTITY button.removeFeed.accesskey "П">
@@ -51,7 +54,3 @@
 
 <!ENTITY cmd.close.commandKey        "w">
 <!ENTITY button.close.label          "Затваряне">
-
-<!ENTITY feedLocation2.placeholder   "Enter a valid feed url">
-<!ENTITY button.verifyFeed.label     "Verify">
-<!ENTITY button.verifyFeed.accesskey "V">

@@ -7,6 +7,7 @@
 #include "Compatibility.h"
 
 #include "mozilla/Telemetry.h"
+#include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/WindowsVersion.h"
 
 #include "nsDataHashtable.h"
@@ -48,7 +49,7 @@ typedef UniquePtr<OBJECT_DIRECTORY_INFORMATION, ByteArrayDeleter> ObjDirInfoPtr;
 // search completion.
 template <typename ComparatorFnT>
 static bool
-FindNamedObject(ComparatorFnT aComparator)
+FindNamedObject(const ComparatorFnT& aComparator)
 {
   // We want to enumerate every named kernel object in our session. We do this
   // by opening a directory object using a path constructed using the session
@@ -132,6 +133,33 @@ FindNamedObject(ComparatorFnT aComparator)
   return false;
 }
 
+static const char* gBlockedUiaClients[] = {
+  "osk.exe"
+};
+
+static bool
+ShouldBlockUIAClient(nsIFile* aClientExe)
+{
+  if (PR_GetEnv("MOZ_DISABLE_ACCESSIBLE_BLOCKLIST")) {
+    return false;
+  }
+
+  nsAutoString leafName;
+  nsresult rv = aClientExe->GetLeafName(leafName);
+  if (NS_FAILED(rv)) {
+    return false;
+  }
+
+  for (size_t index = 0, len = ArrayLength(gBlockedUiaClients); index < len;
+       ++index) {
+    if (leafName.EqualsIgnoreCase(gBlockedUiaClients[index])) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 namespace mozilla {
 namespace a11y {
 
@@ -187,7 +215,12 @@ Compatibility::OnUIAMessage(WPARAM aWParam, LPARAM aLParam)
   // asking the kernel to take a snapshot of all the handles on the system;
   // the size of the required buffer may fluctuate between successive calls.
   while (true) {
-    handleInfoBuf = MakeUnique<char[]>(handleInfoBufLen);
+    // These allocations can be hundreds of megabytes on some computers, so
+    // we should use fallible new here.
+    handleInfoBuf = MakeUniqueFallible<char[]>(handleInfoBufLen);
+    if (!handleInfoBuf) {
+      return Nothing();
+    }
 
     ntStatus = ::NtQuerySystemInformation(
                  (SYSTEM_INFORMATION_CLASS) SystemExtendedHandleInformation,
@@ -295,20 +328,18 @@ Compatibility::OnUIAMessage(WPARAM aWParam, LPARAM aLParam)
     }
   }
 
-
   if (!remotePid) {
     return Nothing();
   }
 
   a11y::SetInstantiator(remotePid.value());
 
-  /* This is where we could block UIA stuff
+  // Block if necessary
   nsCOMPtr<nsIFile> instantiator;
   if (a11y::GetInstantiator(getter_AddRefs(instantiator)) &&
       ShouldBlockUIAClient(instantiator)) {
     return Some(false);
   }
-  */
 
   return Some(true);
 }

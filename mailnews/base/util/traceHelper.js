@@ -4,12 +4,7 @@
 
 this.EXPORTED_SYMBOLS = ['DebugTraceHelper'];
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
-var Cu = Components.utils;
-
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 var SPACES = "                                                   ";
 var BRIGHT_COLORS = {
@@ -36,7 +31,7 @@ var STOP_COLORS = "\x1b[0m";
 /**
  * Example usages:
  *
- * Components.utils.import("resource:///modules/traceHelper.js");
+ * ChromeUtils.import("resource:///modules/traceHelper.js");
  * var debugContext = {color: "cyan"};
  * DebugTraceHelper.tracify(FolderDisplayWidget.prototype,
  *                          "FolderDisplayWidget", /.+/, debugContext);
@@ -67,16 +62,15 @@ var DebugTraceHelper = {
           continue;
         let name = key;
         let prev = aObj[name];
-        aObj[name] = function() {
+        aObj[name] = function(...aArgs) {
           let argstr = "";
-          for (let i = 0; i < arguments.length; i++) {
-            let arg = arguments[i];
+          for (let arg of aArgs) {
             if (arg == null)
               argstr += " null";
             else if (typeof(arg) == "function")
               argstr += " function "+ arg.name;
             else
-              argstr += " " + arguments[i].toString();
+              argstr += " " + arg.toString();
           }
 
           let indent = SPACES.substr(0, aContext.depth++ * 2);
@@ -85,7 +79,7 @@ var DebugTraceHelper = {
                STOP_COLORS + "\n");
           let ret;
           try {
-            ret = prev.apply(this, arguments);
+            ret = prev.apply(this, aArgs);
           }
           catch (ex) {
             if (ex.stack) {

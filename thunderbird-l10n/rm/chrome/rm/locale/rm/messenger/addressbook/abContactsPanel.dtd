@@ -12,6 +12,7 @@
 <!ENTITY mailingListPropertiesMenu.label    "Caracteristicas da las glistas d'e-mail">
 <!ENTITY mailingListPropertiesMenu.accesskey "i">
 
+<!ENTITY abContextMenuButton.tooltip        "Mussar il menu contextual dal cudeschet d'adressas">
 <!ENTITY addressbookPicker.label            "Cudeschet d'adressas:">
 <!ENTITY addressbookPicker.accesskey        "a">
 <!ENTITY searchContacts.label               "Tschertgar contacts:">
@@ -35,15 +36,14 @@
 <!ENTITY editMailingListContext.label       "Modifitgar la glista">
 <!ENTITY editMailingListContext.accesskey   "M">
 
+<!ENTITY newContactAbContext.label          "Nov contact">
+<!ENTITY newContactAbContext.accesskey      "C">
+<!ENTITY newListAbContext.label             "Nova glista">
+<!ENTITY newListAbContext.accesskey         "l">
+
 <!ENTITY toButton.label                     "Agiuntar ad &quot;A&quot;:">
 <!ENTITY toButton.accesskey                 "A">
 <!ENTITY ccButton.label                     "Agiuntar a &quot;CC&quot;:">
 <!ENTITY ccButton.accesskey                 "c">
 <!ENTITY bccButton.label                    "Agiuntar a &quot;BCC&quot;:">
 <!ENTITY bccButton.accesskey                "B">
-
-<!ENTITY abContextMenuButton.tooltip        "Display Address Book Context Menu">
-<!ENTITY newContactAbContext.label          "New Contact">
-<!ENTITY newContactAbContext.accesskey      "C">
-<!ENTITY newListAbContext.label             "New List">
-<!ENTITY newListAbContext.accesskey         "L">

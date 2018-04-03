@@ -382,14 +382,13 @@ nsDeviceContext::CreateRenderingContextCommon(bool aWantReferenceContext)
     MOZ_ASSERT(IsPrinterContext());
     MOZ_ASSERT(mWidth > 0 && mHeight > 0);
 
-    // This will usually be null, depending on the pref print.print_via_parent.
-    RefPtr<DrawEventRecorder> recorder;
-    mDeviceContextSpec->GetDrawEventRecorder(getter_AddRefs(recorder));
-
     RefPtr<gfx::DrawTarget> dt;
     if (aWantReferenceContext) {
-      dt = mPrintTarget->GetReferenceDrawTarget(recorder);
+      dt = mPrintTarget->GetReferenceDrawTarget();
     } else {
+      // This will be null if e10s is disabled or print.print_via_parent=false.
+      RefPtr<DrawEventRecorder> recorder;
+      mDeviceContextSpec->GetDrawEventRecorder(getter_AddRefs(recorder));
       dt = mPrintTarget->MakeDrawTarget(gfx::IntSize(mWidth, mHeight), recorder);
     }
 
@@ -529,6 +528,10 @@ nsDeviceContext::BeginDocument(const nsAString& aTitle,
         }
         mIsCurrentlyPrintingDoc = true;
     }
+
+    // Warn about any failure (except user cancelling):
+    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv) || rv == NS_ERROR_ABORT,
+                         "nsDeviceContext::BeginDocument failed");
 
     return rv;
 }

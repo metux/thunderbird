@@ -37,7 +37,19 @@
 <!ENTITY lightning.menu.eventtask.accesskey            "v">
 
 <!-- properties dialog, calendar creation wizard -->
-<!ENTITY lightning.calendarproperties.email.label               "E-Mail:">
+<!-- LOCALIZATON NOTE(lightning.calendarproperties.email.label,
+     lightning.calendarproperties.forceEmailScheduling.label)
+     These strings are used in the calendar wizard and the calendar properties dialog, but are only
+     displayed when setting/using a caldav calendar -->
+<!ENTITY lightning.calendarproperties.email.label                           "E-Mail:">
+
+<!ENTITY lightning.calendarproperties.forceEmailScheduling.label            "Preferir l'agendaziun dad e-mail da vart dal client">
+<!-- LOCALIZATON NOTE(lightning.calendarproperties.forceEmailScheduling.tooltiptext1,
+     lightning.calendarproperties.forceEmailScheduling.tooltiptext2)
+     - tooltiptext1 is used in the calendar wizard when setting a new caldav calendar
+     - tooltiptext2 is used in the calendar properties dialog for caldav calendars -->
+<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext1     "Per entant pos ti mo activar questa opziun suenter avair configurà quest chalender en ses dialog da caracteristicas sch'il server dal chalender s'occupa da l'agendaziun.">
+<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext2     "Questa opziun è mo disponibla sch'il server dal chalender s'occupa da l'agendaziun. Activar permetta da duvrar l'agendaziun dad e-mail da standard sco alternativa en cas da panna enstagl da surlaschar quai al server.">
 
 <!-- iMIP Bar (meeting support) -->
 <!ENTITY lightning.imipbar.btnAccept.label                                  "Acceptar">
@@ -50,6 +62,8 @@
 <!ENTITY lightning.imipbar.btnDecline2.tooltiptext                          "Refusar l'invit a l'eveniment">
 <!ENTITY lightning.imipbar.btnDeclineRecurrences.label                      "Refusar tuts">
 <!ENTITY lightning.imipbar.btnDeclineRecurrences2.tooltiptext               "Refusar l'invit per mintga occurrenza da quest eveniment">
+<!ENTITY lightning.imipbar.btnDeclineCounter.label                          "Refusar">
+<!ENTITY lightning.imipbar.btnDeclineCounter.tooltiptext                    "Refusar la cuntraproposta">
 <!ENTITY lightning.imipbar.btnDelete.label                                  "Stizzar">
 <!ENTITY lightning.imipbar.btnDelete.tooltiptext                            "Stizzar dal chalender">
 <!ENTITY lightning.imipbar.btnDetails.label                                 "Detagls…">
@@ -58,6 +72,8 @@
 <!ENTITY lightning.imipbar.btnMore.tooltiptext                              "Cliccar qua per mussar ulteriuras opziuns">
 <!ENTITY lightning.imipbar.btnReconfirm2.label                              "Re-confermar">
 <!ENTITY lightning.imipbar.btnReconfirm.tooltiptext                         "Trametta ina re-conferma a l'organisatur">
+<!ENTITY lightning.imipbar.btnReschedule.label                              "Spustar">
+<!ENTITY lightning.imipbar.btnReschedule.tooltiptext                        "Spustar l'eveniment">
 <!ENTITY lightning.imipbar.btnSaveCopy.label                                "Memorisar ina copia">
 <!ENTITY lightning.imipbar.btnSaveCopy.tooltiptext                          "Memorisar ina copia da l'eveniment en il chalender, independentamain dad ina resposta a l'organisatur. La glista dals participants vegn stizzada.">
 <!ENTITY lightning.imipbar.btnTentative.label                               "Provisoric">
@@ -88,10 +104,9 @@
 <!ENTITY todaypane.showTodayPane.accesskey "o">
 <!ENTITY todaypane.statusButton.label "Trav Oz">
 
-<!ENTITY lightning.calendarproperties.forceEmailScheduling.label            "Prefer client-side email scheduling">
-<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext1     "For now, you can only enable this after setting up this calendar in its property dialog if the calendar server takes care of scheduling.">
-<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext2     "This option is only available if the calendar server handles scheduling. Enabling will allow to fall back to the standard email based scheduling instead of leaving it to the server.">
-<!ENTITY lightning.imipbar.btnDeclineCounter.label                          "Decline">
-<!ENTITY lightning.imipbar.btnDeclineCounter.tooltiptext                    "Decline the counter proposal">
-<!ENTITY lightning.imipbar.btnReschedule.label                              "Reschedule">
-<!ENTITY lightning.imipbar.btnReschedule.tooltiptext                        "Reschedule the event">
+<!ENTITY lightning.imipbar.btnSend.label                                    "Send a response now">
+<!ENTITY lightning.imipbar.btnSend.tooltiptext                              "Send a response to the organizer">
+<!ENTITY lightning.imipbar.btnSendSeries.tooltiptext                        "Send a response for the entire series to the organizer">
+<!ENTITY lightning.imipbar.btnDontSend.label                                "Do not send a response">
+<!ENTITY lightning.imipbar.btnDontSend.tooltiptext                          "Change your participation status without sending a response to the organizer">
+<!ENTITY lightning.imipbar.btnDontSendSeries.tooltiptext                    "Change your participation status for the series without sending a response to the organizer">

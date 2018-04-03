@@ -23,7 +23,7 @@ MockObjectRegisterer.prototype = {
     this._mockFactory = {
       createInstance: function MF_createInstance(aOuter, aIid) {
         if (aOuter != null)
-          throw Components.results.NS_ERROR_NO_AGGREGATION;
+          throw Cr.NS_ERROR_NO_AGGREGATION;
         return new providedConstructor().QueryInterface(aIid);
       }
     };
@@ -58,7 +58,7 @@ MockObjectRegisterer.prototype = {
  *        created every time createInstance is called. This object must
  *        implement QueryInterface and provide the XPCOM interfaces required by
  *        the specified ContractID (for example
- *        Components.interfaces.nsIFilePicker).
+ *        Ci.nsIFilePicker).
  */
 
 function MockObjectReplacer(aContractID, aReplacementCtor) {
@@ -83,7 +83,7 @@ MockObjectReplacer.prototype = {
     this._mockFactory = {
       createInstance: function MF_createInstance(aOuter, aIid) {
         if (aOuter != null)
-          throw Components.results.NS_ERROR_NO_AGGREGATION;
+          throw Cr.NS_ERROR_NO_AGGREGATION;
         return new providedConstructor().QueryInterface(aIid);
       }
     };

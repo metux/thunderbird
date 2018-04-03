@@ -22,6 +22,13 @@
 <!ENTITY aboutSupport.extensionVersion "Wersja">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Oprogramowanie bezpieczeństwa">
+<!ENTITY aboutSupport.securitySoftwareType "Typ">
+<!ENTITY aboutSupport.securitySoftwareName "Nazwa">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Program antywirusowy">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Program antyszpiegowski">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Zapora sieciowa">
+
 <!ENTITY aboutSupport.featuresTitle "Wbudowane rozszerzenia programu &brandShortName;">
 <!ENTITY aboutSupport.featureName "Nazwa">
 <!ENTITY aboutSupport.featureVersion "Wersja">
@@ -132,18 +139,14 @@
 <!ENTITY aboutSupport.mediaDeviceRate "Częstotliwość próbkowania">
 <!ENTITY aboutSupport.mediaDeviceLatency "Opóźnienie">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.intlTitle "Umiędzynaradawianie i lokalizacja">
+<!ENTITY aboutSupport.intlAppTitle "Ustawienia programu">
+<!ENTITY aboutSupport.intlLocalesRequested "Żądane ustawienia regionalne">
+<!ENTITY aboutSupport.intlLocalesAvailable "Dostępne ustawienia regionalne">
+<!ENTITY aboutSupport.intlLocalesSupported "Ustawienia regionalne programu">
+<!ENTITY aboutSupport.intlLocalesDefault "Domyślne ustawienia regionalne">
+<!ENTITY aboutSupport.intlOSTitle "System operacyjny">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Ustawienia regionalne systemu">
+<!ENTITY aboutSupport.intlRegionalPrefs "Preferencje regionalne">
+
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">

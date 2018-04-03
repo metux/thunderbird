@@ -1,0 +1,58 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<!-- LOCALIZATION NOTE : FILE This file contains the global menu items -->
+
+<!ENTITY fileMenu.label          "Fail">
+<!ENTITY fileMenu.accesskey        "F">
+<!ENTITY newMenu.label            "Baru">
+<!ENTITY newMenu.accesskey          "B">
+
+<!ENTITY editMenu.label          "Edit">
+<!ENTITY editMenu.accesskey        "E">
+<!ENTITY undoCmd.label            "Batal">
+<!ENTITY undoCmd.key            "Z">
+<!ENTITY undoCmd.accesskey          "B">
+<!ENTITY redoCmd.label            "Ulang">
+<!ENTITY redoCmd.key            "Y">
+<!ENTITY redoCmd.accesskey          "U">
+<!ENTITY cutCmd.label            "Potong">
+<!ENTITY cutCmd.key              "X">
+<!ENTITY cutCmd.accesskey          "t">
+<!ENTITY copyCmd.label            "Salin">
+<!ENTITY copyCmd.key            "C">
+<!ENTITY copyCmd.accesskey          "S">
+<!ENTITY pasteCmd.label            "Tampal">
+<!ENTITY pasteCmd.key            "V">
+<!ENTITY pasteCmd.accesskey          "T">
+<!ENTITY deleteCmd.label          "Buang">
+<!ENTITY deleteCmd.accesskey        "B">
+<!ENTITY selectAllCmd.label          "Pilih Semua">
+<!ENTITY selectAllCmd.key          "A">
+<!ENTITY selectAllCmd.accesskey        "S">
+<!ENTITY preferencesCmd2.label "Pilihan">
+<!ENTITY preferencesCmd2.accesskey "P">
+<!ENTITY preferencesCmdUnix.label       "Keutamaan">
+<!ENTITY preferencesCmdUnix.accesskey     "n">
+
+<!ENTITY viewMenu.label          "Papar">
+<!ENTITY viewMenu.accesskey        "P">
+<!ENTITY viewToolbarsMenu.label        "Bar alatan">
+<!ENTITY viewToolbarsMenu.accesskey      "B">
+<!ENTITY showTaskbarCmd.label          "Bar Status">
+<!ENTITY showTaskbarCmd.accesskey        "u">
+
+<!ENTITY closeCmd.label      "Tutup">
+<!ENTITY closeCmd.key      "W">
+<!ENTITY closeCmd.accesskey    "T">
+
+<!ENTITY quitApplicationCmd.label  "Keluar">
+<!ENTITY quitApplicationCmd.key    "Q">
+<!ENTITY quitApplicationCmd.accesskey  "u">
+
+<!ENTITY quitApplicationCmdUnix.label  "Keluar">
+<!ENTITY quitApplicationCmdUnix.accesskey  "K">
+
+<!ENTITY quitApplicationCmdMac.label  "Keluar &brandShortName;">
+<!ENTITY quitApplicationCmdMac.accesskey  "K">

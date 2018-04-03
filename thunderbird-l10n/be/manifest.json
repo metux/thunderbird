@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/be/locale/be/passwordmgr/", 
         "pippki": "chrome/be/locale/be/pippki/"
       }, 
-      "version": "20140812062936"
+      "version": "20180312184254"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-be@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "be", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Беларуская Language Pack", 
   "manifest_version": 2, 
   "sources": {

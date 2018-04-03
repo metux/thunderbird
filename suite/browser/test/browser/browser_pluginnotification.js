@@ -6,9 +6,9 @@ var gTestBrowser = null;
 var gNextTest = null;
 var gClickToPlayPluginActualEvents = 0;
 var gClickToPlayPluginExpectedEvents = 5;
-var gPluginHost = Components.classes["@mozilla.org/plugin/host;1"].getService(Components.interfaces.nsIPluginHost);
+var gPluginHost = Cc["@mozilla.org/plugin/host;1"].getService(Ci.nsIPluginHost);
 
-Components.utils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 // This listens for the next opened tab and checks it is of the right url.
 // opencallback is called when the new tab is fully loaded
@@ -619,9 +619,7 @@ function test17() {
   });
 }
 
-const Cr = Components.results;
 const Cm = Components.manager;
-const Cc = Components.classes;
 const gReg = Cm.QueryInterface(Ci.nsIComponentRegistrar);
 const gRealBlocklistServiceCID = Cc["@mozilla.org/extensions/blocklist;1"];
 const gFakeBlocklistServiceCID = Components.ID("{614b68a0-3c53-4ec0-8146-28cc1e25f8a1}");

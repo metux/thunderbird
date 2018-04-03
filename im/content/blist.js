@@ -2,11 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-var Cu = Components.utils;
-
-Cu.import("resource:///modules/imStatusUtils.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
+ChromeUtils.import("resource:///modules/imStatusUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.defineModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
 
 var events = ["buddy-authorization-request",
                 "buddy-authorization-request-canceled",
@@ -53,7 +51,7 @@ function buddyListContextMenu(aXulMenu) {
     document.getElementById(aId).hidden = hide;
   });
   if (!hide) {
-    Components.utils.import("resource:///modules/ibTagMenu.jsm");
+    ChromeUtils.import("resource:///modules/ibTagMenu.jsm");
     this.tagMenu = new TagMenu(this, window, "context-tags",
                                this.toggleTag, this.addTag,
                                this.onBuddy ? this.target.contact : this.target);
@@ -467,7 +465,7 @@ var buddyList = {
           elt.removeAttribute("value");
       }
       if (!("TextboxSpellChecker" in window))
-        Components.utils.import("resource:///modules/imTextboxUtils.jsm");
+        ChromeUtils.import("resource:///modules/imTextboxUtils.jsm");
       TextboxSpellChecker.registerTextbox(elt);
       // force binding attachment by forcing layout
       elt.getBoundingClientRect();
@@ -605,9 +603,9 @@ var buddyList = {
   },
 
   chooseUserIcon: function bl_chooseUserIcon() {
-    const nsIFilePicker = Components.interfaces.nsIFilePicker;
-    let fp = Components.classes["@mozilla.org/filepicker;1"]
-                       .createInstance(nsIFilePicker);
+    const nsIFilePicker = Ci.nsIFilePicker;
+    let fp = Cc["@mozilla.org/filepicker;1"]
+               .createInstance(nsIFilePicker);
     let bundle = document.getElementById("instantbirdBundle");
     fp.init(window, bundle.getString("userIconFilePickerTitle"),
             nsIFilePicker.modeOpen);
@@ -858,7 +856,7 @@ var buddyList = {
     let convs = Services.conversations.getUIConversations();
     if (convs.length != 0) {
       if (!("Conversations" in window))
-        Components.utils.import("resource:///modules/imWindows.jsm");
+        ChromeUtils.import("resource:///modules/imWindows.jsm");
       convs.sort((a, b) =>
         a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
       for (let conv of convs) {

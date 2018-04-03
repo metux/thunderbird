@@ -11,17 +11,12 @@
 
 var EXPORTED_SYMBOLS = ["MailMigrator"];
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cu = Components.utils;
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/IOUtils.js");
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource:///modules/mailServices.js");
-Cu.import("resource:///modules/IOUtils.js");
-
-XPCOMUtils.defineLazyModuleGetter(this, "LoginHelper",
-                                  "resource://gre/modules/LoginHelper.jsm");
+ChromeUtils.defineModuleGetter(this, "LoginHelper",
+                               "resource://gre/modules/LoginHelper.jsm");
 
 var MailMigrator = {
   /**
@@ -66,7 +61,7 @@ var MailMigrator = {
    */
   migrateToClearTypeFonts: function MailMigrator_migrateToClearTypeFonts() {
     // Windows...
-    if ("@mozilla.org/windows-registry-key;1" in Components.classes) {
+    if ("@mozilla.org/windows-registry-key;1" in Cc) {
       // Only migrate on Vista (Windows version 6.0) and above
       if (Services.sysinfo.getPropertyAsDouble("version") >= 6.0) {
         let fontPrefVersion =
@@ -324,7 +319,7 @@ var MailMigrator = {
       // encoded as chrome URIs.
       if (currentUIVersion < 14) {
         let permissionsDB =
-          Services.dirsvc.get("ProfD",Components.interfaces.nsIFile);
+          Services.dirsvc.get("ProfD",Ci.nsIFile);
         permissionsDB.append("permissions.sqlite");
         let db = Services.storage.openDatabase(permissionsDB);
 
@@ -350,8 +345,8 @@ var MailMigrator = {
 
           // Sadly we still need to clear the database manually. Experiments
           // showed that the permissions manager deleted only one record.
-          db.beginTransactionAs(Components.interfaces.mozIStorageConnection
-                                                     .TRANSACTION_EXCLUSIVE);
+          db.beginTransactionAs(Ci.mozIStorageConnection
+                                  .TRANSACTION_EXCLUSIVE);
           try {
             db.executeSimpleSQL("delete from moz_perms where " +
               "substr(origin, 1, 28)='chrome://messenger/content/?';");
@@ -367,7 +362,7 @@ var MailMigrator = {
 
       // Changed notification sound behaviour on OS X.
       if (currentUIVersion < 15) {
-        Cu.import("resource://gre/modules/AppConstants.jsm");
+        ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
         if (AppConstants.platform == "macosx") {
           // For people updating from versions < 52 who had "Play system sound"
           // selected for notifications. As TB no longer plays system sounds,

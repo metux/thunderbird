@@ -242,5 +242,8 @@ because displayed names don't have the comma in between. -->
 <!ENTITY bringAllToFront.label                          "Perkelti visus į priekį">
 <!ENTITY zoomWindow.label                               "Pakeisti dydį">
 
+<!ENTITY addressBookCmd.label                           "Address Book">
+<!ENTITY addressBookCmd.accesskey                       "a">
+<!ENTITY addressBookCmd.key                             "B">
 <!ENTITY showAsDefault.label                            "Default startup directory">
 <!ENTITY showAsDefault.accesskey                        "S">

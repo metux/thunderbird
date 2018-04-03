@@ -57,6 +57,7 @@
 
 
 
+<!ENTITY aboutNetworking.trr                   "TRR">
 <!ENTITY aboutNetworking.rcwnCacheWonCount     "Cache won count">
 <!ENTITY aboutNetworking.rcwnNetWonCount       "Net won count">
 <!ENTITY aboutNetworking.totalNetworkRequests  "Total network request count">

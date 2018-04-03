@@ -86,3 +86,5 @@
 <!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
      "NS_ERROR_NET_INADEQUATE_SECURITY". -->
 <!ENTITY inadequateSecurityError.longDesc "<p>Úsáideann <span class='hostname'></span> teicneolaíocht slándála atá as dáta agus leochaileach ar ionsaithe. D'fhéadfadh ionsaitheoir eolas a nochtadh áit ar shíl tú go raibh sé slán. Beidh ar riarthóir an tsuímh gréasáin an freastalaí a dheisiú sula mbeidh tú ábalta cuairt a thabhairt ar an suíomh.</p><p>Cód Earráide: NS_ERROR_NET_INADEQUATE_SECURITY</p>">
+
+<!ENTITY blockedByPolicy.title "Blocked Page">

@@ -25,19 +25,16 @@
                          flex="1"
                          xbl:inherits="readonly,flashing,alarm,allday,priority,progress,status,calendar,categories">
                 <xul:hbox class="calendar-event-details">
-                  <xul:vbox align="left"
-                            flex="1"
-                            xbl:inherits="context">
-                    <xul:label anonid="event-name"
-                               crop="end"
-                               flex="1"
-                               style="margin: 0;"/>
+                  <xul:vbox align="left" flex="1" xbl:inherits="context">
+                    <xul:label anonid="event-name" crop="end" style="margin: 0;"/>
                     <xul:textbox anonid="event-name-textbox"
-                                 class="plain"
-                                 crop="end"
+                                 class="calendar-event-details-core title-desc"
                                  hidden="true"
                                  style="background: transparent !important;"
                                  wrap="true"/>
+                    <xul:label anonid="event-location"
+                               crop="end"
+                               class="calendar-event-details-core location-desc"/>
                     <xul:spacer flex="1"/>
                   </xul:vbox>
                   <xul:stack>
@@ -64,19 +61,19 @@
 
     <implementation>
       <constructor><![CDATA[
-          Components.utils.import("resource://calendar/modules/calAlarmUtils.jsm");
-          Components.utils.import("resource://calendar/modules/calUtils.jsm");
-          Components.utils.import("resource://gre/modules/Preferences.jsm");
+          ChromeUtils.import("resource://calendar/modules/calAlarmUtils.jsm");
+          ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+          ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 
           this.eventNameTextbox.onblur = () => {
               this.stopEditing(true);
           };
           this.eventNameTextbox.onkeypress = (event) => {
               // save on enter
-              if (event.keyCode == 13) {
+              if (event.key == "Enter") {
                   this.stopEditing(true);
               // abort on escape
-              } else if (event.keyCode == 27) {
+              } else if (event.key == "Escape") {
                   this.stopEditing(false);
               }
           };
@@ -134,6 +131,7 @@
         <setter><![CDATA[
             this.mOccurrence = val;
             this.setEditableLabel();
+            this.setLocationLabel();
             this.setCSSClasses();
             return val;
         ]]></setter>
@@ -153,6 +151,17 @@
         ]]></body>
       </method>
 
+      <method name="setLocationLabel">
+        <body><![CDATA[
+            let locationLabel = document.getAnonymousElementByAttribute(this, "anonid", "event-location");
+            let location = this.mOccurrence.getProperty("LOCATION");
+            let showLocation = Preferences.get("calendar.view.showLocation", false);
+
+            locationLabel.value = showLocation && location ? location : "";
+            setBooleanAttribute(locationLabel, "hidden", !showLocation || !location);
+        ]]></body>
+      </method>
+
       <method name="setCSSClasses">
         <body><![CDATA[
             let item = this.mOccurrence;
@@ -160,7 +169,7 @@
             this.setAttribute("calendar-id", item.calendar.id);
             let categoriesArray = item.getCategories({});
             if (categoriesArray.length > 0) {
-                let cssClassesArray = categoriesArray.map(cal.formatStringForCSSRule);
+                let cssClassesArray = categoriesArray.map(cal.view.formatStringForCSSRule);
                 this.setAttribute("categories", cssClassesArray.join(" "));
             }
 
@@ -187,14 +196,14 @@
             // in the <content> section of this binding, and all that inherit it.
 
             // Event type specific properties
-            if (cal.isEvent(item)) {
+            if (cal.item.isEvent(item)) {
                 if (item.startDate.isDate) {
                     this.setAttribute("allday", "true");
                 }
                 this.setAttribute("itemType", "event");
-            } else if (cal.isToDo(item)) {
+            } else if (cal.item.isToDo(item)) {
                 // progress attribute
-                this.setAttribute("progress", cal.getProgressAtom(item));
+                this.setAttribute("progress", cal.item.getProgressAtom(item));
                 // Attribute for tasks and tasks image.
                 this.setAttribute("itemType", "todo");
                 if (item.entryDate && !item.dueDate) {
@@ -237,7 +246,7 @@
             if (cal.isInvitation(item)) {
                 this.setAttribute("invitation-status", cal.getInvitedAttendee(item).participationStatus);
                 this.setAttribute("readonly", "true");
-            } else if (!cal.isCalendarWritable(item.calendar)) {
+            } else if (!cal.acl.isCalendarWritable(item.calendar)) {
                 this.setAttribute("readonly", "true");
             }
         ]]></body>
@@ -321,7 +330,7 @@
           // Also, check if the calendar is readOnly or we are offline.
 
           if (this.selected && !(event.ctrlKey || event.metaKey) &&
-                cal.isCalendarWritable(this.mOccurrence.calendar)) {
+                cal.acl.isCalendarWritable(this.mOccurrence.calendar)) {
               if (this.editingTimer) {
                   clearTimeout(this.editingTimer);
               }
@@ -358,7 +367,7 @@
           }
           let item = this.occurrence;
           let isInvitation = item.calendar instanceof Components.interfaces.calISchedulingSupport && item.calendar.isInvitation(item);
-          if (!cal.isCalendarWritable(item.calendar) || !cal.userCanModifyItem(item) || isInvitation) {
+          if (!cal.acl.isCalendarWritable(item.calendar) || !cal.acl.userCanModifyItem(item) || isInvitation) {
               return;
           }
           if (!this.selected) {

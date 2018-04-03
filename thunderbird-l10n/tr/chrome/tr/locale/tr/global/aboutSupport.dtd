@@ -21,6 +21,13 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Sürüm">
 <!ENTITY aboutSupport.extensionId "Kimlik">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Güvenlik yazılımları">
+<!ENTITY aboutSupport.securitySoftwareType "Türü">
+<!ENTITY aboutSupport.securitySoftwareName "Adı">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirüs">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Güvenlik duvarı">
+
 <!ENTITY aboutSupport.featuresTitle "&brandShortName; özellikleri">
 <!ENTITY aboutSupport.featureName "Adı">
 <!ENTITY aboutSupport.featureVersion "Sürüm">
@@ -68,6 +75,8 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsProcessCount "Web içeriği işlemi">
 
+<!ENTITY aboutSupport.enterprisePolicies "Kurumsal ilkeler">
+
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Google anahtarı">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla Konum Hizmeti anahtarı">
 
@@ -90,7 +99,7 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.userJSTitle "user.js tercihleri">
 <!ENTITY aboutSupport.userJSDescription "Profil klasörünüz &brandShortName; tarafından oluşturulmamış tercihler içeren bir <a id='prefs-user-js-link'>user.js dosyası</a> içeriyor.">
 
-<!ENTITY aboutSupport.lockedKeyPrefsTitle "Önemli kilitlenmiş tercihler">
+<!ENTITY aboutSupport.lockedKeyPrefsTitle "Kilitlenmiş önemli tercihler">
 <!ENTITY aboutSupport.lockedPrefsName "Adı">
 <!ENTITY aboutSupport.lockedPrefsValue "Değer">
 
@@ -104,7 +113,7 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.jsIncrementalGC "Artırımlı GC">
 
 <!ENTITY aboutSupport.a11yTitle "Erişilebilirlik">
-<!ENTITY aboutSupport.a11yActivated "Etkinleştirildi">
+<!ENTITY aboutSupport.a11yActivated "Etkinleştirildi mi?">
 <!ENTITY aboutSupport.a11yForceDisabled "Erişilebilirliği engelle">
 <!ENTITY aboutSupport.a11yHandlerUsed "Erişilebilir işleyici kullanımı">
 <!ENTITY aboutSupport.a11yInstantiator "Erişilebilirlik temsilcisi">
@@ -152,18 +161,12 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "Oran">
 <!ENTITY aboutSupport.mediaDeviceLatency "Gecikme">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.intlTitle "Uluslararasılaştırma ve yerelleştirme">
+<!ENTITY aboutSupport.intlAppTitle "Uygulama ayarları">
+<!ENTITY aboutSupport.intlLocalesRequested "İstenen diller">
+<!ENTITY aboutSupport.intlLocalesAvailable "Mevcut diller">
+<!ENTITY aboutSupport.intlLocalesSupported "Uygulama dilleri">
+<!ENTITY aboutSupport.intlLocalesDefault "Varsayılan dil">
+<!ENTITY aboutSupport.intlOSTitle "İşletim sistemi">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Sistem dilleri">
+<!ENTITY aboutSupport.intlRegionalPrefs "Bölgesel tercihler">

@@ -7,7 +7,8 @@
 <!ENTITY  updateCheck.label               "A procurar novas versões do &brandShortName;…">
 
 <!ENTITY  noupdatesfound.title            "Não foram encontradas atualizações">
-<!ENTITY  noupdatesautoenabled.intro      "Não há atualizações disponíveis. O &brandShortName; vai procurar atualizações regularmente.">
+<!ENTITY  noupdatesautoenabled.intro      "Não há atualizações disponíveis. O &brandShortName; irá procurar
+                                           atualizações periodicamente.">
 <!ENTITY  noupdatesautodisabled.intro     "Não há atualizações disponíveis. Por favor verifique mais tarde ou ative a procura automática de atualizações do &brandShortName;.">
 
 <!ENTITY  manualUpdate.title              "Não é possível atualizar">
@@ -25,10 +26,12 @@
 
 <!ENTITY  evangelism.desc                 "Recomendamos que aplique esta atualização do &brandShortName; o mais depressa possível.">
 
-<!ENTITY  downloadPage.title              "A descarregar o &brandShortName;">
-<!ENTITY  downloading.intro               "A descarregar atualização…">
+<!ENTITY  downloadPage.title              "A transferir o &brandShortName;">
+<!ENTITY  downloading.intro               "A transferir atualização…">
 <!ENTITY  connecting.label                "A ligar ao servidor de atualizações…">
-<!ENTITY  verificationFailedText.label    "O &brandShortName; não conseguiu verificar a integridade da atualização parcial descarregada, pelo que está a descarregar agora o pacote completo da atualização.">
+<!ENTITY  verificationFailedText.label    "O &brandShortName; não conseguiu verificar a integridade da 
+                                           atualização parcial transferida, pelo que está a transferir agora
+                                           o pacote completo da atualização.">
 
 <!ENTITY  viewDetails.tooltip             "Ver detalhes desta atualização">
 
@@ -36,22 +39,31 @@
 
 <!ENTITY  error.title                     "Falha ao atualizar">
 
-<!ENTITY  error.label                     "Ocorreram erros ao verificar, descarregar ou instalar esta atualização. O &brandShortName; não pôde ser atualizado porque:">
+<!ENTITY  error.label                     "Ocorreram erros ao verificar, transferir ou instalar esta 
+                                           atualização. O &brandShortName; não pôde ser atualizado porque:">
                                            
-<!ENTITY  errorManual.label               "Pode atualizar manualmente o &brandShortName; acedendo a estaligação e descarregando a versão mais recente da aplicação:">
+<!ENTITY  errorManual.label               "Pode atualizar manualmente o &brandShortName; acedendo a esta ligação
+                                           e transferindo a versão mais recente da aplicação:">
                                            
-<!ENTITY  errorpatching.intro             "A atualização parcial não pode ser aplicada. O &brandShortName; vai tentar descarregar o pacote de atualização completo.">
+<!ENTITY  errorpatching.intro             "A atualização parcial não pôde ser aplicada. 
+                                           O &brandShortName; vai tentar transferir o pacote de atualização completo.">
 
 <!ENTITY  genericBackgroundError.label    "O &brandShortName; não consegue determinar se existe uma atualização disponível. Por favor verifique se tem a última versão do &brandShortName; em:">
 
 <!ENTITY  finishedPage.title              "Atualização pronta para ser instalada">
-<!ENTITY  finishedPage.text               "A atualização será instalada da próxima vez que o &brandShortName; iniciar. Pode reiniciar agora o &brandShortName; ou continuar a trabalhar e reiniciar mais tarde.">
+<!ENTITY  finishedPage.text               "A atualização será instalada da próxima vez que o &brandShortName; iniciar. Pode 
+                                           reiniciar o &brandShortName; agora, ou continuar a trabalhar e reiniciar mais tarde.">
 
-<!ENTITY  finishedBackgroundPage.text     "Foi descarregada uma atualização de segurança e estabilidade para o &brandShortName; e está pronta para ser instalada.">
+<!ENTITY  finishedBackgroundPage.text     "Foi transferida uma atualização de segurança e estabilidade para o &brandShortName;
+                                           e está pronta para ser instalada.">
 <!ENTITY  finishedBackground.name         "Atualização:">
 <!-- LOCALIZATION NOTE (finishedBackground.more): This string describes the button labels defined by restartNowButton and restartLaterButton in updates.properties. -->
-<!ENTITY  finishedBackground.more         "A atualização será instalada da próxima vez que o &brandShortName; iniciar. Pode reiniciar agora o &brandShortName; ou continuar a trabalhar e reiniciar mais tarde.">
-<!ENTITY  finishedBackground.moreElevated "Esta atualização requer privilégios de administrador. A atualização será instalada da próxima vez que o &brandShortName; iniciar. Pode reiniciar o &brandShortName; agora, e continuar a trabalhar e reiniciar mais tarde, ou rejeitar esta atualização.">
+<!ENTITY  finishedBackground.more         "A atualização será instalada da próxima vez que o &brandShortName; iniciar. Pode
+                                           reiniciar o &brandShortName; agora, ou continuar a trabalhar e reiniciar mais tarde.">
+<!ENTITY  finishedBackground.moreElevated "Esta atualização requer privilégios de administrador. A atualização será
+                                           instalada da próxima vez que o &brandShortName; iniciar. Pode reiniciar
+                                           o &brandShortName; agora, e continuar a trabalhar e reiniciar mais tarde, ou rejeitar esta
+                                           atualização.">
 
 <!ENTITY  update.details.label            "Detalhes">
 <!ENTITY  update.installedOn.label        "Instalada em:">

@@ -1193,7 +1193,13 @@ gfxFont::CheckForFeaturesInvolvingSpace()
                 new nsDataHashtable<nsUint32HashKey,
                                     Script>(size_t(Script::NUM_SCRIPT_CODES));
             sScriptTagToCode->Put(HB_TAG('D','F','L','T'), Script::COMMON);
-            for (Script s = Script::ARABIC; s < Script::NUM_SCRIPT_CODES;
+            // Ensure that we don't try to look at script codes beyond what the
+            // current version of ICU (at runtime -- in case of system ICU)
+            // knows about.
+            Script scriptCount =
+                Script(std::min<int>(u_getIntPropertyMaxValue(UCHAR_SCRIPT) + 1,
+                                     int(Script::NUM_SCRIPT_CODES)));
+            for (Script s = Script::ARABIC; s < scriptCount;
                  s = Script(static_cast<int>(s) + 1)) {
                 hb_script_t scriptTag = hb_script_t(GetScriptTagForCode(s));
                 hb_tag_t s1, s2;
@@ -1711,6 +1717,14 @@ private:
         buf.mNumGlyphs = mNumGlyphs;
 
         const gfxContext::AzureState &state = mRunParams.context->CurrentState();
+
+        // Draw stroke first if the UNDERNEATH flag is set in drawMode.
+        if (mRunParams.strokeOpts &&
+            GetStrokeMode(mRunParams.drawMode) ==
+                (DrawMode::GLYPH_STROKE | DrawMode::GLYPH_STROKE_UNDERNEATH)) {
+            DrawStroke(state, buf);
+        }
+
         if (mRunParams.drawMode & DrawMode::GLYPH_FILL) {
             if (state.pattern || mFontParams.contextPaint) {
                 Pattern *pat;
@@ -1748,29 +1762,36 @@ private:
                                           mFontParams.drawOptions);
             }
         }
-        if (GetStrokeMode(mRunParams.drawMode) == DrawMode::GLYPH_STROKE &&
-            mRunParams.strokeOpts) {
-            Pattern *pat;
-            if (mRunParams.textStrokePattern) {
-                pat = mRunParams.textStrokePattern->GetPattern(
-                  mRunParams.dt, state.patternTransformChanged
-                                   ? &state.patternTransform
-                                   : nullptr);
 
-                if (pat) {
-                    FlushStroke(buf, *pat);
-                }
-            } else {
-                FlushStroke(buf,
-                            ColorPattern(
-                              Color::FromABGR(mRunParams.textStrokeColor)));
-            }
+        // Draw stroke if the UNDERNEATH flag is not set.
+        if (mRunParams.strokeOpts &&
+            GetStrokeMode(mRunParams.drawMode) == DrawMode::GLYPH_STROKE) {
+            DrawStroke(state, buf);
         }
+
         if (mRunParams.drawMode & DrawMode::GLYPH_PATH) {
             mRunParams.context->EnsurePathBuilder();
             Matrix mat = mRunParams.dt->GetTransform();
             mFontParams.scaledFont->CopyGlyphsToBuilder(
                 buf, mRunParams.context->mPathBuilder, &mat);
+        }
+    }
+
+    void DrawStroke(const gfxContext::AzureState& aState,
+                    gfx::GlyphBuffer& aBuffer)
+    {
+        if (mRunParams.textStrokePattern) {
+            Pattern* pat = mRunParams.textStrokePattern->GetPattern(
+                mRunParams.dt, aState.patternTransformChanged
+                               ? &aState.patternTransform
+                               : nullptr);
+
+            if (pat) {
+                FlushStroke(aBuffer, *pat);
+            }
+        } else {
+            FlushStroke(aBuffer, ColorPattern(
+                Color::FromABGR(mRunParams.textStrokeColor)));
         }
     }
 
@@ -3038,6 +3059,8 @@ gfxFont::ShapeTextWithoutWordCache(DrawTarget *aDrawTarget,
             aTextRun->SetIsTab(aOffset + i);
         } else if (ch == '\n') {
             aTextRun->SetIsNewline(aOffset + i);
+        } else if (GetGeneralCategory(ch) == HB_UNICODE_GENERAL_CATEGORY_FORMAT) {
+            aTextRun->SetIsFormattingControl(aOffset + i);
         } else if (IsInvalidControlChar(ch) &&
             !(aTextRun->GetFlags() & gfx::ShapedTextFlags::TEXT_HIDE_CONTROL_CHARACTERS)) {
             if (GetFontEntry()->IsUserFont() && HasCharacter(ch)) {
@@ -3256,6 +3279,8 @@ gfxFont::SplitAndInitTextRun(DrawTarget *aDrawTarget,
             aTextRun->SetIsTab(aRunStart + i);
         } else if (ch == '\n') {
             aTextRun->SetIsNewline(aRunStart + i);
+        } else if (GetGeneralCategory(ch) == HB_UNICODE_GENERAL_CATEGORY_FORMAT) {
+            aTextRun->SetIsFormattingControl(aRunStart + i);
         } else if (IsInvalidControlChar(ch) &&
             !(aTextRun->GetFlags() & gfx::ShapedTextFlags::TEXT_HIDE_CONTROL_CHARACTERS)) {
             if (GetFontEntry()->IsUserFont() && HasCharacter(ch)) {

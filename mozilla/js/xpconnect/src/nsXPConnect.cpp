@@ -250,8 +250,8 @@ xpc::ErrorReport::Init(JSContext* aCx, mozilla::dom::Exception* aException,
     if (mFileName.IsEmpty()) {
       mFileName.SetIsVoid(true);
     }
-    aException->GetLineNumber(aCx, &mLineNumber);
-    aException->GetColumnNumber(&mColumn);
+    mLineNumber = aException->LineNumber(aCx);
+    mColumn = aException->ColumnNumber();
 
     mFlags = JSREPORT_EXCEPTION;
 }
@@ -1192,21 +1192,6 @@ NewAddonId(JSContext* cx, const nsACString& id)
 }
 
 bool
-SetAddonInterposition(const nsACString& addonIdStr, nsIAddonInterposition* interposition)
-{
-    JSAddonId* addonId;
-    // We enter the junk scope just to allocate a string, which actually will go
-    // in the system zone.
-    AutoJSAPI jsapi;
-    if (!jsapi.Init(xpc::PrivilegedJunkScope()))
-        return false;
-    addonId = NewAddonId(jsapi.cx(), addonIdStr);
-    if (!addonId)
-        return false;
-    return XPCWrappedNativeScope::SetAddonInterposition(jsapi.cx(), addonId, interposition);
-}
-
-bool
 AllowCPOWsInAddon(const nsACString& addonIdStr, bool allow)
 {
     JSAddonId* addonId;
@@ -1243,9 +1228,7 @@ IsChromeOrXBL(JSContext* cx, JSObject* /* unused */)
     return AccessCheck::isChrome(c) || IsContentXBLCompartment(c) || !AllowContentXBLScope(realm);
 }
 
-namespace workers {
 extern bool IsCurrentThreadRunningChromeWorker();
-} // namespace workers
 
 bool
 ThreadSafeIsChromeOrXBL(JSContext* cx, JSObject* obj)
@@ -1253,7 +1236,7 @@ ThreadSafeIsChromeOrXBL(JSContext* cx, JSObject* obj)
     if (NS_IsMainThread()) {
         return IsChromeOrXBL(cx, obj);
     }
-    return workers::IsCurrentThreadRunningChromeWorker();
+    return IsCurrentThreadRunningChromeWorker();
 }
 
 } // namespace dom

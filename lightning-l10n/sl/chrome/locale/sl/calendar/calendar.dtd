@@ -53,7 +53,7 @@
 <!ENTITY calendar.unifinder.tree.status.tooltip2           "Razvrsti po stanju">
 <!ENTITY calendar.unifinder.tree.calendarname.label        "Ime koledarja">
 <!ENTITY calendar.unifinder.tree.calendarname.tooltip2     "Razvrsti po imenu koledarja">
-<!ENTITY calendar.unifinder.tree.duration.label            "Zapade">
+<!ENTITY calendar.unifinder.tree.duration.label            "Zapade čez">
 <!ENTITY calendar.unifinder.tree.duration.tooltip2         "Razvrsti po času do roka">
 <!ENTITY calendar.unifinder.close.tooltip                  "Zapri iskanje dogodkov in seznam dogodkov">
 
@@ -86,7 +86,7 @@
 <!ENTITY calendar.navigation.prevmonth.tooltip  "En mesec nazaj" >
 
 <!ENTITY calendar.newevent.button.label         "Nov dogodek" >
-<!ENTITY calendar.newtask.button.label          "Nova opravila" >
+<!ENTITY calendar.newtask.button.label          "Novo opravilo" >
 <!ENTITY calendar.print.button.label            "Natisni" >
 <!ENTITY calendar.print.button.accesskey        "N">
 
@@ -244,7 +244,7 @@
 <!ENTITY calendar.context.unsubscribeserver.label      "Odjavi se od koledarja …">
 <!ENTITY calendar.context.unsubscribeserver.accesskey  "d">
 <!ENTITY calendar.context.synccalendars.label          "Sinhroniziraj koledarje">
-<!ENTITY calendar.context.synccalendars.accesskey      "U">
+<!ENTITY calendar.context.synccalendars.accesskey      "h">
 <!ENTITY calendar.context.publish.label                "Objavi koledar">
 <!ENTITY calendar.context.publish.accesskey            "O">
 <!ENTITY calendar.context.export.label                 "Izvozi koledar …">
@@ -262,7 +262,7 @@
 
 <!-- LOCALIZATION NOTE (calendar.context.showonly.accesskey)
      This is the access key used for the showOnlyCalendar string -->
-<!ENTITY calendar.context.showonly.accesskey           "s">
+<!ENTITY calendar.context.showonly.accesskey           "a">
 <!ENTITY calendar.context.showall.label                "Prikaži vse koledarje">
 <!ENTITY calendar.context.showall.accesskey            "v">
 
@@ -372,3 +372,37 @@
 <!ENTITY calendar.extract.task.button          "Dodaj kot opravilo">
 <!ENTITY calendar.extract.event.button.tooltip "Izvleci koledarske podatke iz sporočila in jih dodaj k svojemu koledarju kot dogodek">
 <!ENTITY calendar.extract.task.button.tooltip  "Izvleci koledarske podatke iz sporočila in jih dodaj k svojemu koledarju kot opravilo">
+
+<!ENTITY calendar.context.attendance.all2.label                 "Complete Series">
+<!ENTITY calendar.context.attendance.send.label                 "Send a notification now">
+<!ENTITY calendar.context.attendance.send.accesskey             "S">
+<!ENTITY calendar.context.attendance.dontsend.label             "Do not send a notification">
+<!ENTITY calendar.context.attendance.dontsend.accesskey         "D">
+<!ENTITY calendar.context.attendance.occ.accepted.accesskey     "A">
+<!ENTITY calendar.context.attendance.occ.accepted.label         "Accepted">
+<!ENTITY calendar.context.attendance.occ.tentative.accesskey    "y">
+<!ENTITY calendar.context.attendance.occ.tentative.label        "Accepted tentatively">
+<!ENTITY calendar.context.attendance.occ.declined.accesskey     "c">
+<!ENTITY calendar.context.attendance.occ.declined.label         "Declined">
+<!ENTITY calendar.context.attendance.occ.delegated.accesskey    "g">
+<!ENTITY calendar.context.attendance.occ.delegated.label        "Delegated">
+<!ENTITY calendar.context.attendance.occ.needsaction.accesskey  "S">
+<!ENTITY calendar.context.attendance.occ.needsaction.label      "Still needs action">
+<!ENTITY calendar.context.attendance.occ.inprogress.accesskey   "I">
+<!ENTITY calendar.context.attendance.occ.inprogress.label       "In progress">
+<!ENTITY calendar.context.attendance.occ.completed.accesskey    "C">
+<!ENTITY calendar.context.attendance.occ.completed.label        "Completed">
+<!ENTITY calendar.context.attendance.all.accepted.accesskey     "e">
+<!ENTITY calendar.context.attendance.all.accepted.label         "Accepted">
+<!ENTITY calendar.context.attendance.all.tentative.accesskey    "v">
+<!ENTITY calendar.context.attendance.all.tentative.label        "Accepted tentatively">
+<!ENTITY calendar.context.attendance.all.declined.accesskey     "d">
+<!ENTITY calendar.context.attendance.all.declined.label         "Declined">
+<!ENTITY calendar.context.attendance.all.delegated.accesskey    "l">
+<!ENTITY calendar.context.attendance.all.delegated.label        "Delegated">
+<!ENTITY calendar.context.attendance.all.needsaction.accesskey  "l">
+<!ENTITY calendar.context.attendance.all.needsaction.label      "Still needs action">
+<!ENTITY calendar.context.attendance.all.inprogress.accesskey   "p">
+<!ENTITY calendar.context.attendance.all.inprogress.label       "In progress">
+<!ENTITY calendar.context.attendance.all.completed.accesskey    "m">
+<!ENTITY calendar.context.attendance.all.completed.label        "Completed">

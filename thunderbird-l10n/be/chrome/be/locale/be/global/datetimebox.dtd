@@ -12,24 +12,24 @@
 
 <!-- Field labels for input type=time -->
 
-<!ENTITY time.hour.label "Hours">
-<!ENTITY time.minute.label "Minutes">
-<!ENTITY time.second.label "Seconds">
-<!ENTITY time.millisecond.label "Milliseconds">
+<!ENTITY time.hour.label "Гадзіны">
+<!ENTITY time.minute.label "Хвіліны">
+<!ENTITY time.second.label "Секунды">
+<!ENTITY time.millisecond.label "Мілісекунды">
 <!ENTITY time.dayperiod.label "AM/PM">
 
 <!-- Placeholders for input type=date -->
 
-<!ENTITY date.year.placeholder "yyyy">
-<!ENTITY date.month.placeholder "mm">
-<!ENTITY date.day.placeholder "dd">
+<!ENTITY date.year.placeholder "гггг">
+<!ENTITY date.month.placeholder "мм">
+<!ENTITY date.day.placeholder "дд">
 
 <!-- Field labels for input type=date -->
 
-<!ENTITY date.year.label "Year">
-<!ENTITY date.month.label "Month">
-<!ENTITY date.day.label "Day">
+<!ENTITY date.year.label "Год">
+<!ENTITY date.month.label "Месяц">
+<!ENTITY date.day.label "Дзень">
 
 <!-- Date/time clear button -->
 
-<!ENTITY datetime.reset.label "Clear">
+<!ENTITY datetime.reset.label "Ачысціць">

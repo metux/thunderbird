@@ -9,7 +9,7 @@
 // only needed during debug
 //do_import_script("mailnews/extensions/bayesian-spam-filter/test/resources/trainingfile.js");
 
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 // local constants
 var kUnclassified = MailServices.junk.UNCLASSIFIED;
@@ -23,8 +23,8 @@ var kGood = MailServices.junk.GOOD;
  * junkPercent values below were calculated by the plugin,
  * not indepedently verified.
  */
- 
-var tests = 
+
+var tests =
 [
   {fileName: "ham2.eml",
    junkPercent: 8},
@@ -50,7 +50,7 @@ function run_test()
 };
 
 var haveClassification = false;
-var doTestingListener = 
+var doTestingListener =
 {
   onMessageClassified: function(aMsgURI, aClassification, aJunkPercent)
   {
@@ -94,6 +94,6 @@ function getSpec(aFileName)
 {
   var file = do_get_file("../../../extensions/bayesian-spam-filter/test/unit/resources/" + aFileName);
   var uri = Services.io.newFileURI(file).QueryInterface(Ci.nsIURL);
-  uri.query = "type=application/x-message-display";
+  uri = uri.mutate().setQuery("type=application/x-message-display").finalize();
   return uri.spec;
 }

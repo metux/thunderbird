@@ -200,6 +200,7 @@
 <!ENTITY options.sourceeditor.keybinding.accesskey      "K">
 <!ENTITY options.sourceeditor.keybinding.default.label  "Zadano">
 
+<!ENTITY browserToolboxStatusMessage "Browser Toolbox connection status:">
 <!ENTITY options.enableRemote.tooltip2  "Turning this option on will allow the developer tools to debug a remote instance like Firefox OS">
 <!ENTITY options.disableHTTPCache.label     "Disable HTTP Cache (when toolbox is open)">
 <!ENTITY options.disableHTTPCache.tooltip   "Turning this option on will disable the HTTP cache for all tabs that have the toolbox open. Service Workers are not affected by this option.">

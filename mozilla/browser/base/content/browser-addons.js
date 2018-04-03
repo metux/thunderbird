@@ -37,7 +37,7 @@ var gXPInstallObserver = {
     if (aDocShell == aSoughtShell)
       return aDocShell;
 
-    var node = aDocShell.QueryInterface(Components.interfaces.nsIDocShellTreeItem);
+    var node = aDocShell.QueryInterface(Ci.nsIDocShellTreeItem);
     for (var i = 0; i < node.childCount; ++i) {
       var docShell = node.getChildAt(i);
       docShell = this._findChildShell(docShell, aSoughtShell);
@@ -72,7 +72,7 @@ var gXPInstallObserver = {
 
     let showNextConfirmation = () => {
       // Make sure the browser is still alive.
-      if (gBrowser.browsers.indexOf(browser) == -1)
+      if (!gBrowser.browsers.includes(browser))
         return;
 
       let pending = this.pendingInstalls.get(browser);
@@ -223,7 +223,7 @@ var gXPInstallObserver = {
     var browser = installInfo.browser;
 
     // Make sure the browser is still alive.
-    if (!browser || gBrowser.browsers.indexOf(browser) == -1)
+    if (!browser || !gBrowser.browsers.includes(browser))
       return;
 
     const anchorID = "addons-notification-icon";
@@ -522,7 +522,7 @@ var gExtensionsNotifications = {
     button.setAttribute("image", icon || DEFAULT_EXTENSION_ICON);
     button.className = "addon-banner-item";
 
-    button.addEventListener("click", callback);
+    button.addEventListener("command", callback);
     PanelUI.addonNotificationContainer.appendChild(button);
   },
 
@@ -559,6 +559,10 @@ var gExtensionsNotifications = {
 
       let text = gNavigatorBundle.getFormattedString("webextPerms.sideloadMenuItem", [addon.name, appName]);
       this._createAddonButton(text, addon.iconURL, evt => {
+        // We need to hide the main menu manually because the toolbarbutton is
+        // removed immediately while processing this event, and PanelUI is
+        // unable to identify which panel should be closed automatically.
+        PanelUI.hide();
         ExtensionsUI.showSideloaded(gBrowser, addon);
       });
     }
@@ -608,7 +612,7 @@ var LightWeightThemeWebInstaller = {
 
   get _manager() {
     let temp = {};
-    Cu.import("resource://gre/modules/LightweightThemeManager.jsm", temp);
+    ChromeUtils.import("resource://gre/modules/LightweightThemeManager.jsm", temp);
     delete this._manager;
     return this._manager = temp.LightweightThemeManager;
   },
@@ -645,7 +649,8 @@ var LightWeightThemeWebInstaller = {
     }
 
     let strings = {
-      header: gNavigatorBundle.getFormattedString("webextPerms.header", [data.name]),
+      header: gNavigatorBundle.getFormattedString("webextPerms.header", ["<>"]),
+      addonName: data.name,
       text: gNavigatorBundle.getFormattedString("lwthemeInstallRequest.message2",
                                                 [uri.host]),
       acceptText: gNavigatorBundle.getString("lwthemeInstallRequest.allowButton2"),

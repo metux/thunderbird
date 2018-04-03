@@ -50,14 +50,14 @@
 <!ENTITY calendar.unifinder.tree.location.label            "Местоположение">
 <!ENTITY calendar.unifinder.tree.location.tooltip2         "Сортиране по местоположение">
 <!ENTITY calendar.unifinder.tree.status.label              "Статус">
-<!ENTITY calendar.unifinder.tree.status.tooltip2           "Сортиране по статус">
+<!ENTITY calendar.unifinder.tree.status.tooltip2           "Сортиране по състояние">
 <!ENTITY calendar.unifinder.tree.calendarname.label        "Име на календара">
 <!ENTITY calendar.unifinder.tree.calendarname.tooltip2     "Сортиране по име на календар">
 <!ENTITY calendar.unifinder.tree.duration.label            "До">
 <!ENTITY calendar.unifinder.tree.duration.tooltip2         "Сортиране по време до крайния срок">
 <!ENTITY calendar.unifinder.close.tooltip                  "Затваряне на търсенето и списъка на събития">
 
-<!ENTITY calendar.today.button.tooltip          "Отиване на днес" >
+<!ENTITY calendar.today.button.tooltip          "Отваряне на днешния ден" >
 <!ENTITY calendar.todaypane.button.tooltip      "Показване на дневния график" >
 
 <!ENTITY calendar.day.button.tooltip            "Превключване към дневен изглед" >
@@ -290,8 +290,8 @@
 <!ENTITY calendar.alarm.location.label              "Местоположение:" >
 <!ENTITY calendar.alarm.details.label               "Подробности…" >
 
-<!ENTITY calendar.alarm.snoozefor.label             "Заглушаване за" >
-<!ENTITY calendar.alarm.snoozeallfor.label          "Заглушаване на всички за" >
+<!ENTITY calendar.alarm.snoozefor.label             "Отлагане за" >
+<!ENTITY calendar.alarm.snoozeallfor.label          "Отлагане на всички за" >
 <!ENTITY calendar.alarm.title.label                 "Припомняния на календара" >
 <!ENTITY calendar.alarm.dismiss.label               "Прекратяване" >
 <!ENTITY calendar.alarm.dismissall.label            "Прекратяване на всички" >
@@ -309,7 +309,7 @@
      This string is not seen in the UI, it is read by screen readers when the
      user focuses the "Cancel" button in the "Snooze for..." popup of the alarm
      dialog. -->
-<!ENTITY calendar.alarm.snooze.cancel               "Прекъсване на заглушаването">
+<!ENTITY calendar.alarm.snooze.cancel               "Прекъсване на отлагането">
 
 <!-- Calendar Server Dialog -->
 <!ENTITY calendar.server.dialog.title.edit          "Редактиране на календар">
@@ -372,3 +372,37 @@
 <!ENTITY calendar.extract.task.button          "Добавяне на задача">
 <!ENTITY calendar.extract.event.button.tooltip "Извличане на календарната информация от съобщението и добавянето ѝ към вашия календар като събитие">
 <!ENTITY calendar.extract.task.button.tooltip  "Извличане на календарната информация от съобщението и добавянето ѝ към вашия календар като задача">
+
+<!ENTITY calendar.context.attendance.all2.label                 "Complete Series">
+<!ENTITY calendar.context.attendance.send.label                 "Send a notification now">
+<!ENTITY calendar.context.attendance.send.accesskey             "S">
+<!ENTITY calendar.context.attendance.dontsend.label             "Do not send a notification">
+<!ENTITY calendar.context.attendance.dontsend.accesskey         "D">
+<!ENTITY calendar.context.attendance.occ.accepted.accesskey     "A">
+<!ENTITY calendar.context.attendance.occ.accepted.label         "Accepted">
+<!ENTITY calendar.context.attendance.occ.tentative.accesskey    "y">
+<!ENTITY calendar.context.attendance.occ.tentative.label        "Accepted tentatively">
+<!ENTITY calendar.context.attendance.occ.declined.accesskey     "c">
+<!ENTITY calendar.context.attendance.occ.declined.label         "Declined">
+<!ENTITY calendar.context.attendance.occ.delegated.accesskey    "g">
+<!ENTITY calendar.context.attendance.occ.delegated.label        "Delegated">
+<!ENTITY calendar.context.attendance.occ.needsaction.accesskey  "S">
+<!ENTITY calendar.context.attendance.occ.needsaction.label      "Still needs action">
+<!ENTITY calendar.context.attendance.occ.inprogress.accesskey   "I">
+<!ENTITY calendar.context.attendance.occ.inprogress.label       "In progress">
+<!ENTITY calendar.context.attendance.occ.completed.accesskey    "C">
+<!ENTITY calendar.context.attendance.occ.completed.label        "Completed">
+<!ENTITY calendar.context.attendance.all.accepted.accesskey     "e">
+<!ENTITY calendar.context.attendance.all.accepted.label         "Accepted">
+<!ENTITY calendar.context.attendance.all.tentative.accesskey    "v">
+<!ENTITY calendar.context.attendance.all.tentative.label        "Accepted tentatively">
+<!ENTITY calendar.context.attendance.all.declined.accesskey     "d">
+<!ENTITY calendar.context.attendance.all.declined.label         "Declined">
+<!ENTITY calendar.context.attendance.all.delegated.accesskey    "l">
+<!ENTITY calendar.context.attendance.all.delegated.label        "Delegated">
+<!ENTITY calendar.context.attendance.all.needsaction.accesskey  "l">
+<!ENTITY calendar.context.attendance.all.needsaction.label      "Still needs action">
+<!ENTITY calendar.context.attendance.all.inprogress.accesskey   "p">
+<!ENTITY calendar.context.attendance.all.inprogress.label       "In progress">
+<!ENTITY calendar.context.attendance.all.completed.accesskey    "m">
+<!ENTITY calendar.context.attendance.all.completed.label        "Completed">

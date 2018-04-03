@@ -37,3 +37,6 @@
 <!ENTITY pref.numberofweeks.4 "4 seachdainean">
 <!ENTITY pref.numberofweeks.5 "5 seachdainean">
 <!ENTITY pref.numberofweeks.6 "6 seachdainean">
+
+<!ENTITY pref.showlocation.label "Show location">
+<!ENTITY pref.showlocation.accesskey "L">

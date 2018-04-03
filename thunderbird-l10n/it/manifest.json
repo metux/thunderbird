@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/it/locale/it/passwordmgr/", 
         "pippki": "chrome/it/locale/it/pippki/"
       }, 
-      "version": "20171102070400"
+      "version": "20180313193455"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-it@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "it", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Italiano (IT) Language Pack", 
   "manifest_version": 2, 
   "sources": {

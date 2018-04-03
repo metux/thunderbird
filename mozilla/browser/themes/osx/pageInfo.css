@@ -8,9 +8,7 @@
 
 #topBar {
   -moz-appearance: toolbar;
-}
-
-.viewGroupWrapper {
+  -moz-window-dragging: drag;
   -moz-box-align: center;
   -moz-box-pack: center;
 }
@@ -27,7 +25,7 @@
   font: menu;
   text-shadow: @loweredShadow@;
   margin: 0;
-  padding: 0 1px;
+  padding: 0 6px;
   height: 22px;
 }
 

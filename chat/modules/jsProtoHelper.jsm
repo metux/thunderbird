@@ -15,10 +15,8 @@ this.EXPORTED_SYMBOLS = [
   "TooltipInfo"
 ];
 
-var {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
-
-Cu.import("resource:///modules/imXPCOMUtils.jsm");
-Cu.import("resource:///modules/imServices.jsm");
+ChromeUtils.import("resource:///modules/imXPCOMUtils.jsm");
+ChromeUtils.import("resource:///modules/imServices.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "_", () =>
   l10nHelper("chrome://chat/locale/conversations.properties")
@@ -229,9 +227,6 @@ var GenericAccountPrototype = {
 
   get normalizedName() { return this.normalize(this.name); },
   normalize: function(aName) { return aName.toLowerCase(); },
-
-  get proxyInfo() { throw Cr.NS_ERROR_NOT_IMPLEMENTED; },
-  set proxyInfo(val) { throw Cr.NS_ERROR_NOT_IMPLEMENTED; },
 
   get HTMLEnabled() { return false; },
   get HTMLEscapePlainText() { return false; },

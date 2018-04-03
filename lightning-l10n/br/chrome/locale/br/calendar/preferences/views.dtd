@@ -47,3 +47,5 @@
 <!ENTITY pref.numberofpreviousweeks.label "Previous weeks to show:">
 <!ENTITY pref.numberofpreviousweeks.accesskey "P">
 <!ENTITY pref.numberofweeks.0 "none">
+<!ENTITY pref.showlocation.label "Show location">
+<!ENTITY pref.showlocation.accesskey "L">

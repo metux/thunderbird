@@ -3,9 +3,9 @@
  * Most of this test was copied from test_messageHeaders.js.
  */
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource:///modules/mailServices.js");
-Components.utils.import("resource:///modules/mimeParser.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mimeParser.jsm");
 
 var CompFields = CC("@mozilla.org/messengercompose/composefields;1",
                     Ci.nsIMsgCompFields);
@@ -89,7 +89,7 @@ function* testBodyWithLongLine() {
   // Windows uses CR+LF, the other platforms just LF.
   // Note: Services.appinfo.OS returns "XPCShell" in the test, so we
   // use this hacky condition to separate Windows from the others.
-  if ("@mozilla.org/windows-registry-key;1" in Components.classes) {
+  if ("@mozilla.org/windows-registry-key;1" in Cc) {
     newline = "\r\n";
   } else {
     newline = "\n";

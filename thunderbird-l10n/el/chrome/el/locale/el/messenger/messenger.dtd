@@ -317,7 +317,7 @@
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goChatCmd.label "Συζήτηση">
 <!ENTITY goChatCmd.accesskey "σ">
-<!ENTITY goChatCmd.key "Ζ">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Μήνυμα με αστέρι">
 <!ENTITY prevStarredMsgCmd.accesskey "σ">
 <!ENTITY folderMenu.label "Φάκελος">
@@ -366,6 +366,8 @@
 <!ENTITY editAsNewMsgCmd.key "ξ">
 <!ENTITY editDraftMsgCmd.label "Επεξεργασία πρόχειρου μηνύματος">
 <!ENTITY editDraftMsgCmd.accesskey "χ">
+<!ENTITY editTemplateMsgCmd.label "Επεξεργασία Προτύπου">
+<!ENTITY editTemplateMsgCmd.accesskey "Π">
 <!ENTITY newMsgFromTemplateCmd.label "Νέο μήνυμα βάσει προτύπου">
 <!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Δημιουργία Φίλτρου από μήνυμα...">
@@ -459,6 +461,11 @@
 <!ENTITY addressBookCmd.key "Ρ">
 <!ENTITY addons.label "Πρόσθετα">
 <!ENTITY addons.accesskey "θ">
+<!ENTITY addonPrefs.label "Επιλογές προσθέτου">
+<!ENTITY addonPrefs.accesskey "Ε">
+<!ENTITY addonPrefsUnix.label "Προτιμήσεις προσθέτου">
+<!ENTITY addonPrefsUnix.accesskey "Π">
+<!ENTITY addonNoPrefs.label "Δεν βρέθηκαν ρυθμίσεις προσθέτου.">
 <!ENTITY activitymanager.label "Διαχείριση δραστηριότητας">
 <!ENTITY activitymanager.accesskey "χ">
 <!ENTITY imAccountsStatus.label "Κατάσταση συνομιλίας">
@@ -504,6 +511,8 @@
 <!ENTITY devToolboxCmd.commandkey "ι">
 <!ENTITY addonDebugCmd.label "Ενσωματωμένος Αποσφαλματωτής">
 <!ENTITY addonDebugCmd.accesskey "Α">
+<!ENTITY debugAddonsCmd.label "Αποσφαλμάτωση Πρόσθετων">
+<!ENTITY debugAddonsCmd.accesskey "Α">
 <!ENTITY tabsDebugCmd.label "Αποσφαλματωτής Περιεχομένου Πλαισίου">
 <!ENTITY tabsDebugCmd.accesskey "Π">
 <!ENTITY errorConsoleCmd.label "Κονσόλα σφαλμάτων">
@@ -752,6 +761,8 @@
 <!ENTITY contextEditMsgAsNew.label "Τροποποίηση ως νέου">
 <!ENTITY contextEditMsgAsNew.accesskey "ω">
 <!ENTITY contextEditDraftMsg.label "Τροποποίηση πρόχειρου μηνύματος">
+<!ENTITY contextEditTemplate.label "Επεξεργασία Προτύπου">
+<!ENTITY contextEditTemplate.accesskey "Π">
 <!ENTITY contextArchive.label "Αρχειοθέτηση">
 <!ENTITY contextArchive.accesskey "χ">
 <!ENTITY contextReplySender.label "Απάντηση μόνο στον αποστολέα">
@@ -957,16 +968,3 @@
 <!ENTITY dockOptions.label              "Επιλογές εικονιδίου εφαρμογής..">
 <!ENTITY writeNewMessageDock.label      "Σύνταξη νέου μηνύματος">
 <!ENTITY openAddressBookDock.label      "Άνοιγμα βιβλίου διευθύνσεων">
-
-<!ENTITY goChatCmd2.key "H">
-<!ENTITY editTemplateMsgCmd.label "Edit Template">
-<!ENTITY editTemplateMsgCmd.accesskey "T">
-<!ENTITY addonPrefs.label "Add-on Options">
-<!ENTITY addonPrefs.accesskey "O">
-<!ENTITY addonPrefsUnix.label "Add-on Preferences">
-<!ENTITY addonPrefsUnix.accesskey "P">
-<!ENTITY addonNoPrefs.label "No Add-on settings found.">
-<!ENTITY debugAddonsCmd.label "Debug Add-ons">
-<!ENTITY debugAddonsCmd.accesskey "A">
-<!ENTITY contextEditTemplate.label "Edit Template">
-<!ENTITY contextEditTemplate.accesskey "T">

@@ -21,7 +21,17 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Տարբերակ">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Անվտանգության ծրագրաշար">
+<!ENTITY aboutSupport.securitySoftwareType "Տեսակ">
+<!ENTITY aboutSupport.securitySoftwareName "Անուն">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "ՀԱկավիրուս">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Հակալրտես">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Հրապատ">
+
 <!ENTITY aboutSupport.featuresTitle "&brandShortName;-ի յուրահատկություններ">
+<!ENTITY aboutSupport.featureName "Անուն">
+<!ENTITY aboutSupport.featureVersion "Տարբերակ">
+<!ENTITY aboutSupport.featureId "ID">
 
 <!ENTITY aboutSupport.experimentsTitle "Փորձարարական հատկություններ">
 <!ENTITY aboutSupport.experimentName "Անուն">
@@ -63,6 +73,7 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Բազմաընթացքային պատուհաններ">
 
+<!ENTITY aboutSupport.appBasicsProcessCount "Վեբ բովանդակության ընթացքներ">
 
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Google Key">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla-ի տեղադրության ծառայության բանալի">
@@ -102,6 +113,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "Մատչելիություն">
 <!ENTITY aboutSupport.a11yActivated "Ակտիվացված է">
 <!ENTITY aboutSupport.a11yForceDisabled "Կանխել հասանելիությունը">
+<!ENTITY aboutSupport.a11yHandlerUsed "Հասանելի մշակիչ է օգտ.">
+<!ENTITY aboutSupport.a11yInstantiator "Մատչելի կատարելիներ">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Շտեմարանների տարբերակը">
 
@@ -133,37 +146,27 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Վթարի պաշտպանի անջատած յուրահատկություններ">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Շրջանցիկներ">
 
+<!ENTITY aboutSupport.mediaTitle "Մեդիա">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Արտածելու սարքեր">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Ներածելու սարքեր">
+<!ENTITY aboutSupport.mediaDeviceName "Անուն">
+<!ENTITY aboutSupport.mediaDeviceGroup "Խումբ">
+<!ENTITY aboutSupport.mediaDeviceVendor "Մատակարար">
+<!ENTITY aboutSupport.mediaDeviceState "Վիճակ">
+<!ENTITY aboutSupport.mediaDevicePreferred "Նախընտրելի">
+<!ENTITY aboutSupport.mediaDeviceFormat "Ձևաչափ">
+<!ENTITY aboutSupport.mediaDeviceChannels "Ալիքներ">
+<!ENTITY aboutSupport.mediaDeviceRate "ԳՆահատական">
+<!ENTITY aboutSupport.mediaDeviceLatency "Սպասում">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.featureName "Name">
-<!ENTITY aboutSupport.featureVersion "Version">
-<!ENTITY aboutSupport.featureId "ID">
-<!ENTITY aboutSupport.appBasicsProcessCount "Web Content Processes">
-<!ENTITY aboutSupport.a11yHandlerUsed "Accessible Handler Used">
-<!ENTITY aboutSupport.a11yInstantiator "Accessibility Instantiator">
-<!ENTITY aboutSupport.mediaTitle "Media">
-<!ENTITY aboutSupport.mediaOutputDevicesTitle "Output Devices">
-<!ENTITY aboutSupport.mediaInputDevicesTitle "Input Devices">
-<!ENTITY aboutSupport.mediaDeviceName "Name">
-<!ENTITY aboutSupport.mediaDeviceGroup "Group">
-<!ENTITY aboutSupport.mediaDeviceVendor "Vendor">
-<!ENTITY aboutSupport.mediaDeviceState "State">
-<!ENTITY aboutSupport.mediaDevicePreferred "Preferred">
-<!ENTITY aboutSupport.mediaDeviceFormat "Format">
-<!ENTITY aboutSupport.mediaDeviceChannels "Channels">
-<!ENTITY aboutSupport.mediaDeviceRate "Rate">
-<!ENTITY aboutSupport.mediaDeviceLatency "Latency">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.intlTitle "Միջազգայնացում և տեղայնացում">
+<!ENTITY aboutSupport.intlAppTitle "ՀԱվելվածի կարգավորումներ">
+<!ENTITY aboutSupport.intlLocalesRequested "Հարցված լեզուներ">
+<!ENTITY aboutSupport.intlLocalesAvailable "Մատչելի լեզուներ">
+<!ENTITY aboutSupport.intlLocalesSupported "Հավելվածի լեզուները">
+<!ENTITY aboutSupport.intlLocalesDefault "Հիմնական լեզուն">
+<!ENTITY aboutSupport.intlOSTitle "Օպերացիոն համակարգ">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Համակարգային լեզուներ">
+<!ENTITY aboutSupport.intlRegionalPrefs "Տաածաշրջանային նախապատվություններ">
+
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">

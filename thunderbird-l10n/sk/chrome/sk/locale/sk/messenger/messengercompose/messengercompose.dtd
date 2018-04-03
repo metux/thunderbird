@@ -85,6 +85,9 @@
 <!ENTITY editRewrapCmd.key "R">
 <!ENTITY renameAttachmentCmd.label "Premenovať prílohu…">
 <!ENTITY renameAttachmentCmd.accesskey "e">
+<!ENTITY reorderAttachmentsCmd.label "Zmeniť usporiadanie príloh…">
+<!ENTITY reorderAttachmentsCmd.accesskey "s">
+<!ENTITY reorderAttachmentsCmd.key "x">
 <!ENTITY selectAllCmd.label "Vybrať všetko">
 <!ENTITY selectAllCmd.key "A">
 <!ENTITY selectAllCmd.accesskey "a">
@@ -102,6 +105,42 @@
 <!ENTITY findPrevCmd.accesskey "r">
 <!ENTITY findPrevCmd.key "G">
 <!ENTITY findPrevCmd.key2 "VK_F3">
+
+<!-- Reorder Attachment Panel -->
+<!ENTITY reorderAttachmentsPanel.label "Zmeniť usporiadanie príloh">
+<!ENTITY moveAttachmentTopPanelBtn.label "Presunúť nahor">
+<!ENTITY moveAttachmentTopPanelBtn.accesskey "n">
+<!ENTITY moveAttachmentUpPanelBtn.label "Presunúť vyššie">
+<!ENTITY moveAttachmentUpPanelBtn.accesskey "v">
+<!ENTITY moveAttachmentBundleUpPanelBtn.label "Presunúť spolu">
+<!ENTITY moveAttachmentBundleUpPanelBtn.accesskey "s">
+<!ENTITY moveAttachmentDownPanelBtn.label "Presunúť nižšie">
+<!ENTITY moveAttachmentDownPanelBtn.accesskey "e">
+<!ENTITY moveAttachmentBottomPanelBtn.label "Presunúť nadol">
+<!ENTITY moveAttachmentBottomPanelBtn.accesskey "d">
+<!-- LOCALIZATION NOTE (sortAttachmentsTogglePanelBtn.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsTogglePanelBtn.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.label "Usporiadať výber od A do Z">
+<!-- LOCALIZATION NOTE (sortAttachmentsTogglePanelBtn.AZ.accesskey):
+     This accesskey should be the same like
+     sortAttachmentsTogglePanelBtn.ZA.accesskey, and it should be taken from
+     the "Sort Selection:" part of the label, not from the sort direction part. -->
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.accesskey "o">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.label "Usporiadať výber od Z do A">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.accesskey "o">
+
+<!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.Sort.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsPanelBtn.Sort.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsPanelBtn.Sort.AZ.label "Usporiadať od A do Z">
+<!ENTITY sortAttachmentsPanelBtn.Sort.ZA.label "Usporiadať od Z do A">
+<!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.SortSelection.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsPanelBtn.SortSelection.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.AZ.label "Usporiadať výber od A do Z">
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.ZA.label "Usporiadať výber od Z do A">
+<!ENTITY sortAttachmentsPanelBtn.key "y">
 
 <!-- View Menu -->
 <!ENTITY viewMenu.label "Zobraziť">
@@ -283,6 +322,8 @@
 <!ENTITY removeAttachment.accesskey "d">
 <!ENTITY renameAttachment.label "Premenovať…">
 <!ENTITY renameAttachment.accesskey "P">
+<!ENTITY reorderAttachments.label "Zmeniť usporiadanie príloh…">
+<!ENTITY reorderAttachments.accesskey "s">
 <!ENTITY selectAll.label "Vybrať všetko">
 <!ENTITY selectAll.accesskey "a">
 <!ENTITY attachFile.label "Priložiť súbor…">
@@ -313,19 +354,11 @@
 <!ENTITY languageStatusButton.tooltip "Jazyk pre kontrolu pravopisu">
 <!ENTITY encodingStatusPanel.tooltip "Kódovanie textu">
 
-<!ENTITY reorderAttachmentsCmd.label "Reorder Attachments…">
-<!ENTITY reorderAttachmentsCmd.accesskey "s">
-<!ENTITY reorderAttachmentsCmd.key "x">
-<!ENTITY reorderAttachmentsPanel.label "Reorder Attachments">
-<!ENTITY moveAttachmentTopPanelBtn.label "Move to Top">
-<!ENTITY moveAttachmentUpPanelBtn.label "Move Up">
-<!ENTITY moveAttachmentBundleUpPanelBtn.label "Move together">
-<!ENTITY moveAttachmentDownPanelBtn.label "Move Down">
-<!ENTITY moveAttachmentBottomPanelBtn.label "Move to Bottom">
-<!ENTITY sortAttachmentsPanelBtn.Sort.AZ.label "Sort: A - Z">
-<!ENTITY sortAttachmentsPanelBtn.Sort.ZA.label "Sort: Z - A">
-<!ENTITY sortAttachmentsPanelBtn.SortSelection.AZ.label "Sort Selection: A - Z">
-<!ENTITY sortAttachmentsPanelBtn.SortSelection.ZA.label "Sort Selection: Z - A">
-<!ENTITY sortAttachmentsPanelBtn.key "y">
-<!ENTITY reorderAttachments.label "Reorder Attachments…">
-<!ENTITY reorderAttachments.accesskey "s">
+<!ENTITY toggleAttachmentPaneCmd.label "Attachment Pane">
+<!ENTITY toggleAttachmentPaneCmd.accesskey "m">
+<!ENTITY toggleAttachmentPaneCmd.key "m">
+<!ENTITY attachButton.tooltip2 "Add an attachment">
+<!ENTITY attachmentBucketHeader.tooltip "Attachment Pane">
+<!ENTITY attachmentBucketCloseButton.tooltip "Hide the attachment pane">
+<!ENTITY removeAllAttachments.label "Remove All Attachments">
+<!ENTITY removeAllAttachments.accesskey "v">

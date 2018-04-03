@@ -107,6 +107,7 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yActivated "Activat">
 <!ENTITY aboutSupport.a11yForceDisabled "Împiedică accesibilitatea">
 <!ENTITY aboutSupport.a11yHandlerUsed "Handler accesibil folosit">
+<!ENTITY aboutSupport.a11yInstantiator "Instanțiator de accesibilitate">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Versiuni ale bibliotecii">
 
@@ -117,8 +118,13 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Copiază datele brute în clipboard">
 
 <!ENTITY aboutSupport.sandboxTitle "Sandbox">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Apeluri de sistem respinse">
+<!ENTITY aboutSupport.sandboxSyscallIndex "">
+<!ENTITY aboutSupport.sandboxSyscallAge "Secunde în urmă">
 <!ENTITY aboutSupport.sandboxSyscallPID "PID">
 <!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Tipul de proces">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Apel sistem">
 <!ENTITY aboutSupport.sandboxSyscallArgs "Argumente">
 
 <!ENTITY aboutSupport.safeModeTitle "Încearcă modul sigur">
@@ -133,6 +139,7 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Funcții dezactivate de Crash Guard">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Alternative">
 
+<!ENTITY aboutSupport.mediaTitle "Media">
 <!ENTITY aboutSupport.mediaOutputDevicesTitle "Dispozitive de ieșire">
 <!ENTITY aboutSupport.mediaInputDevicesTitle "Dispozitive de intrare">
 <!ENTITY aboutSupport.mediaDeviceName "Nume">
@@ -145,25 +152,20 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "Rată">
 <!ENTITY aboutSupport.mediaDeviceLatency "Latență">
 
+<!ENTITY aboutSupport.intlTitle "Internaționalizare și localizare">
+<!ENTITY aboutSupport.intlAppTitle "Setări aplicație">
+<!ENTITY aboutSupport.intlLocalesRequested "Limbile solicitate">
+<!ENTITY aboutSupport.intlLocalesAvailable "Limbile disponibile">
+<!ENTITY aboutSupport.intlLocalesSupported "Limbile de aplicație">
+<!ENTITY aboutSupport.intlLocalesDefault "Limba implicită">
+<!ENTITY aboutSupport.intlOSTitle "Sistem de operare">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Limbi de sistem">
+<!ENTITY aboutSupport.intlRegionalPrefs "Preferințe regionale">
+
 <!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
 <!ENTITY aboutSupport.securitySoftwareType "Type">
 <!ENTITY aboutSupport.securitySoftwareName "Name">
 <!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
 <!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
 <!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.a11yInstantiator "Accessibility Instantiator">
-<!ENTITY aboutSupport.sandboxSyscallLogTitle "Rejected System Calls">
-<!ENTITY aboutSupport.sandboxSyscallIndex "#">
-<!ENTITY aboutSupport.sandboxSyscallAge "Seconds Ago">
-<!ENTITY aboutSupport.sandboxSyscallProcType "Process Type">
-<!ENTITY aboutSupport.sandboxSyscallNumber "Syscall">
-<!ENTITY aboutSupport.mediaTitle "Media">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">

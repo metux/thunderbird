@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/fi/locale/fi/passwordmgr/", 
         "pippki": "chrome/fi/locale/fi/pippki/"
       }, 
-      "version": "20171102104616"
+      "version": "20180312184800"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-fi@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "fi", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Finnish Language Pack", 
   "manifest_version": 2, 
   "sources": {

@@ -25,12 +25,13 @@
 <!ENTITY spellDictionaries.label "Idiomas">
 <!ENTITY spellDictionaries.accesskey "I">
 
-<!ENTITY searchTextBox.clear.label "Clear">
-<!ENTITY fillLoginMenu.label          "Fill Login">
-<!ENTITY fillLoginMenu.accesskey      "F">
-<!ENTITY fillPasswordMenu.label       "Fill Password">
-<!ENTITY fillPasswordMenu.accesskey   "F">
-<!ENTITY fillUsernameMenu.label       "Fill Username">
-<!ENTITY fillUsernameMenu.accesskey   "F">
-<!ENTITY noLoginSuggestions.label     "(No Login Suggestions)">
-<!ENTITY viewSavedLogins.label        "View Saved Logins">
+<!ENTITY searchTextBox.clear.label "Limpar">
+
+<!ENTITY fillLoginMenu.label          "Cubrir identificación">
+<!ENTITY fillLoginMenu.accesskey      "f">
+<!ENTITY fillPasswordMenu.label       "Cubrir contrasinal">
+<!ENTITY fillPasswordMenu.accesskey   "b">
+<!ENTITY fillUsernameMenu.label       "Cubrir nome de usuario">
+<!ENTITY fillUsernameMenu.accesskey   "u">
+<!ENTITY noLoginSuggestions.label     "(Sen suxestións de identificación)">
+<!ENTITY viewSavedLogins.label        "Ver as identificacións gardadas">

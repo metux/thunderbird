@@ -6,6 +6,7 @@
 <!-- LOCALIZATION NOTE (devmgr.style2): This is CSS style for Device Manager
      window size. Don't translate "width" nor "height". Adjust the numbers
      to make window contents fit. -->
+<!ENTITY devmgr.style2                          "width: 67em; height: 32em;">
 
 <!ENTITY devmgr.devlist.label                   "ආරක්ෂණ මොඩියුලය සහ උපාංග">
 <!ENTITY devmgr.details.title                   "තොරතුරු">
@@ -32,9 +33,7 @@
 <!ENTITY loaddevice.browse                      "පිරික්සන්න...">
 <!ENTITY loaddevice.browse.accesskey            "B">
 
-<!ENTITY loaddevice.title                       "PKCS#11 වන උපාංගය පූරණය කරන්න">
 
-<!ENTITY devmgr.style2                          "width: 67em; height: 32em;">
 <!ENTITY loaddevice.modname2                    "Module Name">
 <!ENTITY loaddevice.modname2.accesskey          "M">
 <!ENTITY loaddevice.filename2                   "Module filename">

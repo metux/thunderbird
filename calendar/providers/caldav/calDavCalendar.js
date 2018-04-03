@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/Timer.jsm");
-Components.utils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Timer.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 
-Components.utils.import("resource:///modules/OAuth2.jsm");
+ChromeUtils.import("resource:///modules/OAuth2.jsm");
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://calendar/modules/calXMLUtils.jsm");
-Components.utils.import("resource://calendar/modules/calIteratorUtils.jsm");
-Components.utils.import("resource://calendar/modules/calProviderUtils.jsm");
-Components.utils.import("resource://calendar/modules/calAuthUtils.jsm");
-Components.utils.import("resource://calendar/modules/calAsyncUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calXMLUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calIteratorUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calProviderUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calAuthUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calAsyncUtils.jsm");
 
 //
 // calDavCalendar.js
@@ -646,7 +646,7 @@ calDavCalendar.prototype = {
             return;
         }
 
-        if (!cal.isItemSupported(aItem, this)) {
+        if (!cal.item.isItemSupported(aItem, this)) {
             notifyListener(Components.results.NS_ERROR_FAILURE,
                            "Server does not support item type");
             return;
@@ -1658,7 +1658,7 @@ calDavCalendar.prototype = {
                 // possibly hang. If we postpone until the window is loaded,
                 // all is well.
                 setTimeout(function postpone() { // eslint-disable-line func-names
-                    let win = cal.getCalendarWindow();
+                    let win = cal.window.getCalendarWindow();
                     if (!win || win.document.readyState != "complete") {
                         setTimeout(postpone, 0);
                     } else {
@@ -1734,7 +1734,7 @@ calDavCalendar.prototype = {
                 let flags = (nIPS.BUTTON_TITLE_YES * nIPS.BUTTON_POS_0) +
                             (nIPS.BUTTON_TITLE_IS_STRING * nIPS.BUTTON_POS_1);
 
-                let res = Services.prompt.confirmEx(cal.getCalendarWindow(),
+                let res = Services.prompt.confirmEx(cal.window.getCalendarWindow(),
                                                     promptTitle, promptText,
                                                     flags, null, button1Title,
                                                     null, null, {});
@@ -2209,13 +2209,12 @@ calDavCalendar.prototype = {
                 return normalized == chs.path || normalized == chs.spec;
             }
             function createBoxUrl(path) {
-                let url = self.mUri.clone();
-                url.pathQueryRef = self.ensureDecodedPath(path);
+                let newPath = self.ensureDecodedPath(path);
                 // Make sure the uri has a / at the end, as we do with the calendarUri.
-                if (url.pathQueryRef.charAt(url.pathQueryRef.length - 1) != "/") {
-                    url.pathQueryRef += "/";
+                if (newPath.charAt(newPath.length - 1) != "/") {
+                    newPath += "/";
                 }
-                return url;
+                return self.mUri.mutate().setPathQueryRef(newPath).finalize();
             }
 
             // If there are multiple home sets, we need to match the email addresses for scheduling.
@@ -2418,7 +2417,7 @@ calDavCalendar.prototype = {
         let organizer = this.calendarUserAddress;
 
         let fbQuery = cal.getIcsService().createIcalComponent("VCALENDAR");
-        cal.calSetProdidVersion(fbQuery);
+        cal.item.setStaticProps(fbQuery);
         let prop = cal.getIcsService().createIcalProperty("METHOD");
         prop.value = "REQUEST";
         fbQuery.addProperty(prop);
@@ -2672,8 +2671,9 @@ calDavCalendar.prototype = {
             // don't delete the REPLY item from inbox unless modifying the master
             // item was successful
             if (aStatus == 0) { // aStatus undocumented; 0 seems to indicate no error
-                let delUri = self.calendarUri.clone();
-                delUri.pathQueryRef = self.ensureEncodedPath(aPath);
+                let delUri = self.calendarUri.mutate()
+                                 .setPathQueryRef(self.ensureEncodedPath(aPath))
+                                 .finalize();
                 self.doDeleteItem(aItem, null, true, true, delUri);
             }
         };

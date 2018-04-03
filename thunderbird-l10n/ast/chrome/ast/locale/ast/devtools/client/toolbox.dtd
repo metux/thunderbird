@@ -215,6 +215,7 @@
 <!ENTITY options.sourceeditor.keybinding.accesskey      "C">
 <!ENTITY options.sourceeditor.keybinding.default.label  "Predetermináu">
 
+<!ENTITY browserToolboxStatusMessage "Browser Toolbox connection status:">
 <!ENTITY options.sourceMaps.tooltip1   "If you enable this option sources will be mapped in the tools.">
 <!ENTITY options.screenshot.label            "Screenshot Behavior">
 <!ENTITY options.screenshot.clipboard.label      "Screenshot to clipboard">

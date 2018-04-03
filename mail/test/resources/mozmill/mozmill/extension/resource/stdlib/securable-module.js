@@ -35,11 +35,6 @@
  * ***** END LICENSE BLOCK ***** */
 
 (function(global) {
-   const Cc = Components.classes;
-   const Ci = Components.interfaces;
-   const Cu = Components.utils;
-   const Cr = Components.results;
-
    var exports = {};
 
    var ios = Cc['@mozilla.org/network/io-service;1']
@@ -127,7 +122,7 @@
                                         this._defaultPrincipal);
 
        return {
-         _sandbox: new Cu.Sandbox(principal),
+         _sandbox: new Cu.Sandbox(principal, { wantGlobalProperties: ["ChromeUtils"] }),
          _principal: principal,
          get globalScope() {
            return this._sandbox;
@@ -197,13 +192,11 @@
        var self = this;
        return function require(module) {
          if (module == "chrome") {
-           var chrome = { Cc: Components.classes,
-                          Ci: Components.interfaces,
-                          Cu: Components.utils,
-                          Cr: Components.results,
-                          Cm: Components.manager,
-                          components: Components
-                        };
+           var chrome = { 
+             Cc, Ci, Cu, Cr, 
+             Cm: Components.manager,
+             components: Components
+           };
            return chrome;
          }
          var path = self.fs.resolveModule(rootDir, module);

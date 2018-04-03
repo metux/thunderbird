@@ -4,11 +4,6 @@
 
 this.EXPORTED_SYMBOLS = ["cloudFileAccounts"];
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cu = Components.utils;
-var Cr = Components.results;
-
 var CATEGORY = "cloud-files";
 var PREF_ROOT = "mail.cloud_files.";
 var ACCOUNT_ROOT = PREF_ROOT + "accounts.";
@@ -18,9 +13,9 @@ var ACCOUNT_ROOT = PREF_ROOT + "accounts.";
 var PWDMGR_HOST = "chrome://messenger/cloudfile";
 var PWDMGR_REALM = "BigFiles Auth Token";
 
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource:///modules/iteratorUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource:///modules/iteratorUtils.jsm");
 
 var cloudFileAccounts = {
   get kTokenRealm() {
@@ -46,7 +41,7 @@ var cloudFileAccounts = {
       try {
         provider.init(aAccountKey);
       } catch (e) {
-        Components.utils.reportError(e);
+        Cu.reportError(e);
         provider = null;
       }
     }
@@ -132,7 +127,7 @@ var cloudFileAccounts = {
       let value = aExtraPrefs[prefKey].value;
 
       if (!(type in kFuncMap)) {
-        Components.utils.reportError("Did not recognize type: " + type);
+        Cu.reportError("Did not recognize type: " + type);
         continue;
       }
 
@@ -206,7 +201,7 @@ var cloudFileAccounts = {
                                         key + ".displayName");
     } catch(e) {
       // If no display name has been set, we return the empty string.
-      Components.utils.reportError(e);
+      Cu.reportError(e);
       return "";
     }
   },

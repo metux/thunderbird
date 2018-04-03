@@ -7,15 +7,11 @@
   a mailnews URL extended for a hypthetical account type "foo".
 **/
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
-var Cu = Components.utils;
 var CE = Components.Exception;
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource:///modules/jsaccount/JSAccountUtils.jsm");
-Cu.import("resource:///modules/jsaccount/JaBaseUrl.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource:///modules/jsaccount/JSAccountUtils.jsm");
+ChromeUtils.import("resource:///modules/jsaccount/JaBaseUrl.jsm");
 
 const ATTACHMENT_QUERY = "part=1.";
 
@@ -78,21 +74,6 @@ FooUrl.prototype = {
     return this.delegator.QueryInterface(iid);
   },
 
-    // nsIMsgMailNewsUrl overrides
-
-  // Override cloneInternal() to always make the pathname capitalized. This is useful
-  // to test that a method called from C++, but overridden in JS, gets the JS
-  // method, since nsMsgMailNewsUrl::CloneIgnoringRef calls CloneInternal().
-  cloneInternal: function(aRefHandle, aRef)
-  {
-    let uriClone = this.cppBase.cloneInternal(aRefHandle, aRef);
-    uriClone.pathQueryRef = uriClone.pathQueryRef.toUpperCase();
-    return uriClone;
-  },
-
-  // Override to allow setting from a JS variable.
-  IsUrlType(aType) { return aType == this._urlType;},
-
     // msgIFooUrl implementation
 
   // Foo id for item.
@@ -107,11 +88,6 @@ FooUrl.prototype = {
     let query = this.QueryInterface(Ci.nsIURL).query;
     return (query && query.indexOf(ATTACHMENT_QUERY) != -1);
   },
-
-  /// urlType (copy, move, display) from nsIMsgMailNewsUrl
-  //void setUrlType(in unsigned long aType);
-  setUrlType: function(aType) { this._urlType = aType;},
-
 }
 
 var NSGetFactory = XPCOMUtils.generateNSGetFactory([FooUrlConstructor]);

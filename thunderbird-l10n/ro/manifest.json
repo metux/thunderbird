@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/ro/locale/ro/passwordmgr/", 
         "pippki": "chrome/ro/locale/ro/pippki/"
       }, 
-      "version": "20171102110809"
+      "version": "20180314091153"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-ro@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "ro", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Română (România) Language Pack", 
   "manifest_version": 2, 
   "sources": {

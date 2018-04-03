@@ -16,11 +16,11 @@
 
 load("resources/glodaTestHelper.js");
 
-Components.utils.import("resource:///modules/gloda/mimemsg.js");
+ChromeUtils.import("resource:///modules/gloda/mimemsg.js");
 
 // we need to be able to get at GlodaFundAttr to check the number of whittler
 //   invocations
-Components.utils.import("resource:///modules/gloda/fundattr.js");
+ChromeUtils.import("resource:///modules/gloda/fundattr.js");
 
 /* ===== Data ===== */
 var messageInfos = [
@@ -143,9 +143,9 @@ function test_stream_message(info) {
 // instrument GlodaFundAttr so we can check the count
 var originalWhittler = GlodaFundAttr.contentWhittle;
 var whittleCount = 0;
-GlodaFundAttr.contentWhittle = function whittler_counter() {
+GlodaFundAttr.contentWhittle = function(...aArgs) {
   whittleCount++;
-  return originalWhittler.apply(this, arguments);
+  return originalWhittler.apply(this, aArgs);
 };
 
 function verify_message_content(aInfo, aSynMsg, aGlodaMsg, aMsgHdr, aMimeMsg) {

@@ -31,6 +31,10 @@ sentence. -->
 <!ENTITY  completeNotification.label          "z mjenim wótpósłarja a powěsćowym pśeglědom">
 <!ENTITY  buddyInfoOnly.label                 "jano z mjenim wótpósłarja">
 <!ENTITY  dummyNotification.label             "bźez někakich informacijow">
+<!ENTITY  getAttention.label                  "Zapisk nadawkoweje rědki zablendowaś">
+<!ENTITY  getAttention.accesskey              "Z">
+<!ENTITY  getAttentionMac.label               "Dokowy symbol animěrowaś">
+<!ENTITY  getAttentionMac.accesskey           "o">
 <!ENTITY  chatSound.accesskey                 "u">
 <!ENTITY  chatSound.label                     "Zuk wótgraś">
 <!ENTITY  play.label                          "Wótgraś">
@@ -58,8 +62,3 @@ sentence. -->
 <!ENTITY messageStyleShowHeader.accesskey  "G">
 <!ENTITY messageStyleNoPreview.title       "Žeden pśeglěd k dispoziciji">
 <!ENTITY messageStyleNoPreview.description "Toś ta drastwa njejo płaśiwa abo njejo tuchylu k dispoziciji (žnjemóžnjony dodank, wěsty modus …).">
-
-<!ENTITY  getAttention.label                  "Flash the taskbar item">
-<!ENTITY  getAttention.accesskey              "F">
-<!ENTITY  getAttentionMac.label               "Animate dock icon">
-<!ENTITY  getAttentionMac.accesskey           "o">

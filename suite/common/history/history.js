@@ -12,8 +12,8 @@ var gDeleteByDomain;
 var gHistoryStatus;
 var gHistoryGrouping = "day";
 
-Components.utils.import("resource://gre/modules/PlacesUtils.jsm");
-Components.utils.import("resource:///modules/PlacesUIUtils.jsm");
+ChromeUtils.import("resource://gre/modules/PlacesUtils.jsm");
+ChromeUtils.import("resource:///modules/PlacesUIUtils.jsm");
 
 function HistoryCommonInit()
 {
@@ -162,7 +162,7 @@ function searchHistory(aInput)
   var query = PlacesUtils.history.getNewQuery();
   var options = PlacesUtils.history.getNewQueryOptions();
 
-  const NHQO = Components.interfaces.nsINavHistoryQueryOptions;
+  const NHQO = Ci.nsINavHistoryQueryOptions;
   options.sortingMode = gHistoryTree.sortingMode;
   options.queryType = NHQO.QUERY_TYPE_HISTORY;
 

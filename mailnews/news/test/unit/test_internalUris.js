@@ -6,8 +6,8 @@ load("../../../resources/logHelper.js");
 load("../../../resources/asyncTestUtils.js");
 load("../../../resources/alertTestUtils.js");
 
-Components.utils.import("resource:///modules/mailServices.js");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 var dummyMsgWindow = {
   get statusFeedback() {
@@ -90,7 +90,7 @@ function* test_fetchMessage() {
   let folder = localserver.rootFolder.getChildNamed("test.filter");
   MailServices.nntp.fetchMessage(folder, 2, null, streamlistener, asyncUrlListener);
   yield false;
-  Assert.equal(statuscode, Components.results.NS_OK);
+  Assert.equal(statuscode, Cr.NS_OK);
   yield true;
 }
 
@@ -209,7 +209,7 @@ function* test_escapedName() {
   };
   MailServices.nntp.fetchMessage(folder, 1, null, streamlistener, asyncUrlListener);
   yield false;
-  Assert.equal(statuscode, Components.results.NS_OK);
+  Assert.equal(statuscode, Cr.NS_OK);
   yield true;
 }
 

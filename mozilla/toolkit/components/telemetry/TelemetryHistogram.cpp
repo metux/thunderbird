@@ -50,6 +50,7 @@ using mozilla::Telemetry::Common::GetNameForProcessID;
 using mozilla::Telemetry::Common::IsExpiredVersion;
 using mozilla::Telemetry::Common::CanRecordDataset;
 using mozilla::Telemetry::Common::IsInDataset;
+using mozilla::Telemetry::Common::ToJSString;
 
 namespace TelemetryIPCAccumulator = mozilla::TelemetryIPCAccumulator;
 
@@ -383,6 +384,10 @@ void
 internal_ClearHistogramById(HistogramID histogramId, ProcessID processId, SessionType sessionType)
 {
   size_t index = internal_HistogramStorageIndex(histogramId, processId, sessionType);
+  if (gHistogramStorage[index] == gExpiredHistogram) {
+    // We keep gExpiredHistogram until TelemetryHistogram::DeInitializeGlobalState
+    return;
+  }
   delete gHistogramStorage[index];
   gHistogramStorage[index] = nullptr;
 }
@@ -591,7 +596,7 @@ internal_CreateHistogramInstance(const HistogramInfo& passedInfo, int bucketsOff
 nsresult
 internal_HistogramAdd(Histogram& histogram,
                       const HistogramID id,
-                      int32_t value,
+                      uint32_t value,
                       ProcessID aProcessType)
 {
   // Check if we are allowed to record the data.
@@ -603,6 +608,16 @@ internal_HistogramAdd(Histogram& histogram,
   if (!canRecordDataset ||
     (aProcessType == ProcessID::Parent && !internal_IsRecordingEnabled(id))) {
     return NS_OK;
+  }
+
+  // The internal representation of a base::Histogram's buckets uses `int`.
+  // Clamp large values of `value` to be INT_MAX so they continue to be treated
+  // as large values (instead of negative ones).
+  if (value > INT_MAX) {
+    TelemetryScalar::Add(
+      mozilla::Telemetry::ScalarID::TELEMETRY_ACCUMULATE_CLAMPED_VALUES,
+      NS_ConvertASCIItoUTF16(gHistogramInfos[id].name()), 1);
+    value = INT_MAX;
   }
 
   // It is safe to add to the histogram now: the subsession histogram was already
@@ -812,6 +827,16 @@ KeyedHistogram::Add(const nsCString& key, uint32_t sample,
   }
 #endif
 
+  // The internal representation of a base::Histogram's buckets uses `int`.
+  // Clamp large values of `sample` to be INT_MAX so they continue to be treated
+  // as large values (instead of negative ones).
+  if (sample > INT_MAX) {
+    TelemetryScalar::Add(
+      mozilla::Telemetry::ScalarID::TELEMETRY_ACCUMULATE_CLAMPED_VALUES,
+      NS_ConvertASCIItoUTF16(mHistogramInfo.name()), 1);
+    sample = INT_MAX;
+  }
+
   histogram->Add(sample);
 #if !defined(MOZ_WIDGET_ANDROID)
   subsession->Add(sample);
@@ -860,8 +885,7 @@ KeyedHistogram::GetJSKeys(JSContext* cx, JS::CallArgs& args)
 
   for (auto iter = mHistogramMap.Iter(); !iter.Done(); iter.Next()) {
     JS::RootedValue jsKey(cx);
-    const NS_ConvertUTF8toUTF16 key(iter.Get()->GetKey());
-    jsKey.setString(JS_NewUCStringCopyN(cx, key.Data(), key.Length()));
+    jsKey.setString(ToJSString(cx, iter.Get()->GetKey()));
     if (!keys.append(jsKey)) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -1122,6 +1146,51 @@ struct JSHistogramData {
 };
 
 bool
+internal_JSHistogram_CoerceValue(JSContext* aCx, JS::Handle<JS::Value> aElement, HistogramID aId,
+                              uint32_t aHistogramType, uint32_t& aValue)
+{
+  if (aElement.isString()) {
+    // Strings only allowed for categorical histograms
+    if (aHistogramType != nsITelemetry::HISTOGRAM_CATEGORICAL) {
+      LogToBrowserConsole(nsIScriptError::errorFlag,
+          NS_LITERAL_STRING("String argument only allowed for categorical histogram"));
+      return false;
+    }
+
+    // Label is given by the string argument
+    nsAutoJSString label;
+    if (!label.init(aCx, aElement)) {
+      LogToBrowserConsole(nsIScriptError::errorFlag, NS_LITERAL_STRING("Invalid string parameter"));
+      return false;
+    }
+
+    // Get the label id for accumulation
+    nsresult rv = gHistogramInfos[aId].label_id(NS_ConvertUTF16toUTF8(label).get(), &aValue);
+    if (NS_FAILED(rv)) {
+      LogToBrowserConsole(nsIScriptError::errorFlag, NS_LITERAL_STRING("Invalid string label"));
+      return false;
+    }
+  } else if ( !(aElement.isNumber() || aElement.isBoolean()) ) {
+    LogToBrowserConsole(nsIScriptError::errorFlag, NS_LITERAL_STRING("Argument not a number"));
+    return false;
+  } else if ( aElement.isNumber() && aElement.toNumber() > UINT32_MAX ) {
+    // Clamp large numerical arguments to aValue's acceptable values.
+    // JS::ToUint32 will take aElement modulo 2^32 before returning it, which
+    // may result in a smaller final value.
+    aValue = UINT32_MAX;
+#ifdef DEBUG
+    LogToBrowserConsole(nsIScriptError::errorFlag, NS_LITERAL_STRING("Clamped large numeric value"));
+#endif
+  } else if (!JS::ToUint32(aCx, aElement, &aValue)) {
+    LogToBrowserConsole(nsIScriptError::errorFlag, NS_LITERAL_STRING("Failed to convert element to UInt32"));
+    return false;
+  }
+
+  // If we're here then all type checks have passed and aValue contains the coerced integer
+  return true;
+}
+
+bool
 internal_JSHistogram_Add(JSContext *cx, unsigned argc, JS::Value *vp)
 {
   JSObject *obj = JS_THIS_OBJECT(cx, vp);
@@ -1143,43 +1212,71 @@ internal_JSHistogram_Add(JSContext *cx, unsigned argc, JS::Value *vp)
   // rather report failures using the console.
   args.rval().setUndefined();
 
-  uint32_t value = 0;
-  if ((type == nsITelemetry::HISTOGRAM_COUNT) && (args.length() == 0)) {
-    // If we don't have an argument for the count histogram, assume an increment of 1.
-    // Otherwise, make sure to run some sanity checks on the argument.
-    value = 1;
-  } else if ((args.length() > 0) && args[0].isString() &&
-             type == nsITelemetry::HISTOGRAM_CATEGORICAL) {
-    // For categorical histograms we allow passing a string argument that specifies the label.
-    nsAutoJSString label;
-    if (!label.init(cx, args[0])) {
-      LogToBrowserConsole(nsIScriptError::errorFlag, NS_LITERAL_STRING("Invalid string parameter"));
-      return true;
-    }
-
-    // Get label id value.
-    nsresult rv = gHistogramInfos[id].label_id(NS_ConvertUTF16toUTF8(label).get(), &value);
-    if (NS_FAILED(rv)) {
+  // Special case of no arguments and count histogram type
+  if (args.length() == 0) {
+    if (!(type == nsITelemetry::HISTOGRAM_COUNT)) {
       LogToBrowserConsole(nsIScriptError::errorFlag,
-                          NS_LITERAL_STRING("Unknown label for categorical histogram"));
-      return true;
-    }
-  } else {
-    // All other accumulations expect one numerical argument.
-    if (!args.length()) {
-      LogToBrowserConsole(nsIScriptError::errorFlag, NS_LITERAL_STRING("Expected one argument"));
+          NS_LITERAL_STRING("Need at least one argument for non count type histogram"));
       return true;
     }
 
-    if (!(args[0].isNumber() || args[0].isBoolean())) {
-      LogToBrowserConsole(nsIScriptError::errorFlag, NS_LITERAL_STRING("Not a number"));
+    {
+      StaticMutexAutoLock locker(gTelemetryHistogramMutex);
+      internal_Accumulate(id, 1);
+    }
+    return true;
+  }
+
+  if (args[0].isObject() && !args[0].isString()) {
+    JS::Rooted<JSObject*> arrayObj(cx, &args[0].toObject());
+
+    bool isArray = false;
+    JS_IsArrayObject(cx, arrayObj, &isArray);
+
+    if (!isArray) {
+      LogToBrowserConsole(nsIScriptError::errorFlag, NS_LITERAL_STRING("The argument can't be a non-array object"));
       return true;
     }
 
-    if (!JS::ToUint32(cx, args[0], &value)) {
-      LogToBrowserConsole(nsIScriptError::errorFlag, NS_LITERAL_STRING("Failed to convert argument"));
+    uint32_t arrayLength = 0;
+    if (!JS_GetArrayLength(cx, arrayObj, &arrayLength)) {
+      LogToBrowserConsole(nsIScriptError::errorFlag, NS_LITERAL_STRING("Failed trying to get array length"));
       return true;
     }
+
+    nsTArray<uint32_t> values(arrayLength);
+
+    for (uint32_t arrayIdx = 0; arrayIdx < arrayLength; arrayIdx++) {
+      JS::Rooted<JS::Value> element(cx);
+
+      if (!JS_GetElement(cx, arrayObj, arrayIdx, &element)) {
+        LogToBrowserConsole(nsIScriptError::errorFlag,
+            NS_ConvertUTF8toUTF16(nsPrintfCString("Failed while trying to get element at index %d", arrayIdx)));
+        return true;
+      }
+
+      uint32_t value = 0;
+      if (!internal_JSHistogram_CoerceValue(cx, element, id, type, value)) {
+        LogToBrowserConsole(nsIScriptError::errorFlag,
+            NS_ConvertUTF8toUTF16(nsPrintfCString("Element at index %d failed type checks", arrayIdx)));
+        return true;
+      }
+      values.AppendElement(value);
+    }
+
+    {
+      // Finally accumulate the values
+      StaticMutexAutoLock locker(gTelemetryHistogramMutex);
+      for (uint32_t aValue: values) {
+        internal_Accumulate(id, aValue);
+      }
+    }
+    return true;
+  }
+
+  uint32_t value = 0;
+  if (!internal_JSHistogram_CoerceValue(cx, args[0], id, type, value)) {
+    return true;
   }
 
   {
@@ -1736,9 +1833,19 @@ void TelemetryHistogram::InitializeGlobalState(bool canRecordBase,
   // declaration point further up in this file.
 
   // Populate the static histogram name->id cache.
-  // Note that the histogram names are statically allocated.
+  // Note that the histogram names come from a static table so we can wrap them
+  // in a literal string to avoid allocations when it gets copied.
   for (uint32_t i = 0; i < HistogramCount; i++) {
-    gNameToHistogramIDMap.Put(nsDependentCString(gHistogramInfos[i].name()), HistogramID(i));
+    auto name = gHistogramInfos[i].name();
+
+    // Make sure the name pointer is in a valid region. See bug 1428612.
+    MOZ_DIAGNOSTIC_ASSERT(name >= gHistogramStringTable);
+    MOZ_DIAGNOSTIC_ASSERT(
+        uintptr_t(name) < (uintptr_t(gHistogramStringTable) + sizeof(gHistogramStringTable)));
+
+    nsCString wrappedName;
+    wrappedName.AssignLiteral(name, strlen(name));
+    gNameToHistogramIDMap.Put(wrappedName, HistogramID(i));
   }
 
 #ifdef DEBUG
@@ -2034,6 +2141,39 @@ TelemetryHistogram::AccumulateCategorical(HistogramID aId,
     return;
   }
   internal_Accumulate(aId, labelId);
+}
+
+void
+TelemetryHistogram::AccumulateCategorical(HistogramID aId, const nsTArray<nsCString>& aLabels)
+{
+  if (NS_WARN_IF(!internal_IsHistogramEnumId(aId))) {
+    MOZ_ASSERT_UNREACHABLE("Histogram usage requires valid ids.");
+    return;
+  }
+
+  if (!internal_CanRecordBase()) {
+    return;
+  }
+
+  // We use two loops, one for getting label_ids and another one for actually accumulating
+  // the values. This ensures that in the case of an invalid label in the array, no values
+  // are accumulated. In any call to this API, either all or (in case of error) none of the
+  // values will be accumulated.
+
+  nsTArray<uint32_t> intSamples(aLabels.Length());
+  for (const nsCString& label: aLabels){
+    uint32_t labelId = 0;
+    if (NS_FAILED(gHistogramInfos[aId].label_id(label.get(), &labelId))) {
+      return;
+    }
+    intSamples.AppendElement(labelId);
+  }
+
+  StaticMutexAutoLock locker(gTelemetryHistogramMutex);
+
+  for (uint32_t sample: intSamples){
+    internal_Accumulate(aId, sample);
+  }
 }
 
 void
@@ -2341,8 +2481,7 @@ TelemetryHistogram::GetMapShallowSizesOfExcludingThis(mozilla::MallocSizeOf
                                                       aMallocSizeOf)
 {
   StaticMutexAutoLock locker(gTelemetryHistogramMutex);
-  // TODO
-  return 0;
+  return gNameToHistogramIDMap.ShallowSizeOfExcludingThis(aMallocSizeOf);
 }
 
 size_t

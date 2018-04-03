@@ -317,7 +317,7 @@
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goChatCmd.label "Chat">
 <!ENTITY goChatCmd.accesskey "c">
-<!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Messaggio speciale">
 <!ENTITY prevStarredMsgCmd.accesskey "S">
 <!ENTITY folderMenu.label "Cartelle di posta">
@@ -366,6 +366,8 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Modifica bozza messaggio">
 <!ENTITY editDraftMsgCmd.accesskey "E">
+<!ENTITY editTemplateMsgCmd.label "Modifica modello">
+<!ENTITY editTemplateMsgCmd.accesskey "m">
 <!ENTITY newMsgFromTemplateCmd.label "Nuovo messaggio da modello">
 <!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Crea un filtro dal messaggio…">
@@ -459,6 +461,11 @@
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "Componenti aggiuntivi">
 <!ENTITY addons.accesskey "c">
+<!ENTITY addonPrefs.label "Opzioni componente aggiuntivo">
+<!ENTITY addonPrefs.accesskey "O">
+<!ENTITY addonPrefsUnix.label "Preferenze componente aggiuntivo">
+<!ENTITY addonPrefsUnix.accesskey "P">
+<!ENTITY addonNoPrefs.label "Nessuna impostazione trovata per il componente aggiuntivo.">
 <!ENTITY activitymanager.label "Registro attività">
 <!ENTITY activitymanager.accesskey "v">
 <!ENTITY imAccountsStatus.label "Stato chat">
@@ -504,6 +511,8 @@
 <!ENTITY devToolboxCmd.commandkey "i">
 <!ENTITY addonDebugCmd.label "Add-on Debugger">
 <!ENTITY addonDebugCmd.accesskey "A">
+<!ENTITY debugAddonsCmd.label "Componenti aggiuntivi di debug">
+<!ENTITY debugAddonsCmd.accesskey "m">
 <!ENTITY tabsDebugCmd.label "Tab di debug del contenuto">
 <!ENTITY tabsDebugCmd.accesskey "T">
 <!ENTITY errorConsoleCmd.label "Console degli errori">
@@ -752,6 +761,8 @@
 <!ENTITY contextEditMsgAsNew.label "Modifica come nuovo messaggio">
 <!ENTITY contextEditMsgAsNew.accesskey "M">
 <!ENTITY contextEditDraftMsg.label "Modifica bozza messaggio">
+<!ENTITY contextEditTemplate.label "Modifica modello">
+<!ENTITY contextEditTemplate.accesskey "m">
 <!ENTITY contextArchive.label "Archivia">
 <!ENTITY contextArchive.accesskey "c">
 <!ENTITY contextReplySender.label "Rispondi solo al mittente">
@@ -779,7 +790,7 @@
 <!ENTITY contextCopyMsgMenu.label "Copia in">
 <!ENTITY contextCopyMsgMenu.accesskey "n">
 <!ENTITY contextKillThreadMenu.label "Ignora la discussione">
-<!ENTITY contextKillSubthreadMenu.accesskey "b">
+<!ENTITY contextKillSubthreadMenu.accesskey "d">
 <!ENTITY contextKillThreadMenu.accesskey "I">
 <!ENTITY contextKillSubthreadMenu.label "Ignora le sotto discussioni">
 <!ENTITY contextWatchThreadMenu.label "Tieni d'occhio la discussione">
@@ -957,16 +968,3 @@
 <!ENTITY dockOptions.label              "Opzioni icona applicazione…">
 <!ENTITY writeNewMessageDock.label      "Scrivi un nuovo messaggio">
 <!ENTITY openAddressBookDock.label      "Apri Rubrica">
-
-<!ENTITY goChatCmd2.key "H">
-<!ENTITY editTemplateMsgCmd.label "Edit Template">
-<!ENTITY editTemplateMsgCmd.accesskey "T">
-<!ENTITY addonPrefs.label "Add-on Options">
-<!ENTITY addonPrefs.accesskey "O">
-<!ENTITY addonPrefsUnix.label "Add-on Preferences">
-<!ENTITY addonPrefsUnix.accesskey "P">
-<!ENTITY addonNoPrefs.label "No Add-on settings found.">
-<!ENTITY debugAddonsCmd.label "Debug Add-ons">
-<!ENTITY debugAddonsCmd.accesskey "A">
-<!ENTITY contextEditTemplate.label "Edit Template">
-<!ENTITY contextEditTemplate.accesskey "T">

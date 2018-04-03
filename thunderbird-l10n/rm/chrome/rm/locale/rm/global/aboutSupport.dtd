@@ -156,18 +156,20 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "Frequenza">
 <!ENTITY aboutSupport.mediaDeviceLatency "Latenza">
 
+<!ENTITY aboutSupport.intlTitle "Internaziunalisaziun &amp; lingua">
+<!ENTITY aboutSupport.intlAppTitle "Configuraziun da l'applicaziun">
+<!ENTITY aboutSupport.intlLocalesRequested "Linguas dumandadas">
+<!ENTITY aboutSupport.intlLocalesAvailable "Linguas disponiblas">
+<!ENTITY aboutSupport.intlLocalesSupported "Linguas da l'applicaziun">
+<!ENTITY aboutSupport.intlLocalesDefault "Lingua predefinida">
+<!ENTITY aboutSupport.intlOSTitle "Sistem operativ">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Linguas dal sistem">
+<!ENTITY aboutSupport.intlRegionalPrefs "Preferenzas regiunalas">
+
 <!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
 <!ENTITY aboutSupport.securitySoftwareType "Type">
 <!ENTITY aboutSupport.securitySoftwareName "Name">
 <!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
 <!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
 <!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">

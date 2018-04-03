@@ -9,14 +9,10 @@
 
 this.EXPORTED_SYMBOLS = ['PromiseTestUtils'];
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
 var CC = Components.Constructor;
-var Cu = Components.utils;
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 /**
  * Url listener that can wrap another listener and trigger a callback.

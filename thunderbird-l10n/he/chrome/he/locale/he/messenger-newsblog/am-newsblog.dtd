@@ -4,14 +4,14 @@
 
 <!ENTITY loginAtStartup.label          "בדוק למאמרים חדשים בעת ההפעלה">
 <!ENTITY loginAtStartup.accesskey      "ה">
+<!ENTITY biffAll.label                 "הפעלת עדכונים לכל ההזנות">
 
+<!ENTITY newFeedSettings.label         "הגדרות בררת מחדל להזנות של חדשות">
 
 <!ENTITY manageSubscriptions.label     "נהל מינויים…">
 <!ENTITY manageSubscriptions.accesskey "נ">
 
+<!ENTITY feedWindowTitle.label         "אשף חשבון הזנה">
 <!ENTITY feeds.accountName             "בלוגים והזנות">
 
-<!ENTITY biffAll.label                 "Enable updates for all feeds">
 <!ENTITY biffAll.accesskey             "E">
-<!ENTITY newFeedSettings.label         "Default Settings for New Feeds">
-<!ENTITY feedWindowTitle.label         "Feed Account Wizard">

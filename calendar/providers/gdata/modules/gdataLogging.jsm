@@ -4,8 +4,8 @@
 
 var EXPORTED_SYMBOLS = ["LOGitem", "LOGverbose", "LOGinterval", "stringException"];
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 
 function LOGverbose(aStr) {
     if (Preferences.get("calendar.debug.log.verbose", false)) {
@@ -95,9 +95,11 @@ function LOGalarm(aAlarm) {
 
     let enumerator = aAlarm.propertyEnumerator;
     let xpropstr = "";
-    while (enumerator && enumerator.hasMoreElements()) {
-        let el = enumerator.getNext();
-        xpropstr += "\n\t\t\t" + el.key + ":" + el.value;
+    if (enumerator) {
+        while (enumerator.hasMoreElements()) {
+            let elem = enumerator.getNext();
+            xpropstr += "\n\t\t\t" + elem.key + ":" + elem.value;
+        }
     }
 
     return ("\n\t\tAction: " + aAlarm.action +

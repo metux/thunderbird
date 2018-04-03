@@ -31,11 +31,11 @@
 <!ENTITY InputChecked.accesskey "о">
 <!ENTITY InputSelected.label "Първоначално избрано">
 <!ENTITY InputSelected.accesskey "б">
-<!ENTITY InputReadOnly.label "Само-за-четене">
+<!ENTITY InputReadOnly.label "Само за четене">
 <!ENTITY InputReadOnly.accesskey "ч">
 <!ENTITY InputDisabled.label "Неактивен">
 <!ENTITY InputDisabled.accesskey "Н">
-<!ENTITY tabIndex.label "Индекс на табулатора:">
+<!ENTITY tabIndex.label "Отместване при табулиране:">
 <!ENTITY tabIndex.accesskey "И">
 <!ENTITY TextSize.label "Размер на поле:">
 <!ENTITY TextSize.accesskey "п">

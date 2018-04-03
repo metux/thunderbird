@@ -9,7 +9,7 @@ var MODULE_REQUIRES = ["calendar-utils"];
 var helpersForController, invokeEventDialog, createCalendar, deleteCalendars;
 var CALENDARNAME;
 
-Cu.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 
 function setupModule(module) {
     controller = mozmill.getMail3PaneController();
@@ -130,7 +130,7 @@ function testTodayPane() {
     // go to mail tab
     controller.click(lookup(`
         /id("messengerWindow")/id("navigation-toolbox")/id("tabs-toolbar")/
-        id("tabmail-tabs")/{"first-tab":"true","type":"folder"}/
+        id("tabmail-tabs")/[0]/
         anon({"class":"tab-stack"})/{"class":"tab-background"}/
         {"class":"tab-line"}
     `));
