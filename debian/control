@@ -236,6 +236,7 @@ Depends:
  thunderbird-l10n-kk (>= ${binary:Version}),
  thunderbird-l10n-ko (>= ${binary:Version}),
  thunderbird-l10n-lt (>= ${binary:Version}),
+ thunderbird-l10n-ms (>= ${binary:Version}),
  thunderbird-l10n-nb-no (>= ${binary:Version}),
  thunderbird-l10n-nl (>= ${binary:Version}),
  thunderbird-l10n-nn-no (>= ${binary:Version}),
@@ -848,6 +849,21 @@ Description: Lithuanian language package for Thunderbird
  the XUL user interface language.
  .
  This package contains the localization of Thunderbird in Lithuanian.
+
+Package: thunderbird-l10n-ms
+Architecture: all
+Section: localization
+Depends:
+ thunderbird (<< ${source:Version}.1~),
+ thunderbird (>= ${source:Version}),
+ ${misc:Depends},
+Homepage: https://wiki.mozilla.org/L10n:Teams:ms
+Description: Malay language package for Thunderbird
+ Thunderbird is an mail client suitable for free distribution. The goal of
+ Thunderbird is to produce a cross platform stand-alone mail application using
+ the XUL user interface language.
+ .
+ This package contains the localization of Thunderbird in Malay.
 
 Package: thunderbird-l10n-nb-no
 Architecture: all
@@ -1723,6 +1739,20 @@ Description: Korean language package for lightning
  user interface language.
  .
  This package contains the localization of lightning in Korean.
+
+Package: lightning-l10n-ms
+Architecture: all
+Section: localization
+Depends:
+ lightning (<< ${source:Version}.1~),
+ lightning (>= ${source:Version}),
+ ${misc:Depends},
+Description: Malay language package for lightning
+ Lightning is a Mozilla based calendar extension for Thunderbird.
+ It's goal is to integrate a Calendar and Task application using the XUL
+ user interface language.
+ .
+ This package contains the localization of lightning in Malay.
 
 Package: lightning-l10n-lt
 Architecture: all
