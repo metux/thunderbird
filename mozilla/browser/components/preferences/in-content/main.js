@@ -575,6 +575,7 @@ var gMainPane = {
     setEventListener("typeColumn", "click", gMainPane.sort);
     setEventListener("actionColumn", "click", gMainPane.sort);
     setEventListener("chooseFolder", "command", gMainPane.chooseFolder);
+    setEventListener("saveWhere", "command", gMainPane.handleSaveToCommand);
     Preferences.get("browser.download.dir").on("change",
       gMainPane.displayDownloadDirPref.bind(gMainPane));
 
@@ -3518,6 +3519,7 @@ var pdfHandlerInfo = {
   _handlerChanged: TOPIC_PDFJS_HANDLER_CHANGED,
   _appPrefLabel: "portableDocumentFormat",
   get enabled() {
-    return !Services.prefs.getBoolPref(PREF_PDFJS_DISABLED);
+    return !Services.prefs.getBoolPref(PREF_PDFJS_DISABLED) &&
+           Services.policies.isAllowed("PDF.js");
   },
 };

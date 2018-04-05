@@ -221,7 +221,6 @@ function parseRegExp(aStr) {
 
 function Blocklist() {
   Services.obs.addObserver(this, "xpcom-shutdown");
-  Services.obs.addObserver(this, "sessionstore-windows-restored");
   gLoggingEnabled = Services.prefs.getBoolPref(PREF_EM_LOGGING_ENABLED, false);
   gBlocklistEnabled = Services.prefs.getBoolPref(PREF_BLOCKLIST_ENABLED, true);
   gBlocklistLevel = Math.min(Services.prefs.getIntPref(PREF_BLOCKLIST_LEVEL, DEFAULT_LEVEL),
@@ -229,9 +228,6 @@ function Blocklist() {
   Services.prefs.addObserver("extensions.blocklist.", this);
   Services.prefs.addObserver(PREF_EM_LOGGING_ENABLED, this);
   this.wrappedJSObject = this;
-  // requests from child processes come in here, see receiveMessage.
-  Services.ppmm.addMessageListener("Blocklist:getPluginBlocklistState", this);
-  Services.ppmm.addMessageListener("Blocklist:content-blocklist-updated", this);
 }
 
 Blocklist.prototype = {
@@ -256,8 +252,6 @@ Blocklist.prototype = {
 
   shutdown() {
     Services.obs.removeObserver(this, "xpcom-shutdown");
-    Services.ppmm.removeMessageListener("Blocklist:getPluginBlocklistState", this);
-    Services.ppmm.removeMessageListener("Blocklist:content-blocklist-updated", this);
     Services.prefs.removeObserver("extensions.blocklist.", this);
     Services.prefs.removeObserver(PREF_EM_LOGGING_ENABLED, this);
   },
@@ -266,6 +260,12 @@ Blocklist.prototype = {
     switch (aTopic) {
     case "xpcom-shutdown":
       this.shutdown();
+      break;
+    case "profile-after-change":
+      // We're only called here on non-Desktop-Firefox, and use this opportunity to try to
+      // load the blocklist asynchronously. On desktop Firefox, we load the list from
+      // nsBrowserGlue after sessionstore-windows-restored.
+      this.loadBlocklistAsync();
       break;
     case "nsPref:changed":
       switch (aData) {
@@ -284,27 +284,7 @@ Blocklist.prototype = {
           break;
       }
       break;
-    case "sessionstore-windows-restored":
-      Services.obs.removeObserver(this, "sessionstore-windows-restored");
-      this._preloadBlocklist();
-      break;
     }
-  },
-
-  // Message manager message handlers
-  receiveMessage(aMsg) {
-    switch (aMsg.name) {
-      case "Blocklist:getPluginBlocklistState":
-        return this.getPluginBlocklistState(aMsg.data.addonData,
-                                            aMsg.data.appVersion,
-                                            aMsg.data.toolkitVersion);
-      case "Blocklist:content-blocklist-updated":
-        Services.obs.notifyObservers(null, "content-blocklist-updated");
-        break;
-      default:
-        throw new Error("Unknown blocklist message received from content: " + aMsg.name);
-    }
-    return undefined;
   },
 
   /* See nsIBlocklistService */
@@ -628,9 +608,6 @@ Blocklist.prototype = {
 
     var oldAddonEntries = this._addonEntries;
     var oldPluginEntries = this._pluginEntries;
-    this._addonEntries = [];
-    this._gfxEntries = [];
-    this._pluginEntries = [];
 
     this._loadBlocklistFromXML(responseXML);
     // We don't inform the users when the graphics blocklist changed at runtime.
@@ -674,13 +651,6 @@ Blocklist.prototype = {
     this._addonEntries = [];
     this._gfxEntries = [];
     this._pluginEntries = [];
-
-    if (this._isBlocklistPreloaded()) {
-      Services.telemetry.getHistogramById("BLOCKLIST_SYNC_FILE_LOAD").add(false);
-      this._loadBlocklistFromString(this._preloadedBlocklistContent);
-      delete this._preloadedBlocklistContent;
-      return;
-    }
 
     Services.telemetry.getHistogramById("BLOCKLIST_SYNC_FILE_LOAD").add(true);
 
@@ -806,25 +776,20 @@ Blocklist.prototype = {
     return this._addonEntries != null && this._gfxEntries != null && this._pluginEntries != null;
   },
 
-  _isBlocklistPreloaded() {
-    return this._preloadedBlocklistContent != null;
-  },
-
   /* Used for testing */
   _clear() {
     this._addonEntries = null;
     this._gfxEntries = null;
     this._pluginEntries = null;
-    this._preloadedBlocklistContent = null;
   },
 
-  async _preloadBlocklist() {
+  async loadBlocklistAsync() {
     let profPath = OS.Path.join(OS.Constants.Path.profileDir, FILE_BLOCKLIST);
     try {
       await this._preloadBlocklistFile(profPath);
       return;
     } catch (e) {
-      LOG("Blocklist::_preloadBlocklist: Failed to load XML file " + e);
+      LOG("Blocklist::loadBlocklistAsync: Failed to load XML file " + e);
     }
 
     var appFile = FileUtils.getFile(KEY_APPDIR, [FILE_BLOCKLIST]);
@@ -832,10 +797,10 @@ Blocklist.prototype = {
       await this._preloadBlocklistFile(appFile.path);
       return;
     } catch (e) {
-      LOG("Blocklist::_preloadBlocklist: Failed to load XML file " + e);
+      LOG("Blocklist::loadBlocklistAsync: Failed to load XML file " + e);
     }
 
-    LOG("Blocklist::_preloadBlocklist: no XML File found");
+    LOG("Blocklist::loadBlocklistAsync: no XML File found");
   },
 
   async _preloadBlocklistFile(path) {
@@ -851,10 +816,15 @@ Blocklist.prototype = {
 
     let text = await OS.File.read(path, { encoding: "utf-8" });
 
-    if (!this._addonEntries) {
-      // Store the content only if a sync load has not been performed in the meantime.
-      this._preloadedBlocklistContent = text;
-    }
+    await new Promise(resolve => {
+      Services.tm.idleDispatchToMainThread(() => {
+        if (!this.isLoaded) {
+          Services.telemetry.getHistogramById("BLOCKLIST_SYNC_FILE_LOAD").add(false);
+          this._loadBlocklistFromString(text);
+        }
+        resolve();
+      });
+    });
   },
 
   _loadBlocklistFromString(text) {
@@ -876,6 +846,9 @@ Blocklist.prototype = {
   },
 
   _loadBlocklistFromXML(doc) {
+    this._addonEntries = [];
+    this._gfxEntries = [];
+    this._pluginEntries = [];
     try {
       var childNodes = doc.documentElement.childNodes;
       for (let element of childNodes) {

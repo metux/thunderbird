@@ -678,7 +678,7 @@ function InitViewBodyMenu()
 
   if (disallow_classes > 0)
     gDisallow_classes_no_html = disallow_classes;
-  // else gDisallow_classes_no_html keeps its inital value (see top)
+  // else gDisallow_classes_no_html keeps its initial value (see top)
 
   let AllowHTML_menuitem = document.getElementById(menuIDs[0]);
   let Sanitized_menuitem = document.getElementById(menuIDs[1]);
@@ -728,7 +728,7 @@ function InitAppmenuViewBodyMenu()
 
   if (disallow_classes > 0)
     gDisallow_classes_no_html = disallow_classes;
-  // else gDisallow_classes_no_html keeps its inital value (see top)
+  // else gDisallow_classes_no_html keeps its initial value (see top)
 
   let AllowHTML_menuitem = document.getElementById(menuIDs[0]);
   let Sanitized_menuitem = document.getElementById(menuIDs[1]);
@@ -2489,7 +2489,7 @@ function MsgApplyFilters()
   for (let i = 0; i < numFilters; i++)
   {
     let curFilter = curFilterList.getFilterAt(i);
-    // only add enabled, UI visibile filters that are in the manual context
+    // only add enabled, UI visible filters that are in the manual context
     if (curFilter.enabled && !curFilter.temporary &&
         (curFilter.filterType & Ci.nsMsgFilterType.Manual))
     {
@@ -3057,7 +3057,7 @@ var gMessageNotificationBar =
         JunkSelectedMessages(false);
         // Return true (=don't close) since changing junk status will fire a
         // JunkStatusChanged notification which will make the junk bar go away
-        // for this message -> no notifcation to close anymore -> trying to
+        // for this message -> no notification to close anymore -> trying to
         // close would just fail.
         return true;
       }
@@ -3338,7 +3338,7 @@ function IgnorePhishingWarning()
 {
   // This property should really be called skipPhishingWarning or something
   // like that, but it's too late to change that now.
-  // This property is used to supress the phishing bar for the message.
+  // This property is used to suppress the phishing bar for the message.
   setMsgHdrPropertyAndReload("notAPhishMessage", 1);
 }
 
@@ -3357,7 +3357,7 @@ function OpenPhishingSettings()
 function setMsgHdrPropertyAndReload(aProperty, aValue)
 {
   // we want to get the msg hdr for the currently selected message
-  // change the appropiate property on it then reload the message
+  // change the appropriate property on it then reload the message
   var msgHdr = gMessageDisplay.displayedMessage;
   if (msgHdr)
   {
@@ -3674,7 +3674,7 @@ function MsgJunkMailInfo(aCheckFirstUse)
   else
     window.openDialog("chrome://messenger/content/junkMailInfo.xul",
                       "mailnews:junkmailinfo",
-                      "centerscreen,resizeable=no,titlebar,chrome,modal", null);
+                      "centerscreen,resizable=no,titlebar,chrome,modal", null);
 }
 
 function MsgSearchAddresses()
@@ -3734,35 +3734,46 @@ function initAddonPrefsMenu(aMenupopup) {
   }
 
   // Enumerate all enabled addons with URL to XUL document with prefs.
+  let addonsFound = [];
+  let done = false;
   AddonManager.getAddonsByTypes(["extension"], (addons) => {
-    let addonsFound = [];
     for (let addon of addons) {
       if (!addon.userDisabled && !addon.appDisabled && !addon.softDisabled &&
           addon.optionsURL && (addon.optionsType === null || addon.optionsType == 3)) {
         addonsFound.push(addon);
       }
     }
-
-    // Populate the menu with addon names and icons
-    if (addonsFound.length > 0) {
-      addonsFound.sort((a,b) => a.name.localeCompare(b.name));
-      for (let addon of addonsFound) {
-        let newItem = document.createElement("menuitem");
-        newItem.setAttribute("label", addon.name);
-        newItem.setAttribute("value", addon.optionsURL);
-        if (addon.optionsType)
-          newItem.setAttribute("optionsType", addon.optionsType);
-        let iconURL = addon.iconURL || addon.icon64URL;
-        if (iconURL) {
-          newItem.setAttribute("class", "menuitem-iconic");
-          newItem.setAttribute("image", iconURL);
-        }
-        aMenupopup.appendChild(newItem);
-      }
-      noPrefsElem.setAttribute("collapsed", "true");
-    } else {
-      // Only show message that there are no addons with prefs.
-      noPrefsElem.setAttribute("collapsed", "false");
-    }
+    done = true;
   });
+
+  // Wait until the addon manager returns all results.
+  let thread = Components.classes["@mozilla.org/thread-manager;1"]
+                                 .getService().currentThread;
+  while (!done) {
+    thread.processNextEvent(true);
+  }
+
+  // Populate the menu with addon names and icons.
+  // Note: Having the following code in the getAddonsByTypes() async callback
+  // above works on Windows and Linux but doesn't work on Mac, see bug 1419145.
+  if (addonsFound.length > 0) {
+    addonsFound.sort((a,b) => a.name.localeCompare(b.name));
+    for (let addon of addonsFound) {
+      let newItem = document.createElement("menuitem");
+      newItem.setAttribute("label", addon.name);
+      newItem.setAttribute("value", addon.optionsURL);
+      if (addon.optionsType)
+        newItem.setAttribute("optionsType", addon.optionsType);
+      let iconURL = addon.iconURL || addon.icon64URL;
+      if (iconURL) {
+        newItem.setAttribute("class", "menuitem-iconic");
+        newItem.setAttribute("image", iconURL);
+      }
+      aMenupopup.appendChild(newItem);
+    }
+    noPrefsElem.setAttribute("collapsed", "true");
+  } else {
+    // Only show message that there are no addons with prefs.
+    noPrefsElem.setAttribute("collapsed", "false");
+  }
 }

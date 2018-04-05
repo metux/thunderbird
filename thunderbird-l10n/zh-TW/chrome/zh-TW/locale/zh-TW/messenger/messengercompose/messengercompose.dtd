@@ -357,3 +357,6 @@
 <!-- Status Bar -->
 <!ENTITY languageStatusButton.tooltip "拼字檢查語言">
 <!ENTITY encodingStatusPanel.tooltip "文字編碼">
+
+<!ENTITY initiallyShowAttachmentPane.label "Initially Show Attachment Pane">
+<!ENTITY initiallyShowAttachmentPane.accesskey "S">

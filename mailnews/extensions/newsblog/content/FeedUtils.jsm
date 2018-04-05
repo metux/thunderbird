@@ -657,7 +657,7 @@ var FeedUtils = {
         aFolder.getFlag(Ci.nsMsgFolderFlags.Virtual) ||
         !aFolder.filePath.exists())
       // There are never any feedUrls in the account/non-feed/trash/virtual
-      // folders or in a ghost folder (nonexistant on disk yet found in
+      // folders or in a ghost folder (nonexistent on disk yet found in
       // aFolder.subFolders).
       return null;
 
@@ -1318,6 +1318,9 @@ var FeedUtils = {
   },
 
   getSubscriptionsDS: function(aServer) {
+    if (this[aServer.serverURI] && this[aServer.serverURI]["FeedsDS"])
+      return this[aServer.serverURI]["FeedsDS"];
+
     let file = this.getSubscriptionsFile(aServer);
     let url = Services.io.getProtocolHandler("file").
                           QueryInterface(Ci.nsIFileProtocolHandler).
@@ -1331,7 +1334,10 @@ var FeedUtils = {
       throw new Error("FeedUtils.getSubscriptionsDS: can't get feed " +
                       "subscriptions data source - " + url);
 
-    return ds.QueryInterface(Ci.nsIRDFRemoteDataSource);
+    if (!this[aServer.serverURI])
+      this[aServer.serverURI] = {};
+    return this[aServer.serverURI]["FeedsDS"] =
+             ds.QueryInterface(Ci.nsIRDFRemoteDataSource);
   },
 
   getSubscriptionsList: function(aDataSource) {
@@ -1365,6 +1371,9 @@ var FeedUtils = {
     '</RDF:RDF>\n',
 
   getItemsDS: function(aServer) {
+    if (this[aServer.serverURI] && this[aServer.serverURI]["FeedItemsDS"])
+      return this[aServer.serverURI]["FeedItemsDS"];
+
     let file = this.getItemsFile(aServer);
     let url = Services.io.getProtocolHandler("file").
                           QueryInterface(Ci.nsIFileProtocolHandler).
@@ -1381,7 +1390,10 @@ var FeedUtils = {
     // You have to QueryInterface it to nsIRDFRemoteDataSource and check
     // its "loaded" property to be sure.  You can also attach an observer
     // which will get notified when the load is complete.
-    return ds.QueryInterface(Ci.nsIRDFRemoteDataSource);
+    if (!this[aServer.serverURI])
+      this[aServer.serverURI] = {};
+    return this[aServer.serverURI]["FeedItemsDS"] =
+             ds.QueryInterface(Ci.nsIRDFRemoteDataSource);
   },
 
   getItemsFile: function(aServer) {
@@ -1865,7 +1877,7 @@ var FeedUtils = {
 
           feed.options = options;
           FeedUtils.setStatus(feed.folder, feed.url, "enabled", false);
-          FeedUtils.log.warn("downloaded: udpates disabled due to error, " +
+          FeedUtils.log.warn("downloaded: updates disabled due to error, " +
                              "check the url - " + feed.url);
         }
 
@@ -1945,7 +1957,7 @@ var FeedUtils = {
         FeedUtils.log.debug("downloaded: all pending downloads finished");
 
         // Should we do this on a timer so the text sticks around for a little
-        // while?  It doesnt look like we do it on a timer for newsgroups so
+        // while?  It doesn't look like we do it on a timer for newsgroups so
         // we'll follow that model.  Don't clear the status text if we just
         // dumped an error to the status bar!
         if (aErrorCode == FeedUtils.kNewsBlogSuccess && this.mStatusFeedback)

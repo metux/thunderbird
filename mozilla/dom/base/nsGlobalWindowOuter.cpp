@@ -1644,6 +1644,7 @@ CreateNativeGlobalForInner(JSContext* aCx,
   // window's compartment with the add-on ID. See bug 1092156.
   if (nsContentUtils::IsSystemPrincipal(aPrincipal)) {
     options.creationOptions().setAddonId(MapURIToAddonID(aURI));
+    options.creationOptions().setClampAndJitterTime(false);
   }
 
   options.creationOptions().setSecureContext(aIsSecureContext);
@@ -1862,6 +1863,7 @@ nsGlobalWindowOuter::SetNewDocument(nsIDocument* aDocument,
         if (currentInner->mPerformance) {
           newInnerWindow->mPerformance =
             Performance::CreateForMainThread(newInnerWindow->AsInner(),
+                                             aDocument->NodePrincipal(),
                                              currentInner->mPerformance->GetDOMTiming(),
                                              currentInner->mPerformance->GetChannel());
         }

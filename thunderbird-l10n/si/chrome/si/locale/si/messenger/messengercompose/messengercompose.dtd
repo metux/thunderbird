@@ -336,6 +336,8 @@
 <!ENTITY reorderAttachments.accesskey "s">
 <!ENTITY removeAllAttachments.label "Remove All Attachments">
 <!ENTITY removeAllAttachments.accesskey "v">
+<!ENTITY initiallyShowAttachmentPane.label "Initially Show Attachment Pane">
+<!ENTITY initiallyShowAttachmentPane.accesskey "S">
 <!ENTITY customizeFromAddress.label "Customize From Address…">
 <!ENTITY customizeFromAddress.accesskey "A">
 <!ENTITY languageStatusButton.tooltip "Spellcheck language">
