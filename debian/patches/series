@@ -28,4 +28,3 @@ porting-s390x/FTBFS-s390x-Use-jit-none-AtomicOperations-sparc.h-on-s390.patch
 porting-mips/Fix-CPU_ARCH-test-for-libjpeg-on-mips.patch
 debian-hacks/icu-use-locale.h-instead-of-xlocale.h.patch
 debian-hacks/shellutil.py-ignore-tilde-as-special-character.patch
-fixes/Fix-big-endian-build-for-SKIA.patch
