@@ -88,6 +88,23 @@
           "items": {
             "type": "origin"
           }
+        },
+
+        "Default": {
+          "type": "boolean"
+        },
+
+        "AcceptThirdParty": {
+          "type": "string",
+          "enum": ["all", "none", "from-visited"]
+        },
+
+        "ExpireAtSessionEnd": {
+          "type": "boolean"
+        },
+
+        "Locked": {
+          "type": "boolean"
         }
       }
     },
@@ -107,8 +124,22 @@
       "type": "boolean"
     },
 
+    "DisableBuiltinPDFViewer": {
+      "description": "Disables PDF.js, which displays PDFs within Firefox.",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    },
+
     "DisableDeveloperTools": {
       "description": "Prevents access to developer tools.",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    },
+
+    "DisableFeedbackCommands": {
+      "description": "Prevents ability to send feedback from the help menu (\"Submit Feedback\" and \"Report Deceptive Site\").",
       "first_available": "60.0",
 
       "type": "boolean"
@@ -156,13 +187,27 @@
       "type": "boolean"
     },
 
+    "DisableSafeMode": {
+      "description": "Prevents ability to restart in safe mode.",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    },
+
     "DisableSysAddonUpdate": {
       "description": "Prevent the browser from installing and updating system addons.",
       "first_available": "60.0",
       "enterprise_only": true,
 
-      "type": "boolean",
-      "enum": [true]
+      "type": "boolean"
+    },
+
+    "DisableTelemetry": {
+      "description": "Turns off telemetry.",
+      "first_available": "60.0",
+      "enterprise_only": true,
+
+      "type": "boolean"
     },
 
     "DisplayBookmarksToolbar": {
@@ -186,6 +231,50 @@
       "type": "boolean"
     },
 
+    "EnableTrackingProtection": {
+      "description": "Enables or disables tracking protection and optionally locks it.",
+      "first_available": "60.0",
+
+      "type": "object",
+      "properties": {
+        "Value": {
+          "type": "boolean"
+        },
+        "Locked": {
+          "type": "boolean"
+        }
+      },
+      "required": ["Value"]
+    },
+
+    "Extensions": {
+      "description": "Install, uninstall or lock extensions. The Install option takes URLs or paths as parameters. The Uninstall and Locked options take extension IDs.",
+      "first_available": "60.0",
+      "enterprise_only": true,
+
+      "type": "object",
+      "properties": {
+        "Install" : {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Uninstall" : {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "Locked" : {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+
     "FlashPlugin": {
       "description": "Allow or deny flash plugin usage.",
       "first_available": "60.0",
@@ -204,6 +293,14 @@
           "items": {
             "type": "origin"
           }
+        },
+
+        "Default": {
+          "type": "boolean"
+        },
+
+        "Locked": {
+          "type": "boolean"
         }
       }
     },
@@ -246,7 +343,22 @@
       }
     },
 
-    "Popups": {
+    "NoDefaultBookmarks": {
+      "description": "Don't create the default bookmarks bundled with Firefox, nor the Smart Bookmarks (Most Visited, Recent Tags). Note: this policy is only effective if used before the first run of the profile.",
+      "first_available": "60.0",
+
+      "type": "boolean"
+    },
+
+    "OverrideFirstRunPage": {
+      "description": "Override the first run page. Set this policy to blank if you want to disable the first run page.",
+      "first_available": "60.0",
+      "enterprise_only": true,
+
+      "type": "URLorEmpty"
+    },
+
+    "PopupBlocking": {
       "description": "Allow or deny popup usage.",
       "first_available": "60.0",
 
@@ -257,6 +369,72 @@
           "items": {
             "type": "origin"
           }
+        },
+
+        "Default": {
+          "type": "boolean"
+        },
+
+        "Locked": {
+          "type": "boolean"
+        }
+      }
+    },
+
+    "Proxy": {
+      "description": "Configure Proxy settings.",
+      "first_available": "60.0",
+
+      "type": "object",
+      "properties": {
+        "Mode": {
+          "type": "string",
+          "enum": ["none", "system", "manual", "autoDetect", "autoConfig"]
+        },
+
+        "Locked": {
+          "type": "boolean"
+        },
+
+        "AutoConfigURL": {
+          "type": "URLorEmpty"
+        },
+
+        "FTPProxy": {
+          "type": "string"
+        },
+
+        "HTTPProxy": {
+          "type": "string"
+        },
+
+        "SSLProxy": {
+          "type": "string"
+        },
+
+        "SOCKSProxy": {
+          "type": "string"
+        },
+
+        "SOCKSVersion": {
+          "type": "number",
+          "enum": [4, 5]
+        },
+
+        "UseHTTPProxyForAllProtocols": {
+          "type": "boolean"
+        },
+
+        "Passthrough": {
+          "type": "string"
+        },
+
+        "UseProxyForDNS": {
+          "type": "boolean"
+        },
+
+        "AutoLogin": {
+          "type": "boolean"
         }
       }
     },
@@ -266,6 +444,86 @@
       "first_available": "60.0",
 
       "type": "boolean"
+    },
+
+    "SearchBar": {
+      "description": "Sets the default location of the search bar. Only applies on firtrun, but can be changed.",
+      "first_available": "60.0",
+      "enterprise_only": true,
+
+      "type": "string",
+      "enum": ["unified", "separate"]
+    },
+
+    "SearchEngines": {
+      "description": "Modifies the list of search engines built into Firefox",
+      "first_available": "60.0",
+      "enterprise_only": true,
+
+      "type": "object",
+      "properties": {
+        "Add": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["Name", "URLTemplate"],
+
+            "properties": {
+              "Name": {
+                "type": "string"
+              },
+              "IconURL": {
+                "type": "URLorEmpty"
+              },
+              "Alias": {
+                "type": "string"
+              },
+              "Description": {
+                "type": "string"
+              },
+              "Method": {
+                "type": "string",
+                "enum": ["GET", "POST"]
+              },
+              "URLTemplate": {
+                "type": "string"
+              },
+              "SuggestURLTemplate": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "Default": {
+          "type": "string"
+        },
+        "PreventInstalls": {
+          "type": "boolean"
+        }
+      }
+    },
+
+    "WebsiteFilter": {
+      "description": "Blocks websites from being visited. The parameters take an array of Match Patterns, as documented in https://developer.mozilla.org/en-US/Add-ons/WebExtensions/Match_patterns. Only http/https accesses are supported at the moment. The arrays are limited to 1000 entries each.",
+      "first_available": "60.0",
+      "enterprise_only": "true",
+
+      "type": "object",
+      "properties": {
+        "Block": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+
+        "Exceptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
     }
   }
 }

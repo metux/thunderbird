@@ -357,3 +357,6 @@
 <!-- Status Bar -->
 <!ENTITY languageStatusButton.tooltip "Gjuhë drejtshkrimi">
 <!ENTITY encodingStatusPanel.tooltip "Kodim teksti">
+
+<!ENTITY initiallyShowAttachmentPane.label "Initially Show Attachment Pane">
+<!ENTITY initiallyShowAttachmentPane.accesskey "S">

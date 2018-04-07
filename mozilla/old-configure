@@ -15554,11 +15554,7 @@ if test -n "$USE_ICU"; then
     # but we'd need to check in a big-endian version of the file.
     ICU_DATA_FILE="icudt${version}l.dat"
 
-                        if test -z "$JS_STANDALONE" -a -z "$MOZ_SYSTEM_ICU" -a "$OS_TARGET" != WINNT -a "$MOZ_WIDGET_TOOLKIT" != "android"; then
-        MOZ_ICU_DATA_ARCHIVE=1
-    else
-        MOZ_ICU_DATA_ARCHIVE=
-    fi
+    MOZ_ICU_DATA_ARCHIVE=
 fi
 
 
@@ -15724,12 +15720,12 @@ if test -n "$COMPILE_ENVIRONMENT"; then
 for ac_func in posix_fadvise posix_fallocate
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:15728: checking for $ac_func" >&5
+echo "configure:15724: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 15733 "configure"
+#line 15729 "configure"
 #define $ac_func innocuous_$ac_func
 #include "confdefs.h"
 #undef $ac_func
@@ -15756,7 +15752,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:15760: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:15756: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -15788,7 +15784,7 @@ if test "$MOZ_X11"; then
                 _SAVE_CFLAGS=$CFLAGS
     CFLAGS="$CFLAGS $XCFLAGS"
     cat > conftest.$ac_ext <<EOF
-#line 15792 "configure"
+#line 15788 "configure"
 #include "confdefs.h"
 
         #include <stdio.h>
@@ -15807,7 +15803,7 @@ int main() {
     
 ; return 0; }
 EOF
-if { (eval echo configure:15811: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:15807: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   echo "configure: failed program was:" >&5

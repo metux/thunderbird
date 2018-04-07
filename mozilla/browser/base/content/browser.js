@@ -140,25 +140,6 @@ if (AppConstants.MOZ_CRASHREPORTER) {
                                      "nsICrashReporter");
 }
 
-Object.defineProperty(this, "gBrowser", {
-  configurable: true,
-  enumerable: true,
-  get() {
-    delete window.gBrowser;
-
-    // The tabbed browser only exists in proper browser windows, but on Mac we
-    // load browser.js in other windows and might try to access gBrowser.
-    if (!window._gBrowser) {
-      return window.gBrowser = null;
-    }
-
-    window.gBrowser = window._gBrowser;
-    delete window._gBrowser;
-    gBrowser.init();
-    return gBrowser;
-  },
-});
-
 XPCOMUtils.defineLazyGetter(this, "gBrowserBundle", function() {
   return Services.strings.createBundle("chrome://browser/locale/browser.properties");
 });
@@ -242,6 +223,7 @@ XPCOMUtils.defineLazyGetter(this, "Win7Features", function() {
 
 const nsIWebNavigation = Ci.nsIWebNavigation;
 
+var gBrowser;
 var gLastValidURLStr = "";
 var gInPrintPreviewMode = false;
 var gContextMenu = null; // nsContextMenu instance
@@ -1207,6 +1189,10 @@ var gBrowserInit = {
   delayedStartupFinished: false,
 
   onDOMContentLoaded() {
+    gBrowser = window._gBrowser;
+    delete window._gBrowser;
+    gBrowser.init();
+
     window.QueryInterface(Ci.nsIInterfaceRequestor)
           .getInterface(nsIWebNavigation)
           .QueryInterface(Ci.nsIDocShellTreeItem).treeOwner
@@ -1268,6 +1254,7 @@ var gBrowserInit = {
       remoteType, sameProcessAsFrameLoader
     });
 
+    new LightweightThemeConsumer(document);
     gUIDensity.init();
 
     if (AppConstants.CAN_DRAW_IN_TITLEBAR) {
@@ -1346,7 +1333,6 @@ var gBrowserInit = {
     }
 
     // Misc. inits.
-    new LightweightThemeConsumer(document);
     TabletModeUpdater.init();
     CombinedStopReload.ensureInitialized();
     gPrivateBrowsingUI.init();
@@ -6111,6 +6097,11 @@ function handleLinkClick(event, href, linkNode) {
   return true;
 }
 
+/**
+ * Handles paste on middle mouse clicks.
+ *
+ * @param event {Event | Object} Event or JSON object.
+ */
 function middleMousePaste(event) {
   let clipboard = readFromClipboard();
   if (!clipboard)
@@ -6154,7 +6145,9 @@ function middleMousePaste(event) {
     }
   });
 
-  event.stopPropagation();
+  if (event instanceof Event) {
+    event.stopPropagation();
+  }
 }
 
 function stripUnsafeProtocolOnPaste(pasteData) {

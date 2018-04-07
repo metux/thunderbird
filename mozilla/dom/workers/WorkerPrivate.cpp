@@ -36,12 +36,14 @@
 #include "nsNetUtil.h"
 #include "nsIMemoryReporter.h"
 #include "nsIPermissionManager.h"
+#include "nsIRandomGenerator.h"
 #include "nsIScriptError.h"
 #include "nsIScriptTimeoutHandler.h"
 #include "nsIURI.h"
 #include "nsIURL.h"
 #include "nsPrintfCString.h"
 #include "nsQueryObject.h"
+#include "nsRFPService.h"
 #include "nsSandboxFlags.h"
 #include "nsUTF8Utils.h"
 
@@ -2664,8 +2666,12 @@ WorkerPrivate::WorkerPrivate(WorkerPrivate* aParent,
     if (mIsSecureContext) {
       mJSSettings.chrome.compartmentOptions
                  .creationOptions().setSecureContext(true);
+      mJSSettings.chrome.compartmentOptions
+                 .creationOptions().setClampAndJitterTime(false);
       mJSSettings.content.compartmentOptions
                  .creationOptions().setSecureContext(true);
+      mJSSettings.content.compartmentOptions
+                 .creationOptions().setClampAndJitterTime(false);
     }
 
     mIsInAutomation = xpc::IsInAutomation();

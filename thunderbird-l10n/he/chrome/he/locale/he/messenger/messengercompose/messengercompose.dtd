@@ -354,4 +354,6 @@
 <!ENTITY convertCloud.accesskey "C">
 <!ENTITY cancelUpload.accesskey "n">
 <!ENTITY convertRegularAttachment.accesskey "A">
+<!ENTITY initiallyShowAttachmentPane.label "Initially Show Attachment Pane">
+<!ENTITY initiallyShowAttachmentPane.accesskey "S">
 <!ENTITY customizeFromAddress.accesskey "A">

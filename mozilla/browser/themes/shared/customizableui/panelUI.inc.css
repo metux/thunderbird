@@ -333,6 +333,12 @@ panelview:not([mainview]) .toolbarbutton-text,
   margin-bottom: 0;
 }
 
+#extension-new-tab-notification-description > .extension-controlled-icon {
+  height: 16px;
+  width: 16px;
+  vertical-align: bottom;
+}
+
 #extension-new-tab-notification > .popup-notification-body-container > .popup-notification-body > .popup-notification-warning,
 #extension-new-tab-notification > .popup-notification-body-container > .popup-notification-icon {
   display: none;
@@ -1005,6 +1011,7 @@ menu.subviewbutton@menuStateHover@,
 menuitem.subviewbutton@menuStateHover@,
 .widget-overflow-list .toolbarbutton-1@buttonStateHover@,
 .toolbaritem-combined-buttons@inAnyPanel@ > toolbarbutton@buttonStateHover@ {
+  color: inherit;
   background-color: var(--arrowpanel-dimmed);
 }
 
@@ -1014,6 +1021,7 @@ menu.subviewbutton@menuStateActive@,
 menuitem.subviewbutton@menuStateActive@,
 .widget-overflow-list .toolbarbutton-1@buttonStateActive@,
 .toolbaritem-combined-buttons@inAnyPanel@ > toolbarbutton@buttonStateActive@ {
+  color: inherit;
   background-color: var(--arrowpanel-dimmed-further);
   box-shadow: 0 1px 0 hsla(210,4%,10%,.03) inset;
 }

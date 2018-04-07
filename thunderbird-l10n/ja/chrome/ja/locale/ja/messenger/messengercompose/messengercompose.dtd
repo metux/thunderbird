@@ -356,3 +356,5 @@
 <!ENTITY attachmentBucketCloseButton.tooltip "Hide the attachment pane">
 <!ENTITY removeAllAttachments.label "Remove All Attachments">
 <!ENTITY removeAllAttachments.accesskey "v">
+<!ENTITY initiallyShowAttachmentPane.label "Initially Show Attachment Pane">
+<!ENTITY initiallyShowAttachmentPane.accesskey "S">

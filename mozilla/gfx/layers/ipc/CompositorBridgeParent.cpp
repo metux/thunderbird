@@ -1716,10 +1716,12 @@ CompositorBridgeParent::RecvAdoptChild(const uint64_t& child)
   APZCTreeManagerParent* parent;
   {
     MonitorAutoLock lock(*sIndirectLayerTreesLock);
-    // We currently don't support adopting children from one compositor to
-    // another if the two compositors don't have the same options.
-    MOZ_ASSERT(sIndirectLayerTrees[child].mParent->mOptions == mOptions);
-    oldApzSampler = sIndirectLayerTrees[child].mParent->mApzSampler;
+    if (sIndirectLayerTrees[child].mParent) {
+      // We currently don't support adopting children from one compositor to
+      // another if the two compositors don't have the same options.
+      MOZ_ASSERT(sIndirectLayerTrees[child].mParent->mOptions == mOptions);
+      oldApzSampler = sIndirectLayerTrees[child].mParent->mApzSampler;
+    }
     NotifyChildCreated(child);
     if (sIndirectLayerTrees[child].mLayerTree) {
       sIndirectLayerTrees[child].mLayerTree->SetLayerManager(mLayerManager, GetAnimationStorage());
@@ -2226,13 +2228,14 @@ CompositorBridgeParent::GetGeckoContentControllerForRoot(uint64_t aContentLayers
 
 PTextureParent*
 CompositorBridgeParent::AllocPTextureParent(const SurfaceDescriptor& aSharedData,
+                                            const ReadLockDescriptor& aReadLock,
                                             const LayersBackend& aLayersBackend,
                                             const TextureFlags& aFlags,
                                             const uint64_t& aId,
                                             const uint64_t& aSerial,
                                             const wr::MaybeExternalImageId& aExternalImageId)
 {
-  return TextureHost::CreateIPDLActor(this, aSharedData, aLayersBackend, aFlags, aSerial, aExternalImageId);
+  return TextureHost::CreateIPDLActor(this, aSharedData, aReadLock, aLayersBackend, aFlags, aSerial, aExternalImageId);
 }
 
 bool

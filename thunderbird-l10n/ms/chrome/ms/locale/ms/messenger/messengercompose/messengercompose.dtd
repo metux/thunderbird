@@ -357,3 +357,6 @@
 <!-- Status Bar -->
 <!ENTITY languageStatusButton.tooltip "Bahasa semakan ejaan">
 <!ENTITY encodingStatusPanel.tooltip "Pengekodan teks">
+
+<!ENTITY initiallyShowAttachmentPane.label "Initially Show Attachment Pane">
+<!ENTITY initiallyShowAttachmentPane.accesskey "S">

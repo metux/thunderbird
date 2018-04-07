@@ -357,3 +357,6 @@
 <!-- Status Bar -->
 <!ENTITY languageStatusButton.tooltip "Stavningsspråk">
 <!ENTITY encodingStatusPanel.tooltip "Textkodning">
+
+<!ENTITY initiallyShowAttachmentPane.label "Initially Show Attachment Pane">
+<!ENTITY initiallyShowAttachmentPane.accesskey "S">
