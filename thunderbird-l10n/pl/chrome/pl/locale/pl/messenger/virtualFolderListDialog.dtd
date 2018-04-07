@@ -5,5 +5,5 @@
 <!ENTITY virtualFolderListTitle.title "Wybierz folder(y)">
 <!ENTITY virtualFolderDesc.label "Wybierz foldery do przeszukiwania:">
 
-<!ENTITY folderName.label "Folder name">
-<!ENTITY folderSearch.label "Search">
+<!ENTITY folderName.label "Nazwa folderu">
+<!ENTITY folderSearch.label "Wyszukiwanie">

@@ -14,6 +14,5 @@
 
 <!ENTITY publicData.label        "נתונים ציבוריים">
 <!ENTITY privateData.label       "נתונים אישיים">
-
-<!ENTITY identityAlias.label     "Identity Label:">
-<!ENTITY identityAlias.accesskey "b">
+<!ENTITY identityAlias.label     "תווית זהות:">
+<!ENTITY identityAlias.accesskey "ז">

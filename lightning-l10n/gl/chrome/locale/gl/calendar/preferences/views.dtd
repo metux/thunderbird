@@ -14,6 +14,8 @@
 
 <!ENTITY pref.weekstarts.label "Comezar a semana o:">
 <!ENTITY pref.weekstarts.accesskey "r">
+<!ENTITY pref.calendar.view-minimonth.showweeknumber.label "Amosar o número da semana nas vistas e o mes reducido">
+<!ENTITY pref.calendar.view-minimonth.showweeknumber.accesskey "m">
 <!ENTITY pref.daysoff.label "Incluír estes días na semana laborábel:">
 
 <!ENTITY pref.calendar.view.daystart.label "O día comeza ás:">
@@ -36,5 +38,5 @@
 <!ENTITY pref.numberofweeks.5 "5 semanas">
 <!ENTITY pref.numberofweeks.6 "6 semanas">
 
-<!ENTITY pref.calendar.view-minimonth.showweeknumber.label "Show week number in views and minimonth">
-<!ENTITY pref.calendar.view-minimonth.showweeknumber.accesskey "n">
+<!ENTITY pref.showlocation.label "Show location">
+<!ENTITY pref.showlocation.accesskey "L">

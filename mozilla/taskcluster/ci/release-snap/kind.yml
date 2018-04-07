@@ -7,6 +7,7 @@ loader: taskgraph.loader.transform:loader
 transforms:
    - taskgraph.transforms.release_deps:transforms
    - taskgraph.transforms.release_snap:transforms
+   - taskgraph.transforms.release_notifications:transforms
    - taskgraph.transforms.task:transforms
 
 kind-dependencies:
@@ -19,16 +20,12 @@ job-defaults:
    scopes:
       by-project:
          mozilla-beta: ["secrets:get:project/releng/snapcraft/firefox/edge"]
+         mozilla-release: ["secrets:get:project/releng/snapcraft/firefox/candidate"]
          default: []
    treeherder:
       platform: linux64/opt
       kind: build
       tier: 3
-   index:
-      type: release
-   routes:
-      - index.releases.v1.{branch}.{revision}.{product}.{underscore_version}.build{build_number}.snap
-      - index.releases.v1.{branch}.latest.{product}.latest.snap
    worker-type: aws-provisioner-v1/gecko-{level}-b-linux
    worker:
       implementation: docker-worker
@@ -55,7 +52,12 @@ job-defaults:
          BUILD_NUMBER: "{release_config[build_number]}"
          PUSH_TO_CHANNEL:
             by-project:
-               mozilla-beta: "edge"
+               # The snap stores exposes 4 channels: edge, beta, candidate, release.
+               # Let's use edge and candidate for QE to test. Then, on the Snap Store UI,
+               # we can promote builds to beta and release, respectively.
+               # For more info: https://docs.snapcraft.io/reference/channels
+               mozilla-beta: edge
+               mozilla-release: candidate
                default: ""
          CANDIDATES_DIR:
             by-project:
@@ -67,52 +69,9 @@ job-defaults:
          LANG: C.UTF-8
          L10N_CHANGESETS: "{config_params[head_repository]}/raw-file/{config_params[head_rev]}/browser/locales/l10n-changesets.json"
       taskcluster-proxy: true
-   notifications:
-      completed:
-         subject: "COMPLETED: [{task[shipping-product]} {release_config[version]} build{release_config[build_number]}/{config[params][project]}] {task_def[metadata][name]} task"
-         message: "COMPLETED: [{task[shipping-product]} {release_config[version]} build{release_config[build_number]}/{config[params][project]}] {task_def[metadata][name]} task"
-         plugins:
-            by-project:
-               mozilla-beta: ["log_collect"]
-               mozilla-release: ["log_collect"]
-               default: []
-
-      failed:
-         subject: "FAILED: [{task[shipping-product]} {release_config[version]} build{release_config[build_number]}/{config[params][project]}] {task_def[metadata][name]} task"
-         message: "FAILED: [{task[shipping-product]} {release_config[version]} build{release_config[build_number]}/{config[params][project]}] {task_def[metadata][name]} task"
-         plugins:
-            by-project:
-               mozilla-beta: ["log_collect", "ses"]
-               mozilla-release: ["log_collect", "ses"]
-               default: ["ses"]
-         emails:
-            by-project:
-               mozilla-beta: ["release-automation-notifications@mozilla.com"]
-               mozilla-release: ["release-automation-notifications@mozilla.com"]
-               try: ["{task_def[metadata][owner]}"]
-               maple: ["release+tcstaging@mozilla.com"]
-               default: []
-
-      exception:
-         subject: "EXCEPTION: [{task[shipping-product]} {release_config[version]} build{release_config[build_number]}/{config[params][project]}] {task_def[metadata][name]} task"
-         message: "EXCEPTION: [{task[shipping-product]} {release_config[version]} build{release_config[build_number]}/{config[params][project]}] {task_def[metadata][name]} task"
-         plugins:
-            by-project:
-               mozilla-beta: ["log_collect", "ses"]
-               mozilla-release: ["log_collect", "ses"]
-               default: ["ses"]
-         emails:
-            by-project:
-               mozilla-beta: ["release-automation-notifications@mozilla.com"]
-               mozilla-release: ["release-automation-notifications@mozilla.com"]
-               try: ["{task_def[metadata][owner]}"]
-               maple: ["release+tcstaging@mozilla.com"]
-               default: []
 
 jobs:
    firefox:
       shipping-product: firefox
       treeherder:
          symbol: Snap(BF)
-      index:
-         product: firefox

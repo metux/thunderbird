@@ -4,5 +4,6 @@
 
 <!ENTITY  closeTab.label           "Pechar lapela">
 <!ENTITY  listAllTabs.label        "Listar todas as lapelas">
-
-<!ENTITY  defaultTabTitle.label    "Home">
+<!-- LOCALIZATION NOTE(defaultTabTitle.label): This is the default tab
+     title to show when the tab has no title. -->
+<!ENTITY  defaultTabTitle.label    "Inicio">

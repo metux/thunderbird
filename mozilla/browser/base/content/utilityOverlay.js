@@ -4,19 +4,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // Services = object with smart getters for common XPCOM services
-Components.utils.import("resource://gre/modules/AppConstants.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
+ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
-                                  "resource:///modules/RecentWindow.jsm");
+ChromeUtils.defineModuleGetter(this, "RecentWindow",
+                               "resource:///modules/RecentWindow.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "ShellService",
-                                  "resource:///modules/ShellService.jsm");
+ChromeUtils.defineModuleGetter(this, "ShellService",
+                               "resource:///modules/ShellService.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "ContextualIdentityService",
-                                  "resource://gre/modules/ContextualIdentityService.jsm");
+ChromeUtils.defineModuleGetter(this, "ContextualIdentityService",
+                               "resource://gre/modules/ContextualIdentityService.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "aboutNewTabService",
                                    "@mozilla.org/browser/aboutnewtab-service;1",
@@ -103,7 +103,7 @@ function openUILink(url, event, aIgnoreButton, aIgnoreAlt, aAllowThirdPartyFixup
       allowThirdPartyFixup: aAllowThirdPartyFixup,
       postData: aPostData,
       referrerURI: aReferrerURI,
-      referrerPolicy: Components.interfaces.nsIHttpChannel.REFERRER_POLICY_UNSET,
+      referrerPolicy: Ci.nsIHttpChannel.REFERRER_POLICY_UNSET,
       initiatingDoc: event ? event.target.ownerDocument : null,
     };
   }
@@ -198,7 +198,7 @@ function openUILinkIn(url, where, aAllowThirdPartyFixup, aPostData, aReferrerURI
       allowThirdPartyFixup: aAllowThirdPartyFixup,
       postData: aPostData,
       referrerURI: aReferrerURI,
-      referrerPolicy: Components.interfaces.nsIHttpChannel.REFERRER_POLICY_UNSET,
+      referrerPolicy: Ci.nsIHttpChannel.REFERRER_POLICY_UNSET,
     };
   }
 
@@ -211,8 +211,6 @@ function openUILinkIn(url, where, aAllowThirdPartyFixup, aPostData, aReferrerURI
 function openLinkIn(url, where, params) {
   if (!where || !url)
     return;
-  const Cc = Components.classes;
-  const Ci = Components.interfaces;
 
   var aFromChrome           = params.fromChrome;
   var aAllowThirdPartyFixup = params.allowThirdPartyFixup;
@@ -247,7 +245,7 @@ function openLinkIn(url, where, params) {
       saveURL(url, null, null, true, true, aNoReferrer ? null : aReferrerURI, null, params.isContentWindowPrivate);
     } else {
       if (!aInitiatingDoc) {
-        Components.utils.reportError("openUILink/openLinkIn was called with " +
+        Cu.reportError("openUILink/openLinkIn was called with " +
           "where == 'save' but without initiatingDoc.  See bug 814264.");
         return;
       }
@@ -547,15 +545,15 @@ function createUserContextMenu(event, {
     event.target.firstChild.remove();
   }
 
-  let bundle = document.getElementById("bundle_browser");
+  let bundle = Services.strings.createBundle("chrome://browser/locale/browser.properties");
   let docfrag = document.createDocumentFragment();
 
   // If we are excluding a userContextId, we want to add a 'no-container' item.
   if (excludeUserContextId || showDefaultTab) {
     let menuitem = document.createElement("menuitem");
     menuitem.setAttribute("data-usercontextid", "0");
-    menuitem.setAttribute("label", bundle.getString("userContextNone.label"));
-    menuitem.setAttribute("accesskey", bundle.getString("userContextNone.accesskey"));
+    menuitem.setAttribute("label", bundle.GetStringFromName("userContextNone.label"));
+    menuitem.setAttribute("accesskey", bundle.GetStringFromName("userContextNone.accesskey"));
 
     // We don't set an oncommand/command attribute because if we have
     // to exclude a userContextId we are generating the contextMenu and
@@ -577,7 +575,7 @@ function createUserContextMenu(event, {
     menuitem.setAttribute("label", ContextualIdentityService.getUserContextLabel(identity.userContextId));
 
     if (identity.accessKey && useAccessKeys) {
-      menuitem.setAttribute("accesskey", bundle.getString(identity.accessKey));
+      menuitem.setAttribute("accesskey", bundle.GetStringFromName(identity.accessKey));
     }
 
     menuitem.classList.add("menuitem-iconic");
@@ -597,10 +595,10 @@ function createUserContextMenu(event, {
 
     let menuitem = document.createElement("menuitem");
     menuitem.setAttribute("label",
-                          bundle.getString("userContext.aboutPage.label"));
+                          bundle.GetStringFromName("userContext.aboutPage.label"));
     if (useAccessKeys) {
       menuitem.setAttribute("accesskey",
-                            bundle.getString("userContext.aboutPage.accesskey"));
+                            bundle.GetStringFromName("userContext.aboutPage.accesskey"));
     }
     menuitem.setAttribute("command", "Browser:OpenAboutContainers");
     docfrag.appendChild(menuitem);
@@ -774,8 +772,6 @@ function openPreferences(paneID, extraArgs) {
   let newLoad = true;
   let browser = null;
   if (!win) {
-    const Cc = Components.classes;
-    const Ci = Components.interfaces;
     let windowArguments = Cc["@mozilla.org/array;1"]
       .createInstance(Ci.nsIMutableArray);
     let supportsStringPrefURL = Cc["@mozilla.org/supports-string;1"]
@@ -828,7 +824,7 @@ function openFeedbackPage() {
 
 function openTourPage() {
   let scope = {};
-  Components.utils.import("resource:///modules/UITour.jsm", scope);
+  ChromeUtils.import("resource:///modules/UITour.jsm", scope);
   openUILinkIn(scope.UITour.url, "tab");
 }
 
@@ -859,60 +855,33 @@ function makeURLAbsolute(aBase, aUrl) {
  *
  * @param aURL
  *        The URL to open (as a string).
- * @param aDocument
- *        Note this parameter is now ignored. There is no security check & no
- *        referrer header derived from aDocument (null case).
- * @param aPostData
- *        Form POST data, or null.
- * @param aEvent
- *        The triggering event (for the purpose of determining whether to open
- *        in the background), or null.
- * @param aAllowThirdPartyFixup
- *        If true, then we allow the URL text to be sent to third party services
- *        (e.g., Google's I Feel Lucky) for interpretation. This parameter may
- *        be undefined in which case it is treated as false.
- * @param [optional] aReferrer
- *        This will be used as the referrer. There will be no security check.
- * @param [optional] aReferrerPolicy
- *        Referrer policy - Ci.nsIHttpChannel.REFERRER_POLICY_*.
+ * @param aShiftKey
+ *        True if shift key is held.  This value is used for the purpose of
+ *        determining whether to open in the background.
+ * @param aParams
+ *        parameters passed to openLinkIn
  */
-function openNewTabWith(aURL, aDocument, aPostData, aEvent,
-                        aAllowThirdPartyFixup, aReferrer, aReferrerPolicy) {
+function openNewTabWith(aURL, aShiftKey, aParams = {}) {
 
   // As in openNewWindowWith(), we want to pass the charset of the
   // current document over to a new tab.
-  let originCharset = null;
   if (document.documentElement.getAttribute("windowtype") == "navigator:browser")
-    originCharset = gBrowser.selectedBrowser.characterSet;
+    aParams.charset = gBrowser.selectedBrowser.characterSet;
 
-  openLinkIn(aURL, aEvent && aEvent.shiftKey ? "tabshifted" : "tab",
-             { charset: originCharset,
-               postData: aPostData,
-               allowThirdPartyFixup: aAllowThirdPartyFixup,
-               referrerURI: aReferrer,
-               referrerPolicy: aReferrerPolicy,
-             });
+  openLinkIn(aURL, aShiftKey ? "tabshifted" : "tab", aParams);
 }
 
 /**
- * @param aDocument
- *        Note this parameter is ignored. See openNewTabWith()
+ * openNewWindowWith: opens a new window with the given URL.
+ * See openNewTabWith for parameters.
  */
-function openNewWindowWith(aURL, aDocument, aPostData, aAllowThirdPartyFixup,
-                           aReferrer, aReferrerPolicy) {
+function openNewWindowWith(aURL, aParams = {}) {
   // Extract the current charset menu setting from the current document and
   // use it to initialize the new browser window...
-  let originCharset = null;
   if (document.documentElement.getAttribute("windowtype") == "navigator:browser")
-    originCharset = gBrowser.selectedBrowser.characterSet;
+    aParams.charset = gBrowser.selectedBrowser.characterSet;
 
-  openLinkIn(aURL, "window",
-             { charset: originCharset,
-               postData: aPostData,
-               allowThirdPartyFixup: aAllowThirdPartyFixup,
-               referrerURI: aReferrer,
-               referrerPolicy: aReferrerPolicy,
-             });
+  openLinkIn(aURL, "window", aParams);
 }
 
 function getHelpLinkURL(aHelpTopic) {

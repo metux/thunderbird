@@ -5,14 +5,14 @@
 /*
  * Testing of junk whitelisting
  */
- 
+
 // add address book setup
 load("../../../resources/abSetup.js");
 
 // add fake POP3 server driver
 load("../../../resources/POP3pump.js");
 
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 /*
  * The address available in the test address book is "PrimaryEmail1@test.invalid"
@@ -25,12 +25,12 @@ Components.utils.import("resource:///modules/mailServices.js");
  *    1        3          I
  *
  */
- 
+
 // indices into hdrs[] of email by domain
 var kDomainTest = 0;
 var kDomainExample = 1;
 
-var Files = 
+var Files =
 [
   "../../../data/bugmail1",
   "../../../data/bugmail3"

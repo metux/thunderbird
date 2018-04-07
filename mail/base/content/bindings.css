@@ -13,7 +13,7 @@ toolbar {
 }
 
 @media (-moz-menubar-drag) {
-  toolbar[type="menubar"]:not([autohide="true"]):not(:-moz-lwtheme) {
+  toolbar[type="menubar"]:not([autohide="true"]) {
     -moz-binding: url("chrome://messenger/content/toolbar.xml#toolbar-drag");
   }
 }
@@ -24,12 +24,32 @@ toolbar[type="menubar"][autohide="true"] {
 }
 %endif
 
+menulist[type="description"] {
+  -moz-binding: url("chrome://messenger/content/mailWidgets.xml#menulist-description");
+}
+
+menulist[type="description"] > menupopup > menuitem[description] {
+  -moz-binding: url("chrome://messenger/content/mailWidgets.xml#menuitem-iconic-desc-noaccel");
+}
+
 datepicker[type="popup"] {
   -moz-binding: url('chrome://messenger/content/datetimepicker.xml#datepicker-popup');
 }
 
 datepicker[type="grid"] {
   -moz-binding: url('chrome://messenger/content/datetimepicker.xml#datepicker-grid');
+}
+
+timepicker {
+  -moz-binding: url('chrome://messenger/content/datetimepicker.xml#timepicker');
+}
+
+spinbuttons {
+  -moz-binding: url("chrome://messenger/content/spinbuttons.xml#spinbuttons");
+}
+
+.spinbuttons-button {
+  -moz-user-focus: ignore;
 }
 
 statusbar {

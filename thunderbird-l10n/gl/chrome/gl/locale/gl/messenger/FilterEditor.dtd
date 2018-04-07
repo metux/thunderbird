@@ -23,9 +23,16 @@
 <!ENTITY contextManual.accesskey "x">
 <!ENTITY contextBeforeCls.label "Filtrar antes de identificar o correo lixo">
 <!ENTITY contextAfterCls.label "Filtrar despois de identificar o correo lixo">
+<!ENTITY contextOutgoing.label "Despois de enviar">
+<!ENTITY contextOutgoing.accesskey "s">
+<!ENTITY contextArchive.label "Ao arquivar">
+<!ENTITY contextArchive.accesskey "A">
 
 <!ENTITY filterActionDesc.label "Realizar estas accións:">
 <!ENTITY filterActionDesc.accesskey "s">
+
+<!ENTITY filterActionOrderWarning.label "Nota: As accións do filtro executáranse nunha orde diferente.">
+<!ENTITY filterActionOrder.label "Ver a orde de execución">
 
 <!-- New Style Filter Rule Actions -->
 <!ENTITY moveMessage.label "Mover mensaxe a">
@@ -56,10 +63,3 @@
  -->
 <!ENTITY filterActionTypeFlexValue "1">
 <!ENTITY filterActionTargetFlexValue "4">
-
-<!ENTITY contextOutgoing.label "After Sending">
-<!ENTITY contextOutgoing.accesskey "S">
-<!ENTITY contextArchive.label "Archiving">
-<!ENTITY contextArchive.accesskey "A">
-<!ENTITY filterActionOrderWarning.label "Note: Filter actions will be run in a different order.">
-<!ENTITY filterActionOrder.label "See execution order">

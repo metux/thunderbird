@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 
 this.EXPORTED_SYMBOLS = ["cal"]; // even though it's defined in calUtils.jsm, import needs this
 cal.alarms = {
@@ -15,7 +15,7 @@ cal.alarms = {
      * @param aItem     The item to apply the default alarm values to.
      */
     setDefaultValues: function(aItem) {
-        let type = cal.isEvent(aItem) ? "event" : "todo";
+        let type = cal.item.isEvent(aItem) ? "event" : "todo";
         if (Preferences.get("calendar.alarms.onfor" + type + "s", 0) == 1) {
             let alarmOffset = cal.createDuration();
             let alarm = cal.createAlarm();

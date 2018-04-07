@@ -318,6 +318,7 @@
 <!ENTITY goChatCmd.label "Chat">
 <!ENTITY goChatCmd.accesskey "c">
 <!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Mensaje destacado">
 <!ENTITY prevStarredMsgCmd.accesskey "s">
 <!ENTITY folderMenu.label "Carpeta">
@@ -366,6 +367,8 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Editar mensaje borrador">
 <!ENTITY editDraftMsgCmd.accesskey "D">
+<!ENTITY editTemplateMsgCmd.label "Editar plantilla">
+<!ENTITY editTemplateMsgCmd.accesskey "T">
 <!ENTITY newMsgFromTemplateCmd.label "Nuevo mensaje desde plantilla">
 <!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Crear filtro a partir del mensaje…">
@@ -459,6 +462,11 @@
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "Complementos">
 <!ENTITY addons.accesskey "C">
+<!ENTITY addonPrefs.label "Opciones de complementos">
+<!ENTITY addonPrefs.accesskey "O">
+<!ENTITY addonPrefsUnix.label "Preferencias de complementos">
+<!ENTITY addonPrefsUnix.accesskey "P">
+<!ENTITY addonNoPrefs.label "No se encuentra la configuración de los complementos.">
 <!ENTITY activitymanager.label "Administrador de actividades">
 <!ENTITY activitymanager.accesskey "a">
 <!ENTITY imAccountsStatus.label "Chat status">
@@ -504,6 +512,8 @@
 <!ENTITY devToolboxCmd.commandkey "i">
 <!ENTITY addonDebugCmd.label "Depurador de complementos">
 <!ENTITY addonDebugCmd.accesskey "a">
+<!ENTITY debugAddonsCmd.label "Depurar los Complementos">
+<!ENTITY debugAddonsCmd.accesskey "A">
 <!ENTITY tabsDebugCmd.label "Depurador de contenido de marco">
 <!ENTITY tabsDebugCmd.accesskey "c">
 <!ENTITY errorConsoleCmd.label "Consola de errores">
@@ -752,6 +762,8 @@
 <!ENTITY contextEditMsgAsNew.label "Editar como nuevo mensaje">
 <!ENTITY contextEditMsgAsNew.accesskey "E">
 <!ENTITY contextEditDraftMsg.label "Editar mensaje borrador">
+<!ENTITY contextEditTemplate.label "Editar plantilla">
+<!ENTITY contextEditTemplate.accesskey "T">
 <!ENTITY contextArchive.label "Archivar">
 <!ENTITY contextArchive.accesskey "h">
 <!ENTITY contextReplySender.label "Responder sólo al remitente">
@@ -957,16 +969,3 @@
 <!ENTITY dockOptions.label              "Opciones de ícono de aplicación…">
 <!ENTITY writeNewMessageDock.label      "Escribir un nuevo mensaje">
 <!ENTITY openAddressBookDock.label      "Abrir libreta de direcciones">
-
-<!ENTITY goChatCmd2.key "H">
-<!ENTITY editTemplateMsgCmd.label "Edit Template">
-<!ENTITY editTemplateMsgCmd.accesskey "T">
-<!ENTITY addonPrefs.label "Add-on Options">
-<!ENTITY addonPrefs.accesskey "O">
-<!ENTITY addonPrefsUnix.label "Add-on Preferences">
-<!ENTITY addonPrefsUnix.accesskey "P">
-<!ENTITY addonNoPrefs.label "No Add-on settings found.">
-<!ENTITY debugAddonsCmd.label "Debug Add-ons">
-<!ENTITY debugAddonsCmd.accesskey "A">
-<!ENTITY contextEditTemplate.label "Edit Template">
-<!ENTITY contextEditTemplate.accesskey "T">

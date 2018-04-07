@@ -1,7 +1,7 @@
 /* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 // This file implements test NNTP servers
 
-Components.utils.import("resource:///modules/mimeParser.jsm");
+ChromeUtils.import("resource:///modules/mimeParser.jsm");
 
 var EXPORTED_SYMBOLS = [
   'nntpDaemon',
@@ -385,8 +385,8 @@ function subclass(sub, sup, def) {
     sub.prototype[obj] = def[obj];
   }
 }
-function subconstructor(sub, sup) {
-  sup.apply(sub, Array.prototype.slice.call(arguments, 2));
+function subconstructor(sub, sup, ...aArgs) {
+  sup.apply(sub, aArgs);
   sub.parent = new Proxy(sub, {
     get: function (target, name) {
       let res = sup.prototype[name];
@@ -552,7 +552,7 @@ subclass(NNTP_RFC4643_extension, NNTP_RFC2980_handler, {
     else if (action == "pass") {
       if (!this.requireBoth || !this.usernameReceived)
         return "482 Authetication commands issued out of sequence";
-      
+
       this.usernameReceived = false;
 
       var expectPassword = this.lastGroupTried

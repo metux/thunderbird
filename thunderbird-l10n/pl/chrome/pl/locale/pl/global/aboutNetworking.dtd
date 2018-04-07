@@ -59,3 +59,5 @@
 <!ENTITY aboutNetworking.rcwnStddevLong "Odchylenie standardowe długiej">
 <!ENTITY aboutNetworking.rcwnCacheSlow "Powolne trafienia">
 <!ENTITY aboutNetworking.rcwnCacheNotSlow "Normalne trafienia">
+
+<!ENTITY aboutNetworking.trr                   "TRR">

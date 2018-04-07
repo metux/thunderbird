@@ -21,6 +21,13 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Laida">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Saugumo programos">
+<!ENTITY aboutSupport.securitySoftwareType "Tipas">
+<!ENTITY aboutSupport.securitySoftwareName "Pavadinimas">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirusinė">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antišnipinėjimo">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Užkarda">
+
 <!ENTITY aboutSupport.featuresTitle "„&brandShortName;“ savybės">
 <!ENTITY aboutSupport.featureName "Pavadinimas">
 <!ENTITY aboutSupport.featureVersion "Laida">
@@ -152,18 +159,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "Dažnis">
 <!ENTITY aboutSupport.mediaDeviceLatency "Delsa">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.intlTitle "Internacionalizacija ir lokalizacija">
+<!ENTITY aboutSupport.intlAppTitle "Programos nuostatos">
+<!ENTITY aboutSupport.intlLocalesRequested "Užklaustos lokalės">
+<!ENTITY aboutSupport.intlLocalesAvailable "Galimos lokalės">
+<!ENTITY aboutSupport.intlLocalesSupported "Programos lokalės">
+<!ENTITY aboutSupport.intlLocalesDefault "Numatytoji lokalė">
+<!ENTITY aboutSupport.intlOSTitle "Operacinė sistema">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Sistemos lokalės">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regionų nuostatos">
+
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">

@@ -5,10 +5,6 @@
 
 this.EXPORTED_SYMBOLS = ['autosyncModule'];
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
-
 var nsActProcess = Components.Constructor("@mozilla.org/activity-process;1",
                                             "nsIActivityProcess", "init");
 var nsActEvent = Components.Constructor("@mozilla.org/activity-event;1",
@@ -16,12 +12,12 @@ var nsActEvent = Components.Constructor("@mozilla.org/activity-event;1",
 var nsActWarning = Components.Constructor("@mozilla.org/activity-warning;1",
                                             "nsIActivityWarning", "init");
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/PluralForm.jsm");
-Components.utils.import("resource:///modules/gloda/log4moz.js");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/PluralForm.jsm");
+ChromeUtils.import("resource:///modules/gloda/log4moz.js");
 
-var nsIAutoSyncMgrListener = Components.interfaces.nsIAutoSyncMgrListener;
+var nsIAutoSyncMgrListener = Ci.nsIAutoSyncMgrListener;
 
 /**
  * This code aims to mediate between the auto-sync code and the activity mgr.
@@ -153,7 +149,7 @@ var autosyncModule =
 
   onFolderAddedIntoQ : function(queue, folder) {
     try {
-      if (folder instanceof Components.interfaces.nsIMsgFolder &&
+      if (folder instanceof Ci.nsIMsgFolder &&
           queue == nsIAutoSyncMgrListener.PriorityQueue) {
         this._inQFolderList.push(folder);
         this.log.info("Auto_Sync OnFolderAddedIntoQ [" + this._inQFolderList.length + "] " +
@@ -162,7 +158,7 @@ var autosyncModule =
         let process = this.createSyncMailProcess(folder);
 
         // create a sync object to keep track of the process of this folder
-        let imapFolder = folder.QueryInterface(Components.interfaces.nsIMsgImapMailFolder);
+        let imapFolder = folder.QueryInterface(Ci.nsIMsgImapMailFolder);
         let syncItem = { syncFolder: folder,
                          activity: process,
                          percentComplete: 0,
@@ -189,7 +185,7 @@ var autosyncModule =
   },
   onFolderRemovedFromQ : function(queue, folder) {
     try {
-      if (folder instanceof Components.interfaces.nsIMsgFolder &&
+      if (folder instanceof Ci.nsIMsgFolder &&
           queue == nsIAutoSyncMgrListener.PriorityQueue) {
         let i = this._inQFolderList.indexOf(folder);
         if (i > -1)
@@ -201,10 +197,10 @@ var autosyncModule =
         let syncItem = this._syncInfoPerFolder.get(folder.URI);
         let process = syncItem.activity;
         let canceled = false;
-        if (process instanceof Components.interfaces.nsIActivityProcess)
+        if (process instanceof Ci.nsIActivityProcess)
         {
-          canceled = (process.state == Components.interfaces.nsIActivityProcess.STATE_CANCELED);
-          process.state = Components.interfaces.nsIActivityProcess.STATE_COMPLETED;
+          canceled = (process.state == Ci.nsIActivityProcess.STATE_CANCELED);
+          process.state = Ci.nsIActivityProcess.STATE_COMPLETED;
 
           try {
             this.activityMgr.removeActivity(process.id);
@@ -255,7 +251,7 @@ var autosyncModule =
   },
   onDownloadStarted : function(folder, numOfMessages, totalPending) {
     try {
-      if (folder instanceof Components.interfaces.nsIMsgFolder) {
+      if (folder instanceof Ci.nsIMsgFolder) {
         this.log.info("OnDownloadStarted (" + numOfMessages + "/" + totalPending + "): " +
                                 folder.prettyName + " of " + folder.server.prettyName + "\n");
 
@@ -268,7 +264,7 @@ var autosyncModule =
         if (totalPending > syncItem.pendingMsgCount)
           syncItem.pendingMsgCount = totalPending;
 
-        if (process instanceof Components.interfaces.nsIActivityProcess) {
+        if (process instanceof Ci.nsIActivityProcess) {
           // if the process has not beed added to activity manager already, add now
           if (!this.activityMgr.containsActivity(process.id)) {
             this.log.info("Auto_Sync OnDownloadStarted: No process, adding a new process");
@@ -277,7 +273,7 @@ var autosyncModule =
 
           syncItem.totalDownloaded += numOfMessages;
 
-          process.state = Components.interfaces.nsIActivityProcess.STATE_INPROGRESS;
+          process.state = Ci.nsIActivityProcess.STATE_INPROGRESS;
           let percent = (syncItem.totalDownloaded/syncItem.pendingMsgCount)*100;
           if (percent > syncItem.percentComplete)
             syncItem.percentComplete = percent;
@@ -303,15 +299,15 @@ var autosyncModule =
 
   onDownloadCompleted : function(folder) {
     try {
-      if (folder instanceof Components.interfaces.nsIMsgFolder) {
+      if (folder instanceof Ci.nsIMsgFolder) {
         this.log.info("OnDownloadCompleted: " + folder.prettyName + " of " +
                       folder.server.prettyName);
 
         let process = this._syncInfoPerFolder.get(folder.URI).activity;
-        if (process instanceof Components.interfaces.nsIActivityProcess &&
+        if (process instanceof Ci.nsIActivityProcess &&
            !this._running) {
           this.log.info("OnDownloadCompleted: Auto-Sync Manager is paused, pausing the process");
-          process.state = Components.interfaces.nsIActivityProcess.STATE_PAUSED;
+          process.state = Ci.nsIActivityProcess.STATE_PAUSED;
         }
       }
     } catch (e) {
@@ -321,7 +317,7 @@ var autosyncModule =
   },
 
   onDownloadError : function(folder) {
-    if (folder instanceof Components.interfaces.nsIMsgFolder) {
+    if (folder instanceof Ci.nsIMsgFolder) {
       this.log.error("OnDownloadError: " + folder.prettyName + " of " +
                      folder.server.prettyName + "\n");
     }
@@ -340,7 +336,7 @@ var autosyncModule =
   init: function() {
     // XXX when do we need to remove ourselves?
     this.log.info('initing');
-    Components.classes["@mozilla.org/imap/autosyncmgr;1"]
-      .getService(Components.interfaces.nsIAutoSyncManager).addListener(this);
+    Cc["@mozilla.org/imap/autosyncmgr;1"]
+      .getService(Ci.nsIAutoSyncManager).addListener(this);
   },
 }

@@ -25,6 +25,13 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "버전">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "보안 소프트웨어">
+<!ENTITY aboutSupport.securitySoftwareType "유형">
+<!ENTITY aboutSupport.securitySoftwareName "이름">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "바이러스 방지 프로그램">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "스파이웨어 방지 프로그램">
+<!ENTITY aboutSupport.securitySoftwareFirewall "방화벽">
+
 <!ENTITY aboutSupport.featuresTitle "&brandShortName; 주요 기능">
 <!ENTITY aboutSupport.featureName "이름">
 <!ENTITY aboutSupport.featureVersion "버전">
@@ -71,6 +78,8 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "다중프로세스 윈도우">
 
 <!ENTITY aboutSupport.appBasicsProcessCount "웹 콘텐츠 프로세스">
+
+<!ENTITY aboutSupport.enterprisePolicies "엔터프라이즈 정책">
 
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Google 키">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla 위치 서비스 키">
@@ -156,18 +165,12 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "비율">
 <!ENTITY aboutSupport.mediaDeviceLatency "지연">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.intlTitle "국제화 &amp; 현지화">
+<!ENTITY aboutSupport.intlAppTitle "응용 프로그램 설정">
+<!ENTITY aboutSupport.intlLocalesRequested "요청된 언어">
+<!ENTITY aboutSupport.intlLocalesAvailable "사용 가능한 언어">
+<!ENTITY aboutSupport.intlLocalesSupported "응용 프로그램 언어">
+<!ENTITY aboutSupport.intlLocalesDefault "기본 언어">
+<!ENTITY aboutSupport.intlOSTitle "운영 체제">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "시스템 언어">
+<!ENTITY aboutSupport.intlRegionalPrefs "지역 설정">

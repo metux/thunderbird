@@ -113,7 +113,7 @@
 <!-- Device Preferences and Settings -->
 <!ENTITY device_typeboolean "عدد منطقي">
 <!ENTITY device_typenumber "عدد صحيح">
-<!ENTITY device_typestring "نصّ">
+<!ENTITY device_typestring "نص">
 <!ENTITY device_typeobject "كائن">
 <!ENTITY device_typenone "اختر نوعًا">
 
@@ -158,7 +158,6 @@
 <!ENTITY projectMenu_accesskey "P">
 <!ENTITY projectMenu_newApp_accesskey "N">
 <!ENTITY runtimeMenu_accesskey "R">
-<!ENTITY runtimeMenu_showMonitor_label "Monitor">
 <!ENTITY runtimeMenu_showSettings_accesskey "s">
 <!ENTITY viewMenu_zoomin_accesskey "I">
 <!ENTITY viewMenu_resetzoom_accesskey "R">
@@ -171,5 +170,4 @@
 <!ENTITY prefs_options_rememberlastproject_tooltip "Restore previous project when WebIDE starts">
 <!ENTITY runtimedetails_summonADBRoot "root device">
 <!ENTITY runtimedetails_unrestrictedPrivileges "Unrestricted DevTools privileges: ">
-<!ENTITY monitor_title "Monitor">
 <!ENTITY logs_title "Pre-packaging Command Logs">

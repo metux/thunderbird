@@ -16,17 +16,17 @@
 <!ENTITY purge1.accesskey "א">
 <!ENTITY purge2.label "ימים">
 
+<!ENTITY whitelistHeader.label "לא לסמן כזבל אוטומטית אם השולח הוא מבין אלה: ">
+<!ENTITY whitelistHeader.accesskey "ל">
 
 <!ENTITY ispHeaders.label "סמוך על כותרי דואר זבל שנוצרו על־ידי:">
 <!ENTITY ispHeaders.accesskey "ס">
 
 <!ENTITY junkClassification.label "בחירה">
+<!ENTITY junkActions.label "יעד ותחלופה">
 
+<!ENTITY globalJunkPrefs.label "העדפות זבל כלליות…">
+<!ENTITY globalJunkPrefs.accesskey "כ">
 
 <!ENTITY trainingDescription.label "If enabled, you must first train &brandShortName; to identify junk mail by using the Junk toolbar button to mark messages as junk or not. You need to identify both junk and non junk messages. After that &brandShortName; will be able to mark junk automatically.">
-<!ENTITY whitelistHeader.label "Do not automatically mark mail as junk if the sender is in: ">
-<!ENTITY whitelistHeader.accesskey "D">
 <!ENTITY ispHeadersWarning.label "If enabled, &brandShortName; will automatically consider messages marked by this external classifier as junk.">
-<!ENTITY junkActions.label "Destination and Retention">
-<!ENTITY globalJunkPrefs.label "Global Junk Preferences…">
-<!ENTITY globalJunkPrefs.accesskey "G">

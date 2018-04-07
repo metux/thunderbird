@@ -2,10 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-
-var Ci = Components.interfaces;
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 
 var ITIP_HANDLER_MIMETYPE = "application/x-itip-internal";
 var ITIP_HANDLER_PROTOCOL = "moz-cal-handle-itip";
@@ -76,11 +74,12 @@ ItipProtocolHandler.prototype = {
     allowPort: () => false,
     isSecure: false,
     newURI: function(spec, charSet, baseURI) {
-        let cls = Components.classes["@mozilla.org/network/standard-url;1"];
-        let url = cls.createInstance(Ci.nsIStandardURL);
-        url.init(Ci.nsIStandardURL.URLTYPE_STANDARD, 0, spec, charSet, baseURI);
         dump("Creating new URI for " + spec + "\n");
-        return url.QueryInterface(Ci.nsIURI);
+        return Components.classes["@mozilla.org/network/standard-url-mutator;1"]
+                         .createInstance(Ci.nsIStandardURLMutator)
+                         .init(Ci.nsIStandardURL.URLTYPE_STANDARD, 0,
+                               spec, charSet, baseURI)
+                         .finalize();
     },
 
     newChannel: function(URI) {

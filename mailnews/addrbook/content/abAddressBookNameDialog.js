@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource:///modules/mailServices.js");
-Components.utils.import("resource:///modules/iteratorUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/iteratorUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 var gOkButton;
 var gNameInput;
@@ -60,7 +60,7 @@ function abNameOKButton()
 
   // Do not allow an already existing name.
   for (let ab of fixIterator(MailServices.ab.directories,
-                             Components.interfaces.nsIAbDirectory)) {
+                             Ci.nsIAbDirectory)) {
     if ((ab.dirName.toLowerCase() == newName.toLowerCase()) &&
         (!gDirectory || (ab.URI != gDirectory.URI))) {
       const kAlertTitle = document.getElementById("bundle_addressBook")

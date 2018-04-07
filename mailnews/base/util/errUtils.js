@@ -31,8 +31,8 @@ function logException(aException, aRethrow, aMsg) {
   stringifier.dumpException(aException, aMsg);
 
   if (aMsg)
-    Components.utils.reportError(aMsg);
-  Components.utils.reportError(aException);
+    Cu.reportError(aMsg);
+  Cu.reportError(aException);
 
   if (aRethrow)
     throw aException;
@@ -121,8 +121,7 @@ Stringifier.prototype = {
   },
 
   getStack: function(skipCount) {
-    if (!((typeof Components == "object") &&
-          (typeof Components.classes == "object")))
+    if (typeof Components != "object" || typeof Cc != "object")
       return "No stack trace available.";
     if (typeof(skipCount) === undefined)
       skipCount = 0;

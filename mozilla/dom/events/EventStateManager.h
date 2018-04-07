@@ -311,10 +311,6 @@ public:
                                         double* aOutMultiplierX,
                                         double* aOutMultiplierY);
 
-  // Returns whether or not a frame can be vertically scrolled with a mouse
-  // wheel (as opposed to, say, a selection or touch scroll).
-  static bool CanVerticallyScrollFrameWithWheel(nsIFrame* aFrame);
-
   // Holds the point in screen coords that a mouse event was dispatched to,
   // before we went into pointer lock mode. This is constantly updated while
   // the pointer is not locked, but we don't update it while the pointer is
@@ -925,12 +921,16 @@ protected:
    * aDataTransfer - data transfer object that will contain the data to drag
    * aSelection - [out] set to the selection to be dragged
    * aTargetNode - [out] the draggable node, or null if there isn't one
+   * aPrincipalURISpec - [out] set to the URI of the triggering principal of
+   *                           the drag, or an empty string if it's from
+   *                           browser chrome or OS
    */
   void DetermineDragTargetAndDefaultData(nsPIDOMWindowOuter* aWindow,
                                          nsIContent* aSelectionTarget,
                                          dom::DataTransfer* aDataTransfer,
                                          nsISelection** aSelection,
-                                         nsIContent** aTargetNode);
+                                         nsIContent** aTargetNode,
+                                         nsACString& aPrincipalURISpec);
 
   /*
    * Perform the default handling for the dragstart event and set up a
@@ -941,12 +941,15 @@ protected:
    * aDataTransfer - the data transfer that holds the data to be dragged
    * aDragTarget - the target of the drag
    * aSelection - the selection to be dragged
+   * aPrincipalURISpec - the URI of the triggering principal of the drag,
+   *                     or an empty string if it's from browser chrome or OS
    */
   bool DoDefaultDragStart(nsPresContext* aPresContext,
                           WidgetDragEvent* aDragEvent,
                           dom::DataTransfer* aDataTransfer,
                           nsIContent* aDragTarget,
-                          nsISelection* aSelection);
+                          nsISelection* aSelection,
+                          const nsACString& aPrincipalURISpec);
 
   bool IsTrackingDragGesture ( ) const { return mGestureDownContent != nullptr; }
   /**

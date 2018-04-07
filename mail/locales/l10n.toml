@@ -10,9 +10,9 @@ locales = [
     "ast",
     "be",
     "bg",
-    "bn-BD",
     "br",
     "ca",
+    "cak",
     "cs",
     "cy",
     "da",
@@ -24,6 +24,7 @@ locales = [
     "es-ES",
     "et",
     "eu",
+    "fa",
     "fi",
     "fr",
     "fy-NL",
@@ -42,12 +43,13 @@ locales = [
     "ja-JP-mac",
     "ka",
     "kab",
+    "kk",
     "ko",
     "lt",
+    "ms",
     "nb-NO",
     "nl",
     "nn-NO",
-    "pa-IN",
     "pl",
     "pt-BR",
     "pt-PT",
@@ -60,9 +62,9 @@ locales = [
     "sq",
     "sr",
     "sv-SE",
-    "ta-LK",
     "tr",
     "uk",
+    "uz",
     "vi",
     "zh-CN",
     "zh-TW",
@@ -88,6 +90,10 @@ locales = [
 [[paths]]
     reference = "other-licenses/branding/thunderbird/locales/en-US/**"
     l10n = "{l}other-licenses/branding/thunderbird/**"
+
+[[paths]]
+    reference = "mail/branding/thunderbird/locales/en-US/**"
+    l10n = "{l}mail/branding/thunderbird/**"
 
 [[includes]]
     path = "{mozilla}/devtools/client/locales/l10n.toml"

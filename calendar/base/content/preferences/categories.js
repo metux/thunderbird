@@ -4,10 +4,10 @@
 
 /* exported gCategoriesPane */
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/Preferences.jsm");
-Components.utils.import("resource://gre/modules/AppConstants.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
 
 var gCategoryList;
 var categoryPrefBranch = Services.prefs.getBranch("calendar.category.color.");
@@ -47,18 +47,11 @@ var gCategoriesPane = {
 
         // If no categories are configured load a default set from properties file
         if (!categories) {
-            categories = cal.setupDefaultCategories();
+            categories = cal.category.setupDefaultCategories();
             document.getElementById("calendar.categories.names").value = categories;
         }
 
-        gCategoryList = cal.categoriesStringToArray(categories);
-
-        // When categories is empty, split returns an array containing one empty
-        // string, rather than an empty array. This results in an empty listbox
-        // child with no corresponding category.
-        if (gCategoryList.length == 1 && !gCategoryList[0].length) {
-            gCategoryList.pop();
-        }
+        gCategoryList = cal.category.stringToArray(categories);
 
         this.updateCategoryList();
 
@@ -85,7 +78,7 @@ var gCategoriesPane = {
     updatePrefs: function() {
         cal.sortArrayByLocaleCollator(gCategoryList);
         document.getElementById("calendar.categories.names").value =
-            cal.categoriesArrayToString(gCategoryList);
+            cal.category.arrayToString(gCategoryList);
     },
 
     updateCategoryList: function() {
@@ -105,7 +98,7 @@ var gCategoriesPane = {
             let categoryName = document.createElement("listcell");
             categoryName.setAttribute("id", gCategoryList[i]);
             categoryName.setAttribute("label", gCategoryList[i]);
-            let categoryNameFix = cal.formatStringForCSSRule(gCategoryList[i]);
+            let categoryNameFix = cal.view.formatStringForCSSRule(gCategoryList[i]);
             let categoryColor = document.createElement("listcell");
             try {
                 let colorCode = categoryPrefBranch.getCharPref(categoryNameFix);
@@ -146,7 +139,7 @@ var gCategoriesPane = {
      */
     editCategory: function() {
         let list = document.getElementById("categorieslist");
-        let categoryNameFix = cal.formatStringForCSSRule(gCategoryList[list.selectedIndex]);
+        let categoryNameFix = cal.view.formatStringForCSSRule(gCategoryList[list.selectedIndex]);
         let currentColor = categoryPrefBranch.getCharPref(categoryNameFix, "");
 
         let params = {
@@ -172,7 +165,7 @@ var gCategoriesPane = {
             return;
         }
 
-        let categoryNameFix = cal.formatStringForCSSRule(gCategoryList[list.selectedIndex]);
+        let categoryNameFix = cal.view.formatStringForCSSRule(gCategoryList[list.selectedIndex]);
         this.backupData(categoryNameFix);
         try {
             categoryPrefBranch.clearUserPref(categoryNameFix);
@@ -233,7 +226,7 @@ var gCategoriesPane = {
             return;
         }
 
-        let categoryNameFix = cal.formatStringForCSSRule(categoryName);
+        let categoryNameFix = cal.view.formatStringForCSSRule(categoryName);
         if (list.selectedIndex == -1) {
             this.backupData(categoryNameFix);
             gCategoryList.push(categoryName);

@@ -398,6 +398,7 @@
 <!-- Read-Only dialog -->
 <!ENTITY read.only.general.label         "一般">
 <!ENTITY read.only.title.label           "標題:">
+<!ENTITY read.only.calendar.label        "行事曆:">
 <!ENTITY read.only.event.start.label     "開始日:">
 <!ENTITY read.only.task.start.label      "開始日:">
 <!ENTITY read.only.event.end.label       "結束日期:">
@@ -416,3 +417,17 @@
 <!ENTITY read.only.attendees.label       "與會者">
 <!ENTITY read.only.description.label     "描述">
 <!ENTITY read.only.link.label            "相關鏈結">
+
+<!-- Summary dialog -->
+<!ENTITY summary.dialog.saveclose.label         "儲存並關閉">
+<!ENTITY summary.dialog.saveclose.tooltiptext   "儲存變更並關閉視窗，而不變更參與狀態並傳送回覆">
+<!ENTITY summary.dialog.accept.label            "接受">
+<!ENTITY summary.dialog.accept.tooltiptext      "接受邀請">
+<!ENTITY summary.dialog.tentative.label         "暫定">
+<!ENTITY summary.dialog.tentative.tooltiptext   "暫時接受邀請">
+<!ENTITY summary.dialog.decline.label           "拒絕">
+<!ENTITY summary.dialog.decline.tooltiptext     "拒絕邀請">
+<!ENTITY summary.dialog.dontsend.label          "不要傳送回覆">
+<!ENTITY summary.dialog.dontsend.tooltiptext    "變更您的參與狀態，而不傳送回覆給主辦人並關閉視窗">
+<!ENTITY summary.dialog.send.label              "立刻傳送回覆">
+<!ENTITY summary.dialog.send.tooltiptext        "傳送回覆給主辦人，並關閉視窗">

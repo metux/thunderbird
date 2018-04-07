@@ -79,28 +79,28 @@
           this._textbox.searchParam += "|private";
 
         this.searchService.init(this);
-        var os = Components.classes["@mozilla.org/observer-service;1"]
-                           .getService(Components.interfaces.nsIObserverService);
-        os.addObserver(this, "browser-search-engine-modified");
+        Services.obs.addObserver(this, "browser-search-engine-modified");
         this._addedObserver = true;
       ]]></constructor>
 
       <destructor><![CDATA[
         if (this._addedObserver) {
-          var os = Components.classes["@mozilla.org/observer-service;1"]
-                             .getService(Components.interfaces.nsIObserverService);
-          os.removeObserver(this, "browser-search-engine-modified");
+          Services.obs.removeObserver(this, "browser-search-engine-modified");
           this._addedObserver = false;
         }
 
         // Make sure to break the cycle from _textbox to us. Otherwise we leak
         // the world. But make sure it's actually pointing to us.
-        if (this._textbox.mController.input == this)
+        // Also make sure the textbox has ever been constructed, otherwise the
+        // _textbox getter will cause the textbox constructor to run, add an
+        // observer, and leak the world too.
+        if (this._textboxInitialized && this._textbox.mController.input == this)
           this._textbox.mController.input = null;
       ]]></destructor>
 
       <field name="_stringBundle">document.getAnonymousElementByAttribute(this,
           "anonid", "searchbar-stringbundle");</field>
+      <field name="_textboxInitialized">false</field>
       <field name="_textbox">document.getAnonymousElementByAttribute(this,
           "anonid", "searchbar-textbox");</field>
       <field name="_popup">document.getAnonymousElementByAttribute(this,
@@ -108,19 +108,23 @@
       <field name="searchButton">document.getAnonymousElementByAttribute(this,
           "anonid", "searchbar-engine-button");</field>
       <field name="_searchService">
-        Components.classes["@mozilla.org/browser/search-service;1"]
-                  .getService(Components.interfaces.nsIBrowserSearchService);
+        Cc["@mozilla.org/browser/search-service;1"]
+          .getService(Ci.nsIBrowserSearchService);
       </field>
       <field name="usePrivateBrowsing" readonly="true">
-        window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-              .getInterface(Components.interfaces.nsIWebNavigation)
-              .QueryInterface(Components.interfaces.nsILoadContext)
+        window.QueryInterface(Ci.nsIInterfaceRequestor)
+              .getInterface(Ci.nsIWebNavigation)
+              .QueryInterface(Ci.nsILoadContext)
               .usePrivateBrowsing
       </field>
       <field name="_addedObserver">false</field>
       <field name="_engines">null</field>
       <field name="_needToBuildPopup">true</field>
-
+      <field name="FormHistory" readonly="true"><![CDATA[
+        (ChromeUtils.import("resource://gre/modules/FormHistory.jsm", {}))
+                    .FormHistory;
+        ]]>
+      </field>
       <property name="engines" readonly="true">
         <getter><![CDATA[
           if (!this._engines)
@@ -132,8 +136,8 @@
       <property name="currentEngine">
         <setter><![CDATA[
           this.searchService.currentEngine = val;
-          var os = Components.classes["@mozilla.org/observer-service;1"]
-                             .getService(Components.interfaces.nsIObserverService);
+          var os = Cc["@mozilla.org/observer-service;1"]
+                     .getService(Ci.nsIObserverService);
           os.notifyObservers(null, "browser-search-engine-modified", "engine-current");
           return val;
         ]]></setter>
@@ -174,7 +178,7 @@
             // Refresh the display (updating icon, etc)
             this.updateDisplay();
           } else {
-            Components.utils.reportError("Cannot initialize search service, bailing out: " + aStatus);
+            Cu.reportError("Cannot initialize search service, bailing out: " + aStatus);
           }
         ]]></body>
       </method>
@@ -459,17 +463,17 @@
         <parameter name="aData"/>
         <parameter name="aWhere"/>
         <body><![CDATA[
+          var textBox = this._textbox;
+
           // Save the current value in the form history.
-          if (aData && !this.usePrivateBrowsing) {
-            this._textbox.FormHistory.update({
-              op : "bump",
-              fieldname : "searchbar-history",
-              value : aData
-            }, {
-              handleError : function(aError) {
-                Components.utils.reportError("Saving search to form history failed: " + aError.message);
-              }
-            });
+          if (aData && !this.usePrivateBrowsing && this.FormHistory.enabled) {
+            this.FormHistory.update(
+              { op: "bump",
+                fieldname: textBox.getAttribute("autocompletesearchparam"),
+                value: aData },
+              { handleError(aError) {
+                  Cu.reportError("Saving search to form history failed: " + aError.message);
+              }});
           }
 
           // null parameter below specifies HTML response for search
@@ -486,7 +490,7 @@
           this.currentEngine = target.engine;
         } else if (target.classList.contains("addengine-item")) {
           // We only detect OpenSearch files
-          var type = Components.interfaces.nsISearchEngine.DATA_XML;
+          var type = Ci.nsISearchEngine.DATA_XML;
           // Select the installed engine if the installation succeeds
           this.searchService.addEngine(target.getAttribute("uri"), type,
                                        target.getAttribute("image"), false,
@@ -528,13 +532,12 @@
 
         // Add items to context menu and attach controller to handle them
         this.controllers.appendController(this.searchbarController);
+        document.getBindingParent(this)._textboxInitialized = true;
 
         // Add observer for suggest preference
         this._prefBranch.addObserver("browser.search.suggest.enabled", this);
 
         this._inputBox.setAttribute("suggestchecked", this._suggestEnabled);
-
-        Components.utils.import("resource://gre/modules/FormHistory.jsm", this);
       ]]></constructor>
 
       <destructor><![CDATA[
@@ -547,14 +550,13 @@
         } catch (ex) { }
       ]]></destructor>
       <field name="_prefBranch">
-        Components.classes["@mozilla.org/preferences-service;1"]
-                  .getService(Components.interfaces.nsIPrefBranch)
+        Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
       </field>
       <field name="_inputBox">
         document.getAnonymousElementByAttribute(this, "anonid", "textbox-input-box");
       </field>
       <field name="_suggestEnabled">
-        this._prefBranch.getBoolPref("browser.search.suggest.enabled")
+        this._prefBranch.getBoolPref("browser.search.suggest.enabled");
       </field>
 
       <method name="observe">

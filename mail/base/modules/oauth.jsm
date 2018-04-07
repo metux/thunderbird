@@ -8,14 +8,12 @@
  * need to be made to support differences in OAuth usage.
  */
 
-var {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
-
 var EXPORTED_SYMBOLS = ["OAuth"];
 
-Cu.import("resource://gre/modules/Http.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource:///modules/gloda/log4moz.js");
+ChromeUtils.import("resource://gre/modules/Http.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource:///modules/gloda/log4moz.js");
 
 function OAuth(aDisplayName, aBaseUri, aAuthUri, aAuthToken, aAuthTokenSecret,
                aAppKey, aAppSecret, aSignatureMethod,
@@ -78,7 +76,7 @@ OAuth.prototype = {
   },
   /**
    * Sign a request and send it, using the oauth connection.
-   * 
+   *
    * @param aUrl Url to open
    * @param aHeaders Additional headers to send
    * @param aMethod "Get"/"Post"/"Put"

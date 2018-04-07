@@ -12,15 +12,11 @@
  * "mail.notification.logging.dump" (for stderr) to the string indicating the level you want.
  */
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cu = Components.utils;
-
-Cu.import("resource:///modules/gloda/log4moz.js");
-Cu.import("resource:///modules/iteratorUtils.jsm");
-Cu.import("resource:///modules/mailServices.js");
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource:///modules/gloda/log4moz.js");
+ChromeUtils.import("resource:///modules/iteratorUtils.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 var NMNS = Ci.mozINewMailNotificationService;
 
@@ -63,7 +59,7 @@ NewMailNotificationService.prototype = {
   contractID:           "@mozilla.org/newMailNotificationService;1",
   QueryInterface:       XPCOMUtils.generateQI([Ci.nsIObserver, Ci.nsIFolderListener, Ci.mozINewMailNotificationService]),
   _xpcom_factory: XPCOMUtils.generateSingletonFactory(NewMailNotificationService),
-  
+
   _mUnreadCount: 0,
   _mNewCount: 0,
   _listeners: null,
@@ -319,7 +315,7 @@ NewMailNotificationService.prototype = {
       this._log.trace("NMNS_OnItemRemoved: unread item " + item.folder.getUriForMsg(item) + " removed from " + item.folder.folderURL);
     }
   },
-  
+
 
   // Implement mozINewMailNotificationService
 

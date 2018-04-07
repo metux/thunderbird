@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/fr/locale/fr/passwordmgr/", 
         "pippki": "chrome/fr/locale/fr/pippki/"
       }, 
-      "version": "20171104105247"
+      "version": "20180313103239"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-fr@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "fr", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Français Language Pack", 
   "manifest_version": 2, 
   "sources": {

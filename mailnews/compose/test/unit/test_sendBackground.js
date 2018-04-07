@@ -3,7 +3,7 @@
  * Tests sending a message in the background (checks auto-send works).
  */
 
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 var type = null;
 var test = null;
@@ -42,7 +42,7 @@ msll.prototype = {
   },
   onMessageSendProgress: function (aCurrentMessage, aTotalMessageCount,
                                    aMessageSendPercent, aMessageCopyPercent) {
-  }, 
+  },
   onMessageSendError: function (aCurrentMessage, aMessageHeader, aStatus,
                                 aMsg) {
     do_throw("onMessageSendError should not have been called, status: " + aStatus);

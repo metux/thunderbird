@@ -23,6 +23,13 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "גרסה">
 <!ENTITY aboutSupport.extensionId "מזהה">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "תוכנת אבטחה">
+<!ENTITY aboutSupport.securitySoftwareType "סוג">
+<!ENTITY aboutSupport.securitySoftwareName "שם">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "אנטי וירוס">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "חוסם רוגלות">
+<!ENTITY aboutSupport.securitySoftwareFirewall "חומת אש">
+
 <!ENTITY aboutSupport.featuresTitle "התכונות של &brandShortName;">
 <!ENTITY aboutSupport.featureName "שם">
 <!ENTITY aboutSupport.featureVersion "גרסה">
@@ -152,20 +159,16 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "קצב">
 <!ENTITY aboutSupport.mediaDeviceLatency "עיכוב">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
+<!ENTITY aboutSupport.intlTitle "בינלאומי ושפות">
+<!ENTITY aboutSupport.intlAppTitle "הגדרות יישום">
+<!ENTITY aboutSupport.intlLocalesRequested "שפות מבוקשות">
+<!ENTITY aboutSupport.intlLocalesAvailable "שפות זמינות">
+<!ENTITY aboutSupport.intlLocalesSupported "שפות היישום">
+<!ENTITY aboutSupport.intlLocalesDefault "שפת ברירת המחדל">
+<!ENTITY aboutSupport.intlOSTitle "מערכת הפעלה">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "שפות המערכת">
+<!ENTITY aboutSupport.intlRegionalPrefs "העדפות אזוריות">
+
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">
 <!ENTITY aboutSupport.a11yHandlerUsed "Accessible Handler Used">
 <!ENTITY aboutSupport.a11yInstantiator "Accessibility Instantiator">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">

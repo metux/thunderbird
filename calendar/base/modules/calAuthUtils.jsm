@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 
 /*
  * Authentication helper code
@@ -16,7 +16,7 @@ cal.auth = {
      * Auth prompt implementation - Uses password manager if at all possible.
      */
     Prompt: function() {
-        this.mWindow = cal.getCalendarWindow();
+        this.mWindow = cal.window.getCalendarWindow();
         this.mReturnedLogins = {};
     },
 
@@ -336,7 +336,7 @@ cal.auth.Prompt.prototype = {
             asyncprompter.queueAsyncAuthPrompt(hostKey, false, promptlistener);
         }
 
-        self.mWindow = cal.getCalendarWindow();
+        self.mWindow = cal.window.getCalendarWindow();
 
         // the prompt will fail if we are too early
         if (self.mWindow.document.readyState == "complete") {

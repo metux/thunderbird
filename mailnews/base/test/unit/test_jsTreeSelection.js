@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource:///modules/jsTreeSelection.js");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource:///modules/jsTreeSelection.js");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 var fakeView = {
   rowCount: 101,
@@ -34,22 +34,22 @@ function bad_ranges(aMsg, aExpected) {
   do_throw(aMsg);
 }
 
-function assert_selection_ranges() {
-  if (sel._ranges.length != arguments.length)
-    bad_ranges("Wrong number of ranges!", arguments);
+function assert_selection_ranges(...aArgs) {
+  if (sel._ranges.length != aArgs.length)
+    bad_ranges("Wrong number of ranges!", aArgs);
 
   let i = 0;
   let ourCount = 0;
   for (let [slow,shigh] of sel._ranges) {
-    let [dlow, dhigh] = arguments[i++];
+    let [dlow, dhigh] = aArgs[i++];
     if (dlow != slow || dhigh != shigh)
-      bad_ranges("Range mis-match on index " + i, arguments);
+      bad_ranges("Range mis-match on index " + i, aArgs);
     ourCount += shigh - slow + 1;
   }
 
   if (ourCount != sel.count)
     bad_ranges("Count was wrong! We counted " + ourCount + " but they say " +
-               sel.count, arguments);
+               sel.count, aArgs);
 }
 var asr = assert_selection_ranges;
 

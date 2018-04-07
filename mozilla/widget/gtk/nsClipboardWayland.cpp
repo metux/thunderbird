@@ -209,7 +209,7 @@ nsRetrievalContextWayland::ConfigureKeyboard(wl_seat_capability caps)
   if (caps & WL_SEAT_CAPABILITY_KEYBOARD) {
       mKeyboard = wl_seat_get_keyboard(mSeat);
       wl_keyboard_add_listener(mKeyboard, &keyboard_listener, this);
-  } else if (!(caps & WL_SEAT_CAPABILITY_KEYBOARD)) {
+  } else if (mKeyboard && !(caps & WL_SEAT_CAPABILITY_KEYBOARD)) {
       wl_keyboard_destroy(mKeyboard);
       mKeyboard = nullptr;
   }
@@ -276,9 +276,14 @@ static const struct wl_registry_listener clipboard_registry_listener = {
 };
 
 nsRetrievalContextWayland::nsRetrievalContextWayland(void)
-  : mInitialized(false),
-    mDataDeviceManager(nullptr),
-    mDataOffer(nullptr)
+  : mInitialized(false)
+  , mSeat(nullptr)
+  , mDataDeviceManager(nullptr)
+  , mDataOffer(nullptr)
+  , mKeyboard(nullptr)
+  , mClipboardRequestNumber(0)
+  , mClipboardData(nullptr)
+  , mClipboardDataLength(0)
 {
     const gchar* charset;
     g_get_charset(&charset);
@@ -292,10 +297,14 @@ nsRetrievalContextWayland::nsRetrievalContextWayland(void)
     mDisplay = sGdkWaylandDisplayGetWlDisplay(gdk_display_get_default());
     wl_registry_add_listener(wl_display_get_registry(mDisplay),
                              &clipboard_registry_listener, this);
+    // Call wl_display_roundtrip() twice to make sure all
+    // callbacks are processed.
     wl_display_roundtrip(mDisplay);
     wl_display_roundtrip(mDisplay);
 
-    // We don't have Wayland support here so just give up
+    // mSeat/mDataDeviceManager should be set now by
+    // gdk_registry_handle_global() as a response to
+    // wl_registry_add_listener() call.
     if (!mDataDeviceManager || !mSeat)
         return;
 
@@ -336,64 +345,140 @@ nsRetrievalContextWayland::GetTargets(int32_t aWhichClipboard,
     return targetList;
 }
 
+struct FastTrackClipboard
+{
+    FastTrackClipboard(int aClipboardRequestNumber,
+                       nsRetrievalContextWayland* aRetrievalContex)
+    : mClipboardRequestNumber(aClipboardRequestNumber)
+    , mRetrievalContex(aRetrievalContex)
+    {}
+
+    int                        mClipboardRequestNumber;
+    nsRetrievalContextWayland* mRetrievalContex;
+};
+
+static void
+wayland_clipboard_contents_received(GtkClipboard     *clipboard,
+                                    GtkSelectionData *selection_data,
+                                    gpointer          data)
+{
+    FastTrackClipboard* fastTrack = static_cast<FastTrackClipboard*>(data);
+    fastTrack->mRetrievalContex->TransferFastTrackClipboard(
+        fastTrack->mClipboardRequestNumber, selection_data);
+    delete fastTrack;
+}
+
+void
+nsRetrievalContextWayland::TransferFastTrackClipboard(
+    int aClipboardRequestNumber, GtkSelectionData *aSelectionData)
+{
+    if (mClipboardRequestNumber == aClipboardRequestNumber) {
+        mClipboardDataLength = gtk_selection_data_get_length(aSelectionData);
+        if (mClipboardDataLength > 0) {
+            mClipboardData = reinterpret_cast<char*>(
+                g_malloc(sizeof(char)*mClipboardDataLength));
+            memcpy(mClipboardData, gtk_selection_data_get_data(aSelectionData),
+                   sizeof(char)*mClipboardDataLength);
+        }
+    } else {
+        NS_WARNING("Received obsoleted clipboard data!");
+    }
+}
+
 const char*
 nsRetrievalContextWayland::GetClipboardData(const char* aMimeType,
                                             int32_t aWhichClipboard,
                                             uint32_t* aContentLength)
 {
-    NS_ASSERTION(mDataOffer, "Requested data without valid data offer!");
+    NS_ASSERTION(mClipboardData == nullptr && mClipboardDataLength == 0,
+                 "Looks like we're leaking clipboard data here!");
 
-    if (!mDataOffer) {
-        // TODO
-        // Something went wrong. We're requested to provide clipboard data
-        // but we haven't got any from wayland. Looks like rhbz#1455915.
-        return nullptr;
-    }
+    /* If actual clipboard data is owned by us we don't need to go
+     * through Wayland but we ask Gtk+ to directly call data
+     * getter callback nsClipboard::SelectionGetEvent().
+     * see gtk_selection_convert() at gtk+/gtkselection.c.
+     */
+    GdkAtom selection = GetSelectionAtom(aWhichClipboard);
+    if (gdk_selection_owner_get(selection)) {
+        mClipboardRequestNumber++;
+        gtk_clipboard_request_contents(gtk_clipboard_get(selection),
+            gdk_atom_intern(aMimeType, FALSE),
+            wayland_clipboard_contents_received,
+            new FastTrackClipboard(mClipboardRequestNumber, this));
+    } else {
+        /* TODO: We need to implement GDK_SELECTION_PRIMARY (X11 text selection)
+         * for Wayland backend.
+         */
+        if (selection == GDK_SELECTION_PRIMARY)
+             return nullptr;
 
-    int pipe_fd[2];
-    if (pipe(pipe_fd) == -1)
-        return nullptr;
+        NS_ASSERTION(mDataOffer, "Requested data without valid data offer!");
 
-    wl_data_offer_receive(mDataOffer, aMimeType, pipe_fd[1]);
-    close(pipe_fd[1]);
-    wl_display_flush(mDisplay);
+        if (!mDataOffer) {
+            // TODO
+            // Something went wrong. We're requested to provide clipboard data
+            // but we haven't got any from wayland. Looks like rhbz#1455915.
+            return nullptr;
+        }
 
-    struct pollfd fds;
-    fds.fd = pipe_fd[0];
-    fds.events = POLLIN;
+        int pipe_fd[2];
+        if (pipe(pipe_fd) == -1)
+            return nullptr;
 
-    // Choose some reasonable timeout here
-    int ret = poll(&fds, 1, kClipboardTimeout / 1000);
-    if (!ret || ret == -1) {
+        wl_data_offer_receive(mDataOffer, aMimeType, pipe_fd[1]);
+        close(pipe_fd[1]);
+        wl_display_flush(mDisplay);
+
+        struct pollfd fds;
+        fds.fd = pipe_fd[0];
+        fds.events = POLLIN;
+
+        // Choose some reasonable timeout here
+        int ret = poll(&fds, 1, kClipboardTimeout / 1000);
+        if (!ret || ret == -1) {
+            close(pipe_fd[0]);
+            return nullptr;
+        }
+
+        GIOChannel *channel = g_io_channel_unix_new(pipe_fd[0]);
+        GError* error = nullptr;
+
+        g_io_channel_set_encoding(channel, nullptr, &error);
+        if (!error) {
+            gsize length = 0;
+            g_io_channel_read_to_end(channel, &mClipboardData, &length, &error);
+            mClipboardDataLength = length;
+        }
+
+        if (error) {
+            NS_WARNING(
+                nsPrintfCString("Unexpected error when reading clipboard data: %s",
+                                error->message).get());
+            g_error_free(error);
+        }
+
+        g_io_channel_unref(channel);
         close(pipe_fd[0]);
-        return nullptr;
+
+        // We don't have valid clipboard data although
+        // g_io_channel_read_to_end() allocated mClipboardData for us.
+        // Release it now and return nullptr to indicate
+        // we don't have reqested data flavour.
+        if (mClipboardData && mClipboardDataLength == 0) {
+            ReleaseClipboardData(mClipboardData);
+        }
     }
 
-    GIOChannel *channel = g_io_channel_unix_new(pipe_fd[0]);
-    GError* error = nullptr;
-    gchar *clipboardData = nullptr;
-    gsize  dataLength = 0;
-
-    g_io_channel_set_encoding(channel, nullptr, &error);
-    if (!error) {
-        g_io_channel_read_to_end(channel, &clipboardData, &dataLength, &error);
-    }
-
-    if (error) {
-        NS_WARNING(
-            nsPrintfCString("Unexpected error when reading clipboard data: %s",
-                            error->message).get());
-        g_error_free(error);
-    }
-
-    g_io_channel_unref(channel);
-    close(pipe_fd[0]);
-
-    *aContentLength = dataLength;
-    return reinterpret_cast<const char*>(clipboardData);
+    *aContentLength = mClipboardDataLength;
+    return reinterpret_cast<const char*>(mClipboardData);
 }
 
 void nsRetrievalContextWayland::ReleaseClipboardData(const char* aClipboardData)
 {
+    NS_ASSERTION(aClipboardData == mClipboardData,
+        "Releasing unknown clipboard data!");
     g_free((void*)aClipboardData);
+
+    mClipboardData = nullptr;
+    mClipboardDataLength = 0;
 }

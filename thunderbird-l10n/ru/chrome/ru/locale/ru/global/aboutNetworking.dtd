@@ -23,6 +23,7 @@
 <!ENTITY aboutNetworking.sent                  "Отправлено">
 <!ENTITY aboutNetworking.received              "Получено">
 <!ENTITY aboutNetworking.family                "Семейство">
+<!ENTITY aboutNetworking.trr                   "TRR">
 <!ENTITY aboutNetworking.addresses             "Адреса">
 <!ENTITY aboutNetworking.expires               "Истекает через (сек.)">
 <!ENTITY aboutNetworking.messagesSent          "Сообщений отправлено">
@@ -37,10 +38,10 @@
 <!ENTITY aboutNetworking.setLogModules         "Указать модули журнала">
 <!ENTITY aboutNetworking.startLogging          "Начать ведение журнала">
 <!ENTITY aboutNetworking.stopLogging           "Остановить ведение журнала">
-<!ENTITY aboutNetworking.dnsLookup             "Запрос DNS">
+<!ENTITY aboutNetworking.dnsLookup             "Поиск DNS">
 <!ENTITY aboutNetworking.dnsLookupButton       "Запросить">
 <!ENTITY aboutNetworking.dnsDomain             "Домен">
-<!ENTITY aboutNetworking.dnsLookupTableColumn  "IP">
+<!ENTITY aboutNetworking.dnsLookupTableColumn  "IP-адреса">
 <!ENTITY aboutNetworking.rcwn                  "Статистика RCWN">
 <!ENTITY aboutNetworking.rcwnStatus            "Статус RCWN">
 <!ENTITY aboutNetworking.rcwnCacheWonCount     "Число выигрышей кэша">

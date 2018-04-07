@@ -316,8 +316,9 @@
 <!ENTITY goBackCmd.accesskey "H">
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goChatCmd.label "Csevegés">
-<!ENTITY goChatCmd.accesskey "C">
+<!ENTITY goChatCmd.accesskey "e">
 <!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Csillagozott üzenet">
 <!ENTITY prevStarredMsgCmd.accesskey "C">
 <!ENTITY folderMenu.label "Mappa">
@@ -366,6 +367,8 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Piszkozat szerkesztése">
 <!ENTITY editDraftMsgCmd.accesskey "P">
+<!ENTITY editTemplateMsgCmd.label "Sablon szerkesztése">
+<!ENTITY editTemplateMsgCmd.accesskey "S">
 <!ENTITY newMsgFromTemplateCmd.label "Új üzenet sablonból">
 <!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Szűrő létrehozása az üzenet alapján…">
@@ -459,6 +462,11 @@
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "Kiegészítők">
 <!ENTITY addons.accesskey "t">
+<!ENTITY addonPrefs.label "Kiegészítőbeállítások">
+<!ENTITY addonPrefs.accesskey "b">
+<!ENTITY addonPrefsUnix.label "Kiegészítőbeállítások">
+<!ENTITY addonPrefsUnix.accesskey "b">
+<!ENTITY addonNoPrefs.label "Nincsenek kiegészítőbeállítások.">
 <!ENTITY activitymanager.label "Tevékenységkezelő">
 <!ENTITY activitymanager.accesskey "k">
 <!ENTITY imAccountsStatus.label "Csevegési állapot">
@@ -504,6 +512,8 @@
 <!ENTITY devToolboxCmd.commandkey "i">
 <!ENTITY addonDebugCmd.label "Kiegészítők hibakeresése">
 <!ENTITY addonDebugCmd.accesskey "K">
+<!ENTITY debugAddonsCmd.label "Kiegészítők hibakeresése">
+<!ENTITY debugAddonsCmd.accesskey "h">
 <!ENTITY tabsDebugCmd.label "Tartalomkeret hibakeresése">
 <!ENTITY tabsDebugCmd.accesskey "T">
 <!ENTITY errorConsoleCmd.label "Hibakonzol">
@@ -752,6 +762,8 @@
 <!ENTITY contextEditMsgAsNew.label "Szerkesztés új üzenetként">
 <!ENTITY contextEditMsgAsNew.accesskey "z">
 <!ENTITY contextEditDraftMsg.label "Piszkozat szerkesztése">
+<!ENTITY contextEditTemplate.label "Sablon szerkesztése">
+<!ENTITY contextEditTemplate.accesskey "S">
 <!ENTITY contextArchive.label "Archiválás">
 <!ENTITY contextArchive.accesskey "A">
 <!ENTITY contextReplySender.label "Válasz csak a feladónak">
@@ -957,16 +969,3 @@
 <!ENTITY dockOptions.label              "Appikon beállításai…">
 <!ENTITY writeNewMessageDock.label      "Új üzenet írása">
 <!ENTITY openAddressBookDock.label      "Címjegyzék megnyitása">
-
-<!ENTITY goChatCmd2.key "H">
-<!ENTITY editTemplateMsgCmd.label "Edit Template">
-<!ENTITY editTemplateMsgCmd.accesskey "T">
-<!ENTITY addonPrefs.label "Add-on Options">
-<!ENTITY addonPrefs.accesskey "O">
-<!ENTITY addonPrefsUnix.label "Add-on Preferences">
-<!ENTITY addonPrefsUnix.accesskey "P">
-<!ENTITY addonNoPrefs.label "No Add-on settings found.">
-<!ENTITY debugAddonsCmd.label "Debug Add-ons">
-<!ENTITY debugAddonsCmd.accesskey "A">
-<!ENTITY contextEditTemplate.label "Edit Template">
-<!ENTITY contextEditTemplate.accesskey "T">

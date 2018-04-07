@@ -241,3 +241,7 @@ because displayed names don't have the comma in between. -->
 <!ENTITY minimizeWindow.key			"m">
 <!ENTITY bringAllToFront.label			"すべてを前面に移動">
 <!ENTITY zoomWindow.label			"拡大/縮小">
+
+<!ENTITY addressBookCmd.label                           "Address Book">
+<!ENTITY addressBookCmd.accesskey                       "a">
+<!ENTITY addressBookCmd.key                             "B">

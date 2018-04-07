@@ -4,6 +4,8 @@
 <!ENTITY addons.windowTitle                   "Lisäosien hallinta">
 
 <!ENTITY search.placeholder                   "Hae lisäosista">
+
+<!ENTITY search.placeholder2                  "Hae addons.mozilla.org-sivustolta">
 <!ENTITY search.buttonlabel                   "Hae">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
@@ -25,6 +27,7 @@
 
 <!ENTITY cmd.back.tooltip                     "Edellinen sivu">
 <!ENTITY cmd.forward.tooltip                  "Seuraava sivu">
+
 
 <!ENTITY showUnsignedExtensions.button.label  "Joitain laajennuksia ei voitu varmentaa">
 <!ENTITY showAllExtensions.button.label       "Näytä kaikki laajennukset">
@@ -251,17 +254,14 @@
 <!-- LOCALIZATION NOTE (disabledUnsigned.devInfo.start, disabledUnsigned.devInfo.linkToManual, disabledUnsigned.devInfo.end):
      These entities form a sentence, with disabledUnsigned.devInfo.linkToManual
      being a link to an external site. -->
-<!ENTITY disabledUnsigned.devInfo.start "Kehittäjät, joita kiinnostaa lisäosansa varmentaminen voivat lukea ">
+<!ENTITY disabledUnsigned.devInfo.start "Kehittäjät, joita kiinnostaa lisäosansa varmentaminen, voivat lukea ">
 <!ENTITY disabledUnsigned.devInfo.linkToManual "käsikirjamme">
 <!ENTITY disabledUnsigned.devInfo.end ".">
 
 <!ENTITY pluginDeprecation.description "Puuttuuko jotain? &brandShortName; ei enää tue joitain liitännäisiä.">
 <!ENTITY pluginDeprecation.learnMore "Lue lisää.">
 
-<!ENTITY legacyWarning.description "Puuttuuko jotain? &brandShortName; ei tue enää joitain laajennuksia.">
 <!ENTITY legacyWarning.showLegacy "Näytä perinteiset laajennukset">
 <!ENTITY legacyExtensions.title "Perinteiset laajennukset">
 <!ENTITY legacyExtensions.description "Nämä laajennukset eivät täytä &brandShortName;in nykyisiä vaatimuksia, joten ne on poistettu käytöstä.">
 <!ENTITY legacyExtensions.learnMore "Lue lisää muutoksista lisäosiin">
-
-<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

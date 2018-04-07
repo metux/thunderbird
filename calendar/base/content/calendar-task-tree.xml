@@ -113,11 +113,11 @@
 
     <implementation implements="nsIObserver">
       <constructor><![CDATA[
-          Components.utils.import("resource://gre/modules/PluralForm.jsm");
-          Components.utils.import("resource://gre/modules/Services.jsm");
-          Components.utils.import("resource://calendar/modules/calUtils.jsm");
-          Components.utils.import("resource://calendar/modules/calItemUtils.jsm");
-          Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+          ChromeUtils.import("resource://gre/modules/PluralForm.jsm");
+          ChromeUtils.import("resource://gre/modules/Services.jsm");
+          ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+          ChromeUtils.import("resource://calendar/modules/calItemUtils.jsm");
+          ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
           // set up the tree filter
           this.mFilter = new calFilter();
@@ -128,7 +128,7 @@
           tree.view = this.mTreeView;
 
           // set up our calendar event observer
-          let composite = cal.getCompositeCalendar(window);
+          let composite = cal.view.getCompositeCalendar(window);
           composite.addObserver(this.mTaskTreeObserver);
 
           // set up the preference observer
@@ -170,10 +170,10 @@
           }
       ]]></constructor>
       <destructor><![CDATA[
-          Components.utils.import("resource://gre/modules/Services.jsm");
+          ChromeUtils.import("resource://gre/modules/Services.jsm");
 
           // remove composite calendar observer
-          let composite = cal.getCompositeCalendar(window);
+          let composite = cal.view.getCompositeCalendar(window);
           composite.removeObserver(this.mTaskTreeObserver);
 
           // remove the preference observer
@@ -398,7 +398,7 @@
 
                 this.treebox.beginUpdateBatch();
 
-                let idiff = new itemDiff();
+                let idiff = new cal.item.ItemDiff();
                 idiff.load(aOldItems);
                 idiff.difference(aNewItems);
                 idiff.complete();
@@ -514,11 +514,11 @@
                 } else if (item.priority > 5 && item.priority < 10) {
                     properties.push("lowpriority");
                 }
-                properties.push(cal.getProgressAtom(item));
+                properties.push(cal.item.getProgressAtom(item));
 
                 // Add calendar name and id atom
-                properties.push("calendar-" + cal.formatStringForCSSRule(item.calendar.name));
-                properties.push("calendarid-" + cal.formatStringForCSSRule(item.calendar.id));
+                properties.push("calendar-" + cal.view.formatStringForCSSRule(item.calendar.name));
+                properties.push("calendarid-" + cal.view.formatStringForCSSRule(item.calendar.id));
 
                 // Add item status atom
                 if (item.status) {
@@ -532,7 +532,7 @@
 
                 // Task categories
                 properties = properties.concat(item.getCategories({})
-                                                   .map(cal.formatStringForCSSRule));
+                                                   .map(cal.view.formatStringForCSSRule));
 
                 return properties.join(" ");
             },
@@ -823,13 +823,13 @@
             },
 
             onAddItem: function(aItem) {
-                if (cal.isToDo(aItem)) {
+                if (cal.item.isToDo(aItem)) {
                     this.binding.mTreeView.addItems(this.binding.mFilter.getOccurrences(aItem));
                 }
             },
 
             onModifyItem: function(aNewItem, aOldItem) {
-                if (cal.isToDo(aNewItem) || cal.isToDo(aOldItem)) {
+                if (cal.item.isToDo(aNewItem) || cal.item.isToDo(aOldItem)) {
                     this.binding.mTreeView.modifyItems(this.binding.mFilter.getOccurrences(aNewItem),
                                                        this.binding.mFilter.getOccurrences(aOldItem));
 
@@ -841,7 +841,7 @@
             },
 
             onDeleteItem: function(aDeletedItem) {
-                if (cal.isToDo(aDeletedItem)) {
+                if (cal.item.isToDo(aDeletedItem)) {
                     this.binding.mTreeView.removeItems(this.binding.mFilter.getOccurrences(aDeletedItem));
                 }
             },
@@ -959,7 +959,7 @@
       <method name="refresh">
         <parameter name="aFilter"/>
         <body><![CDATA[
-            let cals = cal.getCompositeCalendar(window).getCalendars({}) || [];
+            let cals = cal.view.getCompositeCalendar(window).getCalendars({}) || [];
             for (let calendar of cals) {
                 if (!calendar.getProperty("disabled")) {
                     this.refreshFromCalendar(calendar, aFilter);
@@ -1160,7 +1160,7 @@
   <binding id="calendar-task-tree-todaypane" extends="chrome://calendar/content/calendar-task-tree.xml#calendar-task-tree">
     <implementation>
       <constructor><![CDATA[
-          Components.utils.import("resource://calendar/modules/calUtils.jsm");
+          ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
       ]]></constructor>
 
       <method name="getInitialDate">

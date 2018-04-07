@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource:///modules/dbViewWrapper.js");
-Components.utils.import("resource:///modules/mailViewManager.js");
-Components.utils.import("resource:///modules/virtualFolderWrapper.js");
-Components.utils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource:///modules/dbViewWrapper.js");
+ChromeUtils.import("resource:///modules/mailViewManager.js");
+ChromeUtils.import("resource:///modules/virtualFolderWrapper.js");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 var gInbox;
 
@@ -347,16 +347,16 @@ function dump_view_state(aViewWrapper, aDoNotDumpContents) {
   dump("View: " + aViewWrapper.dbView + "\n");
   dump("  View Type: " +
        _lookupValueNameInInterface(aViewWrapper.dbView.viewType,
-                                   Components.interfaces.nsMsgViewType) +
+                                   Ci.nsMsgViewType) +
        "   " +
        "View Flags: " + aViewWrapper.dbView.viewFlags + "\n");
   dump("  Sort Type: " +
        _lookupValueNameInInterface(aViewWrapper.dbView.sortType,
-                                   Components.interfaces.nsMsgViewSortType) +
+                                   Ci.nsMsgViewSortType) +
        "   " +
        "Sort Order: " +
        _lookupValueNameInInterface(aViewWrapper.dbView.sortOrder,
-                                   Components.interfaces.nsMsgViewSortOrder) +
+                                   Ci.nsMsgViewSortOrder) +
        "\n");
 
   dump(aViewWrapper.search.prettyString());
@@ -476,10 +476,9 @@ function verify_view_level_histogram(aExpectedHisto, aViewWrapper) {
  * @param aViewWrapper The view wrapper in question
  * @param ... View indices to check.
  */
-function verify_view_row_at_index_is_container(aViewWrapper) {
+function verify_view_row_at_index_is_container(aViewWrapper, ...aArgs) {
   let treeView = aViewWrapper.dbView.QueryInterface(Ci.nsITreeView);
-  for (let iArg = 1; iArg < arguments.length; iArg++) {
-    let viewIndex = arguments[iArg];
+  for (let viewIndex of aArgs) {
     if (!treeView.isContainer(viewIndex)) {
       dump_view_state(aViewWrapper);
       do_throw("Expected isContainer to be true at view index " + viewIndex);
@@ -494,9 +493,8 @@ function verify_view_row_at_index_is_container(aViewWrapper) {
  * @param aViewWrapper The view wrapper in question
  * @param ... View indices to check.
  */
-function verify_view_row_at_index_is_dummy(aViewWrapper) {
-  for (let iArg = 1; iArg < arguments.length; iArg++) {
-    let viewIndex = arguments[iArg];
+function verify_view_row_at_index_is_dummy(aViewWrapper, ...aArgs) {
+  for (let viewIndex of aArgs) {
     let flags = aViewWrapper.dbView.getFlagsAt(viewIndex);
     if (!(flags & MSG_VIEW_FLAG_DUMMY)) {
       dump_view_state(aViewWrapper);

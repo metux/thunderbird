@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 function getRidKey(date) {
     if (!date) {
@@ -459,20 +459,20 @@ calRecurrenceInfo.prototype = {
         let occurrenceMap = {};
         for (let ex in this.mExceptionMap) {
             let item = this.mExceptionMap[ex];
-            let occDate = cal.checkIfInRange(item, aRangeStart, aRangeEnd, true);
+            let occDate = cal.item.checkIfInRange(item, aRangeStart, aRangeEnd, true);
             occurrenceMap[ex] = true;
             if (occDate) {
-                cal.binaryInsert(dates, { id: item.recurrenceId, rstart: occDate }, ridDateSortComptor);
+                cal.data.binaryInsert(dates, { id: item.recurrenceId, rstart: occDate }, ridDateSortComptor);
             }
         }
 
         // DTSTART/DUE is always part of the (positive) expanded set:
         // DTSTART always equals RECURRENCE-ID for items expanded from RRULE
-        let baseOccDate = cal.checkIfInRange(this.mBaseItem, aRangeStart, aRangeEnd, true);
+        let baseOccDate = cal.item.checkIfInRange(this.mBaseItem, aRangeStart, aRangeEnd, true);
         let baseOccDateKey = getRidKey(baseOccDate);
         if (baseOccDate && !occurrenceMap[baseOccDateKey]) {
             occurrenceMap[baseOccDateKey] = true;
-            cal.binaryInsert(dates, { id: baseOccDate, rstart: baseOccDate }, ridDateSortComptor);
+            cal.data.binaryInsert(dates, { id: baseOccDate, rstart: baseOccDate }, ridDateSortComptor);
         }
 
         // if both range start and end are specified, we ask for all of the occurrences,
@@ -521,7 +521,7 @@ calRecurrenceInfo.prototype = {
                 }
                 // TODO if cur_dates[] is also sorted, then this binary
                 // search could be optimized further
-                cal.binaryInsert(dates, { id: date, rstart: date }, ridDateSortComptor);
+                cal.data.binaryInsert(dates, { id: date, rstart: date }, ridDateSortComptor);
                 occurrenceMap[dateKey] = true;
             }
         }
@@ -787,7 +787,7 @@ calRecurrenceInfo.prototype = {
                 rid = rid.getInTimezone(rdate ? rdate.timezone : startTimezone);
                 rid.addDuration(timeDiff);
                 ex.recurrenceId = rid;
-                cal.shiftItem(ex, timeDiff);
+                cal.item.shiftOffset(ex, timeDiff);
                 modifiedExceptions.push(ex);
                 this.removeExceptionFor(exid);
             }

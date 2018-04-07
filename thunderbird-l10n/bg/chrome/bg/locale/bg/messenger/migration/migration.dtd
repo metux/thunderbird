@@ -3,7 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 
-<!ENTITY migrationWizard.title          "Помощник за внасяне">
+<!ENTITY migrationWizard.title          "Помощник при внасяне">
 
 <!ENTITY importFromWin.label            "Внасяне на настройки, настройки на регистрация, адресник, филтри и други данни от:">
 <!ENTITY importFromNonWin.label         "Внасяне на настройки, настройки на регистрация, адресник, филтри и други данни от:">
@@ -18,10 +18,10 @@
 
 <!ENTITY importSource.title             "Внасяне на настройки и папки с писма">
 <!ENTITY importItems.title              "Позиции за внасяне">
-<!ENTITY importItems.label              "Изберете кои позиции ще внесете:">
+<!ENTITY importItems.label              "Изберете елементите за внасяне:">
 
 <!ENTITY migrating.title                "Внасяне…">
-<!ENTITY migrating.label                "Следните позиции са внесени до момента…">
+<!ENTITY migrating.label                "В момента се внасят следните елементи…">
 
 <!ENTITY selectProfile.title            "Избиране на профил">
 <!ENTITY selectProfile.label            "Налични са следните профили, от които може да се внесе:">

@@ -106,7 +106,7 @@
 #ifdef MOZ_ICU_DATA_ARCHIVE
 @RESPATH@/@ICU_DATA_FILE@
 #endif
-#ifdef MOZ_GTK3
+#ifdef MOZ_GTK
 @BINPATH@/@DLL_PREFIX@mozgtk@DLL_SUFFIX@
 @BINPATH@/gtk2/@DLL_PREFIX@mozgtk@DLL_SUFFIX@
 #ifdef MOZ_WAYLAND
@@ -364,7 +364,7 @@
 @BINPATH@/@DLL_PREFIX@prldap60@DLL_SUFFIX@
 #endif
 
-; download progress for jsdownloads
+; download progress for downloads
 @RESPATH@/components/DownloadsStartup.js
 
 ; Protocol/Content handling
@@ -430,7 +430,6 @@
 @RESPATH@/components/dom.xpt
 @RESPATH@/components/dom_base.xpt
 @RESPATH@/components/dom_bindings.xpt
-@RESPATH@/components/dom_canvas.xpt
 @RESPATH@/components/dom_core.xpt
 @RESPATH@/components/dom_events.xpt
 @RESPATH@/components/dom_file.xpt
@@ -449,12 +448,8 @@
 @RESPATH@/components/dom_sidebar.xpt
 @RESPATH@/components/dom_storage.xpt
 @RESPATH@/components/dom_system.xpt
-@RESPATH@/components/dom_traversal.xpt
 @RESPATH@/components/dom_webspeechrecognition.xpt
 @RESPATH@/components/dom_workers.xpt
-@RESPATH@/components/dom_xbl.xpt
-@RESPATH@/components/dom_xhr.xpt
-@RESPATH@/components/dom_xpath.xpt
 @RESPATH@/components/dom_xul.xpt
 @RESPATH@/components/downloads.xpt
 @RESPATH@/components/editor.xpt
@@ -471,7 +466,6 @@
 @RESPATH@/components/intl.xpt
 @RESPATH@/components/jar.xpt
 @RESPATH@/components/jsdebugger.xpt
-@RESPATH@/components/jsdownloads.xpt
 @RESPATH@/components/jsinspector.xpt
 @RESPATH@/components/layout_base.xpt
 #ifdef NS_PRINTING
@@ -761,8 +755,6 @@
 
 ; svg
 @RESPATH@/res/svg.css
-@RESPATH@/components/dom_svg.xpt
-@RESPATH@/components/dom_smil.xpt
 
 ; [Extensions]
 @RESPATH@/components/extensions-toolkit.manifest

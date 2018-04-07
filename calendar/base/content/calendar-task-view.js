@@ -4,10 +4,10 @@
 
 /* exported taskDetailsView, sendMailToOrganizer, taskViewCopyLink */
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://calendar/modules/calRecurrenceUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/AppConstants.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calRecurrenceUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
 
 var taskDetailsView = {
 
@@ -53,7 +53,7 @@ var taskDetailsView = {
             }
 
             let priority = 0;
-            if (item.calendar.getProperty("capabilities.priority.supported") != false) {
+            if (item.calendar.getProperty("capabilities.priority.supported")) {
                 priority = parseInt(item.priority, 10);
             }
             displayElement("calendar-task-details-priority-label", priority > 0);

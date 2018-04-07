@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://calendar/modules/calAlarmUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/Preferences.jsm");
-Components.utils.import("resource://gre/modules/AppConstants.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calAlarmUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
 
 var itemConversion = {
 
@@ -380,11 +380,14 @@ calViewDNDObserver.prototype = {
      * try to add these items to the currently selected calendar.
      */
     onDropItems: function(aItems) {
-        var destCal = getSelectedCalendar();
+        let destCal = getSelectedCalendar();
         startBatchTransaction();
+        // we fall back explicitely to the popup to ask whether to send a
+        // notification to partticipants if required
+        let extResp = { responseMode: Ci.calIItipItem.USER };
         try {
-            for (var item of aItems) {
-                doTransaction('add', item, destCal, null, null);
+            for (let item of aItems) {
+                doTransaction("add", item, destCal, null, null, extResp);
             }
         }
         finally {
@@ -461,7 +464,7 @@ calCalendarButtonDNDObserver.prototype = {
     onDropItems: function(aItems) {
         for (var item of aItems) {
             var newItem = item;
-            if (cal.isToDo(item)) {
+            if (cal.item.isToDo(item)) {
                 newItem = itemConversion.eventFromTask(item);
             }
             createEventWithDialog(null, null, null, null, newItem);
@@ -510,7 +513,7 @@ calTaskButtonDNDObserver.prototype = {
     onDropItems: function(aItems) {
         for (var item of aItems) {
             var newItem = item;
-            if (cal.isEvent(item)) {
+            if (cal.item.isEvent(item)) {
                 newItem = itemConversion.taskFromEvent(item);
             }
             createTodoWithDialog(null, null, null, newItem);
@@ -560,10 +563,10 @@ function invokeEventDragSession(aItem, aXULBox) {
         }
     };
 
-    if (cal.isEvent(aItem)) {
+    if (cal.item.isEvent(aItem)) {
       transfer.addDataFlavor("application/vnd.x-moz-cal-event");
       transfer.setTransferData("application/vnd.x-moz-cal-event", flavourProvider, 0);
-    } else if (cal.isToDo(aItem)) {
+    } else if (cal.item.isToDo(aItem)) {
       transfer.addDataFlavor("application/vnd.x-moz-cal-task");
       transfer.setTransferData("application/vnd.x-moz-cal-task", flavourProvider, 0);
     }
@@ -585,13 +588,13 @@ function invokeEventDragSession(aItem, aXULBox) {
     mutArray.appendElement(transfer);
     aXULBox.sourceObject = aItem;
     try {
-        cal.getDragService().invokeDragSession(aXULBox, mutArray, null, action);
-    } catch (error) {
-        // Nothing done here because we only have to catch an exception that occurs when dragging
-        // is cancelled with ESC. This is an odd behaviour of the nativeDragService which we have
-        // have to cover.
-        // Therefore the DND API for calendar should be changed to the new DOM driven DND-API
-        // sometime.
+        cal.getDragService().invokeDragSession(aXULBox, "", mutArray, null, action);
+    } catch (e) {
+        if (e.result != Components.results.NS_ERROR_FAILURE) {
+            // Pressing Escape on some platforms results in NS_ERROR_FAILURE
+            // being thrown. Catch this exception, but throw anything else.
+            throw e;
+        }
     }
 }
 

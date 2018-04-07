@@ -315,7 +315,7 @@
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goChatCmd.label "Komunikator">
 <!ENTITY goChatCmd.accesskey "K">
-<!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Wiadomość oznaczona gwiazdką">
 <!ENTITY prevStarredMsgCmd.accesskey "O">
 <!ENTITY folderMenu.label "Folder">
@@ -361,6 +361,8 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Edytuj szkic">
 <!ENTITY editDraftMsgCmd.accesskey "s">
+<!ENTITY editTemplateMsgCmd.label "Edytuj szablon">
+<!ENTITY editTemplateMsgCmd.accesskey "b">
 <!ENTITY newMsgFromTemplateCmd.label "Nowa wiadomość z szablonu">
 <!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN">
 <!ENTITY createFilter.label "Utwórz filtr na podstawie wiadomości…">
@@ -447,6 +449,11 @@
 <!ENTITY tasksMenu.accesskey "N">
 <!ENTITY addons.label "Dodatki">
 <!ENTITY addons.accesskey "D">
+<!ENTITY addonPrefs.label "Opcje dodatku">
+<!ENTITY addonPrefs.accesskey "O">
+<!ENTITY addonPrefsUnix.label "Preferencje dodatku">
+<!ENTITY addonPrefsUnix.accesskey "P">
+<!ENTITY addonNoPrefs.label "Nie odnaleziono ustawień dodatku.">
 <!ENTITY activitymanager.label "Monitor aktywności">
 <!ENTITY activitymanager.accesskey "M">
 <!ENTITY imAccountsStatus.label "Status komunikatora">
@@ -487,6 +494,8 @@
 <!ENTITY devToolboxCmd.commandkey "i">
 <!ENTITY addonDebugCmd.label "Debuger dodatków">
 <!ENTITY addonDebugCmd.accesskey "D">
+<!ENTITY debugAddonsCmd.label "Debuguj dodatki">
+<!ENTITY debugAddonsCmd.accesskey "D">
 <!ENTITY tabsDebugCmd.label "Debuger ramek treści">
 <!ENTITY tabsDebugCmd.accesskey "r">
 <!ENTITY errorConsoleCmd.label "Konsola błędów">
@@ -709,6 +718,8 @@
 <!ENTITY contextEditMsgAsNew.label "Edytuj jako nową wiadomość">
 <!ENTITY contextEditMsgAsNew.accesskey "E">
 <!ENTITY contextEditDraftMsg.label "Edytuj szkic">
+<!ENTITY contextEditTemplate.label "Edytuj szablon">
+<!ENTITY contextEditTemplate.accesskey "b">
 <!ENTITY contextArchive.label "Archiwizuj">
 <!ENTITY contextArchive.accesskey "A">
 <!ENTITY contextReplySender.label "Odpowiedz tylko nadawcy">
@@ -837,16 +848,3 @@
 <!ENTITY dockOptions.label "Opcje ikony aplikacji…">
 <!ENTITY writeNewMessageDock.label "Nowa wiadomość">
 <!ENTITY openAddressBookDock.label "Książka adresowa">
-
-<!ENTITY goChatCmd2.key "H">
-<!ENTITY editTemplateMsgCmd.label "Edit Template">
-<!ENTITY editTemplateMsgCmd.accesskey "T">
-<!ENTITY addonPrefs.label "Add-on Options">
-<!ENTITY addonPrefs.accesskey "O">
-<!ENTITY addonPrefsUnix.label "Add-on Preferences">
-<!ENTITY addonPrefsUnix.accesskey "P">
-<!ENTITY addonNoPrefs.label "No Add-on settings found.">
-<!ENTITY debugAddonsCmd.label "Debug Add-ons">
-<!ENTITY debugAddonsCmd.accesskey "A">
-<!ENTITY contextEditTemplate.label "Edit Template">
-<!ENTITY contextEditTemplate.accesskey "T">

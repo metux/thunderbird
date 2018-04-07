@@ -8,11 +8,11 @@
  *          customizeMailToolbarForTabType
  */
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/AddonManager.jsm");
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://calendar/modules/calAsyncUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/AddonManager.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calAsyncUtils.jsm");
 
 var gLastShownCalendarView = null;
 
@@ -35,6 +35,19 @@ var calendarTabMonitor = {
             aOldTab.mode.name == "task") {
             calendarController.updateCommands();
             calendarController2.updateCommands();
+        }
+        // we reset the save menu controls when moving away (includes closing)
+        // from an event or task editor tab
+        if ((aNewTab.mode.name == "calendarEvent" ||
+             aNewTab.mode.name == "calendarTask")) {
+            sendMessage({ command: "triggerUpdateSaveControls" });
+        } else if (window.calItemSaveControls) {
+            // we need to reset the labels of the menu controls for saving if we
+            // are not switching to an item tab and displayed an item tab before
+            let saveMenu = document.getElementById("ltnSave");
+            let saveandcloseMenu = document.getElementById("ltnSaveAndClose");
+            saveMenu.label = window.calItemSaveControls.saveMenu.label;
+            saveandcloseMenu.label = window.calItemSaveControls.saveandcloseMenu.label;
         }
     }
 };

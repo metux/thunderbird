@@ -1,10 +1,10 @@
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /**
- * Tests bug 474774 - assertions when saving send later and when sending with 
+ * Tests bug 474774 - assertions when saving send later and when sending with
  * FCC switched off.
  */
 
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 var type = null;
 var test = null;

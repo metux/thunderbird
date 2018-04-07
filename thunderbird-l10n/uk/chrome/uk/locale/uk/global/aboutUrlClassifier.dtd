@@ -4,6 +4,7 @@
 
 <!-- LOCALIZATION NOTE the term "url-classifier" should not be translated. -->
 <!ENTITY aboutUrlClassifier.pageTitle                   "Інформація про url-classifier">
+<!ENTITY aboutUrlClassifier.title                       "Інформація про URL-класифікатор">
 <!ENTITY aboutUrlClassifier.providerTitle               "Постачальник">
 <!ENTITY aboutUrlClassifier.provider                    "Постачальник">
 <!ENTITY aboutUrlClassifier.providerLastUpdateTime      "Час останнього оновлення">
@@ -20,9 +21,9 @@
 <!ENTITY aboutUrlClassifier.cacheShowEntries            "Показати записи">
 <!ENTITY aboutUrlClassifier.cacheEntries                "Записи кешу">
 <!ENTITY aboutUrlClassifier.cachePrefix                 "Префікс">
-<!ENTITY aboutUrlClassifier.cacheNCacheExpiry           "Негативний кеш завершується">
+<!ENTITY aboutUrlClassifier.cacheNCacheExpiry           "Термін зберігання негативного кешу">
 <!ENTITY aboutUrlClassifier.cacheFullhash               "Повний хеш">
-<!ENTITY aboutUrlClassifier.cachePCacheExpiry           "Негативний кеш завершується">
+<!ENTITY aboutUrlClassifier.cachePCacheExpiry           "Термін зберігання позитивного кешу">
 <!ENTITY aboutUrlClassifier.debugTitle                  "Зневадження">
 <!ENTITY aboutUrlClassifier.debugModuleBtn              "Встановити модулі журналу">
 <!ENTITY aboutUrlClassifier.debugFileBtn                "Встановити файл журналу">
@@ -31,5 +32,3 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Поточні модулі журналу">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Журнал Safe Browsing JS">
 <!ENTITY aboutUrlClassifier.debugFile                   "Поточний файл журналу">
-
-<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

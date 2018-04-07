@@ -4,14 +4,9 @@
 
 this.EXPORTED_SYMBOLS = ['SearchSpec'];
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
-var Cu = Components.utils;
-
-Cu.import("resource:///modules/iteratorUtils.jsm");
-Cu.import("resource:///modules/mailServices.js");
-Cu.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource:///modules/iteratorUtils.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 var nsMsgSearchScope = Ci.nsMsgSearchScope;
 var nsIMsgSearchTerm = Ci.nsIMsgSearchTerm;
@@ -78,8 +73,8 @@ SearchSpec.prototype = {
   get session() {
     if (this._session == null) {
       this._session =
-        Components.classes["@mozilla.org/messenger/searchSession;1"]
-                  .createInstance(Ci.nsIMsgSearchSession);
+        Cc["@mozilla.org/messenger/searchSession;1"]
+          .createInstance(Ci.nsIMsgSearchSession);
     }
     return this._session;
   },
@@ -207,7 +202,7 @@ SearchSpec.prototype = {
     let term;
     let outTerms = aCloneTerms ? [] : aTerms;
     let inGroup = false;
-    for (term of fixIterator(aTerms, Components.interfaces.nsIMsgSearchTerm)) {
+    for (term of fixIterator(aTerms, Ci.nsIMsgSearchTerm)) {
       // If we're in a group, all that is forbidden is the creation of new
       // groups.
       if (inGroup) {

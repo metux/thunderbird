@@ -31,6 +31,10 @@ sentence. -->
 <!ENTITY  completeNotification.label          "с името на подателя и преглед на съобщението">
 <!ENTITY  buddyInfoOnly.label                 "само с името на подателя">
 <!ENTITY  dummyNotification.label             "без друга информация">
+<!ENTITY  getAttention.label                  "Премигване в лентата със задачи">
+<!ENTITY  getAttention.accesskey              "п">
+<!ENTITY  getAttentionMac.label               "Анимиране на пиктограмата">
+<!ENTITY  getAttentionMac.accesskey           "п">
 <!ENTITY  chatSound.accesskey                 "з">
 <!ENTITY  chatSound.label                     "Изпълняване на звук">
 <!ENTITY  play.label                          "Изпълняване">
@@ -58,8 +62,3 @@ sentence. -->
 <!ENTITY messageStyleShowHeader.accesskey  "з">
 <!ENTITY messageStyleNoPreview.title       "Няма преглед">
 <!ENTITY messageStyleNoPreview.description "Темата е непълна или временно недостъпна (изключена добавка, надежден режим и т.н).">
-
-<!ENTITY  getAttention.label                  "Flash the taskbar item">
-<!ENTITY  getAttention.accesskey              "F">
-<!ENTITY  getAttentionMac.label               "Animate dock icon">
-<!ENTITY  getAttentionMac.accesskey           "o">

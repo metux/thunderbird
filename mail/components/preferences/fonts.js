@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 var kDefaultFontType          = "font.default.%LANG%";
 var kFontNameFmtSerif         = "font.name.serif.%LANG%";
@@ -69,7 +69,7 @@ var gFontsDialog = {
   _safelySelectLanguageGroup(aLanguageGroup) {
     this._selectLanguageGroupPromise =
       this._selectLanguageGroup(aLanguageGroup)
-        .catch(Components.utils.reportError);
+        .catch(Cu.reportError);
   },
 
   readFontLanguageGroup: function ()
@@ -146,8 +146,6 @@ var gFontsDialog = {
    */
   ondialogaccept: function()
   {
-    var Ci = Components.interfaces;
-
     var sendCharsetStr = Services.prefs.getComplexValue(
       "mailnews.send_default_charset", Ci.nsIPrefLocalizedString).data;
 

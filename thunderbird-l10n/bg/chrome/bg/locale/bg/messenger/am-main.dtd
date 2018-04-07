@@ -11,7 +11,7 @@
 <!ENTITY identityDesc.label "Всяка регистрация е уникална. Това е информация, която другите виждат, четейки вашите писма.">
 <!ENTITY name.label "Вашето име:">
 <!ENTITY name.accesskey "В">
-<!ENTITY email.label "Адрес на е-поща:">
+<!ENTITY email.label "Адрес на ел. поща:">
 <!ENTITY email.accesskey "А">
 <!ENTITY replyTo.label "Адрес за отговор:">
 <!ENTITY replyTo.accesskey "р">
@@ -25,7 +25,7 @@
 <!ENTITY signatureFile.label "Прикрепяне на подпис от файл (текст, HTML или изображение):">
 <!ENTITY signatureFile.accesskey "T">
 <!ENTITY edit.label "Промяна…">
-<!ENTITY choose.label "Избор…">
+<!ENTITY choose.label "Избиране…">
 <!ENTITY choose.accesskey "з">
 <!ENTITY editVCard.label "Промяна…">
 <!ENTITY editVCard.accesskey "м">

@@ -225,6 +225,9 @@
 <!ENTITY showContactPane2.accesskey                     "C">
 <!ENTITY firstLastCmd2.label                            "First Last">
 <!ENTITY firstLastCmd2.accesskey                        "F">
+<!ENTITY addressBookCmd.label                           "Address Book">
+<!ENTITY addressBookCmd.accesskey                       "a">
+<!ENTITY addressBookCmd.key                             "B">
 <!ENTITY preferencesCmd2.label                          "Options">
 <!ENTITY preferencesCmd2.accesskey                      "O">
 <!ENTITY showAsDefault.label                            "Default startup directory">

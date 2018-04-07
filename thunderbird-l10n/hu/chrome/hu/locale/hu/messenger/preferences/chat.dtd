@@ -31,6 +31,10 @@ sentence. -->
 <!ENTITY  completeNotification.label          "feladó nevével és az üzenet előnézetével">
 <!ENTITY  buddyInfoOnly.label                 "csak a feladó nevével">
 <!ENTITY  dummyNotification.label             "információ nélkül">
+<!ENTITY  getAttention.label                  "A tálca elem felvillantása">
+<!ENTITY  getAttention.accesskey              "f">
+<!ENTITY  getAttentionMac.label               "Dokkolóikon animálása">
+<!ENTITY  getAttentionMac.accesskey           "o">
 <!ENTITY  chatSound.accesskey                 "H">
 <!ENTITY  chatSound.label                     "Hangjelzés">
 <!ENTITY  play.label                          "Lejátszás">
@@ -58,8 +62,3 @@ sentence. -->
 <!ENTITY messageStyleShowHeader.accesskey  "F">
 <!ENTITY messageStyleNoPreview.title       "Nem érhető el előnézet">
 <!ENTITY messageStyleNoPreview.description "Ez a téma nem érvényes, vagy jelenleg nem érhető el (letiltott kiegészítő, biztonságos mód, …).">
-
-<!ENTITY  getAttention.label                  "Flash the taskbar item">
-<!ENTITY  getAttention.accesskey              "F">
-<!ENTITY  getAttentionMac.label               "Animate dock icon">
-<!ENTITY  getAttentionMac.accesskey           "o">

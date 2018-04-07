@@ -3,7 +3,8 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY addressbookWindow.title                        "Axenda de enderezos">
-
+<!ENTITY blankResultsPaneMessage.label                  "Esta axenda de enderezos só amosa contactos despois dunha busca">
+<!ENTITY localResultsOnlyMessage.label                  "Os contactos das axendas de enderezos remotas non se amosan ata que busca">
 <!-- File Menu -->
 <!ENTITY fileMenu.label                                 "Ficheiro">
 <!ENTITY fileMenu.accesskey                             "h">
@@ -12,7 +13,7 @@
 <!ENTITY newContact.label                               "Contacto da axenda de enderezos…">
 <!ENTITY newContact.accesskey                           "C">
 <!ENTITY newContact.key                                 "N">
-<!ENTITY newListCmd.label                               "Rolda de correo…">
+<!ENTITY newListCmd.label                               "Lista de correo…">
 <!ENTITY newListCmd.accesskey                           "l">
 <!ENTITY newAddressBookCmd.label                        "Axenda de enderezos…">
 <!ENTITY newAddressBookCmd.accesskey                    "x">
@@ -57,8 +58,8 @@
 <!ENTITY pasteCmd.label                                 "Pegar">
 <!ENTITY pasteCmd.key                                   "V">
 <!ENTITY pasteCmd.accesskey                             "P">
-<!ENTITY deleteCmd.label                                "Borrar">
-<!ENTITY deleteCmd.accesskey                            "o">
+<!ENTITY deleteCmd.label                                "Eliminar">
+<!ENTITY deleteCmd.accesskey                            "l">
 <!ENTITY deleteAbCmd.label                              "Eliminar a axenda de enderezos">
 <!ENTITY deleteContactCmd.label                         "Eliminar contacto">
 <!ENTITY deleteContactsCmd.label                        "Eliminar contactos">
@@ -74,8 +75,8 @@
 <!-- LOCALIZATION NOTE (hideSwapFnLnUI) : DONT_TRANSLATE -->
 <!-- Swap FN/LN UI  Set to "false" to show swap fn/ln UI -->
 <!ENTITY hideSwapFnLnUI "true">
-<!ENTITY propertiesCmd.label                            "Propiedades…">
-<!ENTITY propertiesCmd.accesskey                        "p">
+<!ENTITY propertiesCmd2.label                           "Propiedades">
+<!ENTITY propertiesCmd2.accesskey                       "i">
 <!ENTITY propertiesCmd.key                              "i">
 
 <!-- View Menu -->
@@ -97,7 +98,7 @@
 <!ENTITY showDirectoryPane.accesskey                    "d">
 <!ENTITY showContactPane2.label                         "Panel de contactos">
 <!ENTITY showContactPane2.accesskey                     "c">
-<!ENTITY menu_ShowNameAs.label                          "Mostrar nome como">
+<!ENTITY menu_ShowNameAs.label                          "Amosar nome como">
 <!ENTITY menu_ShowNameAs.accesskey                      "s"> 
 <!-- LOCALIZATION NOTE (firstLastCmd2.label): We're not including a comma here
 because displayed names don't have the comma in between. -->
@@ -122,8 +123,8 @@ because displayed names don't have the comma in between. -->
 <!ENTITY importCmd.accesskey                            "a">
 <!ENTITY exportCmd.label                                "Exportar…">
 <!ENTITY exportCmd.accesskey                            "E">
-<!ENTITY preferencesCmd.label                           "Opcións…">
-<!ENTITY preferencesCmd.accesskey                       "p">
+<!ENTITY preferencesCmd2.label                          "Opcións">
+<!ENTITY preferencesCmd2.accesskey                      "O">
 <!ENTITY preferencesCmdUnix.label                       "Preferencias">
 <!ENTITY preferencesCmdUnix.accesskey                   "f">
 
@@ -138,8 +139,8 @@ because displayed names don't have the comma in between. -->
 <!ENTITY newmsgButton.accesskey                         "b">
 <!ENTITY newIM.label                                    "Mensaxe instantánea">
 <!ENTITY newIM.accesskey                                "a">
-<!ENTITY deleteButton2.label                            "Borrar">
-<!ENTITY deleteButton2.accesskey                        "o">
+<!ENTITY deleteButton2.label                            "Eliminar">
+<!ENTITY deleteButton2.accesskey                        "l">
 
 <!-- Address Book Toolbar Tooltips -->
 <!ENTITY newContactButton.tooltip                       "Crear un novo contacto na axenda de enderezos">
@@ -160,6 +161,8 @@ because displayed names don't have the comma in between. -->
 <!ENTITY searchItem.title "Busca rápida">
 
 <!-- Results Pane -->
+<!ENTITY Addrbook.label                                 "Axenda de enderezos">
+<!ENTITY Addrbook.accesskey                             "x">
 <!ENTITY GeneratedName.label                            "Nome">
 <!ENTITY GeneratedName.accesskey                        "e">
 <!ENTITY PrimaryEmail.label                             "Correo electrónico">
@@ -218,8 +221,6 @@ because displayed names don't have the comma in between. -->
 <!ENTITY bringAllToFront.label "Traer todo á fronte">
 <!ENTITY zoomWindow.label "Zoom">
 
-<!ENTITY blankResultsPaneMessage.label                  "This address book shows contacts only after a search">
-<!ENTITY localResultsOnlyMessage.label                  "Contacts from remote address books are not shown until you search">
 <!ENTITY propertiesMenu.label                           "Properties">
 <!ENTITY propertiesMenu.accesskey                       "i">
 <!ENTITY abPropertiesMenu.label                         "Address Book Properties">
@@ -228,8 +229,9 @@ because displayed names don't have the comma in between. -->
 <!ENTITY contactPropertiesMenu.accesskey                "i">
 <!ENTITY mailingListPropertiesMenu.label                "Mailing List Properties">
 <!ENTITY mailingListPropertiesMenu.accesskey            "i">
-<!ENTITY preferencesCmd2.label                          "Options">
-<!ENTITY preferencesCmd2.accesskey                      "O">
+<!ENTITY addressBookCmd.label                           "Address Book">
+<!ENTITY addressBookCmd.accesskey                       "a">
+<!ENTITY addressBookCmd.key                             "B">
 <!ENTITY showAsDefault.label                            "Default startup directory">
 <!ENTITY showAsDefault.accesskey                        "S">
 <!ENTITY editPropertiesButton.label                     "Edit">
@@ -247,5 +249,3 @@ because displayed names don't have the comma in between. -->
 <!ENTITY editAbPropertiesButton.tooltip                 "Edit the properties of the selected address book">
 <!ENTITY editContactPropertiesButton.tooltip            "Edit the selected contact">
 <!ENTITY editMailingListPropertiesButton.tooltip        "Edit the selected mailing list">
-<!ENTITY Addrbook.label                                 "Address Book">
-<!ENTITY Addrbook.accesskey                             "B">

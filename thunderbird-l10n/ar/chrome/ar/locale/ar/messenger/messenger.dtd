@@ -317,7 +317,7 @@
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goChatCmd.label "الدردشة">
 <!ENTITY goChatCmd.accesskey "د">
-<!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "الرسائل ذات النجمة">
 <!ENTITY prevStarredMsgCmd.accesskey "ذ">
 <!ENTITY folderMenu.label "المجلد">
@@ -366,6 +366,8 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "حرر مسودة الرسالة">
 <!ENTITY editDraftMsgCmd.accesskey "م">
+<!ENTITY editTemplateMsgCmd.label "حرر القالب">
+<!ENTITY editTemplateMsgCmd.accesskey "ق">
 <!ENTITY newMsgFromTemplateCmd.label "رسالة جديدة من قالب">
 <!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "أنشئ مرشِّح مِن الرسالة…">
@@ -459,6 +461,11 @@
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "إضافات">
 <!ENTITY addons.accesskey "ض">
+<!ENTITY addonPrefs.label "خيارات الإضافة">
+<!ENTITY addonPrefs.accesskey "ض">
+<!ENTITY addonPrefsUnix.label "تفضيلات الإضافة">
+<!ENTITY addonPrefsUnix.accesskey "ت">
+<!ENTITY addonNoPrefs.label "لم يعثر على أي إعدادات إضافات.">
 <!ENTITY activitymanager.label "مدير النشاطات">
 <!ENTITY activitymanager.accesskey "ش">
 <!ENTITY imAccountsStatus.label "حالة الدردشة">
@@ -504,6 +511,8 @@
 <!ENTITY devToolboxCmd.commandkey "i">
 <!ENTITY addonDebugCmd.label "منقح الإضافات">
 <!ENTITY addonDebugCmd.accesskey "ق">
+<!ENTITY debugAddonsCmd.label "نقّح الإضافات">
+<!ENTITY debugAddonsCmd.accesskey "ن">
 <!ENTITY tabsDebugCmd.label "منقح إطار المحتوى">
 <!ENTITY tabsDebugCmd.accesskey "ط">
 <!ENTITY errorConsoleCmd.label "مرقاب الأعطال">
@@ -651,7 +660,7 @@
 <!ENTITY folderContextRemove.accesskey "ذ">
 <!ENTITY folderContextCompact.label "اضغط">
 <!ENTITY folderContextCompact.accesskey "ط">
-<!ENTITY folderContextEmptyTrash.label "أفرغ المهملات">
+<!ENTITY folderContextEmptyTrash.label "أفرغ سلة المهملات">
 <!ENTITY folderContextEmptyTrash.accesskey "ف">
 <!ENTITY folderContextEmptyJunk.label "أفرِغ السُخام">
 <!ENTITY folderContextEmptyJunk.accesskey "ف">
@@ -752,6 +761,8 @@
 <!ENTITY contextEditMsgAsNew.label "حرّر كرسالةٍ جديدة">
 <!ENTITY contextEditMsgAsNew.accesskey "ح">
 <!ENTITY contextEditDraftMsg.label "حرر مسودة الرسالة">
+<!ENTITY contextEditTemplate.label "حرر القالب">
+<!ENTITY contextEditTemplate.accesskey "ق">
 <!ENTITY contextArchive.label "أرشيف">
 <!ENTITY contextArchive.accesskey "ف">
 <!ENTITY contextReplySender.label "رُد إلى المُرسِل فقط">
@@ -908,7 +919,7 @@
 <!ENTITY reportPhishingURL.accesskey "ب">
 
 <!-- Spell checker context menu items -->
-<!ENTITY spellAddDictionaries.label "أضِف القواميس…">
+<!ENTITY spellAddDictionaries.label "أضِف قواميس…">
 <!ENTITY spellAddDictionaries.accesskey "س">
 
 <!-- Content Pane Context Menu -->
@@ -951,22 +962,9 @@
 <!ENTITY hideOtherAppsCmdMac.label      "أخفٍ البقية">
 <!ENTITY hideOtherAppsCmdMac.commandkey "H">
 <!ENTITY hideOtherAppsCmdMac.modifiers  "accel,alt">
-<!ENTITY showAllAppsCmdMac.label        "أظهِر الكل">
+<!ENTITY showAllAppsCmdMac.label        "أظهر الكل">
 
 <!-- Mac OS X Dock Icon pop-up menu -->
 <!ENTITY dockOptions.label              "خيارات أيقونة التطبيق…">
 <!ENTITY writeNewMessageDock.label      "اكتب رسالة جديدة">
 <!ENTITY openAddressBookDock.label      "افتح دفتر العناوين">
-
-<!ENTITY goChatCmd2.key "H">
-<!ENTITY editTemplateMsgCmd.label "Edit Template">
-<!ENTITY editTemplateMsgCmd.accesskey "T">
-<!ENTITY addonPrefs.label "Add-on Options">
-<!ENTITY addonPrefs.accesskey "O">
-<!ENTITY addonPrefsUnix.label "Add-on Preferences">
-<!ENTITY addonPrefsUnix.accesskey "P">
-<!ENTITY addonNoPrefs.label "No Add-on settings found.">
-<!ENTITY debugAddonsCmd.label "Debug Add-ons">
-<!ENTITY debugAddonsCmd.accesskey "A">
-<!ENTITY contextEditTemplate.label "Edit Template">
-<!ENTITY contextEditTemplate.accesskey "T">

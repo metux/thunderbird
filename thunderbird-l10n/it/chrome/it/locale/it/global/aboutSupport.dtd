@@ -14,6 +14,12 @@
 <!ENTITY aboutSupport.extensionEnabled "Attiva">
 <!ENTITY aboutSupport.extensionVersion "Versione">
 <!ENTITY aboutSupport.extensionId "ID">
+<!ENTITY aboutSupport.securitySoftwareTitle "Software di sicurezza">
+<!ENTITY aboutSupport.securitySoftwareType "Tipo">
+<!ENTITY aboutSupport.securitySoftwareName "Nome">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
 <!ENTITY aboutSupport.featuresTitle "Caratteristiche di &brandShortName;">
 <!ENTITY aboutSupport.featureName "Nome">
 <!ENTITY aboutSupport.featureVersion "Versione">
@@ -45,6 +51,7 @@
 <!ENTITY aboutSupport.appBasicsProfiles "Profili">
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Finestre multiprocesso">
 <!ENTITY aboutSupport.appBasicsProcessCount "Processi contenuti web">
+<!ENTITY aboutSupport.enterprisePolicies "Criteri a livello aziendale">
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Chiave Google">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Chiave per il servizio Mozilla Location">
 <!ENTITY aboutSupport.appBasicsSafeMode "Modalità provvisoria">
@@ -67,7 +74,7 @@
 <!ENTITY aboutSupport.jsIncrementalGC "GC incrementale">
 <!ENTITY aboutSupport.a11yTitle "Accessibilità">
 <!ENTITY aboutSupport.a11yActivated "Attivato">
-<!ENTITY aboutSupport.a11yForceDisabled "Impedisci accessibilità">
+<!ENTITY aboutSupport.a11yForceDisabled "Blocca servizi accessibilità">
 <!ENTITY aboutSupport.a11yHandlerUsed "Handler accessibilità utilizzato">
 <!ENTITY aboutSupport.a11yInstantiator "Istanziatore accessibilità">
 <!ENTITY aboutSupport.libraryVersionsTitle "Versioni librerie">
@@ -106,19 +113,12 @@
 <!ENTITY aboutSupport.mediaDeviceChannels "Canali">
 <!ENTITY aboutSupport.mediaDeviceRate "Frequenza">
 <!ENTITY aboutSupport.mediaDeviceLatency "Latenza">
-
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.intlTitle "Internazionalizzazione e localizzazione">
+<!ENTITY aboutSupport.intlAppTitle "Impostazioni dell’applicazione">
+<!ENTITY aboutSupport.intlLocalesRequested "Lingue richieste">
+<!ENTITY aboutSupport.intlLocalesAvailable "Lingue disponibili">
+<!ENTITY aboutSupport.intlLocalesSupported "Lingue applicazione">
+<!ENTITY aboutSupport.intlLocalesDefault "Lingua predefinita">
+<!ENTITY aboutSupport.intlOSTitle "Sistema operativo">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Lingue del sistema">
+<!ENTITY aboutSupport.intlRegionalPrefs "Impostazioni internazionali">

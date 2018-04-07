@@ -1,4 +1,32 @@
-<!ENTITY aboutDialog.title      "Sobre o &brandFullName;">
+<!ENTITY aboutDialog.title          "Sobre o &brandFullName;">
+
+
+<!-- LOCALIZATION NOTE (update.checkForUpdatesButton.*, update.updateButton.*, update.applyButtonBillboard.*):
+# Only one button is present at a time.
+# The button when displayed is located directly under the Thunderbird version in
+# the about dialog.
+-->
+<!ENTITY update.checkForUpdatesButton.label       "Buscar actualizacións">
+<!ENTITY update.checkForUpdatesButton.accesskey   "c">
+<!ENTITY update.updateButton.label2               "Reinicie &brandShortName; para actualizalo">
+<!ENTITY update.updateButton.accesskey            "R">
+<!ENTITY update.applyButtonBillboard.label        "Aplicar actualización…">
+<!ENTITY update.applyButtonBillboard.accesskey    "A">
+
+
+<!-- LOCALIZATION NOTE (warningDesc.version): This is a warning about the experimental nature of Nightly and Aurora builds. It is only shown in those versions. -->
+<!ENTITY warningDesc.version        "&brandShortName; é experimental e pode ser inestábel.">
+<!-- LOCALIZATION NOTE (warningDesc.telemetryDesc): This is a notification that Nightly/Aurora builds automatically send Telemetry data back to Mozilla. It is only shown in those versions. "It" refers to brandShortName. -->
+<!ENTITY warningDesc.telemetryDesc  "Automaticamente envía información sobre o rendemento, o hardware, o uso e as personalizacións a &vendorShortName; para axudar a mellorar &brandShortName;.">
+
+<!-- LOCALIZATION NOTE (community.exp.*) This paragraph is shown in "experimental" builds, i.e. Nightly and Aurora builds, instead of the other "community.*" strings below. -->
+<!ENTITY community.exp.start        "">
+<!-- LOCALIZATION NOTE (community.exp.mozillaLink): This is a link title that links to http://www.mozilla.org/. -->
+<!ENTITY community.exp.mozillaLink  "&vendorShortName;">
+<!ENTITY community.exp.middle       " é unha ">
+<!-- LOCALIZATION NOTE (community.exp.creditslink): This is a link title that links to about:credits. -->
+<!ENTITY community.exp.creditsLink  "comunidade global">
+<!ENTITY community.exp.end          " traballando unida para manter a Web aberta, pública e accesíbel para todos.">
 
 <!ENTITY community.start2           "&brandShortName; está deseñado por ">
 <!-- LOCALIZATION NOTE (community.mozillaLink): This is a link title that links to http://www.mozilla.org/. -->
@@ -6,12 +34,15 @@
 <!ENTITY community.middle2          ", unha ">
 <!-- LOCALIZATION NOTE (community.creditsLink): This is a link title that links to about:credits. -->
 <!ENTITY community.creditsLink      "comunidade global">
-<!ENTITY community.end2             " traballando unida para facer unha Internet mellor. Cremos que a Internet debería ser aberta, pública e accesíbel para todos sen ningunha restrición.">
+<!ENTITY community.end3             " traballando unida para manter a Web aberta, pública e accesíbel para todos.">
 
-<!ENTITY contribute.start           "Soa interesante? ">
-<!-- LOCALIZATION NOTE (contribute.getInvolvedLink): This is a link title that links to http://www.mozilla.org/contribute/. -->
-<!ENTITY contribute.getInvolvedLink "Involúcrese!">
-<!ENTITY contribute.end             "">
+<!ENTITY helpus.start               "Quere axudar?">
+<!-- LOCALIZATION NOTE (helpus.donateLink): This is a link title that links to the thunderbird donation page -->
+<!ENTITY helpus.donateLink          "Faga unha doazón">
+<!ENTITY helpus.middle              " ou">
+<!-- LOCALIZATION NOTE (helpus.getInvolvedLink): This is a link title that links to http://www.mozilla.org/contribute/. -->
+<!ENTITY helpus.getInvolvedLink     "involúcrese!">
+<!ENTITY helpus.end                 "">
 
 <!-- LOCALIZATION NOTE (bottomLinks.license): This is a link title that links to about:license. -->
 <!ENTITY bottomLinks.license        "Información de licenciamento">
@@ -19,17 +50,17 @@
 <!-- LOCALIZATION NOTE (bottomLinks.rights): This is a link title that links to about:rights. -->
 <!ENTITY bottomLinks.rights         "Dereitos do usuario final">
 
-<!-- LOCALIZATION NOTE (bottomLinks.privacy): This is a link title that links to http://www.mozilla.com/legal/privacy/. -->
+<!-- LOCALIZATION NOTE (bottomLinks.privacy): This is a link title that links to https://www.mozilla.org/legal/privacy/. -->
 <!ENTITY bottomLinks.privacy        "Política de privacidade">
 
 <!-- LOCALIZATION NOTE (update.checkingForUpdates): try to make the localized text short (see bug 596813 for screenshots). -->
 <!ENTITY update.checkingForUpdates  "Comprobando actualizacións…">
-<!-- LOCALIZATION NOTE (update.checkingAddonCompat): try to make the localized text short (see bug 596813 for screenshots). -->
-<!ENTITY update.checkingAddonCompat "Comprobando a compatibilidade dos complementos…">
 <!-- LOCALIZATION NOTE (update.noUpdatesFound): try to make the localized text short (see bug 596813 for screenshots). -->
 <!ENTITY update.noUpdatesFound      "&brandShortName; está actualizado">
 <!-- LOCALIZATION NOTE (update.adminDisabled): try to make the localized text short (see bug 596813 for screenshots). -->
 <!ENTITY update.adminDisabled       "O administrador do sistema desactivou as actualizacións">
+<!-- LOCALIZATION NOTE (update.otherInstanceHandlingUpdates): try to make the localized text short -->
+<!ENTITY update.otherInstanceHandlingUpdates "&brandShortName; está sendo actualizado por outra instancia">
 
 <!-- LOCALIZATION NOTE (update.failed.start,update.failed.linkText,update.failed.end):
      update.failed.start, update.failed.linkText, and update.failed.end all go into
@@ -47,6 +78,16 @@
 <!ENTITY update.manual.start        "Descargar a ">
 <!ENTITY update.manual.linkText     "última versión">
 <!ENTITY update.manual.end          "">
+
+<!-- LOCALIZATION NOTE (update.unsupported.start,update.unsupported.linkText,update.unsupported.end):
+     update.unsupported.start, update.unsupported.linkText, and
+     update.unsupported.end all go into one line with linkText being wrapped in
+     an anchor that links to a site to provide additional information regarding
+     why the system is no longer supported. As this is all in one line, try to
+     make the localized text short (see bug 843497 for screenshots). -->
+<!ENTITY update.unsupported.start    "Non é posíbel efectuar máis actualizacións neste sistema.">
+<!ENTITY update.unsupported.linkText "Máis información">
+<!ENTITY update.unsupported.end      "">
 
 <!-- LOCALIZATION NOTE (update.downloading.start,update.downloading.end): update.downloading.start and 
      update.downloading.end all go into one line, with the amount downloaded inserted in between. As this
@@ -66,25 +107,5 @@
 
 <!ENTITY cmdCloseMac.commandKey "w">
 
-<!ENTITY update.checkForUpdatesButton.label       "Check for Updates">
-<!ENTITY update.checkForUpdatesButton.accesskey   "C">
 <!ENTITY update.updateButton.label3               "Restart to update &brandShorterName;">
-<!ENTITY update.updateButton.accesskey            "R">
-<!ENTITY warningDesc.version        "&brandShortName; is experimental and may be unstable.">
-<!ENTITY warningDesc.telemetryDesc  "It automatically sends information about performance, hardware, usage and customizations back to &vendorShortName; to help make &brandShortName; better.">
-<!ENTITY community.exp.start        "">
-<!ENTITY community.exp.mozillaLink  "&vendorShortName;">
-<!ENTITY community.exp.middle       " is a ">
-<!ENTITY community.exp.creditsLink  "global community">
-<!ENTITY community.exp.end          " working together to keep the Web open, public and accessible to all.">
-<!ENTITY community.end3             " working together to keep the Web open, public and accessible to all.">
-<!ENTITY helpus.start               "Want to help? ">
-<!ENTITY helpus.donateLink          "Make a donation">
-<!ENTITY helpus.middle              " or ">
-<!ENTITY helpus.getInvolvedLink     "get involved!">
-<!ENTITY helpus.end                 "">
 <!ENTITY releaseNotes.link          "Release notes">
-<!ENTITY update.otherInstanceHandlingUpdates "&brandShortName; is being updated by another instance">
-<!ENTITY update.unsupported.start    "You can not perform further updates on this system. ">
-<!ENTITY update.unsupported.linkText "Learn more">
-<!ENTITY update.unsupported.end      "">

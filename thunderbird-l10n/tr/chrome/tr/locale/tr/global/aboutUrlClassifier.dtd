@@ -4,6 +4,7 @@
 
 <!-- LOCALIZATION NOTE the term "url-classifier" should not be translated. -->
 <!ENTITY aboutUrlClassifier.pageTitle                   "url-classifier hakkında bilgi">
+<!ENTITY aboutUrlClassifier.title                       "URL sınıflandırıcısı bilgileri">
 <!ENTITY aboutUrlClassifier.providerTitle               "Sağlayıcı">
 <!ENTITY aboutUrlClassifier.provider                    "Sağlayıcı">
 <!ENTITY aboutUrlClassifier.providerLastUpdateTime      "Son güncelleme saati">
@@ -31,5 +32,3 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Geçerli log modülleri">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Safe Browsing JS logu">
 <!ENTITY aboutUrlClassifier.debugFile                   "Geçerli log dosyası">
-
-<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

@@ -7,16 +7,15 @@
 <!ENTITY time.second.placeholder "--">
 <!ENTITY time.millisecond.placeholder "--">
 <!ENTITY time.dayperiod.placeholder "--">
+<!ENTITY time.hour.label "Horas">
+<!ENTITY time.minute.label "Minutos">
+<!ENTITY time.second.label "Segundos">
+<!ENTITY time.millisecond.label "Milisegundos">
+<!ENTITY time.dayperiod.label "AM/PM">
 <!ENTITY date.year.placeholder "aaaa">
 <!ENTITY date.month.placeholder "mm">
 <!ENTITY date.day.placeholder "dd">
-
-<!ENTITY time.hour.label "Hours">
-<!ENTITY time.minute.label "Minutes">
-<!ENTITY time.second.label "Seconds">
-<!ENTITY time.millisecond.label "Milliseconds">
-<!ENTITY time.dayperiod.label "AM/PM">
-<!ENTITY date.year.label "Year">
-<!ENTITY date.month.label "Month">
-<!ENTITY date.day.label "Day">
-<!ENTITY datetime.reset.label "Clear">
+<!ENTITY date.year.label "Año">
+<!ENTITY date.month.label "Mes">
+<!ENTITY date.day.label "Día">
+<!ENTITY datetime.reset.label "Limpiar">

@@ -19,6 +19,8 @@
 #include "mozilla/dom/MediaStreamError.h"
 #include "mozilla/dom/PromiseBinding.h"
 #include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/dom/WorkerPrivate.h"
+#include "mozilla/dom/WorkerRunnable.h"
 
 #include "jsfriendapi.h"
 #include "js/StructuredClone.h"
@@ -32,8 +34,6 @@
 #include "PromiseDebugging.h"
 #include "PromiseNativeHandler.h"
 #include "PromiseWorkerProxy.h"
-#include "WorkerPrivate.h"
-#include "WorkerRunnable.h"
 #include "WrapperFactory.h"
 #include "xpcpublic.h"
 
@@ -44,8 +44,6 @@ namespace {
 // Generator used by Promise::GetID.
 Atomic<uintptr_t> gIDGenerator(0);
 } // namespace
-
-using namespace workers;
 
 // Promise
 
@@ -504,126 +502,11 @@ Promise::ReportRejectedPromise(JSContext* aCx, JS::HandleObject aPromise)
                   win ? win->AsInner()->WindowID() : 0);
 
   // Now post an event to do the real reporting async
-  NS_DispatchToMainThread(new AsyncErrorReporter(xpcReport));
-}
-
-bool
-Promise::PerformMicroTaskCheckpoint()
-{
-  MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
-
-  CycleCollectedJSContext* context = CycleCollectedJSContext::Get();
-
-  // On the main thread, we always use the main promise micro task queue.
-  std::queue<nsCOMPtr<nsIRunnable>>& microtaskQueue =
-    context->GetPromiseMicroTaskQueue();
-
-  if (microtaskQueue.empty()) {
-    return false;
-  }
-
-  AutoSlowOperation aso;
-
-  do {
-    nsCOMPtr<nsIRunnable> runnable = microtaskQueue.front().forget();
-    MOZ_ASSERT(runnable);
-
-    // This function can re-enter, so we remove the element before calling.
-    microtaskQueue.pop();
-    nsresult rv = runnable->Run();
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return false;
-    }
-    aso.CheckForInterrupt();
-    context->AfterProcessMicrotask();
-  } while (!microtaskQueue.empty());
-
-  return true;
-}
-
-bool
-Promise::IsWorkerDebuggerMicroTaskEmpty()
-{
-  MOZ_ASSERT(!NS_IsMainThread(), "Wrong thread!");
-
-  CycleCollectedJSContext* context = CycleCollectedJSContext::Get();
-  if (!context) {
-    return true;
-  }
-
-  std::queue<nsCOMPtr<nsIRunnable>>* microtaskQueue =
-    &context->GetDebuggerPromiseMicroTaskQueue();
-
-  return microtaskQueue->empty();
-}
-
-void
-Promise::PerformWorkerMicroTaskCheckpoint()
-{
-  MOZ_ASSERT(!NS_IsMainThread(), "Wrong thread!");
-
-  CycleCollectedJSContext* context = CycleCollectedJSContext::Get();
-  if (!context) {
-    return;
-  }
-
-  for (;;) {
-    // For a normal microtask checkpoint, we try to use the debugger microtask
-    // queue first. If the debugger queue is empty, we use the normal microtask
-    // queue instead.
-    std::queue<nsCOMPtr<nsIRunnable>>* microtaskQueue =
-      &context->GetDebuggerPromiseMicroTaskQueue();
-
-    if (microtaskQueue->empty()) {
-      microtaskQueue = &context->GetPromiseMicroTaskQueue();
-      if (microtaskQueue->empty()) {
-        break;
-      }
-    }
-
-    nsCOMPtr<nsIRunnable> runnable = microtaskQueue->front().forget();
-    MOZ_ASSERT(runnable);
-
-    // This function can re-enter, so we remove the element before calling.
-    microtaskQueue->pop();
-    nsresult rv = runnable->Run();
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return;
-    }
-    context->AfterProcessMicrotask();
-  }
-}
-
-void
-Promise::PerformWorkerDebuggerMicroTaskCheckpoint()
-{
-  MOZ_ASSERT(!NS_IsMainThread(), "Wrong thread!");
-
-  CycleCollectedJSContext* context = CycleCollectedJSContext::Get();
-  if (!context) {
-    return;
-  }
-
-  for (;;) {
-    // For a debugger microtask checkpoint, we always use the debugger microtask
-    // queue.
-    std::queue<nsCOMPtr<nsIRunnable>>* microtaskQueue =
-      &context->GetDebuggerPromiseMicroTaskQueue();
-
-    if (microtaskQueue->empty()) {
-      break;
-    }
-
-    nsCOMPtr<nsIRunnable> runnable = microtaskQueue->front().forget();
-    MOZ_ASSERT(runnable);
-
-    // This function can re-enter, so we remove the element before calling.
-    microtaskQueue->pop();
-    nsresult rv = runnable->Run();
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return;
-    }
-    context->AfterProcessMicrotask();
+  RefPtr<nsIRunnable> event = new AsyncErrorReporter(xpcReport);
+  if (win) {
+    win->Dispatch(mozilla::TaskCategory::Other, event.forget());
+  } else {
+    NS_DispatchToMainThread(event);
   }
 }
 
@@ -703,7 +586,7 @@ public:
   }
 
   bool
-  Notify(Status aStatus) override
+  Notify(WorkerStatus aStatus) override
   {
     if (aStatus >= Canceling) {
       mProxy->CleanUp();

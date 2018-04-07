@@ -3,7 +3,7 @@
  * Authentication tests for SMTP.
  */
 
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 load("../../../resources/passwordStorage.js");
 
@@ -70,7 +70,7 @@ add_task(function *() {
     do_throw(e);
   } finally {
     server.stop();
-  
+
     var thread = gThreadManager.currentThread;
     while (thread.hasPendingEvents())
       thread.processNextEvent(true);

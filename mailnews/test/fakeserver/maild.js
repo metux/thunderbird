@@ -6,7 +6,7 @@
 
 // Much of the original code is taken from netwerk's httpserver implementation
 
-Components.utils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 var EXPORTED_SYMBOLS = [
   'nsMailServer',
@@ -14,9 +14,6 @@ var EXPORTED_SYMBOLS = [
   'fsDebugNone', 'fsDebugAll', 'fsDebugRecv', 'fsDebugRecvSend'
 ];
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
 var CC = Components.Constructor;
 
 /**
@@ -57,7 +54,7 @@ var TIMEOUT = 3*60*1000;
  *
  * As the core code is inherently single-threaded, it is guaranteed that all of
  * the calls to the daemon will be made on the same thread, so you do not have
- * to worry about reentrancy in daemon calls.  
+ * to worry about reentrancy in daemon calls.
  *
  ******************************************************************************
  * Typical usage:
@@ -341,7 +338,7 @@ function nsMailReader(server, handler, transport, debug, logTransaction) {
   this._multiline = false;
 
   this._isRunning = true;
-  
+
   this.observer = {
     server : server,
     forced : false,

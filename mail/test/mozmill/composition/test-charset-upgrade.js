@@ -14,8 +14,8 @@ var MODULE_NAME = "test-charset-upgrade";
 var RELATIVE_ROOT = "../shared-modules";
 var MODULE_REQUIRES = ["folder-display-helpers", "window-helpers", "compose-helpers"];
 
-Cu.import('resource://gre/modules/Services.jsm');
-Cu.import("resource:///modules/mailServices.js");
+ChromeUtils.import('resource://gre/modules/Services.jsm');
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 var gDrafts;
 var gOutbox;
@@ -29,11 +29,11 @@ function setupModule(module) {
 
   // Ensure reply charset isn't UTF-8, otherwise there's no need to upgrade,
   //  which is what this test tests.
-  let str = Components.classes["@mozilla.org/pref-localizedstring;1"]
-                      .createInstance(Components.interfaces.nsIPrefLocalizedString);
+  let str = Cc["@mozilla.org/pref-localizedstring;1"]
+              .createInstance(Ci.nsIPrefLocalizedString);
   str.data = "windows-1252";
   Services.prefs.setComplexValue("mailnews.send_default_charset",
-                                 Components.interfaces.nsIPrefLocalizedString, str);
+                                 Ci.nsIPrefLocalizedString, str);
 
   // Don't create paragraphs in the test.
   // When creating a paragraph, the test fails to retrieve the

@@ -6,7 +6,7 @@
  * Testing of bcc in message summary file added in bug 481667
  */
 
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 var hdr;
 
@@ -14,7 +14,7 @@ function run_test()
 {
   localAccountUtils.loadLocalMailAccount();
 
-  var copyListener = 
+  var copyListener =
   {
     OnStartCopy: function() {},
     OnProgress: function(aProgress, aProgressMax) {},

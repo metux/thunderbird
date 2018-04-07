@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/lt/locale/lt/passwordmgr/", 
         "pippki": "chrome/lt/locale/lt/pippki/"
       }, 
-      "version": "20171105123221"
+      "version": "20180312193459"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-lt@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "lt", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Lietuvių Language Pack", 
   "manifest_version": 2, 
   "sources": {

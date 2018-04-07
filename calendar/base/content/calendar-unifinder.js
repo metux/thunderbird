@@ -16,9 +16,9 @@
  * window.
  */
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 // Set this to true when the calendar event tree is clicked to allow for
 // multiple selection
@@ -82,7 +82,7 @@ var unifinderObserver = {
     },
 
     onAddItem: function(aItem) {
-        if (cal.isEvent(aItem) &&
+        if (cal.item.isEvent(aItem) &&
             !gUnifinderNeedsRefresh &&
             unifinderTreeView.mFilter.isItemInFilters(aItem)
             ) {
@@ -96,7 +96,7 @@ var unifinderObserver = {
     },
 
     onDeleteItem: function(aDeletedItem) {
-        if (cal.isEvent(aDeletedItem) && !gUnifinderNeedsRefresh) {
+        if (cal.item.isEvent(aDeletedItem) && !gUnifinderNeedsRefresh) {
             this.removeItemFromTree(aDeletedItem);
         }
     },
@@ -195,7 +195,7 @@ function prepareCalendarUnifinder() {
     // Check if this is not the hidden window, which has no UI elements
     if (unifinderTree) {
         // set up our calendar event observer
-        let ccalendar = cal.getCompositeCalendar(window);
+        let ccalendar = cal.view.getCompositeCalendar(window);
         ccalendar.addObserver(unifinderObserver);
 
         kDefaultTimezone = cal.dtz.defaultTimezone;
@@ -244,7 +244,7 @@ function prepareCalendarUnifinder() {
  * added.
  */
 function finishCalendarUnifinder() {
-    let ccalendar = cal.getCompositeCalendar(window);
+    let ccalendar = cal.view.getCompositeCalendar(window);
     ccalendar.removeObserver(unifinderObserver);
 
     // Remove pref observer
@@ -367,16 +367,15 @@ function unifinderSelect(event) {
  * @param aEvent        The DOM Key event.
  */
 function unifinderKeyPress(aEvent) {
-    const kKE = Components.interfaces.nsIDOMKeyEvent;
-    switch (aEvent.keyCode) {
-        case 13:
+    switch (aEvent.key) {
+        case "Enter":
             // Enter, edit the event
             editSelectedEvents();
             aEvent.stopPropagation();
             aEvent.preventDefault();
             break;
-        case kKE.DOM_VK_BACK_SPACE:
-        case kKE.DOM_VK_DELETE:
+        case "Backspace":
+        case "Delete":
             deleteSelectedEvents();
             aEvent.stopPropagation();
             aEvent.preventDefault();
@@ -693,7 +692,7 @@ var unifinderTreeView = {
         }
 
         // Add calendar name atom
-        properties.push("calendar-" + cal.formatStringForCSSRule(item.calendar.name));
+        properties.push("calendar-" + cal.view.formatStringForCSSRule(item.calendar.name));
 
         // Add item status atom
         if (item.status) {
@@ -707,7 +706,7 @@ var unifinderTreeView = {
 
         // Task categories
         properties = properties.concat(item.getCategories({})
-                                           .map(cal.formatStringForCSSRule));
+                                           .map(cal.view.formatStringForCSSRule));
 
         return properties.join(" ");
     },
@@ -837,7 +836,7 @@ function refreshEventTree() {
         unifinderTreeView.mFilter.filterText = field.value;
     }
 
-    addItemsFromCalendar(cal.getCompositeCalendar(window),
+    addItemsFromCalendar(cal.view.getCompositeCalendar(window),
                          addItemsFromCompositeCalendarInternal);
 }
 

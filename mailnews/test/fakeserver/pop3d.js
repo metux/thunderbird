@@ -13,12 +13,9 @@ var EXPORTED_SYMBOLS = [
   'POP3_RFC5034_handler'
 ];
 
-Components.utils.import("resource:///modules/IOUtils.js");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://testing-common/mailnews/auth.js");
-
-var Cc = Components.classes;
-var Ci = Components.interfaces;
+ChromeUtils.import("resource:///modules/IOUtils.js");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://testing-common/mailnews/auth.js");
 
 // Since we don't really need to worry about peristence, we can just
 // use a UIDL counter.
@@ -37,7 +34,7 @@ function readFile(fileName) {
   // Try to find the file relative to either the data directory or to the
   // current working directory.
   let file = cwd.clone();
-  if ("@mozilla.org/windows-registry-key;1" in Components.classes) {
+  if ("@mozilla.org/windows-registry-key;1" in Cc) {
     // Windows doesn't allow '..' in appendRelativePath,
     // so we'll have to do this the long way.
     if (fileName.includes('/')) {
@@ -76,7 +73,7 @@ pop3Daemon.prototype = {
 
   /**
    * Set the messages that the POP3 daemon will provide to its clients.
-   * 
+   *
    * @param messages An array of either 1) strings that are filenames whose
    *     contents will be loaded from the files or 2) objects with a "fileData"
    *     attribute whose value is the content of the file.

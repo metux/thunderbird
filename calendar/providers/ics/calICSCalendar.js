@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://calendar/modules/calXMLUtils.jsm");
-Components.utils.import("resource://calendar/modules/calProviderUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calXMLUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calProviderUtils.jsm");
 
 //
 // calICSCalendar.js
@@ -19,7 +19,6 @@ Components.utils.import("resource://calendar/modules/calProviderUtils.jsm");
 //
 // XXX Should do locks, so that external changes are not overwritten.
 
-var Ci = Components.interfaces;
 var calICalendar = Components.interfaces.calICalendar;
 var calIErrors = Components.interfaces.calIErrors;
 

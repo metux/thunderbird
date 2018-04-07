@@ -99,3 +99,5 @@
 <!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
      "NS_ERROR_NET_INADEQUATE_SECURITY". -->
 <!ENTITY inadequateSecurityError.longDesc "<p><span class='hostname'></span> usa una teunoloxía de seguranza que nun ta anovada y ye vulnerable a ataques. Un atacante podría revelar cenciellamente información que cuidabes que taba segura. L'alministrador del sitiu web precisará iguar primero'l sirvidor enantes que pueas visitalu.</p><p>Códigu de fallu: NS_ERROR_NET_INADEQUATE_SECURITY</p>">
+
+<!ENTITY blockedByPolicy.title "Blocked Page">

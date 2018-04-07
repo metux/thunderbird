@@ -4,13 +4,8 @@
 
 this.EXPORTED_SYMBOLS = ["GlodaIMSearcher"];
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
-var Cu = Components.utils;
-
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource:///modules/gloda/public.js");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource:///modules/gloda/public.js");
 
 /**
  * How much time boost should a 'score point' amount to?  The authoritative,

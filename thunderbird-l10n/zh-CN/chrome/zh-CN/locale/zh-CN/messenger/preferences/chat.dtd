@@ -6,8 +6,8 @@
 
 <!ENTITY  startupAction.label         "启动 &brandShortName; 时:">
 <!ENTITY  startupAction.accesskey     "s">
-<!ENTITY  startupOffline.label        "保持我的聊天帐号离线">
-<!ENTITY  startupConnectAuto.label    "自动连接我的聊天帐号">
+<!ENTITY  startupOffline.label        "保持我的聊天账户离线">
+<!ENTITY  startupConnectAuto.label    "自动连接我的聊天账户">
 
 <!-- LOCALIZATION NOTE: reportIdleAfter.label is displayed first, then
 there's a field where the user can enter a number, and itemTime is
@@ -31,6 +31,10 @@ sentence. -->
 <!ENTITY  completeNotification.label          "带有发送者的名称和消息预览">
 <!ENTITY  buddyInfoOnly.label                 "仅带有发送者的名称">
 <!ENTITY  dummyNotification.label             "不带有任何信息">
+<!ENTITY  getAttention.label                  "刷新任务栏项目">
+<!ENTITY  getAttention.accesskey              "F">
+<!ENTITY  getAttentionMac.label               "动画 Dock 图标">
+<!ENTITY  getAttentionMac.accesskey           "o">
 <!ENTITY  chatSound.accesskey                 "d">
 <!ENTITY  chatSound.label                     "播放声音">
 <!ENTITY  play.label                          "播放">
@@ -58,8 +62,3 @@ sentence. -->
 <!ENTITY messageStyleShowHeader.accesskey  "H">
 <!ENTITY messageStyleNoPreview.title       "没有预览可用">
 <!ENTITY messageStyleNoPreview.description "此主题无效或目前不可用（原因例如：已被禁用、处在安全模式，……）。">
-
-<!ENTITY  getAttention.label                  "Flash the taskbar item">
-<!ENTITY  getAttention.accesskey              "F">
-<!ENTITY  getAttentionMac.label               "Animate dock icon">
-<!ENTITY  getAttentionMac.accesskey           "o">

@@ -6,7 +6,7 @@
  * Backwards compat for calUtils migration.
  */
 
-Components.utils.import("resource://gre/modules/Deprecated.jsm");
+ChromeUtils.import("resource://gre/modules/Deprecated.jsm");
 
 /* exported injectCalUtilsCompat */
 
@@ -17,6 +17,24 @@ this.EXPORTED_SYMBOLS = ["injectCalUtilsCompat"];
  * injectCalUtilsCompat.
  */
 var migrations = {
+    acl: {
+        isCalendarWritable: "isCalendarWritable",
+        userCanAddItemsToCalendar: "userCanAddItemsToCalendar",
+        userCanDeleteItemsFromCalendar: "userCanDeleteItemsFromCalendar",
+        userCanModifyItem: "userCanModifyItem"
+    },
+    category: {
+        setupDefaultCategories: "setupDefaultCategories",
+        getPrefCategoriesArray: "fromPrefs",
+        categoriesStringToArray: "stringToArray",
+        categoriesArrayToString: "arrayToString"
+    },
+    data: {
+        binarySearch: "binarySearch",
+        binaryInsertNode: "binaryInsertNode",
+        binaryInsert: "binaryInsert",
+        compareObjects: "compareObjects"
+    },
     dtz: {
         now: "now",
         ensureDateTime: "ensureDateTime",
@@ -34,6 +52,36 @@ var migrations = {
         calendarDefaultTimezone: "defaultTimezone",
         floating: "floating",
         UTC: "UTC"
+    },
+    item: {
+        // ItemDiff also belongs here, but is separately migrated in
+        // calItemUtils.jsm
+        isItemSupported: "isItemSupported",
+        isEventCalendar: "isEventCalendar",
+        isTaskCalendar: "isTaskCalendar",
+        isEvent: "isEvent",
+        isToDo: "isToDo",
+        checkIfInRange: "checkIfInRange",
+        setItemProperty: "setItemProperty",
+        getEventDefaultTransparency: "getEventDefaultTransparency"
+    },
+    view: {
+        isMouseOverBox: "isMouseOverBox",
+        calRadioGroupSelectItem: "radioGroupSelectItem",
+        applyAttributeToMenuChildren: "applyAttributeToMenuChildren",
+        removeChildElementsByAttribute: "removeChildElementsByAttribute",
+        getParentNodeOrThis: "getParentNodeOrThis",
+        getParentNodeOrThisByAttribute: "getParentNodeOrThisByAttribute",
+        formatStringForCSSRule: "formatStringForCSSRule",
+        getCompositeCalendar: "getCompositeCalendar",
+        hashColor: "hashColor",
+        getContrastingTextColor: "getContrastingTextColor"
+    },
+    window: {
+        openCalendarWizard: "openCalendarWizard",
+        openCalendarProperties: "openCalendarProperties",
+        calPrint: "openPrintDialog",
+        getCalendarWindow: "getCalendarWindow"
     }
 };
 

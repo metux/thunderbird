@@ -8,19 +8,14 @@ CONFIGURE_SUBST_FILES += ['installer/Makefile']
 DIRS += [
     'browser',
     'common',
+    'components',
     'extensions',
-    'feeds/public',
-    'feeds/src',
     'locales',
     'mailnews',
     'modules',
     'themes/classic',
     'themes/modern',
-    'profile',
     'security',
-    'shell/public',
-    'shell/src',
-    'smile',
     '../common/src',
 ]
 
@@ -32,6 +27,5 @@ if CONFIG['MOZ_BUNDLED_FONTS']:
 
 # app is always last as it packages up the built files on mac.
 DIRS += [
-    'build',
     'app',
 ]

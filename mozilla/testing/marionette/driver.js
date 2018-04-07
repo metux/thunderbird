@@ -5,55 +5,54 @@
 "use strict";
 /* global XPCNativeWrapper */
 
-const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
+ChromeUtils.import("resource://gre/modules/Log.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-Cu.import("resource://gre/modules/Log.jsm");
-Cu.import("resource://gre/modules/Preferences.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-
-Cu.import("chrome://marionette/content/accessibility.js");
-Cu.import("chrome://marionette/content/addon.js");
-Cu.import("chrome://marionette/content/assert.js");
-Cu.import("chrome://marionette/content/atom.js");
+ChromeUtils.import("chrome://marionette/content/accessibility.js");
+ChromeUtils.import("chrome://marionette/content/addon.js");
+ChromeUtils.import("chrome://marionette/content/assert.js");
+ChromeUtils.import("chrome://marionette/content/atom.js");
 const {
   browser,
   Context,
   WindowState,
-} = Cu.import("chrome://marionette/content/browser.js", {});
-Cu.import("chrome://marionette/content/capture.js");
-Cu.import("chrome://marionette/content/cert.js");
-Cu.import("chrome://marionette/content/cookie.js");
+} = ChromeUtils.import("chrome://marionette/content/browser.js", {});
+ChromeUtils.import("chrome://marionette/content/capture.js");
+ChromeUtils.import("chrome://marionette/content/cert.js");
+ChromeUtils.import("chrome://marionette/content/cookie.js");
 const {
   ChromeWebElement,
   element,
   WebElement,
-} = Cu.import("chrome://marionette/content/element.js", {});
+} = ChromeUtils.import("chrome://marionette/content/element.js", {});
 const {
   InsecureCertificateError,
   InvalidArgumentError,
   InvalidCookieDomainError,
   InvalidSelectorError,
-  NoAlertOpenError,
+  NoSuchAlertError,
   NoSuchFrameError,
   NoSuchWindowError,
   SessionNotCreatedError,
   UnknownError,
   UnsupportedOperationError,
   WebDriverError,
-} = Cu.import("chrome://marionette/content/error.js", {});
-Cu.import("chrome://marionette/content/evaluate.js");
-Cu.import("chrome://marionette/content/interaction.js");
-Cu.import("chrome://marionette/content/l10n.js");
-Cu.import("chrome://marionette/content/legacyaction.js");
-Cu.import("chrome://marionette/content/modal.js");
-Cu.import("chrome://marionette/content/proxy.js");
-Cu.import("chrome://marionette/content/reftest.js");
-Cu.import("chrome://marionette/content/session.js");
+} = ChromeUtils.import("chrome://marionette/content/error.js", {});
+ChromeUtils.import("chrome://marionette/content/evaluate.js");
+const {pprint} = ChromeUtils.import("chrome://marionette/content/format.js", {});
+ChromeUtils.import("chrome://marionette/content/interaction.js");
+ChromeUtils.import("chrome://marionette/content/l10n.js");
+ChromeUtils.import("chrome://marionette/content/legacyaction.js");
+ChromeUtils.import("chrome://marionette/content/modal.js");
+ChromeUtils.import("chrome://marionette/content/proxy.js");
+ChromeUtils.import("chrome://marionette/content/reftest.js");
+ChromeUtils.import("chrome://marionette/content/session.js");
 const {
   PollPromise,
   TimedPromise,
-} = Cu.import("chrome://marionette/content/sync.js", {});
+} = ChromeUtils.import("chrome://marionette/content/sync.js", {});
 
 Cu.importGlobalProperties(["URL"]);
 
@@ -601,6 +600,10 @@ GeckoDriver.prototype.listeningPromise = function() {
  *  <dt><code>moz:accessibilityChecks</code> (boolean)
  *  <dd>Run a11y checks when clicking elements.
  *
+ *  <dt><code>moz:useNonSpecCompliantPointerOrigin</code> (boolean)
+ *  <dd>Use the not WebDriver conforming calculation of the pointer origin
+ *   when the origin is an element, and the element center point is used.
+ *
  *  <dt><code>moz:webdriverClick</code> (boolean)
  *  <dd>Use a WebDriver conforming <i>WebDriver::ElementClick</i>.
  * </dl>
@@ -835,7 +838,7 @@ GeckoDriver.prototype.getContext = function() {
  * @param {Array.<(string|boolean|number|object|WebElement)>} args
  *     Arguments exposed to the script in <code>arguments</code>.
  *     The array items must be serialisable to the WebDriver protocol.
- * @param {number} scriptTimeout
+ * @param {number=} scriptTimeout
  *     Duration in milliseconds of when to interrupt and abort the
  *     script evaluation.
  * @param {string=} sandbox
@@ -870,21 +873,18 @@ GeckoDriver.prototype.getContext = function() {
  *     If an {@link Error} was thrown whilst evaluating the script.
  */
 GeckoDriver.prototype.executeScript = async function(cmd, resp) {
-  assert.open(this.getCurrentWindow());
-
-  let {script, args, scriptTimeout} = cmd.parameters;
-  scriptTimeout = scriptTimeout || this.timeouts.script;
-
+  let {script, args} = cmd.parameters;
   let opts = {
+    script: cmd.parameters.script,
+    args: cmd.parameters.args,
+    timeout: cmd.parameters.scriptTimeout,
     sandboxName: cmd.parameters.sandbox,
-    newSandbox: !!(typeof cmd.parameters.newSandbox == "undefined") ||
-        cmd.parameters.newSandbox,
+    newSandbox: cmd.parameters.newSandbox,
     file: cmd.parameters.filename,
     line: cmd.parameters.line,
     debug: cmd.parameters.debug_script,
   };
-
-  resp.body.value = await this.execute_(script, args, scriptTimeout, opts);
+  resp.body.value = await this.execute_(script, args, opts);
 };
 
 /**
@@ -947,44 +947,78 @@ GeckoDriver.prototype.executeScript = async function(cmd, resp) {
  *     If an Error was thrown whilst evaluating the script.
  */
 GeckoDriver.prototype.executeAsyncScript = async function(cmd, resp) {
-  assert.open(this.getCurrentWindow());
-
-  let {script, args, scriptTimeout} = cmd.parameters;
-  scriptTimeout = scriptTimeout || this.timeouts.script;
-
+  let {script, args} = cmd.parameters;
   let opts = {
+    script: cmd.parameters.script,
+    args: cmd.parameters.args,
+    timeout: cmd.parameters.scriptTimeout,
     sandboxName: cmd.parameters.sandbox,
-    newSandbox: !!(typeof cmd.parameters.newSandbox == "undefined") ||
-        cmd.parameters.newSandbox,
+    newSandbox: cmd.parameters.newSandbox,
     file: cmd.parameters.filename,
     line: cmd.parameters.line,
     debug: cmd.parameters.debug_script,
     async: true,
   };
-
-  resp.body.value = await this.execute_(script, args, scriptTimeout, opts);
+  resp.body.value = await this.execute_(script, args, opts);
 };
 
 GeckoDriver.prototype.execute_ = async function(
-    script, args, timeout, opts = {}) {
+    script,
+    args = [],
+    {
+      timeout = null,
+      sandboxName = null,
+      newSandbox = false,
+      file = "",
+      line = 0,
+      debug = false,
+      async = false,
+    } = {}) {
+
+  if (typeof timeout == "undefined" || timeout === null) {
+    timeout = this.timeouts.script;
+  }
+
+  assert.open(this.getCurrentWindow());
+
+  assert.string(script, pprint`Expected "script" to be a string: ${script}`);
+  assert.array(args, pprint`Expected script args to be an array: ${args}`);
+  assert.positiveInteger(timeout, pprint`Expected script timeout to be a positive integer: ${timeout}`);
+  if (sandboxName !== null) {
+    assert.string(sandboxName, pprint`Expected sandbox name to be a string: ${sandboxName}`);
+  }
+  assert.boolean(newSandbox, pprint`Expected newSandbox to be boolean: ${newSandbox}`);
+  assert.string(file, pprint`Expected file to be a string: ${file}`);
+  assert.number(line, pprint`Expected line to be a number: ${line}`);
+  assert.boolean(debug, pprint`Expected debug_script to be boolean: ${debug}`);
+
+  let opts = {
+    timeout,
+    sandboxName,
+    newSandbox,
+    file,
+    line,
+    debug,
+    async,
+  };
+
   let res, els;
 
   switch (this.context) {
     case Context.Content:
       // evaluate in content with lasting side-effects
-      if (!opts.sandboxName) {
-        res = await this.listener.execute(script, args, timeout, opts);
+      if (!sandboxName) {
+        res = await this.listener.execute(script, args, opts);
 
       // evaluate in content with sandbox
       } else {
-        res = await this.listener.executeInSandbox(
-            script, args, timeout, opts);
+        res = await this.listener.executeInSandbox(script, args, opts);
       }
 
       break;
 
     case Context.Chrome:
-      let sb = this.sandboxes.get(opts.sandboxName, opts.newSandbox);
+      let sb = this.sandboxes.get(sandboxName, newSandbox);
       opts.timeout = timeout;
       let wargs = evaluate.fromJSON(args, this.curBrowser.seenEls, sb.window);
       res = await evaluate.sandbox(sb, script, wargs, opts);
@@ -3160,7 +3194,7 @@ GeckoDriver.prototype.sendKeysToDialog = async function(cmd) {
 
 GeckoDriver.prototype._checkIfAlertIsPresent = function() {
   if (!this.dialog || !this.dialog.ui) {
-    throw new NoAlertOpenError("No modal dialog is currently open");
+    throw new NoSuchAlertError("No modal dialog is currently open");
   }
 };
 

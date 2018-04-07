@@ -16,8 +16,8 @@
 
 // Globals
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource:///modules/JXON.js");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource:///modules/JXON.js");
 
 var DOMParser = Components.Constructor("@mozilla.org/xmlextras/domparser;1");
 
@@ -238,7 +238,7 @@ function test_replaceVariables()
   var config = xmlReader.readFromXML(JXON.build(
     domParser.parseFromString(clientConfigXML, "text/xml")));
 
-  xmlReader.replaceVariables(config, 
+  xmlReader.replaceVariables(config,
                              "Yamato Nadeshiko",
                              "yamato.nadeshiko@example.com",
                              "abc12345");
@@ -258,7 +258,7 @@ function test_replaceVariables()
   assert_equal_config(config.identity.realname,
                       "Yamato Nadeshiko",
                       "user real name");
-  assert_equal_config(config.identity.emailAddress, 
+  assert_equal_config(config.identity.emailAddress,
                       "yamato.nadeshiko@example.com",
                       "user email address");
 }

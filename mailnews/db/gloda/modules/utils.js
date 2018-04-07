@@ -4,12 +4,7 @@
 
 this.EXPORTED_SYMBOLS = ['GlodaUtils'];
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
-var Cu = Components.utils;
-
-Cu.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 /**
  * @namespace A holding place for logic that is not gloda-specific and should

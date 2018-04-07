@@ -2,15 +2,15 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY dialog.title             "Customize Toolbar">
+<!ENTITY dialog.title             "Úprava nástrojových lišt">
 <!ENTITY dialog.dimensions        "width: 92ch; height: 36em;">
-<!ENTITY instructions.description "You can add or remove items by dragging to or from the toolbars.">
-<!ENTITY show.label               "Show:">
-<!ENTITY iconsAndText.label       "Icons and Text">
-<!ENTITY icons.label              "Icons">
+<!ENTITY instructions.description "Pro přidání nebo odebrání přetáhněte položku do nebo z nástrojové lišty.">
+<!ENTITY show.label               "Zobrazit:">
+<!ENTITY iconsAndText.label       "Ikony a text">
+<!ENTITY icons.label              "Ikony">
 <!ENTITY text.label               "Text">
-<!ENTITY useSmallIcons.label      "Use Small Icons">
-<!ENTITY restoreDefaultSet.label  "Restore Default Set">
-<!ENTITY addNewToolbar.label      "Add New Toolbar">
-<!ENTITY saveChanges.label        "Done">
-<!ENTITY undoChanges.label        "Undo Changes">
+<!ENTITY useSmallIcons.label      "Použít malé ikony">
+<!ENTITY restoreDefaultSet.label  "Obnovit výchozí sadu">
+<!ENTITY addNewToolbar.label      "Přidat novou lištu">
+<!ENTITY saveChanges.label        "Hotovo">
+<!ENTITY undoChanges.label        "Zrušit změny">

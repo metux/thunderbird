@@ -26,16 +26,12 @@
 <!ENTITY signingCert.message "Erabili ziurtagiri hau bidalitako mezuak digitalki sinatzeko:">
 
 <!ENTITY certificates.label "Ziurtagiriak">
-
-
+<!ENTITY manageCerts2.label "Kudeatu ziurtagiriak">
+<!ENTITY manageCerts2.accesskey "K">
 <!ENTITY manageDevices.label "Segurtasun-gailuak">
 <!ENTITY manageDevices.accesskey "g">
+
 <!-- Strings for the cert picker dialog -->
-
-
-
-<!ENTITY manageCerts2.label "Manage Certificates">
-<!ENTITY manageCerts2.accesskey "M">
-<!ENTITY certPicker.title "Select Certificate">
-<!ENTITY certPicker.info  "Certificate:">
-<!ENTITY certPicker.detailsLabel "Details of selected certificate:">
+<!ENTITY certPicker.title "Aukeratu ziurtagiria">
+<!ENTITY certPicker.info  "Ziurtagiria:">
+<!ENTITY certPicker.detailsLabel "Hautatutako ziurtagiriaren xehetasunak:">

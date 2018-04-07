@@ -20,6 +20,10 @@
 <!ENTITY completeNotification.label "con el nombre del remitente y una vista preliminar del mensaje">
 <!ENTITY buddyInfoOnly.label "con el nombre del remitente únicamente">
 <!ENTITY dummyNotification.label "sin ninguna información">
+<!ENTITY getAttention.label "Hacer parpadear el elemento de la barra de tareas">
+<!ENTITY getAttention.accesskey "H">
+<!ENTITY getAttentionMac.label "Animar icono del dock">
+<!ENTITY getAttentionMac.accesskey "d">
 <!ENTITY chatSound.accesskey "R">
 <!ENTITY chatSound.label "Reproducir un sonido">
 <!ENTITY play.label "Reproducir">
@@ -46,8 +50,3 @@
 <!ENTITY messageStyleShowHeader.accesskey "z">
 <!ENTITY messageStyleNoPreview.title "No está disponible la vista preliminar">
 <!ENTITY messageStyleNoPreview.description "Este tema no es válido o no está actualmente disponible (complemento desactivado, modo seguro…).">
-
-<!ENTITY  getAttention.label                  "Flash the taskbar item">
-<!ENTITY  getAttention.accesskey              "F">
-<!ENTITY  getAttentionMac.label               "Animate dock icon">
-<!ENTITY  getAttentionMac.accesskey           "o">

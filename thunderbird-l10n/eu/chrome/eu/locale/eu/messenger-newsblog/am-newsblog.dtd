@@ -4,17 +4,13 @@
 
 <!ENTITY loginAtStartup.label          "Egiaztatu artikulu berriak dauden abiaraztean">
 <!ENTITY loginAtStartup.accesskey      "g">
+<!ENTITY biffAll.label                 "Gaitu eguneratzeak jario guztietarako">
+<!ENTITY biffAll.accesskey             "e">
 
-
-
+<!ENTITY newFeedSettings.label         "Ezarpen lehenetsiak jario berrietarako">
 
 <!ENTITY manageSubscriptions.label     "Kudeatu harpidetzak…">
 <!ENTITY manageSubscriptions.accesskey "K">
 
 <!ENTITY feedWindowTitle.label         "Jario-kontuaren morroia">
-
-
-<!ENTITY biffAll.label                 "Enable updates for all feeds">
-<!ENTITY biffAll.accesskey             "E">
-<!ENTITY newFeedSettings.label         "Default Settings for New Feeds">
-<!ENTITY feeds.accountName             "Blogs &amp; News Feeds">
+<!ENTITY feeds.accountName             "Blogen eta albisteen jarioak">

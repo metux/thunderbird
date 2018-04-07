@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/id/locale/id/passwordmgr/", 
         "pippki": "chrome/id/locale/id/pippki/"
       }, 
-      "version": "20171102110029"
+      "version": "20180314105209"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-id@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "id", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Bahasa Indonesia (ID) Language Pack", 
   "manifest_version": 2, 
   "sources": {

@@ -34,3 +34,6 @@
 <!ENTITY pref.numberofweeks.4 "4 vikur">
 <!ENTITY pref.numberofweeks.5 "5 vikur">
 <!ENTITY pref.numberofweeks.6 "6 vikur">
+
+<!ENTITY pref.showlocation.label "Show location">
+<!ENTITY pref.showlocation.accesskey "L">

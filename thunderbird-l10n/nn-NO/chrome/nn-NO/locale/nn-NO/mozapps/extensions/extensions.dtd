@@ -4,13 +4,15 @@
 <!ENTITY addons.windowTitle                   "Utvidingar">
 
 <!ENTITY search.placeholder                   "Søk i alle utvidingar">
+
+<!ENTITY search.placeholder2                  "Søk på addons.mozilla.org">
 <!ENTITY search.buttonlabel                   "Søk">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
 <!ENTITY search.commandkey                    "f">
 
-<!ENTITY loading.label                        "Lastar …">
-<!ENTITY listEmpty.installed.label            "Du har ingen utvidingar av denne typen installert">
+<!ENTITY loading.label                        "Lastar…">
+<!ENTITY listEmpty.installed.label            "Du har ingen utvidingar av denne typen installerte">
 <!ENTITY listEmpty.availableUpdates.label     "Ingen oppdateringar funne">
 <!ENTITY listEmpty.recentUpdates.label        "Du har ikkje nyleg oppdatert utvidingane">
 <!ENTITY listEmpty.findUpdates.label          "Sjå etter oppdateringar">
@@ -18,13 +20,14 @@
 <!ENTITY listEmpty.button.label               "Les meir om utvidingar">
 <!ENTITY installAddonFromFile.label           "Installer utviding frå fil…">
 <!ENTITY installAddonFromFile.accesskey       "I">
-<!ENTITY toolsMenu.tooltip                    "Verktøy for alle utvidingane">
+<!ENTITY toolsMenu.tooltip                    "Verktøy for alle utvidingar">
 
 <!ENTITY getThemes.description                "Ønskjer du å tilpasse nettlesaren din?">
 <!ENTITY getThemes.learnMore                  "Vel mellom tusenvis av tema.">
 
 <!ENTITY cmd.back.tooltip                     "Gå tilbake ei side">
 <!ENTITY cmd.forward.tooltip                  "Gå fram ei side">
+
 
 <!ENTITY showUnsignedExtensions.button.label  "Nokre utvidingar kunne ikkje stadfestast">
 <!ENTITY showAllExtensions.button.label       "Vis alle utvidingar">
@@ -36,7 +39,7 @@
 <!ENTITY warning.checkcompatibility.label          "Kompatiblitetskonroll er avslegen. Du har kanskje ikkje-kompatible utvidingar.">
 <!ENTITY warning.checkcompatibility.enable.label   "Slå på">
 <!ENTITY warning.checkcompatibility.enable.tooltip "Slå på kompatibilitetskontroll">
-<!ENTITY warning.updatesecurity.label              "Tryggingskontroll av utvidingsoppdateringar er slått av. Tryggleiken din kan bli sett i fare av oppdateringar.">
+<!ENTITY warning.updatesecurity.label              "Tryggingskontroll av utvidingsoppdateringar er slått av. Du er sårbar for skadelege oppdateringar.">
 <!ENTITY warning.updatesecurity.enable.label       "Slå på">
 <!ENTITY warning.updatesecurity.enable.tooltip     "Slå på tryggingskontroll av utvidingsoppdateringar">
 
@@ -124,7 +127,7 @@
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
      Displayed in the center of the Get Add-ons view, see bug 601143 for mockups. -->
 <!ENTITY discover.title                       "Kva er utvidingar?">
-<!ENTITY discover.description2                "Utvidingar er program som lèt deg tilpasse &brandShortName; med ekstra funksjonalitet eller stil. Prøv ein sidestolpe som sparar deg tid, vêrvarsling, eller eit tema som får &brandShortName; til å sjå ut som din eigen.">
+<!ENTITY discover.description2                "Utvidingar er program som lèt deg tilpasse &brandShortName; med ekstra funksjonalitet eller stil. Prøv ein sidestolpe som sparar deg tid, vêrvarsling, eller eit tema som gjer &brandShortName; din.">
 <!ENTITY discover.footer                      "Når du er kopla til nettet vil dette vindauge innehalde nokre av dei beste og mest populære utvidingane som du kan teste.">
 
 <!-- detail view -->
@@ -255,10 +258,7 @@
 <!ENTITY pluginDeprecation.description "Saknar du noko? Nokre programtillegg er ikkje lenger støtta av &brandShortName;.">
 <!ENTITY pluginDeprecation.learnMore "Les meir.">
 
-<!ENTITY legacyWarning.description "Saknar du noko? Nokre utvidingar er ikkje lenger støtta av &brandShortName;.">
 <!ENTITY legacyWarning.showLegacy "Vis forelda utvidingar">
 <!ENTITY legacyExtensions.title "Forelda utvidingar">
 <!ENTITY legacyExtensions.description "Desse utvidingane oppfyller ikkje gjeldande standardar i &brandShortName; og er difor slått av.">
 <!ENTITY legacyExtensions.learnMore "Les meir om endringar av utvidingar">
-
-<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

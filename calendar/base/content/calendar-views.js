@@ -9,11 +9,11 @@
  *          editSelectedEvents, selectAllEvents
  */
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://calendar/modules/calAlarmUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calAlarmUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 
 /**
  * Controller for the views
@@ -67,7 +67,7 @@ var calendarViewController = {
 
             if (aNewStartTime || aNewEndTime) {
                 // Yay for variable names that make this next line look silly
-                if (cal.isEvent(instance)) {
+                if (cal.item.isEvent(instance)) {
                     if (aNewStartTime && instance.startDate) {
                         instance.startDate = aNewStartTime;
                     }
@@ -97,9 +97,11 @@ var calendarViewController = {
     deleteOccurrences: function(aCount,
                                 aOccurrences,
                                 aUseParentItems,
-                                aDoNotConfirm) {
+                                aDoNotConfirm,
+                                aExtResponse=null) {
         startBatchTransaction();
         let recurringItems = {};
+        let extResponse = aExtResponse || { responseMode: Ci.calIItipItem.USER };
 
         let getSavedItem = function(aItemToDelete) {
             // Get the parent item, saving it in our recurringItems object for
@@ -120,7 +122,7 @@ var calendarViewController = {
         // it, filter out any items that have readonly calendars, so that
         // checking for one total item below also works out if all but one item
         // are readonly.
-        let occurrences = aOccurrences.filter(item => cal.isCalendarWritable(item.calendar));
+        let occurrences = aOccurrences.filter(item => cal.acl.isCalendarWritable(item.calendar));
 
         for (let itemToDelete of occurrences) {
             if (aUseParentItems) {
@@ -146,7 +148,12 @@ var calendarViewController = {
             // they come in. If this is not an occurrence, we can go ahead and
             // delete the whole item.
             if (itemToDelete.parentItem.hashId == itemToDelete.hashId) {
-                doTransaction("delete", itemToDelete, itemToDelete.calendar, null, null);
+                doTransaction("delete",
+                              itemToDelete,
+                              itemToDelete.calendar,
+                              null,
+                              null,
+                              extResponse);
             } else {
                 let savedItem = getSavedItem(itemToDelete);
                 savedItem.newItem.recurrenceInfo
@@ -164,7 +171,8 @@ var calendarViewController = {
                           ritem.newItem,
                           ritem.newItem.calendar,
                           ritem.oldItem,
-                          null);
+                          null,
+                          extResponse);
         }
         endBatchTransaction();
     }
@@ -254,7 +262,7 @@ function switchToView(aViewType) {
     let viewTabs = document.getElementById("view-tabs");
     viewTabs.selectedIndex = getViewDeck().selectedIndex;
 
-    let compositeCal = cal.getCompositeCalendar(window);
+    let compositeCal = cal.view.getCompositeCalendar(window);
     if (view.displayCalendar != compositeCal) {
         view.displayCalendar = compositeCal;
         view.timezone = cal.dtz.defaultTimezone;
@@ -395,7 +403,7 @@ function updateStyleSheetForViews(aCalendar) {
 
     let color = aCalendar.getProperty("color") || "#A8C2E1";
     ruleCache[aCalendar.id].style.backgroundColor = color;
-    ruleCache[aCalendar.id].style.color = cal.getContrastingTextColor(color);
+    ruleCache[aCalendar.id].style.color = cal.view.getContrastingTextColor(color);
 }
 
 /**
@@ -418,7 +426,7 @@ var categoryManagement = {
         for (let i in categories) {
             let category = categories[i];
             if (category.search(/[^_0-9a-z-]/) != -1) {
-                let categoryFix = cal.formatStringForCSSRule(category);
+                let categoryFix = cal.view.formatStringForCSSRule(category);
                 if (categoryPrefBranch.prefHasUserValue(categoryFix)) {
                     categories.splice(i, 1); // remove illegal name
                 } else {
@@ -657,7 +665,7 @@ function selectAllEvents() {
         }
     };
 
-    let composite = cal.getCompositeCalendar(window);
+    let composite = cal.view.getCompositeCalendar(window);
     let filter = composite.ITEM_FILTER_CLASS_OCCURRENCES;
 
     if (currentView().tasksInView) {

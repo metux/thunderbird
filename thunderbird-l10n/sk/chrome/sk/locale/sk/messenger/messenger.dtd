@@ -318,6 +318,7 @@
 <!ENTITY goChatCmd.label "Konverzácie">
 <!ENTITY goChatCmd.accesskey "K">
 <!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Správa s hviezdičkou">
 <!ENTITY prevStarredMsgCmd.accesskey "h">
 <!ENTITY folderMenu.label "Priečinok">
@@ -366,6 +367,8 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Upraviť koncept správy">
 <!ENTITY editDraftMsgCmd.accesskey "o">
+<!ENTITY editTemplateMsgCmd.label "Upraviť šablónu">
+<!ENTITY editTemplateMsgCmd.accesskey "p">
 <!ENTITY newMsgFromTemplateCmd.label "Nová správa zo šablóny">
 <!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Vytvoriť filter zo správy…">
@@ -459,6 +462,11 @@
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "Doplnky">
 <!ENTITY addons.accesskey "D">
+<!ENTITY addonPrefs.label "Možnosti doplnku">
+<!ENTITY addonPrefs.accesskey "o">
+<!ENTITY addonPrefsUnix.label "Možnosti doplnku">
+<!ENTITY addonPrefsUnix.accesskey "o">
+<!ENTITY addonNoPrefs.label "Neboli nájdené žiadne nastavenia doplnku.">
 <!ENTITY activitymanager.label "Správca činností">
 <!ENTITY activitymanager.accesskey "v">
 <!ENTITY imAccountsStatus.label "Stav pre konverzácie">
@@ -502,8 +510,10 @@
 <!ENTITY devToolboxCmd.label "Vývojárske nástroje">
 <!ENTITY devToolboxCmd.accesskey "t">
 <!ENTITY devToolboxCmd.commandkey "i">
-<!ENTITY addonDebugCmd.label "Debugger pre doplnky">
-<!ENTITY addonDebugCmd.accesskey "D">
+<!ENTITY addonDebugCmd.label "Ladič doplnkov">
+<!ENTITY addonDebugCmd.accesskey "d">
+<!ENTITY debugAddonsCmd.label "Ladiť doplnky">
+<!ENTITY debugAddonsCmd.accesskey "a">
 <!ENTITY tabsDebugCmd.label "Debugger obsahu rámcov">
 <!ENTITY tabsDebugCmd.accesskey "b">
 <!ENTITY errorConsoleCmd.label "Chybová konzola">
@@ -752,6 +762,8 @@
 <!ENTITY contextEditMsgAsNew.label "Upraviť ako novú správu">
 <!ENTITY contextEditMsgAsNew.accesskey "n">
 <!ENTITY contextEditDraftMsg.label "Upraviť koncept správy">
+<!ENTITY contextEditTemplate.label "Upraviť šablónu">
+<!ENTITY contextEditTemplate.accesskey "p">
 <!ENTITY contextArchive.label "Archivovať">
 <!ENTITY contextArchive.accesskey "h">
 <!ENTITY contextReplySender.label "Odpovedať odosielateľovi">
@@ -957,16 +969,3 @@
 <!ENTITY dockOptions.label              "Nastavenia ikony aplikácie…">
 <!ENTITY writeNewMessageDock.label      "Nová e-mailová správa">
 <!ENTITY openAddressBookDock.label      "Otvoriť adresár">
-
-<!ENTITY goChatCmd2.key "H">
-<!ENTITY editTemplateMsgCmd.label "Edit Template">
-<!ENTITY editTemplateMsgCmd.accesskey "T">
-<!ENTITY addonPrefs.label "Add-on Options">
-<!ENTITY addonPrefs.accesskey "O">
-<!ENTITY addonPrefsUnix.label "Add-on Preferences">
-<!ENTITY addonPrefsUnix.accesskey "P">
-<!ENTITY addonNoPrefs.label "No Add-on settings found.">
-<!ENTITY debugAddonsCmd.label "Debug Add-ons">
-<!ENTITY debugAddonsCmd.accesskey "A">
-<!ENTITY contextEditTemplate.label "Edit Template">
-<!ENTITY contextEditTemplate.accesskey "T">

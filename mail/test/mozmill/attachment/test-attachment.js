@@ -13,10 +13,10 @@ var MODULE_REQUIRES = ['folder-display-helpers', 'compose-helpers',
                        'window-helpers'];
 
 var elib = {};
-Cu.import('resource://mozmill/modules/elementslib.js', elib);
+ChromeUtils.import('resource://mozmill/modules/elementslib.js', elib);
 var EventUtils = {};
-Cu.import('resource://mozmill/stdlib/EventUtils.js', EventUtils);
-Cu.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import('resource://mozmill/stdlib/EventUtils.js', EventUtils);
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 var folder;
 
@@ -114,7 +114,7 @@ var setupModule = function (module) {
 
   // Add another evilly-named attachment for Windows tests, to ensure that
   // trailing periods are stripped.
-  if ('@mozilla.org/windows-registry-key;1' in Components.classes) {
+  if ('@mozilla.org/windows-registry-key;1' in Cc) {
     messages.push({ attachments: [{ body: textAttachment,
                                     contentType: 'application/octet-stream',
                                     filename: 'ubik.evil. . . . . . . . . ....',

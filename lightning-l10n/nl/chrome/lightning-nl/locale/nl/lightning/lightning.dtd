@@ -37,7 +37,18 @@
 <!ENTITY lightning.menu.eventtask.accesskey            "u">
 
 <!-- properties dialog, calendar creation wizard -->
-<!ENTITY lightning.calendarproperties.email.label               "E-mail:">
+<!-- LOCALIZATON NOTE(lightning.calendarproperties.email.label,
+     lightning.calendarproperties.forceEmailScheduling.label)
+     These strings are used in the calendar wizard and the calendar properties dialog, but are only
+     displayed when setting/using a caldav calendar -->
+<!ENTITY lightning.calendarproperties.email.label                           "E-mail:">
+<!ENTITY lightning.calendarproperties.forceEmailScheduling.label            "Voorkeur voor e-mailplanning aan clientzijde">
+<!-- LOCALIZATON NOTE(lightning.calendarproperties.forceEmailScheduling.tooltiptext1,
+     lightning.calendarproperties.forceEmailScheduling.tooltiptext2)
+     - tooltiptext1 is used in the calendar wizard when setting a new caldav calendar
+     - tooltiptext2 is used in the calendar properties dialog for caldav calendars -->
+<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext1     "Voorlopig kunt u dit alleen inschakelen na het instellen van deze agenda in het eigenschappenvenster ervan als de agendaserver de planning verzorgt.">
+<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext2     "Deze optie is alleen beschikbaar als de agendaserver planning verzorgt. Bij inschakelen kan worden teruggevallen naar de standaard op e-mail gebaseerde planning in plaats van dit aan de server over te laten.">
 
 <!-- iMIP Bar (meeting support) -->
 <!ENTITY lightning.imipbar.btnAccept.label                                  "Accepteren">
@@ -72,6 +83,13 @@
 <!ENTITY lightning.imipbar.btnUpdate.tooltiptext                            "Gebeurtenis bijwerken in agenda">
 <!ENTITY lightning.imipbar.description                                      "Dit bericht bevat een uitnodiging voor een gebeurtenis.">
 
+<!ENTITY lightning.imipbar.btnSend.label                                    "Nu een antwoord verzenden">
+<!ENTITY lightning.imipbar.btnSend.tooltiptext                              "Een antwoord naar de organisator verzenden">
+<!ENTITY lightning.imipbar.btnSendSeries.tooltiptext                        "Een antwoord voor de hele serie naar de organisator verzenden">
+<!ENTITY lightning.imipbar.btnDontSend.label                                "Geen antwoord verzenden">
+<!ENTITY lightning.imipbar.btnDontSend.tooltiptext                          "Uw deelnamestatus wijzigen zonder een antwoord naar de organisator te verzenden">
+<!ENTITY lightning.imipbar.btnDontSendSeries.tooltiptext                    "Uw deelnamestatus voor de serie wijzigen zonder een een antwoord naar de organisator te verzenden">
+
 <!-- Lightning specific keybindings -->
 <!ENTITY lightning.keys.event.showCalendar.key "C">
 <!ENTITY lightning.keys.event.showTasks.key "D">
@@ -91,7 +109,3 @@
 <!ENTITY todaypane.showTodayPane.label "Venster Vandaag tonen">
 <!ENTITY todaypane.showTodayPane.accesskey "o">
 <!ENTITY todaypane.statusButton.label "Venster Vandaag">
-
-<!ENTITY lightning.calendarproperties.forceEmailScheduling.label            "Prefer client-side email scheduling">
-<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext1     "For now, you can only enable this after setting up this calendar in its property dialog if the calendar server takes care of scheduling.">
-<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext2     "This option is only available if the calendar server handles scheduling. Enabling will allow to fall back to the standard email based scheduling instead of leaving it to the server.">

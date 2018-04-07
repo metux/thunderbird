@@ -2,13 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
-
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/AppConstants.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
 
 var MAPI_STARTUP_ARG = "MapiStartup";
 var MESSAGE_ID_PARAM = "?messageid=";
@@ -34,7 +30,7 @@ var nsMailNewsCommandLineHandler =
    */
   handle: function nsMailNewsCommandLineHandler_handle(aCommandLine) {
     // Do this here because xpcshell isn't too happy with this at startup
-    Components.utils.import("resource:///modules/MailUtils.js");
+    ChromeUtils.import("resource:///modules/MailUtils.js");
     // -mail <URL>
     let mailURL = null;
     try {
@@ -97,7 +93,7 @@ var nsMailNewsCommandLineHandler =
             // Get the URL for this file
             let fileURL = Services.io.newFileURI(file)
                                   .QueryInterface(Ci.nsIFileURL);
-            fileURL.query = "?type=application/x-message-display";
+            fileURL = fileURL.mutate().setQuery("type=application/x-message-display").finalize();
             // Open this file in a new message window.
             Services.ww.openWindow(null,
                                    "chrome://messenger/content/messageWindow.xul",
@@ -161,7 +157,7 @@ mailNewsCommandLineHandlerModule.prototype =
   // XPCOM registration
   classID: CMDLINEHANDLER_CID,
 
-  QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsIModule]),
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIModule]),
 
   _xpcom_factory: nsMailNewsCommandLineHandler
 };

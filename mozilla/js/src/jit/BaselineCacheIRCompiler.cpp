@@ -11,10 +11,10 @@
 #include "jit/SharedICHelpers.h"
 #include "proxy/Proxy.h"
 
-#include "jscntxtinlines.h"
-#include "jscompartmentinlines.h"
-
 #include "jit/MacroAssembler-inl.h"
+#include "jit/SharedICHelpers-inl.h"
+#include "vm/JSCompartment-inl.h"
+#include "vm/JSContext-inl.h"
 
 using namespace js;
 using namespace js::jit;
@@ -198,7 +198,7 @@ BaselineCacheIRCompiler::compile()
 
     Linker linker(masm);
     AutoFlushICache afc("getStubCode");
-    Rooted<JitCode*> newStubCode(cx_, linker.newCode<NoGC>(cx_, BASELINE_CODE));
+    Rooted<JitCode*> newStubCode(cx_, linker.newCode(cx_, CodeKind::Baseline));
     if (!newStubCode) {
         cx_->recoverFromOutOfMemory();
         return nullptr;
@@ -210,32 +210,60 @@ BaselineCacheIRCompiler::compile()
 bool
 BaselineCacheIRCompiler::emitGuardShape()
 {
-    Register obj = allocator.useRegister(masm, reader.objOperandId());
-    AutoScratchRegister scratch(allocator, masm);
+    ObjOperandId objId = reader.objOperandId();
+    Register obj = allocator.useRegister(masm, objId);
+    AutoScratchRegister scratch1(allocator, masm);
+
+    bool needSpectreMitigations = objectGuardNeedsSpectreMitigations(objId);
+
+    Maybe<AutoScratchRegister> maybeScratch2;
+    if (needSpectreMitigations)
+        maybeScratch2.emplace(allocator, masm);
 
     FailurePath* failure;
     if (!addFailurePath(&failure))
         return false;
 
     Address addr(stubAddress(reader.stubOffset()));
-    masm.loadPtr(addr, scratch);
-    masm.branchTestObjShape(Assembler::NotEqual, obj, scratch, failure->label());
+    masm.loadPtr(addr, scratch1);
+    if (needSpectreMitigations) {
+        masm.branchTestObjShape(Assembler::NotEqual, obj, scratch1, *maybeScratch2, obj,
+                                failure->label());
+    } else {
+        masm.branchTestObjShapeNoSpectreMitigations(Assembler::NotEqual, obj, scratch1,
+                                                    failure->label());
+    }
+
     return true;
 }
 
 bool
 BaselineCacheIRCompiler::emitGuardGroup()
 {
-    Register obj = allocator.useRegister(masm, reader.objOperandId());
-    AutoScratchRegister scratch(allocator, masm);
+    ObjOperandId objId = reader.objOperandId();
+    Register obj = allocator.useRegister(masm, objId);
+    AutoScratchRegister scratch1(allocator, masm);
+
+    bool needSpectreMitigations = objectGuardNeedsSpectreMitigations(objId);
+
+    Maybe<AutoScratchRegister> maybeScratch2;
+    if (needSpectreMitigations)
+        maybeScratch2.emplace(allocator, masm);
 
     FailurePath* failure;
     if (!addFailurePath(&failure))
         return false;
 
     Address addr(stubAddress(reader.stubOffset()));
-    masm.loadPtr(addr, scratch);
-    masm.branchTestObjGroup(Assembler::NotEqual, obj, scratch, failure->label());
+    masm.loadPtr(addr, scratch1);
+    if (needSpectreMitigations) {
+        masm.branchTestObjGroup(Assembler::NotEqual, obj, scratch1, *maybeScratch2, obj,
+                                failure->label());
+    } else {
+        masm.branchTestObjGroupNoSpectreMitigations(Assembler::NotEqual, obj, scratch1,
+                                                    failure->label());
+    }
+
     return true;
 }
 
@@ -283,16 +311,15 @@ BaselineCacheIRCompiler::emitGuardCompartment()
         return false;
 
     Address addr(stubAddress(reader.stubOffset()));
-    masm.loadPtr(Address(obj, JSObject::offsetOfGroup()), scratch);
-    masm.loadPtr(Address(scratch, ObjectGroup::offsetOfCompartment()), scratch);
-    masm.branchPtr(Assembler::NotEqual, addr, scratch, failure->label());
+    masm.branchTestObjCompartment(Assembler::NotEqual, obj, addr, scratch, failure->label());
     return true;
 }
 
 bool
 BaselineCacheIRCompiler::emitGuardAnyClass()
 {
-    Register obj = allocator.useRegister(masm, reader.objOperandId());
+    ObjOperandId objId = reader.objOperandId();
+    Register obj = allocator.useRegister(masm, objId);
     AutoScratchRegister scratch(allocator, masm);
 
     FailurePath* failure;
@@ -300,10 +327,14 @@ BaselineCacheIRCompiler::emitGuardAnyClass()
         return false;
 
     Address testAddr(stubAddress(reader.stubOffset()));
+    if (objectGuardNeedsSpectreMitigations(objId)) {
+        masm.branchTestObjClass(Assembler::NotEqual, obj, testAddr, scratch, obj,
+                                failure->label());
+    } else {
+        masm.branchTestObjClassNoSpectreMitigations(Assembler::NotEqual, obj, testAddr, scratch,
+                                                    failure->label());
+    }
 
-    masm.loadObjGroup(obj, scratch);
-    masm.loadPtr(Address(scratch, ObjectGroup::offsetOfClasp()), scratch);
-    masm.branchPtr(Assembler::NotEqual, testAddr, scratch, failure->label());
     return true;
 }
 
@@ -356,8 +387,8 @@ BaselineCacheIRCompiler::emitGuardSpecificAtom()
 
     // The pointers are not equal, so if the input string is also an atom it
     // must be a different string.
-    masm.branchTest32(Assembler::NonZero, Address(str, JSString::offsetOfFlags()),
-                      Imm32(JSString::ATOM_BIT), failure->label());
+    masm.branchTest32(Assembler::Zero, Address(str, JSString::offsetOfFlags()),
+                      Imm32(JSString::NON_ATOM_BIT), failure->label());
 
     // Check the length.
     masm.loadPtr(atomAddr, scratch);
@@ -408,9 +439,11 @@ BaselineCacheIRCompiler::emitGuardXrayExpandoShapeAndDefaultProto()
     Address shapeWrapperAddress(stubAddress(reader.stubOffset()));
 
     AutoScratchRegister scratch(allocator, masm);
-    Maybe<AutoScratchRegister> scratch2;
-    if (hasExpando)
+    Maybe<AutoScratchRegister> scratch2, scratch3;
+    if (hasExpando) {
         scratch2.emplace(allocator, masm);
+        scratch3.emplace(allocator, masm);
+    }
 
     FailurePath* failure;
     if (!addFailurePath(&failure))
@@ -432,7 +465,8 @@ BaselineCacheIRCompiler::emitGuardXrayExpandoShapeAndDefaultProto()
 
         masm.loadPtr(shapeWrapperAddress, scratch2.ref());
         LoadShapeWrapperContents(masm, scratch2.ref(), scratch2.ref(), failure->label());
-        masm.branchTestObjShape(Assembler::NotEqual, scratch, scratch2.ref(), failure->label());
+        masm.branchTestObjShape(Assembler::NotEqual, scratch, *scratch2, *scratch3, scratch,
+                                failure->label());
 
         // The reserved slots on the expando should all be in fixed slots.
         Address protoAddress(scratch, NativeObject::getFixedSlotOffset(GetXrayJitInfo()->expandoProtoSlot));
@@ -445,6 +479,42 @@ BaselineCacheIRCompiler::emitGuardXrayExpandoShapeAndDefaultProto()
         masm.bind(&done);
     }
 
+    return true;
+}
+
+bool
+BaselineCacheIRCompiler::emitGuardFunctionPrototype()
+{
+    Register obj = allocator.useRegister(masm, reader.objOperandId());
+    Register prototypeObject = allocator.useRegister(masm, reader.objOperandId());
+
+    // Allocate registers before the failure path to make sure they're registered
+    // by addFailurePath.
+    AutoScratchRegister scratch1(allocator, masm);
+    AutoScratchRegister scratch2(allocator, masm);
+
+    FailurePath* failure;
+    if (!addFailurePath(&failure))
+        return false;
+
+     // Guard on the .prototype object.
+    masm.loadPtr(Address(obj, NativeObject::offsetOfSlots()), scratch1);
+    masm.load32(Address(stubAddress(reader.stubOffset())), scratch2);
+    BaseValueIndex prototypeSlot(scratch1, scratch2);
+    masm.branchTestObject(Assembler::NotEqual, prototypeSlot, failure->label());
+    masm.unboxObject(prototypeSlot, scratch1);
+    masm.branchPtr(Assembler::NotEqual,
+                   prototypeObject,
+                   scratch1, failure->label());
+
+    return true;
+}
+
+bool
+BaselineCacheIRCompiler::emitLoadValueResult()
+{
+    AutoOutputRegister output(*this);
+    masm.loadValue(stubAddress(reader.stubOffset()), output.valueReg());
     return true;
 }
 
@@ -492,9 +562,7 @@ BaselineCacheIRCompiler::emitMegamorphicLoadSlotResult()
         return false;
 
     // The object must be Native.
-    masm.loadObjClass(obj, scratch3);
-    masm.branchTest32(Assembler::NonZero, Address(scratch3, Class::offsetOfFlags()),
-                      Imm32(Class::NON_NATIVE), failure->label());
+    masm.branchIfNonNativeObj(obj, scratch3, failure->label());
 
     masm.Push(UndefinedValue());
     masm.moveStackPtrTo(scratch3.get());
@@ -622,7 +690,7 @@ BaselineCacheIRCompiler::emitCallScriptedGetterResult()
             return false;
 
         masm.loadPtr(getterAddr, callee);
-        masm.branchIfFunctionHasNoScript(callee, failure->label());
+        masm.branchIfFunctionHasNoJitEntry(callee, /* constructing */ false, failure->label());
         masm.loadJitCodeRaw(callee, code);
     }
 
@@ -865,15 +933,16 @@ BaselineCacheIRCompiler::emitLoadFrameArgumentResult()
 {
     AutoOutputRegister output(*this);
     Register index = allocator.useRegister(masm, reader.int32OperandId());
-    AutoScratchRegisterMaybeOutput scratch(allocator, masm, output);
+    AutoScratchRegister scratch1(allocator, masm);
+    AutoScratchRegisterMaybeOutput scratch2(allocator, masm, output);
 
     FailurePath* failure;
     if (!addFailurePath(&failure))
         return false;
 
     // Bounds check.
-    masm.loadPtr(Address(BaselineFrameReg, BaselineFrame::offsetOfNumActualArgs()), scratch);
-    masm.branch32(Assembler::AboveOrEqual, index, scratch, failure->label());
+    masm.loadPtr(Address(BaselineFrameReg, BaselineFrame::offsetOfNumActualArgs()), scratch1);
+    masm.boundsCheck32ForLoad(index, scratch1, scratch2, failure->label());
 
     // Load the argument.
     masm.loadValue(BaseValueIndex(BaselineFrameReg, index, BaselineFrame::offsetOfArg(0)),
@@ -1139,27 +1208,22 @@ BaselineCacheIRCompiler::emitAddAndStoreSlotShared(CacheOp op)
         // per the acquired properties analysis. Only change the group if the
         // old group still has a newScript. This only applies to PlainObjects.
         Label noGroupChange;
-        masm.loadPtr(Address(obj, JSObject::offsetOfGroup()), scratch1);
-        masm.branchPtr(Assembler::Equal,
-                       Address(scratch1, ObjectGroup::offsetOfAddendum()),
-                       ImmWord(0),
-                       &noGroupChange);
+        masm.branchIfObjGroupHasNoAddendum(obj, scratch1, &noGroupChange);
 
-        // Reload the new group from the cache.
+        // Update the object's group.
         masm.loadPtr(newGroupAddr, scratch1);
-
-        Address groupAddr(obj, JSObject::offsetOfGroup());
-        EmitPreBarrier(masm, groupAddr, MIRType::ObjectGroup);
-        masm.storePtr(scratch1, groupAddr);
+        masm.storeObjGroup(scratch1, obj, [](MacroAssembler& masm, const Address& addr) {
+            EmitPreBarrier(masm, addr, MIRType::ObjectGroup);
+        });
 
         masm.bind(&noGroupChange);
     }
 
     // Update the object's shape.
-    Address shapeAddr(obj, ShapedObject::offsetOfShape());
     masm.loadPtr(newShapeAddr, scratch1);
-    EmitPreBarrier(masm, shapeAddr, MIRType::Shape);
-    masm.storePtr(scratch1, shapeAddr);
+    masm.storeObjShape(scratch1, obj, [](MacroAssembler& masm, const Address& addr) {
+        EmitPreBarrier(masm, addr, MIRType::Shape);
+    });
 
     // Perform the store. No pre-barrier required since this is a new
     // initialization.
@@ -1266,9 +1330,8 @@ BaselineCacheIRCompiler::emitStoreTypedObjectReferenceProperty()
     Address dest(scratch1, 0);
 
     emitStoreTypedObjectReferenceProp(val, type, dest, scratch2);
+    emitPostBarrierSlot(obj, val, scratch1);
 
-    if (type != ReferenceTypeDescr::TYPE_STRING)
-        emitPostBarrierSlot(obj, val, scratch1);
     return true;
 }
 
@@ -1721,7 +1784,7 @@ BaselineCacheIRCompiler::emitCallScriptedSetter()
             return false;
 
         masm.loadPtr(setterAddr, scratch1);
-        masm.branchIfFunctionHasNoScript(scratch1, failure->label());
+        masm.branchIfFunctionHasNoJitEntry(scratch1, /* constructing */ false, failure->label());
     }
 
     allocator.discardStack(masm);
@@ -2006,7 +2069,10 @@ BaselineCacheIRCompiler::emitGuardDOMExpandoMissingOrGuardShape()
     masm.debugAssertIsObject(val);
     masm.loadPtr(shapeAddr, shapeScratch);
     masm.unboxObject(val, objScratch);
-    masm.branchTestObjShape(Assembler::NotEqual, objScratch, shapeScratch, failure->label());
+    // The expando object is not used in this case, so we don't need Spectre
+    // mitigations.
+    masm.branchTestObjShapeNoSpectreMitigations(Assembler::NotEqual, objScratch, shapeScratch,
+                                                failure->label());
 
     masm.bind(&done);
     return true;
@@ -2062,9 +2128,13 @@ BaselineCacheIRCompiler::init(CacheKind kind)
     AllocatableGeneralRegisterSet available(ICStubCompiler::availableGeneralRegs(numInputsInRegs));
 
     switch (kind) {
+      case CacheKind::GetIntrinsic:
+        MOZ_ASSERT(numInputs == 0);
+        break;
       case CacheKind::GetProp:
       case CacheKind::TypeOf:
       case CacheKind::GetIterator:
+      case CacheKind::ToBool:
         MOZ_ASSERT(numInputs == 1);
         allocator.initInputLocation(0, R0);
         break;
@@ -2074,6 +2144,7 @@ BaselineCacheIRCompiler::init(CacheKind kind)
       case CacheKind::SetProp:
       case CacheKind::In:
       case CacheKind::HasOwn:
+      case CacheKind::InstanceOf:
         MOZ_ASSERT(numInputs == 2);
         allocator.initInputLocation(0, R0);
         allocator.initInputLocation(1, R1);
@@ -2299,6 +2370,24 @@ ICCacheIR_Updated::stubDataStart()
 {
     return reinterpret_cast<uint8_t*>(this) + stubInfo_->stubDataOffset();
 }
+
+/* static */ ICCacheIR_Regular*
+ICCacheIR_Regular::Clone(JSContext* cx, ICStubSpace* space, ICStub* firstMonitorStub,
+                         ICCacheIR_Regular& other)
+{
+    const CacheIRStubInfo* stubInfo = other.stubInfo();
+    MOZ_ASSERT(stubInfo->makesGCCalls());
+
+    size_t bytesNeeded = stubInfo->stubDataOffset() + stubInfo->stubDataSize();
+    void* newStub = space->alloc(bytesNeeded);
+    if (!newStub)
+        return nullptr;
+
+    ICCacheIR_Regular* res = new(newStub) ICCacheIR_Regular(other.jitCode(), stubInfo);
+    stubInfo->copyStubData(&other, res);
+    return res;
+}
+
 
 /* static */ ICCacheIR_Monitored*
 ICCacheIR_Monitored::Clone(JSContext* cx, ICStubSpace* space, ICStub* firstMonitorStub,

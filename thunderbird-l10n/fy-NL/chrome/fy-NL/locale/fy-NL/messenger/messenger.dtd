@@ -317,7 +317,7 @@
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goChatCmd.label "Chat">
 <!ENTITY goChatCmd.accesskey "c">
-<!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Berjocht mei stjer">
 <!ENTITY prevStarredMsgCmd.accesskey "s">
 <!ENTITY folderMenu.label "Map">
@@ -339,17 +339,17 @@
 <!ENTITY archiveMsgCmd.key "a">
 <!ENTITY cancelNewsMsgCmd.label "Berjocht annulearje">
 <!ENTITY cancelNewsMsgCmd.accesskey "n">
-<!ENTITY replyMsgCmd.label "Beantwurdzje">
+<!ENTITY replyMsgCmd.label "Beäntwurdzje">
 <!ENTITY replyMsgCmd.accesskey "a">
 <!ENTITY replyMsgCmd.key "r">
-<!ENTITY replySenderCmd.label "Ofstjoerder beantwurdzje">
+<!ENTITY replySenderCmd.label "Ofstjoerder beäntwurdzje">
 <!ENTITY replySenderCmd.accesskey "a">
 <!ENTITY replyNewsgroupCmd2.label "Reagearje nei nijsgroep">
 <!ENTITY replyNewsgroupCmd2.accesskey "r">
-<!ENTITY replyToAllMsgCmd.label "Elk beantwurdzje">
+<!ENTITY replyToAllMsgCmd.label "Elk beäntwurdzje">
 <!ENTITY replyToAllMsgCmd.accesskey "e">
 <!ENTITY replyToAllMsgCmd.key "r">
-<!ENTITY replyToListMsgCmd.label "List beantwurdzje">
+<!ENTITY replyToListMsgCmd.label "List beäntwurdzje">
 <!ENTITY replyToListMsgCmd.accesskey "L">
 <!ENTITY replyToListMsgCmd.key "l">
 <!ENTITY forwardMsgCmd.label "Trochstjoere">
@@ -366,6 +366,8 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Konseptberjocht bewurkje">
 <!ENTITY editDraftMsgCmd.accesskey "o">
+<!ENTITY editTemplateMsgCmd.label "Sjabloan bewurkje">
+<!ENTITY editTemplateMsgCmd.accesskey "S">
 <!ENTITY newMsgFromTemplateCmd.label "Nij berjocht fan sjabloan">
 <!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Filter meitsje op basis fan berjocht…">
@@ -459,6 +461,11 @@
 <!ENTITY addressBookCmd.key "b">
 <!ENTITY addons.label "Add-ons">
 <!ENTITY addons.accesskey "A">
+<!ENTITY addonPrefs.label "Add-onopsjes">
+<!ENTITY addonPrefs.accesskey "A">
+<!ENTITY addonPrefsUnix.label "Add-onfoarkarren">
+<!ENTITY addonPrefsUnix.accesskey "f">
+<!ENTITY addonNoPrefs.label "Gjin add-onynstellingen fûn.">
 <!ENTITY activitymanager.label "Aktiviteitebehearder">
 <!ENTITY activitymanager.accesskey "a">
 <!ENTITY imAccountsStatus.label "Chatsteat">
@@ -504,6 +511,8 @@
 <!ENTITY devToolboxCmd.commandkey "i">
 <!ENTITY addonDebugCmd.label "Add-on-debugger">
 <!ENTITY addonDebugCmd.accesskey "A">
+<!ENTITY debugAddonsCmd.label "Add-ons debugge">
+<!ENTITY debugAddonsCmd.accesskey "A">
 <!ENTITY tabsDebugCmd.label "Frame-ynhâlds-debugger">
 <!ENTITY tabsDebugCmd.accesskey "F">
 <!ENTITY errorConsoleCmd.label "Flaterkonsole">
@@ -524,9 +533,9 @@
 <!-- Mail Toolbar -->
 <!ENTITY getMsgButton1.label "E-mail ophelje">
 <!ENTITY newMsgButton.label "Opstelle">
-<!ENTITY replyButton.label "Beantwurdzje">
-<!ENTITY replyAllButton.label "Elk beantwurdzje">
-<!ENTITY replyListButton.label "List beantwurdzje">
+<!ENTITY replyButton.label "Beäntwurdzje">
+<!ENTITY replyAllButton.label "Elk beäntwurdzje">
+<!ENTITY replyListButton.label "List beäntwurdzje">
 <!ENTITY forwardButton.label "Trochstjoere">
 <!ENTITY fileButton.label "Ferpleatse">
 <!ENTITY archiveButton.label "Argivearje">
@@ -565,9 +574,9 @@
 <!ENTITY getAllNewMsgCmd.label "Alle nije berjochten ophelje">
 <!ENTITY getAllNewMsgCmd.accesskey "N">
 <!ENTITY newMsgButton.tooltip "Nij berjocht oanmeitsje">
-<!ENTITY replyButton.tooltip "Selektearre berjocht beantwurdzje">
-<!ENTITY replyAllButton.tooltip "Ofstjoerder en alle adressearden beantwurdzje">
-<!ENTITY replyListButton.tooltip "Mailinglist beantwurdzje">
+<!ENTITY replyButton.tooltip "Selektearre berjocht beäntwurdzje">
+<!ENTITY replyAllButton.tooltip "Ofstjoerder en alle adressearden beäntwurdzje">
+<!ENTITY replyListButton.tooltip "Mailinglist beäntwurdzje">
 <!ENTITY forwardButton.tooltip "Selektearre berjocht trochstjoere">
 <!ENTITY forwardAsInline.tooltip "Selektearre berjocht trochstjoere yn berjochttekst">
 <!ENTITY forwardAsAttachment.tooltip "Selektearre berjocht trochstjoere as in bylage">
@@ -752,15 +761,17 @@
 <!ENTITY contextEditMsgAsNew.label "As nij berjocht bewurkje">
 <!ENTITY contextEditMsgAsNew.accesskey "b">
 <!ENTITY contextEditDraftMsg.label "Konseptberjocht bewurkje">
+<!ENTITY contextEditTemplate.label "Sjabloan bewurkje">
+<!ENTITY contextEditTemplate.accesskey "S">
 <!ENTITY contextArchive.label "Argivearje">
 <!ENTITY contextArchive.accesskey "g">
-<!ENTITY contextReplySender.label "Ofstjoerder beantwurdzje">
+<!ENTITY contextReplySender.label "Ofstjoerder beäntwurdzje">
 <!ENTITY contextReplySender.accesskey "o">
 <!ENTITY contextReplyNewsgroup2.label "Reagearje nei nijsgroep">
 <!ENTITY contextReplyNewsgroup2.accesskey "r">
-<!ENTITY contextReplyAll.label "Elk beantwurdzje">
+<!ENTITY contextReplyAll.label "Elk beäntwurdzje">
 <!ENTITY contextReplyAll.accesskey "e">
-<!ENTITY contextReplyList.label "List beantwurdzje">
+<!ENTITY contextReplyList.label "List beäntwurdzje">
 <!ENTITY contextReplyList.accesskey "L">
 <!ENTITY contextForward.label "Trochstjoere">
 <!ENTITY contextForward.accesskey "s">
@@ -957,16 +968,3 @@
 <!ENTITY dockOptions.label              "Programmasymboalopsjes…">
 <!ENTITY writeNewMessageDock.label      "Skriuw in nij berjocht">
 <!ENTITY openAddressBookDock.label      "Adresboek iepenje">
-
-<!ENTITY goChatCmd2.key "H">
-<!ENTITY editTemplateMsgCmd.label "Edit Template">
-<!ENTITY editTemplateMsgCmd.accesskey "T">
-<!ENTITY addonPrefs.label "Add-on Options">
-<!ENTITY addonPrefs.accesskey "O">
-<!ENTITY addonPrefsUnix.label "Add-on Preferences">
-<!ENTITY addonPrefsUnix.accesskey "P">
-<!ENTITY addonNoPrefs.label "No Add-on settings found.">
-<!ENTITY debugAddonsCmd.label "Debug Add-ons">
-<!ENTITY debugAddonsCmd.accesskey "A">
-<!ENTITY contextEditTemplate.label "Edit Template">
-<!ENTITY contextEditTemplate.accesskey "T">

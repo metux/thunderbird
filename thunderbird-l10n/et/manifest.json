@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/et/locale/et/passwordmgr/", 
         "pippki": "chrome/et/locale/et/pippki/"
       }, 
-      "version": "20171104193200"
+      "version": "20180312184716"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-et@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "et", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Estonian Language Pack", 
   "manifest_version": 2, 
   "sources": {

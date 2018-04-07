@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://calendar/modules/calProviderUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calProviderUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 
 var calICalendar = Components.interfaces.calICalendar;
 var cICL = Components.interfaces.calIChangeLog;
@@ -121,7 +121,7 @@ calCachedCalendarObserverHelper.prototype = {
 function calCachedCalendar(uncachedCalendar) {
     this.wrappedJSObject = this;
     this.mSyncQueue = [];
-    this.mObservers = new cal.ObserverBag(Components.interfaces.calIObserver);
+    this.mObservers = new cal.data.ObserverSet(Components.interfaces.calIObserver);
     uncachedCalendar.superCalendar = this;
     uncachedCalendar.addObserver(new calCachedCalendarObserverHelper(this, false));
     this.mUncachedCalendar = uncachedCalendar;
@@ -637,7 +637,7 @@ calCachedCalendar.prototype = {
         this.mObservers.add(aObserver);
     },
     removeObserver: function(aObserver) {
-        this.mObservers.remove(aObserver);
+        this.mObservers.delete(aObserver);
     },
 
     addItem: function(item, listener) {

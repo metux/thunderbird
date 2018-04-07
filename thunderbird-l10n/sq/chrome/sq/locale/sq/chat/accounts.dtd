@@ -11,7 +11,7 @@
 
 <!ENTITY accountManager.newAccount.label     "Llogari e Re">
 <!ENTITY accountManager.newAccount.accesskey "R">
-<!ENTITY accountManager.close.label          "Mbylle">
+<!ENTITY accountManager.close.label          "Mbylleni">
 <!ENTITY accountManager.close.accesskey      "M">
 <!-- This should match account.commandkey in instantbird.dtd -->
 <!ENTITY accountManager.close.commandkey     "a">
@@ -28,7 +28,7 @@
 <!ENTITY account.delete.accesskey     "F">
 <!ENTITY account.edit.label           "Veti">
 <!ENTITY account.edit.accesskey       "V">
-<!ENTITY account.moveup.label         "Ngjite sipër">
+<!ENTITY account.moveup.label         "Shpjere sipër">
 <!ENTITY account.movedown.label       "Zbrite poshtë">
 <!ENTITY account.cancelReconnection.label         "Anuloje rilidhjen">
 <!ENTITY account.cancelReconnection.accesskey     "A">

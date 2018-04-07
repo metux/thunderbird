@@ -92,7 +92,7 @@
 
       <method name="relayout">
         <body><![CDATA[
-            Components.utils.import("resource://calendar/modules/calUtils.jsm");
+            ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
             let topbox = document.getAnonymousElementByAttribute(this, "anonid", "topbox");
             let orient = topbox.getAttribute("orient");
 
@@ -244,7 +244,7 @@
 
     <implementation>
       <constructor><![CDATA[
-          Components.utils.import("resource://calendar/modules/calUtils.jsm");
+          ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 
           this.mEventInfos = [];
           this.mTimezone = cal.dtz.UTC;
@@ -333,7 +333,7 @@
         <setter><![CDATA[
             this.mDate = val;
 
-            if (!cal.compareObjects(val.timezone, this.mTimezone)) {
+            if (!cal.data.compareObjects(val.timezone, this.mTimezone)) {
                 this.mTimezone = val.timezone;
                 if (!this.mLayoutBatchCount) {
                     this.recalculateStartEndMinutes();
@@ -521,11 +521,11 @@
             let stdate = aOccurrence.startDate || aOccurrence.entryDate || aOccurrence.dueDate;
             let enddate = aOccurrence.endDate || aOccurrence.dueDate || aOccurrence.entryDate;
 
-            if (!cal.compareObjects(stdate.timezone, this.mTimezone)) {
+            if (!cal.data.compareObjects(stdate.timezone, this.mTimezone)) {
                 stdate = stdate.getInTimezone(this.mTimezone);
             }
 
-            if (!cal.compareObjects(enddate.timezone, this.mTimezone)) {
+            if (!cal.data.compareObjects(enddate.timezone, this.mTimezone)) {
                 enddate = enddate.getInTimezone(this.mTimezone);
             }
 
@@ -1347,7 +1347,7 @@
         <parameter name="event"/>
         <body><![CDATA[
             let col = document.calendarEventColumnDragging;
-            if (col && event.keyCode == event.DOM_VK_ESCAPE) {
+            if (col && event.key == "Escape") {
                 window.removeEventListener("mousemove", col.onEventSweepMouseMove);
                 window.removeEventListener("mouseup", col.onEventSweepMouseUp);
                 window.removeEventListener("keypress", col.onEventSweepKeypress);
@@ -1799,8 +1799,8 @@
         <parameter name="aMouseY"/>
         <parameter name="aSnapInt"/>
         <body><![CDATA[
-            if (!cal.isCalendarWritable(aOccurrence.calendar) ||
-                !cal.userCanModifyItem(aOccurrence) ||
+            if (!cal.acl.isCalendarWritable(aOccurrence.calendar) ||
+                !cal.acl.userCanModifyItem(aOccurrence) ||
                 (aOccurrence.calendar instanceof Components.interfaces.calISchedulingSupport && aOccurrence.calendar.isInvitation(aOccurrence)) ||
                 aOccurrence.calendar.getProperty("capabilities.events.supported") === false) {
                 return;
@@ -1942,7 +1942,7 @@
         <parameter name="aFirstColumn"/>
         <parameter name="aLastColumn"/>
         <body><![CDATA[
-            Components.utils.import("resource://calendar/modules/calUtils.jsm");
+            ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
             if (!this.mDragState) {
                 return;
             }
@@ -1967,7 +1967,7 @@
 
             // Tasks without Entry or Due date have a string as first label
             // instead of the time.
-            if (cal.isToDo(this.mDragState.dragOccurrence)) {
+            if (cal.item.isToDo(this.mDragState.dragOccurrence)) {
                 if (!this.mDragState.dragOccurrence.dueDate) {
                     startstr = cal.calGetString("calendar", "dragLabelTasksWithOnlyEntryDate");
                 } else if (!this.mDragState.dragOccurrence.entryDate) {
@@ -2047,7 +2047,7 @@
 
           // If the selected calendar is readOnly, we don't want any sweeping.
           let calendar = getSelectedCalendar();
-          if (!cal.isCalendarWritable(calendar) ||
+          if (!cal.acl.isCalendarWritable(calendar) ||
               calendar.getProperty("capabilities.events.supported") === false) {
               return;
           }
@@ -2104,7 +2104,7 @@
     <implementation>
       <field name="mItemBoxes">null</field>
       <constructor><![CDATA[
-          Components.utils.import("resource://calendar/modules/calUtils.jsm");
+          ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 
           this.mItemBoxes = [];
       ]]></constructor>
@@ -2173,8 +2173,8 @@
       <method name="onDropItem">
         <parameter name="aItem"/>
         <body><![CDATA[
-            let newItem = cal.moveItem(aItem, this.mDate);
-            newItem = cal.setItemToAllDay(newItem, true);
+            let newItem = cal.item.moveToDate(aItem, this.mDate);
+            newItem = cal.item.setToAllDay(newItem, true);
             return newItem;
         ]]></body>
       </method>
@@ -2227,7 +2227,7 @@
               // will make the box scroll here.
 
               // TODO We could scroll by the height of exactly one event box, but
-              // since a normal box's boxObject doesn't implement nsIScrollBoxObject,
+              // since a normal box's boxObject doesn't implement ScrollBoxObject,
               // there is no way to scroll by pixels. Using a xul:scrollbox has
               // problems since the equalsize attribute isn't inherited by the
               // inner box, and even if that is worked around, something makes the
@@ -2261,12 +2261,14 @@
                 <xul:image anonid="item-icon"
                            class="calendar-item-image"
                            xbl:inherits="progress,allday,itemType,todoType"/>
-                <xul:description anonid="event-name" class="calendar-event-details-core" flex="1"/>
-                <xul:textbox anonid="event-name-textbox"
-                             class="plain calendar-event-details-core calendar-event-name-textbox"
-                             flex="1"
-                             hidden="true"
-                             wrap="true"/>
+                <xul:vbox flex="1">
+                  <xul:label anonid="event-name" class="calendar-event-details-core title-desc" crop="end"/>
+                  <xul:textbox anonid="event-name-textbox"
+                               class="plain calendar-event-details-core calendar-event-name-textbox"
+                               hidden="true"
+                               wrap="true"/>
+                  <xul:label anonid="event-location" class="calendar-event-details-core location-desc" crop="end"/>
+                </xul:vbox>
               </xul:hbox>
               <xul:stack mousethrough="always">
                 <xul:calendar-category-box anonid="category-box" xbl:inherits="categories" pack="end" />
@@ -2305,7 +2307,7 @@
 
     <implementation>
       <constructor><![CDATA[
-          Components.utils.import("resource://calendar/modules/calUtils.jsm");
+          ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 
           this.orient = this.getAttribute("orient");
       ]]></constructor>
@@ -2522,8 +2524,8 @@
 
     <implementation implements="calICalendarView">
       <constructor><![CDATA[
-          Components.utils.import("resource://gre/modules/Preferences.jsm");
-          Components.utils.import("resource://calendar/modules/calUtils.jsm");
+          ChromeUtils.import("resource://gre/modules/Preferences.jsm");
+          ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 
           // get day start/end hour from prefs and set on the view
           this.setDayStartEndMinutes(Preferences.get("calendar.view.daystarthour", 8) * 60,
@@ -3366,7 +3368,7 @@
                 }
                 setUpDayHeaderBox(dayHeaderBox, date);
 
-                if (this.mDaysOffArray.indexOf(date.weekday) >= 0) {
+                if (this.mDaysOffArray.includes(date.weekday)) {
                     dayEventsBox.dayOff = true;
                     dayHeaderBox.setAttribute("weekend", "true");
                 } else {

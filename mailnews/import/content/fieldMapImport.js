@@ -16,8 +16,8 @@ var gSkipFirstRecordButton;
 
 function OnLoadFieldMapImport()
 {
-  top.importService = Components.classes["@mozilla.org/import/import-service;1"]
-                                .getService(Components.interfaces.nsIImportService);
+  top.importService = Cc["@mozilla.org/import/import-service;1"]
+                        .getService(Ci.nsIImportService);
 
   // We need a field map object...
   // assume we have one passed in? or just make one?
@@ -83,7 +83,7 @@ function CreateField( name, index, on)
   item.setAttribute('field-index', index);
   item.setAttribute('type', "checkbox");
   var cell = document.createElement('listcell');
-  var cCell = document.createElement( 'listcell');  
+  var cCell = document.createElement( 'listcell');
   cCell.setAttribute('type', "checkbox");
   cCell.setAttribute( 'label', name);
   if (on == true)
@@ -147,10 +147,10 @@ function FetchSampleData(num)
     return false;
 
   var data = top.addInterface.GetData( "sampleData-" + num);
-  if (!(data instanceof Components.interfaces.nsISupportsString))
+  if (!(data instanceof Ci.nsISupportsString))
     return false;
   ShowSampleData( data.data);
-  return true;  
+  return true;
 }
 
 function Browse(step)

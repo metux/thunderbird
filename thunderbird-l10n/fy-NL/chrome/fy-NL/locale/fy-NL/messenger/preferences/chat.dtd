@@ -31,6 +31,10 @@ sentence. -->
 <!ENTITY  completeNotification.label          "mei namme fan ôfstjoerder en berjochtfoarbyld">
 <!ENTITY  buddyInfoOnly.label                 "allinnich mei namme fan ôfstjoerder">
 <!ENTITY  dummyNotification.label             "sûnder ynfo">
+<!ENTITY  getAttention.label                  "It taakbalke-item knipperje litte">
+<!ENTITY  getAttention.accesskey              "I">
+<!ENTITY  getAttentionMac.label               "It programmasymboal beweegje">
+<!ENTITY  getAttentionMac.accesskey           "o">
 <!ENTITY  chatSound.accesskey                 "d">
 <!ENTITY  chatSound.label                     "Spylje in lûd">
 <!ENTITY  play.label                          "Spylje">
@@ -58,8 +62,3 @@ sentence. -->
 <!ENTITY messageStyleShowHeader.accesskey  "K">
 <!ENTITY messageStyleNoPreview.title       "Gjin foarbyld beskikber">
 <!ENTITY messageStyleNoPreview.description "Dit tema is net falide of is op dit stuit net beskikber (útskeakele add-on, feilige modus, …).">
-
-<!ENTITY  getAttention.label                  "Flash the taskbar item">
-<!ENTITY  getAttention.accesskey              "F">
-<!ENTITY  getAttentionMac.label               "Animate dock icon">
-<!ENTITY  getAttentionMac.accesskey           "o">

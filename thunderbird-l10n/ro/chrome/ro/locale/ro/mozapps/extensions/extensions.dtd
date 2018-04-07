@@ -4,6 +4,8 @@
 <!ENTITY addons.windowTitle                   "Managerul de suplimente">
 
 <!ENTITY search.placeholder                   "Caută toate suplimentele">
+
+<!ENTITY search.placeholder2                  "Caută pe addons.mozilla.org">
 <!ENTITY search.buttonlabel                   "Căutare">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
@@ -22,9 +24,6 @@
 
 <!ENTITY getThemes.description                "Dorești să personalizezi browserul?">
 <!ENTITY getThemes.learnMore                  "Alege dintre mii de teme.">
-
-<!ENTITY cmd.back.tooltip                     "Mergi cu o pagină în urmă">
-<!ENTITY cmd.forward.tooltip                  "Mergi cu o pagină înainte">
 
 
 <!ENTITY showUnsignedExtensions.button.label  "Unele extensii nu au putut fi verificate">
@@ -115,8 +114,8 @@
 <!ENTITY cmd.contribute.accesskey             "C">
 <!ENTITY cmd.contribute.tooltip               "Contribuie la dezvoltarea acestui supliment">
 
-<!ENTITY cmd.showReleaseNotes.label           "Arată notele privind lansarea">
-<!ENTITY cmd.showReleaseNotes.tooltip         "Arată notele privind lansarea pentru această actualizare">
+<!ENTITY cmd.showReleaseNotes.label           "Afișează notele privind lansarea">
+<!ENTITY cmd.showReleaseNotes.tooltip         "Afișează notele privind lansarea pentru această actualizare">
 <!ENTITY cmd.hideReleaseNotes.label           "Ascunde notele privind lansarea">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Ascunde notele privind lansarea pentru această actualizare">
 <!ENTITY cmd.findReplacement.label            "Găsești o extensie înlocuitoare">
@@ -206,7 +205,7 @@
 <!ENTITY addon.undoRemove.tooltip             "Păstrează acest supliment instalat">
 <!ENTITY addon.restartNow.label               "Repornește acum">
 <!ENTITY addon.install.label                  "Instalează">
-<!ENTITY addon.install.tooltip                "Instalați acest supliment">
+<!ENTITY addon.install.tooltip                "Instalează acest supliment">
 <!ENTITY addon.updateNow.label                "Actualizează acum">
 <!ENTITY addon.updateNow.tooltip              "Instalează actualizarea pentru acest supliment">
 <!ENTITY addon.includeUpdate.label            "Inclus în actualizare">
@@ -260,5 +259,3 @@
 <!ENTITY legacyExtensions.title "Extensii obsolete">
 <!ENTITY legacyExtensions.description "Aceste extensii nu îndeplinesc standardele actuale ale &brandShortName; astfel încât au fost dezactivate.">
 <!ENTITY legacyExtensions.learnMore "Află despre schimbările aduse suplimentelor">
-
-<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

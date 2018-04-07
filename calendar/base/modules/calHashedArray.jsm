@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 
 var EXPORTED_SYMBOLS = ["cal"]; // even though it's defined in calUtils.jsm, import needs this
 
@@ -233,7 +233,7 @@ cal.SortedHashedArray.prototype = {
     mCompFunc: null,
 
     addItem: function(item) {
-        let newIndex = cal.binaryInsert(this.mArray, item, this.mCompFunc, false);
+        let newIndex = cal.data.binaryInsert(this.mArray, item, this.mCompFunc, false);
         this.reindex(newIndex);
         return newIndex;
     },
@@ -249,7 +249,7 @@ cal.SortedHashedArray.prototype = {
             } else {
                 let oldIndex = this.mHash[hashId];
 
-                let newIndex = cal.binaryInsert(this.mArray, item, this.mCompFunc, false);
+                let newIndex = cal.data.binaryInsert(this.mArray, item, this.mCompFunc, false);
                 this.mArray.splice(oldIndex, 1);
                 this.reindex(oldIndex, newIndex);
                 return newIndex;

@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource:///modules/gloda/gloda.js");
-Components.utils.import("resource:///modules/gloda/connotent.js");
-Components.utils.import("resource:///modules/gloda/mimemsg.js");
-Components.utils.import("resource:///modules/displayNameUtils.js");
-Components.utils.import("resource:///modules/mailServices.js");
-Components.utils.import("resource:///modules/templateUtils.js");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource:///modules/gloda/gloda.js");
+ChromeUtils.import("resource:///modules/gloda/connotent.js");
+ChromeUtils.import("resource:///modules/gloda/mimemsg.js");
+ChromeUtils.import("resource:///modules/displayNameUtils.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/templateUtils.js");
 
-var gMessenger = Components.classes["@mozilla.org/messenger;1"]
-                           .createInstance(Components.interfaces.nsIMessenger);
+var gMessenger = Cc["@mozilla.org/messenger;1"]
+                   .createInstance(Ci.nsIMessenger);
 
 // Set up our string formatter for localizing strings.
 XPCOMUtils.defineLazyGetter(this, "formatString", function() {
@@ -193,7 +193,7 @@ MultiMessageSummary.prototype = {
    */
   makeSummaryItem: function(aMsgOrThread, aOptions) {
     let message, thread, numUnread, isStarred, tags;
-    if (aMsgOrThread instanceof Components.interfaces.nsIMsgDBHdr) {
+    if (aMsgOrThread instanceof Ci.nsIMsgDBHdr) {
       thread = null;
       message = aMsgOrThread;
 
@@ -299,7 +299,7 @@ MultiMessageSummary.prototype = {
           authorNode.textContent = meta.author;
       }, false, {saneBodySize: true});
     } catch (e) {
-      if (e.result == Components.results.NS_ERROR_FAILURE) {
+      if (e.result == Cr.NS_ERROR_FAILURE) {
         // Offline messages generate exceptions, which is unfortunate.  When
         // that's fixed, this code should adapt. XXX
         snippetNode.textContent = "...";

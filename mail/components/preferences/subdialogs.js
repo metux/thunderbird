@@ -71,14 +71,23 @@ SubDialog.prototype = {
   async open(aURL, aFeatures = null, aParams = null, aClosingCallback = null) {
     // Wait until frame is ready to prevent browser crash in tests
     await this._frameCreated;
+
+    if (!this._frame.contentWindow) {
+      // Given the binding constructor execution is asynchronous, and "load"
+      // event can be dispatched before the browser element is shown, the
+      // browser binding might not be constructed at this point.  Forcibly
+      // construct the frame and construct the binding.
+      // FIXME: Remove this (bug 1437247)
+      this._frame.getBoundingClientRect();
+    }
+
     // If we're open on some (other) URL or we're closing, open when closing has finished.
     if (this._openedURL || this._isClosing) {
       if (!this._isClosing) {
         this.close();
       }
-      let args = Array.from(arguments);
       this._closingPromise.then(() => {
-        this.open.apply(this, args);
+        this.open(aURL, aFeatures, aParams, aClosingCallback);
       });
       return;
     }
@@ -115,7 +124,7 @@ SubDialog.prototype = {
       try {
         this._closingCallback.call(null, aEvent);
       } catch (ex) {
-        Components.utils.reportError(ex);
+        Cu.reportError(ex);
       }
       this._closingCallback = null;
     }
@@ -299,7 +308,7 @@ SubDialog.prototype = {
     } else if (frameHeight.endsWith("px")) {
       comparisonFrameHeight = parseFloat(frameHeight, 10);
     } else {
-      Components.utils.reportError(
+      Cu.reportError(
                      "This dialog (" + this._frame.contentWindow.location.href + ") " +
                      "set a height in non-px-non-em units ('" + frameHeight + "'), " +
                      "which is likely to lead to bad sizing in in-content preferences. " +
@@ -476,9 +485,9 @@ SubDialog.prototype = {
   },
 
   _getBrowser() {
-    return window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-                 .getInterface(Components.interfaces.nsIWebNavigation)
-                 .QueryInterface(Components.interfaces.nsIDocShell)
+    return window.QueryInterface(Ci.nsIInterfaceRequestor)
+                 .getInterface(Ci.nsIWebNavigation)
+                 .QueryInterface(Ci.nsIDocShell)
                  .chromeEventHandler;
   },
 };
@@ -512,6 +521,12 @@ var gSubDialog = {
       return;
     }
 
+    if (this._dialogs.length == 0) {
+      // When opening the first dialog, show the dialog stack to make sure
+      // the browser binding can be constructed.
+      this._dialogStack.hidden = false;
+    }
+
     this._preloadDialog.open(aURL, aFeatures, aParams, aClosingCallback);
     this._dialogs.push(this._preloadDialog);
     this._preloadDialog = new SubDialog({template: this._dialogTemplate,
@@ -519,7 +534,6 @@ var gSubDialog = {
                                          id: this._nextDialogID++});
 
     if (this._dialogs.length == 1) {
-      this._dialogStack.hidden = false;
       this._ensureStackEventListeners();
     }
   },

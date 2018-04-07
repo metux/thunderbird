@@ -31,6 +31,10 @@ sentence. -->
 <!ENTITY  completeNotification.label          "με το όνομα του αποστολέα και μια προεπισκόπηση του μηνύματος">
 <!ENTITY  buddyInfoOnly.label                 "μόνο με το όνομα του αποστολέα">
 <!ENTITY  dummyNotification.label             "χωρίς καμία πληροφορία">
+<!ENTITY  getAttention.label                  "Φλασάρισμα του αντικειμένου στην μπάρα εργασιών">
+<!ENTITY  getAttention.accesskey              "Φ">
+<!ENTITY  getAttentionMac.label               "Κίνηση του εικονιδίου στην μπάρα">
+<!ENTITY  getAttentionMac.accesskey           "κ">
 <!ENTITY  chatSound.accesskey                 "δ">
 <!ENTITY  chatSound.label                     "Αναπαραγωγή ήχου">
 <!ENTITY  play.label                          "Αναπαραγωγή">
@@ -49,17 +53,12 @@ sentence. -->
 <!ENTITY messageStyleThunderbirdTheme.label "Thunderbird">
 <!ENTITY messageStyleBubblesTheme.label    "Φούσκες">
 <!ENTITY messageStyleDarkTheme.label       "Σκούρο">
+<!ENTITY messageStylePaperSheetsTheme.label "Φύλλα χαρτιού">
 <!ENTITY messageStyleSimpleTheme.label     "Απλό">
 <!ENTITY messageStyleDefaultTheme.label    "Προεπιλογή">
+<!ENTITY messageStyleVariant.label         "Παραλλαγή:">
+<!ENTITY messageStyleVariant.accesskey     "Π">
+<!ENTITY messageStyleShowHeader.label      "Εμφάνιση επικεφαλίδας">
 <!ENTITY messageStyleShowHeader.accesskey  "Ε">
-
-<!ENTITY  getAttention.label                  "Flash the taskbar item">
-<!ENTITY  getAttention.accesskey              "F">
-<!ENTITY  getAttentionMac.label               "Animate dock icon">
-<!ENTITY  getAttentionMac.accesskey           "o">
-<!ENTITY messageStylePaperSheetsTheme.label "Paper Sheets">
-<!ENTITY messageStyleVariant.label         "Variant:">
-<!ENTITY messageStyleVariant.accesskey     "V">
-<!ENTITY messageStyleShowHeader.label      "Show Header">
-<!ENTITY messageStyleNoPreview.title       "No preview available">
-<!ENTITY messageStyleNoPreview.description "This theme is not valid or is currently unavailable (disabled addon, safe-mode, …).">
+<!ENTITY messageStyleNoPreview.title       "Μη διαθέσιμη προεπισκόπιση">
+<!ENTITY messageStyleNoPreview.description "Αυτό το θέμα δεν είναι έγκυρο ή διαθέσιμο αυτή τη στιγμή (ανενεργό πρόσθετο, ασφαλής λειτουργία, …).">

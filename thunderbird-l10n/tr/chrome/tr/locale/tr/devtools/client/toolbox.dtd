@@ -14,6 +14,11 @@
   -  shown next to error details when the Browser Toolbox is unable to open. -->
 <!ENTITY browserToolboxErrorMessage          "Tarayıcı araç kutusu açılırken hata oluştu:">
 
+<!-- LOCALIZATION NOTE (browserToolboxStatusMessage): This is the label
+  -  shown next to status details when the Browser Toolbox fails to connect or
+  -  appears to be taking a while to do so. -->
+<!ENTITY browserToolboxStatusMessage "Tarayıcı araç kutusu bağlantı durumu:">
+
 <!-- LOCALIZATION NOTE (options.context.advancedSettings): This is the label for
   -  the heading of the advanced settings group in the options panel. -->
 <!ENTITY options.context.advancedSettings "Gelişmiş ayarlar">
@@ -70,7 +75,7 @@
   -  options panel and is used for settings that trigger page reload. -->
 <!ENTITY options.context.triggersPageRefresh  "* Yalnızca bu oturumda geçerli, sayfayı yeniden yükler">
 
-<!-- LOCALIZATION NOTE (options.enableChrome.label4): This is the label for the
+<!-- LOCALIZATION NOTE (options.enableChrome.label5): This is the label for the
   -  checkbox that toggles chrome debugging, i.e. devtools.chrome.enabled
   -  boolean preference in about:config, in the options panel. -->
 <!ENTITY options.enableChrome.label5    "Tarayıcı chrome’u ve eklenti hata ayıklama araç kutularını etkinleştir">
@@ -86,7 +91,7 @@
   -  options.disableJavaScript.tooltip): This is the options panel label and
   -  tooltip for the checkbox that toggles JavaScript on or off. -->
 <!ENTITY options.disableJavaScript.label     "JavaScript’i devre dışı bırak *">
-<!ENTITY options.disableJavaScript.tooltip   "Bu seçeneği açarsanız geçerli sekmede JavaScript devre dışı bırakılır. Sekme veya alet çantası kapatılırsa bu ayar unutulacaktır.">
+<!ENTITY options.disableJavaScript.tooltip   "Bu seçeneği açarsanız geçerli sekmede JavaScript devre dışı bırakılır. Sekme veya araç kutusu kapatılırsa bu ayar unutulacaktır.">
 
 <!-- LOCALIZATION NOTE (options.disableHTTPCache.label,
   -  options.disableHTTPCache.tooltip): This is the options panel label and
@@ -114,12 +119,12 @@
 <!-- LOCALIZATION NOTE (options.selectEnabledToolboxButtons.label): This is the label for
   -  the heading of group of checkboxes corresponding to the default developer
   -  tool buttons. -->
-<!ENTITY options.selectEnabledToolboxButtons.label     "Kullanılabilir alet çantası düğmeleri">
+<!ENTITY options.selectEnabledToolboxButtons.label     "Kullanılabilir araç kutusu düğmeleri">
 
 <!-- LOCALIZATION NOTE (options.toolNotSupported.label): This is the label for
   -  the explanation of the * marker on a tool which is currently not supported
   -  for the target of the toolbox. -->
-<!ENTITY options.toolNotSupported.label  "* Geçerli alet çantası hedefinde desteklenmiyor">
+<!ENTITY options.toolNotSupported.label  "* Geçerli araç kutusu hedefinde desteklenmiyor">
 
 <!-- LOCALIZATION NOTE (options.selectDevToolsTheme.label2): This is the label for
   -  the heading of the radiobox corresponding to the theme of the developer
@@ -144,7 +149,7 @@
   -  heading of the group of Debugger preferences in the options panel. -->
 <!ENTITY options.debugger.label            "Hata ayıklayıcı">
 
-<!-- LOCALIZATION NOTE (options.sourceMap.label): This is the
+<!-- LOCALIZATION NOTE (options.sourceMaps.label): This is the
    - label for the checkbox that toggles source maps in all tools -->
 <!ENTITY options.sourceMaps.label      "Kaynak haritalarını etkinleştir">
 <!ENTITY options.sourceMaps.tooltip1   "Bu seçeneği etkinleştirirseniz kaynaklar araçlarda haritalanacaktır.">
@@ -157,7 +162,7 @@
 <!-- LOCALIZATION NOTE (options.stylesheetAutocompletion.label): This is the
    - label for the checkbox that toggles autocompletion of css in the Style Editor -->
 <!ENTITY options.stylesheetAutocompletion.label      "CSS’i otomatik tamamla">
-<!ENTITY options.stylesheetAutocompletion.tooltip    "Stil Editörü’nde siz yazdıkça CSS niteliklerini, değerleri ve seçicileri otomatik tamamlar">
+<!ENTITY options.stylesheetAutocompletion.tooltip    "Stil editöründe siz yazdıkça CSS niteliklerini, değerleri ve seçicileri otomatik tamamlar">
 
 <!-- LOCALIZATION NOTE (options.screenshot.label): This is the label for the
    -  heading of the group of Screenshot preferences in the options

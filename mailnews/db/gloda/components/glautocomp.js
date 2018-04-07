@@ -2,13 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
-var Cu = Components.utils;
-
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource:///modules/errUtils.js");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource:///modules/errUtils.js");
 
 var Gloda = null;
 var GlodaUtils = null;
@@ -473,19 +468,19 @@ function nsAutoCompleteGloda() {
     // set up our awesome globals!
     if (Gloda === null) {
       let loadNS = {};
-      Cu.import("resource:///modules/gloda/public.js", loadNS);
+      ChromeUtils.import("resource:///modules/gloda/public.js", loadNS);
       Gloda = loadNS.Gloda;
 
-      Cu.import("resource:///modules/gloda/utils.js", loadNS);
+      ChromeUtils.import("resource:///modules/gloda/utils.js", loadNS);
       GlodaUtils = loadNS.GlodaUtils;
-      Cu.import("resource:///modules/gloda/suffixtree.js", loadNS);
+      ChromeUtils.import("resource:///modules/gloda/suffixtree.js", loadNS);
       MultiSuffixTree = loadNS.MultiSuffixTree;
-      Cu.import("resource:///modules/gloda/noun_tag.js", loadNS);
+      ChromeUtils.import("resource:///modules/gloda/noun_tag.js", loadNS);
       TagNoun = loadNS.TagNoun;
-      Cu.import("resource:///modules/gloda/noun_freetag.js", loadNS);
+      ChromeUtils.import("resource:///modules/gloda/noun_freetag.js", loadNS);
       FreeTagNoun = loadNS.FreeTagNoun;
 
-      Cu.import("resource:///modules/gloda/log4moz.js", loadNS);
+      ChromeUtils.import("resource:///modules/gloda/log4moz.js", loadNS);
       LOG = loadNS["Log4Moz"].repository.getLogger("gloda.autocomp");
     }
 
@@ -504,7 +499,7 @@ function nsAutoCompleteGloda() {
 nsAutoCompleteGloda.prototype = {
   classID: Components.ID("{3bbe4d77-3f70-4252-9500-bc00c26f476d}"),
   QueryInterface: XPCOMUtils.generateQI([
-      Components.interfaces.nsIAutoCompleteSearch]),
+      Ci.nsIAutoCompleteSearch]),
 
   startSearch: function(aString, aParam, aResult, aListener) {
     try {

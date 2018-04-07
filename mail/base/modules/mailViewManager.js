@@ -4,11 +4,6 @@
 
 this.EXPORTED_SYMBOLS = ['MailViewManager', 'MailViewConstants'];
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
-var Cu = Components.utils;
-
 var nsMsgSearchScope  = Ci.nsMsgSearchScope;
 var nsMsgSearchAttrib = Ci.nsMsgSearchAttrib;
 var nsMsgSearchOp     = Ci.nsMsgSearchOp;
@@ -46,7 +41,7 @@ var MailViewConstants = {
 var MailViewManager = {
   _views: {},
   _customMailViews: Cc["@mozilla.org/messenger/mailviewlist;1"]
-                      .getService(Components.interfaces.nsIMsgMailViewList),
+                      .getService(Ci.nsIMsgMailViewList),
 
   /**
    * Define one of the built-in mail-views.  If you want to define your own

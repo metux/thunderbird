@@ -411,7 +411,7 @@ pref("mail.identity.default.sig_on_reply", true); // Include signature on re?
 
 // Suppress double-dash signature separator
 pref("mail.identity.default.suppress_signature_separator", false);
- 
+
 // default to archives folder on same server.
 pref("mail.identity.default.archives_folder_picker_mode", "0");
 
@@ -536,8 +536,15 @@ pref("mail.server.default.offline_download",true);
 // -1 means no limit, no purging of offline stores.
 pref("mail.server.default.autosync_max_age_days", -1);
 
-// can we change the store type?
+// Can we change the store type without conversion? (=has the store been used)
 pref("mail.server.default.canChangeStoreType", false);
+
+// Store conversion (mbox <-> maildir)
+#ifndef RELEASE_OR_BETA
+pref("mail.store_conversion_enabled", true);
+#else
+pref("mail.store_conversion_enabled", false);
+#endif
 
 // This is the default store contractID for newly created servers.
 // We don't use mail.server.default because we want to ensure that the
@@ -572,7 +579,13 @@ pref("mailnews.traits.antiId.2", "mailnews@mozilla.org#good");
 // the first externally defined trait will have index 1001
 pref("mailnews.traits.lastIndex", 1000);
 
+// Adress entry will highlight input that doesn't match anything in the
+// address books.
 pref("mail.autoComplete.highlightNonMatches", true);
+
+// Show extra column in address entry. This is numeric for
+// historical reasons: 0 = no extra column, 1 = show extra column.
+pref("mail.autoComplete.commentColumn", 0);
 
 // if true, we'll use the password from an incoming server with
 // matching username and domain
@@ -861,13 +874,6 @@ pref("mail.notification.sound",             "");
 pref("mail.notification.count.inbox_only", true);
 // Work around bug 482811 by disabling slow script warning for chrome scripts on Mac
 pref("dom.max_chrome_script_run_time", 0);
-#endif
-
-// gtk2 (*nix) lacks transparent/translucent drag support (bug 376238), so we
-// want to disable it so people can see where they are dragging things.
-// (Stock gtk drag icons will be used instead.)
-#ifdef MOZ_WIDGET_GTK
-pref("nglayout.enable_drag_images", false);
 #endif
 
 // For the Empty Junk/Trash confirmation dialogs.

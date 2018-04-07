@@ -23,8 +23,8 @@
 #include <map>
 #pragma warning( pop )
 
+#include "Authenticode.h"
 #include "nsAutoPtr.h"
-
 #include "nsWindowsDllInterceptor.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/StackWalk_windows.h"
@@ -33,7 +33,7 @@
 #include "nsWindowsHelpers.h"
 #include "WindowsDllBlocklist.h"
 #include "mozilla/AutoProfilerLabel.h"
-#include "mozilla/WindowsDllServices.h"
+#include "mozilla/glue/WindowsDllServices.h"
 
 using namespace mozilla;
 
@@ -263,6 +263,9 @@ static const DllBlockInfo sWindowsDllBlocklist[] = {
 
   // Old versions of G DATA BankGuard, bug 1421991
   { "banksafe64.dll", MAKE_VERSION(1, 2, 15299, 65535) },
+
+  // Old versions of G DATA, bug 1043775
+  { "gdkbfltdll64.dll", MAKE_VERSION(1, 0, 14141, 240) },
 
   { nullptr, 0 }
 };
@@ -938,7 +941,7 @@ DllBlocklist_CheckStatus()
 
 
 static SRWLOCK gDllServicesLock = SRWLOCK_INIT;
-static mozilla::detail::DllServicesBase* gDllServices;
+static mozilla::glue::detail::DllServicesBase* gDllServices;
 
 class MOZ_RAII AutoSharedLock final
 {
@@ -1047,22 +1050,30 @@ DllLoadNotification(ULONG aReason, PCLDR_DLL_NOTIFICATION_DATA aNotificationData
   gDllServices->DispatchDllLoadNotification(fullDllName);
 }
 
+namespace mozilla {
+Authenticode* GetAuthenticode();
+} // namespace mozilla
+
 MFBT_API void
-DllBlocklist_SetDllServices(mozilla::detail::DllServicesBase* aSvc)
+DllBlocklist_SetDllServices(mozilla::glue::detail::DllServicesBase* aSvc)
 {
   AutoExclusiveLock lock(gDllServicesLock);
 
-  if (aSvc && !gNotificationCookie) {
-    auto pLdrRegisterDllNotification =
-      reinterpret_cast<decltype(&::LdrRegisterDllNotification)>(
-        ::GetProcAddress(::GetModuleHandleW(L"ntdll.dll"),
-                         "LdrRegisterDllNotification"));
+  if (aSvc) {
+    aSvc->SetAuthenticodeImpl(GetAuthenticode());
 
-    MOZ_DIAGNOSTIC_ASSERT(pLdrRegisterDllNotification);
+    if (!gNotificationCookie) {
+      auto pLdrRegisterDllNotification =
+        reinterpret_cast<decltype(&::LdrRegisterDllNotification)>(
+          ::GetProcAddress(::GetModuleHandleW(L"ntdll.dll"),
+                           "LdrRegisterDllNotification"));
 
-    NTSTATUS ntStatus = pLdrRegisterDllNotification(0, &DllLoadNotification,
-                                                    nullptr, &gNotificationCookie);
-    MOZ_DIAGNOSTIC_ASSERT(NT_SUCCESS(ntStatus));
+      MOZ_DIAGNOSTIC_ASSERT(pLdrRegisterDllNotification);
+
+      NTSTATUS ntStatus = pLdrRegisterDllNotification(0, &DllLoadNotification,
+                                                      nullptr, &gNotificationCookie);
+      MOZ_DIAGNOSTIC_ASSERT(NT_SUCCESS(ntStatus));
+    }
   }
 
   gDllServices = aSvc;

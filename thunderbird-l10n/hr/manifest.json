@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/hr/locale/hr/passwordmgr/", 
         "pippki": "chrome/hr/locale/hr/pippki/"
       }, 
-      "version": "20171102105928"
+      "version": "20180312193103"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-hr@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "hr", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Hrvatski (HR) Language Pack", 
   "manifest_version": 2, 
   "sources": {

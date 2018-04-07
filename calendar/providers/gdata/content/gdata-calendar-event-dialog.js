@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gdata-provider/modules/gdataUtils.jsm");
+ChromeUtils.import("resource://gdata-provider/modules/gdataUtils.jsm");
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://gdata-provider/modules/calUtilsShim.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://gdata-provider/modules/calUtilsShim.jsm");
 
 (function() {
-
     // Older versions of Lightning don't have this variable.
     if (!("gOldEndTimezone" in window)) {
         window.gOldEndTimezone = null;
@@ -18,8 +17,8 @@ Components.utils.import("resource://gdata-provider/modules/calUtilsShim.jsm");
         let rv = protofunc.apply(this, args);
         let calendar = getCurrentCalendar();
         let isGoogleCalendar = (calendar.type == "gdata");
-        let isTask = cal.isToDo(window.calendarItem);
-        let isEvent = cal.isEvent(window.calendarItem);
+        let isTask = cal.item.isToDo(window.calendarItem);
+        let isEvent = cal.item.isEvent(window.calendarItem);
         let isGoogleTask = isGoogleCalendar && isTask;
         let isGoogleEvent = isGoogleCalendar && isEvent;
 
@@ -83,7 +82,7 @@ Components.utils.import("resource://gdata-provider/modules/calUtilsShim.jsm");
             if (isGoogleTask) {
                 let floating = cal.dtz.floating;
                 if (gEndTimezone != floating) {
-                  gOldEndTimezone = gEndTimezone;
+                    gOldEndTimezone = gEndTimezone;
                 }
                 gEndTimezone = cal.dtz.floating;
                 gEndTime = gEndTime.getInTimezone(gEndTimezone);
@@ -115,7 +114,9 @@ Components.utils.import("resource://gdata-provider/modules/calUtilsShim.jsm");
         if (!document.getElementById("item-categories-panel")) {
             let categoriesLabel = document.getElementById("event-grid-category-color-row").firstChild;
             let calendarLabel = document.getElementById("item-categories").nextSibling;
-            if (!categoriesLabel.origLabel) categoriesLabel.origLabel = categoriesLabel.value;
+            if (!categoriesLabel.origLabel) {
+                categoriesLabel.origLabel = categoriesLabel.value;
+            }
 
             setBooleanAttribute("item-categories", "hidden", isGoogleTask);
             setBooleanAttribute(calendarLabel, "hidden", isGoogleTask);
@@ -132,11 +133,11 @@ Components.utils.import("resource://gdata-provider/modules/calUtilsShim.jsm");
     monkeyPatch(window, "updateCategoryMenulist", function(protofunc, ...args) {
         let rv;
         let calendar = getCurrentCalendar();
-        if (calendar.type == "gdata" && cal.isToDo(window.calendarItem)) {
+        if (calendar.type == "gdata" && cal.item.isToDo(window.calendarItem)) {
             let unwrappedCal = calendar.getProperty("cache.uncachedCalendar").wrappedJSObject;
-            unwrappedCal.mProperties['capabilities.categories.maxCount'] = 0;
+            unwrappedCal.mProperties["capabilities.categories.maxCount"] = 0;
             rv = protofunc.apply(this, args);
-            delete unwrappedCal.mProperties['capabilities.categories.maxCount'];
+            delete unwrappedCal.mProperties["capabilities.categories.maxCount"];
         } else {
             rv = protofunc.apply(this, args);
         }
@@ -171,7 +172,7 @@ Components.utils.import("resource://gdata-provider/modules/calUtilsShim.jsm");
             item.deleteProperty("X-DEFAULT-ALARM");
             return protofunc.apply(this, args);
         }
-    })
+    });
 
     monkeyPatch(window, "loadReminders", function(protofunc, reminders, ...args) {
         let reminderList = document.getElementById("item-alarm");
@@ -186,7 +187,7 @@ Components.utils.import("resource://gdata-provider/modules/calUtilsShim.jsm");
         let rv = null;
         let usesDefault;
         if (reminders.length) {
-            usesDefault = reminders.every(function(x) { return x.hasProperty("X-DEFAULT-ALARM"); });
+            usesDefault = reminders.every(reminder => reminder.hasProperty("X-DEFAULT-ALARM"));
         } else {
             usesDefault = window.calendarItem.getProperty("X-DEFAULT-ALARM") == "TRUE";
         }

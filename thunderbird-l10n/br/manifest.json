@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/br/locale/br/passwordmgr/", 
         "pippki": "chrome/br/locale/br/pippki/"
       }, 
-      "version": "20171102104225"
+      "version": "20180312184338"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-br@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "br", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Breton Language Pack", 
   "manifest_version": 2, 
   "sources": {

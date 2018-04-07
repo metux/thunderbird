@@ -13,6 +13,7 @@
 <!ENTITY locationEditField.label "Adressa da la grafica:">
 <!ENTITY locationEditField.accessKey "L">
 <!ENTITY locationEditField.tooltip "Endatescha il num u l'adressa da la datoteca">
+<!ENTITY locationEditField.shortenedDataURI "Datas URI scursanidas (cun copiar vegn l'entir URI plazzà en l'archiv provisoric)">
 <!ENTITY title.label "Titel:">
 <!ENTITY title.accessKey "t">
 <!ENTITY title.tooltip "L'attribut HTML 'title' che vegn mussà sco nivletta">
@@ -76,5 +77,3 @@
 <!ENTITY imageDimensionsTab.label "Dimensiuns">
 <!ENTITY imageAppearanceTab.label "Apparientscha">
 <!ENTITY imageLinkTab.label "Colliaziun">
-
-<!ENTITY locationEditField.shortenedDataURI "Shortened data URI (copy will place the full URI onto the clipboard)">

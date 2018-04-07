@@ -4,9 +4,12 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 EXTRA_JS_MODULES += [
+    'calACLUtils.jsm',
     'calAlarmUtils.jsm',
     'calAsyncUtils.jsm',
     'calAuthUtils.jsm',
+    'calCategoryUtils.jsm',
+    'calDataUtils.jsm',
     'calDateTimeUtils.jsm',
     'calExtract.jsm',
     'calHashedArray.jsm',
@@ -19,6 +22,7 @@ EXTRA_JS_MODULES += [
     'calUtils.jsm',
     'calUtilsCompat.jsm',
     'calViewUtils.jsm',
+    'calWindowUtils.jsm',
     'calXMLUtils.jsm',
     'ical.js',
 ]

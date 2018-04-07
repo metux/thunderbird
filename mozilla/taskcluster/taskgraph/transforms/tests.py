@@ -20,7 +20,7 @@ for example - use `all_tests.py` instead.
 from __future__ import absolute_import, print_function, unicode_literals
 
 from taskgraph.transforms.base import TransformSequence
-from taskgraph.util.schema import resolve_keyed_by
+from taskgraph.util.schema import resolve_keyed_by, OptimizationSchema
 from taskgraph.util.treeherder import split_symbol, join_symbol
 from taskgraph.util.platforms import platform_family
 from taskgraph.util.schema import (
@@ -265,7 +265,7 @@ test_description_schema = Schema({
         int),
 
     # the exit status code that indicates the task should be retried
-    Optional('retry-exit-status'): int,
+    Optional('retry-exit-status'): [int],
 
     # Whether to perform a gecko checkout.
     Required('checkout'): bool,
@@ -384,11 +384,24 @@ test_description_schema = Schema({
         Optional('files-changed'): [basestring],
     }),
 
+    # Optimization to perform on this task during the optimization phase.
+    # Optimizations are defined in taskcluster/taskgraph/optimize.py.
+    Exclusive(Optional('optimization'), 'optimization'): OptimizationSchema,
+
     # The SCHEDULES component for this task; this defaults to the suite
     # (not including the flavor) but can be overridden here.
     Exclusive(Optional('schedules-component'), 'optimization'): basestring,
 
     Optional('worker-type'): optionally_keyed_by(
+        'test-platform',
+        Any(basestring, None),
+    ),
+
+    # The target name, specifying the build artifact to be tested.
+    # If None or not specified, a transform sets the target based on OS:
+    # target.dmg (Mac), target.apk (Android), target.tar.bz2 (Linux),
+    # or target.zip (Windows).
+    Optional('target'): optionally_keyed_by(
         'test-platform',
         Any(basestring, None),
     ),
@@ -499,17 +512,19 @@ def setup_talos(config, tests):
 def set_target(config, tests):
     for test in tests:
         build_platform = test['build-platform']
-        if build_platform.startswith('macosx'):
-            target = 'target.dmg'
-        elif build_platform.startswith('android'):
-            if 'geckoview' in test['test-name']:
-                target = 'geckoview_example.apk'
-            else:
+        target = None
+        if 'target' in test:
+            resolve_keyed_by(test, 'target', item_name=test['test-name'])
+            target = test['target']
+        if not target:
+            if build_platform.startswith('macosx'):
+                target = 'target.dmg'
+            elif build_platform.startswith('android'):
                 target = 'target.apk'
-        elif build_platform.startswith('win'):
-            target = 'target.zip'
-        else:
-            target = 'target.tar.bz2'
+            elif build_platform.startswith('win'):
+                target = 'target.zip'
+            else:
+                target = 'target.tar.bz2'
         test['mozharness']['build-artifact-name'] = 'public/build/' + target
 
         yield test
@@ -705,6 +720,12 @@ def enable_code_coverage(config, tests):
                     test['run-on-projects'] == 'built-projects':
                 test['run-on-projects'] = ['mozilla-central', 'try']
 
+            # Ensure we don't optimize test suites out.
+            # We always want to run all test suites for coverage purposes.
+            test.pop('schedules-component', None)
+            test.pop('when', None)
+            test['optimization'] = None
+
             if 'talos' in test['test-name']:
                 test['max-run-time'] = 7200
                 if 'linux' in test['build-platform']:
@@ -831,7 +852,7 @@ def set_retry_exit_status(config, tests):
     """Set the retry exit status to TBPL_RETRY, the value returned by mozharness
        scripts to indicate a transient failure that should be retried."""
     for test in tests:
-        test['retry-exit-status'] = 4
+        test['retry-exit-status'] = [4]
         yield test
 
 
@@ -926,10 +947,7 @@ def set_worker_type(config, tests):
                 test['worker-type'] = win_worker_type_platform[test['virtualization']]
         elif test_platform.startswith('linux') or test_platform.startswith('android'):
             if test.get('suite', '') == 'talos' and test['build-platform'] != 'linux64-ccov/opt':
-                if try_options.get('taskcluster_worker'):
-                    test['worker-type'] = 'releng-hardware/gecko-t-linux-talos'
-                else:
-                    test['worker-type'] = 'buildbot-bridge/buildbot-bridge'
+                test['worker-type'] = 'releng-hardware/gecko-t-linux-talos'
             else:
                 test['worker-type'] = LINUX_WORKER_TYPES[test['instance-size']]
         else:
@@ -1024,8 +1042,10 @@ def make_job_description(config, tests):
 
         if test.get('when'):
             jobdesc['when'] = test['when']
-        elif config.params['project'] != 'try':
-            # for non-try branches, include SETA
+        elif 'optimization' in test:
+            jobdesc['optimization'] = test['optimization']
+        elif config.params['project'] != 'try' and suite not in INCLUSIVE_COMPONENTS:
+            # for non-try branches and non-inclusive suites, include SETA
             jobdesc['optimization'] = {'skip-unless-schedules-or-seta': schedules}
         else:
             # otherwise just use skip-unless-schedules

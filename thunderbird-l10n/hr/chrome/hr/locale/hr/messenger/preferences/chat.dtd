@@ -31,6 +31,10 @@ sentence. -->
 <!ENTITY  completeNotification.label          "s imenom pošiljatelja i pregledom poruke">
 <!ENTITY  buddyInfoOnly.label                 "samo s imenom pošiljatelja">
 <!ENTITY  dummyNotification.label             "bez bilo kakvih informacija">
+<!ENTITY  getAttention.label                  "Bljesak stavke alatne trake">
+<!ENTITY  getAttention.accesskey              "B">
+<!ENTITY  getAttentionMac.label               "Animiraj ikonu pristanka">
+<!ENTITY  getAttentionMac.accesskey           "A">
 <!ENTITY  chatSound.accesskey                 "d">
 <!ENTITY  chatSound.label                     "Reproduciraj zvuk">
 <!ENTITY  play.label                          "Reproduciraj">
@@ -58,8 +62,3 @@ sentence. -->
 <!ENTITY messageStyleShowHeader.accesskey  "z">
 <!ENTITY messageStyleNoPreview.title       "Nema dostupnog pregleda">
 <!ENTITY messageStyleNoPreview.description "Ova tema je neispravna ili trenutno nedostupna (isključen dodatak, siguran način rada, …).">
-
-<!ENTITY  getAttention.label                  "Flash the taskbar item">
-<!ENTITY  getAttention.accesskey              "F">
-<!ENTITY  getAttentionMac.label               "Animate dock icon">
-<!ENTITY  getAttentionMac.accesskey           "o">

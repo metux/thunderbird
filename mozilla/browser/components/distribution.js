@@ -2,12 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-this.EXPORTED_SYMBOLS = [ "DistributionCustomizer" ];
-
-var Ci = Components.interfaces;
-var Cc = Components.classes;
-var Cr = Components.results;
-var Cu = Components.utils;
+var EXPORTED_SYMBOLS = [ "DistributionCustomizer" ];
 
 const DISTRIBUTION_CUSTOMIZATION_COMPLETE_TOPIC =
   "distribution-customization-complete";
@@ -15,16 +10,16 @@ const DISTRIBUTION_CUSTOMIZATION_COMPLETE_TOPIC =
 const PREF_CACHED_FILE_EXISTENCE  = "distribution.iniFile.exists.value";
 const PREF_CACHED_FILE_APPVERSION = "distribution.iniFile.exists.appversion";
 
-Cu.import("resource://gre/modules/AppConstants.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Preferences",
-                                  "resource://gre/modules/Preferences.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
-                                  "resource://gre/modules/PlacesUtils.jsm");
+ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.defineModuleGetter(this, "Preferences",
+                               "resource://gre/modules/Preferences.jsm");
+ChromeUtils.defineModuleGetter(this, "PlacesUtils",
+                               "resource://gre/modules/PlacesUtils.jsm");
 
-this.DistributionCustomizer = function DistributionCustomizer() {
-};
+function DistributionCustomizer() {
+}
 
 DistributionCustomizer.prototype = {
   get _iniFile() {
@@ -114,9 +109,9 @@ DistributionCustomizer.prototype = {
         if (ilocale)
           continue;
 
-        if (keys.indexOf(key + "." + this._locale) >= 0) {
+        if (keys.includes(key + "." + this._locale)) {
           key += "." + this._locale;
-        } else if (keys.indexOf(key + "." + this._language) >= 0) {
+        } else if (keys.includes(key + "." + this._language)) {
           key += "." + this._language;
         }
 

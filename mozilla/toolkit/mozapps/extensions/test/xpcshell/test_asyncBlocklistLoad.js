@@ -5,21 +5,21 @@
 add_task(async function() {
   let blocklist = AM_Cc["@mozilla.org/extensions/blocklist;1"].
                   getService().wrappedJSObject;
-  let scope = Components.utils.import("resource://gre/modules/osfile.jsm", {});
+  let scope = ChromeUtils.import("resource://gre/modules/osfile.jsm", {});
 
   // sync -> async
   blocklist._loadBlocklist();
-  Assert.ok(blocklist._isBlocklistLoaded());
+  Assert.ok(blocklist.isLoaded);
   await blocklist._preloadBlocklist();
   Assert.ok(!blocklist._isBlocklistPreloaded());
   blocklist._clear();
 
   // async -> sync
   await blocklist._preloadBlocklist();
-  Assert.ok(!blocklist._isBlocklistLoaded());
+  Assert.ok(!blocklist.isLoaded);
   Assert.ok(blocklist._isBlocklistPreloaded());
   blocklist._loadBlocklist();
-  Assert.ok(blocklist._isBlocklistLoaded());
+  Assert.ok(blocklist.isLoaded);
   Assert.ok(!blocklist._isBlocklistPreloaded());
   blocklist._clear();
 
@@ -35,6 +35,6 @@ add_task(async function() {
   };
 
   await blocklist._preloadBlocklist();
-  Assert.ok(blocklist._isBlocklistLoaded());
+  Assert.ok(blocklist.isLoaded);
   Assert.ok(!blocklist._isBlocklistPreloaded());
 });

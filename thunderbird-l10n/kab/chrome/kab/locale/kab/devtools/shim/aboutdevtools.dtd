@@ -12,67 +12,74 @@
   - -->
 
 <!-- LOCALIZATION NOTE (aboutDevtools.headTitle): Text of the title tag for about:devtools -->
-<!ENTITY  aboutDevtools.headTitle "About Developer Tools">
+<!ENTITY  aboutDevtools.headTitle "Γef Ifecka n tneflit">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.title): Title of the top about:devtools
   -  section displayed when DevTools are disabled. -->
-<!ENTITY  aboutDevtools.enable.title "Enable Firefox Developer Tools">
+<!ENTITY  aboutDevtools.enable.title "Rmed ifecka n tneflit n Firefox">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.inspectElementTitle): Title of the top
   -  section displayed when devtools are disabled and the user triggered DevTools by using
   -  the Inspect Element menu item. -->
-<!ENTITY  aboutDevtools.enable.inspectElementTitle "Enable Firefox Developer Tools to use Inspect Element">
+<!ENTITY  aboutDevtools.enable.inspectElementTitle "Rmed ifecka n uneflay Firefox akken ad tesqedceḍ asweḍ n uferdis">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.inspectElementMessage): Message displayed
   -  when users come from using the Inspect Element menu item. -->
 <!ENTITY  aboutDevtools.enable.inspectElementMessage
-          "Examine and edit HTML and CSS with the Developer Tools’ Inspector.">
+          "Sekyed sakin ẓreg HTML akked CSS s umaswaḍ n ifecka n tneflit.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.aboutDebuggingMessage): Message displayed
   -  when users come from about:debugging. -->
 <!ENTITY  aboutDevtools.enable.aboutDebuggingMessage
-          "Develop and debug WebExtensions, web workers, service workers and more with Firefox Developer Tools.">
+          "Snefli udiɣ seɣti s WebExtensions, Web workers, imeẓla workers d wayen nniḍen s useqdec n yifecka n tneflit n Firefox.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.keyShortcutMessage): Message displayed when
   -  users pressed a DevTools key shortcut. -->
 <!ENTITY  aboutDevtools.enable.keyShortcutMessage
-          "You activated a Developer Tools shortcut. If that was a mistake, you can close this Tab.">
+          "Tremdeḍ anegzum ifecka n uneflay. ma tella tucḍa, tzemreḍ ad tmedleḍ iccer-agi.">
+
+<!-- LOCALIZATION NOTE (aboutDevtools.enable.menuMessage): Message displayed when users
+  -  clicked on a "Enable Developer Tools" menu item. -->
+<!ENTITY  aboutDevtools.enable.menuMessage
+          "Sekyed, ẓreg, seγti HTML,CSS, akked JavaScript s ufecku am nspector akked Debugger.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.menuMessage2): Message displayed when users
   -  clicked on a "Enable Developer Tools" menu item. -->
 <!ENTITY  aboutDevtools.enable.menuMessage2
-          "Perfect your website’s HTML, CSS, and JavaScript with tools like Inspector and Debugger.">
+          "Qaεed asmel inek web HTML,CSS, akked JavaScript s ufecku am nspector akked Debugger.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.commonMessage): Generic message displayed for
   -  all possible entry points (keyshortcut, menu item etc…). -->
 <!ENTITY  aboutDevtools.enable.commonMessage
-          "Firefox Developer Tools are disabled by default to give you more control over your browser.">
+          "Ifecka n uneflay Firefox nsan s wudem amezwer akken ad tizmireḍ i usenqed n iminig inek.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.enable.learnMoreLink): Text for the link to
   -  https://developer.mozilla.org/docs/Tools displayed in the top section when DevTools
   -  are disabled. -->
-<!ENTITY  aboutDevtools.enable.learnMoreLink "Learn more about Developer Tools">
+<!ENTITY  aboutDevtools.enable.learnMoreLink "Issin ugar γef Ifecka n tneflit">
 
-<!ENTITY  aboutDevtools.enable.enableButton "Enable Developer Tools">
-<!ENTITY  aboutDevtools.enable.closeButton2 "Close this Tab">
+<!ENTITY  aboutDevtools.enable.enableButton "Rmed ifecka n tneflit">
+<!ENTITY  aboutDevtools.enable.closeButton "Mdel asebter-agi">
 
-<!ENTITY  aboutDevtools.welcome.title "Welcome to Firefox Developer Tools!">
+<!ENTITY  aboutDevtools.enable.closeButton2 "Mdel iccer-a">
 
-<!ENTITY  aboutDevtools.newsletter.title "Mozilla Developer Newsletter">
+<!ENTITY  aboutDevtools.welcome.title "Ansuf yis-k γer Ifecka Firefox Developer!">
+
+<!ENTITY  aboutDevtools.newsletter.title "Aγmis n ineflayen n Mozilla">
 <!-- LOCALIZATION NOTE (aboutDevtools.newsletter.message): Subscribe form message.
   -  The newsletter is only available in english at the moment.
   -  See Bug 1415273 for support of additional languages.-->
-<!ENTITY  aboutDevtools.newsletter.message "Get developer news, tricks and resources sent straight to your inbox.">
-<!ENTITY  aboutDevtools.newsletter.email.placeholder "Email">
-<!ENTITY  aboutDevtools.newsletter.privacy.label "I’m okay with Mozilla handling my info as explained in this <a class='external' href='https://www.mozilla.org/privacy/'>Privacy Policy</a>.">
-<!ENTITY  aboutDevtools.newsletter.subscribeButton "Subscribe">
-<!ENTITY  aboutDevtools.newsletter.thanks.title "Thanks!">
-<!ENTITY  aboutDevtools.newsletter.thanks.message "If you haven’t previously confirmed a subscription to a Mozilla-related newsletter you may have to do so. Please check your inbox or your spam filter for an email from us.">
+<!ENTITY  aboutDevtools.newsletter.message "Rmes-d isallen, tixbula akked tiɣbula i yineflayen srid di tnaka-ik n urmas.">
+<!ENTITY  aboutDevtools.newsletter.email.placeholder "Imayl">
+<!ENTITY  aboutDevtools.newsletter.privacy.label "Qebleɣ akken ad tesqedcem talɣut-agi am akken i d-yettwasegza di <a class='external' href='https://www.mozilla.org/privacy/'>tsertit n tbaḍnit agi</a>.">
+<!ENTITY  aboutDevtools.newsletter.subscribeButton "Jerred">
+<!ENTITY  aboutDevtools.newsletter.thanks.title "Tanemmirt!">
+<!ENTITY  aboutDevtools.newsletter.thanks.message "Ma yella ur tsentmeḍ ara ajerred inek ar tebratt n isallen icudden ar Mozilla, ahat tzemreḍ akka tura. Ma ulac aɣilif, wali ma yella yimayl di tebwaṭ inek n imaylen neɣ ula deg ispamen.">
 
 <!ENTITY  aboutDevtools.footer.title "Firefox Developer Edition">
-<!ENTITY  aboutDevtools.footer.message "Looking for more than just Developer Tools? Check out the Firefox browser that is built specifically for developers and modern workflows.">
+<!ENTITY  aboutDevtools.footer.message "Tettnadiḍ ugar n ifecka n uneflay? Senqed iminig Firefox ittwabnan i lmend i yineflayen akked leqdic amaynut.">
 
 <!-- LOCALIZATION NOTE (aboutDevtools.footer.learnMoreLink): Text for the link to
   -  https://www.mozilla.org/firefox/developer/ displayed in the footer. -->
-<!ENTITY  aboutDevtools.footer.learnMoreLink "Learn more">
+<!ENTITY  aboutDevtools.footer.learnMoreLink "Issin ugar">
 

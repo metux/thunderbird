@@ -14,13 +14,13 @@
 load("../../../resources/logHelper.js");
 load("../../../resources/asyncTestUtils.js");
 
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 var gMsgHdr = null;
 
 // Take a multipart message as we're testing attachment URLs as well
 var gFile = do_get_file("../../../data/multipart-complex2");
-                   
+
 var tests = [
   setup,
   addMessageToServer,

@@ -10,7 +10,7 @@
 <!ENTITY replyToField4.label "Përgjigjuni te ">
 
 <!ENTITY subjectField4.label "Subjekt ">
-<!ENTITY ccField4.label "Cc ">
+<!ENTITY ccField4.label "Cc">
 <!ENTITY bccField4.label "Bcc ">
 <!ENTITY newsgroupsField4.label "Grupe lajmesh ">
 <!ENTITY followupToField4.label "Vazhdojeni te ">
@@ -52,7 +52,7 @@
 <!ENTITY hdrViewToolbarAlwaysReplySender.label "Shfaqe Përherë pjesën Përgjigjiuni Dërguesit">
 <!ENTITY hdrViewToolbarAlwaysReplySender.accesskey "P">
 
-<!ENTITY otherActionsButton2.label "Të tjera">
+<!ENTITY otherActionsButton2.label "Më tepër">
 <!ENTITY otherActionsButton.tooltip "Veprime të tjera">
 <!ENTITY otherActionsOpenConversation1.label "Hape si Bisedë">
 <!ENTITY otherActionsOpenConversation1.accesskey "B">
@@ -101,7 +101,7 @@
 <!ENTITY saveAllAttachmentsButton1.label   "Ruaji Krejt">
 <!ENTITY saveAllAttachmentsButton1.tooltip "Ruajini krejt kartelat e bashkëngjitura">
 
-<!ENTITY copyLinkCmd.label        "Kopjo Adresë Lidhjeje">
+<!ENTITY copyLinkCmd.label        "Kopjo Vendndodhje Lidhjeje">
 <!ENTITY copyLinkCmd.accesskey    "K">
 
 <!ENTITY CopyMessageId.label "Kopjo ID Mesazhi">

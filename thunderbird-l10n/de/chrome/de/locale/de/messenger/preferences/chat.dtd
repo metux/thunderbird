@@ -2,6 +2,8 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<!ENTITY  generalTab.label            "Allgemein">
+
 <!ENTITY  startupAction.label         "Beim Start von &brandShortName;:">
 <!ENTITY  startupAction.accesskey     "S">
 <!ENTITY  startupOffline.label        "Chat-Konten nicht verbinden">
@@ -29,6 +31,10 @@ sentence. -->
 <!ENTITY  completeNotification.label          "mit dem Namen des Absenders und einer Vorschau der Nachricht">
 <!ENTITY  buddyInfoOnly.label                 "nur mit dem Namen des Absenders">
 <!ENTITY  dummyNotification.label             "ohne jegliche Informationen">
+<!ENTITY  getAttention.label                  "Blinkendes Symbol in Taskleiste">
+<!ENTITY  getAttention.accesskey              "m">
+<!ENTITY  getAttentionMac.label               "Animiertes Symbol im Dock">
+<!ENTITY  getAttentionMac.accesskey           "m">
 <!ENTITY  chatSound.accesskey                 "K">
 <!ENTITY  chatSound.label                     "Einen Klang abspielen">
 <!ENTITY  play.label                          "Probe hören">
@@ -40,25 +46,19 @@ sentence. -->
 <!ENTITY  browse.label                        "Durchsuchen…">
 <!ENTITY  browse.accesskey                    "D">
 
-
-<!ENTITY  generalTab.label            "General">
-<!ENTITY  getAttention.label                  "Flash the taskbar item">
-<!ENTITY  getAttention.accesskey              "F">
-<!ENTITY  getAttentionMac.label               "Animate dock icon">
-<!ENTITY  getAttentionMac.accesskey           "o">
-<!ENTITY messageStyleTab.title             "Message Styles">
-<!ENTITY messageStylePreview.label         "Preview:">
-<!ENTITY messageStyleTheme.label           "Theme:">
-<!ENTITY messageStyleTheme.accesskey       "T">
+<!ENTITY messageStyleTab.title             "Nachrichtenansicht">
+<!ENTITY messageStylePreview.label         "Vorschau:">
+<!ENTITY messageStyleTheme.label           "Erscheinungsbild:">
+<!ENTITY messageStyleTheme.accesskey       "E">
 <!ENTITY messageStyleThunderbirdTheme.label "Thunderbird">
-<!ENTITY messageStyleBubblesTheme.label    "Bubbles">
-<!ENTITY messageStyleDarkTheme.label       "Dark">
-<!ENTITY messageStylePaperSheetsTheme.label "Paper Sheets">
-<!ENTITY messageStyleSimpleTheme.label     "Simple">
-<!ENTITY messageStyleDefaultTheme.label    "Default">
-<!ENTITY messageStyleVariant.label         "Variant:">
+<!ENTITY messageStyleBubblesTheme.label    "Sprechblasen">
+<!ENTITY messageStyleDarkTheme.label       "Dunkel">
+<!ENTITY messageStylePaperSheetsTheme.label "Papierseiten">
+<!ENTITY messageStyleSimpleTheme.label     "Einfach">
+<!ENTITY messageStyleDefaultTheme.label    "Standard">
+<!ENTITY messageStyleVariant.label         "Variante:">
 <!ENTITY messageStyleVariant.accesskey     "V">
-<!ENTITY messageStyleShowHeader.label      "Show Header">
-<!ENTITY messageStyleShowHeader.accesskey  "H">
-<!ENTITY messageStyleNoPreview.title       "No preview available">
-<!ENTITY messageStyleNoPreview.description "This theme is not valid or is currently unavailable (disabled addon, safe-mode, …).">
+<!ENTITY messageStyleShowHeader.label      "Kopfzeilen anzeigen">
+<!ENTITY messageStyleShowHeader.accesskey  "K">
+<!ENTITY messageStyleNoPreview.title       "Keine Vorschau verfügbar">
+<!ENTITY messageStyleNoPreview.description "Dieses Erscheinungsbild ist ungültig oder derzeit nicht verfügbar (z.B. weil Add-on deaktiviert, Thunderbird im Abgesicherten Modus, …).">

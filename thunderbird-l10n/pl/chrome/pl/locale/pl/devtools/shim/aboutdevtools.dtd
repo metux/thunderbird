@@ -2,77 +2,34 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!-- LOCALIZATION NOTE : This file contains the strings used in aboutdevtools.xhtml,
-  -  displayed when going to about:devtools. UI depends on the value of the preference
-  -  "devtools.enabled".
-  -
-  -  "aboutDevtools.enable.*" and "aboutDevtools.newsletter.*" keys are used when DevTools
-     are disabled
-  -  "aboutDevtools.welcome.*" keys are used when DevTools are enabled
-  - -->
+<!ENTITY aboutDevtools.headTitle "O narzędziach dla programistów">
+<!ENTITY aboutDevtools.enable.title "Włączanie narzędzi dla programistów Firefoksa">
+<!ENTITY aboutDevtools.enable.inspectElementTitle "Włącz narzędzia dla programistów Firefoksa, aby używać opcji „Zbadaj element”">
 
-<!-- LOCALIZATION NOTE (aboutDevtools.headTitle): Text of the title tag for about:devtools -->
-<!ENTITY  aboutDevtools.headTitle "About Developer Tools">
+<!ENTITY aboutDevtools.enable.aboutDebuggingMessage "Twórz i debuguj rozszerzenia WebExtensions, wątki sieciowe, wątki usługowe i wiele więcej za pomocą narzędzi dla programistów Firefoksa.">
+<!ENTITY aboutDevtools.enable.inspectElementMessage "Badaj i redaguj kod HTML i CSS za pomocą inspektora narzędzi dla programistów.">
+<!ENTITY aboutDevtools.enable.keyShortcutMessage "Użyto skrótu narzędzi dla programistów. Jeśli zrobiono to przez pomyłkę, to można zamknąć tę kartę.">
+<!ENTITY aboutDevtools.enable.menuMessage "Badaj, redaguj i debuguj kod HTML, CSS i JavaScript za pomocą takich narzędzi, jak inspektor i debuger.">
+<!ENTITY aboutDevtools.enable.menuMessage2 "Udoskonalaj kod HTML, CSS i JavaScript strony za pomocą takich narzędzi, jak inspektor i debuger.">
 
-<!-- LOCALIZATION NOTE (aboutDevtools.enable.title): Title of the top about:devtools
-  -  section displayed when DevTools are disabled. -->
-<!ENTITY  aboutDevtools.enable.title "Enable Firefox Developer Tools">
+<!ENTITY aboutDevtools.enable.commonMessage "Narzędzia dla programistów Firefoksa są domyślnie wyłączone, aby użytkownik miał więcej kontroli nad przeglądarką.">
 
-<!-- LOCALIZATION NOTE (aboutDevtools.enable.inspectElementTitle): Title of the top
-  -  section displayed when devtools are disabled and the user triggered DevTools by using
-  -  the Inspect Element menu item. -->
-<!ENTITY  aboutDevtools.enable.inspectElementTitle "Enable Firefox Developer Tools to use Inspect Element">
+<!ENTITY aboutDevtools.enable.learnMoreLink "Więcej informacji o narzędziach dla programistów">
+<!ENTITY aboutDevtools.enable.enableButton "Włącz narzędzia dla programistów">
+<!ENTITY aboutDevtools.enable.closeButton "Zamknij tę stronę">
+<!ENTITY aboutDevtools.enable.closeButton2 "Zamknij tę kartę">
+<!ENTITY aboutDevtools.welcome.title "Witamy w narzędziach dla programistów Firefoksa!">
 
-<!-- LOCALIZATION NOTE (aboutDevtools.enable.inspectElementMessage): Message displayed
-  -  when users come from using the Inspect Element menu item. -->
-<!ENTITY  aboutDevtools.enable.inspectElementMessage
-          "Examine and edit HTML and CSS with the Developer Tools’ Inspector.">
+<!ENTITY aboutDevtools.newsletter.title "Newsletter Mozilli dla programistów">
+<!ENTITY aboutDevtools.newsletter.message "Aktualności, wskazówki i inne materiały dla programistów prosto do Twojej skrzynki.">
+<!ENTITY aboutDevtools.newsletter.email.placeholder "Adres e-mail">
+<!ENTITY aboutDevtools.newsletter.privacy.label "Pozwalam Mozilli wykorzystywać te informacje w sposób opisany w <a class='external' href='https://www.mozilla.org/privacy/'>polityce prywatności</a>.">
+<!ENTITY aboutDevtools.newsletter.subscribeButton "Subskrybuj">
 
-<!-- LOCALIZATION NOTE (aboutDevtools.enable.aboutDebuggingMessage): Message displayed
-  -  when users come from about:debugging. -->
-<!ENTITY  aboutDevtools.enable.aboutDebuggingMessage
-          "Develop and debug WebExtensions, web workers, service workers and more with Firefox Developer Tools.">
+<!ENTITY aboutDevtools.newsletter.thanks.title "Dziękujemy!">
+<!ENTITY aboutDevtools.newsletter.thanks.message "Jeśli jeszcze nigdy nie potwierdzono subskrypcji newslettera Mozilli, to możesz musieć to zrobić. Sprawdź, czy w skrzynce odbiorczej lub niechcianych jest wiadomość od nas.">
 
-<!-- LOCALIZATION NOTE (aboutDevtools.enable.keyShortcutMessage): Message displayed when
-  -  users pressed a DevTools key shortcut. -->
-<!ENTITY  aboutDevtools.enable.keyShortcutMessage
-          "You activated a Developer Tools shortcut. If that was a mistake, you can close this Tab.">
+<!ENTITY aboutDevtools.footer.title "Firefox Developer Edition">
+<!ENTITY aboutDevtools.footer.message "Szukasz czegoś więcej niż same narzędzia dla programistów? Wypróbuj przeglądarkę Firefox zbudowaną z myślą o programistach i nowoczesnych narzędziach.">
 
-<!-- LOCALIZATION NOTE (aboutDevtools.enable.menuMessage2): Message displayed when users
-  -  clicked on a "Enable Developer Tools" menu item. -->
-<!ENTITY  aboutDevtools.enable.menuMessage2
-          "Perfect your website’s HTML, CSS, and JavaScript with tools like Inspector and Debugger.">
-
-<!-- LOCALIZATION NOTE (aboutDevtools.enable.commonMessage): Generic message displayed for
-  -  all possible entry points (keyshortcut, menu item etc…). -->
-<!ENTITY  aboutDevtools.enable.commonMessage
-          "Firefox Developer Tools are disabled by default to give you more control over your browser.">
-
-<!-- LOCALIZATION NOTE (aboutDevtools.enable.learnMoreLink): Text for the link to
-  -  https://developer.mozilla.org/docs/Tools displayed in the top section when DevTools
-  -  are disabled. -->
-<!ENTITY  aboutDevtools.enable.learnMoreLink "Learn more about Developer Tools">
-
-<!ENTITY  aboutDevtools.enable.enableButton "Enable Developer Tools">
-<!ENTITY  aboutDevtools.enable.closeButton2 "Close this Tab">
-
-<!ENTITY  aboutDevtools.welcome.title "Welcome to Firefox Developer Tools!">
-
-<!ENTITY  aboutDevtools.newsletter.title "Mozilla Developer Newsletter">
-<!-- LOCALIZATION NOTE (aboutDevtools.newsletter.message): Subscribe form message.
-  -  The newsletter is only available in english at the moment.
-  -  See Bug 1415273 for support of additional languages.-->
-<!ENTITY  aboutDevtools.newsletter.message "Get developer news, tricks and resources sent straight to your inbox.">
-<!ENTITY  aboutDevtools.newsletter.email.placeholder "Email">
-<!ENTITY  aboutDevtools.newsletter.privacy.label "I’m okay with Mozilla handling my info as explained in this <a class='external' href='https://www.mozilla.org/privacy/'>Privacy Policy</a>.">
-<!ENTITY  aboutDevtools.newsletter.subscribeButton "Subscribe">
-<!ENTITY  aboutDevtools.newsletter.thanks.title "Thanks!">
-<!ENTITY  aboutDevtools.newsletter.thanks.message "If you haven’t previously confirmed a subscription to a Mozilla-related newsletter you may have to do so. Please check your inbox or your spam filter for an email from us.">
-
-<!ENTITY  aboutDevtools.footer.title "Firefox Developer Edition">
-<!ENTITY  aboutDevtools.footer.message "Looking for more than just Developer Tools? Check out the Firefox browser that is built specifically for developers and modern workflows.">
-
-<!-- LOCALIZATION NOTE (aboutDevtools.footer.learnMoreLink): Text for the link to
-  -  https://www.mozilla.org/firefox/developer/ displayed in the footer. -->
-<!ENTITY  aboutDevtools.footer.learnMoreLink "Learn more">
-
+<!ENTITY aboutDevtools.footer.learnMoreLink "Więcej informacji">

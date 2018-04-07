@@ -203,7 +203,6 @@
 #endif
 
 #include "mozilla/gfx/DeviceManagerDx.h"
-#include "mozilla/layers/APZCTreeManager.h"
 #include "mozilla/layers/InputAPZContext.h"
 #include "mozilla/layers/KnowsCompositor.h"
 #include "InputData.h"
@@ -715,8 +714,6 @@ nsWindow::~nsWindow()
 
   NS_IF_RELEASE(mNativeDragTarget);
 }
-
-NS_IMPL_ISUPPORTS_INHERITED0(nsWindow, nsBaseWidget)
 
 /**************************************************************
  *
@@ -2458,8 +2455,7 @@ nsWindow::ResetLayout()
   // Send a gecko size event to trigger reflow.
   RECT clientRc = {0};
   GetClientRect(mWnd, &clientRc);
-  nsIntRect evRect(WinUtils::ToIntRect(clientRc));
-  OnResize(evRect);
+  OnResize(WinUtils::ToIntRect(clientRc).Size());
 
   // Invalidate and update
   Invalidate();
@@ -6504,7 +6500,15 @@ LRESULT nsWindow::ProcessKeyUpMessage(const MSG &aMsg, bool *aEventDispatched)
 {
   ModifierKeyState modKeyState;
   NativeKey nativeKey(this, aMsg, modKeyState);
-  return static_cast<LRESULT>(nativeKey.HandleKeyUpMessage(aEventDispatched));
+  bool result = nativeKey.HandleKeyUpMessage(aEventDispatched);
+  if (aMsg.wParam == VK_F10) {
+    // Bug 1382199: Windows default behavior will trigger the System menu bar
+    // when F10 is released. Among other things, this causes the System menu bar
+    // to appear when a web page overrides the contextmenu event. We *never*
+    // want this default behavior, so eat this key (never pass it to Windows).
+    return true;
+  }
+  return result;
 }
 
 LRESULT nsWindow::ProcessKeyDownMessage(const MSG &aMsg,
@@ -6733,7 +6737,6 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS* wp)
 
     newWidth  = r.right - r.left;
     newHeight = r.bottom - r.top;
-    nsIntRect rect(wp->x, wp->y, newWidth, newHeight);
 
     if (newWidth > mLastSize.width)
     {
@@ -6789,12 +6792,12 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS* wp)
     }
 
     // Recalculate the width and height based on the client area for gecko events.
+    LayoutDeviceIntSize clientSize(newWidth, newHeight);
     if (::GetClientRect(mWnd, &r)) {
-      rect.SizeTo(r.right - r.left, r.bottom - r.top);
+      clientSize = WinUtils::ToIntRect(r).Size();
     }
-    
     // Send a gecko resize event
-    OnResize(rect);
+    OnResize(clientSize);
   }
 }
 
@@ -7251,14 +7254,19 @@ void nsWindow::OnDestroy()
 }
 
 // Send a resize message to the listener
-bool nsWindow::OnResize(nsIntRect &aWindowRect)
+bool
+nsWindow::OnResize(const LayoutDeviceIntSize& aSize)
 {
-  bool result = mWidgetListener ?
-    mWidgetListener->WindowResized(this, aWindowRect.Width(), aWindowRect.Height()) : false;
+  bool result = false;
+  if (mWidgetListener) {
+    result = mWidgetListener->
+      WindowResized(this, aSize.width, aSize.height);
+  }
 
   // If there is an attached view, inform it as well as the normal widget listener.
   if (mAttachedWidgetListener) {
-    return mAttachedWidgetListener->WindowResized(this, aWindowRect.Width(), aWindowRect.Height());
+    return mAttachedWidgetListener->
+      WindowResized(this, aSize.width, aSize.height);
   }
 
   return result;

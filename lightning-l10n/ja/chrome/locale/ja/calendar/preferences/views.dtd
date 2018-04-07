@@ -15,7 +15,7 @@
 <!ENTITY pref.weekstarts.label		"週の開始日:" >
 <!ENTITY pref.weekstarts.accesskey	"r">
 <!ENTITY pref.calendar.view-minimonth.showweeknumber.label	"週数をカレンダーと日付選択ビューに表示する">
-<!ENTITY pref.calendar.view-minimonth.showweeknumber.accesskey	"w">
+<!ENTITY pref.calendar.view-minimonth.showweeknumber.accesskey	"n">
 <!ENTITY pref.daysoff.label		"勤務日:" >
 
 <!ENTITY pref.calendar.view.daystart.label		"1 日の開始:">
@@ -38,3 +38,6 @@
 <!ENTITY pref.numberofweeks.5      "5 週間" >
 <!ENTITY pref.numberofweeks.6      "6 週間" >
 
+
+<!ENTITY pref.showlocation.label "Show location">
+<!ENTITY pref.showlocation.accesskey "L">

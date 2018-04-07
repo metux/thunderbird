@@ -5,6 +5,7 @@
 <!ENTITY systemIntegration.title  "Integración co sistema">
 <!ENTITY acceptIntegration.label  "Estabelecer como predeterminado">
 <!ENTITY cancelIntegration.label  "Saltar integración">
+<!ENTITY cancelIntegration2.label  "Cancelar">
 <!ENTITY defaultClient.intro  "Usar o &brandShortName; como o cliente predeterminado para:">
 
 <!ENTITY email.label "Correo">
@@ -18,5 +19,3 @@
 
 <!ENTITY searchIntegration.label "Permitir que &searchIntegration.engineName; busque nas mensaxes">
 <!ENTITY searchIntegration.accesskey "P">
-
-<!ENTITY cancelIntegration2.label  "Cancel">

@@ -1,10 +1,10 @@
 // This file needs to contain glue to rephrase the Mocha testsuite framework in
 // a way that the xpcshell test suite can understand.
 
-Components.utils.import("resource://gre/modules/osfile.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/Task.jsm");
-Components.utils.import("resource://testing-common/Assert.jsm");
+ChromeUtils.import("resource://gre/modules/osfile.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Task.jsm");
+ChromeUtils.import("resource://testing-common/Assert.jsm");
 var requireCache = new Map();
 
 // Preload an assert module
@@ -20,7 +20,6 @@ assert.doesNotThrow = function (block, message) {
 requireCache.set("assert", assert);
 
 // Preload an fs module
-var Cc = Components.classes, Ci = Components.interfaces;
 var fs = {
   readFile: function (filename, options, callback) {
     if (callback === undefined) {

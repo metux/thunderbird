@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    TrueType bytecode interpreter (body).                                */
 /*                                                                         */
-/*  Copyright 1996-2017 by                                                 */
+/*  Copyright 1996-2018 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -25,7 +25,7 @@
 #include FT_INTERNAL_CALC_H
 #include FT_TRIGONOMETRY_H
 #include FT_SYSTEM_H
-#include FT_TRUETYPE_DRIVER_H
+#include FT_DRIVER_H
 #include FT_MULTIPLE_MASTERS_H
 
 #include "ttinterp.h"
@@ -5690,7 +5690,11 @@
                    ( B1 & 63 ) != 0                                           &&
                    ( B2 & 63 ) != 0                                           &&
                    B1 != B2                                                   )
-                Move_Zp2_Point( exc, point, -dx, -dy, TRUE );
+                Move_Zp2_Point( exc,
+                                point,
+                                NEG_LONG( dx ),
+                                NEG_LONG( dy ),
+                                TRUE );
             }
           }
           else if ( exc->face->sph_compatibility_mode )
@@ -5722,7 +5726,7 @@
               if ( ( B1 & 63 ) == 0 &&
                    ( B2 & 63 ) != 0 &&
                    B1 != B2         )
-                Move_Zp2_Point( exc, point, 0, -dy, TRUE );
+                Move_Zp2_Point( exc, point, 0, NEG_LONG( dy ), TRUE );
             }
           }
           else if ( exc->sph_in_func_flags & SPH_FDEF_TYPEMAN_DIAGENDCTRL )
@@ -5778,6 +5782,7 @@
     FT_F26Dot6  distance;
 #ifdef TT_SUPPORT_SUBPIXEL_HINTING_INFINALITY
     FT_F26Dot6  control_value_cutin = 0;
+    FT_F26Dot6  delta;
 
 
     if ( SUBPIXEL_HINTING_INFINALITY )
@@ -5813,11 +5818,15 @@
     distance = PROJECT( exc->zp1.cur + point, exc->zp0.cur + exc->GS.rp0 );
 
 #ifdef TT_SUPPORT_SUBPIXEL_HINTING_INFINALITY
+    delta = SUB_LONG( distance, args[1] );
+    if ( delta < 0 )
+      delta = NEG_LONG( delta );
+
     /* subpixel hinting - make MSIRP respect CVT cut-in; */
-    if ( SUBPIXEL_HINTING_INFINALITY                                    &&
-         exc->ignore_x_mode                                             &&
-         exc->GS.freeVector.x != 0                                      &&
-         FT_ABS( SUB_LONG( distance, args[1] ) ) >= control_value_cutin )
+    if ( SUBPIXEL_HINTING_INFINALITY  &&
+         exc->ignore_x_mode           &&
+         exc->GS.freeVector.x != 0    &&
+         delta >= control_value_cutin )
       distance = args[1];
 #endif /* TT_SUPPORT_SUBPIXEL_HINTING_INFINALITY */
 
@@ -5974,7 +5983,14 @@
 
     if ( ( exc->opcode & 1 ) != 0 )   /* rounding and control cut-in flag */
     {
-      if ( FT_ABS( distance - org_dist ) > control_value_cutin )
+      FT_F26Dot6  delta;
+
+
+      delta = SUB_LONG( distance, org_dist );
+      if ( delta < 0 )
+        delta = NEG_LONG( delta );
+
+      if ( delta > control_value_cutin )
         distance = org_dist;
 
 #ifdef TT_SUPPORT_SUBPIXEL_HINTING_INFINALITY
@@ -5991,7 +6007,7 @@
                                     exc->tt_metrics.compensations[0] );
     }
 
-    exc->func_move( exc, &exc->zp0, point, distance - org_dist );
+    exc->func_move( exc, &exc->zp0, point, SUB_LONG( distance, org_dist ) );
 
   Fail:
     exc->GS.rp0 = point;
@@ -6074,8 +6090,12 @@
 
     /* single width cut-in test */
 
-    if ( FT_ABS( org_dist - exc->GS.single_width_value ) <
-         exc->GS.single_width_cutin )
+    /* |org_dist - single_width_value| < single_width_cutin */
+    if ( exc->GS.single_width_cutin > 0          &&
+         org_dist < exc->GS.single_width_value +
+                      exc->GS.single_width_cutin &&
+         org_dist > exc->GS.single_width_value -
+                      exc->GS.single_width_cutin )
     {
       if ( org_dist >= 0 )
         org_dist = exc->GS.single_width_value;
@@ -6251,6 +6271,9 @@
 
       if ( exc->GS.gep0 == exc->GS.gep1 )
       {
+        FT_F26Dot6  delta;
+
+
         /* XXX: According to Greg Hitchcock, the following wording is */
         /*      the right one:                                        */
         /*                                                            */
@@ -6263,7 +6286,11 @@
         /*      `ttinst2.doc', version 1.66, is thus incorrect since  */
         /*      it implies `>=' instead of `>'.                       */
 
-        if ( FT_ABS( cvt_dist - org_dist ) > control_value_cutin )
+        delta = SUB_LONG( cvt_dist, org_dist );
+        if ( delta < 0 )
+          delta = NEG_LONG( delta );
+
+        if ( delta > control_value_cutin )
           cvt_dist = org_dist;
       }
 
@@ -6281,7 +6308,14 @@
            exc->ignore_x_mode           &&
            exc->GS.gep0 == exc->GS.gep1 )
       {
-        if ( FT_ABS( cvt_dist - org_dist ) > control_value_cutin )
+        FT_F26Dot6  delta;
+
+
+        delta = SUB_LONG( cvt_dist, org_dist );
+        if ( delta < 0 )
+          delta = NEG_LONG( delta );
+
+        if ( delta > control_value_cutin )
           cvt_dist = org_dist;
       }
 #endif /* TT_SUPPORT_SUBPIXEL_HINTING_INFINALITY */
@@ -7153,7 +7187,7 @@
                          SPH_TWEAK_SKIP_NONPIXEL_Y_MOVES_DELTAP ) &&
                        ( B1 & 63 ) != 0                           &&
                        ( B2 & 63 ) != 0                           ) ) )
-                exc->func_move( exc, &exc->zp0, A, -B );
+                exc->func_move( exc, &exc->zp0, A, NEG_LONG( B ) );
             }
           }
           else
@@ -7524,8 +7558,16 @@
       return;
     }
 
-    for ( i = 0; i < num_axes; i++ )
-      args[i] = coords[i] >> 2; /* convert 16.16 to 2.14 format */
+    if ( coords )
+    {
+      for ( i = 0; i < num_axes; i++ )
+        args[i] = coords[i] >> 2; /* convert 16.16 to 2.14 format */
+    }
+    else
+    {
+      for ( i = 0; i < num_axes; i++ )
+        args[i] = 0;
+    }
   }
 
 
@@ -8478,7 +8520,9 @@
     } while ( !exc->instruction_trap );
 
   LNo_Error_:
-    FT_TRACE4(( "  %d instructions executed\n", ins_counter ));
+    FT_TRACE4(( "  %d instruction%s executed\n",
+                ins_counter == 1 ? "" : "s",
+                ins_counter ));
     return FT_Err_Ok;
 
   LErrorCodeOverflow_:

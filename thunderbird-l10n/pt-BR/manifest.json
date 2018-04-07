@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/pt-BR/locale/pt-BR/passwordmgr/", 
         "pippki": "chrome/pt-BR/locale/pt-BR/pippki/"
       }, 
-      "version": "20171103015236"
+      "version": "20180312193854"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-pt-BR@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "pt-BR", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Português (pt-BR) Language Pack", 
   "manifest_version": 2, 
   "sources": {

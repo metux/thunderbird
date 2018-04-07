@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/kab/locale/kab/passwordmgr/", 
         "pippki": "chrome/kab/locale/kab/pippki/"
       }, 
-      "version": "20171104113139"
+      "version": "20180312194701"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-kab@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "kab", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Taqbaylit Language Pack", 
   "manifest_version": 2, 
   "sources": {

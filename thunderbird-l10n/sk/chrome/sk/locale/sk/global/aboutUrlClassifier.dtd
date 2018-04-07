@@ -4,6 +4,7 @@
 
 <!-- LOCALIZATION NOTE the term "url-classifier" should not be translated. -->
 <!ENTITY aboutUrlClassifier.pageTitle                   "Informácie o url-classifier">
+<!ENTITY aboutUrlClassifier.title                       "Informácie o URL Classifieri">
 <!ENTITY aboutUrlClassifier.providerTitle               "Poskytovateľ">
 <!ENTITY aboutUrlClassifier.provider                    "Poskytovateľ">
 <!ENTITY aboutUrlClassifier.providerLastUpdateTime      "Čas poslednej aktualizácie">
@@ -20,7 +21,7 @@
 <!ENTITY aboutUrlClassifier.cacheShowEntries            "Zobraziť položky">
 <!ENTITY aboutUrlClassifier.cacheEntries                "Položky vo vyrovnávacej pamäti">
 <!ENTITY aboutUrlClassifier.cachePrefix                 "Prefix">
-<!ENTITY aboutUrlClassifier.cacheNCacheExpiry           "Záporná platnosť v medzipamäti">
+<!ENTITY aboutUrlClassifier.cacheNCacheExpiry           "Záporná platnosť vo vyrovnávacej pamäti">
 <!ENTITY aboutUrlClassifier.cacheFullhash               "Plný hash">
 <!ENTITY aboutUrlClassifier.cachePCacheExpiry           "Kladná platnosť v medipamäti">
 <!ENTITY aboutUrlClassifier.debugTitle                  "Ladenie">
@@ -31,5 +32,3 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Aktuálne moduly protokolu">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Protokol JS pre službu Safe Browsing">
 <!ENTITY aboutUrlClassifier.debugFile                   "Aktuálny súbor protokolu">
-
-<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

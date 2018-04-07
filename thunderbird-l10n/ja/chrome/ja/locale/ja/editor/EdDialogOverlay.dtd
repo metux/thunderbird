@@ -14,8 +14,7 @@
 <!ENTITY makeUrlRelative.tooltip	"相対 URL と 絶対 URL を入れ替えます。この変更を反映するには一度ページを保存する必要があります。">
 
 <!-- Shared by Link and Image dialogs -->
-<!ENTITY LinkURLEditField.label		"Web ページやローカルファイルの場所を入力するか、ポップアップリストから名前付きアンカーもしくは見出しを選択してください:">
+<!ENTITY LinkURLEditField.label		"ウェブページやローカルファイルの場所を入力するか、ポップアップリストから名前付きアンカーもしくは見出しを選択してください:">
 <!ENTITY LinkURLEditField.accessKey	"w">
-
-<!ENTITY LinkURLEditField2.label "Enter a web page location, a local file, or select a Named Anchor or Heading from the field's context menu:">
-<!ENTITY LinkURLEditField2.accessKey "w">
+<!ENTITY LinkURLEditField2.label	"ウェブページやローカルファイルの場所を入力するか、フィールドのコンテキストメニューから名前付きアンカーもしくは見出しを選択してください:">
+<!ENTITY LinkURLEditField2.accessKey	"w">

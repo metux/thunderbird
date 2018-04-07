@@ -24,6 +24,13 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "版本">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "安全软件">
+<!ENTITY aboutSupport.securitySoftwareType "类型">
+<!ENTITY aboutSupport.securitySoftwareName "名称">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "防病毒软件">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "反间谍软件">
+<!ENTITY aboutSupport.securitySoftwareFirewall "防火墙">
+
 <!ENTITY aboutSupport.featuresTitle "&brandShortName; 功能">
 <!ENTITY aboutSupport.featureName "名称">
 <!ENTITY aboutSupport.featureVersion "版本">
@@ -70,6 +77,8 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "多进程窗口">
 
 <!ENTITY aboutSupport.appBasicsProcessCount "网页内容处理进程">
+
+<!ENTITY aboutSupport.enterprisePolicies "企业策略">
 
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Google 密钥">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla 位置服务密钥">
@@ -149,24 +158,18 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceGroup "组别">
 <!ENTITY aboutSupport.mediaDeviceVendor "厂商">
 <!ENTITY aboutSupport.mediaDeviceState "状态">
-<!ENTITY aboutSupport.mediaDevicePreferred "被首选">
+<!ENTITY aboutSupport.mediaDevicePreferred "首选">
 <!ENTITY aboutSupport.mediaDeviceFormat "格式">
 <!ENTITY aboutSupport.mediaDeviceChannels "声道">
 <!ENTITY aboutSupport.mediaDeviceRate "采样率">
 <!ENTITY aboutSupport.mediaDeviceLatency "延迟">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.intlTitle "国际化与本地化">
+<!ENTITY aboutSupport.intlAppTitle "应用程序设置">
+<!ENTITY aboutSupport.intlLocalesRequested "需要的语言环境">
+<!ENTITY aboutSupport.intlLocalesAvailable "可用的语言环境">
+<!ENTITY aboutSupport.intlLocalesSupported "应用程序语言环境">
+<!ENTITY aboutSupport.intlLocalesDefault "默认语言环境">
+<!ENTITY aboutSupport.intlOSTitle "操作系统">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "系统语言环境">
+<!ENTITY aboutSupport.intlRegionalPrefs "地区偏好">

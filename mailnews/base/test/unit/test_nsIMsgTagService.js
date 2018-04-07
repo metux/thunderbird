@@ -10,7 +10,7 @@
  *
  */
 
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 function run_test()
 {
@@ -68,7 +68,7 @@ function run_test()
   }
 }
 
-/*  
+/*
   function printTags()
   {
     let tags = MailServices.tags.getAllTags({});

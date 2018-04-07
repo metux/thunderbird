@@ -25,19 +25,25 @@
 <!ENTITY runtimeMenu_accesskey "R">
 <!ENTITY runtimeMenu_disconnect_label "විසන්ධි කරන්න">
 <!ENTITY runtimeMenu_disconnect_accesskey "D">
-<!ENTITY runtimeMenu_showPermissionTable_label "අවසර වගුව">
-<!ENTITY runtimeMenu_showPermissionTable_accesskey "P">
 <!ENTITY runtimeMenu_takeScreenshot_label "තිරපිටපත">
 <!ENTITY runtimeMenu_takeScreenshot_accesskey "S">
 <!ENTITY runtimeMenu_showDetails_label "දහාවන කාල තොරතුරු">
 <!ENTITY runtimeMenu_showDetails_accesskey "E">
 <!ENTITY runtimeMenu_showMonitor_label "දර්ශකය">
 <!ENTITY runtimeMenu_showMonitor_accesskey "M">
+<!ENTITY runtimeMenu_showDevicePrefs_label "මෙවලම් අභිප්‍රේත">
+<!ENTITY runtimeMenu_showDevicePrefs_accesskey "D">
+<!ENTITY runtimeMenu_showSettings_label "මෙවලම් සිටුවම්">
+<!ENTITY runtimeMenu_showSettings_accesskey "s">
 
 <!ENTITY viewMenu_label "දක්වන්න">
 <!ENTITY viewMenu_accesskey "V">
+<!ENTITY viewMenu_toggleEditor_accesskey "E">
 <!ENTITY viewMenu_zoomin_label "විශාල කරන්න">
+<!ENTITY viewMenu_zoomin_accesskey "I">
 <!ENTITY viewMenu_zoomout_label "කුඩා කරන්න">
+<!ENTITY viewMenu_zoomout_accesskey "O">
+<!ENTITY viewMenu_resetzoom_accesskey "R">
 
 <!ENTITY runtimeButton_label "දහාවන කාලය තෝරන්න">
 
@@ -53,6 +59,10 @@
 <!-- toggle sidebar -->
 <!ENTITY key_toggleEditor "B">
 <!-- zoom -->
+<!ENTITY key_zoomin "+">
+<!ENTITY key_zoomin2 "=">
+<!ENTITY key_zoomout "-">
+<!ENTITY key_resetzoom "0">
 
 <!ENTITY projectPanel_myProjects "මගේ ව්‍යාපෘති">
 <!ENTITY projectPanel_tabs "ටැබ්">
@@ -79,8 +89,6 @@
 <!-- Prefs -->
 <!ENTITY prefs_general_title "සාමාන්‍ය">
 <!ENTITY prefs_options_keybindings_default "පෙරනිමි">
-
-<!-- Permissions Table -->
 
 <!-- Runtime Details -->
 
@@ -110,7 +118,13 @@
 <!-- Logs panel -->
 
 <!-- Simulator Options -->
+<!ENTITY simulator_name "නම">
+<!ENTITY simulator_software "මෘදුකාංග">
 <!ENTITY simulator_version "නිකුතුව">
+<!ENTITY simulator_profile "පැතිකඩ">
+<!ENTITY simulator_hardware "දෘඩාංග">
+<!ENTITY simulator_device "මෙවලම">
+<!ENTITY simulator_screenSize "තිරය">
 
 <!ENTITY projectMenu_importPackagedApp_label "Open Packaged App…">
 <!ENTITY projectMenu_importHostedApp_label "Open Hosted App…">
@@ -119,19 +133,8 @@
 <!ENTITY projectMenu_manageComponents_label "Manage Extra Components">
 <!ENTITY projectMenu_refreshTabs_label "Refresh Tabs">
 <!ENTITY runtimeMenu_label "Runtime">
-<!ENTITY runtimeMenu_showDevicePrefs_label "Device Preferences">
-<!ENTITY runtimeMenu_showDevicePrefs_accesskey "D">
-<!ENTITY runtimeMenu_showSettings_label "Device Settings">
-<!ENTITY runtimeMenu_showSettings_accesskey "s">
-<!ENTITY viewMenu_zoomin_accesskey "I">
-<!ENTITY viewMenu_zoomout_accesskey "O">
 <!ENTITY viewMenu_resetzoom_label "Reset Zoom">
-<!ENTITY viewMenu_resetzoom_accesskey "R">
 <!ENTITY projectButton_label "Open App">
-<!ENTITY key_zoomin "+">
-<!ENTITY key_zoomin2 "=">
-<!ENTITY key_zoomout "-">
-<!ENTITY key_resetzoom "0">
 <!ENTITY projectPanel_runtimeApps "Runtime Apps">
 <!ENTITY runtimePanel_usb "USB Devices">
 <!ENTITY runtimePanel_wifi "Wi-Fi Devices">
@@ -176,7 +179,6 @@
 <!ENTITY devicesetting_newname "New setting name">
 <!ENTITY devicesetting_newtext "Setting value">
 <!ENTITY devicesetting_addnew "Add new setting">
-<!ENTITY monitor_title "Monitor">
 <!ENTITY wifi_auth_header "Client Identification">
 <!ENTITY wifi_auth_scan_request "The endpoint you are connecting to needs more information to authenticate this connection.  Please scan the QR code below via the prompt on your other device.">
 <!ENTITY wifi_auth_no_scanner "No QR scanner prompt?">

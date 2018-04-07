@@ -12,7 +12,7 @@ function really_run_test() {
     test_attendeeMatchesAddresses();
     test_getDefaultStartDate();
     test_getStartEndProps();
-    test_calOperationGroup();
+    test_OperationGroup();
     test_sameDay();
     test_binarySearch();
 }
@@ -53,9 +53,9 @@ function test_recentzones() {
 }
 
 function test_formatcss() {
-    equal(cal.formatStringForCSSRule(" "), "_");
-    equal(cal.formatStringForCSSRule("ü"), "-uxfc-");
-    equal(cal.formatStringForCSSRule("a"), "a");
+    equal(cal.view.formatStringForCSSRule(" "), "_");
+    equal(cal.view.formatStringForCSSRule("ü"), "-uxfc-");
+    equal(cal.view.formatStringForCSSRule("a"), "a");
 }
 
 function test_attendeeMatchesAddresses() {
@@ -122,17 +122,17 @@ function test_getStartEndProps() {
            /2147500033/);
 }
 
-function test_calOperationGroup() {
+function test_OperationGroup() {
     let cancelCalled = false;
     function cancelFunc() {
         cancelCalled = true;
         return true;
     }
 
-    let group = new cal.calOperationGroup(cancelFunc);
+    let group = new cal.data.OperationGroup(cancelFunc);
 
     ok(group.isEmpty);
-    equal(group.id, cal.calOperationGroup.mOpGroupPrefix + "0");
+    ok(group.id.endsWith("-0"));
     equal(group.status, Components.results.NS_OK);
     equal(group.isPending, true);
 
@@ -182,11 +182,11 @@ function test_sameDay() {
 
 function test_binarySearch() {
     let arr = [2, 5, 7, 9, 20, 27, 34, 39, 41, 53, 62];
-    equal(cal.binarySearch(arr, 27), 5); // Center
-    equal(cal.binarySearch(arr, 2), 0); // Left most
-    equal(cal.binarySearch(arr, 62), 11); // Right most
+    equal(cal.data.binarySearch(arr, 27), 5); // Center
+    equal(cal.data.binarySearch(arr, 2), 0); // Left most
+    equal(cal.data.binarySearch(arr, 62), 11); // Right most
 
-    equal(cal.binarySearch([5], 5), 1); // One element found
-    equal(cal.binarySearch([1], 0), 0); // One element insert left
-    equal(cal.binarySearch([1], 2), 1); // One element insert right
+    equal(cal.data.binarySearch([5], 5), 1); // One element found
+    equal(cal.data.binarySearch([1], 0), 0); // One element insert left
+    equal(cal.data.binarySearch([1], 2), 1); // One element insert right
 }

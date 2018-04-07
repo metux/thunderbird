@@ -3,12 +3,11 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 var imServices = {};
-Components.utils.import("resource:///modules/chatNotifications.jsm");
-Components.utils.import("resource:///modules/imServices.jsm", imServices);
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/AppConstants.jsm");
+ChromeUtils.import("resource:///modules/chatNotifications.jsm");
+ChromeUtils.import("resource:///modules/imServices.jsm", imServices);
+ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
+ChromeUtils.defineModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
 
 imServices = imServices.Services;
 
@@ -330,8 +329,8 @@ var chatHandler = {
       chatButton.removeAttribute("unreadMessages");
 
     if (unreadTargettedCount != this._notifiedUnreadCount) {
-      let unreadInt = Components.classes["@mozilla.org/supports-PRInt32;1"]
-                                .createInstance(Ci.nsISupportsPRInt32);
+      let unreadInt = Cc["@mozilla.org/supports-PRInt32;1"]
+                        .createInstance(Ci.nsISupportsPRInt32);
       unreadInt.data = unreadTargettedCount;
       Services.obs.notifyObservers(unreadInt, "unread-im-count-changed", unreadTargettedCount);
       this._notifiedUnreadCount = unreadTargettedCount;
@@ -1085,6 +1084,52 @@ var chatHandler = {
     for (let topic of this._observedTopics)
       imServices.obs.removeObserver(this, topic);
   },
+  // TODO move this function away from here and test it.
+  _getNextUnreadConversation(aConversations, aCurrent, aReverse) {
+    let convCount = aConversations.length;
+    if (!convCount)
+      return;
+
+    let direction = aReverse ? -1 : 1;
+    let next = (i) => {
+      i += direction;
+      if (i < 0)
+        return i + convCount;
+      if (i >= convCount)
+        return i - convCount;
+      return i;
+    };
+
+    // Find starting point
+    let start = 0;
+    if (Number.isInteger(aCurrent))
+      start = next(aCurrent);
+    else if (aReverse)
+      start = convCount - 1;
+
+    // Cycle through all conversations until we are at the start again.
+    let i = start;
+    do {
+      // If there is a conversation with unread messages, select it.
+      if (aConversations[i].unreadIncomingMessageCount)
+        return i;
+      i = next(i);
+    } while (i !== start && i !== aCurrent);
+    return -1;
+  },
+  _selectNextUnreadConversation(aReverse, aList) {
+    let conversations = document.getElementById("conversationsGroup").contacts;
+    if (!conversations.length)
+      return;
+
+    let rawConversations = conversations.map((c) => c.conv);
+    let current;
+    if (aList.selectedItem.localName === "imconv")
+      current = aList.selectedIndex - aList.getIndexOfItem(conversations[0]);
+    let newIndex = this._getNextUnreadConversation(rawConversations, current, aReverse);
+    if (newIndex !== -1)
+      aList.selectedItem = conversations[newIndex];
+  },
   init: function() {
     Notifications.init();
     if (!Services.prefs.getBoolPref("mail.chat.enabled")) {
@@ -1128,7 +1173,11 @@ var chatHandler = {
           (aEvent.keyCode != aEvent.DOM_VK_DOWN && aEvent.keyCode != aEvent.DOM_VK_UP))
         return;
       listbox._userSelecting = true;
-      listbox.moveByOffset(aEvent.keyCode == aEvent.DOM_VK_DOWN ? 1 : -1, true, false);
+      let reverse = aEvent.keyCode != aEvent.DOM_VK_DOWN;
+      if (aEvent.shiftKey)
+        chatHandler._selectNextUnreadConversation(reverse, listbox);
+      else
+        listbox.moveByOffset(reverse ? -1 : 1, true, false);
       listbox._userSelecting = false;
       let item = listbox.selectedItem;
       if (item.localName == "imconv" && item.convView)
@@ -1140,7 +1189,7 @@ var chatHandler = {
     document.getElementById("conversationsGroup").sortComparator =
       (a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase());
 
-    Components.utils.import("resource:///modules/chatHandler.jsm", this);
+    ChromeUtils.import("resource:///modules/chatHandler.jsm", this);
     if (this.ChatCore.initialized)
       this.initAfterChatCore();
     else {

@@ -31,6 +31,10 @@ sentence. -->
 <!ENTITY  completeNotification.label          "med avsändarens namn och förhandsvisning">
 <!ENTITY  buddyInfoOnly.label                 "med avsändarens namn endast">
 <!ENTITY  dummyNotification.label             "utan någon info">
+<!ENTITY  getAttention.label                  "Blinka i aktivitetsfältet">
+<!ENTITY  getAttention.accesskey              "B">
+<!ENTITY  getAttentionMac.label               "Animera dockikonen">
+<!ENTITY  getAttentionMac.accesskey           "o">
 <!ENTITY  chatSound.accesskey                 "d">
 <!ENTITY  chatSound.label                     "Spela ett ljud">
 <!ENTITY  play.label                          "Spela">
@@ -58,8 +62,3 @@ sentence. -->
 <!ENTITY messageStyleShowHeader.accesskey  "r">
 <!ENTITY messageStyleNoPreview.title       "Ingen förhandsgranskning tillgänglig">
 <!ENTITY messageStyleNoPreview.description "Det här temat är inte giltigt eller är för närvarande inte tillgängligt (inaktivera tillägg, säkert läge, …).">
-
-<!ENTITY  getAttention.label                  "Flash the taskbar item">
-<!ENTITY  getAttention.accesskey              "F">
-<!ENTITY  getAttentionMac.label               "Animate dock icon">
-<!ENTITY  getAttentionMac.accesskey           "o">

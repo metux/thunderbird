@@ -85,6 +85,9 @@
 <!ENTITY editRewrapCmd.key "R">
 <!ENTITY renameAttachmentCmd.label "Rinomina allegato…">
 <!ENTITY renameAttachmentCmd.accesskey "e">
+<!ENTITY reorderAttachmentsCmd.label "Riordina allegati…">
+<!ENTITY reorderAttachmentsCmd.accesskey "o">
+<!ENTITY reorderAttachmentsCmd.key "x">
 <!ENTITY selectAllCmd.label "Seleziona tutto">
 <!ENTITY selectAllCmd.key "A">
 <!ENTITY selectAllCmd.accesskey "z">
@@ -102,6 +105,42 @@
 <!ENTITY findPrevCmd.accesskey "d">
 <!ENTITY findPrevCmd.key "G">
 <!ENTITY findPrevCmd.key2 "VK_F3">
+
+<!-- Reorder Attachment Panel -->
+<!ENTITY reorderAttachmentsPanel.label "Riordina allegati">
+<!ENTITY moveAttachmentTopPanelBtn.label "Sposta in cima">
+<!ENTITY moveAttachmentTopPanelBtn.accesskey "c">
+<!ENTITY moveAttachmentUpPanelBtn.label "Sposta su">
+<!ENTITY moveAttachmentUpPanelBtn.accesskey "s">
+<!ENTITY moveAttachmentBundleUpPanelBtn.label "Sposta assieme">
+<!ENTITY moveAttachmentBundleUpPanelBtn.accesskey "a">
+<!ENTITY moveAttachmentDownPanelBtn.label "Sposta giù">
+<!ENTITY moveAttachmentDownPanelBtn.accesskey "g">
+<!ENTITY moveAttachmentBottomPanelBtn.label "Sposta in basso">
+<!ENTITY moveAttachmentBottomPanelBtn.accesskey "b">
+<!-- LOCALIZATION NOTE (sortAttachmentsTogglePanelBtn.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsTogglePanelBtn.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.label "Ordina la selezione: A - Z">
+<!-- LOCALIZATION NOTE (sortAttachmentsTogglePanelBtn.AZ.accesskey):
+     This accesskey should be the same like
+     sortAttachmentsTogglePanelBtn.ZA.accesskey, and it should be taken from
+     the "Sort Selection:" part of the label, not from the sort direction part. -->
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.accesskey "r">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.label "Ordina la selezione: Z- A">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.accesskey "r">
+
+<!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.Sort.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsPanelBtn.Sort.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsPanelBtn.Sort.AZ.label "Ordina: A - Z">
+<!ENTITY sortAttachmentsPanelBtn.Sort.ZA.label "Ordina: Z - A">
+<!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.SortSelection.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsPanelBtn.SortSelection.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.AZ.label "Ordina la selezione: A - Z">
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.ZA.label "Ordina la selezione: Z- A">
+<!ENTITY sortAttachmentsPanelBtn.key "y">
 
 <!-- View Menu -->
 <!ENTITY viewMenu.label "Visualizza">
@@ -283,6 +322,8 @@
 <!ENTITY removeAttachment.accesskey "m">
 <!ENTITY renameAttachment.label "Rinomina">
 <!ENTITY renameAttachment.accesskey "R">
+<!ENTITY reorderAttachments.label "Riordina allegati…">
+<!ENTITY reorderAttachments.accesskey "o">
 <!ENTITY selectAll.label "Seleziona tutto">
 <!ENTITY selectAll.accesskey "z">
 <!ENTITY attachFile.label "Allega file…">
@@ -313,19 +354,11 @@
 <!ENTITY languageStatusButton.tooltip "Lingua per controllo ortografico">
 <!ENTITY encodingStatusPanel.tooltip "Codifica del testo">
 
-<!ENTITY reorderAttachmentsCmd.label "Reorder Attachments…">
-<!ENTITY reorderAttachmentsCmd.accesskey "s">
-<!ENTITY reorderAttachmentsCmd.key "x">
-<!ENTITY reorderAttachmentsPanel.label "Reorder Attachments">
-<!ENTITY moveAttachmentTopPanelBtn.label "Move to Top">
-<!ENTITY moveAttachmentUpPanelBtn.label "Move Up">
-<!ENTITY moveAttachmentBundleUpPanelBtn.label "Move together">
-<!ENTITY moveAttachmentDownPanelBtn.label "Move Down">
-<!ENTITY moveAttachmentBottomPanelBtn.label "Move to Bottom">
-<!ENTITY sortAttachmentsPanelBtn.Sort.AZ.label "Sort: A - Z">
-<!ENTITY sortAttachmentsPanelBtn.Sort.ZA.label "Sort: Z - A">
-<!ENTITY sortAttachmentsPanelBtn.SortSelection.AZ.label "Sort Selection: A - Z">
-<!ENTITY sortAttachmentsPanelBtn.SortSelection.ZA.label "Sort Selection: Z - A">
-<!ENTITY sortAttachmentsPanelBtn.key "y">
-<!ENTITY reorderAttachments.label "Reorder Attachments…">
-<!ENTITY reorderAttachments.accesskey "s">
+<!ENTITY toggleAttachmentPaneCmd.label "Attachment Pane">
+<!ENTITY toggleAttachmentPaneCmd.accesskey "m">
+<!ENTITY toggleAttachmentPaneCmd.key "m">
+<!ENTITY attachButton.tooltip2 "Add an attachment">
+<!ENTITY attachmentBucketHeader.tooltip "Attachment Pane">
+<!ENTITY attachmentBucketCloseButton.tooltip "Hide the attachment pane">
+<!ENTITY removeAllAttachments.label "Remove All Attachments">
+<!ENTITY removeAllAttachments.accesskey "v">

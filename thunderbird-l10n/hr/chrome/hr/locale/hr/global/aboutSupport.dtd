@@ -157,6 +157,7 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
 <!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
 <!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">
 <!ENTITY aboutSupport.a11yInstantiator "Accessibility Instantiator">
 <!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
 <!ENTITY aboutSupport.intlAppTitle "Application Settings">

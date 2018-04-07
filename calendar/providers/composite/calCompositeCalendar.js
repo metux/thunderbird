@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 
 //
 // calCompositeCalendar.js
@@ -75,8 +75,8 @@ function calCompositeCalendar() {
     this.wrappedJSObject = this;
 
     this.mCalendars = [];
-    this.mCompositeObservers = new cal.ObserverBag(Components.interfaces.calICompositeObserver);
-    this.mObservers = new cal.ObserverBag(Components.interfaces.calIObserver);
+    this.mCompositeObservers = new cal.data.ObserverSet(Components.interfaces.calICompositeObserver);
+    this.mObservers = new cal.data.ObserverSet(Components.interfaces.calIObserver);
     this.mDefaultCalendar = null;
     this.mStatusObserver = null;
 }
@@ -311,9 +311,9 @@ calCompositeCalendar.prototype = {
     removeObserver: function(aObserver) {
         let wrappedCObserver = cal.wrapInstance(aObserver, Components.interfaces.calICompositeObserver);
         if (wrappedCObserver) {
-            this.mCompositeObservers.remove(wrappedCObserver);
+            this.mCompositeObservers.delete(wrappedCObserver);
         }
-        this.mObservers.remove(aObserver);
+        this.mObservers.delete(aObserver);
     },
 
     refresh: function() {
@@ -451,7 +451,7 @@ calCompositeGetListenerHelper.prototype = {
 
     get opGroup() {
         if (!this.mOpGroup) {
-            this.mOpGroup = new cal.calOperationGroup(() => {
+            this.mOpGroup = new cal.data.OperationGroup(() => {
                 let listener = this.mRealListener;
                 this.mRealListener = null;
                 if (listener) {

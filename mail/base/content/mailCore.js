@@ -12,10 +12,14 @@
  * to be used by all of the main mail windows?
  */
 
-Components.utils.import("resource://gre/modules/BrowserUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/AppConstants.jsm");
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource://gre/modules/BrowserUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
+
+XPCOMUtils.defineLazyScriptGetter(this, "gViewSourceUtils",
+                                  "chrome://global/content/viewSourceUtils.js");
 
 var gCustomizeSheet = false;
 
@@ -388,9 +392,9 @@ function toImport()
 
 function toSanitize()
 {
-   Components.classes["@mozilla.org/mail/mailglue;1"]
-             .getService(Components.interfaces.nsIMailGlue)
-             .sanitize(window);
+   Cc["@mozilla.org/mail/mailglue;1"]
+     .getService(Ci.nsIMailGlue)
+     .sanitize(window);
 }
 
 /**
@@ -437,12 +441,12 @@ function openAddonsMgr(aView)
     let browserWindow;
 
     let receivePong = function receivePong(aSubject, aTopic, aData) {
-      let browserWin = aSubject.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-        .getInterface(Components.interfaces.nsIWebNavigation)
-        .QueryInterface(Components.interfaces.nsIDocShellTreeItem)
+      let browserWin = aSubject.QueryInterface(Ci.nsIInterfaceRequestor)
+        .getInterface(Ci.nsIWebNavigation)
+        .QueryInterface(Ci.nsIDocShellTreeItem)
         .rootTreeItem
-        .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-        .getInterface(Components.interfaces.nsIDOMWindow);
+        .QueryInterface(Ci.nsIInterfaceRequestor)
+        .getInterface(Ci.nsIDOMWindow);
       if (!emWindow || browserWin == window /* favor the current window */) {
         emWindow = aSubject;
         browserWindow = browserWin;
@@ -494,8 +498,8 @@ function openAddonPrefs(aURL, aOptionsType) {
 
 function openActivityMgr()
 {
-  Components.classes['@mozilla.org/activity-manager-ui;1'].
-    getService(Components.interfaces.nsIActivityManagerUI).show(window);
+  Cc['@mozilla.org/activity-manager-ui;1'].
+    getService(Ci.nsIActivityManagerUI).show(window);
 }
 
 function openIMAccountMgr()
@@ -604,8 +608,8 @@ function openFormattedURL(aPrefName)
 
   var uri = Services.io.newURI(urlToOpen);
 
-  var protocolSvc = Components.classes["@mozilla.org/uriloader/external-protocol-service;1"]
-                              .getService(Components.interfaces.nsIExternalProtocolService);
+  var protocolSvc = Cc["@mozilla.org/uriloader/external-protocol-service;1"]
+                      .getService(Ci.nsIExternalProtocolService);
   protocolSvc.loadURI(uri);
 }
 
@@ -639,8 +643,8 @@ function safeModeRestart()
                                      buttonFlags, restartText, null, null,
                                      null, {});
   if (rv == 0) {
-    let environment = Components.classes["@mozilla.org/process/environment;1"]
-                                .getService(Components.interfaces.nsIEnvironment);
+    let environment = Cc["@mozilla.org/process/environment;1"]
+                        .getService(Ci.nsIEnvironment);
     environment.set("MOZ_SAFE_MODE_RESTART", "1");
     BrowserUtils.restartApplication();
   }
@@ -734,7 +738,7 @@ function CreateAttachmentTransferData(aAttachment)
                            aAttachment.url);
     data.addDataForFlavour("application/x-moz-file-promise",
                            new nsFlavorDataProvider(), 0,
-                           Components.interfaces.nsISupports);
+                           Ci.nsISupports);
   }
   return data;
 }
@@ -747,10 +751,10 @@ nsFlavorDataProvider.prototype =
 {
   QueryInterface : function(iid)
   {
-      if (iid.equals(Components.interfaces.nsIFlavorDataProvider) ||
-          iid.equals(Components.interfaces.nsISupports))
+      if (iid.equals(Ci.nsIFlavorDataProvider) ||
+          iid.equals(Ci.nsISupports))
         return this;
-      throw Components.results.NS_NOINTERFACE;
+      throw Cr.NS_NOINTERFACE;
   },
 
   getFlavorData : function(aTransferable, aFlavor, aData, aDataLen)
@@ -763,13 +767,13 @@ nsFlavorDataProvider.prototype =
       aTransferable.getTransferData("application/x-moz-file-promise-url",
                                     urlPrimitive, dataSize);
 
-      var srcUrlPrimitive = urlPrimitive.value.QueryInterface(Components.interfaces.nsISupportsString);
+      var srcUrlPrimitive = urlPrimitive.value.QueryInterface(Ci.nsISupportsString);
 
       // now get the destination file location from kFilePromiseDirectoryMime
       var dirPrimitive = {};
       aTransferable.getTransferData("application/x-moz-file-promise-dir",
                                     dirPrimitive, dataSize);
-      var destDirectory = dirPrimitive.value.QueryInterface(Components.interfaces.nsIFile);
+      var destDirectory = dirPrimitive.value.QueryInterface(Ci.nsIFile);
 
       // now save the attachment to the specified location
       // XXX: we need more information than just the attachment url to save it,
@@ -793,7 +797,7 @@ nsFlavorDataProvider.prototype =
                                                             encodeURIComponent(name),
                                                             attachment.uri,
                                                             destDirectory);
-        aData.value = destFilePath.QueryInterface(Components.interfaces.nsISupports);
+        aData.value = destFilePath.QueryInterface(Ci.nsISupports);
         aDataLen.value = 4;
       }
     }

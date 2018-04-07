@@ -6,7 +6,7 @@
 <!ENTITY msgComposeWindow.title "Shkruani: (pa subjekt)">
 
 <!-- File Menu -->
-<!ENTITY fileMenu.label "Kartelë"> 
+<!ENTITY fileMenu.label "Kartelë">
 <!ENTITY fileMenu.accesskey "K">
 <!ENTITY newMenu.label "E re">
 <!ENTITY newMenu.accesskey "E">
@@ -29,8 +29,8 @@
 <!ENTITY attachVCardCmd.label "Kartë Vetjake (vCard)">
 <!ENTITY attachVCardCmd.accesskey "V">
 <!ENTITY remindLater.label "Kujtoma Më Vonë">
-<!ENTITY remindLater.accesskey "L">
-<!ENTITY closeCmd.label "Mbylle">
+<!ENTITY remindLater.accesskey "V">
+<!ENTITY closeCmd.label "Mbylleni">
 <!ENTITY closeCmd.key "W">
 <!ENTITY closeCmd.accesskey "M">
 <!ENTITY saveCmd.label "Ruaje">
@@ -52,24 +52,24 @@
 <!ENTITY sendLaterCmd.accesskey "V">
 <!ENTITY printSetupCmd.label "Rregullim Faqeje…">
 <!ENTITY printSetupCmd.accesskey "u">
-<!ENTITY printPreviewCmd.label "Paraparje Shtypjeje">
-<!ENTITY printPreviewCmd.accesskey "v">
+<!ENTITY printPreviewCmd.label "Paraparje e Shtypjes">
+<!ENTITY printPreviewCmd.accesskey "a">
 <!ENTITY printCmd.label "Shtypni…">
 <!ENTITY printCmd.key "P">
 <!ENTITY printCmd.accesskey "S">
 
 <!-- Edit Menu -->
-<!ENTITY editMenu.label "Përpunim"> 
+<!ENTITY editMenu.label "Përpunim">
 <!ENTITY editMenu.accesskey "P">
 <!ENTITY undoCmd.label "Zhbëje">
 <!ENTITY undoCmd.key "Z">
 <!ENTITY undoCmd.accesskey "Z">
 <!ENTITY redoCmd.label "Ribëje">
 <!ENTITY redoCmd.key "Y">
-<!ENTITY redoCmd.accesskey "R"> 
+<!ENTITY redoCmd.accesskey "R">
 <!ENTITY cutCmd.label "Prije">
 <!ENTITY cutCmd.key "X">
-<!ENTITY cutCmd.accesskey "i"> 
+<!ENTITY cutCmd.accesskey "i">
 <!ENTITY copyCmd.label "Kopjoje">
 <!ENTITY copyCmd.key "C">
 <!ENTITY copyCmd.accesskey "K">
@@ -78,16 +78,30 @@
 <!ENTITY pasteCmd.accesskey "N">
 <!ENTITY pasteNoFormattingCmd.key "V">
 <!ENTITY pasteAsQuotationCmd.key "o">
-<!ENTITY editRewrapCmd.label "Rimbështille">
-<!ENTITY editRewrapCmd.key "R">
 <!ENTITY editRewrapCmd.accesskey "l">
 <!ENTITY deleteCmd.label "Fshije">
 <!ENTITY deleteCmd.accesskey "F">
+<!ENTITY editRewrapCmd.label "Rimbështille">
+<!ENTITY editRewrapCmd.key "R">
 <!ENTITY renameAttachmentCmd.label "Riemërtojeni Bashkëngjitjen…">
 <!ENTITY renameAttachmentCmd.accesskey "R">
+<!ENTITY reorderAttachmentsCmd.label "Rirenditni Bashkëngjitjet…">
+<!ENTITY reorderAttachmentsCmd.accesskey "e">
+<!ENTITY reorderAttachmentsCmd.key "x">
+<!ENTITY toggleAttachmentPaneCmd.label "Kuadrat Bashkëngjitjesh">
+<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.accesskey):
+     For better mnemonics, toggleAttachmentPaneCmd.accesskey should be the same
+     as attachments.accesskey. -->
+<!ENTITY toggleAttachmentPaneCmd.accesskey "n">
+<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.key):
+     With OS-specific access modifier, this defines the shortcut key for showing/
+     hiding/minimizing the attachment pane, e.g. Alt+M on Windows.
+     toggleAttachmentPaneCmd.key and attachments.accesskey must be the same
+     for the bucket view state machinery to work. -->
+<!ENTITY toggleAttachmentPaneCmd.key "m">
 <!ENTITY selectAllCmd.label "Përzgjidhe Krejt">
 <!ENTITY selectAllCmd.key "A">
-<!ENTITY selectAllCmd.accesskey "K"> 
+<!ENTITY selectAllCmd.accesskey "K">
 <!ENTITY findBarCmd.label "Gjeni…">
 <!ENTITY findBarCmd.accesskey "G">
 <!ENTITY findBarCmd.key "F">
@@ -95,31 +109,51 @@
 <!ENTITY findReplaceCmd.accesskey "G">
 <!ENTITY findReplaceCmd.key "H">
 <!ENTITY findAgainCmd.label "Gjeje Sërish">
-<!ENTITY findAgainCmd.key "G">
 <!ENTITY findAgainCmd.accesskey "s">
+<!ENTITY findAgainCmd.key "G">
 <!ENTITY findAgainCmd.key2 "VK_F3">
 <!ENTITY findPrevCmd.label "Gjej të Mëparshmen">
+<!ENTITY findPrevCmd.accesskey "m">
 <!ENTITY findPrevCmd.key "G">
 <!ENTITY findPrevCmd.key2 "VK_F3">
-<!ENTITY findPrevCmd.accesskey "m"> 
+
+<!-- Reorder Attachment Panel -->
+<!ENTITY reorderAttachmentsPanel.label "Rirenditni Bashkëngjitje">
+<!ENTITY moveAttachmentTopPanelBtn.label "Shpjere në Krye">
+<!ENTITY moveAttachmentUpPanelBtn.label "Shpjere Sipër">
+<!ENTITY moveAttachmentBundleUpPanelBtn.label "Lëvizi bashkë">
+<!ENTITY moveAttachmentDownPanelBtn.label "Zbrite Poshtë">
+<!ENTITY moveAttachmentBottomPanelBtn.label "Shpjere në Fund">
+
+<!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.Sort.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsPanelBtn.Sort.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsPanelBtn.Sort.AZ.label "Renditje: A - Z">
+<!ENTITY sortAttachmentsPanelBtn.Sort.ZA.label "Rend: Z - A">
+<!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.SortSelection.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsPanelBtn.SortSelection.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.AZ.label "Përzgjedhje Renditjeje: A - Z">
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.ZA.label "Përzgjedhje Renditjeje: Z - A">
+<!ENTITY sortAttachmentsPanelBtn.key "y">
 
 <!-- View Menu -->
-<!ENTITY viewMenu.label "Shfaqje"> 
+<!ENTITY viewMenu.label "Shfaqje">
 <!ENTITY viewMenu.accesskey "S">
-<!ENTITY viewToolbarsMenuNew.label "Panele"> 
-<!ENTITY viewToolbarsMenuNew.accesskey "n"> 
+<!ENTITY viewToolbarsMenuNew.label "Panele">
+<!ENTITY viewToolbarsMenuNew.accesskey "n">
 <!ENTITY menubarCmd.label "Shtyllë Menush">
 <!ENTITY menubarCmd.accesskey "M">
 <!ENTITY showCompositionToolbarCmd.label "Panel Hartimi">
 <!ENTITY showCompositionToolbarCmd.accesskey "H">
 <!ENTITY showFormattingBarCmd.label "Panel Formatimi">
 <!ENTITY showFormattingBarCmd.accesskey "F">
-<!ENTITY showTaskbarCmd.label "Shtyllë Gjendje">
+<!ENTITY showTaskbarCmd.label "Shtyllë Gjendjesh">
 <!ENTITY showTaskbarCmd.accesskey "S">
 <!ENTITY customizeToolbar.label "Përshtateni…">
 <!ENTITY customizeToolbar.accesskey "t">
 
-<!ENTITY addressSidebar.label "Anështyllë Kontaktesh"> 
+<!ENTITY addressSidebar.label "Anështyllë Kontaktesh">
 <!ENTITY addressSidebar.accesskey "a">
 
 <!-- Format Menu -->
@@ -133,11 +167,10 @@
 <!ENTITY checkSpellingCmd2.key "p">
 <!ENTITY checkSpellingCmd2.key2 "VK_F7">
 <!ENTITY checkSpellingCmd2.accesskey "K">
-<!ENTITY enableInlineSpellChecker.label "Kontrollo Drejtshkrimin Në Shkrim e Sipër">
+<!ENTITY enableInlineSpellChecker.label "Kontroll Drejtshkrimi Teksa Shkruani">
 <!ENTITY enableInlineSpellChecker.accesskey "S">
 <!ENTITY quoteCmd.label "Citoje Mesazhin">
 <!ENTITY quoteCmd.accesskey "C">
-
 
 <!--LOCALIZATION NOTE attachVCard.label Don't translate the term 'vCard' -->
 <!ENTITY attachVCard.label "Bashkëngjitni Kartë Vetjake (vCard)">
@@ -190,14 +223,14 @@
 <!ENTITY accountManagerCmdUnix2.accesskey "R">
 <!ENTITY preferencesCmd2.label "Mundësi">
 <!ENTITY preferencesCmd2.accesskey "u">
-<!ENTITY preferencesCmdUnix.label       "Parapëlqime">
-<!ENTITY preferencesCmdUnix.accesskey   "a"> 
+<!ENTITY preferencesCmdUnix.label "Parapëlqime">
+<!ENTITY preferencesCmdUnix.accesskey "a">
 
 <!--  Mac OS X Window Menu -->
 <!ENTITY minimizeWindow.key "M">
 <!ENTITY minimizeWindow.label "Minimizoje">
 <!ENTITY bringAllToFront.label "Bjeri të Tëra Para">
-<!ENTITY zoomWindow.label "Zoom"> 
+<!ENTITY zoomWindow.label "Zoom">
 <!ENTITY windowMenu.label "Dritare">
 
 <!-- Mail Toolbar -->
@@ -210,14 +243,14 @@
 <!ENTITY printButton.label "Shtypni">
 
 <!-- Mail Toolbar Tooltips -->
-<!ENTITY sendButton.tooltip "Dërgojeni këtë mesazh tani"> 
-<!ENTITY sendlaterButton.tooltip "Dërgojeni këtë mesazh më vonë"> 
-<!ENTITY quoteButton.tooltip "Citoni mesazhin e mëparshëm"> 
-<!ENTITY addressButton.tooltip "Përzgjidhni marrës prej një Libri Adresash"> 
-<!ENTITY attachButton.tooltip "Përfshini një bashkëngjitje"> 
+<!ENTITY sendButton.tooltip "Dërgojeni këtë mesazh tani">
+<!ENTITY sendlaterButton.tooltip "Dërgojeni këtë mesazh më vonë">
+<!ENTITY quoteButton.tooltip "Citoni mesazhin e mëparshëm">
+<!ENTITY addressButton.tooltip "Përzgjidhni marrës prej një Libri Adresash">
+<!ENTITY attachButton.tooltip "Përfshini një bashkëngjitje">
+<!ENTITY attachButton.tooltip2 "Shtoni një bashkëngjitje">
 <!ENTITY spellingButton.tooltip "Kontrolloni drejtshkrimin e përzgjedhjes ose të krejt mesazhit">
-<!ENTITY statusLanguageText.tooltip "Gjuhë kontrolli drejtshkrimi">
-<!ENTITY saveButton.tooltip "Ruajeni këtë mesazh"> 
+<!ENTITY saveButton.tooltip "Ruajeni këtë mesazh">
 <!ENTITY cutButton.tooltip              "Prijeni">
 <!ENTITY copyButton.tooltip             "Kopjojeni">
 <!ENTITY pasteButton.tooltip            "Ngjiteni">
@@ -229,17 +262,22 @@
 <!ENTITY headersSpace.style "width: 9em;">
 <!ENTITY fromAddr.label "Prej:">
 <!ENTITY fromAddr.accesskey "r">
-<!ENTITY toAddr.label "Për:"> 
-<!ENTITY ccAddr.label "Cc:"> 
-<!ENTITY bccAddr.label "Bcc:"> 
-<!ENTITY replyAddr.label "Përgjigjiu:"> 
-<!ENTITY newsgroupsAddr.label "Grup Lajmesh:"> 
-<!ENTITY followupAddr.label "Vazhdoje-Te:"> 
+<!ENTITY toAddr.label "Për:">
+<!ENTITY ccAddr.label "Cc:">
+<!ENTITY bccAddr.label "Bcc:">
+<!ENTITY replyAddr.label "Përgjigjiu:">
+<!ENTITY newsgroupsAddr.label "Grup Lajmesh:">
+<!ENTITY followupAddr.label "Vazhdoje-Te:">
 <!ENTITY subject.label "Subjekt:">
 <!ENTITY subject.accesskey "S">
-<!-- LOCALIZATION NOTE attachments.accesskey This access key should correspond
-     to the strings in attachmentCount in composeMsgs.properties -->
+<!-- LOCALIZATION NOTE (attachments.accesskey) This access key character should
+     be taken from the strings in attachmentCount in composeMsgs.properties,
+     and it must be the same as toggleAttachmentPaneCmd.key, otherwise it won't
+     work, as the shortcut key functionality supersedes the access key. -->
 <!ENTITY attachments.accesskey "B">
+
+<!ENTITY attachmentBucketHeader.tooltip "Kuadrat Bashkëngjitjesh">
+<!ENTITY attachmentBucketCloseButton.tooltip "Fshiheni kuadratin e bashkëngjitjeve">
 
 <!-- Format Toolbar, imported from editorAppShell.xul -->
 <!ENTITY SmileButton.tooltip "Futni një emotikon">
@@ -277,6 +315,7 @@
 <!ENTITY pasteQuote.label "Ngjite Si Citim">
 <!ENTITY pasteQuote.accesskey "m">
 
+<!-- Attachment Item and List Context Menus -->
 <!ENTITY openAttachment.label "Hape">
 <!ENTITY openAttachment.accesskey "H">
 <!ENTITY delete.label "Fshije">
@@ -285,12 +324,14 @@
 <!ENTITY removeAttachment.accesskey "H">
 <!ENTITY renameAttachment.label "Riemërtojeni…">
 <!ENTITY renameAttachment.accesskey "R">
+<!ENTITY reorderAttachments.label "Rirenditni Bashkëngjitjet…">
+<!ENTITY reorderAttachments.accesskey "e">
+<!ENTITY removeAllAttachments.label "Hiqi Krejt Bashkëngjitjet">
+<!ENTITY removeAllAttachments.accesskey "i">
 <!ENTITY selectAll.label "Përzgjidhe Krejt">
 <!ENTITY selectAll.accesskey "T">
 <!ENTITY attachFile.label "Bashkëngjitni Kartelë(a)…">
 <!ENTITY attachFile.accesskey "a">
-<!ENTITY attachCloudCmd.label "Filelink">
-<!ENTITY attachCloudCmd.accesskey "i">
 <!ENTITY attachCloud.label "Filelink…">
 <!ENTITY attachCloud.accesskey "F">
 <!ENTITY convertCloud.label "Shndërrojeni në…">
@@ -308,29 +349,11 @@
 
 <!-- Title for the address picker panel -->
 <!ENTITY addressesSidebarTitle.label "Kontakte">
-<!ENTITY pasteAsQuotationCmd.key "o">
-<!ENTITY removeAttachment.accesskey "H">
-<!ENTITY removeAttachment.label "Hiqe Bashkëngjitjen">
 
 <!-- Identity popup customize menuitem -->
 <!ENTITY customizeFromAddress.label "Përshtatni Adresën Nga…">
 <!ENTITY customizeFromAddress.accesskey "A">
 
-<!ENTITY reorderAttachmentsCmd.label "Reorder Attachments…">
-<!ENTITY reorderAttachmentsCmd.accesskey "s">
-<!ENTITY reorderAttachmentsCmd.key "x">
-<!ENTITY reorderAttachmentsPanel.label "Reorder Attachments">
-<!ENTITY moveAttachmentTopPanelBtn.label "Move to Top">
-<!ENTITY moveAttachmentUpPanelBtn.label "Move Up">
-<!ENTITY moveAttachmentBundleUpPanelBtn.label "Move together">
-<!ENTITY moveAttachmentDownPanelBtn.label "Move Down">
-<!ENTITY moveAttachmentBottomPanelBtn.label "Move to Bottom">
-<!ENTITY sortAttachmentsPanelBtn.Sort.AZ.label "Sort: A - Z">
-<!ENTITY sortAttachmentsPanelBtn.Sort.ZA.label "Sort: Z - A">
-<!ENTITY sortAttachmentsPanelBtn.SortSelection.AZ.label "Sort Selection: A - Z">
-<!ENTITY sortAttachmentsPanelBtn.SortSelection.ZA.label "Sort Selection: Z - A">
-<!ENTITY sortAttachmentsPanelBtn.key "y">
-<!ENTITY reorderAttachments.label "Reorder Attachments…">
-<!ENTITY reorderAttachments.accesskey "s">
-<!ENTITY languageStatusButton.tooltip "Spellcheck language">
-<!ENTITY encodingStatusPanel.tooltip "Text encoding">
+<!-- Status Bar -->
+<!ENTITY languageStatusButton.tooltip "Gjuhë drejtshkrimi">
+<!ENTITY encodingStatusPanel.tooltip "Kodim teksti">

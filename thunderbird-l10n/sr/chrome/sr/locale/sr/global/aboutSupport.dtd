@@ -25,6 +25,13 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Издање">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Безбедносни софтвер">
+<!ENTITY aboutSupport.securitySoftwareType "Тип">
+<!ENTITY aboutSupport.securitySoftwareName "Име">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Антивирус">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Антиспајвер">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Заштитни зид">
+
 <!ENTITY aboutSupport.featuresTitle "&brandShortName; могућности">
 <!ENTITY aboutSupport.featureName "Назив">
 <!ENTITY aboutSupport.featureVersion "Издање">
@@ -71,6 +78,8 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Вишепроцесорски прозори">
 
 <!ENTITY aboutSupport.appBasicsProcessCount "Процеси веб садржаја">
+
+<!ENTITY aboutSupport.enterprisePolicies "Политике предузећа">
 
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Google кључ">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Кључ Mozilla сервиса за локацију">
@@ -156,18 +165,12 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "Стопа">
 <!ENTITY aboutSupport.mediaDeviceLatency "Латентност">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.intlTitle "Интернационализација &amp; Локализација">
+<!ENTITY aboutSupport.intlAppTitle "Поставке апликације">
+<!ENTITY aboutSupport.intlLocalesRequested "Захтевани локали">
+<!ENTITY aboutSupport.intlLocalesAvailable "Доступни локали">
+<!ENTITY aboutSupport.intlLocalesSupported "Локали апликације">
+<!ENTITY aboutSupport.intlLocalesDefault "Подразумевани локал">
+<!ENTITY aboutSupport.intlOSTitle "Оперативни систем">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Локали система">
+<!ENTITY aboutSupport.intlRegionalPrefs "Регионалне поставке">

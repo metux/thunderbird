@@ -3,11 +3,63 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource:///modules/iteratorUtils.jsm");
-Components.utils.import("resource:///modules/MailUtils.js");
-Components.utils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource:///modules/iteratorUtils.jsm");
+ChromeUtils.import("resource:///modules/MailUtils.js");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 var gServer;
+var gOriginalStoreType;
+
+/**
+ * Called when the store type menu is clicked.
+ * @param {Object} aStoreTypeElement - store type menu list element.
+ */
+function clickStoreTypeMenu(aStoreTypeElement) {
+  if (aStoreTypeElement.value == gOriginalStoreType) {
+    return;
+  }
+
+  // Response from migration dialog modal. If the conversion is complete
+  // 'response.newRootFolder' will hold the path to the new account root folder,
+  // otherwise 'response.newRootFolder' will be null.
+  let response = { newRootFolder: null };
+  // Send 'response' as an argument to converterDialog.xhtml.
+  window.openDialog("converterDialog.xhtml","mailnews:mailstoreconverter",
+                    "modal,centerscreen,width=800,height=180", gServer,
+                    aStoreTypeElement.value, response);
+  changeStoreType(response);
+}
+
+/**
+ * Revert store type to the original store type if converter modal closes
+ * before migration is complete, otherwise change original store type to
+ * currently selected store type.
+ * @param {Object} aResponse - response from migration dialog modal.
+ */
+function changeStoreType(aResponse) {
+  if (aResponse.newRootFolder) {
+    // The conversion is complete.
+    // Set local path to the new account root folder which is present
+    // in 'aResponse.newRootFolder'.
+    if (gServer.type == "nntp") {
+      let newRootFolder = aResponse.newRootFolder;
+      let lastSlash = newRootFolder.lastIndexOf("/");
+      let newsrc = newRootFolder.slice(0, lastSlash) + "/newsrc-" +
+                   newRootFolder.slice(lastSlash + 1);
+      document.getElementById("nntp.newsrcFilePath").value = newsrc;
+    }
+
+    document.getElementById("server.localPath").value = aResponse.newRootFolder;
+    gOriginalStoreType = document.getElementById("server.storeTypeMenulist")
+                                 .value;
+    BrowserUtils.restartApplication();
+  } else {
+    // The conversion failed or was cancelled.
+    // Restore selected item to what was selected before conversion.
+    document.getElementById("server.storeTypeMenulist").value =
+      gOriginalStoreType;
+  }
+}
 
 function onSave()
 {
@@ -46,9 +98,12 @@ function onInit(aPageId, aServerId)
                                .getAttribute("value");
   let targetItem = storeTypeElement.getElementsByAttribute("value", currentStoreID);
   storeTypeElement.selectedItem = targetItem[0];
-  // disable store type change if store has already been used
+  // Disable store type change if store has not been used yet.
   storeTypeElement.setAttribute("disabled",
-    gServer.getBoolValue("canChangeStoreType") ? "false" : "true");
+    gServer.getBoolValue("canChangeStoreType") ?
+      "false" : !Services.prefs.getBoolPref("mail.store_conversion_enabled"));
+  // Initialise 'gOriginalStoreType' to the item that was originally selected.
+  gOriginalStoreType = storeTypeElement.value;
 }
 
 function onPreInit(account, accountValues)
@@ -165,7 +220,7 @@ function onAdvanced()
   {
     document.getElementById("pop3.deferGetNewMail").checked = serverSettings.deferGetNewMail;
     document.getElementById("pop3.deferredToAccount").setAttribute("value", serverSettings.deferredToAccount);
-    let pop3Server = gServer.QueryInterface(Components.interfaces.nsIPop3IncomingServer);
+    let pop3Server = gServer.QueryInterface(Ci.nsIPop3IncomingServer);
     // we're explicitly setting this so we'll go through the SetDeferredToAccount method
     pop3Server.deferredToAccount = serverSettings.deferredToAccount;
     // Setting the server to be deferred causes a rebuild of the account tree,
@@ -185,7 +240,7 @@ function onAdvanced()
                                            .incomingServer.serverURI;
 
     for (let account of fixIterator(MailServices.accounts.accounts,
-                                    Components.interfaces.nsIMsgAccount)) {
+                                    Ci.nsIMsgAccount)) {
       let accountValues = parent.getValueArrayFor(account);
       let type = parent.getAccountValue(account, accountValues, "server", "type",
                                         null, false);
@@ -228,7 +283,6 @@ function secureSelect(aLoading)
     var portDefault = document.getElementById("defaultPort");
     var prevDefaultPort = portDefault.value;
 
-    const Ci = Components.interfaces;
     if (socketType == Ci.nsMsgSocketType.SSL) {
       portDefault.value = defaultPortSecure;
       if (port.value == "" || (!aLoading && port.value == defaultPort && prevDefaultPort != portDefault.value))
@@ -279,19 +333,19 @@ function setupFixedUI()
 
 function BrowseForNewsrc()
 {
-  const nsIFilePicker = Components.interfaces.nsIFilePicker;
-  const nsIFile = Components.interfaces.nsIFile;
+  const nsIFilePicker = Ci.nsIFilePicker;
+  const nsIFile = Ci.nsIFile;
 
   var newsrcTextBox = document.getElementById("nntp.newsrcFilePath");
-  var fp = Components.classes["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
+  var fp = Cc["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
   fp.init(window,
           document.getElementById("browseForNewsrc").getAttribute("filepickertitle"),
           nsIFilePicker.modeSave);
 
   var currentNewsrcFile;
   try {
-    currentNewsrcFile = Components.classes["@mozilla.org/file/local;1"]
-                                  .createInstance(nsIFile);
+    currentNewsrcFile = Cc["@mozilla.org/file/local;1"]
+                          .createInstance(nsIFile);
     currentNewsrcFile.initWithPath(newsrcTextBox.value);
   } catch (e) {
     dump("Failed to create nsIFile instance for the current newsrc file.\n");
@@ -328,8 +382,8 @@ function setupImapDeleteUI(aServerId)
   trashPopup._ensureInitialized();
 
   // Convert the folder path in Unicode to MUTF-7.
-  let manager = Components.classes['@mozilla.org/charset-converter-manager;1']
-                  .getService(Components.interfaces.nsICharsetConverterManager);
+  let manager = Cc['@mozilla.org/charset-converter-manager;1']
+                  .getService(Ci.nsICharsetConverterManager);
   // Escape backslash and double-quote with another backslash before encoding.
   let trashMutf7 = manager.unicodeToMutf7(trashFolderName.replace(/([\\"])/g, '\\$1'));
   // TODO: There is something wrong here, selectFolder() fails even if the
@@ -377,12 +431,12 @@ function folderPickerChange(aEvent)
   // Note that the path is returned with a leading slash which we need to remove.
   var folderPath = Services.io.newURI(folder.URI).pathQueryRef.substring(1);
   // We need to convert that from MUTF-7 to Unicode.
-  var manager = Components.classes['@mozilla.org/charset-converter-manager;1']
-                  .getService(Components.interfaces.nsICharsetConverterManager);
-  var util = Components.classes["@mozilla.org/network/util;1"]
-                               .getService(Components.interfaces.nsINetUtil);
+  var manager = Cc['@mozilla.org/charset-converter-manager;1']
+                  .getService(Ci.nsICharsetConverterManager);
+  var util = Cc["@mozilla.org/network/util;1"]
+               .getService(Ci.nsINetUtil);
   var trashUnicode = manager.mutf7ToUnicode(
-    util.unescapeString(folderPath, Components.interfaces.nsINetUtil.ESCAPE_URL_PATH));
+    util.unescapeString(folderPath, Ci.nsINetUtil.ESCAPE_URL_PATH));
 
   // Set the value to be persisted.
   document.getElementById("imap.trashFolderName")

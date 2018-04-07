@@ -14,11 +14,11 @@
 <!ENTITY pref.calendar.alarms.sound.useDefault.accessKey "d">
 <!ENTITY pref.calendar.alarms.sound.browse.label "Examinar…">
 <!ENTITY pref.calendar.alarms.sound.browse.accessKey "r">
-<!ENTITY pref.calendar.alarms.sound.preview.label "Previsualizar">
-<!ENTITY pref.calendar.alarms.sound.preview.accessKey "P">
-<!ENTITY pref.showalarmbox "Mostrar unha caixa de alarma">
+<!ENTITY pref.calendar.alarms.sound.play.label "Reproducir">
+<!ENTITY pref.calendar.alarms.sound.play.accessKey "p">
+<!ENTITY pref.showalarmbox "Amosar unha caixa de alarma">
 <!ENTITY pref.calendar.alarms.showAlarmBox.accessKey "x">
-<!ENTITY pref.missedalarms "Mostrar as alarmas perdidas">
+<!ENTITY pref.missedalarms "Amosar as alarmas perdidas">
 <!ENTITY pref.calendar.alarms.missedAlarms.accessKey "m">
 <!ENTITY pref.calendar.alarms.defaults.label "Valores predeterminados para alarmas">
 <!ENTITY pref.defalarm4events.label "Configuración predeterminada da alarma para os eventos:">
@@ -31,11 +31,8 @@
 <!ENTITY pref.defalarmlen4events.accesskey "u">
 <!ENTITY pref.defalarmlen4todos.label "Tempo predeterminado no que se activará unha alarma antes dunha tarefa:">
 <!ENTITY pref.defalarmlen4todos.accesskey "o">
-<!ENTITY pref.defaultemail.label "Enderezo predeterminado ao que enviar as alarmas:">
-<!ENTITY pref.defaulttext.label "Texto predeterminado para as alarmas:">
 
-<!ENTITY pref.calendar.alarms.sound.play.label "Play">
-<!ENTITY pref.calendar.alarms.sound.play.accessKey "P">
+<!ENTITY pref.defaultsnoozelength.label "Duración predeterminada da suspensión:" >
+<!ENTITY pref.defaultsnoozelength.accesskey "s">
+
 <!ENTITY pref.missedalarms2 "Show missed reminders for writable calendars">
-<!ENTITY pref.defaultsnoozelength.label "Default Snooze Length:" >
-<!ENTITY pref.defaultsnoozelength.accesskey "S">

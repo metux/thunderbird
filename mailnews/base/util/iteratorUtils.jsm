@@ -9,8 +9,6 @@
 
 this.EXPORTED_SYMBOLS = ["fixIterator", "toXPCOMArray", "toArray"];
 
-var Ci = Components.interfaces;
-
 var JS_HAS_SYMBOLS = typeof Symbol === "function";
 var ITERATOR_SYMBOL = JS_HAS_SYMBOLS ? Symbol.iterator : "@@iterator";
 
@@ -114,8 +112,8 @@ function fixIterator(aEnum, aIface) {
  */
 function toXPCOMArray(aArray, aInterface) {
   if (aInterface.equals(Ci.nsIMutableArray)) {
-    let mutableArray = Components.classes["@mozilla.org/array;1"]
-                                 .createInstance(Ci.nsIMutableArray);
+    let mutableArray = Cc["@mozilla.org/array;1"]
+                         .createInstance(Ci.nsIMutableArray);
     for (let item of fixIterator(aArray)) {
       mutableArray.appendElement(item);
     }

@@ -6,12 +6,12 @@ var MODULE_NAME = "calendar-utils";
 var RELATIVE_ROOT = "../shared-modules";
 var MODULE_REQUIRES = ["window-helpers", "folder-display-helpers", "pref-window-helpers"];
 
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 var os = {};
-Cu.import("resource://mozmill/stdlib/os.js", os);
+ChromeUtils.import("resource://mozmill/stdlib/os.js", os);
 var frame = {};
-Cu.import("resource://mozmill/modules/frame.js", frame);
+ChromeUtils.import("resource://mozmill/modules/frame.js", frame);
 
 var SHORT_SLEEP = 100;
 var MID_SLEEP = 500;
@@ -325,7 +325,7 @@ function invokeEventDialog(controller, clickBox, body) {
 
     eventController.waitFor(() => {
         return iframe.contentWindow.onLoad &&
-               iframe.contentWindow.onLoad.hasLoaded == true;
+               iframe.contentWindow.onLoad.hasLoaded;
     }, "event-dialog did not load in time", 10000);
 
     // We can't use a full mozmill controller on an iframe, but we need
@@ -534,7 +534,7 @@ function handleNewCalendarWizard(wizard, name, data = undefined) {
             data.network.offline = true;
         }
         wizard.check(wizardId("cache"), data.network.offline);
-        wizard.waitFor(() => dlgButton("next").disabled == false);
+        wizard.waitFor(() => !dlgButton("next").disabled);
         dlgButton("next").doCommand();
     } else {
         // local calendar is default
@@ -559,7 +559,7 @@ function handleNewCalendarWizard(wizard, name, data = undefined) {
         data.eMail = "none";
     }
     menulistSelect(wizardId("email-identity-menulist"), data.eMail, wizard);
-    wizard.waitFor(() => dlgButton("next").disabled == false);
+    wizard.waitFor(() => !dlgButton("next").disabled);
     dlgButton("next").doCommand();
 
     // finish

@@ -3,27 +3,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource:///modules/mailServices.js");
-Components.utils.import("resource:///modules/MailUtils.js");
-Components.utils.import("resource:///modules/iteratorUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/MailUtils.js");
+ChromeUtils.import("resource:///modules/iteratorUtils.jsm");
 
 function BrowseForLocalFolders()
 {
-  const nsIFilePicker = Components.interfaces.nsIFilePicker;
-  const nsIFile = Components.interfaces.nsIFile;
+  const nsIFilePicker = Ci.nsIFilePicker;
+  const nsIFile = Ci.nsIFile;
 
   var currentFolderTextBox = document.getElementById("server.localPath");
-  var fp = Components.classes["@mozilla.org/filepicker;1"]
-                     .createInstance(nsIFilePicker);
+  var fp = Cc["@mozilla.org/filepicker;1"]
+             .createInstance(nsIFilePicker);
 
   fp.init(window,
           document.getElementById("browseForLocalFolder")
                   .getAttribute("filepickertitle"),
           nsIFilePicker.modeGetFolder);
 
-  var currentFolder = Components.classes["@mozilla.org/file/local;1"]
-                                .createInstance(nsIFile);
+  var currentFolder = Cc["@mozilla.org/file/local;1"]
+                        .createInstance(nsIFile);
   currentFolder.initWithPath(currentFolderTextBox.value);
   fp.displayDirectory = currentFolder;
 
@@ -195,7 +195,7 @@ function openPrefsFromAccountManager(aTBPaneId, aTBTabId, aTBOtherArgs, aSMPaneI
 function accountNameExists(aAccountName, aAccountKey)
 {
   for (let account of fixIterator(MailServices.accounts.accounts,
-                                  Components.interfaces.nsIMsgAccount))
+                                  Ci.nsIMsgAccount))
   {
     if (account.key != aAccountKey && account.incomingServer &&
         aAccountName == account.incomingServer.prettyName) {

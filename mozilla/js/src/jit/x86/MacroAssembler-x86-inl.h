@@ -266,18 +266,17 @@ MacroAssembler::addConstantDouble(double d, FloatRegister dest)
 }
 
 CodeOffset
-MacroAssembler::add32ToPtrWithPatch(Register src, Register dest)
+MacroAssembler::sub32FromStackPtrWithPatch(Register dest)
 {
-    if (src != dest)
-        movePtr(src, dest);
+    moveStackPtrTo(dest);
     addlWithPatch(Imm32(0), dest);
     return CodeOffset(currentOffset());
 }
 
 void
-MacroAssembler::patchAdd32ToPtr(CodeOffset offset, Imm32 imm)
+MacroAssembler::patchSub32FromStackPtr(CodeOffset offset, Imm32 imm)
 {
-    patchAddl(offset, imm.value);
+    patchAddl(offset, -imm.value);
 }
 
 void
@@ -971,7 +970,7 @@ void
 MacroAssembler::branchTest64(Condition cond, Register64 lhs, Register64 rhs, Register temp,
                              L label)
 {
-    if (cond == Assembler::Zero) {
+    if (cond == Assembler::Zero || cond == Assembler::NonZero) {
         MOZ_ASSERT(lhs.low == rhs.low);
         MOZ_ASSERT(lhs.high == rhs.high);
         movl(lhs.low, temp);
@@ -1008,6 +1007,38 @@ void
 MacroAssembler::branchToComputedAddress(const BaseIndex& addr)
 {
     jmp(Operand(addr));
+}
+
+void
+MacroAssembler::cmp32MovePtr(Condition cond, Register lhs, Imm32 rhs, Register src,
+                             Register dest)
+{
+    cmp32(lhs, rhs);
+    cmovCCl(cond, Operand(src), dest);
+}
+
+void
+MacroAssembler::test32LoadPtr(Condition cond, const Address& addr, Imm32 mask, const Address& src,
+                              Register dest)
+{
+    MOZ_ASSERT(cond == Assembler::Zero || cond == Assembler::NonZero);
+    test32(addr, mask);
+    cmovCCl(cond, Operand(src), dest);
+}
+
+void
+MacroAssembler::test32MovePtr(Condition cond, const Address& addr, Imm32 mask, Register src,
+                              Register dest)
+{
+    MOZ_ASSERT(cond == Assembler::Zero || cond == Assembler::NonZero);
+    test32(addr, mask);
+    cmovCCl(cond, Operand(src), dest);
+}
+
+void
+MacroAssembler::spectreMovePtr(Condition cond, Register src, Register dest)
+{
+    cmovCCl(cond, Operand(src), dest);
 }
 
 // ========================================================================
@@ -1078,6 +1109,8 @@ MacroAssembler::wasmBoundsCheck(Condition cond, Register index, Register boundsC
 {
     cmp32(index, boundsCheckLimit);
     j(cond, label);
+    if (JitOptions.spectreIndexMasking)
+        cmovCCl(cond, Operand(boundsCheckLimit), index);
 }
 
 template <class L>
@@ -1086,6 +1119,8 @@ MacroAssembler::wasmBoundsCheck(Condition cond, Register index, Address boundsCh
 {
     cmp32(index, Operand(boundsCheckLimit));
     j(cond, label);
+    if (JitOptions.spectreIndexMasking)
+        cmovCCl(cond, Operand(boundsCheckLimit), index);
 }
 
 //}}} check_macroassembler_style
@@ -1115,7 +1150,7 @@ MacroAssemblerX86::convertUInt32ToFloat32(Register src, FloatRegister dest)
 }
 
 void
-MacroAssemblerX86::unboxValue(const ValueOperand& src, AnyRegister dest)
+MacroAssemblerX86::unboxValue(const ValueOperand& src, AnyRegister dest, JSValueType)
 {
     if (dest.isFloat()) {
         Label notInt32, end;

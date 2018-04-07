@@ -158,3 +158,9 @@
 <!ENTITY lightning.imipbar.btnTentativeRecurrences2.tooltiptext             "Accept event invitation tentatively for all occurrences of the event">
 <!ENTITY lightning.imipbar.btnUpdate.label                                  "Update">
 <!ENTITY lightning.imipbar.btnUpdate.tooltiptext                            "Update event in calendar">
+<!ENTITY lightning.imipbar.btnSend.label                                    "Send a response now">
+<!ENTITY lightning.imipbar.btnSend.tooltiptext                              "Send a response to the organizer">
+<!ENTITY lightning.imipbar.btnSendSeries.tooltiptext                        "Send a response for the entire series to the organizer">
+<!ENTITY lightning.imipbar.btnDontSend.label                                "Do not send a response">
+<!ENTITY lightning.imipbar.btnDontSend.tooltiptext                          "Change your participation status without sending a response to the organizer">
+<!ENTITY lightning.imipbar.btnDontSendSeries.tooltiptext                    "Change your participation status for the series without sending a response to the organizer">

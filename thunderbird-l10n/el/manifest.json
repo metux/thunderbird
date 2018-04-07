@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/el/locale/el/passwordmgr/", 
         "pippki": "chrome/el/locale/el/pippki/"
       }, 
-      "version": "20171102104410"
+      "version": "20180313155214"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-el@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "el", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Ελληνικά Language Pack", 
   "manifest_version": 2, 
   "sources": {

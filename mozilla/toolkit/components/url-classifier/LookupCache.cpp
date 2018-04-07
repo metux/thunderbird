@@ -79,7 +79,7 @@ LookupCache::LookupCache(const nsACString& aTableName,
 nsresult
 LookupCache::Open()
 {
-  LOG(("Loading PrefixSet"));
+  LOG(("Loading PrefixSet for %s", mTableName.get()));
   nsresult rv = LoadPrefixSet();
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -630,7 +630,6 @@ LookupCacheV2::Build(AddPrefixArray& aAddPrefixes,
 
   nsresult rv = ConstructPrefixSet(aAddPrefixes);
   NS_ENSURE_SUCCESS(rv, rv);
-  mPrimed = true;
 
   return NS_OK;
 }

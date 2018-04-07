@@ -16,7 +16,7 @@ var RELATIVE_ROOT = "../shared-modules";
 var MODULE_REQUIRES = ["folder-display-helpers", "window-helpers",
                        "pref-window-helpers"];
 
-Components.utils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 var gFontEnumerator;
 
@@ -40,8 +40,8 @@ function setupModule(module) {
 }
 
 async function buildFontList() {
-  gFontEnumerator = Components.classes["@mozilla.org/gfx/fontenumerator;1"]
-                      .createInstance(Components.interfaces.nsIFontEnumerator);
+  gFontEnumerator = Cc["@mozilla.org/gfx/fontenumerator;1"]
+                      .createInstance(Ci.nsIFontEnumerator);
   for (let fontType of kFontTypes) {
     gRealFontLists[fontType] =
       await gFontEnumerator.EnumerateFontsAsync(kLanguage, fontType);

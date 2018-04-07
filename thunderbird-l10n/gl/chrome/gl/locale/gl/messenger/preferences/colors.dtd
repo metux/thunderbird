@@ -2,29 +2,29 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY  colorsDialog.title              "Colors">
-<!ENTITY  window.width                    "38em">
-<!ENTITY  window.macWidth                 "41em">
+<!ENTITY  colorsDialog.title              "Cores">
+<!ENTITY  window.width                    "45em">
+<!ENTITY  window.macWidth                 "47em">
 
-<!ENTITY  overridePageColors.label        "Override the colors specified by the content with my selections above:">
-<!ENTITY  overridePageColors.accesskey    "O">
+<!ENTITY  overridePageColors.label        "Substituír as cores especificadas polo contido coas seleccionadas anteriormente:">
+<!ENTITY  overridePageColors.accesskey    "o">
 
-<!ENTITY  overridePageColors.always.label "Always">
-<!ENTITY  overridePageColors.auto.label   "Only with High Contrast themes">
-<!ENTITY  overridePageColors.never.label  "Never">
+<!ENTITY  overridePageColors.always.label "Sempre">
+<!ENTITY  overridePageColors.auto.label   "Só con temas de alto contraste">
+<!ENTITY  overridePageColors.never.label  "Nunca">
 
-<!ENTITY  color                           "Text and Background">
-<!ENTITY  textColor.label                 "Text:">
+<!ENTITY  color                           "Texto e fondo">
+<!ENTITY  textColor.label                 "Texto:">
 <!ENTITY  textColor.accesskey             "T">
-<!ENTITY  backgroundColor.label           "Background:">
-<!ENTITY  backgroundColor.accesskey       "B">
-<!ENTITY  useSystemColors.label           "Use system colors">
+<!ENTITY  backgroundColor.label           "Fondo:">
+<!ENTITY  backgroundColor.accesskey       "F">
+<!ENTITY  useSystemColors.label           "Usar as cores do sistema">
 <!ENTITY  useSystemColors.accesskey       "s">
 
-<!ENTITY  underlineLinks.label            "Underline links">
-<!ENTITY  underlineLinks.accesskey        "U">
-<!ENTITY  links                           "Link Colors">
-<!ENTITY  linkColor.label                 "Unvisited Links:">
+<!ENTITY  underlineLinks.label            "Subliñar as ligazóns">
+<!ENTITY  underlineLinks.accesskey        "u">
+<!ENTITY  links                           "Cores das ligazóns">
+<!ENTITY  linkColor.label                 "Ligazóns non visitadas:">
 <!ENTITY  linkColor.accesskey             "L">
-<!ENTITY  visitedLinkColor.label          "Visited Links:">
-<!ENTITY  visitedLinkColor.accesskey      "V">
+<!ENTITY  visitedLinkColor.label          "Ligazóns visitadas:">
+<!ENTITY  visitedLinkColor.accesskey      "v">

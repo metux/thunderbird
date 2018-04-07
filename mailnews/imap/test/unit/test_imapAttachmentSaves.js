@@ -12,8 +12,8 @@ load("../../../resources/messageGenerator.js");
 
 // javascript mime emitter functions
 var mimeMsg = {};
-Components.utils.import("resource:///modules/gloda/mimemsg.js", mimeMsg);
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/gloda/mimemsg.js", mimeMsg);
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 // IMAP pump
 
@@ -91,7 +91,7 @@ function* testDetach()
   // This test seems to fail on Linux without the following delay.
   mailTestUtils.do_timeout_function(200, async_driver);
   yield false;
-  // Check that the file attached to the message now exists in the profile 
+  // Check that the file attached to the message now exists in the profile
   // directory.
   let checkFile = do_get_profile().clone();
   checkFile.append(kAttachFileName);

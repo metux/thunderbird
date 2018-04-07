@@ -84,7 +84,7 @@ class nsWindow final : public nsWindowBase
 public:
   explicit nsWindow(bool aIsChildWindow = false);
 
-  NS_DECL_ISUPPORTS_INHERITED
+  NS_INLINE_DECL_REFCOUNTING_INHERITED(nsWindow, nsWindowBase)
 
   friend class nsWindowGfx;
 
@@ -112,9 +112,9 @@ public:
   virtual void            SetParent(nsIWidget *aNewParent) override;
   virtual nsIWidget*      GetParent(void) override;
   virtual float           GetDPI() override;
-  double                  GetDefaultScaleInternal() final override;
-  int32_t                 LogToPhys(double aValue) final override;
-  mozilla::DesktopToLayoutDeviceScale GetDesktopToDeviceScale() final override
+  double                  GetDefaultScaleInternal() final;
+  int32_t                 LogToPhys(double aValue) final;
+  mozilla::DesktopToLayoutDeviceScale GetDesktopToDeviceScale() final
   {
     if (mozilla::widget::WinUtils::IsPerMonitorDPIAware()) {
       return mozilla::DesktopToLayoutDeviceScale(1.0);
@@ -428,7 +428,7 @@ protected:
    * Event handlers
    */
   virtual void            OnDestroy() override;
-  virtual bool            OnResize(nsIntRect &aWindowRect);
+  bool                    OnResize(const LayoutDeviceIntSize& aSize);
   bool                    OnGesture(WPARAM wParam, LPARAM lParam);
   bool                    OnTouch(WPARAM wParam, LPARAM lParam);
   bool                    OnHotKey(WPARAM wParam, LPARAM lParam);
@@ -496,7 +496,7 @@ protected:
   static bool             IsTopLevelMouseExit(HWND aWnd);
   virtual nsresult        SetWindowClipRegion(const nsTArray<LayoutDeviceIntRect>& aRects,
                                               bool aIntersectWithExisting) override;
-  nsIntRegion             GetRegionToPaint(bool aForceFullRepaint,
+  LayoutDeviceIntRegion   GetRegionToPaint(bool aForceFullRepaint,
                                            PAINTSTRUCT ps, HDC aDC);
   void                    ClearCachedResources();
   nsIWidgetListener*      GetPaintListener();

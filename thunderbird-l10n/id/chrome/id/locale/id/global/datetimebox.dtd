@@ -10,18 +10,26 @@
 <!ENTITY time.millisecond.placeholder "--">
 <!ENTITY time.dayperiod.placeholder "--">
 
+<!-- Field labels for input type=time -->
+
+<!ENTITY time.hour.label "Jam">
+<!ENTITY time.minute.label "Menit">
+<!ENTITY time.second.label "Detik">
+<!ENTITY time.millisecond.label "Milidetik">
+<!ENTITY time.dayperiod.label "AM/PM">
+
 <!-- Placeholders for input type=date -->
 
 <!ENTITY date.year.placeholder "tttt">
 <!ENTITY date.month.placeholder "bb">
 <!ENTITY date.day.placeholder "hh">
 
-<!ENTITY time.hour.label "Hours">
-<!ENTITY time.minute.label "Minutes">
-<!ENTITY time.second.label "Seconds">
-<!ENTITY time.millisecond.label "Milliseconds">
-<!ENTITY time.dayperiod.label "AM/PM">
-<!ENTITY date.year.label "Year">
-<!ENTITY date.month.label "Month">
-<!ENTITY date.day.label "Day">
-<!ENTITY datetime.reset.label "Clear">
+<!-- Field labels for input type=date -->
+
+<!ENTITY date.year.label "Tahun">
+<!ENTITY date.month.label "Bulan">
+<!ENTITY date.day.label "Hari">
+
+<!-- Date/time clear button -->
+
+<!ENTITY datetime.reset.label "Hapus">

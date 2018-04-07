@@ -53,6 +53,8 @@
 #include "nsArrayUtils.h"
 #include "nsIStreamListener.h"
 #include "nsIInputStream.h"
+#include "nsIURIMutator.h"
+
 #include "../../base/src/MailnewsLoadContextInfo.h"
 
 #undef GetPort  // XXX Windows!
@@ -232,10 +234,7 @@ nsNntpService::DisplayMessage(const char* aMessageURI, nsISupports * aDisplayCon
   rv = ConstructNntpUrl(urlStr.get(), aUrlListener, aMsgWindow, aMessageURI, action, getter_AddRefs(url));
   NS_ENSURE_SUCCESS(rv,rv);
 
-  nsCOMPtr <nsIMsgMailNewsUrl> msgUrl = do_QueryInterface(url,&rv);
-  NS_ENSURE_SUCCESS(rv,rv);
-
-  nsCOMPtr<nsIMsgI18NUrl> i18nurl = do_QueryInterface(msgUrl,&rv);
+  nsCOMPtr<nsIMsgI18NUrl> i18nurl = do_QueryInterface(url, &rv);
   NS_ENSURE_SUCCESS(rv,rv);
 
   i18nurl->SetCharsetOverRide(aCharsetOverride);
@@ -267,7 +266,9 @@ nsNntpService::DisplayMessage(const char* aMessageURI, nsISupports * aDisplayCon
                nsINntpUrl::DEFAULT_NNTPS_PORT : nsINntpUrl::DEFAULT_NNTP_PORT;
       }
 
-      rv = url->SetPort(port);
+      // Don't mutate/clone here.
+      nsCOMPtr<nsIMsgMailNewsUrl> mailnewsurl = do_QueryInterface(url);
+      rv = mailnewsurl->SetPortInternal(port);
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
@@ -288,7 +289,9 @@ nsNntpService::DisplayMessage(const char* aMessageURI, nsISupports * aDisplayCon
     if (!hasMsgOffline && WeAreOffline())
       return server->DisplayOfflineMsg(aMsgWindow);
 
-    msgUrl->SetMsgIsInLocalCache(hasMsgOffline);
+    nsCOMPtr <nsIMsgMailNewsUrl> mailnewsurl = do_QueryInterface(url,&rv);
+    NS_ENSURE_SUCCESS(rv,rv);
+    mailnewsurl->SetMsgIsInLocalCache(hasMsgOffline);
 
     nsCOMPtr<nsIMsgNewsFolder> newsFolder(do_QueryInterface(folder, &rv));
     NS_ENSURE_SUCCESS(rv, rv);
@@ -440,7 +443,7 @@ NS_IMETHODIMP nsNntpService::OpenAttachment(const char *aContentType,
     NS_ENSURE_SUCCESS(rv, rv);
 
     msgUrl->SetMsgWindow(aMsgWindow);
-    msgUrl->SetFileName(nsDependentCString(aFileName));
+    msgUrl->SetFileNameInternal(nsDependentCString(aFileName));
 // this code isn't ready yet, but it helps getting opening attachments
 // while offline working
 //   nsCOMPtr<nsIMsgMessageUrl> msgMessageUrl = do_QueryInterface(url);
@@ -1209,7 +1212,7 @@ NS_IMETHODIMP nsNntpService::NewURI(const nsACString &aSpec,
 {
     nsresult rv;
 
-    nsCOMPtr<nsIURI> nntpUri = do_CreateInstance(NS_NNTPURL_CONTRACTID, &rv);
+    nsCOMPtr<nsIMsgMailNewsUrl> nntpUri = do_CreateInstance(NS_NNTPURL_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv,rv);
 
     if (aBaseURI)
@@ -1217,6 +1220,7 @@ NS_IMETHODIMP nsNntpService::NewURI(const nsACString &aSpec,
       nsAutoCString newSpec;
       aBaseURI->Resolve(aSpec, newSpec);
       rv = nntpUri->SetSpecInternal(newSpec);
+      // XXX Consider: rv = NS_MutateURI(new nsNntpUrl::Mutator()).SetSpec(newSpec).Finalize(nntpUri);
     }
     else
     {
@@ -1428,7 +1432,6 @@ nsNntpService::StreamMessage(const char *aMessageURI, nsISupports *aConsumer,
     if (aLocalOnly || WeAreOffline())
     {
       // Check in the offline cache, then in the mem cache
-      nsCOMPtr<nsIMsgMailNewsUrl> msgUrl(do_QueryInterface(url, &rv));
       bool hasMsgOffline = false;
       folder->HasMsgOffline(key, &hasMsgOffline);
       if (!hasMsgOffline)
@@ -1441,8 +1444,12 @@ nsNntpService::StreamMessage(const char *aMessageURI, nsISupports *aConsumer,
         rv = server->GetSocketType(&socketType);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        url->SetPort((socketType == nsMsgSocketType::SSL) ?
-                     nsINntpUrl::DEFAULT_NNTPS_PORT : nsINntpUrl::DEFAULT_NNTP_PORT);
+        // Don't mutate/clone here.
+        nsCOMPtr<nsIMsgMailNewsUrl> mailnewsurl = do_QueryInterface(url);
+        rv = mailnewsurl->SetPortInternal(socketType == nsMsgSocketType::SSL ?
+                                            nsINntpUrl::DEFAULT_NNTPS_PORT :
+                                            nsINntpUrl::DEFAULT_NNTP_PORT);
+        NS_ENSURE_SUCCESS(rv, rv);
 
         rv = IsMsgInMemCache(url, folder, &hasMsgOffline);
         NS_ENSURE_SUCCESS(rv, rv);
@@ -1452,6 +1459,7 @@ nsNntpService::StreamMessage(const char *aMessageURI, nsISupports *aConsumer,
       if (!hasMsgOffline)
         return NS_ERROR_FAILURE;
 
+      nsCOMPtr<nsIMsgMailNewsUrl> msgUrl(do_QueryInterface(url, &rv));
       msgUrl->SetMsgIsInLocalCache(true);
     }
 
@@ -1509,17 +1517,20 @@ NS_IMETHODIMP nsNntpService::IsMsgInMemCache(nsIURI *aUrl,
   if (mCacheStorage)
   {
     // NNTP urls are truncated at the query part when used as cache keys.
-    nsCOMPtr <nsIURI> newUri;
-    aUrl->Clone(getter_AddRefs(newUri));
     nsAutoCString path;
-    newUri->GetPathQueryRef(path);
+    aUrl->GetPathQueryRef(path);
     int32_t pos = path.FindChar('?');
+    nsCOMPtr<nsIURI> newUri;
     if (pos != kNotFound) {
       path.SetLength(pos);
-      newUri->SetPathQueryRef(path);
+      rv = NS_MutateURI(aUrl).SetPathQueryRef(path).Finalize(newUri);
+      NS_ENSURE_SUCCESS(rv, rv);
     }
     bool exists;
-    rv = mCacheStorage->Exists(newUri, EmptyCString(), &exists);
+    if (newUri)
+      rv = mCacheStorage->Exists(newUri, EmptyCString(), &exists);
+    else
+      rv = mCacheStorage->Exists(aUrl, EmptyCString(), &exists);
     if (NS_SUCCEEDED(rv) && exists) {
       *aResult = true;
     }

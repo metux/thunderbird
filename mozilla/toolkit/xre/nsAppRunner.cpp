@@ -16,11 +16,11 @@
 #include "mozilla/Poison.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Printf.h"
+#include "mozilla/ResultExtensions.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Services.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/intl/LocaleService.h"
-#include "nsNativeCharsetUtils.h"
 
 #include "nsAppRunner.h"
 #include "mozilla/XREAppData.h"
@@ -160,7 +160,7 @@
 #ifdef XP_WIN
 #include <process.h>
 #include <shlobj.h>
-#include "mozilla/WindowsDllServices.h"
+#include "mozilla/WinDllServices.h"
 #include "nsThreadUtils.h"
 #include <comdef.h>
 #include <wbemidl.h>
@@ -222,8 +222,8 @@
 #if defined(XP_LINUX) && !defined(ANDROID)
 #include "mozilla/SandboxInfo.h"
 #elif defined(XP_WIN)
-#include "SandboxBroker.h"
-#include "SandboxPermissions.h"
+#include "sandboxBroker.h"
+#include "sandboxPermissions.h"
 #endif
 #endif
 
@@ -236,6 +236,7 @@ extern void InstallSignalHandlers(const char *ProgramName);
 
 #define FILE_COMPATIBILITY_INFO NS_LITERAL_CSTRING("compatibility.ini")
 #define FILE_INVALIDATE_CACHES NS_LITERAL_CSTRING(".purgecaches")
+#define FILE_STARTUP_INCOMPLETE NS_LITERAL_STRING(".startup-incomplete")
 
 int    gArgc;
 char **gArgv;
@@ -281,23 +282,26 @@ nsString gAbsoluteArgv0Path;
 extern "C" MFBT_API bool IsSignalHandlingBroken();
 #endif
 
-#ifdef LIBFUZZER
-#include "LibFuzzerRunner.h"
+#ifdef FUZZING
+#include "FuzzerRunner.h"
 
 namespace mozilla {
-LibFuzzerRunner* libFuzzerRunner = 0;
+FuzzerRunner* fuzzerRunner = 0;
 } // namespace mozilla
 
+#ifdef LIBFUZZER
 void XRE_LibFuzzerSetDriver(LibFuzzerDriver aDriver) {
-  mozilla::libFuzzerRunner->setParams(aDriver);
+  mozilla::fuzzerRunner->setParams(aDriver);
 }
 #endif
+#endif // FUZZING
 
 namespace mozilla {
 int (*RunGTest)(int*, char**) = 0;
 } // namespace mozilla
 
 using namespace mozilla;
+using namespace mozilla::startup;
 using mozilla::Unused;
 using mozilla::scache::StartupCache;
 using mozilla::dom::ContentParent;
@@ -1663,40 +1667,6 @@ ScopedXPCOMStartup::CreateAppSupport(nsISupports* aOuter, REFNSIID aIID, void** 
 
 nsINativeAppSupport* ScopedXPCOMStartup::gNativeAppSupport;
 
-#if defined(XP_WIN)
-
-class DllNotifications : public mozilla::DllServices
-{
-public:
-  DllNotifications()
-  {
-    Enable();
-  }
-
-private:
-  ~DllNotifications() = default;
-
-  void NotifyDllLoad(const bool aIsMainThread, const nsString& aDllName) override;
-};
-
-void
-DllNotifications::NotifyDllLoad(const bool aIsMainThread,
-                                const nsString& aDllName)
-{
-  const char* topic;
-
-  if (aIsMainThread) {
-    topic = "dll-loaded-main-thread";
-  } else {
-    topic = "dll-loaded-non-main-thread";
-  }
-
-  nsCOMPtr<nsIObserverService> obsServ(mozilla::services::GetObserverService());
-  obsServ->NotifyObservers(nullptr, topic, aDllName.get());
-}
-
-#endif // defined(XP_WIN)
-
 static void DumpArbitraryHelp()
 {
   nsresult rv;
@@ -2509,9 +2479,8 @@ SelectProfile(nsIProfileLock* *aResult, nsIToolkitProfileService* aProfileSvc, n
     nsCOMPtr<nsIFile> prefsJSFile;
     profile->GetRootDir(getter_AddRefs(prefsJSFile));
     prefsJSFile->AppendNative(NS_LITERAL_CSTRING("prefs.js"));
-    nsAutoCString pathStr;
-    prefsJSFile->GetNativePath(pathStr);
-    PR_fprintf(PR_STDERR, "Success: created profile '%s' at '%s'\n", arg, pathStr.get());
+    PR_fprintf(PR_STDERR, "Success: created profile '%s' at '%s'\n", arg,
+               prefsJSFile->HumanReadablePath().get());
     bool exists;
     prefsJSFile->Exists(&exists);
     if (!exists) {
@@ -2764,8 +2733,12 @@ CheckCompatibility(nsIFile* aProfileDir, const nsCString& aVersion,
     return false;
 
   nsCOMPtr<nsIFile> lf;
-  rv = NS_NewNativeLocalFile(buf, false,
+  rv = NS_NewNativeLocalFile(EmptyCString(), false,
                              getter_AddRefs(lf));
+  if (NS_FAILED(rv))
+    return false;
+
+  rv = lf->SetPersistentDescriptor(buf);
   if (NS_FAILED(rv))
     return false;
 
@@ -2779,8 +2752,12 @@ CheckCompatibility(nsIFile* aProfileDir, const nsCString& aVersion,
     if (NS_FAILED(rv))
       return false;
 
-    rv = NS_NewNativeLocalFile(buf, false,
+    rv = NS_NewNativeLocalFile(EmptyCString(), false,
                                getter_AddRefs(lf));
+    if (NS_FAILED(rv))
+      return false;
+
+    rv = lf->SetPersistentDescriptor(buf);
     if (NS_FAILED(rv))
       return false;
 
@@ -2823,11 +2800,11 @@ WriteVersion(nsIFile* aProfileDir, const nsCString& aVersion,
   file->AppendNative(FILE_COMPATIBILITY_INFO);
 
   nsAutoCString platformDir;
-  aXULRunnerDir->GetNativePath(platformDir);
+  Unused << aXULRunnerDir->GetPersistentDescriptor(platformDir);
 
   nsAutoCString appDir;
   if (aAppDir)
-    aAppDir->GetNativePath(appDir);
+    Unused << aAppDir->GetPersistentDescriptor(appDir);
 
   PRFileDesc *fd;
   nsresult rv =
@@ -3148,6 +3125,8 @@ public:
   int XRE_mainInit(bool* aExitFlag);
   int XRE_mainStartup(bool* aExitFlag);
   nsresult XRE_mainRun();
+
+  Result<bool, nsresult> CheckLastStartupWasCrash();
 
   nsCOMPtr<nsINativeAppSupport> mNativeApp;
   nsCOMPtr<nsIToolkitProfileService> mProfileSvc;
@@ -3814,6 +3793,51 @@ static void SetShutdownChecks() {
 
 }
 
+namespace mozilla {
+namespace startup {
+  Result<nsCOMPtr<nsIFile>, nsresult>
+  GetIncompleteStartupFile(nsIFile* aProfLD)
+  {
+    nsCOMPtr<nsIFile> crashFile;
+    MOZ_TRY(aProfLD->Clone(getter_AddRefs(crashFile)));
+    MOZ_TRY(crashFile->Append(FILE_STARTUP_INCOMPLETE));
+    return Move(crashFile);
+  }
+}
+}
+
+// Check whether the last startup attempt resulted in a crash within the
+// last 6 hours.
+// Note that this duplicates the logic in nsAppStartup::TrackStartupCrashBegin,
+// which runs too late for our purposes.
+Result<bool, nsresult>
+XREMain::CheckLastStartupWasCrash()
+{
+  constexpr int32_t MAX_TIME_SINCE_STARTUP = 6 * 60 * 60 * 1000;
+
+  nsCOMPtr<nsIFile> crashFile;
+  MOZ_TRY_VAR(crashFile, GetIncompleteStartupFile(mProfLD));
+
+  // Attempt to create the incomplete startup canary file. If the file already
+  // exists, this fails, and we know the last startup was a success. If it
+  // doesn't already exist, it is created, and will be removed at the end of
+  // the startup crash detection window.
+  AutoFDClose fd;
+  Unused << crashFile->OpenNSPRFileDesc(PR_WRONLY | PR_CREATE_FILE | PR_EXCL,
+                                        0666, &fd.rwget());
+  if (fd) {
+    return false;
+  }
+
+  PRTime lastModifiedTime;
+  MOZ_TRY(crashFile->GetLastModifiedTime(&lastModifiedTime));
+
+  // If the file exists, and was created within the appropriate time window,
+  // the last startup was recent and resulted in a crash.
+  PRTime now = PR_Now() / PR_USEC_PER_MSEC;
+  return now - lastModifiedTime <= MAX_TIME_SINCE_STARTUP;
+}
+
 /*
  * XRE_mainStartup - Initializes the profile and various other services.
  * Main() will exit early if either return value != 0 or if aExitFlag is
@@ -3875,7 +3899,10 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
   // Initialize GTK here for splash.
 
 #if defined(MOZ_WIDGET_GTK) && defined(MOZ_X11)
-  // Disable XInput2 support due to focus bugginess. See bugs 1182700, 1170342.
+  // Disable XInput2 multidevice support due to focus bugginess.
+  // See bugs 1182700, 1170342.
+  // gdk_disable_multidevice() affects Gdk X11 backend only,
+  // the multidevice support is always enabled on Wayland backend.
   const char* useXI2 = PR_GetEnv("MOZ_USE_XINPUT2");
   if (!useXI2 || (*useXI2 == '0'))
     gdk_disable_multidevice();
@@ -3888,10 +3915,10 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
     return 1;
 #endif /* MOZ_WIDGET_GTK */
 
-#ifdef LIBFUZZER
-  if (PR_GetEnv("LIBFUZZER")) {
+#ifdef FUZZING
+  if (PR_GetEnv("FUZZER")) {
     *aExitFlag = true;
-    return mozilla::libFuzzerRunner->Run(&gArgc, &gArgv);
+    return mozilla::fuzzerRunner->Run(&gArgc, &gArgv);
   }
 #endif
 
@@ -4227,13 +4254,10 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
   // If we see .purgecaches, that means someone did a make.
   // Re-register components to catch potential changes.
   nsCOMPtr<nsIFile> flagFile;
-
   rv = NS_ERROR_FILE_NOT_FOUND;
-  nsCOMPtr<nsIFile> fFlagFile;
   if (mAppData->directory) {
-    rv = mAppData->directory->Clone(getter_AddRefs(fFlagFile));
+    rv = mAppData->directory->Clone(getter_AddRefs(flagFile));
   }
-  flagFile = do_QueryInterface(fFlagFile);
   if (flagFile) {
     flagFile->AppendNative(FILE_INVALIDATE_CACHES);
   }
@@ -4243,10 +4267,11 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
                                       mDirProvider.GetGREDir(),
                                       mAppData->directory, flagFile,
                                       &cachesOK);
-  if (CheckArg("purgecaches")) {
-    cachesOK = false;
-  }
-  if (PR_GetEnv("MOZ_PURGE_CACHES")) {
+
+  bool lastStartupWasCrash = CheckLastStartupWasCrash().unwrapOr(false);
+
+  if (CheckArg("purgecaches") || PR_GetEnv("MOZ_PURGE_CACHES") ||
+      lastStartupWasCrash) {
     cachesOK = false;
   }
 
@@ -4339,9 +4364,9 @@ XREMain::XRE_mainRun()
   NS_ASSERTION(mScopedXPCOM, "Scoped xpcom not initialized.");
 
 #if defined(XP_WIN)
-  RefPtr<DllNotifications> dllNotifications(new DllNotifications());
-  auto dllNotificationsDisable = MakeScopeExit([&dllNotifications]() {
-    dllNotifications->Disable();
+  RefPtr<mozilla::DllServices> dllServices(mozilla::DllServices::Get());
+  auto dllServicesDisable = MakeScopeExit([&dllServices]() {
+    dllServices->Disable();
   });
 #endif // defined(XP_WIN)
 
@@ -4510,7 +4535,7 @@ XREMain::XRE_mainRun()
     }
   }
 
-  if (NS_IsNativeUTF8()) {
+#ifndef XP_WIN
     nsCOMPtr<nsIFile> profileDir;
     nsAutoCString path;
     rv = mDirProvider.GetProfileStartupDir(getter_AddRefs(profileDir));
@@ -4518,7 +4543,7 @@ XREMain::XRE_mainRun()
       PR_fprintf(PR_STDERR, "Error: The profile path is not valid UTF-8. Unable to continue.\n");
       return NS_ERROR_FAILURE;
     }
-  }
+#endif
 
   // Initialize user preferences before notifying startup observers so they're
   // ready in time for early consumers, such as the component loader.
@@ -4721,10 +4746,6 @@ XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig)
 
   mozilla::LogModule::Init();
 
-#if defined(MOZ_SANDBOX) && defined(XP_LINUX) && !defined(ANDROID)
-  SandboxInfo::ThreadingCheck();
-#endif
-
 #ifdef MOZ_CODE_COVERAGE
   CodeCoverageHandler::Init();
 #endif
@@ -4821,6 +4842,16 @@ XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig)
   int result = XRE_mainInit(&exit);
   if (result != 0 || exit)
     return result;
+
+  // If we exit gracefully, remove the startup crash canary file.
+  auto cleanup = MakeScopeExit([&] () -> nsresult {
+    if (mProfLD) {
+      nsCOMPtr<nsIFile> crashFile;
+      MOZ_TRY_VAR(crashFile, GetIncompleteStartupFile(mProfLD));
+      crashFile->Remove(false);
+    }
+    return NS_OK;
+  });
 
   // startup
   result = XRE_mainStartup(&exit);
@@ -5052,6 +5083,12 @@ bool
 XRE_IsContentProcess()
 {
   return XRE_GetProcessType() == GeckoProcessType_Content;
+}
+
+bool
+XRE_IsPluginProcess()
+{
+  return XRE_GetProcessType() == GeckoProcessType_Plugin;
 }
 
 bool

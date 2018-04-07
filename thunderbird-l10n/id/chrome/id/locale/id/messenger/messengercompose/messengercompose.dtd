@@ -314,6 +314,9 @@
 <!ENTITY reorderAttachmentsCmd.label "Reorder Attachments…">
 <!ENTITY reorderAttachmentsCmd.accesskey "s">
 <!ENTITY reorderAttachmentsCmd.key "x">
+<!ENTITY toggleAttachmentPaneCmd.label "Attachment Pane">
+<!ENTITY toggleAttachmentPaneCmd.accesskey "m">
+<!ENTITY toggleAttachmentPaneCmd.key "m">
 <!ENTITY findBarCmd.label "Find…">
 <!ENTITY findBarCmd.accesskey "F">
 <!ENTITY findBarCmd.key "F">
@@ -340,8 +343,13 @@
 <!ENTITY accountManagerCmdUnix2.accesskey "S">
 <!ENTITY preferencesCmd2.label "Options">
 <!ENTITY preferencesCmd2.accesskey "O">
+<!ENTITY attachButton.tooltip2 "Add an attachment">
+<!ENTITY attachmentBucketHeader.tooltip "Attachment Pane">
+<!ENTITY attachmentBucketCloseButton.tooltip "Hide the attachment pane">
 <!ENTITY reorderAttachments.label "Reorder Attachments…">
 <!ENTITY reorderAttachments.accesskey "s">
+<!ENTITY removeAllAttachments.label "Remove All Attachments">
+<!ENTITY removeAllAttachments.accesskey "v">
 <!ENTITY customizeFromAddress.label "Customize From Address…">
 <!ENTITY customizeFromAddress.accesskey "A">
 <!ENTITY languageStatusButton.tooltip "Spellcheck language">

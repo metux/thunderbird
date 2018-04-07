@@ -241,3 +241,7 @@
 <!ENTITY minimizeWindow.key "m">
 <!ENTITY bringAllToFront.label "Fenster zeigen">
 <!ENTITY zoomWindow.label "Fenster maximieren">
+
+<!ENTITY addressBookCmd.label                           "Address Book">
+<!ENTITY addressBookCmd.accesskey                       "a">
+<!ENTITY addressBookCmd.key                             "B">

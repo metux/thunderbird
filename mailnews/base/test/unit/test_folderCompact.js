@@ -15,8 +15,8 @@
   * - Compacting imap offline stores.
   */
 
-Components.utils.import("resource:///modules/mailServices.js");
-Components.utils.import("resource://testing-common/mailnews/PromiseTestUtils.jsm");
+ChromeUtils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource://testing-common/mailnews/PromiseTestUtils.jsm");
 
 Services.prefs.setCharPref("mail.serverDefaultStoreContractID",
                            "@mozilla.org/msgstore/berkeleystore;1");
@@ -30,7 +30,7 @@ var gLocalFolder2;
 var gLocalFolder3;
 var gLocalTrashFolder;
 var gCurTestNum;
-// After a compact (or other operation), this is what we expect the 
+// After a compact (or other operation), this is what we expect the
 // folder size to be.
 var gExpectedFolderSize;
 var gMsgHdrs = new Array();
@@ -42,7 +42,7 @@ var gExpectedFolder3Size;
 var gMsgKeys = [];
 
 // nsIMsgCopyServiceListener implementation
-var copyListenerWrap = 
+var copyListenerWrap =
 {
   SetMessageKey: function(aKey)
   {
@@ -101,7 +101,7 @@ function deleteMessages(srcFolder, items)
   items.forEach(function (item) {
     array.appendElement(item);
   });
-  
+
   let listener = new PromiseTestUtils.PromiseCopyListener(copyListenerWrap);
   srcFolder.deleteMessages(array, null, false, true, listener, true);
   return listener.promise;
@@ -117,7 +117,7 @@ function calculateFolderSize(folder)
     while (enumerator.hasMoreElements())
     {
       var header = enumerator.getNext();
-      if (header instanceof Components.interfaces.nsIMsgDBHdr)
+      if (header instanceof Ci.nsIMsgDBHdr)
         totalSize += header.messageSize;
     }
   }
@@ -133,7 +133,7 @@ function verifyMsgOffsets(folder)
     while (enumerator.hasMoreElements())
     {
       let header = enumerator.getNext();
-      if (header instanceof Components.interfaces.nsIMsgDBHdr) {
+      if (header instanceof Ci.nsIMsgDBHdr) {
         let storeToken = header.getStringProperty("storeToken");
         Assert.equal(storeToken, header.messageOffset);
       }

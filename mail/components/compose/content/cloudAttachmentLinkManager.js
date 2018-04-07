@@ -48,7 +48,7 @@ var gCloudAttachmentLinkManager = {
         items = list.getElementsByClassName("cloudAttachmentItem");
 
       for (let attachment of fixIterator(
-           event.detail, Components.interfaces.nsIMsgAttachment)) {
+           event.detail, Ci.nsIMsgAttachment)) {
         // Remove the attachment from the message body.
         if (list)
           for (let i = 0; i < items.length; i++)
@@ -412,7 +412,7 @@ var gCloudAttachmentLinkManager = {
             providerIcon.src = window.loadBlockedImage(aProvider.iconClass, true);
           } catch (e) {
             // Couldn't load the referenced image.
-            Components.utils.reportError(e);
+            Cu.reportError(e);
           }
         }
       }
@@ -456,8 +456,6 @@ var gCloudAttachmentLinkManager = {
    * sending some BigFiles, we don't run into ID conflicts.
    */
   send: function(aEvent) {
-    const Ci = Components.interfaces;
-
     let msgType = parseInt(aEvent.target.getAttribute("msgtype"));
 
     if (msgType == Ci.nsIMsgCompDeliverMode.Now ||

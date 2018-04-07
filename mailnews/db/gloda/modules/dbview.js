@@ -9,16 +9,11 @@
 
 this.EXPORTED_SYMBOLS = ["GlodaSyntheticView"];
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
-var Cu = Components.utils;
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource:///modules/gloda/log4moz.js");
 
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource:///modules/gloda/log4moz.js");
-
-Cu.import("resource:///modules/gloda/public.js");
-Cu.import("resource:///modules/gloda/msg_search.js");
+ChromeUtils.import("resource:///modules/gloda/public.js");
+ChromeUtils.import("resource:///modules/gloda/msg_search.js");
 
 /**
  * Create a synthetic view suitable for passing to |FolderDisplayWidget.show|.

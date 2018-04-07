@@ -7,7 +7,7 @@
  * default port or the SSL default port. Nothing else!
  */
 
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 load("../../../resources/passwordStorage.js");
 
@@ -59,7 +59,7 @@ add_task(function *() {
   yield setupForPassword("signons-mailnews1.8-alt.json");
 
   try {
-    // Note, the uri is for hostname "invalid" which is the original uri. See 
+    // Note, the uri is for hostname "invalid" which is the original uri. See
     // setupProtocolTest parameters.
     var prefix = "news://invalid:" + server.port + "/";
 
@@ -81,7 +81,7 @@ add_task(function *() {
     do_check_transaction(transaction, ["MODE READER", "LIST",
                                        "AUTHINFO user testnews",
                                        "AUTHINFO pass newstest", "LIST"]);
-    incomingServer.QueryInterface(Components.interfaces.nsISubscribableServer)
+    incomingServer.QueryInterface(Ci.nsISubscribableServer)
                   .subscribeCleanup();
 
   } catch (e) {

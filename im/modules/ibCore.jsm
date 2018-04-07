@@ -5,11 +5,11 @@
 this.EXPORTED_SYMBOLS = ["Core"];
 
 var {classes: Cc, interfaces: Ci, utils: Cu} = Components;
-Cu.import("resource:///modules/imServices.jsm");
-Cu.import("resource:///modules/imWindows.jsm");
-Cu.import("resource:///modules/ibNotifications.jsm");
-Cu.import("resource:///modules/ibSounds.jsm");
-Cu.import("resource:///modules/imXPCOMUtils.jsm");
+ChromeUtils.import("resource:///modules/imServices.jsm");
+ChromeUtils.import("resource:///modules/imWindows.jsm");
+ChromeUtils.import("resource:///modules/ibNotifications.jsm");
+ChromeUtils.import("resource:///modules/ibSounds.jsm");
+ChromeUtils.import("resource:///modules/imXPCOMUtils.jsm");
 
 var Core = {
   _events: [
@@ -43,9 +43,9 @@ var Core = {
     try {
       // Set the Vendor for breakpad only
       if ("nsICrashReporter" in Ci) {
-        Components.classes["@mozilla.org/xre/app-info;1"]
-                  .getService(Ci.nsICrashReporter)
-                  .annotateCrashReport("Vendor", "Instantbird");
+        Cc["@mozilla.org/xre/app-info;1"]
+          .getService(Ci.nsICrashReporter)
+          .annotateCrashReport("Vendor", "Instantbird");
       }
     } catch(e) {
       // This can fail if breakpad isn't enabled,
@@ -57,7 +57,7 @@ var Core = {
       return false;
     }
 
-    if (!Components.classes["@mozilla.org/chat/core-service;1"]) {
+    if (!Cc["@mozilla.org/chat/core-service;1"]) {
       this._promptError("startupFailure.xpcomRegistrationError");
       return false;
     }
@@ -86,7 +86,7 @@ var Core = {
     if (WINTASKBAR_CONTRACTID in Cc &&
         Cc[WINTASKBAR_CONTRACTID].getService(Ci.nsIWinTaskbar).available) {
       let temp = {};
-      Cu.import("resource:///modules/ibWinJumpList.jsm", temp);
+      ChromeUtils.import("resource:///modules/ibWinJumpList.jsm", temp);
       temp.WinJumpList.init();
     }
 #endif
@@ -108,12 +108,12 @@ var Core = {
         try {
           Services.io.newChannelFromURI(Services.io.newURI(url));
         } catch(e) {
-          if (e.result == Components.results.NS_ERROR_MALFORMED_URI) {
+          if (e.result == Cr.NS_ERROR_MALFORMED_URI) {
             Services.conversations.getUIConversation(aConv).systemMessage(
               self.bundle("aboutCommand.invalidPageMessage", page));
             return true;
           }
-          Components.utils.reportError(e); // Log unexpected errors.
+          Cu.reportError(e); // Log unexpected errors.
           return false;
         }
         self.showTab("aboutPanel", aPanel => aPanel.showAboutPage(page));
@@ -180,11 +180,11 @@ var Core = {
   showUpdates: function() {
     // copied from checkForUpdates in mozilla/browser/base/content/utilityOverlay.js
     var um =
-      Components.classes["@mozilla.org/updates/update-manager;1"]
-                .getService(Components.interfaces.nsIUpdateManager);
+      Cc["@mozilla.org/updates/update-manager;1"]
+        .getService(Ci.nsIUpdateManager);
     var prompter =
-      Components.classes["@mozilla.org/updates/update-prompt;1"]
-                .createInstance(Components.interfaces.nsIUpdatePrompt);
+      Cc["@mozilla.org/updates/update-prompt;1"]
+        .createInstance(Ci.nsIUpdatePrompt);
 
     // If there's an update ready to be applied, show the "Update Downloaded"
     // UI instead and let the user know they have to restart the browser for
@@ -314,7 +314,7 @@ var Core = {
 
   _onQuitRequest: function (aCancelQuit, aQuitType) {
     // The request has already been canceled somewhere else
-    if ((aCancelQuit instanceof Components.interfaces.nsISupportsPRBool)
+    if ((aCancelQuit instanceof Ci.nsISupportsPRBool)
          && aCancelQuit.data)
       return;
 
@@ -336,7 +336,7 @@ var Core = {
     let action         = aQuitType == "restart" ? "restart" : "quit";
     let button         = bundle.GetStringFromName(action + "Button");
 
-    Components.utils.import("resource://gre/modules/PluralForm.jsm");
+    ChromeUtils.import("resource://gre/modules/PluralForm.jsm");
     promptMessage = PluralForm.get(unreadConvsCount, promptMessage)
                               .replace("#1", unreadConvsCount);
 
@@ -366,7 +366,7 @@ var Core = {
     var message = bundle("startupFailure.apologize") + "\n\n" +
       (aMessage ? bundle(aKeyString, aMessage)
                 : bundle(aKeyString) + "\n\n" + bundle("startupFailure.update"));
-    const nsIPromptService = Components.interfaces.nsIPromptService;
+    const nsIPromptService = Ci.nsIPromptService;
     const flags =
       nsIPromptService.BUTTON_POS_1 * nsIPromptService.BUTTON_TITLE_IS_STRING +
       nsIPromptService.BUTTON_POS_0 * nsIPromptService.BUTTON_TITLE_IS_STRING;

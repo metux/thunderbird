@@ -21,6 +21,13 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Versjon">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Sikkerheitsprogram">
+<!ENTITY aboutSupport.securitySoftwareType "Type">
+<!ENTITY aboutSupport.securitySoftwareName "Namn">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispionprogram">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Brannmur">
+
 <!ENTITY aboutSupport.featuresTitle "&brandShortName;-funksjonar">
 <!ENTITY aboutSupport.featureName "Namn">
 <!ENTITY aboutSupport.featureVersion "Versjon">
@@ -152,18 +159,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "Fart">
 <!ENTITY aboutSupport.mediaDeviceLatency "Forseinking">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.intlTitle "Internasjonalisering og lokalisering">
+<!ENTITY aboutSupport.intlAppTitle "Programinnstillingar">
+<!ENTITY aboutSupport.intlLocalesRequested "Førespurde språkversjonar">
+<!ENTITY aboutSupport.intlLocalesAvailable "Tilgjengelege språkversjonar">
+<!ENTITY aboutSupport.intlLocalesSupported "App-språkversjonar">
+<!ENTITY aboutSupport.intlLocalesDefault "Standardspråk">
+<!ENTITY aboutSupport.intlOSTitle "Operativsystem">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System-språkversjonar">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regionale innstillingar">
+
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">

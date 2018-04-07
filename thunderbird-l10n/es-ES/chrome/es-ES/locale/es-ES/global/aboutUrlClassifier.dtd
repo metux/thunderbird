@@ -3,6 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY aboutUrlClassifier.pageTitle "Información sobre url-classifier">
+<!ENTITY aboutUrlClassifier.title "Información del clasificador de URL">
 <!ENTITY aboutUrlClassifier.providerTitle "Proveedor">
 <!ENTITY aboutUrlClassifier.provider "Proveedor">
 <!ENTITY aboutUrlClassifier.providerLastUpdateTime "Fecha y hora de última actualización">
@@ -30,5 +31,3 @@
 <!ENTITY aboutUrlClassifier.debugModules "Módulos actuales de registro">
 <!ENTITY aboutUrlClassifier.debugSBJSModules "Registro JS de navegación segura">
 <!ENTITY aboutUrlClassifier.debugFile "Archivo actual de registro">
-
-<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

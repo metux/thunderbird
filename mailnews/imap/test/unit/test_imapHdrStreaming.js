@@ -5,7 +5,7 @@
  * because that's not implemented yet, and it's unclear if anyone will want it.
  */
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 load("../../../resources/logHelper.js");
 load("../../../resources/asyncTestUtils.js");
@@ -56,18 +56,11 @@ var streamListener =
 function addMessagesToServer(messages, mailbox)
 {
   // For every message we have, we need to convert it to a file:/// URI
-  let specs = [];
   messages.forEach(function (message)
   {
-    let URI =
-      Services.io.newFileURI(message.file).QueryInterface(Ci.nsIFileURL);
-    specs.push(URI.spec);
-  });
-
-  // Create the imapMessages and store them on the mailbox
-  specs.forEach(function (spec)
-  {
-    mailbox.addMessage(new imapMessage(spec, mailbox.uidnext++, []));
+    let URI = Services.io.newFileURI(message.file).QueryInterface(Ci.nsIFileURL);
+    // Create the imapMessage and store it on the mailbox.
+    mailbox.addMessage(new imapMessage(URI.spec, mailbox.uidnext++, []));
   });
 }
 

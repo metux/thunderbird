@@ -21,6 +21,13 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Versi">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Perangkat Lunak Keamanan">
+<!ENTITY aboutSupport.securitySoftwareType "Jenis">
+<!ENTITY aboutSupport.securitySoftwareName "Nama">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antiperangkatpengintai">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Tembok Api">
+
 <!ENTITY aboutSupport.featuresTitle "Fitur &brandShortName;">
 <!ENTITY aboutSupport.featureName "Nama">
 <!ENTITY aboutSupport.featureVersion "Versi">
@@ -152,18 +159,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "Nilai">
 <!ENTITY aboutSupport.mediaDeviceLatency "Latensi">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.intlTitle "Pelokalan dan Internasional">
+<!ENTITY aboutSupport.intlAppTitle "Setelan Aplikasi">
+<!ENTITY aboutSupport.intlLocalesRequested "Bahasa yang Diminta">
+<!ENTITY aboutSupport.intlLocalesAvailable "Bahasa yang Tersedia">
+<!ENTITY aboutSupport.intlLocalesSupported "Bahasa Aplikasi">
+<!ENTITY aboutSupport.intlLocalesDefault "Bahasa Baku">
+<!ENTITY aboutSupport.intlOSTitle "Sistem Operasi">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Bahasa Sistem">
+<!ENTITY aboutSupport.intlRegionalPrefs "Pengaturan Regional">
+
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">

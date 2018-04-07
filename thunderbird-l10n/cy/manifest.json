@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/cy/locale/cy/passwordmgr/", 
         "pippki": "chrome/cy/locale/cy/pippki/"
       }, 
-      "version": "20171103135212"
+      "version": "20180314091207"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-cy@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "cy", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Cymraeg Language Pack", 
   "manifest_version": 2, 
   "sources": {

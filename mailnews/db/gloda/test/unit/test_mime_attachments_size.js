@@ -19,14 +19,14 @@ load("../../../../resources/messageGenerator.js");
 load("../../../../resources/messageModifier.js");
 load("../../../../resources/messageInjection.js");
 
-Components.utils.import("resource://gre/modules/NetUtil.jsm");
+ChromeUtils.import("resource://gre/modules/NetUtil.jsm");
 
 // Create a message generator
 var msgGen = gMessageGenerator = new MessageGenerator();
 // Create a message scenario generator using that message generator
 var scenarios = gMessageScenarioFactory = new MessageScenarioFactory(msgGen);
 
-Components.utils.import("resource:///modules/gloda/mimemsg.js");
+ChromeUtils.import("resource:///modules/gloda/mimemsg.js");
 
 var htmlText = "<html><head></head><body>I am HTML! Woo! </body></html>";
 
@@ -189,7 +189,7 @@ function check_attachments(aMimeMsg, epsilon, checkTotalSize) {
   /* It is hard to get a byte count that's perfectly accurate. When composing
    * the message, the MIME structure goes like this (for an encoded attachment):
    *
-   * XXXXXXXXXX 
+   * XXXXXXXXXX
    * XXXXXXXXXX    <-- encoded block
    * XXXXXXXXXX
    *               <-- newline
@@ -262,7 +262,7 @@ var bogusMessageInfos = [
     bodyPart: new SyntheticPartMultiMixed([
       partHtml,
       msgGen.makeMessage({ // <--- M
-        bodyPart: 
+        bodyPart:
         new SyntheticPartMultiMixed([
           new SyntheticPartMultiRelated([
             partHtml,

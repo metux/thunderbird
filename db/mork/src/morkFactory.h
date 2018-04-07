@@ -29,9 +29,10 @@ class nsIMdbFactory;
 #define morkDerived_kFactory  /*i*/ 0x4663 /* ascii 'Fc' */
 #define morkFactory_kWeakRefCountBonus 0 /* try NOT to leak all factories */
 
-/*| morkFactory: 
+/*| morkFactory:
 |*/
 class morkFactory : public morkObject, public nsIMdbFactory { // nsIMdbObject
+  using PathChar = mozilla::filesystem::Path::value_type;
 
 // public: // slots inherited from morkObject (meant to inform only)
   // nsIMdbHeap*     mNode_Heap;
@@ -62,7 +63,7 @@ public: // morkFactory virtual methods
 
   // { ----- begin file methods -----
   NS_IMETHOD OpenOldFile(nsIMdbEnv* ev, nsIMdbHeap* ioHeap,
-    const char* inFilePath,
+    const PathChar* inFilePath,
     mdb_bool inFrozen, nsIMdbFile** acqFile) override;
   // Choose some subclass of nsIMdbFile to instantiate, in order to read
   // (and write if not frozen) the file known by inFilePath.  The file
@@ -72,7 +73,7 @@ public: // morkFactory virtual methods
   // other portions or Mork source code don't want to know how it's done.
 
   NS_IMETHOD CreateNewFile(nsIMdbEnv* ev, nsIMdbHeap* ioHeap,
-    const char* inFilePath,
+    const PathChar* inFilePath,
     nsIMdbFile** acqFile) override;
   // Choose some subclass of nsIMdbFile to instantiate, in order to read
   // (and write if not frozen) the file known by inFilePath.  The file
@@ -157,21 +158,21 @@ public: // morkFactory virtual methods
   // } ----- end store methods -----
 
 // } ===== end nsIMdbFactory methods =====
-  
+
 public: // morkYarn construction & destruction
   morkFactory(); // uses orkinHeap
   morkFactory(nsIMdbHeap* ioHeap); // caller supplied heap
   morkFactory(morkEnv* ev, const morkUsage& inUsage, nsIMdbHeap* ioHeap);
   void CloseFactory(morkEnv* ev); // called by CloseMorkNode();
-  
-  
+
+
 public: // morkNode memory management operators
   void* operator new(size_t inSize) CPP_THROW_NEW
   { return ::operator new(inSize); }
-  
+
   void* operator new(size_t inSize, nsIMdbHeap& ioHeap, morkEnv* ev) CPP_THROW_NEW
   { return morkNode::MakeNew(inSize, ioHeap, ev); }
-  
+
 private: // copying is not allowed
   morkFactory(const morkFactory& other);
   morkFactory& operator=(const morkFactory& other);
@@ -187,12 +188,12 @@ public: // other factory methods
   void NonFactoryTypeError(morkEnv* ev);
   morkEnv* GetInternalFactoryEnv(nsresult* outErr);
   mork_bool CanOpenMorkTextFile(morkEnv* ev, nsIMdbFile* ioFile);
-  
+
 public: // typesafe refcounting inlines calling inherited morkNode methods
   static void SlotWeakFactory(morkFactory* me,
     morkEnv* ev, morkFactory** ioSlot)
   { morkNode::SlotWeakNode((morkNode*) me, ev, (morkNode**) ioSlot); }
-  
+
   static void SlotStrongFactory(morkFactory* me,
     morkEnv* ev, morkFactory** ioSlot)
   { morkNode::SlotStrongNode((morkNode*) me, ev, (morkNode**) ioSlot); }

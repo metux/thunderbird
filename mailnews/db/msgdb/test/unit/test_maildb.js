@@ -13,8 +13,8 @@ var kNumTestMessages = 10;
 var gTestArray =
 [
   function test_db_open() {
-    dbService = Components.classes["@mozilla.org/msgDatabase/msgDBService;1"]
-                            .getService(Components.interfaces.nsIMsgDBService);
+    dbService = Cc["@mozilla.org/msgDatabase/msgDBService;1"]
+                            .getService(Ci.nsIMsgDBService);
     // Get the root folder
     let root = localAccountUtils.incomingServer.rootFolder;
     root.createSubfolder("dbTest", null);
@@ -70,7 +70,7 @@ function doTest(test)
     var testFn = gTestArray[test-1];
     // Set a limit of 10 seconds; if the notifications haven't arrived by then there's a problem.
     do_timeout(10000, function(){
-        if (gCurTestNum == test) 
+        if (gCurTestNum == test)
           do_throw("Notifications not received in 10000 ms for operation " + testFn.name);
         }
       );

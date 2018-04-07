@@ -7,7 +7,7 @@ var gDictCount = 0;
 var gLastSelectedLang;
 
 function Startup() {
-  if ("@mozilla.org/spellchecker;1" in Components.classes)
+  if ("@mozilla.org/spellchecker;1" in Cc)
     InitLanguageMenu();
   else
   {
@@ -18,8 +18,8 @@ function Startup() {
 }
 
 function InitLanguageMenu() {
-  var spellChecker = Components.classes["@mozilla.org/spellchecker/engine;1"]
-                               .getService(Components.interfaces.mozISpellCheckingEngine);
+  var spellChecker = Cc["@mozilla.org/spellchecker/engine;1"]
+                       .getService(Ci.mozISpellCheckingEngine);
 
   var o1 = {};
   var o2 = {};

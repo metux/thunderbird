@@ -3,8 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "LoginHelper", "resource://gre/modules/LoginHelper.jsm");
+ChromeUtils.defineModuleGetter(this, "LoginHelper", "resource://gre/modules/LoginHelper.jsm");
 
 var gSecurityPane = {
   mPane: null,
@@ -135,7 +134,6 @@ var gSecurityPane = {
    */
   _removeMasterPassword: function ()
   {
-    const Cc = Components.classes, Ci = Components.interfaces;
     var secmodDB = Cc["@mozilla.org/security/pkcs11moduledb;1"].
                    getService(Ci.nsIPKCS11ModuleDB);
     if (secmodDB.isFIPSEnabled) {

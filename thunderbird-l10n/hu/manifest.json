@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/hu/locale/hu/passwordmgr/", 
         "pippki": "chrome/hu/locale/hu/pippki/"
       }, 
-      "version": "20171103095232"
+      "version": "20180313151159"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-hu@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "hu", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Magyar (HU) Language Pack", 
   "manifest_version": 2, 
   "sources": {

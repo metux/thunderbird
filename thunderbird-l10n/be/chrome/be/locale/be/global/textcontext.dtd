@@ -14,6 +14,7 @@
 <!ENTITY selectAllCmd.accesskey "л">
 <!ENTITY deleteCmd.label "Выдаліць">
 <!ENTITY deleteCmd.accesskey "д">
+
 <!ENTITY spellAddToDictionary.label "Дадаць у слоўнік">
 <!ENTITY spellAddToDictionary.accesskey "с">
 <!ENTITY spellUndoAddToDictionary.label "Адмяніць даданне ў слоўнік">
@@ -24,12 +25,13 @@
 <!ENTITY spellDictionaries.label "Мовы">
 <!ENTITY spellDictionaries.accesskey "М">
 
-<!ENTITY searchTextBox.clear.label "Clear">
-<!ENTITY fillLoginMenu.label          "Fill Login">
-<!ENTITY fillLoginMenu.accesskey      "F">
-<!ENTITY fillPasswordMenu.label       "Fill Password">
-<!ENTITY fillPasswordMenu.accesskey   "F">
-<!ENTITY fillUsernameMenu.label       "Fill Username">
-<!ENTITY fillUsernameMenu.accesskey   "F">
-<!ENTITY noLoginSuggestions.label     "(No Login Suggestions)">
-<!ENTITY viewSavedLogins.label        "View Saved Logins">
+<!ENTITY searchTextBox.clear.label "Ачысціць">
+
+<!ENTITY fillLoginMenu.label          "Увесці логін">
+<!ENTITY fillLoginMenu.accesskey      "У">
+<!ENTITY fillPasswordMenu.label       "Увесці пароль">
+<!ENTITY fillPasswordMenu.accesskey   "У">
+<!ENTITY fillUsernameMenu.label       "Увесці імя карыстальніка">
+<!ENTITY fillUsernameMenu.accesskey   "У">
+<!ENTITY noLoginSuggestions.label     "(Няма прапаноў для логінаў)">
+<!ENTITY viewSavedLogins.label        "Прагляд захаваных логінаў">

@@ -10,7 +10,7 @@
 <!ENTITY newevent.from.label                "От" >
 <!ENTITY newevent.to.label                  "До" >
 
-<!ENTITY newevent.status.label                    "Статус" >
+<!ENTITY newevent.status.label                    "Състояние" >
 <!ENTITY newevent.status.accesskey                "С" >
 <!ENTITY newevent.eventStatus.none.label          "Не е посочен" >
 <!ENTITY newevent.eventStatus.none.accesskey      "Н" >
@@ -93,7 +93,7 @@
 <!ENTITY  event.menu.item.delete.accesskey                "И">
 <!ENTITY  event.menu.item.page.setup.label                "Настройка на страницата">
 <!ENTITY  event.menu.item.page.setup.accesskey            "К">
-<!ENTITY  event.menu.item.print.label                     "Печат">
+<!ENTITY  event.menu.item.print.label                     "Отпечатване">
 <!ENTITY  event.menu.item.print.accesskey                 "П">
 
 <!ENTITY  event.menu.edit.label                           "Редактиране">
@@ -215,10 +215,10 @@
 <!ENTITY task.from.accesskey                              "Н">
 <!ENTITY event.to.label                                   "Край:" >
 <!ENTITY event.to.accesskey                               "р">
-<!ENTITY task.to.label                                    "Крайна дата:" >
-<!ENTITY task.to.accesskey                                "й">
-<!ENTITY task.status.label                                "Статус:" >
-<!ENTITY task.status.accesskey                            "у">
+<!ENTITY task.to.label                                    "Краен срок:" >
+<!ENTITY task.to.accesskey                                "р">
+<!ENTITY task.status.label                                "Състояние:" >
+<!ENTITY task.status.accesskey                            "н">
 <!ENTITY event.repeat.label                               "Повторение:" >
 <!ENTITY event.repeat.accesskey                           "в">
 <!ENTITY event.until.label                                "До:">
@@ -416,3 +416,17 @@
 <!ENTITY read.only.attendees.label       "Участници">
 <!ENTITY read.only.description.label     "Описание">
 <!ENTITY read.only.link.label            "Сродни връзки">
+
+<!ENTITY read.only.calendar.label        "Calendar:">
+<!ENTITY summary.dialog.saveclose.label         "Save and Close">
+<!ENTITY summary.dialog.saveclose.tooltiptext   "Save changes and close the window without changing the participation status and sending a response">
+<!ENTITY summary.dialog.accept.label            "Accept">
+<!ENTITY summary.dialog.accept.tooltiptext      "Accept the invitation">
+<!ENTITY summary.dialog.tentative.label         "Tentative">
+<!ENTITY summary.dialog.tentative.tooltiptext   "Accept the invitation tentatively">
+<!ENTITY summary.dialog.decline.label           "Decline">
+<!ENTITY summary.dialog.decline.tooltiptext     "Decline the invitation">
+<!ENTITY summary.dialog.dontsend.label          "Do not send a response">
+<!ENTITY summary.dialog.dontsend.tooltiptext    "Change your participation status without sending a reply to the organizer and close the window">
+<!ENTITY summary.dialog.send.label              "Send a response now">
+<!ENTITY summary.dialog.send.tooltiptext        "Send out a response to the organizer  and close the window">

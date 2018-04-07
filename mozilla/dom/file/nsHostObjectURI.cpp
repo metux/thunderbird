@@ -156,7 +156,7 @@ nsHostObjectURI::Deserialize(const mozilla::ipc::URIParams& aParams)
   return true;
 }
 
-NS_IMETHODIMP
+nsresult
 nsHostObjectURI::SetScheme(const nsACString& aScheme)
 {
   // Disallow setting the scheme, since that could cause us to be associated
@@ -230,7 +230,7 @@ nsHostObjectURI::EqualsInternal(nsIURI* aOther,
   return NS_OK;
 }
 
-NS_IMPL_ISUPPORTS(nsHostObjectURI::Mutator, nsIURISetters, nsIURIMutator)
+NS_IMPL_ISUPPORTS(nsHostObjectURI::Mutator, nsIURISetters, nsIURIMutator, nsIBlobURIMutator, nsIPrincipalURIMutator)
 
 NS_IMETHODIMP
 nsHostObjectURI::Mutate(nsIURIMutator** aMutator)

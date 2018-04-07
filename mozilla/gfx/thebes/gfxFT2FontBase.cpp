@@ -174,7 +174,13 @@ gfxFT2FontBase::GetCharWidth(char aChar, gfxFloat* aWidth)
 {
     FT_UInt gid = GetGlyph(aChar);
     if (gid) {
-        *aWidth = FLOAT_FROM_16_16(GetFTGlyphAdvance(gid));
+        int32_t width;
+        if (!GetFTGlyphAdvance(gid, &width)) {
+            cairo_text_extents_t extents;
+            GetGlyphExtents(gid, &extents);
+            width = NS_lround(0x10000 * extents.x_advance);
+        }
+        *aWidth = FLOAT_FROM_16_16(width);
     }
     return gid;
 }
@@ -223,10 +229,28 @@ gfxFT2FontBase::InitMetrics()
         return;
     }
 
-    if (!mStyle.variationSettings.IsEmpty()) {
-        SetupVarCoords(face, mStyle.variationSettings, &mCoords);
+    if ((!mFontEntry->mVariationSettings.IsEmpty() ||
+         !mStyle.variationSettings.IsEmpty()) &&
+         (face->face_flags & FT_FACE_FLAG_MULTIPLE_MASTERS)) {
+        // Resolve variations from entry (descriptor) and style (property)
+        const nsTArray<gfxFontVariation>* settings;
+        AutoTArray<gfxFontVariation,8> mergedSettings;
+        if (mFontEntry->mVariationSettings.IsEmpty()) {
+            settings = &mStyle.variationSettings;
+        } else if (mStyle.variationSettings.IsEmpty()) {
+            settings = &mFontEntry->mVariationSettings;
+        } else {
+            gfxFontUtils::MergeVariations(mFontEntry->mVariationSettings,
+                                          mStyle.variationSettings,
+                                          &mergedSettings);
+            settings = &mergedSettings;
+        }
+        SetupVarCoords(face, *settings, &mCoords);
         if (!mCoords.IsEmpty()) {
-            typedef FT_UInt (*SetCoordsFunc)(FT_Face, FT_UInt, FT_Fixed*);
+#if MOZ_TREE_FREETYPE
+            FT_Set_Var_Design_Coordinates(face, mCoords.Length(), mCoords.Elements());
+#else
+            typedef FT_Error (*SetCoordsFunc)(FT_Face, FT_UInt, FT_Fixed*);
             static SetCoordsFunc setCoords;
             static bool firstTime = true;
             if (firstTime) {
@@ -237,6 +261,7 @@ gfxFT2FontBase::InitMetrics()
             if (setCoords) {
                 (*setCoords)(face, mCoords.Length(), mCoords.Elements());
             }
+#endif
         }
     }
 
@@ -507,31 +532,42 @@ gfxFT2FontBase::GetGlyph(uint32_t unicode, uint32_t variation_selector)
     return GetGlyph(unicode);
 }
 
-FT_Fixed
-gfxFT2FontBase::GetFTGlyphAdvance(uint16_t aGID)
+bool
+gfxFT2FontBase::GetFTGlyphAdvance(uint16_t aGID, int32_t* aAdvance)
 {
     gfxFT2LockedFace face(this);
     MOZ_ASSERT(face.get());
     if (!face.get()) {
         // Failed to get the FT_Face? Give up already.
-        return 0;
+        NS_WARNING("failed to get FT_Face!");
+        return false;
     }
+
+    // Due to bugs like 1435234 and 1440938, we currently prefer to fall back
+    // to reading the advance from cairo extents, unless we're dealing with
+    // a variation font (for which cairo metrics may be wrong, due to FreeType
+    // bug 52683).
+    if (!(face.get()->face_flags & FT_FACE_FLAG_SCALABLE) ||
+        !(face.get()->face_flags & FT_FACE_FLAG_MULTIPLE_MASTERS)) {
+        return false;
+    }
+
+    bool hinting = gfxPlatform::GetPlatform()->FontHintingEnabled();
     int32_t flags =
-        gfxPlatform::GetPlatform()->FontHintingEnabled()
-            ? FT_LOAD_ADVANCE_ONLY
-            : FT_LOAD_ADVANCE_ONLY | FT_LOAD_NO_AUTOHINT | FT_LOAD_NO_HINTING;
+        hinting ? FT_LOAD_ADVANCE_ONLY
+                : FT_LOAD_ADVANCE_ONLY | FT_LOAD_NO_AUTOHINT | FT_LOAD_NO_HINTING;
     FT_Error ftError = FT_Load_Glyph(face.get(), aGID, flags);
-    MOZ_ASSERT(!ftError);
     if (ftError != FT_Err_Ok) {
         // FT_Face was somehow broken/invalid? Don't try to access glyph slot.
-        return 0;
+        // This probably shouldn't happen, but does: see bug 1440938.
+        NS_WARNING("failed to load glyph!");
+        return false;
     }
-    FT_Fixed advance = 0;
-    if (face.get()->face_flags & FT_FACE_FLAG_SCALABLE) {
-        advance = face.get()->glyph->linearHoriAdvance;
-    } else {
-        advance = face.get()->glyph->advance.x << 10; // convert 26.6 to 16.16
-    }
+
+    // Due to freetype bug 52683 we MUST use the linearHoriAdvance field when
+    // dealing with a variation font. (And other fonts would have returned
+    // earlier, so only variation fonts currently reach here.)
+    FT_Fixed advance = face.get()->glyph->linearHoriAdvance;
 
     // If freetype emboldening is being used, and it's not a zero-width glyph,
     // adjust the advance to account for the increased width.
@@ -546,9 +582,9 @@ gfxFT2FontBase::GetFTGlyphAdvance(uint16_t aGID)
 
     // Round the 16.16 fixed-point value to whole pixels for better consistency
     // with how cairo renders the glyphs.
-    advance = (advance + 0x8000) & 0xffff0000u;
+    *aAdvance = (advance + 0x8000) & 0xffff0000u;
 
-    return advance;
+    return true;
 }
 
 int32_t
@@ -564,7 +600,11 @@ gfxFT2FontBase::GetGlyphWidth(DrawTarget& aDrawTarget, uint16_t aGID)
         return width;
     }
 
-    width = GetFTGlyphAdvance(aGID);
+    if (!GetFTGlyphAdvance(aGID, &width)) {
+        cairo_text_extents_t extents;
+        GetGlyphExtents(aGID, &extents);
+        width = NS_lround(0x10000 * extents.x_advance);
+    }
     mGlyphWidths->Put(aGID, width);
 
     return width;
@@ -620,13 +660,21 @@ gfxFT2FontBase::SetupVarCoords(FT_Face aFace,
 {
     aCoords->TruncateLength(0);
     if (aFace->face_flags & FT_FACE_FLAG_MULTIPLE_MASTERS) {
-        typedef FT_UInt (*GetVarFunc)(FT_Face, FT_MM_Var**);
+        typedef FT_Error (*GetVarFunc)(FT_Face, FT_MM_Var**);
+        typedef FT_Error (*DoneVarFunc)(FT_Library, FT_MM_Var*);
+#if MOZ_TREE_FREETYPE
+        GetVarFunc getVar = &FT_Get_MM_Var;
+        DoneVarFunc doneVar = &FT_Done_MM_Var;
+#else
         static GetVarFunc getVar;
+        static DoneVarFunc doneVar;
         static bool firstTime = true;
         if (firstTime) {
             firstTime = false;
             getVar = (GetVarFunc)dlsym(RTLD_DEFAULT, "FT_Get_MM_Var");
+            doneVar = (DoneVarFunc)dlsym(RTLD_DEFAULT, "FT_Done_MM_Var");
         }
+#endif
         FT_MM_Var* ftVar;
         if (getVar && FT_Err_Ok == (*getVar)(aFace, &ftVar)) {
             for (unsigned i = 0; i < ftVar->num_axis; ++i) {
@@ -641,7 +689,11 @@ gfxFT2FontBase::SetupVarCoords(FT_Face aFace,
                     }
                 }
             }
-            free(ftVar);
+            if (doneVar) {
+                (*doneVar)(aFace->glyph->library, ftVar);
+            } else {
+                free(ftVar);
+            }
         }
     }
 }

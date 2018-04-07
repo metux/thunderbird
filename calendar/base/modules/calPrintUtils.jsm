@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://gre/modules/Preferences.jsm");
-Components.utils.import("resource://calendar/modules/calViewUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 
 this.EXPORTED_SYMBOLS = ["cal"]; // even though it's defined in calUtils.jsm, import needs this
 cal.print = {
@@ -33,7 +32,7 @@ cal.print = {
         sheet.insertedCategoryRules = sheet.insertedCategoryRules || {};
 
         for (let category of categories) {
-            let prefName = cal.formatStringForCSSRule(category);
+            let prefName = cal.view.formatStringForCSSRule(category);
             let color = Preferences.get("calendar.category.color." + prefName) || "transparent";
             if (!(prefName in sheet.insertedCategoryRules)) {
                 sheet.insertedCategoryRules[prefName] = true;
@@ -60,10 +59,10 @@ cal.print = {
 
         if (!(calendar.id in sheet.insertedCalendarRules)) {
             sheet.insertedCalendarRules[calendar.id] = true;
-            let formattedId = cal.formatStringForCSSRule(calendar.id);
+            let formattedId = cal.view.formatStringForCSSRule(calendar.id);
             let ruleAdd = ' .calendar-color-box[calendar-id="' + formattedId + '"] { ' +
                           " background-color: " + color + "; " +
-                          " color: " + cal.getContrastingTextColor(color) + "; }\n";
+                          " color: " + cal.view.getContrastingTextColor(color) + "; }\n";
             sheet.textContent += ruleAdd;
         }
     },
@@ -97,7 +96,7 @@ cal.print = {
         // Fill in category details
         let categoriesArray = item.getCategories({});
         if (categoriesArray.length > 0) {
-            let cssClassesArray = categoriesArray.map(cal.formatStringForCSSRule);
+            let cssClassesArray = categoriesArray.map(cal.view.formatStringForCSSRule);
             itemNode.querySelector(".category-color-box")
                     .setAttribute("categories", cssClassesArray.join(" "));
 
@@ -106,11 +105,11 @@ cal.print = {
 
         // Fill in calendar color
         itemNode.querySelector(".calendar-color-box")
-                .setAttribute("calendar-id", cal.formatStringForCSSRule(item.calendar.id));
+                .setAttribute("calendar-id", cal.view.formatStringForCSSRule(item.calendar.id));
         cal.print.insertCalendarRules(document, item.calendar);
 
         // Add it to the day container in the right order
-        cal.binaryInsertNode(dayContainer, itemNode, item, cal.view.compareItems);
+        cal.data.binaryInsertNode(dayContainer, itemNode, item, cal.view.compareItems);
     },
 
     /**
@@ -149,7 +148,7 @@ cal.print = {
         taskNode.querySelector(".task-title").textContent = item.title;
 
         let collator = cal.createLocaleCollator();
-        cal.binaryInsertNode(taskContainer, taskNode, item, (a, b) => collator.compareString(0, a, b), node => node.item.title);
+        cal.data.binaryInsertNode(taskContainer, taskNode, item, (a, b) => collator.compareString(0, a, b), node => node.item.title);
     },
 
     /**

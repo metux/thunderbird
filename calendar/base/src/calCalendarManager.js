@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/AddonManager.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/Preferences.jsm");
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://calendar/modules/calProviderUtils.jsm");
+ChromeUtils.import("resource://gre/modules/AddonManager.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calProviderUtils.jsm");
 
 var REGISTRY_BRANCH = "calendar.registry.";
 var DB_SCHEMA_VERSION = 10;
@@ -15,8 +15,8 @@ var MIN_INT = -MAX_INT;
 
 function calCalendarManager() {
     this.wrappedJSObject = this;
-    this.mObservers = new cal.calListenerBag(Components.interfaces.calICalendarManagerObserver);
-    this.mCalendarObservers = new cal.calListenerBag(Components.interfaces.calIObserver);
+    this.mObservers = new cal.data.ListenerSet(Components.interfaces.calICalendarManagerObserver);
+    this.mCalendarObservers = new cal.data.ListenerSet(Components.interfaces.calIObserver);
 }
 
 var calCalendarManagerClassID = Components.ID("{f42585e7-e736-4600-985d-9624c1c51992}");
@@ -766,14 +766,26 @@ calCalendarManager.prototype = {
     },
 
     mObservers: null,
-    addObserver: function(aObserver) { return this.mObservers.add(aObserver); },
-    removeObserver: function(aObserver) { return this.mObservers.remove(aObserver); },
-    notifyObservers: function(functionName, args) { return this.mObservers.notify(functionName, args); },
+    addObserver: function(aObserver) {
+        this.mObservers.add(aObserver);
+    },
+    removeObserver: function(aObserver) {
+        this.mObservers.delete(aObserver);
+    },
+    notifyObservers: function(functionName, args) {
+        this.mObservers.notify(functionName, args);
+    },
 
     mCalendarObservers: null,
-    addCalendarObserver: function(aObserver) { return this.mCalendarObservers.add(aObserver); },
-    removeCalendarObserver: function(aObserver) { return this.mCalendarObservers.remove(aObserver); },
-    notifyCalendarObservers: function(functionName, args) { return this.mCalendarObservers.notify(functionName, args); }
+    addCalendarObserver: function(aObserver) {
+        return this.mCalendarObservers.add(aObserver);
+    },
+    removeCalendarObserver: function(aObserver) {
+        return this.mCalendarObservers.delete(aObserver);
+    },
+    notifyCalendarObservers: function(functionName, args) {
+        this.mCalendarObservers.notify(functionName, args);
+    }
 };
 
 function equalMessage(msg1, msg2) {
@@ -1090,7 +1102,7 @@ var gCalendarManagerAddonListener = {
         // addons window, otherwise the most recent calendar window, or we
         // create a new toplevel window.
         let win = Services.wm.getMostRecentWindow("Extension:Manager") ||
-                  cal.getCalendarWindow();
+                  cal.window.getCalendarWindow();
         if (win) {
             win.openDialog(uri, "CalendarProviderUninstallDialog", features, args);
         } else {

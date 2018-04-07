@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // using the rdf service extensively here
-var rdf = Components.classes["@mozilla.org/rdf/rdf-service;1"].getService(Components.interfaces.nsIRDFService);
+var rdf = Cc["@mozilla.org/rdf/rdf-service;1"].getService(Ci.nsIRDFService);
 
 // all the RDF resources we'll be retrieving
 var NC = "http://home.netscape.com/NC-rdf#";
@@ -18,15 +18,15 @@ var UseAuthenticatedSmtp= rdf.GetResource(NC + "UseAuthenticatedSmtp");
 // this is possibly expensive, not sure what to do here
 var ispDefaults;
 
-var nsIRDFResource = Components.interfaces.nsIRDFResource;
-var nsIRDFLiteral = Components.interfaces.nsIRDFLiteral;
+var nsIRDFResource = Ci.nsIRDFResource;
+var nsIRDFLiteral = Ci.nsIRDFLiteral;
 
 var ispRoot = rdf.GetResource("NC:ispinfo");
 
 // given an ISP's domain URI, look up all relevant information about it
 function getIspDefaultsForUri(domainURI)
 {
-    if (!ispDefaults) 
+    if (!ispDefaults)
         ispDefaults = rdf.GetDataSource("rdf:ispdefaults");
 
     var domainRes = rdf.GetResource(domainURI);
@@ -35,7 +35,7 @@ function getIspDefaultsForUri(domainURI)
 
     if (!result) return null;
 
-    // The domainURI should be in the format domain:example.com. (Where 
+    // The domainURI should be in the format domain:example.com. (Where
     // example.com is the domain name to use for all email addresses). If
     // it does not match this pattern, then it is possible no domain
     // has been specified, so we should leave it uninitialized.
@@ -44,7 +44,7 @@ function getIspDefaultsForUri(domainURI)
         var domainData = domainURI.split(':');
         if (domainData.length > 1) {
           // To faciltate distributing two different account types for one ISP,
-          // it's possible to add parameters to the domain URI 
+          // it's possible to add parameters to the domain URI
           // - e.g. domain:example.com?type=imap.
           // This is necessary so RDF doesn't think they're the same.
 
@@ -62,7 +62,7 @@ function getIspDefaultsForDomain(domain) {
     return getIspDefaultsForUri(domainURI);
 }
 
-// Given an email address (like "joe@example.com") look up 
+// Given an email address (like "joe@example.com") look up
 function getIspDefaultsForEmail(email) {
 
     var emailData = getEmailInfo(email);

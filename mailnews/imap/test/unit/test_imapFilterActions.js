@@ -9,8 +9,8 @@
  * adapted from test_localToImapFilter.js
  */
 
-Components.utils.import("resource:///modules/folderUtils.jsm");
-Components.utils.import("resource://gre/modules/Task.jsm");
+ChromeUtils.import("resource:///modules/folderUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Task.jsm");
 
 var nsMsgSearchScope = Ci.nsMsgSearchScope;
 var nsMsgSearchAttrib = Ci.nsMsgSearchAttrib;
@@ -44,14 +44,14 @@ var gMessageInBody = "an HTML message";
 
 // various object references
 var gCopyService = MailServices.copy;
-var gDbService = Components.classes["@mozilla.org/msgDatabase/msgDBService;1"]
-                             .getService(Components.interfaces.nsIMsgDBService);
+var gDbService = Cc["@mozilla.org/msgDatabase/msgDBService;1"]
+                             .getService(Ci.nsIMsgDBService);
 
 // Definition of tests. The test function name is the filter action
 // being tested, with "Body" appended to tests that use delayed
 // application of filters due to a body search
 var gTestArray =
-[ 
+[
   setupIMAPPump,
     // optionally set server parameters, here enabling debug messages
   //function serverParms() {

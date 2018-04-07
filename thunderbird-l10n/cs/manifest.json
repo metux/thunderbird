@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/cs/locale/cs/passwordmgr/", 
         "pippki": "chrome/cs/locale/cs/pippki/"
       }, 
-      "version": "20171103065232"
+      "version": "20180312184438"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-cs@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "cs", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Czech (CZ) Language Pack", 
   "manifest_version": 2, 
   "sources": {

@@ -25,6 +25,13 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Versio">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Tietoturvaohjelmat">
+<!ENTITY aboutSupport.securitySoftwareType "Tyyppi">
+<!ENTITY aboutSupport.securitySoftwareName "Nimi">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Virustentorjunta">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Vakoiluntorjunta">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Palomuuri">
+
 <!ENTITY aboutSupport.featuresTitle "&brandShortName;-ominaisuudet">
 <!ENTITY aboutSupport.featureName "Nimi">
 <!ENTITY aboutSupport.featureVersion "Versio">
@@ -68,7 +75,7 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsProfiles "Profiilit">
 
-<!ENTITY aboutSupport.appBasicsMultiProcessSupport "Usean prosessin ikkunoita">
+<!ENTITY aboutSupport.appBasicsMultiProcessSupport "Useaa prosessia hyödyntäviä ikkunoita">
 
 <!ENTITY aboutSupport.appBasicsProcessCount "Verkkosisällön prosesseja">
 
@@ -156,18 +163,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "Näytteenottotaajuus">
 <!ENTITY aboutSupport.mediaDeviceLatency "Viive">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.intlTitle "Internationalisointi ja lokalisointi">
+<!ENTITY aboutSupport.intlAppTitle "Sovelluksen asetukset">
+<!ENTITY aboutSupport.intlLocalesRequested "Pyydetyt localet">
+<!ENTITY aboutSupport.intlLocalesAvailable "Käytettävissä olevat localet">
+<!ENTITY aboutSupport.intlLocalesSupported "Sovelluksen localet">
+<!ENTITY aboutSupport.intlLocalesDefault "Oletuslocale">
+<!ENTITY aboutSupport.intlOSTitle "Käyttöjärjestelmä">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Järjestelmän localet">
+<!ENTITY aboutSupport.intlRegionalPrefs "Alueasetukset">
+
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">

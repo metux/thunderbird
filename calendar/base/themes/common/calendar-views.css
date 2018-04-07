@@ -263,18 +263,19 @@ calendar-header-container[weekend="true"][selected="true"],
    areas over the timebar. */
 .multiday-view-header-time-spacer[orient="horizontal"] {
     border-bottom: 2px solid var(--viewBorderColor);
-    border-right: 2px solid;
-    -moz-border-right-colors: var(--viewDoubleBorderColor);
+    border-right: 1px solid var(--viewBorderColor);
+    margin-inline-end: 1px;
+    margin-inline-start: -1px;
 }
 
 .multiday-view-header-time-spacer[orient="vertical"] {
-    border-right: 2px solid;
-    -moz-border-right-colors: var(--viewDoubleBorderColor);
+    border-right: 2px solid var(--viewBorderColor);
 }
 
 .multiday-view-label-box[orient="horizontal"] > .multiday-view-label-time-spacer {
-    border-right: 2px solid;
-    -moz-border-right-colors: var(--viewDoubleBorderColor);
+    border-right: 1px solid var(--viewBorderColor);
+    margin-inline-end: 1px;
+    margin-inline-start: -1px;
 }
 
 .multiday-view-header-day-box[orient="horizontal"] {
@@ -479,28 +480,36 @@ calendar-time-bar[orient="horizontal"] {
 .calendar-time-bar-box-odd[off-time="true"] ,
 .calendar-time-bar-box-even[off-time="true"] {
     background-color: var(--viewOffTimeBackground);
-    border-right: 2px solid;
-    -moz-border-right-colors: var(--viewDoubleBorderColor);
+    border-right: 1px solid var(--viewBorderColor);
+    margin-inline-end: 1px;
 }
 
 .calendar-time-bar-box-odd[orient="horizontal"],
 .calendar-time-bar-box-even[orient="horizontal"] {
     border-right: 1px solid var(--viewBorderColor);
     border-top: 1px solid var(--viewBorderColor);
-    -moz-border-right-colors: none;
     height: 40px; /* the same as the calendar-time-bar element */
+    margin-inline-end: 0;
 }
 
 .calendar-time-bar-box-odd[orient="vertical"],
 .calendar-time-bar-box-even[orient="vertical"] {
     border-bottom: 1px  transparent !important;
-    border-right: 2px solid;
-    -moz-border-right-colors:  var(--viewDoubleBorderColor);
+    border-right: 1px solid var(--viewBorderColor);
+    margin-inline-end: 1px;
     width: 10ex; /* the same as the calendar-time-bar element */
 }
 
 /** End time bar **/
-
+.calendar-event-details-core.title-desc,
+.calendar-event-details-core.location-desc {
+    font-weight: normal;
+}
+.calendar-event-details-core.location-desc {
+    opacity: 0.5;
+    margin: 0;
+    white-space: pre;
+}
 calendar-multiday-view {
     background-color: var(--viewBackground);
     padding: 0px;
@@ -864,18 +873,43 @@ agenda-richlist-item[status="CANCELLED"] .agenda-container-box {
     border: solid ThreeDShadow;
 }
 
-tab[calview] {
-    -moz-appearance: none;
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
-    margin-top: 0px;
-    -moz-user-focus: normal;
+.navigation-inner-box {
+    border-bottom: 1px solid var(--calview-border-bottom-color);
 }
 
-tab[calview][selected="true"],
-tab[calview][selected="true"]:hover {
-    margin-bottom: 0px;
-    border-bottom: none;
+.navigation-spacer-box {
+    min-width: 15px;
+    border-bottom: 1px solid var(--calview-border-bottom-color);
+}
+
+tab[calview] {
+    -moz-appearance: none;
+    border-left: 1px solid var(--calview-border-color);
+    border-right: 1px solid var(--calview-border-color);
+    border-bottom: 1px solid var(--calview-border-bottom-color);
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    margin-top: 0;
+    padding: 3px 6px;
+    -moz-user-focus: normal;
+    background-color: transparent;
+    font-size: 14px;
+}
+
+tab[calview]:not(:first-child) {
+    margin-inline-start: -1px;
+}
+
+
+tab[calview][selected="true"] {
+    background-image: linear-gradient(to bottom,
+                      var(--calview-tabline-color) 2px, transparent 2px);
+    border-bottom-width: 0;
+    padding-bottom: 4px;
+}
+
+tab[calview]:not([selected=true]):hover {
+    background-color: rgba(0,0,0,.1);
 }
 
 tab[calview] > .tab-middle {

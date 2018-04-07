@@ -57,3 +57,5 @@
 <!ENTITY aboutNetworking.rcwnStddevLong		"長期標準偏差">
 <!ENTITY aboutNetworking.rcwnCacheSlow		"キャッシュ遅滞カウント">
 <!ENTITY aboutNetworking.rcwnCacheNotSlow	"キャッシュ非遅滞カウント">
+
+<!ENTITY aboutNetworking.trr                   "TRR">

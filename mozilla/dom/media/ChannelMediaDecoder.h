@@ -66,6 +66,7 @@ protected:
   void MetadataLoaded(UniquePtr<MediaInfo> aInfo,
                       UniquePtr<MetadataTags> aTags,
                       MediaDecoderEventVisibility aEventVisibility) override;
+  void NotifyPrincipalChanged() override;
 
   RefPtr<ResourceCallback> mResourceCallback;
   RefPtr<BaseMediaResource> mResource;
@@ -118,7 +119,7 @@ private:
   // by the MediaResource read functions.
   void NotifyBytesConsumed(int64_t aBytes, int64_t aOffset);
 
-  bool CanPlayThroughImpl() override final;
+  bool CanPlayThroughImpl() final;
 
   struct PlaybackRateInfo
   {
@@ -158,6 +159,10 @@ private:
   int64_t mPlaybackPosition = 0;
 
   bool mCanPlayThrough = false;
+
+  // True if we've been notified that the ChannelMediaResource has
+  // a principal.
+  bool mInitialChannelPrincipalKnown = false;
 };
 
 } // namespace mozilla

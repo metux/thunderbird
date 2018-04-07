@@ -222,21 +222,27 @@ google-play-strings
 Download strings to display on Google Play from https://l10n.mozilla-community.org/stores_l10n/.
 Artifact is then used by push-apk.
 
-push-apk-breakpoint
--------------------
-Decides whether or not APKs should be published onto Google Play Store. Jobs of this
-kind depend on all the signed multi-locales (aka "multi") APKs for a given release,
-in order to make the decision.
-
 push-apk
 --------
 PushApk publishes Android packages onto Google Play Store. Jobs of this kind take
 all the signed multi-locales (aka "multi") APKs for a given release and upload them
-all at once. They also depend on the breakpoint.
+all at once.
 
-release-balrog-publishing
+release-balrog-submit-toplevel
+----------------------
+Push a top-level release blob to Balrog.
+
+release-secondary-balrog-submit-toplevel
+----------------------
+Push a top-level RC release blob to Balrog.
+
+release-balrog-scheduling
 ----------------------
 Schedule a release to go live in Balrog.
+
+release-secondary-balrog-scheduling
+----------------------
+Schedule an RC release to go live in Balrog.
 
 release-binary-transparency
 ---------------------------
@@ -255,6 +261,10 @@ release-notify-ship
 ----------------------
 Notify when a release has been shipped.
 
+release-secondary-notify-ship
+----------------------
+Notify when an RC release has been shipped to the beta channel.
+
 release-notify-promote
 ----------------------
 Notify when a release has been promoted.
@@ -269,7 +279,11 @@ Marks releases as shipped in Ship-It.
 
 release-bouncer-aliases
 ------------------------------
-Update Bouncers (download.mozilla.org) "latest" aliases.
+Update Bouncer's (download.mozilla.org) "latest" aliases.
+
+release-bouncer-check
+------------------------------
+Checks Bouncer (download.mozilla.org) uptake.
 
 release-generate-checksums
 --------------------------
@@ -281,19 +295,31 @@ Verifies the contents and package of release update MARs.
 
 release-secondary-final-verify
 ---------------------
-Verifies the contents and package of release update MARs.
+Verifies the contents and package of release update MARs for RC releases.
+
+release-secondary-balrog-publishing
+---------------------
+Schedule an RC release to go live in Balrog. Usually this will happen on the beta channel, to a smaller audience, before the RC goes live on the release channel.
 
 release-update-verify
 ---------------------
 Verifies the contents and package of release update MARs.
 
+release-secondary-update-verify
+---------------------
+Verifies the contents and package of release update MARs.
+
+release-update-verify-config
+----------------------------
+Creates configs for release-update-verify tasks
+
+release-secondary-update-verify-config
+--------------------------------------
+Creates configs for release-secondary-update-verify tasks
+
 release-updates-builder
 -----------------------
 Top level Balrog blob submission & patcher/update verify config updates.
-
-release-uptake-monitoring
--------------------------
-Run uptake monitoring for releases.
 
 release-version-bump
 --------------------
@@ -331,6 +357,12 @@ repo-update
 -----------
 Repo-Update tasks are tasks that perform some action on the project repo itself,
 in order to update its state in some way.
+
+repo-update-bb
+--------------
+Repo-Update tasks are tasks that perform some action on the project repo itself,
+in order to update its state in some way. This kind is the older, buildbot version.
+It will be removed after the migration to taskcluster.
 
 partials
 --------

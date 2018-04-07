@@ -7,8 +7,9 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use std::{fmt, mem, usize};
-use style_traits::{ToCss, ParseError, StyleParseErrorKind};
+use std::{mem, usize};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::{CSSFloat, CustomIdent};
 use values::computed::{Context, ToComputedValue};
 use values::specified;
@@ -49,7 +50,10 @@ impl<Integer> ToCss for GridLine<Integer>
 where
     Integer: ToCss,
 {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         if self.is_auto() {
             return dest.write_str("auto")
         }
@@ -136,12 +140,15 @@ impl Parse for GridLine<specified::Integer> {
     }
 }
 
-define_css_keyword_enum!{ TrackKeyword:
-    "auto" => Auto,
-    "max-content" => MaxContent,
-    "min-content" => MinContent
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
+#[derive(ToComputedValue, ToCss)]
+pub enum TrackKeyword {
+    Auto,
+    MaxContent,
+    MinContent,
 }
-add_impls_for_keyword_enum!(TrackKeyword);
 
 /// A track breadth for explicit grid track sizing. It's generic solely to
 /// avoid re-implementing it for the computed type.
@@ -230,7 +237,10 @@ impl<L: PartialEq> TrackSize<L> {
 }
 
 impl<L: ToCss> ToCss for TrackSize<L> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         match *self {
             TrackSize::Breadth(ref breadth) => breadth.to_css(dest),
             TrackSize::Minmax(ref min, ref max) => {
@@ -315,10 +325,10 @@ pub fn concat_serialize_idents<W>(
     suffix: &str,
     slice: &[CustomIdent],
     sep: &str,
-    dest: &mut W,
+    dest: &mut CssWriter<W>,
 ) -> fmt::Result
 where
-    W: fmt::Write
+    W: Write,
 {
     if let Some((ref first, rest)) = slice.split_first() {
         dest.write_str(prefix)?;
@@ -378,14 +388,16 @@ pub struct TrackRepeat<L, I> {
     /// If there's no `<line-names>`, then it's represented by an empty vector.
     /// For N `<track-size>` values, there will be N+1 `<line-names>`, and so this vector's
     /// length is always one value more than that of the `<track-size>`.
-    #[compute(clone)]
     pub line_names: Box<[Box<[CustomIdent]>]>,
     /// `<track-size>` values.
     pub track_sizes: Vec<TrackSize<L>>,
 }
 
 impl<L: ToCss, I: ToCss> ToCss for TrackRepeat<L, I> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         dest.write_str("repeat(")?;
         self.count.to_css(dest)?;
         dest.write_str(", ")?;
@@ -503,7 +515,10 @@ pub struct TrackList<LengthOrPercentage, Integer> {
 }
 
 impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         let auto_idx = match self.list_type {
             TrackListType::Auto(i) => i as usize,
             _ => usize::MAX,
@@ -550,15 +565,13 @@ impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
 ///
 /// `subgrid [ <line-names> | repeat(<positive-integer> | auto-fill, <line-names>+) ]+`
 /// Old spec: https://www.w3.org/TR/2015/WD-css-grid-1-20150917/#typedef-line-name-list
-#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq, ToComputedValue)]
 pub struct LineNameList {
     /// The optional `<line-name-list>`
     pub names: Box<[Box<[CustomIdent]>]>,
     /// Indicates the line name that requires `auto-fill`
     pub fill_idx: Option<u32>,
 }
-
-trivial_to_computed_value!(LineNameList);
 
 impl Parse for LineNameList {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
@@ -614,7 +627,10 @@ impl Parse for LineNameList {
 }
 
 impl ToCss for LineNameList {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         dest.write_str("subgrid")?;
         let fill_idx = self.fill_idx.map(|v| v as usize).unwrap_or(usize::MAX);
         for (i, names) in self.names.iter().enumerate() {
@@ -650,7 +666,7 @@ pub enum GridTemplateComponent<L, I> {
     /// `none` value.
     None,
     /// The grid `<track-list>`
-    TrackList(TrackList<L, I>),
+    TrackList(#[compute(field_bound)] TrackList<L, I>),
     /// A `subgrid <line-name-list>?`
     Subgrid(LineNameList),
 }

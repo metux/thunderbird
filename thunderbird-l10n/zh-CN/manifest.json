@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/zh-CN/locale/zh-CN/passwordmgr/", 
         "pippki": "chrome/zh-CN/locale/zh-CN/pippki/"
       }, 
-      "version": "20171102221154"
+      "version": "20180314011149"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-zh-CN@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "zh-CN", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Chinese Simplified (zh-CN) Language Pack", 
   "manifest_version": 2, 
   "sources": {

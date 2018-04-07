@@ -4,21 +4,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
-                                  "resource://gre/modules/PlacesUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStopwatch",
-                                  "resource://gre/modules/TelemetryStopwatch.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
-                                  "resource://gre/modules/NetUtil.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.defineModuleGetter(this, "PlacesUtils",
+                               "resource://gre/modules/PlacesUtils.jsm");
+ChromeUtils.defineModuleGetter(this, "NetUtil",
+                               "resource://gre/modules/NetUtil.jsm");
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Constants
-
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
 
 // This SQL query fragment provides the following:
 //   - whether the entry is bookmarked (kQueryIndexBookmarked)
@@ -536,7 +530,6 @@ nsPlacesAutoComplete.prototype = {
     queries.push(query);
 
     // Start executing our queries.
-    this._telemetryStartTime = Date.now();
     this._executeQueries(queries);
 
     // Set up our persistent state for the duration of the search.
@@ -628,8 +621,8 @@ nsPlacesAutoComplete.prototype = {
 
   handleError: function PAC_handleError(aError)
   {
-    Components.utils.reportError("Places AutoComplete: An async statement encountered an " +
-                                 "error: " + aError.result + ", '" + aError.message + "'");
+    Cu.reportError("Places AutoComplete: An async statement encountered an " +
+                   "error: " + aError.result + ", '" + aError.message + "'");
   },
 
   handleCompletion: function PAC_handleCompletion(aReason)
@@ -793,19 +786,6 @@ nsPlacesAutoComplete.prototype = {
     }
     result.setSearchResult(Ci.nsIAutoCompleteResult[resultCode]);
     this._listener.onSearchResult(this, result);
-    if (this._telemetryStartTime) {
-      let elapsed = Date.now() - this._telemetryStartTime;
-      if (elapsed > 50) {
-        try {
-          Services.telemetry
-                  .getHistogramById("PLACES_AUTOCOMPLETE_1ST_RESULT_TIME_MS")
-                  .add(elapsed);
-        } catch (ex) {
-          Components.utils.reportError("Unable to report telemetry.");
-        }
-      }
-      this._telemetryStartTime = null;
-    }
   },
 
   /**

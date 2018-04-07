@@ -5,10 +5,10 @@
 /*
  * Testing of Uint32HdrProperty search attribute. Adapted from test_search.js
  */
- 
+
 load("../../../resources/searchTestUtils.js");
 
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 var nsMsgSearchAttrib = Ci.nsMsgSearchAttrib;
 var nsMsgSearchOp = Ci.nsMsgSearchOp;
@@ -75,7 +75,7 @@ function run_test()
 {
   localAccountUtils.loadLocalMailAccount();
 
-  var copyListener = 
+  var copyListener =
   {
     OnStartCopy: function() {},
     OnProgress: function(aProgress, aProgressMax) {},

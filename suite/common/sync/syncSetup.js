@@ -2,11 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const Ci = Components.interfaces;
-const Cc = Components.classes;
-const Cr = Components.results;
-const Cu = Components.utils;
-
 // page consts
 
 const INTRO_PAGE                    = 0;
@@ -24,11 +19,11 @@ const SETUP_SUCCESS_PAGE            = 8;
 // See discussion in Bugs 508112 and 653307.
 const RECAPTCHA_DOMAIN = "https://www.google.com";
 
-Cu.import("resource://services-sync/main.js");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/PlacesUtils.jsm");
-Cu.import("resource://gre/modules/PluralForm.jsm");
+ChromeUtils.import("resource://services-sync/main.js");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/PlacesUtils.jsm");
+ChromeUtils.import("resource://gre/modules/PluralForm.jsm");
 
 var gSyncSetup = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsISupports,

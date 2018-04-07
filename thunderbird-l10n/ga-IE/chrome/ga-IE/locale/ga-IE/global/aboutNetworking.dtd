@@ -57,6 +57,7 @@
 <!ENTITY aboutNetworking.rcwnCacheSlow         "Líon amas mall ón taisce">
 <!ENTITY aboutNetworking.rcwnCacheNotSlow      "Líon amas nach mall ón taisce">
 
+<!ENTITY aboutNetworking.trr                   "TRR">
 <!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Entry Open">
 <!ENTITY aboutNetworking.rcwnAvgShort          "Short Average">
 <!ENTITY aboutNetworking.rcwnAvgLong           "Long Average">

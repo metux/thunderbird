@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "LoginHelper", "resource://gre/modules/LoginHelper.jsm");
+ChromeUtils.defineModuleGetter(this, "LoginHelper", "resource://gre/modules/LoginHelper.jsm");
 
 var gPrivacyPane = {
   init: function ()
@@ -34,9 +33,6 @@ var gPrivacyPane = {
 
   openLogFolder: function ()
   {
-    let Cc = Components.classes;
-    let Ci = Components.interfaces;
-
     // Log folder is "'profile directory'/logs"
     var logFolder = Services.dirsvc.get("ProfD", Ci.nsIFile);
     logFolder.append("logs");
@@ -110,7 +106,6 @@ var gPrivacyPane = {
    */
   _removeMasterPassword: function ()
   {
-    const Cc = Components.classes, Ci = Components.interfaces;
     var secmodDB = Cc["@mozilla.org/security/pkcs11moduledb;1"].
                    getService(Ci.nsIPKCS11ModuleDB);
     if (secmodDB.isFIPSEnabled) {

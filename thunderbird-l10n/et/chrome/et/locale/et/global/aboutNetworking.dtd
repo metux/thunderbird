@@ -56,3 +56,5 @@
 <!ENTITY aboutNetworking.rcwnStddevLong        "Long Standard Deviation">
 <!ENTITY aboutNetworking.rcwnCacheSlow         "Cache slow count">
 <!ENTITY aboutNetworking.rcwnCacheNotSlow      "Cache not slow count">
+
+<!ENTITY aboutNetworking.trr                   "TRR">

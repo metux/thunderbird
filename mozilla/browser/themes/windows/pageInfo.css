@@ -4,6 +4,14 @@
 
 @import "chrome://global/skin/";
 
+#topBar {
+  -moz-window-dragging: drag;
+  border-bottom: 1px solid ThreeDLightShadow;
+  padding-inline-start: 10px;
+  background-color: -moz-Field;
+  color: -moz-FieldText;
+}
+
 /* View buttons */
 #viewGroup {
   padding-inline-start: 10px;
@@ -12,9 +20,9 @@
 #viewGroup > radio {
   list-style-image: url("chrome://browser/skin/pageInfo.png");
   -moz-appearance: none;
-  padding: 5px 3px 1px 3px;
-  margin: 0 1px;
   min-width: 4.5em;
+  margin: 0;
+  padding: 3px;
 }
 
 #viewGroup > radio:hover {
@@ -27,11 +35,9 @@
   color: black;
 }
 
-#topBar {
-  border-bottom: 1px solid ThreeDLightShadow;
-  padding-inline-start: 10px;
-  background-color: -moz-Field;
-  color: -moz-FieldText;
+#viewGroup > radio > .radio-label-box {
+  margin: 0;
+  padding: 0 6px;
 }
 
 #generalTab {

@@ -14,7 +14,7 @@
 %platformCommunicatorDTD;
 <!ENTITY % utilityDTD SYSTEM "chrome://communicator/locale/utilityOverlay.dtd">
 %utilityDTD;
-<!ENTITY % customizeToolbarDTD SYSTEM "chrome://global/locale/customizeToolbar.dtd">
+<!ENTITY % customizeToolbarDTD SYSTEM "chrome://communicator/locale/customizeToolbar.dtd">
 %customizeToolbarDTD;
 
 ]>
@@ -529,9 +529,9 @@
     </menupopup>
   </toolbarbutton>
 
-  <!-- Sync toolbar button -->
+  <!-- Sync toolbar button
   <toolbarbutton id="sync-button"
                  class="toolbarbutton-1 chromeclass-toolbar-additional"
                  label="&syncToolbarButton.label;"
-                 oncommand="gSyncUI.handleToolbarButton();"/>
+                 oncommand="gSyncUI.handleToolbarButton();"/> -->
 </overlay>

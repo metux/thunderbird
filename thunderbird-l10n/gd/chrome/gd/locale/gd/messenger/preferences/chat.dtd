@@ -31,6 +31,10 @@ sentence. -->
 <!ENTITY  completeNotification.label          "le ainm an t-seòladair is ro-shealladh na teachdaireachd">
 <!ENTITY  buddyInfoOnly.label                 "le ainm an t-seòladair a-mhàin">
 <!ENTITY  dummyNotification.label             "as aonais fiosrachaidh sam bith">
+<!ENTITY  getAttention.label                  "Boillsg an nì air bàr nan saothair">
+<!ENTITY  getAttention.accesskey              "B">
+<!ENTITY  getAttentionMac.label               "Beòthaich ìomhaigheag an doca">
+<!ENTITY  getAttentionMac.accesskey           "o">
 <!ENTITY  chatSound.accesskey                 "f">
 <!ENTITY  chatSound.label                     "Cluich fuaim">
 <!ENTITY  play.label                          "Cluich">
@@ -58,8 +62,3 @@ sentence. -->
 <!ENTITY messageStyleShowHeader.accesskey  "H">
 <!ENTITY messageStyleNoPreview.title       "Chan eil ro-shealladh ri fhaighinn">
 <!ENTITY messageStyleNoPreview.description "Chan eil an t-ùrlar seo dligheach no chan eil e ri fhaighinn aig an àm seo (tuilleadan à comas, modh sàbhailte, ...).">
-
-<!ENTITY  getAttention.label                  "Flash the taskbar item">
-<!ENTITY  getAttention.accesskey              "F">
-<!ENTITY  getAttentionMac.label               "Animate dock icon">
-<!ENTITY  getAttentionMac.accesskey           "o">

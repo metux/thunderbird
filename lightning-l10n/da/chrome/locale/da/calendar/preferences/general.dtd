@@ -7,11 +7,11 @@
    - your editor isn't using UTF-8 encoding and may munge up the document!
   -->
 
-<!ENTITY pref.mainbox.label "Generelle indstillinger">
-<!ENTITY pref.dateformat.label "Datoformat:">
+<!ENTITY pref.mainbox.label "Generelle indstillinger" >
+<!ENTITY pref.dateformat.label "Datoformat:" >
 <!ENTITY pref.dateformat.accesskey "D">
-<!ENTITY pref.dateformat.long "Langt">
-<!ENTITY pref.dateformat.short "Kort">
+<!ENTITY pref.dateformat.long "Langt" >
+<!ENTITY pref.dateformat.short "Kort"  >
 
 <!ENTITY pref.timezones.caption "Tidszone">
 <!ENTITY pref.timezones.label "Vælg den nærmeste by i din tidszone:">
@@ -37,6 +37,14 @@
 <!ENTITY pref.soondays.label "Afsnittet Kommende viser:">
 <!ENTITY pref.soondays.accesskey "a">
 
+<!-- LOCALIZATION NOTE (pref.soondays2.label):
+     "Upcoming" is the name of a section and the translation must match the
+     translation of that section name (calendar.upcoming.button.label). Also,
+     it should be upper case (as a proper name) if the target language permits.
+  -->
+<!ENTITY pref.soondays2.label "Afsnittet Kommende viser:">
+<!ENTITY pref.soondays2.accesskey "A">
+
 <!ENTITY pref.accessibility.label "Tilgængelighed" >
 <!ENTITY pref.systemcolors.label "Optimer farver for tilgængelighed" >
 <!ENTITY pref.systemcolors.accesskey "O">
@@ -44,6 +52,3 @@
 <!ENTITY pref.eventsandtasks.label "Begivenheder og opgaver" >
 <!ENTITY pref.editInTab.label "Rediger begivenheder og opgaver i et faneblad i stedet for i et vindue." >
 <!ENTITY pref.editInTab.accesskey "R">
-
-<!ENTITY pref.soondays2.label "The Upcoming section shows:">
-<!ENTITY pref.soondays2.accesskey "U">

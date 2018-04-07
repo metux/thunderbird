@@ -5,10 +5,10 @@
 var SUNBIRD_UID = "{718e30fb-e89b-41dd-9da7-e25a45638b28}";
 var FIREFOX_UID = "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}";
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/Preferences.jsm");
-Components.utils.import("resource://gre/modules/AppConstants.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
 
 Components.utils.importGlobalProperties(["XMLHttpRequest"]);
 
@@ -282,7 +282,7 @@ var gDataMigrator = {
                 calendar.name = getRDFAttr(node, "name");
                 calendar.setProperty("color", getRDFAttr(node, "color"));
                 calManager.registerCalendar(calendar);
-                cal.getCompositeCalendar(window).addCalendar(calendar);
+                cal.view.getCompositeCalendar(window).addCalendar(calendar);
             }
             aCallback();
         }
@@ -400,7 +400,7 @@ var gDataMigrator = {
                 calendar.name = "iCalendar"+i;
                 i++;
                 calManager.registerCalendar(calendar);
-                cal.getCompositeCalendar(window).addCalendar(calendar);
+                cal.view.getCompositeCalendar(window).addCalendar(calendar);
             }
             migLOG("icalMig making callback");
             aCallback();
@@ -438,7 +438,7 @@ var gDataMigrator = {
                     var calendar = gDataMigrator.importICSToStorage(dataStore);
                     calendar.name = "Evolution " + (i++);
                     calManager.registerCalendar(calendar);
-                    cal.getCompositeCalendar(window).addCalendar(calendar);
+                    cal.view.getCompositeCalendar(window).addCalendar(calendar);
                 }
                 return dataStore.exists();
             }
@@ -490,7 +490,7 @@ var gDataMigrator = {
                     calManager.registerCalendar(storage);
 
                     if (enabled) {
-                        cal.getCompositeCalendar(window).addCalendar(storage);
+                        cal.view.getCompositeCalendar(window).addCalendar(storage);
                     }
                 }
             }

@@ -2,14 +2,16 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY autoconfigWizard.title          "Setarea contului de e-mail">
+<!ENTITY autoconfigWizard2.title         "Utilizați un cont de mail existent">
 <!ENTITY name.label                      "Numele dumneavoastră:">
 <!ENTITY name.accesskey                  "N">
 <!ENTITY name.placeholder                "Prenume Nume">
 <!ENTITY name.text                       "Numele dumneavoastră așa cum este afișat altora">
 <!ENTITY email.label                     "Adresa de e-mail:">
 <!ENTITY email.accesskey                 "l">
-<!ENTITY email.placeholder               "e-mail@exemplu.ro">
+<!-- LOCALIZATION NOTE(email.placeholder): Domain @example.com must stay in English -->
+<!ENTITY email2.placeholder              "dvs@example.com">
+<!ENTITY email.text                      "Adresa de mail existentă">
 <!ENTITY password.label                  "Parola:">
 <!ENTITY password.accesskey              "P">
 <!ENTITY password.placeholder            "Parolă">
@@ -53,8 +55,8 @@
 <!ENTITY half-manual-test.accesskey      "T">
 <!ENTITY manual-edit.label               "Configurează manual">
 <!ENTITY manual-edit.accesskey           "m">
-<!ENTITY switch-to-provisioner.label     "Obțineți un cont nou">
-<!ENTITY switch-to-provisioner.accesskey "O">
+<!ENTITY open-provisioner.label          "Obține o nouă adresă de e-mail…">
+<!ENTITY open-provisioner.accesskey      "O">
 
 
 <!ENTITY warning.label                   "Avertisment!">
@@ -86,9 +88,3 @@
 <!ENTITY insecureUnencrypted.description "Adresa dumneavoastră de e-mail și datele de autentificare sunt trimise fără a fi criptate, ca urmare parola și mesajul dumneavoastră pot fi citite de alte persoane. &brandShortName; vă va permite să vă citiți mesajele, dar ar trebui să contactați furnizorul de e-mail în legătură cu configurarea serverului pentru o conexiune securizată.">
 <!ENTITY insecureSelfSigned.description  "Serverul folosește un certificat în care nu aveți încredere, așadar nu puteți fi sigur că cineva nu interceptează traficul dintre &brandShortName; și server. &brandShortName; vă va permite să accesați e-mailul chiar și în acest mod, dar ar trebui să convingeți furnizorul de e-mail să configureze serverul cu un certificat de încredere.">
 <!ENTITY secureServer.description        "Felicitări! Aveți de a face cu un server securizat.">
-
-<!ENTITY autoconfigWizard2.title         "Set Up an Existing Email Account">
-<!ENTITY email2.placeholder              "you@example.com">
-<!ENTITY email.text                      "Your existing email address">
-<!ENTITY open-provisioner.label          "Get a new email address…">
-<!ENTITY open-provisioner.accesskey      "g">

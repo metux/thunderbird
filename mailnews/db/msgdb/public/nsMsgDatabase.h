@@ -8,6 +8,8 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/Path.h"
+#include "nsIFile.h"
 #include "nsIMsgDatabase.h"
 #include "nsMsgHdr.h"
 #include "nsString.h"
@@ -161,7 +163,7 @@ public:
   nsresult OpenInternal(nsMsgDBService *aDBService, nsIFile *aFolderName,
                         bool aCreate, bool aLeaveInvalidDB, bool sync);
   nsresult CheckForErrors(nsresult err, bool sync, nsMsgDBService *aDBService, nsIFile *summaryFile);
-  virtual nsresult OpenMDB(const char *dbName, bool create, bool sync);
+  virtual nsresult OpenMDB(nsIFile *dbfile, bool create, bool sync);
   virtual nsresult CloseMDB(bool commit);
   virtual nsresult CreateMsgHdr(nsIMdbRow* hdrRow, nsMsgKey key, nsIMsgDBHdr **result);
   virtual nsresult GetThreadForMsgKey(nsMsgKey msgKey, nsIMsgThread **result);
@@ -315,7 +317,7 @@ protected:
   bool m_create;
   bool m_leaveInvalidDB;
 
-  nsCString     m_dbName;
+  nsCOMPtr<nsIFile> m_dbFile;
   nsTArray<nsMsgKey> m_newSet;  // new messages since last open.
   bool          m_mdbTokensInitialized;
   nsTObserverArray<nsCOMPtr<nsIDBChangeListener> > m_ChangeListeners;

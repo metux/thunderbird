@@ -57,7 +57,6 @@
 #include "mozilla/dom/PPresentationParent.h"
 #include "mozilla/dom/PushNotifier.h"
 #include "mozilla/dom/quota/QuotaManagerService.h"
-#include "mozilla/dom/time/DateCacheCleaner.h"
 #include "mozilla/dom/URLClassifierParent.h"
 #include "mozilla/embedding/printingui/PrintingParent.h"
 #include "mozilla/extensions/StreamFilterParent.h"
@@ -160,6 +159,7 @@
 #include "mozilla/dom/nsMixedContentBlocker.h"
 #include "nsMemoryInfoDumper.h"
 #include "nsMemoryReporterManager.h"
+#include "nsScriptError.h"
 #include "nsServiceManagerUtils.h"
 #include "nsStyleSheetService.h"
 #include "nsThreadUtils.h"
@@ -590,8 +590,7 @@ static const char* sObserverTopics[] = {
   "cacheservice:empty-cache",
   "intl:app-locales-changed",
   "intl:requested-locales-changed",
-  "cookie-changed",
-  "private-cookie-changed",
+  "non-js-cookie-changed",
 };
 
 // PreallocateProcess is called by the PreallocatedProcessManager.
@@ -627,8 +626,6 @@ ContentParent::StartUp()
 
   // Note: This reporter measures all ContentParents.
   RegisterStrongMemoryReporter(new ContentParentsMemoryReporter());
-
-  mozilla::dom::time::InitializeDateCacheCleaner();
 
   BackgroundChild::Startup();
   ClientManager::Startup();
@@ -1989,6 +1986,11 @@ ContentParent::LaunchSubprocess(ProcessPriority aInitialPriority /* = PROCESS_PR
 {
   AUTO_PROFILER_LABEL("ContentParent::LaunchSubprocess", OTHER);
 
+  if (!ContentProcessManager::GetSingleton()) {
+    // Shutdown has begun, we shouldn't spawn any more child processes.
+    return false;
+  }
+
   std::vector<std::string> extraArgs;
   extraArgs.push_back("-childID");
   char idStr[21];
@@ -2004,36 +2006,50 @@ ContentParent::LaunchSubprocess(ProcessPriority aInitialPriority /* = PROCESS_PR
   ContentPrefs::GetEarlyPrefs(&prefsLen);
 
   for (unsigned int i = 0; i < prefsLen; i++) {
-    MOZ_ASSERT(i == 0 || strcmp(ContentPrefs::GetEarlyPref(i), ContentPrefs::GetEarlyPref(i - 1)) > 0);
-    switch (Preferences::GetType(ContentPrefs::GetEarlyPref(i))) {
+    const char* prefName = ContentPrefs::GetEarlyPref(i);
+    MOZ_ASSERT(i == 0 || strcmp(prefName, ContentPrefs::GetEarlyPref(i - 1)) > 0,
+               "Content process preferences should be sorted alphabetically.");
+
+    if (!Preferences::MustSendToContentProcesses(prefName)) {
+      continue;
+    }
+
+    switch (Preferences::GetType(prefName)) {
     case nsIPrefBranch::PREF_INT:
-      intPrefs.Append(nsPrintfCString("%u:%d|", i, Preferences::GetInt(ContentPrefs::GetEarlyPref(i))));
+      intPrefs.Append(nsPrintfCString("%u:%d|", i, Preferences::GetInt(prefName)));
       break;
     case nsIPrefBranch::PREF_BOOL:
-      boolPrefs.Append(nsPrintfCString("%u:%d|", i, Preferences::GetBool(ContentPrefs::GetEarlyPref(i))));
+      boolPrefs.Append(nsPrintfCString("%u:%d|", i, Preferences::GetBool(prefName)));
       break;
     case nsIPrefBranch::PREF_STRING: {
       nsAutoCString value;
-      Preferences::GetCString(ContentPrefs::GetEarlyPref(i), value);
+      Preferences::GetCString(prefName, value);
       stringPrefs.Append(nsPrintfCString("%u:%d;%s|", i, value.Length(), value.get()));
       }
       break;
     case nsIPrefBranch::PREF_INVALID:
       break;
     default:
-      printf("preference type: %x\n", Preferences::GetType(ContentPrefs::GetEarlyPref(i)));
+      printf("preference type: %x\n", Preferences::GetType(prefName));
       MOZ_CRASH();
     }
   }
 
   nsCString schedulerPrefs = Scheduler::GetPrefs();
 
-  extraArgs.push_back("-intPrefs");
-  extraArgs.push_back(intPrefs.get());
-  extraArgs.push_back("-boolPrefs");
-  extraArgs.push_back(boolPrefs.get());
-  extraArgs.push_back("-stringPrefs");
-  extraArgs.push_back(stringPrefs.get());
+  // Only do these ones if they're non-empty.
+  if (!intPrefs.IsEmpty()) {
+    extraArgs.push_back("-intPrefs");
+    extraArgs.push_back(intPrefs.get());
+  }
+  if (!boolPrefs.IsEmpty()) {
+    extraArgs.push_back("-boolPrefs");
+    extraArgs.push_back(boolPrefs.get());
+  }
+  if (!stringPrefs.IsEmpty()) {
+    extraArgs.push_back("-stringPrefs");
+    extraArgs.push_back(stringPrefs.get());
+  }
 
   // Scheduler prefs need to be handled differently because the scheduler needs
   // to start up in the content process before the normal preferences service.
@@ -2057,9 +2073,7 @@ ContentParent::LaunchSubprocess(ProcessPriority aInitialPriority /* = PROCESS_PR
   Unused << SendShareCodeCoverageMutex(CodeCoverageHandler::Get()->GetMutexHandle(procId));
 #endif
 
-  InitInternal(aInitialPriority,
-               true, /* Setup off-main thread compositing */
-               true  /* Send registered chrome */);
+  InitInternal(aInitialPriority);
 
   ContentProcessManager::GetSingleton()->AddContentProcess(this);
 
@@ -2153,9 +2167,7 @@ ContentParent::~ContentParent()
 }
 
 void
-ContentParent::InitInternal(ProcessPriority aInitialPriority,
-                            bool aSetupOffMainThreadCompositing,
-                            bool aSendRegisteredChrome)
+ContentParent::InitInternal(ProcessPriority aInitialPriority)
 {
   Telemetry::Accumulate(Telemetry::CONTENT_PROCESS_LAUNCH_TIME_MS,
                         static_cast<uint32_t>((TimeStamp::Now() - mLaunchTS)
@@ -2237,7 +2249,13 @@ ContentParent::InitInternal(ProcessPriority aInitialPriority,
 
   // Content processes have no permission to access profile directory, so we
   // send the file URL instead.
-  StyleSheet* ucs = nsLayoutStylesheetCache::For(StyleBackendType::Gecko)->UserContentSheet();
+  StyleBackendType backendType =
+#ifdef MOZ_OLD_STYLE
+    StyleBackendType::Gecko;
+#else
+    StyleBackendType::Servo;
+#endif
+  StyleSheet* ucs = nsLayoutStylesheetCache::For(backendType)->UserContentSheet();
   if (ucs) {
     SerializeURI(ucs->GetSheetURI(), xpcomInit.userContentSheetURL());
   } else {
@@ -2277,12 +2295,10 @@ ContentParent::InitInternal(ProcessPriority aInitialPriority,
   Unused << SendSetXPCOMProcessAttributes(xpcomInit, initialData, lnfCache,
                                           fontList);
 
-  if (aSendRegisteredChrome) {
-    nsCOMPtr<nsIChromeRegistry> registrySvc = nsChromeRegistry::GetService();
-    nsChromeRegistryChrome* chromeRegistry =
-      static_cast<nsChromeRegistryChrome*>(registrySvc.get());
-    chromeRegistry->SendRegisteredChrome(this);
-  }
+  nsCOMPtr<nsIChromeRegistry> registrySvc = nsChromeRegistry::GetService();
+  nsChromeRegistryChrome* chromeRegistry =
+    static_cast<nsChromeRegistryChrome*>(registrySvc.get());
+  chromeRegistry->SendRegisteredChrome(this);
 
   if (gAppData) {
     nsCString version(gAppData->version);
@@ -2315,41 +2331,37 @@ ContentParent::InitInternal(ProcessPriority aInitialPriority,
   // must come after the Open() call above.
   ProcessPriorityManager::SetProcessPriority(this, aInitialPriority);
 
-  if (aSetupOffMainThreadCompositing) {
-    // NB: internally, this will send an IPC message to the child
-    // process to get it to create the CompositorBridgeChild.  This
-    // message goes through the regular IPC queue for this
-    // channel, so delivery will happen-before any other messages
-    // we send.  The CompositorBridgeChild must be created before any
-    // PBrowsers are created, because they rely on the Compositor
-    // already being around.  (Creation is async, so can't happen
-    // on demand.)
-    GPUProcessManager* gpm = GPUProcessManager::Get();
+  // NB: internally, this will send an IPC message to the child
+  // process to get it to create the CompositorBridgeChild.  This
+  // message goes through the regular IPC queue for this
+  // channel, so delivery will happen-before any other messages
+  // we send.  The CompositorBridgeChild must be created before any
+  // PBrowsers are created, because they rely on the Compositor
+  // already being around.  (Creation is async, so can't happen
+  // on demand.)
+  GPUProcessManager* gpm = GPUProcessManager::Get();
 
-    Endpoint<PCompositorManagerChild> compositor;
-    Endpoint<PImageBridgeChild> imageBridge;
-    Endpoint<PVRManagerChild> vrBridge;
-    Endpoint<PVideoDecoderManagerChild> videoManager;
-    AutoTArray<uint32_t, 3> namespaces;
+  Endpoint<PCompositorManagerChild> compositor;
+  Endpoint<PImageBridgeChild> imageBridge;
+  Endpoint<PVRManagerChild> vrBridge;
+  Endpoint<PVideoDecoderManagerChild> videoManager;
+  AutoTArray<uint32_t, 3> namespaces;
 
-    DebugOnly<bool> opened = gpm->CreateContentBridges(
-      OtherPid(),
-      &compositor,
-      &imageBridge,
-      &vrBridge,
-      &videoManager,
-      &namespaces);
-    MOZ_ASSERT(opened);
+  DebugOnly<bool> opened = gpm->CreateContentBridges(OtherPid(),
+                                                     &compositor,
+                                                     &imageBridge,
+                                                     &vrBridge,
+                                                     &videoManager,
+                                                     &namespaces);
+  MOZ_ASSERT(opened);
 
-    Unused << SendInitRendering(
-      Move(compositor),
-      Move(imageBridge),
-      Move(vrBridge),
-      Move(videoManager),
-      namespaces);
+  Unused << SendInitRendering(Move(compositor),
+                              Move(imageBridge),
+                              Move(vrBridge),
+                              Move(videoManager),
+                              namespaces);
 
-    gpm->AddListener(this);
-  }
+  gpm->AddListener(this);
 
   nsStyleSheetService *sheetService = nsStyleSheetService::GetInstance();
   if (sheetService) {
@@ -2357,30 +2369,37 @@ ContentParent::InitInternal(ProcessPriority aInitialPriority,
     // send two loads.
     //
     // The URIs of the Gecko and Servo sheets should be the same, so it
-    // shouldn't matter which we look at.  (The Servo sheets don't exist
-    // in non-MOZ-STYLO builds, though, so look at the Gecko ones.)
+    // shouldn't matter which we look at.
 
-    for (StyleSheet* sheet :
-           *sheetService->AgentStyleSheets(StyleBackendType::Gecko)) {
+    for (StyleSheet* sheet : *sheetService->AgentStyleSheets(backendType)) {
       URIParams uri;
       SerializeURI(sheet->GetSheetURI(), uri);
       Unused << SendLoadAndRegisterSheet(uri, nsIStyleSheetService::AGENT_SHEET);
     }
 
-    for (StyleSheet* sheet :
-           *sheetService->UserStyleSheets(StyleBackendType::Gecko)) {
+    for (StyleSheet* sheet : *sheetService->UserStyleSheets(backendType)) {
       URIParams uri;
       SerializeURI(sheet->GetSheetURI(), uri);
       Unused << SendLoadAndRegisterSheet(uri, nsIStyleSheetService::USER_SHEET);
     }
 
-    for (StyleSheet* sheet :
-           *sheetService->AuthorStyleSheets(StyleBackendType::Gecko)) {
+    for (StyleSheet* sheet : *sheetService->AuthorStyleSheets(backendType)) {
       URIParams uri;
       SerializeURI(sheet->GetSheetURI(), uri);
       Unused << SendLoadAndRegisterSheet(uri, nsIStyleSheetService::AUTHOR_SHEET);
     }
   }
+
+#if defined(XP_WIN)
+  // Send the info needed to join the browser process's audio session.
+  nsID id;
+  nsString sessionName;
+  nsString iconPath;
+  if (NS_SUCCEEDED(mozilla::widget::GetAudioSessionData(id, sessionName,
+                                                        iconPath))) {
+    Unused << SendSetAudioSessionData(id, sessionName, iconPath);
+  }
+#endif
 
 #ifdef MOZ_CONTENT_SANDBOX
   bool shouldSandbox = true;
@@ -2411,16 +2430,6 @@ ContentParent::InitInternal(ProcessPriority aInitialPriority,
 #endif
   if (shouldSandbox && !SendSetProcessSandbox(brokerFd)) {
     KillHard("SandboxInitFailed");
-  }
-#endif
-#if defined(XP_WIN)
-  // Send the info needed to join the browser process's audio session.
-  nsID id;
-  nsString sessionName;
-  nsString iconPath;
-  if (NS_SUCCEEDED(mozilla::widget::GetAudioSessionData(id, sessionName,
-                                                        iconPath))) {
-    Unused << SendSetAudioSessionData(id, sessionName, iconPath);
   }
 #endif
 
@@ -2909,6 +2918,9 @@ ContentParent::Observe(nsISupports* aSubject,
 #ifdef ACCESSIBILITY
   else if (aData && !strcmp(aTopic, "a11y-init-or-shutdown")) {
     if (*aData == '1') {
+      // Shut down the preallocated process manager to avoid recycled
+      // content processes.
+      PreallocatedProcessManager::Disable();
       // Make sure accessibility is running in content process when
       // accessibility gets initiated in chrome process.
 #if defined(XP_WIN)
@@ -2940,8 +2952,7 @@ ContentParent::Observe(nsISupports* aSubject,
     LocaleService::GetInstance()->GetRequestedLocales(requestedLocales);
     Unused << SendUpdateRequestedLocales(requestedLocales);
   }
-  else if (!strcmp(aTopic, "cookie-changed") ||
-           !strcmp(aTopic, "private-cookie-changed")) {
+  else if (!strcmp(aTopic, "non-js-cookie-changed")) {
     if (!aData) {
       return NS_ERROR_UNEXPECTED;
     }
@@ -3886,14 +3897,70 @@ ContentParent::RecvScriptError(const nsString& aMessage,
                                const uint32_t& aFlags,
                                const nsCString& aCategory)
 {
+  return RecvScriptErrorInternal(aMessage, aSourceName, aSourceLine,
+                                 aLineNumber, aColNumber, aFlags,
+                                 aCategory);
+}
+
+mozilla::ipc::IPCResult
+ContentParent::RecvScriptErrorWithStack(const nsString& aMessage,
+                                        const nsString& aSourceName,
+                                        const nsString& aSourceLine,
+                                        const uint32_t& aLineNumber,
+                                        const uint32_t& aColNumber,
+                                        const uint32_t& aFlags,
+                                        const nsCString& aCategory,
+                                        const ClonedMessageData& aFrame)
+{
+  return RecvScriptErrorInternal(aMessage, aSourceName, aSourceLine,
+                                 aLineNumber, aColNumber, aFlags,
+                                 aCategory, &aFrame);
+}
+
+mozilla::ipc::IPCResult
+ContentParent::RecvScriptErrorInternal(const nsString& aMessage,
+                                       const nsString& aSourceName,
+                                       const nsString& aSourceLine,
+                                       const uint32_t& aLineNumber,
+                                       const uint32_t& aColNumber,
+                                       const uint32_t& aFlags,
+                                       const nsCString& aCategory,
+                                       const ClonedMessageData* aStack)
+{
   RefPtr<nsConsoleService> consoleService = GetConsoleService();
   if (!consoleService) {
     return IPC_OK();
   }
 
-  nsCOMPtr<nsIScriptError> msg(do_CreateInstance(NS_SCRIPTERROR_CONTRACTID));
-  nsresult rv = msg->Init(aMessage, aSourceName, aSourceLine,
-                          aLineNumber, aColNumber, aFlags, aCategory.get());
+  nsCOMPtr<nsIScriptError> msg;
+
+  if (aStack) {
+    StructuredCloneData data;
+    UnpackClonedMessageDataForParent(*aStack, data);
+
+    AutoJSAPI jsapi;
+    if (NS_WARN_IF(!jsapi.Init(xpc::PrivilegedJunkScope()))) {
+      MOZ_CRASH();
+    }
+    JSContext* cx = jsapi.cx();
+
+    JS::RootedValue stack(cx);
+    ErrorResult rv;
+    data.Read(cx, &stack, rv);
+    if (rv.Failed() || !stack.isObject()) {
+      rv.SuppressException();
+      return IPC_OK();
+    }
+
+    JS::RootedObject stackObj(cx, &stack.toObject());
+    msg = new nsScriptErrorWithStack(stackObj);
+  } else {
+    msg = new nsScriptError();
+  }
+
+  nsresult rv = msg->InitWithWindowID(aMessage, aSourceName, aSourceLine,
+                                      aLineNumber, aColNumber, aFlags,
+                                      aCategory, 0);
   if (NS_FAILED(rv))
     return IPC_OK();
 
@@ -3984,10 +4051,10 @@ ContentParent::SendPBrowserConstructor(PBrowserParent* aActor,
 mozilla::ipc::IPCResult
 ContentParent::RecvKeywordToURI(const nsCString& aKeyword,
                                 nsString* aProviderName,
-                                OptionalIPCStream* aPostData,
+                                nsCOMPtr<nsIInputStream>* aPostData,
                                 OptionalURIParams* aURI)
 {
-  *aPostData = void_t();
+  *aPostData = nullptr;
   *aURI = void_t();
 
   nsCOMPtr<nsIURIFixup> fixup = do_GetService(NS_URIFIXUP_CONTRACTID);
@@ -3995,21 +4062,13 @@ ContentParent::RecvKeywordToURI(const nsCString& aKeyword,
     return IPC_OK();
   }
 
-  nsCOMPtr<nsIInputStream> postData;
   nsCOMPtr<nsIURIFixupInfo> info;
 
-  if (NS_FAILED(fixup->KeywordToURI(aKeyword, getter_AddRefs(postData),
+  if (NS_FAILED(fixup->KeywordToURI(aKeyword, getter_AddRefs(*aPostData),
                                     getter_AddRefs(info)))) {
     return IPC_OK();
   }
   info->GetKeywordProviderName(*aProviderName);
-
-  AutoIPCStream autoStream;
-  if (NS_WARN_IF(!autoStream.Serialize(postData, this))) {
-    NS_ENSURE_SUCCESS(NS_ERROR_FAILURE, IPC_FAIL_NO_REASON(this));
-  }
-
-  *aPostData = autoStream.TakeOptionalValue();
 
   nsCOMPtr<nsIURI> uri;
   info->GetPreferredURI(getter_AddRefs(uri));

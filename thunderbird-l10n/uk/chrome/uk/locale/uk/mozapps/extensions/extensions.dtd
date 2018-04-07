@@ -4,6 +4,8 @@
 <!ENTITY addons.windowTitle                   "Додатки">
 
 <!ENTITY search.placeholder                   "Шукати серед усіх додатків">
+
+<!ENTITY search.placeholder2                  "Пошук на addons.mozilla.org">
 <!ENTITY search.buttonlabel                   "Пошук">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
@@ -23,8 +25,6 @@
 <!ENTITY getThemes.description                "Хочете персоналізувати свій браузер?">
 <!ENTITY getThemes.learnMore                  "Обирайте серед тисяч тем.">
 
-<!ENTITY cmd.back.tooltip                     "На одну сторінку назад">
-<!ENTITY cmd.forward.tooltip                  "На сторінку вперед">
 
 <!ENTITY showUnsignedExtensions.button.label  "Деякі розширення не можуть бути перевірені">
 <!ENTITY showAllExtensions.button.label       "Показати всі розширення">
@@ -36,9 +36,9 @@
 <!ENTITY warning.checkcompatibility.label          "Перевірка сумісності додатків вимкнена. У вас можуть бути несумісні додатки.">
 <!ENTITY warning.checkcompatibility.enable.label   "Увімкнути">
 <!ENTITY warning.checkcompatibility.enable.tooltip "Увімкнути перевірку сумісності додатків">
-<!ENTITY warning.updatesecurity.label              "Перевірка безпечності оновлень вимкнена. У процесі оновлення зловмисник може спробувати підмінити їх.">
+<!ENTITY warning.updatesecurity.label              "Перевірка безпечного оновлення додатків вимкнена. У процесі оновлення зловмисник може спробувати підмінити їх.">
 <!ENTITY warning.updatesecurity.enable.label       "Увімкнути">
-<!ENTITY warning.updatesecurity.enable.tooltip     "Увімкнути перевірку безпечності оновлень">
+<!ENTITY warning.updatesecurity.enable.tooltip     "Увімкнути перевірку безпечного оновлення додатків">
 
 <!-- categories / views -->
 <!ENTITY view.search.label                    "Пошук">
@@ -213,7 +213,7 @@
 <!ENTITY addon.updateNow.tooltip              "Встановити оновлення до цього додатку">
 <!ENTITY addon.includeUpdate.label            "Включити в оновлення">
 <!ENTITY addon.updateAvailable.label          "Доступне оновлення">
-<!ENTITY addon.checkingForUpdates.label       "Пошук оновлень…">
+<!ENTITY addon.checkingForUpdates.label       "Перевірка оновлень…">
 <!ENTITY addon.releaseNotes.label             "Інформація про випуск:">
 <!ENTITY addon.loadingReleaseNotes.label      "Завантаження…">
 <!ENTITY addon.errorLoadingReleaseNotes.label "Шкода, але під час завантаження інформації сталася помилка.">
@@ -258,10 +258,7 @@
 <!ENTITY pluginDeprecation.description "Чогось не вистачає? Деякі плагіни більше не підтримуються в &brandShortName;.">
 <!ENTITY pluginDeprecation.learnMore "Докладніше.">
 
-<!ENTITY legacyWarning.description "Чогось не вистачає? Деякі розширення більше не підтримуються в &brandShortName;.">
 <!ENTITY legacyWarning.showLegacy "Показати застарілі розширення">
 <!ENTITY legacyExtensions.title "Застарілі розширення">
 <!ENTITY legacyExtensions.description "Ці розширення не відповідають поточним стандартам &brandShortName;, тому вони були вимкнені.">
 <!ENTITY legacyExtensions.learnMore "Дізнайтеся про зміни, що стосуються додатків">
-
-<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

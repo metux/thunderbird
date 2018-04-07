@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 
 function calFreeBusyListener(numOperations, finalListener) {
     this.mFinalListener = finalListener;
     this.mNumOperations = numOperations;
 
-    this.opGroup = new cal.calOperationGroup(() => {
+    this.opGroup = new cal.data.OperationGroup(() => {
         this.notifyResult(null);
     });
 }
@@ -52,7 +52,7 @@ calFreeBusyListener.prototype = {
 
 function calFreeBusyService() {
     this.wrappedJSObject = this;
-    this.mProviders = new cal.calInterfaceBag(Components.interfaces.calIFreeBusyProvider);
+    this.mProviders = new Set();
 }
 var calFreeBusyServiceClassID = Components.ID("{29c56cd5-d36e-453a-acde-0083bd4fe6d3}");
 var calFreeBusyServiceInterfaces = [
@@ -75,7 +75,7 @@ calFreeBusyService.prototype = {
     // calIFreeBusyProvider:
     getFreeBusyIntervals: function(aCalId, aRangeStart, aRangeEnd, aBusyTypes, aListener) {
         let groupListener = new calFreeBusyListener(this.mProviders.size, aListener);
-        for (let provider of this.mProviders) {
+        for (let provider of this.mProviders.values()) {
             let operation = provider.getFreeBusyIntervals(aCalId, aRangeStart,
                                                           aRangeEnd,
                                                           aBusyTypes,
@@ -87,9 +87,9 @@ calFreeBusyService.prototype = {
 
     // calIFreeBusyService:
     addProvider: function(aProvider) {
-        this.mProviders.add(aProvider);
+        this.mProviders.add(aProvider.QueryInterface(Components.interfaces.calIFreeBusyProvider));
     },
     removeProvider: function(aProvider) {
-        this.mProviders.remove(aProvider);
+        this.mProviders.delete(aProvider.QueryInterface(Components.interfaces.calIFreeBusyProvider));
     }
 };

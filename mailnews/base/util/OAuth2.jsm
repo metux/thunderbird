@@ -7,12 +7,10 @@
  */
 var EXPORTED_SYMBOLS = ["OAuth2"];
 
-var {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
-
-Cu.import("resource://gre/modules/Http.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource:///modules/gloda/log4moz.js");
+ChromeUtils.import("resource://gre/modules/Http.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource:///modules/gloda/log4moz.js");
 
 function parseURLData(aData) {
   let result = {};
@@ -105,7 +103,7 @@ OAuth2.prototype = {
                 }
 
                 this.account.finishAuthorizationRequest();
-                this.account.onAuthorizationFailed(Components.results.NS_ERROR_ABORT, '{ "error": "cancelled"}');
+                this.account.onAuthorizationFailed(Cr.NS_ERROR_ABORT, '{ "error": "cancelled"}');
             },
 
             loaded: function (aWindow, aWebProgress) {

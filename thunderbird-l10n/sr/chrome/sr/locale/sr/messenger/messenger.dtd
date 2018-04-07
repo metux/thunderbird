@@ -318,6 +318,7 @@
 <!ENTITY goChatCmd.label "Ћаскање">
 <!ENTITY goChatCmd.accesskey "к">
 <!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Порука са звездицом">
 <!ENTITY prevStarredMsgCmd.accesskey "з">
 <!ENTITY folderMenu.label "Фасцикла">
@@ -366,6 +367,8 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Уреди нацрт">
 <!ENTITY editDraftMsgCmd.accesskey "ц">
+<!ENTITY editTemplateMsgCmd.label "Уреди шаблон">
+<!ENTITY editTemplateMsgCmd.accesskey "б">
 <!ENTITY newMsgFromTemplateCmd.label "Нова порука из шаблона">
 <!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Направи филтер из поруке…">
@@ -459,6 +462,11 @@
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "Додаци">
 <!ENTITY addons.accesskey "Д">
+<!ENTITY addonPrefs.label "Поставке додатка">
+<!ENTITY addonPrefs.accesskey "П">
+<!ENTITY addonPrefsUnix.label "Поставке додатка">
+<!ENTITY addonPrefsUnix.accesskey "П">
+<!ENTITY addonNoPrefs.label "Поставке додатка нису пронађене.">
 <!ENTITY activitymanager.label "Управник активностима">
 <!ENTITY activitymanager.accesskey "в">
 <!ENTITY imAccountsStatus.label "Стање ћаскања">
@@ -504,6 +512,8 @@
 <!ENTITY devToolboxCmd.commandkey "i">
 <!ENTITY addonDebugCmd.label "Поправљач грешака додатака">
 <!ENTITY addonDebugCmd.accesskey "П">
+<!ENTITY debugAddonsCmd.label "Поправљај грешке додатака">
+<!ENTITY debugAddonsCmd.accesskey "г">
 <!ENTITY tabsDebugCmd.label "Поправљач грешака кадрова садржаја">
 <!ENTITY tabsDebugCmd.accesskey "г">
 <!ENTITY errorConsoleCmd.label "Конзола са грешкама">
@@ -752,6 +762,8 @@
 <!ENTITY contextEditMsgAsNew.label "Уреди као нову поруку">
 <!ENTITY contextEditMsgAsNew.accesskey "У">
 <!ENTITY contextEditDraftMsg.label "Уреди нацрт">
+<!ENTITY contextEditTemplate.label "Уреди шаблон">
+<!ENTITY contextEditTemplate.accesskey "и">
 <!ENTITY contextArchive.label "Архивирај">
 <!ENTITY contextArchive.accesskey "х">
 <!ENTITY contextReplySender.label "Одговори само пошиљаоцу">
@@ -957,16 +969,3 @@
 <!ENTITY dockOptions.label              "Опције иконица програма…">
 <!ENTITY writeNewMessageDock.label      "Напишите нову поруку">
 <!ENTITY openAddressBookDock.label      "Отвори именик">
-
-<!ENTITY goChatCmd2.key "H">
-<!ENTITY editTemplateMsgCmd.label "Edit Template">
-<!ENTITY editTemplateMsgCmd.accesskey "T">
-<!ENTITY addonPrefs.label "Add-on Options">
-<!ENTITY addonPrefs.accesskey "O">
-<!ENTITY addonPrefsUnix.label "Add-on Preferences">
-<!ENTITY addonPrefsUnix.accesskey "P">
-<!ENTITY addonNoPrefs.label "No Add-on settings found.">
-<!ENTITY debugAddonsCmd.label "Debug Add-ons">
-<!ENTITY debugAddonsCmd.accesskey "A">
-<!ENTITY contextEditTemplate.label "Edit Template">
-<!ENTITY contextEditTemplate.accesskey "T">

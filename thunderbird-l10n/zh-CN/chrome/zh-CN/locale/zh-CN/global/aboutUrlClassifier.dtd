@@ -4,6 +4,7 @@
 
 <!-- LOCALIZATION NOTE the term "url-classifier" should not be translated. -->
 <!ENTITY aboutUrlClassifier.pageTitle                   "有关 url-classifier（URL 分类器）的信息">
+<!ENTITY aboutUrlClassifier.title                       "URL 分类器信息">
 <!ENTITY aboutUrlClassifier.providerTitle               "供应商">
 <!ENTITY aboutUrlClassifier.provider                    "供应商">
 <!ENTITY aboutUrlClassifier.providerLastUpdateTime      "上次更新时间">
@@ -20,9 +21,9 @@
 <!ENTITY aboutUrlClassifier.cacheShowEntries            "显示项目">
 <!ENTITY aboutUrlClassifier.cacheEntries                "缓存项目">
 <!ENTITY aboutUrlClassifier.cachePrefix                 "前缀">
-<!ENTITY aboutUrlClassifier.cacheNCacheExpiry           "阴性缓存过期">
+<!ENTITY aboutUrlClassifier.cacheNCacheExpiry           "阴性缓存期限">
 <!ENTITY aboutUrlClassifier.cacheFullhash               "完整散列">
-<!ENTITY aboutUrlClassifier.cachePCacheExpiry           "阳性缓存过期">
+<!ENTITY aboutUrlClassifier.cachePCacheExpiry           "阳性缓存期限">
 <!ENTITY aboutUrlClassifier.debugTitle                  "调试">
 <!ENTITY aboutUrlClassifier.debugModuleBtn              "设置日志模块">
 <!ENTITY aboutUrlClassifier.debugFileBtn                "设置日志文件">
@@ -31,5 +32,3 @@
 <!ENTITY aboutUrlClassifier.debugModules                "当前日志模块">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "安全浏览 JS 日志">
 <!ENTITY aboutUrlClassifier.debugFile                   "当前日志文件">
-
-<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

@@ -32,19 +32,19 @@
         "passwordmgr": "chrome/bg/locale/bg/passwordmgr/", 
         "pippki": "chrome/bg/locale/bg/pippki/"
       }, 
-      "version": "20171103113242"
+      "version": "20180312184305"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-bg@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "bg", 
-  "version": "59.0", 
-  "name": "Английски (САЩ) Language Pack", 
+  "version": "60.0", 
+  "name": "Български Language Pack", 
   "manifest_version": 2, 
   "sources": {
     "browser": {

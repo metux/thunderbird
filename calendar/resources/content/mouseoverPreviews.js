@@ -20,7 +20,7 @@
  * Used by all grid views.
  */
 
-Components.utils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 
 /**
  * PUBLIC: Displays a tooltip with details when hovering over an item in the views
@@ -65,9 +65,9 @@ function showToolTip(aToolTip, aItem) {
  * @param {boolean}  aIsTooltip  enabled if used for tooltip composition (default)
  */
 function getPreviewForItem(aItem, aIsTooltip=true) {
-    if (cal.isEvent(aItem)) {
+    if (cal.item.isEvent(aItem)) {
         return getPreviewForEvent(aItem, aIsTooltip);
-    } else if (cal.isToDo(aItem)) {
+    } else if (cal.item.isToDo(aItem)) {
         return getPreviewForTask(aItem, aIsTooltip);
     } else {
         return null;

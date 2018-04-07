@@ -197,3 +197,5 @@ simbole platforme Gecko">
 <!ENTITY options.sourceeditor.keybinding.label          "Bližnjice tipk">
 <!ENTITY options.sourceeditor.keybinding.accesskey      "K">
 <!ENTITY options.sourceeditor.keybinding.default.label  "Privzeto">
+
+<!ENTITY browserToolboxStatusMessage "Browser Toolbox connection status:">

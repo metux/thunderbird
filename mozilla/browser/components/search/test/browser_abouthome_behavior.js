@@ -70,13 +70,6 @@ function test() {
       }
     },
     {
-      name: "Search with Yahoo from about:home",
-      searchURL: replaceUrl("https://search.yahoo.com/search?p=foo&ei=UTF-8&fr=moz35"),
-      run() {
-        verify_about_home_search("Yahoo");
-      }
-    },
-    {
       name: "Search with Google from about:home",
       searchURL: replaceUrl("https://www.google.com/search?q=foo&ie=utf-8&oe=utf-8"),
       run() {
@@ -123,7 +116,7 @@ function test() {
       is(req.originalURI.spec, gCurrTest.searchURL, "search URL was loaded");
       info("Actual URI: " + req.URI.spec);
 
-      req.cancel(Components.results.NS_ERROR_FAILURE);
+      req.cancel(Cr.NS_ERROR_FAILURE);
 
       executeSoon(nextTest);
     }

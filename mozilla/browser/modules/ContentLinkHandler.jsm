@@ -4,18 +4,14 @@
 
 "use strict";
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cu = Components.utils;
+var EXPORTED_SYMBOLS = [ "ContentLinkHandler" ];
 
-this.EXPORTED_SYMBOLS = [ "ContentLinkHandler" ];
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "Feeds",
+ChromeUtils.defineModuleGetter(this, "Feeds",
   "resource:///modules/Feeds.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "BrowserUtils",
+ChromeUtils.defineModuleGetter(this, "BrowserUtils",
   "resource://gre/modules/BrowserUtils.jsm");
 
 const SIZES_TELEMETRY_ENUM = {
@@ -96,7 +92,7 @@ function getLinkIconURI(aLink) {
   let targetDoc = aLink.ownerDocument;
   let uri = Services.io.newURI(aLink.href, targetDoc.characterSet);
   try {
-    uri.userPass = "";
+    uri = uri.mutate().setUserPass("").finalize();
   } catch (e) {
     // some URIs are immutable
   }
@@ -268,7 +264,7 @@ function handleFaviconLink(aLink, aIsRichIcon, aChromeGlobal, aFaviconLoads) {
   return true;
 }
 
-this.ContentLinkHandler = {
+var ContentLinkHandler = {
   init(chromeGlobal) {
     const faviconLoads = new Map();
     chromeGlobal.addEventListener("DOMLinkAdded", event => {

@@ -36,7 +36,7 @@
 <!ENTITY event.attendees.notify.label                "Njoftoni pjesëmarrësit">
 <!ENTITY event.attendees.notify.accesskey            "f">
 <!ENTITY event.attendees.notifyundisclosed.label     "Ndaji ftesat sipas pjesëmarrësve">
-<!ENTITY event.attendees.notifyundisclosed.accesskey "x">
+<!ENTITY event.attendees.notifyundisclosed.accesskey "N">
 <!ENTITY event.attendees.notifyundisclosed.tooltip   "Kjo mundësi bën të dërgohet një email ftesë për pjesëmarrës. Çdo ftesë përmban vetëm pjesëmarrësin të cilit i dërgohet, kështu që identitetet e pjesëmarrësve të tjerë nuk zbulohen.">
 <!ENTITY event.attendees.disallowcounter.label       "Çaktivizoje matjen e kohës">
 <!ENTITY event.attendees.disallowcounter.accesskey   "Ç">
@@ -61,14 +61,14 @@
 <!ENTITY  event.menu.item.new.label                       "I ri">
 <!ENTITY  event.menu.item.new.accesskey                   "r">
 <!ENTITY  event.menu.item.new.event.label                 "Veprimtari">
-<!ENTITY  event.menu.item.new.event.accesskey             "N">
+<!ENTITY  event.menu.item.new.event.accesskey             "V">
 <!ENTITY  event.menu.item.new.task.label                  "Punë">
 <!ENTITY  event.menu.item.new.task.accesskey              "P">
 <!ENTITY  event.menu.item.new.message.label               "Mesazh">
 <!ENTITY  event.menu.item.new.message.accesskey           "M">
 <!ENTITY  event.menu.item.new.contact.label               "Kontakt Libri Adresash">
 <!ENTITY  event.menu.item.new.contact.accesskey           "K">
-<!ENTITY  event.menu.item.close.label                     "Mbylle">
+<!ENTITY  event.menu.item.close.label                     "Mbylleni">
 <!ENTITY  event.menu.item.close.accesskey                 "M">
 
 <!-- LOCALIZATION NOTE
@@ -171,8 +171,8 @@
 <!ENTITY  event.toolbar.attendees.label                   "Ftoni Pjesëmarrës">
 <!ENTITY  event.toolbar.privacy.label                     "Privatësi">
 
-<!ENTITY  event.toolbar.save.tooltip2                     "Ruaje">
-<!ENTITY  event.toolbar.saveandclose.tooltip              "Ruaje dhe Mbylle">
+<!ENTITY  event.toolbar.save.tooltip2                     "Ruajeni">
+<!ENTITY  event.toolbar.saveandclose.tooltip              "Ruajeni dhe Mbylleni">
 <!ENTITY  event.toolbar.delete.tooltip                    "Fshijeni">
 <!ENTITY  event.toolbar.attendees.tooltip                 "Ftoni Pjesëmarrës">
 <!ENTITY  event.toolbar.attachments.tooltip               "Shtoni Bashkëngjitje">
@@ -198,7 +198,7 @@
 <!-- Main page -->
 <!ENTITY event.title.textbox.label                        "Titull:" >
 <!ENTITY event.title.textbox.accesskey                    "T">
-<!ENTITY event.location.label                             "Vend:" >
+<!ENTITY event.location.label                             "Vendndodhje:" >
 <!ENTITY event.location.accesskey                         "V">
 <!ENTITY event.categories.label                           "Kategori:">
 <!ENTITY event.categories.accesskey                       "o">
@@ -215,7 +215,7 @@
 <!ENTITY task.from.accesskey                              "i">
 <!ENTITY event.to.label                                   "Përfundim:" >
 <!ENTITY event.to.accesskey                               "P">
-<!ENTITY task.to.label                                    "Datë Përfundimi:" >
+<!ENTITY task.to.label                                    "Datë Afati:" >
 <!ENTITY task.to.accesskey                                "D">
 <!ENTITY task.status.label                                "Gjendje:" >
 <!ENTITY task.status.accesskey                            "e">
@@ -398,12 +398,13 @@
 <!-- Read-Only dialog -->
 <!ENTITY read.only.general.label         "Të përgjithshme">
 <!ENTITY read.only.title.label           "Titull:">
+<!ENTITY read.only.calendar.label        "Kalendar:">
 <!ENTITY read.only.event.start.label     "Datë Fillimi:">
 <!ENTITY read.only.task.start.label      "Datë Fillimi:">
 <!ENTITY read.only.event.end.label       "Datë Mbarimi:">
-<!ENTITY read.only.task.due.label        "Datë Përfundimi:">
+<!ENTITY read.only.task.due.label        "Datë Afati:">
 <!ENTITY read.only.repeat.label          "Përsëritje:">
-<!ENTITY read.only.location.label        "Vend:">
+<!ENTITY read.only.location.label        "Vendndodhje:">
 <!ENTITY read.only.category.label        "Kategori:">
 <!ENTITY read.only.organizer.label       "Organizues:">
 <!ENTITY read.only.reply.label           "Përgjigje:">
@@ -416,3 +417,17 @@
 <!ENTITY read.only.attendees.label       "Pjesëmarrës">
 <!ENTITY read.only.description.label     "Përshkrim">
 <!ENTITY read.only.link.label            "Lidhje e Afërt">
+
+<!-- Summary dialog -->
+<!ENTITY summary.dialog.saveclose.label         "Ruaje dhe Mbylle">
+<!ENTITY summary.dialog.saveclose.tooltiptext   "Ruajini ndryshimet dhe mbylleni dritaren pa ndryshuar gjendjen e pjesëmarrjes dhe pa dërguar një përgjigje">
+<!ENTITY summary.dialog.accept.label            "Pranoje">
+<!ENTITY summary.dialog.accept.tooltiptext      "Pranoni ftesën">
+<!ENTITY summary.dialog.tentative.label         "Përpjekje">
+<!ENTITY summary.dialog.tentative.tooltiptext   "Pranoni përkohësisht ftesën">
+<!ENTITY summary.dialog.decline.label           "Hidhe poshtë">
+<!ENTITY summary.dialog.decline.tooltiptext     "Hidhni poshtë ftesën">
+<!ENTITY summary.dialog.dontsend.label          "Mos dërgo përgjigje">
+<!ENTITY summary.dialog.dontsend.tooltiptext    "Ndryshoni gjendjen e pjesëmarrjes tuaj pa dërguar përgjigje për organizuesin dhe mbylleni dritaren">
+<!ENTITY summary.dialog.send.label              "Dërgoni një përgjigje tani">
+<!ENTITY summary.dialog.send.tooltiptext        "Dërgoni një përgjigje organizuesit dhe mbylleni dritaren">

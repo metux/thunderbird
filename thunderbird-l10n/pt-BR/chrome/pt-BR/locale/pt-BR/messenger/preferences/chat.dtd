@@ -31,6 +31,10 @@ sentence. -->
 <!ENTITY  completeNotification.label          "com nome do destinatário e prévia da mensagem">
 <!ENTITY  buddyInfoOnly.label                 "com o nome do remetente apenas">
 <!ENTITY  dummyNotification.label             "sem qualquer informação">
+<!ENTITY  getAttention.label                  "Piscar o item da barra de tarefas">
+<!ENTITY  getAttention.accesskey              "f">
+<!ENTITY  getAttentionMac.label               "Animar o ícone da dock">
+<!ENTITY  getAttentionMac.accesskey           "o">
 <!ENTITY  chatSound.accesskey                 "d">
 <!ENTITY  chatSound.label                     "Reproduzir um som">
 <!ENTITY  play.label                          "Reproduzir">
@@ -58,8 +62,3 @@ sentence. -->
 <!ENTITY messageStyleShowHeader.accesskey  "C">
 <!ENTITY messageStyleNoPreview.title       "Nenhum pré-visualização disponível">
 <!ENTITY messageStyleNoPreview.description "Este tema não é válido ou está atualmente indisponível (extensão desativada, modo de segurança, …).">
-
-<!ENTITY  getAttention.label                  "Flash the taskbar item">
-<!ENTITY  getAttention.accesskey              "F">
-<!ENTITY  getAttentionMac.label               "Animate dock icon">
-<!ENTITY  getAttentionMac.accesskey           "o">

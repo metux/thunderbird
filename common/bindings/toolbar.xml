@@ -15,7 +15,12 @@
     </resources>
   </binding>
 
-  <binding id="toolbox" extends="chrome://messenger/content/toolbar.xml#toolbar-base">
+  <binding id="toolbox" 
+#ifdef MOZ_SUITE
+           extends="chrome://communicator/content/bindings/toolbar.xml#toolbar-base">
+#else
+           extends="chrome://messenger/content/toolbar.xml#toolbar-base">
+#endif
     <implementation>
       <field name="palette">
         null
@@ -94,7 +99,11 @@
   </binding>
 
   <binding id="toolbar" role="xul:toolbar"
+#ifdef MOZ_SUITE
+           extends="chrome://communicator/content/bindings/toolbar.xml#toolbar-base">
+#else
            extends="chrome://messenger/content/toolbar.xml#toolbar-base">
+#endif
     <implementation>
       <property name="toolbarName"
                 onget="return this.getAttribute('toolbarname');"
@@ -118,7 +127,7 @@
               throw new Error(`toolbar ID ${this.id}${tbName}: toolboxid attribute '${toolboxId}' points to a toolbox that doesn't exist`);
             }
 
-            if (toolbox.externalToolbars.indexOf(this) == -1)
+            if (!toolbox.externalToolbars.includes(this))
               toolbox.externalToolbars.push(this);
 
             return this._toolbox = toolbox;
@@ -395,16 +404,18 @@
           var defaultOrNoninteractive = (this.getAttribute("defaultset") || "")
                                           .split(",")
                                           .concat(["separator", "spacer", "spring"]);
-          return aCurrentSet.split(",").some(function(item) {
-            return defaultOrNoninteractive.indexOf(item) == -1;
-          });
+          return aCurrentSet.split(",").some(item => !defaultOrNoninteractive.includes(item));
         ]]></body>
       </method>
     </implementation>
   </binding>
 
   <binding id="toolbar-menubar-autohide"
+#ifdef MOZ_SUITE
+           extends="chrome://communicator/content/bindings/toolbar.xml#toolbar">
+#else
            extends="chrome://messenger/content/toolbar.xml#toolbar">
+#endif
     <implementation>
       <constructor>
         this._setInactive();
@@ -500,7 +511,11 @@
   </binding>
 
   <binding id="toolbar-drag"
+#ifdef MOZ_SUITE
+           extends="chrome://communicator/content/bindings/toolbar.xml#toolbar">
+#else
            extends="chrome://messenger/content/toolbar.xml#toolbar">
+#endif
     <implementation>
       <field name="_dragBindingAlive">true</field>
       <constructor><![CDATA[
@@ -508,7 +523,7 @@
           this._draggableStarted = true;
           try {
             let tmp = {};
-            Components.utils.import("resource://gre/modules/WindowDraggingUtils.jsm", tmp);
+            ChromeUtils.import("resource://gre/modules/WindowDraggingUtils.jsm", tmp);
             let draggableThis = new tmp.WindowDraggingElement(this);
             draggableThis.mouseDownCheck = function(e) {
               // Don't move while customizing.
@@ -522,7 +537,12 @@
   </binding>
 
   <binding id="menubar" role="xul:menubar"
-           extends="chrome://messenger/content/toolbar.xml#toolbar-base" display="xul:menubar">
+#ifdef MOZ_SUITE
+           extends="chrome://communicator/content/bindings/toolbar.xml#toolbar-base"
+#else
+           extends="chrome://messenger/content/toolbar.xml#toolbar-base"
+#endif
+           display="xul:menubar">
     <implementation>
        <field name="_active">false</field>
        <field name="_statusbar">null</field>
@@ -566,10 +586,21 @@
     </handlers>
   </binding>
 
-  <binding id="toolbardecoration" role="xul:toolbarseparator" extends="chrome://messenger/content/toolbar.xml#toolbar-base">
+  <binding id="toolbardecoration" role="xul:toolbarseparator"
+#ifdef MOZ_SUITE
+           extends="chrome://communicator/content/bindings/toolbar.xml#toolbar-base">
+#else
+           extends="chrome://messenger/content/toolbar.xml#toolbar-base">
+#endif
   </binding>
 
-  <binding id="toolbarpaletteitem" extends="chrome://messenger/content/toolbar.xml#toolbar-base" display="xul:button">
+  <binding id="toolbarpaletteitem"
+#ifdef MOZ_SUITE
+           extends="chrome://communicator/content/bindings/toolbar.xml#toolbar-base"
+#else
+           extends="chrome://messenger/content/toolbar.xml#toolbar-base"
+#endif
+           display="xul:button">
     <content>
       <xul:hbox class="toolbarpaletteitem-box" flex="1" xbl:inherits="type,place">
         <children/>
@@ -577,7 +608,12 @@
     </content>
   </binding>
 
-  <binding id="toolbarpaletteitem-palette" extends="chrome://messenger/content/toolbar.xml#toolbarpaletteitem">
+  <binding id="toolbarpaletteitem-palette"
+#ifdef MOZ_SUITE
+           extends="chrome://communicator/content/bindings/toolbar.xml#toolbarpaletteitem">
+#else
+           extends="chrome://messenger/content/toolbar.xml#toolbarpaletteitem">
+#endif
     <content>
       <xul:hbox class="toolbarpaletteitem-box" xbl:inherits="type,place">
         <children/>
@@ -586,7 +622,12 @@
     </content>
   </binding>
 
-  <binding id="toolbarpaletteitem-palette-wrapping-label" extends="chrome://messenger/content/toolbar.xml#toolbarpaletteitem">
+  <binding id="toolbarpaletteitem-palette-wrapping-label"
+#ifdef MOZ_SUITE
+           extends="chrome://communicator/content/bindings/toolbar.xml#toolbarpaletteitem">
+#else
+           extends="chrome://messenger/content/toolbar.xml#toolbarpaletteitem">
+#endif
     <content>
       <xul:hbox class="toolbarpaletteitem-box" xbl:inherits="type,place">
         <children/>

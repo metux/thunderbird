@@ -543,10 +543,21 @@ nsMsgDBView::FetchRecipients(nsIMsgDBHdr * aHdr,
     {
       // We can't use the display name in the card; use the name contained in
       // the header or email address.
-      if (!curName.IsEmpty())
-        recipient = curName;
-      else
+      if (curName.IsEmpty()) {
         CopyUTF8toUTF16(curAddress, recipient);
+      } else {
+        int32_t atPos;
+        if ((atPos = curName.FindChar('@')) == kNotFound ||
+            curName.FindChar('.', atPos) == kNotFound) {
+          recipient = curName;
+        } else {
+          // Found @ followed by a dot, so this looks like a spoofing case.
+          recipient = curName;
+          recipient.AppendLiteral(" <");
+          AppendUTF8toUTF16(curAddress, recipient);
+          recipient.Append('>');
+        }
+      }
     }
 
     // Add ', ' between each recipient.
@@ -1029,25 +1040,6 @@ nsresult
 nsMsgDBView::GetMessageEnumerator(nsISimpleEnumerator **enumerator)
 {
   return m_db->EnumerateMessages(enumerator);
-}
-
-nsresult
-nsMsgDBView::CycleThreadedColumn(nsIDOMElement * aElement)
-{
-  nsAutoString currentView;
-
-  // Toggle threaded/unthreaded mode.
-  aElement->GetAttribute(NS_LITERAL_STRING("currentView"), currentView);
-  if (currentView.EqualsLiteral("threaded"))
-    aElement->SetAttribute(NS_LITERAL_STRING("currentView"),
-                           NS_LITERAL_STRING("unthreaded"));
-  else
-    aElement->SetAttribute(NS_LITERAL_STRING("currentView"),
-                           NS_LITERAL_STRING("threaded"));
-
-  // I think we need to create a new view and switch it in this circumstance
-  // since we are toggline between threaded and non threaded mode.
-  return NS_OK;
 }
 
 NS_IMETHODIMP

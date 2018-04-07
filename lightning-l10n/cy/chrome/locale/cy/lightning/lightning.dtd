@@ -1,45 +1,56 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
 <!-- WARNING! This file contains UTF-8 encoded characters!
    - If this ==> … <== doesn't look like an ellipsis (three dots in a row),
    - your editor isn't using UTF-8 encoding and may munge up the document!
   -->
+
 <!-- Tools menu -->
-
-
 <!ENTITY lightning.preferencesLabel "Calendr">
-<!-- New menu popup in File menu -->
 
+<!-- New menu popup in File menu -->
 <!ENTITY lightning.menupopup.new.event.label    "Digwyddiad…">
 <!ENTITY lightning.menupopup.new.event.accesskey "D">
 <!ENTITY lightning.menupopup.new.task.label     "Tasg…">
 <!ENTITY lightning.menupopup.new.task.accesskey "T">
 <!ENTITY lightning.menupopup.new.calendar.label "Calendr…">
 <!ENTITY lightning.menupopup.new.calendar.accesskey "C">
-<!-- Open menu popup in File menu -->
 
+<!-- Open menu popup in File menu -->
 <!ENTITY lightning.menupopup.open.label               "Agor">
 <!ENTITY lightning.menupopup.open.accesskey           "A">
 <!ENTITY lightning.menupopup.open.message.label       "Neges wedi'i Chadw…">
 <!ENTITY lightning.menupopup.open.message.accesskey   "N">
 <!ENTITY lightning.menupopup.open.calendar.label      "Ffeil Calendr…">
 <!ENTITY lightning.menupopup.open.calendar.accesskey  "F">
-<!-- View Menu -->
 
+<!-- View Menu -->
 <!ENTITY lightning.menu.view.calendar.label            "Calendr">
 <!ENTITY lightning.menu.view.calendar.accesskey        "a">
 <!ENTITY lightning.menu.view.tasks.label               "Tasgau">
 <!ENTITY lightning.menu.view.tasks.accesskey           "a">
-<!-- Events and Tasks menu -->
 
+<!-- Events and Tasks menu -->
 <!ENTITY lightning.menu.eventtask.label                "Digwyddiadau a Thasgau">
 <!ENTITY lightning.menu.eventtask.accesskey            "D">
+
 <!-- properties dialog, calendar creation wizard -->
+<!-- LOCALIZATON NOTE(lightning.calendarproperties.email.label,
+     lightning.calendarproperties.forceEmailScheduling.label)
+     These strings are used in the calendar wizard and the calendar properties dialog, but are only
+     displayed when setting/using a caldav calendar -->
+<!ENTITY lightning.calendarproperties.email.label                           "E-Bost:">
+<!ENTITY lightning.calendarproperties.forceEmailScheduling.label            "Ffracio amserlennu e-bost ochr y cleient">
+<!-- LOCALIZATON NOTE(lightning.calendarproperties.forceEmailScheduling.tooltiptext1,
+     lightning.calendarproperties.forceEmailScheduling.tooltiptext2)
+     - tooltiptext1 is used in the calendar wizard when setting a new caldav calendar
+     - tooltiptext2 is used in the calendar properties dialog for caldav calendars -->
+<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext1     "Ar hyn o bryd, mae modd galluogi hwn ar ôl gosod y calendr hwn yn ei ddeialog priodwedd os yw gweinydd y calendr yn cymryd gofal o amserlennu.">
+<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext2     "Dim ond os yw gweinydd yr amserlenni ar gael mae'r dewis hwn ar gael. Bydd ei alluogi yn caniatau mynd yn ol i'r amserlemnni e-bost safonol yn lle ei adael ar y gweinydd.">
 
-<!ENTITY lightning.calendarproperties.email.label               "E-Bost:">
 <!-- iMIP Bar (meeting support) -->
-
 <!ENTITY lightning.imipbar.btnAccept.label                                  "Derbyn">
 <!ENTITY lightning.imipbar.btnAccept2.tooltiptext                           "Derbyn gwahoddiad i'r digwyddiad">
 <!ENTITY lightning.imipbar.btnAcceptRecurrences.label                       "Derbyn y cyfan">
@@ -71,17 +82,24 @@
 <!ENTITY lightning.imipbar.btnUpdate.label                                  "Diweddaru">
 <!ENTITY lightning.imipbar.btnUpdate.tooltiptext                            "Diweddaru'r digwyddiad yn y calendr">
 <!ENTITY lightning.imipbar.description                                      "Mae'r neges hon yn cynnwys gwahoddiad i ddigwyddiad.">
-<!-- Lightning specific keybindings -->
 
+<!ENTITY lightning.imipbar.btnSend.label                                    "Anfon ymateb nawr">
+<!ENTITY lightning.imipbar.btnSend.tooltiptext                              "Anfon ymateb i'r trefnydd">
+<!ENTITY lightning.imipbar.btnSendSeries.tooltiptext                        "Anfon ymateb am y gyfres gyfan i'r trefnydd">
+<!ENTITY lightning.imipbar.btnDontSend.label                                "Peidio anfon ymateb">
+<!ENTITY lightning.imipbar.btnDontSend.tooltiptext                          "Newid eich statws cyfranogi heb anfon ymateb i'r trefnydd">
+<!ENTITY lightning.imipbar.btnDontSendSeries.tooltiptext                    "Newid eich statws cyfranogi ar gyfer y gyfres heb anfon ymateb i'r trefnydd">
+
+<!-- Lightning specific keybindings -->
 <!ENTITY lightning.keys.event.showCalendar.key "C">
 <!ENTITY lightning.keys.event.showTasks.key "D">
 <!ENTITY lightning.keys.event.new "I">
 <!ENTITY lightning.keys.todo.new "D">
+
 <!-- Account Central page -->
-
 <!ENTITY lightning.acctCentral.newCalendar.label "Creu calendr newydd">
-<!-- today-pane-specific -->
 
+<!-- today-pane-specific -->
 <!ENTITY todaypane.showMinimonth.label "Dangos Mis Bach">
 <!ENTITY todaypane.showMinimonth.accesskey "M">
 <!ENTITY todaypane.showMiniday.label "Dangos Diwrnod Bach">
@@ -91,7 +109,3 @@
 <!ENTITY todaypane.showTodayPane.label "Dangos Paen Heddiw">
 <!ENTITY todaypane.showTodayPane.accesskey "P">
 <!ENTITY todaypane.statusButton.label "Paen Heddiw">
-
-<!ENTITY lightning.calendarproperties.forceEmailScheduling.label            "Prefer client-side email scheduling">
-<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext1     "For now, you can only enable this after setting up this calendar in its property dialog if the calendar server takes care of scheduling.">
-<!ENTITY lightning.calendarproperties.forceEmailScheduling.tooltiptext2     "This option is only available if the calendar server handles scheduling. Enabling will allow to fall back to the standard email based scheduling instead of leaving it to the server.">

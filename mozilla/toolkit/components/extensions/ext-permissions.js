@@ -1,9 +1,9 @@
 "use strict";
 
-XPCOMUtils.defineLazyModuleGetter(this, "ExtensionPermissions",
-                                  "resource://gre/modules/ExtensionPermissions.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Services",
-                                  "resource://gre/modules/Services.jsm");
+ChromeUtils.defineModuleGetter(this, "ExtensionPermissions",
+                               "resource://gre/modules/ExtensionPermissions.jsm");
+ChromeUtils.defineModuleGetter(this, "Services",
+                               "resource://gre/modules/Services.jsm");
 
 var {
   ExtensionError,
@@ -64,7 +64,7 @@ this.permissions = class extends ExtensionAPI {
         },
 
         async getAll() {
-          let perms = context.extension.userPermissions;
+          let perms = context.extension.activePermissions;
           delete perms.apis;
           return perms;
         },

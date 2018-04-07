@@ -70,9 +70,9 @@
       ]]></destructor>
 
       <field name="mPrefs">
-        var svc = Components.classes["@mozilla.org/preferences-service;1"]
-                            .getService(Components.interfaces.nsIPrefService);
-        svc.getBranch(null);
+        Cc["@mozilla.org/preferences-service;1"]
+          .getService(Ci.nsIPrefService);
+          .getBranch(null);
       </field>
 
       <field name="mPrefObserver"><![CDATA[
@@ -163,8 +163,8 @@
               var baseDomain = Services.eTLD.getBaseDomainFromHost(domain);
               if (!domain.endsWith(baseDomain)) {
                 // getBaseDomainFromHost converts its resultant to ACE.
-                let IDNService = Components.classes["@mozilla.org/network/idn-service;1"]
-                                           .getService(Components.interfaces.nsIIDNService);
+                let IDNService = Cc["@mozilla.org/network/idn-service;1"]
+                                   .getService(Ci.nsIIDNService);
                 baseDomain = IDNService.convertACEtoUTF8(baseDomain);
               }
               if (baseDomain != domain) {
@@ -293,9 +293,9 @@
                 if (!val || !controller.isCommandEnabled(aCommand))
                   return;
 
-                Components.classes["@mozilla.org/widget/clipboardhelper;1"]
-                          .getService(Components.interfaces.nsIClipboardHelper)
-                          .copyString(val);
+                Cc["@mozilla.org/widget/clipboardhelper;1"]
+                  .getService(Ci.nsIClipboardHelper)
+                  .copyString(val);
 
                 if (aCommand == "cmd_cut")
                   goDoCommand("cmd_delete");
@@ -386,19 +386,18 @@
       </field>
 
       <field name="mPrefs">
-        Components.classes["@mozilla.org/preferences-service;1"]
-                  .getService(Components.interfaces.nsIPrefService)
-                  .getBranch(null);
+        Cc["@mozilla.org/preferences-service;1"]
+          .getService(Ci.nsIPrefService)
+          .getBranch(null);
       </field>
 
       <field name="mObSvc">
-        Components.classes["@mozilla.org/observer-service;1"]
-                  .getService(Components.interfaces.nsIObserverService);
+        Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
       </field>
 
       <field name="mSearchService">
-        Components.classes["@mozilla.org/browser/search-service;1"]
-                  .getService(Components.interfaces.nsIBrowserSearchService);
+        Cc["@mozilla.org/browser/search-service;1"]
+          .getService(Ci.nsIBrowserSearchService);
       </field>
 
       <field name="mObserver"><![CDATA[
@@ -561,9 +560,9 @@
     <implementation>
       <constructor><![CDATA[
         this.navigatorBundle =
-          Components.classes["@mozilla.org/intl/stringbundle;1"]
-                    .getService(Components.interfaces.nsIStringBundleService)
-                    .createBundle("chrome://navigator/locale/navigator.properties");
+          Cc["@mozilla.org/intl/stringbundle;1"]
+            .getService(Ci.nsIStringBundleService)
+            .createBundle("chrome://navigator/locale/navigator.properties");
 
         var text = this.getAttribute("searchvalue");
         if (text)
@@ -575,8 +574,8 @@
       </field>
 
       <field name="mSearchService">
-        Components.classes["@mozilla.org/browser/search-service;1"]
-                  .getService(Components.interfaces.nsIBrowserSearchService);
+        Cc["@mozilla.org/browser/search-service;1"]
+          .getService(Ci.nsIBrowserSearchService);
       </field>
 
       <property name="activeChild"

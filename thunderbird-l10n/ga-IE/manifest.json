@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/ga-IE/locale/ga-IE/passwordmgr/", 
         "pippki": "chrome/ga-IE/locale/ga-IE/pippki/"
       }, 
-      "version": "20171102104650"
+      "version": "20180312192958"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-ga-IE@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "ga-IE", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Béarla (SAM) Language Pack", 
   "manifest_version": 2, 
   "sources": {

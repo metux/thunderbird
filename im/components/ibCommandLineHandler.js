@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 var {classes: Cc, interfaces: Ci, utils: Cu} = Components;
-Cu.import("resource:///modules/imServices.jsm");
-Cu.import("resource:///modules/imXPCOMUtils.jsm");
-Cu.import("resource:///modules/ibCore.jsm");
+ChromeUtils.import("resource:///modules/imServices.jsm");
+ChromeUtils.import("resource:///modules/imXPCOMUtils.jsm");
+ChromeUtils.import("resource:///modules/ibCore.jsm");
 
 function ibCommandLineHandler() { }
 
@@ -36,8 +36,8 @@ ibCommandLineHandler.prototype = {
         // The code in nsAppStartup::Run won't start the event loop if
         // we don't have at least one window or one call to
         // enterLastWindowClosingSurvivalArea.
-        let as = Components.classes["@mozilla.org/toolkit/app-startup;1"]
-                           .getService(Ci.nsIAppStartup);
+        let as = Cc["@mozilla.org/toolkit/app-startup;1"]
+                   .getService(Ci.nsIAppStartup);
         as.enterLastWindowClosingSurvivalArea();
         // We can exitLastWindowClosingSurvivalArea as soon as the
         // load of our application provided hiddenWindow has begun.

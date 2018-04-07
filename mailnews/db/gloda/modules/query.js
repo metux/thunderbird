@@ -4,16 +4,11 @@
 
 this.EXPORTED_SYMBOLS = ["GlodaQueryClassFactory"];
 
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
-var Cu = Components.utils;
-
-Cu.import("resource:///modules/gloda/log4moz.js");
+ChromeUtils.import("resource:///modules/gloda/log4moz.js");
 
 // GlodaDatastore has some constants we need, and oddly enough, there was no
 //  load dependency preventing us from doing this.
-Cu.import("resource:///modules/gloda/datastore.js");
+ChromeUtils.import("resource:///modules/gloda/datastore.js");
 
 /**
  * @class Query class core; each noun gets its own sub-class where attributes
@@ -83,11 +78,8 @@ GlodaQueryClass.prototype = {
     return orQuery;
   },
 
-  orderBy: function gloda_query_orderBy() {
-    for (let iArg = 0; iArg < arguments.length; iArg++) {
-      let arg = arguments[iArg];
-      this._order.push(arg);
-    }
+  orderBy: function gloda_query_orderBy(...aArgs) {
+    this._order.push(...aArgs);
     return this;
   },
 

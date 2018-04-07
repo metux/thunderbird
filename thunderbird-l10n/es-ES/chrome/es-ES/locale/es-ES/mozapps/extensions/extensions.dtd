@@ -4,6 +4,7 @@
 
 <!ENTITY addons.windowTitle "Administrador de complementos">
 <!ENTITY search.placeholder "Buscar complementos">
+<!ENTITY search.placeholder2 "Buscar en addons.mozilla.org">
 <!ENTITY search.buttonlabel "Buscar">
 <!ENTITY search.commandkey "f">
 <!ENTITY loading.label "Cargando…">
@@ -18,8 +19,6 @@
 <!ENTITY toolsMenu.tooltip "Herramientas para todos los complementos">
 <!ENTITY getThemes.description "¿Pensando en personalizar su navegador?">
 <!ENTITY getThemes.learnMore "Elija entre miles de temas.">
-<!ENTITY cmd.back.tooltip "Retroceder una página">
-<!ENTITY cmd.forward.tooltip "Avanzar una página">
 <!ENTITY showUnsignedExtensions.button.label "Algunas extensiones no han podido ser verificadas">
 <!ENTITY showAllExtensions.button.label "Mostrar todas las extensiones">
 <!ENTITY debugAddons.label "Depurar complementos">
@@ -186,5 +185,3 @@
 <!ENTITY legacyExtensions.title "Extensiones clásicas">
 <!ENTITY legacyExtensions.description "Estas extensiones no cumplen los estándares actuales de &brandShortName; por lo que han sido desactivadas.">
 <!ENTITY legacyExtensions.learnMore "Conozca sobre los cambios a los complementos">
-
-<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

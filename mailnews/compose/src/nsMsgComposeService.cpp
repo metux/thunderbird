@@ -22,7 +22,7 @@
 #include "nsIDocShell.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDOMDocument.h"
-#include "nsIDOMHTMLDocument.h"
+#include "nsIDocument.h"
 #include "nsIDOMElement.h"
 #include "nsIXULWindow.h"
 #include "nsIWindowMediator.h"
@@ -50,6 +50,8 @@
 #include "mimemoz2.h"
 #include "nsIArray.h"
 #include "nsArrayUtils.h"
+#include "nsIURIMutator.h"
+#include "mozilla/Unused.h"
 
 #ifdef MSGCOMP_TRACE_PERFORMANCE
 #include "mozilla/Logging.h"
@@ -327,9 +329,7 @@ nsMsgComposeService::GetOrigWindowSelection(MSG_ComposeType type, nsIMsgWindow *
   rv = docShell->GetContentViewer(getter_AddRefs(contentViewer));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIDOMDocument> domDocument;
-  rv = contentViewer->GetDOMDocument(getter_AddRefs(domDocument));
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIDOMDocument> domDocument = do_QueryInterface(contentViewer->GetDocument());
 
   nsCOMPtr<nsIDocumentEncoder> docEncoder(do_CreateInstance(NS_HTMLCOPY_ENCODER_CONTRACTID, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1333,7 +1333,12 @@ nsMsgComposeService::RunMessageThroughMimeDraft(
 
   // ignore errors here - it's not fatal, and in the case of mailbox messages,
   // we're always passing in an invalid spec...
-  (void)url->SetSpecInternal(mailboxUri);
+  nsCOMPtr<nsIMsgMailNewsUrl> mailnewsurl = do_QueryInterface(url);
+  if (!mailnewsurl) {
+    NS_WARNING("Trying to run a message through MIME which doesn't have a nsIMsgMailNewsUrl?");
+    return NS_ERROR_UNEXPECTED;
+  }
+  mozilla::Unused << mailnewsurl->SetSpecInternal(mailboxUri);
 
   // if we are forwarding a message and that message used a charset over ride
   // then use that over ride charset instead of the charset specified in the message

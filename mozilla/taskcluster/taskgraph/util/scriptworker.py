@@ -22,10 +22,6 @@ import os
 
 
 # constants {{{1
-GECKO = os.path.realpath(os.path.join(__file__, '..', '..', '..', '..'))
-VERSION_PATH = os.path.join(GECKO, "browser", "config", "version_display.txt")
-APP_VERSION_PATH = os.path.join(GECKO, "browser", "config", "version.txt")
-
 """Map signing scope aliases to sets of projects.
 
 Currently m-c and DevEdition on m-b use nightly signing; Beta on m-b and m-r
@@ -159,6 +155,9 @@ PHASES = {
     'default': None,
 }
 
+"""Known balrog actions."""
+BALROG_ACTIONS = ('submit-locale', 'submit-toplevel', 'schedule')
+
 """Map balrog scope aliases to sets of projects.
 
 This is a list of list-pairs, for ordering.
@@ -192,48 +191,6 @@ BALROG_SERVER_SCOPES = {
     'default': 'balrog:server:dep',
 }
 
-"""Map the balrog scope aliases to the actual channel scopes.
-"""
-BALROG_CHANNEL_SCOPES = {
-    'nightly': [
-        'balrog:channel:nightly',
-        'balrog:channel:nightly-old-id',
-        'balrog:channel:aurora',
-    ],
-    'aurora': [
-        'balrog:channel:aurora',
-    ],
-    'beta': [
-        'balrog:channel:beta',
-        'balrog:channel:beta-localtest',
-        'balrog:channel:beta-cdntest',
-    ],
-    'release': [
-        'balrog:channel:release',
-        'balrog:channel:release-localtest',
-        'balrog:channel:release-cdntest',
-    ],
-    'esr': [
-        'balrog:channel:esr',
-        'balrog:channel:esr-localtest',
-        'balrog:channel:esr-cdntest',
-    ],
-    'default': [
-        'balrog:channel:nightly',
-        'balrog:channel:nightly-old-id',
-        'balrog:channel:aurora',
-        'balrog:channel:beta',
-        'balrog:channel:beta-localtest',
-        'balrog:channel:beta-cdntest',
-        'balrog:channel:release',
-        'balrog:channel:release-localtest',
-        'balrog:channel:release-cdntest',
-        'balrog:channel:esr',
-        'balrog:channel:esr-localtest',
-        'balrog:channel:esr-cdntest',
-    ],
-}
-
 
 PUSH_APK_SCOPE_ALIAS_TO_PROJECT = [[
     'central', set([
@@ -256,6 +213,11 @@ PUSH_APK_SCOPES = {
     'release': 'googleplay:release',
     'default': 'googleplay:invalid',
 }
+
+
+""" The list of the release promotion phases which we send notifications for
+"""
+RELEASE_NOTIFICATION_PHASES = ('promote', 'push', 'ship')
 
 
 def add_scope_prefix(config, scope):
@@ -387,6 +349,12 @@ def get_phase_from_target_method(config, alias_to_tasks_map, alias_to_phase_map)
     return alias_to_phase_map['default']
 
 
+@with_scope_prefix
+def get_balrog_action_scope(config, action='submit'):
+    assert action in BALROG_ACTIONS
+    return "balrog:action:{}".format(action)
+
+
 get_signing_cert_scope = functools.partial(
     get_scope_from_project,
     alias_to_project_map=SIGNING_SCOPE_ALIAS_TO_PROJECT,
@@ -424,12 +392,6 @@ get_balrog_server_scope = functools.partial(
     alias_to_scope_map=BALROG_SERVER_SCOPES,
 )
 
-get_balrog_channel_scopes = functools.partial(
-    get_scope_from_project,
-    alias_to_project_map=BALROG_SCOPE_ALIAS_TO_PROJECT,
-    alias_to_scope_map=BALROG_CHANNEL_SCOPES,
-)
-
 get_push_apk_scope = functools.partial(
     get_scope_from_project,
     alias_to_project_map=PUSH_APK_SCOPE_ALIAS_TO_PROJECT,
@@ -454,8 +416,11 @@ def get_release_config(config):
 
     partial_updates = os.environ.get("PARTIAL_UPDATES", "")
     if partial_updates != "" and config.kind in ('release-bouncer-sub',
-                                                 'release-uptake-monitoring',
-                                                 'release-updates-builder',
+                                                 'release-bouncer-check',
+                                                 'release-update-verify-config',
+                                                 'release-secondary-update-verify-config',
+                                                 'release-balrog-submit-toplevel',
+                                                 'release-secondary-balrog-submit-toplevel',
                                                  ):
         partial_updates = json.loads(partial_updates)
         release_config['partial_versions'] = ', '.join([
@@ -465,20 +430,8 @@ def get_release_config(config):
         if release_config['partial_versions'] == "{}":
             del release_config['partial_versions']
 
-    uptake_monitoring_platforms = os.environ.get("UPTAKE_MONITORING_PLATFORMS", "[]")
-    if uptake_monitoring_platforms != "[]" and \
-            config.kind in ('release-uptake-monitoring',):
-        uptake_monitoring_platforms = json.loads(uptake_monitoring_platforms)
-        release_config['platforms'] = ', '.join(uptake_monitoring_platforms)
-        if release_config['platforms'] == "[]":
-            del release_config['platforms']
-
-    with open(VERSION_PATH, "r") as fh:
-        version = fh.readline().rstrip()
-    release_config['version'] = version
-    with open(APP_VERSION_PATH, "r") as fh:
-        appVersion = fh.readline().rstrip()
-    release_config['appVersion'] = appVersion
+    release_config['version'] = str(config.params['version'])
+    release_config['appVersion'] = str(config.params['app_version'])
 
     release_config['next_version'] = str(config.params['next_version'])
     release_config['build_number'] = config.params['build_number']

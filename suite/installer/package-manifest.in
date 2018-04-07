@@ -142,7 +142,7 @@
 @BINPATH@/@DLL_PREFIX@mozavutil@DLL_SUFFIX@
 @BINPATH@/@DLL_PREFIX@mozavcodec@DLL_SUFFIX@
 #endif
-#ifdef MOZ_GTK3
+#ifdef MOZ_GTK
 @BINPATH@/@DLL_PREFIX@mozgtk@DLL_SUFFIX@
 @BINPATH@/gtk2/@DLL_PREFIX@mozgtk@DLL_SUFFIX@
 #ifdef MOZ_WAYLAND
@@ -194,7 +194,6 @@
 @RESPATH@/components/dom.xpt
 @RESPATH@/components/dom_base.xpt
 @RESPATH@/components/dom_bindings.xpt
-@RESPATH@/components/dom_canvas.xpt
 @RESPATH@/components/dom_core.xpt
 @RESPATH@/components/dom_events.xpt
 @RESPATH@/components/dom_file.xpt
@@ -211,26 +210,18 @@
 @RESPATH@/components/dom_range.xpt
 @RESPATH@/components/dom_security.xpt
 @RESPATH@/components/dom_sidebar.xpt
-@RESPATH@/components/dom_smil.xpt
 @RESPATH@/components/dom_storage.xpt
-@RESPATH@/components/dom_svg.xpt
 @RESPATH@/components/dom_system.xpt
-@RESPATH@/components/dom_traversal.xpt
 #ifdef MOZ_WEBSPEECH
 @RESPATH@/components/dom_webspeechrecognition.xpt
 @RESPATH@/components/dom_webspeechsynth.xpt
 #endif
 @RESPATH@/components/dom_workers.xpt
-@RESPATH@/components/dom_xbl.xpt
-@RESPATH@/components/dom_xhr.xpt
-@RESPATH@/components/dom_xpath.xpt
 @RESPATH@/components/dom_xul.xpt
-@RESPATH@/components/downloads.xpt
 @RESPATH@/components/editor.xpt
 @RESPATH@/components/extensions.xpt
 @RESPATH@/components/extensions.manifest
 @RESPATH@/components/exthandler.xpt
-@RESPATH@/components/exthelper.xpt
 @RESPATH@/components/fastfind.xpt
 @RESPATH@/components/feeds.xpt
 @RESPATH@/components/gfx.xpt
@@ -241,7 +232,7 @@
 @RESPATH@/components/intl.xpt
 @RESPATH@/components/jar.xpt
 @RESPATH@/components/jsdebugger.xpt
-@RESPATH@/components/jsdownloads.xpt
+@RESPATH@/components/downloads.xpt
 @RESPATH@/components/jsinspector.xpt
 @RESPATH@/components/layout_base.xpt
 #ifdef NS_PRINTING
@@ -294,7 +285,6 @@
 @RESPATH@/components/services-crypto-component.xpt
 @RESPATH@/components/shellservice.xpt
 @RESPATH@/components/shistory.xpt
-@RESPATH@/components/smile.xpt
 @RESPATH@/components/spellchecker.xpt
 @RESPATH@/components/storage.xpt
 @RESPATH@/components/SuiteBrowser.manifest
@@ -393,8 +383,6 @@
 @RESPATH@/components/jsconsole-clhandler.manifest
 @RESPATH@/components/mozProtocolHandler.js
 @RESPATH@/components/mozProtocolHandler.manifest
-@RESPATH@/components/multiprocessShims.js
-@RESPATH@/components/addoncompat.manifest
 @RESPATH@/components/utils.manifest
 @RESPATH@/components/simpleServices.js
 @RESPATH@/components/NetworkGeolocationProvider.js
@@ -490,12 +478,9 @@
 @RESPATH@/components/ProcessSelector.manifest
 @RESPATH@/components/SlowScriptDebug.js
 @RESPATH@/components/SlowScriptDebug.manifest
-@RESPATH@/components/smileApplication.js
-@RESPATH@/components/smileApplication.manifest
 @RESPATH@/components/storage-json.js
 @RESPATH@/components/SuiteProfileMigrator.js
 @RESPATH@/components/SuiteProfileMigrator.manifest
-@RESPATH@/components/SyncComponents.manifest
 #if defined(ENABLE_TESTS) && defined(MOZ_DEBUG)
 @RESPATH@/components/TestInterfaceJS.js
 @RESPATH@/components/TestInterfaceJS.manifest
@@ -506,7 +491,6 @@
 @RESPATH@/components/txEXSLTRegExFunctions.js
 @RESPATH@/components/txEXSLTRegExFunctions.manifest
 @RESPATH@/components/UnifiedComplete.js
-@RESPATH@/components/Weave.js
 @RESPATH@/components/WebContentConverter.js
 @RESPATH@/components/WebVTT.manifest
 @RESPATH@/components/WebVTTParserWrapper.js
@@ -626,7 +610,6 @@
 ; [Default Preferences]
 ; All the browser/general pref files must be part of base to prevent migration bugs
 @RESPATH@/@PREF_DIR@/browser-prefs.js
-@RESPATH@/@PREF_DIR@/services-sync.js
 @RESPATH@/@PREF_DIR@/composer.js
 @RESPATH@/greprefs.js
 @RESPATH@/defaults/autoconfig/prefcalls.js
@@ -735,6 +718,11 @@ bin/libfreebl_32int64_3.so
 @BINPATH@/@DLL_PREFIX@ldap60@DLL_SUFFIX@
 @BINPATH@/@DLL_PREFIX@ldif60@DLL_SUFFIX@
 @BINPATH@/@DLL_PREFIX@prldap60@DLL_SUFFIX@
+#endif
+
+; [MAN pages]
+#ifdef UNIX_BUT_NOT_MAC
+man/*
 #endif
 
 ; [Updater]

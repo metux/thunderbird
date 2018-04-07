@@ -51,12 +51,9 @@
 
     <implementation implements="nsIObserver">
       <constructor><![CDATA[
-        const Cc = Components.classes;
-        const Ci = Components.interfaces;
-        const Cu = Components.utils;
-        Cu.import("resource:///modules/errUtils.js");
-        Cu.import("resource://gre/modules/Services.jsm");
-        Cu.import("resource://gre/modules/AppConstants.jsm");
+        ChromeUtils.import("resource:///modules/errUtils.js");
+        ChromeUtils.import("resource://gre/modules/Services.jsm");
+        ChromeUtils.import("resource://gre/modules/AppConstants.jsm");
 
         try {
           this.setAttribute(
@@ -70,9 +67,9 @@
                                      this._prefObserver);
 
           this.glodaCompleter =
-            Components.classes["@mozilla.org/autocomplete/search;1?name=gloda"]
-                      .getService()
-                      .wrappedJSObject;
+            Cc["@mozilla.org/autocomplete/search;1?name=gloda"]
+              .getService(Ci.nsIAutoCompleteSearch)
+              .wrappedJSObject;
           Services.obs.addObserver(this, "autocomplete-did-enter-text");
 
           this.glodaEnabled =
@@ -89,7 +86,7 @@
 
       <destructor>
         <![CDATA[
-          Components.utils.import("resource://gre/modules/Services.jsm");
+          ChromeUtils.import("resource://gre/modules/Services.jsm");
 
           Services.prefs.removeObserver("mailnews.database.global.indexer.enabled",
                                         this._prefObserver);
@@ -101,10 +98,10 @@
         inputSearch: this,
         observe: function(subject, topic, data)
         {
-          Components.utils.import("resource://gre/modules/Services.jsm");
+          ChromeUtils.import("resource://gre/modules/Services.jsm");
 
           if (topic == "nsPref:changed") {
-            subject.QueryInterface(Components.interfaces.nsIPrefBranch);
+            subject.QueryInterface(Ci.nsIPrefBranch);
             switch (data) {
             case "mailnews.database.global.indexer.enabled":
               this.inputSearch.glodaEnabled =
@@ -118,10 +115,9 @@
 
         QueryInterface: function(aIID)
         {
-          if (aIID.equals(Components.interfaces.nsIObserver) ||
-              aIID.equals(Components.interfaces.nsISupports))
+          if (aIID.equals(Ci.nsIObserver) || aIID.equals(Ci.nsISupports))
             return this;
-          throw Components.results.NS_NOINTERFACE;
+          throw Cr.NS_NOINTERFACE;
         }
         });
       </field>
@@ -218,7 +214,7 @@
 
       <method name="doSearch">
         <body><![CDATA[
-          Components.utils.import("resource://gre/modules/Services.jsm");
+          ChromeUtils.import("resource://gre/modules/Services.jsm");
 
           try {
             if (this.value) {
@@ -242,7 +238,7 @@
               };
               if (Services.prefs.getBoolPref("mail.chat.enabled")) {
                 if (!("GlodaIMSearcher" in window))
-                  Cu.import("resource:///modules/search_im.js");
+                  ChromeUtils.import("resource:///modules/search_im.js");
                 args.IMSearcher = new GlodaIMSearcher(null, searchString);
               }
               tabmail.openTab("glodaFacet", args);

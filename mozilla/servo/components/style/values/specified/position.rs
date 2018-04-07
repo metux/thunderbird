@@ -11,15 +11,17 @@ use cssparser::Parser;
 use hash::FnvHashMap;
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
-use std::fmt;
+use servo_arc::Arc;
+use std::fmt::{self, Write};
 use std::ops::Range;
 use str::HTML_SPACE_CHARACTERS;
-use style_traits::{ToCss, StyleParseErrorKind, ParseError};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::{Either, None_};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage as ComputedLengthOrPercentage};
 use values::computed::{Context, Percentage, ToComputedValue};
 use values::generics::position::Position as GenericPosition;
-use values::specified::{AllowQuirks, LengthOrPercentage};
+use values::generics::position::ZIndex as GenericZIndex;
+use values::specified::{AllowQuirks, Integer, LengthOrPercentage};
 use values::specified::transform::OriginComponent;
 
 /// The specified value of a CSS `<position>`
@@ -66,10 +68,11 @@ impl Parse for Position {
 
 impl Position {
     /// Parses a `<position>`, with quirks.
-    pub fn parse_quirky<'i, 't>(context: &ParserContext,
-                                input: &mut Parser<'i, 't>,
-                                allow_quirks: AllowQuirks)
-                                -> Result<Self, ParseError<'i>> {
+    pub fn parse_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
         match input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks)) {
             Ok(x_pos @ PositionComponent::Center) => {
                 if let Ok(y_pos) = input.try(|i|
@@ -142,7 +145,10 @@ impl Position {
 }
 
 impl ToCss for Position {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         match (&self.horizontal, &self.vertical) {
             (x_pos @ &PositionComponent::Side(_, Some(_)), &PositionComponent::Length(ref y_lop)) => {
                 x_pos.to_css(dest)?;
@@ -300,10 +306,11 @@ impl Parse for LegacyPosition {
 
 impl LegacyPosition {
     /// Parses a `<position>`, with quirks.
-    pub fn parse_quirky<'i, 't>(context: &ParserContext,
-                                input: &mut Parser<'i, 't>,
-                                allow_quirks: AllowQuirks)
-                                -> Result<Self, ParseError<'i>> {
+    pub fn parse_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
         match input.try(|i| OriginComponent::parse(context, i)) {
             Ok(x_pos @ OriginComponent::Center) => {
                 if let Ok(y_pos) = input.try(|i|
@@ -369,7 +376,10 @@ impl LegacyPosition {
 }
 
 impl ToCss for LegacyPosition {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         self.horizontal.to_css(dest)?;
         dest.write_str(" ")?;
         self.vertical.to_css(dest)
@@ -409,7 +419,10 @@ impl GridAutoFlow {
 }
 
 impl ToCss for GridAutoFlow {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         self.autoflow.to_css(dest)?;
 
         if self.dense { dest.write_str(" dense")?; }
@@ -496,14 +509,17 @@ impl From<GridAutoFlow> for u8 {
 }
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, ToComputedValue, ToCss)]
 /// https://drafts.csswg.org/css-grid/#named-grid-area
 pub struct TemplateAreas {
     /// `named area` containing for each template area
+    #[css(skip)]
     pub areas: Box<[NamedArea]>,
     /// The original CSS string value of each template area
+    #[css(iterable)]
     pub strings: Box<[Box<str>]>,
     /// The number of columns of the grid.
+    #[css(skip)]
     pub width: u32,
 }
 
@@ -583,18 +599,6 @@ impl TemplateAreas {
     }
 }
 
-impl ToCss for TemplateAreas {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        for (i, string) in self.strings.iter().enumerate() {
-            if i != 0 {
-                dest.write_str(" ")?;
-            }
-            string.to_css(dest)?;
-        }
-        Ok(())
-    }
-}
-
 impl Parse for TemplateAreas {
     fn parse<'i, 't>(
         _context: &ParserContext,
@@ -610,7 +614,20 @@ impl Parse for TemplateAreas {
     }
 }
 
-trivial_to_computed_value!(TemplateAreas);
+/// Arc type for `Arc<TemplateAreas>`
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+pub struct TemplateAreasArc(#[ignore_malloc_size_of = "Arc"] pub Arc<TemplateAreas>);
+
+impl Parse for TemplateAreasArc {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let parsed = TemplateAreas::parse(context, input)?;
+
+        Ok(TemplateAreasArc(Arc::new(parsed)))
+    }
+}
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, Debug, PartialEq)]
@@ -661,12 +678,27 @@ fn is_name_code_point(c: char) -> bool {
 /// The syntax of this property also provides a visualization of
 /// the structure of the grid, making the overall layout of
 /// the grid container easier to understand.
-pub type GridTemplateAreas = Either<TemplateAreas, None_>;
+pub type GridTemplateAreas = Either<TemplateAreasArc, None_>;
 
 impl GridTemplateAreas {
     #[inline]
     /// Get default value as `none`
     pub fn none() -> GridTemplateAreas {
         Either::Second(None_)
+    }
+}
+
+/// A specified value for the `z-index` property.
+pub type ZIndex = GenericZIndex<Integer>;
+
+impl Parse for ZIndex {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
+            return Ok(GenericZIndex::Auto);
+        }
+        Ok(GenericZIndex::Integer(Integer::parse(context, input)?))
     }
 }

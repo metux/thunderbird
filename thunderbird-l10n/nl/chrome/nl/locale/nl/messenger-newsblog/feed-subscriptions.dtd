@@ -11,7 +11,7 @@
 
 <!ENTITY feedLocation.label          "Feed-URL:">
 <!ENTITY feedLocation.accesskey      "F">
-<!ENTITY feedLocation.placeholder    "Voer een geldige feed-URL in om toe te voegen">
+<!ENTITY feedLocation2.placeholder   "Voer een geldige feed-URL in">
 <!ENTITY locationValidate.label      "Valideren">
 <!ENTITY validateText.label          "Validatie controleren en een geldige URL ophalen">
 
@@ -39,6 +39,8 @@
 <!-- Subscription Dialog -->
 <!ENTITY button.addFeed.label        "Toevoegen">
 <!ENTITY button.addFeed.accesskey    "o">
+<!ENTITY button.verifyFeed.label     "Verifiëren">
+<!ENTITY button.verifyFeed.accesskey "e">
 <!ENTITY button.updateFeed.label     "Bijwerken">
 <!ENTITY button.updateFeed.accesskey "w">
 <!ENTITY button.removeFeed.label     "Verwijderen">
@@ -51,7 +53,3 @@
 
 <!ENTITY cmd.close.commandKey        "w">
 <!ENTITY button.close.label          "Sluiten">
-
-<!ENTITY feedLocation2.placeholder   "Enter a valid feed url">
-<!ENTITY button.verifyFeed.label     "Verify">
-<!ENTITY button.verifyFeed.accesskey "V">

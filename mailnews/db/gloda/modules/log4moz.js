@@ -4,12 +4,7 @@
 
 this.EXPORTED_SYMBOLS = ['Log4Moz'];
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
-var Cu = Components.utils;
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 var MODE_RDONLY   = 0x01;
 var MODE_WRONLY   = 0x02;
@@ -374,32 +369,32 @@ Logger.prototype = {
         continue;
 
       if (!message)
-        message = new LogMessage(this._name, level, Array.from(args));
+        message = new LogMessage(this._name, level, args);
 
       appender.append(message);
     }
   },
 
-  fatal: function Logger_fatal() {
-    this.log(Log4Moz.Level.Fatal, arguments);
+  fatal: function Logger_fatal(...aArgs) {
+    this.log(Log4Moz.Level.Fatal, aArgs);
   },
-  error: function Logger_error() {
-    this.log(Log4Moz.Level.Error, arguments);
+  error: function Logger_error(...aArgs) {
+    this.log(Log4Moz.Level.Error, aArgs);
   },
-  warn: function Logger_warn() {
-    this.log(Log4Moz.Level.Warn, arguments);
+  warn: function Logger_warn(...aArgs) {
+    this.log(Log4Moz.Level.Warn, aArgs);
   },
-  info: function Logger_info(string) {
-    this.log(Log4Moz.Level.Info, arguments);
+  info: function Logger_info(...aArgs) {
+    this.log(Log4Moz.Level.Info, aArgs);
   },
-  config: function Logger_config(string) {
-    this.log(Log4Moz.Level.Config, arguments);
+  config: function Logger_config(...aArgs) {
+    this.log(Log4Moz.Level.Config, aArgs);
   },
-  debug: function Logger_debug(string) {
-    this.log(Log4Moz.Level.Debug, arguments);
+  debug: function Logger_debug(...aArgs) {
+    this.log(Log4Moz.Level.Debug, aArgs);
   },
-  trace: function Logger_trace(string) {
-    this.log(Log4Moz.Level.Trace, arguments);
+  trace: function Logger_trace(...aArgs) {
+    this.log(Log4Moz.Level.Trace, aArgs);
   }
 };
 
@@ -678,7 +673,7 @@ function ConsoleAppender(formatter) {
 ConsoleAppender.prototype = {
   __proto__: Appender.prototype,
 
-  // override to send Error and higher level messages to Components.utils.reportError()
+  // override to send Error and higher level messages to Cu.reportError()
   append: function CApp_append(message) {
     let stringMessage = this._formatter.format(message);
     if (message.level > Log4Moz.Level.Warn) {

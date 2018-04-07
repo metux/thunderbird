@@ -9,13 +9,13 @@
  * reconected in time for the next connection. Thus, sending of multiple
  * messages is currently disabled (but commented out for local testing if
  * required), when we fix bug 136871 we should be able to enable the multiple
- * messages option. 
+ * messages option.
  */
 
 load("../../../resources/logHelper.js");
 load("../../../resources/asyncTestUtils.js");
 
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 var test = "sendMessageLater";
 var server = null;

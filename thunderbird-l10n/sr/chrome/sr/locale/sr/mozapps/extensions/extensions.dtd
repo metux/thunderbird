@@ -4,6 +4,8 @@
 <!ENTITY addons.windowTitle                   "Менаџер додатака">
 
 <!ENTITY search.placeholder                   "Претражи све додатке">
+
+<!ENTITY search.placeholder2                  "Претражи на addons.mozilla.org">
 <!ENTITY search.buttonlabel                   "Претражи">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
@@ -11,7 +13,7 @@
 
 <!ENTITY loading.label                        "Учитавање…">
 <!ENTITY listEmpty.installed.label            "Нисте инсталирали ниједан додатак ове врсте">
-<!ENTITY listEmpty.availableUpdates.label     "Нема надоградњи">
+<!ENTITY listEmpty.availableUpdates.label     "Нема ажурирања">
 <!ENTITY listEmpty.recentUpdates.label        "Нисте недавно ажурирали додатке">
 <!ENTITY listEmpty.findUpdates.label          "Провери да ли постоје ажурирања">
 <!ENTITY listEmpty.search.label               "Нема резултата претраге додатака">
@@ -67,11 +69,11 @@
 <!ENTITY updates.resetUpdatesToAutomatic.accesskey   "С">
 <!ENTITY updates.resetUpdatesToManual.label          "Све додатке мануелно надогради">
 <!ENTITY updates.resetUpdatesToManual.accesskey      "м">
-<!ENTITY updates.updating.label               "Надоградња додатака">
+<!ENTITY updates.updating.label               "Ажурирам додатке">
 <!ENTITY updates.installed.label              "Ваши додаци су ажурирани.">
 <!ENTITY updates.downloaded.label             "Ваши додаци су преузети.">
 <!ENTITY updates.restart.label                "Поново покрените да бисте довршили инсталацију">
-<!ENTITY updates.noneFound.label              "Нема надоградњи">
+<!ENTITY updates.noneFound.label              "Нема ажурирања">
 <!ENTITY updates.manualUpdatesFound.label     "Погледај доступна ажурирања">
 <!ENTITY updates.updateSelected.label         "Инсталирај ажурирања">
 <!ENTITY updates.updateSelected.tooltip       "Инсталирајте доступна ажурирања са овог списка">
@@ -119,7 +121,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "Прикажи напомене о издању овог ажурирања">
 <!ENTITY cmd.hideReleaseNotes.label           "Сакриј напомене о издању">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Сакриј напомене о издању овог ажурирања">
-<!ENTITY cmd.findReplacement.label            "Пронаћи замену">
+<!ENTITY cmd.findReplacement.label            "Пронађи замену">
 
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
@@ -173,7 +175,7 @@
 <!-- list sorting -->
 <!ENTITY sort.name.label                      "Име">
 <!ENTITY sort.name.tooltip                    "Сортирај по имену">
-<!ENTITY sort.dateUpdated.label               "Последња надоградња">
+<!ENTITY sort.dateUpdated.label               "Последње ажурирање">
 <!ENTITY sort.dateUpdated.tooltip             "Сортирај по датуму ажурирања">
 <!ENTITY sort.relevance.label                 "По значају">
 <!ENTITY sort.relevance.tooltip               "Поређај по значају">
@@ -202,7 +204,7 @@
      updates list to signify that an item is an update, in the form
      "<Addon name> <1.1> Update". It is fine to use constructs like brackets if
      necessary -->
-<!ENTITY addon.update.postfix                 "надоградња">
+<!ENTITY addon.update.postfix                 "ажурирање">
 <!ENTITY addon.undoAction.label               "Опозови">
 <!ENTITY addon.undoAction.tooltip             "Опозови ову радњу">
 <!ENTITY addon.undoRemove.label               "Опозови">
@@ -263,5 +265,3 @@
 <!ENTITY legacyExtensions.title "Застареле екстензије">
 <!ENTITY legacyExtensions.description "Ове екстензије не подржавају тренутни &brandShortName; стандард тако да су онемогућене.">
 <!ENTITY legacyExtensions.learnMore "Сазнајте више о променама додатака">
-
-<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

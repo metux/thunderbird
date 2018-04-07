@@ -318,6 +318,7 @@
 <!ENTITY goChatCmd.label "聊天">
 <!ENTITY goChatCmd.accesskey "C">
 <!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "已加星號郵件">
 <!ENTITY prevStarredMsgCmd.accesskey "S">
 <!ENTITY folderMenu.label "資料夾">
@@ -366,6 +367,8 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "編輯草稿">
 <!ENTITY editDraftMsgCmd.accesskey "D">
+<!ENTITY editTemplateMsgCmd.label "編輯範本">
+<!ENTITY editTemplateMsgCmd.accesskey "T">
 <!ENTITY newMsgFromTemplateCmd.label "使用範本撰寫新訊息">
 <!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "依郵件建立篩選條件…">
@@ -459,6 +462,11 @@
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "附加元件">
 <!ENTITY addons.accesskey "A">
+<!ENTITY addonPrefs.label "附加元件選項">
+<!ENTITY addonPrefs.accesskey "O">
+<!ENTITY addonPrefsUnix.label "附加元件偏好設定">
+<!ENTITY addonPrefsUnix.accesskey "P">
+<!ENTITY addonNoPrefs.label "找不到附加元件設定。">
 <!ENTITY activitymanager.label "活動管理員">
 <!ENTITY activitymanager.accesskey "v">
 <!ENTITY imAccountsStatus.label "聊天狀態">
@@ -504,6 +512,8 @@
 <!ENTITY devToolboxCmd.commandkey "i">
 <!ENTITY addonDebugCmd.label "附加元件除錯器">
 <!ENTITY addonDebugCmd.accesskey "A">
+<!ENTITY debugAddonsCmd.label "對附加元件除錯">
+<!ENTITY debugAddonsCmd.accesskey "A">
 <!ENTITY tabsDebugCmd.label "內容框架除錯器">
 <!ENTITY tabsDebugCmd.accesskey "C">
 <!ENTITY errorConsoleCmd.label "錯誤主控台">
@@ -752,6 +762,8 @@
 <!ENTITY contextEditMsgAsNew.label "作為新訊息編輯">
 <!ENTITY contextEditMsgAsNew.accesskey "E">
 <!ENTITY contextEditDraftMsg.label "編輯草稿">
+<!ENTITY contextEditTemplate.label "編輯範本">
+<!ENTITY contextEditTemplate.accesskey "T">
 <!ENTITY contextArchive.label "備存">
 <!ENTITY contextArchive.accesskey "h">
 <!ENTITY contextReplySender.label "只回覆給寄件者">
@@ -957,16 +969,3 @@
 <!ENTITY dockOptions.label              "應用程式圖示選項…">
 <!ENTITY writeNewMessageDock.label      "撰寫新訊息">
 <!ENTITY openAddressBookDock.label      "開啟通訊錄">
-
-<!ENTITY goChatCmd2.key "H">
-<!ENTITY editTemplateMsgCmd.label "Edit Template">
-<!ENTITY editTemplateMsgCmd.accesskey "T">
-<!ENTITY addonPrefs.label "Add-on Options">
-<!ENTITY addonPrefs.accesskey "O">
-<!ENTITY addonPrefsUnix.label "Add-on Preferences">
-<!ENTITY addonPrefsUnix.accesskey "P">
-<!ENTITY addonNoPrefs.label "No Add-on settings found.">
-<!ENTITY debugAddonsCmd.label "Debug Add-ons">
-<!ENTITY debugAddonsCmd.accesskey "A">
-<!ENTITY contextEditTemplate.label "Edit Template">
-<!ENTITY contextEditTemplate.accesskey "T">

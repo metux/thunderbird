@@ -6,7 +6,7 @@
  * advertises it AND if mail.strictly_mime doesn't force us to send 7bit.
  * It does not check the data of the message on either side of the link.
  */
-Components.utils.import("resource:///modules/mailServices.js");
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 var test = null;
 var server;
@@ -60,7 +60,7 @@ function test_8bitmime(aStrictMime, aServer8bit) {
     do_throw(e);
   } finally {
     server.stop();
- 
+
     var thread = gThreadManager.currentThread;
     while (thread.hasPendingEvents())
       thread.processNextEvent(true);

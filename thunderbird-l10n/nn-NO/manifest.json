@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/nn-NO/locale/nn-NO/passwordmgr/", 
         "pippki": "chrome/nn-NO/locale/nn-NO/pippki/"
       }, 
-      "version": "20171103235210"
+      "version": "20180313051238"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-nn-NO@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "nn-NO", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Norsk nynorsk (NO) Language Pack", 
   "manifest_version": 2, 
   "sources": {

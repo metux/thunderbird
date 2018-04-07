@@ -10,7 +10,6 @@ config = {
     "buildbot_json_path": "buildprops.json",
     "installer_path": "installer.exe",
     "virtualenv_path": VENV_PATH,
-    "virtualenv_python_dll": PYTHON_DLL,
     "pip_index": False,
     "find_links": [
         "http://pypi.pvt.build.mozilla.org/pub",
@@ -19,13 +18,11 @@ config = {
     "virtualenv_modules": ['pywin32', 'talos', 'mozinstall'],
     "exes": {
         'python': PYTHON,
-        'virtualenv': [PYTHON, 'c:/mozilla-build/buildbotve/virtualenv.py'],
         'easy_install': ['%s/scripts/python' % VENV_PATH,
                          '%s/scripts/easy_install-2.7-script.py' % VENV_PATH],
         'mozinstall': ['%s/scripts/python' % VENV_PATH,
                        '%s/scripts/mozinstall-script.py' % VENV_PATH],
         'hg': 'c:/mozilla-build/hg/hg',
-        'tooltool.py': [PYTHON, 'C:/mozilla-build/tooltool.py'],
     },
     "title": socket.gethostname().split('.')[0],
     "default_actions": [

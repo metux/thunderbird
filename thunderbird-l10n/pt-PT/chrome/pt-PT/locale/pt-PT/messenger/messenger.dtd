@@ -70,12 +70,12 @@
 <!ENTITY offlineMenu.accesskey "l">
 <!ENTITY offlineGoOfflineCmd.label "Trabalhar offline">
 <!ENTITY offlineGoOfflineCmd.accesskey "T">
-<!ENTITY synchronizeOfflineCmd.label "Descarregar/sincronizar agora…">
+<!ENTITY synchronizeOfflineCmd.label "Transferir/sincronizar agora…">
 <!ENTITY synchronizeOfflineCmd.accesskey "s">
 <!ENTITY settingsOfflineCmd2.label "Definições do modo offline">
 <!ENTITY settingsOfflineCmd2.accesskey "d">
 <!ENTITY downloadSelectedCmd.label "Obter mensagens selecionadas">
-<!ENTITY downloadSelectedCmd.accesskey "m">
+<!ENTITY downloadSelectedCmd.accesskey "l">
 <!ENTITY downloadStarredCmd.label "Obter mensagens com estrela">
 <!ENTITY downloadStarredCmd.accesskey "a">
 <!ENTITY printCmd.label "Imprimir...">
@@ -241,7 +241,7 @@
 <!ENTITY bodyMenu.label "Corpo da mensagem como">
 <!ENTITY bodyMenu.accesskey "m">
 <!ENTITY bodyAllowHTML.label "HTML original">
-<!ENTITY bodyAllowHTML.accesskey "F">
+<!ENTITY bodyAllowHTML.accesskey "H">
 <!ENTITY bodySanitized.label "HTML simples">
 <!ENTITY bodySanitized.accesskey "L">
 <!ENTITY bodyAsPlaintext.label "Sem formatação">
@@ -318,6 +318,7 @@
 <!ENTITY goChatCmd.label "Chat">
 <!ENTITY goChatCmd.accesskey "C">
 <!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Mensagem com estrela">
 <!ENTITY prevStarredMsgCmd.accesskey "s">
 <!ENTITY folderMenu.label "Pasta">
@@ -366,6 +367,8 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Editar mensagem de rascunho">
 <!ENTITY editDraftMsgCmd.accesskey "r">
+<!ENTITY editTemplateMsgCmd.label "Editar modelo">
+<!ENTITY editTemplateMsgCmd.accesskey "m">
 <!ENTITY newMsgFromTemplateCmd.label "Nova mensagem de modelo">
 <!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Criar filtro a partir da mensagem...">
@@ -459,6 +462,11 @@
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "Extras">
 <!ENTITY addons.accesskey "E">
+<!ENTITY addonPrefs.label "Opções de extras">
+<!ENTITY addonPrefs.accesskey "O">
+<!ENTITY addonPrefsUnix.label "Preferências de extras">
+<!ENTITY addonPrefsUnix.accesskey "P">
+<!ENTITY addonNoPrefs.label "Não foram encontradas definições de extras.">
 <!ENTITY activitymanager.label "Gestor de atividade">
 <!ENTITY activitymanager.accesskey "v">
 <!ENTITY imAccountsStatus.label "Estado do chat">
@@ -504,6 +512,8 @@
 <!ENTITY devToolboxCmd.commandkey "i">
 <!ENTITY addonDebugCmd.label "Extra Depurador">
 <!ENTITY addonDebugCmd.accesskey "a">
+<!ENTITY debugAddonsCmd.label "Depurar extras">
+<!ENTITY debugAddonsCmd.accesskey "e">
 <!ENTITY tabsDebugCmd.label "Depurador de frame de conteúdo">
 <!ENTITY tabsDebugCmd.accesskey "c">
 <!ENTITY errorConsoleCmd.label "Consola de erros">
@@ -752,6 +762,8 @@
 <!ENTITY contextEditMsgAsNew.label "Editar como nova">
 <!ENTITY contextEditMsgAsNew.accesskey "E">
 <!ENTITY contextEditDraftMsg.label "Editar mensagem de rascunho">
+<!ENTITY contextEditTemplate.label "Editar modelo">
+<!ENTITY contextEditTemplate.accesskey "m">
 <!ENTITY contextArchive.label "Arquivar">
 <!ENTITY contextArchive.accesskey "q">
 <!ENTITY contextReplySender.label "Responder apenas ao remetente">
@@ -957,16 +969,3 @@
 <!ENTITY dockOptions.label              "Opções do ícone…">
 <!ENTITY writeNewMessageDock.label      "Escrever nova mensagem">
 <!ENTITY openAddressBookDock.label      "Abrir livro de endereços">
-
-<!ENTITY goChatCmd2.key "H">
-<!ENTITY editTemplateMsgCmd.label "Edit Template">
-<!ENTITY editTemplateMsgCmd.accesskey "T">
-<!ENTITY addonPrefs.label "Add-on Options">
-<!ENTITY addonPrefs.accesskey "O">
-<!ENTITY addonPrefsUnix.label "Add-on Preferences">
-<!ENTITY addonPrefsUnix.accesskey "P">
-<!ENTITY addonNoPrefs.label "No Add-on settings found.">
-<!ENTITY debugAddonsCmd.label "Debug Add-ons">
-<!ENTITY debugAddonsCmd.accesskey "A">
-<!ENTITY contextEditTemplate.label "Edit Template">
-<!ENTITY contextEditTemplate.accesskey "T">

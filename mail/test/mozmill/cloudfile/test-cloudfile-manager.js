@@ -7,10 +7,6 @@
  * services
  */
 
-var Cu = Components.utils;
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-
 var MODULE_NAME = 'test-cloudfile-manager';
 
 var RELATIVE_ROOT = '../shared-modules';
@@ -19,7 +15,7 @@ var MODULE_REQUIRES = ['folder-display-helpers',
                        'window-helpers',
                        'cloudfile-helpers'];
 
-Cu.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 var kTestAccountType = "mock";
 

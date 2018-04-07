@@ -6,16 +6,8 @@
  * Some common, generic functions
  */
 
-try {
-  var Cc = Components.classes;
-  var Ci = Components.interfaces;
-} catch (e) { ddump(e); } // if already declared, as in xpcshell-tests
-try {
-  var Cu = Components.utils;
-} catch (e) { ddump(e); }
-
-Cu.import("resource:///modules/errUtils.js");
-Cu.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource:///modules/errUtils.js");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 function assert(test, errorMsg)
 {
@@ -26,10 +18,7 @@ function assert(test, errorMsg)
 
 function makeCallback(obj, func)
 {
-  return function()
-  {
-    return func.apply(obj, arguments);
-  }
+  return func.bind(obj);
 }
 
 
@@ -254,7 +243,7 @@ function deepCopy(org)
 }
 
 if (typeof gEmailWizardLogger == "undefined") {
-  Cu.import("resource:///modules/gloda/log4moz.js");
+  ChromeUtils.import("resource:///modules/gloda/log4moz.js");
   var gEmailWizardLogger = Log4Moz.getConfiguredLogger("mail.wizard");
 }
 function ddump(text)

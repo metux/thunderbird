@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const kNetworkProtocolCIDPrefix = "@mozilla.org/network/protocol;1?name=";
-const nsIProtocolHandler = Components.interfaces.nsIProtocolHandler;
+const nsIProtocolHandler = Ci.nsIProtocolHandler;
 
 function makeProtocolHandler(aCID, aProtocol, aDefaultPort) {
   return {
@@ -19,11 +19,11 @@ function makeProtocolHandler(aCID, aProtocol, aDefaultPort) {
                    nsIProtocolHandler.ALLOWS_PROXY,
 
     newURI: function (aSpec, aOriginCharset, aBaseURI) {
-      var url = Components.classes["@mozilla.org/network/ldap-url;1"]
-                          .createInstance(Components.interfaces.nsIURI);
+      var url = Cc["@mozilla.org/network/ldap-url;1"]
+                  .createInstance(Ci.nsIURI);
 
-      if (url instanceof Components.interfaces.nsILDAPURL)
-	url.init(Components.interfaces.nsIStandardURL.URLTYPE_STANDARD,
+      if (url instanceof Ci.nsILDAPURL)
+	url.init(Ci.nsIStandardURL.URLTYPE_STANDARD,
 		 aDefaultPort, aSpec, aOriginCharset, aBaseURI);
 
       return url;
@@ -34,14 +34,14 @@ function makeProtocolHandler(aCID, aProtocol, aDefaultPort) {
     },
 
     newChannel2: function (aURI, aLoadInfo) {
-      if ("@mozilla.org/network/ldap-channel;1" in Components.classes) {
-        var channel = Components.classes["@mozilla.org/network/ldap-channel;1"]
-                                .createInstance(Components.interfaces.nsIChannel);
+      if ("@mozilla.org/network/ldap-channel;1" in Cc) {
+        var channel = Cc["@mozilla.org/network/ldap-channel;1"]
+                        .createInstance(Ci.nsIChannel);
         channel.init(aURI);
         return channel;
       }
 
-      throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+      throw Cr.NS_ERROR_NOT_IMPLEMENTED;
     },
 
     allowPort: function (port, scheme) {

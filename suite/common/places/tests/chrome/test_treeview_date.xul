@@ -51,9 +51,7 @@
      *
      * Ensures that date in places treeviews is correctly formatted.
      */
-      Components.utils.import("resource://gre/modules/Services.jsm");
-      const Cc = Components.classes;
-      const Ci = Components.interfaces;
+      ChromeUtils.import("resource://gre/modules/Services.jsm");
 
     SimpleTest.waitForExplicitFinish();
 
@@ -133,7 +131,7 @@
                   // a redirecting uri could be put in the tree while we test.
                   break;
                 }
-                let timeStr = Services.intl.createDateTimeFormat(undefined, dtOptions).format(timeObj);
+                let timeStr = new Services.intl.DateTimeFormat(undefined, dtOptions).format(timeObj);
                 is(text, timeStr, "Date format is correct");
                 break;
               case "visitCount":

@@ -19,7 +19,7 @@ sentence. -->
 <!ENTITY  reportIdleAfter.accesskey     "i">
 <!ENTITY  idleTime                      "minutos de inactividad">
 
-<!ENTITY  andSetStatusToAway.label      "and set my status to Away with this status message:">
+<!ENTITY  andSetStatusToAway.label      "y establecer mi estado como Ausente con el siguiente mensaje de estado:">
 <!ENTITY  andSetStatusToAway.accesskey  "A">
 
 <!ENTITY  sendTyping.label              "Enviar notificaciones de tipeo en las notificaciones">
@@ -31,6 +31,10 @@ sentence. -->
 <!ENTITY  completeNotification.label          "con nombre de remitente y vista previa de mensaje">
 <!ENTITY  buddyInfoOnly.label                 "solo con nombre de remitente">
 <!ENTITY  dummyNotification.label             "sin otra información">
+<!ENTITY  getAttention.label                  "Titilar el elemento de la barra de tareas">
+<!ENTITY  getAttention.accesskey              "T">
+<!ENTITY  getAttentionMac.label               "Animar el ícono del dock">
+<!ENTITY  getAttentionMac.accesskey           "o">
 <!ENTITY  chatSound.accesskey                 "d">
 <!ENTITY  chatSound.label                     "Reproducir un sonido">
 <!ENTITY  play.label                          "Reproducir">
@@ -58,8 +62,3 @@ sentence. -->
 <!ENTITY messageStyleShowHeader.accesskey  "e">
 <!ENTITY messageStyleNoPreview.title       "Sin vista previa">
 <!ENTITY messageStyleNoPreview.description "Este tema no es válido o actualmente no está disponible (complemento deshabilitado, modo seguro, …).">
-
-<!ENTITY  getAttention.label                  "Flash the taskbar item">
-<!ENTITY  getAttention.accesskey              "F">
-<!ENTITY  getAttentionMac.label               "Animate dock icon">
-<!ENTITY  getAttentionMac.accesskey           "o">

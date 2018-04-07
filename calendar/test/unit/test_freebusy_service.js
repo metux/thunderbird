@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://calendar/modules/calProviderUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/calProviderUtils.jsm");
 
 var cIFI = Components.interfaces.calIFreeBusyInterval;
 var freebusy = Components.classes["@mozilla.org/calendar/freebusy-service;1"]
@@ -156,13 +156,13 @@ function test_cancel() {
 // don't need to be. Make assumptions about the implementation instead.
 
 function _clearProviders() {
-    freebusy.wrappedJSObject.mProviders = new cal.calInterfaceBag(Components.interfaces.calIFreeBusyProvider);
+    freebusy.wrappedJSObject.mProviders = new Set();
 }
 
 function _countProviders() {
-    return freebusy.wrappedJSObject.mProviders.interfaceArray.length;
+    return freebusy.wrappedJSObject.mProviders.size;
 }
 
 function _getFirstProvider() {
-    return freebusy.wrappedJSObject.mProviders.interfaceArray[0].wrappedJSObject;
+    return [...freebusy.wrappedJSObject.mProviders][0].wrappedJSObject;
 }

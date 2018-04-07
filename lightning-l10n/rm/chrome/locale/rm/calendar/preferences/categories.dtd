@@ -7,6 +7,9 @@
    - your editor isn't using UTF-8 encoding and may munge up the document!
   -->
 
+<!ENTITY pref.categories.new.title "Nova categoria">
+<!ENTITY pref.categories.newButton.label "Nov…">
+<!ENTITY pref.categories.newButton.accesskey "N">
 <!ENTITY pref.categories.edit.title "Modifitgar categoria">
 <!ENTITY pref.categories.editButton.label "Modifitgar…">
 <!ENTITY pref.categories.editButton.accesskey "M">
@@ -19,7 +22,3 @@
 <!ENTITY pref.categories.overwrite "Ina categoria cun quest num exista fingia.  \n Vuls ti la surscriver?">
 <!ENTITY pref.categories.overwrite.title "Attenziun: Num duplitgà">
 <!ENTITY pref.categories.noBlankCategories "Ti stos endatar in num da categoria.">
-
-<!ENTITY pref.categories.new.title "New Category">
-<!ENTITY pref.categories.newButton.label "New…">
-<!ENTITY pref.categories.newButton.accesskey "N">

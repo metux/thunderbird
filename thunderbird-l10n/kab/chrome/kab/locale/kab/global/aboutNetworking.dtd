@@ -3,7 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY aboutNetworking.title                 "Talɣut ɣef uẓeṭṭa">
-<!ENTITY aboutNetworking.warning               "Tamhelt-agi d tirmit kan. Ur tt-seqdac ara arma yella umdan meqqren.">
+<!ENTITY aboutNetworking.warning               "Tamhelt-agi d tirmit kan. Ur tt-seqdac ara arma yella yid-k umdan meqqren.">
 <!ENTITY aboutNetworking.showNextTime          "Sken alɣu-a tikelt d-itteddun">
 <!ENTITY aboutNetworking.ok                    "IH">
 <!ENTITY aboutNetworking.HTTP                  "HTTP">
@@ -23,6 +23,7 @@
 <!ENTITY aboutNetworking.sent                  "Ţwaznen">
 <!ENTITY aboutNetworking.received              "Ţwarmsen">
 <!ENTITY aboutNetworking.family                "Tawacult">
+<!ENTITY aboutNetworking.trr                   "TRR">
 <!ENTITY aboutNetworking.addresses             "Tansiwin">
 <!ENTITY aboutNetworking.expires               "Ad immet (tasinin)">
 <!ENTITY aboutNetworking.messagesSent          "Iznan iţwacegɛen">
@@ -48,11 +49,11 @@
 <!ENTITY aboutNetworking.totalNetworkRequests  "Aseklas uγrid n isuturen n uẓeṭṭa">
 <!ENTITY aboutNetworking.rcwnOperation         "Tamhelt n tuffirt">
 <!ENTITY aboutNetworking.rcwnPerfOpen          "Ldi">
-<!ENTITY aboutNetworking.rcwnPerfRead          "Γaṛ">
+<!ENTITY aboutNetworking.rcwnPerfRead          "Γɣaṛ">
 <!ENTITY aboutNetworking.rcwnPerfWrite         "Aru">
 <!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Ldi anekcum">
 <!ENTITY aboutNetworking.rcwnAvgShort          "Talemmast meẓẓiyet">
-<!ENTITY aboutNetworking.rcwnAvgLong           "Talemmast γezzifet">
-<!ENTITY aboutNetworking.rcwnStddevLong        "Amgared tizeγt muqren">
+<!ENTITY aboutNetworking.rcwnAvgLong           "Talemmast ɣezzifet">
+<!ENTITY aboutNetworking.rcwnStddevLong        "Amgared tizeɣt muqren">
 <!ENTITY aboutNetworking.rcwnCacheSlow         "Amḍan n tuffirt ẓẓayen">
 <!ENTITY aboutNetworking.rcwnCacheNotSlow      "Amdan n tuffirt ur nelli ẓẓayet">

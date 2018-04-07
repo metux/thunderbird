@@ -4,6 +4,8 @@
 <!ENTITY addons.windowTitle                   "附加组件管理器">
 
 <!ENTITY search.placeholder                   "在全部的附加组件中搜索">
+
+<!ENTITY search.placeholder2                  "在 addons.mozilla.org 上搜索">
 <!ENTITY search.buttonlabel                   "搜索">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
@@ -21,10 +23,11 @@
 <!ENTITY toolsMenu.tooltip                    "用于所有附加组件的工具">
 
 <!ENTITY getThemes.description                "想个性化你的浏览器吗？">
-<!ENTITY getThemes.learnMore                  "来挑选成千上万的主题吧。">
+<!ENTITY getThemes.learnMore                  "千万种炫彩主题任您选。">
 
 <!ENTITY cmd.back.tooltip                     "转到上一页">
 <!ENTITY cmd.forward.tooltip                  "转到下一页">
+
 
 <!ENTITY showUnsignedExtensions.button.label  "一些扩展未通过验证">
 <!ENTITY showAllExtensions.button.label       "显示所有扩展">
@@ -255,10 +258,7 @@
 <!ENTITY pluginDeprecation.description "少些东西？某些插件已不再被 &brandShortName; 支持。">
 <!ENTITY pluginDeprecation.learnMore "详细了解。">
 
-<!ENTITY legacyWarning.description "少些东西？&brandShortName; 已不再支持某些扩展。">
 <!ENTITY legacyWarning.showLegacy "显示旧式扩展">
 <!ENTITY legacyExtensions.title "旧式扩展">
 <!ENTITY legacyExtensions.description "这些扩展不符合现今的 &brandShortName; 标准，因此已被停用。">
 <!ENTITY legacyExtensions.learnMore "了解附加组件的变化">
-
-<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

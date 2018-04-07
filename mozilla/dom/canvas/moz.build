@@ -49,11 +49,6 @@ EXPORTS += [
     'nsICanvasRenderingContextInternal.h',
 ]
 
-EXPORTS.mozilla.ipc += [
-    'DocumentRendererChild.h',
-    'DocumentRendererParent.h',
-]
-
 EXPORTS.mozilla.dom += [
     'BasicRenderingContext2D.h',
     'CanvasGradient.h',
@@ -78,8 +73,6 @@ UNIFIED_SOURCES += [
     'CanvasRenderingContext2D.cpp',
     'CanvasRenderingContextHelper.cpp',
     'CanvasUtils.cpp',
-    'DocumentRendererChild.cpp',
-    'DocumentRendererParent.cpp',
     'ImageBitmap.cpp',
     'ImageBitmapColorUtils.cpp',
     'ImageBitmapRenderingContext.cpp',
@@ -198,14 +191,17 @@ LOCAL_INCLUDES += [
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
+
+USE_LIBS += [ 'translator' ] # Grab the Angle shader translator.
+
 FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
-    '../workers',
     '/dom/base',
     '/dom/html',
     '/dom/svg',
     '/dom/workers',
     '/dom/xul',
+    '/gfx/angle/checkout/include',
     '/gfx/gl',
     '/image',
     '/js/xpconnect/src',
@@ -221,4 +217,4 @@ CXXFLAGS += CONFIG['TK_CFLAGS']
 LOCAL_INCLUDES += CONFIG['SKIA_INCLUDES']
 
 if CONFIG['CC_TYPE'] in ('clang', 'gcc'):
-    CXXFLAGS += ['-Wno-error=shadow']
+    CXXFLAGS += ['-Wno-error=shadow', '-Wno-missing-braces']

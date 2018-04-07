@@ -23,6 +23,13 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Versão">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Software de segurança">
+<!ENTITY aboutSupport.securitySoftwareType "Tipo">
+<!ENTITY aboutSupport.securitySoftwareName "Nome">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivírus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
+
 <!ENTITY aboutSupport.featuresTitle "Funcionalidades do &brandShortName;">
 <!ENTITY aboutSupport.featureName "Nome">
 <!ENTITY aboutSupport.featureVersion "Versão">
@@ -154,18 +161,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "Taxa">
 <!ENTITY aboutSupport.mediaDeviceLatency "Latência">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Name">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlAppTitle "Application Settings">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSTitle "Operating System">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
-<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">
+<!ENTITY aboutSupport.intlTitle "Internacionalização &amp; Localização">
+<!ENTITY aboutSupport.intlAppTitle "Configurações do aplicativo">
+<!ENTITY aboutSupport.intlLocalesRequested "Idiomas solicitados">
+<!ENTITY aboutSupport.intlLocalesAvailable "Idiomas disponíveis">
+<!ENTITY aboutSupport.intlLocalesSupported "Idiomas do aplicativo">
+<!ENTITY aboutSupport.intlLocalesDefault "Idioma padrão">
+<!ENTITY aboutSupport.intlOSTitle "Sistema operacional">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Idiomas do sistema">
+<!ENTITY aboutSupport.intlRegionalPrefs "Preferências regionais">
+
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">

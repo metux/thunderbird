@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/hy-AM/locale/hy-AM/passwordmgr/", 
         "pippki": "chrome/hy-AM/locale/hy-AM/pippki/"
       }, 
-      "version": "20171102110014"
+      "version": "20180312193142"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-hy-AM@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "hy-AM", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Armenian (AM) Language Pack", 
   "manifest_version": 2, 
   "sources": {

@@ -57,6 +57,7 @@
 
 
 
+<!ENTITY aboutNetworking.trr                   "TRR">
 <!ENTITY aboutNetworking.rcwn                  "RCWN Stats">
 <!ENTITY aboutNetworking.rcwnStatus            "RCWN Status">
 <!ENTITY aboutNetworking.rcwnCacheWonCount     "Cache won count">

@@ -5,7 +5,7 @@ messenger.jar:
 % content messenger %content/messenger/
 % override chrome://global/content/nsDragAndDrop.js chrome://messenger/content/nsDragAndDrop.js
 % override chrome://messagebody/skin/messageBody.css chrome://messenger/skin/messageBody.css
-% overlay chrome://global/content/viewSource.xul chrome://messenger/content/viewSourceOverlay.xul
+% overlay chrome://messenger/content/viewSource.xul chrome://messenger/content/viewSourceOverlay.xul
 % overlay chrome://global/content/config.xul chrome://messenger/content/configEditorOverlay.xul
 % overlay chrome://editor/content/EdSpellCheck.xul chrome://messenger/content/EdSpellCheckOverlay.xul
 % overlay about:addons chrome://messenger/content/extensionsOverlay.xul
@@ -39,10 +39,14 @@ messenger.jar:
     content/messenger/mailWidgets.xml               (content/mailWidgets.xml)
     content/messenger/customizeToolbar.css          (../../common/src/customizeToolbar.css)
     content/messenger/customizeToolbar.js           (../../common/src/customizeToolbar.js)
-    content/messenger/customizeToolbar.xul          (../../common/src/customizeToolbar.xul)
+*   content/messenger/customizeToolbar.xul          (../../common/src/customizeToolbar.xul)
+    content/messenger/viewSource.css                (../../common/src/viewSource.css)
+    content/messenger/viewSource.js                 (../../common/src/viewSource.js)
+*   content/messenger/viewSource.xul                (../../common/src/viewSource.xul)
 *   content/messenger/datetimepicker.xml            (../../common/bindings/datetimepicker.xml)
     content/messenger/generalBindings.xml           (../../common/bindings/generalBindings.xml)
-    content/messenger/toolbar.xml                   (../../common/bindings/toolbar.xml)
+*   content/messenger/spinbuttons.xml               (../../common/bindings/spinbuttons.xml)
+*   content/messenger/toolbar.xml                   (../../common/bindings/toolbar.xml)
 *   content/messenger/bindings.css                  (content/bindings.css)
     content/messenger/nsDragAndDrop.js              (content/nsDragAndDrop.js)
     content/messenger/editContactOverlay.js         (content/editContactOverlay.js)
@@ -56,7 +60,7 @@ messenger.jar:
     content/messenger/commandglue.js                (content/commandglue.js)
 *   content/messenger/SearchDialog.xul              (content/SearchDialog.xul)
     content/messenger/SearchDialog.js               (content/SearchDialog.js)
-    content/messenger/ABSearchDialog.xul            (content/ABSearchDialog.xul)
+*   content/messenger/ABSearchDialog.xul            (content/ABSearchDialog.xul)
     content/messenger/ABSearchDialog.js             (content/ABSearchDialog.js)
     content/messenger/FilterListDialog.xul          (content/FilterListDialog.xul)
     content/messenger/FilterListDialog.js           (content/FilterListDialog.js)
@@ -89,11 +93,9 @@ messenger.jar:
     content/messenger/threadPaneColumnPicker.xml    (content/threadPaneColumnPicker.xml)
     content/messenger/protovis-r2.6-modded.js       (content/protovis-r2.6-modded.js)
 #ifdef XP_MACOSX
-    content/messenger/macMenuOverlay.xul            (content/macMenuOverlay.xul)
     content/messenger/macMessengerOverlay.xul       (content/macMessengerOverlay.xul)
     content/messenger/macMessengerOverlay.js        (content/macMessengerOverlay.js)
 #endif
-*   content/messenger/baseMenuOverlay.xul           (content/baseMenuOverlay.xul)
     content/messenger/selectionsummaries.js         (content/selectionsummaries.js)
     content/messenger/multimessageview.css          (content/multimessageview.css)
     content/messenger/multimessageview_print.css    (content/multimessageview_print.css)

@@ -8,15 +8,10 @@
  * one of our account providers.
  */
 
-var Cu = Components.utils;
-var Cc = Components.classes;
-var Ci = Components.interfaces;
-var Cr = Components.results;
-
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/NetUtil.jsm");
-Cu.import("resource:///modules/JXON.js");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/NetUtil.jsm");
+ChromeUtils.import("resource:///modules/JXON.js");
 
 /**
  * This is an observer that watches all HTTP requests for one where the
@@ -45,8 +40,8 @@ httpRequestObserver.prototype = {
       return;
 
     if (!(aSubject instanceof Ci.nsIHttpChannel)) {
-      Component.utils.reportError("Failed to get a nsIHttpChannel when "
-                                  + "observing http-on-examine-response");
+      Cu.reportError("Failed to get a nsIHttpChannel when "
+                     + "observing http-on-examine-response");
       return;
     }
 
@@ -97,8 +92,8 @@ httpRequestObserver.prototype = {
                        .associatedWindow;
       }
     } catch(e) {
-      Components.utils.reportError("Could not find an associated window "
-                                   + "for an HTTP request. Error: " + e);
+      Cu.reportError("Could not find an associated window "
+                     + "for an HTTP request. Error: " + e);
     }
     return null;
   },
@@ -192,7 +187,7 @@ TracingListener.prototype = {
       // Something went wrong with account set up. Dump the error out to the
       // error console. The tab will be closed, and the Account Provisioner
       // tab will be reopened.
-      Components.utils.reportError("Problem interpreting provider XML:" + e);
+      Cu.reportError("Problem interpreting provider XML:" + e);
     }
 
     tabmail.switchToTab(0);

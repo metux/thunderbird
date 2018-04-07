@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-var {interfaces: Ci, utils: Cu} = Components;
-
 do_get_profile();
 
-Cu.import("resource:///modules/imServices.jsm");
-Cu.import("resource:///modules/imXPCOMUtils.jsm");
-Cu.import("resource://gre/modules/osfile.jsm");
-Cu.import("resource://gre/modules/Task.jsm");
+ChromeUtils.import("resource:///modules/imServices.jsm");
+ChromeUtils.import("resource:///modules/imXPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/osfile.jsm");
+ChromeUtils.import("resource://gre/modules/Task.jsm");
 
 var gLogger = {};
 Services.scriptloader.loadSubScript("resource:///components/logger.js", gLogger);

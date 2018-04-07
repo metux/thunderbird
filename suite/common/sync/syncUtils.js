@@ -216,9 +216,9 @@ var gSyncUtils = {
   }
 };
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyGetter(gSyncUtils, "_stringBundle", function() {
-  return Components.classes["@mozilla.org/intl/stringbundle;1"]
-                   .getService(Components.interfaces.nsIStringBundleService)
-                   .createBundle("chrome://communicator/locale/sync/syncSetup.properties");
+  return Cc["@mozilla.org/intl/stringbundle;1"]
+           .getService(Ci.nsIStringBundleService)
+           .createBundle("chrome://communicator/locale/sync/syncSetup.properties");
 });

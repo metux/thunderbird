@@ -7,23 +7,21 @@
 
 "use strict";
 
-const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
-
 const winUtil = content.QueryInterface(Ci.nsIInterfaceRequestor)
     .getInterface(Ci.nsIDOMWindowUtils);
 
-Cu.import("resource://gre/modules/FileUtils.jsm");
-Cu.import("resource://gre/modules/Log.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/FileUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Log.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-Cu.import("chrome://marionette/content/accessibility.js");
-Cu.import("chrome://marionette/content/action.js");
-Cu.import("chrome://marionette/content/atom.js");
-Cu.import("chrome://marionette/content/capture.js");
+ChromeUtils.import("chrome://marionette/content/accessibility.js");
+ChromeUtils.import("chrome://marionette/content/action.js");
+ChromeUtils.import("chrome://marionette/content/atom.js");
+ChromeUtils.import("chrome://marionette/content/capture.js");
 const {
   element,
   WebElement,
-} = Cu.import("chrome://marionette/content/element.js", {});
+} = ChromeUtils.import("chrome://marionette/content/element.js", {});
 const {
   ElementNotInteractableError,
   InsecureCertificateError,
@@ -34,16 +32,16 @@ const {
   pprint,
   TimeoutError,
   UnknownError,
-} = Cu.import("chrome://marionette/content/error.js", {});
-Cu.import("chrome://marionette/content/evaluate.js");
-Cu.import("chrome://marionette/content/event.js");
-const {ContentEventObserverService} = Cu.import("chrome://marionette/content/dom.js", {});
-const {truncate} = Cu.import("chrome://marionette/content/format.js", {});
-Cu.import("chrome://marionette/content/interaction.js");
-Cu.import("chrome://marionette/content/legacyaction.js");
-Cu.import("chrome://marionette/content/navigate.js");
-Cu.import("chrome://marionette/content/proxy.js");
-Cu.import("chrome://marionette/content/session.js");
+} = ChromeUtils.import("chrome://marionette/content/error.js", {});
+ChromeUtils.import("chrome://marionette/content/evaluate.js");
+ChromeUtils.import("chrome://marionette/content/event.js");
+const {ContentEventObserverService} = ChromeUtils.import("chrome://marionette/content/dom.js", {});
+const {truncate} = ChromeUtils.import("chrome://marionette/content/format.js", {});
+ChromeUtils.import("chrome://marionette/content/interaction.js");
+ChromeUtils.import("chrome://marionette/content/legacyaction.js");
+ChromeUtils.import("chrome://marionette/content/navigate.js");
+ChromeUtils.import("chrome://marionette/content/proxy.js");
+ChromeUtils.import("chrome://marionette/content/session.js");
 
 Cu.importGlobalProperties(["URL"]);
 
@@ -53,7 +51,7 @@ let curContainer = {frame: content, shadowRoot: null};
 // code can send dblclick event
 addEventListener("click", event.DoubleClickTracker.setClick);
 addEventListener("dblclick", event.DoubleClickTracker.resetClick);
-addEventListener("unload", event.DoubleClickTracker.resetClick);
+addEventListener("unload", event.DoubleClickTracker.resetClick, true);
 
 const seenEls = new element.Store();
 const SUPPORTED_STRATEGIES = new Set([
@@ -670,14 +668,12 @@ function sendError(err, uuid) {
   sendToServer(uuid, err);
 }
 
-async function execute(script, args, timeout, opts) {
-  opts.timeout = timeout;
+async function execute(script, args, opts) {
   let sb = sandbox.createMutable(curContainer.frame);
   return evaluate.sandbox(sb, script, args, opts);
 }
 
-async function executeInSandbox(script, args, timeout, opts) {
-  opts.timeout = timeout;
+async function executeInSandbox(script, args, opts) {
   let sb = sandboxes.get(opts.sandboxName, opts.newSandbox);
   return evaluate.sandbox(sb, script, args, opts);
 }
@@ -787,7 +783,9 @@ function createATouch(el, corx, cory, touchId) {
  */
 async function performActions(msg) {
   let chain = action.Chain.fromJSON(msg.actions);
-  await action.dispatch(chain, curContainer.frame);
+  await action.dispatch(chain, curContainer.frame,
+      !capabilities.get("moz:useNonSpecCompliantPointerOrigin"),
+  );
 }
 
 /**
@@ -1399,7 +1397,7 @@ function switchToFrame(msg) {
     sendSyncMessage("Marionette:switchedToFrame", {frameValue: null});
 
     curContainer.frame = content;
-    if (msg.json.focus == true) {
+    if (msg.json.focus) {
       curContainer.frame.focus();
     }
 
@@ -1464,7 +1462,7 @@ function switchToFrame(msg) {
           sendSyncMessage("Marionette:switchedToFrame", {frameValue: null});
           curContainer.frame = content;
 
-          if (msg.json.focus == true) {
+          if (msg.json.focus) {
             curContainer.frame.focus();
           }
 

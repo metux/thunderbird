@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/ar/locale/ar/passwordmgr/", 
         "pippki": "chrome/ar/locale/ar/pippki/"
       }, 
-      "version": "20171102104056"
+      "version": "20180312184207"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-ar@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "ar", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "العربية Language Pack", 
   "manifest_version": 2, 
   "sources": {

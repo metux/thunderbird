@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-Cu.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 const CRASH_URL = "http://example.com/browser/suite/browser/test/browser/pluginCrashCommentAndURL.html";
 
@@ -145,7 +145,7 @@ function getPropertyBagValue(bag, key) {
     var val = bag.getProperty(key);
   }
   catch (e) {
-    if (e.result != Components.results.NS_ERROR_FAILURE) {
+    if (e.result != Cr.NS_ERROR_FAILURE) {
       throw e;
     }
   }

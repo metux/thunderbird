@@ -12,9 +12,9 @@
 <!ENTITY devmgr.details.title                   "Detalii">
 <!ENTITY devmgr.details.title2                  "Valoare">
 
-<!ENTITY devmgr.button.login.label              "Autentificare">
+<!ENTITY devmgr.button.login.label              "Autentifică-te">
 <!ENTITY devmgr.button.login.accesskey          "n">
-<!ENTITY devmgr.button.logout.label             "Deautentificare">
+<!ENTITY devmgr.button.logout.label             "Deconectează-te">
 <!ENTITY devmgr.button.logout.accesskey         "i">
 <!ENTITY devmgr.button.changepw.label           "Schimbă parola">
 <!ENTITY devmgr.button.changepw.accesskey       "p">
@@ -24,18 +24,13 @@
 <!ENTITY devmgr.button.unload.accesskey         "D">
 <!ENTITY devmgr.button.fips.accesskey           "F">
 
-<!ENTITY loaddevice.info                        "Introdu informații despre modulul pe care dorești să îl adaugi.">
-
-
+<!ENTITY loaddevice.info                        "Introdu informații despre modulul pe care vrei să îl adaugi.">
+<!ENTITY loaddevice.modname2                    "Numele modului">
+<!ENTITY loaddevice.modname2.accesskey          "M">
 <!ENTITY loaddevice.modname.default             "Modul PKCS#11 nou">
-
-
+<!ENTITY loaddevice.filename2                   "Numele fișierului modulului">
+<!ENTITY loaddevice.filename2.accesskey         "f">
 <!ENTITY loaddevice.browse                      "Răsfoiește…">
 <!ENTITY loaddevice.browse.accesskey            "R">
 
-
-<!ENTITY loaddevice.modname2                    "Module Name">
-<!ENTITY loaddevice.modname2.accesskey          "M">
-<!ENTITY loaddevice.filename2                   "Module filename">
-<!ENTITY loaddevice.filename2.accesskey         "f">
-<!ENTITY loaddevice.title2                      "Load PKCS#11 Device Driver">
+<!ENTITY loaddevice.title2                      "Încarcă driver dispozitiv PKCS#11">

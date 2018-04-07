@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/es-ES/locale/es-ES/passwordmgr/", 
         "pippki": "chrome/es-ES/locale/es-ES/pippki/"
       }, 
-      "version": "20171104130347"
+      "version": "20180312184654"
     }
   }, 
   "applications": {
     "gecko": {
-      "strict_min_version": "59.0", 
+      "strict_min_version": "60.0", 
       "id": "langpack-es-ES@firefox.mozilla.org", 
-      "strict_max_version": "59.*"
+      "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "es-ES", 
-  "version": "59.0", 
+  "version": "60.0", 
   "name": "Español (España) Language Pack", 
   "manifest_version": 2, 
   "sources": {

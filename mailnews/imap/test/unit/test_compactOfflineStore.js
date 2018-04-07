@@ -12,7 +12,7 @@ load("../../../resources/asyncTestUtils.js");
 load("../../../resources/messageGenerator.js");
 load("../../../resources/alertTestUtils.js");
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 // Globals
 var gRootFolder;
@@ -35,18 +35,11 @@ var gMsgId5 = "bugmail6.m47LtAEf007542@mrapp51.mozilla.org";
 function addMessagesToServer(messages, mailbox)
 {
   // For every message we have, we need to convert it to a file:/// URI
-  let specs = [];
   messages.forEach(function (message)
   {
-    let URI =
-      Services.io.newFileURI(message.file).QueryInterface(Ci.nsIFileURL);
-    specs.push(URI.spec);
-  });
-
-  // Create the imapMessages and store them on the mailbox
-  specs.forEach(function (spec)
-  {
-    mailbox.addMessage(new imapMessage(spec, mailbox.uidnext++, []));
+    let URI = Services.io.newFileURI(message.file).QueryInterface(Ci.nsIFileURL);
+    // Create the imapMessage and store it on the mailbox.
+    mailbox.addMessage(new imapMessage(URI.spec, mailbox.uidnext++, []));
   });
 }
 
@@ -74,7 +67,7 @@ function checkOfflineStore(prevOfflineStoreSize) {
       let header = enumerator.getNext();
       // this will verify that the message in the offline store
       // starts with "From " - otherwise, it returns an error.
-      if (header instanceof Components.interfaces.nsIMsgDBHdr &&
+      if (header instanceof Ci.nsIMsgDBHdr &&
          (header.flags & Ci.nsMsgMessageFlags.Offline))
         IMAPPump.inbox.getOfflineFileStream(header.messageKey, offset, size).close();
     }
@@ -178,10 +171,10 @@ function setup() {
   // Add a couple of messages to the INBOX
   // this is synchronous, afaik
   addMessagesToServer([{file: gMsgFile1, messageId: gMsgId1},
-                        {file: gMsgFile4, messageId: gMsgId4},
-                        {file: gMsgFile2, messageId: gMsgId2},
-                        {file: gMsgFile5, messageId: gMsgId5}],
-                        IMAPPump.daemon.getMailbox("INBOX"), IMAPPump.inbox);
+                       {file: gMsgFile4, messageId: gMsgId4},
+                       {file: gMsgFile2, messageId: gMsgId2},
+                       {file: gMsgFile5, messageId: gMsgId5}],
+                      IMAPPump.daemon.getMailbox("INBOX"));
 }
 
 // nsIMsgCopyServiceListener implementation - runs next test when copy

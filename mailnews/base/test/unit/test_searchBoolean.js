@@ -5,8 +5,8 @@
 /*
  * Demonstrates and tests the use of grouped boolean expressions in search terms
  */
- 
-Components.utils.import("resource:///modules/mailServices.js");
+
+ChromeUtils.import("resource:///modules/mailServices.js");
 
 var gSearchSession = Cc["@mozilla.org/messenger/searchSession;1"]
                         .createInstance(Ci.nsIMsgSearchSession);
@@ -99,10 +99,10 @@ var Tests =
 
 var gHitCount = 0;
 var searchListener =
-{ 
+{
   onSearchHit: function(dbHdr, folder) { gHitCount++; },
   onSearchDone: function(status)
-  { 
+  {
     testSearch();
   },
   onNewSearch: function() {gHitCount = 0;}
@@ -149,7 +149,7 @@ function run_test()
   addSearchTerm("c", true, false, true);  // " && (C"
   addSearchTerm("d", false, true, false); // " || D)"
 
-  var copyListener = 
+  var copyListener =
   {
     OnStartCopy: function() {},
     OnProgress: function(aProgress, aProgressMax) {},
