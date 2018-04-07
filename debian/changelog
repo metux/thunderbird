@@ -1,3 +1,87 @@
+thunderbird (1:60.0~b2-1) experimental; urgency=medium
+
+  [ Agustin Henze ]
+  * [3639717] apparmor: allow access to @{HOME}/.gnupg/tofu.db
+   (Closes: #894907)
+
+  [ intrigeri ]
+  * [3895bba] AppArmor: fix empty black windows in Thunderbird 58+
+    (Closes: #887973)
+  * [353ca25] AppArmor: update profile from upstream
+    (Closes: #882048, #882122)
+
+  [ Carsten Schoenert ]
+  * [37e0bbe] New upstream version 59.0~b1
+  * [d75c4be] rebuild patch queue from patch-queue branch
+     added patches:
+      fixes/Fix-build-against-libcairo2-dev-1.15.10.patch
+      patches/fixes/Fix-big-endian-build-for-SKIA.patch
+
+     removed patches:
+      debian-hacks/Allow-usage-of-libnspr4-dev-4.16.patch
+      fixes/Bug-1418598-Make-cargo-linker-properly-handle-quoted-stri.patch
+      thunderbird/Thunderbird-fix-installdir-for-icons.patch
+  * [9615d6a] New upstream version 60.0~b1
+  * [431006c] d/source.filter: update due upstream changes
+     Update the list of files we filter out, Upstream added various new files
+      mostly used for auto-testing we don't use.
+  * [2cb4635] d/s/lintian-overrides: remove entries about brace expansion
+     We can remove the override about brace expansion in dh sequencer files.
+  * [4c9f185] debian/rules: using 'rm -f' because probably non existing files
+     The file app.ini isn't existing in some l10n folders for lightning,
+     simply use '-f' for convenience.
+  * [ed00442] debian/rules: fix typo to grep app ID of calendar-g-p
+  * [4a993c5] adding additional packages to Breaks with thunderbird
+     The packages calendar-exchange-provider and enigmail
+     xul-ext-sogo-connector aren't compatible to the webextension interface
+     and we need to add a versioned Breaks.
+  * [9bd8286] adjust Breaks for enigmail
+     Also enigmail needs an adjusted version for Breaks.
+  * [24382c2] Revert "Use gcc-6 and g++-6 due broken GUI with GCC-7"
+    (Closes: #892404)
+  * [f0ac8a5] rebuild patch queue from patch-queue branch
+     removed patches:
+      debian-hacks/Allow-to-override-ICU_DATA_FILE-from-the-environment.patch
+      debian-hacks/remove-non-free-W3C-icon-valid.png.patch
+      fixes/Allow-.js-preference-files-to-set-locked-prefs-with-lockP.patch
+      fixes/Fix-build-against-libcairo2-dev-1.15.10.patch
+
+     modified patches:
+      debian-hacks/Build-against-system-libjsoncpp.patch
+      debian-hacks/Don-t-build-testing-suites-and-stuff.patch
+      porting-kfreebsd-hurd/FTBFS-hurd-fixing-unsupported-platform-Hurd.patch
+      porting-kfreebsd-hurd/adding-missed-HURD-adoptions.patch
+  * [6ab35ad] d/mozconfig.default: don't use nspr and nss from system
+     We need to switch back to the embedded source for NSS and NSPR, the
+     versions in unstable aren't usable.
+  * [055ed65] d/mozconfig.default: remove no longer alive option
+     The option '--enable-system-cairo' is gone with TB 60.
+  * [663d6f1] lightning-l10n-bn-bd: remove Bengali (Bangladesh) l10n package
+  * [02b21cb] lightning-l10n-pa-in: remove Punjabi (India) l10ng package
+  * [0cc0b5d] lightning-l10n-ta-lk: remove Tamil (Sri Lanka) l10n package
+  * [62f23a5] thunderbird-l10n-bn-bd: remove (Bangladesh) l10n package
+  * [61bfdf4] thunderbird-l10n-pa-in: remove Punjabi (India) l10n package
+  * [a361750] thunderbird-l10n-ta-lk: remove Tamil (Sri Lanka) l10n package
+  * [8ba5b0d] debian/control: add new packages for *-kk language
+  * [e4280ac] debian/control: add new packages for *-ms language
+  * [aaef9fe] adjust Vcs fields to salsa.debian.org
+  * [144c492, 009b145] debian/copyright: update after upstream changes
+     Upstream removed some files/folders, which reflects in needed adjustments
+     for the copyright file.
+  * [3623f84] d/thunderbird.lintian-overrides: add libnspr4.so and libnss3.so
+     We now need to ship (again) embedded libraries for NSPR and NSS.
+  * [0d3de65] lightning: move linking into /u/l/tb/distribution/extensions
+     Following upstream with the folder for the Lightning to not differ.
+  * [4d6cefe] New upstream version 60.0~b2
+  * [e1c40a7] rebuild patch queue from patch-queue branch
+     removed patches:
+      fixes/Fix-big-endian-build-for-SKIA.patch
+  * [4834a1d] add entries to README and NEWS for thunderbird
+     Adding notes about the current situation foe the l10n packages and their
+     integration into the UI of Thunderbird and Lightning.
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sat, 07 Apr 2018 11:12:37 +0200
+
 thunderbird (1:58.0~b3-1) experimental; urgency=medium
 
   [ Carsten Schoenert ]
