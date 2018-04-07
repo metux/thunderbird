@@ -345,6 +345,7 @@ profile thunderbird @{thunderbird_executable} {
     owner @{HOME}/.gnupg/tofu.db{,-journal} rwk,
     owner @{HOME}/.gnupg/S.gpg-agent rw,
     owner @{HOME}/.gnupg/S.dirmngr rw,
+    owner @{HOME}/.gnupg/tofu.db wrk,
     owner @{HOME}/.gnupg/*.{gpg,kbx}.{lock,tmp} rwl,
     owner @{HOME}/.gnupg/.gpg-*.lock rwl,
     owner @{HOME}/.gnupg/gnupg_spawn_*.lock rwl,
