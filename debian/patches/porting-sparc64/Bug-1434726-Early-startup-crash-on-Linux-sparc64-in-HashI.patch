@@ -1,0 +1,25 @@
+From: Michael Karcher <debian@mkarcher.dialup.fu-berlin.de>
+Date: Thu, 1 Feb 2018 00:04:36 +0100
+Subject: Bug 1434726 - Early startup crash on Linux sparc64 in HashIIDPtrKey
+
+Origin: not yet exist
+Bug-Debian: not yet exist
+Bug: https://bugzilla.mozilla.org/show_bug.cgi?id=1434726
+Applied-Upstream: TBD
+---
+ mozilla/js/xpconnect/src/XPCMaps.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/mozilla/js/xpconnect/src/XPCMaps.cpp b/mozilla/js/xpconnect/src/XPCMaps.cpp
+index bb99b9f..837d5d7 100644
+--- a/mozilla/js/xpconnect/src/XPCMaps.cpp
++++ b/mozilla/js/xpconnect/src/XPCMaps.cpp
+@@ -23,7 +23,7 @@ using namespace mozilla;
+ static PLDHashNumber
+ HashIIDPtrKey(const void* key)
+ {
+-    return HashGeneric(*((uintptr_t*)key));
++    return HashGeneric(((nsID*)key)->m0);
+ }
+ 
+ static bool
