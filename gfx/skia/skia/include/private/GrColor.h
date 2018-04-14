@@ -74,7 +74,11 @@ static inline GrColor GrColorPackA4(unsigned a) {
  *  Since premultiplied means that alpha >= color, we construct a color with
  *  each component==255 and alpha == 0 to be "illegal"
  */
+#ifdef SK_CPU_BENDIAN
+#define GrColor_ILLEGAL     0xFFFFFF00
+#else
 #define GrColor_ILLEGAL     (~(0xFF << GrColor_SHIFT_A))
+#endif
 
 #define GrColor_WHITE 0xFFFFFFFF
 #define GrColor_TRANSPARENT_BLACK 0x0
