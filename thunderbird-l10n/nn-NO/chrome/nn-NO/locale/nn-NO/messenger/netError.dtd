@@ -25,7 +25,7 @@
 <!ENTITY fileAccessDenied.title "Tilgang til fila vart nekta">
 <!ENTITY fileAccessDenied.longDesc "<ul> <li>Fila kan ha vorte flytta, fjerna, eller filløyve kan hindra tilgang.</li> </ul>">
 
-<!ENTITY generic.title "Ojsann.">
+<!ENTITY generic.title "Ops.">
 <!ENTITY generic.longDesc "<p>&brandShortName; klarte ikkje å lasta denne sida av ukjent årsak.</p>">
 
 <!ENTITY malformedURI.title "Adressa er ugyldig">
@@ -100,4 +100,4 @@ functionality specific to thunderbird. -->
      "NS_ERROR_NET_INADEQUATE_SECURITY". -->
 <!ENTITY inadequateSecurityError.longDesc "<p><span class='hostname'></span> brukar tryggingsteknologi som er forelda og sårbar for åtak. Ein angripar kan lett avsløra informasjon som du trudde skulle vera sikker. Administrator på nettstaden må fiksa tenaren før du kan besøka nettsida.</p><p>Feilkode: NS_ERROR_NET_INADEQUATE_SECURITY</p>">
 
-<!ENTITY blockedByPolicy.title "Blocked Page">
+<!ENTITY blockedByPolicy.title "Blokkert side">

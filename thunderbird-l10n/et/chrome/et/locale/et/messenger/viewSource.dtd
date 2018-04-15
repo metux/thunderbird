@@ -10,22 +10,22 @@
 <!ENTITY mainWindow.titlemodifier "&brandFullName;">
 <!-- LOCALIZATION NOTE (mainWindow.titlemodifierseparator) : DONT_TRANSLATE -->
 <!ENTITY mainWindow.titlemodifierseparator " - ">
-<!ENTITY mainWindow.preface "Source of: ">
+<!ENTITY mainWindow.preface "Lähtekood: ">
 
-<!ENTITY fileMenu.label "File">
+<!ENTITY fileMenu.label "Fail">
 <!ENTITY fileMenu.accesskey "F">
-<!ENTITY savePageCmd.label "Save Page As…">
-<!ENTITY savePageCmd.accesskey "A">
+<!ENTITY savePageCmd.label "Salvesta kui…">
+<!ENTITY savePageCmd.accesskey "S">
 <!ENTITY savePageCmd.commandkey "S">
-<!ENTITY pageSetupCmd.label "Page Setup…">
-<!ENTITY pageSetupCmd.accesskey "u">
-<!ENTITY printPreviewCmd.label "Print Preview">
-<!ENTITY printPreviewCmd.accesskey "v">
-<!ENTITY printCmd.label "Print…">
+<!ENTITY pageSetupCmd.label "Lehekülje sätted…">
+<!ENTITY pageSetupCmd.accesskey "L">
+<!ENTITY printPreviewCmd.label "Lehekülje eelvaade">
+<!ENTITY printPreviewCmd.accesskey "e">
+<!ENTITY printCmd.label "Prindi…">
 <!ENTITY printCmd.accesskey "P">
 <!ENTITY printCmd.commandkey "P">
-<!ENTITY closeCmd.label "Close">
-<!ENTITY closeCmd.accesskey "C">
+<!ENTITY closeCmd.label "Sulge">
+<!ENTITY closeCmd.accesskey "u">
 <!ENTITY closeCmd.commandkey "W">
 
 <!-- LOCALIZATION NOTE :
@@ -42,46 +42,46 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY textReset.commandkey "0">
 <!ENTITY textReset.commandkey2 "">
 
-<!ENTITY goToLineCmd.label "Go to Line…">
-<!ENTITY goToLineCmd.accesskey "G">
+<!ENTITY goToLineCmd.label "Mine reale…">
+<!ENTITY goToLineCmd.accesskey "M">
 <!ENTITY goToLineCmd.commandkey "l">
 
-<!ENTITY viewMenu.label           "View">
+<!ENTITY viewMenu.label           "Vaade">
 <!ENTITY viewMenu.accesskey       "V">
-<!ENTITY reloadCmd.label "Reload">
-<!ENTITY reloadCmd.accesskey "R">
+<!ENTITY reloadCmd.label "Laadi uuesti">
+<!ENTITY reloadCmd.accesskey "L">
 <!ENTITY reloadCmd.commandkey "r">
-<!ENTITY menu_wrapLongLines.title "Wrap Long Lines">
-<!ENTITY menu_wrapLongLines.accesskey "W">
-<!ENTITY menu_highlightSyntax.label "Syntax Highlighting">
-<!ENTITY menu_highlightSyntax.accesskey "H">
-<!ENTITY menu_textSize.label "Text Size">
-<!ENTITY menu_textSize.accesskey "Z">
-<!ENTITY menu_textEnlarge.label "Increase">
-<!ENTITY menu_textEnlarge.accesskey "I">
-<!ENTITY menu_textReduce.label "Decrease">
-<!ENTITY menu_textReduce.accesskey "D">
-<!ENTITY menu_textReset.label "Normal">
-<!ENTITY menu_textReset.accesskey "N">
+<!ENTITY menu_wrapLongLines.title "Pikad read murtakse">
+<!ENTITY menu_wrapLongLines.accesskey "k">
+<!ENTITY menu_highlightSyntax.label "Süntaks tuuakse esile">
+<!ENTITY menu_highlightSyntax.accesskey "ü">
+<!ENTITY menu_textSize.label "Teksti suurus">
+<!ENTITY menu_textSize.accesskey "u">
+<!ENTITY menu_textEnlarge.label "Suurenda">
+<!ENTITY menu_textEnlarge.accesskey "S">
+<!ENTITY menu_textReduce.label "Vähenda">
+<!ENTITY menu_textReduce.accesskey "V">
+<!ENTITY menu_textReset.label "Tavaline">
+<!ENTITY menu_textReset.accesskey "T">
 
-<!ENTITY findOnCmd.label     "Find in This Page…">
-<!ENTITY findOnCmd.accesskey "F">
+<!ENTITY findOnCmd.label     "Otsi sellelt lehelt…">
+<!ENTITY findOnCmd.accesskey "O">
 <!ENTITY findOnCmd.commandkey "f">
-<!ENTITY findAgainCmd.label  "Find Again">
-<!ENTITY findAgainCmd.accesskey "g">
+<!ENTITY findAgainCmd.label  "Otsi uuesti">
+<!ENTITY findAgainCmd.accesskey "t">
 <!ENTITY findAgainCmd.commandkey "g">
 <!ENTITY findAgainCmd.commandkey2 "VK_F3">
 <!ENTITY findSelectionCmd.commandkey "e">
 
-<!ENTITY backCmd.label "Back">
-<!ENTITY backCmd.accesskey "B">
-<!ENTITY forwardCmd.label "Forward">
-<!ENTITY forwardCmd.accesskey "F">
+<!ENTITY backCmd.label "Tagasi">
+<!ENTITY backCmd.accesskey "T">
+<!ENTITY forwardCmd.label "Edasi">
+<!ENTITY forwardCmd.accesskey "E">
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goForwardCmd.commandKey "]">
 
-<!ENTITY copyLinkCmd.label "Copy Link Location">
-<!ENTITY copyLinkCmd.accesskey "L">
-<!ENTITY copyEmailCmd.label "Copy Email Address">
-<!ENTITY copyEmailCmd.accesskey "E">
+<!ENTITY copyLinkCmd.label "Kopeeri lingi aadress">
+<!ENTITY copyLinkCmd.accesskey "o">
+<!ENTITY copyEmailCmd.label "Kopeeri e-posti aadress">
+<!ENTITY copyEmailCmd.accesskey "e">
 

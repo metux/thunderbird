@@ -3,7 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!-- LOCALIZATION NOTE the term "url-classifier" should not be translated. -->
-<!ENTITY aboutUrlClassifier.pageTitle                   "Information about the url-classifier">
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">
 <!ENTITY aboutUrlClassifier.providerTitle               "Provider">
 <!ENTITY aboutUrlClassifier.provider                    "Provider">
 <!ENTITY aboutUrlClassifier.providerLastUpdateTime      "Last update time">
@@ -31,5 +31,3 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Current log modules">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Safe Browsing JS log">
 <!ENTITY aboutUrlClassifier.debugFile                   "Current log file">
-
-<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

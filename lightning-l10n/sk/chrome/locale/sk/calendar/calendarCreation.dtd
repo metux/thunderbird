@@ -21,17 +21,28 @@
 <!ENTITY finishpage.shortdescription  "Kalendár bol vytvorený" >
 <!ENTITY finishpage.longdescription   "Váš kalendár bol úspešne vytvorený." >
 
-<!ENTITY sourcetabs.other.label  "Other">
-<!ENTITY buttons.create.label "Create Calendar">
+<!-- Below are new strings for the revised new calendar dialog. The above strings should be
+    removed/renamed later on -->
+
+
+<!ENTITY buttons.create.label "Vytvoriť kalendár">
 <!ENTITY buttons.create.accesskey "r">
-<!ENTITY buttons.find.label "Find Calendars">
-<!ENTITY buttons.find.accesskey "F">
-<!ENTITY buttons.back.label "Back">
-<!ENTITY buttons.back.accesskey "B">
-<!ENTITY buttons.subscribe.label "Subscribe">
-<!ENTITY buttons.subscribe.accesskey "S">
-<!ENTITY calendartype.label "Calendar Type:">
-<!ENTITY location.label "Location:">
+
+<!ENTITY buttons.find.label "Hľadať kalendáre">
+<!ENTITY buttons.find.accesskey "H">
+
+<!ENTITY buttons.back.label "Naspäť">
+<!ENTITY buttons.back.accesskey "s">
+
+<!ENTITY buttons.subscribe.label "Odoberať">
+<!ENTITY buttons.subscribe.accesskey "O">
+
+<!ENTITY calendartype.label "Typ kalendára:">
+<!ENTITY location.label "Umiestnenie:">
+
+
+
+<!ENTITY sourcetabs.other.label  "Other">
 <!ENTITY location.placeholder "URL or host name of the calendar server">
 <!ENTITY network.nocredentials.label "This location doesn't require credentials">
 <!ENTITY network.loading.description "Please wait while your calendars are being discovered.">

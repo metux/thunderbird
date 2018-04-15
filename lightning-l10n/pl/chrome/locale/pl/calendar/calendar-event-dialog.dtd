@@ -362,6 +362,7 @@
 
 <!ENTITY read.only.general.label         "Główne">
 <!ENTITY read.only.title.label           "Nazwa:">
+<!ENTITY read.only.calendar.label "Kalendarz:">
 <!ENTITY read.only.event.start.label     "Początek:">
 <!ENTITY read.only.task.start.label      "Początek:">
 <!ENTITY read.only.event.end.label       "Koniec:">
@@ -381,16 +382,15 @@
 <!ENTITY read.only.description.label     "Opis">
 <!ENTITY read.only.link.label            "Powiązany odnośnik">
 
-<!ENTITY read.only.calendar.label        "Calendar:">
-<!ENTITY summary.dialog.saveclose.label         "Save and Close">
-<!ENTITY summary.dialog.saveclose.tooltiptext   "Save changes and close the window without changing the participation status and sending a response">
-<!ENTITY summary.dialog.accept.label            "Accept">
-<!ENTITY summary.dialog.accept.tooltiptext      "Accept the invitation">
-<!ENTITY summary.dialog.tentative.label         "Tentative">
-<!ENTITY summary.dialog.tentative.tooltiptext   "Accept the invitation tentatively">
-<!ENTITY summary.dialog.decline.label           "Decline">
-<!ENTITY summary.dialog.decline.tooltiptext     "Decline the invitation">
-<!ENTITY summary.dialog.dontsend.label          "Do not send a response">
-<!ENTITY summary.dialog.dontsend.tooltiptext    "Change your participation status without sending a reply to the organizer and close the window">
-<!ENTITY summary.dialog.send.label              "Send a response now">
-<!ENTITY summary.dialog.send.tooltiptext        "Send out a response to the organizer  and close the window">
+<!ENTITY summary.dialog.saveclose.label "Zapisz i zamknij">
+<!ENTITY summary.dialog.saveclose.tooltiptext "Zapisz zmiany i zamknij okno bez zmiany stanu uczestnictwa i wysłania odpowiedzi">
+<!ENTITY summary.dialog.accept.label "Przyjmij">
+<!ENTITY summary.dialog.accept.tooltiptext "Przyjmij zaproszenie">
+<!ENTITY summary.dialog.tentative.label "Wstępnie">
+<!ENTITY summary.dialog.tentative.tooltiptext "Wstępnie przyjmij zaproszenie">
+<!ENTITY summary.dialog.decline.label "Odrzuć">
+<!ENTITY summary.dialog.decline.tooltiptext "Odrzuć zaproszenie">
+<!ENTITY summary.dialog.dontsend.label "Nie wysyłaj odpowiedzi">
+<!ENTITY summary.dialog.dontsend.tooltiptext "Zmień stan uczestnictwa bez wysyłania odpowiedzi do organizatora i zamknij okno">
+<!ENTITY summary.dialog.send.label "Wyślij odpowiedź teraz">
+<!ENTITY summary.dialog.send.tooltiptext "Wyślij odpowiedź do organizatora i zamknij okno">

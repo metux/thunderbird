@@ -2,40 +2,50 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY wizard.title "Vytváření nového kalendáře" >
-<!ENTITY wizard.label "Vytvořit nový kalendář" >
-<!ENTITY wizard.description "Zvolte umístění pro nový kalendář" >
+<!ENTITY wizard.title             "Vytváření nového kalendáře" >
+<!ENTITY wizard.label             "Vytvořit nový kalendář" >
+<!ENTITY wizard.description       "Zvolte umístění pro nový kalendář" >
 
-<!ENTITY initialpage.description "Kalendář může být vytvořen na tomto počítači nebo na serveru v síti, odkud k němu můžete přistupovat nebo ho sdílet se svými přáteli či spolupracovníky." >
-<!ENTITY initialpage.computer.label "Na tomto počítači">
-<!ENTITY initialpage.network.label "V síti">
+<!ENTITY initialpage.description    "Kalendář může být vytvořen na tomto počítači nebo na serveru v síti, odkud k němu můžete přistupovat nebo ho sdílet se svými přáteli či spolupracovníky." >
+<!ENTITY initialpage.computer.label  "Na tomto počítači">
+<!ENTITY initialpage.network.label  "V síti">
 
-<!ENTITY locationpage.description "Sdělte informace o tom, co je potřebné pro přístup k vzdálenému kalendáři" >
-<!ENTITY locationpage.login.description "Nepovinné: zadejte jméno a heslo" >
-<!ENTITY locationpage.username.label "Uživatelské jméno:" >
-<!ENTITY locationpage.password.label "Heslo:" >
+<!ENTITY locationpage.description         "Sdělte informace o tom, co je potřebné pro přístup k vzdálenému kalendáři" >
+<!ENTITY locationpage.login.description   "Nepovinné: zadejte jméno a heslo" >
+<!ENTITY locationpage.username.label      "Uživatelské jméno:" >
+<!ENTITY locationpage.password.label      "Heslo:" >
 
-<!ENTITY custompage.shortdescription "Upravit možnosti kalendáře" >
-<!ENTITY custompage.longdescription "Kalendáři můžete dát přezdívku a události z tohoto kalendáře barevně odlišit od ostatních." >
+<!ENTITY custompage.shortdescription  "Upravit možnosti kalendáře" >
+<!ENTITY custompage.longdescription   "Kalendáři můžete dát přezdívku a události z tohoto kalendáře barevně odlišit od ostatních." >
 
-<!ENTITY finishpage.shortdescription "Kalendář byl vytvořen" >
-<!ENTITY finishpage.longdescription "Váš kalendář byl vytvořen." >
+<!ENTITY finishpage.shortdescription  "Kalendář byl vytvořen" >
+<!ENTITY finishpage.longdescription   "Váš kalendář byl vytvořen." >
 
-<!ENTITY sourcetabs.other.label  "Other">
-<!ENTITY buttons.create.label "Create Calendar">
-<!ENTITY buttons.create.accesskey "r">
-<!ENTITY buttons.find.label "Find Calendars">
-<!ENTITY buttons.find.accesskey "F">
-<!ENTITY buttons.back.label "Back">
-<!ENTITY buttons.back.accesskey "B">
-<!ENTITY buttons.subscribe.label "Subscribe">
-<!ENTITY buttons.subscribe.accesskey "S">
-<!ENTITY calendartype.label "Calendar Type:">
-<!ENTITY location.label "Location:">
-<!ENTITY location.placeholder "URL or host name of the calendar server">
-<!ENTITY network.nocredentials.label "This location doesn't require credentials">
-<!ENTITY network.loading.description "Please wait while your calendars are being discovered.">
-<!ENTITY network.notfound.description "Could not find calendars at this location. Please check your settings.">
-<!ENTITY network.authfail.description "The credentials you have entered were not accepted. Please check your settings.">
-<!ENTITY network.subscribe.single.description "Please select the calendars you would like to subscribe to.">
-<!ENTITY network.subscribe.multiple.description "Multiple calendar types are available for this location. Please select the calendar type, then mark the calendars you would like to subscribe to.">
+<!-- Below are new strings for the revised new calendar dialog. The above strings should be
+    removed/renamed later on -->
+
+<!ENTITY sourcetabs.other.label  "Ostatní">
+
+<!ENTITY buttons.create.label "Vytvořit kalendář">
+<!ENTITY buttons.create.accesskey "y">
+
+<!ENTITY buttons.find.label "Najít kalendáře">
+<!ENTITY buttons.find.accesskey "N">
+
+<!ENTITY buttons.back.label "Zpět">
+<!ENTITY buttons.back.accesskey "Z">
+
+<!ENTITY buttons.subscribe.label "Odebírat">
+<!ENTITY buttons.subscribe.accesskey "O">
+
+<!ENTITY calendartype.label "Typ kalendáře:">
+<!ENTITY location.label "Adresa:">
+<!ENTITY location.placeholder "URL nebo jméno hostitele kalendářového serveru">
+
+<!ENTITY network.nocredentials.label "Toto umístění nevyžaduje přihlašovací údaje">
+<!ENTITY network.loading.description "Počkejte prosím než budou nalezeny vaše kalendáře.">
+<!ENTITY network.notfound.description "Kalendáře se v tomto umístění nepodařilo najít. Zkontrolujte prosím svá nastavení.">
+<!ENTITY network.authfail.description "Zadané přihlašovací údaje nebyly přijaty. Zkontrolujte prosím svá nastavení.">
+
+<!ENTITY network.subscribe.single.description "Vyberte prosím kalendář, který chcete přidat.">
+<!ENTITY network.subscribe.multiple.description "V tomto umístění se nachází více typů kalendářů. Vyberte prosím typ kalendáře a pak označte ty, které chcete přidat.">

@@ -398,6 +398,7 @@
 <!-- Read-Only dialog -->
 <!ENTITY read.only.general.label         "Generelt">
 <!ENTITY read.only.title.label           "Tittel:">
+<!ENTITY read.only.calendar.label        "Kalender:">
 <!ENTITY read.only.event.start.label     "Startdato:">
 <!ENTITY read.only.task.start.label      "Startdato:">
 <!ENTITY read.only.event.end.label       "Sluttdato:">
@@ -417,13 +418,14 @@
 <!ENTITY read.only.description.label     "Skildring">
 <!ENTITY read.only.link.label            "Relatert lenke">
 
-<!ENTITY read.only.calendar.label        "Calendar:">
-<!ENTITY summary.dialog.saveclose.label         "Save and Close">
+<!-- Summary dialog -->
+<!ENTITY summary.dialog.saveclose.label         "Lagre og lat att">
+<!ENTITY summary.dialog.accept.label            "Aksepter">
+<!ENTITY summary.dialog.accept.tooltiptext      "Aksepter invitasjonen">
+<!ENTITY summary.dialog.tentative.tooltiptext   "Aksepter invitasjonen førebels">
+
 <!ENTITY summary.dialog.saveclose.tooltiptext   "Save changes and close the window without changing the participation status and sending a response">
-<!ENTITY summary.dialog.accept.label            "Accept">
-<!ENTITY summary.dialog.accept.tooltiptext      "Accept the invitation">
 <!ENTITY summary.dialog.tentative.label         "Tentative">
-<!ENTITY summary.dialog.tentative.tooltiptext   "Accept the invitation tentatively">
 <!ENTITY summary.dialog.decline.label           "Decline">
 <!ENTITY summary.dialog.decline.tooltiptext     "Decline the invitation">
 <!ENTITY summary.dialog.dontsend.label          "Do not send a response">

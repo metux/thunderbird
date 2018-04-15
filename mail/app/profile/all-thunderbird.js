@@ -126,8 +126,12 @@ pref("javascript.options.showInConsole", true);
 // Controls enabling of the extension system logging (can reduce performance)
 pref("extensions.logging.enabled", false);
 
-// Strict compatibility makes addons in-compatible by default.
+// Strict compatibility makes add-ons incompatible by default.
+#ifndef RELEASE_OR_BETA
+pref("extensions.strictCompatibility", false);
+#else
 pref("extensions.strictCompatibility", true);
+#endif
 
 // Specifies a minimum maxVersion an addon needs to say it's compatible with
 // for it to be compatible by default.
@@ -534,6 +538,8 @@ pref("toolbar.customization.usesheet", false);
 // Number of recipient rows shown by default
 pref("mail.compose.addresswidget.numRowsShownDefault", 3);
 
+// Start compositions with (empty) attachment pane showing
+pref("mail.compose.show_attachment_pane", false);
 // Check for missing attachments?
 pref("mail.compose.attachment_reminder", true);
 // Words that should trigger a missing attachments warning.

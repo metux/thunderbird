@@ -429,6 +429,8 @@ void nsMsgComposeAndSend::GenerateMessageId()
 NS_IMETHODIMP
 nsMsgComposeAndSend::GatherMimeAttachments()
 {
+  nsCOMPtr<nsIMsgSend> kungFuDeathGrip(this);
+
   bool shouldDeleteDeliveryState = true;
   nsresult status;
   uint32_t    i;
@@ -4111,6 +4113,8 @@ nsMsgComposeAndSend::CreateAndSendMessage(
               MSG_ComposeType                   aType
               )
 {
+  nsCOMPtr<nsIMsgSend> kungFuDeathGrip(this);
+
   nsresult      rv;
   /* First thing to do is to reset the send errors report */
   mSendReport->Reset();

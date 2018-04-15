@@ -398,6 +398,7 @@
 <!-- Read-Only dialog -->
 <!ENTITY read.only.general.label         "Obecné">
 <!ENTITY read.only.title.label           "Název:">
+<!ENTITY read.only.calendar.label        "Kalendář:">
 <!ENTITY read.only.event.start.label     "Začátek:">
 <!ENTITY read.only.task.start.label      "Začátek:">
 <!ENTITY read.only.event.end.label       "Konec:">
@@ -417,16 +418,16 @@
 <!ENTITY read.only.description.label     "Popis">
 <!ENTITY read.only.link.label            "Související odkaz">
 
-<!ENTITY read.only.calendar.label        "Calendar:">
-<!ENTITY summary.dialog.saveclose.label         "Save and Close">
-<!ENTITY summary.dialog.saveclose.tooltiptext   "Save changes and close the window without changing the participation status and sending a response">
-<!ENTITY summary.dialog.accept.label            "Accept">
-<!ENTITY summary.dialog.accept.tooltiptext      "Accept the invitation">
-<!ENTITY summary.dialog.tentative.label         "Tentative">
-<!ENTITY summary.dialog.tentative.tooltiptext   "Accept the invitation tentatively">
-<!ENTITY summary.dialog.decline.label           "Decline">
-<!ENTITY summary.dialog.decline.tooltiptext     "Decline the invitation">
-<!ENTITY summary.dialog.dontsend.label          "Do not send a response">
-<!ENTITY summary.dialog.dontsend.tooltiptext    "Change your participation status without sending a reply to the organizer and close the window">
-<!ENTITY summary.dialog.send.label              "Send a response now">
-<!ENTITY summary.dialog.send.tooltiptext        "Send out a response to the organizer  and close the window">
+<!-- Summary dialog -->
+<!ENTITY summary.dialog.saveclose.label         "Uložit a zavřít">
+<!ENTITY summary.dialog.saveclose.tooltiptext   "Uloží změny a zavře okno bez změny vaší účasti nebo odeslání odpovědi">
+<!ENTITY summary.dialog.accept.label            "Přijmout">
+<!ENTITY summary.dialog.accept.tooltiptext      "Přijme pozvání">
+<!ENTITY summary.dialog.tentative.label         "Předběžně">
+<!ENTITY summary.dialog.tentative.tooltiptext   "Předběžně přijme pozvání">
+<!ENTITY summary.dialog.decline.label           "Odmítnout">
+<!ENTITY summary.dialog.decline.tooltiptext     "Odmítne pozvání">
+<!ENTITY summary.dialog.dontsend.label          "Neposílat odpověď">
+<!ENTITY summary.dialog.dontsend.tooltiptext    "Změní stav vaší účasti a zavře okno bez odeslání odpovědi organizátorovi">
+<!ENTITY summary.dialog.send.label              "Poslat odpověď">
+<!ENTITY summary.dialog.send.tooltiptext        "Pošle odpověď organizátorovi a zavře okno">

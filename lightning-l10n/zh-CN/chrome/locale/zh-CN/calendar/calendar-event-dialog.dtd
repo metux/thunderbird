@@ -398,6 +398,7 @@
 <!-- Read-Only dialog -->
 <!ENTITY read.only.general.label         "常规">
 <!ENTITY read.only.title.label           "标题：">
+<!ENTITY read.only.calendar.label        "日历：">
 <!ENTITY read.only.event.start.label     "开始日期：">
 <!ENTITY read.only.task.start.label      "开始日期：">
 <!ENTITY read.only.event.end.label       "截止日期：">
@@ -417,16 +418,16 @@
 <!ENTITY read.only.description.label     "描述">
 <!ENTITY read.only.link.label            "相关链接">
 
-<!ENTITY read.only.calendar.label        "Calendar:">
-<!ENTITY summary.dialog.saveclose.label         "Save and Close">
-<!ENTITY summary.dialog.saveclose.tooltiptext   "Save changes and close the window without changing the participation status and sending a response">
-<!ENTITY summary.dialog.accept.label            "Accept">
-<!ENTITY summary.dialog.accept.tooltiptext      "Accept the invitation">
-<!ENTITY summary.dialog.tentative.label         "Tentative">
-<!ENTITY summary.dialog.tentative.tooltiptext   "Accept the invitation tentatively">
-<!ENTITY summary.dialog.decline.label           "Decline">
-<!ENTITY summary.dialog.decline.tooltiptext     "Decline the invitation">
-<!ENTITY summary.dialog.dontsend.label          "Do not send a response">
-<!ENTITY summary.dialog.dontsend.tooltiptext    "Change your participation status without sending a reply to the organizer and close the window">
-<!ENTITY summary.dialog.send.label              "Send a response now">
-<!ENTITY summary.dialog.send.tooltiptext        "Send out a response to the organizer  and close the window">
+<!-- Summary dialog -->
+<!ENTITY summary.dialog.saveclose.label         "保存并关闭">
+<!ENTITY summary.dialog.saveclose.tooltiptext   "保存变更并关闭窗口，但不更改参与状态、不发送回复">
+<!ENTITY summary.dialog.accept.label            "接受">
+<!ENTITY summary.dialog.accept.tooltiptext      "接受邀请">
+<!ENTITY summary.dialog.tentative.label         "暂定">
+<!ENTITY summary.dialog.tentative.tooltiptext   "暂时接受邀请">
+<!ENTITY summary.dialog.decline.label           "拒绝">
+<!ENTITY summary.dialog.decline.tooltiptext     "拒绝邀请">
+<!ENTITY summary.dialog.dontsend.label          "不要发送回复">
+<!ENTITY summary.dialog.dontsend.tooltiptext    "变更您的参与状态而不发送回复给组织者，并关闭窗口">
+<!ENTITY summary.dialog.send.label              "立刻发送回复">
+<!ENTITY summary.dialog.send.tooltiptext        "发送回复给组织者，并关闭窗口">

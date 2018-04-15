@@ -172,12 +172,49 @@
 <!ENTITY calendar.context.copyevent.accesskey         "M">
 <!ENTITY calendar.context.pasteevent.label            "Beillesztés">
 <!ENTITY calendar.context.pasteevent.accesskey        "B">
-<!ENTITY calendar.context.button.label                "Ma panel" >
-<!ENTITY calendar.context.button.accesskey            "M" >
-<!ENTITY calendar.context.attendance.menu.label       "Részvétel" >
-<!ENTITY calendar.context.attendance.menu.accesskey   "R" >
-<!ENTITY calendar.context.attendance.occurrence.label "Ez alkalommal" >
+<!ENTITY calendar.context.button.label                "Ma panel">
+<!ENTITY calendar.context.button.accesskey            "M">
+
+<!ENTITY calendar.context.attendance.menu.label                 "Részvétel">
+<!ENTITY calendar.context.attendance.menu.accesskey             "R">
+<!ENTITY calendar.context.attendance.occurrence.label           "Ez alkalommal">
 <!ENTITY calendar.context.attendance.all.label        "Minden alkalommal" >
+
+<!ENTITY calendar.context.attendance.all2.label                 "Teljes sorozat">
+<!ENTITY calendar.context.attendance.send.label                 "Értesítés küldése most">
+<!ENTITY calendar.context.attendance.send.accesskey             "k">
+<!ENTITY calendar.context.attendance.dontsend.label             "Ne küldjön értesítést">
+<!ENTITY calendar.context.attendance.dontsend.accesskey         "N">
+
+<!ENTITY calendar.context.attendance.occ.accepted.accesskey     "E">
+<!ENTITY calendar.context.attendance.occ.accepted.label         "Elfogadva">
+<!ENTITY calendar.context.attendance.occ.tentative.accesskey    "F">
+<!ENTITY calendar.context.attendance.occ.tentative.label        "Feltételesen elfogadva">
+<!ENTITY calendar.context.attendance.occ.declined.accesskey     "t">
+<!ENTITY calendar.context.attendance.occ.declined.label         "Elutasítva">
+<!ENTITY calendar.context.attendance.occ.delegated.accesskey    "v">
+<!ENTITY calendar.context.attendance.occ.delegated.label        "Átadva">
+<!ENTITY calendar.context.attendance.occ.needsaction.accesskey  "M">
+<!ENTITY calendar.context.attendance.occ.needsaction.label      "Még mindig művelet szükséges">
+<!ENTITY calendar.context.attendance.occ.inprogress.accesskey   "o">
+<!ENTITY calendar.context.attendance.occ.inprogress.label       "Folyamatban">
+<!ENTITY calendar.context.attendance.occ.completed.accesskey    "B">
+<!ENTITY calendar.context.attendance.occ.completed.label        "Befejezve">
+
+<!ENTITY calendar.context.attendance.all.accepted.accesskey     "l">
+<!ENTITY calendar.context.attendance.all.accepted.label         "Elfogadva">
+<!ENTITY calendar.context.attendance.all.tentative.accesskey    "s">
+<!ENTITY calendar.context.attendance.all.tentative.label        "Feltételesen elfogadva">
+<!ENTITY calendar.context.attendance.all.declined.accesskey     "u">
+<!ENTITY calendar.context.attendance.all.declined.label         "Elutasítva">
+<!ENTITY calendar.context.attendance.all.delegated.accesskey    "d">
+<!ENTITY calendar.context.attendance.all.delegated.label        "Átadva">
+<!ENTITY calendar.context.attendance.all.needsaction.accesskey  "g">
+<!ENTITY calendar.context.attendance.all.needsaction.label      "Még mindig művelet szükséges">
+<!ENTITY calendar.context.attendance.all.inprogress.accesskey   "a">
+<!ENTITY calendar.context.attendance.all.inprogress.label       "Folyamatban">
+<!ENTITY calendar.context.attendance.all.completed.accesskey    "j">
+<!ENTITY calendar.context.attendance.all.completed.label        "Befejezve">
 
 <!-- Task Context Menu -->
 <!ENTITY calendar.context.progress.label              "Készültségi fok">
@@ -372,37 +409,3 @@
 <!ENTITY calendar.extract.task.button          "Felvétel feladatként">
 <!ENTITY calendar.extract.event.button.tooltip "Naptár-információk kinyerése az üzenetből, és azok felvétele a naptárba eseményként">
 <!ENTITY calendar.extract.task.button.tooltip  "Naptár-információk kinyerése az üzenetből, és azok felvétele a naptárba feladatként">
-
-<!ENTITY calendar.context.attendance.all2.label                 "Complete Series">
-<!ENTITY calendar.context.attendance.send.label                 "Send a notification now">
-<!ENTITY calendar.context.attendance.send.accesskey             "S">
-<!ENTITY calendar.context.attendance.dontsend.label             "Do not send a notification">
-<!ENTITY calendar.context.attendance.dontsend.accesskey         "D">
-<!ENTITY calendar.context.attendance.occ.accepted.accesskey     "A">
-<!ENTITY calendar.context.attendance.occ.accepted.label         "Accepted">
-<!ENTITY calendar.context.attendance.occ.tentative.accesskey    "y">
-<!ENTITY calendar.context.attendance.occ.tentative.label        "Accepted tentatively">
-<!ENTITY calendar.context.attendance.occ.declined.accesskey     "c">
-<!ENTITY calendar.context.attendance.occ.declined.label         "Declined">
-<!ENTITY calendar.context.attendance.occ.delegated.accesskey    "g">
-<!ENTITY calendar.context.attendance.occ.delegated.label        "Delegated">
-<!ENTITY calendar.context.attendance.occ.needsaction.accesskey  "S">
-<!ENTITY calendar.context.attendance.occ.needsaction.label      "Still needs action">
-<!ENTITY calendar.context.attendance.occ.inprogress.accesskey   "I">
-<!ENTITY calendar.context.attendance.occ.inprogress.label       "In progress">
-<!ENTITY calendar.context.attendance.occ.completed.accesskey    "C">
-<!ENTITY calendar.context.attendance.occ.completed.label        "Completed">
-<!ENTITY calendar.context.attendance.all.accepted.accesskey     "e">
-<!ENTITY calendar.context.attendance.all.accepted.label         "Accepted">
-<!ENTITY calendar.context.attendance.all.tentative.accesskey    "v">
-<!ENTITY calendar.context.attendance.all.tentative.label        "Accepted tentatively">
-<!ENTITY calendar.context.attendance.all.declined.accesskey     "d">
-<!ENTITY calendar.context.attendance.all.declined.label         "Declined">
-<!ENTITY calendar.context.attendance.all.delegated.accesskey    "l">
-<!ENTITY calendar.context.attendance.all.delegated.label        "Delegated">
-<!ENTITY calendar.context.attendance.all.needsaction.accesskey  "l">
-<!ENTITY calendar.context.attendance.all.needsaction.label      "Still needs action">
-<!ENTITY calendar.context.attendance.all.inprogress.accesskey   "p">
-<!ENTITY calendar.context.attendance.all.inprogress.label       "In progress">
-<!ENTITY calendar.context.attendance.all.completed.accesskey    "m">
-<!ENTITY calendar.context.attendance.all.completed.label        "Completed">

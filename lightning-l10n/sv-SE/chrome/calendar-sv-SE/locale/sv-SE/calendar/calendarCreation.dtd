@@ -21,21 +21,31 @@
 <!ENTITY finishpage.shortdescription  "Kalender skapad" >
 <!ENTITY finishpage.longdescription   "Din kalender har blivit skapad" >
 
-<!ENTITY sourcetabs.other.label  "Other">
-<!ENTITY buttons.create.label "Create Calendar">
-<!ENTITY buttons.create.accesskey "r">
-<!ENTITY buttons.find.label "Find Calendars">
-<!ENTITY buttons.find.accesskey "F">
-<!ENTITY buttons.back.label "Back">
-<!ENTITY buttons.back.accesskey "B">
-<!ENTITY buttons.subscribe.label "Subscribe">
-<!ENTITY buttons.subscribe.accesskey "S">
-<!ENTITY calendartype.label "Calendar Type:">
-<!ENTITY location.label "Location:">
-<!ENTITY location.placeholder "URL or host name of the calendar server">
-<!ENTITY network.nocredentials.label "This location doesn't require credentials">
-<!ENTITY network.loading.description "Please wait while your calendars are being discovered.">
-<!ENTITY network.notfound.description "Could not find calendars at this location. Please check your settings.">
-<!ENTITY network.authfail.description "The credentials you have entered were not accepted. Please check your settings.">
-<!ENTITY network.subscribe.single.description "Please select the calendars you would like to subscribe to.">
-<!ENTITY network.subscribe.multiple.description "Multiple calendar types are available for this location. Please select the calendar type, then mark the calendars you would like to subscribe to.">
+<!-- Below are new strings for the revised new calendar dialog. The above strings should be
+    removed/renamed later on -->
+
+<!ENTITY sourcetabs.other.label  "Annan">
+
+<!ENTITY buttons.create.label "Skapa kalender">
+<!ENTITY buttons.create.accesskey "k">
+
+<!ENTITY buttons.find.label "Sök kalendrar">
+<!ENTITY buttons.find.accesskey "S">
+
+<!ENTITY buttons.back.label "Tillbaka">
+<!ENTITY buttons.back.accesskey "T">
+
+<!ENTITY buttons.subscribe.label "Prenumerera">
+<!ENTITY buttons.subscribe.accesskey "P">
+
+<!ENTITY calendartype.label "Kalendertyp:">
+<!ENTITY location.label "Plats:">
+<!ENTITY location.placeholder "URL eller namn på kalender-servern">
+
+<!ENTITY network.nocredentials.label "Denna adress kräver inte inloggning">
+<!ENTITY network.loading.description "Var god vänta medan dina kalendrar undersöks.">
+<!ENTITY network.notfound.description "Kan inte hitta någon kalender på denna adress. Var god kontrollera dina inställningar.">
+<!ENTITY network.authfail.description "Inloggningen du angav fungerade inte. Var god kontrollera dina inställningar.">
+
+<!ENTITY network.subscribe.single.description "Välj de kalendrar du vill prenumerera på.">
+<!ENTITY network.subscribe.multiple.description "Flera kalendertyper är tillgängliga på denna adress. Välj en kalendertyp och markera sedan de kalendrar du vill prenumerera på.">

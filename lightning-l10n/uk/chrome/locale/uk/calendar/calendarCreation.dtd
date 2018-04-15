@@ -21,21 +21,31 @@
 <!ENTITY finishpage.shortdescription  "Календар створено" >
 <!ENTITY finishpage.longdescription   "Ваш календар було створено" >
 
-<!ENTITY sourcetabs.other.label  "Other">
-<!ENTITY buttons.create.label "Create Calendar">
-<!ENTITY buttons.create.accesskey "r">
-<!ENTITY buttons.find.label "Find Calendars">
-<!ENTITY buttons.find.accesskey "F">
-<!ENTITY buttons.back.label "Back">
-<!ENTITY buttons.back.accesskey "B">
-<!ENTITY buttons.subscribe.label "Subscribe">
-<!ENTITY buttons.subscribe.accesskey "S">
-<!ENTITY calendartype.label "Calendar Type:">
-<!ENTITY location.label "Location:">
-<!ENTITY location.placeholder "URL or host name of the calendar server">
-<!ENTITY network.nocredentials.label "This location doesn't require credentials">
-<!ENTITY network.loading.description "Please wait while your calendars are being discovered.">
-<!ENTITY network.notfound.description "Could not find calendars at this location. Please check your settings.">
-<!ENTITY network.authfail.description "The credentials you have entered were not accepted. Please check your settings.">
-<!ENTITY network.subscribe.single.description "Please select the calendars you would like to subscribe to.">
-<!ENTITY network.subscribe.multiple.description "Multiple calendar types are available for this location. Please select the calendar type, then mark the calendars you would like to subscribe to.">
+<!-- Below are new strings for the revised new calendar dialog. The above strings should be
+    removed/renamed later on -->
+
+<!ENTITY sourcetabs.other.label  "Інше">
+
+<!ENTITY buttons.create.label "Створити календар">
+<!ENTITY buttons.create.accesskey "С">
+
+<!ENTITY buttons.find.label "Знайти календарі">
+<!ENTITY buttons.find.accesskey "З">
+
+<!ENTITY buttons.back.label "Назад">
+<!ENTITY buttons.back.accesskey "Н">
+
+<!ENTITY buttons.subscribe.label "Підписатись">
+<!ENTITY buttons.subscribe.accesskey "П">
+
+<!ENTITY calendartype.label "Тип календаря:">
+<!ENTITY location.label "Розташування:">
+<!ENTITY location.placeholder "URL-адреса чи назва вузла сервера календаря">
+
+<!ENTITY network.nocredentials.label "Для цього розташування не потрібні облікові дані">
+<!ENTITY network.loading.description "Будь ласка, зачекайте доки обробляються ваші календарі.">
+<!ENTITY network.notfound.description "Не вдалося знайти календарі в цьому розташуванні. Будь ласка, перевірте свої налаштування.">
+<!ENTITY network.authfail.description "Введені вами облікові дані не було прийняти. Будь ласка, перевірте свої налаштування.">
+
+<!ENTITY network.subscribe.single.description "Оберіть календарі, на які б ви хотіли підписатися.">
+<!ENTITY network.subscribe.multiple.description "Для цього розташування доступні декілька типів календарів. Оберіть тип календаря, потім позначте календарі, на які ви хочете підписатися.">

@@ -42,7 +42,6 @@
      These strings are used in the calendar wizard and the calendar properties dialog, but are only
      displayed when setting/using a caldav calendar -->
 <!ENTITY lightning.calendarproperties.email.label                           "E-posta:">
-
 <!ENTITY lightning.calendarproperties.forceEmailScheduling.label            "Lehenetsi bezero aldeko posta antolaketa">
 <!-- LOCALIZATON NOTE(lightning.calendarproperties.forceEmailScheduling.tooltiptext1,
      lightning.calendarproperties.forceEmailScheduling.tooltiptext2)
@@ -84,6 +83,13 @@
 <!ENTITY lightning.imipbar.btnUpdate.tooltiptext                            "Eguneratu gertaera egutegian">
 <!ENTITY lightning.imipbar.description                                      "Mezu honek gertaera bateko gonbidapena du.">
 
+<!ENTITY lightning.imipbar.btnSend.label                                    "Bidali erantzuna orain">
+<!ENTITY lightning.imipbar.btnSend.tooltiptext                              "Bidali erantzuna antolatzaileari">
+<!ENTITY lightning.imipbar.btnSendSeries.tooltiptext                        "Bidali serie osorako erantzuna antolatzaileari">
+<!ENTITY lightning.imipbar.btnDontSend.label                                "Ez bidali erantzunik">
+<!ENTITY lightning.imipbar.btnDontSend.tooltiptext                          "Aldatu zure partaidetza egoera antolatzaileari erantzunik bidali gabe">
+<!ENTITY lightning.imipbar.btnDontSendSeries.tooltiptext                    "Aldatu zure partaidetza egoera serierako antolatzaileari erantzunik bidali gabe">
+
 <!-- Lightning specific keybindings -->
 <!ENTITY lightning.keys.event.showCalendar.key "C">
 <!ENTITY lightning.keys.event.showTasks.key "D">
@@ -103,10 +109,3 @@
 <!ENTITY todaypane.showTodayPane.label "Ikusi gaurko panela">
 <!ENTITY todaypane.showTodayPane.accesskey "u">
 <!ENTITY todaypane.statusButton.label "Gaurko panela">
-
-<!ENTITY lightning.imipbar.btnSend.label                                    "Send a response now">
-<!ENTITY lightning.imipbar.btnSend.tooltiptext                              "Send a response to the organizer">
-<!ENTITY lightning.imipbar.btnSendSeries.tooltiptext                        "Send a response for the entire series to the organizer">
-<!ENTITY lightning.imipbar.btnDontSend.label                                "Do not send a response">
-<!ENTITY lightning.imipbar.btnDontSend.tooltiptext                          "Change your participation status without sending a response to the organizer">
-<!ENTITY lightning.imipbar.btnDontSendSeries.tooltiptext                    "Change your participation status for the series without sending a response to the organizer">

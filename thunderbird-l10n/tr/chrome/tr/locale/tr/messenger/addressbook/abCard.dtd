@@ -2,9 +2,9 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY Contact.tab                     "Contact">
-<!ENTITY Contact.accesskey               "C">
-<!ENTITY Name.box                        "Name">
+<!ENTITY Contact.tab                     "Kişi">
+<!ENTITY Contact.accesskey               "K">
+<!ENTITY Name.box                        "Adı">
 
 <!-- LOCALIZATION NOTE:
  NameField1, NameField2, PhoneticField1, PhoneticField2
@@ -23,103 +23,95 @@
 <!-- LOCALIZATION NOTE (PhoneticField2.id) : DONT_TRANSLATE -->
 <!ENTITY PhoneticField2.id              "PhoneticLastName">
 
-<!ENTITY NameField1.label               "First:">
-<!ENTITY NameField1.accesskey           "F">
-<!ENTITY NameField2.label               "Last:">
-<!ENTITY NameField2.accesskey           "L">
-<!ENTITY PhoneticField1.label           "Phonetic:">
-<!ENTITY PhoneticField2.label           "Phonetic:">
-<!ENTITY DisplayName.label              "Display:">
-<!ENTITY DisplayName.accesskey          "D">
-<!ENTITY preferDisplayName.label        "Always prefer display name over message header">
-<!ENTITY preferDisplayName.accesskey    "y">
-<!ENTITY NickName.label                 "Nickname:">
-<!ENTITY NickName.accesskey             "N">
+<!ENTITY NameField1.label               "Adı:">
+<!ENTITY NameField1.accesskey           "A">
+<!ENTITY NameField2.label               "Soyadı:">
+<!ENTITY NameField2.accesskey           "S">
+<!ENTITY PhoneticField1.label           "Okunuş:">
+<!ENTITY PhoneticField2.label           "Okunuş:">
+<!ENTITY DisplayName.label              "Görünecek ad:">
+<!ENTITY DisplayName.accesskey          "G">
+<!ENTITY preferDisplayName.label        "İleti başlığında her zaman görünecek adı tercih et">
+<!ENTITY preferDisplayName.accesskey    "b">
+<!ENTITY NickName.label                 "Takma adı:">
+<!ENTITY NickName.accesskey             "T">
 
-<!ENTITY PrimaryEmail.label             "Email:">
+<!ENTITY PrimaryEmail.label             "E-posta:">
 <!ENTITY PrimaryEmail.accesskey         "E">
-<!ENTITY SecondEmail.label              "Additional Email:">
-<!ENTITY SecondEmail.accesskey          "i">
-<!ENTITY PreferMailFormat.label         "Prefers to receive messages formatted as:">
-<!ENTITY PreferMailFormat.accesskey     "v">
-<!ENTITY PlainText.label                "Plain Text">
+<!ENTITY SecondEmail.label              "Ek e-posta:">
+<!ENTITY PreferMailFormat.label         "Tercih ettiği ileti alma biçimi:">
+<!ENTITY PreferMailFormat.accesskey     "b">
+<!ENTITY PlainText.label                "Düz metin">
 <!ENTITY HTML.label                     "HTML">
-<!ENTITY Unknown.label                  "Unknown">
-<!ENTITY chatName.label                 "Chat Name:">
+<!ENTITY Unknown.label                  "Bilinmiyor">
+<!ENTITY chatName.label                 "Sohbet adı:">
 
-<!ENTITY WorkPhone.label                "Work:">
-<!ENTITY WorkPhone.accesskey            "k">
-<!ENTITY HomePhone.label                "Home:">
-<!ENTITY HomePhone.accesskey            "m">
-<!ENTITY FaxNumber.label                "Fax:">
-<!ENTITY FaxNumber.accesskey            "x">
-<!ENTITY PagerNumber.label              "Pager:">
-<!ENTITY PagerNumber.accesskey          "g">
-<!ENTITY CellularNumber.label           "Mobile:">
-<!ENTITY CellularNumber.accesskey       "b">
+<!ENTITY WorkPhone.label                "İş:">
+<!ENTITY WorkPhone.accesskey            "ş">
+<!ENTITY HomePhone.label                "Ev:">
+<!ENTITY HomePhone.accesskey            "v">
+<!ENTITY FaxNumber.label                "Faks:">
+<!ENTITY FaxNumber.accesskey            "F">
+<!ENTITY PagerNumber.label              "Çağrı cihazı:">
+<!ENTITY PagerNumber.accesskey          "c">
+<!ENTITY CellularNumber.label           "Cep:">
+<!ENTITY CellularNumber.accesskey       "C">
 
-<!ENTITY Home.tab                       "Private">
-<!ENTITY Home.accesskey                 "P">
-<!ENTITY HomeAddress.label              "Address:">
+<!ENTITY Home.tab                       "Kişisel">
+<!ENTITY Home.accesskey                 "K">
+<!ENTITY HomeAddress.label              "Adres:">
 <!ENTITY HomeAddress.accesskey          "d">
-<!ENTITY HomeAddress2.label             "">
-<!ENTITY HomeAddress2.accesskey         "">
-<!ENTITY HomeCity.label                 "City:">
-<!ENTITY HomeCity.accesskey             "y">
-<!ENTITY HomeState.label                "State/Province:">
-<!ENTITY HomeState.accesskey            "S">
-<!ENTITY HomeZipCode.label              "ZIP/Postal Code:">
-<!ENTITY HomeZipCode.accesskey          "Z">
-<!ENTITY HomeCountry.label              "Country:">
-<!ENTITY HomeCountry.accesskey          "u">
-<!ENTITY HomeWebPage.label              "Web Page:">
+<!ENTITY HomeCity.label                 "İlçe:">
+<!ENTITY HomeCity.accesskey             "e">
+<!ENTITY HomeState.label                "İl:">
+<!ENTITY HomeState.accesskey            "l">
+<!ENTITY HomeZipCode.label              "Posta kodu:">
+<!ENTITY HomeZipCode.accesskey          "o">
+<!ENTITY HomeCountry.label              "Ülke:">
+<!ENTITY HomeCountry.accesskey          "Ü">
+<!ENTITY HomeWebPage.label              "Web sitesi:">
 <!ENTITY HomeWebPage.accesskey          "e">
-<!ENTITY Birthday.label                 "Birthday:">
-<!ENTITY Birthday.accesskey             "B">
-<!ENTITY In.label                       "">
-<!ENTITY Year.placeholder               "Year">
-<!ENTITY Or.value                       "or">
-<!ENTITY Age.placeholder                "Age">
-<!ENTITY YearsOld.label                 "">
+<!ENTITY Birthday.label                 "Doğum günü:">
+<!ENTITY Birthday.accesskey             "D">
+<!ENTITY Year.placeholder               "Yıl">
+<!ENTITY Or.value                       "veya">
+<!ENTITY Age.placeholder                "Yaş">
 
-<!ENTITY Work.tab                       "Work">
-<!ENTITY Work.accesskey                 "W">
-<!ENTITY JobTitle.label                 "Title:">
-<!ENTITY JobTitle.accesskey             "i">
-<!ENTITY Department.label               "Department:">
+<!ENTITY Work.tab                       "İş">
+<!ENTITY Work.accesskey                 "İ">
+<!ENTITY JobTitle.label                 "Unvan:">
+<!ENTITY JobTitle.accesskey             "U">
+<!ENTITY Department.label               "Bölüm:">
 <!ENTITY Department.accesskey           "m">
-<!ENTITY Company.label                  "Organization:">
-<!ENTITY Company.accesskey              "n">
-<!ENTITY WorkAddress.label              "Address:">
+<!ENTITY Company.label                  "Kurum:">
+<!ENTITY Company.accesskey              "r">
+<!ENTITY WorkAddress.label              "Adres:">
 <!ENTITY WorkAddress.accesskey          "d">
-<!ENTITY WorkAddress2.label             "">
-<!ENTITY WorkAddress2.accesskey         "">
-<!ENTITY WorkCity.label                 "City:">
-<!ENTITY WorkCity.accesskey             "y">
-<!ENTITY WorkState.label                "State/Province:">
-<!ENTITY WorkState.accesskey            "S">
-<!ENTITY WorkZipCode.label              "ZIP/Postal Code:">
-<!ENTITY WorkZipCode.accesskey          "Z">
-<!ENTITY WorkCountry.label              "Country:">
-<!ENTITY WorkCountry.accesskey          "u">
-<!ENTITY WorkWebPage.label              "Web Page:">
+<!ENTITY WorkCity.label                 "İlçe:">
+<!ENTITY WorkCity.accesskey             "e">
+<!ENTITY WorkState.label                "İl:">
+<!ENTITY WorkState.accesskey            "l">
+<!ENTITY WorkZipCode.label              "Posta kodu:">
+<!ENTITY WorkZipCode.accesskey          "o">
+<!ENTITY WorkCountry.label              "Ülke:">
+<!ENTITY WorkCountry.accesskey          "Ü">
+<!ENTITY WorkWebPage.label              "Web sitesi:">
 <!ENTITY WorkWebPage.accesskey          "e">
 
-<!ENTITY Other.tab                      "Other">
-<!ENTITY Other.accesskey                "h">
-<!ENTITY Custom1.label                  "Custom 1:">
+<!ENTITY Other.tab                      "Diğer">
+<!ENTITY Custom1.label                  "Özel 1:">
 <!ENTITY Custom1.accesskey              "1">
-<!ENTITY Custom2.label                  "Custom 2:">
+<!ENTITY Custom2.label                  "Özel 2:">
 <!ENTITY Custom2.accesskey              "2">
-<!ENTITY Custom3.label                  "Custom 3:">
+<!ENTITY Custom3.label                  "Özel 3:">
 <!ENTITY Custom3.accesskey              "3">
-<!ENTITY Custom4.label                  "Custom 4:">
+<!ENTITY Custom4.label                  "Özel 4:">
 <!ENTITY Custom4.accesskey              "4">
-<!ENTITY Notes.label                    "Notes:">
+<!ENTITY Notes.label                    "Notlar:">
 <!ENTITY Notes.accesskey                "N">
 
-<!ENTITY Chat.tab                       "Chat">
-<!ENTITY Chat.accesskey                 "a">
+<!ENTITY Chat.tab                       "Sohbet">
+<!ENTITY Chat.accesskey                 "S">
 <!ENTITY Gtalk.label                    "Google Talk:">
 <!ENTITY Gtalk.accesskey                "G">
 <!ENTITY AIM.label                      "AIM:">
@@ -136,22 +128,31 @@
 <!ENTITY ICQ.accesskey                  "I">
 <!ENTITY XMPP.label                     "Jabber ID:">
 <!ENTITY XMPP.accesskey                 "J">
-<!ENTITY IRC.label                      "IRC Nick:">
+<!ENTITY IRC.label                      "IRC nick:">
 <!ENTITY IRC.accesskey                  "R">
 
-<!ENTITY Photo.tab                      "Photo">
+<!ENTITY Photo.tab                      "Fotoğraf">
 <!ENTITY Photo.accesskey                "o">
-<!ENTITY PhotoDesc.label                "Pick one of the following:">
-<!ENTITY GenericPhoto.label             "Generic Photo">
-<!ENTITY GenericPhoto.accesskey         "G">
-<!ENTITY DefaultPhoto.label             "Default">
-<!ENTITY PhotoFile.label                "On this Computer">
-<!ENTITY PhotoFile.accesskey            "n">
-<!ENTITY BrowsePhoto.label              "Browse">
-<!ENTITY BrowsePhoto.accesskey          "r">
-<!ENTITY PhotoURL.label                 "On the Web">
+<!ENTITY PhotoDesc.label                "Aşağıdakilerden birini seçin:">
+<!ENTITY GenericPhoto.label             "Varsayılan fotoğraf">
+<!ENTITY GenericPhoto.accesskey         "V">
+<!ENTITY DefaultPhoto.label             "Varsayılan">
+<!ENTITY PhotoFile.label                "Bu bilgisayarda">
+<!ENTITY BrowsePhoto.label              "Gözat">
+<!ENTITY PhotoURL.label                 "Web üzerinde">
 <!ENTITY PhotoURL.accesskey             "b">
-<!ENTITY PhotoURL.placeholder           "Paste or type the web address of a photo">
-<!ENTITY UpdatePhoto.label              "Update">
+<!ENTITY PhotoURL.placeholder           "Resmin web adresini yazın veya yapıştırın">
+<!ENTITY UpdatePhoto.label              "Güncelle">
+<!ENTITY PhotoDropTarget.label          "Yeni fotoğrafı buraya sürükleyin">
+
+<!ENTITY SecondEmail.accesskey          "i">
+<!ENTITY HomeAddress2.label             "">
+<!ENTITY HomeAddress2.accesskey         "">
+<!ENTITY In.label                       "">
+<!ENTITY YearsOld.label                 "">
+<!ENTITY WorkAddress2.label             "">
+<!ENTITY WorkAddress2.accesskey         "">
+<!ENTITY Other.accesskey                "h">
+<!ENTITY PhotoFile.accesskey            "n">
+<!ENTITY BrowsePhoto.accesskey          "r">
 <!ENTITY UpdatePhoto.accesskey          "u">
-<!ENTITY PhotoDropTarget.label          "Drag new photo here">

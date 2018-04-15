@@ -172,12 +172,22 @@
 <!ENTITY calendar.context.copyevent.accesskey         "o">
 <!ENTITY calendar.context.pasteevent.label            "Yapıştır">
 <!ENTITY calendar.context.pasteevent.accesskey        "Y">
-<!ENTITY calendar.context.button.label                "Bugün paneli" >
-<!ENTITY calendar.context.button.accesskey            "B" >
-<!ENTITY calendar.context.attendance.menu.label       "Katılım" >
-<!ENTITY calendar.context.attendance.menu.accesskey   "ı" >
-<!ENTITY calendar.context.attendance.occurrence.label "Bu sefer" >
+<!ENTITY calendar.context.button.label                "Bugün paneli">
+<!ENTITY calendar.context.button.accesskey            "B">
+
+<!ENTITY calendar.context.attendance.menu.label                 "Katılım">
+<!ENTITY calendar.context.attendance.menu.accesskey             "ı">
+<!ENTITY calendar.context.attendance.occurrence.label           "Bu sefer">
 <!ENTITY calendar.context.attendance.all.label        "Her sefer" >
+
+<!ENTITY calendar.context.attendance.send.label                 "Şimdi bildirim gönder">
+<!ENTITY calendar.context.attendance.dontsend.label             "Bildirim gönderme">
+<!ENTITY calendar.context.attendance.dontsend.accesskey         "m">
+
+
+<!ENTITY calendar.context.attendance.all.accepted.label         "Kabul edildi">
+<!ENTITY calendar.context.attendance.all.declined.label         "Reddedildi">
+<!ENTITY calendar.context.attendance.all.completed.label        "Tamamlandı">
 
 <!-- Task Context Menu -->
 <!ENTITY calendar.context.progress.label              "İlerleme">
@@ -374,10 +384,7 @@
 <!ENTITY calendar.extract.task.button.tooltip  "Takvim bilgisini iletiden ayıklar ve takviminize görev olarak ekler">
 
 <!ENTITY calendar.context.attendance.all2.label                 "Complete Series">
-<!ENTITY calendar.context.attendance.send.label                 "Send a notification now">
 <!ENTITY calendar.context.attendance.send.accesskey             "S">
-<!ENTITY calendar.context.attendance.dontsend.label             "Do not send a notification">
-<!ENTITY calendar.context.attendance.dontsend.accesskey         "D">
 <!ENTITY calendar.context.attendance.occ.accepted.accesskey     "A">
 <!ENTITY calendar.context.attendance.occ.accepted.label         "Accepted">
 <!ENTITY calendar.context.attendance.occ.tentative.accesskey    "y">
@@ -393,11 +400,9 @@
 <!ENTITY calendar.context.attendance.occ.completed.accesskey    "C">
 <!ENTITY calendar.context.attendance.occ.completed.label        "Completed">
 <!ENTITY calendar.context.attendance.all.accepted.accesskey     "e">
-<!ENTITY calendar.context.attendance.all.accepted.label         "Accepted">
 <!ENTITY calendar.context.attendance.all.tentative.accesskey    "v">
 <!ENTITY calendar.context.attendance.all.tentative.label        "Accepted tentatively">
 <!ENTITY calendar.context.attendance.all.declined.accesskey     "d">
-<!ENTITY calendar.context.attendance.all.declined.label         "Declined">
 <!ENTITY calendar.context.attendance.all.delegated.accesskey    "l">
 <!ENTITY calendar.context.attendance.all.delegated.label        "Delegated">
 <!ENTITY calendar.context.attendance.all.needsaction.accesskey  "l">
@@ -405,4 +410,3 @@
 <!ENTITY calendar.context.attendance.all.inprogress.accesskey   "p">
 <!ENTITY calendar.context.attendance.all.inprogress.label       "In progress">
 <!ENTITY calendar.context.attendance.all.completed.accesskey    "m">
-<!ENTITY calendar.context.attendance.all.completed.label        "Completed">

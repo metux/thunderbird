@@ -88,14 +88,17 @@
 <!ENTITY reorderAttachmentsCmd.label "Réorganiser les pièces jointes…">
 <!ENTITY reorderAttachmentsCmd.accesskey "a">
 <!ENTITY reorderAttachmentsCmd.key "x">
+<!ENTITY toggleAttachmentPaneCmd.label "Panneau des pièces jointes">
 <!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.accesskey):
      For better mnemonics, toggleAttachmentPaneCmd.accesskey should be the same
      as attachments.accesskey. -->
+<!ENTITY toggleAttachmentPaneCmd.accesskey "j">
 <!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.key):
      With OS-specific access modifier, this defines the shortcut key for showing/
      hiding/minimizing the attachment pane, e.g. Alt+M on Windows.
      toggleAttachmentPaneCmd.key and attachments.accesskey must be the same
      for the bucket view state machinery to work. -->
+<!ENTITY toggleAttachmentPaneCmd.key "j">
 <!ENTITY selectAllCmd.label "Tout sélectionner">
 <!ENTITY selectAllCmd.key "A">
 <!ENTITY selectAllCmd.accesskey "T">
@@ -245,6 +248,7 @@
 <!ENTITY quoteButton.tooltip "Citer le précédent message">
 <!ENTITY addressButton.tooltip "Sélectionner un destinataire du carnet d’adresses">
 <!ENTITY attachButton.tooltip "Inclure une pièce jointe">
+<!ENTITY attachButton.tooltip2 "Ajouter une pièce jointe">
 <!ENTITY spellingButton.tooltip "Vérifier l’orthographe de la sélection ou du message complet">
 <!ENTITY saveButton.tooltip "Enregistrer ce message">
 <!ENTITY cutButton.tooltip              "Couper">
@@ -272,6 +276,8 @@
      work, as the shortcut key functionality supersedes the access key. -->
 <!ENTITY attachments.accesskey "j">
 
+<!ENTITY attachmentBucketHeader.tooltip "Panneau des pièces jointes">
+<!ENTITY attachmentBucketCloseButton.tooltip "Masquer le panneau des pièces jointes">
 
 <!-- Format Toolbar, imported from editorAppShell.xul -->
 <!ENTITY SmileButton.tooltip "Insérer une émoticône">
@@ -320,6 +326,8 @@
 <!ENTITY renameAttachment.accesskey "R">
 <!ENTITY reorderAttachments.label "Réorganiser les pièces jointes…">
 <!ENTITY reorderAttachments.accesskey "a">
+<!ENTITY removeAllAttachments.label "Supprimer toutes les pièces jointes">
+<!ENTITY removeAllAttachments.accesskey "s">
 <!ENTITY selectAll.label "Tout sélectionner">
 <!ENTITY selectAll.accesskey "t">
 <!ENTITY attachFile.label "Joindre fichier(s)…">
@@ -335,6 +343,13 @@
 <!ENTITY attachPage.label "Joindre une page web…">
 <!ENTITY attachPage.accesskey "W">
 
+<!-- Attachment Pane Header Bar Context Menu -->
+<!-- LOCALIZATION NOTE (initiallyShowAttachmentPane.label):
+     Should use the same wording as startExpandedCmd.label
+     in msgHdrViewOverlay.dtd. -->
+<!ENTITY initiallyShowAttachmentPane.label "Afficher par défaut le panneau des pièces jointes">
+<!ENTITY initiallyShowAttachmentPane.accesskey "A">
+
 <!-- Spell checker context menu items -->
 <!ENTITY spellAddDictionaries.label "Ajouter des dictionnaires…">
 <!ENTITY spellAddDictionaries.accesskey "A">
@@ -349,14 +364,3 @@
 <!-- Status Bar -->
 <!ENTITY languageStatusButton.tooltip "Langue de la vérification orthographique">
 <!ENTITY encodingStatusPanel.tooltip "Encodage du texte">
-
-<!ENTITY toggleAttachmentPaneCmd.label "Attachment Pane">
-<!ENTITY toggleAttachmentPaneCmd.accesskey "m">
-<!ENTITY toggleAttachmentPaneCmd.key "m">
-<!ENTITY attachButton.tooltip2 "Add an attachment">
-<!ENTITY attachmentBucketHeader.tooltip "Attachment Pane">
-<!ENTITY attachmentBucketCloseButton.tooltip "Hide the attachment pane">
-<!ENTITY removeAllAttachments.label "Remove All Attachments">
-<!ENTITY removeAllAttachments.accesskey "v">
-<!ENTITY initiallyShowAttachmentPane.label "Initially Show Attachment Pane">
-<!ENTITY initiallyShowAttachmentPane.accesskey "S">

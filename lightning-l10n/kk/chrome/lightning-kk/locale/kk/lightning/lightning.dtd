@@ -42,7 +42,6 @@
      These strings are used in the calendar wizard and the calendar properties dialog, but are only
      displayed when setting/using a caldav calendar -->
 <!ENTITY lightning.calendarproperties.email.label                           "Эл. пошта:">
-
 <!ENTITY lightning.calendarproperties.forceEmailScheduling.label            "Клиент жақтағы эл. поштаны жоспарлауды таңдау">
 <!-- LOCALIZATON NOTE(lightning.calendarproperties.forceEmailScheduling.tooltiptext1,
      lightning.calendarproperties.forceEmailScheduling.tooltiptext2)
@@ -84,6 +83,8 @@
 <!ENTITY lightning.imipbar.btnUpdate.tooltiptext                            "Оқиғаны күнтізбеде жаңарту">
 <!ENTITY lightning.imipbar.description                                      "Бұл хабарламада оқиғаға шақыру бар.">
 
+<!ENTITY lightning.imipbar.btnSend.label                                    "Жауапты қазір жіберу">
+
 <!-- Lightning specific keybindings -->
 <!ENTITY lightning.keys.event.showCalendar.key "C">
 <!ENTITY lightning.keys.event.showTasks.key "D">
@@ -104,7 +105,6 @@
 <!ENTITY todaypane.showTodayPane.accesskey "е">
 <!ENTITY todaypane.statusButton.label "Бүгінгі панелі">
 
-<!ENTITY lightning.imipbar.btnSend.label                                    "Send a response now">
 <!ENTITY lightning.imipbar.btnSend.tooltiptext                              "Send a response to the organizer">
 <!ENTITY lightning.imipbar.btnSendSeries.tooltiptext                        "Send a response for the entire series to the organizer">
 <!ENTITY lightning.imipbar.btnDontSend.label                                "Do not send a response">

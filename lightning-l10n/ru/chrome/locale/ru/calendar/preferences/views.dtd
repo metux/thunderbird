@@ -37,6 +37,5 @@
 <!ENTITY pref.numberofweeks.4 "4 недели">
 <!ENTITY pref.numberofweeks.5 "5 недель">
 <!ENTITY pref.numberofweeks.6 "6 недель">
-
-<!ENTITY pref.showlocation.label "Show location">
-<!ENTITY pref.showlocation.accesskey "L">
+<!ENTITY pref.showlocation.label "Показать расположение">
+<!ENTITY pref.showlocation.accesskey "а">

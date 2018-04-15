@@ -21,21 +21,31 @@
 <!ENTITY finishpage.shortdescription  "Kalender jo se napórał" >
 <!ENTITY finishpage.longdescription   "Waš kalender jo se napórał." >
 
-<!ENTITY sourcetabs.other.label  "Other">
-<!ENTITY buttons.create.label "Create Calendar">
-<!ENTITY buttons.create.accesskey "r">
-<!ENTITY buttons.find.label "Find Calendars">
-<!ENTITY buttons.find.accesskey "F">
-<!ENTITY buttons.back.label "Back">
-<!ENTITY buttons.back.accesskey "B">
-<!ENTITY buttons.subscribe.label "Subscribe">
-<!ENTITY buttons.subscribe.accesskey "S">
-<!ENTITY calendartype.label "Calendar Type:">
-<!ENTITY location.label "Location:">
-<!ENTITY location.placeholder "URL or host name of the calendar server">
-<!ENTITY network.nocredentials.label "This location doesn't require credentials">
-<!ENTITY network.loading.description "Please wait while your calendars are being discovered.">
-<!ENTITY network.notfound.description "Could not find calendars at this location. Please check your settings.">
-<!ENTITY network.authfail.description "The credentials you have entered were not accepted. Please check your settings.">
-<!ENTITY network.subscribe.single.description "Please select the calendars you would like to subscribe to.">
-<!ENTITY network.subscribe.multiple.description "Multiple calendar types are available for this location. Please select the calendar type, then mark the calendars you would like to subscribe to.">
+<!-- Below are new strings for the revised new calendar dialog. The above strings should be
+    removed/renamed later on -->
+
+<!ENTITY sourcetabs.other.label  "Druge">
+
+<!ENTITY buttons.create.label "Kalender napóraś">
+<!ENTITY buttons.create.accesskey "l">
+
+<!ENTITY buttons.find.label "Kalendery pytaś">
+<!ENTITY buttons.find.accesskey "K">
+
+<!ENTITY buttons.back.label "Slědk">
+<!ENTITY buttons.back.accesskey "S">
+
+<!ENTITY buttons.subscribe.label "Aboněrowaś">
+<!ENTITY buttons.subscribe.accesskey "A">
+
+<!ENTITY calendartype.label "Kalendrowy typ:">
+<!ENTITY location.label "Městno:">
+<!ENTITY location.placeholder "URL abo mě hosta kalendrowego serwera">
+
+<!ENTITY network.nocredentials.label "Toś to městno pśizjawjeńske daty njetrjeba">
+<!ENTITY network.loading.description "Pšosym cakajśo, daniž waše kalendery njejsui namakane.">
+<!ENTITY network.notfound.description "Kalendery njejsu se dali na toś tom městnje namakaś. Pšosym pśeglědujśo swóje nastajenja.">
+<!ENTITY network.authfail.description "Pśizjawjeńske daty, kótarež sćo zapódał, njejsu se akceptěrowali. Pšosym pśeglědujśo swóje nastajenja.">
+
+<!ENTITY network.subscribe.single.description "Pšosym wubjeŕśo kalendery, kótarež wy by rady aboněrował.">
+<!ENTITY network.subscribe.multiple.description "Za toś to městno su někotare kalendrowe typy k dispoziciji. Pšosym wubjeŕśo kalendrowy typ a markěrujśo pón kalendery, kótarež cośo aboněrowaś.">

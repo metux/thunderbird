@@ -113,6 +113,7 @@
 <!-- LOCALIZATION NOTE (resetContext2.label): This command allows the developer
   -  to reset/clear the global object of the environment where the code executes.
   -->
+<!ENTITY resetContext2.label          "Resetează variabilele">
 <!ENTITY resetContext2.accesskey      "T">
 
 <!ENTITY reloadAndRun.accesskey       "E">
@@ -150,7 +151,6 @@
 <!ENTITY contentContext.label         "Content">
 <!ENTITY browserContext.label         "Browser">
 <!ENTITY documentationLink.label      "Scratchpad Help on MDN">
-<!ENTITY resetContext2.label          "Reset Variables">
 <!ENTITY reloadAndRun.label           "Reload And Run">
 <!ENTITY executeMenu.label            "Execute">
 <!ENTITY evalFunction.label "Evaluate Current Function">
