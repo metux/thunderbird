@@ -55,7 +55,7 @@
 <!ENTITY calendar.unifinder.tree.calendarname.tooltip2     "Sorter etter kalendernamn">
 <!ENTITY calendar.unifinder.tree.duration.label            "Forfell om">
 <!ENTITY calendar.unifinder.tree.duration.tooltip2         "Sorter etter forfall">
-<!ENTITY calendar.unifinder.close.tooltip                  "Lukkar hendingssøk og hendingsliste">
+<!ENTITY calendar.unifinder.close.tooltip                  "Lèt att hendingssøk og hendingsliste">
 
 <!ENTITY calendar.today.button.tooltip          "Gå til «I dag»" >
 <!ENTITY calendar.todaypane.button.tooltip      "Vis «I dag»-ruta" >
@@ -172,12 +172,49 @@
 <!ENTITY calendar.context.copyevent.accesskey         "K">
 <!ENTITY calendar.context.pasteevent.label            "Lim inn">
 <!ENTITY calendar.context.pasteevent.accesskey        "L">
-<!ENTITY calendar.context.button.label                "I dag-rute" >
-<!ENTITY calendar.context.button.accesskey            "d" >
-<!ENTITY calendar.context.attendance.menu.label       "Deltaking" >
-<!ENTITY calendar.context.attendance.menu.accesskey   "D" >
-<!ENTITY calendar.context.attendance.occurrence.label "Denne førekomsten" >
+<!ENTITY calendar.context.button.label                "I dag-rute">
+<!ENTITY calendar.context.button.accesskey            "d">
+
+<!ENTITY calendar.context.attendance.menu.label                 "Deltaking">
+<!ENTITY calendar.context.attendance.menu.accesskey             "D">
+<!ENTITY calendar.context.attendance.occurrence.label           "Denne førekomsten">
 <!ENTITY calendar.context.attendance.all.label        "Alle førekomstar" >
+
+<!ENTITY calendar.context.attendance.all2.label                 "Komplett serie">
+<!ENTITY calendar.context.attendance.send.label                 "Send et varsel no">
+<!ENTITY calendar.context.attendance.send.accesskey             "S">
+<!ENTITY calendar.context.attendance.dontsend.label             "Ikkje send eit varsel">
+<!ENTITY calendar.context.attendance.dontsend.accesskey         "d">
+
+<!ENTITY calendar.context.attendance.occ.accepted.accesskey     "A">
+<!ENTITY calendar.context.attendance.occ.accepted.label         "Akseptert">
+<!ENTITY calendar.context.attendance.occ.tentative.accesskey    "u">
+<!ENTITY calendar.context.attendance.occ.tentative.label        "Akseptert førebels">
+<!ENTITY calendar.context.attendance.occ.declined.accesskey     "s">
+<!ENTITY calendar.context.attendance.occ.declined.label         "Avvist">
+<!ENTITY calendar.context.attendance.occ.delegated.accesskey    "g">
+<!ENTITY calendar.context.attendance.occ.delegated.label        "Delegert">
+<!ENTITY calendar.context.attendance.occ.needsaction.accesskey  "s">
+<!ENTITY calendar.context.attendance.occ.needsaction.label      "Treng framleis handling">
+<!ENTITY calendar.context.attendance.occ.inprogress.accesskey   "r">
+<!ENTITY calendar.context.attendance.occ.inprogress.label       "Held på">
+<!ENTITY calendar.context.attendance.occ.completed.accesskey    "k">
+<!ENTITY calendar.context.attendance.occ.completed.label        "Fullført">
+
+<!ENTITY calendar.context.attendance.all.accepted.accesskey     "F">
+<!ENTITY calendar.context.attendance.all.accepted.label         "Akseptert">
+<!ENTITY calendar.context.attendance.all.tentative.accesskey    "p">
+<!ENTITY calendar.context.attendance.all.tentative.label        "Akseptert førebels">
+<!ENTITY calendar.context.attendance.all.declined.accesskey     "s">
+<!ENTITY calendar.context.attendance.all.declined.label         "Avvist">
+<!ENTITY calendar.context.attendance.all.delegated.accesskey    "l">
+<!ENTITY calendar.context.attendance.all.delegated.label        "Delegert">
+<!ENTITY calendar.context.attendance.all.needsaction.accesskey  "l">
+<!ENTITY calendar.context.attendance.all.needsaction.label      "Treng framleis handling">
+<!ENTITY calendar.context.attendance.all.inprogress.accesskey   "P">
+<!ENTITY calendar.context.attendance.all.inprogress.label       "Held på">
+<!ENTITY calendar.context.attendance.all.completed.accesskey    "F">
+<!ENTITY calendar.context.attendance.all.completed.label        "Fullført">
 
 <!-- Task Context Menu -->
 <!ENTITY calendar.context.progress.label              "Framdrift">
@@ -372,37 +409,3 @@
 <!ENTITY calendar.extract.task.button          "Legg til som oppgåve">
 <!ENTITY calendar.extract.event.button.tooltip "Hent ut kalenderinfo frå meldinga og legg til i kalenderen din som ei hending">
 <!ENTITY calendar.extract.task.button.tooltip  "Hent ut kalenderinfo frå meldinga og legg til i kalenderen din som ei oppgåve">
-
-<!ENTITY calendar.context.attendance.all2.label                 "Complete Series">
-<!ENTITY calendar.context.attendance.send.label                 "Send a notification now">
-<!ENTITY calendar.context.attendance.send.accesskey             "S">
-<!ENTITY calendar.context.attendance.dontsend.label             "Do not send a notification">
-<!ENTITY calendar.context.attendance.dontsend.accesskey         "D">
-<!ENTITY calendar.context.attendance.occ.accepted.accesskey     "A">
-<!ENTITY calendar.context.attendance.occ.accepted.label         "Accepted">
-<!ENTITY calendar.context.attendance.occ.tentative.accesskey    "y">
-<!ENTITY calendar.context.attendance.occ.tentative.label        "Accepted tentatively">
-<!ENTITY calendar.context.attendance.occ.declined.accesskey     "c">
-<!ENTITY calendar.context.attendance.occ.declined.label         "Declined">
-<!ENTITY calendar.context.attendance.occ.delegated.accesskey    "g">
-<!ENTITY calendar.context.attendance.occ.delegated.label        "Delegated">
-<!ENTITY calendar.context.attendance.occ.needsaction.accesskey  "S">
-<!ENTITY calendar.context.attendance.occ.needsaction.label      "Still needs action">
-<!ENTITY calendar.context.attendance.occ.inprogress.accesskey   "I">
-<!ENTITY calendar.context.attendance.occ.inprogress.label       "In progress">
-<!ENTITY calendar.context.attendance.occ.completed.accesskey    "C">
-<!ENTITY calendar.context.attendance.occ.completed.label        "Completed">
-<!ENTITY calendar.context.attendance.all.accepted.accesskey     "e">
-<!ENTITY calendar.context.attendance.all.accepted.label         "Accepted">
-<!ENTITY calendar.context.attendance.all.tentative.accesskey    "v">
-<!ENTITY calendar.context.attendance.all.tentative.label        "Accepted tentatively">
-<!ENTITY calendar.context.attendance.all.declined.accesskey     "d">
-<!ENTITY calendar.context.attendance.all.declined.label         "Declined">
-<!ENTITY calendar.context.attendance.all.delegated.accesskey    "l">
-<!ENTITY calendar.context.attendance.all.delegated.label        "Delegated">
-<!ENTITY calendar.context.attendance.all.needsaction.accesskey  "l">
-<!ENTITY calendar.context.attendance.all.needsaction.label      "Still needs action">
-<!ENTITY calendar.context.attendance.all.inprogress.accesskey   "p">
-<!ENTITY calendar.context.attendance.all.inprogress.label       "In progress">
-<!ENTITY calendar.context.attendance.all.completed.accesskey    "m">
-<!ENTITY calendar.context.attendance.all.completed.label        "Completed">

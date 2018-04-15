@@ -13,6 +13,7 @@
 <!ENTITY newButton.label            "Nou">
 <!ENTITY newButton.accesskey        "N">
 
+<!ENTITY importButton.label         "Importă…">
 <!ENTITY importButton.accesskey     "I">
 
 
@@ -53,7 +54,6 @@
 <!ENTITY openLinkNewTab.label     "Deschide linkul într-o filă nouă">
 
 <!ENTITY newButton.tooltip          "Create and append a new style sheet to the document">
-<!ENTITY importButton.label         "Import…">
 <!ENTITY importButton.tooltip       "Import and append an existing style sheet to the document">
 <!ENTITY visibilityToggle.tooltip   "Toggle style sheet visibility">
 <!ENTITY saveButton.tooltip         "Save this style sheet to a file">

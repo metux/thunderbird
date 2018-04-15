@@ -21,21 +21,31 @@
 <!ENTITY finishpage.shortdescription  "Το ημερολόγιο δημιουργήθηκε" >
 <!ENTITY finishpage.longdescription   "Το ημερολόγιό σας έχει δημιουργηθεί." >
 
-<!ENTITY sourcetabs.other.label  "Other">
-<!ENTITY buttons.create.label "Create Calendar">
-<!ENTITY buttons.create.accesskey "r">
-<!ENTITY buttons.find.label "Find Calendars">
-<!ENTITY buttons.find.accesskey "F">
-<!ENTITY buttons.back.label "Back">
-<!ENTITY buttons.back.accesskey "B">
-<!ENTITY buttons.subscribe.label "Subscribe">
-<!ENTITY buttons.subscribe.accesskey "S">
-<!ENTITY calendartype.label "Calendar Type:">
-<!ENTITY location.label "Location:">
-<!ENTITY location.placeholder "URL or host name of the calendar server">
-<!ENTITY network.nocredentials.label "This location doesn't require credentials">
-<!ENTITY network.loading.description "Please wait while your calendars are being discovered.">
-<!ENTITY network.notfound.description "Could not find calendars at this location. Please check your settings.">
-<!ENTITY network.authfail.description "The credentials you have entered were not accepted. Please check your settings.">
-<!ENTITY network.subscribe.single.description "Please select the calendars you would like to subscribe to.">
-<!ENTITY network.subscribe.multiple.description "Multiple calendar types are available for this location. Please select the calendar type, then mark the calendars you would like to subscribe to.">
+<!-- Below are new strings for the revised new calendar dialog. The above strings should be
+    removed/renamed later on -->
+
+<!ENTITY sourcetabs.other.label  "Άλλο">
+
+<!ENTITY buttons.create.label "Δημιουργία ημερολογίου">
+<!ENTITY buttons.create.accesskey "μ">
+
+<!ENTITY buttons.find.label "Εύρεση ημερολογίων">
+<!ENTITY buttons.find.accesskey "Ε">
+
+<!ENTITY buttons.back.label "Πίσω">
+<!ENTITY buttons.back.accesskey "Π">
+
+<!ENTITY buttons.subscribe.label "Εγγραφή">
+<!ENTITY buttons.subscribe.accesskey "Ε">
+
+<!ENTITY calendartype.label "Τύπος ημερολογίου:">
+<!ENTITY location.label "Τοποθεσία:">
+<!ENTITY location.placeholder "Διεύθυνση URL ή όνομα διακομιστή του διακομιστή ημερολογίου">
+
+<!ENTITY network.nocredentials.label "Αυτή η τοποθεσία δεν απαιτεί διαπιστευτήρια">
+<!ENTITY network.loading.description "Παρακαλώ περιμένετε για την ανίχνευση των ημερολογίων σας.">
+<!ENTITY network.notfound.description "Δεν ήταν δυνατή η εύρεση ημερολογίων σε αυτή την τοποθεσία. Παρακαλώ ελέγξτε τις ρυθμίσεις σας.">
+<!ENTITY network.authfail.description "Τα διαπιστευτήρια που εισαγάγατε δεν έγιναν αποδεκτά. Παρακαλώ ελέγξτε τις ρυθμίσεις σας.">
+
+<!ENTITY network.subscribe.single.description "Παρακαλώ επιλέξτε τα ημερολόγια στα οποία θέλετε να εγγραφείτε.">
+<!ENTITY network.subscribe.multiple.description "Πολλαπλοί τύποι ημερολογίων είναι διαθέσιμοι σε αυτή την τοποθεσία. Παρακαλώ επιλέξτε τον τύπο ημερολογίου και στη συνέχεια επιλέξτε τα ημερολόγια που θέλετε να εγγραφείτε.">

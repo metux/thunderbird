@@ -160,8 +160,8 @@ typeAheadFind.prototype = {
 
     // Don't start a find if the focus is on a form element.
     if (element instanceof Ci.nsIDOMXULElement ||
-        element instanceof Ci.nsIDOMHTMLEmbedElement ||
-        element instanceof Ci.nsIDOMHTMLObjectElement ||
+        ChromeUtils.getClassName(element) === "HTMLEmbedElement" ||
+        ChromeUtils.getClassName(element) === "HTMLObjectElement" ||
         ChromeUtils.getClassName(element) === "HTMLSelectElement" ||
         ChromeUtils.getClassName(element) === "HTMLTextAreaElement")
       return true;

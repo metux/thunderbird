@@ -21,21 +21,32 @@
 <!ENTITY finishpage.shortdescription  "Kalender opprettet" >
 <!ENTITY finishpage.longdescription   "Kalenderen er opprettet" >
 
-<!ENTITY sourcetabs.other.label  "Other">
-<!ENTITY buttons.create.label "Create Calendar">
+<!-- Below are new strings for the revised new calendar dialog. The above strings should be
+    removed/renamed later on -->
+
+<!ENTITY sourcetabs.other.label  "Annet">
+
+<!ENTITY buttons.create.label "Opprett kalender">
 <!ENTITY buttons.create.accesskey "r">
-<!ENTITY buttons.find.label "Find Calendars">
+
+<!ENTITY buttons.find.label "Finn kalendere">
 <!ENTITY buttons.find.accesskey "F">
-<!ENTITY buttons.back.label "Back">
-<!ENTITY buttons.back.accesskey "B">
-<!ENTITY buttons.subscribe.label "Subscribe">
-<!ENTITY buttons.subscribe.accesskey "S">
-<!ENTITY calendartype.label "Calendar Type:">
-<!ENTITY location.label "Location:">
-<!ENTITY location.placeholder "URL or host name of the calendar server">
-<!ENTITY network.nocredentials.label "This location doesn't require credentials">
-<!ENTITY network.loading.description "Please wait while your calendars are being discovered.">
-<!ENTITY network.notfound.description "Could not find calendars at this location. Please check your settings.">
+
+<!ENTITY buttons.back.label "Tilbake">
+<!ENTITY buttons.back.accesskey "b">
+
+<!ENTITY buttons.subscribe.label "Abonner">
+<!ENTITY buttons.subscribe.accesskey "b">
+
+<!ENTITY calendartype.label "Kalendertype:">
+<!ENTITY location.label "Adresse:">
+<!ENTITY location.placeholder "URL eller hostnavn på kalenderserveren">
+
+<!ENTITY network.nocredentials.label "Denne adressen krever ikke innlogging">
+<!ENTITY network.loading.description "Vent mens kalenderene dine blir oppdaget.">
+<!ENTITY network.notfound.description "Kan ikke finne noen kalender på denne adressen. Kontroller dine innstillinger.">
+
+<!ENTITY network.subscribe.single.description "Velg kalendrene du vil abonnere på.">
+
 <!ENTITY network.authfail.description "The credentials you have entered were not accepted. Please check your settings.">
-<!ENTITY network.subscribe.single.description "Please select the calendars you would like to subscribe to.">
 <!ENTITY network.subscribe.multiple.description "Multiple calendar types are available for this location. Please select the calendar type, then mark the calendars you would like to subscribe to.">

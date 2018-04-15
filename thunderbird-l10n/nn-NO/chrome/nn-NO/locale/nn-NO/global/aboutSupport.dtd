@@ -5,7 +5,7 @@
 <!ENTITY aboutSupport.pageTitle "Feilsøking">
 
 <!-- LOCALIZATION NOTE (aboutSupport.pageSubtitle): don't change the 'supportLink' id. -->
-<!ENTITY aboutSupport.pageSubtitle "  Denne sida inneheld teknisk informasjon som kan vere nyttig når du prøver å løyse eit problem. Besøk også <a id='supportLink'>brukarstøttenettstaden</a> for å få svar på ofte stilte spørsmål om &brandShortName;.">
+<!ENTITY aboutSupport.pageSubtitle "  Denne sida inneheld teknisk informasjon som kan vere nyttig når du prøver å løyse eit problem. Gå til <a id='supportLink'>brukarstøttenettsida</a> for å få svar på ofte stilte spørsmål om &brandShortName;.">
 
 <!ENTITY aboutSupport.crashes.title "Krasjrapportar">
 <!-- LOCALIZATION NOTE (aboutSupport.crashes.id):
@@ -74,6 +74,8 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Multiprosess-vindauge">
 
 <!ENTITY aboutSupport.appBasicsProcessCount "Nettinnhaldsprosessar">
+
+<!ENTITY aboutSupport.enterprisePolicies "Bedriftspolitikk">
 
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Google-nykel">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla Location Service-nykel">
@@ -168,5 +170,3 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.intlOSTitle "Operativsystem">
 <!ENTITY aboutSupport.intlOSPrefsSystemLocales "System-språkversjonar">
 <!ENTITY aboutSupport.intlRegionalPrefs "Regionale innstillingar">
-
-<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">

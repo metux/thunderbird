@@ -21,6 +21,19 @@
 <!ENTITY finishpage.shortdescription  "S'ha creat el calendari" >
 <!ENTITY finishpage.longdescription   "S'ha creat el calendari." >
 
+<!-- Below are new strings for the revised new calendar dialog. The above strings should be
+    removed/renamed later on -->
+
+
+
+
+
+
+<!ENTITY calendartype.label "Tipus de calendari:">
+<!ENTITY location.label "Ubicació:">
+
+
+
 <!ENTITY sourcetabs.other.label  "Other">
 <!ENTITY buttons.create.label "Create Calendar">
 <!ENTITY buttons.create.accesskey "r">
@@ -30,8 +43,6 @@
 <!ENTITY buttons.back.accesskey "B">
 <!ENTITY buttons.subscribe.label "Subscribe">
 <!ENTITY buttons.subscribe.accesskey "S">
-<!ENTITY calendartype.label "Calendar Type:">
-<!ENTITY location.label "Location:">
 <!ENTITY location.placeholder "URL or host name of the calendar server">
 <!ENTITY network.nocredentials.label "This location doesn't require credentials">
 <!ENTITY network.loading.description "Please wait while your calendars are being discovered.">

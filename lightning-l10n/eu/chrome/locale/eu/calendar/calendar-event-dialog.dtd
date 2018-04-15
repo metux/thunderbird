@@ -398,6 +398,7 @@
 <!-- Read-Only dialog -->
 <!ENTITY read.only.general.label         "Orokorra">
 <!ENTITY read.only.title.label           "Izenburua:">
+<!ENTITY read.only.calendar.label        "Egutegia:">
 <!ENTITY read.only.event.start.label     "Hasiera-data:">
 <!ENTITY read.only.task.start.label      "Hasiera-data:">
 <!ENTITY read.only.event.end.label       "Amaiera-data:">
@@ -417,16 +418,16 @@
 <!ENTITY read.only.description.label     "Azalpena">
 <!ENTITY read.only.link.label            "Erlazionatutako lotura">
 
-<!ENTITY read.only.calendar.label        "Calendar:">
-<!ENTITY summary.dialog.saveclose.label         "Save and Close">
-<!ENTITY summary.dialog.saveclose.tooltiptext   "Save changes and close the window without changing the participation status and sending a response">
-<!ENTITY summary.dialog.accept.label            "Accept">
-<!ENTITY summary.dialog.accept.tooltiptext      "Accept the invitation">
-<!ENTITY summary.dialog.tentative.label         "Tentative">
-<!ENTITY summary.dialog.tentative.tooltiptext   "Accept the invitation tentatively">
-<!ENTITY summary.dialog.decline.label           "Decline">
-<!ENTITY summary.dialog.decline.tooltiptext     "Decline the invitation">
-<!ENTITY summary.dialog.dontsend.label          "Do not send a response">
-<!ENTITY summary.dialog.dontsend.tooltiptext    "Change your participation status without sending a reply to the organizer and close the window">
-<!ENTITY summary.dialog.send.label              "Send a response now">
-<!ENTITY summary.dialog.send.tooltiptext        "Send out a response to the organizer  and close the window">
+<!-- Summary dialog -->
+<!ENTITY summary.dialog.saveclose.label         "Gorde eta itxi">
+<!ENTITY summary.dialog.saveclose.tooltiptext   "Gorde aldaketak eta itxi leihoa partaidetza egoera aldatu gabe eta erantzunik bidali gabe">
+<!ENTITY summary.dialog.accept.label            "Onartu">
+<!ENTITY summary.dialog.accept.tooltiptext      "Onartu gonbidapena">
+<!ENTITY summary.dialog.tentative.label         "Behin-behinekoa">
+<!ENTITY summary.dialog.tentative.tooltiptext   "Onartu gonbidapena behin-behinean">
+<!ENTITY summary.dialog.decline.label           "Baztertu">
+<!ENTITY summary.dialog.decline.tooltiptext     "Baztertu gonbidapena">
+<!ENTITY summary.dialog.dontsend.label          "Ez bidali erantzunik">
+<!ENTITY summary.dialog.dontsend.tooltiptext    "Aldatu zure partaidetza egoera antolatzaileari erantzunik bidali gabe eta itxi leihoa">
+<!ENTITY summary.dialog.send.label              "Bidali erantzuna orain">
+<!ENTITY summary.dialog.send.tooltiptext        "Bidali erantzuna antolatzaileari  eta itxi leihoa">

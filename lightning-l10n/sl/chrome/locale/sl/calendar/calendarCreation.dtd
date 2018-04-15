@@ -21,14 +21,25 @@
 <!ENTITY finishpage.shortdescription  "Koledar ustvarjen" >
 <!ENTITY finishpage.longdescription   "Vaš koledar je bil ustvarjen." >
 
-<!ENTITY sourcetabs.other.label  "Other">
-<!ENTITY buttons.create.label "Create Calendar">
+<!-- Below are new strings for the revised new calendar dialog. The above strings should be
+    removed/renamed later on -->
+
+<!ENTITY sourcetabs.other.label  "Drugo">
+
+<!ENTITY buttons.create.label "Ustvari koledar">
+
+
+<!ENTITY buttons.back.label "Nazaj">
+
+<!ENTITY buttons.subscribe.label "Naroči se">
+
+
+
+
 <!ENTITY buttons.create.accesskey "r">
 <!ENTITY buttons.find.label "Find Calendars">
 <!ENTITY buttons.find.accesskey "F">
-<!ENTITY buttons.back.label "Back">
 <!ENTITY buttons.back.accesskey "B">
-<!ENTITY buttons.subscribe.label "Subscribe">
 <!ENTITY buttons.subscribe.accesskey "S">
 <!ENTITY calendartype.label "Calendar Type:">
 <!ENTITY location.label "Location:">

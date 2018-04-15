@@ -398,6 +398,7 @@
 <!-- Read-Only dialog -->
 <!ENTITY read.only.general.label         "Genel">
 <!ENTITY read.only.title.label           "Başlık:">
+<!ENTITY read.only.calendar.label        "Takvim:">
 <!ENTITY read.only.event.start.label     "Başlangıç tarihi:">
 <!ENTITY read.only.task.start.label      "Başlangıç tarihi:">
 <!ENTITY read.only.event.end.label       "Bitiş tarihi:">
@@ -417,15 +418,16 @@
 <!ENTITY read.only.description.label     "Açıklama">
 <!ENTITY read.only.link.label            "İlgili bağlantı">
 
-<!ENTITY read.only.calendar.label        "Calendar:">
-<!ENTITY summary.dialog.saveclose.label         "Save and Close">
+<!-- Summary dialog -->
+<!ENTITY summary.dialog.saveclose.label         "Kaydet ve kapat">
+<!ENTITY summary.dialog.accept.label            "Kabul et">
+<!ENTITY summary.dialog.accept.tooltiptext      "Daveti kabul et">
+<!ENTITY summary.dialog.decline.label           "Reddet">
+<!ENTITY summary.dialog.decline.tooltiptext     "Daveti reddet">
+
 <!ENTITY summary.dialog.saveclose.tooltiptext   "Save changes and close the window without changing the participation status and sending a response">
-<!ENTITY summary.dialog.accept.label            "Accept">
-<!ENTITY summary.dialog.accept.tooltiptext      "Accept the invitation">
 <!ENTITY summary.dialog.tentative.label         "Tentative">
 <!ENTITY summary.dialog.tentative.tooltiptext   "Accept the invitation tentatively">
-<!ENTITY summary.dialog.decline.label           "Decline">
-<!ENTITY summary.dialog.decline.tooltiptext     "Decline the invitation">
 <!ENTITY summary.dialog.dontsend.label          "Do not send a response">
 <!ENTITY summary.dialog.dontsend.tooltiptext    "Change your participation status without sending a reply to the organizer and close the window">
 <!ENTITY summary.dialog.send.label              "Send a response now">

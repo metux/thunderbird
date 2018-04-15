@@ -21,21 +21,31 @@
 <!ENTITY finishpage.shortdescription  "Crëwyd y Calendr" >
 <!ENTITY finishpage.longdescription   "Mae eich calendr wedi'i greu." >
 
-<!ENTITY sourcetabs.other.label  "Other">
-<!ENTITY buttons.create.label "Create Calendar">
+<!-- Below are new strings for the revised new calendar dialog. The above strings should be
+    removed/renamed later on -->
+
+<!ENTITY sourcetabs.other.label  "Arall">
+
+<!ENTITY buttons.create.label "Creu Calendr">
 <!ENTITY buttons.create.accesskey "r">
-<!ENTITY buttons.find.label "Find Calendars">
-<!ENTITY buttons.find.accesskey "F">
-<!ENTITY buttons.back.label "Back">
-<!ENTITY buttons.back.accesskey "B">
-<!ENTITY buttons.subscribe.label "Subscribe">
-<!ENTITY buttons.subscribe.accesskey "S">
-<!ENTITY calendartype.label "Calendar Type:">
-<!ENTITY location.label "Location:">
-<!ENTITY location.placeholder "URL or host name of the calendar server">
-<!ENTITY network.nocredentials.label "This location doesn't require credentials">
-<!ENTITY network.loading.description "Please wait while your calendars are being discovered.">
-<!ENTITY network.notfound.description "Could not find calendars at this location. Please check your settings.">
-<!ENTITY network.authfail.description "The credentials you have entered were not accepted. Please check your settings.">
-<!ENTITY network.subscribe.single.description "Please select the calendars you would like to subscribe to.">
-<!ENTITY network.subscribe.multiple.description "Multiple calendar types are available for this location. Please select the calendar type, then mark the calendars you would like to subscribe to.">
+
+<!ENTITY buttons.find.label "Canfod Calendrau">
+<!ENTITY buttons.find.accesskey "f">
+
+<!ENTITY buttons.back.label "Nôl">
+<!ENTITY buttons.back.accesskey "N">
+
+<!ENTITY buttons.subscribe.label "Tanysgrifio">
+<!ENTITY buttons.subscribe.accesskey "T">
+
+<!ENTITY calendartype.label "Math o Galendr:">
+<!ENTITY location.label "Lleoliad:">
+<!ENTITY location.placeholder "URL neu enw gwesteiwr gweinydd y calendr">
+
+<!ENTITY network.nocredentials.label "Nid yw'r lleoliad hwn angen dilysiad">
+<!ENTITY network.loading.description "Arhoswch tra bod eich calendrau yn cael eu darganfod.">
+<!ENTITY network.notfound.description "Heb ganfod calendrau yn y lleoliad hwn. Gwiriwch eich gosodiadau.">
+<!ENTITY network.authfail.description "Nid yw'r manylion rydych wedi eu cynnig wedi eu derbyn. Gwiriwch eich gosodiadau.">
+
+<!ENTITY network.subscribe.single.description "Dewiswch y calendrau'r hoffech danysgrifio iddynt.">
+<!ENTITY network.subscribe.multiple.description "Mae mathau calendr lluosog ar gael; ar gyfer y lleoliad hwn. Dewiswch y math o galendr, yna mario'r calendrau yr hoffech chi danysgrifio iddyn nhw.">

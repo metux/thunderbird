@@ -21,21 +21,31 @@
 <!ENTITY finishpage.shortdescription  "A naptár létrejött" >
 <!ENTITY finishpage.longdescription   "Elkészült a naptárja." >
 
-<!ENTITY sourcetabs.other.label  "Other">
-<!ENTITY buttons.create.label "Create Calendar">
-<!ENTITY buttons.create.accesskey "r">
-<!ENTITY buttons.find.label "Find Calendars">
-<!ENTITY buttons.find.accesskey "F">
-<!ENTITY buttons.back.label "Back">
-<!ENTITY buttons.back.accesskey "B">
-<!ENTITY buttons.subscribe.label "Subscribe">
-<!ENTITY buttons.subscribe.accesskey "S">
-<!ENTITY calendartype.label "Calendar Type:">
-<!ENTITY location.label "Location:">
-<!ENTITY location.placeholder "URL or host name of the calendar server">
-<!ENTITY network.nocredentials.label "This location doesn't require credentials">
-<!ENTITY network.loading.description "Please wait while your calendars are being discovered.">
-<!ENTITY network.notfound.description "Could not find calendars at this location. Please check your settings.">
-<!ENTITY network.authfail.description "The credentials you have entered were not accepted. Please check your settings.">
-<!ENTITY network.subscribe.single.description "Please select the calendars you would like to subscribe to.">
-<!ENTITY network.subscribe.multiple.description "Multiple calendar types are available for this location. Please select the calendar type, then mark the calendars you would like to subscribe to.">
+<!-- Below are new strings for the revised new calendar dialog. The above strings should be
+    removed/renamed later on -->
+
+<!ENTITY sourcetabs.other.label  "Egyéb">
+
+<!ENTITY buttons.create.label "Naptár létrehozása">
+<!ENTITY buttons.create.accesskey "l">
+
+<!ENTITY buttons.find.label "Naptárak keresése">
+<!ENTITY buttons.find.accesskey "k">
+
+<!ENTITY buttons.back.label "Vissza">
+<!ENTITY buttons.back.accesskey "V">
+
+<!ENTITY buttons.subscribe.label "Feliratkozás">
+<!ENTITY buttons.subscribe.accesskey "F">
+
+<!ENTITY calendartype.label "Naptár típusa:">
+<!ENTITY location.label "Hely:">
+<!ENTITY location.placeholder "A naptár-kiszolgáló URL-e vagy gépneve">
+
+<!ENTITY network.nocredentials.label "Ez a hely nem igényel hitelesítő adatokat">
+<!ENTITY network.loading.description "Várjon amíg a naptárai felfedezésre kerülnek.">
+<!ENTITY network.notfound.description "Ezen a helyen nem találhatóak naptárak. Ellenőrizze a beállításait.">
+<!ENTITY network.authfail.description "A megadott hitelesítő adatok nem lettek elfogadva. Ellenőrizze a beállításait.">
+
+<!ENTITY network.subscribe.single.description "Válassza ki a naptárakat, amelyekre fel szeretne iratkozni.">
+<!ENTITY network.subscribe.multiple.description "Több naptártípus is elérhető ehhez a helyhez. Válasszon egy naptártípust, és jelölje meg a naptárakat, amelyekre fel akar iratkozni.">

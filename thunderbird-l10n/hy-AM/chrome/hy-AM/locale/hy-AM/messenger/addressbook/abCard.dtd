@@ -2,9 +2,8 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY Contact.tab                     "Contact">
-<!ENTITY Contact.accesskey               "C">
-<!ENTITY Name.box                        "Name">
+<!ENTITY Contact.tab                     "Կոնտակտ">
+<!ENTITY Name.box                        "Անուն">
 
 <!-- LOCALIZATION NOTE:
  NameField1, NameField2, PhoneticField1, PhoneticField2
@@ -15,17 +14,30 @@
 -->
 
 <!-- LOCALIZATION NOTE (NameField1.id) : DONT_TRANSLATE -->
-<!ENTITY NameField1.id                  "FirstName">
 <!-- LOCALIZATION NOTE (NameField2.id) : DONT_TRANSLATE -->
-<!ENTITY NameField2.id                  "LastName">
 <!-- LOCALIZATION NOTE (PhoneticField1.id) : DONT_TRANSLATE -->
-<!ENTITY PhoneticField1.id              "PhoneticFirstName">
 <!-- LOCALIZATION NOTE (PhoneticField2.id) : DONT_TRANSLATE -->
-<!ENTITY PhoneticField2.id              "PhoneticLastName">
 
-<!ENTITY NameField1.label               "First:">
+<!ENTITY NameField1.label               "Անուն.">
+<!ENTITY NameField2.label               "Ազգանուն.">
+<!ENTITY NickName.label                 "Ծածկանուն.">
+
+<!ENTITY PrimaryEmail.label             "Էլ. փոստ.">
+<!ENTITY SecondEmail.label              "Լր. էլ. փոստ.">
+<!ENTITY Unknown.label                  "Անհայտ">
+
+
+
+
+
+
+
+<!ENTITY Contact.accesskey               "C">
+<!ENTITY NameField1.id                  "FirstName">
+<!ENTITY NameField2.id                  "LastName">
+<!ENTITY PhoneticField1.id              "PhoneticFirstName">
+<!ENTITY PhoneticField2.id              "PhoneticLastName">
 <!ENTITY NameField1.accesskey           "F">
-<!ENTITY NameField2.label               "Last:">
 <!ENTITY NameField2.accesskey           "L">
 <!ENTITY PhoneticField1.label           "Phonetic:">
 <!ENTITY PhoneticField2.label           "Phonetic:">
@@ -33,20 +45,14 @@
 <!ENTITY DisplayName.accesskey          "D">
 <!ENTITY preferDisplayName.label        "Always prefer display name over message header">
 <!ENTITY preferDisplayName.accesskey    "y">
-<!ENTITY NickName.label                 "Nickname:">
 <!ENTITY NickName.accesskey             "N">
-
-<!ENTITY PrimaryEmail.label             "Email:">
 <!ENTITY PrimaryEmail.accesskey         "E">
-<!ENTITY SecondEmail.label              "Additional Email:">
 <!ENTITY SecondEmail.accesskey          "i">
 <!ENTITY PreferMailFormat.label         "Prefers to receive messages formatted as:">
 <!ENTITY PreferMailFormat.accesskey     "v">
 <!ENTITY PlainText.label                "Plain Text">
 <!ENTITY HTML.label                     "HTML">
-<!ENTITY Unknown.label                  "Unknown">
 <!ENTITY chatName.label                 "Chat Name:">
-
 <!ENTITY WorkPhone.label                "Work:">
 <!ENTITY WorkPhone.accesskey            "k">
 <!ENTITY HomePhone.label                "Home:">
@@ -57,7 +63,6 @@
 <!ENTITY PagerNumber.accesskey          "g">
 <!ENTITY CellularNumber.label           "Mobile:">
 <!ENTITY CellularNumber.accesskey       "b">
-
 <!ENTITY Home.tab                       "Private">
 <!ENTITY Home.accesskey                 "P">
 <!ENTITY HomeAddress.label              "Address:">
@@ -81,7 +86,6 @@
 <!ENTITY Or.value                       "or">
 <!ENTITY Age.placeholder                "Age">
 <!ENTITY YearsOld.label                 "">
-
 <!ENTITY Work.tab                       "Work">
 <!ENTITY Work.accesskey                 "W">
 <!ENTITY JobTitle.label                 "Title:">
@@ -104,7 +108,6 @@
 <!ENTITY WorkCountry.accesskey          "u">
 <!ENTITY WorkWebPage.label              "Web Page:">
 <!ENTITY WorkWebPage.accesskey          "e">
-
 <!ENTITY Other.tab                      "Other">
 <!ENTITY Other.accesskey                "h">
 <!ENTITY Custom1.label                  "Custom 1:">
@@ -117,7 +120,6 @@
 <!ENTITY Custom4.accesskey              "4">
 <!ENTITY Notes.label                    "Notes:">
 <!ENTITY Notes.accesskey                "N">
-
 <!ENTITY Chat.tab                       "Chat">
 <!ENTITY Chat.accesskey                 "a">
 <!ENTITY Gtalk.label                    "Google Talk:">
@@ -138,7 +140,6 @@
 <!ENTITY XMPP.accesskey                 "J">
 <!ENTITY IRC.label                      "IRC Nick:">
 <!ENTITY IRC.accesskey                  "R">
-
 <!ENTITY Photo.tab                      "Photo">
 <!ENTITY Photo.accesskey                "o">
 <!ENTITY PhotoDesc.label                "Pick one of the following:">

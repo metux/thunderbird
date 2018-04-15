@@ -2,9 +2,9 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY Contact.tab                     "Contact">
-<!ENTITY Contact.accesskey               "C">
-<!ENTITY Name.box                        "Name">
+<!ENTITY Contact.tab                     "Kontakt">
+<!ENTITY Contact.accesskey               "K">
+<!ENTITY Name.box                        "Názov">
 
 <!-- LOCALIZATION NOTE:
  NameField1, NameField2, PhoneticField1, PhoneticField2
@@ -23,100 +23,100 @@
 <!-- LOCALIZATION NOTE (PhoneticField2.id) : DONT_TRANSLATE -->
 <!ENTITY PhoneticField2.id              "PhoneticLastName">
 
-<!ENTITY NameField1.label               "First:">
-<!ENTITY NameField1.accesskey           "F">
-<!ENTITY NameField2.label               "Last:">
-<!ENTITY NameField2.accesskey           "L">
-<!ENTITY PhoneticField1.label           "Phonetic:">
-<!ENTITY PhoneticField2.label           "Phonetic:">
-<!ENTITY DisplayName.label              "Display:">
-<!ENTITY DisplayName.accesskey          "D">
-<!ENTITY preferDisplayName.label        "Always prefer display name over message header">
+<!ENTITY NameField1.label               "Meno:">
+<!ENTITY NameField1.accesskey           "M">
+<!ENTITY NameField2.label               "Priezvisko:">
+<!ENTITY NameField2.accesskey           "P">
+<!ENTITY PhoneticField1.label           "Výslovnosť:">
+<!ENTITY PhoneticField2.label           "Výslovnosť:">
+<!ENTITY DisplayName.label              "Zobrazované meno:">
+<!ENTITY DisplayName.accesskey          "n">
+<!ENTITY preferDisplayName.label        "Vždy použiť zobrazované meno namiesto mena z hlavičky správy">
 <!ENTITY preferDisplayName.accesskey    "y">
-<!ENTITY NickName.label                 "Nickname:">
-<!ENTITY NickName.accesskey             "N">
+<!ENTITY NickName.label                 "Prezývka:">
+<!ENTITY NickName.accesskey             "e">
 
-<!ENTITY PrimaryEmail.label             "Email:">
+<!ENTITY PrimaryEmail.label             "E-mailová adresa:">
 <!ENTITY PrimaryEmail.accesskey         "E">
-<!ENTITY SecondEmail.label              "Additional Email:">
+<!ENTITY SecondEmail.label              "Ďalšia e-mailová adresa:">
 <!ENTITY SecondEmail.accesskey          "i">
-<!ENTITY PreferMailFormat.label         "Prefers to receive messages formatted as:">
+<!ENTITY PreferMailFormat.label         "Preferuje príjem správ vo formáte:">
 <!ENTITY PreferMailFormat.accesskey     "v">
-<!ENTITY PlainText.label                "Plain Text">
+<!ENTITY PlainText.label                "Iba text">
 <!ENTITY HTML.label                     "HTML">
-<!ENTITY Unknown.label                  "Unknown">
-<!ENTITY chatName.label                 "Chat Name:">
+<!ENTITY Unknown.label                  "Nie je známe">
+<!ENTITY chatName.label                 "Meno v konverzácii:">
 
-<!ENTITY WorkPhone.label                "Work:">
-<!ENTITY WorkPhone.accesskey            "k">
-<!ENTITY HomePhone.label                "Home:">
+<!ENTITY WorkPhone.label                "Zamestnanie:">
+<!ENTITY WorkPhone.accesskey            "m">
+<!ENTITY HomePhone.label                "Domov:">
 <!ENTITY HomePhone.accesskey            "m">
 <!ENTITY FaxNumber.label                "Fax:">
 <!ENTITY FaxNumber.accesskey            "x">
 <!ENTITY PagerNumber.label              "Pager:">
 <!ENTITY PagerNumber.accesskey          "g">
-<!ENTITY CellularNumber.label           "Mobile:">
+<!ENTITY CellularNumber.label           "Mobil:">
 <!ENTITY CellularNumber.accesskey       "b">
 
-<!ENTITY Home.tab                       "Private">
-<!ENTITY Home.accesskey                 "P">
-<!ENTITY HomeAddress.label              "Address:">
+<!ENTITY Home.tab                       "Súkromné">
+<!ENTITY Home.accesskey                 "S">
+<!ENTITY HomeAddress.label              "Adresa:">
 <!ENTITY HomeAddress.accesskey          "d">
 <!ENTITY HomeAddress2.label             "">
 <!ENTITY HomeAddress2.accesskey         "">
-<!ENTITY HomeCity.label                 "City:">
-<!ENTITY HomeCity.accesskey             "y">
-<!ENTITY HomeState.label                "State/Province:">
-<!ENTITY HomeState.accesskey            "S">
-<!ENTITY HomeZipCode.label              "ZIP/Postal Code:">
-<!ENTITY HomeZipCode.accesskey          "Z">
-<!ENTITY HomeCountry.label              "Country:">
-<!ENTITY HomeCountry.accesskey          "u">
-<!ENTITY HomeWebPage.label              "Web Page:">
+<!ENTITY HomeCity.label                 "Mesto:">
+<!ENTITY HomeCity.accesskey             "M">
+<!ENTITY HomeState.label                "Kraj:">
+<!ENTITY HomeState.accesskey            "K">
+<!ENTITY HomeZipCode.label              "PSČ:">
+<!ENTITY HomeZipCode.accesskey          "P">
+<!ENTITY HomeCountry.label              "Krajina:">
+<!ENTITY HomeCountry.accesskey          "a">
+<!ENTITY HomeWebPage.label              "Webová stránka:">
 <!ENTITY HomeWebPage.accesskey          "e">
-<!ENTITY Birthday.label                 "Birthday:">
-<!ENTITY Birthday.accesskey             "B">
+<!ENTITY Birthday.label                 "Dátum narodenia:">
+<!ENTITY Birthday.accesskey             "n">
 <!ENTITY In.label                       "">
-<!ENTITY Year.placeholder               "Year">
-<!ENTITY Or.value                       "or">
-<!ENTITY Age.placeholder                "Age">
+<!ENTITY Year.placeholder               "Rok">
+<!ENTITY Or.value                       "alebo">
+<!ENTITY Age.placeholder                "vek">
 <!ENTITY YearsOld.label                 "">
 
-<!ENTITY Work.tab                       "Work">
-<!ENTITY Work.accesskey                 "W">
-<!ENTITY JobTitle.label                 "Title:">
-<!ENTITY JobTitle.accesskey             "i">
-<!ENTITY Department.label               "Department:">
-<!ENTITY Department.accesskey           "m">
-<!ENTITY Company.label                  "Organization:">
+<!ENTITY Work.tab                       "Zamestnanie">
+<!ENTITY Work.accesskey                 "Z">
+<!ENTITY JobTitle.label                 "Názov:">
+<!ENTITY JobTitle.accesskey             "N">
+<!ENTITY Department.label               "Oddelenie:">
+<!ENTITY Department.accesskey           "d">
+<!ENTITY Company.label                  "Organizácia:">
 <!ENTITY Company.accesskey              "n">
-<!ENTITY WorkAddress.label              "Address:">
+<!ENTITY WorkAddress.label              "Adresa:">
 <!ENTITY WorkAddress.accesskey          "d">
 <!ENTITY WorkAddress2.label             "">
 <!ENTITY WorkAddress2.accesskey         "">
-<!ENTITY WorkCity.label                 "City:">
-<!ENTITY WorkCity.accesskey             "y">
-<!ENTITY WorkState.label                "State/Province:">
-<!ENTITY WorkState.accesskey            "S">
-<!ENTITY WorkZipCode.label              "ZIP/Postal Code:">
-<!ENTITY WorkZipCode.accesskey          "Z">
-<!ENTITY WorkCountry.label              "Country:">
-<!ENTITY WorkCountry.accesskey          "u">
-<!ENTITY WorkWebPage.label              "Web Page:">
+<!ENTITY WorkCity.label                 "Mesto:">
+<!ENTITY WorkCity.accesskey             "M">
+<!ENTITY WorkState.label                "Kraj:">
+<!ENTITY WorkState.accesskey            "j">
+<!ENTITY WorkZipCode.label              "PSČ:">
+<!ENTITY WorkZipCode.accesskey          "P">
+<!ENTITY WorkCountry.label              "Krajina:">
+<!ENTITY WorkCountry.accesskey          "a">
+<!ENTITY WorkWebPage.label              "Webová stránka:">
 <!ENTITY WorkWebPage.accesskey          "e">
 
-<!ENTITY Other.tab                      "Other">
-<!ENTITY Other.accesskey                "h">
-<!ENTITY Custom1.label                  "Custom 1:">
+<!ENTITY Other.tab                      "Ostatné">
+<!ENTITY Other.accesskey                "n">
+<!ENTITY Custom1.label                  "Ostatné 1:">
 <!ENTITY Custom1.accesskey              "1">
-<!ENTITY Custom2.label                  "Custom 2:">
+<!ENTITY Custom2.label                  "Ostatné 2:">
 <!ENTITY Custom2.accesskey              "2">
-<!ENTITY Custom3.label                  "Custom 3:">
+<!ENTITY Custom3.label                  "Ostatné 3:">
 <!ENTITY Custom3.accesskey              "3">
-<!ENTITY Custom4.label                  "Custom 4:">
+<!ENTITY Custom4.label                  "Ostatné 4:">
 <!ENTITY Custom4.accesskey              "4">
-<!ENTITY Notes.label                    "Notes:">
-<!ENTITY Notes.accesskey                "N">
+<!ENTITY Notes.label                    "Poznámky:">
+<!ENTITY Notes.accesskey                "n">
 
 <!ENTITY Chat.tab                       "Chat">
 <!ENTITY Chat.accesskey                 "a">
@@ -136,22 +136,22 @@
 <!ENTITY ICQ.accesskey                  "I">
 <!ENTITY XMPP.label                     "Jabber ID:">
 <!ENTITY XMPP.accesskey                 "J">
-<!ENTITY IRC.label                      "IRC Nick:">
+<!ENTITY IRC.label                      "Prezývka na IRC:">
 <!ENTITY IRC.accesskey                  "R">
 
-<!ENTITY Photo.tab                      "Photo">
+<!ENTITY Photo.tab                      "Fotografia">
 <!ENTITY Photo.accesskey                "o">
-<!ENTITY PhotoDesc.label                "Pick one of the following:">
-<!ENTITY GenericPhoto.label             "Generic Photo">
-<!ENTITY GenericPhoto.accesskey         "G">
-<!ENTITY DefaultPhoto.label             "Default">
-<!ENTITY PhotoFile.label                "On this Computer">
-<!ENTITY PhotoFile.accesskey            "n">
-<!ENTITY BrowsePhoto.label              "Browse">
+<!ENTITY PhotoDesc.label                "Zvoľte jednu z možností:">
+<!ENTITY GenericPhoto.label             "Predvolený obrázok">
+<!ENTITY GenericPhoto.accesskey         "e">
+<!ENTITY DefaultPhoto.label             "Predvolený">
+<!ENTITY PhotoFile.label                "V tomto počítači">
+<!ENTITY PhotoFile.accesskey            "m">
+<!ENTITY BrowsePhoto.label              "Prehľadávať">
 <!ENTITY BrowsePhoto.accesskey          "r">
-<!ENTITY PhotoURL.label                 "On the Web">
+<!ENTITY PhotoURL.label                 "Na webe">
 <!ENTITY PhotoURL.accesskey             "b">
-<!ENTITY PhotoURL.placeholder           "Paste or type the web address of a photo">
-<!ENTITY UpdatePhoto.label              "Update">
+<!ENTITY PhotoURL.placeholder           "Prilepte alebo zadajte webovú adresu fotografie">
+<!ENTITY UpdatePhoto.label              "Aktualizovať">
 <!ENTITY UpdatePhoto.accesskey          "u">
-<!ENTITY PhotoDropTarget.label          "Drag new photo here">
+<!ENTITY PhotoDropTarget.label          "Sem presuňte svoju fotografiu">

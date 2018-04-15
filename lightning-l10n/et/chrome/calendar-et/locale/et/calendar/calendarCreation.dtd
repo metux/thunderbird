@@ -21,21 +21,31 @@
 <!ENTITY finishpage.shortdescription  "Kalender loodud" >
 <!ENTITY finishpage.longdescription   "Sinu kalender on loodud." >
 
-<!ENTITY sourcetabs.other.label  "Other">
-<!ENTITY buttons.create.label "Create Calendar">
-<!ENTITY buttons.create.accesskey "r">
-<!ENTITY buttons.find.label "Find Calendars">
-<!ENTITY buttons.find.accesskey "F">
-<!ENTITY buttons.back.label "Back">
-<!ENTITY buttons.back.accesskey "B">
-<!ENTITY buttons.subscribe.label "Subscribe">
-<!ENTITY buttons.subscribe.accesskey "S">
-<!ENTITY calendartype.label "Calendar Type:">
-<!ENTITY location.label "Location:">
-<!ENTITY location.placeholder "URL or host name of the calendar server">
-<!ENTITY network.nocredentials.label "This location doesn't require credentials">
-<!ENTITY network.loading.description "Please wait while your calendars are being discovered.">
-<!ENTITY network.notfound.description "Could not find calendars at this location. Please check your settings.">
-<!ENTITY network.authfail.description "The credentials you have entered were not accepted. Please check your settings.">
-<!ENTITY network.subscribe.single.description "Please select the calendars you would like to subscribe to.">
-<!ENTITY network.subscribe.multiple.description "Multiple calendar types are available for this location. Please select the calendar type, then mark the calendars you would like to subscribe to.">
+<!-- Below are new strings for the revised new calendar dialog. The above strings should be
+    removed/renamed later on -->
+
+<!ENTITY sourcetabs.other.label  "Muu">
+
+<!ENTITY buttons.create.label "Loo kalender">
+<!ENTITY buttons.create.accesskey "L">
+
+<!ENTITY buttons.find.label "Otsi kalendreid">
+<!ENTITY buttons.find.accesskey "O">
+
+<!ENTITY buttons.back.label "Tagasi">
+<!ENTITY buttons.back.accesskey "g">
+
+<!ENTITY buttons.subscribe.label "Telli">
+<!ENTITY buttons.subscribe.accesskey "T">
+
+<!ENTITY calendartype.label "Kalendri tüüp:">
+<!ENTITY location.label "Asukoht:">
+<!ENTITY location.placeholder "Kalendriserveri URL või masinanimi">
+
+<!ENTITY network.nocredentials.label "See asukoht ei nõua parooli">
+<!ENTITY network.loading.description "Palun oota, kuni sinu kalendreid otsitakse.">
+<!ENTITY network.notfound.description "Sellest kohast kalendreid ei leitud. Palun veendu seadete õigsuses.">
+<!ENTITY network.authfail.description "Sisestatud mandaati ei aktsepteeritud. Palun kontrolli seadeid.">
+
+<!ENTITY network.subscribe.single.description "Palun vali kalendrid, mida soovid tellida.">
+<!ENTITY network.subscribe.multiple.description "Selles kohas on saadaval mitut tüüpi kalendreid. Palun vali kõigepealt kalendri tüüp, seejärel märgi, milliseid soovid tellida.">

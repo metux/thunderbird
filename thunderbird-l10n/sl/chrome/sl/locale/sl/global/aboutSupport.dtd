@@ -79,6 +79,7 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsProcessCount "Procesi spletne vsebine">
 
+
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Ključ Google">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Ključ lokacijskih storitev Mozilla">
 
@@ -163,14 +164,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.mediaDeviceRate "Hitrost">
 <!ENTITY aboutSupport.mediaDeviceLatency "Zakasnitev">
 
+<!ENTITY aboutSupport.intlTitle "Jeziki in lokalizacija">
 <!ENTITY aboutSupport.intlAppTitle "Nastavitve programa">
+<!ENTITY aboutSupport.intlLocalesRequested "Zahtevani jeziki">
+<!ENTITY aboutSupport.intlLocalesAvailable "Jeziki na voljo">
+<!ENTITY aboutSupport.intlLocalesSupported "Jeziki programa">
+<!ENTITY aboutSupport.intlLocalesDefault "Privzeti jezik">
 <!ENTITY aboutSupport.intlOSTitle "Operacijski sistem">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Sistemski jeziki">
 <!ENTITY aboutSupport.intlRegionalPrefs "Območne nastavitve">
 
 <!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">
-<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
-<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
-<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
-<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
-<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
-<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">

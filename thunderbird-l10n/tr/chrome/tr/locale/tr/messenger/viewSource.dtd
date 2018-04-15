@@ -43,6 +43,8 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY goToLineCmd.accesskey "S">
 <!ENTITY goToLineCmd.commandkey "l">
 
+<!ENTITY viewMenu.label           "Görünüm">
+<!ENTITY viewMenu.accesskey       "G">
 <!ENTITY reloadCmd.label "Tazele">
 <!ENTITY reloadCmd.accesskey "T">
 <!ENTITY reloadCmd.commandkey "r">
@@ -82,7 +84,5 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY mainWindow.titlemodifierseparator " - ">
 <!ENTITY textEnlarge.commandkey2 "=">
 <!ENTITY textEnlarge.commandkey3 "">
-<!ENTITY viewMenu.label           "View">
-<!ENTITY viewMenu.accesskey       "V">
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goForwardCmd.commandKey "]">

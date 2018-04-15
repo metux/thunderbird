@@ -21,21 +21,31 @@
 <!ENTITY finishpage.shortdescription  "Kalendari u Krijua" >
 <!ENTITY finishpage.longdescription   "Kalendari juaj u krijua." >
 
-<!ENTITY sourcetabs.other.label  "Other">
-<!ENTITY buttons.create.label "Create Calendar">
-<!ENTITY buttons.create.accesskey "r">
-<!ENTITY buttons.find.label "Find Calendars">
-<!ENTITY buttons.find.accesskey "F">
-<!ENTITY buttons.back.label "Back">
-<!ENTITY buttons.back.accesskey "B">
-<!ENTITY buttons.subscribe.label "Subscribe">
-<!ENTITY buttons.subscribe.accesskey "S">
-<!ENTITY calendartype.label "Calendar Type:">
-<!ENTITY location.label "Location:">
-<!ENTITY location.placeholder "URL or host name of the calendar server">
-<!ENTITY network.nocredentials.label "This location doesn't require credentials">
-<!ENTITY network.loading.description "Please wait while your calendars are being discovered.">
-<!ENTITY network.notfound.description "Could not find calendars at this location. Please check your settings.">
-<!ENTITY network.authfail.description "The credentials you have entered were not accepted. Please check your settings.">
-<!ENTITY network.subscribe.single.description "Please select the calendars you would like to subscribe to.">
-<!ENTITY network.subscribe.multiple.description "Multiple calendar types are available for this location. Please select the calendar type, then mark the calendars you would like to subscribe to.">
+<!-- Below are new strings for the revised new calendar dialog. The above strings should be
+    removed/renamed later on -->
+
+<!ENTITY sourcetabs.other.label  "Tjetër">
+
+<!ENTITY buttons.create.label "Krijoje Kalendarin">
+<!ENTITY buttons.create.accesskey "K">
+
+<!ENTITY buttons.find.label "Gjej Kalendarë">
+<!ENTITY buttons.find.accesskey "G">
+
+<!ENTITY buttons.back.label "Mbrapsht">
+<!ENTITY buttons.back.accesskey "M">
+
+<!ENTITY buttons.subscribe.label "Pajtohuni">
+<!ENTITY buttons.subscribe.accesskey "P">
+
+<!ENTITY calendartype.label "Lloj Kalendari:">
+<!ENTITY location.label "Vendndodhje:">
+<!ENTITY location.placeholder "URL ose emër strehe e shërbyesit të kalendarit">
+
+<!ENTITY network.nocredentials.label "Kjo vendndodhje nuk lyp kredenciale">
+<!ENTITY network.loading.description "Ju lutemi, prisni teksa zbulohen kalendarët tuaj.">
+<!ENTITY network.notfound.description "S’u gjetën kalendarë në këtë vendndodhje. Ju lutemi, kontrolloni rregullimet tuaja.">
+<!ENTITY network.authfail.description "Kredencialet që keni dhënë nuk u pranuan. Ju lutemi, kontrolloni rregullimet tuaja.">
+
+<!ENTITY network.subscribe.single.description "Ju lutemi, përzgjidhni kalendarët te të cilët do të donit të pajtoheshit.">
+<!ENTITY network.subscribe.multiple.description "Ka disa lloje kalendarësh të gatshëm për këtë vend. Ju lutemi, përzgjidhni llojin e kalendarit, mandej vëruni shenjë kalendarëve te të cilët do të donit të pajtoheshit.">

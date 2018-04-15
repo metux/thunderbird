@@ -198,8 +198,7 @@ class IonBuilder
     MInstruction* addConvertElementsToDoubles(MDefinition* elements);
     MDefinition* addMaybeCopyElementsForWrite(MDefinition* object, bool checkNative);
 
-    enum class BoundsCheckKind { IsLoad, IsStore, UnusedIndex };
-    MInstruction* addBoundsCheck(MDefinition* index, MDefinition* length, BoundsCheckKind kind);
+    MInstruction* addBoundsCheck(MDefinition* index, MDefinition* length);
 
     MInstruction* addShapeGuard(MDefinition* obj, Shape* const shape, BailoutKind bailoutKind);
     MInstruction* addGroupGuard(MDefinition* obj, ObjectGroup* group, BailoutKind bailoutKind);
@@ -208,9 +207,6 @@ class IonBuilder
 
     MInstruction*
     addGuardReceiverPolymorphic(MDefinition* obj, const BaselineInspector::ReceiverVector& receivers);
-
-    MDefinition* convertShiftToMaskForStaticTypedArray(MDefinition* id,
-                                                       Scalar::Type viewType);
 
     bool invalidatedIdempotentCache();
 
@@ -378,8 +374,7 @@ class IonBuilder
     bool checkTypedObjectIndexInBounds(uint32_t elemSize,
                                        MDefinition* index,
                                        TypedObjectPrediction objTypeDescrs,
-                                       LinearSum* indexAsByteOffset,
-                                       BoundsCheckKind kind);
+                                       LinearSum* indexAsByteOffset);
     AbortReasonOr<Ok> pushDerivedTypedObject(bool* emitted,
                                              MDefinition* obj,
                                              const LinearSum& byteOffset,
@@ -392,14 +387,11 @@ class IonBuilder
                                                        const LinearSum& byteOffset,
                                                        ReferenceTypeDescr::Type type,
                                                        PropertyName* name);
-    AbortReasonOr<JSObject*> getStaticTypedArrayObject(MDefinition* obj, MDefinition* index);
 
     // jsop_setelem() helpers.
     AbortReasonOr<Ok> setElemTryTypedArray(bool* emitted, MDefinition* object,
                                            MDefinition* index, MDefinition* value);
     AbortReasonOr<Ok> setElemTryTypedObject(bool* emitted, MDefinition* obj,
-                                            MDefinition* index, MDefinition* value);
-    AbortReasonOr<Ok> setElemTryTypedStatic(bool* emitted, MDefinition* object,
                                             MDefinition* index, MDefinition* value);
     AbortReasonOr<Ok> initOrSetElemTryDense(bool* emitted, MDefinition* object,
                                             MDefinition* index, MDefinition* value,
@@ -426,7 +418,6 @@ class IonBuilder
     // jsop_getelem() helpers.
     AbortReasonOr<Ok> getElemTryDense(bool* emitted, MDefinition* obj, MDefinition* index);
     AbortReasonOr<Ok> getElemTryGetProp(bool* emitted, MDefinition* obj, MDefinition* index);
-    AbortReasonOr<Ok> getElemTryTypedStatic(bool* emitted, MDefinition* obj, MDefinition* index);
     AbortReasonOr<Ok> getElemTryTypedArray(bool* emitted, MDefinition* obj, MDefinition* index);
     AbortReasonOr<Ok> getElemTryTypedObject(bool* emitted, MDefinition* obj, MDefinition* index);
     AbortReasonOr<Ok> getElemTryString(bool* emitted, MDefinition* obj, MDefinition* index);
@@ -467,16 +458,14 @@ class IonBuilder
     void addTypedArrayLengthAndData(MDefinition* obj,
                                     BoundsChecking checking,
                                     MDefinition** index,
-                                    MInstruction** length, MInstruction** elements,
-                                    BoundsCheckKind boundsCheckKind);
+                                    MInstruction** length, MInstruction** elements);
 
     // Add an instruction to compute a typed array's length to the current
     // block.  If you also need the typed array's data, use the above method
     // instead.
     MInstruction* addTypedArrayLength(MDefinition* obj) {
         MInstruction* length;
-        addTypedArrayLengthAndData(obj, SkipBoundsCheck, nullptr, &length, nullptr,
-                                   BoundsCheckKind::UnusedIndex);
+        addTypedArrayLengthAndData(obj, SkipBoundsCheck, nullptr, &length, nullptr);
         return length;
     }
 
@@ -772,7 +761,7 @@ class IonBuilder
 
     bool prepareForSimdLoadStore(CallInfo& callInfo, Scalar::Type simdType,
                                  MInstruction** elements, MDefinition** index,
-                                 Scalar::Type* arrayType, BoundsCheckKind boundsCheckKind);
+                                 Scalar::Type* arrayType);
     InliningResult inlineSimdLoad(CallInfo& callInfo, JSNative native, SimdType type,
                                   unsigned numElems);
     InliningResult inlineSimdStore(CallInfo& callInfo, JSNative native, SimdType type,
@@ -838,8 +827,7 @@ class IonBuilder
     bool atomicsMeetsPreconditions(CallInfo& callInfo, Scalar::Type* arrayElementType,
                                    bool* requiresDynamicCheck,
                                    AtomicCheckResult checkResult=DoCheckAtomicResult);
-    void atomicsCheckBounds(CallInfo& callInfo, MInstruction** elements, MDefinition** index,
-                            BoundsCheckKind kind);
+    void atomicsCheckBounds(CallInfo& callInfo, MInstruction** elements, MDefinition** index);
 
     bool testNeedsArgumentCheck(JSFunction* target, CallInfo& callInfo);
 

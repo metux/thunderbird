@@ -450,6 +450,7 @@ var ltnImipBar = {
                 );
             }
         } else {
+            let response;
             if (aResponse) {
                 if (aResponse == "AUTO" || aResponse == "NONE" || aResponse == "USER") {
                     response = { responseMode: Components.interfaces.calIItipItem[aResponse] };

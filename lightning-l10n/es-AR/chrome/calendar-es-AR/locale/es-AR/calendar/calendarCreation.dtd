@@ -21,19 +21,30 @@
 <!ENTITY finishpage.shortdescription  "Calendario creado" >
 <!ENTITY finishpage.longdescription   "Su calendario ha sido creado" >
 
-<!ENTITY sourcetabs.other.label  "Other">
-<!ENTITY buttons.create.label "Create Calendar">
+<!-- Below are new strings for the revised new calendar dialog. The above strings should be
+    removed/renamed later on -->
+
+<!ENTITY sourcetabs.other.label  "Otros">
+
+<!ENTITY buttons.create.label "Crear calendario">
 <!ENTITY buttons.create.accesskey "r">
-<!ENTITY buttons.find.label "Find Calendars">
-<!ENTITY buttons.find.accesskey "F">
-<!ENTITY buttons.back.label "Back">
-<!ENTITY buttons.back.accesskey "B">
-<!ENTITY buttons.subscribe.label "Subscribe">
+
+<!ENTITY buttons.find.label "Buscar calendarios">
+<!ENTITY buttons.find.accesskey "B">
+
+<!ENTITY buttons.back.label "Atrás">
+<!ENTITY buttons.back.accesskey "t">
+
+<!ENTITY buttons.subscribe.label "Suscribirse">
 <!ENTITY buttons.subscribe.accesskey "S">
-<!ENTITY calendartype.label "Calendar Type:">
-<!ENTITY location.label "Location:">
+
+<!ENTITY calendartype.label "Tipo de calendario:">
+<!ENTITY location.label "Ubicación:">
+
+<!ENTITY network.nocredentials.label "Esta ubicación no requiere credenciales">
+
+
 <!ENTITY location.placeholder "URL or host name of the calendar server">
-<!ENTITY network.nocredentials.label "This location doesn't require credentials">
 <!ENTITY network.loading.description "Please wait while your calendars are being discovered.">
 <!ENTITY network.notfound.description "Could not find calendars at this location. Please check your settings.">
 <!ENTITY network.authfail.description "The credentials you have entered were not accepted. Please check your settings.">

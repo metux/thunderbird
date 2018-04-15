@@ -398,6 +398,7 @@
 <!-- Read-Only dialog -->
 <!ENTITY read.only.general.label         "Splošno">
 <!ENTITY read.only.title.label           "Naziv:">
+<!ENTITY read.only.calendar.label        "Koledar:">
 <!ENTITY read.only.event.start.label     "Začetni datum:">
 <!ENTITY read.only.task.start.label      "Začetni datum:">
 <!ENTITY read.only.event.end.label       "Končni datum:">
@@ -417,16 +418,17 @@
 <!ENTITY read.only.description.label     "Opis">
 <!ENTITY read.only.link.label            "Sorodna povezava">
 
-<!ENTITY read.only.calendar.label        "Calendar:">
-<!ENTITY summary.dialog.saveclose.label         "Save and Close">
+<!-- Summary dialog -->
+<!ENTITY summary.dialog.saveclose.label         "Shrani in zapri">
+<!ENTITY summary.dialog.accept.label            "Sprejmi">
+<!ENTITY summary.dialog.accept.tooltiptext      "Sprejmi povabilo">
+<!ENTITY summary.dialog.decline.label           "Zavrni">
+<!ENTITY summary.dialog.decline.tooltiptext     "Zavrni povabilo">
+<!ENTITY summary.dialog.dontsend.label          "Ne pošlji odgovora">
+
 <!ENTITY summary.dialog.saveclose.tooltiptext   "Save changes and close the window without changing the participation status and sending a response">
-<!ENTITY summary.dialog.accept.label            "Accept">
-<!ENTITY summary.dialog.accept.tooltiptext      "Accept the invitation">
 <!ENTITY summary.dialog.tentative.label         "Tentative">
 <!ENTITY summary.dialog.tentative.tooltiptext   "Accept the invitation tentatively">
-<!ENTITY summary.dialog.decline.label           "Decline">
-<!ENTITY summary.dialog.decline.tooltiptext     "Decline the invitation">
-<!ENTITY summary.dialog.dontsend.label          "Do not send a response">
 <!ENTITY summary.dialog.dontsend.tooltiptext    "Change your participation status without sending a reply to the organizer and close the window">
 <!ENTITY summary.dialog.send.label              "Send a response now">
 <!ENTITY summary.dialog.send.tooltiptext        "Send out a response to the organizer  and close the window">

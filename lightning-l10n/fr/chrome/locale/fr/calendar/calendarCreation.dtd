@@ -21,21 +21,31 @@
 <!ENTITY finishpage.shortdescription  "Agenda créé" >
 <!ENTITY finishpage.longdescription   "Votre agenda a été créé." >
 
-<!ENTITY sourcetabs.other.label  "Other">
-<!ENTITY buttons.create.label "Create Calendar">
-<!ENTITY buttons.create.accesskey "r">
-<!ENTITY buttons.find.label "Find Calendars">
-<!ENTITY buttons.find.accesskey "F">
-<!ENTITY buttons.back.label "Back">
-<!ENTITY buttons.back.accesskey "B">
-<!ENTITY buttons.subscribe.label "Subscribe">
+<!-- Below are new strings for the revised new calendar dialog. The above strings should be
+    removed/renamed later on -->
+
+<!ENTITY sourcetabs.other.label  "Autre">
+
+<!ENTITY buttons.create.label "Créer un agenda">
+<!ENTITY buttons.create.accesskey "C">
+
+<!ENTITY buttons.find.label "Rechercher des agendas">
+<!ENTITY buttons.find.accesskey "a">
+
+<!ENTITY buttons.back.label "Retour">
+<!ENTITY buttons.back.accesskey "R">
+
+<!ENTITY buttons.subscribe.label "S’abonner">
 <!ENTITY buttons.subscribe.accesskey "S">
-<!ENTITY calendartype.label "Calendar Type:">
-<!ENTITY location.label "Location:">
-<!ENTITY location.placeholder "URL or host name of the calendar server">
-<!ENTITY network.nocredentials.label "This location doesn't require credentials">
-<!ENTITY network.loading.description "Please wait while your calendars are being discovered.">
-<!ENTITY network.notfound.description "Could not find calendars at this location. Please check your settings.">
-<!ENTITY network.authfail.description "The credentials you have entered were not accepted. Please check your settings.">
-<!ENTITY network.subscribe.single.description "Please select the calendars you would like to subscribe to.">
-<!ENTITY network.subscribe.multiple.description "Multiple calendar types are available for this location. Please select the calendar type, then mark the calendars you would like to subscribe to.">
+
+<!ENTITY calendartype.label "Type d’agenda :">
+<!ENTITY location.label "Adresse :">
+<!ENTITY location.placeholder "Adresse web ou nom d’hôte du serveur de l’agenda">
+
+<!ENTITY network.nocredentials.label "Cette adresse ne demande pas d’identifiants de connexion">
+<!ENTITY network.loading.description "Veuillez patienter pendant que vos agendas sont découverts.">
+<!ENTITY network.notfound.description "Aucun agenda à cette adresse. Veuillez vérifier les paramètres.">
+<!ENTITY network.authfail.description "Les identifiants de connexion saisis n’ont pas été acceptés. Veuillez vérifier les paramètres.">
+
+<!ENTITY network.subscribe.single.description "Sélectionnez les agendas auxquels vous souhaitez vous abonner.">
+<!ENTITY network.subscribe.multiple.description "Plusieurs types d’agendas sont disponibles pour cette adresse. Sélectionnez le type d’agenda, puis choisissez les agendas auxquels vous souhaitez vous abonner.">
