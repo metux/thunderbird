@@ -5,7 +5,9 @@ thunderbird: embedded-library usr/lib/thunderbird/libxul.so: srtp
 #thunderbird: embedded-library usr/lib/thunderbird/libxul.so: libtheora
 # The embedded libpng is patched for APNG support
 thunderbird: embedded-library usr/lib/thunderbird/libxul.so: libpng
+
+## Uncomment entries if NSPR4 and/or NSS3 are not available in the archive
 # NSPR isn't packaged in the required version yet
-thunderbird: embedded-library usr/lib/thunderbird/libnspr4.so: nspr
+#thunderbird: embedded-library usr/lib/thunderbird/libnspr4.so: nspr
 # NSS isn't packaged in the required version yet
-thunderbird: embedded-library usr/lib/thunderbird/libnss3.so: nss
+#thunderbird: embedded-library usr/lib/thunderbird/libnss3.so: nss
