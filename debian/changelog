@@ -1,3 +1,21 @@
+thunderbird (1:60.0~b3-1) experimental; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [94f8505] debian/control: increase Standards-Version to 4.1.4
+     No further changes needed.
+  * [3ba10c6] rebuild patch queue from patch-queue branch
+     added patches:
+      porting-sparc64/Bug-1434726-Early-startup-crash-on-Linux-sparc64-in-HashI.patch
+      fixes/Use-msse-2-fpmath-C-CXXFLAGS-only-on-x86_64-platforms.patch
+      fixes/Fix-big-endian-build-for-SKIA.patch (re-added)
+     Thanks Andreas Glaubitz for providing these patches!
+  * [dabf294] New upstream version 60.0~b3
+  * [24f8a38] re-enable usage of lib{nspr4,nss3}-dev while built
+     The available versions of these libraries now recent enough so we can
+     drop the usage of the embedded code copies.
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sun, 15 Apr 2018 12:47:43 +0200
+
 thunderbird (1:60.0~b2-1) experimental; urgency=medium
 
   [ Agustin Henze ]
