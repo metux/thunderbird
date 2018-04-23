@@ -2,12 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-ChromeUtils.import("resource://calendar/modules/calProviderUtils.jsm");
 ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calIteratorUtils.jsm");
 
 //
 // calMemoryCalendar.js
@@ -28,7 +26,7 @@ var calMemoryCalendarInterfaces = [
     Components.interfaces.calICalendarProvider
 ];
 calMemoryCalendar.prototype = {
-    __proto__: cal.ProviderBase.prototype,
+    __proto__: cal.provider.BaseClass.prototype,
     classID: calMemoryCalendarClassID,
     QueryInterface: XPCOMUtils.generateQI(calMemoryCalendarInterfaces),
     classInfo: XPCOMUtils.generateCI({
@@ -58,7 +56,7 @@ calMemoryCalendar.prototype = {
     },
 
     get displayName() {
-        return cal.calGetString("calendar", "memoryName");
+        return cal.l10n.getCalString("memoryName");
     },
 
     createCalendar: function() {
@@ -445,14 +443,14 @@ calMemoryCalendar.prototype = {
                    itemFlag == reqFlag;
         };
 
-        cal.forEach(this.mItems, ([id, item]) => {
+        cal.iterate.forEach(this.mItems, ([id, item]) => {
             let isEvent_ = cal.item.isEvent(item);
             if (isEvent_) {
                 if (!wantEvents) {
-                    return cal.forEach.CONTINUE;
+                    return cal.iterate.forEach.CONTINUE;
                 }
             } else if (!wantTodos) {
-                return cal.forEach.CONTINUE;
+                return cal.iterate.forEach.CONTINUE;
             }
 
             let hasItemFlag = (item.id in this.mOfflineFlags);
@@ -460,7 +458,7 @@ calMemoryCalendar.prototype = {
 
             // If the offline flag doesn't match, skip the item
             if (!matchOffline(itemFlag, requestedFlag)) {
-                return cal.forEach.CONTINUE;
+                return cal.iterate.forEach.CONTINUE;
             }
 
             if (itemReturnOccurrences && item.recurrenceInfo) {
@@ -485,9 +483,9 @@ calMemoryCalendar.prototype = {
                 itemsFound.push(item);
             }
             if (aCount && itemsFound.length >= aCount) {
-                return cal.forEach.BREAK;
+                return cal.iterate.forEach.BREAK;
             }
-            return cal.forEach.CONTINUE;
+            return cal.iterate.forEach.CONTINUE;
         }, () => {
             aListener.onGetResult(this.superCalendar,
                                   Components.results.NS_OK,

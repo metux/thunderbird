@@ -61,7 +61,6 @@
 
     <implementation>
       <constructor><![CDATA[
-          ChromeUtils.import("resource://calendar/modules/calAlarmUtils.jsm");
           ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
           ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 
@@ -147,7 +146,7 @@
             let evl = this.eventNameLabel;
             let item = this.mOccurrence;
             evl.value = (item.title ? item.title.replace(/\n/g, " ")
-                                    : cal.calGetString("calendar", "eventUntitled"));
+                                    : cal.l10n.getCalString("eventUntitled"));
         ]]></body>
       </method>
 
@@ -243,8 +242,8 @@
             this.setAttribute("calendar", item.calendar.name.toLowerCase());
 
             // Invitation
-            if (cal.isInvitation(item)) {
-                this.setAttribute("invitation-status", cal.getInvitedAttendee(item).participationStatus);
+            if (cal.itip.isInvitation(item)) {
+                this.setAttribute("invitation-status", cal.itip.getInvitedAttendee(item).participationStatus);
                 this.setAttribute("readonly", "true");
             } else if (!cal.acl.isCalendarWritable(item.calendar)) {
                 this.setAttribute("readonly", "true");

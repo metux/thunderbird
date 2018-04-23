@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-ChromeUtils.import("resource://calendar/modules/calProviderUtils.jsm");
-
 function run_test() {
     do_calendar_startup(really_run_test);
 }
@@ -15,7 +13,7 @@ function really_run_test() {
     function testRfc3339(aRfc3339Date, aTimezone, aExpectedDateTime,
                           aExpectedRfc3339Date=aRfc3339Date) {
         // Test creating a dateTime object from an RFC 3339 string.
-        let dateTime = cal.fromRFC3339(aRfc3339Date, aTimezone);
+        let dateTime = cal.dtz.fromRFC3339(aRfc3339Date, aTimezone);
 
         // Check that each property is as expected.
         let expectedDateProps = {
@@ -40,7 +38,7 @@ function really_run_test() {
         }
 
         // Test round tripping that dateTime object back to an RFC 3339 string.
-        let rfc3339Date = cal.toRFC3339(dateTime);
+        let rfc3339Date = cal.dtz.toRFC3339(dateTime);
 
         // In theory this should just match the input RFC 3339 date, but there are
         // multiple ways of generating the same time, e.g. 2006-03-14Z is

@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calProviderUtils.jsm");
 ChromeUtils.import("resource://gre/modules/Services.jsm");
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 ChromeUtils.import("resource://gre/modules/Preferences.jsm");
@@ -202,7 +201,7 @@ calCachedCalendar.prototype = {
                         break;
                     }
                     case "storage": {
-                        let file = cal.getCalendarDirectory();
+                        let file = cal.provider.getCalendarDirectory();
                         file.append("cache.sqlite");
                         cachedCalendar.uri = Services.io.newFileURI(file);
                         cachedCalendar.id = this.id;
@@ -362,7 +361,7 @@ calCachedCalendar.prototype = {
                     }
 
                     this.getsReceived++;
-                    cal.forEach(aItems, (item) => {
+                    cal.iterate.forEach(aItems, (item) => {
                         // Adding items recd from the Memory Calendar
                         // These may be different than what the cache has
                         completeListener.modifiedTimes[item.id] = item.lastModifiedTime;
@@ -387,7 +386,7 @@ calCachedCalendar.prototype = {
                 }
 
                 if (Components.isSuccessCode(aStatus)) {
-                    cal.forEach(self.offlineCachedItems, (item) => {
+                    cal.iterate.forEach(self.offlineCachedItems, (item) => {
                         switch (self.offlineCachedItemFlags[item.hashId]) {
                             case cICL.OFFLINE_FLAG_CREATED_RECORD:
                                 // Created items are not present on the server, so its safe to adopt them
@@ -408,7 +407,7 @@ calCachedCalendar.prototype = {
                                 } else {
                                     // The item has been deleted from the server, ask if it should be added again
                                     cal.WARN("[calCachedCalendar] Item '" + item.title + "' has been deleted from the server");
-                                    if (cal.promptOverwrite("modify", item, null, null)) {
+                                    if (cal.provider.promptOverwrite("modify", item, null, null)) {
                                         self.adoptOfflineItem(item.clone(), null);
                                     }
                                 }
@@ -459,7 +458,7 @@ calCachedCalendar.prototype = {
 
     // aOldItem is already in the cache
     promptOverwrite: function(aMethod, aItem, aListener, aOldItem) {
-        let overwrite = cal.promptOverwrite(aMethod, aItem, aListener, aOldItem);
+        let overwrite = cal.provider.promptOverwrite(aMethod, aItem, aListener, aOldItem);
         if (overwrite) {
             if (aMethod == "modify") {
                 this.modifyOfflineItem(aItem, aOldItem, aListener);

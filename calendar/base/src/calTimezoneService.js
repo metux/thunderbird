@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 ChromeUtils.import("resource://gre/modules/AddonManager.jsm");
-ChromeUtils.import("resource://gre/modules/Services.jsm");
-ChromeUtils.import("resource://calendar/modules/calIteratorUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
-ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
-ChromeUtils.import("resource://gre/modules/Preferences.jsm");
-ChromeUtils.import("resource://calendar/modules/ical.js");
 ChromeUtils.import("resource://gre/modules/NetUtil.jsm");
+ChromeUtils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
+ChromeUtils.import("resource://calendar/modules/ical.js");
 
 function calStringEnumerator(stringArray) {
     this.mIndex = 0;
@@ -133,7 +133,7 @@ calTimezoneService.prototype = {
             }
         }, (error) => {
             // We have to give up. Show an error and fail hard!
-            let msg = cal.calGetString("calendar", "missingCalendarTimezonesError");
+            let msg = cal.l10n.getCalString("missingCalendarTimezonesError");
             cal.ERROR(msg);
             cal.showError(msg);
         });
@@ -459,7 +459,7 @@ function guessSystemTimezone() {
         // Each period is marked by a DTSTART.
         // Find the currently applicable period: has most recent DTSTART
         // not later than today and no UNTIL, or UNTIL is greater than today.
-        for (let period of cal.ical.subcomponentIterator(subComp, standardOrDaylight)) {
+        for (let period of cal.iterate.icalSubcomponent(subComp, standardOrDaylight)) {
             periodStartCalDate.icalString = getIcalString(period, "DTSTART");
             periodStartCalDate.timezone = timezone;
             if (oneYrUTC.nativeTime < periodStartCalDate.nativeTime) {

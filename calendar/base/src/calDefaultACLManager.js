@@ -74,7 +74,7 @@ calDefaultCalendarACLEntry.prototype = {
 
     _getIdentities: function(aCount) {
         let identities = [];
-        cal.calIterateEmailIdentities(id => identities.push(id));
+        cal.email.iterateIdentities(id => identities.push(id));
         aCount.value = identities.length;
         return identities;
     },
@@ -86,7 +86,7 @@ calDefaultCalendarACLEntry.prototype = {
     },
 
     getUserIdentities: function(aCount) {
-        let identity = cal.getEmailIdentityOfCalendar(this.mCalendar);
+        let identity = cal.provider.getEmailIdentityOfCalendar(this.mCalendar);
         if (identity) {
             aCount.value = 1;
             return [identity];

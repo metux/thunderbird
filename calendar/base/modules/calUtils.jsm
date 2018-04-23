@@ -2,16 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-var gCalThreadingEnabled;
-
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 ChromeUtils.import("resource://gre/modules/Services.jsm");
+ChromeUtils.import("resource://gre/modules/Console.jsm");
 ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 
 // Usually the backend loader gets loaded via profile-after-change, but in case
 // a calendar component hooks in earlier, its very likely it will use calUtils.
 // Getting the service here will load if its not already loaded
 Components.classes["@mozilla.org/calendar/backend-loader;1"].getService();
+
+// The calendar console instance
+var gCalendarConsole = new ConsoleAPI({
+    prefix: "Lightning",
+    consoleID: "calendar",
+    maxLogLevel: Preferences.get("calendar.debug.log", false) ? "all" : "warn"
+});
 
 this.EXPORTED_SYMBOLS = ["cal"];
 var cal = {
@@ -50,6 +56,7 @@ var cal = {
     createRecurrenceInfo: _instance("@mozilla.org/calendar/recurrence-info;1",
                                     Components.interfaces.calIRecurrenceInfo,
                                     "item"),
+
     getCalendarManager: _service("@mozilla.org/calendar/manager;1",
                                  Components.interfaces.calICalendarManager),
     getIcsService: _service("@mozilla.org/calendar/ics-service;1",
@@ -66,6 +73,102 @@ var cal = {
                                Components.interfaces.calIDateTimeFormatter),
     getDragService: _service("@mozilla.org/widget/dragservice;1",
                              Components.interfaces.nsIDragService),
+
+    /**
+     * The calendar console instance
+     */
+    console: gCalendarConsole,
+
+    /**
+     * Logs a calendar message to the console. Needs calendar.debug.log enabled to show messages.
+     * Shortcut to cal.console.log()
+     */
+    LOG: gCalendarConsole.log,
+
+    /**
+     * Logs a calendar warning to the console. Shortcut to cal.console.warn()
+     */
+    WARN: gCalendarConsole.warn,
+
+    /**
+     * Logs a calendar error to the console. Shortcut to cal.console.error()
+     */
+    ERROR: gCalendarConsole.error,
+
+    /**
+     * Uses the prompt service to display an error message. Use this sparingly,
+     * as it interrupts the user.
+     *
+     * @param aMsg The message to be shown
+     * @param aWindow The window to show the message in, or null for any window.
+     */
+    showError: function(aMsg, aWindow=null) {
+        Services.prompt.alert(aWindow, cal.l10n.getCalString("genericErrorTitle"), aMsg);
+    },
+
+    /**
+     * Returns a string describing the current js-stack with filename and line
+     * numbers.
+     *
+     * @param aDepth (optional) The number of frames to include. Defaults to 5.
+     * @param aSkip  (optional) Number of frames to skip
+     */
+    STACK: function(aDepth=10, aSkip=0) {
+        let stack = "";
+        let frame = Components.stack.caller;
+        for (let i = 1; i <= aDepth + aSkip && frame; i++) {
+            if (i > aSkip) {
+                stack += `${i}: [${frame.filename}:${frame.lineNumber}] ${frame.name}\n`;
+            }
+            frame = frame.caller;
+        }
+        return stack;
+    },
+
+    /**
+     * Logs a message and the current js-stack, if aCondition fails
+     *
+     * @param aCondition  the condition to test for
+     * @param aMessage    the message to report in the case the assert fails
+     * @param aCritical   if true, throw an error to stop current code execution
+     *                    if false, code flow will continue
+     *                    may be a result code
+     */
+    ASSERT: function(aCondition, aMessage, aCritical=false) {
+        if (aCondition) {
+            return;
+        }
+
+        let string = `Assert failed: ${aMessage}\n ${cal.STACK(0, 1)}`;
+        if (aCritical) {
+            let rescode = aCritical === true ? Components.results.NS_ERROR_UNEXPECTED : aCritical;
+            throw new Components.Exception(string, rescode);
+        } else {
+            Components.utils.reportError(string);
+        }
+    },
+
+    /**
+     * Generates a QueryInterface method on the given global. To be used as follows:
+     *
+     *     class calThing {
+     *       QueryInterface(aIID) { return cal.generateClassQI(this, aIID, [Ci.calIThing]); }
+     *
+     *       ...
+     *     }
+     *
+     * The function is cached, once this is called QueryInterface is replaced with
+     * XPCOMUtils.generateQI()'s result.
+     *
+     * @param {Object} aGlobal      The object to define the method on
+     * @param {nsIIDRef} aIID       The IID to query for
+     * @param {nsIIDRef[]}          The interfaces that this object implements
+     * @return {nsQIResult}         The object queried for aIID
+     */
+    generateClassQI: function(aGlobal, aIID, aInterfaces) {
+        Object.defineProperty(aGlobal, "QueryInterface", { value: XPCOMUtils.generateQI(aInterfaces) });
+        return aGlobal.QueryInterface(aIID);
+    },
 
     /**
      * Loads an array of calendar scripts into the passed scope.
@@ -179,503 +282,17 @@ var cal = {
         return adapter;
     },
 
-    get threadingEnabled() {
-        if (gCalThreadingEnabled === undefined) {
-            gCalThreadingEnabled = !Preferences.get("calendar.threading.disabled", false);
-        }
-        return gCalThreadingEnabled;
-    },
-
     /**
-     * Returns a copy of an event that
-     * - has a relation set to the original event
-     * - has the same organizer but
-     * - has any attendee removed
-     * Intended to get a copy of a normal event invitation that behaves as if the PUBLISH method
-     * was chosen instead.
+     * Make a UUID, without enclosing brackets, e.g. 0d3950fd-22e5-4508-91ba-0489bdac513f
      *
-     * @param aItem         original item
-     * @param aUid          (optional) UID to use for the new item
+     * @return {String}         The generated UUID
      */
-    getPublishLikeItemCopy: function(aItem, aUid) {
-        // avoid changing aItem
-        let item = aItem.clone();
-        // reset to a new UUID if applicable
-        item.id = aUid || cal.getUUID();
-        // add a relation to the original item
-        let relation = cal.createRelation();
-        relation.relId = aItem.id;
-        relation.relType = "SIBLING";
-        item.addRelation(relation);
-        // remove attendees
-        item.removeAllAttendees();
-        if (!aItem.isMutable) {
-            item = item.makeImmutable();
-        }
-        return item;
-    },
-
-    /**
-     * Shortcut function to check whether an item is an invitation copy.
-     */
-    isInvitation: function(aItem) {
-        let isInvitation = false;
-        let calendar = cal.wrapInstance(aItem.calendar, Components.interfaces.calISchedulingSupport);
-        if (calendar) {
-            isInvitation = calendar.isInvitation(aItem);
-        }
-        return isInvitation;
-    },
-
-    /**
-     * Returns a basically checked recipient list - malformed elements will be removed
-     *
-     * @param   string aRecipients  a comma-seperated list of e-mail addresses
-     * @return  string              a comma-seperated list of e-mail addresses
-     */
-    validateRecipientList: function(aRecipients) {
-        let compFields = Components.classes["@mozilla.org/messengercompose/composefields;1"]
-                                   .createInstance(Components.interfaces.nsIMsgCompFields);
-        // Resolve the list considering also configured common names
-        let members = compFields.splitRecipients(aRecipients, false, {});
-        let list = [];
-        let prefix = "";
-        for (let member of members) {
-            if (prefix != "") {
-                // the previous member had no email address - this happens if a recipients CN
-                // contains a ',' or ';' (splitRecipients(..) behaves wrongly here and produces an
-                // additional member with only the first CN part of that recipient and no email
-                // address while the next has the second part of the CN and the according email
-                // address) - we still need to identify the original delimiter to append it to the
-                // prefix
-                let memberCnPart = member.match(/(.*) <.*>/);
-                if (memberCnPart) {
-                    let pattern = new RegExp(prefix + "([;,] *)" + memberCnPart[1]);
-                    let delimiter = aRecipients.match(pattern);
-                    if (delimiter) {
-                        prefix = prefix + delimiter[1];
-                    }
-                }
-            }
-            let parts = (prefix + member).match(/(.*)( <.*>)/);
-            if (parts) {
-                if (parts[2] == " <>") {
-                    // CN but no email address - we keep the CN part to prefix the next member's CN
-                    prefix = parts[1];
-                } else {
-                    // CN with email address
-                    let commonName = parts[1].trim();
-                    // in case of any special characters in the CN string, we make sure to enclose
-                    // it with dquotes - simple spaces don't require dquotes
-                    if (commonName.match(/[-[\]{}()*+?.,;\\^$|#\f\n\r\t\v]/)) {
-                        commonName = '"' + commonName.replace(/\\"|"/, "").trim() + '"';
-                    }
-                    list.push(commonName + parts[2]);
-                    prefix = "";
-                }
-            } else if (member.length) {
-                // email address only
-                list.push(member);
-                prefix = "";
-            }
-        }
-        return list.join(", ");
-    },
-
-    /**
-     * Shortcut function to check whether an item is an invitation copy and
-     * has a participation status of either NEEDS-ACTION or TENTATIVE.
-     *
-     * @param aItem either calIAttendee or calIItemBase
-     */
-    isOpenInvitation: function(aItem) {
-        let wrappedItem = cal.wrapInstance(aItem, Components.interfaces.calIAttendee);
-        if (!wrappedItem) {
-            aItem = cal.getInvitedAttendee(aItem);
-        }
-        if (aItem) {
-            switch (aItem.participationStatus) {
-                case "NEEDS-ACTION":
-                case "TENTATIVE":
-                    return true;
-            }
-        }
-        return false;
-    },
-
-    /**
-     * Prepends a mailto: prefix to an email address like string
-     *
-     * @param  {string}        the string to prepend the prefix if not already there
-     * @return {string}        the string with prefix
-     */
-    prependMailTo: function(aId) {
-        return aId.replace(/^(?:mailto:)?(.*)@/i, "mailto:$1@");
-    },
-
-    /**
-     * Removes an existing mailto: prefix from an attendee id
-     *
-     * @param  {string}       the string to remove the prefix from if any
-     * @return {string}       the string without prefix
-     */
-    removeMailTo: function(aId) {
-        return aId.replace(/^mailto:/i, "");
-    },
-
-    /**
-     * Resolves delegated-to/delegated-from calusers for a given attendee to also include the
-     * respective CNs if available in a given set of attendees
-     *
-     * @param aAttendee  {calIAttendee}  The attendee to resolve the delegation information for
-     * @param aAttendees {Array}         An array of calIAttendee objects to look up
-     * @return           {Object}        An object with string attributes for delegators and delegatees
-     */
-    resolveDelegation: function(aAttendee, aAttendees) {
-        let attendees = aAttendees || [aAttendee];
-
-        // this will be replaced by a direct property getter in calIAttendee
-        let delegators = [];
-        let delegatees = [];
-        let delegatorProp = aAttendee.getProperty("DELEGATED-FROM");
-        if (delegatorProp) {
-            delegators = typeof delegatorProp == "string" ? [delegatorProp] : delegatorProp;
-        }
-        let delegateeProp = aAttendee.getProperty("DELEGATED-TO");
-        if (delegateeProp) {
-            delegatees = typeof delegateeProp == "string" ? [delegateeProp] : delegateeProp;
-        }
-
-        for (let att of attendees) {
-            let resolveDelegation = function(e, i, a) {
-                if (e == att.id) {
-                    a[i] = att.toString();
-                }
-            };
-            delegators.forEach(resolveDelegation);
-            delegatees.forEach(resolveDelegation);
-        }
-        return {
-            delegatees: delegatees.join(", "),
-            delegators: delegators.join(", ")
-        };
-    },
-
-    /**
-     * Shortcut function to get the invited attendee of an item.
-     */
-    getInvitedAttendee: function(aItem, aCalendar) {
-        if (!aCalendar) {
-            aCalendar = aItem.calendar;
-        }
-        let invitedAttendee = null;
-        let calendar = cal.wrapInstance(aCalendar, Components.interfaces.calISchedulingSupport);
-        if (calendar) {
-            invitedAttendee = calendar.getInvitedAttendee(aItem);
-        }
-        return invitedAttendee;
-    },
-
-    /**
-     * Returns all attendees from given set of attendees matching based on the attendee id
-     * or a sent-by parameter compared to the specified email address
-     *
-     * @param  {Array}  aAttendees      An array of calIAttendee objects
-     * @param  {String} aEmailAddress   A string containing the email address for lookup
-     * @return {Array}                  Returns an array of matching attendees
-     */
-    getAttendeesBySender: function(aAttendees, aEmailAddress) {
-        let attendees = [];
-        // we extract the email address to make it work also for a raw header value
-        let compFields = Components.classes["@mozilla.org/messengercompose/composefields;1"]
-                                   .createInstance(Components.interfaces.nsIMsgCompFields);
-        let addresses = compFields.splitRecipients(aEmailAddress, true, {});
-        if (addresses.length == 1) {
-            let searchFor = cal.prependMailTo(addresses[0]);
-            aAttendees.forEach(aAttendee => {
-                if ([aAttendee.id, aAttendee.getProperty("SENT-BY")].includes(searchFor)) {
-                    attendees.push(aAttendee);
-                }
-            });
-        } else {
-            cal.WARN("No unique email address for lookup!");
-        }
-        return attendees;
-    },
-
-    /**
-     * Returns a wellformed email string like 'attendee@example.net',
-     * 'Common Name <attendee@example.net>' or '"Name, Common" <attendee@example.net>'
-     *
-     * @param  {calIAttendee}  aAttendee - the attendee to check
-     * @param  {boolean}       aIncludeCn - whether or not to return also the CN if available
-     * @return {string}        valid email string or an empty string in case of error
-     */
-    getAttendeeEmail: function(aAttendee, aIncludeCn) {
-        // If the recipient id is of type urn, we need to figure out the email address, otherwise
-        // we fall back to the attendee id
-        let email = aAttendee.id.match(/^urn:/i) ? aAttendee.getProperty("EMAIL") || "" : aAttendee.id;
-        // Strip leading "mailto:" if it exists.
-        email = email.replace(/^mailto:/i, "");
-        // We add the CN if requested and available
-        let commonName = aAttendee.commonName;
-        if (aIncludeCn && email.length > 0 && commonName && commonName.length > 0) {
-            if (commonName.match(/[,;]/)) {
-                commonName = '"' + commonName + '"';
-            }
-            commonName = commonName + " <" + email + ">";
-            if (cal.validateRecipientList(commonName) == commonName) {
-                email = commonName;
-            }
-        }
-        return email;
-    },
-
-    /**
-     * Provides a string to use in email "to" header for given attendees
-     *
-     * @param  {array}   aAttendees - array of calIAttendee's to check
-     * @return {string}  Valid string to use in a 'to' header of an email
-     */
-    getRecipientList: function(aAttendees) {
-        let cbEmail = function(aVal, aInd, aArr) {
-            let email = cal.getAttendeeEmail(aVal, true);
-            if (!email.length) {
-                cal.LOG("Dropping invalid recipient for email transport: " + aVal.toString());
-            }
-            return email;
-        };
-        return aAttendees.map(cbEmail)
-                         .filter(aVal => aVal.length > 0)
-                         .join(", ");
-    },
-
-    // The below functions will move to some different place once the
-    // unifinder tress are consolidated.
-
-    compareNativeTime: function(a, b) {
-        if (a < b) {
-            return -1;
-        } else if (a > b) {
-            return 1;
-        } else {
-            return 0;
-        }
-    },
-
-    compareNativeTimeFilledAsc: function(a, b) {
-        if (a == b) {
-            return 0;
-        }
-
-        // In this filter, a zero time (not set) is always at the end.
-        if (a == -62168601600000000) { // value for (0000/00/00 00:00:00)
-            return 1;
-        }
-        if (b == -62168601600000000) { // value for (0000/00/00 00:00:00)
-            return -1;
-        }
-
-        return (a < b ? -1 : 1);
-    },
-
-    compareNativeTimeFilledDesc: function(a, b) {
-        if (a == b) {
-            return 0;
-        }
-
-        // In this filter, a zero time (not set) is always at the end.
-        if (a == -62168601600000000) { // value for (0000/00/00 00:00:00)
-            return 1;
-        }
-        if (b == -62168601600000000) { // value for (0000/00/00 00:00:00)
-            return -1;
-        }
-
-        return (a < b ? 1 : -1);
-    },
-
-    compareNumber: function(a, b) {
-        a = Number(a);
-        b = Number(b);
-        if (a < b) {
-            return -1;
-        } else if (a > b) {
-            return 1;
-        } else {
-            return 0;
-        }
-    },
-
-    sortEntryComparer: function(sortType, modifier) {
-        switch (sortType) {
-            case "number":
-                return function(sortEntryA, sortEntryB) {
-                    let nsA = cal.sortEntryKey(sortEntryA);
-                    let nsB = cal.sortEntryKey(sortEntryB);
-                    return cal.compareNumber(nsA, nsB) * modifier;
-                };
-            case "date":
-                return function(sortEntryA, sortEntryB) {
-                    let nsA = cal.sortEntryKey(sortEntryA);
-                    let nsB = cal.sortEntryKey(sortEntryB);
-                    return cal.compareNativeTime(nsA, nsB) * modifier;
-                };
-            case "date_filled":
-                return function(sortEntryA, sortEntryB) {
-                    let nsA = cal.sortEntryKey(sortEntryA);
-                    let nsB = cal.sortEntryKey(sortEntryB);
-                    if (modifier == 1) {
-                        return cal.compareNativeTimeFilledAsc(nsA, nsB);
-                    } else {
-                        return cal.compareNativeTimeFilledDesc(nsA, nsB);
-                    }
-                };
-            case "string":
-                return function(sortEntryA, sortEntryB) {
-                    let seA = cal.sortEntryKey(sortEntryA);
-                    let seB = cal.sortEntryKey(sortEntryB);
-                    if (seA.length == 0 || seB.length == 0) {
-                        // sort empty values to end (so when users first sort by a
-                        // column, they can see and find the desired values in that
-                        // column without scrolling past all the empty values).
-                        return -(seA.length - seB.length) * modifier;
-                    }
-                    let collator = cal.createLocaleCollator();
-                    let comparison = collator.compareString(0, seA, seB);
-                    return comparison * modifier;
-                };
-            default:
-                return function(sortEntryA, sortEntryB) {
-                    return 0;
-                };
-        }
-    },
-
-    getItemSortKey: function(aItem, aKey, aStartTime) {
-        function nativeTime(calDateTime) {
-            if (calDateTime == null) {
-                return -62168601600000000; // ns value for (0000/00/00 00:00:00)
-            }
-            return calDateTime.nativeTime;
-        }
-
-        switch (aKey) {
-            case "priority":
-                return aItem.priority || 5;
-
-            case "title":
-                return aItem.title || "";
-
-            case "entryDate":
-                return nativeTime(aItem.entryDate);
-
-            case "startDate":
-                return nativeTime(aItem.startDate);
-
-            case "dueDate":
-                return nativeTime(aItem.dueDate);
-
-            case "endDate":
-                return nativeTime(aItem.endDate);
-
-            case "completedDate":
-                return nativeTime(aItem.completedDate);
-
-            case "percentComplete":
-                return aItem.percentComplete;
-
-            case "categories":
-                return aItem.getCategories({}).join(", ");
-
-            case "location":
-                return aItem.getProperty("LOCATION") || "";
-
-            case "status":
-                if (cal.item.isToDo(aItem)) {
-                    return ["NEEDS-ACTION", "IN-PROCESS", "COMPLETED", "CANCELLED"].indexOf(aItem.status);
-                } else {
-                    return ["TENTATIVE", "CONFIRMED", "CANCELLED"].indexOf(aItem.status);
-                }
-            case "calendar":
-                return aItem.calendar.name || "";
-
-            default:
-                return null;
-        }
-    },
-
-    getSortTypeForSortKey: function(aSortKey) {
-        switch (aSortKey) {
-            case "title":
-            case "categories":
-            case "location":
-            case "calendar":
-                return "string";
-
-            // All dates use "date_filled"
-            case "completedDate":
-            case "startDate":
-            case "endDate":
-            case "dueDate":
-            case "entryDate":
-                return "date_filled";
-
-            case "priority":
-            case "percentComplete":
-            case "status":
-                return "number";
-            default:
-                return "unknown";
-        }
-    },
-
-    sortEntry: function(aItem) {
-        let key = cal.getItemSortKey(aItem, this.mSortKey, this.mSortStartedDate);
-        return { mSortKey: key, mItem: aItem };
-    },
-
-    sortEntryItem: function(sortEntry) {
-        return sortEntry.mItem;
-    },
-
-    sortEntryKey: function(sortEntry) {
-        return sortEntry.mSortKey;
-    },
-
-    createLocaleCollator: function() {
-        return Components.classes["@mozilla.org/intl/collation-factory;1"]
-                         .getService(Components.interfaces.nsICollationFactory)
-                         .CreateCollation();
-    },
-
-    /**
-     * Sort an array of strings according to the current locale.
-     * Modifies aStringArray, returning it sorted.
-     */
-    sortArrayByLocaleCollator: function(aStringArray) {
-        let localeCollator = cal.createLocaleCollator();
-        function compare(a, b) { return localeCollator.compareString(0, a, b); }
-        aStringArray.sort(compare);
-        return aStringArray;
-    },
-
-    /**
-     * Gets the month name string in the right form depending on a base string.
-     *
-     * @param aMonthNum     The month numer to get, 1-based.
-     * @param aBundleName   The Bundle to get the string from
-     * @param aStringBase   The base string name, .monthFormat will be appended
-     */
-    formatMonth: function(aMonthNum, aBundleName, aStringBase) {
-        let monthForm = cal.calGetString(aBundleName, aStringBase + ".monthFormat") || "nominative";
-
-        if (monthForm == "nominative") {
-            // Fall back to the default name format
-            monthForm = "name";
-        }
-
-        return cal.calGetString("dateFormat", "month." + aMonthNum + "." + monthForm);
+    getUUID: function() {
+        let uuidGen = Components.classes["@mozilla.org/uuid-generator;1"]
+                                .getService(Components.interfaces.nsIUUIDGenerator);
+        // generate uuids without braces to avoid problems with
+        // CalDAV servers that don't support filenames with {}
+        return uuidGen.generateUUID().toString().replace(/[{}]/g, "");
     },
 
     /**
@@ -732,6 +349,17 @@ var cal = {
     },
 
     /**
+     * Tries to get rid of wrappers, if this is not possible then return the
+     * passed object.
+     *
+     * @param aObj  The object under consideration
+     * @return      The possibly unwrapped object.
+     */
+    unwrapInstance: function(aObj) {
+        return aObj && aObj.wrappedJSObject ? aObj.wrappedJSObject : aObj;
+    },
+
+    /**
      * Adds an xpcom shutdown observer.
      *
      * @param func function to execute
@@ -751,14 +379,31 @@ var cal = {
     registerForShutdownCleanup: shutdownCleanup
 };
 
+// Preferences
+XPCOMUtils.defineLazyPreferenceGetter(cal, "debugLogEnabled", "calendar.debug.log", false, (pref, prev, value) => {
+    gCalendarConsole.maxLogLevel = value ? "all" : "warn";
+});
+XPCOMUtils.defineLazyPreferenceGetter(cal, "threadingEnabled", "calendar.threading.disabled", false);
+
 // Sub-modules for calUtils
-XPCOMUtils.defineLazyModuleGetter(cal, "data", "resource://calendar/modules/calDataUtils.jsm", "caldata");
-XPCOMUtils.defineLazyModuleGetter(cal, "dtz", "resource://calendar/modules/calDateTimeUtils.jsm", "caldtz");
-XPCOMUtils.defineLazyModuleGetter(cal, "acl", "resource://calendar/modules/calACLUtils.jsm", "calacl");
-XPCOMUtils.defineLazyModuleGetter(cal, "category", "resource://calendar/modules/calCategoryUtils.jsm", "calcategory");
-XPCOMUtils.defineLazyModuleGetter(cal, "item", "resource://calendar/modules/calItemUtils.jsm", "calitem");
-XPCOMUtils.defineLazyModuleGetter(cal, "view", "resource://calendar/modules/calViewUtils.jsm", "calview");
-XPCOMUtils.defineLazyModuleGetter(cal, "window", "resource://calendar/modules/calWindowUtils.jsm", "calwindow");
+XPCOMUtils.defineLazyModuleGetter(cal, "acl", "resource://calendar/modules/utils/calACLUtils.jsm", "calacl");
+XPCOMUtils.defineLazyModuleGetter(cal, "alarms", "resource://calendar/modules/utils/calAlarmUtils.jsm", "calalarms");
+XPCOMUtils.defineLazyModuleGetter(cal, "async", "resource://calendar/modules/utils/calAsyncUtils.jsm", "calasync");
+XPCOMUtils.defineLazyModuleGetter(cal, "auth", "resource://calendar/modules/utils/calAuthUtils.jsm", "calauth");
+XPCOMUtils.defineLazyModuleGetter(cal, "category", "resource://calendar/modules/utils/calCategoryUtils.jsm", "calcategory");
+XPCOMUtils.defineLazyModuleGetter(cal, "data", "resource://calendar/modules/utils/calDataUtils.jsm", "caldata");
+XPCOMUtils.defineLazyModuleGetter(cal, "dtz", "resource://calendar/modules/utils/calDateTimeUtils.jsm", "caldtz");
+XPCOMUtils.defineLazyModuleGetter(cal, "email", "resource://calendar/modules/utils/calEmailUtils.jsm", "calemail");
+XPCOMUtils.defineLazyModuleGetter(cal, "item", "resource://calendar/modules/utils/calItemUtils.jsm", "calitem");
+XPCOMUtils.defineLazyModuleGetter(cal, "iterate", "resource://calendar/modules/utils/calIteratorUtils.jsm", "caliterate");
+XPCOMUtils.defineLazyModuleGetter(cal, "itip", "resource://calendar/modules/utils/calItipUtils.jsm", "calitip");
+XPCOMUtils.defineLazyModuleGetter(cal, "l10n", "resource://calendar/modules/utils/calL10NUtils.jsm", "call10n");
+XPCOMUtils.defineLazyModuleGetter(cal, "print", "resource://calendar/modules/utils/calPrintUtils.jsm", "calprint");
+XPCOMUtils.defineLazyModuleGetter(cal, "provider", "resource://calendar/modules/utils/calProviderUtils.jsm", "calprovider");
+XPCOMUtils.defineLazyModuleGetter(cal, "unifinder", "resource://calendar/modules/utils/calUnifinderUtils.jsm", "calunifinder");
+XPCOMUtils.defineLazyModuleGetter(cal, "view", "resource://calendar/modules/utils/calViewUtils.jsm", "calview");
+XPCOMUtils.defineLazyModuleGetter(cal, "window", "resource://calendar/modules/utils/calWindowUtils.jsm", "calwindow");
+XPCOMUtils.defineLazyModuleGetter(cal, "xml", "resource://calendar/modules/utils/calXMLUtils.jsm", "calxml");
 
 /**
  * Returns a function that provides access to the given service.
@@ -811,14 +456,6 @@ function shutdownCleanup(obj, prop) {
     }
     shutdownCleanup.mEntries.push({ mObj: obj, mProp: prop });
 }
-
-// Interim import of all symbols into cal:
-// This should serve as a clean start for new code, e.g. new code could use
-// cal.createDatetime instead of plain createDatetime NOW.
-cal.loadScripts(["calUtils.js"], cal);
-// Some functions in calUtils.js refer to other in the same file, thus include
-// the code in global scope (although only visible to this module file), too:
-cal.loadScripts(["calUtils.js"], Components.utils.getGlobalForObject(cal));
 
 // Backwards compatibility for bug 905097. Please remove with Thunderbird 61.
 ChromeUtils.import("resource://calendar/modules/calUtilsCompat.jsm");

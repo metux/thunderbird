@@ -480,7 +480,7 @@ var calendarController = {
                     selected_events_requires_network++;
                 }
 
-                if (cal.isInvitation(item)) {
+                if (cal.itip.isInvitation(item)) {
                     selected_events_invitation++;
                 } else if (item.organizer) {
                     // If we are the organizer and there are attendees, then
@@ -619,7 +619,7 @@ var calendarController = {
         let selected_tasks_invitation = 0;
 
         for (let item of selectedTasks) {
-            if (cal.isInvitation(item)) {
+            if (cal.itip.isInvitation(item)) {
                 selected_tasks_invitation++;
             } else if (item.organizer) {
                 // If we are the organizer and there are attendees, then
@@ -815,11 +815,11 @@ function setupContextItemType(aEvent, aItems) {
         if (menuItem) {
             menuItem.setAttribute(
                 "label",
-                cal.calGetString("calendar", `delete${aItemType}Label`)
+                cal.l10n.getCalString(`delete${aItemType}Label`)
             );
             menuItem.setAttribute(
                 "accesskey",
-                cal.calGetString("calendar", `delete${aItemType}Accesskey`)
+                cal.l10n.getCalString(`delete${aItemType}Accesskey`)
             );
         }
     }

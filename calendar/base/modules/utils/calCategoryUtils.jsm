@@ -7,6 +7,13 @@ ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "cal", "resource://calendar/modules/calUtils.jsm", "cal");
 
+/*
+ * Helpers for reading and writing calendar categories
+ */
+
+// NOTE: This module should not be loaded directly, it is available when
+// including calUtils.jsm under the cal.category namespace.
+
 this.EXPORTED_SYMBOLS = ["calcategory"]; /* exported calcategory */
 
 var calcategory = {
@@ -17,7 +24,7 @@ var calcategory = {
      */
     setupDefaultCategories: function() {
         // First, set up the category names
-        let categories = cal.calGetString("categories", "categories2");
+        let categories = cal.l10n.getString("categories", "categories2");
         Preferences.set("calendar.categories.names", categories);
 
         // Now, initialize the category default colors

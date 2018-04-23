@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-ChromeUtils.import("resource://calendar/modules/calAlarmUtils.jsm");
 ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 ChromeUtils.import("resource://gre/modules/Services.jsm");
 ChromeUtils.import("resource://gre/modules/Preferences.jsm");
@@ -729,8 +728,8 @@ function setContextPartstat(aTarget, aItems) {
      */
     function getParticipant(aItem) {
         let party = null;
-        if (cal.isInvitation(aItem)) {
-            party = cal.getInvitedAttendee(aItem);
+        if (cal.itip.isInvitation(aItem)) {
+            party = cal.itip.getInvitedAttendee(aItem);
         } else if (aItem.organizer && aItem.getAttendees({}).length) {
             let calOrgId = aItem.calendar.getProperty("organizerId");
             if (calOrgId.toLowerCase() == aItem.organizer.id.toLowerCase()) {

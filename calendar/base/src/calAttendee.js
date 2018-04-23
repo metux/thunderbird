@@ -5,7 +5,6 @@
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calIteratorUtils.jsm");
 
 function calAttendee() {
     this.wrappedJSObject = this;
@@ -89,7 +88,7 @@ calAttendee.prototype = {
         // from the ical property.
         this.mProperties = new cal.data.PropertyMap();
 
-        for (let [name, value] of cal.ical.paramIterator(icalatt)) {
+        for (let [name, value] of cal.iterate.icalParameter(icalatt)) {
             if (!promotedProps[name]) {
                 this.setProperty(name, value);
             }
@@ -181,7 +180,7 @@ calAttendee.prototype = {
         this.modify();
         // RFC 1738 para 2.1 says we should be using lowercase mailto: urls
         // we enforce prepending the mailto prefix for email type ids as migration code bug 1199942
-        return (this.mId = (aId ? cal.prependMailTo(aId) : null));
+        return (this.mId = (aId ? cal.email.prependMailTo(aId) : null));
     },
 
     toString: function() {

@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/*
- * date, time and timezone related functions via cal.dtz.*
- *
- * NOTE this module should never be imported directly. Instead, load
- * calUtils.jsm and accss them via cal.dtz.*
- */
-
 ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "cal", "resource://calendar/modules/calUtils.jsm", "cal");
+
+/*
+ * Date, time and timezone related functions
+ */
+
+// NOTE: This module should not be loaded directly, it is available when
+// including calUtils.jsm under the cal.dtz namespace.
 
 this.EXPORTED_SYMBOLS = ["caldtz"]; /* exported caldtz */
 
@@ -211,6 +211,132 @@ var caldtz = {
         } else {
             return new Date(cdt.nativeTime / 1000);
         }
+    },
+
+    /**
+     * fromRFC3339
+     * Convert a RFC3339 compliant Date string to a calIDateTime.
+     *
+     * @param aStr          The RFC3339 compliant Date String
+     * @param aTimezone     The timezone this date string is most likely in
+     * @return              A calIDateTime object
+     */
+    fromRFC3339: function(aStr, aTimezone) {
+        // XXX I have not covered leapseconds (matches[8]), this might need to
+        // be done. The only reference to leap seconds I found is bug 227329.
+        let dateTime = cal.createDateTime();
+
+        // Killer regex to parse RFC3339 dates
+        let re = new RegExp("^([0-9]{4})-([0-9]{2})-([0-9]{2})" +
+            "([Tt]([0-9]{2}):([0-9]{2}):([0-9]{2})(\\.[0-9]+)?)?" +
+            "(([Zz]|([+-])([0-9]{2}):([0-9]{2})))?");
+
+        let matches = re.exec(aStr);
+
+        if (!matches) {
+            return null;
+        }
+
+        // Set usual date components
+        dateTime.isDate = (matches[4] == null);
+
+        dateTime.year = matches[1];
+        dateTime.month = matches[2] - 1; // Jan is 0
+        dateTime.day = matches[3];
+
+        if (!dateTime.isDate) {
+            dateTime.hour = matches[5];
+            dateTime.minute = matches[6];
+            dateTime.second = matches[7];
+        }
+
+        // Timezone handling
+        if (matches[9] == "Z" || matches[9] == "z") {
+            // If the dates timezone is "Z" or "z", then this is UTC, no matter
+            // what timezone was passed
+            dateTime.timezone = cal.dtz.UTC;
+        } else if (matches[9] == null) {
+            // We have no timezone info, only a date. We have no way to
+            // know what timezone we are in, so lets assume we are in the
+            // timezone of our local calendar, or whatever was passed.
+
+            dateTime.timezone = aTimezone;
+        } else {
+            let offset_in_s = (matches[11] == "-" ? -1 : 1) *
+                ((matches[12] * 3600) + (matches[13] * 60));
+
+            // try local timezone first
+            dateTime.timezone = aTimezone;
+
+            // If offset does not match, go through timezones. This will
+            // give you the first tz in the alphabet and kill daylight
+            // savings time, but we have no other choice
+            if (dateTime.timezoneOffset != offset_in_s) {
+                // TODO A patch to Bug 363191 should make this more efficient.
+
+                let tzService = cal.getTimezoneService();
+                // Enumerate timezones, set them, check their offset
+                let enumerator = tzService.timezoneIds;
+                while (enumerator.hasMore()) {
+                    let id = enumerator.getNext();
+                    dateTime.timezone = tzService.getTimezone(id);
+                    if (dateTime.timezoneOffset == offset_in_s) {
+                        // This is our last step, so go ahead and return
+                        return dateTime;
+                    }
+                }
+                // We are still here: no timezone was found
+                dateTime.timezone = cal.dtz.UTC;
+                if (!dateTime.isDate) {
+                    dateTime.hour += (matches[11] == "-" ? -1 : 1) * matches[12];
+                    dateTime.minute += (matches[11] == "-" ? -1 : 1) * matches[13];
+                }
+            }
+        }
+        return dateTime;
+    },
+
+    /**
+     * toRFC3339
+     * Convert a calIDateTime to a RFC3339 compliant Date string
+     *
+     * @param aDateTime     The calIDateTime object
+     * @return              The RFC3339 compliant date string
+     */
+    toRFC3339: function(aDateTime) {
+        if (!aDateTime) {
+            return "";
+        }
+
+        let full_tzoffset = aDateTime.timezoneOffset;
+        let tzoffset_hr = Math.floor(Math.abs(full_tzoffset) / 3600);
+
+        let tzoffset_mn = ((Math.abs(full_tzoffset) / 3600).toFixed(2) -
+                           tzoffset_hr) * 60;
+
+        let str = aDateTime.year + "-" +
+            ("00" + (aDateTime.month + 1)).substr(-2) + "-" +
+            ("00" + aDateTime.day).substr(-2);
+
+        // Time and Timezone extension
+        if (!aDateTime.isDate) {
+            str += "T" +
+                   ("00" + aDateTime.hour).substr(-2) + ":" +
+                   ("00" + aDateTime.minute).substr(-2) + ":" +
+                   ("00" + aDateTime.second).substr(-2);
+            if (aDateTime.timezoneOffset != 0) {
+                str += (full_tzoffset < 0 ? "-" : "+") +
+                       ("00" + tzoffset_hr).substr(-2) + ":" +
+                       ("00" + tzoffset_mn).substr(-2);
+            } else if (aDateTime.timezone.isFloating) {
+                // RFC3339 Section 4.3 Unknown Local Offset Convention
+                str += "-00:00";
+            } else {
+                // ZULU Time, according to ISO8601's timezone-offset
+                str += "Z";
+            }
+        }
+        return str;
     },
 
     /**

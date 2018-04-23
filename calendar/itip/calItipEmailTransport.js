@@ -80,58 +80,37 @@ calItipEmailTransport.prototype = {
                     let subjectKey = seq && seq > 0
                         ? "itipRequestUpdatedSubject"
                         : "itipRequestSubject";
-                    subject = cal.calGetString(
-                        "lightning",
-                        subjectKey,
-                        [summary],
-                        "lightning"
-                    );
+                    subject = cal.l10n.getLtnString(subjectKey, [summary]);
                 } else {
                     subject = summary;
                 }
-                body = cal.calGetString(
-                    "lightning",
+                body = cal.l10n.getLtnString(
                     "itipRequestBody",
-                    [item.organizer ? item.organizer.toString() : "", summary],
-                    "lightning"
+                    [item.organizer ? item.organizer.toString() : "", summary]
                 );
                 break;
             }
             case "CANCEL": {
-                subject = cal.calGetString(
-                    "lightning",
-                    "itipCancelSubject",
-                    [summary],
-                    "lightning"
-                );
-                body = cal.calGetString(
-                    "lightning",
+                subject = cal.l10n.getLtnString("itipCancelSubject", [summary]);
+                body = cal.l10n.getLtnString(
                     "itipCancelBody",
-                    [item.organizer ? item.organizer.toString() : "", summary],
-                    "lightning"
+                    [item.organizer ? item.organizer.toString() : "", summary]
                 );
                 break;
             }
             case "DECLINECOUNTER": {
-                subject = cal.calGetString(
-                    "lightning",
-                    "itipDeclineCounterSubject",
-                    [summary],
-                    "lightning"
-                );
-                body = cal.calGetString(
-                    "lightning",
+                subject = cal.l10n.getLtnString("itipDeclineCounterSubject", [summary]);
+                body = cal.l10n.getLtnString(
                     "itipDeclineCounterBody",
-                    [item.organizer ? item.organizer.toString() : "", summary],
-                    "lightning"
+                    [item.organizer ? item.organizer.toString() : "", summary]
                 );
                 break;
             }
             case "REPLY": {
                 // Get my participation status
-                let att = cal.getInvitedAttendee(item, aItipItem.targetCalendar);
+                let att = cal.itip.getInvitedAttendee(item, aItipItem.targetCalendar);
                 if (!att && aItipItem.identity) {
-                    att = item.getAttendeeById(cal.prependMailTo(aItipItem.identity));
+                    att = item.getAttendeeById(cal.email.prependMailTo(aItipItem.identity));
                 }
                 if (!att) { // should not happen anymore
                     return false;
@@ -162,18 +141,8 @@ calItipEmailTransport.prototype = {
                         bodyKey = "itipReplyBodyAccept";
                         break;
                 }
-                subject = cal.calGetString(
-                    "lightning",
-                    subjectKey,
-                    [summary],
-                    "lightning"
-                );
-                body = cal.calGetString(
-                    "lightning",
-                    bodyKey,
-                    [name],
-                    "lightning"
-                );
+                subject = cal.l10n.getLtnString(subjectKey, [summary]);
+                body = cal.l10n.getLtnString(bodyKey, [name]);
                 break;
             }
         }
@@ -243,8 +212,8 @@ calItipEmailTransport.prototype = {
                 }
                 let cancelled = Services.prompt.confirmEx(
                     parent,
-                    cal.calGetString("lightning", "imipSendMail.title", null, "lightning"),
-                    cal.calGetString("lightning", "imipSendMail.text", null, "lightning"),
+                    cal.l10n.getLtnString("imipSendMail.title"),
+                    cal.l10n.getLtnString("imipSendMail.text"),
                     Services.prompt.STD_YES_NO_BUTTONS,
                     null,
                     null,
@@ -264,7 +233,7 @@ calItipEmailTransport.prototype = {
                     cal.LOG("sendXpcomMail: Found AUTO autoResponse type.");
                 }
                 let cbEmail = function(aVal, aInd, aArr) {
-                    let email = cal.getAttendeeEmail(aVal, true);
+                    let email = cal.email.getAttendeeEmail(aVal, true);
                     if (!email.length) {
                         cal.LOG("sendXpcomMail: Invalid recipient for email transport: " + aVal.toString());
                     }
@@ -287,20 +256,20 @@ calItipEmailTransport.prototype = {
                     composeFields.characterSet = "UTF-8";
                     composeFields.to = toList;
                     let mailfrom = (identity.fullName.length ? identity.fullName + " <" + identity.email + ">" : identity.email);
-                    composeFields.from = (cal.validateRecipientList(mailfrom) == mailfrom ? mailfrom : identity.email);
+                    composeFields.from = (cal.email.validateRecipientList(mailfrom) == mailfrom ? mailfrom : identity.email);
                     composeFields.replyTo = identity.replyTo;
                     composeFields.organization = identity.organization;
                     composeFields.messageId = messageId;
                     let validRecipients;
                     if (identity.doCc) {
-                        validRecipients = cal.validateRecipientList(identity.doCcList);
+                        validRecipients = cal.email.validateRecipientList(identity.doCcList);
                         if (validRecipients != "") {
                             // eslint-disable-next-line id-length
                             composeFields.cc = validRecipients;
                         }
                     }
                     if (identity.doBcc) {
-                        validRecipients = cal.validateRecipientList(identity.doBccList);
+                        validRecipients = cal.email.validateRecipientList(identity.doBccList);
                         if (validRecipients != "") {
                             composeFields.bcc = validRecipients;
                         }

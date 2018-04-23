@@ -61,32 +61,32 @@
       <constructor><![CDATA[
           ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
           let goButton = document.getAnonymousElementByAttribute(this, "anonid", "date-go-button");
-          goButton.setAttribute("label", cal.calGetString("calendar", "go"));
+          goButton.setAttribute("label", cal.l10n.getCalString("go"));
           // Load the stuff we're going to use to parse written dates
           this.mRelativeDates = [
-              { word: cal.calGetString("calendar", "today").toLowerCase(), offset: 0 },
-              { word: cal.calGetString("calendar", "yesterday").toLowerCase(), offset: -1 },
-              { word: cal.calGetString("calendar", "tomorrow").toLowerCase(), offset: 1 }];
+              { word: cal.l10n.getCalString("today").toLowerCase(), offset: 0 },
+              { word: cal.l10n.getCalString("yesterday").toLowerCase(), offset: -1 },
+              { word: cal.l10n.getCalString("tomorrow").toLowerCase(), offset: 1 }];
           for (let i = 1; i <= 7; i++) {
-              this.mDayNames.push(cal.calGetString("dateFormat", "day." + i + ".name").toLowerCase());
+              this.mDayNames.push(cal.l10n.getDateFmtString(`day.${i}.name`).toLowerCase());
           }
 
           for (let i = 1; i <= 12; i++) {
-              this.mMonthLongNames.push(cal.calGetString("dateFormat", "month." + i + ".name").toLowerCase());
-              this.mMonthShortNames.push(cal.calGetString("dateFormat", "month." + i + ".Mmm").toLowerCase());
+              this.mMonthLongNames.push(cal.l10n.getDateFmtString(`month.${i}.name`).toLowerCase());
+              this.mMonthShortNames.push(cal.l10n.getDateFmtString(`month.${i}.Mmm`).toLowerCase());
           }
 
           // note that some languages have different conjugations of
           // next/last depending on the day
           this.mRelationWords = [
-              { word: cal.calGetString("calendar", "last1"), offset: -1 },
-              { word: cal.calGetString("calendar", "last2"), offset: -1 },
-              { word: cal.calGetString("calendar", "next1"), offset: 0 },
-              { word: cal.calGetString("calendar", "next2"), offset: 0 }];
+              { word: cal.l10n.getCalString("last1"), offset: -1 },
+              { word: cal.l10n.getCalString("last2"), offset: -1 },
+              { word: cal.l10n.getCalString("next1"), offset: 0 },
+              { word: cal.l10n.getCalString("next2"), offset: 0 }];
 
           // Set the value to today
           let text = document.getAnonymousElementByAttribute(this, "anonid", "date-textbox");
-          text.value = cal.calGetString("calendar", "today");
+          text.value = cal.l10n.getCalString("today");
       ]]></constructor>
 
       <property name="value">
@@ -420,7 +420,7 @@
       <constructor><![CDATA[
           ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 
-          this.mForeverStr = cal.calGetString("calendar-event-dialog", "eventRecurrenceForeverLabel");
+          this.mForeverStr = cal.l10n.getString("calendar-event-dialog", "eventRecurrenceForeverLabel");
           document.getAnonymousElementByAttribute(this, "anonid", "menuitemForever")
                   .setAttribute("label", this.mForeverStr);
       ]]></constructor>
@@ -1605,20 +1605,14 @@
         <body><![CDATA[
             let now = new Date();
 
-            try {
-                let noon = cal.calGetString("dateFormat", "noon");
-                if (aValue.toLowerCase() == noon.toLowerCase()) {
-                    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0);
-                }
+            let noon = cal.l10n.getDateFmtString("noon");
+            if (aValue.toLowerCase() == noon.toLowerCase()) {
+                return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0);
+            }
 
-                let midnight = cal.calGetString("dateFormat", "midnight");
-                if (aValue.toLowerCase() == midnight.toLowerCase()) {
-                    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-                }
-            } catch (ex) {
-                // Try/catch this, since some people are apparently
-                // interested in using the datepicker in remote apps, where
-                // calGetString wouldn't exist
+            let midnight = cal.l10n.getDateFmtString("midnight");
+            if (aValue.toLowerCase() == midnight.toLowerCase()) {
+                return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
             }
 
             let time = null;

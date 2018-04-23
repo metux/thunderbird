@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calAlarmUtils.jsm");
 ChromeUtils.import("resource://gre/modules/Services.jsm");
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 ChromeUtils.import("resource://gre/modules/Preferences.jsm");
@@ -421,9 +420,9 @@ calMailButtonDNDObserver.prototype = {
     onDropItems: function(aItems) {
         if (aItems && aItems.length > 0) {
             let item = aItems[0];
-            let recipients = cal.getRecipientList(item.getAttendees({}));
+            let recipients = cal.email.createRecipientList(item.getAttendees({}));
             let identity = item.calendar.getProperty("imip.identity");
-            cal.sendMailTo(recipients, item.title, item.getProperty("DESCRIPTION"), identity);
+            cal.email.sendTo(recipients, item.title, item.getProperty("DESCRIPTION"), identity);
         }
     },
 

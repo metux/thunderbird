@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calAlarmUtils.jsm");
 ChromeUtils.import("resource://gre/modules/Services.jsm");
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 ChromeUtils.import("resource://gre/modules/Preferences.jsm");
@@ -525,7 +524,7 @@ calAlarmService.prototype = {
                 this.batchCount++;
                 this.results = true;
 
-                cal.forEach(aItems, (item) => {
+                cal.iterate.forEach(aItems, (item) => {
                     try {
                         this.alarmService.removeAlarmsForItem(item);
                         this.alarmService.addAlarmsForItem(item);

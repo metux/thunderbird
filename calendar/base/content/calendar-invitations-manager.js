@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calItipUtils.jsm");
 ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -339,7 +338,7 @@ InvitationsManager.prototype = {
      */
     addItem: function(item) {
         let recInfo = item.recurrenceInfo;
-        if (recInfo && !cal.isOpenInvitation(item)) {
+        if (recInfo && !cal.itip.isOpenInvitation(item)) {
             // scan exceptions:
             let ids = recInfo.getExceptionIds({});
             for (let id of ids) {
@@ -416,6 +415,6 @@ InvitationsManager.prototype = {
             return false; // exclude if organizer has invited himself
         }
         let start = item[cal.dtz.startDateProp(item)] || item[cal.dtz.endDateProp(item)];
-        return cal.isOpenInvitation(item) && start.compare(this.mStartDate) >= 0;
+        return cal.itip.isOpenInvitation(item) && start.compare(this.mStartDate) >= 0;
     }
 };

@@ -441,7 +441,7 @@ calAlarm.prototype = {
             let summaryProp = icssvc.createIcalProperty("SUMMARY");
             // Summary needs to have a non-empty value
             summaryProp.value = this.summary ||
-                cal.calGetString("calendar", "alarmDefaultSummary");
+                cal.l10n.getCalString("alarmDefaultSummary");
             comp.addProperty(summaryProp);
         }
 
@@ -452,7 +452,7 @@ calAlarm.prototype = {
             let descriptionProp = icssvc.createIcalProperty("DESCRIPTION");
             // description needs to have a non-empty value
             descriptionProp.value = this.description ||
-                cal.calGetString("calendar", "alarmDefaultDescription");
+                cal.l10n.getCalString("alarmDefaultDescription");
             comp.addProperty(descriptionProp);
         }
 
@@ -538,7 +538,7 @@ calAlarm.prototype = {
 
         // Set up attendees
         this.clearAttendees();
-        for (let attendeeProp of cal.ical.propertyIterator(aComp, "ATTENDEE")) {
+        for (let attendeeProp of cal.iterate.icalProperty(aComp, "ATTENDEE")) {
             let attendee = cal.createAttendee();
             attendee.icalProperty = attendeeProp;
             this.addAttendee(attendee);
@@ -546,7 +546,7 @@ calAlarm.prototype = {
 
         // Set up attachments
         this.clearAttachments();
-        for (let attachProp of cal.ical.propertyIterator(aComp, "ATTACH")) {
+        for (let attachProp of cal.iterate.icalProperty(aComp, "ATTACH")) {
             let attach = cal.createAttachment();
             attach.icalProperty = attachProp;
             this.addAttachment(attach);
@@ -567,11 +567,11 @@ calAlarm.prototype = {
         this.mPropertyParams = {};
 
         // Other properties
-        for (let prop of cal.ical.propertyIterator(aComp)) {
+        for (let prop of cal.iterate.icalProperty(aComp)) {
             if (!this.promotedProps[prop.propertyName]) {
                 this.setProperty(prop.propertyName, prop.value);
 
-                for (let [paramName, param] of cal.ical.paramIterator(prop)) {
+                for (let [paramName, param] of cal.iterate.icalParameter(prop)) {
                     if (!(prop.propertyName in this.mPropertyParams)) {
                         this.mPropertyParams[prop.propertyName] = {};
                     }
@@ -619,7 +619,7 @@ calAlarm.prototype = {
     get propertyEnumerator() { return this.mProperties.simpleEnumerator; },
 
     toString: function(aItem) {
-        function getItemBundleStringName(aPrefix) {
+        function alarmString(aPrefix) {
             if (!aItem || cal.item.isEvent(aItem)) {
                 return aPrefix + "Event";
             } else if (cal.item.isToDo(aItem)) {
@@ -642,11 +642,9 @@ calAlarm.prototype = {
                 // No need to get the other information if the alarm is at the start
                 // of the event/task.
                 if (this.related == ALARM_RELATED_START) {
-                    return cal.calGetString("calendar-alarms",
-                                            getItemBundleStringName("reminderTitleAtStart"));
+                    return cal.l10n.getString("calendar-alarms", alarmString("reminderTitleAtStart"));
                 } else if (this.related == ALARM_RELATED_END) {
-                    return cal.calGetString("calendar-alarms",
-                                            getItemBundleStringName("reminderTitleAtEnd"));
+                    return cal.l10n.getString("calendar-alarms", alarmString("reminderTitleAtEnd"));
                 }
             }
 
@@ -661,7 +659,7 @@ calAlarm.prototype = {
             } else {
                 unit = "unitMinutes";
             }
-            let localeUnitString = cal.calGetString("calendar", unit);
+            let localeUnitString = cal.l10n.getCalString(unit);
             let unitString = PluralForm.get(alarmlen, localeUnitString)
                                        .replace("#1", alarmlen);
             let originStringName = "reminderCustomOrigin";
@@ -682,11 +680,10 @@ calAlarm.prototype = {
                 originStringName += "After";
             }
 
-            let originString = cal.calGetString("calendar-alarms",
-                                                getItemBundleStringName(originStringName));
-            return cal.calGetString("calendar-alarms",
-                                    "reminderCustomTitle",
-                                    [unitString, originString]);
+            let originString = cal.l10n.getString("calendar-alarms", alarmString(originStringName));
+            return cal.l10n.getString("calendar-alarms",
+                                      "reminderCustomTitle",
+                                      [unitString, originString]);
         } else {
             // This is an incomplete alarm, but then again we should never reach
             // this state.

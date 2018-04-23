@@ -66,9 +66,7 @@ var taskDetailsView = {
                 let statusDetails = document.getElementById("calendar-task-details-status");
                 switch (status) {
                     case "NEEDS-ACTION": {
-                        statusDetails.value = cal.calGetString(
-                            "calendar",
-                            "taskDetailsStatusNeedsAction");
+                        statusDetails.value = cal.l10n.getCalString("taskDetailsStatusNeedsAction");
                         break;
                     }
                     case "IN-PROCESS": {
@@ -77,26 +75,24 @@ var taskDetailsView = {
                         if (property != null) {
                             percent = parseInt(property, 10);
                         }
-                        statusDetails.value = cal.calGetString(
-                            "calendar",
-                            "taskDetailsStatusInProgress", [percent]);
+                        statusDetails.value = cal.l10n.getCalString(
+                            "taskDetailsStatusInProgress", [percent]
+                        );
                         break;
                     }
                     case "COMPLETED": {
                         if (item.completedDate) {
                             let completedDate = item.completedDate.getInTimezone(
                                                     cal.dtz.defaultTimezone);
-                            statusDetails.value = cal.calGetString(
-                                "calendar",
+                            statusDetails.value = cal.l10n.getCalString(
                                 "taskDetailsStatusCompletedOn",
-                                [dateFormatter.formatDateTime(completedDate)]);
+                                [dateFormatter.formatDateTime(completedDate)]
+                            );
                         }
                         break;
                     }
                     case "CANCELLED": {
-                        statusDetails.value = cal.calGetString(
-                            "calendar",
-                            "taskDetailsStatusCancelled");
+                        statusDetails.value = cal.l10n.getCalString("taskDetailsStatusCancelled");
                         break;
                     }
                     default: {
@@ -221,10 +217,10 @@ function sendMailToOrganizer() {
     let item = document.getElementById("calendar-task-tree").currentTask;
     if (item != null) {
         let organizer = item.organizer;
-        let email = cal.getAttendeeEmail(organizer, true);
-        let emailSubject = cal.calGetString("calendar-event-dialog", "emailSubjectReply", [item.title]);
+        let email = cal.email.getAttendeeEmail(organizer, true);
+        let emailSubject = cal.l10n.getString("calendar-event-dialog", "emailSubjectReply", [item.title]);
         let identity = item.calendar.getProperty("imip.identity");
-        cal.sendMailTo(email, emailSubject, null, identity);
+        cal.email.sendTo(email, emailSubject, null, identity);
     }
 }
 
