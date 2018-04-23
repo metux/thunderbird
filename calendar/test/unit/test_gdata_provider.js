@@ -24,8 +24,6 @@ ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 ChromeUtils.import("resource://gdata-provider/modules/gdataSession.jsm");
 ChromeUtils.import("resource://gdata-provider/modules/gdataUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calAsyncUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calProviderUtils.jsm");
 ChromeUtils.import("resource://testing-common/MockRegistrar.jsm");
 
 var gServer;
@@ -35,8 +33,8 @@ var MockConflictPrompt = {
     overwrite: false,
     register: function() {
         if (!this._origFunc) {
-            this._origFunc = cal.promptOverwrite;
-            cal.promptOverwrite = (aMode, aItem) => {
+            this._origFunc = cal.provider.promptOverwrite;
+            cal.provider.promptOverwrite = (aMode, aItem) => {
                 return this.overwrite;
             };
         }
@@ -44,7 +42,7 @@ var MockConflictPrompt = {
 
     unregister: function() {
         if (this._origFunc) {
-            cal.promptOverwrite = this._origFunc;
+            cal.provider.promptOverwrite = this._origFunc;
             this._origFunc = null;
         }
     }
@@ -398,10 +396,10 @@ GDataServer.prototype = {
             jsonData.iCalUID = jsonData.id + "@google.com";
         }
         if (!isImport || !jsonData.created) {
-            jsonData.created = cal.toRFC3339(cal.dtz.now());
+            jsonData.created = cal.dtz.toRFC3339(cal.dtz.now());
         }
         if (!isImport || !jsonData.updated) {
-            jsonData.updated = cal.toRFC3339(cal.dtz.now());
+            jsonData.updated = cal.dtz.toRFC3339(cal.dtz.now());
         }
         if (!isImport || !jsonData.creator) {
             jsonData.creator = this.creator;
@@ -416,7 +414,7 @@ GDataServer.prototype = {
     processModifyEvent: function(jsonData, id) {
         jsonData.kind = "calendar#event";
         jsonData.etag = this.nextEtag || '"' + (new Date()).getTime() + '"';
-        jsonData.updated = cal.toRFC3339(cal.dtz.now());
+        jsonData.updated = cal.dtz.toRFC3339(cal.dtz.now());
         jsonData.id = id;
         jsonData.iCalUID = (jsonData.recurringEventId || jsonData.id) + "@google.com";
         if (!jsonData.creator) {
@@ -439,7 +437,7 @@ GDataServer.prototype = {
             jsonData.status = "needsAction";
         }
         if (!jsonData.updated) {
-            jsonData.updated = cal.toRFC3339(cal.dtz.now());
+            jsonData.updated = cal.dtz.toRFC3339(cal.dtz.now());
         }
 
         this.nextEtag = null;
@@ -449,12 +447,12 @@ GDataServer.prototype = {
     processModifyTask: function(jsonData) {
         jsonData.kind = "tasks#task";
         jsonData.etag = this.nextEtag || '"' + (new Date()).getTime() + '"';
-        jsonData.updated = cal.toRFC3339(cal.dtz.now());
+        jsonData.updated = cal.dtz.toRFC3339(cal.dtz.now());
         if (!jsonData.status) {
             jsonData.status = "needsAction";
         }
         if (!jsonData.updated) {
-            jsonData.updated = cal.toRFC3339(cal.dtz.now());
+            jsonData.updated = cal.dtz.toRFC3339(cal.dtz.now());
         }
 
         this.nextEtag = null;
@@ -1287,7 +1285,7 @@ add_task(function* test_modify_invitation() {
     equal(items.length, 1);
 
     let item = items[0];
-    let att = cal.getInvitedAttendee(item);
+    let att = cal.itip.getInvitedAttendee(item);
     let newItem = item.clone();
 
     notEqual(att, null);

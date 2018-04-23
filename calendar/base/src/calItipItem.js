@@ -3,9 +3,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calIteratorUtils.jsm");
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 
 /**
  * Constructor of calItipItem object
@@ -147,7 +147,7 @@ calItipItem.prototype = {
         }
 
         this.mItemList = [];
-        for (let item of cal.itemIterator(parser.getItems({}))) {
+        for (let item of cal.iterate.items(parser.getItems({}))) {
             cleanItem(item);
             // only push non-faked master items or
             // the overridden instances of faked master items

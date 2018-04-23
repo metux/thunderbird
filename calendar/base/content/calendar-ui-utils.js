@@ -438,7 +438,7 @@ function unitPluralForm(aLength, aUnit, aIncludeLength=true) {
         weeks: "unitWeeks"
     }[aUnit] || "unitMinutes";
 
-    return PluralForm.get(aLength, cal.calGetString("calendar", unitProp))
+    return PluralForm.get(aLength, cal.l10n.getCalString(unitProp))
                      .replace("#1", aIncludeLength ? aLength : "").trim();
 }
 
@@ -804,8 +804,8 @@ function setupAttendanceMenu(aMenu, aItems) {
      */
     function getInvitationStatus(aItem) {
         let party = null;
-        if (cal.isInvitation(aItem)) {
-            party = cal.getInvitedAttendee(aItem);
+        if (cal.itip.isInvitation(aItem)) {
+            party = cal.itip.getInvitedAttendee(aItem);
         } else if (aItem.organizer && aItem.getAttendees({}).length) {
             let calOrgId = aItem.calendar.getProperty("organizerId");
             if (calOrgId.toLowerCase() == aItem.organizer.id.toLowerCase()) {

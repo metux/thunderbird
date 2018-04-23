@@ -11,6 +11,13 @@ ChromeUtils.import("resource://calendar/modules/calHashedArray.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "cal", "resource://calendar/modules/calUtils.jsm", "cal");
 
+/*
+ * Calendar item related functions
+ */
+
+// NOTE: This module should not be loaded directly, it is available when
+// including calUtils.jsm under the cal.item namespace.
+
 this.EXPORTED_SYMBOLS = ["calitem", "itemDiff"]; /* exported calitem, itemDiff */
 
 var calitem = {
@@ -438,7 +445,7 @@ var calitem = {
         // in the same order
         function normalizeComponent(comp) {
             let props = [];
-            for (let prop of cal.ical.propertyIterator(comp)) {
+            for (let prop of cal.iterate.icalProperty(comp)) {
                 if (!(prop.propertyName in ignoreProps)) {
                     props.push(normalizeProperty(prop));
                 }
@@ -446,7 +453,7 @@ var calitem = {
             props = props.sort();
 
             let comps = [];
-            for (let subcomp of cal.ical.subcomponentIterator(comp)) {
+            for (let subcomp of cal.iterate.icalSubcomponent(comp)) {
                 comps.push(normalizeComponent(subcomp));
             }
             comps = comps.sort();
@@ -455,7 +462,7 @@ var calitem = {
         }
 
         function normalizeProperty(prop) {
-            let params = [...cal.ical.paramIterator(prop)]
+            let params = [...cal.iterate.icalParameter(prop)]
                 .filter(([k, v]) => !(prop.propertyName in ignoreParams) ||
                        !(k in ignoreParams[prop.propertyName]))
                 .map(([k, v]) => k + "=" + v)

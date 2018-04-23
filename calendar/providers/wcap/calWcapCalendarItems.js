@@ -4,8 +4,6 @@
 
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calAlarmUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calIteratorUtils.jsm");
 
 calWcapCalendar.prototype.encodeAttendee = function(att) {
     if (LOG_LEVEL > 2) {
@@ -831,7 +829,7 @@ calWcapCalendar.prototype.parseItems = function(
 
     let recurrenceBound = this.session.recurrenceBound;
 
-    for (let subComp of cal.ical.calendarComponentIterator(icalRootComp, componentType)) {
+    for (let subComp of cal.iterate.icalComponent(icalRootComp, componentType)) {
         let organizer = subComp.getFirstProperty("ORGANIZER");
         if (organizer && organizer.getParameter("SENT-BY")) { // has SENT-BY
             // &emailorcalid=1 sets wrong email, workaround setting calid...

@@ -2,11 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 ChromeUtils.import("resource://gre/modules/Preferences.jsm");
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-this.EXPORTED_SYMBOLS = ["cal"]; // even though it's defined in calUtils.jsm, import needs this
-cal.print = {
+XPCOMUtils.defineLazyModuleGetter(this, "cal", "resource://calendar/modules/calUtils.jsm", "cal");
+
+/*
+ * Helpers for printing and print preparation
+ */
+
+// NOTE: This module should not be loaded directly, it is available when
+// including calUtils.jsm under the cal.print namespace.
+
+this.EXPORTED_SYMBOLS = ["calprint"]; /* exported calprint */
+
+var calprint = {
     /**
      * Returns a simple key in the format YYYY-MM-DD for use in the table of
      * dates to day boxes
@@ -137,7 +147,7 @@ cal.print = {
         if (taskListBox.hasAttribute("hidden")) {
             let tasksTitle = document.getElementById("tasks-title");
             taskListBox.removeAttribute("hidden");
-            tasksTitle.textContent = cal.calGetString("calendar", "tasksWithNoDueDate");
+            tasksTitle.textContent = cal.l10n.getCalString("tasksWithNoDueDate");
         }
 
         // Fill in details of the task
@@ -147,7 +157,7 @@ cal.print = {
 
         taskNode.querySelector(".task-title").textContent = item.title;
 
-        let collator = cal.createLocaleCollator();
+        let collator = cal.l10n.createLocaleCollator();
         cal.data.binaryInsertNode(taskContainer, taskNode, item, (a, b) => collator.compareString(0, a, b), node => node.item.title);
     },
 

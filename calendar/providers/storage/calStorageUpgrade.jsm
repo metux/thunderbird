@@ -70,7 +70,6 @@
 
 ChromeUtils.import("resource://gre/modules/Services.jsm");
 ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calProviderUtils.jsm");
 ChromeUtils.import("resource://calendar/modules/calStorageHelpers.jsm");
 
 // The current database version. Be sure to increment this when you create a new
@@ -185,7 +184,7 @@ function backupDB(db, currentVersion) {
     try {
         // Prepare filenames and path
         let backupFilename = "local.v" + currentVersion + ".sqlite";
-        let backupPath = cal.getCalendarDirectory();
+        let backupPath = cal.provider.getCalendarDirectory();
         backupPath.append("backup");
         if (!backupPath.exists()) {
             backupPath.create(Components.interfaces.nsIFile.DIRECTORY_TYPE, parseInt("0755", 8));

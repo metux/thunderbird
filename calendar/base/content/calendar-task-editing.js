@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calAlarmUtils.jsm");
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 /**
@@ -73,14 +72,14 @@ var taskEdit = {
         if (calendar.getProperty("capabilities.tasks.supported") === false) {
             taskEdit.setupTaskField(edit,
                                     true,
-                                    cal.calGetString("calendar", "taskEditInstructionsCapability"));
+                                    cal.l10n.getCalString("taskEditInstructionsCapability"));
         } else if (cal.acl.isCalendarWritable(calendar)) {
             edit.showsInstructions = false;
             taskEdit.setupTaskField(edit, false, edit.savedValue || "");
         } else {
             taskEdit.setupTaskField(edit,
                                     true,
-                                    cal.calGetString("calendar", "taskEditInstructionsReadonly"));
+                                    cal.l10n.getCalString("taskEditInstructionsReadonly"));
         }
     },
 
@@ -107,18 +106,18 @@ var taskEdit = {
         if (calendar.getProperty("capabilities.tasks.supported") === false) {
             taskEdit.setupTaskField(edit,
                                     true,
-                                    cal.calGetString("calendar", "taskEditInstructionsCapability"));
+                                    cal.l10n.getCalString("taskEditInstructionsCapability"));
         } else if (cal.acl.isCalendarWritable(calendar)) {
             if (!edit.showsInstructions) {
                 edit.savedValue = edit.value || "";
             }
             taskEdit.setupTaskField(edit,
                                     false,
-                                    cal.calGetString("calendar", "taskEditInstructions"));
+                                    cal.l10n.getCalString("taskEditInstructions"));
         } else {
             taskEdit.setupTaskField(edit,
                                     true,
-                                    cal.calGetString("calendar", "taskEditInstructionsReadonly"));
+                                    cal.l10n.getCalString("taskEditInstructionsReadonly"));
         }
         edit.showsInstructions = true;
     },

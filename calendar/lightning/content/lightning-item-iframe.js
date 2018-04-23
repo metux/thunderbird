@@ -85,10 +85,10 @@ var eventDialogCalendarObserver = {
             // prompt if there have been local changes also.
             if (isItemChanged()) {
                 let promptService = Components.interfaces.nsIPromptService;
-                let promptTitle = cal.calGetString("calendar", "modifyConflictPromptTitle");
-                let promptMessage = cal.calGetString("calendar", "modifyConflictPromptMessage");
-                let promptButton1 = cal.calGetString("calendar", "modifyConflictPromptButton1");
-                let promptButton2 = cal.calGetString("calendar", "modifyConflictPromptButton2");
+                let promptTitle = cal.l10n.getCalString("modifyConflictPromptTitle");
+                let promptMessage = cal.l10n.getCalString("modifyConflictPromptMessage");
+                let promptButton1 = cal.l10n.getCalString("modifyConflictPromptButton1");
+                let promptButton2 = cal.l10n.getCalString("modifyConflictPromptButton2");
                 let flags = promptService.BUTTON_TITLE_IS_STRING *
                             promptService.BUTTON_POS_0 +
                             promptService.BUTTON_TITLE_IS_STRING *
@@ -311,7 +311,7 @@ function onLoad() {
 
     // new items should have a non-empty title.
     if (item.isMutable && (!item.title || item.title.length <= 0)) {
-        item.title = cal.calGetString("calendar-event-dialog",
+        item.title = cal.l10n.getString("calendar-event-dialog",
                                       cal.item.isEvent(item) ? "newEvent" : "newTask");
     }
 
@@ -459,14 +459,13 @@ function onCommandCancel() {
 
     let promptService = Components.interfaces.nsIPromptService;
 
-    let promptTitle = cal.calGetString("calendar",
-                                       cal.item.isEvent(window.calendarItem)
-                                          ? "askSaveTitleEvent"
-                                          : "askSaveTitleTask");
-    let promptMessage = cal.calGetString("calendar",
-                                         cal.item.isEvent(window.calendarItem)
-                                            ? "askSaveMessageEvent"
-                                            : "askSaveMessageTask");
+    let promptTitle = cal.l10n.getCalString(
+        cal.item.isEvent(window.calendarItem) ? "askSaveTitleEvent" : "askSaveTitleTask"
+    );
+    let promptMessage = cal.l10n.getCalString(
+        cal.item.isEvent(window.calendarItem) ? "askSaveMessageEvent" : "askSaveMessageTask"
+    );
+
 
     let flags = promptService.BUTTON_TITLE_SAVE *
                 promptService.BUTTON_POS_0 +
@@ -598,7 +597,7 @@ function loadDialog(aItem) {
     // Categories
     if (gNewItemUI) {
         // XXX more to do here with localization, see loadCategories.
-        itemProps.initialCategoriesList = cal.sortArrayByLocaleCollator(cal.category.fromPrefs());
+        itemProps.initialCategoriesList = cal.l10n.sortArrayByLocaleCollator(cal.category.fromPrefs());
         itemProps.initialCategories = aItem.getCategories({});
 
         // just to demo capsules component
@@ -697,10 +696,10 @@ function loadDialog(aItem) {
         let isEvent = cal.item.isEvent(aItem);
 
         let labelString = isEvent ? "itemMenuLabelEvent" : "itemMenuLabelTask";
-        let label = cal.calGetString("calendar-event-dialog", labelString);
+        let label = cal.l10n.getString("calendar-event-dialog", labelString);
 
         let accessKeyString = isEvent ? "itemMenuAccesskeyEvent2" : "itemMenuAccesskeyTask2";
-        let accessKey = cal.calGetString("calendar-event-dialog", accessKeyString);
+        let accessKey = cal.l10n.getString("calendar-event-dialog", accessKeyString);
         sendMessage({
             command: "initializeItemMenu",
             label: label,
@@ -869,11 +868,11 @@ function updateCategoryMenulist() {
     let label;
     let categoryList = categoryPanel.categories;
     if (categoryList.length > 1) {
-        label = cal.calGetString("calendar", "multipleCategories");
+        label = cal.l10n.getCalString("multipleCategories");
     } else if (categoryList.length == 1) {
         label = categoryList[0];
     } else {
-        label = cal.calGetString("calendar", "None");
+        label = cal.l10n.getCalString("None");
     }
     categoryMenulist.setAttribute("label", label);
 }
@@ -1075,7 +1074,7 @@ function dateTimeControls2State(aStartDatepicker) {
             gStartTime = saveStartTime;
             gEndTime = saveEndTime;
             warning = true;
-            stringWarning = cal.calGetString("calendar", "warningEndBeforeStart");
+            stringWarning = cal.l10n.getCalString("warningEndBeforeStart");
         }
     }
 
@@ -1114,7 +1113,7 @@ function dateTimeControls2State(aStartDatepicker) {
             }
 
             warning = true;
-            stringWarning = cal.calGetString("calendar", "warningUntilDateBeforeStart");
+            stringWarning = cal.l10n.getCalString("warningUntilDateBeforeStart");
         }
     }
 
@@ -1544,8 +1543,7 @@ function updateTitle() {
     } else {
         throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
     }
-    let newTitle = cal.calGetString("calendar", strName) + ": " +
-                      getElementValue("item-title");
+    let newTitle = cal.l10n.getCalString(strName) + ": " + getElementValue("item-title");
     sendMessage({ command: "updateTitle", argument: newTitle });
 }
 
@@ -1910,7 +1908,7 @@ function loadCloudProviders() {
         // Create a serializable object to pass in a message outside the iframe
         let itemObject = {};
         itemObject.displayName = cloudFileAccounts.getDisplayName(cloudProvider);
-        itemObject.label = cal.calGetString("calendar-event-dialog", "attachViaFilelink", [itemObject.displayName]);
+        itemObject.label = cal.l10n.getString("calendar-event-dialog", "attachViaFilelink", [itemObject.displayName]);
         itemObject.cloudProviderAccountKey = cloudProvider.accountKey;
         if (cloudProvider.iconClass) {
             itemObject.class = "menuitem-iconic";
@@ -1946,14 +1944,16 @@ function attachURL() {
     if (Services.prompt) {
         // ghost in an example...
         let result = { value: "http://" };
-        if (Services.prompt.prompt(window,
-                                   cal.calGetString("calendar-event-dialog",
-                                                    "specifyLinkLocation"),
-                                   cal.calGetString("calendar-event-dialog",
-                                                    "enterLinkLocation"),
-                                   result,
-                                   null,
-                                   { value: 0 })) {
+        let confirm = Services.prompt.prompt(
+            window,
+            cal.l10n.getString("calendar-event-dialog", "specifyLinkLocation"),
+            cal.l10n.getString("calendar-event-dialog", "enterLinkLocation"),
+            result,
+            null,
+            { value: 0 }
+        );
+
+        if (confirm) {
             try {
                 // If something bogus was entered, Services.io.newURI may fail.
                 let attachment = cal.createAttachment();
@@ -1995,7 +1995,7 @@ function attachFile(cloudProvider) {
     let filePicker = Components.classes["@mozilla.org/filepicker;1"]
                                .createInstance(nsIFilePicker);
     filePicker.init(window,
-                    cal.calGetString("calendar-event-dialog", "selectAFile"),
+                    cal.l10n.getString("calendar-event-dialog", "selectAFile"),
                     nsIFilePicker.modeOpenMultiple);
 
     // Check for the last directory
@@ -2235,8 +2235,8 @@ function deleteAllAttachments() {
     let canRemove = (itemCount < 2);
 
     if (itemCount > 1) {
-        let removeText = PluralForm.get(itemCount, cal.calGetString("calendar-event-dialog", "removeAttachmentsText"));
-        let removeTitle = cal.calGetString("calendar-event-dialog", "removeCalendarsTitle");
+        let removeText = PluralForm.get(itemCount, cal.l10n.getString("calendar-event-dialog", "removeAttachmentsText"));
+        let removeTitle = cal.l10n.getString("calendar-event-dialog", "removeCalendarsTitle");
         canRemove = Services.prompt.confirm(window, removeTitle, removeText.replace("#1", itemCount), {});
     }
 
@@ -2927,7 +2927,7 @@ function saveItem() {
     if (item.organizer && item.calendar.aclEntry) {
         let userAddresses = item.calendar.aclEntry.getUserAddresses({});
         if (userAddresses.length > 0 &&
-            !cal.attendeeMatchesAddresses(item.organizer, userAddresses)) {
+            !cal.email.attendeeMatchesAddresses(item.organizer, userAddresses)) {
             let organizer = item.organizer.clone();
             organizer.setProperty("SENT-BY", "mailto:" + userAddresses[0]);
             item.organizer = organizer;
@@ -3032,11 +3032,11 @@ function onCommandDeleteItem() {
         let promptMessage = "";
 
         if (cal.item.isEvent(window.calendarItem)) {
-            promptTitle = cal.calGetString("calendar", "deleteEventLabel");
-            promptMessage = cal.calGetString("calendar", "deleteEventMessage");
+            promptTitle = cal.l10n.getCalString("deleteEventLabel");
+            promptMessage = cal.l10n.getCalString("deleteEventMessage");
         } else if (cal.item.isToDo(window.calendarItem)) {
-            promptTitle = cal.calGetString("calendar", "deleteTaskLabel");
-            promptMessage = cal.calGetString("calendar", "deleteTaskMessage");
+            promptTitle = cal.l10n.getCalString("deleteTaskLabel");
+            promptMessage = cal.l10n.getCalString("deleteTaskMessage");
         }
 
         let answerDelete = Services.prompt.confirm(
@@ -3543,14 +3543,22 @@ function updateAttendees() {
 
             let orgName = (organizer.commonName && organizer.commonName.length)
                           ? organizer.commonName : organizer.toString();
-            let userTypeString = cal.calGetString("calendar", "dialog.tooltip.attendeeUserType2." + userType,
-                                            [organizer.toString()]);
-            let roleString = cal.calGetString("calendar", "dialog.tooltip.attendeeRole2." + role,
-                                              [userTypeString]);
-            let partStatString = cal.calGetString("calendar", "dialog.tooltip.attendeePartStat2." + partStat,
-                                            [orgName]);
-            let tooltip = cal.calGetString("calendar", "dialog.tooltip.attendee.combined",
-                                           [roleString, partStatString]);
+            let userTypeString = cal.l10n.getCalString(
+                "dialog.tooltip.attendeeUserType2." + userType,
+                [organizer.toString()]
+            );
+            let roleString = cal.l10n.getCalString(
+                "dialog.tooltip.attendeeRole2." + role,
+                [userTypeString]
+            );
+            let partStatString = cal.l10n.getCalString(
+                "dialog.tooltip.attendeePartStat2." + partStat,
+                [orgName]
+            );
+            let tooltip = cal.l10n.getCalString(
+                "dialog.tooltip.attendee.combined",
+                [roleString, partStatString]
+            );
 
             text.setAttribute("value", orgName);
             cell.setAttribute("tooltiptext", tooltip);
@@ -3619,7 +3627,7 @@ function updateRepeatDetails() {
                                                   endDate, allDay);
 
         if (!detailsString) {
-            detailsString = cal.calGetString("calendar-event-dialog", "ruleTooComplex");
+            detailsString = cal.l10n.getString("calendar-event-dialog", "ruleTooComplex");
         }
 
         // Now display the string...
@@ -3763,11 +3771,11 @@ function sendMailToUndecidedAttendees(aAttendees) {
  * @param aAttendees    The attendees to send mail to.
  */
 function sendMailToAttendees(aAttendees) {
-    let toList = cal.getRecipientList(aAttendees);
+    let toList = cal.email.createRecipientList(aAttendees);
     let item = saveItem();
-    let emailSubject = cal.calGetString("calendar-event-dialog", "emailSubjectReply", [item.title]);
+    let emailSubject = cal.l10n.getString("calendar-event-dialog", "emailSubjectReply", [item.title]);
     let identity = window.calendarItem.calendar.getProperty("imip.identity");
-    cal.sendMailTo(toList, emailSubject, null, identity);
+    cal.email.sendTo(toList, emailSubject, null, identity);
 }
 
 /**
@@ -3863,7 +3871,7 @@ function checkUntilDate() {
             Services.prompt.alert(
                 null,
                 document.title,
-                cal.calGetString("calendar", "warningUntilDateBeforeStart"));
+                cal.l10n.getCalString("warningUntilDateBeforeStart"));
             enableAcceptCommand(true);
             gWarning = false;
         };
@@ -3918,7 +3926,7 @@ function displayCounterProposal() {
     }
 
     let attendeeId = window.counterProposal.attendee.CN ||
-                     cal.removeMailTo(window.counterProposal.attendee.id || "");
+                     cal.email.removeMailTo(window.counterProposal.attendee.id || "");
     let partStat = window.counterProposal.attendee.participationStatus;
     if (partStat == "DECLINED") {
         partStat = "counterSummaryDeclined";
@@ -3939,7 +3947,7 @@ function displayCounterProposal() {
 
     if (idCounter > 0) {
         if (partStat && attendeeId.length) {
-            document.getElementById("counter-proposal-summary").value = cal.calGetString(
+            document.getElementById("counter-proposal-summary").value = cal.l10n.getString(
                 "calendar-event-dialog",
                 partStat,
                 [attendeeId]
@@ -3957,7 +3965,7 @@ function displayCounterProposal() {
             // user accordingly
             notifyUser(
                 "counterProposalOnPreviousVersion",
-                cal.calGetString("calendar-event-dialog", "counterOnPreviousVersionNotification"),
+                cal.l10n.getString("calendar-event-dialog", "counterOnPreviousVersionNotification"),
                 "warn"
             );
         }
@@ -3966,7 +3974,7 @@ function displayCounterProposal() {
             // invitation, so we notify the user accordingly
             notifyUser(
                 "counterProposalOnCounteringDisallowed",
-                cal.calGetString("calendar-event-dialog", "counterOnCounterDisallowedNotification"),
+                cal.l10n.getString("calendar-event-dialog", "counterOnCounterDisallowedNotification"),
                 "warn"
             );
         }

@@ -6,8 +6,6 @@ ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 ChromeUtils.import("resource://gre/modules/Preferences.jsm");
 
 ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calXMLUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calPrintUtils.jsm");
 
 /**
  * Prints a two column view of a week of events, much like a paper day-planner
@@ -29,7 +27,7 @@ calWeekPrinter.prototype = {
         interfaces: calWeekPrinterInterfaces
     }),
 
-    get name() { return cal.calGetString("calendar", "weekPrinterName"); },
+    get name() { return cal.l10n.getCalString("weekPrinterName"); },
 
     formatToHtml: function(aStream, aStart, aEnd, aCount, aItems, aTitle) {
         let document = cal.xml.parseFile("chrome://calendar-common/skin/printing/calWeekPrinter.html");
@@ -110,7 +108,7 @@ calWeekPrinter.prototype = {
         let weekInfo = cal.getWeekInfoService();
         let dateFormatter = cal.getDateFormatter();
         let weekno = weekInfo.getWeekTitle(startOfWeek);
-        let weekTitle = cal.calGetString("calendar", "WeekTitle", [weekno]);
+        let weekTitle = cal.l10n.getCalString("WeekTitle", [weekno]);
         currentPage.querySelector(".week-number").textContent = weekTitle;
 
         // Set up the day boxes

@@ -6,8 +6,6 @@ ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calAlarmUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calProviderUtils.jsm");
 ChromeUtils.import("resource://calendar/modules/calStorageUpgrade.jsm");
 ChromeUtils.import("resource://calendar/modules/calStorageHelpers.jsm");
 
@@ -34,7 +32,7 @@ var calStorageCalendarInterfaces = [
     Components.interfaces.calISyncWriteCalendar,
 ];
 calStorageCalendar.prototype = {
-    __proto__: cal.ProviderBase.prototype,
+    __proto__: cal.provider.BaseClass.prototype,
     classID: calStorageCalendarClassID,
     QueryInterface: XPCOMUtils.generateQI(calStorageCalendarInterfaces),
     classInfo: XPCOMUtils.generateCI({
@@ -62,7 +60,7 @@ calStorageCalendar.prototype = {
     },
 
     get displayName() {
-        return cal.calGetString("calendar", "storageName");
+        return cal.l10n.getCalString("storageName");
     },
 
     createCalendar: function() {
@@ -203,7 +201,7 @@ calStorageCalendar.prototype = {
             // This is an old-style moz-profile-calendar. It requires some
             // migration steps.
 
-            let localDB = cal.getCalendarDirectory();
+            let localDB = cal.provider.getCalendarDirectory();
             localDB.append("local.sqlite");
             localDB = Services.storage.openDatabase(localDB);
 
@@ -348,7 +346,7 @@ calStorageCalendar.prototype = {
             }
         } else if (this.uri.schemeIs("moz-storage-calendar")) {
             // New style uri, no need for migration here
-            let localDB = cal.getCalendarDirectory();
+            let localDB = cal.provider.getCalendarDirectory();
             localDB.append("local.sqlite");
 
             this.mDB = Services.storage.openDatabase(localDB);

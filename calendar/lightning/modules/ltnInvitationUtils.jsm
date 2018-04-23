@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calXMLUtils.jsm");
 ChromeUtils.import("resource://calendar/modules/calRecurrenceUtils.jsm");
 ChromeUtils.import("resource://gre/modules/Preferences.jsm");
-ChromeUtils.import("resource://calendar/modules/ltnUtils.jsm");
 ChromeUtils.import("resource:///modules/mailServices.js");
 
-this.EXPORTED_SYMBOLS = ["ltn"]; // even though it's defined in ltnUtils.jsm, import needs this
+this.EXPORTED_SYMBOLS = ["ltn"]; /* exported ltn */
+var ltn = {};
+
 ltn.invitation = {
     /**
      * Returns a header title for an ITIP item depending on the response method
@@ -28,33 +28,30 @@ ltn.invitation = {
 
             switch (aItipItem.responseMethod) {
                 case "REQUEST":
-                    header = ltn.getString("lightning",
-                                           "itipRequestBody",
-                                           [organizerString, summary]);
+                    header = cal.l10n.getLtnString(
+                        "itipRequestBody",
+                        [organizerString, summary]
+                    );
                     break;
                 case "CANCEL":
-                    header = ltn.getString("lightning",
-                                           "itipCancelBody",
-                                           [organizerString, summary]);
+                    header = cal.l10n.getLtnString(
+                        "itipCancelBody",
+                        [organizerString, summary]
+                    );
                     break;
                 case "COUNTER":
                     // falls through
                 case "REPLY": {
                     let attendees = item.getAttendees({});
-                    let sender = cal.getAttendeesBySender(attendees, aItipItem.sender);
+                    let sender = cal.itip.getAttendeesBySender(attendees, aItipItem.sender);
                     if (sender.length == 1) {
                         if (aItipItem.responseMethod == "COUNTER") {
-                            header = cal.calGetString("lightning",
-                                                      "itipCounterBody",
-                                                      [sender[0].toString(), summary],
-                                                      "lightning");
+                            header = cal.l10n.getLtnString("itipCounterBody",
+                                                           [sender[0].toString(), summary]);
                         } else {
                             let statusString = (sender[0].participationStatus == "DECLINED" ?
                                                 "itipReplyBodyDecline" : "itipReplyBodyAccept");
-                            header = cal.calGetString("lightning",
-                                                      statusString,
-                                                      [sender[0].toString()],
-                                                      "lightning");
+                            header = cal.l10n.getLtnString(statusString, [sender[0].toString()]);
                         }
                     } else {
                         header = "";
@@ -62,15 +59,16 @@ ltn.invitation = {
                     break;
                 }
                 case "DECLINECOUNTER":
-                    header = ltn.getString("lightning",
-                                           "itipDeclineCounterBody",
-                                           [organizerString, summary]);
+                    header = cal.l10n.getLtnString(
+                        "itipDeclineCounterBody",
+                        [organizerString, summary]
+                    );
                     break;
             }
         }
 
         if (!header) {
-            header = ltn.getString("lightning", "imipHtml.header", null);
+            header = cal.l10n.getLtnString("imipHtml.header");
         }
 
         return header;
@@ -94,7 +92,7 @@ ltn.invitation = {
         let field = function(aField, aContentText, aConvert) {
             let descr = doc.getElementById("imipHtml-" + aField + "-descr");
             if (descr) {
-                let labelText = ltn.getString("lightning", "imipHtml." + aField, null);
+                let labelText = cal.l10n.getLtnString("imipHtml." + aField);
                 descr.textContent = labelText;
             }
 
@@ -189,7 +187,7 @@ ltn.invitation = {
                 let formattedExc = formatter.formatItemInterval(occ);
                 let occLocation = occ.getProperty("LOCATION");
                 if (occLocation != aEvent.getProperty("LOCATION")) {
-                    let location = ltn.getString("lightning", "imipHtml.newLocation", [occLocation]);
+                    let location = cal.l10n.getLtnString("imipHtml.newLocation", [occLocation]);
                     formattedExc += " (" + location + ")";
                 }
                 return formattedExc;
@@ -236,9 +234,9 @@ ltn.invitation = {
             row.removeAttribute("hidden");
 
             // resolve delegatees/delegators to display also the CN
-            let del = cal.resolveDelegation(aAttendee, attendees);
+            let del = cal.itip.resolveDelegation(aAttendee, attendees);
             if (del.delegators != "") {
-                del.delegators = " " + ltn.getString("lightning", "imipHtml.attendeeDelegatedFrom",
+                del.delegators = " " + cal.l10n.getLtnString("imipHtml.attendeeDelegatedFrom",
                                                      [del.delegators]);
             }
 
@@ -252,14 +250,14 @@ ltn.invitation = {
             itipIcon.setAttribute("partstat", partstat);
             let attName = aAttendee.commonName && aAttendee.commonName.length
                           ? aAttendee.commonName : aAttendee.toString();
-            let userTypeString = ltn.getString("lightning", "imipHtml.attendeeUserType2." + userType,
-                                               [aAttendee.toString()]);
-            let roleString = ltn.getString("lightning", "imipHtml.attendeeRole2." + role,
-                                           [userTypeString]);
-            let partstatString = ltn.getString("lightning", "imipHtml.attendeePartStat2." + partstat,
-                                               [attName, del.delegatees]);
-            let itipTooltip = ltn.getString("lightning", "imipHtml.attendee.combined",
-                                            [roleString, partstatString]);
+            let userTypeString = cal.l10n.getLtnString("imipHtml.attendeeUserType2." + userType,
+                                                       [aAttendee.toString()]);
+            let roleString = cal.l10n.getLtnString("imipHtml.attendeeRole2." + role,
+                                                   [userTypeString]);
+            let partstatString = cal.l10n.getLtnString("imipHtml.attendeePartStat2." + partstat,
+                                                       [attName, del.delegatees]);
+            let itipTooltip = cal.l10n.getLtnString("imipHtml.attendee.combined",
+                                                    [roleString, partstatString]);
             row.setAttribute("title", itipTooltip);
             // display attendee
             row.getElementsByClassName("attendee-name")[0].textContent = aAttendee.toString() +
@@ -369,7 +367,7 @@ ltn.invitation = {
                 } else {
                     content = doc.getElementById(aElement + "-table");
                     oldContent = aOldDoc.getElementById(aElement + "-table");
-                    let excludeAddress = cal.removeMailTo(aIgnoreId);
+                    let excludeAddress = cal.email.removeMailTo(aIgnoreId);
                     if (content && oldContent && !content.isEqualNode(oldContent)) {
                         // extract attendees
                         let attendees = _getAttendees(doc, aElement);
@@ -430,7 +428,7 @@ ltn.invitation = {
      */
     getHeaderSection: function(aMessageId, aIdentity, aToList, aSubject) {
         let recipient = aIdentity.fullName + " <" + aIdentity.email + ">";
-        let from = aIdentity.fullName.length ? cal.validateRecipientList(recipient)
+        let from = aIdentity.fullName.length ? cal.email.validateRecipientList(recipient)
                                              : aIdentity.email;
         let header = "MIME-version: 1.0\r\n" +
                      (aIdentity.replyTo ? "Return-path: " +
@@ -447,13 +445,13 @@ ltn.invitation = {
                                       .encodeMimeHeader(aSubject.replace(/(\n|\r\n)/, "|")) + "\r\n";
         let validRecipients;
         if (aIdentity.doCc) {
-            validRecipients = cal.validateRecipientList(aIdentity.doCcList);
+            validRecipients = cal.email.validateRecipientList(aIdentity.doCcList);
             if (validRecipients != "") {
                 header += "Cc: " + ltn.invitation.encodeMimeHeader(validRecipients, true) + "\r\n";
             }
         }
         if (aIdentity.doBcc) {
-            validRecipients = cal.validateRecipientList(aIdentity.doBccList);
+            validRecipients = cal.email.validateRecipientList(aIdentity.doBccList);
             if (validRecipients != "") {
                 header += "Bcc: " + ltn.invitation.encodeMimeHeader(validRecipients, true) + "\r\n";
             }

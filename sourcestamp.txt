@@ -1,2 +1,2 @@
 
-https://hg.mozilla.org/releases/mozilla-beta/rev/ff1228ee374757fce66def11efe1e3c0f3d01444
+https://hg.mozilla.org/releases/mozilla-beta/rev/03fe938b4cefcd93b9a38c190db06c0045e3bbb6

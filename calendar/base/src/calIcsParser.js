@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calIteratorUtils.jsm");
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 
 function calIcsParser() {
     this.wrappedJSObject = this;
@@ -56,13 +56,13 @@ calIcsParser.prototype = {
 
         while (calComp) {
             // Get unknown properties from the VCALENDAR
-            for (let prop of cal.ical.propertyIterator(calComp)) {
+            for (let prop of cal.iterate.icalProperty(calComp)) {
                 if (prop.propertyName != "VERSION" && prop.propertyName != "PRODID") {
                     this.mProperties.push(prop);
                 }
             }
 
-            for (let subComp of cal.ical.subcomponentIterator(calComp)) {
+            for (let subComp of cal.iterate.icalSubcomponent(calComp)) {
                 state.submit(subComp);
             }
             calComp = rootComp.getNextSubcomponent("VCALENDAR");
@@ -102,8 +102,8 @@ calIcsParser.prototype = {
                 if (Components.classes["@mozilla.org/alerts-service;1"]) {
                     let notifier = Components.classes["@mozilla.org/alerts-service;1"]
                                              .getService(Components.interfaces.nsIAlertsService);
-                    let title = cal.calGetString("calendar", "TimezoneErrorsAlertTitle");
-                    let text = cal.calGetString("calendar", "TimezoneErrorsSeeConsole");
+                    let title = cal.l10n.getCalString("TimezoneErrorsAlertTitle");
+                    let text = cal.l10n.getCalString("TimezoneErrorsSeeConsole");
                     try {
                         notifier.showAlertNotification("", title, text, false, null, null, title);
                     } catch (e) {
@@ -267,7 +267,7 @@ parserState.prototype = {
                 // choose whether to alert, or show user the problem items and ask
                 // for fixes, or something else.
                 let msgArgs = [tzid, item.title, cal.getDateFormatter().formatDateTime(date)];
-                let msg = cal.calGetString("calendar", "unknownTimezoneInItem", msgArgs);
+                let msg = cal.l10n.getCalString("unknownTimezoneInItem", msgArgs);
 
                 cal.ERROR(msg + "\n" + item.icalString);
                 this.tzErrors[hid] = true;

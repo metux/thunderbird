@@ -225,7 +225,7 @@ function aboveSnoozeLimit(aDuration) {
 
     let durationUntilLimit = limitTime.subtractDate(currentTime);
     if (aDuration.compare(durationUntilLimit) > 0) {
-        let msg = PluralForm.get(LIMIT, cal.calGetString("calendar", "alarmSnoozeLimitExceeded"));
+        let msg = PluralForm.get(LIMIT, cal.l10n.getCalString("alarmSnoozeLimitExceeded"));
         cal.showError(msg.replace("#1", LIMIT), window);
         return true;
     }
@@ -239,7 +239,7 @@ function setupTitle() {
     let alarmRichlist = document.getElementById("alarm-richlist");
     let reminders = alarmRichlist.childNodes.length;
 
-    let title = PluralForm.get(reminders, cal.calGetString("calendar", "alarmWindowTitle.label"));
+    let title = PluralForm.get(reminders, cal.l10n.getCalString("alarmWindowTitle.label"));
     document.title = title.replace("#1", reminders);
 }
 
@@ -356,8 +356,7 @@ function doReadOnlyChecks() {
     let snoozeAllButton = document.getElementById("alarm-snooze-all-button");
     snoozeAllButton.disabled = (countRO && countRO == alarmRichlist.childNodes.length);
     if (snoozeAllButton.disabled) {
-        let tooltip = cal.calGetString("calendar-alarms",
-                                       "reminderDisabledSnoozeButtonTooltip");
+        let tooltip = cal.l10n.getString("calendar-alarms", "reminderDisabledSnoozeButtonTooltip");
         snoozeAllButton.setAttribute("tooltiptext", tooltip);
     } else {
         snoozeAllButton.removeAttribute("tooltiptext");
@@ -366,9 +365,9 @@ function doReadOnlyChecks() {
     let nBox = document.getElementById("readonly-notification");
     let notification = nBox.getNotificationWithValue("calendar-readonly");
     if (countRO && !notification) {
-        let message = cal.calGetString("calendar-alarms",
-                                       "reminderReadonlyNotification",
-                                       [snoozeAllButton.label]);
+        let message = cal.l10n.getString("calendar-alarms",
+                                         "reminderReadonlyNotification",
+                                         [snoozeAllButton.label]);
         nBox.appendNotification(message,
                                 "calendar-readonly",
                                 null,

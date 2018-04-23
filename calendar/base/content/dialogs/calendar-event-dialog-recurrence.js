@@ -646,7 +646,7 @@ function checkUntilDate() {
                 return;
             }
             Services.prompt.alert(null, document.title,
-                                  cal.calGetString("calendar", "warningUntilDateBeforeStart"));
+                                  cal.l10n.getCalString("warningUntilDateBeforeStart"));
             checkUntilDate.warning = false;
         };
         setTimeout(callback, 1);
@@ -761,11 +761,7 @@ function changeOrderForElements(aPropKey, aPropParams) {
     }
 
     try {
-        localeOrder = cal.calGetString("calendar-event-dialog",
-                                       aPropKey,
-                                       aPropParams);
-
-        localeOrder = localeOrder.split(" ");
+        localeOrder = cal.l10n.getString("calendar-event-dialog", aPropKey, aPropParams).split(" ");
     } catch (ex) {
         let msg = "The key " + aPropKey + " in calendar-event-dialog.prop" +
                   "erties has incorrect number of params. Expected " +

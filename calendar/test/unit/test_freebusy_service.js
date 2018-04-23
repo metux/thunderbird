@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calProviderUtils.jsm");
 
 var cIFI = Components.interfaces.calIFreeBusyInterval;
 var freebusy = Components.classes["@mozilla.org/calendar/freebusy-service;1"]
@@ -38,7 +37,7 @@ function test_found() {
             ok(!this.called);
             this.called = true;
 
-            let interval = new cal.FreeBusyInterval(aCalId, cIFI.BUSY, aStart, aEnd);
+            let interval = new cal.provider.FreeBusyInterval(aCalId, cIFI.BUSY, aStart, aEnd);
             aListener.onResult(null, [interval]);
         }
     };

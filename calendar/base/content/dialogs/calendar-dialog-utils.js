@@ -10,11 +10,10 @@
 
 ChromeUtils.import("resource://gre/modules/PluralForm.jsm");
 ChromeUtils.import("resource://gre/modules/Services.jsm");
+
 ChromeUtils.import("resource:///modules/iteratorUtils.jsm");
 
 ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calAlarmUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calIteratorUtils.jsm");
 ChromeUtils.import("resource://calendar/modules/calRecurrenceUtils.jsm");
 
 // Variables related to whether we are in a tab or a window dialog.
@@ -613,27 +612,37 @@ function setupAttendees() {
                 cell.setAttribute("attendeeid", attendee.id);
                 cell.removeAttribute("hidden");
 
-                let userTypeString = cal.calGetString("calendar", "dialog.tooltip.attendeeUserType2." + userType,
-                                                      [attendee.toString()]);
-                let roleString = cal.calGetString("calendar", "dialog.tooltip.attendeeRole2." + role,
-                                                  [userTypeString]);
-                let partstatString = cal.calGetString("calendar", "dialog.tooltip.attendeePartStat2." + partstat,
-                                                      [label]);
-                let tooltip = cal.calGetString("calendar", "dialog.tooltip.attendee.combined",
-                                               [roleString, partstatString]);
+                let userTypeString = cal.l10n.getCalString(
+                    "dialog.tooltip.attendeeUserType2." + userType,
+                    [attendee.toString()]
+                );
+                let roleString = cal.l10n.getCalString(
+                    "dialog.tooltip.attendeeRole2." + role,
+                    [userTypeString]
+                );
+                let partstatString = cal.l10n.getCalString(
+                    "dialog.tooltip.attendeePartStat2." + partstat,
+                    [label]
+                );
+                let tooltip = cal.l10n.getCalString(
+                    "dialog.tooltip.attendee.combined",
+                    [roleString, partstatString]
+                );
 
-                let del = cal.resolveDelegation(attendee, window.attendees);
+                let del = cal.itip.resolveDelegation(attendee, window.attendees);
                 if (del.delegators != "") {
-                    del.delegators = cal.calGetString("calendar",
-                                                      "dialog.attendee.append.delegatedFrom",
-                                                      [del.delegators]);
+                    del.delegators = cal.l10n.getCalString(
+                        "dialog.attendee.append.delegatedFrom",
+                        [del.delegators]
+                    );
                     label += " " + del.delegators;
                     tooltip += " " + del.delegators;
                 }
                 if (del.delegatees != "") {
-                    del.delegatees = cal.calGetString("calendar",
-                                                      "dialog.attendee.append.delegatedTo",
-                                                      [del.delegatees]);
+                    del.delegatees = cal.l10n.getCalString(
+                        "dialog.attendee.append.delegatedTo",
+                        [del.delegatees]
+                    );
                     tooltip += " " + del.delegatees;
                 }
 

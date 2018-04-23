@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calIteratorUtils.jsm");
 
 function calIcsSerializer() {
     this.wrappedJSObject = this;
@@ -74,7 +73,7 @@ calIcsSerializer.prototype = {
             calComp.addSubcomponent(comp);
         }
 
-        for (let item of cal.itemIterator(this.mItems)) {
+        for (let item of cal.iterate.items(this.mItems)) {
             calComp.addSubcomponent(item.icalComponent);
         }
 

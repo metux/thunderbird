@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calIteratorUtils.jsm");
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+
+ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 
 /**
  * calItemBase prototype definition
@@ -118,7 +118,7 @@ calItemBase.prototype = {
     },
     set recurrenceInfo(value) {
         this.modify();
-        return (this.mRecurrenceInfo = cal.calTryWrappedJSObject(value));
+        return (this.mRecurrenceInfo = cal.unwrapInstance(value));
     },
 
     // attribute calIItemBase parentItem;
@@ -129,7 +129,7 @@ calItemBase.prototype = {
         if (this.mImmutable) {
             throw Components.results.NS_ERROR_OBJECT_IS_IMMUTABLE;
         }
-        return (this.mParentItem = cal.calTryWrappedJSObject(value));
+        return (this.mParentItem = cal.unwrapInstance(value));
     },
 
     /**
@@ -146,7 +146,7 @@ calItemBase.prototype = {
     initializeProxy: function(aParentItem, aRecurrenceId) {
         this.mIsProxy = true;
 
-        aParentItem = cal.calTryWrappedJSObject(aParentItem);
+        aParentItem = cal.unwrapInstance(aParentItem);
         this.mParentItem = aParentItem;
         this.mCalendar = aParentItem.mCalendar;
         this.recurrenceId = aRecurrenceId;
@@ -253,11 +253,11 @@ calItemBase.prototype = {
         cloned.mImmutable = false;
         cloned.mACLEntry = this.mACLEntry;
         cloned.mIsProxy = this.mIsProxy;
-        cloned.mParentItem = cal.calTryWrappedJSObject(aNewParent) || this.mParentItem;
+        cloned.mParentItem = cal.unwrapInstance(aNewParent) || this.mParentItem;
         cloned.mHashId = this.mHashId;
         cloned.mCalendar = this.mCalendar;
         if (this.mRecurrenceInfo) {
-            cloned.mRecurrenceInfo = cal.calTryWrappedJSObject(this.mRecurrenceInfo.clone());
+            cloned.mRecurrenceInfo = cal.unwrapInstance(this.mRecurrenceInfo.clone());
             cloned.mRecurrenceInfo.item = cloned;
         }
 
@@ -800,21 +800,21 @@ calItemBase.prototype = {
         this.mapPropsFromICS(icalcomp, this.icsBasePropMap);
 
         this.mAttendees = []; // don't inherit anything from parent
-        for (let attprop of cal.ical.propertyIterator(icalcomp, "ATTENDEE")) {
+        for (let attprop of cal.iterate.icalProperty(icalcomp, "ATTENDEE")) {
             let att = new calAttendee();
             att.icalProperty = attprop;
             this.addAttendee(att);
         }
 
         this.mAttachments = []; // don't inherit anything from parent
-        for (let attprop of cal.ical.propertyIterator(icalcomp, "ATTACH")) {
+        for (let attprop of cal.iterate.icalProperty(icalcomp, "ATTACH")) {
             let att = new calAttachment();
             att.icalProperty = attprop;
             this.addAttachment(att);
         }
 
         this.mRelations = []; // don't inherit anything from parent
-        for (let relprop of cal.ical.propertyIterator(icalcomp, "RELATED-TO")) {
+        for (let relprop of cal.iterate.icalProperty(icalcomp, "RELATED-TO")) {
             let rel = new calRelation();
             rel.icalProperty = relprop;
             this.addRelation(rel);
@@ -830,14 +830,14 @@ calItemBase.prototype = {
         this.mOrganizer = org;
 
         this.mCategories = [];
-        for (let catprop of cal.ical.propertyIterator(icalcomp, "CATEGORIES")) {
+        for (let catprop of cal.iterate.icalProperty(icalcomp, "CATEGORIES")) {
             this.mCategories.push(catprop.value);
         }
 
         // find recurrence properties
         let rec = null;
         if (!this.recurrenceId) {
-            for (let recprop of cal.ical.propertyIterator(icalcomp)) {
+            for (let recprop of cal.iterate.icalProperty(icalcomp)) {
                 let ritem = null;
                 switch (recprop.propertyName) {
                     case "RRULE":
@@ -862,7 +862,7 @@ calItemBase.prototype = {
         this.mRecurrenceInfo = rec;
 
         this.mAlarms = []; // don't inherit anything from parent
-        for (let alarmComp of cal.ical.subcomponentIterator(icalcomp, "VALARM")) {
+        for (let alarmComp of cal.iterate.icalSubcomponent(icalcomp, "VALARM")) {
             let alarm = cal.createAlarm();
             try {
                 alarm.icalComponent = alarmComp;
@@ -892,11 +892,11 @@ calItemBase.prototype = {
      * @param promoted      The map of promoted properties.
      */
     importUnpromotedProperties: function(icalcomp, promoted) {
-        for (let prop of cal.ical.propertyIterator(icalcomp)) {
+        for (let prop of cal.iterate.icalProperty(icalcomp)) {
             let propName = prop.propertyName;
             if (!promoted[propName]) {
                 this.setProperty(propName, prop.value);
-                for (let [paramName, paramValue] of cal.ical.paramIterator(prop)) {
+                for (let [paramName, paramValue] of cal.iterate.icalParameter(prop)) {
                     if (!(propName in this.mPropertyParams)) {
                         this.mPropertyParams[propName] = {};
                     }

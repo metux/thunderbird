@@ -7,8 +7,6 @@ ChromeUtils.import("resource://gre/modules/PromiseUtils.jsm");
 ChromeUtils.import("resource://gre/modules/Services.jsm");
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-ChromeUtils.import("resource://calendar/modules/calAsyncUtils.jsm");
-ChromeUtils.import("resource://calendar/modules/calProviderUtils.jsm");
 ChromeUtils.import("resource://calendar/modules/calUtils.jsm");
 
 ChromeUtils.import("resource://gdata-provider/modules/calUtilsShim.jsm");
@@ -41,7 +39,7 @@ var calGoogleCalendarInterfaces = [
     Components.interfaces.calIChangeLog
 ];
 calGoogleCalendar.prototype = {
-    __proto__: cal.ProviderBase.prototype,
+    __proto__: cal.provider.BaseClass.prototype,
 
     classID: calGoogleCalendarClassID,
     QueryInterface: XPCOMUtils.generateQI(calGoogleCalendarInterfaces),
@@ -439,7 +437,7 @@ calGoogleCalendar.prototype = {
                 // Updating invitations often causes a forbidden error becase
                 // some parts are not writable. Using PATCH ignores anything
                 // that isn't allowed.
-                if (cal.isInvitation(aNewItem)) {
+                if (cal.itip.isInvitation(aNewItem)) {
                     request.type = request.PATCH;
                 }
 
@@ -756,7 +754,7 @@ calGoogleCalendar.prototype = {
         tasksRequest.addQueryParameter("maxResults", maxResults);
         let lastUpdated = this.getUpdatedMin("tasks");
         if (lastUpdated) {
-            tasksRequest.addQueryParameter("updatedMin", cal.toRFC3339(lastUpdated));
+            tasksRequest.addQueryParameter("updatedMin", cal.dtz.toRFC3339(lastUpdated));
             tasksRequest.addQueryParameter("showDeleted", "true");
         }
         if (tasksRequest.uri && this.checkThrottle("tasks")) {
