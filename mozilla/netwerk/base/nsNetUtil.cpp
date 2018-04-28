@@ -2129,6 +2129,96 @@ NS_HasBeenCrossOrigin(nsIChannel* aChannel, bool aReport)
 }
 
 bool
+NS_IsSafeTopLevelNav(nsIChannel* aChannel)
+{
+  if (!aChannel) {
+    return false;
+  }
+  nsCOMPtr<nsILoadInfo> loadInfo = aChannel->GetLoadInfo();
+  if (!loadInfo) {
+    return false;
+  }
+  if (loadInfo->GetExternalContentPolicyType() != nsIContentPolicy::TYPE_DOCUMENT) {
+    return false;
+  }
+  RefPtr<HttpBaseChannel> baseChan = do_QueryObject(aChannel);
+  if (!baseChan) {
+    return false;
+  }
+  nsHttpRequestHead *requestHead = baseChan->GetRequestHead();
+  if (!requestHead) {
+    return false;
+  }
+  return requestHead->IsSafeMethod();
+}
+
+bool NS_IsSameSiteForeign(nsIChannel* aChannel, nsIURI* aHostURI)
+{
+  if (!aChannel) {
+    return false;
+  }
+  nsCOMPtr<nsILoadInfo> loadInfo = aChannel->GetLoadInfo();
+  if (!loadInfo) {
+    return false;
+  }
+  nsCOMPtr<nsIURI> uri;
+  if (loadInfo->GetExternalContentPolicyType() == nsIContentPolicy::TYPE_DOCUMENT) {
+    // for loads of TYPE_DOCUMENT we query the hostURI from the triggeringPricnipal
+    // which returns the URI of the document that caused the navigation.
+    loadInfo->TriggeringPrincipal()->GetURI(getter_AddRefs(uri));
+  }
+  else {
+    uri = aHostURI;
+  }
+
+  nsCOMPtr<mozIThirdPartyUtil> thirdPartyUtil =
+    do_GetService(THIRDPARTYUTIL_CONTRACTID);
+  if (!thirdPartyUtil) {
+    return false;
+  }
+
+  bool isForeign = true;
+  nsresult rv = thirdPartyUtil->IsThirdPartyChannel(aChannel, uri, &isForeign);
+  // if we are dealing with a cross origin request, we can return here
+  // because we already know the request is 'foreign'.
+  if (NS_FAILED(rv) || isForeign) {
+    return true;
+  }
+
+  // for loads of TYPE_SUBDOCUMENT we have to perform an additional test, because
+  // a cross-origin iframe might perform a navigation to a same-origin iframe which
+  // would send same-site cookies. Hence, if the iframe navigation was triggered
+  // by a cross-origin triggeringPrincipal, we treat the load as foreign.
+  if (loadInfo->GetExternalContentPolicyType() == nsIContentPolicy::TYPE_SUBDOCUMENT) {
+    nsCOMPtr<nsIURI> triggeringPrincipalURI;
+    loadInfo->TriggeringPrincipal()->GetURI(getter_AddRefs(triggeringPrincipalURI));
+    rv = thirdPartyUtil->IsThirdPartyChannel(aChannel, triggeringPrincipalURI, &isForeign);
+    if (NS_FAILED(rv) || isForeign) {
+      return true;
+    }
+  }
+
+  // for the purpose of same-site cookies we have to treat any cross-origin
+  // redirects as foreign. E.g. cross-site to same-site redirect is a problem
+  // with regards to CSRF.
+
+  nsCOMPtr<nsIPrincipal> redirectPrincipal;
+  nsCOMPtr<nsIURI> redirectURI;
+  for (nsIRedirectHistoryEntry* entry : loadInfo->RedirectChain()) {
+    entry->GetPrincipal(getter_AddRefs(redirectPrincipal));
+    if (redirectPrincipal) {
+      redirectPrincipal->GetURI(getter_AddRefs(redirectURI));
+      rv = thirdPartyUtil->IsThirdPartyChannel(aChannel, redirectURI, &isForeign);
+      // if at any point we encounter a cross-origin redirect we can return.
+      if (NS_FAILED(rv) || isForeign) {
+        return true;
+      }
+    }
+  }
+  return isForeign;
+}
+
+bool
 NS_ShouldCheckAppCache(nsIPrincipal *aPrincipal)
 {
     uint32_t privateBrowsingId = 0;

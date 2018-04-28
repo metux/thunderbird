@@ -76,6 +76,7 @@ using namespace mozilla::net;
  ******************************************************************************/
 
 static StaticRefPtr<nsCookieService> gCookieService;
+bool nsCookieService::sSameSiteEnabled = false;
 
 // XXX_hack. See bug 178993.
 // This is a hack to hide HttpOnly cookies from older browsers
@@ -2040,8 +2041,11 @@ nsCookieService::GetCookieStringCommon(nsIURI *aHostURI,
     NS_GetOriginAttributes(aChannel, attrs);
   }
 
+  bool isSafeTopLevelNav = NS_IsSafeTopLevelNav(aChannel);
+  bool isSameSiteForeign = NS_IsSameSiteForeign(aChannel, aHostURI);
   nsAutoCString result;
-  GetCookieStringInternal(aHostURI, isForeign, aHttpBound, attrs, result);
+  GetCookieStringInternal(aHostURI, isForeign, isSafeTopLevelNav, isSameSiteForeign,
+                          aHttpBound, attrs, result);
   *aCookie = result.IsEmpty() ? nullptr : ToNewCString(result);
   return NS_OK;
 }
@@ -3072,6 +3076,18 @@ nsCookieService::DomainMatches(nsCookie* aCookie,
 }
 
 bool
+nsCookieService::IsSameSiteEnabled()
+{
+  static bool prefInitialized = false;
+  if (!prefInitialized) {
+    Preferences::AddBoolVarCache(&sSameSiteEnabled,
+                                 "network.cookie.same-site.enabled", false);
+    prefInitialized = true;
+  }
+  return sSameSiteEnabled;
+}
+
+bool
 nsCookieService::PathMatches(nsCookie* aCookie,
                              const nsACString& aPath)
 {
@@ -3108,6 +3124,8 @@ nsCookieService::PathMatches(nsCookie* aCookie,
 void
 nsCookieService::GetCookiesForURI(nsIURI *aHostURI,
                                   bool aIsForeign,
+                                  bool aIsSafeTopLevelNav,
+                                  bool aIsSameSiteForeign,
                                   bool aHttpBound,
                                   const OriginAttributes& aOriginAttrs,
                                   nsTArray<nsCookie*>& aCookieList)
@@ -3197,6 +3215,21 @@ nsCookieService::GetCookiesForURI(nsIURI *aHostURI,
     if (cookie->IsSecure() && !isSecure)
       continue;
 
+    int32_t sameSiteAttr = 0;
+    cookie->GetSameSite(&sameSiteAttr);
+    if (aIsSameSiteForeign && IsSameSiteEnabled()) {
+      // it if's a cross origin request and the cookie is same site only (strict)
+      // don't send it
+      if (sameSiteAttr == nsICookie2::SAMESITE_STRICT) {
+        continue;
+      }
+      // if it's a cross origin request, the cookie is same site lax, but it's not
+      // a top-level navigation, don't send it
+      if (sameSiteAttr == nsICookie2::SAMESITE_LAX && !aIsSafeTopLevelNav) {
+        continue;
+      }
+    }
+
     // if the cookie is httpOnly and it's not going directly to the HTTP
     // connection, don't send it
     if (cookie->IsHttpOnly() && !aHttpBound)
@@ -3264,12 +3297,15 @@ nsCookieService::GetCookiesForURI(nsIURI *aHostURI,
 void
 nsCookieService::GetCookieStringInternal(nsIURI *aHostURI,
                                          bool aIsForeign,
+                                         bool aIsSafeTopLevelNav,
+                                         bool aIsSameSiteForeign,
                                          bool aHttpBound,
                                          const OriginAttributes& aOriginAttrs,
                                          nsCString &aCookieString)
 {
   AutoTArray<nsCookie*, 8> foundCookieList;
-  GetCookiesForURI(aHostURI, aIsForeign, aHttpBound, aOriginAttrs, foundCookieList);
+  GetCookiesForURI(aHostURI, aIsForeign, aIsSafeTopLevelNav, aIsSameSiteForeign,
+                   aHttpBound, aOriginAttrs, foundCookieList);
 
   nsCookie* cookie;
   for (uint32_t i = 0; i < foundCookieList.Length(); ++i) {
@@ -3444,6 +3480,20 @@ nsCookieService::CanSetCookie(nsIURI*             aHostURI,
     Telemetry::Accumulate(Telemetry::COOKIE_LEAVE_SECURE_ALONE,
                           BLOCKED_SECURE_SET_FROM_HTTP);
     return newCookie;
+  }
+
+  // If the new cookie is same-site but in a cross site context,
+  // browser must ignore the cookie.
+  if ((aCookieAttributes.sameSite != nsICookie2::SAMESITE_UNSET) &&
+      aThirdPartyUtil &&
+      IsSameSiteEnabled()) {
+    bool isThirdParty = false;
+    aThirdPartyUtil->IsThirdPartyChannel(aChannel, aHostURI, &isThirdParty);
+    if (isThirdParty) {
+      COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, savedCookieHeader,
+                        "failed the samesite tests");
+      return newCookie;
+    }
   }
 
   aSetCookie = true;
@@ -3888,6 +3938,7 @@ nsCookieService::ParseAttributes(nsDependentCString &aCookieHeader,
   static const char kHttpOnly[]  = "httponly";
   static const char kSameSite[]       = "samesite";
   static const char kSameSiteLax[]    = "lax";
+  static const char kSameSiteStrict[]    = "strict";
 
   nsACString::const_char_iterator tempBegin, tempEnd;
   nsACString::const_char_iterator cookieStart, cookieEnd;
@@ -3949,7 +4000,7 @@ nsCookieService::ParseAttributes(nsDependentCString &aCookieHeader,
     else if (tokenString.LowerCaseEqualsLiteral(kSameSite)) {
       if (tokenValue.LowerCaseEqualsLiteral(kSameSiteLax)) {
         aCookieAttributes.sameSite = nsICookie2::SAMESITE_LAX;
-      } else {
+      } else if (tokenValue.LowerCaseEqualsLiteral(kSameSiteStrict)) {
         aCookieAttributes.sameSite = nsICookie2::SAMESITE_STRICT;
       }
     }

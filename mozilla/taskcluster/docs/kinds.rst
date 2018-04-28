@@ -305,6 +305,14 @@ release-secondary-balrog-publishing
 ---------------------
 Schedule an RC release to go live in Balrog. Usually this will happen on the beta channel, to a smaller audience, before the RC goes live on the release channel.
 
+release-sign-and-push-langpacks
+-------------------------------
+Sign a langpack XPI and publishes it onto addons.mozilla.org.
+
+release-beetmover-signed-langpacks
+----------------------------------
+Publishes signed langpacks to archive.mozilla.org
+
 release-update-verify
 ---------------------
 Verifies the contents and package of release update MARs.
@@ -340,6 +348,46 @@ Signs source for the release
 release-partner-repack
 ----------------------
 Generates customized versions of releases for partners.
+
+release-partner-repack-chunking-dummy
+----------------------
+Chunks the partner repacks by locale.
+
+release-partner-repack-signing
+------------------------------
+Internal signing of partner repacks.
+
+release-partner-repack-repackage
+------------------------------
+Repackaging of partner repacks.
+
+release-partner-repack-repackage-signing
+------------------------------
+External signing of partner repacks.
+
+release-partner-repack-beetmover
+------------------------------
+Moves the partner repacks to S3 buckets.
+
+release-eme-free-repack
+----------------------
+Generates customized versions of releases for eme-free repacks.
+
+release-eme-free-repack-signing
+------------------------------
+Internal signing of eme-free repacks
+
+release-eme-free-repack-repackage
+------------------------------
+Repackaging of eme-free repacks.
+
+release-eme-free-repack-repackage-signing
+------------------------------
+External signing of eme-free repacks.
+
+release-eme-free-repack-beetmover
+------------------------------
+Moves the eme-free repacks to S3 buckets.
 
 repackage
 ---------
@@ -389,6 +437,10 @@ Dummy tasks to consolidate beetmover dependencies to avoid taskcluster limits on
 post-beetmover-checksums-dummy
 ------------------------------
 Dummy tasks to consolidate beetmover-checksums dependencies to avoid taskcluster limits on number of dependencies per task.
+
+post-langpack-dummy
+------------------------------
+Dummy tasks to consolidate language pack beetmover dependencies to avoid taskcluster limits on number of dependencies per task.
 
 packages
 --------

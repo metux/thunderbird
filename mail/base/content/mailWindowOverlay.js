@@ -3075,7 +3075,7 @@ var gMessageNotificationBar =
     return !!this.msgNotificationBar.getNotificationWithValue("junkContent");
   },
 
-  setRemoteContentMsg: function(aMsgHdr, aContentURI)
+  setRemoteContentMsg: function(aMsgHdr, aContentURI, aCanOverride)
   {
     // update the allow remote content for sender string
     let emailAddress = MailServices.headerParser.extractHeaderAddressMailboxes(aMsgHdr.author);
@@ -3103,7 +3103,7 @@ var gMessageNotificationBar =
       this.msgNotificationBar.appendNotification(remoteContentMsg, "remoteContent",
         "chrome://messenger/skin/icons/remote-blocked.svg",
         this.msgNotificationBar.PRIORITY_WARNING_MEDIUM,
-        buttons);
+        (aCanOverride ? buttons : []));
     }
 
     // The popup value is a space separated list of all the blocked origins.
