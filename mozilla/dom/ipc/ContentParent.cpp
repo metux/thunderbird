@@ -2920,9 +2920,6 @@ ContentParent::Observe(nsISupports* aSubject,
 #ifdef ACCESSIBILITY
   else if (aData && !strcmp(aTopic, "a11y-init-or-shutdown")) {
     if (*aData == '1') {
-      // Shut down the preallocated process manager to avoid recycled
-      // content processes.
-      PreallocatedProcessManager::Disable();
       // Make sure accessibility is running in content process when
       // accessibility gets initiated in chrome process.
 #if defined(XP_WIN)
@@ -3347,11 +3344,15 @@ PPrintingParent*
 ContentParent::AllocPPrintingParent()
 {
 #ifdef NS_PRINTING
-  MOZ_ASSERT(!mPrintingParent,
-             "Only one PrintingParent should be created per process.");
+  MOZ_RELEASE_ASSERT(!mPrintingParent,
+                     "Only one PrintingParent should be created per process.");
 
   // Create the printing singleton for this process.
   mPrintingParent = new PrintingParent();
+
+  // Take another reference for IPDL code.
+  mPrintingParent.get()->AddRef();
+
   return mPrintingParent.get();
 #else
   MOZ_ASSERT_UNREACHABLE("Should never be created if no printing.");
@@ -3363,8 +3364,11 @@ bool
 ContentParent::DeallocPPrintingParent(PPrintingParent* printing)
 {
 #ifdef NS_PRINTING
-  MOZ_ASSERT(mPrintingParent == printing,
-             "Only one PrintingParent should have been created per process.");
+  MOZ_RELEASE_ASSERT(mPrintingParent == printing,
+    "Only one PrintingParent should have been created per process.");
+
+  // Release reference taken for IPDL code.
+  static_cast<PrintingParent*>(printing)->Release();
 
   mPrintingParent = nullptr;
 #else

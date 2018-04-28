@@ -13,6 +13,7 @@ transforms:
 kind-dependencies:
    - beetmover-source
    - post-beetmover-checksums-dummy
+   - release-beetmover-signed-langpacks
 
 job-defaults:
    description: generates checksums

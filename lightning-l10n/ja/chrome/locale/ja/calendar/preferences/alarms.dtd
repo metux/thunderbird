@@ -16,9 +16,9 @@
 <!ENTITY pref.calendar.alarms.sound.browse.accessKey "B">
 <!ENTITY pref.calendar.alarms.sound.play.label "再生">
 <!ENTITY pref.calendar.alarms.sound.play.accessKey "P">
-<!ENTITY pref.showalarmbox    "アラームボックスを表示する" >
+<!ENTITY pref.showalarmbox "アラームボックスを表示する" >
 <!ENTITY pref.calendar.alarms.showAlarmBox.accessKey "x">
-<!ENTITY pref.missedalarms    "失敗したアラームを表示する" >
+<!ENTITY pref.missedalarms2 "書き込み可能カレンダーの失敗したアラームを表示する">
 <!ENTITY pref.calendar.alarms.missedAlarms.accessKey "m">
 <!ENTITY pref.calendar.alarms.defaults.label "既定のアラーム設定">
 <!ENTITY pref.defalarm4events.label "予定のアラーム設定:">
@@ -34,5 +34,3 @@
 
 <!ENTITY pref.defaultsnoozelength.label "アラーム再通知の既定の間隔:" >
 <!ENTITY pref.defaultsnoozelength.accesskey "S">
-
-<!ENTITY pref.missedalarms2 "Show missed reminders for writable calendars">

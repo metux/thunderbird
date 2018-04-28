@@ -17,6 +17,7 @@ from taskgraph.util.schema import validate_schema, Schema
 from taskgraph.util.scriptworker import (get_beetmover_bucket_scope,
                                          get_beetmover_action_scope,
                                          get_phase)
+from taskgraph.util.taskcluster import get_artifact_prefix
 from taskgraph.transforms.task import task_description_schema
 from voluptuous import Any, Required, Optional
 
@@ -54,15 +55,6 @@ _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US = [
     "target_info.txt",
     "target.jsshell.zip",
     "mozharness.zip",
-    "target.langpack.xpi",
-]
-
-# Until bug 1331141 is fixed, if you are adding any new artifacts here that
-# need to be transfered to S3, please be aware you also need to follow-up
-# with a beetmover patch in https://github.com/mozilla-releng/beetmoverscript/.
-# See example in bug 1348286
-_DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_L10N = [
-    "target.langpack.xpi",
 ]
 
 # Until bug 1331141 is fixed, if you are adding any new artifacts here that
@@ -70,18 +62,36 @@ _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_L10N = [
 # with a beetmover patch in https://github.com/mozilla-releng/beetmoverscript/.
 # See example in bug 1348286
 UPSTREAM_ARTIFACT_UNSIGNED_PATHS = {
-    r'^(linux(|64)|macosx64)(|-devedition)-nightly$':
+    r'^(linux(|64)|macosx64)-nightly$':
         _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US + [
             'host/bin/mar',
             'host/bin/mbsdiff',
         ],
-    r'^win(32|64)(|-devedition)-nightly$':
+    r'^(linux(|64)|macosx64)-devedition-nightly$':
         _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US + [
-            "host/bin/mar.exe",
-            "host/bin/mbsdiff.exe",
+            'host/bin/mar',
+            'host/bin/mbsdiff',
+            # TODO Bug 1453033: Sign devedition langpacks
+            'target.langpack.xpi',
         ],
-    r'^(linux(|64)|macosx64|win(32|64))(|-devedition)-nightly-l10n$':
-        _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_L10N,
+    r'^win(32|64)-nightly$':
+        _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US + [
+            'host/bin/mar.exe',
+            'host/bin/mbsdiff.exe',
+        ],
+    r'^win(32|64)-devedition-nightly$':
+        _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US + [
+            'host/bin/mar.exe',
+            'host/bin/mbsdiff.exe',
+            # TODO Bug 1453033: Sign devedition langpacks
+            'target.langpack.xpi',
+        ],
+    r'^(linux(|64)|macosx64|win(32|64))-nightly-l10n$': [],
+    r'^(linux(|64)|macosx64|win(32|64))-devedition-nightly-l10n$':
+        [
+            # TODO Bug 1453033: Sign devedition langpacks
+            'target.langpack.xpi',
+        ],
 }
 
 # Until bug 1331141 is fixed, if you are adding any new artifacts here that
@@ -249,7 +259,7 @@ def make_task_description(config, jobs):
         yield task
 
 
-def generate_upstream_artifacts(build_task_ref, build_signing_task_ref,
+def generate_upstream_artifacts(job, build_task_ref, build_signing_task_ref,
                                 repackage_task_ref, repackage_signing_task_ref,
                                 platform, locale=None):
 
@@ -258,9 +268,9 @@ def generate_upstream_artifacts(build_task_ref, build_signing_task_ref,
     repackage_mapping = UPSTREAM_ARTIFACT_REPACKAGE_PATHS
     repackage_signing_mapping = UPSTREAM_ARTIFACT_SIGNED_REPACKAGE_PATHS
 
-    artifact_prefix = 'public/build'
+    artifact_prefix = get_artifact_prefix(job)
     if locale:
-        artifact_prefix = 'public/build/{}'.format(locale)
+        artifact_prefix = '{}/{}'.format(artifact_prefix, locale)
         platform = "{}-l10n".format(platform)
 
     upstream_artifacts = []
@@ -286,22 +296,22 @@ def generate_upstream_artifacts(build_task_ref, build_signing_task_ref,
                 _check_platform_matched_only_one_regex(
                     tasktype, platform, plarform_was_previously_matched_by_regex, platform_regex
                 )
-                upstream_artifacts.append({
-                    "taskId": {"task-reference": ref},
-                    "taskType": tasktype,
-                    "paths": ["{}/{}".format(artifact_prefix, path) for path in paths],
-                    "locale": locale or "en-US",
-                })
+                if paths:
+                    upstream_artifacts.append({
+                        "taskId": {"task-reference": ref},
+                        "taskType": tasktype,
+                        "paths": ["{}/{}".format(artifact_prefix, path) for path in paths],
+                        "locale": locale or "en-US",
+                    })
                 plarform_was_previously_matched_by_regex = platform_regex
 
     return upstream_artifacts
 
 
-def generate_partials_upstream_artifacts(artifacts, platform, locale=None):
-    if not locale or locale == 'en-US':
-        artifact_prefix = 'public/build'
-    else:
-        artifact_prefix = 'public/build/{}'.format(locale)
+def generate_partials_upstream_artifacts(job, artifacts, platform, locale=None):
+    artifact_prefix = get_artifact_prefix(job)
+    if locale and locale != 'en-US':
+        artifact_prefix = '{}/{}'.format(artifact_prefix, locale)
 
     upstream_artifacts = [{
         'taskId': {'task-reference': '<partials-signing>'},
@@ -375,7 +385,7 @@ def make_task_worker(config, jobs):
             'implementation': 'beetmover',
             'release-properties': craft_release_properties(config, job),
             'upstream-artifacts': generate_upstream_artifacts(
-                build_task_ref, build_signing_task_ref, repackage_task_ref,
+                job, build_task_ref, build_signing_task_ref, repackage_task_ref,
                 repackage_signing_task_ref, platform, locale
             ),
         }
@@ -417,7 +427,7 @@ def make_partials_artifacts(config, jobs):
                 continue
 
         upstream_artifacts = generate_partials_upstream_artifacts(
-            artifacts, balrog_platform, locale
+            job, artifacts, balrog_platform, locale
         )
 
         job['worker']['upstream-artifacts'].extend(upstream_artifacts)

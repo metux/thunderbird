@@ -7242,8 +7242,8 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
                                             nsIContent* aContainer,
                                             nsIContent* aChild)
 {
-  if (!aContainer || aContainer->IsInNativeAnonymousSubtree() ||
-      aContainer->IsXULElement()) {
+  if (mPresShell->GetPresContext()->IsChrome() || !aContainer ||
+      aContainer->IsInNativeAnonymousSubtree() || aContainer->IsXULElement()) {
     return false;
   }
 

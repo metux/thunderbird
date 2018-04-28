@@ -378,6 +378,7 @@ task_description_schema = Schema({
 
         # optional features
         Required('chain-of-trust'): bool,
+        Optional('taskcluster-proxy'): bool,
     }, {
         Required('implementation'): 'buildbot-bridge',
 
@@ -458,10 +459,12 @@ task_description_schema = Schema({
         Required('implementation'): 'beetmover',
 
         # the maximum time to run, in seconds
-        Required('max-run-time'): int,
+        Required('max-run-time', default=600): int,
 
         # locale key, if this is a locale beetmover job
         Optional('locale'): basestring,
+
+        Optional('partner-public'): bool,
 
         Required('release-properties'): {
             'app-name': basestring,
@@ -547,6 +550,14 @@ task_description_schema = Schema({
         Optional('rollout-percentage'): Any(int, None),
     }, {
         Required('implementation'): 'push-snap',
+        Required('upstream-artifacts'): [{
+            Required('taskId'): taskref_or_string,
+            Required('taskType'): basestring,
+            Required('paths'): [basestring],
+        }],
+    }, {
+        Required('implementation'): 'sign-and-push-addons',
+        Required('channel'): Any('listed', 'unlisted'),
         Required('upstream-artifacts'): [{
             Required('taskId'): taskref_or_string,
             Required('taskType'): basestring,
@@ -959,6 +970,9 @@ def build_generic_worker_payload(config, task, task_def):
     if worker.get('chain-of-trust'):
         features['chainOfTrust'] = True
 
+    if worker.get('taskcluster-proxy'):
+        features['taskclusterProxy'] = True
+
     if features:
         task_def['payload']['features'] = features
 
@@ -1019,6 +1033,8 @@ def build_beetmover_payload(config, task, task_def):
     }
     if worker.get('locale'):
         task_def['payload']['locale'] = worker['locale']
+    if worker.get('partner-public'):
+        task_def['payload']['is_partner_repack_public'] = worker['partner-public']
     if release_config:
         task_def['payload'].update(release_config)
 
@@ -1105,7 +1121,7 @@ def build_push_apk_payload(config, task, task_def):
 
     task_def['payload'] = {
         'commit': worker['commit'],
-        'upstreamArtifacts':  worker['upstream-artifacts'],
+        'upstreamArtifacts': worker['upstream-artifacts'],
         'google_play_track': worker['google-play-track'],
     }
 
@@ -1128,6 +1144,16 @@ def build_ship_it_payload(config, task, task_def):
 
     task_def['payload'] = {
         'release_name': worker['release-name']
+    }
+
+
+@payload_builder('sign-and-push-addons')
+def build_sign_and_push_addons_payload(config, task, task_def):
+    worker = task['worker']
+
+    task_def['payload'] = {
+        'channel': worker['channel'],
+        'upstreamArtifacts': worker['upstream-artifacts'],
     }
 
 

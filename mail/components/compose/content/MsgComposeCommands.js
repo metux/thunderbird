@@ -26,6 +26,10 @@ ChromeUtils.defineModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
 ChromeUtils.defineModuleGetter(this, "ShortcutUtils",
                                "resource://gre/modules/ShortcutUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetters(this, {
+  LightweightThemeManager: "resource://gre/modules/LightweightThemeManager.jsm",
+});
+
 /**
  * interfaces
  */
@@ -687,10 +691,8 @@ var defaultController = {
           cmdToggleAttachmentPane.setAttribute("checked", "true");
         }
 
-        // Enable this command when the compose window isn't locked;
-        // disable for full, visible bucket (effective for menu only; command's
-        // shortcut key will still work via bucket's identical access key).
-        return (!gWindowLocked && !(bucket.itemCount > 0 && paneShown))
+        // Enable this command when the compose window isn't locked.
+        return !gWindowLocked;
       },
       doCommand: function() {
         toggleAttachmentPane();
@@ -3109,6 +3111,7 @@ function ComposeLoad()
     return;
   }
 
+  CompactTheme.init();
   ToolbarIconColor.init();
 
   // initialize the customizeDone method on the customizeable toolbar
@@ -3147,6 +3150,7 @@ function ComposeUnload()
   RemoveMessageComposeOfflineQuitObserver();
   gAttachmentNotifier.shutdown();
   ToolbarIconColor.uninit();
+  CompactTheme.uninit();
 
   // Stop observing dictionary removals.
   dictionaryRemovalObserver.removeObserver();
@@ -5188,7 +5192,7 @@ function moveSelectedAttachments(aDirection)
 }
 
 /**
- * Toggle attachment pane view state: show or hide it (only if bucket is empty).
+ * Toggle attachment pane view state: show or hide it.
  * If aAction parameter is omitted, auto-cycling of view states, bias for "show".
  * Note: In the current UI layout, forcing "hide" is not recommended for full
  *       bucket as it may violate ux-error-prevention.
@@ -5201,18 +5205,16 @@ function moveSelectedAttachments(aDirection)
 function toggleAttachmentPane(aAction = "toggle") {
   let bucket = GetMsgAttachmentElement();
   let attachmentsBox = document.getElementById("attachments-box");
-  let emptyBucket = (bucket.itemCount == 0);
   let bucketHasFocus = (document.activeElement == bucket);
   let attachmentBucketSizer = document.getElementById("attachmentbucket-sizer");
 
   if (aAction == "toggle") {
-    if (!attachmentsBox.collapsed && bucket.itemCount == 0) {
-      // Menu click (View > Attachment Pane) with empty, shown bucket: Hide it.
+    if (!attachmentsBox.collapsed) {
+      // Menu click (View > Attachment Pane) with shown bucket: Hide it.
       aAction = "hide"
     } else {
       // Menu click with hidden bucket (empty or full)
-      // or cmd_toggleAttachmentPane via shortcut key;
-      // we disable the menu to prevent hiding full and shown bucket.
+      // or cmd_toggleAttachmentPane via shortcut key.
       aAction = "show";
     }
   }
@@ -5221,6 +5223,7 @@ function toggleAttachmentPane(aAction = "toggle") {
     case "show":
       attachmentsBox.collapsed = false;
       attachmentBucketSizer.collapsed = false;
+      attachmentBucketSizer.setAttribute("state", "");
       if (!bucketHasFocus)
         bucket.focus();
       break;
@@ -5229,7 +5232,7 @@ function toggleAttachmentPane(aAction = "toggle") {
       if (bucketHasFocus)
         SetMsgBodyFrameFocus();
       attachmentsBox.collapsed = true;
-      attachmentBucketSizer.collapsed = true;
+      attachmentBucketSizer.setAttribute("state", "collapsed");
       break;
 
     case "focus":
@@ -5459,11 +5462,11 @@ function AttachmentElementHasItems()
 
 function attachmentBucketMarkEmptyBucket() {
   let attachmentBucket = GetMsgAttachmentElement();
-  let bucketSizer = document.getElementById("attachmentbucket-sizer");
+  let attachmentsBox = document.getElementById("attachments-box");
   if (attachmentBucket.itemCount > 0) {
-    attachmentBucket.removeAttribute("empty");
+    attachmentsBox.removeAttribute("empty");
   } else {
-    attachmentBucket.setAttribute("empty", "true");
+    attachmentsBox.setAttribute("empty", "true");
   }
 }
 
