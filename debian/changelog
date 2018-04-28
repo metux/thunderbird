@@ -1,3 +1,10 @@
+thunderbird (1:60.0~b5-1) experimental; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [b8625ea] New upstream version 60.0~b5
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sat, 28 Apr 2018 19:15:07 +0200
+
 thunderbird (1:60.0~b4-1) experimental; urgency=medium
 
   [ Carsten Schoenert ]
