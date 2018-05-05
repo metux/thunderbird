@@ -134,24 +134,9 @@ endif
 	for LANG in *; do \
 		locale=`basename $${LANG}` ;\
 		lowercase_locale=`echo $${locale} | tr 'A-Z' 'a-z'` ;\
-		echo "preparing and working on 'lightning-l10n-$${lowercase_locale}'   (langpack-$${locale}@lightning.debian.org)" ;\
-		mkdir -p $(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org ;\
-		cp -a $${locale}/* $(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/ ;\
-		rm -f $(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/app.ini ;\
-	done
-	# symlink lightning-l10n packages for Thunderbird and Lightning
-	#   /u/l/lightning/extensions/$(langpack)   -> /u/s/lightning/extensions/$(langpack)
-	#   /u/l/thunderbird/extensions/$(langpack) -> /u/s/lightning/extensions/$(langpack)
-	cd $(CURDIR)/lightning-l10n ;\
-	for LANG in *; do \
-		locale=`basename $${LANG}`; \
-		lowercase_locale=`echo $${locale} | tr 'A-Z' 'a-z'` ;\
-		mkdir -p $(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/lib/lightning/extensions/ ;\
-		ln -sf /usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/ \
-			$(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/lib/lightning/extensions/langpack-$${locale}@lightning.debian.org ;\
-		mkdir -p $(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/lib/thunderbird/extensions/ ;\
-		ln -sf /usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/ \
-			$(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/lib/thunderbird/extensions/langpack-$${locale}@lightning.debian.org ;\
+		echo "working on 'lightning-l10n-$${lowercase_locale}'" ;\
+		mkdir -p $(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/share/lightning ;\
+		cp -a $${locale}/* $(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/share/lightning ;\
 	done
 	dh_bash-completion
 
@@ -163,21 +148,6 @@ override_dh_install-arch:
 		fi \
 	fi
 	dh_install
-	# prepare lightning
-	LIGHTNING=`find -type f -name "lightning*.xpi"` &&\
-		unzip -d debian/lightning/usr/lib/lightning/ $(CURDIR)/$$LIGHTNING
-	# remove executable rights on *.js, *.png, *.xul files
-	find debian/lightning*/ -type f \( -name "*.dtd" -o -name "*.js" -o -name "*.png" -o -name "*.properties" -o -name "*.xul" \) -exec chmod 644 {} \;
-	# moving skins and icon stuff to /usr/share/lightning/
-	mv debian/lightning/usr/lib/lightning/chrome/skin debian/lightning/usr/share/lightning/chrome/
-	mv debian/lightning/usr/lib/lightning/chrome/icons debian/lightning/usr/share/lightning/chrome/
-	cd debian/lightning/usr/lib/lightning/chrome && ln -s ../../../share/lightning/chrome/skin/
-	cd debian/lightning/usr/lib/lightning/chrome && ln -s ../../../share/lightning/chrome/icons/
-	# sometimes there are temporary build files in lightning
-	@echo "    --> searching for temporary build files in 'lightning' ..."
-	@for i in `find debian/lightning/ -name ".mkdir.done*"`; do echo remove $$i && rm $$i; done
-	find debian/lightning/usr/lib/lightning -newermt '$(BUILD_DATE)' -print0 | \
-		xargs -0r touch --no-dereference --date='$(BUILD_DATE)'
 	# install apparmor profile
 	cp debian/apparmor/usr.bin.thunderbird debian/thunderbird/etc/apparmor.d/usr.bin.thunderbird
 	dh_apparmor --profile-name=usr.bin.thunderbird -pthunderbird
@@ -196,6 +166,22 @@ override_dh_install-indep:
 	# sometimes there are temporary build files in calendar-google-provider
 	@echo "    --> searching for temporary build files in 'calendar-google-provider' ..."
 	@for i in `find debian/calendar-google-provider/ -name ".mkdir.done*"`; do echo remove $$i && rm $$i; done
+	# prepare lightning
+	mkdir -p debian/lightning/usr/share/lightning
+	LIGHTNING=`find -type f -name "lightning*.xpi"` &&\
+		unzip -d debian/lightning/usr/share/lightning $(CURDIR)/$$LIGHTNING
+	# remove executable rights on *.js, *.png, *.xul files
+	find debian/lightning*/ -type f \( -name "*.dtd" -o -name "*.js" -o -name "*.png" -o -name "*.properties" -o -name "*.xul" \) -exec chmod 644 {} \;
+	# sometimes there are temporary build files in lightning
+	@echo "    --> searching for temporary build files in 'lightning' ..."
+	@for i in `find debian/lightning/ -name ".mkdir.done*"`; do echo remove $$i && rm $$i; done
+	find debian/lightning/usr/share/lightning -newermt '$(BUILD_DATE)' -print0 | \
+		xargs -0r touch --no-dereference --date='$(BUILD_DATE)'
+	for LANG in lightning-l10n/*; do \
+		locale=`basename $${LANG}`; \
+		echo "locale calendar $${locale} chrome/calendar-$${locale}/locale/$${locale}/calendar/" >> debian/lightning/usr/share/lightning/chrome.manifest ;\
+		echo "locale lightning $${locale} chrome/lightning-$${locale}/locale/$${locale}/lightning/" >> debian/lightning/usr/share/lightning/chrome.manifest ;\
+	done
 
 override_dh_strip:
 	if [ "$(RELEASE)" != "UNRELEASED" ]; then \

@@ -163,7 +163,7 @@ Description: mail/news client with RSS, chat and integrated spam filter support
  application using the XUL user interface language.
 
 Package: lightning
-Architecture: any
+Architecture: all
 Depends:
  thunderbird (>= ${binary:Version}),
  ${misc:Depends},
