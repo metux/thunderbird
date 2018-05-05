@@ -1,3 +1,29 @@
+thunderbird (1:60.0~b6-1) experimental; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [3d91710] create-lightning-l10n: adjust folder structure
+     To build more easy lightning-l10n packages let's modify the helper script
+     for building the additional tarball. Change the content structure so we
+     can simple copy the needed l10n stuff into the l10n packages.
+  * [f1d6031] New upstream version 60.0~b6
+  * [6643c31] Revert the linking into /u/l/tb/d/extensions
+     Thunderbird in Debian won't detecting extension which are placed in
+     /usr/lib/thunderbird/distribution/extensions, going back to the old
+     folder /usr/lib/thunderbird/extensions to link extensions into
+     Thunderbird.
+  * [26549a3] lightning: turning package into Architecture all
+     Change the architecture for the lightning package from 'any' to 'all'.
+     Lightning is only build by Javascript, CSS, JSM and other text based
+     files and we don't need to build and install it as a architecture
+     dependent package.
+  * [86cd48f] mozconfig.default: disable webrtc build and inclusion
+     Let's drop the build of support for WebRTC, Thunderbird isn't able to use
+     this as there is no component which is depending on this. The chat
+     component would be a potential use case but right now it lacks any
+     functionality by webrtc features.
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sat, 05 May 2018 13:56:36 +0200
+
 thunderbird (1:60.0~b5-1) experimental; urgency=medium
 
   [ Carsten Schoenert ]
