@@ -243,18 +243,9 @@ for i in ${LANG}; do
     TARGET_LANG=${i%.xpi}
     # creating the folder for the l10n files in the target directory
     debug "creating folder '${TARGET_DIR}'"
-    mkdir -p ${TARGET_DIR}
-    # move the files from the extracted source into the target
-    debug "moving ${i}/chrome.manifest ${i}/chrome/{calendar,lightning}-${TARGET_LANG}"
-    debug "into   '${TARGET_DIR}'"
-    debug ""
-    if mv ${UNPACKDIR}${i}/chrome.manifest ${TARGET_DIR} ;then
-        :
-    else
-        fail "couldn't mv ${UNPACKDIR}${i}/chrome.manifest ${TARGET_DIR} "
-    fi
+    mkdir -p ${TARGET_DIR}/chrome
     for FOLDER in $(find ${UNPACKDIR}${i}/chrome -type d -name *-${TARGET_LANG}); do
-        mv "${FOLDER}" "${TARGET_DIR}/chrome"
+        cp -a "${FOLDER}" "${TARGET_DIR}/chrome"
     done
 done
 
