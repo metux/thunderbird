@@ -36,6 +36,12 @@
 <!ENTITY newFeedAccountCmd.accesskey "t">
 <!ENTITY newIMContactCmd.label "Pikaviestikontakti…">
 <!ENTITY newIMContactCmd.accesskey "k">
+<!ENTITY  newMessageCmd2.key "N">
+<!ENTITY  newMessageCmd.key "M">
+<!ENTITY  newMessageCmd.label "Viesti">
+<!ENTITY  newMessageCmd.accesskey "V">
+<!ENTITY  newContactCmd.label "Osoitekirjan yhteyshenkilö…">
+<!ENTITY  newContactCmd.accesskey "y">
 <!ENTITY openMessageFileCmd.label "Avaa tallennettu viesti…">
 <!ENTITY openMessageFileCmd.accesskey "A">
 <!ENTITY saveAsMenu.label "Tallenna nimellä">
@@ -51,8 +57,6 @@
 <!ENTITY getAllNewMsgCmdPopupMenu.accesskey "K">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.label "Valittu tili">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.accesskey "V">
-<!ENTITY getNextNMsgCmd.label "Nouda seuraavat 500 viestiä">
-<!ENTITY getNextNMsgCmd.accesskey "d">
 <!ENTITY sendUnsentCmd.label "Lähetä lähtevät viestit">
 <!ENTITY sendUnsentCmd.accesskey "ä">
 <!ENTITY subscribeCmd.label "Tilaa…">
@@ -165,6 +169,7 @@
 <!ENTITY compactVersion.label "Tiivis näkkymä">
 <!ENTITY compactVersion.accesskey "T">
 <!ENTITY folderPaneBar.label "Kansiopaneelin työkalupalkki">
+<!ENTITY folderPaneBar.accesskey "p">
 <!ENTITY folderModeSelector.label "Kansionäkymät">
 
 <!-- Sort Menu -->
@@ -316,7 +321,7 @@
 <!ENTITY goBackCmd.commandKey "Ö">
 <!ENTITY goChatCmd.label "Keskustele">
 <!ENTITY goChatCmd.accesskey "K">
-<!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "e">
 <!ENTITY prevStarredMsgCmd.label "Tähdellä merkitty viesti">
 <!ENTITY prevStarredMsgCmd.accesskey "T">
 <!ENTITY folderMenu.label "Kansio">
@@ -365,6 +370,10 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Muokkaa viestiluonnosta">
 <!ENTITY editDraftMsgCmd.accesskey "u">
+<!ENTITY editTemplateMsgCmd.label "Muokkaa mallia">
+<!ENTITY editTemplateMsgCmd.accesskey "m">
+<!ENTITY newMsgFromTemplateCmd.label "Uusi viesti mallista">
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Luo viestistä suodatin…">
 <!ENTITY createFilter.accesskey "d">
 <!ENTITY moveMsgToMenu.label "Siirrä">
@@ -456,6 +465,11 @@
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "Lisäosat">
 <!ENTITY addons.accesskey "o">
+<!ENTITY addonPrefs.label "Lisäosan asetukset">
+<!ENTITY addonPrefs.accesskey "L">
+<!ENTITY addonPrefsUnix.label "Lisäosan asetukset">
+<!ENTITY addonPrefsUnix.accesskey "L">
+<!ENTITY addonNoPrefs.label "Lisäosan asetuksia ei löytynyt.">
 <!ENTITY activitymanager.label "Toimintojen hallinta">
 <!ENTITY activitymanager.accesskey "h">
 <!ENTITY imAccountsStatus.label "Läsnäolotila">
@@ -494,6 +508,10 @@
 <!ENTITY accountManagerCmdUnix2.accesskey "a">
 
 <!-- Developer Tools Submenu -->
+<!ENTITY devtoolsMenu.label "Kehittäjän työkalut">
+<!ENTITY devtoolsMenu.accesskey "h">
+<!ENTITY devToolboxCmd.label "Kehittäjän työkalulaatikko">
+<!ENTITY devToolboxCmd.accesskey "t">
 <!ENTITY errorConsoleCmd.label "Virhekonsoli">
 <!ENTITY errorConsoleCmd.accesskey "V">
 <!ENTITY errorConsoleCmd.commandkey "j">
@@ -502,8 +520,10 @@
     This should be a key code constant as per
     https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode#Constants_for_keyCode_value
     (but without the DOM_ prefix) -->
+<!ENTITY scratchpadCmd.keycode "VK_F4">
 <!--LOCALIZATION NOTE (scratchpadCmd.keytext):
     This should be the text printed on the key defined in the previous string. -->
+<!ENTITY scratchpadCmd.keytext "F4">
 
 <!-- Mail Toolbar -->
 <!ENTITY getMsgButton1.label "Nouda viestit">
@@ -514,6 +534,7 @@
 <!ENTITY forwardButton.label "Välitä">
 <!ENTITY fileButton.label "Tiedosto">
 <!ENTITY archiveButton.label "Arkistoi">
+<!ENTITY openConversationButton.label "Keskustelu">
 <!ENTITY nextButton.label "Seuraava">
 <!ENTITY nextButtonToolbarItem.label "Seuraava lukematon">
 <!ENTITY nextMsgButton.label "Seuraava">
@@ -556,6 +577,7 @@
 <!ENTITY forwardAsAttachment.tooltip "Välitä viesti liitteenä">
 <!ENTITY fileButton.tooltip "Tallenna valittu viesti">
 <!ENTITY archiveButton.tooltip "Arkistoi valitut viestit">
+<!ENTITY openConversationButton.tooltip "Näytä valitun viestin keskustelu">
 <!ENTITY nextButton.tooltip "Siirry seuraavaan lukematta olevaan viestiin">
 <!ENTITY nextMsgButton.tooltip "Siirry seuraavaan viestiin">
 <!ENTITY previousButton.tooltip "Siirry edelliseen lukematta olevaan viestiin">
@@ -618,6 +640,10 @@
 <!-- Folder Pane Context Menu -->
 <!ENTITY folderContextGetMessages.label "Hae viestit">
 <!ENTITY folderContextGetMessages.accesskey "H">
+<!ENTITY folderContextMarkAllFoldersRead.label "Merkitse kaikki kansiot luetuiksi">
+<!ENTITY folderContextPauseAllUpdates.label "Keskeytä kaikki päivitykset">
+<!ENTITY folderContextPauseUpdates.label "Keskeytä päivitykset">
+<!ENTITY folderContextPauseUpdates.accesskey "K">
 <!ENTITY folderContextOpenInNewWindow.label "Avaa uudessa ikkunassa">
 <!ENTITY folderContextOpenInNewWindow.accesskey "A">
 <!ENTITY folderContextOpenNewTab.label "Avaa uuteen välilehteen">
@@ -715,12 +741,13 @@
 <!ENTITY attachmentColumn2.tooltip "Järjestä liitteiden mukaan">
 
 <!-- Thread Pane Context Menu -->
+<!ENTITY contextNewMsgFromTemplate.label "Uusi viesti mallista">
 <!ENTITY contextOpenNewWindow.label "Avaa viesti uudessa ikkunassa">
 <!ENTITY contextOpenNewWindow.accesskey "A">
-<!-- The key potentially conflicts with cutCmd.accessKey which is defined in
-     textcontext.dtd from toolkit. Right now, both menu items can't be visible
-     at the same time, but should someone enable copy/paste of message, this key
-     would probably need to be changed. -->
+<!-- The contextOpenNewTab.accesskey ("T") potentially conflicts with
+     cutCmd.accessKey which is defined in textcontext.dtd from toolkit. Right
+     now, both menu items can't be visible at the same time, but should someone
+     enable copy/paste of message, this key would probably need to be changed. -->
 <!ENTITY contextOpenNewTab.label "Avaa viesti uudessa välilehdessä">
 <!ENTITY contextOpenNewTab.accesskey "v">
 <!ENTITY contextOpenConversation.label "Avaa viesti keskusteluna">
@@ -730,6 +757,8 @@
 <!ENTITY contextEditMsgAsNew.label "Muokkaa uutena viestinä">
 <!ENTITY contextEditMsgAsNew.accesskey "M">
 <!ENTITY contextEditDraftMsg.label "Muokkaa viestiluonnosta">
+<!ENTITY contextEditTemplate.label "Muokkaa mallia">
+<!ENTITY contextEditTemplate.accesskey "m">
 <!ENTITY contextArchive.label "Arkistoi">
 <!ENTITY contextArchive.accesskey "o">
 <!ENTITY contextReplySender.label "Vastaa vain lähettäjälle">
@@ -835,7 +864,7 @@
   -->
 <!ENTITY quickSearchCmd.key "k">
 <!-- LOCALIZATION NOTE (search.label.base1):
-      This is the base of the empty text for the global search box. We replace
+     This is the base of the empty text for the global search box. We replace
      #1 with the contents of the appropriate search.keyLabel.* value for the
      platform.
      The goal is to convey to the user that typing in the box will allow them
@@ -931,24 +960,11 @@
 
 <!-- Mac OS X Dock Icon pop-up menu -->
 <!ENTITY dockOptions.label              "Sovelluskuvakkeen asetukset…">
+<!ENTITY writeNewMessageDock.label      "Kirjoita uusi viesti">
+<!ENTITY openAddressBookDock.label      "Avaa Osoitekirja">
 
 <!ENTITY getNextNMsgCmd2.label "Get Next News Messages">
 <!ENTITY getNextNMsgCmd2.accesskey "t">
-<!ENTITY folderPaneBar.accesskey "F">
-<!ENTITY goChatCmd2.key "H">
-<!ENTITY editTemplateMsgCmd.label "Edit Template">
-<!ENTITY editTemplateMsgCmd.accesskey "T">
-<!ENTITY newMsgFromTemplateCmd.label "New Message from Template">
-<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN">
-<!ENTITY addonPrefs.label "Add-on Options">
-<!ENTITY addonPrefs.accesskey "O">
-<!ENTITY addonPrefsUnix.label "Add-on Preferences">
-<!ENTITY addonPrefsUnix.accesskey "P">
-<!ENTITY addonNoPrefs.label "No Add-on settings found.">
-<!ENTITY devtoolsMenu.label "Developer Tools">
-<!ENTITY devtoolsMenu.accesskey "e">
-<!ENTITY devToolboxCmd.label "Developer Toolbox">
-<!ENTITY devToolboxCmd.accesskey "T">
 <!ENTITY devToolboxCmd.commandkey "i">
 <!ENTITY debugAddonsCmd.label "Debug Add-ons">
 <!ENTITY debugAddonsCmd.accesskey "A">
@@ -956,17 +972,5 @@
 <!ENTITY tabsDebugCmd.accesskey "C">
 <!ENTITY scratchpadCmd.label "Scratchpad">
 <!ENTITY scratchpadCmd.accesskey "S">
-<!ENTITY scratchpadCmd.keycode "VK_F4">
-<!ENTITY scratchpadCmd.keytext "F4">
-<!ENTITY openConversationButton.label "Conversation">
-<!ENTITY openConversationButton.tooltip "Show conversation of selected message">
-<!ENTITY folderContextPauseAllUpdates.label "Pause All Updates">
-<!ENTITY folderContextPauseUpdates.label "Pause Updates">
-<!ENTITY folderContextPauseUpdates.accesskey "U">
-<!ENTITY contextNewMsgFromTemplate.label "New Message from Template">
-<!ENTITY contextEditTemplate.label "Edit Template">
-<!ENTITY contextEditTemplate.accesskey "T">
 <!ENTITY contextKillSubthreadMenu.accesskey "b">
 <!ENTITY contextWatchThreadMenu.accesskey "">
-<!ENTITY writeNewMessageDock.label      "Write New Message">
-<!ENTITY openAddressBookDock.label      "Open Address Book">

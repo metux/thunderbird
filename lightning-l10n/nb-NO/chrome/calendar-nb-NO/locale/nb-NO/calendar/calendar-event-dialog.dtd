@@ -420,6 +420,7 @@
 
 <!-- Summary dialog -->
 <!ENTITY summary.dialog.saveclose.label         "Lagre og lukk">
+<!ENTITY summary.dialog.saveclose.tooltiptext   "Lagre endringer og lukk vinduet uten å endre deltakelsesstatus og uten å sende et svar">
 <!ENTITY summary.dialog.accept.label            "Aksepter">
 <!ENTITY summary.dialog.accept.tooltiptext      "Aksepter invitasjonen">
 <!ENTITY summary.dialog.tentative.label         "Foreløpig">
@@ -427,8 +428,6 @@
 <!ENTITY summary.dialog.decline.label           "Avvis">
 <!ENTITY summary.dialog.decline.tooltiptext     "Avvis invitasjonen">
 <!ENTITY summary.dialog.dontsend.label          "Send ikke et svar">
+<!ENTITY summary.dialog.dontsend.tooltiptext    "Endre din deltakelsesstatus uten å sende et svar til arrangøren og lukk vinduet">
 <!ENTITY summary.dialog.send.label              "Send et svar nå">
-
-<!ENTITY summary.dialog.saveclose.tooltiptext   "Save changes and close the window without changing the participation status and sending a response">
-<!ENTITY summary.dialog.dontsend.tooltiptext    "Change your participation status without sending a reply to the organizer and close the window">
-<!ENTITY summary.dialog.send.tooltiptext        "Send out a response to the organizer  and close the window">
+<!ENTITY summary.dialog.send.tooltiptext        "Send et svar til arrangøren,  og lukk vinduet">

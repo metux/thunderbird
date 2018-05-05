@@ -180,6 +180,7 @@
 <!ENTITY calendar.context.attendance.occurrence.label           "Denne forekomsten">
 <!ENTITY calendar.context.attendance.all.label        "Alle forekomster" >
 
+<!ENTITY calendar.context.attendance.all2.label                 "Komplett serie">
 <!ENTITY calendar.context.attendance.send.label                 "Send et varsel nå">
 <!ENTITY calendar.context.attendance.send.accesskey             "S">
 <!ENTITY calendar.context.attendance.dontsend.label             "Ikke send et varsel">
@@ -408,5 +409,3 @@
 <!ENTITY calendar.extract.task.button          "Legg til som oppgave">
 <!ENTITY calendar.extract.event.button.tooltip "Hent ut kalenderinfo fra meldingen og legg den til i kalenderen din som en hendelse">
 <!ENTITY calendar.extract.task.button.tooltip  "Hent ut kalenderinfo fra meldingen og legg den til i kalenderen din som en oppgave">
-
-<!ENTITY calendar.context.attendance.all2.label                 "Complete Series">

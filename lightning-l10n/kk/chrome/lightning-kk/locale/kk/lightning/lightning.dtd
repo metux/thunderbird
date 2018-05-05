@@ -84,6 +84,8 @@
 <!ENTITY lightning.imipbar.description                                      "Бұл хабарламада оқиғаға шақыру бар.">
 
 <!ENTITY lightning.imipbar.btnSend.label                                    "Жауапты қазір жіберу">
+<!ENTITY lightning.imipbar.btnSend.tooltiptext                              "Ұйымдастырушыға жауап жіберу">
+<!ENTITY lightning.imipbar.btnDontSend.label                                "Жауапты жібермеу">
 
 <!-- Lightning specific keybindings -->
 <!ENTITY lightning.keys.event.showCalendar.key "C">
@@ -105,8 +107,6 @@
 <!ENTITY todaypane.showTodayPane.accesskey "е">
 <!ENTITY todaypane.statusButton.label "Бүгінгі панелі">
 
-<!ENTITY lightning.imipbar.btnSend.tooltiptext                              "Send a response to the organizer">
 <!ENTITY lightning.imipbar.btnSendSeries.tooltiptext                        "Send a response for the entire series to the organizer">
-<!ENTITY lightning.imipbar.btnDontSend.label                                "Do not send a response">
 <!ENTITY lightning.imipbar.btnDontSend.tooltiptext                          "Change your participation status without sending a response to the organizer">
 <!ENTITY lightning.imipbar.btnDontSendSeries.tooltiptext                    "Change your participation status for the series without sending a response to the organizer">

@@ -8,3 +8,4 @@ DIRS += [
     'smime',
 ]
 
+JAR_MANIFESTS += ['jar.mn']

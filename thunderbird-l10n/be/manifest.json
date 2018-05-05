@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/be/locale/be/passwordmgr/", 
         "pippki": "chrome/be/locale/be/pippki/"
       }, 
-      "version": "20180413145209"
+      "version": "20180503193335"
     }
   }, 
   "applications": {

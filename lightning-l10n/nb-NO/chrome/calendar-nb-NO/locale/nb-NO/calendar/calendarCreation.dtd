@@ -45,8 +45,7 @@
 <!ENTITY network.nocredentials.label "Denne adressen krever ikke innlogging">
 <!ENTITY network.loading.description "Vent mens kalenderene dine blir oppdaget.">
 <!ENTITY network.notfound.description "Kan ikke finne noen kalender på denne adressen. Kontroller dine innstillinger.">
+<!ENTITY network.authfail.description "Innloggingen du spesifiserte fungerte ikke. Kontroller innstillingene dine.">
 
 <!ENTITY network.subscribe.single.description "Velg kalendrene du vil abonnere på.">
-
-<!ENTITY network.authfail.description "The credentials you have entered were not accepted. Please check your settings.">
-<!ENTITY network.subscribe.multiple.description "Multiple calendar types are available for this location. Please select the calendar type, then mark the calendars you would like to subscribe to.">
+<!ENTITY network.subscribe.multiple.description "Flere kalendertyper er tilgjengelig på denne adressen. Velg en kalendertype og marker kalendrene du vil abonnere på.">

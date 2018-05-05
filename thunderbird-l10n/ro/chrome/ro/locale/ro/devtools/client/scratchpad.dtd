@@ -49,6 +49,7 @@
 
 <!ENTITY viewMenu.accesskey           "V">
 
+<!ENTITY lineNumbers.label             "Arată numerele rândurilor">
 <!ENTITY lineNumbers.accesskey         "L">
 
 <!ENTITY wordWrap.accesskey            "W">
@@ -137,7 +138,6 @@
 <!ENTITY openRecentMenu.label         "Open Recent">
 <!ENTITY revertCmd.label              "Revert…">
 <!ENTITY viewMenu.label               "View">
-<!ENTITY lineNumbers.label             "Show Line Numbers">
 <!ENTITY wordWrap.label                "Wrap Text">
 <!ENTITY highlightTrailingSpace.label     "Highlight Trailing Space">
 <!ENTITY largerFont.label             "Larger Font">
