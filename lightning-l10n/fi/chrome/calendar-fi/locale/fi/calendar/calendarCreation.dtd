@@ -21,21 +21,31 @@
 <!ENTITY finishpage.shortdescription  "Kalenteri on luotu" >
 <!ENTITY finishpage.longdescription   "Kalenteri on luotu." >
 
-<!ENTITY sourcetabs.other.label  "Other">
-<!ENTITY buttons.create.label "Create Calendar">
-<!ENTITY buttons.create.accesskey "r">
-<!ENTITY buttons.find.label "Find Calendars">
-<!ENTITY buttons.find.accesskey "F">
-<!ENTITY buttons.back.label "Back">
-<!ENTITY buttons.back.accesskey "B">
-<!ENTITY buttons.subscribe.label "Subscribe">
-<!ENTITY buttons.subscribe.accesskey "S">
-<!ENTITY calendartype.label "Calendar Type:">
-<!ENTITY location.label "Location:">
-<!ENTITY location.placeholder "URL or host name of the calendar server">
-<!ENTITY network.nocredentials.label "This location doesn't require credentials">
-<!ENTITY network.loading.description "Please wait while your calendars are being discovered.">
-<!ENTITY network.notfound.description "Could not find calendars at this location. Please check your settings.">
-<!ENTITY network.authfail.description "The credentials you have entered were not accepted. Please check your settings.">
-<!ENTITY network.subscribe.single.description "Please select the calendars you would like to subscribe to.">
-<!ENTITY network.subscribe.multiple.description "Multiple calendar types are available for this location. Please select the calendar type, then mark the calendars you would like to subscribe to.">
+<!-- Below are new strings for the revised new calendar dialog. The above strings should be
+    removed/renamed later on -->
+
+<!ENTITY sourcetabs.other.label  "Muu">
+
+<!ENTITY buttons.create.label "Luo kalenteri">
+<!ENTITY buttons.create.accesskey "L">
+
+<!ENTITY buttons.find.label "Etsi kalentereita">
+<!ENTITY buttons.find.accesskey "E">
+
+<!ENTITY buttons.back.label "Takaisin">
+<!ENTITY buttons.back.accesskey "T">
+
+<!ENTITY buttons.subscribe.label "Tilaa">
+<!ENTITY buttons.subscribe.accesskey "i">
+
+<!ENTITY calendartype.label "Kalenterin tyyppi:">
+<!ENTITY location.label "Sijainti:">
+<!ENTITY location.placeholder "Kalenteripalvelimen URL tai palvelinnimi">
+
+<!ENTITY network.nocredentials.label "Tämä sijainti ei vaadi kirjautumistietoja">
+<!ENTITY network.loading.description "Odota hetki, kalentereitasi etsitään.">
+<!ENTITY network.notfound.description "Tästä sijainnista ei löytynyt kalentereita. Tarkista asetukset.">
+<!ENTITY network.authfail.description "Syöttämiäsi kirjautumistietoja ei hyväksytty. Tarkista asetukset.">
+
+<!ENTITY network.subscribe.single.description "Valitse kalenterit, jotka haluat tilata.">
+<!ENTITY network.subscribe.multiple.description "Tässä sijainnissa on monen tyyppisiä kalentereita. Valitse ensin kalenterin tyyppi ja valitse sitten kalenterit, jotka haluat tilata.">

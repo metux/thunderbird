@@ -2,9 +2,9 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY Contact.tab                     "Contact">
+<!ENTITY Contact.tab                     "Neach-aithne">
 <!ENTITY Contact.accesskey               "C">
-<!ENTITY Name.box                        "Name">
+<!ENTITY Name.box                        "Ainm">
 
 <!-- LOCALIZATION NOTE:
  NameField1, NameField2, PhoneticField1, PhoneticField2
@@ -23,102 +23,96 @@
 <!-- LOCALIZATION NOTE (PhoneticField2.id) : DONT_TRANSLATE -->
 <!ENTITY PhoneticField2.id              "PhoneticLastName">
 
-<!ENTITY NameField1.label               "First:">
+<!ENTITY NameField1.label               "Ainm:">
 <!ENTITY NameField1.accesskey           "F">
-<!ENTITY NameField2.label               "Last:">
+<!ENTITY NameField2.label               "Sloinneadh:">
 <!ENTITY NameField2.accesskey           "L">
-<!ENTITY PhoneticField1.label           "Phonetic:">
-<!ENTITY PhoneticField2.label           "Phonetic:">
-<!ENTITY DisplayName.label              "Display:">
+<!ENTITY PhoneticField1.label           "Tar-sgrìobhadh:">
+<!ENTITY PhoneticField2.label           "Tar-sgrìobhadh:">
+<!ENTITY DisplayName.label              "Ainm-seallaidh:">
 <!ENTITY DisplayName.accesskey          "D">
-<!ENTITY preferDisplayName.label        "Always prefer display name over message header">
+<!ENTITY preferDisplayName.label        "'S fhearr leam an t-ainm-taisbeanaidh seach bann-cinn na teachdaireachd an-còmhnaidh">
 <!ENTITY preferDisplayName.accesskey    "y">
-<!ENTITY NickName.label                 "Nickname:">
+<!ENTITY NickName.label                 "Far-ainm:">
 <!ENTITY NickName.accesskey             "N">
 
-<!ENTITY PrimaryEmail.label             "Email:">
+<!ENTITY PrimaryEmail.label             "Post-d:">
 <!ENTITY PrimaryEmail.accesskey         "E">
-<!ENTITY SecondEmail.label              "Additional Email:">
+<!ENTITY SecondEmail.label              "Post-d eile:">
 <!ENTITY SecondEmail.accesskey          "i">
-<!ENTITY PreferMailFormat.label         "Prefers to receive messages formatted as:">
+<!ENTITY PreferMailFormat.label         "B’ fhearr leis an neach seo teachdaireachdan leis an fhòrmatadh:">
 <!ENTITY PreferMailFormat.accesskey     "v">
-<!ENTITY PlainText.label                "Plain Text">
+<!ENTITY PlainText.label                "Teacsa lom">
 <!ENTITY HTML.label                     "HTML">
-<!ENTITY Unknown.label                  "Unknown">
-<!ENTITY chatName.label                 "Chat Name:">
+<!ENTITY Unknown.label                  "Neo-aithnichte">
+<!ENTITY chatName.label                 "Ainm cabadaich:">
 
-<!ENTITY WorkPhone.label                "Work:">
+<!ENTITY WorkPhone.label                "Obair:">
 <!ENTITY WorkPhone.accesskey            "k">
-<!ENTITY HomePhone.label                "Home:">
+<!ENTITY HomePhone.label                "Dachaigh:">
 <!ENTITY HomePhone.accesskey            "m">
-<!ENTITY FaxNumber.label                "Fax:">
+<!ENTITY FaxNumber.label                "Facs:">
 <!ENTITY FaxNumber.accesskey            "x">
-<!ENTITY PagerNumber.label              "Pager:">
+<!ENTITY PagerNumber.label              "Pèidsear:">
 <!ENTITY PagerNumber.accesskey          "g">
-<!ENTITY CellularNumber.label           "Mobile:">
+<!ENTITY CellularNumber.label           "Fòn-làimhe:">
 <!ENTITY CellularNumber.accesskey       "b">
 
-<!ENTITY Home.tab                       "Private">
+<!ENTITY Home.tab                       "Prìobhaideach">
 <!ENTITY Home.accesskey                 "P">
-<!ENTITY HomeAddress.label              "Address:">
+<!ENTITY HomeAddress.label              "Seòladh:">
 <!ENTITY HomeAddress.accesskey          "d">
-<!ENTITY HomeAddress2.label             "">
-<!ENTITY HomeAddress2.accesskey         "">
-<!ENTITY HomeCity.label                 "City:">
+<!ENTITY HomeCity.label                 "Baile:">
 <!ENTITY HomeCity.accesskey             "y">
-<!ENTITY HomeState.label                "State/Province:">
+<!ENTITY HomeState.label                "Siorrachd/Còigeamh/Stàit:">
 <!ENTITY HomeState.accesskey            "S">
-<!ENTITY HomeZipCode.label              "ZIP/Postal Code:">
+<!ENTITY HomeZipCode.label              "Còd-puist:">
 <!ENTITY HomeZipCode.accesskey          "Z">
-<!ENTITY HomeCountry.label              "Country:">
+<!ENTITY HomeCountry.label              "Dùthaich:">
 <!ENTITY HomeCountry.accesskey          "u">
-<!ENTITY HomeWebPage.label              "Web Page:">
+<!ENTITY HomeWebPage.label              "Duilleag-lìn:">
 <!ENTITY HomeWebPage.accesskey          "e">
-<!ENTITY Birthday.label                 "Birthday:">
+<!ENTITY Birthday.label                 "Co-là breith:">
 <!ENTITY Birthday.accesskey             "B">
-<!ENTITY In.label                       "">
-<!ENTITY Year.placeholder               "Year">
-<!ENTITY Or.value                       "or">
-<!ENTITY Age.placeholder                "Age">
-<!ENTITY YearsOld.label                 "">
+<!ENTITY Year.placeholder               "Bliadhna">
+<!ENTITY Or.value                       "no">
+<!ENTITY Age.placeholder                "Aois">
 
-<!ENTITY Work.tab                       "Work">
+<!ENTITY Work.tab                       "Obair">
 <!ENTITY Work.accesskey                 "W">
-<!ENTITY JobTitle.label                 "Title:">
+<!ENTITY JobTitle.label                 "Tiotal:">
 <!ENTITY JobTitle.accesskey             "i">
-<!ENTITY Department.label               "Department:">
+<!ENTITY Department.label               "Roinn:">
 <!ENTITY Department.accesskey           "m">
-<!ENTITY Company.label                  "Organization:">
+<!ENTITY Company.label                  "Buidheann:">
 <!ENTITY Company.accesskey              "n">
-<!ENTITY WorkAddress.label              "Address:">
+<!ENTITY WorkAddress.label              "Seòladh:">
 <!ENTITY WorkAddress.accesskey          "d">
-<!ENTITY WorkAddress2.label             "">
-<!ENTITY WorkAddress2.accesskey         "">
-<!ENTITY WorkCity.label                 "City:">
+<!ENTITY WorkCity.label                 "Baile:">
 <!ENTITY WorkCity.accesskey             "y">
-<!ENTITY WorkState.label                "State/Province:">
+<!ENTITY WorkState.label                "Siorrachd/Còigeamh/Stàit:">
 <!ENTITY WorkState.accesskey            "S">
-<!ENTITY WorkZipCode.label              "ZIP/Postal Code:">
+<!ENTITY WorkZipCode.label              "Còd-puist:">
 <!ENTITY WorkZipCode.accesskey          "Z">
-<!ENTITY WorkCountry.label              "Country:">
+<!ENTITY WorkCountry.label              "Dùthaich:">
 <!ENTITY WorkCountry.accesskey          "u">
-<!ENTITY WorkWebPage.label              "Web Page:">
+<!ENTITY WorkWebPage.label              "Duilleag-lìn:">
 <!ENTITY WorkWebPage.accesskey          "e">
 
-<!ENTITY Other.tab                      "Other">
+<!ENTITY Other.tab                      "Eile">
 <!ENTITY Other.accesskey                "h">
-<!ENTITY Custom1.label                  "Custom 1:">
+<!ENTITY Custom1.label                  "Gnàthaichte 1:">
 <!ENTITY Custom1.accesskey              "1">
-<!ENTITY Custom2.label                  "Custom 2:">
+<!ENTITY Custom2.label                  "Gnàthaichte 2:">
 <!ENTITY Custom2.accesskey              "2">
-<!ENTITY Custom3.label                  "Custom 3:">
+<!ENTITY Custom3.label                  "Gnàthaichte 3:">
 <!ENTITY Custom3.accesskey              "3">
-<!ENTITY Custom4.label                  "Custom 4:">
+<!ENTITY Custom4.label                  "Gnàthaichte 4:">
 <!ENTITY Custom4.accesskey              "4">
-<!ENTITY Notes.label                    "Notes:">
+<!ENTITY Notes.label                    "Nòtaichean:">
 <!ENTITY Notes.accesskey                "N">
 
-<!ENTITY Chat.tab                       "Chat">
+<!ENTITY Chat.tab                       "Cabadaich">
 <!ENTITY Chat.accesskey                 "a">
 <!ENTITY Gtalk.label                    "Google Talk:">
 <!ENTITY Gtalk.accesskey                "G">
@@ -136,21 +130,29 @@
 <!ENTITY ICQ.accesskey                  "I">
 <!ENTITY XMPP.label                     "Jabber ID:">
 <!ENTITY XMPP.accesskey                 "J">
-<!ENTITY IRC.label                      "IRC Nick:">
+<!ENTITY IRC.label                      "Far-ainm IRC:">
 <!ENTITY IRC.accesskey                  "R">
 
-<!ENTITY Photo.tab                      "Photo">
+<!ENTITY Photo.tab                      "Dealbh">
 <!ENTITY Photo.accesskey                "o">
-<!ENTITY GenericPhoto.label             "Generic Photo">
+<!ENTITY PhotoDesc.label                "Tagh aon dhe na leanas:">
+<!ENTITY GenericPhoto.label             "Fotograf gnèitheach">
 <!ENTITY GenericPhoto.accesskey         "G">
-<!ENTITY DefaultPhoto.label             "Default">
-<!ENTITY PhotoFile.label                "On this Computer">
+<!ENTITY DefaultPhoto.label             "Bun-roghainn">
+<!ENTITY PhotoFile.label                "Air a’ choimpiutair seo">
 <!ENTITY PhotoFile.accesskey            "n">
-<!ENTITY BrowsePhoto.label              "Browse">
+<!ENTITY BrowsePhoto.label              "Brabhsaich">
 <!ENTITY BrowsePhoto.accesskey          "r">
-<!ENTITY PhotoURL.label                 "On the Web">
+<!ENTITY PhotoURL.label                 "Air an lìon">
 <!ENTITY PhotoURL.accesskey             "b">
-<!ENTITY PhotoURL.placeholder           "Paste or type the web address of a photo">
-<!ENTITY UpdatePhoto.label              "Update">
+<!ENTITY PhotoURL.placeholder           "Cuir a-steach seòladh-lìn de dhealbh">
+<!ENTITY UpdatePhoto.label              "Ùraich">
 <!ENTITY UpdatePhoto.accesskey          "u">
-<!ENTITY PhotoDropTarget.label          "Drag new photo here">
+<!ENTITY PhotoDropTarget.label          "Slaod dealbh ùr an-seo">
+
+<!ENTITY HomeAddress2.label             "">
+<!ENTITY HomeAddress2.accesskey         "">
+<!ENTITY In.label                       "">
+<!ENTITY YearsOld.label                 "">
+<!ENTITY WorkAddress2.label             "">
+<!ENTITY WorkAddress2.accesskey         "">

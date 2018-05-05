@@ -21,21 +21,31 @@
 <!ENTITY finishpage.shortdescription  "Календар је направљен" >
 <!ENTITY finishpage.longdescription   "Ваш календар је направљен." >
 
-<!ENTITY sourcetabs.other.label  "Other">
-<!ENTITY buttons.create.label "Create Calendar">
-<!ENTITY buttons.create.accesskey "r">
-<!ENTITY buttons.find.label "Find Calendars">
-<!ENTITY buttons.find.accesskey "F">
-<!ENTITY buttons.back.label "Back">
-<!ENTITY buttons.back.accesskey "B">
-<!ENTITY buttons.subscribe.label "Subscribe">
-<!ENTITY buttons.subscribe.accesskey "S">
-<!ENTITY calendartype.label "Calendar Type:">
-<!ENTITY location.label "Location:">
-<!ENTITY location.placeholder "URL or host name of the calendar server">
-<!ENTITY network.nocredentials.label "This location doesn't require credentials">
-<!ENTITY network.loading.description "Please wait while your calendars are being discovered.">
-<!ENTITY network.notfound.description "Could not find calendars at this location. Please check your settings.">
-<!ENTITY network.authfail.description "The credentials you have entered were not accepted. Please check your settings.">
-<!ENTITY network.subscribe.single.description "Please select the calendars you would like to subscribe to.">
-<!ENTITY network.subscribe.multiple.description "Multiple calendar types are available for this location. Please select the calendar type, then mark the calendars you would like to subscribe to.">
+<!-- Below are new strings for the revised new calendar dialog. The above strings should be
+    removed/renamed later on -->
+
+<!ENTITY sourcetabs.other.label  "Друго">
+
+<!ENTITY buttons.create.label "Направи календар">
+<!ENTITY buttons.create.accesskey "р">
+
+<!ENTITY buttons.find.label "Нађи календаре">
+<!ENTITY buttons.find.accesskey "Н">
+
+<!ENTITY buttons.back.label "Назад">
+<!ENTITY buttons.back.accesskey "з">
+
+<!ENTITY buttons.subscribe.label "Претплати се">
+<!ENTITY buttons.subscribe.accesskey "т">
+
+<!ENTITY calendartype.label "Врста календара:">
+<!ENTITY location.label "Место:">
+<!ENTITY location.placeholder "URL или име календарског сервера">
+
+<!ENTITY network.nocredentials.label "Ово место не захтева акредитиве">
+<!ENTITY network.loading.description "Сачекајте да се заврши откривање ваших календара.">
+<!ENTITY network.notfound.description "Нисам могао да нађем календаре на овом месту. Проверите ваша подешавања.">
+<!ENTITY network.authfail.description "Унети акредитиви нису прихваћени. Проверите ваша подешавања.">
+
+<!ENTITY network.subscribe.single.description "Изаберите календаре на које се желите претплатити.">
+<!ENTITY network.subscribe.multiple.description "Више врста календара је доступно за ово место. Изаберите врсту календара па онда означите календаре на које се желите претплатити.">

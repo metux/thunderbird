@@ -4,14 +4,13 @@
 
 <!ENTITY loginAtStartup.label          "Hae uusia artikkeleita ohjelman käynnistyessä">
 <!ENTITY loginAtStartup.accesskey      "a">
+<!ENTITY biffAll.label                 "Salli päivitykset kaikille syötteille">
+<!ENTITY biffAll.accesskey             "S">
 
+<!ENTITY newFeedSettings.label         "Oletusasetukset uusille syötteille">
 
 <!ENTITY manageSubscriptions.label     "Muokkaa tilauksia…">
 <!ENTITY manageSubscriptions.accesskey "M">
 
 <!ENTITY feedWindowTitle.label         "Ohjattu syötetilin luonti">
 <!ENTITY feeds.accountName             "Uutiset ja blogit">
-
-<!ENTITY biffAll.label                 "Enable updates for all feeds">
-<!ENTITY biffAll.accesskey             "E">
-<!ENTITY newFeedSettings.label         "Default Settings for New Feeds">
