@@ -100,11 +100,7 @@
         <menu id="windowMenu"/>
         <menu id="menu_Help"/>
       </menubar>
-    </toolbar>
-    <toolbar class="chromeclass-toolbar"
-             id="placesSearchToolbar"
-             align="center"
-             grippytooltiptext="&searchBar.tooltip;">
+      <toolbarspring/>
       <textbox id="search-box"
                clickSelectsAll="true"
                type="search"

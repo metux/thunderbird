@@ -19,6 +19,7 @@ var gEditItemOverlay = {
   _itemType: -1,
   _readOnly: false,
   _hiddenRows: [],
+  _onPanelReady: false,
   _observersAdded: false,
   _staticFoldersListBuilt: false,
   _initialized: false,
@@ -53,6 +54,8 @@ var gEditItemOverlay = {
     this._readOnly = aInfo && aInfo.forceReadOnly;
     // override title
     this._titleOverride = aInfo && aInfo.titleOverride;
+
+    this._onPanelReady = aInfo && aInfo.onPanelReady;
   },
 
   _showHideRows: function EIO__showHideRows() {
@@ -211,7 +214,15 @@ var gEditItemOverlay = {
       this._observersAdded = true;
     }
 
-    this._initialized = true;
+    let focusElement = () => {
+      this._initialized = true;
+    };
+
+    if (this._onPanelReady) {
+      this._onPanelReady(focusElement);
+    } else {
+      focusElement();
+    }
   },
 
   /**
@@ -236,10 +247,7 @@ var gEditItemOverlay = {
     if (field.value != aValue) {
       field.value = aValue;
 
-      // clear the undo stack
-      var editor = field.editor;
-      if (editor)
-        editor.transactionManager.clear();
+      this._editorTransactionManagerClear(field);
     }
   },
 
@@ -340,6 +348,26 @@ var gEditItemOverlay = {
     throw Components.results.NS_ERROR_NO_INTERFACE;
   },
 
+  _editorTransactionManagerClear: function EIO__editorTransactionManagerClear(aItem) {
+    // Clear the editor's undo stack
+    let transactionManager;
+    try {
+      transactionManager = aItem.editor.transactionManager;
+    } catch (e) {
+      // When retrieving the transaction manager, editor may be null resulting
+      // in a TypeError. Additionally, the transaction manager may not
+      // exist yet, which causes access to it to throw NS_ERROR_FAILURE.
+      // In either event, the transaction manager doesn't exist it, so we
+      // don't need to worry about clearing it.
+      if (!(e instanceof TypeError) && e.result != Components.results.NS_ERROR_FAILURE) {
+        throw e;
+      }
+    }
+    if (transactionManager) {
+      transactionManager.clear();
+    }
+  },
+
   _element: function EIO__element(aID) {
     return document.getElementById("editBMPanel_" + aID);
   },
@@ -360,10 +388,7 @@ var gEditItemOverlay = {
     namePicker.value = this._getItemStaticTitle();
     namePicker.readOnly = this._readOnly;
 
-    // clear the undo stack
-    var editor = namePicker.editor;
-    if (editor)
-      editor.transactionManager.clear();
+    this._editorTransactionManagerClear(namePicker);
   },
 
   uninitPanel: function EIO_uninitPanel(aHideCollapsibleElements) {
@@ -909,8 +934,7 @@ var gEditItemOverlay = {
       var namePicker = this._element("namePicker");
       if (namePicker.value != aValue) {
         namePicker.value = aValue;
-        // clear undo stack
-        namePicker.editor.transactionManager.clear();
+        this._editorTransactionManagerClear(namePicker);
       }
       break;
     case "uri":

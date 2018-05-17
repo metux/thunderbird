@@ -182,11 +182,25 @@ var StarUI = {
     // Consume dismiss clicks, see bug 400924
     this.panel.popupBoxObject
         .setConsumeRollupEvent(PopupBoxObject.ROLLUP_CONSUME);
-    this.panel.openPopup(aAnchorElement, aPosition);
+    
+    let onPanelReady = fn => {
+      let target = this.panel;
+      if (target.parentNode) {
+        // By targeting the panel's parent and using a capturing listener, we
+        // can have our listener called before others waiting for the panel to
+        // be shown (which probably expect the panel to be fully initialized)
+        target = target.parentNode;
+      }
+      target.addEventListener("popupshown", function(event) {
+        fn();
+      }, {"capture": true, "once": true});
+    };
 
     gEditItemOverlay.initPanel(this._itemId,
-                               { hiddenRows: ["description", "location",
+                               { onPanelReady, 
+                                 hiddenRows: ["description", "location",
                                               "keyword"] });
+    this.panel.openPopup(aAnchorElement, aPosition);
   },
 
   panelShown:
