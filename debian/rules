@@ -16,7 +16,7 @@ endif
 ICU_DATA_FILE := $(shell basename config/external/icu/data/icud*.dat)
 ICU_BUILD := $(shell if ! grep -qs -e "--with-system-icu" debian/mozconfig.default; then echo YES || NO; fi)
 ICU_BUILD_DIR := $(CURDIR)/obj-thunderbird/obj-icu
-ICU_BUILD_CONFIGURE := --with-data-packaging=archive --enable-static --disable-shared --disable-extras --disable-icuio --disable-layout --disable-tests --disable-samples --disable-strict
+ICU_BUILD_CONFIGURE := --with-data-packaging=archive --enable-static --disable-layoutex --disable-shared --disable-extras --disable-icuio --disable-layout --disable-tests --disable-samples --disable-strict
 ICU_BUILD_CPPFLAGS := "-DU_NO_DEFAULT_INCLUDE_UTF_HEADERS=1 -DUCONFIG_NO_LEGACY_CONVERSION -DUCONFIG_NO_TRANSLITERATION -DUCONFIG_NO_REGULAR_EXPRESSIONS -DUCONFIG_NO_BREAK_ITERATION -DU_CHARSET_IS_UTF8"
 
 THUNDERBIRD_VERSION=$(shell tail -1 mail/config/version.txt)
