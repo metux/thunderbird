@@ -1,3 +1,15 @@
+thunderbird (1:52.8.0-1~deb9u1) stretch-security; urgency=medium
+
+  [ Carsten Schoenert ]
+  * Rebuild for stretch-security
+
+  [ intrigeri ]
+  * [703c9ec] Revert "apparmor: allow access to @{HOME}/.gnupg/tofu.db"
+     (Cherry-picked from debian/sid to not differ the Apparmor settings
+      between the Debian releases)
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Mon, 21 May 2018 17:31:53 +0200
+
 thunderbird (1:52.8.0-1) unstable; urgency=high
 
   [ intrigeri ]
