@@ -13,6 +13,7 @@
 #include "nsIMsgWindow.h"
 #include "nsIMimeMiscStatus.h"
 #include "nsIMsgHdr.h"
+#include "nsIEncryptedSMIMEURIsSrvc.h"
 #include "nsNetUtil.h"
 #include "nsIMsgComposeService.h"
 #include "nsMsgCompCID.h"
@@ -300,6 +301,40 @@ nsMsgContentPolicy::ShouldLoad(uint32_t          aContentType,
   if (ShouldBlockUnexposedProtocol(aContentLocation))
     return NS_OK;
 
+
+  // Find out the URI that originally initiated the set of requests for this
+  // context.
+  nsCOMPtr<nsIURI> originatorLocation;
+  if (!aRequestingContext && aRequestPrincipal)
+  {
+    // Can get the URI directly from the principal.
+    rv = aRequestPrincipal->GetURI(getter_AddRefs(originatorLocation));
+  }
+  else
+  {
+    rv = GetOriginatingURIForContext(aRequestingContext,
+                                     getter_AddRefs(originatorLocation));
+  }
+  NS_ENSURE_SUCCESS(rv, NS_OK);
+
+#ifdef DEBUG_MsgContentPolicy
+  fprintf(stderr, "originatorLocation = %s\n", originatorLocation->GetSpecOrDefault().get());
+#endif
+
+  // Don't load remote content for encrypted messages.
+  nsCOMPtr<nsIEncryptedSMIMEURIsService> encryptedURIService =
+    do_GetService("@mozilla.org/messenger-smime/smime-encrypted-uris-service;1", &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+  bool isEncrypted;
+  rv = encryptedURIService->IsEncrypted(aRequestingLocation->GetSpecOrDefault(), &isEncrypted);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (isEncrypted)
+  {
+    *aDecision = nsIContentPolicy::REJECT_REQUEST;
+    NotifyContentWasBlocked(originatorLocation, aContentLocation, false);
+    return NS_OK;
+  }
+
   // If we are allowing all remote content...
   if (!mBlockRemoteImages)
   {
@@ -320,25 +355,6 @@ nsMsgContentPolicy::ShouldLoad(uint32_t          aContentType,
       return NS_OK;
     }
   }
-
-  // Find out the URI that originally initiated the set of requests for this
-  // context.
-  nsCOMPtr<nsIURI> originatorLocation;
-  if (!aRequestingContext && aRequestPrincipal)
-  {
-    // Can get the URI directly from the principal.
-    rv = aRequestPrincipal->GetURI(getter_AddRefs(originatorLocation));
-  }
-  else
-  {
-    rv = GetOriginatingURIForContext(aRequestingContext,
-                                     getter_AddRefs(originatorLocation));
-  }
-  NS_ENSURE_SUCCESS(rv, NS_OK);
-
-#ifdef DEBUG_MsgContentPolicy
-  fprintf(stderr, "originatorLocation = %s\n", originatorLocation->GetSpecOrDefault().get());
-#endif
 
   // Allow content when using a remote page.
   bool isHttp;
@@ -533,8 +549,9 @@ class RemoteContentNotifierEvent : public mozilla::Runnable
 {
 public:
   RemoteContentNotifierEvent(nsIMsgWindow *aMsgWindow, nsIMsgDBHdr *aMsgHdr,
-                             nsIURI *aContentURI)
-    : mMsgWindow(aMsgWindow), mMsgHdr(aMsgHdr), mContentURI(aContentURI)
+                             nsIURI *aContentURI, bool aCanOverride = true)
+    : mMsgWindow(aMsgWindow), mMsgHdr(aMsgHdr), mContentURI(aContentURI),
+    mCanOverride(aCanOverride)
   {}
 
   NS_IMETHOD Run()
@@ -544,7 +561,7 @@ public:
       nsCOMPtr<nsIMsgHeaderSink> msgHdrSink;
       (void)mMsgWindow->GetMsgHeaderSink(getter_AddRefs(msgHdrSink));
       if (msgHdrSink)
-        msgHdrSink->OnMsgHasRemoteContent(mMsgHdr, mContentURI);
+        msgHdrSink->OnMsgHasRemoteContent(mMsgHdr, mContentURI, mCanOverride);
     }
     return NS_OK;
   }
@@ -553,7 +570,61 @@ private:
   nsCOMPtr<nsIMsgWindow> mMsgWindow;
   nsCOMPtr<nsIMsgDBHdr> mMsgHdr;
   nsCOMPtr<nsIURI> mContentURI;
+  bool mCanOverride;
 };
+
+/**
+ * This function is used to show a blocked remote content notification.
+ */
+void
+nsMsgContentPolicy::NotifyContentWasBlocked(nsIURI *aOriginatorLocation,
+                                            nsIURI *aContentLocation,
+                                            bool aCanOverride)
+{
+  // Is it a mailnews url?
+  nsresult rv;
+  nsCOMPtr<nsIMsgMessageUrl> msgUrl(do_QueryInterface(aOriginatorLocation,
+                                                      &rv));
+  if (NS_FAILED(rv))
+  {
+    return;
+  }
+
+  nsCString resourceURI;
+  rv = msgUrl->GetUri(getter_Copies(resourceURI));
+  NS_ENSURE_SUCCESS_VOID(rv);
+
+  nsCOMPtr<nsIMsgMailNewsUrl> mailnewsUrl(do_QueryInterface(aOriginatorLocation, &rv));
+  NS_ENSURE_SUCCESS_VOID(rv);
+
+  nsCOMPtr<nsIMsgDBHdr> msgHdr;
+  rv = GetMsgDBHdrFromURI(resourceURI.get(), getter_AddRefs(msgHdr));
+  if (NS_FAILED(rv))
+  {
+    // Maybe we can get a dummy header.
+    nsCOMPtr<nsIMsgWindow> msgWindow;
+    rv = mailnewsUrl->GetMsgWindow(getter_AddRefs(msgWindow));
+    if (msgWindow)
+    {
+      nsCOMPtr<nsIMsgHeaderSink> msgHdrSink;
+      rv = msgWindow->GetMsgHeaderSink(getter_AddRefs(msgHdrSink));
+      if (msgHdrSink)
+        rv = msgHdrSink->GetDummyMsgHeader(getter_AddRefs(msgHdr));
+    }
+  }
+
+  nsCOMPtr<nsIMsgWindow> msgWindow;
+  (void)mailnewsUrl->GetMsgWindow(getter_AddRefs(msgWindow));
+  if (msgWindow)
+  {
+    nsCOMPtr<nsIRunnable> event =
+      new RemoteContentNotifierEvent(msgWindow, msgHdr, aContentLocation, aCanOverride);
+    // Post this as an event because it can cause dom mutations, and we
+    // get called at a bad time to be causing dom mutations.
+    if (event)
+      NS_DispatchToCurrentThread(event);
+  }
+}
 
 /**
  * This function is used to determine if we allow content for a remote message.

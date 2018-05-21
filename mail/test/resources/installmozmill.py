@@ -84,18 +84,26 @@ def main(args=None):
     sys.exit(returncode)
   pip = entry_point_path(destination, 'pip')
 
+  if os.environ.get('MOZ_AUTOMATION') == '1':
+        find_links = [
+            '--find-links', 'https://pypi.pub.build.mozilla.org/pub/',
+            '--no-index',
+        ]
+  else:
+        find_links = []
+
   # Install mozbase packages to the virtualenv
   mozbase_packages = ['manifestparser', 'mozfile', 'mozinfo', 'mozlog',
     'mozprofile', 'mozcrash', 'moznetwork', 'mozprocess', 'mozdevice',
     'mozrunner']
-  returncode = call([pip, 'install'] +
+  returncode = call([pip, 'install'] + find_links +
     [os.path.join(mozbase, package) for package in mozbase_packages], env=env)
   if returncode:
     print 'Failure to install packages'
     sys.exit(returncode)
 
   # Install mozmill
-  returncode = call([pip, 'install'] + [os.path.abspath(package) for package in packages], env=env)
+  returncode = call([pip, 'install'] + find_links + [os.path.abspath(package) for package in packages], env=env)
   if returncode:
     print 'Failure to install packages'
     sys.exit(returncode)

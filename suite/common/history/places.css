@@ -5,3 +5,7 @@
 tree[type="places"] {
   -moz-binding: url("chrome://communicator/content/history/tree.xml#places-tree");
 }
+
+#search-box {
+  width: 16em;
+}
