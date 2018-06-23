@@ -10,13 +10,13 @@ things needs to expanded.
 The changes is an adoption of the previous dropped patch 'Fix
 ipc/chromium on kFreeBSD and Hurd' from the version 17.
 ---
- mozilla/ipc/chromium/src/base/platform_thread_posix.cc | 9 ++++++---
+ ipc/chromium/src/base/platform_thread_posix.cc | 9 ++++++---
  1 file changed, 6 insertions(+), 3 deletions(-)
 
-diff --git a/mozilla/ipc/chromium/src/base/platform_thread_posix.cc b/mozilla/ipc/chromium/src/base/platform_thread_posix.cc
+diff --git a/ipc/chromium/src/base/platform_thread_posix.cc b/ipc/chromium/src/base/platform_thread_posix.cc
 index 481549e..5f9108d 100644
---- a/mozilla/ipc/chromium/src/base/platform_thread_posix.cc
-+++ b/mozilla/ipc/chromium/src/base/platform_thread_posix.cc
+--- a/ipc/chromium/src/base/platform_thread_posix.cc
++++ b/ipc/chromium/src/base/platform_thread_posix.cc
 @@ -13,16 +13,19 @@
  #include <mach/mach.h>
  #elif defined(OS_NETBSD)

@@ -3,13 +3,13 @@ Date: Sat, 8 Dec 2007 19:24:40 +0100
 Subject: Set javascript.options.showInConsole
 
 ---
- mozilla/modules/libpref/init/all.js | 5 +++++
+ modules/libpref/init/all.js | 5 +++++
  1 file changed, 5 insertions(+)
 
-diff --git a/mozilla/modules/libpref/init/all.js b/mozilla/modules/libpref/init/all.js
-index 65f94d0..32bbaf4 100644
---- a/mozilla/modules/libpref/init/all.js
-+++ b/mozilla/modules/libpref/init/all.js
+diff --git a/modules/libpref/init/all.js b/modules/libpref/init/all.js
+index 363f405..ce32506 100644
+--- a/modules/libpref/init/all.js
++++ b/modules/libpref/init/all.js
 @@ -1474,6 +1474,7 @@ pref("javascript.options.jit.full_debug_checks", false);
  // memory, but makes things like Function.prototype.toSource()
  // fail.

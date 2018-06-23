@@ -3,13 +3,13 @@ Date: Fri, 12 Jan 2018 16:36:56 +0100
 Subject: icu: use locale.h instead of xlocale.h
 
 ---
- mozilla/intl/icu/source/i18n/digitlst.cpp | 2 +-
+ intl/icu/source/i18n/digitlst.cpp | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/mozilla/intl/icu/source/i18n/digitlst.cpp b/mozilla/intl/icu/source/i18n/digitlst.cpp
+diff --git a/intl/icu/source/i18n/digitlst.cpp b/intl/icu/source/i18n/digitlst.cpp
 index 39da904..9276f2a 100644
---- a/mozilla/intl/icu/source/i18n/digitlst.cpp
-+++ b/mozilla/intl/icu/source/i18n/digitlst.cpp
+--- a/intl/icu/source/i18n/digitlst.cpp
++++ b/intl/icu/source/i18n/digitlst.cpp
 @@ -63,7 +63,7 @@
  
  #if U_USE_STRTOD_L

@@ -6,17 +6,17 @@ Some parts of the skia source are currently not prepared for building on
 big endian platforms.
 Thanks Adrian Glaubitz for the updated patch.
 ---
- mozilla/gfx/skia/skia/include/core/SkColorPriv.h | 15 ++++-----------
- mozilla/gfx/skia/skia/include/core/SkImageInfo.h |  2 +-
- mozilla/gfx/skia/skia/include/gpu/GrTypes.h      |  6 ++----
- mozilla/gfx/skia/skia/include/private/GrColor.h  |  4 ++++
- mozilla/gfx/skia/skia/src/core/SkColorData.h     | 15 ++++-----------
+ gfx/skia/skia/include/core/SkColorPriv.h | 15 ++++-----------
+ gfx/skia/skia/include/core/SkImageInfo.h |  2 +-
+ gfx/skia/skia/include/gpu/GrTypes.h      |  6 ++----
+ gfx/skia/skia/include/private/GrColor.h  |  4 ++++
+ gfx/skia/skia/src/core/SkColorData.h     | 15 ++++-----------
  5 files changed, 15 insertions(+), 27 deletions(-)
 
-diff --git a/mozilla/gfx/skia/skia/include/core/SkColorPriv.h b/mozilla/gfx/skia/skia/include/core/SkColorPriv.h
+diff --git a/gfx/skia/skia/include/core/SkColorPriv.h b/gfx/skia/skia/include/core/SkColorPriv.h
 index 0cd02e8..8a7f150 100644
---- a/mozilla/gfx/skia/skia/include/core/SkColorPriv.h
-+++ b/mozilla/gfx/skia/skia/include/core/SkColorPriv.h
+--- a/gfx/skia/skia/include/core/SkColorPriv.h
++++ b/gfx/skia/skia/include/core/SkColorPriv.h
 @@ -55,17 +55,10 @@ static inline U8CPU SkUnitScalarClampToByte(SkScalar x) {
   *  Here we enforce this constraint.
   */
@@ -39,10 +39,10 @@ index 0cd02e8..8a7f150 100644
  
  #define SkGetPackedA32(packed)      ((uint32_t)((packed) << (24 - SK_A32_SHIFT)) >> 24)
  #define SkGetPackedR32(packed)      ((uint32_t)((packed) << (24 - SK_R32_SHIFT)) >> 24)
-diff --git a/mozilla/gfx/skia/skia/include/core/SkImageInfo.h b/mozilla/gfx/skia/skia/include/core/SkImageInfo.h
+diff --git a/gfx/skia/skia/include/core/SkImageInfo.h b/gfx/skia/skia/include/core/SkImageInfo.h
 index ece47f5..e3dec42 100644
---- a/mozilla/gfx/skia/skia/include/core/SkImageInfo.h
-+++ b/mozilla/gfx/skia/skia/include/core/SkImageInfo.h
+--- a/gfx/skia/skia/include/core/SkImageInfo.h
++++ b/gfx/skia/skia/include/core/SkImageInfo.h
 @@ -84,7 +84,7 @@ enum SkColorType {
  #elif SK_PMCOLOR_BYTE_ORDER(R,G,B,A)
      kN32_SkColorType = kRGBA_8888_SkColorType,
@@ -52,10 +52,10 @@ index ece47f5..e3dec42 100644
  #endif
  };
  
-diff --git a/mozilla/gfx/skia/skia/include/gpu/GrTypes.h b/mozilla/gfx/skia/skia/include/gpu/GrTypes.h
+diff --git a/gfx/skia/skia/include/gpu/GrTypes.h b/gfx/skia/skia/include/gpu/GrTypes.h
 index c88d9ee..bfa9452 100644
---- a/mozilla/gfx/skia/skia/include/gpu/GrTypes.h
-+++ b/mozilla/gfx/skia/skia/include/gpu/GrTypes.h
+--- a/gfx/skia/skia/include/gpu/GrTypes.h
++++ b/gfx/skia/skia/include/gpu/GrTypes.h
 @@ -344,15 +344,13 @@ enum GrPixelConfig {
  static const int kGrPixelConfigCnt = kLast_GrPixelConfig + 1;
  
@@ -74,10 +74,10 @@ index c88d9ee..bfa9452 100644
  #endif
  
  /**
-diff --git a/mozilla/gfx/skia/skia/include/private/GrColor.h b/mozilla/gfx/skia/skia/include/private/GrColor.h
+diff --git a/gfx/skia/skia/include/private/GrColor.h b/gfx/skia/skia/include/private/GrColor.h
 index b4a461d..14c5eb9 100644
---- a/mozilla/gfx/skia/skia/include/private/GrColor.h
-+++ b/mozilla/gfx/skia/skia/include/private/GrColor.h
+--- a/gfx/skia/skia/include/private/GrColor.h
++++ b/gfx/skia/skia/include/private/GrColor.h
 @@ -74,7 +74,11 @@ static inline GrColor GrColorPackA4(unsigned a) {
   *  Since premultiplied means that alpha >= color, we construct a color with
   *  each component==255 and alpha == 0 to be "illegal"
@@ -90,10 +90,10 @@ index b4a461d..14c5eb9 100644
  
  #define GrColor_WHITE 0xFFFFFFFF
  #define GrColor_TRANSPARENT_BLACK 0x0
-diff --git a/mozilla/gfx/skia/skia/src/core/SkColorData.h b/mozilla/gfx/skia/skia/src/core/SkColorData.h
+diff --git a/gfx/skia/skia/src/core/SkColorData.h b/gfx/skia/skia/src/core/SkColorData.h
 index 3fc0113..43ae01e 100644
---- a/mozilla/gfx/skia/skia/src/core/SkColorData.h
-+++ b/mozilla/gfx/skia/skia/src/core/SkColorData.h
+--- a/gfx/skia/skia/src/core/SkColorData.h
++++ b/gfx/skia/skia/src/core/SkColorData.h
 @@ -32,17 +32,10 @@
   *  Here we enforce this constraint.
   */

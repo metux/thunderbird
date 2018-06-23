@@ -21,13 +21,13 @@ one case entry for all architectures which are all big endian.
 For more readability the more exclusive extra list of all possible
 architectures with big endianness in Debian was choosen.
 ---
- mozilla/build/autoconf/icu.m4 | 26 +++++++++++++++++++++++++-
+ build/autoconf/icu.m4 | 26 +++++++++++++++++++++++++-
  1 file changed, 25 insertions(+), 1 deletion(-)
 
-diff --git a/mozilla/build/autoconf/icu.m4 b/mozilla/build/autoconf/icu.m4
+diff --git a/build/autoconf/icu.m4 b/build/autoconf/icu.m4
 index 4c59079..bc1873a 100644
---- a/mozilla/build/autoconf/icu.m4
-+++ b/mozilla/build/autoconf/icu.m4
+--- a/build/autoconf/icu.m4
++++ b/build/autoconf/icu.m4
 @@ -78,7 +78,31 @@ if test -n "$USE_ICU"; then
      # TODO: the l is actually endian-dependent
      # We could make this set as 'l' or 'b' for little or big, respectively,

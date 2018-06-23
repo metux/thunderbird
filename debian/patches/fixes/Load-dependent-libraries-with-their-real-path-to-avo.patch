@@ -3,13 +3,13 @@ Date: Mon, 16 Sep 2013 20:40:57 +0200
 Subject: Load-dependent-libraries-with-their-real-path-to-avo
 
 ---
- mozilla/xpcom/glue/standalone/nsXPCOMGlue.cpp | 3 +++
+ xpcom/glue/standalone/nsXPCOMGlue.cpp | 3 +++
  1 file changed, 3 insertions(+)
 
-diff --git a/mozilla/xpcom/glue/standalone/nsXPCOMGlue.cpp b/mozilla/xpcom/glue/standalone/nsXPCOMGlue.cpp
+diff --git a/xpcom/glue/standalone/nsXPCOMGlue.cpp b/xpcom/glue/standalone/nsXPCOMGlue.cpp
 index 53a5761..265b993 100644
---- a/mozilla/xpcom/glue/standalone/nsXPCOMGlue.cpp
-+++ b/mozilla/xpcom/glue/standalone/nsXPCOMGlue.cpp
+--- a/xpcom/glue/standalone/nsXPCOMGlue.cpp
++++ b/xpcom/glue/standalone/nsXPCOMGlue.cpp
 @@ -154,6 +154,9 @@ ReadDependentCB(pathstr_t aDependentLib)
    // We do this unconditionally because of data in bug 771745
    ReadAheadLib(aDependentLib);

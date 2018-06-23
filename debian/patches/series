@@ -31,3 +31,5 @@ debian-hacks/shellutil.py-ignore-tilde-as-special-character.patch
 fixes/Fix-big-endian-build-for-SKIA.patch
 porting-sparc64/Bug-1434726-Early-startup-crash-on-Linux-sparc64-in-HashI.patch
 fixes/Use-msse-2-fpmath-C-CXXFLAGS-only-on-x86_64-platforms.patch
+fixes/Build-also-gdata-provider-as-xpi-file.patch
+debian-hacks/Don-t-build-testing-suites-and-stuff-part-2.patch

@@ -4,22 +4,22 @@ Subject: adding missed HURD adoptions
 
 Based on https://lists.alioth.debian.org/pipermail/pkg-mozilla-maintainers/2016-April/027634.html
 ---
- mozilla/ipc/chromium/src/base/file_util_posix.cc                    | 2 +-
- mozilla/ipc/chromium/src/base/platform_thread.h                     | 2 +-
- mozilla/ipc/chromium/src/base/platform_thread_posix.cc              | 2 +-
- mozilla/ipc/chromium/src/base/port.h                                | 2 +-
- mozilla/ipc/chromium/src/base/process_util.h                        | 2 +-
- mozilla/ipc/chromium/src/base/process_util_posix.cc                 | 6 +++++-
- mozilla/media/webrtc/signaling/src/sdp/sipcc/cpr_types.h            | 2 +-
- mozilla/media/webrtc/trunk/build/build_config.h                     | 6 +++++-
+ ipc/chromium/src/base/file_util_posix.cc                            | 2 +-
+ ipc/chromium/src/base/platform_thread.h                             | 2 +-
+ ipc/chromium/src/base/platform_thread_posix.cc                      | 2 +-
+ ipc/chromium/src/base/port.h                                        | 2 +-
+ ipc/chromium/src/base/process_util.h                                | 2 +-
+ ipc/chromium/src/base/process_util_posix.cc                         | 6 +++++-
+ media/webrtc/signaling/src/sdp/sipcc/cpr_types.h                    | 2 +-
+ media/webrtc/trunk/build/build_config.h                             | 6 +++++-
  .../gtests/google_test/gtest/include/gtest/internal/gtest-port.h    | 6 ++++--
- mozilla/security/sandbox/chromium/build/build_config.h              | 4 +++-
+ security/sandbox/chromium/build/build_config.h                      | 4 +++-
  10 files changed, 23 insertions(+), 11 deletions(-)
 
-diff --git a/mozilla/ipc/chromium/src/base/file_util_posix.cc b/mozilla/ipc/chromium/src/base/file_util_posix.cc
+diff --git a/ipc/chromium/src/base/file_util_posix.cc b/ipc/chromium/src/base/file_util_posix.cc
 index d648974..a408640 100644
---- a/mozilla/ipc/chromium/src/base/file_util_posix.cc
-+++ b/mozilla/ipc/chromium/src/base/file_util_posix.cc
+--- a/ipc/chromium/src/base/file_util_posix.cc
++++ b/ipc/chromium/src/base/file_util_posix.cc
 @@ -279,7 +279,7 @@ bool GetTempDir(FilePath* path) {
  }
  
@@ -29,10 +29,10 @@ index d648974..a408640 100644
    *path = FilePath("/dev/shm");
    return true;
  #else
-diff --git a/mozilla/ipc/chromium/src/base/platform_thread.h b/mozilla/ipc/chromium/src/base/platform_thread.h
+diff --git a/ipc/chromium/src/base/platform_thread.h b/ipc/chromium/src/base/platform_thread.h
 index 3432128..9092ace 100644
---- a/mozilla/ipc/chromium/src/base/platform_thread.h
-+++ b/mozilla/ipc/chromium/src/base/platform_thread.h
+--- a/ipc/chromium/src/base/platform_thread.h
++++ b/ipc/chromium/src/base/platform_thread.h
 @@ -24,7 +24,7 @@ typedef void* PlatformThreadHandle;  // HANDLE
  #elif defined(OS_POSIX)
  #include <pthread.h>
@@ -42,10 +42,10 @@ index 3432128..9092ace 100644
  #include <unistd.h>
  typedef pid_t PlatformThreadId;
  #elif defined(OS_BSD)
-diff --git a/mozilla/ipc/chromium/src/base/platform_thread_posix.cc b/mozilla/ipc/chromium/src/base/platform_thread_posix.cc
+diff --git a/ipc/chromium/src/base/platform_thread_posix.cc b/ipc/chromium/src/base/platform_thread_posix.cc
 index 5f9108d..ec7eb1b 100644
---- a/mozilla/ipc/chromium/src/base/platform_thread_posix.cc
-+++ b/mozilla/ipc/chromium/src/base/platform_thread_posix.cc
+--- a/ipc/chromium/src/base/platform_thread_posix.cc
++++ b/ipc/chromium/src/base/platform_thread_posix.cc
 @@ -57,7 +57,7 @@ PlatformThreadId PlatformThread::CurrentId() {
  #else
     return getpid();
@@ -55,10 +55,10 @@ index 5f9108d..ec7eb1b 100644
    return (intptr_t) (pthread_self());
  #elif defined(OS_NETBSD)
    return _lwp_self();
-diff --git a/mozilla/ipc/chromium/src/base/port.h b/mozilla/ipc/chromium/src/base/port.h
+diff --git a/ipc/chromium/src/base/port.h b/ipc/chromium/src/base/port.h
 index d206d25..13a90bf 100644
---- a/mozilla/ipc/chromium/src/base/port.h
-+++ b/mozilla/ipc/chromium/src/base/port.h
+--- a/ipc/chromium/src/base/port.h
++++ b/ipc/chromium/src/base/port.h
 @@ -58,7 +58,7 @@ namespace base {
  // Define an OS-neutral wrapper for shared library entry points
  #if defined(OS_WIN)
@@ -68,10 +68,10 @@ index d206d25..13a90bf 100644
  #define API_CALL
  #endif
  
-diff --git a/mozilla/ipc/chromium/src/base/process_util.h b/mozilla/ipc/chromium/src/base/process_util.h
+diff --git a/ipc/chromium/src/base/process_util.h b/ipc/chromium/src/base/process_util.h
 index d9d9396..4370731 100644
---- a/mozilla/ipc/chromium/src/base/process_util.h
-+++ b/mozilla/ipc/chromium/src/base/process_util.h
+--- a/ipc/chromium/src/base/process_util.h
++++ b/ipc/chromium/src/base/process_util.h
 @@ -19,7 +19,7 @@
  #ifndef STDOUT_FILENO
  #define STDOUT_FILENO 1
@@ -81,10 +81,10 @@ index d9d9396..4370731 100644
  #include <dirent.h>
  #include <limits.h>
  #include <sys/types.h>
-diff --git a/mozilla/ipc/chromium/src/base/process_util_posix.cc b/mozilla/ipc/chromium/src/base/process_util_posix.cc
+diff --git a/ipc/chromium/src/base/process_util_posix.cc b/ipc/chromium/src/base/process_util_posix.cc
 index 4475b3e..e8ca219 100644
---- a/mozilla/ipc/chromium/src/base/process_util_posix.cc
-+++ b/mozilla/ipc/chromium/src/base/process_util_posix.cc
+--- a/ipc/chromium/src/base/process_util_posix.cc
++++ b/ipc/chromium/src/base/process_util_posix.cc
 @@ -138,6 +138,10 @@ void CloseSuperfluousFds(const base::InjectiveMultimap& saved_mapping) {
    static const rlim_t kSystemDefaultMaxFds = 1024;
    // at least /dev/fd will exist
@@ -105,10 +105,10 @@ index 4475b3e..e8ca219 100644
    const char fd_dir[] = "/dev/fd";
  #endif
    ScopedDIR dir_closer(opendir(fd_dir));
-diff --git a/mozilla/media/webrtc/signaling/src/sdp/sipcc/cpr_types.h b/mozilla/media/webrtc/signaling/src/sdp/sipcc/cpr_types.h
+diff --git a/media/webrtc/signaling/src/sdp/sipcc/cpr_types.h b/media/webrtc/signaling/src/sdp/sipcc/cpr_types.h
 index f048e72..8bb0b59 100644
---- a/mozilla/media/webrtc/signaling/src/sdp/sipcc/cpr_types.h
-+++ b/mozilla/media/webrtc/signaling/src/sdp/sipcc/cpr_types.h
+--- a/media/webrtc/signaling/src/sdp/sipcc/cpr_types.h
++++ b/media/webrtc/signaling/src/sdp/sipcc/cpr_types.h
 @@ -7,7 +7,7 @@
  
  #include <inttypes.h>
@@ -118,10 +118,10 @@ index f048e72..8bb0b59 100644
  #include "cpr_linux_types.h"
  #elif defined SIP_OS_WINDOWS
  #include "cpr_win_types.h"
-diff --git a/mozilla/media/webrtc/trunk/build/build_config.h b/mozilla/media/webrtc/trunk/build/build_config.h
+diff --git a/media/webrtc/trunk/build/build_config.h b/media/webrtc/trunk/build/build_config.h
 index 168fbd6..312674b 100644
---- a/mozilla/media/webrtc/trunk/build/build_config.h
-+++ b/mozilla/media/webrtc/trunk/build/build_config.h
+--- a/media/webrtc/trunk/build/build_config.h
++++ b/media/webrtc/trunk/build/build_config.h
 @@ -37,6 +37,9 @@
  #elif defined(_WIN32)
  #define OS_WIN 1
@@ -142,10 +142,10 @@ index 168fbd6..312674b 100644
  #define OS_POSIX 1
  #endif
  
-diff --git a/mozilla/security/nss/gtests/google_test/gtest/include/gtest/internal/gtest-port.h b/mozilla/security/nss/gtests/google_test/gtest/include/gtest/internal/gtest-port.h
+diff --git a/security/nss/gtests/google_test/gtest/include/gtest/internal/gtest-port.h b/security/nss/gtests/google_test/gtest/include/gtest/internal/gtest-port.h
 index f376dfa..0f702eb 100644
---- a/mozilla/security/nss/gtests/google_test/gtest/include/gtest/internal/gtest-port.h
-+++ b/mozilla/security/nss/gtests/google_test/gtest/include/gtest/internal/gtest-port.h
+--- a/security/nss/gtests/google_test/gtest/include/gtest/internal/gtest-port.h
++++ b/security/nss/gtests/google_test/gtest/include/gtest/internal/gtest-port.h
 @@ -345,6 +345,8 @@
  # define GTEST_OS_OPENBSD 1
  #elif defined __QNX__
@@ -173,10 +173,10 @@ index f376dfa..0f702eb 100644
  # define GTEST_HAS_DEATH_TEST 1
  # include <vector>  // NOLINT
  #endif
-diff --git a/mozilla/security/sandbox/chromium/build/build_config.h b/mozilla/security/sandbox/chromium/build/build_config.h
+diff --git a/security/sandbox/chromium/build/build_config.h b/security/sandbox/chromium/build/build_config.h
 index 8e5fcd7..9172091 100644
---- a/mozilla/security/sandbox/chromium/build/build_config.h
-+++ b/mozilla/security/sandbox/chromium/build/build_config.h
+--- a/security/sandbox/chromium/build/build_config.h
++++ b/security/sandbox/chromium/build/build_config.h
 @@ -47,6 +47,8 @@
  // we really are using glibc, not uClibc pretending to be glibc
  #define LIBC_GLIBC 1

@@ -4,13 +4,13 @@ Subject: Bug 628252 - os2.cc fails to compile against GCC 4.6,
  missing #include <cstddef>; r,a=roc
 
 ---
- mozilla/gfx/ots/src/os2.cc | 1 +
+ gfx/ots/src/os2.cc | 1 +
  1 file changed, 1 insertion(+)
 
-diff --git a/mozilla/gfx/ots/src/os2.cc b/mozilla/gfx/ots/src/os2.cc
+diff --git a/gfx/ots/src/os2.cc b/gfx/ots/src/os2.cc
 index d298987..f38bfe3 100644
---- a/mozilla/gfx/ots/src/os2.cc
-+++ b/mozilla/gfx/ots/src/os2.cc
+--- a/gfx/ots/src/os2.cc
++++ b/gfx/ots/src/os2.cc
 @@ -3,6 +3,7 @@
  // found in the LICENSE file.
  

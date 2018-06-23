@@ -14,22 +14,22 @@ https://lists.alioth.debian.org/pipermail/pkg-mozilla-maintainers/2014-March/015
 After release of Thunderbird 44 there are additional changes made as the
 various configuration files where split into more files.
 ---
- mozilla/dom/plugins/ipc/PluginModuleChild.cpp                | 6 +++---
- mozilla/dom/plugins/ipc/PluginModuleChild.h                  | 2 +-
- mozilla/ipc/chromium/chromium-config.mozbuild                | 5 +++++
- mozilla/ipc/chromium/moz.build                               | 2 +-
- mozilla/ipc/chromium/src/base/message_loop.cc                | 4 ++--
- mozilla/ipc/chromium/src/base/process_util_posix.cc          | 2 +-
- mozilla/ipc/chromium/src/build/build_config.h                | 3 ++-
- mozilla/ipc/chromium/src/third_party/libeventcommon.mozbuild | 5 +++++
- mozilla/ipc/glue/GeckoChildProcessHost.cpp                   | 8 +++++---
- mozilla/js/src/wasm/WasmSignalHandlers.cpp                   | 2 +-
+ dom/plugins/ipc/PluginModuleChild.cpp                | 6 +++---
+ dom/plugins/ipc/PluginModuleChild.h                  | 2 +-
+ ipc/chromium/chromium-config.mozbuild                | 5 +++++
+ ipc/chromium/moz.build                               | 2 +-
+ ipc/chromium/src/base/message_loop.cc                | 4 ++--
+ ipc/chromium/src/base/process_util_posix.cc          | 2 +-
+ ipc/chromium/src/build/build_config.h                | 3 ++-
+ ipc/chromium/src/third_party/libeventcommon.mozbuild | 5 +++++
+ ipc/glue/GeckoChildProcessHost.cpp                   | 8 +++++---
+ js/src/wasm/WasmSignalHandlers.cpp                   | 2 +-
  10 files changed, 26 insertions(+), 13 deletions(-)
 
-diff --git a/mozilla/dom/plugins/ipc/PluginModuleChild.cpp b/mozilla/dom/plugins/ipc/PluginModuleChild.cpp
+diff --git a/dom/plugins/ipc/PluginModuleChild.cpp b/dom/plugins/ipc/PluginModuleChild.cpp
 index 61e57da..e063789 100644
---- a/mozilla/dom/plugins/ipc/PluginModuleChild.cpp
-+++ b/mozilla/dom/plugins/ipc/PluginModuleChild.cpp
+--- a/dom/plugins/ipc/PluginModuleChild.cpp
++++ b/dom/plugins/ipc/PluginModuleChild.cpp
 @@ -274,7 +274,7 @@ PluginModuleChild::InitForChrome(const std::string& aPluginFilename,
  
      GetIPCChannel()->SetAbortOnError(true);
@@ -57,10 +57,10 @@ index 61e57da..e063789 100644
      result = mInitializeFunc(&sBrowserFuncs, &mFunctions);
  #elif defined(OS_WIN) || defined(OS_MACOSX)
      result = mInitializeFunc(&sBrowserFuncs);
-diff --git a/mozilla/dom/plugins/ipc/PluginModuleChild.h b/mozilla/dom/plugins/ipc/PluginModuleChild.h
+diff --git a/dom/plugins/ipc/PluginModuleChild.h b/dom/plugins/ipc/PluginModuleChild.h
 index 764e335..ecc1570 100644
---- a/mozilla/dom/plugins/ipc/PluginModuleChild.h
-+++ b/mozilla/dom/plugins/ipc/PluginModuleChild.h
+--- a/dom/plugins/ipc/PluginModuleChild.h
++++ b/dom/plugins/ipc/PluginModuleChild.h
 @@ -244,7 +244,7 @@ private:
  
      // we get this from the plugin
@@ -70,10 +70,10 @@ index 764e335..ecc1570 100644
      NP_PLUGINUNIXINIT mInitializeFunc;
  #elif defined(OS_WIN) || defined(OS_MACOSX)
      NP_PLUGININIT mInitializeFunc;
-diff --git a/mozilla/ipc/chromium/chromium-config.mozbuild b/mozilla/ipc/chromium/chromium-config.mozbuild
+diff --git a/ipc/chromium/chromium-config.mozbuild b/ipc/chromium/chromium-config.mozbuild
 index 5558add..332a4e2 100644
---- a/mozilla/ipc/chromium/chromium-config.mozbuild
-+++ b/mozilla/ipc/chromium/chromium-config.mozbuild
+--- a/ipc/chromium/chromium-config.mozbuild
++++ b/ipc/chromium/chromium-config.mozbuild
 @@ -67,5 +67,10 @@ else:
              'OS_BSD': 1,
          })
@@ -85,10 +85,10 @@ index 5558add..332a4e2 100644
 +
      else:
          DEFINES['OS_LINUX'] = 1
-diff --git a/mozilla/ipc/chromium/moz.build b/mozilla/ipc/chromium/moz.build
+diff --git a/ipc/chromium/moz.build b/ipc/chromium/moz.build
 index 7888251..928ccd9 100644
---- a/mozilla/ipc/chromium/moz.build
-+++ b/mozilla/ipc/chromium/moz.build
+--- a/ipc/chromium/moz.build
++++ b/ipc/chromium/moz.build
 @@ -126,7 +126,7 @@ if os_bsd or os_linux:
              'src/base/message_pump_glib.cc',
          ]
@@ -98,10 +98,10 @@ index 7888251..928ccd9 100644
      SOURCES += [
          'src/base/atomicops_internals_x86_gcc.cc',
          'src/base/process_util_linux.cc',
-diff --git a/mozilla/ipc/chromium/src/base/message_loop.cc b/mozilla/ipc/chromium/src/base/message_loop.cc
+diff --git a/ipc/chromium/src/base/message_loop.cc b/ipc/chromium/src/base/message_loop.cc
 index 49fa63e..18f9c4b 100644
---- a/mozilla/ipc/chromium/src/base/message_loop.cc
-+++ b/mozilla/ipc/chromium/src/base/message_loop.cc
+--- a/ipc/chromium/src/base/message_loop.cc
++++ b/ipc/chromium/src/base/message_loop.cc
 @@ -21,7 +21,7 @@
  #if defined(OS_POSIX)
  #include "base/message_pump_libevent.h"
@@ -120,10 +120,10 @@ index 49fa63e..18f9c4b 100644
      pump_ = new base::MessagePumpForUI();
  #endif  // OS_LINUX
    } else if (type_ == TYPE_IO) {
-diff --git a/mozilla/ipc/chromium/src/base/process_util_posix.cc b/mozilla/ipc/chromium/src/base/process_util_posix.cc
+diff --git a/ipc/chromium/src/base/process_util_posix.cc b/ipc/chromium/src/base/process_util_posix.cc
 index af40161..4475b3e 100644
---- a/mozilla/ipc/chromium/src/base/process_util_posix.cc
-+++ b/mozilla/ipc/chromium/src/base/process_util_posix.cc
+--- a/ipc/chromium/src/base/process_util_posix.cc
++++ b/ipc/chromium/src/base/process_util_posix.cc
 @@ -127,7 +127,7 @@ void CloseSuperfluousFds(const base::InjectiveMultimap& saved_mapping) {
  #if defined(ANDROID)
    static const rlim_t kSystemDefaultMaxFds = 1024;
@@ -133,10 +133,10 @@ index af40161..4475b3e 100644
    static const rlim_t kSystemDefaultMaxFds = 8192;
    static const char kFDDir[] = "/proc/self/fd";
  #elif defined(OS_MACOSX)
-diff --git a/mozilla/ipc/chromium/src/build/build_config.h b/mozilla/ipc/chromium/src/build/build_config.h
+diff --git a/ipc/chromium/src/build/build_config.h b/ipc/chromium/src/build/build_config.h
 index f991c01..f695444 100644
---- a/mozilla/ipc/chromium/src/build/build_config.h
-+++ b/mozilla/ipc/chromium/src/build/build_config.h
+--- a/ipc/chromium/src/build/build_config.h
++++ b/ipc/chromium/src/build/build_config.h
 @@ -23,6 +23,7 @@
  #elif defined(__APPLE__)
  #define OS_MACOSX 1
@@ -154,10 +154,10 @@ index f991c01..f695444 100644
  #define OS_POSIX 1
  #endif
  
-diff --git a/mozilla/ipc/chromium/src/third_party/libeventcommon.mozbuild b/mozilla/ipc/chromium/src/third_party/libeventcommon.mozbuild
+diff --git a/ipc/chromium/src/third_party/libeventcommon.mozbuild b/ipc/chromium/src/third_party/libeventcommon.mozbuild
 index 5037ec7..c858d9c 100644
---- a/mozilla/ipc/chromium/src/third_party/libeventcommon.mozbuild
-+++ b/mozilla/ipc/chromium/src/third_party/libeventcommon.mozbuild
+--- a/ipc/chromium/src/third_party/libeventcommon.mozbuild
++++ b/ipc/chromium/src/third_party/libeventcommon.mozbuild
 @@ -8,6 +8,7 @@ os_win = 0
  os_posix = 0
  os_macosx = 0
@@ -177,10 +177,10 @@ index 5037ec7..c858d9c 100644
      else:
          os_linux = 1
          if CONFIG['OS_TARGET'] == 'Android':
-diff --git a/mozilla/ipc/glue/GeckoChildProcessHost.cpp b/mozilla/ipc/glue/GeckoChildProcessHost.cpp
+diff --git a/ipc/glue/GeckoChildProcessHost.cpp b/ipc/glue/GeckoChildProcessHost.cpp
 index d18ed9e..91041f2 100644
---- a/mozilla/ipc/glue/GeckoChildProcessHost.cpp
-+++ b/mozilla/ipc/glue/GeckoChildProcessHost.cpp
+--- a/ipc/glue/GeckoChildProcessHost.cpp
++++ b/ipc/glue/GeckoChildProcessHost.cpp
 @@ -646,7 +646,9 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
    // and passing wstrings from one config to the other is unsafe.  So
    // we split the logic here.
@@ -210,10 +210,10 @@ index d18ed9e..91041f2 100644
      int childCrashFd, childCrashRemapFd;
      if (!CrashReporter::CreateNotificationPipeForChild(&childCrashFd,
                                                         &childCrashRemapFd)) {
-diff --git a/mozilla/js/src/wasm/WasmSignalHandlers.cpp b/mozilla/js/src/wasm/WasmSignalHandlers.cpp
+diff --git a/js/src/wasm/WasmSignalHandlers.cpp b/js/src/wasm/WasmSignalHandlers.cpp
 index b2a24bb..23f7ea9 100644
---- a/mozilla/js/src/wasm/WasmSignalHandlers.cpp
-+++ b/mozilla/js/src/wasm/WasmSignalHandlers.cpp
+--- a/js/src/wasm/WasmSignalHandlers.cpp
++++ b/js/src/wasm/WasmSignalHandlers.cpp
 @@ -128,7 +128,7 @@ struct AutoSignalHandler
  #  define EPC_sig(p) ((p)->sc_pc)
  #  define RFP_sig(p) ((p)->sc_regs[30])

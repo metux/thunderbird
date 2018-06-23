@@ -5,13 +5,13 @@ Subject: FTBFS s390x: Use jit/none/AtomicOperations-sparc.h on s390x
 s390x needs also to use the atomic operation instructions that are also
 used on sparc as they are generic enough.
 ---
- mozilla/js/src/jit/AtomicOperations.h | 3 +++
+ js/src/jit/AtomicOperations.h | 3 +++
  1 file changed, 3 insertions(+)
 
-diff --git a/mozilla/js/src/jit/AtomicOperations.h b/mozilla/js/src/jit/AtomicOperations.h
+diff --git a/js/src/jit/AtomicOperations.h b/js/src/jit/AtomicOperations.h
 index a8970b0..1cf22bf 100644
---- a/mozilla/js/src/jit/AtomicOperations.h
-+++ b/mozilla/js/src/jit/AtomicOperations.h
+--- a/js/src/jit/AtomicOperations.h
++++ b/js/src/jit/AtomicOperations.h
 @@ -364,6 +364,9 @@ AtomicOperations::isLockfreeJS(int32_t size)
  #elif defined(__aarch64__)
  # if defined(__clang__) || defined(__GNUC__)

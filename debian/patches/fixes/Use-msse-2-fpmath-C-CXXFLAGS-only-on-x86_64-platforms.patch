@@ -9,10 +9,10 @@ platforms.
  1 file changed, 2 insertions(+), 3 deletions(-)
 
 diff --git a/build/unix/mozconfig.linux32 b/build/unix/mozconfig.linux32
-index d74249f..e05f089 100644
+index b9ac630..cf68b49 100644
 --- a/build/unix/mozconfig.linux32
 +++ b/build/unix/mozconfig.linux32
-@@ -6,12 +6,11 @@ fi
+@@ -2,12 +2,11 @@
  
  export MOZ_LINUX_32_SSE2_STARTUP_ERROR=1
  

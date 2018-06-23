@@ -5,13 +5,13 @@ Subject: Strip version number from application before installation
 Strip thunderbird's version number from the installation directories so
 we have a fixed location for extensions that build against it.
 ---
- mozilla/config/baseconfig.mk | 3 +++
+ config/baseconfig.mk | 3 +++
  1 file changed, 3 insertions(+)
 
-diff --git a/mozilla/config/baseconfig.mk b/mozilla/config/baseconfig.mk
+diff --git a/config/baseconfig.mk b/config/baseconfig.mk
 index 754ba1a..370643d 100644
---- a/mozilla/config/baseconfig.mk
-+++ b/mozilla/config/baseconfig.mk
+--- a/config/baseconfig.mk
++++ b/config/baseconfig.mk
 @@ -3,6 +3,9 @@
  # We thus use INCLUDED_AUTOCONF_MK to enable/disable some parts depending
  # whether a normal build is happening or whether the check is running.

@@ -7,13 +7,13 @@ inside the Python wrappers around the autotools files, it's not used any
 there and breaks the build of Debian beta versions which uses '~' to
 mark the Debian version as 'smaller than'.
 ---
- mozilla/python/mozbuild/mozbuild/shellutil.py | 2 +-
+ python/mozbuild/mozbuild/shellutil.py | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/mozilla/python/mozbuild/mozbuild/shellutil.py b/mozilla/python/mozbuild/mozbuild/shellutil.py
+diff --git a/python/mozbuild/mozbuild/shellutil.py b/python/mozbuild/mozbuild/shellutil.py
 index 185a970..580d778 100644
---- a/mozilla/python/mozbuild/mozbuild/shellutil.py
-+++ b/mozilla/python/mozbuild/mozbuild/shellutil.py
+--- a/python/mozbuild/mozbuild/shellutil.py
++++ b/python/mozbuild/mozbuild/shellutil.py
 @@ -26,7 +26,7 @@ UNQUOTED_TOKENS_RE = _tokens2re(
    whitespace=r'[\t\r\n ]+',
    quote=r'[\'"]',
