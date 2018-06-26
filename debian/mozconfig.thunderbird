@@ -11,7 +11,7 @@
 . $topsrcdir/mozconfig.default
 
 # Debian specific things
-ac_add_options --enable-application=mail         # enable Thunderbird
+ac_add_options --enable-application=comm/mail    # enable Thunderbird
 ac_add_options --enable-calendar                 # enable Lightning
 
 # setting the obj-dir (build directory, filled in by debian/rules)
