@@ -81,6 +81,7 @@ override_dh_auto_configure:
 	# copy the mozconfig files
 	cp debian/mozconfig.* .
 	echo 'mk_add_options MOZ_OBJDIR=$(CURDIR)/obj-thunderbird' >> mozconfig.thunderbird
+	echo 'ac_add_options --prefix=$(CURDIR)/debian/tmp/usr' >> mozconfig.default
 	@echo "rebuild ICU data file needed: $(ICU_BUILD)"
 ifeq ($(ICU_BUILD),YES)
 	####################################################################
@@ -114,7 +115,8 @@ override_dh_auto_install:
 ifneq (,$(filter mips,$(DEB_BUILD_ARCH)))
 	sed -i '/"javascript.options.\(baselinejit\|ion\)"/s/true/false/' obj-thunderbird/dist/bin/greprefs.js
 endif
-	make -f client.mk install DESTDIR=$(CURDIR)/debian/tmp
+	# install thunderbird into temp install folder
+	./mach -v install
 	# install, symlinking thunderbird-l10n packages
 	cd $(CURDIR)/thunderbird-l10n ;\
 	for LANG in *; do \
