@@ -4,6 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 XPI_NAME = 'gdata-provider'
+export('XPI_NAME')
 
 FINAL_TARGET_PP_FILES += ['install.rdf']
 
@@ -25,6 +26,9 @@ EXTRA_COMPONENTS += [
     'components/calGoogleCalendar.js',
     'components/calGoogleCalendar.manifest',
 ]
+
+USE_EXTENSION_MANIFEST = True
+export('USE_EXTENSION_MANIFEST')
 
 JAR_MANIFESTS += ['jar.mn']
 
