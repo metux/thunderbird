@@ -6,8 +6,10 @@
 
 XPCSHELL_TESTS_MANIFESTS += ['tests/unit/xpcshell.ini']
 
-DevToolsModules(
-    'acorn.js',
-    'acorn_loose.js',
-    'walk.js',
-)
+# Don't build any testsuites. We have filteres out some needed content for
+# this as some files are not DFSG clean.
+#DevToolsModules(
+#    'acorn.js',
+#    'acorn_loose.js',
+#    'walk.js',
+#)

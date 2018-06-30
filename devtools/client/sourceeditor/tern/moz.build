@@ -11,7 +11,7 @@ DevToolsModules(
     'comment.js',
     'condense.js',
     'def.js',
-    'ecma5.js',
+#    'ecma5.js',
     'infer.js',
     'signal.js',
     'tern.js',

@@ -74,21 +74,23 @@ FINAL_LIBRARY = 'xul'
 
 JAR_MANIFESTS += ['jar.mn']
 
-BROWSER_CHROME_MANIFESTS += [
-    'test/browser/browser.ini',
-]
+# Don't build any testsuites. We have filteres out some needed content for
+# this as some files are not DFSG clean.
+#BROWSER_CHROME_MANIFESTS += [
+#    'test/browser/browser.ini',
+#]
 
-MOCHITEST_MANIFESTS += [
-    'test/mochitest/mochitest-remote.ini',
-    'test/mochitest/mochitest.ini'
-]
-MOCHITEST_CHROME_MANIFESTS += ['test/mochitest/chrome.ini']
-XPCSHELL_TESTS_MANIFESTS += [
-    'test/xpcshell/native_messaging.ini',
-    'test/xpcshell/xpcshell-e10s.ini',
-    'test/xpcshell/xpcshell-remote.ini',
-    'test/xpcshell/xpcshell.ini',
-]
+#MOCHITEST_MANIFESTS += [
+#    'test/mochitest/mochitest-remote.ini',
+#    'test/mochitest/mochitest.ini'
+#]
+#MOCHITEST_CHROME_MANIFESTS += ['test/mochitest/chrome.ini']
+#XPCSHELL_TESTS_MANIFESTS += [
+#    'test/xpcshell/native_messaging.ini',
+#    'test/xpcshell/xpcshell-e10s.ini',
+#    'test/xpcshell/xpcshell-remote.ini',
+#    'test/xpcshell/xpcshell.ini',
+#]
 
 SPHINX_TREES['webextensions'] = 'docs'
 

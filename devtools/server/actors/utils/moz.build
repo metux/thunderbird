@@ -7,7 +7,7 @@
 DevToolsModules(
     'actor-registry-utils.js',
     'audionodes.json',
-    'automation-timeline.js',
+#    'automation-timeline.js',
     'breakpoint-actor-map.js',
     'css-grid-utils.js',
     'event-loop.js',

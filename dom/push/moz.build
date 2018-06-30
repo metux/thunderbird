@@ -31,13 +31,15 @@ else:
         'PushServiceAndroidGCM.jsm',
     ]
 
-MOCHITEST_MANIFESTS += [
-    'test/mochitest.ini',
-]
+# Don't build any testsuites. We have filteres out some needed content for
+# this as some files are not DFSG clean.
+#MOCHITEST_MANIFESTS += [
+#    'test/mochitest.ini',
+#]
 
-XPCSHELL_TESTS_MANIFESTS += [
-    'test/xpcshell/xpcshell.ini',
-]
+#XPCSHELL_TESTS_MANIFESTS += [
+#    'test/xpcshell/xpcshell.ini',
+#]
 
 EXPORTS.mozilla.dom += [
     'PushManager.h',

@@ -7,19 +7,23 @@
 with Files("**"):
     BUG_COMPONENT = ("Core", "DOM: IndexedDB")
 
-MOCHITEST_MANIFESTS += [
-    'test/mochitest-intl-api.ini',
-    'test/mochitest.ini',
-]
+# Don't build any testsuites. We have filteres out some needed content for
+# this as some files are not DFSG clean.
+#MOCHITEST_MANIFESTS += [
+#    'test/mochitest-intl-api.ini',
+#    'test/mochitest.ini',
+#]
 
 BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
 
 MOCHITEST_CHROME_MANIFESTS += ['test/chrome.ini']
 
-XPCSHELL_TESTS_MANIFESTS += [
-    'test/unit/xpcshell-child-process.ini',
-    'test/unit/xpcshell-parent-process.ini'
-]
+# Don't build any testsuites. We have filteres out some needed content for
+# this as some files are not DFSG clean.
+#XPCSHELL_TESTS_MANIFESTS += [
+#    'test/unit/xpcshell-child-process.ini',
+#    'test/unit/xpcshell-parent-process.ini'
+#]
 
 EXPORTS.mozilla.dom += [
     'IDBCursor.h',

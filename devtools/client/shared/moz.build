@@ -25,7 +25,7 @@ DevToolsModules(
     'browser-loader.js',
     'css-angle.js',
     'curl.js',
-    'demangle.js',
+#    'demangle.js',
     'developer-toolbar.js',
     'devices.js',
     'DOMHelpers.jsm',

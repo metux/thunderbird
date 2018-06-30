@@ -68,10 +68,12 @@ TEST_DIRS += [
     'gtest',
 ]
 
-MOCHITEST_MANIFESTS += [
-    'test/mochitest.ini',
-    'tests/mochitest/identity/mochitest.ini',
-]
+# Don't build any testsuites. We have filteres out some needed content for
+# this as some files are not DFSG clean.
+#MOCHITEST_MANIFESTS += [
+#    'test/mochitest.ini',
+#    'tests/mochitest/identity/mochitest.ini',
+#]
 
 if CONFIG['MOZ_WEBRTC']:
     MOCHITEST_MANIFESTS += ['tests/mochitest/mochitest.ini']

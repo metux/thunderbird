@@ -9,10 +9,10 @@ with Files("**"):
 
 DIRS += ['input']
 
-MOCHITEST_MANIFESTS += [
-    'test/forms/mochitest.ini',
-    'test/mochitest.ini',
-]
+#MOCHITEST_MANIFESTS += [
+#    'test/forms/mochitest.ini',
+#    'test/mochitest.ini',
+#]
 
 MOCHITEST_CHROME_MANIFESTS += [
     'test/chrome.ini',

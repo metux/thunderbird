@@ -10,6 +10,8 @@ with Files('**'):
 
 DIRS += ['src']
 
-MOCHITEST_MANIFESTS += ['test/mochitest.ini']
+# Don't build any testsuites. We have filteres out some needed content for
+# this as some files are not DFSG clean.
+#MOCHITEST_MANIFESTS += ['test/mochitest.ini']
 
 JAR_MANIFESTS += ['jar.mn']
