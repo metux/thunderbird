@@ -1,3 +1,49 @@
+thunderbird (1:60.0~b9-1) experimental; urgency=medium
+
+  * [be64a3e] d/source.filter: update due upstream changes
+     Writing the import filter file source.filter mostly complete new from
+     scratch. Needed because upstream has changed the structure of the source
+     completely.
+  * [c4b9113] New upstream version 60.0~b9
+  * [3dc900a] rebuild patch queue from patch-queue branch
+     Related to the changed source structure the patches for the patch queue
+     needs to be adjusted to the new folders and their structure. Thanks to
+     git this wasn't that painful as git did all of the job. Two new patches
+     are needed to add.
+     added patches:
+     fixes/Build-also-gdata-provider-as-xpi-file.patch
+     debian-hacks/Don-t-build-testing-suites-and-stuff-part-2.patch
+  * [e50ae04] d/rules: remove references to folder 'mozilla'
+     To get the source built some targets in debian/rules are needed to be
+     modified. All references to the old used folder 'mozilla/' are removed
+     now.
+  * [a650500] ICU: don't build the Paragraph Layout library
+     Disable the build of the Paragraph Layout library, we don't need them if
+     we need to built the ICU stuff. Cherry-picked from current ESR 52
+     packaging.
+  * [977b7fe] d/mozconfig.default: use the ICU package from system
+     The Debian packages of icu are recent enough so we don't need to build
+     own dedicated ICU binaries.
+  * [0c7ed7e] adjust the configuration of the built
+     Because of the modified source structure some more adjustments are needed
+     while going through the built targets like different paths, and built
+     calls of the Thunderbird source.
+  * [1c09011] adjust the install temporary folder
+     Upstream is now wrapping all internal make calls through a Python wrapper
+     called 'mach'. This also involves a changed behavior for installing the
+     Thunderbird files into the temporary folder we later use by the debhelper
+     sequencer.
+  * [bfbc9ca] d/s/lintian-overrides: update content due changed source.filter
+     The modified file debian/source.filter make some adjustments needed in
+     the lintian-overrides file for the source files related part.
+  * [44a4c5a] d/thunderbird.lintian-overrides: update after config changes
+     Like before some adjustments are needed for the lintian override rules
+     for the source files.
+  * [dd48091] d/copyright: adjust the content due folder changes
+     And one more file that needs to be adjusted due the changed source files.
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sun, 01 Jul 2018 16:12:33 +0200
+
 thunderbird (1:60.0~b6-1) experimental; urgency=medium
 
   [ Carsten Schoenert ]
