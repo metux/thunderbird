@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "З">
 <!ENTITY clickFinish.label "Натисніть «Гаразд», щоб зберегти новий обліковий запис та вийти з майстра.">
 <!ENTITY clickFinish.labelMac "Клацніть Готово, щоб зберегти ці налаштування та завершити роботу Майстра.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

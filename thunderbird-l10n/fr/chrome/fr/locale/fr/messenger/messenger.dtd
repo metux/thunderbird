@@ -36,12 +36,6 @@
 <!ENTITY newFeedAccountCmd.accesskey "d">
 <!ENTITY newIMContactCmd.label "Contact de messagerie instantanée…">
 <!ENTITY newIMContactCmd.accesskey "n">
-<!ENTITY  newMessageCmd2.key "N">
-<!ENTITY  newMessageCmd.key "M">
-<!ENTITY  newMessageCmd.label "Message">
-<!ENTITY  newMessageCmd.accesskey "m">
-<!ENTITY  newContactCmd.label "Nouveau contact…">
-<!ENTITY  newContactCmd.accesskey "c">
 <!ENTITY openMessageFileCmd.label "Ouvrir un fichier…">
 <!ENTITY openMessageFileCmd.accesskey "O">
 <!ENTITY saveAsMenu.label "Enregistrer comme">
@@ -649,7 +643,6 @@
 <!-- Folder Pane Context Menu -->
 <!ENTITY folderContextGetMessages.label "Relever les nouveaux messages">
 <!ENTITY folderContextGetMessages.accesskey "R">
-<!ENTITY folderContextMarkAllFoldersRead.label "Marquer tous les dossiers comme lus">
 <!ENTITY folderContextPauseAllUpdates.label "Mettre en pause toutes les mises à jour">
 <!ENTITY folderContextPauseUpdates.label "Mettre en pause les mises à jour">
 <!ENTITY folderContextPauseUpdates.accesskey "M">

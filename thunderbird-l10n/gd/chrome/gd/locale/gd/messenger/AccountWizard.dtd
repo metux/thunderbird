@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "g">
 <!ENTITY clickFinish.label "Briog air &quot;Crìochnaich&quot; gus na roghainnean seo a shàbhaladh &apos;s draoidh nan cunntasan fhàgail.">
 <!ENTITY clickFinish.labelMac "Briog air &quot;Dèanta&quot; gus na roghainnean seo a shàbhaladh &apos;s draoidh nan cunntasan fhàgail.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

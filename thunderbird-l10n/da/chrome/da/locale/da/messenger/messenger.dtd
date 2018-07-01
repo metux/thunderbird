@@ -36,12 +36,6 @@
 <!ENTITY newFeedAccountCmd.accesskey "d">
 <!ENTITY newIMContactCmd.label "Chat-kontakt…">
 <!ENTITY newIMContactCmd.accesskey "h">
-<!ENTITY  newMessageCmd2.key "N">
-<!ENTITY  newMessageCmd.key "M">
-<!ENTITY  newMessageCmd.label "Meddelelse">
-<!ENTITY  newMessageCmd.accesskey "M">
-<!ENTITY  newContactCmd.label "Adressebogskontakt…">
-<!ENTITY  newContactCmd.accesskey "K">
 <!ENTITY openMessageFileCmd.label "Åbn gemt meddelelse…">
 <!ENTITY openMessageFileCmd.accesskey "g">
 <!ENTITY saveAsMenu.label "Gem som">
@@ -515,6 +509,8 @@
 <!ENTITY devToolboxCmd.label "Værktøjsboks">
 <!ENTITY devToolboxCmd.accesskey "V">
 <!ENTITY devToolboxCmd.commandkey "i">
+<!ENTITY addonDebugCmd.label "Tilføjelse-debugger">
+<!ENTITY addonDebugCmd.accesskey "T">
 <!ENTITY debugAddonsCmd.label "Fejlsøg tilføjelser">
 <!ENTITY debugAddonsCmd.accesskey "F">
 <!ENTITY tabsDebugCmd.label "Indholdsramme-debugger">
@@ -649,7 +645,6 @@
 <!-- Folder Pane Context Menu -->
 <!ENTITY folderContextGetMessages.label "Hent meddelelser">
 <!ENTITY folderContextGetMessages.accesskey "H">
-<!ENTITY folderContextMarkAllFoldersRead.label "Marker alle mapper som læst">
 <!ENTITY folderContextPauseAllUpdates.label "Sæt alle opdateringer på pause">
 <!ENTITY folderContextPauseUpdates.label "Sæt opdateringer på pause">
 <!ENTITY folderContextPauseUpdates.accesskey "U">
@@ -875,7 +870,7 @@
   -->
 <!ENTITY quickSearchCmd.key "k">
 <!-- LOCALIZATION NOTE (search.label.base1):
-     This is the base of the empty text for the global search box. We replace
+      This is the base of the empty text for the global search box. We replace
      #1 with the contents of the appropriate search.keyLabel.* value for the
      platform.
      The goal is to convey to the user that typing in the box will allow them

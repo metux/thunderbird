@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "s">
 <!ENTITY clickFinish.label "S klikom na Končaj shranite nastavitve in zaprite čarovnika za račun.">
 <!ENTITY clickFinish.labelMac "S klikom na Končano shranite nastavitve in zaprite čarovnika za račun.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

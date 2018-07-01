@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "K">
 <!ENTITY clickFinish.label "Bu ayarları kaydederek Hesap Sihirbazı'ndan çıkmak için Bitir'e tıklayın.">
 <!ENTITY clickFinish.labelMac "Bu ayarları kaydederek Hesap Sihirbazı'ndan çıkmak için Bitir'e tıklayın.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

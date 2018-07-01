@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/ro/locale/ro/passwordmgr/", 
         "pippki": "chrome/ro/locale/ro/pippki/"
       }, 
-      "version": "20180503075202"
+      "version": "20180314091153"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "ro", 
-  "version": "60.0", 
+  "version": "60.0buildid20180619210809", 
   "name": "Română (România) Language Pack", 
   "manifest_version": 2, 
   "sources": {

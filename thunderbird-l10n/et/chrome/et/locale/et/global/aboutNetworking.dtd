@@ -23,7 +23,6 @@
 <!ENTITY aboutNetworking.sent                  "Sent">
 <!ENTITY aboutNetworking.received              "Received">
 <!ENTITY aboutNetworking.family                "Family">
-<!ENTITY aboutNetworking.trr                   "TRR">
 <!ENTITY aboutNetworking.addresses             "Addresses">
 <!ENTITY aboutNetworking.expires               "Expires (Seconds)">
 <!ENTITY aboutNetworking.messagesSent          "Messages Sent">
@@ -57,3 +56,5 @@
 <!ENTITY aboutNetworking.rcwnStddevLong        "Long Standard Deviation">
 <!ENTITY aboutNetworking.rcwnCacheSlow         "Cache slow count">
 <!ENTITY aboutNetworking.rcwnCacheNotSlow      "Cache not slow count">
+
+<!ENTITY aboutNetworking.trr                   "TRR">

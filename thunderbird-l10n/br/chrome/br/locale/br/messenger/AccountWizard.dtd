@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "O">
 <!ENTITY clickFinish.label "Klikit war Echuiñ evit enrollañ an arventennoù-mañ ha kuitaat Skoazeller ar c'hontoù.">
 <!ENTITY clickFinish.labelMac "Klikit war Graet evit enrollañ an arventennoù-mañ ha kuitaat Skoazeller ar c'hontoù.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

@@ -131,3 +131,6 @@
 
 <!ENTITY leaveMsgsOnSrvr.label "ලිපි සේවාදායකය තුළ ඉතිරි කරන්න">
 <!ENTITY leaveMsgsOnSrvr.accesskey "L">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

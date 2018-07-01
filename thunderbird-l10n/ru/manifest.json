@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/ru/locale/ru/passwordmgr/", 
         "pippki": "chrome/ru/locale/ru/pippki/"
       }, 
-      "version": "20180428161409"
+      "version": "20180313081336"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "ru", 
-  "version": "60.0", 
+  "version": "60.0buildid20180619210809", 
   "name": "Russian (RU) Language Pack", 
   "manifest_version": 2, 
   "sources": {

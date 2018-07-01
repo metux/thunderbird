@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/kk/locale/kk/passwordmgr/", 
         "pippki": "chrome/kk/locale/kk/pippki/"
       }, 
-      "version": "20180430051142"
+      "version": "20180312193318"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "kk", 
-  "version": "60.0", 
+  "version": "60.0buildid20180619210809", 
   "name": "Kazakh (KZ) Language Pack", 
   "manifest_version": 2, 
   "sources": {

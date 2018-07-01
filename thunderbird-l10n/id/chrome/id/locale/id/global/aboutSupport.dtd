@@ -75,8 +75,6 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsProcessCount "Proses Konten Web">
 
-<!ENTITY aboutSupport.enterprisePolicies "Kebijakan Perusahaan">
-
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Kunci Google">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Kunci Layanan Lokasi Mozilla">
 
@@ -170,3 +168,5 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.intlOSTitle "Sistem Operasi">
 <!ENTITY aboutSupport.intlOSPrefsSystemLocales "Bahasa Sistem">
 <!ENTITY aboutSupport.intlRegionalPrefs "Pengaturan Regional">
+
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">

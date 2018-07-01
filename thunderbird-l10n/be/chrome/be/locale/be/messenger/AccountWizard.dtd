@@ -72,3 +72,6 @@
 <!ENTITY deferStorage.accesskey "г">
 <!ENTITY clickFinish.label "Пстрыкніце Скончыць, каб захаваць вашы наладжванні і выйсці з Чараўніка Рахункаў.">
 <!ENTITY clickFinish.labelMac "Пстрыкніце Гатова, каб захаваць вашы наладжванні і выйсці з Чараўніка Рахункаў.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

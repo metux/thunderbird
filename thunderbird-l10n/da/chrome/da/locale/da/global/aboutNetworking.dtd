@@ -23,7 +23,6 @@
 <!ENTITY aboutNetworking.sent                  "Sendt">
 <!ENTITY aboutNetworking.received              "Modtaget">
 <!ENTITY aboutNetworking.family                "Familie">
-<!ENTITY aboutNetworking.trr                   "TRR">
 <!ENTITY aboutNetworking.addresses             "Adresser">
 <!ENTITY aboutNetworking.expires               "Udløber (sekunder)">
 <!ENTITY aboutNetworking.messagesSent          "Meddelelser sendt">
@@ -57,3 +56,5 @@
 <!ENTITY aboutNetworking.rcwnStddevLong        "Long Standard Deviation">
 <!ENTITY aboutNetworking.rcwnCacheSlow         "Cache slow count">
 <!ENTITY aboutNetworking.rcwnCacheNotSlow      "Cache not slow count">
+
+<!ENTITY aboutNetworking.trr                   "TRR">

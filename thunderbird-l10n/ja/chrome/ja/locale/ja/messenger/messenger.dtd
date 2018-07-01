@@ -320,6 +320,7 @@
 <!ENTITY goBackCmd.commandKey		"[">
 <!ENTITY goChatCmd.label		"チャット">
 <!ENTITY goChatCmd.accesskey		"c">
+<!ENTITY goChatCmd.key			"I">
 <!ENTITY goChatCmd2.key			"H">
 <!ENTITY prevStarredMsgCmd.label	"スター付きメッセージ">
 <!ENTITY prevStarredMsgCmd.accesskey	"S">
@@ -370,8 +371,6 @@
 <!ENTITY editAsNewMsgCmd.key		"e">
 <!ENTITY editDraftMsgCmd.label		"下書きメッセージを編集">
 <!ENTITY editDraftMsgCmd.accesskey	"D">
-<!ENTITY editTemplateMsgCmd.label	"テンプレートを編集">
-<!ENTITY editTemplateMsgCmd.accesskey	"T">
 <!ENTITY newMsgFromTemplateCmd.label	"テンプレートから新しいメッセージを作成">
 <!ENTITY newMsgFromTemplateCmd.keycode	"VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label		"メッセージからフィルターを作成...">
@@ -464,11 +463,6 @@
 <!ENTITY addressBookCmd.key		"B">
 <!ENTITY addons.label			"アドオン">
 <!ENTITY addons.accesskey		"A">
-<!ENTITY addonPrefs.label		"アドオンのオプション">
-<!ENTITY addonPrefs.accesskey		"O">
-<!ENTITY addonPrefsUnix.label		"アドオンの設定">
-<!ENTITY addonPrefsUnix.accesskey	"P">
-<!ENTITY addonNoPrefs.label		"アドオンの設定はありません。">
 <!ENTITY activitymanager.label		"イベントログの管理"><!-- (^^; en-US: Activity Manager -->
 <!ENTITY activitymanager.accesskey	"v">
 <!ENTITY imAccountsStatus.label		"チャット状態">
@@ -512,8 +506,8 @@
 <!ENTITY devToolboxCmd.label		"開発ツールボックス">
 <!ENTITY devToolboxCmd.accesskey	"T">
 <!ENTITY devToolboxCmd.commandkey	"i">
-<!ENTITY debugAddonsCmd.label		"アドオンをデバッグ">
-<!ENTITY debugAddonsCmd.accesskey	"A">
+<!ENTITY addonDebugCmd.label		"アドオンデバッガー">
+<!ENTITY addonDebugCmd.accesskey	"A">
 <!ENTITY tabsDebugCmd.label		"コンテンツフレームデバッガー">
 <!ENTITY tabsDebugCmd.accesskey		"C">
 <!ENTITY errorConsoleCmd.label		"エラーコンソール">
@@ -762,8 +756,6 @@
 <!ENTITY contextEditMsgAsNew.label		"新しいメッセージとして編集">
 <!ENTITY contextEditMsgAsNew.accesskey		"E">
 <!ENTITY contextEditDraftMsg.label		"下書きメッセージを編集">
-<!ENTITY contextEditTemplate.label		"テンプレートを編集">
-<!ENTITY contextEditTemplate.accesskey		"T">
 <!ENTITY contextArchive.label			"アーカイブ">
 <!ENTITY contextArchive.accesskey		"h">
 <!ENTITY contextReplySender.label		"送信者だけに返信">
@@ -968,3 +960,15 @@
 <!ENTITY dockOptions.label		"アプリケーションアイコンのオプション...">
 <!ENTITY writeNewMessageDock.label	"新しいメッセージを作成する">
 <!ENTITY openAddressBookDock.label	"アドレス帳を開く">
+
+<!ENTITY editTemplateMsgCmd.label "Edit Template">
+<!ENTITY editTemplateMsgCmd.accesskey "T">
+<!ENTITY addonPrefs.label "Add-on Options">
+<!ENTITY addonPrefs.accesskey "O">
+<!ENTITY addonPrefsUnix.label "Add-on Preferences">
+<!ENTITY addonPrefsUnix.accesskey "P">
+<!ENTITY addonNoPrefs.label "No Add-on settings found.">
+<!ENTITY debugAddonsCmd.label "Debug Add-ons">
+<!ENTITY debugAddonsCmd.accesskey "A">
+<!ENTITY contextEditTemplate.label "Edit Template">
+<!ENTITY contextEditTemplate.accesskey "T">

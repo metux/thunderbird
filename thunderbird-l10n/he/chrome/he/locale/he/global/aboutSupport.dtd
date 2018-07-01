@@ -77,8 +77,6 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsProcessCount "תהליכי תוכן רשת">
 
-<!ENTITY aboutSupport.enterprisePolicies "ערכות מדיניות ארגוניות">
-
 <!ENTITY aboutSupport.appBasicsKeyGoogle "מפתח עבור שירותי Google">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "מפתח עבור שירותי המיקום של Mozilla">
 
@@ -171,5 +169,6 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.intlOSPrefsSystemLocales "שפות המערכת">
 <!ENTITY aboutSupport.intlRegionalPrefs "העדפות אזוריות">
 
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">
 <!ENTITY aboutSupport.a11yHandlerUsed "Accessible Handler Used">
 <!ENTITY aboutSupport.a11yInstantiator "Accessibility Instantiator">

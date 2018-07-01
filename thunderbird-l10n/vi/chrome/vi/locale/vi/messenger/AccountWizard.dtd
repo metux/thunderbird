@@ -115,6 +115,8 @@
 
 <!ENTITY accountSetupInfo2.label "In order to receive messages, you first need to set up an account.">
 <!ENTITY accountTypeDesc2.label "This Wizard will collect the information necessary to set up an account. If you do not know the information requested, please contact your System Administrator or Internet Service Provider.">
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">
 <!ENTITY incomingTitle.label "Incoming Server Information">
 <!ENTITY portNum.label "Port:">
 <!ENTITY portNum.accesskey "o">

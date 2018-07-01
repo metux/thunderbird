@@ -115,6 +115,8 @@
 <!ENTITY clickFinish.label "לחץ על סיום כדי לשמור הגדרות אלה ולצאת מאשף החשבונות.">
 <!ENTITY clickFinish.labelMac "לחץ על סיום כדי לשמור את ההגדרות הללו ולצאת מאשף החשבונות.">
 
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">
 <!ENTITY incomingServer.description "Enter the name of your incoming server (for example, &quot;mail.example.net&quot;).">
 <!ENTITY incomingServer.accesskey "S">
 <!ENTITY incomingUsername.description "Enter the incoming user name given to you by your email provider (for example, &quot;jsmith&quot;).">

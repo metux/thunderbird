@@ -88,17 +88,6 @@
 <!ENTITY reorderAttachmentsCmd.label "Pśidanki pśerědowaś…">
 <!ENTITY reorderAttachmentsCmd.accesskey "r">
 <!ENTITY reorderAttachmentsCmd.key "x">
-<!ENTITY toggleAttachmentPaneCmd.label "Pśidankowe wokno">
-<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.accesskey):
-     For better mnemonics, toggleAttachmentPaneCmd.accesskey should be the same
-     as attachments.accesskey. -->
-<!ENTITY toggleAttachmentPaneCmd.accesskey "d">
-<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.key):
-     With OS-specific access modifier, this defines the shortcut key for showing/
-     hiding/minimizing the attachment pane, e.g. Alt+M on Windows.
-     toggleAttachmentPaneCmd.key and attachments.accesskey must be the same
-     for the bucket view state machinery to work. -->
-<!ENTITY toggleAttachmentPaneCmd.key "m">
 <!ENTITY selectAllCmd.label "Wšo wubraś">
 <!ENTITY selectAllCmd.key "A">
 <!ENTITY selectAllCmd.accesskey "b">
@@ -120,10 +109,26 @@
 <!-- Reorder Attachment Panel -->
 <!ENTITY reorderAttachmentsPanel.label "Pśidanki pśerědowaś">
 <!ENTITY moveAttachmentTopPanelBtn.label "Do zachopjeńka pśesunuś">
+<!ENTITY moveAttachmentTopPanelBtn.accesskey "z">
 <!ENTITY moveAttachmentUpPanelBtn.label "Górjej">
+<!ENTITY moveAttachmentUpPanelBtn.accesskey "G">
 <!ENTITY moveAttachmentBundleUpPanelBtn.label "Gromaźe pśesunuś">
+<!ENTITY moveAttachmentBundleUpPanelBtn.accesskey "m">
 <!ENTITY moveAttachmentDownPanelBtn.label "Dołoj">
+<!ENTITY moveAttachmentDownPanelBtn.accesskey "D">
 <!ENTITY moveAttachmentBottomPanelBtn.label "Do kóńca pśesunuś">
+<!ENTITY moveAttachmentBottomPanelBtn.accesskey "k">
+<!-- LOCALIZATION NOTE (sortAttachmentsTogglePanelBtn.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsTogglePanelBtn.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.label "Sortěrowański wuběrk: A - Z">
+<!-- LOCALIZATION NOTE (sortAttachmentsTogglePanelBtn.AZ.accesskey):
+     This accesskey should be the same like
+     sortAttachmentsTogglePanelBtn.ZA.accesskey, and it should be taken from
+     the "Sort Selection:" part of the label, not from the sort direction part. -->
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.accesskey "o">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.label "Sortěrowański wuběrk: Z - A">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.accesskey "o">
 
 <!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.Sort.AZ.label):
      Please ensure that this translation matches
@@ -248,7 +253,6 @@
 <!ENTITY quoteButton.tooltip "Pśedchadnu powěsć citěrowaś">
 <!ENTITY addressButton.tooltip "Dostawarja z adresnika wubraś">
 <!ENTITY attachButton.tooltip "Pśiłožk zapśimjeś">
-<!ENTITY attachButton.tooltip2 "Pśidank pśidaś">
 <!ENTITY spellingButton.tooltip "Pšawopis wubranego teksta abo cełeje powěsći kontrolěrowaś">
 <!ENTITY saveButton.tooltip "Toś tu powěsć składowaś">
 <!ENTITY cutButton.tooltip              "Wurězaś">
@@ -270,14 +274,9 @@
 <!ENTITY followupAddr.label "Dalej pósrědniś:">
 <!ENTITY subject.label "Tema:">
 <!ENTITY subject.accesskey "T">
-<!-- LOCALIZATION NOTE (attachments.accesskey) This access key character should
-     be taken from the strings in attachmentCount in composeMsgs.properties,
-     and it must be the same as toggleAttachmentPaneCmd.key, otherwise it won't
-     work, as the shortcut key functionality supersedes the access key. -->
+<!-- LOCALIZATION NOTE attachments.accesskey This access key should correspond
+     to the strings in attachmentCount in composeMsgs.properties -->
 <!ENTITY attachments.accesskey "w">
-
-<!ENTITY attachmentBucketHeader.tooltip "Pśidankowe wokno">
-<!ENTITY attachmentBucketCloseButton.tooltip "Pśidankowe wokno schowaś">
 
 <!-- Format Toolbar, imported from editorAppShell.xul -->
 <!ENTITY SmileButton.tooltip "Smjejkotak zasajźiś">
@@ -315,7 +314,6 @@
 <!ENTITY pasteQuote.label "Ako citat zasunuś">
 <!ENTITY pasteQuote.accesskey "c">
 
-<!-- Attachment Item and List Context Menus -->
 <!ENTITY openAttachment.label "Wócyniś">
 <!ENTITY openAttachment.accesskey "W">
 <!ENTITY delete.label "Wulašowaś">
@@ -326,8 +324,6 @@
 <!ENTITY renameAttachment.accesskey "m">
 <!ENTITY reorderAttachments.label "Pśidanki pśerědowaś…">
 <!ENTITY reorderAttachments.accesskey "r">
-<!ENTITY removeAllAttachments.label "Wšykne pśidanki wótwónoźeś">
-<!ENTITY removeAllAttachments.accesskey "k">
 <!ENTITY selectAll.label "Wšo wubraś">
 <!ENTITY selectAll.accesskey "b">
 <!ENTITY attachFile.label "Dataje pśipowjesyś…">
@@ -343,13 +339,6 @@
 <!ENTITY attachPage.label "Webbok pśipowjesyś…">
 <!ENTITY attachPage.accesskey "W">
 
-<!-- Attachment Pane Header Bar Context Menu -->
-<!-- LOCALIZATION NOTE (initiallyShowAttachmentPane.label):
-     Should use the same wording as startExpandedCmd.label
-     in msgHdrViewOverlay.dtd. -->
-<!ENTITY initiallyShowAttachmentPane.label "Wokno pśidankow zachopnje pokazaś">
-<!ENTITY initiallyShowAttachmentPane.accesskey "W">
-
 <!-- Spell checker context menu items -->
 <!ENTITY spellAddDictionaries.label "Słowniki pśidaś…">
 <!ENTITY spellAddDictionaries.accesskey "S">
@@ -364,3 +353,14 @@
 <!-- Status Bar -->
 <!ENTITY languageStatusButton.tooltip "Pšawopisna rěc">
 <!ENTITY encodingStatusPanel.tooltip "Tekstowe koděrowanje">
+
+<!ENTITY toggleAttachmentPaneCmd.label "Attachment Pane">
+<!ENTITY toggleAttachmentPaneCmd.accesskey "m">
+<!ENTITY toggleAttachmentPaneCmd.key "m">
+<!ENTITY attachButton.tooltip2 "Add an attachment">
+<!ENTITY attachmentBucketHeader.tooltip "Attachment Pane">
+<!ENTITY attachmentBucketCloseButton.tooltip "Hide the attachment pane">
+<!ENTITY removeAllAttachments.label "Remove All Attachments">
+<!ENTITY removeAllAttachments.accesskey "v">
+<!ENTITY initiallyShowAttachmentPane.label "Initially Show Attachment Pane">
+<!ENTITY initiallyShowAttachmentPane.accesskey "S">

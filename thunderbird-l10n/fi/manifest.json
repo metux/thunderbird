@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/fi/locale/fi/passwordmgr/", 
         "pippki": "chrome/fi/locale/fi/pippki/"
       }, 
-      "version": "20180502011152"
+      "version": "20180312184800"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "fi", 
-  "version": "60.0", 
+  "version": "60.0buildid20180619210809", 
   "name": "Finnish Language Pack", 
   "manifest_version": 2, 
   "sources": {
@@ -51,6 +51,6 @@
       "base_path": "browser/"
     }
   }, 
-  "author": "Suomennosprojekti (contributors: Lasse Liehu, Jarmo Juslin)", 
+  "author": "Suomennosprojekti", 
   "description": "Language pack for Thunderbird for fi"
 }

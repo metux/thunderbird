@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "g">
 <!ENTITY clickFinish.label "Feu clic a Finalitza per desar aquests paràmetres i sortir de l'auxiliar de comptes.">
 <!ENTITY clickFinish.labelMac "Feu clic a Fet per desar aquests paràmetres i sortir de l'auxiliar de comptes.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

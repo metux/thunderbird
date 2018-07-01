@@ -89,17 +89,6 @@
 <!ENTITY reorderAttachmentsCmd.label	"添付ファイルを並べ替え...">
 <!ENTITY reorderAttachmentsCmd.accesskey	"s">
 <!ENTITY reorderAttachmentsCmd.key	"x">
-<!ENTITY toggleAttachmentPaneCmd.label	"添付ペイン">
-<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.accesskey):
-     For better mnemonics, toggleAttachmentPaneCmd.accesskey should be the same
-     as attachments.accesskey. -->
-<!ENTITY toggleAttachmentPaneCmd.accesskey	"m">
-<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.key):
-     With OS-specific access modifier, this defines the shortcut key for showing/
-     hiding/minimizing the attachment pane, e.g. Alt+M on Windows.
-     toggleAttachmentPaneCmd.key and attachments.accesskey must be the same
-     for the bucket view state machinery to work. -->
-<!ENTITY toggleAttachmentPaneCmd.key	"m">
 <!ENTITY selectAllCmd.label		"すべて選択">
 <!ENTITY selectAllCmd.key		"A">
 <!ENTITY selectAllCmd.accesskey		"a">
@@ -121,22 +110,26 @@
 <!-- Reorder Attachment Panel -->
 <!ENTITY reorderAttachmentsPanel.label			"添付ファイルの並べ替え">
 <!ENTITY moveAttachmentTopPanelBtn.label		"最上部へ移動">
+<!ENTITY moveAttachmentTopPanelBtn.accesskey		"T">
 <!ENTITY moveAttachmentUpPanelBtn.label			"上へ移動">
+<!ENTITY moveAttachmentUpPanelBtn.accesskey		"U">
 <!ENTITY moveAttachmentBundleUpPanelBtn.label		"一緒に移動">
+<!ENTITY moveAttachmentBundleUpPanelBtn.accesskey	"v">
 <!ENTITY moveAttachmentDownPanelBtn.label		"下へ移動">
+<!ENTITY moveAttachmentDownPanelBtn.accesskey		"D">
 <!ENTITY moveAttachmentBottomPanelBtn.label		"最下部へ移動">
-
-<!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.Sort.AZ.label):
+<!ENTITY moveAttachmentBottomPanelBtn.accesskey		"B">
+<!-- LOCALIZATION NOTE (sortAttachmentsTogglePanelBtn.AZ.label):
      Please ensure that this translation matches
-     sortAttachmentsPanelBtn.Sort.ZA.label, except for the sort direction. -->
-<!ENTITY sortAttachmentsPanelBtn.Sort.AZ.label		"並べ替え: A - Z">
-<!ENTITY sortAttachmentsPanelBtn.Sort.ZA.label		"並べ替え: Z - A">
-<!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.SortSelection.AZ.label):
-     Please ensure that this translation matches
-     sortAttachmentsPanelBtn.SortSelection.ZA.label, except for the sort direction. -->
-<!ENTITY sortAttachmentsPanelBtn.SortSelection.AZ.label "選択項目を並べ替え: A - Z">
-<!ENTITY sortAttachmentsPanelBtn.SortSelection.ZA.label "選択項目を並べ替え: Z - A">
-<!ENTITY sortAttachmentsPanelBtn.key			"y">
+     sortAttachmentsTogglePanelBtn.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.label		"選択項目をソート: A - Z">
+<!-- LOCALIZATION NOTE (sortAttachmentsTogglePanelBtn.AZ.accesskey):
+     This accesskey should be the same like
+     sortAttachmentsTogglePanelBtn.ZA.accesskey, and it should be taken from
+     the "Sort Selection:" part of the label, not from the sort direction part. -->
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.accesskey	"o">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.label		"選択項目をソート: Z - A">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.accesskey	"o">
 
 <!-- View Menu -->
 <!ENTITY viewMenu.label				"表示">
@@ -249,7 +242,6 @@
 <!ENTITY quoteButton.tooltip		"前のメッセージを引用します">
 <!ENTITY addressButton.tooltip		"アドレス帳から宛先を選択します">
 <!ENTITY attachButton.tooltip		"このメッセージにファイルを添付します">
-<!ENTITY attachButton.tooltip2		"ファイルを添付します">
 <!ENTITY spellingButton.tooltip		"選択したテキストまたはメッセージ全体のスペルチェックをします">
 <!ENTITY saveButton.tooltip		"このメッセージを保存します">
 <!ENTITY cutButton.tooltip		"切り取り">
@@ -271,14 +263,9 @@
 <!ENTITY followupAddr.label		"Followup-To:">
 <!ENTITY subject.label			"件名:">
 <!ENTITY subject.accesskey		"S">
-<!-- LOCALIZATION NOTE (attachments.accesskey) This access key character should
-     be taken from the strings in attachmentCount in composeMsgs.properties,
-     and it must be the same as toggleAttachmentPaneCmd.key, otherwise it won't
-     work, as the shortcut key functionality supersedes the access key. -->
+<!-- LOCALIZATION NOTE attachments.accesskey This access key should correspond
+     to the strings in attachmentCount in composeMsgs.properties -->
 <!ENTITY attachments.accesskey		"m">
-
-<!ENTITY attachmentBucketHeader.tooltip		"添付ペイン">
-<!ENTITY attachmentBucketCloseButton.tooltip	"添付ペインを隠す">
 
 <!-- Format Toolbar, imported from editorAppShell.xul -->
 <!ENTITY SmileButton.tooltip		"顔文字を挿入します">
@@ -316,7 +303,6 @@
 <!ENTITY pasteQuote.label			"引用として貼り付け">
 <!ENTITY pasteQuote.accesskey			"Q">
 
-<!-- Attachment Item and List Context Menus -->
 <!ENTITY openAttachment.label		"開く">
 <!ENTITY openAttachment.accesskey	"O">
 <!ENTITY delete.label			"削除">
@@ -327,8 +313,6 @@
 <!ENTITY renameAttachment.accesskey	"R">
 <!ENTITY reorderAttachments.label	"添付ファイルを並べ替え...">
 <!ENTITY reorderAttachments.accesskey	"s">
-<!ENTITY removeAllAttachments.label	"すべての添付ファイルを削除">
-<!ENTITY removeAllAttachments.accesskey	"v">
 <!ENTITY selectAll.label		"すべて選択">
 <!ENTITY selectAll.accesskey		"A">
 <!ENTITY attachFile.label		"ファイルを添付...">
@@ -344,13 +328,6 @@
 <!ENTITY attachPage.label		"ウェブページを添付...">
 <!ENTITY attachPage.accesskey		"W">
 
-<!-- Attachment Pane Header Bar Context Menu -->
-<!-- LOCALIZATION NOTE (initiallyShowAttachmentPane.label):
-     Should use the same wording as startExpandedCmd.label
-     in msgHdrViewOverlay.dtd. -->
-<!ENTITY initiallyShowAttachmentPane.label	"添付ペインを初めから表示する">
-<!ENTITY initiallyShowAttachmentPane.accesskey	"S">
-
 <!-- Spell checker context menu items -->
 <!ENTITY spellAddDictionaries.label	"辞書を追加...">
 <!ENTITY spellAddDictionaries.accesskey	"A">
@@ -365,3 +342,19 @@
 <!-- Status Bar -->
 <!ENTITY languageStatusButton.tooltip	"スペルチェックの言語">
 <!ENTITY encodingStatusPanel.tooltip	"テキストエンコーディング">
+
+<!ENTITY toggleAttachmentPaneCmd.label "Attachment Pane">
+<!ENTITY toggleAttachmentPaneCmd.accesskey "m">
+<!ENTITY toggleAttachmentPaneCmd.key "m">
+<!ENTITY sortAttachmentsPanelBtn.Sort.AZ.label "Sort: A - Z">
+<!ENTITY sortAttachmentsPanelBtn.Sort.ZA.label "Sort: Z - A">
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.AZ.label "Sort Selection: A - Z">
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.ZA.label "Sort Selection: Z - A">
+<!ENTITY sortAttachmentsPanelBtn.key "y">
+<!ENTITY attachButton.tooltip2 "Add an attachment">
+<!ENTITY attachmentBucketHeader.tooltip "Attachment Pane">
+<!ENTITY attachmentBucketCloseButton.tooltip "Hide the attachment pane">
+<!ENTITY removeAllAttachments.label "Remove All Attachments">
+<!ENTITY removeAllAttachments.accesskey "v">
+<!ENTITY initiallyShowAttachmentPane.label "Initially Show Attachment Pane">
+<!ENTITY initiallyShowAttachmentPane.accesskey "S">

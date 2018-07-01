@@ -4,7 +4,6 @@
 
 <!-- LOCALIZATION NOTE the term "url-classifier" should not be translated. -->
 <!ENTITY aboutUrlClassifier.pageTitle                   "Information om url-classifier">
-<!ENTITY aboutUrlClassifier.title                       "Information om url-classifier">
 <!ENTITY aboutUrlClassifier.providerTitle               "Leverandør">
 <!ENTITY aboutUrlClassifier.provider                    "Leverandør">
 <!ENTITY aboutUrlClassifier.providerLastUpdateTime      "Seneste opdateringstidspunkt">
@@ -32,3 +31,5 @@
 <!ENTITY aboutUrlClassifier.debugModules                "Nuværende logmoduler">
 <!ENTITY aboutUrlClassifier.debugSBJSModules            "Safe Browsing-JS-log">
 <!ENTITY aboutUrlClassifier.debugFile                   "Nuværende logfil">
+
+<!ENTITY aboutUrlClassifier.title                       "URL Classifier Information">

@@ -1,7 +1,3 @@
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
 job-defaults:
     always-target: true
     treeherder:
@@ -13,12 +9,47 @@ job-defaults:
         max-run-time: 1800
     run:
         using: mach
-        comm-checkout: true
     when:
         files-changed:
             # Other misc lint related files.
             - 'python/mozlint/**'
             - 'tools/lint/**'
+
+codespell:
+    description: Checks for misspellings in text files
+    platform: lint/opt
+    treeherder:
+        symbol: spell
+    run:
+        mach: lint -l codespell -f treeherder
+    when:
+        files-changed:
+            - '**/*.js'
+            - '**/*.jsm'
+            - '**/*.jxs'
+            - '**/*.xml'
+            - '**/*.html'
+            - '**/*.xhtml'
+            - '**/*.cpp'
+            - '**/*.c'
+            - '**/*.h'
+            - '**/*.configure'
+            - '**/*.py'
+            - '**/*.properties'
+            - '**/*.rst'
+
+cpp-virtual-final:
+    description: lint C++ virtual function declarations
+    platform: lint/opt
+    treeherder:
+        symbol: Cvf
+    run:
+        mach: lint -l cpp-virtual-final -f treeherder
+    when:
+        files-changed:
+            - '**/*.cpp'
+            - '**/*.h'
+            - '**/*.mm'
 
 eslint:
     description: JS lint check
@@ -32,17 +63,16 @@ eslint:
             cp -r /build/node_modules_eslint node_modules &&
             ln -s ../tools/lint/eslint/eslint-plugin-mozilla node_modules &&
             ln -s ../tools/lint/eslint/eslint-plugin-spidermonkey-js node_modules &&
-            cd /builds/worker/checkouts/gecko/comm &&
-            ../mach lint -f treeherder -l eslint --quiet
+            ./mach lint -l eslint -f treeherder --quiet
     when:
         files-changed:
             # Files that are likely audited.
-            - 'comm/**/*.js'
-            - 'comm/**/*.jsm'
-            - 'comm/**/*.jsx'
-            - 'comm/**/*.html'
-            - 'comm/**/*.xhtml'
-            - 'comm/**/*.xml'
+            - '**/*.js'
+            - '**/*.jsm'
+            - '**/*.jsx'
+            - '**/*.html'
+            - '**/*.xhtml'
+            - '**/*.xml'
             # Run when eslint policies change.
             - '**/.eslintignore'
             - '**/*eslintrc*'
@@ -50,32 +80,79 @@ eslint:
             - 'tools/lint/eslint/eslint-plugin-mozilla/**'
             - 'tools/lint/eslint/eslint-plugin-spidermonkey-js/**'
 
-yaml:
-    description: yamllint run over the taskcluster configuration
+py-compat:
+    description: lint for python 2/3 compatibility issues
     platform: lint/opt
     treeherder:
-        symbol: yaml
+        symbol: py-compat
     run:
-        mach: lint -f treeherder -l yaml -n comm/taskcluster comm/.taskcluster.yml
+        mach: lint -l py2 -l py3 -f treeherder
     when:
         files-changed:
-            - 'comm/**/*.yml'
-            - 'comm/**/*.yaml'
-            - '**/.ymllint'
+            - '**/*.py'
+            - '**/.flake8'
 
 py-flake8:
-    description: flake8 run over the thunderbird codebase
+    description: flake8 run over the gecko codebase
     platform: lint/opt
     treeherder:
         symbol: f8
     run:
-        mach: >
-            lint -f treeherder -l flake8 -n
-            comm/taskcluster comm/mail/check-sync-dirs.py
-            comm/mail/test/resources/installmozmill.py
+        mach: lint -l flake8 -f treeherder
     when:
         files-changed:
             - '**/*.py'
             - '**/.flake8'
             # moz.configure files are also Python files.
             - '**/*.configure'
+
+test-manifest:
+    description: lint test manifests
+    platform: lint/opt
+    treeherder:
+        symbol: tm
+    run:
+        mach: lint -l test-disable -f treeherder
+    when:
+        files-changed:
+            - '**/*.ini'
+            - 'python/mozlint/**'
+            - 'tools/lint/**'
+
+wptlint-gecko:
+    description: web-platform-tests linter
+    platform: lint/opt
+    treeherder:
+        symbol: W
+    run:
+        mach: lint -l wpt -l wpt_manifest -f treeherder
+    when:
+        files-changed:
+            - 'testing/web-platform/tests/**'
+            - 'testing/web-platform/mozilla/tests/**'
+            - 'testing/web-platform/meta/MANIFEST.json'
+            - 'testing/web-platform/mozilla/meta/MANIFEST.json'
+
+yaml:
+    description: yamllint run over the gecko codebase
+    platform: lint/opt
+    treeherder:
+        symbol: yaml
+    run:
+        mach: lint -l yaml -f treeherder
+    when:
+        files-changed:
+            - '**/*.yml'
+            - '**/*.yaml'
+            - '**/.ymllint'
+
+shellcheck:
+    description: shellcheck run over the gecko codebase
+    platform: lint/opt
+    treeherder:
+        symbol: shell
+    run:
+        mach: lint -l shellcheck -f treeherder
+    when:
+        files-changed:
+            - '**/*.sh'

@@ -79,8 +79,6 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsProcessCount "Procesy pre webový obsah">
 
-<!ENTITY aboutSupport.enterprisePolicies "Podnikové pravidlá">
-
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Kľúč Google">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Kľúč Mozilla Location Service">
 
@@ -174,3 +172,5 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.intlOSTitle "Operačný systém">
 <!ENTITY aboutSupport.intlOSPrefsSystemLocales "Jazyky systému">
 <!ENTITY aboutSupport.intlRegionalPrefs "Miestne nastavenia">
+
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">

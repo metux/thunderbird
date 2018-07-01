@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "з">
 <!ENTITY clickFinish.label "Нажмите «Готово», чтобы сохранить текущие параметры и завершить работу «Мастера учётных записей».">
 <!ENTITY clickFinish.labelMac "Нажмите «Готово», чтобы сохранить текущие параметры и завершить работу «Мастера учётных записей».">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

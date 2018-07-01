@@ -1,42 +1,25 @@
-dnl -*- Mode: Autoconf; tab-width: 4; indent-tabs-mode: nil; -*-
-dnl vi: set tabstop=4 shiftwidth=4 expandtab:
-dnl This Source Code Form is subject to the terms of the Mozilla Public
-dnl License, v. 2.0. If a copy of the MPL was not distributed with this
-dnl file, You can obtain one at http://mozilla.org/MPL/2.0/.
-dnl
-dnl This is a not-really-autoconf script (which is to say, it's a shell script
-dnl that is piped through m4 first) that executes the mozilla-central python
-dnl configure, first doing a little bit of processing to handle mozconfig and
-dnl the --with-external-source-dir rules.
-dnl ========================================================
-divert(0)dnl
 #!/bin/sh
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Welcome to the new world of configure. We're working on moving to a
+# python based configure. In the meanwhile, remains of the old autoconf
+# based configure is in old-configure.in.
+# If you need to add something, please come talk to the build system
+# peers for now.
+#
+# Because adding a configure file in the tree is going to conflict with
+# existing configure files in people's (and automation) work trees, and
+# because some automation jobs are still running autoconf and configure
+# "manually", this file is actually an m4 file that is processed by
+# autoconf, but doesn't call any autoconf macros. The `divert` line
+# below ensures the script that follows is output by autoconf.
+: "divert(0)dnl"
+#!/bin/sh
+
 SRCDIR=$(dirname $0)
 TOPSRCDIR="$SRCDIR"
-MOZILLA_SRCDIR="${SRCDIR}/mozilla"
-export OLD_CONFIGURE="${MOZILLA_SRCDIR}"/old-configure
+export OLD_CONFIGURE="$SRCDIR"/old-configure
 
-# Ensure the comm-* values are used unless overridden by environment variables.
-if test -z "$MOZ_SOURCE_CHANGESET"; then
-    export MOZ_SOURCE_CHANGESET=$(hg -R "$TOPSRCDIR" parent --template="{node}" 2>/dev/null)
-fi
-if test -z "$MOZ_SOURCE_REPO"; then
-    export MOZ_SOURCE_REPO=$(hg -R "$TOPSRCDIR" showconfig paths.default 2>/dev/null | sed -e "s/^ssh:/https:/")
-fi
-
-# If MOZCONFIG isn't set, use the .mozconfig from the current directory. This
-# overrides the lookup in mozilla-central's configure, which looks in the wrong
-# directory for this file.
-if test -z "$MOZCONFIG" -a -f "$SRCDIR"/.mozconfig; then
-    export MOZCONFIG="$SRCDIR"/.mozconfig
-elif test -z "$MOZCONFIG" -a -f "$SRCDIR"/mozconfig; then
-    export MOZCONFIG="$SRCDIR"/mozconfig
-fi
-
-# Execute the mozilla configure script in the current directory, adding the
-# parameter we need to run comm-central. Since the configure script is really
-# just a wrapper around invoking a python variant, execute the underlying python
-# directly. We use a copy of the underlying configure script to get paths
-# correct.
-set -- "$@" --with-external-source-dir="$TOPSRCDIR"
 which python2.7 > /dev/null && exec python2.7 "$TOPSRCDIR/configure.py" "$@" || exec python "$TOPSRCDIR/configure.py" "$@"

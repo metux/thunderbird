@@ -2,16 +2,14 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY autoconfigWizard2.title         "Տեղակայել էլ. փոստի առկա հաշիվ">
+<!ENTITY autoconfigWizard.title          "Փոստարկղի կարգավորումներ">
 <!ENTITY name.label                      "Ձեր անունը.">
 <!ENTITY name.accesskey                  "n">
 <!ENTITY name.placeholder                "Անուն ազգանուն">
 <!ENTITY name.text                       "Ձեր անունը, որը ցուցադրվելու է բոլորին">
 <!ENTITY email.label                     "Էլ. հասցեն.">
 <!ENTITY email.accesskey                 "l">
-<!-- LOCALIZATION NOTE(email.placeholder): Domain @example.com must stay in English -->
-<!ENTITY email2.placeholder              "you@example.com">
-<!ENTITY email.text                      "Էլ. փոստի ձեր գործող հասցեն">
+<!ENTITY email.placeholder               "email@example.com">
 <!ENTITY password.label                  "Գաղտնաբառ.">
 <!ENTITY password.accesskey              "P">
 <!ENTITY password.placeholder            "Գաղտնաբառ">
@@ -55,8 +53,8 @@
 <!ENTITY half-manual-test.accesskey      "t">
 <!ENTITY manual-edit.label               "Ձեռադիր կարգ.">
 <!ENTITY manual-edit.accesskey           "M">
-<!ENTITY open-provisioner.label          "Ստանալ էլ. փոստի նոր հասցե…">
-<!ENTITY open-provisioner.accesskey      "g">
+<!ENTITY switch-to-provisioner.label     "Նոր Փոստարկղ">
+<!ENTITY switch-to-provisioner.accesskey "Ն">
 
 
 <!ENTITY warning.label                   "Զգուշացում:">
@@ -88,3 +86,9 @@
 <!ENTITY insecureUnencrypted.description "Ձեր նամակը և իսկորոշումը ուղարկվել են չգաղտնագրված, ուստի Ձեր գաղտնաբառը (նաև նամակը) կարող են հասանելի լինել այլ մարդկանց։ &brandShortName;-ը հնարավորություն կտա ստանալ նամակներ, բայց անվտագ միացման կարգավորումների համար պետք է դիմեք էլ. փոստի Ձեր մատակարարին։">
 <!ENTITY insecureSelfSigned.description  "Սպասարկիչը օգտագործում է անվստահելի հավաստագիր և մենք չենք կարող երաշխավորել տվյալների փոխանցման անվտանգությունը &brandShortName;-ի և Ձեր սպասարկիչի միջև։ &brandShortName;-ը հնարավորություն կտա ստանալ նամակներ, բայց անվտագ միացման կարգավորումների համար պետք է դիմեք էլ. փոստի Ձեր մատակարարին։">
 <!ENTITY secureServer.description        "Շնորհավորում ենք! Սա անվտանգ սպասարկիչ է։">
+
+<!ENTITY autoconfigWizard2.title         "Set Up an Existing Email Account">
+<!ENTITY email2.placeholder              "you@example.com">
+<!ENTITY email.text                      "Your existing email address">
+<!ENTITY open-provisioner.label          "Get a new email address…">
+<!ENTITY open-provisioner.accesskey      "g">

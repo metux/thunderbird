@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "o">
 <!ENTITY clickFinish.label "Egin klik 'Amaitu' botoian ezarpen hauek gorde eta morroitik irteteko.">
 <!ENTITY clickFinish.labelMac "Egin klik 'Eginda' botoian ezarpen hauek gorde eta morroitik irteteko.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

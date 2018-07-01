@@ -123,3 +123,6 @@
 <!ENTITY deferStorage.accesskey		"G">
 <!ENTITY clickFinish.label		"[完了] をクリックすると、設定を保存してアカウントを作成します。">
 <!ENTITY clickFinish.labelMac		"[完了] をクリックすると、設定を保存してアカウントを作成します。">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

@@ -30,7 +30,7 @@
 <!ENTITY attachVCardCmd.accesskey "P">
 <!ENTITY remindLater.label "Minn meg på det seinare">
 <!ENTITY remindLater.accesskey "M">
-<!ENTITY closeCmd.label "Lat att">
+<!ENTITY closeCmd.label "Lukk">
 <!ENTITY closeCmd.key "W">
 <!ENTITY closeCmd.accesskey "L">
 <!ENTITY saveCmd.label "Lagre">
@@ -54,7 +54,7 @@
 <!ENTITY printSetupCmd.accesskey "m">
 <!ENTITY printPreviewCmd.label "Førehandsvising">
 <!ENTITY printPreviewCmd.accesskey "v">
-<!ENTITY printCmd.label "Skriv ut…">
+<!ENTITY printCmd.label "Skriv ut …">
 <!ENTITY printCmd.key "P">
 <!ENTITY printCmd.accesskey "u">
 
@@ -88,14 +88,6 @@
 <!ENTITY reorderAttachmentsCmd.label "Omorganiser vedlegg…">
 <!ENTITY reorderAttachmentsCmd.accesskey "O">
 <!ENTITY reorderAttachmentsCmd.key "x">
-<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.accesskey):
-     For better mnemonics, toggleAttachmentPaneCmd.accesskey should be the same
-     as attachments.accesskey. -->
-<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.key):
-     With OS-specific access modifier, this defines the shortcut key for showing/
-     hiding/minimizing the attachment pane, e.g. Alt+M on Windows.
-     toggleAttachmentPaneCmd.key and attachments.accesskey must be the same
-     for the bucket view state machinery to work. -->
 <!ENTITY selectAllCmd.label "Merk alt">
 <!ENTITY selectAllCmd.key "A">
 <!ENTITY selectAllCmd.accesskey "M">
@@ -117,10 +109,26 @@
 <!-- Reorder Attachment Panel -->
 <!ENTITY reorderAttachmentsPanel.label "Omorganiser vedlegg">
 <!ENTITY moveAttachmentTopPanelBtn.label "Flytt til toppen">
+<!ENTITY moveAttachmentTopPanelBtn.accesskey "t">
 <!ENTITY moveAttachmentUpPanelBtn.label "Flytt opp">
+<!ENTITY moveAttachmentUpPanelBtn.accesskey "p">
 <!ENTITY moveAttachmentBundleUpPanelBtn.label "Flytt ihop">
+<!ENTITY moveAttachmentBundleUpPanelBtn.accesskey "h">
 <!ENTITY moveAttachmentDownPanelBtn.label "Flytt ned">
+<!ENTITY moveAttachmentDownPanelBtn.accesskey "n">
 <!ENTITY moveAttachmentBottomPanelBtn.label "Flytt til botnars">
+<!ENTITY moveAttachmentBottomPanelBtn.accesskey "b">
+<!-- LOCALIZATION NOTE (sortAttachmentsTogglePanelBtn.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsTogglePanelBtn.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.label "Sorter utvale: A - Å">
+<!-- LOCALIZATION NOTE (sortAttachmentsTogglePanelBtn.AZ.accesskey):
+     This accesskey should be the same like
+     sortAttachmentsTogglePanelBtn.ZA.accesskey, and it should be taken from
+     the "Sort Selection:" part of the label, not from the sort direction part. -->
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.accesskey "o">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.label "Sorter utvalet: Å - A">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.accesskey "o">
 
 <!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.Sort.AZ.label):
      Please ensure that this translation matches
@@ -266,12 +274,9 @@
 <!ENTITY followupAddr.label "Oppfølging til:">
 <!ENTITY subject.label "Emne:">
 <!ENTITY subject.accesskey "m">
-<!-- LOCALIZATION NOTE (attachments.accesskey) This access key character should
-     be taken from the strings in attachmentCount in composeMsgs.properties,
-     and it must be the same as toggleAttachmentPaneCmd.key, otherwise it won't
-     work, as the shortcut key functionality supersedes the access key. -->
+<!-- LOCALIZATION NOTE attachments.accesskey This access key should correspond
+     to the strings in attachmentCount in composeMsgs.properties -->
 <!ENTITY attachments.accesskey "d">
-
 
 <!-- Format Toolbar, imported from editorAppShell.xul -->
 <!ENTITY SmileButton.tooltip "Set inn smilefjes">
@@ -309,7 +314,6 @@
 <!ENTITY pasteQuote.label "Lim inn som sitat">
 <!ENTITY pasteQuote.accesskey "t">
 
-<!-- Attachment Item and List Context Menus -->
 <!ENTITY openAttachment.label "Opne">
 <!ENTITY openAttachment.accesskey "O">
 <!ENTITY delete.label "Slett">
@@ -334,11 +338,6 @@
 <!ENTITY convertRegularAttachment.accesskey "a">
 <!ENTITY attachPage.label "Legg ved nettside …">
 <!ENTITY attachPage.accesskey "L">
-
-<!-- Attachment Pane Header Bar Context Menu -->
-<!-- LOCALIZATION NOTE (initiallyShowAttachmentPane.label):
-     Should use the same wording as startExpandedCmd.label
-     in msgHdrViewOverlay.dtd. -->
 
 <!-- Spell checker context menu items -->
 <!ENTITY spellAddDictionaries.label "Legg til ordbøker …">

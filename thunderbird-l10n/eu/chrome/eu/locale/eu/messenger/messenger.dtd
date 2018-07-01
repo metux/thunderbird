@@ -36,12 +36,6 @@
 <!ENTITY newFeedAccountCmd.accesskey "r">
 <!ENTITY newIMContactCmd.label "Txat-kontaktua…">
 <!ENTITY newIMContactCmd.accesskey "x">
-<!ENTITY  newMessageCmd2.key "B">
-<!ENTITY  newMessageCmd.key "M">
-<!ENTITY  newMessageCmd.label "Mezua">
-<!ENTITY  newMessageCmd.accesskey "m">
-<!ENTITY  newContactCmd.label "Helbide-liburuko kontaktua…">
-<!ENTITY  newContactCmd.accesskey "k">
 <!ENTITY openMessageFileCmd.label "Ireki gordetako mezua…">
 <!ENTITY openMessageFileCmd.accesskey "I">
 <!ENTITY saveAsMenu.label "Gorde honela">
@@ -323,6 +317,7 @@
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goChatCmd.label "Txata">
 <!ENTITY goChatCmd.accesskey "T">
+<!ENTITY goChatCmd.key "I">
 <!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Izardun mezura">
 <!ENTITY prevStarredMsgCmd.accesskey "z">
@@ -515,6 +510,8 @@
 <!ENTITY devToolboxCmd.label "Garatzaile tresna-kutxa">
 <!ENTITY devToolboxCmd.accesskey "t">
 <!ENTITY devToolboxCmd.commandkey "i">
+<!ENTITY addonDebugCmd.label "Gehigarri araztailea">
+<!ENTITY addonDebugCmd.accesskey "a">
 <!ENTITY debugAddonsCmd.label "Araztu gehigarriak">
 <!ENTITY debugAddonsCmd.accesskey "r">
 <!ENTITY tabsDebugCmd.label "Edukien marko araztailea">
@@ -649,7 +646,6 @@
 <!-- Folder Pane Context Menu -->
 <!ENTITY folderContextGetMessages.label "Eskuratu mezuak">
 <!ENTITY folderContextGetMessages.accesskey "k">
-<!ENTITY folderContextMarkAllFoldersRead.label "Markatu karpeta guztiak irakurrita gisa">
 <!ENTITY folderContextPauseAllUpdates.label "Pausarazi eguneratze guztiak">
 <!ENTITY folderContextPauseUpdates.label "Pausarazi eguneratzeak">
 <!ENTITY folderContextPauseUpdates.accesskey "P">

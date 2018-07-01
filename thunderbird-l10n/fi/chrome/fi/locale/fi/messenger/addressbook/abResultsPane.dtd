@@ -2,37 +2,37 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY Addrbook.label                        "Osoitekirja">
-<!ENTITY Addrbook.accesskey                    "O">
-<!ENTITY GeneratedName.label                   "Nimi">
+<!ENTITY Addrbook.label                        "Address Book">
+<!ENTITY Addrbook.accesskey                    "B">
+<!ENTITY GeneratedName.label                   "Name">
 <!ENTITY GeneratedName.accesskey               "N">
-<!ENTITY PrimaryEmail.label                    "Sähköpostiosoite">
-<!ENTITY PrimaryEmail.accesskey                "S">
-<!ENTITY Company.label                         "Organisaatio">
-<!ENTITY Company.accesskey                     "r">
-<!ENTITY _PhoneticName.label                   "Foneettinen nimi">
-<!ENTITY _PhoneticName.accesskey               "F">
-<!ENTITY NickName.label                        "Lempinimi">
-<!ENTITY NickName.accesskey                    "L">
-<!ENTITY SecondEmail.label                     "Toissijainen sähköposti">
-<!ENTITY SecondEmail.accesskey                 "T">
-<!ENTITY Department.label                      "Osasto">
-<!ENTITY Department.accesskey                  "s">
-<!ENTITY JobTitle.label                        "Työnimike">
-<!ENTITY JobTitle.accesskey                    "ö">
-<!ENTITY CellularNumber.label                  "Matkapuhelin">
-<!ENTITY CellularNumber.accesskey              "p">
-<!ENTITY PagerNumber.label                     "Hakulaite">
-<!ENTITY PagerNumber.accesskey                 "H">
-<!ENTITY FaxNumber.label                       "Faksi">
-<!ENTITY FaxNumber.accesskey                   "k">
-<!ENTITY HomePhone.label                       "Kotipuhelin">
-<!ENTITY HomePhone.accesskey                   "i">
-<!ENTITY WorkPhone.label                       "Työpuhelin">
-<!ENTITY WorkPhone.accesskey                   "y">
-<!ENTITY ChatName.label                        "Chat-nimi">
+<!ENTITY PrimaryEmail.label                    "Email">
+<!ENTITY PrimaryEmail.accesskey                "E">
+<!ENTITY Company.label                         "Organization">
+<!ENTITY Company.accesskey                     "z">
+<!ENTITY _PhoneticName.label                   "Phonetic Name">
+<!ENTITY _PhoneticName.accesskey               "o">
+<!ENTITY NickName.label                        "Nickname">
+<!ENTITY NickName.accesskey                    "i">
+<!ENTITY SecondEmail.label                     "Additional Email">
+<!ENTITY SecondEmail.accesskey                 "l">
+<!ENTITY Department.label                      "Department">
+<!ENTITY Department.accesskey                  "r">
+<!ENTITY JobTitle.label                        "Title">
+<!ENTITY JobTitle.accesskey                    "T">
+<!ENTITY CellularNumber.label                  "Mobile">
+<!ENTITY CellularNumber.accesskey              "M">
+<!ENTITY PagerNumber.label                     "Pager">
+<!ENTITY PagerNumber.accesskey                 "P">
+<!ENTITY FaxNumber.label                       "Fax">
+<!ENTITY FaxNumber.accesskey                   "F">
+<!ENTITY HomePhone.label                       "Home Phone">
+<!ENTITY HomePhone.accesskey                   "H">
+<!ENTITY WorkPhone.label                       "Work Phone">
+<!ENTITY WorkPhone.accesskey                   "W">
+<!ENTITY ChatName.label                        "Chat Name">
 <!ENTITY ChatName.accesskey                    "C">
-<!ENTITY sortAscending.label                   "Nouseva">
-<!ENTITY sortAscending.accesskey               "N">
-<!ENTITY sortDescending.label                  "Laskeva">
-<!ENTITY sortDescending.accesskey              "L">
+<!ENTITY sortAscending.label                   "Ascending">
+<!ENTITY sortAscending.accesskey               "A">
+<!ENTITY sortDescending.label                  "Descending">
+<!ENTITY sortDescending.accesskey              "D">

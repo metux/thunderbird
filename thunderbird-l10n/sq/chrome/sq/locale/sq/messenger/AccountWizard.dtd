@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "P">
 <!ENTITY clickFinish.label "Klikoni mbi Përfundoje që të ruhen këto rregullime dhe të dilet nga Krijuesi i Llogarive.">
 <!ENTITY clickFinish.labelMac "Klikoni mbi Përfundoje që të ruhen këto rregullime dhe të dilet nga Krijuesi i Llogarive.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

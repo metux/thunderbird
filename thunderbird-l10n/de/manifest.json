@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/de/locale/de/passwordmgr/", 
         "pippki": "chrome/de/locale/de/pippki/"
       }, 
-      "version": "20180501151644"
+      "version": "20180312184526"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "de", 
-  "version": "60.0", 
+  "version": "60.0buildid20180619210809", 
   "name": "Deutsch (DE) Language Pack", 
   "manifest_version": 2, 
   "sources": {

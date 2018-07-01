@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "U">
 <!ENTITY clickFinish.label "Cliceáil Críochnaigh chun na socruithe seo a shábháil agus scor de Threoraí na gCuntas.">
 <!ENTITY clickFinish.labelMac "Cliceáil Déanta chun na socruithe seo a shábháil agus scor de Threoraí na gCuntas.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

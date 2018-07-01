@@ -14,7 +14,7 @@
 <!ENTITY newMessage.key "M">
 <!ENTITY newMessageCmd2.key "N">
 <!ENTITY newMessage.accesskey "M">
-<!ENTITY newContact.label "Kenalan Buku Alamat…">
+<!ENTITY newContact.label "Buku Alamat Kenalan…">
 <!ENTITY newContact.accesskey "K">
 <!ENTITY attachMenu.label "Lampir">
 <!ENTITY attachMenu.accesskey "r">
@@ -343,13 +343,6 @@
 <!ENTITY attachPage.label "Lampir Halaman Web…">
 <!ENTITY attachPage.accesskey "W">
 
-<!-- Attachment Pane Header Bar Context Menu -->
-<!-- LOCALIZATION NOTE (initiallyShowAttachmentPane.label):
-     Should use the same wording as startExpandedCmd.label
-     in msgHdrViewOverlay.dtd. -->
-<!ENTITY initiallyShowAttachmentPane.label "Papar Anak Tetingkap Lampiran Permulaan">
-<!ENTITY initiallyShowAttachmentPane.accesskey "P">
-
 <!-- Spell checker context menu items -->
 <!ENTITY spellAddDictionaries.label "Tambah Kamus…">
 <!ENTITY spellAddDictionaries.accesskey "T">
@@ -364,3 +357,6 @@
 <!-- Status Bar -->
 <!ENTITY languageStatusButton.tooltip "Bahasa semakan ejaan">
 <!ENTITY encodingStatusPanel.tooltip "Pengekodan teks">
+
+<!ENTITY initiallyShowAttachmentPane.label "Initially Show Attachment Pane">
+<!ENTITY initiallyShowAttachmentPane.accesskey "S">
