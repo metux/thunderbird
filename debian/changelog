@@ -1,3 +1,18 @@
+thunderbird (1:60.0~b9-2) experimental; urgency=medium
+
+  [ intrigeri ]
+  * [eb7cb44] Revert "apparmor: allow access to @{HOME}/.gnupg/tofu.db"
+  * [4cd8baf] AppArmor: update profile from upstream
+    (Closes: #900840)
+  * [807eb99] AppArmor: update profile from upstream (at commit 104da32)
+
+  [ Carsten Schoenert ]
+  * [c980546] rebuild patch queue from patch-queue branch
+    added patch:
+    porting-arm64/Bug-1453892-Only-use-SkJumper-s-arm64-half-float-optimiza.patch
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sun, 01 Jul 2018 19:15:00 +0200
+
 thunderbird (1:60.0~b9-1) experimental; urgency=medium
 
   * [be64a3e] d/source.filter: update due upstream changes
