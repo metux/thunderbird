@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/eu/locale/eu/passwordmgr/", 
         "pippki": "chrome/eu/locale/eu/pippki/"
       }, 
-      "version": "20180501205227"
+      "version": "20180312184728"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "eu", 
-  "version": "60.0", 
+  "version": "60.0buildid20180619210809", 
   "name": "Basque Language Pack", 
   "manifest_version": 2, 
   "sources": {

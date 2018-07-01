@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/ja/locale/ja/passwordmgr/", 
         "pippki": "chrome/ja/locale/ja/pippki/"
       }, 
-      "version": "20180426072329"
+      "version": "20180312193241"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "ja", 
-  "version": "60.0", 
+  "version": "60.0buildid20180619210809", 
   "name": "Japanese Language Pack", 
   "manifest_version": 2, 
   "sources": {

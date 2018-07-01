@@ -124,9 +124,6 @@ because displayed names don't have the comma in between. -->
 <!ENTITY messengerCmd.label                             "Corespondență și grupuri de discuții">
 <!ENTITY messengerCmd.accesskey                         "C">
 <!ENTITY messengerCmd.commandkey                        "1">
-<!ENTITY addressBookCmd.label                           "Agendă de contacte">
-<!ENTITY addressBookCmd.accesskey                       "a">
-<!ENTITY addressBookCmd.key                             "B">
 <!ENTITY searchAddressesCmd.label                       "Caută adrese…">
 <!ENTITY searchAddressesCmd.accesskey                   "s">
 <!ENTITY importCmd.label                                "Import…">
@@ -244,3 +241,7 @@ because displayed names don't have the comma in between. -->
 <!ENTITY minimizeWindow.key                             "M">
 <!ENTITY bringAllToFront.label                          "Adu-le pe toate în față">
 <!ENTITY zoomWindow.label                               "Lupă">
+
+<!ENTITY addressBookCmd.label                           "Address Book">
+<!ENTITY addressBookCmd.accesskey                       "a">
+<!ENTITY addressBookCmd.key                             "B">

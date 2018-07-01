@@ -1,0 +1,134 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+@import url("chrome://messenger/content/quickFilterBar.css");
+
+/* :::: Filter Bar :::: */
+
+#quick-filter-bar {
+  height: 25px;
+}
+
+#quick-filter-bar-main-bar {
+  background: linear-gradient(#f3f3f3, #ebebeb);
+}
+
+#quick-filter-bar-expando {
+  border-bottom: 1px solid #bebebe;
+  background: #eaeaea;
+}
+
+#quick-filter-bar-main-bar:-moz-window-inactive,
+#quick-filter-bar-expando:-moz-window-inactive {
+  background-color: -moz-mac-chrome-inactive;
+  background-image: none;
+}
+
+@media (-moz-mac-yosemite-theme) {
+  #quick-filter-bar-expando {
+    border-bottom-color: hsl(0, 0%, 68%);
+  }
+
+  #quick-filter-bar-expando:-moz-window-inactive {
+    border-bottom-color: hsl(0, 0%, 85%);
+  }
+}
+
+#threadTree[filterActive="matches"] {
+  background: repeating-linear-gradient(to bottom, #ecf3fe 0, #ecf3fe 18px, white 18px, white 36px);
+}
+
+#threadTree[filterActive="nomatches"] {
+  background: repeating-linear-gradient(to bottom, #fff0f4, #fff0f4 18px, white 18px, white 36px);
+}
+
+#qfb-filter-label {
+  color: #888;
+  font-weight: bold;
+}
+
+/* :::: Filter Buttons :::: */
+
+#quick-filter-bar toolbarbutton {
+  height: 16px;
+  padding: 0 4px;
+  margin: 0 3px;
+}
+
+#quick-filter-bar-main-bar toolbarbutton {
+  height: 18px;
+  -moz-context-properties: fill, fill-opacity;
+  fill: currentColor;
+  fill-opacity: var(--toolbarbutton-icon-fill-opacity);
+}
+
+#quick-filter-bar-main-bar toolbarbutton:not(#qfb-sticky) > .toolbarbutton-icon {
+  margin-inline-end: 2px;
+}
+
+#quick-filter-bar toolbarbutton > .toolbarbutton-text {
+  padding: 0;
+  margin: 0 2px;
+}
+
+#quick-filter-bar-expando toolbarbutton {
+  margin-bottom: 3px;
+}
+
+#qfb-sticky {
+  width: 18px;
+  margin-inline-start: 6px !important;
+  list-style-image: url("chrome://messenger/skin/icons/sticky.svg");
+}
+
+/* we use both IDs so we are more precise than the other # toolbarbutton rules */
+#quick-filter-bar #qfb-sticky > .toolbarbutton-text {
+  margin: 0;
+}
+
+#qfb-unread {
+  list-style-image: url("chrome://messenger/skin/icons/mark.svg");
+}
+
+#qfb-starred {
+  list-style-image: url("chrome://messenger/skin/icons/star.svg");
+}
+
+#qfb-inaddrbook {
+  list-style-image: url("chrome://messenger/skin/icons/address.svg")
+}
+
+#qfb-tags {
+  list-style-image: url("chrome://messenger/skin/icons/tag.svg");
+}
+
+#qfb-attachment {
+  list-style-image: url("chrome://messenger/skin/icons/attach.svg");
+}
+
+#quick-filter-bar[filterActive="matches"] #qfb-results-label {
+  color: green;
+}
+
+#quick-filter-bar[filterActive="nomatches"] #qfb-results-label {
+  color: #f66;
+}
+
+@media (-moz-mac-yosemite-theme) {
+  #qfb-qs-textbox {
+    margin-top: 3px;
+    margin-bottom: 2px;
+  }
+}
+
+#qfb-qs-label {
+  margin-top: 0px;
+  margin-bottom: 3px;
+  color: #6b6b6b;
+}
+
+#qfb-boolean-mode {
+  margin-top: 0px;
+  margin-bottom: 0px;
+}

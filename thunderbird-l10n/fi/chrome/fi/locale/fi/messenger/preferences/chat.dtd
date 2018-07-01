@@ -2,8 +2,6 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY  generalTab.label            "Yleiset">
-
 <!ENTITY  startupAction.label         "Kun &brandShortName; käynnistyy:">
 <!ENTITY  startupAction.accesskey     "T">
 <!ENTITY  startupOffline.label        "Älä yhdistä pikaviestitilejäni">
@@ -31,10 +29,6 @@ sentence. -->
 <!ENTITY  completeNotification.label          "lähettäjän nimi ja viestin esikatselu">
 <!ENTITY  buddyInfoOnly.label                 "vain lähettäjän nimi">
 <!ENTITY  dummyNotification.label             "ilman lisätietoja">
-<!ENTITY  getAttention.label                  "Vilkuta työkalupalkin kohdetta">
-<!ENTITY  getAttention.accesskey              "V">
-<!ENTITY  getAttentionMac.label               "Animoi Dockin kohde">
-<!ENTITY  getAttentionMac.accesskey           "A">
 <!ENTITY  chatSound.accesskey                 "a">
 <!ENTITY  chatSound.label                     "Toista ääni">
 <!ENTITY  play.label                          "Toista">
@@ -46,20 +40,25 @@ sentence. -->
 <!ENTITY  browse.label                        "Selaa…">
 <!ENTITY  browse.accesskey                    "S">
 
-<!ENTITY messageStyleTab.title             "Viestityylit">
-<!ENTITY messageStylePreview.label         "Esikatselu:">
-<!ENTITY messageStyleTheme.label           "Teema:">
+
+<!ENTITY  generalTab.label            "General">
+<!ENTITY  getAttention.label                  "Flash the taskbar item">
+<!ENTITY  getAttention.accesskey              "F">
+<!ENTITY  getAttentionMac.label               "Animate dock icon">
+<!ENTITY  getAttentionMac.accesskey           "o">
+<!ENTITY messageStyleTab.title             "Message Styles">
+<!ENTITY messageStylePreview.label         "Preview:">
+<!ENTITY messageStyleTheme.label           "Theme:">
 <!ENTITY messageStyleTheme.accesskey       "T">
 <!ENTITY messageStyleThunderbirdTheme.label "Thunderbird">
-<!ENTITY messageStyleBubblesTheme.label    "Kuplat">
-<!ENTITY messageStyleDarkTheme.label       "Tumma">
-<!ENTITY messageStyleSimpleTheme.label     "Yksinkertainen">
-<!ENTITY messageStyleDefaultTheme.label    "Oletus">
-<!ENTITY messageStyleNoPreview.title       "Esikatselu ei ole käytettävissä">
-
+<!ENTITY messageStyleBubblesTheme.label    "Bubbles">
+<!ENTITY messageStyleDarkTheme.label       "Dark">
 <!ENTITY messageStylePaperSheetsTheme.label "Paper Sheets">
+<!ENTITY messageStyleSimpleTheme.label     "Simple">
+<!ENTITY messageStyleDefaultTheme.label    "Default">
 <!ENTITY messageStyleVariant.label         "Variant:">
 <!ENTITY messageStyleVariant.accesskey     "V">
 <!ENTITY messageStyleShowHeader.label      "Show Header">
 <!ENTITY messageStyleShowHeader.accesskey  "H">
+<!ENTITY messageStyleNoPreview.title       "No preview available">
 <!ENTITY messageStyleNoPreview.description "This theme is not valid or is currently unavailable (disabled addon, safe-mode, …).">

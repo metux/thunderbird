@@ -72,3 +72,6 @@
 <!ENTITY outgoingUsername.description "Introduz el nome d'usuariu saliente facilitáu pol fornidor de corréu-e (normalmente ye'l mesmu que l'entrante).">
 <!ENTITY outgoingUsername.label "Nome d'usuariu saliente:">
 <!ENTITY outgoingUsername.accesskey "U">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

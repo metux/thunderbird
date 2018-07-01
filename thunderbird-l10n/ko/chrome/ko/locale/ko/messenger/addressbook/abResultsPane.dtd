@@ -2,37 +2,37 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY Addrbook.label                        "주소록">
+<!ENTITY Addrbook.label                        "Address Book">
 <!ENTITY Addrbook.accesskey                    "B">
-<!ENTITY GeneratedName.label                   "이름">
+<!ENTITY GeneratedName.label                   "Name">
 <!ENTITY GeneratedName.accesskey               "N">
-<!ENTITY PrimaryEmail.label                    "이메일">
+<!ENTITY PrimaryEmail.label                    "Email">
 <!ENTITY PrimaryEmail.accesskey                "E">
-<!ENTITY Company.label                         "조직">
+<!ENTITY Company.label                         "Organization">
 <!ENTITY Company.accesskey                     "z">
-<!ENTITY _PhoneticName.label                   "이름 발음">
+<!ENTITY _PhoneticName.label                   "Phonetic Name">
 <!ENTITY _PhoneticName.accesskey               "o">
-<!ENTITY NickName.label                        "별명">
+<!ENTITY NickName.label                        "Nickname">
 <!ENTITY NickName.accesskey                    "i">
-<!ENTITY SecondEmail.label                     "추가 이메일">
+<!ENTITY SecondEmail.label                     "Additional Email">
 <!ENTITY SecondEmail.accesskey                 "l">
-<!ENTITY Department.label                      "부서">
+<!ENTITY Department.label                      "Department">
 <!ENTITY Department.accesskey                  "r">
-<!ENTITY JobTitle.label                        "직위">
+<!ENTITY JobTitle.label                        "Title">
 <!ENTITY JobTitle.accesskey                    "T">
-<!ENTITY CellularNumber.label                  "휴대폰">
+<!ENTITY CellularNumber.label                  "Mobile">
 <!ENTITY CellularNumber.accesskey              "M">
-<!ENTITY PagerNumber.label                     "호출기">
+<!ENTITY PagerNumber.label                     "Pager">
 <!ENTITY PagerNumber.accesskey                 "P">
-<!ENTITY FaxNumber.label                       "팩스">
+<!ENTITY FaxNumber.label                       "Fax">
 <!ENTITY FaxNumber.accesskey                   "F">
-<!ENTITY HomePhone.label                       "집 전화">
+<!ENTITY HomePhone.label                       "Home Phone">
 <!ENTITY HomePhone.accesskey                   "H">
-<!ENTITY WorkPhone.label                       "직장 전화">
+<!ENTITY WorkPhone.label                       "Work Phone">
 <!ENTITY WorkPhone.accesskey                   "W">
-<!ENTITY ChatName.label                        "채팅 이름">
+<!ENTITY ChatName.label                        "Chat Name">
 <!ENTITY ChatName.accesskey                    "C">
-<!ENTITY sortAscending.label                   "오름차순">
+<!ENTITY sortAscending.label                   "Ascending">
 <!ENTITY sortAscending.accesskey               "A">
-<!ENTITY sortDescending.label                  "내림차순">
+<!ENTITY sortDescending.label                  "Descending">
 <!ENTITY sortDescending.accesskey              "D">

@@ -88,17 +88,6 @@
 <!ENTITY reorderAttachmentsCmd.label "Mellékletek átrendezése…">
 <!ENTITY reorderAttachmentsCmd.accesskey "r">
 <!ENTITY reorderAttachmentsCmd.key "x">
-<!ENTITY toggleAttachmentPaneCmd.label "Mellékletek ablaktábla">
-<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.accesskey):
-     For better mnemonics, toggleAttachmentPaneCmd.accesskey should be the same
-     as attachments.accesskey. -->
-<!ENTITY toggleAttachmentPaneCmd.accesskey "M">
-<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.key):
-     With OS-specific access modifier, this defines the shortcut key for showing/
-     hiding/minimizing the attachment pane, e.g. Alt+M on Windows.
-     toggleAttachmentPaneCmd.key and attachments.accesskey must be the same
-     for the bucket view state machinery to work. -->
-<!ENTITY toggleAttachmentPaneCmd.key "m">
 <!ENTITY selectAllCmd.label "Minden kijelölése">
 <!ENTITY selectAllCmd.key "A">
 <!ENTITY selectAllCmd.accesskey "d">
@@ -120,10 +109,26 @@
 <!-- Reorder Attachment Panel -->
 <!ENTITY reorderAttachmentsPanel.label "Mellékletek átrendezése">
 <!ENTITY moveAttachmentTopPanelBtn.label "Mozgatás a tetejére">
+<!ENTITY moveAttachmentTopPanelBtn.accesskey "t">
 <!ENTITY moveAttachmentUpPanelBtn.label "Mozgatás felfelé">
+<!ENTITY moveAttachmentUpPanelBtn.accesskey "f">
 <!ENTITY moveAttachmentBundleUpPanelBtn.label "Mozgatás együtt">
+<!ENTITY moveAttachmentBundleUpPanelBtn.accesskey "z">
 <!ENTITY moveAttachmentDownPanelBtn.label "Mozgatás lefelé">
+<!ENTITY moveAttachmentDownPanelBtn.accesskey "l">
 <!ENTITY moveAttachmentBottomPanelBtn.label "Mozgatás az aljára">
+<!ENTITY moveAttachmentBottomPanelBtn.accesskey "a">
+<!-- LOCALIZATION NOTE (sortAttachmentsTogglePanelBtn.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsTogglePanelBtn.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.label "Kiválasztás rendezése: A – Z">
+<!-- LOCALIZATION NOTE (sortAttachmentsTogglePanelBtn.AZ.accesskey):
+     This accesskey should be the same like
+     sortAttachmentsTogglePanelBtn.ZA.accesskey, and it should be taken from
+     the "Sort Selection:" part of the label, not from the sort direction part. -->
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.accesskey "r">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.label "Kiválasztás rendezése: Z – A">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.accesskey "r">
 
 <!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.Sort.AZ.label):
      Please ensure that this translation matches
@@ -248,7 +253,6 @@
 <!ENTITY quoteButton.tooltip "Előző üzenet idézése">
 <!ENTITY addressButton.tooltip "Egy címzett kiválasztása a címjegyzékből">
 <!ENTITY attachButton.tooltip "Melléklet hozzáadása">
-<!ENTITY attachButton.tooltip2 "Melléklet hozzáadása">
 <!ENTITY spellingButton.tooltip "A kijelölt rész vagy az egész üzenet helyesírásának ellenőrzése">
 <!ENTITY saveButton.tooltip "Az üzenet mentése">
 <!ENTITY cutButton.tooltip              "Kivágás">
@@ -270,14 +274,9 @@
 <!ENTITY followupAddr.label "Hírcsop. vál.:">
 <!ENTITY subject.label "Tárgy:">
 <!ENTITY subject.accesskey "T">
-<!-- LOCALIZATION NOTE (attachments.accesskey) This access key character should
-     be taken from the strings in attachmentCount in composeMsgs.properties,
-     and it must be the same as toggleAttachmentPaneCmd.key, otherwise it won't
-     work, as the shortcut key functionality supersedes the access key. -->
+<!-- LOCALIZATION NOTE attachments.accesskey This access key should correspond
+     to the strings in attachmentCount in composeMsgs.properties -->
 <!ENTITY attachments.accesskey "m">
-
-<!ENTITY attachmentBucketHeader.tooltip "Mellékletek ablaktábla">
-<!ENTITY attachmentBucketCloseButton.tooltip "Mellékletek ablaktábla elrejtése">
 
 <!-- Format Toolbar, imported from editorAppShell.xul -->
 <!ENTITY SmileButton.tooltip "Hangulatjel beszúrása">
@@ -315,7 +314,6 @@
 <!ENTITY pasteQuote.label "Beillesztés idézetként">
 <!ENTITY pasteQuote.accesskey "i">
 
-<!-- Attachment Item and List Context Menus -->
 <!ENTITY openAttachment.label "Megnyitás">
 <!ENTITY openAttachment.accesskey "M">
 <!ENTITY delete.label "Törlés">
@@ -326,8 +324,6 @@
 <!ENTITY renameAttachment.accesskey "t">
 <!ENTITY reorderAttachments.label "Mellékletek rendezése…">
 <!ENTITY reorderAttachments.accesskey "M">
-<!ENTITY removeAllAttachments.label "Összes melléklet eltávolítása">
-<!ENTITY removeAllAttachments.accesskey "v">
 <!ENTITY selectAll.label "Minden kijelölése">
 <!ENTITY selectAll.accesskey "d">
 <!ENTITY attachFile.label "Fájlok csatolása…">
@@ -343,13 +339,6 @@
 <!ENTITY attachPage.label "Weboldal csatolása…">
 <!ENTITY attachPage.accesskey "W">
 
-<!-- Attachment Pane Header Bar Context Menu -->
-<!-- LOCALIZATION NOTE (initiallyShowAttachmentPane.label):
-     Should use the same wording as startExpandedCmd.label
-     in msgHdrViewOverlay.dtd. -->
-<!ENTITY initiallyShowAttachmentPane.label "Melléklet panel megjelenítése induláskor">
-<!ENTITY initiallyShowAttachmentPane.accesskey "M">
-
 <!-- Spell checker context menu items -->
 <!ENTITY spellAddDictionaries.label "Szótárak hozzáadása…">
 <!ENTITY spellAddDictionaries.accesskey "S">
@@ -364,3 +353,14 @@
 <!-- Status Bar -->
 <!ENTITY languageStatusButton.tooltip "Helyesírás-ellenőrzés nyelve">
 <!ENTITY encodingStatusPanel.tooltip "Szövegkódolás">
+
+<!ENTITY toggleAttachmentPaneCmd.label "Attachment Pane">
+<!ENTITY toggleAttachmentPaneCmd.accesskey "m">
+<!ENTITY toggleAttachmentPaneCmd.key "m">
+<!ENTITY attachButton.tooltip2 "Add an attachment">
+<!ENTITY attachmentBucketHeader.tooltip "Attachment Pane">
+<!ENTITY attachmentBucketCloseButton.tooltip "Hide the attachment pane">
+<!ENTITY removeAllAttachments.label "Remove All Attachments">
+<!ENTITY removeAllAttachments.accesskey "v">
+<!ENTITY initiallyShowAttachmentPane.label "Initially Show Attachment Pane">
+<!ENTITY initiallyShowAttachmentPane.accesskey "S">

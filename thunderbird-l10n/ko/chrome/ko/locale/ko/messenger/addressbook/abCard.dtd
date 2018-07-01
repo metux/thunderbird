@@ -2,9 +2,9 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY Contact.tab                     "연락처">
+<!ENTITY Contact.tab                     "Contact">
 <!ENTITY Contact.accesskey               "C">
-<!ENTITY Name.box                        "이름">
+<!ENTITY Name.box                        "Name">
 
 <!-- LOCALIZATION NOTE:
  NameField1, NameField2, PhoneticField1, PhoneticField2
@@ -15,110 +15,110 @@
 -->
 
 <!-- LOCALIZATION NOTE (NameField1.id) : DONT_TRANSLATE -->
-<!ENTITY NameField1.id                  "이름">
+<!ENTITY NameField1.id                  "FirstName">
 <!-- LOCALIZATION NOTE (NameField2.id) : DONT_TRANSLATE -->
-<!ENTITY NameField2.id                  "성">
+<!ENTITY NameField2.id                  "LastName">
 <!-- LOCALIZATION NOTE (PhoneticField1.id) : DONT_TRANSLATE -->
-<!ENTITY PhoneticField1.id              "이름 발음">
+<!ENTITY PhoneticField1.id              "PhoneticFirstName">
 <!-- LOCALIZATION NOTE (PhoneticField2.id) : DONT_TRANSLATE -->
-<!ENTITY PhoneticField2.id              "성 발음">
+<!ENTITY PhoneticField2.id              "PhoneticLastName">
 
-<!ENTITY NameField1.label               "이름:">
+<!ENTITY NameField1.label               "First:">
 <!ENTITY NameField1.accesskey           "F">
-<!ENTITY NameField2.label               "성:">
+<!ENTITY NameField2.label               "Last:">
 <!ENTITY NameField2.accesskey           "L">
-<!ENTITY PhoneticField1.label           "발음:">
-<!ENTITY PhoneticField2.label           "발음:">
-<!ENTITY DisplayName.label              "표시:">
+<!ENTITY PhoneticField1.label           "Phonetic:">
+<!ENTITY PhoneticField2.label           "Phonetic:">
+<!ENTITY DisplayName.label              "Display:">
 <!ENTITY DisplayName.accesskey          "D">
-<!ENTITY preferDisplayName.label        "메시지 헤더에는 항상 표시명을 우선">
+<!ENTITY preferDisplayName.label        "Always prefer display name over message header">
 <!ENTITY preferDisplayName.accesskey    "y">
-<!ENTITY NickName.label                 "별명:">
+<!ENTITY NickName.label                 "Nickname:">
 <!ENTITY NickName.accesskey             "N">
 
-<!ENTITY PrimaryEmail.label             "이메일:">
+<!ENTITY PrimaryEmail.label             "Email:">
 <!ENTITY PrimaryEmail.accesskey         "E">
-<!ENTITY SecondEmail.label              "추가 메일:">
+<!ENTITY SecondEmail.label              "Additional Email:">
 <!ENTITY SecondEmail.accesskey          "i">
-<!ENTITY PreferMailFormat.label         "메일 받기 형식:">
+<!ENTITY PreferMailFormat.label         "Prefers to receive messages formatted as:">
 <!ENTITY PreferMailFormat.accesskey     "v">
-<!ENTITY PlainText.label                "일반 텍스트">
-<!ENTITY HTML.label                     "">
-<!ENTITY Unknown.label                  "알 수 없음">
-<!ENTITY chatName.label                 "대화명:">
+<!ENTITY PlainText.label                "Plain Text">
+<!ENTITY HTML.label                     "HTML">
+<!ENTITY Unknown.label                  "Unknown">
+<!ENTITY chatName.label                 "Chat Name:">
 
-<!ENTITY WorkPhone.label                "직장:">
+<!ENTITY WorkPhone.label                "Work:">
 <!ENTITY WorkPhone.accesskey            "k">
-<!ENTITY HomePhone.label                "집:">
-<!ENTITY HomePhone.accesskey            "">
-<!ENTITY FaxNumber.label                "팩스:">
+<!ENTITY HomePhone.label                "Home:">
+<!ENTITY HomePhone.accesskey            "m">
+<!ENTITY FaxNumber.label                "Fax:">
 <!ENTITY FaxNumber.accesskey            "x">
-<!ENTITY PagerNumber.label              "호출기:">
+<!ENTITY PagerNumber.label              "Pager:">
 <!ENTITY PagerNumber.accesskey          "g">
-<!ENTITY CellularNumber.label           "휴대폰:">
+<!ENTITY CellularNumber.label           "Mobile:">
 <!ENTITY CellularNumber.accesskey       "b">
 
-<!ENTITY Home.tab                       "개인 정보">
+<!ENTITY Home.tab                       "Private">
 <!ENTITY Home.accesskey                 "P">
-<!ENTITY HomeAddress.label              "주소:">
+<!ENTITY HomeAddress.label              "Address:">
 <!ENTITY HomeAddress.accesskey          "d">
 <!ENTITY HomeAddress2.label             "">
 <!ENTITY HomeAddress2.accesskey         "">
-<!ENTITY HomeCity.label                 "시/군/구:">
+<!ENTITY HomeCity.label                 "City:">
 <!ENTITY HomeCity.accesskey             "y">
-<!ENTITY HomeState.label                "시/도:">
+<!ENTITY HomeState.label                "State/Province:">
 <!ENTITY HomeState.accesskey            "S">
-<!ENTITY HomeZipCode.label              "우편번호:">
+<!ENTITY HomeZipCode.label              "ZIP/Postal Code:">
 <!ENTITY HomeZipCode.accesskey          "Z">
-<!ENTITY HomeCountry.label              "국가:">
+<!ENTITY HomeCountry.label              "Country:">
 <!ENTITY HomeCountry.accesskey          "u">
-<!ENTITY HomeWebPage.label              "웹 페이지:">
+<!ENTITY HomeWebPage.label              "Web Page:">
 <!ENTITY HomeWebPage.accesskey          "e">
-<!ENTITY Birthday.label                 "생일:">
+<!ENTITY Birthday.label                 "Birthday:">
 <!ENTITY Birthday.accesskey             "B">
 <!ENTITY In.label                       "">
-<!ENTITY Year.placeholder               "년">
-<!ENTITY Or.value                       "또는">
-<!ENTITY Age.placeholder                "나이">
+<!ENTITY Year.placeholder               "Year">
+<!ENTITY Or.value                       "or">
+<!ENTITY Age.placeholder                "Age">
 <!ENTITY YearsOld.label                 "">
 
-<!ENTITY Work.tab                       "직장">
+<!ENTITY Work.tab                       "Work">
 <!ENTITY Work.accesskey                 "W">
-<!ENTITY JobTitle.label                 "직책:">
+<!ENTITY JobTitle.label                 "Title:">
 <!ENTITY JobTitle.accesskey             "i">
-<!ENTITY Department.label               "부서:">
+<!ENTITY Department.label               "Department:">
 <!ENTITY Department.accesskey           "m">
-<!ENTITY Company.label                  "소속:">
+<!ENTITY Company.label                  "Organization:">
 <!ENTITY Company.accesskey              "n">
-<!ENTITY WorkAddress.label              "주소:">
+<!ENTITY WorkAddress.label              "Address:">
 <!ENTITY WorkAddress.accesskey          "d">
 <!ENTITY WorkAddress2.label             "">
 <!ENTITY WorkAddress2.accesskey         "">
-<!ENTITY WorkCity.label                 "시/군/구:">
+<!ENTITY WorkCity.label                 "City:">
 <!ENTITY WorkCity.accesskey             "y">
-<!ENTITY WorkState.label                "시/도:">
+<!ENTITY WorkState.label                "State/Province:">
 <!ENTITY WorkState.accesskey            "S">
-<!ENTITY WorkZipCode.label              "우편번호:">
+<!ENTITY WorkZipCode.label              "ZIP/Postal Code:">
 <!ENTITY WorkZipCode.accesskey          "Z">
-<!ENTITY WorkCountry.label              "국가:">
+<!ENTITY WorkCountry.label              "Country:">
 <!ENTITY WorkCountry.accesskey          "u">
-<!ENTITY WorkWebPage.label              "웹 페이지:">
+<!ENTITY WorkWebPage.label              "Web Page:">
 <!ENTITY WorkWebPage.accesskey          "e">
 
-<!ENTITY Other.tab                      "기타">
+<!ENTITY Other.tab                      "Other">
 <!ENTITY Other.accesskey                "h">
-<!ENTITY Custom1.label                  "사용자정의1:">
+<!ENTITY Custom1.label                  "Custom 1:">
 <!ENTITY Custom1.accesskey              "1">
-<!ENTITY Custom2.label                  "사용자정의2:">
+<!ENTITY Custom2.label                  "Custom 2:">
 <!ENTITY Custom2.accesskey              "2">
-<!ENTITY Custom3.label                  "사용자정의3:">
+<!ENTITY Custom3.label                  "Custom 3:">
 <!ENTITY Custom3.accesskey              "3">
-<!ENTITY Custom4.label                  "사용자정의4:">
+<!ENTITY Custom4.label                  "Custom 4:">
 <!ENTITY Custom4.accesskey              "4">
-<!ENTITY Notes.label                    "메모:">
+<!ENTITY Notes.label                    "Notes:">
 <!ENTITY Notes.accesskey                "N">
 
-<!ENTITY Chat.tab                       "채팅">
+<!ENTITY Chat.tab                       "Chat">
 <!ENTITY Chat.accesskey                 "a">
 <!ENTITY Gtalk.label                    "Google Talk:">
 <!ENTITY Gtalk.accesskey                "G">
@@ -136,22 +136,21 @@
 <!ENTITY ICQ.accesskey                  "I">
 <!ENTITY XMPP.label                     "Jabber ID:">
 <!ENTITY XMPP.accesskey                 "J">
-<!ENTITY IRC.label                      "IRC 닉네임:">
+<!ENTITY IRC.label                      "IRC Nick:">
 <!ENTITY IRC.accesskey                  "R">
 
-<!ENTITY Photo.tab                      "사진">
+<!ENTITY Photo.tab                      "Photo">
 <!ENTITY Photo.accesskey                "o">
-<!ENTITY PhotoDesc.label                "다음 중의 하나를 선택:">
-<!ENTITY GenericPhoto.label             "일반 사진">
+<!ENTITY GenericPhoto.label             "Generic Photo">
 <!ENTITY GenericPhoto.accesskey         "G">
-<!ENTITY DefaultPhoto.label             "기본">
-<!ENTITY PhotoFile.label                "이 컴퓨터에서">
+<!ENTITY DefaultPhoto.label             "Default">
+<!ENTITY PhotoFile.label                "On this Computer">
 <!ENTITY PhotoFile.accesskey            "n">
-<!ENTITY BrowsePhoto.label              "찾아보기">
+<!ENTITY BrowsePhoto.label              "Browse">
 <!ENTITY BrowsePhoto.accesskey          "r">
-<!ENTITY PhotoURL.label                 "웹에서">
+<!ENTITY PhotoURL.label                 "On the Web">
 <!ENTITY PhotoURL.accesskey             "b">
-<!ENTITY PhotoURL.placeholder           "사진의 웹 주소를 입력">
-<!ENTITY UpdatePhoto.label              "변경">
+<!ENTITY PhotoURL.placeholder           "Paste or type the web address of a photo">
+<!ENTITY UpdatePhoto.label              "Update">
 <!ENTITY UpdatePhoto.accesskey          "u">
-<!ENTITY PhotoDropTarget.label          "새 사진을 여기에 드래그">
+<!ENTITY PhotoDropTarget.label          "Drag new photo here">

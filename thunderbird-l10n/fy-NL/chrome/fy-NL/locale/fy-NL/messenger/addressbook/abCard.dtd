@@ -2,9 +2,9 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY Contact.tab                     "Kontakt">
-<!ENTITY Contact.accesskey               "K">
-<!ENTITY Name.box                        "Namme">
+<!ENTITY Contact.tab                     "Contact">
+<!ENTITY Contact.accesskey               "C">
+<!ENTITY Name.box                        "Name">
 
 <!-- LOCALIZATION NOTE:
  NameField1, NameField2, PhoneticField1, PhoneticField2
@@ -23,99 +23,99 @@
 <!-- LOCALIZATION NOTE (PhoneticField2.id) : DONT_TRANSLATE -->
 <!ENTITY PhoneticField2.id              "PhoneticLastName">
 
-<!ENTITY NameField1.label               "Foarnamme:">
+<!ENTITY NameField1.label               "First:">
 <!ENTITY NameField1.accesskey           "F">
-<!ENTITY NameField2.label               "Efternamme:">
-<!ENTITY NameField2.accesskey           "E">
-<!ENTITY PhoneticField1.label           "Fonetysk:">
-<!ENTITY PhoneticField2.label           "Fonetysk:">
-<!ENTITY DisplayName.label              "Werjefte:">
-<!ENTITY DisplayName.accesskey          "W">
-<!ENTITY preferDisplayName.label        "Altyd werjeftenamme boppe berjochtkop toane">
+<!ENTITY NameField2.label               "Last:">
+<!ENTITY NameField2.accesskey           "L">
+<!ENTITY PhoneticField1.label           "Phonetic:">
+<!ENTITY PhoneticField2.label           "Phonetic:">
+<!ENTITY DisplayName.label              "Display:">
+<!ENTITY DisplayName.accesskey          "D">
+<!ENTITY preferDisplayName.label        "Always prefer display name over message header">
 <!ENTITY preferDisplayName.accesskey    "y">
-<!ENTITY NickName.label                 "Bynamme:">
-<!ENTITY NickName.accesskey             "B">
+<!ENTITY NickName.label                 "Nickname:">
+<!ENTITY NickName.accesskey             "N">
 
-<!ENTITY PrimaryEmail.label             "E-mail:">
-<!ENTITY PrimaryEmail.accesskey         "m">
-<!ENTITY SecondEmail.label              "Alternative e-mail:">
+<!ENTITY PrimaryEmail.label             "Email:">
+<!ENTITY PrimaryEmail.accesskey         "E">
+<!ENTITY SecondEmail.label              "Additional Email:">
 <!ENTITY SecondEmail.accesskey          "i">
-<!ENTITY PreferMailFormat.label         "Wol it leafst berjochten ûntfange opsteld as:">
-<!ENTITY PreferMailFormat.accesskey     "f">
-<!ENTITY PlainText.label                "Platte tekst">
+<!ENTITY PreferMailFormat.label         "Prefers to receive messages formatted as:">
+<!ENTITY PreferMailFormat.accesskey     "v">
+<!ENTITY PlainText.label                "Plain Text">
 <!ENTITY HTML.label                     "HTML">
-<!ENTITY Unknown.label                  "Unbekend">
-<!ENTITY chatName.label                 "Chatnamme:">
+<!ENTITY Unknown.label                  "Unknown">
+<!ENTITY chatName.label                 "Chat Name:">
 
-<!ENTITY WorkPhone.label                "Wurk:">
+<!ENTITY WorkPhone.label                "Work:">
 <!ENTITY WorkPhone.accesskey            "k">
-<!ENTITY HomePhone.label                "Thús:">
-<!ENTITY HomePhone.accesskey            "s">
-<!ENTITY FaxNumber.label                "Faks:">
-<!ENTITY FaxNumber.accesskey            "k">
-<!ENTITY PagerNumber.label              "Piper:">
-<!ENTITY PagerNumber.accesskey          "p">
-<!ENTITY CellularNumber.label           "Mobyl:">
+<!ENTITY HomePhone.label                "Home:">
+<!ENTITY HomePhone.accesskey            "m">
+<!ENTITY FaxNumber.label                "Fax:">
+<!ENTITY FaxNumber.accesskey            "x">
+<!ENTITY PagerNumber.label              "Pager:">
+<!ENTITY PagerNumber.accesskey          "g">
+<!ENTITY CellularNumber.label           "Mobile:">
 <!ENTITY CellularNumber.accesskey       "b">
 
-<!ENTITY Home.tab                       "Privee">
+<!ENTITY Home.tab                       "Private">
 <!ENTITY Home.accesskey                 "P">
-<!ENTITY HomeAddress.label              "Adres:">
+<!ENTITY HomeAddress.label              "Address:">
 <!ENTITY HomeAddress.accesskey          "d">
 <!ENTITY HomeAddress2.label             "">
 <!ENTITY HomeAddress2.accesskey         "">
-<!ENTITY HomeCity.label                 "Wenplak:">
-<!ENTITY HomeCity.accesskey             "n">
-<!ENTITY HomeState.label                "Provinsje:">
-<!ENTITY HomeState.accesskey            "v">
-<!ENTITY HomeZipCode.label              "Postkoade:">
-<!ENTITY HomeZipCode.accesskey          "k">
-<!ENTITY HomeCountry.label              "Lân:">
-<!ENTITY HomeCountry.accesskey          "L">
-<!ENTITY HomeWebPage.label              "Website:">
-<!ENTITY HomeWebPage.accesskey          "b">
-<!ENTITY Birthday.label                 "Jierdei:">
-<!ENTITY Birthday.accesskey             "J">
+<!ENTITY HomeCity.label                 "City:">
+<!ENTITY HomeCity.accesskey             "y">
+<!ENTITY HomeState.label                "State/Province:">
+<!ENTITY HomeState.accesskey            "S">
+<!ENTITY HomeZipCode.label              "ZIP/Postal Code:">
+<!ENTITY HomeZipCode.accesskey          "Z">
+<!ENTITY HomeCountry.label              "Country:">
+<!ENTITY HomeCountry.accesskey          "u">
+<!ENTITY HomeWebPage.label              "Web Page:">
+<!ENTITY HomeWebPage.accesskey          "e">
+<!ENTITY Birthday.label                 "Birthday:">
+<!ENTITY Birthday.accesskey             "B">
 <!ENTITY In.label                       "">
-<!ENTITY Year.placeholder               "Jier">
-<!ENTITY Or.value                       "of">
-<!ENTITY Age.placeholder                "Leeftiid">
+<!ENTITY Year.placeholder               "Year">
+<!ENTITY Or.value                       "or">
+<!ENTITY Age.placeholder                "Age">
 <!ENTITY YearsOld.label                 "">
 
-<!ENTITY Work.tab                       "Wurk">
+<!ENTITY Work.tab                       "Work">
 <!ENTITY Work.accesskey                 "W">
-<!ENTITY JobTitle.label                 "Titel:">
+<!ENTITY JobTitle.label                 "Title:">
 <!ENTITY JobTitle.accesskey             "i">
-<!ENTITY Department.label               "Ofdieling:">
-<!ENTITY Department.accesskey           "f">
-<!ENTITY Company.label                  "Organisaasje:">
+<!ENTITY Department.label               "Department:">
+<!ENTITY Department.accesskey           "m">
+<!ENTITY Company.label                  "Organization:">
 <!ENTITY Company.accesskey              "n">
-<!ENTITY WorkAddress.label              "Adres:">
+<!ENTITY WorkAddress.label              "Address:">
 <!ENTITY WorkAddress.accesskey          "d">
 <!ENTITY WorkAddress2.label             "">
 <!ENTITY WorkAddress2.accesskey         "">
-<!ENTITY WorkCity.label                 "Wenplak:">
-<!ENTITY WorkCity.accesskey             "p">
-<!ENTITY WorkState.label                "Provinsje:">
-<!ENTITY WorkState.accesskey            "v">
-<!ENTITY WorkZipCode.label              "Postkoade:">
-<!ENTITY WorkZipCode.accesskey          "k">
-<!ENTITY WorkCountry.label              "Lân:">
-<!ENTITY WorkCountry.accesskey          "L">
-<!ENTITY WorkWebPage.label              "Website:">
+<!ENTITY WorkCity.label                 "City:">
+<!ENTITY WorkCity.accesskey             "y">
+<!ENTITY WorkState.label                "State/Province:">
+<!ENTITY WorkState.accesskey            "S">
+<!ENTITY WorkZipCode.label              "ZIP/Postal Code:">
+<!ENTITY WorkZipCode.accesskey          "Z">
+<!ENTITY WorkCountry.label              "Country:">
+<!ENTITY WorkCountry.accesskey          "u">
+<!ENTITY WorkWebPage.label              "Web Page:">
 <!ENTITY WorkWebPage.accesskey          "e">
 
-<!ENTITY Other.tab                      "Oars">
-<!ENTITY Other.accesskey                "O">
-<!ENTITY Custom1.label                  "Oars 1:">
+<!ENTITY Other.tab                      "Other">
+<!ENTITY Other.accesskey                "h">
+<!ENTITY Custom1.label                  "Custom 1:">
 <!ENTITY Custom1.accesskey              "1">
-<!ENTITY Custom2.label                  "Oars 2:">
+<!ENTITY Custom2.label                  "Custom 2:">
 <!ENTITY Custom2.accesskey              "2">
-<!ENTITY Custom3.label                  "Oars 3:">
+<!ENTITY Custom3.label                  "Custom 3:">
 <!ENTITY Custom3.accesskey              "3">
-<!ENTITY Custom4.label                  "Oars 4:">
+<!ENTITY Custom4.label                  "Custom 4:">
 <!ENTITY Custom4.accesskey              "4">
-<!ENTITY Notes.label                    "Notysjes:">
+<!ENTITY Notes.label                    "Notes:">
 <!ENTITY Notes.accesskey                "N">
 
 <!ENTITY Chat.tab                       "Chat">
@@ -136,22 +136,21 @@
 <!ENTITY ICQ.accesskey                  "I">
 <!ENTITY XMPP.label                     "Jabber ID:">
 <!ENTITY XMPP.accesskey                 "J">
-<!ENTITY IRC.label                      "IRC-bynamme:">
+<!ENTITY IRC.label                      "IRC Nick:">
 <!ENTITY IRC.accesskey                  "R">
 
-<!ENTITY Photo.tab                      "Foto">
+<!ENTITY Photo.tab                      "Photo">
 <!ENTITY Photo.accesskey                "o">
-<!ENTITY PhotoDesc.label                "Kies ien fan de folgjende:">
-<!ENTITY GenericPhoto.label             "Algemiene foto">
-<!ENTITY GenericPhoto.accesskey         "g">
-<!ENTITY DefaultPhoto.label             "Standert">
-<!ENTITY PhotoFile.label                "Op dizze kompjûter">
-<!ENTITY PhotoFile.accesskey            "d">
-<!ENTITY BrowsePhoto.label              "Blêdzje">
-<!ENTITY BrowsePhoto.accesskey          "l">
-<!ENTITY PhotoURL.label                 "Op it ynternet">
-<!ENTITY PhotoURL.accesskey             "y">
-<!ENTITY PhotoURL.placeholder           "Plak of typ it ynternetadres fan in foto">
-<!ENTITY UpdatePhoto.label              "Fernijing">
-<!ENTITY UpdatePhoto.accesskey          "F">
-<!ENTITY PhotoDropTarget.label          "Sleep in nije foto hjirnei ta">
+<!ENTITY GenericPhoto.label             "Generic Photo">
+<!ENTITY GenericPhoto.accesskey         "G">
+<!ENTITY DefaultPhoto.label             "Default">
+<!ENTITY PhotoFile.label                "On this Computer">
+<!ENTITY PhotoFile.accesskey            "n">
+<!ENTITY BrowsePhoto.label              "Browse">
+<!ENTITY BrowsePhoto.accesskey          "r">
+<!ENTITY PhotoURL.label                 "On the Web">
+<!ENTITY PhotoURL.accesskey             "b">
+<!ENTITY PhotoURL.placeholder           "Paste or type the web address of a photo">
+<!ENTITY UpdatePhoto.label              "Update">
+<!ENTITY UpdatePhoto.accesskey          "u">
+<!ENTITY PhotoDropTarget.label          "Drag new photo here">

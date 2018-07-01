@@ -1,8 +1,5 @@
 ---
-extends: default
+ignore: |
+  *node_modules*
 
-rules:
-  document-end:
-     present: false
-  # Checks currently failing
-  line-length: disable
+extends: default

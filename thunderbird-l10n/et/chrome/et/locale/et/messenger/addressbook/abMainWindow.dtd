@@ -124,9 +124,6 @@ because displayed names don't have the comma in between. -->
 <!ENTITY messengerCmd.label                             "E-post ja uudisgrupid">
 <!ENTITY messengerCmd.accesskey                         "E">
 <!ENTITY messengerCmd.commandkey                        "1">
-<!ENTITY addressBookCmd.label                           "Aadressiraamat">
-<!ENTITY addressBookCmd.accesskey                       "d">
-<!ENTITY addressBookCmd.key                             "B">
 <!ENTITY searchAddressesCmd.label                       "Aadresside otsing...">
 <!ENTITY searchAddressesCmd.accesskey                   "d">
 <!ENTITY importCmd.label                                "Impordi...">
@@ -244,3 +241,7 @@ because displayed names don't have the comma in between. -->
 <!ENTITY minimizeWindow.key                             "m">
 <!ENTITY bringAllToFront.label                          "Too kõik ette">
 <!ENTITY zoomWindow.label                               "Suurendus">
+
+<!ENTITY addressBookCmd.label                           "Address Book">
+<!ENTITY addressBookCmd.accesskey                       "a">
+<!ENTITY addressBookCmd.key                             "B">

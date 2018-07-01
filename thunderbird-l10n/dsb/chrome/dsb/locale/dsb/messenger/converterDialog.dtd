@@ -3,9 +3,9 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY converterDialog.title "Message Store Type Converter">
-<!ENTITY converterDialog.continueButton "Pókšacowaś">
-<!ENTITY converterDialog.cancelButton "Pśetergnuś">
-<!ENTITY converterDialog.finishButton "Dokóńcyś">
-<!ENTITY converterDialog.complete "Konwersija jo dokóńcona. &brandShortName; buźo se něnto znowego startowaś.">
-<!ENTITY converterDialog.error "Konwersija njejo se raźiła.">
+<!ENTITY converterDialog.continueButton "Continue">
+<!ENTITY converterDialog.cancelButton "Cancel">
+<!ENTITY converterDialog.finishButton "Finish">
+<!ENTITY converterDialog.complete "The conversion is complete. &brandShortName; will now restart.">
+<!ENTITY converterDialog.error "Conversion failed.">
 

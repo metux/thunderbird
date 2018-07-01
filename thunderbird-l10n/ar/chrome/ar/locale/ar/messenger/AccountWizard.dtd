@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "ع">
 <!ENTITY clickFinish.label "اضغط ”أنهِ“ لحفظ هذه الإعدادات و  إنهاء مرشد الحسابات.">
 <!ENTITY clickFinish.labelMac "انقر على ”تمّ“ لحفظ هذه الإعدادات و الخروج من مرشد الحسابات.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

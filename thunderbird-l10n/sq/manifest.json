@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/sq/locale/sq/passwordmgr/", 
         "pippki": "chrome/sq/locale/sq/pippki/"
       }, 
-      "version": "20180426073925"
+      "version": "20180314103305"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "sq", 
-  "version": "60.0", 
+  "version": "60.0buildid20180619210809", 
   "name": "Shqip Language Pack", 
   "manifest_version": 2, 
   "sources": {

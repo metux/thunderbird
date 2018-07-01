@@ -88,17 +88,6 @@
 <!ENTITY reorderAttachmentsCmd.label "Eklerin sırasını değiştir…">
 <!ENTITY reorderAttachmentsCmd.accesskey "s">
 <!ENTITY reorderAttachmentsCmd.key "x">
-<!ENTITY toggleAttachmentPaneCmd.label "Ek bölmesi">
-<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.accesskey):
-     For better mnemonics, toggleAttachmentPaneCmd.accesskey should be the same
-     as attachments.accesskey. -->
-<!ENTITY toggleAttachmentPaneCmd.accesskey "m">
-<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.key):
-     With OS-specific access modifier, this defines the shortcut key for showing/
-     hiding/minimizing the attachment pane, e.g. Alt+M on Windows.
-     toggleAttachmentPaneCmd.key and attachments.accesskey must be the same
-     for the bucket view state machinery to work. -->
-<!ENTITY toggleAttachmentPaneCmd.key "m">
 <!ENTITY selectAllCmd.label "Tümünü seç">
 <!ENTITY selectAllCmd.key "A">
 <!ENTITY selectAllCmd.accesskey "e">
@@ -120,10 +109,26 @@
 <!-- Reorder Attachment Panel -->
 <!ENTITY reorderAttachmentsPanel.label "Eklerin sırasını değiştir">
 <!ENTITY moveAttachmentTopPanelBtn.label "Üste taşı">
+<!ENTITY moveAttachmentTopPanelBtn.accesskey "Ü">
 <!ENTITY moveAttachmentUpPanelBtn.label "Yukarı taşı">
+<!ENTITY moveAttachmentUpPanelBtn.accesskey "u">
 <!ENTITY moveAttachmentBundleUpPanelBtn.label "Birlikte taşı">
+<!ENTITY moveAttachmentBundleUpPanelBtn.accesskey "B">
 <!ENTITY moveAttachmentDownPanelBtn.label "Aşağı taşı">
+<!ENTITY moveAttachmentDownPanelBtn.accesskey "A">
 <!ENTITY moveAttachmentBottomPanelBtn.label "Alta taşı">
+<!ENTITY moveAttachmentBottomPanelBtn.accesskey "t">
+<!-- LOCALIZATION NOTE (sortAttachmentsTogglePanelBtn.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsTogglePanelBtn.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.label "Seçimi sırala: A - Z">
+<!-- LOCALIZATION NOTE (sortAttachmentsTogglePanelBtn.AZ.accesskey):
+     This accesskey should be the same like
+     sortAttachmentsTogglePanelBtn.ZA.accesskey, and it should be taken from
+     the "Sort Selection:" part of the label, not from the sort direction part. -->
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.accesskey "S">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.label "Seçimi sırala: Z - A">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.accesskey "S">
 
 <!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.Sort.AZ.label):
      Please ensure that this translation matches
@@ -162,7 +167,7 @@
 <!-- Options Menu -->
 <!ENTITY optionsMenu.label "Seçenekler">
 <!ENTITY optionsMenu.accesskey "S">
-<!ENTITY checkSpellingCmd2.label "Yazımı denetle…">
+<!ENTITY checkSpellingCmd2.label "Yazım Denetimi…">
 <!ENTITY checkSpellingCmd2.key "p">
 <!ENTITY checkSpellingCmd2.key2 "VK_F7">
 <!ENTITY checkSpellingCmd2.accesskey "Y">
@@ -217,7 +222,7 @@
 <!ENTITY addressBookCmd.label "Adres Defteri">
 <!ENTITY addressBookCmd.accesskey "A">
 <!ENTITY addressBookCmd.key "B">
-<!ENTITY accountManagerCmd2.label "Hesap ayarları">
+<!ENTITY accountManagerCmd2.label "Hesap Ayarları">
 <!ENTITY accountManagerCmd2.accesskey "A">
 <!ENTITY accountManagerCmdUnix2.accesskey "S">
 <!ENTITY preferencesCmd2.label "Seçenekler">
@@ -228,7 +233,7 @@
 <!--  Mac OS X Window Menu -->
 <!ENTITY minimizeWindow.key "m">
 <!ENTITY minimizeWindow.label "Küçült">
-<!ENTITY bringAllToFront.label "Tümünü öne getir">
+<!ENTITY bringAllToFront.label "Tümünü Öne Getir">
 <!ENTITY zoomWindow.label "Yaklaştır">
 <!ENTITY windowMenu.label "Pencere">
 
@@ -247,7 +252,6 @@
 <!ENTITY quoteButton.tooltip "Önceki iletiden alıntı yap">
 <!ENTITY addressButton.tooltip "Adres Defteri'nden alıcı seç">
 <!ENTITY attachButton.tooltip "Bir dosya ekle">
-<!ENTITY attachButton.tooltip2 "Dosya ekle">
 <!ENTITY spellingButton.tooltip "Seçimin veya tüm iletinin yazımını denetle">
 <!ENTITY saveButton.tooltip "Bu iletiyi kaydet">
 <!ENTITY cutButton.tooltip              "Kes">
@@ -269,14 +273,9 @@
 <!ENTITY followupAddr.label "Takip Adresi:">
 <!ENTITY subject.label "Konu:">
 <!ENTITY subject.accesskey "K">
-<!-- LOCALIZATION NOTE (attachments.accesskey) This access key character should
-     be taken from the strings in attachmentCount in composeMsgs.properties,
-     and it must be the same as toggleAttachmentPaneCmd.key, otherwise it won't
-     work, as the shortcut key functionality supersedes the access key. -->
+<!-- LOCALIZATION NOTE attachments.accesskey This access key should correspond
+     to the strings in attachmentCount in composeMsgs.properties -->
 <!ENTITY attachments.accesskey "e">
-
-<!ENTITY attachmentBucketHeader.tooltip "Ek bölmesi">
-<!ENTITY attachmentBucketCloseButton.tooltip "Ek bölmesini gizle">
 
 <!-- Format Toolbar, imported from editorAppShell.xul -->
 <!ENTITY SmileButton.tooltip "Bir yüz ifadesi ekle">
@@ -314,7 +313,6 @@
 <!ENTITY pasteQuote.label "Alıntı olarak yapıştır">
 <!ENTITY pasteQuote.accesskey "A">
 
-<!-- Attachment Item and List Context Menus -->
 <!ENTITY openAttachment.label "Aç">
 <!ENTITY openAttachment.accesskey "A">
 <!ENTITY delete.label "Sil">
@@ -325,8 +323,6 @@
 <!ENTITY renameAttachment.accesskey "r">
 <!ENTITY reorderAttachments.label "Eklerin sırasını değiştir…">
 <!ENTITY reorderAttachments.accesskey "d">
-<!ENTITY removeAllAttachments.label "Tüm ekleri sil">
-<!ENTITY removeAllAttachments.accesskey "m">
 <!ENTITY selectAll.label "Tümünü seç">
 <!ENTITY selectAll.accesskey "e">
 <!ENTITY attachFile.label "Dosya ekle…">
@@ -341,13 +337,6 @@
 <!ENTITY convertRegularAttachment.accesskey "E">
 <!ENTITY attachPage.label "Web sayfası ekle…">
 <!ENTITY attachPage.accesskey "W">
-
-<!-- Attachment Pane Header Bar Context Menu -->
-<!-- LOCALIZATION NOTE (initiallyShowAttachmentPane.label):
-     Should use the same wording as startExpandedCmd.label
-     in msgHdrViewOverlay.dtd. -->
-<!ENTITY initiallyShowAttachmentPane.label "Ek bölmesini daima göster">
-<!ENTITY initiallyShowAttachmentPane.accesskey "s">
 
 <!-- Spell checker context menu items -->
 <!ENTITY spellAddDictionaries.label "Sözlük ekle…">
@@ -364,4 +353,14 @@
 <!ENTITY languageStatusButton.tooltip "Yazım denetimi yap">
 <!ENTITY encodingStatusPanel.tooltip "Metin kodlaması">
 
+<!ENTITY toggleAttachmentPaneCmd.label "Attachment Pane">
+<!ENTITY toggleAttachmentPaneCmd.accesskey "m">
+<!ENTITY toggleAttachmentPaneCmd.key "m">
 <!ENTITY sortAttachmentsPanelBtn.key "y">
+<!ENTITY attachButton.tooltip2 "Add an attachment">
+<!ENTITY attachmentBucketHeader.tooltip "Attachment Pane">
+<!ENTITY attachmentBucketCloseButton.tooltip "Hide the attachment pane">
+<!ENTITY removeAllAttachments.label "Remove All Attachments">
+<!ENTITY removeAllAttachments.accesskey "v">
+<!ENTITY initiallyShowAttachmentPane.label "Initially Show Attachment Pane">
+<!ENTITY initiallyShowAttachmentPane.accesskey "S">

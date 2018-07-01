@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "U">
 <!ENTITY clickFinish.label "Cliquez sur Terminer pour enregistrer ces paramètres et quitter l’assistant de création de compte.">
 <!ENTITY clickFinish.labelMac "Cliquez sur Terminer pour enregistrer ces paramètres et quitter l’assistant de création de compte.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

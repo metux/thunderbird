@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/uk/locale/uk/passwordmgr/", 
         "pippki": "chrome/uk/locale/uk/pippki/"
       }, 
-      "version": "20180426141403"
+      "version": "20180314121213"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "uk", 
-  "version": "60.0", 
+  "version": "60.0buildid20180619210809", 
   "name": "Ukrainian (UA) Language Pack", 
   "manifest_version": 2, 
   "sources": {

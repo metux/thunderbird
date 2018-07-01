@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "F">
 <!ENTITY clickFinish.label "Clic pe „Încheiere” pentru a salva aceste setări și a părăsi asistentul de creat conturi.">
 <!ENTITY clickFinish.labelMac "Clic pe „Terminat” pentru a salva aceste setări și a părăsi asistentul de creat conturi.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

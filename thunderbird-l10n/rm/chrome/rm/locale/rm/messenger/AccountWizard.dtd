@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "G">
 <!ENTITY clickFinish.label "Clicca sin &quot;Terminar&quot; per memorisar quests parameters e serrar l'assistent da contos.">
 <!ENTITY clickFinish.labelMac "Clicca sin &quot;Terminar&quot; per memorisar quests parameters e serrar l'assistent da contos.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

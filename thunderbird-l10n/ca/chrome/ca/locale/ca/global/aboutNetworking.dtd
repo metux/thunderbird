@@ -41,7 +41,21 @@
 <!ENTITY aboutNetworking.dnsLookupButton       "Resol">
 <!ENTITY aboutNetworking.dnsDomain             "Domini">
 <!ENTITY aboutNetworking.dnsLookupTableColumn  "IP">
-<!ENTITY aboutNetworking.rcwnPerfOpen          "Obre">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 <!ENTITY aboutNetworking.trr                   "TRR">
 <!ENTITY aboutNetworking.rcwn                  "RCWN Stats">
@@ -50,6 +64,7 @@
 <!ENTITY aboutNetworking.rcwnNetWonCount       "Net won count">
 <!ENTITY aboutNetworking.totalNetworkRequests  "Total network request count">
 <!ENTITY aboutNetworking.rcwnOperation         "Cache Operation">
+<!ENTITY aboutNetworking.rcwnPerfOpen          "Open">
 <!ENTITY aboutNetworking.rcwnPerfRead          "Read">
 <!ENTITY aboutNetworking.rcwnPerfWrite         "Write">
 <!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Entry Open">

@@ -79,8 +79,6 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsProcessCount "Web-Inhaltsprozesse">
 
-<!ENTITY aboutSupport.enterprisePolicies "Unternehmensrichtlinien">
-
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Google-Schlüssel">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla-Location-Service-Schlüssel">
 
@@ -174,3 +172,5 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.intlOSTitle "Betriebssystem">
 <!ENTITY aboutSupport.intlOSPrefsSystemLocales "Sprachen des Betriebssystems">
 <!ENTITY aboutSupport.intlRegionalPrefs "Region-Einstellungen">
+
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">

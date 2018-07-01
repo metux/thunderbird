@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "K">
 <!ENTITY clickFinish.label "Vajuta nupul Lõpeta, et sätted salvestada ning Kontohaldur sulgeda.">
 <!ENTITY clickFinish.labelMac "Vajuta nupul Lõpeta, et sätted salvestada ning Kontohaldur sulgeda.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

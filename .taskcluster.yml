@@ -1,10 +1,8 @@
----
 # This file is rendered via JSON-e by
 # - mozilla-taskcluster - https://docs.taskcluster.net/reference/integrations/mozilla-taskcluster/docs/taskcluster-yml
+# - cron tasks - taskcluster/taskgraph/cron/decision.py
 # - action tasks - taskcluster/taskgraph/actions/registry.py
-
 version: 1
-
 tasks:
   - $let:
       # sometimes the push user is just `ffxbld` or the like, but we want an email-like field..
@@ -18,20 +16,19 @@ tasks:
         then:
           '${action.taskGroupId}'
         else:
-          '${as_slugid("decision")}'  # same as taskId; this is how automation identifies a decision tsak
+          '${as_slugid("decision")}' # same as taskId; this is how automation identifies a decision tsak
       schedulerId: 'gecko-level-${repository.level}'
 
       created: {$fromNow: ''}
       deadline: {$fromNow: '1 day'}
-      expires: {$fromNow: '1 year 1 second'}  # 1 second so artifacts expire first, despite rounding errors
-
+      expires: {$fromNow: '1 year 1 second'} # 1 second so artifacts expire first, despite rounding errors
       metadata:
         $merge:
           - owner: "${ownerEmail}"
             source: "${repoUrl}/raw-file/${push.revision}/.taskcluster.yml"
           - $if: 'tasks_for == "hg-push"'
             then:
-              name: "Thunderbird Decision Task"
+              name: "Gecko Decision Task"
               description: 'The task that creates all of the other tasks in the task graph'
             else:
               $if: 'tasks_for == "action"'
@@ -57,20 +54,23 @@ tasks:
       routes:
         $flatten:
           - "tc-treeherder.v2.${repository.project}.${push.revision}.${push.pushlog_id}"
-          - "tc-treeherder-stage.v2.${repository.project}.${push.revision}.${push.pushlog_id}"
           - $if: 'tasks_for == "hg-push"'
             then:
-              - "index.comm.v2.${repository.project}.latest.thunderbird.decision"
-              - "index.comm.v2.${repository.project}.revision.${push.revision}.thunderbird.decision"
-              - "index.comm.v2.${repository.project}.pushlog-id.${push.pushlog_id}.decision"
+              - "index.gecko.v2.${repository.project}.latest.taskgraph.decision"
+              - "index.gecko.v2.${repository.project}.revision.${push.revision}.taskgraph.decision"
+              - "index.gecko.v2.${repository.project}.pushlog-id.${push.pushlog_id}.decision"
               - "notify.email.${ownerEmail}.on-failed"
-              - $if: '"mozilla@hocat.ca" in ownerEmail'
-                # Until taskcluster is ready for general consumption, don't report exceptions from taskcluster.
-                then: "notify.email.${ownerEmail}.on-exception"
+              - "notify.email.${ownerEmail}.on-exception"
+              # These are the old index routes for the decision task.
+              # They are still here so external tools that referenced them continue to work.
+              - "index.gecko.v2.${repository.project}.latest.firefox.decision"
+              - "index.gecko.v2.${repository.project}.revision.${push.revision}.firefox.decision"
             else:
-              - $if: 'tasks_for == "action"'
-                then: "index.comm.v2.${repository.project}.pushlog-id.${push.pushlog_id}.actions.$ownTaskId"
-                else: "index.comm.v2.${repository.project}.latest.thunderbird.decision-${cron.job_name}"
+              $if: 'tasks_for == "action"'
+              then: "index.gecko.v2.${repository.project}.pushlog-id.${push.pushlog_id}.actions.${ownTaskId}"
+              else:
+              - "index.gecko.v2.${repository.project}.latest.taskgraph.decision-${cron.job_name}"
+              - "index.gecko.v2.${repository.project}.latest.firefox.decision-${cron.job_name}"
 
       scopes:
         $if: 'tasks_for == "hg-push"'
@@ -96,17 +96,12 @@ tasks:
           # to `mach taskgraph decision` are all on the command line.
           $merge:
             - GECKO_BASE_REPOSITORY: 'https://hg.mozilla.org/mozilla-unified'
-              GECKO_HEAD_REPOSITORY: 'https://hg.mozilla.org/releases/mozilla-beta'
-              GECKO_HEAD_REF: 'THUNDERBIRD_60_VERBRANCH'
-              COMM_BASE_REPOSITORY: 'https://hg.mozilla.org/comm-central'
-              COMM_HEAD_REPOSITORY: '${repoUrl}'
-              COMM_HEAD_REF: '${push.revision}'
-              COMM_HEAD_REV: '${push.revision}'
-              HG_STORE_PATH: /buillds/worker/checkouts/hg-store
+              GECKO_HEAD_REPOSITORY: '${repoUrl}'
+              GECKO_HEAD_REF: '${push.revision}'
+              GECKO_HEAD_REV: '${push.revision}'
+              GECKO_COMMIT_MSG: {$if: 'tasks_for != "action"', then: '${push.comment}'}
+              HG_STORE_PATH: /builds/worker/checkouts/hg-store
               TASKCLUSTER_CACHES: /builds/worker/checkouts
-            - $if: 'tasks_for != "action"'
-              then:
-                COMM_COMMIT_MSG: '${push.comment}'
             - $if: 'tasks_for == "action"'
               then:
                 ACTION_TASK_GROUP_ID: '${ownTaskId}'
@@ -131,13 +126,10 @@ tasks:
 
         maxRunTime: 1800
 
-        # TODO use mozilla-unified for the base repository once the tc-vcs
-        # tar.gz archives are created or tc-vcs isn't being used.
         command:
           - /builds/worker/bin/run-task
           - '--vcs-checkout=/builds/worker/checkouts/gecko'
           - '--sparse-profile=build/sparse-profiles/taskgraph'
-          - '--comm-checkout=/builds/worker/checkouts/gecko/comm'
           - '--'
           - bash
           - -cx
@@ -153,22 +145,16 @@ tasks:
                 cd /builds/worker/checkouts/gecko &&
                 ln -s /builds/worker/artifacts artifacts &&
                 ./mach --log-no-times taskgraph decision
-                --root=comm/taskcluster/ci
                 --pushlog-id='${push.pushlog_id}'
                 --pushdate='${push.pushdate}'
                 --project='${repository.project}'
-                --message="$COMM_COMMIT_MSG"
+                --message="$GECKO_COMMIT_MSG"
                 --owner='${ownerEmail}'
                 --level='${repository.level}'
-                --base-repository='https://hg.mozilla.org/mozilla-central'
+                --base-repository="$GECKO_BASE_REPOSITORY"
                 --head-repository="$GECKO_HEAD_REPOSITORY"
                 --head-ref="$GECKO_HEAD_REF"
                 --head-rev="$GECKO_HEAD_REV"
-                --comm-base-repository="$COMM_BASE_REPOSITORY"
-                --comm-head-repository="$COMM_HEAD_REPOSITORY"
-                --comm-head-ref="$COMM_HEAD_REF"
-                --comm-head-rev="$COMM_HEAD_REV"
-                --try-task-config-file=comm/try_task_config.json
                 ${extraArgs}
 
         artifacts:

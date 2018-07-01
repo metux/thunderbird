@@ -4,28 +4,28 @@
 
 <!-- LOCALIZATION NOTE (newsError.title): The title of the news error page.
      Not generally visible. -->
-<!ENTITY newsError.title "Ongelma artikkelin lataamisessa">
+<!ENTITY newsError.title "Problem Loading Article">
 
 <!-- LOCALIZATION NOTE (articleNotFound.title): The main heading for the news
      error page. -->
-<!ENTITY articleNotFound.title "Artikkelia ei löydy">
+<!ENTITY articleNotFound.title "Article not found">
 
 <!-- LOCALIZATION NOTE (articleNotFound.desc): A longer description for the news
      error page. -->
-<!ENTITY articleNotFound.desc "Keskusteluryhmäpalvelin ilmoitaa, että se ei löydä artikkelia.">
+<!ENTITY articleNotFound.desc "The newsgroup server reports that it can't find the article.">
 
 <!-- LOCALIZATION NOTE (serverResponded.title): A string preceding the text
      response from the newsgroup server describing the error. -->
-<!ENTITY serverResponded.title "Keskusteluryhmäpalvelin vastasi:">
+<!ENTITY serverResponded.title "Newsgroup server responded:">
 
 <!-- LOCALIZATION NOTE (articleExpired.title): A string explaining that the
      article may have expired. -->
-<!ENTITY articleExpired.title "Olisiko artikkeli vanhentunut?">
+<!ENTITY articleExpired.title "Perhaps the article has expired?">
 
 <!-- LOCALIZATION NOTE (trySearching.title): A string preceding the message's
      ID. -->
-<!ENTITY trySearching.title "Yritä artikkelin etsimistä:">
+<!ENTITY trySearching.title "Try searching for article:">
 
 <!-- LOCALIZATION NOTE (removeExpiredArticles.title): The label for the button
      to remove all expired articles from the newsgroup. -->
-<!ENTITY removeExpiredArticles.title "Poista kaikki vanhentuneet artikkelit">
+<!ENTITY removeExpiredArticles.title "Remove All Expired Articles">

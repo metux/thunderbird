@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "G">
 <!ENTITY clickFinish.label "Klik op Foltôgje om de ynstellingen te bewarjen en de Accounthelper ôf te sluten.">
 <!ENTITY clickFinish.labelMac "Klik op Klear om de ynstellingen te bewarjen en de Accounthelper ôf te sluten.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

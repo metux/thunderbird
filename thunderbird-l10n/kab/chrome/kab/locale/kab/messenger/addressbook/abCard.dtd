@@ -2,9 +2,9 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY Contact.tab                     "Anermis">
+<!ENTITY Contact.tab                     "Contact">
 <!ENTITY Contact.accesskey               "C">
-<!ENTITY Name.box                        "Isem">
+<!ENTITY Name.box                        "Name">
 
 <!-- LOCALIZATION NOTE:
  NameField1, NameField2, PhoneticField1, PhoneticField2
@@ -23,94 +23,91 @@
 <!-- LOCALIZATION NOTE (PhoneticField2.id) : DONT_TRANSLATE -->
 <!ENTITY PhoneticField2.id              "PhoneticLastName">
 
-<!ENTITY NameField1.label               "Amezwaru:">
+<!ENTITY NameField1.label               "First:">
 <!ENTITY NameField1.accesskey           "F">
-<!ENTITY NameField2.label               "Aneggaru:">
+<!ENTITY NameField2.label               "Last:">
 <!ENTITY NameField2.accesskey           "L">
-<!ENTITY PhoneticField1.label           "Amsisli:">
-<!ENTITY PhoneticField2.label           "Amsisli:">
-<!ENTITY DisplayName.label              "Sken:">
+<!ENTITY PhoneticField1.label           "Phonetic:">
+<!ENTITY PhoneticField2.label           "Phonetic:">
+<!ENTITY DisplayName.label              "Display:">
 <!ENTITY DisplayName.accesskey          "D">
-<!ENTITY preferDisplayName.label        "Smenyaf yal tikelt askan n yisem ɣef uqerru n yizen">
+<!ENTITY preferDisplayName.label        "Always prefer display name over message header">
 <!ENTITY preferDisplayName.accesskey    "y">
-<!ENTITY NickName.label                 "Meferisem:">
+<!ENTITY NickName.label                 "Nickname:">
 <!ENTITY NickName.accesskey             "N">
 
-<!ENTITY PrimaryEmail.label             "Imayl:">
+<!ENTITY PrimaryEmail.label             "Email:">
 <!ENTITY PrimaryEmail.accesskey         "E">
-<!ENTITY SecondEmail.label              "Imayl nniḍen:">
+<!ENTITY SecondEmail.label              "Additional Email:">
 <!ENTITY SecondEmail.accesskey          "i">
-<!ENTITY PreferMailFormat.label         "Yifi-it wermas n yeznan s wemsal am:">
+<!ENTITY PreferMailFormat.label         "Prefers to receive messages formatted as:">
 <!ENTITY PreferMailFormat.accesskey     "v">
-<!ENTITY PlainText.label                "Adris ačuṛan">
+<!ENTITY PlainText.label                "Plain Text">
 <!ENTITY HTML.label                     "HTML">
-<!ENTITY Unknown.label                  "Arussin">
-<!ENTITY chatName.label                 "Isem deg tirawt taskudant:">
+<!ENTITY Unknown.label                  "Unknown">
+<!ENTITY chatName.label                 "Chat Name:">
 
-<!ENTITY WorkPhone.label                "Amahil:">
+<!ENTITY WorkPhone.label                "Work:">
 <!ENTITY WorkPhone.accesskey            "k">
-<!ENTITY HomePhone.label                "Axxam:">
+<!ENTITY HomePhone.label                "Home:">
 <!ENTITY HomePhone.accesskey            "m">
-<!ENTITY FaxNumber.label                "Faks:">
+<!ENTITY FaxNumber.label                "Fax:">
 <!ENTITY FaxNumber.accesskey            "x">
+<!ENTITY PagerNumber.label              "Pager:">
 <!ENTITY PagerNumber.accesskey          "g">
-<!ENTITY CellularNumber.label           "Aziraz:">
+<!ENTITY CellularNumber.label           "Mobile:">
 <!ENTITY CellularNumber.accesskey       "b">
 
-<!ENTITY Home.tab                       "Tabaḍnit">
+<!ENTITY Home.tab                       "Private">
 <!ENTITY Home.accesskey                 "P">
-<!ENTITY HomeAddress.label              "Tansa:">
+<!ENTITY HomeAddress.label              "Address:">
 <!ENTITY HomeAddress.accesskey          "d">
 <!ENTITY HomeAddress2.label             "">
 <!ENTITY HomeAddress2.accesskey         "">
-<!ENTITY HomeCity.label                 "Aɣrem:">
+<!ENTITY HomeCity.label                 "City:">
 <!ENTITY HomeCity.accesskey             "y">
-<!ENTITY HomeState.label                "Aɣiṛ/Province:">
+<!ENTITY HomeState.label                "State/Province:">
 <!ENTITY HomeState.accesskey            "S">
-<!ENTITY HomeZipCode.label              "ZIP/Postal Tangalt:">
+<!ENTITY HomeZipCode.label              "ZIP/Postal Code:">
 <!ENTITY HomeZipCode.accesskey          "Z">
-<!ENTITY HomeCountry.label              "Tamurt:">
+<!ENTITY HomeCountry.label              "Country:">
 <!ENTITY HomeCountry.accesskey          "u">
-<!ENTITY HomeWebPage.label              "Asebter web:">
+<!ENTITY HomeWebPage.label              "Web Page:">
 <!ENTITY HomeWebPage.accesskey          "e">
-<!ENTITY Birthday.label                 "Amulli:">
+<!ENTITY Birthday.label                 "Birthday:">
 <!ENTITY Birthday.accesskey             "B">
 <!ENTITY In.label                       "">
-<!ENTITY Year.placeholder               "Iseggwasen">
-<!ENTITY Or.value                       "neɣ">
-<!ENTITY Age.placeholder                "Awtay">
+<!ENTITY Year.placeholder               "Year">
+<!ENTITY Or.value                       "or">
+<!ENTITY Age.placeholder                "Age">
 <!ENTITY YearsOld.label                 "">
 
-<!ENTITY Work.tab                       "Amahil">
+<!ENTITY Work.tab                       "Work">
 <!ENTITY Work.accesskey                 "W">
-<!ENTITY JobTitle.label                 "Azwel:">
+<!ENTITY JobTitle.label                 "Title:">
 <!ENTITY JobTitle.accesskey             "i">
-<!ENTITY Department.label               "Agezdu:">
+<!ENTITY Department.label               "Department:">
 <!ENTITY Department.accesskey           "m">
-<!ENTITY Company.label                  "Takebbanit:">
+<!ENTITY Company.label                  "Organization:">
 <!ENTITY Company.accesskey              "n">
-<!ENTITY WorkAddress.label              "Tansa:">
+<!ENTITY WorkAddress.label              "Address:">
 <!ENTITY WorkAddress.accesskey          "d">
 <!ENTITY WorkAddress2.label             "">
 <!ENTITY WorkAddress2.accesskey         "">
-<!ENTITY WorkCity.label                 "Aɣrem:">
+<!ENTITY WorkCity.label                 "City:">
 <!ENTITY WorkCity.accesskey             "y">
-<!ENTITY WorkState.label                "Aɣiṛ/Province:">
+<!ENTITY WorkState.label                "State/Province:">
 <!ENTITY WorkState.accesskey            "S">
-<!ENTITY WorkZipCode.label              "ZIP/Postal Tangalt:">
+<!ENTITY WorkZipCode.label              "ZIP/Postal Code:">
 <!ENTITY WorkZipCode.accesskey          "Z">
-<!ENTITY WorkCountry.label              "Tamurt:">
+<!ENTITY WorkCountry.label              "Country:">
 <!ENTITY WorkCountry.accesskey          "u">
-<!ENTITY WorkWebPage.label              "Asebter web:">
+<!ENTITY WorkWebPage.label              "Web Page:">
 <!ENTITY WorkWebPage.accesskey          "e">
 
-<!ENTITY Other.tab                      "Wiyaḍ">
+<!ENTITY Other.tab                      "Other">
 <!ENTITY Other.accesskey                "h">
-<!ENTITY Custom1.label                  "Aggan 1:">
-
-
-
-<!ENTITY PagerNumber.label              "Pager:">
+<!ENTITY Custom1.label                  "Custom 1:">
 <!ENTITY Custom1.accesskey              "1">
 <!ENTITY Custom2.label                  "Custom 2:">
 <!ENTITY Custom2.accesskey              "2">
@@ -120,6 +117,7 @@
 <!ENTITY Custom4.accesskey              "4">
 <!ENTITY Notes.label                    "Notes:">
 <!ENTITY Notes.accesskey                "N">
+
 <!ENTITY Chat.tab                       "Chat">
 <!ENTITY Chat.accesskey                 "a">
 <!ENTITY Gtalk.label                    "Google Talk:">
@@ -140,6 +138,7 @@
 <!ENTITY XMPP.accesskey                 "J">
 <!ENTITY IRC.label                      "IRC Nick:">
 <!ENTITY IRC.accesskey                  "R">
+
 <!ENTITY Photo.tab                      "Photo">
 <!ENTITY Photo.accesskey                "o">
 <!ENTITY GenericPhoto.label             "Generic Photo">

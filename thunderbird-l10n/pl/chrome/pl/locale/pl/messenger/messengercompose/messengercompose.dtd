@@ -84,9 +84,6 @@
 <!ENTITY reorderAttachmentsCmd.label "Zmień kolejność załączników…">
 <!ENTITY reorderAttachmentsCmd.accesskey "k">
 <!ENTITY reorderAttachmentsCmd.key "x">
-<!ENTITY toggleAttachmentPaneCmd.label "Lista załączników">
-<!ENTITY toggleAttachmentPaneCmd.accesskey "a">
-<!ENTITY toggleAttachmentPaneCmd.key "a">
 <!ENTITY selectAllCmd.label "Zaznacz wszystko">
 <!ENTITY selectAllCmd.accesskey "a">
 <!ENTITY selectAllCmd.key "A">
@@ -107,10 +104,19 @@
 
 <!ENTITY reorderAttachmentsPanel.label "Zmień kolejność załączników">
 <!ENTITY moveAttachmentTopPanelBtn.label "Przenieś na górę">
+<!ENTITY moveAttachmentTopPanelBtn.accesskey "e">
 <!ENTITY moveAttachmentUpPanelBtn.label "Przenieś do góry">
+<!ENTITY moveAttachmentUpPanelBtn.accesskey "n">
 <!ENTITY moveAttachmentBundleUpPanelBtn.label "Przenieś razem">
+<!ENTITY moveAttachmentBundleUpPanelBtn.accesskey "r">
 <!ENTITY moveAttachmentDownPanelBtn.label "Przenieś w dół">
+<!ENTITY moveAttachmentDownPanelBtn.accesskey "w">
 <!ENTITY moveAttachmentBottomPanelBtn.label "Przenieś na dół">
+<!ENTITY moveAttachmentBottomPanelBtn.accesskey "d">
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.label "Sortuj zaznaczone: A-Z">
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.accesskey "S">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.label "Sortuj zaznaczone: Z-A">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.accesskey "S">
 <!ENTITY sortAttachmentsPanelBtn.Sort.AZ.label "Sortuj: A-Z">
 <!ENTITY sortAttachmentsPanelBtn.Sort.ZA.label "Sortuj: Z-A">
 <!ENTITY sortAttachmentsPanelBtn.SortSelection.AZ.label "Sortuj zaznaczone: A-Z">
@@ -218,7 +224,6 @@
 <!ENTITY quoteButton.tooltip "Zacytuj poprzednią wiadomość">
 <!ENTITY addressButton.tooltip "Wybierz adresata z książki adresowej">
 <!ENTITY attachButton.tooltip "Dodaj pliki do tej wiadomości">
-<!ENTITY attachButton.tooltip2 "Dodaj pliki do tej wiadomości">
 <!ENTITY spellingButton.tooltip "Sprawdź pisownię zaznaczonego fragmentu lub całej wiadomości">
 <!ENTITY saveButton.tooltip "Zapisz wiadomość jako">
 <!ENTITY cutButton.tooltip "Wytnij">
@@ -238,9 +243,6 @@
 <!ENTITY subject.label "Temat:">
 <!ENTITY subject.accesskey "T">
 <!ENTITY attachments.accesskey "a">
-
-<!ENTITY attachmentBucketHeader.tooltip "Lista załączników">
-<!ENTITY attachmentBucketCloseButton.tooltip "Ukryj listę załączników">
 
 <!ENTITY SmileButton.tooltip "Wstaw emotikonkę">
 <!ENTITY smiley1Cmd.label "Uśmiech">
@@ -286,8 +288,6 @@
 <!ENTITY renameAttachment.accesskey "Z">
 <!ENTITY reorderAttachments.label "Zmień kolejność załączników…">
 <!ENTITY reorderAttachments.accesskey "k">
-<!ENTITY removeAllAttachments.label "Usuń wszystkie załączniki">
-<!ENTITY removeAllAttachments.accesskey "U">
 <!ENTITY selectAll.label "Zaznacz wszystko">
 <!ENTITY selectAll.accesskey "w">
 <!ENTITY attachFile.label "Załącz plik">
@@ -303,9 +303,6 @@
 <!ENTITY attachPage.label "Załącz stronę WWW…">
 <!ENTITY attachPage.accesskey "W">
 
-<!ENTITY initiallyShowAttachmentPane.label "Wyświetlaj listę załączników">
-<!ENTITY initiallyShowAttachmentPane.accesskey "W">
-
 <!ENTITY spellAddDictionaries.label "Dodaj słowniki…">
 <!ENTITY spellAddDictionaries.accesskey "D">
 
@@ -316,3 +313,14 @@
 
 <!ENTITY languageStatusButton.tooltip "Język sprawdzania pisowni">
 <!ENTITY encodingStatusPanel.tooltip "Kodowanie tekstu">
+
+<!ENTITY toggleAttachmentPaneCmd.label "Attachment Pane">
+<!ENTITY toggleAttachmentPaneCmd.accesskey "m">
+<!ENTITY toggleAttachmentPaneCmd.key "m">
+<!ENTITY attachButton.tooltip2 "Add an attachment">
+<!ENTITY attachmentBucketHeader.tooltip "Attachment Pane">
+<!ENTITY attachmentBucketCloseButton.tooltip "Hide the attachment pane">
+<!ENTITY removeAllAttachments.label "Remove All Attachments">
+<!ENTITY removeAllAttachments.accesskey "v">
+<!ENTITY initiallyShowAttachmentPane.label "Initially Show Attachment Pane">
+<!ENTITY initiallyShowAttachmentPane.accesskey "S">

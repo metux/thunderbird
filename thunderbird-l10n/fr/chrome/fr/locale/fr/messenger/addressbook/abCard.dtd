@@ -4,7 +4,7 @@
 
 <!ENTITY Contact.tab                     "Contact">
 <!ENTITY Contact.accesskey               "C">
-<!ENTITY Name.box                        "Identité">
+<!ENTITY Name.box                        "Name">
 
 <!-- LOCALIZATION NOTE:
  NameField1, NameField2, PhoneticField1, PhoneticField2
@@ -23,135 +23,134 @@
 <!-- LOCALIZATION NOTE (PhoneticField2.id) : DONT_TRANSLATE -->
 <!ENTITY PhoneticField2.id              "PhoneticLastName">
 
-<!ENTITY NameField1.label               "Prénom :">
-<!ENTITY NameField1.accesskey           "P">
-<!ENTITY NameField2.label               "Nom :">
-<!ENTITY NameField2.accesskey           "N">
-<!ENTITY PhoneticField1.label           "Phonétique :">
-<!ENTITY PhoneticField2.label           "Phonétique :">
-<!ENTITY DisplayName.label              "Nom à afficher :">
-<!ENTITY DisplayName.accesskey          "o">
-<!ENTITY preferDisplayName.label        "Toujours préférer le nom à afficher plutôt que l’en-tête de message">
-<!ENTITY preferDisplayName.accesskey    "T">
-<!ENTITY NickName.label                 "Surnom :">
-<!ENTITY NickName.accesskey             "S">
+<!ENTITY NameField1.label               "First:">
+<!ENTITY NameField1.accesskey           "F">
+<!ENTITY NameField2.label               "Last:">
+<!ENTITY NameField2.accesskey           "L">
+<!ENTITY PhoneticField1.label           "Phonetic:">
+<!ENTITY PhoneticField2.label           "Phonetic:">
+<!ENTITY DisplayName.label              "Display:">
+<!ENTITY DisplayName.accesskey          "D">
+<!ENTITY preferDisplayName.label        "Always prefer display name over message header">
+<!ENTITY preferDisplayName.accesskey    "y">
+<!ENTITY NickName.label                 "Nickname:">
+<!ENTITY NickName.accesskey             "N">
 
-<!ENTITY PrimaryEmail.label             "Adresse électronique :">
-<!ENTITY PrimaryEmail.accesskey         "d">
-<!ENTITY SecondEmail.label              "Adresse alternative :">
-<!ENTITY SecondEmail.accesskey          "r">
-<!ENTITY PreferMailFormat.label         "Préfère recevoir les messages au format :">
+<!ENTITY PrimaryEmail.label             "Email:">
+<!ENTITY PrimaryEmail.accesskey         "E">
+<!ENTITY SecondEmail.label              "Additional Email:">
+<!ENTITY SecondEmail.accesskey          "i">
+<!ENTITY PreferMailFormat.label         "Prefers to receive messages formatted as:">
 <!ENTITY PreferMailFormat.accesskey     "v">
-<!ENTITY PlainText.label                "Texte simple (sans HTML)">
+<!ENTITY PlainText.label                "Plain Text">
 <!ENTITY HTML.label                     "HTML">
-<!ENTITY Unknown.label                  "Inconnu">
-<!ENTITY chatName.label                 "Pseudo pour discussion :">
+<!ENTITY Unknown.label                  "Unknown">
+<!ENTITY chatName.label                 "Chat Name:">
 
-<!ENTITY WorkPhone.label                "Travail :">
-<!ENTITY WorkPhone.accesskey            "l">
-<!ENTITY HomePhone.label                "Domicile :">
-<!ENTITY HomePhone.accesskey            "i">
-<!ENTITY FaxNumber.label                "Fax :">
+<!ENTITY WorkPhone.label                "Work:">
+<!ENTITY WorkPhone.accesskey            "k">
+<!ENTITY HomePhone.label                "Home:">
+<!ENTITY HomePhone.accesskey            "m">
+<!ENTITY FaxNumber.label                "Fax:">
 <!ENTITY FaxNumber.accesskey            "x">
-<!ENTITY PagerNumber.label              "Pager :">
+<!ENTITY PagerNumber.label              "Pager:">
 <!ENTITY PagerNumber.accesskey          "g">
-<!ENTITY CellularNumber.label           "Mobile :">
+<!ENTITY CellularNumber.label           "Mobile:">
 <!ENTITY CellularNumber.accesskey       "b">
 
-<!ENTITY Home.tab                       "Privée">
+<!ENTITY Home.tab                       "Private">
 <!ENTITY Home.accesskey                 "P">
-<!ENTITY HomeAddress.label              "Adresse :">
-<!ENTITY HomeAddress.accesskey          "A">
+<!ENTITY HomeAddress.label              "Address:">
+<!ENTITY HomeAddress.accesskey          "d">
 <!ENTITY HomeAddress2.label             "">
 <!ENTITY HomeAddress2.accesskey         "">
-<!ENTITY HomeCity.label                 "Ville/Localité :">
-<!ENTITY HomeCity.accesskey             "V">
-<!ENTITY HomeState.label                "État/Prov. :">
-<!ENTITY HomeState.accesskey            "o">
-<!ENTITY HomeZipCode.label              "Code postal :">
-<!ENTITY HomeZipCode.accesskey          "d">
-<!ENTITY HomeCountry.label              "Pays :">
-<!ENTITY HomeCountry.accesskey          "P">
-<!ENTITY HomeWebPage.label              "Page web :">
+<!ENTITY HomeCity.label                 "City:">
+<!ENTITY HomeCity.accesskey             "y">
+<!ENTITY HomeState.label                "State/Province:">
+<!ENTITY HomeState.accesskey            "S">
+<!ENTITY HomeZipCode.label              "ZIP/Postal Code:">
+<!ENTITY HomeZipCode.accesskey          "Z">
+<!ENTITY HomeCountry.label              "Country:">
+<!ENTITY HomeCountry.accesskey          "u">
+<!ENTITY HomeWebPage.label              "Web Page:">
 <!ENTITY HomeWebPage.accesskey          "e">
-<!ENTITY Birthday.label                 "Anniversaire :">
-<!ENTITY Birthday.accesskey             "A">
+<!ENTITY Birthday.label                 "Birthday:">
+<!ENTITY Birthday.accesskey             "B">
 <!ENTITY In.label                       "">
-<!ENTITY Year.placeholder               "Année">
-<!ENTITY Or.value                       "ou">
-<!ENTITY Age.placeholder                "Âge">
-<!ENTITY YearsOld.label                 " ans">
+<!ENTITY Year.placeholder               "Year">
+<!ENTITY Or.value                       "or">
+<!ENTITY Age.placeholder                "Age">
+<!ENTITY YearsOld.label                 "">
 
-<!ENTITY Work.tab                       "Professionnelle">
-<!ENTITY Work.accesskey                 "o">
-<!ENTITY JobTitle.label                 "Fonction :">
-<!ENTITY JobTitle.accesskey             "F">
-<!ENTITY Department.label               "Service :">
-<!ENTITY Department.accesskey           "e">
-<!ENTITY Company.label                  "Société :">
-<!ENTITY Company.accesskey              "c">
-<!ENTITY WorkAddress.label              "Adresse :">
-<!ENTITY WorkAddress.accesskey          "r">
+<!ENTITY Work.tab                       "Work">
+<!ENTITY Work.accesskey                 "W">
+<!ENTITY JobTitle.label                 "Title:">
+<!ENTITY JobTitle.accesskey             "i">
+<!ENTITY Department.label               "Department:">
+<!ENTITY Department.accesskey           "m">
+<!ENTITY Company.label                  "Organization:">
+<!ENTITY Company.accesskey              "n">
+<!ENTITY WorkAddress.label              "Address:">
+<!ENTITY WorkAddress.accesskey          "d">
 <!ENTITY WorkAddress2.label             "">
 <!ENTITY WorkAddress2.accesskey         "">
-<!ENTITY WorkCity.label                 "Ville/Localité :">
-<!ENTITY WorkCity.accesskey             "L">
-<!ENTITY WorkState.label                "État/Prov. :">
-<!ENTITY WorkState.accesskey            "v">
-<!ENTITY WorkZipCode.label              "Code postal :">
-<!ENTITY WorkZipCode.accesskey          "t">
-<!ENTITY WorkCountry.label              "Pays :">
-<!ENTITY WorkCountry.accesskey          "s">
-<!ENTITY WorkWebPage.label              "Page web :">
-<!ENTITY WorkWebPage.accesskey          "b">
+<!ENTITY WorkCity.label                 "City:">
+<!ENTITY WorkCity.accesskey             "y">
+<!ENTITY WorkState.label                "State/Province:">
+<!ENTITY WorkState.accesskey            "S">
+<!ENTITY WorkZipCode.label              "ZIP/Postal Code:">
+<!ENTITY WorkZipCode.accesskey          "Z">
+<!ENTITY WorkCountry.label              "Country:">
+<!ENTITY WorkCountry.accesskey          "u">
+<!ENTITY WorkWebPage.label              "Web Page:">
+<!ENTITY WorkWebPage.accesskey          "e">
 
-<!ENTITY Other.tab                      "Informations complémentaires">
-<!ENTITY Other.accesskey                "n">
-<!ENTITY Custom1.label                  "Divers 1 :">
+<!ENTITY Other.tab                      "Other">
+<!ENTITY Other.accesskey                "h">
+<!ENTITY Custom1.label                  "Custom 1:">
 <!ENTITY Custom1.accesskey              "1">
-<!ENTITY Custom2.label                  "Divers 2 :">
+<!ENTITY Custom2.label                  "Custom 2:">
 <!ENTITY Custom2.accesskey              "2">
-<!ENTITY Custom3.label                  "Divers 3 :">
+<!ENTITY Custom3.label                  "Custom 3:">
 <!ENTITY Custom3.accesskey              "3">
-<!ENTITY Custom4.label                  "Divers 4 :">
+<!ENTITY Custom4.label                  "Custom 4:">
 <!ENTITY Custom4.accesskey              "4">
-<!ENTITY Notes.label                    "Notes :">
+<!ENTITY Notes.label                    "Notes:">
 <!ENTITY Notes.accesskey                "N">
 
-<!ENTITY Chat.tab                       "Discussion">
-<!ENTITY Chat.accesskey                 "s">
-<!ENTITY Gtalk.label                    "Google Talk :">
+<!ENTITY Chat.tab                       "Chat">
+<!ENTITY Chat.accesskey                 "a">
+<!ENTITY Gtalk.label                    "Google Talk:">
 <!ENTITY Gtalk.accesskey                "G">
-<!ENTITY AIM.label                      "AIM :">
+<!ENTITY AIM.label                      "AIM:">
 <!ENTITY AIM2.accesskey                 "M">
-<!ENTITY Yahoo.label                    "Yahoo! :">
+<!ENTITY Yahoo.label                    "Yahoo!:">
 <!ENTITY Yahoo.accesskey                "Y">
-<!ENTITY Skype.label                    "Skype :">
+<!ENTITY Skype.label                    "Skype:">
 <!ENTITY Skype.accesskey                "S">
-<!ENTITY QQ.label                       "QQ :">
+<!ENTITY QQ.label                       "QQ:">
 <!ENTITY QQ.accesskey                   "Q">
-<!ENTITY MSN.label                      "MSN :">
+<!ENTITY MSN.label                      "MSN:">
 <!ENTITY MSN2.accesskey                 "N">
-<!ENTITY ICQ.label                      "ICQ :">
+<!ENTITY ICQ.label                      "ICQ:">
 <!ENTITY ICQ.accesskey                  "I">
-<!ENTITY XMPP.label                     "ID Jabber :">
+<!ENTITY XMPP.label                     "Jabber ID:">
 <!ENTITY XMPP.accesskey                 "J">
-<!ENTITY IRC.label                      "Pseudo IRC :">
+<!ENTITY IRC.label                      "IRC Nick:">
 <!ENTITY IRC.accesskey                  "R">
 
 <!ENTITY Photo.tab                      "Photo">
-<!ENTITY Photo.accesskey                "h">
-<!ENTITY PhotoDesc.label                "Choisir une des photos suivantes :">
-<!ENTITY GenericPhoto.label             "Photo générique">
-<!ENTITY GenericPhoto.accesskey         "P">
-<!ENTITY DefaultPhoto.label             "Défaut">
-<!ENTITY PhotoFile.label                "Sur cet ordinateur">
-<!ENTITY PhotoFile.accesskey            "S">
-<!ENTITY BrowsePhoto.label              "Parcourir">
+<!ENTITY Photo.accesskey                "o">
+<!ENTITY GenericPhoto.label             "Generic Photo">
+<!ENTITY GenericPhoto.accesskey         "G">
+<!ENTITY DefaultPhoto.label             "Default">
+<!ENTITY PhotoFile.label                "On this Computer">
+<!ENTITY PhotoFile.accesskey            "n">
+<!ENTITY BrowsePhoto.label              "Browse">
 <!ENTITY BrowsePhoto.accesskey          "r">
-<!ENTITY PhotoURL.label                 "Sur le Web">
-<!ENTITY PhotoURL.accesskey             "W">
-<!ENTITY PhotoURL.placeholder           "Coller ou saisir l’adresse web d’une photo">
-<!ENTITY UpdatePhoto.label              "Mettre à jour">
-<!ENTITY UpdatePhoto.accesskey          "M">
-<!ENTITY PhotoDropTarget.label          "Déposer une nouvelle photo ici">
+<!ENTITY PhotoURL.label                 "On the Web">
+<!ENTITY PhotoURL.accesskey             "b">
+<!ENTITY PhotoURL.placeholder           "Paste or type the web address of a photo">
+<!ENTITY UpdatePhoto.label              "Update">
+<!ENTITY UpdatePhoto.accesskey          "u">
+<!ENTITY PhotoDropTarget.label          "Drag new photo here">

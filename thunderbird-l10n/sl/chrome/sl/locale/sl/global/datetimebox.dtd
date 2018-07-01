@@ -16,7 +16,6 @@
 <!ENTITY time.minute.label "Minute">
 <!ENTITY time.second.label "Sekunde">
 <!ENTITY time.millisecond.label "Milisekunde">
-<!ENTITY time.dayperiod.label "dop./pop.">
 
 <!-- Placeholders for input type=date -->
 
@@ -33,3 +32,5 @@
 <!-- Date/time clear button -->
 
 <!ENTITY datetime.reset.label "Počisti">
+
+<!ENTITY time.dayperiod.label "AM/PM">

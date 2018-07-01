@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "g">
 <!ENTITY clickFinish.label "Clique em Finalizar para salvar estas configurações e sair do assistente de contas.">
 <!ENTITY clickFinish.labelMac "Clique em Feito para salvar estas configurações e sair do assistente de contas.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

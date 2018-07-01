@@ -79,3 +79,6 @@
 <!ENTITY deferStorage.accesskey "U">
 <!ENTITY clickFinish.label "Kliknij przycisk „Zakończ”, aby zapamiętać wprowadzone dane i zakończyć konfigurację konta.">
 <!ENTITY clickFinish.labelMac "Kliknij przycisk „Zakończ”, aby zapamiętać wprowadzone dane i zakończyć konfigurację konta.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

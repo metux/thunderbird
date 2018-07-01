@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "щ">
 <!ENTITY clickFinish.label "Натиснете Край, за да запазите настройките и напуснете този помощник.">
 <!ENTITY clickFinish.labelMac "Натиснете Край, за да запазите настройките и напуснете този помощник.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

@@ -2,9 +2,9 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY Contact.tab                     "Контакт">
-<!ENTITY Contact.accesskey               "к">
-<!ENTITY Name.box                        "Аты">
+<!ENTITY Contact.tab                     "Contact">
+<!ENTITY Contact.accesskey               "C">
+<!ENTITY Name.box                        "Name">
 
 <!-- LOCALIZATION NOTE:
  NameField1, NameField2, PhoneticField1, PhoneticField2
@@ -23,103 +23,103 @@
 <!-- LOCALIZATION NOTE (PhoneticField2.id) : DONT_TRANSLATE -->
 <!ENTITY PhoneticField2.id              "PhoneticLastName">
 
-<!ENTITY NameField1.label               "Аты:">
-<!ENTITY NameField1.accesskey           "А">
-<!ENTITY NameField2.label               "Фамилиясы:">
-<!ENTITY NameField2.accesskey           "Ф">
-<!ENTITY PhoneticField1.label           "Айтылуы:">
-<!ENTITY PhoneticField2.label           "Айтылуы:">
-<!ENTITY DisplayName.label              "Көрсету:">
-<!ENTITY DisplayName.accesskey          "К">
-<!ENTITY preferDisplayName.label        "Хабарлама тақырыптамадағы аттың орнына көрсетілетін атын әрқашан таңдау">
-<!ENTITY preferDisplayName.accesskey    "а">
-<!ENTITY NickName.label                 "Бүркеншік аты:">
-<!ENTITY NickName.accesskey             "б">
+<!ENTITY NameField1.label               "First:">
+<!ENTITY NameField1.accesskey           "F">
+<!ENTITY NameField2.label               "Last:">
+<!ENTITY NameField2.accesskey           "L">
+<!ENTITY PhoneticField1.label           "Phonetic:">
+<!ENTITY PhoneticField2.label           "Phonetic:">
+<!ENTITY DisplayName.label              "Display:">
+<!ENTITY DisplayName.accesskey          "D">
+<!ENTITY preferDisplayName.label        "Always prefer display name over message header">
+<!ENTITY preferDisplayName.accesskey    "y">
+<!ENTITY NickName.label                 "Nickname:">
+<!ENTITY NickName.accesskey             "N">
 
-<!ENTITY PrimaryEmail.label             "Эл. пошта:">
-<!ENTITY PrimaryEmail.accesskey         "Э">
-<!ENTITY SecondEmail.label              "Қосымша эл. пошта:">
-<!ENTITY SecondEmail.accesskey          "о">
-<!ENTITY PreferMailFormat.label         "Қай пішімде поштаны алуды қалайды:">
-<!ENTITY PreferMailFormat.accesskey     "ш">
-<!ENTITY PlainText.label                "Ашық мәтін">
+<!ENTITY PrimaryEmail.label             "Email:">
+<!ENTITY PrimaryEmail.accesskey         "E">
+<!ENTITY SecondEmail.label              "Additional Email:">
+<!ENTITY SecondEmail.accesskey          "i">
+<!ENTITY PreferMailFormat.label         "Prefers to receive messages formatted as:">
+<!ENTITY PreferMailFormat.accesskey     "v">
+<!ENTITY PlainText.label                "Plain Text">
 <!ENTITY HTML.label                     "HTML">
-<!ENTITY Unknown.label                  "Белгісіз">
-<!ENTITY chatName.label                 "Чат аты:">
+<!ENTITY Unknown.label                  "Unknown">
+<!ENTITY chatName.label                 "Chat Name:">
 
-<!ENTITY WorkPhone.label                "Жұмыс:">
-<!ENTITY WorkPhone.accesskey            "с">
-<!ENTITY HomePhone.label                "Үй:">
-<!ENTITY HomePhone.accesskey            "й">
-<!ENTITY FaxNumber.label                "Факс:">
-<!ENTITY FaxNumber.accesskey            "ф">
-<!ENTITY PagerNumber.label              "Пейджер:">
-<!ENTITY PagerNumber.accesskey          "ж">
-<!ENTITY CellularNumber.label           "Мобильді:">
-<!ENTITY CellularNumber.accesskey       "б">
+<!ENTITY WorkPhone.label                "Work:">
+<!ENTITY WorkPhone.accesskey            "k">
+<!ENTITY HomePhone.label                "Home:">
+<!ENTITY HomePhone.accesskey            "m">
+<!ENTITY FaxNumber.label                "Fax:">
+<!ENTITY FaxNumber.accesskey            "x">
+<!ENTITY PagerNumber.label              "Pager:">
+<!ENTITY PagerNumber.accesskey          "g">
+<!ENTITY CellularNumber.label           "Mobile:">
+<!ENTITY CellularNumber.accesskey       "b">
 
-<!ENTITY Home.tab                       "Жеке">
-<!ENTITY Home.accesskey                 "е">
-<!ENTITY HomeAddress.label              "Адресі:">
-<!ENTITY HomeAddress.accesskey          "д">
+<!ENTITY Home.tab                       "Private">
+<!ENTITY Home.accesskey                 "P">
+<!ENTITY HomeAddress.label              "Address:">
+<!ENTITY HomeAddress.accesskey          "d">
 <!ENTITY HomeAddress2.label             "">
 <!ENTITY HomeAddress2.accesskey         "">
-<!ENTITY HomeCity.label                 "Қала:">
-<!ENTITY HomeCity.accesskey             "л">
-<!ENTITY HomeState.label                "Аймақ:">
-<!ENTITY HomeState.accesskey            "м">
-<!ENTITY HomeZipCode.label              "Пошта индексі:">
-<!ENTITY HomeZipCode.accesskey          "и">
-<!ENTITY HomeCountry.label              "Ел:">
-<!ENTITY HomeCountry.accesskey          "е">
-<!ENTITY HomeWebPage.label              "Веб-беті:">
-<!ENTITY HomeWebPage.accesskey          "в">
-<!ENTITY Birthday.label                 "Туған күні:">
-<!ENTITY Birthday.accesskey             "т">
+<!ENTITY HomeCity.label                 "City:">
+<!ENTITY HomeCity.accesskey             "y">
+<!ENTITY HomeState.label                "State/Province:">
+<!ENTITY HomeState.accesskey            "S">
+<!ENTITY HomeZipCode.label              "ZIP/Postal Code:">
+<!ENTITY HomeZipCode.accesskey          "Z">
+<!ENTITY HomeCountry.label              "Country:">
+<!ENTITY HomeCountry.accesskey          "u">
+<!ENTITY HomeWebPage.label              "Web Page:">
+<!ENTITY HomeWebPage.accesskey          "e">
+<!ENTITY Birthday.label                 "Birthday:">
+<!ENTITY Birthday.accesskey             "B">
 <!ENTITY In.label                       "">
-<!ENTITY Year.placeholder               "Жыл">
-<!ENTITY Or.value                       "немесе">
-<!ENTITY Age.placeholder                "Жасы">
+<!ENTITY Year.placeholder               "Year">
+<!ENTITY Or.value                       "or">
+<!ENTITY Age.placeholder                "Age">
 <!ENTITY YearsOld.label                 "">
 
-<!ENTITY Work.tab                       "Жұмыс">
-<!ENTITY Work.accesskey                 "ы">
-<!ENTITY JobTitle.label                 "Лауазымы:">
-<!ENTITY JobTitle.accesskey             "л">
-<!ENTITY Department.label               "Бөлім:">
-<!ENTITY Department.accesskey           "м">
-<!ENTITY Company.label                  "Мекеме:">
-<!ENTITY Company.accesskey              "е">
-<!ENTITY WorkAddress.label              "Адресі:">
-<!ENTITY WorkAddress.accesskey          "д">
+<!ENTITY Work.tab                       "Work">
+<!ENTITY Work.accesskey                 "W">
+<!ENTITY JobTitle.label                 "Title:">
+<!ENTITY JobTitle.accesskey             "i">
+<!ENTITY Department.label               "Department:">
+<!ENTITY Department.accesskey           "m">
+<!ENTITY Company.label                  "Organization:">
+<!ENTITY Company.accesskey              "n">
+<!ENTITY WorkAddress.label              "Address:">
+<!ENTITY WorkAddress.accesskey          "d">
 <!ENTITY WorkAddress2.label             "">
 <!ENTITY WorkAddress2.accesskey         "">
-<!ENTITY WorkCity.label                 "Қала:">
-<!ENTITY WorkCity.accesskey             "а">
-<!ENTITY WorkState.label                "Аймақ:">
-<!ENTITY WorkState.accesskey            "й">
-<!ENTITY WorkZipCode.label              "Пошта индексі:">
-<!ENTITY WorkZipCode.accesskey          "ш">
-<!ENTITY WorkCountry.label              "Ел:">
-<!ENTITY WorkCountry.accesskey          "е">
-<!ENTITY WorkWebPage.label              "Веб-беті:">
-<!ENTITY WorkWebPage.accesskey          "б">
+<!ENTITY WorkCity.label                 "City:">
+<!ENTITY WorkCity.accesskey             "y">
+<!ENTITY WorkState.label                "State/Province:">
+<!ENTITY WorkState.accesskey            "S">
+<!ENTITY WorkZipCode.label              "ZIP/Postal Code:">
+<!ENTITY WorkZipCode.accesskey          "Z">
+<!ENTITY WorkCountry.label              "Country:">
+<!ENTITY WorkCountry.accesskey          "u">
+<!ENTITY WorkWebPage.label              "Web Page:">
+<!ENTITY WorkWebPage.accesskey          "e">
 
-<!ENTITY Other.tab                      "Басқа">
-<!ENTITY Other.accesskey                "с">
-<!ENTITY Custom1.label                  "Таңдауыңызша 1:">
+<!ENTITY Other.tab                      "Other">
+<!ENTITY Other.accesskey                "h">
+<!ENTITY Custom1.label                  "Custom 1:">
 <!ENTITY Custom1.accesskey              "1">
-<!ENTITY Custom2.label                  "Таңдауыңызша 2:">
+<!ENTITY Custom2.label                  "Custom 2:">
 <!ENTITY Custom2.accesskey              "2">
-<!ENTITY Custom3.label                  "Таңдауыңызша 3:">
+<!ENTITY Custom3.label                  "Custom 3:">
 <!ENTITY Custom3.accesskey              "3">
-<!ENTITY Custom4.label                  "Таңдауыңызша 4:">
+<!ENTITY Custom4.label                  "Custom 4:">
 <!ENTITY Custom4.accesskey              "4">
-<!ENTITY Notes.label                    "Естеліктер:">
-<!ENTITY Notes.accesskey                "т">
+<!ENTITY Notes.label                    "Notes:">
+<!ENTITY Notes.accesskey                "N">
 
-<!ENTITY Chat.tab                       "Чат">
-<!ENTITY Chat.accesskey                 "ч">
+<!ENTITY Chat.tab                       "Chat">
+<!ENTITY Chat.accesskey                 "a">
 <!ENTITY Gtalk.label                    "Google Talk:">
 <!ENTITY Gtalk.accesskey                "G">
 <!ENTITY AIM.label                      "AIM:">
@@ -136,22 +136,21 @@
 <!ENTITY ICQ.accesskey                  "I">
 <!ENTITY XMPP.label                     "Jabber ID:">
 <!ENTITY XMPP.accesskey                 "J">
-<!ENTITY IRC.label                      "IRC ник аты:">
+<!ENTITY IRC.label                      "IRC Nick:">
 <!ENTITY IRC.accesskey                  "R">
 
-<!ENTITY Photo.tab                      "Фото">
-<!ENTITY Photo.accesskey                "о">
-<!ENTITY PhotoDesc.label                "Келесіден біреуін таңдаңыз:">
-<!ENTITY GenericPhoto.label             "Жалпы фото">
-<!ENTITY GenericPhoto.accesskey         "ж">
-<!ENTITY DefaultPhoto.label             "Бастапқы">
-<!ENTITY PhotoFile.label                "Бұл компьютерде">
-<!ENTITY PhotoFile.accesskey            "б">
-<!ENTITY BrowsePhoto.label              "Шолу">
-<!ENTITY BrowsePhoto.accesskey          "о">
-<!ENTITY PhotoURL.label                 "Интернетте">
-<!ENTITY PhotoURL.accesskey             "и">
-<!ENTITY PhotoURL.placeholder           "Фотосуреттің адресін енгізіңіз немесе теріңіз">
-<!ENTITY UpdatePhoto.label              "Жаңарту">
-<!ENTITY UpdatePhoto.accesskey          "а">
-<!ENTITY PhotoDropTarget.label          "Жаңа фотоны осында тартып әкеліңіз">
+<!ENTITY Photo.tab                      "Photo">
+<!ENTITY Photo.accesskey                "o">
+<!ENTITY GenericPhoto.label             "Generic Photo">
+<!ENTITY GenericPhoto.accesskey         "G">
+<!ENTITY DefaultPhoto.label             "Default">
+<!ENTITY PhotoFile.label                "On this Computer">
+<!ENTITY PhotoFile.accesskey            "n">
+<!ENTITY BrowsePhoto.label              "Browse">
+<!ENTITY BrowsePhoto.accesskey          "r">
+<!ENTITY PhotoURL.label                 "On the Web">
+<!ENTITY PhotoURL.accesskey             "b">
+<!ENTITY PhotoURL.placeholder           "Paste or type the web address of a photo">
+<!ENTITY UpdatePhoto.label              "Update">
+<!ENTITY UpdatePhoto.accesskey          "u">
+<!ENTITY PhotoDropTarget.label          "Drag new photo here">

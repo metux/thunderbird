@@ -2,37 +2,37 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY Addrbook.label                        "Адрестік кітапша">
-<!ENTITY Addrbook.accesskey                    "п">
-<!ENTITY GeneratedName.label                   "Аты">
-<!ENTITY GeneratedName.accesskey               "а">
-<!ENTITY PrimaryEmail.label                    "Эл. пошта">
-<!ENTITY PrimaryEmail.accesskey                "э">
-<!ENTITY Company.label                         "Мекеме">
-<!ENTITY Company.accesskey                     "е">
-<!ENTITY _PhoneticName.label                   "Қалайша айтылады">
-<!ENTITY _PhoneticName.accesskey               "й">
-<!ENTITY NickName.label                        "Ник аты">
-<!ENTITY NickName.accesskey                    "и">
-<!ENTITY SecondEmail.label                     "Қосымша эл. пошта">
-<!ENTITY SecondEmail.accesskey                 "л">
-<!ENTITY Department.label                      "Бөлім">
-<!ENTITY Department.accesskey                  "м">
-<!ENTITY JobTitle.label                        "Лауазымы">
-<!ENTITY JobTitle.accesskey                    "а">
-<!ENTITY CellularNumber.label                  "Мобильді">
-<!ENTITY CellularNumber.accesskey              "М">
-<!ENTITY PagerNumber.label                     "Пейджер">
-<!ENTITY PagerNumber.accesskey                 "П">
-<!ENTITY FaxNumber.label                       "Факс">
-<!ENTITY FaxNumber.accesskey                   "Ф">
-<!ENTITY HomePhone.label                       "Үй телефоны">
-<!ENTITY HomePhone.accesskey                   "й">
-<!ENTITY WorkPhone.label                       "Жұмыс телефоны">
-<!ENTITY WorkPhone.accesskey                   "с">
-<!ENTITY ChatName.label                        "Чаттағы аты">
-<!ENTITY ChatName.accesskey                    "Ч">
-<!ENTITY sortAscending.label                   "Өсу ретімен">
-<!ENTITY sortAscending.accesskey               "у">
-<!ENTITY sortDescending.label                  "Кему ретімен">
-<!ENTITY sortDescending.accesskey              "е">
+<!ENTITY Addrbook.label                        "Address Book">
+<!ENTITY Addrbook.accesskey                    "B">
+<!ENTITY GeneratedName.label                   "Name">
+<!ENTITY GeneratedName.accesskey               "N">
+<!ENTITY PrimaryEmail.label                    "Email">
+<!ENTITY PrimaryEmail.accesskey                "E">
+<!ENTITY Company.label                         "Organization">
+<!ENTITY Company.accesskey                     "z">
+<!ENTITY _PhoneticName.label                   "Phonetic Name">
+<!ENTITY _PhoneticName.accesskey               "o">
+<!ENTITY NickName.label                        "Nickname">
+<!ENTITY NickName.accesskey                    "i">
+<!ENTITY SecondEmail.label                     "Additional Email">
+<!ENTITY SecondEmail.accesskey                 "l">
+<!ENTITY Department.label                      "Department">
+<!ENTITY Department.accesskey                  "r">
+<!ENTITY JobTitle.label                        "Title">
+<!ENTITY JobTitle.accesskey                    "T">
+<!ENTITY CellularNumber.label                  "Mobile">
+<!ENTITY CellularNumber.accesskey              "M">
+<!ENTITY PagerNumber.label                     "Pager">
+<!ENTITY PagerNumber.accesskey                 "P">
+<!ENTITY FaxNumber.label                       "Fax">
+<!ENTITY FaxNumber.accesskey                   "F">
+<!ENTITY HomePhone.label                       "Home Phone">
+<!ENTITY HomePhone.accesskey                   "H">
+<!ENTITY WorkPhone.label                       "Work Phone">
+<!ENTITY WorkPhone.accesskey                   "W">
+<!ENTITY ChatName.label                        "Chat Name">
+<!ENTITY ChatName.accesskey                    "C">
+<!ENTITY sortAscending.label                   "Ascending">
+<!ENTITY sortAscending.accesskey               "A">
+<!ENTITY sortDescending.label                  "Descending">
+<!ENTITY sortDescending.accesskey              "D">

@@ -38,6 +38,7 @@
 <!ENTITY certmgr.editcert.edittrust           "Рэдагаваць налады даверу:">
 <!ENTITY certmgr.editcert.trustssl            "Гэты сертыфікат можа ідэнтыфікаваць сайт.">
 <!ENTITY certmgr.editcert.trustemail          "Гэты сертыфікат можа вызначаць карыстальнікаў пошты.">
+<!ENTITY certmgr.editcert.trustobjsign        "Гэты сертыфікат можа ідэнтыфікаваць вытворцаў праграмнага забеспячэння.">
 
 <!ENTITY certmgr.deletecert.title             "Выдаленне сертыфіката">
 
@@ -46,7 +47,7 @@
 <!ENTITY certmgr.override_lifetime            "Час жыцця">
 <!ENTITY certmgr.tokenname                    "Прылада бяспекі">
 <!ENTITY certmgr.begins                       "Пачынаецца (калі)">
-<!ENTITY certmgr.expires                      "Сканчэнне тэрміну">
+<!ENTITY certmgr.expires                      "Высільваецца (калі)">
 <!ENTITY certmgr.email                        "Эл.паштовы адрас">
 <!ENTITY certmgr.serial                       "Серыйны нумар">
 

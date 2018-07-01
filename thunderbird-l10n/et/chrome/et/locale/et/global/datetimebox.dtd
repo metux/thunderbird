@@ -10,26 +10,18 @@
 <!ENTITY time.millisecond.placeholder "--">
 <!ENTITY time.dayperiod.placeholder "--">
 
-<!-- Field labels for input type=time -->
-
-<!ENTITY time.hour.label "Tunnid">
-<!ENTITY time.minute.label "Minutid">
-<!ENTITY time.second.label "Sekundid">
-<!ENTITY time.millisecond.label "Millisekundid">
-<!ENTITY time.dayperiod.label "EL/PL">
-
 <!-- Placeholders for input type=date -->
 
 <!ENTITY date.year.placeholder "aaaa">
 <!ENTITY date.month.placeholder "kk">
 <!ENTITY date.day.placeholder "pp">
 
-<!-- Field labels for input type=date -->
-
-<!ENTITY date.year.label "Aasta">
-<!ENTITY date.month.label "Kuu">
-<!ENTITY date.day.label "Päev">
-
-<!-- Date/time clear button -->
-
-<!ENTITY datetime.reset.label "Tühjenda">
+<!ENTITY time.hour.label "Hours">
+<!ENTITY time.minute.label "Minutes">
+<!ENTITY time.second.label "Seconds">
+<!ENTITY time.millisecond.label "Milliseconds">
+<!ENTITY time.dayperiod.label "AM/PM">
+<!ENTITY date.year.label "Year">
+<!ENTITY date.month.label "Month">
+<!ENTITY date.day.label "Day">
+<!ENTITY datetime.reset.label "Clear">

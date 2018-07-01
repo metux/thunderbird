@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/es-ES/locale/es-ES/passwordmgr/", 
         "pippki": "chrome/es-ES/locale/es-ES/pippki/"
       }, 
-      "version": "20180430083720"
+      "version": "20180312184654"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "es-ES", 
-  "version": "60.0", 
+  "version": "60.0buildid20180619210809", 
   "name": "Español (España) Language Pack", 
   "manifest_version": 2, 
   "sources": {

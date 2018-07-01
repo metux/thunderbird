@@ -36,10 +36,6 @@
 <!ENTITY newFeedAccountCmd.accesskey "a">
 <!ENTITY newIMContactCmd.label "Nettpratkontakt …">
 <!ENTITY newIMContactCmd.accesskey "t">
-<!ENTITY  newMessageCmd.label "Melding">
-<!ENTITY  newMessageCmd.accesskey "m">
-<!ENTITY  newContactCmd.label "Adressebokkontakt…">
-<!ENTITY  newContactCmd.accesskey "k">
 <!ENTITY openMessageFileCmd.label "Opne lagra melding…">
 <!ENTITY openMessageFileCmd.accesskey "O">
 <!ENTITY saveAsMenu.label "Lagre som">
@@ -82,7 +78,7 @@
 <!ENTITY downloadSelectedCmd.accesskey "n">
 <!ENTITY downloadStarredCmd.label "Last ned meldingar merkte med stjerne">
 <!ENTITY downloadStarredCmd.accesskey "L">
-<!ENTITY printCmd.label "Skriv ut…">
+<!ENTITY printCmd.label "Skriv ut …">
 <!ENTITY printCmd.accesskey "u">
 <!ENTITY printCmd.key "p">
 <!ENTITY printPreviewCmd.label "Førehandsvis sida">
@@ -253,7 +249,7 @@
 <!ENTITY bodyAllParts.label "Alle body-delar">
 <!ENTITY bodyAllParts.accesskey "A">
 
-<!ENTITY bodyMenuFeed.label "Vis RSS-kjeldemeldingskropp som">
+<!ENTITY bodyMenuFeed.label "Kanalmeldingskropp som">
 <!ENTITY bodyMenuFeed.accesskey "K">
 <!ENTITY viewFeedWebPage.label "Nettside">
 <!ENTITY viewFeedWebPage.accesskey "N">
@@ -321,6 +317,7 @@
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goChatCmd.label "Nettprat">
 <!ENTITY goChatCmd.accesskey "e">
+<!ENTITY goChatCmd.key "I">
 <!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Melding med stjerne">
 <!ENTITY prevStarredMsgCmd.accesskey "M">
@@ -370,8 +367,6 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Rediger meldingskladd">
 <!ENTITY editDraftMsgCmd.accesskey "m">
-<!ENTITY editTemplateMsgCmd.label "Rediger mal">
-<!ENTITY editTemplateMsgCmd.accesskey "m">
 <!ENTITY newMsgFromTemplateCmd.label "Ny melding frå mal">
 <!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Lag filter på meldinga">
@@ -513,6 +508,8 @@
 <!ENTITY devToolboxCmd.label "Verktøykasse for utviklarar">
 <!ENTITY devToolboxCmd.accesskey "V">
 <!ENTITY devToolboxCmd.commandkey "i">
+<!ENTITY addonDebugCmd.label "Feilsøking for utvidingar">
+<!ENTITY addonDebugCmd.accesskey "F">
 <!ENTITY debugAddonsCmd.label "Feilsøk utvidingar">
 <!ENTITY debugAddonsCmd.accesskey "F">
 <!ENTITY tabsDebugCmd.label "Feilsøking for innhaldsramme">
@@ -628,7 +625,7 @@
 <!ENTITY appmenuNewMsgCmd.label "Ny melding">
 <!ENTITY appmenuNewContactCmd.label "Adressebokkontaktar …">
 <!ENTITY appmenuEditMenu.label "Rediger">
-<!ENTITY appmenuToolbarLayout.label "Verktøylinjeutsjånad…">
+<!ENTITY appmenuToolbarLayout.label "Verktøylinjeutsjånad …">
 <!ENTITY appmenuSelectThread.label "Vel tråd">
 <!ENTITY appmenuSelectFlagged.label "Vel meldingar med stjerne">
 
@@ -647,7 +644,6 @@
 <!-- Folder Pane Context Menu -->
 <!ENTITY folderContextGetMessages.label "Hent meldingar">
 <!ENTITY folderContextGetMessages.accesskey "H">
-<!ENTITY folderContextMarkAllFoldersRead.label "Merk alle mapper som lesne">
 <!ENTITY folderContextPauseAllUpdates.label "Set alle oppdateringar i pause">
 <!ENTITY folderContextPauseUpdates.label "Set oppdateringar i pause">
 <!ENTITY folderContextPauseUpdates.accesskey "o">
@@ -764,8 +760,6 @@
 <!ENTITY contextEditMsgAsNew.label "Rediger som ny melding">
 <!ENTITY contextEditMsgAsNew.accesskey "R">
 <!ENTITY contextEditDraftMsg.label "Rediger meldingskladd">
-<!ENTITY contextEditTemplate.label "Rediger mal">
-<!ENTITY contextEditTemplate.accesskey "R">
 <!ENTITY contextArchive.label "Arkiv">
 <!ENTITY contextArchive.accesskey "A">
 <!ENTITY contextReplySender.label "Svar til avsendar">
@@ -804,7 +798,7 @@
 <!ENTITY contextWatchThreadMenu.accesskey "">
 <!ENTITY contextSaveAs.label "Lagre som…">
 <!ENTITY contextSaveAs.accesskey "L">
-<!ENTITY contextPrint.label "Skriv ut…">
+<!ENTITY contextPrint.label "Skriv ut …">
 <!ENTITY contextPrint.accesskey "u">
 <!ENTITY contextPrintPreview.label "Førehandsvising">
 <!ENTITY contextPrintPreview.accesskey "r">
@@ -971,3 +965,8 @@
 <!ENTITY dockOptions.label              "Innstillingar for app-ikon …">
 <!ENTITY writeNewMessageDock.label      "Skriv ny melding">
 <!ENTITY openAddressBookDock.label      "Opne Adresseboka">
+
+<!ENTITY editTemplateMsgCmd.label "Edit Template">
+<!ENTITY editTemplateMsgCmd.accesskey "T">
+<!ENTITY contextEditTemplate.label "Edit Template">
+<!ENTITY contextEditTemplate.accesskey "T">

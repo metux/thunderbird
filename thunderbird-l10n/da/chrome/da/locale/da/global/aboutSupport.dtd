@@ -25,13 +25,6 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Version">
 <!ENTITY aboutSupport.extensionId "ID">
 
-<!ENTITY aboutSupport.securitySoftwareTitle "Sikkerheds-software">
-<!ENTITY aboutSupport.securitySoftwareType "Type">
-<!ENTITY aboutSupport.securitySoftwareName "Navn">
-<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
-<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
-<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
-
 <!ENTITY aboutSupport.featuresTitle "&brandShortName;-funktioner">
 <!ENTITY aboutSupport.featureName "Navn">
 <!ENTITY aboutSupport.featureVersion "Version">
@@ -78,8 +71,6 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Multiproces-vinduer">
 
 <!ENTITY aboutSupport.appBasicsProcessCount "Webindholds-processer">
-
-<!ENTITY aboutSupport.enterprisePolicies "Virksomheds-politikker">
 
 <!ENTITY aboutSupport.appBasicsKeyGoogle "Google-nøgle">
 <!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla Location Service-nøgle">
@@ -174,3 +165,11 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.intlOSTitle "Operativsystem">
 <!ENTITY aboutSupport.intlOSPrefsSystemLocales "System-sprog">
 <!ENTITY aboutSupport.intlRegionalPrefs "Regionale indstillinger">
+
+<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
+<!ENTITY aboutSupport.securitySoftwareType "Type">
+<!ENTITY aboutSupport.securitySoftwareName "Name">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">

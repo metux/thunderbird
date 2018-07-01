@@ -115,10 +115,13 @@
 <!ENTITY serverNamePrefix.label "Nome do servidor de receção:">
 <!ENTITY smtpServerNamePrefix.label "Nome do servidor de envio (SMTP):">
 <!ENTITY newsServerNamePrefix.label "Nome do servidor de notícias (NNTP):">
-<!ENTITY downloadOnLogin.label "Descarregar mensagens agora">
+<!ENTITY downloadOnLogin.label "Transferir mensagens agora">
 <!ENTITY downloadOnLogin.accesskey "D">
 <!ENTITY deferStorageDesc.label "Desmarque a caixa de verificação para guardar o correio desta conta na sua própria pasta. Isto vai tornar a sua conta como uma conta principal. De outra maneira, fará parte da caixa de entrada nas pastas locais.">
 <!ENTITY deferStorage.label "Utilizar caixa de entrada global (guardar correio nas pastas locais)">
 <!ENTITY deferStorage.accesskey "g">
 <!ENTITY clickFinish.label "Clique em Concluir para guardar estas definições e sair do assistente.">
 <!ENTITY clickFinish.labelMac "Clique em Terminar para guardar estas definições e sair do assistente.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

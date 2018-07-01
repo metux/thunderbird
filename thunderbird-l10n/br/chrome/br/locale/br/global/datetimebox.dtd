@@ -12,24 +12,24 @@
 
 <!-- Field labels for input type=time -->
 
-<!ENTITY time.hour.label "Eurvezhioù">
-<!ENTITY time.minute.label "Munutennoù">
-<!ENTITY time.second.label "Eilennoù">
-<!ENTITY time.millisecond.label "Mileilennoù">
-<!ENTITY time.dayperiod.label "A.M/G.M">
+<!ENTITY time.hour.label "Hours">
+<!ENTITY time.minute.label "Minutes">
+<!ENTITY time.second.label "Seconds">
+<!ENTITY time.millisecond.label "Milliseconds">
+<!ENTITY time.dayperiod.label "AM/PM">
 
 <!-- Placeholders for input type=date -->
 
-<!ENTITY date.year.placeholder "bbbb">
+<!ENTITY date.year.placeholder "yyyy">
 <!ENTITY date.month.placeholder "mm">
 <!ENTITY date.day.placeholder "dd">
 
 <!-- Field labels for input type=date -->
 
-<!ENTITY date.year.label "Bloaz">
-<!ENTITY date.month.label "Miz">
-<!ENTITY date.day.label "Deiz">
+<!ENTITY date.year.label "Year">
+<!ENTITY date.month.label "Month">
+<!ENTITY date.day.label "Day">
 
 <!-- Date/time clear button -->
 
-<!ENTITY datetime.reset.label "Skarzhañ">
+<!ENTITY datetime.reset.label "Clear">

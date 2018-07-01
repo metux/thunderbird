@@ -3,9 +3,11 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <!ENTITY addons.windowTitle                   "Pengurus Add-ons">
 
+<!ENTITY search.placeholder                   "Cari semua add-ons">
+
 <!ENTITY search.placeholder2                  "Cari di addons.mozilla.org">
 <!ENTITY search.buttonlabel                   "Cari">
-<!-- LOCALIZATION NOTE (search.commandkey):
+<!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
 <!ENTITY search.commandkey                    "f">
 
@@ -14,6 +16,7 @@
 <!ENTITY listEmpty.availableUpdates.label     "Tiada kemaskini ditemui">
 <!ENTITY listEmpty.recentUpdates.label        "Anda tidak ada mengemaskini sebarang add-on baru-baru ini">
 <!ENTITY listEmpty.findUpdates.label          "Semak Kemaskini">
+<!ENTITY listEmpty.search.label               "Tidak dapat mencari add-ons yang sepadan">
 <!ENTITY listEmpty.button.label               "Ketahui selanjutnya mengenai add-ons">
 <!ENTITY installAddonFromFile.label           "Pasang Add-ons Dari Fail…">
 <!ENTITY installAddonFromFile.accesskey       "I">
@@ -21,6 +24,9 @@
 
 <!ENTITY getThemes.description                "Mahu menyesuaikan pelayar anda?">
 <!ENTITY getThemes.learnMore                  "Pilih satu daripada ribuan tema yang disediakan.">
+
+<!ENTITY cmd.back.tooltip                     "Undur satu halaman">
+<!ENTITY cmd.forward.tooltip                  "Langkau satu halaman">
 
 
 <!ENTITY showUnsignedExtensions.button.label  "Beberapa ekstensi tidak dapat disahkan">
@@ -38,6 +44,7 @@
 <!ENTITY warning.updatesecurity.enable.tooltip     "Dayakan semakan keselamatan kemaskini add-on">
 
 <!-- categories / views -->
+<!ENTITY view.search.label                    "Cari">
 <!ENTITY view.discover.label                  "Dapatkan Add-ons">
 <!ENTITY view.recentUpdates.label             "Kemaskini Terkini">
 <!ENTITY view.availableUpdates.label          "Kemaskini Tersedia">
@@ -129,7 +136,7 @@
 <!ENTITY detail.version.label                 "Versi">
 <!ENTITY detail.lastupdated.label             "Kemaskini Terakhir">
 <!ENTITY detail.creator.label                 "Pembangun">
-<!ENTITY detail.homepage.label                "Laman">
+<!ENTITY detail.homepage.label                "Halaman utama">
 <!ENTITY detail.numberOfDownloads.label       "Muat turun">
 
 <!ENTITY detail.contributions.description     "Pembangun aplikasi tambahan ini meminta anda bantuan untuk menyokong pembangunan yang berterusan dengan memberikan sedikit sumbangan.">
@@ -141,7 +148,7 @@
 <!ENTITY detail.updateAutomatic.tooltip       "Pasang kemaskini secara automatik">
 <!ENTITY detail.updateManual.label            "Nyahaktif">
 <!ENTITY detail.updateManual.tooltip          "Jangan pasang kemaskini secara automatik">
-<!ENTITY detail.home                          "Laman">
+<!ENTITY detail.home                          "Halaman utama">
 <!ENTITY detail.repository                    "Profil add-on">
 <!ENTITY detail.size                          "Saiz">
 
@@ -169,8 +176,18 @@
 <!ENTITY sort.name.tooltip                    "Susun mengikut nama">
 <!ENTITY sort.dateUpdated.label               "Kemaskini Terakhir">
 <!ENTITY sort.dateUpdated.tooltip             "Susun mengikut tarikh kemaskini">
+<!ENTITY sort.relevance.label                 "Padanan terbaik">
+<!ENTITY sort.relevance.tooltip               "Susun mengikut kaitan">
+<!ENTITY sort.price.label                     "Harga">
+<!ENTITY sort.price.tooltip                   "Susun mengikut harga">
 
-<!ENTITY addon.homepage                       "Laman">
+<!ENTITY search.filter2.label                 "Cari:">
+<!ENTITY search.filter2.installed.label       "Add-ons saya">
+<!ENTITY search.filter2.installed.tooltip     "Papar add-ons yang dipasang">
+<!ENTITY search.filter2.available.label       "Add-ons Tersedia">
+<!ENTITY search.filter2.available.tooltip     "Papar add-ons yang sedia untuk dipasang">
+
+<!ENTITY addon.homepage                       "Halaman utama">
 <!ENTITY addon.details.label                  "Selanjutnya">
 <!ENTITY addon.details.tooltip                "Papar butiran lanjut add-on ini">
 <!ENTITY addon.unknownDate                    "Tidak diketahui">
