@@ -33,3 +33,4 @@ porting-sparc64/Bug-1434726-Early-startup-crash-on-Linux-sparc64-in-HashI.patch
 fixes/Use-msse-2-fpmath-C-CXXFLAGS-only-on-x86_64-platforms.patch
 fixes/Build-also-gdata-provider-as-xpi-file.patch
 debian-hacks/Don-t-build-testing-suites-and-stuff-part-2.patch
+porting-arm64/Bug-1453892-Only-use-SkJumper-s-arm64-half-float-optimiza.patch
