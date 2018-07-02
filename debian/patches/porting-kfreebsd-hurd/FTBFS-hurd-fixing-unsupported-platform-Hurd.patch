@@ -12,7 +12,7 @@ The original patch comes from Richard Brown <rbraun@sceen.net>
 https://lists.alioth.debian.org/pipermail/pkg-mozilla-maintainers/2014-March/015565.html
 
 After release of Thunderbird 44 there are additional changes made as the
-various configuration files where splitted into more files.
+various configuration files where split into more files.
 ---
  mozilla/dom/plugins/ipc/PluginModuleChild.cpp      |  6 +++---
  mozilla/dom/plugins/ipc/PluginModuleChild.h        |  2 +-

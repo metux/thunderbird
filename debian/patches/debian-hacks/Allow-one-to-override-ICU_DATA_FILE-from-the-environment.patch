@@ -1,6 +1,6 @@
 From: Mike Hommey <mh@glandium.org>
 Date: Tue, 9 May 2017 10:34:26 +0200
-Subject: Allow to override ICU_DATA_FILE from the environment
+Subject: Allow one to override ICU_DATA_FILE from the environment
 
 ---
  mozilla/build/autoconf/icu.m4 | 4 +++-
