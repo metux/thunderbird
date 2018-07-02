@@ -1,2 +1,2 @@
 
-https://hg.mozilla.org/releases/mozilla-esr52/rev/160a386aeaba3f8754f7463cf5e9d4698fd75c28
+https://hg.mozilla.org/releases/mozilla-esr52/rev/ab6ded7d9be59ede4faf2540350a606104149b32

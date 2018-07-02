@@ -43,27 +43,6 @@ MimeInlineTextHTML_parse_begin (MimeObject *obj)
   status = MimeObject_write_separator(obj);
   if (status < 0) return status;
 
-  // Set a default font (otherwise unicode font will be used since the data is UTF-8).
-  if (nsMimeOutput::nsMimeMessageBodyDisplay == obj->options->format_out ||
-      nsMimeOutput::nsMimeMessagePrintOutput == obj->options->format_out)
-  {
-    char buf[256];            // local buffer for html tag
-    int32_t fontSize;         // default font size
-    int32_t fontSizePercentage;   // size percentage
-    nsAutoCString fontLang;       // langgroup of the font.
-    if (NS_SUCCEEDED(GetMailNewsFont(obj, false, &fontSize, &fontSizePercentage,fontLang)))
-    {
-      PR_snprintf(buf, 256, "<div class=\"moz-text-html\"  lang=\"%s\">",
-                  fontLang.get());
-      status = MimeObject_write(obj, buf, strlen(buf), true);
-    }
-    else
-    {
-      status = MimeObject_write(obj, "<div class=\"moz-text-html\">", 27, true);
-    }
-    if(status<0) return status;
-  }
-
   MimeInlineTextHTML  *textHTML = (MimeInlineTextHTML *) obj;
 
   textHTML->charset = nullptr;
@@ -198,9 +177,78 @@ MimeInlineTextHTML_parse_eof (MimeObject *obj, bool abort_p)
   status = ((MimeObjectClass*)&MIME_SUPERCLASS)->parse_eof(obj, abort_p);
   if (status < 0) return status;
 
-  if (nsMimeOutput::nsMimeMessageBodyDisplay == obj->options->format_out ||
-      nsMimeOutput::nsMimeMessagePrintOutput == obj->options->format_out)
-    status = MimeObject_write(obj, "</div>", 6, false);
-
   return 0;
 }
+
+/*
+ * The following function adds <div class="moz-text-html" lang="..."> or
+ * <div class="moz-text-html"> as the first tag following the <body> tag in the
+ * serialised HTML of a message. This becomes a no-op if no <body> tag is found.
+ */
+void
+MimeInlineTextHTML_insert_lang_div(MimeObject *obj, nsCString &message)
+{
+  if (obj->options->format_out != nsMimeOutput::nsMimeMessageBodyDisplay &&
+      obj->options->format_out != nsMimeOutput::nsMimeMessagePrintOutput)
+    return;
+
+  // Make sure we have a <body> before we start.
+  int32_t index = message.Find("<body", /* ignoreCase = */ true);
+  if (index == kNotFound)
+    return;
+  index = message.FindChar('>', index) + 1;
+
+  // Insert <div class="moz-text-html" lang="..."> for the following two purposes:
+  // 1) Users can configure their HTML display via CSS for .moz-text-html.
+  // 2) The language group in the 'lang' attribure is used by Gecko to determine
+  //    which font to use.
+  int32_t fontSize;             // default font size
+  int32_t fontSizePercentage;   // size percentage
+  nsAutoCString fontLang;       // langgroup of the font.
+  if (NS_SUCCEEDED(GetMailNewsFont(obj, false, &fontSize, &fontSizePercentage, fontLang)))
+  {
+    message.Insert(NS_LITERAL_CSTRING("<div class=\"moz-text-html\" lang=\"") +
+                   fontLang +
+                   NS_LITERAL_CSTRING("\">"),
+                   index);
+  }
+  else
+  {
+    message.Insert(NS_LITERAL_CSTRING("<div class=\"moz-text-html\">"),
+                   index);
+  }
+
+  index = message.RFind("</body>", /* ignoreCase = */ true);
+  if (index != kNotFound)
+    message.Insert(NS_LITERAL_CSTRING("</div>"), index);
+}
+
+/*
+ * The following function replaces <plaintext> tags with <x-plaintext>.
+ * <plaintext> is a funny beast: It leads to everything following it
+ * being displayed verbatim, even a </plaintext> tag is ignored.
+ */
+void
+MimeInlineTextHTML_remove_plaintext_tag(MimeObject *obj, nsCString &message)
+{
+  if (obj->options->format_out != nsMimeOutput::nsMimeMessageBodyDisplay &&
+      obj->options->format_out != nsMimeOutput::nsMimeMessagePrintOutput)
+    return;
+
+  // Replace all <plaintext> and </plaintext> tags.
+  int32_t index = 0;
+  bool replaced = false;
+  while ((index = message.Find("<plaintext", /* ignoreCase = */ true, index)) != kNotFound) {
+    message.Insert("x-", index+1);
+    index += 12;
+    replaced = true;
+  }
+  if (replaced) {
+    index = 0;
+    while ((index = message.Find("</plaintext", /* ignoreCase = */ true, index)) != kNotFound) {
+      message.Insert("x-", index+2);
+      index += 13;
+    }
+  }
+}
+

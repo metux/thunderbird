@@ -2160,11 +2160,14 @@ nsresult GetMailNewsFont(MimeObject *obj, bool styleFixed,  int32_t *fontPixelSi
   return NS_OK;
 }
 
-/* This function syncronously converts an HTML document (as string)
-   to plaintext (as string) using the Gecko converter.
 
-   flags: see nsIDocumentEncoder.h
-*/
+
+/**
+ * This function synchronously converts an HTML document (as string)
+ * to plaintext (as string) using the Gecko converter.
+ *
+ * @param flags see nsIDocumentEncoder.h
+ */
 nsresult
 HTML2Plaintext(const nsString& inString, nsString& outString,
                uint32_t flags, uint32_t wrapCol)
@@ -2173,14 +2176,12 @@ HTML2Plaintext(const nsString& inString, nsString& outString,
     do_GetService(NS_PARSERUTILS_CONTRACTID);
   return utils->ConvertToPlainText(inString, flags, wrapCol, outString);
 }
-// </copy>
 
 
-
-/* This function syncronously sanitizes an HTML document (string->string)
-   using the Gecko nsTreeSanitizer.
-*/
-// copied from HTML2Plaintext above
+/**
+ * This function synchronously sanitizes an HTML document (string->string)
+ * using the Gecko nsTreeSanitizer.
+ */
 nsresult
 HTMLSanitize(const nsString& inString, nsString& outString)
 {
@@ -2191,27 +2192,6 @@ HTMLSanitize(const nsString& inString, nsString& outString)
                    nsIParserUtils::SanitizerDropForms;
 
   nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
-
-  // Start pref migration. This would make more sense in a method that runs
-  // once at app startup.
-  bool migrated = false;
-  nsresult rv = prefs->GetBoolPref(
-    "mailnews.display.html_sanitizer.allowed_tags.migrated",
-    &migrated);
-  if (NS_SUCCEEDED(rv) && !migrated) {
-    prefs->SetBoolPref("mailnews.display.html_sanitizer.allowed_tags.migrated",
-                       true);
-    nsAutoCString legacy;
-    rv = prefs->GetCharPref("mailnews.display.html_sanitizer.allowed_tags",
-                            getter_Copies(legacy));
-    if (NS_SUCCEEDED(rv)) {
-      prefs->SetBoolPref("mailnews.display.html_sanitizer.drop_non_css_presentation",
-                         legacy.Find("font") < 0);
-      prefs->SetBoolPref("mailnews.display.html_sanitizer.drop_media",
-                         legacy.Find("img") < 0);
-    }
-  }
-  // End pref migration.
 
   bool dropPresentational = true;
   bool dropMedia = false;

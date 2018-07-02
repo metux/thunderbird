@@ -39,6 +39,7 @@
 #include "mimetpfl.h"   /*   |     |     |--- MimeInlineTextPlainFlowed     */
 #include "mimethtm.h"  /*   |     |     |--- MimeInlineTextHTML      */
 #include "mimethsa.h"  /*   |     |     |     |--- M.I.TextHTMLSanitized   */
+#include "mimeTextHTMLParsed.h" /*|     |     |--- M.I.TextHTMLParsed   */
 #include "mimetric.h"  /*   |     |     |--- MimeInlineTextRichtext    */
 #include "mimetenr.h"  /*   |     |     |     |--- MimeInlineTextEnriched  */
 /* SUPPORTED VIA PLUGIN      |     |     |--- MimeInlineTextVCard           */
@@ -67,10 +68,13 @@
 #include "nsMimeTypes.h"
 #include "nsMsgUtils.h"
 #include "nsIPrefBranch.h"
+#include "mozilla/Preferences.h"
 #include "imgLoader.h"
 
 #include "nsIMsgMailNewsUrl.h"
 #include "nsIMsgHdr.h"
+
+using namespace mozilla;
 
 // forward declaration
 void getMsgHdrForCurrentURL(MimeDisplayOptions *opts, nsIMsgDBHdr ** aMsgHdr);
@@ -329,7 +333,7 @@ bool mime_is_allowed_class(const MimeObjectClass *clazz,
      !(
         (avoid_html
          && (
-              clazz == (MimeObjectClass *)&mimeInlineTextHTMLClass
+              clazz == (MimeObjectClass *)&mimeInlineTextHTMLParsedClass
                          /* Should not happen - we protect against that in
                             mime_find_class(). Still for safety... */
             )) ||
@@ -510,11 +514,11 @@ mime_find_class (const char *content_type, MimeHeaders *hdrs,
             && opts->format_out == nsMimeOutput::nsMimeMessageSaveAs)
           // SaveAs in new modes doesn't work yet.
         {
-          clazz = (MimeObjectClass *)&mimeInlineTextHTMLClass;
+          clazz = (MimeObjectClass *)&mimeInlineTextHTMLParsedClass;
           types_of_classes_to_disallow = 0;
         }
         else if (html_as == 0 || html_as == 4) // Render sender's HTML
-          clazz = (MimeObjectClass *)&mimeInlineTextHTMLClass;
+          clazz = (MimeObjectClass *)&mimeInlineTextHTMLParsedClass;
         else if (html_as == 1) // convert HTML to plaintext
           // Do a HTML->TXT->HTML conversion, see mimethpl.h.
           clazz = (MimeObjectClass *)&mimeInlineTextHTMLAsPlaintextClass;
@@ -712,6 +716,17 @@ mime_find_class (const char *content_type, MimeHeaders *hdrs,
 #ifdef ENABLE_SMIME
     else if (!PL_strcasecmp(content_type, APPLICATION_XPKCS7_MIME)
              || !PL_strcasecmp(content_type, APPLICATION_PKCS7_MIME)) {
+
+        if (Preferences::GetBool("mailnews.p7m_subparts_external", false) &&
+            opts->is_child) {
+          // We do not allow encrypted parts except as top level.
+          // Allowing them would leak the plain text in case the part is
+          // cleverly hidden and the decrypted content gets included in
+          // replies and forwards.
+          clazz = (MimeObjectClass *)&mimeExternalObjectClass;
+          return clazz;
+        }
+
         char *ct = (hdrs ? MimeHeaders_get(hdrs, HEADER_CONTENT_TYPE,
                                            false, false)
                            : nullptr);
@@ -916,22 +931,20 @@ mime_create (const char *content_type, MimeHeaders *hdrs,
     ;  /* Use the class we've got. */
   else
   {
-    //
-    // rhp: Ok, this is a modification to try to deal with messages
-    //      that have content disposition set to "attachment" even though
-    //      we probably should show them inline.
-    //
-    if (  (clazz != (MimeObjectClass *)&mimeInlineTextHTMLClass) &&
-          (clazz != (MimeObjectClass *)&mimeInlineTextClass) &&
+    // override messages that have content disposition set to "attachment"
+    // even though we probably should show them inline.
+    if (  (clazz != (MimeObjectClass *)&mimeInlineTextClass) &&
           (clazz != (MimeObjectClass *)&mimeInlineTextPlainClass) &&
           (clazz != (MimeObjectClass *)&mimeInlineTextPlainFlowedClass) &&
           (clazz != (MimeObjectClass *)&mimeInlineTextHTMLClass) &&
+          (clazz != (MimeObjectClass *)&mimeInlineTextHTMLParsedClass) &&
           (clazz != (MimeObjectClass *)&mimeInlineTextHTMLSanitizedClass) &&
           (clazz != (MimeObjectClass *)&mimeInlineTextHTMLAsPlaintextClass) &&
           (clazz != (MimeObjectClass *)&mimeInlineTextRichtextClass) &&
           (clazz != (MimeObjectClass *)&mimeInlineTextEnrichedClass) &&
           (clazz != (MimeObjectClass *)&mimeMessageClass) &&
           (clazz != (MimeObjectClass *)&mimeInlineImageClass) )
+      // not a special inline type, so show as attachment
       clazz = (MimeObjectClass *)&mimeExternalObjectClass;
   }
 
@@ -1169,7 +1182,7 @@ mime_external_attachment_url(MimeObject *obj)
    to decide if the headers need to be presented differently.)
  */
 bool
-mime_crypto_object_p(MimeHeaders *hdrs, bool clearsigned_counts)
+mime_crypto_object_p(MimeHeaders *hdrs, bool clearsigned_counts, MimeDisplayOptions *opts)
 {
   char *ct;
   MimeObjectClass *clazz;
@@ -1188,7 +1201,7 @@ mime_crypto_object_p(MimeHeaders *hdrs, bool clearsigned_counts)
   }
 
   /* It's a candidate for being a crypto object.  Let's find out for sure... */
-  clazz = mime_find_class (ct, hdrs, 0, true);
+  clazz = mime_find_class(ct, hdrs, opts, true);
   PR_Free(ct);
 
   if (clazz == ((MimeObjectClass *)&mimeEncryptedCMSClass))
@@ -1699,7 +1712,7 @@ MimeOptions_write(MimeHeaders *hdrs, MimeDisplayOptions *opt, const char *data,
     if (opt->state->separator_suppressed_p)
       opt->state->separator_suppressed_p = false;
     else {
-      const char *sep = "<!--'\"--><BR><FIELDSET CLASS=\"mimeAttachmentHeader\">";
+      const char *sep = "<BR><FIELDSET CLASS=\"mimeAttachmentHeader\">";
       int lstatus = opt->output_fn(sep, strlen(sep), closure);
       opt->state->separator_suppressed_p = false;
       if (lstatus < 0) return lstatus;
