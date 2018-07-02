@@ -4,6 +4,7 @@ mail/test/resources/mozmill/mozmill/extension/content/editor/bespin/BespinEmbedd
 mail/test/resources/mozmill/mozmill/extension/content/editor/bespin/BespinMain.js
 mail/test/resources/mozmill/mozmill/extension/content/editor/bespin/BespinWorker.js
 mailnews/base/test/unit/test_compactColumnSave.js
+im/themes/messages/bubbles/Footer.html
 # don't filter out the following JS file, it's needed later while building
 #mozilla/testing/marionette/atoms/atoms.js
 mozilla/addon-sdk/source/examples/actor-repl/data/codemirror-compressed.js
@@ -24,6 +25,9 @@ mozilla/devtools/client/shared/test
 #mozilla/dom/indexedDB/test/unit/test_filehandle_append_read_data.js
 #mozilla/dom/imptests/html/js/builtins/Math.maxmin.js
 #mozilla/dom/json/test/unit/test_decode_long_input.js
+mozilla/build/pgo/js-input/sunspider/string-tagcloud.html
+mozilla/build/pgo/js-input/sunspider/string-unpack-code.html
+mozilla/dom/base/crashtests
 mozilla/dom/html/reftests/toblob-todataurl/sample.js
 mozilla/dom/system/gonk/tests/marionette/ril_jshint/jshint.js
 mozilla/gfx/angle/src/libEGL/libEGL.rc
@@ -54,6 +58,13 @@ mozilla/js/src/tests/js1_5/Regress/regress-311629.js
 mozilla/js/src/tests/js1_8_1/jit/regress-452498-01.js
 mozilla/layout/doc
 mozilla/layout/generic/crashtests/simple_blank.swf
+mozilla/layout/base/crashtests/378325-1.html
+mozilla/layout/generic/crashtests/text-overflow-form-elements.html
+mozilla/layout/reftests/bugs/424465-1.html
+mozilla/layout/reftests/font-loading-api/src-list-data-1.html
+mozilla/layout/style/crashtests/404470-1.html
+mozilla/layout/tools/reftest/reftest-analyzer-structured.xhtml
+mozilla/layout/tools/reftest/reftest-analyzer.xhtml
 mozilla/netwerk/protocol/ftp/doc/rfc959.txt
 mozilla/other-licenses/7zstub/firefox/7zSD.sfx
 mozilla/other-licenses/nsis/Contrib/ApplicationID/ApplicationID.rc
