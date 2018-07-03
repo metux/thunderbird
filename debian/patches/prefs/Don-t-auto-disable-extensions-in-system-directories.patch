@@ -7,7 +7,7 @@ Subject: Don't auto-disable extensions in system directories
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/comm/mail/app/profile/all-thunderbird.js b/comm/mail/app/profile/all-thunderbird.js
-index f6247ad..b07578a 100644
+index 67403d4..a53e461 100644
 --- a/comm/mail/app/profile/all-thunderbird.js
 +++ b/comm/mail/app/profile/all-thunderbird.js
 @@ -147,7 +147,7 @@ pref("extensions.hotfix.certs.2.sha1Fingerprint", "39:E7:2B:7A:5B:CF:37:78:F9:5D

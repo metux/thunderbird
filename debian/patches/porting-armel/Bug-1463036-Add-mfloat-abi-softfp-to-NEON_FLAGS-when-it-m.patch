@@ -1,0 +1,44 @@
+From: Carsten Schoenert <c.schoenert@t-online.de>
+Date: Tue, 3 Jul 2018 20:09:10 +0200
+Subject: Bug 1463036 - Add -mfloat-abi=softfp to NEON_FLAGS when it makes
+ sense. r?build
+
+This is similar to what is done for VPX_ASFLAGS (bug 1199974).
+
+Origin: https://hg.mozilla.org/releases/mozilla-beta/rev/c07816a1b17f
+Bug-Debian: not yet exist
+Bug: https://bugzilla.mozilla.org/show_bug.cgi?id=1463036
+Applied-Upstream: yes
+---
+ build/autoconf/arch.m4 | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/build/autoconf/arch.m4 b/build/autoconf/arch.m4
+index dffbbca..36a4472 100644
+--- a/build/autoconf/arch.m4
++++ b/build/autoconf/arch.m4
+@@ -242,6 +242,24 @@ if test "$CPU_ARCH" = "arm"; then
+       fi
+   fi
+ 
++dnl Building with -mfpu=neon requires either the "softfp" or the
++dnl "hardfp" ABI. Depending on the compiler's default target, and the
++dnl CFLAGS, the default ABI might be neither, in which case it is the
++dnl "softfloat" ABI.
++dnl The "softfloat" ABI is binary-compatible with the "softfp" ABI, so
++dnl we can safely mix code built with both ABIs. So, if we detect
++dnl that compiling uses the "softfloat" ABI, force the use of the
++dnl "softfp" ABI instead.
++dnl Confusingly, the __SOFTFP__ preprocessor variable indicates the
++dnl "softfloat" ABI, not the "softfp" ABI.
++dnl Note: VPX_ASFLAGS is also used in CFLAGS.
++AC_TRY_COMPILE([],
++  [#ifndef __SOFTFP__
++   #error "compiler target supports -mfpu=neon, so we don't have to add extra flags"
++   #endif],
++   NEON_FLAGS="$NEON_FLAGS -mfloat-abi=softfp"
++)
++
+ fi # CPU_ARCH = arm
+ 
+ AC_SUBST(HAVE_ARM_SIMD)
