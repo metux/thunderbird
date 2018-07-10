@@ -1,3 +1,17 @@
+thunderbird (1:52.9.1-1) unstable; urgency=high
+
+  [ intrigeri ]
+  * [1259eaa] AppArmor: update profile from upstream (at commit edc9487)
+    (Closes: #901471)
+
+  [ Carsten Schoenert ]
+  * [d706f5b] debian/control: increase Standards-Version to 4.1.5
+     No further changes needed.
+  * [f5a3eb2] New upstream version 52.9.1
+    (Closes: #903160)
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Tue, 10 Jul 2018 19:40:41 +0200
+
 thunderbird (1:52.9.0-1) unstable; urgency=high
 
   [ intrigeri ]
