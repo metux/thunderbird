@@ -11,7 +11,7 @@
 <!ENTITY fileMenu.accesskey                             "F">
 <!ENTITY newMenu.label                                  "Baru">
 <!ENTITY newMenu.accesskey                              "B">
-<!ENTITY newContact.label                               "Buku Alamat Kenalan…">
+<!ENTITY newContact.label                               "Kenalan Buku Alamat…">
 <!ENTITY newContact.accesskey                           "K">
 <!ENTITY newContact.key                                 "N">
 <!ENTITY newListCmd.label                               "Senarai Mel…">
@@ -223,7 +223,7 @@ because displayed names don't have the comma in between. -->
 <!-- Card Summary Pane -->
 <!-- Box Headings -->
 <!ENTITY contact.heading                                "Kenalan">
-<!ENTITY home.heading                                   "Halaman utama">
+<!ENTITY home.heading                                   "Laman">
 <!ENTITY other.heading                                  "Lain-lain">
 <!ENTITY chat.heading                                   "Sembang">
 <!ENTITY phone.heading                                  "Telefon">

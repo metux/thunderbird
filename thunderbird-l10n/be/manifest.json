@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/be/locale/be/passwordmgr/", 
         "pippki": "chrome/be/locale/be/pippki/"
       }, 
-      "version": "20180312184254"
+      "version": "20180506113314"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "be", 
-  "version": "60.0buildid20180619210809", 
+  "version": "60.0buildid20180709054853", 
   "name": "Беларуская Language Pack", 
   "manifest_version": 2, 
   "sources": {

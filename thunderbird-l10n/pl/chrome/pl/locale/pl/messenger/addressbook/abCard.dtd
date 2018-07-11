@@ -135,7 +135,6 @@
 
 <!ENTITY Photo.tab "Zdjęcie">
 <!ENTITY Photo.accesskey "Z">
-<!ENTITY PhotoDesc.label "">
 <!ENTITY GenericPhoto.label "Standardowy obraz">
 <!ENTITY GenericPhoto.accesskey "t">
 <!ENTITY DefaultPhoto.label "Domyślne">
@@ -148,5 +147,4 @@
 <!ENTITY PhotoURL.placeholder "Wklej lub wprowadź adres internetowy zdjęcia">
 <!ENTITY UpdatePhoto.label "Uaktualnij">
 <!ENTITY UpdatePhoto.accesskey "U">
-
-<!ENTITY PhotoDropTarget.label          "Drag new photo here">
+<!ENTITY PhotoDropTarget.label "Przeciągnij tutaj nowe zdjęcie">

@@ -154,5 +154,4 @@
 <!ENTITY PhotoURL.placeholder           "Indsæt eller skriv et fotos webadresse">
 <!ENTITY UpdatePhoto.label              "Opdater">
 <!ENTITY UpdatePhoto.accesskey          "d">
-
-<!ENTITY PhotoDropTarget.label          "Drag new photo here">
+<!ENTITY PhotoDropTarget.label          "Træk nyt billede hertil">

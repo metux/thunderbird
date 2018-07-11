@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/bg/locale/bg/passwordmgr/", 
         "pippki": "chrome/bg/locale/bg/pippki/"
       }, 
-      "version": "20180312184305"
+      "version": "20180504153432"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "bg", 
-  "version": "60.0buildid20180619210809", 
+  "version": "60.0buildid20180709054853", 
   "name": "Български Language Pack", 
   "manifest_version": 2, 
   "sources": {

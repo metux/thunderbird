@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/lt/locale/lt/passwordmgr/", 
         "pippki": "chrome/lt/locale/lt/pippki/"
       }, 
-      "version": "20180312193459"
+      "version": "20180426072725"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "lt", 
-  "version": "60.0buildid20180619210809", 
+  "version": "60.0buildid20180709054853", 
   "name": "Lietuvių Language Pack", 
   "manifest_version": 2, 
   "sources": {

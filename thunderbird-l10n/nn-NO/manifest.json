@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/nn-NO/locale/nn-NO/passwordmgr/", 
         "pippki": "chrome/nn-NO/locale/nn-NO/pippki/"
       }, 
-      "version": "20180313051238"
+      "version": "20180505123356"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "nn-NO", 
-  "version": "60.0buildid20180619210809", 
+  "version": "60.0buildid20180709054853", 
   "name": "Norsk nynorsk (NO) Language Pack", 
   "manifest_version": 2, 
   "sources": {

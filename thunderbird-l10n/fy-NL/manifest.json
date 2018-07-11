@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/fy-NL/locale/fy-NL/passwordmgr/", 
         "pippki": "chrome/fy-NL/locale/fy-NL/pippki/"
       }, 
-      "version": "20180312184829"
+      "version": "20180428191523"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "fy-NL", 
-  "version": "60.0buildid20180619210809", 
+  "version": "60.0buildid20180709054853", 
   "name": "Frysk (fy) Language Pack", 
   "manifest_version": 2, 
   "sources": {

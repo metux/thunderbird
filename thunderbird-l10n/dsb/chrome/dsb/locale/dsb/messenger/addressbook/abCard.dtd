@@ -2,9 +2,9 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY Contact.tab                     "Contact">
-<!ENTITY Contact.accesskey               "C">
-<!ENTITY Name.box                        "Name">
+<!ENTITY Contact.tab                     "Kontakt">
+<!ENTITY Contact.accesskey               "K">
+<!ENTITY Name.box                        "Mě">
 
 <!-- LOCALIZATION NOTE:
  NameField1, NameField2, PhoneticField1, PhoneticField2
@@ -23,104 +23,104 @@
 <!-- LOCALIZATION NOTE (PhoneticField2.id) : DONT_TRANSLATE -->
 <!ENTITY PhoneticField2.id              "PhoneticLastName">
 
-<!ENTITY NameField1.label               "First:">
-<!ENTITY NameField1.accesskey           "F">
-<!ENTITY NameField2.label               "Last:">
-<!ENTITY NameField2.accesskey           "L">
-<!ENTITY PhoneticField1.label           "Phonetic:">
-<!ENTITY PhoneticField2.label           "Phonetic:">
-<!ENTITY DisplayName.label              "Display:">
-<!ENTITY DisplayName.accesskey          "D">
-<!ENTITY preferDisplayName.label        "Always prefer display name over message header">
-<!ENTITY preferDisplayName.accesskey    "y">
-<!ENTITY NickName.label                 "Nickname:">
-<!ENTITY NickName.accesskey             "N">
+<!ENTITY NameField1.label               "Pśedmě:">
+<!ENTITY NameField1.accesskey           "P">
+<!ENTITY NameField2.label               "Swójźbne mě:">
+<!ENTITY NameField2.accesskey           "S">
+<!ENTITY PhoneticField1.label           "Fonetiske mě:">
+<!ENTITY PhoneticField2.label           "Fonetiske mě:">
+<!ENTITY DisplayName.label              "Zwobraznjone mě:">
+<!ENTITY DisplayName.accesskey          "Z">
+<!ENTITY preferDisplayName.label        "Zwobraznjone mě pśecej nad hłowu powěsći lubjej wužywaś">
+<!ENTITY preferDisplayName.accesskey    "c">
+<!ENTITY NickName.label                 "Pśimě:">
+<!ENTITY NickName.accesskey             "P">
 
-<!ENTITY PrimaryEmail.label             "Email:">
+<!ENTITY PrimaryEmail.label             "E-mailowa adresa:">
 <!ENTITY PrimaryEmail.accesskey         "E">
-<!ENTITY SecondEmail.label              "Additional Email:">
+<!ENTITY SecondEmail.label              "Pśidatna e-mailowa adresa:">
 <!ENTITY SecondEmail.accesskey          "i">
-<!ENTITY PreferMailFormat.label         "Prefers to receive messages formatted as:">
-<!ENTITY PreferMailFormat.accesskey     "v">
-<!ENTITY PlainText.label                "Plain Text">
+<!ENTITY PreferMailFormat.label         "Ma lubjej powěsći we formaśe:">
+<!ENTITY PreferMailFormat.accesskey     "l">
+<!ENTITY PlainText.label                "Lutny tekst">
 <!ENTITY HTML.label                     "HTML">
-<!ENTITY Unknown.label                  "Unknown">
-<!ENTITY chatName.label                 "Chat Name:">
+<!ENTITY Unknown.label                  "Njeznaty">
+<!ENTITY chatName.label                 "Chattowe mě:">
 
-<!ENTITY WorkPhone.label                "Work:">
-<!ENTITY WorkPhone.accesskey            "k">
-<!ENTITY HomePhone.label                "Home:">
-<!ENTITY HomePhone.accesskey            "m">
-<!ENTITY FaxNumber.label                "Fax:">
-<!ENTITY FaxNumber.accesskey            "x">
+<!ENTITY WorkPhone.label                "Źěło:">
+<!ENTITY WorkPhone.accesskey            "o">
+<!ENTITY HomePhone.label                "Priwatne:">
+<!ENTITY HomePhone.accesskey            "w">
+<!ENTITY FaxNumber.label                "Faks:">
+<!ENTITY FaxNumber.accesskey            "k">
 <!ENTITY PagerNumber.label              "Pager:">
 <!ENTITY PagerNumber.accesskey          "g">
-<!ENTITY CellularNumber.label           "Mobile:">
+<!ENTITY CellularNumber.label           "Mobilny telefon:">
 <!ENTITY CellularNumber.accesskey       "b">
 
-<!ENTITY Home.tab                       "Private">
+<!ENTITY Home.tab                       "Priwatny">
 <!ENTITY Home.accesskey                 "P">
-<!ENTITY HomeAddress.label              "Address:">
+<!ENTITY HomeAddress.label              "Adresa:">
 <!ENTITY HomeAddress.accesskey          "d">
 <!ENTITY HomeAddress2.label             "">
 <!ENTITY HomeAddress2.accesskey         "">
-<!ENTITY HomeCity.label                 "City:">
-<!ENTITY HomeCity.accesskey             "y">
-<!ENTITY HomeState.label                "State/Province:">
-<!ENTITY HomeState.accesskey            "S">
-<!ENTITY HomeZipCode.label              "ZIP/Postal Code:">
-<!ENTITY HomeZipCode.accesskey          "Z">
-<!ENTITY HomeCountry.label              "Country:">
-<!ENTITY HomeCountry.accesskey          "u">
-<!ENTITY HomeWebPage.label              "Web Page:">
+<!ENTITY HomeCity.label                 "Město:">
+<!ENTITY HomeCity.accesskey             "s">
+<!ENTITY HomeState.label                "Zwězkowy kraj:">
+<!ENTITY HomeState.accesskey            "Z">
+<!ENTITY HomeZipCode.label              "Postowa licba:">
+<!ENTITY HomeZipCode.accesskey          "P">
+<!ENTITY HomeCountry.label              "Kraj:">
+<!ENTITY HomeCountry.accesskey          "r">
+<!ENTITY HomeWebPage.label              "Webbok:">
 <!ENTITY HomeWebPage.accesskey          "e">
-<!ENTITY Birthday.label                 "Birthday:">
-<!ENTITY Birthday.accesskey             "B">
+<!ENTITY Birthday.label                 "Narodny źeń:">
+<!ENTITY Birthday.accesskey             "N">
 <!ENTITY In.label                       "">
-<!ENTITY Year.placeholder               "Year">
-<!ENTITY Or.value                       "or">
-<!ENTITY Age.placeholder                "Age">
+<!ENTITY Year.placeholder               "Lěto">
+<!ENTITY Or.value                       "abo">
+<!ENTITY Age.placeholder                "Starstwo">
 <!ENTITY YearsOld.label                 "">
 
-<!ENTITY Work.tab                       "Work">
-<!ENTITY Work.accesskey                 "W">
-<!ENTITY JobTitle.label                 "Title:">
+<!ENTITY Work.tab                       "Słužbny telefon">
+<!ENTITY Work.accesskey                 "S">
+<!ENTITY JobTitle.label                 "Titel:">
 <!ENTITY JobTitle.accesskey             "i">
-<!ENTITY Department.label               "Department:">
-<!ENTITY Department.accesskey           "m">
-<!ENTITY Company.label                  "Organization:">
+<!ENTITY Department.label               "Wótźělenje:">
+<!ENTITY Department.accesskey           "l">
+<!ENTITY Company.label                  "Organizacija:">
 <!ENTITY Company.accesskey              "n">
-<!ENTITY WorkAddress.label              "Address:">
+<!ENTITY WorkAddress.label              "Adresa:">
 <!ENTITY WorkAddress.accesskey          "d">
 <!ENTITY WorkAddress2.label             "">
 <!ENTITY WorkAddress2.accesskey         "">
-<!ENTITY WorkCity.label                 "City:">
-<!ENTITY WorkCity.accesskey             "y">
-<!ENTITY WorkState.label                "State/Province:">
-<!ENTITY WorkState.accesskey            "S">
-<!ENTITY WorkZipCode.label              "ZIP/Postal Code:">
-<!ENTITY WorkZipCode.accesskey          "Z">
-<!ENTITY WorkCountry.label              "Country:">
-<!ENTITY WorkCountry.accesskey          "u">
-<!ENTITY WorkWebPage.label              "Web Page:">
+<!ENTITY WorkCity.label                 "Město:">
+<!ENTITY WorkCity.accesskey             "t">
+<!ENTITY WorkState.label                "Zwězkowy kraj:">
+<!ENTITY WorkState.accesskey            "Z">
+<!ENTITY WorkZipCode.label              "Postowa licba:">
+<!ENTITY WorkZipCode.accesskey          "P">
+<!ENTITY WorkCountry.label              "Kraj:">
+<!ENTITY WorkCountry.accesskey          "r">
+<!ENTITY WorkWebPage.label              "Webbok:">
 <!ENTITY WorkWebPage.accesskey          "e">
 
-<!ENTITY Other.tab                      "Other">
-<!ENTITY Other.accesskey                "h">
-<!ENTITY Custom1.label                  "Custom 1:">
+<!ENTITY Other.tab                      "Druge">
+<!ENTITY Other.accesskey                "u">
+<!ENTITY Custom1.label                  "Swójski 1:">
 <!ENTITY Custom1.accesskey              "1">
-<!ENTITY Custom2.label                  "Custom 2:">
+<!ENTITY Custom2.label                  "Swójski 2:">
 <!ENTITY Custom2.accesskey              "2">
-<!ENTITY Custom3.label                  "Custom 3:">
+<!ENTITY Custom3.label                  "Swójski 3:">
 <!ENTITY Custom3.accesskey              "3">
-<!ENTITY Custom4.label                  "Custom 4:">
+<!ENTITY Custom4.label                  "Swójski 4:">
 <!ENTITY Custom4.accesskey              "4">
-<!ENTITY Notes.label                    "Notes:">
-<!ENTITY Notes.accesskey                "N">
+<!ENTITY Notes.label                    "Pśipiski:">
+<!ENTITY Notes.accesskey                "P">
 
 <!ENTITY Chat.tab                       "Chat">
 <!ENTITY Chat.accesskey                 "a">
-<!ENTITY Gtalk.label                    "Google Talk:">
+<!ENTITY Gtalk.label                    "Diskusija pla Google:">
 <!ENTITY Gtalk.accesskey                "G">
 <!ENTITY AIM.label                      "AIM:">
 <!ENTITY AIM2.accesskey                 "M">
@@ -136,21 +136,22 @@
 <!ENTITY ICQ.accesskey                  "I">
 <!ENTITY XMPP.label                     "Jabber ID:">
 <!ENTITY XMPP.accesskey                 "J">
-<!ENTITY IRC.label                      "IRC Nick:">
+<!ENTITY IRC.label                      "Pśimě IRC:">
 <!ENTITY IRC.accesskey                  "R">
 
-<!ENTITY Photo.tab                      "Photo">
+<!ENTITY Photo.tab                      "Foto">
 <!ENTITY Photo.accesskey                "o">
-<!ENTITY GenericPhoto.label             "Generic Photo">
-<!ENTITY GenericPhoto.accesskey         "G">
-<!ENTITY DefaultPhoto.label             "Default">
-<!ENTITY PhotoFile.label                "On this Computer">
-<!ENTITY PhotoFile.accesskey            "n">
-<!ENTITY BrowsePhoto.label              "Browse">
-<!ENTITY BrowsePhoto.accesskey          "r">
-<!ENTITY PhotoURL.label                 "On the Web">
-<!ENTITY PhotoURL.accesskey             "b">
-<!ENTITY PhotoURL.placeholder           "Paste or type the web address of a photo">
-<!ENTITY UpdatePhoto.label              "Update">
+<!ENTITY PhotoDesc.label                "Wubjeŕśo jadnu ze slědujucych opcijow:">
+<!ENTITY GenericPhoto.label             "Powšykne foto">
+<!ENTITY GenericPhoto.accesskey         "P">
+<!ENTITY DefaultPhoto.label             "Standard">
+<!ENTITY PhotoFile.label                "Na toś tom licadle">
+<!ENTITY PhotoFile.accesskey            "t">
+<!ENTITY BrowsePhoto.label              "Pśepytaś">
+<!ENTITY BrowsePhoto.accesskey          "e">
+<!ENTITY PhotoURL.label                 "W seśi">
+<!ENTITY PhotoURL.accesskey             "s">
+<!ENTITY PhotoURL.placeholder           "Zasajźćo abo zapišćo fotowu webadresu">
+<!ENTITY UpdatePhoto.label              "Aktualizěrowaś">
 <!ENTITY UpdatePhoto.accesskey          "u">
-<!ENTITY PhotoDropTarget.label          "Drag new photo here">
+<!ENTITY PhotoDropTarget.label          "Nowe foto sem śěgnuś">

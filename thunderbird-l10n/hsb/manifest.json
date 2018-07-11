@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/hsb/locale/hsb/passwordmgr/", 
         "pippki": "chrome/hsb/locale/hsb/pippki/"
       }, 
-      "version": "20180314063303"
+      "version": "20180504155456"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "hsb", 
-  "version": "60.0buildid20180619210809", 
+  "version": "60.0buildid20180709054853", 
   "name": "Hornjoserbšćina Language Pack", 
   "manifest_version": 2, 
   "sources": {

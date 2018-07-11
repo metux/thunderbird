@@ -9,6 +9,7 @@
 <!-- LOCALIZATION NOTE (mainWindow.titlemodifier) : DONT_TRANSLATE -->
 <!ENTITY mainWindow.titlemodifier "&brandFullName;">
 <!-- LOCALIZATION NOTE (mainWindow.titlemodifierseparator) : DONT_TRANSLATE -->
+<!ENTITY mainWindow.titlemodifierseparator " - ">
 <!ENTITY mainWindow.preface "Kaynak: ">
 
 <!ENTITY fileMenu.label "Dosya">
@@ -43,6 +44,8 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY goToLineCmd.accesskey "S">
 <!ENTITY goToLineCmd.commandkey "l">
 
+<!ENTITY viewMenu.label           "Görünüm">
+<!ENTITY viewMenu.accesskey       "G">
 <!ENTITY reloadCmd.label "Tazele">
 <!ENTITY reloadCmd.accesskey "T">
 <!ENTITY reloadCmd.commandkey "r">
@@ -79,10 +82,7 @@ you can use these alternative items. Otherwise, their values should be empty.  -
 <!ENTITY copyEmailCmd.accesskey "E">
 
 
-<!ENTITY mainWindow.titlemodifierseparator " - ">
 <!ENTITY textEnlarge.commandkey2 "=">
 <!ENTITY textEnlarge.commandkey3 "">
-<!ENTITY viewMenu.label           "View">
-<!ENTITY viewMenu.accesskey       "V">
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goForwardCmd.commandKey "]">

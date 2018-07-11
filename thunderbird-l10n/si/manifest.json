@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/si/locale/si/passwordmgr/", 
         "pippki": "chrome/si/locale/si/pippki/"
       }, 
-      "version": "20180312194035"
+      "version": "20180419124934"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "si", 
-  "version": "60.0buildid20180619210809", 
+  "version": "60.0buildid20180709054853", 
   "name": "Sinhala (si-LK) Language Pack", 
   "manifest_version": 2, 
   "sources": {

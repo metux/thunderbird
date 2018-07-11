@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/cy/locale/cy/passwordmgr/", 
         "pippki": "chrome/cy/locale/cy/pippki/"
       }, 
-      "version": "20180314091207"
+      "version": "20180505171441"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "cy", 
-  "version": "60.0buildid20180619210809", 
+  "version": "60.0buildid20180709054853", 
   "name": "Cymraeg Language Pack", 
   "manifest_version": 2, 
   "sources": {

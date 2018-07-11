@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/fr/locale/fr/passwordmgr/", 
         "pippki": "chrome/fr/locale/fr/pippki/"
       }, 
-      "version": "20180313103239"
+      "version": "20180506143318"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "fr", 
-  "version": "60.0buildid20180619210809", 
+  "version": "60.0buildid20180709054853", 
   "name": "Français Language Pack", 
   "manifest_version": 2, 
   "sources": {

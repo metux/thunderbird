@@ -6,6 +6,8 @@
 
 <!ENTITY generalInfo.label                       "מידע כללי">
 <!ENTITY folderCharsetFallback2.label            "קידוד טקסט כבררת מחדל:">
+<!ENTITY folderCharsetFallback2.accesskey        "ק">
+<!ENTITY folderCharsetEnforce2.accesskey         "ח">
 <!ENTITY folderRebuildSummaryFileTip2.label      "בנה מחדש תקציר קובץ אינדקס">
 <!ENTITY folderRebuildSummaryFile2.label         "תקן תיקייה">
 <!ENTITY folderRebuildSummaryFile2.accesskey     "ת">
@@ -67,6 +69,4 @@
 <!-- LOCALIZATION NOTE: When the size can't be determined, this string is displayed as the size -->
 <!ENTITY sizeUnknown.label                       "לא ידוע">
 
-<!ENTITY folderCharsetFallback2.accesskey        "E">
 <!ENTITY folderCharsetEnforce2.label             "Apply encoding to all messages in the folder (individual message text encoding settings and auto-detection will be ignored)">
-<!ENTITY folderCharsetEnforce2.accesskey         "A">

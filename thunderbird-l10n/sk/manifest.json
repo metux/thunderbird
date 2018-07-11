@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/sk/locale/sk/passwordmgr/", 
         "pippki": "chrome/sk/locale/sk/pippki/"
       }, 
-      "version": "20180312194045"
+      "version": "20180505101258"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "sk", 
-  "version": "60.0buildid20180619210809", 
+  "version": "60.0buildid20180709054853", 
   "name": "Slovak (SK) Language Pack", 
   "manifest_version": 2, 
   "sources": {

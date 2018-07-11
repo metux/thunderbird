@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/nb-NO/locale/nb-NO/passwordmgr/", 
         "pippki": "chrome/nb-NO/locale/nb-NO/pippki/"
       }, 
-      "version": "20180313135300"
+      "version": "20180507113415"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "nb-NO", 
-  "version": "60.0buildid20180619210809", 
+  "version": "60.0buildid20180709054853", 
   "name": "Norsk bokmål (NO) Language Pack", 
   "manifest_version": 2, 
   "sources": {
