@@ -148,7 +148,7 @@ if [ "${BETA_VER}" != "" ]; then
     debug "Upstream TB version: . ${BETA_VER}"
     TB_VERSION=${BETA_VER}
 fi
-LN_VERSION=`echo $(python calendar/lightning/build/makeversion.py ${TB_VERSION})`
+LN_VERSION=`echo $(python comm/calendar/lightning/build/makeversion.py ${TB_VERSION})`
 debug "Debian version: ...... ${VERSION}"
 debug "Lightning version: ... ${LN_VERSION}"
 
