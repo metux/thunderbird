@@ -2,14 +2,16 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY autoconfigWizard.title          "Sähköpostitilin asennus">
+<!ENTITY autoconfigWizard2.title         "Määritä olemassa oleva sähköpostitili">
 <!ENTITY name.label                      "Nimi:">
 <!ENTITY name.accesskey                  "N">
 <!ENTITY name.placeholder                "Etunimi Sukunimi">
 <!ENTITY name.text                       "Nimesi muille näkyvä muoto">
 <!ENTITY email.label                     "Sähköpostiosoite:">
 <!ENTITY email.accesskey                 "S">
-<!ENTITY email.placeholder               "email@example.com">
+<!-- LOCALIZATION NOTE(email.placeholder): Domain @example.com must stay in English -->
+<!ENTITY email2.placeholder              "you@example.com">
+<!ENTITY email.text                      "Nykyinen sähköpostiosoitteesi">
 <!ENTITY password.label                  "Salasana:">
 <!ENTITY password.accesskey              "a">
 <!ENTITY password.placeholder            "Salasana">
@@ -53,8 +55,8 @@
 <!ENTITY half-manual-test.accesskey      "T">
 <!ENTITY manual-edit.label               "Muokkaa asetuksia">
 <!ENTITY manual-edit.accesskey           "M">
-<!ENTITY switch-to-provisioner.label     "Hanki uusi tili">
-<!ENTITY switch-to-provisioner.accesskey "H">
+<!ENTITY open-provisioner.label          "Hanki uusi sähköpostiosoite…">
+<!ENTITY open-provisioner.accesskey      "u">
 
 
 <!ENTITY warning.label                   "Varoitus!">
@@ -86,9 +88,3 @@
 <!ENTITY insecureUnencrypted.description "Sähköpostisi välitetään selkokielisenä, jonka takia on mahdollista, että asiaankuulumattomat henkilöt lukevat sähköpostejasi. &brandShortName; toimii myös näillä asetuksilla, mutta olisi parempi jos saisit sähköpostipalveluntarjoajasi muuttamaan sähköpostipalvelunsa käyttämään suojattua yhteyttä.">
 <!ENTITY insecureSelfSigned.description  "Palvelin käyttää ei luotettua varmennetta, joten ei voi olla varma ettei joku kolmas osapuoli kaappaa &brandShortName;in ja sähköpostipalvelimen välistä liikennettä. &brandShortName; toimii myös näillä asetuksilla, mutta olisi parempi jos saisit sähköpostipalveluntarjoajasi käyttämään luotettua varmennetta.">
 <!ENTITY secureServer.description        "Onneksi olkoon! Sähköpostipalvelin on asianmukaisesti suojattu.">
-
-<!ENTITY autoconfigWizard2.title         "Set Up an Existing Email Account">
-<!ENTITY email2.placeholder              "you@example.com">
-<!ENTITY email.text                      "Your existing email address">
-<!ENTITY open-provisioner.label          "Get a new email address…">
-<!ENTITY open-provisioner.accesskey      "g">

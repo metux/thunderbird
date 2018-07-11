@@ -2,37 +2,37 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY Addrbook.label                        "Address Book">
-<!ENTITY Addrbook.accesskey                    "B">
-<!ENTITY GeneratedName.label                   "Name">
-<!ENTITY GeneratedName.accesskey               "N">
-<!ENTITY PrimaryEmail.label                    "Email">
-<!ENTITY PrimaryEmail.accesskey                "E">
-<!ENTITY Company.label                         "Organization">
-<!ENTITY Company.accesskey                     "z">
-<!ENTITY _PhoneticName.label                   "Phonetic Name">
-<!ENTITY _PhoneticName.accesskey               "o">
-<!ENTITY NickName.label                        "Nickname">
-<!ENTITY NickName.accesskey                    "i">
-<!ENTITY SecondEmail.label                     "Additional Email">
-<!ENTITY SecondEmail.accesskey                 "l">
-<!ENTITY Department.label                      "Department">
-<!ENTITY Department.accesskey                  "r">
-<!ENTITY JobTitle.label                        "Title">
-<!ENTITY JobTitle.accesskey                    "T">
-<!ENTITY CellularNumber.label                  "Mobile">
-<!ENTITY CellularNumber.accesskey              "M">
-<!ENTITY PagerNumber.label                     "Pager">
-<!ENTITY PagerNumber.accesskey                 "P">
-<!ENTITY FaxNumber.label                       "Fax">
-<!ENTITY FaxNumber.accesskey                   "F">
-<!ENTITY HomePhone.label                       "Home Phone">
-<!ENTITY HomePhone.accesskey                   "H">
-<!ENTITY WorkPhone.label                       "Work Phone">
-<!ENTITY WorkPhone.accesskey                   "W">
-<!ENTITY ChatName.label                        "Chat Name">
-<!ENTITY ChatName.accesskey                    "C">
-<!ENTITY sortAscending.label                   "Ascending">
-<!ENTITY sortAscending.accesskey               "A">
-<!ENTITY sortDescending.label                  "Descending">
-<!ENTITY sortDescending.accesskey              "D">
+<!ENTITY Addrbook.label "Libreta de direcciones">
+<!ENTITY Addrbook.accesskey "L">
+<!ENTITY GeneratedName.label "Nombre">
+<!ENTITY GeneratedName.accesskey "e">
+<!ENTITY PrimaryEmail.label "Correo electrónico">
+<!ENTITY PrimaryEmail.accesskey "C">
+<!ENTITY Company.label "Organización">
+<!ENTITY Company.accesskey "O">
+<!ENTITY _PhoneticName.label "Nombre fonético">
+<!ENTITY _PhoneticName.accesskey "r">
+<!ENTITY NickName.label "Apodo">
+<!ENTITY NickName.accesskey "A">
+<!ENTITY SecondEmail.label "Correo electrónico adicional">
+<!ENTITY SecondEmail.accesskey "i">
+<!ENTITY Department.label "Departamento">
+<!ENTITY Department.accesskey "p">
+<!ENTITY JobTitle.label "Título">
+<!ENTITY JobTitle.accesskey "u">
+<!ENTITY CellularNumber.label "Móvil">
+<!ENTITY CellularNumber.accesskey "M">
+<!ENTITY PagerNumber.label "Buscapersonas">
+<!ENTITY PagerNumber.accesskey "B">
+<!ENTITY FaxNumber.label "Fax">
+<!ENTITY FaxNumber.accesskey "F">
+<!ENTITY HomePhone.label "Teléfono particular">
+<!ENTITY HomePhone.accesskey "T">
+<!ENTITY WorkPhone.label "Teléfono del trabajo">
+<!ENTITY WorkPhone.accesskey "j">
+<!ENTITY ChatName.label "Nombre en el chat">
+<!ENTITY ChatName.accesskey "N">
+<!ENTITY sortAscending.label "Ascendente">
+<!ENTITY sortAscending.accesskey "s">
+<!ENTITY sortDescending.label "Descendente">
+<!ENTITY sortDescending.accesskey "D">

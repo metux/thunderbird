@@ -8,6 +8,7 @@
 <!ENTITY toggleToolboxF12.keytext "F12">
 
 <!ENTITY browserToolboxErrorMessage "Błąd otwierania narzędzi przeglądarki:">
+<!ENTITY browserToolboxStatusMessage "Status połączenia z narzędziami przeglądarki:">
 
 <!ENTITY options.toolNotSupported.label "* Nieobsługiwane dla bieżącego celu narzędzi">
 <!ENTITY options.context.triggersPageRefresh "* Tylko bieżąca sesja, przeładowuje stronę">
@@ -82,5 +83,3 @@
 
 <!ENTITY options.enableServiceWorkersHTTP.label "Wątki usługowe przez HTTP (gdy narzędzia są otwarte)">
 <!ENTITY options.enableServiceWorkersHTTP.tooltip "Kontroluje dostępność wątków usługowych przez HTTP w kartach z otwartymi narzędziami">
-
-<!ENTITY browserToolboxStatusMessage "Browser Toolbox connection status:">

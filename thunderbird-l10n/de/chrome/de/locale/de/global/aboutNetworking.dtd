@@ -23,6 +23,7 @@
 <!ENTITY aboutNetworking.sent                  "Gesendet">
 <!ENTITY aboutNetworking.received              "Empfangen">
 <!ENTITY aboutNetworking.family                "Klasse">
+<!ENTITY aboutNetworking.trr                   "TRR (Trusted Recursive Resolver)">
 <!ENTITY aboutNetworking.addresses             "Adressen">
 <!ENTITY aboutNetworking.expires               "Läuft ab (Sekunden)">
 <!ENTITY aboutNetworking.messagesSent          "Nachrichten gesendet">
@@ -56,5 +57,3 @@
 <!ENTITY aboutNetworking.rcwnStddevLong        "Standardabweichung Durchschnitt lang">
 <!ENTITY aboutNetworking.rcwnCacheSlow         "Anzahl Cache langsam">
 <!ENTITY aboutNetworking.rcwnCacheNotSlow      "Anzahl Cache nicht langsam">
-
-<!ENTITY aboutNetworking.trr                   "TRR">

@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/cs/locale/cs/passwordmgr/", 
         "pippki": "chrome/cs/locale/cs/pippki/"
       }, 
-      "version": "20180312184438"
+      "version": "20180505085254"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "cs", 
-  "version": "60.0buildid20180619210809", 
+  "version": "60.0buildid20180709054853", 
   "name": "Czech (CZ) Language Pack", 
   "manifest_version": 2, 
   "sources": {

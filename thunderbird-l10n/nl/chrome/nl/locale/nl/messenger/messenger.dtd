@@ -36,6 +36,12 @@
 <!ENTITY newFeedAccountCmd.accesskey "F">
 <!ENTITY newIMContactCmd.label "Chatcontact…">
 <!ENTITY newIMContactCmd.accesskey "h">
+<!ENTITY  newMessageCmd2.key "N">
+<!ENTITY  newMessageCmd.key "M">
+<!ENTITY  newMessageCmd.label "Bericht">
+<!ENTITY  newMessageCmd.accesskey "B">
+<!ENTITY  newContactCmd.label "Adresboekcontact…">
+<!ENTITY  newContactCmd.accesskey "s">
 <!ENTITY openMessageFileCmd.label "Opgeslagen bericht openen…">
 <!ENTITY openMessageFileCmd.accesskey "O">
 <!ENTITY saveAsMenu.label "Opslaan als">
@@ -643,6 +649,7 @@
 <!-- Folder Pane Context Menu -->
 <!ENTITY folderContextGetMessages.label "Berichten ophalen">
 <!ENTITY folderContextGetMessages.accesskey "B">
+<!ENTITY folderContextMarkAllFoldersRead.label "Alle mappen als gelezen markeren">
 <!ENTITY folderContextPauseAllUpdates.label "Alle updates pauzeren">
 <!ENTITY folderContextPauseUpdates.label "Updates pauzeren">
 <!ENTITY folderContextPauseUpdates.accesskey "U">
@@ -682,7 +689,7 @@
 <!ENTITY folderContextSettings2.accesskey "I">
 
 <!-- Search Bar -->
-<!ENTITY SearchNameOrEmail.label "Naam of e-mail bevat:">
+<!ENTITY SearchNameOrEmail.label "Naam of e-mailadres bevat:">
 <!ENTITY SearchNameOrEmail.accesskey "N">
 
 <!-- Gloda Search Bar -->
@@ -846,7 +853,7 @@
      selected. For example, if folder "A" has two children, "B" and "C", then
      when the user hovers over "A", a new popup menu will be displayed whose
      items are "This folder", "B", and "C". This is the equivalent of the
-     "File here" option for the move to/copy to widge.t
+     "File here" option for the move to/copy to widget.
   -->
 <!ENTITY columnPicker.thisFolder.label "Deze map">
 

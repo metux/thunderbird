@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/en-GB/locale/en-GB/passwordmgr/", 
         "pippki": "chrome/en-GB/locale/en-GB/pippki/"
       }, 
-      "version": "20180312184559"
+      "version": "20180426071339"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "en-GB", 
-  "version": "60.0buildid20180619210809", 
+  "version": "60.0buildid20180709054853", 
   "name": "English (GB) Language Pack", 
   "manifest_version": 2, 
   "sources": {

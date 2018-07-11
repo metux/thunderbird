@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/el/locale/el/passwordmgr/", 
         "pippki": "chrome/el/locale/el/pippki/"
       }, 
-      "version": "20180313155214"
+      "version": "20180503063249"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "el", 
-  "version": "60.0buildid20180619210809", 
+  "version": "60.0buildid20180709054853", 
   "name": "Ελληνικά Language Pack", 
   "manifest_version": 2, 
   "sources": {

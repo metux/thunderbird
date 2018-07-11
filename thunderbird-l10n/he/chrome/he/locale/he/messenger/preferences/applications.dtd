@@ -22,18 +22,18 @@
 <!ENTITY chooseFolderMac.label        "בחירה…">
 <!ENTITY chooseFolderMac.accesskey    "ב">
 
+<!ENTITY attachments.incoming.label   "נכנס">
+<!ENTITY attachments.outgoing.label   "יוצא">
 
+<!ENTITY addCloudFileAccount1.label       "הוספה…">
+<!ENTITY addCloudFileAccount1.accesskey   "ס">
 <!ENTITY removeCloudFileAccount.label     "הסרה">
+<!ENTITY authRequired.button.label        "אימות">
+<!ENTITY authRequired.button.accesskey    "א">
 
+<!ENTITY enableCloudFileAccountOffer.label "הצעה לשתף עבור קבצים בגודל מעל">
+<!ENTITY enableCloudFileAccountOffer.mb "מ״ב">
 
-<!ENTITY attachments.incoming.label   "Incoming">
-<!ENTITY attachments.outgoing.label   "Outgoing">
-<!ENTITY addCloudFileAccount1.label       "Add…">
-<!ENTITY addCloudFileAccount1.accesskey   "A">
 <!ENTITY addCloudFileAccount.description  "Add a new Filelink storage service">
 <!ENTITY removeCloudFileAccount.accesskey "R">
 <!ENTITY authRequired.description         "Your authorization is required in order to see the settings for this storage service.">
-<!ENTITY authRequired.button.label        "Authorize">
-<!ENTITY authRequired.button.accesskey    "U">
-<!ENTITY enableCloudFileAccountOffer.label "Offer to share for files larger than">
-<!ENTITY enableCloudFileAccountOffer.mb "MB">

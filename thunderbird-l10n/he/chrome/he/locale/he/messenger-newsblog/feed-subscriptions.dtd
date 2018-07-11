@@ -7,9 +7,10 @@
 <!ENTITY learnMore.label             "מידע נוסף אודות הזנות">
 
 <!ENTITY feedTitle.label             "כותרת:">
+<!ENTITY feedTitle.accesskey         "כ">
 
 <!ENTITY feedLocation.label          "כתובת הזנה:">
-<!ENTITY feedLocation.placeholder    "נא להזין כתובת הזנה תקנית להוספה">
+<!ENTITY feedLocation.accesskey      "ז">
 <!ENTITY feedLocation2.placeholder   "נא להזין כתובת הזנה תקנית">
 <!ENTITY locationValidate.label      "בדיקה">
 <!ENTITY validateText.label          "בדיקת וקבלת כתובת תקנית.">
@@ -51,7 +52,5 @@
 <!ENTITY cmd.close.commandKey        "w">
 <!ENTITY button.close.label          "סגירה">
 
-<!ENTITY feedTitle.accesskey         "T">
-<!ENTITY feedLocation.accesskey      "F">
 <!ENTITY autotagEnable.label         "Automatically create tags from feed &lt;category&gt; names">
 <!ENTITY button.exportOPML.tooltip   "Export Feeds with folder structure; ctrl click or ctrl enter to export Feeds as a list">

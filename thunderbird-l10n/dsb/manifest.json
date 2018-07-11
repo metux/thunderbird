@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/dsb/locale/dsb/passwordmgr/", 
         "pippki": "chrome/dsb/locale/dsb/pippki/"
       }, 
-      "version": "20180312184537"
+      "version": "20180504155444"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "dsb", 
-  "version": "60.0buildid20180619210809", 
+  "version": "60.0buildid20180709054853", 
   "name": "Dolnoserbšćina Language Pack", 
   "manifest_version": 2, 
   "sources": {

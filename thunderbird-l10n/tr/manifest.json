@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/tr/locale/tr/passwordmgr/", 
         "pippki": "chrome/tr/locale/tr/pippki/"
       }, 
-      "version": "20180312194309"
+      "version": "20180505141314"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "tr", 
-  "version": "60.0buildid20180619210809", 
+  "version": "60.0buildid20180709054853", 
   "name": "Türkçe (TR) Language Pack", 
   "manifest_version": 2, 
   "sources": {

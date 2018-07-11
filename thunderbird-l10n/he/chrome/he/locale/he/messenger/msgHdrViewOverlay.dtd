@@ -69,6 +69,7 @@
 
 <!-- Attachment bar context menu items -->
 <!ENTITY startExpandedCmd.label    "הצגת חלונית הקבצים המצורפים כבר בהתחלה">
+<!ENTITY startExpandedCmd.accesskey    "צ">
 
 <!-- Attachment context menu items -->
 <!ENTITY openAttachmentCmd.label    "פתח">
@@ -110,4 +111,3 @@
 <!ENTITY followupToField4.label "Followup to">
 <!ENTITY hdrFollowupButton1.label "Followup">
 <!ENTITY hdrFollowupButton1.tooltip "Post a followup to this newsgroup">
-<!ENTITY startExpandedCmd.accesskey    "S">

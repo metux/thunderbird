@@ -36,6 +36,12 @@
 <!ENTITY newFeedAccountCmd.accesskey "r">
 <!ENTITY newIMContactCmd.label "Ny chattkontakt…">
 <!ENTITY newIMContactCmd.accesskey "h">
+<!ENTITY  newMessageCmd2.key "N">
+<!ENTITY  newMessageCmd.key "M">
+<!ENTITY  newMessageCmd.label "Meddelande">
+<!ENTITY  newMessageCmd.accesskey "m">
+<!ENTITY  newContactCmd.label "Ny adressbokskontakt…">
+<!ENTITY  newContactCmd.accesskey "k">
 <!ENTITY openMessageFileCmd.label "Öppna sparat meddelande…">
 <!ENTITY openMessageFileCmd.accesskey "s">
 <!ENTITY saveAsMenu.label "Spara som">
@@ -317,7 +323,6 @@
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goChatCmd.label "Chatt">
 <!ENTITY goChatCmd.accesskey "c">
-<!ENTITY goChatCmd.key "I">
 <!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Märkta meddelande">
 <!ENTITY prevStarredMsgCmd.accesskey "ä">
@@ -510,8 +515,6 @@
 <!ENTITY devToolboxCmd.label "Verktygslåda för utvecklare">
 <!ENTITY devToolboxCmd.accesskey "V">
 <!ENTITY devToolboxCmd.commandkey "i">
-<!ENTITY addonDebugCmd.label "Felsökning för tillägg">
-<!ENTITY addonDebugCmd.accesskey "F">
 <!ENTITY debugAddonsCmd.label "Felsök tillägg">
 <!ENTITY debugAddonsCmd.accesskey "F">
 <!ENTITY tabsDebugCmd.label "Felsökning för innehållsram">
@@ -646,6 +649,7 @@
 <!-- Folder Pane Context Menu -->
 <!ENTITY folderContextGetMessages.label "Hämta meddelanden">
 <!ENTITY folderContextGetMessages.accesskey "H">
+<!ENTITY folderContextMarkAllFoldersRead.label "Märk alla mappar som lästa">
 <!ENTITY folderContextPauseAllUpdates.label "Pausa alla uppdateringar">
 <!ENTITY folderContextPauseUpdates.label "Pausa uppdateringar">
 <!ENTITY folderContextPauseUpdates.accesskey "u">

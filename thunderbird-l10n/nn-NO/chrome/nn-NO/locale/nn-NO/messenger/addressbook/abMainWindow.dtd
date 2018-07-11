@@ -26,7 +26,7 @@
 <!-- LOCALIZATION NOTE (osxAddressBook) : These entities are only used on Mac -->
 <!ENTITY osxAddressBook.label                           "Bruk Mac OS X adressebok">
 <!ENTITY osxAddressBook.accesskey                       "r">
-<!ENTITY closeCmd.label                                 "Lukk">
+<!ENTITY closeCmd.label                                 "Lat att">
 <!ENTITY closeCmd.key                                   "W">
 <!ENTITY closeCmd.accesskey                             "L">
 <!ENTITY printSetupCmd.label                            "Utskriftsformat …">
@@ -35,10 +35,10 @@
 <!ENTITY printPreviewContactCmd.accesskey               "r">
 <!ENTITY printPreviewAddressBook.label                  "Førehandsvising av adressebok">
 <!ENTITY printPreviewAddressBook.accesskey              "F">
-<!ENTITY printContactCmd.label                          "Skriv ut kontakt …">
+<!ENTITY printContactCmd.label                          "Skriv ut kontakt…">
 <!ENTITY printContactCmd.accesskey                      "S">
 <!ENTITY printContactCmd.key                            "P">
-<!ENTITY printAddressBook.label                         "Skriv ut adressebok …">
+<!ENTITY printAddressBook.label                         "Skriv ut adressebok…">
 <!ENTITY printAddressBook.accesskey                     "k">
 
 <!-- Edit Menu -->
@@ -124,6 +124,9 @@ because displayed names don't have the comma in between. -->
 <!ENTITY messengerCmd.label                             "E-post og nyheitsgrupper">
 <!ENTITY messengerCmd.accesskey                         "E">
 <!ENTITY messengerCmd.commandkey                        "1">
+<!ENTITY addressBookCmd.label                           "Adressebok">
+<!ENTITY addressBookCmd.accesskey                       "a">
+<!ENTITY addressBookCmd.key                             "B">
 <!ENTITY searchAddressesCmd.label                       "Søk i adresser …">
 <!ENTITY searchAddressesCmd.accesskey                   "ø">
 <!ENTITY importCmd.label                                "Importer …">
@@ -155,7 +158,7 @@ because displayed names don't have the comma in between. -->
 <!ENTITY newmsgButton.accesskey                         "n">
 <!ENTITY newIM.label                                    "Lynmelding">
 <!ENTITY newIM.accesskey                                "L">
-<!ENTITY printButton.label                              "Skriv ut …">
+<!ENTITY printButton.label                              "Skriv ut…">
 <!ENTITY printButton.accesskey                          "k">
 <!ENTITY deleteButton2.label                            "Slett">
 <!ENTITY deleteButton2.accesskey                        "S">
@@ -241,7 +244,3 @@ because displayed names don't have the comma in between. -->
 <!ENTITY minimizeWindow.key                             "m">
 <!ENTITY bringAllToFront.label                          "Send alle til framgrunnen">
 <!ENTITY zoomWindow.label                               "Zoom">
-
-<!ENTITY addressBookCmd.label                           "Address Book">
-<!ENTITY addressBookCmd.accesskey                       "a">
-<!ENTITY addressBookCmd.key                             "B">

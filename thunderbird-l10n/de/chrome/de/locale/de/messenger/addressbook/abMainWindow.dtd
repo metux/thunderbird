@@ -124,6 +124,9 @@
 <!ENTITY messengerCmd.label                             "Nachrichten &amp; Newsgruppen">
 <!ENTITY messengerCmd.accesskey                         "N">
 <!ENTITY messengerCmd.commandkey                        "1">
+<!ENTITY addressBookCmd.label                           "Adressbuch">
+<!ENTITY addressBookCmd.accesskey                       "b">
+<!ENTITY addressBookCmd.key                             "B">
 <!ENTITY searchAddressesCmd.label                       "Adressen suchen…">
 <!ENTITY searchAddressesCmd.accesskey                   "s">
 <!ENTITY importCmd.label                                "Importieren…">
@@ -241,7 +244,3 @@
 <!ENTITY minimizeWindow.key "m">
 <!ENTITY bringAllToFront.label "Fenster zeigen">
 <!ENTITY zoomWindow.label "Fenster maximieren">
-
-<!ENTITY addressBookCmd.label                           "Address Book">
-<!ENTITY addressBookCmd.accesskey                       "a">
-<!ENTITY addressBookCmd.key                             "B">

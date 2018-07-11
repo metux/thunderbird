@@ -36,6 +36,12 @@
 <!ENTITY newFeedAccountCmd.accesskey "d">
 <!ENTITY newIMContactCmd.label "Chatkontakt…">
 <!ENTITY newIMContactCmd.accesskey "h">
+<!ENTITY  newMessageCmd2.key "N">
+<!ENTITY  newMessageCmd.key "M">
+<!ENTITY  newMessageCmd.label "Berjocht">
+<!ENTITY  newMessageCmd.accesskey "b">
+<!ENTITY  newContactCmd.label "Adresboekkontakt…">
+<!ENTITY  newContactCmd.accesskey "k">
 <!ENTITY openMessageFileCmd.label "Bewarre berjocht iepenje…">
 <!ENTITY openMessageFileCmd.accesskey "O">
 <!ENTITY saveAsMenu.label "Bewarje as">
@@ -340,10 +346,10 @@
 <!ENTITY cancelNewsMsgCmd.label "Berjocht annulearje">
 <!ENTITY cancelNewsMsgCmd.accesskey "n">
 <!ENTITY replyMsgCmd.label "Beäntwurdzje">
-<!ENTITY replyMsgCmd.accesskey "a">
+<!ENTITY replyMsgCmd.accesskey "w">
 <!ENTITY replyMsgCmd.key "r">
 <!ENTITY replySenderCmd.label "Ofstjoerder beäntwurdzje">
-<!ENTITY replySenderCmd.accesskey "a">
+<!ENTITY replySenderCmd.accesskey "f">
 <!ENTITY replyNewsgroupCmd2.label "Reagearje nei nijsgroep">
 <!ENTITY replyNewsgroupCmd2.accesskey "r">
 <!ENTITY replyToAllMsgCmd.label "Elk beäntwurdzje">
@@ -504,13 +510,11 @@
 <!ENTITY accountManagerCmdUnix2.accesskey "A">
 
 <!-- Developer Tools Submenu -->
-<!ENTITY devtoolsMenu.label "Untwikkelershelpmiddelen">
+<!ENTITY devtoolsMenu.label "Untwikkelersark">
 <!ENTITY devtoolsMenu.accesskey "n">
 <!ENTITY devToolboxCmd.label "Untwikkelersark">
 <!ENTITY devToolboxCmd.accesskey "a">
 <!ENTITY devToolboxCmd.commandkey "i">
-<!ENTITY addonDebugCmd.label "Add-on-debugger">
-<!ENTITY addonDebugCmd.accesskey "A">
 <!ENTITY debugAddonsCmd.label "Add-ons debugge">
 <!ENTITY debugAddonsCmd.accesskey "A">
 <!ENTITY tabsDebugCmd.label "Frame-ynhâlds-debugger">
@@ -645,6 +649,7 @@
 <!-- Folder Pane Context Menu -->
 <!ENTITY folderContextGetMessages.label "Berjochten ophelje">
 <!ENTITY folderContextGetMessages.accesskey "B">
+<!ENTITY folderContextMarkAllFoldersRead.label "Alle mappen as lêzen markearje">
 <!ENTITY folderContextPauseAllUpdates.label "Alle fernijingen pausearje">
 <!ENTITY folderContextPauseUpdates.label "Fernijingen pausearje">
 <!ENTITY folderContextPauseUpdates.accesskey "p">

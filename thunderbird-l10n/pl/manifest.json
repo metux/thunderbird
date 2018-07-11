@@ -32,7 +32,7 @@
         "passwordmgr": "chrome/pl/locale/pl/passwordmgr/", 
         "pippki": "chrome/pl/locale/pl/pippki/"
       }, 
-      "version": "20180313181732"
+      "version": "20180504162335"
     }
   }, 
   "applications": {
@@ -43,7 +43,7 @@
     }
   }, 
   "langpack_id": "pl", 
-  "version": "60.0buildid20180619210809", 
+  "version": "60.0buildid20180709054853", 
   "name": "Polski Language Pack", 
   "manifest_version": 2, 
   "sources": {
