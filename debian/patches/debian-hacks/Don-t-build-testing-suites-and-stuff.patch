@@ -38,7 +38,8 @@ folder out before.
  mozilla/devtools/client/webconsole/net/moz.build           |  6 ++++--
  .../client/webconsole/new-console-output/test/moz.build    | 10 ++++++----
  mozilla/devtools/client/webide/moz.build                   | 14 ++++++++------
- 32 files changed, 118 insertions(+), 54 deletions(-)
+ mozilla/layout/moz.build                                   |  2 +-
+ 33 files changed, 119 insertions(+), 55 deletions(-)
 
 diff --git a/mozilla/devtools/client/aboutdebugging/moz.build b/mozilla/devtools/client/aboutdebugging/moz.build
 index fd180ba..7cf529f 100644
@@ -498,3 +499,13 @@ index c5dcb07..494a003 100644
  
  JS_PREFERENCE_PP_FILES += [
      'webide-prefs.js',
+diff --git a/mozilla/layout/moz.build b/mozilla/layout/moz.build
+index 450c758..32957af 100644
+--- a/mozilla/layout/moz.build
++++ b/mozilla/layout/moz.build
+@@ -39,4 +39,4 @@ DIRS += ['build', 'media']
+ if CONFIG['MOZ_DEBUG']:
+     TEST_DIRS += ['tools/layout-debug']
+ 
+-CRASHTEST_MANIFESTS += ['../testing/crashtest/crashtests.list']
++#CRASHTEST_MANIFESTS += ['../testing/crashtest/crashtests.list']

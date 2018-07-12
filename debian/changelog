@@ -1,3 +1,62 @@
+thunderbird (1:52.9.1-1) unstable; urgency=high
+
+  [ intrigeri ]
+  * [1259eaa] AppArmor: update profile from upstream (at commit edc9487)
+    (Closes: #901471)
+
+  [ Carsten Schoenert ]
+  * [d706f5b] debian/control: increase Standards-Version to 4.1.5
+     No further changes needed.
+  * [f5a3eb2] New upstream version 52.9.1
+    (Closes: #903160)
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Tue, 10 Jul 2018 19:40:41 +0200
+
+thunderbird (1:52.9.0-1) unstable; urgency=high
+
+  [ intrigeri ]
+  * [c33dba2] Revert "apparmor: allow access to @{HOME}/.gnupg/tofu.db"
+  * [cb64397] AppArmor: update profile from upstream (Closes: #900840)
+  * [b5d6545] AppArmor: update profile from upstream (at commit 104da32)
+
+  [ Carsten Schoenert ]
+  * [099b525] d/source.filter: add some more files to filter
+     There are some more files we want to filter out.
+  * [376e5f3] New upstream version 52.9.0
+    Fixed CVE issues in upstream version 52.9 (MFSA 2018-18)
+    CVE-2018-12359: Buffer overflow using computed size of canvas element
+    CVE-2018-12360: Use-after-free when using focus()
+    CVE-2018-12372: S/MIME and PGP decryption oracles can be built with HTML
+                    emails
+    CVE-2018-12373: S/MIME plaintext can be leaked through HTML reply/forward
+    CVE-2018-12362: Integer overflow in SSSE3 scaler
+    CVE-2018-12363: Use-after-free when appending DOM nodes
+    CVE-2018-12364: CSRF attacks through 307 redirects and NPAPI plugins
+    CVE-2018-12365: Compromised IPC child process can list local filenames
+    CVE-2018-12366: Invalid data handling during QCMS transformations
+    CVE-2018-12374: Using form to exfiltrate encrypted mail part by pressing
+                    enter in form field
+    CVE-2018-5188:  Memory safety bugs fixed in Firefox 60, Firefox ESR 60.1,
+                    Firefox ESR 52.9, and Thunderbird 52.9
+  * [83a9c9b] rebuild patch queue from patch-queue branch
+     As we have filtered more files out from the source we need to modify the
+     list of tests we won't to built while built the source too so a small
+     adjustment on that.
+     Also fixing some spelling issues which Lintian has found.
+     modified patches:
+     debian-hacks/Don-t-build-testing-suites-and-stuff.patch
+     porting-alpha/fix-FTBFS-on-alpha.patch
+     porting-kfreebsd-hurd/FTBFS-hurd-fixing-unsupported-platform-Hurd.patch
+     porting-kfreebsd-hurd/ipc-chromium-fix-if-define-for-kFreeBSD-and-Hurd.patch
+     renamed patches:
+     Allow-to-override-ICU_DATA_FILE-from-the-environment.patch ->
+     Allow-one-to-override-ICU_DATA_FILE-from-the-environment.patch
+     fix-function-nsMsgComposeAndSend-to-to-respect-Replo.patch ->
+     fix-function-nsMsgComposeAndSend-to-respect-ReploToSend.patch
+  * [d5254e2] Removed unneded lintian override about brace expansion
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Wed, 04 Jul 2018 21:44:26 +0200
+
 thunderbird (1:52.8.0-1~deb9u1) stretch-security; urgency=medium
 
   [ Carsten Schoenert ]

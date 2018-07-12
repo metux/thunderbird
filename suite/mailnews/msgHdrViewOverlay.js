@@ -4,6 +4,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource:///modules/gloda/utils.js");
 
 /* This is where functions related to displaying the headers for a selected message in the
    message pane live. */
@@ -610,6 +612,24 @@ var messageHeaderSink = {
       }
       if (!currentAttachments.length && this.mSaveHdr)
         this.mSaveHdr.markHasAttachments(false);
+
+      let browser = getBrowser();
+      if (currentAttachments.length &&
+          Services.prefs.getBoolPref("mail.inline_attachments") &&
+          this.mSaveHdr && gFolderDisplay.selectedMessageIsFeed &&
+          browser && browser.contentDocument && browser.contentDocument.body) {
+        for (let img of browser.contentDocument.body.getElementsByClassName("moz-attached-image")) {
+          for (let attachment of currentAttachments) {
+            let partID = img.src.split("&part=")[1];
+            partID = partID ? partID.split("&")[0] : null;
+            if (attachment.partID && partID == attachment.partID) {
+              img.src = attachment.url;
+              break;
+            }
+          }
+        }
+      }
+
       OnMsgParsed(url);
     },
 
@@ -618,9 +638,9 @@ var messageHeaderSink = {
       OnMsgLoaded(url);
     },
 
-    onMsgHasRemoteContent: function(aMsgHdr, aContentURI)
+    onMsgHasRemoteContent: function(aMsgHdr, aContentURI, aCanOverride)
     {
-      gMessageNotificationBar.setRemoteContentMsg(aMsgHdr, aContentURI);
+      gMessageNotificationBar.setRemoteContentMsg(aMsgHdr, aContentURI, aCanOverride);
     },
 
     mSecurityInfo  : null,
@@ -1347,12 +1367,41 @@ function createNewAttachmentInfo(contentType, url, displayName, uri,
                                  isExternalAttachment, size)
 {
   this.contentType = contentType;
-  this.url = url;
   this.displayName = displayName;
   this.uri = uri;
   this.isExternalAttachment = isExternalAttachment;
   this.attachment = this;
   this.size = size;
+  let match;
+
+  // Remote urls, unlike non external mail part urls, may also contain query
+  // strings starting with ?; PART_RE does not handle this.
+  if (url.startsWith("http") || url.startsWith("file")) {
+    match = url.match(/[?&]part=[^&]+$/);
+    match = match && match[0];
+    this.partID = match && match.split("part=")[1];
+    url = url.replace(match, "");
+  }
+  else {
+    match = GlodaUtils.PART_RE.exec(url);
+    this.partID = match && match[1];
+  }
+
+  // Make sure to communicate it if it's an external http attachment and not a
+  // local attachment. For feeds attachments (enclosures) are always remote,
+  // so there is nothing to communicate.
+  if (isExternalAttachment && url.startsWith("http") &&
+      !gFolderDisplay.selectedMessageIsFeed) {
+    if (this.displayName) {
+      this.displayName = url + " - " + this.displayName;
+    }
+    else {
+      this.displayName = url;
+    }
+  }
+
+  this.url = url;
+
 }
 
 createNewAttachmentInfo.prototype.saveAttachment = function saveAttachment()

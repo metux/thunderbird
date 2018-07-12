@@ -2,7 +2,7 @@ From: Carsten Schoenert <c.schoenert@t-online.de>
 Date: Sun, 3 Aug 2014 11:32:05 +0200
 Subject: fix FTBFS on alpha
 
-The jmalloc compiler fails on the alpha platform do missmatch of the
+The jmalloc compiler fails on the alpha platform do mismatch of the
 page size. This happen do incorrect settings for alpha
 http://buildd.debian-ports.org/status/fetch.php?pkg=icedove&arch=alpha&ver=31.0~b2-1&stamp=1406501764
 

@@ -17,7 +17,7 @@ fixes/Load-dependent-libraries-with-their-real-path-to-avo.patch
 prefs/Set-javascript.options.showInConsole.patch
 prefs/Don-t-auto-disable-extensions-in-system-directories.patch
 fixes/Bug-628252-os2.cc-fails-to-compile-against-GCC-4.6-m.patch
-fixes/fix-function-nsMsgComposeAndSend-to-to-respect-Replo.patch
+fixes/fix-function-nsMsgComposeAndSend-to-respect-ReploToSend.patch
 porting-kfreebsd-hurd/ipc-chromium-fix-if-define-for-kFreeBSD-and-Hurd.patch
 debian-hacks/remove-non-free-W3C-icon-valid.png.patch
 porting-kfreebsd-hurd/FTBFS-hurd-fixing-unsupported-platform-Hurd.patch
@@ -30,7 +30,7 @@ porting-hppa/FTBFS-hppa-xpcshell-segfaulting-during-make-install.patch
 porting-arm64/Bug-1257055-Use-jit-arm64-Architecture-arm64.h-on-non-JIT.patch
 porting-m68k/Add-m68k-support-to-Thunderbird.patch
 debian-hacks/Don-t-build-testing-suites-and-stuff.patch
-debian-hacks/Allow-to-override-ICU_DATA_FILE-from-the-environment.patch
+debian-hacks/Allow-one-to-override-ICU_DATA_FILE-from-the-environment.patch
 debian-hacks/use-icudt-b-l-.dat-depending-on-architecture.patch
 debian-hacks/Force-use-the-i686-rust-target.patch
 debian-hacks/Build-against-system-libjsoncpp.patch

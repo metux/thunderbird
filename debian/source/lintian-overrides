@@ -26,7 +26,3 @@ source: source-is-missing mozilla/js/src/octane/*
 # no JS files
 source: source-is-missing mozilla/modules/libpref/init/all.js *
 source: source-is-missing mozilla/browser/app/profile/firefox.js *
-
-# this is no brace expansion
-source: brace-expansion-in-debhelper-config-file debian/calendar-google-provider.links
-source: brace-expansion-in-debhelper-config-file debian/lightning.links
