@@ -1,3 +1,28 @@
+thunderbird (1:60.0~b10-1) experimental; urgency=medium
+
+  [ intrigeri ]
+  * [596869d] AppArmor: update profile from upstream (at commit edc9487)
+    (Closes: #901471)
+
+  [ Carsten Schoenert ]
+  * [57195ff] New upstream version 60.0~b10
+  * [770c9a6] rebuild patch queue from patch-queue branch
+    added patches:
+    porting-arm64/Bug-1463036-Use-HAVE_ARM_NEON-instead-of-BUILD_ARM_NEON-f.patch
+    porting-armel/Avoid-using-vmrs-vmsr-on-armel.patch
+    porting-armel/Bug-1463035-Remove-MOZ_SIGNAL_TRAMPOLINE.-r-darchons.patch
+    porting-armel/Bug-1463036-Add-mfloat-abi-softfp-to-NEON_FLAGS-when-it-m.patch
+  * [7fa6ebd] debian/control: increase Standards-Version to 4.1.5
+     No further changes needed.
+  * [22e701c] c-l-l10n-t.sh: adjust the path to the python helper
+     Adjust the shell script helper to use the changed path to makeversion.py.
+  * [90a1d9e] sticky prefs: use the new syntax in vendor.js
+     The syntax for locked preferences has been changed a while ago, it's
+     time to adjust the entry within vendor.js to disable automatic updates
+     for AddOns.
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Thu, 12 Jul 2018 17:52:27 +0200
+
 thunderbird (1:60.0~b9-2) experimental; urgency=medium
 
   [ intrigeri ]
