@@ -17,7 +17,7 @@ LANG_COUNT=0
 CURDIR_FULL=`pwd`
 CURDIR=$(basename `pwd`)
 MOZILLA_CDN_PROTO="https://"
-MOZILLA_CDN_BASE="download-origin.cdn.mozilla.net/pub/calendar/"
+MOZILLA_CDN_BASE="download-origin.cdn.mozilla.net/pub/thunderbird"
 
 # default package name
 XPI=lightning.xpi
@@ -159,52 +159,42 @@ debug "Lightning version: ... ${LN_VERSION}"
 # ORIGDIR   -> the directory for the plain needed content of the ${LANG},
 #              will be used for the debian.orig.tar.xz
 
-export TMPDIR=$(mktemp --tmpdir=/tmp -d)/
-       UNPACKDIR=${TMPDIR}unpack/
+export TMPDIR="${HOME}/tmp/tb-lightning-tmp"
+       UNPACKDIR="${TMPDIR}/${TB_VERSION}/unpack/"
+       TBARCHIVEDIR="${TMPDIR}"
        ORIGDIR="${TMPDIR}${BASE_PKG}-${VERSION}/${BASE_PKG}"
-
-# download Lightning from the CDN of Mozilla
+echo ${TMPDIR}
+# download Thunderbird precompiled archives from the CDN of Mozilla
 if [ -n "${DOWNLOAD}" ]; then
     rm -f ${XPI}
     if [ -n "${EXPERIMENTAL}" ]; then
-        # The beta Lightning packages can have various builds for one version,
-        # we want at least the last build of a beta version. Also there are
-        # packages for every single language instead of one single file without
-        # all languages.
-        # getting the latest build inside a release candidates
-        debug "${MOZILLA_CDN_PROTO}${MOZILLA_CDN_BASE}/lightning/candidates/${LN_VERSION}-candidates/"
-        RET=`curl -L --silent "${MOZILLA_CDN_PROTO}${MOZILLA_CDN_BASE}/lightning/candidates/${LN_VERSION}-candidates/" \
-             | grep "build" | awk '{print $2}' | tr '<>/"' ' ' | awk '{print $8}' | tail -1`
-        if [ "$?" = "0" -a "${RET}" != "" ]; then
-            DIRECTORY=`echo ${RET} | tr ' ' '\n' | head -1`
-            DATE=`echo ${RET} | tr ' ' '\n' | tail -1`
-            debug "found directory '${LN_VERsion}-candidates/${DIRECTORY}' from '${DATE}'"
-            debug "creating ${UNPACKDIR}"
-            mkdir -p ${UNPACKDIR}
-            debug "going downloading *.xpi files from ${MOZILLA_CDN_PROTO}${MOZILLA_CDN_BASE}/lightning/candidates/${LN_VERSION}-candidates/${DIRECTORY}/linux-i686/"
-            cd /tmp
-            # going to download the files, creating a list of the XPI files first
-            XPI_LIST=`curl -L --silent ${MOZILLA_CDN_PROTO}${MOZILLA_CDN_BASE}/lightning/candidates/${LN_VERSION}-candidates/${DIRECTORY}/linux-i686/ | grep "lightning-" | awk '{print $2}' | tr '<>"' ' ' | awk '{print $2}'`
-            for i in ${XPI_LIST}; do
-                wget -m -r -l 1 -A xpi https://download-origin.cdn.mozilla.net${i}
-            done
+        debug "${MOZILLA_CDN_PROTO}${MOZILLA_CDN_BASE}/releases/${TB_VERSION}/linux-i686"
+        debug "creating ${UNPACKDIR}"
+        mkdir -p ${UNPACKDIR}lightning-l10n
+        debug "going downloading Thunderbird archives from ${MOZILLA_CDN_PROTO}${MOZILLA_CDN_BASE}/releases/${TB_VERSION}/linux-i686/"
+        cd ${TMPDIR}
+        # going to download the files
+        LIST=`curl -L --silent "${MOZILLA_CDN_PROTO}${MOZILLA_CDN_BASE}/releases/${TB_VERSION}/linux-i686/" | grep "<td><a href=" | grep "linux-i686" | awk '{print $2}' | grep -v xpi | tr '"' ' ' | awk '{print $2}'`
+        for i in ${LIST}; do
+            LANG=`echo $i | cut -d '/' -f7`
+            ARCHIVEDIR="${TBARCHIVEDIR}/${LANG}"
+            echo "download https://download-origin.cdn.mozilla.net${i}thunderbird-${TB_VERSION}.tar.bz2 into ${ARCHIVEDIR}"
+            wget -N -P ${ARCHIVEDIR} https://download-origin.cdn.mozilla.net${i}thunderbird-${TB_VERSION}.tar.bz2
 
-            # unpack all files
-            for XPIFILE in `ls /tmp/download-origin.cdn.mozilla.net/pub/calendar/lightning/candidates/${LN_VERSION}-candidates/${DIRECTORY}/linux-i686/lightning-*.xpi`; do
-                LANG=`basename ${XPIFILE} | sed s/lightning-${LN_VERSION}.// | sed s/.linux-i686.xpi//`
-                debug "extracting '`basename ${XPIFILE}`' to '${UNPACKDIR}/${LANG}'"
-                mkdir -p ${UNPACKDIR}/${LANG}
-                unzip -q -o -d ${UNPACKDIR}/${LANG} ${XPIFILE} || fail "Oops! Failed to unzip ${XPIFILE}"
-            done
-            cd ${TMPDIR}
-        else
-            fail "Couldn't find version ${LN_VERSION}, correct version for option '-e' selected?"
-        fi
-    else
-        # getting the stable version
-        wget -O${XPI} ${MOZILLA_CDN_PROTO}${MOZILLA_CDN_BASE}/lightning/releases/${LN_VERSION}/linux/${XPI}
-        XPI=$(readlink -f ${XPI})
-        echo "XPI saved to: ${XPI}"
+            UNPACKSTEP1="${UNPACKDIR}/${LANG}-step1"
+            debug "creating ${UNPACKSTEP1}"
+            mkdir ${UNPACKSTEP1}
+            debug "unpack ${LANG}/thunderbird-${TB_VERSION}.tar.bz2 into ${UNPACKSTEP1}"
+            tar -xjf ${LANG}/thunderbird-${TB_VERSION}.tar.bz2 -C ${UNPACKSTEP1}
+
+            UNPACKSTEP2="${UNPACKDIR}/${LANG}-step2"
+            debug "creating ${UNPACKSTEP2}"
+            mkdir "${UNPACKSTEP2}"
+            unzip -q -o -d "${UNPACKSTEP2}" "${UNPACKSTEP1}/thunderbird/distribution/extensions/{e2fda1a4-762b-4020-b5ad-a41df1933103}.xpi"
+            debug "creating ${UNPACKDIR}/lightning-l10n/${LANG}/chrome"
+            mkdir -p ${UNPACKDIR}lightning-l10n/${LANG}/chrome
+            cp -a ${UNPACKSTEP2}/chrome/calendar-${LANG} ${UNPACKSTEP2}/chrome/lightning-${LANG}  ${UNPACKDIR}/lightning-l10n/${LANG}/chrome
+        done
     fi
 else
     if [ "${FILE}" != "" ]; then
@@ -224,7 +214,7 @@ if [ "$EXPERIMENTAL" != "1" ]; then
 fi
 
 # getting the versions
-TB_VER=$(grep -A2 '{3550f703-e582-4d05-9a08-453d09bdfdc6}' ${UNPACKDIR}/en-US*/install.rdf)
+TB_VER=$(grep -A2 '{3550f703-e582-4d05-9a08-453d09bdfdc6}' ${UNPACKDIR}en-US-step2/install.rdf)
 if [ "$?" != "0" ]; then
     debug "error"
     debug "UNPACKDIR: ${UNPACKDIR}"
@@ -232,22 +222,9 @@ if [ "$?" != "0" ]; then
 fi
 
 # shipped with lightning already, removing the folder 'en-US'
-debug "removing language 'en-US' ${UNPACKDIR}en-US"
-rm -rf ${UNPACKDIR}en-US*
-
-LANG=`ls ${UNPACKDIR}`
-debug "moving extracted source into directory for tarball creation"
-for i in ${LANG}; do
-    echo "processing l10n folder ${ORIGDIR}/locale/${i}"
-    TARGET_DIR=${ORIGDIR}/${i%.xpi}
-    TARGET_LANG=${i%.xpi}
-    # creating the folder for the l10n files in the target directory
-    debug "creating folder '${TARGET_DIR}'"
-    mkdir -p ${TARGET_DIR}/chrome
-    for FOLDER in $(find ${UNPACKDIR}${i}/chrome -type d -name *-${TARGET_LANG}); do
-        cp -a "${FOLDER}" "${TARGET_DIR}/chrome"
-    done
-done
+debug "removing language 'en-US' ${UNPACKDIR}lightning-l10n/en-US"
+rm -rf ${UNPACKDIR}lightning-l10n/en-US*
+mv ${UNPACKDIR}lightning-l10n/* ${ORIGDIR}
 
 debug "creating 'thunderbird_${VERSION}.orig-${BASE_PKG}.tar.xz'"
 TARBALL="../thunderbird_${VERSION}.orig-${BASE_PKG}.tar.xz"
@@ -273,7 +250,7 @@ echo "     (language count: ${LANG_COUNT})"
 
 # always remove temporary things
 debug "cleanup ..."
-rm -rf ${TMPDIR}
+rm -rf ${TMPDIR}/*
 
 echo "done."
 
