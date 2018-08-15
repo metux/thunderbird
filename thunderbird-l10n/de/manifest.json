@@ -38,12 +38,12 @@
   "applications": {
     "gecko": {
       "strict_min_version": "60.0", 
-      "id": "langpack-de@firefox.mozilla.org", 
+      "id": "langpack-de@thunderbird.mozilla.org", 
       "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "de", 
-  "version": "60.0buildid20180709054853", 
+  "version": "60.0buildid20180731173940", 
   "name": "Deutsch (DE) Language Pack", 
   "manifest_version": 2, 
   "sources": {

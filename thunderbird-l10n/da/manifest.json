@@ -38,12 +38,12 @@
   "applications": {
     "gecko": {
       "strict_min_version": "60.0", 
-      "id": "langpack-da@firefox.mozilla.org", 
+      "id": "langpack-da@thunderbird.mozilla.org", 
       "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "da", 
-  "version": "60.0buildid20180709054853", 
+  "version": "60.0buildid20180731173940", 
   "name": "Dansk (da) Language Pack", 
   "manifest_version": 2, 
   "sources": {

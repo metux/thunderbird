@@ -3,6 +3,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
+ChromeUtils.import("resource://gre/modules/Services.jsm");
+
+XPCOMUtils.defineLazyModuleGetters(this, {
+  Downloads: "resource://gre/modules/Downloads.jsm",
+  FileUtils: "resource://gre/modules/FileUtils.jsm",
+});
+
 //******** define a js object to implement nsITreeView
 function pageInfoTreeView(copycol)
 {
@@ -838,52 +846,66 @@ function onBeginLinkDrag(event,urlField,descField)
 }
 
 //******** Image Stuff
-function getSelectedImage(tree)
-{
-  if (!gImageView.rowCount)
-    return null;
+function getSelectedRows(tree) {
+  var start = { };
+  var end   = { };
+  var numRanges = tree.view.selection.getRangeCount();
 
-  // Only works if only one item is selected
-  var clickedRow = tree.currentIndex;
-  // image-node
-  return gImageView.data[clickedRow][COL_IMAGE_NODE];
+  var rowArray = [ ];
+  for (var t = 0; t < numRanges; t++) {
+    tree.view.selection.getRangeAt(t, start, end);
+    for (var v = start.value; v <= end.value; v++)
+      rowArray.push(v);
+  }
+
+  return rowArray;
+}
+
+function getSelectedRow(tree) {
+  var rows = getSelectedRows(tree);
+  return (rows.length == 1) ? rows[0] : -1;
 }
 
 function selectSaveFolder(aCallback) {
-  const nsIFile = Ci.nsIFile;
-  const nsIFilePicker = Ci.nsIFilePicker;
-  let titleText = gBundle.getString("mediaSelectFolder");
-  let fp = Cc["@mozilla.org/filepicker;1"]
-             .createInstance(nsIFilePicker);
-  let fpCallback = function fpCallback_done(aResult) {
-    if (aResult == nsIFilePicker.returnOK) {
-      aCallback(fp.file.QueryInterface(nsIFile));
-    } else {
-      aCallback(null);
-    }
-  };
+  return selectSaveFolderTask(aCallback).catch(Cu.reportError);
+}
 
-  fp.init(window, titleText, nsIFilePicker.modeGetFolder);
-  fp.appendFilters(nsIFilePicker.filterAll);
+async function selectSaveFolderTask(aCallback) {
+  let titleText = gBundle.getString("mediaSelectFolder");
+  let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
+
+  fp.init(window, titleText, Ci.nsIFilePicker.modeGetFolder);
+  fp.appendFilters(Ci.nsIFilePicker.filterAll);
   try {
-    let prefs = Cc[PREFERENCES_CONTRACTID]
-                  .getService(Ci.nsIPrefBranch);
-    let initialDir = prefs.getComplexValue("browser.download.dir", nsIFile);
-    if (initialDir) {
-      fp.displayDirectory = initialDir;
+    let prefs = Cc[PREFERENCES_CONTRACTID].getService(Ci.nsIPrefBranch);
+    let initialDir = prefs.getComplexValue("browser.download.dir",
+                                           Ci.nsIFile);
+    if (!initialDir) {
+      let downloadsDir = await Downloads.getSystemDownloadsDirectory();
+      initialDir = new FileUtils.File(downloadsDir);
     }
+
+    fp.displayDirectory = initialDir;
   } catch (ex) {
   }
-  fp.open(fpCallback);
+
+  let result = await new Promise(resolve => fp.open(resolve));
+
+  if (result == Ci.nsIFilePicker.returnOK) {
+    aCallback(fp.file.QueryInterface(Ci.nsIFile));
+  } else {
+    aCallback(null);
+  }
 }
 
 function saveMedia()
 {
   var tree = document.getElementById("imagetree");
-  var count = tree.view.selection.count;
-  if (count == 1) {
-    var item = getSelectedImage(tree);
-    var url = gImageView.data[tree.currentIndex][COL_IMAGE_ADDRESS];
+  var rowArray = getSelectedRows(tree);
+  if (rowArray.length == 1) {
+    let row = rowArray[0];
+    let item = gImageView.data[row][COL_IMAGE_NODE];
+    let url = gImageView.data[row][COL_IMAGE_ADDRESS];
 
     if (url) {
       let titleKey = "SaveImageTitle";
@@ -893,16 +915,17 @@ function saveMedia()
       else if (item instanceof HTMLAudioElement)
         titleKey = "SaveAudioTitle";
 
-      saveURL(url, null, titleKey, false, true, makeURI(item.baseURI),
-              gDocument);
+      saveURL(url, null, titleKey, false, false, makeURI(item.baseURI),
+              null, (opener.gPrivate ? true : false));
     }
   } else {
     selectSaveFolder(function(aDirectory) {
       if (aDirectory) {
         var saveAnImage = function(aURIString, aChosenData, aBaseURI) {
           uniqueFile(aChosenData.file);
-          internalSave(aURIString, null, null, null, null, false, "SaveImageTitle",
-                       aChosenData, aBaseURI, null, false, null, gDocument.isContentWindowPrivate);
+          internalSave(aURIString, null, null, null, null, false,
+                       "SaveImageTitle", aChosenData, aBaseURI, null, false,
+                       null, (opener.gPrivate ? true : false));
         };
 
         for (var i = 0; i < rowArray.length; i++) {
@@ -1225,8 +1248,9 @@ function getContentTypeFromHeaders(cacheEntryDescriptor)
   if (!cacheEntryDescriptor)
     return null;
 
-  return (/^Content-Type:\s*(.*?)\s*(?:\;|$)/mi
-          .exec(cacheEntryDescriptor.getMetaDataElement("response-head")))[1];
+  let headers = cacheEntryDescriptor.getMetaDataElement("response-head");
+  let type = /^Content-Type:\s*(.*?)\s*(?:\;|$)/mi.exec(headers);
+  return type && type[1];
 }
 
 //******** Other Misc Stuff

@@ -38,12 +38,12 @@
   "applications": {
     "gecko": {
       "strict_min_version": "60.0", 
-      "id": "langpack-be@firefox.mozilla.org", 
+      "id": "langpack-be@thunderbird.mozilla.org", 
       "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "be", 
-  "version": "60.0buildid20180709054853", 
+  "version": "60.0buildid20180731173940", 
   "name": "Беларуская Language Pack", 
   "manifest_version": 2, 
   "sources": {

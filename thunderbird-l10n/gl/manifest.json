@@ -32,18 +32,18 @@
         "passwordmgr": "chrome/gl/locale/gl/passwordmgr/", 
         "pippki": "chrome/gl/locale/gl/pippki/"
       }, 
-      "version": "20180502171351"
+      "version": "20180506091242"
     }
   }, 
   "applications": {
     "gecko": {
       "strict_min_version": "60.0", 
-      "id": "langpack-gl@firefox.mozilla.org", 
+      "id": "langpack-gl@thunderbird.mozilla.org", 
       "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "gl", 
-  "version": "60.0buildid20180709054853", 
+  "version": "60.0buildid20180731173940", 
   "name": "Galego (España) Language Pack", 
   "manifest_version": 2, 
   "sources": {

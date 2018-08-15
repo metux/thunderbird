@@ -38,12 +38,12 @@
   "applications": {
     "gecko": {
       "strict_min_version": "60.0", 
-      "id": "langpack-ar@firefox.mozilla.org", 
+      "id": "langpack-ar@thunderbird.mozilla.org", 
       "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "ar", 
-  "version": "60.0buildid20180709054853", 
+  "version": "60.0buildid20180731173940", 
   "name": "العربية Language Pack", 
   "manifest_version": 2, 
   "sources": {

@@ -667,7 +667,6 @@ Throbber-small.gif
   @DIR_MACOS@components/nsSetDefault.js
   @DIR_MACOS@components/nsSidebar.js
   @DIR_MACOS@components/nsSMTPProtocolHandler.js
-  @DIR_MACOS@components/nsSuiteDownloadManagerUI.js
   @DIR_MACOS@components/nsSuiteGlue.js
   @DIR_MACOS@components/nsTaggingService.js
   @DIR_MACOS@components/nsTryToClose.js
@@ -699,7 +698,6 @@ Throbber-small.gif
   @DIR_MACOS@defaults/pref/services-aitc.js
   @DIR_MACOS@defaults/pref/services-notifications.js
   @DIR_MACOS@defaults/pref/smime.js
-  @DIR_MACOS@defaults/pref/suite-l10n.js
   @DIR_MACOS@defaults/autoconfig/
   @DIR_MACOS@defaults/autoconfig/platform.js
   @DIR_MACOS@defaults/autoconfig/prefcalls.js
@@ -947,10 +945,6 @@ Throbber-small.gif
   @DIR_MACOS@modules/ctypes.jsm
   @DIR_MACOS@modules/debug.js
   @DIR_MACOS@modules/dictUtils.js
-  @DIR_MACOS@modules/DownloadLastDir.jsm
-  @DIR_MACOS@modules/DownloadPaths.jsm
-  @DIR_MACOS@modules/DownloadTaskbarProgress.jsm
-  @DIR_MACOS@modules/DownloadUtils.jsm
   @DIR_MACOS@modules/errUtils.js
   @DIR_MACOS@modules/FileUtils.jsm
   @DIR_MACOS@modules/folderUtils.jsm

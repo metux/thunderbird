@@ -76,6 +76,8 @@
   ; VirtualStore directory.
   ${CleanVirtualStore}
 
+  ${RemoveDeprecatedFiles}
+
   ; Register AccessibleHandler.dll with COM (this writes to HKLM)
   ${RegisterAccessibleHandler}
 !macroend
@@ -354,7 +356,7 @@
 
   ; An empty string is used for the 5th param because SeaMonkeyEML is not a
   ; protocol handler
-  ${AddHandlerValues} "$0\SeaMonkeyEML"  "$1" "$INSTDIR\chrome\icons\default\misc-file.ico,0" "${AppRegNameMail} Document" "" ""
+  ${AddHandlerValues} "$0\SeaMonkeyEML"  "$1" "$INSTDIR\chrome\icons\default\html-file.ico,0" "${AppRegNameMail} Document" "" ""
 
   ${AddHandlerValues} "$0\SeaMonkeyCOMPOSE" "$2" "$8,0" "${AppRegNameMail} URL" "delete" ""
 
@@ -719,7 +721,7 @@
   ${IsHandlerForInstallDir} "SeaMonkeyEML" $R9
   ${If} "$R9" == "true"
     ${AddHandlerValues} "SOFTWARE\Classes\SeaMonkeyEML" "$2" \
-                        "$INSTDIR\chrome\icons\default\misc-file.ico,0" \
+                        "$INSTDIR\chrome\icons\default\html-file.ico,0" \
                         "${AppRegNameMail} Document" "" ""
   ${EndIf}
 
@@ -791,6 +793,25 @@
   ${EndIf}
 !macroend
 !define RemoveDeprecatedKeys "!insertmacro RemoveDeprecatedKeys"
+
+; Removes various directories and files for reasons noted below.
+!macro RemoveDeprecatedFiles
+  ; Remove the Java Console extension (bug 1165156)
+  FindFirst $0 $1 "$INSTDIR\extensions\{CAFEEFAC-00*-0000-*-ABCDEFFEDCBA}"
+  loopDirs:
+  StrCmp $1 "" doneDirs
+  ${If} ${FileExists} "$INSTDIR\extensions\$1"
+    !ifndef NO_LOG
+      ${LogMsg} "Removing Java console edition in: $INSTDIR\extensions\$1"
+    !endif
+    RmDir /r /REBOOTOK "$INSTDIR\extensions\$1"
+  ${EndIf}
+  FindNext $0 $1
+  Goto loopDirs
+  doneDirs:
+  FindClose $0
+!macroend
+!define RemoveDeprecatedFiles "!insertmacro RemoveDeprecatedFiles"
 
 !macro FixClassKeys
   StrCpy $0 "SOFTWARE\Classes"
@@ -873,7 +894,7 @@
   ${EndUnless}
 
   StrCpy $1 "$\"$8$\" $\"%1$\""
-  ${AddHandlerValues} "$0\SeaMonkeyEML" "$1" "$INSTDIR\chrome\icons\default\misc-file.ico,0" "${AppRegNameMail} Document" "" ""
+  ${AddHandlerValues} "$0\SeaMonkeyEML" "$1" "$INSTDIR\chrome\icons\default\html-file.ico,0" "${AppRegNameMail} Document" "" ""
 
   StrCpy $1 "$\"$8$\" -osint -mail $\"%1$\""
   ${AddHandlerValues} "$0\SeaMonkeyNEWS" "$1" "$8,0" "${AppRegNameNews} URL" "delete" ""

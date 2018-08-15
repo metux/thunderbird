@@ -35,6 +35,12 @@ win32/opt:
         platform: windows2012-32/opt
         symbol: B
         tier: 1
+    stub-installer:
+        # Beta and release use a stub-requiring update channel
+        by-project:
+            default: false
+            mozilla-beta: true
+            mozilla-release: true
     worker-type: aws-provisioner-v1/gecko-{level}-b-win2012
     worker:
         max-run-time: 7200
@@ -208,6 +214,13 @@ win32-nightly/opt:
         type: nightly
     attributes:
         nightly: true
+    stub-installer:
+        by-project:
+            default: false
+            mozilla-central: true
+            try: true
+            mozilla-beta: true
+            mozilla-release: true
     shipping-phase: build
     shipping-product: firefox
     treeherder:
@@ -527,7 +540,7 @@ win64-asan/debug:
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win64.py
             - builds/taskcluster_sub_win64/asan_debug.py
-    run-on-projects: []
+    run-on-projects: ['trunk', 'try']
     toolchains:
         - win64-clang-cl
         - win64-rust
@@ -557,7 +570,7 @@ win64-asan/opt:
             - builds/taskcluster_base_windows.py
             - builds/taskcluster_base_win64.py
             - builds/taskcluster_sub_win64/asan_opt.py
-    run-on-projects: []
+    run-on-projects: ['trunk', 'try']
     toolchains:
         - win64-clang-cl
         - win64-rust
@@ -571,6 +584,13 @@ win32-devedition-nightly/opt:
         type: nightly
     attributes:
         nightly: true
+    stub-installer:
+        by-project:
+            default: false
+            mozilla-central: true
+            try: true
+            mozilla-beta: true
+            mozilla-release: true
     shipping-phase: build
     shipping-product: devedition
     treeherder:

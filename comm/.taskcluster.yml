@@ -97,9 +97,9 @@ tasks:
           # to `mach taskgraph decision` are all on the command line.
           $merge:
             - GECKO_BASE_REPOSITORY: 'https://hg.mozilla.org/mozilla-unified'
-              GECKO_HEAD_REPOSITORY: 'https://hg.mozilla.org/releases/mozilla-beta'
+              GECKO_HEAD_REPOSITORY: 'https://hg.mozilla.org/releases/mozilla-esr60'
               GECKO_HEAD_REF: 'THUNDERBIRD_60_VERBRANCH'
-              GECKO_HEAD_REV: '2c8aae6167b7024ccecad5d020a2dfa7d5cfbddd'
+              GECKO_HEAD_REV: 'abae8941234801d8aa5b6cfd8cc49ef62bc48e62'
               COMM_BASE_REPOSITORY: 'https://hg.mozilla.org/comm-central'
               COMM_HEAD_REPOSITORY: '${repoUrl}'
               COMM_HEAD_REF: '${push.revision}'

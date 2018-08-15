@@ -263,6 +263,12 @@ var contentTabBaseType = {
     function (aDocument, aTab) {
       // Switch off the context menu.
       aTab.browser.removeAttribute("context");
+
+      // Fix the "Search on addons.mozilla.org" placeholder text in the searchbox.
+      let textbox = aDocument.getElementById("header-search");
+      let placeholder = textbox.getAttribute("placeholder");
+      placeholder = placeholder.replace("addons.mozilla.org", "addons.thunderbird.net");
+      textbox.setAttribute("placeholder", placeholder);
     },
 
     // Let's not mess with about:blank.

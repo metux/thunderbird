@@ -38,12 +38,12 @@
   "applications": {
     "gecko": {
       "strict_min_version": "60.0", 
-      "id": "langpack-es-AR@firefox.mozilla.org", 
+      "id": "langpack-es-AR@thunderbird.mozilla.org", 
       "strict_max_version": "60.*"
     }
   }, 
   "langpack_id": "es-AR", 
-  "version": "60.0buildid20180709054853", 
+  "version": "60.0buildid20180731173940", 
   "name": "Español (AR) Language Pack", 
   "manifest_version": 2, 
   "sources": {

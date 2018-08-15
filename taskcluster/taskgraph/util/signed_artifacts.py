@@ -18,7 +18,7 @@ def generate_specifications_of_artifacts_to_sign(
     task, keep_locale_template=True, kind=None
 ):
     build_platform = task.attributes.get('build_platform')
-    is_nightly = task.attributes.get('nightly')
+    use_stub = task.attributes.get('stub-installer')
     if kind == 'release-source-signing':
         artifacts_specifications = [{
             'artifacts': [
@@ -56,7 +56,8 @@ def generate_specifications_of_artifacts_to_sign(
             ],
             'formats': ['sha2signcode', 'widevine'],
         }]
-        if 'win32' in build_platform and is_nightly:
+
+        if use_stub:
             artifacts_specifications[0]['artifacts'] += [
                 get_artifact_path(task, '{locale}/setup-stub.exe')
             ]

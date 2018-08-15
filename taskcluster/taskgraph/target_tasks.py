@@ -57,6 +57,8 @@ def filter_beta_release_tasks(task, parameters, ignore_kinds=None, allow_l10n=Fa
             # On beta, Nightly builds are already PGOs
             'linux-pgo', 'linux64-pgo',
             'win32-pgo', 'win64-pgo',
+            # ASAN is central-only
+            'linux64-asan-reporter-nightly',
             ):
         return False
     if str(platform).startswith('android') and 'nightly' in str(platform):
@@ -67,6 +69,9 @@ def filter_beta_release_tasks(task, parameters, ignore_kinds=None, allow_l10n=Fa
             'macosx64',
             'win32', 'win64',
             ):
+        if task.attributes['kind'] == 'l10n':
+            # This is on-change l10n
+            return True
         if task.attributes['build_type'] == 'opt' and \
            task.attributes.get('unittest_suite') != 'talos':
             return False
@@ -388,11 +393,6 @@ def target_tasks_promote_fennec(full_task_graph, parameters, graph_config):
         if attr("locale") or attr("chunk_locales"):
             return False
         if task.label in filtered_for_project:
-            # bug 1438023 - old-id should only run on central.
-            # We can remove this hack when shippable builds land and we
-            # are using run-on-projects properly here.
-            if 'old-id' in task.label:
-                return False
             if task.kind not in ('balrog', 'push-apk'):
                 if task.attributes.get('nightly'):
                     return True
@@ -557,5 +557,5 @@ def target_tasks_file_update(full_task_graph, parameters, graph_config):
     """
     def filter(task):
         # For now any task in the repo-update kind is ok
-        return task.kind in ['repo-update', 'repo-update-bb']
+        return task.kind in ['repo-update']
     return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]

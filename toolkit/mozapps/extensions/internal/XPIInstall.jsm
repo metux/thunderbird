@@ -2686,9 +2686,9 @@ UpdateChecker.prototype = {
     XPIProvider.done(this.addon._updateCheck);
     this.addon._updateCheck = null;
     let AUC = AddonUpdateChecker;
-
     let ignoreMaxVersion = false;
-    let ignoreStrictCompat = false;
+    // Ignore strict compatibility for dictionaries by default.
+    let ignoreStrictCompat = (this.addon.type == "dictionary");
     if (!AddonManager.checkCompatibility) {
       ignoreMaxVersion = true;
       ignoreStrictCompat = true;

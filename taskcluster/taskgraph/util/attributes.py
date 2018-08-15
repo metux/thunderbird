@@ -18,8 +18,10 @@ RELEASE_PROJECTS = {
     'mozilla-central',
     'mozilla-beta',
     'mozilla-release',
+    'mozilla-esr60',
     'comm-central',
     'comm-beta',
+    'comm-esr60',
 }
 
 RELEASE_PROMOTION_PROJECTS = {
@@ -36,6 +38,7 @@ _OPTIONAL_ATTRIBUTES = (
     'signed',
     'shipping_phase',
     'shipping_product',
+    'stub-installer',
 )
 
 

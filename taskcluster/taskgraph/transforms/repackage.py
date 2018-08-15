@@ -138,8 +138,13 @@ def make_job_description(config, jobs):
         # have better beetmover support.
         dependencies.update(signing_dependencies)
 
+        attributes = copy_attributes_from_dependent_job(dep_job)
+
         treeherder = job.get('treeherder', {})
-        treeherder.setdefault('symbol', 'Nr')
+        if attributes.get('nightly'):
+            treeherder.setdefault('symbol', 'Nr')
+        else:
+            treeherder.setdefault('symbol', 'Rpk')
         dep_th_platform = dep_job.task.get('extra', {}).get(
             'treeherder', {}).get('machine', {}).get('platform', '')
         treeherder.setdefault('platform', "{}/opt".format(dep_th_platform))
@@ -185,8 +190,11 @@ def make_job_description(config, jobs):
 
         worker = {
             'env': _generate_task_env(dep_job, build_platform, build_task_ref,
-                                      signing_task_ref, locale=locale),
-            'artifacts': _generate_task_output_files(dep_job, build_platform, locale=locale),
+                                      signing_task_ref, locale=locale,
+                                      project=config.params["project"]),
+            'artifacts': _generate_task_output_files(dep_job, build_platform,
+                                                     locale=locale,
+                                                     project=config.params["project"]),
             'chain-of-trust': True,
             'max-run-time': 7200 if build_platform.startswith('win') else 3600,
         }
@@ -199,9 +207,7 @@ def make_job_description(config, jobs):
             worker_type = 'aws-provisioner-v1/gecko-%s-b-win2012' % level
             run['use-magic-mh-args'] = False
         else:
-            if build_platform.startswith('macosx'):
-                worker_type = 'aws-provisioner-v1/gecko-%s-b-macosx64' % level
-            elif build_platform.startswith('linux'):
+            if build_platform.startswith(('linux', 'macosx')):
                 worker_type = 'aws-provisioner-v1/gecko-%s-b-linux' % level
             else:
                 raise NotImplementedError(
@@ -242,7 +248,8 @@ def make_job_description(config, jobs):
         yield task
 
 
-def _generate_task_env(task, build_platform, build_task_ref, signing_task_ref, locale=None):
+def _generate_task_env(task, build_platform, build_task_ref, signing_task_ref, locale=None,
+                       project=None):
     mar_prefix = get_taskcluster_artifact_prefix(
         task, build_task_ref, postfix='host/bin/', locale=None
     )
@@ -263,17 +270,21 @@ def _generate_task_env(task, build_platform, build_task_ref, signing_task_ref, l
             'UNSIGNED_MAR': {'task-reference': '{}mar.exe'.format(mar_prefix)},
         }
 
-        # Stub installer is only generated on win32
-        if '32' in build_platform:
+        use_stub = task.attributes.get('stub-installer')
+        if use_stub:
             task_env['SIGNED_SETUP_STUB'] = {
                 'task-reference': '{}setup-stub.exe'.format(signed_prefix),
             }
+        elif '32' in build_platform:
+            # Stub installer is only attempted on win32
+            task_env['NO_STUB_INSTALLER'] = '1'
+
         return task_env
 
     raise NotImplementedError('Unsupported build_platform: "{}"'.format(build_platform))
 
 
-def _generate_task_output_files(task, build_platform, locale=None):
+def _generate_task_output_files(task, build_platform, locale=None, project=None):
     locale_output_path = '{}/'.format(locale) if locale else ''
     artifact_prefix = get_artifact_prefix(task)
 
@@ -304,8 +315,8 @@ def _generate_task_output_files(task, build_platform, locale=None):
             'name': '{}/{}target.complete.mar'.format(artifact_prefix, locale_output_path),
         }]
 
-        # Stub installer is only generated on win32
-        if '32' in build_platform:
+        use_stub = task.attributes.get('stub-installer')
+        if use_stub:
             output_files.append({
                 'type': 'file',
                 'path': '{}/{}target.stub-installer.exe'.format(

@@ -24,13 +24,15 @@ transforms = TransformSequence()
 # In the rare event that we do ship a point
 # release to beta, we need to either:
 # 1) update these regexes to match that specific version
-# 2) pass a second include version that matches that specifivc version
+# 2) pass a second include version that matches that specific version
 INCLUDE_VERSION_REGEXES = {
     "beta": r"'^(\d+\.\d+(b\d+)?)$'",
     "nonbeta": r"'^\d+\.\d+(\.\d+)?$'",
     # Same as beta, except excludes 58.0b1 due to issues with it not being able
     # to update to latest
     "devedition_hack": r"'^((?!58\.0b1$)\d+\.\d+(b\d+)?)$'",
+    # Same as nonbeta, except for the esr suffix
+    "esr": r"'^\d+\.\d+(\.\d+)?esr$'",
 }
 
 MAR_CHANNEL_ID_OVERRIDE_REGEXES = {
@@ -53,8 +55,9 @@ def add_command(config, tasks):
         "updater-platform",
     ]
 
+    release_config = get_release_config(config)
+
     for task in tasks:
-        release_config = get_release_config(config)
         task["description"] = "generate update verify config for {}".format(
             task["attributes"]["build_platform"]
         )
@@ -63,7 +66,6 @@ def add_command(config, tasks):
             "cd", "/builds/worker/checkouts/gecko", "&&"
             "./mach", "python",
             "testing/mozharness/scripts/release/update-verify-config-creator.py",
-            "--config", "internal_pypi.py",
             "--product", task["extra"]["product"],
             "--stage-product", task["shipping-product"],
             "--app-name", task["extra"]["app-name"],
@@ -91,9 +93,12 @@ def add_command(config, tasks):
 
         for arg in keyed_by_args:
             thing = "extra.{}".format(arg)
-            extra = config.params.copy()
-            extra["build-platform"] = task["attributes"]["build_platform"]
-            resolve_keyed_by(task, thing, thing, **extra)
+            resolve_keyed_by(
+                task, thing,
+                item_name=task['name'],
+                project=config.params['project'],
+                platform=task['attributes']['build_platform'],
+            )
             # ignore things that resolved to null
             if not task["extra"].get(arg):
                 continue
