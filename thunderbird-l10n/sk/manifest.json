@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "sk": {
+      "chrome_resources": {
+        "necko": "chrome/sk/locale/sk/necko/", 
+        "global": "chrome/sk/locale/sk/global/", 
+        "messenger-region": "chrome/sk/locale/sk/messenger-region/", 
+        "chat": "chrome/sk/locale/sk/chat/", 
+        "devtools": "chrome/sk/locale/sk/devtools/client/", 
+        "pipnss": "chrome/sk/locale/sk/pipnss/", 
+        "messenger-smime": "chrome/sk/locale/sk/messenger-smime/", 
+        "messenger-newsblog": "chrome/sk/locale/sk/messenger-newsblog/", 
+        "devtools-shim": "chrome/sk/locale/sk/devtools/shim/", 
+        "alerts": "chrome/sk/locale/sk/alerts/", 
+        "messenger": "chrome/sk/locale/sk/messenger/", 
+        "editor": "chrome/sk/locale/sk/editor/", 
+        "branding": "chrome/sk/locale/sk/branding/", 
+        "mozldap": "chrome/sk/locale/sk/mozldap/", 
+        "autoconfig": "chrome/sk/locale/sk/autoconfig/", 
+        "devtools-shared": "chrome/sk/locale/sk/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/sk/locale/sk/global-platform/win/", 
+          "android": "chrome/sk/locale/sk/global-platform/unix/", 
+          "macosx": "chrome/sk/locale/sk/global-platform/mac/", 
+          "linux": "chrome/sk/locale/sk/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/sk/locale/sk/mozapps/", 
+        "pluginproblem": "chrome/sk/locale/sk/pluginproblem/", 
+        "communicator": "chrome/sk/locale/sk/communicator/", 
+        "messenger-mapi": "chrome/sk/locale/sk/messenger-mapi/", 
+        "places": "chrome/sk/locale/sk/places/", 
+        "passwordmgr": "chrome/sk/locale/sk/passwordmgr/", 
+        "pippki": "chrome/sk/locale/sk/pippki/"
+      }, 
+      "version": "20180505101258"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-sk@firefox.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "sk", 
+  "version": "60.0buildid20180709054853", 
+  "name": "Slovak (SK) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "Mozilla.sk (contributors: Team Mozilla.sk)", 
+  "description": "Language pack for Thunderbird for sk"
+}

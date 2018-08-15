@@ -51,8 +51,8 @@
 <!ENTITY getAllNewMsgCmdPopupMenu.accesskey "A">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.label "Account corrente">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.accesskey "C">
-<!ENTITY getNextNMsgCmd.label "Scarica le successive 500 news">
-<!ENTITY getNextNMsgCmd.accesskey "5">
+<!ENTITY getNextNMsgCmd2.label "Scarica nuovi messaggi di news">
+<!ENTITY getNextNMsgCmd2.accesskey "n">
 <!ENTITY sendUnsentCmd.label "Invia posta in uscita">
 <!ENTITY sendUnsentCmd.accesskey "U">
 <!ENTITY subscribeCmd.label "Sottoscrivi…">
@@ -128,7 +128,7 @@
 <!ENTITY redoDefaultCmd.accesskey "R">
 
 <!-- View Menu -->
-<!ENTITY menubarCmd.label "Barra del menu">
+<!ENTITY menubarCmd.label "Barra dei menu">
 <!ENTITY menubarCmd.accesskey "B">
 <!ENTITY showMessengerToolbarCmd.label "Barra dei messaggi">
 <!ENTITY showMessengerToolbarCmd.accesskey "m">
@@ -317,7 +317,7 @@
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goChatCmd.label "Chat">
 <!ENTITY goChatCmd.accesskey "c">
-<!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Messaggio speciale">
 <!ENTITY prevStarredMsgCmd.accesskey "S">
 <!ENTITY folderMenu.label "Cartelle di posta">
@@ -366,6 +366,10 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Modifica bozza messaggio">
 <!ENTITY editDraftMsgCmd.accesskey "E">
+<!ENTITY editTemplateMsgCmd.label "Modifica modello">
+<!ENTITY editTemplateMsgCmd.accesskey "m">
+<!ENTITY newMsgFromTemplateCmd.label "Nuovo messaggio da modello">
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Crea un filtro dal messaggio…">
 <!ENTITY createFilter.accesskey "f">
 <!ENTITY moveMsgToMenu.label "Sposta in">
@@ -378,7 +382,7 @@
 <!ENTITY copyMsgToMenu.accesskey "C">
 <!ENTITY moveToFolderAgain.label "Sposta di nuovo">
 <!ENTITY moveToFolderAgain.accesskey "d">
-<!ENTITY moveToFolderAgainCmd.key "p">
+<!ENTITY moveToFolderAgainCmd.key "m">
 <!ENTITY killThreadMenu.label "Ignora la discussione">
 <!ENTITY killThreadMenu.accesskey "o">
 <!ENTITY killThreadMenu.key "k">
@@ -387,7 +391,7 @@
 <!ENTITY killSubthreadMenu.key "k">
 <!ENTITY watchThreadMenu.label "Tieni d'occhio la discussione">
 <!ENTITY watchThreadMenu.accesskey "O">
-<!ENTITY watchThreadMenu.key "O">
+<!ENTITY watchThreadMenu.key "w">
 <!ENTITY tagMenu.label "Etichetta">
 <!ENTITY tagMenu.accesskey "h">
 <!ENTITY tagCmd0.key "0">
@@ -432,7 +436,7 @@
 <!ENTITY openMessageWindowCmd.key "o">
 <!ENTITY openConversationCmd.label "Apri nella conversazione">
 <!ENTITY openConversationCmd.accesskey "z">
-<!ENTITY openConversationCmd.key "A">
+<!ENTITY openConversationCmd.key "o">
 <!ENTITY openAttachmentListCmd.label "Allegati">
 <!ENTITY openAttachmentListCmd.accesskey "l">
 <!ENTITY openFeedMessage1.label "Quando si aprono messaggi di feed">
@@ -457,6 +461,11 @@
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "Componenti aggiuntivi">
 <!ENTITY addons.accesskey "c">
+<!ENTITY addonPrefs.label "Opzioni componente aggiuntivo">
+<!ENTITY addonPrefs.accesskey "O">
+<!ENTITY addonPrefsUnix.label "Preferenze componente aggiuntivo">
+<!ENTITY addonPrefsUnix.accesskey "P">
+<!ENTITY addonNoPrefs.label "Nessuna impostazione trovata per il componente aggiuntivo.">
 <!ENTITY activitymanager.label "Registro attività">
 <!ENTITY activitymanager.accesskey "v">
 <!ENTITY imAccountsStatus.label "Stato chat">
@@ -499,9 +508,11 @@
 <!ENTITY devtoolsMenu.accesskey "u">
 <!ENTITY devToolboxCmd.label "Cassetta degli strumenti di sviluppo">
 <!ENTITY devToolboxCmd.accesskey "C">
-<!ENTITY devToolboxCmd.commandkey "c">
+<!ENTITY devToolboxCmd.commandkey "i">
 <!ENTITY addonDebugCmd.label "Add-on Debugger">
 <!ENTITY addonDebugCmd.accesskey "A">
+<!ENTITY debugAddonsCmd.label "Componenti aggiuntivi di debug">
+<!ENTITY debugAddonsCmd.accesskey "m">
 <!ENTITY tabsDebugCmd.label "Tab di debug del contenuto">
 <!ENTITY tabsDebugCmd.accesskey "T">
 <!ENTITY errorConsoleCmd.label "Console degli errori">
@@ -634,6 +645,9 @@
 <!-- Folder Pane Context Menu -->
 <!ENTITY folderContextGetMessages.label "Scarica messaggi">
 <!ENTITY folderContextGetMessages.accesskey "c">
+<!ENTITY folderContextPauseAllUpdates.label "Metti in pausa tutti gli aggiornamenti">
+<!ENTITY folderContextPauseUpdates.label "Metti in pausa gli aggiornamenti">
+<!ENTITY folderContextPauseUpdates.accesskey "A">
 <!ENTITY folderContextOpenInNewWindow.label "Apri in una nuova finestra">
 <!ENTITY folderContextOpenInNewWindow.accesskey "A">
 <!ENTITY folderContextOpenNewTab.label "Apri in una nuova scheda">
@@ -731,12 +745,13 @@
 <!ENTITY attachmentColumn2.tooltip "Ordina per allegato">
 
 <!-- Thread Pane Context Menu -->
+<!ENTITY contextNewMsgFromTemplate.label "Nuovo messaggio da modello">
 <!ENTITY contextOpenNewWindow.label "Apri il messaggio in una nuova finestra">
 <!ENTITY contextOpenNewWindow.accesskey "f">
-<!-- The key potentially conflicts with cutCmd.accessKey which is defined in
-     textcontext.dtd from toolkit. Right now, both menu items can't be visible
-     at the same time, but should someone enable copy/paste of message, this key
-     would probably need to be changed. -->
+<!-- The contextOpenNewTab.accesskey ("T") potentially conflicts with
+     cutCmd.accessKey which is defined in textcontext.dtd from toolkit. Right
+     now, both menu items can't be visible at the same time, but should someone
+     enable copy/paste of message, this key would probably need to be changed. -->
 <!ENTITY contextOpenNewTab.label "Apri il messaggio in una nuova scheda">
 <!ENTITY contextOpenNewTab.accesskey "u">
 <!ENTITY contextOpenConversation.label "Apri il messaggio nella conversazione">
@@ -746,6 +761,8 @@
 <!ENTITY contextEditMsgAsNew.label "Modifica come nuovo messaggio">
 <!ENTITY contextEditMsgAsNew.accesskey "M">
 <!ENTITY contextEditDraftMsg.label "Modifica bozza messaggio">
+<!ENTITY contextEditTemplate.label "Modifica modello">
+<!ENTITY contextEditTemplate.accesskey "m">
 <!ENTITY contextArchive.label "Archivia">
 <!ENTITY contextArchive.accesskey "c">
 <!ENTITY contextReplySender.label "Rispondi solo al mittente">
@@ -773,7 +790,7 @@
 <!ENTITY contextCopyMsgMenu.label "Copia in">
 <!ENTITY contextCopyMsgMenu.accesskey "n">
 <!ENTITY contextKillThreadMenu.label "Ignora la discussione">
-<!ENTITY contextKillSubthreadMenu.accesskey "b">
+<!ENTITY contextKillSubthreadMenu.accesskey "d">
 <!ENTITY contextKillThreadMenu.accesskey "I">
 <!ENTITY contextKillSubthreadMenu.label "Ignora le sotto discussioni">
 <!ENTITY contextWatchThreadMenu.label "Tieni d'occhio la discussione">
@@ -949,3 +966,5 @@
 
 <!-- Mac OS X Dock Icon pop-up menu -->
 <!ENTITY dockOptions.label              "Opzioni icona applicazione…">
+<!ENTITY writeNewMessageDock.label      "Scrivi un nuovo messaggio">
+<!ENTITY openAddressBookDock.label      "Apri Rubrica">

@@ -3,6 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <!-- LOCALIZATION NOTE (tapToPlayPlugin): Mobile (used for touch interfaces) only has one type of plugin possible. -->
 
+<!ENTITY pluginActivationWarning                             "Úsáideann an suíomh seo forlíontán a chuireann moill ar &brandShortName;.">
 <!ENTITY tapToPlayPlugin                                     "Tapáil anseo chun an forlíontán a chur i ngníomh.">
 <!ENTITY clickToActivatePlugin                               "Gníomhachtaigh an forlíontán.">
 <!ENTITY checkForUpdates                                     "Lorg nuashonruithe…">
@@ -14,7 +15,7 @@
 <!-- LOCALIZATION NOTE (reloadPlugin.post): include a starting space as needed -->
 
 <!ENTITY reloadPlugin.pre                                    "">
-<!ENTITY reloadPlugin.middle                                 "Athluchtaigh an leathanach">
+<!ENTITY reloadPlugin.middle                                 "Athlódáil an leathanach">
 <!ENTITY reloadPlugin.post                                   " chun triail eile a bhaint as.">
 <!-- LOCALIZATION NOTE (report.please): This and the other report.* strings should be as short as possible, ideally 2-3 words. -->
 <!ENTITY report.please                                       "Seol tuairisc tuairteála">
@@ -29,3 +30,4 @@
 <!ENTITY plugin.file                                         "Comhad">
 <!ENTITY plugin.mimeTypes                                    "Cineálacha MIME">
 <!ENTITY plugin.flashProtectedMode.label                     "Cumasaigh mód cosanta Adobe Flash">
+<!ENTITY plugin.enableBlocklists.label                       "Cuir cosc ar ábhar Flash atá contúirteach nó treallúsach">

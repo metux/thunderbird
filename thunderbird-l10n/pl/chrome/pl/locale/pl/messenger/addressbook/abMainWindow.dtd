@@ -36,7 +36,7 @@
 <!ENTITY printPreviewAddressBook.accesskey "P">
 <!ENTITY printContactCmd.label "Drukuj wizytówkę…">
 <!ENTITY printContactCmd.accesskey "D">
-<!ENTITY printContactCmd.key "D">
+<!ENTITY printContactCmd.key "P">
 <!ENTITY printAddressBook.label "Drukuj książkę adresową…">
 <!ENTITY printAddressBook.accesskey "a">
 
@@ -118,6 +118,9 @@
 <!ENTITY messengerCmd.label "Poczta i grupy dyskusyjne">
 <!ENTITY messengerCmd.accesskey "P">
 <!ENTITY messengerCmd.commandkey "1">
+<!ENTITY addressBookCmd.label "Książka adresowa">
+<!ENTITY addressBookCmd.accesskey "K">
+<!ENTITY addressBookCmd.key "B">
 <!ENTITY searchAddressesCmd.label "Wyszukaj wizytówki…">
 <!ENTITY searchAddressesCmd.accesskey "S">
 <!ENTITY importCmd.label "Importuj…">
@@ -133,6 +136,8 @@
 <!ENTITY newContactButton.accesskey "N">
 <!ENTITY newlistButton.label "Nowa lista dystrybucyjna">
 <!ENTITY newlistButton.accesskey "l">
+<!ENTITY showAsDefault.label "Domyślnie uruchamiany katalog">
+<!ENTITY showAsDefault.accesskey "o">
 <!ENTITY editPropertiesButton.label "Edytuj">
 <!ENTITY propertiesContext.label "Właściwości">
 <!ENTITY propertiesContext.accesskey "W">
@@ -173,8 +178,8 @@
 <!ENTITY GeneratedName.accesskey "n">
 <!ENTITY PrimaryEmail.label "E-mail">
 <!ENTITY PrimaryEmail.accesskey "E">
-<!ENTITY ChatName.label "Nazwa czat">
-<!ENTITY ChatName.accesskey "C">
+<!ENTITY ChatName.label "Nazwa komunikatora">
+<!ENTITY ChatName.accesskey "k">
 <!ENTITY Company.label "Firma/Organizacja">
 <!ENTITY Company.accesskey "O">
 <!ENTITY NickName.label "Pseudonim">
@@ -205,7 +210,7 @@
 <!ENTITY contact.heading "Kontakt">
 <!ENTITY home.heading "Dom">
 <!ENTITY other.heading "Inne">
-<!ENTITY chat.heading "Czat">
+<!ENTITY chat.heading "Komunikator">
 <!ENTITY phone.heading "Telefon">
 <!ENTITY work.heading "Praca">
 <!ENTITY description.heading "Opis">

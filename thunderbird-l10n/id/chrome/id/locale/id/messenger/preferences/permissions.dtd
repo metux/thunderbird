@@ -26,11 +26,10 @@
 
 
 
-<!ENTITY button.cancel.accesskey      "C">
-
-<!ENTITY button.cancel.label          "Cancel">
-<!ENTITY button.ok.accesskey          "S">
-<!ENTITY button.ok.label              "Save Changes">
-<!ENTITY session.accesskey            "n">
-<!ENTITY session.label                "Allow for Session">
 <!ENTITY window.width                 "45em">
+<!ENTITY session.label                "Allow for Session">
+<!ENTITY session.accesskey            "n">
+<!ENTITY button.cancel.label          "Cancel">
+<!ENTITY button.cancel.accesskey      "C">
+<!ENTITY button.ok.label              "Save Changes">
+<!ENTITY button.ok.accesskey          "S">

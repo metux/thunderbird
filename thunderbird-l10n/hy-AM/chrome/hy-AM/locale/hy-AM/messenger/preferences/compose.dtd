@@ -55,6 +55,9 @@
 <!ENTITY editDirectories.label                 "Խմբագրել թղթապանակները...">
 <!ENTITY editDirectories.accesskey             "E">
 
+
+
+
 <!ENTITY sendOptionsDescription.label          "Կարգավորել տեքստայինի վարքը">
 <!ENTITY sendOptions.label                     "Ուղարկելու ընտրանքներ...">
 <!ENTITY sendOptions.accesskey                 "S">
@@ -63,3 +66,7 @@
 <!ENTITY attachmentReminder.accesskey          "m">
 <!ENTITY attachmentReminderOptions.label       "Հիմնաբառեր...">
 <!ENTITY attachmentReminderOptions.accesskey   "K">
+
+<!ENTITY showAsDefault.label                   "Default startup directory in the address book window:">
+<!ENTITY showAsDefault.accesskey               "S">
+<!ENTITY showAsDefaultLast.label               "Last used directory">

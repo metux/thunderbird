@@ -4,8 +4,9 @@
 
 <!ENTITY closeNotification.tooltip "Dùin an teachdaireachd seo">
 
-<!ENTITY closeNotificationItem.label "Chan ann an-dràsta">
-
 <!ENTITY checkForUpdates "Lorg ùrachaidhean…">
 
 <!ENTITY learnMore "Barrachd fiosrachaidh…">
+
+<!ENTITY defaultButton.label "Ceart ma-thà!">
+<!ENTITY defaultButton.accesskey "C">

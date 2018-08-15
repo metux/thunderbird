@@ -40,3 +40,6 @@
 <!ENTITY smtpName.label "Uitgaande server (SMTP):">
 <!ENTITY smtpName.accesskey "S">
 <!ENTITY smtpDefaultServer.label "Standaardserver gebruiken">
+
+<!ENTITY smtpServerEdit.label "SMTP-server bewerken…">
+<!ENTITY smtpServerEdit.accesskey "P">

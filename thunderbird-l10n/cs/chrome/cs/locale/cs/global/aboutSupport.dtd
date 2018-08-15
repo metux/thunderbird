@@ -23,11 +23,23 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionName "Název">
 <!ENTITY aboutSupport.extensionEnabled "Povoleno">
 <!ENTITY aboutSupport.extensionVersion "Verze">
-<!ENTITY aboutSupport.extensionId "Id">
+<!ENTITY aboutSupport.extensionId "ID">
+
+<!ENTITY aboutSupport.securitySoftwareTitle "Bezpečnostní software">
+<!ENTITY aboutSupport.securitySoftwareType "Typ">
+<!ENTITY aboutSupport.securitySoftwareName "Název">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivir">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
+
+<!ENTITY aboutSupport.featuresTitle "Funkce aplikace &brandShortName;">
+<!ENTITY aboutSupport.featureName "Název">
+<!ENTITY aboutSupport.featureVersion "Verze">
+<!ENTITY aboutSupport.featureId "ID">
 
 <!ENTITY aboutSupport.experimentsTitle "Experimentální funkce">
 <!ENTITY aboutSupport.experimentName "Název">
-<!ENTITY aboutSupport.experimentId "Id">
+<!ENTITY aboutSupport.experimentId "ID">
 <!ENTITY aboutSupport.experimentDescription "Popis">
 <!ENTITY aboutSupport.experimentActive "Aktivní">
 <!ENTITY aboutSupport.experimentEndDate "Koncové datum">
@@ -37,7 +49,7 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.appBasicsTitle "Stručně o aplikaci">
 <!ENTITY aboutSupport.appBasicsName "Název">
 <!ENTITY aboutSupport.appBasicsVersion "Verze">
-<!ENTITY aboutSupport.appBasicsBuildID "Id buildu">
+<!ENTITY aboutSupport.appBasicsBuildID "ID sestavení">
 
 <!-- LOCALIZATION NOTE (aboutSupport.appBasicsUpdateChannel, aboutSupport.appBasicsUpdateHistory, aboutSupport.appBasicsShowUpdateHistory):
 "Update" is a noun here, not a verb. -->
@@ -65,6 +77,13 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Multiprocesová okna">
 
+<!ENTITY aboutSupport.appBasicsProcessCount "Procesy pro webový obsah">
+
+<!ENTITY aboutSupport.enterprisePolicies "Podniková pravidla">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Klíč Google">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Klíč Mozilla Location Service">
+
 <!ENTITY aboutSupport.appBasicsSafeMode "Nouzový režim">
 
 <!ENTITY aboutSupport.showDir.label "Otevřít adresář">
@@ -90,7 +109,7 @@ variant of aboutSupport.showDir.label. -->
 
 <!ENTITY aboutSupport.graphicsTitle "Grafika">
 
-<!ENTITY aboutSupport.placeDatabaseTitle "Databáze umístění">
+<!ENTITY aboutSupport.placeDatabaseTitle "Databáze Places">
 <!ENTITY aboutSupport.placeDatabaseIntegrity "Integrita">
 <!ENTITY aboutSupport.placeDatabaseVerifyIntegrity "Zkontrolovat integritu">
 
@@ -100,6 +119,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "Přístupnost">
 <!ENTITY aboutSupport.a11yActivated "Aktivována">
 <!ENTITY aboutSupport.a11yForceDisabled "Zakázána">
+<!ENTITY aboutSupport.a11yHandlerUsed "Použito ovládání přístupnosti">
+<!ENTITY aboutSupport.a11yInstantiator "Zavaděč pro přístupnost">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Verze knihoven">
 
@@ -110,6 +131,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Zkopírovat data do schránky">
 
 <!ENTITY aboutSupport.sandboxTitle "Sandbox">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Odmítnutá systémová volání">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "Před pár vteřinami">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Typ procesu">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Systémové volání">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Argumenty">
 
 <!ENTITY aboutSupport.safeModeTitle "Vyzkoušet nouzový režim">
 <!ENTITY aboutSupport.restartInSafeMode.label "Restartovat se zakázanými doplňky…">
@@ -119,6 +148,29 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsFailureLogTitle "Protokol chyb">
 <!ENTITY aboutSupport.graphicsGPU1Title "GPU #1">
 <!ENTITY aboutSupport.graphicsGPU2Title "GPU #2">
-<!ENTITY aboutSupport.graphicsDecisionLogTitle "Decision Log">
+<!ENTITY aboutSupport.graphicsDecisionLogTitle "Protokol rozhodování">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Zakázat funkce Crash Guard">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Možná řešení">
+
+<!ENTITY aboutSupport.mediaTitle "Média">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Výstupní zařízení">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Vstupní zařízení">
+<!ENTITY aboutSupport.mediaDeviceName "Název">
+<!ENTITY aboutSupport.mediaDeviceGroup "Skupina">
+<!ENTITY aboutSupport.mediaDeviceVendor "Výrobce">
+<!ENTITY aboutSupport.mediaDeviceState "Stav">
+<!ENTITY aboutSupport.mediaDevicePreferred "Preferováno">
+<!ENTITY aboutSupport.mediaDeviceFormat "Formát">
+<!ENTITY aboutSupport.mediaDeviceChannels "Kanály">
+<!ENTITY aboutSupport.mediaDeviceRate "Vzorkování">
+<!ENTITY aboutSupport.mediaDeviceLatency "Prodleva">
+
+<!ENTITY aboutSupport.intlTitle "Internacionalizace a lokalizace">
+<!ENTITY aboutSupport.intlAppTitle "Nastavení aplikace">
+<!ENTITY aboutSupport.intlLocalesRequested "Požadované jazyky">
+<!ENTITY aboutSupport.intlLocalesAvailable "Dostupné jazyky">
+<!ENTITY aboutSupport.intlLocalesSupported "Jazyky aplikace">
+<!ENTITY aboutSupport.intlLocalesDefault "Výchozí jazyk">
+<!ENTITY aboutSupport.intlOSTitle "Operační systém">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Jazyky systému">
+<!ENTITY aboutSupport.intlRegionalPrefs "Předvolby regionu">

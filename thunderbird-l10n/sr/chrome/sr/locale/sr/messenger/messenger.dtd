@@ -36,6 +36,12 @@
 <!ENTITY newFeedAccountCmd.accesskey "д">
 <!ENTITY newIMContactCmd.label "Контакт за ћаскање…">
 <!ENTITY newIMContactCmd.accesskey "к">
+<!ENTITY  newMessageCmd2.key "N">
+<!ENTITY  newMessageCmd.key "M">
+<!ENTITY  newMessageCmd.label "Порука">
+<!ENTITY  newMessageCmd.accesskey "р">
+<!ENTITY  newContactCmd.label "Контакт у именику…">
+<!ENTITY  newContactCmd.accesskey "К">
 <!ENTITY openMessageFileCmd.label "Отвори сачувану поруку…">
 <!ENTITY openMessageFileCmd.accesskey "О">
 <!ENTITY saveAsMenu.label "Сачувај као">
@@ -51,8 +57,8 @@
 <!ENTITY getAllNewMsgCmdPopupMenu.accesskey "л">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.label "Тренутни налог">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.accesskey "Т">
-<!ENTITY getNextNMsgCmd.label "Добави следећих 500 новинских порука">
-<!ENTITY getNextNMsgCmd.accesskey "х">
+<!ENTITY getNextNMsgCmd2.label "Добави следеће новинске поруке">
+<!ENTITY getNextNMsgCmd2.accesskey "б">
 <!ENTITY sendUnsentCmd.label "Пошаљи непослате поруке">
 <!ENTITY sendUnsentCmd.accesskey "и">
 <!ENTITY subscribeCmd.label "Претплати се…">
@@ -118,8 +124,8 @@
 <!ENTITY redoDeleteMsgCmd.label "Понови брисање поруке">
 <!ENTITY undoMoveMsgCmd.label "Опозови померање поруке">
 <!ENTITY redoMoveMsgCmd.label "Поново померање поруке">
-<!ENTITY undoCopyMsgCmd.label "Опозови умножавање поруке">
-<!ENTITY redoCopyMsgCmd.label "Поново умножавање поруке">
+<!ENTITY undoCopyMsgCmd.label "Опозови копирање поруке">
+<!ENTITY redoCopyMsgCmd.label "Поново копирај поруку">
 <!ENTITY undoMarkAllCmd.label "Опозови означавање свега као прочитано">
 <!ENTITY redoMarkAllCmd.label "Поново означавање свега као прочитано">
 <!ENTITY undoDefaultCmd.label "Опозови">
@@ -191,8 +197,8 @@
 <!ENTITY sortByJunkStatusCmd.accesskey "е">
 <!ENTITY sortBySubjectCmd.label "Наслов">
 <!ENTITY sortBySubjectCmd.accesskey "в">
-<!ENTITY sortByFromCmd.label "Од">
-<!ENTITY sortByFromCmd.accesskey "О">
+<!ENTITY sortByFromCmd.label "Шаље">
+<!ENTITY sortByFromCmd.accesskey "а">
 <!ENTITY sortByRecipientCmd.label "Прималац">
 <!ENTITY sortByRecipientCmd.accesskey "ц">
 <!ENTITY sortByCorrespondentCmd.label "Дописници">
@@ -317,7 +323,7 @@
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goChatCmd.label "Ћаскање">
 <!ENTITY goChatCmd.accesskey "к">
-<!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Порука са звездицом">
 <!ENTITY prevStarredMsgCmd.accesskey "з">
 <!ENTITY folderMenu.label "Фасцикла">
@@ -366,15 +372,19 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Уреди нацрт">
 <!ENTITY editDraftMsgCmd.accesskey "ц">
+<!ENTITY editTemplateMsgCmd.label "Уреди шаблон">
+<!ENTITY editTemplateMsgCmd.accesskey "б">
+<!ENTITY newMsgFromTemplateCmd.label "Нова порука из шаблона">
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Направи филтер из поруке…">
 <!ENTITY createFilter.accesskey "а">
 <!ENTITY moveMsgToMenu.label "Помери у">
 <!ENTITY moveMsgToMenu.accesskey "е">
 <!ENTITY moveCopyMsgRecentMenu.label "Скорашње">
 <!ENTITY moveCopyMsgRecentMenu.accesskey "С">
-<!ENTITY copyMessageLocation.label "Умножи локацију поруке">
+<!ENTITY copyMessageLocation.label "Копирај локацију поруке">
 <!ENTITY copyMessageLocation.accesskey "п">
-<!ENTITY copyMsgToMenu.label "Умножи у">
+<!ENTITY copyMsgToMenu.label "Копирај у">
 <!ENTITY copyMsgToMenu.accesskey "У">
 <!ENTITY moveToFolderAgain.label "Помери поново">
 <!ENTITY moveToFolderAgain.accesskey "н">
@@ -457,6 +467,11 @@
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "Додаци">
 <!ENTITY addons.accesskey "Д">
+<!ENTITY addonPrefs.label "Поставке додатка">
+<!ENTITY addonPrefs.accesskey "П">
+<!ENTITY addonPrefsUnix.label "Поставке додатка">
+<!ENTITY addonPrefsUnix.accesskey "П">
+<!ENTITY addonNoPrefs.label "Поставке додатка нису пронађене.">
 <!ENTITY activitymanager.label "Управник активностима">
 <!ENTITY activitymanager.accesskey "в">
 <!ENTITY imAccountsStatus.label "Стање ћаскања">
@@ -500,8 +515,8 @@
 <!ENTITY devToolboxCmd.label "Програмерска алатница">
 <!ENTITY devToolboxCmd.accesskey "т">
 <!ENTITY devToolboxCmd.commandkey "i">
-<!ENTITY addonDebugCmd.label "Поправљач грешака додатака">
-<!ENTITY addonDebugCmd.accesskey "П">
+<!ENTITY debugAddonsCmd.label "Поправљај грешке додатака">
+<!ENTITY debugAddonsCmd.accesskey "г">
 <!ENTITY tabsDebugCmd.label "Поправљач грешака кадрова садржаја">
 <!ENTITY tabsDebugCmd.accesskey "г">
 <!ENTITY errorConsoleCmd.label "Конзола са грешкама">
@@ -634,6 +649,10 @@
 <!-- Folder Pane Context Menu -->
 <!ENTITY folderContextGetMessages.label "Добави поруке">
 <!ENTITY folderContextGetMessages.accesskey "Д">
+<!ENTITY folderContextMarkAllFoldersRead.label "Означи све фасцикле као прочитане">
+<!ENTITY folderContextPauseAllUpdates.label "Паузирај сва ажурирања">
+<!ENTITY folderContextPauseUpdates.label "Паузирај ажурирања">
+<!ENTITY folderContextPauseUpdates.accesskey "П">
 <!ENTITY folderContextOpenInNewWindow.label "Отвори у новом прозору">
 <!ENTITY folderContextOpenInNewWindow.accesskey "О">
 <!ENTITY folderContextOpenNewTab.label "Отвори у новом језичку">
@@ -678,16 +697,16 @@
 
 <!-- Quick Search Menu Bar -->
 <!ENTITY searchSubjectMenu.label "Наслов">
-<!ENTITY searchFromMenu.label "Од">
-<!ENTITY searchSubjectOrFromMenu.label "Наслов или Од">
-<!ENTITY searchRecipient.label "За или Коп">
+<!ENTITY searchFromMenu.label "Шаље">
+<!ENTITY searchSubjectOrFromMenu.label "Наслов или пошиљалац">
+<!ENTITY searchRecipient.label "Прима или Коп">
 <!ENTITY searchSubjectOrRecipientMenu.label "Наслов, За или Коп">
 <!ENTITY searchMessageBody.label "Цела порука">
 <!ENTITY saveAsVirtualFolderMenu.label "Сачувај претрагу као фасциклу…">
 
 <!-- Thread Pane -->
 <!ENTITY threadColumn.label "Нит">
-<!ENTITY fromColumn.label "Од">
+<!ENTITY fromColumn.label "Шаље">
 <!ENTITY recipientColumn.label "Прималац">
 <!ENTITY correspondentColumn.label "Дописници">
 <!ENTITY subjectColumn.label "Наслов">
@@ -731,12 +750,13 @@
 <!ENTITY attachmentColumn2.tooltip "Поређај по прилозима">
 
 <!-- Thread Pane Context Menu -->
+<!ENTITY contextNewMsgFromTemplate.label "Нова порука из шаблона">
 <!ENTITY contextOpenNewWindow.label "Отвори поруку у новом прозору">
 <!ENTITY contextOpenNewWindow.accesskey "з">
-<!-- The key potentially conflicts with cutCmd.accessKey which is defined in
-     textcontext.dtd from toolkit. Right now, both menu items can't be visible
-     at the same time, but should someone enable copy/paste of message, this key
-     would probably need to be changed. -->
+<!-- The contextOpenNewTab.accesskey ("T") potentially conflicts with
+     cutCmd.accessKey which is defined in textcontext.dtd from toolkit. Right
+     now, both menu items can't be visible at the same time, but should someone
+     enable copy/paste of message, this key would probably need to be changed. -->
 <!ENTITY contextOpenNewTab.label "Отвори поруку у новом језичку">
 <!ENTITY contextOpenNewTab.accesskey "ј">
 <!ENTITY contextOpenConversation.label "Отвори поруку унутар разговора">
@@ -746,6 +766,8 @@
 <!ENTITY contextEditMsgAsNew.label "Уреди као нову поруку">
 <!ENTITY contextEditMsgAsNew.accesskey "У">
 <!ENTITY contextEditDraftMsg.label "Уреди нацрт">
+<!ENTITY contextEditTemplate.label "Уреди шаблон">
+<!ENTITY contextEditTemplate.accesskey "и">
 <!ENTITY contextArchive.label "Архивирај">
 <!ENTITY contextArchive.accesskey "х">
 <!ENTITY contextReplySender.label "Одговори само пошиљаоцу">
@@ -770,7 +792,7 @@
 <!ENTITY contextMoveMsgMenu.accesskey "П">
 <!ENTITY contextMoveCopyMsgRecentMenu.label "Скорашње">
 <!ENTITY contextMoveCopyMsgRecentMenu.accesskey "р">
-<!ENTITY contextCopyMsgMenu.label "Умножи у">
+<!ENTITY contextCopyMsgMenu.label "Копирај у">
 <!ENTITY contextCopyMsgMenu.accesskey "У">
 <!ENTITY contextKillThreadMenu.label "Занемари нит">
 <!ENTITY contextKillSubthreadMenu.accesskey "д">
@@ -781,7 +803,7 @@
      In the en-US locale we ran out of access keys, so there is an empty access key for
      Watch Thread. Localizers can pick a suitable key
   -->
-<!ENTITY contextWatchThreadMenu.accesskey "ж">
+<!ENTITY contextWatchThreadMenu.accesskey "л">
 <!ENTITY contextSaveAs.label "Сачувај као…">
 <!ENTITY contextSaveAs.accesskey "С">
 <!ENTITY contextPrint.label "Одштампај…">
@@ -853,7 +875,7 @@
   -->
 <!ENTITY quickSearchCmd.key "k">
 <!-- LOCALIZATION NOTE (search.label.base1):
-      This is the base of the empty text for the global search box. We replace
+     This is the base of the empty text for the global search box. We replace
      #1 with the contents of the appropriate search.keyLabel.* value for the
      platform.
      The goal is to convey to the user that typing in the box will allow them
@@ -888,13 +910,13 @@
 <!ENTITY SubscribeToNewsgroup.accesskey "П">
 <!ENTITY SendMessageTo.label "Састави поруку за">
 <!ENTITY SendMessageTo.accesskey "т">
-<!ENTITY CopyEmailAddress.label "Умножи е-адресу">
+<!ENTITY CopyEmailAddress.label "Копирај мејл адресу">
 <!ENTITY CopyEmailAddress.accesskey "м">
-<!ENTITY CopyNameAndEmailAddress.label "Умножи име и е-адресу">
+<!ENTITY CopyNameAndEmailAddress.label "Копирај име и мејл адресу">
 <!ENTITY CopyNameAndEmailAddress.accesskey "м">
-<!ENTITY CopyNewsgroupName.label "Умножи име новинске групе">
+<!ENTITY CopyNewsgroupName.label "Копирај име новинске групе">
 <!ENTITY CopyNewsgroupName.accesskey "м">
-<!ENTITY CopyNewsgroupURL.label "Умножи URL новинске групе">
+<!ENTITY CopyNewsgroupURL.label "Копирај URL новинске групе">
 <!ENTITY CopyNewsgroupURL.accesskey "U">
 <!ENTITY CreateFilterFrom.label "Направи филтер од…">
 <!ENTITY CreateFilterFrom.accesskey "ф">
@@ -910,11 +932,11 @@
 <!ENTITY saveLinkAsCmd.accesskey "к">
 <!ENTITY saveImageAsCmd.label "Сачувај слику као…">
 <!ENTITY saveImageAsCmd.accesskey "в">
-<!ENTITY copyLinkCmd.label "Умножи одредиште везе">
+<!ENTITY copyLinkCmd.label "Копирај одредиште везе">
 <!ENTITY copyLinkCmd.accesskey "з">
-<!ENTITY copyImageAllCmd.label "Умножи слику">
+<!ENTITY copyImageAllCmd.label "Копирај слику">
 <!ENTITY copyImageAllCmd.accesskey "л">
-<!ENTITY copyEmailCmd.label "Умножи е-адресу">
+<!ENTITY copyEmailCmd.label "Копирај мејл адресу">
 <!ENTITY copyEmailCmd.accesskey "е">
 <!ENTITY stopCmd.label "Прекини">
 <!ENTITY stopCmd.accesskey "П">
@@ -949,3 +971,5 @@
 
 <!-- Mac OS X Dock Icon pop-up menu -->
 <!ENTITY dockOptions.label              "Опције иконица програма…">
+<!ENTITY writeNewMessageDock.label      "Напишите нову поруку">
+<!ENTITY openAddressBookDock.label      "Отвори именик">

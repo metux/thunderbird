@@ -37,7 +37,7 @@
 <!ENTITY languagePopup.label "Bahasa:">
 <!ENTITY languagePopup.accessKey "B">
 
-<!ENTITY recheckButton2.accessKey "T">
-<!ENTITY recheckButton2.label "Recheck Text">
-<!ENTITY stopButton.accessKey "o">
 <!ENTITY stopButton.label "Stop">
+<!ENTITY stopButton.accessKey "o">
+<!ENTITY recheckButton2.label "Recheck Text">
+<!ENTITY recheckButton2.accessKey "T">

@@ -28,3 +28,7 @@
 <!ENTITY helpSafeMode.label "ඇඩෝන අබල (Disable) කර යළි-අරඹන්න…">
 <!ENTITY helpSafeMode.accesskey "R">
 <!ENTITY helpTroubleshootingInfo.label "සදොස් සෙවීමේ තොරතුරු">
+
+<!ENTITY openHelpMac2.label "&brandFullName; Help">
+<!ENTITY aboutMenuCmd2.label "About &brandFullName;">
+<!ENTITY aboutMenuCmd2.accesskey "A">

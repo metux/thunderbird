@@ -46,15 +46,15 @@
 <!ENTITY saveAsTemplateCmd.label "Șablon">
 <!ENTITY saveAsTemplateCmd.accesskey "l">
 <!ENTITY getNewMsgForCmd.label "Adu mesajele noi pentru">
-<!ENTITY getNewMsgForCmd.accesskey "o">
+<!ENTITY getNewMsgForCmd.accesskey "w">
 <!ENTITY getAllNewMsgCmdPopupMenu.label "Toate conturile">
 <!ENTITY getAllNewMsgCmdPopupMenu.accesskey "a">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.label "Contul actual">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.accesskey "c">
-<!ENTITY getNextNMsgCmd.label "Adu următoarele 500 de discuții">
-<!ENTITY getNextNMsgCmd.accesskey "t">
+
+
 <!ENTITY sendUnsentCmd.label "Trimite mesajele neexpediate">
-<!ENTITY sendUnsentCmd.accesskey "T">
+<!ENTITY sendUnsentCmd.accesskey "d">
 <!ENTITY subscribeCmd.label "Abonare…">
 <!ENTITY subscribeCmd.accesskey "b">
 <!ENTITY deleteFolder.label "Șterge dosarul">
@@ -63,15 +63,15 @@
 <!ENTITY renameFolder.accesskey "R">
 <!ENTITY renameFolder.key "VK_F2">
 <!ENTITY compactFolders.label "Compactează dosarele">
-<!ENTITY compactFolders.accesskey "C">
+<!ENTITY compactFolders.accesskey "F">
 <!ENTITY emptyTrashCmd.label "Golește coșul de gunoi">
-<!ENTITY emptyTrashCmd.accesskey "G">
+<!ENTITY emptyTrashCmd.accesskey "y">
 <!ENTITY offlineMenu.label "Offline">
 <!ENTITY offlineMenu.accesskey "l">
 <!ENTITY offlineGoOfflineCmd.label "Lucrează offline">
-<!ENTITY offlineGoOfflineCmd.accesskey "L">
-<!ENTITY synchronizeOfflineCmd.label "Descarcă și sincronizează…">
-<!ENTITY synchronizeOfflineCmd.accesskey "s">
+<!ENTITY offlineGoOfflineCmd.accesskey "W">
+<!ENTITY synchronizeOfflineCmd.label "Descarcă/Sincronizează acum…">
+<!ENTITY synchronizeOfflineCmd.accesskey "S">
 <!ENTITY settingsOfflineCmd2.label "Setări pentru lucrul offline">
 <!ENTITY settingsOfflineCmd2.accesskey "e">
 <!ENTITY downloadSelectedCmd.label "Adu mesajele selectate">
@@ -629,6 +629,9 @@
 
 <!ENTITY folderContextGetMessages.label "Adu mesajele">
 <!ENTITY folderContextGetMessages.accesskey "A">
+
+
+
 <!ENTITY folderContextOpenInNewWindow.label "Deschide într-o fereastră nouă">
 <!ENTITY folderContextOpenInNewWindow.accesskey "o">
 <!ENTITY folderContextOpenNewTab.label "Deschide într-o filă nouă">
@@ -921,7 +924,7 @@
 <!ENTITY openLinkInBrowser.accesskey "o">
 <!-- Statusbar -->
 
-<!ENTITY statusText.label "Gata">
+<!ENTITY statusText.label "Terminat">
 <!-- Mac OS X Window Menu -->
 
 <!ENTITY minimizeWindow.label "Minimizează">
@@ -943,36 +946,49 @@
 <!ENTITY showAllAppsCmdMac.label        "Arată-le pe toate">
 <!-- Mac OS X Dock Icon pop-up menu -->
 
-<!ENTITY dockOptions.label              "Opțiuni pentru iconița aplicației…">
+<!ENTITY dockOptions.label              "Opțiuni pentru pictograma aplicației…">
 
-<!ENTITY addonDebugCmd.accesskey "A">
-<!ENTITY addonDebugCmd.label "Add-on Debugger">
-<!ENTITY contextKillSubthreadMenu.accesskey "b">
-<!ENTITY contextKillSubthreadMenu.label "Ignore Subthread">
+
+
+<!ENTITY getNextNMsgCmd2.label "Get Next News Messages">
+<!ENTITY getNextNMsgCmd2.accesskey "t">
+<!ENTITY folderPaneBar.label "Folder Pane Toolbar">
+<!ENTITY folderPaneBar.accesskey "F">
+<!ENTITY folderModeSelector.label "Folder Views">
+<!ENTITY sortByCorrespondentCmd.label "Correspondents">
+<!ENTITY sortByCorrespondentCmd.accesskey "n">
+<!ENTITY goChatCmd2.key "H">
+<!ENTITY editTemplateMsgCmd.label "Edit Template">
+<!ENTITY editTemplateMsgCmd.accesskey "T">
+<!ENTITY newMsgFromTemplateCmd.label "New Message from Template">
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN">
+<!ENTITY addonPrefs.label "Add-on Options">
+<!ENTITY addonPrefs.accesskey "O">
+<!ENTITY addonPrefsUnix.label "Add-on Preferences">
+<!ENTITY addonPrefsUnix.accesskey "P">
+<!ENTITY addonNoPrefs.label "No Add-on settings found.">
+<!ENTITY devtoolsMenu.label "Developer Tools">
+<!ENTITY devtoolsMenu.accesskey "e">
+<!ENTITY devToolboxCmd.label "Developer Toolbox">
 <!ENTITY devToolboxCmd.accesskey "T">
 <!ENTITY devToolboxCmd.commandkey "i">
-<!ENTITY devToolboxCmd.label "Developer Toolbox">
-<!ENTITY devtoolsMenu.accesskey "e">
-
-<!-- Developer Tools Submenu -->
-<!ENTITY devtoolsMenu.label "Developer Tools">
-<!ENTITY folderModeSelector.label "Folder Views">
-<!ENTITY folderPaneBar.accesskey "F">
-<!ENTITY folderPaneBar.label "Folder Pane Toolbar">
+<!ENTITY debugAddonsCmd.label "Debug Add-ons">
+<!ENTITY debugAddonsCmd.accesskey "A">
+<!ENTITY tabsDebugCmd.label "Content Frame Debugger">
+<!ENTITY tabsDebugCmd.accesskey "C">
+<!ENTITY scratchpadCmd.label "Scratchpad">
+<!ENTITY scratchpadCmd.accesskey "S">
+<!ENTITY scratchpadCmd.keycode "VK_F4">
+<!ENTITY scratchpadCmd.keytext "F4">
 <!ENTITY openConversationButton.label "Conversation">
 <!ENTITY openConversationButton.tooltip "Show conversation of selected message">
-<!ENTITY scratchpadCmd.accesskey "S">
-
-<!--LOCALIZATION NOTE (scratchpadCmd.keycode):
-    This should be a key code constant as per
-    https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode#Constants_for_keyCode_value
-    (but without the DOM_ prefix) -->
-<!ENTITY scratchpadCmd.keycode "VK_F4">
-<!--LOCALIZATION NOTE (scratchpadCmd.keytext):
-    This should be the text printed on the key defined in the previous string. -->
-<!ENTITY scratchpadCmd.keytext "F4">
-<!ENTITY scratchpadCmd.label "Scratchpad">
-<!ENTITY sortByCorrespondentCmd.accesskey "n">
-<!ENTITY sortByCorrespondentCmd.label "Correspondents">
-<!ENTITY tabsDebugCmd.accesskey "C">
-<!ENTITY tabsDebugCmd.label "Content Frame Debugger">
+<!ENTITY folderContextPauseAllUpdates.label "Pause All Updates">
+<!ENTITY folderContextPauseUpdates.label "Pause Updates">
+<!ENTITY folderContextPauseUpdates.accesskey "U">
+<!ENTITY contextNewMsgFromTemplate.label "New Message from Template">
+<!ENTITY contextEditTemplate.label "Edit Template">
+<!ENTITY contextEditTemplate.accesskey "T">
+<!ENTITY contextKillSubthreadMenu.accesskey "b">
+<!ENTITY contextKillSubthreadMenu.label "Ignore Subthread">
+<!ENTITY writeNewMessageDock.label      "Write New Message">
+<!ENTITY openAddressBookDock.label      "Open Address Book">

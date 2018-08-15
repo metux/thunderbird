@@ -1,6 +1,9 @@
-<!ENTITY aboutDialog.title          "&brandFullName;">
+<!ENTITY aboutDialog.title          "Informazioni su &brandFullName;">
 
-
+<!-- LOCALIZATION NOTE (update.*):
+# These strings are also used in the update pane of preferences.
+# See about:preferences#advanced.
+-->
 <!-- LOCALIZATION NOTE (update.checkForUpdatesButton.*, update.updateButton.*):
 # Only one button is present at a time.
 # The button when displayed is located directly under the Thunderbird version in
@@ -8,16 +11,16 @@
 -->
 <!ENTITY update.checkForUpdatesButton.label       "Controlla aggiornamenti">
 <!ENTITY update.checkForUpdatesButton.accesskey   "C">
-<!ENTITY update.updateButton.label2               "Riavviare &brandShortName; per aggiornare">
+<!ENTITY update.updateButton.label3               "Riavvia per aggiornare &brandShorterName;">
 <!ENTITY update.updateButton.accesskey            "R">
 
 
-<!-- LOCALIZATION NOTE (warningDesc.version): This is a warning about the experimental nature of Nightly and Aurora builds. It is only shown in those versions. -->
+<!-- LOCALIZATION NOTE (warningDesc.version): This is a warning about the experimental nature of Nightly builds. It is only shown in this version. -->
 <!ENTITY warningDesc.version        "&brandShortName; è sperimentale e può essere instabile.">
-<!-- LOCALIZATION NOTE (warningDesc.telemetryDesc): This is a notification that Nightly/Aurora builds automatically send Telemetry data back to Mozilla. It is only shown in those versions. "It" refers to brandShortName. -->
+<!-- LOCALIZATION NOTE (warningDesc.telemetryDesc): This is a notification that Nightly builds automatically send Telemetry data back to Mozilla. It is only shown in this version. "It" refers to brandShortName. -->
 <!ENTITY warningDesc.telemetryDesc  "Invia informazioni sulle prestazioni, sull'hardware, sull'uso e sulle personalizzazioni a &vendorShortName; per contribuire a migliorare &brandShortName;.">
 
-<!-- LOCALIZATION NOTE (community.exp.*) This paragraph is shown in "experimental" builds, i.e. Nightly and Aurora builds, instead of the other "community.*" strings below. -->
+<!-- LOCALIZATION NOTE (community.exp.*) This paragraph is shown in "experimental" builds, i.e. Nightly builds, instead of the other "community.*" strings below. -->
 <!ENTITY community.exp.start        "">
 <!-- LOCALIZATION NOTE (community.exp.mozillaLink): This is a link title that links to http://www.mozilla.org/. -->
 <!ENTITY community.exp.mozillaLink  "&vendorShortName;">
@@ -34,7 +37,7 @@
 <!ENTITY community.creditsLink      "comunità mondiale">
 <!ENTITY community.end3             " che lavora per mantenere il Web aperto, pubblico e accessibile a tutti.">
 
-<!ENTITY helpus.start               "Desideri aiutare?">
+<!ENTITY helpus.start               "Vuoi aiutarci? ">
 <!-- LOCALIZATION NOTE (helpus.donateLink): This is a link title that links to the thunderbird donation page -->
 <!ENTITY helpus.donateLink          "Fai una donazione">
 <!ENTITY helpus.middle              " o ">
@@ -58,7 +61,7 @@
 <!-- LOCALIZATION NOTE (update.noUpdatesFound): try to make the localized text short (see bug 596813 for screenshots). -->
 <!ENTITY update.noUpdatesFound      "&brandShortName; è aggiornato">
 <!-- LOCALIZATION NOTE (update.adminDisabled): try to make the localized text short (see bug 596813 for screenshots). -->
-<!ENTITY update.adminDisabled       "Aggiornamenti disabilitati dall'amministratore di sistema">
+<!ENTITY update.adminDisabled       "Aggiornamenti disattivati dall'amministratore di sistema">
 <!-- LOCALIZATION NOTE (update.otherInstanceHandlingUpdates): try to make the localized text short -->
 <!ENTITY update.otherInstanceHandlingUpdates "È in corso l'aggiornamento di &brandShortName; in un'altra istanza">
 
@@ -89,7 +92,7 @@
 <!ENTITY update.unsupported.linkText "Altre informazioni">
 <!ENTITY update.unsupported.end      "">
 
-<!-- LOCALIZATION NOTE (update.downloading.start,update.downloading.end): update.downloading.start and 
+<!-- LOCALIZATION NOTE (update.downloading.start,update.downloading.end): update.downloading.start and
      update.downloading.end all go into one line, with the amount downloaded inserted in between. As this
      is all in one line, try to make the localized text short (see bug 596813 for screenshots). The — is
      the "em dash" (long dash).

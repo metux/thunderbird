@@ -32,8 +32,6 @@
 <!ENTITY runtimeMenu_accesskey "L">
 <!ENTITY runtimeMenu_disconnect_label "Trennen">
 <!ENTITY runtimeMenu_disconnect_accesskey "T">
-<!ENTITY runtimeMenu_showPermissionTable_label "Berechtigungstabelle">
-<!ENTITY runtimeMenu_showPermissionTable_accesskey "B">
 <!ENTITY runtimeMenu_takeScreenshot_label "Screenshot">
 <!ENTITY runtimeMenu_takeScreenshot_accesskey "S">
 <!ENTITY runtimeMenu_showDetails_label "Informationen zur Laufzeitumgebung">
@@ -47,8 +45,6 @@
 
 <!ENTITY viewMenu_label "Ansicht">
 <!ENTITY viewMenu_accesskey "A">
-<!ENTITY viewMenu_toggleEditor_label "Editor umschalten">
-<!ENTITY viewMenu_toggleEditor_accesskey "E">
 <!ENTITY viewMenu_zoomin_label "Vergrößern">
 <!ENTITY viewMenu_zoomin_accesskey "g">
 <!ENTITY viewMenu_zoomout_label "Verkleinern">
@@ -68,8 +64,6 @@
 <!ENTITY key_play "R">
 <!-- show toolbox -->
 <!ENTITY key_toggleToolbox "VK_F12">
-<!-- toggle sidebar -->
-<!ENTITY key_toggleEditor "B">
 <!-- zoom -->
 <!ENTITY key_zoomin "+">
 <!ENTITY key_zoomin2 "=">
@@ -96,7 +90,6 @@
 <!ENTITY details_location "Adresse">
 <!ENTITY details_manifestURL "App-ID">
 <!ENTITY details_removeProject_button "Projekt entfernen">
-<!ENTITY details_showPrepackageLog_button "Protokolle der Prozesse vor dem Packen anzeigen">
 
 <!-- New App -->
 <!ENTITY newAppWindowTitle "Neue App">
@@ -125,25 +118,6 @@
 <!ENTITY prefs_options_rememberlastproject_tooltip "Beim Start von WebIDE zuletzt geöffnetes Projekt laden">
 <!ENTITY prefs_options_templatesurl "Vorlagenadresse">
 <!ENTITY prefs_options_templatesurl_tooltip "Liste verfügbarer Vorlagen">
-<!ENTITY prefs_options_showeditor "Editor anzeigen">
-<!ENTITY prefs_options_showeditor_tooltip "Internen Editor anzeigen">
-<!ENTITY prefs_options_tabsize "Tabulatorgröße">
-<!ENTITY prefs_options_expandtab "Tabulatorzeichen ersetzen">
-<!ENTITY prefs_options_expandtab_tooltip "Leerzeichen anstatt Tabulatorzeichen verwenden">
-<!ENTITY prefs_options_detectindentation "Automatischer Einzug">
-<!ENTITY prefs_options_detectindentation_tooltip "Einzug anhand des Inhalts der Quelldatei ermitteln">
-<!ENTITY prefs_options_autocomplete "Autovervollständigung">
-<!ENTITY prefs_options_autocomplete_tooltip "Autovervollständigung aktivieren">
-<!ENTITY prefs_options_autoclosebrackets "Klammern automatisch schließen">
-<!ENTITY prefs_options_autoclosebrackets_tooltip "Automatisch schließende Klammern einfügen">
-<!ENTITY prefs_options_keybindings "Tastenkombinationen">
-<!ENTITY prefs_options_keybindings_default "Standard">
-<!ENTITY prefs_options_autosavefiles "Dateien automatisch speichern">
-<!ENTITY prefs_options_autosavefiles_tooltip "Veränderte Dateien vor dem Ausführen des Projekts automatisch speichern">
-
-<!-- Permissions Table -->
-<!ENTITY permissionstable_title "Berechtigungstabelle">
-<!ENTITY permissionstable_name_header "Name">
 
 <!-- Runtime Details -->
 <!ENTITY runtimedetails_title "Informationen zur Laufzeitumgebung">

@@ -32,12 +32,10 @@
 <!ENTITY runtimeMenu_accesskey "R">
 <!ENTITY runtimeMenu_disconnect_label "Prekini vezu">
 <!ENTITY runtimeMenu_disconnect_accesskey "k">
-<!ENTITY runtimeMenu_showPermissionTable_label "Tablica dopuštenja">
-<!ENTITY runtimeMenu_showPermissionTable_accesskey "P">
 <!ENTITY runtimeMenu_takeScreenshot_label "Slika zaslona">
 <!ENTITY runtimeMenu_takeScreenshot_accesskey "S">
 <!ENTITY runtimeMenu_showDetails_label "Informacije o vremenu izvršavanja">
-<!ENTITY runtimeMenu_showDetails_accesskey "E">
+
 <!ENTITY runtimeMenu_showMonitor_label "Zaslon">
 <!ENTITY runtimeMenu_showMonitor_accesskey "N">
 <!ENTITY runtimeMenu_showDevicePrefs_label "Postavke uređaja">
@@ -47,8 +45,6 @@
 
 <!ENTITY viewMenu_label "Pogled">
 <!ENTITY viewMenu_accesskey "l">
-<!ENTITY viewMenu_toggleEditor_label "Uključi/isključi uređivač">
-<!ENTITY viewMenu_toggleEditor_accesskey "E">
 <!ENTITY viewMenu_zoomin_label "Uvećaj">
 <!ENTITY viewMenu_zoomin_accesskey "I">
 <!ENTITY viewMenu_zoomout_label "Uvećaj">
@@ -68,8 +64,6 @@
 <!ENTITY key_play "R">
 <!-- show toolbox -->
 <!ENTITY key_toggleToolbox "VK_F12">
-<!-- toggle sidebar -->
-<!ENTITY key_toggleEditor "B">
 <!-- zoom -->
 <!ENTITY key_zoomin "+">
 <!ENTITY key_zoomin2 "=">
@@ -96,7 +90,6 @@
 <!ENTITY details_location "Lokacija">
 <!ENTITY details_manifestURL "ID aplikacije">
 <!ENTITY details_removeProject_button "Ukloni projekt">
-<!ENTITY details_showPrepackageLog_button "Prikaži pre-package zapisnik">
 <!-- New App -->
 
 <!ENTITY newAppWindowTitle "Nova aplikacija">
@@ -125,25 +118,6 @@
 <!ENTITY prefs_options_rememberlastproject_tooltip "Vrati prijašnji projekt kad se WebIDE pokrene">
 <!ENTITY prefs_options_templatesurl "URL predložaka">
 <!ENTITY prefs_options_templatesurl_tooltip "Indeks dostupnih predložaka">
-<!ENTITY prefs_options_showeditor "Prikaži uređivač">
-<!ENTITY prefs_options_showeditor_tooltip "Prikaži interni uređivač">
-<!ENTITY prefs_options_tabsize "Veličina tabulatora">
-<!ENTITY prefs_options_expandtab "Meki tabulatori">
-<!ENTITY prefs_options_expandtab_tooltip "Koristi razmake umjesto tabulatora kao znak uvlake">
-<!ENTITY prefs_options_detectindentation "Automatska uvlaka">
-<!ENTITY prefs_options_detectindentation_tooltip "Pogodi uvlake na temelju sadržaja izvora">
-<!ENTITY prefs_options_autocomplete "Automatsko dovršavanje">
-<!ENTITY prefs_options_autocomplete_tooltip "Omogući automatsko dovršavanje kôda">
-<!ENTITY prefs_options_autoclosebrackets "Automatsko zatvaranje zagrada">
-<!ENTITY prefs_options_autoclosebrackets_tooltip "Automatski dodaj zatvarajuće zagrade">
-<!ENTITY prefs_options_keybindings "Kratice">
-<!ENTITY prefs_options_keybindings_default "Zadano">
-<!ENTITY prefs_options_autosavefiles "Automatsko spremanje datoteka">
-<!ENTITY prefs_options_autosavefiles_tooltip "Automatski sprema uređene datoteke prije pokretanja projekta">
-<!-- Permissions Table -->
-
-<!ENTITY permissionstable_title "Tablica dopuštenja">
-<!ENTITY permissionstable_name_header "Naziv">
 <!-- Runtime Details -->
 
 <!ENTITY runtimedetails_title "Informacije o vremenu izvršavanja">
@@ -205,7 +179,7 @@
 <!ENTITY simulator_title "Mogućnosti simulatora">
 <!ENTITY simulator_remove "Obriši simulator">
 <!ENTITY simulator_reset "Vrati zadano">
-<!ENTITY simulator_name "Naziv">
+
 <!ENTITY simulator_software "Softver">
 <!ENTITY simulator_version "Inačica">
 <!ENTITY simulator_profile "Profil">
@@ -216,3 +190,5 @@
 <!ENTITY simulator_tv_data "TV simulacija">
 <!ENTITY simulator_tv_data_open "Konfiguracijski podaci">
 <!ENTITY simulator_tv_data_open_button "Otvori konfiguracijski direktorij…">
+
+<!ENTITY runtimeMenu_showDetails_accesskey "E">

@@ -6,17 +6,32 @@
 <!ENTITY fromField4.label "מאת">
 <!ENTITY senderField4.label "שולח">
 <!ENTITY organizationField4.label "ארגון">
+<!ENTITY replyToField4.label "להגיב אל">
 
 <!ENTITY subjectField4.label "נושא">
+<!ENTITY ccField4.label "עותק">
+<!ENTITY bccField4.label "עותק מוסתר">
+<!ENTITY newsgroupsField4.label "קבוצות חדשות">
+<!ENTITY tagsHdr4.label "תגיות">
+<!ENTITY dateField4.label "תאריך">
+<!ENTITY userAgentField4.label "סוכן משתמש">
+<!ENTITY referencesField4.label "הפניות">
+<!ENTITY messageIdField4.label "מזהה הודעה">
+<!ENTITY inReplyToField4.label "בתגובה אל">
+<!ENTITY originalWebsite4.label "אתר">
 
 <!ENTITY hdrArchiveButton1.label "ארכיון">
 <!ENTITY hdrArchiveButton1.tooltip "העבר הודעה זו לארכיון">
+<!ENTITY hdrOpenConversationButton1.label "שיחה">
+<!ENTITY hdrOpenConversationButton1.tooltip "הצגת השיחה של הודעה זו">
 <!ENTITY hdrSmartReplyButton1.label "תשובה חכמה">
 <!ENTITY hdrReplyButton1.label "השב">
+<!ENTITY hdrReplyButton2.tooltip "תגובה לשולח של הודעה זו">
 <!ENTITY hdrReplyAllButton1.label "השב לכולם">
 <!ENTITY hdrReplyAllButton1.tooltip "השב לשולח ולכל הנמענים">
 <!ENTITY hdrReplyListButton1.label "תשובה לרשימה">
 <!ENTITY hdrReplyListButton1.tooltip "השב לרשימת תפוצה">
+<!ENTITY hdrMenuForwardButton.label "העברה בתור">
 <!ENTITY hdrForwardButton1.label "העבר">
 <!ENTITY hdrForwardButton1.tooltip "העבר הודעה זו">
 <!ENTITY hdrJunkButton1.label "זבל">
@@ -33,6 +48,8 @@
 <!ENTITY hdrViewToolbarAlwaysReplySender.label "הצג תמיד כפתור תגובה לשולח">
 <!ENTITY hdrViewToolbarAlwaysReplySender.accesskey "ש">
 
+<!ENTITY otherActionsButton2.label "עוד">
+<!ENTITY otherActionsButton.tooltip "פעולות נוספות">
 <!ENTITY otherActionsOpenConversation1.label "פתח בדיון">
 <!ENTITY otherActionsOpenConversation1.accesskey "פ">
 <!ENTITY otherActionsOpenInNewWindow1.label "פתיחה בחלון חדש">
@@ -51,6 +68,8 @@
 <!ENTITY otherActionsPrint1.accesskey "ד">
 
 <!-- Attachment bar context menu items -->
+<!ENTITY startExpandedCmd.label    "הצגת חלונית הקבצים המצורפים כבר בהתחלה">
+<!ENTITY startExpandedCmd.accesskey    "צ">
 
 <!-- Attachment context menu items -->
 <!ENTITY openAttachmentCmd.label    "פתח">
@@ -89,28 +108,6 @@
 <!ENTITY OpenBrowserWithMsgId.accesskey "ד">
 
 <!ENTITY author.label "Author">
-<!ENTITY bccField4.label "Bcc">
-<!ENTITY ccField4.label "Cc">
-<!ENTITY dateField4.label "Date">
 <!ENTITY followupToField4.label "Followup to">
 <!ENTITY hdrFollowupButton1.label "Followup">
 <!ENTITY hdrFollowupButton1.tooltip "Post a followup to this newsgroup">
-<!ENTITY hdrMenuForwardButton.label "Forward As">
-<!ENTITY hdrOpenConversationButton1.label "Conversation">
-<!ENTITY hdrOpenConversationButton1.tooltip "Show conversation of this message">
-<!ENTITY hdrReplyButton2.tooltip "Reply to the sender of this message">
-<!ENTITY inReplyToField4.label "In reply to">
-<!ENTITY messageIdField4.label "Message ID">
-<!ENTITY newsgroupsField4.label "Newsgroups">
-<!ENTITY originalWebsite4.label "Website">
-<!ENTITY otherActionsButton.tooltip "More actions">
-
-<!ENTITY otherActionsButton2.label "More">
-<!ENTITY referencesField4.label "References">
-<!ENTITY replyToField4.label "Reply to">
-<!ENTITY startExpandedCmd.accesskey    "S">
-
-<!-- Attachment bar context menu items -->
-<!ENTITY startExpandedCmd.label    "Initially Show Attachment Pane">
-<!ENTITY tagsHdr4.label "Tags">
-<!ENTITY userAgentField4.label "User agent">

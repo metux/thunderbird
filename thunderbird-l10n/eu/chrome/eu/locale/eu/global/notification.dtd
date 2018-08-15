@@ -4,8 +4,9 @@
 
 <!ENTITY closeNotification.tooltip "Itxi mezu hau">
 
-<!ENTITY closeNotificationItem.label "Une honetan ez">
-
 <!ENTITY checkForUpdates "Bilatu eguneraketak…">
 
 <!ENTITY learnMore "Argibide gehiago…">
+
+<!ENTITY defaultButton.label "Ados!">
+<!ENTITY defaultButton.accesskey "A">

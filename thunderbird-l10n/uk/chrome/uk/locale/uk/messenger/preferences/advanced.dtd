@@ -11,6 +11,7 @@
 <!-- General Settings -->
 <!ENTITY enableGlodaSearch.label       "Увімкнути глобальний пошук та індексацію">
 <!ENTITY enableGlodaSearch.accesskey   "і">
+<!ENTITY dateTimeFormatting.label      "Формат дати та часу">
 <!ENTITY allowHWAccel.label            "Використовувати апаратне прискорення, якщо можливо">
 <!ENTITY allowHWAccel.accesskey        "и">
 <!ENTITY storeType.label               "Тип сховища повідомлень для нових облікових записів:">
@@ -52,7 +53,19 @@
 <!ENTITY crashReporterLearnMore.label    "Докладніше">
 
 <!-- Update -->
-<!ENTITY updateApp.label                 "Оновлення &brandShortName;:">
+<!-- LOCALIZATION NOTE (updateApp.label):
+  Strings from aboutDialog.dtd are displayed in this section of the preferences.
+  Please check for possible accesskey conflicts.
+-->
+<!ENTITY updateApp2.label                "Оновлення &brandShortName;">
+<!-- LOCALIZATION NOTE (updateApp.version.*): updateApp.version.pre is
+  followed by a version number, keep the trailing space or replace it with
+  a different character as needed. updateApp.version.post is displayed after
+  the version number, and is empty on purpose for English. You can use it
+  if required by your language.
+ -->
+<!ENTITY updateApp.version.pre           "Версія ">
+<!ENTITY updateApp.version.post          "">
 <!ENTITY updateAuto.label                "Автоматично встановлювати оновлення (рекомендовано: покращує безпеку)">
 <!ENTITY updateAuto.accesskey            "А">
 <!ENTITY updateCheck.label               "Перевіряти наявність оновлень, але питати мене чи хочу я їх встановити">
@@ -89,6 +102,8 @@
 <!ENTITY useCacheBefore.label            "Використовувати до">
 <!ENTITY useCacheBefore.accesskey        "и">
 <!ENTITY useCacheAfter.label             "MB місця під кеш">
+<!ENTITY overrideSmartCacheSize.label    "Відключити автоматичне керування кешем">
+<!ENTITY overrideSmartCacheSize.accesskey "ю">
 <!ENTITY clearCacheNow.label             "Очистити зараз">
 <!ENTITY clearCacheNow.accesskey         "О">
 

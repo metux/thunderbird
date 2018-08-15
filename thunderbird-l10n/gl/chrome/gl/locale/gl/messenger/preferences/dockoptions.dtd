@@ -2,15 +2,15 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY dockOptionsDialog.title               "App icon options">
-<!ENTITY window.macWidth                       "35em">
+<!ENTITY dockOptionsDialog.title               "Opcións da icona do aplicativo">
+<!ENTITY window.macWidth                       "42em">
 
-<!ENTITY bounceSystemDockIcon.label            "Animate the app icon when a new message arrives">
+<!ENTITY bounceSystemDockIcon.label            "Animar a icona do aplicativo cando chegue unha nova mensaxe">
 <!ENTITY bounceSystemDockIcon.accesskey        "i">
-<!ENTITY newMessagesCountDock.label            "Count of new messages">
+<!ENTITY newMessagesCountDock.label            "O número de novas mensaxes">
 <!ENTITY newMessagesCountDock.accesskey        "n">
-<!ENTITY showAllUnreadMessagesCount.label      "Count of unread messages">
-<!ENTITY showAllUnreadMessagesCount.accesskey  "u">
-<!ENTITY dockIconBadge.label                   "App icon badge">
-<!ENTITY dockIconShow.label                    "Badge app icon with:">
-<!ENTITY directNotificationSettings.label      "You can disable the badge on the Notification pane of System Preferences.">
+<!ENTITY showAllUnreadMessagesCount.label      "O número de mensaxes non lidas">
+<!ENTITY showAllUnreadMessagesCount.accesskey  "m">
+<!ENTITY dockIconBadge.label                   "Insignia da icona do aplicativo">
+<!ENTITY dockIconShow.label                    "Amosar na icona do aplicativo:">
+<!ENTITY directNotificationSettings.label      "Pode desactivar a insignia no panel Notificacións das preferencias do sistema.">

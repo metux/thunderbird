@@ -312,6 +312,8 @@ profile thunderbird @{thunderbird_executable} {
   /usr/bin/gpg2              Cx -> gpg,
   /usr/bin/gpgconf           Cx -> gpg,
   /usr/bin/gpg-connect-agent Cx -> gpg,
+  /usr/lib/gnupg/gpg-wks-client ix,
+  /{,usr/}bin/ps                   ix,
 
   # TB tries to create this file but has no business doing so
   deny @{HOME}/.gnupg/gpg-agent.conf w,

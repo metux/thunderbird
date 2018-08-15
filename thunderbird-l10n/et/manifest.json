@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "et": {
+      "chrome_resources": {
+        "necko": "chrome/et/locale/et/necko/", 
+        "global": "chrome/et/locale/et/global/", 
+        "messenger-region": "chrome/et/locale/et/messenger-region/", 
+        "chat": "chrome/et/locale/et/chat/", 
+        "devtools": "chrome/et/locale/et/devtools/client/", 
+        "pipnss": "chrome/et/locale/et/pipnss/", 
+        "messenger-smime": "chrome/et/locale/et/messenger-smime/", 
+        "messenger-newsblog": "chrome/et/locale/et/messenger-newsblog/", 
+        "devtools-shim": "chrome/et/locale/et/devtools/shim/", 
+        "alerts": "chrome/et/locale/et/alerts/", 
+        "messenger": "chrome/et/locale/et/messenger/", 
+        "editor": "chrome/et/locale/et/editor/", 
+        "branding": "chrome/et/locale/et/branding/", 
+        "mozldap": "chrome/et/locale/et/mozldap/", 
+        "autoconfig": "chrome/et/locale/et/autoconfig/", 
+        "devtools-shared": "chrome/et/locale/et/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/et/locale/et/global-platform/win/", 
+          "android": "chrome/et/locale/et/global-platform/unix/", 
+          "macosx": "chrome/et/locale/et/global-platform/mac/", 
+          "linux": "chrome/et/locale/et/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/et/locale/et/mozapps/", 
+        "pluginproblem": "chrome/et/locale/et/pluginproblem/", 
+        "communicator": "chrome/et/locale/et/communicator/", 
+        "messenger-mapi": "chrome/et/locale/et/messenger-mapi/", 
+        "places": "chrome/et/locale/et/places/", 
+        "passwordmgr": "chrome/et/locale/et/passwordmgr/", 
+        "pippki": "chrome/et/locale/et/pippki/"
+      }, 
+      "version": "20180426071550"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-et@firefox.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "et", 
+  "version": "60.0buildid20180709054853", 
+  "name": "Estonian Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Sander Lepik, Marek Laane, Ain Vagula)", 
+  "description": "Language pack for Thunderbird for et"
+}

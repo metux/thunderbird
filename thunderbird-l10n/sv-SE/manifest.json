@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "sv-SE": {
+      "chrome_resources": {
+        "necko": "chrome/sv-SE/locale/sv-SE/necko/", 
+        "global": "chrome/sv-SE/locale/sv-SE/global/", 
+        "messenger-region": "chrome/sv-SE/locale/sv-SE/messenger-region/", 
+        "chat": "chrome/sv-SE/locale/sv-SE/chat/", 
+        "devtools": "chrome/sv-SE/locale/sv-SE/devtools/client/", 
+        "pipnss": "chrome/sv-SE/locale/sv-SE/pipnss/", 
+        "messenger-smime": "chrome/sv-SE/locale/sv-SE/messenger-smime/", 
+        "messenger-newsblog": "chrome/sv-SE/locale/sv-SE/messenger-newsblog/", 
+        "devtools-shim": "chrome/sv-SE/locale/sv-SE/devtools/shim/", 
+        "alerts": "chrome/sv-SE/locale/sv-SE/alerts/", 
+        "messenger": "chrome/sv-SE/locale/sv-SE/messenger/", 
+        "editor": "chrome/sv-SE/locale/sv-SE/editor/", 
+        "branding": "chrome/sv-SE/locale/sv-SE/branding/", 
+        "mozldap": "chrome/sv-SE/locale/sv-SE/mozldap/", 
+        "autoconfig": "chrome/sv-SE/locale/sv-SE/autoconfig/", 
+        "devtools-shared": "chrome/sv-SE/locale/sv-SE/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/sv-SE/locale/sv-SE/global-platform/win/", 
+          "android": "chrome/sv-SE/locale/sv-SE/global-platform/unix/", 
+          "macosx": "chrome/sv-SE/locale/sv-SE/global-platform/mac/", 
+          "linux": "chrome/sv-SE/locale/sv-SE/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/sv-SE/locale/sv-SE/mozapps/", 
+        "pluginproblem": "chrome/sv-SE/locale/sv-SE/pluginproblem/", 
+        "communicator": "chrome/sv-SE/locale/sv-SE/communicator/", 
+        "messenger-mapi": "chrome/sv-SE/locale/sv-SE/messenger-mapi/", 
+        "places": "chrome/sv-SE/locale/sv-SE/places/", 
+        "passwordmgr": "chrome/sv-SE/locale/sv-SE/passwordmgr/", 
+        "pippki": "chrome/sv-SE/locale/sv-SE/pippki/"
+      }, 
+      "version": "20180506081321"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-sv-SE@firefox.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "sv-SE", 
+  "version": "60.0buildid20180709054853", 
+  "name": "Svenska (SE) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "Mozilla-sv (contributors: Andreas Pettersson)", 
+  "description": "Language pack for Thunderbird for sv-SE"
+}

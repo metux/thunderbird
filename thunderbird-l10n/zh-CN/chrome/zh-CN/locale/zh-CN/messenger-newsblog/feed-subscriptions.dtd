@@ -12,11 +12,21 @@
 <!ENTITY feedLocation.label          "收取点网址：">
 <!ENTITY feedLocation.accesskey      "U">
 <!ENTITY feedLocation.placeholder    "输入要添加的有效的收取点网址">
+<!ENTITY feedLocation2.placeholder   "请输入一个有效的收取点网址">
 <!ENTITY locationValidate.label      "确认有效">
 <!ENTITY validateText.label          "检查验证并获取一个有效的网址。">
 
 <!ENTITY feedFolder.label            "文章存储在：">
 <!ENTITY feedFolder.accesskey        "S">
+
+<!-- Account Settings and Subscription Dialog -->
+<!ENTITY biffStart.label             "检查新文章，每隔 ">
+<!ENTITY biffStart.accesskey         "k">
+<!ENTITY biffMinutes.label           "分钟">
+<!ENTITY biffMinutes.accesskey       "n">
+<!ENTITY biffDays.label              "天">
+<!ENTITY biffDays.accesskey          "d">
+<!ENTITY recommendedUnits.label      "发布者推荐：">
 
 <!ENTITY quickMode.label             "显示文章概述而不载入全部网页。">
 <!ENTITY quickMode.accesskey         "h">
@@ -27,8 +37,11 @@
 <!ENTITY autotagUsePrefix.accesskey  "P">
 <!ENTITY autoTagPrefix.placeholder   "请输入一个标签前缀">
 
+<!-- Subscription Dialog -->
 <!ENTITY button.addFeed.label        "添加">
 <!ENTITY button.addFeed.accesskey    "A">
+<!ENTITY button.verifyFeed.label     "验证">
+<!ENTITY button.verifyFeed.accesskey "V">
 <!ENTITY button.updateFeed.label     "更新">
 <!ENTITY button.updateFeed.accesskey "U">
 <!ENTITY button.removeFeed.label     "移除">

@@ -25,6 +25,18 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Version">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Software Sigurie">
+<!ENTITY aboutSupport.securitySoftwareType "Lloj">
+<!ENTITY aboutSupport.securitySoftwareName "Emër">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
+
+<!ENTITY aboutSupport.featuresTitle "Veçori &brandShortName;-i">
+<!ENTITY aboutSupport.featureName "Emër">
+<!ENTITY aboutSupport.featureVersion "Version">
+<!ENTITY aboutSupport.featureId "ID">
+
 <!ENTITY aboutSupport.experimentsTitle "Veçori Eksperimentale">
 <!ENTITY aboutSupport.experimentName "Emër">
 <!ENTITY aboutSupport.experimentId "ID">
@@ -39,7 +51,7 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.appBasicsVersion "Version">
 <!ENTITY aboutSupport.appBasicsBuildID "ID Montimi">
 
-<!-- LOCALIZATION NOTE (aboutSupport.appBasicsUpdateHistory, aboutSupport.appBasicsShowUpdateHistory):
+<!-- LOCALIZATION NOTE (aboutSupport.appBasicsUpdateChannel, aboutSupport.appBasicsUpdateHistory, aboutSupport.appBasicsShowUpdateHistory):
 "Update" is a noun here, not a verb. -->
 <!ENTITY aboutSupport.appBasicsUpdateChannel "Kanal Përditësimi">
 <!ENTITY aboutSupport.appBasicsUpdateHistory "Historik Përditësimesh">
@@ -65,13 +77,20 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Dritare Multiproces">
 
+<!ENTITY aboutSupport.appBasicsProcessCount "Procese Lënde Web">
+
+<!ENTITY aboutSupport.enterprisePolicies "Rregulla të Ndërmarrjes">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Kyç Google">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Kyç Mozilla Location Service">
+
 <!ENTITY aboutSupport.appBasicsSafeMode "Mënyrë e Sigurt">
 
 <!ENTITY aboutSupport.showDir.label "Hap Drejtorinë">
 <!-- LOCALIZATION NOTE (aboutSupport.showMac.label): This is the Mac-specific
 variant of aboutSupport.showDir.label.  This allows us to use the preferred
 "Finder" terminology on Mac. -->
-<!ENTITY aboutSupport.showMac.label "Shfaqe te Finder">
+<!ENTITY aboutSupport.showMac.label "Shfaqe Në Finder">
 <!-- LOCALIZATION NOTE (aboutSupport.showWin2.label): This is the Windows-specific
 variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.showWin2.label "Hape Dosjen">
@@ -95,13 +114,13 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.placeDatabaseVerifyIntegrity "Verifikoni Integritetin">
 
 <!ENTITY aboutSupport.jsTitle "JavaScript">
-<!ENTITY aboutSupport.jsIncrementalGC "GC Rritës">
+<!ENTITY aboutSupport.jsIncrementalGC "GH Shtues">
 
 <!ENTITY aboutSupport.a11yTitle "Përdorshmëri">
 <!ENTITY aboutSupport.a11yActivated "E aktivizuar">
 <!ENTITY aboutSupport.a11yForceDisabled "Parandaloje Përdorshmërinë">
 
-<!ENTITY aboutSupport.libraryVersionsTitle "Versione Librarie">
+<!ENTITY aboutSupport.libraryVersionsTitle "Versione Librarish">
 
 <!ENTITY aboutSupport.installationHistoryTitle "Historik Instalimesh">
 <!ENTITY aboutSupport.updateHistoryTitle "Historik Përditësimesh">
@@ -110,9 +129,17 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Kopjo të dhëna të papërpunuara te e papastra">
 
 <!ENTITY aboutSupport.sandboxTitle "Bankëprovë">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Thirrje Sistemi të Hedhura Poshtë">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "Sekonda Më Parë">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Lloj Procesi">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Syscall">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Argumente">
 
 <!ENTITY aboutSupport.safeModeTitle "Provoni Mënyrën e Parrezik">
-<!ENTITY aboutSupport.restartInSafeMode.label "Riniseni me Shtesa të Çaktivizuara…">
+<!ENTITY aboutSupport.restartInSafeMode.label "Riniseni me Shtesat të Çaktivizuara…">
 
 <!ENTITY aboutSupport.graphicsFeaturesTitle "Veçori">
 <!ENTITY aboutSupport.graphicsDiagnosticsTitle "Diagnostikime">
@@ -122,3 +149,29 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Regjistër Vendimesh">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Veçori të Çaktivizuara nga Roja i Vithisjeve">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Zgjidhje të përkohshme">
+
+<!ENTITY aboutSupport.mediaTitle "Media">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Pajisje Dalje">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Pajisje Hyrje">
+<!ENTITY aboutSupport.mediaDeviceName "Emër">
+<!ENTITY aboutSupport.mediaDeviceGroup "Grup">
+<!ENTITY aboutSupport.mediaDeviceVendor "Tregtues">
+<!ENTITY aboutSupport.mediaDeviceState "Gjendje">
+<!ENTITY aboutSupport.mediaDevicePreferred "E parapëlqyer">
+<!ENTITY aboutSupport.mediaDeviceFormat "Format">
+<!ENTITY aboutSupport.mediaDeviceChannels "Kanale">
+<!ENTITY aboutSupport.mediaDeviceRate "Shpeshti">
+<!ENTITY aboutSupport.mediaDeviceLatency "Vonesë">
+
+<!ENTITY aboutSupport.intlTitle "Ndërkombëtarizim &amp; Përkthim">
+<!ENTITY aboutSupport.intlAppTitle "Rregullime Aplikacionesh">
+<!ENTITY aboutSupport.intlLocalesRequested "Gjuhë të Kërkuara">
+<!ENTITY aboutSupport.intlLocalesAvailable "Gjuhë të Mundshme">
+<!ENTITY aboutSupport.intlLocalesSupported "Gjuhë Aplikacioni">
+<!ENTITY aboutSupport.intlLocalesDefault "Gjuhë Parazgjedhje">
+<!ENTITY aboutSupport.intlOSTitle "Sistem Operativ">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Gjuhë Sistemi">
+<!ENTITY aboutSupport.intlRegionalPrefs "Parapëlqime Rajoni">
+
+<!ENTITY aboutSupport.a11yHandlerUsed "Accessible Handler Used">
+<!ENTITY aboutSupport.a11yInstantiator "Accessibility Instantiator">

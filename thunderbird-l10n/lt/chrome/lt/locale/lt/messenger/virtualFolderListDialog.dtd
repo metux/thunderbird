@@ -5,3 +5,6 @@
 <!ENTITY virtualFolderListTitle.title        "Aplanko(-ų) parinkimas">
 <!ENTITY virtualFolderDesc.label       "Parinkite aplankus, kuriuose bus atliekama paeiška:">
 
+
+<!ENTITY folderName.label "Folder name">
+<!ENTITY folderSearch.label "Search">

@@ -4,9 +4,9 @@
 
 
 <!ENTITY  history.title             "Stair na Nuashonruithe">
-<!ENTITY  history.intro             "Suiteáladh na nuashonruithe seo a leanas:">
+
 <!ENTITY  closebutton.label         "Dún">
-                                     
+
 <!ENTITY  noupdates.label           "Níor suiteáladh nuashonrú ar bith fós">
 
 <!ENTITY  name.header               "Ainm an Nuashonraithe">
@@ -14,3 +14,5 @@
 <!ENTITY  type.header               "Cineál">
 <!ENTITY  state.header              "Staid">
 
+
+<!ENTITY  history2.intro            "The following updates have been installed">

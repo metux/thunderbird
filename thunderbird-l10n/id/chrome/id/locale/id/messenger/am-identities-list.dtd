@@ -12,8 +12,6 @@
 <!ENTITY identitiesListClose.label "Tutup">
 <!ENTITY identitiesListClose.accesskey "T">
 
-<!ENTITY identitiesListDefault.accesskey "S">
-<!ENTITY identitiesListDefault.label "Set Default">
-
-
 <!ENTITY identitiesListManageDesc.label "Manage the identities for this account. The first identity is used by default.">
+<!ENTITY identitiesListDefault.label "Set Default">
+<!ENTITY identitiesListDefault.accesskey "S">

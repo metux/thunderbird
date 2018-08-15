@@ -4,8 +4,9 @@
 
 <!ENTITY closeNotification.tooltip "Dún an teachtaireacht seo">
 
-<!ENTITY closeNotificationItem.label "Níl Anois">
-
 <!ENTITY checkForUpdates "Lorg nuashonruithe…">
 
 <!ENTITY learnMore "Tuilleadh eolais…">
+
+<!ENTITY defaultButton.label "OK!">
+<!ENTITY defaultButton.accesskey "O">

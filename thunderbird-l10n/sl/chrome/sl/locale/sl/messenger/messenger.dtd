@@ -51,8 +51,8 @@
 <!ENTITY getAllNewMsgCmdPopupMenu.accesskey "V">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.label "Trenutni račun">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.accesskey "T">
-<!ENTITY getNextNMsgCmd.label "Prejmi naslednjih 500 novičarskih sporočil">
-<!ENTITY getNextNMsgCmd.accesskey "e">
+<!ENTITY getNextNMsgCmd2.label "Prejmi naslednja novičarska sporočila">
+<!ENTITY getNextNMsgCmd2.accesskey "e">
 <!ENTITY sendUnsentCmd.label "Pošlji neposlana sporočila">
 <!ENTITY sendUnsentCmd.accesskey "š">
 <!ENTITY subscribeCmd.label "Naroči se …">
@@ -75,7 +75,7 @@
 <!ENTITY settingsOfflineCmd2.label "Nastavitve za nepovezan način …">
 <!ENTITY settingsOfflineCmd2.accesskey "N">
 <!ENTITY downloadSelectedCmd.label "Prejmi izbrana sporočila">
-<!ENTITY downloadSelectedCmd.accesskey "b">
+<!ENTITY downloadSelectedCmd.accesskey "P">
 <!ENTITY downloadStarredCmd.label "Prejmi sporočila z zvezdico">
 <!ENTITY downloadStarredCmd.accesskey "z">
 <!ENTITY printCmd.label "Natisni …">
@@ -236,7 +236,7 @@
 <!ENTITY headersMenu.accesskey "G">
 <!ENTITY headersAllCmd.label "Vse">
 <!ENTITY headersAllCmd.accesskey "V">
-<!ENTITY headersNormalCmd.label "Običajna velikost">
+<!ENTITY headersNormalCmd.label "Običajne">
 <!ENTITY headersNormalCmd.accesskey "O">
 <!ENTITY bodyMenu.label "Telo sporočila kot">
 <!ENTITY bodyMenu.accesskey "T">
@@ -317,7 +317,7 @@
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goChatCmd.label "Klepet">
 <!ENTITY goChatCmd.accesskey "K">
-<!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Sporočilo z zvezdico">
 <!ENTITY prevStarredMsgCmd.accesskey "z">
 <!ENTITY folderMenu.label "Mapa">
@@ -366,6 +366,10 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Uredi osnutek">
 <!ENTITY editDraftMsgCmd.accesskey "U">
+<!ENTITY editTemplateMsgCmd.label "Uredi predlogo">
+<!ENTITY editTemplateMsgCmd.accesskey "P">
+<!ENTITY newMsgFromTemplateCmd.label "Novo sporočilo iz predloge">
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Ustvari filter iz sporočila …">
 <!ENTITY createFilter.accesskey "f">
 <!ENTITY moveMsgToMenu.label "Premakni v">
@@ -376,8 +380,8 @@
 <!ENTITY copyMessageLocation.accesskey "K">
 <!ENTITY copyMsgToMenu.label "Kopiraj v">
 <!ENTITY copyMsgToMenu.accesskey "K">
-<!ENTITY moveToFolderAgain.label "Ponovno premakni">
-<!ENTITY moveToFolderAgain.accesskey "m">
+<!ENTITY moveToFolderAgain.label "Premakni znova">
+<!ENTITY moveToFolderAgain.accesskey "i">
 <!ENTITY moveToFolderAgainCmd.key "m">
 <!ENTITY killThreadMenu.label "Prezri nit">
 <!ENTITY killThreadMenu.accesskey "i">
@@ -431,7 +435,7 @@
 <!ENTITY openMessageWindowCmd.accesskey "O">
 <!ENTITY openMessageWindowCmd.key "o">
 <!ENTITY openConversationCmd.label "Odpri kot pogovor">
-<!ENTITY openConversationCmd.accesskey "v">
+<!ENTITY openConversationCmd.accesskey "g">
 <!ENTITY openConversationCmd.key "o">
 <!ENTITY openAttachmentListCmd.label "Priponke">
 <!ENTITY openAttachmentListCmd.accesskey "r">
@@ -457,6 +461,11 @@
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "Dodatki">
 <!ENTITY addons.accesskey "D">
+<!ENTITY addonPrefs.label "Možnosti dodatka">
+<!ENTITY addonPrefs.accesskey "M">
+<!ENTITY addonPrefsUnix.label "Nastavitve dodatka">
+<!ENTITY addonPrefsUnix.accesskey "N">
+<!ENTITY addonNoPrefs.label "Ni najdenih nastavitev dodatka.">
 <!ENTITY activitymanager.label "Upravitelj dejavnosti">
 <!ENTITY activitymanager.accesskey "v">
 <!ENTITY imAccountsStatus.label "Stanje klepeta">
@@ -500,8 +509,8 @@
 <!ENTITY devToolboxCmd.label "Orodjarna za razvijalce">
 <!ENTITY devToolboxCmd.accesskey "O">
 <!ENTITY devToolboxCmd.commandkey "i">
-<!ENTITY addonDebugCmd.label "Razhroščevalnik dodatkov">
-<!ENTITY addonDebugCmd.accesskey "d">
+<!ENTITY debugAddonsCmd.label "Razhrošči dodatke">
+<!ENTITY debugAddonsCmd.accesskey "R">
 <!ENTITY tabsDebugCmd.label "Razhroščevalnik vsebinskega okvirja">
 <!ENTITY tabsDebugCmd.accesskey "v">
 <!ENTITY errorConsoleCmd.label "Konzola napak">
@@ -634,6 +643,10 @@
 <!-- Folder Pane Context Menu -->
 <!ENTITY folderContextGetMessages.label "Prejmi sporočila">
 <!ENTITY folderContextGetMessages.accesskey "P">
+<!ENTITY folderContextMarkAllFoldersRead.label "Označi vse mape kot prebrane">
+<!ENTITY folderContextPauseAllUpdates.label "Ustavi vse posodobitve">
+<!ENTITY folderContextPauseUpdates.label "Ustavi posodobitve">
+<!ENTITY folderContextPauseUpdates.accesskey "U">
 <!ENTITY folderContextOpenInNewWindow.label "Odpri v novem oknu">
 <!ENTITY folderContextOpenInNewWindow.accesskey "k">
 <!ENTITY folderContextOpenNewTab.label "Odpri v novem zavihku">
@@ -731,14 +744,15 @@
 <!ENTITY attachmentColumn2.tooltip "Razvrsti po priponkah">
 
 <!-- Thread Pane Context Menu -->
+<!ENTITY contextNewMsgFromTemplate.label "Novo sporočilo iz predloge">
 <!ENTITY contextOpenNewWindow.label "Odpri sporočilo v novem oknu">
 <!ENTITY contextOpenNewWindow.accesskey "u">
-<!-- The key potentially conflicts with cutCmd.accessKey which is defined in
-     textcontext.dtd from toolkit. Right now, both menu items can't be visible
-     at the same time, but should someone enable copy/paste of message, this key
-     would probably need to be changed. -->
+<!-- The contextOpenNewTab.accesskey ("T") potentially conflicts with
+     cutCmd.accessKey which is defined in textcontext.dtd from toolkit. Right
+     now, both menu items can't be visible at the same time, but should someone
+     enable copy/paste of message, this key would probably need to be changed. -->
 <!ENTITY contextOpenNewTab.label "Odpri sporočilo v novem zavihku">
-<!ENTITY contextOpenNewTab.accesskey "z">
+<!ENTITY contextOpenNewTab.accesskey "v">
 <!ENTITY contextOpenConversation.label "Odpri sporočilo kot pogovor">
 <!ENTITY contextOpenConversation.accesskey "v">
 <!ENTITY contextOpenContainingFolder.label "Odpri sporočilo v vsebujoči mapi">
@@ -746,6 +760,8 @@
 <!ENTITY contextEditMsgAsNew.label "Uredi kot novo sporočilo">
 <!ENTITY contextEditMsgAsNew.accesskey "U">
 <!ENTITY contextEditDraftMsg.label "Uredi osnutek">
+<!ENTITY contextEditTemplate.label "Uredi predlogo">
+<!ENTITY contextEditTemplate.accesskey "P">
 <!ENTITY contextArchive.label "Arhiviraj">
 <!ENTITY contextArchive.accesskey "h">
 <!ENTITY contextReplySender.label "Odgovori samo pošiljatelju">
@@ -759,7 +775,7 @@
 <!ENTITY contextForward.label "Posreduj">
 <!ENTITY contextForward.accesskey "P">
 <!ENTITY contextForwardAsMenu.label "Posreduj kot">
-<!ENTITY contextForwardAsMenu.accesskey "t">
+<!ENTITY contextForwardAsMenu.accesskey "o">
 <!ENTITY contextForwardAsInline.label "V besedilu">
 <!ENTITY contextForwardAsInline.accesskey "V">
 <!ENTITY contextForwardAsAttachmentItem.label "Priponko">
@@ -773,15 +789,15 @@
 <!ENTITY contextCopyMsgMenu.label "Kopiraj v">
 <!ENTITY contextCopyMsgMenu.accesskey "K">
 <!ENTITY contextKillThreadMenu.label "Prezri nit">
-<!ENTITY contextKillSubthreadMenu.accesskey "K">
-<!ENTITY contextKillThreadMenu.accesskey "i">
+<!ENTITY contextKillSubthreadMenu.accesskey "d">
+<!ENTITY contextKillThreadMenu.accesskey "t">
 <!ENTITY contextKillSubthreadMenu.label "Prezri podnit">
 <!ENTITY contextWatchThreadMenu.label "Spremljaj nit">
 <!-- LOCALIZATION NOTE (contextWatchThreadMenu.accesskey):
      In the en-US locale we ran out of access keys, so there is an empty access key for
      Watch Thread. Localizers can pick a suitable key
   -->
-<!ENTITY contextWatchThreadMenu.accesskey "R">
+<!ENTITY contextWatchThreadMenu.accesskey "l">
 <!ENTITY contextSaveAs.label "Shrani kot …">
 <!ENTITY contextSaveAs.accesskey "S">
 <!ENTITY contextPrint.label "Natisni …">
@@ -853,7 +869,7 @@
   -->
 <!ENTITY quickSearchCmd.key "k">
 <!-- LOCALIZATION NOTE (search.label.base1):
-      This is the base of the empty text for the global search box. We replace
+     This is the base of the empty text for the global search box. We replace
      #1 with the contents of the appropriate search.keyLabel.* value for the
      platform.
      The goal is to convey to the user that typing in the box will allow them
@@ -894,7 +910,7 @@
 <!ENTITY CopyNameAndEmailAddress.accesskey "m">
 <!ENTITY CopyNewsgroupName.label "Kopiraj ime novičarske skupine">
 <!ENTITY CopyNewsgroupName.accesskey "n">
-<!ENTITY CopyNewsgroupURL.label "Kopiraj URL novičarske skupine">
+<!ENTITY CopyNewsgroupURL.label "Kopiraj spletni naslov novičarske skupine">
 <!ENTITY CopyNewsgroupURL.accesskey "U">
 <!ENTITY CreateFilterFrom.label "Ustvari filter iz …">
 <!ENTITY CreateFilterFrom.accesskey "U">
@@ -949,3 +965,5 @@
 
 <!-- Mac OS X Dock Icon pop-up menu -->
 <!ENTITY dockOptions.label              "Možnosti ikone programa …">
+<!ENTITY writeNewMessageDock.label      "Sestavi novo sporočilo">
+<!ENTITY openAddressBookDock.label      "Odpri imenik">

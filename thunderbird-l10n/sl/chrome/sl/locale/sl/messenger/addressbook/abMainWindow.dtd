@@ -124,6 +124,9 @@ because displayed names don't have the comma in between. -->
 <!ENTITY messengerCmd.label                             "Pošta in novičarske skupine">
 <!ENTITY messengerCmd.accesskey                         "P">
 <!ENTITY messengerCmd.commandkey                        "1">
+<!ENTITY addressBookCmd.label                           "Imenik">
+<!ENTITY addressBookCmd.accesskey                       "I">
+<!ENTITY addressBookCmd.key                             "B">
 <!ENTITY searchAddressesCmd.label                       "Išči po naslovih …">
 <!ENTITY searchAddressesCmd.accesskey                   "š">
 <!ENTITY importCmd.label                                "Uvozi …">
@@ -140,6 +143,8 @@ because displayed names don't have the comma in between. -->
 <!ENTITY newContactButton.accesskey                     "s">
 <!ENTITY newlistButton.label                            "Nov seznam">
 <!ENTITY newlistButton.accesskey                        "e">
+<!ENTITY showAsDefault.label                            "Privzeta zagonska mapa">
+<!ENTITY showAsDefault.accesskey                        "P">
 <!ENTITY editPropertiesButton.label                     "Uredi">
 <!ENTITY propertiesContext.label                        "Lastnosti">
 <!ENTITY propertiesContext.accesskey                    "L">

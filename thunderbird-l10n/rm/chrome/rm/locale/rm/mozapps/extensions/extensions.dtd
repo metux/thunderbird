@@ -4,6 +4,8 @@
 <!ENTITY addons.windowTitle                   "Administraziun dals supplements">
 
 <!ENTITY search.placeholder                   "Tschertgar en ils supplements">
+
+<!ENTITY search.placeholder2                  "Tschertgar sin addons.mozilla.org">
 <!ENTITY search.buttonlabel                   "Tschertgar">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
@@ -20,8 +22,12 @@
 <!ENTITY installAddonFromFile.accesskey       "I">
 <!ENTITY toolsMenu.tooltip                    "Utensils per tut ils supplements">
 
+<!ENTITY getThemes.description                "Vuls ti persunalisar tes navigatur?">
+<!ENTITY getThemes.learnMore                  "Tscherna da millis designs.">
+
 <!ENTITY cmd.back.tooltip                     "Ir enavos ina pagina">
 <!ENTITY cmd.forward.tooltip                  "Ir anavant ina pagina">
+
 
 <!ENTITY showUnsignedExtensions.button.label  "Impussibel da verifitgar tschertas extensiuns">
 <!ENTITY showAllExtensions.button.label       "Mussar tut las extensiuns">
@@ -115,6 +121,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "Mussar las notizias da publicaziun per questa actualisaziun">
 <!ENTITY cmd.hideReleaseNotes.label           "Zuppentar las notizias da publicaziun">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Zuppentar las notizias da publicaziun per questa actualisaziun">
+<!ENTITY cmd.findReplacement.label            "Chattar supplements equivalents">
 
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
@@ -185,6 +192,10 @@
 <!ENTITY addon.details.label                  "Dapli">
 <!ENTITY addon.details.tooltip                "Mussar dapli detagls davart quest supplement">
 <!ENTITY addon.unknownDate                    "Nunenconuschent">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "OBSOLET">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -227,7 +238,7 @@
 <!ENTITY experiment.info.label "Tge è quai? La funcziun da telemetria po installar ed exequir experiments da temp en temp.">
 <!ENTITY experiment.info.learnmore "Ulteriuras infurmaziuns">
 <!ENTITY experiment.info.learnmore.accesskey "L">
-<!ENTITY experiment.info.changetelemetry "Configuraziun da la funcziun da telemetria">
+<!ENTITY experiment.info.changetelemetry "Parameters da la funcziun da telemetria">
 <!ENTITY experiment.info.changetelemetry.accesskey "T">
 
 <!ENTITY setting.learnmore "Ulteriuras infurmaziuns…">
@@ -247,6 +258,10 @@
 <!ENTITY disabledUnsigned.devInfo.linkToManual "manual">
 <!ENTITY disabledUnsigned.devInfo.end ".">
 
+<!ENTITY pluginDeprecation.description "Manca insatge? Tscherts plug-ins na vegnan betg pli sustegnids da &brandShortName;.">
+<!ENTITY pluginDeprecation.learnMore "Ulteriuras infurmaziuns.">
 
-<!ENTITY pluginDeprecation.description "Missing something? Some plugins are no longer supported by &brandShortName;.">
-<!ENTITY pluginDeprecation.learnMore "Learn More.">
+<!ENTITY legacyWarning.showLegacy "Mussar las extensiuns obsoletas">
+<!ENTITY legacyExtensions.title "Extensiuns obsoletas">
+<!ENTITY legacyExtensions.description "Questas extensiuns na correspundan betg als standards actuals da &brandShortName; ed èn perquai deactivadas.">
+<!ENTITY legacyExtensions.learnMore "Vegnir a savair dapli davart las midadas per supplements">

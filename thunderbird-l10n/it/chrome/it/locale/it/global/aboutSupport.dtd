@@ -14,6 +14,16 @@
 <!ENTITY aboutSupport.extensionEnabled "Attiva">
 <!ENTITY aboutSupport.extensionVersion "Versione">
 <!ENTITY aboutSupport.extensionId "ID">
+<!ENTITY aboutSupport.securitySoftwareTitle "Software di sicurezza">
+<!ENTITY aboutSupport.securitySoftwareType "Tipo">
+<!ENTITY aboutSupport.securitySoftwareName "Nome">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
+<!ENTITY aboutSupport.featuresTitle "Caratteristiche di &brandShortName;">
+<!ENTITY aboutSupport.featureName "Nome">
+<!ENTITY aboutSupport.featureVersion "Versione">
+<!ENTITY aboutSupport.featureId "ID">
 <!ENTITY aboutSupport.experimentsTitle "Caratteristiche sperimentali">
 <!ENTITY aboutSupport.experimentName "Nome">
 <!ENTITY aboutSupport.experimentId "ID">
@@ -40,6 +50,10 @@
 <!ENTITY aboutSupport.appBasicsServiceWorkers "Service worker registrati">
 <!ENTITY aboutSupport.appBasicsProfiles "Profili">
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Finestre multiprocesso">
+<!ENTITY aboutSupport.appBasicsProcessCount "Processi contenuti web">
+<!ENTITY aboutSupport.enterprisePolicies "Criteri a livello aziendale">
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Chiave Google">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Chiave per il servizio Mozilla Location">
 <!ENTITY aboutSupport.appBasicsSafeMode "Modalità provvisoria">
 <!ENTITY aboutSupport.showDir.label "Apri percorso">
 <!ENTITY aboutSupport.showMac.label "Mostra nel Finder">
@@ -60,13 +74,23 @@
 <!ENTITY aboutSupport.jsIncrementalGC "GC incrementale">
 <!ENTITY aboutSupport.a11yTitle "Accessibilità">
 <!ENTITY aboutSupport.a11yActivated "Attivato">
-<!ENTITY aboutSupport.a11yForceDisabled "Impedisci accessibilità">
+<!ENTITY aboutSupport.a11yForceDisabled "Blocca servizi accessibilità">
+<!ENTITY aboutSupport.a11yHandlerUsed "Handler accessibilità utilizzato">
+<!ENTITY aboutSupport.a11yInstantiator "Istanziatore accessibilità">
 <!ENTITY aboutSupport.libraryVersionsTitle "Versioni librerie">
 <!ENTITY aboutSupport.installationHistoryTitle "Cronologia installazione">
 <!ENTITY aboutSupport.updateHistoryTitle "Aggiorna cronologia">
 <!ENTITY aboutSupport.copyTextToClipboard.label "Copia il testo negli appunti">
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Copia i dati non elaborati negli appunti">
 <!ENTITY aboutSupport.sandboxTitle "Sandbox">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Chiamate di sistema">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "Secondi fa">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Tipo processo">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Syscall">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Argomenti">
 <!ENTITY aboutSupport.safeModeTitle "Prova la modalità provvisoria">
 <!ENTITY aboutSupport.restartInSafeMode.label "Riavvia disattivando i componenti aggiuntivi…">
 <!ENTITY aboutSupport.graphicsFeaturesTitle "Caratteristiche">
@@ -77,3 +101,24 @@
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Registro decisioni">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Funzioni disattivate da Crash Guard">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Soluzioni alternative">
+<!ENTITY aboutSupport.mediaTitle "Media">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Dispositivi di output">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Dispositivi di input">
+<!ENTITY aboutSupport.mediaDeviceName "Nome">
+<!ENTITY aboutSupport.mediaDeviceGroup "Gruppo">
+<!ENTITY aboutSupport.mediaDeviceVendor "Produttore">
+<!ENTITY aboutSupport.mediaDeviceState "Stato">
+<!ENTITY aboutSupport.mediaDevicePreferred "Preferito">
+<!ENTITY aboutSupport.mediaDeviceFormat "Formato">
+<!ENTITY aboutSupport.mediaDeviceChannels "Canali">
+<!ENTITY aboutSupport.mediaDeviceRate "Frequenza">
+<!ENTITY aboutSupport.mediaDeviceLatency "Latenza">
+<!ENTITY aboutSupport.intlTitle "Internazionalizzazione e localizzazione">
+<!ENTITY aboutSupport.intlAppTitle "Impostazioni dell’applicazione">
+<!ENTITY aboutSupport.intlLocalesRequested "Lingue richieste">
+<!ENTITY aboutSupport.intlLocalesAvailable "Lingue disponibili">
+<!ENTITY aboutSupport.intlLocalesSupported "Lingue applicazione">
+<!ENTITY aboutSupport.intlLocalesDefault "Lingua predefinita">
+<!ENTITY aboutSupport.intlOSTitle "Sistema operativo">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Lingue del sistema">
+<!ENTITY aboutSupport.intlRegionalPrefs "Impostazioni internazionali">

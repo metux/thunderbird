@@ -4,23 +4,17 @@ Subject: Disable optimization on alpha for the url-classifier component
 
 The use of this component leads to crashes when built with optimizations.
 ---
- mozilla/b2g/Makefile.in | 10 ++++++++++
- 1 file changed, 10 insertions(+)
+ browser/components/build/Makefile.in | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/mozilla/b2g/Makefile.in b/mozilla/b2g/Makefile.in
-index 9b3e1e0..1dfdd4a 100644
---- a/mozilla/b2g/Makefile.in
-+++ b/mozilla/b2g/Makefile.in
-@@ -4,3 +4,13 @@
+diff --git a/browser/components/build/Makefile.in b/browser/components/build/Makefile.in
+index 2387227..d5ca1ba 100644
+--- a/browser/components/build/Makefile.in
++++ b/browser/components/build/Makefile.in
+@@ -6,3 +6,7 @@ include $(topsrcdir)/config/rules.mk
  
- include $(topsrcdir)/config/rules.mk
- include $(topsrcdir)/testing/testsuite-targets.mk
-+
-+ABS_SRCDIR := $(abspath $(srcdir))
-+
-+CXXFLAGS += \
-+  $(SQLITE_CFLAGS) \
-+  $(NULL)
+ # Ensure that we don't embed a manifest referencing the CRT.
+ EMBED_MANIFEST_AT =
 +
 +ifeq ($(OS_TEST),alpha)
 +MOZ_OPTIMIZE_FLAGS := -O0

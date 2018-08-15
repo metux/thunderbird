@@ -10,11 +10,11 @@
 <!ENTITY certmgr.tab.ca                       "Удостоверители">
 <!ENTITY certmgr.tab.orphan2                  "Други">
 
-<!ENTITY certmgr.mine                         "Имате сертификати от тези организации, които ви идентифицират:">
-<!ENTITY certmgr.others                       "Имате инсталирани сертификати, които идентифицират следните хора:">
-<!ENTITY certmgr.websites2                    "Имате инсталирани сертификати, които идентифицират следните сървъри:">
-<!ENTITY certmgr.cas                          "Имате инсталирани сертификати, които идентифицират следните удостоверители на сертификати:">
-<!ENTITY certmgr.orphans                      "Имате инсталирани сертификати, които не попадат в никоя от другите категории:">
+<!ENTITY certmgr.mine2                        "Имате сертификати от тези организации, които ви идентифицират">
+<!ENTITY certmgr.others2                      "Имате сертификати, които идентифицират следните хора">
+<!ENTITY certmgr.websites3                    "Имате сертификати, които идентифицират следните сървъри">
+<!ENTITY certmgr.cas2                         "Имате сертификати, които идентифицират следните удостоверители на сертификати">
+<!ENTITY certmgr.orphans2                     "Имате сертификати, които не попадат в никоя от другите категории">
 
 <!ENTITY certmgr.detail.general_tab.title     "Основни">
 <!ENTITY certmgr.detail.general_tab.accesskey "О">
@@ -45,7 +45,7 @@
 <!ENTITY certmgr.certname                     "Име на сертификат">
 <!ENTITY certmgr.certserver                   "Сървър">
 <!ENTITY certmgr.override_lifetime            "Време на живот">
-<!ENTITY certmgr.tokenname                    "Сигурно устройство">
+<!ENTITY certmgr.tokenname                    "Устройство по безопасността">
 <!ENTITY certmgr.begins                       "Започва на">
 <!ENTITY certmgr.expires                      "Изтича на">
 <!ENTITY certmgr.email                        "Е-поща">

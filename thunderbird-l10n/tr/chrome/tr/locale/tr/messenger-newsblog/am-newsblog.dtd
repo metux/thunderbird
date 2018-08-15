@@ -2,23 +2,15 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY biffStart.label "Yeni haberleri denetleme sıklığı ">
-<!ENTITY biffStart.accesskey "k">
-<!ENTITY biffEnd.label "dakika">
+<!ENTITY loginAtStartup.label          "Başlangıçta yeni haberleri denetle">
+<!ENTITY loginAtStartup.accesskey      "h">
+<!ENTITY biffAll.label                 "Tüm akışlar için güncellemeleri etkinleştir">
+<!ENTITY biffAll.accesskey             "e">
 
-<!ENTITY loginAtStartup.label "Başlangıçta yeni haberleri denetle"> 
-<!ENTITY loginAtStartup.accesskey "h">
+<!ENTITY newFeedSettings.label         "Haber akışları için varsayılan ayarlar">
 
-<!ENTITY useQuickMode.label "Varsayılan olarak, web sayfasını yüklemek yerine haber özetini göster"> 
-<!ENTITY useQuickMode.accesskey "h">
-
-<!ENTITY manageSubscriptions.label "Aboneliklerini yönet…"> 
+<!ENTITY manageSubscriptions.label     "Aboneliklerini yönet…">
 <!ENTITY manageSubscriptions.accesskey "A">
 
-<!ENTITY feedWindowTitle.label "Besleme Hesabı Sihirbazı">
-<!-- entities from rss.rdf -->
-
-<!ENTITY feeds.accountName "Bloglar ve haber beslemeleri">
-<!ENTITY feeds.wizardShortName "Beslemeler">
-<!ENTITY feeds.wizardLongName "Bloglar ve haber beslemeleri">
-<!ENTITY feeds.wizardLongName.accesskey "B">
+<!ENTITY feedWindowTitle.label         "Besleme Hesabı Sihirbazı">
+<!ENTITY feeds.accountName             "Bloglar ve haber beslemeleri">

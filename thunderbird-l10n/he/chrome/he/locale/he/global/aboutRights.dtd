@@ -3,8 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <!-- rights.locale-direction instead of the usual local.dir entity, so RTL can skip translating page. -->
 <!ENTITY rights.locale-direction "rtl">
-<!ENTITY rights.pagetitle       "about:rights">
-<!ENTITY rights.intro-header    "דע את זכויותיך">
+<!ENTITY rights.title "הזכויות שלך">
 <!ENTITY rights.intro "&brandFullName; היא תוכנה חופשית בקוד פתוח, שנבנתה בידי קהילה של אלפים מכל רחבי העולם. ישנם מספר דברים שעליך לדעת:">
 
 <!-- Note on pointa / pointb / pointc form:
@@ -17,7 +16,7 @@
      deliberate for formatting around the embedded links. -->
 <!ENTITY rights.intro-point1a "&brandShortName; ניתן לך תחת התנאים של ">
 <!ENTITY rights.intro-point1b "הרישיון הציבורי של Mozilla">
-<!ENTITY rights.intro-point1c ". משמעות הדבר היא שאתה יכול להשתמש ב־&brandShortName;, להעתיקו ולהפיצו לאחרים. אתה גם מוזמן לשנות את קוד המקור של &brandShortName; בדרך שתרצה כדי להתאימו לצרכיך. הרישיון הציבורי של Mozilla גם נותן לך את הזכות להפיץ את הגרסאות עם השינויים שלך.">
+<!ENTITY rights.intro-point1c ". משמעות הדבר היא שניתן להשתמש ב־&brandShortName;, להעתיקו ולהפיצו לאחרים, כמו גם לשנות את קוד המקור של &brandShortName; בדרך המתאימה ביותר לצרכיך. הרישיון הציבורי של Mozilla גם נותן לך את הזכות להפיץ את הגרסאות עם השינויים שלך.">
 
 <!ENTITY rights.intro-point2-a "לא הוענקה לך אף זכות בסמל המסחרי או רישיונות לסמל המסחרי של קרן Mozilla או חלקן, לא כולל הגבלה על השם או הלוגו של Firefox. מידע נוסף על הסמלים המסחריים נמצא ">
 <!ENTITY rights.intro-point2-b "כאן">

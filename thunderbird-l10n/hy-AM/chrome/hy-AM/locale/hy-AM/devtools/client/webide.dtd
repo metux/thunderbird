@@ -32,12 +32,10 @@
 <!ENTITY runtimeMenu_accesskey "R">
 <!ENTITY runtimeMenu_disconnect_label "Անջատել">
 <!ENTITY runtimeMenu_disconnect_accesskey "D">
-<!ENTITY runtimeMenu_showPermissionTable_label "Թույլտվությունների աղյուսակ">
-<!ENTITY runtimeMenu_showPermissionTable_accesskey "P">
 <!ENTITY runtimeMenu_takeScreenshot_label "Պատկերը">
 <!ENTITY runtimeMenu_takeScreenshot_accesskey "S">
 <!ENTITY runtimeMenu_showDetails_label "Աշխատաժամանակի մասին">
-<!ENTITY runtimeMenu_showDetails_accesskey "E">
+
 <!ENTITY runtimeMenu_showMonitor_label "Դիտազննում">
 <!ENTITY runtimeMenu_showMonitor_accesskey "M">
 <!ENTITY runtimeMenu_showDevicePrefs_label "Սարքի նախըտրանքներ">
@@ -47,8 +45,6 @@
 
 <!ENTITY viewMenu_label "Տեսք">
 <!ENTITY viewMenu_accesskey "V">
-<!ENTITY viewMenu_toggleEditor_label "Փոխանջատել խմբագրիչը">
-<!ENTITY viewMenu_toggleEditor_accesskey "E">
 <!ENTITY viewMenu_zoomin_label "Խոշորացնել">
 <!ENTITY viewMenu_zoomin_accesskey "I">
 <!ENTITY viewMenu_zoomout_label "Փոքրացնել">
@@ -68,8 +64,6 @@
 <!ENTITY key_play "R">
 <!-- show toolbox -->
 <!ENTITY key_toggleToolbox "VK_F12">
-<!-- toggle sidebar -->
-<!ENTITY key_toggleEditor "B">
 <!-- zoom -->
 <!ENTITY key_zoomin "+">
 <!ENTITY key_zoomin2 "=">
@@ -96,7 +90,6 @@
 <!ENTITY details_location "Հասցե">
 <!ENTITY details_manifestURL "Հավելվածի ID">
 <!ENTITY details_removeProject_button "Հեռացնել նախագիծը">
-<!ENTITY details_showPrepackageLog_button "Ցուցադրել նախափաթեթային մատյանը">
 <!-- New App -->
 
 <!ENTITY newAppWindowTitle "Նոր հավելված">
@@ -125,25 +118,6 @@
 <!ENTITY prefs_options_rememberlastproject_tooltip "Վերականգնել նախորդ նախագիծըմ երբ WebIDE-ը սկսում է">
 <!ENTITY prefs_options_templatesurl "Ձևանմուշի URL">
 <!ENTITY prefs_options_templatesurl_tooltip "Հասանելի ձևանմուշների ինդեքսը">
-<!ENTITY prefs_options_showeditor "Ցուցադրել խմբագրիչը">
-<!ENTITY prefs_options_showeditor_tooltip "Ցուցադրել ներքին խմբագրիչը">
-<!ENTITY prefs_options_tabsize "Ներդիրի չափը">
-<!ENTITY prefs_options_expandtab "Փափուկ ներդիրներ">
-<!ENTITY prefs_options_expandtab_tooltip "Օգտ. բացատներ՝ ներդիրի գրանշանի փոխարեն">
-<!ENTITY prefs_options_detectindentation "Ինքնաբացատ">
-<!ENTITY prefs_options_detectindentation_tooltip "Գուշակել բացատը ըստ աղբյուրի բովանդակության">
-<!ENTITY prefs_options_autocomplete "Ինքնալրացնել">
-<!ENTITY prefs_options_autocomplete_tooltip "Միացնել կոդի ինքնալրացումը">
-<!ENTITY prefs_options_autoclosebrackets "Ինքնափակել փակագիծը">
-<!ENTITY prefs_options_autoclosebrackets_tooltip "Ինքնավար ներմուծել փակող փակագիծ">
-<!ENTITY prefs_options_keybindings "Ստեղնաշարի համադրումներ">
-<!ENTITY prefs_options_keybindings_default "Լռելյայն">
-<!ENTITY prefs_options_autosavefiles "Ինքնապահպանել ֆայլերը">
-<!ENTITY prefs_options_autosavefiles_tooltip "Ինքնաբար պահպանել խմբագրված ֆայլերը՝ մինչև նախագիծը բացելը">
-<!-- Permissions Table -->
-
-<!ENTITY permissionstable_title "Թույլտվությունների աղյուսակ">
-<!ENTITY permissionstable_name_header "Անուն">
 <!-- Runtime Details -->
 
 <!ENTITY runtimedetails_title "Աշխատաժամանակի մասին">
@@ -216,3 +190,5 @@
 <!ENTITY simulator_tv_data "TV նմանակում">
 <!ENTITY simulator_tv_data_open "Կարգավորումների տվյալ">
 <!ENTITY simulator_tv_data_open_button "Բացել կարգավորումների գրացուցակը...">
+
+<!ENTITY runtimeMenu_showDetails_accesskey "E">

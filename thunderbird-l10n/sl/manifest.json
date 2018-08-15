@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "sl": {
+      "chrome_resources": {
+        "necko": "chrome/sl/locale/sl/necko/", 
+        "global": "chrome/sl/locale/sl/global/", 
+        "messenger-region": "chrome/sl/locale/sl/messenger-region/", 
+        "chat": "chrome/sl/locale/sl/chat/", 
+        "devtools": "chrome/sl/locale/sl/devtools/client/", 
+        "pipnss": "chrome/sl/locale/sl/pipnss/", 
+        "messenger-smime": "chrome/sl/locale/sl/messenger-smime/", 
+        "messenger-newsblog": "chrome/sl/locale/sl/messenger-newsblog/", 
+        "devtools-shim": "chrome/sl/locale/sl/devtools/shim/", 
+        "alerts": "chrome/sl/locale/sl/alerts/", 
+        "messenger": "chrome/sl/locale/sl/messenger/", 
+        "editor": "chrome/sl/locale/sl/editor/", 
+        "branding": "chrome/sl/locale/sl/branding/", 
+        "mozldap": "chrome/sl/locale/sl/mozldap/", 
+        "autoconfig": "chrome/sl/locale/sl/autoconfig/", 
+        "devtools-shared": "chrome/sl/locale/sl/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/sl/locale/sl/global-platform/win/", 
+          "android": "chrome/sl/locale/sl/global-platform/unix/", 
+          "macosx": "chrome/sl/locale/sl/global-platform/mac/", 
+          "linux": "chrome/sl/locale/sl/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/sl/locale/sl/mozapps/", 
+        "pluginproblem": "chrome/sl/locale/sl/pluginproblem/", 
+        "communicator": "chrome/sl/locale/sl/communicator/", 
+        "messenger-mapi": "chrome/sl/locale/sl/messenger-mapi/", 
+        "places": "chrome/sl/locale/sl/places/", 
+        "passwordmgr": "chrome/sl/locale/sl/passwordmgr/", 
+        "pippki": "chrome/sl/locale/sl/pippki/"
+      }, 
+      "version": "20180502075311"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-sl@firefox.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "sl", 
+  "version": "60.0buildid20180709054853", 
+  "name": "Slovenski jezik Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Peter Klofutar, Vito Smolej)", 
+  "description": "Language pack for Thunderbird for sl"
+}

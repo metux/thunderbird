@@ -93,9 +93,7 @@ pendant le transfert d’informations. Veuillez réessayer.</p>
 </ul>
 ">
 
-
 <!ENTITY netOffline.title "Mode hors connexion">
-
 <!ENTITY netOffline.longDesc2 "<p>Le navigateur est en mode hors connexion et ne peut pas se connecter à l’adresse indiquée.</p>
 <ul>
   <li>L’ordinateur est-il connecté au réseau ?</li>
@@ -113,10 +111,7 @@ type de compression invalide ou non pris en charge.</p>
 ">
 
 <!ENTITY unsafeContentType.title "Type de fichier non sûr">
-<!ENTITY unsafeContentType.longDesc "
-<ul>
-  <li>Veuillez contacter les propriétaires du site web pour les informer de ce problème.</li>
-</ul>">
+<!ENTITY unsafeContentType.longDesc "<ul><li>Veuillez contacter les propriétaires du site web pour les informer de ce problème.</li></ul>">
 
 <!ENTITY netReset.title "La connexion a été réinitialisée">
 <!ENTITY netReset.longDesc "
@@ -206,3 +201,5 @@ refusé la connexion.</p>
 <!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
      "NS_ERROR_NET_INADEQUATE_SECURITY". -->
 <!ENTITY inadequateSecurityError.longDesc "<p><span class='hostname'></span> fait appel à des technologies de sécurisation obsolètes et vulnérables aux attaques. Un attaquant pourrait facilement révéler des informations que vous pensiez être sécurisées. L’administrateur du site web devra d’abord corriger le serveur avant que vous puissiez visiter le site.</p><p>Code d’erreur : NS_ERROR_NET_INADEQUATE_SECURITY</p>">
+
+<!ENTITY blockedByPolicy.title "Page bloquée">

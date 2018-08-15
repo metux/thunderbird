@@ -85,13 +85,12 @@
 <!ENTITY  update.installedOn.label        "Cài đặt vào:">
 <!ENTITY  update.status.label             "Trạng thái:">
 
+<!ENTITY  unsupported.title               "System Unsupported">
+<!ENTITY  unsupported.label               "Your &brandShortName; is out of date, but the latest version is not
+                                           supported on your system. Please upgrade your system, then try again.
+                                           You will not see this notice again, but you can">
+<!ENTITY  unsupportedLink.label           "learn more.">
 <!ENTITY  finishedBackground.moreElevated "This update requires administrator privileges. The update will be
                                            installed the next time &brandShortName; starts. You can restart
                                            &brandShortName; now, continue working and restart later, or decline this
                                            update.">
-<!ENTITY  unsupported.label               "Your &brandShortName; is out of date, but the latest version is not
-                                           supported on your system. Please upgrade your system, then try again.
-                                           You will not see this notice again, but you can">
-
-<!ENTITY  unsupported.title               "System Unsupported">
-<!ENTITY  unsupportedLink.label           "learn more.">

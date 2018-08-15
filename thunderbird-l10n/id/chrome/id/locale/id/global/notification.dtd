@@ -4,8 +4,9 @@
 
 <!ENTITY closeNotification.tooltip "Tutup pesan ini">
 
-<!ENTITY closeNotificationItem.label "Nanti">
-
 <!ENTITY checkForUpdates "Periksa versi terbaru…">
 
 <!ENTITY learnMore "Pelajari lebih lanjut…">
+
+<!ENTITY defaultButton.label "Oke!">
+<!ENTITY defaultButton.accesskey "O">

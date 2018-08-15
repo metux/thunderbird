@@ -93,3 +93,10 @@
 <!ENTITY manageCertificates.accesskey "m">
 <!ENTITY viewSecurityDevices.label "Öryggistæki">
 <!ENTITY viewSecurityDevices.accesskey "Ö">
+
+<!ENTITY dateTimeFormatting.label      "Date and Time Formatting">
+<!ENTITY updateApp2.label                "&brandShortName; Updates">
+<!ENTITY updateApp.version.pre           "Version ">
+<!ENTITY updateApp.version.post          "">
+<!ENTITY overrideSmartCacheSize.label    "Override automatic cache management">
+<!ENTITY overrideSmartCacheSize.accesskey "v">

@@ -14,7 +14,7 @@
 <!ENTITY aboutNetworking.autoRefresh           "Actualiser toutes les 3 secondes">
 <!ENTITY aboutNetworking.hostname              "Nom d’hôte">
 <!ENTITY aboutNetworking.port                  "Port">
-<!ENTITY aboutNetworking.spdy                  "SPDY">
+<!ENTITY aboutNetworking.http2                 "HTTP/2">
 <!ENTITY aboutNetworking.ssl                   "SSL">
 <!ENTITY aboutNetworking.active                "Actif">
 <!ENTITY aboutNetworking.idle                  "Inactif">
@@ -23,6 +23,7 @@
 <!ENTITY aboutNetworking.sent                  "Envoyés">
 <!ENTITY aboutNetworking.received              "Reçus">
 <!ENTITY aboutNetworking.family                "Famille">
+<!ENTITY aboutNetworking.trr                   "TRR">
 <!ENTITY aboutNetworking.addresses             "Adresses">
 <!ENTITY aboutNetworking.expires               "Expiration (secondes)">
 <!ENTITY aboutNetworking.messagesSent          "Messages envoyés">
@@ -41,3 +42,18 @@
 <!ENTITY aboutNetworking.dnsLookupButton       "Résolution">
 <!ENTITY aboutNetworking.dnsDomain             "Domaine">
 <!ENTITY aboutNetworking.dnsLookupTableColumn  "Adresses IP">
+<!ENTITY aboutNetworking.rcwn                  "Statistiques RCWN">
+<!ENTITY aboutNetworking.rcwnStatus            "État RCWN">
+<!ENTITY aboutNetworking.rcwnCacheWonCount     "Nombre de victoires du cache">
+<!ENTITY aboutNetworking.rcwnNetWonCount       "Nombre de victoires du réseau">
+<!ENTITY aboutNetworking.totalNetworkRequests  "Nombre total de requêtes réseau">
+<!ENTITY aboutNetworking.rcwnOperation         "Opérations du cache">
+<!ENTITY aboutNetworking.rcwnPerfOpen          "Ouvertures">
+<!ENTITY aboutNetworking.rcwnPerfRead          "Lectures">
+<!ENTITY aboutNetworking.rcwnPerfWrite         "Écritures">
+<!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Ouvertures d’entrées">
+<!ENTITY aboutNetworking.rcwnAvgShort          "Petite moyenne">
+<!ENTITY aboutNetworking.rcwnAvgLong           "Grande moyenne">
+<!ENTITY aboutNetworking.rcwnStddevLong        "Grand écart-type">
+<!ENTITY aboutNetworking.rcwnCacheSlow         "Nombre de fois où le cache est lent">
+<!ENTITY aboutNetworking.rcwnCacheNotSlow      "Nombre de fois où le cache est rapide">

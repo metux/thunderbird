@@ -20,7 +20,7 @@
 <!ENTITY playSoundMac.label               "Het volgende geluidsbestand afspelen:">
 <!ENTITY playSoundMac.accesskey           "v">
 <!ENTITY showAnimatedAlert.label          "Een waarschuwing tonen">
-<!ENTITY showAnimatedAlert.accesskey      "t">
+<!ENTITY showAnimatedAlert.accesskey      "r">
 <!ENTITY notificationAlertSettings2.label "Waarschuwingen en het standaardgeluid kunnen worden uitgeschakeld via het paneel Berichtgeving in Systeemvoorkeuren.">
 <!ENTITY customizeMailAlert.label         "Aanpassen…">
 <!ENTITY customizeMailAlert.accesskey     "A">

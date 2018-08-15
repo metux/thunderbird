@@ -5,3 +5,6 @@
 <!ENTITY virtualFolderListTitle.title        "Vel mappe(r)">
 <!ENTITY virtualFolderDesc.label       "Vel mapper å søka i:">
 
+
+<!ENTITY folderName.label "Mappenamn">
+<!ENTITY folderSearch.label "Søk">

@@ -1,0 +1,26 @@
+From: Carsten Schoenert <c.schoenert@t-online.de>
+Date: Tue, 3 Jul 2018 20:14:47 +0200
+Subject: Bug 1463036 - Use HAVE_ARM_NEON instead of BUILD_ARM_NEON for
+ nsUTF8UtilsNEON.cpp. r=chmanchester, a=RyanVM
+
+Origin: https://hg.mozilla.org/releases/mozilla-beta/rev/54ba8ee1c9ce
+Bug-Debian: not yet exist
+Bug: https://bugzilla.mozilla.org/show_bug.cgi?id=1463036
+Applied-Upstream: yes
+---
+ xpcom/string/moz.build | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xpcom/string/moz.build b/xpcom/string/moz.build
+index 65dd9c3..4689b8f 100644
+--- a/xpcom/string/moz.build
++++ b/xpcom/string/moz.build
+@@ -57,7 +57,7 @@ if CONFIG['INTEL_ARCHITECTURE']:
+     SOURCES += ['nsReadableUtilsSSE2.cpp']
+     SOURCES['nsReadableUtilsSSE2.cpp'].flags += CONFIG['SSE2_FLAGS']
+ 
+-if CONFIG['BUILD_ARM_NEON'] or CONFIG['CPU_ARCH'] == 'aarch64':
++if CONFIG['HAVE_ARM_NEON'] or CONFIG['CPU_ARCH'] == 'aarch64':
+     SOURCES += ['nsUTF8UtilsNEON.cpp']
+     SOURCES['nsUTF8UtilsNEON.cpp'].flags += CONFIG['NEON_FLAGS']
+ 

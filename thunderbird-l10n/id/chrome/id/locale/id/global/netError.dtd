@@ -4,11 +4,11 @@
 
 <!ENTITY loadError.label "Kesalahan Memuat Laman">
 <!ENTITY retry.label "Coba Lagi">
+
 <!-- Specific error messages -->
 
-
 <!ENTITY connectionFailure.title "Gagal Tersambung">
-<!ENTITY connectionFailure.longDesc "<p>Walaupun tampaknya benar, program peramban tidak dapat tersambung ke situs yang dituju.</p><ul><li>Apakah situs tersebut sedang tidak berfungsi? Coba lagi nanti.</li><li>Apakah Anda tidak bisa membuka situs lain? Periksa sambungan jaringan komputer.</li><li>Apakah komputer Anda dilindungi firewall atau proxy? Kesalahan pengaturan dapat mengganggu nikmatnya menjelajah web.</li></ul>">
+<!ENTITY connectionFailure.longDesc "<p>Walau pun tampaknya benar, program peramban tidak dapat tersambung ke situs yang dituju.</p><ul><li>Apakah situs tersebut sedang tidak berfungsi? Coba lagi nanti.</li><li>Apakah Anda tidak bisa membuka situs lain? Periksa sambungan jaringan komputer.</li><li>Apakah komputer Anda dilindungi firewall atau proxy? Kesalahan pengaturan dapat mengganggu nikmatnya menjelajah web.</li></ul>">
 
 <!ENTITY deniedPortAccess.title "Port Dibatasi untuk Alasan Keamanan">
 <!ENTITY deniedPortAccess.longDesc "<p>Alamat yang diminta mengandung port tertentu (misalnya <q>mozilla.org:80</q> untuk port 80 di mozilla.org) yang pada umumnya digunakan untuk keperluan <em>selain</em> menjelajah Web. Program peramban telah membatalkan permintaan untuk perlindungan dan keamanan Anda.</p>">
@@ -20,7 +20,7 @@
 <!ENTITY fileNotFound.longDesc "<ul><li>Apakah objek telah diganti namanya, dibuang, atau dipindahkan?</li><li>Apa tidak ada kesalahan ejaan, huruf besar, atau <em>kesaalhan keitk</em> lainnya pada penulisan alamat?</li><li>Apakah Anda memiliki hak akses untuk mengakses objek yang diminta?</li></ul>">
 
 <!ENTITY fileAccessDenied.title "Akses terhadap berkas ditolak">
-
+<!ENTITY fileAccessDenied.longDesc "<ul><li>Berkas mungkin sudah dihapus, dipindahkan, atau hak akses yang ada mencegah akses terhadap berkas.</li></ul>">
 
 <!ENTITY generic.title "Tidak Dapat Menyelesaikan Permintaan">
 <!ENTITY generic.longDesc "<p>Informasi lanjut tentang masalah atau kesalahan tidak tersedia saat ini.</p>">
@@ -32,7 +32,7 @@
 <!ENTITY netInterrupt.longDesc "<p>Program peramban tersambung dengan sukses tetapi sambungan terganggu saat sedang mentransfer informasi. Silakan coba lagi.</p><ul><li>Apakah Anda tidak bisa menjelajah situs lain? Periksa sambungan jaringan komputer Anda.</li><li>Masih bermasalah? Tanyakan pada administrator jaringan Anda atau Penyedia Jasa Layanan Internet (Internet Service Provider).</li></ul>">
 
 <!ENTITY notCached.title "Dokumen Kedaluwarsa">
-<!ENTITY notCached.longDesc "<p>Dokumen yang diminta tidak tersedia pada tembolok peramban.</p><ul><li>Sebagai tindakan pencegahan, peramban tidak meminta ulang dokumen sensitif secara otomatis.</li><li>Klik Coba Lagi untuk meminta ulang dokumen dari situs web.</li></ul>">
+<!ENTITY notCached.longDesc "<p>Dokumen yang diminta tidak tersedia pada tembolok peramban.</p><ul><li>Sebagai tindakan pencegahan keamanan, peramban tidak meminta ulang dokumen sensitif secara otomatis.</li><li>Klik Coba Lagi untuk meminta ulang dokumen dari situs web.</li></ul>">
 
 <!ENTITY netOffline.title "Mode Luring">
 <!ENTITY netOffline.longDesc2 "<p>Program peramban sedang berjalan dalam mode luring dan tidak dapat tersambung pada objek yang diminta.</p><ul><li>Apakah komputer tersambung pada jaringan yang berfungsi?</li><li>Tekan &quot;Coba Lagi&quot; untuk kembali ke mode daring dan memuat ulang lamannya.</li></ul>">
@@ -82,12 +82,9 @@
 <!ENTITY remoteXUL.title "XUL Daring">
 <!ENTITY remoteXUL.longDesc "<p><ul><li>Hubungi pemilik situs web untuk memberitahukan masalah ini.</li></ul></p>">
 
+<!ENTITY inadequateSecurityError.title "Sambungan Anda tidak aman">
 <!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
      "NS_ERROR_NET_INADEQUATE_SECURITY". -->
+<!ENTITY inadequateSecurityError.longDesc "<p><span class='hostname'></span> menggunakan teknologi keamanan yang sudah kedaluwarsa dan rentan diserang. Penyerang dapat dengan mudah mengungkapkan informasi yang Anda anggap aman. Administrator situs web perlu memperbaiki server terlebih dahulu sebelum Anda dapat mengunjungi situsnya.</p><p>Kode galat: NS_ERROR_NET_INADEQUATE_SECURITY</p>">
 
-<!ENTITY fileAccessDenied.longDesc "<ul><li>It may have been removed, moved, or file permissions may be preventing access.</li></ul>">
-<!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
-     "NS_ERROR_NET_INADEQUATE_SECURITY". -->
-<!ENTITY inadequateSecurityError.longDesc "<p><span class='hostname'></span> uses security technology that is outdated and vulnerable to attack. An attacker could easily reveal information which you thought to be safe. The website administrator will need to fix the server first before you can visit the site.</p><p>Error code: NS_ERROR_NET_INADEQUATE_SECURITY</p>">
-
-<!ENTITY inadequateSecurityError.title "Your connection is not secure">
+<!ENTITY blockedByPolicy.title "Laman Diblokir">

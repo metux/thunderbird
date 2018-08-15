@@ -1,3 +1,316 @@
+thunderbird (1:60.0~b10-1) experimental; urgency=medium
+
+  [ intrigeri ]
+  * [596869d] AppArmor: update profile from upstream (at commit edc9487)
+    (Closes: #901471)
+
+  [ Carsten Schoenert ]
+  * [57195ff] New upstream version 60.0~b10
+  * [770c9a6] rebuild patch queue from patch-queue branch
+    added patches:
+    porting-arm64/Bug-1463036-Use-HAVE_ARM_NEON-instead-of-BUILD_ARM_NEON-f.patch
+    porting-armel/Avoid-using-vmrs-vmsr-on-armel.patch
+    porting-armel/Bug-1463035-Remove-MOZ_SIGNAL_TRAMPOLINE.-r-darchons.patch
+    porting-armel/Bug-1463036-Add-mfloat-abi-softfp-to-NEON_FLAGS-when-it-m.patch
+  * [7fa6ebd] debian/control: increase Standards-Version to 4.1.5
+     No further changes needed.
+  * [22e701c] c-l-l10n-t.sh: adjust the path to the python helper
+     Adjust the shell script helper to use the changed path to makeversion.py.
+  * [90a1d9e] sticky prefs: use the new syntax in vendor.js
+     The syntax for locked preferences has been changed a while ago, it's
+     time to adjust the entry within vendor.js to disable automatic updates
+     for AddOns.
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Thu, 12 Jul 2018 17:52:27 +0200
+
+thunderbird (1:60.0~b9-2) experimental; urgency=medium
+
+  [ intrigeri ]
+  * [eb7cb44] Revert "apparmor: allow access to @{HOME}/.gnupg/tofu.db"
+  * [4cd8baf] AppArmor: update profile from upstream
+    (Closes: #900840)
+  * [807eb99] AppArmor: update profile from upstream (at commit 104da32)
+
+  [ Carsten Schoenert ]
+  * [c980546] rebuild patch queue from patch-queue branch
+    added patch:
+    porting-arm64/Bug-1453892-Only-use-SkJumper-s-arm64-half-float-optimiza.patch
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sun, 01 Jul 2018 19:15:00 +0200
+
+thunderbird (1:60.0~b9-1) experimental; urgency=medium
+
+  * [be64a3e] d/source.filter: update due upstream changes
+     Writing the import filter file source.filter mostly complete new from
+     scratch. Needed because upstream has changed the structure of the source
+     completely.
+  * [c4b9113] New upstream version 60.0~b9
+  * [3dc900a] rebuild patch queue from patch-queue branch
+     Related to the changed source structure the patches for the patch queue
+     needs to be adjusted to the new folders and their structure. Thanks to
+     git this wasn't that painful as git did all of the job. Two new patches
+     are needed to add.
+     added patches:
+     fixes/Build-also-gdata-provider-as-xpi-file.patch
+     debian-hacks/Don-t-build-testing-suites-and-stuff-part-2.patch
+  * [e50ae04] d/rules: remove references to folder 'mozilla'
+     To get the source built some targets in debian/rules are needed to be
+     modified. All references to the old used folder 'mozilla/' are removed
+     now.
+  * [a650500] ICU: don't build the Paragraph Layout library
+     Disable the build of the Paragraph Layout library, we don't need them if
+     we need to built the ICU stuff. Cherry-picked from current ESR 52
+     packaging.
+  * [977b7fe] d/mozconfig.default: use the ICU package from system
+     The Debian packages of icu are recent enough so we don't need to build
+     own dedicated ICU binaries.
+  * [0c7ed7e] adjust the configuration of the built
+     Because of the modified source structure some more adjustments are needed
+     while going through the built targets like different paths, and built
+     calls of the Thunderbird source.
+  * [1c09011] adjust the install temporary folder
+     Upstream is now wrapping all internal make calls through a Python wrapper
+     called 'mach'. This also involves a changed behavior for installing the
+     Thunderbird files into the temporary folder we later use by the debhelper
+     sequencer.
+  * [bfbc9ca] d/s/lintian-overrides: update content due changed source.filter
+     The modified file debian/source.filter make some adjustments needed in
+     the lintian-overrides file for the source files related part.
+  * [44a4c5a] d/thunderbird.lintian-overrides: update after config changes
+     Like before some adjustments are needed for the lintian override rules
+     for the source files.
+  * [dd48091] d/copyright: adjust the content due folder changes
+     And one more file that needs to be adjusted due the changed source files.
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sun, 01 Jul 2018 16:12:33 +0200
+
+thunderbird (1:60.0~b6-1) experimental; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [3d91710] create-lightning-l10n: adjust folder structure
+     To build more easy lightning-l10n packages let's modify the helper script
+     for building the additional tarball. Change the content structure so we
+     can simple copy the needed l10n stuff into the l10n packages.
+  * [f1d6031] New upstream version 60.0~b6
+  * [6643c31] Revert the linking into /u/l/tb/d/extensions
+     Thunderbird in Debian won't detecting extension which are placed in
+     /usr/lib/thunderbird/distribution/extensions, going back to the old
+     folder /usr/lib/thunderbird/extensions to link extensions into
+     Thunderbird.
+  * [26549a3] lightning: turning package into Architecture all
+     Change the architecture for the lightning package from 'any' to 'all'.
+     Lightning is only build by Javascript, CSS, JSM and other text based
+     files and we don't need to build and install it as a architecture
+     dependent package.
+  * [86cd48f] mozconfig.default: disable webrtc build and inclusion
+     Let's drop the build of support for WebRTC, Thunderbird isn't able to use
+     this as there is no component which is depending on this. The chat
+     component would be a potential use case but right now it lacks any
+     functionality by webrtc features.
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sat, 05 May 2018 13:56:36 +0200
+
+thunderbird (1:60.0~b5-1) experimental; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [b8625ea] New upstream version 60.0~b5
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sat, 28 Apr 2018 19:15:07 +0200
+
+thunderbird (1:60.0~b4-1) experimental; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [62ae939] New upstream version 60.0~b4
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Mon, 23 Apr 2018 18:19:11 +0200
+
+thunderbird (1:60.0~b3-1) experimental; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [94f8505] debian/control: increase Standards-Version to 4.1.4
+     No further changes needed.
+  * [3ba10c6] rebuild patch queue from patch-queue branch
+     added patches:
+      porting-sparc64/Bug-1434726-Early-startup-crash-on-Linux-sparc64-in-HashI.patch
+      fixes/Use-msse-2-fpmath-C-CXXFLAGS-only-on-x86_64-platforms.patch
+      fixes/Fix-big-endian-build-for-SKIA.patch (re-added)
+     Thanks Andreas Glaubitz for providing these patches!
+  * [dabf294] New upstream version 60.0~b3
+  * [24f8a38] re-enable usage of lib{nspr4,nss3}-dev while built
+     The available versions of these libraries now recent enough so we can
+     drop the usage of the embedded code copies.
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sun, 15 Apr 2018 12:47:43 +0200
+
+thunderbird (1:60.0~b2-1) experimental; urgency=medium
+
+  [ Agustin Henze ]
+  * [3639717] apparmor: allow access to @{HOME}/.gnupg/tofu.db
+   (Closes: #894907)
+
+  [ intrigeri ]
+  * [3895bba] AppArmor: fix empty black windows in Thunderbird 58+
+    (Closes: #887973)
+  * [353ca25] AppArmor: update profile from upstream
+    (Closes: #882048, #882122)
+
+  [ Carsten Schoenert ]
+  * [37e0bbe] New upstream version 59.0~b1
+  * [d75c4be] rebuild patch queue from patch-queue branch
+     added patches:
+      fixes/Fix-build-against-libcairo2-dev-1.15.10.patch
+      patches/fixes/Fix-big-endian-build-for-SKIA.patch
+
+     removed patches:
+      debian-hacks/Allow-usage-of-libnspr4-dev-4.16.patch
+      fixes/Bug-1418598-Make-cargo-linker-properly-handle-quoted-stri.patch
+      thunderbird/Thunderbird-fix-installdir-for-icons.patch
+  * [9615d6a] New upstream version 60.0~b1
+  * [431006c] d/source.filter: update due upstream changes
+     Update the list of files we filter out, Upstream added various new files
+      mostly used for auto-testing we don't use.
+  * [2cb4635] d/s/lintian-overrides: remove entries about brace expansion
+     We can remove the override about brace expansion in dh sequencer files.
+  * [4c9f185] debian/rules: using 'rm -f' because probably non existing files
+     The file app.ini isn't existing in some l10n folders for lightning,
+     simply use '-f' for convenience.
+  * [ed00442] debian/rules: fix typo to grep app ID of calendar-g-p
+  * [4a993c5] adding additional packages to Breaks with thunderbird
+     The packages calendar-exchange-provider and enigmail
+     xul-ext-sogo-connector aren't compatible to the webextension interface
+     and we need to add a versioned Breaks.
+  * [9bd8286] adjust Breaks for enigmail
+     Also enigmail needs an adjusted version for Breaks.
+  * [24382c2] Revert "Use gcc-6 and g++-6 due broken GUI with GCC-7"
+    (Closes: #892404)
+  * [f0ac8a5] rebuild patch queue from patch-queue branch
+     removed patches:
+      debian-hacks/Allow-to-override-ICU_DATA_FILE-from-the-environment.patch
+      debian-hacks/remove-non-free-W3C-icon-valid.png.patch
+      fixes/Allow-.js-preference-files-to-set-locked-prefs-with-lockP.patch
+      fixes/Fix-build-against-libcairo2-dev-1.15.10.patch
+
+     modified patches:
+      debian-hacks/Build-against-system-libjsoncpp.patch
+      debian-hacks/Don-t-build-testing-suites-and-stuff.patch
+      porting-kfreebsd-hurd/FTBFS-hurd-fixing-unsupported-platform-Hurd.patch
+      porting-kfreebsd-hurd/adding-missed-HURD-adoptions.patch
+  * [6ab35ad] d/mozconfig.default: don't use nspr and nss from system
+     We need to switch back to the embedded source for NSS and NSPR, the
+     versions in unstable aren't usable.
+  * [055ed65] d/mozconfig.default: remove no longer alive option
+     The option '--enable-system-cairo' is gone with TB 60.
+  * [663d6f1] lightning-l10n-bn-bd: remove Bengali (Bangladesh) l10n package
+  * [02b21cb] lightning-l10n-pa-in: remove Punjabi (India) l10ng package
+  * [0cc0b5d] lightning-l10n-ta-lk: remove Tamil (Sri Lanka) l10n package
+  * [62f23a5] thunderbird-l10n-bn-bd: remove (Bangladesh) l10n package
+  * [61bfdf4] thunderbird-l10n-pa-in: remove Punjabi (India) l10n package
+  * [a361750] thunderbird-l10n-ta-lk: remove Tamil (Sri Lanka) l10n package
+  * [8ba5b0d] debian/control: add new packages for *-kk language
+  * [e4280ac] debian/control: add new packages for *-ms language
+  * [aaef9fe] adjust Vcs fields to salsa.debian.org
+  * [144c492, 009b145] debian/copyright: update after upstream changes
+     Upstream removed some files/folders, which reflects in needed adjustments
+     for the copyright file.
+  * [3623f84] d/thunderbird.lintian-overrides: add libnspr4.so and libnss3.so
+     We now need to ship (again) embedded libraries for NSPR and NSS.
+  * [0d3de65] lightning: move linking into /u/l/tb/distribution/extensions
+     Following upstream with the folder for the Lightning to not differ.
+  * [4d6cefe] New upstream version 60.0~b2
+  * [e1c40a7] rebuild patch queue from patch-queue branch
+     removed patches:
+      fixes/Fix-big-endian-build-for-SKIA.patch
+  * [4834a1d] add entries to README and NEWS for thunderbird
+     Adding notes about the current situation foe the l10n packages and their
+     integration into the UI of Thunderbird and Lightning.
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sat, 07 Apr 2018 11:12:37 +0200
+
+thunderbird (1:58.0~b3-1) experimental; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [d114338] d/source.filter: update due upstream changes
+     Update the filtering list for excluding some unwanted source files as
+     usual while preparing new major upstream versions.
+  * [91d23a9] New upstream version 58.0~b3
+  * [f34e555] rebuild patch queue from patch-queue branch
+     added patches:
+      debian-hacks/Allow-usage-of-libnspr4-dev-4.16.patch
+      debian-hacks/icu-use-locale.h-instead-of-xlocale.h.patch
+      debian-hacks/shellutil.py-ignore-tilde-as-special-character.patch
+      fixes/Bug-1418598-Make-cargo-linker-properly-handle-quoted-stri.patch
+
+     modified patches:
+      debian-hacks/Build-against-system-libjsoncpp.patch
+      debian-hacks/Don-t-build-testing-suites-and-stuff.patch
+      porting-kfreebsd-hurd/FTBFS-hurd-fixing-unsupported-platform-Hurd.patch
+      porting-kfreebsd-hurd/adding-missed-HURD-adoptions.patch
+      porting-m68k/Add-m68k-support-to-Thunderbird.patch
+      porting-sh4/Add-sh4-support-to-Thunderbird.patch
+      porting/Disable-optimization-on-alpha-for-the-url-classifier.patch
+      prefs/Don-t-auto-disable-extensions-in-system-directories.patch
+      prefs/Set-javascript.options.showInConsole.patch
+
+     obsolete patches (included somehow or fixed upstream):
+      debian-hacks/Force-use-the-i686-rust-target.patch
+      porting-alpha/FTBFS-alpha-adjust-some-source-to-prevent-build-issues.patch
+      patches/porting-alpha/fix-FTBFS-on-alpha.patch
+      patches/porting-arm64/Bug-1257055-Use-jit-arm64-Architecture-arm64.h-on-non-JIT.patch
+      patches/porting-hppa/FTBFS-hppa-xpcshell-segfaulting-during-make-install.patch
+      porting-kfreebsd-hurd/FTBFS-hurd-adding-GNU-Hurd-to-the-list-of-OS-systems.patch
+      porting-mips/FTBFS-mips-add-missing-char-variable.patch
+      porting/ppc-fix-divide-page-size-in-jemalloc.patch
+      thunderbird-l10n/thunderbird-l10n-disable-external-extension-update.patch
+  * [bd45d47] debian/control: adding new Build-Depends
+     Since this is the first version > 52 we need now cargo, clang, rustc and
+     llvm development files.
+  * [c63a03f] d/mozconfig.default: remove no longer alive options
+     Some old options like --disable-gnomeui, --enable-gio, and
+     --with-default-mozilla-five-home are history now.
+  * [609dbbe] l10n lightning: modify script to work with recent version
+     We still need to use the shellscript create-lightning-l10n-tarball.sh
+     (and also *-thunderbird-l10n-*) to create the additional tarballs.
+  * [2f276b7] thunderbird-l10n: change tb-l10n package installation
+     Due the changed structure from upstream for the thunderbird l10n files
+     the packaging needs also to be adopted.
+  * [ee476f8] d/thunderbird.install: update install sequencer file
+     Also small adjustments are needed for the installation of the thunderbird
+     binary files. The old script run-mozilla.sh (which we didn't have used
+     within the Debian packaging) isn't shipped now, and there is now a new
+     folder gtk2 which includes the libmozgtk library linked against GTK2.
+  * [ced9d18] thunderbird-dev: remove the package and adjustments on this
+     The complete content that was packaged previously in thunderbird-dev
+     isn't created and installed now. Thus makes the old package
+     thunderbird-dev obsolete.
+  * [484a142] autopkgtests: disable tests around thunderbird-dev
+     Disable all autopkgtests which have used thunderbird-dev.
+  * [0aa2546] switch to system libraries back
+     We can now use the system libararies libnspr4, libnss3 and libsqlite3
+     again, the version of libicu is still to old for usage within the
+     package build.
+  * [858ae82] d/control: thunderbird, remove variable ${gnome:Depends}
+  * [7c3a258] d/control: lightning, remove variable ${shlibs:Depends}
+  * [aabf0d4] debian/source/lintian-overrides: update entries
+  * [94b00db] debian/control: increase Standards-Version to 4.1.3
+     No further changes needed.
+  * [245e8c2] debian/copyright: update after upstream changes
+     Also almost needed with new major upstream versions reflect the
+     changes from upstream in the copyright file.
+  * [72507b2] d/control: enigmail < 1.9.9 isn't working with TB > 55
+     Due the new plugin interface some old plugins doesn't work with this
+     thunderbird version anymore, or behaving unexpected. Enigmal is one of
+     the this (known) plugins which needs to be at least in version 2.0a2pre
+     installed to work with Thunderbird.
+  * [6cf0133] lightning-l1on: change l10n installation
+     Related to [4abc7f2] the various thunderbird-l10n packages need to be
+     installed differently to old package installations.
+  * [6af7054] calendar-google-provider: tweak installation a bit
+     More a hack but the Mozilla plugin installation by mozilla-devscripts
+     isn't prepared for the new webextension logic by Mozilla. Symlinking the
+     c-g-p plugin for now directly from the thunderbird extension folder.
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sun, 21 Jan 2018 14:03:39 +0100
+
 thunderbird (1:52.9.1-1) unstable; urgency=high
 
   [ intrigeri ]

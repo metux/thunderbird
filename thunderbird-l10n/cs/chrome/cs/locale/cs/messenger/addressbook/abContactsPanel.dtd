@@ -12,7 +12,8 @@
 <!ENTITY mailingListPropertiesMenu.label    "Vlastnosti skupiny">
 <!ENTITY mailingListPropertiesMenu.accesskey "i">
 
-<!ENTITY addressbookPicker.label            "Adresář:">
+<!ENTITY abContextMenuButton.tooltip        "Zobrazit kontextovou nabídku složky kontaktů">
+<!ENTITY addressbookPicker.label            "Kontakty:">
 <!ENTITY addressbookPicker.accesskey        "S">
 <!ENTITY searchContacts.label               "Hledat v kontaktech:">
 <!ENTITY searchContacts.accesskey           "n">
@@ -34,6 +35,11 @@
 <!ENTITY editContactContext.accesskey       "U">
 <!ENTITY editMailingListContext.label       "Upravit seznam">
 <!ENTITY editMailingListContext.accesskey   "U">
+
+<!ENTITY newContactAbContext.label          "Nový kontakt">
+<!ENTITY newContactAbContext.accesskey      "K">
+<!ENTITY newListAbContext.label             "Nová skupina">
+<!ENTITY newListAbContext.accesskey         "S">
 
 <!ENTITY toButton.label                     "Komu">
 <!ENTITY toButton.accesskey                 "K">

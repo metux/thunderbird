@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "fy-NL": {
+      "chrome_resources": {
+        "necko": "chrome/fy-NL/locale/fy-NL/necko/", 
+        "global": "chrome/fy-NL/locale/fy-NL/global/", 
+        "messenger-region": "chrome/fy-NL/locale/fy-NL/messenger-region/", 
+        "chat": "chrome/fy-NL/locale/fy-NL/chat/", 
+        "devtools": "chrome/fy-NL/locale/fy-NL/devtools/client/", 
+        "pipnss": "chrome/fy-NL/locale/fy-NL/pipnss/", 
+        "messenger-smime": "chrome/fy-NL/locale/fy-NL/messenger-smime/", 
+        "messenger-newsblog": "chrome/fy-NL/locale/fy-NL/messenger-newsblog/", 
+        "devtools-shim": "chrome/fy-NL/locale/fy-NL/devtools/shim/", 
+        "alerts": "chrome/fy-NL/locale/fy-NL/alerts/", 
+        "messenger": "chrome/fy-NL/locale/fy-NL/messenger/", 
+        "editor": "chrome/fy-NL/locale/fy-NL/editor/", 
+        "branding": "chrome/fy-NL/locale/fy-NL/branding/", 
+        "mozldap": "chrome/fy-NL/locale/fy-NL/mozldap/", 
+        "autoconfig": "chrome/fy-NL/locale/fy-NL/autoconfig/", 
+        "devtools-shared": "chrome/fy-NL/locale/fy-NL/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/fy-NL/locale/fy-NL/global-platform/win/", 
+          "android": "chrome/fy-NL/locale/fy-NL/global-platform/unix/", 
+          "macosx": "chrome/fy-NL/locale/fy-NL/global-platform/mac/", 
+          "linux": "chrome/fy-NL/locale/fy-NL/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/fy-NL/locale/fy-NL/mozapps/", 
+        "pluginproblem": "chrome/fy-NL/locale/fy-NL/pluginproblem/", 
+        "communicator": "chrome/fy-NL/locale/fy-NL/communicator/", 
+        "messenger-mapi": "chrome/fy-NL/locale/fy-NL/messenger-mapi/", 
+        "places": "chrome/fy-NL/locale/fy-NL/places/", 
+        "passwordmgr": "chrome/fy-NL/locale/fy-NL/passwordmgr/", 
+        "pippki": "chrome/fy-NL/locale/fy-NL/pippki/"
+      }, 
+      "version": "20180428191523"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-fy-NL@firefox.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "fy-NL", 
+  "version": "60.0buildid20180709054853", 
+  "name": "Frysk (fy) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Wim Benes, Hindrik Sijens)", 
+  "description": "Language pack for Thunderbird for fy-NL"
+}

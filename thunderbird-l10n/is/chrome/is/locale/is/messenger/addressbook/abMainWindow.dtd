@@ -136,6 +136,8 @@ because displayed names don't have the comma in between. -->
 <!ENTITY newContactButton.accesskey "N">
 <!ENTITY newlistButton.label "Nýr listi">
 <!ENTITY newlistButton.accesskey "l">
+<!ENTITY showAsDefault.label "Sjálfgefin ræsingamappa">
+<!ENTITY showAsDefault.accesskey "">
 <!ENTITY editPropertiesButton.label "Breyta">
 <!ENTITY propertiesContext.label "Eiginleikar">
 <!ENTITY propertiesContext.accesskey "i">
@@ -228,3 +230,7 @@ because displayed names don't have the comma in between. -->
 <!ENTITY minimizeWindow.key "G">
 <!ENTITY bringAllToFront.label "Endurheimta">
 <!ENTITY zoomWindow.label "Aðdráttur">
+
+<!ENTITY addressBookCmd.label                           "Address Book">
+<!ENTITY addressBookCmd.accesskey                       "a">
+<!ENTITY addressBookCmd.key                             "B">

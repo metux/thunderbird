@@ -59,3 +59,5 @@
 <!ENTITY backgroundImage.label "Hình nền:">
 <!ENTITY backgroundImage.accessKey "H">
 <!ENTITY backgroundImage.tooltip "Dùng một tập tin ảnh làm nền cho trang của bạn">
+
+<!ENTITY backgroundImage.shortenedDataURI "Shortened data URI (copy will place the full URI onto the clipboard)">

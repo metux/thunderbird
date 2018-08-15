@@ -2,9 +2,21 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<!ENTITY propertiesMenu.label               "Caracteristicas">
+<!ENTITY propertiesMenu.accesskey           "i">
+<!ENTITY propertiesCmd.key                  "i">
+<!ENTITY abPropertiesMenu.label             "Caracteristicas dal cudeschet d'adressas">
+<!ENTITY abPropertiesMenu.accesskey         "i">
+<!ENTITY contactPropertiesMenu.label        "Caracteristicas dals contacts">
+<!ENTITY contactPropertiesMenu.accesskey    "i">
+<!ENTITY mailingListPropertiesMenu.label    "Caracteristicas da las glistas d'e-mail">
+<!ENTITY mailingListPropertiesMenu.accesskey "i">
 
+<!ENTITY abContextMenuButton.tooltip        "Mussar il menu contextual dal cudeschet d'adressas">
 <!ENTITY addressbookPicker.label            "Cudeschet d'adressas:">
 <!ENTITY addressbookPicker.accesskey        "a">
+<!ENTITY searchContacts.label               "Tschertgar contacts:">
+<!ENTITY searchContacts.accesskey           "n">
 <!ENTITY SearchNameOrEmail.label            "Num u e-mail">
 
 <!ENTITY addtoToFieldMenu.label             "Agiuntar al champ &quot;A&quot;">
@@ -15,6 +27,19 @@
 <!ENTITY addtoBccFieldMenu.accesskey        "B">
 <!ENTITY deleteAddrBookCard.label           "Stizzar">
 <!ENTITY deleteAddrBookCard.accesskey       "z">
+<!ENTITY propertiesContext.label            "Caracteristicas">
+<!ENTITY propertiesContext.accesskey        "i">
+<!ENTITY abPropertiesContext.label          "Caracteristicas">
+<!ENTITY abPropertiesContext.accesskey      "i">
+<!ENTITY editContactContext.label           "Modifitgar il contact">
+<!ENTITY editContactContext.accesskey       "M">
+<!ENTITY editMailingListContext.label       "Modifitgar la glista">
+<!ENTITY editMailingListContext.accesskey   "M">
+
+<!ENTITY newContactAbContext.label          "Nov contact">
+<!ENTITY newContactAbContext.accesskey      "C">
+<!ENTITY newListAbContext.label             "Nova glista">
+<!ENTITY newListAbContext.accesskey         "l">
 
 <!ENTITY toButton.label                     "Agiuntar ad &quot;A&quot;:">
 <!ENTITY toButton.accesskey                 "A">
@@ -22,25 +47,3 @@
 <!ENTITY ccButton.accesskey                 "c">
 <!ENTITY bccButton.label                    "Agiuntar a &quot;BCC&quot;:">
 <!ENTITY bccButton.accesskey                "B">
-
-<!ENTITY abPropertiesContext.accesskey      "i">
-<!ENTITY abPropertiesContext.label          "Properties">
-<!ENTITY abPropertiesMenu.accesskey         "i">
-<!ENTITY abPropertiesMenu.label             "Address Book Properties">
-<!ENTITY contactPropertiesMenu.accesskey    "i">
-<!ENTITY contactPropertiesMenu.label        "Contact Properties">
-<!ENTITY editContactContext.accesskey       "E">
-<!ENTITY editContactContext.label           "Edit Contact">
-<!ENTITY editMailingListContext.accesskey   "E">
-<!ENTITY editMailingListContext.label       "Edit List">
-<!ENTITY mailingListPropertiesMenu.accesskey "i">
-<!ENTITY mailingListPropertiesMenu.label    "Mailing List Properties">
-<!ENTITY propertiesCmd.key                  "i">
-<!ENTITY propertiesContext.accesskey        "i">
-<!ENTITY propertiesContext.label            "Properties">
-<!ENTITY propertiesMenu.accesskey           "i">
-
-
-<!ENTITY propertiesMenu.label               "Properties">
-<!ENTITY searchContacts.accesskey           "n">
-<!ENTITY searchContacts.label               "Search Contacts:">

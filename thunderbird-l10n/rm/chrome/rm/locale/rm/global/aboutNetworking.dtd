@@ -3,7 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY aboutNetworking.title                 "Connexiuns a la rait">
-<!ENTITY aboutNetworking.warning               "Quai è ina funcziun fitg experimentala. Na betg utilisar senza surveglianza d'ina persuna creschida.">
+<!ENTITY aboutNetworking.warning               "Quai è ina funcziun fitg experimentala. Betg utilisar senza surveglianza d'ina persuna creschida.">
 <!ENTITY aboutNetworking.showNextTime          "Mussar quest avis la proxima giada">
 <!ENTITY aboutNetworking.ok                    "OK">
 <!ENTITY aboutNetworking.HTTP                  "HTTP">
@@ -14,7 +14,7 @@
 <!ENTITY aboutNetworking.autoRefresh           "Actualisar automaticamain mintga 3 secundas">
 <!ENTITY aboutNetworking.hostname              "Num dal host">
 <!ENTITY aboutNetworking.port                  "Port">
-<!ENTITY aboutNetworking.spdy                  "SPDY">
+<!ENTITY aboutNetworking.http2                 "HTTP/2">
 <!ENTITY aboutNetworking.ssl                   "SSL">
 <!ENTITY aboutNetworking.active                "Activ">
 <!ENTITY aboutNetworking.idle                  "inactiv">
@@ -29,16 +29,32 @@
 <!ENTITY aboutNetworking.messagesReceived      "Messadis retschavids">
 <!ENTITY aboutNetworking.bytesSent             "Bytes tramess">
 <!ENTITY aboutNetworking.bytesReceived         "Bytes retschavids">
+<!ENTITY aboutNetworking.logging               "Protocollar">
+<!ENTITY aboutNetworking.logTutorial           "Legia l'artitgel <a href='https://developer.mozilla.org/docs/Mozilla/Debugging/HTTP_logging'>HTTP Logging</a> per instrucziuns davart l'utilisaziun da quest utensil.">
+<!ENTITY aboutNetworking.currentLogFile        "Datoteca da protocol actuala:">
+<!ENTITY aboutNetworking.currentLogModules     "Moduls da protocol actuals:">
+<!ENTITY aboutNetworking.setLogFile            "Definir la datoteca da protocol">
+<!ENTITY aboutNetworking.setLogModules         "Definir ils moduls da protocol">
+<!ENTITY aboutNetworking.startLogging          "Cumenzar a protocollar">
+<!ENTITY aboutNetworking.stopLogging           "Chalar da protocollar">
 <!ENTITY aboutNetworking.dnsLookup             "Retschertga DNS">
 <!ENTITY aboutNetworking.dnsLookupButton       "Resolver">
 <!ENTITY aboutNetworking.dnsDomain             "Domena">
 <!ENTITY aboutNetworking.dnsLookupTableColumn  "IPs">
+<!ENTITY aboutNetworking.rcwn                  "Statistica RCWN">
+<!ENTITY aboutNetworking.rcwnStatus            "Status RCWN">
+<!ENTITY aboutNetworking.rcwnCacheWonCount     "Dumber da victorias dal cache">
+<!ENTITY aboutNetworking.rcwnNetWonCount       "Dumber da victorias da la rait">
+<!ENTITY aboutNetworking.totalNetworkRequests  "Dumber total da dumondas a la rait">
+<!ENTITY aboutNetworking.rcwnOperation         "Operaziun dal cache">
+<!ENTITY aboutNetworking.rcwnPerfOpen          "Avrir">
+<!ENTITY aboutNetworking.rcwnPerfRead          "Leger">
+<!ENTITY aboutNetworking.rcwnPerfWrite         "Scriver">
+<!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Entrada averta">
+<!ENTITY aboutNetworking.rcwnAvgShort          "Media curta">
+<!ENTITY aboutNetworking.rcwnAvgLong           "Media lunga">
+<!ENTITY aboutNetworking.rcwnStddevLong        "Deviaziun da standard lunga">
+<!ENTITY aboutNetworking.rcwnCacheSlow         "Dumber da giadas ch'il cache è plaun">
+<!ENTITY aboutNetworking.rcwnCacheNotSlow      "Dumber da giadas ch'il cache è svelt">
 
-<!ENTITY aboutNetworking.currentLogFile        "Current Log File:">
-<!ENTITY aboutNetworking.currentLogModules     "Current Log Modules:">
-<!ENTITY aboutNetworking.logTutorial           "See <a href='https://developer.mozilla.org/docs/Mozilla/Debugging/HTTP_logging'>HTTP Logging</a> for instructions on how to use this tool.">
-<!ENTITY aboutNetworking.logging               "Logging">
-<!ENTITY aboutNetworking.setLogFile            "Set Log File">
-<!ENTITY aboutNetworking.setLogModules         "Set Log Modules">
-<!ENTITY aboutNetworking.startLogging          "Start Logging">
-<!ENTITY aboutNetworking.stopLogging           "Stop Logging">
+<!ENTITY aboutNetworking.trr                   "TRR">

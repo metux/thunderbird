@@ -3,7 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <!ENTITY addons.windowTitle                   "Add-onbehearder">
 
-<!ENTITY search.placeholder                   "Alle add-ons trochsykje">
+<!ENTITY search.placeholder2                  "Sykje op addons.mozilla.org">
 <!ENTITY search.buttonlabel                   "Sykje">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
@@ -14,14 +14,14 @@
 <!ENTITY listEmpty.availableUpdates.label     "Gjin fernijingen fûn">
 <!ENTITY listEmpty.recentUpdates.label        "Jo hawwe koartlyn gjin add-ons fernijd">
 <!ENTITY listEmpty.findUpdates.label          "Kontrolearje op fernijingen">
-<!ENTITY listEmpty.search.label               "Gjin oerienkommende add-ons fûn">
 <!ENTITY listEmpty.button.label               "Mear ynfo oer add-ons">
 <!ENTITY installAddonFromFile.label           "Ynstallearje add-on út bestân…">
 <!ENTITY installAddonFromFile.accesskey       "Y">
 <!ENTITY toolsMenu.tooltip                    "Ark foar alle add-ons">
 
-<!ENTITY cmd.back.tooltip                     "In side tebek gean">
-<!ENTITY cmd.forward.tooltip                  "In side foarút gean">
+<!ENTITY getThemes.description                "Wolle jo jo browser personalisearje?">
+<!ENTITY getThemes.learnMore                  "Kies út tûzenen add-ons.">
+
 
 <!ENTITY showUnsignedExtensions.button.label  "Guon útwreidingen koene net ferifiearre wurde">
 <!ENTITY showAllExtensions.button.label       "Alle útwreidingen toane">
@@ -38,7 +38,6 @@
 <!ENTITY warning.updatesecurity.enable.tooltip     "Skeakelje feilichheidskontrole foar add-onsfernijingen yn">
 
 <!-- categories / views -->
-<!ENTITY view.search.label                    "Trochsykje">
 <!ENTITY view.discover.label                  "Add-ons krije">
 <!ENTITY view.recentUpdates.label             "Resinte fernijingen">
 <!ENTITY view.availableUpdates.label          "Beskikbere fernijingen">
@@ -115,6 +114,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "De útjefte-opmerkingen foar dizze fernijing toane">
 <!ENTITY cmd.hideReleaseNotes.label           "Ferstopje útjefte-opmerkingen">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Ferstopje de útjefte-opmerkingen foar dizze fernijing">
+<!ENTITY cmd.findReplacement.label            "Nei ferfanging sykje">
 
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
@@ -168,23 +168,17 @@
 <!-- list sorting -->
 <!ENTITY sort.name.label                      "Namme">
 <!ENTITY sort.name.tooltip                    "Sortearje op namme">
-<!ENTITY sort.dateUpdated.label               "Lêste fernijing">
+<!ENTITY sort.dateUpdated.label               "Lêst bywurke">
 <!ENTITY sort.dateUpdated.tooltip             "Sortearje op fernijingsdatum">
-<!ENTITY sort.relevance.label                 "Bêst oerienkommend">
-<!ENTITY sort.relevance.tooltip               "Sortearje op relevânsje">
-<!ENTITY sort.price.label                     "Priis">
-<!ENTITY sort.price.tooltip                   "Sortearje op priis">
-
-<!ENTITY search.filter2.label                 "Sykje:">
-<!ENTITY search.filter2.installed.label       "Myn add-ons">
-<!ENTITY search.filter2.installed.tooltip     "Ynstallearre add-ons toane">
-<!ENTITY search.filter2.available.label       "Beskikbere add-ons">
-<!ENTITY search.filter2.available.tooltip     "Add-ons toane dy't beskikber binne om te ynstallearjen">
 
 <!ENTITY addon.homepage                       "Thússide">
 <!ENTITY addon.details.label                  "Mear">
 <!ENTITY addon.details.tooltip                "Mear details oer dizze add-on toane">
 <!ENTITY addon.unknownDate                    "Unbekend">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "ERFENIS">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -198,7 +192,7 @@
 <!ENTITY addon.undoAction.tooltip             "Aksje ûngedien meitsje">
 <!ENTITY addon.undoRemove.label               "Ungedien meitsje">
 <!ENTITY addon.undoRemove.tooltip             "hâld dizze add-on ynstallearre">
-<!ENTITY addon.restartNow.label               "No werstarte">
+<!ENTITY addon.restartNow.label               "No opnij starte">
 <!ENTITY addon.install.label                  "Ynstallearje">
 <!ENTITY addon.install.tooltip                "Dizze add-on ynstallearje">
 <!ENTITY addon.updateNow.label                "Fernij no">
@@ -207,7 +201,7 @@
 <!ENTITY addon.updateAvailable.label          "Der is in fernijing beskikber">
 <!ENTITY addon.checkingForUpdates.label       "Kontrolearret op fernijingen…">
 <!ENTITY addon.releaseNotes.label             "Utjefte-opmerkinge:">
-<!ENTITY addon.loadingReleaseNotes.label      "Laden…">
+<!ENTITY addon.loadingReleaseNotes.label      "Lade…">
 <!ENTITY addon.errorLoadingReleaseNotes.label "Sorry, mar der wie in flater mei it laden fan de útjefte-opmerkingen.">
 
 <!ENTITY addon.createdBy.label                "Troch ">
@@ -239,7 +233,7 @@
 <!ENTITY disabledUnsigned.description.start "De folgjende add-ons binne net ferifiearre foar gebrûk yn &brandShortName;. Jo kinne ">
 <!ENTITY disabledUnsigned.description.findAddonsLink "nei ferfangingen sykje">
 <!ENTITY disabledUnsigned.description.end " of de ûntwikkeler freegje dizze ferifiearje te litten.">
-<!ENTITY disabledUnsigned.learnMore "Lês mear oer ús besykjen om jo online feilich te hâlden.">
+<!ENTITY disabledUnsigned.learnMore "Mear ynfo oer ús besykjen om jo online feilich te hâlden.">
 <!-- LOCALIZATION NOTE (disabledUnsigned.devInfo.start, disabledUnsigned.devInfo.linkToManual, disabledUnsigned.devInfo.end):
      These entities form a sentence, with disabledUnsigned.devInfo.linkToManual
      being a link to an external site. -->
@@ -248,4 +242,9 @@
 <!ENTITY disabledUnsigned.devInfo.end " te lêzen.">
 
 <!ENTITY pluginDeprecation.description "Misse jo wat? Guon ynstekkers wurde net langer stipe troch &brandShortName;.">
-<!ENTITY pluginDeprecation.learnMore "Lês mear.">
+<!ENTITY pluginDeprecation.learnMore "Mear ynfo.">
+
+<!ENTITY legacyWarning.showLegacy "Ferâldere útwreidingen toane">
+<!ENTITY legacyExtensions.title "Ferâldere útwreidingen">
+<!ENTITY legacyExtensions.description "Dizze útwreidingen foldogge op dit stuit net oan de &brandShortName;-standerts binne dêrom de-aktivearre.">
+<!ENTITY legacyExtensions.learnMore "Lear mear oer de wizigingen oan add-ons">

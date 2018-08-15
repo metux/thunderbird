@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "gl": {
+      "chrome_resources": {
+        "necko": "chrome/gl/locale/gl/necko/", 
+        "global": "chrome/gl/locale/gl/global/", 
+        "messenger-region": "chrome/gl/locale/gl/messenger-region/", 
+        "chat": "chrome/gl/locale/gl/chat/", 
+        "devtools": "chrome/gl/locale/gl/devtools/client/", 
+        "pipnss": "chrome/gl/locale/gl/pipnss/", 
+        "messenger-smime": "chrome/gl/locale/gl/messenger-smime/", 
+        "messenger-newsblog": "chrome/gl/locale/gl/messenger-newsblog/", 
+        "devtools-shim": "chrome/gl/locale/gl/devtools/shim/", 
+        "alerts": "chrome/gl/locale/gl/alerts/", 
+        "messenger": "chrome/gl/locale/gl/messenger/", 
+        "editor": "chrome/gl/locale/gl/editor/", 
+        "branding": "chrome/gl/locale/gl/branding/", 
+        "mozldap": "chrome/gl/locale/gl/mozldap/", 
+        "autoconfig": "chrome/gl/locale/gl/autoconfig/", 
+        "devtools-shared": "chrome/gl/locale/gl/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/gl/locale/gl/global-platform/win/", 
+          "android": "chrome/gl/locale/gl/global-platform/unix/", 
+          "macosx": "chrome/gl/locale/gl/global-platform/mac/", 
+          "linux": "chrome/gl/locale/gl/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/gl/locale/gl/mozapps/", 
+        "pluginproblem": "chrome/gl/locale/gl/pluginproblem/", 
+        "communicator": "chrome/gl/locale/gl/communicator/", 
+        "messenger-mapi": "chrome/gl/locale/gl/messenger-mapi/", 
+        "places": "chrome/gl/locale/gl/places/", 
+        "passwordmgr": "chrome/gl/locale/gl/passwordmgr/", 
+        "pippki": "chrome/gl/locale/gl/pippki/"
+      }, 
+      "version": "20180502171351"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-gl@firefox.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "gl", 
+  "version": "60.0buildid20180709054853", 
+  "name": "Galego (España) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Grupo de tradución ao galego dos aplicativos de Mozilla (http://galician.mozdev.org/))", 
+  "description": "Language pack for Thunderbird for gl"
+}

@@ -12,11 +12,21 @@
 <!ENTITY feedLocation.label          "Adresa kanálu: ">
 <!ENTITY feedLocation.accesskey      "A">
 <!ENTITY feedLocation.placeholder    "Vložte platnou adresu kanálu">
+<!ENTITY feedLocation2.placeholder   "Vložte platnou adresu kanálu">
 <!ENTITY locationValidate.label      "Zkontrolovat platnost">
 <!ENTITY validateText.label          "Zkontrolovat platnost a vrátit platnou adresu.">
 
 <!ENTITY feedFolder.label            "Ukládat články do složky: ">
 <!ENTITY feedFolder.accesskey        "s">
+
+<!-- Account Settings and Subscription Dialog -->
+<!ENTITY biffStart.label             "Kontrolovat nové články každých ">
+<!ENTITY biffStart.accesskey         "t">
+<!ENTITY biffMinutes.label           "minut">
+<!ENTITY biffMinutes.accesskey       "u">
+<!ENTITY biffDays.label              "dní">
+<!ENTITY biffDays.accesskey          "í">
+<!ENTITY recommendedUnits.label      "Vydavatel doporučuje:">
 
 <!ENTITY quickMode.label             "Zobrazit stručný obsah článku namísto načtení webové stránky">
 <!ENTITY quickMode.accesskey         "o">
@@ -27,8 +37,11 @@
 <!ENTITY autotagUsePrefix.accesskey  "P">
 <!ENTITY autoTagPrefix.placeholder   "Zadejte předponu štítku">
 
+<!-- Subscription Dialog -->
 <!ENTITY button.addFeed.label        "Přidat">
 <!ENTITY button.addFeed.accesskey    "a">
+<!ENTITY button.verifyFeed.label     "Ověřit">
+<!ENTITY button.verifyFeed.accesskey "V">
 <!ENTITY button.updateFeed.label     "Aktualizovat">
 <!ENTITY button.updateFeed.accesskey "k">
 <!ENTITY button.removeFeed.label     "Odebrat">

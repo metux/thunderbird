@@ -11,14 +11,14 @@
      -->
 <!ENTITY cmd.show.label                            "Atverti aplanką">
 <!ENTITY cmd.show.accesskey                        "A">
-<!ENTITY cmd.showMac.label                         "Rodyti Finder">
+<!ENTITY cmd.showMac.label                         "Rodyti per „Finder“">
 <!ENTITY cmd.showMac.accesskey                     "F">
 <!ENTITY cmd.open.label                            "Atverti">
 <!ENTITY cmd.open.accesskey                        "A">
 <!ENTITY cmd.removeFromHistory.label               "Pašalinti iš sąrašo">
 <!ENTITY cmd.removeFromHistory.accesskey           "š">
 <!ENTITY cmd.clearList.label                       "Išvalyti sąrašą">
-<!ENTITY cmd.clearList.accesskey                   "C">
+<!ENTITY cmd.clearList.accesskey                   "v">
 <!ENTITY cmd.clearList.tooltip                     "Iš sąrašo pašalinti užbaigtus, atsisakytus ar nepavykusius failus">
 <!ENTITY cmd.searchDownloads.label                 "Ieškoti...">
 <!ENTITY cmd.searchDownloads.key                   "s">

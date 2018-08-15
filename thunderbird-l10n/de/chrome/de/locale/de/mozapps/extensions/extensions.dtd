@@ -4,6 +4,8 @@
 <!ENTITY addons.windowTitle                   "Add-ons-Verwaltung">
 
 <!ENTITY search.placeholder                   "Alle Add-ons durchsuchen">
+
+<!ENTITY search.placeholder2                  "Auf addons.mozilla.org suchen">
 <!ENTITY search.buttonlabel                   "Suchen">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
@@ -20,8 +22,12 @@
 <!ENTITY installAddonFromFile.accesskey       "A">
 <!ENTITY toolsMenu.tooltip                    "Tools für alle Add-ons">
 
+<!ENTITY getThemes.description                "Wollen Sie Ihren Browser anpassen?">
+<!ENTITY getThemes.learnMore                  "Wählen Sie aus Tausenden von Themes.">
+
 <!ENTITY cmd.back.tooltip                     "Eine Seite zurück">
 <!ENTITY cmd.forward.tooltip                  "Eine Seite vor">
+
 
 <!ENTITY showUnsignedExtensions.button.label  "Einige Erweiterungen konnten nicht verifiziert werden.">
 <!ENTITY showAllExtensions.button.label       "Alle Erweiterungen anzeigen">
@@ -33,7 +39,7 @@
 <!ENTITY warning.checkcompatibility.label          "Die Addon-Kompatibilitäts-Prüfung ist deaktiviert. Sie könnten inkompatible Add-ons haben.">
 <!ENTITY warning.checkcompatibility.enable.label   "Aktivieren">
 <!ENTITY warning.checkcompatibility.enable.tooltip "Addon-Kompatibilitäts-Prüfung aktivieren">
-<!ENTITY warning.updatesecurity.label              "Die Überprüfung der Sicherheit von Add-on-Updates ist deaktiviert. Ihre Sicherheit könnte durch Updates kompromittiert worden sein."> 
+<!ENTITY warning.updatesecurity.label              "Die Überprüfung der Sicherheit von Add-on-Updates ist deaktiviert. Ihre Sicherheit könnte durch Updates kompromittiert worden sein.">
 <!ENTITY warning.updatesecurity.enable.label       "Aktivieren">
 <!ENTITY warning.updatesecurity.enable.tooltip     "Überprüfung auf Sicherheitsupdates für Add-ons aktivieren">
 
@@ -44,7 +50,7 @@
 <!ENTITY view.availableUpdates.label          "Verfügbare Updates">
 
 <!-- addon updates -->
-<!ENTITY updates.checkForUpdates.label         "Auf Updates überprüfen">
+<!ENTITY updates.checkForUpdates.label        "Auf Updates überprüfen">
 <!ENTITY updates.checkForUpdates.accesskey    "A">
 <!ENTITY updates.viewUpdates.label            "Kürzlich durchgeführte Updates anzeigen">
 <!ENTITY updates.viewUpdates.accesskey        "K">
@@ -115,6 +121,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "Versionshinweise für dieses Update anzeigen">
 <!ENTITY cmd.hideReleaseNotes.label           "Versionshinweise ausblenden">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Versionshinweise für dieses Update ausblenden">
+<!ENTITY cmd.findReplacement.label            "Ersatz finden">
 
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
@@ -137,7 +144,7 @@ einige der besten und populärsten Add-ons zum Ausprobieren anbieten.">
 
 <!ENTITY detail.updateType                    "Automatische Updates">
 <!ENTITY detail.updateDefault.label           "Standard">
-<!ENTITY detail.updateDefault.tooltip         "Updates nur dann automatisch installieren, wenn das der Standard ist"> 
+<!ENTITY detail.updateDefault.tooltip         "Updates nur dann automatisch installieren, wenn das der Standard ist">
 <!ENTITY detail.updateAutomatic.label         "Ein">
 <!ENTITY detail.updateAutomatic.tooltip       "Updates automatisch installieren">
 <!ENTITY detail.updateManual.label            "Aus">
@@ -158,7 +165,7 @@ einige der besten und populärsten Add-ons zum Ausprobieren anbieten.">
 
 
 <!-- ratings -->
-<!ENTITY rating2.label	     		          "Bewertung">
+<!ENTITY rating2.label                        "Bewertung">
 
 <!-- download/install progress -->
 <!ENTITY progress.pause.tooltip               "Pause">
@@ -185,6 +192,10 @@ einige der besten und populärsten Add-ons zum Ausprobieren anbieten.">
 <!ENTITY addon.details.label                  "Mehr">
 <!ENTITY addon.details.tooltip                "Mehr Details über dieses Add-on anzeigen">
 <!ENTITY addon.unknownDate                    "Unbekannt">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "Alter Add-on-Typ">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -249,3 +260,8 @@ einige der besten und populärsten Add-ons zum Ausprobieren anbieten.">
 
 <!ENTITY pluginDeprecation.description "Fehlt etwas? Einige Plugins werden nicht mehr von &brandShortName; unterstützt.">
 <!ENTITY pluginDeprecation.learnMore "Weitere Informationen">
+
+<!ENTITY legacyWarning.showLegacy "Erweiterungen des alten Add-on-Typs anzeigen">
+<!ENTITY legacyExtensions.title "Alter Add-on-Typ">
+<!ENTITY legacyExtensions.description "Diese Erweiterungen erfüllen nicht die Firefox-Standards und wurden deshalb deaktiviert.">
+<!ENTITY legacyExtensions.learnMore "Weitere Informationen über Änderungen bei der Unterstützung von Add-ons für Firefox">

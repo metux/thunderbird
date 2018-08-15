@@ -308,26 +308,51 @@
 <!-- Identity popup customize menuitem -->
 
 
-<!ENTITY accountManagerCmd2.accesskey "S">
-<!ENTITY accountManagerCmd2.label "Account Settings">
-<!ENTITY accountManagerCmdUnix2.accesskey "S">
-<!ENTITY customizeFromAddress.accesskey "A">
-
-<!-- Identity popup customize menuitem -->
-<!ENTITY customizeFromAddress.label "Customize From Address…">
-<!ENTITY deliveryFormatMenu.accesskey "F">
-<!ENTITY deliveryFormatMenu.label "Delivery Format">
+<!ENTITY remindLater.label "Remind Me Later">
+<!ENTITY remindLater.accesskey "L">
+<!ENTITY saveCmd.key "S">
+<!ENTITY reorderAttachmentsCmd.label "Reorder Attachments…">
+<!ENTITY reorderAttachmentsCmd.accesskey "s">
+<!ENTITY reorderAttachmentsCmd.key "x">
+<!ENTITY toggleAttachmentPaneCmd.label "Attachment Pane">
+<!ENTITY toggleAttachmentPaneCmd.accesskey "m">
+<!ENTITY toggleAttachmentPaneCmd.key "m">
+<!ENTITY findBarCmd.label "Find…">
 <!ENTITY findBarCmd.accesskey "F">
 <!ENTITY findBarCmd.key "F">
-<!ENTITY findBarCmd.label "Find…">
+<!ENTITY findReplaceCmd.label "Find and Replace…">
 <!ENTITY findReplaceCmd.accesskey "l">
 <!ENTITY findReplaceCmd.key "H">
-<!ENTITY findReplaceCmd.label "Find and Replace…">
-<!ENTITY preferencesCmd2.accesskey "O">
-<!ENTITY preferencesCmd2.label "Options">
+<!ENTITY reorderAttachmentsPanel.label "Reorder Attachments">
+<!ENTITY moveAttachmentTopPanelBtn.label "Move to Top">
+<!ENTITY moveAttachmentUpPanelBtn.label "Move Up">
+<!ENTITY moveAttachmentBundleUpPanelBtn.label "Move together">
+<!ENTITY moveAttachmentDownPanelBtn.label "Move Down">
+<!ENTITY moveAttachmentBottomPanelBtn.label "Move to Bottom">
+<!ENTITY sortAttachmentsPanelBtn.Sort.AZ.label "Sort: A - Z">
+<!ENTITY sortAttachmentsPanelBtn.Sort.ZA.label "Sort: Z - A">
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.AZ.label "Sort Selection: A - Z">
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.ZA.label "Sort Selection: Z - A">
+<!ENTITY sortAttachmentsPanelBtn.key "y">
+<!ENTITY deliveryFormatMenu.label "Delivery Format">
+<!ENTITY deliveryFormatMenu.accesskey "F">
 <!ENTITY priorityButton.title "Priority">
 <!ENTITY priorityButton.tooltiptext "Change the message priority">
-<!ENTITY remindLater.accesskey "L">
-<!ENTITY remindLater.label "Remind Me Later">
-<!ENTITY saveCmd.key "S">
-<!ENTITY statusLanguageText.tooltip "Spell checking language">
+<!ENTITY accountManagerCmd2.label "Account Settings">
+<!ENTITY accountManagerCmd2.accesskey "S">
+<!ENTITY accountManagerCmdUnix2.accesskey "S">
+<!ENTITY preferencesCmd2.label "Options">
+<!ENTITY preferencesCmd2.accesskey "O">
+<!ENTITY attachButton.tooltip2 "Add an attachment">
+<!ENTITY attachmentBucketHeader.tooltip "Attachment Pane">
+<!ENTITY attachmentBucketCloseButton.tooltip "Hide the attachment pane">
+<!ENTITY reorderAttachments.label "Reorder Attachments…">
+<!ENTITY reorderAttachments.accesskey "s">
+<!ENTITY removeAllAttachments.label "Remove All Attachments">
+<!ENTITY removeAllAttachments.accesskey "v">
+<!ENTITY initiallyShowAttachmentPane.label "Initially Show Attachment Pane">
+<!ENTITY initiallyShowAttachmentPane.accesskey "S">
+<!ENTITY customizeFromAddress.label "Customize From Address…">
+<!ENTITY customizeFromAddress.accesskey "A">
+<!ENTITY languageStatusButton.tooltip "Spellcheck language">
+<!ENTITY encodingStatusPanel.tooltip "Text encoding">

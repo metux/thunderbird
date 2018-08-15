@@ -11,6 +11,7 @@
 <!-- General Settings -->
 <!ENTITY enableGlodaSearch.label       "Ativar pesquisa global e indexação">
 <!ENTITY enableGlodaSearch.accesskey   "A">
+<!ENTITY dateTimeFormatting.label      "Formatação de Data e Hora">
 <!ENTITY allowHWAccel.label            "Usar aceleração de hardware quando disponível">
 <!ENTITY allowHWAccel.accesskey        "h">
 <!ENTITY storeType.label               "Tipo de armazenamento de mensagem para contas novas:">
@@ -47,20 +48,30 @@
 
 <!ENTITY crashReporterSection.label      "Relatório de travamento">
 <!ENTITY crashReporterDesc.label         "O &brandShortName; envia relatório de erros para ajudar a &vendorShortName; a tornar o seu cliente de e-mail mais estável e seguro">
-<!ENTITY enableCrashReporter.label       "Ativar o Crash Reporter">
+<!ENTITY enableCrashReporter.label       "Ativar o relator de travamentos">
 <!ENTITY enableCrashReporter.accesskey   "C">
 <!ENTITY crashReporterLearnMore.label    "Saiba mais">
 
 <!-- Update -->
-<!ENTITY updateApp.label                 "Atualizações do &brandShortName;:">
+<!-- LOCALIZATION NOTE (updateApp.label):
+  Strings from aboutDialog.dtd are displayed in this section of the preferences.
+  Please check for possible accesskey conflicts.
+-->
+<!ENTITY updateApp2.label                "Atualizações do &brandShortName;">
+<!-- LOCALIZATION NOTE (updateApp.version.*): updateApp.version.pre is
+  followed by a version number, keep the trailing space or replace it with
+  a different character as needed. updateApp.version.post is displayed after
+  the version number, and is empty on purpose for English. You can use it
+  if required by your language.
+ -->
+<!ENTITY updateApp.version.pre           "Versão ">
+<!ENTITY updateApp.version.post          "">
 <!ENTITY updateAuto.label                "Instalar atualizações automaticamente (recomendado: melhoria da segurança)">
 <!ENTITY updateAuto.accesskey            "a">
 <!ENTITY updateCheck.label               "Verificar atualizações, mas permitir que eu escolha quando instalá-las">
 <!ENTITY updateCheck.accesskey           "c">
 <!ENTITY updateManual.label              "Nunca verificar se há atualizações (não recomendado: risco de segurança)">
 <!ENTITY updateManual.accesskey          "N">
-<!ENTITY updateAutoAddonWarn.label       "Avise-me se isto vai desabilitar algum de meus complementos">
-<!ENTITY updateAutoAddonWarn.accesskey   "A">
 <!ENTITY updateHistory.label             "Exibir histórico de atualizações">
 <!ENTITY updateHistory.accesskey         "l">
 
@@ -91,6 +102,8 @@
 <!ENTITY useCacheBefore.label            "Usar no máximo">
 <!ENTITY useCacheBefore.accesskey        "s">
 <!ENTITY useCacheAfter.label             "MB de espaço para o cache">
+<!ENTITY overrideSmartCacheSize.label    "Substituir o gerenciamento automático do cache">
+<!ENTITY overrideSmartCacheSize.accesskey "v">
 <!ENTITY clearCacheNow.label             "Limpar cache agora">
 <!ENTITY clearCacheNow.accesskey         "L">
 

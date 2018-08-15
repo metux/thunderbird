@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "g">
 <!ENTITY clickFinish.label "Klepnutím na tlačítko Dokončit uložíte nastavení a ukončíte tohoto průvodce.">
 <!ENTITY clickFinish.labelMac "Klepnutím na tlačítko Hotovo uložíte nastavení a ukončíte tohoto průvodce.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

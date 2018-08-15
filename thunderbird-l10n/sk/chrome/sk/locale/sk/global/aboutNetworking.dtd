@@ -14,7 +14,7 @@
 <!ENTITY aboutNetworking.autoRefresh           "Automaticky obnoviť každé 3 sekundy">
 <!ENTITY aboutNetworking.hostname              "Názov servera">
 <!ENTITY aboutNetworking.port                  "Port">
-<!ENTITY aboutNetworking.spdy                  "SPDY">
+<!ENTITY aboutNetworking.http2                 "HTTP/2">
 <!ENTITY aboutNetworking.ssl                   "SSL">
 <!ENTITY aboutNetworking.active                "Aktívny">
 <!ENTITY aboutNetworking.idle                  "Nečinný">
@@ -23,6 +23,7 @@
 <!ENTITY aboutNetworking.sent                  "Odoslané">
 <!ENTITY aboutNetworking.received              "Prijaté">
 <!ENTITY aboutNetworking.family                "Rodina">
+<!ENTITY aboutNetworking.trr                   "TRR">
 <!ENTITY aboutNetworking.addresses             "Adresy">
 <!ENTITY aboutNetworking.expires               "Vyprší (v sekundách)">
 <!ENTITY aboutNetworking.messagesSent          "Odoslané správy">
@@ -30,7 +31,7 @@
 <!ENTITY aboutNetworking.bytesSent             "Odoslané bajty">
 <!ENTITY aboutNetworking.bytesReceived         "Prijaté bajty">
 <!ENTITY aboutNetworking.logging               "Záznam">
-<!ENTITY aboutNetworking.logTutorial           "Pre informácie o používaní tohoto nástroja prosím navštívte stránku <a href='https://developer.mozilla.org/docs/Mozilla/Debugging/HTTP_logging'>HTTP Logging</a>.">
+<!ENTITY aboutNetworking.logTutorial           "Ak sa chcete dozvedieť informácie o používaní tohto nástroja, prosím, navštívte stránku <a href='https://developer.mozilla.org/docs/Mozilla/Debugging/HTTP_logging'>HTTP Logging</a>.">
 <!ENTITY aboutNetworking.currentLogFile        "Aktuálny súbor protokolu:">
 <!ENTITY aboutNetworking.currentLogModules     "Aktuálne moduly protokolu:">
 <!ENTITY aboutNetworking.setLogFile            "Nastaviť súbor protokolu">
@@ -41,3 +42,18 @@
 <!ENTITY aboutNetworking.dnsLookupButton       "Vyriešiť">
 <!ENTITY aboutNetworking.dnsDomain             "Doména">
 <!ENTITY aboutNetworking.dnsLookupTableColumn  "Adresy IP">
+<!ENTITY aboutNetworking.rcwn                  "Štatistiky RCWN">
+<!ENTITY aboutNetworking.rcwnStatus            "Stav RCWN">
+<!ENTITY aboutNetworking.rcwnCacheWonCount     "Počet víťazstiev vyrovnávacej pamäte">
+<!ENTITY aboutNetworking.rcwnNetWonCount       "Počet víťazstiev siete">
+<!ENTITY aboutNetworking.totalNetworkRequests  "Celkový počet sieťových požiadavkov">
+<!ENTITY aboutNetworking.rcwnOperation         "Operácia s vyrovnávacou pamäťou">
+<!ENTITY aboutNetworking.rcwnPerfOpen          "Otvorenie">
+<!ENTITY aboutNetworking.rcwnPerfRead          "Čítanie">
+<!ENTITY aboutNetworking.rcwnPerfWrite         "Zápis">
+<!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Otvorenie položky">
+<!ENTITY aboutNetworking.rcwnAvgShort          "Krátkodobý priemer">
+<!ENTITY aboutNetworking.rcwnAvgLong           "Dlhodobý priemer">
+<!ENTITY aboutNetworking.rcwnStddevLong        "Dlhodobá smerodajná odchýlka">
+<!ENTITY aboutNetworking.rcwnCacheSlow         "Počet pomalých prístupov do vyrovnávacej pamäte">
+<!ENTITY aboutNetworking.rcwnCacheNotSlow      "Počet rýchlych prístupov do vyrovnávacej pamäte">

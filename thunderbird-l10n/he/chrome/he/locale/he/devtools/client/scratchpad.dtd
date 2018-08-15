@@ -47,26 +47,32 @@
 <!ENTITY saveFileAsCmd.accesskey      "ש">
 
 <!ENTITY closeCmd.label               "סגירה">
-<!ENTITY closeCmd.key                 "ס">
+<!ENTITY closeCmd.key                 "W">
 <!ENTITY closeCmd.accesskey           "ס">
 
 <!ENTITY viewMenu.label               "תצוגה">
 <!ENTITY viewMenu.accesskey           "ת">
 
 <!ENTITY lineNumbers.label             "הצגת מספרי שורות">
+<!ENTITY lineNumbers.accesskey         "ס">
 
 <!ENTITY wordWrap.label                "גלישת טקסט">
+<!ENTITY wordWrap.accesskey            "ל">
 
 <!ENTITY highlightTrailingSpace.label     "הדגשת רווחים עוקבים">
+<!ENTITY highlightTrailingSpace.accesskey "ד">
 
 <!ENTITY largerFont.label             "גופן גדול יותר">
+<!ENTITY largerFont.accesskey         "ג">
 <!ENTITY largerFont.commandkey        "+">
 <!ENTITY largerFont.commandkey2       "="> <!-- + is above this key on many keyboards -->
 
 <!ENTITY smallerFont.label            "גופן קטן יותר">
+<!ENTITY smallerFont.accesskey        "ק">
 <!ENTITY smallerFont.commandkey       "-">
 
 <!ENTITY normalSize.label             "גודל רגיל">
+<!ENTITY normalSize.accesskey         "ר">
 <!ENTITY normalSize.commandkey        "0">
 
 <!ENTITY editMenu.label               "עריכה">
@@ -78,7 +84,7 @@
 
 <!ENTITY inspect.label                "חקירה">
 <!ENTITY inspect.accesskey            "ח">
-<!ENTITY inspect.key                  "ח">
+<!ENTITY inspect.key                  "i">
 
 <!ENTITY display.label                "תצוגה">
 <!ENTITY display.accesskey            "ת">
@@ -86,6 +92,7 @@
 
 <!ENTITY pprint.label                 "הדפסה יפה">
 <!ENTITY pprint.key                   "p">
+<!ENTITY pprint.accesskey             "ד">
 
 <!-- LOCALIZATION NOTE (environmentMenu.label, accesskey): This menu item was
   -  renamed from "Context" to avoid confusion with the right-click context
@@ -143,18 +150,6 @@
 <!-- LOCALIZATION NOTE (evalFunction.label): This command allows the developer
   -  to evaluate the top-level function that the cursor is currently at.
   -->
+<!ENTITY evalFunction.label "הערכת הפונקציה הנוכחית">
+<!ENTITY evalFunction.accesskey "ע">
 <!ENTITY evalFunction.key "e">
-
-<!ENTITY evalFunction.accesskey "v">
-
-<!-- LOCALIZATION NOTE (evalFunction.label): This command allows the developer
-  -  to evaluate the top-level function that the cursor is currently at.
-  -->
-<!ENTITY evalFunction.label "Evaluate Current Function">
-<!ENTITY highlightTrailingSpace.accesskey "H">
-<!ENTITY largerFont.accesskey         "a">
-<!ENTITY lineNumbers.accesskey         "L">
-<!ENTITY normalSize.accesskey         "N">
-<!ENTITY pprint.accesskey             "P">
-<!ENTITY smallerFont.accesskey        "M">
-<!ENTITY wordWrap.accesskey            "W">

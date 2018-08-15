@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "b">
 <!ENTITY clickFinish.label "Sit ɣef Fak akken ad tessekelseḍ iɣewwaṛen-agi sakin ad teffɣeḍ seg umarag n umiḍan.">
 <!ENTITY clickFinish.labelMac "Sit ɣef Yemmed akken ad tessekelseḍ iɣewwaṛen-agi sakin ad teffɣeḍ seg umarag n umiḍan.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

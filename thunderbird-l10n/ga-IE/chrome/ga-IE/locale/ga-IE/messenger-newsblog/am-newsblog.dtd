@@ -2,23 +2,15 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY biffStart.label "Lorg altanna nua gach ">
-<!ENTITY biffStart.accesskey "L">
-<!ENTITY biffEnd.label "nóiméad">
+<!ENTITY loginAtStartup.label          "Lorg altanna nua ag am tosaithe">
+<!ENTITY loginAtStartup.accesskey      "o">
+<!ENTITY biffAll.label                 "Cumasaigh nuashonruithe do na fothaí go léir">
+<!ENTITY biffAll.accesskey             "C">
 
-<!ENTITY loginAtStartup.label "Lorg altanna nua ag am tosaithe"> 
-<!ENTITY loginAtStartup.accesskey "o">
+<!ENTITY newFeedSettings.label         "Réamhshocruithe le haghaidh Fothaí Nua">
 
-<!ENTITY useQuickMode.label "Mar réamhshocrú, taispeáin achoimre an ailt in áit an leathanach Gréasáin a íosluchtú"> 
-<!ENTITY useQuickMode.accesskey "r">
-
-<!ENTITY manageSubscriptions.label "Bainistiú na Síntiús…"> 
+<!ENTITY manageSubscriptions.label     "Bainistiú na Síntiús…">
 <!ENTITY manageSubscriptions.accesskey "S">
 
-<!ENTITY feedWindowTitle.label "Treoraí na gCuntas Fotha">
-<!-- entities from rss.rdf -->
-
-<!ENTITY feeds.accountName "Blaganna agus Fothaí Nuachta">
-<!ENTITY feeds.wizardShortName "Fothaí">
-<!ENTITY feeds.wizardLongName "Blaganna agus Fothaí Nuachta">
-<!ENTITY feeds.wizardLongName.accesskey "F">
+<!ENTITY feedWindowTitle.label         "Treoraí na gCuntas Fotha">
+<!ENTITY feeds.accountName             "Blaganna agus Fothaí Nuachta">

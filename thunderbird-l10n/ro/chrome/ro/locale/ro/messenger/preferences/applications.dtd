@@ -36,6 +36,5 @@
 <!ENTITY enableCloudFileAccountOffer.label "Oferă partajarea fișierelor mai mari decât">
 <!ENTITY enableCloudFileAccountOffer.mb "MB">
 
-<!ENTITY addCloudFileAccount1.accesskey   "A">
-
 <!ENTITY addCloudFileAccount1.label       "Add…">
+<!ENTITY addCloudFileAccount1.accesskey   "A">

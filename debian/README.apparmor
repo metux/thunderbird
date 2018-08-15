@@ -12,6 +12,11 @@ functionality breakage, you can enable this profile by running:
     sudo rm /etc/apparmor.d/disable/usr.bin.thunderbird && \
     sudo apparmor_parser -r -T -W /etc/apparmor.d/usr.bin.thunderbird
 
+To display the current state of the Thunderbird profile, run:
+
+    sudo apt install jq && \
+    sudo aa-status  --pretty-json | jq .profiles.thunderbird
+
 To debug issues with this AppArmor profile, see:
 
   https://wiki.debian.org/AppArmor/Debug

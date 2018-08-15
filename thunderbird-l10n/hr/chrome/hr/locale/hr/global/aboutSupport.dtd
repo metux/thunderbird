@@ -21,6 +21,11 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Inačica">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.featuresTitle "&brandShortName; mogućnosti">
+<!ENTITY aboutSupport.featureName "Naziv">
+<!ENTITY aboutSupport.featureVersion "Inačica">
+<!ENTITY aboutSupport.featureId "ID">
+
 <!ENTITY aboutSupport.experimentsTitle "Eksperimentalne značajke">
 <!ENTITY aboutSupport.experimentName "Naziv">
 <!ENTITY aboutSupport.experimentId "ID">
@@ -61,6 +66,11 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Više procesni prozori">
 
+<!ENTITY aboutSupport.appBasicsProcessCount "Procesi web sadržaja">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Google Key">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla Location Service Key">
+
 <!ENTITY aboutSupport.appBasicsSafeMode "Sigurni način rada">
 
 <!ENTITY aboutSupport.showDir.label "Otvori direktorij">
@@ -70,6 +80,7 @@ variant of aboutSupport.showDir.label.  This allows us to use the preferred
 <!ENTITY aboutSupport.showMac.label "Prikaži u Finderu">
 <!-- LOCALIZATION NOTE (aboutSupport.showWin2.label): This is the Windows-specific
 variant of aboutSupport.showDir.label. -->
+<!ENTITY aboutSupport.showWin2.label "Otvori mapu">
 
 <!ENTITY aboutSupport.modifiedKeyPrefsTitle "Važne izmijenjene osobitosti">
 <!ENTITY aboutSupport.modifiedPrefsName "Naziv">
@@ -95,6 +106,7 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "Pristupačnost">
 <!ENTITY aboutSupport.a11yActivated "Aktivirano">
 <!ENTITY aboutSupport.a11yForceDisabled "Onemogući pristupačnost">
+<!ENTITY aboutSupport.a11yHandlerUsed "Korišteni rukovatelj pristupnosti">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Inačice biblioteke">
 
@@ -105,6 +117,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Kopiraj neobrađene podatke u međuspremnik">
 
 <!ENTITY aboutSupport.sandboxTitle "Sandbox">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Odbijeni sistemski pozivi">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "prije nekoliko sekundi">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Tip procesa">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Syscall">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Argumenti">
 
 <!ENTITY aboutSupport.safeModeTitle "Pokušaj siguran način rada">
 <!ENTITY aboutSupport.restartInSafeMode.label "Ponovno pokreni s isključenim dodacima…">
@@ -118,6 +138,33 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Onemogućene značajke čuvara rušenja">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Zaobilazna rješenja">
 
-<!-- LOCALIZATION NOTE (aboutSupport.showWin2.label): This is the Windows-specific
-variant of aboutSupport.showDir.label. -->
-<!ENTITY aboutSupport.showWin2.label "Open Folder">
+<!ENTITY aboutSupport.mediaTitle "Medij">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Izlazni uređaji">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Ulazni uređaji">
+<!ENTITY aboutSupport.mediaDeviceName "Naziv">
+<!ENTITY aboutSupport.mediaDeviceGroup "Grupa">
+<!ENTITY aboutSupport.mediaDeviceVendor "Prodavač">
+<!ENTITY aboutSupport.mediaDeviceState "Država">
+<!ENTITY aboutSupport.mediaDevicePreferred "Željeno">
+<!ENTITY aboutSupport.mediaDeviceFormat "Oblik">
+<!ENTITY aboutSupport.mediaDeviceChannels "Kanali">
+<!ENTITY aboutSupport.mediaDeviceRate "Stopa">
+<!ENTITY aboutSupport.mediaDeviceLatency "Latencija">
+
+<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
+<!ENTITY aboutSupport.securitySoftwareType "Type">
+<!ENTITY aboutSupport.securitySoftwareName "Name">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">
+<!ENTITY aboutSupport.a11yInstantiator "Accessibility Instantiator">
+<!ENTITY aboutSupport.intlTitle "Internationalization &amp; Localization">
+<!ENTITY aboutSupport.intlAppTitle "Application Settings">
+<!ENTITY aboutSupport.intlLocalesRequested "Requested Locales">
+<!ENTITY aboutSupport.intlLocalesAvailable "Available Locales">
+<!ENTITY aboutSupport.intlLocalesSupported "App Locales">
+<!ENTITY aboutSupport.intlLocalesDefault "Default Locale">
+<!ENTITY aboutSupport.intlOSTitle "Operating System">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System Locales">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regional Preferences">

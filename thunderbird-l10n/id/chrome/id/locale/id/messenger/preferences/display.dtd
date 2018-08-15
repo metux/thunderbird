@@ -70,15 +70,13 @@
 <!ENTITY closeMsgOnMoveOrDelete.label     "Tutup jendela/tab pesan saat memindahkan atau menghapus">
 <!ENTITY closeMsgOnMoveOrDelete.accesskey "T">
 
-<!ENTITY colorButton.accesskey   "C">
-<!ENTITY colorButton.label       "Colors…">
-<!ENTITY editTagButton1.accesskey  "E">
-<!ENTITY editTagButton1.label      "Edit…">
-
-<!-- Fonts and Colors -->
-<!ENTITY fontsAndColors1.label   "Fonts &amp; Colors">
 <!ENTITY itemAdvanced.label               "Advanced">
-<!ENTITY newTagButton.accesskey    "N">
-<!ENTITY newTagButton.label        "New…">
-<!ENTITY quotedTextColor.accesskey        "o">
 <!ENTITY quotedTextColor.label            "Color:">
+<!ENTITY quotedTextColor.accesskey        "o">
+<!ENTITY newTagButton.label        "New…">
+<!ENTITY newTagButton.accesskey    "N">
+<!ENTITY editTagButton1.label      "Edit…">
+<!ENTITY editTagButton1.accesskey  "E">
+<!ENTITY fontsAndColors1.label   "Fonts &amp; Colors">
+<!ENTITY colorButton.label       "Colors…">
+<!ENTITY colorButton.accesskey   "C">

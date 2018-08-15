@@ -3,7 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY titledefault.label "&brandFullName;">
-<!ENTITY titleSeparator.label " — ">
+<!ENTITY titleSeparator.label " - ">
 
 <!-- File Menu -->
 <!ENTITY newFolderCmd.label "Теку…">
@@ -36,6 +36,12 @@
 <!ENTITY newFeedAccountCmd.accesskey "т">
 <!ENTITY newIMContactCmd.label "Контакт чату…">
 <!ENTITY newIMContactCmd.accesskey "ч">
+<!ENTITY  newMessageCmd2.key "N">
+<!ENTITY  newMessageCmd.key "M">
+<!ENTITY  newMessageCmd.label "Повідомлення">
+<!ENTITY  newMessageCmd.accesskey "П">
+<!ENTITY  newContactCmd.label "Контакт адресної книги…">
+<!ENTITY  newContactCmd.accesskey "К">
 <!ENTITY openMessageFileCmd.label "Відкрити збережене повідомлення…">
 <!ENTITY openMessageFileCmd.accesskey "к">
 <!ENTITY saveAsMenu.label "Зберегти як">
@@ -51,8 +57,8 @@
 <!ENTITY getAllNewMsgCmdPopupMenu.accesskey "В">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.label "Поточного облікового запису">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.accesskey "П">
-<!ENTITY getNextNMsgCmd.label "Отримати наступні 500 листів">
-<!ENTITY getNextNMsgCmd.accesskey "5">
+<!ENTITY getNextNMsgCmd2.label "Отримати наступні листи">
+<!ENTITY getNextNMsgCmd2.accesskey "т">
 <!ENTITY sendUnsentCmd.label "Відіслати невідіслані листи">
 <!ENTITY sendUnsentCmd.accesskey "л">
 <!ENTITY subscribeCmd.label "Підписатися…">
@@ -317,7 +323,7 @@
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goChatCmd.label "Чат">
 <!ENTITY goChatCmd.accesskey "Ч">
-<!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Лист з зіркою">
 <!ENTITY prevStarredMsgCmd.accesskey "З">
 <!ENTITY folderMenu.label "Тека">
@@ -366,6 +372,10 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Редагувати чернетку">
 <!ENTITY editDraftMsgCmd.accesskey "г">
+<!ENTITY editTemplateMsgCmd.label "Змінити шаблон">
+<!ENTITY editTemplateMsgCmd.accesskey "м">
+<!ENTITY newMsgFromTemplateCmd.label "Створити повідомлення з шаблону">
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Створити фільтр…">
 <!ENTITY createFilter.accesskey "ф">
 <!ENTITY moveMsgToMenu.label "Перемістити до">
@@ -457,6 +467,11 @@
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "Додатки">
 <!ENTITY addons.accesskey "Д">
+<!ENTITY addonPrefs.label "Налаштування додатків">
+<!ENTITY addonPrefs.accesskey "ш">
+<!ENTITY addonPrefsUnix.label "Налаштування додатків">
+<!ENTITY addonPrefsUnix.accesskey "ш">
+<!ENTITY addonNoPrefs.label "Не знайдено налаштувань додатків.">
 <!ENTITY activitymanager.label "Менеджер діяльності">
 <!ENTITY activitymanager.accesskey "д">
 <!ENTITY imAccountsStatus.label "Стан у чаті">
@@ -500,8 +515,8 @@
 <!ENTITY devToolboxCmd.label "Панель розробника">
 <!ENTITY devToolboxCmd.accesskey "П">
 <!ENTITY devToolboxCmd.commandkey "i">
-<!ENTITY addonDebugCmd.label "Зневадження додатків">
-<!ENTITY addonDebugCmd.accesskey "З">
+<!ENTITY debugAddonsCmd.label "Зневадження додатків">
+<!ENTITY debugAddonsCmd.accesskey "З">
 <!ENTITY tabsDebugCmd.label "Зневаджувач фрейму вмісту">
 <!ENTITY tabsDebugCmd.accesskey "ж">
 <!ENTITY errorConsoleCmd.label "Консоль помилок">
@@ -589,7 +604,7 @@
 <!ENTITY chatButton.tooltip "Показати вкладку чату">
 <!ENTITY tagButton.tooltip "Помітити повідомлення">
 <!ENTITY compactButton.tooltip "Вилучити видалені листи з вибраної теки">
-<!ENTITY appmenuButton1.tooltip "Показати меню програми">
+<!ENTITY appmenuButton1.tooltip "Відкрити меню &brandShortName;">
 
 <!-- Toolbar Button Popup -->
 <!ENTITY buttonMenuForwardAsInline.label "Переслати всередині повідомлення">
@@ -634,6 +649,10 @@
 <!-- Folder Pane Context Menu -->
 <!ENTITY folderContextGetMessages.label "Отримати листи">
 <!ENTITY folderContextGetMessages.accesskey "О">
+<!ENTITY folderContextMarkAllFoldersRead.label "Позначити всі теки прочитаними">
+<!ENTITY folderContextPauseAllUpdates.label "Призупинити всі оновлення">
+<!ENTITY folderContextPauseUpdates.label "Призупинити оновлення">
+<!ENTITY folderContextPauseUpdates.accesskey "П">
 <!ENTITY folderContextOpenInNewWindow.label "Відкрити в новому вікні">
 <!ENTITY folderContextOpenInNewWindow.accesskey "н">
 <!ENTITY folderContextOpenNewTab.label "Відкрити в новій вкладці">
@@ -731,12 +750,13 @@
 <!ENTITY attachmentColumn2.tooltip "Сортувати за вкладеннями">
 
 <!-- Thread Pane Context Menu -->
+<!ENTITY contextNewMsgFromTemplate.label "Створити повідомлення з шаблону">
 <!ENTITY contextOpenNewWindow.label "Відкрити лист в новому вікні">
 <!ENTITY contextOpenNewWindow.accesskey "н">
-<!-- The key potentially conflicts with cutCmd.accessKey which is defined in
-     textcontext.dtd from toolkit. Right now, both menu items can't be visible
-     at the same time, but should someone enable copy/paste of message, this key
-     would probably need to be changed. -->
+<!-- The contextOpenNewTab.accesskey ("T") potentially conflicts with
+     cutCmd.accessKey which is defined in textcontext.dtd from toolkit. Right
+     now, both menu items can't be visible at the same time, but should someone
+     enable copy/paste of message, this key would probably need to be changed. -->
 <!ENTITY contextOpenNewTab.label "Відкрити лист в новій вкладці">
 <!ENTITY contextOpenNewTab.accesskey "к">
 <!ENTITY contextOpenConversation.label "Відкрити повідомлення в розмові">
@@ -746,6 +766,8 @@
 <!ENTITY contextEditMsgAsNew.label "Редагувати як нове повідомлення">
 <!ENTITY contextEditMsgAsNew.accesskey "Р">
 <!ENTITY contextEditDraftMsg.label "Редагувати чернетку">
+<!ENTITY contextEditTemplate.label "Змінити шаблон">
+<!ENTITY contextEditTemplate.accesskey "м">
 <!ENTITY contextArchive.label "Архівувати">
 <!ENTITY contextArchive.accesskey "х">
 <!ENTITY contextReplySender.label "Відповісти відправнику">
@@ -853,7 +875,7 @@
   -->
 <!ENTITY quickSearchCmd.key "k">
 <!-- LOCALIZATION NOTE (search.label.base1):
-      This is the base of the empty text for the global search box. We replace
+     This is the base of the empty text for the global search box. We replace
      #1 with the contents of the appropriate search.keyLabel.* value for the
      platform.
      The goal is to convey to the user that typing in the box will allow them
@@ -888,7 +910,7 @@
 <!ENTITY SubscribeToNewsgroup.accesskey "н">
 <!ENTITY SendMessageTo.label "Створити повідомлення до">
 <!ENTITY SendMessageTo.accesskey "с">
-<!ENTITY CopyEmailAddress.label "Копіювати адресу електронної пошти">
+<!ENTITY CopyEmailAddress.label "Копіювати адресу е-пошти">
 <!ENTITY CopyEmailAddress.accesskey "К">
 <!ENTITY CopyNameAndEmailAddress.label "Копіювати ім'я та адресу електронної пошти">
 <!ENTITY CopyNameAndEmailAddress.accesskey "п">
@@ -914,8 +936,8 @@
 <!ENTITY copyLinkCmd.accesskey "п">
 <!ENTITY copyImageAllCmd.label "Копіювати зображення">
 <!ENTITY copyImageAllCmd.accesskey "К">
-<!ENTITY copyEmailCmd.label "Копюівати email адресу">
-<!ENTITY copyEmailCmd.accesskey "e">
+<!ENTITY copyEmailCmd.label "Копіювати адресу е-пошти">
+<!ENTITY copyEmailCmd.accesskey "К">
 <!ENTITY stopCmd.label "Зупинити">
 <!ENTITY stopCmd.accesskey "З">
 <!ENTITY reloadCmd.label "Перезавантажити">
@@ -949,3 +971,5 @@
 
 <!-- Mac OS X Dock Icon pop-up menu -->
 <!ENTITY dockOptions.label              "Параметри піктограми програми…">
+<!ENTITY writeNewMessageDock.label      "Написати нового листа">
+<!ENTITY openAddressBookDock.label      "Відкрити адресну книгу">

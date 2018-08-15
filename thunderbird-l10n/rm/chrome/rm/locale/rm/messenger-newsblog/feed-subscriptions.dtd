@@ -12,11 +12,21 @@
 <!ENTITY feedLocation.label          "URL dal feed:">
 <!ENTITY feedLocation.accesskey      "U">
 <!ENTITY feedLocation.placeholder    "Endatar ina URL valida per agiuntar">
+<!ENTITY feedLocation2.placeholder   "Endatar in URL valid dal feed">
 <!ENTITY locationValidate.label      "Validar">
 <!ENTITY validateText.label          "Controllar la validaziun e retschaiver ina URL valida.">
 
 <!ENTITY feedFolder.label            "Memorisar ils artitgels en:">
 <!ENTITY feedFolder.accesskey        "S">
+
+<!-- Account Settings and Subscription Dialog -->
+<!ENTITY biffStart.label             "Controllar sch'i dettia novs artitgels mintga ">
+<!ENTITY biffStart.accesskey         "i">
+<!ENTITY biffMinutes.label           "minutas">
+<!ENTITY biffMinutes.accesskey       "n">
+<!ENTITY biffDays.label              "dis">
+<!ENTITY biffDays.accesskey          "d">
+<!ENTITY recommendedUnits.label      "L'editur recumonda:">
 
 <!ENTITY quickMode.label             "Mussar la resumaziun da l'artitgel empè da chargiar la website">
 <!ENTITY quickMode.accesskey         "h">
@@ -27,8 +37,11 @@
 <!ENTITY autotagUsePrefix.accesskey  "P">
 <!ENTITY autoTagPrefix.placeholder   "Endatescha il prefix per las etichettas">
 
+<!-- Subscription Dialog -->
 <!ENTITY button.addFeed.label        "Agiuntar">
 <!ENTITY button.addFeed.accesskey    "A">
+<!ENTITY button.verifyFeed.label     "Verifitgar">
+<!ENTITY button.verifyFeed.accesskey "V">
 <!ENTITY button.updateFeed.label     "Actualisar">
 <!ENTITY button.updateFeed.accesskey "U">
 <!ENTITY button.removeFeed.label     "Allontanar">

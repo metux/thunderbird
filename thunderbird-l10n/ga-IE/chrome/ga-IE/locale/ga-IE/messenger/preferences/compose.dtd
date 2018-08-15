@@ -35,7 +35,7 @@
 <!ENTITY spellCheckInline1.accesskey          "E">
 <!ENTITY languagePopup.label                  "Teanga:">
 <!ENTITY languagePopup.accessKey              "T">
-<!ENTITY downloadDictionaries.label           "Íosluchtaigh Tuilleadh Foclóirí">
+<!ENTITY downloadDictionaries.label           "Íoslódáil Tuilleadh Foclóirí">
 
 <!ENTITY warnOnSendAccelKey.label             "Deimhnigh agus aicearra méarchláir á úsáid chun teachtaireacht a sheoladh">
 <!ENTITY warnOnSendAccelKey.accesskey         "c">
@@ -54,6 +54,9 @@
 <!ENTITY directoriesNone.label                 "Gan sonrú">
 <!ENTITY editDirectories.label                 "Cuir Eolairí in Eagar…">
 <!ENTITY editDirectories.accesskey             "E">
+<!ENTITY showAsDefault.label                   "Fillteán tosaigh réamhshocraithe i bhfuinneog an leabhair seoltaí:">
+<!ENTITY showAsDefault.accesskey               "s">
+<!ENTITY showAsDefaultLast.label               "Fillteán is déanaí">
 
 <!ENTITY sendOptionsDescription.label          "Cumraigh iompar an fhormáidithe téacs">
 <!ENTITY sendOptions.label                     "Roghanna Seolta…">

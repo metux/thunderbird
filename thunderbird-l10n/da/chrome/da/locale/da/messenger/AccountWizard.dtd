@@ -116,3 +116,6 @@
 <!ENTITY clickFinish.label "Klik på Afslut for at gemme disse indstillinger og afslutte Kontoguiden">
 <!ENTITY clickFinish.labelMac "Klik på Færdig for at gemme disse indstillinger og afslutte Kontoguiden.">
 
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

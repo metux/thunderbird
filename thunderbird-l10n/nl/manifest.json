@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "nl": {
+      "chrome_resources": {
+        "necko": "chrome/nl/locale/nl/necko/", 
+        "global": "chrome/nl/locale/nl/global/", 
+        "messenger-region": "chrome/nl/locale/nl/messenger-region/", 
+        "chat": "chrome/nl/locale/nl/chat/", 
+        "devtools": "chrome/nl/locale/nl/devtools/client/", 
+        "pipnss": "chrome/nl/locale/nl/pipnss/", 
+        "messenger-smime": "chrome/nl/locale/nl/messenger-smime/", 
+        "messenger-newsblog": "chrome/nl/locale/nl/messenger-newsblog/", 
+        "devtools-shim": "chrome/nl/locale/nl/devtools/shim/", 
+        "alerts": "chrome/nl/locale/nl/alerts/", 
+        "messenger": "chrome/nl/locale/nl/messenger/", 
+        "editor": "chrome/nl/locale/nl/editor/", 
+        "branding": "chrome/nl/locale/nl/branding/", 
+        "mozldap": "chrome/nl/locale/nl/mozldap/", 
+        "autoconfig": "chrome/nl/locale/nl/autoconfig/", 
+        "devtools-shared": "chrome/nl/locale/nl/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/nl/locale/nl/global-platform/win/", 
+          "android": "chrome/nl/locale/nl/global-platform/unix/", 
+          "macosx": "chrome/nl/locale/nl/global-platform/mac/", 
+          "linux": "chrome/nl/locale/nl/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/nl/locale/nl/mozapps/", 
+        "pluginproblem": "chrome/nl/locale/nl/pluginproblem/", 
+        "communicator": "chrome/nl/locale/nl/communicator/", 
+        "messenger-mapi": "chrome/nl/locale/nl/messenger-mapi/", 
+        "places": "chrome/nl/locale/nl/places/", 
+        "passwordmgr": "chrome/nl/locale/nl/passwordmgr/", 
+        "pippki": "chrome/nl/locale/nl/pippki/"
+      }, 
+      "version": "20180504155435"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-nl@firefox.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "nl", 
+  "version": "60.0buildid20180709054853", 
+  "name": "Nederlands (NL) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Gert-Paul van der Beek, Tim Maks van den Broek, Onno Ekker, Laurens Holst, Ton Kensen, Anne van Kesteren, Hendrik Maryns, Martijn Ras, leden MozBrowser-forum)", 
+  "description": "Language pack for Thunderbird for nl"
+}

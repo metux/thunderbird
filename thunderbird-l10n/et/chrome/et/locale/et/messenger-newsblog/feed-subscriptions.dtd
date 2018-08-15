@@ -11,12 +11,21 @@
 
 <!ENTITY feedLocation.label          "Uudistevoo URL:">
 <!ENTITY feedLocation.accesskey      "U">
-<!ENTITY feedLocation.placeholder    "Lisamiseks sisesta korrektne uudistevoo URL">
+<!ENTITY feedLocation2.placeholder   "Sisesta korrektne uudistevoo URL">
 <!ENTITY locationValidate.label      "Valideeri">
 <!ENTITY validateText.label          "Valideeri uudistevoog ja hangi õige URL.">
 
 <!ENTITY feedFolder.label            "Artiklid salvestatakse:">
 <!ENTITY feedFolder.accesskey        "A">
+
+<!-- Account Settings and Subscription Dialog -->
+<!ENTITY biffStart.label             "Uusi uudiseid kontrollitakse ">
+<!ENTITY biffStart.accesskey         "u">
+<!ENTITY biffMinutes.label           "minuti järel">
+<!ENTITY biffMinutes.accesskey       "m">
+<!ENTITY biffDays.label              "päeva järel">
+<!ENTITY biffDays.accesskey          "p">
+<!ENTITY recommendedUnits.label      "Avaldaja soovitab:">
 
 <!ENTITY quickMode.label             "Veebilehe laadimise asemel kuvatakse artikli kokkuvõtet">
 <!ENTITY quickMode.accesskey         "h">
@@ -27,8 +36,11 @@
 <!ENTITY autotagUsePrefix.accesskey  "S">
 <!ENTITY autoTagPrefix.placeholder   "Sisesta prefiks">
 
+<!-- Subscription Dialog -->
 <!ENTITY button.addFeed.label        "Lisa">
 <!ENTITY button.addFeed.accesskey    "L">
+<!ENTITY button.verifyFeed.label     "Kontrolli">
+<!ENTITY button.verifyFeed.accesskey "K">
 <!ENTITY button.updateFeed.label     "Uuenda">
 <!ENTITY button.updateFeed.accesskey "U">
 <!ENTITY button.removeFeed.label     "Eemalda">

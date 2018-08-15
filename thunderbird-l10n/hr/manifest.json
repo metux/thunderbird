@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "hr": {
+      "chrome_resources": {
+        "necko": "chrome/hr/locale/hr/necko/", 
+        "global": "chrome/hr/locale/hr/global/", 
+        "messenger-region": "chrome/hr/locale/hr/messenger-region/", 
+        "chat": "chrome/hr/locale/hr/chat/", 
+        "devtools": "chrome/hr/locale/hr/devtools/client/", 
+        "pipnss": "chrome/hr/locale/hr/pipnss/", 
+        "messenger-smime": "chrome/hr/locale/hr/messenger-smime/", 
+        "messenger-newsblog": "chrome/hr/locale/hr/messenger-newsblog/", 
+        "devtools-shim": "chrome/hr/locale/hr/devtools/shim/", 
+        "alerts": "chrome/hr/locale/hr/alerts/", 
+        "messenger": "chrome/hr/locale/hr/messenger/", 
+        "editor": "chrome/hr/locale/hr/editor/", 
+        "branding": "chrome/hr/locale/hr/branding/", 
+        "mozldap": "chrome/hr/locale/hr/mozldap/", 
+        "autoconfig": "chrome/hr/locale/hr/autoconfig/", 
+        "devtools-shared": "chrome/hr/locale/hr/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/hr/locale/hr/global-platform/win/", 
+          "android": "chrome/hr/locale/hr/global-platform/unix/", 
+          "macosx": "chrome/hr/locale/hr/global-platform/mac/", 
+          "linux": "chrome/hr/locale/hr/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/hr/locale/hr/mozapps/", 
+        "pluginproblem": "chrome/hr/locale/hr/pluginproblem/", 
+        "communicator": "chrome/hr/locale/hr/communicator/", 
+        "messenger-mapi": "chrome/hr/locale/hr/messenger-mapi/", 
+        "places": "chrome/hr/locale/hr/places/", 
+        "passwordmgr": "chrome/hr/locale/hr/passwordmgr/", 
+        "pippki": "chrome/hr/locale/hr/pippki/"
+      }, 
+      "version": "20180426072027"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-hr@firefox.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "hr", 
+  "version": "60.0buildid20180709054853", 
+  "name": "Hrvatski (HR) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Mihovil Stanić, Saša Teković)", 
+  "description": "Language pack for Thunderbird for hr"
+}

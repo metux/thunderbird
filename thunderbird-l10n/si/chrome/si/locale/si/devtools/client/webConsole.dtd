@@ -59,6 +59,9 @@
 <!ENTITY btnServerLogging.label       "සේවාදායකය">
 <!ENTITY btnServerLogging.accesskey   "S">
 <!ENTITY btnServerErrors              "දෝෂ">
+<!ENTITY btnServerInfo                "තොරතුරු">
+<!ENTITY btnServerWarnings            "අනතුරු ඇඟවීම්">
+<!ENTITY btnServerLog                 "ලොග් සටහන්">
 
 <!-- LOCALIZATION NODE (btnConsoleSharedWorkers) the term "Shared Workers"
   -  should not be translated. -->
@@ -91,19 +94,9 @@
 <!ENTITY openInVarViewCmd.accesskey "V">
 <!ENTITY storeAsGlobalVar.accesskey "S">
 
-<!-- LOCALIZATION NODE (btnConsoleServiceWorkers) the term "Service Workers"
-  -  should not be translated. -->
-<!ENTITY btnConsoleServiceWorkers "Service Workers">
-
-<!-- LOCALIZATION NODE (btnConsoleSharedWorkers) the term "Shared Workers"
-  -  should not be translated. -->
-<!ENTITY btnConsoleSharedWorkers "Shared Workers">
-<!-- LOCALIZATION NODE (btnConsoleWindowlessWorkers) the term "Workers"
-  -  should not be translated. -->
-<!ENTITY btnConsoleWindowlessWorkers "Add-on or Chrome Workers">
-<!ENTITY btnServerInfo                "Info">
-<!ENTITY btnServerLog                 "Log">
 <!ENTITY btnServerLogging.tooltip     "Log messages received from a web server">
-<!ENTITY btnServerWarnings            "Warnings">
+<!ENTITY btnConsoleSharedWorkers "Shared Workers">
+<!ENTITY btnConsoleServiceWorkers "Service Workers">
+<!ENTITY btnConsoleWindowlessWorkers "Add-on or Chrome Workers">
 <!ENTITY openInVarViewCmd.label "Open in Variables View">
 <!ENTITY storeAsGlobalVar.label "Store as global variable">

@@ -3,7 +3,4 @@
 <!ENTITY status.label "Trạng thái:">
 <!ENTITY progress.label "Tiến trình:">
 
-
-
-<!--LOCALIZATION NOTE sendProgress.dtd Main UI for Send Message Progress Dialog -->
 <!ENTITY sendDialog.title "Processing Message">

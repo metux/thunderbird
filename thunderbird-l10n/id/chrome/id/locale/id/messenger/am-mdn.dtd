@@ -32,5 +32,5 @@
 <!ENTITY alwaysSend.label             "Selalu kirim">
 <!ENTITY neverSend.label              "Tidak pernah dikirim">
 
-<!ENTITY globalReceipts.accesskey     "G">
 <!ENTITY globalReceipts.label         "Global Preferences…">
+<!ENTITY globalReceipts.accesskey     "G">

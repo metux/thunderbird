@@ -2,7 +2,7 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!-- LOCALIZATION NOTE : FILE This file contains the Script Debugger strings -->
+<!-- LOCALIZATION NOTE : FILE This file contains the Debugger strings -->
 <!-- LOCALIZATION NOTE : FILE Do not translate commandkey -->
 
 <!-- LOCALIZATION NOTE : FILE The correct localization of this file might be to
@@ -37,14 +37,14 @@
   -  for the button that black boxes the selected source. -->
 <!ENTITY debuggerUI.sources.blackBoxTooltip "Placer la source dans une boîte noire ou la retirer">
 
+<!-- LOCALIZATION NOTE (debuggerUI.sources.prettyPrint): This is the tooltip for the
+  -  button that pretty prints the selected source. -->
+<!ENTITY debuggerUI.sources.prettyPrint "Formater et indenter la source">
+
 <!-- LOCALIZATION NOTE (debuggerUI.autoPrettyPrint): This is the label for the
   -  checkbox that toggles auto pretty print. -->
 <!ENTITY debuggerUI.autoPrettyPrint     "Formater et indenter automatiquement les sources compactées">
 <!ENTITY debuggerUI.autoPrettyPrint.accesskey "F">
-
-<!-- LOCALIZATION NOTE (debuggerUI.sources.prettyPrint): This is the tooltip for the
-  -  button that pretty prints the selected source. -->
-<!ENTITY debuggerUI.sources.prettyPrint "Formater et indenter la source">
 
 <!-- LOCALIZATION NOTE (debuggerUI.sources.toggleBreakpoints): This is the tooltip for the
   -  button that toggles all breakpoints for all sources. -->
@@ -91,12 +91,11 @@
 <!ENTITY debuggerUI.showOriginalSource           "Afficher les sources originales">
 <!ENTITY debuggerUI.showOriginalSource.accesskey "O">
 
- <!-- LOCALIZATION NOTE (debuggerUI.autoBlackBox): This is the label for
-   -  the checkbox that toggles whether sources that we suspect are minified are
-   -  automatically black boxed or not. -->
+<!-- LOCALIZATION NOTE (debuggerUI.autoBlackBox): This is the label for
+  -  the checkbox that toggles whether sources that we suspect are minified are
+  -  automatically black boxed or not. -->
 <!ENTITY debuggerUI.autoBlackBox           "Mettre automatiquement dans une boîte noire les sources compactées">
 <!ENTITY debuggerUI.autoBlackBox.accesskey "b">
-
 
 <!-- LOCALIZATION NOTE (debuggerUI.searchPanelOperators): This is the text that
   -  appears in the filter panel popup as a header for the operators part. -->
@@ -105,7 +104,7 @@
 <!-- LOCALIZATION NOTE (debuggerUI.searchFile): This is the text that appears
   -  in the source editor's context menu for the scripts search operation. -->
 <!ENTITY debuggerUI.searchFile           "Filtrer les scripts">
-<!ENTITY debuggerUI.searchFile.key       "s">
+<!ENTITY debuggerUI.searchFile.key       "P">
 <!ENTITY debuggerUI.searchFile.altkey    "O">
 <!ENTITY debuggerUI.searchFile.accesskey "s">
 
@@ -124,13 +123,13 @@
 <!-- LOCALIZATION NOTE (debuggerUI.searchToken): This is the text that appears
   -  in the source editor's context menu for the token search operation. -->
 <!ENTITY debuggerUI.searchToken           "Rechercher">
-<!ENTITY debuggerUI.searchToken.key       "R">
+<!ENTITY debuggerUI.searchToken.key       "F">
 <!ENTITY debuggerUI.searchToken.accesskey "R">
 
 <!-- LOCALIZATION NOTE (debuggerUI.searchLine): This is the text that appears
   -  in the source editor's context menu for the line search operation. -->
 <!ENTITY debuggerUI.searchGoToLine           "Aller à la ligne…">
-<!ENTITY debuggerUI.searchGoToLine.key       "A">
+<!ENTITY debuggerUI.searchGoToLine.key       "L">
 <!ENTITY debuggerUI.searchGoToLine.accesskey "A">
 
 <!-- LOCALIZATION NOTE (debuggerUI.searchVariable): This is the text that appears
@@ -142,7 +141,7 @@
 <!-- LOCALIZATION NOTE (debuggerUI.focusVariables): This is the text that appears
   -  in the source editor's context menu for the variables focus operation. -->
 <!ENTITY debuggerUI.focusVariables           "Sélectionner les variables de l’arbre">
-<!ENTITY debuggerUI.focusVariables.key       "l">
+<!ENTITY debuggerUI.focusVariables.key       "V">
 <!ENTITY debuggerUI.focusVariables.accesskey "l">
 
 <!-- LOCALIZATION NOTE (debuggerUI.condBreakPanelTitle): This is the text that
@@ -152,13 +151,13 @@
 <!-- LOCALIZATION NOTE (debuggerUI.seMenuBreak): This is the text that
   -  appears in the source editor context menu for adding a breakpoint. -->
 <!ENTITY debuggerUI.seMenuBreak     "Ajouter un point d’arrêt">
-<!ENTITY debuggerUI.seMenuBreak.key "A">
+<!ENTITY debuggerUI.seMenuBreak.key "B">
 
 <!-- LOCALIZATION NOTE (debuggerUI.seMenuCondBreak): This is the text that
   -  appears in the source editor context menu for adding a conditional
   -  breakpoint. -->
 <!ENTITY debuggerUI.seMenuCondBreak     "Ajouter un point d’arrêt conditionnel">
-<!ENTITY debuggerUI.seMenuCondBreak.key "A">
+<!ENTITY debuggerUI.seMenuCondBreak.key "B">
 
 <!-- LOCALIZATION NOTE (debuggerUI.seMenuBreak): This is the text that
   -  appears in the source editor context menu for editing a breakpoint. -->
@@ -176,8 +175,8 @@
 
 <!-- LOCALIZATION NOTE (debuggerUI.seMenuAddWatch): This is the text that
   -  appears in the source editor context menu for adding an expression. -->
-<!ENTITY debuggerUI.seMenuAddWatch     "Expression espionne depuis la sélection">
-<!ENTITY debuggerUI.seMenuAddWatch.key "e">
+<!ENTITY debuggerUI.seMenuAddWatch      "Expression espionne depuis la sélection">
+<!ENTITY debuggerUI.seMenuAddWatch.key  "e">
 
 <!-- LOCALIZATION NOTE (debuggerUI.addWatch): This is the text that
   -  appears in the watch expressions context menu for adding an expression. -->

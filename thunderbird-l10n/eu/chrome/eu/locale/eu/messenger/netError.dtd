@@ -7,8 +7,8 @@
 
 <!ENTITY loadError.label "Arazoa orria kargatzerakoan">
 <!ENTITY retry.label "Saiatu berriro">
-<!-- Specific error messages -->
 
+<!-- Specific error messages -->
 
 <!ENTITY connectionFailure.title "Ezin da konektatu">
 <!ENTITY connectionFailure.longDesc "&sharedLongDesc;">
@@ -22,7 +22,8 @@
 <!ENTITY fileNotFound.title "Fitxategia ez da aurkitu">
 <!ENTITY fileNotFound.longDesc "<ul> <li>Egiaztatu fitxategi-izenaren kapitalizazioa edo bestelako idazketa-erroreak.</li> <li>Egiaztatu ea fitxategia lekuz aldatu, berrizendatu edo ezabatu egin den.</li> </ul>">
 
-
+<!ENTITY fileAccessDenied.title "Fitxategi-atzipena ukatu egin da">
+<!ENTITY fileAccessDenied.longDesc "<ul> <li>Kendua edo lekuz aldatua egon liteke, edo fitxategi-baimenek sarrera eragotz lezakete.</li> </ul>">
 
 <!ENTITY generic.title "Iepa.">
 <!ENTITY generic.longDesc "<p>&brandShortName;(e)k ezin du orria kargatu.</p>">
@@ -39,8 +40,8 @@
 <!ENTITY netOffline.title "Lineaz kanpo">
 <!ENTITY netOffline.longDesc2 "<ul> <li>Sakatu &quot;Saiatu berriro&quot; linean jarri eta orria berritzeko.</li> </ul>">
 
-<!ENTITY contentEncodingError.title "Edukiaren kodeketa-errorea">
-<!ENTITY contentEncodingError.longDesc "<ul> <li>Arazoaren berri emateko, jarri harremanetan webgunearen jabeekin.</li> </ul>">
+<!ENTITY contentEncodingError.title "Edukien kodeketa-errorea">
+<!ENTITY contentEncodingError.longDesc "<ul> <li>Jarri harremanetan webgunearen jabeekin arazo honen berri emateko.</li> </ul>">
 
 <!ENTITY unsafeContentType.title "Fitxategi mota EZ-segurua">
 <!ENTITY unsafeContentType.longDesc "<ul> <li>Jarri harremanetan webgunearen jabeekin arazo honen berri emateko.</li> </ul>">
@@ -78,35 +79,25 @@
 <!ENTITY cspBlocked.longDesc "<p>&brandShortName;(e)k orri hau modu honetan kargatzea eragotzi du onartzen ez den edukien-segurtasun politika duelako.</p>">
 
 <!ENTITY corruptedContentErrorv2.title "Hondatutako edukiaren errorea">
-
+<!ENTITY corruptedContentErrorv2.longDesc "<p>Ikusi nahi duzun orria ezin da erakutsi, datuen transmisioan errore bat antzeman delako.</p><ul><li>Mesedez kontaktatu webgune jabeaz eta jakinarazi arazo hau.</li></ul>">
 
 <!ENTITY securityOverride.linkText "Edo salbuespen bat gehi dezakezu…">
 <!ENTITY securityOverride.getMeOutOfHereButton "Eraman hemendik at!">
 <!ENTITY securityOverride.exceptionButtonLabel "Gehitu salbuespena…">
+
 <!-- LOCALIZATION NOTE (securityOverride.warningContent) - Do not translate the
 contents of the <button> tags. It uses strings already defined above. The
 button is included here (instead of netError.xhtml) because it exposes
 functionality specific to thunderbird. -->
-
 
 <!ENTITY securityOverride.warningContent "<p>Ez zenuke salbuespenik gehitu behar erabat fidatzekoa ez den Internet konexio bat erabiltzen ari bazara edo ez bazaude ohituta zerbitzari honetarako abisuak ikustera.</p>  <button id='getMeOutOfHereButton'>&securityOverride.getMeOutOfHereButton;</button> <button id='exceptionDialogButton'>&securityOverride.exceptionButtonLabel;</button>">
 
 <!ENTITY remoteXUL.title "Urruneko XUL">
 <!ENTITY remoteXUL.longDesc "<p><ul><li>Jar zaitez webgunearen jabeekin harremanetan arazo honen berri emateko.</li></ul></p>">
 
+<!ENTITY inadequateSecurityError.title "Zure konexioa ez da segurua">
 <!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
      "NS_ERROR_NET_INADEQUATE_SECURITY". -->
+<!ENTITY inadequateSecurityError.longDesc "<p><span class='hostname'></span> zaharkitua dagoen eta erasokorra den segurtasun teknologia darabil. Erasotzaile batek erraz lortu dezake zuk salbu dagoela uste duzun informazioa. Webgune administratzaileak zerbitzaria konpondu beharko luke zuk gunea bisitatu aurretik.</p><p>Errore kodea: NS_ERROR_NET_INADEQUATE_SECURITY</p>">
 
-<!ENTITY corruptedContentErrorv2.longDesc "<p>The page you are trying to view cannot be shown because an error in the data transmission was detected.</p><ul><li>Please contact the website owners to inform them of this problem.</li></ul>">
-<!ENTITY fileAccessDenied.longDesc "
-<ul>
-  <li>It may have been removed, moved, or file permissions may be preventing access.</li>
-</ul>
-">
-
-<!ENTITY fileAccessDenied.title "Access to the file was denied">
-<!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
-     "NS_ERROR_NET_INADEQUATE_SECURITY". -->
-<!ENTITY inadequateSecurityError.longDesc "<p><span class='hostname'></span> uses security technology that is outdated and vulnerable to attack. An attacker could easily reveal information which you thought to be safe. The website administrator will need to fix the server first before you can visit the site.</p><p>Error code: NS_ERROR_NET_INADEQUATE_SECURITY</p>">
-
-<!ENTITY inadequateSecurityError.title "Your connection is not secure">
+<!ENTITY blockedByPolicy.title "Blokeatutako orria">

@@ -1,11 +1,11 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
 <!--LOCALIZATION NOTE messengercompose.dtd Main UI for message composition -->
-
 <!ENTITY msgComposeWindow.title "Nova poruka: (bez naslova)">
-<!-- File Menu -->
 
+<!-- File Menu -->
 <!ENTITY fileMenu.label "Datoteka">
 <!ENTITY fileMenu.accesskey "D">
 <!ENTITY newMenu.label "Nova">
@@ -57,8 +57,8 @@
 <!ENTITY printCmd.label "Ispis…">
 <!ENTITY printCmd.key "P">
 <!ENTITY printCmd.accesskey "I">
-<!-- Edit Menu -->
 
+<!-- Edit Menu -->
 <!ENTITY editMenu.label "Uredi">
 <!ENTITY editMenu.accesskey "e">
 <!ENTITY undoCmd.label "Vrati">
@@ -85,6 +85,9 @@
 <!ENTITY editRewrapCmd.key "r">
 <!ENTITY renameAttachmentCmd.label "Preimenuj privitak…">
 <!ENTITY renameAttachmentCmd.accesskey "m">
+<!ENTITY reorderAttachmentsCmd.label "Presloži privitke…">
+<!ENTITY reorderAttachmentsCmd.accesskey "s">
+<!ENTITY reorderAttachmentsCmd.key "x">
 <!ENTITY selectAllCmd.label "Označi sve">
 <!ENTITY selectAllCmd.key "A">
 <!ENTITY selectAllCmd.accesskey "a">
@@ -102,8 +105,44 @@
 <!ENTITY findPrevCmd.accesskey "e">
 <!ENTITY findPrevCmd.key "G">
 <!ENTITY findPrevCmd.key2 "VK_F3">
-<!-- View Menu -->
 
+<!-- Reorder Attachment Panel -->
+<!ENTITY reorderAttachmentsPanel.label "Presloži privitke">
+<!ENTITY moveAttachmentTopPanelBtn.label "Pomakni na vrh">
+<!ENTITY moveAttachmentTopPanelBtn.accesskey "v">
+<!ENTITY moveAttachmentUpPanelBtn.label "Pomakni gore">
+<!ENTITY moveAttachmentUpPanelBtn.accesskey "g">
+<!ENTITY moveAttachmentBundleUpPanelBtn.label "Pomakni zajedno">
+<!ENTITY moveAttachmentBundleUpPanelBtn.accesskey "z">
+<!ENTITY moveAttachmentDownPanelBtn.label "Pomakni dolje">
+<!ENTITY moveAttachmentDownPanelBtn.accesskey "d">
+<!ENTITY moveAttachmentBottomPanelBtn.label "Pomakni na dno">
+<!ENTITY moveAttachmentBottomPanelBtn.accesskey "n">
+<!-- LOCALIZATION NOTE (sortAttachmentsTogglePanelBtn.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsTogglePanelBtn.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.label "Poredaj odabir: A - Z">
+<!-- LOCALIZATION NOTE (sortAttachmentsTogglePanelBtn.AZ.accesskey):
+     This accesskey should be the same like
+     sortAttachmentsTogglePanelBtn.ZA.accesskey, and it should be taken from
+     the "Sort Selection:" part of the label, not from the sort direction part. -->
+<!ENTITY sortAttachmentsTogglePanelBtn.AZ.accesskey "o">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.label "Poredaj odabir: Z - A">
+<!ENTITY sortAttachmentsTogglePanelBtn.ZA.accesskey "o">
+
+<!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.Sort.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsPanelBtn.Sort.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsPanelBtn.Sort.AZ.label "Poredaj: A - Z">
+<!ENTITY sortAttachmentsPanelBtn.Sort.ZA.label "Poredaj: Z - A">
+<!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.SortSelection.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsPanelBtn.SortSelection.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.AZ.label "Poredaj odabir: A - Z">
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.ZA.label "Poredaj odabir: Z - A">
+<!ENTITY sortAttachmentsPanelBtn.key "y">
+
+<!-- View Menu -->
 <!ENTITY viewMenu.label "Prikaz">
 <!ENTITY viewMenu.accesskey "z">
 <!ENTITY viewToolbarsMenuNew.label "Alatne trake">
@@ -121,12 +160,12 @@
 
 <!ENTITY addressSidebar.label "Bočna traka kontakata">
 <!ENTITY addressSidebar.accesskey "o">
-<!-- Format Menu -->
 
+<!-- Format Menu -->
 <!ENTITY formatMenu.label "Oblikuj">
 <!ENTITY formatMenu.accesskey "O">
-<!-- Options Menu -->
 
+<!-- Options Menu -->
 <!ENTITY optionsMenu.label "Mogućnosti">
 <!ENTITY optionsMenu.accesskey "M">
 <!ENTITY checkSpellingCmd2.label "Provjera pravopisa…">
@@ -137,8 +176,8 @@
 <!ENTITY enableInlineSpellChecker.accesskey "s">
 <!ENTITY quoteCmd.label "Citiraj poruku">
 <!ENTITY quoteCmd.accesskey "C">
-<!--LOCALIZATION NOTE attachVCard.label Don't translate the term 'vCard' -->
 
+<!--LOCALIZATION NOTE attachVCard.label Don't translate the term 'vCard' -->
 <!ENTITY attachVCard.label "Priloži kontakt karticu (vCard)">
 <!ENTITY attachVCard.accesskey "v">
 
@@ -174,8 +213,8 @@
 <!ENTITY fileCarbonCopyCmd.label "Pošalji kopiju">
 <!ENTITY fileCarbonCopyCmd.accesskey "a">
 <!ENTITY fileHereMenu.label "Arhiviraj ovdje">
-<!-- Tools Menu -->
 
+<!-- Tools Menu -->
 <!ENTITY tasksMenu.label "Alati">
 <!ENTITY tasksMenu.accesskey "t">
 <!ENTITY messengerCmd.label "Pošta i interesne grupe">
@@ -191,15 +230,15 @@
 <!ENTITY preferencesCmd2.accesskey "M">
 <!ENTITY preferencesCmdUnix.label "Mogućnosti">
 <!ENTITY preferencesCmdUnix.accesskey "t">
-<!--  Mac OS X Window Menu -->
 
+<!--  Mac OS X Window Menu -->
 <!ENTITY minimizeWindow.key "m">
 <!ENTITY minimizeWindow.label "Minimiziraj">
 <!ENTITY bringAllToFront.label "Postavi sve na vrh">
 <!ENTITY zoomWindow.label "Uvećanje">
 <!ENTITY windowMenu.label "Prozor">
-<!-- Mail Toolbar -->
 
+<!-- Mail Toolbar -->
 <!ENTITY sendButton.label "Pošalji">
 <!ENTITY quoteButton.label "Citiraj">
 <!ENTITY addressButton.label "Kontakti">
@@ -207,24 +246,23 @@
 <!ENTITY spellingButton.label "Pravopis">
 <!ENTITY saveButton.label "Spremi">
 <!ENTITY printButton.label "Ispiši">
-<!-- Mail Toolbar Tooltips -->
 
+<!-- Mail Toolbar Tooltips -->
 <!ENTITY sendButton.tooltip "Pošalji poruku sada">
 <!ENTITY sendlaterButton.tooltip "Pošalji poruku kasnije">
 <!ENTITY quoteButton.tooltip "Citiraj prethodnu poruku">
 <!ENTITY addressButton.tooltip "Odaberi primatelja iz adresara">
 <!ENTITY attachButton.tooltip "Uključi privitak">
 <!ENTITY spellingButton.tooltip "Provjeri pravopis odabranog teksta ili cijele poruke">
-<!ENTITY statusLanguageText.tooltip "Jezik za provjeru pravopisa">
 <!ENTITY saveButton.tooltip "Spremi ovu poruku">
 <!ENTITY cutButton.tooltip              "Izreži">
 <!ENTITY copyButton.tooltip             "Kopiraj">
 <!ENTITY pasteButton.tooltip            "Zalijepi">
 <!ENTITY printButton.tooltip "Ispiši ovu poruku">
+
 <!-- Headers -->
 <!--LOCALIZATION NOTE headersSpace.style is for aligning  the From:, To: and
     Subject: rows. It should be larger than the largest Header label  -->
-
 <!ENTITY headersSpace.style "width: 9em;">
 <!ENTITY fromAddr.label "Šalje:">
 <!ENTITY fromAddr.accesskey "a">
@@ -239,8 +277,8 @@
 <!-- LOCALIZATION NOTE attachments.accesskey This access key should correspond
      to the strings in attachmentCount in composeMsgs.properties -->
 <!ENTITY attachments.accesskey "t">
-<!-- Format Toolbar, imported from editorAppShell.xul -->
 
+<!-- Format Toolbar, imported from editorAppShell.xul -->
 <!ENTITY SmileButton.tooltip "Umetni smješka">
 <!ENTITY smiley1Cmd.label "Smiješak">
 <!ENTITY smiley2Cmd.label "Mrštenje">
@@ -258,8 +296,8 @@
 <!ENTITY smiley14Cmd.label "Nevin">
 <!ENTITY smiley15Cmd.label "Plač">
 <!ENTITY smiley16Cmd.label "Neću ništa reći">
-<!-- Message Pane Context Menu -->
 
+<!-- Message Pane Context Menu -->
 <!ENTITY spellCheckNoSuggestions.label "Prijedlog nije pronađen">
 <!ENTITY spellCheckIgnoreWord.label "Ignoriraj riječ">
 <!ENTITY spellCheckIgnoreWord.accesskey "I">
@@ -284,6 +322,8 @@
 <!ENTITY removeAttachment.accesskey "U">
 <!ENTITY renameAttachment.label "Primenuj…">
 <!ENTITY renameAttachment.accesskey "r">
+<!ENTITY reorderAttachments.label "Presloži privitke…">
+<!ENTITY reorderAttachments.accesskey "s">
 <!ENTITY selectAll.label "Odaberi sve">
 <!ENTITY selectAll.accesskey "a">
 <!ENTITY attachFile.label "Priloži datoteke…">
@@ -298,14 +338,29 @@
 <!ENTITY convertRegularAttachment.accesskey "m">
 <!ENTITY attachPage.label "Priloži web stranicu…">
 <!ENTITY attachPage.accesskey "w">
-<!-- Spell checker context menu items -->
 
+<!-- Spell checker context menu items -->
 <!ENTITY spellAddDictionaries.label "Dodaj rječnike…">
 <!ENTITY spellAddDictionaries.accesskey "D">
+
 <!-- Title for the address picker panel -->
-
 <!ENTITY addressesSidebarTitle.label "Kontakti">
-<!-- Identity popup customize menuitem -->
 
+<!-- Identity popup customize menuitem -->
 <!ENTITY customizeFromAddress.label "Prilagođena adresa pošiljatelja…">
 <!ENTITY customizeFromAddress.accesskey "a">
+
+<!-- Status Bar -->
+<!ENTITY languageStatusButton.tooltip "Jezik za provjeru pravopisa">
+<!ENTITY encodingStatusPanel.tooltip "Kôdna stranica">
+
+<!ENTITY toggleAttachmentPaneCmd.label "Attachment Pane">
+<!ENTITY toggleAttachmentPaneCmd.accesskey "m">
+<!ENTITY toggleAttachmentPaneCmd.key "m">
+<!ENTITY attachButton.tooltip2 "Add an attachment">
+<!ENTITY attachmentBucketHeader.tooltip "Attachment Pane">
+<!ENTITY attachmentBucketCloseButton.tooltip "Hide the attachment pane">
+<!ENTITY removeAllAttachments.label "Remove All Attachments">
+<!ENTITY removeAllAttachments.accesskey "v">
+<!ENTITY initiallyShowAttachmentPane.label "Initially Show Attachment Pane">
+<!ENTITY initiallyShowAttachmentPane.accesskey "S">

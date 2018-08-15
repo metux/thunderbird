@@ -1,0 +1,72 @@
+<!-- ***** BEGIN LICENSE BLOCK *****
+   - Version: MPL 1.1/GPL 2.0/LGPL 2.1
+   -
+   - The contents of this file are subject to the Mozilla Public License Version
+   - 1.1 (the "License"); you may not use this file except in compliance with
+   - the License. You may obtain a copy of the License at
+   - http://www.mozilla.org/MPL/
+   -
+   - Software distributed under the License is distributed on an "AS IS" basis,
+   - WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+   - for the specific language governing rights and limitations under the
+   - License.
+   -
+   - The Original Code is Mozilla Calendar Code.
+   -
+   - The Initial Developer of the Original Code is Simon Paquet.
+   - Portions created by the Initial Developer are Copyright (C) 2005
+   - the Initial Developer. All Rights Reserved.
+   -
+   - Contributor(s):
+   -
+   - Alternatively, the contents of this file may be used under the terms of
+   - either the GNU General Public License Version 2 or later (the "GPL"), or
+   - the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+   - in which case the provisions of the GPL or the LGPL are applicable instead
+   - of those above. If you wish to allow use of your version of this file only
+   - under the terms of either the GPL or the LGPL, and not to allow others to
+   - use your version of this file under the terms of the MPL, indicate your
+   - decision by deleting the provisions above and replace them with the notice
+   - and other provisions required by the LGPL or the GPL. If you do not delete
+   - the provisions above, a recipient may use your version of this file under
+   - the terms of any one of the MPL, the GPL or the LGPL.
+   -
+   - ***** END LICENSE BLOCK ***** -->
+
+<!ENTITY wizard.title             "Tạo Lịch Mới" >
+<!ENTITY wizard.label             "Tạo một bộ lịch mới" >
+<!ENTITY wizard.description       "Khởi tạo bộ lịch của bạn" >
+
+<!ENTITY initialpage.description    "Bộ lịch của bạn có thể được lưu trữ trên máy tính hoặc trên một máy chủ để có thể truy cập nó từ xa hoặc chia sẻ nó với bạn bè hoặc đồng nghiệp." >
+<!ENTITY initialpage.computer.label  "Trên Máy Tính Của Tôi">
+<!ENTITY initialpage.network.label  "Trên Hệ Thống Mạng">
+
+<!ENTITY locationpage.description         "Cung cấp thông tin về những thứ cần thiết để truy cập bộ lịch từ xa của bạn" >
+<!ENTITY locationpage.login.description   "Phụ: nhập tên đăng nhập và mật khẩu" >
+<!ENTITY locationpage.username.label      "Tên đăng nhập:" >
+<!ENTITY locationpage.password.label      "Mật khẩu:" >
+
+<!ENTITY custompage.shortdescription  "Tùy biến lịch của bạn" >
+<!ENTITY custompage.longdescription   "Bạn có thể đặt biệt danh cho bộ lịch của bạn và tô màu các sự kiện của bộ lịch này." >
+
+<!ENTITY finishpage.shortdescription  "Lịch đã được Tạo" >
+<!ENTITY finishpage.longdescription   "Bộ lịch của bạn đã được tạo." >
+
+<!ENTITY sourcetabs.other.label  "Other">
+<!ENTITY buttons.create.label "Create Calendar">
+<!ENTITY buttons.create.accesskey "r">
+<!ENTITY buttons.find.label "Find Calendars">
+<!ENTITY buttons.find.accesskey "F">
+<!ENTITY buttons.back.label "Back">
+<!ENTITY buttons.back.accesskey "B">
+<!ENTITY buttons.subscribe.label "Subscribe">
+<!ENTITY buttons.subscribe.accesskey "S">
+<!ENTITY calendartype.label "Calendar Type:">
+<!ENTITY location.label "Location:">
+<!ENTITY location.placeholder "URL or host name of the calendar server">
+<!ENTITY network.nocredentials.label "This location doesn't require credentials">
+<!ENTITY network.loading.description "Please wait while your calendars are being discovered.">
+<!ENTITY network.notfound.description "Could not find calendars at this location. Please check your settings.">
+<!ENTITY network.authfail.description "The credentials you have entered were not accepted. Please check your settings.">
+<!ENTITY network.subscribe.single.description "Please select the calendars you would like to subscribe to.">
+<!ENTITY network.subscribe.multiple.description "Multiple calendar types are available for this location. Please select the calendar type, then mark the calendars you would like to subscribe to.">

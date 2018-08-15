@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "hy-AM": {
+      "chrome_resources": {
+        "necko": "chrome/hy-AM/locale/hy-AM/necko/", 
+        "global": "chrome/hy-AM/locale/hy-AM/global/", 
+        "messenger-region": "chrome/hy-AM/locale/hy-AM/messenger-region/", 
+        "chat": "chrome/hy-AM/locale/hy-AM/chat/", 
+        "devtools": "chrome/hy-AM/locale/hy-AM/devtools/client/", 
+        "pipnss": "chrome/hy-AM/locale/hy-AM/pipnss/", 
+        "messenger-smime": "chrome/hy-AM/locale/hy-AM/messenger-smime/", 
+        "messenger-newsblog": "chrome/hy-AM/locale/hy-AM/messenger-newsblog/", 
+        "devtools-shim": "chrome/hy-AM/locale/hy-AM/devtools/shim/", 
+        "alerts": "chrome/hy-AM/locale/hy-AM/alerts/", 
+        "messenger": "chrome/hy-AM/locale/hy-AM/messenger/", 
+        "editor": "chrome/hy-AM/locale/hy-AM/editor/", 
+        "branding": "chrome/hy-AM/locale/hy-AM/branding/", 
+        "mozldap": "chrome/hy-AM/locale/hy-AM/mozldap/", 
+        "autoconfig": "chrome/hy-AM/locale/hy-AM/autoconfig/", 
+        "devtools-shared": "chrome/hy-AM/locale/hy-AM/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/hy-AM/locale/hy-AM/global-platform/win/", 
+          "android": "chrome/hy-AM/locale/hy-AM/global-platform/unix/", 
+          "macosx": "chrome/hy-AM/locale/hy-AM/global-platform/mac/", 
+          "linux": "chrome/hy-AM/locale/hy-AM/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/hy-AM/locale/hy-AM/mozapps/", 
+        "pluginproblem": "chrome/hy-AM/locale/hy-AM/pluginproblem/", 
+        "communicator": "chrome/hy-AM/locale/hy-AM/communicator/", 
+        "messenger-mapi": "chrome/hy-AM/locale/hy-AM/messenger-mapi/", 
+        "places": "chrome/hy-AM/locale/hy-AM/places/", 
+        "passwordmgr": "chrome/hy-AM/locale/hy-AM/passwordmgr/", 
+        "pippki": "chrome/hy-AM/locale/hy-AM/pippki/"
+      }, 
+      "version": "20180501091315"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-hy-AM@firefox.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "hy-AM", 
+  "version": "60.0buildid20180709054853", 
+  "name": "Armenian (AM) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "haysoft.org (contributors: Hrant Ohanyan)", 
+  "description": "Language pack for Thunderbird for hy-AM"
+}

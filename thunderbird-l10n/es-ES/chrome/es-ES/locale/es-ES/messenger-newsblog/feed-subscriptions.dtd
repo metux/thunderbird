@@ -8,11 +8,18 @@
 <!ENTITY feedTitle.accesskey "T">
 <!ENTITY feedLocation.label "URL del canal:">
 <!ENTITY feedLocation.accesskey "L">
-<!ENTITY feedLocation.placeholder "Introduzca una URL de canal válida para añadir">
+<!ENTITY feedLocation2.placeholder "Introduzca una URL de canal válida">
 <!ENTITY locationValidate.label "Validar">
 <!ENTITY validateText.label "Comprobar validación y recuperar una URL válida.">
 <!ENTITY feedFolder.label "Guardar artículos en:">
 <!ENTITY feedFolder.accesskey "G">
+<!ENTITY biffStart.label "Buscar mensajes nuevos cada ">
+<!ENTITY biffStart.accesskey "B">
+<!ENTITY biffMinutes.label "minutos">
+<!ENTITY biffMinutes.accesskey "n">
+<!ENTITY biffDays.label "días">
+<!ENTITY biffDays.accesskey "s">
+<!ENTITY recommendedUnits.label "El editor recomienda:">
 <!ENTITY quickMode.label "Mostrar el resumen del artículo en vez de la página web">
 <!ENTITY quickMode.accesskey "M">
 <!ENTITY autotagEnable.label "Crear automáticamente etiquetas a partir de los contenidos &lt;category&gt; de los canales">
@@ -22,6 +29,8 @@
 <!ENTITY autoTagPrefix.placeholder "Introduzca un prefijo de etiqueta">
 <!ENTITY button.addFeed.label "Añadir">
 <!ENTITY button.addFeed.accesskey "A">
+<!ENTITY button.verifyFeed.label "Verificar">
+<!ENTITY button.verifyFeed.accesskey "V">
 <!ENTITY button.updateFeed.label "Actualizar">
 <!ENTITY button.updateFeed.accesskey "c">
 <!ENTITY button.removeFeed.label "Eliminar">

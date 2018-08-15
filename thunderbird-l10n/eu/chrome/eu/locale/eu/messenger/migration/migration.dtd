@@ -7,14 +7,12 @@
 
 <!ENTITY importFromWin.label            "Inportatu aukerak, kontu-ezarpenak, helbide-liburua, iragazkiak eta bestelako datuak hemendik:">
 <!ENTITY importFromNonWin.label         "Inportatu hobespenak, kontu-ezarpenak, helbide-liburua, iragazkiak eta bestelako datuak hemendik:">
-
+<!ENTITY importSourceNotFound.label     "Ez da aurkitu aplikaziorik bertatik datuak inportatzeko.">
 
 <!ENTITY importFromNothing.label        "Ezer ez inportatu">
 <!ENTITY importFromNothing.accesskey    "E">
 <!ENTITY importFromSeamonkey3.label     "SeaMonkey 2 edo berriagoa">
 <!ENTITY importFromSeamonkey3.accesskey "S">
-<!ENTITY importFromOExpress.label       "Outlook Express">
-<!ENTITY importFromOExpress.accesskey   "u">
 <!ENTITY importFromOutlook.label        "Outlook">
 <!ENTITY importFromOutlook.accesskey    "O">
 
@@ -30,5 +28,3 @@
 
 <!ENTITY done.title                     "Inportazioa burutu da">
 <!ENTITY done.label                     "Ondorengo gaiak ondo inportatu dira:">
-
-<!ENTITY importSourceNotFound.label     "No application to import data from found.">

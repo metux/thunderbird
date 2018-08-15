@@ -21,3 +21,5 @@
 <!ENTITY newAcct.label "Crear una cuenta nueva:">
 <!ENTITY movemail.label "Movemail">
 <!ENTITY chat.label "Chat">
+
+<!ENTITY setupNewAcct.label           "Set up an account:">

@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "ar": {
+      "chrome_resources": {
+        "necko": "chrome/ar/locale/ar/necko/", 
+        "global": "chrome/ar/locale/ar/global/", 
+        "messenger-region": "chrome/ar/locale/ar/messenger-region/", 
+        "chat": "chrome/ar/locale/ar/chat/", 
+        "devtools": "chrome/ar/locale/ar/devtools/client/", 
+        "pipnss": "chrome/ar/locale/ar/pipnss/", 
+        "messenger-smime": "chrome/ar/locale/ar/messenger-smime/", 
+        "messenger-newsblog": "chrome/ar/locale/ar/messenger-newsblog/", 
+        "devtools-shim": "chrome/ar/locale/ar/devtools/shim/", 
+        "alerts": "chrome/ar/locale/ar/alerts/", 
+        "messenger": "chrome/ar/locale/ar/messenger/", 
+        "editor": "chrome/ar/locale/ar/editor/", 
+        "branding": "chrome/ar/locale/ar/branding/", 
+        "mozldap": "chrome/ar/locale/ar/mozldap/", 
+        "autoconfig": "chrome/ar/locale/ar/autoconfig/", 
+        "devtools-shared": "chrome/ar/locale/ar/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/ar/locale/ar/global-platform/win/", 
+          "android": "chrome/ar/locale/ar/global-platform/unix/", 
+          "macosx": "chrome/ar/locale/ar/global-platform/mac/", 
+          "linux": "chrome/ar/locale/ar/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/ar/locale/ar/mozapps/", 
+        "pluginproblem": "chrome/ar/locale/ar/pluginproblem/", 
+        "communicator": "chrome/ar/locale/ar/communicator/", 
+        "messenger-mapi": "chrome/ar/locale/ar/messenger-mapi/", 
+        "places": "chrome/ar/locale/ar/places/", 
+        "passwordmgr": "chrome/ar/locale/ar/passwordmgr/", 
+        "pippki": "chrome/ar/locale/ar/pippki/"
+      }, 
+      "version": "20180502170322"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-ar@firefox.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "ar", 
+  "version": "60.0buildid20180709054853", 
+  "name": "العربية Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "arabeyes.org (contributors: Ayman Hourieh, Khaled Hosny, Anas Husseini)", 
+  "description": "Language pack for Thunderbird for ar"
+}

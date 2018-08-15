@@ -24,8 +24,8 @@
 <!ENTITY fontColor.accesskey                  "Ц">
 <!ENTITY bgColor.label                        "Цвят на фона:">
 <!ENTITY bgColor.accesskey                    "ф">
-<!ENTITY restoreHTMLDefaults.label            "Възстановяване">
-<!ENTITY restoreHTMLDefaults.accesskey        "ъ">
+<!ENTITY restoreHTMLDefaults.label            "Стандартни настройки">
+<!ENTITY restoreHTMLDefaults.accesskey        "с">
 <!ENTITY defaultToParagraph.label             "За формат по подразбиране да се използва Абзац вместо Основен текст">
 <!ENTITY defaultToParagraph.accesskey         "ф">
 
@@ -39,7 +39,7 @@
 
 <!ENTITY warnOnSendAccelKey.label             "Потвърждение при използване на клавишни комбинации за изпращане на писмо">
 <!ENTITY warnOnSendAccelKey.accesskey         "о">
-<!ENTITY autoSave.label                       "Автоматичен запис на всеки">
+<!ENTITY autoSave.label                       "Автоматично запазване на всеки">
 <!ENTITY autoSave.accesskey                   "в">
 <!ENTITY autoSaveEnd.label                    "минути">
 
@@ -54,6 +54,9 @@
 <!ENTITY directoriesNone.label                 "Без">
 <!ENTITY editDirectories.label                 "Промяна директории…">
 <!ENTITY editDirectories.accesskey             "д">
+<!ENTITY showAsDefault.label                   "Начална папка по подразбиране за адресника:">
+<!ENTITY showAsDefault.accesskey               "п">
+<!ENTITY showAsDefaultLast.label               "Последно използван адресник">
 
 <!ENTITY sendOptionsDescription.label          "Настройка на правила за работа с текстовия формат">
 <!ENTITY sendOptions.label                     "Настройки за изпращане…">

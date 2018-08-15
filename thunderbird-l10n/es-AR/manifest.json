@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "es-AR": {
+      "chrome_resources": {
+        "necko": "chrome/es-AR/locale/es-AR/necko/", 
+        "global": "chrome/es-AR/locale/es-AR/global/", 
+        "messenger-region": "chrome/es-AR/locale/es-AR/messenger-region/", 
+        "chat": "chrome/es-AR/locale/es-AR/chat/", 
+        "devtools": "chrome/es-AR/locale/es-AR/devtools/client/", 
+        "pipnss": "chrome/es-AR/locale/es-AR/pipnss/", 
+        "messenger-smime": "chrome/es-AR/locale/es-AR/messenger-smime/", 
+        "messenger-newsblog": "chrome/es-AR/locale/es-AR/messenger-newsblog/", 
+        "devtools-shim": "chrome/es-AR/locale/es-AR/devtools/shim/", 
+        "alerts": "chrome/es-AR/locale/es-AR/alerts/", 
+        "messenger": "chrome/es-AR/locale/es-AR/messenger/", 
+        "editor": "chrome/es-AR/locale/es-AR/editor/", 
+        "branding": "chrome/es-AR/locale/es-AR/branding/", 
+        "mozldap": "chrome/es-AR/locale/es-AR/mozldap/", 
+        "autoconfig": "chrome/es-AR/locale/es-AR/autoconfig/", 
+        "devtools-shared": "chrome/es-AR/locale/es-AR/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/es-AR/locale/es-AR/global-platform/win/", 
+          "android": "chrome/es-AR/locale/es-AR/global-platform/unix/", 
+          "macosx": "chrome/es-AR/locale/es-AR/global-platform/mac/", 
+          "linux": "chrome/es-AR/locale/es-AR/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/es-AR/locale/es-AR/mozapps/", 
+        "pluginproblem": "chrome/es-AR/locale/es-AR/pluginproblem/", 
+        "communicator": "chrome/es-AR/locale/es-AR/communicator/", 
+        "messenger-mapi": "chrome/es-AR/locale/es-AR/messenger-mapi/", 
+        "places": "chrome/es-AR/locale/es-AR/places/", 
+        "passwordmgr": "chrome/es-AR/locale/es-AR/passwordmgr/", 
+        "pippki": "chrome/es-AR/locale/es-AR/pippki/"
+      }, 
+      "version": "20180504165405"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-es-AR@firefox.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "es-AR", 
+  "version": "60.0buildid20180709054853", 
+  "name": "Español (AR) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Marcelo Poli)", 
+  "description": "Language pack for Thunderbird for es-AR"
+}

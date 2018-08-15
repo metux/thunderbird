@@ -2,17 +2,17 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY itemGeneral.label "Generelt">
+<!ENTITY itemGeneral.label       "Generelt">
 <!ENTITY dataChoicesTab.label    "Datadeling">
-<!ENTITY itemUpdate.label "Opdateringer">
+<!ENTITY itemUpdate.label        "Opdateringer">
 <!ENTITY itemNetworking.label    "Netværk &amp; diskplads">
 <!ENTITY itemCertificates.label  "Certifikater">
 
 <!-- General Settings -->
-
 <!ENTITY enableGlodaSearch.label       "Aktiver global søgning og indeksering">
 <!ENTITY enableGlodaSearch.accesskey   "A">
-<!ENTITY allowHWAccel.label            "Brug hardwareacceleration hvor muligt">
+<!ENTITY dateTimeFormatting.label      "Dato- og tidsformat">
+<!ENTITY allowHWAccel.label            "Brug hardware-acceleration hvor muligt">
 <!ENTITY allowHWAccel.accesskey        "h">
 <!ENTITY storeType.label               "Lagertype for meddelelser for nye konti:">
 <!ENTITY storeType.accesskey           "L">
@@ -53,7 +53,19 @@
 <!ENTITY crashReporterLearnMore.label    "Læs mere">
 
 <!-- Update -->
-<!ENTITY updateApp.label                 "Opdateringer til &brandShortName;:">
+<!-- LOCALIZATION NOTE (updateApp.label):
+  Strings from aboutDialog.dtd are displayed in this section of the preferences.
+  Please check for possible accesskey conflicts.
+-->
+<!ENTITY updateApp2.label                "&brandShortName;-opdateringer">
+<!-- LOCALIZATION NOTE (updateApp.version.*): updateApp.version.pre is
+  followed by a version number, keep the trailing space or replace it with
+  a different character as needed. updateApp.version.post is displayed after
+  the version number, and is empty on purpose for English. You can use it
+  if required by your language.
+ -->
+<!ENTITY updateApp.version.pre           "Version ">
+<!ENTITY updateApp.version.post          "">
 <!ENTITY updateAuto.label                "Installer opdateringer automatisk (anbefalet, forbedrer sikkerheden)">
 <!ENTITY updateAuto.accesskey            "I">
 <!ENTITY updateCheck.label               "Søg efter opdateringer, men lad mig vælge om de skal installeres">
@@ -76,7 +88,7 @@
 <!ENTITY showOffline.label             "Offline…">
 <!ENTITY showOffline.accesskey         "O">
 
-<!ENTITY Diskspace "Diskplads">
+<!ENTITY Diskspace                       "Diskplads">
 <!ENTITY offlineCompactFolders.label     "Optimer mapper, når det kan spare mere end">
 <!ENTITY offlineCompactFolders.accesskey "k">
 <!ENTITY offlineCompactFoldersMB.label   "MB">
@@ -90,6 +102,8 @@
 <!ENTITY useCacheBefore.label            "Benyt op til">
 <!ENTITY useCacheBefore.accesskey        "B">
 <!ENTITY useCacheAfter.label             "MB til mellemlageret">
+<!ENTITY overrideSmartCacheSize.label    "Tilsidesæt automatisk cachehåndtering">
+<!ENTITY overrideSmartCacheSize.accesskey "s">
 <!ENTITY clearCacheNow.label             "Ryd nu">
 <!ENTITY clearCacheNow.accesskey         "R">
 
@@ -104,5 +118,5 @@
 
 <!ENTITY manageCertificates.label "Håndter certifikater">
 <!ENTITY manageCertificates.accesskey "c">
-<!ENTITY viewSecurityDevices.label      "Sikkerhedsmoduler">
-<!ENTITY viewSecurityDevices.accesskey  "S">
+<!ENTITY viewSecurityDevices.label "Sikkerhedsmoduler">
+<!ENTITY viewSecurityDevices.accesskey "S">

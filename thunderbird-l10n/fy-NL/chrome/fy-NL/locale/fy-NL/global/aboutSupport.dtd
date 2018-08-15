@@ -25,6 +25,18 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Ferzje">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Befeiligingssoftware">
+<!ENTITY aboutSupport.securitySoftwareType "Type">
+<!ENTITY aboutSupport.securitySoftwareName "Namme">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antifirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
+
+<!ENTITY aboutSupport.featuresTitle "&brandShortName;-funksjes">
+<!ENTITY aboutSupport.featureName "Namme">
+<!ENTITY aboutSupport.featureVersion "Ferzje">
+<!ENTITY aboutSupport.featureId "ID">
+
 <!ENTITY aboutSupport.experimentsTitle "eksperimentele funksjes">
 <!ENTITY aboutSupport.experimentName "Namme">
 <!ENTITY aboutSupport.experimentId "ID">
@@ -65,6 +77,13 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Multiproses-finsters">
 
+<!ENTITY aboutSupport.appBasicsProcessCount "Webynhâldsproses">
+
+<!ENTITY aboutSupport.enterprisePolicies "Bedriuwsbelied">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Google-kaai">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla-lokaasjetsjinstkaai">
+
 <!ENTITY aboutSupport.appBasicsSafeMode "Feilige modus">
 
 <!ENTITY aboutSupport.showDir.label "Map iepenje">
@@ -95,11 +114,13 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.placeDatabaseVerifyIntegrity "Yntegriteit ferifearje">
 
 <!ENTITY aboutSupport.jsTitle "JavaScript">
-<!ENTITY aboutSupport.jsIncrementalGC "Ynkrementele GC">
+<!ENTITY aboutSupport.jsIncrementalGC "Ynkremintele GC">
 
 <!ENTITY aboutSupport.a11yTitle "Tagonklikheid">
 <!ENTITY aboutSupport.a11yActivated "Aktivearre">
 <!ENTITY aboutSupport.a11yForceDisabled "Tagonklikheid tsjingean">
+<!ENTITY aboutSupport.a11yHandlerUsed "Accessible-handler brûkt">
+<!ENTITY aboutSupport.a11yInstantiator "Tagonklikheids-ynstansjator">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Biblioteekferzje">
 
@@ -110,6 +131,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Rûge gegevens nei klamboerd kopiearje">
 
 <!ENTITY aboutSupport.sandboxTitle "Sandbox">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Wegere systeemoanfragen">
+<!ENTITY aboutSupport.sandboxSyscallIndex "">
+<!ENTITY aboutSupport.sandboxSyscallAge "Sekonden lyn">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Prosestype">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Syscall">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Arguminten">
 
 <!ENTITY aboutSupport.safeModeTitle "Probearje de feilige modus">
 <!ENTITY aboutSupport.restartInSafeMode.label "Werstart mei útskeakele add-ons…">
@@ -122,3 +151,26 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Beslútloch">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Utskeakele funksjes fan ûngelokbeskerming">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Workarounds">
+
+<!ENTITY aboutSupport.mediaTitle "Media">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Utfierapparaten">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Ynfierapparaten">
+<!ENTITY aboutSupport.mediaDeviceName "Namme">
+<!ENTITY aboutSupport.mediaDeviceGroup "Groep">
+<!ENTITY aboutSupport.mediaDeviceVendor "Leveransier">
+<!ENTITY aboutSupport.mediaDeviceState "Steat">
+<!ENTITY aboutSupport.mediaDevicePreferred "Oanrekommandearre">
+<!ENTITY aboutSupport.mediaDeviceFormat "Formaat">
+<!ENTITY aboutSupport.mediaDeviceChannels "Kanalen">
+<!ENTITY aboutSupport.mediaDeviceRate "Wurdearrring">
+<!ENTITY aboutSupport.mediaDeviceLatency "Latintens">
+
+<!ENTITY aboutSupport.intlTitle "Ynternasjonalisaasje &amp; lokalisaasje">
+<!ENTITY aboutSupport.intlAppTitle "Applikaasjeynstellingen">
+<!ENTITY aboutSupport.intlLocalesRequested "Fersochte talen">
+<!ENTITY aboutSupport.intlLocalesAvailable "Beskikbere talen">
+<!ENTITY aboutSupport.intlLocalesSupported "App-talen">
+<!ENTITY aboutSupport.intlLocalesDefault "Standerttaal">
+<!ENTITY aboutSupport.intlOSTitle "Bestjoeringssysteem">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Systeemtalen">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regionale foarkarren">

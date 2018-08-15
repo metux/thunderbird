@@ -14,7 +14,7 @@
 <!ENTITY aboutNetworking.autoRefresh           "Segarkan otomatis tiap 3 detik">
 <!ENTITY aboutNetworking.hostname              "Nama host">
 <!ENTITY aboutNetworking.port                  "Port">
-<!ENTITY aboutNetworking.spdy                  "SPDY">
+<!ENTITY aboutNetworking.http2                 "HTTP/2">
 <!ENTITY aboutNetworking.ssl                   "SSL">
 <!ENTITY aboutNetworking.active                "Aktif">
 <!ENTITY aboutNetworking.idle                  "Menganggur">
@@ -23,22 +23,37 @@
 <!ENTITY aboutNetworking.sent                  "Dikirim">
 <!ENTITY aboutNetworking.received              "Diterima">
 <!ENTITY aboutNetworking.family                "Keluarga">
+<!ENTITY aboutNetworking.trr                   "TRR">
 <!ENTITY aboutNetworking.addresses             "Alamat">
 <!ENTITY aboutNetworking.expires               "Hangus (Detik)">
 <!ENTITY aboutNetworking.messagesSent          "Pesan Terkirim">
 <!ENTITY aboutNetworking.messagesReceived      "Pesan Diterima">
 <!ENTITY aboutNetworking.bytesSent             "Byte Dikirim">
 <!ENTITY aboutNetworking.bytesReceived         "Byte Diterima">
+<!ENTITY aboutNetworking.logging               "Pencatatan">
+<!ENTITY aboutNetworking.logTutorial           "Lihat <a href='https://developer.mozilla.org/docs/Mozilla/Debugging/HTTP_logging'>Pencatatan HTTP</a> untuk instruksi menggunakan alat ini.">
+<!ENTITY aboutNetworking.currentLogFile        "Berkas Log Terkini:">
+<!ENTITY aboutNetworking.currentLogModules     "Modul Log Terkini:">
+<!ENTITY aboutNetworking.setLogFile            "Atur Berkas Log">
+<!ENTITY aboutNetworking.setLogModules         "Atur Modul Log">
+<!ENTITY aboutNetworking.startLogging          "Mulai Pencatatan">
+<!ENTITY aboutNetworking.stopLogging           "Hentikan Pencatatan">
 <!ENTITY aboutNetworking.dnsLookup             "Pencarian DNS">
 <!ENTITY aboutNetworking.dnsLookupButton       "Selesaikan">
 <!ENTITY aboutNetworking.dnsDomain             "Domain">
 <!ENTITY aboutNetworking.dnsLookupTableColumn  "IP">
-
-<!ENTITY aboutNetworking.currentLogFile        "Current Log File:">
-<!ENTITY aboutNetworking.currentLogModules     "Current Log Modules:">
-<!ENTITY aboutNetworking.logTutorial           "See <a href='https://developer.mozilla.org/docs/Mozilla/Debugging/HTTP_logging'>HTTP Logging</a> for instructions on how to use this tool.">
-<!ENTITY aboutNetworking.logging               "Logging">
-<!ENTITY aboutNetworking.setLogFile            "Set Log File">
-<!ENTITY aboutNetworking.setLogModules         "Set Log Modules">
-<!ENTITY aboutNetworking.startLogging          "Start Logging">
-<!ENTITY aboutNetworking.stopLogging           "Stop Logging">
+<!ENTITY aboutNetworking.rcwn                  "Statistik RCWN">
+<!ENTITY aboutNetworking.rcwnStatus            "Status RCWN">
+<!ENTITY aboutNetworking.rcwnCacheWonCount     "Cache won count">
+<!ENTITY aboutNetworking.rcwnNetWonCount       "Net won count">
+<!ENTITY aboutNetworking.totalNetworkRequests  "Total jumlah permintaan jaringan">
+<!ENTITY aboutNetworking.rcwnOperation         "Operasi Tembolok">
+<!ENTITY aboutNetworking.rcwnPerfOpen          "Buka">
+<!ENTITY aboutNetworking.rcwnPerfRead          "Baca">
+<!ENTITY aboutNetworking.rcwnPerfWrite         "Tulis">
+<!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Entri Terbuka">
+<!ENTITY aboutNetworking.rcwnAvgShort          "Rata-rata Pendek">
+<!ENTITY aboutNetworking.rcwnAvgLong           "Rata-rata Panjang">
+<!ENTITY aboutNetworking.rcwnStddevLong        "Deviasi Standar Panjang">
+<!ENTITY aboutNetworking.rcwnCacheSlow         "Tembolok hitung lambat">
+<!ENTITY aboutNetworking.rcwnCacheNotSlow      "Tembolok hitung tidak lambat">

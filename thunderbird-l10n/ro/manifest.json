@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "ro": {
+      "chrome_resources": {
+        "necko": "chrome/ro/locale/ro/necko/", 
+        "global": "chrome/ro/locale/ro/global/", 
+        "messenger-region": "chrome/ro/locale/ro/messenger-region/", 
+        "chat": "chrome/ro/locale/ro/chat/", 
+        "devtools": "chrome/ro/locale/ro/devtools/client/", 
+        "pipnss": "chrome/ro/locale/ro/pipnss/", 
+        "messenger-smime": "chrome/ro/locale/ro/messenger-smime/", 
+        "messenger-newsblog": "chrome/ro/locale/ro/messenger-newsblog/", 
+        "devtools-shim": "chrome/ro/locale/ro/devtools/shim/", 
+        "alerts": "chrome/ro/locale/ro/alerts/", 
+        "messenger": "chrome/ro/locale/ro/messenger/", 
+        "editor": "chrome/ro/locale/ro/editor/", 
+        "branding": "chrome/ro/locale/ro/branding/", 
+        "mozldap": "chrome/ro/locale/ro/mozldap/", 
+        "autoconfig": "chrome/ro/locale/ro/autoconfig/", 
+        "devtools-shared": "chrome/ro/locale/ro/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/ro/locale/ro/global-platform/win/", 
+          "android": "chrome/ro/locale/ro/global-platform/unix/", 
+          "macosx": "chrome/ro/locale/ro/global-platform/mac/", 
+          "linux": "chrome/ro/locale/ro/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/ro/locale/ro/mozapps/", 
+        "pluginproblem": "chrome/ro/locale/ro/pluginproblem/", 
+        "communicator": "chrome/ro/locale/ro/communicator/", 
+        "messenger-mapi": "chrome/ro/locale/ro/messenger-mapi/", 
+        "places": "chrome/ro/locale/ro/places/", 
+        "passwordmgr": "chrome/ro/locale/ro/passwordmgr/", 
+        "pippki": "chrome/ro/locale/ro/pippki/"
+      }, 
+      "version": "20180503075202"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-ro@firefox.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "ro", 
+  "version": "60.0buildid20180709054853", 
+  "name": "Română (România) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Alexandru Szasz, Raul Nicolae Malea, Cristian Silaghi, Jobava)", 
+  "description": "Language pack for Thunderbird for ro"
+}

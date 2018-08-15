@@ -40,3 +40,6 @@
 <!ENTITY smtpName.label "Odlazni poslužitelj (SMTP):">
 <!ENTITY smtpName.accesskey "u">
 <!ENTITY smtpDefaultServer.label "Koristi zadani poslužitelj">
+
+<!ENTITY smtpServerEdit.label "Uredi SMTP poslužitelj…">
+<!ENTITY smtpServerEdit.accesskey "P">

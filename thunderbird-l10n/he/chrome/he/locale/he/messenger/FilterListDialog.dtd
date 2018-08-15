@@ -8,14 +8,21 @@
 <!ENTITY newButton.label "חדש…">
 <!ENTITY newButton.accesskey "ח">
 <!ENTITY newButton.popupCopy.label "העתקה…">
+<!ENTITY newButton.popupCopy.accesskey "ע">
 <!ENTITY editButton.label "עריכה…">
 <!ENTITY editButton.accesskey "ע">
 <!ENTITY deleteButton.label "מחיקה">
 <!ENTITY deleteButton.accesskey "מ">
+<!ENTITY reorderTopButton "העברה כעליון">
+<!ENTITY reorderTopButton.accessKey "ל">
+<!ENTITY reorderTopButton.toolTip "סידור המסנן מחדש כדי שיופעל לפני כל האחרים">
 <!ENTITY reorderUpButton.label "הזז למעלה">
 <!ENTITY reorderUpButton.accesskey "ע">
 <!ENTITY reorderDownButton.label "הזז למטה">
 <!ENTITY reorderDownButton.accesskey "ט">
+<!ENTITY reorderBottomButton "העברה כתחתון">
+<!ENTITY reorderBottomButton.accessKey "ת">
+<!ENTITY reorderBottomButton.toolTip "סידור המסנן מחדש כדי שיופעל אחרי כל האחרים">
 <!ENTITY filterHeader.label "מסננים מאופשרים יופעלו אוטומטית בסדר הנראה להלן.">
 <!ENTITY filtersForPrefix.label "מסננים עבור:">
 <!ENTITY filtersForPrefix.accesskey "ע">
@@ -34,11 +41,3 @@
 
 
 
-
-<!ENTITY newButton.popupCopy.accesskey "C">
-<!ENTITY reorderBottomButton "Move to Bottom">
-<!ENTITY reorderBottomButton.accessKey "B">
-<!ENTITY reorderBottomButton.toolTip "Rearrange filter so it executes after all others">
-<!ENTITY reorderTopButton "Move to Top">
-<!ENTITY reorderTopButton.accessKey "o">
-<!ENTITY reorderTopButton.toolTip "Rearrange filter so it executes before all others">

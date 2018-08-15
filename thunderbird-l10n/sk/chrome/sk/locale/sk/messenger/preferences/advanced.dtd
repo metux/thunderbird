@@ -11,6 +11,7 @@
 <!-- General Settings -->
 <!ENTITY enableGlodaSearch.label       "Povoliť globálne vyhľadávanie a indexovanie správ">
 <!ENTITY enableGlodaSearch.accesskey   "o">
+<!ENTITY dateTimeFormatting.label      "Formát dátumu a času">
 <!ENTITY allowHWAccel.label            "Použiť hardvérové urýchľovanie (ak je dostupné)">
 <!ENTITY allowHWAccel.accesskey        "h">
 <!ENTITY storeType.label               "Spôsob ukladania správ pre nové účty:">
@@ -52,7 +53,19 @@
 <!ENTITY crashReporterLearnMore.label    "Ďalšie informácie">
 
 <!-- Update -->
-<!ENTITY updateApp.label                 "Aktualizácie programu &brandShortName;:">
+<!-- LOCALIZATION NOTE (updateApp.label):
+  Strings from aboutDialog.dtd are displayed in this section of the preferences.
+  Please check for possible accesskey conflicts.
+-->
+<!ENTITY updateApp2.label                "Aktualizácie aplikácie &brandShortName;">
+<!-- LOCALIZATION NOTE (updateApp.version.*): updateApp.version.pre is
+  followed by a version number, keep the trailing space or replace it with
+  a different character as needed. updateApp.version.post is displayed after
+  the version number, and is empty on purpose for English. You can use it
+  if required by your language.
+ -->
+<!ENTITY updateApp.version.pre           "Verzia ">
+<!ENTITY updateApp.version.post          "">
 <!ENTITY updateAuto.label                "Automaticky inštalovať aktualizácie (odporúčané z dôvodu zvýšenej bezpečnosti)">
 <!ENTITY updateAuto.accesskey            "A">
 <!ENTITY updateCheck.label               "Vyhľadávať aktualizácie, ale poskytnúť možnosť zvoliť, či sa nainštalujú">
@@ -89,6 +102,8 @@
 <!ENTITY useCacheBefore.label            "Vyhradiť do">
 <!ENTITY useCacheBefore.accesskey        "h">
 <!ENTITY useCacheAfter.label             "MB na disku pre vyrovnávaciu pamäť">
+<!ENTITY overrideSmartCacheSize.label    "Vlastné nastavenie vyrovnávacej pamäte">
+<!ENTITY overrideSmartCacheSize.accesskey "v">
 <!ENTITY clearCacheNow.label             "Vymazať teraz">
 <!ENTITY clearCacheNow.accesskey         "e">
 

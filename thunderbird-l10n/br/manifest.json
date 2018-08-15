@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "br": {
+      "chrome_resources": {
+        "necko": "chrome/br/locale/br/necko/", 
+        "global": "chrome/br/locale/br/global/", 
+        "messenger-region": "chrome/br/locale/br/messenger-region/", 
+        "chat": "chrome/br/locale/br/chat/", 
+        "devtools": "chrome/br/locale/br/devtools/client/", 
+        "pipnss": "chrome/br/locale/br/pipnss/", 
+        "messenger-smime": "chrome/br/locale/br/messenger-smime/", 
+        "messenger-newsblog": "chrome/br/locale/br/messenger-newsblog/", 
+        "devtools-shim": "chrome/br/locale/br/devtools/shim/", 
+        "alerts": "chrome/br/locale/br/alerts/", 
+        "messenger": "chrome/br/locale/br/messenger/", 
+        "editor": "chrome/br/locale/br/editor/", 
+        "branding": "chrome/br/locale/br/branding/", 
+        "mozldap": "chrome/br/locale/br/mozldap/", 
+        "autoconfig": "chrome/br/locale/br/autoconfig/", 
+        "devtools-shared": "chrome/br/locale/br/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/br/locale/br/global-platform/win/", 
+          "android": "chrome/br/locale/br/global-platform/unix/", 
+          "macosx": "chrome/br/locale/br/global-platform/mac/", 
+          "linux": "chrome/br/locale/br/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/br/locale/br/mozapps/", 
+        "pluginproblem": "chrome/br/locale/br/pluginproblem/", 
+        "communicator": "chrome/br/locale/br/communicator/", 
+        "messenger-mapi": "chrome/br/locale/br/messenger-mapi/", 
+        "places": "chrome/br/locale/br/places/", 
+        "passwordmgr": "chrome/br/locale/br/passwordmgr/", 
+        "pippki": "chrome/br/locale/br/pippki/"
+      }, 
+      "version": "20180503125257"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-br@firefox.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "br", 
+  "version": "60.0buildid20180709054853", 
+  "name": "Breton Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "Thunderbird Breton Team (contributors: Alan Monfort, Philippe Basciano-Le Gall, Denis Arnaud, Michel Nédélec)", 
+  "description": "Language pack for Thunderbird for br"
+}

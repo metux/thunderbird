@@ -13,14 +13,14 @@
 <!-- Values for resetpassword.xul -->
 <!ENTITY resetPasswordButtonLabel "Obnovit">
 <!ENTITY resetPassword.title  "Obnovení hlavního hesla">
-<!ENTITY resetPassword.text  "Pokud obnovíte hlavní heslo, všechna vaše uložená hesla z webových stránek a e-mailů, vyplněná data z formulářů, osobní certifikáty a klíče budou ztraceny. Chcete přesto obnovit hlavní heslo?">
+<!ENTITY resetPassword.text  "Pokud obnovíte hlavní heslo, všechna vaše uložená hesla z webových stránek a e-mailů, vyplněná data z formulářů, osobní certifikáty a klíče budou ztraceny. Chcete přesto hlavní heslo obnovit?">
 
 <!-- Downloading a cert -->
 <!ENTITY downloadCert.title "Stažení certifikátu">
 <!ENTITY downloadCert.message1 "Byli jste požádáni o uznání nové Certifikační Autority (CA).">
 <!ENTITY downloadCert.trustSSL "Uznat tuto CA pro identifikaci serverů.">
 <!ENTITY downloadCert.trustEmail "Uznat tuto CA pro identifikaci uživatelů pošty.">
-<!ENTITY downloadCert.trustObjSign "Uznat tuto CA pro identifikaci výrobců software.">
+<!ENTITY downloadCert.trustObjSign "Uznat tuto CA pro identifikaci výrobců softwaru.">
 <!ENTITY downloadCert.message3 "Před uznáním této CA, a to pro jakýkoliv účel, byste měli prozkoumat její certifikát, její pravidla a podmínky (pokud jsou dostupné).">
 <!ENTITY downloadCert.viewCert.label "Zobrazit">
 <!ENTITY downloadCert.viewCert.text "Zobrazit certifikát CA">

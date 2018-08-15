@@ -10,22 +10,14 @@
 <!ENTITY toggleToolboxF12.keycode          "VK_F12">
 <!ENTITY toggleToolboxF12.keytext          "F12">
 
-<!ENTITY toolboxCloseButton.tooltip    "개발자 도구 닫기">
-
-<!-- LOCALIZATION NOTE (toolboxFramesButton): This is the label for
-  -  the iframes menu list that appears only when the document has some.
-  -  It allows you to switch the context of the whole toolbox. -->
-<!ENTITY toolboxFramesTooltip          "현재 지정한 문서의 iframe을 선택">
-
-<!-- LOCALIZATION NOTE (toolboxNoAutoHideButton): This is the label for
-  -  the button to force the popups/panels to stay visible on blur.
-  -  This is only visible in the browser toolbox as it is meant for
-  -  addon developers and Firefox contributors. -->
-<!ENTITY toolboxNoAutoHideTooltip      "팝업 자동 숨기기 비활성화">
-
 <!-- LOCALIZATION NOTE (browserToolboxErrorMessage): This is the label
   -  shown next to error details when the Browser Toolbox is unable to open. -->
 <!ENTITY browserToolboxErrorMessage          "브라우저 도구상자를 열다 잘못됨:">
+
+<!-- LOCALIZATION NOTE (browserToolboxStatusMessage): This is the label
+  -  shown next to status details when the Browser Toolbox fails to connect or
+  -  appears to be taking a while to do so. -->
+<!ENTITY browserToolboxStatusMessage "브라우저 도구상자 연결 상태:">
 
 <!-- LOCALIZATION NOTE (options.context.advancedSettings): This is the label for
   -  the heading of the advanced settings group in the options panel. -->
@@ -83,7 +75,7 @@
   -  options panel and is used for settings that trigger page reload. -->
 <!ENTITY options.context.triggersPageRefresh  "* 현재 세션에서만 쓰이며, 페이지를 새로고침함">
 
-<!-- LOCALIZATION NOTE (options.enableChrome.label4): This is the label for the
+<!-- LOCALIZATION NOTE (options.enableChrome.label5): This is the label for the
   -  checkbox that toggles chrome debugging, i.e. devtools.chrome.enabled
   -  boolean preference in about:config, in the options panel. -->
 <!ENTITY options.enableChrome.label5    "브라우저 크롬과 부가 기능 디버깅에도 도구상자 쓰기">
@@ -94,12 +86,6 @@
   -  boolean preference in about:config, in the options panel. -->
 <!ENTITY options.enableRemote.label3    "원격 디버깅 켜기">
 <!ENTITY options.enableRemote.tooltip2  "이 옵션을 켜면 개발자 도구가 Firefox OS와 같은 원격 인스턴스를 디버깅 할 수 있습니다.">
-
-<!-- LOCALIZATION NOTE (options.enableWorkers.label): This is the label for the
-  -  checkbox that toggles worker debugging, i.e. devtools.debugger.workers
-  -  boolean preference in about:config, in the options panel. -->
-<!ENTITY options.enableWorkers.label    "워커 디버깅 켜기 (개발하고 있음)">
-<!ENTITY options.enableWorkers.tooltip  "이 옵션을 켜면 개발자 도구가 워커를 디버깅할 수 있습니다.">
 
 <!-- LOCALIZATION NOTE (options.disableJavaScript.label,
   -  options.disableJavaScript.tooltip): This is the options panel label and
@@ -163,37 +149,35 @@
   -  heading of the group of Debugger preferences in the options panel. -->
 <!ENTITY options.debugger.label            "디버거">
 
-<!-- LOCALIZATION NOTE (options.sourceMap.label): This is the
-   - label for the checkbox that toggles source maps in the Debugger -->
+<!-- LOCALIZATION NOTE (options.sourceMaps.label): This is the
+   - label for the checkbox that toggles source maps in all tools -->
 <!ENTITY options.sourceMaps.label      "소스맵 켜기">
-<!ENTITY options.sourceMaps.tooltip    "이 설정을 켜면 소스가 디버거와 콘솔에서 매핑됩니다.">
+<!ENTITY options.sourceMaps.tooltip1   "이 설정을 켜면 소스가 도구에서 매핑됩니다.">
 
 <!-- LOCALIZATION NOTE (options.styleeditor.label): This is the label for the
   -  heading of the group of Style Editor preferences in the options
   -  panel. -->
 <!ENTITY options.styleeditor.label            "스타일 편집기">
 
-<!-- LOCALIZATION NOTE (options.stylesheetSourceMaps.label): This is the
-   - label for the checkbox that toggles showing original sources in the Style Editor -->
-<!ENTITY options.stylesheetSourceMaps.label      "원본 소스 보기">
-<!ENTITY options.stylesheetSourceMaps.tooltip    "스타일 편집기나 검사기에서 원본 소스(Sass 파일 등) 보기">
-
 <!-- LOCALIZATION NOTE (options.stylesheetAutocompletion.label): This is the
    - label for the checkbox that toggles autocompletion of css in the Style Editor -->
 <!ENTITY options.stylesheetAutocompletion.label      "CSS 자동완성">
 <!ENTITY options.stylesheetAutocompletion.tooltip    "스타일 편집기에서 CSS 속성, 값, 선택자를 입력하는 대로 자동완성">
 
-<!-- LOCALIZATION NOTE (options.commonprefs): This is the label for the heading
-      of all preferences that affect both the Web Console and the Network
-      Monitor -->
-<!ENTITY options.commonPrefs.label           "일반 설정">
+<!-- LOCALIZATION NOTE (options.screenshot.label): This is the label for the
+   -  heading of the group of Screenshot preferences in the options
+   -  panel. -->
+<!ENTITY options.screenshot.label            "스크린샷 동작">
 
-<!-- LOCALIZATION NOTE (options.enablePersistentLogs.label): This is the
-  -  label for the checkbox that toggles persistent logs in the Web Console and
-  -  network monitor,  i.e. devtools.webconsole.persistlog a boolean preference in
-  -  about:config, in the options panel. -->
-<!ENTITY options.enablePersistentLogs.label    "로그 지속적으로 남기기">
-<!ENTITY options.enablePersistentLogs.tooltip  "이 옵션을 켜면 새 페이지로 이동해도 웹 콘솔과 네트워크 모니터의 출력이 지워지지 않음">
+<!-- LOCALIZATION NOTE (options.screenshot.clipboard.label): This is the
+   - label for the checkbox that toggles screenshot to clipboard feature. -->
+<!ENTITY options.screenshot.clipboard.label      "클립보드로 스크린샷">
+<!ENTITY options.screenshot.clipboard.tooltip    "클립보드로 바로 스크린샷을 저장">
+
+<!-- LOCALIZATION NOTE (options.screenshot.audio.label): This is the
+   - label for the checkbox that toggles the camera shutter audio for screenshot tool -->
+<!ENTITY options.screenshot.audio.label      "카메라 셔터 소리 재생">
+<!ENTITY options.screenshot.audio.tooltip    "스크린샷을 찍을 때 카메라 소리를 활성화">
 
 <!-- LOCALIZATION NOTE (options.showPlatformData.label): This is the
   -  label for the checkbox that toggles the display of the platform data in the,

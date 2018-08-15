@@ -109,9 +109,9 @@
 <!ENTITY menu_ShowNameAs.accesskey                      "M">
 <!-- LOCALIZATION NOTE (firstLastCmd2.label): We're not including a comma here
 because displayed names don't have the comma in between. -->
-<!ENTITY firstLastCmd2.label                            "Meno priezvisko">
+<!ENTITY firstLastCmd2.label                            "Meno Priezvisko">
 <!ENTITY firstLastCmd2.accesskey                        "M">
-<!ENTITY lastFirstCmd.label                             "Priezvisko meno">
+<!ENTITY lastFirstCmd.label                             "Priezvisko, Meno">
 <!ENTITY lastFirstCmd.accesskey                         "P">
 <!ENTITY displayNameCmd.label                           "Zobrazované meno">
 <!ENTITY displayNameCmd.accesskey                       "Z">
@@ -124,6 +124,9 @@ because displayed names don't have the comma in between. -->
 <!ENTITY messengerCmd.label                             "Pošta a diskusie">
 <!ENTITY messengerCmd.accesskey                         "P">
 <!ENTITY messengerCmd.commandkey                        "1">
+<!ENTITY addressBookCmd.label                           "Adresár">
+<!ENTITY addressBookCmd.accesskey                       "e">
+<!ENTITY addressBookCmd.key                             "B">
 <!ENTITY searchAddressesCmd.label                       "Hľadať adresy…">
 <!ENTITY searchAddressesCmd.accesskey                   "H">
 <!ENTITY importCmd.label                                "Import…">
@@ -140,6 +143,8 @@ because displayed names don't have the comma in between. -->
 <!ENTITY newContactButton.accesskey                     "k">
 <!ENTITY newlistButton.label                            "Nový zoznam">
 <!ENTITY newlistButton.accesskey                        "z">
+<!ENTITY showAsDefault.label                            "Predvolený spúšťací priečinok">
+<!ENTITY showAsDefault.accesskey                        "r">
 <!ENTITY editPropertiesButton.label                     "Upraviť">
 <!ENTITY propertiesContext.label                        "Vlastnosti">
 <!ENTITY propertiesContext.accesskey                    "i">

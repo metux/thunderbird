@@ -14,12 +14,12 @@
 <!ENTITY editDirectories.accesskey "B">
 <!-- LOCALIZATION NOTE (directories.label) : do not translate "LDAP" in below line -->
 <!ENTITY directories.label         "Oare LDAP-server brûke:">
-<!ENTITY directories.accesskey     "n">
+<!ENTITY directories.accesskey     "b">
 <!ENTITY directoriesNone.label     "Gjin">
 
 <!-- am-addressing.xul -->
 
-<!ENTITY compositionGroupTitle.label "Opstelle">
+<!ENTITY compositionGroupTitle.label          "Opstelle">
 <!-- LOCALIZATION NOTE (useHtml.label) : do not translate "html" in below line -->
 <!ENTITY useHtml.label                        "Berjochten opstelle yn HTML-formaat">
 <!ENTITY useHtml.accesskey                    "o">
@@ -28,6 +28,9 @@
 <!-- LOCALIZATION NOTE (then.label): This will concatenate with the 4 strings that follow. -->
 <!ENTITY then.label                           "Dan,">
 <!ENTITY then.accesskey                       "D">
+<!-- LOCALIZATION NOTE (quoting.label): This will concatenate with the 4 strings that follow. -->
+<!ENTITY quoting.label                        "By sitearjen,">
+<!ENTITY quoting.accesskey                    "s">
 <!ENTITY aboveQuote.label                     "myn reaksje boppe de sitearre tekst starte">
 <!ENTITY belowQuote.label                     "myn reaksje ûnder de sitearre tekst starte">
 <!ENTITY selectAndQuote.label                 "de sitearre tekst selektearje">

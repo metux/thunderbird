@@ -23,6 +23,18 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Versão">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Software de segurança">
+<!ENTITY aboutSupport.securitySoftwareType "Tipo">
+<!ENTITY aboutSupport.securitySoftwareName "Nome">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivírus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
+
+<!ENTITY aboutSupport.featuresTitle "Funcionalidades do &brandShortName;">
+<!ENTITY aboutSupport.featureName "Nome">
+<!ENTITY aboutSupport.featureVersion "Versão">
+<!ENTITY aboutSupport.featureId "ID">
+
 <!ENTITY aboutSupport.experimentsTitle "Funcionalidades experimentais">
 <!ENTITY aboutSupport.experimentName "Nome">
 <!ENTITY aboutSupport.experimentId "ID">
@@ -63,6 +75,13 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Janelas multiprocesso">
 
+<!ENTITY aboutSupport.appBasicsProcessCount "Processos de conteúdo Web">
+
+<!ENTITY aboutSupport.enterprisePolicies "Políticas empresariais">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Chave do Google">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Chave do serviço de localização da Mozilla">
+
 <!ENTITY aboutSupport.appBasicsSafeMode "Modo de segurança">
 
 <!ENTITY aboutSupport.showDir.label "Abrir pasta">
@@ -98,6 +117,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "Acessibilidade">
 <!ENTITY aboutSupport.a11yActivated "Ativado">
 <!ENTITY aboutSupport.a11yForceDisabled "Bloquear acessibilidade">
+<!ENTITY aboutSupport.a11yHandlerUsed "Identificador Acessível Utilizado">
+<!ENTITY aboutSupport.a11yInstantiator "Instanciador de Acessibilidade">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Versões de bibliotecas">
 
@@ -108,6 +129,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Copiar como estrutura de dados">
 
 <!ENTITY aboutSupport.sandboxTitle "Isolamento">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Chamadas do sistema rejeitadas">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "Segundos atrás">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Tipo de processo">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Chamadas de sistema">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Argumentos">
 
 <!ENTITY aboutSupport.safeModeTitle "Usar o Modo Seguro">
 <!ENTITY aboutSupport.restartInSafeMode.label "Reiniciar com extensões desativadas…">
@@ -120,3 +149,26 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Registro de decisões">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Proteção contra travamentos desabilitada">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Soluções alternativas">
+
+<!ENTITY aboutSupport.mediaTitle "Mídia">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Dispositivos de Saída">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Dispositivos de Entrada">
+<!ENTITY aboutSupport.mediaDeviceName "Nome">
+<!ENTITY aboutSupport.mediaDeviceGroup "Grupo">
+<!ENTITY aboutSupport.mediaDeviceVendor "Fabricante">
+<!ENTITY aboutSupport.mediaDeviceState "Estado">
+<!ENTITY aboutSupport.mediaDevicePreferred "Preferido">
+<!ENTITY aboutSupport.mediaDeviceFormat "Formato">
+<!ENTITY aboutSupport.mediaDeviceChannels "Canais">
+<!ENTITY aboutSupport.mediaDeviceRate "Taxa">
+<!ENTITY aboutSupport.mediaDeviceLatency "Latência">
+
+<!ENTITY aboutSupport.intlTitle "Internacionalização &amp; Localização">
+<!ENTITY aboutSupport.intlAppTitle "Configurações do aplicativo">
+<!ENTITY aboutSupport.intlLocalesRequested "Idiomas solicitados">
+<!ENTITY aboutSupport.intlLocalesAvailable "Idiomas disponíveis">
+<!ENTITY aboutSupport.intlLocalesSupported "Idiomas do aplicativo">
+<!ENTITY aboutSupport.intlLocalesDefault "Idioma padrão">
+<!ENTITY aboutSupport.intlOSTitle "Sistema operacional">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Idiomas do sistema">
+<!ENTITY aboutSupport.intlRegionalPrefs "Preferências regionais">

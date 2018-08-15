@@ -13,12 +13,12 @@
 <!ENTITY pasteNoFormatting.key "V">
 <!ENTITY pasteAs.label "Ngjite Si">
 <!ENTITY pasteAs.accesskey "S">
-<!ENTITY pasteAsQuotationCmd.label "Ngjite Si Përmendje">
+<!ENTITY pasteAsQuotationCmd.label "Ngjite Si Citim">
 <!ENTITY pasteAsQuotationCmd.accesskey "P">
 <!ENTITY pasteAsQuotationCmd.key "o">
 <!ENTITY findBarCmd.label "Gjeni…">
 <!ENTITY findReplaceCmd.label "Gjeni dhe Zëvendësoni…">
-<!ENTITY enableInlineSpellChecker.label "Kontroll Drejtshkrimi Në Shkrim e Sipër">
+<!ENTITY enableInlineSpellChecker.label "Kontroll Drejtshkrimi Teksa Shkruani">
 <!ENTITY enableInlineSpellChecker.accesskey "D">
 <!ENTITY checkSpellingCmd2.label "Kontrolloni Drejtshkrimin…">
 <!ENTITY checkSpellingCmd2.accesskey "K">
@@ -98,13 +98,13 @@
 <!-- Font Style SubMenu -->
 <!ENTITY fontStyleMenu.label "Stil Teksti">
 <!ENTITY fontStyleMenu.accesskey "S">
-<!ENTITY styleBoldCmd.label "të Trasha">
+<!ENTITY styleBoldCmd.label "Të trasha">
 <!ENTITY styleBoldCmd.accesskey "T">
 <!ENTITY styleBoldCmd.key "B">
-<!ENTITY styleItalicCmd.label "të Pjerrëta">
+<!ENTITY styleItalicCmd.label "Të pjerrëta">
 <!ENTITY styleItalicCmd.accesskey "P">
 <!ENTITY styleItalicCmd.key "I">
-<!ENTITY styleUnderlineCmd.label "të Nënvizuara">
+<!ENTITY styleUnderlineCmd.label "Të nënvijëzuara">
 <!ENTITY styleUnderlineCmd.accesskey "N">
 <!ENTITY styleUnderlineCmd.key "U">
 <!ENTITY styleStrikeThruCmd.label "Hequrvije">
@@ -117,7 +117,7 @@
 <!ENTITY styleNonbreakingCmd.accesskey "a">
 <!ENTITY styleEm.label "Theksim">
 <!ENTITY styleEm.accesskey "E">
-<!ENTITY styleStrong.label "Theksim më të Fortë">
+<!ENTITY styleStrong.label "Theksim Më të Fortë">
 <!ENTITY styleStrong.accesskey "t">
 <!ENTITY styleCite.label "Përmendje">
 <!ENTITY styleCite.accesskey "J">
@@ -141,7 +141,7 @@
 <!ENTITY formatRemoveLinks.key "K">
 <!ENTITY formatRemoveNamedAnchors.label "Hiq Spiranca të Emërtuara">
 <!ENTITY formatRemoveNamedAnchors.accesskey "H">
-<!ENTITY formatRemoveNamedAnchors2.key "A">
+<!ENTITY formatRemoveNamedAnchors2.key "R">
 
 <!ENTITY paragraphMenu.label "Paragraf">
 <!ENTITY paragraphMenu.accesskey "P">
@@ -314,8 +314,8 @@
 <!ENTITY decreaseFontSizeToolbarCmd.tooltip "Madhësi më e vogël shkronjash">
 <!ENTITY increaseFontSizeToolbarCmd.tooltip "Madhësi më e madhe shkronjash">
 <!ENTITY boldToolbarCmd.tooltip "të Trasha">
-<!ENTITY italicToolbarCmd.tooltip "të Pjerrëta">
-<!ENTITY underlineToolbarCmd.tooltip "të Nënvizuara">
+<!ENTITY italicToolbarCmd.tooltip "Të pjerrëta">
+<!ENTITY underlineToolbarCmd.tooltip "Të Nënvijëzuara">
 <!ENTITY bulletListToolbarCmd.tooltip "Vendosni ose hiqni listë me shenjë">
 <!ENTITY numberListToolbarCmd.tooltip "Vendosni ose hiqni listë me numra">
 <!ENTITY outdentToolbarCmd.tooltip "Tekst jashtazi (zhvendose majtas)">

@@ -7,13 +7,41 @@
 <!ENTITY learnMore.label             "מידע נוסף אודות הזנות">
 
 <!ENTITY feedTitle.label             "כותרת:">
+<!ENTITY feedTitle.accesskey         "כ">
 
+<!ENTITY feedLocation.label          "כתובת הזנה:">
+<!ENTITY feedLocation.accesskey      "ז">
+<!ENTITY feedLocation2.placeholder   "נא להזין כתובת הזנה תקנית">
+<!ENTITY locationValidate.label      "בדיקה">
+<!ENTITY validateText.label          "בדיקת וקבלת כתובת תקנית.">
 
+<!ENTITY feedFolder.label            "אחסון מאמרים תחת:">
+<!ENTITY feedFolder.accesskey        "א">
 
+<!-- Account Settings and Subscription Dialog -->
+<!ENTITY biffStart.label             "בדיקה לאיתור מאמרים חדשים בכל ">
+<!ENTITY biffStart.accesskey         "ב">
+<!ENTITY biffMinutes.label           "דקות">
+<!ENTITY biffMinutes.accesskey       "ק">
+<!ENTITY biffDays.label              "ימים">
+<!ENTITY biffDays.accesskey          "מ">
+<!ENTITY recommendedUnits.label      "המלצת המפרסם:">
 
+<!ENTITY quickMode.label             "הצגת תקציר של המאמר במקום לטעון את העמוד">
+<!ENTITY quickMode.accesskey         "צ">
 
+<!ENTITY autotagEnable.accesskey     "ג">
+<!ENTITY autotagUsePrefix.label      "קידומת לתגיות:">
+<!ENTITY autotagUsePrefix.accesskey  "ק">
+<!ENTITY autoTagPrefix.placeholder   "נא להקליד קידומת לתגית">
+
+<!-- Subscription Dialog -->
 <!ENTITY button.addFeed.label        "הוספה">
 <!ENTITY button.addFeed.accesskey    "ה">
+<!ENTITY button.verifyFeed.label     "בדיקה">
+<!ENTITY button.verifyFeed.accesskey "ב">
+<!ENTITY button.updateFeed.label     "עדכון">
+<!ENTITY button.updateFeed.accesskey "ע">
 <!ENTITY button.removeFeed.label     "הסרה">
 <!ENTITY button.removeFeed.accesskey "ה">
 <!ENTITY button.importOPML.label     "יבא">
@@ -22,27 +50,7 @@
 <!ENTITY button.exportOPML.accesskey "צ">
 
 <!ENTITY cmd.close.commandKey        "w">
-
-<!ENTITY autoTagPrefix.placeholder   "Enter a tag prefix">
-<!ENTITY autotagEnable.accesskey     "c">
+<!ENTITY button.close.label          "סגירה">
 
 <!ENTITY autotagEnable.label         "Automatically create tags from feed &lt;category&gt; names">
-<!ENTITY autotagUsePrefix.accesskey  "P">
-<!ENTITY autotagUsePrefix.label      "Prefix tags with:">
-<!ENTITY button.close.label          "Close">
 <!ENTITY button.exportOPML.tooltip   "Export Feeds with folder structure; ctrl click or ctrl enter to export Feeds as a list">
-<!ENTITY button.updateFeed.accesskey "U">
-<!ENTITY button.updateFeed.label     "Update">
-<!ENTITY feedFolder.accesskey        "S">
-
-<!ENTITY feedFolder.label            "Store Articles in:">
-<!ENTITY feedLocation.accesskey      "U">
-
-<!ENTITY feedLocation.label          "Feed URL:">
-<!ENTITY feedLocation.placeholder    "Enter a valid feed url to Add">
-<!ENTITY feedTitle.accesskey         "T">
-<!ENTITY locationValidate.label      "Validate">
-<!ENTITY quickMode.accesskey         "h">
-
-<!ENTITY quickMode.label             "Show the article summary instead of loading the web page">
-<!ENTITY validateText.label          "Check validation and retrieve a valid url.">

@@ -4,7 +4,7 @@
 
 <!ENTITY itemGeneral.label                   "Genel">
 <!ENTITY itemAutoComplete.label              "Adresler">
-<!ENTITY itemSpellCheck.label                "Yazım Denetimi">
+<!ENTITY itemSpellCheck.label                "Yazım denetimi">
 
 <!ENTITY dialogCompose.title                 "Düzenleme">
 
@@ -26,8 +26,8 @@
 <!ENTITY bgColor.accesskey                    "n">
 <!ENTITY restoreHTMLDefaults.label            "Varsayılanları geri yükle">
 <!ENTITY restoreHTMLDefaults.accesskey        "V">
-
-
+<!ENTITY defaultToParagraph.label             "Varsayılan olarak gövde metni yerine paragraf biçimini kullan">
+<!ENTITY defaultToParagraph.accesskey         "V">
 
 <!ENTITY spellCheck.label                     "Göndermeden önce yazım denetimi yap">
 <!ENTITY spellCheck.accesskey                 "a">
@@ -41,7 +41,7 @@
 <!ENTITY warnOnSendAccelKey.accesskey         "k">
 <!ENTITY autoSave.label                       "Her ">
 <!ENTITY autoSave.accesskey                   "e">
-<!ENTITY autoSaveEnd.label                    "dakikada bir Otomatik Kaydet">
+<!ENTITY autoSaveEnd.label                    "dakikada bir otomatik kaydet">
 
 <!ENTITY emailCollectionPicker.label           "E-posta gönderdiğim adresleri otomatik olarak buraya ekle:">
 <!ENTITY emailCollectionPicker.accesskey       "t">
@@ -54,6 +54,9 @@
 <!ENTITY directoriesNone.label                 "Hiçbiri">
 <!ENTITY editDirectories.label                 "Dizinleri Düzenle…">
 <!ENTITY editDirectories.accesskey             "e">
+<!ENTITY showAsDefault.label                   "Adres defteri penceresinin varsayılan açılış dizini:">
+<!ENTITY showAsDefault.accesskey               "d">
+<!ENTITY showAsDefaultLast.label               "Son kullanılan dizin">
 
 <!ENTITY sendOptionsDescription.label          "Metin biçimi davranışını yapılandır">
 <!ENTITY sendOptions.label                     "Gönderim seçenekleri…">
@@ -63,6 +66,3 @@
 <!ENTITY attachmentReminder.accesskey          "d">
 <!ENTITY attachmentReminderOptions.label       "Anahtar kelimeler…">
 <!ENTITY attachmentReminderOptions.accesskey   "A">
-
-<!ENTITY defaultToParagraph.accesskey         "P">
-<!ENTITY defaultToParagraph.label             "Use Paragraph format instead of Body Text by default">

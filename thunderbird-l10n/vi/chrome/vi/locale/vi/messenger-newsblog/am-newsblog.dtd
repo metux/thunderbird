@@ -19,5 +19,7 @@
 <!ENTITY feeds.wizardLongName "Blog &amp; Feed Tin tức">
 <!ENTITY feeds.wizardLongName.accesskey "F">
 
-
-<!ENTITY feedWindowTitle.label "Feed Account Wizard">
+<!ENTITY biffAll.label                 "Enable updates for all feeds">
+<!ENTITY biffAll.accesskey             "E">
+<!ENTITY newFeedSettings.label         "Default Settings for New Feeds">
+<!ENTITY feedWindowTitle.label         "Feed Account Wizard">

@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "da": {
+      "chrome_resources": {
+        "necko": "chrome/da/locale/da/necko/", 
+        "global": "chrome/da/locale/da/global/", 
+        "messenger-region": "chrome/da/locale/da/messenger-region/", 
+        "chat": "chrome/da/locale/da/chat/", 
+        "devtools": "chrome/da/locale/da/devtools/client/", 
+        "pipnss": "chrome/da/locale/da/pipnss/", 
+        "messenger-smime": "chrome/da/locale/da/messenger-smime/", 
+        "messenger-newsblog": "chrome/da/locale/da/messenger-newsblog/", 
+        "devtools-shim": "chrome/da/locale/da/devtools/shim/", 
+        "alerts": "chrome/da/locale/da/alerts/", 
+        "messenger": "chrome/da/locale/da/messenger/", 
+        "editor": "chrome/da/locale/da/editor/", 
+        "branding": "chrome/da/locale/da/branding/", 
+        "mozldap": "chrome/da/locale/da/mozldap/", 
+        "autoconfig": "chrome/da/locale/da/autoconfig/", 
+        "devtools-shared": "chrome/da/locale/da/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/da/locale/da/global-platform/win/", 
+          "android": "chrome/da/locale/da/global-platform/unix/", 
+          "macosx": "chrome/da/locale/da/global-platform/mac/", 
+          "linux": "chrome/da/locale/da/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/da/locale/da/mozapps/", 
+        "pluginproblem": "chrome/da/locale/da/pluginproblem/", 
+        "communicator": "chrome/da/locale/da/communicator/", 
+        "messenger-mapi": "chrome/da/locale/da/messenger-mapi/", 
+        "places": "chrome/da/locale/da/places/", 
+        "passwordmgr": "chrome/da/locale/da/passwordmgr/", 
+        "pippki": "chrome/da/locale/da/pippki/"
+      }, 
+      "version": "20180504072829"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-da@firefox.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "da", 
+  "version": "60.0buildid20180709054853", 
+  "name": "Dansk (da) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Kim Ludvigsen, Jørgen Rasmussen, Mikkel Herold)", 
+  "description": "Language pack for Thunderbird for da"
+}

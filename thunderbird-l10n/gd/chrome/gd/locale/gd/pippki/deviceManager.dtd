@@ -25,12 +25,12 @@
 <!ENTITY devmgr.button.fips.accesskey           "F">
 
 <!ENTITY loaddevice.info                        "Cuir a-steach fiosrachadh mun mhòideal a bu toigh leat a chur ris.">
-<!ENTITY loaddevice.modname                     "Ainm a' mhòideil:">
-<!ENTITY loaddevice.modname.accesskey           "m">
+<!ENTITY loaddevice.modname2                    "Ainm a’ mhòideil">
+<!ENTITY loaddevice.modname2.accesskey          "M">
 <!ENTITY loaddevice.modname.default             "Mòideal PKCS#11 ùr">
-<!ENTITY loaddevice.filename                    "Ainm faidhle a' mhòideil:">
-<!ENTITY loaddevice.filename.accesskey          "f">
+<!ENTITY loaddevice.filename2                   "Ainm faidhle a’ mhòideil">
+<!ENTITY loaddevice.filename2.accesskey         "f">
 <!ENTITY loaddevice.browse                      "Brabhsaich…">
 <!ENTITY loaddevice.browse.accesskey            "B">
 
-<!ENTITY loaddevice.title                       "Luchdaich uidheam PKCS#11">
+<!ENTITY loaddevice.title2                      "Load PKCS#11 Device Driver">

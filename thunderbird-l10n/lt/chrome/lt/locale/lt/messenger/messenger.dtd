@@ -51,8 +51,8 @@
 <!ENTITY getAllNewMsgCmdPopupMenu.accesskey "v">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.label "aktyvios paskyros">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.accesskey "a">
-<!ENTITY getNextNMsgCmd.label "Atsiųsti kitus 500 naujienų laiškų">
-<!ENTITY getNextNMsgCmd.accesskey "t">
+
+
 <!ENTITY sendUnsentCmd.label "Išsiųsti laiškus">
 <!ENTITY sendUnsentCmd.accesskey "s">
 <!ENTITY subscribeCmd.label "Prenumeruoti…">
@@ -634,6 +634,9 @@
 
 <!ENTITY folderContextGetMessages.label "Atsiųsti laiškus">
 <!ENTITY folderContextGetMessages.accesskey "l">
+
+
+
 <!ENTITY folderContextOpenInNewWindow.label "Atverti naujame lange">
 <!ENTITY folderContextOpenInNewWindow.accesskey "A">
 <!ENTITY folderContextOpenNewTab.label "Atverti naujoje kortelėje">
@@ -949,3 +952,28 @@
 <!-- Mac OS X Dock Icon pop-up menu -->
 
 <!ENTITY dockOptions.label              "Programos piktogramos nuostatos…">
+
+
+
+<!ENTITY getNextNMsgCmd2.label "Get Next News Messages">
+<!ENTITY getNextNMsgCmd2.accesskey "t">
+<!ENTITY goChatCmd2.key "H">
+<!ENTITY editTemplateMsgCmd.label "Edit Template">
+<!ENTITY editTemplateMsgCmd.accesskey "T">
+<!ENTITY newMsgFromTemplateCmd.label "New Message from Template">
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN">
+<!ENTITY addonPrefs.label "Add-on Options">
+<!ENTITY addonPrefs.accesskey "O">
+<!ENTITY addonPrefsUnix.label "Add-on Preferences">
+<!ENTITY addonPrefsUnix.accesskey "P">
+<!ENTITY addonNoPrefs.label "No Add-on settings found.">
+<!ENTITY debugAddonsCmd.label "Debug Add-ons">
+<!ENTITY debugAddonsCmd.accesskey "A">
+<!ENTITY folderContextPauseAllUpdates.label "Pause All Updates">
+<!ENTITY folderContextPauseUpdates.label "Pause Updates">
+<!ENTITY folderContextPauseUpdates.accesskey "U">
+<!ENTITY contextNewMsgFromTemplate.label "New Message from Template">
+<!ENTITY contextEditTemplate.label "Edit Template">
+<!ENTITY contextEditTemplate.accesskey "T">
+<!ENTITY writeNewMessageDock.label      "Write New Message">
+<!ENTITY openAddressBookDock.label      "Open Address Book">

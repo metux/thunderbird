@@ -4,25 +4,11 @@
 
 <!ENTITY aboutTelemetry.pageTitle "Telemetrija">
 
-<!ENTITY aboutTelemetry.changeDataChoices "  Promijeni">
-
-<!ENTITY aboutTelemetry.uploadEnabled "  FHR slanje podataka je <span>uključeno</span>.">
-
-<!ENTITY aboutTelemetry.uploadDisabled "  FHR slanje podataka je <span>isključeno</span>.">
-
-<!ENTITY aboutTelemetry.extendedRecordingEnabled "  Snimanje proširene telemetrije je <span>uključeno</span>.">
-
-<!ENTITY aboutTelemetry.extendedRecordingDisabled "  Snimanje proširene telemetrije je <span>isključeno</span>.">
-
 <!ENTITY aboutTelemetry.pingDataSource "Ping izvora podataka:">
 
 <!ENTITY aboutTelemetry.showCurrentPingData "Trenutni ping podaci">
 
 <!ENTITY aboutTelemetry.showArchivedPingData "Arhivirani ping podaci">
-
-<!ENTITY aboutTelemetry.pingDataDisplay "Pingaj podatkovni zaslon:">
-
-<!ENTITY aboutTelemetry.structured "Strukturirano">
 
 <!ENTITY aboutTelemetry.raw "Neobrađeni JSON">
 
@@ -34,11 +20,17 @@
 
 <!ENTITY aboutTelemetry.showOlderPing "Stariji ping &gt;&gt;">
 
-<!ENTITY aboutTelemetry.rawPingData "Neobrađeni ping podaci ...">
-
 <!ENTITY aboutTelemetry.archiveWeekHeader "Tjedan">
 
+<!ENTITY aboutTelemetry.archivePingType "Vrsta pinga">
+
 <!ENTITY aboutTelemetry.archivePingHeader "Ping">
+
+<!ENTITY aboutTelemetry.optionGroupToday "Danas">
+
+<!ENTITY aboutTelemetry.optionGroupYesterday "Jučer">
+
+<!ENTITY aboutTelemetry.optionGroupOlder "Starije">
 
 <!ENTITY aboutTelemetry.generalDataSection "  Opći podaci">
 
@@ -52,11 +44,17 @@
 
 <!ENTITY aboutTelemetry.threadHangStatsSection "  Viseći threadovi">
 
+<!ENTITY aboutTelemetry.capturedStacksSection "  uhvaćeni stogovi">
 
+<!ENTITY aboutTelemetry.scalarsSection "  skalari">
+
+<!ENTITY aboutTelemetry.keyedScalarsSection "  skalari s ključem">
 
 <!ENTITY aboutTelemetry.histogramsSection "  Histogrami">
 
 <!ENTITY aboutTelemetry.keyedHistogramsSection "  Histogrami s ključem">
+
+<!ENTITY aboutTelemetry.eventsSection "  događaji">
 
 <!ENTITY aboutTelemetry.simpleMeasurementsSection "  Jednostavna mjerenja">
 
@@ -66,29 +64,22 @@
 
 <!ENTITY aboutTelemetry.sessionInfoSection "  Informacije o sesiji">
 
-<!ENTITY aboutTelemetry.addonHistogramsSection "  Histogrami koje su prikupili dodaci">
-
-<!ENTITY aboutTelemetry.toggle "  Kliknite za uključivanje/isključivanje sekcije">
-
-<!ENTITY aboutTelemetry.emptySection "  (Nema prikupljenih podataka)">
-
 <!ENTITY aboutTelemetry.fullSqlWarning "  NAPOMENA: Detaljno praćenje sporih SQL upita je uključeno. Potpuni SQL upiti mogu biti prikazani ispod, međutim oni neće biti poslali Telemetriji.">
 
-<!ENTITY aboutTelemetry.fetchSymbols "  Prikupi imena funkcija za informacije o smrzavanju">
+<!ENTITY aboutTelemetry.fetchStackSymbols "  Prikupi imena funkcija za stogove">
 
-<!ENTITY aboutTelemetry.hideSymbols "  Prikaži neobrađene podatke od smrzavanja raw data from hangs">
+<!ENTITY aboutTelemetry.hideStackSymbols "  Prikaži sirove podatke stogova">
 
 <!ENTITY aboutTelemetry.filterText "  Filtriraj (tekst ili /regexp/)">
 
 <!ENTITY aboutTelemetry.payloadChoiceHeader "  Sadržaj">
 
-<!ENTITY aboutTelemetry.rawPayload "  Neobrađeni podaci">
-
-
-<!ENTITY aboutTelemetry.keyedScalarsSection "
-  Keyed Scalars
-">
-
-<!ENTITY aboutTelemetry.scalarsSection "
-  Scalars
-">
+<!ENTITY aboutTelemetry.previousPing "&lt;&lt;">
+<!ENTITY aboutTelemetry.nextPing "&gt;&gt;">
+<!ENTITY aboutTelemetry.moreInformations "Looking for more information?">
+<!ENTITY aboutTelemetry.firefoxDataDoc "The <a>Firefox Data Documentation</a> contains guides about how to work with our data tools.">
+<!ENTITY aboutTelemetry.telemetryClientDoc "The <a>Firefox Telemetry client documentation</a> includes definitions for concepts, API documentation and data references.">
+<!ENTITY aboutTelemetry.telemetryDashboard "The <a>Telemetry dashboards</a> allow you to visualize the data Mozilla receives via Telemetry.">
+<!ENTITY aboutTelemetry.showInFirefoxJsonViewer "Open in the JSON viewer">
+<!ENTITY aboutTelemetry.homeSection "Home">
+<!ENTITY aboutTelemetry.rawPayloadSection "Raw Payload">

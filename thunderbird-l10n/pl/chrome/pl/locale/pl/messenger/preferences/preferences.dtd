@@ -2,6 +2,12 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<!ENTITY windowClose.key "w">
+<!ENTITY preferencesDefaultTitleMac.title "Preferencje">
+<!ENTITY preferencesDefaultTitleWin.title "Opcje">
+<!ENTITY preferencesCloseButton.label "Zamknij">
+<!ENTITY preferencesCloseButton.accesskey "k">
+
 <!ENTITY prefWindow.titleWin "Opcje">
 <!ENTITY prefWindow.titleGNOME "Preferencje programu &brandShortName;">
 <!ENTITY prefWindow.titleMAC "Preferencje">
@@ -12,7 +18,7 @@
 <!ENTITY paneGeneral.title "Ogólne">
 <!ENTITY paneDisplay.title "Wyświetlanie">
 <!ENTITY paneComposition.title "Tworzenie">
-<!ENTITY paneChat.title "Czat">
+<!ENTITY paneChat.title "Komunikator">
 <!ENTITY paneAttachments.title "Załączniki">
 <!ENTITY panePrivacy.title "Prywatność">
 <!ENTITY paneSecurity.title "Bezpieczeństwo">

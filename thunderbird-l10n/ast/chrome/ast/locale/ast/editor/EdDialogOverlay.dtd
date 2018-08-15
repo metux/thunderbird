@@ -13,3 +13,6 @@
 <!ENTITY makeUrlRelative.tooltip "Alterna ente URL absoluta y rellativa. Tienes de guardar previamente la páxina pa camudar esta propiedá.">
 <!ENTITY LinkURLEditField.label "Introduz una direición de páxina web, un ficheru llocal, o esbilla un enllaz con nome o encabezáu de la llista desplegable:">
 <!ENTITY LinkURLEditField.accessKey "I">
+
+<!ENTITY LinkURLEditField2.label "Enter a web page location, a local file, or select a Named Anchor or Heading from the field's context menu:">
+<!ENTITY LinkURLEditField2.accessKey "w">

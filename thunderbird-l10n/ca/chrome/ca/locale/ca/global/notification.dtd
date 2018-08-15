@@ -4,8 +4,9 @@
 
 <!ENTITY closeNotification.tooltip "Tanca aquest missatge">
 
-<!ENTITY closeNotificationItem.label "Ara no">
-
 <!ENTITY checkForUpdates "Cerca actualitzacions…">
 
 <!ENTITY learnMore "Més informació…">
+
+<!ENTITY defaultButton.label "D'acord">
+<!ENTITY defaultButton.accesskey "D">

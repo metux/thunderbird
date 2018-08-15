@@ -4,13 +4,15 @@
 <!ENTITY addons.windowTitle                   "Lisäosien hallinta">
 
 <!ENTITY search.placeholder                   "Hae lisäosista">
+
+<!ENTITY search.placeholder2                  "Hae addons.mozilla.org-sivustolta">
 <!ENTITY search.buttonlabel                   "Hae">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
 <!ENTITY search.commandkey                    "f">
 
 <!ENTITY loading.label                        "Ladataan…">
-<!ENTITY listEmpty.installed.label            "Tämän tyyppisiä lisäosia ei ole asennettuna">
+<!ENTITY listEmpty.installed.label            "Tämäntyyppisiä lisäosia ei ole asennettuna">
 <!ENTITY listEmpty.availableUpdates.label     "Päivityksiä ei löytynyt">
 <!ENTITY listEmpty.recentUpdates.label        "Et ole viime aikoina hakenut päivityksiä lisäosiin">
 <!ENTITY listEmpty.findUpdates.label          "Etsi päivityksiä">
@@ -20,8 +22,12 @@
 <!ENTITY installAddonFromFile.accesskey       "A">
 <!ENTITY toolsMenu.tooltip                    "Työkaluja kaikille lisäosille">
 
+<!ENTITY getThemes.description                "Mietitkö, miten muokata selaimesta omanlaisesi?">
+<!ENTITY getThemes.learnMore                  "Valitse tuhansista teemoista.">
+
 <!ENTITY cmd.back.tooltip                     "Edellinen sivu">
 <!ENTITY cmd.forward.tooltip                  "Seuraava sivu">
+
 
 <!ENTITY showUnsignedExtensions.button.label  "Joitain laajennuksia ei voitu varmentaa">
 <!ENTITY showAllExtensions.button.label       "Näytä kaikki laajennukset">
@@ -115,6 +121,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "Näytä tämän päivityksen julkaisutiedot">
 <!ENTITY cmd.hideReleaseNotes.label           "Piilota julkaisutiedot">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Piilota tämän päivityksen julkaisutiedot">
+<!ENTITY cmd.findReplacement.label            "Etsi korvaaja">
 
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
@@ -185,6 +192,10 @@
 <!ENTITY addon.details.label                  "Lisää">
 <!ENTITY addon.details.tooltip                "Näytä lisätietoja lisäosasta">
 <!ENTITY addon.unknownDate                    "Tuntematon">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "PERINTEINEN">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -243,9 +254,14 @@
 <!-- LOCALIZATION NOTE (disabledUnsigned.devInfo.start, disabledUnsigned.devInfo.linkToManual, disabledUnsigned.devInfo.end):
      These entities form a sentence, with disabledUnsigned.devInfo.linkToManual
      being a link to an external site. -->
-<!ENTITY disabledUnsigned.devInfo.start "Kehittäjät, joita kiinnostaa lisäosansa varmentaminen voivat lukea ">
+<!ENTITY disabledUnsigned.devInfo.start "Kehittäjät, joita kiinnostaa lisäosansa varmentaminen, voivat lukea ">
 <!ENTITY disabledUnsigned.devInfo.linkToManual "käsikirjamme">
 <!ENTITY disabledUnsigned.devInfo.end ".">
 
 <!ENTITY pluginDeprecation.description "Puuttuuko jotain? &brandShortName; ei enää tue joitain liitännäisiä.">
 <!ENTITY pluginDeprecation.learnMore "Lue lisää.">
+
+<!ENTITY legacyWarning.showLegacy "Näytä perinteiset laajennukset">
+<!ENTITY legacyExtensions.title "Perinteiset laajennukset">
+<!ENTITY legacyExtensions.description "Nämä laajennukset eivät täytä &brandShortName;in nykyisiä vaatimuksia, joten ne on poistettu käytöstä.">
+<!ENTITY legacyExtensions.learnMore "Lue lisää muutoksista lisäosiin">

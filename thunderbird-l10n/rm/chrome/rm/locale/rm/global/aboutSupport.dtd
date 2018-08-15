@@ -25,6 +25,11 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Versiun">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.featuresTitle "Funcziunalitads da &brandShortName;">
+<!ENTITY aboutSupport.featureName "Num">
+<!ENTITY aboutSupport.featureVersion "Versiun">
+<!ENTITY aboutSupport.featureId "ID">
+
 <!ENTITY aboutSupport.experimentsTitle "Funcziuns experimentalas">
 <!ENTITY aboutSupport.experimentName "Num">
 <!ENTITY aboutSupport.experimentId "ID">
@@ -65,6 +70,11 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Fanestras da plirs process">
 
+<!ENTITY aboutSupport.appBasicsProcessCount "Process per cuntegn da web">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Clav da Google">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Clav dal servetsch da posiziun da Mozilla">
+
 <!ENTITY aboutSupport.appBasicsSafeMode "Modus privat">
 
 <!ENTITY aboutSupport.showDir.label "Avrir l'ordinatur">
@@ -74,6 +84,7 @@ variant of aboutSupport.showDir.label.  This allows us to use the preferred
 <!ENTITY aboutSupport.showMac.label "Mussar en il finder">
 <!-- LOCALIZATION NOTE (aboutSupport.showWin2.label): This is the Windows-specific
 variant of aboutSupport.showDir.label. -->
+<!ENTITY aboutSupport.showWin2.label "Avrir l'ordinatur">
 
 <!ENTITY aboutSupport.modifiedKeyPrefsTitle "Impurtantas preferenzas modifitgadas">
 <!ENTITY aboutSupport.modifiedPrefsName "Num">
@@ -99,6 +110,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "Accessibladad">
 <!ENTITY aboutSupport.a11yActivated "Activà">
 <!ENTITY aboutSupport.a11yForceDisabled "Impedir l'accessibladad">
+<!ENTITY aboutSupport.a11yHandlerUsed "Handler utilisà per l'accessibladad">
+<!ENTITY aboutSupport.a11yInstantiator "Generatur d'accessibladad">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Versiuns da bibliotecas">
 
@@ -109,6 +122,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Copiar las datas bruttas en l'archiv provisoric">
 
 <!ENTITY aboutSupport.sandboxTitle "Sandbox">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Cloms dal sistem refusads">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "Avant secundas">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Tip da process">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Syscall">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Arguments">
 
 <!ENTITY aboutSupport.safeModeTitle "Empruvar il modus segirà">
 <!ENTITY aboutSupport.restartInSafeMode.label "Reaviar cun supplements deactivads…">
@@ -122,6 +143,33 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Funcziunalitads deactivadas da la protecziun cunter collaps">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Soluziuns">
 
-<!-- LOCALIZATION NOTE (aboutSupport.showWin2.label): This is the Windows-specific
-variant of aboutSupport.showDir.label. -->
-<!ENTITY aboutSupport.showWin2.label "Open Folder">
+<!ENTITY aboutSupport.mediaTitle "Multimedia">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Apparats da sortida">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Apparats d'entrada">
+<!ENTITY aboutSupport.mediaDeviceName "Num">
+<!ENTITY aboutSupport.mediaDeviceGroup "Gruppa">
+<!ENTITY aboutSupport.mediaDeviceVendor "Fabricant">
+<!ENTITY aboutSupport.mediaDeviceState "Status">
+<!ENTITY aboutSupport.mediaDevicePreferred "Preferì">
+<!ENTITY aboutSupport.mediaDeviceFormat "Format">
+<!ENTITY aboutSupport.mediaDeviceChannels "Chanals">
+<!ENTITY aboutSupport.mediaDeviceRate "Frequenza">
+<!ENTITY aboutSupport.mediaDeviceLatency "Latenza">
+
+<!ENTITY aboutSupport.intlTitle "Internaziunalisaziun &amp; lingua">
+<!ENTITY aboutSupport.intlAppTitle "Configuraziun da l'applicaziun">
+<!ENTITY aboutSupport.intlLocalesRequested "Linguas dumandadas">
+<!ENTITY aboutSupport.intlLocalesAvailable "Linguas disponiblas">
+<!ENTITY aboutSupport.intlLocalesSupported "Linguas da l'applicaziun">
+<!ENTITY aboutSupport.intlLocalesDefault "Lingua predefinida">
+<!ENTITY aboutSupport.intlOSTitle "Sistem operativ">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Linguas dal sistem">
+<!ENTITY aboutSupport.intlRegionalPrefs "Preferenzas regiunalas">
+
+<!ENTITY aboutSupport.securitySoftwareTitle "Security Software">
+<!ENTITY aboutSupport.securitySoftwareType "Type">
+<!ENTITY aboutSupport.securitySoftwareName "Name">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">

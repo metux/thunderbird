@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "dsb": {
+      "chrome_resources": {
+        "necko": "chrome/dsb/locale/dsb/necko/", 
+        "global": "chrome/dsb/locale/dsb/global/", 
+        "messenger-region": "chrome/dsb/locale/dsb/messenger-region/", 
+        "chat": "chrome/dsb/locale/dsb/chat/", 
+        "devtools": "chrome/dsb/locale/dsb/devtools/client/", 
+        "pipnss": "chrome/dsb/locale/dsb/pipnss/", 
+        "messenger-smime": "chrome/dsb/locale/dsb/messenger-smime/", 
+        "messenger-newsblog": "chrome/dsb/locale/dsb/messenger-newsblog/", 
+        "devtools-shim": "chrome/dsb/locale/dsb/devtools/shim/", 
+        "alerts": "chrome/dsb/locale/dsb/alerts/", 
+        "messenger": "chrome/dsb/locale/dsb/messenger/", 
+        "editor": "chrome/dsb/locale/dsb/editor/", 
+        "branding": "chrome/dsb/locale/dsb/branding/", 
+        "mozldap": "chrome/dsb/locale/dsb/mozldap/", 
+        "autoconfig": "chrome/dsb/locale/dsb/autoconfig/", 
+        "devtools-shared": "chrome/dsb/locale/dsb/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/dsb/locale/dsb/global-platform/win/", 
+          "android": "chrome/dsb/locale/dsb/global-platform/unix/", 
+          "macosx": "chrome/dsb/locale/dsb/global-platform/mac/", 
+          "linux": "chrome/dsb/locale/dsb/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/dsb/locale/dsb/mozapps/", 
+        "pluginproblem": "chrome/dsb/locale/dsb/pluginproblem/", 
+        "communicator": "chrome/dsb/locale/dsb/communicator/", 
+        "messenger-mapi": "chrome/dsb/locale/dsb/messenger-mapi/", 
+        "places": "chrome/dsb/locale/dsb/places/", 
+        "passwordmgr": "chrome/dsb/locale/dsb/passwordmgr/", 
+        "pippki": "chrome/dsb/locale/dsb/pippki/"
+      }, 
+      "version": "20180504155444"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-dsb@firefox.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "dsb", 
+  "version": "60.0buildid20180709054853", 
+  "name": "Dolnoserbšćina Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "Michael Wolf (contributors: Michael Wolf)", 
+  "description": "Language pack for Thunderbird for dsb"
+}

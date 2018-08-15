@@ -24,3 +24,4 @@
 <!ENTITY replaceAllButton.label "Mindet cseréli">
 <!ENTITY replaceAllButton.accesskey "M">
 <!ENTITY closeButton.label "Bezárás">
+<!ENTITY closeButton.accesskey "B">

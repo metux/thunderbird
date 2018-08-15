@@ -3,8 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <!-- rights.locale-direction instead of the usual local.dir entity, so RTL can skip translating page. -->
 <!ENTITY rights.locale-direction "ltr">
-<!ENTITY rights.pagetitle       "about:rights">
-<!ENTITY rights.intro-header    "Informácie o vašich právach">
+<!ENTITY rights.title "Informácie o vašich právach">
 <!ENTITY rights.intro "&brandFullName; je voľne šíriteľný otvorený softvér vytvorený spoločenstvom tisícov prispievateľov z celého sveta. Tu je niekoľko faktov, o ktorých by ste mali vedieť:">
 
 <!-- Note on pointa / pointb / pointc form:
@@ -73,7 +72,7 @@
 <!ENTITY rights.locationawarebrowsing-term1b "about:config">
 <!ENTITY rights.locationawarebrowsing-term2 "Do filtra zadajte geo.enabled">
 <!ENTITY rights.locationawarebrowsing-term3 "Dvakrát kliknite na voľbu geo.enabled">
-<!ENTITY rights.locationawarebrowsing-term4 "Služba Prehliadanie s geolokáciou je teraz vypnutá">
+<!ENTITY rights.locationawarebrowsing-term4 "Prehliadanie so zisťovaním polohy je vypnuté">
 
 <!-- intro paragraph for unbranded builds -->
 <!ENTITY rights.webservices-unbranded "Tu by mal byť uvedený prehľad webových služieb zahrnutých v produkte, ako aj návod na ich vypnutie (ak je vypnutie možné).">

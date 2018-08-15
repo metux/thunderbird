@@ -1,8 +1,8 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-<!-- Account manager window for Instantbird -->
 
+<!-- Account manager window for Instantbird -->
 <!ENTITY accounts.title                      "Akun - &brandShortName;">
 <!ENTITY accountManager.width                "450">
 <!-- Instant messaging account status window for Thunderbird -->
@@ -16,50 +16,27 @@
 <!-- This should match account.commandkey in instantbird.dtd -->
 <!-- This title must be short, displayed with a big font size -->
 <!ENTITY accountManager.noAccount.title      "Belum ada akun yang disiapkan">
+<!ENTITY accountManager.noAccount.description "Klik pada tombol &accountManager.newAccount.label; agar &brandShortName; memandu Anda melalui proses menatanya.">
+<!ENTITY account.autoSignOn.label     "Masuk saat mulai">
+<!ENTITY account.delete.label         "Hapus">
+<!ENTITY account.copyDebugLog.label     "Salin Log Debug">
+<!ENTITY account.showDebugLog.label     "Tampilkan Log Debug">
+<!ENTITY account.disconnecting        "Memutus…">
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<!ENTITY account.autoSignOn.accesskey "S">
-<!ENTITY account.autoSignOn.label     "Sign-on at startup">
-<!ENTITY account.cancelReconnection.accesskey     "A">
-<!ENTITY account.cancelReconnection.label         "Cancel reconnection">
-<!ENTITY account.connect.accesskey    "o">
-<!ENTITY account.connect.label        "Connect">
-<!ENTITY account.connecting           "Connecting…">
-<!ENTITY account.copyDebugLog.accesskey "C">
-<!ENTITY account.copyDebugLog.label     "Copy Debug Log">
-<!ENTITY account.delete.accesskey     "D">
-<!ENTITY account.delete.label         "Delete">
-<!ENTITY account.disconnect.accesskey "i">
-<!ENTITY account.disconnect.label     "Disconnect">
-<!ENTITY account.disconnected         "Not Connected">
-<!ENTITY account.disconnecting        "Disconnecting…">
-<!ENTITY account.edit.accesskey       "P">
-<!ENTITY account.edit.label           "Properties">
-<!ENTITY account.movedown.label       "Move down">
-<!ENTITY account.moveup.label         "Move up">
-<!ENTITY account.showDebugLog.accesskey "H">
-<!ENTITY account.showDebugLog.label     "Show Debug Log">
-<!-- This should match account.commandkey in instantbird.dtd -->
 <!ENTITY accountManager.close.commandkey     "a">
-<!ENTITY accountManager.noAccount.description "Click on the &accountManager.newAccount.label; button to let &brandShortName; guide you through the process of configuring one.">
+<!ENTITY account.autoSignOn.accesskey "S">
+<!ENTITY account.connect.label        "Connect">
+<!ENTITY account.connect.accesskey    "o">
+<!ENTITY account.disconnect.label     "Disconnect">
+<!ENTITY account.disconnect.accesskey "i">
+<!ENTITY account.delete.accesskey     "D">
+<!ENTITY account.edit.label           "Properties">
+<!ENTITY account.edit.accesskey       "P">
+<!ENTITY account.moveup.label         "Move up">
+<!ENTITY account.movedown.label       "Move down">
+<!ENTITY account.cancelReconnection.label         "Cancel reconnection">
+<!ENTITY account.cancelReconnection.accesskey     "A">
+<!ENTITY account.copyDebugLog.accesskey "C">
+<!ENTITY account.showDebugLog.accesskey "H">
+<!ENTITY account.connecting           "Connecting…">
+<!ENTITY account.disconnected         "Not Connected">

@@ -73,8 +73,8 @@
 
 <!ENTITY nssBadCert.title "Beveiligde verbinding mislukt">
 <!ENTITY nssBadCert.longDesc2 "<ul>
-<li>Dit kan een probleem met de serverconfiguratie zijn, of iemand probeert deze server na te bootsen.</li>
-<li>Als u in het verleden wel met succes verbinding hebt gemaakt met deze server, dan is de fout wellicht tijdelijk en kunt u het later nogmaals proberen.</li>
+<li>Dit kan een probleem met de serverconfiguratie zijn, of iemand probeert de server na te bootsen.</li>
+<li>Als u in het verleden met succes verbinding met deze server hebt gemaakt, kan de fout van tijdelijke aard zijn en kunt u het later nogmaals proberen.</li>
 </ul>
 ">
 
@@ -97,3 +97,5 @@
 <!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
      "NS_ERROR_NET_INADEQUATE_SECURITY". -->
 <!ENTITY inadequateSecurityError.longDesc "<p><span class='hostname'></span> gebruikt verouderde beveiligingstechnologie die kwetsbaar is voor aanvallen. Een aanvaller kan eenvoudig gegevens onthullen waarvan u dacht dat deze veilig waren. De websitebeheerder dient eerst de server in orde te maken voordat u de website kunt bezoeken.</p><p>Foutcode: NS_ERROR_NET_INADEQUATE_SECURITY</p>">
+
+<!ENTITY blockedByPolicy.title "Geblokkeerde pagina">

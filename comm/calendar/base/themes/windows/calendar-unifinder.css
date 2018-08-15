@@ -1,0 +1,31 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+@import url(chrome://calendar-common/skin/calendar-unifinder.css);
+
+#bottom-events-box {
+  border-inline-start: 1px solid ThreeDShadow;
+}
+
+#unifinder-searchBox {
+  border-bottom: 1px solid ThreeDShadow;
+}
+
+.unifinder-closebutton {
+  margin-inline-end: 2px;
+}
+
+@media (-moz-windows-default-theme) {
+  #unifinder-searchBox {
+    background-color: #f8f8f8;
+    height: 33px;
+  }
+}
+
+@media (-moz-os-version: windows-win8),
+       (-moz-os-version: windows-win10) {
+  #unifinder-searchBox {
+    height: 35px;
+  }
+}

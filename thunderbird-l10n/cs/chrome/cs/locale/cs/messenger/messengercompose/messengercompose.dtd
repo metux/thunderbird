@@ -85,6 +85,20 @@
 <!ENTITY editRewrapCmd.key "R">
 <!ENTITY renameAttachmentCmd.label "Přejmenovat přílohu…">
 <!ENTITY renameAttachmentCmd.accesskey "e">
+<!ENTITY reorderAttachmentsCmd.label "Uspořádat přílohy…">
+<!ENTITY reorderAttachmentsCmd.accesskey "s">
+<!ENTITY reorderAttachmentsCmd.key "x">
+<!ENTITY toggleAttachmentPaneCmd.label "Lišta příloh">
+<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.accesskey):
+     For better mnemonics, toggleAttachmentPaneCmd.accesskey should be the same
+     as attachments.accesskey. -->
+<!ENTITY toggleAttachmentPaneCmd.accesskey "P">
+<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.key):
+     With OS-specific access modifier, this defines the shortcut key for showing/
+     hiding/minimizing the attachment pane, e.g. Alt+M on Windows.
+     toggleAttachmentPaneCmd.key and attachments.accesskey must be the same
+     for the bucket view state machinery to work. -->
+<!ENTITY toggleAttachmentPaneCmd.key "P">
 <!ENTITY selectAllCmd.label "Vybrat vše">
 <!ENTITY selectAllCmd.key "A">
 <!ENTITY selectAllCmd.accesskey "a">
@@ -103,6 +117,26 @@
 <!ENTITY findPrevCmd.key "G">
 <!ENTITY findPrevCmd.key2 "VK_F3">
 
+<!-- Reorder Attachment Panel -->
+<!ENTITY reorderAttachmentsPanel.label "Uspořádat přílohy">
+<!ENTITY moveAttachmentTopPanelBtn.label "Přesunout nahoru">
+<!ENTITY moveAttachmentUpPanelBtn.label "Posunout výše">
+<!ENTITY moveAttachmentBundleUpPanelBtn.label "Přesunout hromadně">
+<!ENTITY moveAttachmentDownPanelBtn.label "Posunout níže">
+<!ENTITY moveAttachmentBottomPanelBtn.label "Přesunout dolů">
+
+<!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.Sort.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsPanelBtn.Sort.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsPanelBtn.Sort.AZ.label "Uspořádat od A do Z">
+<!ENTITY sortAttachmentsPanelBtn.Sort.ZA.label "Uspořádat od Z do A">
+<!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.SortSelection.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsPanelBtn.SortSelection.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.AZ.label "Uspořádat výběr od A do Z">
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.ZA.label "Uspořádat výběr od Z do A">
+<!ENTITY sortAttachmentsPanelBtn.key "y">
+
 <!-- View Menu -->
 <!ENTITY viewMenu.label "Zobrazení">
 <!ENTITY viewMenu.accesskey "Z">
@@ -119,7 +153,7 @@
 <!ENTITY customizeToolbar.label "Přizpůsobit…">
 <!ENTITY customizeToolbar.accesskey "z">
 
-<!ENTITY addressSidebar.label "Lišta adresáře">
+<!ENTITY addressSidebar.label "Lišta kontaktů">
 <!ENTITY addressSidebar.accesskey "a">
 
 <!-- Format Menu -->
@@ -181,7 +215,7 @@
 <!ENTITY messengerCmd.label "Pošta a diskusní skupiny">
 <!ENTITY messengerCmd.accesskey "P">
 <!ENTITY messengerCmd.commandkey "1">
-<!ENTITY addressBookCmd.label "Adresář">
+<!ENTITY addressBookCmd.label "Kontakty">
 <!ENTITY addressBookCmd.accesskey "A">
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY accountManagerCmd2.label "Nastavení účtu">
@@ -202,7 +236,7 @@
 <!-- Mail Toolbar -->
 <!ENTITY sendButton.label "Odeslat">
 <!ENTITY quoteButton.label "Citovat">
-<!ENTITY addressButton.label "Adresář">
+<!ENTITY addressButton.label "Kontakty">
 <!ENTITY attachButton.label "Připojit">
 <!ENTITY spellingButton.label "Pravopis">
 <!ENTITY saveButton.label "Uložit">
@@ -212,10 +246,10 @@
 <!ENTITY sendButton.tooltip "Odešle tuto zprávu">
 <!ENTITY sendlaterButton.tooltip "Odešle tuto zprávu později">
 <!ENTITY quoteButton.tooltip "Ocituje předchozí zprávu">
-<!ENTITY addressButton.tooltip "Vybere příjemce z adresáře">
+<!ENTITY addressButton.tooltip "Vybere příjemce z kontaktů">
 <!ENTITY attachButton.tooltip "Připojí k této zprávě přílohu">
+<!ENTITY attachButton.tooltip2 "Přidat přílohu">
 <!ENTITY spellingButton.tooltip "Zkontroluje pravopis vybrané části nebo celé zprávy">
-<!ENTITY statusLanguageText.tooltip "Jazyk kontroly pravopisu">
 <!ENTITY saveButton.tooltip "Uloží tuto zprávu">
 <!ENTITY cutButton.tooltip              "Vyjmout">
 <!ENTITY copyButton.tooltip             "Kopírovat">
@@ -236,9 +270,14 @@
 <!ENTITY followupAddr.label "Sledování:">
 <!ENTITY subject.label "Předmět:">
 <!ENTITY subject.accesskey "d">
-<!-- LOCALIZATION NOTE attachments.accesskey This access key should correspond
-     to the strings in attachmentCount in composeMsgs.properties -->
+<!-- LOCALIZATION NOTE (attachments.accesskey) This access key character should
+     be taken from the strings in attachmentCount in composeMsgs.properties,
+     and it must be the same as toggleAttachmentPaneCmd.key, otherwise it won't
+     work, as the shortcut key functionality supersedes the access key. -->
 <!ENTITY attachments.accesskey "P">
+
+<!ENTITY attachmentBucketHeader.tooltip "Lišta příloh">
+<!ENTITY attachmentBucketCloseButton.tooltip "Skryje lištu příloh">
 
 <!-- Format Toolbar, imported from editorAppShell.xul -->
 <!ENTITY SmileButton.tooltip "Vloží smajlíka">
@@ -276,6 +315,7 @@
 <!ENTITY pasteQuote.label "Vložit jako citaci">
 <!ENTITY pasteQuote.accesskey "c">
 
+<!-- Attachment Item and List Context Menus -->
 <!ENTITY openAttachment.label "Otevřít">
 <!ENTITY openAttachment.accesskey "O">
 <!ENTITY delete.label "Smazat">
@@ -284,6 +324,10 @@
 <!ENTITY removeAttachment.accesskey "d">
 <!ENTITY renameAttachment.label "Přejmenovat…">
 <!ENTITY renameAttachment.accesskey "P">
+<!ENTITY reorderAttachments.label "Uspořádat přílohy…">
+<!ENTITY reorderAttachments.accesskey "s">
+<!ENTITY removeAllAttachments.label "Odebrat všechny přílohy">
+<!ENTITY removeAllAttachments.accesskey "V">
 <!ENTITY selectAll.label "Vybrat vše">
 <!ENTITY selectAll.accesskey "a">
 <!ENTITY attachFile.label "Připojit soubor…">
@@ -299,13 +343,24 @@
 <!ENTITY attachPage.label "Připojit webovou stránku…">
 <!ENTITY attachPage.accesskey "w">
 
+<!-- Attachment Pane Header Bar Context Menu -->
+<!-- LOCALIZATION NOTE (initiallyShowAttachmentPane.label):
+     Should use the same wording as startExpandedCmd.label
+     in msgHdrViewOverlay.dtd. -->
+<!ENTITY initiallyShowAttachmentPane.label "Zobrazovat panel příloh">
+<!ENTITY initiallyShowAttachmentPane.accesskey "Z">
+
 <!-- Spell checker context menu items -->
 <!ENTITY spellAddDictionaries.label "Přidat slovník…">
 <!ENTITY spellAddDictionaries.accesskey "P">
 
 <!-- Title for the address picker panel -->
-<!ENTITY addressesSidebarTitle.label "Adresář">
+<!ENTITY addressesSidebarTitle.label "Kontakty">
 
 <!-- Identity popup customize menuitem -->
 <!ENTITY customizeFromAddress.label "Nastavení adresy odesílatele…">
 <!ENTITY customizeFromAddress.accesskey "a">
+
+<!-- Status Bar -->
+<!ENTITY languageStatusButton.tooltip "Jazyk kontroly pravopisu">
+<!ENTITY encodingStatusPanel.tooltip "Znaková sada textu">

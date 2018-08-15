@@ -3,9 +3,9 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY aboutSupport.pageTitle "Gwybodaeth am Ddatrys Problemau">
-<!-- LOCALIZATION NOTE (aboutSupport.pageSubtitle): don't change the 'supportLink' id. -->
 
-<!ENTITY aboutSupport.pageSubtitle "  Mae'r dudalen hon yn cynnwys gwybodaeth dechnegol a allai fod yn ddefnyddiolpan fyddwch yn ceisio datrys problem. Os ydych yn chwilio am atebion i gwestiynaucyffredin am &brandShortName;, edrychwch ar ein wefan cefnogi <a id='supportLink'></a>.">
+<!-- LOCALIZATION NOTE (aboutSupport.pageSubtitle): don't change the 'supportLink' id. -->
+<!ENTITY aboutSupport.pageSubtitle "Mae'r dudalen hon yn cynnwys gwybodaeth dechnegol a allai fod yn ddefnyddiol pan fyddwch yn ceisio datrys problem. Os ydych yn chwilio am atebion i gwestiynau cyffredin am &brandShortName;, edrychwch ar ein <a id='supportLink'>gwefan cefnogaeth</a>.">
 
 <!ENTITY aboutSupport.crashes.title "Ardroddiad Chwalu">
 <!-- LOCALIZATION NOTE (aboutSupport.crashes.id):
@@ -21,6 +21,18 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Fersiwn">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Meddalwedd Diogelwch">
+<!ENTITY aboutSupport.securitySoftwareType "Math">
+<!ENTITY aboutSupport.securitySoftwareName "Enw">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Gwrth Firws">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Gwrthysbiwar">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Mur Cadarn">
+
+<!ENTITY aboutSupport.featuresTitle "Nodweddion &brandShortName;">
+<!ENTITY aboutSupport.featureName "Enw">
+<!ENTITY aboutSupport.featureVersion "Fersiwn">
+<!ENTITY aboutSupport.featureId "ID">
+
 <!ENTITY aboutSupport.experimentsTitle "Nodweddion Arbrofol">
 <!ENTITY aboutSupport.experimentName "Enw">
 <!ENTITY aboutSupport.experimentId "ID">
@@ -34,9 +46,9 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.appBasicsName "Enw">
 <!ENTITY aboutSupport.appBasicsVersion "Fersiwn">
 <!ENTITY aboutSupport.appBasicsBuildID "Cyfeirnod Adeiladu">
+
 <!-- LOCALIZATION NOTE (aboutSupport.appBasicsUpdateChannel, aboutSupport.appBasicsUpdateHistory, aboutSupport.appBasicsShowUpdateHistory):
 "Update" is a noun here, not a verb. -->
-
 <!ENTITY aboutSupport.appBasicsUpdateChannel "Sianel Diweddaru">
 <!ENTITY aboutSupport.appBasicsUpdateHistory "Hanes Diweddaru">
 <!ENTITY aboutSupport.appBasicsShowUpdateHistory "Dangos Hanes Diweddaru">
@@ -53,13 +65,20 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsOS "SW">
 <!ENTITY aboutSupport.appBasicsMemoryUse "Defnydd o'r cof">
 <!ENTITY aboutSupport.appBasicsPerformance "Perfformiad">
-<!-- LOCALIZATION NOTE the term "Service Workers" should not be translated. -->
 
+<!-- LOCALIZATION NOTE the term "Service Workers" should not be translated. -->
 <!ENTITY aboutSupport.appBasicsServiceWorkers "Service Workers Cofrestredig">
 
 <!ENTITY aboutSupport.appBasicsProfiles "Proffiliau">
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Ffenestri Amlbroses">
+
+<!ENTITY aboutSupport.appBasicsProcessCount "Prosesau Cynnwys Gwe">
+
+<!ENTITY aboutSupport.enterprisePolicies "Polisïau Mentrau">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Allwedd Google">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla Location Service Key">
 
 <!ENTITY aboutSupport.appBasicsSafeMode "Modd Diogel">
 
@@ -75,12 +94,12 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.modifiedKeyPrefsTitle "Dewisiadau Pwysig wedi eu Newid">
 <!ENTITY aboutSupport.modifiedPrefsName "Enw">
 <!ENTITY aboutSupport.modifiedPrefsValue "Gwerth">
-<!-- LOCALIZATION NOTE (aboutSupport.userJSTitle, aboutSupport.userJSDescription): user.js is the name of the preference override file being checked. -->
 
+<!-- LOCALIZATION NOTE (aboutSupport.userJSTitle, aboutSupport.userJSDescription): user.js is the name of the preference override file being checked. -->
 <!ENTITY aboutSupport.userJSTitle "Dewisiadau user.js">
 <!ENTITY aboutSupport.userJSDescription "Mae eich ffolder profil yn cynnwys <a id='prefs-user-js-link'>ffeil user.js</a>, sy'n cynnwys dewisiadau sydd heb eu creu gan &brandShortName;.">
 
-<!ENTITY aboutSupport.lockedKeyPrefsTitle "Dewisiadau Wedi eu Cloi Pwysig">
+<!ENTITY aboutSupport.lockedKeyPrefsTitle "Dewisiadau Pwysig Wedi eu Cloi">
 <!ENTITY aboutSupport.lockedPrefsName "Enw">
 <!ENTITY aboutSupport.lockedPrefsValue "Gwerth">
 
@@ -96,6 +115,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "Hygyrchedd">
 <!ENTITY aboutSupport.a11yActivated "Gweithredu">
 <!ENTITY aboutSupport.a11yForceDisabled "Atal Hygyrchedd">
+<!ENTITY aboutSupport.a11yHandlerUsed "Defnyddiwyd Trinydd Mynediadwy">
+<!ENTITY aboutSupport.a11yInstantiator "Enghreifftiad Hygyrchedd">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Fersiynau Llyfrgell">
 
@@ -106,6 +127,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Copïo data bras i'r clipfwrdd">
 
 <!ENTITY aboutSupport.sandboxTitle "Blwch tywod">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Galwadau System wedi eu Gwrthod">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "Eiliad yn Ôl">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Math o Brosesu">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Syscall">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Ymresymiadau">
 
 <!ENTITY aboutSupport.safeModeTitle "Defnyddiwch y Modd Diogel">
 <!ENTITY aboutSupport.restartInSafeMode.label "Ailgychwyn gydag Ychwanegion wedi eu Hanalluogi…">
@@ -118,3 +147,26 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Cofnod Penderfynnu">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Nodweddion Crash Guard wedi ei Analluogi">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Dulliau Datrys">
+
+<!ENTITY aboutSupport.mediaTitle "Cyfrwng">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Dyfeisiau Allbwn">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Dyfeisiau Mewnbwn">
+<!ENTITY aboutSupport.mediaDeviceName "Enw">
+<!ENTITY aboutSupport.mediaDeviceGroup "Grŵp">
+<!ENTITY aboutSupport.mediaDeviceVendor "Gwerthwr">
+<!ENTITY aboutSupport.mediaDeviceState "Cyflwr">
+<!ENTITY aboutSupport.mediaDevicePreferred "Amgen">
+<!ENTITY aboutSupport.mediaDeviceFormat "Fformat">
+<!ENTITY aboutSupport.mediaDeviceChannels "Sianeli">
+<!ENTITY aboutSupport.mediaDeviceRate "Cyfradd">
+<!ENTITY aboutSupport.mediaDeviceLatency "Cuddni">
+
+<!ENTITY aboutSupport.intlTitle "Rhyngwladoli a Lleoleiddio">
+<!ENTITY aboutSupport.intlAppTitle "Gosodiadau'r Rhaglen">
+<!ENTITY aboutSupport.intlLocalesRequested "Locales Gofynnwyd Amdanynt">
+<!ENTITY aboutSupport.intlLocalesAvailable "Locales ar Gael">
+<!ENTITY aboutSupport.intlLocalesSupported "Locales Apiau">
+<!ENTITY aboutSupport.intlLocalesDefault "Locale Rhagosodedig">
+<!ENTITY aboutSupport.intlOSTitle "System Weithredu">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Locales y System">
+<!ENTITY aboutSupport.intlRegionalPrefs "Dewisiadau Rhanbarthol">

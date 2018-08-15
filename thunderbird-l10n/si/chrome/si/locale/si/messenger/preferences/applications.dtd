@@ -37,6 +37,5 @@
 <!ENTITY enableCloudFileAccountOffer.label "මෙයට වඩා විශාල ගොනු සඳහා බෙදාගන්න">
 <!ENTITY enableCloudFileAccountOffer.mb "MB">
 
-<!ENTITY addCloudFileAccount1.accesskey   "A">
-
 <!ENTITY addCloudFileAccount1.label       "Add…">
+<!ENTITY addCloudFileAccount1.accesskey   "A">

@@ -32,8 +32,6 @@
 <!ENTITY runtimeMenu_accesskey "o">
 <!ENTITY runtimeMenu_disconnect_label "Rozłącz">
 <!ENTITY runtimeMenu_disconnect_accesskey "R">
-<!ENTITY runtimeMenu_showPermissionTable_label "Tabela uprawnień">
-<!ENTITY runtimeMenu_showPermissionTable_accesskey "T">
 <!ENTITY runtimeMenu_takeScreenshot_label "Zrzut ekranu">
 <!ENTITY runtimeMenu_takeScreenshot_accesskey "Z">
 <!ENTITY runtimeMenu_showDetails_label "Informacje">
@@ -47,8 +45,6 @@
 
 <!ENTITY viewMenu_label "Widok">
 <!ENTITY viewMenu_accesskey "W">
-<!ENTITY viewMenu_toggleEditor_label "Edytor">
-<!ENTITY viewMenu_toggleEditor_accesskey "E">
 <!ENTITY viewMenu_zoomin_label "Powiększ">
 <!ENTITY viewMenu_zoomin_accesskey "P">
 <!ENTITY viewMenu_zoomout_label "Pomniejsz">
@@ -63,7 +59,6 @@
 <!ENTITY key_showProjectPanel "O">
 <!ENTITY key_play "R">
 <!ENTITY key_toggleToolbox "VK_F12">
-<!ENTITY key_toggleEditor "B">
 <!ENTITY key_zoomin "+">
 <!ENTITY key_zoomin2 "=">
 <!ENTITY key_zoomout "-">
@@ -74,9 +69,7 @@
 <!ENTITY projectPanel_tabs "Karty">
 <!ENTITY runtimePanel_usb "Urządzenia USB">
 <!ENTITY runtimePanel_wifi "Urządzenia Wi-Fi">
-<!ENTITY runtimePanel_simulator "Symulator">
 <!ENTITY runtimePanel_other "Inne">
-<!ENTITY runtimePanel_installsimulator "Zainstaluj symulator">
 <!ENTITY runtimePanel_noadbhelper "Zainstaluj dodatek ADB Helper">
 <!ENTITY runtimePanel_nousbdevice "Niewidoczne urządzenie?">
 <!ENTITY runtimePanel_refreshDevices_label "Odśwież listę urządzeń">
@@ -88,7 +81,6 @@
 <!ENTITY details_location "Położenie">
 <!ENTITY details_manifestURL "ID aplikacji">
 <!ENTITY details_removeProject_button "Usuń projekt">
-<!ENTITY details_showPrepackageLog_button "Wpisy dziennika poprzedzające pakowanie">
 
 <!ENTITY newAppWindowTitle "Nowa aplikacja">
 <!ENTITY newAppHeader "Szablon">
@@ -110,24 +102,6 @@
 <!ENTITY prefs_options_rememberlastproject_tooltip "Przywróć ostatni otwarty projekt podczas uruchamiania WebIDE">
 <!ENTITY prefs_options_templatesurl "Adres URL szablonów">
 <!ENTITY prefs_options_templatesurl_tooltip "Indeks dostępnych szablonów">
-<!ENTITY prefs_options_showeditor "Edytor">
-<!ENTITY prefs_options_showeditor_tooltip "Wyświetlanie wewnętrznego edytora">
-<!ENTITY prefs_options_tabsize "Szerokość tabulacji">
-<!ENTITY prefs_options_expandtab "Miękka tabulacja">
-<!ENTITY prefs_options_expandtab_tooltip "Zastępowanie spacjami znaków tabulacji">
-<!ENTITY prefs_options_detectindentation "Automatyczne wcięcia">
-<!ENTITY prefs_options_detectindentation_tooltip "Odgadywanie głębokości wcięć na podstawie źródłowych treści">
-<!ENTITY prefs_options_autocomplete "Automatyczne uzupełnianie">
-<!ENTITY prefs_options_autocomplete_tooltip "Automatyczne uzupełnianie kodu">
-<!ENTITY prefs_options_autoclosebrackets "Automatyczne nawiasy">
-<!ENTITY prefs_options_autoclosebrackets_tooltip "Automatyczne wstawianie znaków zamykających nawias">
-<!ENTITY prefs_options_keybindings "Skróty klawiaturowe">
-<!ENTITY prefs_options_keybindings_default "Domyślne">
-<!ENTITY prefs_options_autosavefiles "Automatyczne zapisywanie plików">
-<!ENTITY prefs_options_autosavefiles_tooltip "Automatyczne zapisywanie plików przed uruchomieniem projektu">
-
-<!ENTITY permissionstable_title "Tabela uprawnień">
-<!ENTITY permissionstable_name_header "Nazwa">
 
 <!ENTITY runtimedetails_title "Informacje o środowisku">
 <!ENTITY runtimedetails_adbIsRoot "ADB root: ">
@@ -165,18 +139,3 @@
 <!ENTITY wifi_auth_qr_size_note "Jeśli zbyt mały kod QR uniemożliwia zestawienie połączenia, spróbuj powiększyć zawartość lub całe okno.">
 
 <!ENTITY logs_title "Wpisy dziennika poprzedzające pakowanie">
-
-<!ENTITY simulator_title "Ustawienia symulatora">
-<!ENTITY simulator_remove "Usuń symulator">
-<!ENTITY simulator_reset "Przywróć domyślne">
-<!ENTITY simulator_name "Nazwa">
-<!ENTITY simulator_software "Oprogramowanie">
-<!ENTITY simulator_version "Wersja">
-<!ENTITY simulator_profile "Profil">
-<!ENTITY simulator_hardware "Sprzęt">
-<!ENTITY simulator_device "Urządzenie">
-<!ENTITY simulator_screenSize "Ekran">
-<!ENTITY simulator_pixelRatio "Współczynnik pikseli">
-<!ENTITY simulator_tv_data "Symulacja TV">
-<!ENTITY simulator_tv_data_open "Dane konfiguracyjne">
-<!ENTITY simulator_tv_data_open_button "Otwórz katalog z konfiguracją…">

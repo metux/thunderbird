@@ -33,7 +33,7 @@
 <!ENTITY fullnameLabel.label "Вашето име:">
 <!ENTITY fullnameLabel.accesskey "В">
 
-<!ENTITY emailLabel.label "Адрес на е-поща:">
+<!ENTITY emailLabel.label "Адрес на ел. поща:">
 <!ENTITY emailLabel.accesskey "А">
 
 <!-- Entities for Incoming Server page -->
@@ -46,8 +46,8 @@
 <!-- LOCALIZATION NOTE (popType.label) : Do not translate "POP" in below line -->
 <!ENTITY popType.label "POP">
 <!ENTITY popType.accesskey "P">
-<!ENTITY leaveMsgsOnSrvr.label "Запазване съобщенията на сървъра">
-<!ENTITY leaveMsgsOnSrvr.accesskey "З">
+<!ENTITY leaveMsgsOnSrvr.label "Оставяне на копие от писмата на сървъра">
+<!ENTITY leaveMsgsOnSrvr.accesskey "о">
 <!ENTITY portNum.label "Порт:">
 <!ENTITY portNum.accesskey "о">
 <!ENTITY defaultPortLabel.label "По подразбиране:">
@@ -85,7 +85,7 @@
      text after the "&quot;" entity in haveSmtp1.suffix3, if required grammatically.
 -->
 <!ENTITY haveSmtp1.prefix "Ще бъде използван вашият съществуващ изходящ сървър (SMTP) &quot;">
-<!ENTITY haveSmtp1.suffix3 "&quot;, will be used.">
+<!ENTITY haveSmtp1.suffix3 "&quot;, ще бъде използвано.">
 <!-- LOCALIZATION NOTE (haveSmtp2.prefix and haveSmtp2.suffix3) : Do not translate "SMTP" and "&quot;" in
      these variables. Also, translate haveSmtp2.prefix and haveSmtp2.suffix3 as a single sentence, inserting
      text after the "&quot;" entity in haveSmtp2.suffix3, if required grammatically.
@@ -104,7 +104,7 @@
 <!ENTITY accnameTitle.label "Име на сметката">
 <!-- LOCALIZATION NOTE (accnameDesc.label) : do not translate any "&quot;" in below line -->
 <!ENTITY accnameDesc.label "Напишете името, под което ще използвате тази регистрация (например, &quot;Служебна поща&quot;, &quot;Домашна поща&quot; или &quot;Регистрация за новини&quot;).">
-<!ENTITY accnameLabel.label "Име на пощата:">
+<!ENTITY accnameLabel.label "Име на сметката:">
 <!ENTITY accnameLabel.accesskey "И">
 
 <!-- Entities for Done (Congratulations) page -->
@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "щ">
 <!ENTITY clickFinish.label "Натиснете Край, за да запазите настройките и напуснете този помощник.">
 <!ENTITY clickFinish.labelMac "Натиснете Край, за да запазите настройките и напуснете този помощник.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

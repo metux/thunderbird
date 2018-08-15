@@ -3,9 +3,9 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <!ENTITY addons.windowTitle                   "מנהל התוספות">
 
-<!ENTITY search.placeholder                   "חיפוש בכל התוספות">
+<!ENTITY search.placeholder2                  "חיפוש ב־addons.mozilla.org">
 <!ENTITY search.buttonlabel                   "חיפוש">
-<!-- LOCALIZATION NOTE (search.commandKey):
+<!-- LOCALIZATION NOTE (search.commandkey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
 <!ENTITY search.commandkey                    "f">
 
@@ -14,14 +14,14 @@
 <!ENTITY listEmpty.availableUpdates.label     "לא נמצאו עדכונים">
 <!ENTITY listEmpty.recentUpdates.label        "לא עדכנת תוספות כלשהן לאחרונה">
 <!ENTITY listEmpty.findUpdates.label          "בדיקת עדכונים">
-<!ENTITY listEmpty.search.label               "לא ניתן למצוא תוספת תואמת">
 <!ENTITY listEmpty.button.label               "מידע נוסף על תוספות">
 <!ENTITY installAddonFromFile.label           "התקנת תוספת מקובץ…">
 <!ENTITY installAddonFromFile.accesskey       "ה">
 <!ENTITY toolsMenu.tooltip                    "כלים עבור כל התוספות">
 
-<!ENTITY cmd.back.tooltip                     "חזרה דף אחד אחורה">
-<!ENTITY cmd.forward.tooltip                  "התקדמות דף אחד קדימה">
+<!ENTITY getThemes.description                "מעוניינים להתאים אישית את הדפדפן?">
+<!ENTITY getThemes.learnMore                  "בחרו מאלפי ערכות נושא זמינות.">
+
 
 <!ENTITY showUnsignedExtensions.button.label  "אין אפשרות לאמת חלק מההרחבות">
 <!ENTITY showAllExtensions.button.label       "הצגת כל ההרחבות">
@@ -38,7 +38,6 @@
 <!ENTITY warning.updatesecurity.enable.tooltip     "הפעלת בדיקות אבטחה לעדכוני תוספות">
 
 <!-- categories / views -->
-<!ENTITY view.search.label                    "חיפוש">
 <!ENTITY view.discover.label                  "קבלת תוספות">
 <!ENTITY view.recentUpdates.label             "עדכונים אחרונים">
 <!ENTITY view.availableUpdates.label          "עדכונים זמינים">
@@ -85,7 +84,7 @@
 <!ENTITY cmd.about.accesskey                  "א">
 
 <!ENTITY cmd.enableAddon.label                "הפעלה">
-<!ENTITY cmd.enableAddon.accesskey            "א">
+<!ENTITY cmd.enableAddon.accesskey            "פ">
 <!ENTITY cmd.disableAddon.label               "ניטרול">
 <!ENTITY cmd.disableAddon.accesskey           "נ">
 <!ENTITY cmd.enableTheme.label                "לבש ערכת נושא">
@@ -115,6 +114,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "הצגת הערות השחרור של עדכון זה">
 <!ENTITY cmd.hideReleaseNotes.label           "הסתרת הערות שחרור">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "הסתרת הערות השחרור של עדכון זה">
+<!ENTITY cmd.findReplacement.label            "מציאת חלופה">
 
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
@@ -129,13 +129,12 @@
 <!ENTITY detail.lastupdated.label             "עודכן לאחרונה">
 <!ENTITY detail.creator.label                 "מפתח">
 <!ENTITY detail.homepage.label                "דף בית">
-<!ENTITY detail.numberOfDownloads.label       "הורדות">
 
 <!ENTITY detail.contributions.description     "המפתחים של תוספת זו מבקשים את עזרתך בהמשך הפיתוח שלה על־ידי מתן תרומה צנועה.">
 
 <!ENTITY detail.updateType                    "עדכונים אוטומטיים">
 <!ENTITY detail.updateDefault.label           "בררת מחדל">
-<!ENTITY detail.updateDefault.tooltip         "התקן עדכונים באופן אוטומטי רק אם זה ברירת המחדל">
+<!ENTITY detail.updateDefault.tooltip         "התקנת עדכונים באופן אוטומטי רק אם זו בררת המחדל">
 <!ENTITY detail.updateAutomatic.label         "פעיל">
 <!ENTITY detail.updateAutomatic.tooltip       "התקן עדכונים אוטומטית">
 <!ENTITY detail.updateManual.label            "כבוי">
@@ -168,21 +167,15 @@
 <!ENTITY sort.name.tooltip                    "מיון לפי שם">
 <!ENTITY sort.dateUpdated.label               "עודכן לאחרונה">
 <!ENTITY sort.dateUpdated.tooltip             "מיון לפי תאריך עדכון">
-<!ENTITY sort.relevance.label                 "ההתאמה הטובה ביותר">
-<!ENTITY sort.relevance.tooltip               "מיון לפי רלוונטיות">
-<!ENTITY sort.price.label                     "מחיר">
-<!ENTITY sort.price.tooltip                   "מיון לפי מחיר">
-
-<!ENTITY search.filter2.label                 "חיפוש:">
-<!ENTITY search.filter2.installed.label       "התוספות שלי">
-<!ENTITY search.filter2.installed.tooltip     "הצגת תוספות מותקנות">
-<!ENTITY search.filter2.available.label       "תוספות זמינות">
-<!ENTITY search.filter2.available.tooltip     "הצגת תוספות זמינות להתקנה">
 
 <!ENTITY addon.homepage                       "דף בית">
 <!ENTITY addon.details.label                  "עוד">
 <!ENTITY addon.details.tooltip                "הצגת פרטים נוספים על תוספת זו">
 <!ENTITY addon.unknownDate                    "לא ידוע">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "דור קודם">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -247,3 +240,8 @@
 
 <!ENTITY pluginDeprecation.description "חסר כאן משהו? חלק מהתוספים החיצוניים אינם נתמכים עוד ב־&brandShortName;.">
 <!ENTITY pluginDeprecation.learnMore "למידע נוסף.">
+
+<!ENTITY legacyWarning.showLegacy "הצגת הרחבות דור קודם">
+<!ENTITY legacyExtensions.title "הרחבות מדור קודם">
+<!ENTITY legacyExtensions.description "הרחבות אלו לא עומדות בתקנים הנוכחיים של &brandShortName; ולכן כובו.">
+<!ENTITY legacyExtensions.learnMore "מידע נוסף על השינויים בתוספות">

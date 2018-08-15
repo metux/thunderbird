@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "ast": {
+      "chrome_resources": {
+        "necko": "chrome/ast/locale/ast/necko/", 
+        "global": "chrome/ast/locale/ast/global/", 
+        "messenger-region": "chrome/ast/locale/ast/messenger-region/", 
+        "chat": "chrome/ast/locale/ast/chat/", 
+        "devtools": "chrome/ast/locale/ast/devtools/client/", 
+        "pipnss": "chrome/ast/locale/ast/pipnss/", 
+        "messenger-smime": "chrome/ast/locale/ast/messenger-smime/", 
+        "messenger-newsblog": "chrome/ast/locale/ast/messenger-newsblog/", 
+        "devtools-shim": "chrome/ast/locale/ast/devtools/shim/", 
+        "alerts": "chrome/ast/locale/ast/alerts/", 
+        "messenger": "chrome/ast/locale/ast/messenger/", 
+        "editor": "chrome/ast/locale/ast/editor/", 
+        "branding": "chrome/ast/locale/ast/branding/", 
+        "mozldap": "chrome/ast/locale/ast/mozldap/", 
+        "autoconfig": "chrome/ast/locale/ast/autoconfig/", 
+        "devtools-shared": "chrome/ast/locale/ast/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/ast/locale/ast/global-platform/win/", 
+          "android": "chrome/ast/locale/ast/global-platform/unix/", 
+          "macosx": "chrome/ast/locale/ast/global-platform/mac/", 
+          "linux": "chrome/ast/locale/ast/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/ast/locale/ast/mozapps/", 
+        "pluginproblem": "chrome/ast/locale/ast/pluginproblem/", 
+        "communicator": "chrome/ast/locale/ast/communicator/", 
+        "messenger-mapi": "chrome/ast/locale/ast/messenger-mapi/", 
+        "places": "chrome/ast/locale/ast/places/", 
+        "passwordmgr": "chrome/ast/locale/ast/passwordmgr/", 
+        "pippki": "chrome/ast/locale/ast/pippki/"
+      }, 
+      "version": "20180426161300"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-ast@firefox.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "ast", 
+  "version": "60.0buildid20180709054853", 
+  "name": "Asturianu Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "softastur.org (contributors: Softastur)", 
+  "description": "Language pack for Thunderbird for ast"
+}

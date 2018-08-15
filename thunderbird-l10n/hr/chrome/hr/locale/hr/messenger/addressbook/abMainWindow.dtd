@@ -140,6 +140,8 @@ because displayed names don't have the comma in between. -->
 <!ENTITY newContactButton.accesskey                     "N">
 <!ENTITY newlistButton.label                            "Novi popis">
 <!ENTITY newlistButton.accesskey                        "s">
+<!ENTITY showAsDefault.label                            "Zadana početna mapa">
+<!ENTITY showAsDefault.accesskey                        "p">
 <!ENTITY editPropertiesButton.label                     "Uredi">
 <!ENTITY propertiesContext.label                        "Postavke">
 <!ENTITY propertiesContext.accesskey                    "s">
@@ -239,3 +241,7 @@ because displayed names don't have the comma in between. -->
 <!ENTITY minimizeWindow.key                             "m">
 <!ENTITY bringAllToFront.label                          "Postavi sve na vrh">
 <!ENTITY zoomWindow.label                               "Uvećanje">
+
+<!ENTITY addressBookCmd.label                           "Address Book">
+<!ENTITY addressBookCmd.accesskey                       "a">
+<!ENTITY addressBookCmd.key                             "B">

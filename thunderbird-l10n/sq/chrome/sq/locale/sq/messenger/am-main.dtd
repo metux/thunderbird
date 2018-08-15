@@ -30,7 +30,7 @@
 <!ENTITY editVCard.label "Përpunoni Kartë…">
 <!ENTITY editVCard.accesskey "P">
 <!-- LOCALIZATION NOTE (attachVCard.label) : do not translate "vCard" in below line -->
-<!ENTITY attachVCard.label "Bashkëngjituni mesazheve vCard-in tim">
+<!ENTITY attachVCard.label "Bashkëngjitu mesazheve vCard-in tim">
 <!ENTITY attachVCard.accesskey "v">
 
 <!ENTITY manageIdentities.label "Administroni Identitete…">
@@ -40,3 +40,6 @@
 <!ENTITY smtpName.label "Shërbyesi Dërgues (SMTP):">
 <!ENTITY smtpName.accesskey "S">
 <!ENTITY smtpDefaultServer.label "Përdor Shërbyesin Parazgjedhje">
+
+<!ENTITY smtpServerEdit.label "Përpunoni shërbyesin SMTP…">
+<!ENTITY smtpServerEdit.accesskey "P">

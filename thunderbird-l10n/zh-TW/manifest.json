@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "zh-TW": {
+      "chrome_resources": {
+        "necko": "chrome/zh-TW/locale/zh-TW/necko/", 
+        "global": "chrome/zh-TW/locale/zh-TW/global/", 
+        "messenger-region": "chrome/zh-TW/locale/zh-TW/messenger-region/", 
+        "chat": "chrome/zh-TW/locale/zh-TW/chat/", 
+        "devtools": "chrome/zh-TW/locale/zh-TW/devtools/client/", 
+        "pipnss": "chrome/zh-TW/locale/zh-TW/pipnss/", 
+        "messenger-smime": "chrome/zh-TW/locale/zh-TW/messenger-smime/", 
+        "messenger-newsblog": "chrome/zh-TW/locale/zh-TW/messenger-newsblog/", 
+        "devtools-shim": "chrome/zh-TW/locale/zh-TW/devtools/shim/", 
+        "alerts": "chrome/zh-TW/locale/zh-TW/alerts/", 
+        "messenger": "chrome/zh-TW/locale/zh-TW/messenger/", 
+        "editor": "chrome/zh-TW/locale/zh-TW/editor/", 
+        "branding": "chrome/zh-TW/locale/zh-TW/branding/", 
+        "mozldap": "chrome/zh-TW/locale/zh-TW/mozldap/", 
+        "autoconfig": "chrome/zh-TW/locale/zh-TW/autoconfig/", 
+        "devtools-shared": "chrome/zh-TW/locale/zh-TW/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/zh-TW/locale/zh-TW/global-platform/win/", 
+          "android": "chrome/zh-TW/locale/zh-TW/global-platform/unix/", 
+          "macosx": "chrome/zh-TW/locale/zh-TW/global-platform/mac/", 
+          "linux": "chrome/zh-TW/locale/zh-TW/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/zh-TW/locale/zh-TW/mozapps/", 
+        "pluginproblem": "chrome/zh-TW/locale/zh-TW/pluginproblem/", 
+        "communicator": "chrome/zh-TW/locale/zh-TW/communicator/", 
+        "messenger-mapi": "chrome/zh-TW/locale/zh-TW/messenger-mapi/", 
+        "places": "chrome/zh-TW/locale/zh-TW/places/", 
+        "passwordmgr": "chrome/zh-TW/locale/zh-TW/passwordmgr/", 
+        "pippki": "chrome/zh-TW/locale/zh-TW/pippki/"
+      }, 
+      "version": "20180506151240"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-zh-TW@firefox.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "zh-TW", 
+  "version": "60.0buildid20180709054853", 
+  "name": "Traditional Chinese (zh-TW) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "Mozilla Taiwan Community (MozTW) (contributors: Hung-Te Lin(piaip), Wei-Lun Sun(josesun), Wei-Chen Lai(abev66), Tim Guan-Tin Chien(timdream), Peter Pin-Guang Chen(petercpg))", 
+  "description": "Language pack for Thunderbird for zh-TW"
+}

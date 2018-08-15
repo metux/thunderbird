@@ -4,14 +4,14 @@ Subject: Properly launch applications set in $HOME/.mailcap
 
 https://bugzilla.mozilla.org/show_bug.cgi?id=444440
 ---
- mozilla/uriloader/exthandler/unix/nsMIMEInfoUnix.cpp | 4 ++++
+ uriloader/exthandler/unix/nsMIMEInfoUnix.cpp | 4 ++++
  1 file changed, 4 insertions(+)
 
-diff --git a/mozilla/uriloader/exthandler/unix/nsMIMEInfoUnix.cpp b/mozilla/uriloader/exthandler/unix/nsMIMEInfoUnix.cpp
-index e516608..aa66a6c 100644
---- a/mozilla/uriloader/exthandler/unix/nsMIMEInfoUnix.cpp
-+++ b/mozilla/uriloader/exthandler/unix/nsMIMEInfoUnix.cpp
-@@ -71,6 +71,10 @@ nsMIMEInfoUnix::LaunchDefaultWithFile(nsIFile *aFile)
+diff --git a/uriloader/exthandler/unix/nsMIMEInfoUnix.cpp b/uriloader/exthandler/unix/nsMIMEInfoUnix.cpp
+index f102815..481af3a 100644
+--- a/uriloader/exthandler/unix/nsMIMEInfoUnix.cpp
++++ b/uriloader/exthandler/unix/nsMIMEInfoUnix.cpp
+@@ -62,6 +62,10 @@ nsMIMEInfoUnix::LaunchDefaultWithFile(nsIFile *aFile)
      return nsMIMEInfoImpl::LaunchDefaultWithFile(aFile);
  
    nsAutoCString nativePath;
@@ -21,4 +21,4 @@ index e516608..aa66a6c 100644
 +  */
    aFile->GetNativePath(nativePath);
  
- #if defined(MOZ_ENABLE_CONTENTACTION)
+   nsCOMPtr<nsIGIOService> giovfs = do_GetService(NS_GIOSERVICE_CONTRACTID);

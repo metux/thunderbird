@@ -92,9 +92,13 @@
 
 <!ENTITY aboutTelemetry.threadHangStatsSection "    පෙළ විසන්ධි විය">
 
+
+
+
 <!ENTITY aboutTelemetry.histogramsSection "    හිස්ටොග්‍රෑම්">
 
 <!ENTITY aboutTelemetry.keyedHistogramsSection "    යතුරුකළ ජාලරේඛය">
+
 
 <!ENTITY aboutTelemetry.simpleMeasurementsSection "  සරල මිනුම්">
 
@@ -114,9 +118,7 @@
 
 <!ENTITY aboutTelemetry.fullSqlWarning "    NOTE: මන්දගාමි SQL නිරාකරණය සක්‍රීයයි. සම්පූර්ණ SQL යෙදීම් පහතින් දැක්වෙනු ඇති නමුත් ඒවා දූරමිතියට පළ නොකෙරේ.">
 
-<!ENTITY aboutTelemetry.fetchSymbols "    විසන්ධි ගොඩවල් සඳහා ක්‍රියාකාරී නාම ලබන්න">
 
-<!ENTITY aboutTelemetry.hideSymbols "    විසන්ධි වෙතින් අමු දත්ත පෙන්වන්න">
 
 <!ENTITY aboutTelemetry.filterText "    පෙරහන (යෙදුම් හෝ /regexp/)">
 
@@ -128,10 +130,22 @@
   දළ ධාරිතාව
 ">
 
-<!ENTITY aboutTelemetry.keyedScalarsSection "
-  Keyed Scalars
-">
-
-<!ENTITY aboutTelemetry.scalarsSection "
-  Scalars
-">
+<!ENTITY aboutTelemetry.archivePingType "Ping Type">
+<!ENTITY aboutTelemetry.optionGroupToday "Today">
+<!ENTITY aboutTelemetry.optionGroupYesterday "Yesterday">
+<!ENTITY aboutTelemetry.optionGroupOlder "Older">
+<!ENTITY aboutTelemetry.previousPing "&lt;&lt;">
+<!ENTITY aboutTelemetry.nextPing "&gt;&gt;">
+<!ENTITY aboutTelemetry.moreInformations "Looking for more information?">
+<!ENTITY aboutTelemetry.firefoxDataDoc "The <a>Firefox Data Documentation</a> contains guides about how to work with our data tools.">
+<!ENTITY aboutTelemetry.telemetryClientDoc "The <a>Firefox Telemetry client documentation</a> includes definitions for concepts, API documentation and data references.">
+<!ENTITY aboutTelemetry.telemetryDashboard "The <a>Telemetry dashboards</a> allow you to visualize the data Mozilla receives via Telemetry.">
+<!ENTITY aboutTelemetry.showInFirefoxJsonViewer "Open in the JSON viewer">
+<!ENTITY aboutTelemetry.homeSection "Home">
+<!ENTITY aboutTelemetry.scalarsSection "Scalars">
+<!ENTITY aboutTelemetry.keyedScalarsSection "Keyed Scalars">
+<!ENTITY aboutTelemetry.eventsSection "Events">
+<!ENTITY aboutTelemetry.capturedStacksSection "Captured Stacks">
+<!ENTITY aboutTelemetry.rawPayloadSection "Raw Payload">
+<!ENTITY aboutTelemetry.fetchStackSymbols "Fetch function names for stacks">
+<!ENTITY aboutTelemetry.hideStackSymbols "Show raw stack data">

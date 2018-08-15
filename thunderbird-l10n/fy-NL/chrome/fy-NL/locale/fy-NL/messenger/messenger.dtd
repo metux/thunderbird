@@ -36,6 +36,12 @@
 <!ENTITY newFeedAccountCmd.accesskey "d">
 <!ENTITY newIMContactCmd.label "Chatkontakt…">
 <!ENTITY newIMContactCmd.accesskey "h">
+<!ENTITY  newMessageCmd2.key "N">
+<!ENTITY  newMessageCmd.key "M">
+<!ENTITY  newMessageCmd.label "Berjocht">
+<!ENTITY  newMessageCmd.accesskey "b">
+<!ENTITY  newContactCmd.label "Adresboekkontakt…">
+<!ENTITY  newContactCmd.accesskey "k">
 <!ENTITY openMessageFileCmd.label "Bewarre berjocht iepenje…">
 <!ENTITY openMessageFileCmd.accesskey "O">
 <!ENTITY saveAsMenu.label "Bewarje as">
@@ -51,8 +57,8 @@
 <!ENTITY getAllNewMsgCmdPopupMenu.accesskey "A">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.label "Aktuele account">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.accesskey "C">
-<!ENTITY getNextNMsgCmd.label "Folgjende 500 nijsberjochten downloade">
-<!ENTITY getNextNMsgCmd.accesskey "D">
+<!ENTITY getNextNMsgCmd2.label "Folgjende nijsberjocht ophelje">
+<!ENTITY getNextNMsgCmd2.accesskey "t">
 <!ENTITY sendUnsentCmd.label "Net-ferstjoerde berjochten ferstjoere">
 <!ENTITY sendUnsentCmd.accesskey "n">
 <!ENTITY subscribeCmd.label "Abonnearje…">
@@ -204,7 +210,7 @@
 <!ENTITY sortAscending.label "Opgeand">
 <!ENTITY sortAscending.accesskey "O">
 <!ENTITY sortDescending.label "Delgeand">
-<!ENTITY sortDescending.accesskey "f">
+<!ENTITY sortDescending.accesskey "g">
 <!ENTITY sortThreaded.label "Petearen">
 <!ENTITY sortThreaded.accesskey "P">
 <!ENTITY sortUnthreaded.label "Gjin petearen">
@@ -317,7 +323,7 @@
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goChatCmd.label "Chat">
 <!ENTITY goChatCmd.accesskey "c">
-<!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Berjocht mei stjer">
 <!ENTITY prevStarredMsgCmd.accesskey "s">
 <!ENTITY folderMenu.label "Map">
@@ -339,17 +345,17 @@
 <!ENTITY archiveMsgCmd.key "a">
 <!ENTITY cancelNewsMsgCmd.label "Berjocht annulearje">
 <!ENTITY cancelNewsMsgCmd.accesskey "n">
-<!ENTITY replyMsgCmd.label "Beantwurdzje">
-<!ENTITY replyMsgCmd.accesskey "a">
+<!ENTITY replyMsgCmd.label "Beäntwurdzje">
+<!ENTITY replyMsgCmd.accesskey "w">
 <!ENTITY replyMsgCmd.key "r">
-<!ENTITY replySenderCmd.label "Ofstjoerder beantwurdzje">
-<!ENTITY replySenderCmd.accesskey "a">
+<!ENTITY replySenderCmd.label "Ofstjoerder beäntwurdzje">
+<!ENTITY replySenderCmd.accesskey "f">
 <!ENTITY replyNewsgroupCmd2.label "Reagearje nei nijsgroep">
 <!ENTITY replyNewsgroupCmd2.accesskey "r">
-<!ENTITY replyToAllMsgCmd.label "Elk beantwurdzje">
+<!ENTITY replyToAllMsgCmd.label "Elk beäntwurdzje">
 <!ENTITY replyToAllMsgCmd.accesskey "e">
 <!ENTITY replyToAllMsgCmd.key "r">
-<!ENTITY replyToListMsgCmd.label "List beantwurdzje">
+<!ENTITY replyToListMsgCmd.label "List beäntwurdzje">
 <!ENTITY replyToListMsgCmd.accesskey "L">
 <!ENTITY replyToListMsgCmd.key "l">
 <!ENTITY forwardMsgCmd.label "Trochstjoere">
@@ -366,6 +372,10 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Konseptberjocht bewurkje">
 <!ENTITY editDraftMsgCmd.accesskey "o">
+<!ENTITY editTemplateMsgCmd.label "Sjabloan bewurkje">
+<!ENTITY editTemplateMsgCmd.accesskey "S">
+<!ENTITY newMsgFromTemplateCmd.label "Nij berjocht fan sjabloan">
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Filter meitsje op basis fan berjocht…">
 <!ENTITY createFilter.accesskey "F">
 <!ENTITY moveMsgToMenu.label "Ferpleatse nei">
@@ -456,7 +466,12 @@
 <!ENTITY addressBookCmd.accesskey "A">
 <!ENTITY addressBookCmd.key "b">
 <!ENTITY addons.label "Add-ons">
-<!ENTITY addons.accesskey "T">
+<!ENTITY addons.accesskey "A">
+<!ENTITY addonPrefs.label "Add-onopsjes">
+<!ENTITY addonPrefs.accesskey "A">
+<!ENTITY addonPrefsUnix.label "Add-onfoarkarren">
+<!ENTITY addonPrefsUnix.accesskey "f">
+<!ENTITY addonNoPrefs.label "Gjin add-onynstellingen fûn.">
 <!ENTITY activitymanager.label "Aktiviteitebehearder">
 <!ENTITY activitymanager.accesskey "a">
 <!ENTITY imAccountsStatus.label "Chatsteat">
@@ -495,13 +510,13 @@
 <!ENTITY accountManagerCmdUnix2.accesskey "A">
 
 <!-- Developer Tools Submenu -->
-<!ENTITY devtoolsMenu.label "Untwikkelershelpmiddelen">
+<!ENTITY devtoolsMenu.label "Untwikkelersark">
 <!ENTITY devtoolsMenu.accesskey "n">
 <!ENTITY devToolboxCmd.label "Untwikkelersark">
 <!ENTITY devToolboxCmd.accesskey "a">
 <!ENTITY devToolboxCmd.commandkey "i">
-<!ENTITY addonDebugCmd.label "Add-on-debugger">
-<!ENTITY addonDebugCmd.accesskey "A">
+<!ENTITY debugAddonsCmd.label "Add-ons debugge">
+<!ENTITY debugAddonsCmd.accesskey "A">
 <!ENTITY tabsDebugCmd.label "Frame-ynhâlds-debugger">
 <!ENTITY tabsDebugCmd.accesskey "F">
 <!ENTITY errorConsoleCmd.label "Flaterkonsole">
@@ -522,9 +537,9 @@
 <!-- Mail Toolbar -->
 <!ENTITY getMsgButton1.label "E-mail ophelje">
 <!ENTITY newMsgButton.label "Opstelle">
-<!ENTITY replyButton.label "Beantwurdzje">
-<!ENTITY replyAllButton.label "Elk beantwurdzje">
-<!ENTITY replyListButton.label "List beantwurdzje">
+<!ENTITY replyButton.label "Beäntwurdzje">
+<!ENTITY replyAllButton.label "Elk beäntwurdzje">
+<!ENTITY replyListButton.label "List beäntwurdzje">
 <!ENTITY forwardButton.label "Trochstjoere">
 <!ENTITY fileButton.label "Ferpleatse">
 <!ENTITY archiveButton.label "Argivearje">
@@ -563,9 +578,9 @@
 <!ENTITY getAllNewMsgCmd.label "Alle nije berjochten ophelje">
 <!ENTITY getAllNewMsgCmd.accesskey "N">
 <!ENTITY newMsgButton.tooltip "Nij berjocht oanmeitsje">
-<!ENTITY replyButton.tooltip "Selektearre berjocht beantwurdzje">
-<!ENTITY replyAllButton.tooltip "Ofstjoerder en alle adressearden beantwurdzje">
-<!ENTITY replyListButton.tooltip "Mailinglist beantwurdzje">
+<!ENTITY replyButton.tooltip "Selektearre berjocht beäntwurdzje">
+<!ENTITY replyAllButton.tooltip "Ofstjoerder en alle adressearden beäntwurdzje">
+<!ENTITY replyListButton.tooltip "Mailinglist beäntwurdzje">
 <!ENTITY forwardButton.tooltip "Selektearre berjocht trochstjoere">
 <!ENTITY forwardAsInline.tooltip "Selektearre berjocht trochstjoere yn berjochttekst">
 <!ENTITY forwardAsAttachment.tooltip "Selektearre berjocht trochstjoere as in bylage">
@@ -634,6 +649,10 @@
 <!-- Folder Pane Context Menu -->
 <!ENTITY folderContextGetMessages.label "Berjochten ophelje">
 <!ENTITY folderContextGetMessages.accesskey "B">
+<!ENTITY folderContextMarkAllFoldersRead.label "Alle mappen as lêzen markearje">
+<!ENTITY folderContextPauseAllUpdates.label "Alle fernijingen pausearje">
+<!ENTITY folderContextPauseUpdates.label "Fernijingen pausearje">
+<!ENTITY folderContextPauseUpdates.accesskey "p">
 <!ENTITY folderContextOpenInNewWindow.label "Iepenje yn nij skerm">
 <!ENTITY folderContextOpenInNewWindow.accesskey "s">
 <!ENTITY folderContextOpenNewTab.label "Iepenje yn nij ljepblêd">
@@ -731,12 +750,13 @@
 <!ENTITY attachmentColumn2.tooltip "Sortearje op bylagen">
 
 <!-- Thread Pane Context Menu -->
+<!ENTITY contextNewMsgFromTemplate.label "Nij berjocht fan sjabloan">
 <!ENTITY contextOpenNewWindow.label "Berjocht iepenje yn nij finster">
 <!ENTITY contextOpenNewWindow.accesskey "f">
-<!-- The key potentially conflicts with cutCmd.accessKey which is defined in
-     textcontext.dtd from toolkit. Right now, both menu items can't be visible
-     at the same time, but should someone enable copy/paste of message, this key
-     would probably need to be changed. -->
+<!-- The contextOpenNewTab.accesskey ("T") potentially conflicts with
+     cutCmd.accessKey which is defined in textcontext.dtd from toolkit. Right
+     now, both menu items can't be visible at the same time, but should someone
+     enable copy/paste of message, this key would probably need to be changed. -->
 <!ENTITY contextOpenNewTab.label "Berjocht iepenje yn nij ljepblêd">
 <!ENTITY contextOpenNewTab.accesskey "l">
 <!ENTITY contextOpenConversation.label "Berjocht iepenje yn Petear">
@@ -746,15 +766,17 @@
 <!ENTITY contextEditMsgAsNew.label "As nij berjocht bewurkje">
 <!ENTITY contextEditMsgAsNew.accesskey "b">
 <!ENTITY contextEditDraftMsg.label "Konseptberjocht bewurkje">
+<!ENTITY contextEditTemplate.label "Sjabloan bewurkje">
+<!ENTITY contextEditTemplate.accesskey "S">
 <!ENTITY contextArchive.label "Argivearje">
 <!ENTITY contextArchive.accesskey "g">
-<!ENTITY contextReplySender.label "Ofstjoerder beantwurdzje">
+<!ENTITY contextReplySender.label "Ofstjoerder beäntwurdzje">
 <!ENTITY contextReplySender.accesskey "o">
 <!ENTITY contextReplyNewsgroup2.label "Reagearje nei nijsgroep">
 <!ENTITY contextReplyNewsgroup2.accesskey "r">
-<!ENTITY contextReplyAll.label "Elk beantwurdzje">
+<!ENTITY contextReplyAll.label "Elk beäntwurdzje">
 <!ENTITY contextReplyAll.accesskey "e">
-<!ENTITY contextReplyList.label "List beantwurdzje">
+<!ENTITY contextReplyList.label "List beäntwurdzje">
 <!ENTITY contextReplyList.accesskey "L">
 <!ENTITY contextForward.label "Trochstjoere">
 <!ENTITY contextForward.accesskey "s">
@@ -949,3 +971,5 @@
 
 <!-- Mac OS X Dock Icon pop-up menu -->
 <!ENTITY dockOptions.label              "Programmasymboalopsjes…">
+<!ENTITY writeNewMessageDock.label      "Skriuw in nij berjocht">
+<!ENTITY openAddressBookDock.label      "Adresboek iepenje">

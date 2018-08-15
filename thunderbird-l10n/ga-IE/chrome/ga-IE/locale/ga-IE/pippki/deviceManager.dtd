@@ -20,17 +20,22 @@
 <!ENTITY devmgr.button.changepw.accesskey       "F">
 <!ENTITY devmgr.button.load.label               "Luchtaigh">
 <!ENTITY devmgr.button.load.accesskey           "L">
-<!ENTITY devmgr.button.unload.label             "Díluchtaigh">
+<!ENTITY devmgr.button.unload.label             "Dílódáil">
 <!ENTITY devmgr.button.unload.accesskey         "D">
 <!ENTITY devmgr.button.fips.accesskey           "F">
 
 <!ENTITY loaddevice.info                        "Cuir isteach an fhaisnéis maidir leis an modúl a theastaíonn uait cur leis.">
-<!ENTITY loaddevice.modname                     "Ainm an Mhodúil:">
-<!ENTITY loaddevice.modname.accesskey           "A">
+
+
 <!ENTITY loaddevice.modname.default             "Modúl PKCS#11 Nua">
-<!ENTITY loaddevice.filename                    "Ainm chomhad an mhodúil:">
-<!ENTITY loaddevice.filename.accesskey          "c">
+
+
 <!ENTITY loaddevice.browse                      "Brabhsáil…">
 <!ENTITY loaddevice.browse.accesskey            "B">
 
-<!ENTITY loaddevice.title                       "Luchtaigh Gléas PKCS#11">
+<!ENTITY loaddevice.title2                      "Luchtaigh Tiománaí Gléis PKCS#11">
+
+<!ENTITY loaddevice.modname2                    "Module Name">
+<!ENTITY loaddevice.modname2.accesskey          "M">
+<!ENTITY loaddevice.filename2                   "Module filename">
+<!ENTITY loaddevice.filename2.accesskey         "f">

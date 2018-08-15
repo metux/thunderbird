@@ -2,14 +2,16 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY autoconfigWizard.title          "Configuração da conta de correio">
+<!ENTITY autoconfigWizard2.title         "Configurar uma conta de email existente">
 <!ENTITY name.label                      "O seu nome:">
 <!ENTITY name.accesskey                  "n">
 <!ENTITY name.placeholder                "Primeiro Último">
 <!ENTITY name.text                       "O nome a mostrar a terceiros">
 <!ENTITY email.label                     "Endereço de e-mail:">
 <!ENTITY email.accesskey                 "l">
-<!ENTITY email.placeholder               "email@example.com">
+<!-- LOCALIZATION NOTE(email.placeholder): Domain @example.com must stay in English -->
+<!ENTITY email2.placeholder              "you@example.com">
+<!ENTITY email.text                      "O seu endereço de email existente">
 <!ENTITY password.label                  "Palavra-passe:">
 <!ENTITY password.accesskey              "P">
 <!ENTITY password.placeholder            "Palavra-passe">
@@ -53,8 +55,8 @@
 <!ENTITY half-manual-test.accesskey      "T">
 <!ENTITY manual-edit.label               "Configuração manual">
 <!ENTITY manual-edit.accesskey           "m">
-<!ENTITY switch-to-provisioner.label     "Obter uma nova conta">
-<!ENTITY switch-to-provisioner.accesskey "O">
+<!ENTITY open-provisioner.label          "Obter um novo endereço de email…">
+<!ENTITY open-provisioner.accesskey      "o">
 
 
 <!ENTITY warning.label                   "Aviso!">
@@ -69,8 +71,8 @@
 <!-- LOCALIZATION NOTE (doneAccount.label): If there is a security warning
      on the incoming or outgoing servers, then the page that pops up will
      have this text in a button to continue by creating the account. -->
-<!ENTITY doneAccount.label               "Terminar">
-<!ENTITY doneAccount.accesskey           "T">
+<!ENTITY doneAccount.label               "Feito">
+<!ENTITY doneAccount.accesskey           "F">
 <!-- LOCALIZATION NOTE (changeSettings.label): If there is a security warning on
      the incoming or outgoing servers, then the page that pops up will have
      this text in a button to take you back to the previous page to change
@@ -80,9 +82,9 @@
 
 <!ENTITY contactYourProvider.description "O &brandShortName; pode permitir que receba o seu correio com as configurações indicadas. No entanto, deve contactar o administrador ou fornecedor de correio eletrónico sobre estas ligações incorretas. Para mais informações, consulte as FAQ do Thunderbird.">
 
-<!ENTITY insecureServer.tooltip.title    "Aviso! Este servidor não é seguro.">
+<!ENTITY insecureServer.tooltip.title    "Aviso! Este servidor é inseguro.">
 <!ENTITY insecureServer.tooltip.details  "Clique no círculo para mais detalhes.">
 
 <!ENTITY insecureUnencrypted.description "O seu endereço de email e autenticação são enviados sem encriptação. A sua palavra-passe (e a mensagem) podem ser facilmente intercetadas por terceiros. O &brandShortName; permite-lhe obter o correio, mas deve contactar o seu fornecedor de correio para configurar o servidor com uma ligação segura.">
-<!ENTITY insecureSelfSigned.description  "O servidor utiliza um certificado que não é de confiança. Por isso não podemos garantir que não hajam terceiros a intercetar o tráfego entre o &brandShortName; e o seu servidor. O &brandShortName; deixa-o obter o correio, mas deve contactar o seu fornecedor de correio para configurar o servidor com um certificado de confiança.">
+<!ENTITY insecureSelfSigned.description  "O servidor utiliza um certificado que não é de confiança. Por isso não podemos garantir que não hajam terceiros a intercetar o tráfego entre o &brandShortName; e o seu servidor. O &brandShortName; deixa-lhe obter o seu correio, mas deve contactar o seu fornecedor de correio para configurar o servidor com um certificado de confiança.">
 <!ENTITY secureServer.description        "Parabéns! Este servidor está protegido.">

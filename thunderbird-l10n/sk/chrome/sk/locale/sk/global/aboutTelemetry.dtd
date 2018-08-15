@@ -2,94 +2,54 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY aboutTelemetry.pageTitle "Údaje telemetrie">
-
-<!ENTITY aboutTelemetry.changeDataChoices "
-  Zmeniť
-">
-
-<!ENTITY aboutTelemetry.uploadEnabled "Odosielanie údajov FHR je <span>povolené</span>.">
-
-<!ENTITY aboutTelemetry.uploadDisabled "Odosielanie údajov FHR je <span>zakázané</span>.">
-
-<!ENTITY aboutTelemetry.extendedRecordingEnabled "Záznam rozšírenej telemetrie je <span>zapnutý</span>.">
-
-<!ENTITY aboutTelemetry.extendedRecordingDisabled "Záznam rozšírenej telemetrie je <span>vypnutý</span>.">
-
 <!ENTITY aboutTelemetry.pingDataSource "Zdroj údajov pre ping:">
-
 <!ENTITY aboutTelemetry.showCurrentPingData "Aktuálne údaje príkazu ping">
-
 <!ENTITY aboutTelemetry.showArchivedPingData "Archivované údaje príkazu ping">
+<!ENTITY aboutTelemetry.showSubsessionData "Zobraziť údaje sub-relácie">
+<!ENTITY aboutTelemetry.choosePing "Zvoľte ping:">
+<!ENTITY aboutTelemetry.archivePingType "Typ pingu">
+<!ENTITY aboutTelemetry.archivePingHeader "Ping">
+<!ENTITY aboutTelemetry.optionGroupToday "Dnes">
+<!ENTITY aboutTelemetry.optionGroupYesterday "Včera">
+<!ENTITY aboutTelemetry.optionGroupOlder "Staršie">
+<!ENTITY aboutTelemetry.payloadChoiceHeader "Obsah">
+<!-- LOCALIZATION NOTE(aboutTelemetry.previousPing, aboutTelemetry.nextPing):
+	These strings are displayed when selecting Archived pings, and they’re
+	used to move to the next or previous ping. -->
+<!ENTITY aboutTelemetry.previousPing "&lt;&lt;">
+<!ENTITY aboutTelemetry.nextPing "&gt;&gt;">
 
-<!ENTITY aboutTelemetry.pingDataDisplay "Zobrazenie údajov príkazu ping:">
+<!ENTITY aboutTelemetry.pageTitle "Údaje telemetrie">
+<!ENTITY aboutTelemetry.moreInformations "Hľadáte viac informácií?">
+<!ENTITY aboutTelemetry.firefoxDataDoc "<a>Dokumentácia údajov Firefoxu</a> obsahuje návody pre prácu s našimi nástrojmi.">
+<!ENTITY aboutTelemetry.telemetryClientDoc "<a>Dokumentácia klienta telemetrie Firefoxu</a> obsahuje definície pojmov, dokumentáciu API a popisy údajov.">
+<!ENTITY aboutTelemetry.telemetryDashboard "<a>Nástenky telemetrie</a> vám umožňujú zobrazovať údaje, ktoré Mozilla získava z telemetrie.">
 
-<!ENTITY aboutTelemetry.structured "Štrukturované">
+<!ENTITY aboutTelemetry.showInFirefoxJsonViewer "Otvoriť v zobrazení JSON">
 
+<!ENTITY aboutTelemetry.homeSection "Domov">
+<!ENTITY aboutTelemetry.generalDataSection "Všeobecné údaje">
+<!ENTITY aboutTelemetry.environmentDataSection "Údaje prostredia">
+<!ENTITY aboutTelemetry.sessionInfoSection "Informácia o relácii">
+<!ENTITY aboutTelemetry.scalarsSection "Skaláre">
+<!ENTITY aboutTelemetry.keyedScalarsSection "Kľúčové skaláre">
+<!ENTITY aboutTelemetry.histogramsSection "Histogramy">
+<!ENTITY aboutTelemetry.keyedHistogramsSection "Histogramy s kľúčom">
+<!ENTITY aboutTelemetry.eventsSection "Udalosti">
+<!ENTITY aboutTelemetry.simpleMeasurementsSection "Jednoduché merania">
+<!ENTITY aboutTelemetry.telemetryLogSection "Záznamy telemetrie">
+<!ENTITY aboutTelemetry.slowSqlSection "Pomalé výrazy SQL">
+<!ENTITY aboutTelemetry.chromeHangsSection "Zlyhania prehliadača">
+<!ENTITY aboutTelemetry.addonDetailsSection "Podrobnosti o doplnkoch">
+<!ENTITY aboutTelemetry.capturedStacksSection "Zachytené zásobníky">
+<!ENTITY aboutTelemetry.lateWritesSection "Neskoré zápisy">
+<!ENTITY aboutTelemetry.rawPayloadSection "Raw obsah">
 <!ENTITY aboutTelemetry.raw "Dáta JSON v nespracovanom tvare">
 
-<!ENTITY aboutTelemetry.showSubsessionData "Zobraziť údaje sub-relácie">
-
-<!ENTITY aboutTelemetry.choosePing "Zvoľte ping:">
-
-<!ENTITY aboutTelemetry.showNewerPing "&lt;&lt; Novší ping">
-
-<!ENTITY aboutTelemetry.showOlderPing "Starší ping &gt;&gt;">
-
-<!ENTITY aboutTelemetry.rawPingData "Dáta príkazu ping v nespracovanom tvare...">
-
-<!ENTITY aboutTelemetry.archiveWeekHeader "Týždeň">
-
-<!ENTITY aboutTelemetry.archivePingHeader "Ping">
-
-<!ENTITY aboutTelemetry.generalDataSection "Všeobecné údaje">
-
-<!ENTITY aboutTelemetry.environmentDataSection "Údaje prostredia">
-
-<!ENTITY aboutTelemetry.telemetryLogSection "Záznamy telemetrie">
-
-<!ENTITY aboutTelemetry.slowSqlSection "Pomalé výrazy SQL">
-
-<!ENTITY aboutTelemetry.chromeHangsSection "Zlyhania prehliadača">
-
-<!ENTITY aboutTelemetry.threadHangStatsSection "Zlyhania vlákien">
-
-<!ENTITY aboutTelemetry.scalarsSection "
-  Skaláre
-">
-
-<!ENTITY aboutTelemetry.keyedScalarsSection "
-  Kľúčové skaláre
-">
-
-<!ENTITY aboutTelemetry.histogramsSection "Histogramy">
-
-<!ENTITY aboutTelemetry.keyedHistogramsSection "Histogramy s kľúčom">
-
-<!ENTITY aboutTelemetry.simpleMeasurementsSection "Jednoduché merania">
-
-<!ENTITY aboutTelemetry.addonDetailsSection "Podrobnosti o doplnkoch">
-
-<!ENTITY aboutTelemetry.lateWritesSection "Neskoré zápisy">
-
-<!ENTITY aboutTelemetry.sessionInfoSection "
-  Informácia o relácii">
-
-<!ENTITY aboutTelemetry.addonHistogramsSection "Histogramy zozbierané doplnkami">
-
-<!ENTITY aboutTelemetry.toggle "Kliknutím prepnete sekciu">
-
-<!ENTITY aboutTelemetry.emptySection "(nie sú zozbierané žiadne údaje)">
-
 <!ENTITY aboutTelemetry.fullSqlWarning "Poznámka: Je zapnuté ladenie pomalých výrazov SQL. Nižšie môžu byť zobrazené celé výrazy SQL, avšak tieto nebudú odosielané pomocou telemetrie.">
-
-<!ENTITY aboutTelemetry.fetchSymbols "Získať názvy funkcií pre zásobníky zlyhaní">
-
-<!ENTITY aboutTelemetry.hideSymbols "Zobraziť údaje zo zlyhaní v nespracovanom tvare">
-
-<!ENTITY aboutTelemetry.filterText "Filter (reťazec alebo /regexp/)">
-
-<!ENTITY aboutTelemetry.payloadChoiceHeader "Obsah">
-
-<!ENTITY aboutTelemetry.rawPayload "
-  Nespracovaný obsah">
+<!ENTITY aboutTelemetry.fetchStackSymbols "
+  Získať názvy funkcií pre zásobníky zlyhaní
+">
+<!ENTITY aboutTelemetry.hideStackSymbols "
+  Zobraziť nespracované údaje zásobníka
+">

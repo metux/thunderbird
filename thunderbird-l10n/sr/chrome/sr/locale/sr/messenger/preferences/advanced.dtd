@@ -11,6 +11,7 @@
 <!-- General Settings -->
 <!ENTITY enableGlodaSearch.label       "Омогући општу претрагу и пописивање">
 <!ENTITY enableGlodaSearch.accesskey   "О">
+<!ENTITY dateTimeFormatting.label      "Форматирање времена и датума">
 <!ENTITY allowHWAccel.label            "Користи хардверско убрзање када је доступно">
 <!ENTITY allowHWAccel.accesskey        "х">
 <!ENTITY storeType.label               "Врста складишта порука за нове налоге:">
@@ -52,8 +53,20 @@
 <!ENTITY crashReporterLearnMore.label    "Сазнајте више">
 
 <!-- Update -->
-<!ENTITY updateApp.label                 "&brandShortName; ажурирања:">
-<!ENTITY updateAuto.label                "Аутоматски инсталирај ажурирања (преопручено: побољшава безбедност)">
+<!-- LOCALIZATION NOTE (updateApp.label):
+  Strings from aboutDialog.dtd are displayed in this section of the preferences.
+  Please check for possible accesskey conflicts.
+-->
+<!ENTITY updateApp2.label                "&brandShortName; ажурирања">
+<!-- LOCALIZATION NOTE (updateApp.version.*): updateApp.version.pre is
+  followed by a version number, keep the trailing space or replace it with
+  a different character as needed. updateApp.version.post is displayed after
+  the version number, and is empty on purpose for English. You can use it
+  if required by your language.
+ -->
+<!ENTITY updateApp.version.pre           "Верзија ">
+<!ENTITY updateApp.version.post          "">
+<!ENTITY updateAuto.label                "Аутоматски инсталирај ажурирања (препоручено: побољшава безбедност)">
 <!ENTITY updateAuto.accesskey            "А">
 <!ENTITY updateCheck.label               "Провери да ли има ажурирања али мени допусти да изаберем када да се инсталирају">
 <!ENTITY updateCheck.accesskey           "П">
@@ -89,6 +102,8 @@
 <!ENTITY useCacheBefore.label            "Користи до">
 <!ENTITY useCacheBefore.accesskey        "К">
 <!ENTITY useCacheAfter.label             "мегабајта простора за кеш">
+<!ENTITY overrideSmartCacheSize.label    "Премости аутоматско управљање кешом">
+<!ENTITY overrideSmartCacheSize.accesskey "м">
 <!ENTITY clearCacheNow.label             "Очисти сада">
 <!ENTITY clearCacheNow.accesskey         "д">
 

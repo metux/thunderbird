@@ -1,0 +1,143 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+@import url(chrome://lightning-common/skin/lightning.css);
+
+#calendarContent:-moz-lwtheme {
+  color: -moz-dialogText;
+  text-shadow: none;
+}
+
+/* Calendar list rules */
+#calendar-panel {
+    padding-bottom: 5px;
+}
+
+/* Lightning preferences icon */
+radio[pane=paneLightning] {
+    list-style-image: url("chrome://calendar/skin/cal-icon32.png");
+}
+
+/* iMIP notification bar */
+#imip-bar > image {
+    list-style-image: url("chrome://calendar/skin/cal-icon32.png");
+    margin-inline-end: 8px;
+}
+
+/* ::::: tabs ::::: */
+
+/* ::: tab icons ::: */
+.icon-holder[type="calendar"],
+.tabmail-tab[type="calendar"] {
+    list-style-image: url(chrome://lightning-common/skin/mode-switch-icons.png);
+    -moz-image-region: rect(0px 64px 16px 48px);
+}
+
+.icon-holder[type="calendar"][selected="true"],
+.tabmail-tab[type="calendar"][selected="true"] {
+    -moz-image-region: rect(16px 64px 32px 48px);
+}
+
+.icon-holder[type="tasks"],
+.tabmail-tab[type="tasks"] {
+    list-style-image: url(chrome://lightning-common/skin/mode-switch-icons.png);
+    -moz-image-region: rect(0px 80px 16px 64px);
+}
+
+.icon-holder[type="tasks"][selected="true"],
+.tabmail-tab[type="tasks"][selected="true"] {
+    -moz-image-region: rect(16px 80px 32px 64px);
+}
+
+/* Lightning sidebar background in calendar and task mode */
+#ltnSidebar {
+  background-color: -moz-field;
+}
+
+/* Today pane button in status bar */
+#calendar-status-todaypane-button,
+#calendar-status-todaypane-button[checked="true"] {
+  padding: 0 2px !important;
+}
+
+#calendar-status-todaypane-button:hover {
+  border-color: ThreeDDarkShadow;
+}
+
+#calendar-status-todaypane-button > stack > .toolbarbutton-day-text {
+  margin-top: 5px;
+  margin-inline-end: 0;
+}
+
+/* shift the today pane button label up by one pixel to center it */
+#calendar-status-todaypane-button > .toolbarbutton-text {
+  margin: 0 6px 1px !important;
+}
+
+#calMinimonthBox {
+    margin-top: 3px;
+}
+
+.calendar-splitter {
+  height: 8px !important;
+  min-height: 8px;
+  background-image: url("chrome://messenger/skin/icons/vertical-threadpane-splitter-bg.gif");
+  background-repeat: repeat-y;
+  border-inline-start: 1px solid #A6A6A6;
+  border-inline-end: 1px solid #8C8C8C;
+}
+
+.calendar-splitter:-moz-locale-dir(rtl) {
+  background-image: url("chrome://messenger/skin/icons/vertical-threadpane-splitter-bg-rtl.gif");
+}
+
+/* The orient="vertical" isn't which direction the splitter itself runs, it's
+   actually which way its parent lays out its children, so when it's vertical,
+   the splitter is a horizontal bar. */
+.calendar-splitter[orient="vertical"] {
+  background-image: url("chrome://messenger/skin/icons/threadpane-splitter-bg.gif");
+  background-repeat: repeat-x;
+  border-top: 1px solid #A6A6A6;
+  border-bottom: 1px solid #8C8C8C;
+  border-inline-start-width: 0;
+  border-inline-end-width: 0;
+}
+
+.calendar-splitter[state="collapsed"] {
+  border-bottom-width: 0;
+  border-inline-end: 0;
+}
+
+.calendar-sidebar-splitter {
+  background-image: none;
+  min-width: 3px;
+  width: 3px;
+}
+
+#today-splitter {
+  border-inline-start: 1px solid #8B8B8B;
+  margin-inline-end: -2px;
+  position: relative;
+}
+
+#ltnSidebar {
+  border-inline-end: 1px solid #8B8B8B;
+  margin-inline-end: -3px !important;
+}
+
+/* ::: imip button icons ::: */
+#imip-view-toolbar > .toolbarbutton-1.msgHeaderView-button,
+#imip-view-toolbar > .toolbarbutton-1.msgHeaderView-button > .toolbarbutton-menubutton-button,
+#imip-view-toolbar > .toolbarbutton-1.msgHeaderView-button > .toolbarbutton-menubutton-dropmarker {
+  color: -moz-DialogText;
+  background-color: white;
+}
+
+#imip-view-toolbar > .toolbarbutton-1.msgHeaderView-button:hover,
+#imip-view-toolbar > .toolbarbutton-1.msgHeaderView-button:-moz-any(:hover,[open="true"]) >
+  .toolbarbutton-menubutton-button,
+#imip-view-toolbar > .toolbarbutton-1.msgHeaderView-button:hover >
+  .toolbarbutton-menubutton-dropmarker {
+  background-color: rgb(230, 230, 230) !important;
+}

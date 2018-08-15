@@ -107,7 +107,7 @@
 <ul>
   <li>プロキシ設定が正しいか確認してください。</li>
   <li>コンピューターが有効なネットワークに接続されているか確認してください。</li>
-  <li>ファイアーウォールやプロキシでネットワークが保護されている場合、&brandShortName; によるウェブアクセスが許可されているか確認してください。</li>
+  <li>ファイアウォールやプロキシでネットワークが保護されている場合、&brandShortName; によるウェブアクセスが許可されているか確認してください。</li>
 </ul>
 ">
 
@@ -146,7 +146,7 @@
 <ul>
   <li>このサイトが一時的に利用できなくなっていたり、サーバーの負荷が高すぎて接続できなくなっている可能性があります。しばらくしてから再度試してください。</li>
   <li>他のサイトも表示できない場合、コンピューターのネットワーク接続を確認してください。</li>
-  <li>ファイアーウォールやプロキシでネットワークが保護されている場合、&brandShortName; によるウェブアクセスが許可されているか確認してください。</li>
+  <li>ファイアウォールやプロキシでネットワークが保護されている場合、&brandShortName; によるウェブアクセスが許可されているか確認してください。</li>
 </ul>
 ">
 
@@ -179,3 +179,5 @@ functionality specific to thunderbird. -->
 <!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
      "NS_ERROR_NET_INADEQUATE_SECURITY". -->
 <!ENTITY inadequateSecurityError.longDesc "<p><span class='hostname'></span> は攻撃に対して脆弱な古いセキュリティ技術を使用しています。攻撃者は保護された情報を簡単に暴露できます。サイトを安全に訪れるには、このウェブサイトの管理者にサーバーの問題を修正してもらう必要があります。</p><p>エラーコード: NS_ERROR_NET_INADEQUATE_SECURITY</p>">
+
+<!ENTITY blockedByPolicy.title		"ブロックされたページ">

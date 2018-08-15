@@ -2,185 +2,122 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY aboutTelemetry.pageTitle "Δεδομένα τηλεμετρίας">
-
-<!ENTITY aboutTelemetry.changeDataChoices "
-  Αλλαγή">
-
-
-
-
-
-
-
-
-
-
-
-
+<!ENTITY aboutTelemetry.pingDataSource "
+Πηγή δεδομένων ping:
+">
+<!ENTITY aboutTelemetry.showCurrentPingData "
+Δεδομένα τρέχοντος ping
+">
+<!ENTITY aboutTelemetry.showArchivedPingData "
+Αρχειοθετημένα δεδομένα ping
+">
+<!ENTITY aboutTelemetry.showSubsessionData "
+Εμφάνιση δεδομένων υποσυνεδρίας
+">
 <!ENTITY aboutTelemetry.choosePing "
 Επιλογή ping:
 ">
-
-<!ENTITY aboutTelemetry.showNewerPing "
-&lt;&lt; Νεότερο ping
+<!ENTITY aboutTelemetry.archivePingType "
+Τύπος ping
 ">
-
-<!ENTITY aboutTelemetry.showOlderPing "
-Παλαιότερο ping &gt;&gt;
-">
-
-<!ENTITY aboutTelemetry.rawPingData "
-Ακατέργαστα δεδομένα ping…
-">
-
-<!ENTITY aboutTelemetry.archiveWeekHeader "
-Εβδομάδα">
-
 <!ENTITY aboutTelemetry.archivePingHeader "
 Ping
 ">
-
-<!ENTITY aboutTelemetry.generalDataSection "
-  Γενικά δεδομένα
+<!ENTITY aboutTelemetry.optionGroupToday "
+Σήμερα
 ">
-
-<!ENTITY aboutTelemetry.environmentDataSection "
-  Δεδομένα περιβάλλοντος
+<!ENTITY aboutTelemetry.optionGroupYesterday "
+Χθες
 ">
-
-<!ENTITY aboutTelemetry.telemetryLogSection "
-  Αρχείο καταγραφής τηλεμετρίας
+<!ENTITY aboutTelemetry.optionGroupOlder "
+Παλαιότερα
 ">
-
-
-
-
-
-<!ENTITY aboutTelemetry.keyedScalarsSection "
-  Μονόμετρα μεγέθη με κλειδί
-">
-
-<!ENTITY aboutTelemetry.histogramsSection "
-  Ιστογράμματα
-">
-
-
-<!ENTITY aboutTelemetry.simpleMeasurementsSection "
-  Απλές μετρήσεις
-">
-
-<!ENTITY aboutTelemetry.addonDetailsSection "
-  Λεπτομέρειες προσθέτου
-">
-
-<!ENTITY aboutTelemetry.lateWritesSection "
-  Καθυστερημένες εγγραφές
-">
-
-<!ENTITY aboutTelemetry.sessionInfoSection "
-  Πληροφορίες συνεδρίας
-">
-
-<!ENTITY aboutTelemetry.addonHistogramsSection "
-  Ιστογράμματα συλλεγμένα από πρόσθετα
-">
-
-
-<!ENTITY aboutTelemetry.emptySection "
-  (Δεν συλλέχθηκαν δεδομένα)
-">
-
-
-
-<!ENTITY aboutTelemetry.hideSymbols '
-  Εμφάνιση ακατέργαστων δεδομένων από τα "κολλήματα"
-'>
-
-<!ENTITY aboutTelemetry.filterText "
-  Φίλτρο (συμβολοσειρές ή /regexp/)
-">
-
 <!ENTITY aboutTelemetry.payloadChoiceHeader "
   Ωφέλιμο φορτίο
 ">
+<!-- LOCALIZATION NOTE(aboutTelemetry.previousPing, aboutTelemetry.nextPing):
+	These strings are displayed when selecting Archived pings, and they’re
+	used to move to the next or previous ping. -->
+<!ENTITY aboutTelemetry.previousPing "&lt;&lt;">
+<!ENTITY aboutTelemetry.nextPing "&gt;&gt;">
 
-<!ENTITY aboutTelemetry.rawPayload "
-  Ακατέργαστο ωφέλιμο φορτίο
+<!ENTITY aboutTelemetry.pageTitle "Δεδομένα τηλεμετρίας">
+<!ENTITY aboutTelemetry.moreInformations "
+Ψάχνετε περισσότερες πληροφορίες;
+">
+<!ENTITY aboutTelemetry.firefoxDataDoc "
+Η <a>τεκμηρίωση δεδομένων του Firefox</a> περιέχει οδηγίες σχετικά με το πώς να εργαστείτε με τα εργαλεία δεδομένων μας.
+">
+<!ENTITY aboutTelemetry.telemetryClientDoc "
+Η <a>τεκμηρίωση πελάτη τηλεμετρίας του Firefox</a> περιλαμβάνει ορισμούς για ιδέες, τεκμηρίωση API και αναφορές δεδομένων.
+">
+<!ENTITY aboutTelemetry.telemetryDashboard "
+Οι <a>πίνακες τηλεμετρίας</a> σάς επιτρέπουν να βλέπετε τα δεδομένα που λαμβάνει η Mozilla μέσω της τηλεμετρίας.
 ">
 
-<!ENTITY aboutTelemetry.chromeHangsSection "
-  Browser Hangs
+<!ENTITY aboutTelemetry.showInFirefoxJsonViewer "
+Άνοιγμα στην προβολή JSON
 ">
 
-<!ENTITY aboutTelemetry.extendedRecordingDisabled "
-  Extended Telemetry recording is <span>disabled</span>.
+<!ENTITY aboutTelemetry.homeSection "Αρχική">
+<!ENTITY aboutTelemetry.generalDataSection "
+  Γενικά δεδομένα
 ">
-
-<!ENTITY aboutTelemetry.extendedRecordingEnabled "
-  Extended Telemetry recording is <span>enabled</span>.
+<!ENTITY aboutTelemetry.environmentDataSection "
+  Δεδομένα περιβάλλοντος
 ">
-
-<!ENTITY aboutTelemetry.fetchSymbols "
-  Fetch function names for hang stacks
+<!ENTITY aboutTelemetry.sessionInfoSection "
+  Πληροφορίες συνεδρίας
+">
+<!ENTITY aboutTelemetry.scalarsSection "
+  Μονόμετρα μεγέθη
+">
+<!ENTITY aboutTelemetry.keyedScalarsSection "
+  Μονόμετρα μεγέθη με κλειδί
+">
+<!ENTITY aboutTelemetry.histogramsSection "
+  Ιστογράμματα
+">
+<!ENTITY aboutTelemetry.keyedHistogramsSection "
+  Ιστογράμματα με κλειδί
+">
+<!ENTITY aboutTelemetry.eventsSection "
+  Γεγονότα
+">
+<!ENTITY aboutTelemetry.simpleMeasurementsSection "
+  Απλές μετρήσεις
+">
+<!ENTITY aboutTelemetry.telemetryLogSection "
+  Αρχείο καταγραφής τηλεμετρίας
+">
+<!ENTITY aboutTelemetry.slowSqlSection "
+  Αργές εντολές SQL
+">
+<!ENTITY aboutTelemetry.chromeHangsSection '
+  "Κολλήματα" προγράμματος περιήγησης
+'>
+<!ENTITY aboutTelemetry.addonDetailsSection "
+  Λεπτομέρειες προσθέτου
+">
+<!ENTITY aboutTelemetry.capturedStacksSection "
+  Κατειλημμένες Στοίβες
+">
+<!ENTITY aboutTelemetry.lateWritesSection "
+  Καθυστερημένες εγγραφές
+">
+<!ENTITY aboutTelemetry.rawPayloadSection "
+Ακατέργαστο ωφέλιμο φορτίο
+">
+<!ENTITY aboutTelemetry.raw "
+Ακατέργαστη JSON
 ">
 
 <!ENTITY aboutTelemetry.fullSqlWarning "
-  NOTE: Slow SQL debugging is enabled. Full SQL strings may be displayed below but they will not be submitted to Telemetry.
+  ΣΗΜΕΙΩΣΗ: Η αργή αποσφαλμάτωση SQL είναι ενεργή. Τα πλήρη νήματα SQL ενδέχεται να εμφανίζονται παρακάτω, αλλά δεν θα υποβάλλονται στην Τηλεμετρία.
 ">
-
-<!ENTITY aboutTelemetry.keyedHistogramsSection "
-  Keyed Histograms
+<!ENTITY aboutTelemetry.fetchStackSymbols "
+  Λήψη ονομάτων συναρτήσεων για στοίβες
 ">
-
-<!ENTITY aboutTelemetry.pingDataDisplay "
-Ping data display:
-">
-
-<!ENTITY aboutTelemetry.pingDataSource "
-Ping data source:
-">
-
-<!ENTITY aboutTelemetry.raw "
-Raw JSON
-">
-
-<!ENTITY aboutTelemetry.scalarsSection "
-  Scalars
-">
-
-<!ENTITY aboutTelemetry.showArchivedPingData "
-Archived ping data
-">
-
-<!ENTITY aboutTelemetry.showCurrentPingData "
-Current ping data
-">
-
-<!ENTITY aboutTelemetry.showSubsessionData "
-Show subsession data
-">
-
-<!ENTITY aboutTelemetry.slowSqlSection "
-  Slow SQL Statements
-">
-
-<!ENTITY aboutTelemetry.structured "
-Structured
-">
-
-<!ENTITY aboutTelemetry.threadHangStatsSection "
-  Thread Hangs
-">
-
-<!ENTITY aboutTelemetry.toggle "
-  Click to toggle section
-">
-
-<!ENTITY aboutTelemetry.uploadDisabled "
-  FHR data upload is <span>disabled</span>.
-">
-
-<!ENTITY aboutTelemetry.uploadEnabled "
-  FHR data upload is <span>enabled</span>.
+<!ENTITY aboutTelemetry.hideStackSymbols "
+  Εμφάνιση ακατέργαστων δεδομένων στοίβας
 ">

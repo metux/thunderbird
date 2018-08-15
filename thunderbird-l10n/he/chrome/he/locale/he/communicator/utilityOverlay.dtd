@@ -32,6 +32,7 @@
 <!ENTITY selectAllCmd.key          "A">
 <!ENTITY selectAllCmd.accesskey        "ב">
 <!ENTITY preferencesCmd2.label "אפשרויות">
+<!ENTITY preferencesCmd2.accesskey "ע">
 <!ENTITY preferencesCmdUnix.label       "העדפות">
 <!ENTITY preferencesCmdUnix.accesskey     "ע">
 
@@ -55,5 +56,3 @@
 
 <!ENTITY quitApplicationCmdMac.label  "יציאה מ־&brandShortName;">
 <!ENTITY quitApplicationCmdMac.accesskey  "q">
-
-<!ENTITY preferencesCmd2.accesskey "O">

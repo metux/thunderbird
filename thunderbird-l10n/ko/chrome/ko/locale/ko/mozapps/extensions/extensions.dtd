@@ -4,6 +4,8 @@
 <!ENTITY addons.windowTitle                   "부가 기능 관리자">
 
 <!ENTITY search.placeholder                   "부가 기능 검색">
+
+<!ENTITY search.placeholder2                  "addons.mozilla.org에서 검색">
 <!ENTITY search.buttonlabel                   "검색">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
@@ -20,8 +22,12 @@
 <!ENTITY installAddonFromFile.accesskey       "I">
 <!ENTITY toolsMenu.tooltip                    "부가 기능 도구">
 
+<!ENTITY getThemes.description                "브라우저를 개인화하는 방법을 찾으시나요?">
+<!ENTITY getThemes.learnMore                  "수많은 테마를 적용해 보세요.">
+
 <!ENTITY cmd.back.tooltip                     "뒤로">
 <!ENTITY cmd.forward.tooltip                  "앞으로">
+
 
 <!ENTITY showUnsignedExtensions.button.label  "몇몇 확장기능은 확인을 할 수 없음">
 <!ENTITY showAllExtensions.button.label       "모든 확장기능 보기">
@@ -115,6 +121,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "현재 업데이트 시 제품 소개 보이기">
 <!ENTITY cmd.hideReleaseNotes.label           "제품 소개 숨기기">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "현재 업데이트 시 제품 소개 숨기기">
+<!ENTITY cmd.findReplacement.label            "다른 플러그인 찾기">
 
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
@@ -182,6 +189,10 @@
 <!ENTITY addon.details.label                  "상세보기">
 <!ENTITY addon.details.tooltip                "부가 기능에 대한 상세 정보 표시">
 <!ENTITY addon.unknownDate                    "알수 없음">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "LEGACY">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -246,3 +257,8 @@
 
 <!ENTITY pluginDeprecation.description "빠진게 있나요? 어떤 플러그인은 &brandShortName;에서 더이상 지원하지 않습니다.">
 <!ENTITY pluginDeprecation.learnMore "더 알아보기.">
+
+<!ENTITY legacyWarning.showLegacy "오래된 확장 기능 보기">
+<!ENTITY legacyExtensions.title "오래된 확장 기능">
+<!ENTITY legacyExtensions.description "이 확장 기능들은 현재 &brandShortName; 표준에 맞지 않으므로 비활성화되었습니다.">
+<!ENTITY legacyExtensions.learnMore "부가 기능의 변경 내용 알아보기">

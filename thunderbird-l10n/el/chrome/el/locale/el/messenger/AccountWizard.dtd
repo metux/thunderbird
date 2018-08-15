@@ -15,7 +15,7 @@
 <!ENTITY accountTypeDirections.label "Επιλέξτε το είδος του λογαριασμού που θέλετε να εγκαταστήσετε:">
 <!ENTITY accountTypeMail.label "Λογαριασμός Email">
 <!ENTITY accountTypeMail.accesskey "ρ">
-<!ENTITY accountTypeNews.label "Λογαριασμός συζητήσεων">
+<!ENTITY accountTypeNews.label "Λογαριασμός ομάδας ειδήσεων">
 <!ENTITY accountTypeNews.accesskey "ζ">
 
 <!-- Entities for Identity page -->
@@ -30,7 +30,7 @@
   2, Use localized full name instead of "John Smith"
 -->
 <!ENTITY fullnameExample.label "(για παράδειγμα, &quot;John Smith&quot;).">
-<!ENTITY fullnameLabel.label "Το όνομα σας">
+<!ENTITY fullnameLabel.label "Το όνομά σας:">
 <!ENTITY fullnameLabel.accesskey "τ">
 
 <!ENTITY emailLabel.label "Διεύθυνση Email:">
@@ -61,8 +61,8 @@
 <!ENTITY incomingUsername.label "Όνομα χρήστη:">
 <!ENTITY incomingUsername.accesskey "χ">
 <!-- LOCALIZATION NOTE (newsServerNameDesc.label) : Do not translate "NNTP" or the "&quot;" entities in below line -->
-<!ENTITY newsServerNameDesc.label "Εισάγετε το όνομα του εξυπηρετητή συζητήσεων (NNTP) (για παράδειγμα, &quot;news.example.net&quot;).">
-<!ENTITY newsServerLabel.label "Εξυπηρετητής ομάδων συζήτησης:">
+<!ENTITY newsServerNameDesc.label "Εισάγετε το όνομα του διακομιστή συζητήσεων (NNTP) (για παράδειγμα, &quot;news.example.net&quot;).">
+<!ENTITY newsServerLabel.label "Διακομιστής ομάδας ειδήσεων:">
 <!ENTITY newsServerLabel.accesskey "σ">
 
 <!-- Entities for Outgoing Server page -->
@@ -114,7 +114,7 @@
 <!ENTITY serverTypePrefix.label "Τύπος διακομιστή  εισερχομένων:">
 <!ENTITY serverNamePrefix.label "Όνομα διακομιστή εισερχομένων:">
 <!ENTITY smtpServerNamePrefix.label "Διακομιστής εξερχομένων (SMTP):">
-<!ENTITY newsServerNamePrefix.label "Όνομα εξυπηρετητή ομάδων συζήτησης (NNTP}:">
+<!ENTITY newsServerNamePrefix.label "Όνομα διακομιστή ομάδων συζήτησης (NNTP):">
 <!ENTITY downloadOnLogin.label "Λήψη μηνυμάτων τώρα">
 <!ENTITY downloadOnLogin.accesskey "ψ">
 <!ENTITY deferStorageDesc.label "Αποεπιλέξτε αυτό το κουτί για να αποθηκεύετε αλληλογραφία για αυτόν το λογαριασμό στο δικό του κατάλογο. Αυτό θα εμφανίζει αυτόν το λογαριασμό στο πρώτο επίπεδο. Σε άλλη περίπτωση, θα είναι μέρος των Τοπικών φακέλων του λογαριασμού Γενικών Εισερχομένων.">
@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "Γ">
 <!ENTITY clickFinish.label "Πατήστε Τέλος για να αποθηκευτούν οι ρυθμίσεις και να εγκαταλείψετε τον Οδηγό Λογαριασμού.">
 <!ENTITY clickFinish.labelMac "Πατήστε Ολοκλήρωση για να αποθηκεύσετε αυτές τις ρυθμίσεις και να κλείσετε τον οδηγό.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

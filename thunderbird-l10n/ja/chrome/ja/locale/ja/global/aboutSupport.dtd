@@ -21,6 +21,18 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion		"バージョン">
 <!ENTITY aboutSupport.extensionId		"ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle	"セキュリティソフトウェア">
+<!ENTITY aboutSupport.securitySoftwareType	"種類">
+<!ENTITY aboutSupport.securitySoftwareName	"名前">
+<!ENTITY aboutSupport.securitySoftwareAntivirus	"アンチウイルス">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware	"アンチスパイウェア">
+<!ENTITY aboutSupport.securitySoftwareFirewall	"ファイアウォール">
+
+<!ENTITY aboutSupport.featuresTitle		"&brandShortName; の機能">
+<!ENTITY aboutSupport.featureName		"名前">
+<!ENTITY aboutSupport.featureVersion		"バージョン">
+<!ENTITY aboutSupport.featureId			"ID">
+
 <!ENTITY aboutSupport.experimentsTitle		"実験的な機能">
 <!ENTITY aboutSupport.experimentName		"名前">
 <!ENTITY aboutSupport.experimentId		"ID">
@@ -28,7 +40,6 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.experimentActive		"アクティブ">
 <!ENTITY aboutSupport.experimentEndDate		"終了日">
 <!ENTITY aboutSupport.experimentHomepage	"ホームページ">
-
 <!ENTITY aboutSupport.experimentBranch		"ブランチ">
 
 <!ENTITY aboutSupport.appBasicsTitle		"アプリケーション基本情報">
@@ -61,6 +72,13 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsProfiles		"プロファイル">
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport	"マルチプロセスウィンドウ">
+
+<!ENTITY aboutSupport.appBasicsProcessCount	"ウェブコンテンツプロセス">
+
+<!ENTITY aboutSupport.enterprisePolicies	"エンタープライズポリシー">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle	"Google キー">
+<!ENTITY aboutSupport.appBasicsKeyMozilla	"Mozilla Location Service キー">
 
 <!ENTITY aboutSupport.appBasicsSafeMode		"セーフモード">
 
@@ -97,6 +115,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle			"アクセシビリティ">
 <!ENTITY aboutSupport.a11yActivated		"有効">
 <!ENTITY aboutSupport.a11yForceDisabled		"アクセシビリティの無効化">
+<!ENTITY aboutSupport.a11yHandlerUsed		"アクセシブルハンドラーの使用">
+<!ENTITY aboutSupport.a11yInstantiator		"アクセシビリティのインスタンス生成">
 
 <!ENTITY aboutSupport.libraryVersionsTitle	"ライブラリのバージョン">
 
@@ -107,6 +127,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label	"生データをクリップボードにコピー">
 
 <!ENTITY aboutSupport.sandboxTitle		"サンドボックス">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle	"却下されたシステムコール">
+<!ENTITY aboutSupport.sandboxSyscallIndex	"#">
+<!ENTITY aboutSupport.sandboxSyscallAge		"秒前">
+<!ENTITY aboutSupport.sandboxSyscallPID		"PID">
+<!ENTITY aboutSupport.sandboxSyscallTID		"TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType	"プロセスの種類">
+<!ENTITY aboutSupport.sandboxSyscallNumber	"Syscall">
+<!ENTITY aboutSupport.sandboxSyscallArgs	"引数">
 
 <!ENTITY aboutSupport.safeModeTitle		"セーフモードを試す">
 <!ENTITY aboutSupport.restartInSafeMode.label	"アドオンを無効化して再起動...">
@@ -119,3 +147,26 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle	"決定ログ">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle	"クラッシュガードが無効化した機能">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle	"回避策">
+
+<!ENTITY aboutSupport.mediaTitle		"メディア">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle	"出力デバイス">
+<!ENTITY aboutSupport.mediaInputDevicesTitle	"入力デバイス">
+<!ENTITY aboutSupport.mediaDeviceName		"デバイス名">
+<!ENTITY aboutSupport.mediaDeviceGroup		"グループ">
+<!ENTITY aboutSupport.mediaDeviceVendor		"ベンダー">
+<!ENTITY aboutSupport.mediaDeviceState		"状態">
+<!ENTITY aboutSupport.mediaDevicePreferred	"優先">
+<!ENTITY aboutSupport.mediaDeviceFormat		"形式">
+<!ENTITY aboutSupport.mediaDeviceChannels	"チャンネル">
+<!ENTITY aboutSupport.mediaDeviceRate		"レート">
+<!ENTITY aboutSupport.mediaDeviceLatency	"遅延">
+
+<!ENTITY aboutSupport.intlTitle			"国際化とローカライズ">
+<!ENTITY aboutSupport.intlAppTitle		"アプリケーションの設定">
+<!ENTITY aboutSupport.intlLocalesRequested	"要求されたロケール">
+<!ENTITY aboutSupport.intlLocalesAvailable	"利用可能なロケール">
+<!ENTITY aboutSupport.intlLocalesSupported	"アプリケーションのロケール">
+<!ENTITY aboutSupport.intlLocalesDefault	"既定のロケール">
+<!ENTITY aboutSupport.intlOSTitle		"オペレーティングシステム">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales	"システムのロケール">
+<!ENTITY aboutSupport.intlRegionalPrefs		"地域設定">

@@ -70,7 +70,7 @@
 <!ENTITY cutCmd.label "Исеци">
 <!ENTITY cutCmd.key "X">
 <!ENTITY cutCmd.accesskey "с">
-<!ENTITY copyCmd.label "Умножи">
+<!ENTITY copyCmd.label "Ископирај">
 <!ENTITY copyCmd.key "C">
 <!ENTITY copyCmd.accesskey "о">
 <!ENTITY pasteCmd.label "Налепи">
@@ -85,6 +85,20 @@
 <!ENTITY editRewrapCmd.key "R">
 <!ENTITY renameAttachmentCmd.label "Преименуј прилог…">
 <!ENTITY renameAttachmentCmd.accesskey "е">
+<!ENTITY reorderAttachmentsCmd.label "Преуреди прилоге…">
+<!ENTITY reorderAttachmentsCmd.accesskey "г">
+<!ENTITY reorderAttachmentsCmd.key "x">
+<!ENTITY toggleAttachmentPaneCmd.label "Површ за прилоге">
+<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.accesskey):
+     For better mnemonics, toggleAttachmentPaneCmd.accesskey should be the same
+     as attachments.accesskey. -->
+<!ENTITY toggleAttachmentPaneCmd.accesskey "а">
+<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.key):
+     With OS-specific access modifier, this defines the shortcut key for showing/
+     hiding/minimizing the attachment pane, e.g. Alt+M on Windows.
+     toggleAttachmentPaneCmd.key and attachments.accesskey must be the same
+     for the bucket view state machinery to work. -->
+<!ENTITY toggleAttachmentPaneCmd.key "m">
 <!ENTITY selectAllCmd.label "Изабери све">
 <!ENTITY selectAllCmd.key "A">
 <!ENTITY selectAllCmd.accesskey "з">
@@ -102,6 +116,26 @@
 <!ENTITY findPrevCmd.accesskey "х">
 <!ENTITY findPrevCmd.key "G">
 <!ENTITY findPrevCmd.key2 "VK_F3">
+
+<!-- Reorder Attachment Panel -->
+<!ENTITY reorderAttachmentsPanel.label "Преуреди прилоге">
+<!ENTITY moveAttachmentTopPanelBtn.label "Помери на врх">
+<!ENTITY moveAttachmentUpPanelBtn.label "Помери нагоре">
+<!ENTITY moveAttachmentBundleUpPanelBtn.label "Помери заједно">
+<!ENTITY moveAttachmentDownPanelBtn.label "Помери надоле">
+<!ENTITY moveAttachmentBottomPanelBtn.label "Помери на дно">
+
+<!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.Sort.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsPanelBtn.Sort.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsPanelBtn.Sort.AZ.label "Поређај: А - Ш">
+<!ENTITY sortAttachmentsPanelBtn.Sort.ZA.label "Поређај: Ш - А">
+<!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.SortSelection.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsPanelBtn.SortSelection.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.AZ.label "Поређај одабрано: А - Ш">
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.ZA.label "Поређај одабрано: Ш - А">
+<!ENTITY sortAttachmentsPanelBtn.key "у">
 
 <!-- View Menu -->
 <!ENTITY viewMenu.label "Преглед">
@@ -214,11 +248,11 @@
 <!ENTITY quoteButton.tooltip "Цитирај претходну поруку">
 <!ENTITY addressButton.tooltip "Изаберите примаоца из именика">
 <!ENTITY attachButton.tooltip "Укључи прилог">
+<!ENTITY attachButton.tooltip2 "Додај прилог">
 <!ENTITY spellingButton.tooltip "Провери правопис одабраног дела или целе поруке">
-<!ENTITY statusLanguageText.tooltip "Језик провере правописа">
 <!ENTITY saveButton.tooltip "Сачувај ову поруку">
 <!ENTITY cutButton.tooltip              "Исеци">
-<!ENTITY copyButton.tooltip             "Умножи">
+<!ENTITY copyButton.tooltip             "Копирај">
 <!ENTITY pasteButton.tooltip            "Налепи">
 <!ENTITY printButton.tooltip "Одштампај ову поруку">
 
@@ -226,9 +260,9 @@
 <!--LOCALIZATION NOTE headersSpace.style is for aligning  the From:, To: and
     Subject: rows. It should be larger than the largest Header label  -->
 <!ENTITY headersSpace.style "width: 9em;">
-<!ENTITY fromAddr.label "Од:">
-<!ENTITY fromAddr.accesskey "д">
-<!ENTITY toAddr.label "За:">
+<!ENTITY fromAddr.label "Шаље:">
+<!ENTITY fromAddr.accesskey "а">
+<!ENTITY toAddr.label "Прима:">
 <!ENTITY ccAddr.label "Коп:">
 <!ENTITY bccAddr.label "сКоп:">
 <!ENTITY replyAddr.label "Одговор-за:">
@@ -236,9 +270,14 @@
 <!ENTITY followupAddr.label "Праћење-за:">
 <!ENTITY subject.label "Наслов:">
 <!ENTITY subject.accesskey "Н">
-<!-- LOCALIZATION NOTE attachments.accesskey This access key should correspond
-     to the strings in attachmentCount in composeMsgs.properties -->
+<!-- LOCALIZATION NOTE (attachments.accesskey) This access key character should
+     be taken from the strings in attachmentCount in composeMsgs.properties,
+     and it must be the same as toggleAttachmentPaneCmd.key, otherwise it won't
+     work, as the shortcut key functionality supersedes the access key. -->
 <!ENTITY attachments.accesskey "л">
+
+<!ENTITY attachmentBucketHeader.tooltip "Површ за прилоге">
+<!ENTITY attachmentBucketCloseButton.tooltip "Сакриј површ за прилоге">
 
 <!-- Format Toolbar, imported from editorAppShell.xul -->
 <!ENTITY SmileButton.tooltip "Убаците смајли">
@@ -269,13 +308,14 @@
 <!ENTITY undo.accesskey "О">
 <!ENTITY cut.label "Исеци">
 <!ENTITY cut.accesskey "ц">
-<!ENTITY copy.label "Умножи">
+<!ENTITY copy.label "Копирај">
 <!ENTITY copy.accesskey "У">
 <!ENTITY paste.label "Налепи">
 <!ENTITY paste.accesskey "Н">
 <!ENTITY pasteQuote.label "Налепи као цитат">
 <!ENTITY pasteQuote.accesskey "л">
 
+<!-- Attachment Item and List Context Menus -->
 <!ENTITY openAttachment.label "Отвори">
 <!ENTITY openAttachment.accesskey "О">
 <!ENTITY delete.label "Обриши">
@@ -284,6 +324,10 @@
 <!ENTITY removeAttachment.accesskey "к">
 <!ENTITY renameAttachment.label "Преименуј…">
 <!ENTITY renameAttachment.accesskey "П">
+<!ENTITY reorderAttachments.label "Преуреди прилоге…">
+<!ENTITY reorderAttachments.accesskey "р">
+<!ENTITY removeAllAttachments.label "Уклони све прилоге">
+<!ENTITY removeAllAttachments.accesskey "к">
 <!ENTITY selectAll.label "Одабери све">
 <!ENTITY selectAll.accesskey "в">
 <!ENTITY attachFile.label "Закачи датотеке…">
@@ -299,6 +343,13 @@
 <!ENTITY attachPage.label "Закачи веб страницу…">
 <!ENTITY attachPage.accesskey "З">
 
+<!-- Attachment Pane Header Bar Context Menu -->
+<!-- LOCALIZATION NOTE (initiallyShowAttachmentPane.label):
+     Should use the same wording as startExpandedCmd.label
+     in msgHdrViewOverlay.dtd. -->
+<!ENTITY initiallyShowAttachmentPane.label "Прикажи површ за прилоге на почетку">
+<!ENTITY initiallyShowAttachmentPane.accesskey "г">
+
 <!-- Spell checker context menu items -->
 <!ENTITY spellAddDictionaries.label "Додај речнике…">
 <!ENTITY spellAddDictionaries.accesskey "ј">
@@ -309,3 +360,7 @@
 <!-- Identity popup customize menuitem -->
 <!ENTITY customizeFromAddress.label "Прилагоди из адресе…">
 <!ENTITY customizeFromAddress.accesskey "А">
+
+<!-- Status Bar -->
+<!ENTITY languageStatusButton.tooltip "Језик провере правописа">
+<!ENTITY encodingStatusPanel.tooltip "Кодирање текста">

@@ -17,9 +17,11 @@
 
 <!-- LOCALIZATION NOTE (webAudioEditorUI.reloadNotice2): This is the label shown
   -  along with the button that triggers a page refresh. -->
+<!ENTITY webAudioEditorUI.reloadNotice2   "σελίδας για προβολή και επεξεργασία περιβάλλοντος ήχου.">
 
 <!-- LOCALIZATION NOTE (webAudioEditorUI.emptyNotice): This is the label shown
   -  while the page is refreshing and the tool waits for a audio context. -->
+<!ENTITY webAudioEditorUI.emptyNotice     "Αναμονή για δημιουργία ενός περιβάλλοντος ήχου…">
 
 <!-- LOCALIZATION NOTE (webAudioEditorUI.tab.properties2): This is the label shown
   -  for the properties tab view. -->
@@ -31,46 +33,21 @@
 
 <!-- LOCALIZATION NOTE (webAudioEditorUI.inspectorTitle): This is the title for the
   -  AudioNode inspector view. -->
+<!ENTITY webAudioEditorUI.inspectorTitle  "Επιθεώρηση AudioNode">
 
 <!-- LOCALIZATION NOTE (webAudioEditorUI.inspectorEmpty): This is the title for the
   -  AudioNode inspector view empty message. -->
+<!ENTITY webAudioEditorUI.inspectorEmpty  "Κανένα επιλεγμένο AudioNode.">
 
 <!-- LOCALIZATION NOTE (webAudioEditorUI.propertiesEmpty): This is the title for the
   -  AudioNode inspector view properties tab empty message. -->
+<!ENTITY webAudioEditorUI.propertiesEmpty "Ο κόμβος δεν έχει καμία ιδιότητα.">
 
 <!-- LOCALIZATION NOTE (webAudioEditorUI.automationEmpty): This is the title for the
   -  AudioNode inspector view automation tab empty message. -->
+<!ENTITY webAudioEditorUI.automationEmpty "Ο κόμβος δεν έχει κανένα AudioParam.">
 
 <!-- LOCALIZATION NOTE (webAudioEditorUI.automationNoEvents): This is the title for the
   -  AudioNode inspector view automation tab message when there are no automation
   -  events. -->
-
-
-<!-- LOCALIZATION NOTE (webAudioEditorUI.automationEmpty): This is the title for the
-  -  AudioNode inspector view automation tab empty message. -->
-<!ENTITY webAudioEditorUI.automationEmpty "Node does not have any AudioParams.">
-
-<!-- LOCALIZATION NOTE (webAudioEditorUI.automationNoEvents): This is the title for the
-  -  AudioNode inspector view automation tab message when there are no automation
-  -  events. -->
-<!ENTITY webAudioEditorUI.automationNoEvents "AudioParam does not have any automation events.">
-
-<!-- LOCALIZATION NOTE (webAudioEditorUI.emptyNotice): This is the label shown
-  -  while the page is refreshing and the tool waits for a audio context. -->
-<!ENTITY webAudioEditorUI.emptyNotice     "Waiting for an audio context to be created…">
-
-<!-- LOCALIZATION NOTE (webAudioEditorUI.inspectorEmpty): This is the title for the
-  -  AudioNode inspector view empty message. -->
-<!ENTITY webAudioEditorUI.inspectorEmpty  "No AudioNode selected.">
-
-<!-- LOCALIZATION NOTE (webAudioEditorUI.inspectorTitle): This is the title for the
-  -  AudioNode inspector view. -->
-<!ENTITY webAudioEditorUI.inspectorTitle  "AudioNode Inspector">
-
-<!-- LOCALIZATION NOTE (webAudioEditorUI.propertiesEmpty): This is the title for the
-  -  AudioNode inspector view properties tab empty message. -->
-<!ENTITY webAudioEditorUI.propertiesEmpty "Node does not have any properties.">
-
-<!-- LOCALIZATION NOTE (webAudioEditorUI.reloadNotice2): This is the label shown
-  -  along with the button that triggers a page refresh. -->
-<!ENTITY webAudioEditorUI.reloadNotice2   "the page to view and edit the audio context.">
+<!ENTITY webAudioEditorUI.automationNoEvents "Το AudioParam δεν έχει κανένα γεγονός αυτοματισμού.">

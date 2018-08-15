@@ -49,3 +49,6 @@
 <!-- Shared by Link and Image dialogs -->
 <!ENTITY LinkURLEditField.label "Nhập một địa chỉ trang web, một tập tin trong máy, hoặc chọn một Đầu đề hoặc Thẻ neo Anchor từ danh sách thả xuống:">
 <!ENTITY LinkURLEditField.accessKey "N">
+
+<!ENTITY LinkURLEditField2.label "Enter a web page location, a local file, or select a Named Anchor or Heading from the field's context menu:">
+<!ENTITY LinkURLEditField2.accessKey "w">

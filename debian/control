@@ -8,6 +8,8 @@ Build-Depends:
  autoconf2.13,
  bash-completion,
  bzip2,
+ cargo (>= 0.20),
+ clang-4.0,
  debhelper (>= 10.2.5~),
  dh-apparmor,
  dh-exec,
@@ -17,6 +19,7 @@ Build-Depends:
  libatk-adaptor,
  libbz2-dev,
  libcairo2-dev (>= 1.10.2-1.1~),
+ libclang-4.0-dev,
  libdbus-glib-1-dev (>= 0.60),
  libevent-dev (>= 1.4.1),
  libffi-dev,
@@ -30,21 +33,26 @@ Build-Depends:
  libidl-dev (>= 0.8.0),
  libiw-dev [linux-any],
  libnotify-dev,
+ libnspr4-dev (>= 2:4.19~),
+ libnss3-dev (>= 2:3.36.1~),
  libpng-dev,
  libpulse-dev,
  libreadline-dev,
  libstartup-notification0-dev,
+ libsqlite3-dev (>= 3.20.1),
  libvpx-dev (>= 1.5.0),
  libx11-dev,
  libx11-xcb-dev,
  libxau-dev,
  libxft-dev,
  libxt-dev,
+ llvm-4.0-dev,
  mesa-common-dev,
  mozilla-devscripts,
  python-minimal (>= 2.6.6-13~),
  python-ply,
  python2.7,
+ rustc (>= 1.19),
  unzip,
  yasm (>= 1.1),
  zip,
@@ -71,12 +79,12 @@ Suggests:
  apparmor,
  fonts-lyx,
  libgssapi-krb5-2,
- ${gnome:Depends},
 Provides:
  mail-reader,
 Xb-Xul-AppId: {3550f703-e582-4d05-9a08-453d09bdfdc6}
 Breaks:
- enigmail (<< 2:1.9.8.1-1~),
+ calendar-exchange-provider (<< 4.0.0~beta4-1~),
+ enigmail (<< 2:2~),
  hunspell-ar (<< 0.0.0+20080110-1.1),
  hunspell-da (<< 1:3.1.0-3),
  hunspell-de-at (<< 20071211-2),
@@ -141,6 +149,7 @@ Breaks:
  myspell-tl (<< 0.4-0-5),
  xul-ext-compactheader (<< 2.1.0~),
  xul-ext-foxyproxy-standard (<< 4.5.6-debian-2~),
+ xul-ext-sogo-connector (<< 31.0.5-2~),
 Description: mail/news client with RSS, chat and integrated spam filter support
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
@@ -153,33 +162,11 @@ Description: mail/news client with RSS, chat and integrated spam filter support
  The goal of Thunderbird is to produce a cross platform standalone mail
  application using the XUL user interface language.
 
-Package: thunderbird-dev
-Architecture: any
-Depends:
- thunderbird (= ${binary:Version}),
- libnspr4-dev,
- libnss3-dev,
- python,
- ${misc:Depends},
- ${shlibs:Depends},
-Description: Development files for Thunderbird
- Thunderbird is an mail client suitable for free distribution. The goal of
- Thunderbird is to produce a cross platform stand-alone mail application using
- the XUL user interface language.
- It supports different mail accounts, no matter of the used protocol like
- POP(s) or IMAP(s), has an integrated learning Spam filter, and offers easy
- organization of mails with tagging and virtual folders. Also, more features
- can be added by installing extensions.
- .
- This package contains the development headers, idl files and static libraries
- needed to develop applications using Thunderbird.
-
 Package: lightning
-Architecture: any
+Architecture: all
 Depends:
  thunderbird (>= ${binary:Version}),
  ${misc:Depends},
- ${shlibs:Depends},
 Suggests:
  calendar-google-provider,
  fonts-lyx,
@@ -218,7 +205,6 @@ Depends:
  thunderbird-l10n-ast (>= ${binary:Version}),
  thunderbird-l10n-be (>= ${binary:Version}),
  thunderbird-l10n-bg (>= ${binary:Version}),
- thunderbird-l10n-bn-bd (>= ${binary:Version}),
  thunderbird-l10n-br (>= ${binary:Version}),
  thunderbird-l10n-ca (>= ${binary:Version}),
  thunderbird-l10n-cs (>= ${binary:Version}),
@@ -247,12 +233,13 @@ Depends:
  thunderbird-l10n-it (>= ${binary:Version}),
  thunderbird-l10n-ja (>= ${binary:Version}),
  thunderbird-l10n-kab (>= ${binary:Version}),
+ thunderbird-l10n-kk (>= ${binary:Version}),
  thunderbird-l10n-ko (>= ${binary:Version}),
  thunderbird-l10n-lt (>= ${binary:Version}),
+ thunderbird-l10n-ms (>= ${binary:Version}),
  thunderbird-l10n-nb-no (>= ${binary:Version}),
  thunderbird-l10n-nl (>= ${binary:Version}),
  thunderbird-l10n-nn-no (>= ${binary:Version}),
- thunderbird-l10n-pa-in (>= ${binary:Version}),
  thunderbird-l10n-pl (>= ${binary:Version}),
  thunderbird-l10n-pt-br (>= ${binary:Version}),
  thunderbird-l10n-pt-pt (>= ${binary:Version}),
@@ -265,7 +252,6 @@ Depends:
  thunderbird-l10n-sq (>= ${binary:Version}),
  thunderbird-l10n-sr (>= ${binary:Version}),
  thunderbird-l10n-sv-se (>= ${binary:Version}),
- thunderbird-l10n-ta-lk (>= ${binary:Version}),
  thunderbird-l10n-tr (>= ${binary:Version}),
  thunderbird-l10n-uk (>= ${binary:Version}),
  thunderbird-l10n-vi (>= ${binary:Version}),
@@ -345,23 +331,6 @@ Description: Bulgarian language package for Thunderbird
  the XUL user interface language.
  .
  This package contains the localization of Thunderbird in Bulgarian.
-
-Package: thunderbird-l10n-bn-bd
-Architecture: all
-Section: localization
-Depends:
- thunderbird (<< ${source:Version}.1~),
- thunderbird (>= ${source:Version}),
- ${misc:Depends},
-Homepage: https://wiki.mozilla.org/L10n:Teams:bd-BD
-Recommends:
- hunspell-bn,
-Description: Bengali language package for Thunderbird
- Thunderbird is an mail client suitable for free distribution. The goal of
- Thunderbird is to produce a cross platform stand-alone mail application using
- the XUL user interface language.
- .
- This package contains the localization of Thunderbird in Bengali.
 
 Package: thunderbird-l10n-br
 Architecture: all
@@ -830,6 +799,23 @@ Description: Kabyle language package for Thunderbird
  .
  This package contains the localization of Thunderbird in Kabyle.
 
+Package: thunderbird-l10n-kk
+Architecture: all
+Section: localization
+Depends:
+ thunderbird (<< ${source:Version}.1~),
+ thunderbird (>= ${source:Version}),
+ ${misc:Depends},
+Homepage: https://wiki.mozilla.org/L10n:Teams:kk
+Recommends:
+ hunspell-kk,
+Description: Kazakh language package for Thunderbird
+ Thunderbird is an mail client suitable for free distribution. The goal of
+ Thunderbird is to produce a cross platform stand-alone mail application using
+ the XUL user interface language.
+ .
+ This package contains the localization of Thunderbird in Kazakh.
+
 Package: thunderbird-l10n-ko
 Architecture: all
 Section: localization
@@ -863,6 +849,21 @@ Description: Lithuanian language package for Thunderbird
  the XUL user interface language.
  .
  This package contains the localization of Thunderbird in Lithuanian.
+
+Package: thunderbird-l10n-ms
+Architecture: all
+Section: localization
+Depends:
+ thunderbird (<< ${source:Version}.1~),
+ thunderbird (>= ${source:Version}),
+ ${misc:Depends},
+Homepage: https://wiki.mozilla.org/L10n:Teams:ms
+Description: Malay language package for Thunderbird
+ Thunderbird is an mail client suitable for free distribution. The goal of
+ Thunderbird is to produce a cross platform stand-alone mail application using
+ the XUL user interface language.
+ .
+ This package contains the localization of Thunderbird in Malay.
 
 Package: thunderbird-l10n-nb-no
 Architecture: all
@@ -914,21 +915,6 @@ Description: Nynorsk (Norway) language package for Thunderbird
  the XUL user interface language.
  .
  This package contains the localization of Thunderbird in Nynorsk (Norway).
-
-Package: thunderbird-l10n-pa-in
-Architecture: all
-Section: localization
-Depends:
- thunderbird (<< ${source:Version}.1~),
- thunderbird (>= ${source:Version}),
- ${misc:Depends},
-Homepage: https://wiki.mozilla.org/L10n:Teams:pa
-Description: Punjabi (India) language package for Thunderbird
- Thunderbird is an mail client suitable for free distribution. The goal of
- Thunderbird is to produce a cross platform stand-alone mail application using
- the XUL user interface language.
- .
- This package contains the localization of Thunderbird in Punjabi (India).
 
 Package: thunderbird-l10n-pl
 Architecture: all
@@ -1130,21 +1116,6 @@ Description: Swedish (Sweden) language package for Thunderbird
  .
  This package contains the localization of Thunderbird in Swedish (Sweden).
 
-Package: thunderbird-l10n-ta-lk
-Architecture: all
-Section: localization
-Depends:
- thunderbird (<< ${source:Version}.1~),
- thunderbird (>= ${source:Version}),
- ${misc:Depends},
-Homepage: https://wiki.mozilla.org/L10n:Teams:ta-LK
-Description: Tamil language package for Thunderbird
- Thunderbird is an mail client suitable for free distribution. The goal of
- Thunderbird is to produce a cross platform stand-alone mail application using
- the XUL user interface language.
- .
- This package contains the localization of Thunderbird in Tamil.
-
 Package: thunderbird-l10n-tr
 Architecture: all
 Section: localization
@@ -1285,22 +1256,6 @@ Description: Bulgarian language package for lightning
  user interface language.
  .
  This package contains the localization of lightning in Bulgarian.
-
-Package: lightning-l10n-bn-bd
-Architecture: all
-Section: localization
-Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
- ${misc:Depends},
-Recommends:
- hunspell-bn,
-Description: Bengali (Bangladesh) language package for lightning
- Lightning is a Mozilla based calendar extension for Thunderbird.
- It's goal is to integrate a Calendar and Task application using the XUL
- user interface language.
- .
- This package contains the localization of lightning in Bengali/Bangladesh.
 
 Package: lightning-l10n-br
 Architecture: all
@@ -1753,6 +1708,22 @@ Description: Kabyle language package for lightning
  .
  This package contains the localization of lightning in Kabyle.
 
+Package: lightning-l10n-kk
+Architecture: all
+Section: localization
+Depends:
+ lightning (<< ${source:Version}.1~),
+ lightning (>= ${source:Version}),
+ ${misc:Depends},
+Recommends:
+ hunspell-kk,
+Description: Kazakh language package for lightning
+ Lightning is a Mozilla based calendar extension for Thunderbird.
+ It's goal is to integrate a Calendar and Task application using the XUL
+ user interface language.
+ .
+ This package contains the localization of lightning in Kazakh.
+
 Package: lightning-l10n-ko
 Architecture: all
 Section: localization
@@ -1768,6 +1739,20 @@ Description: Korean language package for lightning
  user interface language.
  .
  This package contains the localization of lightning in Korean.
+
+Package: lightning-l10n-ms
+Architecture: all
+Section: localization
+Depends:
+ lightning (<< ${source:Version}.1~),
+ lightning (>= ${source:Version}),
+ ${misc:Depends},
+Description: Malay language package for lightning
+ Lightning is a Mozilla based calendar extension for Thunderbird.
+ It's goal is to integrate a Calendar and Task application using the XUL
+ user interface language.
+ .
+ This package contains the localization of lightning in Malay.
 
 Package: lightning-l10n-lt
 Architecture: all
@@ -1832,20 +1817,6 @@ Description: Nynorsk (Norway) language package for lightning
  user interface language.
  .
  This package contains the localization of lightning in Nynorsk (Norway).
-
-Package: lightning-l10n-pa-in
-Architecture: all
-Section: localization
-Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
- ${misc:Depends},
-Description: Punjabi language package for lightning
- Lightning is a Mozilla based calendar extension for Thunderbird.
- It's goal is to integrate a Calendar and Task application using the XUL
- user interface language.
- .
- This package contains the localization of lightning in Punjabi (India).
 
 Package: lightning-l10n-pl
 Architecture: all
@@ -2034,20 +2005,6 @@ Description: Swedish language package for lightning
  user interface language.
  .
  This package contains the localization of lightning in Swedish (Sweden).
-
-Package: lightning-l10n-ta-lk
-Architecture: all
-Section: localization
-Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
- ${misc:Depends},
-Description: Tamil language package for lightning
- Lightning is a Mozilla based calendar extension for Thunderbird.
- It's goal is to integrate a Calendar and Task application using the XUL
- user interface language.
- .
- This package contains the localization of lightning in Tamil (Sri Lanka).
 
 Package: lightning-l10n-tr
 Architecture: all

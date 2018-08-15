@@ -140,6 +140,8 @@ because displayed names don't have the comma in between. -->
 <!ENTITY newContactButton.accesskey                     "a">
 <!ENTITY newlistButton.label                            "Roll nevez">
 <!ENTITY newlistButton.accesskey                        "l">
+<!ENTITY showAsDefault.label                            "Kavlec'hiad loc'hañ dre ziouer">
+<!ENTITY showAsDefault.accesskey                        "l">
 <!ENTITY editPropertiesButton.label                     "Embann">
 <!ENTITY propertiesContext.label                        "Perzhioù">
 <!ENTITY propertiesContext.accesskey                    "P">
@@ -239,3 +241,7 @@ because displayed names don't have the comma in between. -->
 <!ENTITY minimizeWindow.key                             "m">
 <!ENTITY bringAllToFront.label                          "Kas pep tra d'ar rakleur">
 <!ENTITY zoomWindow.label                               "Zoum">
+
+<!ENTITY addressBookCmd.label                           "Address Book">
+<!ENTITY addressBookCmd.accesskey                       "a">
+<!ENTITY addressBookCmd.key                             "B">

@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "vi": {
+      "chrome_resources": {
+        "necko": "chrome/vi/locale/vi/necko/", 
+        "global": "chrome/vi/locale/vi/global/", 
+        "messenger-region": "chrome/vi/locale/vi/messenger-region/", 
+        "chat": "chrome/vi/locale/vi/chat/", 
+        "devtools": "chrome/vi/locale/vi/devtools/client/", 
+        "pipnss": "chrome/vi/locale/vi/pipnss/", 
+        "messenger-smime": "chrome/vi/locale/vi/messenger-smime/", 
+        "messenger-newsblog": "chrome/vi/locale/vi/messenger-newsblog/", 
+        "devtools-shim": "chrome/vi/locale/vi/devtools/shim/", 
+        "alerts": "chrome/vi/locale/vi/alerts/", 
+        "messenger": "chrome/vi/locale/vi/messenger/", 
+        "editor": "chrome/vi/locale/vi/editor/", 
+        "branding": "chrome/vi/locale/vi/branding/", 
+        "mozldap": "chrome/vi/locale/vi/mozldap/", 
+        "autoconfig": "chrome/vi/locale/vi/autoconfig/", 
+        "devtools-shared": "chrome/vi/locale/vi/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/vi/locale/vi/global-platform/win/", 
+          "android": "chrome/vi/locale/vi/global-platform/unix/", 
+          "macosx": "chrome/vi/locale/vi/global-platform/mac/", 
+          "linux": "chrome/vi/locale/vi/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/vi/locale/vi/mozapps/", 
+        "pluginproblem": "chrome/vi/locale/vi/pluginproblem/", 
+        "communicator": "chrome/vi/locale/vi/communicator/", 
+        "messenger-mapi": "chrome/vi/locale/vi/messenger-mapi/", 
+        "places": "chrome/vi/locale/vi/places/", 
+        "passwordmgr": "chrome/vi/locale/vi/passwordmgr/", 
+        "pippki": "chrome/vi/locale/vi/pippki/"
+      }, 
+      "version": "20130626174124"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-vi@firefox.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "vi", 
+  "version": "60.0buildid20180709054853", 
+  "name": "Tiếng Việt (VN) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "vi.mozdev.org (contributors: Nguyễn Mạnh Hùng, Nguyễn Xuân Minh, Huỳnh Hải Đăng, Bùi Việt Khoa, Trần Nguyễn Sơn)", 
+  "description": "Language pack for Thunderbird for vi"
+}

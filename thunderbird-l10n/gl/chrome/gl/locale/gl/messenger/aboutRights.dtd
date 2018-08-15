@@ -1,3 +1,6 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <!-- rights.locale-direction instead of the usual local.dir entity, so RTL can skip translating page. -->
 <!ENTITY rights.locale-direction "ltr">
 <!ENTITY rights.title            "Sobre os seus dereitos">
@@ -21,7 +24,7 @@
 <!ENTITY rights.intro-point2c ".">
 
 <!-- point 3 text for official branded builds -->
-<!ENTITY rights.intro-point3a "As políticas de privacidade dos produtos de &vendorShortName; poden encontrarse ">
+<!ENTITY rights.intro-point3a "As políticas de privacidade dos produtos de &vendorShortName; poden atoparse ">
 <!ENTITY rights.intro-point3b "aquí">
 <!ENTITY rights.intro-point3c ".">
 

@@ -99,3 +99,5 @@ functionality specific to thunderbird. -->
 <!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
      "NS_ERROR_NET_INADEQUATE_SECURITY". -->
 <!ENTITY inadequateSecurityError.longDesc "<p><span class='hostname'></span> naudoja saugumo technologiją, kuri yra pasenusi ir pažeidžiama. Prisijungę piktavaliai lengvai galėtų pamatyti informaciją, kuri jums atrodo saugi. Aplankykite šį tinklapį tik tada, kai jo administratorius pašalins saugumo spragas.</p><p>Klaidos kodas: NS_ERROR_NET_INADEQUATE_SECURITY</p>">
+
+<!ENTITY blockedByPolicy.title "Blocked Page">

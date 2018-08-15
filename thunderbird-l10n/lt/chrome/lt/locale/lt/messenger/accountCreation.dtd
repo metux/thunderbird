@@ -86,3 +86,9 @@
 <!ENTITY insecureUnencrypted.description "Jūsų laiškai ir prisijungimo duomenys bus siunčiami nešifruotu ryšiu, todėl juos galės perskaityti pašaliniai. „&brandShortName;“ jums leis gauti paštą, tačiau jums derėtų susisiekti su savo el. pašto paslaugos teikėju ir paprašyti, kad šis suteiktų galimybę jungtis šifruotu ryšiu.">
 <!ENTITY insecureSelfSigned.description  "Šis serveris naudoja liudijimą, kurio tapatumu negalime pasikliauti, tad nėra garantijos, jog pašalinės akys negalės perimti duomenų, keliaujančių tarp jūsų programos „&brandShortName;“ ir serverio. „&brandShortName;“ jums leis gauti paštą, tačiau jums tikrai derėtų priminti savo el. pašto paslaugos teikėjui, kad šis serveryje naudotų patikimą liudijimą.">
 <!ENTITY secureServer.description        "Sveikiname! Tai – saugus serveris.">
+
+<!ENTITY autoconfigWizard2.title         "Set Up an Existing Email Account">
+<!ENTITY email2.placeholder              "you@example.com">
+<!ENTITY email.text                      "Your existing email address">
+<!ENTITY open-provisioner.label          "Get a new email address…">
+<!ENTITY open-provisioner.accesskey      "g">

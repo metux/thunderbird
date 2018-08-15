@@ -11,6 +11,7 @@
 <!-- General Settings -->
 <!ENTITY enableGlodaSearch.label       "Povolit globální hledání a indexaci">
 <!ENTITY enableGlodaSearch.accesskey   "g">
+<!ENTITY dateTimeFormatting.label      "Formátování data a času">
 <!ENTITY allowHWAccel.label            "Použít hardwarovou akceleraci, je-li dostupná">
 <!ENTITY allowHWAccel.accesskey        "h">
 <!ENTITY storeType.label               "Typ úložiště zpráv pro nové účty:">
@@ -52,7 +53,19 @@
 <!ENTITY crashReporterLearnMore.label    "Zjistit více">
 
 <!-- Update -->
-<!ENTITY updateApp.label                 "Aktualizace aplikace &brandShortName;:">
+<!-- LOCALIZATION NOTE (updateApp.label):
+  Strings from aboutDialog.dtd are displayed in this section of the preferences.
+  Please check for possible accesskey conflicts.
+-->
+<!ENTITY updateApp2.label                "Aktualizace aplikace &brandShortName;">
+<!-- LOCALIZATION NOTE (updateApp.version.*): updateApp.version.pre is
+  followed by a version number, keep the trailing space or replace it with
+  a different character as needed. updateApp.version.post is displayed after
+  the version number, and is empty on purpose for English. You can use it
+  if required by your language.
+ -->
+<!ENTITY updateApp.version.pre           "Verze ">
+<!ENTITY updateApp.version.post          "">
 <!ENTITY updateAuto.label                "Instalovat aktualizace automaticky (doporučováno z důvodu vyšší bezpečnosti)">
 <!ENTITY updateAuto.accesskey            "A">
 <!ENTITY updateCheck.label               "Vyhledávat aktualizace, ale zeptat se, zda mají být nainstalovány">
@@ -89,6 +102,8 @@
 <!ENTITY useCacheBefore.label            "Použít maximálně">
 <!ENTITY useCacheBefore.accesskey        "P">
 <!ENTITY useCacheAfter.label             "MB diskové mezipaměti">
+<!ENTITY overrideSmartCacheSize.label    "Nepoužívat automatickou správu mezipaměti">
+<!ENTITY overrideSmartCacheSize.accesskey "e">
 <!ENTITY clearCacheNow.label             "Vymazat">
 <!ENTITY clearCacheNow.accesskey         "m">
 

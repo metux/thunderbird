@@ -9,9 +9,8 @@
 <!ENTITY account.name                  "שם משתמש:">
 <!ENTITY account.password              "ססמה:">
 <!ENTITY account.alias                 "כינוי:">
+<!ENTITY account.newMailNotification   "הצגת התרעה עם הודעה חדשה">
+<!ENTITY account.autojoin              "ערוצים להצטרפות אוטומטית:">
 <!ENTITY account.proxySettings.caption "הגדרות שרת מתווך:">
 <!ENTITY account.proxySettings.change.label     "שינוי…">
-
-<!ENTITY account.autojoin              "Auto-Joined Channels:">
-<!ENTITY account.newMailNotification   "Notify on new Mail">
-<!ENTITY account.proxySettings.change.accessKey "C">
+<!ENTITY account.proxySettings.change.accessKey "ש">

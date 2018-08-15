@@ -24,3 +24,4 @@
 <!ENTITY backgroundImage.label "Фоновое изображение:">
 <!ENTITY backgroundImage.accessKey "н">
 <!ENTITY backgroundImage.tooltip "Использование изображения в качестве фона страницы">
+<!ENTITY backgroundImage.shortenedDataURI "Укороченный URI данных (копия поместит полный URI в буфер обмена)">

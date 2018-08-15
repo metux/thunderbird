@@ -11,6 +11,7 @@
 <!-- General Settings -->
 <!ENTITY enableGlodaSearch.label       "Aktivera global sökning och indexering">
 <!ENTITY enableGlodaSearch.accesskey   "A">
+<!ENTITY dateTimeFormatting.label      "Formatering av datum och tid">
 <!ENTITY allowHWAccel.label            "Använd hårdvaruacceleration när det finns">
 <!ENTITY allowHWAccel.accesskey        "h">
 <!ENTITY storeType.label               "Lagringstyp för meddelande i nya konton:">
@@ -52,7 +53,19 @@
 <!ENTITY crashReporterLearnMore.label    "Läs mer">
 
 <!-- Update -->
-<!ENTITY updateApp.label                 "&brandShortName; uppdateringar:">
+<!-- LOCALIZATION NOTE (updateApp.label):
+  Strings from aboutDialog.dtd are displayed in this section of the preferences.
+  Please check for possible accesskey conflicts.
+-->
+<!ENTITY updateApp2.label                "&brandShortName; uppdateringar">
+<!-- LOCALIZATION NOTE (updateApp.version.*): updateApp.version.pre is
+  followed by a version number, keep the trailing space or replace it with
+  a different character as needed. updateApp.version.post is displayed after
+  the version number, and is empty on purpose for English. You can use it
+  if required by your language.
+ -->
+<!ENTITY updateApp.version.pre           "Version ">
+<!ENTITY updateApp.version.post          "">
 <!ENTITY updateAuto.label                "Installera uppdateringar automatiskt (rekommenderas: förbättrad säkerhet)">
 <!ENTITY updateAuto.accesskey            "I">
 <!ENTITY updateCheck.label               "Sök efter uppdateringar, men låt mig välja om de ska installeras">
@@ -89,6 +102,8 @@
 <!ENTITY useCacheBefore.label            "Använd upp till">
 <!ENTITY useCacheBefore.accesskey        "A">
 <!ENTITY useCacheAfter.label             "MB utrymme för cachen">
+<!ENTITY overrideSmartCacheSize.label    "Åsidosätt automatisk cachehantering">
+<!ENTITY overrideSmartCacheSize.accesskey "s">
 <!ENTITY clearCacheNow.label             "Rensa nu">
 <!ENTITY clearCacheNow.accesskey         "R">
 
