@@ -35,8 +35,3 @@
 <!ENTITY pref.numberofweeks.4 "4 වන සතිය">
 <!ENTITY pref.numberofweeks.5 "5 වන සතිය">
 <!ENTITY pref.numberofweeks.6 "6 වන සතිය">
-
-<!ENTITY pref.calendar.view-minimonth.showweeknumber.label "Show week number in views and minimonth">
-<!ENTITY pref.calendar.view-minimonth.showweeknumber.accesskey "n">
-<!ENTITY pref.showlocation.label "Show location">
-<!ENTITY pref.showlocation.accesskey "L">

@@ -66,9 +66,3 @@
 <!ENTITY pref.defalarmlen4todos.accesskey "k">
 <!ENTITY pref.defaultemail.label "Địa chỉ mặc định để gửi chuông báo tới:">
 <!ENTITY pref.defaulttext.label "Nội dung cảnh báo mặc định cho chuông báo:">
-
-<!ENTITY pref.calendar.alarms.sound.play.label "Play">
-<!ENTITY pref.calendar.alarms.sound.play.accessKey "P">
-<!ENTITY pref.missedalarms2 "Show missed reminders for writable calendars">
-<!ENTITY pref.defaultsnoozelength.label "Default Snooze Length:" >
-<!ENTITY pref.defaultsnoozelength.accesskey "S">

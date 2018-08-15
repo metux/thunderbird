@@ -46,7 +46,9 @@ SIGNING_SCOPE_ALIAS_TO_PROJECT = [[
     'all-release-branches', set([
         'mozilla-beta',
         'mozilla-release',
+        'mozilla-esr60',
         'comm-beta',
+        'comm-esr60',
     ])
 ]]
 
@@ -76,13 +78,16 @@ BEETMOVER_SCOPE_ALIAS_TO_PROJECT = [[
         'mozilla-central',
         'mozilla-beta',
         'mozilla-release',
+        'mozilla-esr60',
         'comm-central',
     ])
 ], [
     'all-release-branches', set([
         'mozilla-beta',
         'mozilla-release',
+        'mozilla-esr60',
         'comm-beta',
+        'comm-esr60',
     ])
 ]]
 
@@ -176,6 +181,12 @@ BALROG_SCOPE_ALIAS_TO_PROJECT = [[
 ], [
     'release', set([
         'mozilla-release',
+        # Thunderbird releases are done off comm-esr* branches
+        'comm-esr60',
+    ])
+], [
+    'esr60', set([
+        'mozilla-esr60',
     ])
 ], [
     'esr', set([
@@ -191,6 +202,7 @@ BALROG_SERVER_SCOPES = {
     'beta': 'balrog:server:beta',
     'release': 'balrog:server:release',
     'esr': 'balrog:server:esr',
+    'esr60': 'balrog:server:esr',
     'default': 'balrog:server:dep',
 }
 

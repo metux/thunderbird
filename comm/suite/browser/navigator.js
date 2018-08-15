@@ -5,10 +5,10 @@
 
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 ChromeUtils.import("resource://gre/modules/Services.jsm");
-ChromeUtils.import("resource://gre/modules/DownloadTaskbarProgress.jsm");
 ChromeUtils.import("resource:///modules/WindowsPreviewPerTab.jsm");
 
 XPCOMUtils.defineLazyModuleGetters(this, {
+  NetUtil: "resource://gre/modules/NetUtil.jsm",
   PluralForm: "resource://gre/modules/PluralForm.jsm",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.jsm",
   PromiseUtils: "resource://gre/modules/PromiseUtils.jsm",
@@ -430,7 +430,8 @@ nsBrowserAccess.prototype = {
           try {
             aOpener.QueryInterface(nsIInterfaceRequestor)
                    .getInterface(nsIWebNavigation)
-                   .loadURI(uri, loadflags, referrer, null, null);
+                   .loadURI(uri, loadflags, referrer, null, null,
+                            aTriggeringPrincipal);
           } catch (e) {}
         }
         return aOpener;
@@ -748,8 +749,6 @@ function Startup()
   AeroPeek.onOpenWindow(window);
 
   if (!gPrivate) {
-    DownloadTaskbarProgress.onBrowserWindowLoad(window);
-
     // initialize the sync UI
     // gSyncUI.init();
 

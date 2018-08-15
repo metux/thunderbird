@@ -14,6 +14,7 @@ job-defaults:
       by-project:
          mozilla-beta: scriptworker-prov-v1/bouncer-v1
          mozilla-release: scriptworker-prov-v1/bouncer-v1
+         mozilla-esr60: scriptworker-prov-v1/bouncer-v1
          default: scriptworker-prov-v1/bouncer-dev
    worker:
       implementation: bouncer-submission
@@ -23,6 +24,9 @@ job-defaults:
             - project:releng:bouncer:action:submission
             - project:releng:bouncer:server:production
          mozilla-release:
+            - project:releng:bouncer:action:submission
+            - project:releng:bouncer:server:production
+         mozilla-esr60:
             - project:releng:bouncer:action:submission
             - project:releng:bouncer:server:production
          default:
@@ -54,14 +58,20 @@ jobs:
 
    firefox:
       bouncer-platforms: ['linux', 'linux64', 'osx', 'win', 'win64']
-      bouncer-products: ['complete-mar', 'installer', 'installer-ssl', 'partial-mar', 'stub-installer']
+      bouncer-products:
+         by-project:
+            default: ['complete-mar', 'installer', 'installer-ssl', 'partial-mar', 'stub-installer']
+            # No stub installer in esr60
+            mozilla-esr60: ['complete-mar', 'installer', 'installer-ssl', 'partial-mar']
+            jamun: ['complete-mar', 'installer', 'installer-ssl', 'partial-mar']
       shipping-product: firefox
       treeherder:
          platform: firefox-release/opt
 
    firefox-rc:
       bouncer-platforms: ['linux', 'linux64', 'osx', 'win', 'win64']
-      bouncer-products: ['partial-mar-candidates']
+      bouncer-products: ['complete-mar-candidates', 'partial-mar-candidates']
       shipping-product: firefox
       treeherder:
+         symbol: Rel(BncSub-RC)
          platform: firefox-release/opt

@@ -55,7 +55,3 @@
 <!ENTITY pref.categories.overwrite "Đã tồn tại một phân mục có tên đó. \n Bạn có muốn ghi đè nó không?">
 <!ENTITY pref.categories.overwrite.title "Cảnh báo: Trùng tên">
 <!ENTITY pref.categories.noBlankCategories "Bạn phải nhập một tên phân mục.">
-
-<!ENTITY pref.categories.new.title "New Category">
-<!ENTITY pref.categories.newButton.label "New…">
-<!ENTITY pref.categories.newButton.accesskey "N">

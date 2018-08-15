@@ -264,9 +264,9 @@ function OnLoadEditList()
     let total = gEditList.addressLists.length;
     if (total)
     {
-      let listbox = document.getElementById('addressingWidget');
+      let listbox = document.getElementById("addressingWidget");
       let newListBoxNode = listbox.cloneNode(false);
-      let templateNode = listbox.querySelector("listitem");
+      let templateNode = listbox.querySelector("richlistitem");
 
       top.MAX_RECIPIENTS = 0;
       for (let i = 0; i < total; i++)
@@ -359,10 +359,7 @@ function awNotAnEmptyArea(event)
 
 function awClickEmptySpace(target, setFocus)
 {
-  if (target == null ||
-      (target.localName != "listboxbody" &&
-      target.localName != "listcell" &&
-      target.localName != "listitem"))
+  if (target == null || target.localName != "hbox")
     return;
 
   var lastInput = awGetInputElement(top.MAX_RECIPIENTS);
@@ -461,7 +458,7 @@ function awGetInputElement(row)
 
 function _awSetFocus()
 {
-  var listbox = document.getElementById('addressingWidget');
+  var listbox = document.getElementById("addressingWidget");
   try
   {
     var theNewRow = awGetListItem(top.awRow);

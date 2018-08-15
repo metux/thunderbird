@@ -41,7 +41,7 @@
  * buttons appear on the taskbar, so a magic pref-controlled number determines
  * when this threshold has been crossed.
  */
-this.EXPORTED_SYMBOLS = ["AeroPeek"];
+var EXPORTED_SYMBOLS = ["AeroPeek"];
 
 
 ChromeUtils.import("resource://gre/modules/NetUtil.jsm");
@@ -85,7 +85,7 @@ function _imageFromURI(uri, privateMode, callback) {
     if (!Components.isSuccessCode(resultCode))
       return;
     try {
-      let out_img = imgTools.decodeImage(inputStream, channel.contentType);
+      let out_img = imgTools.decodeImageAsync(inputStream, channel.contentType);
       callback(out_img);
     } catch (e) {
       // We failed, so use the default favicon (only if this wasn't the default
@@ -324,14 +324,6 @@ PreviewController.prototype = {
     }
   }
 };
-
-XPCOMUtils.defineLazyGetter(PreviewController.prototype, "canvasPreviewFlags",
-  function () { let canvasInterface = Ci.nsIDOMCanvasRenderingContext2D;
-                return canvasInterface.DRAWWINDOW_DRAW_VIEW
-                     | canvasInterface.DRAWWINDOW_DRAW_CARET
-                     | canvasInterface.DRAWWINDOW_ASYNC_DECODE_IMAGES
-                     | canvasInterface.DRAWWINDOW_DO_NOT_FLUSH;
-});
 
 ////////////////////////////////////////////////////////////////////////////////
 //// TabWindow
@@ -624,7 +616,7 @@ TabWindow.prototype = {
 
 // This object acts as global storage and external interface for this feature.
 // It maintains the values of the prefs.
-this.AeroPeek = {
+var AeroPeek = {
   available: false,
   // Does the pref say we're enabled?
   _prefenabled: false,

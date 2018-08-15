@@ -63,36 +63,17 @@ _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US = [
 # with a beetmover patch in https://github.com/mozilla-releng/beetmoverscript/.
 # See example in bug 1348286
 UPSTREAM_ARTIFACT_UNSIGNED_PATHS = {
-    r'^(linux(|64)|macosx64)-nightly$':
+    r'^(linux(|64)|macosx64)(|-devedition)-nightly$':
         _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US + [
             'host/bin/mar',
             'host/bin/mbsdiff',
         ],
-    r'^(linux(|64)|macosx64)-devedition-nightly$':
-        _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US + [
-            'host/bin/mar',
-            'host/bin/mbsdiff',
-            # TODO Bug 1453033: Sign devedition langpacks
-            'target.langpack.xpi',
-        ],
-    r'^win(32|64)-nightly$':
+    r'^win(32|64)(|-devedition)-nightly$':
         _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US + [
             'host/bin/mar.exe',
             'host/bin/mbsdiff.exe',
         ],
-    r'^win(32|64)-devedition-nightly$':
-        _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US + [
-            'host/bin/mar.exe',
-            'host/bin/mbsdiff.exe',
-            # TODO Bug 1453033: Sign devedition langpacks
-            'target.langpack.xpi',
-        ],
-    r'^(linux(|64)|macosx64|win(32|64))-nightly-l10n$': [],
-    r'^(linux(|64)|macosx64|win(32|64))-devedition-nightly-l10n$':
-        [
-            # TODO Bug 1453033: Sign devedition langpacks
-            'target.langpack.xpi',
-        ],
+    r'^(linux(|64)|macosx64|win(32|64))(|-devedition)-nightly-l10n$': [],
 }
 
 # Until bug 1331141 is fixed, if you are adding any new artifacts here that
@@ -262,7 +243,7 @@ def make_task_description(config, jobs):
 
 def generate_upstream_artifacts(job, build_task_ref, build_signing_task_ref,
                                 repackage_task_ref, repackage_signing_task_ref,
-                                platform, locale=None):
+                                platform, locale=None, project=None):
 
     build_mapping = UPSTREAM_ARTIFACT_UNSIGNED_PATHS
     build_signing_mapping = UPSTREAM_ARTIFACT_SIGNED_PATHS
@@ -298,10 +279,17 @@ def generate_upstream_artifacts(job, build_task_ref, build_signing_task_ref,
                     tasktype, platform, plarform_was_previously_matched_by_regex, platform_regex
                 )
                 if paths:
+                    usable_paths = paths[:]
+
+                    use_stub = job["attributes"].get('stub-installer')
+                    if not use_stub:
+                        if 'target.stub-installer.exe' in usable_paths:
+                            usable_paths.remove('target.stub-installer.exe')
                     upstream_artifacts.append({
                         "taskId": {"task-reference": ref},
                         "taskType": tasktype,
-                        "paths": ["{}/{}".format(artifact_prefix, path) for path in paths],
+                        "paths": ["{}/{}".format(artifact_prefix, path)
+                                  for path in usable_paths],
                         "locale": locale or "en-US",
                     })
                 plarform_was_previously_matched_by_regex = platform_regex
@@ -387,7 +375,8 @@ def make_task_worker(config, jobs):
             'release-properties': craft_release_properties(config, job),
             'upstream-artifacts': generate_upstream_artifacts(
                 job, build_task_ref, build_signing_task_ref, repackage_task_ref,
-                repackage_signing_task_ref, platform, locale
+                repackage_signing_task_ref, platform, locale,
+                project=config.params['project']
             ),
         }
         if locale:

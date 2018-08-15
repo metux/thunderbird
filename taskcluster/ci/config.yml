@@ -79,13 +79,9 @@ try:
     # as different "platforms".  These do *not* automatically ride along with "-p
     # all"
     ridealong-builds:
-        'android-api-16':
-            - 'android-api-16-l10n'
         'linux':
-            - 'linux-l10n'
             - 'sm-arm-sim-linux32'
         'linux64':
-            - 'linux64-l10n'
             - 'sm-plain-linux64'
             - 'sm-nojit-linux64'
             - 'sm-nonunified-linux64'
@@ -172,13 +168,6 @@ scriptworker:
     # See additional configuration in taskcluster/taskgraph/util/scriptworker.py
     scope-prefix: 'project:releng'
     worker-types:
-        'scriptworker-prov-v1/beetmoverworker-v1':
-            - 'project:releng:beetmover:bucket:release'
-            - 'project:releng:beetmover:bucket:nightly'
-            - 'project:releng:beetmover:bucket:partner'
-        'scriptworker-prov-v1/beetmoverworker-dev':
-            - 'project:releng:beetmover:bucket:dep'
-            - 'project:releng:beetmover:bucket:dep-partner'
         'scriptworker-prov-v1/signing-linux-v1':
             - 'project:releng:signing:cert:release-signing'
             - 'project:releng:signing:cert:nightly-signing'
@@ -187,8 +176,10 @@ scriptworker:
         'scriptworker-prov-v1/beetmoverworker-v1':
             - 'project:releng:beetmover:bucket:release'
             - 'project:releng:beetmover:bucket:nightly'
+            - 'project:releng:beetmover:bucket:partner'
         'scriptworker-prov-v1/beetmoverworker-dev':
             - 'project:releng:beetmover:bucket:dep'
+            - 'project:releng:beetmover:bucket:dep-partner'
         'scriptworker-prov-v1/balrogworker-v1':
             - 'project:releng:balrog:server:nightly'
             - 'project:releng:balrog:server:aurora'
@@ -197,3 +188,12 @@ scriptworker:
             - 'project:releng:balrog:server:esr'
         'scriptworker-prov-v1/balrog-dev':
             - 'project:releng:balrog:server:dep'
+
+
+partner:
+    release:
+        release-partner-repack: git@github.com:mozilla-partners/repack-manifests.git
+        release-eme-free-repack: git@github.com:mozilla-partners/mozilla-EME-free-manifest
+    staging:
+        release-partner-repack: git@github.com:mozilla-releng/staging-repack-manifests.git
+        release-eme-free-repack: git@github.com:mozilla-releng/staging-repack-manifests.git

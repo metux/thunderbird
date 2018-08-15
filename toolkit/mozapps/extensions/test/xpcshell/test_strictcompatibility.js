@@ -82,7 +82,7 @@ var addon6 = {
   }]
 };
 
-// Dictionary - incompatible in strict compatibility mode
+// Dictionary - compatible even in strict compatibility mode
 var addon7 = {
   id: "addon7@tests.mozilla.org",
   version: "1.0",
@@ -168,7 +168,7 @@ function run_test() {
   startupManager();
 
   // Should default to enabling strict compat.
-  do_check_compat_status(true, [true, false, false, false, false, false, false], run_test_1);
+  do_check_compat_status(true, [true, false, false, false, false, false, true], run_test_1);
 }
 
 function run_test_1() {
@@ -186,13 +186,13 @@ function run_test_2() {
 function run_test_3() {
   info("Test 3");
   Services.prefs.setBoolPref(PREF_EM_STRICT_COMPATIBILITY, true);
-  do_check_compat_status(true, [true, false, false, false, false, false, false], run_test_4);
+  do_check_compat_status(true, [true, false, false, false, false, false, true], run_test_4);
 }
 
 function run_test_4() {
   info("Test 4");
   restartManager();
-  do_check_compat_status(true, [true, false, false, false, false, false, false], run_test_5);
+  do_check_compat_status(true, [true, false, false, false, false, false, true], run_test_5);
 }
 
 function run_test_5() {

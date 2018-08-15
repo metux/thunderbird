@@ -289,10 +289,13 @@
 @RESPATH@/components/storage.xpt
 @RESPATH@/components/SuiteBrowser.manifest
 @RESPATH@/components/suitecommon.xpt
-@RESPATH@/components/SuiteCommon.manifest
-@RESPATH@/components/suitefeeds.xpt
+@RESPATH@/components/suite-components.xpt
+@RESPATH@/components/SuiteComponents.manifest
+@RESPATH@/components/suite-feeds.xpt
 @RESPATH@/components/SuiteFeeds.manifest
 @RESPATH@/components/suitemigration.xpt
+@RESPATH@/components/suite-sidebar.xpt
+@RESPATH@/components/SuiteSidebar.manifest
 @RESPATH@/components/telemetry.xpt
 @RESPATH@/components/toolkit_asyncshutdown.xpt
 @RESPATH@/components/toolkit_filewatcher.xpt
@@ -430,9 +433,9 @@
 @RESPATH@/components/nsSearchService.js
 @RESPATH@/components/nsSearchSuggestions.js
 @RESPATH@/components/nsSessionStartup.js
+@RESPATH@/components/nsSessionStartup.manifest
 @RESPATH@/components/nsSessionStore.js
 @RESPATH@/components/nsSidebar.js
-@RESPATH@/components/nsSuiteDownloadManagerUI.js
 @RESPATH@/components/nsSuiteGlue.js
 @RESPATH@/components/nsSetDefault.js
 @RESPATH@/components/nsSetDefault.manifest
@@ -504,6 +507,9 @@
 @RESPATH@/components/extension-process-script.js
 
 ; [Browser Chrome Files]
+; Browser: Hack to get built_in_addons.json packaged
+@RESPATH@/chrome/browser@JAREXT@
+@RESPATH@/chrome/browser.manifest
 @RESPATH@/chrome/comm@JAREXT@
 @RESPATH@/chrome/comm.manifest
 @RESPATH@/chrome/recording.manifest
@@ -558,6 +564,8 @@
 @RESPATH@/chrome/icons/default/default.png
 @RESPATH@/chrome/icons/default/default16.png
 @RESPATH@/chrome/icons/default/default48.png
+@RESPATH@/chrome/icons/default/default64.png
+@RESPATH@/chrome/icons/default/default128.png
 @RESPATH@/chrome/icons/default/downloadManager.png
 @RESPATH@/chrome/icons/default/downloadManager16.png
 @RESPATH@/chrome/icons/default/downloadManager48.png
@@ -582,7 +590,6 @@
 @RESPATH@/chrome/icons/default/places.png
 @RESPATH@/chrome/icons/default/places16.png
 @RESPATH@/chrome/icons/default/places48.png
-@RESPATH@/chrome/icons/default/seamonkey.png
 #ifdef MOZ_UPDATER
 @RESPATH@/icons/updater.png
 #endif
@@ -599,7 +606,6 @@
 @RESPATH@/chrome/icons/default/jpeg-file.ico
 @RESPATH@/chrome/icons/default/JSConsoleWindow.ico
 @RESPATH@/chrome/icons/default/main-window.ico
-@RESPATH@/chrome/icons/default/misc-file.ico
 @RESPATH@/chrome/icons/default/places.ico
 @RESPATH@/chrome/icons/default/script-file.ico
 @RESPATH@/chrome/icons/default/xml-file.ico
@@ -844,15 +850,7 @@ man/*
 @BINPATH@/mozMapi32.dll
 #endif
 
-#ifdef MOZ_MOVEMAIL
-@RESPATH@/isp/movemail.rdf
-#endif
-@RESPATH@/isp/rss.rdf
-@RESPATH@/isp/Bogofilter.sfd
-@RESPATH@/isp/DSPAM.sfd
-@RESPATH@/isp/POPFile.sfd
-@RESPATH@/isp/SpamAssassin.sfd
-@RESPATH@/isp/SpamPal.sfd
+@RESPATH@/isp/*
 
 ; Gloda
 @RESPATH@/chrome/gloda@JAREXT@

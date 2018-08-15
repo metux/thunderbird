@@ -398,6 +398,7 @@
 <!-- Read-Only dialog -->
 <!ENTITY read.only.general.label         "Allgemein">
 <!ENTITY read.only.title.label           "Titel:">
+<!ENTITY read.only.calendar.label        "Kalender:">
 <!ENTITY read.only.event.start.label     "Beginn:">
 <!ENTITY read.only.task.start.label      "Beginn:">
 <!ENTITY read.only.event.end.label       "Ende:">
@@ -417,16 +418,16 @@
 <!ENTITY read.only.description.label     "Beschreibung">
 <!ENTITY read.only.link.label            "Zugehöriger Link">
 
-<!ENTITY read.only.calendar.label        "Calendar:">
-<!ENTITY summary.dialog.saveclose.label         "Save and Close">
-<!ENTITY summary.dialog.saveclose.tooltiptext   "Save changes and close the window without changing the participation status and sending a response">
-<!ENTITY summary.dialog.accept.label            "Accept">
-<!ENTITY summary.dialog.accept.tooltiptext      "Accept the invitation">
-<!ENTITY summary.dialog.tentative.label         "Tentative">
-<!ENTITY summary.dialog.tentative.tooltiptext   "Accept the invitation tentatively">
-<!ENTITY summary.dialog.decline.label           "Decline">
-<!ENTITY summary.dialog.decline.tooltiptext     "Decline the invitation">
-<!ENTITY summary.dialog.dontsend.label          "Do not send a response">
-<!ENTITY summary.dialog.dontsend.tooltiptext    "Change your participation status without sending a reply to the organizer and close the window">
-<!ENTITY summary.dialog.send.label              "Send a response now">
-<!ENTITY summary.dialog.send.tooltiptext        "Send out a response to the organizer  and close the window">
+<!-- Summary dialog -->
+<!ENTITY summary.dialog.saveclose.label         "Speichern und schließen">
+<!ENTITY summary.dialog.saveclose.tooltiptext   "Änderungen speichern und Fenster schließen, ohne Teilnahmestatus zu ändern und ohne Antwort zu senden">
+<!ENTITY summary.dialog.accept.label            "Annehmen">
+<!ENTITY summary.dialog.accept.tooltiptext      "Einladung annehmen">
+<!ENTITY summary.dialog.tentative.label         "Vorläufig">
+<!ENTITY summary.dialog.tentative.tooltiptext   "Einladung vorläufig annehmen">
+<!ENTITY summary.dialog.decline.label           "Ablehnen">
+<!ENTITY summary.dialog.decline.tooltiptext     "Einladung ablehnen">
+<!ENTITY summary.dialog.dontsend.label          "Keine Antwort senden">
+<!ENTITY summary.dialog.dontsend.tooltiptext    "Teilnahmestatus ändern, ohne Antwort an Organisator zu senden, und Fenster schließen">
+<!ENTITY summary.dialog.send.label              "Antwort jetzt senden">
+<!ENTITY summary.dialog.send.tooltiptext        "Antwort an Organisator senden und Fenster schließen">

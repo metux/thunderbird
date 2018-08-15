@@ -150,7 +150,7 @@ const TOOLKIT_ID                      = "toolkit@mozilla.org";
 
 const XPI_SIGNATURE_CHECK_PERIOD      = 24 * 60 * 60;
 
-XPCOMUtils.defineConstant(this, "DB_SCHEMA", 24);
+XPCOMUtils.defineConstant(this, "DB_SCHEMA", 25);
 
 XPCOMUtils.defineLazyPreferenceGetter(this, "ALLOW_NON_MPC", PREF_ALLOW_NON_MPC);
 
@@ -1126,6 +1126,7 @@ const JSON_FIELDS = Object.freeze([
   "lastModifiedTime",
   "path",
   "runInSafeMode",
+  "signedState",
   "startupData",
   "type",
   "version",
@@ -1252,6 +1253,8 @@ class XPIState {
       enabled: this.enabled,
       lastModifiedTime: this.lastModifiedTime,
       path: this.relativePath,
+      signedState: this.signedState,
+      telemetryKey: this.telemetryKey,
       version: this.version,
     };
     if (this.type != "extension") {
@@ -1329,6 +1332,7 @@ class XPIState {
       this.dependencies = aDBAddon.dependencies;
       this.runInSafeMode = canRunInSafeMode(aDBAddon);
     }
+    this.signedState = aDBAddon.signedState;
 
     if (aUpdated || mustGetMod) {
       this.getModTime(this.file, aDBAddon.id);
@@ -4390,7 +4394,8 @@ var XPIProvider = {
         }
       }
 
-      let installLocation = aAddon._installLocation || null;
+      let installLocation = (aAddon._installLocation ||
+                             XPIProvider.installLocationsByName[aAddon.location.name]);
       let params = {
         id: aAddon.id,
         version: aAddon.version,
@@ -4398,6 +4403,7 @@ var XPIProvider = {
         resourceURI: getURIForResourceInFile(aFile, ""),
         signedState: aAddon.signedState,
         temporarilyInstalled: installLocation == TemporaryInstallLocation,
+        builtIn: installLocation instanceof BuiltInInstallLocation,
       };
 
       if (aMethod == "startup" && aAddon.startupData) {
@@ -5018,8 +5024,11 @@ AddonInternal.prototype = {
 
     // Only extensions and dictionaries can be compatible by default; themes
     // and language packs always use strict compatibility checking.
+    // Dictionaries are compatible by default unless requested by the dictinary.
     if (this.type in COMPATIBLE_BY_DEFAULT_TYPES &&
-        !AddonManager.strictCompatibility && !this.strictCompatibility) {
+        !this.strictCompatibility &&
+        (!AddonManager.strictCompatibility ||
+         this.type == "dictionary")) {
 
       // The repository can specify compatibility overrides.
       // Note: For now, only blacklisting is supported by overrides.

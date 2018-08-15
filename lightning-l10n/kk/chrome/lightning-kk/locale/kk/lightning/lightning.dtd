@@ -106,7 +106,3 @@
 <!ENTITY todaypane.showTodayPane.label "Бүгінгі панельді көрсету">
 <!ENTITY todaypane.showTodayPane.accesskey "е">
 <!ENTITY todaypane.statusButton.label "Бүгінгі панелі">
-
-<!ENTITY lightning.imipbar.btnSendSeries.tooltiptext                        "Send a response for the entire series to the organizer">
-<!ENTITY lightning.imipbar.btnDontSend.tooltiptext                          "Change your participation status without sending a response to the organizer">
-<!ENTITY lightning.imipbar.btnDontSendSeries.tooltiptext                    "Change your participation status for the series without sending a response to the organizer">
