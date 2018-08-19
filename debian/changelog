@@ -1,3 +1,54 @@
+thunderbird (1:60.0-1) unstable; urgency=medium
+
+  [ Cyril Brulebois ]
+  * [4f1fcd4] Bump B-D libsqlite3-dev version
+     Upstream requires a more recent version that is already available in
+     unstable but not in Stretch later e.g.
+  * [5a790c2] Add libicu-dev to Build-Depends (required for icu-i18n.pc)
+     This package was pulled from some other package already but we need this
+     explicit now again as we don't use the internal ICU version any more.
+  * [8c86207] Bump libhunspell-dev version
+     The same as for libsqlite3-dev, adding the correct B-D version.
+    (Closes: #905465)
+
+  [ Carsten Schoenert ]
+  * [901f257] New upstream version 60.0
+    Fixed CVE issues in upstream version 60.0 (MFSA 2018-19)
+    CVE-2018-12359: Buffer overflow using computed size of canvas element
+    CVE-2018-12360: Use-after-free when using focus()
+    CVE-2018-12361: Integer overflow in SwizzleData
+    CVE-2018-12362: Integer overflow in SSSE3 scaler
+    CVE-2018-5156:  Media recorder segmentation fault when track type is
+                    changed during capture
+    CVE-2018-12363: Use-after-free when appending DOM nodes
+    CVE-2018-12364: CSRF attacks through 307 redirects and NPAPI plugins
+    CVE-2018-12365: Compromised IPC child process can list local filenames
+    CVE-2018-12371: Integer overflow in Skia library during edge builder
+                    allocation
+    CVE-2018-12366: Invalid data handling during QCMS transformations
+    CVE-2018-12367: Timing attack mitigation of PerformanceNavigationTiming
+    CVE-2018-5187:  Memory safety bugs fixed in Firefox 61, Firefox ESR 60.1,
+                    and Thunderbird 60
+    CVE-2018-5188:  Memory safety bugs fixed in Firefox 61, Firefox ESR 60.1,
+                    Firefox ESR 52.9, and Thunderbird 60
+  * [44ab834] rebuild patch queue from patch-queue branch
+    removed patches (applied upstream):
+    porting-arm64/Bug-1453892-Only-use-SkJumper-s-arm64-half-float-optimiza.patch
+    porting-arm64/Bug-1463036-Use-HAVE_ARM_NEON-instead-of-BUILD_ARM_NEON-f.patch
+    porting-armel/Bug-1463036-Add-mfloat-abi-softfp-to-NEON_FLAGS-when-it-m.patch
+  * [3168b29] debian/control: increase Standards-Version to 4.2.0
+     No further changes needed.
+  * [f2f206e] d/rules: use MOZ_LANGPACK_ID instead of hard coding
+  * [996352a] d/rules: ensure l10n MOZ_LANGPACK_ID matches variable from
+                       makefile
+     Previous beta versions for the thunderbird-l10n data have used
+     '@firefox.mozilla.org' within their application.id setting. Thunderbird
+     now expects '@thunderbird.mozilla.org' instead. Make the build more
+     flexible so we can detect mismatches here.
+    (Closes: #906176)
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sun, 19 Aug 2018 11:32:11 +0200
+
 thunderbird (1:60.0~b10-1) experimental; urgency=medium
 
   [ intrigeri ]
@@ -128,7 +179,7 @@ thunderbird (1:60.0~b3-1) experimental; urgency=medium
 
   [ Carsten Schoenert ]
   * [94f8505] debian/control: increase Standards-Version to 4.1.4
-     No further changes needed.
+     No further changes needed.f2f206eb34a619f7a684d1216fcd918454135d41
   * [3ba10c6] rebuild patch queue from patch-queue branch
      added patches:
       porting-sparc64/Bug-1434726-Early-startup-crash-on-Linux-sparc64-in-HashI.patch
