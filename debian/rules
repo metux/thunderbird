@@ -112,7 +112,14 @@ override_dh_auto_build:
 	cd $(CURDIR)/thunderbird-l10n ;\
 	for XPI in *; do \
 		locale=`basename $${XPI}` ;\
-		xpi-pack $${XPI} ../$(THUNDERBIRD_L10N_BUILDDIR)/langpack-$${locale}@$${MOZ_LANGPACK_ID}.xpi ;\
+		USED_LANGPACK_ID=`grep langpack- $${XPI}/manifest.json | tr '"' ' ' | awk '{print $$3}' | cut -f2-3 -d @` ;\
+		if [ "$${USED_LANGPACK_ID}" != "$${MOZ_LANGPACK_ID}" ]; then \
+			echo "MOZ_LANGPACK_ID mismatch! '$${USED_LANGPACK_ID}' != '$${MOZ_LANGPACK_ID}'" ;\
+			echo "thunderbird-l10n l10n source '$${XPI}' uses a different MOZ_LANGPACK_ID than defined in $(CURDIR)/comm/mail/locales/Makefile.in!";\
+			exit 1 ;\
+		else \
+			xpi-pack $${XPI} ../$(THUNDERBIRD_L10N_BUILDDIR)/langpack-$${locale}@$${MOZ_LANGPACK_ID}.xpi ;\
+		fi \
 	done
 
 override_dh_auto_install:
