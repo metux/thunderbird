@@ -35,3 +35,6 @@ fixes/Build-also-gdata-provider-as-xpi-file.patch
 debian-hacks/Don-t-build-testing-suites-and-stuff-part-2.patch
 porting-armel/Bug-1463035-Remove-MOZ_SIGNAL_TRAMPOLINE.-r-darchons.patch
 porting-armel/Avoid-using-vmrs-vmsr-on-armel.patch
+porting-mips/Bug-1444303-MIPS-Fix-build-failures-after-Bug-1425580-par.patch
+porting-mips/Add-struct-ucred-for-Linux-on-MIPS.patch
+porting-mips/Bug-1444834-MIPS-Stubout-MacroAssembler-speculationBarrie.patch
