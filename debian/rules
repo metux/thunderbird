@@ -28,6 +28,10 @@ THUNDERBIRD_L10N_BUILDDIR=debian/thunderbird-l10n-build
 # Iceowl/Lightning version, note this is different from the TB version!
 LIGHTNING_VERSION := $(shell python $(CURDIR)/comm/calendar/lightning/build/makeversion.py ${THUNDERBIRD_VERSION})
 
+# ID of the l10n language packs from upstream, need to match the application.id
+# in thunderbird-l10n/$LANG/manifest.json
+export MOZ_LANGPACK_ID = $(shell grep MOZ_LANGPACK_EID comm/mail/locales/Makefile.in | cut -f2 -d @)
+
 DPKG_EXPORT_BUILDFLAGS = 1
 include /usr/share/dpkg/buildflags.mk
 include /usr/share/dpkg/architecture.mk
@@ -108,7 +112,7 @@ override_dh_auto_build:
 	cd $(CURDIR)/thunderbird-l10n ;\
 	for XPI in *; do \
 		locale=`basename $${XPI}` ;\
-		xpi-pack $${XPI} ../$(THUNDERBIRD_L10N_BUILDDIR)/langpack-$${locale}@firefox.mozilla.org.xpi ;\
+		xpi-pack $${XPI} ../$(THUNDERBIRD_L10N_BUILDDIR)/langpack-$${locale}@$${MOZ_LANGPACK_ID}.xpi ;\
 	done
 
 override_dh_auto_install:
@@ -122,11 +126,11 @@ endif
 	for LANG in *; do \
 		locale=`basename $${LANG}` ;\
 		lowercase_locale=`echo $${locale} | tr 'A-Z' 'a-z'` ;\
-		echo "preparing and working on 'thunderbird-l10n-$${lowercase_locale}  (langpack-$${locale}@firefox.mozilla.org.xpi)" ;\
+		echo "preparing and working on 'thunderbird-l10n-$${lowercase_locale}  (langpack-$${locale}@$${MOZ_LANGPACK_ID}.xpi)" ;\
 		mkdir -p $(CURDIR)/debian/thunderbird-l10n-$${lowercase_locale}/usr/lib/thunderbird/extensions/ ;\
-		install -D -m 644 ../$(THUNDERBIRD_L10N_BUILDDIR)/langpack-$${locale}@firefox.mozilla.org.xpi $(CURDIR)/debian/thunderbird-l10n-$${lowercase_locale}/usr/share/thunderbird/extensions/langpack-$${locale}@firefox.mozilla.org.xpi ;\
-		ln -sf /usr/share/thunderbird/extensions/langpack-$${locale}@firefox.mozilla.org.xpi \
-			$(CURDIR)/debian/thunderbird-l10n-$${lowercase_locale}/usr/lib/thunderbird/extensions/langpack-$${locale}@firefox.mozilla.org.xpi ;\
+		install -D -m 644 ../$(THUNDERBIRD_L10N_BUILDDIR)/langpack-$${locale}@$${MOZ_LANGPACK_ID}.xpi $(CURDIR)/debian/thunderbird-l10n-$${lowercase_locale}/usr/share/thunderbird/extensions/langpack-$${locale}@$${MOZ_LANGPACK_ID}.xpi ;\
+		ln -sf /usr/share/thunderbird/extensions/langpack-$${locale}@$${MOZ_LANGPACK_ID}.xpi \
+			$(CURDIR)/debian/thunderbird-l10n-$${lowercase_locale}/usr/lib/thunderbird/extensions/langpack-$${locale}@$${MOZ_LANGPACK_ID}.xpi ;\
 	done
 	# install lightning-l10n
 	cd $(CURDIR)/lightning-l10n ;\
