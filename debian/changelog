@@ -1,3 +1,16 @@
+thunderbird (1:60.0-2) unstable; urgency=medium
+
+  [ Carsten Schoenert ]
+  * [71ac5e7] rebuild patch queue from patch-queue branch
+    added patches:
+    porting-mips/Add-struct-ucred-for-Linux-on-MIPS.patch
+    porting-mips/Bug-1444303-MIPS-Fix-build-failures-after-Bug-1425580-par.patch
+    porting-mips/Bug-1444834-MIPS-Stubout-MacroAssembler-speculationBarrie.patch
+  * [d94e5dc] d/control: B-D on {lib}clang-6.0* and llvm-6.0-dev
+    (Closes: #906707)
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Mon, 20 Aug 2018 17:57:07 +0200
+
 thunderbird (1:60.0-1) unstable; urgency=medium
 
   [ Cyril Brulebois ]
