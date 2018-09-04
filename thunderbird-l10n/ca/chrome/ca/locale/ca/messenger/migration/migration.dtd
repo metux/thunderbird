@@ -13,8 +13,6 @@
 <!ENTITY importFromNothing.accesskey    "r">
 <!ENTITY importFromSeamonkey3.label     "SeaMonkey 2 o posterior">
 <!ENTITY importFromSeamonkey3.accesskey "S">
-<!ENTITY importFromOExpress.label       "Outlook Express">
-<!ENTITY importFromOExpress.accesskey   "u">
 <!ENTITY importFromOutlook.label        "Outlook">
 <!ENTITY importFromOutlook.accesskey    "O">
 
@@ -29,4 +27,4 @@
 <!ENTITY selectProfile.label            "Els següents perfils estan disponibles per importar-se des de:">
 
 <!ENTITY done.title                     "Fi de la importació">
-<!ENTITY done.label                     "Els següents elements s'han importat amb èxit:">
+<!ENTITY done.label                     "Els elements següents s'han importat correctament:">

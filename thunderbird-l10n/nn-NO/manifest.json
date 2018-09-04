@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "nn-NO": {
+      "chrome_resources": {
+        "necko": "chrome/nn-NO/locale/nn-NO/necko/", 
+        "global": "chrome/nn-NO/locale/nn-NO/global/", 
+        "messenger-region": "chrome/nn-NO/locale/nn-NO/messenger-region/", 
+        "chat": "chrome/nn-NO/locale/nn-NO/chat/", 
+        "devtools": "chrome/nn-NO/locale/nn-NO/devtools/client/", 
+        "pipnss": "chrome/nn-NO/locale/nn-NO/pipnss/", 
+        "messenger-smime": "chrome/nn-NO/locale/nn-NO/messenger-smime/", 
+        "messenger-newsblog": "chrome/nn-NO/locale/nn-NO/messenger-newsblog/", 
+        "devtools-shim": "chrome/nn-NO/locale/nn-NO/devtools/shim/", 
+        "alerts": "chrome/nn-NO/locale/nn-NO/alerts/", 
+        "messenger": "chrome/nn-NO/locale/nn-NO/messenger/", 
+        "editor": "chrome/nn-NO/locale/nn-NO/editor/", 
+        "branding": "chrome/nn-NO/locale/nn-NO/branding/", 
+        "mozldap": "chrome/nn-NO/locale/nn-NO/mozldap/", 
+        "autoconfig": "chrome/nn-NO/locale/nn-NO/autoconfig/", 
+        "devtools-shared": "chrome/nn-NO/locale/nn-NO/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/nn-NO/locale/nn-NO/global-platform/win/", 
+          "android": "chrome/nn-NO/locale/nn-NO/global-platform/unix/", 
+          "macosx": "chrome/nn-NO/locale/nn-NO/global-platform/mac/", 
+          "linux": "chrome/nn-NO/locale/nn-NO/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/nn-NO/locale/nn-NO/mozapps/", 
+        "pluginproblem": "chrome/nn-NO/locale/nn-NO/pluginproblem/", 
+        "communicator": "chrome/nn-NO/locale/nn-NO/communicator/", 
+        "messenger-mapi": "chrome/nn-NO/locale/nn-NO/messenger-mapi/", 
+        "places": "chrome/nn-NO/locale/nn-NO/places/", 
+        "passwordmgr": "chrome/nn-NO/locale/nn-NO/passwordmgr/", 
+        "pippki": "chrome/nn-NO/locale/nn-NO/pippki/"
+      }, 
+      "version": "20180505123356"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-nn-NO@thunderbird.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "nn-NO", 
+  "version": "60.0buildid20180731173940", 
+  "name": "Norsk nynorsk (NO) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "firefox.no (contributors: Kurt-Rune Bergset, Eirik Ulltang Birkeland, Håvar Henriksen, Torstein Hønsi, Erik Klepsvik, Håvard Mork, Jan-Espen Pettersen, Tom Ottar Røw, Åsmund Skjæveland, Pascual Strømsnæs, Vebjørn Sture, Kristian Svanes, Bjørn I. Svindseth, Ronny Vårdal)", 
+  "description": "Language pack for Thunderbird for nn-NO"
+}

@@ -3,6 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <!-- LOCALIZATION NOTE (tapToPlayPlugin): Mobile (used for touch interfaces) only has one type of plugin possible. -->
 
+<!ENTITY pluginActivationWarning                             "Þetta vefsvæði notar tengiforrit sem gæti minnkað afköst &brandShortName;.">
 <!ENTITY tapToPlayPlugin                                     "Smelltu hér til að virkja tengiforrit.">
 <!ENTITY clickToActivatePlugin                               "Virkja tengiforrit.">
 <!ENTITY checkForUpdates                                     "Athuga með uppfærslur…">
@@ -29,3 +30,4 @@
 <!ENTITY plugin.file                                         "Skrá">
 <!ENTITY plugin.mimeTypes                                    "MIME tegundir">
 <!ENTITY plugin.flashProtectedMode.label                     "Virkja varnarham fyrir Adobe Flash">
+<!ENTITY plugin.enableBlocklists.label                       "Loka á hættulegt og uppáþrengjandi Flash efni">

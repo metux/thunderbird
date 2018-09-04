@@ -40,3 +40,6 @@
 <!ENTITY smtpName.label "Levélküldő kiszolgáló (SMTP):">
 <!ENTITY smtpName.accesskey "k">
 <!ENTITY smtpDefaultServer.label "Alapértelmezett kiszolgáló használata">
+
+<!ENTITY smtpServerEdit.label "SMTP kiszolgáló szerkesztése…">
+<!ENTITY smtpServerEdit.accesskey "P">

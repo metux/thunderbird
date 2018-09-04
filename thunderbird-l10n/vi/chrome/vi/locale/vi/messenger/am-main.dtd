@@ -37,3 +37,5 @@
 <!ENTITY smtpDefaultServer.label "Sử dụng Máy chủ Mặc định">
 
 <!ENTITY replyTo.placeholder "Recipients will reply to this other address">
+<!ENTITY smtpServerEdit.label "Edit SMTP server…">
+<!ENTITY smtpServerEdit.accesskey "P">

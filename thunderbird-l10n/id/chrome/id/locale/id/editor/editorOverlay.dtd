@@ -345,20 +345,18 @@
 <!ENTITY tocMenu.label            "Daftar Isi…">
 <!ENTITY tocMenu.accesskey        "D">
 
-
-<!-- Editor toolbar -->
-<!ENTITY absoluteFontSizeToolbarCmd.tooltip "Set font size">
-<!ENTITY formatRemoveLinks.key "K">
 <!ENTITY insertLinkCmd2.key "K">
-<!ENTITY size-extraLargeCmd.accesskey "x">
-<!ENTITY size-extraLargeCmd.label "Extra Large">
-<!ENTITY size-hugeCmd.accesskey "H">
-<!ENTITY size-hugeCmd.label "Huge">
-<!ENTITY size-largeCmd.accesskey "L">
-<!ENTITY size-largeCmd.label "Large">
-<!ENTITY size-mediumCmd.accesskey "M">
-<!ENTITY size-mediumCmd.label "Medium">
-<!ENTITY size-smallCmd.accesskey "S">
-<!ENTITY size-smallCmd.label "Small">
-<!ENTITY size-tinyCmd.accesskey "T">
 <!ENTITY size-tinyCmd.label "Tiny">
+<!ENTITY size-tinyCmd.accesskey "T">
+<!ENTITY size-smallCmd.label "Small">
+<!ENTITY size-smallCmd.accesskey "S">
+<!ENTITY size-mediumCmd.label "Medium">
+<!ENTITY size-mediumCmd.accesskey "M">
+<!ENTITY size-largeCmd.label "Large">
+<!ENTITY size-largeCmd.accesskey "L">
+<!ENTITY size-extraLargeCmd.label "Extra Large">
+<!ENTITY size-extraLargeCmd.accesskey "x">
+<!ENTITY size-hugeCmd.label "Huge">
+<!ENTITY size-hugeCmd.accesskey "H">
+<!ENTITY formatRemoveLinks.key "K">
+<!ENTITY absoluteFontSizeToolbarCmd.tooltip "Set font size">

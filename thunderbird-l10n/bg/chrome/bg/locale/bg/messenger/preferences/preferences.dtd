@@ -2,8 +2,14 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<!ENTITY  windowClose.key                  "w">
+<!ENTITY  preferencesDefaultTitleMac.title "Настройки">
+<!ENTITY  preferencesDefaultTitleWin.title "Настройки">
+<!ENTITY  preferencesCloseButton.label     "Затваряне">
+<!ENTITY  preferencesCloseButton.accesskey "з">
+
 <!ENTITY  prefWindow.titleWin     "Настройки">
-<!ENTITY  prefWindow.titleGNOME   "&brandShortName; настройки">
+<!ENTITY  prefWindow.titleGNOME   "Настройки на &brandShortName;">
 <!ENTITY  prefWindow.titleMAC     "Настройки">
 <!ENTITY  prefWindow.styleWindows "width: 60em; min-height: 38em;">
 <!ENTITY  prefWindow.styleMac     "width: 60em;">
@@ -12,7 +18,7 @@
 <!ENTITY paneGeneral.title        "Основни">
 <!ENTITY paneDisplay.title        "Показване">
 <!ENTITY paneComposition.title    "Съставяне">
-<!ENTITY paneChat.title           "Разговор">
+<!ENTITY paneChat.title           "Разговори">
 <!ENTITY paneAttachments.title    "Прикачени">
 <!ENTITY panePrivacy.title        "Поверителност">
 <!ENTITY paneSecurity.title       "Защита">

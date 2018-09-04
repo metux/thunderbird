@@ -3,8 +3,8 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY aboutSupport.pageTitle "Անսարքության տեղեկատվությունը">
-<!-- LOCALIZATION NOTE (aboutSupport.pageSubtitle): don't change the 'supportLink' id. -->
 
+<!-- LOCALIZATION NOTE (aboutSupport.pageSubtitle): don't change the 'supportLink' id. -->
 <!ENTITY aboutSupport.pageSubtitle "  Այս էջը պարունակում է տեխնիկական ինֆորմացիա, որը կարող է օգտակար լինել, երբ դուք փորձում եք լուծել խնդիրը:Եթե դուք փնտրում եք &brandShortName;-ին վերաբերող ընդհանուր հարցերին պատասխաններ,փորձեք մեր <a id='supportLink'> աջակցող կայքը </a>:">
 
 <!ENTITY aboutSupport.crashes.title "Վթարի զեկույցներ">
@@ -15,11 +15,23 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.crashes.allReports "Վթարի բոլոր զեկույցները">
 <!ENTITY aboutSupport.crashes.noConfig "Ծրագիրը կարգավորված չէ ցուցադրելու վթարի զեկույցները:">
 
-<!ENTITY aboutSupport.extensionsTitle "Հավելումներ">
+<!ENTITY aboutSupport.extensionsTitle "Ընդլայնումներ">
 <!ENTITY aboutSupport.extensionName "Անուն">
 <!ENTITY aboutSupport.extensionEnabled "Միացված է">
 <!ENTITY aboutSupport.extensionVersion "Տարբերակ">
 <!ENTITY aboutSupport.extensionId "ID">
+
+<!ENTITY aboutSupport.securitySoftwareTitle "Անվտանգության ծրագրաշար">
+<!ENTITY aboutSupport.securitySoftwareType "Տեսակ">
+<!ENTITY aboutSupport.securitySoftwareName "Անուն">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "ՀԱկավիրուս">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Հակալրտես">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Հրապատ">
+
+<!ENTITY aboutSupport.featuresTitle "&brandShortName;-ի յուրահատկություններ">
+<!ENTITY aboutSupport.featureName "Անուն">
+<!ENTITY aboutSupport.featureVersion "Տարբերակ">
+<!ENTITY aboutSupport.featureId "ID">
 
 <!ENTITY aboutSupport.experimentsTitle "Փորձարարական հատկություններ">
 <!ENTITY aboutSupport.experimentName "Անուն">
@@ -34,9 +46,9 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.appBasicsName "Անուն">
 <!ENTITY aboutSupport.appBasicsVersion "Տարբերակ">
 <!ENTITY aboutSupport.appBasicsBuildID "Կառուցման ID">
+
 <!-- LOCALIZATION NOTE (aboutSupport.appBasicsUpdateChannel, aboutSupport.appBasicsUpdateHistory, aboutSupport.appBasicsShowUpdateHistory):
 "Update" is a noun here, not a verb. -->
-
 <!ENTITY aboutSupport.appBasicsUpdateChannel "Թարմացումների աղբյուր">
 <!ENTITY aboutSupport.appBasicsUpdateHistory "Թարմացումների մատյան">
 <!ENTITY aboutSupport.appBasicsShowUpdateHistory "Ցուցադրել Թարմացումների Պատմությունը">
@@ -53,13 +65,18 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsOS "OS">
 <!ENTITY aboutSupport.appBasicsMemoryUse "Հիշողության ծավալ">
 <!ENTITY aboutSupport.appBasicsPerformance "Արտադրողականություն">
-<!-- LOCALIZATION NOTE the term "Service Workers" should not be translated. -->
 
+<!-- LOCALIZATION NOTE the term "Service Workers" should not be translated. -->
 <!ENTITY aboutSupport.appBasicsServiceWorkers "Գրանցված Service Workers">
 
 <!ENTITY aboutSupport.appBasicsProfiles "Պրոֆիլներ">
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Բազմաընթացքային պատուհաններ">
+
+<!ENTITY aboutSupport.appBasicsProcessCount "Վեբ բովանդակության ընթացքներ">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Google Key">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla-ի տեղադրության ծառայության բանալի">
 
 <!ENTITY aboutSupport.appBasicsSafeMode "Ապահով կերպ">
 
@@ -75,8 +92,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.modifiedKeyPrefsTitle "Փոփոխված կարևոր կարգավորումներ">
 <!ENTITY aboutSupport.modifiedPrefsName "Անուն">
 <!ENTITY aboutSupport.modifiedPrefsValue "Արժեքը">
-<!-- LOCALIZATION NOTE (aboutSupport.userJSTitle, aboutSupport.userJSDescription): user.js is the name of the preference override file being checked. -->
 
+<!-- LOCALIZATION NOTE (aboutSupport.userJSTitle, aboutSupport.userJSDescription): user.js is the name of the preference override file being checked. -->
 <!ENTITY aboutSupport.userJSTitle "user.js-ի կարգավորումներ">
 <!ENTITY aboutSupport.userJSDescription "Ձեր պրոֆիլի թղթապանակը պարունակում է<a id='prefs-user-js-link'>user.js ֆայլ</a>, որը ներառում է կարգավորումներ, որոնք չեն ստեղծվել &brandShortName;-ի կողմից։">
 
@@ -96,6 +113,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "Մատչելիություն">
 <!ENTITY aboutSupport.a11yActivated "Ակտիվացված է">
 <!ENTITY aboutSupport.a11yForceDisabled "Կանխել հասանելիությունը">
+<!ENTITY aboutSupport.a11yHandlerUsed "Հասանելի մշակիչ է օգտ.">
+<!ENTITY aboutSupport.a11yInstantiator "Մատչելի կատարելիներ">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Շտեմարանների տարբերակը">
 
@@ -106,6 +125,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Պատճենել չմշակված տվյալները մեկուսաշրջույթ">
 
 <!ENTITY aboutSupport.sandboxTitle "Sandbox">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Մերժված համակարգային զանգեր">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "Վայրկյան առաջ">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Ընթացքի տեսակը">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Համզանգ">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Փաստարկներ">
 
 <!ENTITY aboutSupport.safeModeTitle "Օգտ. Ապահով կերպը">
 <!ENTITY aboutSupport.restartInSafeMode.label "Վերամեկնարկել՝ անջատելով հավելումները...">
@@ -118,3 +145,28 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Որոշման մատյան">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Վթարի պաշտպանի անջատած յուրահատկություններ">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Շրջանցիկներ">
+
+<!ENTITY aboutSupport.mediaTitle "Մեդիա">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Արտածելու սարքեր">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Ներածելու սարքեր">
+<!ENTITY aboutSupport.mediaDeviceName "Անուն">
+<!ENTITY aboutSupport.mediaDeviceGroup "Խումբ">
+<!ENTITY aboutSupport.mediaDeviceVendor "Մատակարար">
+<!ENTITY aboutSupport.mediaDeviceState "Վիճակ">
+<!ENTITY aboutSupport.mediaDevicePreferred "Նախընտրելի">
+<!ENTITY aboutSupport.mediaDeviceFormat "Ձևաչափ">
+<!ENTITY aboutSupport.mediaDeviceChannels "Ալիքներ">
+<!ENTITY aboutSupport.mediaDeviceRate "ԳՆահատական">
+<!ENTITY aboutSupport.mediaDeviceLatency "Սպասում">
+
+<!ENTITY aboutSupport.intlTitle "Միջազգայնացում և տեղայնացում">
+<!ENTITY aboutSupport.intlAppTitle "ՀԱվելվածի կարգավորումներ">
+<!ENTITY aboutSupport.intlLocalesRequested "Հարցված լեզուներ">
+<!ENTITY aboutSupport.intlLocalesAvailable "Մատչելի լեզուներ">
+<!ENTITY aboutSupport.intlLocalesSupported "Հավելվածի լեզուները">
+<!ENTITY aboutSupport.intlLocalesDefault "Հիմնական լեզուն">
+<!ENTITY aboutSupport.intlOSTitle "Օպերացիոն համակարգ">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Համակարգային լեզուներ">
+<!ENTITY aboutSupport.intlRegionalPrefs "Տաածաշրջանային նախապատվություններ">
+
+<!ENTITY aboutSupport.enterprisePolicies "Enterprise Policies">

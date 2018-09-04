@@ -11,6 +11,7 @@
 <!-- General Settings -->
 <!ENTITY enableGlodaSearch.label       "開啟全域搜尋與索引器">
 <!ENTITY enableGlodaSearch.accesskey   "E">
+<!ENTITY dateTimeFormatting.label      "日期與時間格式">
 <!ENTITY allowHWAccel.label            "可用時開啟硬體加速">
 <!ENTITY allowHWAccel.accesskey        "h">
 <!ENTITY storeType.label               "新帳號的訊息儲存方式:">
@@ -52,7 +53,19 @@
 <!ENTITY crashReporterLearnMore.label    "更多資訊">
 
 <!-- Update -->
-<!ENTITY updateApp.label                 "&brandShortName; 的更新方式:">
+<!-- LOCALIZATION NOTE (updateApp.label):
+  Strings from aboutDialog.dtd are displayed in this section of the preferences.
+  Please check for possible accesskey conflicts.
+-->
+<!ENTITY updateApp2.label                "&brandShortName; 更新">
+<!-- LOCALIZATION NOTE (updateApp.version.*): updateApp.version.pre is
+  followed by a version number, keep the trailing space or replace it with
+  a different character as needed. updateApp.version.post is displayed after
+  the version number, and is empty on purpose for English. You can use it
+  if required by your language.
+ -->
+<!ENTITY updateApp.version.pre           "">
+<!ENTITY updateApp.version.post          " 版">
 <!ENTITY updateAuto.label                "自動安裝更新（建議的，保持安全性）">
 <!ENTITY updateAuto.accesskey            "A">
 <!ENTITY updateCheck.label               "自動檢查更新，但讓我選擇要不要安裝">
@@ -89,6 +102,8 @@
 <!ENTITY useCacheBefore.label            "最多使用">
 <!ENTITY useCacheBefore.accesskey        "U">
 <!ENTITY useCacheAfter.label             "MB 磁碟空間存放快取資料">
+<!ENTITY overrideSmartCacheSize.label    "停用自動快取管理">
+<!ENTITY overrideSmartCacheSize.accesskey "v">
 <!ENTITY clearCacheNow.label             "立刻清除">
 <!ENTITY clearCacheNow.accesskey         "C">
 
@@ -105,4 +120,3 @@
 <!ENTITY manageCertificates.accesskey "M">
 <!ENTITY viewSecurityDevices.label "安全裝置">
 <!ENTITY viewSecurityDevices.accesskey "S">
-

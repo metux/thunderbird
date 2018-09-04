@@ -18,11 +18,11 @@
 <!ENTITY            newButton.accesskey    "С">
 <!ENTITY            renameButton.label     "Перейменувати…">
 <!ENTITY            renameButton.accesskey "П">
-<!ENTITY            deleteButton.label     "Вилучити…">
+<!ENTITY            deleteButton.label     "Видалити…">
 <!ENTITY            deleteButton.accesskey "В">
 
 <!-- manager entities -->
-<!ENTITY            pmDescription.label    "&brandShortName; зберігає інформацію про налаштування, закладки та інші елементи в профілі користувача.">
+<!ENTITY            pmDescription.label    "&brandShortName; зберігає інформацію про ваші налаштування, вподобання та інші елементи у вашому особистому профілі.">
 
 <!ENTITY            offlineState.label    "Працювати автономно">
 <!ENTITY            offlineState.accesskey "т">

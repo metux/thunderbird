@@ -13,7 +13,7 @@
 <!ENTITY locationEditField.label "Адрес на изображението:">
 <!ENTITY locationEditField.accessKey "А">
 <!ENTITY locationEditField.tooltip "Напишете името на файла с картинката или нейния адрес">
-<!ENTITY locationEditField.shortenedDataURI "Съкратено URI с данни (при копиране в системния буфер се копира пълното URI)">
+<!ENTITY locationEditField.shortenedDataURI "Съкратен URI с данни (при копиране в системния буфер се копира пълното URI)">
 <!ENTITY title.label "Подсказка:">
 <!ENTITY title.accessKey "П">
 <!ENTITY title.tooltip "Html aтрибутът 'title', показващ се като подсказка">
@@ -69,11 +69,11 @@
 <!ENTITY showImageLinkBorder.accessKey "м">
 <!ENTITY LinkAdvancedEditButton.label "Разширено редактиране на връзка…">
 <!ENTITY LinkAdvancedEditButton.accessKey "Р">
-<!ENTITY LinkAdvancedEditButton.tooltip "Добавяне или промяна на атрибути на HTML, стилови атрибути и JavaScript">
+<!ENTITY LinkAdvancedEditButton.tooltip "Добавяне или променяне на атрибути на HTML, стилови атрибути и JavaScript">
 
 <!-- These tabs are currently used in the image input dialog -->
 <!ENTITY imageInputTab.label "Формуляр">
 <!ENTITY imageLocationTab.label "Местоположение">
 <!ENTITY imageDimensionsTab.label "Размери">
 <!ENTITY imageAppearanceTab.label "Изглед">
-<!ENTITY imageLinkTab.label "Връзка">
+<!ENTITY imageLinkTab.label "Препратка">

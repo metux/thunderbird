@@ -3,20 +3,31 @@ dnl Local autoconf macros used with mozilla
 dnl The contents of this file are under the Public Domain.
 dnl
 
-builtin(include, mozilla/build/autoconf/toolchain.m4)dnl
-builtin(include, mozilla/build/autoconf/config.status.m4)dnl
-builtin(include, mozilla/build/autoconf/nspr.m4)dnl
-builtin(include, mozilla/build/autoconf/nss.m4)dnl
-builtin(include, mozilla/build/autoconf/pkg.m4)dnl
-builtin(include, mozilla/build/autoconf/codeset.m4)dnl
-builtin(include, mozilla/build/autoconf/altoptions.m4)dnl
-builtin(include, mozilla/build/autoconf/mozprog.m4)dnl
-builtin(include, mozilla/build/autoconf/acwinpaths.m4)dnl
-builtin(include, mozilla/build/autoconf/lto.m4)dnl
-builtin(include, mozilla/build/autoconf/frameptr.m4)dnl
-builtin(include, mozilla/build/autoconf/compiler-opts.m4)dnl
-builtin(include, mozilla/build/autoconf/zlib.m4)dnl
-builtin(include, mozilla/build/autoconf/expandlibs.m4)dnl
+builtin(include, build/autoconf/hotfixes.m4)dnl
+builtin(include, build/autoconf/acwinpaths.m4)dnl
+builtin(include, build/autoconf/hooks.m4)dnl
+builtin(include, build/autoconf/config.status.m4)dnl
+builtin(include, build/autoconf/toolchain.m4)dnl
+builtin(include, build/autoconf/nspr.m4)dnl
+builtin(include, build/autoconf/nspr-build.m4)dnl
+builtin(include, build/autoconf/nss.m4)dnl
+builtin(include, build/autoconf/pkg.m4)dnl
+builtin(include, build/autoconf/codeset.m4)dnl
+builtin(include, build/autoconf/altoptions.m4)dnl
+builtin(include, build/autoconf/mozprog.m4)dnl
+builtin(include, build/autoconf/mozheader.m4)dnl
+builtin(include, build/autoconf/lto.m4)dnl
+builtin(include, build/autoconf/frameptr.m4)dnl
+builtin(include, build/autoconf/compiler-opts.m4)dnl
+builtin(include, build/autoconf/expandlibs.m4)dnl
+builtin(include, build/autoconf/arch.m4)dnl
+builtin(include, build/autoconf/android.m4)dnl
+builtin(include, build/autoconf/zlib.m4)dnl
+builtin(include, build/autoconf/icu.m4)dnl
+builtin(include, build/autoconf/clang-plugin.m4)dnl
+builtin(include, build/autoconf/alloc.m4)dnl
+builtin(include, build/autoconf/ios.m4)dnl
+builtin(include, build/autoconf/sanitize.m4)dnl
 
 MOZ_PROG_CHECKMSYS()
 
@@ -24,4 +35,4 @@ MOZ_PROG_CHECKMSYS()
 # configure.in: autoconf puts the argument parsing code above anything
 # expanded from configure.in, and we need to get the configure options
 # from .mozconfig in place before that argument parsing code.
-dnl MOZ_READ_MOZCONFIG(mozilla)
+MOZ_READ_MOZCONFIG(.)

@@ -3,6 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <!-- LOCALIZATION NOTE (tapToPlayPlugin): Mobile (used for touch interfaces) only has one type of plugin possible. -->
 
+<!ENTITY pluginActivationWarning                             "Ez az oldal olyan bővítményt használ, ami lelassíthatja a &brandShortName;ot.">
 <!ENTITY tapToPlayPlugin                                     "Koppintson a bővítmény aktiválásához.">
 <!ENTITY clickToActivatePlugin                               "Bővítmény aktiválása.">
 <!ENTITY checkForUpdates                                     "Frissítések keresése…">
@@ -29,3 +30,4 @@
 <!ENTITY plugin.file                                         "Fájl">
 <!ENTITY plugin.mimeTypes                                    "MIME-típusok">
 <!ENTITY plugin.flashProtectedMode.label                     "Adobe Flash védett mód bekapcsolása">
+<!ENTITY plugin.enableBlocklists.label                       "Veszélyes és tolakodó Flash tartalmak blokkolása">

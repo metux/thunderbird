@@ -8,9 +8,9 @@
 <!ENTITY cancelIntegration2.label  "Άκυρο">
 <!ENTITY defaultClient.intro  "Χρήση του &brandShortName; ως την προεπιλεγμένη εφαρμογή για:">
 
-<!ENTITY email.label "Αλληλογραφία">
+<!ENTITY email.label "E-Mail">
 <!ENTITY newsgroups.label "Ομάδες συζητήσεων">
-<!ENTITY feeds.label "Αρχεία ροής">
+<!ENTITY feeds.label "Ροές ειδήσεων">
 
 <!ENTITY unsetDefault.tooltip "Δεν είναι δυνατή η ακύρωση ορισμού του &brandShortName; ως προκαθορισμένου προγράμματος μέσα από το &brandShortName;. Για να ορίσετε άλλη εφαρμογή ως προεπιλογή πρέπει να χρησιμοποιήσετε το διάλογο της «Ορισμός ως προεπιλογή».">
 

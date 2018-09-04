@@ -3,32 +3,11 @@ Date: Sun, 31 May 2015 19:57:36 +0200
 Subject: changing the default search engine
 
 ---
- mail/locales/en-US/chrome/messenger-region/region.properties |  8 ++++----
- mail/locales/en-US/searchplugins/duckduckgo.xml              | 11 +++++++++++
+ mail/locales/en-US/searchplugins/duckduckgo.xml               | 11 +++++++++++
+ .../cy/chrome/cy/locale/cy/messenger-region/region.properties |  8 ++++----
  2 files changed, 15 insertions(+), 4 deletions(-)
  create mode 100644 mail/locales/en-US/searchplugins/duckduckgo.xml
 
-diff --git a/mail/locales/en-US/chrome/messenger-region/region.properties b/mail/locales/en-US/chrome/messenger-region/region.properties
-index c691e29..f5dbfdd 100644
---- a/mail/locales/en-US/chrome/messenger-region/region.properties
-+++ b/mail/locales/en-US/chrome/messenger-region/region.properties
-@@ -3,12 +3,12 @@
- # file, You can obtain one at http://mozilla.org/MPL/2.0/.
- 
- # Default search engine
--browser.search.defaultenginename=Bing
-+browser.search.defaultenginename=DuckDuckGo
- 
- # Search engine order (order displayed in the search bar dropdown)s
--browser.search.order.1=Bing
--browser.search.order.2=Yahoo
--browser.search.order.3=
-+browser.search.order.1=DuckDuckGo
-+browser.search.order.2=Google
-+browser.search.order.3=Bing
- 
- # To make mapit buttons to disappear in the addressbook, specify empty string.  For example:
- # mail.addr_book.mapit_url.format=
 diff --git a/mail/locales/en-US/searchplugins/duckduckgo.xml b/mail/locales/en-US/searchplugins/duckduckgo.xml
 new file mode 100644
 index 0000000..e814524
@@ -46,3 +25,24 @@ index 0000000..e814524
 +</Url>
 +<SearchForm>https://duckduckgo.com/</SearchForm>
 +</SearchPlugin>
+diff --git a/thunderbird-l10n/cy/chrome/cy/locale/cy/messenger-region/region.properties b/thunderbird-l10n/cy/chrome/cy/locale/cy/messenger-region/region.properties
+index c691e29..f5dbfdd 100644
+--- a/thunderbird-l10n/cy/chrome/cy/locale/cy/messenger-region/region.properties
++++ b/thunderbird-l10n/cy/chrome/cy/locale/cy/messenger-region/region.properties
+@@ -3,12 +3,12 @@
+ # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ 
+ # Default search engine
+-browser.search.defaultenginename=Bing
++browser.search.defaultenginename=DuckDuckGo
+ 
+ # Search engine order (order displayed in the search bar dropdown)s
+-browser.search.order.1=Bing
+-browser.search.order.2=Yahoo
+-browser.search.order.3=
++browser.search.order.1=DuckDuckGo
++browser.search.order.2=Google
++browser.search.order.3=Bing
+ 
+ # To make mapit buttons to disappear in the addressbook, specify empty string.  For example:
+ # mail.addr_book.mapit_url.format=

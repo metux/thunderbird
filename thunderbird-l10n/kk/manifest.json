@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "kk": {
+      "chrome_resources": {
+        "necko": "chrome/kk/locale/kk/necko/", 
+        "global": "chrome/kk/locale/kk/global/", 
+        "messenger-region": "chrome/kk/locale/kk/messenger-region/", 
+        "chat": "chrome/kk/locale/kk/chat/", 
+        "devtools": "chrome/kk/locale/kk/devtools/client/", 
+        "pipnss": "chrome/kk/locale/kk/pipnss/", 
+        "messenger-smime": "chrome/kk/locale/kk/messenger-smime/", 
+        "messenger-newsblog": "chrome/kk/locale/kk/messenger-newsblog/", 
+        "devtools-shim": "chrome/kk/locale/kk/devtools/shim/", 
+        "alerts": "chrome/kk/locale/kk/alerts/", 
+        "messenger": "chrome/kk/locale/kk/messenger/", 
+        "editor": "chrome/kk/locale/kk/editor/", 
+        "branding": "chrome/kk/locale/kk/branding/", 
+        "mozldap": "chrome/kk/locale/kk/mozldap/", 
+        "autoconfig": "chrome/kk/locale/kk/autoconfig/", 
+        "devtools-shared": "chrome/kk/locale/kk/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/kk/locale/kk/global-platform/win/", 
+          "android": "chrome/kk/locale/kk/global-platform/unix/", 
+          "macosx": "chrome/kk/locale/kk/global-platform/mac/", 
+          "linux": "chrome/kk/locale/kk/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/kk/locale/kk/mozapps/", 
+        "pluginproblem": "chrome/kk/locale/kk/pluginproblem/", 
+        "communicator": "chrome/kk/locale/kk/communicator/", 
+        "messenger-mapi": "chrome/kk/locale/kk/messenger-mapi/", 
+        "places": "chrome/kk/locale/kk/places/", 
+        "passwordmgr": "chrome/kk/locale/kk/passwordmgr/", 
+        "pippki": "chrome/kk/locale/kk/pippki/"
+      }, 
+      "version": "20180506075156"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-kk@thunderbird.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "kk", 
+  "version": "60.0buildid20180731173940", 
+  "name": "Kazakh (KZ) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Baurzhan Muftakhidinov, Timur Timirkhanov, Zhanbolat Satybaldinov)", 
+  "description": "Language pack for Thunderbird for kk"
+}

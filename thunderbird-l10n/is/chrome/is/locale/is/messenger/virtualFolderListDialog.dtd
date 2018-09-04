@@ -4,3 +4,6 @@
 
 <!ENTITY virtualFolderListTitle.title "Veldu möppu(r)">
 <!ENTITY virtualFolderDesc.label "Veldu möppur til að leita í:">
+
+<!ENTITY folderName.label "Folder name">
+<!ENTITY folderSearch.label "Search">

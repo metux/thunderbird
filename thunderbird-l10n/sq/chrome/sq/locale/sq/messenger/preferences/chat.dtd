@@ -2,6 +2,8 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<!ENTITY  generalTab.label            "Të përgjithshme">
+
 <!ENTITY  startupAction.label         "Kur niset &brandShortName;-i:">
 <!ENTITY  startupAction.accesskey     "K">
 <!ENTITY  startupOffline.label        "Mbaji jashtë linje llogaritë e mia të fjalosjeve">
@@ -29,14 +31,34 @@ sentence. -->
 <!ENTITY  completeNotification.label          "me emrin e dërguesit dhe një paraparje të mesazhit">
 <!ENTITY  buddyInfoOnly.label                 "vetëm me emrin e dërguesit">
 <!ENTITY  dummyNotification.label             "pa ndonjë të dhënë">
-<!ENTITY  chatSound.accesskey                 "d">
+<!ENTITY  getAttention.label                  "Xixëlloje objektin e panelit">
+<!ENTITY  getAttention.accesskey              "X">
+<!ENTITY  getAttentionMac.label               "Kryej animacion ikone paneli">
+<!ENTITY  getAttentionMac.accesskey           "a">
+<!ENTITY  chatSound.accesskey                 "L">
 <!ENTITY  chatSound.label                     "Luaj një tingull">
 <!ENTITY  play.label                          "Luaje">
 <!ENTITY  play.accesskey                      "L">
 <!ENTITY  systemSound.label                   "Tingull parazgjedhje sistemi për postë të re">
 <!ENTITY  systemSound.accesskey               "P">
-<!ENTITY  customsound.label                   "Përdor kartelën vijuese për tingull">
+<!ENTITY  customsound.label                   "Përdor kartelën zanore vijuese">
 <!ENTITY  customsound.accesskey               "P">
 <!ENTITY  browse.label                        "Shfletoni…">
 <!ENTITY  browse.accesskey                    "S">
 
+<!ENTITY messageStyleTab.title             "Stile Mesazhi">
+<!ENTITY messageStylePreview.label         "Paraparje:">
+<!ENTITY messageStyleTheme.label           "Temë:">
+<!ENTITY messageStyleTheme.accesskey       "T">
+<!ENTITY messageStyleThunderbirdTheme.label "Thunderbird">
+<!ENTITY messageStyleBubblesTheme.label    "Flluska">
+<!ENTITY messageStyleDarkTheme.label       "E errët">
+<!ENTITY messageStylePaperSheetsTheme.label "Fletë Letre">
+<!ENTITY messageStyleSimpleTheme.label     "E thjeshtë">
+<!ENTITY messageStyleDefaultTheme.label    "Parazgjedhje">
+<!ENTITY messageStyleVariant.label         "Variant:">
+<!ENTITY messageStyleVariant.accesskey     "V">
+<!ENTITY messageStyleShowHeader.label      "Shfaq Kryet">
+<!ENTITY messageStyleShowHeader.accesskey  "K">
+<!ENTITY messageStyleNoPreview.title       "S’ka paraparje gati">
+<!ENTITY messageStyleNoPreview.description "Kjo temë s’është e vlefshme ose hëpërhë jo gati (shtesë e çaktivizuar, mënyrë e parrezik, …).">

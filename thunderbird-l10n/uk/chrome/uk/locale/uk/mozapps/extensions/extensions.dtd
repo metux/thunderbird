@@ -4,6 +4,8 @@
 <!ENTITY addons.windowTitle                   "Додатки">
 
 <!ENTITY search.placeholder                   "Шукати серед усіх додатків">
+
+<!ENTITY search.placeholder2                  "Пошук на addons.mozilla.org">
 <!ENTITY search.buttonlabel                   "Пошук">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
@@ -20,8 +22,9 @@
 <!ENTITY installAddonFromFile.accesskey       "В">
 <!ENTITY toolsMenu.tooltip                    "Інструменти для всіх додатків">
 
-<!ENTITY cmd.back.tooltip                     "На одну сторінку назад">
-<!ENTITY cmd.forward.tooltip                  "На сторінку вперед">
+<!ENTITY getThemes.description                "Хочете персоналізувати свій браузер?">
+<!ENTITY getThemes.learnMore                  "Обирайте серед тисяч тем.">
+
 
 <!ENTITY showUnsignedExtensions.button.label  "Деякі розширення не можуть бути перевірені">
 <!ENTITY showAllExtensions.button.label       "Показати всі розширення">
@@ -33,9 +36,9 @@
 <!ENTITY warning.checkcompatibility.label          "Перевірка сумісності додатків вимкнена. У вас можуть бути несумісні додатки.">
 <!ENTITY warning.checkcompatibility.enable.label   "Увімкнути">
 <!ENTITY warning.checkcompatibility.enable.tooltip "Увімкнути перевірку сумісності додатків">
-<!ENTITY warning.updatesecurity.label              "Перевірка безпечності оновлень вимкнена. У процесі оновлення зловмисник може спробувати підмінити їх.">
+<!ENTITY warning.updatesecurity.label              "Перевірка безпечного оновлення додатків вимкнена. У процесі оновлення зловмисник може спробувати підмінити їх.">
 <!ENTITY warning.updatesecurity.enable.label       "Увімкнути">
-<!ENTITY warning.updatesecurity.enable.tooltip     "Увімкнути перевірку безпечності оновлень">
+<!ENTITY warning.updatesecurity.enable.tooltip     "Увімкнути перевірку безпечного оновлення додатків">
 
 <!-- categories / views -->
 <!ENTITY view.search.label                    "Пошук">
@@ -111,10 +114,11 @@
 <!ENTITY cmd.contribute.accesskey             "П">
 <!ENTITY cmd.contribute.tooltip               "Посприяти розвитку цього додатку">
 
-<!ENTITY cmd.showReleaseNotes.label           "Показати примітки до випуску">
-<!ENTITY cmd.showReleaseNotes.tooltip         "Показати примітки до випуску цього оновлення">
-<!ENTITY cmd.hideReleaseNotes.label           "Сховати примітки до випуску">
-<!ENTITY cmd.hideReleaseNotes.tooltip         "Сховати примітки до випуску цього оновлення">
+<!ENTITY cmd.showReleaseNotes.label           "Показати інформацію про випуск">
+<!ENTITY cmd.showReleaseNotes.tooltip         "Показати інформацію про випуск для цього оновлення">
+<!ENTITY cmd.hideReleaseNotes.label           "Сховати інформацію про випуск">
+<!ENTITY cmd.hideReleaseNotes.tooltip         "Сховати інформацію про випуск для цього оновлення">
+<!ENTITY cmd.findReplacement.label            "Знайти заміну">
 
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
@@ -142,7 +146,7 @@
 <!ENTITY detail.updateAutomatic.tooltip       "Встановлювати оновлення автоматично">
 <!ENTITY detail.updateManual.label            "Вимкнено">
 <!ENTITY detail.updateManual.tooltip          "Не встановлювати оновлення автоматично">
-<!ENTITY detail.home                          "Початкова сторінка">
+<!ENTITY detail.home                          "Домівка">
 <!ENTITY detail.repository                    "Профіль додатку">
 <!ENTITY detail.size                          "Розмір">
 
@@ -167,13 +171,13 @@
 
 <!-- list sorting -->
 <!ENTITY sort.name.label                      "Назва">
-<!ENTITY sort.name.tooltip                    "Сортувати за назвою">
+<!ENTITY sort.name.tooltip                    "Впорядкувати за назвою">
 <!ENTITY sort.dateUpdated.label               "Востаннє оновлено">
-<!ENTITY sort.dateUpdated.tooltip             "Сортувати за датою оновлення">
+<!ENTITY sort.dateUpdated.tooltip             "Впорядкувати за датою оновлення">
 <!ENTITY sort.relevance.label                 "Найкращий збіг">
-<!ENTITY sort.relevance.tooltip               "Сортувати за релевантністю">
+<!ENTITY sort.relevance.tooltip               "Впорядкувати за релевантністю">
 <!ENTITY sort.price.label                     "Ціна">
-<!ENTITY sort.price.tooltip                   "Сортувати за ціною">
+<!ENTITY sort.price.tooltip                   "Впорядкувати за ціною">
 
 <!ENTITY search.filter2.label                 "Пошук:">
 <!ENTITY search.filter2.installed.label       "Мої додатки">
@@ -182,9 +186,13 @@
 <!ENTITY search.filter2.available.tooltip     "Показати додатки, котрі можна встановити">
 
 <!ENTITY addon.homepage                       "Домівка">
-<!ENTITY addon.details.label                  "Детальніше">
+<!ENTITY addon.details.label                  "Докладніше">
 <!ENTITY addon.details.tooltip                "Показати більше подробиць щодо цього додатку">
 <!ENTITY addon.unknownDate                    "Невідомо">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "ЗАСТАРІЛИЙ">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -205,10 +213,10 @@
 <!ENTITY addon.updateNow.tooltip              "Встановити оновлення до цього додатку">
 <!ENTITY addon.includeUpdate.label            "Включити в оновлення">
 <!ENTITY addon.updateAvailable.label          "Доступне оновлення">
-<!ENTITY addon.checkingForUpdates.label       "Пошук оновлень…">
-<!ENTITY addon.releaseNotes.label             "Примітки до випуску:">
+<!ENTITY addon.checkingForUpdates.label       "Перевірка оновлень…">
+<!ENTITY addon.releaseNotes.label             "Інформація про випуск:">
 <!ENTITY addon.loadingReleaseNotes.label      "Завантаження…">
-<!ENTITY addon.errorLoadingReleaseNotes.label "Шкода, але під час завантаження приміток сталася помилка.">
+<!ENTITY addon.errorLoadingReleaseNotes.label "Шкода, але під час завантаження інформації сталася помилка.">
 
 <!ENTITY addon.createdBy.label                "Від ">
 
@@ -226,7 +234,7 @@
      to cause this tab to appear. -->
 <!ENTITY experiment.info.label "Що це? Телеметрія може час від часу встановлювати та запускати експерименти.">
 <!ENTITY experiment.info.learnmore "Докладніше">
-<!ENTITY experiment.info.learnmore.accesskey "Д">
+<!ENTITY experiment.info.learnmore.accesskey "о">
 <!ENTITY experiment.info.changetelemetry "Налаштування телеметрії">
 <!ENTITY experiment.info.changetelemetry.accesskey "Н">
 
@@ -249,3 +257,8 @@
 
 <!ENTITY pluginDeprecation.description "Чогось не вистачає? Деякі плагіни більше не підтримуються в &brandShortName;.">
 <!ENTITY pluginDeprecation.learnMore "Докладніше.">
+
+<!ENTITY legacyWarning.showLegacy "Показати застарілі розширення">
+<!ENTITY legacyExtensions.title "Застарілі розширення">
+<!ENTITY legacyExtensions.description "Ці розширення не відповідають поточним стандартам &brandShortName;, тому вони були вимкнені.">
+<!ENTITY legacyExtensions.learnMore "Дізнайтеся про зміни, що стосуються додатків">

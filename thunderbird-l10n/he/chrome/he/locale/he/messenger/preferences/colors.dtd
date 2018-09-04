@@ -3,32 +3,28 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY  colorsDialog.title              "צבעים">
+<!ENTITY  window.width                    "38em">
+<!ENTITY  window.macWidth                 "41em">
 
+<!ENTITY  overridePageColors.label        "דריסת הצבעים שהוקצו על ידי התוכן עם בחירותי שלהלן:">
+<!ENTITY  overridePageColors.accesskey    "ד">
 
 <!ENTITY  overridePageColors.always.label "תמיד">
+<!ENTITY  overridePageColors.auto.label   "רק בערכות נושא בניגודיות גבוהה">
+<!ENTITY  overridePageColors.never.label  "לעולם לא">
 
+<!ENTITY  color                           "טקסט ורקע">
+<!ENTITY  textColor.label                 "טקסט:">
+<!ENTITY  textColor.accesskey             "ט">
+<!ENTITY  backgroundColor.label           "רקע:">
+<!ENTITY  backgroundColor.accesskey       "ר">
+<!ENTITY  useSystemColors.label           "שימוש בצבעי המערכת">
+<!ENTITY  useSystemColors.accesskey       "צ">
 
-
-<!ENTITY  backgroundColor.accesskey       "B">
-<!ENTITY  backgroundColor.label           "Background:">
-
-<!ENTITY  color                           "Text and Background">
-<!ENTITY  linkColor.accesskey             "L">
-<!ENTITY  linkColor.label                 "Unvisited Links:">
-<!ENTITY  links                           "Link Colors">
-<!ENTITY  overridePageColors.accesskey    "O">
-<!ENTITY  overridePageColors.auto.label   "Only with High Contrast themes">
-
-<!ENTITY  overridePageColors.label        "Override the colors specified by the content with my selections above:">
-<!ENTITY  overridePageColors.never.label  "Never">
-<!ENTITY  textColor.accesskey             "T">
-<!ENTITY  textColor.label                 "Text:">
-<!ENTITY  underlineLinks.accesskey        "U">
-
-<!ENTITY  underlineLinks.label            "Underline links">
-<!ENTITY  useSystemColors.accesskey       "s">
-<!ENTITY  useSystemColors.label           "Use system colors">
-<!ENTITY  visitedLinkColor.accesskey      "V">
-<!ENTITY  visitedLinkColor.label          "Visited Links:">
-<!ENTITY  window.macWidth                 "41em">
-<!ENTITY  window.width                    "38em">
+<!ENTITY  underlineLinks.label            "קו מתחת לקישורים">
+<!ENTITY  underlineLinks.accesskey        "ת">
+<!ENTITY  links                           "צבעי קישורים">
+<!ENTITY  linkColor.label                 "קישורים בהם טרם ביקרת:">
+<!ENTITY  linkColor.accesskey             "ט">
+<!ENTITY  visitedLinkColor.label          "קישורים בהם ביקרת:">
+<!ENTITY  visitedLinkColor.accesskey      "ב">

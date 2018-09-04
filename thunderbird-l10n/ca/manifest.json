@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "ca": {
+      "chrome_resources": {
+        "necko": "chrome/ca/locale/ca/necko/", 
+        "global": "chrome/ca/locale/ca/global/", 
+        "messenger-region": "chrome/ca/locale/ca/messenger-region/", 
+        "chat": "chrome/ca/locale/ca/chat/", 
+        "devtools": "chrome/ca/locale/ca/devtools/client/", 
+        "pipnss": "chrome/ca/locale/ca/pipnss/", 
+        "messenger-smime": "chrome/ca/locale/ca/messenger-smime/", 
+        "messenger-newsblog": "chrome/ca/locale/ca/messenger-newsblog/", 
+        "devtools-shim": "chrome/ca/locale/ca/devtools/shim/", 
+        "alerts": "chrome/ca/locale/ca/alerts/", 
+        "messenger": "chrome/ca/locale/ca/messenger/", 
+        "editor": "chrome/ca/locale/ca/editor/", 
+        "branding": "chrome/ca/locale/ca/branding/", 
+        "mozldap": "chrome/ca/locale/ca/mozldap/", 
+        "autoconfig": "chrome/ca/locale/ca/autoconfig/", 
+        "devtools-shared": "chrome/ca/locale/ca/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/ca/locale/ca/global-platform/win/", 
+          "android": "chrome/ca/locale/ca/global-platform/unix/", 
+          "macosx": "chrome/ca/locale/ca/global-platform/mac/", 
+          "linux": "chrome/ca/locale/ca/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/ca/locale/ca/mozapps/", 
+        "pluginproblem": "chrome/ca/locale/ca/pluginproblem/", 
+        "communicator": "chrome/ca/locale/ca/communicator/", 
+        "messenger-mapi": "chrome/ca/locale/ca/messenger-mapi/", 
+        "places": "chrome/ca/locale/ca/places/", 
+        "passwordmgr": "chrome/ca/locale/ca/passwordmgr/", 
+        "pippki": "chrome/ca/locale/ca/pippki/"
+      }, 
+      "version": "20180501201307"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-ca@thunderbird.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "ca", 
+  "version": "60.0buildid20180731173940", 
+  "name": "Català Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "Mozilla.org / Softcatalà (contributors: Softcatalà)", 
+  "description": "Language pack for Thunderbird for ca"
+}

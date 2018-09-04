@@ -2,19 +2,21 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY autoconfigWizard.title          "Настройка на пощенска регистрация">
+<!ENTITY autoconfigWizard2.title         "Настройка на съществуващ адрес на ел. поща">
 <!ENTITY name.label                      "Вашето име:">
 <!ENTITY name.accesskey                  "и">
 <!ENTITY name.placeholder                "Име Фамилия">
 <!ENTITY name.text                       "Вашето име, както ще го видят другите">
-<!ENTITY email.label                     "Е-поща:">
+<!ENTITY email.label                     "Адрес на ел. поща:">
 <!ENTITY email.accesskey                 "Е">
-<!ENTITY email.placeholder               "email@example.com">
+<!-- LOCALIZATION NOTE(email.placeholder): Domain @example.com must stay in English -->
+<!ENTITY email2.placeholder              "you@example.com">
+<!ENTITY email.text                      "Вашият съществуващ адрес на ел. поща">
 <!ENTITY password.label                  "Парола:">
 <!ENTITY password.accesskey              "П">
 <!ENTITY password.placeholder            "Парола">
 <!ENTITY password.text                   "По избор, ще се използва само за проверка на името">
-<!ENTITY rememberPassword.label          "Запомняне на парола">
+<!ENTITY rememberPassword.label          "Запомняне на паролата">
 <!ENTITY rememberPassword.accesskey      "а">
 
 <!ENTITY imapLong.label                  "IMAP (отдалечени папки)">
@@ -53,8 +55,8 @@
 <!ENTITY half-manual-test.accesskey      "Т">
 <!ENTITY manual-edit.label               "Ръчна настройка">
 <!ENTITY manual-edit.accesskey           "Р">
-<!ENTITY switch-to-provisioner.label     "Получаване на нова сметка">
-<!ENTITY switch-to-provisioner.accesskey "П">
+<!ENTITY open-provisioner.label          "Получете нов адрес на ел. поща…">
+<!ENTITY open-provisioner.accesskey      "а">
 
 
 <!ENTITY warning.label                   "Внимание!">

@@ -13,22 +13,24 @@ ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
 	NUMJOBS = $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
 endif
 
-ICU_DATA_FILE := $(shell basename mozilla/config/external/icu/data/icud*.dat)
+ICU_DATA_FILE := $(shell basename config/external/icu/data/icud*.dat)
 ICU_BUILD := $(shell if ! grep -qs -e "--with-system-icu" debian/mozconfig.default; then echo YES || NO; fi)
 ICU_BUILD_DIR := $(CURDIR)/obj-thunderbird/obj-icu
 ICU_BUILD_CONFIGURE := --with-data-packaging=archive --enable-static --disable-layoutex --disable-shared --disable-extras --disable-icuio --disable-layout --disable-tests --disable-samples --disable-strict
 ICU_BUILD_CPPFLAGS := "-DU_NO_DEFAULT_INCLUDE_UTF_HEADERS=1 -DUCONFIG_NO_LEGACY_CONVERSION -DUCONFIG_NO_TRANSLITERATION -DUCONFIG_NO_REGULAR_EXPRESSIONS -DUCONFIG_NO_BREAK_ITERATION -DU_CHARSET_IS_UTF8"
 
-THUNDERBIRD_VERSION=$(shell tail -1 mail/config/version.txt)
+THUNDERBIRD_VERSION=$(shell tail -1 comm/mail/config/version.txt)
 DEB_AUTO_UPDATE_AUTOCONF=2.13
 
 # build directory used for building the thunderbird-l10n files
 THUNDERBIRD_L10N_BUILDDIR=debian/thunderbird-l10n-build
 
-# build directory used for building the lightning-l10n files
-LIGHTNING_L10N_BUILDDIR=debian/lightning-l10n-build
 # Iceowl/Lightning version, note this is different from the TB version!
-LIGHTNING_VERSION := $(shell python $(CURDIR)/calendar/lightning/build/makeversion.py ${THUNDERBIRD_VERSION})
+LIGHTNING_VERSION := $(shell python $(CURDIR)/comm/calendar/lightning/build/makeversion.py ${THUNDERBIRD_VERSION})
+
+# ID of the l10n language packs from upstream, need to match the application.id
+# in thunderbird-l10n/$LANG/manifest.json
+export MOZ_LANGPACK_ID = $(shell grep MOZ_LANGPACK_EID comm/mail/locales/Makefile.in | cut -f2 -d @)
 
 DPKG_EXPORT_BUILDFLAGS = 1
 include /usr/share/dpkg/buildflags.mk
@@ -73,146 +75,89 @@ override_dh_auto_clean:
 	dh_auto_clean --builddirectory=obj-thunderbird
 	# needed for thunderbird-l10n
 	rm -rf $(THUNDERBIRD_L10N_BUILDDIR)
-	# needed for lightning-l10n
-	rm -rf $(LIGHTNING_L10N_BUILDDIR)
 
 override_dh_auto_configure:
 	# run autoconf for all configure files
 	if [ "Z$(DEB_AUTO_UPDATE_AUTOCONF)" != Z ] || [ ! -e $(CURDIR)/configure ]; then \
 		cd $(CURDIR) && `which autoconf$(DEB_AUTO_UPDATE_AUTOCONF) || which autoconf`; fi
-	if [ "Z$(DEB_AUTO_UPDATE_AUTOCONF)" != Z ] || [ ! -e $(CURDIR)/mozilla/configure ]; then \
-		cd $(CURDIR)/mozilla && `which autoconf$(DEB_AUTO_UPDATE_AUTOCONF) || which autoconf`; fi
-	if [ "Z$(DEB_AUTO_UPDATE_AUTOCONF)" != Z ] || [ ! -e $(CURDIR)/mozilla/js/src/configure ]; then \
-		cd $(CURDIR)/mozilla/js/src && `which autoconf$(DEB_AUTO_UPDATE_AUTOCONF) || which autoconf`; fi
+	if [ "Z$(DEB_AUTO_UPDATE_AUTOCONF)" != Z ] || [ ! -e $(CURDIR)/js/src/configure ]; then \
+		cd $(CURDIR)/js/src && `which autoconf$(DEB_AUTO_UPDATE_AUTOCONF) || which autoconf`; fi
 	# copy the mozconfig files
 	cp debian/mozconfig.* .
-	cp debian/mozconfig.default mozilla/
 	echo 'mk_add_options MOZ_OBJDIR=$(CURDIR)/obj-thunderbird' >> mozconfig.thunderbird
+	echo 'ac_add_options --prefix=$(CURDIR)/debian/tmp/usr' >> mozconfig.default
 	@echo "rebuild ICU data file needed: $(ICU_BUILD)"
 ifeq ($(ICU_BUILD),YES)
-	#####################################################################
-	# (re)build upstream icudt5*.dat due disabled usage of system files #
-	#####################################################################
-	rm -f $(CURDIR)/mozilla/config/external/icu/data/$(ICU_DATA_FILE)
+	####################################################################
+	# (re)build upstream icudt*.dat due disabled usage of system files #
+	####################################################################
+	rm -f $(CURDIR)/config/external/icu/data/$(ICU_DATA_FILE)
 	mkdir -p $(ICU_BUILD_DIR)
 	cd $(ICU_BUILD_DIR) ;\
-		$(CURDIR)/mozilla/intl/icu/source/configure $(ICU_BUILD_CONFIGURE) CPPFLAGS=$(ICU_BUILD_CPPFLAGS) ;\
+		$(CURDIR)/intl/icu/source/configure $(ICU_BUILD_CONFIGURE) CPPFLAGS=$(ICU_BUILD_CPPFLAGS) ;\
 		$(MAKE) VERBOSE=1 -j$(NUMJOBS)
 	@ICU_DATA_FILE_CREATED=$$(basename $(ICU_BUILD_DIR)/data/out/icud*.dat) ;\
-	test -f $(ICU_BUILD_DIR)/data/out/$$ICU_DATA_FILE_CREATED && cp $(ICU_BUILD_DIR)/data/out/$$ICU_DATA_FILE_CREATED $(CURDIR)/mozilla/config/external/icu/data ;\
-	echo "created new ICU_DATA_FILE in $(CURDIR)/mozilla/config/external/icu/data/$$ICU_DATA_FILE_CREATED"
+	test -f $(ICU_BUILD_DIR)/data/out/$$ICU_DATA_FILE_CREATED && cp $(ICU_BUILD_DIR)/data/out/$$ICU_DATA_FILE_CREATED $(CURDIR)/config/external/icu/data ;\
+	echo "created new ICU_DATA_FILE in $(CURDIR)/config/external/icu/data/$$ICU_DATA_FILE_CREATED"
 endif
 	# configure the various build settings
-	# thunderbird, thunderbird-dev, calendar-google-provider, lightning
-	DIST= make -f client.mk configure
+	# thunderbird, calendar-google-provider, lightning
+	DIST= ./mach -v configure
 
 override_dh_auto_build:
 	# building the stuff
-	make -f client.mk build
+	./mach -v build
 	# build thunderbird-l10n
 	mkdir -p $(THUNDERBIRD_L10N_BUILDDIR)
-	cd $(CURDIR)/thunderbird-l10n; \
+	cd $(CURDIR)/thunderbird-l10n ;\
 	for XPI in *; do \
-		LOCALE=`basename $${XPI}`; \
-		xpi-pack $${LOCALE} ../$(THUNDERBIRD_L10N_BUILDDIR)/$${LOCALE}.xpi; \
+		locale=`basename $${XPI}` ;\
+		USED_LANGPACK_ID=`grep langpack- $${XPI}/manifest.json | tr '"' ' ' | awk '{print $$3}' | cut -f2-3 -d @` ;\
+		if [ "$${USED_LANGPACK_ID}" != "$${MOZ_LANGPACK_ID}" ]; then \
+			echo "MOZ_LANGPACK_ID mismatch! '$${USED_LANGPACK_ID}' != '$${MOZ_LANGPACK_ID}'" ;\
+			echo "thunderbird-l10n l10n source '$${XPI}' uses a different MOZ_LANGPACK_ID than defined in $(CURDIR)/comm/mail/locales/Makefile.in!";\
+			exit 1 ;\
+		else \
+			xpi-pack $${XPI} ../$(THUNDERBIRD_L10N_BUILDDIR)/langpack-$${locale}@$${MOZ_LANGPACK_ID}.xpi ;\
+		fi \
 	done
-	# build lightning-l10n
-	mkdir -p $(LIGHTNING_L10N_BUILDDIR)
-	cd $(CURDIR)/lightning-l10n; \
-	for dir in ?? ??? ??-*; do \
-		cd $${dir}; \
-		zip -q -X -r ../../$(LIGHTNING_L10N_BUILDDIR)/$${dir}.jar locale; \
-		cd -; \
-	done
-	rm -rf $(LIGHTNING_L10N_BUILDDIR)/en-US.jar
 
 override_dh_auto_install:
 ifneq (,$(filter mips,$(DEB_BUILD_ARCH)))
 	sed -i '/"javascript.options.\(baselinejit\|ion\)"/s/true/false/' obj-thunderbird/dist/bin/greprefs.js
 endif
-	make -f client.mk install DESTDIR=$(CURDIR)/debian/tmp
-	# install thunderbird-l10n
-	cd $(CURDIR)/thunderbird-l10n; \
-	for DIRECTORY in *; do \
-		LOCALE=`echo $${DIRECTORY} | tr [:upper:] [:lower:]`; \
-		ID=`cat $${DIRECTORY}/install.rdf | sed --posix '/em:id=/!d;s/[ ]*em:id="//;s/".*//'`; \
-		install -D -m 644 ../$(THUNDERBIRD_L10N_BUILDDIR)/$${DIRECTORY}.xpi $(CURDIR)/debian/thunderbird-l10n-$${LOCALE}/usr/share/thunderbird/extensions/$${ID}.xpi; \
-		mkdir -p $(CURDIR)/debian/thunderbird-l10n-$${LOCALE}/usr/lib/thunderbird/extensions; \
-		ln -sf /usr/share/thunderbird/extensions/$${ID}.xpi $(CURDIR)/debian/thunderbird-l10n-$${LOCALE}/usr/lib/thunderbird/extensions/$${ID}.xpi; \
+	# install thunderbird into temp install folder
+	./mach -v install
+	# install, symlinking thunderbird-l10n packages
+	cd $(CURDIR)/thunderbird-l10n ;\
+	for LANG in *; do \
+		locale=`basename $${LANG}` ;\
+		lowercase_locale=`echo $${locale} | tr 'A-Z' 'a-z'` ;\
+		echo "preparing and working on 'thunderbird-l10n-$${lowercase_locale}  (langpack-$${locale}@$${MOZ_LANGPACK_ID}.xpi)" ;\
+		mkdir -p $(CURDIR)/debian/thunderbird-l10n-$${lowercase_locale}/usr/lib/thunderbird/extensions/ ;\
+		install -D -m 644 ../$(THUNDERBIRD_L10N_BUILDDIR)/langpack-$${locale}@$${MOZ_LANGPACK_ID}.xpi $(CURDIR)/debian/thunderbird-l10n-$${lowercase_locale}/usr/share/thunderbird/extensions/langpack-$${locale}@$${MOZ_LANGPACK_ID}.xpi ;\
+		ln -sf /usr/share/thunderbird/extensions/langpack-$${locale}@$${MOZ_LANGPACK_ID}.xpi \
+			$(CURDIR)/debian/thunderbird-l10n-$${lowercase_locale}/usr/lib/thunderbird/extensions/langpack-$${locale}@$${MOZ_LANGPACK_ID}.xpi ;\
 	done
 	# install lightning-l10n
-	for jar in $(LIGHTNING_L10N_BUILDDIR)/*.jar; do \
-		locale=`basename $${jar} .jar | tr 'A-Z' 'a-z'`; \
-		mkdir -p $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/chrome; \
-		install -m 644 $${jar} $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/chrome/; \
-	done
-	for jar in $(LIGHTNING_L10N_BUILDDIR)/*.jar; do \
-		locale=`basename $${jar} .jar | tr 'A-Z' 'a-z'`; \
-		mkdir -p $(CURDIR)/debian/lightning-l10n-$${locale}/usr/lib/lightning/extensions/; \
-		ln -sf /usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/ \
-			$(CURDIR)/debian/lightning-l10n-$${locale}/usr/lib/lightning/extensions/langpack-$${locale}@lightning.debian.org; \
-		mkdir -p $(CURDIR)/debian/lightning-l10n-$${locale}/usr/lib/thunderbird/extensions/; \
-		ln -sf /usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/ \
-			$(CURDIR)/debian/lightning-l10n-$${locale}/usr/lib/thunderbird/extensions/langpack-$${locale}@lightning.debian.org; \
-	done
-	# install lightning-l10n; install.rdf
-	for jar in $(LIGHTNING_L10N_BUILDDIR)/*.jar; do \
-		locale=`basename $${jar} .jar | tr 'A-Z' 'a-z'`; \
-		sed -e s"/##LOCALE##/$${locale}/" -e s",##VERSION##,$(LIGHTNING_VERSION)," \
-			debian/lightning-l10n-install.rdf.in \
-			> $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/install.rdf; \
-	done
-	# install lightning-l10n; chrome.manifest
-	for jar in $(LIGHTNING_L10N_BUILDDIR)/*.jar; do \
-		lang=`basename $${jar} .jar`; \
-		locale=`basename $${jar} .jar | tr 'A-Z' 'a-z'`; \
-			sed -e s"/##LANG##/$${lang}/g" \
-			debian/lightning-l10n-chrome.manifest.in \
-			> $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/chrome.manifest; \
-	done
-	# install lightning-l10n; uninstall
-	for jar in $(LIGHTNING_L10N_BUILDDIR)/*.jar; do \
-		locale=`basename $${jar} .jar | tr 'A-Z' 'a-z'`; \
-		mkdir -p $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/uninstall; \
-		touch $(CURDIR)/debian/lightning-l10n-$${locale}/usr/share/lightning/extensions/langpack-$${locale}@lightning.debian.org/uninstall/Uninstall; \
+	cd $(CURDIR)/lightning-l10n ;\
+	for LANG in *; do \
+		locale=`basename $${LANG}` ;\
+		lowercase_locale=`echo $${locale} | tr 'A-Z' 'a-z'` ;\
+		echo "working on 'lightning-l10n-$${lowercase_locale}'" ;\
+		mkdir -p $(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/share/lightning ;\
+		cp -a $${locale}/* $(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/share/lightning ;\
 	done
 	dh_bash-completion
 
 override_dh_install-arch:
 	# in case of a pre-builded and installed icudt*.dat file pick it up
-	# and do a needed symlinking for the thunderbird-dev package afterwards
 	if [ -f debian/tmp/usr/lib/thunderbird/$(ICU_DATA_FILE) ]; then \
 		if ! grep -qs $(ICU_DATA_FILE) debian/thunderbird.install ; then \
 			echo "debian/tmp/usr/lib/thunderbird/$(ICU_DATA_FILE)" >> debian/thunderbird.install ;\
-			echo "usr/lib/thunderbird/$(ICU_DATA_FILE)  usr/share/thunderbird/$(ICU_DATA_FILE)" >> debian/thunderbird-dev.links ;\
 		fi \
 	fi
 	dh_install
-	# adjust Thunderbird version in pkg-config file
-	sed -i 's/@Version@/$(THUNDERBIRD_VERSION)/' debian/thunderbird-dev/usr/lib/pkgconfig/thunderbird.pc
-	# prepare lightning
-	LIGHTNING=`find -type f -name "lightning*.xpi"` &&\
-		unzip -d debian/lightning/usr/lib/lightning/ $(CURDIR)/$$LIGHTNING
-	# remove executable rights on *.js, *.png, *.xul files
-	find debian/lightning/ -type f \( -name "*.js" -o -name "*.png" -o -name "*.xul" \) -exec chmod 644 {} \;
-	# moving skins and icon stuff to /usr/share/lightning/
-	mv debian/lightning/usr/lib/lightning/chrome/skin debian/lightning/usr/share/lightning/chrome/
-	mv debian/lightning/usr/lib/lightning/chrome/icons debian/lightning/usr/share/lightning/chrome/
-	cd debian/lightning/usr/lib/lightning/chrome && ln -s ../../../share/lightning/chrome/skin/
-	cd debian/lightning/usr/lib/lightning/chrome && ln -s ../../../share/lightning/chrome/icons/
-	# sometimes there are temporary build files in lightning
-	@echo "    --> searching for temporary build files in 'lightning' ..."
-	@for i in `find debian/lightning/ -name ".mkdir.done*"`; do echo remove $$i && rm $$i; done
-	find debian/lightning/usr/lib/lightning -newermt '$(BUILD_DATE)' -print0 | \
-		xargs -0r touch --no-dereference --date='$(BUILD_DATE)'
-	# remove duplicate .so files in dev package
-	rm debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/lib/libxul.so
-	rm debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/lib/libnss3.so
-	rm debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/lib/libnssutil3.so
-	rm debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/lib/libsmime3.so
-	rm debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/lib/libssl3.so
-	# remove hardlink in dev package
-	rm debian/thunderbird-dev/usr/include/thunderbird/mozilla/dom/MediaStreamAudioDestinationNode.h
 	# install apparmor profile
 	cp debian/apparmor/usr.bin.thunderbird debian/thunderbird/etc/apparmor.d/usr.bin.thunderbird
 	dh_apparmor --profile-name=usr.bin.thunderbird -pthunderbird
@@ -225,17 +170,28 @@ override_dh_install-indep:
 		unzip -d debian/calendar-google-provider/usr/share/xul-ext/calendar-google-provider/ $(CURDIR)/$$GDATA_PROVIDER
 	find debian/calendar-google-provider/usr/share/xul-ext/calendar-google-provider -newermt '$(BUILD_DATE)' -print0 | \
 		xargs -0r touch --no-dereference --date='$(BUILD_DATE)'
+	ID=`grep "em:id" $(CURDIR)/debian/calendar-google-provider/usr/share/xul-ext/calendar-google-provider/install.rdf | sed -e s"/<em:id>"// -e s",</em:id>",, -e 's/^[ ]*//' | head -n1` ;\
+	mkdir -p mkdir -p $(CURDIR)/debian/calendar-google-provider/usr/lib/thunderbird/extensions/ ;\
+	ln -sf /usr/share/xul-ext/calendar-google-provider $(CURDIR)/debian/calendar-google-provider/usr/lib/thunderbird/extensions/$$ID
 	# sometimes there are temporary build files in calendar-google-provider
 	@echo "    --> searching for temporary build files in 'calendar-google-provider' ..."
 	@for i in `find debian/calendar-google-provider/ -name ".mkdir.done*"`; do echo remove $$i && rm $$i; done
-
-override_dh_fixperms-arch:
-	dh_fixperms
-	chmod a-x debian/thunderbird-dev/usr/share/idl/thunderbird/*.idl
-	chmod 0755 debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/bin/*.py
-	chmod 0644 debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/bin/xpidllex.py
-	chmod 0644 debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/bin/xpidlyacc.py
-	chmod 0755 debian/thunderbird-dev/usr/lib/thunderbird-devel/sdk/bin/xpcshell
+	# prepare lightning
+	mkdir -p debian/lightning/usr/share/lightning
+	LIGHTNING=`find -type f -name "lightning*.xpi"` &&\
+		unzip -d debian/lightning/usr/share/lightning $(CURDIR)/$$LIGHTNING
+	# remove executable rights on *.js, *.png, *.xul files
+	find debian/lightning*/ -type f \( -name "*.dtd" -o -name "*.js" -o -name "*.png" -o -name "*.properties" -o -name "*.xul" \) -exec chmod 644 {} \;
+	# sometimes there are temporary build files in lightning
+	@echo "    --> searching for temporary build files in 'lightning' ..."
+	@for i in `find debian/lightning/ -name ".mkdir.done*"`; do echo remove $$i && rm $$i; done
+	find debian/lightning/usr/share/lightning -newermt '$(BUILD_DATE)' -print0 | \
+		xargs -0r touch --no-dereference --date='$(BUILD_DATE)'
+	for LANG in lightning-l10n/*; do \
+		locale=`basename $${LANG}`; \
+		echo "locale calendar $${locale} chrome/calendar-$${locale}/locale/$${locale}/calendar/" >> debian/lightning/usr/share/lightning/chrome.manifest ;\
+		echo "locale lightning $${locale} chrome/lightning-$${locale}/locale/$${locale}/lightning/" >> debian/lightning/usr/share/lightning/chrome.manifest ;\
+	done
 
 override_dh_strip:
 	if [ "$(RELEASE)" != "UNRELEASED" ]; then \
@@ -255,7 +211,6 @@ override_dh_builddeb:
 	else \
 		dh_builddeb -pthunderbird ;\
 		dh_builddeb -picedove ;\
-		dh_builddeb -pthunderbird-dev ;\
 		dh_builddeb -picedove-dev ;\
 		dh_builddeb -plightning ;\
 		dh_builddeb -piceowl-extension ;\

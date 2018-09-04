@@ -1,0 +1,33 @@
+# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+set_config('MOZ_THUNDERBIRD', True)
+set_define('MOZ_THUNDERBIRD', True)
+
+set_define('MOZ_SEPARATE_MANIFEST_FOR_THEME_OVERRIDES', True)
+
+imply_option('MOZ_PLACES', True)
+imply_option('MOZ_ALLOW_LEGACY_EXTENSIONS', True)
+
+
+@depends(application)
+def is_comm_topdir(app):
+    return not app[0].startswith('comm/')
+
+
+set_config('MOZ_IS_COMM_TOPDIR', is_comm_topdir)
+
+
+@depends(is_comm_topdir)
+def toolkit_configure(is_comm_topdir):
+    if is_comm_topdir:
+        return '../mozilla/toolkit/moz.configure'
+    else:
+        return '../../toolkit/moz.configure'
+
+
+include('../mailnews/moz.configure')
+include(toolkit_configure)

@@ -17,7 +17,7 @@
 <!ENTITY newContact.label "Контакт адресної книги…">
 <!ENTITY newContact.accesskey "К">
 <!ENTITY attachMenu.label "Вкласти">
-<!ENTITY attachMenu.accesskey "к">
+<!ENTITY attachMenu.accesskey "с">
 <!ENTITY attachFileCmd.label "Файл(и)…">
 <!ENTITY attachFileCmd.accesskey "л">
 <!ENTITY attachFileCmd.key "A">
@@ -85,6 +85,20 @@
 <!ENTITY editRewrapCmd.key "О">
 <!ENTITY renameAttachmentCmd.label "Перейменувати вкладення…">
 <!ENTITY renameAttachmentCmd.accesskey "П">
+<!ENTITY reorderAttachmentsCmd.label "Пересортувати вкладення…">
+<!ENTITY reorderAttachmentsCmd.accesskey "е">
+<!ENTITY reorderAttachmentsCmd.key "x">
+<!ENTITY toggleAttachmentPaneCmd.label "Панель вкладень">
+<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.accesskey):
+     For better mnemonics, toggleAttachmentPaneCmd.accesskey should be the same
+     as attachments.accesskey. -->
+<!ENTITY toggleAttachmentPaneCmd.accesskey "в">
+<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.key):
+     With OS-specific access modifier, this defines the shortcut key for showing/
+     hiding/minimizing the attachment pane, e.g. Alt+M on Windows.
+     toggleAttachmentPaneCmd.key and attachments.accesskey must be the same
+     for the bucket view state machinery to work. -->
+<!ENTITY toggleAttachmentPaneCmd.key "m">
 <!ENTITY selectAllCmd.label "Виділити все">
 <!ENTITY selectAllCmd.key "A">
 <!ENTITY selectAllCmd.accesskey "с">
@@ -102,6 +116,26 @@
 <!ENTITY findPrevCmd.accesskey "п">
 <!ENTITY findPrevCmd.key "G">
 <!ENTITY findPrevCmd.key2 "VK_F3">
+
+<!-- Reorder Attachment Panel -->
+<!ENTITY reorderAttachmentsPanel.label "Пересортувати вкладення">
+<!ENTITY moveAttachmentTopPanelBtn.label "Перемістити вгору">
+<!ENTITY moveAttachmentUpPanelBtn.label "Вгору">
+<!ENTITY moveAttachmentBundleUpPanelBtn.label "Перемістити разом">
+<!ENTITY moveAttachmentDownPanelBtn.label "Вниз">
+<!ENTITY moveAttachmentBottomPanelBtn.label "Перемістити донизу">
+
+<!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.Sort.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsPanelBtn.Sort.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsPanelBtn.Sort.AZ.label "Сортування: А - Я">
+<!ENTITY sortAttachmentsPanelBtn.Sort.ZA.label "Сортування: Я - А">
+<!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.SortSelection.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsPanelBtn.SortSelection.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.AZ.label "Порядок сортування: А - Я">
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.ZA.label "Порядок сортування: Я - А">
+<!ENTITY sortAttachmentsPanelBtn.key "y">
 
 <!-- View Menu -->
 <!ENTITY viewMenu.label "Вигляд">
@@ -214,8 +248,8 @@
 <!ENTITY quoteButton.tooltip "Цитувати попереднй лист">
 <!ENTITY addressButton.tooltip "Вибрати адресата з адресної книги">
 <!ENTITY attachButton.tooltip "Вкласти файл в цей лист">
+<!ENTITY attachButton.tooltip2 "Додати вкладення">
 <!ENTITY spellingButton.tooltip "Перевірити правопис вибірки чи всього листа">
-<!ENTITY statusLanguageText.tooltip "Мова перевірки правопису">
 <!ENTITY saveButton.tooltip "Зберегти цей лист">
 <!ENTITY cutButton.tooltip              "Вирізати">
 <!ENTITY copyButton.tooltip             "Копіювати">
@@ -236,9 +270,14 @@
 <!ENTITY followupAddr.label "Продовжити в:">
 <!ENTITY subject.label "Тема:">
 <!ENTITY subject.accesskey "Т">
-<!-- LOCALIZATION NOTE attachments.accesskey This access key should correspond
-     to the strings in attachmentCount in composeMsgs.properties -->
+<!-- LOCALIZATION NOTE (attachments.accesskey) This access key character should
+     be taken from the strings in attachmentCount in composeMsgs.properties,
+     and it must be the same as toggleAttachmentPaneCmd.key, otherwise it won't
+     work, as the shortcut key functionality supersedes the access key. -->
 <!ENTITY attachments.accesskey "В">
+
+<!ENTITY attachmentBucketHeader.tooltip "Панель вкладень">
+<!ENTITY attachmentBucketCloseButton.tooltip "Сховати панель вкладень">
 
 <!-- Format Toolbar, imported from editorAppShell.xul -->
 <!ENTITY SmileButton.tooltip "Вставити смайлик">
@@ -276,6 +315,7 @@
 <!ENTITY pasteQuote.label "Вставити як цитату">
 <!ENTITY pasteQuote.accesskey "я">
 
+<!-- Attachment Item and List Context Menus -->
 <!ENTITY openAttachment.label "Відкрити">
 <!ENTITY openAttachment.accesskey "В">
 <!ENTITY delete.label "Вилучити">
@@ -284,6 +324,10 @@
 <!ENTITY removeAttachment.accesskey "к">
 <!ENTITY renameAttachment.label "Перейменувати…">
 <!ENTITY renameAttachment.accesskey "й">
+<!ENTITY reorderAttachments.label "Пересортувати вкладення…">
+<!ENTITY reorderAttachments.accesskey "е">
+<!ENTITY removeAllAttachments.label "Вилучити всі вкладення">
+<!ENTITY removeAllAttachments.accesskey "ч">
 <!ENTITY selectAll.label "Виділити все">
 <!ENTITY selectAll.accesskey "с">
 <!ENTITY attachFile.label "Вкласти файл(и)…">
@@ -299,6 +343,13 @@
 <!ENTITY attachPage.label "Вкласти веб-сторінку…">
 <!ENTITY attachPage.accesskey "е">
 
+<!-- Attachment Pane Header Bar Context Menu -->
+<!-- LOCALIZATION NOTE (initiallyShowAttachmentPane.label):
+     Should use the same wording as startExpandedCmd.label
+     in msgHdrViewOverlay.dtd. -->
+<!ENTITY initiallyShowAttachmentPane.label "Початково показувати панель вкладень">
+<!ENTITY initiallyShowAttachmentPane.accesskey "к">
+
 <!-- Spell checker context menu items -->
 <!ENTITY spellAddDictionaries.label "Додати словники…">
 <!ENTITY spellAddDictionaries.accesskey "Д">
@@ -309,3 +360,7 @@
 <!-- Identity popup customize menuitem -->
 <!ENTITY customizeFromAddress.label "Налаштувати з адреси…">
 <!ENTITY customizeFromAddress.accesskey "а">
+
+<!-- Status Bar -->
+<!ENTITY languageStatusButton.tooltip "Мова перевірки правопису">
+<!ENTITY encodingStatusPanel.tooltip "Кодування тексту">

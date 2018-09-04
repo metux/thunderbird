@@ -4,27 +4,14 @@
 
 <!ENTITY aboutTelemetry.pageTitle "Sonraí Telemetry">
 
-<!ENTITY aboutTelemetry.changeDataChoices "  Athraigh">
-
-<!ENTITY aboutTelemetry.uploadEnabled "  Uasluchtú sonraí FHR <span>cumasaithe</span>.">
-
-<!ENTITY aboutTelemetry.uploadDisabled "  Uasluchtú sonraí FHR <span>díchumasaithe</span>.">
-
-<!ENTITY aboutTelemetry.extendedRecordingEnabled "  Taifeadadh breisithe Telemetry <span>cumasaithe</span>.">
-
-<!ENTITY aboutTelemetry.extendedRecordingDisabled "  Taifeadadh breisithe Telemetry <span>díchumasaithe</span>.">
-
 <!ENTITY aboutTelemetry.pingDataSource "Foinse sonraí pingithe:">
 
 <!ENTITY aboutTelemetry.showCurrentPingData "Sonraí pingithe reatha">
 
 <!ENTITY aboutTelemetry.showArchivedPingData "Sonraí pingithe sa chartlann">
 
-<!ENTITY aboutTelemetry.pingDataDisplay "Taispeáint pinge sonraí:">
-
-<!ENTITY aboutTelemetry.structured "Struchtúrtha">
-
 <!ENTITY aboutTelemetry.raw "JSON amh">
+
 
 <!ENTITY aboutTelemetry.showSubsessionData "Taispeáin sonraí fosheisiúin">
 
@@ -34,11 +21,17 @@
 
 <!ENTITY aboutTelemetry.showOlderPing "Ping níos sine &gt;&gt;">
 
-<!ENTITY aboutTelemetry.rawPingData "Amhshonraí pinge...">
-
 <!ENTITY aboutTelemetry.archiveWeekHeader "Seachtain">
 
+<!ENTITY aboutTelemetry.archivePingType "Cineál na Pinge">
+
 <!ENTITY aboutTelemetry.archivePingHeader "Ping">
+
+<!ENTITY aboutTelemetry.optionGroupToday "Inniu">
+
+<!ENTITY aboutTelemetry.optionGroupYesterday "Inné">
+
+<!ENTITY aboutTelemetry.optionGroupOlder "Níos Sine">
 
 <!ENTITY aboutTelemetry.generalDataSection "  Sonraí Ginearálta">
 
@@ -52,6 +45,8 @@
 
 <!ENTITY aboutTelemetry.threadHangStatsSection " Snáitheanna Reoite">
 
+<!ENTITY aboutTelemetry.capturedStacksSection "  Cruacha Gafa">
+
 <!ENTITY aboutTelemetry.scalarsSection "  Scálaigh">
 
 <!ENTITY aboutTelemetry.keyedScalarsSection "  Scálaigh Eochraithe">
@@ -60,28 +55,33 @@
 
 <!ENTITY aboutTelemetry.keyedHistogramsSection " Histeagraim Eochraithe">
 
+<!ENTITY aboutTelemetry.eventsSection "  Teagmhais">
+
 <!ENTITY aboutTelemetry.simpleMeasurementsSection "  Tomhais Shimplí">
 
 <!ENTITY aboutTelemetry.addonDetailsSection "  Mionsonraí an Bhreiseáin">
 
 <!ENTITY aboutTelemetry.lateWritesSection " Scríobh Déanach">
 
+
 <!ENTITY aboutTelemetry.sessionInfoSection "Faisnéis an tSeisiúin">
-
-<!ENTITY aboutTelemetry.addonHistogramsSection "  Histeagraim Bailithe ag Breiseáin">
-
-<!ENTITY aboutTelemetry.toggle "  Cliceáil chun scoránú">
-
-<!ENTITY aboutTelemetry.emptySection "  (Níl aon sonraí bailithe)">
 
 <!ENTITY aboutTelemetry.fullSqlWarning " Nod: Tá dífhabhtú mall SQL ar siúl. D'fhéadfadh go mbeadh teaghráin iomlána SQL á dtaispeáint thíos, ach ní sheolfar chuig Telemetry iad.">
 
-<!ENTITY aboutTelemetry.fetchSymbols " Faigh ainmneacha na bhfeidhmeanna leis an gcruach a thaispeáint">
+<!ENTITY aboutTelemetry.fetchStackSymbols "  Faigh ainmneacha na bhfeidhmeanna leis an gcruach a thaispeáint">
 
-<!ENTITY aboutTelemetry.hideSymbols " Taispeáin amhshonraí nuair atá sé reoite">
+<!ENTITY aboutTelemetry.hideStackSymbols "  Taispeáin amhshonraí na cruaiche">
 
 <!ENTITY aboutTelemetry.filterText "  Scagadh (teaghrán nó /slonn/)">
 
 <!ENTITY aboutTelemetry.payloadChoiceHeader "Pálasta">
 
-<!ENTITY aboutTelemetry.rawPayload "  Pálasta Amh">
+<!ENTITY aboutTelemetry.previousPing "&lt;&lt;">
+<!ENTITY aboutTelemetry.nextPing "&gt;&gt;">
+<!ENTITY aboutTelemetry.moreInformations "Looking for more information?">
+<!ENTITY aboutTelemetry.firefoxDataDoc "The <a>Firefox Data Documentation</a> contains guides about how to work with our data tools.">
+<!ENTITY aboutTelemetry.telemetryClientDoc "The <a>Firefox Telemetry client documentation</a> includes definitions for concepts, API documentation and data references.">
+<!ENTITY aboutTelemetry.telemetryDashboard "The <a>Telemetry dashboards</a> allow you to visualize the data Mozilla receives via Telemetry.">
+<!ENTITY aboutTelemetry.showInFirefoxJsonViewer "Open in the JSON viewer">
+<!ENTITY aboutTelemetry.homeSection "Home">
+<!ENTITY aboutTelemetry.rawPayloadSection "Raw Payload">

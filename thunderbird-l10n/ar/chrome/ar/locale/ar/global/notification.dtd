@@ -4,8 +4,9 @@
 
 <!ENTITY closeNotification.tooltip "أغلق هذه الرسالة">
 
-<!ENTITY closeNotificationItem.label "ليس الآن">
-
 <!ENTITY checkForUpdates "التمس التحديثات…">
 
 <!ENTITY learnMore "اطّلع على المزيد…">
+
+<!ENTITY defaultButton.label "موافق">
+<!ENTITY defaultButton.accesskey "م">

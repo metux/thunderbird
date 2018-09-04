@@ -4,8 +4,9 @@
 
 <!ENTITY closeNotification.tooltip "Închide acest mesaj">
 
-<!ENTITY closeNotificationItem.label "Nu acum">
-
 <!ENTITY checkForUpdates "Verifică pentru actualizări…">
 
 <!ENTITY learnMore "Află mai multe…">
+
+<!ENTITY defaultButton.label "Ok!">
+<!ENTITY defaultButton.accesskey "O">

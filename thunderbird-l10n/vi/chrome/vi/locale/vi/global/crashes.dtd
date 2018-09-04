@@ -6,10 +6,8 @@
 <!ENTITY clearAllReports.label      "Xóa Toàn bộ Báo cáo">
 
 
-
-
 <!ENTITY crashReports.title         "Crash Reports">
-<!ENTITY crashesSubmitted.label     "Submitted Crash Reports">
 <!ENTITY crashesUnsubmitted.label   "Unsubmitted Crash Reports">
+<!ENTITY crashesSubmitted.label     "Submitted Crash Reports">
 <!ENTITY dateCrashed.heading        "Date Crashed">
 <!ENTITY dateSubmitted.heading      "Date Submitted">

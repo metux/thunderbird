@@ -1,28 +1,18 @@
 # ignoring files within the test cases
-source: source-is-missing mailnews/addrbook/test/*
-source: source-is-missing mozilla/js/src/jit-test/*
-source: source-is-missing mozilla/testing/*
-source: source-is-missing mozilla/*/tests/*
-source: source-is-missing mozilla/*/test/*
-source: source-is-missing mozilla/devtools/*
+source: source-is-missing comm/*/Footer.html *
+source: source-is-missing devtools/*
+source: source-is-missing testing/*
+source: source-is-missing */tests/*
+source: source-is-missing */test/*
 
 # TexZilla isn't packaged yet too
-source: source-is-missing editor/ui/texzilla/content/TeXZilla.js *
-
-# files are under Public Domain license with some long lines
-source: source-is-missing mozilla/layout/reftests/svg/nesting-invalid-01.js *
+source: source-is-missing comm/editor/ui/texzilla/content/TeXZilla.js *
 
 # files are under MPL-2 license with some long lines
-source: source-is-missing mozilla/addon-sdk/source/lib/dev/volcan.js *
-source: source-is-missing mail/components/compose/content/cloudAttachmentLinkManager.js *
-source: source-is-missing mozilla/js/src/devtools/rootAnalysis/annotations.js *
-
-# files under Apache-2 license with some long lines
-source: source-is-missing mozilla/services/common/*.js *
-
-# files under GPL-2+ license with some long lines
-source: source-is-missing mozilla/js/src/octane/*
+source: source-is-missing comm/mail/components/compose/content/cloudAttachmentLinkManager.js *
 
 # no JS files
-source: source-is-missing mozilla/modules/libpref/init/all.js *
-source: source-is-missing mozilla/browser/app/profile/firefox.js *
+source: source-is-missing modules/libpref/init/all.js *
+
+# needed by TB, some various long lines
+source: source-is-missing comm/mail/app/profile/all-thunderbird.js *

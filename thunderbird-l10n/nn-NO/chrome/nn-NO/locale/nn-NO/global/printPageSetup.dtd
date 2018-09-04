@@ -1,8 +1,8 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-<!-- extracted from printjoboptions.xul -->
 
+<!-- extracted from printjoboptions.xul -->
 
 <!ENTITY printSetup.title    "Utskriftsformat">
 
@@ -20,12 +20,12 @@
 <!ENTITY scale.accesskey     "S">
 <!ENTITY scalePercent        "&#037;">
 
-<!ENTITY shrinkToFit.label   "Forminsk til å passa sidebreidda">
-<!ENTITY shrinkToFit.accesskey "F">
+<!ENTITY shrinkToFit.label   "Tilpass til sidebreidda">
+<!ENTITY shrinkToFit.accesskey "T">
 
 <!ENTITY optionsGroup.label  "Innstillingar">
 
-<!ENTITY printBG.label       "Skriv ut bakgrunn (fargar og bilete)">
+<!ENTITY printBG.label       "Skriv ut bakgrunn (fargar og bilde)">
 <!ENTITY printBG.accesskey   "k">
 
 <!ENTITY advanced.tab        "Margar og topp/botn-tekstar">

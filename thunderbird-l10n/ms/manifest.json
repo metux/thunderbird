@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "ms": {
+      "chrome_resources": {
+        "necko": "chrome/ms/locale/ms/necko/", 
+        "global": "chrome/ms/locale/ms/global/", 
+        "messenger-region": "chrome/ms/locale/ms/messenger-region/", 
+        "chat": "chrome/ms/locale/ms/chat/", 
+        "devtools": "chrome/ms/locale/ms/devtools/client/", 
+        "pipnss": "chrome/ms/locale/ms/pipnss/", 
+        "messenger-smime": "chrome/ms/locale/ms/messenger-smime/", 
+        "messenger-newsblog": "chrome/ms/locale/ms/messenger-newsblog/", 
+        "devtools-shim": "chrome/ms/locale/ms/devtools/shim/", 
+        "alerts": "chrome/ms/locale/ms/alerts/", 
+        "messenger": "chrome/ms/locale/ms/messenger/", 
+        "editor": "chrome/ms/locale/ms/editor/", 
+        "branding": "chrome/ms/locale/ms/branding/", 
+        "mozldap": "chrome/ms/locale/ms/mozldap/", 
+        "autoconfig": "chrome/ms/locale/ms/autoconfig/", 
+        "devtools-shared": "chrome/ms/locale/ms/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/ms/locale/ms/global-platform/win/", 
+          "android": "chrome/ms/locale/ms/global-platform/unix/", 
+          "macosx": "chrome/ms/locale/ms/global-platform/mac/", 
+          "linux": "chrome/ms/locale/ms/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/ms/locale/ms/mozapps/", 
+        "pluginproblem": "chrome/ms/locale/ms/pluginproblem/", 
+        "communicator": "chrome/ms/locale/ms/communicator/", 
+        "messenger-mapi": "chrome/ms/locale/ms/messenger-mapi/", 
+        "places": "chrome/ms/locale/ms/places/", 
+        "passwordmgr": "chrome/ms/locale/ms/passwordmgr/", 
+        "pippki": "chrome/ms/locale/ms/pippki/"
+      }, 
+      "version": "20180505123243"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-ms@thunderbird.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "ms", 
+  "version": "60.0buildid20180731173940", 
+  "name": "Bahasa Melayu (ms) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Joe Solon, Suzy Solon)", 
+  "description": "Language pack for Thunderbird for ms"
+}

@@ -33,7 +33,7 @@
 <!ENTITY fileNotFound.longDesc "
 <ul>
   <li>Kontrolearje de bestânsnamme op grutte/lytse letters of oare typflaters.</li>
-  <li>Kontrolearje oft it bestân is ferpleatst, omneamd of fuortsmiten.</li>
+  <li>Kontrolearje oft it bestân ferpleatst, omneamd of fuortsmiten is.</li>
 </ul>
 ">
 
@@ -68,11 +68,11 @@
 <!ENTITY netOffline.title "Offline-modus">
 <!ENTITY netOffline.longDesc2 "
 <ul>
-  <li>Klik &quot;Probearje opnij&quot; om nij online modus te gean en laad de side opnij.</li>
+  <li>Klik ‘Opnij probearje’ om nij online modus te gean en fernij de side.</li>
 </ul>
 ">
 
-<!ENTITY contentEncodingError.title "Ynhâldkodearingsflater">
+<!ENTITY contentEncodingError.title "Ynhâldkodearringsflater">
 <!ENTITY contentEncodingError.longDesc "
 <ul>
   <li>Nim kontakt op mei de website-eigeners om se oer dit probleem te ynformearjen.</li>
@@ -103,7 +103,7 @@
 <!ENTITY proxyConnectFailure.longDesc "
 <ul>
   <li>Kontrolearje oft jo proxy-ynstellingen goed binne.</li>
-  <li>Nim kontakt op mei jo netwurkbeheerder om te kontrolearjen oft de proxyserver
+  <li>Nim kontakt op mei jo netwurkbehearder om te kontrolearjen oft de proxyserver
     wurket.</li>
 </ul>
 ">
@@ -121,7 +121,7 @@
 <!ENTITY redirectLoop.title "De side ferwiist net op in krekte wize troch">
 <!ENTITY redirectLoop.longDesc "
 <ul>
-  <li>Dit probleem kin soms feroarsake wurde troch it útskeakeljen of wegerjen
+  <li>Dit probleem kin somtiden feroarsake wurde troch it útskeakeljen of wegerjen
    fan cookies.</li>
 </ul>
 ">
@@ -190,3 +190,5 @@ functionality specific to thunderbird. -->
 <!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
      "NS_ERROR_NET_INADEQUATE_SECURITY". -->
 <!ENTITY inadequateSecurityError.longDesc "<p><span class='hostname'></span> brûkt ferâldere befeiligingstechnology dy't kwetsber is foar oanfallen. In oanfaller kin ienfâldichwei gegevens ûntdekke wêrfan jo tochten dat dizze feilich wiene. De websitebehearder moat earst de server yn oarder meitsje eardat jo de website besykje kinne.</p><p>Flaterkoade: NS_ERROR_NET_INADEQUATE_SECURITY</p>">
+
+<!ENTITY blockedByPolicy.title "Blokkearre side">

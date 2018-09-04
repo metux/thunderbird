@@ -27,6 +27,7 @@
 
 <!ENTITY certificates.label "אישורים">
 <!ENTITY manageCerts2.label "ניהול אישורים">
+<!ENTITY manageCerts2.accesskey "נ">
 <!ENTITY manageDevices.label "התקני אבטחה">
 <!ENTITY manageDevices.accesskey "ת">
 
@@ -34,5 +35,3 @@
 <!ENTITY certPicker.title "בחירת אישור">
 <!ENTITY certPicker.info  "אישור:">
 <!ENTITY certPicker.detailsLabel "פרטי האישור הנבחר:">
-
-<!ENTITY manageCerts2.accesskey "M">

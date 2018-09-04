@@ -9,23 +9,29 @@
 <!ENTITY feedTitle.label             "Pavadinimas:">
 <!ENTITY feedTitle.accesskey         "v">
 
-<!ENTITY feedLocation.label          "Kanalo URL: ">
-<!ENTITY feedLocation.accesskey      "U">
+
 <!ENTITY feedLocation.placeholder    "Įveskite galiojantį sklaidos kanalo adresą">
 <!ENTITY locationValidate.label      "Patikrinti">
 <!ENTITY validateText.label          "Patikrinti atitikimą formatams ir gauti tinkamą URL.">
 
 <!ENTITY feedFolder.label            "Kanalo straipsnius laikyti aplanke:">
 <!ENTITY feedFolder.accesskey        "K">
+<!-- Account Settings and Subscription Dialog -->
+
+
+
+
+
+
 
 <!ENTITY quickMode.label             "Vietoje viso straipsnio rodyti tik jo santrauką">
 <!ENTITY quickMode.accesskey         "s">
 
-<!ENTITY autotagEnable.label         "Automatiškai kurti gaires, remiantis sklaidos kanalų &lt;category&gt; žymėmis">
-<!ENTITY autotagEnable.accesskey     "g">
+
 <!ENTITY autotagUsePrefix.label      "Gairėms suteikti prefiksą:">
 <!ENTITY autotagUsePrefix.accesskey  "s">
 <!ENTITY autoTagPrefix.placeholder   "Įveskite gairių prefiksą">
+<!-- Subscription Dialog -->
 
 <!ENTITY button.addFeed.label        "Pridėti">
 <!ENTITY button.addFeed.accesskey    "P">
@@ -41,3 +47,18 @@
 
 <!ENTITY cmd.close.commandKey        "w">
 <!ENTITY button.close.label          "Užverti">
+
+<!ENTITY feedLocation.label          "Feed URL:">
+<!ENTITY feedLocation.accesskey      "F">
+<!ENTITY feedLocation2.placeholder   "Enter a valid feed url">
+<!ENTITY biffStart.label             "Check for new articles every ">
+<!ENTITY biffStart.accesskey         "k">
+<!ENTITY biffMinutes.label           "minutes">
+<!ENTITY biffMinutes.accesskey       "n">
+<!ENTITY biffDays.label              "days">
+<!ENTITY biffDays.accesskey          "d">
+<!ENTITY recommendedUnits.label      "Publisher recommends:">
+<!ENTITY autotagEnable.label         "Automatically create tags from feed &lt;category&gt; names">
+<!ENTITY autotagEnable.accesskey     "o">
+<!ENTITY button.verifyFeed.label     "Verify">
+<!ENTITY button.verifyFeed.accesskey "V">

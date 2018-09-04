@@ -17,9 +17,8 @@
 <!ENTITY paneSecurity.title       "ආරක්ෂාව">
 <!ENTITY paneAdvanced.title       "වැඩිමනත්">
 
-<!ENTITY okButton.accesskey       "O">
-
-<!ENTITY okButton.title           "OK">
-<!ENTITY paneAccount.title        "Accounts">
-<!ENTITY panePrivacy.title        "Privacy">
 <!ENTITY  prefWindow.titleMAC     "Preferences">
+<!ENTITY panePrivacy.title        "Privacy">
+<!ENTITY paneAccount.title        "Accounts">
+<!ENTITY okButton.title           "OK">
+<!ENTITY okButton.accesskey       "O">

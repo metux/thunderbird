@@ -1,0 +1,132 @@
+/*
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+*/
+
+.quick-search-button-image {
+  padding: 0;
+}
+
+.searchBox {
+  margin-top: 3px;
+  margin-bottom: 2px;
+  -moz-appearance: none;
+  background-clip: padding-box;
+  border: 1px solid hsla(240,5%,5%,.25);
+  border-radius: 3px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  font: icon;
+  height: 24px;
+  padding: 1px 4px;
+  -moz-box-align: center;
+}
+
+.searchBox:hover,
+#view-task-edit-field:hover,
+#unifinder-task-edit-field:hover {
+  border-color: hsla(240,5%,5%,.35);
+  box-shadow: 0 1px 6px rgba(0,0,0,.1);
+}
+
+.searchBox[focused="true"] {
+  border-color: -moz-mac-focusring;
+  box-shadow: var(--focus-ring-box-shadow);
+}
+
+/* special treatment because this boxes are on the main toolbars */
+#searchInput,
+#IMSearchInput,
+#peopleSearchInput {
+  margin-top: 2px;
+  margin-bottom: 3px;
+}
+#searchInput:-moz-lwtheme,
+#IMSearchInput:-moz-lwtheme,
+#peopleSearchInput:-moz-lwtheme,
+.remote-gloda-search:-moz-lwtheme {
+  background-color: var(--url-and-searchbar-background-color, hsla(0,0%,100%,.8));
+  color: var(--url-and-searchbar-color, black);
+}
+
+#searchInput:not([focused="true"]):-moz-lwtheme,
+#IMSearchInput:not([focused="true"]):-moz-lwtheme,
+#peopleSearchInput:not([focused="true"]):-moz-lwtheme,
+.remote-gloda-search:not([focused="true"]):-moz-lwtheme {
+  border-color: var(--lwt-toolbar-field-border-color, hsla(240,5%,5%,.25));
+}
+
+#searchInput:not([focused="true"]):-moz-lwtheme:hover,
+#IMSearchInput:not([focused="true"]):-moz-lwtheme:hover,
+#peopleSearchInput:not([focused="true"]):-moz-lwtheme:hover,
+.remote-gloda-search:not([focused="true"]):-moz-lwtheme:hover {
+  border-color: var(--lwt-toolbar-field-border-color, hsla(240,5%,5%,.35));
+}
+
+#searchInput:-moz-lwtheme:hover,
+#searchInput:-moz-lwtheme[focused="true"],
+#IMSearchInput:-moz-lwtheme:hover,
+#IMSearchInput:-moz-lwtheme[focused="true"],
+#peopleSearchInput:-moz-lwtheme:hover,
+#peopleSearchInput:-moz-lwtheme[focused="true"],
+.remote-gloda-search:-moz-lwtheme:hover,
+.remote-gloda-search:-moz-lwtheme[focused="true"] {
+  background-color: var(--url-and-searchbar-background-color, white);
+}
+
+.searchBox > .textbox-input-box:before {
+  /* Because of bug 853415, we need to ordinal this to the first position: */
+  -moz-box-ordinal-group: 0;
+  content: '';
+  display: block;
+  -moz-box-align: center;
+  width: 16px;
+  height: 16px;
+  margin-inline-end: 4px;
+  background-image: url(chrome://messenger/skin/icons/search-glass.svg);
+  background-size: 16px 16px;
+  -moz-context-properties: fill;
+  fill: currentColor;
+  opacity: 0.5;
+}
+
+.searchBox:-moz-locale-dir(rtl) > .textbox-input-box:before {
+  transform: scaleX(-1);
+}
+
+.remote-gloda-search-container {
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+
+#PopupGlodaAutocomplete {
+  margin-top: -1px;
+  color: -moz-FieldText;
+  background-color: -moz-Field;
+  -moz-appearance: none;
+}
+
+#PopupGlodaAutocomplete .ac-url {
+  display: -moz-box;
+  margin-bottom: 2px;
+}
+
+#PopupGlodaAutocomplete > .autocomplete-richlistbox {
+  padding: 2px 0;
+}
+
+.autocomplete-richlistitem[type^="gloda-"] {
+  margin-right: 2px;
+  margin-left: 2px;
+  padding-inline-start: 13px;
+  border-radius: 2px;
+}
+
+.autocomplete-richlistitem[type^="gloda-"]:hover {
+  background-color: hsla(210,4%,10%,.07);
+}
+
+.autocomplete-richlistitem[type^="gloda-"][selected] {
+  background-color: Highlight;
+  color: HighlightText;
+}

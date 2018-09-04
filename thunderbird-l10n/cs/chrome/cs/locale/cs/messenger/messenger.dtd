@@ -32,10 +32,16 @@
 <!ENTITY newExistingEmailAccountCmd.accesskey "E">
 <!ENTITY newIMAccountCmd.label "Účet chatu…">
 <!ENTITY newIMAccountCmd.accesskey "c">
-<!ENTITY newFeedAccountCmd.label "Účet kanalů…">
+<!ENTITY newFeedAccountCmd.label "Účet kanálů…">
 <!ENTITY newFeedAccountCmd.accesskey "a">
 <!ENTITY newIMContactCmd.label "Kontakty chatu…">
 <!ENTITY newIMContactCmd.accesskey "n">
+<!ENTITY  newMessageCmd2.key "N">
+<!ENTITY  newMessageCmd.key "M">
+<!ENTITY  newMessageCmd.label "Zpráva">
+<!ENTITY  newMessageCmd.accesskey "n">
+<!ENTITY  newContactCmd.label "Kontakt…">
+<!ENTITY  newContactCmd.accesskey "K">
 <!ENTITY openMessageFileCmd.label "Otevřít uloženou zprávu…">
 <!ENTITY openMessageFileCmd.accesskey "O">
 <!ENTITY saveAsMenu.label "Uložit jako">
@@ -51,8 +57,8 @@
 <!ENTITY getAllNewMsgCmdPopupMenu.accesskey "V">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.label "Aktuální účet">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.accesskey "A">
-<!ENTITY getNextNMsgCmd.label "Přijmout dalších 500 diskusních příspěvků">
-<!ENTITY getNextNMsgCmd.accesskey "d">
+<!ENTITY getNextNMsgCmd2.label "Získat další nové zprávy">
+<!ENTITY getNextNMsgCmd2.accesskey "k">
 <!ENTITY sendUnsentCmd.label "Odeslat neodeslané zprávy">
 <!ENTITY sendUnsentCmd.accesskey "d">
 <!ENTITY subscribeCmd.label "Správce odebírání…">
@@ -229,7 +235,7 @@
 <!ENTITY threadsWithUnreadCmd.accesskey "l">
 <!ENTITY watchedThreadsWithUnreadCmd.label "Sledovaná vlákna s nepřečtenými">
 <!ENTITY watchedThreadsWithUnreadCmd.accesskey "d">
-<!ENTITY ignoredThreadsCmd.label "Ignorovat vlákna">
+<!ENTITY ignoredThreadsCmd.label "Ignorovaná vlákna">
 <!ENTITY ignoredThreadsCmd.accesskey "I">
 
 <!ENTITY headersMenu.label "Záhlaví">
@@ -317,7 +323,7 @@
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goChatCmd.label "Chat">
 <!ENTITY goChatCmd.accesskey "c">
-<!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Zpráva s hvězdičkou">
 <!ENTITY prevStarredMsgCmd.accesskey "h">
 <!ENTITY folderMenu.label "Složka">
@@ -366,6 +372,10 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Upravit koncept zprávy">
 <!ENTITY editDraftMsgCmd.accesskey "k">
+<!ENTITY editTemplateMsgCmd.label "Upravit šablonu">
+<!ENTITY editTemplateMsgCmd.accesskey "p">
+<!ENTITY newMsgFromTemplateCmd.label "Nová zpráva ze šablony">
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN"><!-- do not change "VK_RETURN" -->
 <!ENTITY createFilter.label "Vytvořit filtr ze zprávy…">
 <!ENTITY createFilter.accesskey "y">
 <!ENTITY moveMsgToMenu.label "Přesunout do">
@@ -452,11 +462,16 @@
 <!ENTITY tasksMenu.accesskey "N">
 <!ENTITY messengerCmd.label "Pošta a diskusní skupiny">
 <!ENTITY messengerCmd.accesskey "P">
-<!ENTITY addressBookCmd.label "Adresář">
+<!ENTITY addressBookCmd.label "Kontakty">
 <!ENTITY addressBookCmd.accesskey "A">
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "Doplňky">
 <!ENTITY addons.accesskey "D">
+<!ENTITY addonPrefs.label "Nastavení doplňku">
+<!ENTITY addonPrefs.accesskey "o">
+<!ENTITY addonPrefsUnix.label "Předvolby doplňku">
+<!ENTITY addonPrefsUnix.accesskey "o">
+<!ENTITY addonNoPrefs.label "Nebyla nalezena žádná nastavení doplňku.">
 <!ENTITY activitymanager.label "Správce aktivit">
 <!ENTITY activitymanager.accesskey "k">
 <!ENTITY imAccountsStatus.label "Stav chatu">
@@ -500,8 +515,8 @@
 <!ENTITY devToolboxCmd.label "Vývojářské nástroje">
 <!ENTITY devToolboxCmd.accesskey "t">
 <!ENTITY devToolboxCmd.commandkey "i">
-<!ENTITY addonDebugCmd.label "Debugger doplňků">
-<!ENTITY addonDebugCmd.accesskey "p">
+<!ENTITY debugAddonsCmd.label "Ladit doplňky">
+<!ENTITY debugAddonsCmd.accesskey "L">
 <!ENTITY tabsDebugCmd.label "Debugger obsahu rámců">
 <!ENTITY tabsDebugCmd.accesskey "c">
 <!ENTITY errorConsoleCmd.label "Chybová konzole">
@@ -547,7 +562,7 @@
 <!ENTITY junkItem.title "Nevyžádané">
 <!ENTITY junkButton.label "Nevyžádané">
 <!ENTITY notJunkButton.label "Není nevyžádaná">
-<!ENTITY addressBookButton.label "Adresář">
+<!ENTITY addressBookButton.label "Kontakty">
 <!ENTITY chatButton.label "Chat">
 <!ENTITY glodaSearch.title "Globální hledání">
 <!ENTITY searchItem.title "Rychlé hledání">
@@ -585,7 +600,7 @@
 <!ENTITY stopButton.tooltip "Ukončí probíhající spojení">
 <!ENTITY junkButton.tooltip "Označí vybrané zprávy jako nevyžádané">
 <!ENTITY notJunkButton.tooltip "Označí vybrané zprávy jako běžné">
-<!ENTITY addressBookButton.tooltip "Přejde do Adresáře">
+<!ENTITY addressBookButton.tooltip "Přejde do Kontaktů">
 <!ENTITY chatButton.tooltip "Zobrazí panel chatu">
 <!ENTITY tagButton.tooltip "Přidá štítek">
 <!ENTITY compactButton.tooltip "Ze zvolené složky odstraní smazané zprávy">
@@ -634,6 +649,10 @@
 <!-- Folder Pane Context Menu -->
 <!ENTITY folderContextGetMessages.label "Přijmout zprávy">
 <!ENTITY folderContextGetMessages.accesskey "P">
+<!ENTITY folderContextMarkAllFoldersRead.label "Označit všechny složky jako přečtené">
+<!ENTITY folderContextPauseAllUpdates.label "Pozastavit všechny aktualizace">
+<!ENTITY folderContextPauseUpdates.label "Pozastavit aktualizace">
+<!ENTITY folderContextPauseUpdates.accesskey "a">
 <!ENTITY folderContextOpenInNewWindow.label "Otevřít v novém okně">
 <!ENTITY folderContextOpenInNewWindow.accesskey "O">
 <!ENTITY folderContextOpenNewTab.label "Otevřít v novém panelu">
@@ -731,12 +750,13 @@
 <!ENTITY attachmentColumn2.tooltip "Seřadíte podle příloh">
 
 <!-- Thread Pane Context Menu -->
+<!ENTITY contextNewMsgFromTemplate.label "Nová zpráva ze šablony">
 <!ENTITY contextOpenNewWindow.label "Otevřít zprávu v novém okně">
 <!ENTITY contextOpenNewWindow.accesskey "z">
-<!-- The key potentially conflicts with cutCmd.accessKey which is defined in
-     textcontext.dtd from toolkit. Right now, both menu items can't be visible
-     at the same time, but should someone enable copy/paste of message, this key
-     would probably need to be changed. -->
+<!-- The contextOpenNewTab.accesskey ("T") potentially conflicts with
+     cutCmd.accessKey which is defined in textcontext.dtd from toolkit. Right
+     now, both menu items can't be visible at the same time, but should someone
+     enable copy/paste of message, this key would probably need to be changed. -->
 <!ENTITY contextOpenNewTab.label "Otevřít zprávu v novém panelu">
 <!ENTITY contextOpenNewTab.accesskey "p">
 <!ENTITY contextOpenConversation.label "Otevřít zprávu v konverzaci">
@@ -746,6 +766,8 @@
 <!ENTITY contextEditMsgAsNew.label "Upravit jako novou zprávu">
 <!ENTITY contextEditMsgAsNew.accesskey "U">
 <!ENTITY contextEditDraftMsg.label "Upravit koncept zprávy">
+<!ENTITY contextEditTemplate.label "Upravit šablonu">
+<!ENTITY contextEditTemplate.accesskey "p">
 <!ENTITY contextArchive.label "Archivovat">
 <!ENTITY contextArchive.accesskey "A">
 <!ENTITY contextReplySender.label "Odpovědět pouze odesílateli">
@@ -853,7 +875,7 @@
   -->
 <!ENTITY quickSearchCmd.key "k">
 <!-- LOCALIZATION NOTE (search.label.base1):
-      This is the base of the empty text for the global search box. We replace
+     This is the base of the empty text for the global search box. We replace
      #1 with the contents of the appropriate search.keyLabel.* value for the
      platform.
      The goal is to convey to the user that typing in the box will allow them
@@ -949,3 +971,5 @@
 
 <!-- Mac OS X Dock Icon pop-up menu -->
 <!ENTITY dockOptions.label              "Nastavení ikony aplikace…">
+<!ENTITY writeNewMessageDock.label      "Napsat novou zprávu">
+<!ENTITY openAddressBookDock.label      "Otevřít kontakty">

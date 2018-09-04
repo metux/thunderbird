@@ -1,6 +1,7 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
 <!--
 LOCALIZATION NOTE : 'Communicator 4.x' is the used for previous versions of 
 Netscape Communicator, Please translate using the brandname in respective 
@@ -9,13 +10,12 @@ LOCALIZATION NOTE : Do not translate any of the occurrences of the word
 "&brandShortName;" below.
 -->
 
-
 <!ENTITY importDialog.windowTitle "Import">
 <!ENTITY importAll.label          "Import alt">
 <!ENTITY importAll.accesskey      "a">
 <!ENTITY importMail.label         "E-post">
 <!ENTITY importMail.accesskey     "E">
-<!ENTITY importFeeds.label        "Nyheitskjelde-abonnentar">
+<!ENTITY importFeeds.label        "RSS-abonnement">
 <!ENTITY importFeeds.accesskey    "N">
 <!ENTITY importAddressbook.label  "Adressebøker">
 <!ENTITY importAddressbook.accesskey "A">
@@ -38,7 +38,7 @@ LOCALIZATION NOTE : Do not translate any of the occurrences of the word
 <!ENTITY selectDescription.accesskey "V">
 <!ENTITY acctName.label           "Namn:">
 <!ENTITY acctName.accesskey       "N">
-
+<!ENTITY noModulesFound.label     "Fann ingen program eller filer å importera data frå.">
 
 <!ENTITY back.label               "&lt; Tilbake">
 <!ENTITY forward.label            "Neste &gt;">
@@ -49,5 +49,3 @@ LOCALIZATION NOTE : Do not translate any of the occurrences of the word
 
 <!ENTITY title.label              "Tittel">
 <!ENTITY processing.label         "Importerer …">
-
-<!ENTITY noModulesFound.label     "No application or file to import data from was found.">

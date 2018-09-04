@@ -4,8 +4,8 @@
 
 <!ENTITY loadError.label "Errorea orria kargatzerakoan">
 <!ENTITY retry.label "Saiatu berriro">
-<!-- Specific error messages -->
 
+<!-- Specific error messages -->
 
 <!ENTITY connectionFailure.title "Huts konektatzerakoan">
 <!ENTITY connectionFailure.longDesc "<p>Nahiz eta guneak egokia dirudien, nabigatzailea ez da konexioa ezartzeko gai.</p><ul><li>Baliteke gunea aldi baterako erabilezina egotea? Saiatu berriro geroago.</li><li>Gauza bera gertatzen zaizu beste guneekin?  Begiratu zure ordenagailuaren sareko konexioa.</li><li>Zure ordenagailu edo sarea suebaki edo proxy baten bitartez babestuta dago? Gaizki konfiguratutako ezarpenek web nabigazioa oztopa dezakete.</li></ul>">
@@ -37,7 +37,7 @@
 <!ENTITY netOffline.title "Lineaz kanpo">
 <!ENTITY netOffline.longDesc2 "<p>Nabigatzailea lineaz kanpo dago eta ezin du eskatutako elementuarekin konektatu.</p><ul><li>Ordenagailua sare aktibo batera konektatuta dago?</li><li>Jarri nabigatzailea linean eta berritu orria.</li></ul>">
 
-<!ENTITY contentEncodingError.title "Edukien kodeketaren errorea">
+<!ENTITY contentEncodingError.title "Edukien kodeketa-errorea">
 <!ENTITY contentEncodingError.longDesc "<p>Ikusten saiatzen ari zaren orria ezin da ikusi baliogabeko edo onartzen ez den konpresio mota bat erabiltzen baitu.</p><ul><li>Jarri harremanetan gunearen arduradunarekin arazo honen berri emateko.</li></ul>">
 
 <!ENTITY unsafeContentType.title "Fitxategi mota ez-segurua">
@@ -86,3 +86,5 @@
 <!-- LOCALIZATION NOTE (inadequateSecurityError.longDesc) - Do not translate
      "NS_ERROR_NET_INADEQUATE_SECURITY". -->
 <!ENTITY inadequateSecurityError.longDesc "<p><span class='hostname'></span> ostalariak zaharkituta dagoen eta erasoen aurrean babesik ez duen segurtasun-teknologia erabiltzen du. Segurua zela uste zenuen informazioa erraz agerraraz lezake erasotzaile batek. Zuk gunea bisitatu ahal izan aurretik zerbitzaria konpondu behar du webgunearen kudeatzaileak.</p><p>Errore-kodea: NS_ERROR_NET_INADEQUATE_SECURITY</p>">
+
+<!ENTITY blockedByPolicy.title "Blokeatutako orria">

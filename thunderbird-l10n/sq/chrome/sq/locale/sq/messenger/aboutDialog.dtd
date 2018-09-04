@@ -1,6 +1,9 @@
 <!ENTITY aboutDialog.title          "Rreth &brandFullName;-it">
 
-
+<!-- LOCALIZATION NOTE (update.*):
+# These strings are also used in the update pane of preferences.
+# See about:preferences#advanced.
+-->
 <!-- LOCALIZATION NOTE (update.checkForUpdatesButton.*, update.updateButton.*):
 # Only one button is present at a time.
 # The button when displayed is located directly under the Thunderbird version in
@@ -8,16 +11,16 @@
 -->
 <!ENTITY update.checkForUpdatesButton.label       "Kontrollo për Përditësime">
 <!ENTITY update.checkForUpdatesButton.accesskey   "K">
-<!ENTITY update.updateButton.label2               "Riniseni &brandShortName;-in që të Përditësohet">
+<!ENTITY update.updateButton.label3               "Që të përditësohet &brandShorterName;-i, riniseni">
 <!ENTITY update.updateButton.accesskey            "R">
 
 
-<!-- LOCALIZATION NOTE (warningDesc.version): This is a warning about the experimental nature of Nightly and Aurora builds. It is only shown in those versions. -->
+<!-- LOCALIZATION NOTE (warningDesc.version): This is a warning about the experimental nature of Nightly builds. It is only shown in this version. -->
 <!ENTITY warningDesc.version        "&brandShortName;-i është eksperimental dhe mund të jetë i paqëndrueshëm.">
-<!-- LOCALIZATION NOTE (warningDesc.telemetryDesc): This is a notification that Nightly/Aurora builds automatically send Telemetry data back to Mozilla. It is only shown in those versions. "It" refers to brandShortName. -->
+<!-- LOCALIZATION NOTE (warningDesc.telemetryDesc): This is a notification that Nightly builds automatically send Telemetry data back to Mozilla. It is only shown in this version. "It" refers to brandShortName. -->
 <!ENTITY warningDesc.telemetryDesc  "Dërgon vetvetiu te &vendorShortName; të dhëna mbi punimin, hardware-in, përdorimin dhe përshtatjet, që të ndihmohet në përmirësimin e &brandShortName;-it.">
 
-<!-- LOCALIZATION NOTE (community.exp.*) This paragraph is shown in "experimental" builds, i.e. Nightly and Aurora builds, instead of the other "community.*" strings below. -->
+<!-- LOCALIZATION NOTE (community.exp.*) This paragraph is shown in "experimental" builds, i.e. Nightly builds, instead of the other "community.*" strings below. -->
 <!ENTITY community.exp.start        "">
 <!-- LOCALIZATION NOTE (community.exp.mozillaLink): This is a link title that links to http://www.mozilla.org/. -->
 <!ENTITY community.exp.mozillaLink  "&vendorShortName;">
@@ -26,15 +29,15 @@
 <!ENTITY community.exp.creditsLink  "bashkësi mbarëbotërore">
 <!ENTITY community.exp.end          " që punon tok për ta mbajtur Web-in të hapët, publik dhe të përdorshëm nga kushdo.">
 
-<!ENTITY community.start2           "&brandShortName; është hartuar nga ">
+<!ENTITY community.start2           "&brandShortName;-i është hartuar nga ">
 <!-- LOCALIZATION NOTE (community.mozillaLink): This is a link title that links to http://www.mozilla.org/. -->
 <!ENTITY community.mozillaLink      "&vendorShortName;">
 <!ENTITY community.middle2          ", një ">
 <!-- LOCALIZATION NOTE (community.creditsLink): This is a link title that links to about:credits. -->
 <!ENTITY community.creditsLink      "bashkësi mbarëbotërore">
-<!ENTITY community.end3             " që punon tok për ta mbajtur Web-in të hapët, publik dhe të mundshëm nga kushdo.">
+<!ENTITY community.end3             " që punon tok për ta mbajtur Web-in të hapët, publik dhe të përdorshëm nga kushdo.">
 
-<!ENTITY helpus.start               "Dëshironi të ndihmoni? ">
+<!ENTITY helpus.start               "Doni të ndihmoni? ">
 <!-- LOCALIZATION NOTE (helpus.donateLink): This is a link title that links to the thunderbird donation page -->
 <!ENTITY helpus.donateLink          "Bëni një dhurim">
 <!ENTITY helpus.middle              " ose ">
@@ -45,7 +48,7 @@
 <!ENTITY releaseNotes.link          "Shënime versioni">
 
 <!-- LOCALIZATION NOTE (bottomLinks.license): This is a link title that links to about:license. -->
-<!ENTITY bottomLinks.license        "Të dhëna Lejimi">
+<!ENTITY bottomLinks.license        "Të dhëna Licencimi">
 
 <!-- LOCALIZATION NOTE (bottomLinks.rights): This is a link title that links to about:rights. -->
 <!ENTITY bottomLinks.rights         "Të drejta Përdoruesi">
@@ -58,7 +61,7 @@
 <!-- LOCALIZATION NOTE (update.noUpdatesFound): try to make the localized text short (see bug 596813 for screenshots). -->
 <!ENTITY update.noUpdatesFound      "&brandShortName;-i është i përditësuar">
 <!-- LOCALIZATION NOTE (update.adminDisabled): try to make the localized text short (see bug 596813 for screenshots). -->
-<!ENTITY update.adminDisabled       "Përditësimet janë të çaktivizuara nga përgjegjësit e sistemit tuaj">
+<!ENTITY update.adminDisabled       "Përditësimet janë çaktivizuar nga përgjegjësi i sistemit tuaj">
 <!-- LOCALIZATION NOTE (update.otherInstanceHandlingUpdates): try to make the localized text short -->
 <!ENTITY update.otherInstanceHandlingUpdates "&brandShortName;-i po përditësohet nga një instancë tjetër">
 
@@ -85,11 +88,11 @@
      an anchor that links to a site to provide additional information regarding
      why the system is no longer supported. As this is all in one line, try to
      make the localized text short (see bug 843497 for screenshots). -->
-<!ENTITY update.unsupported.start    "Nuk mund të kryeni përditësime të tjera në këtë sistem. ">
+<!ENTITY update.unsupported.start    "Nuk mund të kryeni përditësime të mëtejshme në këtë sistem. ">
 <!ENTITY update.unsupported.linkText "Mësoni më tepër">
 <!ENTITY update.unsupported.end      "">
 
-<!-- LOCALIZATION NOTE (update.downloading.start,update.downloading.end): update.downloading.start and 
+<!-- LOCALIZATION NOTE (update.downloading.start,update.downloading.end): update.downloading.start and
      update.downloading.end all go into one line, with the amount downloaded inserted in between. As this
      is all in one line, try to make the localized text short (see bug 596813 for screenshots). The — is
      the "em dash" (long dash).
@@ -103,6 +106,6 @@
      channel.description.end create one sentence, with the current channel label inserted in between.
      example: You are currently on the _Stable_ update channel. -->
 <!ENTITY channel.description.start  "Tani gjendeni te kanali i përditësimit për ">
-<!ENTITY channel.description.end    " . ">
+<!ENTITY channel.description.end    ". ">
 
 <!ENTITY cmdCloseMac.commandKey "w">

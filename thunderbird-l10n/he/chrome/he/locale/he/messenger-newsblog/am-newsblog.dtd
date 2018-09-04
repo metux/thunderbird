@@ -2,28 +2,15 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY accountTitle.label "הגדרות חשבון">
+<!ENTITY loginAtStartup.label          "בדוק למאמרים חדשים בעת ההפעלה">
+<!ENTITY loginAtStartup.accesskey      "ה">
+<!ENTITY biffAll.label                 "הפעלת עדכונים לכל ההזנות">
+<!ENTITY biffAll.accesskey             "פ">
 
-<!ENTITY biffStart.label "בדוק למאמרים חדשים כל">
-<!ENTITY biffStart.accesskey "ב">
-<!ENTITY biffEnd.label "דקות">
+<!ENTITY newFeedSettings.label         "הגדרות בררת מחדל להזנות של חדשות">
 
-<!ENTITY loginAtStartup.label "בדוק למאמרים חדשים בעת ההפעלה"> 
-<!ENTITY loginAtStartup.accesskey "ה">
-
-<!ENTITY useQuickMode.label "כברירת מחדל, הראה את תקציר המאמר במקום לטעון את דף האינטרנט"> 
-<!ENTITY useQuickMode.accesskey "ת">
-
-<!ENTITY manageSubscriptions.label "נהל מינויים…"> 
+<!ENTITY manageSubscriptions.label     "נהל מינויים…">
 <!ENTITY manageSubscriptions.accesskey "נ">
 
-<!-- entities from rss.rdf -->
-<!ENTITY feeds.accountName "בלוגים והזנות">
-<!ENTITY feeds.wizardShortName "הזנות">
-<!ENTITY feeds.wizardLongName "בלוגים והזנות">
-<!ENTITY feeds.wizardLongName.accesskey "ה">
-
-
-
-
-<!ENTITY feedWindowTitle.label "Feed Account Wizard">
+<!ENTITY feedWindowTitle.label         "אשף חשבון הזנה">
+<!ENTITY feeds.accountName             "בלוגים והזנות">

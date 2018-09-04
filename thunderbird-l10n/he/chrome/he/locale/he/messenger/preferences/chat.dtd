@@ -2,7 +2,12 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<!ENTITY  generalTab.label            "כללי">
+
 <!ENTITY  startupAction.label         "כאשר &brandShortName; מופעל:">
+<!ENTITY  startupAction.accesskey     "פ">
+<!ENTITY  startupOffline.label        "להשאיר את חשבון הצ׳אט שלי לא מקוון">
+<!ENTITY  startupConnectAuto.label    "התחברות לחשבונות הצ׳אט שלי אוטומטית">
 
 <!-- LOCALIZATION NOTE: reportIdleAfter.label is displayed first, then
 there's a field where the user can enter a number, and itemTime is
@@ -10,44 +15,51 @@ displayed at the end of the line. The translations of the
 reportIdleAfter.label and idleTime parts don't have to mean the exact
 same thing as in English; please try instead to translate the whole
 sentence. -->
+<!ENTITY  reportIdleAfter.label         "לאפשר לאנשי הקשר שלי לדעת על חוסר פעילות מצדי לאחר">
+<!ENTITY  reportIdleAfter.accesskey     "פ">
+<!ENTITY  idleTime                      "דקות של חוסר פעילות">
 
+<!ENTITY  andSetStatusToAway.label      "ולהגדיר את המצב למרוחק עם הודעה מצב זו:">
+<!ENTITY  andSetStatusToAway.accesskey  "ר">
 
+<!ENTITY  sendTyping.label              "שליחת התרעת הקלדה בדיונים">
+<!ENTITY  sendTyping.accesskey          "ק">
 
+<!ENTITY  chatNotifications.label             "כשמגיעות הודעות שמיועדות אליך:">
+<!ENTITY  desktopChatNotifications.label      "הצגת התרעה:">
+<!ENTITY  desktopChatNotifications.accesskey  "ר">
+<!ENTITY  completeNotification.label          "עם שם השולח ותצוגה מקדימה של הודעה">
+<!ENTITY  buddyInfoOnly.label                 "עם שם השולח בלבד">
+<!ENTITY  dummyNotification.label             "ללא כל מידע">
+<!ENTITY  getAttention.label                  "הבהוב הפריט בשורת המשימות">
+<!ENTITY  getAttention.accesskey              "ב">
+<!ENTITY  getAttentionMac.label               "הנפשת הסמל במעגן">
+<!ENTITY  getAttentionMac.accesskey           "ע">
+<!ENTITY  chatSound.accesskey                 "ס">
+<!ENTITY  chatSound.label                     "השמעת צליל">
+<!ENTITY  play.label                          "השמעה">
+<!ENTITY  play.accesskey                      "ש">
+<!ENTITY  systemSound.label                   "צליל בררת המחדל של המערכת להודעות דוא״ל חדשות">
+<!ENTITY  systemSound.accesskey               "ב">
+<!ENTITY  customsound.label                   "שימוש בקובץ השמע הבא">
+<!ENTITY  customsound.accesskey               "ש">
+<!ENTITY  browse.label                        "עיון…">
+<!ENTITY  browse.accesskey                    "ע">
 
+<!ENTITY messageStyleTab.title             "סגנונות הודעות">
+<!ENTITY messageStylePreview.label         "תצוגה מקדימה:">
+<!ENTITY messageStyleTheme.label           "ערכת נושא:">
+<!ENTITY messageStyleTheme.accesskey       "ע">
+<!ENTITY messageStyleThunderbirdTheme.label "Thunderbird">
+<!ENTITY messageStyleBubblesTheme.label    "בועות">
+<!ENTITY messageStyleDarkTheme.label       "כהה">
+<!ENTITY messageStylePaperSheetsTheme.label "גיליונות נייר">
+<!ENTITY messageStyleSimpleTheme.label     "פשוט">
+<!ENTITY messageStyleDefaultTheme.label    "בררת מחדל">
+<!ENTITY messageStyleVariant.label         "הגוון:">
+<!ENTITY messageStyleVariant.accesskey     "ג">
+<!ENTITY messageStyleShowHeader.label      "הצגת כותרת">
+<!ENTITY messageStyleShowHeader.accesskey  "כ">
+<!ENTITY messageStyleNoPreview.title       "אין תצוגה מקדימה זמינה">
 
-<!ENTITY  andSetStatusToAway.accesskey  "A">
-
-<!ENTITY  andSetStatusToAway.label      "and set my status to Away with this status message:">
-<!ENTITY  browse.accesskey                    "B">
-<!ENTITY  browse.label                        "Browse…">
-<!ENTITY  buddyInfoOnly.label                 "with sender's name only">
-
-<!ENTITY  chatNotifications.label             "When messages directed at you arrive:">
-<!ENTITY  chatSound.accesskey                 "d">
-<!ENTITY  chatSound.label                     "Play a sound">
-<!ENTITY  completeNotification.label          "with sender's name and message preview">
-<!ENTITY  customsound.accesskey               "U">
-<!ENTITY  customsound.label                   "Use the following sound file">
-<!ENTITY  desktopChatNotifications.accesskey  "c">
-<!ENTITY  desktopChatNotifications.label      "Show a notification:">
-<!ENTITY  dummyNotification.label             "without any info">
-<!ENTITY  idleTime                      "minutes of inactivity">
-<!ENTITY  play.accesskey                      "P">
-<!ENTITY  play.label                          "Play">
-<!ENTITY  reportIdleAfter.accesskey     "I">
-
-<!-- LOCALIZATION NOTE: reportIdleAfter.label is displayed first, then
-there's a field where the user can enter a number, and itemTime is
-displayed at the end of the line. The translations of the
-reportIdleAfter.label and idleTime parts don't have to mean the exact
-same thing as in English; please try instead to translate the whole
-sentence. -->
-<!ENTITY  reportIdleAfter.label         "Let my contacts know that I am Idle after">
-<!ENTITY  sendTyping.accesskey          "t">
-
-<!ENTITY  sendTyping.label              "Send typing notifications in conversations">
-<!ENTITY  startupAction.accesskey     "s">
-<!ENTITY  startupConnectAuto.label    "Connect my chat accounts automatically">
-<!ENTITY  startupOffline.label        "Keep my Chat Accounts offline">
-<!ENTITY  systemSound.accesskey               "D">
-<!ENTITY  systemSound.label                   "Default system sound for new mail">
+<!ENTITY messageStyleNoPreview.description "This theme is not valid or is currently unavailable (disabled addon, safe-mode, …).">

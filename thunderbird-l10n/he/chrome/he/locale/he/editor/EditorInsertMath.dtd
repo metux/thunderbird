@@ -3,25 +3,20 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!-- Window title -->
+<!ENTITY windowTitle.label "הוספת ביטוי מתמטי">
 
+<!ENTITY sourceEditField.label "הכנסת קוד מקור של LaTeX:">
 
 <!ENTITY options.label "אפשרויות">
 <!ENTITY optionDisplay.label "מצב תצוגה">
+<!ENTITY optionDisplay.accesskey "ת">
 <!ENTITY optionLTR.label "כיוון משמאל לימין">
+<!ENTITY optionLTR.accesskey "ש">
 <!ENTITY optionRTL.label "כיוון מימין לשמאל">
-
-
-<!ENTITY insertButton.accesskey "I">
+<!ENTITY optionRTL.accesskey "י">
 
 <!ENTITY insertButton.label "Insert">
-<!ENTITY optionDisplay.accesskey "D">
-<!ENTITY optionInline.accesskey "N">
+<!ENTITY insertButton.accesskey "I">
+
 <!ENTITY optionInline.label "Inline mode">
-<!ENTITY optionLTR.accesskey "L">
-<!ENTITY optionRTL.accesskey "R">
-
-<!ENTITY sourceEditField.label "Enter LaTeX source code:">
-
-
-<!-- Window title -->
-<!ENTITY windowTitle.label "Insert Math">
+<!ENTITY optionInline.accesskey "N">

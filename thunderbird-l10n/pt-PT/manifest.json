@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "pt-PT": {
+      "chrome_resources": {
+        "necko": "chrome/pt-PT/locale/pt-PT/necko/", 
+        "global": "chrome/pt-PT/locale/pt-PT/global/", 
+        "messenger-region": "chrome/pt-PT/locale/pt-PT/messenger-region/", 
+        "chat": "chrome/pt-PT/locale/pt-PT/chat/", 
+        "devtools": "chrome/pt-PT/locale/pt-PT/devtools/client/", 
+        "pipnss": "chrome/pt-PT/locale/pt-PT/pipnss/", 
+        "messenger-smime": "chrome/pt-PT/locale/pt-PT/messenger-smime/", 
+        "messenger-newsblog": "chrome/pt-PT/locale/pt-PT/messenger-newsblog/", 
+        "devtools-shim": "chrome/pt-PT/locale/pt-PT/devtools/shim/", 
+        "alerts": "chrome/pt-PT/locale/pt-PT/alerts/", 
+        "messenger": "chrome/pt-PT/locale/pt-PT/messenger/", 
+        "editor": "chrome/pt-PT/locale/pt-PT/editor/", 
+        "branding": "chrome/pt-PT/locale/pt-PT/branding/", 
+        "mozldap": "chrome/pt-PT/locale/pt-PT/mozldap/", 
+        "autoconfig": "chrome/pt-PT/locale/pt-PT/autoconfig/", 
+        "devtools-shared": "chrome/pt-PT/locale/pt-PT/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/pt-PT/locale/pt-PT/global-platform/win/", 
+          "android": "chrome/pt-PT/locale/pt-PT/global-platform/unix/", 
+          "macosx": "chrome/pt-PT/locale/pt-PT/global-platform/mac/", 
+          "linux": "chrome/pt-PT/locale/pt-PT/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/pt-PT/locale/pt-PT/mozapps/", 
+        "pluginproblem": "chrome/pt-PT/locale/pt-PT/pluginproblem/", 
+        "communicator": "chrome/pt-PT/locale/pt-PT/communicator/", 
+        "messenger-mapi": "chrome/pt-PT/locale/pt-PT/messenger-mapi/", 
+        "places": "chrome/pt-PT/locale/pt-PT/places/", 
+        "passwordmgr": "chrome/pt-PT/locale/pt-PT/passwordmgr/", 
+        "pippki": "chrome/pt-PT/locale/pt-PT/pippki/"
+      }, 
+      "version": "20180504233400"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-pt-PT@thunderbird.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "pt-PT", 
+  "version": "60.0buildid20180731173940", 
+  "name": "Português (Europeu) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Joe Solon, Suzy Solon)", 
+  "description": "Language pack for Thunderbird for pt-PT"
+}

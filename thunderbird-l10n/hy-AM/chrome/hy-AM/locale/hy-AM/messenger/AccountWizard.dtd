@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "Հ">
 <!ENTITY clickFinish.label "Սեղմեք Ավարտել՝ պահելու համար կարգավորումները և փակելու համար Օգնականը։">
 <!ENTITY clickFinish.labelMac "Սեղմեք Պատրաստ է՝ պահելու համար կարգավորումները և փակելու համար Օգնականը։">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

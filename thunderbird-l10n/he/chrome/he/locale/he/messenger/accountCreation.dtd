@@ -2,14 +2,16 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY autoconfigWizard.title          "הגדרות חשבון דואר">
+<!ENTITY autoconfigWizard2.title         "הגדרת חשבון דוא״ל קיים">
 <!ENTITY name.label                      "השם שלך:">
 <!ENTITY name.accesskey                  "ש">
 <!ENTITY name.placeholder                "שם_פרטי שם_משפחה">
 <!ENTITY name.text                       "השם שלך, כפי שיוצג לאחרים">
 <!ENTITY email.label                     "כתובת דוא״ל:">
 <!ENTITY email.accesskey                 "ד">
-<!ENTITY email.placeholder               "email@example.com">
+<!-- LOCALIZATION NOTE(email.placeholder): Domain @example.com must stay in English -->
+<!ENTITY email2.placeholder              "you@example.com">
+<!ENTITY email.text                      "כתובת הדוא״ל הנוכחית שלך">
 <!ENTITY password.label                  "ססמה:">
 <!ENTITY password.accesskey              "ס">
 <!ENTITY password.placeholder            "ססמה">
@@ -53,8 +55,8 @@
 <!ENTITY half-manual-test.accesskey      "ב">
 <!ENTITY manual-edit.label               "הגדרות ידניות">
 <!ENTITY manual-edit.accesskey           "ה">
-<!ENTITY switch-to-provisioner.label     "קבלת חשבון חדש">
-<!ENTITY switch-to-provisioner.accesskey "ח">
+<!ENTITY open-provisioner.label          "קבלת כתובת דוא״ל חדשה…">
+<!ENTITY open-provisioner.accesskey      "ק">
 
 
 <!ENTITY warning.label                   "זהירות!">
@@ -70,6 +72,7 @@
      on the incoming or outgoing servers, then the page that pops up will
      have this text in a button to continue by creating the account. -->
 <!ENTITY doneAccount.label               "סיום">
+<!ENTITY doneAccount.accesskey           "ס">
 <!-- LOCALIZATION NOTE (changeSettings.label): If there is a security warning on
      the incoming or outgoing servers, then the page that pops up will have
      this text in a button to take you back to the previous page to change
@@ -82,8 +85,6 @@
 <!ENTITY insecureServer.tooltip.title    "זהירות! זהו שרת לא מאובטח.">
 <!ENTITY insecureServer.tooltip.details  "לחץ על העיגול לפרטים נוספים.">
 
-<!ENTITY insecureUnencrypted.description "הדואר האלקטרוני וההזדהות שלך נשלחים באופן לא מוצפן, כך שהססמה שלך (וגם ההודעות) יכולות להיקרא בקלות על־ידי אנשים אחרים. brandShortName; יאפשר לך לקבל את הדואר שלך, אבל רצוי ליצור קשר עם ספק הדוא״ל שלך כדי שיגדיר חיבור מאובטח לשרת.">
+<!ENTITY insecureUnencrypted.description "הדואר האלקטרוני וההזדהות שלך נשלחים באופן לא מוצפן, כך שהססמה שלך (וגם ההודעות) יכולות להיקרא בקלות על־ידי אנשים אחרים. &brandShortName; יאפשר לך לקבל את הדואר שלך, אבל רצוי ליצור קשר עם ספק הדוא״ל שלך כדי שיגדיר חיבור מאובטח לשרת.">
 <!ENTITY insecureSelfSigned.description  "השרת משתמש באישור שאינו נסמך, ואיננו יכולים להיות בטוחים שאף־אחד לא מיירט את התעבורה בין &brandShortName; והשרת שלך. &brandShortName; יאפשר לך לקבל את הדואר שלך, אבל מומלץ שתפנה לספק הדואל שלך ותבקש ממנו להגדיר את השרת עם אישור אבטחה נסמך.">
 <!ENTITY secureServer.description        "איחולים! זהו שרת מאובטח.">
-
-<!ENTITY doneAccount.accesskey           "D">

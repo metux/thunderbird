@@ -43,12 +43,12 @@
 
 <!-- LOCALIZATION NOTE (debuggerUI.autoPrettyPrint): This is the label for the
   -  checkbox that toggles auto pretty print. -->
-<!ENTITY debuggerUI.autoPrettyPrint     "ייפוי קוד אוטומטי על קבצי מקור מוקטנים">
+<!ENTITY debuggerUI.autoPrettyPrint     "ייפוי קוד אוטומטי על קובצי מקור מוקטנים">
 <!ENTITY debuggerUI.autoPrettyPrint.accesskey "פ">
 
 <!-- LOCALIZATION NOTE (debuggerUI.sources.toggleBreakpoints): This is the tooltip for the
   -  button that toggles all breakpoints for all sources. -->
-<!ENTITY debuggerUI.sources.toggleBreakpoints "Enable/disable all breakpoints">
+<!ENTITY debuggerUI.sources.toggleBreakpoints "הפעלה או נטרול של כל נקודות העצירה">
 
 <!-- LOCALIZATION NOTE (debuggerUI.clearButton): This is the label for
   -  the button that clears the collected tracing data in the tracing tab. -->
@@ -94,7 +94,7 @@
 <!-- LOCALIZATION NOTE (debuggerUI.autoBlackBox): This is the label for
   -  the checkbox that toggles whether sources that we suspect are minified are
   -  automatically black boxed or not. -->
-<!ENTITY debuggerUI.autoBlackBox           "הפעלת קופסה שחורה אוטומטית על קבצי מקור מוקטנים">
+<!ENTITY debuggerUI.autoBlackBox           "הפעלת קופסה שחורה אוטומטית על קובצי מקור מוקטנים">
 <!ENTITY debuggerUI.autoBlackBox.accesskey "ש">
 
 <!-- LOCALIZATION NOTE (debuggerUI.searchPanelOperators): This is the text that
@@ -126,7 +126,7 @@
 <!ENTITY debuggerUI.searchToken.key       "F">
 <!ENTITY debuggerUI.searchToken.accesskey "ח">
 
-<!-- LOCALIZATION NOTE (debuggerUI.searchLine): This is the text that appears
+<!-- LOCALIZATION NOTE (debuggerUI.searchGoToLine): This is the text that appears
   -  in the source editor's context menu for the line search operation. -->
 <!ENTITY debuggerUI.searchGoToLine           "מעבר לשורה…">
 <!ENTITY debuggerUI.searchGoToLine.key       "L">
@@ -146,7 +146,7 @@
 
 <!-- LOCALIZATION NOTE (debuggerUI.condBreakPanelTitle): This is the text that
   -  appears in the conditional breakpoint panel popup as a description. -->
-<!ENTITY debuggerUI.condBreakPanelTitle "נקודת מעקב זו תעצוב את הריצה רק אם הביטוי שלהלן הוא אמת">
+<!ENTITY debuggerUI.condBreakPanelTitle "נקודת עצירה זו תעצור את הריצה רק אם הביטוי שלהלן הוא אמת">
 
 <!-- LOCALIZATION NOTE (debuggerUI.seMenuBreak): This is the text that
   -  appears in the source editor context menu for adding a breakpoint. -->
@@ -159,7 +159,7 @@
 <!ENTITY debuggerUI.seMenuCondBreak     "הוספת נקודת עצירה מותנת">
 <!ENTITY debuggerUI.seMenuCondBreak.key "B">
 
-<!-- LOCALIZATION NOTE (debuggerUI.seMenuBreak): This is the text that
+<!-- LOCALIZATION NOTE (debuggerUI.seEditMenuCondBreak): This is the text that
   -  appears in the source editor context menu for editing a breakpoint. -->
 <!ENTITY debuggerUI.seEditMenuCondBreak     "עריכת נקודת עצירה מותנת">
 <!ENTITY debuggerUI.seEditMenuCondBreak.key "B">
@@ -176,14 +176,14 @@
 <!-- LOCALIZATION NOTE (debuggerUI.seMenuAddWatch): This is the text that
   -  appears in the source editor context menu for adding an expression. -->
 <!ENTITY debuggerUI.seMenuAddWatch      "הפיכת בחירה לביטוי למעקב">
-<!ENTITY debuggerUI.seMenuAddWatch.key  "ב">
+<!ENTITY debuggerUI.seMenuAddWatch.key  "E">
 
 <!-- LOCALIZATION NOTE (debuggerUI.addWatch): This is the text that
   -  appears in the watch expressions context menu for adding an expression. -->
 <!ENTITY debuggerUI.addWatch            "הוספת ביטוי למעקב">
 <!ENTITY debuggerUI.addWatch.accesskey  "ס">
 
-<!-- LOCALIZATION NOTE (debuggerUI.removeWatch): This is the text that
+<!-- LOCALIZATION NOTE (debuggerUI.removeAllWatch): This is the text that
   -  appears in the watch expressions context menu for removing all expressions. -->
 <!ENTITY debuggerUI.removeAllWatch           "הסרת כל הביטויים">
 <!ENTITY debuggerUI.removeAllWatch.key       "E">

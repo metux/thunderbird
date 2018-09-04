@@ -15,3 +15,6 @@
 <!-- Shared by Link and Image dialogs -->
 <!ENTITY LinkURLEditField.label "Sláðu inn staðsetningu vefsíðu, staðbundinnar skráar, eða veldu markstiklu eða haus frá flettilista:">
 <!ENTITY LinkURLEditField.accessKey "l">
+
+<!ENTITY LinkURLEditField2.label "Enter a web page location, a local file, or select a Named Anchor or Heading from the field's context menu:">
+<!ENTITY LinkURLEditField2.accessKey "w">

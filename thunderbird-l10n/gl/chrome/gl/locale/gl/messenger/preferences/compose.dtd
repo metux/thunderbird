@@ -6,7 +6,9 @@
 <!ENTITY itemAutoComplete.label              "Enderezos">
 <!ENTITY itemSpellCheck.label                "Ortografía">
 
-<!ENTITY forwardMsg.label                     "Reencamiñar mensaxes:">
+<!ENTITY dialogCompose.title                 "Redacción">
+
+<!ENTITY forwardMsg.label                     "Reenviar mensaxes:">
 <!ENTITY forwardMsg.accesskey                 "e">
 <!ENTITY inline.label                         "Inseridas">
 <!ENTITY asAttachment.label                   "Como anexo">
@@ -22,7 +24,7 @@
 <!ENTITY fontColor.accesskey                  "C">
 <!ENTITY bgColor.label                        "Cor de fondo:">
 <!ENTITY bgColor.accesskey                    "r">
-<!ENTITY restoreHTMLDefaults.label            "Restaurar predefinidos">
+<!ENTITY restoreHTMLDefaults.label            "Restaurar predeterminados">
 <!ENTITY restoreHTMLDefaults.accesskey        "R">
 
 <!ENTITY spellCheck.label                     "Verificar a ortografía antes do envío">
@@ -55,12 +57,13 @@
 <!ENTITY sendOptions.label                     "Opcións de envío…">
 <!ENTITY sendOptions.accesskey                 "O">
 
-<!ENTITY attachmentReminder.label              "Comprobar adxuntos olvidados">
+<!ENTITY attachmentReminder.label              "Comprobar se faltan ficheiros anexos">
 <!ENTITY attachmentReminder.accesskey          "v">
 <!ENTITY attachmentReminderOptions.label       "Palabras chave…">
 <!ENTITY attachmentReminderOptions.accesskey   "P">
 
-<!ENTITY defaultToParagraph.accesskey         "P">
 <!ENTITY defaultToParagraph.label             "Use Paragraph format instead of Body Text by default">
-
-<!ENTITY dialogCompose.title                 "Composing">
+<!ENTITY defaultToParagraph.accesskey         "P">
+<!ENTITY showAsDefault.label                   "Default startup directory in the address book window:">
+<!ENTITY showAsDefault.accesskey               "S">
+<!ENTITY showAsDefaultLast.label               "Last used directory">

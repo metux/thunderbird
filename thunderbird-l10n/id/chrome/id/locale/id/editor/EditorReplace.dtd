@@ -24,3 +24,5 @@
 <!ENTITY replaceAllButton.label "Ganti Semua">
 <!ENTITY replaceAllButton.accesskey "S">
 <!ENTITY closeButton.label "Tutup">
+
+<!ENTITY closeButton.accesskey "C">

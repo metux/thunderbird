@@ -9,7 +9,7 @@
      The show and showMac commands are never shown together, thus they can share
      the same access key (though the two access keys can also be different).
      -->
-<!ENTITY cmd.show.label                            "Oscail an Fillteán Coinneála">
+<!ENTITY cmd.show.label                            "Oscail an Fillteán ina bhfuil an Comhad">
 <!ENTITY cmd.show.accesskey                        "F">
 <!ENTITY cmd.showMac.label                         "Taispeáin San Aimsitheoir">
 <!ENTITY cmd.showMac.accesskey                     "A">
@@ -19,6 +19,6 @@
 <!ENTITY cmd.removeFromHistory.accesskey           "B">
 <!ENTITY cmd.clearList.label                       "Glan an Liosta">
 <!ENTITY cmd.clearList.accesskey                   "G">
-<!ENTITY cmd.clearList.tooltip                     "Bain na hiontrálacha go léir de liosta na gcomhad sábháilte, seachas íosluchtuithe gníomhacha.">
+<!ENTITY cmd.clearList.tooltip                     "Bain na hiontrálacha go léir de liosta na gcomhad sábháilte, seachas íoslódálacha gníomhacha.">
 <!ENTITY cmd.searchDownloads.label                 "Cuardaigh…">
 <!ENTITY cmd.searchDownloads.key                   "F">

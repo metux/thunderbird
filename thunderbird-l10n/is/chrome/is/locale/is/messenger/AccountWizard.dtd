@@ -114,3 +114,6 @@
 <!ENTITY deferStorage.accesskey "g">
 <!ENTITY clickFinish.label "Smelltu á Ljúka til að vista þessar stillingar og hætta í reikningahjálpinni.">
 <!ENTITY clickFinish.labelMac "Smelltu á Ljúka til að vista þessar stillingar og hætta í reikningahjálpinni.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

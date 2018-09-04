@@ -43,41 +43,38 @@ Additional changes:
 - Make sure both "struct Class" and "struct JSClass" have at
   least 4 bytes alignment
 ---
- mozilla/build/moz.configure/init.configure                       | 3 +++
- mozilla/ipc/chromium/src/build/build_config.h                    | 3 +++
- mozilla/js/src/gc/Heap.h                                         | 2 +-
- mozilla/js/src/jit/AtomicOperations.h                            | 2 ++
- mozilla/js/src/jsfriendapi.h                                     | 2 +-
- mozilla/layout/style/nsCSSValue.h                                | 2 +-
- mozilla/media/webrtc/trunk/build/build_config.h                  | 5 +++++
- mozilla/mfbt/double-conversion/utils.h                           | 2 ++
- mozilla/mfbt/tests/TestPair.cpp                                  | 9 +++++++--
- mozilla/mfbt/tests/TestPoisonArea.cpp                            | 3 +++
- mozilla/python/mozbuild/mozbuild/configure/constants.py          | 2 ++
- .../mozbuild/mozbuild/test/configure/test_toolchain_configure.py | 3 +++
- mozilla/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_m68k.cpp  | 3 ++-
- mozilla/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_m68k.cpp   | 2 +-
- 14 files changed, 36 insertions(+), 7 deletions(-)
+ build/moz.configure/init.configure                             |  3 +++
+ ipc/chromium/src/build/build_config.h                          |  3 +++
+ js/src/jsfriendapi.h                                           |  2 +-
+ layout/style/nsCSSValue.h                                      |  2 +-
+ media/webrtc/trunk/build/build_config.h                        | 10 ++++++++++
+ mfbt/tests/TestPair.cpp                                        |  9 +++++++--
+ mfbt/tests/TestPoisonArea.cpp                                  |  3 +++
+ python/mozbuild/mozbuild/configure/constants.py                |  2 ++
+ .../mozbuild/test/configure/test_toolchain_configure.py        |  3 +++
+ xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_m68k.cpp        |  3 ++-
+ xpcom/reflect/xptcall/md/unix/xptcstubs_linux_m68k.cpp         |  2 +-
+ 11 files changed, 36 insertions(+), 6 deletions(-)
 
-diff --git a/mozilla/build/moz.configure/init.configure b/mozilla/build/moz.configure/init.configure
-index 1c4371f..341e8f1 100644
---- a/mozilla/build/moz.configure/init.configure
-+++ b/mozilla/build/moz.configure/init.configure
-@@ -396,6 +396,9 @@ def split_triplet(triplet):
-     elif cpu.startswith('aarch64'):
-         canonical_cpu = 'aarch64'
+diff --git a/build/moz.configure/init.configure b/build/moz.configure/init.configure
+index a8a730f..cbe3a3f 100644
+--- a/build/moz.configure/init.configure
++++ b/build/moz.configure/init.configure
+@@ -667,6 +667,9 @@ def split_triplet(triplet, allow_unknown=False):
+     elif cpu == 'sh4':
+         canonical_cpu = 'sh4'
          endianness = 'little'
 +    elif cpu in ('m68k'):
 +        canonical_cpu = 'm68k'
 +        endianness = 'big'
-     else:
-         die('Unknown CPU type: %s' % cpu)
- 
-diff --git a/mozilla/ipc/chromium/src/build/build_config.h b/mozilla/ipc/chromium/src/build/build_config.h
-index 342bd56..6ac0918 100644
---- a/mozilla/ipc/chromium/src/build/build_config.h
-+++ b/mozilla/ipc/chromium/src/build/build_config.h
-@@ -78,6 +78,9 @@
+     elif allow_unknown:
+         canonical_cpu = cpu
+         endianness = 'unknown'
+diff --git a/ipc/chromium/src/build/build_config.h b/ipc/chromium/src/build/build_config.h
+index f695444..23810b9 100644
+--- a/ipc/chromium/src/build/build_config.h
++++ b/ipc/chromium/src/build/build_config.h
+@@ -80,6 +80,9 @@
  #define ARCH_CPU_ARMEL 1
  #define ARCH_CPU_32_BITS 1
  #define WCHAR_T_IS_UNSIGNED 1
@@ -87,37 +84,11 @@ index 342bd56..6ac0918 100644
  #elif defined(__powerpc64__)
  #define ARCH_CPU_PPC64 1
  #define ARCH_CPU_64_BITS 1
-diff --git a/mozilla/js/src/gc/Heap.h b/mozilla/js/src/gc/Heap.h
-index 2a9390e..4e08bc9 100644
---- a/mozilla/js/src/gc/Heap.h
-+++ b/mozilla/js/src/gc/Heap.h
-@@ -282,7 +282,7 @@ struct Cell
-   protected:
-     inline uintptr_t address() const;
-     inline Chunk* chunk() const;
--} JS_HAZ_GC_THING;
-+} JS_HAZ_GC_THING __attribute__ ((aligned(4)));
- 
- // A GC TenuredCell gets behaviors that are valid for things in the Tenured
- // heap, such as access to the arena and mark bits.
-diff --git a/mozilla/js/src/jit/AtomicOperations.h b/mozilla/js/src/jit/AtomicOperations.h
-index 078be67..e12cb86 100644
---- a/mozilla/js/src/jit/AtomicOperations.h
-+++ b/mozilla/js/src/jit/AtomicOperations.h
-@@ -326,6 +326,8 @@ AtomicOperations::isLockfree(int32_t size)
- # include "jit/arm64/AtomicOperations-arm64.h"
- #elif defined(__hppa__)
- # include "jit/none/AtomicOperations-ppc.h"
-+#elif defined(__m68k__)
-+# include "jit/none/AtomicOperations-ppc.h"
- #elif defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64)
- # include "jit/mips-shared/AtomicOperations-mips-shared.h"
- #elif defined(__ppc__) || defined(__PPC__)
-diff --git a/mozilla/js/src/jsfriendapi.h b/mozilla/js/src/jsfriendapi.h
-index b1c7cb0..2b6b956 100644
---- a/mozilla/js/src/jsfriendapi.h
-+++ b/mozilla/js/src/jsfriendapi.h
-@@ -571,7 +571,7 @@ public:
+diff --git a/js/src/jsfriendapi.h b/js/src/jsfriendapi.h
+index 3bcf1dd..08b38b4 100644
+--- a/js/src/jsfriendapi.h
++++ b/js/src/jsfriendapi.h
+@@ -593,7 +593,7 @@ public:
      uint32_t          slotInfo;
  
      static const uint32_t FIXED_SLOTS_SHIFT = 27;
@@ -126,12 +97,12 @@ index b1c7cb0..2b6b956 100644
  
  /**
   * This layout is shared by all native objects. For non-native objects, the
-diff --git a/mozilla/layout/style/nsCSSValue.h b/mozilla/layout/style/nsCSSValue.h
-index 1721cc8..7531fe8 100644
---- a/mozilla/layout/style/nsCSSValue.h
-+++ b/mozilla/layout/style/nsCSSValue.h
-@@ -1032,7 +1032,7 @@ protected:
-     mozilla::css::FontFamilyListRefCnt* MOZ_OWNING_REF mFontFamilyList;
+diff --git a/layout/style/nsCSSValue.h b/layout/style/nsCSSValue.h
+index e3030ed..8a240aa 100644
+--- a/layout/style/nsCSSValue.h
++++ b/layout/style/nsCSSValue.h
+@@ -1056,7 +1056,7 @@ protected:
+     mozilla::SharedFontList* MOZ_OWNING_REF mFontFamilyList;
      mozilla::css::ComplexColorValue* MOZ_OWNING_REF mComplexColor;
    } mValue;
 -};
@@ -139,14 +110,19 @@ index 1721cc8..7531fe8 100644
  
  struct nsCSSValue::Array final {
  
-diff --git a/mozilla/media/webrtc/trunk/build/build_config.h b/mozilla/media/webrtc/trunk/build/build_config.h
-index dcb3d47..bbd0b22 100644
---- a/mozilla/media/webrtc/trunk/build/build_config.h
-+++ b/mozilla/media/webrtc/trunk/build/build_config.h
-@@ -123,6 +123,11 @@
- #define ARCH_CPU_MIPSEL 1
- #define ARCH_CPU_32_BITS 1
+diff --git a/media/webrtc/trunk/build/build_config.h b/media/webrtc/trunk/build/build_config.h
+index 312674b..e10a234 100644
+--- a/media/webrtc/trunk/build/build_config.h
++++ b/media/webrtc/trunk/build/build_config.h
+@@ -118,6 +118,16 @@
  #define ARCH_CPU_LITTLE_ENDIAN 1
+ #elif defined(__pnacl__)
+ #define ARCH_CPU_32_BITS 1
++#elif defined(__MIPSEL__)
++#define ARCH_CPU_MIPS_FAMILY 1
++#define ARCH_CPU_MIPSEL 1
++#define ARCH_CPU_32_BITS 1
++#define ARCH_CPU_LITTLE_ENDIAN 1
 +#elif defined(__m68k__)
 +#define ARCH_CPU_M68K_FAMILY 1
 +#define ARCH_CPU_M68K 1
@@ -155,23 +131,10 @@ index dcb3d47..bbd0b22 100644
  #elif defined(__powerpc64__)
  #define ARCH_CPU_PPC_FAMILY 1
  #define ARCH_CPU_PPC64 1
-diff --git a/mozilla/mfbt/double-conversion/utils.h b/mozilla/mfbt/double-conversion/utils.h
-index 15dd4bf..f14b6b1 100644
---- a/mozilla/mfbt/double-conversion/utils.h
-+++ b/mozilla/mfbt/double-conversion/utils.h
-@@ -62,6 +62,8 @@
-     defined(_MIPS_ARCH_MIPS32R2) || \
-     defined(__AARCH64EL__) || defined(__aarch64__)
- #define DOUBLE_CONVERSION_CORRECT_DOUBLE_OPERATIONS 1
-+#elif defined(__mc68000__)
-+#undef DOUBLE_CONVERSION_CORRECT_DOUBLE_OPERATIONS
- #elif defined(_M_IX86) || defined(__i386__) || defined(__i386)
- #if defined(_WIN32)
- // Windows uses a 64bit wide floating point stack.
-diff --git a/mozilla/mfbt/tests/TestPair.cpp b/mozilla/mfbt/tests/TestPair.cpp
+diff --git a/mfbt/tests/TestPair.cpp b/mfbt/tests/TestPair.cpp
 index f1fa9c5..41b463a 100644
---- a/mozilla/mfbt/tests/TestPair.cpp
-+++ b/mozilla/mfbt/tests/TestPair.cpp
+--- a/mfbt/tests/TestPair.cpp
++++ b/mfbt/tests/TestPair.cpp
 @@ -29,14 +29,19 @@ using mozilla::Pair;
    static_assert(sizeof(name##_2) == (size), \
                  "Pair<" #T2 ", " #T1 "> has an unexpected size");
@@ -194,10 +157,10 @@ index f1fa9c5..41b463a 100644
  INSTANTIATE(EmptyClass, NonEmpty, both3, 1);
  
  struct A { char dummy; explicit A(int) {} };
-diff --git a/mozilla/mfbt/tests/TestPoisonArea.cpp b/mozilla/mfbt/tests/TestPoisonArea.cpp
-index 6f1b61e..9360ac9 100644
---- a/mozilla/mfbt/tests/TestPoisonArea.cpp
-+++ b/mozilla/mfbt/tests/TestPoisonArea.cpp
+diff --git a/mfbt/tests/TestPoisonArea.cpp b/mfbt/tests/TestPoisonArea.cpp
+index 06c24ed..763dfbc 100644
+--- a/mfbt/tests/TestPoisonArea.cpp
++++ b/mfbt/tests/TestPoisonArea.cpp
 @@ -133,6 +133,9 @@
  #elif defined _ARCH_PPC || defined _ARCH_PWR || defined _ARCH_PWR2
  #define RETURN_INSTR 0x4E800020 /* blr */
@@ -208,11 +171,11 @@ index 6f1b61e..9360ac9 100644
  #elif defined __sparc || defined __sparcv9
  #define RETURN_INSTR 0x81c3e008 /* retl */
  
-diff --git a/mozilla/python/mozbuild/mozbuild/configure/constants.py b/mozilla/python/mozbuild/mozbuild/configure/constants.py
-index dfc7cf8..9c0f0ca 100644
---- a/mozilla/python/mozbuild/mozbuild/configure/constants.py
-+++ b/mozilla/python/mozbuild/mozbuild/configure/constants.py
-@@ -44,6 +44,7 @@ CPU_bitness = {
+diff --git a/python/mozbuild/mozbuild/configure/constants.py b/python/mozbuild/mozbuild/configure/constants.py
+index 33ae5a4..a67ab80 100644
+--- a/python/mozbuild/mozbuild/configure/constants.py
++++ b/python/mozbuild/mozbuild/configure/constants.py
+@@ -46,6 +46,7 @@ CPU_bitness = {
      'arm': 32,
      'hppa': 32,
      'ia64': 64,
@@ -220,21 +183,21 @@ index dfc7cf8..9c0f0ca 100644
      'mips32': 32,
      'mips64': 64,
      'ppc': 32,
-@@ -85,6 +86,7 @@ CPU_preprocessor_checks = OrderedDict((
-     ('sparc', '__sparc__'),
+@@ -89,6 +90,7 @@ CPU_preprocessor_checks = OrderedDict((
      ('mips64', '__mips64'),
      ('mips32', '__mips__'),
+     ('sh4', '__sh__'),
 +    ('m68k', '__m68k__'),
  ))
  
  assert sorted(CPU_preprocessor_checks.keys()) == sorted(CPU.POSSIBLE_VALUES)
-diff --git a/mozilla/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py b/mozilla/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
-index 2ef9379..b06ddde 100644
---- a/mozilla/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
-+++ b/mozilla/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
-@@ -1037,6 +1037,9 @@ class LinuxCrossCompileToolchainTest(BaseToolchainTest):
-         'mips-unknown-linux-gnu': big_endian + {
-             '__mips__': 1,
+diff --git a/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py b/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
+index c64f770..f904120 100755
+--- a/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
++++ b/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
+@@ -1165,6 +1165,9 @@ class LinuxCrossCompileToolchainTest(BaseToolchainTest):
+         'sh4-unknown-linux-gnu': little_endian + {
+             '__sh__': 1,
          },
 +        'm68k-unknown-linux-gnu': big_endian + {
 +            '__m68k__': 1,
@@ -242,10 +205,10 @@ index 2ef9379..b06ddde 100644
      }
  
      PLATFORMS['powerpc64le-unknown-linux-gnu'] = \
-diff --git a/mozilla/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_m68k.cpp b/mozilla/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_m68k.cpp
-index 6f2934c..a64fd62 100644
---- a/mozilla/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_m68k.cpp
-+++ b/mozilla/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_m68k.cpp
+diff --git a/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_m68k.cpp b/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_m68k.cpp
+index 7d042a7..6989340 100644
+--- a/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_m68k.cpp
++++ b/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_m68k.cpp
 @@ -100,7 +100,8 @@ EXPORT_XPCOM_API(nsresult)
  NS_InvokeByIndex(nsISupports* that, uint32_t methodIndex,
                     uint32_t paramCount, nsXPTCVariant* params)
@@ -256,10 +219,10 @@ index 6f2934c..a64fd62 100644
  
      n = invoke_count_words(paramCount, params) * 4;
  
-diff --git a/mozilla/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_m68k.cpp b/mozilla/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_m68k.cpp
+diff --git a/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_m68k.cpp b/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_m68k.cpp
 index 3720a5c..fc33ba0 100644
---- a/mozilla/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_m68k.cpp
-+++ b/mozilla/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_m68k.cpp
+--- a/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_m68k.cpp
++++ b/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_m68k.cpp
 @@ -63,7 +63,7 @@ extern "C" {
              case nsXPTType::T_U64    : dp->val.u64 = *((uint64_t*)ap); ap++; break;
              case nsXPTType::T_FLOAT  : dp->val.f   = *((float*)   ap);       break;

@@ -11,6 +11,7 @@
 <!-- General Settings -->
 <!ENTITY enableGlodaSearch.label       "Ενεργοποίηση καθολικής αναζήτησης και ευρετηριοποίησης">
 <!ENTITY enableGlodaSearch.accesskey   "γ">
+<!ENTITY dateTimeFormatting.label      "Μορφή ημερομηνίας και ώρας">
 <!ENTITY allowHWAccel.label            "Χρήση επιτάχυνσης υλικού όταν είναι διαθέσιμη">
 <!ENTITY allowHWAccel.accesskey        "υ">
 <!ENTITY storeType.label               "Τύπος αποθήκευσης μηνυμάτων για νέους λογαριασμούς:">
@@ -52,7 +53,19 @@
 <!ENTITY crashReporterLearnMore.label    "Μάθετε περισσότερα">
 
 <!-- Update -->
-<!ENTITY updateApp.label                 "Ενημερώσεις για το &brandShortName;:">
+<!-- LOCALIZATION NOTE (updateApp.label):
+  Strings from aboutDialog.dtd are displayed in this section of the preferences.
+  Please check for possible accesskey conflicts.
+-->
+<!ENTITY updateApp2.label                "Ενημερώσεις &brandShortName;">
+<!-- LOCALIZATION NOTE (updateApp.version.*): updateApp.version.pre is
+  followed by a version number, keep the trailing space or replace it with
+  a different character as needed. updateApp.version.post is displayed after
+  the version number, and is empty on purpose for English. You can use it
+  if required by your language.
+ -->
+<!ENTITY updateApp.version.pre           "Έκδοση ">
+<!ENTITY updateApp.version.post          "">
 <!ENTITY updateAuto.label                "Αυτόματη εγκατάσταση ενημερώσεων (προτείνεται: αυξημένη ασφάλεια)">
 <!ENTITY updateAuto.accesskey            "Α">
 <!ENTITY updateCheck.label               "Να γίνεται έλεγχος για ενημερώσεις, αλλά να επιλέγω αν θα γίνει εγκατάστασή τους">
@@ -89,6 +102,8 @@
 <!ENTITY useCacheBefore.label            "Χρήση μέχρι">
 <!ENTITY useCacheBefore.accesskey        "μ">
 <!ENTITY useCacheAfter.label             "MB χώρου για την προσωρινή μνήμη">
+<!ENTITY overrideSmartCacheSize.label    "Παράκαμψη αυτόματης διαχείρισης λανθάνουσας μνήμης">
+<!ENTITY overrideSmartCacheSize.accesskey "ω">
 <!ENTITY clearCacheNow.label             "Εκκαθάριση τώρα">
 <!ENTITY clearCacheNow.accesskey         "θ">
 

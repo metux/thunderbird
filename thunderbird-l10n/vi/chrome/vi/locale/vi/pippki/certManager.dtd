@@ -146,7 +146,11 @@
 <!ENTITY exceptionMgr.permanent.label         "Lưu trữ ngoại lệ này vĩnh viễn">
 <!ENTITY exceptionMgr.permanent.accesskey     "L">
 
-<!ENTITY certmgr.begins                       "Begins On">
-<!ENTITY certmgr.certdetail.sha256fingerprint "SHA-256 Fingerprint">
-<!ENTITY certmgr.hierarchy.accesskey2         "H">
+<!ENTITY certmgr.mine2                        "You have certificates from these organizations that identify you">
+<!ENTITY certmgr.others2                      "You have certificates on file that identify these people">
+<!ENTITY certmgr.websites3                    "You have certificates on file that identify these servers">
+<!ENTITY certmgr.cas2                         "You have certificates on file that identify these certificate authorities">
 <!ENTITY certmgr.periodofvalidity.label       "Period of Validity" >
+<!ENTITY certmgr.certdetail.sha256fingerprint "SHA-256 Fingerprint">
+<!ENTITY certmgr.begins                       "Begins On">
+<!ENTITY certmgr.hierarchy.accesskey2         "H">

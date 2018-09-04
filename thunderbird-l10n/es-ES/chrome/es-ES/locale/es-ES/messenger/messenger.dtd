@@ -29,6 +29,12 @@
 <!ENTITY newFeedAccountCmd.accesskey "w">
 <!ENTITY newIMContactCmd.label "Contactos de chat…">
 <!ENTITY newIMContactCmd.accesskey "h">
+<!ENTITY newMessageCmd2.key "N">
+<!ENTITY newMessageCmd.key "M">
+<!ENTITY newMessageCmd.label "Mensaje">
+<!ENTITY newMessageCmd.accesskey "m">
+<!ENTITY newContactCmd.label "Contacto de la libreta de direcciones…">
+<!ENTITY newContactCmd.accesskey "C">
 <!ENTITY openMessageFileCmd.label "Abrir mensaje guardado…">
 <!ENTITY openMessageFileCmd.accesskey "A">
 <!ENTITY saveAsMenu.label "Guardar como">
@@ -44,8 +50,8 @@
 <!ENTITY getAllNewMsgCmdPopupMenu.accesskey "T">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.label "Cuenta actual">
 <!ENTITY getNewMsgCurrentAccountCmdPopupMenu.accesskey "C">
-<!ENTITY getNextNMsgCmd.label "Obtener 500 nuevos mensajes">
-<!ENTITY getNextNMsgCmd.accesskey "t">
+<!ENTITY getNextNMsgCmd2.label "Obtener los siguientes mensajes de noticias">
+<!ENTITY getNextNMsgCmd2.accesskey "t">
 <!ENTITY sendUnsentCmd.label "Procesar mensajes no enviados">
 <!ENTITY sendUnsentCmd.accesskey "o">
 <!ENTITY subscribeCmd.label "Suscribirse…">
@@ -294,7 +300,7 @@
 <!ENTITY goBackCmd.commandKey "[">
 <!ENTITY goChatCmd.label "Charlar">
 <!ENTITY goChatCmd.accesskey "h">
-<!ENTITY goChatCmd.key "I">
+<!ENTITY goChatCmd2.key "H">
 <!ENTITY prevStarredMsgCmd.label "Mensaje con estrella">
 <!ENTITY prevStarredMsgCmd.accesskey "S">
 <!ENTITY folderMenu.label "Carpeta">
@@ -341,6 +347,10 @@
 <!ENTITY editAsNewMsgCmd.key "e">
 <!ENTITY editDraftMsgCmd.label "Editar borrador de mensaje">
 <!ENTITY editDraftMsgCmd.accesskey "b">
+<!ENTITY editTemplateMsgCmd.label "Editar plantilla">
+<!ENTITY editTemplateMsgCmd.accesskey "T">
+<!ENTITY newMsgFromTemplateCmd.label "Nuevo mensaje desde plantilla">
+<!ENTITY newMsgFromTemplateCmd.keycode "VK_RETURN">
 <!ENTITY createFilter.label "Crear filtro a partir del mensaje…">
 <!ENTITY createFilter.accesskey "a">
 <!ENTITY moveMsgToMenu.label "Mover a">
@@ -428,6 +438,11 @@
 <!ENTITY addressBookCmd.key "B">
 <!ENTITY addons.label "Complementos">
 <!ENTITY addons.accesskey "m">
+<!ENTITY addonPrefs.label "Opciones del complemento">
+<!ENTITY addonPrefs.accesskey "O">
+<!ENTITY addonPrefsUnix.label "Preferencias del complemento">
+<!ENTITY addonPrefsUnix.accesskey "P">
+<!ENTITY addonNoPrefs.label "No se han encontrado ajustes del complemento.">
 <!ENTITY activitymanager.label "Administrador de actividad">
 <!ENTITY activitymanager.accesskey "A">
 <!ENTITY imAccountsStatus.label "Estado de chat">
@@ -465,8 +480,8 @@
 <!ENTITY devToolboxCmd.label "Caja de herramientas de desarrollador">
 <!ENTITY devToolboxCmd.accesskey "C">
 <!ENTITY devToolboxCmd.commandkey "i">
-<!ENTITY addonDebugCmd.label "Depurador del complemento">
-<!ENTITY addonDebugCmd.accesskey "D">
+<!ENTITY debugAddonsCmd.label "Depurar complementos">
+<!ENTITY debugAddonsCmd.accesskey "c">
 <!ENTITY tabsDebugCmd.label "Depurador del marco de contenido">
 <!ENTITY tabsDebugCmd.accesskey "a">
 <!ENTITY errorConsoleCmd.label "Consola de errores">
@@ -574,6 +589,10 @@
 <!ENTITY folderSizeColumn.label "Tamaño">
 <!ENTITY folderContextGetMessages.label "Recibir mensajes">
 <!ENTITY folderContextGetMessages.accesskey "R">
+<!ENTITY folderContextMarkAllFoldersRead.label "Marcar todas las carpetas como leídas">
+<!ENTITY folderContextPauseAllUpdates.label "Pausar todas las actualizaciones">
+<!ENTITY folderContextPauseUpdates.label "Pausar actualizaciones">
+<!ENTITY folderContextPauseUpdates.accesskey "U">
 <!ENTITY folderContextOpenInNewWindow.label "Abrir en una ventana nueva">
 <!ENTITY folderContextOpenInNewWindow.accesskey "e">
 <!ENTITY folderContextOpenNewTab.label "Abrir en una pestaña nueva">
@@ -659,6 +678,7 @@
 <!ENTITY locationColumn2.tooltip "Ordenar por ubicación">
 <!ENTITY idColumn2.tooltip "Ordenar por orden de recepción">
 <!ENTITY attachmentColumn2.tooltip "Ordenar por adjuntos">
+<!ENTITY contextNewMsgFromTemplate.label "Nuevo mensaje desde plantilla">
 <!ENTITY contextOpenNewWindow.label "Abrir el mensaje en una ventana nueva">
 <!ENTITY contextOpenNewWindow.accesskey "A">
 <!ENTITY contextOpenNewTab.label "Abrir el mensaje en una pestaña nueva">
@@ -670,6 +690,8 @@
 <!ENTITY contextEditMsgAsNew.label "Editar como mensaje nuevo">
 <!ENTITY contextEditMsgAsNew.accesskey "E">
 <!ENTITY contextEditDraftMsg.label "Editar borrador de mensaje">
+<!ENTITY contextEditTemplate.label "Editar plantilla">
+<!ENTITY contextEditTemplate.accesskey "T">
 <!ENTITY contextArchive.label "Archivar">
 <!ENTITY contextArchive.accesskey "h">
 <!ENTITY contextReplySender.label "Responder sólo al remitente">
@@ -708,7 +730,7 @@
 <!ENTITY contextPrint.accesskey "i">
 <!ENTITY contextPrintPreview.label "Vista preliminar">
 <!ENTITY contextPrintPreview.accesskey "V">
-<!ENTITY columnPicker.resetToInbox.label "Restaurar las columnas por defecto">
+<!ENTITY columnPicker.resetToInbox.label "Restaurar las columnas predeterminadas">
 <!ENTITY columnPicker.applyTo.label "Aplicar columnas a…">
 <!ENTITY columnPicker.applyToFolder.label "Carpeta…">
 <!ENTITY columnPicker.applyToFolderAndChildren.label "Carpeta y sus subcarpetas…">
@@ -786,3 +808,5 @@
 <!ENTITY hideOtherAppsCmdMac.modifiers "accel,alt">
 <!ENTITY showAllAppsCmdMac.label "Mostrar todo">
 <!ENTITY dockOptions.label "Opciones del icono de la aplicación…">
+<!ENTITY writeNewMessageDock.label "Redactar nuevo mensaje">
+<!ENTITY openAddressBookDock.label "Abrir libreta de direcciones">

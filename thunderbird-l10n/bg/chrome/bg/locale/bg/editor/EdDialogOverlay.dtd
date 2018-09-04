@@ -4,7 +4,7 @@
 
 <!ENTITY AdvancedEditButton.label "Разширено редактиране…">
 <!ENTITY AdvancedEditButton.accessKey "Р">
-<!ENTITY AdvancedEditButton.tooltip "Добавяне или променяне на HTML атрибути, атрибути на стила и JavaScript">
+<!ENTITY AdvancedEditButton.tooltip "Добавяне или променяне на атрибути на HTML, стилови атрибути и JavaScript">
 <!ENTITY chooseFileButton.label "Избор на файл…">
 <!ENTITY chooseFileButton.accessKey "ф">
 <!ENTITY chooseFileLinkButton.label "Избор на файл…">
@@ -12,7 +12,9 @@
 <!ENTITY makeUrlRelative.label "URL е свързан с местоположението на страницата">
 <!ENTITY makeUrlRelative.accessKey "U">
 <!ENTITY makeUrlRelative.tooltip "Смяна между относителен и абсолютен URL. Трябва първо да запишете файла, преди да промените това.">
-<!-- Shared by Link and Image dialogs -->
 
+<!-- Shared by Link and Image dialogs -->
 <!ENTITY LinkURLEditField.label "Въведете адрес на уеб страница, локален файл, изберете именувана котва или заглавие от списъка:">
 <!ENTITY LinkURLEditField.accessKey "В">
+<!ENTITY LinkURLEditField2.label "Въведете адрес на уеб страница, местен файл, изберете именувана котва или заглавие от контекстуалното меню на полето:">
+<!ENTITY LinkURLEditField2.accessKey "В">

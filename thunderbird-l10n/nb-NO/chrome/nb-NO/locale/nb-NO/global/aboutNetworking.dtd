@@ -14,7 +14,7 @@
 <!ENTITY aboutNetworking.autoRefresh           "Auto-oppdater hvert 3. sekund">
 <!ENTITY aboutNetworking.hostname              "Vertsnavn">
 <!ENTITY aboutNetworking.port                  "Port">
-<!ENTITY aboutNetworking.spdy                  "SPDY">
+<!ENTITY aboutNetworking.http2                 "HTTP/2">
 <!ENTITY aboutNetworking.ssl                   "SSL">
 <!ENTITY aboutNetworking.active                "Aktiv">
 <!ENTITY aboutNetworking.idle                  "Uvirksom">
@@ -23,6 +23,7 @@
 <!ENTITY aboutNetworking.sent                  "Sendt">
 <!ENTITY aboutNetworking.received              "Mottatt">
 <!ENTITY aboutNetworking.family                "Family">
+<!ENTITY aboutNetworking.trr                   "TRR">
 <!ENTITY aboutNetworking.addresses             "Adresser">
 <!ENTITY aboutNetworking.expires               "Utgår (sekunder)">
 <!ENTITY aboutNetworking.messagesSent          "Meldinger sendt">
@@ -41,3 +42,18 @@
 <!ENTITY aboutNetworking.dnsLookupButton       "Slå opp">
 <!ENTITY aboutNetworking.dnsDomain             "Domene">
 <!ENTITY aboutNetworking.dnsLookupTableColumn  "IP-er">
+<!ENTITY aboutNetworking.rcwn                  "RCWN-statistikk">
+<!ENTITY aboutNetworking.rcwnStatus            "RCWN-status">
+<!ENTITY aboutNetworking.rcwnCacheWonCount     "Antall cache won">
+<!ENTITY aboutNetworking.rcwnNetWonCount       "Antall net won">
+<!ENTITY aboutNetworking.totalNetworkRequests  "Totalt antall nettverksforespørsler">
+<!ENTITY aboutNetworking.rcwnOperation         "Cache-operasjon">
+<!ENTITY aboutNetworking.rcwnPerfOpen          "Åpne">
+<!ENTITY aboutNetworking.rcwnPerfRead          "Les">
+<!ENTITY aboutNetworking.rcwnPerfWrite         "Skriv">
+<!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Åpen oppføring">
+<!ENTITY aboutNetworking.rcwnAvgShort          "Kort gjennomsnitt">
+<!ENTITY aboutNetworking.rcwnAvgLong           "Langt gjennomsnitt">
+<!ENTITY aboutNetworking.rcwnStddevLong        "Langt standardavvik">
+<!ENTITY aboutNetworking.rcwnCacheSlow         "Antall langsom cache">
+<!ENTITY aboutNetworking.rcwnCacheNotSlow      "Antall ikke-langsom cache">

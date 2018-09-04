@@ -47,6 +47,7 @@
 <!ENTITY  font.langGroup.khmer                    "Khmer">
 <!ENTITY  font.langGroup.malayalam                "Malaiji">
 <!ENTITY  font.langGroup.math                     "Matematiikka">
+<!ENTITY  font.langGroup.odia                     "Odilainen">
 <!ENTITY  font.langGroup.telugu                   "Telugulainen">
 <!ENTITY  font.langGroup.kannada                  "Kannadalainen">
 <!ENTITY  font.langGroup.sinhala                  "Singalilainen">
@@ -77,5 +78,3 @@
 <!ENTITY viewDefaultCharsetList.accesskey  "a">
 <!ENTITY replyInDefaultCharset3.label     "Jos mahdollista, käytä vastauksissa oletusmerkistökoodausta">
 <!ENTITY replyInDefaultCharset3.accesskey "J">
-
-<!ENTITY  font.langGroup.odia                     "Odia">

@@ -4,6 +4,5 @@
 
 <!ENTITY fileExceedsLimit.style "width: 40em; min-height: 20em;">
 
-<!ENTITY fileExceedsLimit.thatsBigFile3 "Sending files larger than 50 MB is only supported for premium accounts.">
-
 <!ENTITY fileExceedsLimit.title   "Hightail">
+<!ENTITY fileExceedsLimit.thatsBigFile3 "Sending files larger than 50 MB is only supported for premium accounts.">

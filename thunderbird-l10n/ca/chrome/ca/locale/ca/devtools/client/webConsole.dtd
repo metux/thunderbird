@@ -6,20 +6,15 @@
   - You want to make that choice consistent across the developer tools.
   - A good criteria is the language in which you'd find the best
   - documentation on web development on the web. -->
-
-
 <!ENTITY window.title "Consola web">
-<!ENTITY browserConsole.title "Consola del navegador">
 <!-- LOCALIZATION NOTE (openURL.label): You can see this string in the Web
    - Console context menu. -->
-
 <!ENTITY openURL.label     "Obre l'URL en una pestanya nova">
 <!ENTITY openURL.accesskey "t">
 <!-- LOCALIZATION NOTE (btnPageNet.label): This string is used for the menu
   -  button that allows users to toggle the network logging output.
   -  This string and the following strings toggle various kinds of output
   -  filters. -->
-
 <!ENTITY btnPageNet.label   "Xarxa">
 <!ENTITY btnPageNet.tooltip "Registra l'accés a la xarxa">
 <!ENTITY btnPageNet.accesskey "X">
@@ -38,11 +33,11 @@
 <!ENTITY btnPageSecurity.label "Seguretat">
 <!ENTITY btnPageSecurity.tooltip "Registra errors de seguretat i avisos">
 <!ENTITY btnPageSecurity.accesskey "u">
+
 <!-- LOCALIZATION NOTE (btnPageLogging): This is used as the text of the
   -  the toolbar. It shows or hides messages that the web developer inserted on
   -  the page for debugging purposes, using calls such console.log() and
   -  console.error(). -->
-
 <!ENTITY btnPageLogging.label   "Registre">
 <!ENTITY btnPageLogging.tooltip "Registra els missatges enviats a l'objecte window.console">
 <!ENTITY btnPageLogging.accesskey3 "R">
@@ -52,10 +47,10 @@
 <!ENTITY btnConsoleLog          "Registre">
 <!ENTITY btnConsoleXhr          "XHR">
 <!ENTITY btnConsoleReflows      "Reajustaments">
+
 <!-- LOCALIZATION NOTE (btnServerLogging): This is used as the text of the
   -  the toolbar. It shows or hides messages that the web developer inserted on
   -  the page for debugging purposes, using calls on the HTTP server. -->
-
 <!ENTITY btnServerLogging.label       "Servidor">
 <!ENTITY btnServerLogging.tooltip     "Registre dels missatges rebuts des d'un servidor web">
 <!ENTITY btnServerLogging.accesskey   "S">
@@ -63,9 +58,9 @@
 <!ENTITY btnServerInfo                "Informació">
 <!ENTITY btnServerWarnings            "Avisos">
 <!ENTITY btnServerLog                 "Registre">
+
 <!-- LOCALIZATION NODE (btnConsoleSharedWorkers) the term "Shared Workers"
   -  should not be translated. -->
-
 <!ENTITY btnConsoleSharedWorkers "Processos de treball compartits">
 <!-- LOCALIZATION NODE (btnConsoleServiceWorkers) the term "Service Workers"
   -  should not be translated. -->
@@ -80,8 +75,7 @@
 <!ENTITY btnClear.accesskey    "N">
 
 <!ENTITY fullZoomEnlargeCmd.commandkey  "+">
-<!-- + is above this key on many keyboards -->
-<!ENTITY fullZoomEnlargeCmd.commandkey2 "="> 
+<!ENTITY fullZoomEnlargeCmd.commandkey2 "="> <!-- + is above this key on many keyboards -->
 <!ENTITY fullZoomEnlargeCmd.commandkey3 "">
 
 <!ENTITY fullZoomReduceCmd.commandkey   "-">
@@ -96,7 +90,7 @@
 <!ENTITY closeCmd.key         "W">
 <!ENTITY findCmd.key          "F">
 <!ENTITY clearOutputCtrl.key  "L">
-<!ENTITY openInVarViewCmd.label "Obre en visualització de variables">
+<!ENTITY openInVarViewCmd.label "Obre en la visualització de variables">
 <!ENTITY openInVarViewCmd.accesskey "v">
 <!ENTITY storeAsGlobalVar.label "Emmagatzema com a variable global">
 <!ENTITY storeAsGlobalVar.accesskey "E">

@@ -3,11 +3,11 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 
-<!ENTITY  history.title             "Историјат надоградњи">
-<!ENTITY  history.intro             "Следеће надоградње су инсталиране:">
+<!ENTITY  history.title             "Историјат ажурирања">
+<!ENTITY  history2.intro            "Следећа ажурирања су инсталирана">
 <!ENTITY  closebutton.label         "Затвори">
-                                     
-<!ENTITY  noupdates.label           "Још није инсталирана ниједна надоградња">
+
+<!ENTITY  noupdates.label           "Још није инсталирано ниједно ажурирање">
 
 <!ENTITY  name.header               "Име надоградње">
 <!ENTITY  date.header               "Датум инсталирања">

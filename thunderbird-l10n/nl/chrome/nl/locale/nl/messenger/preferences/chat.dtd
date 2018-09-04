@@ -2,10 +2,12 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY startupAction.label          "Als &brandShortName; start:">
-<!ENTITY startupAction.accesskey      "s">
-<!ENTITY startupOffline.label         "Mijn chataccounts offline houden">
-<!ENTITY startupConnectAuto.label     "Mijn chataccounts automatisch verbinden">
+<!ENTITY  generalTab.label            "Algemeen">
+
+<!ENTITY  startupAction.label         "Als &brandShortName; start:">
+<!ENTITY  startupAction.accesskey     "s">
+<!ENTITY  startupOffline.label        "Mijn chataccounts offline houden">
+<!ENTITY  startupConnectAuto.label    "Mijn chataccounts automatisch verbinden">
 
 <!-- LOCALIZATION NOTE: reportIdleAfter.label is displayed first, then
 there's a field where the user can enter a number, and itemTime is
@@ -29,6 +31,10 @@ sentence. -->
 <!ENTITY  completeNotification.label          "met naam van de afzender en voorbeeld van het bericht">
 <!ENTITY  buddyInfoOnly.label                 "met alleen de naam van de afzender">
 <!ENTITY  dummyNotification.label             "zonder informatie">
+<!ENTITY  getAttention.label                  "Het taakbalkitem laten knipperen">
+<!ENTITY  getAttention.accesskey              "k">
+<!ENTITY  getAttentionMac.label               "Het programmasymbool bewegen">
+<!ENTITY  getAttentionMac.accesskey           "r">
 <!ENTITY  chatSound.accesskey                 "u">
 <!ENTITY  chatSound.label                     "Een geluid afspelen">
 <!ENTITY  play.label                          "Afspelen">
@@ -39,3 +45,20 @@ sentence. -->
 <!ENTITY  customsound.accesskey               "v">
 <!ENTITY  browse.label                        "Bladeren…">
 <!ENTITY  browse.accesskey                    "B">
+
+<!ENTITY messageStyleTab.title             "Berichtstijlen">
+<!ENTITY messageStylePreview.label         "Voorbeeld:">
+<!ENTITY messageStyleTheme.label           "Thema:">
+<!ENTITY messageStyleTheme.accesskey       "T">
+<!ENTITY messageStyleThunderbirdTheme.label "Thunderbird">
+<!ENTITY messageStyleBubblesTheme.label    "Tekstballonnen">
+<!ENTITY messageStyleDarkTheme.label       "Donker">
+<!ENTITY messageStylePaperSheetsTheme.label "Vellen papier">
+<!ENTITY messageStyleSimpleTheme.label     "Eenvoudig">
+<!ENTITY messageStyleDefaultTheme.label    "Standaard">
+<!ENTITY messageStyleVariant.label         "Variant:">
+<!ENTITY messageStyleVariant.accesskey     "V">
+<!ENTITY messageStyleShowHeader.label      "Kop tonen">
+<!ENTITY messageStyleShowHeader.accesskey  "K">
+<!ENTITY messageStyleNoPreview.title       "Geen voorbeeld beschikbaar">
+<!ENTITY messageStyleNoPreview.description "Dit thema is ongeldig of momenteel niet beschikbaar (uitgeschakelde add-on, veilige modus, …).">

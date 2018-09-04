@@ -12,11 +12,21 @@
 <!ENTITY feedLocation.label          "피드 URL:">
 <!ENTITY feedLocation.accesskey      "U">
 <!ENTITY feedLocation.placeholder    "추가하는 피드의 올바른 URL을 입력해 주세요.">
+<!ENTITY feedLocation2.placeholder   "올바른 피드 URL을 입력해주세요.">
 <!ENTITY locationValidate.label      "피드 검사">
 <!ENTITY validateText.label          "피드가 유효한지 확인해 올바른 URL을 취득합니다.">
 
 <!ENTITY feedFolder.label            "보관 폴더:">
 <!ENTITY feedFolder.accesskey        "S">
+
+<!-- Account Settings and Subscription Dialog -->
+<!ENTITY biffStart.label             "새글 확인 간격 ">
+<!ENTITY biffStart.accesskey         "k">
+<!ENTITY biffMinutes.label           "분">
+<!ENTITY biffMinutes.accesskey       "n">
+<!ENTITY biffDays.label              "일">
+<!ENTITY biffDays.accesskey          "d">
+<!ENTITY recommendedUnits.label      "편집자 추천:">
 
 <!ENTITY quickMode.label             "웹 페이지를 읽지 않고 기사 요약을 표시">
 <!ENTITY quickMode.accesskey         "h">
@@ -27,8 +37,11 @@
 <!ENTITY autotagUsePrefix.accesskey  "P">
 <!ENTITY autoTagPrefix.placeholder   "접두사를 입력하세요">
 
+<!-- Subscription Dialog -->
 <!ENTITY button.addFeed.label        "추가">
 <!ENTITY button.addFeed.accesskey    "A">
+<!ENTITY button.verifyFeed.label     "확인">
+<!ENTITY button.verifyFeed.accesskey "V">
 <!ENTITY button.updateFeed.label     "업데이트">
 <!ENTITY button.updateFeed.accesskey "U">
 <!ENTITY button.removeFeed.label     "제거">

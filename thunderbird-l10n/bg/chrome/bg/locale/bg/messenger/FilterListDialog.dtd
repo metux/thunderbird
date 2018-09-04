@@ -16,7 +16,7 @@
 <!ENTITY reorderTopButton "Преместване в началото">
 <!ENTITY reorderTopButton.accessKey "ч">
 <!ENTITY reorderTopButton.toolTip "Пренареждане на филтъра така, че да бъде изпълнен първи">
-<!ENTITY reorderUpButton.label "Премества нагоре">
+<!ENTITY reorderUpButton.label "Преместване нагоре">
 <!ENTITY reorderUpButton.accesskey "г">
 <!ENTITY reorderDownButton.label "Премества надолу">
 <!ENTITY reorderDownButton.accesskey "д">
@@ -26,7 +26,7 @@
 <!ENTITY filterHeader.label "Разрешените филтри се стартират автоматично в реда по-долу.">
 <!ENTITY filtersForPrefix.label "Филтри за:">
 <!ENTITY filtersForPrefix.accesskey "Ф">
-<!ENTITY viewLogButton.label "Журнал">
+<!ENTITY viewLogButton.label "Журнал на филтрирането">
 <!ENTITY viewLogButton.accesskey "Ж">
 <!ENTITY runFilters.label "Стартиране">
 <!ENTITY runFilters.accesskey "С">

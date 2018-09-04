@@ -2,6 +2,8 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<!ENTITY  generalTab.label            "General">
+
 <!ENTITY  startupAction.label         "Al iniciar &brandShortName;:">
 <!ENTITY  startupAction.accesskey     "A">
 <!ENTITY  startupOffline.label        "Mantener mis cuentas de chat desconectadas">
@@ -17,7 +19,7 @@ sentence. -->
 <!ENTITY  reportIdleAfter.accesskey     "i">
 <!ENTITY  idleTime                      "minutos de inactividad">
 
-<!ENTITY  andSetStatusToAway.label      "and set my status to Away with this status message:">
+<!ENTITY  andSetStatusToAway.label      "y establecer mi estado como Ausente con el siguiente mensaje de estado:">
 <!ENTITY  andSetStatusToAway.accesskey  "A">
 
 <!ENTITY  sendTyping.label              "Enviar notificaciones de tipeo en las notificaciones">
@@ -29,7 +31,10 @@ sentence. -->
 <!ENTITY  completeNotification.label          "con nombre de remitente y vista previa de mensaje">
 <!ENTITY  buddyInfoOnly.label                 "solo con nombre de remitente">
 <!ENTITY  dummyNotification.label             "sin otra información">
-
+<!ENTITY  getAttention.label                  "Titilar el elemento de la barra de tareas">
+<!ENTITY  getAttention.accesskey              "T">
+<!ENTITY  getAttentionMac.label               "Animar el ícono del dock">
+<!ENTITY  getAttentionMac.accesskey           "o">
 <!ENTITY  chatSound.accesskey                 "d">
 <!ENTITY  chatSound.label                     "Reproducir un sonido">
 <!ENTITY  play.label                          "Reproducir">
@@ -41,3 +46,19 @@ sentence. -->
 <!ENTITY  browse.label                        "Examinar…">
 <!ENTITY  browse.accesskey                    "x">
 
+<!ENTITY messageStyleTab.title             "Estilo de mensajes">
+<!ENTITY messageStylePreview.label         "Vista previa:">
+<!ENTITY messageStyleTheme.label           "Tema:">
+<!ENTITY messageStyleTheme.accesskey       "T">
+<!ENTITY messageStyleThunderbirdTheme.label "Thunderbird">
+<!ENTITY messageStyleBubblesTheme.label    "Burbujas">
+<!ENTITY messageStyleDarkTheme.label       "Oscuro">
+<!ENTITY messageStylePaperSheetsTheme.label "Hojas de papel">
+<!ENTITY messageStyleSimpleTheme.label     "Simple">
+<!ENTITY messageStyleDefaultTheme.label    "Predeterminado">
+<!ENTITY messageStyleVariant.label         "Variante:">
+<!ENTITY messageStyleVariant.accesskey     "V">
+<!ENTITY messageStyleShowHeader.label      "Mostrar encabezado">
+<!ENTITY messageStyleShowHeader.accesskey  "e">
+<!ENTITY messageStyleNoPreview.title       "Sin vista previa">
+<!ENTITY messageStyleNoPreview.description "Este tema no es válido o actualmente no está disponible (complemento deshabilitado, modo seguro, …).">

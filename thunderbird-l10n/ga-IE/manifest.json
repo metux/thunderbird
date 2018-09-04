@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "ga-IE": {
+      "chrome_resources": {
+        "necko": "chrome/ga-IE/locale/ga-IE/necko/", 
+        "global": "chrome/ga-IE/locale/ga-IE/global/", 
+        "messenger-region": "chrome/ga-IE/locale/ga-IE/messenger-region/", 
+        "chat": "chrome/ga-IE/locale/ga-IE/chat/", 
+        "devtools": "chrome/ga-IE/locale/ga-IE/devtools/client/", 
+        "pipnss": "chrome/ga-IE/locale/ga-IE/pipnss/", 
+        "messenger-smime": "chrome/ga-IE/locale/ga-IE/messenger-smime/", 
+        "messenger-newsblog": "chrome/ga-IE/locale/ga-IE/messenger-newsblog/", 
+        "devtools-shim": "chrome/ga-IE/locale/ga-IE/devtools/shim/", 
+        "alerts": "chrome/ga-IE/locale/ga-IE/alerts/", 
+        "messenger": "chrome/ga-IE/locale/ga-IE/messenger/", 
+        "editor": "chrome/ga-IE/locale/ga-IE/editor/", 
+        "branding": "chrome/ga-IE/locale/ga-IE/branding/", 
+        "mozldap": "chrome/ga-IE/locale/ga-IE/mozldap/", 
+        "autoconfig": "chrome/ga-IE/locale/ga-IE/autoconfig/", 
+        "devtools-shared": "chrome/ga-IE/locale/ga-IE/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/ga-IE/locale/ga-IE/global-platform/win/", 
+          "android": "chrome/ga-IE/locale/ga-IE/global-platform/unix/", 
+          "macosx": "chrome/ga-IE/locale/ga-IE/global-platform/mac/", 
+          "linux": "chrome/ga-IE/locale/ga-IE/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/ga-IE/locale/ga-IE/mozapps/", 
+        "pluginproblem": "chrome/ga-IE/locale/ga-IE/pluginproblem/", 
+        "communicator": "chrome/ga-IE/locale/ga-IE/communicator/", 
+        "messenger-mapi": "chrome/ga-IE/locale/ga-IE/messenger-mapi/", 
+        "places": "chrome/ga-IE/locale/ga-IE/places/", 
+        "passwordmgr": "chrome/ga-IE/locale/ga-IE/passwordmgr/", 
+        "pippki": "chrome/ga-IE/locale/ga-IE/pippki/"
+      }, 
+      "version": "20180419123130"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-ga-IE@thunderbird.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "ga-IE", 
+  "version": "60.0buildid20180731173940", 
+  "name": "Béarla (SAM) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Séamus Ó Ciardhuáin, Kevin Scannell, Brian King)", 
+  "description": "Language pack for Thunderbird for ga-IE"
+}

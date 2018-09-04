@@ -2,14 +2,16 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY autoconfigWizard.title          "Installaziun d'in conto dad e-mail">
+<!ENTITY autoconfigWizard2.title         "Configurar in conto dad e-mail existent">
 <!ENTITY name.label                      "Tes num:">
 <!ENTITY name.accesskey                  "n">
 <!ENTITY name.placeholder                "Prenum Num">
 <!ENTITY name.text                       "Tes num, uschia co el duai vegnir mussà ad auters">
 <!ENTITY email.label                     "Adressa dad e-mail:">
 <!ENTITY email.accesskey                 "a">
-<!ENTITY email.placeholder               "email@example.com">
+<!-- LOCALIZATION NOTE(email.placeholder): Domain @example.com must stay in English -->
+<!ENTITY email2.placeholder              "ti@example.com">
+<!ENTITY email.text                      "Tia adressa dad e-mail existenta">
 <!ENTITY password.label                  "Pled-clav:">
 <!ENTITY password.accesskey              "P">
 <!ENTITY password.placeholder            "Pled-clav">
@@ -53,8 +55,8 @@
 <!ENTITY half-manual-test.accesskey      "t">
 <!ENTITY manual-edit.label               "Configuraziun manuala">
 <!ENTITY manual-edit.accesskey           "M">
-<!ENTITY switch-to-provisioner.label     "Ir per in nov conto">
-<!ENTITY switch-to-provisioner.accesskey "O">
+<!ENTITY open-provisioner.label          "Ir per ina nova adressa dad e-mail…">
+<!ENTITY open-provisioner.accesskey      "o">
 
 
 <!ENTITY warning.label                   "Attenziun!">
@@ -75,7 +77,7 @@
      the incoming or outgoing servers, then the page that pops up will have
      this text in a button to take you back to the previous page to change
      the settings and try again. -->
-<!ENTITY changeSettings.label            "Midar las preferenzas">
+<!ENTITY changeSettings.label            "Midar ils parameters">
 <!ENTITY changeSettings.accesskey        "S">
 
 <!ENTITY contactYourProvider.description "&brandShortName; po ta permetter dad acceder a tes e-mails cun la configuraziun messa a disposiziun. Tuttina vegn recumandà da contactar tes administratur u il purschider da servetschs dad e-mail areguard questas connexiuns nunadattadas. Vesair il FAQ (dumondas frequentas) da Thunderbird per ulteriuras infurmaziuns.">

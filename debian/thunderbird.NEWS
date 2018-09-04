@@ -1,3 +1,23 @@
+thunderbird (1:60.0~b2-1) experimental; urgency=medium
+
+  thunderbird-l10n and lightning-l10n packages are known broken
+
+  Due the modifications by upstream started with Thunderbird 59 related to the
+  needed changes for the WebExtensions the various l10n packages for
+  thunderbird itself but also for lightning are currently not working like
+  previously out of the box.
+  This is a known fact and mostly confirmed by upstream.
+
+  By a manual workaround for the local profile it's possible to (re-)enable the
+  requested l10n language. Please have a look at the file README.Debian in the
+  section 'Enable l10n languages in Thunderbird >= 1:60.0~b2'.
+
+  For more information on this issue you can visit
+
+  https://bugzilla.mozilla.org/show_bug.cgi?id=1437480
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sat, 7 Apr 2018 10:21:00 +0200
+
 thunderbird (1:52.5.0-1) unstable; urgency=high
 
   The profile for AppArmor within Thunderbird is now disabled by default.

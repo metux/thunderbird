@@ -50,7 +50,7 @@ LOCALIZATION NOTE : Do not translate any of the occurrences of the word
 <!ENTITY title.label              "Judul">
 <!ENTITY processing.label         "Mengimpor…">
 
-<!ENTITY importFeeds.accesskey    "d">
 <!ENTITY importFeeds.label        "Feed Subscriptions">
-<!ENTITY noModulesFound.label     "No application or file to import data from was found.">
+<!ENTITY importFeeds.accesskey    "d">
 <!ENTITY selectDescriptionB.label "Please select an existing account or create a new account:">
+<!ENTITY noModulesFound.label     "No application or file to import data from was found.">

@@ -5,6 +5,7 @@
 <!ENTITY addons.windowTitle                   "Dodatki">
 
 <!ENTITY search.placeholder                   "Szukaj we wszystkich dodatkach">
+<!ENTITY search.placeholder2 "Szukaj na stronie addons.mozilla.org">
 <!ENTITY search.buttonlabel "Szukaj">
 <!ENTITY search.commandkey                    "f">
 
@@ -22,8 +23,8 @@
 
 <!ENTITY toolsMenu.tooltip                    "Narzędzia dla wszystkich dodatków">
 
-<!ENTITY cmd.back.tooltip                     "Przejdź jedną stronę do przodu">
-<!ENTITY cmd.forward.tooltip                  "Przejdź jedną stronę wstecz">
+<!ENTITY getThemes.description "Szukasz sposobu na personalizację przeglądarki?">
+<!ENTITY getThemes.learnMore "Wybieraj spośród tysięcy motywów.">
 
 <!ENTITY showUnsignedExtensions.button.label "Niektóre rozszerzenia nie mogły zostać zweryfikowane">
 <!ENTITY showAllExtensions.button.label "Pokaż wszystkie rozszerzenia">
@@ -104,10 +105,11 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "Wyświetl informacje o wydaniu tej aktualizacji">
 <!ENTITY cmd.hideReleaseNotes.label           "Ukryj informacje o wydaniu">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Ukryj informacje o wydaniu tej aktualizacji">
+<!ENTITY cmd.findReplacement.label "Znajdź zamiennik">
 
 <!ENTITY discover.title                       "Czym są dodatki?">
-<!ENTITY discover.description2                "Dodatki to programy, które pozwalają dostosować program &brandShortName; do upodobań użytkownika dzięki nowej funkcjonalności lub innemu wyglądowi. Wypróbuj panel boczny oszczędzający czas, powiadomienia o pogodzie albo nowy motyw graficzny.">
-<!ENTITY discover.footer                      "Kiedy dostępne jest połączenie z Internetem, ten panel będzie wyświetlał najnowsze i najpopularniejsze dodatki, które warto wypróbować.">
+<!ENTITY discover.description2                "Dodatki to programy, które pozwalają dostosować program &brandShortName; do upodobań użytkownika dzięki nowej funkcjonalności lub innemu wyglądowi. Wypróbuj panel boczny oszczędzający czas, powiadomienia o pogodzie albo nowy motyw graficzny.">
+<!ENTITY discover.footer                      "Kiedy dostępne jest połączenie z Internetem, ten panel będzie wyświetlał najnowsze i najpopularniejsze dodatki, które warto wypróbować.">
 
 <!ENTITY detail.version.label                 "Wersja">
 <!ENTITY detail.lastupdated.label             "Ostatnia aktualizacja">
@@ -162,6 +164,7 @@
 <!ENTITY addon.details.label                  "Więcej">
 <!ENTITY addon.details.tooltip                "Wyświetl więcej informacji o tym dodatku">
 <!ENTITY addon.unknownDate                    "nieznana">
+<!ENTITY addon.legacy.label "Przestarzałe">
 <!ENTITY addon.disabled.postfix               "(wyłączony)">
 <!ENTITY addon.update.postfix                 "(aktualizacja)">
 <!ENTITY addon.undoAction.label               "Cofnij">
@@ -208,3 +211,8 @@
 
 <!ENTITY pluginDeprecation.description "Czegoś tutaj brakuje? Niektóre wtyczki nie są już obsługiwane w programie &brandShortName;.">
 <!ENTITY pluginDeprecation.learnMore "Więcej informacji">
+
+<!ENTITY legacyWarning.showLegacy "Wyświetl przestarzałe rozszerzenia">
+<!ENTITY legacyExtensions.title "Przestarzałe rozszerzenia">
+<!ENTITY legacyExtensions.description "Te rozszerzenia nie spełniają obecnych standardów programu &brandShortName; i z tego powodu zostały wyłączone.">
+<!ENTITY legacyExtensions.learnMore "Więcej informacji o zmianach w dodatkach">

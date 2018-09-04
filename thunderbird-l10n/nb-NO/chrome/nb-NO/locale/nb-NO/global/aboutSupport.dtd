@@ -3,8 +3,8 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY aboutSupport.pageTitle "Feilsøking">
-<!-- LOCALIZATION NOTE (aboutSupport.pageSubtitle): don't change the 'supportLink' id. -->
 
+<!-- LOCALIZATION NOTE (aboutSupport.pageSubtitle): don't change the 'supportLink' id. -->
 <!ENTITY aboutSupport.pageSubtitle "  Denne siden inneholder teknisk informasjon som kan være nyttig når du forsøker å løse et problem. Besøk også <a id='supportLink'>brukerstøttenettstedet</a> for å få svar på ofte stilte spørsmål om &brandShortName;.">
 
 <!ENTITY aboutSupport.crashes.title "Krasjrapporter">
@@ -21,6 +21,18 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Versjon">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Sikkerhetsprogramvare">
+<!ENTITY aboutSupport.securitySoftwareType "Type">
+<!ENTITY aboutSupport.securitySoftwareName "Navn">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispionprogram">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Brannvegg">
+
+<!ENTITY aboutSupport.featuresTitle "&brandShortName;-funksjoner">
+<!ENTITY aboutSupport.featureName "Navn">
+<!ENTITY aboutSupport.featureVersion "Versjon">
+<!ENTITY aboutSupport.featureId "ID">
+
 <!ENTITY aboutSupport.experimentsTitle "Eksperimentelle funksjoner">
 <!ENTITY aboutSupport.experimentName "Navn">
 <!ENTITY aboutSupport.experimentId "ID">
@@ -34,9 +46,9 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.appBasicsName "Navn">
 <!ENTITY aboutSupport.appBasicsVersion "Versjon">
 <!ENTITY aboutSupport.appBasicsBuildID "Bygg-ID">
+
 <!-- LOCALIZATION NOTE (aboutSupport.appBasicsUpdateChannel, aboutSupport.appBasicsUpdateHistory, aboutSupport.appBasicsShowUpdateHistory):
 "Update" is a noun here, not a verb. -->
-
 <!ENTITY aboutSupport.appBasicsUpdateChannel "Oppdateringskanal">
 <!ENTITY aboutSupport.appBasicsUpdateHistory "Oppdateringshistorikk">
 <!ENTITY aboutSupport.appBasicsShowUpdateHistory "Vis oppdateringshistorikk">
@@ -53,13 +65,20 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsOS "OS">
 <!ENTITY aboutSupport.appBasicsMemoryUse "Minneforbruk">
 <!ENTITY aboutSupport.appBasicsPerformance "Ytelse">
-<!-- LOCALIZATION NOTE the term "Service Workers" should not be translated. -->
 
+<!-- LOCALIZATION NOTE the term "Service Workers" should not be translated. -->
 <!ENTITY aboutSupport.appBasicsServiceWorkers "Registrerte tjenestearbeidere">
 
 <!ENTITY aboutSupport.appBasicsProfiles "Profiler">
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Multiprosess-vinduer">
+
+<!ENTITY aboutSupport.appBasicsProcessCount "Nettinnholdsprosesser">
+
+<!ENTITY aboutSupport.enterprisePolicies "Virksomhets-policy">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Google-nøkkel">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla Location Service-nøkkel">
 
 <!ENTITY aboutSupport.appBasicsSafeMode "Sikker modus">
 
@@ -75,8 +94,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.modifiedKeyPrefsTitle "Viktige endrede innstillinger">
 <!ENTITY aboutSupport.modifiedPrefsName "Navn">
 <!ENTITY aboutSupport.modifiedPrefsValue "Verdi">
-<!-- LOCALIZATION NOTE (aboutSupport.userJSTitle, aboutSupport.userJSDescription): user.js is the name of the preference override file being checked. -->
 
+<!-- LOCALIZATION NOTE (aboutSupport.userJSTitle, aboutSupport.userJSDescription): user.js is the name of the preference override file being checked. -->
 <!ENTITY aboutSupport.userJSTitle "user.js innstillinger">
 <!ENTITY aboutSupport.userJSDescription "Profilmappen din inneholder en <a id='prefs-user-js-link'>user.js-fil</a> som inneholder innstillinger som ikke ble opprettet av &brandShortName;.">
 
@@ -96,6 +115,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "Tilgjengelighet">
 <!ENTITY aboutSupport.a11yActivated "Aktivert">
 <!ENTITY aboutSupport.a11yForceDisabled "Forhindre tilgjengelighet">
+<!ENTITY aboutSupport.a11yHandlerUsed "Tilgjengelig behandler brukt">
+<!ENTITY aboutSupport.a11yInstantiator "Tilgjengelighetsinstantiator">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Bibliotekversjoner">
 
@@ -106,6 +127,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Kopier råtekst til utklippstavlen">
 
 <!ENTITY aboutSupport.sandboxTitle "Sandkasse">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Avvist systemkall">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "Sekund siden">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Prosesstype">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Syscall">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Argument">
 
 <!ENTITY aboutSupport.safeModeTitle "Prøv sikker modus">
 <!ENTITY aboutSupport.restartInSafeMode.label "Start på nytt uten utvidelser …">
@@ -118,3 +147,26 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Beslutningslogg">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Krasjvern avslåtte funksjoner">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Midlertidige løsninger">
+
+<!ENTITY aboutSupport.mediaTitle "Media">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Ut-enheter">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Inn-enheter">
+<!ENTITY aboutSupport.mediaDeviceName "Navn">
+<!ENTITY aboutSupport.mediaDeviceGroup "Gruppe">
+<!ENTITY aboutSupport.mediaDeviceVendor "Leverandør">
+<!ENTITY aboutSupport.mediaDeviceState "Status">
+<!ENTITY aboutSupport.mediaDevicePreferred "Foretrukket">
+<!ENTITY aboutSupport.mediaDeviceFormat "Format">
+<!ENTITY aboutSupport.mediaDeviceChannels "Kanaler">
+<!ENTITY aboutSupport.mediaDeviceRate "Hastighet">
+<!ENTITY aboutSupport.mediaDeviceLatency "Forsinkelse">
+
+<!ENTITY aboutSupport.intlTitle "Internasjonalisering og lokalisering">
+<!ENTITY aboutSupport.intlAppTitle "Programinnstillinger">
+<!ENTITY aboutSupport.intlLocalesRequested "Forespurte språkversjoner">
+<!ENTITY aboutSupport.intlLocalesAvailable "Tilgjengelige språkversjoner">
+<!ENTITY aboutSupport.intlLocalesSupported "App-språkversjoner">
+<!ENTITY aboutSupport.intlLocalesDefault "Standardspråk">
+<!ENTITY aboutSupport.intlOSTitle "Operativsystem">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "System-språkversjoner">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regionale innstillinger">

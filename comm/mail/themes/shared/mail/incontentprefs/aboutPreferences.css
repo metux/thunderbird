@@ -1,0 +1,399 @@
+/* - This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this file,
+   - You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+@namespace html "http://www.w3.org/1999/xhtml";
+
+#MailPreferences {
+  -moz-appearance: none;
+  font: message-box;
+  background-color: var(--in-content-page-background);
+  color: var(--in-content-page-color);
+}
+
+/* Don't show the Close button on tab content */
+#MailPreferences > .prefWindow-dlgbuttons {
+  display: none;
+}
+
+#prefBox {
+  position: relative;
+}
+
+#category-box {
+  background-color: #ebebef;
+  width: 240px;
+}
+
+caption label {
+  font-size: 1.3rem;
+  font-weight: 600;
+  line-height: 22px;
+  margin: 0 !important;
+}
+
+#preferencesContainer {
+  padding: 40px 28px;
+  overflow: auto;
+}
+
+#MailPreferences > prefpane {
+  max-width: 800px;
+  padding: 0;
+  font-size: 1.25rem;
+  line-height: 22px;
+}
+
+tabpanel > label,
+tabpanel > description,
+tabpanel > hbox > description {
+  margin-inline-start: 0;
+}
+
+/* Web search menulist */
+#defaultWebSearch > .menulist-label-box > .menulist-icon[src] {
+  margin-inline-start: 5px;
+  margin-inline-end: 8px;
+}
+
+/* Category List */
+
+.paneSelector {
+  -moz-appearance: none;
+  background-color: transparent;
+  background-image: none;
+  border-bottom: none;
+  padding: 54px 0 0;
+  margin: 0;
+  max-height: 100vh;
+  overflow-x: auto;
+}
+
+radio[pane] {
+  -moz-box-orient: horizontal;
+  -moz-appearance: none;
+  width: 240px;
+  color: var(--in-content-category-text);
+  border-right-width: 0;
+  border-left-width: 0;
+  border-radius: 2px;
+  margin-inline-start: 34px;
+  margin-inline-end: 0;
+  padding: 5px 10px;
+  min-height: 40px;
+  transition: background-color 150ms;
+}
+
+radio[pane][selected] {
+  color: var(--in-content-category-text-selected);
+  background: none;
+}
+
+radio[pane]:not([selected]):hover {
+  background: var(--in-content-category-background-hover);
+}
+
+radio[pane][selected]:hover {
+  background-color: var(--in-content-category-background-selected-hover);
+}
+
+radio[pane]:hover:active {
+  color: var(--in-content-category-text-selected-active);
+  background-color: var(--in-content-category-background-selected-active);
+}
+
+radio[pane]:hover::before,
+radio[pane][selected]::before {
+  display: none;
+}
+
+.paneButtonLabel {
+  line-height: 22px;
+  font-size: 1.45rem;
+  padding-bottom: 2px;
+  padding-inline-start: 9px;
+  margin: 0;
+  -moz-user-select: none;
+}
+
+.paneButtonIcon {
+  width: 24px;
+  height: 24px;
+  -moz-image-region: auto;
+  -moz-context-properties: fill, fill-opacity;
+  fill: currentColor;
+  fill-opacity: 0.8;
+}
+
+radio[pane][selected] > .paneButtonIcon {
+  fill-opacity: 1;
+}
+
+@media (max-width: 830px) {
+  #category-box {
+    width: 118px;
+  }
+
+  .paneButtonLabel {
+    display: none;
+  }
+
+  radio[pane] {
+    min-width: 44px;
+    padding-inline-start: 13px; /* make icons align center */
+    margin-inline-end: 35px;
+  }
+
+  #preferencesContainer {
+    padding-inline-start: 15px;
+    padding-inline-end: 15px;
+  }
+}
+
+radio[pane=paneGeneral] > .paneButtonIcon {
+  list-style-image: url("chrome://messenger/skin/shared/in-content/general.svg");
+}
+
+radio[pane=paneDisplay] > .paneButtonIcon {
+  list-style-image: url("chrome://messenger/skin/shared/in-content/display.svg");
+}
+
+radio[pane=paneApplications] > .paneButtonIcon {
+  list-style-image: url("chrome://messenger/skin/shared/in-content/attachment.svg");
+}
+
+radio[pane=panePrivacy] > .paneButtonIcon {
+  list-style-image: url("chrome://messenger/skin/shared/in-content/privacy.svg");
+}
+
+radio[pane=paneSecurity]> .paneButtonIcon {
+  list-style-image: url("chrome://messenger/skin/shared/in-content/security.svg");
+}
+
+radio[pane=paneCompose] > .paneButtonIcon {
+  list-style-image: url("chrome://messenger/skin/shared/in-content/compose.svg");
+}
+
+radio[pane=paneAdvanced] > .paneButtonIcon {
+  list-style-image: url("chrome://messenger/skin/shared/in-content/advanced.svg");
+}
+
+radio[pane=paneChat] > .paneButtonIcon {
+  list-style-image: url("chrome://messenger/skin/shared/in-content/chat.svg");
+}
+
+radio[pane=paneLightning] > .paneButtonIcon {
+  list-style-image: url("chrome://messenger/skin/shared/in-content/calendar.svg");
+}
+
+radio[pane=paneAccount] > .paneButtonIcon {
+  list-style-image: url("chrome://messenger/skin/shared/in-content/account.svg");
+}
+
+.spinbuttons-button {
+  min-height: initial;
+  margin-inline-start: 10px !important;
+  margin-inline-end: 2px !important;
+}
+
+.spinbuttons-up {
+  margin-top: 2px !important;
+  border-radius: 1px 1px 0 0;
+}
+
+.spinbuttons-down  {
+  margin-bottom: 2px !important;
+  border-radius: 0 0 1px 1px;
+}
+
+.spinbuttons-button > .button-box {
+  padding: 1px 5px 2px !important;
+}
+
+.spinbuttons-up > .button-box > .button-icon {
+  list-style-image: url("chrome://messenger/skin/icons/arrow/arrow-up.png");
+}
+
+.spinbuttons-up[disabled="true"] > .button-box > .button-icon {
+  list-style-image: url("chrome://messenger/skin/icons/arrow/arrow-up-dim.png");
+}
+
+.spinbuttons-down > .button-box > .button-icon {
+  list-style-image: url("chrome://messenger/skin/icons/arrow/arrow-down.png");
+}
+
+.spinbuttons-down[disabled="true"] > .button-box > .button-icon {
+  list-style-image: url("chrome://messenger/skin/icons/arrow/arrow-down-dim.png");
+}
+
+/* Applications Pane Styles */
+
+#applications-content {
+  padding: 15px;
+}
+
+#filter {
+  margin-inline-start: 0;
+}
+
+#handlersView > richlistitem {
+  min-height: 36px !important;
+}
+
+.typeIcon {
+  margin-inline-start: 10px !important;
+  margin-inline-end: 9px !important;
+}
+
+.actionIcon {
+  margin-inline-start: 11px !important;
+  margin-inline-end: 8px !important;
+}
+
+.actionsMenu {
+  min-height: 36px;
+}
+
+.actionsMenu > menupopup > menuitem {
+  padding-inline-start: 10px !important;
+}
+
+.actionsMenu > menupopup > menuitem > .menu-iconic-left {
+  margin-inline-end: 8px !important;
+}
+
+listhead > listheader:first-of-type:-moz-locale-dir(ltr),
+listhead > listheader:last-of-type:-moz-locale-dir(rtl) {
+  margin-left: -2px;
+}
+
+listhead > listheader:first-of-type:-moz-locale-dir(rtl),
+listhead > listheader:last-of-type:-moz-locale-dir(ltr) {
+  margin-right: -2px;
+}
+
+/* XXX This style is for bug 740213 and should be removed once that
+   bug has a solution. */
+description > html|a {
+  cursor: pointer;
+}
+
+#paneChat {
+  padding-top: 15px;
+  padding-bottom: 15px;
+}
+
+tabs {
+  margin-inline-end: 4px; /* add the 4px end-margin of other elements */
+}
+
+.indent {
+  margin-inline-start: 33px;
+}
+
+.inset {
+  border-color: #424e5a;
+}
+
+.update-throbber {
+  margin-inline-start: 0;
+  margin-inline-end: 4px;
+}
+
+#releasenotes {
+  margin-inline-start: 6px !important;
+}
+
+#telemetryLearnMore,
+#crashReporterLearnMore {
+  margin-inline-end: 4px !important;
+}
+
+/* Remove the start margin to align these elements */
+#addCloudFileAccount,
+#chatStartupAction,
+#defaults-itemtype-menulist,
+#manageCertificatesButton {
+  margin-inline-start: 0;
+}
+
+/**
+ * Font dialog menulist fixes
+ */
+
+#defaultFontType,
+#serif,
+#sans-serif,
+#monospace {
+  min-width: 30ch;
+}
+
+/**
+ * Dialog
+ */
+
+.dialogOverlay {
+  visibility: hidden;
+}
+.dialogOverlay[topmost="true"] {
+  background-color: rgba(0,0,0,0.5);
+}
+
+.dialogBox {
+  background-color: #fbfbfb;
+  color: #424e5a;
+  /* `transparent` will use the dialogText color in high-contrast themes and
+     when page colors are disabled */
+  border: 1px solid transparent;
+  border-radius: 2.5px;
+  box-shadow: 0 2px 4px 0 rgba(0,0,0,0.5);
+  display: -moz-box;
+  margin: 0;
+  padding: 0;
+}
+
+.dialogBox[resizable="true"] {
+  resize: both;
+  overflow: hidden;
+  min-height: 20em;
+  min-width: 66ch;
+}
+
+.dialogBox > .groupbox-title {
+  padding: 3.5px 0;
+  background-color: #f1f1f1;
+  border-bottom: 1px solid #c1c1c1;
+}
+
+.dialogTitle {
+  font-size: .9em;
+  text-align: center;
+}
+
+.close-icon {
+  border: none;
+  background: none !important;
+  min-width: 0;
+  min-height: auto;
+}
+
+.dialogBox > .groupbox-body {
+  -moz-appearance: none;
+  padding: 20px;
+}
+
+.dialogFrame {
+  -moz-box-flex: 1;
+  /* Default dialog dimensions */
+  height: 12em;
+  width: 40ch;
+}
+
+.largeDialogContainer.doScroll {
+  overflow-y: auto;
+  -moz-box-flex: 1;
+}
+
+/**
+ * End Dialog
+ */

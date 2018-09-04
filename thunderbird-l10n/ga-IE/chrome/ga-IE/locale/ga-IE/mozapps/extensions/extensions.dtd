@@ -20,6 +20,9 @@
 <!ENTITY installAddonFromFile.accesskey       "S">
 <!ENTITY toolsMenu.tooltip                    "Uirlisí le haghaidh gach breiseán">
 
+<!ENTITY getThemes.description                "Ar mhaith leat cuma phearsanta a chur ar do bhrabhsálaí?">
+<!ENTITY getThemes.learnMore                  "Is leatsa an rogha as na mílte téama atá ar fáil.">
+
 <!ENTITY cmd.back.tooltip                     "Leathanach amháin siar">
 <!ENTITY cmd.forward.tooltip                  "Leathanach amháin ar aghaidh">
 
@@ -65,7 +68,7 @@
 <!ENTITY updates.resetUpdatesToManual.accesskey      "r">
 <!ENTITY updates.updating.label               "Breiseáin á nuashonrú">
 <!ENTITY updates.installed.label              "Nuashonraíodh do chuid breiseán.">
-<!ENTITY updates.downloaded.label             "Íosluchtaíodh nuashonruithe na mbreiseán.">
+<!ENTITY updates.downloaded.label             "Íoslódáladh nuashonruithe na mbreiseán.">
 <!ENTITY updates.restart.label                "Atosaigh anois chun an tsuiteáil a chur i gcrích">
 <!ENTITY updates.noneFound.label              "Ní bhfuarthas nuashonruithe">
 <!ENTITY updates.manualUpdatesFound.label     "Féach ar Nuashonruithe Ar Fáil">
@@ -115,6 +118,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "Taispeáin na nótaí eisiúna don nuashonrú seo">
 <!ENTITY cmd.hideReleaseNotes.label           "Folaigh na Nótaí Eisiúna">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Folaigh na nótaí eisiúna don nuashonrú seo">
+<!ENTITY cmd.findReplacement.label            "Aimsigh Ionadaí">
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
      Displayed in the center of the Get Add-ons view, see bug 601143 for mockups. -->
@@ -128,7 +132,7 @@
 <!ENTITY detail.lastupdated.label             "Nuashonraithe">
 <!ENTITY detail.creator.label                 "Forbróir">
 <!ENTITY detail.homepage.label                "Leathanach Baile">
-<!ENTITY detail.numberOfDownloads.label       "Íosluchtuithe">
+<!ENTITY detail.numberOfDownloads.label       "Íoslódálacha">
 
 <!ENTITY detail.contributions.description     "Tacaigh le forbairt leanúnach an bhreiseáin seo trí dheontas beag a thabhairt don fhorbróir.">
 
@@ -182,6 +186,10 @@
 <!ENTITY addon.details.label                  "Tuilleadh">
 <!ENTITY addon.details.tooltip                "Taispeáin tuilleadh eolais faoin bhreiseán seo">
 <!ENTITY addon.unknownDate                    "Anaithnid">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "OIDHREACHT">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -205,7 +213,7 @@
 <!ENTITY addon.checkingForUpdates.label       "Nuashonruithe á lorg…">
 <!ENTITY addon.releaseNotes.label             "Nótaí Eisiúna:">
 <!ENTITY addon.loadingReleaseNotes.label      "Á Luchtú…">
-<!ENTITY addon.errorLoadingReleaseNotes.label "Tá brón orm, ach tharla earráid agus na nótaí eisiúna á luchtú.">
+<!ENTITY addon.errorLoadingReleaseNotes.label "Tá brón orm, ach tharla earráid agus na nótaí eisiúna á lódáil.">
 
 <!ENTITY addon.createdBy.label                "Le ">
 
@@ -246,3 +254,11 @@
 
 <!ENTITY pluginDeprecation.description "Rud éigin ar iarraidh? Ní thacaíonn &brandShortName; le roinnt forlíontán a thuilleadh.">
 <!ENTITY pluginDeprecation.learnMore "Tuilleadh Eolais.">
+
+<!ENTITY legacyWarning.description "Rud éigin ar iarraidh? Ní thacaíonn &brandShortName; le roinnt eisínteachtaí a thuilleadh.">
+<!ENTITY legacyWarning.showLegacy "Taispeáin seaneisínteachtaí">
+<!ENTITY legacyExtensions.title "Seaneisínteachtaí">
+<!ENTITY legacyExtensions.description "Ní chloíonn na heisínteachtaí seo le caighdeáin &brandShortName; a thuilleadh agus dhíchumasaíomar iad.">
+<!ENTITY legacyExtensions.learnMore "Foghlaim faoi na hathruithe ar bhreiseáin">
+
+<!ENTITY search.placeholder2                  "Search on addons.mozilla.org">

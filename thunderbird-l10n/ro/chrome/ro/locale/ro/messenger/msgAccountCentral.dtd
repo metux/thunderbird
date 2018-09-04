@@ -26,3 +26,5 @@
 <!ENTITY filtersLink.label            "Gestionează filtrele de mesaje">
 <!ENTITY junkSettings.label           "Setări pentru mesajele nesolicitate">
 <!ENTITY offlineLink.label            "Setări pentru lucru offline">
+
+<!ENTITY setupNewAcct.label           "Set up an account:">

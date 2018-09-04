@@ -37,5 +37,5 @@
 <!ENTITY reorderBottomButton.accessKey "v">
 <!ENTITY reorderBottomButton "Mover a la parte inferior">
 
-<!ENTITY newButton.popupCopy.accesskey "C">
 <!ENTITY newButton.popupCopy.label "Copy…">
+<!ENTITY newButton.popupCopy.accesskey "C">

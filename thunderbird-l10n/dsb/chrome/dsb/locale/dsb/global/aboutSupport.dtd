@@ -3,9 +3,9 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY aboutSupport.pageTitle "Informacije za rozwězowanje problemow">
-<!-- LOCALIZATION NOTE (aboutSupport.pageSubtitle): don't change the 'supportLink' id. -->
 
-<!ENTITY aboutSupport.pageSubtitle "  Toś ten bok wopśimujo techniske informacije, kótarež by mógli wužytne byś, gaž wopytujośo problem rozwězaś. Jolic pytaśo za wótegronami za zwucone pšašanja wó &brandShortName;, woglědajśo k našomu <a id='supportLink'>pódpěrańskemu websydłoju</a>.">
+<!-- LOCALIZATION NOTE (aboutSupport.pageSubtitle): don't change the 'supportLink' id. -->
+<!ENTITY aboutSupport.pageSubtitle "Toś ten bok wopśimujo techniske informacije, kótarež by mógli wužytne byś, gaž wopytujośo problem rozwězaś. Jolic pytaśo za wótegronami za zwucone pšašanja qó &brandShortName;, woglědajśo k našomu <a id='supportLink'>pódpěrańskemu websydłoju</a>.">
 
 <!ENTITY aboutSupport.crashes.title "Rozpšawy wowalenjow">
 <!-- LOCALIZATION NOTE (aboutSupport.crashes.id):
@@ -21,6 +21,18 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Wersija">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Wěstotna software">
+<!ENTITY aboutSupport.securitySoftwareType "Typ">
+<!ENTITY aboutSupport.securitySoftwareName "Mě">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antiwirusowy program">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Software pśeśiwo spionažy">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Wognjowa murja">
+
+<!ENTITY aboutSupport.featuresTitle "Funkcije &brandShortName;">
+<!ENTITY aboutSupport.featureName "Mě">
+<!ENTITY aboutSupport.featureVersion "Wersija">
+<!ENTITY aboutSupport.featureId "ID">
+
 <!ENTITY aboutSupport.experimentsTitle "Eksperimentelne funkcije">
 <!ENTITY aboutSupport.experimentName "Mě">
 <!ENTITY aboutSupport.experimentId "ID">
@@ -34,9 +46,9 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.appBasicsName "Mě">
 <!ENTITY aboutSupport.appBasicsVersion "Wersija">
 <!ENTITY aboutSupport.appBasicsBuildID "Wersijowy ID">
+
 <!-- LOCALIZATION NOTE (aboutSupport.appBasicsUpdateChannel, aboutSupport.appBasicsUpdateHistory, aboutSupport.appBasicsShowUpdateHistory):
 "Update" is a noun here, not a verb. -->
-
 <!ENTITY aboutSupport.appBasicsUpdateChannel "Aktualizěrowański kanal">
 <!ENTITY aboutSupport.appBasicsUpdateHistory "Aktualizaciska historija">
 <!ENTITY aboutSupport.appBasicsShowUpdateHistory "Aktualizacisku historiju pokazaś">
@@ -53,13 +65,20 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsOS "Źěłowy system">
 <!ENTITY aboutSupport.appBasicsMemoryUse "Wužyty składowak">
 <!ENTITY aboutSupport.appBasicsPerformance "Wugbaśe">
-<!-- LOCALIZATION NOTE the term "Service Workers" should not be translated. -->
 
+<!-- LOCALIZATION NOTE the term "Service Workers" should not be translated. -->
 <!ENTITY aboutSupport.appBasicsServiceWorkers "Zregistrěrowane &quot;service workers&quot;">
 
 <!ENTITY aboutSupport.appBasicsProfiles "Profile">
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Multiprocesowe wokna">
+
+<!ENTITY aboutSupport.appBasicsProcessCount "Webwopśimjeśowe procese">
+
+<!ENTITY aboutSupport.enterprisePolicies "Pśedewześowe pšawidła">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Kluc Google">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Kluc słužby póstajenja stojnišća Mozilla">
 
 <!ENTITY aboutSupport.appBasicsSafeMode "Wěsty modus">
 
@@ -75,8 +94,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.modifiedKeyPrefsTitle "Wažne změnjone nastajenja">
 <!ENTITY aboutSupport.modifiedPrefsName "Mě">
 <!ENTITY aboutSupport.modifiedPrefsValue "Gódnota">
-<!-- LOCALIZATION NOTE (aboutSupport.userJSTitle, aboutSupport.userJSDescription): user.js is the name of the preference override file being checked. -->
 
+<!-- LOCALIZATION NOTE (aboutSupport.userJSTitle, aboutSupport.userJSDescription): user.js is the name of the preference override file being checked. -->
 <!ENTITY aboutSupport.userJSTitle "Nastajenja w user.js">
 <!ENTITY aboutSupport.userJSDescription "Waš profilowy zarědnik wopśimujo <a id='prefs-user-js-link'>dataju user.js</a>, kótaraž wopśimujo nastajenja, kótarež njejsu se pśez &brandShortName; napórali.">
 
@@ -86,7 +105,7 @@ variant of aboutSupport.showDir.label. -->
 
 <!ENTITY aboutSupport.graphicsTitle "Grafika">
 
-<!ENTITY aboutSupport.placeDatabaseTitle "Datowa banka Places">
+<!ENTITY aboutSupport.placeDatabaseTitle "Datowa banka historije a cytańskich znamjenjow">
 <!ENTITY aboutSupport.placeDatabaseIntegrity "Integrita">
 <!ENTITY aboutSupport.placeDatabaseVerifyIntegrity "Integritu pśeglědowaś">
 
@@ -96,6 +115,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "Pśistupnosć">
 <!ENTITY aboutSupport.a11yActivated "Aktiwěrowany">
 <!ENTITY aboutSupport.a11yForceDisabled "Bźezbarjernosći zajźowaś">
+<!ENTITY aboutSupport.a11yHandlerUsed "Pśistupny handler wužyty">
+<!ENTITY aboutSupport.a11yInstantiator "Instancěrowak bźezbariernosći">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Bibliotekowe wersije">
 
@@ -106,6 +127,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Gropne daty do mjazywótkłada kopěrowaś">
 
 <!ENTITY aboutSupport.sandboxTitle "Pěskowy kašćik">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Wótpokazane systemowe wołanja">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "Pśed sekundami">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Procesowy typ">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Syscall">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Argumenty">
 
 <!ENTITY aboutSupport.safeModeTitle "Wěsty modus wopytaś">
 <!ENTITY aboutSupport.restartInSafeMode.label "Ze znjemóžnjonymi dodankami znowego startowaś…">
@@ -118,3 +147,26 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Protokol rozsuźenja">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Funkcije, kótarež su se wót wowaleńskego stražnika znjemóžnili">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Nuzowe rozwězanja">
+
+<!ENTITY aboutSupport.mediaTitle "Medije">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Wudawańske rědy">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Zapódawańske rědy">
+<!ENTITY aboutSupport.mediaDeviceName "Mě">
+<!ENTITY aboutSupport.mediaDeviceGroup "Kupka">
+<!ENTITY aboutSupport.mediaDeviceVendor "Pśedawaŕ">
+<!ENTITY aboutSupport.mediaDeviceState "Status">
+<!ENTITY aboutSupport.mediaDevicePreferred "Preferěrowany">
+<!ENTITY aboutSupport.mediaDeviceFormat "Format">
+<!ENTITY aboutSupport.mediaDeviceChannels "Kanale">
+<!ENTITY aboutSupport.mediaDeviceRate "Rata">
+<!ENTITY aboutSupport.mediaDeviceLatency "Latenca">
+
+<!ENTITY aboutSupport.intlTitle "Internacionalizacija a lokalizacija">
+<!ENTITY aboutSupport.intlAppTitle "Nastajenja nałoženja">
+<!ENTITY aboutSupport.intlLocalesRequested "Pominane rěcy">
+<!ENTITY aboutSupport.intlLocalesAvailable "K dispoziciji stojece rěcy">
+<!ENTITY aboutSupport.intlLocalesSupported "Rěcy nałoženja">
+<!ENTITY aboutSupport.intlLocalesDefault "Standardna rěc">
+<!ENTITY aboutSupport.intlOSTitle "Źěłowy system">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Systemowe rěcy">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regionalne nastajenja">

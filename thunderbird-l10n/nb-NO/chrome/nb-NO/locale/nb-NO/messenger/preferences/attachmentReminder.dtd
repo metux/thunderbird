@@ -4,14 +4,9 @@
 
 <!ENTITY attachmentReminderDialog.title   "Nøkkelord for vedleggspåminnelse">
 <!ENTITY attachKeywordText.label          "&brandShortName; advarer deg om manglende vedlegg dersom du sender en e-post som inneholder et av disse nøkkelordene.">
-
-
-
-
+<!ENTITY newKeywordButton.label           "Ny…">
+<!ENTITY newKeywordButton.accesskey       "N">
+<!ENTITY editKeywordButton1.label         "Rediger …">
+<!ENTITY editKeywordButton1.accesskey     "R">
 <!ENTITY removeKeywordButton.label        "Slett">
 <!ENTITY removeKeywordButton.accesskey    "S">
-
-<!ENTITY editKeywordButton1.accesskey     "E">
-<!ENTITY editKeywordButton1.label         "Edit…">
-<!ENTITY newKeywordButton.accesskey       "N">
-<!ENTITY newKeywordButton.label           "New…">

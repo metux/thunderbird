@@ -3,6 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!-- LOCALIZATION NOTE (tapToPlayPlugin): Mobile (used for touch interfaces) only has one type of plugin possible. -->
+<!ENTITY pluginActivationWarning                             "此網站使用了可能會使 &brandShortName; 運作緩慢的外掛程式。">
 <!ENTITY tapToPlayPlugin                                     "點此處啟用外掛程式。">
 <!ENTITY clickToActivatePlugin                               "啟用外掛程式。">
 <!ENTITY checkForUpdates                                     "檢查更新…">
@@ -29,3 +30,4 @@
 <!ENTITY plugin.file                                         "檔案">
 <!ENTITY plugin.mimeTypes                                    "MIME 類型">
 <!ENTITY plugin.flashProtectedMode.label                     "開啟 Adobe Flash 的保護模式">
+<!ENTITY plugin.enableBlocklists.label                       "封鎖危險或惱人的 Flash 內容">

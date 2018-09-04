@@ -2,34 +2,22 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<!ENTITY dialogTitle                  "Remove Account and Data">
-<!ENTITY progressFailure              "Removal failed.">
-<!ENTITY progressPending              "Removing selected data…">
-<!ENTITY progressSuccess              "Removal succeeded.">
+<!ENTITY dialogTitle                  "Șterge contul și datele">
+<!ENTITY removeButton.label           "Șterge">
+<!ENTITY removeAccount.label          "Șterge informațiile contului">
 <!ENTITY removeAccount.accesskey      "a">
-<!ENTITY removeAccount.desc           "Removes only &brandShortName;'s knowledge of this account. Does not affect the account itself on the server.">
-<!ENTITY removeAccount.label          "Remove account information">
+<!ENTITY removeAccount.desc           "Elimină doar ceea ce &brandShortName; știe despre acest cont. Nu va fi afectat contul în sine de pe server.">
+<!ENTITY removeData.label             "Șterge datele despre mesaje">
+<!ENTITY removeDataChat.label         "Șterge datele despre conversații">
+<!ENTITY removeDataLocalAccount.desc  "Toate mesajele, dosarele și filtrele asociate acestui cont vor fi șterse de pe discul local. Acest lucru nu afectează anumite mesaje care pot fi păstrate în continuare pe server. Nu alegeți această opțiune dacă aveți de gând să arhivați datele locale sau să le refolosiți în &brandShortName; mai târziu.">
+<!ENTITY removeDataServerAccount.desc "Toate mesajele, dosarele și filtrele asociate acestui cont vor fi șterse de pe discul local. Mesajele și dosarele vor fi în continuare păstrate pe server.">
+<!ENTITY removeDataChatAccount.desc   "Toate jurnalele de conversații stocate pentru acest cont de pe discul local vor fi șterse.">
+<!ENTITY showData.label               "Arată locația datelor">
+<!ENTITY progressPending              "Se șterg datele selectate…">
+<!ENTITY progressSuccess              "Ștergerea s-a efectuat cu succes.">
+<!ENTITY progressFailure              "Ștergerea a eșuat.">
+
 <!ENTITY removeButton.accesskey       "R">
-<!ENTITY removeButton.label           "Remove">
 <!ENTITY removeData.accesskey         "d">
-<!ENTITY removeData.label             "Remove message data">
-<!ENTITY removeDataLocalAccount.desc  "Removes all messages, folders and filters associated with this account from your local disk. This does not affect some messages which may still be kept on the server. Do not choose this if you plan to archive the local data or re-use it in &brandShortName; later.">
-<!ENTITY removeDataServerAccount.desc "Removes all messages, folders and filters associated with this account from your local disk. Your messages and folders are still kept on the server.">
+<!ENTITY removeDataChat.accesskey     "d">
 <!ENTITY showData.accesskey           "S">
-<!ENTITY showData.label               "Show data location">

@@ -2,15 +2,15 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY  intro2.label                "Du har valt å opna:">
+<!ENTITY  intro2.label                "Du har valt å opne:">
 <!ENTITY  from.label                  "Frå:">
-<!ENTITY  actionQuestion.label        "Kva skal &brandShortName; gjera med denne fila?">
+<!ENTITY  actionQuestion.label        "Kva skal &brandShortName; gjere med denne fila?">
 
-<!ENTITY  openWith.label              "Opna med">
+<!ENTITY  openWith.label              "Opne med">
 <!ENTITY  openWith.accesskey          "O">
-<!ENTITY  other.label                 "Andre …">
+<!ENTITY  other.label                 "Andre…">
 
-<!ENTITY  saveFile.label              "Lagre fil">
+<!ENTITY  saveFile.label              "Lagre fila">
 <!ENTITY  saveFile.accesskey          "L">
 
 <!ENTITY  rememberChoice.label        "Gjer dette automatisk frå no av.">
@@ -20,7 +20,7 @@
 
 <!ENTITY  chooseHandlerMac.label      "Vel…">
 <!ENTITY  chooseHandlerMac.accesskey  "V">
-<!ENTITY  chooseHandler.label         "Bla gjennom …">
+<!ENTITY  chooseHandler.label         "Bla gjennom…">
 <!ENTITY  chooseHandler.accesskey     "B">
 
-<!ENTITY  unknownPromptText.label     "Vil du lagra denne fila?">
+<!ENTITY  unknownPromptText.label     "Vil du lagre denne fila?">

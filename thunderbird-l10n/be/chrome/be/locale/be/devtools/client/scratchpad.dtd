@@ -22,77 +22,77 @@
   -  "simple discardable text editor". -->
 <!ENTITY window.title                 "Scratchpad">
 
-<!ENTITY fileMenu.label               "File">
-<!ENTITY fileMenu.accesskey           "F">
+<!ENTITY fileMenu.label               "Файл">
+<!ENTITY fileMenu.accesskey           "Ф">
 
-<!ENTITY newWindowCmd.label           "New Window">
-<!ENTITY newWindowCmd.accesskey       "N">
+<!ENTITY newWindowCmd.label           "Новае акно">
+<!ENTITY newWindowCmd.accesskey       "Н">
 <!ENTITY newWindowCmd.commandkey      "n">
 
-<!ENTITY openFileCmd.label            "Open File…">
-<!ENTITY openFileCmd.accesskey        "O">
+<!ENTITY openFileCmd.label            "Адкрыць файл…">
+<!ENTITY openFileCmd.accesskey        "ч">
 <!ENTITY openFileCmd.commandkey       "o">
 
-<!ENTITY openRecentMenu.label         "Open Recent">
-<!ENTITY openRecentMenu.accesskey     "R">
+<!ENTITY openRecentMenu.label         "Адкрыць нядаўнія">
+<!ENTITY openRecentMenu.accesskey     "н">
 
-<!ENTITY revertCmd.label              "Revert…">
-<!ENTITY revertCmd.accesskey          "t">
+<!ENTITY revertCmd.label              "Вярнуць…">
+<!ENTITY revertCmd.accesskey          "В">
 
-<!ENTITY saveFileCmd.label            "Save">
-<!ENTITY saveFileCmd.accesskey        "S">
+<!ENTITY saveFileCmd.label            "Захаваць">
+<!ENTITY saveFileCmd.accesskey        "З">
 <!ENTITY saveFileCmd.commandkey       "s">
 
-<!ENTITY saveFileAsCmd.label          "Save As…">
-<!ENTITY saveFileAsCmd.accesskey      "A">
+<!ENTITY saveFileAsCmd.label          "Захаваць як…">
+<!ENTITY saveFileAsCmd.accesskey      "я">
 
-<!ENTITY closeCmd.label               "Close">
+<!ENTITY closeCmd.label               "Закрыць">
 <!ENTITY closeCmd.key                 "W">
-<!ENTITY closeCmd.accesskey           "C">
+<!ENTITY closeCmd.accesskey           "ы">
 
-<!ENTITY viewMenu.label               "View">
-<!ENTITY viewMenu.accesskey           "V">
+<!ENTITY viewMenu.label               "Прагляд">
+<!ENTITY viewMenu.accesskey           "г">
 
-<!ENTITY lineNumbers.label             "Show Line Numbers">
-<!ENTITY lineNumbers.accesskey         "L">
+<!ENTITY lineNumbers.label             "Паказваць нумары радкоў">
+<!ENTITY lineNumbers.accesskey         "н">
 
-<!ENTITY wordWrap.label                "Wrap Text">
-<!ENTITY wordWrap.accesskey            "W">
+<!ENTITY wordWrap.label                "Загінаць тэкст">
+<!ENTITY wordWrap.accesskey            "г">
 
-<!ENTITY highlightTrailingSpace.label     "Highlight Trailing Space">
-<!ENTITY highlightTrailingSpace.accesskey "H">
+<!ENTITY highlightTrailingSpace.label     "Падфарбоўваць канчатковыя прагалы">
+<!ENTITY highlightTrailingSpace.accesskey "ф">
 
-<!ENTITY largerFont.label             "Larger Font">
-<!ENTITY largerFont.accesskey         "a">
+<!ENTITY largerFont.label             "Большы шрыфт">
+<!ENTITY largerFont.accesskey         "Б">
 <!ENTITY largerFont.commandkey        "+">
 <!ENTITY largerFont.commandkey2       "="> <!-- + is above this key on many keyboards -->
 
-<!ENTITY smallerFont.label            "Smaller Font">
-<!ENTITY smallerFont.accesskey        "M">
+<!ENTITY smallerFont.label            "Меншы шрыфт">
+<!ENTITY smallerFont.accesskey        "М">
 <!ENTITY smallerFont.commandkey       "-">
 
-<!ENTITY normalSize.label             "Normal Size">
-<!ENTITY normalSize.accesskey         "N">
+<!ENTITY normalSize.label             "Звычайны памер">
+<!ENTITY normalSize.accesskey         "З">
 <!ENTITY normalSize.commandkey        "0">
 
-<!ENTITY editMenu.label               "Edit">
-<!ENTITY editMenu.accesskey           "E">
+<!ENTITY editMenu.label               "Праўка">
+<!ENTITY editMenu.accesskey           "П">
 
-<!ENTITY run.label                    "Run">
-<!ENTITY run.accesskey                "R">
+<!ENTITY run.label                    "Выканаць">
+<!ENTITY run.accesskey                "к">
 <!ENTITY run.key                      "r">
 
-<!ENTITY inspect.label                "Inspect">
-<!ENTITY inspect.accesskey            "I">
+<!ENTITY inspect.label                "Даследаваць">
+<!ENTITY inspect.accesskey            "Д">
 <!ENTITY inspect.key                  "i">
 
-<!ENTITY display.label                "Display">
-<!ENTITY display.accesskey            "D">
+<!ENTITY display.label                "Адлюстраваць">
+<!ENTITY display.accesskey            "ю">
 <!ENTITY display.key                  "l">
 
-<!ENTITY pprint.label                 "Pretty Print">
+<!ENTITY pprint.label                 "Прывабны друк">
 <!ENTITY pprint.key                   "p">
-<!ENTITY pprint.accesskey             "P">
+<!ENTITY pprint.accesskey             "в">
 
 <!-- LOCALIZATION NOTE (environmentMenu.label, accesskey): This menu item was
   -  renamed from "Context" to avoid confusion with the right-click context
@@ -100,12 +100,12 @@
   -  the user is evaluating against. I.e., Content (current tab) or Chrome
   -  (browser).
   -->
-<!ENTITY environmentMenu.label        "Environment">
-<!ENTITY environmentMenu.accesskey    "N">
+<!ENTITY environmentMenu.label        "Асяроддзе">
+<!ENTITY environmentMenu.accesskey    "А">
 
 
-<!ENTITY contentContext.label         "Content">
-<!ENTITY contentContext.accesskey     "C">
+<!ENTITY contentContext.label         "Змесціва">
+<!ENTITY contentContext.accesskey     "З">
 
 <!-- LOCALIZATION NOTE (browserContext.label, accesskey): This menu item is used
   -  to select an execution environment for the browser window itself as opposed
@@ -113,33 +113,33 @@
   -  enabled via the devtools.chrome.enabled preference. Formerly, this label
   -  was called "Chrome".
   -->
-<!ENTITY browserContext.label         "Browser">
-<!ENTITY browserContext.accesskey     "B">
+<!ENTITY browserContext.label         "Браўзер">
+<!ENTITY browserContext.accesskey     "А">
 
 <!-- LOCALIZATION NOTE some localizations of Windows (ex:french, german) use "?"
   -  for the help button in the menubar but Gnome does not.
   -->
-<!ENTITY helpMenu.label               "Help">
-<!ENTITY helpMenu.accesskey           "H">
-<!ENTITY helpMenuWin.label            "Help">
-<!ENTITY helpMenuWin.accesskey        "H">
+<!ENTITY helpMenu.label               "Даведка">
+<!ENTITY helpMenu.accesskey           "Д">
+<!ENTITY helpMenuWin.label            "Даведка">
+<!ENTITY helpMenuWin.accesskey        "Д">
 
-<!ENTITY documentationLink.label      "Scratchpad Help on MDN">
-<!ENTITY documentationLink.accesskey  "D">
+<!ENTITY documentationLink.label      "Даведка Scratchpad на MDN">
+<!ENTITY documentationLink.accesskey  "M">
 
 
 <!-- LOCALIZATION NOTE (resetContext2.label): This command allows the developer
   -  to reset/clear the global object of the environment where the code executes.
   -->
-<!ENTITY resetContext2.label          "Reset Variables">
-<!ENTITY resetContext2.accesskey      "T">
+<!ENTITY resetContext2.label          "Узнавіць зменныя">
+<!ENTITY resetContext2.accesskey      "У">
 
-<!ENTITY reloadAndRun.label           "Reload And Run">
-<!ENTITY reloadAndRun.accesskey       "E">
+<!ENTITY reloadAndRun.label           "Перазагрузіць і выканаць">
+<!ENTITY reloadAndRun.accesskey       "г">
 <!ENTITY reloadAndRun.key             "r">
 
-<!ENTITY executeMenu.label            "Execute">
-<!ENTITY executeMenu.accesskey        "X">
+<!ENTITY executeMenu.label            "Выканаць">
+<!ENTITY executeMenu.accesskey        "В">
 
 <!-- LOCALIZATION NOTE (errorConsoleCmd.commandkey): This command key launches
   -  the browser Error Console, the key should be identical to the property of
@@ -150,6 +150,6 @@
 <!-- LOCALIZATION NOTE (evalFunction.label): This command allows the developer
   -  to evaluate the top-level function that the cursor is currently at.
   -->
-<!ENTITY evalFunction.label "Evaluate Current Function">
-<!ENTITY evalFunction.accesskey "v">
+<!ENTITY evalFunction.label "Ацаніць функцыю">
+<!ENTITY evalFunction.accesskey "ц">
 <!ENTITY evalFunction.key "e">

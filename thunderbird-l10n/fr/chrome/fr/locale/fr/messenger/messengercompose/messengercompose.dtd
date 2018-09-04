@@ -5,7 +5,7 @@
 <!--LOCALIZATION NOTE messengercompose.dtd Main UI for message composition -->
 <!ENTITY msgComposeWindow.title "Rédaction du message">
 
-<!-- File menu -->
+<!-- File Menu -->
 <!ENTITY fileMenu.label "Fichier">
 <!ENTITY fileMenu.accesskey "F">
 <!ENTITY newMenu.label "Nouveau">
@@ -25,7 +25,7 @@
 <!ENTITY attachCloudCmd.accesskey "E">
 <!ENTITY attachPageCmd.label "Page web…">
 <!ENTITY attachPageCmd.accesskey "W">
-<!--LOCALIZATION NOTE attachVCardCmd.label Don't translate the term 'vCard’ -->
+<!--LOCALIZATION NOTE attachVCardCmd.label Don't translate the term 'vCard' -->
 <!ENTITY attachVCardCmd.label "Carte de visite (vCard)">
 <!ENTITY attachVCardCmd.accesskey "C">
 <!ENTITY remindLater.label "Me le rappeler plus tard">
@@ -58,7 +58,7 @@
 <!ENTITY printCmd.key "P">
 <!ENTITY printCmd.accesskey "P">
 
-<!-- Edit menu -->
+<!-- Edit Menu -->
 <!ENTITY editMenu.label "Édition">
 <!ENTITY editMenu.accesskey "n">
 <!ENTITY undoCmd.label "Annuler">
@@ -78,15 +78,27 @@
 <!ENTITY pasteCmd.accesskey "o">
 <!ENTITY pasteNoFormattingCmd.key "V">
 <!ENTITY pasteAsQuotationCmd.key "o">
+<!ENTITY editRewrapCmd.accesskey "o">
 <!ENTITY deleteCmd.label "Supprimer">
 <!ENTITY deleteCmd.accesskey "e">
 <!ENTITY editRewrapCmd.label "Reformater">
 <!ENTITY editRewrapCmd.key "R">
-<!ENTITY editRewrapCmd.accesskey  "o">
-<!ENTITY removeAttachment.label "Supprimer la pièce jointe">
-<!ENTITY removeAttachment.accesskey "j">
 <!ENTITY renameAttachmentCmd.label "Renommer la pièce jointe…">
-<!ENTITY renameAttachmentCmd.accesskey "R">
+<!ENTITY renameAttachmentCmd.accesskey "n">
+<!ENTITY reorderAttachmentsCmd.label "Réorganiser les pièces jointes…">
+<!ENTITY reorderAttachmentsCmd.accesskey "a">
+<!ENTITY reorderAttachmentsCmd.key "x">
+<!ENTITY toggleAttachmentPaneCmd.label "Panneau des pièces jointes">
+<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.accesskey):
+     For better mnemonics, toggleAttachmentPaneCmd.accesskey should be the same
+     as attachments.accesskey. -->
+<!ENTITY toggleAttachmentPaneCmd.accesskey "j">
+<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.key):
+     With OS-specific access modifier, this defines the shortcut key for showing/
+     hiding/minimizing the attachment pane, e.g. Alt+M on Windows.
+     toggleAttachmentPaneCmd.key and attachments.accesskey must be the same
+     for the bucket view state machinery to work. -->
+<!ENTITY toggleAttachmentPaneCmd.key "j">
 <!ENTITY selectAllCmd.label "Tout sélectionner">
 <!ENTITY selectAllCmd.key "A">
 <!ENTITY selectAllCmd.accesskey "T">
@@ -105,7 +117,27 @@
 <!ENTITY findPrevCmd.key "G">
 <!ENTITY findPrevCmd.key2 "VK_F3">
 
-<!-- View menu -->
+<!-- Reorder Attachment Panel -->
+<!ENTITY reorderAttachmentsPanel.label "Réorganiser les pièces jointes">
+<!ENTITY moveAttachmentTopPanelBtn.label "Déplacer tout en haut">
+<!ENTITY moveAttachmentUpPanelBtn.label "Déplacer vers le haut">
+<!ENTITY moveAttachmentBundleUpPanelBtn.label "Déplacer l’ensemble">
+<!ENTITY moveAttachmentDownPanelBtn.label "Déplacer vers le bas">
+<!ENTITY moveAttachmentBottomPanelBtn.label "Déplacer tout en bas">
+
+<!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.Sort.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsPanelBtn.Sort.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsPanelBtn.Sort.AZ.label "Trier : A - Z">
+<!ENTITY sortAttachmentsPanelBtn.Sort.ZA.label "Trier : Z - A">
+<!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.SortSelection.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsPanelBtn.SortSelection.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.AZ.label "Trier la sélection : A - Z">
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.ZA.label "Trier la sélection : Z - A">
+<!ENTITY sortAttachmentsPanelBtn.key "y">
+
+<!-- View Menu -->
 <!ENTITY viewMenu.label "Affichage">
 <!ENTITY viewMenu.accesskey "A">
 <!ENTITY viewToolbarsMenuNew.label "Barres d’outils">
@@ -124,11 +156,11 @@
 <!ENTITY addressSidebar.label "Barre des contacts">
 <!ENTITY addressSidebar.accesskey "o">
 
-<!-- Format menu -->
+<!-- Format Menu -->
 <!ENTITY formatMenu.label "Format">
 <!ENTITY formatMenu.accesskey "m">
 
-<!-- Options menu -->
+<!-- Options Menu -->
 <!ENTITY optionsMenu.label "Options">
 <!ENTITY optionsMenu.accesskey "O">
 <!ENTITY checkSpellingCmd2.label "Vérifier l’orthographe…">
@@ -140,7 +172,7 @@
 <!ENTITY quoteCmd.label "Citer le message">
 <!ENTITY quoteCmd.accesskey "m">
 
-<!--LOCALIZATION NOTE attachVCard.label Don't translate the term 'vCard’ -->
+<!--LOCALIZATION NOTE attachVCard.label Don't translate the term 'vCard' -->
 <!ENTITY attachVCard.label "Carte de visite (vCard)">
 <!ENTITY attachVCard.accesskey "C">
 
@@ -216,8 +248,8 @@
 <!ENTITY quoteButton.tooltip "Citer le précédent message">
 <!ENTITY addressButton.tooltip "Sélectionner un destinataire du carnet d’adresses">
 <!ENTITY attachButton.tooltip "Inclure une pièce jointe">
+<!ENTITY attachButton.tooltip2 "Ajouter une pièce jointe">
 <!ENTITY spellingButton.tooltip "Vérifier l’orthographe de la sélection ou du message complet">
-<!ENTITY statusLanguageText.tooltip "Langue de la vérification orthographique">
 <!ENTITY saveButton.tooltip "Enregistrer ce message">
 <!ENTITY cutButton.tooltip              "Couper">
 <!ENTITY copyButton.tooltip             "Copier">
@@ -236,11 +268,16 @@
 <!ENTITY replyAddr.label "Répondre à :">
 <!ENTITY newsgroupsAddr.label "Groupe :">
 <!ENTITY followupAddr.label "Faire suivre à :">
-<!ENTITY subject.label  "Sujet :">
+<!ENTITY subject.label "Sujet :">
 <!ENTITY subject.accesskey "S">
-<!-- LOCALIZATION NOTE attachments.accesskey This access key should correspond
-     to the strings in attachmentCount in composeMsgs.properties -->
+<!-- LOCALIZATION NOTE (attachments.accesskey) This access key character should
+     be taken from the strings in attachmentCount in composeMsgs.properties,
+     and it must be the same as toggleAttachmentPaneCmd.key, otherwise it won't
+     work, as the shortcut key functionality supersedes the access key. -->
 <!ENTITY attachments.accesskey "j">
+
+<!ENTITY attachmentBucketHeader.tooltip "Panneau des pièces jointes">
+<!ENTITY attachmentBucketCloseButton.tooltip "Masquer le panneau des pièces jointes">
 
 <!-- Format Toolbar, imported from editorAppShell.xul -->
 <!ENTITY SmileButton.tooltip "Insérer une émoticône">
@@ -278,12 +315,19 @@
 <!ENTITY pasteQuote.label "Coller comme citation">
 <!ENTITY pasteQuote.accesskey "i">
 
+<!-- Attachment Item and List Context Menus -->
 <!ENTITY openAttachment.label "Ouvrir">
 <!ENTITY openAttachment.accesskey "O">
 <!ENTITY delete.label "Supprimer">
 <!ENTITY delete.accesskey "E">
+<!ENTITY removeAttachment.label "Supprimer la pièce jointe">
+<!ENTITY removeAttachment.accesskey "j">
 <!ENTITY renameAttachment.label "Renommer…">
 <!ENTITY renameAttachment.accesskey "R">
+<!ENTITY reorderAttachments.label "Réorganiser les pièces jointes…">
+<!ENTITY reorderAttachments.accesskey "a">
+<!ENTITY removeAllAttachments.label "Supprimer toutes les pièces jointes">
+<!ENTITY removeAllAttachments.accesskey "s">
 <!ENTITY selectAll.label "Tout sélectionner">
 <!ENTITY selectAll.accesskey "t">
 <!ENTITY attachFile.label "Joindre fichier(s)…">
@@ -299,6 +343,13 @@
 <!ENTITY attachPage.label "Joindre une page web…">
 <!ENTITY attachPage.accesskey "W">
 
+<!-- Attachment Pane Header Bar Context Menu -->
+<!-- LOCALIZATION NOTE (initiallyShowAttachmentPane.label):
+     Should use the same wording as startExpandedCmd.label
+     in msgHdrViewOverlay.dtd. -->
+<!ENTITY initiallyShowAttachmentPane.label "Afficher par défaut le panneau des pièces jointes">
+<!ENTITY initiallyShowAttachmentPane.accesskey "A">
+
 <!-- Spell checker context menu items -->
 <!ENTITY spellAddDictionaries.label "Ajouter des dictionnaires…">
 <!ENTITY spellAddDictionaries.accesskey "A">
@@ -309,3 +360,7 @@
 <!-- Identity popup customize menuitem -->
 <!ENTITY customizeFromAddress.label "Personnaliser l’adresse d’expédition…">
 <!ENTITY customizeFromAddress.accesskey "x">
+
+<!-- Status Bar -->
+<!ENTITY languageStatusButton.tooltip "Langue de la vérification orthographique">
+<!ENTITY encodingStatusPanel.tooltip "Encodage du texte">

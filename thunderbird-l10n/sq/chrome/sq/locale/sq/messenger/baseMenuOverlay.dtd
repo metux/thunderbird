@@ -9,19 +9,24 @@
                        for the help button in the menubar but Gnome does not.   -->
 <!ENTITY helpMenuWin.label "Ndihmë">
 <!ENTITY helpMenuWin.accesskey "N">
-<!ENTITY helpTroubleshootingInfo.label     "Të dhëna diagnostikimi">
+<!ENTITY helpTroubleshootingInfo.label     "Të dhëna Diagnostikimi">
 <!ENTITY helpTroubleshootingInfo.accesskey "T">
-<!ENTITY helpSafeMode.label     "Riniseni me Shtesa të Çaktivizuara…">
+<!ENTITY helpSafeMode.label     "Riniseni me Shtesat të Çaktivizuara…">
 <!ENTITY helpSafeMode.accesskey "R">
 <!ENTITY releaseCmd2.label "Shënime Versioni">
 <!ENTITY releaseCmd2.accesskey "S">
+<!ENTITY whatsNewCmd.label "Ç’ka të Re">
+<!ENTITY whatsNewCmd.accesskey "Ç">
 <!ENTITY openHelp.label "Lëndë Ndihme">
 <!ENTITY openHelp.accesskey "L">
 <!ENTITY openHelp.commandkey "VK_F1">
 <!ENTITY openHelpMac.label "Ndihmë për &brandShortName;-in">
+<!ENTITY openHelpMac2.label "Ndihmë për &brandFullName;-in">
 <!ENTITY openHelpMac2.commandkey   "?">
 <!ENTITY openHelpMac2.modifiers    "accel">
-<!ENTITY whatsNewCmd.label "Ç’ka të Re">
-<!ENTITY whatsNewCmd.accesskey "Ç">
+
 <!ENTITY aboutMenuCmd.label "Mbi &brandShortName;-in">
 <!ENTITY aboutMenuCmd.accesskey "M">
+
+<!ENTITY aboutMenuCmd2.label "Mbi &brandFullName;-in">
+<!ENTITY aboutMenuCmd2.accesskey "M">

@@ -4,8 +4,9 @@
 
 <!ENTITY closeNotification.tooltip "Затваряне на съобщението">
 
-<!ENTITY closeNotificationItem.label "Не сега">
-
-<!ENTITY checkForUpdates "Проверка за обновявания…">
+<!ENTITY checkForUpdates "Проверка за обновяване…">
 
 <!ENTITY learnMore "Научете повече…">
+
+<!ENTITY defaultButton.label "Добре">
+<!ENTITY defaultButton.accesskey "Д">

@@ -17,6 +17,8 @@
 <!ENTITY regularSize.label                "רגיל">
 <!ENTITY bigger.label                     "גדול יותר">
 <!ENTITY smaller.label                    "קטן יותר">
+<!ENTITY quotedTextColor.label            "צבע:">
+<!ENTITY quotedTextColor.accesskey        "ב">
 <!ENTITY displayWidth.label               "הודעות טקסט פשוט">
 <!ENTITY displayText.label                "בעת הצגת הודעות טקסט פשוט מצוטט:">
 
@@ -26,57 +28,46 @@
 
 <!-- labels -->
 <!ENTITY displayTagsText.label     "תוויות משמשות לחלוקה לקטגוריות ותיעדוף ההודעות שלך.">
+<!ENTITY newTagButton.label        "חדש…">
+<!ENTITY newTagButton.accesskey    "ח">
+<!ENTITY editTagButton1.label      "עריכה…">
+<!ENTITY editTagButton1.accesskey  "ע">
 <!ENTITY removeTagButton.label     "מחק">
 <!ENTITY removeTagButton.accesskey "מ">
 
 <!-- Fonts and Colors -->
+<!ENTITY fontsAndColors1.label   "גופנים וצבעים">
 <!ENTITY defaultFont.label       "גופן ברירת מחדל:">
 <!ENTITY defaultFont.accesskey   "ב">
 <!ENTITY defaultSize.label       "גודל:">
 <!ENTITY defaultSize.accesskey   "ג">
 <!ENTITY fontOptions.accesskey   "מ">
 <!ENTITY fontOptions.label       "מתקדם…">
+<!ENTITY colorButton.label       "צבעים…">
+<!ENTITY colorButton.accesskey   "צ">
 
 <!-- Advanced -->
+<!ENTITY reading.caption                  "קריאה">
+<!ENTITY display.caption                  "תצוגה">
+<!ENTITY showCondensedAddresses.label     "הצגת שמות תצוגה בלבד עבור אנשים בפנקס הכתובת שלי">
+<!ENTITY showCondensedAddresses.accesskey "צ">
 
+<!ENTITY autoMarkAsRead.label             "סימון הודעות כנקראו אוטומטית">
+<!ENTITY autoMarkAsRead.accesskey         "ק">
+<!ENTITY markAsReadNoDelay.label          "מיד עם ההצגה">
+<!ENTITY markAsReadNoDelay.accesskey      "מ">
 <!-- LOCALIZATION NOTE (markAsReadDelay.label): This will concatenate to
      "After displaying for [___] seconds",
      using (markAsReadDelay.label) and a number (secondsLabel.label). -->
-
-<!ENTITY autoMarkAsRead.accesskey         "A">
-
-<!ENTITY autoMarkAsRead.label             "Automatically mark messages as read">
-<!ENTITY closeMsgOnMoveOrDelete.accesskey "C">
-<!ENTITY closeMsgOnMoveOrDelete.label     "Close message window/tab on move or delete">
-<!ENTITY colorButton.accesskey   "C">
-<!ENTITY colorButton.label       "Colors…">
-<!ENTITY display.caption                  "Display">
-<!ENTITY editTagButton1.accesskey  "E">
-<!ENTITY editTagButton1.label      "Edit…">
-
-<!-- Fonts and Colors -->
-<!ENTITY fontsAndColors1.label   "Fonts &amp; Colors">
-<!ENTITY markAsReadDelay.accesskey        "d">
-<!-- LOCALIZATION NOTE (markAsReadDelay.label): This will concatenate to
-     "After displaying for [___] seconds",
-     using (markAsReadDelay.label) and a number (secondsLabel.label). -->
-<!ENTITY markAsReadDelay.label            "After displaying for">
-<!ENTITY markAsReadNoDelay.accesskey      "o">
-<!ENTITY markAsReadNoDelay.label          "Immediately on display">
-<!ENTITY newTagButton.accesskey    "N">
-<!ENTITY newTagButton.label        "New…">
-<!ENTITY openMsgIn.label                  "Open messages in:">
-<!ENTITY openMsgInNewTab.accesskey        "t">
-<!ENTITY openMsgInNewTab.label            "A new tab">
-<!ENTITY quotedTextColor.accesskey        "o">
-<!ENTITY quotedTextColor.label            "Color:">
-
-<!-- Advanced -->
-<!ENTITY reading.caption                  "Reading">
-<!ENTITY reuseExpRadio0.accesskey         "n">
-<!ENTITY reuseExpRadio0.label             "A new message window">
-<!ENTITY reuseExpRadio1.accesskey         "e">
-<!ENTITY reuseExpRadio1.label             "An existing message window">
-<!ENTITY secondsLabel.label               "seconds">
-<!ENTITY showCondensedAddresses.accesskey "S">
-<!ENTITY showCondensedAddresses.label     "Show only display name for people in my address book">
+<!ENTITY markAsReadDelay.label            "לאחר הצגה למשך">
+<!ENTITY markAsReadDelay.accesskey        "א">
+<!ENTITY secondsLabel.label               "שניות">
+<!ENTITY openMsgIn.label                  "פתיחת הודעות בתוך:">
+<!ENTITY openMsgInNewTab.label            "לשונית חדשה">
+<!ENTITY openMsgInNewTab.accesskey        "ל">
+<!ENTITY reuseExpRadio0.label             "חלון הודעה חדש">
+<!ENTITY reuseExpRadio0.accesskey         "ח">
+<!ENTITY reuseExpRadio1.label             "חלון הודעה קיים">
+<!ENTITY reuseExpRadio1.accesskey         "ק">
+<!ENTITY closeMsgOnMoveOrDelete.label     "לסגור את חלון/לשונית ההודעה בעת העברה או מחיקה">
+<!ENTITY closeMsgOnMoveOrDelete.accesskey "ס">

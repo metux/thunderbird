@@ -62,3 +62,9 @@
 <!ENTITY insecureUnencrypted.description "Les tos credenciales y corréu únviense ensin cifrar, polo que la to contraseña (y el mensaxe) puen lleese cenciellamente por otres persones. &brandShortName; va permitite acceder al corréu, pero tendríes de contautar col to fornidor de corréu-e pa configurar el sirvidor con una conexón segura.">
 <!ENTITY insecureSelfSigned.description "El sirvidor usa un certificáu nel que nun se pue confiar, polo que nun ye dable asegurar que nun hai naide interceutando'l tráficu ente &brandShortName; y el sirvidor. &brandShortName; va permitite acceder al corréu, pero tendríes de facer que'l to fornidor de corréu-e configure'l sirvidor con un certificáu confiable.">
 <!ENTITY secureServer.description "¡Felicidaes! Esti sirvidor ye seguru.">
+
+<!ENTITY autoconfigWizard2.title         "Set Up an Existing Email Account">
+<!ENTITY email2.placeholder              "you@example.com">
+<!ENTITY email.text                      "Your existing email address">
+<!ENTITY open-provisioner.label          "Get a new email address…">
+<!ENTITY open-provisioner.accesskey      "g">

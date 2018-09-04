@@ -14,7 +14,7 @@
 <!ENTITY aboutNetworking.autoRefresh           "Athnuaigh gach 3 shoicind">
 <!ENTITY aboutNetworking.hostname              "Óstainm">
 <!ENTITY aboutNetworking.port                  "Port">
-<!ENTITY aboutNetworking.spdy                  "SPDY">
+<!ENTITY aboutNetworking.http2                 "HTTP/2">
 <!ENTITY aboutNetworking.ssl                   "SSL">
 <!ENTITY aboutNetworking.active                "Gníomhach">
 <!ENTITY aboutNetworking.idle                  "Díomhaoin">
@@ -41,3 +41,24 @@
 <!ENTITY aboutNetworking.dnsLookupButton       "Réitigh">
 <!ENTITY aboutNetworking.dnsDomain             "Fearann">
 <!ENTITY aboutNetworking.dnsLookupTableColumn  "IPanna">
+<!ENTITY aboutNetworking.rcwn                  "Staitisticí RCWN">
+<!ENTITY aboutNetworking.rcwnStatus            "Stádas RCWN">
+<!ENTITY aboutNetworking.rcwnCacheWonCount     "Líon amas ón taisce">
+<!ENTITY aboutNetworking.rcwnNetWonCount       "Líon amas ón líonra">
+<!ENTITY aboutNetworking.totalNetworkRequests  "Líon iomlán iarratas líonra">
+<!ENTITY aboutNetworking.rcwnOperation         "Oibríocht na Taisce">
+<!ENTITY aboutNetworking.rcwnPerfOpen          "Oscail">
+<!ENTITY aboutNetworking.rcwnPerfRead          "Leámh">
+<!ENTITY aboutNetworking.rcwnPerfWrite         "Scríobh">
+
+
+
+
+<!ENTITY aboutNetworking.rcwnCacheSlow         "Líon amas mall ón taisce">
+<!ENTITY aboutNetworking.rcwnCacheNotSlow      "Líon amas nach mall ón taisce">
+
+<!ENTITY aboutNetworking.trr                   "TRR">
+<!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Entry Open">
+<!ENTITY aboutNetworking.rcwnAvgShort          "Short Average">
+<!ENTITY aboutNetworking.rcwnAvgLong           "Long Average">
+<!ENTITY aboutNetworking.rcwnStddevLong        "Long Standard Deviation">

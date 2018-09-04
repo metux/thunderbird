@@ -3,8 +3,8 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY aboutSupport.pageTitle "Felsökningsinformation">
-<!-- LOCALIZATION NOTE (aboutSupport.pageSubtitle): don't change the 'supportLink' id. -->
 
+<!-- LOCALIZATION NOTE (aboutSupport.pageSubtitle): don't change the 'supportLink' id. -->
 <!ENTITY aboutSupport.pageSubtitle "  Den här sidan innehåller teknisk information som kan vara till hjälp när du försöker lösa ett problem. Vill du se svaren på några av de vanligaste frågorna om &brandShortName;, kan du besöka vår <a id='supportLink'>supportwebbplats</a>.">
 
 <!ENTITY aboutSupport.crashes.title "Kraschrapporter">
@@ -21,6 +21,18 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Version">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Säkerhetsprogram">
+<!ENTITY aboutSupport.securitySoftwareType "Typ">
+<!ENTITY aboutSupport.securitySoftwareName "Namn">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispionprogram">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Brandvägg">
+
+<!ENTITY aboutSupport.featuresTitle "&brandShortName; Funktioner">
+<!ENTITY aboutSupport.featureName "Namn">
+<!ENTITY aboutSupport.featureVersion "Version">
+<!ENTITY aboutSupport.featureId "ID">
+
 <!ENTITY aboutSupport.experimentsTitle "Experimentella funktioner">
 <!ENTITY aboutSupport.experimentName "Namn">
 <!ENTITY aboutSupport.experimentId "ID">
@@ -28,15 +40,15 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.experimentActive "Aktiverad">
 <!ENTITY aboutSupport.experimentEndDate "Slutdatum">
 <!ENTITY aboutSupport.experimentHomepage "Hemsida">
-<!ENTITY aboutSupport.experimentBranch "Branch">
+<!ENTITY aboutSupport.experimentBranch "Gren">
 
 <!ENTITY aboutSupport.appBasicsTitle "Programfakta">
 <!ENTITY aboutSupport.appBasicsName "Namn">
 <!ENTITY aboutSupport.appBasicsVersion "Version">
 <!ENTITY aboutSupport.appBasicsBuildID "Versions-ID">
+
 <!-- LOCALIZATION NOTE (aboutSupport.appBasicsUpdateChannel, aboutSupport.appBasicsUpdateHistory, aboutSupport.appBasicsShowUpdateHistory):
 "Update" is a noun here, not a verb. -->
-
 <!ENTITY aboutSupport.appBasicsUpdateChannel "Uppdateringskanal">
 <!ENTITY aboutSupport.appBasicsUpdateHistory "Uppdateringshistorik">
 <!ENTITY aboutSupport.appBasicsShowUpdateHistory "Visa uppdateringshistorik">
@@ -53,13 +65,20 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsOS "OS">
 <!ENTITY aboutSupport.appBasicsMemoryUse "Minnesanvändning">
 <!ENTITY aboutSupport.appBasicsPerformance "Prestanda">
-<!-- LOCALIZATION NOTE the term "Service Workers" should not be translated. -->
 
-<!ENTITY aboutSupport.appBasicsServiceWorkers "Registrerade  Service Workers">
+<!-- LOCALIZATION NOTE the term "Service Workers" should not be translated. -->
+<!ENTITY aboutSupport.appBasicsServiceWorkers "Registrerade Service Workers">
 
 <!ENTITY aboutSupport.appBasicsProfiles "Profiler">
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Multiprocess fönster">
+
+<!ENTITY aboutSupport.appBasicsProcessCount "Webbinnehållsprocesser">
+
+<!ENTITY aboutSupport.enterprisePolicies "Företagspolicyer">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Google-nyckel">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Mozilla Location Service-nyckel">
 
 <!ENTITY aboutSupport.appBasicsSafeMode "Felsäkert läge">
 
@@ -75,8 +94,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.modifiedKeyPrefsTitle "Viktiga ändrade inställningar">
 <!ENTITY aboutSupport.modifiedPrefsName "Namn">
 <!ENTITY aboutSupport.modifiedPrefsValue "Värde">
-<!-- LOCALIZATION NOTE (aboutSupport.userJSTitle, aboutSupport.userJSDescription): user.js is the name of the preference override file being checked. -->
 
+<!-- LOCALIZATION NOTE (aboutSupport.userJSTitle, aboutSupport.userJSDescription): user.js is the name of the preference override file being checked. -->
 <!ENTITY aboutSupport.userJSTitle "user.js-inställningar">
 <!ENTITY aboutSupport.userJSDescription "Din profilmapp innehåller en <a id='prefs-user-js-link'>user.js-fil</a> som inkluderar inställningar som inte har skapats av &brandShortName;.">
 
@@ -91,11 +110,13 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.placeDatabaseVerifyIntegrity "Verifiera integritet">
 
 <!ENTITY aboutSupport.jsTitle "JavaScript">
-<!ENTITY aboutSupport.jsIncrementalGC "Incremental GC">
+<!ENTITY aboutSupport.jsIncrementalGC "Inkrementell GC">
 
 <!ENTITY aboutSupport.a11yTitle "Tillgänglighet">
 <!ENTITY aboutSupport.a11yActivated "Aktiverad">
 <!ENTITY aboutSupport.a11yForceDisabled "Förhindra tillgänglighet">
+<!ENTITY aboutSupport.a11yHandlerUsed "Tillgänglig hanterare använd">
+<!ENTITY aboutSupport.a11yInstantiator "Tillgänglighet instantiator">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Biblioteksversioner">
 
@@ -105,7 +126,15 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyTextToClipboard.label "Kopiera text till urklipp">
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Kopiera rådata till urklipp">
 
-<!ENTITY aboutSupport.sandboxTitle "Sandbox">
+<!ENTITY aboutSupport.sandboxTitle "Sandlåda">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Avvisade systemanrop">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "Sekunder sedan">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Processtyp">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Syscall">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Argument">
 
 <!ENTITY aboutSupport.safeModeTitle "Prova felsäkert läge">
 <!ENTITY aboutSupport.restartInSafeMode.label "Starta om utan tillägg…">
@@ -118,3 +147,26 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Beslutslogg">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Kraschskydd inaktiverade funktioner">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Lösningar">
+
+<!ENTITY aboutSupport.mediaTitle "Media">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Utmatningsenheter">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Inmatningsenheter">
+<!ENTITY aboutSupport.mediaDeviceName "Namn">
+<!ENTITY aboutSupport.mediaDeviceGroup "Grupp">
+<!ENTITY aboutSupport.mediaDeviceVendor "Leverantör">
+<!ENTITY aboutSupport.mediaDeviceState "Status">
+<!ENTITY aboutSupport.mediaDevicePreferred "Önskad">
+<!ENTITY aboutSupport.mediaDeviceFormat "Format">
+<!ENTITY aboutSupport.mediaDeviceChannels "Kanaler">
+<!ENTITY aboutSupport.mediaDeviceRate "Hastighet">
+<!ENTITY aboutSupport.mediaDeviceLatency "Fördröjning">
+
+<!ENTITY aboutSupport.intlTitle "Internationalisering &amp; lokalisering">
+<!ENTITY aboutSupport.intlAppTitle "Programinställningar">
+<!ENTITY aboutSupport.intlLocalesRequested "Begärda språkversioner">
+<!ENTITY aboutSupport.intlLocalesAvailable "Tillgängliga språkversioner">
+<!ENTITY aboutSupport.intlLocalesSupported "Språkversioner app">
+<!ENTITY aboutSupport.intlLocalesDefault "Standardspråk">
+<!ENTITY aboutSupport.intlOSTitle "Operativsystem">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Språkversioner system">
+<!ENTITY aboutSupport.intlRegionalPrefs "Regionala inställningar">

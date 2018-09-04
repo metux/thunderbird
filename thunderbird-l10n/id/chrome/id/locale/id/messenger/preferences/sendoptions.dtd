@@ -36,5 +36,5 @@
 <!ENTITY add.plaintexttitle           "Tambah Nama Domain Teks Polos">
 <!ENTITY add.plaintextdomain          "Nama Domain Teks Polos:">
 
-<!ENTITY autoDowngrade.accesskey      "t">
 <!ENTITY autoDowngrade.label          "Send messages as plain text if possible">
+<!ENTITY autoDowngrade.accesskey      "t">

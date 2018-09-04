@@ -32,5 +32,5 @@
 <!ENTITY add.plaintexttitle "Дадаць назву дамену простага тэксту">
 <!ENTITY add.plaintextdomain "Назва дамену простага тэксту:">
 
-<!ENTITY autoDowngrade.accesskey      "t">
 <!ENTITY autoDowngrade.label          "Send messages as plain text if possible">
+<!ENTITY autoDowngrade.accesskey      "t">

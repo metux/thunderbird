@@ -32,14 +32,10 @@
 <!ENTITY runtimeMenu_accesskey "R">
 <!ENTITY runtimeMenu_disconnect_label "Verbreken">
 <!ENTITY runtimeMenu_disconnect_accesskey "V">
-<!ENTITY runtimeMenu_showPermissionTable_label "Machtigingentabel">
-<!ENTITY runtimeMenu_showPermissionTable_accesskey "t">
 <!ENTITY runtimeMenu_takeScreenshot_label "Schermafbeelding">
 <!ENTITY runtimeMenu_takeScreenshot_accesskey "S">
 <!ENTITY runtimeMenu_showDetails_label "Runtime-info">
 <!ENTITY runtimeMenu_showDetails_accesskey "e">
-<!ENTITY runtimeMenu_showMonitor_label "Monitor">
-<!ENTITY runtimeMenu_showMonitor_accesskey "M">
 <!ENTITY runtimeMenu_showDevicePrefs_label "Apparaatvoorkeuren">
 <!ENTITY runtimeMenu_showDevicePrefs_accesskey "A">
 <!ENTITY runtimeMenu_showSettings_label "Apparaatinstellingen">
@@ -47,8 +43,6 @@
 
 <!ENTITY viewMenu_label "Beeld">
 <!ENTITY viewMenu_accesskey "l">
-<!ENTITY viewMenu_toggleEditor_label "Editor in-/uitschakelen">
-<!ENTITY viewMenu_toggleEditor_accesskey "E">
 <!ENTITY viewMenu_zoomin_label "Inzoomen">
 <!ENTITY viewMenu_zoomin_accesskey "I">
 <!ENTITY viewMenu_zoomout_label "Uitzoomen">
@@ -68,8 +62,6 @@
 <!ENTITY key_play "R">
 <!-- show toolbox -->
 <!ENTITY key_toggleToolbox "VK_F12">
-<!-- toggle sidebar -->
-<!ENTITY key_toggleEditor "B">
 <!-- zoom -->
 <!ENTITY key_zoomin "+">
 <!ENTITY key_zoomin2 "=">
@@ -81,9 +73,7 @@
 <!ENTITY projectPanel_tabs "Tabbladen">
 <!ENTITY runtimePanel_usb "USB-apparaten">
 <!ENTITY runtimePanel_wifi "Wifi-apparaten">
-<!ENTITY runtimePanel_simulator "Simulatoren">
 <!ENTITY runtimePanel_other "Anders">
-<!ENTITY runtimePanel_installsimulator "Simulator installeren">
 <!ENTITY runtimePanel_noadbhelper "ADB Helper installeren">
 <!ENTITY runtimePanel_nousbdevice "Ziet u uw apparaat niet?">
 <!ENTITY runtimePanel_refreshDevices_label "Apparaten vernieuwen">
@@ -96,7 +86,6 @@
 <!ENTITY details_location "Locatie">
 <!ENTITY details_manifestURL "App-id">
 <!ENTITY details_removeProject_button "Project verwijderen">
-<!ENTITY details_showPrepackageLog_button "Logboek voor verpakken tonen">
 
 <!-- New App -->
 <!ENTITY newAppWindowTitle "Nieuwe app">
@@ -125,25 +114,6 @@
 <!ENTITY prefs_options_rememberlastproject_tooltip "Vorige project herstellen als WebIDE start">
 <!ENTITY prefs_options_templatesurl "Sjabloon-URL">
 <!ENTITY prefs_options_templatesurl_tooltip "Index van beschikbare sjablonen">
-<!ENTITY prefs_options_showeditor "Editor tonen">
-<!ENTITY prefs_options_showeditor_tooltip "Interne editor tonen">
-<!ENTITY prefs_options_tabsize "Tabgrootte">
-<!ENTITY prefs_options_expandtab "Soft-tabs">
-<!ENTITY prefs_options_expandtab_tooltip "Spaties gebruiken in plaats van het tabteken">
-<!ENTITY prefs_options_detectindentation "Auto-inspringen">
-<!ENTITY prefs_options_detectindentation_tooltip "Inspringing raden op basis van broninhoud">
-<!ENTITY prefs_options_autocomplete "Autoaanvullen">
-<!ENTITY prefs_options_autocomplete_tooltip "Automatische codeaanvulling inschakelen">
-<!ENTITY prefs_options_autoclosebrackets "Automatisch haakjes sluiten">
-<!ENTITY prefs_options_autoclosebrackets_tooltip "Automatisch sluithaakjes invoegen">
-<!ENTITY prefs_options_keybindings "Sneltoetsen">
-<!ENTITY prefs_options_keybindings_default "Standaard">
-<!ENTITY prefs_options_autosavefiles "Bestanden automatisch opslaan">
-<!ENTITY prefs_options_autosavefiles_tooltip "Bewerkte bestanden automatisch opslaan voor uitvoeren van project">
-
-<!-- Permissions Table -->
-<!ENTITY permissionstable_title "Machtigingentabel">
-<!ENTITY permissionstable_name_header "Naam">
 
 <!-- Runtime Details -->
 <!ENTITY runtimedetails_title "Runtime-info">
@@ -175,10 +145,6 @@
 <!ENTITY devicesetting_newtext "Instellingwaarde">
 <!ENTITY devicesetting_addnew "Nieuwe instelling toevoegen">
 
-<!-- Monitor -->
-<!ENTITY monitor_title "Monitor">
-<!ENTITY monitor_help "Help">
-
 <!-- WiFi Authentication -->
 <!-- LOCALIZATION NOTE (wifi_auth_header): The header displayed on the dialog
      that instructs the user to transfer an authentication token to the
@@ -200,19 +166,3 @@
 
 <!-- Logs panel -->
 <!ENTITY logs_title "Logboek van opdrachten voor verpakken">
-
-<!-- Simulator Options -->
-<!ENTITY simulator_title "Simulatoropties">
-<!ENTITY simulator_remove "Simulator verwijderen">
-<!ENTITY simulator_reset "Standaardwaarden">
-<!ENTITY simulator_name "Naam">
-<!ENTITY simulator_software "Software">
-<!ENTITY simulator_version "Versie">
-<!ENTITY simulator_profile "Profiel">
-<!ENTITY simulator_hardware "Hardware">
-<!ENTITY simulator_device "Apparaat">
-<!ENTITY simulator_screenSize "Scherm">
-<!ENTITY simulator_pixelRatio "Pixelverhouding">
-<!ENTITY simulator_tv_data "Tv-simulatie">
-<!ENTITY simulator_tv_data_open "Configuratiegegevens">
-<!ENTITY simulator_tv_data_open_button "Configuratiemap openen…">

@@ -4,6 +4,8 @@
 <!ENTITY addons.windowTitle                   "Hantera tillägg">
 
 <!ENTITY search.placeholder                   "Sök bland alla tillägg">
+
+<!ENTITY search.placeholder2                  "Sök på addons.mozilla.org">
 <!ENTITY search.buttonlabel                   "Sök">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
@@ -20,15 +22,19 @@
 <!ENTITY installAddonFromFile.accesskey       "I">
 <!ENTITY toolsMenu.tooltip                    "Verktyg för alla tillägg">
 
+<!ENTITY getThemes.description                "Funderar du på att anpassa din webbläsare?">
+<!ENTITY getThemes.learnMore                  "Välj bland tusentals teman.">
+
 <!ENTITY cmd.back.tooltip                     "Gå bakåt en sida">
 <!ENTITY cmd.forward.tooltip                  "Gå framåt en sida">
+
 
 <!ENTITY showUnsignedExtensions.button.label  "Vissa utökningar kunde inte verifieras">
 <!ENTITY showAllExtensions.button.label       "Visa alla utökningar">
 <!ENTITY debugAddons.label                    "Felsök tillägg">
 <!ENTITY debugAddons.accesskey                "s">
-<!-- global warnings -->
 
+<!-- global warnings -->
 <!ENTITY warning.safemode.label                    "Alla tillägg är inaktiverade i felsäkert läge.">
 <!ENTITY warning.checkcompatibility.label          "Kompatibilitetskontroll av tillägg är inaktiverat. Du kan ha inkompatibla tillägg.">
 <!ENTITY warning.checkcompatibility.enable.label   "Aktivera">
@@ -36,14 +42,14 @@
 <!ENTITY warning.updatesecurity.label              "Säkerhetskontroll av tilläggsuppdateringar är inaktiverat. Du är sårbar för skadliga uppdateringar.">
 <!ENTITY warning.updatesecurity.enable.label       "Aktivera">
 <!ENTITY warning.updatesecurity.enable.tooltip     "Aktiverar säkerhetskontroll av tilläggsuppdateringar">
-<!-- categories / views -->
 
+<!-- categories / views -->
 <!ENTITY view.search.label                    "Sök">
 <!ENTITY view.discover.label                  "Hämta tillägg">
 <!ENTITY view.recentUpdates.label             "Nyligen uppdaterade">
 <!ENTITY view.availableUpdates.label          "Tillgängliga uppdateringar">
-<!-- addon updates -->
 
+<!-- addon updates -->
 <!ENTITY updates.checkForUpdates.label        "Sök efter uppdateringar">
 <!ENTITY updates.checkForUpdates.accesskey    "u">
 <!ENTITY updates.viewUpdates.label            "Visa nyligen uppdaterade">
@@ -71,8 +77,8 @@
 <!ENTITY updates.manualUpdatesFound.label     "Se tillgängliga uppdateringar">
 <!ENTITY updates.updateSelected.label         "Installera uppdateringar">
 <!ENTITY updates.updateSelected.tooltip       "Installerar tillgängliga uppdateringar från listan">
-<!-- addon actions -->
 
+<!-- addon actions -->
 <!ENTITY cmd.showDetails.label                "Visa mer information">
 <!ENTITY cmd.showDetails.accesskey            "V">
 <!ENTITY cmd.findUpdates.label                "Sök efter uppdateringar">
@@ -115,15 +121,16 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "Visar versionsfakta för den här uppdateringen">
 <!ENTITY cmd.hideReleaseNotes.label           "Dölj versionsfakta">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Döljer versionsfakta för den här uppdateringen">
+<!ENTITY cmd.findReplacement.label            "Hitta en ersättare">
+
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
      Displayed in the center of the Get Add-ons view, see bug 601143 for mockups. -->
-
 <!ENTITY discover.title                       "Vad är tillägg?">
 <!ENTITY discover.description2                "Tillägg är program som gör att du kan anpassa &brandShortName; med extra funktionalitet eller utseende. Prova ett tidsbesparande sidofält, en väderrapportör eller ett annat utseende till &brandShortName;.">
 <!ENTITY discover.footer                      "När du är ansluten till internet kommer den här panelen att visa några av de bästa och mest populära tilläggen som du kan testa.">
-<!-- detail view -->
 
+<!-- detail view -->
 <!ENTITY detail.version.label                 "Version">
 <!ENTITY detail.lastupdated.label             "Senast uppdaterad">
 <!ENTITY detail.creator.label                 "Utvecklare">
@@ -152,17 +159,17 @@
 <!ENTITY detail.showPreferencesUnix.label     "Inställningar">
 <!ENTITY detail.showPreferencesUnix.accesskey "ä">
 <!ENTITY detail.showPreferencesUnix.tooltip   "Ändra tilläggets inställningar">
+
+
 <!-- ratings -->
-
-
 <!ENTITY rating2.label                        "Betyg">
-<!-- download/install progress -->
 
+<!-- download/install progress -->
 <!ENTITY progress.pause.tooltip               "Paus">
 <!ENTITY progress.cancel.tooltip              "Avbryt">
+
+
 <!-- list sorting -->
-
-
 <!ENTITY sort.name.label                      "Namn">
 <!ENTITY sort.name.tooltip                    "Ordna efter namn">
 <!ENTITY sort.dateUpdated.label               "Senast uppdaterad">
@@ -182,6 +189,10 @@
 <!ENTITY addon.details.label                  "Mer">
 <!ENTITY addon.details.tooltip                "Visar fler detaljer om det här tillägget">
 <!ENTITY addon.unknownDate                    "Okänt">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "ÄLDRE">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -215,12 +226,12 @@
 <!ENTITY eula.accept                          "Acceptera och installera…">
 
 <!ENTITY settings.path.button.label           "Bläddra…">
+
 <!-- LOCALIZATION NOTE (experiment.info.label): The strings related to
      experiments are present on the "Experiments" tab of the add-ons manager.
      This tab won't be displayed unless an Experiment add-on is installed.
      Install https://people.mozilla.org/~gszorc/dummy-experiment-addon.xpi
      to cause this tab to appear. -->
-
 <!ENTITY experiment.info.label "Vad är detta? Telemetri kan installera och köra experiment då och då.">
 <!ENTITY experiment.info.learnmore "Läs mer">
 <!ENTITY experiment.info.learnmore.accesskey "L">
@@ -246,3 +257,8 @@
 
 <!ENTITY pluginDeprecation.description "Saknar du något? Vissa insticksmoduler stöds inte längre av &brandShortName;.">
 <!ENTITY pluginDeprecation.learnMore "Läs mer.">
+
+<!ENTITY legacyWarning.showLegacy "Visa äldre tillägg">
+<!ENTITY legacyExtensions.title "Äldre tillägg">
+<!ENTITY legacyExtensions.description "Dessa tillägg uppfyller inte nuvarande standarder i &brandShortName; så de har inaktiverats.">
+<!ENTITY legacyExtensions.learnMore "Läs mer om ändringar av tillägg">

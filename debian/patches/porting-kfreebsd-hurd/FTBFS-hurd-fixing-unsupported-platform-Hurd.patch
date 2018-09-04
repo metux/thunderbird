@@ -2,9 +2,9 @@ From: Carsten Schoenert <c.schoenert@t-online.de>
 Date: Sat, 29 Mar 2014 20:58:55 +0100
 Subject: FTBFS hurd: fixing unsupported platform Hurd
 
-Hurd failed to build in mozilla/js/src/jit/AsmJSSignalHandlers.cpp:131
-because of unsupported mode for reading / writing thead state with
-following message.
+On the Hurd platform the build failed in
+mozilla/js/src/jit/AsmJSSignalHandlers.cpp:131 because of unsupported
+mode for reading / writing thead state with following message.
 
  # error "Don't know how to read/write to the thread state via the mcontext_t."
 
@@ -14,68 +14,67 @@ https://lists.alioth.debian.org/pipermail/pkg-mozilla-maintainers/2014-March/015
 After release of Thunderbird 44 there are additional changes made as the
 various configuration files where split into more files.
 ---
- mozilla/dom/plugins/ipc/PluginModuleChild.cpp      |  6 +++---
- mozilla/dom/plugins/ipc/PluginModuleChild.h        |  2 +-
- mozilla/ipc/chromium/chromium-config.mozbuild      |  5 +++++
- mozilla/ipc/chromium/moz.build                     | 23 ++++++++++++++++++++++
- mozilla/ipc/chromium/src/base/message_loop.cc      |  4 ++--
- .../ipc/chromium/src/base/process_util_posix.cc    |  2 +-
- mozilla/ipc/chromium/src/build/build_config.h      |  3 ++-
- .../ipc/chromium/src/chrome/common/transport_dib.h |  6 +++---
- .../src/third_party/libeventcommon.mozbuild        |  5 +++++
- mozilla/ipc/glue/GeckoChildProcessHost.cpp         |  8 ++++----
- mozilla/js/src/wasm/WasmSignalHandlers.cpp         |  4 +++-
- 11 files changed, 52 insertions(+), 16 deletions(-)
+ dom/plugins/ipc/PluginModuleChild.cpp                | 6 +++---
+ dom/plugins/ipc/PluginModuleChild.h                  | 2 +-
+ ipc/chromium/chromium-config.mozbuild                | 5 +++++
+ ipc/chromium/moz.build                               | 2 +-
+ ipc/chromium/src/base/message_loop.cc                | 4 ++--
+ ipc/chromium/src/base/process_util_posix.cc          | 2 +-
+ ipc/chromium/src/build/build_config.h                | 3 ++-
+ ipc/chromium/src/third_party/libeventcommon.mozbuild | 5 +++++
+ ipc/glue/GeckoChildProcessHost.cpp                   | 8 +++++---
+ js/src/wasm/WasmSignalHandlers.cpp                   | 2 +-
+ 10 files changed, 26 insertions(+), 13 deletions(-)
 
-diff --git a/mozilla/dom/plugins/ipc/PluginModuleChild.cpp b/mozilla/dom/plugins/ipc/PluginModuleChild.cpp
-index 84dc7c7..97da42d 100644
---- a/mozilla/dom/plugins/ipc/PluginModuleChild.cpp
-+++ b/mozilla/dom/plugins/ipc/PluginModuleChild.cpp
-@@ -289,7 +289,7 @@ PluginModuleChild::InitForChrome(const std::string& aPluginFilename,
+diff --git a/dom/plugins/ipc/PluginModuleChild.cpp b/dom/plugins/ipc/PluginModuleChild.cpp
+index 61e57da..e063789 100644
+--- a/dom/plugins/ipc/PluginModuleChild.cpp
++++ b/dom/plugins/ipc/PluginModuleChild.cpp
+@@ -274,7 +274,7 @@ PluginModuleChild::InitForChrome(const std::string& aPluginFilename,
  
-     // TODO: use PluginPRLibrary here
+     GetIPCChannel()->SetAbortOnError(true);
  
--#if defined(OS_LINUX) || defined(OS_BSD)
-+#if defined(OS_LINUX) || defined(OS_BSD) || defined(OS_HURD)
+-#if defined(OS_LINUX) || defined(OS_BSD) || defined(OS_SOLARIS)
++#if defined(OS_LINUX) || defined(OS_BSD) || defined(OS_SOLARIS) || defined(OS_HURD)
      mShutdownFunc =
          (NP_PLUGINSHUTDOWN) PR_FindFunctionSymbol(mLibrary, "NP_Shutdown");
  
-@@ -1851,7 +1851,7 @@ PluginModuleChild::AnswerNP_GetEntryPoints(NPError* _retval)
+@@ -1751,7 +1751,7 @@ PluginModuleChild::AnswerNP_GetEntryPoints(NPError* _retval)
      AssertPluginThread();
      MOZ_ASSERT(mIsChrome);
  
--#if defined(OS_LINUX) || defined(OS_BSD)
-+#if defined(OS_LINUX) || defined(OS_BSD) || defined(OS_HURD)
-     return true;
+-#if defined(OS_LINUX) || defined(OS_BSD) || defined(OS_SOLARIS)
++#if defined(OS_LINUX) || defined(OS_BSD) || defined(OS_SOLARIS) || defined(OS_HURD)
+     return IPC_OK();
  #elif defined(OS_WIN) || defined(OS_MACOSX)
      *_retval = mGetEntryPointsFunc(&mFunctions);
-@@ -1896,7 +1896,7 @@ PluginModuleChild::DoNP_Initialize(const PluginSettings& aSettings)
+@@ -1789,7 +1789,7 @@ PluginModuleChild::DoNP_Initialize(const PluginSettings& aSettings)
  #endif
  
      NPError result;
--#if defined(OS_LINUX) || defined(OS_BSD)
-+#if defined(OS_LINUX) || defined(OS_BSD) || defined(OS_HURD)
+-#if defined(OS_LINUX) || defined(OS_BSD) || defined(OS_SOLARIS)
++#if defined(OS_LINUX) || defined(OS_BSD) || defined(OS_SOLARIS) || defined(OS_HURD)
      result = mInitializeFunc(&sBrowserFuncs, &mFunctions);
  #elif defined(OS_WIN) || defined(OS_MACOSX)
      result = mInitializeFunc(&sBrowserFuncs);
-diff --git a/mozilla/dom/plugins/ipc/PluginModuleChild.h b/mozilla/dom/plugins/ipc/PluginModuleChild.h
-index 233a953..8366126 100644
---- a/mozilla/dom/plugins/ipc/PluginModuleChild.h
-+++ b/mozilla/dom/plugins/ipc/PluginModuleChild.h
-@@ -277,7 +277,7 @@ private:
+diff --git a/dom/plugins/ipc/PluginModuleChild.h b/dom/plugins/ipc/PluginModuleChild.h
+index 764e335..ecc1570 100644
+--- a/dom/plugins/ipc/PluginModuleChild.h
++++ b/dom/plugins/ipc/PluginModuleChild.h
+@@ -244,7 +244,7 @@ private:
  
      // we get this from the plugin
      NP_PLUGINSHUTDOWN mShutdownFunc;
--#if defined(OS_LINUX) || defined(OS_BSD)
-+#if defined(OS_LINUX) || defined(OS_BSD) || defined(OS_HURD)
+-#if defined(OS_LINUX) || defined(OS_BSD) || defined(OS_SOLARIS)
++#if defined(OS_LINUX) || defined(OS_BSD) || defined(OS_SOLARIS) || defined(OS_HURD)
      NP_PLUGINUNIXINIT mInitializeFunc;
  #elif defined(OS_WIN) || defined(OS_MACOSX)
      NP_PLUGININIT mInitializeFunc;
-diff --git a/mozilla/ipc/chromium/chromium-config.mozbuild b/mozilla/ipc/chromium/chromium-config.mozbuild
-index 9df182c..afd1e16 100644
---- a/mozilla/ipc/chromium/chromium-config.mozbuild
-+++ b/mozilla/ipc/chromium/chromium-config.mozbuild
-@@ -65,5 +65,10 @@ else:
+diff --git a/ipc/chromium/chromium-config.mozbuild b/ipc/chromium/chromium-config.mozbuild
+index 5558add..332a4e2 100644
+--- a/ipc/chromium/chromium-config.mozbuild
++++ b/ipc/chromium/chromium-config.mozbuild
+@@ -67,5 +67,10 @@ else:
              'OS_BSD': 1,
          })
  
@@ -86,44 +85,23 @@ index 9df182c..afd1e16 100644
 +
      else:
          DEFINES['OS_LINUX'] = 1
-diff --git a/mozilla/ipc/chromium/moz.build b/mozilla/ipc/chromium/moz.build
-index aad46b5..4c2ccca 100644
---- a/mozilla/ipc/chromium/moz.build
-+++ b/mozilla/ipc/chromium/moz.build
-@@ -140,6 +140,29 @@ if os_bsd or os_linux:
+diff --git a/ipc/chromium/moz.build b/ipc/chromium/moz.build
+index 7888251..928ccd9 100644
+--- a/ipc/chromium/moz.build
++++ b/ipc/chromium/moz.build
+@@ -126,7 +126,7 @@ if os_bsd or os_linux:
              'src/base/message_pump_glib.cc',
          ]
  
-+if os_hurd:
-+    SOURCES += [
-+        'src/base/atomicops_internals_x86_gcc.cc',
-+        'src/base/process_util_linux.cc',
-+        'src/base/time_posix.cc',
-+    ]
-+    if CONFIG['MOZ_WIDGET_GTK']:
-+        SOURCES += [
-+            'src/base/message_pump_glib.cc',
-+        ]
-+    if CONFIG['MOZ_ENABLE_QT']:
-+        SOURCES += [
-+            'src/base/message_pump_qt.cc',
-+        ]
-+        GENERATED_SOURCES += [
-+            'moc_message_pump_qt.cc',
-+        ]
-+
-+if CONFIG['_MSC_VER']:
-+    SOURCES += [
-+        'src/base/debug_on_start.cc',
-+    ]
-+
- ost = CONFIG['OS_TEST']
- if '86' not in ost and 'arm' not in ost and 'aarch64' != ost and 'mips' not in ost:
+-if os_solaris:
++if os_solaris or os_hurd:
      SOURCES += [
-diff --git a/mozilla/ipc/chromium/src/base/message_loop.cc b/mozilla/ipc/chromium/src/base/message_loop.cc
-index 3c794b2..c785b25 100644
---- a/mozilla/ipc/chromium/src/base/message_loop.cc
-+++ b/mozilla/ipc/chromium/src/base/message_loop.cc
+         'src/base/atomicops_internals_x86_gcc.cc',
+         'src/base/process_util_linux.cc',
+diff --git a/ipc/chromium/src/base/message_loop.cc b/ipc/chromium/src/base/message_loop.cc
+index 49fa63e..18f9c4b 100644
+--- a/ipc/chromium/src/base/message_loop.cc
++++ b/ipc/chromium/src/base/message_loop.cc
 @@ -21,7 +21,7 @@
  #if defined(OS_POSIX)
  #include "base/message_pump_libevent.h"
@@ -133,7 +111,7 @@ index 3c794b2..c785b25 100644
  #if defined(MOZ_WIDGET_GTK)
  #include "base/message_pump_glib.h"
  #endif
-@@ -149,7 +149,7 @@ MessageLoop::MessageLoop(Type type, nsIThread* aThread)
+@@ -243,7 +243,7 @@ MessageLoop::MessageLoop(Type type, nsIEventTarget* aEventTarget)
    if (type_ == TYPE_UI) {
  #if defined(OS_MACOSX)
      pump_ = base::MessagePumpMac::Create();
@@ -142,23 +120,23 @@ index 3c794b2..c785b25 100644
      pump_ = new base::MessagePumpForUI();
  #endif  // OS_LINUX
    } else if (type_ == TYPE_IO) {
-diff --git a/mozilla/ipc/chromium/src/base/process_util_posix.cc b/mozilla/ipc/chromium/src/base/process_util_posix.cc
-index ade3ebe..666a120 100644
---- a/mozilla/ipc/chromium/src/base/process_util_posix.cc
-+++ b/mozilla/ipc/chromium/src/base/process_util_posix.cc
-@@ -117,7 +117,7 @@ void CloseSuperfluousFds(const base::InjectiveMultimap& saved_mapping) {
+diff --git a/ipc/chromium/src/base/process_util_posix.cc b/ipc/chromium/src/base/process_util_posix.cc
+index af40161..4475b3e 100644
+--- a/ipc/chromium/src/base/process_util_posix.cc
++++ b/ipc/chromium/src/base/process_util_posix.cc
+@@ -127,7 +127,7 @@ void CloseSuperfluousFds(const base::InjectiveMultimap& saved_mapping) {
  #if defined(ANDROID)
    static const rlim_t kSystemDefaultMaxFds = 1024;
    static const char kFDDir[] = "/proc/self/fd";
--#elif defined(OS_LINUX)
-+#elif defined(OS_LINUX) || defined(OS_HURD)
+-#elif defined(OS_LINUX) || defined(OS_SOLARIS)
++#elif defined(OS_LINUX) || defined(OS_SOLARIS) || defined(OS_HURD)
    static const rlim_t kSystemDefaultMaxFds = 8192;
    static const char kFDDir[] = "/proc/self/fd";
  #elif defined(OS_MACOSX)
-diff --git a/mozilla/ipc/chromium/src/build/build_config.h b/mozilla/ipc/chromium/src/build/build_config.h
-index 5920e42..342bd56 100644
---- a/mozilla/ipc/chromium/src/build/build_config.h
-+++ b/mozilla/ipc/chromium/src/build/build_config.h
+diff --git a/ipc/chromium/src/build/build_config.h b/ipc/chromium/src/build/build_config.h
+index f991c01..f695444 100644
+--- a/ipc/chromium/src/build/build_config.h
++++ b/ipc/chromium/src/build/build_config.h
 @@ -23,6 +23,7 @@
  #elif defined(__APPLE__)
  #define OS_MACOSX 1
@@ -167,62 +145,31 @@ index 5920e42..342bd56 100644
  #define OS_LINUX 1
  #elif defined(__DragonFly__)
  #define OS_DRAGONFLY 1
-@@ -47,7 +48,7 @@
+@@ -49,7 +50,7 @@
  
  // For access to standard POSIX features, use OS_POSIX instead of a more
  // specific macro.
--#if defined(OS_MACOSX) || defined(OS_LINUX) || defined(OS_BSD)
-+#if defined(OS_MACOSX) || defined(OS_LINUX) || defined(OS_BSD) || defined(OS_HURD)
+-#if defined(OS_MACOSX) || defined(OS_LINUX) || defined(OS_BSD) || defined(OS_SOLARIS)
++#if defined(OS_MACOSX) || defined(OS_LINUX) || defined(OS_BSD) || defined(OS_SOLARIS) || defined(OS_HURD)
  #define OS_POSIX 1
  #endif
  
-diff --git a/mozilla/ipc/chromium/src/chrome/common/transport_dib.h b/mozilla/ipc/chromium/src/chrome/common/transport_dib.h
-index b1e5c0f..4349b97 100644
---- a/mozilla/ipc/chromium/src/chrome/common/transport_dib.h
-+++ b/mozilla/ipc/chromium/src/chrome/common/transport_dib.h
-@@ -9,7 +9,7 @@
- 
- #include "base/basictypes.h"
- 
--#if defined(OS_WIN) || defined(OS_MACOSX) || defined(OS_BSD)
-+#if defined(OS_WIN) || defined(OS_MACOSX) || defined(OS_BSD) || defined(OS_HURD)
- #include "base/shared_memory.h"
- #endif
- 
-@@ -64,7 +64,7 @@ class TransportDIB {
-     uint32_t sequence_num;
-   };
-   typedef HandleAndSequenceNum Id;
--#elif defined(OS_MACOSX) || defined(OS_BSD)
-+#elif defined(OS_MACOSX) || defined(OS_BSD) || defined(OS_HURD)
-   typedef base::SharedMemoryHandle Handle;
-   // On Mac, the inode number of the backing file is used as an id.
-   typedef base::SharedMemoryId Id;
-@@ -106,7 +106,7 @@ class TransportDIB {
- 
-  private:
-   TransportDIB();
--#if defined(OS_WIN) || defined(OS_MACOSX) || defined(OS_BSD)
-+#if defined(OS_WIN) || defined(OS_MACOSX) || defined(OS_BSD) || defined(OS_HURD)
-   explicit TransportDIB(base::SharedMemoryHandle dib);
-   base::SharedMemory shared_memory_;
- #elif defined(OS_LINUX)
-diff --git a/mozilla/ipc/chromium/src/third_party/libeventcommon.mozbuild b/mozilla/ipc/chromium/src/third_party/libeventcommon.mozbuild
-index 7b0627e..4c621b9 100644
---- a/mozilla/ipc/chromium/src/third_party/libeventcommon.mozbuild
-+++ b/mozilla/ipc/chromium/src/third_party/libeventcommon.mozbuild
+diff --git a/ipc/chromium/src/third_party/libeventcommon.mozbuild b/ipc/chromium/src/third_party/libeventcommon.mozbuild
+index 5037ec7..c858d9c 100644
+--- a/ipc/chromium/src/third_party/libeventcommon.mozbuild
++++ b/ipc/chromium/src/third_party/libeventcommon.mozbuild
 @@ -8,6 +8,7 @@ os_win = 0
  os_posix = 0
  os_macosx = 0
  os_bsd = 0
 +os_hurd = 0
  os_linux = 0
+ os_solaris = 0
  
- if CONFIG['OS_ARCH'] == 'WINNT':
-@@ -21,6 +22,10 @@ else:
-                                'NetBSD', 'OpenBSD']:
-         os_bsd = 1
-         libevent_include_suffix = 'bsd'
+@@ -25,6 +26,10 @@ else:
+     elif CONFIG['OS_ARCH'] == 'SunOS':
+         os_solaris = 1
+         libevent_include_suffix = 'solaris'
 +    # attempt to get GNU hurd into the build again, further modification probably needed
 +    elif CONFIG['OS_ARCH'] == 'GNU':
 +        os_hurd = 1
@@ -230,61 +177,49 @@ index 7b0627e..4c621b9 100644
      else:
          os_linux = 1
          if CONFIG['OS_TARGET'] == 'Android':
-diff --git a/mozilla/ipc/glue/GeckoChildProcessHost.cpp b/mozilla/ipc/glue/GeckoChildProcessHost.cpp
-index 4805147..5683aba 100644
---- a/mozilla/ipc/glue/GeckoChildProcessHost.cpp
-+++ b/mozilla/ipc/glue/GeckoChildProcessHost.cpp
-@@ -744,7 +744,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
+diff --git a/ipc/glue/GeckoChildProcessHost.cpp b/ipc/glue/GeckoChildProcessHost.cpp
+index d18ed9e..91041f2 100644
+--- a/ipc/glue/GeckoChildProcessHost.cpp
++++ b/ipc/glue/GeckoChildProcessHost.cpp
+@@ -646,7 +646,9 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
    // and passing wstrings from one config to the other is unsafe.  So
    // we split the logic here.
  
--#if defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_BSD)
-+#if defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_BSD) || defined(OS_HURD)
-   base::environment_map newEnvVars;
-   ChildPrivileges privs = mPrivileges;
-   if (privs == base::PRIVILEGES_DEFAULT) {
-@@ -766,7 +766,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
+-# if defined(OS_POSIX)
++# if defined(OS_POSIX) || defined(OS_HURD)
++  base::environment_map newEnvVars;
++
+ #  if defined(MOZ_WIDGET_GTK)
+   if (mProcessType == GeckoProcessType_Content) {
+     // disable IM module to avoid sandbox violation
+@@ -667,7 +669,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
      MOZ_ASSERT(gGREBinPath);
      nsCString path;
      NS_CopyUnicodeToNative(nsDependentString(gGREBinPath), path);
--# if defined(OS_LINUX) || defined(OS_BSD)
-+# if defined(OS_LINUX) || defined(OS_BSD) || defined(OS_HURD)
- #  if defined(MOZ_WIDGET_ANDROID)
-     path += "/lib";
- #  endif  // MOZ_WIDGET_ANDROID
-@@ -903,7 +903,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
-   childArgv.push_back(pidstring);
- 
- #if defined(MOZ_CRASHREPORTER)
 -#  if defined(OS_LINUX) || defined(OS_BSD)
 +#  if defined(OS_LINUX) || defined(OS_BSD) || defined(OS_HURD)
-   int childCrashFd, childCrashRemapFd;
-   if (!CrashReporter::CreateNotificationPipeForChild(
-         &childCrashFd, &childCrashRemapFd))
-@@ -936,7 +936,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
-   childArgv.push_back(childProcessType);
+     const char *ld_library_path = PR_GetEnv("LD_LIBRARY_PATH");
+     nsCString new_ld_lib_path(path.get());
  
-   base::LaunchApp(childArgv, mFileMap,
--#if defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_BSD)
-+#if defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_BSD) || defined(OS_HURD)
-                   newEnvVars, privs,
- #endif
-                   false, &process, arch);
-diff --git a/mozilla/js/src/wasm/WasmSignalHandlers.cpp b/mozilla/js/src/wasm/WasmSignalHandlers.cpp
-index 78d2136..ac0aa45 100644
---- a/mozilla/js/src/wasm/WasmSignalHandlers.cpp
-+++ b/mozilla/js/src/wasm/WasmSignalHandlers.cpp
-@@ -130,10 +130,12 @@ class AutoSetHandlingSegFault
+@@ -765,7 +767,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
+   childArgv.push_back(pidstring);
+ 
+   if (!CrashReporter::IsDummy()) {
+-#if defined(OS_LINUX) || defined(OS_BSD) || defined(OS_SOLARIS)
++#if defined(OS_LINUX) || defined(OS_BSD) || defined(OS_SOLARIS) || defined(OS_HURD)
+     int childCrashFd, childCrashRemapFd;
+     if (!CrashReporter::CreateNotificationPipeForChild(&childCrashFd,
+                                                        &childCrashRemapFd)) {
+diff --git a/js/src/wasm/WasmSignalHandlers.cpp b/js/src/wasm/WasmSignalHandlers.cpp
+index b2a24bb..23f7ea9 100644
+--- a/js/src/wasm/WasmSignalHandlers.cpp
++++ b/js/src/wasm/WasmSignalHandlers.cpp
+@@ -128,7 +128,7 @@ struct AutoSignalHandler
  #  define EPC_sig(p) ((p)->sc_pc)
  #  define RFP_sig(p) ((p)->sc_regs[30])
  # endif
--#elif defined(__linux__) || defined(SOLARIS)
-+#elif defined(__linux__) || defined(SOLARIS) || defined(__GNU__)
+-#elif defined(__linux__) || defined(__sun)
++#elif defined(__linux__) || defined(__sun) || defined(__GNU__)
  # if defined(__linux__)
  #  define XMM_sig(p,i) ((p)->uc_mcontext.fpregs->_xmm[i])
  #  define EIP_sig(p) ((p)->uc_mcontext.gregs[REG_EIP])
-+#  elif defined(__GNU__)
-+#   define EIP_sig(p) ((p)->uc_mcontext.gregs[REG_EIP])
- # else
- #  define XMM_sig(p,i) ((p)->uc_mcontext.fpregs.fp_reg_set.fpchip_state.xmm[i])
- #  define EIP_sig(p) ((p)->uc_mcontext.gregs[REG_PC])

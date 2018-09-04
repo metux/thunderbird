@@ -4,8 +4,9 @@
 
 <!ENTITY closeNotification.tooltip "Cau'r neges hon">
 
-<!ENTITY closeNotificationItem.label "Nid Nawr">
-
 <!ENTITY checkForUpdates "Gwirio am ddiweddariadau…">
 
 <!ENTITY learnMore "Dysgu rhagor…">
+
+<!ENTITY defaultButton.label "Iawn!">
+<!ENTITY defaultButton.accesskey "I">

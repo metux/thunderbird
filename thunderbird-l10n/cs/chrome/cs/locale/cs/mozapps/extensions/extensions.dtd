@@ -3,7 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <!ENTITY addons.windowTitle                   "Správce doplňků">
 
-<!ENTITY search.placeholder                   "Hledat doplňky">
+<!ENTITY search.placeholder2                  "Najít na addons.mozilla.org">
 <!ENTITY search.buttonlabel                   "Hledat">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
@@ -14,14 +14,14 @@
 <!ENTITY listEmpty.availableUpdates.label     "Nebyly nalezeny žádné aktualizace">
 <!ENTITY listEmpty.recentUpdates.label        "Žádný doplněk nebyl aktualizován">
 <!ENTITY listEmpty.findUpdates.label          "Zkontrolovat aktualizace">
-<!ENTITY listEmpty.search.label               "Nepodařilo se najít žádný odpovídající doplněk">
 <!ENTITY listEmpty.button.label               "Zjistěte více informací o doplňcích">
 <!ENTITY installAddonFromFile.label           "Instalovat doplněk ze souboru…">
 <!ENTITY installAddonFromFile.accesskey       "I">
 <!ENTITY toolsMenu.tooltip                    "Nástroje doplňků">
 
-<!ENTITY cmd.back.tooltip                     "Přejde na předchozí stránku">
-<!ENTITY cmd.forward.tooltip                  "Přejde na následující stránku">
+<!ENTITY getThemes.description                "Chcete si přizpůsobit svůj prohlížeč?">
+<!ENTITY getThemes.learnMore                  "Vyberte si některý z tisíce vzhledů.">
+
 
 <!ENTITY showUnsignedExtensions.button.label  "Některá rozšíření nemohla být ověřena">
 <!ENTITY showAllExtensions.button.label       "Zobrazit všechna rozšíření">
@@ -38,7 +38,6 @@
 <!ENTITY warning.updatesecurity.enable.tooltip     "Povolí kontrolu bezpečné aktualizace doplňků">
 
 <!-- categories / views -->
-<!ENTITY view.search.label                    "Hledat">
 <!ENTITY view.discover.label                  "Získání doplňků">
 <!ENTITY view.recentUpdates.label             "Nedávné aktualizace">
 <!ENTITY view.availableUpdates.label          "Dostupné aktualizace">
@@ -115,6 +114,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "Zobrazí poznámky k vydání této aktualizace">
 <!ENTITY cmd.hideReleaseNotes.label           "Skrýt poznámky k vydání">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Skryje poznámky k vydání této aktualizace">
+<!ENTITY cmd.findReplacement.label            "Najít náhradu">
 
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
@@ -166,22 +166,16 @@
 <!ENTITY sort.name.label                      "Název">
 <!ENTITY sort.name.tooltip                    "Seřadit podle názvu">
 <!ENTITY sort.dateUpdated.label               "Poslední aktualizace">
-<!ENTITY sort.dateUpdated.tooltip             "Řadit dle aktualizace">
-<!ENTITY sort.relevance.label                 "Nejlepší shody">
-<!ENTITY sort.relevance.tooltip               "Řadit dle nejlepší shody">
-<!ENTITY sort.price.label                     "Cena">
-<!ENTITY sort.price.tooltip                   "Řadit dle ceny">
-
-<!ENTITY search.filter2.label                 "Hledat:">
-<!ENTITY search.filter2.installed.label       "Mé doplňky">
-<!ENTITY search.filter2.installed.tooltip     "Zobrazí nainstalované doplňky">
-<!ENTITY search.filter2.available.label       "Dostupné doplňky">
-<!ENTITY search.filter2.available.tooltip     "Zobrazí doplňky dostupné k instalaci">
+<!ENTITY sort.dateUpdated.tooltip             "Řadit podle aktualizace">
 
 <!ENTITY addon.homepage                       "Domovská stránka">
 <!ENTITY addon.details.label                  "Více">
 <!ENTITY addon.details.tooltip                "Zobrazí více informací o doplňku">
 <!ENTITY addon.unknownDate                    "Neznámá">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "ZASTARALÉ">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -246,3 +240,8 @@
 
 <!ENTITY pluginDeprecation.description "Něco chybí? Některé zásuvné moduly už &brandShortName; nepodporuje.">
 <!ENTITY pluginDeprecation.learnMore "Zjistit více.">
+
+<!ENTITY legacyWarning.showLegacy "Zobrazit zastaralá rozšíření">
+<!ENTITY legacyExtensions.title "Zastaralá rozšíření">
+<!ENTITY legacyExtensions.description "Tato rozšíření byla zakázána, protože neodpovídají současným standardům aplikace &brandShortName;.">
+<!ENTITY legacyExtensions.learnMore "Zjistit více o změnách pro doplňky">

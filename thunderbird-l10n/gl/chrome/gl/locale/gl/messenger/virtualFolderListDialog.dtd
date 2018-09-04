@@ -6,3 +6,6 @@
 <!ENTITY virtualFolderDesc.label       "Seleccione os cartafoles en que buscar: ">
 
 
+
+<!ENTITY folderName.label "Folder name">
+<!ENTITY folderSearch.label "Search">

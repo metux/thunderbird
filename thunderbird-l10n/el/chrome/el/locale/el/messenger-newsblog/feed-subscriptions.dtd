@@ -3,20 +3,30 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!-- Subscription Dialog -->
-<!ENTITY feedSubscriptions.label     "Συνδρομές σε αρχεία ροής">
+<!ENTITY feedSubscriptions.label     "Συνδρομές σε ροές ειδήσεων">
 <!ENTITY learnMore.label             "Μάθετε περισσότερα για τις ροές">
 
 <!ENTITY feedTitle.label             "Τίτλος:">
 <!ENTITY feedTitle.accesskey         "Τ">
 
-<!ENTITY feedLocation.label          "URL Ροής:">
+<!ENTITY feedLocation.label          "URL ροής:">
 <!ENTITY feedLocation.accesskey      "U">
 <!ENTITY feedLocation.placeholder    "Εισάγετε ένα έγκυρο url ροής για προσθήκη">
+<!ENTITY feedLocation2.placeholder   "Εισάγετε ένα έγκυρο URL ροής">
 <!ENTITY locationValidate.label      "Επαλήθευση">
 <!ENTITY validateText.label          "Έλεγχος επαλήθευσης και ανάκτηση έγκυρου url.">
 
 <!ENTITY feedFolder.label            "Αποθήκευση άρθρων σε:">
 <!ENTITY feedFolder.accesskey        "S">
+
+<!-- Account Settings and Subscription Dialog -->
+<!ENTITY biffStart.label             "Έλεγχος για νέα άρθρα κάθε ">
+<!ENTITY biffStart.accesskey         "χ">
+<!ENTITY biffMinutes.label           "λεπτά">
+<!ENTITY biffMinutes.accesskey       "λ">
+<!ENTITY biffDays.label              "ημέρες">
+<!ENTITY biffDays.accesskey          "η">
+<!ENTITY recommendedUnits.label      "Ο εκδότης προτείνει:">
 
 <!ENTITY quickMode.label             "Εμφάνιση της σύνοψης του άρθρου αντί για φόρτωση της ιστοσελίδας">
 <!ENTITY quickMode.accesskey         "h">
@@ -27,8 +37,11 @@
 <!ENTITY autotagUsePrefix.accesskey  "P">
 <!ENTITY autoTagPrefix.placeholder   "Εισαγωγή προθέματος ετικέτας">
 
+<!-- Subscription Dialog -->
 <!ENTITY button.addFeed.label        "Προσθήκη">
 <!ENTITY button.addFeed.accesskey    "θ">
+<!ENTITY button.verifyFeed.label     "Επαλήθευση">
+<!ENTITY button.verifyFeed.accesskey "Ε">
 <!ENTITY button.updateFeed.label     "Ενημέρωση">
 <!ENTITY button.updateFeed.accesskey "Ε">
 <!ENTITY button.removeFeed.label     "Απομάκρυνση">

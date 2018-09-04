@@ -4,7 +4,7 @@
 
 <!ENTITY aboutNetworking.title                 "Ağ hakkında">
 <!ENTITY aboutNetworking.warning               "Bu çok deneysel bir şey. Ne yaptığınızdan emin değilseniz kullanmayın.">
-<!ENTITY aboutNetworking.showNextTime          "Bu uyarıyı bir sonraki kez göster">
+<!ENTITY aboutNetworking.showNextTime          "Bu uyarıyı bir sonraki kez yine göster">
 <!ENTITY aboutNetworking.ok                    "Tamam">
 <!ENTITY aboutNetworking.HTTP                  "HTTP">
 <!ENTITY aboutNetworking.sockets               "Sockets">
@@ -14,7 +14,7 @@
 <!ENTITY aboutNetworking.autoRefresh           "3 saniyede bir otomatik yenile">
 <!ENTITY aboutNetworking.hostname              "Makine adı">
 <!ENTITY aboutNetworking.port                  "Port">
-<!ENTITY aboutNetworking.spdy                  "SPDY">
+<!ENTITY aboutNetworking.http2                 "HTTP/2">
 <!ENTITY aboutNetworking.ssl                   "SSL">
 <!ENTITY aboutNetworking.active                "Etkin">
 <!ENTITY aboutNetworking.idle                  "Beklemede">
@@ -23,13 +23,14 @@
 <!ENTITY aboutNetworking.sent                  "Gönderilen">
 <!ENTITY aboutNetworking.received              "Alınan">
 <!ENTITY aboutNetworking.family                "Aile">
+<!ENTITY aboutNetworking.trr                   "TRR">
 <!ENTITY aboutNetworking.addresses             "Adresler">
 <!ENTITY aboutNetworking.expires               "Zaman aşımı (saniye)">
 <!ENTITY aboutNetworking.messagesSent          "Gönderilen mesajlar">
 <!ENTITY aboutNetworking.messagesReceived      "Alınan mesajlar">
 <!ENTITY aboutNetworking.bytesSent             "Gönderilen bayt">
 <!ENTITY aboutNetworking.bytesReceived         "Alınan bayt">
-<!ENTITY aboutNetworking.logging               "Log kaydı">
+<!ENTITY aboutNetworking.logging               "Log Kaydı">
 <!ENTITY aboutNetworking.logTutorial           "Bu aracı nasıl kullanabileceğinizi öğrenmek için <a href='https://developer.mozilla.org/docs/Mozilla/Debugging/HTTP_logging'>HTTP Logging</a> sayfasına bakın.">
 <!ENTITY aboutNetworking.currentLogFile        "Geçerli log dosyası:">
 <!ENTITY aboutNetworking.currentLogModules     "Geçerli log modülleri:">
@@ -41,3 +42,18 @@
 <!ENTITY aboutNetworking.dnsLookupButton       "Çözümle">
 <!ENTITY aboutNetworking.dnsDomain             "Alan adı">
 <!ENTITY aboutNetworking.dnsLookupTableColumn  "IP'ler">
+<!ENTITY aboutNetworking.rcwn                  "RCWN İstatistikleri">
+<!ENTITY aboutNetworking.rcwnStatus            "RCWN durumu">
+<!ENTITY aboutNetworking.rcwnCacheWonCount     "Önbellek kazanım sayısı">
+<!ENTITY aboutNetworking.rcwnNetWonCount       "Net kazanım sayısı">
+<!ENTITY aboutNetworking.totalNetworkRequests  "Toplam ağ isteği sayısı">
+<!ENTITY aboutNetworking.rcwnOperation         "Önbellek operasyonu">
+<!ENTITY aboutNetworking.rcwnPerfOpen          "Açma">
+<!ENTITY aboutNetworking.rcwnPerfRead          "Okuma">
+<!ENTITY aboutNetworking.rcwnPerfWrite         "Yazma">
+<!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Kayıt açma">
+<!ENTITY aboutNetworking.rcwnAvgShort          "Kısa ortalama">
+<!ENTITY aboutNetworking.rcwnAvgLong           "Uzun ortalama">
+<!ENTITY aboutNetworking.rcwnStddevLong        "Uzun standart sapma">
+<!ENTITY aboutNetworking.rcwnCacheSlow         "">
+<!ENTITY aboutNetworking.rcwnCacheNotSlow      "Yavaş olmayan önbellek sayısı">

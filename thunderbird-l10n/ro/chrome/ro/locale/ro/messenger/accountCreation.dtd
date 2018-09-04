@@ -2,14 +2,16 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!ENTITY autoconfigWizard.title          "Setarea contului de e-mail">
+<!ENTITY autoconfigWizard2.title         "Utilizați un cont de mail existent">
 <!ENTITY name.label                      "Numele dumneavoastră:">
 <!ENTITY name.accesskey                  "N">
 <!ENTITY name.placeholder                "Prenume Nume">
 <!ENTITY name.text                       "Numele dumneavoastră așa cum este afișat altora">
 <!ENTITY email.label                     "Adresa de e-mail:">
 <!ENTITY email.accesskey                 "l">
-<!ENTITY email.placeholder               "e-mail@exemplu.ro">
+<!-- LOCALIZATION NOTE(email.placeholder): Domain @example.com must stay in English -->
+<!ENTITY email2.placeholder              "dvs@example.com">
+<!ENTITY email.text                      "Adresa de mail existentă">
 <!ENTITY password.label                  "Parola:">
 <!ENTITY password.accesskey              "P">
 <!ENTITY password.placeholder            "Parolă">
@@ -53,8 +55,8 @@
 <!ENTITY half-manual-test.accesskey      "T">
 <!ENTITY manual-edit.label               "Configurează manual">
 <!ENTITY manual-edit.accesskey           "m">
-<!ENTITY switch-to-provisioner.label     "Obțineți un cont nou">
-<!ENTITY switch-to-provisioner.accesskey "O">
+<!ENTITY open-provisioner.label          "Obține o nouă adresă de e-mail…">
+<!ENTITY open-provisioner.accesskey      "O">
 
 
 <!ENTITY warning.label                   "Avertisment!">
@@ -69,8 +71,8 @@
 <!-- LOCALIZATION NOTE (doneAccount.label): If there is a security warning
      on the incoming or outgoing servers, then the page that pops up will
      have this text in a button to continue by creating the account. -->
-<!ENTITY doneAccount.label               "Gata">
-<!ENTITY doneAccount.accesskey           "G">
+<!ENTITY doneAccount.label               "Terminat">
+<!ENTITY doneAccount.accesskey           "D">
 <!-- LOCALIZATION NOTE (changeSettings.label): If there is a security warning on
      the incoming or outgoing servers, then the page that pops up will have
      this text in a button to take you back to the previous page to change

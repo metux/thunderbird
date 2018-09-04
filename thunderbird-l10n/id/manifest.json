@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "id": {
+      "chrome_resources": {
+        "necko": "chrome/id/locale/id/necko/", 
+        "global": "chrome/id/locale/id/global/", 
+        "messenger-region": "chrome/id/locale/id/messenger-region/", 
+        "chat": "chrome/id/locale/id/chat/", 
+        "devtools": "chrome/id/locale/id/devtools/client/", 
+        "pipnss": "chrome/id/locale/id/pipnss/", 
+        "messenger-smime": "chrome/id/locale/id/messenger-smime/", 
+        "messenger-newsblog": "chrome/id/locale/id/messenger-newsblog/", 
+        "devtools-shim": "chrome/id/locale/id/devtools/shim/", 
+        "alerts": "chrome/id/locale/id/alerts/", 
+        "messenger": "chrome/id/locale/id/messenger/", 
+        "editor": "chrome/id/locale/id/editor/", 
+        "branding": "chrome/id/locale/id/branding/", 
+        "mozldap": "chrome/id/locale/id/mozldap/", 
+        "autoconfig": "chrome/id/locale/id/autoconfig/", 
+        "devtools-shared": "chrome/id/locale/id/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/id/locale/id/global-platform/win/", 
+          "android": "chrome/id/locale/id/global-platform/unix/", 
+          "macosx": "chrome/id/locale/id/global-platform/mac/", 
+          "linux": "chrome/id/locale/id/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/id/locale/id/mozapps/", 
+        "pluginproblem": "chrome/id/locale/id/pluginproblem/", 
+        "communicator": "chrome/id/locale/id/communicator/", 
+        "messenger-mapi": "chrome/id/locale/id/messenger-mapi/", 
+        "places": "chrome/id/locale/id/places/", 
+        "passwordmgr": "chrome/id/locale/id/passwordmgr/", 
+        "pippki": "chrome/id/locale/id/pippki/"
+      }, 
+      "version": "20180505183352"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-id@thunderbird.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "id", 
+  "version": "60.0buildid20180731173940", 
+  "name": "Bahasa Indonesia (ID) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "id-Mozilla - Komunitas Mozilla Indonesia (contributors: Dody Suria Wijaya, Milda Irhamni, Romi Hardiyanto)", 
+  "description": "Language pack for Thunderbird for id"
+}

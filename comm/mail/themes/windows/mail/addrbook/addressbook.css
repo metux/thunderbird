@@ -1,0 +1,175 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* ===== addressbook.css ================================================
+  == Styles for the main Address Book window.
+  ======================================================================= */
+
+@import url("chrome://messenger/skin/");
+@import url("chrome://messenger/skin/shared/addressbook.css");
+
+/* ::::: directory pane adjustments ::::: */
+
+#abDirTreeHeader-title {
+  padding-inline-start: 4px;
+}
+
+/* ::::: results pane ::::: */
+
+#GeneratedName {
+  padding-inline-start: 30px;
+}
+
+/* ::::: card view pane ::::: */
+
+#CardViewBox {
+  -moz-user-focus: ignore;
+  overflow: auto;
+  min-width: 150px;
+  background-color: -moz-Field;
+  color: -moz-FieldText;
+}
+
+#CardViewInnerBox {
+  margin-top: 2px;
+  margin-bottom: 2px;
+  padding: 0 8px;
+}
+
+#CardTitle {
+  font-size: 150%;
+  font-weight: bold;
+  border-bottom: 2px solid -moz-FieldText;
+  min-width: 120px;
+  margin: 0;
+}
+
+.cardViewGroup {
+  margin-top: 8px;
+  padding-bottom: 5px;
+  min-width: 50px;
+}
+
+/* :::: Toolbar :::: */
+
+#ab-toolbox {
+  -moz-appearance: none;
+  background-color: var(--toolbar-bgcolor);
+  border-bottom: 1px solid var(--toolbox-border-bottom-color);
+}
+
+/* Uses a background image instead of a border to avoid jumping of the toolbar
+   when a theme is enabled. */
+#ab-toolbox:-moz-lwtheme {
+  background-image: linear-gradient(to bottom, var(--tabs-border-color, transparent) 1px, transparent 1px);
+}
+
+@media (-moz-windows-default-theme) {
+  @media (-moz-os-version: windows-win8),
+         (-moz-os-version: windows-win10) {
+    #ab-toolbox:not(:-moz-lwtheme) {
+      --toolbox-border-bottom-color: #c2c2c2;
+    }
+  }
+}
+
+toolbar:not(:-moz-lwtheme) {
+  -moz-appearance: none;
+}
+
+#ab-toolbox > toolbar {
+  /* force iconsize="small" on these toolbars */
+  counter-reset: smallicons;
+}
+
+#ab-toolbox > toolbar:not([type="menubar"]) {
+  padding: 2px 1px;
+}
+
+#ab-toolbox > toolbar:not([type="menubar"]):-moz-lwtheme {
+  text-shadow: none;
+}
+
+toolbox > toolbar:last-of-type {
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+
+/* ::::: Search Textbox ::::: */
+
+#peopleSearchInput {
+  width: 20em;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  padding-inline-start: 5px;
+}
+
+/* ::::: directory pane adjustments ::::: */
+
+@media (-moz-windows-default-theme) {
+  #dirTree {
+    background-color: #fafafa;
+  }
+
+  sidebarheader {
+    -moz-appearance: none;
+    background-color: #f8f8f8;
+    border-top: 0;
+    border-bottom: 1px solid #a9b1b8;
+  }
+}
+
+/* Don't use the listbox appearance as that gives us a blue-grey top border
+   that collides with the primary toolbar border */
+#dirTree {
+  border-inline-end: 1px solid transparent;
+}
+
+/* ::::: splitters ::::: */
+
+#dirTree-splitter {
+  border-width: 0;
+  border-inline-end: 1px solid #a9b7c9;
+  min-width: 0;
+  width: 3px;
+  background-color: transparent;
+  margin-inline-start: -3px;
+  position: relative;
+  z-index: 10;
+}
+
+#results-splitter {
+  border-width: 0;
+  border-top: 1px solid #a9b7c9;
+  min-height: 0;
+  height: 3px;
+  background-color: transparent;
+  margin-bottom: -3px;
+  position: relative;
+  z-index: 10;
+}
+
+/* ::::: card view pane ::::: */
+
+#CardViewOuterBox {
+  border: none;
+  border-top: 1px solid ThreeDShadow;
+}
+
+@media (-moz-windows-glass) {
+  #ab-toolbox:not(:-moz-lwtheme) {
+    color: black;
+    text-shadow: 0 0 .7em white, 0 0 .7em white, 0 1px 0 rgba(255, 255, 255, .4);
+    --toolbox-border-bottom-color: #aabccf;
+  }
+}
+
+@media (-moz-os-version: windows-win7) and (-moz-windows-default-theme) {
+
+  #status-bar {
+    -moz-appearance: none;
+    border-style: none;
+    border-top: 1px solid ThreeDShadow;
+  }
+}

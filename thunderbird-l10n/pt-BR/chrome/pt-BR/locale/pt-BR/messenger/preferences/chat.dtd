@@ -2,6 +2,8 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<!ENTITY  generalTab.label            "Geral">
+
 <!ENTITY  startupAction.label         "Ao iniciar o &brandShortName;:">
 <!ENTITY  startupAction.accesskey     "o">
 <!ENTITY  startupOffline.label        "Ficar off-line nas minhas contas de bate-papo">
@@ -29,6 +31,10 @@ sentence. -->
 <!ENTITY  completeNotification.label          "com nome do destinatário e prévia da mensagem">
 <!ENTITY  buddyInfoOnly.label                 "com o nome do remetente apenas">
 <!ENTITY  dummyNotification.label             "sem qualquer informação">
+<!ENTITY  getAttention.label                  "Piscar o item da barra de tarefas">
+<!ENTITY  getAttention.accesskey              "f">
+<!ENTITY  getAttentionMac.label               "Animar o ícone da dock">
+<!ENTITY  getAttentionMac.accesskey           "o">
 <!ENTITY  chatSound.accesskey                 "d">
 <!ENTITY  chatSound.label                     "Reproduzir um som">
 <!ENTITY  play.label                          "Reproduzir">
@@ -40,3 +46,19 @@ sentence. -->
 <!ENTITY  browse.label                        "Procurar…">
 <!ENTITY  browse.accesskey                    "P">
 
+<!ENTITY messageStyleTab.title             "Estilos de mensagem">
+<!ENTITY messageStylePreview.label         "Pré-visualizar:">
+<!ENTITY messageStyleTheme.label           "Tema:">
+<!ENTITY messageStyleTheme.accesskey       "T">
+<!ENTITY messageStyleThunderbirdTheme.label "Thunderbird">
+<!ENTITY messageStyleBubblesTheme.label    "Bolhas">
+<!ENTITY messageStyleDarkTheme.label       "Escuro">
+<!ENTITY messageStylePaperSheetsTheme.label "Folhas de papel">
+<!ENTITY messageStyleSimpleTheme.label     "Simples">
+<!ENTITY messageStyleDefaultTheme.label    "Padrão">
+<!ENTITY messageStyleVariant.label         "Variante:">
+<!ENTITY messageStyleVariant.accesskey     "V">
+<!ENTITY messageStyleShowHeader.label      "Exibir cabeçalho">
+<!ENTITY messageStyleShowHeader.accesskey  "C">
+<!ENTITY messageStyleNoPreview.title       "Nenhum pré-visualização disponível">
+<!ENTITY messageStyleNoPreview.description "Este tema não é válido ou está atualmente indisponível (extensão desativada, modo de segurança, …).">

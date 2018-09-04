@@ -4,24 +4,27 @@
 <!ENTITY addons.windowTitle                   "Управление на добавки">
 
 <!ENTITY search.placeholder                   "Търсене във всички добавки">
+
+<!ENTITY search.placeholder2                  "Търсене в addons.mozilla.org">
 <!ENTITY search.buttonlabel                   "Търсене">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
 <!ENTITY search.commandkey                    "f">
 
 <!ENTITY loading.label                        "Зареждане…">
-<!ENTITY listEmpty.installed.label            "Нямате инсталирани добавки от този вид">
+<!ENTITY listEmpty.installed.label            "Няма инсталирани добавки от този вид">
 <!ENTITY listEmpty.availableUpdates.label     "Не бяха намерени обновявания">
 <!ENTITY listEmpty.recentUpdates.label        "Скоро не сте обновявали никоя добавка">
-<!ENTITY listEmpty.findUpdates.label          "Проверка за обновявания">
+<!ENTITY listEmpty.findUpdates.label          "Проверка за обновяване">
 <!ENTITY listEmpty.search.label               "Няма намерени съвпадащи добавки">
 <!ENTITY listEmpty.button.label               "Научете повече за добавките">
 <!ENTITY installAddonFromFile.label           "Инсталиране на добавка от файл…">
 <!ENTITY installAddonFromFile.accesskey       "И">
 <!ENTITY toolsMenu.tooltip                    "Инструменти за всички добавки">
 
-<!ENTITY cmd.back.tooltip                     "Връщане една страница назад">
-<!ENTITY cmd.forward.tooltip                  "Отиване една страница напред">
+<!ENTITY getThemes.description                "Искате да персонализирате вашия четец?">
+<!ENTITY getThemes.learnMore                  "Изберете измежду хиляди теми">
+
 
 <!ENTITY showUnsignedExtensions.button.label  "Някои разширения не можаха да бъдат проверени">
 <!ENTITY showAllExtensions.button.label       "Показване на всички разширения">
@@ -39,12 +42,12 @@
 
 <!-- categories / views -->
 <!ENTITY view.search.label                    "Търсене">
-<!ENTITY view.discover.label                  "Изтегляне на добавки">
+<!ENTITY view.discover.label                  "Повече добавки">
 <!ENTITY view.recentUpdates.label             "Скорошни обновявания">
 <!ENTITY view.availableUpdates.label          "Налични обновявания">
 
 <!-- addon updates -->
-<!ENTITY updates.checkForUpdates.label        "Проверка за обновявания">
+<!ENTITY updates.checkForUpdates.label        "Проверка за обновяване">
 <!ENTITY updates.checkForUpdates.accesskey    "П">
 <!ENTITY updates.viewUpdates.label            "Последни обновявания">
 <!ENTITY updates.viewUpdates.accesskey        "о">
@@ -64,7 +67,7 @@
 <!ENTITY updates.resetUpdatesToManual.label          "Нулиране на всички добавки, за да бъдат ръчно обновявани">
 <!ENTITY updates.resetUpdatesToManual.accesskey      "у">
 <!ENTITY updates.updating.label               "Обновяване на добавките">
-<!ENTITY updates.installed.label              "Вашите добавки бяха обновени.">
+<!ENTITY updates.installed.label              "Добавките са обновени.">
 <!ENTITY updates.downloaded.label             "Обновяването за вашите добавки е изтеглено.">
 <!ENTITY updates.restart.label                "Рестартирайте, за да завършите инсталацията сега">
 <!ENTITY updates.noneFound.label              "Не бяха намерени обновявания">
@@ -107,14 +110,15 @@
 <!ENTITY cmd.showPreferencesWin.tooltip       "Промяна на настройките на тази добавка">
 <!ENTITY cmd.showPreferencesUnix.label        "Настройки">
 <!ENTITY cmd.showPreferencesUnix.tooltip      "Сменяне на настройките на тази добавка">
-<!ENTITY cmd.contribute.label                 "Принос">
-<!ENTITY cmd.contribute.accesskey             "П">
-<!ENTITY cmd.contribute.tooltip               "Принос за развитието на тази добавка">
+<!ENTITY cmd.contribute.label                 "Допринасяне">
+<!ENTITY cmd.contribute.accesskey             "Д">
+<!ENTITY cmd.contribute.tooltip               "Допринасяне за развитието на добавката">
 
 <!ENTITY cmd.showReleaseNotes.label           "Показване на бележките по изданието">
 <!ENTITY cmd.showReleaseNotes.tooltip         "Показване на бележките по изданието на това обновяване">
 <!ENTITY cmd.hideReleaseNotes.label           "Скриване на бележките по изданието">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "Скриване на бележките по изданието на това обновяване">
+<!ENTITY cmd.findReplacement.label            "Намерете заместител">
 
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
@@ -130,7 +134,7 @@
 <!ENTITY detail.homepage.label                "Страница">
 <!ENTITY detail.numberOfDownloads.label       "Изтегляния">
 
-<!ENTITY detail.contributions.description     "Разработчикът на тази добавка ви моли да поддържате разработката чрез малко дарение.">
+<!ENTITY detail.contributions.description     "Разработчикът на добавката ви приканва да допринесете за бъдещото ѝ развитие, като направите скромно дарение.">
 
 <!ENTITY detail.updateType                    "Автоматично обновяване">
 <!ENTITY detail.updateDefault.label           "Стандартно">
@@ -143,7 +147,7 @@
 <!ENTITY detail.repository                    "Профил на добавка">
 <!ENTITY detail.size                          "Размер">
 
-<!ENTITY detail.checkForUpdates.label         "Проверка за обновявания">
+<!ENTITY detail.checkForUpdates.label         "Проверка за обновяване">
 <!ENTITY detail.checkForUpdates.accesskey     "П">
 <!ENTITY detail.checkForUpdates.tooltip       "Проверка за обновяване на тази добавка">
 <!ENTITY detail.showPreferencesWin.label      "Настройки">
@@ -163,7 +167,7 @@
 
 
 <!-- list sorting -->
-<!ENTITY sort.name.label                      "Име">
+<!ENTITY sort.name.label                      "Наименование">
 <!ENTITY sort.name.tooltip                    "Сортиране по име">
 <!ENTITY sort.dateUpdated.label               "Последно обновяване">
 <!ENTITY sort.dateUpdated.tooltip             "Сортиране по дата на обновяване">
@@ -182,6 +186,10 @@
 <!ENTITY addon.details.label                  "Повече">
 <!ENTITY addon.details.tooltip                "Показване на повече подробности за тази добавка">
 <!ENTITY addon.unknownDate                    "Неизвестен">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "ОСТАРЯЛА">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -205,7 +213,7 @@
 <!ENTITY addon.checkingForUpdates.label       "Проверка за обновяване…">
 <!ENTITY addon.releaseNotes.label             "Бележки по изданието:">
 <!ENTITY addon.loadingReleaseNotes.label      "Зареждане…">
-<!ENTITY addon.errorLoadingReleaseNotes.label "Съжаляваме, но зареждането на бележките по изданието беше неуспешно.">
+<!ENTITY addon.errorLoadingReleaseNotes.label "За съжаление, зареждането на бележките по изданието беше неуспешно.">
 
 <!ENTITY addon.createdBy.label                "От ">
 
@@ -246,3 +254,8 @@
 
 <!ENTITY pluginDeprecation.description "Липсва ли нещо? Някои приставки вече не се поддържат от &brandShortName;.">
 <!ENTITY pluginDeprecation.learnMore "Научете повече">
+
+<!ENTITY legacyWarning.showLegacy "Показване на остарелите разширения">
+<!ENTITY legacyExtensions.title "Остарели добавки">
+<!ENTITY legacyExtensions.description "Тези разширения не отговарят на текущите стандарти на &brandShortName; и затова са изключени.">
+<!ENTITY legacyExtensions.learnMore "Научете повече за промените при добавките">

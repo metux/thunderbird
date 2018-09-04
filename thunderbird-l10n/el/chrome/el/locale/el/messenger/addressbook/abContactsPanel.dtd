@@ -12,17 +12,18 @@
 <!ENTITY mailingListPropertiesMenu.label    "Ιδιότητες Λίστας Ταχυδρομείου">
 <!ENTITY mailingListPropertiesMenu.accesskey "ι">
 
+<!ENTITY abContextMenuButton.tooltip        "Προβολή μενού περιεχομένου βιβλίου διευθύνσεων">
 <!ENTITY addressbookPicker.label            "Βιβλίο διευθύνσεων:">
 <!ENTITY addressbookPicker.accesskey        "υ">
 <!ENTITY searchContacts.label               "Αναζήτηση Επαφών:">
 <!ENTITY searchContacts.accesskey           "ν">
-<!ENTITY SearchNameOrEmail.label            "Όνομα ή Email">
+<!ENTITY SearchNameOrEmail.label            "Όνομα ή e-mail">
 
 <!ENTITY addtoToFieldMenu.label             "Προσθήκη στο πεδίο Προς">
 <!ENTITY addtoToFieldMenu.accesskey         "Π">
 <!ENTITY addtoCcFieldMenu.label             "Προσθήκη στο πεδίο Κοιν">
 <!ENTITY addtoCcFieldMenu.accesskey         "Κ">
-<!ENTITY addtoBccFieldMenu.label            "Προσθήκη στο πεδίο Κρυφ.κοιν">
+<!ENTITY addtoBccFieldMenu.label            "Προσθήκη στο πεδίο Κρυφ. κοιν.">
 <!ENTITY addtoBccFieldMenu.accesskey        "φ">
 <!ENTITY deleteAddrBookCard.label           "Διαγραφή">
 <!ENTITY deleteAddrBookCard.accesskey       "Δ">
@@ -35,9 +36,14 @@
 <!ENTITY editMailingListContext.label       "Τροποποίηση Λίστας">
 <!ENTITY editMailingListContext.accesskey   "Ε">
 
+<!ENTITY newContactAbContext.label          "Νέα επαφή">
+<!ENTITY newContactAbContext.accesskey      "Ε">
+<!ENTITY newListAbContext.label             "Νέα λίστα">
+<!ENTITY newListAbContext.accesskey         "Λ">
+
 <!ENTITY toButton.label                     "Προσθήκη στο Πρός:">
 <!ENTITY toButton.accesskey                 "Π">
 <!ENTITY ccButton.label                     "Προσθήκη στο Κοιν:">
 <!ENTITY ccButton.accesskey                 "θ">
-<!ENTITY bccButton.label                    "Προσθήκη στο Κρυφ.κοιν: ">
+<!ENTITY bccButton.label                    "Προσθήκη στο Κρυφ. κοιν: ">
 <!ENTITY bccButton.accesskey                "φ">

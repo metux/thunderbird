@@ -26,3 +26,6 @@
 <!ENTITY backgroundImage.label "Fono piešinys:">
 <!ENTITY backgroundImage.accessKey "o">
 <!ENTITY backgroundImage.tooltip "Fono piešinio failas">
+
+
+<!ENTITY backgroundImage.shortenedDataURI "Shortened data URI (copy will place the full URI onto the clipboard)">

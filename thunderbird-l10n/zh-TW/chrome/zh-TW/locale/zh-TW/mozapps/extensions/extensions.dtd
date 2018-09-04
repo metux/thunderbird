@@ -4,6 +4,8 @@
 <!ENTITY addons.windowTitle                   "附加元件管理員">
 
 <!ENTITY search.placeholder                   "搜尋所有附加元件">
+
+<!ENTITY search.placeholder2                  "在 addons.mozilla.org 搜尋">
 <!ENTITY search.buttonlabel                   "搜尋">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
@@ -20,8 +22,12 @@
 <!ENTITY installAddonFromFile.accesskey       "I">
 <!ENTITY toolsMenu.tooltip                    "所有附加元件的工具">
 
+<!ENTITY getThemes.description                "想要個人化您的瀏覽器嗎？">
+<!ENTITY getThemes.learnMore                  "從數以千計的佈景主題挑選一套。">
+
 <!ENTITY cmd.back.tooltip                     "回到上一頁">
 <!ENTITY cmd.forward.tooltip                  "前進下一頁">
+
 
 <!ENTITY showUnsignedExtensions.button.label  "無法驗證某些擴充套件">
 <!ENTITY showAllExtensions.button.label       "顯示所有擴充套件">
@@ -115,6 +121,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "顯示此次更新的新鮮事">
 <!ENTITY cmd.hideReleaseNotes.label           "隱藏新鮮事">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "隱藏此次更新的新鮮事">
+<!ENTITY cmd.findReplacement.label            "尋找替代套件">
 
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
@@ -184,6 +191,10 @@
 <!ENTITY addon.details.label                  "更多資訊">
 <!ENTITY addon.details.tooltip                "顯示更多關於此附加元件的詳情">
 <!ENTITY addon.unknownDate                    "未知">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "傳統">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -248,3 +259,8 @@
 
 <!ENTITY pluginDeprecation.description "少了點東西嗎？&brandShortName; 已不再支援某些外掛程式。">
 <!ENTITY pluginDeprecation.learnMore "了解更多。">
+
+<!ENTITY legacyWarning.showLegacy "顯示傳統擴充套件">
+<!ENTITY legacyExtensions.title "傳統擴充套件">
+<!ENTITY legacyExtensions.description "這些擴充套件不符合 &brandShortName; 目前的標準，已被停用。">
+<!ENTITY legacyExtensions.learnMore "了解附加元件有什麼變動">

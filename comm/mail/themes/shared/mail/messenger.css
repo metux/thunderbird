@@ -1,0 +1,203 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+@namespace html url("http://www.w3.org/1999/xhtml");
+
+:root:-moz-lwtheme {
+  --toolbarbutton-icon-fill-opacity: 1;
+}
+
+description.error {
+  color: #FF0000;
+}
+
+toolbar[printpreview="true"] {
+  -moz-binding: url("chrome://global/content/printPreviewBindings.xml#printpreviewtoolbar");
+}
+
+#tabbar-toolbar {
+  -moz-appearance: none;
+  padding: 0;
+}
+
+#tabbar-toolbar[customizing="true"] {
+  min-width: 16px;
+  min-height: 10px;
+}
+
+.chromeclass-toolbar toolbarseparator:-moz-lwtheme {
+  -moz-appearance: none;
+  min-width: 1px;
+  background-image: linear-gradient(
+                    transparent 4px,
+                    var(--lwt-toolbar-vertical-separator, rgba(0,0,0,.2)) 4px,
+                    var(--lwt-toolbar-vertical-separator, rgba(0,0,0,.2)) calc(100% - 4px),
+                    transparent calc(100% - 4px));
+  margin-left: 1px;
+  margin-right: 1px;
+}
+
+.chromeclass-toolbar[brighttext] toolbarseparator:-moz-lwtheme {
+  background-image: linear-gradient(
+                    transparent 4px,
+                    var(--lwt-toolbar-vertical-separator, rgba(255,255,255,.3)) 4px,
+                    var(--lwt-toolbar-vertical-separator, rgba(255,255,255,.3)) calc(100% - 4px),
+                    transparent calc(100% - 4px));
+}
+
+/* :::::: throbber :::::::::: */
+
+#throbber-box {
+  width: 16px;
+  min-height: 16px;
+  margin: 0 3px;
+}
+
+#throbber-box[busy="true"] {
+  list-style-image: url("chrome://global/skin/icons/loading.png");
+}
+
+#wrapper-throbber-box > #throbber-box {
+  list-style-image: url("chrome://messenger/skin/icons/notloading.png");
+}
+
+/* ::::: Status bar ::::: */
+
+#status-bar:-moz-lwtheme {
+  border-top: 1px solid var(--tabs-border-color);
+}
+
+#status-bar:-moz-lwtheme toolbarbutton {
+  color: var(--lwt-text-color, inherit);
+}
+
+/* ::::: online/offline icons ::::: */
+
+#offline-status {
+  padding: 0 2px;
+  list-style-image: url("chrome://messenger/skin/icons/online.png");
+  -moz-appearance: none;
+}
+
+#offline-status[offline="true"] {
+  list-style-image: url("chrome://messenger/skin/icons/offline.png");
+}
+
+/* ::::: Notifications ::::: */
+
+notification {
+  padding-bottom: 2px;
+}
+
+notification[type="warning"] {
+  background: #ffc;
+}
+
+notification[value="draftMsgContent"] .messageImage {
+  list-style-image: url("chrome://messenger/skin/icons/newmsg.svg");
+}
+
+/* ::::: searchTermOverlay ::::: */
+
+#searchTermList > listitem[highlight = "true"] {
+  animation: highlight .4s ease-in;
+}
+
+@keyframes highlight {
+  from { background-color: Highlight; }
+  to { background-color: transparent; }
+}
+
+#findbar-beforeReplaceSeparator {
+  height: 16px;
+}
+
+/* ::::: Address Book menuitem icons ::::: */
+
+.abMenuItem[AddrBook="true"] {
+  list-style-image: url("chrome://messenger/skin/addressbook/icons/addrbook.png");
+}
+
+.abMenuItem[MailList="true"] {
+  list-style-image: url("chrome://messenger/skin/addressbook/icons/ablist.png");
+}
+
+.abMenuItem[AddrBook="true"][IsRemote="true"] {
+  list-style-image: url("chrome://messenger/skin/addressbook/icons/remote-addrbook.png");
+}
+
+.abMenuItem[AddrBook="true"][IsRemote="true"][IsSecure="true"] {
+  list-style-image: url("chrome://messenger/skin/addressbook/icons/secure-remote-addrbook.png");
+}
+
+/* ::::: Panel toolbarbuttons ::::: */
+
+.panelTitle {
+  margin-top: 8px;
+  margin-inline-start: 7px;
+  margin-bottom: 6px;
+}
+
+.panelButton {
+  -moz-appearance: none;
+  min-height: 24px;
+  padding: 4px 6px;
+  background-color: transparent;
+  -moz-context-properties: fill, fill-opacity;
+  fill: currentColor;
+  fill-opacity: var(--toolbarbutton-icon-fill-opacity);
+}
+
+.panelButton:focus {
+  outline: 0;
+}
+
+.panelButton:not(:-moz-any([disabled],[open],:active)):-moz-any(:hover,:focus) {
+  background-color: var(--arrowpanel-dimmed);
+}
+
+.panelButton:not([disabled]):-moz-any([open],:hover:active) {
+  background-color: var(--arrowpanel-dimmed-further);
+  box-shadow: 0 1px 0 hsla(210, 4%, 10%, .03) inset;
+}
+
+.panelButton > .toolbarbutton-text {
+  text-align: start;
+  padding-inline-start: 6px;
+  padding-inline-end: 6px;
+}
+
+.panelButton[prettykey]::after {
+  content: attr(prettykey);
+  float: right;
+  color: GrayText;
+}
+
+/* :::: autocomplete labels :::: */
+
+html|span.ac-emphasize-text {
+  font-weight: bold;
+}
+
+.autocomplete-richlistitem:not([ac-comment=""]) > .ac-url,
+.autocomplete-richlistitem:not([ac-comment=""]) > .ac-separator {
+  display: -moz-box;
+}
+
+.autocomplete-richlistitem:not([ac-comment=""]) > .ac-url {
+  -moz-box-ordinal-group: 1;
+}
+
+.autocomplete-richlistitem:not([ac-comment=""]) > .ac-separator {
+  -moz-box-ordinal-group: 2;
+}
+
+.autocomplete-richlistitem:not([ac-comment=""]) > .ac-title {
+  -moz-box-ordinal-group: 3;
+}
+
+.ac-url-text {
+  max-width: unset !important;
+}

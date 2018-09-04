@@ -32,8 +32,6 @@
 <!ENTITY runtimeMenu_accesskey "R">
 <!ENTITY runtimeMenu_disconnect_label "Dícheangail">
 <!ENTITY runtimeMenu_disconnect_accesskey "D">
-<!ENTITY runtimeMenu_showPermissionTable_label "Ceadanna">
-<!ENTITY runtimeMenu_showPermissionTable_accesskey "E">
 <!ENTITY runtimeMenu_takeScreenshot_label "Seat den Scáileán">
 <!ENTITY runtimeMenu_takeScreenshot_accesskey "S">
 <!ENTITY runtimeMenu_showDetails_label "Faoin Chóras Ama Rite">
@@ -47,8 +45,6 @@
 
 <!ENTITY viewMenu_label "Amharc">
 <!ENTITY viewMenu_accesskey "V">
-<!ENTITY viewMenu_toggleEditor_label "Scoránaigh an tEagarthóir">
-<!ENTITY viewMenu_toggleEditor_accesskey "E">
 <!ENTITY viewMenu_zoomin_label "Súmáil Isteach">
 <!ENTITY viewMenu_zoomin_accesskey "I">
 <!ENTITY viewMenu_zoomout_label "Súmáil Amach">
@@ -68,8 +64,6 @@
 <!ENTITY key_play "R">
 <!-- show toolbox -->
 <!ENTITY key_toggleToolbox "VK_F12">
-<!-- toggle sidebar -->
-<!ENTITY key_toggleEditor "B">
 <!-- zoom -->
 <!ENTITY key_zoomin "+">
 <!ENTITY key_zoomin2 "=">
@@ -86,7 +80,7 @@
 <!ENTITY runtimePanel_installsimulator "Suiteáil Ionsamhlóir">
 <!ENTITY runtimePanel_noadbhelper "Suiteáil Cúntóir ADB">
 <!ENTITY runtimePanel_nousbdevice "Nach bhfuil tú in ann do ghléas a fheiceáil?">
-<!ENTITY runtimePanel_refreshDevices_label "Athluchtaigh Gléasanna">
+<!ENTITY runtimePanel_refreshDevices_label "Athnuaigh na Gléasanna">
 <!-- Lense -->
 
 <!ENTITY details_valid_header "bailí">
@@ -96,12 +90,11 @@
 <!ENTITY details_location "Suíomh">
 <!ENTITY details_manifestURL "Aitheantas na hAipe">
 <!ENTITY details_removeProject_button "Bain Tionscadal">
-<!ENTITY details_showPrepackageLog_button "Taispeáin an Logchomhad Réamhphacáistithe">
 <!-- New App -->
 
 <!ENTITY newAppWindowTitle "Aip Nua">
 <!ENTITY newAppHeader "Roghnaigh teimpléad">
-<!ENTITY newAppLoadingTemplate "Teimpléid á luchtú…">
+<!ENTITY newAppLoadingTemplate "Teimpléid á lódáil…">
 <!ENTITY newAppProjectName "Ainm an Tionscadail:">
 <!-- Decks -->
 
@@ -125,31 +118,12 @@
 <!ENTITY prefs_options_rememberlastproject_tooltip "Athoscail an tionscadal deireanach nuair a thosaíonn WebIDE">
 <!ENTITY prefs_options_templatesurl "URL na dTeimpléad">
 <!ENTITY prefs_options_templatesurl_tooltip "Innéacs na dteimpléad atá ar fáil">
-<!ENTITY prefs_options_showeditor "Taispeáin eagarthóir">
-<!ENTITY prefs_options_showeditor_tooltip "Taispeáin eagarthóir inmheánach">
-<!ENTITY prefs_options_tabsize "Méid táib">
-<!ENTITY prefs_options_expandtab "Táib bhoga">
-<!ENTITY prefs_options_expandtab_tooltip "Úsáid spásanna in ionad táb">
-<!ENTITY prefs_options_detectindentation "Uatheangú">
-<!ENTITY prefs_options_detectindentation_tooltip "Tomhais an stíl eangaithe bunaithe ar inneachar na foinse">
-<!ENTITY prefs_options_autocomplete "Uathlíonadh">
-<!ENTITY prefs_options_autocomplete_tooltip "Cumasaigh uathlíonadh cóid">
-<!ENTITY prefs_options_autoclosebrackets "Dún lúibíní go huathoibríoch">
-<!ENTITY prefs_options_autoclosebrackets_tooltip "Cuir lúibíní deiridh isteach go huathoibríoch">
-<!ENTITY prefs_options_keybindings "Aicearraí Méarchláir">
-<!ENTITY prefs_options_keybindings_default "Réamhshocrú">
-<!ENTITY prefs_options_autosavefiles "Sábháil go huathoibríoch">
-<!ENTITY prefs_options_autosavefiles_tooltip "Sábháil comhaid athraithe go huathoibríoch sula gcuirfear an tionscadal ar siúl">
-<!-- Permissions Table -->
-
-<!ENTITY permissionstable_title "Ceadanna">
-<!ENTITY permissionstable_name_header "Ainm">
 <!-- Runtime Details -->
 
 <!ENTITY runtimedetails_title "Faoin Chóras Ama Rite">
 <!ENTITY runtimedetails_adbIsRoot "Is é ADB an fréamh: ">
 <!ENTITY runtimedetails_summonADBRoot "fréamhghléas">
-<!ENTITY runtimedetails_ADBRootWarning "(luchtóir tosaithe díghlasáilte de dhíth)">
+<!ENTITY runtimedetails_ADBRootWarning "(lódálaí tosaithe díghlasáilte de dhíth)">
 <!ENTITY runtimedetails_unrestrictedPrivileges "Ceadanna DevTools gan srian: ">
 <!ENTITY runtimedetails_requestPrivileges "iarr ceadanna níos airde">
 <!ENTITY runtimedetails_privilegesWarning "(Atosófar an gléas. An forúsáideoir amháin.)">

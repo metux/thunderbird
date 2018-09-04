@@ -2,12 +2,6 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!--
-# Reviewer(s):
-#
-# Tomer Cohen <tomer.mozilla@tomercohen.com>
-#
--->
 <!-- extracted from am-addressing.xul -->
 
 <!ENTITY addressing.label          "חיבור ומיעון הודעה">
@@ -25,7 +19,7 @@
 
 <!-- am-addressing.xul -->
 
-<!ENTITY compositionGroupTitle.label "חיבור הודעה">
+<!ENTITY compositionGroupTitle.label          "חיבור הודעה">
 <!-- LOCALIZATION NOTE (useHtml.label) : do not translate "html" in below line -->
 <!ENTITY useHtml.label                        "חבר הודעות בתבנית HTML">
 <!ENTITY useHtml.accesskey                    "ת">
@@ -34,6 +28,9 @@
 <!-- LOCALIZATION NOTE (then.label): This will concatenate with the 4 strings that follow. -->
 <!ENTITY then.label                           "ואז,">
 <!ENTITY then.accesskey                       "ז">
+<!-- LOCALIZATION NOTE (quoting.label): This will concatenate with the 4 strings that follow. -->
+<!ENTITY quoting.label                        "כשמצטטים,">
+<!ENTITY quoting.accesskey                    "צ">
 <!ENTITY aboveQuote.label                     "התחל את תשובתי מעל הציטוט">
 <!ENTITY belowQuote.label                     "התחל את תשובתי מתחת לציטוט">
 <!ENTITY selectAndQuote.label                 "בחר את הציטוט">
@@ -46,10 +43,8 @@
 <!ENTITY includeSigOnForward.label            "כלול חתימה בהעברות">
 <!ENTITY includeSigOnForward.accesskey        "ע">
 
+<!ENTITY globalComposingPrefs.label           "העדפות כתיבה כלליות…">
+<!ENTITY globalComposingPrefs.accesskey       "כ">
 
-<!ENTITY globalAddressingPrefs.accesskey      "P">
-
-<!ENTITY globalAddressingPrefs.label          "Global Addressing Preferences…">
-<!ENTITY globalComposingPrefs.accesskey       "G">
-
-<!ENTITY globalComposingPrefs.label           "Global Composing Preferences…">
+<!ENTITY globalAddressingPrefs.label          "העדפות מיעון כלליות…">
+<!ENTITY globalAddressingPrefs.accesskey      "ע">

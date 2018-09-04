@@ -23,7 +23,7 @@
 <!ENTITY fontColor.label                      "Tekstkleur:">
 <!ENTITY fontColor.accesskey                  "k">
 <!ENTITY bgColor.label                        "Eftergrûnkleur:">
-<!ENTITY bgColor.accesskey                    "A">
+<!ENTITY bgColor.accesskey                    "E">
 <!ENTITY restoreHTMLDefaults.label            "Standertwearden tebeksette">
 <!ENTITY restoreHTMLDefaults.accesskey        "S">
 <!ENTITY defaultToParagraph.label             "Standert alinea-opmaak brûke yn stee fan kerntekst">
@@ -54,6 +54,9 @@
 <!ENTITY directoriesNone.label                 "Gjin">
 <!ENTITY editDirectories.label                 "Directory's bewurkje…">
 <!ENTITY editDirectories.accesskey             "w">
+<!ENTITY showAsDefault.label                   "Standert opstartmap yn it adresboekfinster:">
+<!ENTITY showAsDefault.accesskey               "S">
+<!ENTITY showAsDefaultLast.label               "Lêst brûkte map">
 
 <!ENTITY sendOptionsDescription.label          "Tekstopmaakgedrach konfigurearje">
 <!ENTITY sendOptions.label                     "Ferstjoeropsjes…">

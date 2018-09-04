@@ -3,6 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <!-- LOCALIZATION NOTE (tapToPlayPlugin): Mobile (used for touch interfaces) only has one type of plugin possible. -->
 
+<!ENTITY pluginActivationWarning                             "Mae'r wefan hon yn defnyddio ategyn gall arafu &brandShortName;.">
 <!ENTITY tapToPlayPlugin                                     "Cliciwch yma i gychwyn yr ategyn.">
 <!ENTITY clickToActivatePlugin                               "Gweithredu'r ategyn.">
 <!ENTITY checkForUpdates                                     "Gwirio am ddiweddariadau…">
@@ -29,3 +30,4 @@
 <!ENTITY plugin.file                                         "Ffeil">
 <!ENTITY plugin.mimeTypes                                    "Math MIME">
 <!ENTITY plugin.flashProtectedMode.label                     "Galluogi modd diogel Adobe Flash">
+<!ENTITY plugin.enableBlocklists.label                       "Rhwystro cynnwys Flash peryglus ac ymwthiol">

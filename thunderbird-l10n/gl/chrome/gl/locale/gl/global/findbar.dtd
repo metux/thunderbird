@@ -5,26 +5,16 @@
 <!-- LOCALIZATION NOTE : FILE This file contains the entities needed to -->
 <!-- LOCALIZATION NOTE : FILE use the Find Bar. --> 
 
-<!-- entities split out from browser.dtd -->
-<!ENTITY next.label "Seguinte">
-<!ENTITY next.accesskey "S">
 <!ENTITY next.tooltip "Localizar a seguinte aparición da frase">
-<!ENTITY previous.label "Anterior">
-<!ENTITY previous.accesskey "A">
 <!ENTITY previous.tooltip "Localizar a anterior aparición da frase">
 <!ENTITY findCloseButton.tooltip "Pechar a barra de localización">
-<!ENTITY highlight.label "Realzar todo">
-<!ENTITY highlight.accesskey "R">
-<!ENTITY highlight.tooltiptext "Realzar todas as aparicións da frase">
-<!ENTITY caseSensitiveCheckbox.label "Diferenciar maiúsculas de minúsculas">
-<!ENTITY caseSensitiveCheckbox.accesskey "m">
-
+<!ENTITY highlightAll.label "Realzar todo">
+<!ENTITY highlightAll.accesskey "a">
+<!ENTITY highlightAll.tooltiptext "Realzar todas as aparicións da frase">
+<!ENTITY caseSensitive.label "Diferenciar maiúsculas de minúsculas">
 <!ENTITY caseSensitive.accesskey "c">
-<!ENTITY caseSensitive.label "Match Case">
-<!ENTITY caseSensitive.tooltiptext "Search with case sensitivity">
-<!ENTITY entireWord.accesskey "w">
+<!ENTITY caseSensitive.tooltiptext "Diferencias maiúsculas de minúsculas na busca">
+
 <!ENTITY entireWord.label "Whole Words">
+<!ENTITY entireWord.accesskey "w">
 <!ENTITY entireWord.tooltiptext "Search whole words only">
-<!ENTITY highlightAll.accesskey "l">
-<!ENTITY highlightAll.label "Highlight All">
-<!ENTITY highlightAll.tooltiptext "Highlight all occurrences of the phrase">

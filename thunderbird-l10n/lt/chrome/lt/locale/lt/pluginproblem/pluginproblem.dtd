@@ -3,6 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <!-- LOCALIZATION NOTE (tapToPlayPlugin): Mobile (used for touch interfaces) only has one type of plugin possible. -->
 
+<!ENTITY pluginActivationWarning                             "Ši svetainė naudoja papildinį, galintį sulėtinti „&brandShortName;“.">
 <!ENTITY tapToPlayPlugin                                     "Bakstelėkite čia, jeigu norite aktyvinti papildinį.">
 <!ENTITY clickToActivatePlugin                               "Aktyvinti papildinį.">
 <!ENTITY checkForUpdates                                     "Ieškoti naujinimų…">
@@ -29,3 +30,4 @@
 <!ENTITY plugin.file                                         "Failas">
 <!ENTITY plugin.mimeTypes                                    "MIME tipai">
 <!ENTITY plugin.flashProtectedMode.label                     "Įjungti „Adobe Flash“ saugiąją veikseną">
+<!ENTITY plugin.enableBlocklists.label                       "Blokuoti pavojingą ir nepageidaujamą „Flash“ turinį">

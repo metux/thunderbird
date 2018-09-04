@@ -21,6 +21,18 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Versi">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Perangkat Lunak Keamanan">
+<!ENTITY aboutSupport.securitySoftwareType "Jenis">
+<!ENTITY aboutSupport.securitySoftwareName "Nama">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antiperangkatpengintai">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Tembok Api">
+
+<!ENTITY aboutSupport.featuresTitle "Fitur &brandShortName;">
+<!ENTITY aboutSupport.featureName "Nama">
+<!ENTITY aboutSupport.featureVersion "Versi">
+<!ENTITY aboutSupport.featureId "ID">
+
 <!ENTITY aboutSupport.experimentsTitle "Fitur Eksperimental">
 <!ENTITY aboutSupport.experimentName "Nama">
 <!ENTITY aboutSupport.experimentId "ID">
@@ -37,7 +49,7 @@ This is likely the same like id.heading in crashes.dtd. -->
 
 <!-- LOCALIZATION NOTE (aboutSupport.appBasicsUpdateChannel, aboutSupport.appBasicsUpdateHistory, aboutSupport.appBasicsShowUpdateHistory):
 "Update" is a noun here, not a verb. -->
-<!ENTITY aboutSupport.appBasicsUpdateChannel "Kanal Pembaruan">
+<!ENTITY aboutSupport.appBasicsUpdateChannel "Kanal Pemutakhiran">
 <!ENTITY aboutSupport.appBasicsUpdateHistory "Riwayat Pemutakhiran">
 <!ENTITY aboutSupport.appBasicsShowUpdateHistory "Tampilkan Riwayat Pemutakhiran">
 
@@ -61,6 +73,13 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Jendela Multiproses">
 
+<!ENTITY aboutSupport.appBasicsProcessCount "Proses Konten Web">
+
+<!ENTITY aboutSupport.enterprisePolicies "Kebijakan Perusahaan">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Kunci Google">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Kunci Layanan Lokasi Mozilla">
+
 <!ENTITY aboutSupport.appBasicsSafeMode "Mode Aman">
 
 <!ENTITY aboutSupport.showDir.label "Buka Direktori">
@@ -70,6 +89,7 @@ variant of aboutSupport.showDir.label.  This allows us to use the preferred
 <!ENTITY aboutSupport.showMac.label "Tampilkan di Finder">
 <!-- LOCALIZATION NOTE (aboutSupport.showWin2.label): This is the Windows-specific
 variant of aboutSupport.showDir.label. -->
+<!ENTITY aboutSupport.showWin2.label "Buka Folder">
 
 <!ENTITY aboutSupport.modifiedKeyPrefsTitle "Pengaturan Penting yang Diubah">
 <!ENTITY aboutSupport.modifiedPrefsName "Nama">
@@ -95,6 +115,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "Aksesibilitas">
 <!ENTITY aboutSupport.a11yActivated "Aktif">
 <!ENTITY aboutSupport.a11yForceDisabled "Aksesibilitas Dicegah">
+<!ENTITY aboutSupport.a11yHandlerUsed "Penanganan Terakses Digunakan">
+<!ENTITY aboutSupport.a11yInstantiator "Accessibility Instantiator">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Versi Pustaka">
 
@@ -105,6 +127,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Salin data mentah ke papan klip">
 
 <!ENTITY aboutSupport.sandboxTitle "Kotak pasir">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Panggilan Sistem yang Tertolak">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "Detik Lalu">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Jenis Proses">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Syscall">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Argumen">
 
 <!ENTITY aboutSupport.safeModeTitle "Coba Mode Aman">
 <!ENTITY aboutSupport.restartInSafeMode.label "Mulai Ulang dengan Pengaya Dinonaktifkan…">
@@ -118,6 +148,25 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Fitur Penjaga Kerusakan yang Dinonaktifkan">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Solusi sementara">
 
-<!-- LOCALIZATION NOTE (aboutSupport.showWin2.label): This is the Windows-specific
-variant of aboutSupport.showDir.label. -->
-<!ENTITY aboutSupport.showWin2.label "Open Folder">
+<!ENTITY aboutSupport.mediaTitle "Media">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Peranti Keluaran">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Peranti Masukan">
+<!ENTITY aboutSupport.mediaDeviceName "Nama">
+<!ENTITY aboutSupport.mediaDeviceGroup "Grup">
+<!ENTITY aboutSupport.mediaDeviceVendor "Vendor">
+<!ENTITY aboutSupport.mediaDeviceState "Provinsi">
+<!ENTITY aboutSupport.mediaDevicePreferred "Disukai">
+<!ENTITY aboutSupport.mediaDeviceFormat "Format">
+<!ENTITY aboutSupport.mediaDeviceChannels "Kanal">
+<!ENTITY aboutSupport.mediaDeviceRate "Nilai">
+<!ENTITY aboutSupport.mediaDeviceLatency "Latensi">
+
+<!ENTITY aboutSupport.intlTitle "Pelokalan dan Internasional">
+<!ENTITY aboutSupport.intlAppTitle "Setelan Aplikasi">
+<!ENTITY aboutSupport.intlLocalesRequested "Bahasa yang Diminta">
+<!ENTITY aboutSupport.intlLocalesAvailable "Bahasa yang Tersedia">
+<!ENTITY aboutSupport.intlLocalesSupported "Bahasa Aplikasi">
+<!ENTITY aboutSupport.intlLocalesDefault "Bahasa Baku">
+<!ENTITY aboutSupport.intlOSTitle "Sistem Operasi">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Bahasa Sistem">
+<!ENTITY aboutSupport.intlRegionalPrefs "Pengaturan Regional">

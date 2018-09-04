@@ -24,3 +24,4 @@
 <!ENTITY replaceAllButton.label "استبدل الكل">
 <!ENTITY replaceAllButton.accesskey "ك">
 <!ENTITY closeButton.label "أغلق">
+<!ENTITY closeButton.accesskey "غ">

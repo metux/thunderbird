@@ -1,0 +1,101 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+@import url(chrome://calendar-common/skin/calendar-task-view.css);
+
+#calendar-task-view-splitter {
+    border: none;
+    min-height: 5px;
+}
+
+#calendar-task-details-container {
+    border-top: 1px solid ThreeDShadow;
+    border-left: 1px solid ThreeDShadow;
+    border-right: 0;
+    border-bottom: 0;
+    overflow: hidden;
+}
+
+#other-actions-box {
+    margin-inline-end: -2px;
+}
+
+.task-details-name {
+    color: windowtext;
+    opacity: 0.5; /* lower contrast */
+}
+
+#calendar-task-details-grid > rows > .item-date-row > .headline {
+    color: windowtext;
+    opacity: 0.5; /* lower contrast */
+}
+
+.task-details-value {
+    color: WindowText;
+}
+
+#task-text-filter-field {
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+#task-text-filter-field .textbox-search-icons {
+    margin-bottom: -1px;
+}
+
+/* ::::: task actions toolbar ::::: */
+
+#task-actions-toolbox {
+    -moz-appearance: none;
+}
+
+#task-actions-toolbar {
+    min-height: 0;
+    padding: 0;
+}
+
+#calendar-add-task-button[disabled="true"] {
+    fill-opacity: 0.4;
+}
+
+#view-task-edit-field,
+#task-text-filter-field {
+    width: 15em;
+}
+
+#calendar-task-box #calendar-task-view-splitter {
+    border-width: 0;
+    border-bottom: 1px solid #A9B7C9;
+    min-height: 0;
+    height: 5px;
+    background-color: transparent;
+    margin-top: -5px;
+    position: relative;
+    z-index: 10;
+}
+
+#calendar-nav-control {
+    border-top-width: 0;
+}
+
+#calendar-task-details-container {
+    border-top-width: 0;
+    padding-top: 0;
+}
+
+@media (-moz-windows-default-theme) {
+    #task-addition-box {
+        background-color: #f8f8f8;
+        height: 32px;
+    }
+}
+
+@media (-moz-os-version: windows-vista),
+       (-moz-os-version: windows-win7) {
+    #view-task-edit-field,
+    #task-text-filter-field {
+        margin-top: 4px;
+        margin-bottom: 4px;
+    }
+}

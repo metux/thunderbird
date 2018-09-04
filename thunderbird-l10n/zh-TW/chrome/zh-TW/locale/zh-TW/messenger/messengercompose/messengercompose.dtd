@@ -85,6 +85,20 @@
 <!ENTITY editRewrapCmd.key "R">
 <!ENTITY renameAttachmentCmd.label "重新命名附件…">
 <!ENTITY renameAttachmentCmd.accesskey "e">
+<!ENTITY reorderAttachmentsCmd.label "重排附件…">
+<!ENTITY reorderAttachmentsCmd.accesskey "s">
+<!ENTITY reorderAttachmentsCmd.key "x">
+<!ENTITY toggleAttachmentPaneCmd.label "附件窗格">
+<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.accesskey):
+     For better mnemonics, toggleAttachmentPaneCmd.accesskey should be the same
+     as attachments.accesskey. -->
+<!ENTITY toggleAttachmentPaneCmd.accesskey "m">
+<!-- LOCALIZATION NOTE (toggleAttachmentPaneCmd.key):
+     With OS-specific access modifier, this defines the shortcut key for showing/
+     hiding/minimizing the attachment pane, e.g. Alt+M on Windows.
+     toggleAttachmentPaneCmd.key and attachments.accesskey must be the same
+     for the bucket view state machinery to work. -->
+<!ENTITY toggleAttachmentPaneCmd.key "m">
 <!ENTITY selectAllCmd.label "全選">
 <!ENTITY selectAllCmd.key "A">
 <!ENTITY selectAllCmd.accesskey "A">
@@ -102,6 +116,26 @@
 <!ENTITY findPrevCmd.accesskey "v">
 <!ENTITY findPrevCmd.key "G">
 <!ENTITY findPrevCmd.key2 "VK_F3">
+
+<!-- Reorder Attachment Panel -->
+<!ENTITY reorderAttachmentsPanel.label "重排附件">
+<!ENTITY moveAttachmentTopPanelBtn.label "移到頂端">
+<!ENTITY moveAttachmentUpPanelBtn.label "向上移動">
+<!ENTITY moveAttachmentBundleUpPanelBtn.label "一起移動">
+<!ENTITY moveAttachmentDownPanelBtn.label "向下移動">
+<!ENTITY moveAttachmentBottomPanelBtn.label "移到底端">
+
+<!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.Sort.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsPanelBtn.Sort.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsPanelBtn.Sort.AZ.label "排序: A-Z">
+<!ENTITY sortAttachmentsPanelBtn.Sort.ZA.label "排序: Z-A">
+<!-- LOCALIZATION NOTE (sortAttachmentsPanelBtn.SortSelection.AZ.label):
+     Please ensure that this translation matches
+     sortAttachmentsPanelBtn.SortSelection.ZA.label, except for the sort direction. -->
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.AZ.label "排序選擇項目: A-Z">
+<!ENTITY sortAttachmentsPanelBtn.SortSelection.ZA.label "排序選擇項目: Z-A">
+<!ENTITY sortAttachmentsPanelBtn.key "y">
 
 <!-- View Menu -->
 <!ENTITY viewMenu.label "檢視">
@@ -214,8 +248,8 @@
 <!ENTITY quoteButton.tooltip "引入前封郵件的文字">
 <!ENTITY addressButton.tooltip "從通訊錄裡選擇收件者">
 <!ENTITY attachButton.tooltip "附加檔案">
+<!ENTITY attachButton.tooltip2 "新增附件">
 <!ENTITY spellingButton.tooltip "對郵件的全部或反白部分檢查拼字">
-<!ENTITY statusLanguageText.tooltip "拼字檢查語言">
 <!ENTITY saveButton.tooltip "儲存此訊息">
 <!ENTITY cutButton.tooltip              "剪下">
 <!ENTITY copyButton.tooltip             "複製">
@@ -236,9 +270,14 @@
 <!ENTITY followupAddr.label "原文參見:">
 <!ENTITY subject.label "主旨:">
 <!ENTITY subject.accesskey "S">
-<!-- LOCALIZATION NOTE attachments.accesskey This access key should correspond
-     to the strings in attachmentCount in composeMsgs.properties -->
+<!-- LOCALIZATION NOTE (attachments.accesskey) This access key character should
+     be taken from the strings in attachmentCount in composeMsgs.properties,
+     and it must be the same as toggleAttachmentPaneCmd.key, otherwise it won't
+     work, as the shortcut key functionality supersedes the access key. -->
 <!ENTITY attachments.accesskey "m">
+
+<!ENTITY attachmentBucketHeader.tooltip "附件窗格">
+<!ENTITY attachmentBucketCloseButton.tooltip "隱藏附件窗格">
 
 <!-- Format Toolbar, imported from editorAppShell.xul -->
 <!ENTITY SmileButton.tooltip "插入表情符號">
@@ -276,6 +315,7 @@
 <!ENTITY pasteQuote.label "以引言方式貼上">
 <!ENTITY pasteQuote.accesskey "Q">
 
+<!-- Attachment Item and List Context Menus -->
 <!ENTITY openAttachment.label "開啟">
 <!ENTITY openAttachment.accesskey "O">
 <!ENTITY delete.label "刪除">
@@ -284,6 +324,10 @@
 <!ENTITY removeAttachment.accesskey "m">
 <!ENTITY renameAttachment.label "重新命名…">
 <!ENTITY renameAttachment.accesskey "R">
+<!ENTITY reorderAttachments.label "重排附件…">
+<!ENTITY reorderAttachments.accesskey "s">
+<!ENTITY removeAllAttachments.label "移除所有附件">
+<!ENTITY removeAllAttachments.accesskey "v">
 <!ENTITY selectAll.label "全選">
 <!ENTITY selectAll.accesskey "A">
 <!ENTITY attachFile.label "附加檔案…">
@@ -299,6 +343,13 @@
 <!ENTITY attachPage.label "附加網頁…">
 <!ENTITY attachPage.accesskey "W">
 
+<!-- Attachment Pane Header Bar Context Menu -->
+<!-- LOCALIZATION NOTE (initiallyShowAttachmentPane.label):
+     Should use the same wording as startExpandedCmd.label
+     in msgHdrViewOverlay.dtd. -->
+<!ENTITY initiallyShowAttachmentPane.label "啟動時顯示附件窗格">
+<!ENTITY initiallyShowAttachmentPane.accesskey "S">
+
 <!-- Spell checker context menu items -->
 <!ENTITY spellAddDictionaries.label "新增字典…">
 <!ENTITY spellAddDictionaries.accesskey "A">
@@ -310,3 +361,6 @@
 <!ENTITY customizeFromAddress.label "自訂寄件地址…">
 <!ENTITY customizeFromAddress.accesskey "A">
 
+<!-- Status Bar -->
+<!ENTITY languageStatusButton.tooltip "拼字檢查語言">
+<!ENTITY encodingStatusPanel.tooltip "文字編碼">

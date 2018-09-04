@@ -3,11 +3,6 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!-- New Tag Dialog -->
-<!ENTITY newTagDialog.title      "Luo uusi tunnus">
+<!ENTITY newTagDialog1.title     "Uusi tunnus">
 <!ENTITY name.label              "Tunnus:">
-<!ENTITY name.accesskey             "T">
-
-
-
-<!-- New Tag Dialog -->
-<!ENTITY newTagDialog1.title     "New Tag">
+<!ENTITY name.accesskey          "T">

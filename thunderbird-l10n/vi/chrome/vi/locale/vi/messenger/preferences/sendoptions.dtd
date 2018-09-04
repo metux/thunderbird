@@ -30,5 +30,5 @@
 <!ENTITY add.plaintexttitle           "Thêm Tên Miền Văn Bản Thuần">
 <!ENTITY add.plaintextdomain          "Tên Miền Văn Bản Thuần:">
 
-<!ENTITY autoDowngrade.accesskey      "t">
 <!ENTITY autoDowngrade.label          "Send messages as plain text if possible">
+<!ENTITY autoDowngrade.accesskey      "t">

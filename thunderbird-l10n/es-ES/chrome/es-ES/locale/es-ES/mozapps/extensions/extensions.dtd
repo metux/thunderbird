@@ -4,6 +4,7 @@
 
 <!ENTITY addons.windowTitle "Administrador de complementos">
 <!ENTITY search.placeholder "Buscar complementos">
+<!ENTITY search.placeholder2 "Buscar en addons.mozilla.org">
 <!ENTITY search.buttonlabel "Buscar">
 <!ENTITY search.commandkey "f">
 <!ENTITY loading.label "Cargando…">
@@ -16,8 +17,8 @@
 <!ENTITY installAddonFromFile.label "Instalar complemento desde archivo…">
 <!ENTITY installAddonFromFile.accesskey "I">
 <!ENTITY toolsMenu.tooltip "Herramientas para todos los complementos">
-<!ENTITY cmd.back.tooltip "Retroceder una página">
-<!ENTITY cmd.forward.tooltip "Avanzar una página">
+<!ENTITY getThemes.description "¿Pensando en personalizar su navegador?">
+<!ENTITY getThemes.learnMore "Elija entre miles de temas.">
 <!ENTITY showUnsignedExtensions.button.label "Algunas extensiones no han podido ser verificadas">
 <!ENTITY showAllExtensions.button.label "Mostrar todas las extensiones">
 <!ENTITY debugAddons.label "Depurar complementos">
@@ -91,6 +92,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip "Mostrar las notas de la versión de esta actualización">
 <!ENTITY cmd.hideReleaseNotes.label "Ocultar notas de la versión">
 <!ENTITY cmd.hideReleaseNotes.tooltip "Ocultar las notas de la versión de esta actualización">
+<!ENTITY cmd.findReplacement.label "Encontrar un reemplazo">
 <!ENTITY discover.title "¿Qué son los complementos?">
 <!ENTITY discover.description2 "Los complementos son aplicaciones que le permiten personalizar &brandShortName; con funcionalidades o estilos adicionales. Pruebe un panel lateral que le ahorrará tiempo, un indicador del tiempo meteorológico o un tema gráfico para hacer &brandShortName; verdaderamente suyo.">
 <!ENTITY discover.footer "Cuando esté conectado a Internet, este panel incluirá algunos de los mejores y más populares complementos para que los pruebe.">
@@ -101,8 +103,8 @@
 <!ENTITY detail.numberOfDownloads.label "Descargas">
 <!ENTITY detail.contributions.description "El desarrollador de este complemento solicita que ayudes a continuar su desarrollo haciendo una pequeña contribución.">
 <!ENTITY detail.updateType "Actualizaciones automáticas">
-<!ENTITY detail.updateDefault.label "Por defecto">
-<!ENTITY detail.updateDefault.tooltip "Instalar actualizaciones automáticamente sólo si ése es el valor por defecto">
+<!ENTITY detail.updateDefault.label "Por omisión">
+<!ENTITY detail.updateDefault.tooltip "Instalar actualizaciones automáticamente sólo si ése es el valor predeterminado">
 <!ENTITY detail.updateAutomatic.label "Sí">
 <!ENTITY detail.updateAutomatic.tooltip "Instalar actualizaciones automáticamente">
 <!ENTITY detail.updateManual.label "No">
@@ -139,6 +141,7 @@
 <!ENTITY addon.details.label "Más">
 <!ENTITY addon.details.tooltip "Mostrar más detalles sobre este complemento">
 <!ENTITY addon.unknownDate "Desconocido">
+<!ENTITY addon.legacy.label "HEREDADO">
 <!ENTITY addon.disabled.postfix "(desactivado)">
 <!ENTITY addon.update.postfix "Actualizar">
 <!ENTITY addon.undoAction.label "Deshacer">
@@ -178,3 +181,7 @@
 <!ENTITY disabledUnsigned.devInfo.end ".">
 <!ENTITY pluginDeprecation.description "¿Echa algo en falta? Algunos plugins ya no están admitidos por &brandShortName;.">
 <!ENTITY pluginDeprecation.learnMore "Saber más.">
+<!ENTITY legacyWarning.showLegacy "Mostrar extensiones clásicas">
+<!ENTITY legacyExtensions.title "Extensiones clásicas">
+<!ENTITY legacyExtensions.description "Estas extensiones no cumplen los estándares actuales de &brandShortName; por lo que han sido desactivadas.">
+<!ENTITY legacyExtensions.learnMore "Conozca sobre los cambios a los complementos">

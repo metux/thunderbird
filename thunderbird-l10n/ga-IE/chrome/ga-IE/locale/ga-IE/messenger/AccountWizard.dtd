@@ -115,10 +115,13 @@
 <!ENTITY serverNamePrefix.label "Ainm an Fhreastalaí Isteach:">
 <!ENTITY smtpServerNamePrefix.label "Ainm an Fhreastalaí Amach (SMTP):">
 <!ENTITY newsServerNamePrefix.label "Ainm an Fhreastalaí Nuachta (NNTP):">
-<!ENTITY downloadOnLogin.label "Íosluchtaigh teachtaireachtaí anois">
+<!ENTITY downloadOnLogin.label "Íoslódáil teachtaireachtaí anois">
 <!ENTITY downloadOnLogin.accesskey "l">
 <!ENTITY deferStorageDesc.label "Díthiceáil an ticbhosca seo chun ríomhphost an chuntais seo a stóráil ina chomhadlann féin. Cuntas barrléibhéil a bheidh ann ansin, nó seachas sin is cuid de Bhosca Isteach Uilíoch an chuntais &quot;Fillteáin Logánta&quot; a bheidh ann.">
 <!ENTITY deferStorage.label "Úsáid an Bosca Isteach Uilíoch (stóráil post sna Fillteáin Logánta)">
 <!ENTITY deferStorage.accesskey "U">
 <!ENTITY clickFinish.label "Cliceáil Críochnaigh chun na socruithe seo a shábháil agus scor de Threoraí na gCuntas.">
 <!ENTITY clickFinish.labelMac "Cliceáil Déanta chun na socruithe seo a shábháil agus scor de Threoraí na gCuntas.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

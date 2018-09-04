@@ -25,12 +25,12 @@
 <!ENTITY devmgr.button.fips.accesskey           "F">
 
 <!ENTITY loaddevice.info                        "Sisesta lisatava mooduli teave.">
-<!ENTITY loaddevice.modname                     "Mooduli nimi:">
-<!ENTITY loaddevice.modname.accesskey           "M">
+<!ENTITY loaddevice.modname2                    "Mooduli nimi">
+<!ENTITY loaddevice.modname2.accesskey          "M">
 <!ENTITY loaddevice.modname.default             "Uus PKCS#11 moodul">
-<!ENTITY loaddevice.filename                    "Mooduli failinimi:">
-<!ENTITY loaddevice.filename.accesskey          "f">
+<!ENTITY loaddevice.filename2                   "Mooduli failinimi">
+<!ENTITY loaddevice.filename2.accesskey         "f">
 <!ENTITY loaddevice.browse                      "Lehitse...">
 <!ENTITY loaddevice.browse.accesskey            "L">
 
-<!ENTITY loaddevice.title                       "PKCS#11 seadme laadimine">
+<!ENTITY loaddevice.title2                      "PKCS#11 seadme draiveri laadimine">

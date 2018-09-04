@@ -18,9 +18,9 @@
 # use/use not packaged software instead of preshipped
 ac_add_options --without-system-jpeg   # Debian version causes issues on mips*
 ac_add_options --with-system-bz2
-ac_add_options --without-system-icu    # Debian version to old in unstable
-ac_add_options --without-system-nspr   # Debian version to old in unstable
-ac_add_options --without-system-nss    # Debian version to old in unstable
+ac_add_options --with-system-icu
+ac_add_options --with-system-nspr
+ac_add_options --with-system-nss
 ac_add_options --with-system-zlib
 
 # other packaged software
@@ -29,35 +29,31 @@ ac_add_options --with-system-libvpx
 
 # disabled features
 ac_add_options --disable-gconf
-ac_add_options --disable-gnomeui
 ac_add_options --disable-install-strip
 ac_add_options --disable-strip
 ac_add_options --disable-tests
 ac_add_options --disable-updater
+ac_add_options --disable-webrtc
 
 # enabled features
 ac_add_options --enable-default-toolkit=cairo-gtk3
 ac_add_options --enable-extensions=default
-ac_add_options --enable-gio
 ac_add_options --enable-official-branding # use the official artwork
 ac_add_options --enable-optimize
 ac_add_options --enable-pie
 ac_add_options --enable-readline
 ac_add_options --enable-startup-notification
-ac_add_options --enable-system-cairo
 ac_add_options --enable-system-ffi
 ac_add_options --enable-system-hunspell
-#ac_add_options --enable-system-sqlite # Debian version to old in unstable
+ac_add_options --enable-system-sqlite
 
 # Debian specific things
 PARALLEL_BUILD=$(echo $DEB_BUILD_OPTIONS | sed -e '/parallel=/!s/.*/1/;s/.*parallel=\([0-9]\+\).*/\1/g')
 mk_add_options MOZ_MAKE_FLAGS="-j$PARALLEL_BUILD"
 ac_add_options --with-distribution-id=org.debian
-ac_add_options --with-default-mozilla-five-home=/usr/lib/thunderbird
 ac_add_options --with-user-appdir=.mozilla
 ac_add_options --with-pthreads
 ac_add_options --disable-debug
-ac_add_options --prefix=/usr
 ac_add_options --host=$DEB_HOST_GNU_TYPE
 
 # some platform depended things

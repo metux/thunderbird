@@ -77,18 +77,13 @@
 <!ENTITY browseNewsrc.label "Duyệt…">
 <!ENTITY browseNewsrc.accesskey "D">
 
-<!ENTITY accountSettingsDesc.label "The following is a special account.  There are no identities associated with it.">
-
-<!ENTITY accountTitle.label "Account Settings">
-<!ENTITY maildirStore.label "File per message (maildir)">
-<!ENTITY mboxStore2.label "File per folder (mbox)">
-
-
-<!-- extracted from am-server-top.xul -->
-
 <!ENTITY messageStorage.label "Message Storage">
-<!ENTITY serverDefaultCharset2.label "Default Text Encoding:">
-<!ENTITY storeType.accesskey "T">
-<!ENTITY storeType.label "Message Store Type:">
-<!ENTITY useIdleNotifications.accesskey "w">
 <!ENTITY useIdleNotifications.label "Allow immediate server notifications when new messages arrive">
+<!ENTITY useIdleNotifications.accesskey "w">
+<!ENTITY serverDefaultCharset2.label "Default Text Encoding:">
+<!ENTITY accountTitle.label "Account Settings">
+<!ENTITY accountSettingsDesc.label "The following is a special account.  There are no identities associated with it.">
+<!ENTITY storeType.label "Message Store Type:">
+<!ENTITY storeType.accesskey "T">
+<!ENTITY mboxStore2.label "File per folder (mbox)">
+<!ENTITY maildirStore.label "File per message (maildir)">

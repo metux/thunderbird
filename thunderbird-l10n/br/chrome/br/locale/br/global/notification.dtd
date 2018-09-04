@@ -4,8 +4,9 @@
 
 <!ENTITY closeNotification.tooltip "Serriñ ar gemennadenn-mañ">
 
-<!ENTITY closeNotificationItem.label "Ket bremañ">
-
 <!ENTITY checkForUpdates "Klask hizivadurioù…">
 
 <!ENTITY learnMore "Gouzout hiroc'h…">
+
+<!ENTITY defaultButton.label "Mat eo!">
+<!ENTITY defaultButton.accesskey "M">

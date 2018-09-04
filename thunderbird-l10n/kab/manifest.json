@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "kab": {
+      "chrome_resources": {
+        "necko": "chrome/kab/locale/kab/necko/", 
+        "global": "chrome/kab/locale/kab/global/", 
+        "messenger-region": "chrome/kab/locale/kab/messenger-region/", 
+        "chat": "chrome/kab/locale/kab/chat/", 
+        "devtools": "chrome/kab/locale/kab/devtools/client/", 
+        "pipnss": "chrome/kab/locale/kab/pipnss/", 
+        "messenger-smime": "chrome/kab/locale/kab/messenger-smime/", 
+        "messenger-newsblog": "chrome/kab/locale/kab/messenger-newsblog/", 
+        "devtools-shim": "chrome/kab/locale/kab/devtools/shim/", 
+        "alerts": "chrome/kab/locale/kab/alerts/", 
+        "messenger": "chrome/kab/locale/kab/messenger/", 
+        "editor": "chrome/kab/locale/kab/editor/", 
+        "branding": "chrome/kab/locale/kab/branding/", 
+        "mozldap": "chrome/kab/locale/kab/mozldap/", 
+        "autoconfig": "chrome/kab/locale/kab/autoconfig/", 
+        "devtools-shared": "chrome/kab/locale/kab/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/kab/locale/kab/global-platform/win/", 
+          "android": "chrome/kab/locale/kab/global-platform/unix/", 
+          "macosx": "chrome/kab/locale/kab/global-platform/mac/", 
+          "linux": "chrome/kab/locale/kab/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/kab/locale/kab/mozapps/", 
+        "pluginproblem": "chrome/kab/locale/kab/pluginproblem/", 
+        "communicator": "chrome/kab/locale/kab/communicator/", 
+        "messenger-mapi": "chrome/kab/locale/kab/messenger-mapi/", 
+        "places": "chrome/kab/locale/kab/places/", 
+        "passwordmgr": "chrome/kab/locale/kab/passwordmgr/", 
+        "pippki": "chrome/kab/locale/kab/pippki/"
+      }, 
+      "version": "20180507141444"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-kab@thunderbird.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "kab", 
+  "version": "60.0buildid20180731173940", 
+  "name": "Taqbaylit Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Belkacem Mohammed)", 
+  "description": "Language pack for Thunderbird for kab"
+}

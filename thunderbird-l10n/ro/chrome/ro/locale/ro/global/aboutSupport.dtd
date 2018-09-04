@@ -3,25 +3,37 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY aboutSupport.pageTitle "Informații de depanare">
-<!-- LOCALIZATION NOTE (aboutSupport.pageSubtitle): don't change the 'supportLink' id. -->
 
+<!-- LOCALIZATION NOTE (aboutSupport.pageSubtitle): don't change the 'supportLink' id. -->
 <!ENTITY aboutSupport.pageSubtitle "  Această pagină conține informații tehnice care ar putea fi utile atunci când încerci să rezolvi o problemă. Dacă ești în căutarea de răspunsuri la întrebări comune despre &brandShortName;, verifică <a id='supportLink'>site-ul nostru de suport</a>.">
 
 <!ENTITY aboutSupport.crashes.title "Rapoarte de defecțiuni">
 <!-- LOCALIZATION NOTE (aboutSupport.crashes.id):
 This is likely the same like id.heading in crashes.dtd. -->
-<!ENTITY aboutSupport.crashes.id "ID raport">
+<!ENTITY aboutSupport.crashes.id "ID-ul raportului">
 <!ENTITY aboutSupport.crashes.sendDate "Trimis">
 <!ENTITY aboutSupport.crashes.allReports "Toate rapoartele de defecțiuni">
 <!ENTITY aboutSupport.crashes.noConfig "Această aplicație nu a fost configurată pentru afișarea rapoartelor de defecțiuni.">
 
-<!ENTITY aboutSupport.extensionsTitle "Suplimente">
+<!ENTITY aboutSupport.extensionsTitle "Extensii">
 <!ENTITY aboutSupport.extensionName "Nume">
 <!ENTITY aboutSupport.extensionEnabled "Activat">
 <!ENTITY aboutSupport.extensionVersion "Versiune">
 <!ENTITY aboutSupport.extensionId "ID">
 
-<!ENTITY aboutSupport.experimentsTitle "Funcții experimentale">
+<!ENTITY aboutSupport.securitySoftwareTitle "Program de securitate">
+<!ENTITY aboutSupport.securitySoftwareType "Tip">
+<!ENTITY aboutSupport.securitySoftwareName "Nume">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Antivirus">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Antispyware">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Firewall">
+
+<!ENTITY aboutSupport.featuresTitle "Funcționalități &brandShortName;">
+<!ENTITY aboutSupport.featureName "Nume">
+<!ENTITY aboutSupport.featureVersion "Versiune">
+<!ENTITY aboutSupport.featureId "ID">
+
+<!ENTITY aboutSupport.experimentsTitle "Funcționalități experimentale">
 <!ENTITY aboutSupport.experimentName "Nume">
 <!ENTITY aboutSupport.experimentId "ID">
 <!ENTITY aboutSupport.experimentDescription "Descriere">
@@ -30,16 +42,16 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.experimentHomepage "Pagina de start">
 <!ENTITY aboutSupport.experimentBranch "Ramură">
 
-<!ENTITY aboutSupport.appBasicsTitle "Informații de bază despre aplicație">
+<!ENTITY aboutSupport.appBasicsTitle "Informații de bază privind aplicația">
 <!ENTITY aboutSupport.appBasicsName "Nume">
 <!ENTITY aboutSupport.appBasicsVersion "Versiune">
 <!ENTITY aboutSupport.appBasicsBuildID "ID-ul versiunii compilate">
+
 <!-- LOCALIZATION NOTE (aboutSupport.appBasicsUpdateChannel, aboutSupport.appBasicsUpdateHistory, aboutSupport.appBasicsShowUpdateHistory):
 "Update" is a noun here, not a verb. -->
-
 <!ENTITY aboutSupport.appBasicsUpdateChannel "Canal de actualizare">
 <!ENTITY aboutSupport.appBasicsUpdateHistory "Istoricul actualizărilor">
-<!ENTITY aboutSupport.appBasicsShowUpdateHistory "Arată istoricul actualizărilor">
+<!ENTITY aboutSupport.appBasicsShowUpdateHistory "Afișează istoricul actualizărilor">
 
 <!ENTITY aboutSupport.appBasicsProfileDir "Directorul de profiluri">
 <!-- LOCALIZATION NOTE (aboutSupport.appBasicsProfileDirWinMac):
@@ -49,25 +61,32 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 
 <!ENTITY aboutSupport.appBasicsEnabledPlugins "Pluginuri activate">
 <!ENTITY aboutSupport.appBasicsBuildConfig "Configurația versiunii compilate">
-<!ENTITY aboutSupport.appBasicsUserAgent "Agent de utilizator">
+<!ENTITY aboutSupport.appBasicsUserAgent "Agent utilizator">
 <!ENTITY aboutSupport.appBasicsOS "SO">
 <!ENTITY aboutSupport.appBasicsMemoryUse "Utilizare memorie">
 <!ENTITY aboutSupport.appBasicsPerformance "Performanță">
-<!-- LOCALIZATION NOTE the term "Service Workers" should not be translated. -->
 
+<!-- LOCALIZATION NOTE the term "Service Workers" should not be translated. -->
 <!ENTITY aboutSupport.appBasicsServiceWorkers "Service workeri înregistrați">
 
 <!ENTITY aboutSupport.appBasicsProfiles "Profiluri">
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Ferestre multiproces">
 
-<!ENTITY aboutSupport.appBasicsSafeMode "Mod în siguranță">
+<!ENTITY aboutSupport.appBasicsProcessCount "Procese pentru conținut web">
+
+<!ENTITY aboutSupport.enterprisePolicies "Politici afacerilor">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Cheie Google">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Cheie pentru serviciul de localizare Mozilla">
+
+<!ENTITY aboutSupport.appBasicsSafeMode "Mod sigur">
 
 <!ENTITY aboutSupport.showDir.label "Deschide directorul">
 <!-- LOCALIZATION NOTE (aboutSupport.showMac.label): This is the Mac-specific
 variant of aboutSupport.showDir.label.  This allows us to use the preferred
 "Finder" terminology on Mac. -->
-<!ENTITY aboutSupport.showMac.label "Arată în Finder">
+<!ENTITY aboutSupport.showMac.label "Afișează în Finder">
 <!-- LOCALIZATION NOTE (aboutSupport.showWin2.label): This is the Windows-specific
 variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.showWin2.label "Deschide dosarul">
@@ -75,8 +94,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.modifiedKeyPrefsTitle "Preferințe importante modificate">
 <!ENTITY aboutSupport.modifiedPrefsName "Nume">
 <!ENTITY aboutSupport.modifiedPrefsValue "Valoare">
-<!-- LOCALIZATION NOTE (aboutSupport.userJSTitle, aboutSupport.userJSDescription): user.js is the name of the preference override file being checked. -->
 
+<!-- LOCALIZATION NOTE (aboutSupport.userJSTitle, aboutSupport.userJSDescription): user.js is the name of the preference override file being checked. -->
 <!ENTITY aboutSupport.userJSTitle "Preferințe user.js">
 <!ENTITY aboutSupport.userJSDescription "Dosarul profilului conține un <a id='prefs-user-js-link'>fișier user.js</a>, care include preferințe ce nu au fost create de &brandShortName;.">
 
@@ -96,8 +115,10 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "Accesibilitate">
 <!ENTITY aboutSupport.a11yActivated "Activat">
 <!ENTITY aboutSupport.a11yForceDisabled "Împiedică accesibilitatea">
+<!ENTITY aboutSupport.a11yHandlerUsed "Handler accesibil folosit">
+<!ENTITY aboutSupport.a11yInstantiator "Instanțiator de accesibilitate">
 
-<!ENTITY aboutSupport.libraryVersionsTitle "Versiuni de biblioteci">
+<!ENTITY aboutSupport.libraryVersionsTitle "Versiuni ale bibliotecii">
 
 <!ENTITY aboutSupport.installationHistoryTitle "Istoricul instalării">
 <!ENTITY aboutSupport.updateHistoryTitle "Istoricul actualizărilor">
@@ -106,9 +127,17 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Copiază datele brute în clipboard">
 
 <!ENTITY aboutSupport.sandboxTitle "Sandbox">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Apeluri de sistem respinse">
+<!ENTITY aboutSupport.sandboxSyscallIndex "">
+<!ENTITY aboutSupport.sandboxSyscallAge "Secunde în urmă">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Tipul de proces">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Apel sistem">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Argumente">
 
-<!ENTITY aboutSupport.safeModeTitle "Încearcă modul în siguranță">
-<!ENTITY aboutSupport.restartInSafeMode.label "Repornește cu suplimente dezactivate…">
+<!ENTITY aboutSupport.safeModeTitle "Încearcă modul sigur">
+<!ENTITY aboutSupport.restartInSafeMode.label "Repornește cu suplimentele dezactivate…">
 
 <!ENTITY aboutSupport.graphicsFeaturesTitle "Funcționalități">
 <!ENTITY aboutSupport.graphicsDiagnosticsTitle "Diagnostic">
@@ -118,3 +147,26 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Jurnal de decizii">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Funcții dezactivate de Crash Guard">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Alternative">
+
+<!ENTITY aboutSupport.mediaTitle "Media">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Dispozitive de ieșire">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Dispozitive de intrare">
+<!ENTITY aboutSupport.mediaDeviceName "Nume">
+<!ENTITY aboutSupport.mediaDeviceGroup "Grup">
+<!ENTITY aboutSupport.mediaDeviceVendor "Vânzător">
+<!ENTITY aboutSupport.mediaDeviceState "Stare">
+<!ENTITY aboutSupport.mediaDevicePreferred "Preferat">
+<!ENTITY aboutSupport.mediaDeviceFormat "Format">
+<!ENTITY aboutSupport.mediaDeviceChannels "Canale">
+<!ENTITY aboutSupport.mediaDeviceRate "Rată">
+<!ENTITY aboutSupport.mediaDeviceLatency "Latență">
+
+<!ENTITY aboutSupport.intlTitle "Internaționalizare și localizare">
+<!ENTITY aboutSupport.intlAppTitle "Setări aplicație">
+<!ENTITY aboutSupport.intlLocalesRequested "Limbile solicitate">
+<!ENTITY aboutSupport.intlLocalesAvailable "Limbile disponibile">
+<!ENTITY aboutSupport.intlLocalesSupported "Limbile de aplicație">
+<!ENTITY aboutSupport.intlLocalesDefault "Limba implicită">
+<!ENTITY aboutSupport.intlOSTitle "Sistem de operare">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Limbi de sistem">
+<!ENTITY aboutSupport.intlRegionalPrefs "Preferințe regionale">

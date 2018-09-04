@@ -30,11 +30,11 @@
 <!ENTITY hdrReplyButton1.label "Отговаряне">
 <!ENTITY hdrReplyButton2.tooltip "Изпращане на отговор до подателя на писмото">
 <!ENTITY hdrReplyAllButton1.label "Отговор до всички">
-<!ENTITY hdrReplyAllButton1.tooltip "Отговаря на подателя и всички получатели">
+<!ENTITY hdrReplyAllButton1.tooltip "Отговор до подателя и всички получатели">
 <!ENTITY hdrReplyListButton1.label "Отговор до списък">
-<!ENTITY hdrReplyListButton1.tooltip "Отговаря до пощенския списък">
+<!ENTITY hdrReplyListButton1.tooltip "Отговор до пощенски списък">
 <!ENTITY hdrFollowupButton1.label "Отговор">
-<!ENTITY hdrFollowupButton1.tooltip "Изпращане на отговор до тази новинарска група">
+<!ENTITY hdrFollowupButton1.tooltip "Изпращане на отговор до дискусионната група">
 <!ENTITY hdrMenuForwardButton.label "Препращане като">
 <!ENTITY hdrForwardButton1.label "Препращане">
 <!ENTITY hdrForwardButton1.tooltip "Препраща съобщението">
@@ -64,7 +64,7 @@
 <!ENTITY markAsReadMenuItem1.accesskey "п">
 <!ENTITY markAsUnreadMenuItem1.label "Отбелязване като непрочетено">
 <!ENTITY markAsUnreadMenuItem1.accesskey "л">
-<!ENTITY saveAsMenuItem1.label "Запис като…">
+<!ENTITY saveAsMenuItem1.label "Запазване като…">
 <!ENTITY saveAsMenuItem1.accesskey "З">
 <!ENTITY viewSourceMenuItem1.label "Преглед на изходния код">
 <!ENTITY viewSourceMenuItem1.accesskey "и">
@@ -78,9 +78,9 @@
 <!-- Attachment context menu items -->
 <!ENTITY openAttachmentCmd.label    "Отваряне">
 <!ENTITY openAttachmentCmd.accesskey    "О">
-<!ENTITY saveAsAttachmentCmd.label    "Запазване на всички…">
+<!ENTITY saveAsAttachmentCmd.label    "Запазване като…">
 <!ENTITY saveAsAttachmentCmd.accesskey    "в">
-<!ENTITY detachAttachmentCmd.label    "Откачане…">
+<!ENTITY detachAttachmentCmd.label    "Разкачане…">
 <!ENTITY detachAttachmentCmd.accesskey    "к">
 <!ENTITY deleteAttachmentCmd.label    "Изтриване">
 <!ENTITY deleteAttachmentCmd.accesskey    "р">
@@ -96,8 +96,8 @@
 <!ENTITY openAttachment.tooltip "Отваряне на прикрепения файл">
 
 <!-- Attachment toolbar items -->
-<!ENTITY saveAttachmentButton1.label       "Запис">
-<!ENTITY saveAttachmentButton1.tooltip     "Запис на прикрепения файл">
+<!ENTITY saveAttachmentButton1.label       "Запазване">
+<!ENTITY saveAttachmentButton1.tooltip     "Запазване на прикачения файл">
 <!ENTITY saveAllAttachmentsButton1.label   "Запазване на всички">
 <!ENTITY saveAllAttachmentsButton1.tooltip "Запазване на всички прикачени файлове">
 

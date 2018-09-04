@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "si": {
+      "chrome_resources": {
+        "necko": "chrome/si/locale/si/necko/", 
+        "global": "chrome/si/locale/si/global/", 
+        "messenger-region": "chrome/si/locale/si/messenger-region/", 
+        "chat": "chrome/si/locale/si/chat/", 
+        "devtools": "chrome/si/locale/si/devtools/client/", 
+        "pipnss": "chrome/si/locale/si/pipnss/", 
+        "messenger-smime": "chrome/si/locale/si/messenger-smime/", 
+        "messenger-newsblog": "chrome/si/locale/si/messenger-newsblog/", 
+        "devtools-shim": "chrome/si/locale/si/devtools/shim/", 
+        "alerts": "chrome/si/locale/si/alerts/", 
+        "messenger": "chrome/si/locale/si/messenger/", 
+        "editor": "chrome/si/locale/si/editor/", 
+        "branding": "chrome/si/locale/si/branding/", 
+        "mozldap": "chrome/si/locale/si/mozldap/", 
+        "autoconfig": "chrome/si/locale/si/autoconfig/", 
+        "devtools-shared": "chrome/si/locale/si/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/si/locale/si/global-platform/win/", 
+          "android": "chrome/si/locale/si/global-platform/unix/", 
+          "macosx": "chrome/si/locale/si/global-platform/mac/", 
+          "linux": "chrome/si/locale/si/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/si/locale/si/mozapps/", 
+        "pluginproblem": "chrome/si/locale/si/pluginproblem/", 
+        "communicator": "chrome/si/locale/si/communicator/", 
+        "messenger-mapi": "chrome/si/locale/si/messenger-mapi/", 
+        "places": "chrome/si/locale/si/places/", 
+        "passwordmgr": "chrome/si/locale/si/passwordmgr/", 
+        "pippki": "chrome/si/locale/si/pippki/"
+      }, 
+      "version": "20180419124934"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-si@thunderbird.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "si", 
+  "version": "60.0buildid20180731173940", 
+  "name": "Sinhala (si-LK) Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: රෝහන දසනායක, මහේෂා හතරසිංහ, කසුන් කරුණාරත්න)", 
+  "description": "Language pack for Thunderbird for si"
+}

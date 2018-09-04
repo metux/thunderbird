@@ -10,20 +10,20 @@
 <!ENTITY pixelsPopup.value "pixels">
 
 <!-- These are in the Location tab panel -->
-<!ENTITY locationEditField.label "Endereço da imagem:">
-<!ENTITY locationEditField.accessKey "n">
-<!ENTITY locationEditField.tooltip "Digite o endereço ou nome do arquivo da imagem">
-<!ENTITY locationEditField.shortenedDataURI "URI encurtada (cópia substituirá a URI completa na área de transferência)">
-<!ENTITY title.label "Descrição:">
+<!ENTITY locationEditField.label "Localização da imagem:">
+<!ENTITY locationEditField.accessKey "L">
+<!ENTITY locationEditField.tooltip "Digite o nome do arquivo ou a localização da imagem">
+<!ENTITY locationEditField.shortenedDataURI "URI encurtada (a cópia substituirá a URI completa na área de transferência)">
+<!ENTITY title.label "Dica da ferramenta:">
 <!ENTITY title.accessKey "D">
-<!ENTITY title.tooltip "O atributo “title”, normalmente exibido como um balão quando apontado pelo mouse">
-<!ENTITY altText.label "Texto substituto:">
+<!ENTITY title.tooltip "O atributo html 'title' que é exibido como uma dica da ferramenta">
+<!ENTITY altText.label "Texto alternativo:">
 <!ENTITY altText.accessKey "T">
-<!ENTITY altTextEditField.tooltip "Forneça um texto que possa substituir a imagem">
-<!ENTITY noAltText.label "Não usar texto substituto">
+<!ENTITY altTextEditField.tooltip "Digite o texto para ser exibido no lugar da imagem">
+<!ENTITY noAltText.label "Não usar o texto alternativo">
 <!ENTITY noAltText.accessKey "u">
 
-<!ENTITY previewBox.label "Visualizar">
+<!ENTITY previewBox.label "Pré-visualizar a imagem">
 
 <!-- These controls are in the Dimensions tab panel -->
 <!-- actualSize.label should be same as actualSizeRadio.label + ":" -->
@@ -38,17 +38,17 @@
 <!ENTITY heightEditField.accessKey "A">
 <!ENTITY widthEditField.label "Largura:">
 <!ENTITY widthEditField.accessKey "L">
-<!ENTITY constrainCheckbox.label "Manter a proporção">
+<!ENTITY constrainCheckbox.label "Restringir">
 <!ENTITY constrainCheckbox.accessKey "M">
-<!ENTITY constrainCheckbox.tooltip "Manter a razão entre as dimensões da imagem">
+<!ENTITY constrainCheckbox.tooltip "Manter a proporção da imagem">
 
 <!-- These controls are in the Image Map box of the expanded area -->
-<!ENTITY imagemapBox.label "Mapa de imagem">
+<!ENTITY imagemapBox.label "Mapa da imagem">
 <!ENTITY removeImageMapButton.label "Remover">
 <!ENTITY removeImageMapButton.accessKey "R">
 
 <!-- These are the options for image alignment -->
-<!ENTITY alignment.label "Alinhamento do texto">
+<!ENTITY alignment.label "Alinha texto à imagem">
 <!ENTITY bottomPopup.value "Embaixo">
 <!ENTITY topPopup.value "Em cima">
 <!ENTITY centerPopup.value "No meio">
@@ -65,15 +65,15 @@
 <!ENTITY borderEditField.accessKey "B">
 
 <!-- These controls are in the Link Box -->
-<!ENTITY showImageLinkBorder.label "Exibir borda em imagem com link">
+<!ENTITY showImageLinkBorder.label "Mostrar borda ao redor da imagem com link">
 <!ENTITY showImageLinkBorder.accessKey "k">
 <!ENTITY LinkAdvancedEditButton.label "Edição avançada do link…">
 <!ENTITY LinkAdvancedEditButton.accessKey "l">
-<!ENTITY LinkAdvancedEditButton.tooltip "Adicionar ou alterar atributos HTML, atributos de estilo e JavaScript">
+<!ENTITY LinkAdvancedEditButton.tooltip "Adicionar ou modificar os atributos HTML, atributos de estilo e JavaScript">
 
 <!-- These tabs are currently used in the image input dialog -->
 <!ENTITY imageInputTab.label "Formulário">
-<!ENTITY imageLocationTab.label "Endereço">
+<!ENTITY imageLocationTab.label "Localização">
 <!ENTITY imageDimensionsTab.label "Dimensões">
 <!ENTITY imageAppearanceTab.label "Aparência">
 <!ENTITY imageLinkTab.label "Link">

@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "hsb": {
+      "chrome_resources": {
+        "necko": "chrome/hsb/locale/hsb/necko/", 
+        "global": "chrome/hsb/locale/hsb/global/", 
+        "messenger-region": "chrome/hsb/locale/hsb/messenger-region/", 
+        "chat": "chrome/hsb/locale/hsb/chat/", 
+        "devtools": "chrome/hsb/locale/hsb/devtools/client/", 
+        "pipnss": "chrome/hsb/locale/hsb/pipnss/", 
+        "messenger-smime": "chrome/hsb/locale/hsb/messenger-smime/", 
+        "messenger-newsblog": "chrome/hsb/locale/hsb/messenger-newsblog/", 
+        "devtools-shim": "chrome/hsb/locale/hsb/devtools/shim/", 
+        "alerts": "chrome/hsb/locale/hsb/alerts/", 
+        "messenger": "chrome/hsb/locale/hsb/messenger/", 
+        "editor": "chrome/hsb/locale/hsb/editor/", 
+        "branding": "chrome/hsb/locale/hsb/branding/", 
+        "mozldap": "chrome/hsb/locale/hsb/mozldap/", 
+        "autoconfig": "chrome/hsb/locale/hsb/autoconfig/", 
+        "devtools-shared": "chrome/hsb/locale/hsb/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/hsb/locale/hsb/global-platform/win/", 
+          "android": "chrome/hsb/locale/hsb/global-platform/unix/", 
+          "macosx": "chrome/hsb/locale/hsb/global-platform/mac/", 
+          "linux": "chrome/hsb/locale/hsb/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/hsb/locale/hsb/mozapps/", 
+        "pluginproblem": "chrome/hsb/locale/hsb/pluginproblem/", 
+        "communicator": "chrome/hsb/locale/hsb/communicator/", 
+        "messenger-mapi": "chrome/hsb/locale/hsb/messenger-mapi/", 
+        "places": "chrome/hsb/locale/hsb/places/", 
+        "passwordmgr": "chrome/hsb/locale/hsb/passwordmgr/", 
+        "pippki": "chrome/hsb/locale/hsb/pippki/"
+      }, 
+      "version": "20180504155456"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-hsb@thunderbird.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "hsb", 
+  "version": "60.0buildid20180731173940", 
+  "name": "Hornjoserbšćina Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "Michael Wolf (contributors: Michael Wolf)", 
+  "description": "Language pack for Thunderbird for hsb"
+}

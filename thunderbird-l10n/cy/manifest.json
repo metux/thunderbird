@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "cy": {
+      "chrome_resources": {
+        "necko": "chrome/cy/locale/cy/necko/", 
+        "global": "chrome/cy/locale/cy/global/", 
+        "messenger-region": "chrome/cy/locale/cy/messenger-region/", 
+        "chat": "chrome/cy/locale/cy/chat/", 
+        "devtools": "chrome/cy/locale/cy/devtools/client/", 
+        "pipnss": "chrome/cy/locale/cy/pipnss/", 
+        "messenger-smime": "chrome/cy/locale/cy/messenger-smime/", 
+        "messenger-newsblog": "chrome/cy/locale/cy/messenger-newsblog/", 
+        "devtools-shim": "chrome/cy/locale/cy/devtools/shim/", 
+        "alerts": "chrome/cy/locale/cy/alerts/", 
+        "messenger": "chrome/cy/locale/cy/messenger/", 
+        "editor": "chrome/cy/locale/cy/editor/", 
+        "branding": "chrome/cy/locale/cy/branding/", 
+        "mozldap": "chrome/cy/locale/cy/mozldap/", 
+        "autoconfig": "chrome/cy/locale/cy/autoconfig/", 
+        "devtools-shared": "chrome/cy/locale/cy/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/cy/locale/cy/global-platform/win/", 
+          "android": "chrome/cy/locale/cy/global-platform/unix/", 
+          "macosx": "chrome/cy/locale/cy/global-platform/mac/", 
+          "linux": "chrome/cy/locale/cy/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/cy/locale/cy/mozapps/", 
+        "pluginproblem": "chrome/cy/locale/cy/pluginproblem/", 
+        "communicator": "chrome/cy/locale/cy/communicator/", 
+        "messenger-mapi": "chrome/cy/locale/cy/messenger-mapi/", 
+        "places": "chrome/cy/locale/cy/places/", 
+        "passwordmgr": "chrome/cy/locale/cy/passwordmgr/", 
+        "pippki": "chrome/cy/locale/cy/pippki/"
+      }, 
+      "version": "20180505171441"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-cy@thunderbird.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "cy", 
+  "version": "60.0buildid20180731173940", 
+  "name": "Cymraeg Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "mozilla.org (contributors: Rhoslyn Prys)", 
+  "description": "Language pack for Thunderbird for cy"
+}

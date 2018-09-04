@@ -26,3 +26,6 @@
 <!ENTITY backgroundImage.label "Խորապատկերի նկարը.">
 <!ENTITY backgroundImage.accessKey "Խ">
 <!ENTITY backgroundImage.tooltip "Օգտագործել նկարի ֆայլը խորապատկերի համար այս էջում">
+
+
+<!ENTITY backgroundImage.shortenedDataURI "Shortened data URI (copy will place the full URI onto the clipboard)">

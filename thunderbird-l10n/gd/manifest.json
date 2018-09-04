@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "gd": {
+      "chrome_resources": {
+        "necko": "chrome/gd/locale/gd/necko/", 
+        "global": "chrome/gd/locale/gd/global/", 
+        "messenger-region": "chrome/gd/locale/gd/messenger-region/", 
+        "chat": "chrome/gd/locale/gd/chat/", 
+        "devtools": "chrome/gd/locale/gd/devtools/client/", 
+        "pipnss": "chrome/gd/locale/gd/pipnss/", 
+        "messenger-smime": "chrome/gd/locale/gd/messenger-smime/", 
+        "messenger-newsblog": "chrome/gd/locale/gd/messenger-newsblog/", 
+        "devtools-shim": "chrome/gd/locale/gd/devtools/shim/", 
+        "alerts": "chrome/gd/locale/gd/alerts/", 
+        "messenger": "chrome/gd/locale/gd/messenger/", 
+        "editor": "chrome/gd/locale/gd/editor/", 
+        "branding": "chrome/gd/locale/gd/branding/", 
+        "mozldap": "chrome/gd/locale/gd/mozldap/", 
+        "autoconfig": "chrome/gd/locale/gd/autoconfig/", 
+        "devtools-shared": "chrome/gd/locale/gd/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/gd/locale/gd/global-platform/win/", 
+          "android": "chrome/gd/locale/gd/global-platform/unix/", 
+          "macosx": "chrome/gd/locale/gd/global-platform/mac/", 
+          "linux": "chrome/gd/locale/gd/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/gd/locale/gd/mozapps/", 
+        "pluginproblem": "chrome/gd/locale/gd/pluginproblem/", 
+        "communicator": "chrome/gd/locale/gd/communicator/", 
+        "messenger-mapi": "chrome/gd/locale/gd/messenger-mapi/", 
+        "places": "chrome/gd/locale/gd/places/", 
+        "passwordmgr": "chrome/gd/locale/gd/passwordmgr/", 
+        "pippki": "chrome/gd/locale/gd/pippki/"
+      }, 
+      "version": "20180428223356"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-gd@thunderbird.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "gd", 
+  "version": "60.0buildid20180731173940", 
+  "name": "Gàidhlig Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "Sgioba Ionadaileadh Mozilla na Gàidhlig (contributors: Michael &apos;Akerbeltz&apos; Bauer, Kevin Scannell)", 
+  "description": "Language pack for Thunderbird for gd"
+}

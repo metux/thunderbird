@@ -12,6 +12,7 @@
 <!ENTITY mailingListPropertiesMenu.label    "Timeẓliyin n tebdart n telɣut">
 <!ENTITY mailingListPropertiesMenu.accesskey "ɣ">
 
+<!ENTITY abContextMenuButton.tooltip        "Sken-d umuγ n umnaḍ n imedlis n tansiwin">
 <!ENTITY addressbookPicker.label            "Imedlis n tensa:">
 <!ENTITY addressbookPicker.accesskey        "m">
 <!ENTITY searchContacts.label               "Nadi inermisen:">
@@ -34,6 +35,11 @@
 <!ENTITY editContactContext.accesskey       "Ẓ">
 <!ENTITY editMailingListContext.label       "Ẓreg tabdart">
 <!ENTITY editMailingListContext.accesskey   "Ẓ">
+
+<!ENTITY newContactAbContext.label          "Anermis amaynut">
+<!ENTITY newContactAbContext.accesskey      "G">
+<!ENTITY newListAbContext.label             "Tabdart tamaynut">
+<!ENTITY newListAbContext.accesskey         "T">
 
 <!ENTITY toButton.label                     "Rnu ɣeṛ I:">
 <!ENTITY toButton.accesskey                 "u">

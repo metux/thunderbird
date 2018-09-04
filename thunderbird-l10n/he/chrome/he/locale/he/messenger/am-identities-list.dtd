@@ -8,9 +8,8 @@
 <!ENTITY identitiesListEdit.label "עריכה…">
 <!ENTITY identitiesListEdit.accesskey "ע">
 <!ENTITY identitiesListDefault.label "הגדרה כבררת מחדל">
+<!ENTITY identitiesListDefault.accesskey "ב">
 <!ENTITY identitiesListDelete.label "מחיקה">
 <!ENTITY identitiesListDelete.accesskey "מ">
 <!ENTITY identitiesListClose.label "סגירה">
-
-<!ENTITY identitiesListClose.accesskey "C">
-<!ENTITY identitiesListDefault.accesskey "S">
+<!ENTITY identitiesListClose.accesskey "ס">

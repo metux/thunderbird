@@ -32,7 +32,7 @@
 <!-- LOCALIZATION NOTE (performanceUI.loadingNotice): This is the label shown
   -  in the details view while the profiler is unavailable, for example, while
   -  in Private Browsing mode. -->
-<!ENTITY performanceUI.unavailableNoticePB "Записване на профайл в момента е недостъпно. Моля, затворете всички поверителни прозорци и опитайте отново.">
+<!ENTITY performanceUI.unavailableNoticePB "Записване на профил в момента е недостъпно. Моля, затворете всички поверителни прозорци и опитайте отново.">
 
 <!-- LOCALIZATION NOTE (performanceUI.loadingNotice): This is the label shown
   -  in the details view while loading a profile. -->
@@ -41,9 +41,9 @@
 <!-- LOCALIZATION NOTE (performanceUI.toolbar.*): These strings are displayed
   -  in the toolbar on buttons that select which view is currently shown. -->
 <!ENTITY performanceUI.toolbar.waterfall "Водопад">
-<!ENTITY performanceUI.toolbar.waterfall.tooltiptext "Показване на различните операции, извършвани от браузъра по време на следенето, подредени последователно като водопад.">
+<!ENTITY performanceUI.toolbar.waterfall.tooltiptext "Показване на различните операции, извършвани от четеца по време на следенето, подредени последователно като водопад.">
 <!ENTITY performanceUI.toolbar.js-calltree "Дърво на извикванията">
-<!ENTITY performanceUI.toolbar.js-calltree.tooltiptext "Осветяване функциите на JavaScript, където браузърът прекарва най-много време, докато се следи производителността.">
+<!ENTITY performanceUI.toolbar.js-calltree.tooltiptext "Осветяване функциите на JavaScript, където четецът прекарва най-много време, докато се следи производителността.">
 <!ENTITY performanceUI.toolbar.memory-calltree "Заделяния">
 <!ENTITY performanceUI.toolbar.allocations.tooltiptext "Показване къде е била заделена паметта по време на записването.">
 <!ENTITY performanceUI.toolbar.js-flamegraph "Огнена диаграма на JS">
@@ -63,7 +63,7 @@
 <!ENTITY performanceUI.table.samples                  "Проби">
 <!ENTITY performanceUI.table.samples.tooltip          "Брой пъти, когато тази функция е била в стека по време на взимане на извадка.">
 <!ENTITY performanceUI.table.function                 "Функция">
-<!ENTITY performanceUI.table.function.tooltip         "Име и местоположение на сорса на функцията от извадката.">
+<!ENTITY performanceUI.table.function.tooltip         "Име и местоположение на изходния код на функцията от извадката.">
 <!ENTITY performanceUI.table.totalAlloc               "Общо заделяния в извадка">
 <!ENTITY performanceUI.table.totalAlloc.tooltip       "Общият брой на заделяния на Object по време на извадките в това местоположение и подчинените извиквания.">
 <!ENTITY performanceUI.table.selfAlloc                "Собствени заделяния в извадка">

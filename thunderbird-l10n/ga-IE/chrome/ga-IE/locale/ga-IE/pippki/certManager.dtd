@@ -10,11 +10,10 @@
 <!ENTITY certmgr.tab.ca                       "Údaráis">
 <!ENTITY certmgr.tab.orphan2                  "Cinn Eile">
 
-<!ENTITY certmgr.mine                         "Tá teastais agat ó na heagrais seo a shainaithníonn tusa:">
-<!ENTITY certmgr.others                       "Tá teastais agat a shainaithníonn na daoine seo:">
-<!ENTITY certmgr.websites2                    "Tá teastais agat a shainaithníonn na freastalaithe seo:">
-<!ENTITY certmgr.cas                          "Tá teastais agat a shainaithníonn na húdaráis deimhniúcháin seo:">
-<!ENTITY certmgr.orphans                      "Tá teastais agat nach féidir iad a chur i gcatagóir ar bith eile:">
+
+
+
+
 
 <!ENTITY certmgr.detail.general_tab.title     "Ginearálta">
 <!ENTITY certmgr.detail.general_tab.accesskey "G">
@@ -91,3 +90,8 @@
 <!ENTITY exceptionMgr.certstatus.accesskey    "A">
 <!ENTITY exceptionMgr.permanent.label         "Glac leis an eisceacht seo go buan">
 <!ENTITY exceptionMgr.permanent.accesskey     "G">
+
+<!ENTITY certmgr.mine2                        "You have certificates from these organizations that identify you">
+<!ENTITY certmgr.others2                      "You have certificates on file that identify these people">
+<!ENTITY certmgr.websites3                    "You have certificates on file that identify these servers">
+<!ENTITY certmgr.cas2                         "You have certificates on file that identify these certificate authorities">

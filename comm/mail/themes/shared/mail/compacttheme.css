@@ -1,0 +1,213 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* compacttheme.css is loaded in messenger.xul after messenger.css when it
+   is preffed on.  The bulk of the styling is here in the shared file, but
+   there are overrides for each platform in their compacttheme.css files. */
+
+:root:-moz-lwtheme {
+  --toolbar-color: var(--chrome-color);
+  --toolbar-bgcolor: var(--chrome-secondary-background-color);
+  --toolbar-non-lwt-bgcolor: var(--toolbar-bgcolor);
+  --toolbar-non-lwt-textcolor: var(--chrome-color);
+  --toolbar-non-lwt-bgimage: none;
+  --lwt-toolbar-field-border-color: hsla(240,5%,5%,.25);
+
+  --toolbarbutton-icon-fill-opacity: .7;
+
+  --tab-line-color: #0a84ff;
+}
+
+:root:-moz-lwtheme-brighttext {
+  /* Chrome */
+  --chrome-background-color: hsl(240, 5%, 5%);
+  --chrome-color: rgb(249, 249, 250);
+  --chrome-secondary-background-color: hsl(240, 1%, 20%);
+  --toolbox-border-bottom-color: hsla(240, 5%, 5%, .1);
+  --chrome-nav-bar-controls-border-color: hsla(240, 5%, 5%, .3);
+
+  /* Toolbar buttons */
+  --lwt-toolbarbutton-hover-background: rgba(179, 179, 179, 0.4);
+  --lwt-toolbarbutton-active-background: rgba(179, 179, 179, 0.6);
+
+  /* Search bars */
+  --url-and-searchbar-background-color: rgb(71, 71, 73);
+  --url-and-searchbar-color: var(--chrome-color);
+  --urlbar-separator-color: #5F6670;
+
+  /* composer header fields bottom border */
+  --composer-header-border-color: rgb(127, 127, 128);
+
+  /* autocomplete colors */
+  --autocomplete-popup-background: rgb(74, 74, 79);
+  --autocomplete-popup-color: rgb(249, 249, 250);
+  --autocomplete-popup-border-color: rgb(39, 39, 43);
+  --urlbar-popup-url-color: #0a84ff;
+}
+
+:root:-moz-lwtheme-darktext {
+  --url-and-searchbar-background-color: #fff;
+
+  --chrome-background-color: #e3e4e6;
+  --chrome-color: #18191a;
+  --chrome-secondary-background-color: #f5f6f7;
+  --toolbox-border-bottom-color: #ccc;
+  --chrome-nav-bar-controls-border-color: #ccc;
+
+  /* composer header fields bottom border */
+  --composer-header-border-color: #aaa;
+
+  /* autocomplete colors */
+  --autocomplete-popup-background: #fff;
+  --autocomplete-popup-color: #0c0c0d;
+  --autocomplete-popup-border-color: ThreeDShadow;
+  --urlbar-popup-url-color: hsl(210, 77%, 47%);
+}
+
+toolbar[brighttext] .toolbarbutton-1 {
+  fill: rgb(249, 249, 250);
+}
+
+/* Change the base colors for the mail chrome */
+
+#headers-box,
+#navigation-toolbox {
+  background-color: var(--chrome-background-color);
+  color: var(--chrome-color);
+}
+
+findbar,
+.mail-toolbox,
+.contentTabToolbox,
+#msgHeaderView {
+  background-color: var(--chrome-secondary-background-color) !important;
+  background-image: none !important;
+  color: var(--chrome-color);
+}
+
+/* Let the message headers use the theme colors */
+.headerValue {
+  color: inherit !important;
+}
+
+/* Style the editContactPanel textfields */
+textbox.editContactTextbox {
+  background-color: var(--url-and-searchbar-background-color);
+  color: var(--url-and-searchbar-color);
+}
+.editContactTextbox:not([readonly="true"]):not([focused="true"]) {
+  border-color: var(--lwt-toolbar-field-border-color);
+}
+
+/* Quick-Filter-Bar */
+#quick-filter-bar:-moz-lwtheme {
+  background-color: var(--chrome-background-color);
+  color: var(--chrome-color);
+}
+#quick-filter-bar:-moz-lwtheme-brighttext {
+  --toolbarbutton-hover-background: var(--lwt-toolbarbutton-hover-background);
+  --toolbarbutton-hover-bordercolor: var(--lwt-toolbarbutton-hover-background);
+
+  --toolbarbutton-checkedhover-backgroundcolor: var(--lwt-toolbarbutton-hover-background);
+
+  --toolbarbutton-active-background: var(--lwt-toolbarbutton-active-background);
+  --toolbarbutton-active-bordercolor: var(--lwt-toolbarbutton-active-background);
+  --toolbarbutton-active-boxshadow: 0 0 0 1px var(--lwt-toolbarbutton-active-background) inset;
+}
+
+#qfb-qs-textbox:-moz-lwtheme {
+  background-color: var(--url-and-searchbar-background-color, hsla(0,0%,100%,.8));
+  color: var(--url-and-searchbar-color, black);
+}
+
+#qfb-qs-textbox:not([focused="true"]):-moz-lwtheme {
+  border-color: var(--lwt-toolbar-field-border-color, hsla(240,5%,5%,.25));
+}
+
+#qfb-qs-textbox:-moz-lwtheme[focused="true"] {
+  background-color: var(--url-and-searchbar-background-color, white);
+  color: var(--url-and-searchbar-color, black);
+}
+
+/* Search bar*/
+#searchInput:not([focused="true"]),
+#IMSearchInput:not([focused="true"]),
+#peopleSearchInput:not([focused="true"]),
+.remote-gloda-search:not([focused="true"]) {
+  border-color: var(--chrome-nav-bar-controls-border-color);
+}
+
+popupset > #PopupGlodaAutocomplete {
+  background: var(--autocomplete-popup-background);
+  color: var(--autocomplete-popup-color);
+  border-color: var(--autocomplete-popup-border-color);
+}
+
+#PopupGlodaAutocomplete > .autocomplete-richlistbox {
+  color: inherit;
+  background-color: inherit;
+}
+
+.ac-url:not([selected=true]) > .ac-url-text {
+  color: var(--urlbar-popup-url-color);
+}
+
+/* Composer header box styling */
+#headers-box:-moz-lwtheme-brighttext {
+  --toolbarbutton-hover-background: var(--lwt-toolbarbutton-hover-background);
+  --toolbarbutton-hover-bordercolor: var(--lwt-toolbarbutton-hover-background);
+
+  --toolbarbutton-active-background: var(--lwt-toolbarbutton-active-background);
+  --toolbarbutton-active-bordercolor: var(--lwt-toolbarbutton-active-background);
+  --toolbarbutton-active-boxshadow: 0 0 0 1px var(--lwt-toolbarbutton-active-background) inset;
+}
+
+#MsgHeadersToolbar,
+#addressingWidget,
+.aw-menulist {
+  color: inherit;
+}
+
+#msgIdentity,
+#msgSubject,
+.textbox-addressingWidget,
+.dummy-row-cell:not(:first-child) {
+  border-bottom-color: var(--composer-header-border-color) !important;
+  color: var(--chrome-color);
+}
+
+#msgIdentity:hover,
+#msgIdentity:focus,
+#msgSubject:hover,
+#msgSubject[focused="true"],
+.textbox-addressingWidget:hover,
+.textbox-addressingWidget[focused="true"] {
+  background-color: var(--url-and-searchbar-background-color);
+  color: var(--lwt-toolbar-field-color);
+  border-color: var(--lwt-toolbar-field-border-color) !important;
+}
+
+.textbox-addressingWidget > .autocomplete-result-popupset {
+  -moz-appearance: none;
+  margin-top: -1px;
+  background: var(--autocomplete-popup-background);
+  color: var(--autocomplete-popup-color);
+}
+
+.textbox-addressingWidget panel[type="autocomplete-richlistbox"] {
+  padding: 2px 0;
+  color: inherit;
+  background-color: inherit;
+  border-color: var(--autocomplete-popup-border-color);
+}
+
+.textbox-addressingWidget .autocomplete-richlistbox {
+  color: inherit;
+  background-color: inherit;
+}
+
+.textbox-addressingWidget .autocomplete-richlistitem[selected] {
+  background: #0a84ff;
+  color: #fff;
+}

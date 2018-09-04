@@ -4,8 +4,9 @@
 
 <!ENTITY closeNotification.tooltip "Tutu powěźeńku zacyniś">
 
-<!ENTITY closeNotificationItem.label "Nic něnto">
-
 <!ENTITY checkForUpdates "Aktualizacije pytaś…">
 
 <!ENTITY learnMore "Dalšne informacije…">
+
+<!ENTITY defaultButton.label "W pórěźe!">
+<!ENTITY defaultButton.accesskey "r">

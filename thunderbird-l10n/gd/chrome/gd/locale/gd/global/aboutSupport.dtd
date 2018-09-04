@@ -3,8 +3,8 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <!ENTITY aboutSupport.pageTitle "Taic le duilgheadasan">
-<!-- LOCALIZATION NOTE (aboutSupport.pageSubtitle): don't change the 'supportLink' id. -->
 
+<!-- LOCALIZATION NOTE (aboutSupport.pageSubtitle): don't change the 'supportLink' id. -->
 <!ENTITY aboutSupport.pageSubtitle "  Tha fiosrachadh teicnigeach air an duilleag seo a dh'fhaodadh a bhith feumail dhut ann am fuasgladh dhuilgheadasan. Ma tha ceist neo-theicnigeach agad mu &brandShortName;, cuir sùil air an <a id='supportLink'>làrach-taice</a> againn.">
 
 <!ENTITY aboutSupport.crashes.title "Aithisgean tuislidh">
@@ -21,6 +21,18 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.extensionVersion "Tionndadh">
 <!ENTITY aboutSupport.extensionId "ID">
 
+<!ENTITY aboutSupport.securitySoftwareTitle "Bathar-bog tèarainteachd">
+<!ENTITY aboutSupport.securitySoftwareType "Seòrsa">
+<!ENTITY aboutSupport.securitySoftwareName "Ainm">
+<!ENTITY aboutSupport.securitySoftwareAntivirus "Bathar an aghaigh bhìorasan">
+<!ENTITY aboutSupport.securitySoftwareAntiSpyware "Bathar an aghaidh bathar-foill">
+<!ENTITY aboutSupport.securitySoftwareFirewall "Cachaileith-theine">
+
+<!ENTITY aboutSupport.featuresTitle "Gleusan &brandShortName;">
+<!ENTITY aboutSupport.featureName "Ainm">
+<!ENTITY aboutSupport.featureVersion "Tionndadh">
+<!ENTITY aboutSupport.featureId "ID">
+
 <!ENTITY aboutSupport.experimentsTitle "Gleusan deuchainneach">
 <!ENTITY aboutSupport.experimentName "Ainm">
 <!ENTITY aboutSupport.experimentId "ID">
@@ -34,9 +46,9 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.appBasicsName "Ainm">
 <!ENTITY aboutSupport.appBasicsVersion "Tionndadh">
 <!ENTITY aboutSupport.appBasicsBuildID "Build ID">
+
 <!-- LOCALIZATION NOTE (aboutSupport.appBasicsUpdateChannel, aboutSupport.appBasicsUpdateHistory, aboutSupport.appBasicsShowUpdateHistory):
 "Update" is a noun here, not a verb. -->
-
 <!ENTITY aboutSupport.appBasicsUpdateChannel "Ùraich an t-seanail">
 <!ENTITY aboutSupport.appBasicsUpdateHistory "Eachdraidh nan ùrachaidhean">
 <!ENTITY aboutSupport.appBasicsShowUpdateHistory "Seall eachdraidh nan ùrachaidhean">
@@ -53,13 +65,20 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsOS "OS">
 <!ENTITY aboutSupport.appBasicsMemoryUse "Cleachdadh na cuimhne">
 <!ENTITY aboutSupport.appBasicsPerformance "Dèanadas">
-<!-- LOCALIZATION NOTE the term "Service Workers" should not be translated. -->
 
+<!-- LOCALIZATION NOTE the term "Service Workers" should not be translated. -->
 <!ENTITY aboutSupport.appBasicsServiceWorkers "Obraichean seirbheise clàraichte">
 
 <!ENTITY aboutSupport.appBasicsProfiles "Pròifilean">
 
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Uinneagan ioma-phròiseasaidh">
+
+<!ENTITY aboutSupport.appBasicsProcessCount "Pròiseasan susbaint-lìn">
+
+<!ENTITY aboutSupport.enterprisePolicies "Poileasaidhean Enterprise">
+
+<!ENTITY aboutSupport.appBasicsKeyGoogle "Google Key">
+<!ENTITY aboutSupport.appBasicsKeyMozilla "Iuchair seirbheis nan ionad aig Mozilla">
 
 <!ENTITY aboutSupport.appBasicsSafeMode "Am modh tèarainte">
 
@@ -75,8 +94,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.modifiedKeyPrefsTitle "Roghainnean cudromach a chaidh atharrachadh">
 <!ENTITY aboutSupport.modifiedPrefsName "Ainm">
 <!ENTITY aboutSupport.modifiedPrefsValue "Luach">
-<!-- LOCALIZATION NOTE (aboutSupport.userJSTitle, aboutSupport.userJSDescription): user.js is the name of the preference override file being checked. -->
 
+<!-- LOCALIZATION NOTE (aboutSupport.userJSTitle, aboutSupport.userJSDescription): user.js is the name of the preference override file being checked. -->
 <!ENTITY aboutSupport.userJSTitle "Roghainnean user.js">
 <!ENTITY aboutSupport.userJSDescription "Tha faidhle air a bheil <a id='prefs-user-js-link'>user.js</a> ann am pasgan na pròifil agad agus gheibh thu roghainnean 'na bhroinn nach deach an cruthachadh le &brandShortName;.">
 
@@ -96,6 +115,8 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.a11yTitle "Inntrigeachd">
 <!ENTITY aboutSupport.a11yActivated "Air gnìomhachadh">
 <!ENTITY aboutSupport.a11yForceDisabled "Casg air so-inntrigeachd">
+<!ENTITY aboutSupport.a11yHandlerUsed "Làimhsichear na so-inntrigeachd a chaidh a chleachdadh">
+<!ENTITY aboutSupport.a11yInstantiator "Accessibility Instantiator">
 
 <!ENTITY aboutSupport.libraryVersionsTitle "Tionndaidhean leabharlainn">
 
@@ -106,6 +127,14 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Cuir lethbhreac dhen dàta lom dhan stòr-bhòrd">
 
 <!ENTITY aboutSupport.sandboxTitle "Bogsa-gainmhich">
+<!ENTITY aboutSupport.sandboxSyscallLogTitle "Gairmean siostaim a chaidh a dhiùltadh">
+<!ENTITY aboutSupport.sandboxSyscallIndex "#">
+<!ENTITY aboutSupport.sandboxSyscallAge "Diogan air ais">
+<!ENTITY aboutSupport.sandboxSyscallPID "PID">
+<!ENTITY aboutSupport.sandboxSyscallTID "TID">
+<!ENTITY aboutSupport.sandboxSyscallProcType "Seòrsa a’ phròiseis">
+<!ENTITY aboutSupport.sandboxSyscallNumber "Syscall">
+<!ENTITY aboutSupport.sandboxSyscallArgs "Argamaidean">
 
 <!ENTITY aboutSupport.safeModeTitle "Feuch am modh tèarainte">
 <!ENTITY aboutSupport.restartInSafeMode.label "Ath-thòisich leis na tuilleadan air an cur à comas…">
@@ -118,3 +147,26 @@ variant of aboutSupport.showDir.label. -->
 <!ENTITY aboutSupport.graphicsDecisionLogTitle "Loga nan co-dhùnaidhean">
 <!ENTITY aboutSupport.graphicsCrashGuardsTitle "Gleusan a chuir freiceadan nan tuislidhean à comas">
 <!ENTITY aboutSupport.graphicsWorkaroundsTitle "Workarounds">
+
+<!ENTITY aboutSupport.mediaTitle "Meadhanan">
+<!ENTITY aboutSupport.mediaOutputDevicesTitle "Uidheaman às-chuir">
+<!ENTITY aboutSupport.mediaInputDevicesTitle "Uidheaman ion-chuir">
+<!ENTITY aboutSupport.mediaDeviceName "Ainm">
+<!ENTITY aboutSupport.mediaDeviceGroup "Buidheann">
+<!ENTITY aboutSupport.mediaDeviceVendor "Reiceadair">
+<!ENTITY aboutSupport.mediaDeviceState "Staid">
+<!ENTITY aboutSupport.mediaDevicePreferred "As fhearr">
+<!ENTITY aboutSupport.mediaDeviceFormat "Fòrmat">
+<!ENTITY aboutSupport.mediaDeviceChannels "Seanailean">
+<!ENTITY aboutSupport.mediaDeviceRate "Reat">
+<!ENTITY aboutSupport.mediaDeviceLatency "Latency">
+
+<!ENTITY aboutSupport.intlTitle "Eadar-nàiseantachadh ⁊ ionadaileadh">
+<!ENTITY aboutSupport.intlAppTitle "Roghainnean na h-aplacaid">
+<!ENTITY aboutSupport.intlLocalesRequested "Dreachan ionadail a chaidh iarraidh">
+<!ENTITY aboutSupport.intlLocalesAvailable "Dreachan ionadail ri am faighinn">
+<!ENTITY aboutSupport.intlLocalesSupported "Dreachan ionadail na h-aplacaid">
+<!ENTITY aboutSupport.intlLocalesDefault "An dreach ionadail tùsail">
+<!ENTITY aboutSupport.intlOSTitle "Siostam-obrachaidh">
+<!ENTITY aboutSupport.intlOSPrefsSystemLocales "Dreachan ionadail an t-siostaim-obrachaidh">
+<!ENTITY aboutSupport.intlRegionalPrefs "Roghainnean roinneil">

@@ -1,0 +1,56 @@
+{
+  "languages": {
+    "pl": {
+      "chrome_resources": {
+        "necko": "chrome/pl/locale/pl/necko/", 
+        "global": "chrome/pl/locale/pl/global/", 
+        "messenger-region": "chrome/pl/locale/pl/messenger-region/", 
+        "chat": "chrome/pl/locale/pl/chat/", 
+        "devtools": "chrome/pl/locale/pl/devtools/client/", 
+        "pipnss": "chrome/pl/locale/pl/pipnss/", 
+        "messenger-smime": "chrome/pl/locale/pl/messenger-smime/", 
+        "messenger-newsblog": "chrome/pl/locale/pl/messenger-newsblog/", 
+        "devtools-shim": "chrome/pl/locale/pl/devtools/shim/", 
+        "alerts": "chrome/pl/locale/pl/alerts/", 
+        "messenger": "chrome/pl/locale/pl/messenger/", 
+        "editor": "chrome/pl/locale/pl/editor/", 
+        "branding": "chrome/pl/locale/pl/branding/", 
+        "mozldap": "chrome/pl/locale/pl/mozldap/", 
+        "autoconfig": "chrome/pl/locale/pl/autoconfig/", 
+        "devtools-shared": "chrome/pl/locale/pl/devtools/shared/", 
+        "global-platform": {
+          "win": "chrome/pl/locale/pl/global-platform/win/", 
+          "android": "chrome/pl/locale/pl/global-platform/unix/", 
+          "macosx": "chrome/pl/locale/pl/global-platform/mac/", 
+          "linux": "chrome/pl/locale/pl/global-platform/unix/"
+        }, 
+        "mozapps": "chrome/pl/locale/pl/mozapps/", 
+        "pluginproblem": "chrome/pl/locale/pl/pluginproblem/", 
+        "communicator": "chrome/pl/locale/pl/communicator/", 
+        "messenger-mapi": "chrome/pl/locale/pl/messenger-mapi/", 
+        "places": "chrome/pl/locale/pl/places/", 
+        "passwordmgr": "chrome/pl/locale/pl/passwordmgr/", 
+        "pippki": "chrome/pl/locale/pl/pippki/"
+      }, 
+      "version": "20180504162335"
+    }
+  }, 
+  "applications": {
+    "gecko": {
+      "strict_min_version": "60.0", 
+      "id": "langpack-pl@thunderbird.mozilla.org", 
+      "strict_max_version": "60.*"
+    }
+  }, 
+  "langpack_id": "pl", 
+  "version": "60.0buildid20180731173940", 
+  "name": "Polski Language Pack", 
+  "manifest_version": 2, 
+  "sources": {
+    "browser": {
+      "base_path": "browser/"
+    }
+  }, 
+  "author": "Aviary.pl (contributors: Aviary.pl, Piotr Komoda, Zbigniew Braniecki, Marek Wawoczny, Piotr Bartecki, Stefan Plewako)", 
+  "description": "Language pack for Thunderbird for pl"
+}

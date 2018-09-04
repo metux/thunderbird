@@ -23,19 +23,14 @@
 
 
 <!ENTITY aboutDownloads.empty                      "No Saved Files">
-<!ENTITY cmd.clearList.accesskey                   "C">
-<!ENTITY cmd.clearList.label                       "Clear List">
-<!ENTITY cmd.clearList.tooltip                     "Remove all entries from the list of saved files, except ongoing downloads.">
-<!ENTITY cmd.removeFromHistory.accesskey           "e">
-<!ENTITY cmd.removeFromHistory.label               "Remove From History">
-<!ENTITY cmd.searchDownloads.key                   "F">
-<!ENTITY cmd.searchDownloads.label                 "Search…">
-<!ENTITY cmd.show.accesskey                        "F">
-<!-- LOCALIZATION NOTE (cmd.show.label, cmd.show.accesskey, cmd.showMac.label,
-     cmd.showMac.accesskey):
-     The show and showMac commands are never shown together, thus they can share
-     the same access key (though the two access keys can also be different).
-     -->
 <!ENTITY cmd.show.label                            "Open Containing Folder">
-<!ENTITY cmd.showMac.accesskey                     "F">
+<!ENTITY cmd.show.accesskey                        "F">
 <!ENTITY cmd.showMac.label                         "Show In Finder">
+<!ENTITY cmd.showMac.accesskey                     "F">
+<!ENTITY cmd.removeFromHistory.label               "Remove From History">
+<!ENTITY cmd.removeFromHistory.accesskey           "e">
+<!ENTITY cmd.clearList.label                       "Clear List">
+<!ENTITY cmd.clearList.accesskey                   "C">
+<!ENTITY cmd.clearList.tooltip                     "Remove all entries from the list of saved files, except ongoing downloads.">
+<!ENTITY cmd.searchDownloads.label                 "Search…">
+<!ENTITY cmd.searchDownloads.key                   "F">

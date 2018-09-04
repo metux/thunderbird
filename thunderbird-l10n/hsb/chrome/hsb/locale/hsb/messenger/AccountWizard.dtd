@@ -122,3 +122,6 @@
 <!ENTITY deferStorage.accesskey "G">
 <!ENTITY clickFinish.label "Klikńće na Dokónčić, zo byšće tute nastajenja składował a kontowy asistent wopušćił.">
 <!ENTITY clickFinish.labelMac "Klikńće na Dokónčić, zo byšće tute nastajenja składował a kontowy asistent wopušćił.">
+
+<!ENTITY accountTypeMovemail.label "Unix Mailspool (Movemail)">
+<!ENTITY accountTypeMovemail.accesskey "U">

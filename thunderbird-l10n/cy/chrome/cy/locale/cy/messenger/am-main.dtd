@@ -40,3 +40,6 @@
 <!ENTITY smtpName.label "Gweinydd Anfon (SMTP):">
 <!ENTITY smtpName.accesskey "A">
 <!ENTITY smtpDefaultServer.label "Defnyddio'r Gweinydd Rhagosodedig">
+
+<!ENTITY smtpServerEdit.label "Golygu gweinydd SMTP…">
+<!ENTITY smtpServerEdit.accesskey "S">

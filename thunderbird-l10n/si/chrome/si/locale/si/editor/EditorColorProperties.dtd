@@ -26,3 +26,5 @@
 <!ENTITY backgroundImage.label "පසුතල රූපය:">
 <!ENTITY backgroundImage.accessKey "m">
 <!ENTITY backgroundImage.tooltip "රූපයක් ඔබගේ පිටුවේ පසුතලය ලෙස භාවිතා කරන්න">
+
+<!ENTITY backgroundImage.shortenedDataURI "Shortened data URI (copy will place the full URI onto the clipboard)">

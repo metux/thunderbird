@@ -15,7 +15,7 @@
 <!ENTITY port.label "Porto:">
 <!ENTITY port.accesskey "P">
 <!ENTITY serverPortDefault.label "Predeterminado:">
-<!-- LOCALIZATION NOTE (biffStart.label) : translate below 2 line with grammer dependency
+<!-- LOCALIZATION NOTE (biffStart.label) : translate below 2 line with grammar dependency
         For example, in Japanese cases:
                 biffStart.label "every"
                 biffEnd.label   "minutes for new messages Check"
@@ -23,6 +23,8 @@
 <!ENTITY biffStart.label "Comprobar se hai novas mensaxes cada ">
 <!ENTITY biffStart.accesskey "h">
 <!ENTITY biffEnd.label "minutos">
+<!ENTITY useIdleNotifications.label "Permitir notificacións inmediatas do servidor cando chegue unha mensaxe nova">
+<!ENTITY useIdleNotifications.accesskey "m">
 <!ENTITY connectionSecurity.label "Seguridade da conexión:">
 <!ENTITY connectionSecurity.accesskey "u">
 <!ENTITY connectionSecurityType-0.label "Ningunha">
@@ -51,10 +53,10 @@
 <!ENTITY modelDeleteImmediately.label "Eliminala inmediatamente">
 <!ENTITY modelDeleteImmediately.accesskey "d">
 <!-- LOCALIZATION NOTE (expungeOnExit.label) : do not translate two of "&quot;" in below line -->
-<!ENTITY expungeOnExit.label "Limpar (&quot;Expurgar&quot;) a Caixa de entrada ao saír">
+<!ENTITY expungeOnExit.label "Borrar (&quot;Expurgar&quot;) a Caixa de entrada ao saír">
 <!ENTITY expungeOnExit.accesskey "E">
 <!ENTITY emptyTrashOnExit.label "Baleirar o lixo ao saír">
-<!ENTITY emptyTrashOnExit.accesskey "x">
+<!ENTITY emptyTrashOnExit.accesskey "B">
 <!ENTITY loginAtStartup.label "Comprobar se hai novas mensaxes no inicio">
 <!ENTITY loginAtStartup.accesskey "C">
 <!-- LOCALIZATION NOTE (maxMessagesStart.label) : translate below 2 lines with grammar dependency
@@ -69,27 +71,22 @@
 <!ENTITY alwaysAuthenticate.accesskey "S">
 <!ENTITY newsrcFilePath.label "ficheiro newsrc:">
 <!ENTITY newsrcPicker.label "Seleccionar un ficheiro newsrc">
-<!ENTITY abbreviate.label "Mostrar os nomes dos grupos de novas no cartafol de correo como:">
+<!ENTITY abbreviate.label "Amosar os nomes dos grupos de novas no cartafol de correo como:">
 <!ENTITY abbreviateOn.label "Nomes completos (por exemplo, 'netscape.public.mozilla.mail-news')">
 <!ENTITY abbreviateOff.label "Nomes abreviados (por exemplo,'n.p.m.mail-news')">
 <!ENTITY advancedButton.label "Avanzadas…">
 <!ENTITY advancedButton.accesskey "v">
-<!ENTITY serverDefaultCharset.label "Codificación de caracteres predeterminada:">
+<!ENTITY serverDefaultCharset2.label "Codificación de texto predeterminada:">
 <!ENTITY localPath.label "Cartafol local:">
 <!ENTITY localFolderPicker.label "Seleccione un cartafol local">
 <!ENTITY browseFolder.label "Examinar…">
 <!ENTITY browseFolder.accesskey "x">
-<!ENTITY newsrcPicker.label "Seleccionar un ficheiro newsrc">
 <!ENTITY browseNewsrc.label "Examinar…">
 <!ENTITY browseNewsrc.accesskey "E">
 
 <!ENTITY accountTitle.label "Configuración da conta">
 <!ENTITY accountSettingsDesc.label "A seguinte é unha conta especial. Non hai identidades asociadas a ela.">
-
-<!ENTITY maildirStore.label "File per message (maildir)">
-<!ENTITY mboxStore2.label "File per folder (mbox)">
-<!ENTITY serverDefaultCharset2.label "Default Text Encoding:">
+<!ENTITY storeType.label "Tipo de almacenamento de mensaxes:">
 <!ENTITY storeType.accesskey "T">
-<!ENTITY storeType.label "Message Store Type:">
-<!ENTITY useIdleNotifications.accesskey "w">
-<!ENTITY useIdleNotifications.label "Allow immediate server notifications when new messages arrive">
+<!ENTITY mboxStore2.label "Un ficheiro por cartafol (mbox)">
+<!ENTITY maildirStore.label "Un ficheiro por mensaxe (maildir)">

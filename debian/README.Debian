@@ -1,4 +1,50 @@
-﻿De-Branding of Icedove, Reintroduce Thunderbird in Debian
+Enable l10n languages in Thunderbird >= 1:60.0~b2
+-------------------------------------------------
+
+Mozilla has started to move over to the WebExtensions interface with Firefox
+version 51. Mozilla Thunderbird is following this way and disabled the old
+legacy plugin integration with version 59 [1]. This also effects the usage of
+the l10n packages for Thunderbird and Lightning and currently the installation
+of the thunderbird-l10n packages isn't enough to get a Thunderbird UI in the
+desired language.
+
+This is simply because of the old preference of 'intl.locale.matchOS' (in
+/etc/thunderbird/pref/thunderbird.js) isn't supported any more. Also the
+preference 'general.useragent.locale' is no removed and both old prefs are
+replaced by 'intl.locale.requested' [2].
+For now we have no way to deal with these changes within the packaging and
+thus we can't provide a way to get an automatic Thunderbird UI after the
+installation of a l10n package.
+
+There is a possible workaround to get at least the thunderbird-l10n packages
+work again. For lightning-l10n packages the following steps aren't
+enough unfortunately.
+
+ 1. Install the needed thunderbird-l10n package as usual
+ 2. Add a new option 'intl.locale.requested' to your local profile prefs.js
+    (with type "string") and set the key to your wanted language
+
+For example:
+set 'intl.locale.requested' to 'de' for German UI or
+set 'intl.locale.requested' to 'fr' for France UI
+
+See also entries on the Mozilla Bugtracker:
+
+  installing a language pack has no impact in 59.0b1 [3]
+  make add-ons in-compatible by default for tb60 and beyond [4]
+
+If you can provide useful information to get the l10n packages working again
+please fill a bug on the Debian BTS or get in contact with the package
+maintainers!
+
+[1] https://bugzilla.mozilla.org/show_bug.cgi?id=1396172
+[2] https://bugzilla.mozilla.org/show_bug.cgi?id=1414390
+[3] https://bugzilla.mozilla.org/show_bug.cgi?id=1437480
+[4] https://bugzilla.mozilla.org/show_bug.cgi?id=1451097
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sat, 7 Apr 2018 11:05:00 +0200
+
+De-Branding of Icedove, Reintroduce Thunderbird in Debian
 ---------------------------------------------------------
 
 Debian and Mozilla has done some new rethinking and talking about the old legal

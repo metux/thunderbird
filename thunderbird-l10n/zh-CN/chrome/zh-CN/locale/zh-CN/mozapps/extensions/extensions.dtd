@@ -4,6 +4,8 @@
 <!ENTITY addons.windowTitle                   "附加组件管理器">
 
 <!ENTITY search.placeholder                   "在全部的附加组件中搜索">
+
+<!ENTITY search.placeholder2                  "在 addons.mozilla.org 上搜索">
 <!ENTITY search.buttonlabel                   "搜索">
 <!-- LOCALIZATION NOTE (search.commandKey):
      The search command key should match findOnCmd.commandkey from browser.dtd -->
@@ -20,8 +22,12 @@
 <!ENTITY installAddonFromFile.accesskey       "I">
 <!ENTITY toolsMenu.tooltip                    "用于所有附加组件的工具">
 
+<!ENTITY getThemes.description                "想个性化你的浏览器吗？">
+<!ENTITY getThemes.learnMore                  "千万种炫彩主题任您选。">
+
 <!ENTITY cmd.back.tooltip                     "转到上一页">
 <!ENTITY cmd.forward.tooltip                  "转到下一页">
+
 
 <!ENTITY showUnsignedExtensions.button.label  "一些扩展未通过验证">
 <!ENTITY showAllExtensions.button.label       "显示所有扩展">
@@ -73,7 +79,7 @@
 <!ENTITY updates.updateSelected.tooltip       "安装在此列表选中的可用更新">
 
 <!-- addon actions -->
-<!ENTITY cmd.showDetails.label                "显示更多信息">
+<!ENTITY cmd.showDetails.label                "显示详细信息">
 <!ENTITY cmd.showDetails.accesskey            "S">
 <!ENTITY cmd.findUpdates.label                "查找更新">
 <!ENTITY cmd.findUpdates.accesskey            "F">
@@ -92,13 +98,13 @@
 <!ENTITY cmd.enableTheme.accesskey            "W">
 <!ENTITY cmd.disableTheme.label               "停用主题">
 <!ENTITY cmd.disableTheme.accesskey           "W">
-<!ENTITY cmd.askToActivate.label              "询问是否激活">
+<!ENTITY cmd.askToActivate.label              "需要时询问">
 <!ENTITY cmd.askToActivate.tooltip            "每次询问是否使用此附加组件">
 <!ENTITY cmd.alwaysActivate.label             "总是激活">
 <!ENTITY cmd.alwaysActivate.tooltip           "总是使用此附加组件">
 <!ENTITY cmd.neverActivate.label              "永不激活">
 <!ENTITY cmd.neverActivate.tooltip            "永不使用此附加组件">
-<!ENTITY cmd.stateMenu.tooltip                "更改需运行此附加组件时的反应">
+<!ENTITY cmd.stateMenu.tooltip                "在此附加组件执行时变更">
 <!ENTITY cmd.installAddon.label               "安装">
 <!ENTITY cmd.installAddon.accesskey           "I">
 <!ENTITY cmd.uninstallAddon.label             "移除">
@@ -115,6 +121,7 @@
 <!ENTITY cmd.showReleaseNotes.tooltip         "显示此更新的发行说明">
 <!ENTITY cmd.hideReleaseNotes.label           "隐藏发行说明">
 <!ENTITY cmd.hideReleaseNotes.tooltip         "隐藏此更新的发行说明">
+<!ENTITY cmd.findReplacement.label            "查找替代品">
 
 <!-- discovery view -->
 <!-- LOCALIZATION NOTE (discover.title,discover.description,discover.footer):
@@ -182,6 +189,10 @@
 <!ENTITY addon.details.label                  "更多信息">
 <!ENTITY addon.details.tooltip                "显示关于此附加组件的详情">
 <!ENTITY addon.unknownDate                    "未知">
+<!-- LOCALIZATION NOTE (addon.legacy.label): This appears in a badge next
+     to the add-on name for extensions that are not webextensions, which
+     will stop working in Firefox 57. -->
+<!ENTITY addon.legacy.label                   "旧式">
 <!-- LOCALIZATION NOTE (addon.disabled.postfix): This is used in a normal list
      to signify that an add-on is disabled, in the form
      "<Addon name> <1.0> (disabled)" -->
@@ -201,7 +212,7 @@
 <!ENTITY addon.updateNow.label                "立即更新">
 <!ENTITY addon.updateNow.tooltip              "安装该附加组件的更新">
 <!ENTITY addon.includeUpdate.label            "包括在此次更新中">
-<!ENTITY addon.updateAvailable.label          "已有可用更新">
+<!ENTITY addon.updateAvailable.label          "有可用更新">
 <!ENTITY addon.checkingForUpdates.label       "正在检查更新…">
 <!ENTITY addon.releaseNotes.label             "发行说明：">
 <!ENTITY addon.loadingReleaseNotes.label      "载入中…">
@@ -246,3 +257,8 @@
 
 <!ENTITY pluginDeprecation.description "少些东西？某些插件已不再被 &brandShortName; 支持。">
 <!ENTITY pluginDeprecation.learnMore "详细了解。">
+
+<!ENTITY legacyWarning.showLegacy "显示旧式扩展">
+<!ENTITY legacyExtensions.title "旧式扩展">
+<!ENTITY legacyExtensions.description "这些扩展不符合现今的 &brandShortName; 标准，因此已被停用。">
+<!ENTITY legacyExtensions.learnMore "了解附加组件的变化">

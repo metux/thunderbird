@@ -14,7 +14,7 @@
 <!ENTITY aboutNetworking.autoRefresh           "רענון אוטומטי בכל 3 שניות">
 <!ENTITY aboutNetworking.hostname              "שם מארח">
 <!ENTITY aboutNetworking.port                  "פתחה">
-<!ENTITY aboutNetworking.spdy                  "SPDY">
+<!ENTITY aboutNetworking.http2                 "HTTP/2">
 <!ENTITY aboutNetworking.ssl                   "SSL">
 <!ENTITY aboutNetworking.active                "פעיל">
 <!ENTITY aboutNetworking.idle                  "בהמתנה">
@@ -23,6 +23,7 @@
 <!ENTITY aboutNetworking.sent                  "נשלחו">
 <!ENTITY aboutNetworking.received              "התקבלו">
 <!ENTITY aboutNetworking.family                "משפחה">
+<!ENTITY aboutNetworking.trr                   "TRR">
 <!ENTITY aboutNetworking.addresses             "כתובות">
 <!ENTITY aboutNetworking.expires               "תפוגה (בשניות)">
 <!ENTITY aboutNetworking.messagesSent          "הודעות שנשלחו">
@@ -41,3 +42,19 @@
 <!ENTITY aboutNetworking.dnsLookupButton       "זיהוי">
 <!ENTITY aboutNetworking.dnsDomain             "שם מתחם">
 <!ENTITY aboutNetworking.dnsLookupTableColumn  "כתובות">
+<!ENTITY aboutNetworking.rcwn                  "סטטיסטיקת RCWN">
+<!ENTITY aboutNetworking.rcwnStatus            "מצב RCWN">
+<!ENTITY aboutNetworking.rcwnCacheWonCount     "ספירת ניצחונות מטמון">
+<!ENTITY aboutNetworking.rcwnNetWonCount       "ספירת ניצחונות רשת">
+<!ENTITY aboutNetworking.totalNetworkRequests  "ספירת סה״כ בקשות רשת">
+<!ENTITY aboutNetworking.rcwnOperation         "פעולת מטמון">
+<!ENTITY aboutNetworking.rcwnPerfOpen          "פתיחה">
+<!ENTITY aboutNetworking.rcwnPerfRead          "קריאה">
+<!ENTITY aboutNetworking.rcwnPerfWrite         "כתיבה">
+<!ENTITY aboutNetworking.rcwnAvgShort          "ממוצע קצר">
+<!ENTITY aboutNetworking.rcwnAvgLong           "ממוצע ארוך">
+<!ENTITY aboutNetworking.rcwnStddevLong        "סטיית תקן ארוכה">
+
+<!ENTITY aboutNetworking.rcwnPerfEntryOpen     "Entry Open">
+<!ENTITY aboutNetworking.rcwnCacheSlow         "Cache slow count">
+<!ENTITY aboutNetworking.rcwnCacheNotSlow      "Cache not slow count">

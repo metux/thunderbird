@@ -3,8 +3,7 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <!-- rights.locale-direction instead of the usual local.dir entity, so RTL can skip translating page. -->
 <!ENTITY rights.locale-direction "ltr">
-<!ENTITY rights.pagetitle       "oer:rjochten">
-<!ENTITY rights.intro-header    "Oer jo rjochten">
+<!ENTITY rights.title "Oer jo rjochten">
 <!ENTITY rights.intro "&brandFullName; is fergees en iepen boarne software, makke troch in mienskip fan tûzenen fan oeral oer de wrâld. Der binne in pear dingen dy't jo witte moatte:">
 
 <!-- Note on pointa / pointb / pointc form:
@@ -60,11 +59,11 @@
 
 <!-- safe browsing points for branded builds -->
 <!ENTITY rights.safebrowsing-a "SafeBrowsing: ">
-<!ENTITY rights.safebrowsing-b "Utskeakeljen fan de funksje Feilich sneupjen wurdt net oanrekommandearre, omdat it resultearje kin yn dat jo nei ûnfeilige siden gean.  As jo dizze funksje folslein útskeakelje wolle, folgje dan dizze stappen:">
+<!ENTITY rights.safebrowsing-b "Utskeakeljen fan de funksje Feilich sneupje wurdt net oanrekommandearre, omdat it resultearje kin yn dat jo nei ûnfeilige siden gean.  As jo dizze funksje folslein útskeakelje wolle, folgje dan dizze stappen:">
 <!ENTITY rights.safebrowsing-term1 "Iepenje de applikaasjeopsjes">
 <!ENTITY rights.safebrowsing-term2 "Selektearje de seksje Befeiliging">
 <!ENTITY rights2.safebrowsing-term3 "Finkje de opsjes foar ‘&enableSafeBrowsing.label;’ út">
-<!ENTITY rights.safebrowsing-term4 "Feilich sneupjen is no útskeakele">
+<!ENTITY rights.safebrowsing-term4 "Feilich sneupje is no útskeakele">
 
 <!-- location aware browsing points for branded builds -->
 <!ENTITY rights.locationawarebrowsing-a "Lokaasjebewust sneupe: ">
