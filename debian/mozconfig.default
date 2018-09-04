@@ -18,9 +18,9 @@
 # use/use not packaged software instead of preshipped
 ac_add_options --without-system-jpeg   # Debian version causes issues on mips*
 ac_add_options --with-system-bz2
-ac_add_options --with-system-icu
-ac_add_options --with-system-nspr
-ac_add_options --with-system-nss
+ac_add_options --without-system-icu
+ac_add_options --without-system-nspr
+ac_add_options --without-system-nss
 ac_add_options --with-system-zlib
 
 # other packaged software
@@ -34,6 +34,8 @@ ac_add_options --disable-strip
 ac_add_options --disable-tests
 ac_add_options --disable-updater
 ac_add_options --disable-webrtc
+ac_add_options --disable-system-hunspell
+ac_add_options --disable-system-sqlite
 
 # enabled features
 ac_add_options --enable-default-toolkit=cairo-gtk3
@@ -44,8 +46,6 @@ ac_add_options --enable-pie
 ac_add_options --enable-readline
 ac_add_options --enable-startup-notification
 ac_add_options --enable-system-ffi
-ac_add_options --enable-system-hunspell
-ac_add_options --enable-system-sqlite
 
 # Debian specific things
 PARALLEL_BUILD=$(echo $DEB_BUILD_OPTIONS | sed -e '/parallel=/!s/.*/1/;s/.*parallel=\([0-9]\+\).*/\1/g')
