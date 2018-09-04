@@ -1,3 +1,12 @@
+thunderbird (1:60.0-2~deb9u1) stretch-security; urgency=medium
+
+  [ Carsten Schoenert ]
+  * Rebuild for stretch-security
+  * [fd4e834] d/mozconfig.default: use internal libraries
+  * [29621ed] d/control: remove no longer needed Build-Depends
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Tue, 04 Sep 2018 20:14:34 +0200
+
 thunderbird (1:60.0-2) unstable; urgency=medium
 
   [ Carsten Schoenert ]
