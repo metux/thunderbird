@@ -14,8 +14,12 @@
 
 pref("extensions.update.enabled", true);
 
-// Use LANG environment variable to choose locale
-pref("intl.locale.matchOS", true);
+// Use LANG environment variable to choose locale from system
+// The old environment setting 'pref("intl.locale.matchOS", true);' is
+// currently not working anymore. The new introduced setting
+// 'intl.locale.requested' is now used for this. Setting an empty string is
+// pulling the system locale into Thunderbird.
+pref("intl.locale.requested", "");
 
 // Disable default mail checking (gnome).
 pref("mail.shell.checkDefaultMail", false);
@@ -28,7 +32,7 @@ pref("network.protocol-handler.app.http", "x-www-browser");
 pref("network.protocol-handler.app.https", "x-www-browser");
 
 // This setting is a workaround for some crashes inside the JS engine.
-// By this Icedove will use more memory and acting slower as the sharing
+// By this Thunderbird will use more memory and acting slower as the sharing
 // memory between interacting JS files is disabled.
 pref ("javascript.options.baselinejit", false);
 

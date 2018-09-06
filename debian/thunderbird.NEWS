@@ -1,3 +1,36 @@
+thunderbird (1:60.0-3) unstable; urgency=medium
+
+  intl.locale.matchOS is replaced by intl.locale.requested
+
+  Thunderbird has taken the locale from the user session by using the
+  preference 'intl.locale.matchOS' up until version 57.
+  This preference is replaced by 'intl.locale.requested' since version 58.
+
+  Thunderbird is detecting (again) the locale from the system by using this
+  preference with an empty string as value.
+  Starting with this version Thunderbird is taking care of this possibility
+  by adding this preference to the system wide configuration within
+  '/etc/thunderbird/pref/thunderbird.js.
+
+  If you have used Thunderbird packages < 1:60.0-3 *and* you have used this
+  environment settings within your profile by adding a dedicated locale value
+  which is equal to the system language you can remove this and let
+  Thunderbird pick up the locale from the system automatically. To do so
+  remove the following key completely from your local settings:
+
+    intl.locale.requested
+
+  More information can be found here
+
+  https://bugzilla.mozilla.org/show_bug.cgi?id=1437480
+  https://bugzilla.mozilla.org/show_bug.cgi?id=1413866
+
+  Please have also a look into README.Debian for a more in deep explanation,
+  especially section
+  'Enable l10n languages in Thunderbird >= 1:60.0~b2'.
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Wed, 5 Aug 2018 20:45:00 +0200
+
 thunderbird (1:60.0~b2-1) experimental; urgency=medium
 
   thunderbird-l10n and lightning-l10n packages are known broken
