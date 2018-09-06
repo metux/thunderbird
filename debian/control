@@ -394,7 +394,6 @@ Depends:
 Homepage: https://wiki.mozilla.org/L10n:Teams:da
 Recommends:
  myspell-da | hunspell-da,
-Replaces:
 Description: Danish language package for Thunderbird
  Thunderbird is an mail client suitable for free distribution. The goal of
  Thunderbird is to produce a cross platform stand-alone mail application using
