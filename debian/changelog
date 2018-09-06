@@ -1,3 +1,18 @@
+thunderbird (1:60.0-3) unstable; urgency=medium
+
+  * [daa0dd7] locale: use 'intl.locale.requested' correctly
+     Thanks to hint from Sven Joachim we can use the preference setting
+     'intl.locale.requested' in way that users don't need to use this setting
+     within their prefs.js to control the language of the Thunderbird UI.
+     'intl.locale.requested' is somehow the successor of 'intl.locale.matchOS'.
+    (Closes: #908034)
+  * [f8ac1b2] debian/control: increase Standards-Version to 4.2.1
+     No further changes needed.
+  * [a001579] d/control: remove empty 'Replaces' in thunderbird-l10n-da
+     We can remove that line of Replaces without any key.
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Thu, 06 Sep 2018 18:46:31 +0200
+
 thunderbird (1:60.0-2) unstable; urgency=medium
 
   [ Carsten Schoenert ]
