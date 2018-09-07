@@ -1,3 +1,10 @@
+thunderbird (1:60.0-3~deb9u1) stretch-security; urgency=medium
+
+  [ Carsten Schoenert ]
+  * Rebuild for stretch-security
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Thu, 06 Sep 2018 21:35:06 +0200
+
 thunderbird (1:60.0-3) unstable; urgency=medium
 
   * [daa0dd7] locale: use 'intl.locale.requested' correctly
