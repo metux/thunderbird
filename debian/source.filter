@@ -70,11 +70,11 @@ devtools/client/shared/vendor/WasmParser.js
 devtools/client/shared/vendor/jszip.js
 devtools/client/shared/vendor/react-dom-dev.js
 devtools/client/shared/vendor/react-dom-server-dev.js
-devtools/client/shared/vendor/react-dom-server.js
-devtools/client/shared/vendor/react-dom.js
+#devtools/client/shared/vendor/react-dom-server.js
+#devtools/client/shared/vendor/react-dom.js
 devtools/client/shared/vendor/react-prop-types-dev.js
 devtools/client/shared/vendor/react-prop-types.js
-devtools/client/shared/vendor/react-redux.js
+#devtools/client/shared/vendor/react-redux.js
 devtools/client/shared/vendor/react-test-renderer-shallow.js
 devtools/client/shared/vendor/redux.js
 #devtools/client/sourceeditor/codemirror/codemirror.bundle.js
