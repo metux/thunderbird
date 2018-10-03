@@ -332,6 +332,10 @@ release-beetmover-signed-langpacks
 ----------------------------------
 Publishes signed langpacks to archive.mozilla.org
 
+release-beetmover-signed-langpacks-checksums
+--------------------------------------------
+Publishes signed langpacks to archive.mozilla.org
+
 release-update-verify
 ---------------------
 Verifies the contents and package of release update MARs.
@@ -472,6 +476,11 @@ repackage-signing
 Repackage-signing take the repackaged installers (windows) and update packaging (with
 the signed internal bits) and signs them.
 
+repackage-signing-l10n
+----------------------
+Repackage-signing take the repackaged installers (windows) and update packaging (with
+the signed internal bits) and signs them for localized versions.
+
 repo-update
 -----------
 Repo-Update tasks are tasks that perform some action on the project repo itself,
@@ -502,6 +511,13 @@ Dummy tasks to consolidate beetmover-checksums dependencies to avoid taskcluster
 post-langpack-dummy
 ------------------------------
 Dummy tasks to consolidate language pack beetmover dependencies to avoid taskcluster limits on number of dependencies per task.
+
+fetch
+-----
+
+Tasks that obtain something from a remote service and re-expose it as a
+task artifact. These tasks are used to effectively cache and re-host
+remote content so it is reliably and deterministically available.
 
 packages
 --------

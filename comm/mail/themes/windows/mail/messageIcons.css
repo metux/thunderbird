@@ -69,6 +69,12 @@ treechildren::-moz-tree-image(attachmentCol, attach) {
   list-style-image: url(chrome://messenger/skin/icons/attachment-col.svg);
 }
 
+@media (-moz-windows-default-theme: 0) {
+  treechildren::-moz-tree-image(attachmentCol, attach, selected) {
+    list-style-image: url(chrome://messenger/skin/icons/attachment-selected.svg);
+  }
+}
+
 /* ..... flag column ..... */
 
 .flagColumnHeader {

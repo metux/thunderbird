@@ -66,10 +66,14 @@ function OnMailWindowUnload()
  * that the images can be accessed in a paste elsewhere.
  */
 function onCopyOrDragStart(e) {
-  let sourceDoc = getBrowser().contentDocument;
+  let browser = getBrowser();
+  if (!browser) {
+    return;
+  }
+  let sourceDoc = browser.contentDocument;
   if (e.target.ownerDocument != sourceDoc) {
     // We're only interested if this is in the message content.
-    return; 
+    return;
   }
 
   let imgMap = new Map(); // Mapping img.src -> dataURL.

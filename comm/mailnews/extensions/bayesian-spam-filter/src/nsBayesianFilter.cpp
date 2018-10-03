@@ -839,12 +839,13 @@ void Tokenizer::tokenize(const char* aText)
   }
 }
 
-// helper function to escape \n, \t, etc from a CString
+// helper function to un-escape \n, \t, etc from a CString
 void Tokenizer::UnescapeCString(nsCString& aCString)
 {
   nsAutoCString result;
 
   const char* readEnd = aCString.EndReading();
+  result.SetLength(aCString.Length());
   char* writeStart = result.BeginWriting();
   char* writeIter = writeStart;
 
@@ -887,7 +888,7 @@ void Tokenizer::UnescapeCString(nsCString& aCString)
       }
     }
   }
-  result.SetLength(writeIter - writeStart);
+  result.Truncate(writeIter - writeStart);
   aCString.Assign(result);
 }
 

@@ -48,11 +48,15 @@ job-defaults:
         include-version:
             by-project:
                 comm-beta: beta
+                comm-esr.*: nonbeta
                 default: beta
         last-watershed:
             by-project:
-                comm-beta: "56.0b3"
-                comm-esr60: "60.0"
+                comm-beta:
+                    by-platform:
+                        win64.*: "60.0b7"
+                        default: "56.0b3"
+                comm-esr60: "52.0"
                 default: null
 
 jobs:
@@ -137,6 +141,29 @@ jobs:
         extra:
             product: thunderbird
             platform: win32
+            updater-platform: linux-x86_64
+            channel:
+                by-project:
+                    comm-beta: "beta-localtest"
+                    comm-esr.*: "release-localtest"
+                    default: "default"
+            mar-channel-id-override:
+                by-project:
+                    comm-beta: beta
+                    default: null
+
+    thunderbird-win64:
+        shipping-product: thunderbird
+        treeherder:
+            symbol: UVC
+            platform: windows2012-64/opt
+            kind: test
+            tier: 1
+        attributes:
+            build_platform: win64-nightly
+        extra:
+            product: thunderbird
+            platform: win64
             updater-platform: linux-x86_64
             channel:
                 by-project:

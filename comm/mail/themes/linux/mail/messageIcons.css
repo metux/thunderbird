@@ -67,6 +67,10 @@ treechildren::-moz-tree-image(attachmentCol, attach) {
   padding-inline-start: 6px;
 }
 
+treechildren::-moz-tree-image(attachmentCol, attach, selected) {
+  list-style-image: url(chrome://messenger/skin/icons/attachment-selected.svg);
+}
+
 /* ..... flag column ..... */
 
 .flagColumnHeader {
