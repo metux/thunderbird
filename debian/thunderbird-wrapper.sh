@@ -36,6 +36,7 @@ MOZ_APP_LAUNCHER=$(which "$0")
 MOZ_LIBDIR=/usr/lib/${MOZ_APP_NAME}
 ID_PROFILE_FOLDER=${HOME}/.icedove
 TB_PROFILE_FOLDER=${HOME}/.thunderbird
+TB_GDB_DEFAULT_OPTS=${TB_GDB_DEFAULT_OPTS:-"-ex handle SIG38 nostop -ex handle SIGPIPE nostop"}
 
 export HELP=0
 export FAIL=0
@@ -244,7 +245,8 @@ else
         if [ -f /usr/bin/gdb ]; then
             if dpkg-query -W -f='${Version}' thunderbird-dbgsym &>/dev/null ; then
                 output_info "Starting Thunderbird with GDB ..."
-                LANG='' exec "${MOZ_LIBDIR}"/run-mozilla.sh -g "${MOZ_LIBDIR}"/"${MOZ_APP_NAME}" "${TB_ARGS[@]}"
+                output_info "LANG= /usr/bin/gdb ${TB_GDB_DEFAULT_OPTS} -ex run ${MOZ_LIBDIR}/${MOZ_APP_NAME} ${TB_ARGS[@]}"
+                LANG='' exec "/usr/bin/gdb ${TB_GDB_DEFAULT_OPTS} -ex run ${MOZ_LIBDIR}/${MOZ_APP_NAME} ${TB_ARGS[@]}"
             else
                 output_info "No package 'thunderbird-dbgsym' installed! Please install first and restart."
                 exit 1
