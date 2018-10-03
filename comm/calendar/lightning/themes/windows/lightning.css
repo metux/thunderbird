@@ -19,12 +19,6 @@ radio[pane=paneLightning] {
     list-style-image: url(chrome://calendar/skin/cal-icon32.png);
 }
 
-/* iMIP notification bar */
-#imip-bar > image {
-    list-style-image: url(chrome://calendar/skin/cal-icon32.png);
-    -moz-image-region: rect(0 32px 32px 0);
-}
-
 /* Lightning sidebar background in calendar and task mode */
 #ltnSidebar {
   background-color: -moz-field;
@@ -55,18 +49,6 @@ radio[pane=paneLightning] {
 
 #calMinimonthBox {
   margin-top: 3px;
-}
-
-.icon-holder[type="calendar"],
-.tabmail-tab[type="calendar"] {
-  list-style-image: url(chrome://lightning/skin/mode-switch-icons-aero.png);
-  -moz-image-region: rect(16px 16px 32px 0);
-}
-
-.icon-holder[type="tasks"],
-.tabmail-tab[type="tasks"] {
-  list-style-image: url(chrome://lightning/skin/mode-switch-icons-aero.png);
-  -moz-image-region: rect(16px 32px 32px 16px);
 }
 
 #calsidebar_splitter,

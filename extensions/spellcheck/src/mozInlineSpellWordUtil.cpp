@@ -649,20 +649,11 @@ TextNodeContainsDOMWordSeparator(nsINode* aNode,
   nsIContent* content = static_cast<nsIContent*>(aNode);
   const nsTextFragment* textFragment = content->GetText();
   NS_ASSERTION(textFragment, "Where is our text?");
-  nsString text;
-  int32_t end = std::min(aBeforeOffset, int32_t(textFragment->GetLength()));
-  bool ok = textFragment->AppendTo(text, 0, end, mozilla::fallible);
-  if(!ok)
-    return false;
-
-  WordSplitState state(nullptr, text, 0, end);
-  for (int32_t i = end - 1; i >= 0; --i) {
-    if (IsDOMWordSeparator(textFragment->CharAt(i)) ||
-        state.ClassifyCharacter(i, true) == CHAR_CLASS_SEPARATOR) {
+  for (int32_t i = std::min(aBeforeOffset, int32_t(textFragment->GetLength())) - 1; i >= 0; --i) {
+    if (IsDOMWordSeparator(textFragment->CharAt(i))) {
       // Be greedy, find as many separators as we can
       for (int32_t j = i - 1; j >= 0; --j) {
-        if (IsDOMWordSeparator(textFragment->CharAt(j)) ||
-            state.ClassifyCharacter(j, true) == CHAR_CLASS_SEPARATOR) {
+        if (IsDOMWordSeparator(textFragment->CharAt(j))) {
           i = j;
         } else {
           break;

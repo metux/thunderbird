@@ -1517,7 +1517,7 @@ nsresult nsSmtpProtocol::AuthLoginStep1()
     len += username.Length();
     len++; /* second <NUL> char */
     PR_snprintf(&plain_string[len], 511-len, "%s", uniPassword.get());
-    len += password.Length();
+    len += uniPassword.Length();
 
     base64Str = PL_Base64Encode(plain_string, len, nullptr);
     PR_snprintf(buffer, sizeof(buffer), "AUTH PLAIN %.256s" CRLF, base64Str);
@@ -1644,18 +1644,15 @@ nsresult nsSmtpProtocol::AuthOAuth2Step1()
   return NS_OK;
 }
 
-nsresult nsSmtpProtocol::OnSuccess(const nsACString &aAccessToken)
+nsresult nsSmtpProtocol::OnSuccess(const nsACString &aOAuth2String)
 {
   MOZ_ASSERT(mOAuth2Support, "Can't do anything without OAuth2 support");
-
-  nsCString base64Str;
-  mOAuth2Support->BuildXOAuth2String(base64Str);
 
   // Send the AUTH XOAUTH2 command, and then siphon us back to the regular
   // authentication login stream.
   nsAutoCString buffer;
   buffer.AppendLiteral("AUTH XOAUTH2 ");
-  buffer += base64Str;
+  buffer += aOAuth2String;
   buffer += CRLF;
   nsresult rv = SendData(buffer.get(), true);
   if (NS_FAILED(rv))
@@ -2291,10 +2288,12 @@ nsSmtpProtocol::GetUsernamePassword(nsACString &aUsername,
     nsCString hostname;
     rv = smtpServer->GetHostname(hostname);
     NS_ENSURE_SUCCESS(rv, rv);
+    nsAutoString hostnameUTF16;
+    CopyASCIItoUTF16(hostname, hostnameUTF16);
 
     const char16_t *formatStrings[] =
     {
-      NS_ConvertASCIItoUTF16(hostname).get(),
+      hostnameUTF16.get(),
       nullptr
     };
 
