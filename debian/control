@@ -1197,886 +1197,798 @@ Description: Chinese (Taiwan) language package for Thunderbird
 
 Package: lightning-l10n-ar
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-ar (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-ar,
-Description: Arabic language package for lightning
+Description: Arabic language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Arabian.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Arabic. It can be safely removed.
 
 Package: lightning-l10n-ast
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-ast (>= ${binary:Version}),
  ${misc:Depends},
-Description: Asturian language package for lightning
+Description: Asturian language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Asturian.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Asturian. It can be safely removed.
 
 Package: lightning-l10n-be
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-be (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-be,
-Description: Belarusian language package for lightning
+Description: Belarusian language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Belarusian.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Belarusian. It can be safely removed.
 
 Package: lightning-l10n-bg
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-bg (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-bg | myspell-bg,
-Description: Bulgarian language package for lightning
+Description: Bulgarian language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Bulgarian.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Bulgarian. It can be safely removed.
 
 Package: lightning-l10n-br
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-br (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-br,
-Description: Breton language package for lightning
+Description: Breton language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Breton.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Breton. It can be safely removed.
 
 Package: lightning-l10n-ca
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-ca (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-ca | myspell-ca,
-Description: Catalan/Valencian language package for lightning
+Description: Catalan/Valencian language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Catalan/Valencian.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Catalan/Valencian. It can be safely removed.
 
 Package: lightning-l10n-cs
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-cs (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-cs | myspell-cs-cz,
-Description: Czech language package for lightning
+Description: Czech language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Czech.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Czech. It can be safely removed.
 
 Package: lightning-l10n-cy
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-cy (>= ${binary:Version}),
  ${misc:Depends},
-Description: Welsh language package for lightning
+Description: Welsh language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Welsh.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Welsh. It can be safely removed.
 
 Package: lightning-l10n-da
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-da (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- myspell-da | hunspell-da,
-Description: Danish language package for lightning
+Description: Danish language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Danish.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Danish. It can be safely removed.
 
 Package: lightning-l10n-de
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-de (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-de-de | hunspell-de-at | hunspell-de-ch | myspell-de-de | myspell-de-at | myspell-de-ch,
-Description: German language package for lightning
+Description: German language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in German.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in German. It can be safely removed.
 
 Package: lightning-l10n-dsb
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-dsb (>= ${binary:Version}),
  ${misc:Depends},
-Description: Lower Sorbian language package for lightning
+Description: Lower Sorbian language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Lower Sorbian.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Lower Sorbian. It can be safely removed.
 
 Package: lightning-l10n-el
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-el (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-el | myspell-el-gr,
-Description: Greek language package for lightning
+Description: Greek language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Greek.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Greek. It can be safely removed.
 
 Package: lightning-l10n-es-ar
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-es-ar (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-es | myspell-es,
-Description: Spanish (Argentina) language package for lightning
+Description: Spanish (Argentina) language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Spanish (Argentina).
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Spanish (Argentina). It can be safely removed.
 
 Package: lightning-l10n-es-es
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-es-es (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-es | myspell-es,
-Description: Spanish (Spain) language package for lightning
+Description: Spanish (Spain) language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Spanish (Spain).
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Spanish (Spain). It can be safely removed.
 
 Package: lightning-l10n-en-gb
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-en-gb (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-en-gb | hunspell-en-au | hunspell-en-ca | hunspell-en-za,
-Description: British English language package for lightning
+Description: British English language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in British English.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in British English. It can be safely removed.
 
 Package: lightning-l10n-et
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-et (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- myspell-et,
-Description: Estonian language package for lightning
+Description: Estonian language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Estonian.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Estonian. It can be safely removed.
 
 Package: lightning-l10n-eu
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-eu (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-eu,
-Description: Basque language package for lightning
+Description: Basque language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Basque.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Basque. It can be safely removed.
 
 Package: lightning-l10n-fi
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-fi (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- myspell-fi,
- xul-ext-mozvoikko,
-Description: Finnish language package for lightning
+Description: Finnish language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Finnish.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Finnish. It can be safely removed.
 
 Package: lightning-l10n-fr
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-fr (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-fr | myspell-fr | myspell-fr-gut,
-Description: French language package for lightning
+Description: French language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in French.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in French. It can be safely removed.
 
 Package: lightning-l10n-fy-nl
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-fy-nl (>= ${binary:Version}),
  ${misc:Depends},
-Description: Western Frisian language package for lightning
+Description: Western Frisian language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Western Frisian.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Western Frisian. It can be safely removed.
 
 Package: lightning-l10n-ga-ie
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-ga-ie (>= ${binary:Version}),
  ${misc:Depends},
-Description: Irish (Ireland) language package for lightning
+Description: Irish (Ireland) language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Irish (Ireland).
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Irish (Ireland). It can be safely removed.
 
 Package: lightning-l10n-gd
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-gd (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-gd,
-Description: Scottish Gaelic language package for lightning
+Description: Scottish Gaelic language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Scottish Gaelic.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Scottish Gaelic. It can be safely removed.
 
 Package: lightning-l10n-gl
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-gl (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-gl | hunspell-gl-es,
-Description: Galician language package for lightning
+Description: Galician language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Galician.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Galician. It can be safely removed.
 
 Package: lightning-l10n-he
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-he (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-he | myspell-he,
-Description: Hebrew language package for lightning
+Description: Hebrew language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Hebrew.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Hebrew. It can be safely removed.
 
 Package: lightning-l10n-hr
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-hr (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-hr | myspell-hr,
-Description: Croatian language package for lightning
+Description: Croatian language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Croatian.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Croatian. It can be safely removed.
 
 Package: lightning-l10n-hsb
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-hsb (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- aspell-hsb,
-Description: Upper Sorbian language package for lightning
+Description: Upper Sorbian language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Upper Sorbian.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Upper Sorbian. It can be safely removed.
 
 Package: lightning-l10n-hu
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-hu (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-hu | myspell-hu,
-Description: Hungarian language package for lightning
+Description: Hungarian language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Hungarian.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Hungarian. It can be safely removed.
 
 Package: lightning-l10n-hy-am
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-hy-am (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- myspell-hy,
-Description: Armenian language package for lightning
+Description: Armenian language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Armenian (Armenia).
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Armenian (Armenia). It can be safely removed.
 
 Package: lightning-l10n-id
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-id (>= ${binary:Version}),
  ${misc:Depends},
-Description: Indonesian language package for lightning
+Description: Indonesian language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Indonesian.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Indonesian. It can be safely removed.
 
 Package: lightning-l10n-is
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-is (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-is,
-Description: Icelandic language package for lightning
+Description: Icelandic language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Icelandic.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Icelandic. It can be safely removed.
 
 Package: lightning-l10n-it
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-it (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-it | myspell-it,
-Description: Italian language package for lightning
+Description: Italian language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Italian.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Italian. It can be safely removed.
 
 Package: lightning-l10n-ja
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-ja (>= ${binary:Version}),
  ${misc:Depends},
-Description: Japanese language package for lightning
+Description: Japanese language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Japanese.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Japanese. It can be safely removed.
 
 Package: lightning-l10n-kab
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-kab (>= ${binary:Version}),
  ${misc:Depends},
-Description: Kabyle language package for lightning
+Description: Kabyle language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Kabyle.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Kabyle. It can be safely removed.
 
 Package: lightning-l10n-kk
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-kk (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-kk,
-Description: Kazakh language package for lightning
+Description: Kazakh language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Kazakh.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Kazakh. It can be safely removed.
 
 Package: lightning-l10n-ko
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-ko (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-ko,
-Description: Korean language package for lightning
+Description: Korean language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Korean.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Korean. It can be safely removed.
 
 Package: lightning-l10n-ms
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-ms (>= ${binary:Version}),
  ${misc:Depends},
-Description: Malay language package for lightning
+Description: Malay language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Malay.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Malay. It can be safely removed.
 
 Package: lightning-l10n-lt
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-lt (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-lt | myspell-lt,
-Description: Lithuanian language package for lightning
+Description: Lithuanian language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Lithuanian.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Lithuanian. It can be safely removed.
 
 Package: lightning-l10n-nb-no
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-nb-no (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-no | myspell-nb,
-Description: Bokmaal (Norway) language package for lightning
+Description: Bokmaal (Norway) language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Bokmaal (Norway).
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Bokmaal (Norway). It can be safely removed.
 
 Package: lightning-l10n-nl
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-nl (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-nl | myspell-nl,
-Description: Dutch language package for lightning
+Description: Dutch language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Dutch.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Dutch. It can be safely removed.
 
 Package: lightning-l10n-nn-no
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-nn-no (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-no | myspell-nn,
-Description: Nynorsk (Norway) language package for lightning
+Description: Nynorsk (Norway) language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Nynorsk (Norway).
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Nynorsk (Norway). It can be safely removed.
 
 Package: lightning-l10n-pl
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-pl (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-pl | myspell-pl,
-Description: Polish language package for lightning
+Description: Polish language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Polish.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Polish. It can be safely removed.
 
 Package: lightning-l10n-pt-br
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-pt-br (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-pt-br | myspell-pt-br | myspell-pt,
-Description: Portuguese (Brazil) language package for lightning
+Description: Portuguese (Brazil) language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Portuguese (Brazil).
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Portuguese (Brazil). It can be safely removed.
 
 Package: lightning-l10n-pt-pt
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-pt-pt (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-pt-pt | myspell-pt-pt | myspell-pt,
-Description: Portuguese (Portugal) language package for lightning
+Description: Portuguese (Portugal) language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Portuguese (Portugal).
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Portuguese (Portugal). It can be safely removed.
 
 Package: lightning-l10n-rm
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-rm (>= ${binary:Version}),
  ${misc:Depends},
-Description: Romansh language package for lightning
+Description: Romansh language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Romansh.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Romansh. It can be safely removed.
 
 Package: lightning-l10n-ro
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-ro (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-ro,
-Description: Romanian language package for lightning
+Description: Romanian language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Romanian.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Romanian. It can be safely removed.
 
 Package: lightning-l10n-ru
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-ru (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-ru | myspell-ru,
-Description: Russian language package for lightning
+Description: Russian language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Russian.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Russian. It can be safely removed.
 
 Package: lightning-l10n-si
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-si (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-si,
-Description: Sinhala language package for lightning
+Description: Sinhala language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Sinhala.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Sinhala. It can be safely removed.
 
 Package: lightning-l10n-sk
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-sk (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-sk | myspell-sk,
-Description: Slovak language package for lightning
+Description: Slovak language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Slovak.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Slovak. It can be safely removed.
 
 Package: lightning-l10n-sl
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-sl (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-sl | myspell-sl,
-Description: Slovenian language package for lightning
+Description: Slovenian language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Slovenian.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Slovenian. It can be safely removed.
 
 Package: lightning-l10n-sr
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-sr (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-sr,
-Description: Serbian language package for lightning
+Description: Serbian language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Serbian.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Serbian. It can be safely removed.
 
 Package: lightning-l10n-sq
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-sq (>= ${binary:Version}),
  ${misc:Depends},
-Description: Albanian language package for lightning
+Description: Albanian language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Albanian.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Albanian. It can be safely removed.
 
 Package: lightning-l10n-sv-se
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-sv-se (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-sv | myspell-sv-se,
-Description: Swedish language package for lightning
+Description: Swedish language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Swedish (Sweden).
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Swedish (Sweden). It can be safely removed.
 
 Package: lightning-l10n-tr
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-tr (>= ${binary:Version}),
  ${misc:Depends},
-Description: Turkish language package for lightning
+Description: Turkish language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Turkish.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Turkish. It can be safely removed.
 
 Package: lightning-l10n-uk
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-uk (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-uk | myspell-uk,
-Description: Ukrainian language package for lightning
+Description: Ukrainian language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Ukrainian.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Ukrainian. It can be safely removed.
 
 Package: lightning-l10n-vi
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-vi (>= ${binary:Version}),
  ${misc:Depends},
-Recommends:
- hunspell-vi,
-Description: Vietnamese language package for lightning
+Description: Vietnamese language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Vietnamese.
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Vietnamese. It can be safely removed.
 
 Package: lightning-l10n-zh-cn
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-zh-cn (>= ${binary:Version}),
  ${misc:Depends},
-Description: Chinese (China) language package for lightning
+Description: Chinese (China) language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Chinese (China).
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in Chinese (China). It can be safely removed.
 
 Package: lightning-l10n-zh-tw
 Architecture: all
-Section: localization
+Section: oldlibs
 Depends:
- lightning (<< ${source:Version}.1~),
- lightning (>= ${source:Version}),
+ thunderbird-l10n-zh-tw (>= ${binary:Version}),
  ${misc:Depends},
-Description: Chinese (Taiwan) language package for lightning
+Description: Chinese (Taiwan) language package for lightning - Transitional package
  Lightning is a Mozilla based calendar extension for Thunderbird.
  It's goal is to integrate a Calendar and Task application using the XUL
  user interface language.
  .
- This package contains the localization of lightning in Chinese (Taiwan).
-
+ This is a transitional package that pulls in the required package for the
+ localization of lightning in China (Taiwan). It can be safely removed.
