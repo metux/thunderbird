@@ -426,6 +426,27 @@ Description: Czech language package for Thunderbird
  .
  This package contains the localization of Thunderbird in Czech.
 
+Package: thunderbird-l10n-cy
+Architecture: all
+Section: localization
+Depends:
+ thunderbird (<< ${source:Version}.1~),
+ thunderbird (>= ${source:Version}),
+ ${misc:Depends},
+Homepage: https://wiki.mozilla.org/L10n:Teams:cy
+Replaces:
+ lightning-l10n-cy (<< 1:60.2.1-1~),
+Breaks:
+ lightning-l10n-cy (<< 1:60.2.1-1~),
+Provides:
+ lightning-l10n-cy,
+Description: Welsh language package for Thunderbird
+ Thunderbird is an mail client suitable for free distribution. The goal of
+ Thunderbird is to produce a cross platform stand-alone mail application using
+ the XUL user interface language.
+ .
+ This package contains the localization of Thunderbird in Welsh.
+
 Package: thunderbird-l10n-da
 Architecture: all
 Section: localization
