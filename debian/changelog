@@ -1,3 +1,21 @@
+thunderbird (1:60.2.1-2~deb9u1) stretch-security; urgency=medium
+
+  [ Carsten Schoenert ]
+  * Rebuild for stretch-security
+    Resync binary packages to build against the version in unstable/testing:
+    Upstream isn't shipping localization for bn-bd and ta-lk for Thunderbird
+    60.x. Thus the packages {icedove,thunderbird}-l10n-bn-bd,
+    {icedove,thunderbird}-l10n-ta-lk got dropped. The localization for pa-in
+    was removed for Thunderbird earlier but the transitional packages
+    {icedove,iceowl}-l10n-pa-in aren't until now.
+    icedove-dev got dropped as we don't have also the referring package
+    thunderbird-dev since version 59.
+    Besides this localization for cy was added by upstream, reflecting this in
+    a new package thunderbird-l10n-cy.
+    (Closes: #911292, #911504)
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sun, 21 Oct 2018 09:42:27 +0200
+
 thunderbird (1:60.2.1-1) unstable; urgency=medium
 
   * [ba75ca3] logo: move old TB graphics into dedicated folder
