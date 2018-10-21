@@ -1,0 +1,27 @@
+From: Mike Hommey <mh@glandium.org>
+Date: Sat, 29 Sep 2018 10:12:45 +0200
+Subject: =?utf-8?q?Bug_1492064_-_Disable_baseline_JIT_when_SSE2_is_not_supp?=
+ =?utf-8?q?orted_at_runtime=E2=80=A6?=
+
+Origin: https://phabricator.services.mozilla.com/D6219
+Bug-Debian: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=909628
+Bug: https://bugzilla.mozilla.org/show_bug.cgi?id=1492064
+Applied-Upstream: firefox64
+---
+ js/src/jit/BaselineJIT.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/js/src/jit/BaselineJIT.h b/js/src/jit/BaselineJIT.h
+index 23e020b..f6cc221 100644
+--- a/js/src/jit/BaselineJIT.h
++++ b/js/src/jit/BaselineJIT.h
+@@ -545,7 +545,8 @@ IsBaselineEnabled(JSContext* cx)
+ #ifdef JS_CODEGEN_NONE
+     return false;
+ #else
+-    return cx->options().baseline();
++    return cx->options().baseline() &&
++           cx->runtime()->jitSupportsFloatingPoint;
+ #endif
+ }
+ 

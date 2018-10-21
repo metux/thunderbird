@@ -1962,6 +1962,18 @@ if (AppConstants.CAN_DRAW_IN_TITLEBAR) {
     } else {
       document.documentElement.removeAttribute("chromemargin");
     }
+
+    // Calculate the LW-backgroundBox height to place the images correctly.
+    let $ = id => document.getElementById(id);
+    let rect = ele => ele.getBoundingClientRect();
+    let root = $("messengerWindow");
+    let bgBox = $("LW-background-box");
+    if (root.getAttribute("lwtheme-image")) {
+      let bgBoxHeight = rect($("navigation-toolbox")).height + rect($("mail-toolbox")).height;
+      bgBox.style.height = bgBoxHeight + "px";
+    } else {
+      bgBox.style.removeProperty("height");
+    }
   }
 }
 

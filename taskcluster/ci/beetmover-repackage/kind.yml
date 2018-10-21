@@ -12,7 +12,10 @@ transforms:
 
 kind-dependencies:
    - repackage-signing
+   - repackage-signing-l10n
    - partials-signing
+
+fake-multi-dep: true
 
 only-for-build-platforms:
    - linux-nightly/opt

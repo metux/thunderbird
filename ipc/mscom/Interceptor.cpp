@@ -104,8 +104,10 @@ public:
   void Unlock()
   {
     MOZ_ASSERT(mLiveSet);
-    mLiveSet->Unlock();
-    mLiveSet = nullptr;
+    if (mLiveSet) {
+      mLiveSet->Unlock();
+      mLiveSet = nullptr;
+    }
   }
 
   LiveSetAutoLock(const LiveSetAutoLock& aOther) = delete;
@@ -542,12 +544,25 @@ Interceptor::GetInitialInterceptorForIID(detail::LiveSetAutoLock& aLiveSetLock,
   MOZ_ASSERT(aTargetIid != IID_IMarshal);
   MOZ_ASSERT(!IsProxy(aTarget.get()));
 
+  HRESULT hr = E_UNEXPECTED;
+
+  auto hasFailed = [&hr]() -> bool {
+    return FAILED(hr);
+  };
+
+  auto cleanup = [&aLiveSetLock]() -> void {
+    aLiveSetLock.Unlock();
+  };
+
+  ExecuteWhen<decltype(hasFailed), decltype(cleanup)>
+    onFail(hasFailed, cleanup);
+
   if (aTargetIid == IID_IUnknown) {
     // We must lock mInterceptorMapMutex so that nothing can race with us once
     // we have been published to the live set.
     MutexAutoLock lock(mInterceptorMapMutex);
 
-    HRESULT hr = PublishTarget(aLiveSetLock, nullptr, aTargetIid, Move(aTarget));
+    hr = PublishTarget(aLiveSetLock, nullptr, aTargetIid, Move(aTarget));
     ENSURE_HR_SUCCEEDED(hr);
 
     hr = QueryInterface(aTargetIid, aOutInterceptor);
@@ -559,7 +574,7 @@ Interceptor::GetInitialInterceptorForIID(detail::LiveSetAutoLock& aLiveSetLock,
   WeakReferenceSupport::StabilizeRefCount stabilizer(*this);
 
   RefPtr<IUnknown> unkInterceptor;
-  HRESULT hr = CreateInterceptor(aTargetIid,
+  hr = CreateInterceptor(aTargetIid,
                                  static_cast<WeakReferenceSupport*>(this),
                                  getter_AddRefs(unkInterceptor));
   ENSURE_HR_SUCCEEDED(hr);

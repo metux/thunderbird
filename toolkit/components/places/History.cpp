@@ -30,6 +30,7 @@
 #include "nsNetUtil.h"
 #include "nsIFileURL.h"
 #include "nsIXPConnect.h"
+#include "nsIXULRuntime.h"
 #include "mozilla/Unused.h"
 #include "nsContentUtils.h" // for nsAutoScriptBlocker
 #include "nsJSUtils.h"
@@ -690,11 +691,13 @@ public:
       History* history = History::GetService();
       NS_ENSURE_STATE(history);
       history->NotifyVisited(mURI);
-      AutoTArray<URIParams, 1> uris;
-      URIParams uri;
-      SerializeURI(mURI, uri);
-      uris.AppendElement(Move(uri));
-      history->NotifyVisitedParent(uris);
+      if (BrowserTabsRemoteAutostart()) {
+        AutoTArray<URIParams, 1> uris;
+        URIParams uri;
+        SerializeURI(mURI, uri);
+        uris.AppendElement(Move(uri));
+        history->NotifyVisitedParent(uris);
+      }
     }
 
     nsCOMPtr<nsIObserverService> observerService =
@@ -849,9 +852,11 @@ public:
         nsresult rv = NotifyVisit(navHistory, obsService, now, uris[i], mPlaces[i]);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        URIParams serializedUri;
-        SerializeURI(uris[i], serializedUri);
-        serializableUris.AppendElement(Move(serializedUri));
+        if (BrowserTabsRemoteAutostart()) {
+          URIParams serializedUri;
+          SerializeURI(uris[i], serializedUri);
+          serializableUris.AppendElement(Move(serializedUri));
+        }
       }
       mHistory->NotifyVisitedParent(serializableUris);
     } else {
@@ -859,10 +864,12 @@ public:
       nsresult rv = NotifyVisit(navHistory, obsService, now, uris[0], mPlace);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      URIParams serializedUri;
-      SerializeURI(uris[0], serializedUri);
-      serializableUris.AppendElement(Move(serializedUri));
-      mHistory->NotifyVisitedParent(serializableUris);
+      if (BrowserTabsRemoteAutostart()) {
+        URIParams serializedUri;
+        SerializeURI(uris[0], serializedUri);
+        serializableUris.AppendElement(Move(serializedUri));
+        mHistory->NotifyVisitedParent(serializableUris);
+      }
     }
 
     return NS_OK;

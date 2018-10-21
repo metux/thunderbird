@@ -38,3 +38,6 @@ porting-armel/Avoid-using-vmrs-vmsr-on-armel.patch
 porting-mips/Bug-1444303-MIPS-Fix-build-failures-after-Bug-1425580-par.patch
 porting-mips/Add-struct-ucred-for-Linux-on-MIPS.patch
 porting-mips/Bug-1444834-MIPS-Stubout-MacroAssembler-speculationBarrie.patch
+fixes/Bug-1492064-Disable-baseline-JIT-when-SSE2-is-not-support.patch
+fixes/Bug-1492065-Use-Swizzle-fallback-when-SSE2-is-not-support.patch
+fixes/Bug-1479540-Accept-triplet-strings-with-only-two-parts-in.patch

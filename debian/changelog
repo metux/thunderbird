@@ -1,3 +1,56 @@
+thunderbird (1:60.2.1-1) unstable; urgency=medium
+
+  * [ba75ca3] logo: move old TB graphics into dedicated folder
+  * [ba47234] logo: adding new TB icon *.png graphics
+     Like Firefox Thunderbird has also got a reworked logo. As we use some own
+     icon created from a SVG graphic this commit adds the new icons in the
+     various sizes. The source of the SVG graphic is taken from
+     https://demo.identihub.co/thunderbird#/view/icon/element/612
+    (Closes: #909108)
+  * [0b16a87] d/source.filter: don't remove react files from source
+    (Closes: #909046)
+  * [d01dfd6] rebuild patch queue from patch-queue branch
+    added patches:
+    fixes/Bug-1479540-Accept-triplet-strings-with-only-two-parts-in.patch
+    fixes/Bug-1482248-don-t-crash-on-empty-file-name-in-nsMsgLocalS.patch
+    fixes/Bug-1492064-Disable-baseline-JIT-when-SSE2-is-not-support.patch
+    fixes/Bug-1492065-Use-Swizzle-fallback-when-SSE2-is-not-support.patch
+    (Closes: #909628, #909039, #906816)
+  * [bf64065] New upstream version 60.2.1
+    Fixed CVE issues in upstream version 60.2.1 (MFSA 2018-25)
+    CVE-2018-12377: Use-after-free in refresh driver timers
+    CVE-2018-12378: Use-after-free in IndexedDB
+    CVE-2018-12379: Out-of-bounds write with malicious MAR file
+    CVE-2018-12376: Memory safety bugs fixed in Firefox 62 and Firefox ESR 60.2
+    CVE-2018-12385: Crash in TransportSecurityInfo due to cached data
+    CVE-2018-12383: Setting a master password post-Firefox 58 does not delete
+                    unencrypted previously stored passwords
+  * [b4712af] rebuild patch queue from patch-queue branch
+    removed patches (fixed upstream):
+    fixes/Bug-1482248-don-t-crash-on-empty-file-name-in-nsMsgLocalS.patch
+  * [79057f6] d/control: make lightning-l10n packages transitional
+     The l10n content for Lightning and a specific language is now much more
+     related to the Thunderbird l10n content. By this the existing lightning
+     l10n packages are not really useful any more as we move the Lightning
+     l10n content into the respective Thunderbird l10n package a we need to
+     turn the existing Lightning l10n packages into transitional packages.
+  * [a0ac3b7] d/control: adding Replaces, Breaks, Provides to thunderbird-l10n-*
+     Related to the previous commit the Thunderbird l10n packages need some
+     more fields in the control file so the transition from lightning-l10n into
+     thunderbird-l10n can work.
+  * [c82ee7c] d/rules: install lightning l10n into thunderbird-l10n-* packages
+     The content for the lightning l10n stuff needs now to be installed into
+     thunderbird-l10n packages.
+  * [72cd535] d/control: add thunderbird-l10n-cy
+     Oops, seems like we never have introduced this language for Thunderbird
+     before. Now required to provide the l10n content for Lightning.
+  * [510bea6] d/thunderbird-wrapper.sh: improve GDB switch
+     Since TB 60 upstream isn't installing the old wrapper script
+     run-mozilla.sh any more. By this we need to adjust our starting wrapper
+     so the call to start Thunderbird within the GDB debugger is working.
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Fri, 05 Oct 2018 17:43:49 +0200
+
 thunderbird (1:60.0-3~deb9u1) stretch-security; urgency=medium
 
   [ Carsten Schoenert ]

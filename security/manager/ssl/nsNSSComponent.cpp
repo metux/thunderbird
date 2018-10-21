@@ -628,16 +628,29 @@ nsNSSComponent::LoadFamilySafetyRoot()
 void
 nsNSSComponent::UnloadFamilySafetyRoot()
 {
-  MutexAutoLock lock(mMutex);
   MOZ_ASSERT(NS_IsMainThread());
   if (!NS_IsMainThread()) {
     return;
   }
   MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("UnloadFamilySafetyRoot"));
-  if (!mFamilySafetyRoot) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("Family Safety Root wasn't present"));
-    return;
+
+  // We can't call ChangeCertTrustWithPossibleAuthentication while holding
+  // mMutex (because it could potentially call back in to nsNSSComponent and
+  // attempt to acquire mMutex), so we move mFamilySafetyRoot out of
+  // nsNSSComponent into a local handle. This has the side-effect of clearing
+  // mFamilySafetyRoot, which is what we want anyway.
+  UniqueCERTCertificate familySafetyRoot;
+  {
+    MutexAutoLock lock(mMutex);
+    if (!mFamilySafetyRoot) {
+      MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+              ("Family Safety Root wasn't present"));
+      return;
+    }
+    familySafetyRoot = std::move(mFamilySafetyRoot);
+    MOZ_ASSERT(!mFamilySafetyRoot);
   }
+  MOZ_ASSERT(familySafetyRoot);
   // It would be intuitive to set the trust to { 0, 0, 0 } here. However, this
   // doesn't work for temporary certificates because CERT_ChangeCertTrust first
   // looks up the current trust settings in the permanent cert database, finds
@@ -646,12 +659,11 @@ nsNSSComponent::UnloadFamilySafetyRoot()
   // they're the same. To work around this, we set a non-zero flag to ensure
   // that the trust will get updated.
   CERTCertTrust trust = { CERTDB_USER, 0, 0 };
-  if (ChangeCertTrustWithPossibleAuthentication(mFamilySafetyRoot, trust,
+  if (ChangeCertTrustWithPossibleAuthentication(familySafetyRoot, trust,
                                                 nullptr) != SECSuccess) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
             ("couldn't untrust certificate for TLS server auth"));
   }
-  mFamilySafetyRoot = nullptr;
 }
 
 // The supported values of this pref are:
@@ -759,16 +771,29 @@ CertIsTrustAnchorForTLSServerAuth(PCCERT_CONTEXT certificate)
 void
 nsNSSComponent::UnloadEnterpriseRoots()
 {
-  MutexAutoLock lock(mMutex);
   MOZ_ASSERT(NS_IsMainThread());
   if (!NS_IsMainThread()) {
     return;
   }
   MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("UnloadEnterpriseRoots"));
-  if (!mEnterpriseRoots) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("no enterprise roots were present"));
-    return;
+
+  // We can't call ChangeCertTrustWithPossibleAuthentication while holding
+  // mMutex (because it could potentially call back in to nsNSSComponent and
+  // attempt to acquire mMutex), so we move mEnterpriseRoots out of
+  // nsNSSComponent into a local handle. This has the side-effect of clearing
+  // mEnterpriseRoots, which is what we want anyway.
+  UniqueCERTCertList enterpriseRoots;
+  {
+    MutexAutoLock lock(mMutex);
+    if (!mEnterpriseRoots) {
+      MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
+              ("no enterprise roots were present"));
+      return;
+    }
+    enterpriseRoots = std::move(mEnterpriseRoots);
+    MOZ_ASSERT(!mEnterpriseRoots);
   }
+  MOZ_ASSERT(enterpriseRoots);
   // It would be intuitive to set the trust to { 0, 0, 0 } here. However, this
   // doesn't work for temporary certificates because CERT_ChangeCertTrust first
   // looks up the current trust settings in the permanent cert database, finds
@@ -777,11 +802,12 @@ nsNSSComponent::UnloadEnterpriseRoots()
   // they're the same. To work around this, we set a non-zero flag to ensure
   // that the trust will get updated.
   CERTCertTrust trust = { CERTDB_USER, 0, 0 };
-  for (CERTCertListNode* n = CERT_LIST_HEAD(mEnterpriseRoots.get());
-       !CERT_LIST_END(n, mEnterpriseRoots.get()); n = CERT_LIST_NEXT(n)) {
-    if (!n || !n->cert) {
-      MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-              ("library failure: CERTCertListNode null or lacks cert"));
+  for (CERTCertListNode* n = CERT_LIST_HEAD(enterpriseRoots.get());
+       !CERT_LIST_END(n, enterpriseRoots.get()); n = CERT_LIST_NEXT(n)) {
+    if (!n) {
+      break;
+    }
+    if (!n->cert) {
       continue;
     }
     UniqueCERTCertificate cert(CERT_DupCertificate(n->cert));
@@ -791,7 +817,6 @@ nsNSSComponent::UnloadEnterpriseRoots()
               ("couldn't untrust certificate for TLS server auth"));
     }
   }
-  mEnterpriseRoots = nullptr;
   MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("unloaded enterprise roots"));
 }
 
@@ -942,19 +967,32 @@ nsNSSComponent::ImportEnterpriseRootsForLocation(
 NS_IMETHODIMP
 nsNSSComponent::TrustLoaded3rdPartyRoots()
 {
-  MutexAutoLock lock(mMutex);
+  // We can't call ChangeCertTrustWithPossibleAuthentication while holding
+  // mMutex (because it could potentially call back in to nsNSSComponent and
+  // attempt to acquire mMutex), so we copy mEnterpriseRoots.
+  UniqueCERTCertList enterpriseRoots;
+  {
+    MutexAutoLock lock(mMutex);
+    if (mEnterpriseRoots) {
+      enterpriseRoots = nsNSSCertList::DupCertList(mEnterpriseRoots);
+      if (!enterpriseRoots) {
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
+    }
+  }
 
   CERTCertTrust trust = {
     CERTDB_TRUSTED_CA | CERTDB_VALID_CA | CERTDB_USER,
     0,
     0
   };
-  if (mEnterpriseRoots) {
-    for (CERTCertListNode* n = CERT_LIST_HEAD(mEnterpriseRoots.get());
-         !CERT_LIST_END(n, mEnterpriseRoots.get()); n = CERT_LIST_NEXT(n)) {
-      if (!n || !n->cert) {
-        MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-                ("library failure: CERTCertListNode null or lacks cert"));
+  if (enterpriseRoots) {
+    for (CERTCertListNode* n = CERT_LIST_HEAD(enterpriseRoots.get());
+         !CERT_LIST_END(n, enterpriseRoots.get()); n = CERT_LIST_NEXT(n)) {
+       if (!n) {
+         break;
+      }
+      if (!n->cert) {
         continue;
       }
       UniqueCERTCertificate cert(CERT_DupCertificate(n->cert));
@@ -965,8 +1003,20 @@ nsNSSComponent::TrustLoaded3rdPartyRoots()
       }
     }
   }
-  if (mFamilySafetyRoot &&
-      ChangeCertTrustWithPossibleAuthentication(mFamilySafetyRoot, trust,
+  // Again copy mFamilySafetyRoot so we don't hold mMutex while calling
+  // ChangeCertTrustWithPossibleAuthentication.
+  UniqueCERTCertificate familySafetyRoot;
+  {
+    MutexAutoLock lock(mMutex);
+    if (mFamilySafetyRoot) {
+      familySafetyRoot.reset(CERT_DupCertificate(mFamilySafetyRoot.get()));
+      if (!familySafetyRoot) {
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
+    }
+  }
+  if (familySafetyRoot &&
+      ChangeCertTrustWithPossibleAuthentication(familySafetyRoot, trust,
                                                 nullptr) != SECSuccess) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
             ("couldn't trust family safety certificate for TLS server auth"));
@@ -1890,6 +1940,51 @@ AttemptToRenameBothPKCS11ModuleDBVersions(const nsACString& profilePath)
   }
   return AttemptToRenamePKCS11ModuleDB(profilePath, sqlModuleDBFilename);
 }
+
+// When we changed from the old dbm database format to the newer sqlite
+// implementation, the upgrade process left behind the existing files. Suppose a
+// user had not set a password for the old key3.db (which is about 99% of
+// users). After upgrading, both the old database and the new database are
+// unprotected. If the user then sets a password for the new database, the old
+// one will not be protected. In this scenario, we should probably just remove
+// the old database (it would only be relevant if the user downgraded to a
+// version of Firefox before 58, but we have to trade this off against the
+// user's old private keys being unexpectedly unprotected after setting a
+// password).
+// This was never an issue on Android because we always used the new
+// implementation.
+static void
+MaybeCleanUpOldNSSFiles(const nsACString& profilePath)
+{
+  UniquePK11SlotInfo slot(PK11_GetInternalKeySlot());
+  if (!slot) {
+    return;
+  }
+  // Unfortunately we can't now tell the difference between "there already was a
+  // password when the upgrade happened" and "there was not a password but then
+  // the user added one after upgrading".
+  bool hasPassword = PK11_NeedLogin(slot.get()) &&
+                     !PK11_NeedUserInit(slot.get());
+  if (!hasPassword) {
+    return;
+  }
+  nsCOMPtr<nsIFile> dbFile = do_CreateInstance("@mozilla.org/file/local;1");
+  if (!dbFile) {
+    return;
+  }
+  nsresult rv = dbFile->InitWithNativePath(profilePath);
+  if (NS_FAILED(rv)) {
+    return;
+  }
+  NS_NAMED_LITERAL_CSTRING(keyDBFilename, "key3.db");
+  rv = dbFile->AppendNative(keyDBFilename);
+  if (NS_FAILED(rv)) {
+    return;
+  }
+  // Since this isn't a directory, the `recursive` argument to `Remove` is
+  // irrelevant.
+  Unused << dbFile->Remove(false);
+}
 #endif // ifndef ANDROID
 
 // Given a profile directory, attempt to initialize NSS. If nocertdb is true,
@@ -1921,6 +2016,9 @@ InitializeNSSWithFallbacks(const nsACString& profilePath, bool nocertdb,
   SECStatus srv = ::mozilla::psm::InitializeNSS(profilePath, false, !safeMode);
   if (srv == SECSuccess) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("initialized NSS in r/w mode"));
+#ifndef ANDROID
+    MaybeCleanUpOldNSSFiles(profilePath);
+#endif // ifndef ANDROID
     return NS_OK;
   }
 #ifndef ANDROID
@@ -2097,17 +2195,6 @@ nsNSSComponent::InitializeNSS()
     return NS_ERROR_FAILURE;
   }
 
-  // TLSServerSocket may be run with the session cache enabled. It is necessary
-  // to call this once before that can happen. This specifies a maximum of 1000
-  // cache entries (the default number of cache entries is 10000, which seems a
-  // little excessive as there probably won't be that many clients connecting to
-  // any TLSServerSockets the browser runs.)
-  // Note that this must occur before any calls to SSL_ClearSessionCache
-  // (otherwise memory will leak).
-  if (SSL_ConfigServerSessionIDCache(1000, 0, 0, nullptr) != SECSuccess) {
-    return NS_ERROR_FAILURE;
-  }
-
   // dynamic options from prefs
   setValidationOptions(true);
 
@@ -2203,11 +2290,6 @@ nsNSSComponent::ShutdownNSS()
   PK11_SetPasswordFunc((PK11PasswordFunc)nullptr);
 
   Preferences::RemoveObserver(this, "security.");
-
-  SSL_ClearSessionCache();
-  // TLSServerSocket may be run with the session cache enabled. This ensures
-  // those resources are cleaned up.
-  Unused << SSL_ShutdownServerSessionIDCache();
 
   // Release the default CertVerifier. This will cause any held NSS resources
   // to be released.

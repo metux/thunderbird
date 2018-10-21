@@ -140,13 +140,14 @@ endif
 			$(CURDIR)/debian/thunderbird-l10n-$${lowercase_locale}/usr/lib/thunderbird/extensions/langpack-$${locale}@$${MOZ_LANGPACK_ID}.xpi ;\
 	done
 	# install lightning-l10n
+	# Since 60.2.1 we install the Lightning l10n files into the thunderbird-l10n package!
 	cd $(CURDIR)/lightning-l10n ;\
 	for LANG in *; do \
 		locale=`basename $${LANG}` ;\
 		lowercase_locale=`echo $${locale} | tr 'A-Z' 'a-z'` ;\
-		echo "working on 'lightning-l10n-$${lowercase_locale}'" ;\
-		mkdir -p $(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/share/lightning ;\
-		cp -a $${locale}/* $(CURDIR)/debian/lightning-l10n-$${lowercase_locale}/usr/share/lightning ;\
+		echo "working on 'lightning-l10n-$${lowercase_locale}' (finally within thunderbird-l10n-$${lowercase_locale})" ;\
+		mkdir -p $(CURDIR)/debian/thunderbird-l10n-$${lowercase_locale}/usr/share/lightning ;\
+		cp -a $${locale}/* $(CURDIR)/debian/thunderbird-l10n-$${lowercase_locale}/usr/share/lightning ;\
 	done
 	dh_bash-completion
 
@@ -182,6 +183,7 @@ override_dh_install-indep:
 		unzip -d debian/lightning/usr/share/lightning $(CURDIR)/$$LIGHTNING
 	# remove executable rights on *.js, *.png, *.xul files
 	find debian/lightning*/ -type f \( -name "*.dtd" -o -name "*.js" -o -name "*.png" -o -name "*.properties" -o -name "*.xul" \) -exec chmod 644 {} \;
+	find debian/thunderbird-l10n*/ -type f \( -name "*.dtd" -o -name "*.js" -o -name "*.png" -o -name "*.properties" -o -name "*.xul" \) -exec chmod 644 {} \;
 	# sometimes there are temporary build files in lightning
 	@echo "    --> searching for temporary build files in 'lightning' ..."
 	@for i in `find debian/lightning/ -name ".mkdir.done*"`; do echo remove $$i && rm $$i; done

@@ -33,6 +33,7 @@ from taskgraph.util.scriptworker import (
     get_release_config,
     add_scope_prefix,
 )
+from taskgraph.util.signed_artifacts import get_signed_artifacts
 from voluptuous import Any, Required, Optional, Extra
 from taskgraph import GECKO, MAX_DEPENDENCIES
 from ..util import docker as dockerutil
@@ -213,6 +214,9 @@ task_description_schema = Schema({
     # Whether the job should use sccache compiler caching.
     Required('needs-sccache'): bool,
 
+    # Set of artifacts relevant to release tasks
+    Optional('release-artifacts'): [basestring],
+
     # information specific to the worker implementation that will run this task
     'worker': Any({
         Required('implementation'): Any('docker-worker', 'docker-engine'),
@@ -298,6 +302,9 @@ task_description_schema = Schema({
         # the exit status code(s) that indicates the caches used by the task
         # should be purged
         Optional('purge-caches-exit-status'): [int],
+
+        # Wether any artifacts are assigned to this worker
+        Optional('skip-artifacts'): bool,
     }, {
         Required('implementation'): 'generic-worker',
         Required('os'): Any('windows', 'macosx'),
@@ -376,6 +383,9 @@ task_description_schema = Schema({
         # optional features
         Required('chain-of-trust'): bool,
         Optional('taskcluster-proxy'): bool,
+
+        # Wether any artifacts are assigned to this worker
+        Optional('skip-artifacts'): bool,
     }, {
         Required('implementation'): 'native-engine',
         Required('os'): Any('macosx', 'linux'),
@@ -409,6 +419,8 @@ task_description_schema = Schema({
             # type=directory)
             Required('name'): basestring,
         }],
+        # Wether any artifacts are assigned to this worker
+        Optional('skip-artifacts'): bool,
     }, {
         Required('implementation'): 'scriptworker-signing',
 
@@ -483,6 +495,9 @@ task_description_schema = Schema({
         Optional('rules-to-update'): optionally_keyed_by('project', [basestring]),
         Optional('archive-domain'): optionally_keyed_by('project', basestring),
         Optional('download-domain'): optionally_keyed_by('project', basestring),
+        Optional('blob-suffix'): basestring,
+        Optional('complete-mar-filename-pattern'): basestring,
+        Optional('complete-mar-bouncer-product-pattern'): basestring,
 
         # list of artifact URLs for the artifacts that should be beetmoved
         Optional('upstream-artifacts'): [{
@@ -549,6 +564,7 @@ task_description_schema = Schema({
         Required('bump'): bool,
         Optional('bump-files'): [basestring],
         Optional('repo-param-prefix'): basestring,
+        Optional('dontbuild'): bool,
         Required('force-dry-run', default=True): bool,
         Required('push', default=False): bool
     }),
@@ -907,7 +923,7 @@ def build_generic_worker_payload(config, task, task_def):
 
     artifacts = []
 
-    for artifact in worker['artifacts']:
+    for artifact in worker.get('artifacts', []):
         a = {
             'path': artifact['path'],
             'type': artifact['type'],
@@ -968,6 +984,16 @@ def build_scriptworker_signing_payload(config, task, task_def):
         'maxRunTime': worker['max-run-time'],
         'upstreamArtifacts':  worker['upstream-artifacts']
     }
+
+    artifacts = set(task.get('release-artifacts', []))
+    for upstream_artifact in worker['upstream-artifacts']:
+        for path in upstream_artifact['paths']:
+            artifacts.update(get_signed_artifacts(
+                input=path,
+                formats=upstream_artifact['formats'],
+            ))
+
+    task['release-artifacts'] = list(artifacts)
 
 
 @payload_builder('binary-transparency')
@@ -1053,6 +1079,10 @@ def build_balrog_payload(config, task, task_def):
             'product': worker['product'],
             'version': release_config['version'],
         }
+        for prop in ('blob-suffix', 'complete-mar-filename-pattern',
+                     'complete-mar-bouncer-product-pattern'):
+            if prop in worker:
+                task_def['payload'][prop.replace('-', '_')] = worker[prop]
         if worker['balrog-action'] == 'submit-toplevel':
             task_def['payload'].update({
                 'app_version': release_config['appVersion'],
@@ -1174,6 +1204,9 @@ def build_treescript_payload(config, task, task_def):
 
     if worker.get('force-dry-run'):
         task_def['payload']['dry_run'] = True
+
+    if worker.get('dontbuild'):
+        task_def['payload']['dont_build'] = True
 
 
 @payload_builder('invalid')
@@ -1633,6 +1666,7 @@ def build_task(config, tasks):
             'dependencies': task.get('dependencies', {}),
             'attributes': attributes,
             'optimization': task.get('optimization', None),
+            'release-artifacts': task.get('release-artifacts', []),
         }
 
 

@@ -1,5 +1,6 @@
 trust-domain: gecko
 project-repo-param-prefix: ''
+product-dir: 'browser'
 treeherder:
     group-names:
         'cram': 'Cram tests'
@@ -41,6 +42,7 @@ treeherder:
         'css': 'Checksum signing for source'
         'rs': 'Repackage signing'
         'BMcs': 'Beetmover checksums'
+        'BMcslang': 'Beetmover checksums for language packs'
         'BMcss': 'Beetmover checksums for source'
         'Aries': 'Aries Device Image'
         'Deb7': 'Packages for Debian 7'

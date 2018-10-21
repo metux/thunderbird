@@ -206,17 +206,46 @@ menupopup[type="folder"] {
 :root:-moz-lwtheme {
   color: var(--lwt-text-color) !important;
   background-color: var(--lwt-accent-color) !important;
-  background-image: var(--lwt-additional-images) !important;
-  background-position: var(--lwt-background-alignment) !important;
-  background-repeat: var(--lwt-background-tiling) !important;
 }
 
 :root:-moz-lwtheme[lwtheme-image] {
-  background-image: var(--lwt-header-image), var(--lwt-additional-images) !important;
+  background-image: var(--lwt-header-image) !important;
+  background-repeat: no-repeat;
+  background-position: right top !important;
 }
 
 :root:-moz-lwtheme:-moz-window-inactive {
   background-color: var(--lwt-accent-color-inactive, var(--lwt-accent-color)) !important;
+}
+
+/* Add a box to draw additional background images. */
+#LW-background-box {
+  display: none;
+}
+
+#LW-background-box:-moz-lwtheme {
+  display: -moz-box;
+  height: 60px;
+  position: fixed;
+  pointer-events: none;
+  top: 0;
+  width: -moz-available;
+}
+
+/* Set position: relative to let the LW-background-box be behind. */
+#tabmail-container {
+  position: relative;
+}
+
+/* Set additional backgrounds alignment relative to toolbox.
+   This rule needs to be in content to avoid CSP issues. */
+#LW-background-box:-moz-lwtheme,
+#status-bar:-moz-lwtheme,
+#ab-toolbox:-moz-lwtheme,
+#compose-toolbox:-moz-lwtheme {
+  background-image: var(--lwt-additional-images);
+  background-position: var(--lwt-background-alignment);
+  background-repeat: var(--lwt-background-tiling);
 }
 
 :root[lwthemefooter="true"] #status-bar:-moz-lwtheme {

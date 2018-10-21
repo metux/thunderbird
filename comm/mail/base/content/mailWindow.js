@@ -59,7 +59,11 @@ function OnMailWindowUnload()
  * that the images can be accessed in a paste elsewhere.
  */
 function onCopyOrDragStart(e) {
-  let sourceDoc = getBrowser().contentDocument;
+  let browser = getBrowser();
+  if (!browser) {
+    return;
+  }
+  let sourceDoc = browser.contentDocument;
   if (e.target.ownerDocument != sourceDoc) {
     return; // We're only interested if this is in the message content.
   }
@@ -779,8 +783,12 @@ function switchToTabHavingURI(aURI, aOpenNew, aOpenParams) {
   }
 
   if (aOpenNew) {
-    // Open a new tab.
-    openContentTab(aURI, "tab");
+    // Open a new tab, keeping links from the new tab in Thunderbird if the regexp is set.
+    if (aOpenParams && ("handlerRegExp" in aOpenParams)) {
+      openContentTab(aURI, "tab", aOpenParams.handlerRegExp);
+    } else {
+      openContentTab(aURI, "tab");
+    }
   }
 
   return false;

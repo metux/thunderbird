@@ -9,11 +9,19 @@
    xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
    xmlns:xbl="http://www.mozilla.org/xbl">
 
+#ifdef MOZ_SUITE
+  <binding id="numberbox" extends="chrome://communicator/content/bindings/textbox.xml#textbox">
+
+    <resources>
+       <stylesheet src="chrome://communicator/skin/numberbox.css"/>
+    </resources>
+#else
   <binding id="numberbox" extends="chrome://messenger/content/textbox.xml#textbox">
 
     <resources>
       <stylesheet src="chrome://messenger/skin/numberbox.css"/>
     </resources>
+#endif
 
     <content>
       <xul:hbox class="textbox-input-box numberbox-input-box" flex="1" xbl:inherits="context,disabled,focused">
