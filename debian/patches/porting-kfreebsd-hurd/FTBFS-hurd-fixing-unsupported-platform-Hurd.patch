@@ -3,7 +3,7 @@ Date: Sat, 29 Mar 2014 20:58:55 +0100
 Subject: FTBFS hurd: fixing unsupported platform Hurd
 
 On the Hurd platform the build failed in
-mozilla/js/src/jit/AsmJSSignalHandlers.cpp:131 because of unsupported
+js/src/jit/AsmJSSignalHandlers.cpp:131 because of unsupported
 mode for reading / writing thead state with following message.
 
  # error "Don't know how to read/write to the thread state via the mcontext_t."
@@ -211,7 +211,7 @@ index d18ed9e..91041f2 100644
      if (!CrashReporter::CreateNotificationPipeForChild(&childCrashFd,
                                                         &childCrashRemapFd)) {
 diff --git a/js/src/wasm/WasmSignalHandlers.cpp b/js/src/wasm/WasmSignalHandlers.cpp
-index b2a24bb..23f7ea9 100644
+index 7e12351..6c74ee0 100644
 --- a/js/src/wasm/WasmSignalHandlers.cpp
 +++ b/js/src/wasm/WasmSignalHandlers.cpp
 @@ -128,7 +128,7 @@ struct AutoSignalHandler

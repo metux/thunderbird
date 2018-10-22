@@ -22,20 +22,62 @@ Bug 382214 - xpcom: Make SH xpctcall inline assembly position-independent
 
 Closes: #859508
 ---
- .../xptcall/md/unix/xptcinvoke_linux_sh.cpp        | 210 +++++++++++++++++
- .../reflect/xptcall/md/unix/xptcstubs_linux_sh.cpp | 262 +++++++++++++++++++++
  python/mozbuild/mozbuild/configure/constants.py    |   1 +
  .../test/configure/test_toolchain_configure.py     |   3 +
  xpcom/reflect/xptcall/md/unix/moz.build            |   5 +
+ .../xptcall/md/unix/xptcinvoke_linux_sh.cpp        | 210 +++++++++++++++++
+ .../reflect/xptcall/md/unix/xptcstubs_linux_sh.cpp | 262 +++++++++++++++++++++
  5 files changed, 481 insertions(+)
- create mode 100644 mozilla/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_sh.cpp
- create mode 100644 mozilla/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_sh.cpp
+ create mode 100644 xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_sh.cpp
+ create mode 100644 xpcom/reflect/xptcall/md/unix/xptcstubs_linux_sh.cpp
 
-diff --git a/mozilla/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_sh.cpp b/mozilla/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_sh.cpp
+diff --git a/python/mozbuild/mozbuild/configure/constants.py b/python/mozbuild/mozbuild/configure/constants.py
+index a67ab80..c31464b 100644
+--- a/python/mozbuild/mozbuild/configure/constants.py
++++ b/python/mozbuild/mozbuild/configure/constants.py
+@@ -91,6 +91,7 @@ CPU_preprocessor_checks = OrderedDict((
+     ('mips32', '__mips__'),
+     ('sh4', '__sh__'),
+     ('m68k', '__m68k__'),
++    ('sh4', '__sh__'),
+ ))
+ 
+ assert sorted(CPU_preprocessor_checks.keys()) == sorted(CPU.POSSIBLE_VALUES)
+diff --git a/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py b/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
+index a1b444a..0069faf 100755
+--- a/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
++++ b/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
+@@ -1168,6 +1168,9 @@ class LinuxCrossCompileToolchainTest(BaseToolchainTest):
+         'm68k-unknown-linux-gnu': big_endian + {
+             '__m68k__': 1,
+         },
++        'sh4-unknown-linux-gnu': little_endian + {
++            '__sh__': 1,
++        },
+     }
+ 
+     PLATFORMS['powerpc64le-unknown-linux-gnu'] = \
+diff --git a/xpcom/reflect/xptcall/md/unix/moz.build b/xpcom/reflect/xptcall/md/unix/moz.build
+index 4c2c35f..ff916d2 100644
+--- a/xpcom/reflect/xptcall/md/unix/moz.build
++++ b/xpcom/reflect/xptcall/md/unix/moz.build
+@@ -325,6 +325,11 @@ if CONFIG['OS_ARCH'] == 'Linux':
+             '-fomit-frame-pointer',
+             '-mbackchain',
+         ]
++    elif CONFIG['OS_TEST'] in ('sh4', 'sh4a'):
++        SOURCES += [
++            'xptcinvoke_linux_sh.cpp',
++            'xptcstubs_linux_sh.cpp',
++        ]
+ 
+ FINAL_LIBRARY = 'xul'
+ 
+diff --git a/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_sh.cpp b/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_sh.cpp
 new file mode 100644
 index 0000000..6462551
 --- /dev/null
-+++ b/mozilla/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_sh.cpp
++++ b/xpcom/reflect/xptcall/md/unix/xptcinvoke_linux_sh.cpp
 @@ -0,0 +1,210 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
 + *
@@ -247,11 +289,11 @@ index 0000000..6462551
 +	".balign 4\n\t"
 +	"1: .long copy_to_stack - 0b \n\t"
 +   );
-diff --git a/mozilla/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_sh.cpp b/mozilla/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_sh.cpp
+diff --git a/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_sh.cpp b/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_sh.cpp
 new file mode 100644
 index 0000000..b40482d
 --- /dev/null
-+++ b/mozilla/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_sh.cpp
++++ b/xpcom/reflect/xptcall/md/unix/xptcstubs_linux_sh.cpp
 @@ -0,0 +1,262 @@
 +/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 +/* ***** BEGIN LICENSE BLOCK *****
@@ -515,45 +557,3 @@ index 0000000..b40482d
 +}
 +
 +#include "xptcstubsdef.inc"
-diff --git a/python/mozbuild/mozbuild/configure/constants.py b/python/mozbuild/mozbuild/configure/constants.py
-index a67ab80..c31464b 100644
---- a/python/mozbuild/mozbuild/configure/constants.py
-+++ b/python/mozbuild/mozbuild/configure/constants.py
-@@ -91,6 +91,7 @@ CPU_preprocessor_checks = OrderedDict((
-     ('mips32', '__mips__'),
-     ('sh4', '__sh__'),
-     ('m68k', '__m68k__'),
-+    ('sh4', '__sh__'),
- ))
- 
- assert sorted(CPU_preprocessor_checks.keys()) == sorted(CPU.POSSIBLE_VALUES)
-diff --git a/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py b/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
-index f904120..aea0ea6 100755
---- a/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
-+++ b/python/mozbuild/mozbuild/test/configure/test_toolchain_configure.py
-@@ -1168,6 +1168,9 @@ class LinuxCrossCompileToolchainTest(BaseToolchainTest):
-         'm68k-unknown-linux-gnu': big_endian + {
-             '__m68k__': 1,
-         },
-+        'sh4-unknown-linux-gnu': little_endian + {
-+            '__sh__': 1,
-+        },
-     }
- 
-     PLATFORMS['powerpc64le-unknown-linux-gnu'] = \
-diff --git a/xpcom/reflect/xptcall/md/unix/moz.build b/xpcom/reflect/xptcall/md/unix/moz.build
-index 4c2c35f..ff916d2 100644
---- a/xpcom/reflect/xptcall/md/unix/moz.build
-+++ b/xpcom/reflect/xptcall/md/unix/moz.build
-@@ -325,6 +325,11 @@ if CONFIG['OS_ARCH'] == 'Linux':
-             '-fomit-frame-pointer',
-             '-mbackchain',
-         ]
-+    elif CONFIG['OS_TEST'] in ('sh4', 'sh4a'):
-+        SOURCES += [
-+            'xptcinvoke_linux_sh.cpp',
-+            'xptcstubs_linux_sh.cpp',
-+        ]
- 
- FINAL_LIBRARY = 'xul'
- 
