@@ -237,6 +237,13 @@ profile thunderbird @{thunderbird_executable} {
   # TODO: investigate
   deny /usr/bin/gconftool-2 x,
 
+  # Deny proprietary NVIDIA driver optimizations
+  # TODO: remove once it can be disabled via conditionals set up in nvidia abstraction
+  deny /tmp/#[0-9][0-9][0-9][0-9][0-9][0-9][0-9] m,
+  deny /tmp/.gl?????? mrw,
+  deny @{HOME}/#[0-9][0-9][0-9][0-9][0-9][0-9][0-9]{,[0-9]} m,
+  deny @{HOME}/.nv/.gl?????? mrw,
+
   owner @{PROC}/[0-9]*/mountinfo r,
   owner @{PROC}/[0-9]*/stat r,
   owner @{PROC}/[0-9]*/task/[0-9]*/stat r,
