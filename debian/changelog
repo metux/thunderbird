@@ -1,3 +1,34 @@
+thunderbird (1:60.3.0-1) unstable; urgency=medium
+
+  [ intrigeri ]
+  * [7949b31] AppArmor: update profile from upstream at commit f3d9a8b
+    (Closes: #903898)
+  * [e31dc14] AppArmor: update profile from upstream at commit 81c9457
+    (Closes: #908206)
+
+  [ Carsten Schoenert ]
+  * [0dcbe22] d/control: add xul-ext-gnome-keyring to Breaks for thunderbird
+    (Closes: #907979)
+  * [65db00d] armel: adding extra LDFLAGS so rust compiler isn't confused
+    The settings that are builtin within rust are conflicting with the GCC.
+  * [9c65884] New upstream version 60.3.0
+    Fixed CVE issues in upstream version 60.3.0 (MFSA 2018-28)
+    CVE-2018-12392: Crash with nested event loops
+    CVE-2018-12393: Integer overflow during Unicode conversion while loading
+                    JavaScript
+    CVE-2018-12389: Memory safety bugs fixed in Firefox ESR 60.3 and
+                    Thunderbird 60.3
+    CVE-2018-12390: Memory safety bugs fixed in Firefox 63, Firefox ESR 60.3,
+                    and Thunderbird 60.3
+  * [8726bb1] rebuild patch queue from patch-queue branch
+    removed patches (included upstream)
+    fixes/Bug-1479540-Accept-triplet-strings-with-only-two-parts-in.patch
+    fixes/Bug-1492064-Disable-baseline-JIT-when-SSE2-is-not-support.patch
+    fixes/Bug-1492065-Use-Swizzle-fallback-when-SSE2-is-not-support.patch
+    porting-mips/Add-struct-ucred-for-Linux-on-MIPS.patch
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Thu, 01 Nov 2018 12:19:34 +0100
+
 thunderbird (1:60.2.1-1) unstable; urgency=medium
 
   * [ba75ca3] logo: move old TB graphics into dedicated folder
