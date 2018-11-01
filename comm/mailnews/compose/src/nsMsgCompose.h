@@ -93,7 +93,7 @@ protected:
   nsresult MoveToAboveQuote(void);
   nsresult MoveToBeginningOfDocument(void);
   nsresult MoveToEndOfDocument(void);
-  nsresult ReplaceFileURLs(nsAutoString &sigData);
+  nsresult ReplaceFileURLs(nsString &sigData);
   nsresult DataURLForFileURL(const nsAString &aFileURL, nsAString &aDataURL);
 
 // 3 = To, Cc, Bcc
@@ -220,7 +220,8 @@ public:
   // nsIWebProgressListener interface
   NS_DECL_NSIWEBPROGRESSLISTENER
 
-  nsresult    RemoveCurrentDraftMessage(nsIMsgCompose *compObj, bool calledByCopy);
+  nsresult    RemoveDraftOrTemplate(nsIMsgCompose *compObj, nsCString msgURI, bool isSaveTemplate);
+  nsresult    RemoveCurrentDraftMessage(nsIMsgCompose *compObj, bool calledByCopy, bool isSaveTemplate);
   nsresult    GetMsgFolder(nsIMsgCompose *compObj, nsIMsgFolder **msgFolder);
 
 private:
