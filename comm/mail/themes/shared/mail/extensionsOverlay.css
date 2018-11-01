@@ -16,6 +16,10 @@
   fill: currentColor;
 }
 
+.nav-button:not([disabled="true"]):hover {
+  background-color: #bebebe;
+}
+
 #back-btn:-moz-locale-dir(rtl),
 #forward-btn:-moz-locale-dir(ltr) {
   transform: scaleX(-1);

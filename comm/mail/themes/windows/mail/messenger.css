@@ -66,23 +66,6 @@ toolbar[brighttext] {
   --toolbarbutton-icon-fill-attention: var(--lwt-toolbarbutton-icon-fill-attention, #45a1ff);
 }
 
-#header-view-toolbar[brighttext],
-#ab-toolbox > toolbar[brighttext],
-.mail-toolbox > toolbar[brighttext],
-#event-toolbox > toolbar[brighttext],
-#compose-toolbox > toolbar[brighttext],
-#navigation-toolbox > toolbar[brighttext] {
-  --toolbarbutton-hover-background: rgba(255, 255, 255, .25);
-  --toolbarbutton-hover-bordercolor: rgba(255, 255, 255, .5);
-  --toolbarbutton-header-bordercolor: rgba(255, 255, 255, .25);
-
-  --toolbarbutton-active-background: rgba(255, 255, 255, .4);
-  --toolbarbutton-active-bordercolor: rgba(255, 255, 255, .7);
-  --toolbarbutton-active-boxshadow: 0 0 0 1px rgba(255, 255, 255, .4) inset;
-
-  --toolbarbutton-checkedhover-backgroundcolor: rgba(255, 255, 255, .5);
-}
-
 #ab-toolbox > toolbar:-moz-lwtheme,
 .mail-toolbox > toolbar:-moz-lwtheme,
 #compose-toolbox > toolbar:-moz-lwtheme,
@@ -95,6 +78,23 @@ toolbar[brighttext] {
   --toolbarbutton-active-boxshadow: 0 0 0 1px var(--lwt-toolbarbutton-active-background, rgba(0, 0, 0, .15)) inset;
 
   --toolbarbutton-checkedhover-backgroundcolor: var(--lwt-toolbarbutton-hover-background, rgba(0, 0, 0, .2));
+}
+
+#header-view-toolbar[brighttext],
+#ab-toolbox > toolbar[brighttext],
+.mail-toolbox > toolbar[brighttext],
+#event-toolbox > toolbar[brighttext],
+#compose-toolbox > toolbar[brighttext],
+#navigation-toolbox > toolbar[brighttext] {
+  --toolbarbutton-hover-background: var(--lwt-toolbarbutton-hover-background, rgba(255, 255, 255, .25));
+  --toolbarbutton-hover-bordercolor: var(--lwt-toolbarbutton-hover-background, rgba(255, 255, 255, .5));
+  --toolbarbutton-header-bordercolor: var(--lwt-toolbarbutton-hover-background, rgba(255, 255, 255, .25));
+
+  --toolbarbutton-active-background: var(--lwt-toolbarbutton-active-background, rgba(255, 255, 255, .4));
+  --toolbarbutton-active-bordercolor: var(--lwt-toolbarbutton-active-background, rgba(255, 255, 255, .7));
+  --toolbarbutton-active-boxshadow: 0 0 0 1px var(--lwt-toolbarbutton-active-background, rgba(255, 255, 255, .4)) inset;
+
+  --toolbarbutton-checkedhover-backgroundcolor: var(--lwt-toolbarbutton-hover-background, rgba(255, 255, 255, .5));
 }
 
 .menu-iconic > .menu-iconic-left,
@@ -129,6 +129,11 @@ toolbar[brighttext] {
 
 #menubar-items > menubar {
   -moz-box-flex: 1; /* make menu items expand to fill toolbar height */
+}
+
+menubar > menu[disabled="true"]:-moz-lwtheme {
+  color: inherit;
+  opacity: .4;
 }
 
 /* ::::: toolbarbutton ::::: */
@@ -516,6 +521,16 @@ statusbarpanel label {
   margin-bottom: 0;
 }
 
+@media (-moz-os-version: windows-win7) and (-moz-windows-default-theme),
+       (-moz-os-version: windows-win8) and (-moz-windows-default-theme) {
+  #status-bar:not(:-moz-lwtheme) {
+    -moz-appearance: none;
+    border-style: none;
+    border-top: 1px solid ThreeDShadow;
+    background-color: var(--toolbar-bgcolor);
+  }
+}
+
 @media (-moz-windows-classic) {
   statusbarpanel:not(:-moz-lwtheme) {
     -moz-appearance: statusbarpanel;
@@ -561,4 +576,19 @@ statusbarpanel label {
   border-top-left-radius: .3em;
   */
   margin-left: 1em;
+}
+
+.contentTabInstance {
+  background-color: -moz-dialog;
+}
+
+.contentTabInstance > findbar {
+  background-color: -moz-dialog;
+  color: -moz-DialogText;
+  text-shadow: none;
+}
+
+.contentTabInstance > findbar:-moz-lwtheme {
+  background-color: var(--toolbar-bgcolor);
+  color: var(--toolbar-color, -moz-DialogText);
 }

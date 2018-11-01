@@ -49,7 +49,7 @@
       </property>
       <property name="Item">
         <getter><![CDATA[
-            return mItem;
+            return this.mItem;
         ]]></getter>
         <setter><![CDATA[
             this.mItem = val;
@@ -77,6 +77,12 @@
                         label = this.getAttribute("eventEndLabel");
                     }
                     headerLabel.value = label;
+                    if (date.isDate) {
+                        // for all-day items the end/due date is not inclusive,
+                        // so we tweak this to display what the user expects
+                        date = date.clone();
+                        date.day -= 1;
+                    }
                 }
             }
             let hideLabels = (date == null);

@@ -1034,14 +1034,15 @@ private:
 class nsImapCancelProxy : public mozilla::Runnable {
 public:
   nsImapCancelProxy(nsICancelable *aProxyRequest)
-    : mozilla::Runnable("nsImapCancelProxy"), m_proxyRequest(aProxyRequest) {
+    : mozilla::Runnable("nsImapCancelProxy"), mRequest(aProxyRequest) {
   }
   NS_IMETHOD Run() {
-    m_proxyRequest->Cancel(NS_BINDING_ABORTED);
+    if (mRequest)
+      mRequest->Cancel(NS_BINDING_ABORTED);
     return NS_OK;
   }
 private:
-  nsCOMPtr<nsICancelable> m_proxyRequest;
+  nsCOMPtr<nsICancelable> mRequest;
 };
 
 NS_IMETHODIMP nsImapProtocol::Run()
@@ -3844,8 +3845,9 @@ nsImapProtocol::PostLineDownLoadEvent(const char *line, uint32_t uidOfMessage)
 void nsImapProtocol::HandleMessageDownLoadLine(const char *line, bool isPartialLine,
                                                char *lineCopy)
 {
-  NS_PRECONDITION(lineCopy == nullptr || !PL_strcmp(line, lineCopy),
-                  "line and lineCopy must contain the same string");
+  NS_ENSURE_TRUE_VOID(line);
+  NS_ASSERTION(lineCopy == nullptr || !PL_strcmp(line, lineCopy),
+               "line and lineCopy must contain the same string");
   const char *messageLine = line;
   uint32_t lineLength = strlen(messageLine);
   const char *cEndOfLine = messageLine + lineLength;
@@ -4559,46 +4561,35 @@ void nsImapProtocol::Log(const char *logSubName, const char *extraInfo, const ch
 // In 4.5, this posted an event back to libmsg and blocked until it got a response.
 // We may still have to do this.It would be nice if we could preflight this value,
 // but we may not always know when we'll need it.
-uint32_t nsImapProtocol::GetMessageSize(const char * messageId,
-                                        bool idsAreUids)
+uint32_t nsImapProtocol::GetMessageSize(const char * messageId, bool idsAreUids)
 {
   const char *folderFromParser = GetServerStateParser().GetSelectedMailboxName();
-  if (folderFromParser && messageId)
-  {
-    char *id = (char *)PR_CALLOC(strlen(messageId) + 1);
-    char *folderName;
-    uint32_t size;
+  if (!folderFromParser || !messageId || !m_runningUrl || !m_hostSessionList)
+    return 0;
 
-    PL_strcpy(id, messageId);
+  char *folderName = nullptr;
+  uint32_t size;
 
-    nsIMAPNamespace *nsForMailbox = nullptr;
-        m_hostSessionList->GetNamespaceForMailboxForHost(GetImapServerKey(), folderFromParser,
-            nsForMailbox);
+  nsIMAPNamespace *nsForMailbox = nullptr;
+  m_hostSessionList->GetNamespaceForMailboxForHost(GetImapServerKey(),
+                                                   folderFromParser,
+                                                   nsForMailbox);
 
+  m_runningUrl->AllocateCanonicalPath(folderFromParser,
+                                      nsForMailbox
+                                        ? nsForMailbox->GetDelimiter()
+                                        : kOnlineHierarchySeparatorUnknown,
+                                      &folderName);
 
-    if (nsForMailbox)
-          m_runningUrl->AllocateCanonicalPath(
-              folderFromParser, nsForMailbox->GetDelimiter(),
-              &folderName);
-    else
-       m_runningUrl->AllocateCanonicalPath(
-          folderFromParser,kOnlineHierarchySeparatorUnknown,
-          &folderName);
+  if (folderName && m_imapMessageSink)
+    m_imapMessageSink->GetMessageSizeFromDB(messageId, &size);
 
-    if (id && folderName)
-    {
-      if (m_imapMessageSink)
-          m_imapMessageSink->GetMessageSizeFromDB(id, &size);
-    }
-    PR_FREEIF(id);
-    PR_FREEIF(folderName);
+  PR_FREEIF(folderName);
 
-    uint32_t rv = 0;
-    if (!DeathSignalReceived())
-      rv = size;
-    return rv;
-  }
-  return 0;
+  if (DeathSignalReceived())
+    size = 0;
+
+  return size;
 }
 
 // message id string utility functions
@@ -5810,16 +5801,18 @@ nsresult nsImapProtocol::AuthLogin(const char *userName, const nsString &aPasswo
       PR_Free(decodedChallenge);
       NS_ENSURE_SUCCESS(rv, rv);
       NS_ENSURE_TRUE(digest, NS_ERROR_NULL_POINTER);
-      nsAutoCString encodedDigest;
-      char hexVal[8];
+      // The encoded digest is the hexadecimal representation of
+      // DIGEST_LENGTH characters, so it will be twice that length.
+      nsAutoCStringN<2 * DIGEST_LENGTH> encodedDigest;
 
-      for (uint32_t j=0; j<16; j++)
+      for (uint32_t j = 0; j < DIGEST_LENGTH; j++)
       {
-        PR_snprintf (hexVal,8, "%.2x", 0x0ff & (unsigned short)(digest[j]));
+        char hexVal[3];
+        PR_snprintf (hexVal, 3, "%.2x", 0x0ff & (unsigned short)(digest[j]));
         encodedDigest.Append(hexVal);
       }
 
-      PR_snprintf(m_dataOutputBuf, OUTPUT_BUFFER_SIZE, "%s %s", userName, encodedDigest.get());
+      PR_snprintf(m_dataOutputBuf, OUTPUT_BUFFER_SIZE, "%.255s %s", userName, encodedDigest.get());
       char *base64Str = PL_Base64Encode(m_dataOutputBuf, strlen(m_dataOutputBuf), nullptr);
       PR_snprintf(m_dataOutputBuf, OUTPUT_BUFFER_SIZE, "%s" CRLF, base64Str);
       PR_Free(base64Str);
@@ -5919,15 +5912,13 @@ nsresult nsImapProtocol::AuthLogin(const char *userName, const nsString &aPasswo
     if (GetServerStateParser().LastCommandSuccessful())
     {
       // RFC 4616
-      char plainstr[512]; // placeholder for "<NUL>userName<NUL>password" TODO nsAutoCString
-      int len = 1; // count for first <NUL> char
-      memset(plainstr, 0, 512);
-      PR_snprintf(&plainstr[1], 510, "%s", userName);
-      len += PL_strlen(userName);
-      len++;  // count for second <NUL> char
-      PR_snprintf(&plainstr[len], 511-len, "%s", password.get());
-      len += password.Length();
-      char *base64Str = PL_Base64Encode(plainstr, len, nullptr);
+      char plain_string[513];
+      memset(plain_string, 0, 513);
+      PR_snprintf(&plain_string[1], 256, "%.255s", userName);
+      uint32_t len = std::min(PL_strlen(userName), 255u) + 2;  // We include two <NUL> characters.
+      PR_snprintf(&plain_string[len], 256, "%.255s", password.get());
+      len += std::min(password.Length(), 255u);
+      char *base64Str = PL_Base64Encode(plain_string, len, nullptr);
       PR_snprintf(m_dataOutputBuf, OUTPUT_BUFFER_SIZE, "%s" CRLF, base64Str);
       PR_Free(base64Str);
 
@@ -5945,7 +5936,7 @@ nsresult nsImapProtocol::AuthLogin(const char *userName, const nsString &aPasswo
 
     if (GetServerStateParser().LastCommandSuccessful())
     {
-      char *base64Str = PL_Base64Encode(userName, PL_strlen(userName), nullptr);
+      char *base64Str = PL_Base64Encode(userName, std::min(PL_strlen(userName), 255u), nullptr);
       PR_snprintf(m_dataOutputBuf, OUTPUT_BUFFER_SIZE, "%s" CRLF, base64Str);
       PR_Free(base64Str);
       rv = SendData(m_dataOutputBuf, true /* suppress logging */);
@@ -5954,7 +5945,7 @@ nsresult nsImapProtocol::AuthLogin(const char *userName, const nsString &aPasswo
         ParseIMAPandCheckForNewMail(currentCommand);
         if (GetServerStateParser().LastCommandSuccessful())
         {
-          base64Str = PL_Base64Encode(password.get(), password.Length(), nullptr);
+          base64Str = PL_Base64Encode(password.get(), std::min(password.Length(), 255u), nullptr);
           PR_snprintf(m_dataOutputBuf, OUTPUT_BUFFER_SIZE, "%s" CRLF, base64Str);
           PR_Free(base64Str);
           rv = SendData(m_dataOutputBuf, true /* suppress logging */);
