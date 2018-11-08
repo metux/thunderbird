@@ -891,6 +891,7 @@ const char output[] = "\
     return NS_ERROR_FAILURE;
   }
 
+  NS_ENSURE_TRUE(aIStream, NS_ERROR_NULL_POINTER);
   char *buf = (char *)PR_Malloc(aLength);
   if (!buf)
     return NS_ERROR_OUT_OF_MEMORY; /* we couldn't allocate the object */

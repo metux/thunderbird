@@ -7,6 +7,7 @@ ChromeUtils.import("resource://gre/modules/Services.jsm");
 ChromeUtils.import("resource://gre/modules/AddonManager.jsm");
 ChromeUtils.import("resource:///modules/StringBundle.js");
 ChromeUtils.import("resource://gre/modules/BrowserUtils.jsm");
+ChromeUtils.import("resource://gre/modules/ExtensionParent.jsm");
 
 function tabProgressListener(aTab, aStartsBlank) {
   this.mTab = aTab;
@@ -281,7 +282,11 @@ var contentTabBaseType = {
     }
   ],
 
-  shouldSwitchTo: function onSwitchTo({contentPage: aContentPage}) {
+  shouldSwitchTo: function onSwitchTo({contentPage: aContentPage, duplicate: aDuplicate}) {
+    if (aDuplicate) {
+      return -1;
+    }
+
     let tabmail = document.getElementById("tabmail");
     let tabInfo = tabmail.tabInfo;
 
@@ -291,8 +296,7 @@ var contentTabBaseType = {
 
     let contentUrl = aContentPage.replace(regEx, "");
 
-    for (let selectedIndex = 0; selectedIndex < tabInfo.length;
-         ++selectedIndex) {
+    for (let selectedIndex = 0; selectedIndex < tabInfo.length; ++selectedIndex) {
       if (tabInfo[selectedIndex].mode.name == this.name &&
           tabInfo[selectedIndex].browser.currentURI.spec
                                 .replace(regEx, "") == contentUrl) {
@@ -708,6 +712,8 @@ var specialTabs = {
       aTab.browser = aTab.panel.querySelector("browser");
       aTab.toolbar = aTab.panel.querySelector(".contentTabToolbar");
 
+      ExtensionParent.apiManager.emit("extension-browser-inserted", aTab.browser);
+
       // As we're opening this tab, showTab may not get called, so set
       // the type according to if we're opening in background or not.
       let background = ("background" in aArgs) && aArgs.background;
@@ -806,8 +812,9 @@ var specialTabs = {
     restoreTab: function onRestoreTab(aTabmail, aPersistedState) {
       aTabmail.openTab("contentTab", { contentPage: aPersistedState.tabURI,
                                        clickHandler: aPersistedState.clickHandler,
+                                       duplicate: aPersistedState.duplicate,
                                        background: true } );
-    },
+    }
   },
 
   /**

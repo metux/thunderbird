@@ -269,7 +269,7 @@
                          onclick="chatHandler.onNickClick(event);"
                          onkeypress="chatHandler.onNicklistKeyPress(event);"/>
               </vbox>
-              <splitter id="logsSplitter" class="conv-chat" collapse="after"/>
+              <splitter id="logsSplitter" class="conv-chat" collapse="after" orient="vertical"/>
               <vbox flex="1" id="previousConversations">
                 <label class="conv-logs-header-label"
                        id="participantLabel"
