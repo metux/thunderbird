@@ -74,7 +74,7 @@ Depends:
  ${misc:Depends},
  ${shlibs:Depends},
 Recommends:
- lightning (= ${binary:Version}),
+ lightning (= ${source:Version}),
  myspell-en-us | hunspell-dictionary | myspell-dictionary,
 Suggests:
  apparmor,
@@ -104,7 +104,7 @@ Breaks:
  hunspell-sr (<< 1:3.1.0-3),
  hunspell-uz (<< 0.6-3.1),
  hunspell-vi (<< 1:3.1.0-3),
- lightning (<< ${binary:Version}),
+ lightning (<< ${source:Version}),
  myspell-af (<< 1:3.1.0-3),
  myspell-ca (<< 0.6-8),
  myspell-cs-cz (<< 20040229-4.1),
