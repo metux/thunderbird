@@ -2374,19 +2374,20 @@ HTMLEditor::GetElementOrParentByTagName(const nsAString& aTagName,
   ToLowerCase(tagName);
   bool getLink = IsLinkTag(tagName);
   bool getNamedAnchor = IsNamedAnchorTag(tagName);
-  if (getLink || getNamedAnchor) {
-    tagName.Assign('a');
-  }
   bool findTableCell = tagName.EqualsLiteral("td");
   bool findList = tagName.EqualsLiteral("list");
 
   for (; current; current = current->GetParentElement()) {
     // Test if we have a link (an anchor with href set)
-    if ((getLink && HTMLEditUtils::IsLink(current)) ||
-        (getNamedAnchor && HTMLEditUtils::IsNamedAnchor(current))) {
-      return current.forget();
-    }
-    if (findList) {
+    if (getLink) {
+      if (HTMLEditUtils::IsLink(current)) {
+        return current.forget();
+      }
+    } else if (getNamedAnchor) {
+      if (HTMLEditUtils::IsNamedAnchor(current)) {
+        return current.forget();
+      }
+    } else if (findList) {
       // Match "ol", "ul", or "dl" for lists
       if (HTMLEditUtils::IsList(current)) {
         return current.forget();
@@ -2552,11 +2553,10 @@ HTMLEditor::GetSelectedElement(const nsAString& aTagName,
         nsINode* currentNode = iter->GetCurrentNode();
         selectedElement = do_QueryInterface(currentNode);
         if (selectedElement) {
-          // If we already found a node, then we have another element,
-          //  thus there's not just one element selected
           if (bNodeFound) {
-            bNodeFound = false;
-            break;
+            // Found second element node in the selected range.  I.e., not only
+            // one element is selected.  Let's return nullptr without error.
+            return NS_OK;
           }
 
           domTagName = currentNode->NodeName();
@@ -2580,8 +2580,9 @@ HTMLEditor::GetSelectedElement(const nsAString& aTagName,
             bNodeFound = true;
           }
           if (!bNodeFound) {
-            // Check if node we have is really part of the selection???
-            break;
+            // Found element is different from what the caller is looking for.
+            // So, return nullptr without error.
+            return NS_OK;
           }
         }
         iter->Next();
