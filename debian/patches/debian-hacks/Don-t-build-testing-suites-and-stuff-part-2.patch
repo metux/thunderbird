@@ -5,10 +5,9 @@ Subject: Don't build testing suites and stuff part 2
 Some more testsuites which are not buildable due the cleaning out of
 some DFSG non compatible files, mostly HTML (with JS) or JS files.
 ---
- devtools/client/debugger/new/moz.build             | 18 ++++++------
  devtools/client/shared/moz.build                   |  2 +-
  devtools/client/shared/source-map/moz.build        | 10 ++++---
- devtools/client/shared/vendor/moz.build            | 16 +++++------
+ devtools/client/shared/vendor/moz.build            | 10 +++----
  devtools/client/sourceeditor/tern/moz.build        |  2 +-
  .../test/fixtures/stubs/moz.build                  |  6 ++--
  devtools/server/actors/utils/moz.build             |  2 +-
@@ -26,34 +25,8 @@ some DFSG non compatible files, mostly HTML (with JS) or JS files.
  toolkit/components/passwordmgr/moz.build           | 18 ++++++------
  toolkit/components/prompts/moz.build               |  4 ++-
  toolkit/components/search/moz.build                |  4 ++-
- 21 files changed, 122 insertions(+), 94 deletions(-)
+ 20 files changed, 109 insertions(+), 83 deletions(-)
 
-diff --git a/devtools/client/debugger/new/moz.build b/devtools/client/debugger/new/moz.build
-index ecf13ff..00c97fd 100644
---- a/devtools/client/debugger/new/moz.build
-+++ b/devtools/client/debugger/new/moz.build
-@@ -3,11 +3,13 @@
- # License, v. 2.0. If a copy of the MPL was not distributed with this
- # file, You can obtain one at http://mozilla.org/MPL/2.0/.
- 
--DevToolsModules(
--    'debugger.css',
--    'debugger.js',
--    'panel.js',
--    'parser-worker.js',
--    'pretty-print-worker.js',
--    'search-worker.js',
--)
-+# Don't build any testsuites. We have filteres out some needed content for
-+# this as some files are not DFSG clean.
-+#DevToolsModules(
-+#    'debugger.css',
-+#    'debugger.js',
-+#    'panel.js',
-+#    'parser-worker.js',
-+#    'pretty-print-worker.js',
-+#    'search-worker.js',
-+#)
 diff --git a/devtools/client/shared/moz.build b/devtools/client/shared/moz.build
 index 5a08e1d..61d3f4e 100644
 --- a/devtools/client/shared/moz.build
@@ -86,7 +59,7 @@ index 21f634c..e5fd35f 100644
 +#    'worker.js',
 +#)
 diff --git a/devtools/client/shared/vendor/moz.build b/devtools/client/shared/vendor/moz.build
-index 0775cfa..ad82962 100644
+index 0775cfa..7260aa3 100644
 --- a/devtools/client/shared/vendor/moz.build
 +++ b/devtools/client/shared/vendor/moz.build
 @@ -11,21 +11,21 @@ DIRS += [
@@ -97,16 +70,13 @@ index 0775cfa..ad82962 100644
 +#    'jszip.js',
      'lodash.js',
      'react-dom-factories.js',
--    'react-dom-server.js',
-+#    'react-dom-server.js',
+     'react-dom-server.js',
      'react-dom-test-utils.js',
--    'react-dom.js',
+     'react-dom.js',
 -    'react-prop-types.js',
--    'react-redux.js',
--    'react-test-renderer-shallow.js',
-+#    'react-dom.js',
 +#    'react-prop-types.js',
-+#    'react-redux.js',
+     'react-redux.js',
+-    'react-test-renderer-shallow.js',
 +#    'react-test-renderer-shallow.js',
      'react.js',
 -    'redux.js',
