@@ -1,3 +1,18 @@
+thunderbird (1:60.3.1-1) unstable; urgency=medium
+
+  * [e1b489a] New upstream version 60.3.1
+  * [f376b38] lightning: use ${source:Version} in Breaks and Recommends
+    (Closes: #914175)
+  * [7e560b3] Revert "lintian: adding a semi automated lintian-override"
+     The override about a misspelled word Synopsys isn't needed any more.
+  * [893c0e6] rebuild patch queue from patch-queue branch
+    modified patches:
+    debian-hacks/Don-t-build-testing-suites-and-stuff.patch
+    debian-hacks/Don-t-build-testing-suites-and-stuff-part-2.patch
+  * [20d8827] d/source.filter: update the filter sequences
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sun, 25 Nov 2018 10:02:50 +0100
+
 thunderbird (1:60.3.0-1) unstable; urgency=medium
 
   [ intrigeri ]
