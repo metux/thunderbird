@@ -3,6 +3,8 @@ android-api-16/debug:
     index:
         product: mobile
         job-name: android-api-16-debug
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: android-4-0-armv7-api16/debug
         symbol: B
@@ -28,7 +30,7 @@ android-api-16/debug:
               type: directory
     run:
         using: mozharness
-        actions: [get-secrets build multi-l10n update]
+        actions: [get-secrets build multi-l10n]
         config:
             - builds/releng_base_android_64_builds.py
         script: "mozharness/scripts/fx_desktop_build.py"
@@ -48,6 +50,8 @@ android-x86/opt:
     index:
         product: mobile
         job-name: android-x86-opt
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: android-4-2-x86/opt
         symbol: B
@@ -58,11 +62,6 @@ android-x86/opt:
         env:
             GRADLE_USER_HOME: "/builds/worker/workspace/build/src/mobile/android/gradle/dotgradle-offline"
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
-            # Increase the timeout because nsContentUtils.o takes a ridiculously
-            # long time to compile for x86 when using the current NDKs.  This
-            # will eventually get fixed, but for now we have to live with this.
-            # See https://github.com/android-ndk/ndk/issues/522 for more context.
-            SCCACHE_IDLE_TIMEOUT: "1500"
         artifacts:
             - name: public/android/R
               path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/app/R
@@ -78,7 +77,7 @@ android-x86/opt:
               type: directory
     run:
         using: mozharness
-        actions: [get-secrets build multi-l10n update]
+        actions: [get-secrets build multi-l10n]
         config:
             - builds/releng_base_android_64_builds.py
         script: "mozharness/scripts/fx_desktop_build.py"
@@ -97,7 +96,8 @@ android-x86-nightly/opt:
     description: "Android 4.2 x86 Nightly"
     attributes:
         nightly: true
-    shipping-phase: promote
+        enable-full-crashsymbols: true
+    shipping-phase: build
     shipping-product: fennec
     index:
         product: mobile
@@ -113,11 +113,6 @@ android-x86-nightly/opt:
         env:
             GRADLE_USER_HOME: "/builds/worker/workspace/build/src/mobile/android/gradle/dotgradle-offline"
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
-            # Increase the timeout because nsContentUtils.o takes a ridiculously
-            # long time to compile for x86 when using the current NDKs.  This
-            # will eventually get fixed, but for now we have to live with this.
-            # See https://github.com/android-ndk/ndk/issues/522 for more context.
-            SCCACHE_IDLE_TIMEOUT: "1500"
         artifacts:
             - name: public/android/R
               path: /builds/worker/workspace/build/src/obj-firefox/gradle/build/mobile/android/app/R
@@ -133,7 +128,7 @@ android-x86-nightly/opt:
               type: directory
     run:
         using: mozharness
-        actions: [get-secrets build multi-l10n update]
+        actions: [get-secrets build multi-l10n]
         config:
             - builds/releng_base_android_64_builds.py
             - taskcluster_nightly.py
@@ -154,6 +149,8 @@ android-api-16/opt:
     index:
         product: mobile
         job-name: android-api-16-opt
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: android-4-0-armv7-api16/opt
         symbol: B
@@ -179,7 +176,7 @@ android-api-16/opt:
               type: directory
     run:
         using: mozharness
-        actions: [get-secrets build multi-l10n update]
+        actions: [get-secrets build multi-l10n]
         config:
             - builds/releng_base_android_64_builds.py
         script: "mozharness/scripts/fx_desktop_build.py"
@@ -225,7 +222,7 @@ android-api-16-without-google-play-services/opt:
               type: directory
     run:
         using: mozharness
-        actions: [get-secrets build multi-l10n update]
+        actions: [get-secrets build multi-l10n]
         config:
             - builds/releng_base_android_64_builds.py
         script: "mozharness/scripts/fx_desktop_build.py"
@@ -245,7 +242,8 @@ android-api-16-nightly/opt:
     description: "Android 4.0 api-16+ Nightly"
     attributes:
         nightly: true
-    shipping-phase: promote
+        enable-full-crashsymbols: true
+    shipping-phase: build
     shipping-product: fennec
     index:
         product: mobile
@@ -276,7 +274,7 @@ android-api-16-nightly/opt:
               type: directory
     run:
         using: mozharness
-        actions: [get-secrets build multi-l10n update]
+        actions: [get-secrets build multi-l10n]
         config:
             - builds/releng_base_android_64_builds.py
             - taskcluster_nightly.py
@@ -297,6 +295,8 @@ android-aarch64/opt:
     index:
         product: mobile
         job-name: android-aarch64-opt
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: android-5-0-aarch64/opt
         symbol: B
@@ -322,7 +322,7 @@ android-aarch64/opt:
               type: directory
     run:
         using: mozharness
-        actions: [get-secrets build multi-l10n update]
+        actions: [get-secrets build multi-l10n]
         config:
             - builds/releng_base_android_64_builds.py
         script: "mozharness/scripts/fx_desktop_build.py"
@@ -341,7 +341,8 @@ android-aarch64-nightly/opt:
     description: "Android 5.0 AArch64 Nightly"
     attributes:
         nightly: true
-    shipping-phase: promote
+        enable-full-crashsymbols: true
+    shipping-phase: build
     shipping-product: fennec
     index:
         product: mobile
@@ -372,7 +373,7 @@ android-aarch64-nightly/opt:
               type: directory
     run:
         using: mozharness
-        actions: [get-secrets build multi-l10n update]
+        actions: [get-secrets build multi-l10n]
         config:
             - builds/releng_base_android_64_builds.py
             - taskcluster_nightly.py

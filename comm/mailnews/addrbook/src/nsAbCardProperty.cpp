@@ -20,6 +20,7 @@
 #include "nsArrayUtils.h"
 #include "mozITXTToHTMLConv.h"
 #include "nsIAbManager.h"
+#include "nsIUUIDGenerator.h"
 
 #include "nsVariant.h"
 #include "nsIProperty.h"
@@ -341,6 +342,51 @@ NS_IMETHODIMP nsAbCardProperty::DeleteProperty(const nsACString &name)
 {
   m_properties.Remove(name);
   return NS_OK;
+}
+
+NS_IMETHODIMP nsAbCardProperty::GetUID(nsACString &uid)
+{
+  nsAutoString aString;
+  nsresult rv = GetPropertyAsAString(kUIDProperty, aString);
+  if (NS_SUCCEEDED(rv)) {
+    uid = NS_ConvertUTF16toUTF8(aString);
+    return rv;
+  }
+
+  nsCOMPtr<nsIUUIDGenerator> uuidgen = mozilla::services::GetUUIDGenerator();
+  NS_ENSURE_TRUE(uuidgen, NS_ERROR_FAILURE);
+
+  nsID id;
+  rv = uuidgen->GenerateUUIDInPlace(&id);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  char idString[NSID_LENGTH];
+  id.ToProvidedString(idString);
+
+  uid.AppendASCII(idString + 1, NSID_LENGTH - 3);
+  return SetUID(uid);
+}
+
+NS_IMETHODIMP nsAbCardProperty::SetUID(const nsACString &aUID)
+{
+  nsresult rv = SetPropertyAsAString(kUIDProperty, NS_ConvertUTF8toUTF16(aUID));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (m_directoryId.IsEmpty()) {
+    return NS_OK;
+  }
+
+  int ampIndex = m_directoryId.FindChar('&');
+  const nsACString& directoryId = Substring(m_directoryId, 0, ampIndex);
+
+  nsCOMPtr<nsIAbManager> abManager = do_GetService(NS_ABMANAGER_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr <nsIAbDirectory> directory = nullptr;
+  rv = abManager->GetDirectoryFromId(directoryId, getter_AddRefs(directory));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return directory->ModifyCard(this);
 }
 
 NS_IMETHODIMP nsAbCardProperty::GetFirstName(nsAString &aString)

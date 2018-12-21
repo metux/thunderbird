@@ -13,7 +13,7 @@ linux64/opt:
     run:
         using: mozharness
         comm-checkout: true
-        actions: [build check-test update]
+        actions: [build check-test]
         config-paths:
             - comm/mozharness
         config:
@@ -31,6 +31,7 @@ linux64-nightly/opt:
     description: "Linux64 Nightly"
     attributes:
         nightly: true
+        enable-full-crashsymbols: true
     shipping-phase: build
     shipping-product: thunderbird
     index:
@@ -47,7 +48,7 @@ linux64-nightly/opt:
     run:
         using: mozharness
         comm-checkout: true
-        actions: [build check-test update]
+        actions: [build check-test]
         config-paths:
             - comm/mozharness
         config:
@@ -76,7 +77,7 @@ linux64/debug:
     run:
         using: mozharness
         comm-checkout: true
-        actions: [build check-test update]
+        actions: [build check-test]
         config-paths:
             - comm/mozharness
         config:
@@ -106,7 +107,7 @@ linux/opt:
     run:
         using: mozharness
         comm-checkout: true
-        actions: [build check-test update]
+        actions: [build check-test]
         config-paths:
             - comm/mozharness
         config:
@@ -124,6 +125,7 @@ linux-nightly/opt:
     description: "Linux32 Nightly"
     attributes:
         nightly: true
+        enable-full-crashsymbols: true
     shipping-phase: build
     shipping-product: thunderbird
     index:
@@ -140,7 +142,7 @@ linux-nightly/opt:
     run:
         using: mozharness
         comm-checkout: true
-        actions: [build check-test update]
+        actions: [build check-test]
         config-paths:
             - comm/mozharness
         config:
@@ -169,7 +171,7 @@ linux/debug:
     run:
         using: mozharness
         comm-checkout: true
-        actions: [build check-test update]
+        actions: [build check-test]
         config-paths:
             - comm/mozharness
         config:

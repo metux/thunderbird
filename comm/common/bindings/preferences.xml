@@ -601,7 +601,7 @@
              title="&preferencesDefaultTitleMac.title;">
 #endif
       <xul:vbox orient="vertical">
-        <xul:radiogroup anonid="selector" orient="horizontal" class="paneSelector chromeclass-toolbar"
+        <xul:radiogroup anonid="selector" orient="horizontal" class="paneSelector"
                         role="listbox"/> <!-- Expose to accessibility APIs as a listbox -->
       </xul:vbox>
       <xul:hbox flex="1" class="paneDeckContainer">

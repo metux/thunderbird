@@ -5,6 +5,7 @@
 loader: taskgraph.loader.transform:loader
 
 transforms:
+    - taskgraph.transforms.release:run_on_releases
     - taskgraph.transforms.release_deps:transforms
     - taskgraph.transforms.scriptworker:add_balrog_scopes
     - taskgraph.transforms.task:transforms
@@ -16,6 +17,14 @@ job-defaults:
         implementation: balrog
         balrog-action: submit-toplevel
         require-mirrors: true
+        archive-domain:
+            by-release-level:
+                production: archive.mozilla.org
+                staging: ftp.stage.mozaws.net
+        download-domain:
+            by-release-level:
+                production: download.mozilla.org
+                staging: bouncer-bouncer-releng.stage.mozaws.net
 
 jobs:
     thunderbird:
@@ -24,28 +33,27 @@ jobs:
         shipping-product: thunderbird
         worker:
             product: thunderbird
-            archive-domain:
-                by-project:
-                    comm-(beta|esr.*): archive.mozilla.org
-                    default: ftp.stage.mozaws.net
-            download-domain:
-                by-project:
-                    comm-(beta|esr.*): download.mozilla.org
-                    default: bouncer-bouncer-releng.stage.mozaws.net
             channel-names:
-                by-project:
-                    comm-beta: ["beta", "beta-localtest", "beta-cdntest"]
-                    comm-esr.*: ["release", "release-localtest", "release-cdntest"]
+                by-release-type:
+                    beta: ["beta", "beta-localtest", "beta-cdntest"]
+                    release: ["release", "release-localtest", "release-cdntest"]
                     default: []
             publish-rules:
-                by-project:
-                    comm-beta: [43]
-                    comm-esr60: [820]
-                    default: []
+                by-release-level:
+                    production:
+                        by-release-type:
+                            beta: [43]
+                            release: [820]
+                            default: []
+                    staging:
+                        by-release-type:
+                            beta: [43]
+                            release: [729]
+                            default: []
             rules-to-update:
-                by-project:
-                    comm-beta: ["thunderbird-beta-cdntest", "thunderbird-beta-localtest"]
-                    comm-esr60: ["thunderbird-release60-cdntest", "thunderbird-release60-localtest"]
+                by-release-type:
+                    beta: ["thunderbird-beta-cdntest", "thunderbird-beta-localtest"]
+                    release: ["thunderbird-release60-cdntest", "thunderbird-release60-localtest"]
                     default: []
             platforms: ["linux", "linux64", "macosx64", "win32", "win64"]
         treeherder:
@@ -54,33 +62,19 @@ jobs:
             tier: 1
             kind: build
 
-    # FIXME: (Bug 1487172) This task should only run on esr60-like branches
     thunderbird-bz2:
         name: submit-toplevel-thunderbird-release-to-balrog-bz2
         description: Submit toplevel Thunderbird release to balrog (bz2)
         shipping-product: thunderbird
+        run-on-releases: [esr60]
         worker:
             product: thunderbird
-            archive-domain:
-                by-project:
-                    comm-esr60: archive.mozilla.org
-                    default: ftp.stage.mozaws.net
-            download-domain:
-                by-project:
-                    comm-esr60: download.mozilla.org
-                    default: bouncer-bouncer-releng.stage.mozaws.net
-            channel-names:
-                by-project:
-                    comm-esr60: ["release", "release-localtest", "release-cdntest"]
-                    default: []
+            channel-names: ["release", "release-localtest", "release-cdntest"]
             publish-rules:
-                by-project:
-                    comm-esr60: [516]
-                    default: []
-            rules-to-update:
-                by-project:
-                    comm-esr60: ["thunderbird-esr52-cdntest", "thunderbird-esr52-localtest"]
-                    default: []
+                by-release-level:
+                    production: [516]
+                    staging: [516]
+            rules-to-update: ["thunderbird-esr52-cdntest", "thunderbird-esr52-localtest"]
             platforms: ["linux", "linux64", "macosx64", "win32", "win64"]
             blob-suffix: -bz2
             complete-mar-filename-pattern: '%s-%s.bz2.complete.mar'

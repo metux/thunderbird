@@ -380,6 +380,9 @@ task_description_schema = Schema({
         # os user groups for test task workers
         Optional('os-groups'): [basestring],
 
+        # feature for test task to run as administarotr
+        Optional('run-as-administrator'): bool,
+
         # optional features
         Required('chain-of-trust'): bool,
         Optional('taskcluster-proxy'): bool,
@@ -489,12 +492,13 @@ task_description_schema = Schema({
         Optional('product'): basestring,
         Optional('platforms'): [basestring],
         Optional('release-eta'): basestring,
-        Optional('channel-names'): optionally_keyed_by('project', [basestring]),
+        Optional('channel-names'): optionally_keyed_by('release-type', [basestring]),
         Optional('require-mirrors'): bool,
-        Optional('publish-rules'): optionally_keyed_by('project', [int]),
-        Optional('rules-to-update'): optionally_keyed_by('project', [basestring]),
-        Optional('archive-domain'): optionally_keyed_by('project', basestring),
-        Optional('download-domain'): optionally_keyed_by('project', basestring),
+        Optional('publish-rules'): optionally_keyed_by('release-type', 'release-level', [int]),
+        Optional('rules-to-update'): optionally_keyed_by(
+            'release-type', 'release-level', [basestring]),
+        Optional('archive-domain'): optionally_keyed_by('release-level', basestring),
+        Optional('download-domain'): optionally_keyed_by('release-level', basestring),
         Optional('blob-suffix'): basestring,
         Optional('complete-mar-filename-pattern'): basestring,
         Optional('complete-mar-bouncer-product-pattern'): basestring,
@@ -513,6 +517,9 @@ task_description_schema = Schema({
     }, {
         Required('implementation'): 'bouncer-aliases',
         Required('entries'): object,
+    }, {
+        Required('implementation'): 'bouncer-locations',
+        Required('bouncer-products'): [basestring],
     }, {
         Required('implementation'): 'bouncer-submission',
         Required('locales'): [basestring],
@@ -537,7 +544,7 @@ task_description_schema = Schema({
         }],
 
         # "Invalid" is a noop for try and other non-supported branches
-        Required('google-play-track'): Any('production', 'beta', 'alpha', 'rollout', 'invalid'),
+        Required('google-play-track'): Any('production', 'beta', 'alpha', 'rollout', 'internal'),
         Required('commit'): bool,
         Optional('rollout-percentage'): Any(int, None),
     }, {
@@ -558,6 +565,12 @@ task_description_schema = Schema({
     }, {
         Required('implementation'): 'shipit-shipped',
         Required('release-name'): basestring,
+    }, {
+        Required('implementation'): 'shipit-started',
+        Required('release-name'): basestring,
+        Required('product'): basestring,
+        Required('branch'): basestring,
+        Required('locales'): basestring,
     }, {
         Required('implementation'): 'treescript',
         Required('tags'): [Any('buildN', 'release', None)],
@@ -778,6 +791,8 @@ def build_docker_worker_payload(config, task, task_def):
                 level=config.params['level'])
         )
         worker['env']['USE_SCCACHE'] = '1'
+        # Disable sccache idle shutdown.
+        worker['env']['SCCACHE_IDLE_TIMEOUT'] = '0'
     else:
         worker['env']['SCCACHE_DISABLE'] = '1'
 
@@ -919,17 +934,36 @@ def build_docker_worker_payload(config, task, task_def):
 def build_generic_worker_payload(config, task, task_def):
     worker = task['worker']
 
+    task_def['payload'] = {
+        'command': worker['command'],
+        'maxRunTime': worker['max-run-time'],
+    }
+
+    env = worker.get('env', {})
+
+    if task.get('needs-sccache'):
+        env['USE_SCCACHE'] = '1'
+        # Disable sccache idle shutdown.
+        env['SCCACHE_IDLE_TIMEOUT'] = '0'
+    else:
+        env['SCCACHE_DISABLE'] = '1'
+
+    if env:
+        task_def['payload']['env'] = env
+
     artifacts = []
 
     for artifact in worker.get('artifacts', []):
         a = {
             'path': artifact['path'],
             'type': artifact['type'],
-            'expires': task_def['expires'],  # always expire with the task
         }
         if 'name' in artifact:
             a['name'] = artifact['name']
         artifacts.append(a)
+
+    if artifacts:
+        task_def['payload']['artifacts'] = artifacts
 
     # Need to copy over mounts, but rename keys to respect naming convention
     #   * 'cache-name' -> 'cacheName'
@@ -943,21 +977,12 @@ def build_generic_worker_payload(config, task, task_def):
             if 'task-id' in mount['content']:
                 mount['content']['taskId'] = mount['content'].pop('task-id')
 
-    task_def['payload'] = {
-        'command': worker['command'],
-        'artifacts': artifacts,
-        'env': worker.get('env', {}),
-        'mounts': mounts,
-        'maxRunTime': worker['max-run-time'],
-        'osGroups': worker.get('os-groups', []),
-    }
+    if mounts:
+        task_def['payload']['mounts'] = mounts
 
-    if task.get('needs-sccache'):
-        worker['env']['USE_SCCACHE'] = '1'
-    else:
-        worker['env']['SCCACHE_DISABLE'] = '1'
+    if worker.get('os-groups', []):
+        task_def['payload']['osGroups'] = worker['os-groups']
 
-    # currently only support one feature (chain of trust) but this will likely grow
     features = {}
 
     if worker.get('chain-of-trust'):
@@ -965,6 +990,9 @@ def build_generic_worker_payload(config, task, task_def):
 
     if worker.get('taskcluster-proxy'):
         features['taskclusterProxy'] = True
+
+    if worker.get('run-as-administrator', False):
+        features['runAsAdministrator'] = True
 
     if features:
         task_def['payload']['features'] = features
@@ -1070,7 +1098,10 @@ def build_balrog_payload(config, task, task_def):
             if prop in worker:
                 resolve_keyed_by(
                     worker, prop, task['description'],
-                    **config.params
+                    **{
+                        'release-type': config.params['release_type'],
+                        'release-level': config.params.release_level(),
+                    }
                 )
         task_def['payload'] = {
             'build_number': release_config['build_number'],
@@ -1105,6 +1136,17 @@ def build_bouncer_aliases_payload(config, task, task_def):
 
     task_def['payload'] = {
         'aliases_entries': worker['entries']
+    }
+
+
+@payload_builder('bouncer-locations')
+def build_bouncer_locations_payload(config, task, task_def):
+    worker = task['worker']
+    release_config = get_release_config(config)
+
+    task_def['payload'] = {
+        'bouncer_products': worker['bouncer-products'],
+        'version': release_config['version'],
     }
 
 
@@ -1147,6 +1189,23 @@ def build_ship_it_shipped_payload(config, task, task_def):
 
     task_def['payload'] = {
         'release_name': worker['release-name']
+    }
+
+
+@payload_builder('shipit-started')
+def build_ship_it_started_payload(config, task, task_def):
+    worker = task['worker']
+    release_config = get_release_config(config)
+
+    task_def['payload'] = {
+        'release_name': worker['release-name'],
+        'product': worker['product'],
+        'version': release_config['version'],
+        'build_number': release_config['build_number'],
+        'branch': worker['branch'],
+        'revision': get_branch_rev(config),
+        'partials': release_config.get('partial_versions', ""),
+        'l10n_changesets': worker['locales'],
     }
 
 
@@ -1204,7 +1263,7 @@ def build_treescript_payload(config, task, task_def):
         task_def['payload']['dry_run'] = True
 
     if worker.get('dontbuild'):
-        task_def['payload']['dont_build'] = True
+        task_def['payload']['dontbuild'] = True
 
 
 @payload_builder('invalid')
@@ -1270,6 +1329,9 @@ def set_defaults(config, tasks):
         elif worker['implementation'] == 'generic-worker':
             worker.setdefault('env', {})
             worker.setdefault('os-groups', [])
+            if worker['os-groups'] and worker['os'] != 'windows':
+                raise Exception('os-groups feature of generic-worker is only supported on '
+                                'Windows, not on {}'.format(worker['os']))
             worker.setdefault('chain-of-trust', False)
         elif worker['implementation'] == 'scriptworker-signing':
             worker.setdefault('max-run-time', 600)

@@ -89,7 +89,10 @@ function get_accept_button(aController) {
  * @param aURL the expected URL for the IFrame to load.
  */
 function wait_for_settings_loaded(aController, aURL) {
-  wait_for_frame_load(aController.e('accountSettings'), aURL);
+  // Mozmill chokes horribly here, so don't look directly into the iframe.
+  aController.waitFor(() => {
+    return aController.e("accountType").nextElementSibling.src == aURL;
+  });
 }
 
 /**

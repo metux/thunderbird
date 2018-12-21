@@ -7,6 +7,7 @@ treeherder:
         'mocha': 'Mocha unit tests'
         'py': 'Python unit tests'
         'A': 'Android Gradle tests'
+        'Fetch-URL': 'Fetch and store content'
         'Fxfn-l': 'Firefox functional tests (local)'
         'Fxfn-l-e10s': 'Firefox functional tests (local) with e10s'
         'Fxfn-r': 'Firefox functional tests (remote)'
@@ -65,6 +66,7 @@ treeherder:
         'Snap': 'Snap image generation'
         'langpack': 'Langpack sigatures and uploads'
         'UV': 'Update verify'
+        'pipfu': 'pipfile update'
 
 index:
     products:
@@ -131,7 +133,7 @@ release-promotion:
             target-tasks-method: promote_desktop
         promote_firefox_rc:
             product: firefox
-            release-type: rc
+            is-rc: true
             target-tasks-method: promote_desktop
             partial-updates: true
         push_devedition:
@@ -153,7 +155,7 @@ release-promotion:
             version-bump: true
         ship_fennec_rc:
             product: fennec
-            release-type: rc
+            is-rc: true
             target-tasks-method: ship_fennec
         ship_firefox:
             product: firefox
@@ -162,7 +164,7 @@ release-promotion:
             partial-updates: true
         ship_firefox_rc:
             product: firefox
-            release-type: rc
+            is-rc: true
             target-tasks-method: ship_desktop
             partial-updates: true
 

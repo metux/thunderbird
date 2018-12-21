@@ -16,7 +16,6 @@ from taskgraph.util.partials import (get_balrog_platform_name,
 from taskgraph.util.schema import validate_schema, Schema
 from taskgraph.util.scriptworker import (get_beetmover_bucket_scope,
                                          get_beetmover_action_scope,
-                                         get_phase,
                                          get_worker_type_for_scope)
 from taskgraph.util.taskcluster import get_artifact_prefix
 from taskgraph.transforms.task import task_description_schema
@@ -40,6 +39,7 @@ _WINDOWS_BUILD_PLATFORMS = [
 # with a beetmover patch in https://github.com/mozilla-releng/beetmoverscript/.
 # See example in bug 1348286
 _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US = [
+    "buildhub.json",
     "target.common.tests.zip",
     "target.cppunittest.tests.zip",
     "target.crashreporter-symbols.zip",
@@ -56,7 +56,21 @@ _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_EN_US = [
     "target_info.txt",
     "target.jsshell.zip",
     "mozharness.zip",
+    # This is only uploaded unsigned for Nightly, on beta/release/esr we
+    # beetmove the signed copy from amo.
+    "target.langpack.xpi",
 ]
+
+# Until bug 1331141 is fixed, if you are adding any new artifacts here that
+# need to be transfered to S3, please be aware you also need to follow-up
+# with a beetmover patch in https://github.com/mozilla-releng/beetmoverscript/.
+# See example in bug 1348286
+_DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_L10N = [
+    # This is only uploaded unsigned for Nightly, on beta/release/esr we
+    # beetmove the signed copy from amo.
+    "target.langpack.xpi",
+]
+
 
 # Until bug 1331141 is fixed, if you are adding any new artifacts here that
 # need to be transfered to S3, please be aware you also need to follow-up
@@ -73,7 +87,8 @@ UPSTREAM_ARTIFACT_UNSIGNED_PATHS = {
             'host/bin/mar.exe',
             'host/bin/mbsdiff.exe',
         ],
-    r'^(linux(|64)|macosx64|win(32|64))(|-devedition)-nightly-l10n$': [],
+    r'^(linux(|64)|macosx64|win(32|64))(|-devedition)-nightly-l10n$':
+        _DESKTOP_UPSTREAM_ARTIFACTS_UNSIGNED_L10N,
 }
 
 # Until bug 1331141 is fixed, if you are adding any new artifacts here that
@@ -142,7 +157,7 @@ beetmover_description_schema = Schema({
 
     # locale is passed only for l10n beetmoving
     Optional('locale'): basestring,
-    Optional('shipping-phase'): task_description_schema['shipping-phase'],
+    Required('shipping-phase'): task_description_schema['shipping-phase'],
     Optional('shipping-product'): task_description_schema['shipping-product'],
 })
 
@@ -200,7 +215,8 @@ def make_task_description(config, jobs):
         dependencies["repackage"] = job['grandparent-tasks']["repackage"]
 
         # If this isn't a direct dependency, it won't be in there.
-        if 'repackage-signing' not in dependencies:
+        if 'repackage-signing' not in dependencies and \
+                'repackage-signing-l10n' not in dependencies:
             repackage_signing_name = "repackage-signing"
             if job.get('locale'):
                 repackage_signing_name = "repackage-signing-l10n"
@@ -212,7 +228,6 @@ def make_task_description(config, jobs):
 
         bucket_scope = get_beetmover_bucket_scope(config)
         action_scope = get_beetmover_action_scope(config)
-        phase = get_phase(config)
 
         task = {
             'label': label,
@@ -223,7 +238,7 @@ def make_task_description(config, jobs):
             'attributes': attributes,
             'run-on-projects': dep_job.attributes.get('run_on_projects'),
             'treeherder': treeherder,
-            'shipping-phase': job.get('shipping-phase', phase),
+            'shipping-phase': job['shipping-phase'],
             'shipping-product': job.get('shipping-product'),
         }
 
@@ -258,6 +273,14 @@ def generate_upstream_artifacts(job, dependencies, platform, locale=None, projec
                 if paths:
                     usable_paths = paths[:]
 
+                    if 'target.langpack.xpi' in usable_paths and \
+                            not project == "mozilla-central":
+                        # XXX This is only beetmoved for m-c nightlies.
+                        # we should determine this better
+                        usable_paths.remove('target.langpack.xpi')
+                        if not len(usable_paths):
+                            # We may have removed our only path.
+                            continue
                     upstream_artifacts.append({
                         "taskId": {"task-reference": "<{}>".format(task_type)},
                         "taskType": task_type,

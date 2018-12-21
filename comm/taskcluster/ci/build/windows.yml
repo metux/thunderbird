@@ -15,7 +15,7 @@ win32/opt:
     run:
         using: mozharness
         comm-checkout: true
-        actions: [build, check-test, update]
+        actions: [build, check-test]
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
         config-paths:
@@ -34,6 +34,7 @@ win32-nightly/opt:
     description: "Win32 Nightly"
     attributes:
         nightly: true
+        enable-full-crashsymbols: true
     shipping-phase: build
     shipping-product: thunderbird
     index:
@@ -52,7 +53,7 @@ win32-nightly/opt:
     run:
         using: mozharness
         comm-checkout: true
-        actions: [build, check-test, update]
+        actions: [build, check-test]
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
         config-paths:
@@ -84,7 +85,7 @@ win32/debug:
     run:
         using: mozharness
         comm-checkout: true
-        actions: [build, check-test, update]
+        actions: [build, check-test]
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
         config-paths:
@@ -134,6 +135,7 @@ win64-nightly/opt:
     description: "Win64 Nightly"
     attributes:
         nightly: true
+        enable-full-crashsymbols: true
     shipping-phase: build
     shipping-product: thunderbird
     index:
@@ -152,7 +154,7 @@ win64-nightly/opt:
     run:
         using: mozharness
         comm-checkout: true
-        actions: [build, check-test, update]
+        actions: [build, check-test]
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
         config-paths:

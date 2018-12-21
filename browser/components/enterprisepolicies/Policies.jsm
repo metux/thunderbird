@@ -6,17 +6,22 @@
 
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 ChromeUtils.import("resource://gre/modules/Services.jsm");
-XPCOMUtils.defineLazyServiceGetter(this, "gXulStore",
-                                   "@mozilla.org/xul/xulstore;1",
-                                   "nsIXULStore");
+
+XPCOMUtils.defineLazyServiceGetters(this, {
+  gCertDB: ["@mozilla.org/security/x509certdb;1", "nsIX509CertDB"],
+  gXulStore: ["@mozilla.org/xul/xulstore;1", "nsIXULStore"],
+});
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   AddonManager: "resource://gre/modules/AddonManager.jsm",
+  AppConstants: "resource://gre/modules/AppConstants.jsm",
   BookmarksPolicies: "resource:///modules/policies/BookmarksPolicies.jsm",
   CustomizableUI: "resource:///modules/CustomizableUI.jsm",
   ProxyPolicies: "resource:///modules/policies/ProxyPolicies.jsm",
   WebsiteFilter: "resource:///modules/policies/WebsiteFilter.jsm",
 });
+
+Cu.importGlobalProperties(["File", "FileReader"]);
 
 const PREF_LOGLEVEL           = "browser.policies.loglevel";
 const BROWSER_DOCUMENT_URL    = "chrome://browser/content/browser.xul";
@@ -132,6 +137,58 @@ var Policies = {
     onBeforeAddons(manager, param) {
       if ("ImportEnterpriseRoots" in param) {
         setAndLockPref("security.enterprise_roots.enabled", true);
+      }
+      if ("Install" in param) {
+        (async () => {
+          let dirs = [];
+          let platform = AppConstants.platform;
+          if (platform == "win") {
+            dirs = [
+              // Ugly, but there is no official way to get %USERNAME\AppData\Roaming\Mozilla.
+              Services.dirsvc.get("XREUSysExt", Ci.nsIFile).parent,
+              // Even more ugly, but there is no official way to get %USERNAME\AppData\Local\Mozilla.
+              Services.dirsvc.get("DefProfLRt", Ci.nsIFile).parent.parent,
+            ];
+          } else if (platform == "macosx" || platform == "linux") {
+            dirs = [
+              // These two keys are named wrong. They return the Mozilla directory.
+              Services.dirsvc.get("XREUserNativeManifests", Ci.nsIFile),
+              Services.dirsvc.get("XRESysNativeManifests", Ci.nsIFile),
+            ];
+          }
+          for (let dir of dirs) {
+            dir.append(platform == "linux" ? "certificates" : "Certificates");
+            for (let certfilename of param.Install) {
+              let certfile = dir.clone();
+              certfile.append(certfilename);
+              let file;
+              try {
+                file = await File.createFromNsIFile(certfile);
+              } catch (e) {
+                log.info(`Unable to open certificate - ${certfile.path}`);
+                continue;
+              }
+              let reader = new FileReader();
+              reader.onloadend = function() {
+                if (reader.readyState != reader.DONE) {
+                  log.error(`Unable to read certificate - ${certfile.path}`);
+                  return;
+                }
+                let cert = reader.result;
+                try {
+                  if (/-----BEGIN CERTIFICATE-----/.test(cert)) {
+                    gCertDB.addCertFromBase64(pemToBase64(cert), "CTu,CTu,");
+                  } else {
+                    gCertDB.addCert(cert, "CTu,CTu,");
+                  }
+                } catch (e) {
+                  log.error(`Unable to add certificate - ${certfile.path}`);
+                }
+              };
+              reader.readAsBinaryString(file);
+            }
+          }
+        })();
       }
     }
   },
@@ -410,8 +467,28 @@ var Policies = {
 
   "Extensions": {
     onBeforeUIStartup(manager, param) {
+      let uninstallingPromise = Promise.resolve();
+      if ("Uninstall" in param) {
+        uninstallingPromise = runOncePerModification("extensionsUninstall", JSON.stringify(param.Uninstall), async () => {
+          // If we're uninstalling add-ons, re-run the extensionsInstall runOnce even if it hasn't
+          // changed, which will allow add-ons to be updated.
+          Services.prefs.clearUserPref("browser.policies.runOncePerModification.extensionsInstall");
+          let addons = await AddonManager.getAddonsByIDs(param.Uninstall);
+          for (let addon of addons) {
+            if (addon) {
+              try {
+                await addon.uninstall();
+              } catch (e) {
+                // This can fail for add-ons that can't be uninstalled.
+                // Just ignore.
+              }
+            }
+          }
+        });
+      }
       if ("Install" in param) {
-        runOncePerModification("extensionsInstall", JSON.stringify(param.Install), () => {
+        runOncePerModification("extensionsInstall", JSON.stringify(param.Install), async () => {
+          await uninstallingPromise;
           for (let location of param.Install) {
             let url;
             if (location.includes("://")) {
@@ -462,22 +539,6 @@ var Policies = {
           }
         });
       }
-      if ("Uninstall" in param) {
-        runOncePerModification("extensionsUninstall", JSON.stringify(param.Uninstall), () => {
-          AddonManager.getAddonsByIDs(param.Uninstall, (addons) => {
-            for (let addon of addons) {
-              if (addon) {
-                try {
-                  addon.uninstall();
-                } catch (e) {
-                  // This can fail for add-ons that can't be uninstalled.
-                  // Just ignore.
-                }
-              }
-            }
-          });
-        });
-      }
       if ("Locked" in param) {
         for (let ID of param.Locked) {
           manager.disallowFeature(`modify-extension:${ID}`);
@@ -523,27 +584,45 @@ var Policies = {
       // |homepages| will be a string containing a pipe-separated ('|') list of
       // URLs because that is what the "Home page" section of about:preferences
       // (and therefore what the pref |browser.startup.homepage|) accepts.
-      let homepages = param.URL.href;
-      if (param.Additional && param.Additional.length > 0) {
-        homepages += "|" + param.Additional.map(url => url.href).join("|");
+      if (param.URL) {
+        let homepages = param.URL.href;
+        if (param.Additional && param.Additional.length > 0) {
+          homepages += "|" + param.Additional.map(url => url.href).join("|");
+        }
+        if (param.Locked) {
+          setAndLockPref("browser.startup.homepage", homepages);
+          setAndLockPref("pref.browser.homepage.disable_button.current_page", true);
+          setAndLockPref("pref.browser.homepage.disable_button.bookmark_page", true);
+          setAndLockPref("pref.browser.homepage.disable_button.restore_default", true);
+        } else {
+          // The default pref for homepage is actually a complex pref. We need to
+          // set it in a special way such that it works properly
+          let homepagePrefVal = "data:text/plain,browser.startup.homepage=" +
+                                 homepages;
+          setDefaultPref("browser.startup.homepage", homepagePrefVal);
+          runOncePerModification("setHomepage", homepages, () => {
+            Services.prefs.clearUserPref("browser.startup.homepage");
+          });
+        }
       }
-      if (param.Locked) {
-        setAndLockPref("browser.startup.homepage", homepages);
-        setAndLockPref("browser.startup.page", 1);
-        setAndLockPref("pref.browser.homepage.disable_button.current_page", true);
-        setAndLockPref("pref.browser.homepage.disable_button.bookmark_page", true);
-        setAndLockPref("pref.browser.homepage.disable_button.restore_default", true);
-      } else {
-        // The default pref for homepage is actually a complex pref. We need to
-        // set it in a special way such that it works properly
-        let homepagePrefVal = "data:text/plain,browser.startup.homepage=" +
-                               homepages;
-        setDefaultPref("browser.startup.homepage", homepagePrefVal);
-        setDefaultPref("browser.startup.page", 1);
-        runOncePerModification("setHomepage", homepages, () => {
-          Services.prefs.clearUserPref("browser.startup.homepage");
-          Services.prefs.clearUserPref("browser.startup.page");
-        });
+      if (param.StartPage) {
+        let prefValue;
+        switch (param.StartPage) {
+          case "none":
+            prefValue = 0;
+            break;
+          case "homepage":
+            prefValue = 1;
+            break;
+          case "previous-session":
+            prefValue = 3;
+            break;
+        }
+        if (param.Locked) {
+          setAndLockPref("browser.startup.page", prefValue);
+        } else {
+          setDefaultPref("browser.startup.page", prefValue);
+        }
       }
     }
   },
@@ -645,6 +724,12 @@ var Policies = {
     }
   },
 
+  "RequestedLocales": {
+    onBeforeAddons(manager, param) {
+      Services.locale.setRequestedLocales(param);
+    },
+  },
+
   "SanitizeOnShutdown": {
     onBeforeUIStartup(manager, param) {
       setAndLockPref("privacy.sanitize.sanitizeOnShutdown", param);
@@ -716,7 +801,8 @@ var Policies = {
                 description: newEngine.Description,
                 method:      newEngine.Method,
                 suggestURL:  newEngine.SuggestURLTemplate,
-                extensionID: "set-via-policy"
+                extensionID: "set-via-policy",
+                queryCharset: "UTF-8",
               };
               try {
                 Services.search.addEngineWithDetails(newEngine.Name,
@@ -751,6 +837,32 @@ var Policies = {
         }
       });
     }
+  },
+
+  "SecurityDevices": {
+    onProfileAfterChange(manager, param) {
+      let securityDevices = param;
+      let pkcs11db = Cc["@mozilla.org/security/pkcs11moduledb;1"].getService(Ci.nsIPKCS11ModuleDB);
+      let moduleList = pkcs11db.listModules();
+      for (let deviceName in securityDevices) {
+        let foundModule = false;
+        for (let module of XPCOMUtils.IterSimpleEnumerator(moduleList, Ci.nsIPKCS11Module)) {
+          if (module && module.libName === securityDevices[deviceName]) {
+            foundModule = true;
+            break;
+          }
+        }
+        if (foundModule) {
+          continue;
+        }
+        try {
+          pkcs11db.addModule(deviceName, securityDevices[deviceName], 0, 0);
+        } catch (ex) {
+          log.error(`Unable to add security device ${deviceName}`);
+          log.debug(ex);
+        }
+      }
+    },
   },
 
   "WebsiteFilter": {
@@ -918,6 +1030,8 @@ function runOnce(actionName, callback) {
  * callback once when the policy is set, then never again.
  * runOncePerModification runs the callback once each time the policy value
  * changes from its previous value.
+ * If the callback that was passed is an async function, you can await on this
+ * function to await for the callback.
  *
  * @param {string} actionName
  *        A given name which will be used to track if this callback has run.
@@ -929,16 +1043,19 @@ function runOnce(actionName, callback) {
  *        string.
  * @param {Function} callback
  *        The callback to be run when the pref value changes
+ * @returns Promise
+ *        A promise that will resolve once the callback finishes running.
+ *
  */
-function runOncePerModification(actionName, policyValue, callback) {
+async function runOncePerModification(actionName, policyValue, callback) {
   let prefName = `browser.policies.runOncePerModification.${actionName}`;
   let oldPolicyValue = Services.prefs.getStringPref(prefName, undefined);
   if (policyValue === oldPolicyValue) {
     log.debug(`Not running action ${actionName} again because the policy's value is unchanged`);
-    return;
+    return Promise.resolve();
   }
   Services.prefs.setStringPref(prefName, policyValue);
-  callback();
+  return callback();
 }
 
 let gChromeURLSBlocked = false;
@@ -959,7 +1076,8 @@ let ChromeURLBlockPolicy = {
         aContentType == Ci.nsIContentPolicy.TYPE_DOCUMENT &&
         aRequestOrigin &&
         aRequestOrigin.spec == "chrome://browser/content/browser.xul" &&
-        aContentLocation.host != "mochitests") {
+        aContentLocation.host != "mochitests" &&
+        aContentLocation.host != "devtools") {
       return Ci.nsIContentPolicy.REJECT_REQUEST;
     }
     return Ci.nsIContentPolicy.ACCEPT;
@@ -986,4 +1104,10 @@ function blockAllChromeURLs() {
 
   let cm = Cc["@mozilla.org/categorymanager;1"].getService(Ci.nsICategoryManager);
   cm.addCategoryEntry("content-policy", ChromeURLBlockPolicy.contractID, ChromeURLBlockPolicy.contractID, false, true);
+}
+
+function pemToBase64(pem) {
+  return pem.replace(/-----BEGIN CERTIFICATE-----/, "")
+            .replace(/-----END CERTIFICATE-----/, "")
+            .replace(/[\r\n]/g, "");
 }
