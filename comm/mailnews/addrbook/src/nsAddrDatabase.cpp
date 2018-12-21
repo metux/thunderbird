@@ -31,6 +31,7 @@
 #include "nsIPrefBranch.h"
 #include "nsIAbManager.h"
 #include "mozilla/Services.h"
+#include "nsIObserverService.h"
 
 #define ID_PAB_TABLE            1
 #define ID_DELETEDCARDS_TABLE           2
@@ -72,6 +73,7 @@ nsAddrDatabase::nsAddrDatabase()
       m_MailListTableKind(0),
       m_DeletedCardsTableKind(0),
       m_CardRowScopeToken(0),
+      m_UIDColumnToken(0),
       m_FirstNameColumnToken(0),
       m_LastNameColumnToken(0),
       m_PhoneticFirstNameColumnToken(0),
@@ -941,6 +943,7 @@ nsresult nsAddrDatabase::InitMDBInfo()
     gAddressBookTableOID.mOid_Id = ID_PAB_TABLE;
     if (NS_SUCCEEDED(err))
     {
+      m_mdbStore->StringToToken(m_mdbEnv,  kUIDProperty, &m_UIDColumnToken);
       m_mdbStore->StringToToken(m_mdbEnv,  kFirstNameProperty, &m_FirstNameColumnToken);
       m_mdbStore->StringToToken(m_mdbEnv,  kLastNameProperty, &m_LastNameColumnToken);
       m_mdbStore->StringToToken(m_mdbEnv,  kPhoneticFirstNameProperty, &m_PhoneticFirstNameColumnToken);
@@ -1090,6 +1093,10 @@ NS_IMETHODIMP nsAddrDatabase::CreateNewCardAndAddToDB(nsIAbCard *aNewCard, bool 
 
   if (!aNewCard || !m_mdbPabTable || !m_mdbEnv || !m_mdbStore)
     return NS_ERROR_NULL_POINTER;
+
+  // Ensure the new card has a UID.
+  nsAutoCString uid;
+  aNewCard->GetUID(uid);
 
   // Per the UUID requirements, we want to try to reuse the local id if at all
   // possible. nsACString::ToInteger probably won't fail if the local id looks
@@ -1331,6 +1338,10 @@ nsresult nsAddrDatabase::AddListAttributeColumnsToRow(nsIAbDirectory *list, nsIM
   // add the row to the singleton table.
   if (NS_SUCCEEDED(err) && listRow)
   {
+    nsAutoCString acStr;
+    list->GetUID(acStr);
+    AddUID(listRow, acStr.get());
+
     nsString unicodeStr;
 
     list->GetDirName(unicodeStr);
@@ -1838,6 +1849,11 @@ NS_IMETHODIMP nsAddrDatabase::EditMailList(nsIAbDirectory *mailList, nsIAbCard *
     {
       NotifyCardEntryChange(AB_NotifyPropertyChanged, listCard, mailList);
     }
+
+    nsCOMPtr<nsIObserverService> observerService = mozilla::services::GetObserverService();
+    if (observerService) {
+      observerService->NotifyObservers(mailList, "addrbook-list-updated", nullptr);
+    }
   }
 
   NS_RELEASE(pListRow);
@@ -2216,10 +2232,15 @@ nsresult nsAddrDatabase::GetListCardFromDB(nsIAbCard *listCard, nsIMdbRow* listR
 {
   nsresult    err = NS_OK;
   if (!listCard || !listRow)
-      return NS_ERROR_NULL_POINTER;
+    return NS_ERROR_NULL_POINTER;
 
   nsAutoString tempString;
 
+  err = GetStringColumn(listRow, m_UIDColumnToken, tempString);
+  if (NS_SUCCEEDED(err) && !tempString.IsEmpty())
+  {
+    listCard->SetPropertyAsAString(kUIDProperty, tempString);
+  }
   err = GetStringColumn(listRow, m_ListNameColumnToken, tempString);
   if (NS_SUCCEEDED(err) && !tempString.IsEmpty())
   {
@@ -2251,6 +2272,11 @@ nsresult nsAddrDatabase::GetListFromDB(nsIAbDirectory *newList, nsIMdbRow* listR
 
   nsAutoString tempString;
 
+  err = GetStringColumn(listRow, m_UIDColumnToken, tempString);
+  if (NS_SUCCEEDED(err) && !tempString.IsEmpty())
+  {
+    newList->SetUID(NS_ConvertUTF16toUTF8(tempString));
+  }
   err = GetStringColumn(listRow, m_ListNameColumnToken, tempString);
   if (NS_SUCCEEDED(err) && !tempString.IsEmpty())
   {

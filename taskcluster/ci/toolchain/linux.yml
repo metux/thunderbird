@@ -91,6 +91,54 @@ linux64-clang-6-pre:
     toolchains:
         - linux64-gcc-4.9
 
+linux64-clang-trunk-mingw-x86:
+    description: "MinGW-Clang Trunk x86 toolchain build"
+    treeherder:
+        kind: build
+        platform: toolchains/opt
+        symbol: TMW(clang-x86)
+        tier: 2
+    worker-type: aws-provisioner-v1/gecko-{level}-b-linux-xlarge
+    worker:
+        max-run-time: 7200
+    run:
+        using: toolchain-script
+        script: build-clang-trunk-mingw.sh
+        arguments: [
+            'x86'
+        ]
+        resources:
+            - 'build/build-clang/build-clang.py'
+            - 'build/build-clang/clang-trunk-mingw.json'
+            - 'taskcluster/scripts/misc/tooltool-download.sh'
+        toolchain-artifact: public/build/clangmingw.tar.xz
+    toolchains:
+        - linux64-gcc-4.9
+
+linux64-clang-trunk-mingw-x64:
+    description: "MinGW-Clang Trunk x64 toolchain build"
+    treeherder:
+        kind: build
+        platform: toolchains/opt
+        symbol: TMW(clang-x64)
+        tier: 2
+    worker-type: aws-provisioner-v1/gecko-{level}-b-linux-xlarge
+    worker:
+        max-run-time: 7200
+    run:
+        using: toolchain-script
+        script: build-clang-trunk-mingw.sh
+        arguments: [
+            'x64'
+        ]
+        resources:
+            - 'build/build-clang/build-clang.py'
+            - 'build/build-clang/clang-trunk-mingw.json'
+            - 'taskcluster/scripts/misc/tooltool-download.sh'
+        toolchain-artifact: public/build/clangmingw.tar.xz
+    toolchains:
+        - linux64-gcc-4.9
+
 linux64-clang-6-pre-macosx-cross:
     description: "Clang 6 Pre toolchain build with MacOS Compiler RT libs"
     treeherder:
@@ -258,6 +306,9 @@ linux64-binutils:
         resources:
             - 'build/unix/build-binutils/build-binutils.sh'
         toolchain-artifact: public/build/binutils.tar.xz
+    fetches:
+        fetch:
+            - binutils-2.25.1
 
 linux64-cctools-port:
     description: "cctools-port toolchain build"

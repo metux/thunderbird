@@ -526,7 +526,7 @@ nsresult nsImapProtocol::Configure(int32_t TooFastTime, int32_t IdealTime,
 
 
 NS_IMETHODIMP
-nsImapProtocol::Initialize(nsIImapHostSessionList * aHostSessionList,
+nsImapProtocol::Initialize(nsIImapHostSessionList *aHostSessionList,
                            nsIImapIncomingServer *aServer)
 {
   NS_PRECONDITION(aHostSessionList && aServer,
@@ -546,7 +546,7 @@ nsImapProtocol::Initialize(nsIImapHostSessionList * aHostSessionList,
   aServer->GetUseCondStore(&m_useCondStore);
   aServer->GetUseCompressDeflate(&m_useCompressDeflate);
 
-  m_hostSessionList = aHostSessionList; // no ref count...host session list has life time > connection
+  m_hostSessionList = aHostSessionList;
   m_parser.SetHostSessionList(aHostSessionList);
   m_parser.SetFlagState(m_flagState);
 
@@ -577,7 +577,6 @@ nsImapProtocol::~nsImapProtocol()
   PR_Free(m_fetchBodyIdList);
 
   PR_Free(m_dataOutputBuf);
-  delete m_inputStreamBuffer;
 
   // **** We must be out of the thread main loop function
   NS_ASSERTION(!m_imapThreadIsRunning, "Oops, thread is still running.\n");

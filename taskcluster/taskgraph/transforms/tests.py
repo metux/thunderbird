@@ -326,6 +326,10 @@ test_description_schema = Schema({
         'test-platform',
         [basestring]),
 
+    Optional('run-as-administrator'): optionally_keyed_by(
+        'test-platform',
+        bool),
+
     # -- values supplied by the task-generation infrastructure
 
     # the platform of the build this task is testing
@@ -377,6 +381,10 @@ test_description_schema = Schema({
         Any(basestring, None),
     ),
 
+    # A list of artifacts to install from 'fetch' tasks.
+    Optional('fetches'): {
+        basestring: [basestring],
+    },
 }, required=True)
 
 
@@ -424,6 +432,7 @@ def set_defaults(config, tests):
         test.setdefault('try-name', test['test-name'])
 
         test.setdefault('os-groups', [])
+        test.setdefault('run-as-administrator', False)
         test.setdefault('chunks', 1)
         test.setdefault('run-on-projects', 'built-projects')
         test.setdefault('instance-size', 'default')
@@ -628,6 +637,7 @@ def handle_keyed_by(config, tests):
         'suite',
         'run-on-projects',
         'os-groups',
+        'run-as-administrator',
         'mozharness.chunked',
         'mozharness.config',
         'mozharness.extra-options',
@@ -704,7 +714,7 @@ def enable_code_coverage(config, tests):
                 test['mozharness']['extra-options'].append('--no-upload-results')
                 test['mozharness']['extra-options'].append('--add-option')
                 test['mozharness']['extra-options'].append('--tptimeout,15000')
-        elif test['build-platform'] == 'linux64-jsdcov/opt':
+        elif 'jsdcov' in test['build-platform']:
             # Ensure we don't run on inbound/autoland/beta, but if the test is try only, ignore it
             if 'mozilla-central' in test['run-on-projects'] or \
                     test['run-on-projects'] == 'built-projects':

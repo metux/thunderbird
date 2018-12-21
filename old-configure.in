@@ -1065,7 +1065,10 @@ case "$target" in
         if test -n "$GNU_CC"; then
             CFLAGS="$CFLAGS -mstackrealign"
             CXXFLAGS="$CXXFLAGS -mstackrealign"
-            LDFLAGS="$LDFLAGS -Wl,--enable-stdcall-fixup -Wl,--large-address-aware"
+            LDFLAGS="$LDFLAGS -Wl,--large-address-aware"
+            if test -z "$CLANG_CC"; then
+                LDFLAGS="$LDFLAGS -Wl,--enable-stdcall-fixup"
+            fi
         else
             DSO_LDOPTS="$DSO_LDOPTS -MACHINE:X86"
             LDFLAGS="$LDFLAGS -SAFESEH"
@@ -1777,7 +1780,7 @@ MOZ_ARG_WITH_BOOL(system-nss,
     _USE_SYSTEM_NSS=1 )
 
 if test -n "$_USE_SYSTEM_NSS"; then
-    AM_PATH_NSS(3.36.4, [MOZ_SYSTEM_NSS=1], [AC_MSG_ERROR([you don't have NSS installed or your version is too old])])
+    AM_PATH_NSS(3.36.6, [MOZ_SYSTEM_NSS=1], [AC_MSG_ERROR([you don't have NSS installed or your version is too old])])
 fi
 
 if test -z "$MOZ_SYSTEM_NSS"; then
@@ -4755,7 +4758,7 @@ ac_configure_args="$_SUBDIR_CONFIG_ARGS"
 
 # --with-system-nspr will have been converted into the relevant $NSPR_CFLAGS
 # and $NSPR_LIBS.
-ac_configure_args="`echo $ac_configure_args | sed -e 's/--with-system-nspr\S* *//'`"
+ac_configure_args="`echo $ac_configure_args | sed -e 's/--with-system-nspr[[^[:space:]]]* *//'`"
 
 if test "$_INTL_API" = no; then
     ac_configure_args="$ac_configure_args --without-intl-api"

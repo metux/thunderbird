@@ -76,6 +76,7 @@ nsCOMArray<msgIAddressObject> DecodedHeader(const nsAString &aHeader)
     return retval;
   }
   nsCOMPtr<nsIMsgHeaderParser> headerParser(services::GetHeaderParser());
+  NS_ENSURE_TRUE(headerParser, retval);
   msgIAddressObject **addresses = nullptr;
   uint32_t length;
   nsresult rv = headerParser->ParseDecodedHeader(aHeader, false,
@@ -95,6 +96,7 @@ nsCOMArray<msgIAddressObject> EncodedHeader(const nsACString &aHeader,
     return retval;
   }
   nsCOMPtr<nsIMsgHeaderParser> headerParser(services::GetHeaderParser());
+  NS_ENSURE_TRUE(headerParser, retval);
   msgIAddressObject **addresses = nullptr;
   uint32_t length;
   nsresult rv = headerParser->ParseEncodedHeader(aHeader, aCharset,

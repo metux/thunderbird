@@ -3,6 +3,8 @@ win32/debug:
     index:
         product: firefox
         job-name: win32-debug
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: windows2012-32/debug
         symbol: B
@@ -31,16 +33,12 @@ win32/opt:
     index:
         product: firefox
         job-name: win32-opt
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: windows2012-32/opt
         symbol: B
         tier: 1
-    stub-installer:
-        # Beta and release use a stub-requiring update channel
-        by-project:
-            default: false
-            mozilla-beta: true
-            mozilla-release: true
     worker-type: aws-provisioner-v1/gecko-{level}-b-win2012
     worker:
         max-run-time: 7200
@@ -96,6 +94,8 @@ win32/pgo:
     index:
         product: firefox
         job-name: win32-pgo
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: windows2012-32/pgo
         symbol: B
@@ -124,6 +124,8 @@ win64/debug:
     index:
         product: firefox
         job-name: win64-debug
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: windows2012-64/debug
         symbol: B
@@ -152,6 +154,8 @@ win64/opt:
     index:
         product: firefox
         job-name: win64-opt
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: windows2012-64/opt
         symbol: B
@@ -214,6 +218,7 @@ win32-nightly/opt:
         type: nightly
     attributes:
         nightly: true
+        enable-full-crashsymbols: true
     stub-installer:
         by-project:
             default: false
@@ -234,7 +239,7 @@ win32-nightly/opt:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/win32/releng.manifest"
     run:
         using: mozharness
-        actions: [build, check-test, update]
+        actions: [build, check-test]
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
         config:
@@ -256,6 +261,7 @@ win64-nightly/opt:
         type: nightly
     attributes:
         nightly: true
+        enable-full-crashsymbols: true
     shipping-phase: build
     shipping-product: firefox
     treeherder:
@@ -269,7 +275,7 @@ win64-nightly/opt:
             TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/win64/releng.manifest"
     run:
         using: mozharness
-        actions: [build, check-test, update]
+        actions: [build, check-test]
         options: [append-env-variables-from-configs]
         script: mozharness/scripts/fx_desktop_build.py
         config:
@@ -288,6 +294,8 @@ win64/pgo:
     index:
         product: firefox
         job-name: win64-pgo
+    attributes:
+        enable-full-crashsymbols: true
     treeherder:
         platform: windows2012-64/pgo
         symbol: B
@@ -584,6 +592,7 @@ win32-devedition-nightly/opt:
         type: nightly
     attributes:
         nightly: true
+        enable-full-crashsymbols: true
     stub-installer:
         by-project:
             default: false
@@ -627,6 +636,7 @@ win64-devedition-nightly/opt:
         type: nightly
     attributes:
         nightly: true
+        enable-full-crashsymbols: true
     shipping-phase: build
     shipping-product: devedition
     treeherder:

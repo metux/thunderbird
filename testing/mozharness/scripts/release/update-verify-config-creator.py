@@ -117,6 +117,13 @@ class UpdateVerifyConfigCreator(BaseScript):
                     "'firefox-mozilla-release for x.y and x.y.z versions. "
                     "May be passed multiple times"
         }],
+        [["--override-certs"], {
+            "dest": "override_certs",
+            "default": None,
+            "help": "Certs to override the updater with prior to running update verify."
+                    "If passed, should be one of: dep, nightly, release"
+                    "If not passed, no certificate overriding will be configured"
+        }],
         [["--platform"], {
             "dest": "platform",
             "help": "The platform to generate the update verify config for, in FTP-style",
@@ -235,8 +242,9 @@ class UpdateVerifyConfigCreator(BaseScript):
         for release_name, release_info in \
             reversed(sorted(releases.items(),
                             key=lambda x: MozillaVersion(x[1]['version']))):
-            product = release_info['product']
-            version = release_info['version']
+            # we need to use releases_name instead of release_info since esr
+            # string is included in the name. later we rely on this.
+            product, version = release_name.split('-', 1)
             category = release_info['category']
             tag = "{}_{}_RELEASE".format(product.upper(), version.replace(".", "_"))
             # Product details has a "category" for releases that we can use to
@@ -362,6 +370,7 @@ class UpdateVerifyConfigCreator(BaseScript):
             to_build_id=self.config["to_buildid"],
             to_app_version=self.config["to_app_version"],
             to_display_version=to_display_version,
+            override_certs=self.config.get("override_certs"),
         )
 
         to_shipped_locales_url = urljoin(
