@@ -1,3 +1,15 @@
+thunderbird (1:60.4.0-1) unstable; urgency=medium
+
+  * [2e5a9d0] d/control: don't hard code LLVM packages in B-D
+    (Closes: #912797)
+  * [3aaa4a6] New upstream version 60.4.0
+    No MFSA published yet by Mozilla Security while packaging this version.
+    (Closes: #913645)
+  * [12d3be3] debian/control: increase Standards-Version to 4.3.0
+    No further changes needed.
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Mon, 24 Dec 2018 17:04:10 +0100
+
 thunderbird (1:60.3.1-1) unstable; urgency=medium
 
   * [e1b489a] New upstream version 60.3.1
