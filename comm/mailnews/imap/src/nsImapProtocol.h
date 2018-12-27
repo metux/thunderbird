@@ -336,7 +336,7 @@ private:
   nsCString             m_serverKey;
   nsCString             m_realHostName;
   char                  *m_dataOutputBuf;
-  nsMsgLineStreamBuffer * m_inputStreamBuffer;
+  RefPtr<nsMsgLineStreamBuffer> m_inputStreamBuffer;
   uint32_t              m_allocatedSize; // allocated size
   uint32_t        m_totalDataSize; // total data size
   uint32_t        m_curReadIndex;  // current read index
@@ -372,6 +372,7 @@ private:
   nsString m_password;
   // Set to the result of nsImapServer::PromptPassword
   nsresult    m_passwordStatus;
+  bool        m_passwordObtained;
 
   bool         m_imapThreadIsRunning;
   void ImapThreadMainLoop(void);
@@ -629,7 +630,7 @@ private:
   nsDataHashtable<nsCStringHashKey, int32_t> m_specialXListMailboxes;
 
 
-  nsIImapHostSessionList * m_hostSessionList;
+  nsCOMPtr<nsIImapHostSessionList> m_hostSessionList;
 
   bool m_fromHeaderSeen;
 

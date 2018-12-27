@@ -6,6 +6,7 @@
 #include "mozTXTToHTMLConv.h"
 #include "nsNetUtil.h"
 #include "nsUnicharUtils.h"
+#include "nsUnicodeProperties.h"
 #include "nsCRT.h"
 #include "nsIExternalProtocolHandler.h"
 #include "nsIIOService.h"
@@ -568,6 +569,16 @@ mozTXTToHTMLConv::FindURL(const char16_t * aInString, int32_t aInLength, const u
   return state[check] == success;
 }
 
+static inline bool IsAlpha(const uint32_t aChar)
+{
+  return mozilla::unicode::GetGenCategory(aChar) == nsUGenCategory::kLetter;
+}
+
+static inline bool IsDigit(const uint32_t aChar)
+{
+  return mozilla::unicode::GetGenCategory(aChar) == nsUGenCategory::kNumber;
+}
+
 bool
 mozTXTToHTMLConv::ItMatchesDelimited(const char16_t * aInString,
     int32_t aInLength, const char16_t* rep, int32_t aRepLen,
@@ -591,38 +602,22 @@ mozTXTToHTMLConv::ItMatchesDelimited(const char16_t * aInString,
     )
     return false;
 
-  char16_t text0 = aInString[0];
-  char16_t textAfterPos = aInString[aRepLen + (before == LT_IGNORE ? 0 : 1)];
+  uint32_t text0 = aInString[0];
+  uint32_t textAfterPos = aInString[aRepLen + (before == LT_IGNORE ? 0 : 1)];
 
-  if
-    (
-      (before == LT_ALPHA
-        && !nsCRT::IsAsciiAlpha(text0)) ||
-      (before == LT_DIGIT
-        && !nsCRT::IsAsciiDigit(text0)) ||
-      (before == LT_DELIMITER
-        &&
-        (
-          nsCRT::IsAsciiAlpha(text0) ||
-          nsCRT::IsAsciiDigit(text0) ||
-          text0 == *rep
-        )) ||
-      (after == LT_ALPHA
-        && !nsCRT::IsAsciiAlpha(textAfterPos)) ||
-      (after == LT_DIGIT
-        && !nsCRT::IsAsciiDigit(textAfterPos)) ||
-      (after == LT_DELIMITER
-        &&
-        (
-          nsCRT::IsAsciiAlpha(textAfterPos) ||
-          nsCRT::IsAsciiDigit(textAfterPos) ||
-          textAfterPos == *rep
-        )) ||
-        !Substring(Substring(aInString, aInString+aInLength),
-                   (before == LT_IGNORE ? 0 : 1),
-                   aRepLen).Equals(Substring(rep, rep+aRepLen),
-                                   nsCaseInsensitiveStringComparator())
-    )
+  if ((before == LT_ALPHA && !IsAlpha(text0)) ||
+      (before == LT_DIGIT && !IsDigit(text0)) ||
+      (before == LT_DELIMITER &&
+       (IsAlpha(text0) || IsDigit(text0) || text0 == *rep)) ||
+      (after == LT_ALPHA && !IsAlpha(textAfterPos)) ||
+      (after == LT_DIGIT && !IsDigit(textAfterPos)) ||
+      (after == LT_DELIMITER &&
+       (IsAlpha(textAfterPos) || IsDigit(textAfterPos) ||
+        textAfterPos == *rep)) ||
+      !Substring(Substring(aInString, aInString + aInLength),
+                 (before == LT_IGNORE ? 0 : 1),
+                 aRepLen).Equals(Substring(rep, rep + aRepLen),
+                                 nsCaseInsensitiveStringComparator()))
     return false;
 
   return true;

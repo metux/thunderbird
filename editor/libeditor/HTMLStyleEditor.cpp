@@ -46,6 +46,15 @@ namespace mozilla {
 
 using namespace dom;
 
+static already_AddRefed<nsAtom>
+AtomizeAttribute(const nsAString& aAttribute)
+{
+  if (aAttribute.IsEmpty()) {
+    return nullptr; // Don't use nsGkAtoms::_empty for attribute.
+   }
+   return NS_Atomize(aAttribute);
+}
+
 static bool
 IsEmptyTextNode(HTMLEditor* aThis, nsINode* aNode)
 {
@@ -61,7 +70,7 @@ HTMLEditor::SetInlineProperty(const nsAString& aProperty,
                               const nsAString& aValue)
 {
   RefPtr<nsAtom> property = NS_Atomize(aProperty);
-  RefPtr<nsAtom> attribute = NS_Atomize(aAttribute);
+  RefPtr<nsAtom> attribute = AtomizeAttribute(aAttribute);
   return SetInlineProperty(property, attribute, aValue);
 }
 
@@ -1105,7 +1114,7 @@ HTMLEditor::GetInlineProperty(const nsAString& aProperty,
                               bool* aAll)
 {
   RefPtr<nsAtom> property = NS_Atomize(aProperty);
-  RefPtr<nsAtom> attribute = NS_Atomize(aAttribute);
+  RefPtr<nsAtom> attribute = AtomizeAttribute(aAttribute);
   return GetInlineProperty(property, attribute, aValue, aFirst, aAny, aAll);
 }
 
@@ -1135,7 +1144,7 @@ HTMLEditor::GetInlinePropertyWithAttrValue(const nsAString& aProperty,
                                            nsAString& outValue)
 {
   RefPtr<nsAtom> property = NS_Atomize(aProperty);
-  RefPtr<nsAtom> attribute = NS_Atomize(aAttribute);
+  RefPtr<nsAtom> attribute = AtomizeAttribute(aAttribute);
   return GetInlinePropertyWithAttrValue(property, attribute, aValue, aFirst,
                                         aAny, aAll, outValue);
 }
@@ -1173,7 +1182,7 @@ HTMLEditor::RemoveInlineProperty(const nsAString& aProperty,
                                  const nsAString& aAttribute)
 {
   RefPtr<nsAtom> property = NS_Atomize(aProperty);
-  RefPtr<nsAtom> attribute = NS_Atomize(aAttribute);
+  RefPtr<nsAtom> attribute = AtomizeAttribute(aAttribute);
   return RemoveInlineProperty(property, attribute);
 }
 
@@ -1182,6 +1191,7 @@ HTMLEditor::RemoveInlineProperty(nsAtom* aProperty,
                                  nsAtom* aAttribute)
 {
   NS_ENSURE_TRUE(mRules, NS_ERROR_NOT_INITIALIZED);
+  MOZ_ASSERT(aAttribute != nsGkAtoms::_empty);
   CommitComposition();
 
   RefPtr<Selection> selection = GetSelection();

@@ -33,6 +33,7 @@ browser/extensions/screenshots/webextension/build/inlineSelectionCss.js
 build/pgo/blueprint/valid.png
 build/pgo/js-input/sunspider/string-tagcloud.html
 build/pgo/js-input/sunspider/string-unpack-code.html
+build/win32/vswhere.exe
 #comm/editor/ui/texzilla/content/TeXZilla.js
 #comm/im/themes/messages/bubbles/Footer.html
 #comm/mail/app/profile/all-thunderbird.js
@@ -45,10 +46,11 @@ comm/mail/test/resources/mozmill/mozmill/extension/content/editor/bespin/BespinM
 comm/mail/test/resources/mozmill/mozmill/extension/content/editor/bespin/BespinWorker.js
 comm/mailnews/addrbook/test/unit/test_nsIAbCard.js
 comm/mailnews/base/test/unit/test_compactColumnSave.js
-devtools/client/debugger/new/debugger.js
-devtools/client/debugger/new/parser-worker.js
-devtools/client/debugger/new/pretty-print-worker.js
-devtools/client/debugger/new/search-worker.js
+comm/other-licenses/7zstub
+#devtools/client/debugger/new/debugger.js
+#devtools/client/debugger/new/parser-worker.js
+#devtools/client/debugger/new/pretty-print-worker.js
+#devtools/client/debugger/new/search-worker.js
 devtools/client/debugger/new/test/mochitest/examples/babel/fixtures/classes/output.js
 devtools/client/debugger/new/test/mochitest/examples/babel/fixtures/imported-bindings/output.js
 devtools/client/debugger/new/test/mochitest/examples/babel/fixtures/step-over-regenerator-await/output.js
@@ -64,7 +66,7 @@ devtools/client/netmonitor/test/head.js
 devtools/client/shared/demangle.js
 devtools/client/shared/source-map/index.js
 devtools/client/shared/source-map/worker.js
-devtools/client/shared/test
+#devtools/client/shared/test
 devtools/client/shared/vendor/WasmParser.js
 #devtools/client/shared/vendor/dagre-d3.js
 devtools/client/shared/vendor/jszip.js
@@ -578,3 +580,4 @@ toolkit/mozapps/update/updater/macbuild/Contents/PkgInfo
 toolkit/mozapps/update/updater/macbuild/Contents/Resources/English.lproj/MainMenu.nib/keyedobjects.nib
 toolkit/mozapps/update/updater/resource.h
 toolkit/mozapps/update/updater/updater.rc
+widget/windows/*

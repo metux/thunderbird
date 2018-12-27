@@ -526,7 +526,7 @@ nsresult nsImapProtocol::Configure(int32_t TooFastTime, int32_t IdealTime,
 
 
 NS_IMETHODIMP
-nsImapProtocol::Initialize(nsIImapHostSessionList * aHostSessionList,
+nsImapProtocol::Initialize(nsIImapHostSessionList *aHostSessionList,
                            nsIImapIncomingServer *aServer)
 {
   NS_PRECONDITION(aHostSessionList && aServer,
@@ -546,7 +546,7 @@ nsImapProtocol::Initialize(nsIImapHostSessionList * aHostSessionList,
   aServer->GetUseCondStore(&m_useCondStore);
   aServer->GetUseCompressDeflate(&m_useCompressDeflate);
 
-  m_hostSessionList = aHostSessionList; // no ref count...host session list has life time > connection
+  m_hostSessionList = aHostSessionList;
   m_parser.SetHostSessionList(aHostSessionList);
   m_parser.SetFlagState(m_flagState);
 
@@ -577,7 +577,6 @@ nsImapProtocol::~nsImapProtocol()
   PR_Free(m_fetchBodyIdList);
 
   PR_Free(m_dataOutputBuf);
-  delete m_inputStreamBuffer;
 
   // **** We must be out of the thread main loop function
   NS_ASSERTION(!m_imapThreadIsRunning, "Oops, thread is still running.\n");
@@ -8445,7 +8444,7 @@ nsresult nsImapProtocol::GetPassword(nsString &password,
     NS_ENSURE_TRUE(msgWindow, NS_ERROR_NOT_AVAILABLE); // biff case
 
     // Get the password from pw manager (harddisk) or user (dialog)
-    nsAutoString pwd; // GetPasswordWithUI truncates the password on Cancel
+    m_passwordObtained = false;
     rv = m_imapServerSink->AsyncGetPassword(this, newPasswordRequested,
                                             password);
     if (password.IsEmpty())
@@ -8453,7 +8452,7 @@ nsresult nsImapProtocol::GetPassword(nsString &password,
       PRIntervalTime sleepTime = kImapSleepTime;
       m_passwordStatus = NS_OK;
       ReentrantMonitorAutoEnter mon(m_passwordReadyMonitor);
-      while (m_password.IsEmpty() && !NS_FAILED(m_passwordStatus) &&
+      while (!m_passwordObtained && !NS_FAILED(m_passwordStatus) &&
              m_passwordStatus != NS_MSG_PASSWORD_PROMPT_CANCELLED &&
              !DeathSignalReceived())
         mon.Wait(sleepTime);
@@ -8492,6 +8491,7 @@ nsImapProtocol::OnPromptStart(bool *aResult)
     *aResult = true;
 
   // Notify the imap thread that we have a password.
+  m_passwordObtained = true;
   ReentrantMonitorAutoEnter passwordMon(m_passwordReadyMonitor);
   passwordMon.Notify();
   return rv;
@@ -8505,6 +8505,7 @@ nsImapProtocol::OnPromptAuthAvailable()
   NS_ENSURE_SUCCESS(rv, rv);
   m_passwordStatus = imapServer->GetPassword(m_password);
   // Notify the imap thread that we have a password.
+  m_passwordObtained = true;
   ReentrantMonitorAutoEnter passwordMon(m_passwordReadyMonitor);
   passwordMon.Notify();
   return m_passwordStatus;

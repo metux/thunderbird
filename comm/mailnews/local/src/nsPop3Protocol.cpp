@@ -47,6 +47,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Preferences.h"
 
 using namespace mozilla;
 
@@ -453,7 +454,6 @@ nsPop3Protocol::nsPop3Protocol(nsIURI* aURL)
   m_totalFolderSize(0),
   m_totalDownloadSize(0),
   m_totalBytesReceived(0),
-  m_lineStreamBuffer(nullptr),
   m_pop3ConData(nullptr)
 {
 }
@@ -614,9 +614,6 @@ void nsPop3Protocol::Cleanup()
   FreeMsgInfo();
   PR_Free(m_pop3ConData->only_uidl);
   PR_Free(m_pop3ConData);
-
-  delete m_lineStreamBuffer;
-  m_lineStreamBuffer = nullptr;
 }
 
 void nsPop3Protocol::SetCapFlag(uint32_t flag)
@@ -2321,7 +2318,12 @@ int32_t nsPop3Protocol::SendPassword()
   {
     MOZ_LOG(POP3LOGMODULE, LogLevel::Debug, (POP3LOG("PASS password")));
     cmd = "PASS ";
-    cmd += passwordUTF8;
+    bool useLatin1 =
+      mozilla::Preferences::GetBool("mail.smtp_login_pop3_user_pass_auth_is_latin1", true);
+    if (useLatin1)
+      cmd += NS_LossyConvertUTF16toASCII(m_passwordResult);
+    else
+      cmd += passwordUTF8;
   }
   else
   {

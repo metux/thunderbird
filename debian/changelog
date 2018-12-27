@@ -1,3 +1,30 @@
+thunderbird (1:60.4.0-1) unstable; urgency=medium
+
+  * [2e5a9d0] d/control: don't hard code LLVM packages in B-D
+    (Closes: #912797)
+  * [3aaa4a6] New upstream version 60.4.0
+    No MFSA published yet by Mozilla Security while packaging this version.
+    (Closes: #913645)
+  * [12d3be3] debian/control: increase Standards-Version to 4.3.0
+    No further changes needed.
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Mon, 24 Dec 2018 17:04:10 +0100
+
+thunderbird (1:60.3.1-1) unstable; urgency=medium
+
+  * [e1b489a] New upstream version 60.3.1
+  * [f376b38] lightning: use ${source:Version} in Breaks and Recommends
+    (Closes: #914175)
+  * [7e560b3] Revert "lintian: adding a semi automated lintian-override"
+     The override about a misspelled word Synopsys isn't needed any more.
+  * [893c0e6] rebuild patch queue from patch-queue branch
+    modified patches:
+    debian-hacks/Don-t-build-testing-suites-and-stuff.patch
+    debian-hacks/Don-t-build-testing-suites-and-stuff-part-2.patch
+  * [20d8827] d/source.filter: update the filter sequences
+
+ -- Carsten Schoenert <c.schoenert@t-online.de>  Sun, 25 Nov 2018 10:02:50 +0100
+
 thunderbird (1:60.3.0-1~deb9u1) stretch-security; urgency=medium
 
   [ Carsten Schoenert ]

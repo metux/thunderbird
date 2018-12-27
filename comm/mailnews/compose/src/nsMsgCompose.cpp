@@ -1312,14 +1312,13 @@ NS_IMETHODIMP nsMsgCompose::SendMsg(MSG_DeliverMode deliverMode, nsIMsgIdentity 
   nsString contentType = (m_composeHTML) ? NS_LITERAL_STRING("text/html"):
                                            NS_LITERAL_STRING("text/plain");
   nsString msgBody;
+  const char *charset = m_compFields->GetCharacterSet();
   if (m_editor)
   {
     // Reset message body previously stored in the compose fields
     // There is 2 nsIMsgCompFields::SetBody() functions using a pointer as argument,
     // therefore a casting is required.
     m_compFields->SetBody((const char *)nullptr);
-
-    const char *charset = m_compFields->GetCharacterSet();
 
     uint32_t flags = nsIDocumentEncoder::OutputCRLineBreak |
                      nsIDocumentEncoder::OutputLFLineBreak;
@@ -1353,7 +1352,7 @@ NS_IMETHODIMP nsMsgCompose::SendMsg(MSG_DeliverMode deliverMode, nsIMsgIdentity 
     bool isAsciiOnly = NS_IsAscii(static_cast<const char16_t*>(msgBody.get()));
     // Convert body to mail charset
     nsCString outCString;
-    rv = nsMsgI18NConvertFromUnicode(nsDependentCString(m_compFields->GetCharacterSet()),
+    rv = nsMsgI18NConvertFromUnicode(charset ? nsDependentCString(charset) : EmptyCString(),
                                      msgBody, outCString, true);
     if (m_compFields->GetForceMsgEncoding())
       isAsciiOnly = false;
@@ -1370,10 +1369,10 @@ NS_IMETHODIMP nsMsgCompose::SendMsg(MSG_DeliverMode deliverMode, nsIMsgIdentity 
         {
           bool disableFallback = false;
           nsCOMPtr<nsIPrefBranch> prefBranch (do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
-          if (prefBranch)
+          if (prefBranch && charset)
           {
             nsCString prefName("mailnews.disable_fallback_to_utf8.");
-            prefName.Append(m_compFields->GetCharacterSet());
+            prefName.Append(charset);
             prefBranch->GetBoolPref(prefName.get(), &disableFallback);
           }
           if (!disableFallback)
@@ -1622,13 +1621,7 @@ NS_IMETHODIMP nsMsgCompose::SetEditor(nsIEditor *aEditor)
 
 static nsresult fixCharset(nsCString &aCharset)
 {
-  // No matter what, we should block x-windows-949 (our internal name)
-  // from being used for outgoing emails (bug 234958).
-  if (aCharset.Equals("x-windows-949", nsCaseInsensitiveCStringComparator()))
-    aCharset = "EUC-KR";
-
   // Convert to a canonical charset name.
-  // Bug 1297118 will revisit this call site.
   nsresult rv;
   nsCOMPtr<nsICharsetConverterManager> ccm =
     do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &rv);
@@ -1637,11 +1630,21 @@ static nsresult fixCharset(nsCString &aCharset)
   nsCString charset(aCharset);
   rv = ccm->GetCharsetAlias(charset.get(), aCharset);
 
+  // Replace an unrecognized charset with the default.
+  if (NS_FAILED(rv)) {
+    nsCOMPtr<nsIPrefBranch> prefs (do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
+    NS_ENSURE_SUCCESS(rv, rv);
+    nsString defaultCharset;
+    NS_GetLocalizedUnicharPreferenceWithDefault(prefs, "mailnews.send_default_charset",
+                                                NS_LITERAL_STRING("UTF-8"), defaultCharset);
+    LossyCopyUTF16toASCII(defaultCharset, aCharset);
+    return NS_OK;
+  }
+
   // Don't accept UTF-16 ever. UTF-16 should never be selected as an
   // outgoing encoding for e-mail. MIME can't handle those messages
   // encoded in ASCII-incompatible encodings.
-  if (NS_FAILED(rv) ||
-      StringBeginsWith(aCharset, NS_LITERAL_CSTRING("UTF-16"))) {
+  if (StringBeginsWith(aCharset, NS_LITERAL_CSTRING("UTF-16"))) {
     aCharset.AssignLiteral("UTF-8");
   }
   return NS_OK;

@@ -284,6 +284,14 @@ pref("mailnews.reply_in_default_charset",   false);
 // don't fallback from <charset> to UTF-8 even if some characters are not found in <charset>.
 // those characters will be crippled.
 pref("mailnews.disable_fallback_to_utf8.ISO-2022-JP", false);
+
+// AppleDouble is causing problems with some webmail clients and Microsoft mail servers
+// rejecting a MIME part of multipart/appledouble. Mac uses resource forks less and less
+// so we only use AppleDouble if the file has no extension or its extension is whitelisted below.
+// "" (default) - AppleDouble won't be used if the file has an extension
+// "*" - AppleDouble will always be used
+// Comma-separated list of extensions for which to use AppleDouble, for example "doc,xls" (not-case sensitive).
+pref("mailnews.extensions_using_appledouble", "");
 pref("mailnews.localizedRe",                "chrome://messenger-region/locale/region.properties");
 
 pref("mailnews.search_date_format",        "chrome://messenger/locale/messenger.properties");
@@ -604,6 +612,9 @@ pref("mail.smtp.useSenderForSmtpMailFrom", true);
 
 pref("mail.smtpserver.default.authMethod", 3); // cleartext password. @see nsIMsgIncomingServer.authMethod.
 pref("mail.smtpserver.default.try_ssl", 0); // @see nsISmtpServer.socketType
+
+// If true, SMTP LOGIN auth and POP3 USER/PASS auth, the last of the methods to try, will use Latin1.
+pref("mail.smtp_login_pop3_user_pass_auth_is_latin1", true);
 
 // For the next 3 prefs, see <http://www.bucksch.org/1/projects/mozilla/16507>
 pref("mail.display_glyph", true);   // TXT->HTML :-) etc. in viewer

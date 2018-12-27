@@ -158,6 +158,7 @@ def mozharness_on_docker_worker_setup(config, job, taskdesc):
         'MOZ_BUILD_DATE': config.params['moz_build_date'],
         'MOZ_SCM_LEVEL': config.params['level'],
         'MOZ_AUTOMATION': '1',
+        'PYTHONUNBUFFERED': '1',
     })
 
     if 'actions' in run:
@@ -180,6 +181,9 @@ def mozharness_on_docker_worker_setup(config, job, taskdesc):
 
     if config.params.is_try():
         env['TRY_COMMIT_MSG'] = config.params['message']
+
+    if run['comm-checkout']:
+        env['MOZ_SOURCE_CHANGESET'] = env['COMM_HEAD_REV']
 
     # if we're not keeping artifacts, set some env variables to empty values
     # that will cause the build process to skip copying the results to the

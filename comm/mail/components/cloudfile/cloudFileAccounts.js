@@ -16,11 +16,17 @@ var PWDMGR_REALM = "BigFiles Auth Token";
 ChromeUtils.import("resource://gre/modules/Services.jsm");
 ChromeUtils.import("resource://gre/modules/XPCOMUtils.jsm");
 ChromeUtils.import("resource:///modules/iteratorUtils.jsm");
+ChromeUtils.import("resource://gre/modules/EventEmitter.jsm");
 
-var cloudFileAccounts = {
+var cloudFileAccounts = new class extends EventEmitter {
+  constructor() {
+    super();
+    this._providers = new Map();
+  }
+
   get kTokenRealm() {
     return PWDMGR_REALM;
-  },
+  }
 
   get _accountKeys() {
     let accountKeySet = {};
@@ -33,9 +39,9 @@ var cloudFileAccounts = {
 
     // TODO: sort by ordinal
     return Object.keys(accountKeySet);
-  },
+  }
 
-  _getInitedProviderForType: function(aAccountKey, aType) {
+  _getInitedProviderForType(aAccountKey, aType) {
     let provider = this.getProviderForType(aType);
     if (provider) {
       try {
@@ -46,9 +52,9 @@ var cloudFileAccounts = {
       }
     }
     return provider;
-  },
+  }
 
-  _createUniqueAccountKey: function() {
+  _createUniqueAccountKey() {
     // Pick a unique account key (TODO: this is a dumb way to do it, probably)
     let existingKeys = this._accountKeys;
     for (let n = 1; ; n++) {
@@ -56,7 +62,7 @@ var cloudFileAccounts = {
       if (!existingKeys.includes("account" + n))
         return "account" + n;
     }
-  },
+  }
 
   /**
    * Ensure that we have the account key for an account. If we already have the
@@ -66,16 +72,59 @@ var cloudFileAccounts = {
    * @param aKeyOrAccount the key or the account object
    * @return the account key
    */
-  _ensureKey: function(aKeyOrAccount) {
+  _ensureKey(aKeyOrAccount) {
     if (typeof aKeyOrAccount == "string")
       return aKeyOrAccount;
     else if ("accountKey" in aKeyOrAccount)
       return aKeyOrAccount.accountKey;
     else
       throw new Error("string or nsIMsgCloudFileProvider expected");
-  },
+  }
 
-  getProviderForType: function(aType) {
+  /**
+   * Register a cloudfile provider, e.g. from a bootstrapped add-on. Registering can be done in two
+   * ways, either implicitly through using the "cloud-files" XPCOM category, or explicitly using
+   * this function.
+   *
+   * @param {nsIMsgCloudFileProvider} The implementation to register
+   */
+  registerProvider(aProvider) {
+    let type = aProvider.type;
+    let hasXPCOM = false;
+
+    try {
+      categoryManager.getCategoryEntry(CATEGORY, type);
+      hasXPCOM = true;
+    } catch (ex) {
+    }
+
+    if (this._providers.has(type)) {
+      throw new Error(`Cloudfile provider ${type} is already registered`);
+    } else if (hasXPCOM) {
+      throw new Error(`Cloudfile provider ${type} is already registered as an XPCOM component`);
+    }
+    this._providers.set(aProvider.type, aProvider);
+  }
+
+  /**
+   * Unregister a cloudfile provider. This function will only unregister those providers registered
+   * through #registerProvider. XPCOM providers cannot be unregistered here.
+   *
+   * @param {String} aType                  The provider type to unregister
+   */
+  unregisterProvider(aType) {
+    if (!this._providers.has(aType)) {
+      throw new Error(`Cloudfile provider ${aType} is not registered`);
+    }
+
+    this._providers.delete(aType);
+  }
+
+  getProviderForType(aType) {
+    if (this._providers.has(aType)) {
+      return this._providers.get(aType);
+    }
+
     try {
       let className = categoryManager.getCategoryEntry(CATEGORY, aType);
       let provider = Cc[className].createInstance(Ci.nsIMsgCloudFileProvider);
@@ -88,10 +137,10 @@ var cloudFileAccounts = {
       }
     }
     return null;
-  },
+  }
 
   // aExtraPrefs are prefs specific to an account provider.
-  createAccount: function(aType, aRequestObserver, aExtraPrefs) {
+  createAccount(aType, aRequestObserver, aExtraPrefs) {
     let key = this._createUniqueAccountKey();
 
     try {
@@ -102,8 +151,10 @@ var cloudFileAccounts = {
         this._processExtraPrefs(key, aExtraPrefs);
 
       let provider = this._getInitedProviderForType(key, aType);
-      if (provider)
+      if (provider) {
         provider.createExistingAccount(aRequestObserver);
+        this.emit("accountAdded", provider);
+      }
 
       return provider;
     }
@@ -111,11 +162,10 @@ var cloudFileAccounts = {
       Services.prefs.deleteBranch(ACCOUNT_ROOT + key);
       throw e;
     }
-  },
+  }
 
   // Set provider-specific prefs
-  _processExtraPrefs: function CFA__processExtraPrefs(aAccountKey,
-                                                      aExtraPrefs) {
+  _processExtraPrefs(aAccountKey, aExtraPrefs) {
     const kFuncMap = {
       "int": "setIntPref",
       "bool": "setBoolPref",
@@ -135,27 +185,31 @@ var cloudFileAccounts = {
       Services.prefs[func](ACCOUNT_ROOT + aAccountKey + "." + prefKey,
                            value);
     }
-  },
+  }
 
-  enumerateProviders: function*() {
+  * enumerateProviders() {
+    for (let [type, provider] of this._providers.entries()) {
+      yield [type, provider];
+    }
+
     for (let entry of fixIterator(categoryManager.enumerateCategory(CATEGORY),
                                   Ci.nsISupportsCString)) {
       let provider = this.getProviderForType(entry.data);
       yield [entry.data, provider];
     }
-  },
+  }
 
-  getAccount: function(aKey) {
+  getAccount(aKey) {
     let type = Services.prefs.QueryInterface(Ci.nsIPrefBranch)
                        .getCharPref(ACCOUNT_ROOT + aKey + ".type");
     return this._getInitedProviderForType(aKey, type);
-  },
+  }
 
-  removeAccount: function(aKeyOrAccount) {
+  removeAccount(aKeyOrAccount) {
     let key = this._ensureKey(aKeyOrAccount);
+    let type = Services.prefs.getCharPref(ACCOUNT_ROOT + key + ".type");
 
-    let type = Services.prefs.QueryInterface(Ci.nsIPrefBranch)
-                       .deleteBranch(ACCOUNT_ROOT + key);
+    Services.prefs.deleteBranch(ACCOUNT_ROOT + key);
 
     // Destroy any secret tokens for this accountKey.
     let logins = Services.logins
@@ -164,14 +218,16 @@ var cloudFileAccounts = {
       if (login.username == key)
         Services.logins.removeLogin(login);
     }
-  },
+
+    this.emit("accountDeleted", key, type);
+  }
 
   get accounts() {
     return this._accountKeys.filter(key => this.getAccount(key) != null).
       map(key => this.getAccount(key));
-  },
+  }
 
-  getAccountsForType: function CFA_getAccountsForType(aType) {
+  getAccountsForType(aType) {
     let result = [];
 
     for (let accountKey of this._accountKeys) {
@@ -181,9 +237,9 @@ var cloudFileAccounts = {
     }
 
     return result;
-  },
+  }
 
-  addAccountDialog: function CFA_addAccountDialog() {
+  addAccountDialog() {
     let params = {accountKey: null};
     Services.wm
             .getMostRecentWindow(null)
@@ -192,9 +248,9 @@ var cloudFileAccounts = {
                         "", "chrome, dialog, modal, resizable=yes",
                         params).focus();
     return params.accountKey;
-  },
+  }
 
-  getDisplayName: function(aKeyOrAccount) {
+  getDisplayName(aKeyOrAccount) {
     try {
       let key = this._ensureKey(aKeyOrAccount);
       return Services.prefs.getCharPref(ACCOUNT_ROOT +
@@ -204,13 +260,13 @@ var cloudFileAccounts = {
       Cu.reportError(e);
       return "";
     }
-  },
+  }
 
-  setDisplayName: function(aKeyOrAccount, aDisplayName) {
+  setDisplayName(aKeyOrAccount, aDisplayName) {
     let key = this._ensureKey(aKeyOrAccount);
     Services.prefs.setCharPref(ACCOUNT_ROOT + key +
                                ".displayName", aDisplayName);
-  },
+  }
 
   /**
    * Retrieve a secret value, like an authorization token, for an account.
@@ -221,7 +277,7 @@ var cloudFileAccounts = {
    *               was being stored. Should match the realm used when setting
    *               the value.
    */
-  getSecretValue: function(aKeyOrAccount, aRealm) {
+  getSecretValue(aKeyOrAccount, aRealm) {
     let key = this._ensureKey(aKeyOrAccount);
 
     let loginInfo = this._getLoginInfoForKey(key, aRealm);
@@ -230,7 +286,7 @@ var cloudFileAccounts = {
       return loginInfo.password;
 
     return null;
-  },
+  }
 
   /**
    * Store a secret value, like an authorization token, for an account
@@ -245,7 +301,7 @@ var cloudFileAccounts = {
    * @param aToken The token to be saved.  If this is set to null or the
    *               empty string, then the entry for this key will be removed.
    */
-  setSecretValue: function(aKeyOrAccount, aRealm, aToken) {
+  setSecretValue(aKeyOrAccount, aRealm, aToken) {
     let key = this._ensureKey(aKeyOrAccount);
     let loginInfo = this._getLoginInfoForKey(key, aRealm);
 
@@ -266,7 +322,7 @@ var cloudFileAccounts = {
       Services.logins.modifyLogin(loginInfo, newLoginInfo);
     else
       Services.logins.addLogin(newLoginInfo);
-  },
+  }
 
   /**
    * Searches the nsILoginManager for an nsILoginInfo for BigFiles with
@@ -276,7 +332,7 @@ var cloudFileAccounts = {
    *             for login info for.
    * @param aRealm the realm that the login info was stored under.
    */
-  _getLoginInfoForKey: function(aKey, aRealm) {
+  _getLoginInfoForKey(aKey, aRealm) {
     let logins = Services.logins
                          .findLogins({}, PWDMGR_HOST, null, aRealm);
     for (let login of logins) {
@@ -284,7 +340,7 @@ var cloudFileAccounts = {
         return login;
     }
     return null;
-  },
+  }
 };
 
 XPCOMUtils.defineLazyServiceGetter(this, "categoryManager",

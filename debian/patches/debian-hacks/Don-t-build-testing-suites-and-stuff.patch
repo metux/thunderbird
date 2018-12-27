@@ -11,7 +11,6 @@ folder out before.
  devtools/client/animationinspector/moz.build               |  6 ++++--
  devtools/client/canvasdebugger/moz.build                   |  4 +++-
  devtools/client/commandline/moz.build                      |  4 +++-
- devtools/client/debugger/moz.build                         | 12 +++++++-----
  devtools/client/dom/moz.build                              |  4 +++-
  devtools/client/framework/moz.build                        |  4 +++-
  devtools/client/inspector/animation/moz.build              |  4 +++-
@@ -43,7 +42,7 @@ folder out before.
  .../client/webconsole/new-console-output/test/moz.build    | 10 ++++++----
  devtools/client/webide/moz.build                           | 14 ++++++++------
  devtools/server/moz.build                                  |  8 +++++---
- 37 files changed, 134 insertions(+), 64 deletions(-)
+ 36 files changed, 127 insertions(+), 59 deletions(-)
 
 diff --git a/accessible/windows/moz.build b/accessible/windows/moz.build
 index 4bfa4f3..8e63609 100644
@@ -120,29 +119,6 @@ index 22fc466..5ef6cab 100644
 +# Don't build any testsuites. We have filteres out some needed content for
 +# this as some files are not DFSG clean.
 +#BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
-diff --git a/devtools/client/debugger/moz.build b/devtools/client/debugger/moz.build
-index 4aa5e20..ffefc37 100644
---- a/devtools/client/debugger/moz.build
-+++ b/devtools/client/debugger/moz.build
-@@ -13,11 +13,13 @@ DevToolsModules(
-     'panel.js'
- )
- 
--BROWSER_CHROME_MANIFESTS += [
--  'new/test/mochitest/browser.ini',
--  'test/mochitest/browser.ini',
--  'test/mochitest/browser2.ini'
--]
-+# Don't build any testsuites. We have filteres out some needed content for
-+# this as some files are not DFSG clean.
-+#BROWSER_CHROME_MANIFESTS += [
-+#  'new/test/mochitest/browser.ini',
-+#  'test/mochitest/browser.ini',
-+#  'test/mochitest/browser2.ini'
-+#]
- 
- with Files('**'):
-     BUG_COMPONENT = ('Firefox', 'Developer Tools: Debugger')
 diff --git a/devtools/client/dom/moz.build b/devtools/client/dom/moz.build
 index 46cb7e6..9bd29a6 100644
 --- a/devtools/client/dom/moz.build

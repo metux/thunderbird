@@ -100,10 +100,10 @@ jobs:
     run:
       using: debian-package
       tarball:
-        url: https://www.mercurial-scm.org/release/mercurial-4.5.2.tar.gz
-        sha256: a44a9ffd1c9502a4f97298a6bbcb8a79fc8192424c760c67f17b45c12114e390
+        url: https://www.mercurial-scm.org/release/mercurial-4.7.1.tar.gz
+        sha256: 8503383c1c31842576516b803d07564216470887ca6388719e4c4089663b410c
       pre-build-command: >-
-        cp -r contrib/debian debian &&
+        cp -r contrib/packaging/debian debian &&
         sed -i -e "s/__VERSION__/$(awk -F\" '$2 {print $2}' mercurial/__version__.py)-1.deb7moz1/" \
                -e "s/__DATE__/$(date --rfc-2822)/" \
                -e "s/__CODENAME__/wheezy/" debian/changelog
@@ -116,10 +116,10 @@ jobs:
       using: debian-package
       dist: stretch
       tarball:
-        url: https://www.mercurial-scm.org/release/mercurial-4.5.2.tar.gz
-        sha256: a44a9ffd1c9502a4f97298a6bbcb8a79fc8192424c760c67f17b45c12114e390
+        url: https://www.mercurial-scm.org/release/mercurial-4.7.1.tar.gz
+        sha256: 8503383c1c31842576516b803d07564216470887ca6388719e4c4089663b410c
       pre-build-command: >-
-        cp -r contrib/debian debian &&
+        cp -r contrib/packaging/debian debian &&
         sed -i -e "s/__VERSION__/$(awk -F\" '$2 {print $2}' mercurial/__version__.py)-1.deb9moz1/" \
                -e "s/__DATE__/$(date --rfc-2822)/" \
                -e "s/__CODENAME__/stretch/" debian/changelog
