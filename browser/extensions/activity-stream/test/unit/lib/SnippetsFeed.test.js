@@ -105,7 +105,6 @@ describe("SnippetsFeed", () => {
     assert.propertyVal(action.data, "version", 5);
     assert.propertyVal(action.data, "profileCreatedWeeksAgo", 2);
     assert.propertyVal(action.data, "profileResetWeeksAgo", 1);
-    assert.propertyVal(action.data, "telemetryEnabled", true);
     assert.propertyVal(action.data, "onboardingFinished", false);
     assert.propertyVal(action.data, "fxaccount", true);
     assert.property(action.data, "selectedSearchEngine");

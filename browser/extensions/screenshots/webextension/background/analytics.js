@@ -6,7 +6,6 @@ this.analytics = (function() {
   const exports = {};
 
   let telemetryPrefKnown = false;
-  let telemetryEnabled;
 
   const EVENT_BATCH_DURATION = 1000; // ms for setTimeout
   let pendingEvents = [];
@@ -79,58 +78,12 @@ this.analytics = (function() {
       log.warn("sendEvent called before we were able to refresh");
       return Promise.resolve();
     }
-    if (!telemetryEnabled) {
-      log.info(`Cancelled sendEvent ${eventCategory}/${action}/${label || "none"} ${JSON.stringify(options)}`);
-      return Promise.resolve();
-    }
-    measureTiming(action, label);
-    // Internal-only events are used for measuring time between events,
-    // but aren't submitted to GA.
-    if (action === "internal") {
-      return Promise.resolve();
-    }
-    if (typeof label === "object" && (!options)) {
-      options = label;
-      label = undefined;
-    }
-    options = options || {};
-
-    // Don't send events if in private browsing.
-    if (options.incognito) {
-      return Promise.resolve();
-    }
-
-    // Don't include in event data.
-    delete options.incognito;
-
-    const di = deviceInfo();
-    options.applicationName = di.appName;
-    options.applicationVersion = di.addonVersion;
-    const abTests = auth.getAbTests();
-    for (const [gaField, value] of Object.entries(abTests)) {
-      options[gaField] = value;
-    }
-    pendingEvents.push({
-      eventTime: Date.now(),
-      event: eventCategory,
-      action,
-      label,
-      options
-    });
-    if (!eventsTimeoutHandle) {
-      eventsTimeoutHandle = setTimeout(() => {
-        eventsTimeoutHandle = null;
-        flushEvents();
-      }, EVENT_BATCH_DURATION);
-    }
-    // This function used to return a Promise that was not used at any of the
-    // call sites; doing this simply maintains that interface.
+    log.info(`Cancelled sendEvent ${eventCategory}/${action}/${label || "none"} ${JSON.stringify(options)}`);
     return Promise.resolve();
   };
 
   exports.refreshTelemetryPref = function() {
     telemetryPrefKnown = true;
-    telemetryEnabled = false;
     throw error;
   };
 

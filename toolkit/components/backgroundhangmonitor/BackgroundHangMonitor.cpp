@@ -611,22 +611,12 @@ BackgroundHangMonitor::IsDisabled() {
 
 bool
 BackgroundHangMonitor::DisableOnBeta() {
-  nsAutoCString clientID;
-  nsresult rv =
-    Preferences::GetCString("toolkit.telemetry.cachedClientID", clientID);
-  bool telemetryEnabled = Telemetry::CanRecordPrereleaseData();
-
-  if (!telemetryEnabled || NS_FAILED(rv) ||
-      BackgroundHangMonitor::ShouldDisableOnBeta(clientID)) {
     if (XRE_IsParentProcess()) {
       BackgroundHangMonitor::Shutdown();
     } else {
       BackgroundHangManager::sDisabled = true;
     }
     return true;
-  }
-
-  return false;
 }
 
 void

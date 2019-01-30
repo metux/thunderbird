@@ -241,7 +241,6 @@ var DOMLinkHandler = {
 };
 
 var kTelemetryPrompted    = "toolkit.telemetry.prompted";
-var kTelemetryEnabled     = "toolkit.telemetry.enabled";
 var kTelemetryRejected    = "toolkit.telemetry.rejected";
 var kTelemetryServerOwner = "toolkit.telemetry.server_owner";
 // This is used to reprompt/renotify users when privacy message changes
@@ -891,26 +890,6 @@ var specialTabs = {
    * This is controlled by the pref toolkit.telemetry.prompted
    */
   shouldShowTelemetryNotification: function() {
-    // Toolkit has decided that the pref should have no default value, so this
-    // throws if not yet initialized.
-    let telemetryPrompted = false;
-    try {
-      telemetryPrompted = (Services.prefs.getIntPref(kTelemetryPrompted) >= kTelemetryPromptRev);
-    } catch (e) { }
-    let telemetryEnabled = false;
-    try {
-      telemetryEnabled = (Services.prefs.getBoolPref(kTelemetryEnabled));
-    } catch (e) { }
-    // In case user already allowed telemetry, do not bother him with any updated
-    // prompt. Clear the pref first, in case it was not Int (from older versions).
-    if (telemetryEnabled && !telemetryPrompted) {
-      Services.prefs.clearUserPref(kTelemetryPrompted);
-      Services.prefs.setIntPref(kTelemetryPrompted, kTelemetryPromptRev);
-    }
-
-    if (telemetryEnabled || telemetryPrompted)
-      return false;
-
     return true;
   },
 
@@ -928,7 +907,6 @@ var specialTabs = {
 
     // Clear all the prefs as we will set them as needed after answering the prompt.
     Services.prefs.clearUserPref(kTelemetryPrompted);
-    Services.prefs.clearUserPref(kTelemetryEnabled);
     Services.prefs.clearUserPref(kTelemetryRejected);
 
     var buttons = [
@@ -936,9 +914,6 @@ var specialTabs = {
         label:     telemetryBundle.get("telemetryYesButtonLabel"),
         accessKey: telemetryBundle.get("telemetryYesButtonAccessKey"),
         popup:     null,
-        callback:  function(aNotificationBar, aButton) {
-          Services.prefs.setBoolPref(kTelemetryEnabled, true);
-        }
       },
       {
         label:     telemetryBundle.get("telemetryNoButtonLabel"),
