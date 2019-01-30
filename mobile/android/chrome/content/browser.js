@@ -462,9 +462,6 @@ var BrowserApp = {
         let isBlockListEnabled = ParentalControls.isAllowed(ParentalControls.BLOCK_LIST);
         Services.prefs.setBoolPref("browser.safebrowsing.allowOverride", !isBlockListEnabled);
 
-        let isTelemetryEnabled = ParentalControls.isAllowed(ParentalControls.TELEMETRY);
-        Services.prefs.setBoolPref("toolkit.telemetry.enabled", isTelemetryEnabled);
-
         let isHealthReportEnabled = ParentalControls.isAllowed(ParentalControls.HEALTH_REPORT);
         SharedPreferences.forApp().setBoolPref("android.not_a_preference.healthreport.uploadEnabled", isHealthReportEnabled);
     }

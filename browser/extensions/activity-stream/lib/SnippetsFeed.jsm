@@ -20,7 +20,6 @@ ChromeUtils.defineModuleGetter(this, "NewTabUtils",
 
 // Url to fetch snippets, in the urlFormatter service format.
 const SNIPPETS_URL_PREF = "browser.aboutHomeSnippets.updateUrl";
-const TELEMETRY_PREF = "datareporting.healthreport.uploadEnabled";
 const FXA_USERNAME_PREF = "services.sync.username";
 const ONBOARDING_FINISHED_PREF = "browser.onboarding.notification.finished";
 // Prefix for any target matching a search engine.
@@ -148,7 +147,6 @@ this.SnippetsFeed = class SnippetsFeed {
       profileResetWeeksAgo: profileInfo.resetWeeksAgo,
       snippetsURL: this.snippetsURL,
       version: STARTPAGE_VERSION,
-      telemetryEnabled: Services.prefs.getBoolPref(TELEMETRY_PREF),
       onboardingFinished: Services.prefs.getBoolPref(ONBOARDING_FINISHED_PREF),
       fxaccount: Services.prefs.prefHasUserValue(FXA_USERNAME_PREF),
       selectedSearchEngine: await this.getSelectedSearchEngine(),
@@ -172,7 +170,6 @@ this.SnippetsFeed = class SnippetsFeed {
     await this._refresh();
     Services.prefs.addObserver(ONBOARDING_FINISHED_PREF, this._refresh);
     Services.prefs.addObserver(SNIPPETS_URL_PREF, this._refresh);
-    Services.prefs.addObserver(TELEMETRY_PREF, this._refresh);
     Services.prefs.addObserver(FXA_USERNAME_PREF, this._refresh);
     Services.obs.addObserver(this, SEARCH_ENGINE_OBSERVER_TOPIC);
   }
@@ -180,7 +177,6 @@ this.SnippetsFeed = class SnippetsFeed {
   uninit() {
     Services.prefs.removeObserver(ONBOARDING_FINISHED_PREF, this._refresh);
     Services.prefs.removeObserver(SNIPPETS_URL_PREF, this._refresh);
-    Services.prefs.removeObserver(TELEMETRY_PREF, this._refresh);
     Services.prefs.removeObserver(FXA_USERNAME_PREF, this._refresh);
     Services.obs.removeObserver(this, SEARCH_ENGINE_OBSERVER_TOPIC);
     this.store.dispatch(ac.BroadcastToContent({type: at.SNIPPETS_RESET}));

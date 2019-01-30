@@ -15,7 +15,6 @@ ChromeUtils.defineModuleGetter(this, "TelemetryEnvironment",
 
 const PREF_BRANCH = "browser.ping-centre.";
 
-const TELEMETRY_PREF = `${PREF_BRANCH}telemetry`;
 const LOGGING_PREF = `${PREF_BRANCH}log`;
 const PRODUCTION_ENDPOINT_PREF = `${PREF_BRANCH}production.endpoint`;
 
@@ -59,9 +58,7 @@ class PingCentre {
 
     this._setPingEndpoint(options.topic, options.overrideEndpointPref);
 
-    this._enabled = this._prefs.getBoolPref(TELEMETRY_PREF);
-    this._onTelemetryPrefChange = this._onTelemetryPrefChange.bind(this);
-    this._prefs.addObserver(TELEMETRY_PREF, this._onTelemetryPrefChange);
+    this._enabled = false;
 
     this._fhrEnabled = this._prefs.getBoolPref(FHR_UPLOAD_ENABLED_PREF);
     this._onFhrPrefChange = this._onFhrPrefChange.bind(this);
@@ -96,10 +93,6 @@ class PingCentre {
 
   _onLoggingPrefChange(aSubject, aTopic, prefKey) {
     this.logging = this._prefs.getBoolPref(prefKey);
-  }
-
-  _onTelemetryPrefChange(aSubject, aTopic, prefKey) {
-    this._enabled = this._prefs.getBoolPref(prefKey);
   }
 
   _onFhrPrefChange(aSubject, aTopic, prefKey) {
@@ -179,7 +172,6 @@ class PingCentre {
 
   uninit() {
     try {
-      this._prefs.removeObserver(TELEMETRY_PREF, this._onTelemetryPrefChange);
       this._prefs.removeObserver(LOGGING_PREF, this._onLoggingPrefChange);
       this._prefs.removeObserver(FHR_UPLOAD_ENABLED_PREF, this._onFhrPrefChange);
     } catch (e) {
@@ -192,7 +184,6 @@ this.PingCentre = PingCentre;
 this.PingCentreConstants = {
   PRODUCTION_ENDPOINT_PREF,
   FHR_UPLOAD_ENABLED_PREF,
-  TELEMETRY_PREF,
   LOGGING_PREF
 };
 const EXPORTED_SYMBOLS = ["PingCentre", "PingCentreConstants"];

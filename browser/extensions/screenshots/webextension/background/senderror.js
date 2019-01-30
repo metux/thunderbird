@@ -88,43 +88,7 @@ this.senderror = (function() {
   };
 
   exports.reportError = function(e) {
-    if (!analytics.isTelemetryEnabled()) {
-      log.error("Telemetry disabled. Not sending critical error:", e);
-      return;
-    }
-    const dsn = auth.getSentryPublicDSN();
-    if (!dsn) {
-      log.warn("Screenshots error:", e);
-      return;
-    }
-    if (!Raven.isSetup()) {
-      Raven.config(dsn, {allowSecretKey: true}).install();
-    }
-    const exception = new Error(e.message);
-    exception.stack = e.multilineStack || e.stack || undefined;
-
-    // To improve Sentry reporting & grouping, replace the
-    // moz-extension://$uuid base URL with a generic resource:// URL.
-    if (exception.stack) {
-      exception.stack = exception.stack.replace(
-        /moz-extension:\/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g,
-        "resource://screenshots-addon"
-      );
-    }
-    const rest = {};
-    for (const attr in e) {
-      if (!["name", "message", "stack", "multilineStack", "popupMessage", "version", "sentryPublicDSN", "help", "fromMakeError"].includes(attr)) {
-        rest[attr] = e[attr];
-      }
-    }
-    rest.stack = exception.stack;
-    Raven.captureException(exception, {
-      logger: "addon",
-      tags: {category: e.popupMessage},
-      release: manifest.version,
-      message: exception.message,
-      extra: rest
-    });
+    log.error("Telemetry disabled. Not sending critical error:", e);
   };
 
   catcher.registerHandler((errorObj) => {

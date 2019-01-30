@@ -33,8 +33,7 @@ ExperimentsService.prototype = {
   get _experimentsEnabled() {
     // We can enable experiments if either unified Telemetry or FHR is on, and the user
     // has opted into Telemetry.
-    return Services.prefs.getBoolPref(PREF_EXPERIMENTS_ENABLED, false) &&
-           TelemetryUtils.isTelemetryEnabled;
+    return Services.prefs.getBoolPref(PREF_EXPERIMENTS_ENABLED, false);
   },
 
   notify(timer) {

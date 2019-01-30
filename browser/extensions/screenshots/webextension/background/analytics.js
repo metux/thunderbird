@@ -129,24 +129,9 @@ this.analytics = (function() {
   };
 
   exports.refreshTelemetryPref = function() {
-    return communication.sendToBootstrap("isTelemetryEnabled").then((result) => {
-      telemetryPrefKnown = true;
-      if (result === communication.NO_BOOTSTRAP) {
-        telemetryEnabled = true;
-      } else {
-        telemetryEnabled = result;
-      }
-    }, (error) => {
-      // If there's an error reading the pref, we should assume that we shouldn't send data
-      telemetryPrefKnown = true;
-      telemetryEnabled = false;
-      throw error;
-    });
-  };
-
-  exports.isTelemetryEnabled = function() {
-    catcher.watchPromise(exports.refreshTelemetryPref());
-    return telemetryEnabled;
+    telemetryPrefKnown = true;
+    telemetryEnabled = false;
+    throw error;
   };
 
   const timingData = new Map();

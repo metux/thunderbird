@@ -20,7 +20,6 @@ describe("ActivityStream", () => {
       "lib/SectionsManager.jsm": {SectionsFeed: Fake},
       "lib/SnippetsFeed.jsm": {SnippetsFeed: Fake},
       "lib/SystemTickFeed.jsm": {SystemTickFeed: Fake},
-      "lib/TelemetryFeed.jsm": {TelemetryFeed: Fake},
       "lib/FaviconFeed.jsm": {FaviconFeed: Fake},
       "lib/TopSitesFeed.jsm": {TopSitesFeed: Fake},
       "lib/TopStoriesFeed.jsm": {TopStoriesFeed: Fake},

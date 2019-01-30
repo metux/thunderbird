@@ -20,7 +20,6 @@ const {PrefsFeed} = ChromeUtils.import("resource://activity-stream/lib/PrefsFeed
 const {Store} = ChromeUtils.import("resource://activity-stream/lib/Store.jsm", {});
 const {SnippetsFeed} = ChromeUtils.import("resource://activity-stream/lib/SnippetsFeed.jsm", {});
 const {SystemTickFeed} = ChromeUtils.import("resource://activity-stream/lib/SystemTickFeed.jsm", {});
-const {TelemetryFeed} = ChromeUtils.import("resource://activity-stream/lib/TelemetryFeed.jsm", {});
 const {FaviconFeed} = ChromeUtils.import("resource://activity-stream/lib/FaviconFeed.jsm", {});
 const {TopSitesFeed} = ChromeUtils.import("resource://activity-stream/lib/TopSitesFeed.jsm", {});
 const {TopStoriesFeed} = ChromeUtils.import("resource://activity-stream/lib/TopStoriesFeed.jsm", {});
@@ -226,12 +225,6 @@ const FEEDS_DATA = [
     value: true
   },
   {
-    name: "telemetry",
-    factory: () => new TelemetryFeed(),
-    title: "Relays telemetry-related actions to PingCentre",
-    value: true
-  },
-  {
     name: "favicon",
     factory: () => new FaviconFeed(),
     title: "Fetches tippy top manifests from remote service",
@@ -284,10 +277,6 @@ this.ActivityStream = class ActivityStream {
     } catch (e) {
       // TelemetryFeed could be unavailable if the telemetry is disabled, or
       // the telemetry feed is not yet initialized.
-      const telemetryFeed = this.store.feeds.get("feeds.telemetry");
-      if (telemetryFeed) {
-        telemetryFeed.handleUndesiredEvent({data: {event: "ADDON_INIT_FAILED"}});
-      }
       throw e;
     }
   }
