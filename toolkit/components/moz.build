@@ -59,7 +59,6 @@ DIRS += [
     'securityreporter',
     'startup',
     'statusfilter',
-    'telemetry',
     'thumbnails',
     'timermanager',
     'tooltiptext',
