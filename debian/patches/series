@@ -20,7 +20,6 @@ porting-kfreebsd-hurd/FTBFS-hurd-fixing-unsupported-platform-Hurd.patch
 debian-hacks/changing-the-default-search-engine.patch
 porting-kfreebsd-hurd/adding-missed-HURD-adoptions.patch
 porting-m68k/Add-m68k-support-to-Thunderbird.patch
-debian-hacks/Don-t-build-testing-suites-and-stuff.patch
 debian-hacks/use-icudt-b-l-.dat-depending-on-architecture.patch
 debian-hacks/Build-against-system-libjsoncpp.patch
 porting-sh4/Add-sh4-support-to-Thunderbird.patch
