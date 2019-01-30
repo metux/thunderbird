@@ -3420,7 +3420,7 @@ nsSocketTransport::PRFileDescAutoLock::SetKeepaliveVals(bool aEnabled,
 }
 
 void
-nsSocketTransport::CloseSocket(PRFileDesc *aFd, bool aTelemetryEnabled)
+nsSocketTransport::CloseSocket(PRFileDesc *aFd, bool dummy)
 {
 #if defined(XP_WIN)
     AttachShutdownLayer(aFd);
@@ -3430,10 +3430,6 @@ nsSocketTransport::CloseSocket(PRFileDesc *aFd, bool aTelemetryEnabled)
     // nsIOService::LastOfflineStateChange time and
     // nsIOService::LastConectivityChange time to be atomic.
     PRIntervalTime closeStarted;
-    if (aTelemetryEnabled) {
-        closeStarted = PR_IntervalNow();
-    }
-
     PR_Close(aFd);
 }
 
