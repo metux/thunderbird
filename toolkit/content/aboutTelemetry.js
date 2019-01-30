@@ -28,7 +28,6 @@ const brandBundle = Services.strings.createBundle(
 const MAX_BAR_HEIGHT = 8;
 const MAX_BAR_CHARS = 25;
 const PREF_TELEMETRY_SERVER_OWNER = "toolkit.telemetry.server_owner";
-const PREF_TELEMETRY_ENABLED = "toolkit.telemetry.enabled";
 const PREF_DEBUG_SLOW_SQL = "toolkit.telemetry.debugSlowSql";
 const PREF_SYMBOL_SERVER_URI = "profiler.symbolicationUrl";
 const DEFAULT_SYMBOL_SERVER_URI = "https://symbols.mozilla.org/symbolicate/v4";
@@ -167,11 +166,6 @@ var Settings = {
     // data upload
     {
       pref: PREF_FHR_UPLOAD_ENABLED,
-      defaultPrefValue: false,
-    },
-    // extended "Telemetry" recording
-    {
-      pref: PREF_TELEMETRY_ENABLED,
       defaultPrefValue: false,
     },
   ],

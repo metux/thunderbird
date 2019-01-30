@@ -73,8 +73,6 @@ chrome.jar:
 % override chrome://global/locale/crashes.dtd chrome://browser/locale/overrides/crashreporter/crashes.dtd
 % override chrome://global/locale/crashes.properties chrome://browser/locale/overrides/crashreporter/crashes.properties
 % override chrome://global/locale/mozilla.dtd chrome://browser/locale/overrides/global/mozilla.dtd
-% override chrome://global/locale/aboutTelemetry.dtd chrome://browser/locale/overrides/global/aboutTelemetry.dtd
-% override chrome://global/locale/aboutTelemetry.properties chrome://browser/locale/overrides/global/aboutTelemetry.properties
 % override chrome://global/locale/aboutWebrtc.properties chrome://browser/locale/overrides/global/aboutWebrtc.properties
 
 # overrides for dom l10n, also for en-US
