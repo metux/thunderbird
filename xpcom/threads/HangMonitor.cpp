@@ -78,15 +78,6 @@ void
 PrefChanged(const char*, void*)
 {
   int32_t newval = Preferences::GetInt(kHangMonitorPrefName);
-#ifdef REPORT_CHROME_HANGS
-  // Monitor chrome hangs on the profiling branch if Telemetry enabled
-  if (newval == 0) {
-    bool telemetryEnabled = Preferences::GetBool(kTelemetryPrefName);
-    if (telemetryEnabled) {
-      newval = DEFAULT_CHROME_HANG_INTERVAL;
-    }
-  }
-#endif
   MonitorAutoLock lock(*gMonitor);
   if (newval != gTimeout) {
     gTimeout = newval;
