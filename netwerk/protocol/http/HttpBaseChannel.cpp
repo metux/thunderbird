@@ -1250,17 +1250,6 @@ HttpBaseChannel::DoApplyContentConversions(nsIStreamListener* aNextListener,
       }
 
       LOG(("converter removed '%s' content-encoding\n", val));
-      if (gHttpHandler->IsTelemetryEnabled()) {
-        int mode = 0;
-        if (from.EqualsLiteral("gzip") || from.EqualsLiteral("x-gzip")) {
-          mode = 1;
-        } else if (from.EqualsLiteral("deflate") || from.EqualsLiteral("x-deflate")) {
-          mode = 2;
-        } else if (from.EqualsLiteral("br")) {
-          mode = 3;
-        }
-        Telemetry::Accumulate(Telemetry::HTTP_CONTENT_ENCODING, mode);
-      }
       nextListener = converter;
     }
     else {

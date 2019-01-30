@@ -2173,55 +2173,6 @@ nsHttpChannel::ProcessResponse()
                               mConnectionInfo->EndToEndSSL());
     }
 
-    if (gHttpHandler->IsTelemetryEnabled()) {
-        // how often do we see something like Alt-Svc: "443:quic,p=1"
-        nsAutoCString alt_service;
-        Unused << mResponseHead->GetHeader(nsHttp::Alternate_Service, alt_service);
-        bool saw_quic = (!alt_service.IsEmpty() &&
-                         PL_strstr(alt_service.get(), "quic")) ? 1 : 0;
-        Telemetry::Accumulate(Telemetry::HTTP_SAW_QUIC_ALT_PROTOCOL, saw_quic);
-
-        // Gather data on how many URLS get redirected
-        switch (httpStatus) {
-            case 200:
-                Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 0);
-                break;
-            case 301:
-                Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 1);
-                break;
-            case 302:
-                Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 2);
-                break;
-            case 304:
-                Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 3);
-                break;
-            case 307:
-                Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 4);
-                break;
-            case 308:
-                Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 5);
-                break;
-            case 400:
-                Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 6);
-                break;
-            case 401:
-                Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 7);
-                break;
-            case 403:
-                Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 8);
-                break;
-            case 404:
-                Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 9);
-                break;
-            case 500:
-                Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 10);
-                break;
-            default:
-                Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_STATUS_CODE, 11);
-                break;
-        }
-    }
-
     // Let the predictor know whether this was a cacheable response or not so
     // that it knows whether or not to possibly prefetch this resource in the
     // future.
@@ -2539,34 +2490,6 @@ nsHttpChannel::ContinueProcessResponse2(nsresult rv)
         }
     }
 
-
-    if (gHttpHandler->IsTelemetryEnabled()) {
-        CacheDisposition cacheDisposition;
-        if (!mDidReval) {
-            cacheDisposition = kCacheMissed;
-        } else if (successfulReval) {
-            cacheDisposition = kCacheHitViaReval;
-        } else {
-            cacheDisposition = kCacheMissedViaReval;
-        }
-        AccumulateCacheHitTelemetry(cacheDisposition);
-
-        Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_VERSION,
-                              mResponseHead->Version());
-
-        if (mResponseHead->Version() == NS_HTTP_VERSION_0_9) {
-            // DefaultPortTopLevel = 0, DefaultPortSubResource = 1,
-            // NonDefaultPortTopLevel = 2, NonDefaultPortSubResource = 3
-            uint32_t v09Info = 0;
-            if (!(mLoadFlags & LOAD_INITIAL_DOCUMENT_URI)) {
-                v09Info += 1;
-            }
-            if (mConnectionInfo->OriginPort() != mConnectionInfo->DefaultPort()) {
-                v09Info += 2;
-            }
-            Telemetry::Accumulate(Telemetry::HTTP_09_INFO, v09Info);
-        }
-    }
     return rv;
 }
 

@@ -890,24 +890,6 @@ nsHttpChannelAuthProvider::GetCredentialsForChallenge(const char *challenge,
             else if (authFlags & nsIHttpAuthenticator::IDENTITY_ENCRYPTED)
                 level = nsIAuthPrompt2::LEVEL_PW_ENCRYPTED;
 
-            // Collect statistics on how frequently the various types of HTTP
-            // authentication are used over SSL and non-SSL connections.
-            if (gHttpHandler->IsTelemetryEnabled()) {
-              if (NS_LITERAL_CSTRING("basic").LowerCaseEqualsASCII(authType)) {
-                Telemetry::Accumulate(Telemetry::HTTP_AUTH_TYPE_STATS,
-                  UsingSSL() ? HTTP_AUTH_BASIC_SECURE : HTTP_AUTH_BASIC_INSECURE);
-              } else if (NS_LITERAL_CSTRING("digest").LowerCaseEqualsASCII(authType)) {
-                Telemetry::Accumulate(Telemetry::HTTP_AUTH_TYPE_STATS,
-                  UsingSSL() ? HTTP_AUTH_DIGEST_SECURE : HTTP_AUTH_DIGEST_INSECURE);
-              } else if (NS_LITERAL_CSTRING("ntlm").LowerCaseEqualsASCII(authType)) {
-                Telemetry::Accumulate(Telemetry::HTTP_AUTH_TYPE_STATS,
-                  UsingSSL() ? HTTP_AUTH_NTLM_SECURE : HTTP_AUTH_NTLM_INSECURE);
-              } else if (NS_LITERAL_CSTRING("negotiate").LowerCaseEqualsASCII(authType)) {
-                Telemetry::Accumulate(Telemetry::HTTP_AUTH_TYPE_STATS,
-                  UsingSSL() ? HTTP_AUTH_NEGOTIATE_SECURE : HTTP_AUTH_NEGOTIATE_INSECURE);
-              }
-            }
-
             // Depending on the pref setting, the authentication dialog may be
             // blocked for all sub-resources, blocked for cross-origin
             // sub-resources, or always allowed for sub-resources.
@@ -1029,27 +1011,6 @@ nsHttpChannelAuthProvider::BlockPrompt(bool proxyAuth)
             if (!NS_SecurityCompareURIs(topURI, mURI, true)) {
                 mCrossOrigin = true;
             }
-        }
-    }
-
-    if (gHttpHandler->IsTelemetryEnabled()) {
-        if (topDoc) {
-            Telemetry::Accumulate(Telemetry::HTTP_AUTH_DIALOG_STATS_3,
-                                  HTTP_AUTH_DIALOG_TOP_LEVEL_DOC);
-        } else if (nonWebContent) {
-            Telemetry::Accumulate(Telemetry::HTTP_AUTH_DIALOG_STATS_3,
-                                   HTTP_AUTH_DIALOG_NON_WEB_CONTENT);
-        } else if (!mCrossOrigin) {
-            if (xhr) {
-                Telemetry::Accumulate(Telemetry::HTTP_AUTH_DIALOG_STATS_3,
-                                      HTTP_AUTH_DIALOG_SAME_ORIGIN_XHR);
-            } else {
-                Telemetry::Accumulate(Telemetry::HTTP_AUTH_DIALOG_STATS_3,
-                                      HTTP_AUTH_DIALOG_SAME_ORIGIN_SUBRESOURCE);
-            }
-        } else {
-            Telemetry::Accumulate(Telemetry::HTTP_AUTH_DIALOG_STATS_3,
-                                  loadInfo->GetExternalContentPolicyType());
         }
     }
 

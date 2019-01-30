@@ -116,8 +116,6 @@ public:
     // Returns true if keepalives are enabled in prefs.
     bool IsKeepaliveEnabled() { return mKeepaliveEnabledPref; }
 
-    bool IsTelemetryEnabledAndNotSleepPhase() { return mTelemetryEnabledPref &&
-                                                       !mSleepPhase; }
     PRIntervalTime MaxTimeForPrClosePref() {return mMaxTimeForPrClosePref; }
 
 protected:
@@ -235,7 +233,6 @@ private:
 
     Atomic<bool>                    mServingPendingQueue;
     Atomic<int32_t, Relaxed>        mMaxTimePerPollIter;
-    Atomic<bool, Relaxed>           mTelemetryEnabledPref;
     Atomic<PRIntervalTime, Relaxed> mMaxTimeForPrClosePref;
 
     // Between a computer going to sleep and waking up the PR_*** telemetry
