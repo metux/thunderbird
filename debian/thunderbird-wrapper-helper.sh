@@ -409,7 +409,7 @@ cat << EOF
 
  ${0##*/} [args-passed-to-thunderbird...]
 
-    Some example for invoking Thunderbird from the ommand line:
+    Some example for invoking Thunderbird from the command line:
     Run in safe-mode with the JS Error console:
 
       ${0##*/} --safe-mode --jsconsole
